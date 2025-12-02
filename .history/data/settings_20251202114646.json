@@ -1,0 +1,6 @@
+{
+    "language": "pt",
+    "connection": {
+        "evolution_server": "http://localhost:8080"
+    }
+}
