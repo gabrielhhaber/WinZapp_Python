@@ -1,6 +1,11 @@
 import os
+import sys
 import wx
+import requests
+from websocket import EvolutionWebSocket
+import asyncio
 from dictionary_translation import dictionary as dt
+import json
 
 class Connect:
     def __init__(self, main_window):
@@ -13,11 +18,44 @@ class Connect:
     def show_connection_dial(self):
         self.connection_dial = wx.Dialog(None, title=dt["pt"]["connect_winzapp"], size=(300, 150))
         self.phone_number_label = wx.StaticText(self.connection_dial, label=dt["pt"]["enter_phone"])
-        self.phone_field = wx.TextCtrl(self.connection_dial, style=wx.TE_CENTER | wx.TE_DONTWRAP)
+        self.phone_field = wx.TextCtrl(self.connection_dial, style=wx.TE_CENTER | wx.TE_PROCESS_ENTER | wx.TE_DONTWRAP)
         self.continue_btn = wx.Button(self.connection_dial, label=dt["pt"]["continue"])
         self.continue_btn.Bind(wx.EVT_BUTTON, self.on_continue)
+        self.phone_field.Bind(wx.EVT_TEXT_ENTER, self.on_continue)
 
         self.connection_dial.ShowModal()
 
     def on_continue(self, event):
-        self.evolution_server = self.main_window.settings.get("connection", {}).get("evolution_server", "localhost:8080")
+        #Load connection settings
+        self.authentication_server = self.main_window.settings.get("connection", {}).get("authentication_server", "127.0.0.1")
+        self.authentication_port = self.main_window.settings.get("connection", {}).get("authentication_port", 8081)
+        self.evolution_server = self.main_window.settings.get("connection", {}).get("evolution_server", "127.0.0.1")
+        self.evolution_port = self.main_window.settings.get("connection", {}).get("evolution_port", 8080)
+
+        url = f"http://{self.authentication_server}:{self.authentication_port}/create_instance/"
+        phone_number = self.phone_field.GetValue()
+        data = {
+            "name": phone_number,
+            "number": phone_number,
+        }
+        try:
+            response = requests.post(url, json=data)
+            response_data = response.json()
+            if response_data.get("qrcode", {}).get("pairingCode"):
+                self.show_pairing_dial(response_data["qrcode"]["pairingCode"])
+            else:
+                wx.MessageBox(f"{dt["pt"]["connection_failed"]}{response.text}", dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
+        except requests.exceptions.RequestException:
+            wx.MessageBox(dt["pt"]["connection_failed"], dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
+
+    def show_pairing_dial(self, pairing_code):
+        self.pairing_dial = wx.Dialog(self.connection_dial, title=dt["pt"]["pairing_dial_intro"], size=(300, 150))
+        self.pairing_instructions = wx.StaticText(self.pairing_dial, label=dt["pt"]["pairing_instructions"])
+        self.pairing_code_label = wx.StaticText(self.pairing_dial, label=dt["pt"]["pairing_code_label"])
+        self.pairing_code_field = wx.TextCtrl(self.pairing_dial, style=wx.TE_CENTER | wx.TE_READONLY | wx.TE_DONTWRAP, value=pairing_code)
+        self.cancel_btn = wx.Button(self.pairing_dial, label="&Cancelar pareamento")
+        self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel_pairing)
+        self.pairing_dial.ShowModal()
+
+    def on_cancel_pairing(self, event):
+        self.pairing_dial.Destroy()

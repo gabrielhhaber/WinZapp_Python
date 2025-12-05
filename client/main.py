@@ -1,5 +1,7 @@
 import os
 import sys
+from websocket import EvolutionWebSocket
+import asyncio
 import wx
 from dictionary_translation import dictionary as dt
 from connect import Connect
@@ -17,7 +19,7 @@ class MainWindow(wx.Frame):
         self.nav_list_label = wx.StaticText(self, label=dt["pt"]["main_nav"])
         self.nav_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
         #Insert an unique column
-        self.nav_list.Insert(0, dt["pt"["main_nav"]])
+        self.nav_list.InsertColumn(0, dt["pt"]["main_nav"])
         #Append navigation list items
         self.nav_list.Append((dt["pt"]["conversations"],))
         self.nav_list.Append((dt["pt"]["settings"],))

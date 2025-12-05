@@ -1,7 +1,9 @@
 {
     "language": "pt",
     "connection": {
-        "evolution_server": "http://localhost:8080",
-        "authentication_server": "http://localhost:8081"
+        "authentication_server": "127.0.0.1",
+        "authentication_port": 8081,
+        "evolution_server": "127.0.0.1",
+        "evolution_port": 8080
     }
 }
