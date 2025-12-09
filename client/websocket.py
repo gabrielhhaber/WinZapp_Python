@@ -5,10 +5,10 @@ import json
 import threading
 
 class EvolutionWebSocket:
-    def __init__(self, main_window, ws_url, on_event_callback):
+    def __init__(self, main_window, ws_url):
         self.main_window = main_window
         self.ws_url = ws_url
-        self.on_event_callback = on_event_callback
+        self.on_event_callback = self.on_event
         self.stop_flag = False
 
     def start(self):

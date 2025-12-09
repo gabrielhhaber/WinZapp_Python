@@ -46,6 +46,23 @@ def add_instance(name, number):
     except requests.exceptions.RequestException as e:
         return {"program_error": format_exc(e)}
 
+    try:
+        set_websocket_for_instance(number)
+    except Exception as e:
+        return {"websocket_error": format_exc(e)}
+
+def set_websocket_for_instance(phone_number):
+    url = f"http://{EVOLUTION_HOST}:{EVOLUTION_PORT}/websocket/set/{phone_number}/"
+    payload = { "websocket": {
+        "enabled": True,
+        "events": ["CALL", "APPLICATION_STARTUP", "QRCODE_UPDATED", "MESSAGES_SET", "MESSAGES_UPSERT", "MESSAGES_UPDATE", "MESSAGES_DELETE", "SEND_MESSAGE", "CONTACTS_SET", "CONTACTS_UPSERT", "CONTACTS_UPDATE", "PRESENCE_UPDATE", "CHATS_SET", "CHATS_UPSERT", "CHATS_UPDATE", "CHATS_DELETE", "CONNECTION_UPDATE", "GROUPS_UPSERT", "GROUP_UPDATE", "CALL"]
+    } }
+    headers = {
+        "apikey": APIKEY,
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host=HOST, port=PORT)

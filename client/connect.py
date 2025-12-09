@@ -30,31 +30,41 @@ class Connect:
         self.authentication_server = self.main_window.settings.get("connection", {}).get("authentication_server", "127.0.0.1")
         self.authentication_port = self.main_window.settings.get("connection", {}).get("authentication_port", 8081)
         self.evolution_server = self.main_window.settings.get("connection", {}).get("evolution_server", "127.0.0.1")
-        self.evolution_port = self.main_window.settings.get("connection", {}).get("evolution_port", 8080)
+        self.evolution_port = self.main_window.settings.get("connection", {}).get("evolution_port", "8080")
 
         url = f"http://{self.authentication_server}:{self.authentication_port}/create_instance/"
         phone_number = self.phone_field.GetValue()
+        self.token = self.generate_random_token()
         data = {
             "name": phone_number,
             "number": phone_number,
+            "token": self.token
         }
         try:
             response = requests.post(url, json=data)
             response_data = response.json()
+            print(self.token)
             if response_data.get("qrcode", {}).get("pairingCode"):
-                self.show_pairing_dial(response_data["qrcode"]["pairingCode"])
+                self.show_pairing_dial(phone_number, response_data["qrcode"]["pairingCode"])
             else:
                 wx.MessageBox(f"{dt["pt"]["connection_failed"]}{response.text}", dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
         except requests.exceptions.RequestException:
             wx.MessageBox(dt["pt"]["connection_failed"], dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
 
-    def show_pairing_dial(self, pairing_code):
+    def generate_random_token(self):
+        return os.urandom(16).hex()
+
+    def show_pairing_dial(self, phone_number, pairing_code):
         self.pairing_dial = wx.Dialog(self.connection_dial, title=dt["pt"]["pairing_dial_intro"], size=(300, 150))
         self.pairing_instructions = wx.StaticText(self.pairing_dial, label=dt["pt"]["pairing_instructions"])
         self.pairing_code_label = wx.StaticText(self.pairing_dial, label=dt["pt"]["pairing_code_label"])
         self.pairing_code_field = wx.TextCtrl(self.pairing_dial, style=wx.TE_CENTER | wx.TE_READONLY | wx.TE_DONTWRAP, value=pairing_code)
         self.cancel_btn = wx.Button(self.pairing_dial, label="&Cancelar pareamento")
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel_pairing)
+
+        self.ws = EvolutionWebSocket(self.main_window, f"ws://{self.evolution_server}:{self.evolution_port}/instance/{phone_number}/")
+        self.ws.start()
+
         self.pairing_dial.ShowModal()
 
     def on_cancel_pairing(self, event):
