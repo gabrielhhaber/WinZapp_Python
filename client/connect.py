@@ -5,6 +5,7 @@ import requests
 from websocket import websocket_client
 import asyncio
 from dictionary_translation import dictionary as dt
+from traceback import format_exc
 import json
 
 class Connect:
@@ -41,14 +42,14 @@ class Connect:
             "token": self.token
         }
         try:
-            response = requests.post(url, json=data)
+            response = requests.post(url, json=data, verify=False)
             response_data = response.json()
             if response_data.get("qrcode", {}).get("pairingCode"):
                 self.show_pairing_dial(response_data["qrcode"]["pairingCode"])
             else:
                 wx.MessageBox(f"{dt["pt"]["connection_failed"]}{response.text}", dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
-        except requests.exceptions.RequestException:
-            wx.MessageBox(dt["pt"]["connection_failed"], dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
+        except requests.exceptions.RequestException as e:
+            wx.MessageBox(f"{dt["pt"]["connection_failed"]} {format_exc(e)}", dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
 
     def generate_random_token(self):
         return os.urandom(16).hex()
