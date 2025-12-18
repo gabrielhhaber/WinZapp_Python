@@ -43,10 +43,10 @@ def add_instance(name, number, token):
     }
 
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, verify=False)
         if response.status_code == 201:
             try:
-                set_websocket_for_instance(token)
+                set_websocket_for_instance(number)
             except Exception as e:
                 return {"websocket_error": format_exc()}
             return response.json()
@@ -54,8 +54,8 @@ def add_instance(name, number, token):
     except requests.exceptions.RequestException as e:
         return {"program_error": format_exc()}
 
-def set_websocket_for_instance(token):
-    url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/websocket/set/{token}/"
+def set_websocket_for_instance(number):
+    url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/websocket/set/{number}/"
     payload = { "websocket": {
         "enabled": True,
         "events": ["CALL", "APPLICATION_STARTUP", "QRCODE_UPDATED", "MESSAGES_SET", "MESSAGES_UPSERT", "MESSAGES_UPDATE", "MESSAGES_DELETE", "SEND_MESSAGE", "CONTACTS_SET", "CONTACTS_UPSERT", "CONTACTS_UPDATE", "PRESENCE_UPDATE", "CHATS_SET", "CHATS_UPSERT", "CHATS_UPDATE", "CHATS_DELETE", "CONNECTION_UPDATE", "GROUPS_UPSERT", "GROUP_UPDATE", "CALL"]
