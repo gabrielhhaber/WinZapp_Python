@@ -1,8 +1,9 @@
 import os
 import sys
+import threading
 import wx
 import requests
-from websocket import websocket_client
+from websocket_client import websocket_client
 import asyncio
 from dictionary_translation import dictionary as dt
 from traceback import format_exc
@@ -74,4 +75,4 @@ class Connect:
 
     def on_cancel_pairing(self, event):
         self.pairing_dial.Destroy()
-        self.ws.close()
+        self.ws.disconnect()

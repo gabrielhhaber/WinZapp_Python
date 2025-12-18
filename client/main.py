@@ -1,6 +1,6 @@
 import os
 import sys
-from websocket import websocket_client
+from websocket_client import websocket_client
 import wx
 from dictionary_translation import dictionary as dt
 from connect import Connect
