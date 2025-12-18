@@ -48,11 +48,11 @@ def add_instance(name, number, token):
             try:
                 set_websocket_for_instance(token)
             except Exception as e:
-                return {"websocket_error": format_exc(e)}
+                return {"websocket_error": format_exc()}
             return response.json()
         return {"error": f"Could not create instance. {response.text}"}
     except requests.exceptions.RequestException as e:
-        return {"program_error": format_exc(e)}
+        return {"program_error": format_exc()}
 
 def set_websocket_for_instance(token):
     url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/websocket/set/{token}/"

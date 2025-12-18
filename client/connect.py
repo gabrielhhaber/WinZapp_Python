@@ -49,7 +49,7 @@ class Connect:
             else:
                 wx.MessageBox(f"{dt["pt"]["connection_failed"]}{response.text}", dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
         except requests.exceptions.RequestException as e:
-            wx.MessageBox(f"{dt["pt"]["connection_failed"]} {format_exc(e)}", dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(f"{dt["pt"]["connection_failed"]} {format_exc()}", dt["pt"]["connection_error"], wx.OK | wx.ICON_ERROR)
 
     def generate_random_token(self):
         return os.urandom(16).hex()

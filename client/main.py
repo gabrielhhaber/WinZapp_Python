@@ -27,7 +27,7 @@ class MainWindow(wx.Frame):
         try:
             self.settings = json.load(open(os.path.join(os.getcwd(), "data", "settings.json"), "r"))
         except Exception as e:
-            wx.MessageBox(f"Erro ao carregar o arquivo de configuração: {format_exc(e)}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(f"Erro ao carregar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
             sys.exit()
 
 
