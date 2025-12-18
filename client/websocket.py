@@ -4,7 +4,7 @@ import json
 from traceback import format_exc
 
 websocket_client = socketio.Client(
-    ssl_verify=r"C:/Users/Gabri/AppData/Local/mkcert/rootCA.pem"
+    ssl_verify=False
 )
 
 @websocket_client.event

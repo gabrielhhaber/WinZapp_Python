@@ -65,7 +65,7 @@ def set_websocket_for_instance(number):
         "Content-Type": "application/json"
     }
 
-    response = requests.post(url, json=payload, headers=headers)
+    response = requests.post(url, json=payload, verify=False, headers=headers)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host=HOST, port=PORT, ssl_certfile=SSL_CERTFILE, ssl_keyfile=SSL_KEYFILE)

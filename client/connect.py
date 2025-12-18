@@ -69,7 +69,7 @@ class Connect:
         self.pairing_dial.ShowModal()
 
     def connect_websocket(self):
-        self.ws.connect(f"https://{self.evolution_server}:{self.evolution_port}/{self.phone_number}", socketio_path="socket.io", headers={"apikey": self.token})
+        self.ws.connect(f"wss://{self.evolution_server}:{self.evolution_port}/{self.phone_number}", socketio_path="socket.io", headers={"apikey": self.token})
         self.ws.wait()
 
     def on_cancel_pairing(self, event):
