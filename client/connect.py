@@ -1,10 +1,10 @@
 import os
 import sys
 import threading
+import socketio
 import wx
 import requests
-from websocket_client import websocket_client
-import asyncio
+from websocket_client import WebSocketClient
 from dictionary_translation import dictionary as dt
 from traceback import format_exc
 import json
@@ -63,16 +63,18 @@ class Connect:
         self.cancel_btn = wx.Button(self.pairing_dial, label=dt["pt"]["cancel_pairing"])
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel_pairing)
 
-        self.ws = websocket_client
+        self.ws = WebSocketClient(self.main_window)
+
         self._socket_thread = threading.Thread(target=self.connect_websocket, daemon=True)
         self._socket_thread.start()
 
         self.pairing_dial.ShowModal()
 
     def connect_websocket(self):
-        self.ws.connect(f"wss://{self.evolution_server}:{self.evolution_port}/{self.phone_number}", socketio_path="socket.io", headers={"apikey": self.token})
-        self.ws.wait()
+        self.ws.sio.connect(f"wss://{self.evolution_server}:{self.evolution_port}/{self.phone_number}", socketio_path="socket.io", headers={"apikey": self.token})
+        self.ws.sio.wait()
 
     def on_cancel_pairing(self, event):
         self.pairing_dial.Destroy()
         self.ws.disconnect()
+

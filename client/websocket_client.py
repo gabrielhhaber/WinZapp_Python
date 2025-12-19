@@ -3,24 +3,30 @@ import wx
 import json
 from traceback import format_exc
 
-websocket_client = socketio.Client(
-    ssl_verify=False
-)
+class WebSocketClient:
+    def __init__(self, main_window):
+        self.main_window = main_window
 
-@websocket_client.event
-def connect():
-    print("WebSocket connected.")
+        self.sio = socketio.Client(
+            ssl_verify=False
+        )
+        self.sio.on("connection.update", self.on_connection_update)
+        self.sio.on("qrcode.updated", self.on_qrcode_update)
 
-@websocket_client.event
-def disconnect():
-    print("WebSocket disconnected.")
+    def on_connection_update(self, data):
+        try:
+            message = json.loads(data)
+        except json.JSONDecodeError as e:
+            wx.MessageBox(f"Erro ao decodificar a mensagem do WebSocket: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR, self.main_window.connect.connection_dial)
+            return
 
-@websocket_client.on("message")
-def on_message(data):
-    try:
-        message = json.loads(data)
-        print(f"Received message: {message}")
-    except json.JSONDecodeError:
-        print("Failed to decode JSON message.")
-    except Exception:
-        print(f"An error occurred: {format_exc()}")
+        print(message)
+
+    def on_qrcode_update(self, data):
+        try:
+            message = json.loads(data)
+        except json.JSONDecodeError as e:
+            wx.MessageBox(f"Erro ao decodificar a mensagem do WebSocket: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR, self.main_window.connect.connection_dial)
+            return
+
+        print(message)
