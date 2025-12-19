@@ -12,6 +12,7 @@ import json
 class Connect:
     def __init__(self, main_window):
         self.main_window = main_window
+
     def check_connection_status(self):
         #Look for a valid user token file
         user_token_path = os.path.join(os.getcwd(), "token.tk")
@@ -63,18 +64,16 @@ class Connect:
         self.cancel_btn = wx.Button(self.pairing_dial, label=dt["pt"]["cancel_pairing"])
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel_pairing)
 
-        self.ws = WebSocketClient(self.main_window)
+        self.ws = WebSocketClient(self.main_window, self.phone_number)
 
-        self._socket_thread = threading.Thread(target=self.connect_websocket, daemon=True)
-        self._socket_thread.start()
+        self.connect_websocket()
 
         self.pairing_dial.ShowModal()
 
     def connect_websocket(self):
-        self.ws.sio.connect(f"wss://{self.evolution_server}:{self.evolution_port}/{self.phone_number}", socketio_path="socket.io", headers={"apikey": self.token})
-        self.ws.sio.wait()
+        self.ws.sio.connect(f"wss://{self.evolution_server}:{self.evolution_port}/", socketio_path="socket.io", headers={"apikey": self.token}, namespaces=[f"/{self.phone_number}"])
 
     def on_cancel_pairing(self, event):
         self.pairing_dial.Destroy()
-        self.ws.disconnect()
+        self.ws.sio.disconnect()
 

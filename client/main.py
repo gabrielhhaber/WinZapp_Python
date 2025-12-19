@@ -1,6 +1,7 @@
 import os
 import sys
 import socketio
+from accessible_output2 import outputs
 from websocket_client import WebSocketClient
 import wx
 from dictionary_translation import dictionary as dt
@@ -11,6 +12,9 @@ from traceback import format_exc
 class MainWindow(wx.Frame):
     def __init__(self, title):
         super().__init__(None, title=title)
+
+        self.speak_output = outputs.auto.Auto()
+
         self.settings = {}
         #Initialize helper classes
         self.connect = Connect(self)
@@ -23,6 +27,9 @@ class MainWindow(wx.Frame):
         #Append navigation list items
         self.nav_list.Append((dt["pt"]["conversations"],))
         self.nav_list.Append((dt["pt"]["settings"],))
+
+    def output(self, text, interrupt=False):
+        self.speak_output.output(text, interrupt=interrupt)
 
     def load_settings(self):
         try:
