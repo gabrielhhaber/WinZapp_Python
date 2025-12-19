@@ -1,12 +1,14 @@
 import socketio
 import wx
 import json
-from dictionary_translation import dictionary as dt
+from i18n import I18n
 from traceback import format_exc
 
 class WebSocketClient:
     def __init__(self, main_window, instance_name):
         self.main_window = main_window
+        #Initialize i18n
+        self.i18n = I18n(self.main_window)
         self.instance_name = instance_name
 
         self.sio = socketio.Client(
@@ -29,6 +31,6 @@ class WebSocketClient:
         print(data)
 
     def on_qrcode_update(self, data):
-        self.main_window.speak_output.output(dt["pt"]["qrcode_updated"])
+        self.main_window.speak_output.output(self.i18n.t("qrcode_updated"))
         self.main_window.connect.pairing_code_field.SetValue(data.get("qrcode", {}).get("pairingCode", ""))
 

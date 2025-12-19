@@ -3,8 +3,8 @@ import sys
 import socketio
 from accessible_output2 import outputs
 from websocket_client import WebSocketClient
+from i18n import I18n
 import wx
-from dictionary_translation import dictionary as dt
 from connect import Connect
 import json
 from traceback import format_exc
@@ -13,20 +13,25 @@ class MainWindow(wx.Frame):
     def __init__(self, title):
         super().__init__(None, title=title)
 
+        #Initialize screen reader/sapi output
         self.speak_output = outputs.auto.Auto()
 
         self.settings = {}
+
         #Initialize helper classes
         self.connect = Connect(self)
         #Load client settings
         self.load_settings()
-        self.nav_list_label = wx.StaticText(self, label=dt["pt"]["main_nav"])
+        #Initialize i18n
+        self.i18n = I18n(self)
+        self.i18n.get_language()
+
+        self.nav_list_label = wx.StaticText(self, label=self.i18n.t("main_nav"))
         self.nav_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
         #Insert an unique column
-        self.nav_list.InsertColumn(0, dt["pt"]["main_nav"])
+        self.nav_list.InsertColumn(0, self.i18n.t("main_nav"), width=200)
         #Append navigation list items
-        self.nav_list.Append((dt["pt"]["conversations"],))
-        self.nav_list.Append((dt["pt"]["settings"],))
+        self.nav_list.Append((self.i18n.t("conversations"),))
 
     def output(self, text, interrupt=False):
         self.speak_output.output(text, interrupt=interrupt)
@@ -37,6 +42,12 @@ class MainWindow(wx.Frame):
         except Exception as e:
             wx.MessageBox(f"Erro ao carregar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
             sys.exit()
+
+    def save_settings(self):
+        try:
+            json.dump(self.settings, open(os.path.join(os.getcwd(), "data", "settings.json"), "w"), indent=4)
+        except Exception as e:
+            wx.MessageBox(f"Erro ao salvar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
 
 
 if __name__ == "__main__":

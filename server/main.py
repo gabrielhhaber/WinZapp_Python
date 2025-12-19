@@ -34,7 +34,6 @@ def add_instance(name, number, token):
         "integration": "WHATSAPP-BAILEYS",
         "number": number,
         "token": token,
-        "qrcode": True,
 "syncFullHistory": True
     }
     headers = {
@@ -44,15 +43,22 @@ def add_instance(name, number, token):
 
     try:
         response = requests.post(url, json=payload, headers=headers, verify=False)
-        if response.status_code == 201:
-            try:
-                set_websocket_for_instance(number)
-            except Exception as e:
-                return {"websocket_error": format_exc()}
-            return response.json()
-        return {"error": f"Could not create instance. {response.text}"}
-    except requests.exceptions.RequestException as e:
+        set_websocket_for_instance(number)
+        final_response = connect_instance(number)
+        return final_response.json()
+    except Exception as e:
         return {"program_error": format_exc()}
+
+def connect_instance(number):
+    url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/instance/connect/{number}/"
+    querystring = {"number": number}
+    headers = {
+        "apikey": APIKEY,
+        "Content-Type": "application/json"
+    }
+
+    response = requests.get(url, params=querystring, verify=False, headers=headers)
+    return response
 
 def set_websocket_for_instance(number):
     url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/websocket/set/{number}/"
