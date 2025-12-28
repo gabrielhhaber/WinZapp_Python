@@ -43,14 +43,14 @@ def add_instance(name, number, token):
 
     try:
         response = requests.post(url, json=payload, headers=headers, verify=False)
-        set_websocket_for_instance(number)
-        final_response = connect_instance(number)
+        set_websocket_for_instance(token)
+        final_response = connect_instance(number, token)
         return final_response.json()
     except Exception as e:
         return {"program_error": format_exc()}
 
-def connect_instance(number):
-    url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/instance/connect/{number}/"
+def connect_instance(number, token):
+    url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/instance/connect/{token}/"
     querystring = {"number": number}
     headers = {
         "apikey": APIKEY,
@@ -60,8 +60,8 @@ def connect_instance(number):
     response = requests.get(url, params=querystring, verify=False, headers=headers)
     return response
 
-def set_websocket_for_instance(number):
-    url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/websocket/set/{number}/"
+def set_websocket_for_instance(token):
+    url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/websocket/set/{token}/"
     payload = { "websocket": {
         "enabled": True,
         "events": ["CALL", "APPLICATION_STARTUP", "QRCODE_UPDATED", "MESSAGES_SET", "MESSAGES_UPSERT", "MESSAGES_UPDATE", "MESSAGES_DELETE", "SEND_MESSAGE", "CONTACTS_SET", "CONTACTS_UPSERT", "CONTACTS_UPDATE", "PRESENCE_UPDATE", "CHATS_SET", "CHATS_UPSERT", "CHATS_UPDATE", "CHATS_DELETE", "CONNECTION_UPDATE", "GROUPS_UPSERT", "GROUP_UPDATE", "CALL"]

@@ -41,7 +41,7 @@ class Connect:
         self.phone_number = self.phone_field.GetValue()
         self.token = self.generate_random_token()
         data = {
-            "name": self.phone_number,
+            "name": self.token,
             "number": self.phone_number,
             "token": self.token
         }
@@ -63,14 +63,14 @@ class Connect:
         self.cancel_btn = wx.Button(self.pairing_dial, label=self.i18n.t("cancel_pairing"))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel_pairing)
 
-        self.ws = WebSocketClient(self.main_window, self.phone_number)
+        self.ws = WebSocketClient(self.main_window, self.token)
 
         self.connect_websocket()
 
         self.pairing_dial.ShowModal()
 
     def connect_websocket(self):
-        self.ws.sio.connect(f"wss://{self.evolution_server}:{self.evolution_port}/", socketio_path="socket.io", headers={"apikey": self.token}, namespaces=[f"/{self.phone_number}"])
+        self.ws.sio.connect(f"wss://{self.evolution_server}:{self.evolution_port}/", socketio_path="socket.io", headers={"apikey": self.token}, namespaces=[f"/{self.token}"])
 
     def on_cancel_pairing(self, event):
         self.pairing_dial.Destroy()

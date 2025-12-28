@@ -14,7 +14,7 @@ class WebSocketClient:
         self.sio = socketio.Client(
             ssl_verify=False,
             reconnection=True, reconnection_attempts=5,
-            logger=True, engineio_logger=True
+            logger=True
         )
         self.sio.on("connect", self.on_connect, namespace=f"/{self.instance_name}")
         self.sio.on("disconnect", self.on_disconnect, namespace=f"/{self.instance_name}")
@@ -30,7 +30,8 @@ class WebSocketClient:
     def on_connection_update(self, data):
         print(data)
 
-    def on_qrcode_update(self, data):
+    def on_qrcode_update(self, info):
+        print(info)
         self.main_window.speak_output.output(self.i18n.t("qrcode_updated"))
-        self.main_window.connect.pairing_code_field.SetValue(data.get("qrcode", {}).get("pairingCode", ""))
+        self.main_window.connect.pairing_code_field.SetValue(info.get("data", {}).get("qrcode", {}).get("pairingCode", ""))
 
