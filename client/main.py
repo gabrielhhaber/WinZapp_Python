@@ -3,6 +3,7 @@ import sys
 import socketio
 from accessible_output2 import outputs
 from websocket_client import WebSocketClient
+from sound_system import SoundSystem, Sound
 from i18n import I18n
 import wx
 from connect import Connect
@@ -15,6 +16,11 @@ class MainWindow(wx.Frame):
 
         #Initialize screen reader/sapi output
         self.speak_output = outputs.auto.Auto()
+
+        #Initialize sound system
+        self.sound_system = SoundSystem(sound_dir=os.path.join(os.getcwd(), "sounds"))
+        self.sound_system.start()
+        self.load_sounds()
 
         self.settings = {}
 
@@ -48,6 +54,9 @@ class MainWindow(wx.Frame):
             json.dump(self.settings, open(os.path.join(os.getcwd(), "data", "settings.json"), "w"), indent=4)
         except Exception as e:
             wx.MessageBox(f"Erro ao salvar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
+
+    def load_sounds(self):
+        self.pairing_code_updated_sound = Sound(self.sound_system, "pairing_code_updated.ogg")
 
 
 if __name__ == "__main__":

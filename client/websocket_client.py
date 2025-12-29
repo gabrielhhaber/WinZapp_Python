@@ -32,6 +32,7 @@ class WebSocketClient:
 
     def on_qrcode_update(self, info):
         print(info)
+        self.main_window.pairing_code_updated_sound.play()
         self.main_window.speak_output.output(self.i18n.t("qrcode_updated"))
         self.main_window.connect.pairing_code_field.SetValue(info.get("data", {}).get("qrcode", {}).get("pairingCode", ""))
 
