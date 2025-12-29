@@ -49,7 +49,7 @@ class Connect:
             response = requests.post(url, json=data, verify=False)
             response_data = response.json()
             self.show_pairing_dial(response_data["pairingCode"])
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             wx.MessageBox(f"{self.i18n.t("connection_failed")} {format_exc()}", self.i18n.t("connection_error"), wx.OK | wx.ICON_ERROR)
 
     def generate_random_token(self):
@@ -67,6 +67,7 @@ class Connect:
 
         self.connect_websocket()
 
+        self.main_window.waiting_pairing_sound.play()
         self.pairing_dial.ShowModal()
 
     def connect_websocket(self):

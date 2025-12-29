@@ -56,7 +56,10 @@ class MainWindow(wx.Frame):
             wx.MessageBox(f"Erro ao salvar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
 
     def load_sounds(self):
+        self.waiting_pairing_sound = Sound(self.sound_system, "waiting_pairing.ogg")
         self.pairing_code_updated_sound = Sound(self.sound_system, "pairing_code_updated.ogg")
+        self.connected_sound = Sound(self.sound_system, "connected.ogg")
+        self.synchronizing_sound = Sound(self.sound_system, "synchronizing.ogg")
 
 
 if __name__ == "__main__":
