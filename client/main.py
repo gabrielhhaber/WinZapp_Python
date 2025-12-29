@@ -31,6 +31,8 @@ class MainWindow(wx.Frame):
         #Initialize i18n
         self.i18n = I18n(self)
         self.i18n.get_language()
+        #Play startup sound
+        self.startup_sound.play()
 
         self.nav_list_label = wx.StaticText(self, label=self.i18n.t("main_nav"))
         self.nav_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
@@ -56,6 +58,7 @@ class MainWindow(wx.Frame):
             wx.MessageBox(f"Erro ao salvar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
 
     def load_sounds(self):
+        self.startup_sound = Sound(self.sound_system, "startup.ogg")
         self.waiting_pairing_sound = Sound(self.sound_system, "waiting_pairing.ogg")
         self.pairing_code_updated_sound = Sound(self.sound_system, "pairing_code_updated.ogg")
         self.connected_sound = Sound(self.sound_system, "connected.ogg")
