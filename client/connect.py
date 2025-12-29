@@ -50,6 +50,7 @@ class Connect:
             response_data = response.json()
             self.show_pairing_dial(response_data["pairingCode"])
         except Exception as e:
+            self.main_window.error_sound.play()
             wx.MessageBox(f"{self.i18n.t("connection_failed")} {format_exc()}", self.i18n.t("connection_error"), wx.OK | wx.ICON_ERROR)
 
     def generate_random_token(self):

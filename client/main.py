@@ -48,6 +48,7 @@ class MainWindow(wx.Frame):
         try:
             self.settings = json.load(open(os.path.join(os.getcwd(), "data", "settings.json"), "r"))
         except Exception as e:
+            self.error_sound.play()
             wx.MessageBox(f"Erro ao carregar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
             sys.exit()
 
@@ -55,10 +56,12 @@ class MainWindow(wx.Frame):
         try:
             json.dump(self.settings, open(os.path.join(os.getcwd(), "data", "settings.json"), "w"), indent=4)
         except Exception as e:
+            self.error_sound.play()
             wx.MessageBox(f"Erro ao salvar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
 
     def load_sounds(self):
         self.startup_sound = Sound(self.sound_system, "startup.ogg")
+        self.error_sound = Sound(self.sound_system, "error.ogg")
         self.waiting_pairing_sound = Sound(self.sound_system, "waiting_pairing.ogg")
         self.pairing_code_updated_sound = Sound(self.sound_system, "pairing_code_updated.ogg")
         self.connected_sound = Sound(self.sound_system, "connected.ogg")
