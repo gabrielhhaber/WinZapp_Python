@@ -43,9 +43,9 @@ class Connect:
             url = f"https://{self.authentication_server}:{self.authentication_port}/create_instance/"
             self.phone_number = self.phone_field.GetValue()
             #Check if the user has already tried to connect with this number
-            if self.settings.get("privateinfo", {}).get("WA_phone_number", "") == self.phone_number:
+            if self.main_window.settings.get("privateinfo", {}).get("WA_phone_number", "") == self.phone_number:
                 #Assume token available
-                self.token = self.settings.get("privateinfo", {}).get("WA_token", "")
+                self.token = self.main_window.settings.get("privateinfo", {}).get("WA_token", "")
             else:
                 self.token = self.generate_random_token()
                 #Set the new token and phone number in settings
