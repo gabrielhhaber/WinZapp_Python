@@ -27,6 +27,8 @@ class Connect:
         self.continue_btn = wx.Button(self.connection_dial, label=self.i18n.t("continue"))
         self.continue_btn.Bind(wx.EVT_BUTTON, self.on_continue)
         self.phone_field.Bind(wx.EVT_TEXT_ENTER, self.on_continue)
+        self.quit_btn = wx.Button(self.connection_dial, wx.ID_CANCEL, "&Sair")
+        self.quit_btn.Bind(wx.EVT_BUTTON, self.on_quit_from_connect)
 
         self.connection_dial.ShowModal()
 
@@ -37,18 +39,42 @@ class Connect:
         self.evolution_server = self.main_window.settings.get("connection", {}).get("evolution_server", "127.0.0.1")
         self.evolution_port = self.main_window.settings.get("connection", {}).get("evolution_port", "8080")
 
-        url = f"https://{self.authentication_server}:{self.authentication_port}/create_instance/"
-        self.phone_number = self.phone_field.GetValue()
-        self.token = self.generate_random_token()
-        data = {
-            "name": self.token,
-            "number": self.phone_number,
-            "token": self.token
-        }
         try:
-            response = requests.post(url, json=data, verify=False)
+            url = f"https://{self.authentication_server}:{self.authentication_port}/create_instance/"
+            self.phone_number = self.phone_field.GetValue()
+            #Check if the user has already tried to connect with this number
+            if self.settings.get("privateinfo", {}).get("WA_phone_number", "") == self.phone_number:
+                #Assume token available
+                self.token = self.settings.get("privateinfo", {}).get("WA_token", "")
+            else:
+                self.token = self.generate_random_token()
+                #Set the new token and phone number in settings
+                if "privateinfo" not in self.main_window.settings:
+                    self.main_window.settings["privateinfo"] = {}
+                self.main_window.settings["privateinfo"]["WA_phone_number"] = self.phone_number
+                self.main_window.settings["privateinfo"]["WA_token"] = self.token
+                #Create new instance
+                data = {
+                    "name": self.token,
+                    "number": self.phone_number,
+                    "token": self.token
+                }
+                response = requests.post(url, json=data, verify=False)
+                response_data = response.json()
+
+            #Connect instance
+            url = f"https://{self.evolution_server}:{self.evolution_port}/instance/connect/{self.token}/"
+            querystring = {"number": self.phone_number}
+            headers = {
+                "apikey": self.token,
+                "Content-Type": "application/json"
+            }
+
+            response = requests.get(url, params=querystring, verify=False, headers=headers)
             response_data = response.json()
+
             self.show_pairing_dial(response_data["pairingCode"])
+
         except Exception as e:
             self.main_window.error_sound.play()
             wx.MessageBox(f"{self.i18n.t("connection_failed")} {format_exc()}", self.i18n.t("connection_error"), wx.OK | wx.ICON_ERROR)
@@ -78,3 +104,5 @@ class Connect:
         self.pairing_dial.Destroy()
         self.ws.sio.disconnect()
 
+    def on_quit_from_connect(self, event):
+        sys.exit()

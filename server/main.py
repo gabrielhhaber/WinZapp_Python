@@ -44,21 +44,10 @@ def add_instance(name, number, token):
     try:
         response = requests.post(url, json=payload, headers=headers, verify=False)
         set_websocket_for_instance(token)
-        final_response = connect_instance(number, token)
-        return final_response.json()
+        return response.json()
     except Exception as e:
-        return {"program_error": format_exc()}
+        return {"internal_server_error": format_exc()}
 
-def connect_instance(number, token):
-    url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/instance/connect/{token}/"
-    querystring = {"number": number}
-    headers = {
-        "apikey": APIKEY,
-        "Content-Type": "application/json"
-    }
-
-    response = requests.get(url, params=querystring, verify=False, headers=headers)
-    return response
 
 def set_websocket_for_instance(token):
     url = f"https://{EVOLUTION_HOST}:{EVOLUTION_PORT}/websocket/set/{token}/"

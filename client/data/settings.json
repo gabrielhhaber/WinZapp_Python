@@ -9,5 +9,9 @@
     "status": {
         "terms_alert_displayed": false,
         "connection_status": "disconnected"
+    },
+    "privateinfo": {
+        "WA_phone_number": "",
+        "WA_token": ""
     }
 }
