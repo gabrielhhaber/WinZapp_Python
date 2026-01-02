@@ -17,7 +17,7 @@ class Connect:
 
     def check_connection_status(self):
         #Look for a valid user token file
-        user_token_path = os.path.join(os.getcwd(), "token.tk")
+        user_token_path = os.path.join(os.getcwd(), "data", "token.tk")
         return os.path.isfile(user_token_path)
 
     def show_connection_dial(self):
