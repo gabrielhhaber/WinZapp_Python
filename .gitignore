@@ -1,5 +1,7 @@
 #project related files
 .history/
+client/data/messages.dat
+client/data/token.tk
 server/.env
 
 # Byte-compiled / optimized / DLL files
