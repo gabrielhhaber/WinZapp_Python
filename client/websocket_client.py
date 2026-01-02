@@ -42,7 +42,7 @@ class WebSocketClient:
     def on_pairing_complete(self):
         #Saves the new user token in the program directory
         try:
-            self.save_token(self.main_window.token)
+            self.save_token(self.instance_name)
         except Exception as e:
             self.main_window.error_sound.play()
             wx.MessageBox(f"{self.i18n.t('token_save_failed')} {format_exc()}", self.i18n.t("error"), wx.OK | wx.ICON_ERROR)
