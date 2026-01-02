@@ -1,3 +1,4 @@
+import os
 import sys
 import socketio
 import wx
@@ -50,9 +51,10 @@ class WebSocketClient:
         self.main_window.pairing_dial.Destroy()
         self.main_window.connection_dial.Destroy()
         self.main_window.start_sync()
+        self.main_window.Show()
 
     def save_token(self, token):
-        with open("token.tk", "w") as token_file:
+        with open(os.path.join(os.getcwd(), "data", "token.tk"), "w") as token_file:
             token_file.write(token)
 
 
