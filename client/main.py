@@ -49,7 +49,7 @@ class MainWindow(wx.Frame):
             self.settings = json.load(open(os.path.join(os.getcwd(), "data", "settings.json"), "r"))
         except Exception as e:
             self.error_sound.play()
-            wx.MessageBox(f"Erro ao carregar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(f"{self.i18n.t["settings_load_failed"]} {format_exc()}", self.i18n.t["error"], wx.OK | wx.ICON_ERROR)
             sys.exit()
 
     def save_settings(self):
@@ -57,7 +57,7 @@ class MainWindow(wx.Frame):
             json.dump(self.settings, open(os.path.join(os.getcwd(), "data", "settings.json"), "w"), indent=4)
         except Exception as e:
             self.error_sound.play()
-            wx.MessageBox(f"Erro ao salvar o arquivo de configuração: {format_exc()}", "Erro do WinZapp", wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(f"{self.i18n.t["settings_save_failed"]} {format_exc()}", self.i18n.t["error"], wx.OK | wx.ICON_ERROR)
 
     def load_sounds(self):
         self.startup_sound = Sound(self.sound_system, "startup.ogg")
@@ -67,12 +67,18 @@ class MainWindow(wx.Frame):
         self.connected_sound = Sound(self.sound_system, "connected.ogg")
         self.synchronizing_sound = Sound(self.sound_system, "synchronizing.ogg")
 
+    def start_sync(self):
+        self.connected_sound.play()
+        self.synchronizing_sound.play()
+        self.output(self.i18n.t("synchronization_started"), interrupt=True)
+
 
 if __name__ == "__main__":
     app = wx.App()
     frame = MainWindow(title="WinZapp")
     if frame.connect.check_connection_status():
         frame.Show()
+        frame.start_sync()
         app.MainLoop()
     else:
         frame.connect.show_connection_dial()

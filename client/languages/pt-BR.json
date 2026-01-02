@@ -1,5 +1,5 @@
 {
-"connect_winzapp": "Conectar ao WinZapp",
+    "connect_winzapp": "Conectar ao WinZapp",
     "enter_phone": "&Digite seu número de telefone + código do país (apenas números)",
     "continue": "&Continuar",
     "connection_error": "Erro de conexão",
@@ -10,5 +10,12 @@
     "qrcode_updated": "O código de pareamento foi atualizado.",
     "cancel_pairing": "&Cancelar pareamento",
     "main_nav": "&Navegação principal",
-    "conversations": "Conversas alt+1"
+    "conversations": "Conversas alt+1",
+
+    "error": "Erro do WinZapp",
+    "token_save_failed": "Falha ao salvar o token do usuário.",
+    "instance_state_changed": "Ocorreu um evento inesperado. O status da instância mudou ou parece estar desconectado. Por favor, tente realizar o pareamento novamente.",
+    "settings_load_failed": "Falha ao carregar o arquivo de configuração:",
+    "settings_save_failed": "Ocorreu um erro ao salvar as configurações:",
+    "synchronization_started": "Sincronizando conversas..."
 }

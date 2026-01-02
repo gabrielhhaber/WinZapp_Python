@@ -72,6 +72,7 @@ class Connect:
 
             response = requests.get(url, params=querystring, verify=False, headers=headers)
             response_data = response.json()
+            print(response_data)
 
             self.show_pairing_dial(response_data["pairingCode"])
 

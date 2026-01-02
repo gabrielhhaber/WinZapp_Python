@@ -7,8 +7,7 @@
         "evolution_port": 8080
     },
     "status": {
-        "terms_alert_displayed": false,
-        "connection_status": "disconnected"
+        "terms_alert_displayed": false
     },
     "privateinfo": {
         "WA_phone_number": "",
