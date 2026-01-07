@@ -48,8 +48,8 @@ class WebSocketClient:
             wx.MessageBox(f"{self.i18n.t('token_save_failed')} {format_exc()}", self.i18n.t("error"), wx.OK | wx.ICON_ERROR)
             sys.exit()
 
-        self.main_window.pairing_dial.Destroy()
-        self.main_window.connection_dial.Destroy()
+        self.main_window.connect.pairing_dial.Destroy()
+        self.main_window.connect.connection_dial.Destroy()
         self.main_window.start_sync()
         self.main_window.Show()
 

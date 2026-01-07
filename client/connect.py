@@ -74,7 +74,7 @@ class Connect:
             response_data = response.json()
             print(response_data)
 
-            self.show_pairing_dial(response_data["pairingCode"])
+            self.show_pairing_dial(response_data.get("pairingCode"))
 
         except Exception as e:
             self.main_window.error_sound.play()
