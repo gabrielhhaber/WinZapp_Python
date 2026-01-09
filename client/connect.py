@@ -14,6 +14,7 @@ class Connect:
         self.main_window = main_window
         #initialize i18n
         self.i18n = I18n(self.main_window)
+        self.i18n.get_language()
 
     def check_connection_status(self):
         #Look for a valid user token file
@@ -39,6 +40,7 @@ class Connect:
         self.evolution_server = self.main_window.settings.get("connection", {}).get("evolution_server", "127.0.0.1")
         self.evolution_port = self.main_window.settings.get("connection", {}).get("evolution_port", "8080")
 
+        #Tries to create the instance
         try:
             url = f"https://{self.authentication_server}:{self.authentication_port}/create_instance/"
             self.phone_number = self.phone_field.GetValue()

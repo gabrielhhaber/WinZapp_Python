@@ -1,5 +1,5 @@
 {
-    "language": "pt",
+    "language": "pt-BR",
     "connection": {
         "authentication_server": "127.0.0.1",
         "authentication_port": 8081,

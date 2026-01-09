@@ -75,6 +75,10 @@ class MainWindow(wx.Frame):
         self.synchronizing_sound.play()
         self.output(self.i18n.t("synchronization_started"), interrupt=True)
 
+    def show_window(self):
+        self.Show()
+        app.MainLoop()
+
     def create_basic_files(self):
         data_dir = os.path.join(os.getcwd(), "data")
         if not os.path.exists(data_dir):
@@ -100,8 +104,7 @@ if __name__ == "__main__":
     app = wx.App()
     frame = MainWindow(title="WinZapp")
     if frame.connect.check_connection_status():
-        frame.Show()
         frame.start_sync()
-        app.MainLoop()
+        frame.show_window()
     else:
         frame.connect.show_connection_dial()

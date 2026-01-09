@@ -13,6 +13,7 @@ class WebSocketClient:
         self.instance_name = instance_name
         #Initialize i18n
         self.i18n = I18n(self.main_window)
+        self.i18n.get_language()
 
         self.sio = socketio.Client(
             ssl_verify=False,
@@ -36,9 +37,9 @@ class WebSocketClient:
         connection_state = info.get("data", {}).get("state", "")
         if connection_state == "open":
             self.on_pairing_complete()
-        else:
+        elif connection_state == "close":
             self.main_window.error_sound.play()
-            wx.MessageBox(self.i18n.t["instance_state_changed"], self.i18n.t["error"], wx.OK | wx.ICON_ERROR, self.connect.pairing_dial)
+            wx.MessageBox(self.i18n.t("instance_state_changed"), self.i18n.t("error"), wx.OK | wx.ICON_ERROR, self.connect.pairing_dial)
 
     def on_pairing_complete(self):
         #Saves the new user token in the data  directory
@@ -52,7 +53,7 @@ class WebSocketClient:
         self.connect.pairing_dial.Destroy()
         self.connect.connection_dial.Destroy()
         self.main_window.start_sync()
-        self.main_window.Show()
+        self.main_window.Show_window()
 
     def save_token(self, token):
         with open(os.path.join(os.getcwd(), "data", "token.tk"), "w") as token_file:
