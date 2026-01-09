@@ -69,9 +69,31 @@ class MainWindow(wx.Frame):
         self.synchronizing_sound = Sound(self.sound_system, "synchronizing.ogg")
 
     def start_sync(self):
+        self.create_basic_files()
+        self.generate_secret_key()
         self.connected_sound.play()
         self.synchronizing_sound.play()
         self.output(self.i18n.t("synchronization_started"), interrupt=True)
+
+    def create_basic_files(self):
+        data_dir = os.path.join(os.getcwd(), "data")
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+
+        #Create empty messages.dat if not exists
+        messages_file = os.path.join(data_dir, "messages.dat")
+        if not os.path.isfile(messages_file):
+            with open(messages_file, "w") as f:
+                json.dump({}, f)
+
+    def generate_secret_key(self):
+        key_file = os.path.join(os.getcwd(), "data", "secret.key")
+        if not os.path.isfile(key_file):
+            generate_and_save_key(key_file)
+    
+    def retrieve_secret_key(self):
+        key_file = os.path.join(os.getcwd(), "data", "secret.key")
+        return retrieve_key(key_file)
 
 
 if __name__ == "__main__":
