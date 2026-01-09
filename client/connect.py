@@ -91,7 +91,7 @@ class Connect:
         self.cancel_btn = wx.Button(self.pairing_dial, label=self.i18n.t("cancel_pairing"))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel_pairing)
 
-        self.main_window.ws = WebSocketClient(self.main_window, self.token)
+        self.main_window.ws = WebSocketClient(self.main_window, self, self.token)
 
         self.connect_websocket()
 

@@ -7,11 +7,12 @@ from i18n import I18n
 from traceback import format_exc
 
 class WebSocketClient:
-    def __init__(self, main_window, instance_name):
+    def __init__(self, main_window, connect, instance_name):
         self.main_window = main_window
+        self.connect = connect
+        self.instance_name = instance_name
         #Initialize i18n
         self.i18n = I18n(self.main_window)
-        self.instance_name = instance_name
 
         self.sio = socketio.Client(
             ssl_verify=False,
@@ -37,10 +38,10 @@ class WebSocketClient:
             self.on_pairing_complete()
         else:
             self.main_window.error_sound.play()
-            wx.MessageBox(self.i18n.t["instance_state_changed"], self.i18n.t["error"], wx.OK | wx.ICON_ERROR, self.main_window.connect.pairing_dial)
+            wx.MessageBox(self.i18n.t["instance_state_changed"], self.i18n.t["error"], wx.OK | wx.ICON_ERROR, self.connect.pairing_dial)
 
     def on_pairing_complete(self):
-        #Saves the new user token in the program directory
+        #Saves the new user token in the data  directory
         try:
             self.save_token(self.instance_name)
         except Exception as e:
@@ -48,8 +49,8 @@ class WebSocketClient:
             wx.MessageBox(f"{self.i18n.t('token_save_failed')} {format_exc()}", self.i18n.t("error"), wx.OK | wx.ICON_ERROR)
             sys.exit()
 
-        self.main_window.connect.pairing_dial.Destroy()
-        self.main_window.connect.connection_dial.Destroy()
+        self.connect.pairing_dial.Destroy()
+        self.connect.connection_dial.Destroy()
         self.main_window.start_sync()
         self.main_window.Show()
 
@@ -62,5 +63,5 @@ class WebSocketClient:
         print(info)
         self.main_window.pairing_code_updated_sound.play()
         self.main_window.speak_output.output(self.i18n.t("qrcode_updated"))
-        self.main_window.connect.pairing_code_field.SetValue(info.get("data", {}).get("qrcode", {}).get("pairingCode", ""))
+        self.connect.pairing_code_field.SetValue(info.get("data", {}).get("qrcode", {}).get("pairingCode", ""))
 
