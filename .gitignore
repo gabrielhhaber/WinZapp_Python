@@ -1,6 +1,7 @@
 #project related files
 .history/
 client/data/messages.dat
+client/data/secret.key
 client/data/token.tk
 server/.env
 
