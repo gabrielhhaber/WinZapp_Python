@@ -9,9 +9,9 @@
     "pairing_code_label": "Código de pareamento:",
     "qrcode_updated": "O código de pareamento foi atualizado.",
     "cancel_pairing": "&Cancelar pareamento",
+    "websocket_init_failed": "Ocorreu um erro ao conectar ao WebSocket:",
     "main_nav": "&Navegação principal",
     "conversations": "Conversas alt+1",
-
     "error": "Erro do WinZapp",
     "token_save_failed": "Falha ao salvar o token do usuário.",
     "instance_state_changed": "Ocorreu um evento inesperado. O status da instância mudou ou parece estar desconectado. Por favor, tente realizar o pareamento novamente.",

@@ -33,7 +33,7 @@ class Connect:
         self.connection_dial.ShowModal()
 
     def on_continue(self, event):
-        #Load connection settings
+        #Get connection settings
         self.authentication_server = self.main_window.settings.get("connection", {}).get("authentication_server", "127.0.0.1")
         self.authentication_port = self.main_window.settings.get("connection", {}).get("authentication_port", 8081)
         self.evolution_server = self.main_window.settings.get("connection", {}).get("evolution_server", "127.0.0.1")
@@ -91,7 +91,7 @@ class Connect:
         self.cancel_btn = wx.Button(self.pairing_dial, label=self.i18n.t("cancel_pairing"))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel_pairing)
 
-        self.ws = WebSocketClient(self.main_window, self.token)
+        self.main_window.ws = WebSocketClient(self.main_window, self.token)
 
         self.connect_websocket()
 
@@ -99,11 +99,11 @@ class Connect:
         self.pairing_dial.ShowModal()
 
     def connect_websocket(self):
-        self.ws.sio.connect(f"wss://{self.evolution_server}:{self.evolution_port}/", socketio_path="socket.io", headers={"apikey": self.token}, namespaces=[f"/{self.token}"])
+        self.main_window.ws.sio.connect(f"wss://{self.evolution_server}:{self.evolution_port}/", socketio_path="socket.io", headers={"apikey": self.token}, namespaces=[f"/{self.token}"])
 
     def on_cancel_pairing(self, event):
         self.pairing_dial.Destroy()
-        self.ws.sio.disconnect()
+        self.main_window.ws.sio.disconnect()
 
     def on_quit_from_connect(self, event):
         sys.exit()

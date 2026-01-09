@@ -5,6 +5,7 @@ from accessible_output2 import outputs
 from websocket_client import WebSocketClient
 from sound_system import SoundSystem, Sound
 from i18n import I18n
+from utils import encrypt_json, decrypt_json, generate_and_save_key, retrieve_key
 import wx
 from connect import Connect
 import json
