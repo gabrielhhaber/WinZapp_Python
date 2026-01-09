@@ -53,7 +53,7 @@ class WebSocketClient:
         self.connect.pairing_dial.Destroy()
         self.connect.connection_dial.Destroy()
         self.main_window.start_sync()
-        self.main_window.Show_window()
+        self.main_window.show_window()
 
     def save_token(self, token):
         with open(os.path.join(os.getcwd(), "data", "token.tk"), "w") as token_file:
