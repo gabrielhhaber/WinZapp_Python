@@ -1,5 +1,6 @@
 import os
 import sys
+import requests
 import socketio
 from accessible_output2 import outputs
 from websocket_client import WebSocketClient
@@ -68,10 +69,25 @@ class MainWindow(wx.Frame):
         self.connected_sound = Sound(self.sound_system, "connected.ogg")
         self.synchronizing_sound = Sound(self.sound_system, "synchronizing.ogg")
 
+    def retrieve_token(self):
+        try:
+            with open(os.path.join(os.getcwd(), "data", "token.tk"), "r") as token_file:
+                self.token = token_file.read().strip()
+        except Exception as e:
+            self.error_sound.play()
+            wx.MessageBox(f"{self.i18n.t('token_retrieval_failed')} {format_exc()}", self.i18n.t("error"), wx.OK | wx.ICON_ERROR)
+            sys.exit()
+
     def start_sync(self):
         self.create_basic_files()
         self.generate_secret_key()
         self.connected_sound.play()
+        #Get connection settings
+        self.authentication_server = self.settings.get("connection", {}).get("authentication_server", "127.0.0.1")
+        self.authentication_port = self.settings.get("connection", {}).get("authentication_port", 8081)
+        self.evolution_server = self.settings.get("connection", {}).get("evolution_server", "127.0.0.1")
+        self.evolution_port = self.settings.get("connection", {}).get("evolution_port", 8080)
+        self.chats = self.get_chats()
         self.synchronizing_sound.play()
         self.output(self.i18n.t("synchronization_started"), interrupt=True)
 
@@ -90,6 +106,21 @@ class MainWindow(wx.Frame):
             with open(messages_file, "w") as f:
                 json.dump({}, f)
 
+    def get_chats(self):
+        url = f"https://{self.evolution_server}:{self.evolution_port}/chat/findChats/{self.token}"
+        headers = {
+            "apikey": self.token,
+            "Content-Type": "application/json"
+        }
+        try:
+            response = requests.post(url, headers=headers, verify=False)
+            response_data = response.json()
+            print(response_data)
+            return response_data
+        except Exception as e:
+            self.error_sound.play()
+            wx.MessageBox(f"{self.i18n.t('chat_retrieval_failed')} {format_exc()}", self.i18n.t("error"), wx.OK | wx.ICON_ERROR, self)
+
     def generate_secret_key(self):
         key_file = os.path.join(os.getcwd(), "data", "secret.key")
         if not os.path.isfile(key_file):
@@ -104,6 +135,7 @@ if __name__ == "__main__":
     app = wx.App()
     frame = MainWindow(title="WinZapp")
     if frame.connect.check_connection_status():
+        frame.retrieve_token()
         frame.start_sync()
         frame.show_window()
     else:
