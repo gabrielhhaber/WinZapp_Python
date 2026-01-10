@@ -88,6 +88,8 @@ class MainWindow(wx.Frame):
         self.evolution_server = self.settings.get("connection", {}).get("evolution_server", "127.0.0.1")
         self.evolution_port = self.settings.get("connection", {}).get("evolution_port", 8080)
         self.chats = self.get_chats()
+        self.contacts = self.get_contacts()
+        self.set_chats()
         self.synchronizing_sound.play()
         self.output(self.i18n.t("synchronization_started"), interrupt=True)
 
@@ -116,10 +118,39 @@ class MainWindow(wx.Frame):
             response = requests.post(url, headers=headers, verify=False)
             response_data = response.json()
             print(response_data)
+            for chat in response_data:
+                print(chat.get("pushName", ""))
+            self.chat_ids = [chat.get("remoteJid", "") for chat in response_data]
             return response_data
         except Exception as e:
             self.error_sound.play()
             wx.MessageBox(f"{self.i18n.t('chat_retrieval_failed')} {format_exc()}", self.i18n.t("error"), wx.OK | wx.ICON_ERROR, self)
+
+    def get_contacts(self):
+        url = f"https://{self.evolution_server}:{self.evolution_port}/chat/findContacts/{self.token}"
+        headers = {
+            "apikey": self.token,
+            "Content-Type": "application/json"
+        }
+        try:
+            response = requests.post(url, headers=headers, verify=False)
+            response_data = response.json()
+            print(response_data)
+            for contact in response_data:
+                print(contact)
+            return response_data
+        except Exception as e:
+            self.error_sound.play()
+            wx.MessageBox(f"{self.i18n.t('contact_retrieval_failed')} {format_exc()}", self.i18n.t("error"), wx.OK | wx.ICON_ERROR, self)
+
+    def set_chats(self):
+        for chat in self.chats:
+            for contact in self.contacts:
+                if contact.get("remoteJid", "") == chat.get("remoteJid", ""):
+                    print(contact.get("pushName", ""))
+                    break
+            else:
+                print(chat.get("remoteJid", ""))
 
     def generate_secret_key(self):
         key_file = os.path.join(os.getcwd(), "data", "secret.key")

@@ -14,6 +14,7 @@
     "main_nav": "&Navegação principal",
     "conversations": "Conversas alt+1",
     "chat_retrieval_failed": "Falha ao obter a lista de conversas.",
+    "contacts_retrieval_failed": "Falha ao obter a lista de contatos.",
     "error": "Erro do WinZapp",
     "token_save_failed": "Falha ao salvar o token do usuário.",
     "instance_state_changed": "Ocorreu um evento inesperado. O status da instância mudou ou parece estar desconectado. Por favor, tente realizar o pareamento novamente.",
