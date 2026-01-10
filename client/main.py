@@ -9,6 +9,8 @@ from i18n import I18n
 from utils import encrypt_json, decrypt_json, generate_and_save_key, retrieve_key
 import wx
 from connect import Connect
+from navigation import NavigationPanel
+from conversations import ConversationsPanel
 import json
 from traceback import format_exc
 
@@ -35,13 +37,13 @@ class MainWindow(wx.Frame):
         self.i18n.get_language()
         #Play startup sound
         self.startup_sound.play()
+        self.init_UI()
 
-        self.nav_list_label = wx.StaticText(self, label=self.i18n.t("main_nav"))
-        self.nav_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
-        #Insert an unique column
-        self.nav_list.InsertColumn(0, self.i18n.t("main_nav"), width=200)
-        #Append navigation list items
-        self.nav_list.Append((self.i18n.t("conversations"),))
+    def init_UI(self):
+        self.main_panel = wx.Panel(self)
+        self    .SetSize((400, 300))
+        self.navigation_panel = NavigationPanel(self, self.main_panel)
+        self.conversations_panel = ConversationsPanel(self, self.main_panel)
 
     def output(self, text, interrupt=False):
         self.speak_output.output(text, interrupt=interrupt)
