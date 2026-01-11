@@ -19,3 +19,5 @@ class NavigationPanel(wx.Panel):
     def init_UI(self):
         self.nav_label = wx.StaticText(self, label=self.main_window.i18n.t("main_nav"), pos=(10, 10))
         self.nav_list = wx.ListCtrl(self, size=(80, 250), pos=(10, 30), style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
+        self.nav_list.InsertColumn(0, self.main_window.i18n.t("main_nav"), width=80)
+        self.nav_list.Append((f"{self.main_window.i18n.t("conversations")} alt+1",))

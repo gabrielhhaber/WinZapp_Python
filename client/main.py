@@ -43,7 +43,23 @@ class MainWindow(wx.Frame):
         self.main_panel = wx.Panel(self)
         self    .SetSize((400, 300))
         self.navigation_panel = NavigationPanel(self, self.main_panel)
-        self.conversations_panel = ConversationsPanel(self, self.main_panel)
+        self.content_panel = wx.Panel(self.main_panel)
+        self.conversations_panel = ConversationsPanel(self, self.content_panel)
+        self.create_accelerator_table()
+
+    def create_accelerator_table(self):
+        #Set IDs
+        self.ID_ALT_1 = wx.NewIdRef()
+        #create accelerator table
+        accel_tbl = wx.AcceleratorTable([
+            (wx.ACCEL_ALT, ord('1'), self.ID_ALT_1)
+        ])
+        self.SetAcceleratorTable(accel_tbl)
+        self.Bind(wx.EVT_MENU, self.on_alt_1, id=self.ID_ALT_1)
+
+    def on_alt_1(self, event):
+        self.conversations_panel.Show()
+        self.conversations_panel.conversations_list.SetFocus()
 
     def output(self, text, interrupt=False):
         self.speak_output.output(text, interrupt=interrupt)
@@ -83,16 +99,16 @@ class MainWindow(wx.Frame):
     def start_sync(self):
         self.create_basic_files()
         self.generate_secret_key()
-        self.connected_sound.play()
         #Get connection settings
         self.authentication_server = self.settings.get("connection", {}).get("authentication_server", "127.0.0.1")
         self.authentication_port = self.settings.get("connection", {}).get("authentication_port", 8081)
         self.evolution_server = self.settings.get("connection", {}).get("evolution_server", "127.0.0.1")
         self.evolution_port = self.settings.get("connection", {}).get("evolution_port", 8080)
+        self.connected_sound.play()
+        self.synchronizing_sound.play()
         self.chats = self.get_chats()
         self.contacts = self.get_contacts()
         self.set_chats()
-        self.synchronizing_sound.play()
         self.output(self.i18n.t("synchronization_started"), interrupt=True)
 
     def show_window(self):
@@ -119,9 +135,6 @@ class MainWindow(wx.Frame):
         try:
             response = requests.post(url, headers=headers, verify=False)
             response_data = response.json()
-            print(response_data)
-            for chat in response_data:
-                print(chat.get("pushName", ""))
             self.chat_ids = [chat.get("remoteJid", "") for chat in response_data]
             return response_data
         except Exception as e:
@@ -146,13 +159,25 @@ class MainWindow(wx.Frame):
             wx.MessageBox(f"{self.i18n.t('contact_retrieval_failed')} {format_exc()}", self.i18n.t("error"), wx.OK | wx.ICON_ERROR, self)
 
     def set_chats(self):
+        self.chat_names = []
         for chat in self.chats:
             for contact in self.contacts:
                 if contact.get("remoteJid", "") == chat.get("remoteJid", ""):
                     print(contact.get("pushName", ""))
+                    self.chat_names.append(contact.get("pushName", ""))
                     break
             else:
                 print(chat.get("remoteJid", ""))
+                self.chat_names.append(chat.get("remoteJid", ""))
+        self.add_chats_to_ui()
+
+    def add_chats_to_ui(self):
+        for index, chat in enumerate(self.chats):
+            string = f"\
+            {self.chat_names[index]} \
+            {f"{chat.get('unreadCount') or 0} {self.i18n.t('unread_messages') if chat.get('unreadCount') or 0 > 1 else self.i18n.t('unread_message')} " if chat.get('unreadCount') or 0 > 0 else ""}\
+            "
+            self.conversations_panel.conversations_list.Append((string,))
 
     def generate_secret_key(self):
         key_file = os.path.join(os.getcwd(), "data", "secret.key")
