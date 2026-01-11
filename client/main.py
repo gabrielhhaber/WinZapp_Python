@@ -6,7 +6,7 @@ from accessible_output2 import outputs
 from websocket_client import WebSocketClient
 from sound_system import SoundSystem, Sound
 from i18n import I18n
-from utils import encrypt_json, decrypt_json, generate_and_save_key, retrieve_key
+from utils import encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number
 import wx
 from connect import Connect
 from navigation import NavigationPanel
@@ -107,7 +107,6 @@ class MainWindow(wx.Frame):
         self.connected_sound.play()
         self.synchronizing_sound.play()
         self.chats = self.get_chats()
-        self.contacts = self.get_contacts()
         self.set_chats()
         self.output(self.i18n.t("synchronization_started"), interrupt=True)
 
@@ -150,7 +149,6 @@ class MainWindow(wx.Frame):
         try:
             response = requests.post(url, headers=headers, verify=False)
             response_data = response.json()
-            print(response_data)
             for contact in response_data:
                 print(contact)
             return response_data
@@ -161,15 +159,11 @@ class MainWindow(wx.Frame):
     def set_chats(self):
         self.chat_names = []
         for chat in self.chats:
-            for contact in self.contacts:
-                if contact.get("remoteJid", "") == chat.get("remoteJid", ""):
-                    print(contact.get("pushName", ""))
-                    self.chat_names.append(contact.get("pushName", ""))
-                    break
-            else:
-                print(chat.get("remoteJid", ""))
-                self.chat_names.append(chat.get("remoteJid", ""))
+            self.chat_names.append(chat.get("pushName", "") or format_number(chat.get("remoteJid", "")))
         self.add_chats_to_ui()
+        self.conversations_panel.conversations_list.Focus(0)
+        self.conversations_panel.conversations_list.Select(0)
+        self.conversations_panel.conversations_list.SetFocus()
 
     def add_chats_to_ui(self):
         for index, chat in enumerate(self.chats):

@@ -21,3 +21,23 @@ def decrypt_json(encrypted_data, key):
     decrypted_data = fernet.decrypt(encrypted_data)
     data = json.loads(decrypted_data.decode())
     return data
+
+def format_number(string_number):
+    #Removes any non-digit characters
+    clean_number = string_number.split('@')[0]
+
+    #Extracts DDI and DDD
+    ddi = clean_number[:2]
+    ddd = clean_number[2:4]
+    remaining = clean_number[4:]
+
+    # If the number has 9 digits in the remaining part
+    if len(remaining) == 9:
+        part1 = remaining[:5]
+        part2 = remaining[5:]
+    else:
+        # Assumes the number has 8 digits in the remaining part
+        part1 = remaining[:4]
+        part2 = remaining[4:]
+
+    return f'+{ddi} {ddd} {part1}-{part2}'
