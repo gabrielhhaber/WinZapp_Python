@@ -7845,6 +7845,29 @@ class MainWindow(wx.Frame):
         self._group_name_cache = getattr(self, "_group_name_cache", {})
         self._group_name_cache[remote_jid] = new_name
 
+    def on_group_subject_updated(self, remote_jid: str, new_subject: str) -> None:
+        """
+        Handle a live group subject update received via the groups.update websocket event.
+        """
+        if remote_jid not in self.chats:
+            return
+
+        new_name = new_subject.strip()
+        if not new_name:
+            return
+
+        chat = self.chats[remote_jid]
+        if chat.get("name") == new_name:
+            return
+
+        logging.info(f"[on_group_subject_updated] Updating group {remote_jid} name to {new_name}")
+        chat["name"] = new_name
+        self._group_name_cache = getattr(self, "_group_name_cache", {})
+        self._group_name_cache[remote_jid] = new_name
+        
+        self._schedule_save(dirty_jid=remote_jid)
+        self._schedule_set_chats()
+
     def _resolve_missing_group_names(self):
         """Retry group-info lookups for groups still unnamed after sync.
 

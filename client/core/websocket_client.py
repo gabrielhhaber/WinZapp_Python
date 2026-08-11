@@ -88,6 +88,7 @@ class WebSocketClient:
         # try/except), so there is nothing to lose by listening for them too.
         self.sio.on("contacts.update", self.on_contacts_update)
         self.sio.on("presence.update", self.on_presence_update)
+        self.sio.on("groups.update", self.on_groups_update)
 
         # threading.Event used by on_continue() to wait for the phoneCode that
         # WPPConnect emits asynchronously via Socket.IO after /start-session.
@@ -726,6 +727,27 @@ class WebSocketClient:
 
         except Exception:
             logging.exception("[WebSocketClient] on_messages_upsert error")
+
+    def on_groups_update(self, info):
+        """
+        Handle group metadata updates from WPPConnect.
+        """
+        try:
+            updates = info.get("data", [])
+            if not isinstance(updates, list):
+                updates = [updates]
+            
+            for update in updates:
+                if not isinstance(update, dict):
+                    continue
+                jid = update.get("id", "")
+                subject = update.get("subject")
+                
+                if jid and subject is not None:
+                    remote_jid = self.main_window._normalize_jid(self._clean_jid(jid))
+                    wx.CallAfter(self.main_window.on_group_subject_updated, remote_jid, subject)
+        except Exception:
+            logging.exception("[WebSocketClient] on_groups_update error")
 
     def on_messages_update(self, info):
         """
