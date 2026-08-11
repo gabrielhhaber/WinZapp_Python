@@ -36,5 +36,5 @@ _load_dotenv()
 
 GITHUB_REPO = os.environ.get("WINZAPP_GITHUB_REPO", "gabrielhhaber/WinZapp_Python")
 GITHUB_API_LATEST_RELEASE = (
-    f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+    f"https://api.github.com/repos/{GITHUB_REPO}/releases"
 )

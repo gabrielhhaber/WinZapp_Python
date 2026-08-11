@@ -674,6 +674,8 @@ class UpdateChecker:
             )
             resp.raise_for_status()
             data = resp.json()
+            if isinstance(data, list) and data:
+                data = data[0]
         except Exception:
             logging.exception("Auto-updater: Exception checking for updates")
             self._schedule_retry()
@@ -747,6 +749,8 @@ class UpdateChecker:
             )
             resp.raise_for_status()
             data = resp.json()
+            if isinstance(data, list) and data:
+                data = data[0]
         except Exception as exc:
             logging.exception("Auto-updater: Exception fetching latest release for forced reinstall")
             wx.CallAfter(self._show_reinstall_error, str(exc))
