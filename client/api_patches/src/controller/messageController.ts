@@ -857,6 +857,28 @@ export async function sendStatusText(req: Request, res: Response) {
   }
 }
 
+export async function sendStatusVoice(req: Request, res: Response) {
+  const { path } = req.body;
+
+  if (!path && !req.file)
+    res.status(401).send({
+      message: 'Sending the Voice is mandatory',
+    });
+
+  const pathFile = path || req.file?.path;
+
+  try {
+    const results: any = [];
+    results.push(await req.client.sendPtt('status@broadcast', pathFile));
+
+    if (results.length === 0) res.status(400).json('Error sending message');
+    if (req.file) await unlinkAsync(pathFile);
+    returnSucess(res, results);
+  } catch (error) {
+    returnError(req, res, error);
+  }
+}
+
 export async function replyMessage(req: Request, res: Response) {
   /**
    * #swagger.tags = ["Messages"]

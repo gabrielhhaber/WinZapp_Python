@@ -201,6 +201,12 @@ routes.post(
   MessageController.sendStatusText
 );
 routes.post(
+  '/api/:session/send-status-voice',
+  verifyToken,
+  statusConnection,
+  MessageController.sendStatusVoice
+);
+routes.post(
   '/api/:session/send-link-preview',
   verifyToken,
   statusConnection,

@@ -478,6 +478,22 @@ class ApiSetupDialog(wx.Dialog):
         except Exception as exc:
             logging.warning("[api_setup] Failed to patch host.layer.js: %s", exc)
 
+        # welcome.js — latest-version ESM require bug (Node 20+).
+        try:
+            welcome_js = os.path.join(node_modules_wppconnect, "..", "controllers", "welcome.js")
+            if os.path.isfile(welcome_js):
+                with open(welcome_js, "r", encoding="utf-8") as f:
+                    content = f.read()
+                content = content.replace(
+                    'require("latest-version")',
+                    '{ default: async () => "" }'
+                )
+                with open(welcome_js, "w", encoding="utf-8") as f:
+                    f.write(content)
+                logging.info("[api_setup] Patched welcome.js to fix ESM bug.")
+        except Exception as exc:
+            logging.warning("[api_setup] Failed to patch welcome.js: %s", exc)
+
         # status.layer.js — status-posting always reported success fix.
         try:
             ApiSetupDialog._patch_wppconnect_status_layer(node_modules_wppconnect)

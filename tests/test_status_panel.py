@@ -111,6 +111,9 @@ class _FakeMainWindow:
 
     def save_settings(self):
         self.save_settings_calls += 1
+        
+    def mark_conversation_as_read(self, jid):
+        pass
 
     def output(self, text, interrupt=False):
         self.outputs.append(text)
@@ -199,6 +202,7 @@ class _Stub:
         self._video_download_status_id  = None
         self._video_player = _FakeVideoPlayer()
         self._status_list = _FakeStatusList()
+        self._list_indices = {}
         self.my_status_dialog_calls = 0
 
         self._status_content_label = _FakeWidget()
@@ -270,6 +274,7 @@ class TestPositionPreservedOnReselect:
         statuses = [_text_status("a"), _text_status("b"), _text_status("c"),
                     _text_status("d"), _text_status("e")]
         stub._status_contacts = [_entry("j@s.whatsapp.net", statuses)]
+        stub._list_indices = {1: 0}
         stub._selected_contact_idx = 0
         stub._current_status_idx   = 2  # "status 3 de 5"
 
@@ -290,6 +295,7 @@ class TestPositionPreservedOnReselect:
             _entry("a@s.whatsapp.net", statuses_a),
             _entry("b@s.whatsapp.net", statuses_b),
         ]
+        stub._list_indices = {1: 0, 2: 1}
         stub._selected_contact_idx = 0
         stub._current_status_idx   = 1  # viewing "2 de 2" of contact A
 
@@ -398,6 +404,8 @@ class TestEnterAndSpaceTogglePlaybackOnStatusList:
 
     def test_enter_on_a_video_status_already_shown_toggles_pause(self):
         stub = _Stub()
+        stub._status_contacts = [_entry("a", [_video_status()])]
+        stub._list_indices = {1: 0}
         stub._selected_contact_idx = 0
         stub._current_status = _video_status()
         stub._video_player.is_playing = True
@@ -413,6 +421,7 @@ class TestEnterAndSpaceTogglePlaybackOnStatusList:
     def test_enter_on_a_text_status_does_not_try_to_toggle(self):
         stub = _Stub()
         stub._status_contacts = [_entry("a@s.whatsapp.net", [_text_status("oi")])]
+        stub._list_indices = {1: 0}
         stub._selected_contact_idx = 0
         stub._current_status = _text_status("oi")
 
@@ -425,20 +434,15 @@ class TestEnterAndSpaceTogglePlaybackOnStatusList:
         assert stub._video_player.toggle_pause_calls == 0
 
     def test_enter_on_a_not_yet_selected_contact_selects_instead_of_toggling(self):
-        # First activation of a contact just opens/shows it — matches
-        # arrow-key navigation already having done the same via
-        # EVT_LIST_ITEM_SELECTED by the time the user deliberately presses
-        # Enter/Space, at which point _is_current_status_playable() is what
-        # makes the *next* press toggle instead.
         stub = _Stub()
-        stub._status_contacts = [_entry("a@s.whatsapp.net", [_video_status()])]
+        stub._status_contacts = [_entry("a", [_video_status()])]
+        stub._list_indices = {1: 0}
         stub._selected_contact_idx = -1
         stub._current_status = None
 
         class _Evt:
-            def GetIndex(self):
-                return 1
-
+            def GetIndex(self): return 1
+            def GetKeyCode(self): return wx.WXK_RETURN
         stub._on_status_contact_activated(_Evt())
 
         assert stub._video_player.toggle_pause_calls == 0
@@ -446,17 +450,19 @@ class TestEnterAndSpaceTogglePlaybackOnStatusList:
 
     def test_enter_on_row_zero_opens_my_status_dialog(self):
         stub = _Stub()
+        stub._list_indices = {0: -1}
 
         class _Evt:
-            def GetIndex(self):
-                return 0
-
+            def GetIndex(self): return 0
+            def GetKeyCode(self): return wx.WXK_RETURN
         stub._on_status_contact_activated(_Evt())
 
         assert stub.my_status_dialog_calls == 1
 
     def test_space_on_a_video_status_already_shown_toggles_pause_without_reselecting(self):
         stub = _Stub()
+        stub._status_contacts = [_entry("a", [_video_status()])]
+        stub._list_indices = {1: 0}
         stub._selected_contact_idx = 0
         stub._current_status = _video_status()
         stub._video_player.is_playing = True
@@ -465,14 +471,12 @@ class TestEnterAndSpaceTogglePlaybackOnStatusList:
         stub._on_status_list_key_down(_FakeKeyEvent(wx.WXK_SPACE))
 
         assert stub._video_player.toggle_pause_calls == 1
-        # Must NOT re-Select() the row — that would re-fire selection and
-        # stop() the player out from under the toggle (see
-        # _is_current_status_playable()'s docstring).
         assert stub._status_list.select_calls == []
 
     def test_space_on_a_non_playing_row_still_selects_normally(self):
         stub = _Stub()
         stub._status_contacts = [_entry("a@s.whatsapp.net", [_video_status()])]
+        stub._list_indices = {1: 0}
         stub._selected_contact_idx = -1
         stub._current_status = None
         stub._status_list = _FakeStatusList(focused=1)

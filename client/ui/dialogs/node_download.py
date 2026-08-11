@@ -25,7 +25,7 @@ from app_paths import resource_path
 
 log = logging.getLogger(__name__)
 
-_NODE_VERSION = "18.20.4"
+_NODE_VERSION = "20.17.0"
 _NODE_FILENAME = f"node-v{_NODE_VERSION}-win-x64.zip"
 _NODE_URL = f"https://nodejs.org/dist/v{_NODE_VERSION}/{_NODE_FILENAME}"
 # nodejs.org publishes a checksum manifest for every release — verify the
