@@ -198,6 +198,7 @@
     "copy_file": "Copiar arquivo",
     "delete_message": "Apagar mensagem",
     "forward_message": "Encaminhar",
+    "forward_keep_caption": "Manter legenda da mídia",
     "star_message": "Favoritar",
     "unstar_message": "Desfavoritar",
     "pin_message": "&Fixar mensagem",

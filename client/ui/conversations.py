@@ -5345,7 +5345,26 @@ class ConversationsPanel(wx.Panel):
         if msg_type == "contactMessage":
             contact = msg_obj.get("contactMessage") or {}
             name    = contact.get("displayName") or ""
+            vcard   = contact.get("vcard") or ""
+            
+            if not name or "BEGIN:VCARD" in name:
+                vcard_to_parse = name if "BEGIN:VCARD" in name else vcard
+                parsed_name = ""
+                for line in vcard_to_parse.splitlines():
+                    if line.startswith("FN:"):
+                        parsed_name = line[3:].strip()
+                        break
+                if parsed_name:
+                    name = parsed_name
+                else:
+                    name = "Desconhecido"
+            
             return i18n.t("contact_message").format(name=name)
+
+        if msg_type == "contactsArrayMessage":
+            arr = msg_obj.get("contactsArrayMessage") or {}
+            contacts = arr.get("contacts") or []
+            return i18n.t("contact_message").format(name=f"{len(contacts)} contatos")
 
         # ── Poll ─────────────────────────────────────────────────────────────
         if msg_type in ("pollCreationMessage", "pollCreationMessageV2", "pollCreationMessageV3", "pollUpdateMessage"):
@@ -6900,6 +6919,28 @@ class ConversationsPanel(wx.Panel):
             0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 6,
         )
 
+        msg_inner = msg.get("message", {})
+        if isinstance(msg_inner, str):
+            import json
+            try:
+                msg_inner = json.loads(msg_inner)
+            except Exception:
+                msg_inner = {}
+        
+        original_caption = ""
+        for key in ["imageMessage", "videoMessage", "documentMessage"]:
+            if key in msg_inner and isinstance(msg_inner[key], dict):
+                cap = msg_inner[key].get("caption", "").strip()
+                if cap:
+                    original_caption = cap
+                break
+
+        chk_keep_caption = None
+        if original_caption:
+            chk_keep_caption = wx.CheckBox(p, label=i18n.t("forward_keep_caption"))
+            chk_keep_caption.SetValue(True)
+            vsz.Add(chk_keep_caption, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
+
         # ── Custom arrow/selection keyboard handling ────────────────────────
         # Native wx.LB_EXTENDED semantics: a plain Up/Down both moves focus
         # AND collapses selection down to just the newly-focused item — there
@@ -7071,9 +7112,11 @@ class ConversationsPanel(wx.Panel):
             return
 
         targets = list(zip(target_jids, target_names))
+        
+        keep_caption = chk_keep_caption.GetValue() if chk_keep_caption else False
 
         def _do_forward():
-            failed_names = self._forward_message_to_targets(source_jid, msg_key, targets)
+            failed_names = self._forward_message_to_targets(msg, targets, keep_caption=keep_caption)
             if failed_names:
                 wx.CallAfter(mw.error_sound.play)
                 if len(targets) == 1:
@@ -7086,18 +7129,24 @@ class ConversationsPanel(wx.Panel):
 
         threading.Thread(target=_do_forward, daemon=True).start()
 
-    def _forward_message_to_targets(self, source_jid: str, msg_key: dict, targets: list) -> list:
+    def _forward_message_to_targets(self, msg: dict, targets: list, keep_caption: bool = False) -> list:
         """Forward one message to each (jid, name) pair in *targets*, one at
         a time — so one failing recipient (e.g. a stale JID) doesn't abort
-        delivery to the rest, since each main_window.forward_message() call
-        already reports its own success/failure independently. Returns the
-        display names of whichever targets failed (empty if all succeeded).
+        delivery to the rest. If keep_caption is True, uses resend_media_message_with_caption.
         """
         mw = self.main_window
-        return [
-            name for jid, name in targets
-            if not mw.forward_message(source_jid, msg_key, jid)
-        ]
+        failed = []
+        msg_key = msg.get("key", {}) or {}
+        source_jid = msg_key.get("remoteJid") or ""
+        
+        for jid, name in targets:
+            if keep_caption:
+                success = mw.resend_media_message_with_caption(msg, jid)
+            else:
+                success = mw.forward_message(source_jid, msg_key, jid)
+            if not success:
+                failed.append(name)
+        return failed
 
     def _on_menu_star(self, msg: dict):
         msg["starred"] = not msg.get("starred")

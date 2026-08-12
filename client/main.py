@@ -16487,6 +16487,81 @@ class MainWindow(wx.Frame):
             logging.error("[forward_message] exception for %s -> %s: %s", full_id, target_phone, exc)
             return False
 
+    def resend_media_message_with_caption(self, msg: dict, target_jid: str) -> bool:
+        """Forward a media message by re-sending it as a new file upload, 
+        in order to preserve its caption which WPPConnect's native forward drops.
+        """
+        import os
+        import json
+        from core.utils import decrypt_bytes
+        
+        msg_key = msg.get("key", {}) or {}
+        msg_id = msg_key.get("id", "")
+        if not msg_id:
+            return False
+        
+        if "_" in msg_id:
+            parts = msg_id.split("_")
+            msg_id = parts[2] if len(parts) > 2 else parts[-1]
+            
+        msg_inner = msg.get("message", {})
+        if isinstance(msg_inner, str):
+            try:
+                msg_inner = json.loads(msg_inner)
+            except Exception:
+                msg_inner = {}
+                
+        original_caption = ""
+        media_type = ""
+        for key in ["imageMessage", "videoMessage", "documentMessage"]:
+            if key in msg_inner and isinstance(msg_inner[key], dict):
+                original_caption = msg_inner[key].get("caption", "").strip()
+                if key == "imageMessage": media_type = "image"
+                elif key == "videoMessage": media_type = "video"
+                elif key == "documentMessage": media_type = "document"
+                break
+                
+        if not media_type:
+            return self.forward_message(msg_key.get("remoteJid", ""), msg_key, target_jid)
+
+        media_path = data_path("media", f"{msg_id}.wzmedia")
+        if not os.path.isfile(media_path):
+            self.output(self.i18n.t("downloading_media"))
+            success = self.handle_media_message(msg)
+            if not success and not os.path.isfile(media_path):
+                logging.error(f"[resend_media] Failed to download media for {msg_id}")
+                return False
+
+        try:
+            with open(media_path, "rb") as f:
+                encrypted_data = f.read()
+            decrypted_data = decrypt_bytes(encrypted_data, self.key)
+            
+            ext = ".bin"
+            if media_type == "image": ext = ".jpg"
+            elif media_type == "video": ext = ".mp4"
+            elif media_type == "document":
+                fname = msg_inner.get("documentMessage", {}).get("fileName", "")
+                if fname:
+                    _, ext2 = os.path.splitext(fname)
+                    if ext2: ext = ext2
+            
+            temp_path = data_path("media", f"temp_{msg_id}{ext}")
+            with open(temp_path, "wb") as f:
+                f.write(decrypted_data)
+                
+            success = self.send_media_attachment(target_jid, temp_path, media_type, caption=original_caption)
+            
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+                
+            return success
+        except Exception as exc:
+            logging.error(f"[resend_media] Error decrypting or sending {msg_id}: {exc}")
+            return False
+
     def mark_audio_message_played(self, msg: dict):
         """Mark a received voice message as played, both locally (the
         status icon in the message list, same as a "played" receipt
@@ -16887,9 +16962,26 @@ class MainWindow(wx.Frame):
             content = i18n.t("sticker")
         elif msg_type == "contactMessage":
             contact = msg_obj.get("contactMessage") or {}
-            content = i18n.t("contact_message").format(
-                name=contact.get("displayName") or ""
-            )
+            name = contact.get("displayName") or ""
+            vcard = contact.get("vcard") or ""
+            
+            if not name or "BEGIN:VCARD" in name:
+                vcard_to_parse = name if "BEGIN:VCARD" in name else vcard
+                parsed_name = ""
+                for line in vcard_to_parse.splitlines():
+                    if line.startswith("FN:"):
+                        parsed_name = line[3:].strip()
+                        break
+                if parsed_name:
+                    name = parsed_name
+                else:
+                    name = "Desconhecido"
+
+            content = i18n.t("contact_message").format(name=name)
+        elif msg_type == "contactsArrayMessage":
+            arr = msg_obj.get("contactsArrayMessage") or {}
+            contacts = arr.get("contacts") or []
+            content = i18n.t("contact_message").format(name=f"{len(contacts)} contatos")
         elif msg_type == "locationMessage":
             content = i18n.t("notif_location")
         elif msg_type == "pollCreationMessage":

@@ -245,8 +245,27 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
     # ── Contact ───────────────────────────────────────────────────────────────
     if msg_type == "contactMessage":
         contact = msg_obj.get("contactMessage") or {}
-        name    = contact.get("displayName") or ""
+        name = contact.get("displayName") or ""
+        vcard = contact.get("vcard") or ""
+        
+        if not name or "BEGIN:VCARD" in name:
+            vcard_to_parse = name if "BEGIN:VCARD" in name else vcard
+            parsed_name = ""
+            for line in vcard_to_parse.splitlines():
+                if line.startswith("FN:"):
+                    parsed_name = line[3:].strip()
+                    break
+            if parsed_name:
+                name = parsed_name
+            else:
+                name = "Desconhecido"
+
         return i18n.t("contact_message").format(name=name)
+
+    if msg_type == "contactsArrayMessage":
+        arr = msg_obj.get("contactsArrayMessage") or {}
+        contacts = arr.get("contacts") or []
+        return i18n.t("contact_message").format(name=f"{len(contacts)} contatos")
 
     # ── Location ──────────────────────────────────────────────────────────────
     if msg_type in ("locationMessage", "liveLocationMessage"):

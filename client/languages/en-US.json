@@ -198,6 +198,7 @@
     "copy_file": "Copy file",
     "delete_message": "Delete message",
     "forward_message": "Forward",
+    "forward_keep_caption": "Keep media caption",
     "star_message": "Star",
     "unstar_message": "Unstar",
     "pin_message": "&Pin message",
