@@ -5,8 +5,10 @@ on:
     types: [created]
 
 env:
-  NODE_VERSION: "24.15.0"
+  NODE_VERSION: "22.22.2"
   PYTHON_VERSION: "3.13"
+  WPPCONNECT_TAG_VERSION: "v2.10.4"
+  WPP_MINIMUM_VERSION: "2.10.4"
 
 jobs:
   # Gate for everything below: a release is only worth building/shipping if
@@ -152,6 +154,21 @@ jobs:
           key: ${{ runner.os }}-npm-${{ hashFiles('client/api/package.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
+
+      # .env is git-ignored, so a fresh CI checkout has none. Without a root
+      # .env, setup_api.py falls back to the wppconnect-server default branch
+      # instead of the pinned tag; and without client/.env the shipped app loses
+      # its WPP_MINIMUM_VERSION version gate (build.py copies it into staging).
+      - name: Create .env files
+        shell: pwsh
+        run: |
+          $envContent = @"
+          WPPCONNECT_TAG_VERSION=${{ env.WPPCONNECT_TAG_VERSION }}
+          WPP_MINIMUM_VERSION=${{ env.WPP_MINIMUM_VERSION }}
+          "@
+          $envContent | Out-File -FilePath ".env" -Encoding utf8
+          $envContent | Out-File -FilePath "client/.env" -Encoding utf8
+          Write-Output "[INFO] .env files created for the build."
 
       # Clones the WPPConnect Server repo into client/api/ and restores
       # WinZapp's custom files (start.js, package.json, config.json, src patches).

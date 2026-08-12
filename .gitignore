@@ -26,9 +26,9 @@ client/logs/
 
 # Bundled Node.js runtime (binary distribution, ~50 MB)
 # The zip pattern is deliberately version-agnostic: it used to name one exact
-# file (node-v24.15.0-win-x64.zip), which stopped covering anything the moment
-# the version moved — node_download.py pins 18.20.4, and the CI cache key names
-# v24.15.0. Any hand-downloaded zip of a version other than the one hardcoded
+# file (node-v22.22.2-win-x64.zip), which stopped covering anything the moment
+# the version moved — node_download.py pins 22.22.2 (the same pinned by
+# wppconnect-server's engines.node), and the CI cache key names v22.22.2. Any hand-downloaded zip of a version other than the one hardcoded
 # here was not ignored at all, leaving a ~30 MB binary one `git add .` away
 # from the history.
 /client/node/

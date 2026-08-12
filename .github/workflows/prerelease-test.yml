@@ -71,8 +71,8 @@ jobs:
         shell: pwsh
         run: |
           $envContent = @"
-          WPPCONNECT_TAG_VERSION=2.10.0
-          WPPCONNECT_API_MINIMUM_VERSION=2.10.0
+          WPPCONNECT_TAG_VERSION=v2.10.4
+          WPP_MINIMUM_VERSION=2.10.4
           LICENSING_USER_EMAIL=gabrielhaberkamp@gmail.com
           "@
           $envContent | Out-File -FilePath ".env" -Encoding utf8
@@ -90,7 +90,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: client/node
-          key: node-portable-v24.15.0
+          key: node-portable-v22.22.2
 
       - name: Cache MinGit Portátil
         id: cache-git
