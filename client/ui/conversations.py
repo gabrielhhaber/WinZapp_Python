@@ -31,6 +31,7 @@ from ui.accessible import (
     AccessibleAddAttachmentButton,
     AccessibleDiscardVoiceMessage,
     AccessiblePauseResumeRecording,
+    AccessiblePlayVoiceMessage,
     AccessibleSendVoiceMessage,
     AccessibleSearchInConversation,
     AccessibleSearchNextResult,
@@ -640,6 +641,14 @@ class ConversationsPanel(wx.Panel):
         self._pause_resume_btn.SetAccessible(AccessiblePauseResumeRecording())
         self._pause_resume_btn.Bind(wx.EVT_BUTTON, self._toggle_pause_recording)
         voice_sizer.Add(self._pause_resume_btn, 0, wx.LEFT | wx.BOTTOM, 5)
+
+        self._play_voice_btn = wx.Button(
+            self._voice_panel, label=i18n.t("play_voice_message")
+        )
+        self._play_voice_btn.SetAccessible(AccessiblePlayVoiceMessage())
+        self._play_voice_btn.Bind(wx.EVT_BUTTON, self._play_current_voice_recording)
+        voice_sizer.Add(self._play_voice_btn, 0, wx.LEFT | wx.BOTTOM, 5)
+        self._play_voice_btn.Hide()
 
         self._send_voice_btn = wx.Button(
             self._voice_panel, label=i18n.t("send_voice_message")
@@ -1803,6 +1812,7 @@ class ConversationsPanel(wx.Panel):
                 self.record_voice_message_btn.Hide()
                 self._add_attachment_btn.Hide()
                 self._pause_resume_btn.SetLabel(self.main_window.i18n.t("pause_recording"))
+                self._play_voice_btn.Hide()
                 self._voice_panel.Show()
                 self.conversation_panel.Layout()
                 self._send_voice_btn.SetFocus()
@@ -1890,6 +1900,7 @@ class ConversationsPanel(wx.Panel):
         self._pause_resume_btn.SetLabel(
             self.main_window.i18n.t("pause_recording")
         )
+        self._play_voice_btn.Hide()
         self._voice_panel.Show()
         self.conversation_panel.Layout()
         voice_focus = self.main_window.settings.get("user_interface", {}).get(
@@ -1945,8 +1956,13 @@ class ConversationsPanel(wx.Panel):
         """Discard the current recording without sending."""
         if not self._is_recording:
             return
-        self.main_window.voicemsg_discard_sound.play()
+            
+        self._stop_voice_preview()
+        
+        # Stop the stream in background before playing sound
         threading.Thread(target=self._stop_recording_stream, daemon=True).start()
+        
+        self.main_window.voicemsg_discard_sound.play()
         self._is_recording     = False
         self._recording_paused = False
         self._recording_frames = []
@@ -1961,15 +1977,65 @@ class ConversationsPanel(wx.Panel):
         """Pause or resume the ongoing recording."""
         if not self._is_recording:
             return
+            
+        if self._recording_paused:
+            self._stop_voice_preview()
+            
         self.main_window.voicemsg_pauserecording_sound.play()
         self._recording_paused = not self._recording_paused
         label_key = "resume_recording" if self._recording_paused else "pause_recording"
         self._pause_resume_btn.SetLabel(self.main_window.i18n.t(label_key))
+        
+        if self._recording_paused:
+            self._play_voice_btn.Show()
+        else:
+            self._play_voice_btn.Hide()
+        self._voice_panel.Layout()
+
+    def _stop_voice_preview(self):
+        """Stop voice recording playback and clean up."""
+        if getattr(self, "_preview_audio_stream", None):
+            try:
+                self._preview_audio_stream.stop()
+                self._preview_audio_stream.free()
+            except Exception:
+                pass
+            self._preview_audio_stream = None
+
+    def _play_current_voice_recording(self, event):
+        """Play back the currently paused recording."""
+        if not self._is_recording or not self._recording_paused or not self._recording_frames:
+            return
+            
+        import wave, tempfile, os
+        import sound_lib.stream as sl_stream
+        
+        self._stop_voice_preview()
+                
+        temp_dir = tempfile.gettempdir()
+        temp_wav = os.path.join(temp_dir, "winzapp_preview.wav")
+        
+        actual_rate = self._recording_actual_rate
+        actual_ch = self._recording_actual_ch
+        
+        try:
+            with wave.open(temp_wav, "wb") as wf:
+                wf.setnchannels(actual_ch)
+                wf.setsampwidth(2) # 16-bit PCM
+                wf.setframerate(actual_rate)
+                wf.writeframes(b''.join(self._recording_frames))
+                
+            self._preview_audio_stream = sl_stream.FileStream(file=temp_wav)
+            self._preview_audio_stream.play()
+        except Exception as e:
+            logging.error(f"[audio] Error playing preview: {e}")
 
     def _send_voice_message(self, event):
         """Stop recording and enqueue the audio for delivery."""
         if not self._is_recording:
             return
+            
+        self._stop_voice_preview()
 
         import time as _time
         _t0 = _time.perf_counter()

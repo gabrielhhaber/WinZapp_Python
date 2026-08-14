@@ -718,5 +718,6 @@
     "acc_unpaired_quit": "Zakończ",
     "acc_btn_open": "&Otwórz",
     "acc_err_open_current": "To jest bieżące konto — jest już otwarte.",
-    "acc_err_open_invalid_state": "Nie można otworzyć zarchiwizowanego lub usuwanego konta."
+    "acc_err_open_invalid_state": "Nie można otworzyć zarchiwizowanego lub usuwanego konta.",
+    "play_voice_message": "Reproduzir mensagem de voz"
 }

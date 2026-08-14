@@ -123,6 +123,12 @@ class AccessiblePauseResumeRecording(wx.Accessible):
         return (wx.ACC_OK, "Ctrl+Shift+P")
 
 
+class AccessiblePlayVoiceMessage(wx.Accessible):
+    """Accessibility for the Play Voice Message button."""
+
+    pass
+
+
 class AccessibleSendVoiceMessage(wx.Accessible):
     """Reports Ctrl+R as the keyboard shortcut for the Send Voice Message button."""
 

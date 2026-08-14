@@ -1,7 +1,8 @@
 {
-  "pt-BR": "Português (Brasil)",
-  "pt-PT": "Português (Portugal)",
-  "en-US": "English (United States)",
-  "es-ES": "Español (España)",
-  "pl": "Polski"
+    "pt-BR": "Português (Brasil)",
+    "pt-PT": "Português (Portugal)",
+    "en-US": "English (United States)",
+    "es-ES": "Español (España)",
+    "pl": "Polski",
+    "play_voice_message": "Reproduzir mensagem de voz"
 }

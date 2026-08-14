@@ -786,5 +786,6 @@
     "ui_self_reference_eu": "Eu",
     "forward_multiselect_hint": "Ctrl+Espaço: marcar/desmarcar contato. Ctrl+Shift+Espaço: marcar/desmarcar todos. Sem seleção, encaminha para o contato focado.",
     "selected": "Selecionado",
-    "forward_failed_multiple": "Não foi possível encaminhar a mensagem para: {names}"
+    "forward_failed_multiple": "Não foi possível encaminhar a mensagem para: {names}",
+    "play_voice_message": "Reproduzir mensagem de voz"
 }

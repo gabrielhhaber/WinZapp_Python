@@ -786,5 +786,6 @@
     "ui_self_reference_eu": "Me",
     "forward_multiselect_hint": "Ctrl+Space: select/deselect contact. Ctrl+Shift+Space: select/deselect all. With nothing selected, forwards to the focused contact.",
     "selected": "Selected",
-    "forward_failed_multiple": "Could not forward the message to: {names}"
+    "forward_failed_multiple": "Could not forward the message to: {names}",
+    "play_voice_message": "Reproduzir mensagem de voz"
 }
