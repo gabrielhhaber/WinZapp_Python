@@ -2987,11 +2987,19 @@ export async function getAllContacts(req: Request, res: Response) {
       // to actually finish. listChats() wraps the same modern, non-
       // deprecated WPP.chat.list() the list-chats route already uses, with
       // the same ignoreGroupMetadata skip.
+      // listChats().catch(() => []) only covers a *rejection* — the promise
+      // can also resolve to undefined (e.g. the page's execution context was
+      // destroyed by a navigation mid-evaluate). Guard with Array.isArray so
+      // an undefined/non-array result degrades to "no active-chat filter"
+      // instead of throwing, which made get_remote_contacts() (WinZapp's
+      // Python caller) abort on the 500 with zero contacts on every sync.
       const chats = await req.client
         .listChats({ ignoreGroupMetadata: true } as any)
         .catch(() => []);
       const activeChatIds = new Set(
-        chats.map((c: any) => c?.id?._serialized || c?.id).filter(Boolean)
+        (Array.isArray(chats) ? chats : [])
+          .map((c: any) => c?.id?._serialized || c?.id)
+          .filter(Boolean)
       );
 
       response = response.filter((c: any) => {
