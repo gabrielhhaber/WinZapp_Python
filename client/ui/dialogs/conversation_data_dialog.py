@@ -21,6 +21,7 @@ import threading
 from datetime import datetime
 import wx
 import wx.adv
+from ui.accessible import AccessibleSaveAs
 from core.utils import (
     format_number, GROUP_MEDIA_TYPES, GROUP_MEDIA_FILTERS,
     filter_group_media, filter_group_media_by_download, media_cache_id,
@@ -456,6 +457,10 @@ class ConversationDataDialog(wx.Dialog):
         media_btn_row.Add(self._media_open_btn, 0, wx.RIGHT, 6)
 
         self._media_save_btn = wx.Button(media_page, label=self._i18n.t("save_as"))
+        # Reports Ctrl+Shift+S to the screen reader, exactly as the panel's own
+        # Save-As button does — the shortcut works here too, so it has to be
+        # announced here too.
+        self._media_save_btn.SetAccessible(AccessibleSaveAs())
         self._media_save_btn.Bind(wx.EVT_BUTTON, self._on_media_save_btn)
         media_btn_row.Add(self._media_save_btn, 0)
         md_sizer.Add(media_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -1130,14 +1135,14 @@ class ConversationDataDialog(wx.Dialog):
         panel = self._conversation_panel()
         if msg is None or panel is None or not self._panel_is_on_this_chat():
             return
-        self._invoke_with_index(msg, lambda idx: panel._on_action_open(None, idx))
+        self._invoke(lambda: panel.open_media_message(msg))
 
     def _on_media_save_btn(self, event):
         msg = self._selected_media_message()
         panel = self._conversation_panel()
         if msg is None or panel is None or not self._panel_is_on_this_chat():
             return
-        self._invoke_with_selection(msg, lambda: panel._on_action_save_as(None))
+        self._invoke(lambda: panel.save_media_message(msg))
 
     def _delete_selected_media(self):
         """Delete the selected row through the panel's own delete flow.
@@ -1201,7 +1206,7 @@ class ConversationDataDialog(wx.Dialog):
         key = chr(code) if 32 < code < 127 else ""
         method = None
         if ctrl and shift and key == "S":
-            self._invoke_with_selection(msg, lambda: panel._on_action_save_as(None))
+            self._invoke(lambda: panel.save_media_message(msg))
             return
         elif alt and shift and key == "D":
             method = "_on_menu_message_data"
@@ -1253,31 +1258,25 @@ class ConversationDataDialog(wx.Dialog):
 
         # Open: _on_action_open takes an explicit index, so it needs the index
         # but NOT the selection.
-        if hasattr(panel, "_on_action_open") and on_this_chat:
+        if hasattr(panel, "open_media_message") and on_this_chat:
             open_item = menu.Append(wx.ID_ANY, i18n.t("open"))
             self.Bind(
                 wx.EVT_MENU,
-                lambda _e: self._invoke_with_index(
-                    msg, lambda idx: panel._on_action_open(None, idx)),
+                lambda _e: self._invoke(lambda: panel.open_media_message(msg)),
                 open_item,
             )
             added_any[0] = True
 
         # Save as: the one handler that reads the list selection itself.
-        if hasattr(panel, "_on_action_save_as") and on_this_chat:
-            # It diverts to _on_mass_save_messages when a bulk selection is
-            # active, which would save the conversation's selected set instead
-            # of this row. Rather than mutate the panel's selection to dodge
-            # that, the item is withheld while that is true.
-            bulk_active = bool(getattr(panel, "selected_messages", None)) and bool(
-                getattr(panel, "_bulk_shortcuts_enabled", lambda: False)()
-            )
-            save_item = menu.Append(wx.ID_ANY, i18n.t("save_as"))
-            save_item.Enable(not bulk_active)
+        if hasattr(panel, "save_media_message") and on_this_chat:
+            # save_media_message() carries no bulk-selection branch, so this no
+            # longer has to be withheld while the conversation has messages
+            # multi-selected: asking to save THIS row saves this row.
+            save_item = menu.Append(
+                wx.ID_ANY, f"{i18n.t('save_as')}	Ctrl+Shift+S")
             self.Bind(
                 wx.EVT_MENU,
-                lambda _e: self._invoke_with_selection(
-                    msg, lambda: panel._on_action_save_as(None)),
+                lambda _e: self._invoke(lambda: panel.save_media_message(msg)),
                 save_item,
             )
             added_any[0] = True

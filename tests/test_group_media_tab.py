@@ -629,13 +629,25 @@ class TestTheActionButtons:
         assert 'group_media_category(msg) != "links"' in src
         assert "btn.Enable(actionable)" in src
 
-    def test_open_uses_the_panels_own_handler(self):
+    def test_open_uses_the_panels_by_message_handler(self):
+        """By message, not by row index: this tab reads the group's whole
+        history from the database, so most of what it lists is outside the
+        ~200 messages the panel keeps — resolving those through a list index
+        found nothing and the button silently did nothing."""
         src = _inspect.getsource(ConversationDataDialog._on_media_open_btn)
-        assert "_on_action_open" in src
+        assert "open_media_message" in src
+        assert "_invoke_with_index" not in src
 
-    def test_save_uses_the_panels_own_handler(self):
+    def test_save_uses_the_panels_by_message_handler(self):
         src = _inspect.getsource(ConversationDataDialog._on_media_save_btn)
-        assert "_on_action_save_as" in src
+        assert "save_media_message" in src
+        assert "_invoke_with_selection" not in src
+
+    def test_save_as_announces_its_shortcut(self):
+        """The panel's Save-As button reports Ctrl+Shift+S to the screen
+        reader; the shortcut works here too, so it is announced here too."""
+        src = _inspect.getsource(ConversationDataDialog._build_group_ui)
+        assert "self._media_save_btn.SetAccessible(AccessibleSaveAs())" in src
 
 
 class TestDeletingFromTheMediaTab:

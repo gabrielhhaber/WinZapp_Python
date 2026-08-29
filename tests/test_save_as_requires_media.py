@@ -63,6 +63,9 @@ class _Stub:
 
     _is_separator = ConversationsPanel._is_separator
     _on_action_save_as = ConversationsPanel._on_action_save_as
+    # The by-message half _on_action_save_as() delegates to (the Media tab
+    # in the group data dialog calls it directly, having no row index).
+    save_media_message  = ConversationsPanel.save_media_message
     _bulk_shortcuts_enabled = ConversationsPanel._bulk_shortcuts_enabled
 
     def __init__(self, sorted_messages, selected=0):
