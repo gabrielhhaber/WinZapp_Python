@@ -26,18 +26,18 @@ class _Stub:
     _auto_restart_grace_active = MainWindow._auto_restart_grace_active
     _WPP_SESSION_RESTART_COOLDOWN = MainWindow._WPP_SESSION_RESTART_COOLDOWN
     _AUTO_RESTART_LOGOUT_GRACE_SECONDS = MainWindow._AUTO_RESTART_LOGOUT_GRACE_SECONDS
+    _RECOVERY_CLOSE_WAIT = MainWindow._RECOVERY_CLOSE_WAIT
 
     def __init__(self):
         self.wpp_server = "http://127.0.0.1"
         self.wpp_port = 6300
         self.token = "test-token"
+        self.waited_statuses = []
+        self.closed_status = "CLOSED"
 
-
-@pytest.fixture(autouse=True)
-def _no_real_sleep(monkeypatch):
-    """_restart_wpp_session() sleeps 2s between close and start — skip that
-    in tests."""
-    monkeypatch.setattr("main.time.sleep", lambda *_: None)
+    def _wait_for_status(self, predicate, timeout, stop_when_connected=True):
+        self.waited_statuses.append((predicate, timeout, stop_when_connected))
+        return self.closed_status
 
 
 class TestRestartWppSession:
@@ -58,8 +58,10 @@ class TestRestartWppSession:
             "http://127.0.0.1:6300/api/test-token/close-session",
             "http://127.0.0.1:6300/api/test-token/start-session",
         ]
+        assert len(s.waited_statuses) == 1
+        assert s.waited_statuses[0][1:] == (s._RECOVERY_CLOSE_WAIT, False)
 
-    def test_start_session_still_runs_if_close_session_fails(self, monkeypatch):
+    def test_start_session_runs_if_close_request_fails_but_closed_is_confirmed(self, monkeypatch):
         calls = []
 
         def _fake_post(url, **kw):
@@ -78,6 +80,36 @@ class TestRestartWppSession:
             "http://127.0.0.1:6300/api/test-token/close-session",
             "http://127.0.0.1:6300/api/test-token/start-session",
         ]
+
+    def test_does_not_start_replacement_until_closed_is_confirmed(self, monkeypatch):
+        calls = []
+        monkeypatch.setattr("main.requests.post", lambda url, **kw: calls.append(url))
+        s = _Stub()
+        s.closed_status = "CLOSING"
+
+        s._restart_wpp_session()
+
+        assert calls == ["http://127.0.0.1:6300/api/test-token/close-session"]
+
+    def test_health_loop_restart_gate_covers_close_wait_and_start(self, monkeypatch):
+        gate_values = []
+        s = _Stub()
+
+        def _wait(*args, **kwargs):
+            gate_values.append(s._recovery_restart_active)
+            return "CLOSED"
+
+        def _post(url, **kwargs):
+            gate_values.append(s._recovery_restart_active)
+            return type("_Resp", (), {"status_code": 200})()
+
+        s._wait_for_status = _wait
+        monkeypatch.setattr("main.requests.post", _post)
+
+        s._restart_wpp_session()
+
+        assert gate_values and all(gate_values)
+        assert s._recovery_restart_active is False
 
     def test_respects_the_cooldown_between_restarts(self, monkeypatch):
         calls = []
