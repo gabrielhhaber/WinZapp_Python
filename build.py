@@ -301,6 +301,7 @@ API_CUSTOM_SRC_FILES = [
     "src/config.ts",
     "src/util/createSessionUtil.ts",
     "src/util/functions.ts",
+    "src/util/tokenStore/fileTokenStory.ts",
     "src/middleware/statusConnection.ts",
     "src/middleware/auth.ts",
     "src/controller/deviceController.ts",

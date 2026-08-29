@@ -56,6 +56,7 @@ class _Stub:
     _set_wa_connected = MainWindow._set_wa_connected
     _reset_startup_probe = MainWindow._reset_startup_probe
     _announce_sync_events_enabled = MainWindow._announce_sync_events_enabled
+    _self_inflicted_teardown_expected = MainWindow._self_inflicted_teardown_expected
     _WA_STARTUP_GRACE_SECONDS = MainWindow._WA_STARTUP_GRACE_SECONDS
 
     # Overridden per-test; the default keeps the grace intact.
@@ -66,6 +67,7 @@ class _Stub:
         self.network_down = network_down
         self.settings = {}
         self._shutting_down = False
+        self._wpp_updating = False
         self._wa_connected = False
         self._auto_offline = False
         self._wa_connect_announced = False
