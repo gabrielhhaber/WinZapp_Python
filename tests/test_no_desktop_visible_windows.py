@@ -53,6 +53,68 @@ def test_no_module_builds_a_bare_top_level_frame(path):
     )
 
 
+class TestTheDefaultRunIsSafe:
+    """`pytest` with no arguments must not open anything in the foreground.
+
+    The marker alone was not enough: it still ran by default, so staying safe
+    depended on every developer remembering `-m "not wxgui"`. WinZapp is
+    maintained by blind developers, and the cost of forgetting does not land
+    on the test run — it lands on whatever they had open in another window.
+    So the default skips these, and CI opts back in.
+    """
+
+    def test_the_marked_tests_are_skipped_without_the_opt_in(self, pytestconfig):
+        """If this ever runs unskipped in a default run, the protection is
+        gone. It asserts about its own session: with no --run-wx-gui and no
+        WINZAPP_RUN_WX_GUI_TESTS, a wxgui test must not have been collected
+        to run."""
+        import os
+
+        opted_in = (
+            pytestconfig.getoption("--run-wx-gui")
+            or os.environ.get("WINZAPP_RUN_WX_GUI_TESTS", "").strip()
+            not in ("", "0", "false", "False")
+        )
+        if opted_in:
+            pytest.skip("this session deliberately opted in")
+        # conftest must have installed the deselection hook.
+        conftest_src = (TESTS / "conftest.py").read_text(encoding="utf-8")
+        assert "def pytest_collection_modifyitems" in conftest_src
+        assert '"wxgui" in item.keywords' in conftest_src
+
+    def test_every_ci_workflow_that_runs_pytest_opts_back_in(self):
+        """The flip side: skipping by default silently loses the coverage
+        unless CI asks for it. A workflow that runs a bare `pytest` would
+        stop exercising every dialog test with nothing to show for it."""
+        workflows = sorted(
+            (TESTS.parent / ".github" / "workflows").glob("*.yml")
+        )
+        assert workflows, "no workflows found — has the path changed?"
+        offenders = []
+        for wf in workflows:
+            for i, line in enumerate(wf.read_text(encoding="utf-8").splitlines(), 1):
+                stripped = line.strip()
+                if stripped.startswith("#"):
+                    continue
+                # Both shapes: `run: pytest ...` on one line, and a bare
+                # `pytest ...` inside a `run: |` block. Only the first exists
+                # today, but the block form is the natural way somebody adds
+                # a second command later, and a guard that misses it fails
+                # silently in the one direction that matters.
+                if stripped.startswith("run:"):
+                    command = stripped[len("run:"):].strip()
+                else:
+                    command = stripped
+                if not (command == "pytest" or command.startswith("pytest ")):
+                    continue
+                if "--run-wx-gui" not in command:
+                    offenders.append(f"{wf.name}:{i}: {command}")
+        assert not offenders, (
+            "these CI steps run pytest without --run-wx-gui, so the wxgui "
+            f"tests are skipped there too and nothing covers them: {offenders}"
+        )
+
+
 class TestTheMarkerIsRegisteredAndUsed:
     def test_pytest_ini_declares_the_marker(self):
         ini = (TESTS.parent / "pytest.ini").read_text(encoding="utf-8")

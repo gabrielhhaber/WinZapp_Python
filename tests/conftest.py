@@ -14,6 +14,60 @@ from cryptography.fernet import Fernet
 # ── Fixtures: wx ────────────────────────────────────────────────────────────
 
 
+
+# ── wxgui: opt-in, because the default must be safe for a blind developer ────
+#
+# A plain `pytest` has to be safe to run on the machine somebody is using.
+# Tests marked `wxgui` construct a real top-level wx dialog, which takes
+# foreground focus away from whatever the developer is doing - and has crashed
+# NVDA outright: NVDA takes focus on the throwaway window and is still
+# enumerating its children over COM (event_gainFocus -> getDialogText ->
+# IAccessible._get_children -> oleacc.AccessibleObjectFromEvent) when the test
+# destroys it. Confirmed live from NVDA's own traceback.
+#
+# WinZapp exists for blind users and is maintained by blind developers, so
+# "remember to pass -m 'not wxgui'" is the wrong default: the cost of
+# forgetting falls on the person least able to absorb it, and it is not their
+# test run that breaks - it is whatever they were doing in another window.
+#
+# So these are skipped unless explicitly asked for, by `--run-wx-gui` or
+# WINZAPP_RUN_WX_GUI_TESTS=1. Every CI workflow passes the flag (enforced by
+# tests/test_no_desktop_visible_windows.py), so the coverage is never actually
+# lost - it just stops running on a human's desktop by accident.
+_WX_GUI_OPT_IN_ENV = "WINZAPP_RUN_WX_GUI_TESTS"
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-wx-gui",
+        action="store_true",
+        default=False,
+        help="Run the tests marked `wxgui`, which open a real top-level wx "
+             "dialog and steal foreground focus. Safe on CI and on a machine "
+             "nobody is using; on a developer's own desktop it can crash a "
+             "running screen reader. CI passes this.",
+    )
+
+
+def _wx_gui_requested(config) -> bool:
+    return bool(
+        config.getoption("--run-wx-gui")
+        or os.environ.get(_WX_GUI_OPT_IN_ENV, "").strip() not in ("", "0", "false", "False")
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if _wx_gui_requested(config):
+        return
+    skip = pytest.mark.skip(
+        reason="opens a real top-level wx dialog and steals focus - pass "
+               "--run-wx-gui (or set WINZAPP_RUN_WX_GUI_TESTS=1) to run it"
+    )
+    for item in items:
+        if "wxgui" in item.keywords:
+            item.add_marker(skip)
+
+
 @pytest.fixture(scope="session")
 def wx_app():
     """A single wx.App shared by every test in the run that needs a real

@@ -53,4 +53,4 @@ jobs:
       # pulam sozinhos — vide test_api_patches_in_sync.py. Isso é esperado: a
       # deriva que eles pegam só é detectável numa máquina de dev.
       - name: Run pytest
-        run: pytest
+        run: pytest --run-wx-gui

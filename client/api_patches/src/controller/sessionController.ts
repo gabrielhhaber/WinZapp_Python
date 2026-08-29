@@ -308,7 +308,8 @@ export async function closeSession(req: Request, res: Response): Promise<any> {
     // status honest: connection_state.session_closed_after_flush() rejects it,
     // so the poll waits for the `finally` below, which only runs once close()
     // has actually returned.
-    (clientsArray as any)[session] = { status: 'CLOSING' };
+    const closingMarker = { status: 'CLOSING' };
+    (clientsArray as any)[session] = closingMarker;
 
     try {
       if (req.client && typeof req.client.close === 'function') {
@@ -328,9 +329,16 @@ export async function closeSession(req: Request, res: Response): Promise<any> {
         //
         // Racing it keeps the slot self-clearing. WinZapp's own POST budget
         // (_WPP_GRACEFUL_STOP_SECONDS) is 10s, so this has to answer first.
-        await Promise.race([
-          req.client.close(),
-          new Promise((resolve) => setTimeout(resolve, 8000)).then(() => {
+        // Promise.race does not cancel its losing promise. The old inline
+        // setTimeout therefore still fired eight seconds after close() had
+        // already won, by which time WinZapp could have started a replacement
+        // browser under the same session name. forceKillSession(session) then
+        // killed that brand-new browser and left the session in INITIALIZING
+        // with a detached Puppeteer frame. Keep the handle and explicitly
+        // cancel the timeout as soon as close() settles.
+        let closeTimeout: ReturnType<typeof setTimeout> | undefined;
+        const closeTimeoutPromise = new Promise<void>((resolve) => {
+          closeTimeout = setTimeout(() => {
             req.logger?.warn?.(
               `[${session}] close() did not settle in 8s — force killing so ` +
                 `the session slot is not left stuck in CLOSING.`
@@ -338,8 +346,14 @@ export async function closeSession(req: Request, res: Response): Promise<any> {
             try {
               SessionUtil.forceKillSession(session, req.logger);
             } catch (e) {}
-          }),
-        ]);
+            resolve();
+          }, 8000);
+        });
+        try {
+          await Promise.race([req.client.close(), closeTimeoutPromise]);
+        } finally {
+          if (closeTimeout !== undefined) clearTimeout(closeTimeout);
+        }
       }
     } catch (closeErr) {
       req.logger?.warn?.(
@@ -349,7 +363,11 @@ export async function closeSession(req: Request, res: Response): Promise<any> {
         SessionUtil.forceKillSession(session, req.logger);
       } catch (e) {}
     } finally {
-      (clientsArray as any)[session] = undefined;
+      // Do not let an old close request erase a replacement client that may
+      // have claimed this session slot after an exceptional teardown path.
+      if ((clientsArray as any)[session] === closingMarker) {
+        (clientsArray as any)[session] = undefined;
+      }
     }
 
     req.io.emit('whatsapp-status', false);

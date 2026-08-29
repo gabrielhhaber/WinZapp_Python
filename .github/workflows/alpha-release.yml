@@ -84,7 +84,7 @@ jobs:
           pip install -r requirements-dev.txt --quiet
 
       - name: Run pytest
-        run: pytest
+        run: pytest --run-wx-gui
 
   # ── ALPHA-SPECIFIC ────────────────────────────────────────────────────────
   # A job of its own because build-windows.yml takes the version as an input,
