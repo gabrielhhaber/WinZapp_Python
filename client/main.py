@@ -1014,6 +1014,19 @@ class MainWindow(wx.Frame):
         self._save_lock = threading.Lock()
         self._save_timer = None
         self._save_timer_lock = threading.Lock()
+        # Guards the _shutting_down check-and-set in _perform_shutdown() and
+        # _on_end_session(): an unlocked check-then-set there is a real
+        # TOCTOU race — a local quit, a WM_ENDSESSION, and an IPC "quit" from
+        # another account can each observe _shutting_down still False and
+        # all proceed into _stop_wpp_server() concurrently, racing on the
+        # same wpp_process/taskkill target.
+        self._teardown_started_lock = threading.Lock()
+        # Set once whichever path actually owns teardown has genuinely
+        # finished it — distinct from _shutting_down, which only means
+        # teardown has STARTED somewhere. A caller that lost the lock race
+        # must wait on this before self-terminating, or it could os._exit()
+        # while the winning call is still mid _stop_wpp_server().
+        self._teardown_complete_event = threading.Event()
         # Guards self.sync_thread creation — see _try_start_sync_thread().
         self._sync_start_lock = threading.Lock()
         # Serializes wake-from-suspend recovery so the two independent triggers
@@ -2445,8 +2458,9 @@ class MainWindow(wx.Frame):
         `released:True`, give it a beat to send that reply over the pipe, and
         only THEN take the process down for good.
         """
+        did_work = False
         try:
-            self._perform_shutdown()
+            did_work = self._perform_shutdown()
         finally:
             # Reachable now (teardown does not call os._exit). Let the IPC
             # listener observe this and reply released:True to the initiator.
@@ -2454,6 +2468,13 @@ class MainWindow(wx.Frame):
         # Give the listener thread a moment to send the released reply before we
         # vanish (its poll loop checks the predicate every 50ms).
         time.sleep(0.3)
+        if not did_work:
+            # Another path already owns teardown — wait for it to actually
+            # finish rather than killing the process out from under its
+            # still-in-progress _stop_wpp_server().
+            self._teardown_complete_event.wait(
+                timeout=self._TEARDOWN_OWNED_ELSEWHERE_WAIT_SECONDS
+            )
         self._terminate_process()
 
     def quit_all_accounts(self):
@@ -2484,7 +2505,9 @@ class MainWindow(wx.Frame):
                 for other in others:
                     try:
                         logging.info("[quit-all] asking account %s to quit", other)
-                        ipc.request_quit(gd, other, timeout=10.0)
+                        # No explicit timeout: request_quit()'s own default
+                        # is sized to the other account's worst-case teardown.
+                        ipc.request_quit(gd, other)
                     except Exception:
                         logging.exception("[quit-all] request_quit failed for %s", other)
             except Exception:
@@ -3259,7 +3282,13 @@ class MainWindow(wx.Frame):
         # Drop the stale lockfile so a relaunch is not refused even if the
         # process was already gone but left the file behind.
         try:
-            udd = resource_path("api", "userDataDir", session_name)
+            # Matches _start_wpp_background()'s WINZAPP_USER_DATA_DIR, not
+            # resource_path("api", "userDataDir") — the latter is a
+            # --onefile launch's ephemeral extraction dir, gone by the time
+            # this wake-recovery path runs.
+            gd = getattr(self, "global_dir", None)
+            udd = (os.path.join(gd, "api", "userDataDir", session_name) if gd
+                   else resource_path("api", "userDataDir", session_name))
             for name in ("lockfile", "SingletonLock", "SingletonCookie", "SingletonSocket"):
                 p = os.path.join(udd, name)
                 if os.path.exists(p):
@@ -3547,23 +3576,26 @@ class MainWindow(wx.Frame):
         WPPConnect still initializing) is ambiguous during the first
         connection attempt of a session and gets the grace window instead.
         """
-        if getattr(self, "_shutting_down", False):
-            # The app is on its way out (real_exit()) — closing the
-            # WPPConnect session ourselves as part of shutdown looks
-            # identical, at this layer, to WhatsApp dropping the connection.
-            # Nothing about a deliberate quit should announce an "offline"
-            # transition with sound/speech in the second before the process
-            # actually exits.
+        if bool(getattr(self, "_shutting_down", False)):
+            # We just closed this session ourselves as part of quitting —
+            # looks identical, at this layer, to WhatsApp dropping the
+            # connection. The process exits moments later regardless, so
+            # nothing here needs to touch offline state, sound, or speech.
+            # NOT the same as the branch below: an update/self-restart still
+            # reconnects afterward, so those genuinely engage offline mode
+            # and only suppress the announcement.
             return
         connected = bool(connected)
         was = bool(getattr(self, "_wa_connected", False))
         self._wa_connected = connected
         # Nothing to do only when the flag *and* the derived offline state are
-        # both already consistent with `connected`.
+        # both already consistent with `connected`. _shutting_down already
+        # returned above, so the check below can only mean still-updating or
+        # still-self-restarting.
         if connected == was and self._auto_offline == (not connected):
             still_owed = (
                 not connected
-                and not getattr(self, "_wpp_updating", False)
+                and not self._self_inflicted_teardown_expected()
                 and getattr(self, "_offline_announce_deferred", False)
             )
             if not still_owed:
@@ -3637,10 +3669,11 @@ class MainWindow(wx.Frame):
 
         self._wa_offline_strikes += 1
 
-        if getattr(self, "_wpp_updating", False):
+        if self._self_inflicted_teardown_expected():
             logging.info(
-                "[connection] WPPConnect update in progress (%s) — engaging "
-                "offline mode and showing 'connecting' instead of 'offline'.",
+                "[connection] Self-inflicted session teardown in progress "
+                "(%s) — engaging offline mode and showing 'connecting' "
+                "instead of 'offline'.",
                 reason or "checked",
             )
             self._auto_offline = True
@@ -4233,6 +4266,14 @@ class MainWindow(wx.Frame):
         except Exception:
             logging.exception("[focus] restoring primary control focus failed")
 
+    # Bound for a caller that lost the _teardown_started_lock race to wait
+    # for the winning path's _teardown_complete_event before
+    # self-terminating. Sized above ipc.py's _QUIT_RELEASE_POLL_SECONDS
+    # (75s — the winning path's own teardown is bounded by that budget).
+    # Bounded rather than indefinite: if the event is somehow never set,
+    # this caller must still terminate on the user's original quit request.
+    _TEARDOWN_OWNED_ELSEWHERE_WAIT_SECONDS = 80.0
+
     def real_exit(self):
         """Completely close WinZapp: graceful teardown, then terminate.
 
@@ -4262,59 +4303,127 @@ class MainWindow(wx.Frame):
             pass
 
         def _teardown():
+            did_work = False
             try:
-                self._perform_shutdown()
+                did_work = self._perform_shutdown()
             finally:
+                if not did_work:
+                    # Another path (a concurrent _on_end_session(), or a
+                    # second overlapping quit) already owns teardown —
+                    # terminating immediately could os._exit() the process
+                    # while it is still mid _stop_wpp_server().
+                    self._teardown_complete_event.wait(
+                        timeout=self._TEARDOWN_OWNED_ELSEWHERE_WAIT_SECONDS
+                    )
                 self._terminate_process()
 
         threading.Thread(target=_teardown, daemon=True, name="winzapp-shutdown").start()
 
-    def _perform_shutdown(self):
+    def _perform_shutdown(self) -> bool:
         """Reversible shutdown: stop timers/threads, gracefully close the WPP
         session (waiting for its flush), stop the Node, close the DB. Does NOT
-        exit the process, so it is safe to call from the IPC quit handler."""
+        exit the process, so it is safe to call from the IPC quit handler.
+
+        Returns True if THIS call actually performed the teardown, False if
+        another path already owns it. Callers must not treat False the same
+        as True and immediately self-terminate — see
+        _teardown_complete_event's own comment for why."""
         # Set FIRST, before anything else: _stop_wpp_server() below closes
         # the WPPConnect session itself, which — while our WebSocket is
         # still connected — arrives as an ordinary "connection closed" event
         # indistinguishable from a real disconnect. _set_wa_connected()
         # checks this flag and skips entirely, so quitting never announces
         # "modo offline ativado" in the moment before the process exits.
-        if getattr(self, "_shutting_down", False):
-            return  # teardown already ran (e.g. real_exit after an IPC quit)
-        self._shutting_down = True
-        # Stop the presence keep-alive timer before tearing down
-        if hasattr(self, "_presence_timer") and self._presence_timer.IsRunning():
-            self._presence_timer.Stop()
-        # Also cancel a pending debounced activate/deactivate — otherwise it
-        # can fire mid-shutdown and spawn a presence POST + restart the timer
-        # just stopped above.
-        if getattr(self, "_presence_debounce_timer", None) is not None and self._presence_debounce_timer.IsRunning():
-            self._presence_debounce_timer.Stop()
-        for identity in list(getattr(self, "_incoming_call_watchdogs", {})):
-            self._cancel_incoming_call_watchdog(identity)
-        for identity in list(getattr(self, "_incoming_call_dialogs", {})):
-            self._close_incoming_call_dialog(identity)
-        if hasattr(self, "call_incoming_sound"):
-            self.call_incoming_sound.stop()
-        if getattr(self, "tray_icon", None) is not None:
+        #
+        # Locked (not a plain getattr-then-set) so this can never race
+        # _on_end_session() or a second concurrent call into this method.
+        with self._teardown_started_lock:
+            if getattr(self, "_shutting_down", False):
+                return False  # another path already owns teardown
+            self._shutting_down = True
+        try:
+            # Stop the presence keep-alive timer before tearing down
+            if hasattr(self, "_presence_timer") and self._presence_timer.IsRunning():
+                self._presence_timer.Stop()
+            # Also cancel a pending debounced activate/deactivate — otherwise it
+            # can fire mid-shutdown and spawn a presence POST + restart the timer
+            # just stopped above.
+            if getattr(self, "_presence_debounce_timer", None) is not None and self._presence_debounce_timer.IsRunning():
+                self._presence_debounce_timer.Stop()
+            for identity in list(getattr(self, "_incoming_call_watchdogs", {})):
+                self._cancel_incoming_call_watchdog(identity)
+            for identity in list(getattr(self, "_incoming_call_dialogs", {})):
+                self._close_incoming_call_dialog(identity)
+            if hasattr(self, "call_incoming_sound"):
+                self.call_incoming_sound.stop()
+            if getattr(self, "tray_icon", None) is not None:
+                try:
+                    self.tray_icon.RemoveIcon()
+                    self.tray_icon.Destroy()
+                except Exception:
+                    pass
+                self.tray_icon = None
+            if hasattr(self, "message_queue"):
+                self.message_queue.stop()
+            if getattr(self, "_update_checker", None) is not None:
+                self._update_checker.stop()
+            if getattr(self, "_wpp_update_checker", None) is not None:
+                self._wpp_update_checker.stop()
+            self._stop_wpp_server()
+            self._flush_pending_debounced_saves()
+            if hasattr(self, "db") and self.db is not None:
+                try:
+                    self.db.close()
+                except Exception:
+                    pass
+            return True
+        finally:
+            # Always, even on an exception above: a caller that lost the
+            # lock race is blocked on this event before self-terminating —
+            # leaving it unset would strand that caller for its full timeout.
+            self._teardown_complete_event.set()
+
+    def _flush_pending_debounced_saves(self):
+        """Synchronously run any pending debounced save BEFORE it can be lost.
+
+        _schedule_save() (0.15s debounce, chats/contacts -> self.db) and
+        _schedule_save_settings() (2s debounce, settings.json) each leave a
+        write sitting on its own daemon threading.Timer. Left alone, either
+        DatabaseBridge.close() rejects it once ``_closing`` flips, or
+        os._exit() kills the timer thread before it fires — os._exit()
+        never waits for other threads. Cancelling and running the callback
+        here, synchronously, beats both: the save runs on THIS thread before
+        either death trap exists.
+
+        Called from both _perform_shutdown() and _on_end_session()
+        (WM_ENDSESSION) — the latter never calls _perform_shutdown(), so
+        without this call here too a Windows shutdown/logoff would lose the
+        same pending writes with no protection at all.
+
+        Not airtight: the WebSocket stays connected throughout
+        _stop_wpp_server(), so a live event landing between this call
+        returning and db.close() running could still schedule a fresh save
+        that loses the same race. Narrows the window, does not close it.
+        """
+        with self._save_timer_lock:
+            pending_chat_save = self._save_timer is not None
+            if pending_chat_save:
+                self._save_timer.cancel()
+                self._save_timer = None
+            pending_settings_save = getattr(self, "_settings_save_timer", None) is not None
+            if pending_settings_save:
+                self._settings_save_timer.cancel()
+                self._settings_save_timer = None
+        if pending_chat_save:
             try:
-                self.tray_icon.RemoveIcon()
-                self.tray_icon.Destroy()
+                self._do_save()
             except Exception:
-                pass
-            self.tray_icon = None
-        if hasattr(self, "message_queue"):
-            self.message_queue.stop()
-        if getattr(self, "_update_checker", None) is not None:
-            self._update_checker.stop()
-        if getattr(self, "_wpp_update_checker", None) is not None:
-            self._wpp_update_checker.stop()
-        self._stop_wpp_server()
-        if hasattr(self, "db") and self.db is not None:
+                logging.exception("[_flush_pending_debounced_saves] _do_save() failed")
+        if pending_settings_save:
             try:
-                self.db.close()
+                self.save_settings()
             except Exception:
-                pass
+                logging.exception("[_flush_pending_debounced_saves] save_settings() failed")
 
     def _terminate_process(self):
         """Terminal exit — never returns.
@@ -6814,6 +6923,32 @@ class MainWindow(wx.Frame):
             except Exception:
                 logging.exception("[startup] node identity env injection failed (non-fatal)")
 
+            # WPPConnect's own defaults for the auth token store and the
+            # Chrome profile (customUserDataDir) are RELATIVE paths, resolved
+            # against the Node process's cwd (resource_path("api")). That is
+            # stable in --onedir/dev, but in --onefile it is PyInstaller's
+            # per-launch extraction temp dir — a fresh folder every launch —
+            # so anything written there is silently orphaned the moment the
+            # process exits, and the next launch's empty tokens/userDataDir
+            # folder finds nothing (WhatsApp then correctly asks for a fresh
+            # QR: the "closed WinZapp, relaunched, told the device was
+            # disconnected" report). Pointing both at an absolute,
+            # install-writable location (via config.ts/fileTokenStory.ts,
+            # which read these two env vars) fixes this for every build mode.
+            try:
+                # self.global_dir, not a "..", ".." walk up from data_path():
+                # this root is intentionally SHARED across accounts —
+                # WPPConnect isolates each session under its own
+                # userDataDir/<session_name> subfolder — and a relative
+                # walk-up silently breaks if the accounts/<id>/ nesting depth
+                # ever changes.
+                _persistent_api_dir = os.path.join(self.global_dir, "api")
+                _token_dir = os.path.join(_persistent_api_dir, "tokens")
+                os.environ["WINZAPP_USER_DATA_DIR"] = os.path.join(_persistent_api_dir, "userDataDir") + os.sep
+                os.environ["WINZAPP_TOKEN_STORE_DIR"] = _token_dir
+            except Exception:
+                logging.exception("[startup] persistent userDataDir/token-store env injection failed (non-fatal)")
+
             # Ensure dist/config.js has useChrome:false so WPPConnect always uses
             # Puppeteer's own bundled Chrome/Chromium instead of searching for a
             # system Chrome installation. Patched here at runtime so existing users
@@ -6973,6 +7108,33 @@ class MainWindow(wx.Frame):
         except Exception:
             pass
 
+    def _self_inflicted_teardown_expected(self) -> bool:
+        """True while WE are deliberately closing this account's own
+        WPPConnect session ourselves — a full app shutdown (_shutting_down),
+        a WPPConnect Server auto-update (_wpp_updating), a power-resume
+        zombie-session recovery restart (_recovery_restart_active), or an
+        in-place session restart after a detached Puppeteer page
+        (_restarting_wpp_session).
+
+        All four call POST /close-session on this account's own session
+        while the WebSocket stays deliberately connected throughout, so a
+        WebSocket "close" carrying loggedOut/401, an unlinked status-find
+        reading, or a status-session CLOSED reading during any of these four
+        windows is the direct, expected result of that call — never WhatsApp
+        actually unlinking the device. The two wake-from-sleep triggers
+        (_recovery_restart_active, _restarting_wpp_session) matter most in
+        practice: laptops sleep far more often than WinZapp is quit or
+        WPPConnect updated. Shared by on_connection_update()'s close branch,
+        on_wpp_status_find(), and check_wa_connection_http()'s CLOSED
+        auto-start guard so all three treat every self-inflicted path the
+        same way."""
+        return (
+            bool(getattr(self, "_shutting_down", False))
+            or bool(getattr(self, "_wpp_updating", False))
+            or bool(getattr(self, "_recovery_restart_active", False))
+            or bool(getattr(self, "_restarting_wpp_session", False))
+        )
+
     def _wait_for_session_flushed(self, token: str, timeout: float = None) -> bool:
         """Poll status-session until WPPConnect reports the session closed, or
         the timeout elapses. Returns True if it confirmed, False on timeout.
@@ -7041,21 +7203,76 @@ class MainWindow(wx.Frame):
             pass
         event.Skip()
 
+    # How long to wait after WM_ENDSESSION before assuming the shutdown was
+    # cancelled and undoing _shutting_down. Per Windows docs bEnding can in
+    # principle still be FALSE (another app vetoed the shutdown) — rare, but
+    # this flag is never reset anywhere else, and every logout-detection
+    # guard trusts it permanently once set. In the ordinary case the process
+    # is long gone within this window; this is a self-healing fallback for
+    # when it is not.
+    _END_SESSION_UNSTICK_SECONDS = 60.0
+
     def _on_end_session(self, event):
-        """Windows is shutting down: stop WPPConnect gracefully before we go."""
+        """Windows is shutting down: stop WPPConnect gracefully before we go.
+
+        Guarded by the same _teardown_started_lock _perform_shutdown() uses:
+        WM_ENDSESSION can arrive while a local quit or an IPC "quit" from
+        another account is already mid-teardown, and without this both would
+        call _stop_wpp_server() concurrently. When teardown already started
+        elsewhere, this only releases the shutdown-block-reason and gets out
+        of the way — it does not arm its own unstick timer, since resetting
+        _shutting_down while the other path is still tearing down would
+        reopen the self-inflicted-logout window.
+        """
         logging.warning("[_on_end_session] Windows is ending the session — stopping WPPConnect.")
-        self._shutting_down = True
+        with self._teardown_started_lock:
+            already_tearing_down = getattr(self, "_shutting_down", False)
+            self._shutting_down = True
+
+        if already_tearing_down:
+            try:
+                import ctypes
+                ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
+            except Exception:
+                pass
+            event.Skip()
+            return
+
+        def _unstick_if_still_running():
+            self._shutting_down = False
+            # Left set, a later genuinely-new teardown's loser would see this
+            # abandoned attempt's event and wrongly assume it finished.
+            self._teardown_complete_event.clear()
+
         try:
-            # Bounded, and deliberately still on this thread: when this handler
-            # returns, Windows terminates the process, so a background thread
-            # doing the teardown would be killed mid-flush — the exact damage
-            # being avoided. See _on_query_end_session for where the 4s comes
-            # from, and why we do not veto to ask for more.
+            t = threading.Timer(self._END_SESSION_UNSTICK_SECONDS, _unstick_if_still_running)
+            t.daemon = True
+            t.start()
+        except Exception:
+            logging.exception("[_on_end_session] Failed to arm the _shutting_down safety timer")
+
+        try:
+            # Deliberately still on this thread: when this handler returns,
+            # Windows terminates the process, so a background thread doing
+            # the teardown would be killed mid-flush.
             self._shutdown_audit(
                 f"WM_ENDSESSION — teardown capped at {self._WINDOWS_SHUTDOWN_BUDGET}s")
             self._stop_wpp_server(budget=self._WINDOWS_SHUTDOWN_BUDGET)
         except Exception:
             logging.exception("[_on_end_session] Failed to stop WPPConnect cleanly")
+        try:
+            # This path never calls _perform_shutdown(), so without this
+            # call it has none of that method's write protection. Does NOT
+            # also close the DB here: bEnding can still turn out to be a
+            # shutdown another app cancels, and closing the DB now would
+            # leave it unusable if the user goes back to using WinZapp.
+            self._flush_pending_debounced_saves()
+        except Exception:
+            logging.exception("[_on_end_session] Failed to flush pending debounced saves")
+        # A caller that lost the lock race above waits on this before
+        # self-terminating — without it, it would sit out its full bounded
+        # wait instead of noticing this path already finished.
+        self._teardown_complete_event.set()
         try:
             import ctypes
             ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
@@ -7088,6 +7305,74 @@ class MainWindow(wx.Frame):
     # process itself releasing userDataDir — instead of the HTTP status.
     _WPP_GRACEFUL_STOP_SECONDS = 10
 
+    # Extra grace on top of _SHUTDOWN_FLUSH_TIMEOUT for the auth token file
+    # to land on disk before killing Node. Bounded like every shutdown wait
+    # here: 5s covers an ordinary small-file write without stalling a user
+    # who genuinely wants out.
+    _TOKEN_PERSIST_GRACE_SECONDS = 5.0
+    _TOKEN_PERSIST_POLL_SECONDS = 0.2
+
+    def _wait_for_token_persisted(self, token: str) -> bool:
+        """Block (briefly, boundedly) until the auth token for `token`'s
+        session actually exists on disk at WINZAPP_TOKEN_STORE_DIR, or the
+        grace window runs out.
+
+        Guards the SECONDARY, REST-API-level token file
+        (<session>.data.json), not the primary credential store — for a
+        modern multi-device session that file is close to a placeholder
+        (WASecretBundle reports the literal string 'MultiDevice', not real
+        secret material). The REAL credential store is Chrome's own
+        userDataDir/IndexedDB (LevelDB) profile, protected by
+        _wait_for_session_flushed()'s wait for a genuine CLOSED status —
+        treat that as the function actually carrying the weight, this one as
+        a cheap, harmless second check in case some path still depends on
+        this file.
+
+        Returns True if found, False if the grace window ran out — callers
+        must treat False as "log it and proceed anyway", never as a reason
+        to keep the process alive forever.
+        """
+        token_dir = os.environ.get("WINZAPP_TOKEN_STORE_DIR")
+        session_name = (token or "").split(":")[0]
+        if not token_dir or not session_name:
+            return True  # nothing to check — never block on missing config
+        token_file = os.path.join(token_dir, f"{session_name}.data.json")
+        deadline = time.monotonic() + self._TOKEN_PERSIST_GRACE_SECONDS
+        while True:
+            try:
+                if os.path.isfile(token_file) and os.path.getsize(token_file) > 2:
+                    return True
+            except OSError:
+                pass
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(self._TOKEN_PERSIST_POLL_SECONDS)
+
+    # Short, bounded grace given to an already-running self-inflicted
+    # session restart (_recovery_restart_active / _restarting_wpp_session)
+    # to finish before _stop_wpp_server() proceeds. Neither holds
+    # _teardown_started_lock (they are a close+start cycle on their own
+    # thread, not teardown), so a quit landing mid-restart would otherwise
+    # race this method's own close-session/flush-wait against the restart's
+    # start-session on the same session — the restart's start-session can
+    # flip status back to INITIALIZING mid-flush-wait, starving it of the
+    # CLOSED reading and risking a "Session Unpaired" taskkill. Deliberately
+    # short, not their own ~30-60s worst case: this narrows the race rather
+    # than closing it.
+    _SELF_RESTART_YIELD_SECONDS = 5.0
+    _SELF_RESTART_YIELD_POLL_SECONDS = 0.2
+
+    def _yield_to_in_progress_self_restart(self):
+        if not (getattr(self, "_recovery_restart_active", False)
+                or getattr(self, "_restarting_wpp_session", False)):
+            return
+        deadline = time.monotonic() + self._SELF_RESTART_YIELD_SECONDS
+        while time.monotonic() < deadline:
+            if not (getattr(self, "_recovery_restart_active", False)
+                    or getattr(self, "_restarting_wpp_session", False)):
+                return
+            time.sleep(self._SELF_RESTART_YIELD_POLL_SECONDS)
+
     def _stop_wpp_server(self, budget: float = None):
         """Terminate the WPPConnect Server process and all its children.
 
@@ -7112,9 +7397,18 @@ class MainWindow(wx.Frame):
         Each account now runs its own Node on its own port, so we only ever kill
         the Node on THIS account's port.
 
-        Must not be called on the wx main thread: step 1 can legitimately block
-        for the whole grace budget.
+        Should not be called on the wx main thread when avoidable: step 1 can
+        block for the whole grace budget, and a blocked main thread stops the
+        message loop from pumping (Windows tags it "Not Responding"). One
+        caller does anyway — _update_wpp_server(), which needs to show a
+        modal dialog immediately after — an accepted tradeoff, not an
+        oversight. Every other caller runs this off the main thread.
         """
+        if budget is None:
+            # Skipped under a budget: this wait sits outside it, so honoring
+            # it during WM_ENDSESSION could add its full 5s on top of a 4s
+            # budget — past what triggers a "Not Responding" kill.
+            self._yield_to_in_progress_self_restart()
         # STEP 1: gracefully close our own session so its state is persisted,
         # regardless of whether we go on to stop the Node or leave it up. This
         # must happen for EVERY closing process, not just the last one.
@@ -7143,6 +7437,19 @@ class MainWindow(wx.Frame):
                              f"session={session_name!r} port={getattr(self,'wpp_port','?')} "
                              f"pre_close_status={pre_status!r}")
         if token:
+            # Decided from two independent signals, not one: pre_status is a
+            # single HTTP probe that returns "" on ANY failure (timeout,
+            # non-200, connection error), and a transient hiccup on exactly
+            # that probe would silently skip the token-persist wait below for
+            # a session that really was CONNECTED. self._wa_connected is a
+            # race-free second opinion updated continuously by
+            # _set_wa_connected(). Either saying "yes" is enough — a false
+            # positive costs a few extra seconds of wait, a false negative
+            # costs a lost/corrupted session.
+            session_was_connected = (
+                pre_status in ("CONNECTED", "open")
+                or getattr(self, "_wa_connected", False)
+            )
             try:
                 url = (
                     f"{self.wpp_server}:{self.wpp_port}"
@@ -7185,6 +7492,23 @@ class MainWindow(wx.Frame):
                     e,
                 )
                 self._shutdown_audit(f"close-session EXCEPTION ({e!r})")
+
+            # The literal "session is OK but the app is closing — do not let
+            # it fully close until the session is properly stored"
+            # requirement: runs UNCONDITIONALLY here, whether the try above
+            # succeeded or raised, as long as this run ever looked
+            # connected. Previously this lived inside the try block, so a
+            # close-session timeout/exception -- precisely the case where
+            # Chrome is most likely still mid-write -- skipped the wait
+            # entirely and went straight to taskkill. Regardless of whether
+            # the flush wait above already succeeded, since that polls the
+            # BROWSER's status, not the separate token file this app does
+            # not otherwise verify. Skipped entirely for a session that was
+            # never actually connected: there is nothing meaningful to wait
+            # for, same "nothing to lose" reasoning _on_disconnect() already
+            # applies to an unpaired account.
+            if session_was_connected:
+                self._wait_for_token_persisted(token)
 
         # STEP 2: stop OUR OWN Node. Each account now runs its own Node on its
         # own port (revised architecture), so there is no shared server to spare
@@ -8688,7 +9012,11 @@ class MainWindow(wx.Frame):
             gd = getattr(self, "global_dir", None)
             if not gd:
                 return
-            udd_root = os.path.abspath(resource_path("api", "userDataDir"))
+            # Matches _start_wpp_background()'s WINZAPP_USER_DATA_DIR, not
+            # resource_path("api", "userDataDir") — the latter is a
+            # --onefile launch's ephemeral extraction temp dir, already gone
+            # by the time this runs, so cleanup would silently find nothing.
+            udd_root = os.path.abspath(os.path.join(gd, "api", "userDataDir"))
             node_down = False  # circuit breaker: stop retrying logout once refused
             # Whole scan -> validate -> rmtree runs under the shared sessions_lock
             # so no other account can register/activate a name mid-cleanup, and
@@ -9787,6 +10115,12 @@ class MainWindow(wx.Frame):
                         # the whole passive observation window).
                         logging.info("[check_wa_connection_http] Skipping auto-start — "
                                      "recovery restart sequence in progress owns it.")
+                    elif self._self_inflicted_teardown_expected():
+                        # This CLOSED is the expected result of our own
+                        # close-session call — starting a fresh session here
+                        # would revive the browser moments before taskkill
+                        # force-kills it.
+                        pass
                     else:
                         try:
                             start_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/start-session"

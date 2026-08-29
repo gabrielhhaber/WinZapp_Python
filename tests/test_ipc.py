@@ -155,10 +155,11 @@ def test_queue_before_window_then_flush(tmp_path):
 
 def test_a_concurrent_activate_is_not_blocked_by_an_in_flight_quit(tmp_path):
     """Regression: handling "quit" used to happen inline in the accept loop,
-    including its up-to-10s wait for released_predicate() — so any other
-    request sent while a quit was in flight had nowhere to connect to until
-    that wait finished. Each connection is now handed to its own thread so
-    the accept loop is free to pick up the next one immediately."""
+    including its up-to-_QUIT_RELEASE_POLL_SECONDS wait for
+    released_predicate() — so any other request sent while a quit was in
+    flight had nowhere to connect to until that wait finished. Each
+    connection is now handed to its own thread so the accept loop is free
+    to pick up the next one immediately."""
     gd = _gd(tmp_path)
     acc = "d" * 32
     released = threading.Event()

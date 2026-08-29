@@ -1458,8 +1458,73 @@ class Connect:
                                   redact_api_error(e))
             threading.Thread(target=_close_api_session, daemon=True).start()
 
+    # Bounded grace given to a JUST-STARTED pairing attempt before honoring
+    # a Quit/close that lands while Chrome is still opening WhatsApp Web for
+    # the first time. Without this, closing a few seconds after clicking
+    # "Conectar com QR code" (or entering a phone number) killed Chrome
+    # mid-launch, before it produced anything to scan/type. Chrome's first
+    # real page load routinely takes 10-25s; 30s covers that without
+    # stalling a user who wants out anywhere near the pairing flow's own
+    # ~90s wait.
+    _PAIRING_STARTUP_GRACE_SECONDS = 30.0
+    _PAIRING_STARTUP_POLL_SECONDS = 0.5
+
+    def _wait_for_pairing_startup_settled(self):
+        """Block (briefly, boundedly) so Chrome finishes its FIRST attempt at
+        producing a QR/pairing code before we close on the user's way out.
+
+        No-op unless a pairing attempt is actually in flight AND has not yet
+        produced anything — an attempt that never started, or one that
+        already has its QR/code on screen, returns immediately. Must be
+        called BEFORE the caller disconnects the WebSocket or clears
+        _pairing_in_progress, since both are read here.
+        """
+        if not getattr(self.main_window, "_pairing_in_progress", False):
+            return
+        mode = getattr(self, "connection_mode", None)
+        deadline = time.monotonic() + self._PAIRING_STARTUP_GRACE_SECONDS
+        if mode == "phone":
+            ws = getattr(self.main_window, "ws", None)
+            event = getattr(ws, "_phone_code_event", None) if ws else None
+            if event is None or event.is_set():
+                return
+            logging.info("[_wait_for_pairing_startup_settled] phone pairing in flight, "
+                         "waiting up to %.0fs for a code before closing",
+                         self._PAIRING_STARTUP_GRACE_SECONDS)
+            # Blocks the wx main thread with no repaint/accessibility events
+            # pumped — silent dead air looks like a hang and invites a
+            # force-kill mid-wait, the outcome this method exists to
+            # prevent. Reuses the existing "connecting" string.
+            self.main_window.output(self.i18n.t("connecting") or "Conectando...")
+            event.wait(timeout=max(0.0, deadline - time.monotonic()))
+            return
+        if mode == "qrcode":
+            token = getattr(self.main_window, "token", "") or getattr(self, "_last_started_qr_token", "")
+            if not token:
+                return
+            logging.info("[_wait_for_pairing_startup_settled] QR pairing in flight, "
+                         "waiting up to %.0fs for a QR before closing",
+                         self._PAIRING_STARTUP_GRACE_SECONDS)
+            self.main_window.output(self.i18n.t("connecting") or "Conectando...")
+            url = f"{self.main_window.wpp_server}:{self.main_window.wpp_port}/api/{token}/status-session"
+            headers = self._wpp_headers()
+            while time.monotonic() < deadline:
+                try:
+                    resp = api_get(url, headers=headers, timeout=5)
+                    if resp.status_code in (200, 201):
+                        data = resp.json()
+                        payload = data.get("response") if isinstance(data.get("response"), dict) else data
+                        qr = data.get("qrcode") or (payload or {}).get("qrcode")
+                        status = data.get("status") or (payload or {}).get("status")
+                        if qr or status in ("CONNECTED", "qrReadSuccess", "inChat"):
+                            return
+                except Exception:
+                    pass
+                time.sleep(self._PAIRING_STARTUP_POLL_SECONDS)
+
     def on_dialog_close(self, event):
         logging.info("[on_dialog_close] Dialog close event triggered.")
+        self._wait_for_pairing_startup_settled()
         # Invalidate any in-flight _bg_pairing_flow() — see on_continue().
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
@@ -1477,6 +1542,7 @@ class Connect:
 
     def on_quit_from_connect(self, event):
         logging.info("[on_quit_from_connect] Quit requested from connection dialog.")
+        self._wait_for_pairing_startup_settled()
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
         if hasattr(self.main_window, 'ws') and self.main_window.ws:

@@ -41,6 +41,28 @@ from coord_locks import canonical_dir
 
 _IS_WINDOWS = sys.platform == "win32"
 
+# How long the LISTENER (the process being asked to quit) polls
+# released_predicate() before giving up and answering with whatever it says
+# at that moment — this decides the "released" reply's truthfulness,
+# independent of the CALLER's own request_quit() timeout below. Must stay >=
+# the target's own worst-case graceful-teardown time (kept as a plain
+# duplicated constant, not a cross-module import, since ipc.py must stay
+# importable before a MainWindow/wx.App exists):
+#   MessageQueue._STOP_DRAIN_SECONDS                  (4s:  in-flight send)
+# + MainWindow._SELF_RESTART_YIELD_SECONDS            (5s:  yield to an
+#   in-progress recovery/in-place session restart)
+# + MainWindow._WPP_GRACEFUL_STOP_SECONDS             (10s: close-session POST)
+# + MainWindow._SHUTDOWN_FLUSH_TIMEOUT                (15s: poll for CLOSED)
+# + MainWindow._TOKEN_PERSIST_GRACE_SECONDS           (5s:  token-file wait)
+# + ~2s taskkill-confirm poll
+# + _flush_pending_debounced_saves()                  (~3s)
+# + DatabaseBridge.close()'s own bounds                (12s)
+# = ~56s realistic worst case; 75s leaves real margin. If any of the budgets
+# above changes, this number and request_quit()'s own default (below) both
+# need re-checking together — raising only one silently reintroduces a
+# "gave up early, answered released:False for a session still flushing" bug.
+_QUIT_RELEASE_POLL_SECONDS = 75.0
+
 
 # ── channel identity ─────────────────────────────────────────────────────────
 def _channel_key(global_dir: str, account_id: str) -> str:
@@ -171,9 +193,10 @@ class IpcListener:
                 break
             # Handed off to its own thread for the same reason as the
             # Windows pipe loop below: a "quit" reply waits here for up to
-            # 10s for released_predicate(), and handling it inline would
-            # stall accept() from picking up any other request (e.g. a
-            # concurrent "activate") for that whole window.
+            # _QUIT_RELEASE_POLL_SECONDS for released_predicate(), and
+            # handling it inline would stall accept() from picking up any
+            # other request (e.g. a concurrent "activate") for that whole
+            # window.
             threading.Thread(target=self._handle_conn, args=(conn,), daemon=True).start()
         try:
             srv.close()
@@ -284,7 +307,8 @@ class IpcListener:
                 time.sleep(0.05)
                 continue
             # Handed off to its own thread so a slow reply — "quit" waits
-            # here for up to 10s for released_predicate() — can't stall this
+            # here for up to _QUIT_RELEASE_POLL_SECONDS for
+            # released_predicate() — can't stall this
             # loop from accepting the next connection. Before this, a "quit"
             # in flight made every other request (e.g. a concurrent
             # "activate" from another account switching in) simply time out
@@ -332,15 +356,13 @@ class IpcListener:
                 win32file.WriteFile(handle, (line + "\n").encode("utf-8"))
             win32file.FlushFileBuffers(handle)
         except pywintypes.error as exc:
-            # The peer going away mid-exchange is a transport condition, not a
-            # fault, and it happens on an expected path: a "quit" reply waits up
-            # to 10s for released_predicate(), while the caller's own timeout is
-            # also 10s but starts earlier — so the client always closes first
-            # and our WriteFile/FlushFileBuffers always raises 109. Logging that
-            # as an ERROR traceback would send whoever reads log.log chasing a
-            # broken transport that isn't broken, and drown the ERROR that does
-            # matter — the file is the project's primary diagnostic and is
-            # truncated every launch.
+            # The peer going away mid-exchange is a transport condition, not
+            # a fault: request_quit()'s timeout is kept above
+            # _QUIT_RELEASE_POLL_SECONDS, but a caller with a shorter timeout
+            # (or one that gives up for an unrelated reason) can still
+            # disconnect first, and WriteFile/FlushFileBuffers then raises
+            # 109 (ERROR_BROKEN_PIPE). Logged at info, not error, so it
+            # doesn't drown a real ERROR in log.log.
             logging.info("[ipc] pipe connection ended: winerror=%s %s",
                          exc.winerror, exc.funcname)
         except Exception:
@@ -397,7 +419,7 @@ class IpcListener:
             replies.append(json.dumps({"request_id": rid, "ack": True}))
             # Trigger shutdown, then wait until the process actually releases.
             self.on_quit()
-            deadline = time.monotonic() + 10.0
+            deadline = time.monotonic() + _QUIT_RELEASE_POLL_SECONDS
             while time.monotonic() < deadline:
                 if self.released_predicate():
                     break
@@ -504,11 +526,18 @@ def request_activate(global_dir: str, account_id: str, source: str = "user",
     return any(r.get("ack") for r in replies)
 
 
-def request_quit(global_dir: str, account_id: str, timeout: float = 10.0) -> bool:
+def request_quit(global_dir: str, account_id: str, timeout: float = 85.0) -> bool:
     """Ask the process owning account_id to quit.
 
     Returns True only once the target confirms it has RELEASED (terminated /
     dropped its mutex+lease), not merely acknowledged the request.
+
+    85s default: must stay above _QUIT_RELEASE_POLL_SECONDS (75s, the target
+    LISTENER's own poll budget) plus slack for transport round-trip. A
+    shorter timeout here does not corrupt anything — the target keeps
+    closing regardless — but makes this caller read the target's honest
+    "still working on it" as a flat False. Raise the two together; raising
+    only one changes nothing.
     """
     replies = _send(global_dir, account_id, _make_request("quit"), timeout)
     if not replies:

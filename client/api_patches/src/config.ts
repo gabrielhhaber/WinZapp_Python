@@ -1,5 +1,19 @@
 import { ServerOptions } from './types/ServerOptions';
 
+// customUserDataDir is used as `customUserDataDir + session` (string
+// concatenation, not path.join) to build each session's Puppeteer/Chrome
+// profile directory — see createSessionUtil.ts. Left as the literal default
+// './userDataDir/' it resolves relative to the Node process's own cwd, which
+// is only a stable, persistent location in a --onedir build or dev mode; in
+// --onefile it is PyInstaller's per-launch extraction temp dir, so the whole
+// WhatsApp Web browser profile (and therefore the paired session) is
+// silently orphaned every time the app closes. main.py sets
+// WINZAPP_USER_DATA_DIR to an absolute, install-writable path (with the
+// trailing separator this concatenation needs) before spawning Node; the
+// './userDataDir/' fallback below is only for running this server outside
+// WinZapp entirely.
+const customUserDataDir = process.env.WINZAPP_USER_DATA_DIR || './userDataDir/';
+
 export default {
   secretKey: 'THISISMYSECURETOKEN',
   host: 'http://localhost',
@@ -9,7 +23,7 @@ export default {
   startAllSession: false,
   tokenStoreType: 'file',
   maxListeners: 15,
-  customUserDataDir: './userDataDir/',
+  customUserDataDir,
   webhook: {
     url: null,
     autoDownload: true,
