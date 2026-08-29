@@ -1139,6 +1139,44 @@ class ConversationDataDialog(wx.Dialog):
             return
         self._invoke_with_selection(msg, lambda: panel._on_action_save_as(None))
 
+    def _delete_selected_media(self):
+        """Delete the selected row through the panel's own delete flow.
+
+        Refreshes only when the message actually went: the scope dialog can be
+        cancelled, and a refresh then would pointlessly rebuild the list and
+        throw the user's place in it away.
+
+        The DB snapshot this tab reads (_media_history) has no idea a message
+        was deleted, so the deleted id is dropped from it by hand — otherwise
+        the row would come straight back on the next filter change, which
+        reads as "the delete did not work".
+        """
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None or not self._panel_is_on_this_chat():
+            return
+        msg_id = (msg.get("key") or {}).get("id", "")
+
+        def _still_listed():
+            return any(
+                isinstance(m, dict) and (m.get("key") or {}).get("id", "") == msg_id
+                for m in (getattr(panel, "_sorted_messages", None) or [])
+            )
+
+        was_listed = _still_listed()
+        self._invoke_with_index(
+            msg, lambda idx: panel._on_menu_delete_message(idx))
+        if not was_listed or _still_listed():
+            return          # cancelled, or nothing to do
+
+        history = getattr(self, "_media_history", None)
+        if history is not None:
+            self._media_history = [
+                m for m in history
+                if (m.get("key") or {}).get("id", "") != msg_id
+            ]
+        self._refresh_media_list()
+
     def _on_media_list_key_down(self, event):
         """Make the shortcuts the context menu advertises actually work here.
 
@@ -1154,6 +1192,10 @@ class ConversationDataDialog(wx.Dialog):
         panel = self._conversation_panel()
         if msg is None or panel is None or not self._panel_is_on_this_chat():
             event.Skip()
+            return
+
+        if code == wx.WXK_DELETE and not (ctrl or shift or alt):
+            self._delete_selected_media()
             return
 
         key = chr(code) if 32 < code < 127 else ""
@@ -1252,6 +1294,18 @@ class ConversationDataDialog(wx.Dialog):
             _add_msg_action(f"{i18n.t(label_key)}\t{shortcut}", method)
             if label_key == "react_to_message":
                 _separator()
+
+        # Delete is index-based like Open, and unlike the rest it is offered
+        # here on purpose: browsing a group's media is exactly when someone
+        # finds the thing they want gone. The panel's own handler is used, so
+        # the scope dialog (for me / for everyone) and every rule behind it —
+        # no "for everyone" on a system event or in the self-chat, the group
+        # admin path — behave identically to deleting from the conversation.
+        if hasattr(panel, "_on_menu_delete_message") and on_this_chat:
+            _separator()
+            del_item = menu.Append(
+                wx.ID_ANY, f"{i18n.t('delete_message')}\tDelete")
+            self.Bind(wx.EVT_MENU, lambda _e: self._delete_selected_media(), del_item)
 
         if not on_this_chat:
             _separator()

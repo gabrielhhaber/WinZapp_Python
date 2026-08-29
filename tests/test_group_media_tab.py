@@ -636,3 +636,74 @@ class TestTheActionButtons:
     def test_save_uses_the_panels_own_handler(self):
         src = _inspect.getsource(ConversationDataDialog._on_media_save_btn)
         assert "_on_action_save_as" in src
+
+
+class TestDeletingFromTheMediaTab:
+    """Browsing a group's media is exactly when someone finds the thing they
+    want gone, so delete belongs here — unlike bulk-select and "read more",
+    which do not.
+
+    It runs the panel's own _on_menu_delete_message, so the scope dialog (for
+    me / for everyone) and every rule behind it — no "for everyone" on a system
+    event or in the self-chat, the group-admin path — behave exactly as they do
+    in the conversation.
+    """
+
+    @staticmethod
+    def _src(fn):
+        return _inspect.getsource(fn)
+
+    def test_it_delegates_to_the_panels_handler(self):
+        src = self._src(ConversationDataDialog._delete_selected_media)
+        assert "_on_menu_delete_message" in src
+
+    def test_the_menu_offers_it_with_the_same_shortcut(self):
+        src = self._src(ConversationDataDialog._on_media_context_menu)
+        # Raw string: the source carries a literal backslash-t, the same way
+        # the conversation menu writes its accelerators.
+        assert r"i18n.t('delete_message')" in src
+        # Built from the conversation menu's own label instead of a
+        # hand-escaped literal — the point is that the two agree, and an
+        # escaped tab in the test itself is how this assertion got written
+        # wrong twice.
+        expected = chr(92) + 'tDelete'
+        assert expected in src, 'media menu is missing the Delete accelerator'
+
+    def test_the_delete_key_triggers_it(self):
+        src = self._src(ConversationDataDialog._on_media_list_key_down)
+        assert "wx.WXK_DELETE" in src
+        assert "_delete_selected_media" in src
+
+    def test_the_delete_key_is_unmodified(self):
+        """Ctrl+Delete and friends belong to whatever else may claim them."""
+        src = self._src(ConversationDataDialog._on_media_list_key_down)
+        assert "code == wx.WXK_DELETE and not (ctrl or shift or alt)" in src
+
+    def test_a_cancelled_delete_does_not_refresh(self):
+        """The scope dialog can be dismissed; rebuilding the list then would
+        throw the user's place in it away for nothing."""
+        src = self._src(ConversationDataDialog._delete_selected_media)
+        assert "if not was_listed or _still_listed():" in src
+        assert src.index("_still_listed()") < src.index("_refresh_media_list()")
+
+    def test_the_deleted_message_is_dropped_from_the_history_snapshot(self):
+        """_media_history is a DB read from when the tab loaded — it has no
+        idea a message was deleted, so the row would come back on the next
+        filter change and read as "the delete did not work"."""
+        src = self._src(ConversationDataDialog._delete_selected_media)
+        assert "self._media_history = [" in src
+        assert 'if (m.get("key") or {}).get("id", "") != msg_id' in src
+
+    def test_it_is_withheld_when_the_panel_is_on_another_chat(self):
+        """Index-based, like Open — it would delete from whatever conversation
+        the panel currently holds."""
+        src = self._src(ConversationDataDialog._on_media_context_menu)
+        # Anchored on the guard itself, not on a position relative to the
+        # label — the first "delete_message" in this source is the handler's
+        # own name, which sits after the guard, not before it.
+        assert 'hasattr(panel, "_on_menu_delete_message") and on_this_chat' in src
+
+    def test_the_guard_is_also_in_the_method_itself(self):
+        """The keyboard path does not go through the menu's guard."""
+        src = self._src(ConversationDataDialog._delete_selected_media)
+        assert "self._panel_is_on_this_chat()" in src
