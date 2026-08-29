@@ -50,6 +50,7 @@ class _Panel:
     _on_contact_converse = ConversationsPanel._on_contact_converse
     _on_save_contact_message = ConversationsPanel._on_save_contact_message
     _on_action_save_as = ConversationsPanel._on_action_save_as
+    save_media_message = ConversationsPanel.save_media_message
     _do_activate_message = ConversationsPanel._do_activate_message
     _bulk_shortcuts_enabled = ConversationsPanel._bulk_shortcuts_enabled
 

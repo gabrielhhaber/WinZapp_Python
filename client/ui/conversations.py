@@ -3671,6 +3671,8 @@ class ConversationsPanel(wx.Panel):
 
     def on_message_selected(self, event):
         """Show / hide action controls when the selection changes in the messages list."""
+        if getattr(self, "_suppress_selection_side_effects", False):
+            return
         index = event.GetIndex()
         self._hide_all_media_controls()   # also clears links panel
         if index < 0 or index >= len(self._sorted_messages):
@@ -4995,6 +4997,16 @@ class ConversationsPanel(wx.Panel):
         return m.get("key", {}).get("id", "")
 
     def _on_message_focused(self, event):
+        # Set while another surface (the group data dialog's Media tab) drives
+        # this list's selection purely to hand an index to a handler that reads
+        # it. Everything below reacts to a HUMAN moving through the list -
+        # playing the selection sound, marking the conversation read once the
+        # unread separator is passed, and page-loading more history at index 0 -
+        # and none of it should fire for a selection the user never made. The
+        # history load is the dangerous one: it rebuilds _sorted_messages
+        # synchronously, so the very index being handed over stops being valid.
+        if getattr(self, "_suppress_selection_side_effects", False):
+            return
         idx = event.GetIndex()
 
         if 0 <= idx < len(self._sorted_messages):
@@ -6109,11 +6121,24 @@ class ConversationsPanel(wx.Panel):
                     pass
 
     def _on_action_open(self, event, index=None):
+        """Open the media of the focused row (or of *index*, when given)."""
         if index is None:
             index = self.messages_list.GetFirstSelected()
         if index < 0 or index >= len(self._sorted_messages):
             return
-        msg      = self._sorted_messages[index]
+        self.open_media_message(self._sorted_messages[index])
+
+    def open_media_message(self, msg: dict):
+        """Open a message's media, given the message itself.
+
+        Split out of _on_action_open() so a caller that has the message but
+        NOT a row in this panel's list can still use it. The group data
+        dialog's Media tab is exactly that: it reads the group's whole history
+        from the database, so most of what it shows is outside the ~200
+        messages this panel keeps in memory, and resolving those through a
+        list index silently found nothing — the menu item and the button
+        simply did nothing.
+        """
         msg_type = msg.get("messageType", "")
         msg_obj  = msg.get("message") or {}
         msg_id   = msg.get("key", {}).get("id", "")
@@ -6457,19 +6482,35 @@ class ConversationsPanel(wx.Panel):
         return re.sub(r'[\\/*?:"<>|]', '_', default_file).strip()
 
     def _on_action_save_as(self, event):
+        """Save the focused row's media, or the bulk selection when one is
+        active and bulk shortcuts are on."""
         if self._bulk_shortcuts_enabled() and self.selected_messages:
             self._on_mass_save_messages(event)
             return
         index = self.messages_list.GetFirstSelected()
         if index < 0 or index >= len(self._sorted_messages):
             return
-        msg      = self._sorted_messages[index]
+        self.save_media_message(self._sorted_messages[index])
+
+    def save_media_message(self, msg: dict):
+        """Save a message's media, given the message itself.
+
+        Split out of _on_action_save_as() for the same reason as
+        open_media_message() — see its docstring. Deliberately does NOT carry
+        the bulk-selection branch: a caller holding one specific message is
+        asking for that message, not for whatever the conversation happens to
+        have multi-selected.
+        """
         if self._is_separator(msg):
             return
         msg_type = msg.get("messageType", "")
 
         if msg_type == "contactMessage":
-            self._on_save_contact_message(event)
+            # None: _on_save_contact_message() ignores its event argument
+            # entirely and reads the list selection instead. Unreachable from
+            # the group data dialog's Media tab anyway — a contact card is not
+            # one of its media categories.
+            self._on_save_contact_message(None)
             return
 
         # Nothing to save: say so instead of opening a file dialog over a

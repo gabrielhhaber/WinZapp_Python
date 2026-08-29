@@ -478,7 +478,8 @@ class _FakeThread:
 
 
 class _OpenActionStub:
-    _on_action_open = ConversationsPanel._on_action_open
+    _on_action_open    = ConversationsPanel._on_action_open
+    open_media_message = ConversationsPanel.open_media_message
     _use_conversation_video_media_viewer_dialog = (
         ConversationsPanel._use_conversation_video_media_viewer_dialog
     )

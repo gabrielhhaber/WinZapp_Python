@@ -7,7 +7,7 @@ Opens a modal dialog showing WhatsApp-style information about a chat.
 * For groups          → a wx.Notebook with three tabs:
     – Overview        (name, description, creation date, size)
     – Participants    (wx.ListCtrl with name / phone / admin flag)
-    – Media           (count of locally-stored media files)
+    – Media           (the group's media messages, filtered by type)
 
 Profile / group data is fetched from the WPPConnect Server in a background
 thread after the dialog opens; the controls are updated via wx.CallAfter.
@@ -21,11 +21,30 @@ import threading
 from datetime import datetime
 import wx
 import wx.adv
-from core.utils import format_number
+from ui.accessible import AccessibleSaveAs
+from core.utils import (
+    format_number, GROUP_MEDIA_TYPES, GROUP_MEDIA_FILTERS,
+    filter_group_media, filter_group_media_by_download, media_cache_id,
+    group_media_category,
+)
 from core.locale_format import get_datetime_format
 from app_paths import data_path
 from core.sound_system import (
     discover_alert_tone_choices, resolve_alert_tone_path, AlertPreviewController,
+)
+
+
+# The message actions the Media tab offers, with the accelerator each one
+# already has in the conversation's own context menu. One table so the label
+# and the key binding below cannot drift apart — the menu used to advertise no
+# shortcut at all, and the keys did nothing on this list.
+_MEDIA_MENU_ACTIONS = (
+    ("reply_message",     "Alt+R",          "_on_menu_reply"),
+    ("forward_message",   "Ctrl+Shift+E",   "_on_menu_forward"),
+    ("react_to_message",  "Ctrl+Shift+R",   "_on_menu_react"),
+    ("copy_message_text", "Ctrl+C",         "_on_menu_copy_message"),
+    ("star_message",      "Ctrl+Shift+O",   "_on_menu_star"),
+    ("message_data",      "Alt+Shift+D",    "_on_menu_message_data"),
 )
 
 
@@ -381,14 +400,115 @@ class ConversationDataDialog(wx.Dialog):
         self._notebook.AddPage(part_page, self._i18n.t("group_participants_tab"))
 
         # ── Media tab ────────────────────────────────────────────────────────
+        # The list comes FIRST and the type checkboxes after it, so the tab
+        # opens on its content rather than on its controls.
         media_page = wx.Panel(self._notebook)
         md_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Same control and shape as the conversation list's own filter, so the
+        # two read alike to someone who already knows one of them.
+        self._media_filter = GROUP_MEDIA_FILTERS[0]
+        self._media_filter_radio = wx.RadioBox(
+            media_page,
+            label=self._i18n.t("group_media_filter_label"),
+            choices=[
+                self._i18n.t("group_media_filter_all"),
+                self._i18n.t("group_media_filter_downloaded"),
+                self._i18n.t("group_media_filter_not_downloaded"),
+            ],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_ROWS,
+        )
+        self._media_filter_radio.Bind(wx.EVT_RADIOBOX, self._on_media_filter_changed)
+        md_sizer.Add(
+            self._media_filter_radio, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 8
+        )
+
+        self._media_list_label = wx.StaticText(
+            media_page, label=self._i18n.t("group_media_list_label")
+        )
+        md_sizer.Add(self._media_list_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
+        # Deliberately the same widget and column the conversation's own
+        # message list uses, and rows are rendered by that panel's
+        # _render_message_line() - a media row has to read identically in both
+        # places, and a second renderer here would drift from it silently.
+        self._media_list = wx.ListCtrl(
+            media_page, style=wx.LC_REPORT | wx.LC_SINGLE_SEL
+        )
+        self._media_list.InsertColumn(
+            0, self._i18n.t("group_media_list_label").replace("&", ""), width=460
+        )
+        self._media_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_media_activated)
+        self._media_list.Bind(wx.EVT_CONTEXT_MENU, self._on_media_context_menu)
+        self._media_list.Bind(wx.EVT_KEY_DOWN, self._on_media_list_key_down)
+        self._media_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self._on_media_row_focused)
+        self._media_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_media_row_focused)
+        md_sizer.Add(self._media_list, 1, wx.EXPAND | wx.ALL, 8)
+
+        # Open / Save As as real buttons, reachable with Tab straight after the
+        # list — the same affordance the conversation panel gives a media
+        # message (_action_open_btn / _action_save_as_btn). The context menu
+        # alone is not equivalent: it needs a right-click or the menu key, and
+        # it does not show up in the Tab order at all.
+        media_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._media_open_btn = wx.Button(media_page, label=self._i18n.t("open"))
+        self._media_open_btn.Bind(wx.EVT_BUTTON, self._on_media_open_btn)
+        media_btn_row.Add(self._media_open_btn, 0, wx.RIGHT, 6)
+
+        self._media_save_btn = wx.Button(media_page, label=self._i18n.t("save_as"))
+        # Reports Ctrl+Shift+S to the screen reader, exactly as the panel's own
+        # Save-As button does — the shortcut works here too, so it has to be
+        # announced here too.
+        self._media_save_btn.SetAccessible(AccessibleSaveAs())
+        self._media_save_btn.Bind(wx.EVT_BUTTON, self._on_media_save_btn)
+        media_btn_row.Add(self._media_save_btn, 0)
+        md_sizer.Add(media_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         self._media_label = wx.StaticText(
             media_page, label=self._i18n.t("loading")
         )
-        md_sizer.Add(self._media_label, 0, wx.ALL, 8)
+        md_sizer.Add(self._media_label, 0, wx.LEFT | wx.RIGHT, 8)
+
+        self._media_types_label = wx.StaticText(
+            media_page, label=self._i18n.t("group_media_types_label")
+        )
+        md_sizer.Add(self._media_types_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
+        # Same widget as Settings > Interface do usuario and the reaction
+        # picker - see the comment there for why not wx.CheckListBox.
+        self._media_types_list = wx.ListCtrl(
+            media_page, style=wx.LC_REPORT | wx.LC_SINGLE_SEL, size=(-1, 110)
+        )
+        self._media_types_list.InsertColumn(
+            0, self._i18n.t("group_media_types_label").replace("&", ""), width=460
+        )
+        self._media_types_list.EnableCheckBoxes(True)
+        defaults = self._default_media_types()
+        for idx, key in enumerate(GROUP_MEDIA_TYPES):
+            self._media_types_list.Append((self._i18n.t(f"group_media_type_{key}"),))
+            self._media_types_list.CheckItem(idx, key in defaults)
+        # Space does NOT toggle a wx.ListCtrl checkbox on wxMSW — the
+        # native control treats it as a selection key and swallows it, so
+        # the box only ever moved with Enter. Handled explicitly here.
+        self._media_types_list.Bind(wx.EVT_KEY_DOWN, self._on_media_type_key_down)
+        self._media_types_list.Bind(
+            wx.EVT_LIST_ITEM_ACTIVATED, self._on_media_type_activated
+        )
+        self._media_types_list.Bind(
+            wx.EVT_LIST_ITEM_CHECKED, self._on_media_type_toggled
+        )
+        self._media_types_list.Bind(
+            wx.EVT_LIST_ITEM_UNCHECKED, self._on_media_type_toggled
+        )
+        self._focus_first(self._media_types_list)
+        md_sizer.Add(
+            self._media_types_list, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         media_page.SetSizer(md_sizer)
         self._notebook.AddPage(media_page, self._i18n.t("group_media_tab"))
+        self._refresh_media_list()
 
         outer.Add(self._notebook, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
@@ -403,6 +523,10 @@ class ConversationDataDialog(wx.Dialog):
         # the "loading" placeholders instead of leaving them stuck.
         try:
             if self._is_group:
+                # Before the group-info round trip: the tab is visible from the
+                # moment the dialog opens, and this only touches the local
+                # database plus the media folder.
+                self._load_media_history()
                 data = self._mw.get_group_info(self._jid)
                 participants = data.get("participants", [])
                 lid_jids_to_resolve = []
@@ -428,7 +552,6 @@ class ConversationDataDialog(wx.Dialog):
                 # live as freezing specifically while switching between the
                 # dialog's tabs, which is just when a user's input happens to
                 # land during that window (issue #52).
-                data["_media_count"] = self._count_group_media()
                 wx.CallAfter(self._populate_group, data)
             else:
                 if self._jid.endswith("@lid") and self._jid not in getattr(self._mw, "_lid_to_phone", {}):
@@ -657,39 +780,541 @@ class ConversationDataDialog(wx.Dialog):
             self._part_list.Focus(0)
             self._part_list.Select(0)
 
-        # ── Media ─────────────────────────────────────────────────────────────
-        # Count already computed on the background thread — see
-        # _fetch_data()'s own comment for why this can't run here.
-        media_count = data.get("_media_count", 0)
-        self._media_label.SetLabel(
-            i18n.t("media_count").format(count=media_count)
-        )
 
-    def _count_group_media(self) -> int:
-        """Count local media files for messages in this group.
+    # ── Media tab ────────────────────────────────────────────────────────────
 
-        One os.path.isfile() disk stat per media message — must run off the
-        UI thread (see the call site in _fetch_data()).
+    # How far back the Media tab reads. Deliberately large: someone opening it
+    # wants the group's history, not the page the conversation happens to have
+    # loaded. Still bounded, because this materialises decrypted dicts.
+    _MEDIA_HISTORY_LIMIT = 20000
+
+    def _default_media_types(self) -> list:
+        """Which categories start checked, from Settings > Interface do usuario.
+
+        A missing or non-list value means "all" - that is the shipped default,
+        and it is also what a settings.json predating this option looks like.
+        Reading that as "none" would open the tab empty for every existing
+        user. An explicitly empty list is honoured: unchecking everything is a
+        choice the user is allowed to make.
         """
-        records = (
+        saved = (
+            self._mw.settings.get("user_interface", {})
+            .get("group_media_default_types")
+        )
+        if not isinstance(saved, (list, tuple)):
+            return list(GROUP_MEDIA_TYPES)
+        return [k for k in GROUP_MEDIA_TYPES if k in saved]
+
+    def _checked_media_types(self) -> list:
+        return [
+            key for idx, key in enumerate(GROUP_MEDIA_TYPES)
+            if self._media_types_list.IsItemChecked(idx)
+        ]
+
+    def _conversation_panel(self):
+        """The panel whose renderer and actions this tab borrows."""
+        return getattr(self._mw, "conversations_panel", None)
+
+    def _panel_is_on_this_chat(self) -> bool:
+        """True when the conversation panel is open on the chat this dialog is
+        describing.
+
+        It is not always: this dialog is also reachable from the conversation
+        LIST's context menu, for a chat the user never opened. The two
+        index-based actions below run against the panel's own _sorted_messages,
+        so with the panel on another chat they would act on that chat instead.
+        The list still renders and can be browsed either way.
+        """
+        panel = self._conversation_panel()
+        conv = getattr(panel, "conversation", None) if panel else None
+        if not conv:
+            return False
+        normalize = getattr(self._mw, "_normalize_jid", lambda j: j)
+        return normalize(conv.get("remoteJid", "")) == normalize(self._jid)
+
+    def _media_source_records(self) -> list:
+        """Every message this tab may show, newest history included.
+
+        Prefers the full history loaded from the database by
+        _load_media_history() over self._chat's in-memory records. Those
+        records hold roughly one page (navigate_to_conversation replaces them
+        with db_fetch_limit()'s slice), so before this the tab was really
+        showing "media among the last couple of hundred messages" while
+        presenting itself as the group's media — and nothing said so. The
+        in-memory copy stays as the fallback for the moment before the
+        background load lands, and for a session with no database open.
+        """
+        history = getattr(self, "_media_history", None)
+        if history:
+            return history
+        return (
             self._chat.get("messages", {})
                       .get("messages", {})
                       .get("records", [])
         )
 
-        def _has_media(m):
-            mid = m.get('key', {}).get('id', '')
-            if "_" in mid:
-                parts = mid.split("_")
-                mid = parts[2] if len(parts) > 2 else parts[-1]
-            return os.path.isfile(data_path("media", f"{mid}.wzmedia"))
-
-        return sum(
-            1 for m in records
-            if m.get("messageType", "") in
-               {"imageMessage", "videoMessage", "documentMessage", "stickerMessage"}
-            and _has_media(m)
+    def _refresh_media_list(self):
+        """Repopulate the list from the checked categories and the filter."""
+        panel = self._conversation_panel()
+        records = self._media_source_records()
+        by_type = filter_group_media(records, self._checked_media_types())
+        self._media_messages = filter_group_media_by_download(
+            by_type, self._media_filter, getattr(self, "_downloaded_media_ids", ())
         )
+
+        # Freeze/Thaw so the screen reader gets one event for the rebuild
+        # instead of one per row.
+        self._media_list.Freeze()
+        try:
+            self._media_list.DeleteAllItems()
+            total = len(self._media_messages)
+            for idx, msg in enumerate(self._media_messages):
+                if panel is not None and hasattr(panel, "_render_message_line"):
+                    line = panel._render_message_line(msg, index=idx, total=total)
+                else:
+                    line = msg.get("messageType", "")
+                self._media_list.Append((line,))
+        finally:
+            self._media_list.Thaw()
+
+        # Shown, deliberately NOT spoken. An earlier version announced this
+        # through speak_output on every refresh, on the theory that a count in
+        # a StaticText after the list is unreachable by Tab. In use it was the
+        # opposite of helpful: changing a filter is exactly when the screen
+        # reader should be reading the LIST, and a spoken count talked over
+        # that every single time. The first row being focused below is the
+        # feedback that the filter changed.
+        self._media_label.SetLabel(
+            self._i18n.t("group_media_empty") if not self._media_messages
+            else self._i18n.t("group_media_count_label").format(
+                count=len(self._media_messages))
+        )
+
+        self._focus_first(self._media_list)
+        self._on_media_row_focused(wx.CommandEvent())
+
+    @staticmethod
+    def _focus_first(list_ctrl):
+        """Select and focus row 0, WITHOUT taking keyboard focus.
+
+        Select()/Focus() move the item cursor inside the control; only
+        SetFocus() would move the caret into it, and that is deliberately not
+        called — the user must keep whatever they were on (the filter radio,
+        a checkbox) after a refresh reorders the list under them.
+
+        It matters more here than it looks: with nothing selected, the context
+        menu and Enter have no row to act on, and a screen reader reaching the
+        list by Tab lands on "no selection" instead of on a message. Same
+        convention the participants list above and the conversation list in
+        conversations.py already follow.
+        """
+        if list_ctrl.GetItemCount() > 0:
+            list_ctrl.Focus(0)
+            list_ctrl.Select(0)
+
+    def _selected_media_message(self):
+        idx = self._media_list.GetFirstSelected()
+        if 0 <= idx < len(getattr(self, "_media_messages", [])):
+            return self._media_messages[idx]
+        return None
+
+    def _on_media_type_activated(self, event):
+        """Enter toggles the row, matching Space.
+
+        Refreshes directly rather than relying on CheckItem() to emit
+        EVT_LIST_ITEM_CHECKED: wx does not document a programmatic CheckItem()
+        as raising that event, and if it does not, Enter would tick the box and
+        leave the list unchanged - silence, for the one user group that cannot
+        see the box tick. _refresh_media_list() is idempotent and cheap, so the
+        duplicate call when the event DOES fire costs nothing.
+        """
+        idx = event.GetIndex()
+        if 0 <= idx < self._media_types_list.GetItemCount():
+            self._media_types_list.CheckItem(
+                idx, not self._media_types_list.IsItemChecked(idx)
+            )
+            self._refresh_media_list()
+
+    def _on_media_type_key_down(self, event):
+        """Space toggles the focused checkbox, matching Enter."""
+        if event.GetKeyCode() != wx.WXK_SPACE:
+            event.Skip()
+            return
+        lst = event.GetEventObject()
+        idx = lst.GetFocusedItem()
+        if idx is not None and 0 <= idx < lst.GetItemCount():
+            lst.CheckItem(idx, not lst.IsItemChecked(idx))
+            self._refresh_media_list()
+
+    def _on_media_type_toggled(self, event):
+        event.Skip()
+        self._refresh_media_list()
+
+    def _on_media_filter_changed(self, event):
+        idx = self._media_filter_radio.GetSelection()
+        if 0 <= idx < len(GROUP_MEDIA_FILTERS):
+            self._media_filter = GROUP_MEDIA_FILTERS[idx]
+        self._refresh_media_list()
+
+    def _load_media_history(self):
+        """Read the group's whole message history, and which media is on disk.
+
+        Runs on the background fetch thread: both halves are I/O. The database
+        read is the point of the method, and the per-message os.path.isfile()
+        that answers "baixada / nao baixada" is exactly the loop that froze
+        this dialog when it lived on the UI thread (issue #52) — it is done
+        once here, into a set, so changing the filter afterwards is pure
+        membership testing.
+        """
+        db = getattr(self._mw, "db", None)
+        if db is None:
+            return
+        try:
+            history = db.get_messages_asc(self._jid, limit=self._MEDIA_HISTORY_LIMIT)
+        except Exception:
+            logging.exception("[conversation_data] media history load failed")
+            return
+        downloaded = set()
+        media_dir = data_path("media")
+        for msg in history or []:
+            cache_id = media_cache_id(msg)
+            if cache_id and os.path.isfile(os.path.join(media_dir, f"{cache_id}.wzmedia")):
+                downloaded.add(cache_id)
+        self._media_history = list(history or [])
+        self._downloaded_media_ids = downloaded
+        wx.CallAfter(self._on_media_history_loaded)
+
+    def _on_media_history_loaded(self):
+        """Back on the UI thread: redraw with the full history."""
+        if not self:            # dialog already destroyed
+            return
+        try:
+            self._refresh_media_list()
+        except Exception:
+            logging.exception("[conversation_data] media refresh after load failed")
+
+    # ── Driving the message list's own actions ───────────────────────────────
+    #
+    # Every action here runs ConversationsPanel's own handler rather than a
+    # copy: a media row must behave exactly like the same row in the
+    # conversation, and a second implementation would drift from it silently.
+    #
+    # Most of those handlers take a msg dict and never look at the list
+    # selection, so they are simply called. Only _on_action_open (which takes
+    # an explicit index) and _on_action_save_as (which reads the selection
+    # itself) need more, and only those two need the panel to be on this chat.
+
+    def _panel_index_for(self, msg) -> int:
+        """Where *msg* sits in the panel's _sorted_messages, or -1.
+
+        Identity first: for the same chat these are the same dict objects the
+        panel holds. The key.id fallback covers a list rebuilt (page load,
+        populate_messages) between this dialog opening and the action running.
+        """
+        panel = self._conversation_panel()
+        sorted_messages = getattr(panel, "_sorted_messages", None) or []
+        for idx, candidate in enumerate(sorted_messages):
+            if candidate is msg:
+                return idx
+        msg_id = (msg.get("key") or {}).get("id", "")
+        if not msg_id:
+            return -1
+        for idx, candidate in enumerate(sorted_messages):
+            if isinstance(candidate, dict) and (
+                    candidate.get("key") or {}).get("id", "") == msg_id:
+                return idx
+        return -1
+
+    def _invoke(self, call):
+        """Run a panel action, logging a failure instead of dying silently.
+
+        These handlers were written to run from inside the panel; called from a
+        modal dialog an unexpected exception would otherwise vanish with no
+        trace and read as "the menu item does nothing".
+        """
+        try:
+            call()
+        except Exception:
+            logging.exception("[conversation_data] media action failed")
+
+    def _invoke_with_index(self, msg, call):
+        """For a handler taking an explicit index. No selection is touched."""
+        index = self._panel_index_for(msg)
+        if index < 0:
+            logging.info(
+                "[conversation_data] media message is no longer in the panel's "
+                "list — action skipped rather than applied to another row"
+            )
+            return
+        self._invoke(lambda: call(index))
+
+    def _invoke_with_selection(self, msg, call):
+        """For the one handler that reads the list selection itself.
+
+        The panel's selection is a channel with side effects attached — the
+        selection sound, marking the conversation read once the unread
+        separator is passed, and a synchronous history page-load at index 0
+        that rebuilds _sorted_messages under us. So it is driven with
+        _suppress_selection_side_effects set, which makes both of the panel's
+        selection handlers early-return, and the previous selection is put back
+        afterwards.
+        """
+        panel = self._conversation_panel()
+        index = self._panel_index_for(msg)
+        messages_list = getattr(panel, "messages_list", None)
+        if index < 0 or messages_list is None:
+            logging.info(
+                "[conversation_data] media message is no longer in the panel's "
+                "list — action skipped rather than applied to another row"
+            )
+            return
+        previous = messages_list.GetFirstSelected()
+        panel._suppress_selection_side_effects = True
+        try:
+            if previous >= 0:
+                messages_list.Select(previous, False)
+            messages_list.Select(index, True)
+            messages_list.Focus(index)
+            self._invoke(call)
+        finally:
+            try:
+                messages_list.Select(index, False)
+                if previous >= 0:
+                    messages_list.Select(previous, True)
+                    messages_list.Focus(previous)
+            except Exception:
+                pass
+            panel._suppress_selection_side_effects = False
+
+    def _on_media_activated(self, event):
+        """Enter on a media row does what Enter does in the message list, with
+        one deliberate difference for photos and videos.
+
+        _do_activate_message() routes those to the panel's in-place player when
+        Configuracoes > "usar o visualizador" is off — and that player draws
+        into a StaticBitmap inside the conversation panel, which is behind this
+        modal dialog and disabled. The video would play with its audio audible,
+        its frames invisible, and its seek/pause controls unreachable: the only
+        way out would be closing the dialog. So this path always uses
+        MediaViewerDialog, which is a window of its own and stacks on top
+        properly. Everything else (documents, voice messages, stickers) is
+        unaffected and goes through the panel's own dispatch.
+        """
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None or not self._panel_is_on_this_chat():
+            return
+        msg_type = msg.get("messageType", "")
+        if msg_type in ("imageMessage", "videoMessage") and hasattr(
+                panel, "_open_conversation_media_viewer"):
+            self._invoke_with_index(
+                msg, lambda idx: panel._open_conversation_media_viewer(idx)
+            )
+            return
+        self._invoke_with_index(msg, lambda idx: panel._do_activate_message(idx))
+
+    def _on_media_row_focused(self, event):
+        """Show the action buttons only for a row they can act on.
+
+        A link has no file to open or save, so the buttons would be dead
+        controls in the Tab order — worse than absent for someone moving
+        through the dialog by keyboard. Same reason the conversation panel
+        hides them for a text message.
+        """
+        event.Skip()
+        msg = self._selected_media_message()
+        actionable = bool(msg) and group_media_category(msg) != "links" \
+            and self._panel_is_on_this_chat()
+        for btn in (getattr(self, "_media_open_btn", None),
+                    getattr(self, "_media_save_btn", None)):
+            if btn is not None:
+                btn.Enable(actionable)
+
+    def _on_media_open_btn(self, event):
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None or not self._panel_is_on_this_chat():
+            return
+        self._invoke(lambda: panel.open_media_message(msg))
+
+    def _on_media_save_btn(self, event):
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None or not self._panel_is_on_this_chat():
+            return
+        self._invoke(lambda: panel.save_media_message(msg))
+
+    def _delete_selected_media(self):
+        """Delete the selected row through the panel's own delete flow.
+
+        Refreshes only when the message actually went: the scope dialog can be
+        cancelled, and a refresh then would pointlessly rebuild the list and
+        throw the user's place in it away.
+
+        The DB snapshot this tab reads (_media_history) has no idea a message
+        was deleted, so the deleted id is dropped from it by hand — otherwise
+        the row would come straight back on the next filter change, which
+        reads as "the delete did not work".
+        """
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None or not self._panel_is_on_this_chat():
+            return
+        msg_id = (msg.get("key") or {}).get("id", "")
+
+        def _still_listed():
+            return any(
+                isinstance(m, dict) and (m.get("key") or {}).get("id", "") == msg_id
+                for m in (getattr(panel, "_sorted_messages", None) or [])
+            )
+
+        was_listed = _still_listed()
+        self._invoke_with_index(
+            msg, lambda idx: panel._on_menu_delete_message(idx))
+        if not was_listed or _still_listed():
+            return          # cancelled, or nothing to do
+
+        history = getattr(self, "_media_history", None)
+        if history is not None:
+            self._media_history = [
+                m for m in history
+                if (m.get("key") or {}).get("id", "") != msg_id
+            ]
+        self._refresh_media_list()
+
+    def _on_media_list_key_down(self, event):
+        """Make the shortcuts the context menu advertises actually work here.
+
+        The conversation panel reaches these through an accelerator table on
+        the panel itself, which this dialog is not part of — so the same keys
+        did nothing on this list while the menu happily displayed them. Handled
+        on the list rather than through a dialog-wide accelerator table so they
+        cannot fire while the user is on the filter radio or a checkbox.
+        """
+        code = event.GetKeyCode()
+        ctrl, shift, alt = event.ControlDown(), event.ShiftDown(), event.AltDown()
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None or not self._panel_is_on_this_chat():
+            event.Skip()
+            return
+
+        if code == wx.WXK_DELETE and not (ctrl or shift or alt):
+            self._delete_selected_media()
+            return
+
+        key = chr(code) if 32 < code < 127 else ""
+        method = None
+        if ctrl and shift and key == "S":
+            self._invoke(lambda: panel.save_media_message(msg))
+            return
+        elif alt and shift and key == "D":
+            method = "_on_menu_message_data"
+        elif ctrl and shift and key == "E":
+            method = "_on_menu_forward"
+        elif ctrl and shift and key == "R":
+            method = "_on_menu_react"
+        elif ctrl and shift and key == "O":
+            method = "_on_menu_star"
+        elif ctrl and not shift and not alt and key == "C":
+            method = "_on_menu_copy_message"
+        elif alt and not ctrl and not shift and key == "R":
+            method = "_on_menu_reply"
+
+        if method is None or not hasattr(panel, method):
+            event.Skip()
+            return
+        self._invoke(lambda m=method: getattr(panel, m)(msg))
+
+    def _on_media_context_menu(self, event):
+        """The message list's own actions, on the selected media row."""
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None:
+            return
+        i18n = self._i18n
+        menu = wx.Menu()
+        on_this_chat = self._panel_is_on_this_chat()
+        added_any = [False]
+
+        def _add_msg_action(label, method_name):
+            """A handler taking (msg) — no selection involved, so it is safe
+            whatever chat the panel happens to be on."""
+            if not hasattr(panel, method_name):
+                return
+            item = menu.Append(wx.ID_ANY, label)
+            self.Bind(
+                wx.EVT_MENU,
+                lambda _e, m=method_name: self._invoke(
+                    lambda: getattr(panel, m)(msg)),
+                item,
+            )
+            added_any[0] = True
+
+        def _separator():
+            if added_any[0]:
+                menu.AppendSeparator()
+                added_any[0] = False
+
+        # Open: _on_action_open takes an explicit index, so it needs the index
+        # but NOT the selection.
+        if hasattr(panel, "open_media_message") and on_this_chat:
+            open_item = menu.Append(wx.ID_ANY, i18n.t("open"))
+            self.Bind(
+                wx.EVT_MENU,
+                lambda _e: self._invoke(lambda: panel.open_media_message(msg)),
+                open_item,
+            )
+            added_any[0] = True
+
+        # Save as: the one handler that reads the list selection itself.
+        if hasattr(panel, "save_media_message") and on_this_chat:
+            # save_media_message() carries no bulk-selection branch, so this no
+            # longer has to be withheld while the conversation has messages
+            # multi-selected: asking to save THIS row saves this row.
+            save_item = menu.Append(
+                wx.ID_ANY, f"{i18n.t('save_as')}	Ctrl+Shift+S")
+            self.Bind(
+                wx.EVT_MENU,
+                lambda _e: self._invoke(lambda: panel.save_media_message(msg)),
+                save_item,
+            )
+            added_any[0] = True
+
+        _separator()
+        # Labels carry the same accelerator text the conversation's own menu
+        # shows, and the keys themselves work on this list too (see
+        # _on_media_list_key_down) — a menu that advertises a shortcut which
+        # does nothing is worse than one that advertises none.
+        for label_key, shortcut, method in _MEDIA_MENU_ACTIONS:
+            if label_key == "star_message":
+                # Mirrors the panel's own label, which flips with the state.
+                label_key = "unstar_message" if msg.get("starred") else "star_message"
+            _add_msg_action(f"{i18n.t(label_key)}\t{shortcut}", method)
+            if label_key == "react_to_message":
+                _separator()
+
+        # Delete is index-based like Open, and unlike the rest it is offered
+        # here on purpose: browsing a group's media is exactly when someone
+        # finds the thing they want gone. The panel's own handler is used, so
+        # the scope dialog (for me / for everyone) and every rule behind it —
+        # no "for everyone" on a system event or in the self-chat, the group
+        # admin path — behave identically to deleting from the conversation.
+        if hasattr(panel, "_on_menu_delete_message") and on_this_chat:
+            _separator()
+            del_item = menu.Append(
+                wx.ID_ANY, f"{i18n.t('delete_message')}\tDelete")
+            self.Bind(wx.EVT_MENU, lambda _e: self._delete_selected_media(), del_item)
+
+        if not on_this_chat:
+            _separator()
+            hint = menu.Append(
+                wx.ID_ANY, i18n.t("group_media_actions_need_open_chat")
+            )
+            hint.Enable(False)
+
+        self._media_list.PopupMenu(menu)
+        menu.Destroy()
 
     # ── Action handlers ───────────────────────────────────────────────────────
 

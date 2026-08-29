@@ -113,7 +113,7 @@ class _HotkeyCapture(wx.TextCtrl):
         self.SetValue(_vk_mod_to_str(vk, mod))
 
 
-from core.utils import DEFAULT_SETTINGS, SEARCH_NORMALIZATION_MODES, search_normalization_mode
+from core.utils import DEFAULT_SETTINGS, SEARCH_NORMALIZATION_MODES, search_normalization_mode, GROUP_MEDIA_TYPES
 
 
 def ensure_default_settings_file():
@@ -532,6 +532,53 @@ class SettingsDialog(wx.Dialog):
         voice_msg_sizer.Add(self._voice_msg_mode_voice_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
 
         ui_sizer.Add(voice_msg_sizer, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._group_media_types_label = wx.StaticText(
+            self._ui_page, label=i18n.t("ui_group_media_default_types_label")
+        )
+        ui_sizer.Add(self._group_media_types_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
+        # wx.ListCtrl + EnableCheckBoxes - the same widget the reaction picker
+        # uses, deliberately NOT wx.CheckListBox. NVDA does not reliably expose
+        # a CheckListBox item's checked state or checkbox role on Windows,
+        # which is why the sound-events list a few tabs over spells its state
+        # out in the item text instead (see _sound_event_label). A ListCtrl's
+        # own checkboxes do carry the role, so the state is readable without
+        # that workaround.
+        self._group_media_types_list = wx.ListCtrl(
+            self._ui_page, style=wx.LC_REPORT | wx.LC_SINGLE_SEL, size=(-1, 110)
+        )
+        self._group_media_types_list.InsertColumn(
+            0, i18n.t("ui_group_media_default_types_label").replace("&", ""), width=360
+        )
+        self._group_media_types_list.EnableCheckBoxes(True)
+        for _key in GROUP_MEDIA_TYPES:
+            self._group_media_types_list.Append((i18n.t(f"group_media_type_{_key}"),))
+        # Start on the first row. Select/Focus move the item cursor inside the
+        # control and nothing else — SetFocus() is deliberately NOT called, so
+        # opening this tab does not yank the keyboard caret out of wherever the
+        # user was. Without it the list sits with nothing selected: Enter and
+        # Space have no row to toggle, and a screen reader arriving by Tab
+        # announces an empty selection instead of the first media type. Same
+        # convention the conversation list and the group data dialog's own
+        # lists follow.
+        if self._group_media_types_list.GetItemCount() > 0:
+            self._group_media_types_list.Focus(0)
+            self._group_media_types_list.Select(0)
+        # Space is the ListCtrl's native toggle; Enter is bound as well because
+        # every other list in this app activates with Enter, and the user should
+        # not have to know which of the two a given list wants.
+        # Space does NOT toggle a wx.ListCtrl checkbox on wxMSW — the
+        # native control treats it as a selection key and swallows it, so
+        # the box only ever moved with Enter. Handled explicitly here.
+        self._group_media_types_list.Bind(wx.EVT_KEY_DOWN, self._on_media_type_key_down)
+        self._group_media_types_list.Bind(
+            wx.EVT_LIST_ITEM_ACTIVATED, self._on_group_media_type_activated
+        )
+        ui_sizer.Add(
+            self._group_media_types_list, 0,
+            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8,
+        )
 
         self._ui_page.SetSizer(ui_sizer)
         self._notebook.AddPage(self._ui_page, i18n.t("tab_ui"))
@@ -1048,6 +1095,12 @@ class SettingsDialog(wx.Dialog):
             self._voice_msg_mode_voice_rb.SetValue(True)
         else:
             self._voice_msg_mode_audio_rb.SetValue(True)
+
+        self._load_group_media_types(
+            self.main_window.settings.get("user_interface", {}).get(
+                "group_media_default_types"
+            )
+        )
 
         self_reference_mode = self.main_window.settings.get("user_interface", {}).get(
             "self_reference_mode", "eu"
@@ -1711,6 +1764,47 @@ class SettingsDialog(wx.Dialog):
 
         return True
 
+    def _on_group_media_type_activated(self, event):
+        """Enter on a row toggles its checkbox, matching Space."""
+        idx = event.GetIndex()
+        if 0 <= idx < self._group_media_types_list.GetItemCount():
+            self._group_media_types_list.CheckItem(
+                idx, not self._group_media_types_list.IsItemChecked(idx)
+            )
+
+    def _on_media_type_key_down(self, event):
+        """Space toggles the focused checkbox, matching Enter."""
+        if event.GetKeyCode() != wx.WXK_SPACE:
+            event.Skip()
+            return
+        lst = event.GetEventObject()
+        idx = lst.GetFocusedItem()
+        if idx is not None and 0 <= idx < lst.GetItemCount():
+            lst.CheckItem(idx, not lst.IsItemChecked(idx))
+            # Nothing to refresh here — this list only records a default.
+
+    def _selected_group_media_types(self) -> list:
+        """The checked categories, in GROUP_MEDIA_TYPES order."""
+        return [
+            key for idx, key in enumerate(GROUP_MEDIA_TYPES)
+            if self._group_media_types_list.IsItemChecked(idx)
+        ]
+
+    def _load_group_media_types(self, saved):
+        """Check the saved categories.
+
+        A missing or non-list value checks everything: that is the documented
+        default, and it is also what a settings.json written by a build
+        predating this option looks like - reading it as "nothing selected"
+        would leave the Media tab permanently empty for every existing user.
+        An explicitly empty list is honoured, since unchecking everything is a
+        choice the user can legitimately make.
+        """
+        if not isinstance(saved, (list, tuple)):
+            saved = GROUP_MEDIA_TYPES
+        for idx, key in enumerate(GROUP_MEDIA_TYPES):
+            self._group_media_types_list.CheckItem(idx, key in saved)
+
     def _apply_values(self) -> bool:
         """Validate, save, and apply all settings. Returns True on success."""
         if not self._validate():
@@ -1804,6 +1898,10 @@ class SettingsDialog(wx.Dialog):
         self.main_window.settings.setdefault("user_interface", {})[
             "voice_message_mode"
         ] = voice_message_mode
+
+        self.main_window.settings.setdefault("user_interface", {})[
+            "group_media_default_types"
+        ] = self._selected_group_media_types()
 
         # UI: how to refer to the user's own messages/replies in the messages list
         if self._self_ref_voce_rb.GetValue():
@@ -2123,6 +2221,13 @@ class SettingsDialog(wx.Dialog):
             i18n.t("ui_conversation_video_media_viewer_dialog_label")
         )
         self._status_media_viewer_dialog_cb.SetLabel(i18n.t("ui_status_media_viewer_dialog_label"))
+        self._group_media_types_label.SetLabel(
+            i18n.t("ui_group_media_default_types_label")
+        )
+        for _idx, _key in enumerate(GROUP_MEDIA_TYPES):
+            self._group_media_types_list.SetItem(
+                _idx, 0, i18n.t(f"group_media_type_{_key}")
+            )
         self._voice_msg_mode_box.SetLabel(i18n.t("ui_voice_message_mode_label"))
         self._voice_msg_mode_audio_rb.SetLabel(i18n.t("ui_voice_message_mode_audio"))
         self._voice_msg_mode_voice_rb.SetLabel(i18n.t("ui_voice_message_mode_voice_message"))

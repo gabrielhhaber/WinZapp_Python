@@ -71,5 +71,13 @@ class TestActivationOpensLocation:
         assert '"liveLocationMessage"' in src
 
     def test_open_action_opens_the_maps_url_for_locations(self):
-        src_open = __import__("inspect").getsource(ConversationsPanel._on_action_open)
+        # The Open action's body now lives in open_media_message(): the group
+        # data dialog's Media tab holds messages that are not in this panel's
+        # list at all (it reads the group's whole history from the database),
+        # so it needs a by-message entry point rather than a row index.
+        # _on_action_open() is the thin row-index wrapper over it.
+        src_open = __import__("inspect").getsource(
+            ConversationsPanel.open_media_message)
         assert "_location_maps_url" in src_open
+        assert "open_media_message" in __import__("inspect").getsource(
+            ConversationsPanel._on_action_open)
