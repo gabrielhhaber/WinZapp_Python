@@ -6220,6 +6220,72 @@ class ConversationsPanel(wx.Panel):
             return
         self.open_media_message(self._sorted_messages[index])
 
+    def _ensure_media_on_disk(self, msg: dict, media_path: str) -> bool:
+        """Make sure a message's media file exists locally, downloading it if
+        needed. False means "do not proceed" — and the user has already been
+        told why.
+
+        Every caller that reads a media file used to inline this as: if the
+        file is missing, announce "baixando...", call handle_media_message(),
+        then open the path — with no check that the download actually produced
+        anything. handle_media_message() does not raise when the server refuses
+        the file: a WhatsApp media link that has expired comes back as HTTP 500
+        ("Failed to decrypt file" / "Error trying to download the file"), which
+        it logs and swallows. The open() that followed then raised
+        FileNotFoundError, and the handler printed str(exc) into a message box —
+        so a perfectly ordinary "this old file is no longer on WhatsApp's
+        servers" surfaced as a raw Python error naming an internal .wzmedia
+        path. For a screen-reader user that is a wall of unreadable path
+        characters where a sentence should be.
+
+        Reported against the group Media tab, which made it easy to hit: that
+        tab lists a group's entire history straight from the database, so it
+        routinely offers media far older than anything WhatsApp still holds.
+        The bug was never specific to that tab — the same Open on the same
+        message in the conversation list did the same thing.
+
+        save_media_message() already got this right and is the model here; it
+        is the only one of the five media paths that checked. The offline case
+        is checked first because it has its own answer: the download did not
+        fail, it was never attempted, and "wait for the connection" is
+        actionable where "the link may have expired" would be a lie.
+        """
+        if os.path.isfile(media_path):
+            return True
+
+        i18n = self.main_window.i18n
+        if not getattr(self.main_window, "_wa_connected", False):
+            wx.CallAfter(self.main_window.output, i18n.t("media_download_offline"))
+            return False
+
+        wx.CallAfter(self.main_window.output, i18n.t("downloading"))
+        try:
+            if msg.get("messageType") == "audioMessage":
+                self.main_window.handle_audio_message(msg)
+            else:
+                self.main_window.handle_media_message(msg)
+        except Exception as exc:
+            logging.info(
+                "[_ensure_media_on_disk] download raised for %s: %s",
+                (msg.get("key") or {}).get("id", ""), exc,
+            )
+
+        if os.path.isfile(media_path):
+            return True
+
+        logging.info(
+            "[_ensure_media_on_disk] %s: still missing after download attempt "
+            "(%s) — reporting it instead of opening.",
+            (msg.get("key") or {}).get("id", ""), media_path,
+        )
+        wx.CallAfter(
+            wx.MessageBox,
+            i18n.t("media_download_failed"),
+            i18n.t("error").format(app_name=self.main_window.app_name),
+            wx.OK | wx.ICON_ERROR,
+        )
+        return False
+
     def open_media_message(self, msg: dict):
         """Open a message's media, given the message itself.
 
@@ -6269,14 +6335,8 @@ class ConversationsPanel(wx.Panel):
         media_path = data_path("media", f"{clean_msg_id}.wzmedia")
 
         def _run():
-            if not os.path.isfile(media_path):
-                wx.CallAfter(
-                    self.main_window.output, self.main_window.i18n.t("downloading")
-                )
-                try:
-                    self.main_window.handle_media_message(msg)
-                except Exception:
-                    return
+            if not self._ensure_media_on_disk(msg, media_path):
+                return
             try:
                 with open(media_path, "rb") as fh:
                     content = decrypt_bytes(fh.read(), self.main_window.key)
@@ -6321,14 +6381,8 @@ class ConversationsPanel(wx.Panel):
         media_path = data_path("media", f"{clean_msg_id}.wzmedia")
 
         def _run():
-            if not os.path.isfile(media_path):
-                wx.CallAfter(
-                    self.main_window.output, self.main_window.i18n.t("downloading")
-                )
-                try:
-                    self.main_window.handle_media_message(msg)
-                except Exception:
-                    return
+            if not self._ensure_media_on_disk(msg, media_path):
+                return
             try:
                 with open(media_path, "rb") as fh:
                     content = decrypt_bytes(fh.read(), self.main_window.key)
@@ -9385,18 +9439,12 @@ class ConversationsPanel(wx.Panel):
         media_path = data_path("media", f"{msg_id}.wzmedia")
 
         def _run():
-            if not os.path.isfile(media_path):
-                wx.CallAfter(
-                    self.main_window.output, self.main_window.i18n.t("downloading")
-                )
-                try:
-                    self.main_window.handle_media_message(msg)
-                except Exception:
-                    return
+            if not self._ensure_media_on_disk(msg, media_path):
+                return
             try:
                 with open(media_path, "rb") as fh:
                     content = decrypt_bytes(fh.read(), self.main_window.key)
-                
+
                 # Write decrypted content to a temp file with original filename
                 tmp_dir = tempfile.mkdtemp(prefix="wz_copy_")
                 target_file = os.path.join(tmp_dir, default_file)
