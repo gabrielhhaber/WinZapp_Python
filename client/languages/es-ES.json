@@ -1018,5 +1018,6 @@
     "save_folder_custom_label": "Carpeta &personalizada:",
     "save_folder_browse_btn": "E&xaminar...",
     "save_folder_browse_dialog_title": "Elija la carpeta predeterminada para guardar archivos",
-    "save_folder_custom_missing": "La carpeta personalizada indicada no existe. Elija una carpeta válida o seleccione otra opción."
+    "save_folder_custom_missing": "La carpeta personalizada indicada no existe. Elija una carpeta válida o seleccione otra opción.",
+    "storage_auto_download_media_types_label": "&Tipos de multimedia que se descargan automáticamente"
 }

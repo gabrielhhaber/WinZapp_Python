@@ -206,36 +206,71 @@ class ConversationDataDialog(wx.Dialog):
         self.SetSizer(dlg_sizer)
 
     def _build_personal_ui(self, panel, outer):
-        """Single read-only TextCtrl with profile lines."""
+        """wx.Notebook with Overview and Media, mirroring the group dialog.
+
+        WhatsApp itself offers a media list for one-to-one chats, and this used
+        to be a single flat page — so the same conversation had two entirely
+        different dialogs depending on whether it was a group. The tabs are the
+        group dialog's, minus Participants, and they are built by the same
+        methods rather than by copies: someone who has learned this dialog in a
+        group finds the same tab order, the same control order and the same
+        shortcuts here, which is the whole point of matching the format.
+        """
+        self._notebook = wx.Notebook(panel)
+
+        # ── Overview tab ─────────────────────────────────────────────────────
+        overview_page = wx.Panel(self._notebook)
+        ov_sizer = wx.BoxSizer(wx.VERTICAL)
+
         info_label = wx.StaticText(
-            panel, label=self._i18n.t("conversation_data")
+            overview_page, label=self._i18n.t("conversation_data")
         )
-        outer.Add(info_label, 0, wx.LEFT | wx.BOTTOM, 8)
+        ov_sizer.Add(info_label, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 8)
 
         self._info_ctrl = wx.TextCtrl(
-            panel,
+            overview_page,
             value=self._i18n.t("loading"),
             style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP,
         )
-        outer.Add(self._info_ctrl, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        ov_sizer.Add(
+            self._info_ctrl, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8
+        )
 
         # "Add contact local" / "Edit contact" + "Delete contact" — shown for
         # non-group chats only. Which pair depends on whether a local
         # contact (NewContactDialog, isSaved=True) already exists for this
         # number: showing "Add contact" again over an existing local entry
         # invited re-creating it from scratch instead of editing/removing it.
-        self._contact_panel = panel
+        #
+        # _contact_panel is the page, not the dialog panel: the buttons are
+        # rebuilt into it whenever the local contact changes, and parenting
+        # them anywhere else would draw them outside the tab.
+        self._contact_panel = overview_page
         self._contact_action_sizer = wx.BoxSizer(wx.VERTICAL)
         jid = self._jid
         if not jid.endswith("@g.us"):
-            outer.Add(self._contact_action_sizer, 0, wx.EXPAND)
+            ov_sizer.Add(self._contact_action_sizer, 0, wx.EXPAND)
             self._populate_contact_action_buttons()
 
-        add_to_group_btn = wx.Button(panel, label=self._i18n.t("select_group"))
+        add_to_group_btn = wx.Button(
+            overview_page, label=self._i18n.t("select_group")
+        )
         add_to_group_btn.Bind(wx.EVT_BUTTON, self._on_add_to_group)
-        outer.Add(add_to_group_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        ov_sizer.Add(add_to_group_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        self._build_sound_picker(panel, outer)
+        self._build_sound_picker(overview_page, ov_sizer)
+
+        overview_page.SetSizer(ov_sizer)
+        self._notebook.AddPage(overview_page, self._i18n.t("group_overview_tab"))
+
+        # ── Media tab ────────────────────────────────────────────────────────
+        # Same builder the group dialog uses. The tab labels are the
+        # "group_*" i18n keys on purpose: their values are already generic
+        # ("Visão geral", "Mídia"), and a second key with the same text would
+        # be one more thing for five locales to drift on.
+        self._build_media_tab()
+
+        outer.Add(self._notebook, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
     def _build_sound_picker(self, panel, sizer):
         """Per-conversation notification sound override: a combobox (Default
@@ -399,9 +434,25 @@ class ConversationDataDialog(wx.Dialog):
         part_page.SetSizer(pt_sizer)
         self._notebook.AddPage(part_page, self._i18n.t("group_participants_tab"))
 
-        # ── Media tab ────────────────────────────────────────────────────────
-        # The list comes FIRST and the type checkboxes after it, so the tab
-        # opens on its content rather than on its controls.
+        self._build_media_tab()
+
+        outer.Add(self._notebook, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+    def _build_media_tab(self):
+        """Add the Media tab to self._notebook.
+
+        Shared by groups and one-to-one chats: WhatsApp itself offers media for
+        both, and everything this tab does is chat-shaped rather than
+        group-shaped — it reads the conversation's own history out of the
+        database and drives ConversationsPanel's handlers. Extracted rather
+        than duplicated so the two stay identical, which matters more here than
+        usual: someone who has learned this tab in a group must find the same
+        control order, the same shortcuts and the same announcements in a
+        private chat.
+
+        The list comes FIRST and the type checkboxes after it, so the tab opens
+        on its content rather than on its controls.
+        """
         media_page = wx.Panel(self._notebook)
         md_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -510,8 +561,6 @@ class ConversationDataDialog(wx.Dialog):
         self._notebook.AddPage(media_page, self._i18n.t("group_media_tab"))
         self._refresh_media_list()
 
-        outer.Add(self._notebook, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-
     # ── Data fetch (background thread) ───────────────────────────────────────
 
     def _fetch_data(self):
@@ -554,6 +603,11 @@ class ConversationDataDialog(wx.Dialog):
                 # land during that window (issue #52).
                 wx.CallAfter(self._populate_group, data)
             else:
+                # Same order as the group branch: the Media tab is visible from
+                # the moment the dialog opens and only touches the local
+                # database plus the media folder, so it is filled before the
+                # profile round trip rather than behind it.
+                self._load_media_history()
                 if self._jid.endswith("@lid") and self._jid not in getattr(self._mw, "_lid_to_phone", {}):
                     try:
                         self._mw.resolve_lid_jids_via_api([self._jid])

@@ -57,7 +57,7 @@ from core.incremental_sync import (
 )
 from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
-from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults
+from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
 from core.database_bridge import DatabaseBridge
@@ -17602,6 +17602,15 @@ class MainWindow(wx.Frame):
 
         _MEDIA_TYPES = {"documentMessage", "imageMessage", "stickerMessage", "videoMessage"}
         if message_type not in _MEDIA_TYPES and message_type != "audioMessage":
+            return False
+
+        # Configuracoes > Armazenamento > "Tipos de midia a serem baixados
+        # automaticamente". Checked here rather than at the two call sites
+        # because this is the single funnel every automatic download passes
+        # through — the live-message path (on_new_message) and the sync sweep
+        # (sync_media_for_all_chats) both land here. Opening the media by hand
+        # still downloads it: this is about what happens without being asked.
+        if not auto_download_allows(self.settings, msg):
             return False
 
         # Skip messages older than the CDN TTL — URLs have certainly expired.

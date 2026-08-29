@@ -97,6 +97,12 @@
     "cleared_chats": {},
     "storage": {
         "auto_download_media": true,
+        "auto_download_media_types": [
+            "photos",
+            "videos",
+            "audios",
+            "documents"
+        ],
         "media_max_days": 30,
         "media_max_mb": 100,
         "probe_video_duration_on_download": false

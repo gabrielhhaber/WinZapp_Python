@@ -15,7 +15,9 @@ wx.Panel.
 import pytest
 
 from core.utils import (
+    AUTO_DOWNLOAD_MEDIA_TYPES,
     GROUP_MEDIA_TYPES,
+    auto_download_allows,
     filter_group_media,
     group_media_category,
     DEFAULT_SETTINGS,
@@ -410,7 +412,7 @@ class TestRefreshingAlwaysRefocuses:
 
     def test_the_types_list_starts_on_its_first_row_too(self):
         assert "self._focus_first(self._media_types_list)" in self._src(
-            ConversationDataDialog._build_group_ui)
+            ConversationDataDialog._build_media_tab)
 
 
 class TestTheCountIsNotSpoken:
@@ -608,7 +610,7 @@ class TestTheActionButtons:
 
     @staticmethod
     def _build_src():
-        return _inspect.getsource(ConversationDataDialog._build_group_ui)
+        return _inspect.getsource(ConversationDataDialog._build_media_tab)
 
     def test_both_buttons_exist(self):
         src = self._build_src()
@@ -646,7 +648,7 @@ class TestTheActionButtons:
     def test_save_as_announces_its_shortcut(self):
         """The panel's Save-As button reports Ctrl+Shift+S to the screen
         reader; the shortcut works here too, so it is announced here too."""
-        src = _inspect.getsource(ConversationDataDialog._build_group_ui)
+        src = _inspect.getsource(ConversationDataDialog._build_media_tab)
         assert "self._media_save_btn.SetAccessible(AccessibleSaveAs())" in src
 
 
@@ -719,3 +721,63 @@ class TestDeletingFromTheMediaTab:
         """The keyboard path does not go through the menu's guard."""
         src = self._src(ConversationDataDialog._delete_selected_media)
         assert "self._panel_is_on_this_chat()" in src
+
+
+class TestAutoDownloadAllows:
+    """core.utils.auto_download_allows() — the pure half of Configuracoes >
+    Armazenamento > "Tipos de midia a serem baixados automaticamente".
+
+    Built on group_media_category() so the Media tab and this setting group
+    messages identically: unchecking "Fotos" has to mean the same thing in
+    both places, stickers included.
+    """
+
+    @staticmethod
+    def _settings(*allowed):
+        return {"storage": {"auto_download_media_types": list(allowed)}}
+
+    @staticmethod
+    def _media(message_type):
+        return {"key": {"id": "x"}, "messageType": message_type}
+
+    def test_a_checked_category_is_allowed(self):
+        assert auto_download_allows(
+            self._settings("photos"), self._media("imageMessage")) is True
+
+    def test_an_unchecked_category_is_not(self):
+        assert auto_download_allows(
+            self._settings("videos"), self._media("imageMessage")) is False
+
+    def test_no_setting_at_all_allows_everything(self):
+        """What a settings.json predating the option looks like. Reading it as
+        "nothing selected" would stop every media download for existing
+        installs."""
+        for settings in ({}, {"storage": {}}, None, "texto",
+                         {"storage": {"auto_download_media_types": None}}):
+            assert auto_download_allows(
+                settings, self._media("imageMessage")) is True
+
+    def test_an_explicitly_empty_list_blocks_everything(self):
+        assert auto_download_allows(
+            self._settings(), self._media("videoMessage")) is False
+
+    def test_a_link_is_never_blocked_by_this_setting(self):
+        """Links are deliberately not a category here: a link is a text
+        message with no file behind it and never reaches the download path at
+        all. This check must not be the thing that skips it."""
+        link_msg = {"key": {"id": "x"}, "messageType": "conversation",
+                    "message": {"conversation": "veja https://exemplo.com"}}
+        assert auto_download_allows(self._settings(), link_msg) is True
+
+    def test_a_message_in_no_category_is_left_alone(self):
+        plain = {"key": {"id": "x"}, "messageType": "conversation",
+                 "message": {"conversation": "oi"}}
+        assert auto_download_allows(self._settings(), plain) is True
+
+    def test_links_are_not_offered_as_a_category(self):
+        assert "links" not in AUTO_DOWNLOAD_MEDIA_TYPES
+
+    def test_the_categories_track_the_media_tab(self):
+        """Derived from GROUP_MEDIA_TYPES rather than written out, so a new
+        category cannot silently become undownloadable."""
+        assert set(AUTO_DOWNLOAD_MEDIA_TYPES) == set(GROUP_MEDIA_TYPES) - {"links"}

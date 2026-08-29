@@ -113,7 +113,7 @@ class _HotkeyCapture(wx.TextCtrl):
         self.SetValue(_vk_mod_to_str(vk, mod))
 
 
-from core.utils import DEFAULT_SETTINGS, SEARCH_NORMALIZATION_MODES, search_normalization_mode, GROUP_MEDIA_TYPES
+from core.utils import DEFAULT_SETTINGS, SEARCH_NORMALIZATION_MODES, search_normalization_mode, GROUP_MEDIA_TYPES, AUTO_DOWNLOAD_MEDIA_TYPES
 from core import save_location
 
 
@@ -842,6 +842,55 @@ class SettingsDialog(wx.Dialog):
         )
         storage_sizer.Add(self._auto_download_media_check, 0, wx.ALL, 8)
 
+        self._auto_download_types_label = wx.StaticText(
+            self._storage_page,
+            label=i18n.t("storage_auto_download_media_types_label"),
+        )
+        storage_sizer.Add(
+            self._auto_download_types_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8
+        )
+
+        # wx.ListCtrl + EnableCheckBoxes, same as the group-media-types list a
+        # few tabs over — see the comment there for why not wx.CheckListBox.
+        #
+        # Links are not offered: a link is a text message with no file behind
+        # it, it never reaches the download path, and a checkbox that changes
+        # nothing is worse than an absent one. AUTO_DOWNLOAD_MEDIA_TYPES is
+        # derived from GROUP_MEDIA_TYPES so this stays in step with it.
+        self._auto_download_types_list = wx.ListCtrl(
+            self._storage_page, style=wx.LC_REPORT | wx.LC_SINGLE_SEL, size=(-1, 110)
+        )
+        self._auto_download_types_list.InsertColumn(
+            0,
+            i18n.t("storage_auto_download_media_types_label").replace("&", ""),
+            width=360,
+        )
+        self._auto_download_types_list.EnableCheckBoxes(True)
+        for _key in AUTO_DOWNLOAD_MEDIA_TYPES:
+            self._auto_download_types_list.Append(
+                (i18n.t(f"group_media_type_{_key}"),)
+            )
+        # First row selected, but no SetFocus() — opening this tab must not
+        # yank the caret out of wherever the user was. Same convention as every
+        # other list in this dialog.
+        if self._auto_download_types_list.GetItemCount() > 0:
+            self._auto_download_types_list.Focus(0)
+            self._auto_download_types_list.Select(0)
+        # Space does NOT toggle a wx.ListCtrl checkbox on wxMSW — the native
+        # control treats it as a selection key and swallows it — so it is
+        # handled explicitly, and Enter is bound too because every other list
+        # in this app activates with Enter.
+        self._auto_download_types_list.Bind(
+            wx.EVT_KEY_DOWN, self._on_media_type_key_down
+        )
+        self._auto_download_types_list.Bind(
+            wx.EVT_LIST_ITEM_ACTIVATED, self._on_auto_download_type_activated
+        )
+        storage_sizer.Add(
+            self._auto_download_types_list, 0,
+            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8,
+        )
+
         self._media_max_days_label = wx.StaticText(
             self._storage_page, label=i18n.t("media_max_days_label")
         )
@@ -1270,6 +1319,7 @@ class SettingsDialog(wx.Dialog):
         self._probe_video_duration_check.SetValue(
             storage.get("probe_video_duration_on_download", False)
         )
+        self._load_auto_download_types(storage.get("auto_download_media_types"))
 
     def _set_alert_combo(self, combo, choice_key: str):
         try:
@@ -1939,6 +1989,36 @@ class SettingsDialog(wx.Dialog):
                 idx, not self._group_media_types_list.IsItemChecked(idx)
             )
 
+    def _on_auto_download_type_activated(self, event):
+        """Enter on a row toggles its checkbox, matching Space."""
+        idx = event.GetIndex()
+        if 0 <= idx < self._auto_download_types_list.GetItemCount():
+            self._auto_download_types_list.CheckItem(
+                idx, not self._auto_download_types_list.IsItemChecked(idx)
+            )
+
+    def _selected_auto_download_types(self) -> list:
+        """The checked categories, in AUTO_DOWNLOAD_MEDIA_TYPES order."""
+        return [
+            key for idx, key in enumerate(AUTO_DOWNLOAD_MEDIA_TYPES)
+            if self._auto_download_types_list.IsItemChecked(idx)
+        ]
+
+    def _load_auto_download_types(self, saved):
+        """Check the saved categories.
+
+        A missing or non-list value checks everything — that is the default,
+        and it is what a settings.json predating this option looks like.
+        Reading that as "nothing selected" would silently stop every media
+        download for existing installs. An explicitly empty list is honoured:
+        unchecking everything is a legitimate choice, and it is not the same as
+        never having chosen. Mirrors core.utils.auto_download_allows().
+        """
+        if not isinstance(saved, (list, tuple)):
+            saved = AUTO_DOWNLOAD_MEDIA_TYPES
+        for idx, key in enumerate(AUTO_DOWNLOAD_MEDIA_TYPES):
+            self._auto_download_types_list.CheckItem(idx, key in saved)
+
     def _on_media_type_key_down(self, event):
         """Space toggles the focused checkbox, matching Enter."""
         if event.GetKeyCode() != wx.WXK_SPACE:
@@ -2295,6 +2375,7 @@ class SettingsDialog(wx.Dialog):
             "media_max_days": int(self._media_max_days_field.GetValue().strip()),
             "media_max_mb": int(self._media_max_mb_field.GetValue().strip()),
             "probe_video_duration_on_download": self._probe_video_duration_check.GetValue(),
+            "auto_download_media_types": self._selected_auto_download_types(),
         })
 
         # Persist and propagate
@@ -2419,6 +2500,13 @@ class SettingsDialog(wx.Dialog):
         )
         for _idx, _key in enumerate(GROUP_MEDIA_TYPES):
             self._group_media_types_list.SetItem(
+                _idx, 0, i18n.t(f"group_media_type_{_key}")
+            )
+        self._auto_download_types_label.SetLabel(
+            i18n.t("storage_auto_download_media_types_label")
+        )
+        for _idx, _key in enumerate(AUTO_DOWNLOAD_MEDIA_TYPES):
+            self._auto_download_types_list.SetItem(
                 _idx, 0, i18n.t(f"group_media_type_{_key}")
             )
         self._voice_msg_mode_box.SetLabel(i18n.t("ui_voice_message_mode_label"))

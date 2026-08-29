@@ -329,6 +329,42 @@ def group_media_category(msg) -> str:
     return ""
 
 
+# Categories the background media auto-download can be limited to
+# (Configuracoes > Armazenamento). Links are deliberately absent: a link is a
+# text message, there is no file behind it, and it never reaches the download
+# path at all — offering it as something to "not download" would be a checkbox
+# that does nothing.
+#
+# Derived from GROUP_MEDIA_TYPES rather than written out, so a category added
+# there appears here too instead of silently becoming undownloadable.
+AUTO_DOWNLOAD_MEDIA_TYPES = tuple(k for k in GROUP_MEDIA_TYPES if k != "links")
+
+
+def auto_download_allows(settings, msg) -> bool:
+    """Whether the background auto-download may fetch *msg*'s media.
+
+    A missing or non-list setting allows everything: that is the default, and
+    it is also what a settings.json written before this option looks like —
+    reading it as "nothing selected" would silently stop all media downloads
+    for every existing install. An explicitly empty list is honoured, because
+    unchecking everything is a choice the user can legitimately make.
+
+    Note that stickers count as photos, because group_media_category() puts
+    them there — the same grouping the Media tab shows, so unchecking "Fotos"
+    means the same thing in both places.
+    """
+    section = settings.get("storage") if isinstance(settings, dict) else None
+    allowed = section.get("auto_download_media_types") if isinstance(section, dict) else None
+    if not isinstance(allowed, (list, tuple)):
+        return True
+    category = group_media_category(msg)
+    if not category or category == "links":
+        # Not one of the categories this setting governs. Whatever else may
+        # skip it, this check is not the one to do it.
+        return True
+    return category in allowed
+
+
 # The Media tab's "Filtrar midias" radio, mirroring the conversation list's own
 # filter. Order is the order the radio shows them in.
 GROUP_MEDIA_FILTER_ALL = "all"
@@ -614,6 +650,9 @@ DEFAULT_SETTINGS = {
     "cleared_chats": {},
     "storage": {
         "auto_download_media": True,
+        # Which categories the auto-download covers. All of them by default —
+        # see auto_download_allows(). Links are not a category here.
+        "auto_download_media_types": list(AUTO_DOWNLOAD_MEDIA_TYPES),
         "media_max_days": 30,
         "media_max_mb": 100,
         "probe_video_duration_on_download": False

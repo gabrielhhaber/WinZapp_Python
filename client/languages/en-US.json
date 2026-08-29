@@ -1018,5 +1018,6 @@
     "save_folder_custom_label": "&Custom folder:",
     "save_folder_browse_btn": "&Browse...",
     "save_folder_browse_dialog_title": "Choose the default folder for saving files",
-    "save_folder_custom_missing": "The custom folder you entered does not exist. Choose a valid folder or pick another option."
+    "save_folder_custom_missing": "The custom folder you entered does not exist. Choose a valid folder or pick another option.",
+    "storage_auto_download_media_types_label": "&Media types to download automatically"
 }
