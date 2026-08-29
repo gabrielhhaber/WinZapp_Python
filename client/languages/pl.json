@@ -1019,5 +1019,6 @@
     "save_folder_browse_btn": "&Przeglądaj...",
     "save_folder_browse_dialog_title": "Wybierz domyślny folder do zapisywania plików",
     "save_folder_custom_missing": "Podany folder niestandardowy nie istnieje. Wybierz prawidłowy folder lub inną opcję.",
-    "storage_auto_download_media_types_label": "&Typy multimediów pobierane automatycznie"
+    "storage_auto_download_media_types_label": "&Typy multimediów pobierane automatycznie",
+    "media_action_needs_open_conversation": "Ta wiadomość znajduje się poza wczytanym fragmentem rozmowy. Otwórz rozmowę i przewiń do niej, aby użyć tej akcji."
 }

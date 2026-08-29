@@ -66,7 +66,7 @@ class TestActivationOpensLocation:
         activation flow needs a live wx.App and populated message list."""
         import inspect
 
-        src = inspect.getsource(ConversationsPanel._do_activate_message)
+        src = inspect.getsource(ConversationsPanel.activate_message)
         assert '"locationMessage"' in src
         assert '"liveLocationMessage"' in src
 

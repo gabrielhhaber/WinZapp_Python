@@ -32,8 +32,8 @@ def _method_calls(rel, class_name, method_name):
 def test_conversation_activation_routes_images_and_videos_to_media_viewer():
     src = _source("client/ui/conversations.py")
     assert "from ui.media_viewer import MediaViewerDialog" in src
-    calls = _method_calls("client/ui/conversations.py", "ConversationsPanel", "_do_activate_message")
-    assert "_open_conversation_media_viewer" in calls
+    calls = _method_calls("client/ui/conversations.py", "ConversationsPanel", "activate_message")
+    assert "open_media_viewer_for_message" in calls
 
 
 def test_status_plain_selection_never_opens_the_dialog_or_marks_viewed_directly():

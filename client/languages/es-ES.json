@@ -1019,5 +1019,6 @@
     "save_folder_browse_btn": "E&xaminar...",
     "save_folder_browse_dialog_title": "Elija la carpeta predeterminada para guardar archivos",
     "save_folder_custom_missing": "La carpeta personalizada indicada no existe. Elija una carpeta válida o seleccione otra opción.",
-    "storage_auto_download_media_types_label": "&Tipos de multimedia que se descargan automáticamente"
+    "storage_auto_download_media_types_label": "&Tipos de multimedia que se descargan automáticamente",
+    "media_action_needs_open_conversation": "Este mensaje está fuera de la parte cargada de la conversación. Abre la conversación y desplázate hasta él para usar esta acción."
 }

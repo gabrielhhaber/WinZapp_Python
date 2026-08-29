@@ -1092,13 +1092,27 @@ class ConversationDataDialog(wx.Dialog):
             logging.exception("[conversation_data] media action failed")
 
     def _invoke_with_index(self, msg, call):
-        """For a handler taking an explicit index. No selection is touched."""
+        """For a handler taking an explicit index. No selection is touched.
+
+        Skipping is the right call — applying the action to whatever row that
+        index happens to hold would act on the wrong message — but it must not
+        be silent. This tab lists the whole history while the panel keeps
+        roughly the last 200 messages, so "not in the list" is the ordinary
+        case for an older row, and a keypress that produces no sound, no
+        announcement and no visible change reads as the app being broken.
+        Reported exactly that way. Prefer a message-based handler (see
+        ConversationsPanel.activate_message / open_media_message) over this
+        whenever one exists.
+        """
         index = self._panel_index_for(msg)
         if index < 0:
             logging.info(
                 "[conversation_data] media message is no longer in the panel's "
                 "list — action skipped rather than applied to another row"
             )
+            mw = self._mw
+            mw.output(mw.i18n.t("media_action_needs_open_conversation"),
+                      interrupt=True)
             return
         self._invoke(lambda: call(index))
 
@@ -1160,12 +1174,16 @@ class ConversationDataDialog(wx.Dialog):
             return
         msg_type = msg.get("messageType", "")
         if msg_type in ("imageMessage", "videoMessage") and hasattr(
-                panel, "_open_conversation_media_viewer"):
-            self._invoke_with_index(
-                msg, lambda idx: panel._open_conversation_media_viewer(idx)
-            )
+                panel, "open_media_viewer_for_message"):
+            self._invoke(lambda: panel.open_media_viewer_for_message(msg))
             return
-        self._invoke_with_index(msg, lambda idx: panel._do_activate_message(idx))
+        # By message, never by row index. This tab lists the conversation's
+        # whole history out of the database while the panel keeps roughly the
+        # last 200 messages in memory, so an index lookup returned -1 for most
+        # rows and _invoke_with_index() skipped the action without a sound, an
+        # announcement or a visible change. Reported as "some audios in the
+        # Media tab just do not play" — they were never reaching playback.
+        self._invoke(lambda: panel.activate_message(msg))
 
     def _on_media_row_focused(self, event):
         """Show the action buttons only for a row they can act on.

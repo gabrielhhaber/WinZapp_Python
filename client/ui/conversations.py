@@ -2752,25 +2752,86 @@ class ConversationsPanel(wx.Panel):
             interrupt=False,
         )
 
+    # Delivery receipts do not arrive one at a time. When the other side opens
+    # the chat, WhatsApp sends a READ receipt for every message we ever sent in
+    # it at once — ten in a single second, measured in a real session. Each one
+    # used to rewrite its row immediately, and on Windows every SetItemText
+    # raises a name-change event on that ListView item: a screen reader reading
+    # a message gets interrupted, ten times in a row, for rows the user is not
+    # even on. That is the "a fala e cortada e algum item da lista muda"
+    # report, and it is the exact flood CLAUDE.md's Freeze/Thaw rule exists to
+    # prevent. So the burst is coalesced into one pass on a short timer.
+    _STATUS_REPAINT_COALESCE_MS = 120
+
     def refresh_message_status(self, msg_id: str, status: str):
-        """Update the status icon for a single sent message without full redraw."""
+        """Queue a status-icon repaint for one sent message.
+
+        Never repaints synchronously and never rebuilds the list — see
+        _flush_status_repaints() for why the delay exists.
+        """
+        pending = getattr(self, "_pending_status_repaints", None)
+        if pending is None:
+            pending = self._pending_status_repaints = set()
+        pending.add(msg_id)
+
+        timer = getattr(self, "_status_repaint_timer", None)
+        if timer is not None and timer.IsRunning():
+            # Still inside the burst — let the running timer pick this up too.
+            return
+        self._status_repaint_timer = wx.CallLater(
+            self._STATUS_REPAINT_COALESCE_MS, self._flush_status_repaints
+        )
+
+    def _flush_status_repaints(self):
+        """Repaint every row queued since the last flush, as one batch.
+
+        Rows whose rendered text did not actually change are skipped entirely.
+        That is not just an optimisation: a no-op SetItemText still raises the
+        accessibility event, so writing text identical to what is already there
+        interrupts a screen reader for literally no reason. A receipt for a
+        message whose row is off the current page, or whose mark did not move,
+        is exactly that case.
+        """
+        self._status_repaint_timer = None
+        pending = getattr(self, "_pending_status_repaints", None)
+        if not pending:
+            return
+        ids = set(pending)
+        pending.clear()
+
+        rows = []
         for i, msg in enumerate(self._sorted_messages):
-            if msg.get("key", {}).get("id") == msg_id:
-                # NOTE: MessageUpdate was already appended by on_message_status_update
-                # in main.py before this method is called. Do NOT append again here
-                # or the status history grows with duplicates on every update.
-                # Just re-render the row and force an immediate visual repaint.
-                self.messages_list.SetItemText(i, self._render_message_line(msg))
-                # RefreshItem ensures the list control repaints this row immediately.
-                # Without it, SetItemText updates the internal data but Windows may
-                # defer the visual update until the next full paint cycle — making
-                # the status icon appear frozen until the user leaves and re-enters
-                # the conversation.
+            if self._is_separator(msg):
+                continue
+            if msg.get("key", {}).get("id") in ids:
+                rows.append((i, msg))
+        if not rows:
+            return
+
+        # NOTE: MessageUpdate was already appended by on_message_status_update
+        # in main.py before this method is called. Do NOT append again here or
+        # the status history grows with duplicates on every update.
+        self.messages_list.Freeze()
+        try:
+            for i, msg in rows:
+                line = self._render_message_line(msg)
+                try:
+                    if self.messages_list.GetItemText(i) == line:
+                        continue
+                except Exception:
+                    pass
+                self.messages_list.SetItemText(i, line)
+                # RefreshItem ensures the list control repaints this row.
+                # Without it, SetItemText updates the internal data but Windows
+                # may defer the visual update until the next full paint cycle —
+                # making the status icon appear frozen until the user leaves and
+                # re-enters the conversation.
                 try:
                     self.messages_list.RefreshItem(i)
                 except Exception:
                     pass
-                break
+        finally:
+            self.messages_list.Thaw()
 
     # ── Voice recording ──────────────────────────────────────────────────────
 
@@ -3843,7 +3904,31 @@ class ConversationsPanel(wx.Panel):
             return
         if self._is_separator(self._sorted_messages[index]):
             return  # separator row — no action
-        msg      = self._sorted_messages[index]
+        self.activate_message(self._sorted_messages[index], index=index)
+
+    def activate_message(self, msg: dict, index=None):
+        """Activate a message (what Enter does), given the message itself.
+
+        Split out of _do_activate_message() because every branch below already
+        worked from the message; the index was only ever used to look it up,
+        plus restoring list focus after the media viewer closes. That made the
+        whole activation path unreachable for a caller holding a message that
+        is not in this panel's list — the data dialogs' Media tab, which reads
+        the conversation's entire history from the database while this panel
+        keeps roughly the last 200 messages in memory.
+
+        Reported live as: some audios in the Media tab simply do not play, with
+        no error, no announcement, and no visible change. They were not a codec
+        problem — the activation never reached playback at all, because the
+        index lookup returned -1 and the caller skipped the action in silence.
+        Documents, images, videos and links in that tab were affected the same
+        way; audio is just the type Enter is the natural gesture for.
+
+        index is optional and only used to put keyboard focus back on the row
+        the media viewer was opened from.
+        """
+        if not isinstance(msg, dict):
+            return
         msg_type = msg.get("messageType", "")
         msg_obj  = msg.get("message") or {}
         msg_id   = msg.get("key", {}).get("id", "")
@@ -3891,11 +3976,13 @@ class ConversationsPanel(wx.Panel):
             # Media opens in the same accessible, maximized viewer used by
             # statuses. This avoids wx.StaticBitmap clipping and gives video
             # proper seek/volume/speed controls.
-            self._open_conversation_media_viewer(index)
+            self.open_media_viewer_for_message(msg, restore_index=index)
 
         elif msg_type in ("documentMessage", "locationMessage", "liveLocationMessage"):
             # Documents and locations keep their existing system-open behaviour.
-            self._on_action_open(None, index=index)
+            # open_media_message() is _on_action_open()'s message-based half and
+            # covers both, including the download-failure reporting.
+            self.open_media_message(msg)
 
         elif msg_type == "contactMessage":
             # Enter/Space on a contact message → open a conversation with
@@ -6137,15 +6224,32 @@ class ConversationsPanel(wx.Panel):
         )
 
     def _open_conversation_media_viewer(self, index: int):
+        """Open the media viewer for the message at *index* in this list."""
+        if index < 0 or index >= len(self._sorted_messages):
+            return
+        self.open_media_viewer_for_message(
+            self._sorted_messages[index], restore_index=index
+        )
+
+    def open_media_viewer_for_message(self, msg: dict, restore_index=None):
         """Open an image/video message in the shared maximized MediaViewer.
+
+        Takes the message rather than a row index so a caller that HAS the
+        message but no row in this panel's list can still use it — the group
+        and private data dialogs' Media tab is exactly that: it reads the whole
+        conversation out of the database, so most of what it lists is outside
+        the ~200 messages this panel keeps in memory. Resolving those through
+        an index found nothing and the action was skipped in silence.
+
+        restore_index puts the keyboard focus back on the row the viewer was
+        opened from, when there was one.
 
         The dialog appears immediately; download/decryption happens through
         its background loader so the user gets a stable loading state instead
         of waiting for a second window to appear after the network request.
         """
-        if index < 0 or index >= len(self._sorted_messages):
+        if not isinstance(msg, dict):
             return
-        msg = self._sorted_messages[index]
         msg_type = msg.get("messageType", "")
         if msg_type not in ("imageMessage", "videoMessage"):
             return
@@ -6205,7 +6309,8 @@ class ConversationsPanel(wx.Panel):
             dlg.ShowModal()
         finally:
             dlg.Destroy()
-            if 0 <= index < self.messages_list.GetItemCount():
+            index = restore_index
+            if index is not None and 0 <= index < self.messages_list.GetItemCount():
                 try:
                     self.messages_list.Focus(index)
                     self.messages_list.Select(index)

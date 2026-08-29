@@ -369,6 +369,7 @@ class _ActivationStub:
         ConversationsPanel._use_conversation_video_media_viewer_dialog
     )
     _do_activate_message                        = ConversationsPanel._do_activate_message
+    activate_message                            = ConversationsPanel.activate_message
 
     def __init__(self, sorted_messages, settings=None):
         self.main_window = _FakeSettingsHolder(settings or {})
@@ -382,8 +383,10 @@ class _ActivationStub:
         self.media_viewer_calls = []
         self.play_toggle_calls = []
 
-    def _open_conversation_media_viewer(self, index):
-        self.media_viewer_calls.append(index)
+    def open_media_viewer_for_message(self, msg, restore_index=None):
+        # Message-based now: the Media tab in the data dialogs holds messages
+        # that are not in this panel's list at all, so an index was unusable.
+        self.media_viewer_calls.append(msg)
 
     def _play_toggle_video_message(self, msg):
         self.play_toggle_calls.append(msg)
@@ -403,11 +406,12 @@ class TestUseConversationVideoMediaViewerDialogSetting:
 
 class TestVideoActivationRespectsTheSetting:
     def test_dialog_mode_opens_the_media_viewer(self):
-        stub = _ActivationStub([_video_msg("v1")])
+        video = _video_msg("v1")
+        stub = _ActivationStub([video])
 
         stub._do_activate_message(0)
 
-        assert stub.media_viewer_calls == [0]
+        assert stub.media_viewer_calls == [video]
         assert stub.play_toggle_calls == []
 
     def test_classic_mode_plays_in_app_instead(self):
@@ -451,7 +455,7 @@ class TestVideoActivationRespectsTheSetting:
 
         stub._do_activate_message(0)
 
-        assert stub.media_viewer_calls == [0]
+        assert stub.media_viewer_calls == [image_msg]
         assert stub.play_toggle_calls == []
 
 
@@ -491,8 +495,10 @@ class _OpenActionStub:
         self._location_maps_url = lambda msg: None
         self.media_viewer_calls = []
 
-    def _open_conversation_media_viewer(self, index):
-        self.media_viewer_calls.append(index)
+    def open_media_viewer_for_message(self, msg, restore_index=None):
+        # Message-based now: the Media tab in the data dialogs holds messages
+        # that are not in this panel's list at all, so an index was unusable.
+        self.media_viewer_calls.append(msg)
 
 
 class TestOpenActionAlwaysExternalForVideo:
