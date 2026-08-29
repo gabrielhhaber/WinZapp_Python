@@ -72,7 +72,7 @@ jobs:
           pip install -r requirements-dev.txt --quiet
 
       - name: Run pytest
-        run: pytest
+        run: pytest --run-wx-gui
 
   build:
     # always() so the build still runs when `test` was skipped by run_tests
