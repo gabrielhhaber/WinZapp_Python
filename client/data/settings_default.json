@@ -60,7 +60,8 @@
         "group_media_default_types": ["photos", "videos", "audios", "documents", "links"]
     },
     "audio_playback": {
-        "audio_default_speed": 1.0
+        "audio_default_speed": 1.0,
+        "mark_audio_played_in_list": true
     },
     "audio_devices": {
         "output_device_name": "",

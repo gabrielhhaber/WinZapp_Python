@@ -608,7 +608,12 @@ DEFAULT_SETTINGS = {
         "group_media_default_types": list(GROUP_MEDIA_TYPES)
     },
     "audio_playback": {
-        "audio_default_speed": 1.0
+        "audio_default_speed": 1.0,
+        # On by default: this is the existing behaviour. Off means a received
+        # voice note is never flagged "played" in the message list when its
+        # playback ends — which also means no row rewrite, and so no screen
+        # reader announcement about a message the user has already moved off.
+        "mark_audio_played_in_list": True
     },
     "audio_devices": {
         "output_device_name": "",

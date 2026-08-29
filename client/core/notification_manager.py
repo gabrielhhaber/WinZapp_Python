@@ -850,6 +850,23 @@ class NotificationManager:
         announce_background_message(self.main_window, self.i18n, title, body)
 
     def _dispatch(self, title: str, body: str, remote_jid: str, msg_key: dict = None):
+        # Do Not Disturb suppresses the whole background notification — banner,
+        # sound and spoken announcement alike. Gating only the sound left the
+        # banner popping up during a Do Not Disturb the user had deliberately
+        # turned on, which is the one thing that setting exists to stop.
+        #
+        # Returning here rather than further down is what makes that true of
+        # all three: _announce_unshown() below speaks whenever no banner was
+        # produced, so an early return that skipped only show_toast() would
+        # have traded the banner for speech instead of silence.
+        from core.quiet_hours import is_quiet_hours_active
+        if is_quiet_hours_active():
+            logging.info(
+                "[notify] %s suppressed entirely — Windows is in a "
+                "do-not-disturb state.", remote_jid,
+            )
+            return
+
         if not self._toaster:
             # _setup_toaster() exhausted every AUMID candidate (or
             # windows_toasts is not importable at all): there will be no

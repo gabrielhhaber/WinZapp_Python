@@ -328,3 +328,87 @@ class TestHideAudioControlsFocus:
         panel._hide_audio_controls()
 
         assert messages_list.focused is False
+
+
+class TestTheMarkPlayedSettingGatesTheLocalHalf:
+    """Configurações > Reprodução de áudio > "Mudar status dos áudios para
+    reproduzidos nas conversas e disparar anúncio ao leitor de tela".
+
+    On by default (the existing behaviour). Off skips the LOCAL half only —
+    the row is never rewritten, so nothing announces a change on a voice note
+    the user has usually already moved off, which is what the chain does the
+    moment the previous one ends. The played receipt still goes to WhatsApp:
+    the sender is entitled to know their message was heard, and that is not
+    what this setting is about.
+    """
+
+    class _Stub:
+        from main import MainWindow as _MW
+        mark_audio_message_played = _MW.mark_audio_message_played
+
+        def __init__(self, enabled=None):
+            audio = {} if enabled is None else {"mark_audio_played_in_list": enabled}
+            self.settings = {"audio_playback": audio}
+            self.status_updates = []
+            self.receipts = []
+
+        def on_message_status_update(self, payload, skip_panel_refresh=False):
+            self.status_updates.append(payload)
+
+        def _send_mark_played_request(self, remote_jid, msg_key):
+            self.receipts.append((remote_jid, msg_key))
+
+    @staticmethod
+    def _msg():
+        return {"key": {"id": "a1", "remoteJid": "5511@s.whatsapp.net",
+                        "fromMe": False}}
+
+    def _run(self, stub):
+        import threading as _t
+        real = _t.Thread
+        started = []
+
+        class _Inline:
+            def __init__(self, target=None, args=(), daemon=None):
+                self._t, self._a = target, args
+
+            def start(self):
+                started.append(1)
+                self._t(*self._a)
+
+        _t.Thread = _Inline
+        try:
+            stub.mark_audio_message_played(self._msg())
+        finally:
+            _t.Thread = real
+        return started
+
+    def test_on_by_default_when_the_key_is_absent(self):
+        """A settings.json predating this option keeps the old behaviour."""
+        stub = self._Stub(enabled=None)
+        self._run(stub)
+        assert len(stub.status_updates) == 1
+        assert stub.status_updates[0]["status"] == "5"
+
+    def test_enabled_marks_the_row(self):
+        stub = self._Stub(enabled=True)
+        self._run(stub)
+        assert len(stub.status_updates) == 1
+
+    def test_disabled_never_touches_the_row(self):
+        stub = self._Stub(enabled=False)
+        self._run(stub)
+        assert stub.status_updates == []
+
+    def test_the_played_receipt_is_sent_either_way(self):
+        for enabled in (True, False):
+            stub = self._Stub(enabled=enabled)
+            self._run(stub)
+            assert len(stub.receipts) == 1, enabled
+
+    def test_our_own_send_is_still_never_marked(self):
+        stub = self._Stub(enabled=True)
+        mine = {"key": {"id": "a1", "remoteJid": "5511@s.whatsapp.net",
+                        "fromMe": True}}
+        stub.mark_audio_message_played(mine)
+        assert stub.status_updates == [] and stub.receipts == []

@@ -1020,5 +1020,6 @@
     "save_folder_browse_dialog_title": "Selecione a pasta predefinida para guardar ficheiros",
     "save_folder_custom_missing": "A pasta personalizada indicada não existe. Escolha uma pasta válida ou selecione outra opção.",
     "storage_auto_download_media_types_label": "&Tipos de multimédia a descarregar automaticamente",
-    "media_action_needs_open_conversation": "Esta mensagem está fora do trecho carregado da conversa. Abra a conversa e desloque-se até ela para usar esta ação."
+    "media_action_needs_open_conversation": "Esta mensagem está fora do trecho carregado da conversa. Abra a conversa e desloque-se até ela para usar esta ação.",
+    "audio_mark_played_in_list_label": "&Mudar o estado dos áudios para reproduzidos nas conversas e emitir anúncio ao leitor de ecrã"
 }

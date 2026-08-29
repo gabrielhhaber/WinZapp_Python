@@ -23129,13 +23129,22 @@ class MainWindow(wx.Frame):
             remote_jid = conv.get("remoteJid", "") if conv else ""
         if not msg_id or not remote_jid:
             return
-        # Local status icon — reuses the exact same path a real
-        # messages.update WebSocket event drives (find the cached record,
-        # append MessageUpdate, persist to DB, refresh the visible row).
-        self.on_message_status_update({
-            "key": {"id": msg_id, "remoteJid": remote_jid},
-            "status": "5",
-        }, skip_panel_refresh=skip_panel_refresh)
+
+        # Configuracoes > Reproducao de audio > "Mudar status dos audios para
+        # reproduzidos nas conversas...". Off skips the LOCAL half only: the
+        # row is never rewritten, so nothing announces a change on a voice note
+        # the user has usually already moved off. The played receipt below
+        # still goes to WhatsApp — the sender is entitled to know their message
+        # was heard, and that is not what this setting is about.
+        if self.settings.get("audio_playback", {}).get(
+                "mark_audio_played_in_list", True):
+            # Local status icon — reuses the exact same path a real
+            # messages.update WebSocket event drives (find the cached record,
+            # append MessageUpdate, persist to DB, refresh the visible row).
+            self.on_message_status_update({
+                "key": {"id": msg_id, "remoteJid": remote_jid},
+                "status": "5",
+            }, skip_panel_refresh=skip_panel_refresh)
         threading.Thread(
             target=self._send_mark_played_request,
             args=(remote_jid, dict(key)),

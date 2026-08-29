@@ -1020,5 +1020,6 @@
     "save_folder_browse_dialog_title": "Selecione a pasta padrão para salvar arquivos",
     "save_folder_custom_missing": "A pasta personalizada informada não existe. Escolha uma pasta válida ou selecione outra opção.",
     "storage_auto_download_media_types_label": "&Tipos de mídia a serem baixados automaticamente",
-    "media_action_needs_open_conversation": "Esta mensagem está fora do trecho carregado da conversa. Abra a conversa e role até ela para usar esta ação."
+    "media_action_needs_open_conversation": "Esta mensagem está fora do trecho carregado da conversa. Abra a conversa e role até ela para usar esta ação.",
+    "audio_mark_played_in_list_label": "&Mudar status dos áudios para reproduzidos nas conversas e disparar anúncio ao leitor de tela"
 }

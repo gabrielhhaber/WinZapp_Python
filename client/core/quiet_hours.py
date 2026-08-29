@@ -41,11 +41,24 @@ _QUNS_QUIET_TIME = 6
 _QUNS_APP = 7
 
 # States in which Windows would itself suppress a toast's sound/banner: a
-# fullscreen app/game, a presentation, or Focus Assist (both "Priority only"
-# and "Alarms only" surface here as QUNS_QUIET_TIME — Windows doesn't expose
-# a finer-grained value through this API).
+# fullscreen D3D app/game, a presentation, or Focus Assist (both "Priority
+# only" and "Alarms only" surface here as QUNS_QUIET_TIME — Windows doesn't
+# expose a finer-grained value through this API).
+#
+# QUNS_BUSY is deliberately NOT in this set. Reported live: Do Not Disturb
+# off, banners appearing normally, and WinZapp's notification sound never
+# playing. Measured on that machine, SHQueryUserNotificationState returned
+# QUNS_BUSY (2) while WNF reported Focus Assist off and Windows itself was
+# still rendering — and sounding — its own toasts. That is the whole argument:
+# if Windows were really suppressing, the banner would not have appeared
+# either. The documented meaning ("a full-screen application is running or
+# Presentation Settings are applied") is already covered by
+# QUNS_RUNNING_D3D_FULL_SCREEN and QUNS_PRESENTATION_MODE, which are specific;
+# QUNS_BUSY is the vague one, it is what this legacy Vista-era API returns in
+# assorted modern situations it was never updated for, and acting on it
+# silenced the app indefinitely for a reason nothing in the UI explained.
 _SUPPRESSED_STATES = {
-    _QUNS_BUSY, _QUNS_RUNNING_D3D_FULL_SCREEN,
+    _QUNS_RUNNING_D3D_FULL_SCREEN,
     _QUNS_PRESENTATION_MODE, _QUNS_QUIET_TIME,
 }
 
@@ -407,10 +420,23 @@ def _compute_quiet_hours_active() -> bool:
         return True
 
     # 4. Legacy Win32 state: fullscreen game, presentation mode, quiet time.
+    #
+    # Subordinate to WNF for the same reason the registry heuristics are: this
+    # API predates Focus Assist entirely, so when the live shell state says Do
+    # Not Disturb is off, a QUNS_QUIET_TIME out of here is a stale reading, not
+    # a second opinion. The fullscreen/presentation values remain useful on
+    # their own and are still honoured.
     state = _query_notification_state()
     if state is not None and should_suppress_notification_sound(state):
-        logging.info("[quiet_hours] Suppressed via SHQueryUserNotificationState: %d", state)
-        return True
+        if state == _QUNS_QUIET_TIME and wnf_state is False:
+            logging.info(
+                "[quiet_hours] Ignoring legacy QUNS_QUIET_TIME — WNF reports "
+                "Do Not Disturb is off."
+            )
+        else:
+            logging.info(
+                "[quiet_hours] Suppressed via SHQueryUserNotificationState: %d", state)
+            return True
 
     return False
 

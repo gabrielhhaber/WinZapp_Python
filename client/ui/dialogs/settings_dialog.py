@@ -1006,6 +1006,16 @@ class SettingsDialog(wx.Dialog):
         )
         audio_sizer.Add(self._audio_speed_combo, 0, wx.EXPAND | wx.ALL, 8)
 
+        # On by default — the existing behaviour. Off means a received voice
+        # note is never flagged "played" in the message list when playback
+        # ends, which also removes the row rewrite that a screen reader
+        # announces as a change on a message the user has usually already
+        # moved off (the next voice note in a chain).
+        self._mark_audio_played_check = wx.CheckBox(
+            self._audio_page, label=i18n.t("audio_mark_played_in_list_label")
+        )
+        audio_sizer.Add(self._mark_audio_played_check, 0, wx.ALL, 8)
+
         self._audio_page.SetSizer(audio_sizer)
         self._notebook.AddPage(self._audio_page, i18n.t("tab_audio_playback"))
 
@@ -1320,6 +1330,11 @@ class SettingsDialog(wx.Dialog):
             storage.get("probe_video_duration_on_download", False)
         )
         self._load_auto_download_types(storage.get("auto_download_media_types"))
+
+        audio_playback = self.main_window.settings.get("audio_playback", {})
+        self._mark_audio_played_check.SetValue(
+            audio_playback.get("mark_audio_played_in_list", True)
+        )
 
     def _set_alert_combo(self, combo, choice_key: str):
         try:
@@ -2378,6 +2393,10 @@ class SettingsDialog(wx.Dialog):
             "auto_download_media_types": self._selected_auto_download_types(),
         })
 
+        self.main_window.settings.setdefault("audio_playback", {})[
+            "mark_audio_played_in_list"
+        ] = self._mark_audio_played_check.GetValue()
+
         # Persist and propagate
         self.main_window.save_settings()
         # Reload sound objects so per-event enabled/path changes (and the new
@@ -2502,6 +2521,9 @@ class SettingsDialog(wx.Dialog):
             self._group_media_types_list.SetItem(
                 _idx, 0, i18n.t(f"group_media_type_{_key}")
             )
+        self._mark_audio_played_check.SetLabel(
+            i18n.t("audio_mark_played_in_list_label")
+        )
         self._auto_download_types_label.SetLabel(
             i18n.t("storage_auto_download_media_types_label")
         )

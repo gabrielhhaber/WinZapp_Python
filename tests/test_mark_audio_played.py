@@ -28,6 +28,9 @@ class _Stub:
     _serialize_msg_id         = MainWindow._serialize_msg_id
 
     def __init__(self):
+        # Configuracoes > Reproducao de audio > "Mudar status dos audios para
+        # reproduzidos...". These tests exercise the default (on).
+        self.settings = {"audio_playback": {"mark_audio_played_in_list": True}}
         self._phone_to_lid = {}
         self.my_jid = ""
         self.my_lid = ""

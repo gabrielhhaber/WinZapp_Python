@@ -20,8 +20,17 @@ class TestShouldSuppressNotificationSound:
         only) surfaces as — the exact state this feature exists for."""
         assert quiet_hours.should_suppress_notification_sound(6) is True
 
-    def test_busy_is_suppressed(self):
-        assert quiet_hours.should_suppress_notification_sound(2) is True
+    def test_busy_is_NOT_suppressed(self):
+        """QUNS_BUSY was in the suppressed set and had to come out.
+
+        Reported live: Do Not Disturb off, banners appearing normally, and the
+        notification sound never playing. On that machine
+        SHQueryUserNotificationState returned QUNS_BUSY while WNF reported
+        Focus Assist off and Windows itself was still rendering its own toasts
+        — if Windows were really suppressing, no banner would have appeared.
+        Its documented meaning (fullscreen app / presentation settings) is
+        already covered by the two specific values below."""
+        assert quiet_hours.should_suppress_notification_sound(2) is False
 
     def test_fullscreen_d3d_is_suppressed(self):
         assert quiet_hours.should_suppress_notification_sound(3) is True
@@ -341,3 +350,43 @@ class TestReadingIsMemoized:
             assert quiet_hours.is_quiet_hours_active() is True
         finally:
             quiet_hours.invalidate_cache()
+
+
+class TestTheLegacyApiDoesNotOverrideTheLiveState:
+    """SHQueryUserNotificationState predates Focus Assist entirely, so when WNF
+    — the state the shell itself updates — says Do Not Disturb is off, a
+    QUNS_QUIET_TIME out of the legacy API is a stale reading, not a second
+    opinion."""
+
+    @pytest.fixture(autouse=True)
+    def _drop_cache(self):
+        quiet_hours.invalidate_cache()
+        yield
+        quiet_hours.invalidate_cache()
+
+    def _probe(self, monkeypatch, wnf, legacy_state):
+        monkeypatch.setattr(quiet_hours, "_query_registry_notifications_disabled", lambda: False)
+        monkeypatch.setattr(quiet_hours, "_query_wnf_quiet_hours", lambda: wnf)
+        monkeypatch.setattr(quiet_hours, "_query_registry_dnd_active", lambda: None)
+        monkeypatch.setattr(quiet_hours, "_query_winrt_notification_policy", lambda: None)
+        monkeypatch.setattr(quiet_hours, "_query_notification_state", lambda: legacy_state)
+        return quiet_hours.is_quiet_hours_active()
+
+    def test_legacy_quiet_time_is_ignored_when_wnf_says_dnd_is_off(self, monkeypatch):
+        assert self._probe(monkeypatch, wnf=False, legacy_state=6) is False
+
+    def test_legacy_quiet_time_still_counts_when_wnf_cannot_answer(self, monkeypatch):
+        assert self._probe(monkeypatch, wnf=None, legacy_state=6) is True
+
+    def test_fullscreen_still_suppresses_even_with_dnd_off(self, monkeypatch):
+        """Not a Do Not Disturb signal at all — a specific, documented state
+        that WNF has no opinion about."""
+        assert self._probe(monkeypatch, wnf=False, legacy_state=3) is True
+
+    def test_presentation_mode_still_suppresses_even_with_dnd_off(self, monkeypatch):
+        assert self._probe(monkeypatch, wnf=False, legacy_state=4) is True
+
+    def test_the_reported_machine_now_plays_its_sound(self, monkeypatch):
+        """The exact reading measured on the machine that reported this: DND
+        off everywhere, legacy API saying QUNS_BUSY, banners still appearing."""
+        assert self._probe(monkeypatch, wnf=False, legacy_state=2) is False

@@ -1020,5 +1020,6 @@
     "save_folder_browse_dialog_title": "Choose the default folder for saving files",
     "save_folder_custom_missing": "The custom folder you entered does not exist. Choose a valid folder or pick another option.",
     "storage_auto_download_media_types_label": "&Media types to download automatically",
-    "media_action_needs_open_conversation": "This message is outside the loaded part of the conversation. Open the conversation and scroll to it to use this action."
+    "media_action_needs_open_conversation": "This message is outside the loaded part of the conversation. Open the conversation and scroll to it to use this action.",
+    "audio_mark_played_in_list_label": "&Mark audios as played in conversations and announce it to the screen reader"
 }

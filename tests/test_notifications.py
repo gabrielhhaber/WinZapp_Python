@@ -655,3 +655,52 @@ class TestDoReply:
         mgr = _Stub()
         mgr._do_reply("j@g.us", "", {"id": "M1"})
         assert mgr.main_window.message_queue.enqueued == []
+
+
+class TestDoNotDisturbSuppressesTheWholeNotification:
+    """Not only the sound. Gating the sound alone left the banner popping up
+    during a Do Not Disturb the user had deliberately turned on, which is the
+    one thing that setting exists to stop.
+
+    The early return has to happen before _dispatch() decides anything else:
+    _announce_unshown() speaks whenever no banner was produced, so skipping
+    only show_toast() would have traded the banner for speech instead of
+    silence.
+    """
+
+    class _Manager:
+        from core.notification_manager import NotificationManager as _NM
+        _dispatch = _NM._dispatch
+
+        def __init__(self):
+            self._toaster = None
+            self.announced = []
+            self.sounds = []
+
+        def _announce_unshown(self, title, body):
+            self.announced.append((title, body))
+
+        def _play_sound(self, remote_jid=""):
+            self.sounds.append(remote_jid)
+
+    def _dispatch(self, monkeypatch, quiet):
+        monkeypatch.setattr(
+            "core.quiet_hours.is_quiet_hours_active", lambda: quiet
+        )
+        mgr = self._Manager()
+        mgr._dispatch("Fulano", "oi", "5511@s.whatsapp.net")
+        return mgr
+
+    def test_nothing_is_announced_under_do_not_disturb(self, monkeypatch):
+        mgr = self._dispatch(monkeypatch, quiet=True)
+        assert mgr.announced == []
+
+    def test_no_sound_is_played_under_do_not_disturb(self, monkeypatch):
+        mgr = self._dispatch(monkeypatch, quiet=True)
+        assert mgr.sounds == []
+
+    def test_the_fallback_announcement_still_happens_normally(self, monkeypatch):
+        """With no toaster and DND off, the spoken fallback is the only
+        notification there is — it must not be lost."""
+        mgr = self._dispatch(monkeypatch, quiet=False)
+        assert mgr.announced == [("Fulano", "oi")]
