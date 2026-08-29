@@ -14,8 +14,50 @@ from traceback import format_exc
 import json
 import base64
 from io import BytesIO
-from countries import get_countries
+from countries import get_countries, get_default_country_index
+from core.combo_search import bind_incremental_search
 import logging
+
+
+def _resolve_protected_edit(
+    prefix_len: int,
+    insertion_point: int,
+    sel_from: int,
+    sel_to: int,
+    deleting_backward: bool = False,
+):
+    """Decide how a pending edit (typed character, forward Delete,
+    Backspace, Cut or Paste) at the given caret/selection should be allowed
+    to proceed without ever modifying the first *prefix_len* characters of
+    the phone field — the immutable "+<country code>" the user can only
+    change via the country ComboBox (see Connect.on_country_changed).
+
+    Returns:
+      - None: the edit must be swallowed entirely (a no-op) — either a
+        caret-only edit (no selection) that would touch the prefix, or a
+        selection that lies entirely inside it.
+      - (start, end): the selection the edit should actually act on. Equal
+        to (sel_from, sel_to) when the edit doesn't touch the prefix at all
+        (nothing to change). Clamped to start at prefix_len when the
+        original selection starts inside the prefix but extends past it —
+        e.g. Ctrl+A then Delete/Backspace/Paste/typing must clear the local
+        number while leaving the country code untouched, rather than being
+        blocked outright.
+
+    A pure function of primitives (no wx dependency) so it can be unit
+    tested without a running wx.App.
+    """
+    if sel_from != sel_to:
+        if sel_from >= prefix_len:
+            return (sel_from, sel_to)          # entirely past the prefix
+        if sel_to <= prefix_len:
+            return None                          # entirely inside the prefix
+        return (prefix_len, sel_to)              # spans the boundary: clamp
+    # No selection: a single-position caret edit.
+    target = (insertion_point - 1) if deleting_backward else insertion_point
+    if target < prefix_len:
+        return None
+    return (insertion_point, insertion_point)
 
 
 # Events forwarded to the WinZapp client via Socket.IO
@@ -441,8 +483,22 @@ class Connect:
             style=wx.CB_READONLY,
             choices=[c[0] for c in self._countries],
         )
-        self.country_combo.SetSelection(0)   # Brazil
-        self.country_combo.Bind(wx.EVT_COMBOBOX, self.on_country_changed)
+        # Default to the country from the user's Windows "Country or
+        # region" setting — a location, independent of the UI/display
+        # language and the separate "Regional format" locale — falling back
+        # to the United States if that can't be detected or isn't one of
+        # our entries. Never an arbitrary fixed country, and never whatever
+        # happened to sort first.
+        default_idx = get_default_country_index(self._countries, self.i18n.language)
+        self.country_combo.SetSelection(default_idx)
+        self._current_dial_code = self._countries[default_idx][1]
+        # Routed through bind_incremental_search()'s on_select rather than
+        # a direct Bind(wx.EVT_COMBOBOX, ...) — see that function's own
+        # docstring: wx calls every handler bound to the same event on the
+        # same control regardless of Skip(), so a separately-bound handler
+        # here would react to the search's momentarily-wrong native jump
+        # before it gets corrected on a multi-character search.
+        bind_incremental_search(self.country_combo, on_select=self.on_country_changed)
 
         # ── Phone number field ────────────────────────────────────────────
         self.phone_number_label = wx.StaticText(
@@ -456,6 +512,8 @@ class Connect:
         self.phone_field.Bind(wx.EVT_CHAR,       self.on_phone_char)
         self.phone_field.Bind(wx.EVT_TEXT,       self.on_phone_text_changed)
         self.phone_field.Bind(wx.EVT_TEXT_ENTER, self.on_continue)
+        self.phone_field.Bind(wx.EVT_TEXT_PASTE, self.on_phone_paste)
+        self.phone_field.Bind(wx.EVT_TEXT_CUT,   self.on_phone_cut)
         self.phone_field.SetInsertionPointEnd()
 
         self.continue_btn = wx.Button(self.phone_panel, label=self.i18n.t("continue"))
@@ -475,7 +533,9 @@ class Connect:
         self.phone_panel.SetSizer(phone_sizer)
 
         # Quit button
-        self.quit_btn = wx.Button(self.connection_dial, wx.ID_CANCEL, "&Sair")
+        self.quit_btn = wx.Button(
+            self.connection_dial, wx.ID_CANCEL, self.i18n.t("connect_dialog_cancel")
+        )
         self.quit_btn.Bind(wx.EVT_BUTTON, self.on_quit_from_connect)
 
         # Bind close event
@@ -1166,19 +1226,53 @@ class Connect:
         finally:
             self._phone_updating = False
 
+    def _protected_prefix_len(self) -> int:
+        """Length, in characters, of the immutable "+<country code>" at the
+        start of the phone field — see _resolve_protected_edit()."""
+        return len(f"+{self._current_dial_code}")
+
+    def _resolve_edit_selection(self, deleting_backward: bool = False):
+        """_resolve_protected_edit() applied to the phone field's actual
+        current caret/selection state. See that function's own docstring
+        for the return value."""
+        prefix_len = self._protected_prefix_len()
+        insertion_point = self.phone_field.GetInsertionPoint()
+        sel_from, sel_to = self.phone_field.GetSelection()
+        return _resolve_protected_edit(
+            prefix_len, insertion_point, sel_from, sel_to, deleting_backward
+        )
+
+    def _apply_protected_edit(self, resolved, event) -> None:
+        """Act on a _resolve_edit_selection() result: swallow the event if
+        the edit was entirely inside the protected prefix, clamp the
+        control's selection first if it spanned the boundary (e.g. Ctrl+A
+        then Delete clears the local number but leaves the country code
+        alone), then let the underlying operation (Skip()) proceed."""
+        if resolved is None:
+            return  # no-op: swallow, do not Skip()
+        sel_from, sel_to = self.phone_field.GetSelection()
+        if resolved != (sel_from, sel_to):
+            self.phone_field.SetSelection(*resolved)
+        event.Skip()
+
     def on_phone_char(self, event):
         """
         Filter individual keystrokes in the phone field.
 
-        Digits (0-9 and numpad), navigation keys and Ctrl+key combinations
-        pass through.  Everything else (letters, punctuation, @, _, …) is
-        consumed and the screen reader announces "Caractere inválido".
+        Digits (0-9 and numpad) and navigation/Ctrl+key combinations pass
+        through. Anything else (letters, punctuation, @, _, …) is silently
+        consumed.
+
+        Backspace, Delete and typed digits additionally never modify the
+        "+<country code>" prefix, which the user can only change via the
+        country ComboBox — see _resolve_protected_edit(). A selection that
+        spans across the prefix boundary (e.g. Ctrl+A then Delete/typing)
+        is clamped so only the local number is affected.
         """
         key = event.GetKeyCode()
 
-        # Navigation / editing keys always pass through
+        # Navigation keys that never modify text always pass through
         _NAV = {
-            wx.WXK_BACK, wx.WXK_DELETE,
             wx.WXK_LEFT, wx.WXK_RIGHT, wx.WXK_HOME, wx.WXK_END,
             wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER,
             wx.WXK_TAB, wx.WXK_ESCAPE,
@@ -1188,7 +1282,8 @@ class Connect:
             return
 
         # Any Ctrl+key or Alt+key combo (clipboard shortcuts, select-all,
-        # Alt+F4, system accelerators, …) always pass through
+        # Alt+F4, system accelerators, …) always pass through — Ctrl+V/Ctrl+X
+        # are guarded separately by on_phone_paste()/on_phone_cut().
         if event.ControlDown() or event.AltDown() or event.CmdDown():
             event.Skip()
             return
@@ -1199,43 +1294,41 @@ class Connect:
             event.Skip()
             return
 
-        # Main keyboard digits
-        if ord("0") <= key <= ord("9"):
-            event.Skip()
+        is_backspace = key == wx.WXK_BACK
+        is_delete    = key == wx.WXK_DELETE
+        is_digit     = (ord("0") <= key <= ord("9")) or (wx.WXK_NUMPAD0 <= key <= wx.WXK_NUMPAD9)
+
+        if is_backspace or is_delete or is_digit:
+            resolved = self._resolve_edit_selection(deleting_backward=is_backspace)
+            self._apply_protected_edit(resolved, event)
             return
 
-        # Numpad digits
-        if wx.WXK_NUMPAD0 <= key <= wx.WXK_NUMPAD9:
-            event.Skip()
-            return
+        # Anything else → silently consumed (do NOT call event.Skip())
 
-        # Anything else → reject and announce
-        self.main_window.speak_output.output(
-            self.main_window.i18n.t("invalid_char")
-        )
-        # Do NOT call event.Skip() — the character is swallowed
+    def on_phone_paste(self, event):
+        """Clamp a paste (Ctrl+V / context menu) to never overwrite the
+        immutable country-code prefix — see _resolve_protected_edit()."""
+        resolved = self._resolve_edit_selection()
+        self._apply_protected_edit(resolved, event)
+
+    def on_phone_cut(self, event):
+        """Clamp a Cut (Ctrl+X / context menu) to never remove the
+        immutable country-code prefix — see _resolve_protected_edit()."""
+        resolved = self._resolve_edit_selection()
+        self._apply_protected_edit(resolved, event)
 
     def on_phone_text_changed(self, event):
         """
         Reformat the phone field after every text change (including paste).
 
-        If the new text contains characters that are not digits and not our
-        formatting symbols (+, -, space), the screen reader announces
-        "Caractere inválido" and those characters are silently stripped.
+        Characters that are not digits and not our formatting symbols
+        (+, -, space) are silently stripped.
         """
         if self._phone_updating:
             return
         self._phone_updating = True
         try:
             text = self.phone_field.GetValue()
-
-            # Detect truly invalid chars coming from paste
-            _fmt = set("+- ")
-            if any(c not in _fmt and not c.isdigit() for c in text):
-                self.main_window.speak_output.output(
-                    self.main_window.i18n.t("invalid_char")
-                )
-
             digits    = "".join(c for c in text if c.isdigit())
             formatted = self._format_phone_display(digits)
             if formatted != text:

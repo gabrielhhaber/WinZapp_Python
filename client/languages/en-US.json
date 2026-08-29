@@ -3,7 +3,7 @@
     "connect_phone": "Connect to {app_name}",
     "enter_phone": "&Enter your phone number",
     "country_label": "Select a country:",
-    "invalid_char": "Invalid character",
+    "connect_dialog_cancel": "Cance&l",
     "continue": "&Continue",
     "connection_error": "Connection error",
     "connection_failed": "Could not connect to {app_name}. The error message displayed was:",
