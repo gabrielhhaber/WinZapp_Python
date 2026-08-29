@@ -86,54 +86,58 @@ jobs:
       - name: Run pytest
         run: pytest
 
-  build:
-    name: Build Windows installer and portable ZIP
+  # ── ALPHA-SPECIFIC ────────────────────────────────────────────────────────
+  # A job of its own because build-windows.yml takes the version as an input,
+  # and a reusable workflow's `with:` cannot read a value a step exported into
+  # $GITHUB_ENV — it has to come from a job output.
+  #
+  # release.yml takes its version from the tag of a release a human already
+  # created. Nothing created one here, so derive one — and it has to be
+  # derived from the STABLE version line, not invented independently, or the
+  # two channels stop ordering against each other. updater.py compares
+  # ((major, minor, patch, build), pre_order) with alpha < beta < final, so:
+  #
+  #   base 0.25.0.0beta (client/version.py, kept current by release.yml's
+  #   bump-version job) + commit count N  ->  0.25.0.<N>alpha
+  #
+  # The suffix on the base is irrelevant to all of this — only major.minor.
+  # patch are read off it — so the scheme keeps working unchanged when the
+  # stable line eventually drops `beta` and ships plain a.b.c.d: base
+  # 1.0.0.0 + N -> 1.0.0.<N>alpha, still newer than 1.0.0.0 and still older
+  # than 1.1.0.0. A base with no fourth component at all (1.0.0) is
+  # rejected below rather than guessed at.
+  #
+  #   - Newer than the base stable: (0,25,0,N) > (0,25,0,0) for any N >= 1,
+  #     so an alpha is offered to someone running 0.25.0.0beta.
+  #   - Newer than the previous alpha: N only ever grows.
+  #   - OLDER than the next stable (0.25.1.0beta / 0.26.0.0beta), so an
+  #     alpha user is pulled back onto the stable line as soon as one ships
+  #     rather than being stranded on the alpha channel forever.
+  #
+  # The build number is `git rev-list --count HEAD` rather than a timestamp:
+  # it is strictly monotonic, unique per commit, and immune to two commits
+  # landing in the same minute. (A date-based version like 2026.08.22.1530
+  # would be catastrophic here — it outranks EVERY 0.x stable release, so
+  # once one shipped, no future stable release could ever be offered again.)
+  #
+  # THE ONE RULE THIS RELIES ON: the next stable release must bump the
+  # patch component or higher (0.25.0.x -> 0.25.1.0 / 0.26.0.0), never just
+  # the fourth. release.yml enforces that rather than trusting it — see its
+  # "Reject a stable tag that alphas have already passed" step.
+  version:
+    name: Resolve alpha version
     runs-on: windows-latest
     needs: test
-    permissions:
-      contents: write
-
+    outputs:
+      alpha_version: ${{ steps.resolve.outputs.alpha_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ── ALPHA-SPECIFIC ──────────────────────────────────────────────────────
-      # release.yml takes its version from the tag of a release a human already
-      # created. Nothing created one here, so derive one — and it has to be
-      # derived from the STABLE version line, not invented independently, or the
-      # two channels stop ordering against each other. updater.py compares
-      # ((major, minor, patch, build), pre_order) with alpha < beta < final, so:
-      #
-      #   base 0.25.0.0beta (client/version.py, kept current by release.yml's
-      #   bump-version job) + commit count N  ->  0.25.0.<N>alpha
-      #
-      # The suffix on the base is irrelevant to all of this — only major.minor.
-      # patch are read off it — so the scheme keeps working unchanged when the
-      # stable line eventually drops `beta` and ships plain a.b.c.d: base
-      # 1.0.0.0 + N -> 1.0.0.<N>alpha, still newer than 1.0.0.0 and still older
-      # than 1.1.0.0. A base with no fourth component at all (1.0.0) is
-      # rejected below rather than guessed at.
-      #
-      #   - Newer than the base stable: (0,25,0,N) > (0,25,0,0) for any N >= 1,
-      #     so an alpha is offered to someone running 0.25.0.0beta.
-      #   - Newer than the previous alpha: N only ever grows.
-      #   - OLDER than the next stable (0.25.1.0beta / 0.26.0.0beta), so an
-      #     alpha user is pulled back onto the stable line as soon as one ships
-      #     rather than being stranded on the alpha channel forever.
-      #
-      # The build number is `git rev-list --count HEAD` rather than a timestamp:
-      # it is strictly monotonic, unique per commit, and immune to two commits
-      # landing in the same minute. (A date-based version like 2026.08.22.1530
-      # would be catastrophic here — it outranks EVERY 0.x stable release, so
-      # once one shipped, no future stable release could ever be offered again.)
-      #
-      # THE ONE RULE THIS RELIES ON: the next stable release must bump the
-      # patch component or higher (0.25.0.x -> 0.25.1.0 / 0.26.0.0), never just
-      # the fourth. release.yml enforces that rather than trusting it — see its
-      # "Reject a stable tag that alphas have already passed" step.
       - name: Resolve alpha version
+        id: resolve
         shell: pwsh
         run: |
           git fetch --tags --quiet
@@ -159,213 +163,37 @@ jobs:
           }
 
           $ver = "{0}.{1}alpha" -f $prefix, $build
-          "ALPHA_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # $GITHUB_OUTPUT, not $GITHUB_ENV: a reusable workflow's `with:` can
+          # only read a job output.
+          "alpha_version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Output "[INFO] Stable base version : $base"
           Write-Output "[INFO] Alpha version       : $ver"
 
-      # Bake the alpha version into version.py so the compiled app reports it.
-      # Unlike release.yml this is NEVER committed back to the repository —
-      # main keeps tracking the stable version line.
-      - name: Set version.py from alpha version
-        shell: pwsh
-        run: |
-          $ver = "${{ env.ALPHA_VERSION }}"
-          $filePath = "client/version.py"
-          $content = "__version__ = `"$ver`""
-          $content | Out-File -FilePath $filePath -Encoding utf8 -NoNewline
-          Write-Output "[INFO] version.py set to $ver"
-      # ── END ALPHA-SPECIFIC ──────────────────────────────────────────────────
+  build:
+    needs: version
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      # Baked into version.py so the compiled app reports it. Unlike
+      # release.yml this is NEVER committed back to the repository — main
+      # keeps tracking the stable version line, and a push to main is what
+      # triggers this workflow in the first place.
+      version: ${{ needs.version.outputs.alpha_version }}
+      artifact-name: winzapp-alpha
 
-      # GCC and windres (from UCRT64 binutils) are required by build.py to compile
-      # the C installer/uninstaller.  libopus-0.dll is committed to client/lib/
-      # so no opus package is needed here.
-      - name: Set up MSYS2 (GCC + windres)
-        uses: msys2/setup-msys2@v2
+  publish:
+    name: Create and publish the alpha release
+    runs-on: ubuntu-latest
+    needs: [version, build]
+    permissions:
+      contents: write
+    env:
+      ALPHA_VERSION: ${{ needs.version.outputs.alpha_version }}
+    steps:
+      - name: Download the built assets
+        uses: actions/download-artifact@v4
         with:
-          msystem: UCRT64
-          update: false
-          install: >-
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-binutils
-
-      # cygpath resolves /ucrt64/bin to the real Windows path regardless of
-      # where the runner installed MSYS2 (avoids hard-coding C:\msys64).
-      - name: Add MSYS2 UCRT64 bin to Windows PATH
-        shell: msys2 {0}
-        run: echo "$(cygpath -w /ucrt64/bin)" >> "$GITHUB_PATH"
-
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      # build.py expects client/node/node.exe — download the same portable ZIP
-      # version that developers use and place it at the right path.
-      - name: Download portable Node.js v${{ env.NODE_VERSION }}
-        shell: pwsh
-        run: |
-          $version = "${{ env.NODE_VERSION }}"
-          $zip = "node-v${version}-win-x64.zip"
-          Invoke-WebRequest "https://nodejs.org/dist/v${version}/${zip}" -OutFile $zip -UseBasicParsing
-          # nodejs.org publishes a signed checksum manifest for every release —
-          # verify the download against it before ever extracting/using it,
-          # same as client/ui/dialogs/node_download.py does for the identical
-          # download performed on a user's machine during first-run setup.
-          Invoke-WebRequest "https://nodejs.org/dist/v${version}/SHASUMS256.txt" -OutFile "SHASUMS256.txt" -UseBasicParsing
-          $expected = (Select-String -Path "SHASUMS256.txt" -Pattern "  $zip$").Line.Split(" ")[0]
-          if (-not $expected) {
-            Write-Error "Could not find a checksum for $zip in SHASUMS256.txt"
-            exit 1
-          }
-          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-          if ($actual -ne $expected) {
-            Write-Error "Node.js download checksum mismatch: expected $expected, got $actual"
-            exit 1
-          }
-          Write-Output "[INFO] Node.js download checksum verified: $actual"
-          Expand-Archive $zip -DestinationPath . -Force
-          Move-Item "node-v${version}-win-x64" "client\node"
-
-      - name: Create Python venv and install dependencies
-        run: |
-          python -m venv venv
-          venv\Scripts\pip install --upgrade pip --quiet
-          venv\Scripts\pip install -r requirements-dev.txt --quiet
-          venv\Scripts\pip install -r requirements.txt --quiet
-
-      # Cache node_modules to avoid re-downloading hundreds of packages on every run.
-      # setup_api.py preserves node_modules across clones (moves/restores the folder),
-      # so this cache survives the WPPConnect Server re-clone in the next step.
-      # Same key as release.yml on purpose — the two share one cache entry.
-      - name: Cache API node_modules
-        uses: actions/cache@v4
-        with:
-          path: client/api/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('client/api/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      # Clones the WPPConnect Server repo into client/api/ and restores
-      # WinZapp's custom files (start.js, package.json, config.json, src patches).
-      # No WPPCONNECT_TAG_VERSION is set here on purpose — setup_api.py
-      # auto-tracks the latest stable wppconnect-server release tag when
-      # unset, so this always builds against whatever is current instead of
-      # a hand-maintained pin that silently goes stale.
-      - name: Set up WPPConnect Server
-        run: venv\Scripts\python.exe setup_api.py
-
-      # ensure_wpp_version() (client/main.py) compares an *installed*
-      # api/package.json's version against WPP_MINIMUM_VERSION baked into
-      # client/.env at build time, and prompts the user to update WPPConnect
-      # Server when the installed copy is older than what this WinZapp build
-      # was actually built/tested against. Without this step client/.env
-      # never contains the key at all, so that gate is silently a no-op on
-      # every shipped release. Reading it back out of client/api/package.json
-      # (rather than hardcoding a version string here) keeps it in sync with
-      # whatever setup_api.py just checked out above, tag pin or not.
-      - name: Write WPP_MINIMUM_VERSION into client/.env
-        shell: pwsh
-        run: |
-          $pkg = Get-Content "client\api\package.json" -Raw | ConvertFrom-Json
-          $version = $pkg.version
-          if ([string]::IsNullOrWhiteSpace($version)) {
-            Write-Error "Could not read a version from client/api/package.json"
-            exit 1
-          }
-          Add-Content -Path "client\.env" -Value "WPP_MINIMUM_VERSION=$version" -Encoding utf8
-          Write-Output "[INFO] client/.env: WPP_MINIMUM_VERSION=$version"
-
-      # Install JS dependencies and compile TypeScript → dist/server.js.
-      # PUPPETEER_SKIP_DOWNLOAD skips the ~680 MB Chrome download — the app
-      # downloads Chrome on the user's machine during first-run setup instead.
-      - name: Install API dependencies and build
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: "1"
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "1"
-        run: |
-          $node = "$env:GITHUB_WORKSPACE\client\node\node.exe"
-          $npm  = "$env:GITHUB_WORKSPACE\client\node\node_modules\npm\bin\npm-cli.js"
-
-          Set-Location "$env:GITHUB_WORKSPACE\client\api"
-
-          & $node $npm install --no-audit --no-fund --legacy-peer-deps
-
-          # Run Prisma generate only if the package defines the script
-          $scripts = (Get-Content "package.json" | ConvertFrom-Json).scripts
-          if ($null -ne $scripts.'db:generate') {
-            & $node $npm run db:generate
-          }
-
-          & $node $npm run build
-
-      # Runs all 8 build steps: PyInstaller → staging → C installer/uninstaller → ZIP.
-      - name: Build WinZapp
-        run: venv\Scripts\python.exe build.py
-
-      # Sanity-check that the portable ZIP contains the expected directories.
-      # A missing sounds/ or lib/ entry means the staging step silently failed.
-      - name: Verify dist/WinZapp.zip contents
-        run: |
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $zip = [System.IO.Compression.ZipFile]::OpenRead("dist\WinZapp.zip")
-          try {
-            $entries = $zip.Entries | ForEach-Object { $_.FullName }
-            $hasSounds   = ($entries | Where-Object { $_ -like "WinZapp/sounds/*" }).Count -gt 0
-            $hasLib      = ($entries | Where-Object { $_ -like "WinZapp/lib/bass.dll" }).Count -gt 0
-            $hasBassOpus = ($entries | Where-Object { $_ -like "WinZapp/lib/bassopus.dll" }).Count -gt 0
-            $hasExe      = ($entries | Where-Object { $_ -eq   "WinZapp/WinZapp.exe" }).Count -gt 0
-            # These three are what actually let WinZapp start the local
-            # WPPConnect Server at runtime — without them the app launches
-            # but every WhatsApp feature is dead. None of the checks above
-            # would have caught a broken/missing node/ or api/dist/server.js,
-            # so a build that silently failed to bundle them would still have
-            # passed this gate and shipped a release that can't connect.
-            $hasNodeExe  = ($entries | Where-Object { $_ -eq   "WinZapp/node/node.exe" }).Count -gt 0
-            $hasServerJs = ($entries | Where-Object { $_ -eq   "WinZapp/api/dist/server.js" }).Count -gt 0
-            $hasFfmpeg   = ($entries | Where-Object { $_ -eq   "WinZapp/lib/ffmpeg.exe" }).Count -gt 0
-            # api_patches/ is the pristine reference copy of WinZapp's custom
-            # wppconnect-server patches that ApiSetupDialog restores from on
-            # every WPPConnect (re)install/update — without it, a reinstall
-            # falls back to whatever patch snapshot the user's install
-            # already happened to have (possibly outdated or broken), so a
-            # release that failed to bundle it would silently stop shipping
-            # patch fixes to existing installs without any error anywhere.
-            $hasApiPatches = ($entries | Where-Object { $_ -eq "WinZapp/api_patches/src/controller/messageController.ts" }).Count -gt 0
-            Write-Host "WinZapp.exe        : $hasExe"
-            Write-Host "sounds/*           : $hasSounds"
-            Write-Host "lib/bass.dll       : $hasLib"
-            Write-Host "lib/bassopus       : $hasBassOpus"
-            Write-Host "node/node.exe      : $hasNodeExe"
-            Write-Host "api/dist/server.js : $hasServerJs"
-            Write-Host "ffmpeg             : $hasFfmpeg"
-            Write-Host "api_patches/       : $hasApiPatches"
-            if (-not ($hasSounds -and $hasLib -and $hasBassOpus -and $hasExe -and $hasNodeExe -and $hasServerJs -and $hasFfmpeg -and $hasApiPatches)) {
-              Write-Error "dist/WinZapp.zip is missing required entries — build failed."
-              exit 1
-            }
-          } finally {
-            $zip.Dispose()
-          }
-
-      # Published alongside the release so updater.py (client/updater.py) can
-      # verify a downloaded ZIP's integrity before extracting it and handing
-      # it elevated write access to the install directory — without this,
-      # nothing checks that a release asset wasn't tampered with in transit
-      # or via a compromised/hijacked GitHub release edit. An alpha goes
-      # through exactly the same install path as a stable release, so it
-      # needs exactly the same manifest.
-      - name: Generate SHA256SUMS.txt for release assets
-        shell: pwsh
-        run: |
-          $lines = @()
-          foreach ($f in @("dist/WinZappInstaller.exe", "dist/WinZapp.zip")) {
-            $hash = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
-            $name = Split-Path $f -Leaf
-            $lines += "$hash  $name"
-          }
-          $lines | Out-File -FilePath "dist/SHA256SUMS.txt" -Encoding ascii
-          Write-Output "[INFO] dist/SHA256SUMS.txt:"
-          Get-Content "dist/SHA256SUMS.txt"
+          name: winzapp-alpha
+          path: dist
 
       # ── ALPHA-SPECIFIC ──────────────────────────────────────────────────────
       # Creates the tag AND the release (release.yml only uploads into one a

@@ -91,219 +91,36 @@ jobs:
             --cleanup-tag \
             --yes
 
+  # The build itself lives in build-windows.yml, which release.yml,
+  # alpha-release.yml and test-build.yml all call. It used to be inlined here
+  # and copied verbatim into alpha-release.yml, with a comment there warning
+  # the two had to be kept in sync by hand. One copy now — see that file.
   build:
-    name: Build Windows installer and portable ZIP
-    runs-on: windows-latest
     needs: test
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
+    uses: ./.github/workflows/build-windows.yml
+    with:
       # Bake the just-created release's tag into version.py so the compiled
       # app reports the right version. This also gets committed back to the
-      # repo's default branch below, so client/version.py in source control
-      # matches what shipped in the release artifacts.
-      - name: Set version.py from release tag
-        shell: pwsh
-        run: |
-          $ver = "${{ github.event.release.tag_name }}" -replace '^[vV]', ''
-          $filePath = "client/version.py"
-          $content = "__version__ = `"$ver`""
-          $content | Out-File -FilePath $filePath -Encoding utf8 -NoNewline
-          Write-Output "[INFO] version.py set to $ver"
+      # repo's default branch by bump-version below, so client/version.py in
+      # source control matches what shipped in the release artifacts.
+      version: ${{ github.event.release.tag_name }}
+      strip-version-prefix: true
+      artifact-name: winzapp-release
 
-      # GCC and windres (from UCRT64 binutils) are required by build.py to compile
-      # the C installer/uninstaller.  libopus-0.dll is committed to client/lib/
-      # so no opus package is needed here.
-      - name: Set up MSYS2 (GCC + windres)
-        uses: msys2/setup-msys2@v2
+  # Uploading the assets stays here: it is the part that is genuinely specific
+  # to a release, and it is what `bump-version` waits on.
+  publish:
+    name: Upload release assets
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Download the built assets
+        uses: actions/download-artifact@v4
         with:
-          msystem: UCRT64
-          update: false
-          install: >-
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-binutils
-
-      # cygpath resolves /ucrt64/bin to the real Windows path regardless of
-      # where the runner installed MSYS2 (avoids hard-coding C:\msys64).
-      - name: Add MSYS2 UCRT64 bin to Windows PATH
-        shell: msys2 {0}
-        run: echo "$(cygpath -w /ucrt64/bin)" >> "$GITHUB_PATH"
-
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      # build.py expects client/node/node.exe — download the same portable ZIP
-      # version that developers use and place it at the right path.
-      - name: Download portable Node.js v${{ env.NODE_VERSION }}
-        shell: pwsh
-        run: |
-          $version = "${{ env.NODE_VERSION }}"
-          $zip = "node-v${version}-win-x64.zip"
-          Invoke-WebRequest "https://nodejs.org/dist/v${version}/${zip}" -OutFile $zip -UseBasicParsing
-          # nodejs.org publishes a signed checksum manifest for every release —
-          # verify the download against it before ever extracting/using it,
-          # same as client/ui/dialogs/node_download.py does for the identical
-          # download performed on a user's machine during first-run setup.
-          Invoke-WebRequest "https://nodejs.org/dist/v${version}/SHASUMS256.txt" -OutFile "SHASUMS256.txt" -UseBasicParsing
-          $expected = (Select-String -Path "SHASUMS256.txt" -Pattern "  $zip$").Line.Split(" ")[0]
-          if (-not $expected) {
-            Write-Error "Could not find a checksum for $zip in SHASUMS256.txt"
-            exit 1
-          }
-          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-          if ($actual -ne $expected) {
-            Write-Error "Node.js download checksum mismatch: expected $expected, got $actual"
-            exit 1
-          }
-          Write-Output "[INFO] Node.js download checksum verified: $actual"
-          Expand-Archive $zip -DestinationPath . -Force
-          Move-Item "node-v${version}-win-x64" "client\node"
-
-      - name: Create Python venv and install dependencies
-        run: |
-          python -m venv venv
-          venv\Scripts\pip install --upgrade pip --quiet
-          venv\Scripts\pip install -r requirements-dev.txt --quiet
-          venv\Scripts\pip install -r requirements.txt --quiet
-
-      # Cache node_modules to avoid re-downloading hundreds of packages on every run.
-      # setup_api.py preserves node_modules across clones (moves/restores the folder),
-      # so this cache survives the WPPConnect Server re-clone in the next step.
-      - name: Cache API node_modules
-        uses: actions/cache@v4
-        with:
-          path: client/api/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('client/api/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
-
-      # Clones the WPPConnect Server repo into client/api/ and restores
-      # WinZapp's custom files (start.js, package.json, config.json, src patches).
-      # No WPPCONNECT_TAG_VERSION is set here on purpose — setup_api.py
-      # auto-tracks the latest stable wppconnect-server release tag when
-      # unset, so this always builds against whatever is current instead of
-      # a hand-maintained pin that silently goes stale.
-      - name: Set up WPPConnect Server
-        run: venv\Scripts\python.exe setup_api.py
-
-      # ensure_wpp_version() (client/main.py) compares an *installed*
-      # api/package.json's version against WPP_MINIMUM_VERSION baked into
-      # client/.env at build time, and prompts the user to update WPPConnect
-      # Server when the installed copy is older than what this WinZapp build
-      # was actually built/tested against. Without this step client/.env
-      # never contains the key at all, so that gate is silently a no-op on
-      # every shipped release. Reading it back out of client/api/package.json
-      # (rather than hardcoding a version string here) keeps it in sync with
-      # whatever setup_api.py just checked out above, tag pin or not.
-      - name: Write WPP_MINIMUM_VERSION into client/.env
-        shell: pwsh
-        run: |
-          $pkg = Get-Content "client\api\package.json" -Raw | ConvertFrom-Json
-          $version = $pkg.version
-          if ([string]::IsNullOrWhiteSpace($version)) {
-            Write-Error "Could not read a version from client/api/package.json"
-            exit 1
-          }
-          Add-Content -Path "client\.env" -Value "WPP_MINIMUM_VERSION=$version" -Encoding utf8
-          Write-Output "[INFO] client/.env: WPP_MINIMUM_VERSION=$version"
-
-      # Install JS dependencies and compile TypeScript → dist/server.js.
-      # PUPPETEER_SKIP_DOWNLOAD skips the ~680 MB Chrome download — the app
-      # downloads Chrome on the user's machine during first-run setup instead.
-      - name: Install API dependencies and build
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: "1"
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "1"
-        run: |
-          $node = "$env:GITHUB_WORKSPACE\client\node\node.exe"
-          $npm  = "$env:GITHUB_WORKSPACE\client\node\node_modules\npm\bin\npm-cli.js"
-
-          Set-Location "$env:GITHUB_WORKSPACE\client\api"
-
-          & $node $npm install --no-audit --no-fund --legacy-peer-deps
-
-          # Run Prisma generate only if the package defines the script
-          $scripts = (Get-Content "package.json" | ConvertFrom-Json).scripts
-          if ($null -ne $scripts.'db:generate') {
-            & $node $npm run db:generate
-          }
-
-          & $node $npm run build
-
-      # Runs all 8 build steps: PyInstaller → staging → C installer/uninstaller → ZIP.
-      - name: Build WinZapp
-        run: venv\Scripts\python.exe build.py
-
-      # Sanity-check that the portable ZIP contains the expected directories.
-      # A missing sounds/ or lib/ entry means the staging step silently failed.
-      - name: Verify dist/WinZapp.zip contents
-        run: |
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $zip = [System.IO.Compression.ZipFile]::OpenRead("dist\WinZapp.zip")
-          try {
-            $entries = $zip.Entries | ForEach-Object { $_.FullName }
-            $hasSounds   = ($entries | Where-Object { $_ -like "WinZapp/sounds/*" }).Count -gt 0
-            $hasLib      = ($entries | Where-Object { $_ -like "WinZapp/lib/bass.dll" }).Count -gt 0
-            $hasBassOpus = ($entries | Where-Object { $_ -like "WinZapp/lib/bassopus.dll" }).Count -gt 0
-            $hasExe      = ($entries | Where-Object { $_ -eq   "WinZapp/WinZapp.exe" }).Count -gt 0
-            # These three are what actually let WinZapp start the local
-            # WPPConnect Server at runtime — without them the app launches
-            # but every WhatsApp feature is dead. None of the checks above
-            # would have caught a broken/missing node/ or api/dist/server.js,
-            # so a build that silently failed to bundle them would still have
-            # passed this gate and shipped a release that can't connect.
-            $hasNodeExe  = ($entries | Where-Object { $_ -eq   "WinZapp/node/node.exe" }).Count -gt 0
-            $hasServerJs = ($entries | Where-Object { $_ -eq   "WinZapp/api/dist/server.js" }).Count -gt 0
-            $hasFfmpeg   = ($entries | Where-Object { $_ -eq   "WinZapp/lib/ffmpeg.exe" }).Count -gt 0
-            # api_patches/ is the pristine reference copy of WinZapp's custom
-            # wppconnect-server patches that ApiSetupDialog restores from on
-            # every WPPConnect (re)install/update — without it, a reinstall
-            # falls back to whatever patch snapshot the user's install
-            # already happened to have (possibly outdated or broken), so a
-            # release that failed to bundle it would silently stop shipping
-            # patch fixes to existing installs without any error anywhere.
-            $hasApiPatches = ($entries | Where-Object { $_ -eq "WinZapp/api_patches/src/controller/messageController.ts" }).Count -gt 0
-            Write-Host "WinZapp.exe        : $hasExe"
-            Write-Host "sounds/*           : $hasSounds"
-            Write-Host "lib/bass.dll       : $hasLib"
-            Write-Host "lib/bassopus       : $hasBassOpus"
-            Write-Host "node/node.exe      : $hasNodeExe"
-            Write-Host "api/dist/server.js : $hasServerJs"
-            Write-Host "ffmpeg             : $hasFfmpeg"
-            Write-Host "api_patches/       : $hasApiPatches"
-            if (-not ($hasSounds -and $hasLib -and $hasBassOpus -and $hasExe -and $hasNodeExe -and $hasServerJs -and $hasFfmpeg -and $hasApiPatches)) {
-              Write-Error "dist/WinZapp.zip is missing required entries — build failed."
-              exit 1
-            }
-          } finally {
-            $zip.Dispose()
-          }
-
-      # Published alongside the release so updater.py (client/updater.py) can
-      # verify a downloaded ZIP's integrity before extracting it and handing
-      # it elevated write access to the install directory — without this,
-      # nothing checks that a release asset wasn't tampered with in transit
-      # or via a compromised/hijacked GitHub release edit.
-      - name: Generate SHA256SUMS.txt for release assets
-        shell: pwsh
-        run: |
-          $lines = @()
-          foreach ($f in @("dist/WinZappInstaller.exe", "dist/WinZapp.zip")) {
-            $hash = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
-            $name = Split-Path $f -Leaf
-            $lines += "$hash  $name"
-          }
-          $lines | Out-File -FilePath "dist/SHA256SUMS.txt" -Encoding ascii
-          Write-Output "[INFO] dist/SHA256SUMS.txt:"
-          Get-Content "dist/SHA256SUMS.txt"
+          name: winzapp-release
+          path: dist
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
@@ -316,24 +133,26 @@ jobs:
   # Push the version.py bump back to the default branch so the repo reflects
   # the version that was actually released, not just the build artifacts.
   # Split into its own job (rather than a step inside `build`) for two
-  # reasons: `needs: build` means this only runs once the build/verify above
-  # — including the asset upload — has already succeeded, so a failed build
-  # never lands a version bump for a release that didn't ship; and, the real
-  # reason, it keeps RELEASE_BUMP_TOKEN out of the build job entirely. The
-  # default GITHUB_TOKEN has no ruleset-bypass path on this repo (a
-  # branch-protection ruleset requires PRs on main, and the Actions bot
-  # identity isn't a bypassable actor — only a RepositoryRole is).
-  # RELEASE_BUMP_TOKEN is a fine-grained PAT (Contents: Read/write on this
-  # repo only, no Workflows permission) belonging to an account whose
-  # RepositoryRole does bypass — but GitHub has no per-file scoping for a
-  # PAT, so the only real containment is keeping this job's exposure to the
-  # bare minimum: checkout, write the file, commit, nothing else. The build
-  # job's own checkout above still uses the default GITHUB_TOKEN, so none of
+  # reasons: `needs: publish` means this only runs once the build/verify and
+  # the asset upload have already succeeded, so a failed build never lands a
+  # version bump for a release that didn't ship; and, the real reason, it
+  # keeps RELEASE_BUMP_TOKEN out of the build job entirely. The default
+  # GITHUB_TOKEN has no ruleset-bypass path on this repo (a branch-protection
+  # ruleset requires PRs on main, and the Actions bot identity isn't a
+  # bypassable actor — only a RepositoryRole is). RELEASE_BUMP_TOKEN is a
+  # fine-grained PAT (Contents: Read/write on this repo only, no Workflows
+  # permission) belonging to an account whose RepositoryRole does bypass —
+  # but GitHub has no per-file scoping for a PAT, so the only real
+  # containment is keeping this job's exposure to the bare minimum: checkout,
+  # write the file, commit, nothing else. The build now runs in
+  # build-windows.yml with the default GITHUB_TOKEN, so none of
   # npm install/MSYS2/PyInstaller ever has this token in its environment.
   bump-version:
     name: Bump version.py in the repository
     runs-on: ubuntu-latest
-    needs: build
+    # `publish`, not `build`: the comment above says this must only run once
+    # the asset upload has succeeded, and that upload is now its own job.
+    needs: publish
     # actions: write is only for the "Trigger a fresh alpha build" step below
     # (a workflow_dispatch API call, not a push/release GITHUB_TOKEN would
     # raise itself — so it does not re-trigger this same workflow).
