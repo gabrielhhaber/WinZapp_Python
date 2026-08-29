@@ -10142,6 +10142,11 @@ class MainWindow(wx.Frame):
         if now - last < self._WPP_SESSION_RESTART_COOLDOWN:
             return
         self._restarting_wpp_session = True
+        # check_wa_connection_http() uses this gate to avoid issuing its own
+        # /start-session while a close/wait/start recovery sequence owns the
+        # browser. _restarting_wpp_session is only this method's re-entrancy
+        # guard and is not consulted by the health loop.
+        self._recovery_restart_active = True
         self._last_wpp_session_restart_ts = now
         try:
             logging.warning(
@@ -10151,11 +10156,39 @@ class MainWindow(wx.Frame):
             )
             headers = {"Authorization": f"Bearer {self.token}"}
             close_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/close-session"
+            close_accepted = False
             try:
-                api_post(close_url, headers=headers, timeout=15)
+                response = api_post(close_url, headers=headers, timeout=15)
+                close_accepted = response.status_code in (200, 201)
+                if not close_accepted:
+                    logging.warning(
+                        "[_restart_wpp_session] close-session returned HTTP %s.",
+                        response.status_code,
+                    )
             except Exception as exc:
                 logging.warning("[_restart_wpp_session] close-session failed: %s", exc)
-            time.sleep(2)
+
+            # A 200 only means the controller accepted the request; it is not
+            # permission to start a new browser on top of a CLOSING slot. The
+            # old fixed sleep reproduced a field failure where the close's
+            # eight-second watchdog killed the replacement browser just after
+            # it connected. Wait for the server's honest CLOSED transition.
+            import connection_state as cs
+            closed_status = self._wait_for_status(
+                cs.session_closed_after_flush,
+                self._RECOVERY_CLOSE_WAIT,
+                stop_when_connected=False,
+            )
+            if not cs.session_closed_after_flush(closed_status):
+                logging.error(
+                    "[_restart_wpp_session] Session did not reach CLOSED after "
+                    "close-session (accepted=%s, status=%s) — refusing to start "
+                    "a replacement browser on top of the old one.",
+                    close_accepted,
+                    closed_status or "?",
+                )
+                return
+
             start_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/start-session"
             try:
                 api_post(start_url, json={"waitQrCode": False}, headers=headers, timeout=15)
@@ -10163,6 +10196,7 @@ class MainWindow(wx.Frame):
             except Exception as exc:
                 logging.warning("[_restart_wpp_session] start-session failed: %s", exc)
         finally:
+            self._recovery_restart_active = False
             self._restarting_wpp_session = False
 
     # A live WPPConnect Socket.IO event this recent is treated as direct

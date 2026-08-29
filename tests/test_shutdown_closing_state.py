@@ -81,7 +81,8 @@ class TestTheServerParksClosingNotNull:
 
     def test_the_placeholder_is_closing(self):
         src = self._source()
-        assert "(clientsArray as any)[session] = { status: 'CLOSING' };" in src
+        assert "const closingMarker = { status: 'CLOSING' };" in src
+        assert "(clientsArray as any)[session] = closingMarker;" in src
 
     def test_the_null_placeholder_is_gone(self):
         """`{status: null}` is what getSessionState() reports as CLOSED."""
@@ -96,7 +97,7 @@ class TestTheServerParksClosingNotNull:
         # Anchor on the executable guard, not on `req.client.close()` — the
         # comment above the assignment names that call too.
         guard = "if (req.client && typeof req.client.close === 'function') {"
-        assert src.index("(clientsArray as any)[session] = { status: 'CLOSING' };") < (
+        assert src.index("(clientsArray as any)[session] = closingMarker;") < (
             src.index(guard)
         )
 
@@ -107,6 +108,7 @@ class TestTheServerParksClosingNotNull:
         src = self._source()
         finally_at = src.index("} finally {")
         assert "(clientsArray as any)[session] = undefined;" in src[finally_at:]
+        assert "(clientsArray as any)[session] === closingMarker" in src[finally_at:]
 
     def test_the_close_is_bounded(self):
         """wppconnect's close() swallows both page.close() and browser.close()
@@ -115,7 +117,18 @@ class TestTheServerParksClosingNotNull:
         src = self._source()
         assert "Promise.race([" in src
         race_at = src.index("Promise.race([")
-        assert "setTimeout" in src[race_at:race_at + 400]
+        timeout_at = src.index("const closeTimeoutPromise")
+        assert "setTimeout" in src[timeout_at:race_at]
+
+    def test_the_losing_close_timeout_is_cancelled(self):
+        """Promise.race does not cancel a losing timer. Without clearTimeout,
+        that timer force-kills a replacement browser eight seconds after the
+        old close already completed — the exact detached-frame field failure."""
+        src = self._source()
+        race_at = src.index("await Promise.race(")
+        clear_at = src.index("clearTimeout(closeTimeout)", race_at)
+        slot_clear_at = src.index("[session] = undefined", clear_at)
+        assert race_at < clear_at < slot_clear_at
 
 
 class TestTheWindowsShutdownBudget:
