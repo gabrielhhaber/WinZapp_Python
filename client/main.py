@@ -10141,12 +10141,21 @@ class MainWindow(wx.Frame):
         last = getattr(self, "_last_wpp_session_restart_ts", 0)
         if now - last < self._WPP_SESSION_RESTART_COOLDOWN:
             return
+        # Deliberately does NOT also set _recovery_restart_active, even though
+        # that is the flag check_wa_connection_http()'s CLOSED branch reads
+        # first: _force_whatsapp_session_restart() owns that one for the whole
+        # of _run_recovery_attempts(), and neither of this method's two call
+        # sites (the dead-browser strike escalation, and start_sync's store
+        # rebuild) checks whether a recovery is already running. Setting it
+        # here means the finally below clears a flag this method never owned,
+        # reopening the competing-start-session window mid-recovery -- and,
+        # since _self_inflicted_teardown_expected() reads it, letting the
+        # recovery's OWN close-session be handled as a real phone-side unlink.
+        # Nothing is lost: _restarting_wpp_session is itself part of
+        # _self_inflicted_teardown_expected(), so the auto-start is already
+        # suppressed by the elif immediately after that _recovery_restart_active
+        # check, for exactly this method's duration.
         self._restarting_wpp_session = True
-        # check_wa_connection_http() uses this gate to avoid issuing its own
-        # /start-session while a close/wait/start recovery sequence owns the
-        # browser. _restarting_wpp_session is only this method's re-entrancy
-        # guard and is not consulted by the health loop.
-        self._recovery_restart_active = True
         self._last_wpp_session_restart_ts = now
         try:
             logging.warning(
@@ -10180,10 +10189,18 @@ class MainWindow(wx.Frame):
                 stop_when_connected=False,
             )
             if not cs.session_closed_after_flush(closed_status):
+                # Bailing leaves the session closed-but-not-restarted, which
+                # is recoverable rather than terminal: the Node side's own 8s
+                # watchdog force-kills and clears the slot, status-session then
+                # answers CLOSED, and the next health cycle's CLOSED branch
+                # auto-starts it (that branch has no cooldown of its own). Since
+                # _RECOVERY_CLOSE_WAIT is 12s and that watchdog is 8s, reaching
+                # this at all means the Node handler itself is wedged.
                 logging.error(
                     "[_restart_wpp_session] Session did not reach CLOSED after "
                     "close-session (accepted=%s, status=%s) — refusing to start "
-                    "a replacement browser on top of the old one.",
+                    "a replacement browser on top of the old one. The health "
+                    "loop's CLOSED auto-start is what picks this up.",
                     close_accepted,
                     closed_status or "?",
                 )
@@ -10196,7 +10213,6 @@ class MainWindow(wx.Frame):
             except Exception as exc:
                 logging.warning("[_restart_wpp_session] start-session failed: %s", exc)
         finally:
-            self._recovery_restart_active = False
             self._restarting_wpp_session = False
 
     # A live WPPConnect Socket.IO event this recent is treated as direct
