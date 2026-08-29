@@ -1,0 +1,279 @@
+# Reusable Windows build — the one copy of WinZapp's build pipeline.
+#
+# release.yml, alpha-release.yml and test-build.yml all call this. Before it
+# existed, the first two each carried their own byte-for-byte copy of these
+# steps, with a comment at the top of alpha-release.yml warning that the two
+# had to be kept in sync by hand and that any divergence — a missing MSYS2
+# package, a skipped WPP_MINIMUM_VERSION write, a different node_modules cache
+# key — reproduces as a build that installs but is subtly broken (missing DLL,
+# dead API, silently stale patches). A third copy was about to be added for
+# branch test builds; instead there is now one.
+#
+# Nothing release- or alpha-specific lives here. Resolving a version, creating
+# tags, and publishing releases stay in the callers, because that is precisely
+# where the three legitimately differ. This workflow only ever produces the
+# same three files and hands them back as an artifact:
+#   dist/WinZappInstaller.exe, dist/WinZapp.zip, dist/SHA256SUMS.txt
+#
+# The caller picks them up with actions/download-artifact in a later job.
+name: Build (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: >-
+          Version string to bake into client/version.py before compiling.
+          Empty leaves the file as it is in the checked-out ref, which is what
+          a branch test build wants — it must not claim to be a release.
+        required: false
+        type: string
+        default: ""
+      strip-version-prefix:
+        description: >-
+          Drop a leading "v" from `version` before writing it. Release tags
+          carry one ("v0.25.0.0beta"); an alpha version string does not.
+        required: false
+        type: boolean
+        default: false
+      artifact-name:
+        description: Name of the artifact carrying dist/.
+        required: false
+        type: string
+        default: winzapp-dist
+      retention-days:
+        description: How long the artifact is kept.
+        required: false
+        type: number
+        default: 14
+
+env:
+  NODE_VERSION: "24.15.0"
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  build:
+    name: Build Windows installer and portable ZIP
+    runs-on: windows-latest
+
+    steps:
+      # A reusable workflow runs against the CALLER's ref, so this checks out
+      # whatever branch/tag the caller was triggered on — which is what makes
+      # one pipeline serve a release tag, main, and an arbitrary test branch.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Skipped when no version was passed: a test build off a branch keeps
+      # whatever client/version.py already says, so it can never be mistaken
+      # for — or ordered against — a real release.
+      - name: Set version.py
+        if: inputs.version != ''
+        shell: pwsh
+        run: |
+          $ver = "${{ inputs.version }}"
+          if ("${{ inputs.strip-version-prefix }}" -eq "true") {
+            $ver = $ver -replace '^[vV]', ''
+          }
+          $filePath = "client/version.py"
+          $content = "__version__ = `"$ver`""
+          $content | Out-File -FilePath $filePath -Encoding utf8 -NoNewline
+          Write-Output "[INFO] version.py set to $ver"
+
+      - name: Set up MSYS2 (GCC + windres)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-binutils
+
+      # cygpath resolves /ucrt64/bin to the real Windows path regardless of
+      # where the runner installed MSYS2 (avoids hard-coding C:\msys64).
+      - name: Add MSYS2 UCRT64 bin to Windows PATH
+        shell: msys2 {0}
+        run: echo "$(cygpath -w /ucrt64/bin)" >> "$GITHUB_PATH"
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # build.py expects client/node/node.exe — download the same portable ZIP
+      # version that developers use and place it at the right path.
+      - name: Download portable Node.js v${{ env.NODE_VERSION }}
+        shell: pwsh
+        run: |
+          $version = "${{ env.NODE_VERSION }}"
+          $zip = "node-v${version}-win-x64.zip"
+          Invoke-WebRequest "https://nodejs.org/dist/v${version}/${zip}" -OutFile $zip -UseBasicParsing
+          # nodejs.org publishes a signed checksum manifest for every release —
+          # verify the download against it before ever extracting/using it,
+          # same as client/ui/dialogs/node_download.py does for the identical
+          # download performed on a user's machine during first-run setup.
+          Invoke-WebRequest "https://nodejs.org/dist/v${version}/SHASUMS256.txt" -OutFile "SHASUMS256.txt" -UseBasicParsing
+          $expected = (Select-String -Path "SHASUMS256.txt" -Pattern "  $zip$").Line.Split(" ")[0]
+          if (-not $expected) {
+            Write-Error "Could not find a checksum for $zip in SHASUMS256.txt"
+            exit 1
+          }
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $expected) {
+            Write-Error "Node.js download checksum mismatch: expected $expected, got $actual"
+            exit 1
+          }
+          Write-Output "[INFO] Node.js download checksum verified: $actual"
+          Expand-Archive $zip -DestinationPath . -Force
+          Move-Item "node-v${version}-win-x64" "client\node"
+
+      - name: Create Python venv and install dependencies
+        run: |
+          python -m venv venv
+          venv\Scripts\pip install --upgrade pip --quiet
+          venv\Scripts\pip install -r requirements-dev.txt --quiet
+          venv\Scripts\pip install -r requirements.txt --quiet
+
+      # Cache node_modules to avoid re-downloading hundreds of packages on every run.
+      # setup_api.py preserves node_modules across clones (moves/restores the folder),
+      # so this cache survives the WPPConnect Server re-clone in the next step.
+      - name: Cache API node_modules
+        uses: actions/cache@v4
+        with:
+          path: client/api/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('client/api/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      # Clones the WPPConnect Server repo into client/api/ and restores
+      # WinZapp's custom files (start.js, package.json, config.json, src patches).
+      # No WPPCONNECT_TAG_VERSION is set here on purpose — setup_api.py
+      # auto-tracks the latest stable wppconnect-server release tag when
+      # unset, so this always builds against whatever is current instead of
+      # a hand-maintained pin that silently goes stale.
+      - name: Set up WPPConnect Server
+        run: venv\Scripts\python.exe setup_api.py
+
+      # ensure_wpp_version() (client/main.py) compares an *installed*
+      # api/package.json's version against WPP_MINIMUM_VERSION baked into
+      # client/.env at build time, and prompts the user to update WPPConnect
+      # Server when the installed copy is older than what this WinZapp build
+      # was actually built/tested against. Without this step client/.env
+      # never contains the key at all, so that gate is silently a no-op on
+      # every shipped release. Reading it back out of client/api/package.json
+      # (rather than hardcoding a version string here) keeps it in sync with
+      # whatever setup_api.py just checked out above, tag pin or not.
+      - name: Write WPP_MINIMUM_VERSION into client/.env
+        shell: pwsh
+        run: |
+          $pkg = Get-Content "client\api\package.json" -Raw | ConvertFrom-Json
+          $version = $pkg.version
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            Write-Error "Could not read a version from client/api/package.json"
+            exit 1
+          }
+          Add-Content -Path "client\.env" -Value "WPP_MINIMUM_VERSION=$version" -Encoding utf8
+          Write-Output "[INFO] client/.env: WPP_MINIMUM_VERSION=$version"
+
+      # Install JS dependencies and compile TypeScript → dist/server.js.
+      # PUPPETEER_SKIP_DOWNLOAD skips the ~680 MB Chrome download — the app
+      # downloads Chrome on the user's machine during first-run setup instead.
+      - name: Install API dependencies and build
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "1"
+        run: |
+          $node = "$env:GITHUB_WORKSPACE\client\node\node.exe"
+          $npm  = "$env:GITHUB_WORKSPACE\client\node\node_modules\npm\bin\npm-cli.js"
+
+          Set-Location "$env:GITHUB_WORKSPACE\client\api"
+
+          & $node $npm install --no-audit --no-fund --legacy-peer-deps
+
+          # Run Prisma generate only if the package defines the script
+          $scripts = (Get-Content "package.json" | ConvertFrom-Json).scripts
+          if ($null -ne $scripts.'db:generate') {
+            & $node $npm run db:generate
+          }
+
+          & $node $npm run build
+
+      # Runs all 8 build steps: PyInstaller → staging → C installer/uninstaller → ZIP.
+      - name: Build WinZapp
+        run: venv\Scripts\python.exe build.py
+
+      # Sanity-check that the portable ZIP contains the expected directories.
+      # A missing sounds/ or lib/ entry means the staging step silently failed.
+      - name: Verify dist/WinZapp.zip contents
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead("dist\WinZapp.zip")
+          try {
+            $entries = $zip.Entries | ForEach-Object { $_.FullName }
+            $hasSounds   = ($entries | Where-Object { $_ -like "WinZapp/sounds/*" }).Count -gt 0
+            $hasLib      = ($entries | Where-Object { $_ -like "WinZapp/lib/bass.dll" }).Count -gt 0
+            $hasBassOpus = ($entries | Where-Object { $_ -like "WinZapp/lib/bassopus.dll" }).Count -gt 0
+            $hasExe      = ($entries | Where-Object { $_ -eq   "WinZapp/WinZapp.exe" }).Count -gt 0
+            # These three are what actually let WinZapp start the local
+            # WPPConnect Server at runtime — without them the app launches
+            # but every WhatsApp feature is dead. None of the checks above
+            # would have caught a broken/missing node/ or api/dist/server.js,
+            # so a build that silently failed to bundle them would still have
+            # passed this gate and shipped a release that can't connect.
+            $hasNodeExe  = ($entries | Where-Object { $_ -eq   "WinZapp/node/node.exe" }).Count -gt 0
+            $hasServerJs = ($entries | Where-Object { $_ -eq   "WinZapp/api/dist/server.js" }).Count -gt 0
+            $hasFfmpeg   = ($entries | Where-Object { $_ -eq   "WinZapp/lib/ffmpeg.exe" }).Count -gt 0
+            # api_patches/ is the pristine reference copy of WinZapp's custom
+            # wppconnect-server patches that ApiSetupDialog restores from on
+            # every WPPConnect (re)install/update — without it, a reinstall
+            # falls back to whatever patch snapshot the user's install
+            # already happened to have (possibly outdated or broken), so a
+            # release that failed to bundle it would silently stop shipping
+            # patch fixes to existing installs without any error anywhere.
+            $hasApiPatches = ($entries | Where-Object { $_ -eq "WinZapp/api_patches/src/controller/messageController.ts" }).Count -gt 0
+            Write-Host "WinZapp.exe        : $hasExe"
+            Write-Host "sounds/*           : $hasSounds"
+            Write-Host "lib/bass.dll       : $hasLib"
+            Write-Host "lib/bassopus       : $hasBassOpus"
+            Write-Host "node/node.exe      : $hasNodeExe"
+            Write-Host "api/dist/server.js : $hasServerJs"
+            Write-Host "ffmpeg             : $hasFfmpeg"
+            Write-Host "api_patches/       : $hasApiPatches"
+            if (-not ($hasSounds -and $hasLib -and $hasBassOpus -and $hasExe -and $hasNodeExe -and $hasServerJs -and $hasFfmpeg -and $hasApiPatches)) {
+              Write-Error "dist/WinZapp.zip is missing required entries — build failed."
+              exit 1
+            }
+          } finally {
+            $zip.Dispose()
+          }
+
+      # Published alongside the release so updater.py (client/updater.py) can
+      # verify a downloaded ZIP's integrity before extracting it and handing
+      # it elevated write access to the install directory — without this,
+      # nothing checks that a release asset wasn't tampered with in transit
+      # or via a compromised/hijacked GitHub release edit.
+      - name: Generate SHA256SUMS.txt for release assets
+        shell: pwsh
+        run: |
+          $lines = @()
+          foreach ($f in @("dist/WinZappInstaller.exe", "dist/WinZapp.zip")) {
+            $hash = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
+            $name = Split-Path $f -Leaf
+            $lines += "$hash  $name"
+          }
+          $lines | Out-File -FilePath "dist/SHA256SUMS.txt" -Encoding ascii
+          Write-Output "[INFO] dist/SHA256SUMS.txt:"
+          Get-Content "dist/SHA256SUMS.txt"
+
+
+      - name: Upload dist as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error
+          path: |
+            dist/WinZappInstaller.exe
+            dist/WinZapp.zip
+            dist/SHA256SUMS.txt
