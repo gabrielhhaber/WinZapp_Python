@@ -34,6 +34,46 @@ def wx_app():
     return wx.App()
 
 
+# ── Fixtures: Windows notification state ─────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def _no_do_not_disturb(request, monkeypatch):
+    """Pin Windows' do-not-disturb state to OFF for the whole suite.
+
+    core.quiet_hours.is_quiet_hours_active() reads the REAL machine: registry
+    notification switches, WNF, WinRT and SHQueryUserNotificationState. That
+    makes any test touching the notification path pass or fail according to
+    whatever the machine running it happens to be doing — and a headless
+    GitHub Actions runner is not doing the same thing as a developer desktop.
+
+    It cost an alpha release to learn that twice. The gate started out
+    covering only the background sound, so a handful of files monkeypatched it
+    one by one and that was enough. Then it grew to suppress the entire
+    notification — banner included — and every _dispatch() test in
+    test_notifications.py started failing on CI only, with the local suite
+    green: on the runner the real state reads as suppressed, so no toast was
+    ever shown and the assertions had nothing to look at.
+
+    Pinning it here rather than per file is the point: the next test to touch
+    _dispatch() will not have to know this exists. A test that genuinely wants
+    do-not-disturb ON monkeypatches it back, which still works because every
+    caller imports the function inside the function body.
+
+    test_quiet_hours.py is exempt — it is the module that tests this very
+    function, and stubbing it there would test the stub.
+    """
+    import core.quiet_hours as quiet_hours
+    exempt = request.node.fspath.purebasename == "test_quiet_hours"
+    quiet_hours.invalidate_cache()
+    if not exempt:
+        monkeypatch.setattr(quiet_hours, "is_quiet_hours_active", lambda: False)
+    # A generator fixture must yield on every path — returning early makes
+    # pytest raise "did not yield a value" for the exempt module.
+    yield
+    quiet_hours.invalidate_cache()
+
+
 # ── Fixtures: Keys / Encryption ───────────────────────────────────────────────
 
 
