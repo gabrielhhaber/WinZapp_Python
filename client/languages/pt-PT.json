@@ -998,5 +998,11 @@
     "group_media_type_documents": "Documentos",
     "group_media_empty": "Nenhuma multimédia para os tipos selecionados",
     "group_media_count_label": "{count} ficheiros multimédia",
-    "group_media_actions_need_open_chat": "Abra esta conversa para utilizar esta ação"
+    "group_media_actions_need_open_chat": "Abra esta conversa para utilizar esta ação",
+    "group_media_type_links": "Ligações",
+    "group_media_filter_label": "Filtrar multimédia",
+    "group_media_filter_all": "Todas",
+    "group_media_filter_downloaded": "Transferidas",
+    "group_media_filter_not_downloaded": "Não transferidas / ligações",
+    "group_media_loading_history": "A carregar o histórico do grupo..."
 }

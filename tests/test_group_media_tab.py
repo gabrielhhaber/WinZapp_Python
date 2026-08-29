@@ -222,3 +222,115 @@ class TestWhetherThePanelIsOnThisChat:
         mw = _MW(panel=_Panel(conversation={"remoteJid": "5511999999999@c.us"}))
         stub = _DialogStub(mw, "5511999999999@s.whatsapp.net")
         assert stub._panel_is_on_this_chat() is True
+
+
+# ── Links, and the downloaded/not-downloaded filter ──────────────────────────
+
+from core.utils import (
+    GROUP_MEDIA_FILTER_ALL,
+    GROUP_MEDIA_FILTER_DOWNLOADED,
+    GROUP_MEDIA_FILTER_NOT_DOWNLOADED,
+    filter_group_media_by_download,
+    media_cache_id,
+    message_has_link,
+)
+
+
+def _text(body, mid="t1", msg_type="conversation"):
+    inner = ({"conversation": body} if msg_type == "conversation"
+             else {"extendedTextMessage": {"text": body}})
+    return {"key": {"id": mid}, "messageType": msg_type, "message": inner}
+
+
+class TestLinksAsACategory:
+    @pytest.mark.parametrize("body", [
+        "olha isso https://exemplo.com/a",
+        "www.exemplo.com",
+        "http://exemplo.com",
+        "texto antes https://exemplo.com texto depois",
+    ])
+    def test_a_text_message_with_a_url_is_a_link(self, body):
+        assert group_media_category(_text(body)) == "links"
+
+    def test_an_extended_text_message_counts_too(self):
+        assert group_media_category(
+            _text("veja https://exemplo.com", msg_type="extendedTextMessage")
+        ) == "links"
+
+    def test_plain_text_is_still_not_media(self):
+        assert group_media_category(_text("bom dia, tudo certo?")) == ""
+
+    def test_a_photo_whose_caption_has_a_url_stays_a_photo(self):
+        """Its own media type decides first. Counting it under both boxes
+        would make them overlap, and someone looking for "the link" is looking
+        for the text message."""
+        photo = _msg("imageMessage", "p1")
+        photo["message"] = {"imageMessage": {"caption": "veja https://exemplo.com"}}
+        assert group_media_category(photo) == "photos"
+
+    def test_links_is_one_of_the_categories(self):
+        assert "links" in GROUP_MEDIA_TYPES
+
+    def test_the_filter_can_select_links_alone(self):
+        records = [_text("https://a.com"), _msg("imageMessage"), _text("sem url")]
+        out = filter_group_media(records, ("links",))
+        assert len(out) == 1
+
+    def test_message_has_link_reads_the_wire_text_only(self):
+        assert message_has_link(_text("https://a.com")) is True
+        assert message_has_link(_text("nada aqui")) is False
+        assert message_has_link({}) is False
+        assert message_has_link(None) is False
+
+
+class TestTheCacheId:
+    def test_a_plain_id_is_used_as_is(self):
+        assert media_cache_id(_msg("imageMessage", "abc")) == "abc"
+
+    def test_a_compound_id_yields_the_third_part(self):
+        assert media_cache_id(_msg("imageMessage", "true_5511@g.us_REAL")) == "REAL"
+
+    def test_a_two_part_id_yields_the_last(self):
+        assert media_cache_id(_msg("imageMessage", "true_REAL")) == "REAL"
+
+    def test_junk_is_safe(self):
+        assert media_cache_id(None) == ""
+        assert media_cache_id({}) == ""
+
+
+class TestTheDownloadFilter:
+    def _records(self):
+        return [
+            _msg("imageMessage", "have"),      # on disk
+            _msg("videoMessage", "missing"),   # not on disk
+            _text("https://a.com", "link1"),   # a link: nothing to download
+        ]
+
+    def test_all_keeps_everything(self):
+        out = filter_group_media_by_download(
+            self._records(), GROUP_MEDIA_FILTER_ALL, {"have"})
+        assert len(out) == 3
+
+    def test_downloaded_keeps_only_what_is_on_disk(self):
+        out = filter_group_media_by_download(
+            self._records(), GROUP_MEDIA_FILTER_DOWNLOADED, {"have"})
+        assert [m["key"]["id"] for m in out] == ["have"]
+
+    def test_not_downloaded_includes_links(self):
+        """The third option is named "nao baixadas / links" — a link has no
+        file to download, so it belongs on that side."""
+        out = filter_group_media_by_download(
+            self._records(), GROUP_MEDIA_FILTER_NOT_DOWNLOADED, {"have"})
+        assert [m["key"]["id"] for m in out] == ["missing", "link1"]
+
+    def test_a_link_is_never_counted_as_downloaded(self):
+        """Even if its id happens to collide with a cached file's name."""
+        out = filter_group_media_by_download(
+            [_text("https://a.com", "link1")],
+            GROUP_MEDIA_FILTER_DOWNLOADED, {"link1"})
+        assert out == []
+
+    def test_an_empty_downloaded_set_is_safe(self):
+        out = filter_group_media_by_download(
+            self._records(), GROUP_MEDIA_FILTER_DOWNLOADED, None)
+        assert out == []

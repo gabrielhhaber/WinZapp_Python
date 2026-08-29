@@ -271,7 +271,7 @@ def is_voice_message(msg) -> bool:
 # would leave a voice note invisible under any single box. is_voice_message()
 # still separates them everywhere the distinction matters (playback, the
 # message-type label).
-GROUP_MEDIA_TYPES = ("photos", "videos", "audios", "documents")
+GROUP_MEDIA_TYPES = ("photos", "videos", "audios", "documents", "links")
 
 _GROUP_MEDIA_MESSAGE_TYPES = {
     "photos":    ("imageMessage", "image", "stickerMessage", "sticker"),
@@ -281,8 +281,38 @@ _GROUP_MEDIA_MESSAGE_TYPES = {
 }
 
 
+# Same shape conversations._URL_RE matches, kept here rather than imported so
+# this module stays wx-free and importable by tests on its own.
+_MEDIA_URL_RE = re.compile(r"https?://\S+|www\.\S+")
+
+
+def message_has_link(msg) -> bool:
+    """True when a message body carries a URL.
+
+    Reads the WIRE text (conversation / extendedTextMessage.text), never a
+    rendered line: a link preview's title or a resolved @mention would
+    otherwise decide whether a message counts as a link.
+    """
+    if not isinstance(msg, dict):
+        return False
+    body = msg.get("message")
+    if not isinstance(body, dict):
+        return False
+    text = body.get("conversation") or ""
+    if not text:
+        ext = body.get("extendedTextMessage")
+        if isinstance(ext, dict):
+            text = ext.get("text") or ""
+    return bool(text) and bool(_MEDIA_URL_RE.search(text))
+
+
 def group_media_category(msg) -> str:
-    """Which Media-tab category *msg* belongs to, or "" when it is not media.
+    """Which Media-tab category *msg* belongs to, or "" when it belongs to none.
+
+    A message's own media type decides first, so a photo whose caption happens
+    to contain a URL is still a photo — a user looking for "the link someone
+    sent" is looking for the text message, and counting the photo twice would
+    make the checkboxes overlap.
 
     Pure and message-shaped rather than a method on the dialog, so the filter
     can be tested without wx - the tab itself is a wx.Panel.
@@ -293,7 +323,66 @@ def group_media_category(msg) -> str:
     for category, types in _GROUP_MEDIA_MESSAGE_TYPES.items():
         if msg_type in types:
             return category
+    if msg_type in ("conversation", "extendedTextMessage", "text") and \
+            message_has_link(msg):
+        return "links"
     return ""
+
+
+# The Media tab's "Filtrar midias" radio, mirroring the conversation list's own
+# filter. Order is the order the radio shows them in.
+GROUP_MEDIA_FILTER_ALL = "all"
+GROUP_MEDIA_FILTER_DOWNLOADED = "downloaded"
+GROUP_MEDIA_FILTER_NOT_DOWNLOADED = "not_downloaded"
+GROUP_MEDIA_FILTERS = (
+    GROUP_MEDIA_FILTER_ALL,
+    GROUP_MEDIA_FILTER_DOWNLOADED,
+    GROUP_MEDIA_FILTER_NOT_DOWNLOADED,
+)
+
+
+def media_cache_id(msg) -> str:
+    """The id a message's cached media file is stored under.
+
+    WhatsApp ids for media sometimes arrive as "<a>_<b>_<real>" and the cache
+    is keyed by the last (or third) part — the same unpacking the message list
+    and the old media count both did inline. Here once, so the Media tab's
+    "is it downloaded" check cannot disagree with the code that wrote the file.
+    """
+    if not isinstance(msg, dict):
+        return ""
+    mid = (msg.get("key") or {}).get("id", "") or ""
+    if "_" in mid:
+        parts = mid.split("_")
+        return parts[2] if len(parts) > 2 else parts[-1]
+    return mid
+
+
+def filter_group_media_by_download(records, media_filter, downloaded_ids) -> list:
+    """Apply the "Filtrar midias" radio.
+
+    *downloaded_ids* is a precomputed set of media_cache_id()s known to be on
+    disk. It is passed in rather than stat-ed here on purpose: this runs on the
+    UI thread on every filter change, and one os.path.isfile() per message is
+    exactly what froze this dialog before (issue #52).
+
+    A link message has no file to download, so it belongs with the
+    not-downloaded side — which is what the third option asks for by name
+    ("nao baixadas / links").
+    """
+    if media_filter == GROUP_MEDIA_FILTER_ALL:
+        return list(records or [])
+    downloaded = set(downloaded_ids or ())
+    out = []
+    for m in (records or []):
+        is_link = group_media_category(m) == "links"
+        on_disk = (not is_link) and media_cache_id(m) in downloaded
+        if media_filter == GROUP_MEDIA_FILTER_DOWNLOADED:
+            if on_disk:
+                out.append(m)
+        elif not on_disk:
+            out.append(m)
+    return out
 
 
 def filter_group_media(records, enabled_types) -> list:

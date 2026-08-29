@@ -998,5 +998,11 @@
     "group_media_type_documents": "Dokumenty",
     "group_media_empty": "Brak multimediów dla wybranych typów",
     "group_media_count_label": "Elementy multimedialne: {count}",
-    "group_media_actions_need_open_chat": "Otwórz tę rozmowę, aby użyć tej akcji"
+    "group_media_actions_need_open_chat": "Otwórz tę rozmowę, aby użyć tej akcji",
+    "group_media_type_links": "Linki",
+    "group_media_filter_label": "Filtruj multimedia",
+    "group_media_filter_all": "Wszystkie",
+    "group_media_filter_downloaded": "Pobrane",
+    "group_media_filter_not_downloaded": "Niepobrane / linki",
+    "group_media_loading_history": "Wczytywanie historii grupy..."
 }

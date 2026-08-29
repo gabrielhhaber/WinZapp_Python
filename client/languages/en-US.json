@@ -998,5 +998,11 @@
     "group_media_type_documents": "Documents",
     "group_media_empty": "No media for the selected types",
     "group_media_count_label": "{count} media items",
-    "group_media_actions_need_open_chat": "Open this conversation to use this action"
+    "group_media_actions_need_open_chat": "Open this conversation to use this action",
+    "group_media_type_links": "Links",
+    "group_media_filter_label": "Filter media",
+    "group_media_filter_all": "All",
+    "group_media_filter_downloaded": "Downloaded",
+    "group_media_filter_not_downloaded": "Not downloaded / links",
+    "group_media_loading_history": "Loading the group's history..."
 }

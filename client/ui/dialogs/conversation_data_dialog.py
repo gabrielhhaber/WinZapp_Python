@@ -21,7 +21,10 @@ import threading
 from datetime import datetime
 import wx
 import wx.adv
-from core.utils import format_number, GROUP_MEDIA_TYPES, filter_group_media
+from core.utils import (
+    format_number, GROUP_MEDIA_TYPES, GROUP_MEDIA_FILTERS,
+    filter_group_media, filter_group_media_by_download, media_cache_id,
+)
 from core.locale_format import get_datetime_format
 from app_paths import data_path
 from core.sound_system import (
@@ -386,6 +389,25 @@ class ConversationDataDialog(wx.Dialog):
         media_page = wx.Panel(self._notebook)
         md_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        # Same control and shape as the conversation list's own filter, so the
+        # two read alike to someone who already knows one of them.
+        self._media_filter = GROUP_MEDIA_FILTERS[0]
+        self._media_filter_radio = wx.RadioBox(
+            media_page,
+            label=self._i18n.t("group_media_filter_label"),
+            choices=[
+                self._i18n.t("group_media_filter_all"),
+                self._i18n.t("group_media_filter_downloaded"),
+                self._i18n.t("group_media_filter_not_downloaded"),
+            ],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_ROWS,
+        )
+        self._media_filter_radio.Bind(wx.EVT_RADIOBOX, self._on_media_filter_changed)
+        md_sizer.Add(
+            self._media_filter_radio, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 8
+        )
+
         self._media_list_label = wx.StaticText(
             media_page, label=self._i18n.t("group_media_list_label")
         )
@@ -458,6 +480,10 @@ class ConversationDataDialog(wx.Dialog):
         # the "loading" placeholders instead of leaving them stuck.
         try:
             if self._is_group:
+                # Before the group-info round trip: the tab is visible from the
+                # moment the dialog opens, and this only touches the local
+                # database plus the media folder.
+                self._load_media_history()
                 data = self._mw.get_group_info(self._jid)
                 participants = data.get("participants", [])
                 lid_jids_to_resolve = []
@@ -714,6 +740,11 @@ class ConversationDataDialog(wx.Dialog):
 
     # ── Media tab ────────────────────────────────────────────────────────────
 
+    # How far back the Media tab reads. Deliberately large: someone opening it
+    # wants the group's history, not the page the conversation happens to have
+    # loaded. Still bounded, because this materialises decrypted dicts.
+    _MEDIA_HISTORY_LIMIT = 20000
+
     def _default_media_types(self) -> list:
         """Which categories start checked, from Settings > Interface do usuario.
 
@@ -758,15 +789,35 @@ class ConversationDataDialog(wx.Dialog):
         normalize = getattr(self._mw, "_normalize_jid", lambda j: j)
         return normalize(conv.get("remoteJid", "")) == normalize(self._jid)
 
-    def _refresh_media_list(self):
-        """Repopulate the list from the currently checked categories."""
-        panel = self._conversation_panel()
-        records = (
+    def _media_source_records(self) -> list:
+        """Every message this tab may show, newest history included.
+
+        Prefers the full history loaded from the database by
+        _load_media_history() over self._chat's in-memory records. Those
+        records hold roughly one page (navigate_to_conversation replaces them
+        with db_fetch_limit()'s slice), so before this the tab was really
+        showing "media among the last couple of hundred messages" while
+        presenting itself as the group's media — and nothing said so. The
+        in-memory copy stays as the fallback for the moment before the
+        background load lands, and for a session with no database open.
+        """
+        history = getattr(self, "_media_history", None)
+        if history:
+            return history
+        return (
             self._chat.get("messages", {})
                       .get("messages", {})
                       .get("records", [])
         )
-        self._media_messages = filter_group_media(records, self._checked_media_types())
+
+    def _refresh_media_list(self):
+        """Repopulate the list from the checked categories and the filter."""
+        panel = self._conversation_panel()
+        records = self._media_source_records()
+        by_type = filter_group_media(records, self._checked_media_types())
+        self._media_messages = filter_group_media_by_download(
+            by_type, self._media_filter, getattr(self, "_downloaded_media_ids", ())
+        )
 
         # Freeze/Thaw so the screen reader gets one event for the rebuild
         # instead of one per row.
@@ -829,6 +880,49 @@ class ConversationDataDialog(wx.Dialog):
     def _on_media_type_toggled(self, event):
         event.Skip()
         self._refresh_media_list()
+
+    def _on_media_filter_changed(self, event):
+        idx = self._media_filter_radio.GetSelection()
+        if 0 <= idx < len(GROUP_MEDIA_FILTERS):
+            self._media_filter = GROUP_MEDIA_FILTERS[idx]
+        self._refresh_media_list()
+
+    def _load_media_history(self):
+        """Read the group's whole message history, and which media is on disk.
+
+        Runs on the background fetch thread: both halves are I/O. The database
+        read is the point of the method, and the per-message os.path.isfile()
+        that answers "baixada / nao baixada" is exactly the loop that froze
+        this dialog when it lived on the UI thread (issue #52) — it is done
+        once here, into a set, so changing the filter afterwards is pure
+        membership testing.
+        """
+        db = getattr(self._mw, "db", None)
+        if db is None:
+            return
+        try:
+            history = db.get_messages_asc(self._jid, limit=self._MEDIA_HISTORY_LIMIT)
+        except Exception:
+            logging.exception("[conversation_data] media history load failed")
+            return
+        downloaded = set()
+        media_dir = data_path("media")
+        for msg in history or []:
+            cache_id = media_cache_id(msg)
+            if cache_id and os.path.isfile(os.path.join(media_dir, f"{cache_id}.wzmedia")):
+                downloaded.add(cache_id)
+        self._media_history = list(history or [])
+        self._downloaded_media_ids = downloaded
+        wx.CallAfter(self._on_media_history_loaded)
+
+    def _on_media_history_loaded(self):
+        """Back on the UI thread: redraw with the full history."""
+        if not self:            # dialog already destroyed
+            return
+        try:
+            self._refresh_media_list()
+        except Exception:
+            logging.exception("[conversation_data] media refresh after load failed")
 
     # ── Driving the message list's own actions ───────────────────────────────
     #
@@ -924,11 +1018,29 @@ class ConversationDataDialog(wx.Dialog):
             panel._suppress_selection_side_effects = False
 
     def _on_media_activated(self, event):
-        """Enter on a media row does exactly what Enter does in the message
-        list — playing a video/voice message, opening a document, and so on."""
+        """Enter on a media row does what Enter does in the message list, with
+        one deliberate difference for photos and videos.
+
+        _do_activate_message() routes those to the panel's in-place player when
+        Configuracoes > "usar o visualizador" is off — and that player draws
+        into a StaticBitmap inside the conversation panel, which is behind this
+        modal dialog and disabled. The video would play with its audio audible,
+        its frames invisible, and its seek/pause controls unreachable: the only
+        way out would be closing the dialog. So this path always uses
+        MediaViewerDialog, which is a window of its own and stacks on top
+        properly. Everything else (documents, voice messages, stickers) is
+        unaffected and goes through the panel's own dispatch.
+        """
         msg = self._selected_media_message()
         panel = self._conversation_panel()
         if msg is None or panel is None or not self._panel_is_on_this_chat():
+            return
+        msg_type = msg.get("messageType", "")
+        if msg_type in ("imageMessage", "videoMessage") and hasattr(
+                panel, "_open_conversation_media_viewer"):
+            self._invoke_with_index(
+                msg, lambda idx: panel._open_conversation_media_viewer(idx)
+            )
             return
         self._invoke_with_index(msg, lambda idx: panel._do_activate_message(idx))
 

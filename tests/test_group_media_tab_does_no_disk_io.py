@@ -27,7 +27,26 @@ _DISK_CALLS = ("os.path.isfile", "os.path.exists", "os.listdir", "os.stat",
 
 
 def _source_of(fn):
-    return inspect.getsource(fn)
+    """Source with docstrings and comments stripped.
+
+    These checks look for calls, and the prose around them legitimately names
+    the very calls being forbidden — a plain substring match on the raw source
+    flags a docstring that explains why the I/O is NOT here.
+    """
+    import ast
+    import textwrap
+
+    raw = textwrap.dedent(inspect.getsource(fn))
+    tree = ast.parse(raw)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                             ast.ClassDef, ast.Module)):
+            body = getattr(node, "body", [])
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                body.pop(0)
+    return ast.unparse(tree)
 
 
 class TestTheRenderPathDoesNoDiskIo:
@@ -49,3 +68,29 @@ class TestTheRetiredCountIsGone:
         """If it comes back it needs its background-thread placement back too —
         see this file's docstring."""
         assert not hasattr(ConversationDataDialog, "_count_group_media")
+
+
+class TestTheDiskWorkRunsOnTheFetchThread:
+    """The "baixada / nao baixada" filter needs one os.path.isfile() per
+    message. That is the very loop issue #52 was about, so it happens once, on
+    the background fetch thread, into a set — and the filter itself then only
+    tests membership.
+    """
+
+    def test_the_history_load_is_called_from_fetch_data(self):
+        src = _source_of(ConversationDataDialog._fetch_data)
+        assert "self._load_media_history()" in src, (
+            "the media history + downloaded-set scan must run on the fetch "
+            "thread, not while the UI is being built"
+        )
+
+    def test_it_hands_the_result_back_through_callafter(self):
+        src = _source_of(ConversationDataDialog._load_media_history)
+        assert "wx.CallAfter" in src
+
+    def test_the_download_filter_itself_does_no_io(self):
+        """It runs on every radio change, on the UI thread."""
+        from core.utils import filter_group_media_by_download
+        src = _source_of(filter_group_media_by_download)
+        hits = [c for c in _DISK_CALLS if c in src]
+        assert not hits, f"the download filter stats files per message: {hits}"
