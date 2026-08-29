@@ -94,10 +94,18 @@ class TestTheDefaultRunIsSafe:
         for wf in workflows:
             for i, line in enumerate(wf.read_text(encoding="utf-8").splitlines(), 1):
                 stripped = line.strip()
-                if not stripped.startswith("run:"):
+                if stripped.startswith("#"):
                     continue
-                command = stripped[len("run:"):].strip()
-                if not command.startswith("pytest"):
+                # Both shapes: `run: pytest ...` on one line, and a bare
+                # `pytest ...` inside a `run: |` block. Only the first exists
+                # today, but the block form is the natural way somebody adds
+                # a second command later, and a guard that misses it fails
+                # silently in the one direction that matters.
+                if stripped.startswith("run:"):
+                    command = stripped[len("run:"):].strip()
+                else:
+                    command = stripped
+                if not (command == "pytest" or command.startswith("pytest ")):
                     continue
                 if "--run-wx-gui" not in command:
                     offenders.append(f"{wf.name}:{i}: {command}")
