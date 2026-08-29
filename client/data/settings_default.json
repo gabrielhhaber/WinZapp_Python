@@ -56,7 +56,8 @@
         "forwarded_prefix_enabled": false,
         "conversation_video_media_viewer_dialog": true,
         "status_media_viewer_dialog": true,
-        "voice_message_mode": "audio"
+        "voice_message_mode": "audio",
+        "group_media_default_types": ["photos", "videos", "audios", "documents"]
     },
     "audio_playback": {
         "audio_default_speed": 1.0

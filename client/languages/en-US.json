@@ -878,7 +878,7 @@
     "media_unsupported_error": "the file appears to be corrupted or in a format WhatsApp cannot process",
     "voice_recording_unavailable": "Voice recording is unavailable on this Python install (audio library not found).",
     "voice_recording": "Recording audio",
-    "recording_paused": "Recording paused",
+    "recording_paused": "Recording paused.",
     "voice_recording_device_failed": "Could not open the microphone. Check that it is connected and that WinZapp is allowed to use it in Windows privacy settings.",
     "copy_caption": "Copy caption",
     "group_admin_suffix": "group admin",
@@ -989,5 +989,14 @@
     "startup_invalid_account": "WinZapp could not open the requested account.",
     "startup_account_manager_unavailable": "There are no accounts available to start. The account manager is not available yet.",
     "soundpack_zip_file_filter": "Sound Packs (*.zip)|*.zip",
-    "recording_paused": "Recording paused."
+    "ui_group_media_default_types_label": "Message types shown by default in a group's Media tab",
+    "group_media_list_label": "Media list",
+    "group_media_types_label": "Media types shown",
+    "group_media_type_photos": "Photos",
+    "group_media_type_videos": "Videos",
+    "group_media_type_audios": "Audio",
+    "group_media_type_documents": "Documents",
+    "group_media_empty": "No media for the selected types",
+    "group_media_count_label": "{count} media items",
+    "group_media_actions_need_open_chat": "Open this conversation to use this action"
 }

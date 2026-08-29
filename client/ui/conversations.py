@@ -3671,6 +3671,8 @@ class ConversationsPanel(wx.Panel):
 
     def on_message_selected(self, event):
         """Show / hide action controls when the selection changes in the messages list."""
+        if getattr(self, "_suppress_selection_side_effects", False):
+            return
         index = event.GetIndex()
         self._hide_all_media_controls()   # also clears links panel
         if index < 0 or index >= len(self._sorted_messages):
@@ -4995,6 +4997,16 @@ class ConversationsPanel(wx.Panel):
         return m.get("key", {}).get("id", "")
 
     def _on_message_focused(self, event):
+        # Set while another surface (the group data dialog's Media tab) drives
+        # this list's selection purely to hand an index to a handler that reads
+        # it. Everything below reacts to a HUMAN moving through the list -
+        # playing the selection sound, marking the conversation read once the
+        # unread separator is passed, and page-loading more history at index 0 -
+        # and none of it should fire for a selection the user never made. The
+        # history load is the dangerous one: it rebuilds _sorted_messages
+        # synchronously, so the very index being handed over stops being valid.
+        if getattr(self, "_suppress_selection_side_effects", False):
+            return
         idx = event.GetIndex()
 
         if 0 <= idx < len(self._sorted_messages):

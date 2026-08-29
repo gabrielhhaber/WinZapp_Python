@@ -260,6 +260,54 @@ def is_voice_message(msg) -> bool:
     )
 
 
+# The media categories the group data dialog's Media tab filters by, and that
+# Settings > Interface do usuario lets the user pre-select. Order is the order
+# the checkboxes are shown in, and the keys are what gets persisted in
+# user_interface.group_media_default_types - so renaming one silently drops a
+# user's saved choice, exactly like SOUND_EVENTS' keys.
+#
+# "audios" deliberately covers BOTH voice notes and audio files: they are one
+# thing to a user looking for "the audio someone sent", and splitting them
+# would leave a voice note invisible under any single box. is_voice_message()
+# still separates them everywhere the distinction matters (playback, the
+# message-type label).
+GROUP_MEDIA_TYPES = ("photos", "videos", "audios", "documents")
+
+_GROUP_MEDIA_MESSAGE_TYPES = {
+    "photos":    ("imageMessage", "image", "stickerMessage", "sticker"),
+    "videos":    ("videoMessage", "video"),
+    "audios":    ("audioMessage", "audio", "ptt"),
+    "documents": ("documentMessage", "document"),
+}
+
+
+def group_media_category(msg) -> str:
+    """Which Media-tab category *msg* belongs to, or "" when it is not media.
+
+    Pure and message-shaped rather than a method on the dialog, so the filter
+    can be tested without wx - the tab itself is a wx.Panel.
+    """
+    if not isinstance(msg, dict):
+        return ""
+    msg_type = msg.get("messageType") or msg.get("type") or ""
+    for category, types in _GROUP_MEDIA_MESSAGE_TYPES.items():
+        if msg_type in types:
+            return category
+    return ""
+
+
+def filter_group_media(records, enabled_types) -> list:
+    """The Media tab's list contents: every media record whose category is
+    enabled, in the order the message list itself uses them, so a row reads the
+    same in both places.
+
+    Anything that is not media is excluded outright, whatever the checkboxes
+    say: the tab is a media browser, not a filtered conversation.
+    """
+    enabled = set(enabled_types or ())
+    return [m for m in (records or []) if group_media_category(m) in enabled]
+
+
 def append_selected_marker(text: str, word: str, position: str, is_selected: bool) -> str:
     """Add the localized "selected" marker word to a list-row string when
     *is_selected*, at the configured *position* ("start" or anything else,
@@ -428,7 +476,11 @@ DEFAULT_SETTINGS = {
         "forwarded_prefix_enabled": False,
         "conversation_video_media_viewer_dialog": True,
         "status_media_viewer_dialog": True,
-        "voice_message_mode": "audio"
+        "voice_message_mode": "audio",
+        # Which media categories start checked in a group's Media tab.
+        # A list, not four booleans, so GROUP_MEDIA_TYPES stays the single
+        # place a category is declared.
+        "group_media_default_types": list(GROUP_MEDIA_TYPES)
     },
     "audio_playback": {
         "audio_default_speed": 1.0
