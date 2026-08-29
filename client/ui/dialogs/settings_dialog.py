@@ -554,6 +554,17 @@ class SettingsDialog(wx.Dialog):
         self._group_media_types_list.EnableCheckBoxes(True)
         for _key in GROUP_MEDIA_TYPES:
             self._group_media_types_list.Append((i18n.t(f"group_media_type_{_key}"),))
+        # Start on the first row. Select/Focus move the item cursor inside the
+        # control and nothing else — SetFocus() is deliberately NOT called, so
+        # opening this tab does not yank the keyboard caret out of wherever the
+        # user was. Without it the list sits with nothing selected: Enter and
+        # Space have no row to toggle, and a screen reader arriving by Tab
+        # announces an empty selection instead of the first media type. Same
+        # convention the conversation list and the group data dialog's own
+        # lists follow.
+        if self._group_media_types_list.GetItemCount() > 0:
+            self._group_media_types_list.Focus(0)
+            self._group_media_types_list.Select(0)
         # Space is the ListCtrl's native toggle; Enter is bound as well because
         # every other list in this app activates with Enter, and the user should
         # not have to know which of the two a given list wants.

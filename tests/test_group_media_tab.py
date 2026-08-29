@@ -430,3 +430,31 @@ class TestTheCountIsNotSpoken:
                 node.body.pop(0)
         code = ast.unparse(tree)
         assert "speak_output" not in code
+
+
+class TestTheSettingsListStartsOnItsFirstRow:
+    """Same reason as the tab's own lists: with nothing selected, Enter and
+    Space have no row to toggle, and a screen reader arriving by Tab announces
+    an empty selection instead of the first media type."""
+
+    @staticmethod
+    def _src():
+        import inspect
+        from ui.dialogs.settings_dialog import SettingsDialog
+        return inspect.getsource(SettingsDialog._build_ui)
+
+    def test_it_focuses_and_selects_row_zero(self):
+        src = self._src()
+        assert "self._group_media_types_list.Focus(0)" in src
+        assert "self._group_media_types_list.Select(0)" in src
+
+    def test_it_does_not_take_the_keyboard_caret(self):
+        """Opening the tab must not yank focus out of wherever the user was."""
+        src = self._src()
+        assert "self._group_media_types_list.SetFocus()" not in src
+
+    def test_it_happens_after_the_rows_exist(self):
+        src = self._src()
+        appended = src.index("self._group_media_types_list.Append(")
+        focused = src.index("self._group_media_types_list.Focus(0)")
+        assert appended < focused
