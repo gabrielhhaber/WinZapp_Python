@@ -478,6 +478,75 @@ BOOKMARK_ZERO_HOTKEY_ID = 0xB000
 _PREVIEW_ONLY_MESSAGE_TYPES = frozenset({"protocolMessage", "groupNotification"})
 
 
+# Marker file dropped in the new, persistent api/ root once the one-time move
+# below has run, so the scan never repeats (and never fights a second
+# account's process for the same folders on every launch).
+LEGACY_API_STATE_MARKER = ".migrated_from_install_dir"
+
+# The two folders WPPConnect writes a paired session into: the Chrome
+# profile - the REAL credential store - and the REST-level token file.
+LEGACY_API_STATE_DIRS = ("userDataDir", "tokens")
+
+
+def migrate_legacy_api_state(legacy_api_dir: str, persistent_api_dir: str) -> list:
+    """Move a pre-existing install's WhatsApp session state from the old,
+    cwd-relative location into the new persistent one. Returns what moved.
+
+    Until WINZAPP_USER_DATA_DIR/WINZAPP_TOKEN_STORE_DIR existed, both folders
+    were written relative to the Node process's cwd (``resource_path("api")``
+    - the install dir in a --onedir build, which is what every released
+    installer produces). Pointing them at ``<global_dir>/api`` fixes --onefile
+    losing them on every launch, but on its own it also aims every ALREADY
+    PAIRED install at an empty folder: Chrome starts on a virgin profile, the
+    token store reads nothing, and WhatsApp correctly asks for a fresh QR.
+    That is the exact "closed WinZapp, relaunched, told the device was
+    disconnected" report the new path exists to fix, so shipping the move
+    without this would deliver the bug as its own fix, once, to everybody.
+
+    Deliberately conservative - this runs against a real paired session:
+      * never overwrites anything already at the destination (a folder there
+        means this install is already using the new location);
+      * moves per folder, so a half-done previous attempt still completes;
+      * writes the marker only after a successful pass, but writes it even
+        when nothing needed moving, so a fresh install stops scanning;
+      * a failure is logged and swallowed - the caller must still be able to
+        start Node (the user re-pairs, which is no worse than not migrating).
+
+    Must be called BEFORE Node is spawned: moving a userDataDir out from
+    under a live Chrome would corrupt exactly what this is protecting.
+    """
+    moved = []
+    if not (legacy_api_dir and persistent_api_dir):
+        return moved
+    if os.path.abspath(legacy_api_dir) == os.path.abspath(persistent_api_dir):
+        return moved  # nothing to do: same folder (dev checkout edge case)
+    marker = os.path.join(persistent_api_dir, LEGACY_API_STATE_MARKER)
+    if os.path.exists(marker):
+        return moved
+    for name in LEGACY_API_STATE_DIRS:
+        src = os.path.join(legacy_api_dir, name)
+        dst = os.path.join(persistent_api_dir, name)
+        try:
+            if not os.path.isdir(src):
+                continue
+            if os.path.exists(dst):
+                continue
+            os.makedirs(persistent_api_dir, exist_ok=True)
+            shutil.move(src, dst)
+            moved.append(name)
+            logging.warning("[api-migrate] moved %s -> %s", src, dst)
+        except Exception:
+            logging.exception("[api-migrate] could not move %s -> %s", src, dst)
+            return moved  # leave the marker unwritten so the next launch retries
+    try:
+        os.makedirs(persistent_api_dir, exist_ok=True)
+        with open(marker, "w", encoding="utf-8") as fh:
+            fh.write(legacy_api_dir)
+    except Exception:
+        logging.exception("[api-migrate] could not write the migration marker")
+    return moved
+
+
 def is_countable_message(msg: dict) -> bool:
     """True for a message type that should count as real conversation
     activity (unread badge, chat-list sort order, notifications).
@@ -2594,7 +2663,16 @@ class MainWindow(wx.Frame):
             self._ipc_listener = ipc.IpcListener(
                 gd, acc_id,
                 on_activate=lambda source: wx.CallAfter(self._ipc_activate, source),
-                on_quit=lambda: wx.CallAfter(self._ipc_quit),
+                # NOT wx.CallAfter: _ipc_quit() runs the full graceful
+                # teardown (close-session + flush wait + Node stop + the
+                # loser path's bounded wait), tens of seconds' worth, and on
+                # the wx main thread that freezes this account's window -
+                # silently, for a screen-reader user - while a DIFFERENT
+                # account is the one quitting. real_exit() already runs the
+                # same teardown off the main thread for exactly this reason.
+                on_quit=lambda: threading.Thread(
+                    target=self._ipc_quit, daemon=True,
+                    name="winzapp-ipc-quit").start(),
                 released_predicate=lambda: getattr(self, "_ipc_released", False),
                 window_ready_predicate=lambda: getattr(self, "_window_ready", False),
             )
@@ -2640,6 +2718,10 @@ class MainWindow(wx.Frame):
         stop Node) FIRST, then flag released so the IPC handler can reply
         `released:True`, give it a beat to send that reply over the pipe, and
         only THEN take the process down for good.
+
+        Runs on its own thread (see _start_ipc_listener), never on the wx
+        main thread — everything below is bounded in tens of seconds and a
+        blocked main thread means a frozen, silent window.
         """
         did_work = False
         try:
@@ -2673,11 +2755,30 @@ class MainWindow(wx.Frame):
         no session is ever hard-killed by the shared-Node taskkill. We ask them
         sequentially and wait for each to confirm RELEASED before we exit, so
         the last-one-out Node teardown happens only after every session is
-        cleanly closed. Best-effort: an unresponsive peer never blocks our exit.
+        cleanly closed. Best-effort: a peer that never confirms is given up on
+        after request_quit()'s own timeout and never keeps us alive.
+
+        The peer loop runs on a worker thread, and that is not incidental:
+        request_quit()'s timeout is sized against a peer's worst-case
+        teardown (tens of seconds) and the loop is sequential, so with
+        several accounts open, running it here would freeze this window —
+        with no repaint and nothing spoken — for minutes. This method is
+        bound straight to the Exit menu item and the tray Exit, i.e. it is
+        always entered on the wx main thread. The window is hidden first so
+        quitting still looks instant.
         """
         gd = getattr(self, "global_dir", None)
         acc_id = getattr(self, "account_id", None)
-        if gd and acc_id:
+        if not (gd and acc_id):
+            self.real_exit()
+            return
+
+        try:
+            self.Hide()
+        except Exception:
+            pass
+
+        def _quit_peers_then_exit():
             try:
                 import ipc
                 import node_coord
@@ -2695,7 +2796,13 @@ class MainWindow(wx.Frame):
                         logging.exception("[quit-all] request_quit failed for %s", other)
             except Exception:
                 logging.exception("[quit-all] enumerating peers failed (non-fatal)")
-        self.real_exit()
+            # real_exit() only touches wx to Hide() (already done above) and
+            # then hands off to its own thread, but keep it on the main
+            # thread anyway so the wx contract is not quietly widened here.
+            wx.CallAfter(self.real_exit)
+
+        threading.Thread(target=_quit_peers_then_exit, daemon=True,
+                         name="winzapp-quit-all").start()
 
     def _refresh_menubar(self):
         """Retranslate the menu bar labels after a language change."""
@@ -7134,6 +7241,14 @@ class MainWindow(wx.Frame):
                 _token_dir = os.path.join(_persistent_api_dir, "tokens")
                 os.environ["WINZAPP_USER_DATA_DIR"] = os.path.join(_persistent_api_dir, "userDataDir") + os.sep
                 os.environ["WINZAPP_TOKEN_STORE_DIR"] = _token_dir
+                # One-time move of an ALREADY PAIRED install's session state
+                # from the old cwd-relative location. Without it, every
+                # existing user is pointed at an empty folder on their first
+                # launch after this change and is asked to pair again - the
+                # very symptom the new path exists to remove. Runs here, with
+                # Node not yet spawned, because moving a userDataDir out from
+                # under a live Chrome would corrupt it.
+                migrate_legacy_api_state(resource_path("api"), _persistent_api_dir)
             except Exception:
                 logging.exception("[startup] persistent userDataDir/token-store env injection failed (non-fatal)")
 
@@ -7397,7 +7512,10 @@ class MainWindow(wx.Frame):
     # this flag is never reset anywhere else, and every logout-detection
     # guard trusts it permanently once set. In the ordinary case the process
     # is long gone within this window; this is a self-healing fallback for
-    # when it is not.
+    # when it is not. Deliberately BELOW
+    # _TEARDOWN_OWNED_ELSEWHERE_WAIT_SECONDS (80s): a loser blocked on
+    # _teardown_complete_event must never outlive the timer that would have
+    # freed it. Raise one and re-check the other.
     _END_SESSION_UNSTICK_SECONDS = 60.0
 
     def _on_end_session(self, event):
@@ -7407,10 +7525,11 @@ class MainWindow(wx.Frame):
         WM_ENDSESSION can arrive while a local quit or an IPC "quit" from
         another account is already mid-teardown, and without this both would
         call _stop_wpp_server() concurrently. When teardown already started
-        elsewhere, this only releases the shutdown-block-reason and gets out
-        of the way — it does not arm its own unstick timer, since resetting
-        _shutting_down while the other path is still tearing down would
-        reopen the self-inflicted-logout window.
+        elsewhere, this waits (bounded by _WINDOWS_SHUTDOWN_BUDGET) for that
+        path's _teardown_complete_event before releasing the
+        shutdown-block-reason — it does not arm its own unstick timer, since
+        resetting _shutting_down while the other path is still tearing down
+        would reopen the self-inflicted-logout window.
         """
         logging.warning("[_on_end_session] Windows is ending the session — stopping WPPConnect.")
         with self._teardown_started_lock:
@@ -7418,6 +7537,24 @@ class MainWindow(wx.Frame):
             self._shutting_down = True
 
         if already_tearing_down:
+            # Do NOT just get out of the way: returning here hands control
+            # straight back to Windows, which terminates the process at once
+            # - potentially two seconds into a teardown whose flush wait
+            # alone is budgeted at _SHUTDOWN_FLUSH_TIMEOUT. That kills the
+            # session mid-write and leaves the profile unusable, which is the
+            # STARTUP-with-no-_stop_wpp_server corruption pattern this whole
+            # area exists to prevent. Hold the shutdown block open for the
+            # same budget the owning path would have got here, and let
+            # _teardown_complete_event release us the moment it is genuinely
+            # done (usually well inside it).
+            logging.warning("[_on_end_session] teardown already owned elsewhere - "
+                            "waiting up to %ss for it to finish.",
+                            self._WINDOWS_SHUTDOWN_BUDGET)
+            finished = self._teardown_complete_event.wait(
+                timeout=self._WINDOWS_SHUTDOWN_BUDGET)
+            if not finished:
+                logging.warning("[_on_end_session] the owning teardown did not "
+                                "finish within the Windows budget - going anyway.")
             try:
                 import ctypes
                 ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
@@ -7427,10 +7564,19 @@ class MainWindow(wx.Frame):
             return
 
         def _unstick_if_still_running():
-            self._shutting_down = False
-            # Left set, a later genuinely-new teardown's loser would see this
-            # abandoned attempt's event and wrongly assume it finished.
-            self._teardown_complete_event.clear()
+            # Under the same lock as every other mutation of these two: an
+            # unlocked reset can land between a genuinely-new teardown taking
+            # the flag and its finally setting the event, clearing an event
+            # that belongs to a teardown which really did finish and leaving
+            # that teardown's loser blocked for its whole timeout.
+            with self._teardown_started_lock:
+                if not getattr(self, "_shutting_down", False):
+                    return  # somebody already reset it
+                self._shutting_down = False
+                # Left set, a later genuinely-new teardown's loser would see
+                # this abandoned attempt's event and wrongly assume it
+                # finished.
+                self._teardown_complete_event.clear()
 
         try:
             t = threading.Timer(self._END_SESSION_UNSTICK_SECONDS, _unstick_if_still_running)
@@ -7587,10 +7733,13 @@ class MainWindow(wx.Frame):
 
         Should not be called on the wx main thread when avoidable: step 1 can
         block for the whole grace budget, and a blocked main thread stops the
-        message loop from pumping (Windows tags it "Not Responding"). One
-        caller does anyway — _update_wpp_server(), which needs to show a
-        modal dialog immediately after — an accepted tradeoff, not an
-        oversight. Every other caller runs this off the main thread.
+        message loop from pumping (Windows tags it "Not Responding"). Exactly
+        two callers do anyway, both deliberately: _update_wpp_server(), which
+        needs to show a modal dialog immediately after, and _on_end_session(),
+        where returning from the handler is what lets Windows kill us — and
+        that one passes an explicit `budget` to cap the wait. Every other
+        caller (real_exit's teardown thread, _ipc_quit's own thread) runs
+        this off the main thread; check that before adding a new one.
         """
         if budget is None:
             # Skipped under a budget: this wait sits outside it, so honoring
@@ -8736,7 +8885,17 @@ class MainWindow(wx.Frame):
             existing = getattr(self, "_settings_save_timer", None)
             if existing is not None:
                 existing.cancel()
-            t = threading.Timer(2.0, self.save_settings)
+            def _fire():
+                # Clear the handle FIRST: left dangling after the timer
+                # fired, _flush_pending_debounced_saves() reads it as a
+                # still-pending write and re-saves settings.json on every
+                # single shutdown from the first settings change onwards.
+                with self._save_timer_lock:
+                    if self._settings_save_timer is t:
+                        self._settings_save_timer = None
+                self.save_settings()
+
+            t = threading.Timer(2.0, _fire)
             t.daemon = True
             self._settings_save_timer = t
             t.start()

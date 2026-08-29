@@ -28,6 +28,38 @@ _WEBSOCKET_EVENTS = [
 ]
 
 
+# Terminal status-session readings: no session is coming up at all, so there
+# is nothing for the pairing startup grace to wait for. Without this the
+# common "start-session failed, user hits Quit" case burned the whole 30s
+# budget polling a session that answers CLOSED on every single poll.
+_PAIRING_STARTUP_DEAD_STATUSES = frozenset({"CLOSED", "DESTROYED", ""})
+
+# Readings that mean the attempt already produced what the user needs (or
+# does not need one any more).
+_PAIRING_STARTUP_READY_STATUSES = frozenset({"CONNECTED", "qrReadSuccess", "inChat"})
+
+
+def pairing_startup_settled(data) -> bool:
+    """True when a status-session payload means the pairing startup grace has
+    nothing left to wait for - either a QR/code exists, the session is
+    already connected, or no session is coming up at all.
+
+    Module-level and payload-only so the classification can be tested
+    without a Connect instance (which needs main_window, a WebSocket, HTTP
+    and wx just to exist). WPPConnect answers this endpoint both flat and
+    wrapped in "response", so both shapes are read.
+    """
+    if not isinstance(data, dict):
+        return False
+    payload = data.get("response") if isinstance(data.get("response"), dict) else data
+    qr = data.get("qrcode") or (payload or {}).get("qrcode")
+    status = data.get("status") or (payload or {}).get("status") or ""
+    if qr:
+        return True
+    return (status in _PAIRING_STARTUP_READY_STATUSES
+            or status in _PAIRING_STARTUP_DEAD_STATUSES)
+
+
 class Connect:
     def __init__(self, main_window):
         self.main_window = main_window
@@ -1474,10 +1506,18 @@ class Connect:
         producing a QR/pairing code before we close on the user's way out.
 
         No-op unless a pairing attempt is actually in flight AND has not yet
-        produced anything — an attempt that never started, or one that
-        already has its QR/code on screen, returns immediately. Must be
-        called BEFORE the caller disconnects the WebSocket or clears
-        _pairing_in_progress, since both are read here.
+        produced anything - an attempt that never started, one that already
+        has its QR/code on screen, and one whose session is definitively not
+        coming up all return immediately. Must be called BEFORE the caller
+        disconnects the WebSocket or clears _pairing_in_progress, since both
+        are read here.
+
+        NEVER call this on the wx main thread - it blocks for up to
+        _PAIRING_STARTUP_GRACE_SECONDS with no repaint and no accessibility
+        events pumped, which for a screen-reader user is 30 seconds of
+        silence on a window Windows has already tagged "Not Responding", and
+        whose most likely next move is the force-kill this whole method
+        exists to prevent. Go through _defer_close_for_pairing_startup().
         """
         if not getattr(self.main_window, "_pairing_in_progress", False):
             return
@@ -1491,11 +1531,6 @@ class Connect:
             logging.info("[_wait_for_pairing_startup_settled] phone pairing in flight, "
                          "waiting up to %.0fs for a code before closing",
                          self._PAIRING_STARTUP_GRACE_SECONDS)
-            # Blocks the wx main thread with no repaint/accessibility events
-            # pumped — silent dead air looks like a hang and invites a
-            # force-kill mid-wait, the outcome this method exists to
-            # prevent. Reuses the existing "connecting" string.
-            self.main_window.output(self.i18n.t("connecting") or "Conectando...")
             event.wait(timeout=max(0.0, deadline - time.monotonic()))
             return
         if mode == "qrcode":
@@ -1505,26 +1540,65 @@ class Connect:
             logging.info("[_wait_for_pairing_startup_settled] QR pairing in flight, "
                          "waiting up to %.0fs for a QR before closing",
                          self._PAIRING_STARTUP_GRACE_SECONDS)
-            self.main_window.output(self.i18n.t("connecting") or "Conectando...")
             url = f"{self.main_window.wpp_server}:{self.main_window.wpp_port}/api/{token}/status-session"
             headers = self._wpp_headers()
             while time.monotonic() < deadline:
                 try:
                     resp = api_get(url, headers=headers, timeout=5)
                     if resp.status_code in (200, 201):
-                        data = resp.json()
-                        payload = data.get("response") if isinstance(data.get("response"), dict) else data
-                        qr = data.get("qrcode") or (payload or {}).get("qrcode")
-                        status = data.get("status") or (payload or {}).get("status")
-                        if qr or status in ("CONNECTED", "qrReadSuccess", "inChat"):
+                        if pairing_startup_settled(resp.json()):
                             return
                 except Exception:
                     pass
                 time.sleep(self._PAIRING_STARTUP_POLL_SECONDS)
 
+    def _defer_close_for_pairing_startup(self, resume) -> bool:
+        """Run the startup grace OFF the wx thread and re-issue the close.
+
+        Returns True if the caller must back off right now - the wait was
+        handed to a worker thread and `resume` will be invoked on the wx
+        thread once it settles (or the grace runs out). Returns False when
+        there is nothing to wait for, or when the wait has already been done
+        (or refused) once, in which case the caller just proceeds.
+
+        Waiting only ONCE per dialog is the point of the flag: a user who
+        closes again while the grace is running is telling us plainly that
+        they want out, and the second attempt goes straight through.
+        """
+        if getattr(self, "_pairing_startup_wait_done", False):
+            return False
+        if not getattr(self.main_window, "_pairing_in_progress", False):
+            return False
+        self._pairing_startup_wait_done = True
+        # Spoken on the wx thread, before the wait starts, so the dialog is
+        # never silent while it is held open. Reuses the existing key.
+        try:
+            self.main_window.output(self.i18n.t("connecting") or "Conectando...")
+        except Exception:
+            pass
+
+        def _worker():
+            try:
+                self._wait_for_pairing_startup_settled()
+            except Exception:
+                logging.exception("[_defer_close_for_pairing_startup] wait failed")
+            finally:
+                wx.CallAfter(resume)
+
+        threading.Thread(target=_worker, daemon=True,
+                         name="winzapp-pairing-grace").start()
+        return True
+
     def on_dialog_close(self, event):
         logging.info("[on_dialog_close] Dialog close event triggered.")
-        self._wait_for_pairing_startup_settled()
+        if event.CanVeto() and self._defer_close_for_pairing_startup(
+                lambda: self.connection_dial.Close()):
+            # Held open, not frozen: the grace runs on a worker thread and
+            # re-issues this close when it settles. A close that cannot be
+            # vetoed (the app is going down around us) is honored at once -
+            # blocking here would be the freeze this avoids.
+            event.Veto()
+            return
         # Invalidate any in-flight _bg_pairing_flow() — see on_continue().
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
@@ -1542,7 +1616,9 @@ class Connect:
 
     def on_quit_from_connect(self, event):
         logging.info("[on_quit_from_connect] Quit requested from connection dialog.")
-        self._wait_for_pairing_startup_settled()
+        if self._defer_close_for_pairing_startup(
+                lambda: self.on_quit_from_connect(event)):
+            return
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
         if hasattr(self.main_window, 'ws') and self.main_window.ws:

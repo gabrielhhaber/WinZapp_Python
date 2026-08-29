@@ -232,19 +232,33 @@ class TestUnknownMode:
 
 
 class TestWiredIntoTheQuitHandlers:
-    """The gate is only useful if the handlers actually call it, before they
-    tear down the state it reads."""
+    """The gate is only useful if the handlers actually go through it, before
+    they tear down the state it reads.
 
-    def test_on_quit_from_connect_calls_it_before_clearing_pairing_state(self):
+    They now do that via _defer_close_for_pairing_startup(), which runs the
+    wait on a worker thread and re-issues the close afterwards, rather than
+    calling _wait_for_pairing_startup_settled() inline: on the wx main thread
+    that wait is up to 30 seconds of frozen window and total screen-reader
+    silence — see tests/test_pairing_startup_settled_classifier.py.
+    """
+
+    def test_on_quit_from_connect_defers_before_clearing_pairing_state(self):
         import inspect
         source = inspect.getsource(Connect.on_quit_from_connect)
-        wait_at = source.index("_wait_for_pairing_startup_settled")
+        wait_at = source.index("_defer_close_for_pairing_startup")
         cleared_at = source.index("_pairing_in_progress = False")
         assert wait_at < cleared_at
 
-    def test_on_dialog_close_calls_it_before_clearing_pairing_state(self):
+    def test_on_dialog_close_defers_before_clearing_pairing_state(self):
         import inspect
         source = inspect.getsource(Connect.on_dialog_close)
-        wait_at = source.index("_wait_for_pairing_startup_settled")
+        wait_at = source.index("_defer_close_for_pairing_startup")
         cleared_at = source.index("_pairing_in_progress = False")
         assert wait_at < cleared_at
+
+    def test_the_deferral_reads_the_pairing_state_it_gates_on(self):
+        """Moving the wait behind a helper must not lose the precondition:
+        the helper is what now decides there is anything to wait for."""
+        import inspect
+        source = inspect.getsource(Connect._defer_close_for_pairing_startup)
+        assert "_pairing_in_progress" in source
