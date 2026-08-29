@@ -445,6 +445,8 @@ class MediaViewerDialog(wx.Dialog):
         def _load():
             try:
                 result = loader()
+                if getattr(self, "_cleaned_up", False) or not bool(self):
+                    return
                 if isinstance(result, (bytes, bytearray)):
                     suffix = str(item.get("extension") or "")
                     tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
@@ -457,13 +459,23 @@ class MediaViewerDialog(wx.Dialog):
                     owned = bool(item.get("owned_path", False))
                 else:
                     raise ValueError("media loader returned no usable data")
+                if getattr(self, "_cleaned_up", False) or not bool(self):
+                    if owned:
+                        self._safe_unlink(path2)
+                    return
                 wx.CallAfter(self._on_loaded, generation, self.index, item, path2, owned)
             except Exception:
+                if getattr(self, "_cleaned_up", False) or not bool(self):
+                    return
                 wx.CallAfter(self._on_load_failed, generation)
 
         threading.Thread(target=_load, daemon=True).start()
 
     def _on_loaded(self, generation: int, index: int, item: dict, path: str, owned: bool):
+        if getattr(self, "_cleaned_up", False) or not bool(self):
+            if owned:
+                self._safe_unlink(path)
+            return
         if generation != self._loading_generation or index != self.index:
             if owned:
                 self._safe_unlink(path)
@@ -471,13 +483,21 @@ class MediaViewerDialog(wx.Dialog):
         self._loaded_paths[index] = path
         if owned:
             self._owned_paths.add(path)
-        self._loading_label.Hide()
-        self._display_loaded_path(item, path)
+        try:
+            self._loading_label.Hide()
+            self._display_loaded_path(item, path)
+        except (RuntimeError, wx.wxAssertionError, Exception) as exc:
+            pass
 
     def _on_load_failed(self, generation: int):
+        if getattr(self, "_cleaned_up", False) or not bool(self):
+            return
         if generation != self._loading_generation:
             return
-        self._show_error()
+        try:
+            self._show_error()
+        except (RuntimeError, wx.wxAssertionError, Exception) as exc:
+            pass
 
     def _display_loaded_path(self, item: dict, path: str):
         self._current_path = path
@@ -611,19 +631,34 @@ class MediaViewerDialog(wx.Dialog):
         self._speed_btn.SetLabel(self.i18n.t("media_viewer_speed").format(speed=f"{speed:g}"))
 
     def _on_progress_timer(self, event):
-        if not self._player.is_playing:
-            self._progress_timer.Stop()
-            self._play_btn.SetLabel(self.i18n.t("media_viewer_play"))
+        if getattr(self, "_cleaned_up", False) or not bool(self):
+            try:
+                self._progress_timer.Stop()
+            except Exception:
+                pass
             return
-        pos = self._player.get_position()
-        length = self._player.get_length()
-        if length > 0 and not self._slider_dragging:
-            value = int(max(0, min(self.SLIDER_MAX, pos * self.SLIDER_MAX / length)))
-            self._position_slider.SetValue(value)
-        self._time_label.SetLabel(
-            f"{self._format_time(self._player.bytes_to_seconds(pos))} / "
-            f"{self._format_time(self._player.bytes_to_seconds(length))}"
-        )
+        if not self._player.is_playing:
+            try:
+                self._progress_timer.Stop()
+            except Exception:
+                pass
+            try:
+                self._play_btn.SetLabel(self.i18n.t("media_viewer_play"))
+            except Exception:
+                pass
+            return
+        try:
+            pos = self._player.get_position()
+            length = self._player.get_length()
+            if length > 0 and not self._slider_dragging:
+                value = int(max(0, min(self.SLIDER_MAX, pos * self.SLIDER_MAX / length)))
+                self._position_slider.SetValue(value)
+            self._time_label.SetLabel(
+                f"{self._format_time(self._player.bytes_to_seconds(pos))} / "
+                f"{self._format_time(self._player.bytes_to_seconds(length))}"
+            )
+        except (RuntimeError, wx.wxAssertionError, Exception):
+            pass
 
     @staticmethod
     def _format_time(seconds: float) -> str:

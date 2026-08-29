@@ -449,6 +449,7 @@ class TestOnFrameSizeCallback:
         # 400x100 into 320x240: ratio = min(320/400, 240/100) = 0.8 -> (320, 80).
         frame = _real_jpeg_bytes_sized(wx_app, 400, 100)
         player._frame_queue.put(frame)
+        player.is_playing = True
 
         player._on_timer(None)
 
@@ -462,6 +463,7 @@ class TestOnFrameSizeCallback:
         player = _make_player(wx_app, on_frame_size=lambda w, h: calls.append((w, h)), box_size=(320, 240))
         frame = _real_jpeg_bytes_sized(wx_app, 40, 30)
         player._frame_queue.put(frame)
+        player.is_playing = True
 
         player._on_timer(None)
 
@@ -476,6 +478,7 @@ class TestOnFrameSizeCallback:
         frame = _real_jpeg_bytes_sized(wx_app, 400, 100)
         player._frame_queue.put(frame)
         player._frame_queue.put(frame)
+        player.is_playing = True
 
         player._on_timer(None)
         player._on_timer(None)
@@ -500,6 +503,7 @@ class TestOnFrameSizeCallback:
         player = _make_player(wx_app, on_frame_size=lambda w, h: None, box_size=(320, 240))
         frame = _real_jpeg_bytes_sized(wx_app, 400, 100)
         player._frame_queue.put(frame)
+        player.is_playing = True
         player._on_timer(None)
         assert player._box_sized is True
 

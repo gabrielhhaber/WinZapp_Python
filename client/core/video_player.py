@@ -316,7 +316,10 @@ class VideoPlayer:
         if nothing is playing."""
         self._stop_event.set()
         self._eof_reached = False
-        self._timer.Stop()
+        try:
+            self._timer.Stop()
+        except Exception:
+            pass
         # Tempo FX (when active) owns the audio output channel — stop it
         # before the decode stream it wraps, mirroring ConversationsPanel's
         # own _stop_audio().
@@ -445,7 +448,18 @@ class VideoPlayer:
         )
         self._frame_thread.start()
         if not self.is_paused:
-            wx.CallAfter(self._timer.Start, self._timer_interval())
+            def _safe_start_timer():
+                if (
+                    not self.is_paused
+                    and not self._stop_event.is_set()
+                    and getattr(self, "bitmap_ctrl", None)
+                    and bool(self.bitmap_ctrl)
+                ):
+                    try:
+                        self._timer.Start(self._timer_interval())
+                    except Exception:
+                        pass
+            wx.CallAfter(_safe_start_timer)
 
     def _restart_video_pipe(self, seconds: float):
         """Replace only the ffmpeg picture pipe after an audio seek.
@@ -504,7 +518,10 @@ class VideoPlayer:
 
     def _on_playback_finished(self):
         self.is_playing = False
-        self._timer.Stop()
+        try:
+            self._timer.Stop()
+        except Exception:
+            pass
 
     def _audio_still_active(self) -> bool:
         """True if the BASS channel reports anything other than fully
@@ -526,6 +543,12 @@ class VideoPlayer:
     # ── Internals: frame rendering (UI thread, via wx.Timer) ────────────
 
     def _on_timer(self, event):
+        if not self.is_playing or self._stop_event.is_set() or not getattr(self, "bitmap_ctrl", None) or not bool(self.bitmap_ctrl):
+            try:
+                self._timer.Stop()
+            except Exception:
+                pass
+            return
         try:
             frame_bytes = self._frame_queue.get_nowait()
         except queue.Empty:
@@ -547,6 +570,9 @@ class VideoPlayer:
                 self._on_playback_finished()
             return
         try:
+            if not getattr(self, "bitmap_ctrl", None) or not bool(self.bitmap_ctrl):
+                self.stop()
+                return
             img = wx.Image(io.BytesIO(frame_bytes), wx.BITMAP_TYPE_JPEG)
             if img.IsOk():
                 # Scale to fit the control instead of letting wx clip the
@@ -578,9 +604,10 @@ class VideoPlayer:
                             self._on_frame_size(shown_w, shown_h)
                         except Exception:
                             pass
-                self.bitmap_ctrl.SetBitmap(wx.Bitmap(img))
-                self.bitmap_ctrl.Refresh()
-        except Exception:
+                if bool(self.bitmap_ctrl):
+                    self.bitmap_ctrl.SetBitmap(wx.Bitmap(img))
+                    self.bitmap_ctrl.Refresh()
+        except (RuntimeError, wx.wxAssertionError, Exception):
             pass
 
     # ── Internals: pause/resume ──────────────────────────────────────────

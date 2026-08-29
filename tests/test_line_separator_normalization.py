@@ -97,7 +97,6 @@ class _FakeMentionPanel:
 class _Stub:
     _on_text_field_paste = ConversationsPanel._on_text_field_paste
     _paste_clipboard_as_attachment = ConversationsPanel._paste_clipboard_as_attachment
-    _EXT_TYPE_MAP = ConversationsPanel._EXT_TYPE_MAP
 
     def __init__(self, frame):
         self.message_field = wx.TextCtrl(

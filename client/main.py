@@ -47,6 +47,13 @@ from core.sound_system import (
 from core.audio_devices import find_input_device_index, test_input_device
 from core.i18n import I18n
 from core.sync_contracts import observe_payload
+from core.incremental_sync import (
+    chat_message_records as _chat_message_records,
+    chat_sync_marker as _chat_sync_marker,
+    classify_chat_sync as _classify_chat_sync,
+    messages_overlap as _messages_overlap,
+    next_incremental_limit as _next_incremental_limit,
+)
 from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
 from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults
@@ -526,12 +533,19 @@ def _discount_non_countable_unread(records: list, unread_count: int) -> int:
     return max(0, unread_count - discount)
 
 
+
 # Media the server could not produce because WhatsApp Web no longer holds that
 # message, counted for the summary _report_media_fetch_failure() emits.
 _media_not_in_store_lock = threading.Lock()
 _media_not_in_store = 0
 # How often the running total is repeated once the first one has been reported.
 _MEDIA_MISSING_LOG_EVERY = 25
+
+# How many consecutive rounds an incremental delta may come back empty for a
+# chat whose activity marker moved before the marker is accepted anyway. See
+# sync_chat_messages(): a bump with nothing fetchable behind it is a permanent
+# state for some chats, so this has to terminate.
+_MAX_EMPTY_DELTA_RETRIES = 3
 
 
 def _report_media_fetch_failure(msg_id: str, status_code: int, body: str) -> bool:
@@ -1185,6 +1199,12 @@ class MainWindow(wx.Frame):
         # expresses: _sync_completed goes back to False on an incomplete sync
         # and _initial_sync_running is cleared as soon as the thread exits.
         self._sync_ever_started = False
+        # Explicit full-sync latch. Ordinary startup/reconnect rounds use the
+        # local database as their baseline and fetch messages only for chats
+        # whose server activity changed. F5/repair paths set this True and it
+        # remains latched until a complete server-backed round succeeds.
+        self._force_full_sync = False
+        self._last_sync_state = {}
         # High-water mark of what list-chats has answered with this session,
         # across sync rounds. Session-scoped on purpose — see the evidence
         # comment in _run_sync()'s retry loop: it is the one number that
@@ -1205,8 +1225,21 @@ class MainWindow(wx.Frame):
         # says so out loud instead of logging the same line as a clean one.
         self._sync_failures_lock = threading.Lock()
         self._sync_failed_chats = set()
+        # Chats whose latest-message query failed remain durable retry targets.
+        # This is separate from short-history backfill: a warm chat can already
+        # hold hundreds of local messages and still miss the newest one if the
+        # one delta request that should fetch it times out.
+        self._message_retry_jids = set()
+        # Chats whose incremental delta came back 200-but-empty this round.
+        # Deliberately NOT the same thing as a failed fetch: the server
+        # answered, so there is no I/O problem to report and the run is still a
+        # clean one — see sync_chat_messages() for why an empty delta is worth
+        # one more look anyway, and why that look is bounded.
+        self._delta_unsatisfied_chats = set()
+        self._delta_unsatisfied_attempts = {}
         self._chats_awaiting_messages = set()
         self._partial_history_counts = {}
+        self._history_gap_jids = set()
         self.contacts = {}
         # Presence cache: maps JID → {lastKnownPresence, lastSeen}. Must be
         # initialized here (not lazily in _build_lid_to_phone_cache, which only
@@ -3803,6 +3836,11 @@ class MainWindow(wx.Frame):
             ui_ready.wait(timeout=5)
 
             # Wipe the local database and downloaded media/voice-message caches.
+            # F5 is the explicit escape hatch from the incremental strategy: the
+            # user asked to reconstruct every chat from WhatsApp, so keep full
+            # mode latched across retries until one complete round succeeds.
+            self._force_full_sync = True
+            self._persist_full_sync_pending("manual-resync")
             self._sync_completed = False
             # A user-requested resync gets a fresh automatic-retry budget, even if
             # earlier syncs this session already burned through it.
@@ -8040,6 +8078,7 @@ class MainWindow(wx.Frame):
             if not self.background_mode:
                 wx.CallAfter(wx.MessageBox, f"{msg}\n{format_exc()}", title, wx.OK | wx.ICON_WARNING)
 
+
         self._migrate_settings()
 
         # Backfill any missing default keys/sections so settings are always
@@ -8866,6 +8905,41 @@ class MainWindow(wx.Frame):
         else:
             self._older_requested_chats = {}
 
+        # Short/provisional history is also durable. An incremental startup
+        # must remember that a chat still owed us history in the previous
+        # session; otherwise a restart could turn an unfinished backfill into
+        # an apparently healthy unchanged chat and never query it again.
+        _pending_backfill = self.db.get_metadata_json("backfill_pending_v1", {})
+        if isinstance(_pending_backfill, dict):
+            restored_counts = {
+                str(jid): max(0, int(count or 0))
+                for jid, count in _pending_backfill.items()
+                if jid
+            }
+            self._chats_awaiting_messages = set(restored_counts)
+            self._partial_history_counts = restored_counts
+            if restored_counts:
+                logging.info(
+                    "[prepare_sync] restored %d pending history-repair chat(s)",
+                    len(restored_counts),
+                )
+
+        _message_retry = self.db.get_metadata_json("message_retry_jids_v1", [])
+        self._message_retry_jids = (
+            {self._normalize_jid(str(jid)) for jid in _message_retry if jid}
+            if isinstance(_message_retry, list) else set()
+        )
+        _history_gaps = self.db.get_metadata_json("history_gap_jids_v1", [])
+        self._history_gap_jids = (
+            {self._normalize_jid(str(jid)) for jid in _history_gaps if jid}
+            if isinstance(_history_gaps, list) else set()
+        )
+        if self._message_retry_jids or self._history_gap_jids:
+            logging.info(
+                "[prepare_sync] restored repair state: %d failed-message retry, %d history gap(s)",
+                len(self._message_retry_jids), len(self._history_gap_jids),
+            )
+
         # 7. my_jid / my_lid — previously only ever set at runtime by an
         # online host-device/self-LID lookup (check_wa_connection_http(),
         # resolve_self_lid()), never persisted or restored. _is_self_jid()
@@ -8891,6 +8965,16 @@ class MainWindow(wx.Frame):
             k: int(v or 0)
             for k, v in dict(self.db.get_metadata_json("locally_read_at", {})).items()
         }
+
+        # Durable diagnostic checkpoint for the last successful server-backed
+        # refresh. The chat/message records themselves are the incremental
+        # baseline; this small record explains in logs/UI what the last round
+        # did without duplicating per-chat state into a second database model.
+        sync_state = self.db.get_metadata_json("sync_state_v1", {})
+        self._last_sync_state = dict(sync_state) if isinstance(sync_state, dict) else {}
+        if self._last_sync_state.get("force_full_pending"):
+            self._force_full_sync = True
+            logging.info("[prepare_sync] restoring pending full-sync recovery latch")
 
         self._group_send_perms = {
             k: v
@@ -10291,23 +10375,52 @@ class MainWindow(wx.Frame):
         logging.info("[start_sync] WhatsApp connected. Proceeding to sync...")
         time.sleep(1)
 
-        # Bundle the title/tray text, sound and speech for this stage into a
-        # single wx.CallAfter so they can never visibly fall out of step.
-        # Previously the sound and speech ran immediately on this background
-        # thread while _set_status() was merely queued via its own separate
-        # wx.CallAfter — the user heard "sincronizando" and the sound played
-        # right away, but the title kept showing whatever the previous stage
-        # was (e.g. "preparando-se para sincronizar") until wx's event loop
-        # got around to draining that queued call, which could visibly lag
-        # by a few seconds. Doing all three in one callback guarantees they
-        # land in the same UI-thread tick.
-        def _announce_synchronizing():
-            self._set_status(self.i18n.t("synchronizing"))
+        # Capture the warm local cache BEFORE list-chats updates its timestamps
+        # and lastReceivedKey fields. Ordinary startup/reconnect rounds compare
+        # the server snapshot against this baseline and query messages only for
+        # chats that changed. A genuinely empty cache (first pairing/F5) latches
+        # full mode until a complete round succeeds.
+        has_local_chats = len(self.chats) > 0
+        if not has_local_chats:
+            self._force_full_sync = True
+            self._persist_full_sync_pending("empty-local-cache")
+        force_full = bool(getattr(self, "_force_full_sync", False))
+        sync_baseline = self._capture_chat_sync_baseline()
+        sync_mode = "full" if force_full else "incremental"
+        full_target_count = 0
+        incremental_target_count = 0
+        skipped_target_count = 0
+        media_scope_jids = None if force_full else set()
+        logging.info(
+            "[start_sync] mode=%s local_chats=%d last_success=%s",
+            sync_mode, len(self.chats),
+            getattr(self, "_last_sync_state", {}).get("completed_at", "never"),
+        )
+
+        # A heavy full rebuild keeps the historical "Sincronizando" sound and
+        # announcement. Warm-cache rounds are intentionally quieter and use a
+        # distinct status: the user can tell the client is refreshing state
+        # without being told a full synchronization started on every launch.
+        def _announce_sync_stage():
+            if force_full:
+                self._set_status(self.i18n.t("synchronizing"))
+                if self._announce_sync_events_enabled():
+                    self.synchronizing_sound.play()
+                    if not self.background_mode:
+                        self.output(self.i18n.t("synchronization_started"), interrupt=True)
+                return
+            self._set_status(self.i18n.t("updating_conversations"))
             if self._announce_sync_events_enabled():
                 self.synchronizing_sound.play()
                 if not self.background_mode:
-                    self.output(self.i18n.t("synchronization_started"), interrupt=True)
-        wx.CallAfter(_announce_synchronizing)
+                    announce_start_tts = bool(
+                        self.settings.get("speech_content", {}).get(
+                            "announce_conversations_update_start", True
+                        )
+                    )
+                    if announce_start_tts:
+                        self.output(self.i18n.t("conversations_update_started"), interrupt=False)
+        wx.CallAfter(_announce_sync_stage)
 
         # After first pairing the API may need a few seconds to populate chats.
         # Retry only when starting cold (no local cache); if we already have
@@ -10319,7 +10432,6 @@ class MainWindow(wx.Frame):
         # post-sync retry scheduled further down picks it up again later
         # without blocking the UI.
         _CHAT_MAX_FAILURES = 2
-        has_local_chats = len(self.chats) > 0
         local_chat_count = len(self.chats)
         chat_list_ok = False   # did list-chats ever actually answer?
         chat_list_settled = False  # …and did it answer with a stable snapshot?
@@ -10390,7 +10502,8 @@ class MainWindow(wx.Frame):
             # flag. prune_stale keeps the one thing persist_full also gated,
             # the phantom-chat sweep, which is a plain in-memory dict scan.
             result   = self.get_remote_chats(dict(self.chats), persist_full=False,
-                                             prune_stale=True, notify_errors=False)
+                                             prune_stale=True, notify_errors=False,
+                                             defer_chat_save=True)
             if result is None:
                 if getattr(self, "_last_chat_fetch_disconnected", False):
                     # WhatsApp went down mid-sync: stop immediately, stay
@@ -10662,7 +10775,7 @@ class MainWindow(wx.Frame):
         # of every message in every chat would just reproduce the same cache.
         wx.CallAfter(self.set_chats)
 
-        # ── Phase 1: sync all messages ────────────────────────────────────
+        # ── Phase 1: sync only chats that need message I/O ────────────────
         if self._should_abort_sync_for_offline():
             logging.info("[start_sync] Aborting sync before phase 1: offline mode activated mid-sync.")
             self._sync_completed = False
@@ -10675,71 +10788,121 @@ class MainWindow(wx.Frame):
         # decoded, and _note_backfill_state() uses the pending-chunk flag to
         # decide whether a chat that came back short is worth re-querying while
         # the rest of its history is still landing.
-        unblock_result = self.unblock_history_sync()
-        if self._recent_history_needs_wait(unblock_result):
-            if not self.wait_for_restarted_history_sync():
-                if getattr(self, "_history_wait_outcome", "") == "session_gone":
+        if force_full:
+            unblock_result = self.unblock_history_sync()
+            if self._recent_history_needs_wait(unblock_result):
+                if not self.wait_for_restarted_history_sync():
+                    if getattr(self, "_history_wait_outcome", "") == "session_gone":
+                        logging.warning(
+                            "[start_sync] The session went away during the RECENT "
+                            "history wait; deferring the message phase — there is "
+                            "nothing left to query against."
+                        )
+                        self._sync_completed = False
+                        return
+                    # Budget exhausted while the phone is still pushing history.
+                    #
+                    # This used to `return` here too, and that is the whole of the
+                    # "it syncs nothing and keeps re-announcing Sincronizando"
+                    # report: a first pairing on a large account does not finish
+                    # its RECENT pass inside the wait, so every round waited the
+                    # full budget, threw the round away, and the health check
+                    # started another one — with sync_remote_chats() never running
+                    # once. Nothing was fetched, and _resolve_missing_group_names()
+                    # (which lives past the message phase) never ran either, so
+                    # groups fetched with ignoreGroupMetadata stayed unnamed.
+                    #
+                    # Proceed instead, which is what this code did before the wait
+                    # existed at all: get-messages returns whatever WhatsApp Web
+                    # has decoded SO FAR, and _history_still_landing tells
+                    # _note_backfill_state() those short answers are provisional,
+                    # so each chat is re-queried as the rest of its history lands.
+                    # A partial sync that fills in beats an empty one that repeats.
                     logging.warning(
-                        "[start_sync] The session went away during the RECENT "
-                        "history wait; deferring the message phase — there is "
-                        "nothing left to query against."
+                        "[start_sync] RECENT history did not finish inside the wait — "
+                        "running the message phase anyway against what has landed so "
+                        "far; short chats will be re-queried as the rest arrives."
                     )
-                    self._sync_completed = False
-                    return
-                # Budget exhausted while the phone is still pushing history.
+                    self._history_still_landing = True
+                # list-chats was captured before the phone finished its transfer.
+                # Refresh it now so chats delivered during the wait are part of
+                # this same sync instead of waiting for a later health-check round.
                 #
-                # This used to `return` here too, and that is the whole of the
-                # "it syncs nothing and keeps re-announcing Sincronizando"
-                # report: a first pairing on a large account does not finish
-                # its RECENT pass inside the wait, so every round waited the
-                # full budget, threw the round away, and the health check
-                # started another one — with sync_remote_chats() never running
-                # once. Nothing was fetched, and _resolve_missing_group_names()
-                # (which lives past the message phase) never ran either, so
-                # groups fetched with ignoreGroupMetadata stayed unnamed.
+                # Reached on both outcomes that go on to sync — the RECENT pass
+                # completing, and the budget running out while it is still
+                # arriving — since chats can have landed during the wait either
+                # way.
                 #
-                # Proceed instead, which is what this code did before the wait
-                # existed at all: get-messages returns whatever WhatsApp Web
-                # has decoded SO FAR, and _history_still_landing tells
-                # _note_backfill_state() those short answers are provisional,
-                # so each chat is re-queried as the rest of its history lands.
-                # A partial sync that fills in beats an empty one that repeats.
-                logging.warning(
-                    "[start_sync] RECENT history did not finish inside the wait — "
-                    "running the message phase anyway against what has landed so "
-                    "far; short chats will be re-queried as the rest arrives."
-                )
-                self._history_still_landing = True
-            # list-chats was captured before the phone finished its transfer.
-            # Refresh it now so chats delivered during the wait are part of
-            # this same sync instead of waiting for a later health-check round.
-            #
-            # Reached on both outcomes that go on to sync — the RECENT pass
-            # completing, and the budget running out while it is still
-            # arriving — since chats can have landed during the wait either
-            # way.
-            #
-            # get_remote_chats() takes the dict to merge into and *returns*
-            # the merged result; it does not mutate self.chats. Calling it
-            # bare raised TypeError on every single run that got this far,
-            # which _run_sync()'s own `except Exception` then swallowed into
-            # one "[start_sync] Unhandled error during sync" line — back when
-            # this was the wait's only non-deferring exit, that meant
-            # sync_remote_chats() could not run at all on any account whose
-            # RECENT pass was still incomplete at sync time.
-            # None means "the chat list is unknown", never "there are no
-            # chats" — keep what we already had in that case.
-            refreshed = self.get_remote_chats(dict(self.chats), persist_full=False,
-                                              notify_errors=False)
-            if refreshed is not None:
-                self.chats = self.normalize_chats(refreshed)
-                wx.CallAfter(self.set_chats)
-        self.refresh_history_still_landing(context="before message sync")
-        _sync_phase1_started = time.time()
-        self.sync_remote_chats()
+                # get_remote_chats() takes the dict to merge into and *returns*
+                # the merged result; it does not mutate self.chats. Calling it
+                # bare raised TypeError on every single run that got this far,
+                # which _run_sync()'s own `except Exception` then swallowed into
+                # one "[start_sync] Unhandled error during sync" line — back when
+                # this was the wait's only non-deferring exit, that meant
+                # sync_remote_chats() could not run at all on any account whose
+                # RECENT pass was still incomplete at sync time.
+                # None means "the chat list is unknown", never "there are no
+                # chats" — keep what we already had in that case.
+                refreshed = self.get_remote_chats(dict(self.chats), persist_full=False,
+                                                  notify_errors=False,
+                                                  defer_chat_save=True)
+                if refreshed is not None:
+                    self.chats = self.normalize_chats(refreshed)
+                    wx.CallAfter(self.set_chats)
+        else:
+            self._history_still_landing = False
+            logging.info(
+                "[start_sync] Warm-cache incremental round: skipping RECENT "
+                "history restart/wait; changed chats will widen on demand."
+            )
+        if force_full:
+            self.refresh_history_still_landing(context="before message sync")
+
+        # Decide message I/O only after the final chat-list snapshot (and, for
+        # a fresh pairing, after the RECENT wait/refresh) so chats that arrived
+        # during setup are included in this same round. A broken ChatStore is
+        # a recovery condition: get-messages still works, so query every known
+        # chat rather than trusting absent activity markers.
+        effective_full = bool(force_full or store_broken)
+        full_targets, incremental_targets, skipped_target_count, target_reasons = (
+            self._plan_message_sync(sync_baseline, force_full=effective_full)
+        )
+        full_target_count = len(full_targets)
+        incremental_target_count = len(incremental_targets)
+        if not effective_full:
+            media_scope_jids = {
+                self._normalize_jid(chat.get("remoteJid", ""))
+                for chat in full_targets + incremental_targets
+                if isinstance(chat, dict) and chat.get("remoteJid")
+            }
+        else:
+            media_scope_jids = None
+
+        reason_counts = {}
+        for reason in target_reasons.values():
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
         logging.info(
-            "[start_sync] sync_remote_chats() finished in %.1fs",
-            time.time() - _sync_phase1_started,
+            "[start_sync] Message plan: full=%d incremental=%d unchanged=%d reasons=%s",
+            full_target_count, incremental_target_count, skipped_target_count,
+            reason_counts,
+        )
+
+        _sync_phase1_started = time.time()
+        message_failures = set()
+        if full_targets:
+            message_failures.update(
+                self.sync_remote_chats(full_targets, incremental=False) or set()
+            )
+        if incremental_targets:
+            message_failures.update(
+                self.sync_remote_chats(incremental_targets, incremental=True) or set()
+            )
+        message_sync_ok = not message_failures
+        logging.info(
+            "[start_sync] message phase finished in %.1fs (%d full, %d incremental, "
+            "%d skipped, %d failed)",
+            time.time() - _sync_phase1_started, full_target_count,
+            incremental_target_count, skipped_target_count, len(message_failures),
         )
 
         # After messages are loaded, remoteJidAlt bridge fields are available
@@ -10775,7 +10938,7 @@ class MainWindow(wx.Frame):
         # settles it right after the message sync, while messages_set_completed
         # is already True so server-reported counts are accepted as truth.
         refreshed = self.get_remote_chats(dict(self.chats), persist_full=False,
-                                          notify_errors=False)
+                                          notify_errors=False, defer_chat_save=True)
         if refreshed is not None:
             self.chats = refreshed
 
@@ -10816,11 +10979,20 @@ class MainWindow(wx.Frame):
             # server was still filling in is precisely what made the
             # 3-or-4-conversations failure look like a success, right before
             # the sync restarted itself.
-            if chat_list_ok and chat_list_settled:
-                if self._announce_sync_events_enabled():
-                    self.sync_complete_sound.play()
+            if (chat_list_ok and chat_list_settled and message_sync_ok
+                    and self._announce_sync_events_enabled()):
+                self.sync_complete_sound.play()
+                if effective_full:
                     if not self.background_mode:
                         self.output(self.i18n.t("sync_complete"))
+                elif not self.background_mode:
+                    announce_tts = bool(
+                        self.settings.get("speech_content", {}).get(
+                            "announce_conversations_update_complete", True
+                        )
+                    )
+                    if announce_tts:
+                        self.output(self.i18n.t("conversations_update_complete"), interrupt=False)
         wx.CallAfter(_announce_messages_synced)
 
         # Mark sync as done for this session so late-arriving messages.set
@@ -10838,9 +11010,19 @@ class MainWindow(wx.Frame):
         # `chat_list_settled` is required for the same reason: a snapshot the
         # server was still growing is a partial account, not a finished sync.
         if (len(self.chats) > 0 and getattr(self, "_wa_connected", False)
-                and chat_list_ok and chat_list_settled):
+                and chat_list_ok and chat_list_settled and message_sync_ok):
             self._sync_completed = True
             self._sync_retry_count = 0
+            self._force_full_sync = False
+            self._persist_successful_sync_state(
+                "full" if effective_full else "incremental",
+                full_target_count, incremental_target_count, skipped_target_count,
+            )
+            # list-chats was deliberately kept memory-only until every selected
+            # message delta succeeded. Commit the settled snapshot now; a crash
+            # before this point therefore leaves the previous on-disk activity
+            # marker intact and the next launch will select the chat again.
+            self._schedule_save()
         else:
             self._sync_completed = False
             self._sync_retry_count = getattr(self, "_sync_retry_count", 0) + 1
@@ -10853,9 +11035,11 @@ class MainWindow(wx.Frame):
             # every 30 s for the whole session and calls trigger_sync_if_needed(),
             # which only fires while connected and honours a growing cooldown.
             logging.info(
-                "[start_sync] Sync incomplete (chat_list_ok=%s, settled=%s, chats=%d) — "
-                "the health checker will retry it (attempt %d so far).",
-                chat_list_ok, chat_list_settled, len(self.chats), self._sync_retry_count,
+                "[start_sync] Sync incomplete (chat_list_ok=%s, settled=%s, "
+                "message_sync_ok=%s, chats=%d) — the health checker will retry it "
+                "(attempt %d so far).",
+                chat_list_ok, chat_list_settled, message_sync_ok,
+                len(self.chats), self._sync_retry_count,
             )
 
         # Start the background chat/contact poller before the media phase, not
@@ -10925,6 +11109,11 @@ class MainWindow(wx.Frame):
         # applies the day/size caps from the same settings tab per message.
         if not self.settings.get("storage", {}).get("auto_download_media", True):
             logging.info("[start_sync] Phase 2 media auto-download skipped (disabled in settings).")
+        elif media_scope_jids is not None and not media_scope_jids:
+            logging.info(
+                "[start_sync] Phase 2 media auto-download skipped — warm refresh "
+                "found no chats with message changes."
+            )
         elif getattr(self, "_history_still_landing", False):
             logging.info(
                 "[start_sync] Phase 2 media auto-download deferred — "
@@ -10959,9 +11148,17 @@ class MainWindow(wx.Frame):
                 _MEDIA_TYPES = {"audioMessage", "documentMessage", "imageMessage",
                                 "stickerMessage", "videoMessage",
                                 "audio", "ptt", "document", "doc", "image", "sticker", "video"}
+                media_chats = (
+                    list(self.chats.values())
+                    if media_scope_jids is None
+                    else [
+                        chat for key, chat in self.chats.items()
+                        if self._normalize_jid(chat.get("remoteJid") or key) in media_scope_jids
+                    ]
+                )
                 has_media = any(
                     msg.get("messageType") in _MEDIA_TYPES or msg.get("type") in _MEDIA_TYPES
-                    for chat in self.chats.values()
+                    for chat in media_chats
                     for msg in chat.get("messages", {}).get("messages", {}).get("records", [])
                 )
                 if has_media:
@@ -10970,7 +11167,7 @@ class MainWindow(wx.Frame):
                         announced = True
                         wx.CallAfter(self.output, self.i18n.t("sync_media_started"))
 
-                count = self.sync_media_for_all_chats()
+                count = self.sync_media_for_all_chats(media_scope_jids)
                 logging.info("[start_sync] Phase 2 downloaded %d media file(s).", count)
                 # Announce the outcome iff the start was announced, so the two
                 # always come in pairs — a screen-reader user left with a
@@ -11152,6 +11349,15 @@ class MainWindow(wx.Frame):
         with self._backfill_state_guard():
             self._chats_awaiting_messages.clear()
             self._partial_history_counts.clear()
+            self._history_gap_jids.clear()
+        with self._sync_failures_lock:
+            self._message_retry_jids.clear()
+            self._sync_failed_chats.clear()
+            self._delta_unsatisfied_chats.clear()
+            self._delta_unsatisfied_attempts.clear()
+        self._persist_backfill_pending_state()
+        self._persist_history_gap_jids()
+        self._persist_message_retry_jids()
         self.chats = {}
         self.contacts = {}
         self._status_updates = {}
@@ -11304,7 +11510,7 @@ class MainWindow(wx.Frame):
         return parts[1] if len(parts) > 1 else ""
 
     def get_remote_chats(self, chats, persist_full: bool = True, notify_errors: bool = True,
-                         prune_stale: "bool | None" = None):
+                         prune_stale: "bool | None" = None, defer_chat_save: bool = False):
         """Fetch/merge the remote chat list into `chats`.
 
         Returns the merged dict on success and **None** when every attempt
@@ -11333,6 +11539,14 @@ class MainWindow(wx.Frame):
         in the database — so the initial sync's retry loop needs the first
         without paying for the second. Defaults to `persist_full`, preserving
         the previous behaviour for every caller that does not pass it.
+
+        `defer_chat_save` keeps a fresh list-chats snapshot in memory until its
+        corresponding message delta has succeeded. This matters for incremental
+        sync: persisting a newer `t`/lastReceivedKey before get-messages succeeds
+        creates a crash window where the next launch sees the new marker as its
+        baseline and can incorrectly skip the missing message. Startup and the
+        periodic delta poll use this mode, then persist the snapshot only after
+        the message phase is known-good.
         """
         if prune_stale is None:
             prune_stale = persist_full
@@ -11646,6 +11860,8 @@ class MainWindow(wx.Frame):
                         local_activity_t = int(chats[jid].get("t", 0) or 0)
                         for k, v in chat.items():
                             if k in ("messages", "remoteJid"):
+                                continue
+                            if k == "lastMessage" and not v:
                                 continue
                             if k == "pushName" and jid.endswith("@g.us"):
                                 continue
@@ -12002,7 +12218,7 @@ class MainWindow(wx.Frame):
 
                 if persist_full:
                     self.save_data(chats, self.contacts)
-                else:
+                elif not defer_chat_save:
                     self._schedule_save()
                 return chats
             except Exception as e:
@@ -13201,10 +13417,63 @@ class MainWindow(wx.Frame):
                         elapsed = 0
                         self.get_remote_contacts()
                         self.get_block_list()
+                    baseline = self._capture_chat_sync_baseline()
                     result = self.get_remote_chats(dict(self.chats), persist_full=False,
-                                                   notify_errors=False)
+                                                   notify_errors=False, defer_chat_save=True)
                     if result is not None:
                         self.chats = result
+                        full_targets, incremental_targets, skipped, reasons = (
+                            self._plan_message_sync(
+                                baseline, force_full=False, include_repairs=False
+                            )
+                        )
+                        message_failures = set()
+                        if full_targets or incremental_targets:
+                            logging.info(
+                                "[periodic_contacts_sync] message delta: %d full/new, "
+                                "%d incremental, %d unchanged.",
+                                len(full_targets), len(incremental_targets), skipped,
+                            )
+                            if full_targets:
+                                message_failures.update(
+                                    self.sync_remote_chats(full_targets, incremental=False) or set()
+                                )
+                            if incremental_targets:
+                                message_failures.update(
+                                    self.sync_remote_chats(incremental_targets, incremental=True) or set()
+                                )
+
+                            # A missed WebSocket media message recovered by this
+                            # safety poll should behave like a live one. Keep the
+                            # scan scoped to the chats we just changed and silent
+                            # so the 60-second fallback never turns into a global
+                            # media rescan or another visible synchronization.
+                            changed_jids = {
+                                self._normalize_jid(chat.get("remoteJid", ""))
+                                for chat in full_targets + incremental_targets
+                                if isinstance(chat, dict) and chat.get("remoteJid")
+                            }
+                            changed_jids.difference_update(message_failures)
+                            if (changed_jids
+                                    and self.settings.get("storage", {}).get(
+                                        "auto_download_media", True)
+                                    and not getattr(self, "_media_sync_running", False)
+                                    and not getattr(self, "_history_still_landing", False)):
+                                self.sync_media_for_all_chats(changed_jids)
+
+                        if not message_failures:
+                            # Persist unread/pin/archive/activity metadata only
+                            # after every required message delta succeeded. If a
+                            # target failed, keeping the old DB marker guarantees
+                            # the next process can rediscover the change even if it
+                            # dies before the in-memory retry latch is written.
+                            self._schedule_save()
+                        else:
+                            logging.warning(
+                                "[periodic_contacts_sync] Deferring chat-list metadata save; "
+                                "%d message delta(s) still need retry.",
+                                len(message_failures),
+                            )
                     wx.CallAfter(self._schedule_set_chats)
                     # Phone-side clears/deletions — active conversation only,
                     # one extra cheap GET per cycle, nothing at all when no
@@ -14556,61 +14825,265 @@ class MainWindow(wx.Frame):
                     lst.Select(0)
                     lst.EnsureVisible(0)
 
-    def sync_remote_chats(self):
-        chats = list(self.chats.values())
+    _INCREMENTAL_MESSAGE_WINDOW = 50
+
+    def _capture_chat_sync_baseline(self) -> dict:
+        """Snapshot local chat activity before list-chats mutates metadata.
+
+        The database-backed chat dict is already our durable per-chat sync
+        state. Copy only the tiny fields needed to decide whether querying
+        get-messages can possibly add anything this round. Address aliases are
+        indexed to the same marker so a @lid <-> phone mapping discovered by
+        the fresh chat list does not make an old chat look brand new.
+        """
+        baseline = {}
+        for key, chat in list(getattr(self, "chats", {}).items()):
+            if not isinstance(chat, dict):
+                continue
+            jid = self._normalize_jid(chat.get("remoteJid") or key or "")
+            if not jid:
+                continue
+            marker = _chat_sync_marker(chat)
+            forms = {jid}
+            try:
+                forms.update(f for f in self._jid_address_forms(jid) if f)
+            except Exception:
+                pass
+            for form in forms:
+                baseline[self._normalize_jid(form)] = marker
+        return baseline
+
+    def _baseline_marker_for_jid(self, jid: str, baseline: dict) -> dict:
+        jid = self._normalize_jid(jid or "")
+        if jid in baseline:
+            return baseline[jid]
+        try:
+            for form in self._jid_address_forms(jid):
+                normalized = self._normalize_jid(form or "")
+                if normalized in baseline:
+                    return baseline[normalized]
+        except Exception:
+            pass
+        return {}
+
+    def _plan_message_sync(self, baseline: dict, force_full: bool = False,
+                           include_repairs: bool = True):
+        """Return (full_targets, incremental_targets, skipped_count, reasons).
+
+        Full targets are chats with no trustworthy local page or a known gap.
+        Incremental targets already have history and only changed since the
+        captured baseline. Everything else needs no get-messages request at
+        all; list-chats has already refreshed unread/pin/archive/mute metadata.
+        """
+        full_targets = []
+        incremental_targets = []
+        skipped = 0
+        reasons = {}
+        gap_jids = set(getattr(self, "_history_gap_jids", set()) or set())
+        pending_jids = set(getattr(self, "_chats_awaiting_messages", set()) or set())
+        failed_jids = set(getattr(self, "_message_retry_jids", set()) or set())
+
+        for key, chat in list(getattr(self, "chats", {}).items()):
+            if not isinstance(chat, dict):
+                continue
+            jid = self._normalize_jid(chat.get("remoteJid") or key or "")
+            user_part = jid.split("@", 1)[0] if jid else ""
+            if not user_part or user_part == "0" or len(user_part) < 5:
+                continue
+
+            marker = self._baseline_marker_for_jid(jid, baseline)
+            forms = {jid}
+            try:
+                forms.update(self._normalize_jid(f) for f in self._jid_address_forms(jid) if f)
+            except Exception:
+                pass
+            retry_failed = bool(forms & failed_jids)
+            if retry_failed:
+                # The list-chat marker may already contain the activity that
+                # triggered the failed request, so marker comparison alone can
+                # no longer see it. Keep retrying until get-messages actually
+                # succeeds; a warm cache can use the bounded adaptive window.
+                if int(marker.get("record_count", 0) or 0) > 0:
+                    incremental_targets.append(chat)
+                    reasons[jid] = "retry-failed"
+                else:
+                    full_targets.append(chat)
+                    reasons[jid] = "retry-empty-cache"
+                continue
+
+            repair_needed = bool(
+                include_repairs and forms & (gap_jids | pending_jids)
+            )
+
+            mode, reason = _classify_chat_sync(
+                chat, marker, force_full=force_full, repair_needed=repair_needed,
+                server_claims_content=self._server_claims_content(chat),
+            )
+            if mode == "full":
+                full_targets.append(chat)
+                reasons[jid] = reason
+            elif mode == "incremental":
+                incremental_targets.append(chat)
+                reasons[jid] = reason
+            else:
+                skipped += 1
+
+        return full_targets, incremental_targets, skipped, reasons
+
+    def _persist_full_sync_pending(self, reason: str) -> None:
+        state = dict(getattr(self, "_last_sync_state", {}) or {})
+        state["force_full_pending"] = True
+        state["full_pending_reason"] = reason
+        state["full_pending_since"] = int(time.time())
+        self._last_sync_state = state
+        try:
+            if getattr(self, "db", None) is not None:
+                self.db.set_metadata_json("sync_state_v1", state)
+        except Exception as exc:
+            logging.warning("[sync] failed to persist full-sync latch: %s", exc)
+
+    def _persist_successful_sync_state(self, mode: str, full_count: int,
+                                       incremental_count: int, skipped_count: int) -> None:
+        state = {
+            "completed_at": int(time.time()),
+            "mode": mode,
+            "chat_count": len(getattr(self, "chats", {})),
+            "full_targets": int(full_count),
+            "incremental_targets": int(incremental_count),
+            "skipped_unchanged": int(skipped_count),
+            "force_full_pending": False,
+        }
+        self._last_sync_state = state
+        try:
+            if getattr(self, "db", None) is not None:
+                self.db.set_metadata_json("sync_state_v1", state)
+        except Exception as exc:
+            logging.warning("[sync] failed to persist sync_state_v1: %s", exc)
+
+    def sync_remote_chats(self, target_chats=None, incremental: bool = False):
+        chats = list(target_chats) if target_chats is not None else list(self.chats.values())
         if not chats:
-            return
-            
-        # Filter out invalid JIDs (like '0' or empty entries) to prevent API errors
+            return set()
+
+        # Filter out invalid JIDs (like '0' or empty entries) to prevent API errors.
         valid_chats = []
-        for c in chats:
-            jid = c.get("remoteJid", "")
+        for chat in chats:
+            jid = chat.get("remoteJid", "")
             user_part = jid.split("@")[0] if "@" in jid else jid
             if user_part and user_part != "0" and len(user_part) >= 5:
-                valid_chats.append(c)
+                valid_chats.append(chat)
             else:
-                logging.warning(f"[sync_remote_chats] Skipping invalid JID from sync: {jid}")
-                
+                logging.warning("[sync_remote_chats] Skipping invalid JID from sync: %s", jid)
+
         if not valid_chats:
-            return
-            
-        # Sort chats by most recent active timestamp
+            return set()
+
         try:
-            valid_chats = sorted(valid_chats, key=lambda c: c.get("t", 0) or 0, reverse=True)
+            valid_chats = sorted(
+                valid_chats, key=lambda chat: chat.get("t", 0) or 0, reverse=True
+            )
         except Exception:
             pass
 
         # RECENT decoding and message queries share one Puppeteer page. Keep
         # the initial sweep gentle until the phone finishes feeding history.
-        worker_cap = 2 if getattr(self, "_history_still_landing", False) else 6
+        worker_cap = (
+            2 if getattr(self, "_history_still_landing", False)
+            else 3 if incremental
+            else 6
+        )
         max_workers = min(worker_cap, len(valid_chats))
-        failed_count = 0
+        mode = "incremental" if incremental else "full"
+        normalize_jid = getattr(self, "_normalize_jid", lambda jid: jid)
+        failed_jids = set()
+        successful_jids = set()
+        logging.info("[sync_remote_chats] %s pass: %d target chat(s).", mode, len(valid_chats))
+
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
-            futs = {pool.submit(self.sync_chat_messages, c): c for c in valid_chats}
-            for fut in as_completed(futs):
+            if incremental:
+                futures = {
+                    pool.submit(self.sync_chat_messages, chat, None, "incremental"): chat
+                    for chat in valid_chats
+                }
+            else:
+                futures = {
+                    pool.submit(self.sync_chat_messages, chat): chat
+                    for chat in valid_chats
+                }
+
+            for future in as_completed(futures):
+                chat = futures[future]
+                raw_jid = chat.get("remoteJid", "")
+                jid = normalize_jid(raw_jid) or raw_jid
                 try:
-                    fut.result()
+                    result = future.result()
+                    if result is False:
+                        failed_jids.add(jid)
+                    else:
+                        successful_jids.add(jid)
                 except Exception as exc:
-                    failed_count += 1
-                    jid = futs[fut].get("remoteJid", "?")
+                    failed_jids.add(jid)
                     logging.warning("[sync_remote_chats] failed for %s: %s", jid, exc)
-        with self._sync_failures_lock:
-            unfetched = sorted(self._sync_failed_chats)
-            self._sync_failed_chats = set()
-        if unfetched or failed_count:
+
+        # Keep a durable retry latch for message I/O failures. list-chats may
+        # already have advanced `t`/lastReceivedKey before this query failed;
+        # without an independent latch the next incremental round could see the
+        # new marker as its baseline and never retry the missing message.
+        lock = getattr(self, "_sync_failures_lock", None)
+        if lock is not None:
+            with lock:
+                legacy_failed = set(getattr(self, "_sync_failed_chats", set()) or set())
+                self._sync_failed_chats = set()
+                target_ids = {
+                    normalize_jid(chat.get("remoteJid", "")) or chat.get("remoteJid", "")
+                    for chat in valid_chats
+                }
+                normalized_legacy_failed = {
+                    normalize_jid(jid) or jid for jid in legacy_failed if jid
+                }
+                failed_jids.update(jid for jid in normalized_legacy_failed if jid in target_ids)
+                successful_jids.difference_update(failed_jids)
+                # Chats whose delta was empty this round: worth one more look,
+                # but the server answered, so they are not failures and must
+                # not reach the caller's message_sync_ok. Folded into the
+                # durable retry list only — see sync_chat_messages().
+                unsatisfied = {
+                    normalize_jid(jid) or jid
+                    for jid in (getattr(self, "_delta_unsatisfied_chats", set()) or set())
+                }
+                unsatisfied = {jid for jid in unsatisfied if jid in target_ids}
+                successful_jids.difference_update(unsatisfied)
+                retry_jids = getattr(self, "_message_retry_jids", None)
+                if retry_jids is None:
+                    retry_jids = self._message_retry_jids = set()
+                retry_jids.difference_update(successful_jids)
+                retry_jids.update(failed_jids)
+                retry_jids.update(unsatisfied)
+
+        persist_retries = getattr(self, "_persist_message_retry_jids", None)
+        if callable(persist_retries):
+            persist_retries()
+        persist_pending = getattr(self, "_persist_backfill_pending_state", None)
+        if callable(persist_pending):
+            persist_pending()
+        persist_gaps = getattr(self, "_persist_history_gap_jids", None)
+        if callable(persist_gaps):
+            persist_gaps()
+
+        if failed_jids:
+            sample = sorted(failed_jids)
             logging.warning(
-                "[sync_remote_chats] done: %d chats, %d raised an exception, "
-                "%d had no messages fetched after exhausting retries (kept "
-                "queued for the backfill): %s%s",
-                len(valid_chats), failed_count, len(unfetched),
-                ", ".join(unfetched[:5]),
-                " ..." if len(unfetched) > 5 else "",
+                "[sync_remote_chats] done: %d chats, %d message fetch(es) failed "
+                "and remain queued for retry: %s%s",
+                len(valid_chats), len(failed_jids), ", ".join(sample[:5]),
+                " ..." if len(sample) > 5 else "",
             )
         else:
             logging.info(
                 "[sync_remote_chats] done: %d chats, all fetched.",
                 len(valid_chats),
             )
+        return failed_jids
 
     # Backfill pacing.  Adaptive rather than a fixed schedule: WhatsApp Web
     # loads each chat's history into its store at its own pace, so how long the
@@ -14960,9 +15433,49 @@ class MainWindow(wx.Frame):
             # the one signal that most deserves a second look: the page is full
             # because the window saturated, which is exactly when there can be
             # more history behind it. Gap chats stay queued until growth stops.
-            gaps = getattr(self, "_history_gap_jids", ())
+            gaps = set(getattr(self, "_history_gap_jids", ()) or ())
             gap = any(form in gaps for form in forms)
-            if count >= self.history_page_target() and not gap:
+            if gap:
+                # A known disjoint block is not "complete" merely because the
+                # local union already contains >= one visible page: keep it on
+                # the repair queue while there is any reason to think another
+                # pass can close the hole.
+                #
+                # "Any reason" has to be a finite condition, and the growth rule
+                # the general path below already uses is the one available.
+                # Queueing gap chats unconditionally — until overlap is proven
+                # or the phone says there is no older history — sounds stricter
+                # but has no third outcome: WhatsApp Web routinely never
+                # decodes a middle stretch for a large group, and neither of
+                # those two exits ever fires. That chat then sits in
+                # _history_gap_jids (persisted, so it survives restarts) and in
+                # the pending queue forever, and _plan_message_sync() reads
+                # either set as repair_needed → a FULL re-sync of the single
+                # most expensive conversation on the account, every round of
+                # every session. The incremental sync this whole change exists
+                # for would never apply to it again.
+                #
+                # So: a pass that adds nothing is the answer. Drop the repair
+                # marker with the queue slot — a later live message or a real
+                # growth signal re-detects the gap through history_gap_detected()
+                # the same way it was found the first time.
+                previous_values = [counts[f] for f in forms if f in counts]
+                previous = max(previous_values) if previous_values else None
+                grew = previous is not None and count > previous
+                first_sighting = previous is None
+                still_landing = getattr(self, "_history_still_landing", False)
+                _done()
+                if grew or first_sighting or still_landing:
+                    counts[canonical] = count
+                    pending.add(canonical)
+                    return
+                self._history_gap_jids.difference_update(forms)
+                logging.info(
+                    "[history-gap] %s: repair pass added nothing (%d records) — "
+                    "releasing it from the repair queue.", canonical, count,
+                )
+                return
+            if count >= self.history_page_target():
                 _done()
                 return
 
@@ -15024,6 +15537,48 @@ class MainWindow(wx.Frame):
             counts.clear()
             counts.update(canonical_counts)
             return sorted(canonical_pending)
+
+    def _persist_message_retry_jids(self) -> None:
+        """Persist changed chats whose message query has not succeeded yet."""
+        try:
+            with self._sync_failures_lock:
+                payload = sorted(getattr(self, "_message_retry_jids", set()) or set())
+            if getattr(self, "db", None) is not None:
+                self.db.set_metadata_json("message_retry_jids_v1", payload)
+        except Exception as exc:
+            logging.warning("[sync] Could not persist message retry state: %s", exc)
+
+    def _persist_history_gap_jids(self) -> None:
+        """Persist known disjoint-history gaps so restart cannot forget them."""
+        try:
+            with self._backfill_state_guard():
+                payload = sorted(getattr(self, "_history_gap_jids", set()) or set())
+            if getattr(self, "db", None) is not None:
+                self.db.set_metadata_json("history_gap_jids_v1", payload)
+        except Exception as exc:
+            logging.warning("[history-gap] Could not persist gap state: %s", exc)
+
+    def _persist_backfill_pending_state(self) -> None:
+        """Persist only the chats that still need short-history repair."""
+        try:
+            with self._backfill_state_guard():
+                pending = set(getattr(self, "_chats_awaiting_messages", set()) or set())
+                counts = dict(getattr(self, "_partial_history_counts", {}) or {})
+                payload = {}
+                for jid in pending:
+                    canonical = self._canonical_backfill_jid(jid)
+                    if not canonical:
+                        continue
+                    count = counts.get(jid, counts.get(canonical, 0))
+                    try:
+                        count = max(0, int(count or 0))
+                    except (TypeError, ValueError):
+                        count = 0
+                    payload[canonical] = max(count, payload.get(canonical, 0))
+            if getattr(self, "db", None) is not None:
+                self.db.set_metadata_json("backfill_pending_v1", payload)
+        except Exception as exc:
+            logging.warning("[backfill] Could not persist pending history state: %s", exc)
 
     def _remove_backfill_pending(self, jid: str) -> None:
         """Retire a pending conversation under every known address form."""
@@ -15409,8 +15964,16 @@ class MainWindow(wx.Frame):
                     elif requested is False:
                         # The API answered definitively that it did not send a
                         # request (normally primaryHasMore=false). This is the
-                        # evidence that distinguishes a genuinely short chat.
+                        # evidence that distinguishes a genuinely short chat —
+                        # and it is also the terminal answer for a persisted gap
+                        # whose phone no longer has any older page to provide.
                         self._remove_backfill_pending(jid)
+                        with self._backfill_state_guard():
+                            gap_forms = set(self._jid_address_forms(jid))
+                            gap_forms.update(
+                                self._jid_address_forms(self._canonical_backfill_jid(jid))
+                            )
+                            self._history_gap_jids.difference_update(gap_forms)
 
                 completed = self._completed_backfill_targets(window)
                 grew = sum(1 for j, was in counts_before.items()
@@ -15442,6 +16005,9 @@ class MainWindow(wx.Frame):
                     still, unnamed)
         except Exception:
             logging.exception("[backfill] Unhandled error in the backfill loop")
+        finally:
+            self._persist_backfill_pending_state()
+            self._persist_history_gap_jids()
 
     # ── History-sync health ─────────────────────────────────────────────────
     # WhatsApp's multi-device design keeps older history on the phone and only
@@ -15702,8 +16268,8 @@ class MainWindow(wx.Frame):
         threading.Thread(
             target=_run, daemon=True, name="deferred-media-sync").start()
 
-    def sync_media_for_all_chats(self) -> int:
-        """Download every not-yet-stored media file across all chats.
+    def sync_media_for_all_chats(self, jids=None) -> int:
+        """Download not-yet-stored media, optionally limited to changed chats.
 
         Returns the number of files **actually downloaded**, not the number of
         candidate messages considered. That distinction is the whole point: it
@@ -15717,9 +16283,11 @@ class MainWindow(wx.Frame):
         _MEDIA_TYPES = {"audioMessage", "documentMessage", "imageMessage",
                         "stickerMessage", "videoMessage",
                         "audio", "ptt", "document", "doc", "image", "sticker", "video"}
+        allowed = None if jids is None else {self._normalize_jid(j) for j in jids if j}
         tasks = [
             msg
-            for chat in self.chats.values()
+            for key, chat in self.chats.items()
+            if (allowed is None or self._normalize_jid(chat.get("remoteJid") or key) in allowed)
             for msg in chat.get("messages", {}).get("messages", {}).get("records", [])
             if (msg.get("messageType") in _MEDIA_TYPES or msg.get("type") in _MEDIA_TYPES)
         ]
@@ -15868,7 +16436,7 @@ class MainWindow(wx.Frame):
                 break
         return widest
 
-    def sync_chat_messages(self, chat, expected_run_id=None):
+    def sync_chat_messages(self, chat, expected_run_id=None, sync_mode="full"):
         if (expected_run_id is not None
                 and getattr(self, "_sync_run_id", 0) != expected_run_id):
             logging.info(
@@ -15902,8 +16470,22 @@ class MainWindow(wx.Frame):
             phone = remote_jid
 
         page_size = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
-        limit = page_size
+        local_chat_before = self.chats.get(remote_jid)
+        if local_chat_before is None:
+            try:
+                local_chat_before = next(
+                    (self.chats.get(form) for form in self._jid_address_forms(remote_jid)
+                     if form in self.chats),
+                    None,
+                )
+            except Exception:
+                local_chat_before = None
+        local_records_before = _chat_message_records(local_chat_before or {})
+        incremental = sync_mode == "incremental" and bool(local_records_before)
+        incremental_window = max(1, int(getattr(self, "_INCREMENTAL_MESSAGE_WINDOW", 50)))
+        limit = min(page_size, incremental_window) if incremental else page_size
         refill_limit = display_page_fetch_limit(page_size)
+        incremental_no_overlap = False
         url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}"
         headers = {
             "Authorization": f"Bearer {self.token}",
@@ -15914,6 +16496,7 @@ class MainWindow(wx.Frame):
 
         all_messages = []
         api_ok = False
+        fetched_payload_has_messages = False
         # The JID form that actually answered. Starts as the one built above and
         # is corrected when the alternate-JID fallback below is what worked —
         # the history-gap re-query has to reuse the form the store recognises,
@@ -15995,13 +16578,79 @@ class MainWindow(wx.Frame):
                     if response.status_code in (200, 201):
                         body = response.json()
                         wpp_messages = body.get("response", []) if isinstance(body, dict) else []
-                        logging.info(f"[sync_chat_messages] Fetched {len(wpp_messages)} messages from API for {remote_jid}")
+                        logging.info(
+                            "[sync_chat_messages] Fetched %d messages from API for %s "
+                            "(mode=%s, count=%d)",
+                            len(wpp_messages) if isinstance(wpp_messages, list) else 0,
+                            remote_jid, "incremental" if incremental else "full", limit,
+                        )
                         if not isinstance(wpp_messages, list):
                             wpp_messages = []
                         normalized_messages = self._normalize_fetched_messages(
                             wpp_messages, remote_jid)
-                        if (refill_limit > limit and self._needs_display_page_refill(
-                                len(wpp_messages), normalized_messages, page_size)):
+
+                        # Warm-cache rounds start with a small newest-message
+                        # window. If that window does not touch any locally
+                        # known message and it saturated the requested count,
+                        # grow geometrically until we either find overlap or
+                        # reach the normal page size. This is the closest thing
+                        # the current WPPConnect endpoint can provide to an
+                        # `after_id` query: common reconnects cost 50 messages
+                        # for only the chats that changed, while long outages
+                        # automatically widen enough to prove/repair a gap.
+                        while (incremental and local_records_before
+                               and normalized_messages
+                               and not _messages_overlap(normalized_messages, local_records_before)
+                               and len(wpp_messages) >= limit
+                               and limit < page_size):
+                            next_limit = _next_incremental_limit(
+                                limit, page_size, len(wpp_messages), False
+                            )
+                            if next_limit == limit:
+                                break
+                            expand_url = (
+                                f"{self.wpp_server}:{self.wpp_port}/api/{self.token}"
+                                f"/get-messages/{fetch_jid}?count={next_limit}"
+                            )
+                            logging.info(
+                                "[sync_chat_messages] %s incremental window has no "
+                                "local overlap; expanding %d -> %d.",
+                                remote_jid, limit, next_limit,
+                            )
+                            try:
+                                expanded_response = api_get(
+                                    expand_url, headers=headers, timeout=30)
+                                if expanded_response.status_code not in (200, 201):
+                                    break
+                                expanded_body = expanded_response.json()
+                                expanded_messages = (
+                                    expanded_body.get("response", [])
+                                    if isinstance(expanded_body, dict) else [])
+                                if not isinstance(expanded_messages, list):
+                                    break
+                                wpp_messages = expanded_messages
+                                normalized_messages = self._normalize_fetched_messages(
+                                    wpp_messages, remote_jid)
+                                limit = next_limit
+                            except Exception as expand_error:
+                                logging.warning(
+                                    "[sync_chat_messages] Incremental expansion failed "
+                                    "for %s: %s", remote_jid, expand_error)
+                                break
+
+                        incremental_no_overlap = bool(
+                            incremental and local_records_before and normalized_messages
+                            and not _messages_overlap(normalized_messages, local_records_before)
+                        )
+
+                        # A full/new-chat fetch still guarantees one complete
+                        # visible page. Incremental chats already have that page
+                        # in the local cache, so re-fetching an oversized raw
+                        # window merely to compensate for filtered protocol rows
+                        # would defeat the point of the fast path.
+                        if (not incremental and refill_limit > limit
+                                and self._needs_display_page_refill(
+                                    len(wpp_messages), normalized_messages, page_size)):
                             refill_url = (
                                 f"{self.wpp_server}:{self.wpp_port}/api/{self.token}"
                                 f"/get-messages/{fetch_jid}?count={refill_limit}"
@@ -16026,6 +16675,7 @@ class MainWindow(wx.Frame):
                                 logging.warning(
                                     "[sync_chat_messages] Visible-page refill failed "
                                     "for %s: %s", remote_jid, refill_error)
+                        fetched_payload_has_messages = bool(normalized_messages)
                         all_messages.extend(normalized_messages)
                         api_ok = True
                         break
@@ -16082,23 +16732,36 @@ class MainWindow(wx.Frame):
         # nothing downstream ever asks for the middle: the merge below unions
         # two disjoint blocks, and _note_backfill_state() reads a full page as
         # proof the chat is complete. See history_gap_detected().
-        gap_jids = getattr(self, "_history_gap_jids", None)
-        if gap_jids is None:
-            gap_jids = self._history_gap_jids = set()
-        gap_jids.discard(remote_jid)
+        with self._backfill_state_guard():
+            gap_jids = getattr(self, "_history_gap_jids", None)
+            if gap_jids is None:
+                gap_jids = self._history_gap_jids = set()
+            gap_forms = set(self._jid_address_forms(remote_jid))
+            gap_forms.update(self._jid_address_forms(self._canonical_backfill_jid(remote_jid)))
+            was_gap = bool(gap_forms & gap_jids)
+
+        gap_open = was_gap
         if api_ok and all_messages:
             # Snapshot before the merge below folds the fetched page into it.
             gap_reference = (self.chats.get(remote_jid, {})
                              .get("messages", {})
                              .get("messages", {})
                              .get("records") or [])
-            if history_gap_detected(all_messages, gap_reference, page_size):
+            saturated_incremental_gap = bool(
+                incremental_no_overlap and limit >= page_size
+            )
+            detected_gap = (
+                history_gap_detected(all_messages, gap_reference, page_size)
+                or saturated_incremental_gap
+            )
+            gap_open = False
+            if detected_gap:
                 # Ceiling of the hole: the oldest message the narrow page
                 # reached. Everything stored below it is the far side we are
                 # trying to get back down to.
-                hole_top_ts = min(_message_ts(m) for m in all_messages)
+                hole_top_ts = min(_message_ts(message) for message in all_messages)
                 logging.warning(
-                    "[history-gap] %s: newest page of %d is disjoint from %d stored "
+                    "[history-gap] %s: newest window of %d is disjoint from %d stored "
                     "message(s) — widening the window.",
                     remote_jid, len(all_messages), len(gap_reference))
                 wider = self._refetch_history_gap(
@@ -16106,13 +16769,37 @@ class MainWindow(wx.Frame):
                 if len(wider) > len(all_messages):
                     all_messages = wider
                 if not history_gap_closed(all_messages, gap_reference, hole_top_ts):
-                    # Still disjoint: WhatsApp Web has not decoded that stretch
-                    # yet. Flag it so the backfill keeps the chat in its queue
-                    # instead of retiring it for holding a full page.
-                    gap_jids.add(remote_jid)
+                    gap_open = True
                     logging.warning(
                         "[history-gap] %s: gap still open after widening — queued "
                         "for the backfill.", remote_jid)
+            elif incremental_no_overlap:
+                # A changed chat returned a short provisional window that does
+                # not touch our cache. Do not delete local history and do not
+                # pretend the chat is complete: WhatsApp Web is still filling
+                # this store entry, so the normal background backfill should
+                # confirm it later without turning the whole client back into a
+                # full-sync loop.
+                gap_open = True
+                logging.info(
+                    "[history-gap] %s: short incremental window has no local "
+                    "overlap — queued for background confirmation.", remote_jid)
+
+            with self._backfill_state_guard():
+                self._history_gap_jids.difference_update(gap_forms)
+                if gap_open:
+                    self._history_gap_jids.add(self._canonical_backfill_jid(remote_jid))
+        elif not api_ok or not all_messages:
+            # No successful message evidence means an already-known gap must
+            # survive this attempt. In particular, an empty 200 response while
+            # WhatsApp Web is warming up is not proof that the missing stretch
+            # vanished. A new incremental empty response is handled by the
+            # durable message-retry latch returned below rather than inventing
+            # a history gap from no data.
+            if was_gap:
+                with self._backfill_state_guard():
+                    self._history_gap_jids.difference_update(gap_forms)
+                    self._history_gap_jids.add(self._canonical_backfill_jid(remote_jid))
 
         # NOTE on "conversation cleared from the phone": there is deliberately
         # no automatic mirroring here.  The only local evidence would be
@@ -16275,8 +16962,44 @@ class MainWindow(wx.Frame):
         # Now it can.
         apply_history_sync_unread_correction(remote_jid, chat)
 
+        # Update lastMessage from the newest displayable message, so the chat
+        # list preview matches what opening the conversation actually shows.
+        #
+        # `t` is only ever raised here, never lowered to the message's own
+        # timestamp. The two are not the same clock: `t` is the server's
+        # activity marker, and it legitimately sits ABOVE the newest displayable
+        # message whenever the latest thing that happened in the chat was a
+        # system event — a group join, a settings change, a revoke — which
+        # _counts_as_last_message() excludes from `candidates` by design.
+        # Overwriting `t` downward in that case costs twice: the conversation
+        # sorts to a position that contradicts the server's own ordering, and
+        # _capture_chat_sync_baseline() then stores a marker that can never
+        # match the next list-chats snapshot, so chat_sync_marker_changed()
+        # reports a change on every round and that chat is never skipped again —
+        # the one outcome the incremental planner exists to produce.
+        candidates = [m for m in all_messages if self._counts_as_last_message(m)]
+        if candidates:
+            def _get_m_ts(m):
+                val = int(m.get("messageTimestamp") or m.get("timestamp") or m.get("t") or 0)
+                return val // 1000 if val > 1_000_000_000_000 else val
+            last_m = max(candidates, key=_get_m_ts)
+            chat["lastMessage"] = last_m
+            last_ts = _get_m_ts(last_m)
+            try:
+                current_t = int(chat.get("t") or 0)
+            except (TypeError, ValueError):
+                current_t = 0
+            if last_ts > current_t:
+                chat["t"] = last_ts
+
         self.chats[remote_jid] = chat
+        pending_before = self._is_backfill_pending(remote_jid)
         self._note_backfill_state(remote_jid, chat, api_ok)
+        pending_after = self._is_backfill_pending(remote_jid)
+        if was_gap or gap_open:
+            self._persist_history_gap_jids()
+        if pending_before or pending_after:
+            self._persist_backfill_pending_state()
         if not api_ok:
             # Counted so the sync stops reporting a clean run over chats whose
             # messages never arrived. sync_remote_chats() cannot see this from
@@ -16299,23 +17022,86 @@ class MainWindow(wx.Frame):
         if not getattr(self, "_initial_sync_running", False):
             wx.CallAfter(self._schedule_set_chats)
 
-        # Incremental DB save: write only this chat + its messages.
-        # This replaces the old save_data(self.chats, ...) call which dumped the
-        # ENTIRE state (O(N) writes per chat → O(N²) total during bulk sync).
+        # A changed warm chat answering 200/201 with an empty/filtered payload
+        # is not a successful delta fetch: list-chats already told us activity
+        # advanced, so keep that chat on the durable retry list. Full/new-chat
+        # rounds retain the historical behaviour where an empty store page can
+        # be provisional and is handled by the short-history backfill.
+        #
+        # Bounded, and separated from real failures, because neither property is
+        # optional here. The server answered 200 — there is no I/O fault to
+        # report — but "activity advanced" and "the delta is empty" is a state
+        # WhatsApp Web reaches routinely and permanently: a reaction, a
+        # groupNotification, any event _normalize_fetched_messages() filters out
+        # entirely will bump `t` and yield nothing to fetch, forever. Treated as
+        # a failure, one such chat was enough to hold message_sync_ok False,
+        # which keeps _sync_completed False, which (a) never commits the
+        # list-chats snapshot of unread/pin/archive for EVERY chat, (b) leaves
+        # the health checker resyncing — announcing itself — on every cooldown,
+        # and (c) makes the live-event gate drop every chats.update unread event
+        # for the rest of the session. So: look again a couple of times in case
+        # the store was merely slow, then accept the marker and move on.
+        incremental_satisfied = not incremental or fetched_payload_has_messages
+        if api_ok:
+            # getattr-guarded like every other lazily-present sync attribute
+            # here: the test stubs that bind this method carry only what the
+            # path under test touches.
+            # Under _sync_failures_lock, the same lock clear_local_data() holds
+            # while emptying these: F5 can land between the read and the write
+            # here and leave a jid from the discarded run behind — one wasted
+            # get-messages, but the asymmetry is the kind that reads as a bug
+            # to whoever touches this next. The lock is not reentrant and this
+            # block calls nothing that takes it.
+            with self._sync_failures_lock:
+                attempts_by_jid = getattr(self, "_delta_unsatisfied_attempts", None)
+                if attempts_by_jid is None:
+                    attempts_by_jid = self._delta_unsatisfied_attempts = {}
+                unsatisfied_jids = getattr(self, "_delta_unsatisfied_chats", None)
+                if unsatisfied_jids is None:
+                    unsatisfied_jids = self._delta_unsatisfied_chats = set()
+                if incremental_satisfied:
+                    attempts_by_jid.pop(remote_jid, None)
+                    unsatisfied_jids.discard(remote_jid)
+                else:
+                    attempts = attempts_by_jid.get(remote_jid, 0) + 1
+                    if attempts >= _MAX_EMPTY_DELTA_RETRIES:
+                        attempts_by_jid.pop(remote_jid, None)
+                        unsatisfied_jids.discard(remote_jid)
+                        incremental_satisfied = True
+                        logging.info(
+                            "[sync_chat_messages] %s: delta still empty after %d "
+                            "attempts — accepting the activity marker.",
+                            remote_jid, attempts,
+                        )
+                    else:
+                        attempts_by_jid[remote_jid] = attempts
+                        unsatisfied_jids.add(remote_jid)
+        message_fetch_satisfied = bool(api_ok and incremental_satisfied)
+
+        # Incremental DB save: write only this chat + its messages. The chat-list
+        # activity marker is committed only after the message request that marker
+        # selected has succeeded. Otherwise a process crash could persist the new
+        # `t`/lastReceivedKey without its message and make the next startup skip it.
+        persist_ok = True
         try:
-            # Don't persist a chat whose message fetch failed and which has
-            # no prior local records — that would write the chat-list summary
-            # (including a nonzero unreadCount) with zero messages attached,
-            # permanently showing "N unread" with an empty conversation on
-            # every future restart. Leave it unsaved so the next full sync
-            # retries it from scratch instead.
-            if api_ok or has_records:
-                self.db.upsert_chat(remote_jid, chat)
-            if all_messages:
+            # Commit message rows first and the chat activity marker last. If
+            # the process dies between those writes, the safe failure mode is
+            # an old marker with already-present messages (which causes one
+            # harmless re-fetch), never a new marker without its message.
+            if api_ok and all_messages:
                 self.db.insert_messages_batch(remote_jid, all_messages)
+            if message_fetch_satisfied:
+                self.db.upsert_chat(remote_jid, chat)
         except Exception as exc:
+            persist_ok = False
             logging.warning("[sync_chat_messages] incremental DB save failed for %s: %s",
                             remote_jid, exc)
+
+        # Reports whether this chat's sync FAILED, which an empty delta did
+        # not: the retry for that is carried by _delta_unsatisfied_chats, which
+        # sync_remote_chats() folds into the durable retry list without letting
+        # it count as a failed run.
+        return bool(api_ok and persist_ok)
 
     # ── Phone-side deletions/clears — active conversation only ──────────────
     # sync_chat_messages() above deliberately never removes anything: its
@@ -17215,23 +18001,33 @@ class MainWindow(wx.Frame):
                     return path
 
         # 2. Bundled npm package (local API dev/run mode)
-        installer_root = resource_path("api", "node_modules", "@ffmpeg-installer")
-        explicit_paths = [
-            os.path.join(installer_root, "win32-x64", "ffmpeg.exe"),
-            os.path.join(installer_root, "win32-ia32", "ffmpeg.exe"),
-            os.path.join(installer_root, "win32-arm64", "ffmpeg.exe"),
-            os.path.join(installer_root, "ffmpeg", "bin", "ffmpeg.exe"),
-            os.path.join(installer_root, "ffmpeg", "bin", "ffmpeg"),
+        installer_roots = [
+            resource_path("api", "node_modules", "@ffmpeg-installer"),
+            resource_path("client", "api", "node_modules", "@ffmpeg-installer"),
+            os.path.join(os.path.dirname(__file__), "api", "node_modules", "@ffmpeg-installer"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "client", "api", "node_modules", "@ffmpeg-installer"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "node_modules", "@ffmpeg-installer"),
         ]
-        for ep in explicit_paths:
-            if os.path.isfile(ep):
-                return ep
+        for installer_root in installer_roots:
+            if not os.path.isdir(installer_root):
+                continue
+            explicit_paths = [
+                os.path.join(installer_root, "win32-x64", "ffmpeg.exe"),
+                os.path.join(installer_root, "win32-ia32", "ffmpeg.exe"),
+                os.path.join(installer_root, "win32-arm64", "ffmpeg.exe"),
+                os.path.join(installer_root, "ffmpeg", "bin", "ffmpeg.exe"),
+                os.path.join(installer_root, "ffmpeg", "bin", "ffmpeg"),
+                os.path.join(installer_root, "linux-x64", "ffmpeg"),
+            ]
+            for ep in explicit_paths:
+                if os.path.isfile(ep):
+                    return ep
 
-        hits = _glob.glob(os.path.join(installer_root, "**", "ffmpeg.exe"), recursive=True)
-        if not hits:
-            hits = _glob.glob(os.path.join(installer_root, "**", "ffmpeg"), recursive=True)
-        if hits:
-            return hits[0]
+            hits = _glob.glob(os.path.join(installer_root, "**", "ffmpeg.exe"), recursive=True)
+            if not hits:
+                hits = _glob.glob(os.path.join(installer_root, "**", "ffmpeg"), recursive=True)
+            if hits:
+                return hits[0]
 
         # 3. Fallback: ffmpeg on the system PATH (user-installed)
         system_ffmpeg = shutil.which("ffmpeg")
@@ -18517,6 +19313,12 @@ class MainWindow(wx.Frame):
         # after opening the app. The list-chats merge in get_remote_chats()
         # is the authoritative source for the real counts; ignore live
         # chats.update while it (or the initial sync) is still running.
+        # Both halves are load-bearing and neither implies the other. F5's
+        # _run_sync() sets _initial_sync_running before it waits on ui_ready
+        # (up to 5s) and only clears _sync_completed after that wait returns —
+        # so for that window a resync is demonstrably in flight while
+        # _sync_completed is still True, and a chats.update arriving there would
+        # be accepted mid-resync, which is exactly what this gate forbids.
         if getattr(self, "_initial_sync_running", False) or not getattr(self, "_sync_completed", False):
             logging.info(
                 "[unread] %s: dropped, sync gate (running=%s, completed=%s, "
@@ -22335,8 +23137,6 @@ class MainWindow(wx.Frame):
             inner_wrapper = records_wrapper.get("messages") or {}
             if isinstance(inner_wrapper, dict):
                 records = list(inner_wrapper.get("records") or [])
-        if not records:
-            return ""
 
         # Shared with _chat_last_ts() so the preview and the ordering can never
         # disagree about which record is a chat's last message.
@@ -22348,14 +23148,20 @@ class MainWindow(wx.Frame):
             val = int(m.get("timestamp", 0) or m.get("messageTimestamp", 0) or m.get("t", 0) or 0)
             return val // 1000 if val > 1_000_000_000_000 else val
 
-        try:
-            last = max(
-                (m for m in records if is_displayable(m)),
-                key=_get_ts,
-                default=None,
-            )
-        except Exception:
-            last = None
+        last = None
+        if records:
+            try:
+                last = max(
+                    (m for m in records if is_displayable(m)),
+                    key=_get_ts,
+                    default=None,
+                )
+            except Exception:
+                last = None
+        if last is None:
+            candidate = chat.get("lastMessage")
+            if isinstance(candidate, dict) and is_displayable(candidate):
+                last = candidate
 
         i18n = self.i18n
 

@@ -204,3 +204,32 @@ class TestSilenceObeysTheSameGatesAsOutput:
         out.silence()
 
         assert sapi.silenced == 1
+
+
+class TestSilenceScreenReaderFocus:
+    def test_it_can_cancel_native_focus_speech_when_extended_compat_is_off(self):
+        nvda = _FakeOutput("nvda", active=True)
+        auto = _FakeAuto([nvda])
+        out = AccessibleSpeechOutput(auto, lambda: _settings(extended=False))
+
+        out.silence_screen_reader_focus()
+
+        assert nvda.silenced == 1
+
+    def test_it_never_touches_sapi(self):
+        sapi = _FakeOutput("sapi", active=True, system_output=True)
+        auto = _FakeAuto([sapi])
+        out = AccessibleSpeechOutput(auto, lambda: _settings())
+
+        out.silence_screen_reader_focus()
+
+        assert getattr(sapi, "silenced", 0) == 0
+
+    def test_it_ignores_inactive_screen_readers(self):
+        nvda = _FakeOutput("nvda", active=False)
+        auto = _FakeAuto([nvda])
+        out = AccessibleSpeechOutput(auto, lambda: _settings())
+
+        out.silence_screen_reader_focus()
+
+        assert getattr(nvda, "silenced", 0) == 0

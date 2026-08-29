@@ -181,10 +181,10 @@ class TestVoiceRecordingSilenceActive:
 class TestSilenceSendVoiceFocusIfEnabled:
     class _FakeSpeakOutput:
         def __init__(self):
-            self.silence_calls = 0
+            self.focus_silence_calls = 0
 
-        def silence(self):
-            self.silence_calls += 1
+        def silence_screen_reader_focus(self):
+            self.focus_silence_calls += 1
 
     class _FakeMainWindow:
         def __init__(self, silence_enabled=False, extended_enabled=True):
@@ -202,144 +202,94 @@ class TestSilenceSendVoiceFocusIfEnabled:
         )
         return stub
 
-    def test_noop_when_both_settings_disabled(self, monkeypatch):
-        call_later_calls = []
+    @staticmethod
+    def _capture_deferred_calls(monkeypatch):
+        deferred = []
+        monkeypatch.setattr(
+            conversations_module.wx, "CallAfter",
+            lambda func: deferred.append((0, func)),
+        )
         monkeypatch.setattr(
             conversations_module.wx, "CallLater",
-            lambda delay, func: call_later_calls.append((delay, func)),
+            lambda delay, func: deferred.append((delay, func)),
         )
+        return deferred
+
+    def test_noop_when_silence_setting_is_off_and_extended_compat_is_on(self, monkeypatch):
+        deferred = self._capture_deferred_calls(monkeypatch)
         stub = self._make_stub(silence_enabled=False, extended_enabled=True)
-        stub._silence_send_voice_focus_if_enabled()
-        assert stub.main_window.speak_output.silence_calls == 0
-        assert call_later_calls == []
 
-    def test_fires_when_silence_while_recording_enabled(self, monkeypatch):
-        call_later_calls = []
-        monkeypatch.setattr(
-            conversations_module.wx, "CallLater",
-            lambda delay, func: call_later_calls.append((delay, func)),
-        )
+        stub._silence_send_voice_focus_if_enabled()
+
+        assert stub.main_window.speak_output.focus_silence_calls == 0
+        assert deferred == []
+
+    def test_fires_when_silence_while_recording_is_enabled(self, monkeypatch):
+        deferred = self._capture_deferred_calls(monkeypatch)
         stub = self._make_stub(silence_enabled=True, extended_enabled=True)
+
         stub._silence_send_voice_focus_if_enabled()
 
-        # Immediate call covers a screen reader that speaks synchronously,
-        # the two follow-ups the async case — which is what this method's
-        # docstring describes. It was a burst of eight up to 500ms: half a
-        # second of repeated cancels, which also swallow any unrelated
-        # announcement that lands in that window.
-        assert stub.main_window.speak_output.silence_calls == 1
-        assert len(call_later_calls) == 2
-        for delay, func in call_later_calls:
-            assert delay > 0
+        assert stub.main_window.speak_output.focus_silence_calls == 1
+        assert [delay for delay, _ in deferred] == [0, 80]
+        for _, func in deferred:
             func()
-        assert stub.main_window.speak_output.silence_calls == 3
+        assert stub.main_window.speak_output.focus_silence_calls == 3
 
     def test_does_not_fire_merely_because_extended_sr_compat_is_off(self, monkeypatch):
-        """The master switch means "never speak through the screen reader",
-        not "cancel the screen reader's speech". Firing here interrupted NVDA
-        on every recording for a user who had asked WinZapp to stay out of it
-        entirely — and ui/accessible.py already covers this case the
-        non-invasive way, by blanking the button's accessible name."""
-        call_later_calls = []
-        monkeypatch.setattr(
-            conversations_module.wx, "CallLater",
-            lambda delay, func: call_later_calls.append((delay, func)),
-        )
+        """Turning extended screen-reader compatibility OFF means "stop talking
+        to my screen reader", not "start interrupting it". Only the dedicated
+        silence-while-recording toggle may cancel the focus announcement."""
+        deferred = self._capture_deferred_calls(monkeypatch)
         stub = self._make_stub(silence_enabled=False, extended_enabled=False)
+
         stub._silence_send_voice_focus_if_enabled()
 
-        assert stub.main_window.speak_output.silence_calls == 0
-        assert call_later_calls == []
+        assert stub.main_window.speak_output.focus_silence_calls == 0
+        assert deferred == []
+
+    def test_fires_on_the_silence_toggle_even_with_extended_compat_off(self, monkeypatch):
+        """The two settings are independent: the silence toggle is what arms
+        this, whatever extended compatibility is set to."""
+        deferred = self._capture_deferred_calls(monkeypatch)
+        stub = self._make_stub(silence_enabled=True, extended_enabled=False)
+
+        stub._silence_send_voice_focus_if_enabled()
+
+        assert stub.main_window.speak_output.focus_silence_calls == 1
+        for _, func in deferred:
+            func()
+        assert stub.main_window.speak_output.focus_silence_calls == 3
 
 
-class TestSilenceableVoiceButtonAccessibleName:
-    """AccessibleSendVoiceMessage / AccessibleDiscardVoiceMessage / AccessiblePauseResumeRecording
-    blank out their MSAA name and shortcut while silence_while_recording is on or
-    during transient startup/pause toggle windows when extended_sr_compat_enabled is off,
-    so the screen reader has nothing to announce for the initial focus/toggle event,
-    while keeping the real name/role intact afterwards."""
+class TestVoiceButtonAccessibleName:
+    """Voice-recording controls keep their real MSAA name and shortcut.
+
+    Muting is a one-shot focus action now; it must never make the Send,
+    Discard or Pause/Resume controls anonymous while the user navigates them.
+    """
 
     class _FakeMainWindow:
-        def __init__(
-            self,
-            silence_enabled=False,
-            extended_enabled=True,
-            start_timestamp=0.0,
-            pause_timestamp=0.0,
-        ):
+        def __init__(self, silence_enabled=False, extended_enabled=True):
             self.settings = {
                 "speech_content": {"silence_while_recording": silence_enabled},
                 "accessibility": {"extended_sr_compat_enabled": extended_enabled},
             }
-            self.conversations_panel = types.SimpleNamespace(
-                _recording_start_timestamp=start_timestamp,
-                _pause_toggle_timestamp=pause_timestamp,
-            )
 
-    def test_name_blanked_when_silence_while_recording_enabled(self):
+    def test_name_and_shortcut_remain_available_for_every_setting_combination(self):
         import wx
 
-        for cls in (
-            AccessibleSendVoiceMessage,
-            AccessibleDiscardVoiceMessage,
-            AccessiblePauseResumeRecording,
-        ):
-            acc = cls(self._FakeMainWindow(silence_enabled=True, extended_enabled=True))
-            assert acc.GetName(0) == (wx.ACC_OK, "")
-            assert acc.GetKeyboardShortcut(0) == (wx.ACC_OK, "")
+        for silence_enabled in (False, True):
+            for extended_enabled in (False, True):
+                main_window = self._FakeMainWindow(silence_enabled, extended_enabled)
+                send = AccessibleSendVoiceMessage(main_window)
+                discard = AccessibleDiscardVoiceMessage(main_window)
+                pause = AccessiblePauseResumeRecording(main_window)
 
-    def test_transient_silence_when_extended_sr_compat_disabled(self):
-        import wx
-        import time
+                assert send.GetName(0) == (wx.ACC_NOT_IMPLEMENTED, "")
+                assert discard.GetName(0) == (wx.ACC_NOT_IMPLEMENTED, "")
+                assert pause.GetName(0) == (wx.ACC_NOT_IMPLEMENTED, "")
+                assert send.GetKeyboardShortcut(0) == (wx.ACC_OK, "Ctrl+R")
+                assert discard.GetKeyboardShortcut(0) == (wx.ACC_OK, "Ctrl+Shift+D")
+                assert pause.GetKeyboardShortcut(0) == (wx.ACC_OK, "Ctrl+Shift+P")
 
-        now = time.monotonic()
-        for cls in (
-            AccessibleSendVoiceMessage,
-            AccessibleDiscardVoiceMessage,
-            AccessiblePauseResumeRecording,
-        ):
-            # Recent recording start: silenced (transient window)
-            acc_recent = cls(
-                self._FakeMainWindow(
-                    silence_enabled=False,
-                    extended_enabled=False,
-                    start_timestamp=now,
-                )
-            )
-            assert acc_recent.GetName(0) == (wx.ACC_OK, "")
-            assert acc_recent.GetKeyboardShortcut(0) == (wx.ACC_OK, "")
-
-            # Recent pause toggle: silenced (transient window)
-            acc_paused = cls(
-                self._FakeMainWindow(
-                    silence_enabled=False,
-                    extended_enabled=False,
-                    pause_timestamp=now,
-                )
-            )
-            assert acc_paused.GetName(0) == (wx.ACC_OK, "")
-            assert acc_paused.GetKeyboardShortcut(0) == (wx.ACC_OK, "")
-
-            # After transient window: full name and shortcut restored
-            acc_old = cls(
-                self._FakeMainWindow(
-                    silence_enabled=False,
-                    extended_enabled=False,
-                    start_timestamp=now - 2.0,
-                    pause_timestamp=now - 2.0,
-                )
-            )
-            assert acc_old.GetName(0) == (wx.ACC_NOT_IMPLEMENTED, "")
-
-    def test_name_and_shortcut_reported_when_both_enabled(self):
-        import wx
-
-        send = AccessibleSendVoiceMessage(self._FakeMainWindow(silence_enabled=False, extended_enabled=True))
-        discard = AccessibleDiscardVoiceMessage(self._FakeMainWindow(silence_enabled=False, extended_enabled=True))
-        pause = AccessiblePauseResumeRecording(self._FakeMainWindow(silence_enabled=False, extended_enabled=True))
-        assert send.GetName(0) == (wx.ACC_NOT_IMPLEMENTED, "")
-        assert discard.GetName(0) == (wx.ACC_NOT_IMPLEMENTED, "")
-        assert pause.GetName(0) == (wx.ACC_NOT_IMPLEMENTED, "")
-        assert send.GetKeyboardShortcut(0) == (wx.ACC_OK, "Ctrl+R")
-        assert discard.GetKeyboardShortcut(0) == (wx.ACC_OK, "Ctrl+Shift+D")
-        assert pause.GetKeyboardShortcut(0) == (wx.ACC_OK, "Ctrl+Shift+P")

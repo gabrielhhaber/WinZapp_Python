@@ -62,6 +62,7 @@ def direct_callafter(monkeypatch):
     """announce_background_message() marshals onto the wx main thread; run it
     inline so the assertion sees the call."""
     monkeypatch.setattr(wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+    monkeypatch.setattr("core.quiet_hours.is_quiet_hours_active", lambda: False)
 
 
 class TestShouldSpeakBackgroundMessage:

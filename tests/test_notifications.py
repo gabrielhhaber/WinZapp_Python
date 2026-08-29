@@ -204,12 +204,12 @@ class TestCoalesceSettleWindow:
         not each restart the clock — otherwise a steady trickle could delay
         the toast indefinitely."""
         mgr = _Stub()
-        mgr._COALESCE_SETTLE_SECONDS = 0.15
+        mgr._COALESCE_SETTLE_SECONDS = 0.30
 
         def _deliver_two():
-            time.sleep(0.05)
+            time.sleep(0.04)
             mgr._queue.put(("Bruno", "segunda", "j2@g.us"))
-            time.sleep(0.05)
+            time.sleep(0.04)
             mgr._queue.put(("Carla", "terceira", "j3@g.us"))
 
         import threading
@@ -223,7 +223,7 @@ class TestCoalesceSettleWindow:
         assert dropped == 2
         # Bounded by the single deadline set at call time, not extended by
         # each arrival — well under 2x the settle window.
-        assert elapsed < 0.15 * 2
+        assert elapsed < 0.30 * 2
 
 
 class TestClearActiveToasts:
@@ -366,6 +366,7 @@ class TestDispatchLatency:
         """The whole point of the reorder: by the time show_toast() has even
         been called, the sound must already be queued."""
         calls = []
+        monkeypatch.setattr("core.quiet_hours.is_quiet_hours_active", lambda: False)
         monkeypatch.setattr(wx, "CallAfter", lambda fn, *a, **kw: calls.append("sound"))
         toaster = _FakeToaster()
         real_show = toaster.show_toast

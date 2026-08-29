@@ -86,11 +86,20 @@ class _MessagesStub:
 
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
     _needs_display_page_refill = staticmethod(MainWindow._needs_display_page_refill)
+    _backfill_state_guard = MainWindow._backfill_state_guard
+    _canonical_backfill_jid = MainWindow._canonical_backfill_jid
+    _counts_as_last_message = MainWindow._counts_as_last_message
+    _is_backfill_pending = MainWindow._is_backfill_pending
+    _persist_history_gap_jids = lambda self: None
+    _persist_backfill_pending_state = lambda self: None
+    _is_conversation_open_jid = lambda self, jid: False
+    _schedule_set_chats = lambda self: None
 
     def __init__(self, get_urls):
         self.get_urls = get_urls
         self.settings = {"user_interface": {"messages_page_size": 200}}
         self._phone_to_lid = {}
+        self._lid_to_phone = {}
         self._wa_connected = True
         self.chats = {}
         self._initial_sync_running = True
@@ -100,6 +109,10 @@ class _MessagesStub:
         self.db = _FakeDb()
         self._sync_failures_lock = threading.Lock()
         self._sync_failed_chats = set()
+        self._gap_chats = set()
+        self._gap_candidate_chats = set()
+        self._backfill_pending = set()
+        self._backfill_retries = {}
 
     def _extract_lid_mapping(self, msg):
         pass

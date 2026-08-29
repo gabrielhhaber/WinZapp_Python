@@ -206,6 +206,12 @@ class _SweepLoadStub:
     def _persist_older_requested(self):
         pass
 
+    def _persist_backfill_pending_state(self):
+        pass
+
+    def _persist_history_gap_jids(self):
+        pass
+
     def sync_chat_messages(self, chat, run_id=None):
         jid = chat["remoteJid"]
         with self._metrics_lock:

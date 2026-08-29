@@ -123,92 +123,44 @@ class AccessibleEmojiButton(wx.Accessible):
         return (wx.ACC_OK, "Ctrl+.")
 
 
-class _SilenceableVoiceButtonAccessible(wx.Accessible):
-    """Base for a voice-recording-panel button whose accessible *name* and
-    *shortcut* are blanked out while Settings > Conteúdo Falado's "silence while
-    recording" toggle is on OR Settings > Acessibilidade's "extended_sr_compat_enabled"
-    is off.
+class _VoiceButtonAccessible(wx.Accessible):
+    """Base for voice-recording buttons with custom keyboard shortcuts.
 
-    The screen reader queries the newly-focused object's name synchronously
-    while handling the focus WinEvent, so returning an empty name here stops
-    the announcement's content from ever being generated — instead of
-    racing to cancel speech that has already started, which
-    ConversationsPanel._silence_send_voice_focus_if_enabled()'s silence()
-    calls do and can lose against a synthesizer like SAPI5 running under
-    NVDA (see that method's own docstring for why the race exists at all).
-    The two defenses run together: this one prevents most of the
-    announcement's content before it's ever queued, silence() mops up
-    whatever residual (e.g. a bare role announcement) slips through anyway.
+    The native wx label must always remain available to MSAA. Recording-start
+    focus announcements are suppressed separately and only at the instant the
+    application moves focus, so navigating back to the button with Tab still
+    announces its real name and role.
     """
 
     def __init__(self, main_window):
         super().__init__()
         self._mw = main_window
 
-    def _is_silenced(self):
-        if self._mw is None:
-            return False
-        settings = getattr(self._mw, "settings", {}) or {}
-        if settings.get("speech_content", {}).get("silence_while_recording", False):
-            return True
-        if not settings.get("accessibility", {}).get("extended_sr_compat_enabled", True):
-            # When extended compatibility is off, we only silence the initial startup
-            # window when recording begins and transient toggle events (pause/resume)
-            # so state changes do not announce.
-            # Afterwards, navigating with Tab/Shift+Tab to the button will read its real name and role.
-            import time
-            now = time.monotonic()
-            conv_panel = getattr(self._mw, "conversations_panel", None)
-            if conv_panel is not None:
-                start_time = getattr(conv_panel, "_recording_start_timestamp", 0.0)
-                if (now - start_time) < 1.0:
-                    return True
-                pause_time = getattr(conv_panel, "_pause_toggle_timestamp", 0.0)
-                if (now - pause_time) < 1.0:
-                    return True
-            status_panel = getattr(self._mw, "status_panel", None)
-            if status_panel is not None:
-                start_time = getattr(status_panel, "_recording_start_timestamp", 0.0)
-                if (now - start_time) < 1.0:
-                    return True
-                pause_time = getattr(status_panel, "_pause_toggle_timestamp", 0.0)
-                if (now - pause_time) < 1.0:
-                    return True
-        return False
-
     def GetName(self, childId):
-        if self._is_silenced():
-            return (wx.ACC_OK, "")
         return (wx.ACC_NOT_IMPLEMENTED, "")
 
 
-class AccessibleDiscardVoiceMessage(_SilenceableVoiceButtonAccessible):
+class AccessibleDiscardVoiceMessage(_VoiceButtonAccessible):
     """Reports Ctrl+Shift+D as the keyboard shortcut for the Discard button."""
 
     def GetKeyboardShortcut(self, childId):
-        if self._is_silenced():
-            return (wx.ACC_OK, "")
         return (wx.ACC_OK, "Ctrl+Shift+D")
 
 
-class AccessiblePauseResumeRecording(_SilenceableVoiceButtonAccessible):
+class AccessiblePauseResumeRecording(_VoiceButtonAccessible):
     """Reports Ctrl+Shift+P as the keyboard shortcut for the Pause/Resume button."""
 
     def __init__(self, main_window=None):
         super().__init__(main_window)
 
     def GetKeyboardShortcut(self, childId):
-        if self._is_silenced():
-            return (wx.ACC_OK, "")
         return (wx.ACC_OK, "Ctrl+Shift+P")
 
 
-class AccessibleSendVoiceMessage(_SilenceableVoiceButtonAccessible):
+class AccessibleSendVoiceMessage(_VoiceButtonAccessible):
     """Reports Ctrl+R as the keyboard shortcut for the Send Voice Message button."""
 
     def GetKeyboardShortcut(self, childId):
-        if self._is_silenced():
-            return (wx.ACC_OK, "")
         return (wx.ACC_OK, "Ctrl+R")
 
 

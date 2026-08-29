@@ -73,6 +73,11 @@ class _Stub:
         self._backfill_state_lock = threading.RLock()
         self._lid_to_phone = {}
         self._history_still_landing = False
+        self._history_gap_jids = set()
+        self._message_retry_jids = set()
+        self._phone_to_lid = {}
+        self._force_full_sync = False
+        self._last_sync_state = {}
         self.unnamed = []
         # __getattr__ would hand back a lambda, which has no is_alive().
         self._backfill_thread = None
@@ -90,7 +95,7 @@ class _Stub:
 
     # ── the two calls the loop actually makes ────────────────────────
     def get_remote_chats(self, chats, persist_full=True, notify_errors=True,
-                         prune_stale=None):
+                         prune_stale=None, defer_chat_save=False):
         # prune_stale=True is what the settle loop passes and nothing else
         # does, which is how the two callers inside _run_sync() are told
         # apart — the loop, and the single refresh after the message phase.
@@ -113,7 +118,7 @@ class _Stub:
     def _restart_wpp_session(self):
         self.restarted = True
 
-    def sync_remote_chats(self):
+    def sync_remote_chats(self, target_chats=None, incremental=False):
         self.message_sync_ran += 1
 
     def _chats_needing_deep_history(self):
@@ -144,7 +149,7 @@ class _Stub:
     def refresh_history_still_landing(self, context=""):
         return False
 
-    def sync_media_for_all_chats(self):
+    def sync_media_for_all_chats(self, jids=None):
         self.media_sync_ran += 1
         return 0
 
@@ -167,7 +172,11 @@ def _make(counts, wa_web, local_chats=0, high_water=0):
                  "_announce_sync_events_enabled", "count_contradicts_page",
                  "store_looks_broken", "snapshot_matches_page_store",
                  "_attempts_needed_to_confirm",
-                 "_settle_deadline_decision", "history_page_target"):
+                 "_settle_deadline_decision", "history_page_target",
+                 "_normalize_jid", "_jid_address_forms",
+                 "_server_claims_content",
+                 "_capture_chat_sync_baseline", "_baseline_marker_for_jid",
+                 "_plan_message_sync"):
         raw = MainWindow.__dict__[name]
         if isinstance(raw, (staticmethod, classmethod)):
             setattr(stub, name, getattr(MainWindow, name))
@@ -208,7 +217,9 @@ class TestTheCapturedSessions:
         assert stub._sync_completed is True
         assert stub._broken_store_rounds == 0
         assert stub.restarted is False
-        assert stub.message_sync_ran == 1
+        # Warm-cache refresh: the credible list snapshot is enough. None of
+        # the unchanged chats need a get-messages query.
+        assert stub.message_sync_ran == 0
 
     def test_a_small_snapshot_is_not_rescued_by_the_page_count(self):
         stub = _make([36, 0, 0], wa_web=682, local_chats=0)
@@ -262,7 +273,7 @@ class TestTheGrowthGuard:
         assert stub.restarted is False
         assert stub._broken_store_rounds == 0
         assert stub._sync_completed is True
-        assert stub.message_sync_ran == 1
+        assert stub.message_sync_ran == 0
 
     def test_the_documented_late_filling_store_still_settles(self):
         """The shape the code has a live capture of: nothing for five

@@ -393,6 +393,12 @@ class SettingsDialog(wx.Dialog):
         msg_list_mode_sizer.Add(
             self._show_listbox_count_cb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5
         )
+        self._msg_list_mode_classic_rb.Bind(
+            wx.EVT_RADIOBUTTON, self._on_message_list_mode_toggle
+        )
+        self._msg_list_mode_listbox_rb.Bind(
+            wx.EVT_RADIOBUTTON, self._on_message_list_mode_toggle
+        )
 
         ui_sizer.Add(msg_list_mode_sizer, 0, wx.EXPAND | wx.ALL, 8)
 
@@ -613,6 +619,16 @@ class SettingsDialog(wx.Dialog):
             self._speech_page, label=i18n.t("speech_announce_recording_label")
         )
         speech_sizer.Add(self._announce_recording_check, 0, wx.ALL, 8)
+
+        self._announce_conversations_update_start_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("speech_announce_conversations_update_start_label")
+        )
+        speech_sizer.Add(self._announce_conversations_update_start_check, 0, wx.ALL, 8)
+
+        self._announce_conversations_update_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("speech_announce_conversations_update_label")
+        )
+        speech_sizer.Add(self._announce_conversations_update_check, 0, wx.ALL, 8)
 
         self._speak_active_conv_check = wx.CheckBox(
             self._speech_page, label=i18n.t("speech_speak_active_conv_label")
@@ -1032,6 +1048,7 @@ class SettingsDialog(wx.Dialog):
             "show_listbox_item_count", False
         )
         self._show_listbox_count_cb.SetValue(bool(show_listbox_count))
+        self._sync_listbox_count_visibility()
 
         show_delivery_status = self.main_window.settings.get("user_interface", {}).get(
             "show_delivery_status_in_chat_list", True
@@ -1125,6 +1142,12 @@ class SettingsDialog(wx.Dialog):
         speech = self.main_window.settings.get("speech_content", {})
         self._announce_typing_check.SetValue(speech.get("announce_typing", True))
         self._announce_recording_check.SetValue(speech.get("announce_recording", True))
+        self._announce_conversations_update_start_check.SetValue(
+            speech.get("announce_conversations_update_start", True)
+        )
+        self._announce_conversations_update_check.SetValue(
+            speech.get("announce_conversations_update_complete", True)
+        )
         self._speak_active_conv_check.SetValue(speech.get("speak_active_conv_messages", True))
         self._speak_other_conv_check.SetValue(speech.get("speak_other_conv_messages", True))
         self._silence_while_recording_check.SetValue(speech.get("silence_while_recording", False))
@@ -1840,24 +1863,20 @@ class SettingsDialog(wx.Dialog):
             "voice_record_focus"
         ] = voice_record_focus
 
-        # UI: messages list control type (ListCtrl vs ListBox) — takes effect
-        # after restart since the conversation panel control is built once at
-        # startup and switching its underlying wx control type at runtime would
-        # require rebuilding the whole conversation panel.
+        # UI: messages list control type (ListCtrl vs ListBox). The active
+        # conversation panel is replaced in-place after settings are persisted,
+        # so Apply/OK takes effect immediately without an app restart.
         new_message_list_mode = (
             "listbox" if self._msg_list_mode_listbox_rb.GetValue() else "classic"
         )
-        old_message_list_mode = self.main_window.settings.get("user_interface", {}).get(
-            "message_list_mode", "classic"
-        )
+        ui_settings = self.main_window.settings.setdefault("user_interface", {})
+        old_message_list_mode = ui_settings.get("message_list_mode", "classic")
         if old_message_list_mode == "dataview":
             old_message_list_mode = "listbox"
-        self.main_window.settings.setdefault("user_interface", {})[
-            "message_list_mode"
-        ] = new_message_list_mode
-        self.main_window.settings.setdefault("user_interface", {})[
-            "show_listbox_item_count"
-        ] = self._show_listbox_count_cb.GetValue()
+        old_show_listbox_count = bool(ui_settings.get("show_listbox_item_count", False))
+        new_show_listbox_count = self._show_listbox_count_cb.GetValue()
+        ui_settings["message_list_mode"] = new_message_list_mode
+        ui_settings["show_listbox_item_count"] = new_show_listbox_count
         self.main_window.settings.setdefault("user_interface", {})[
             "show_delivery_status_in_chat_list"
         ] = self._show_delivery_status_cb.GetValue()
@@ -1888,9 +1907,6 @@ class SettingsDialog(wx.Dialog):
         self.main_window.settings.setdefault("user_interface", {})[
             "status_media_viewer_dialog"
         ] = self._status_media_viewer_dialog_cb.GetValue()
-        if new_message_list_mode != old_message_list_mode:
-            self._restart_required = True
-
         # UI: reading voice messages in chats and status
         voice_message_mode = "voice_message" if self._voice_msg_mode_voice_rb.GetValue() else "audio"
         old_vm_mode = self.main_window.settings.get("user_interface", {}).get("voice_message_mode", "audio")
@@ -1938,6 +1954,12 @@ class SettingsDialog(wx.Dialog):
         self.main_window.settings.setdefault("speech_content", {})[
             "announce_recording"
         ] = self._announce_recording_check.GetValue()
+        self.main_window.settings.setdefault("speech_content", {})[
+            "announce_conversations_update_start"
+        ] = self._announce_conversations_update_start_check.GetValue()
+        self.main_window.settings.setdefault("speech_content", {})[
+            "announce_conversations_update_complete"
+        ] = self._announce_conversations_update_check.GetValue()
         self.main_window.settings.setdefault("speech_content", {})[
             "speak_active_conv_messages"
         ] = self._speak_active_conv_check.GetValue()
@@ -2133,13 +2155,18 @@ class SettingsDialog(wx.Dialog):
         # Refresh all visible labels in the main window
         self.main_window.apply_language_changes()
 
+        cp = getattr(self.main_window, "conversations_panel", None)
+        message_list_mode_changed = new_message_list_mode != old_message_list_mode
+        listbox_count_changed = new_show_listbox_count != old_show_listbox_count
+        if cp is not None and (message_list_mode_changed or listbox_count_changed):
+            cp.apply_message_list_mode(new_message_list_mode)
+
         # Re-render the open conversation's message list, and the conversation
         # list's last-message previews (which also embed the self-reference
         # word for chats whose last message is our own), so a self-reference
         # change (e.g. "Eu" -> "Você") takes effect immediately instead of
         # only on the next restart.
         if self_reference_changed or vm_mode_changed:
-            cp = getattr(self.main_window, "conversations_panel", None)
             if cp is not None and getattr(cp, "conversation", None) is not None:
                 cp.populate_messages(preserve_focus=True)
             # add_chats_to_ui() skips its rebuild when its content fingerprint
@@ -2239,6 +2266,12 @@ class SettingsDialog(wx.Dialog):
         self._selected_announce_end_rb.SetLabel(i18n.t("ui_selected_announce_position_end"))
         self._announce_typing_check.SetLabel(i18n.t("speech_announce_typing_label"))
         self._announce_recording_check.SetLabel(i18n.t("speech_announce_recording_label"))
+        self._announce_conversations_update_start_check.SetLabel(
+            i18n.t("speech_announce_conversations_update_start_label")
+        )
+        self._announce_conversations_update_check.SetLabel(
+            i18n.t("speech_announce_conversations_update_label")
+        )
         self._speak_active_conv_check.SetLabel(i18n.t("speech_speak_active_conv_label"))
         self._speak_other_conv_check.SetLabel(i18n.t("speech_speak_other_conv_label"))
         self._silence_while_recording_check.SetLabel(i18n.t("speech_silence_while_recording_label"))
@@ -2301,6 +2334,17 @@ class SettingsDialog(wx.Dialog):
         self._audio_speed_combo.SetSelection(cur_sel if cur_sel != wx.NOT_FOUND else 0)
 
     # ── Event handlers ───────────────────────────────────────────────────────
+
+    def _sync_listbox_count_visibility(self):
+        """Show the item-count option only when List box mode is selected."""
+        show = self._msg_list_mode_listbox_rb.GetValue()
+        self._show_listbox_count_cb.Show(show)
+        self._ui_page.Layout()
+        self.Layout()
+
+    def _on_message_list_mode_toggle(self, event):
+        self._sync_listbox_count_visibility()
+        event.Skip()
 
     def _stop_alert_previews(self):
         self._alert_private_preview.stop()

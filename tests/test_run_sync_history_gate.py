@@ -39,6 +39,10 @@ def _settled_stub(unblock_result, wait_result, outcome=None):
     """*outcome* is what the real wait records in _history_wait_outcome; it is
     what tells the two False cases apart ("timeout" vs "session_gone")."""
     stub = _make([931, 931], wa_web=937, local_chats=931)
+    # These tests exercise the heavy recovery path specifically. Ordinary
+    # warm-cache startup now skips RECENT restart/wait entirely and performs
+    # an incremental delta refresh instead.
+    stub._force_full_sync = True
     # Bound for real: it is the predicate that opens the gate. The stub's
     # __getattr__ answers unknown names with a lambda returning None, which is
     # falsy — leave it unbound and every test here silently exercises the

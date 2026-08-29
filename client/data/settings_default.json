@@ -74,6 +74,8 @@
     "speech_content": {
         "announce_typing": true,
         "announce_recording": true,
+        "announce_conversations_update_start": true,
+        "announce_conversations_update_complete": true,
         "speak_active_conv_messages": true,
         "speak_other_conv_messages": true,
         "silence_while_recording": false

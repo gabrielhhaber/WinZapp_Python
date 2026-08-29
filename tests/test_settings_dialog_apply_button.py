@@ -159,3 +159,36 @@ class TestApplyHidesTheButtonAgain:
         dialog._keep_muted_silent_check.SetValue(not dialog._keep_muted_silent_check.GetValue())
         _fire(dialog._keep_muted_silent_check, wx.EVT_CHECKBOX)
         assert dialog._apply_btn.IsShown() is True
+
+
+class TestMessageListModeOptions:
+    def test_item_count_option_is_hidden_in_classic_mode_and_shown_in_listbox_mode(self, dialog):
+        assert dialog._msg_list_mode_classic_rb.GetValue() is True
+        assert dialog._show_listbox_count_cb.IsShown() is False
+
+        dialog._msg_list_mode_listbox_rb.SetValue(True)
+        _fire(dialog._msg_list_mode_listbox_rb, wx.EVT_RADIOBUTTON)
+        assert dialog._show_listbox_count_cb.IsShown() is True
+
+        dialog._msg_list_mode_classic_rb.SetValue(True)
+        _fire(dialog._msg_list_mode_classic_rb, wx.EVT_RADIOBUTTON)
+        assert dialog._show_listbox_count_cb.IsShown() is False
+
+    def test_apply_switches_the_live_messages_control_without_restart_flag(self, dialog):
+        class _ConversationsPanel:
+            def __init__(self):
+                self.modes = []
+
+            def apply_message_list_mode(self, mode):
+                self.modes.append(mode)
+
+        panel = _ConversationsPanel()
+        dialog.main_window.conversations_panel = panel
+        dialog._msg_list_mode_listbox_rb.SetValue(True)
+        _fire(dialog._msg_list_mode_listbox_rb, wx.EVT_RADIOBUTTON)
+
+        dialog._on_apply(None)
+
+        assert panel.modes == ["listbox"]
+        assert dialog.main_window.settings["user_interface"]["message_list_mode"] == "listbox"
+        assert dialog._restart_required is False

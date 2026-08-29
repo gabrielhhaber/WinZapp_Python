@@ -286,6 +286,27 @@ class TestBackfillKeepsGapChats:
         s._note_backfill_state("g@g.us", _chat_with(PAGE), api_ok=True)
         assert s._chats_awaiting_messages == set()
 
+    def test_the_repair_marker_is_released_with_the_queue_slot(self):
+        """Leaving the chat in _history_gap_jids while dropping it from the
+        queue only moves the leak: _plan_message_sync() reads that set as
+        repair_needed too, so the chat would still be re-planned as a FULL sync
+        every round — forever, and across restarts, since the set is
+        persisted. Both markers go together."""
+        s = _BackfillStub(gap_jids={"g@g.us"})
+        s._note_backfill_state("g@g.us", _chat_with(PAGE), api_ok=True)
+        assert s._history_gap_jids == {"g@g.us"}
+        s._note_backfill_state("g@g.us", _chat_with(PAGE), api_ok=True)
+        assert s._history_gap_jids == set()
+
+    def test_a_gap_chat_that_is_still_growing_keeps_its_repair_marker(self):
+        """The release is keyed on a pass that added nothing — a chat whose
+        history is still landing must not lose the marker mid-ramp."""
+        s = _BackfillStub(gap_jids={"g@g.us"})
+        s._note_backfill_state("g@g.us", _chat_with(PAGE), api_ok=True)
+        s._note_backfill_state("g@g.us", _chat_with(PAGE + 5), api_ok=True)
+        assert s._chats_awaiting_messages == {"g@g.us"}
+        assert s._history_gap_jids == {"g@g.us"}
+
     def test_a_queued_gap_chat_that_grows_keeps_its_slot(self):
         s = _BackfillStub(gap_jids={"g@g.us"})
         s._note_backfill_state("g@g.us", _chat_with(PAGE), api_ok=True)
