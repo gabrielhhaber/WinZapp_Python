@@ -568,6 +568,10 @@ class SettingsDialog(wx.Dialog):
         # Space is the ListCtrl's native toggle; Enter is bound as well because
         # every other list in this app activates with Enter, and the user should
         # not have to know which of the two a given list wants.
+        # Space does NOT toggle a wx.ListCtrl checkbox on wxMSW — the
+        # native control treats it as a selection key and swallows it, so
+        # the box only ever moved with Enter. Handled explicitly here.
+        self._group_media_types_list.Bind(wx.EVT_KEY_DOWN, self._on_media_type_key_down)
         self._group_media_types_list.Bind(
             wx.EVT_LIST_ITEM_ACTIVATED, self._on_group_media_type_activated
         )
@@ -1767,6 +1771,17 @@ class SettingsDialog(wx.Dialog):
             self._group_media_types_list.CheckItem(
                 idx, not self._group_media_types_list.IsItemChecked(idx)
             )
+
+    def _on_media_type_key_down(self, event):
+        """Space toggles the focused checkbox, matching Enter."""
+        if event.GetKeyCode() != wx.WXK_SPACE:
+            event.Skip()
+            return
+        lst = event.GetEventObject()
+        idx = lst.GetFocusedItem()
+        if idx is not None and 0 <= idx < lst.GetItemCount():
+            lst.CheckItem(idx, not lst.IsItemChecked(idx))
+            # Nothing to refresh here — this list only records a default.
 
     def _selected_group_media_types(self) -> list:
         """The checked categories, in GROUP_MEDIA_TYPES order."""

@@ -458,3 +458,181 @@ class TestTheSettingsListStartsOnItsFirstRow:
         appended = src.index("self._group_media_types_list.Append(")
         focused = src.index("self._group_media_types_list.Focus(0)")
         assert appended < focused
+
+
+# ── Space, shortcuts and the action buttons ──────────────────────────────────
+
+import inspect as _inspect
+import types
+
+import wx
+
+from ui.dialogs.conversation_data_dialog import _MEDIA_MENU_ACTIONS
+from ui.dialogs.settings_dialog import SettingsDialog
+
+
+class _KeyEvent:
+    def __init__(self, code, obj=None, ctrl=False, shift=False, alt=False):
+        self._code, self._obj = code, obj
+        self._ctrl, self._shift, self._alt = ctrl, shift, alt
+        self.skipped = False
+
+    def GetKeyCode(self):
+        return self._code
+
+    def GetEventObject(self):
+        return self._obj
+
+    def ControlDown(self):
+        return self._ctrl
+
+    def ShiftDown(self):
+        return self._shift
+
+    def AltDown(self):
+        return self._alt
+
+    def Skip(self):
+        self.skipped = True
+
+
+class _CheckList:
+    def __init__(self, count=4, focused=1):
+        self._count, self._focused = count, focused
+        self.checked = {i: True for i in range(count)}
+
+    def GetItemCount(self):
+        return self._count
+
+    def GetFocusedItem(self):
+        return self._focused
+
+    def IsItemChecked(self, i):
+        return self.checked[i]
+
+    def CheckItem(self, i, on=True):
+        self.checked[i] = on
+
+
+class TestSpaceTogglesTheCheckbox:
+    """Space does NOT toggle a wx.ListCtrl checkbox on wxMSW — the native
+    control treats it as a selection key and swallows it, so the box only ever
+    moved with Enter. Reported from real use, not theory."""
+
+    def _stub(self, dialog_cls, list_attr, refresh=None):
+        stub = types.SimpleNamespace()
+        lst = _CheckList()
+        setattr(stub, list_attr, lst)
+        stub._refresh_media_list = refresh or (lambda: None)
+        stub._on_media_type_key_down = dialog_cls._on_media_type_key_down.__get__(stub)
+        return stub, lst
+
+    def test_space_flips_the_focused_row_in_the_media_tab(self):
+        stub, lst = self._stub(ConversationDataDialog, "_media_types_list")
+        stub._on_media_type_key_down(_KeyEvent(wx.WXK_SPACE, obj=lst))
+        assert lst.checked[1] is False
+
+    def test_space_flips_it_back(self):
+        stub, lst = self._stub(ConversationDataDialog, "_media_types_list")
+        stub._on_media_type_key_down(_KeyEvent(wx.WXK_SPACE, obj=lst))
+        stub._on_media_type_key_down(_KeyEvent(wx.WXK_SPACE, obj=lst))
+        assert lst.checked[1] is True
+
+    def test_space_refreshes_the_list(self):
+        calls = []
+        stub, lst = self._stub(ConversationDataDialog, "_media_types_list",
+                               refresh=lambda: calls.append(1))
+        stub._on_media_type_key_down(_KeyEvent(wx.WXK_SPACE, obj=lst))
+        assert calls == [1]
+
+    def test_other_keys_are_passed_through(self):
+        """Arrows must keep moving through the list."""
+        stub, lst = self._stub(ConversationDataDialog, "_media_types_list")
+        ev = _KeyEvent(wx.WXK_DOWN, obj=lst)
+        stub._on_media_type_key_down(ev)
+        assert ev.skipped is True
+        assert lst.checked[1] is True
+
+    def test_the_settings_list_gets_the_same_treatment(self):
+        stub = types.SimpleNamespace()
+        lst = _CheckList()
+        stub._group_media_types_list = lst
+        stub._on_media_type_key_down = SettingsDialog._on_media_type_key_down.__get__(stub)
+        stub._on_media_type_key_down(_KeyEvent(wx.WXK_SPACE, obj=lst))
+        assert lst.checked[1] is False
+
+
+class TestTheMenuAdvertisesWorkingShortcuts:
+    """A menu that shows an accelerator which does nothing is worse than one
+    that shows none — and that is what this tab shipped with: the conversation
+    panel reaches these through its own accelerator table, which this dialog is
+    not part of."""
+
+    def test_every_action_carries_a_shortcut(self):
+        for label_key, shortcut, method in _MEDIA_MENU_ACTIONS:
+            assert shortcut, label_key
+
+    def test_the_shortcuts_match_the_conversation_menu(self):
+        """Same keys the message list already uses, so nothing has to be
+        relearned for the same action in a different place."""
+        expected = {
+            "reply_message": "Alt+R",
+            "forward_message": "Ctrl+Shift+E",
+            "react_to_message": "Ctrl+Shift+R",
+            "copy_message_text": "Ctrl+C",
+            "star_message": "Ctrl+Shift+O",
+            "message_data": "Alt+Shift+D",
+        }
+        assert {k: s for k, s, _ in _MEDIA_MENU_ACTIONS} == expected
+
+    def test_each_one_names_a_real_panel_handler(self):
+        from ui.conversations import ConversationsPanel
+        for _label, _shortcut, method in _MEDIA_MENU_ACTIONS:
+            assert hasattr(ConversationsPanel, method), method
+
+    def test_the_menu_builds_its_labels_from_that_table(self):
+        src = _inspect.getsource(ConversationDataDialog._on_media_context_menu)
+        assert "_MEDIA_MENU_ACTIONS" in src
+
+    def test_the_key_handler_covers_every_advertised_shortcut(self):
+        src = _inspect.getsource(ConversationDataDialog._on_media_list_key_down)
+        for _label, _shortcut, method in _MEDIA_MENU_ACTIONS:
+            assert method in src, f"{method} is advertised but not bound"
+
+
+class TestTheActionButtons:
+    """Open / Save As as real buttons, in the Tab order right after the list —
+    the same affordance the conversation panel gives a media message. A context
+    menu is not equivalent: it needs a right-click or the menu key, and never
+    appears in the Tab order."""
+
+    @staticmethod
+    def _build_src():
+        return _inspect.getsource(ConversationDataDialog._build_group_ui)
+
+    def test_both_buttons_exist(self):
+        src = self._build_src()
+        assert "self._media_open_btn = wx.Button" in src
+        assert "self._media_save_btn = wx.Button" in src
+
+    def test_they_sit_between_the_list_and_the_type_checkboxes(self):
+        src = self._build_src()
+        assert src.index("self._media_list = wx.ListCtrl") < src.index(
+            "self._media_open_btn")
+        assert src.index("self._media_save_btn") < src.index(
+            "self._media_types_list = wx.ListCtrl")
+
+    def test_they_are_disabled_for_a_link(self):
+        """A link has no file to open or save; a dead control in the Tab order
+        is worse than an absent one."""
+        src = _inspect.getsource(ConversationDataDialog._on_media_row_focused)
+        assert 'group_media_category(msg) != "links"' in src
+        assert "btn.Enable(actionable)" in src
+
+    def test_open_uses_the_panels_own_handler(self):
+        src = _inspect.getsource(ConversationDataDialog._on_media_open_btn)
+        assert "_on_action_open" in src
+
+    def test_save_uses_the_panels_own_handler(self):
+        src = _inspect.getsource(ConversationDataDialog._on_media_save_btn)
+        assert "_on_action_save_as" in src

@@ -24,11 +24,26 @@ import wx.adv
 from core.utils import (
     format_number, GROUP_MEDIA_TYPES, GROUP_MEDIA_FILTERS,
     filter_group_media, filter_group_media_by_download, media_cache_id,
+    group_media_category,
 )
 from core.locale_format import get_datetime_format
 from app_paths import data_path
 from core.sound_system import (
     discover_alert_tone_choices, resolve_alert_tone_path, AlertPreviewController,
+)
+
+
+# The message actions the Media tab offers, with the accelerator each one
+# already has in the conversation's own context menu. One table so the label
+# and the key binding below cannot drift apart — the menu used to advertise no
+# shortcut at all, and the keys did nothing on this list.
+_MEDIA_MENU_ACTIONS = (
+    ("reply_message",     "Alt+R",          "_on_menu_reply"),
+    ("forward_message",   "Ctrl+Shift+E",   "_on_menu_forward"),
+    ("react_to_message",  "Ctrl+Shift+R",   "_on_menu_react"),
+    ("copy_message_text", "Ctrl+C",         "_on_menu_copy_message"),
+    ("star_message",      "Ctrl+Shift+O",   "_on_menu_star"),
+    ("message_data",      "Alt+Shift+D",    "_on_menu_message_data"),
 )
 
 
@@ -425,7 +440,25 @@ class ConversationDataDialog(wx.Dialog):
         )
         self._media_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_media_activated)
         self._media_list.Bind(wx.EVT_CONTEXT_MENU, self._on_media_context_menu)
+        self._media_list.Bind(wx.EVT_KEY_DOWN, self._on_media_list_key_down)
+        self._media_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self._on_media_row_focused)
+        self._media_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_media_row_focused)
         md_sizer.Add(self._media_list, 1, wx.EXPAND | wx.ALL, 8)
+
+        # Open / Save As as real buttons, reachable with Tab straight after the
+        # list — the same affordance the conversation panel gives a media
+        # message (_action_open_btn / _action_save_as_btn). The context menu
+        # alone is not equivalent: it needs a right-click or the menu key, and
+        # it does not show up in the Tab order at all.
+        media_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._media_open_btn = wx.Button(media_page, label=self._i18n.t("open"))
+        self._media_open_btn.Bind(wx.EVT_BUTTON, self._on_media_open_btn)
+        media_btn_row.Add(self._media_open_btn, 0, wx.RIGHT, 6)
+
+        self._media_save_btn = wx.Button(media_page, label=self._i18n.t("save_as"))
+        self._media_save_btn.Bind(wx.EVT_BUTTON, self._on_media_save_btn)
+        media_btn_row.Add(self._media_save_btn, 0)
+        md_sizer.Add(media_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._media_label = wx.StaticText(
             media_page, label=self._i18n.t("loading")
@@ -450,6 +483,10 @@ class ConversationDataDialog(wx.Dialog):
         for idx, key in enumerate(GROUP_MEDIA_TYPES):
             self._media_types_list.Append((self._i18n.t(f"group_media_type_{key}"),))
             self._media_types_list.CheckItem(idx, key in defaults)
+        # Space does NOT toggle a wx.ListCtrl checkbox on wxMSW — the
+        # native control treats it as a selection key and swallows it, so
+        # the box only ever moved with Enter. Handled explicitly here.
+        self._media_types_list.Bind(wx.EVT_KEY_DOWN, self._on_media_type_key_down)
         self._media_types_list.Bind(
             wx.EVT_LIST_ITEM_ACTIVATED, self._on_media_type_activated
         )
@@ -849,6 +886,7 @@ class ConversationDataDialog(wx.Dialog):
         )
 
         self._focus_first(self._media_list)
+        self._on_media_row_focused(wx.CommandEvent())
 
     @staticmethod
     def _focus_first(list_ctrl):
@@ -890,6 +928,17 @@ class ConversationDataDialog(wx.Dialog):
             self._media_types_list.CheckItem(
                 idx, not self._media_types_list.IsItemChecked(idx)
             )
+            self._refresh_media_list()
+
+    def _on_media_type_key_down(self, event):
+        """Space toggles the focused checkbox, matching Enter."""
+        if event.GetKeyCode() != wx.WXK_SPACE:
+            event.Skip()
+            return
+        lst = event.GetEventObject()
+        idx = lst.GetFocusedItem()
+        if idx is not None and 0 <= idx < lst.GetItemCount():
+            lst.CheckItem(idx, not lst.IsItemChecked(idx))
             self._refresh_media_list()
 
     def _on_media_type_toggled(self, event):
@@ -1059,6 +1108,77 @@ class ConversationDataDialog(wx.Dialog):
             return
         self._invoke_with_index(msg, lambda idx: panel._do_activate_message(idx))
 
+    def _on_media_row_focused(self, event):
+        """Show the action buttons only for a row they can act on.
+
+        A link has no file to open or save, so the buttons would be dead
+        controls in the Tab order — worse than absent for someone moving
+        through the dialog by keyboard. Same reason the conversation panel
+        hides them for a text message.
+        """
+        event.Skip()
+        msg = self._selected_media_message()
+        actionable = bool(msg) and group_media_category(msg) != "links" \
+            and self._panel_is_on_this_chat()
+        for btn in (getattr(self, "_media_open_btn", None),
+                    getattr(self, "_media_save_btn", None)):
+            if btn is not None:
+                btn.Enable(actionable)
+
+    def _on_media_open_btn(self, event):
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None or not self._panel_is_on_this_chat():
+            return
+        self._invoke_with_index(msg, lambda idx: panel._on_action_open(None, idx))
+
+    def _on_media_save_btn(self, event):
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None or not self._panel_is_on_this_chat():
+            return
+        self._invoke_with_selection(msg, lambda: panel._on_action_save_as(None))
+
+    def _on_media_list_key_down(self, event):
+        """Make the shortcuts the context menu advertises actually work here.
+
+        The conversation panel reaches these through an accelerator table on
+        the panel itself, which this dialog is not part of — so the same keys
+        did nothing on this list while the menu happily displayed them. Handled
+        on the list rather than through a dialog-wide accelerator table so they
+        cannot fire while the user is on the filter radio or a checkbox.
+        """
+        code = event.GetKeyCode()
+        ctrl, shift, alt = event.ControlDown(), event.ShiftDown(), event.AltDown()
+        msg = self._selected_media_message()
+        panel = self._conversation_panel()
+        if msg is None or panel is None or not self._panel_is_on_this_chat():
+            event.Skip()
+            return
+
+        key = chr(code) if 32 < code < 127 else ""
+        method = None
+        if ctrl and shift and key == "S":
+            self._invoke_with_selection(msg, lambda: panel._on_action_save_as(None))
+            return
+        elif alt and shift and key == "D":
+            method = "_on_menu_message_data"
+        elif ctrl and shift and key == "E":
+            method = "_on_menu_forward"
+        elif ctrl and shift and key == "R":
+            method = "_on_menu_react"
+        elif ctrl and shift and key == "O":
+            method = "_on_menu_star"
+        elif ctrl and not shift and not alt and key == "C":
+            method = "_on_menu_copy_message"
+        elif alt and not ctrl and not shift and key == "R":
+            method = "_on_menu_reply"
+
+        if method is None or not hasattr(panel, method):
+            event.Skip()
+            return
+        self._invoke(lambda m=method: getattr(panel, m)(msg))
+
     def _on_media_context_menu(self, event):
         """The message list's own actions, on the selected media row."""
         msg = self._selected_media_message()
@@ -1121,18 +1241,17 @@ class ConversationDataDialog(wx.Dialog):
             added_any[0] = True
 
         _separator()
-        _add_msg_action(i18n.t("reply_message"), "_on_menu_reply")
-        _add_msg_action(i18n.t("forward_message"), "_on_menu_forward")
-        _add_msg_action(i18n.t("react_to_message"), "_on_menu_react")
-        _separator()
-        _add_msg_action(i18n.t("copy_message_text"), "_on_menu_copy_message")
-        # Mirrors the panel's own label, which flips with the message's state.
-        starred = bool(msg.get("_starred") or msg.get("starred"))
-        _add_msg_action(
-            i18n.t("unstar_message") if starred else i18n.t("star_message"),
-            "_on_menu_star",
-        )
-        _add_msg_action(i18n.t("message_data"), "_on_menu_message_data")
+        # Labels carry the same accelerator text the conversation's own menu
+        # shows, and the keys themselves work on this list too (see
+        # _on_media_list_key_down) — a menu that advertises a shortcut which
+        # does nothing is worse than one that advertises none.
+        for label_key, shortcut, method in _MEDIA_MENU_ACTIONS:
+            if label_key == "star_message":
+                # Mirrors the panel's own label, which flips with the state.
+                label_key = "unstar_message" if msg.get("starred") else "star_message"
+            _add_msg_action(f"{i18n.t(label_key)}\t{shortcut}", method)
+            if label_key == "react_to_message":
+                _separator()
 
         if not on_this_chat:
             _separator()
