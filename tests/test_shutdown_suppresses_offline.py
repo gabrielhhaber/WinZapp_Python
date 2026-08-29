@@ -24,6 +24,7 @@ from main import MainWindow
 
 class _Stub:
     _set_wa_connected = MainWindow._set_wa_connected
+    _self_inflicted_teardown_expected = MainWindow._self_inflicted_teardown_expected
 
     def __init__(self, shutting_down):
         self._shutting_down = shutting_down

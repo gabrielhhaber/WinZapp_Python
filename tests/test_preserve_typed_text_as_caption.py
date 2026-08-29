@@ -8,6 +8,7 @@ import pytest
 import wx
 
 from ui.conversations import ConversationsPanel
+from tests.conftest import hidden_frame
 
 
 class _SettingsStub(dict):
@@ -33,7 +34,7 @@ class _Stub:
 
 class TestPreserveTypedTextAsCaption:
     def test_moves_typed_text_into_caption(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             stub.message_field.SetValue("oi tudo bem")
@@ -46,7 +47,7 @@ class TestPreserveTypedTextAsCaption:
             frame.Destroy()
 
     def test_does_nothing_when_message_field_is_empty(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
 
@@ -57,7 +58,7 @@ class TestPreserveTypedTextAsCaption:
             frame.Destroy()
 
     def test_does_not_clobber_an_existing_caption(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             stub._caption_field.SetValue("legenda já digitada")
@@ -72,7 +73,7 @@ class TestPreserveTypedTextAsCaption:
             frame.Destroy()
 
     def test_disabled_by_setting_leaves_both_fields_alone(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame, preserve=False)
             stub.message_field.SetValue("oi tudo bem")
@@ -85,7 +86,7 @@ class TestPreserveTypedTextAsCaption:
             frame.Destroy()
 
     def test_whitespace_only_text_is_not_moved(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             stub.message_field.SetValue("   ")
@@ -97,7 +98,7 @@ class TestPreserveTypedTextAsCaption:
             frame.Destroy()
 
     def test_unicode_separators_are_normalized_when_moved(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             stub.message_field.SetValue("A B")

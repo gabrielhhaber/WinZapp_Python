@@ -72,6 +72,7 @@ class _Queue:
 
 class _Stub:
     _set_wa_connected = MainWindow._set_wa_connected
+    _self_inflicted_teardown_expected = MainWindow._self_inflicted_teardown_expected
     _reset_startup_probe = MainWindow._reset_startup_probe
     # The real recompute, not a spy: self.offline_mode is precisely what
     # MessageQueue._run reads before sending, so the tests assert the thing

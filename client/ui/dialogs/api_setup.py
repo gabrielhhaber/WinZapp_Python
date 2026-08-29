@@ -197,6 +197,7 @@ _CUSTOM_SRC_FILES = [
     "src/util/createSessionUtil.ts",
     "src/util/sessionUtil.ts",
     "src/util/functions.ts",
+    "src/util/tokenStore/fileTokenStory.ts",
     "src/middleware/statusConnection.ts",
     "src/middleware/auth.ts",
     "src/dto/sync.ts",

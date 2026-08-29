@@ -22,7 +22,7 @@ import pytest
 import wx
 
 from core.utils import normalize_line_separators
-from tests.conftest import set_clipboard_text
+from tests.conftest import hidden_frame, set_clipboard_text
 from ui.conversations import ConversationsPanel
 
 
@@ -112,7 +112,7 @@ class _Stub:
 
 class TestPasteNormalization:
     def test_paste_of_paragraph_separator_text_is_normalized(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             if not set_clipboard_text("A\u2029B\u2029C"):
@@ -126,7 +126,7 @@ class TestPasteNormalization:
             frame.Destroy()
 
     def test_paste_of_plain_text_is_left_alone(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             if not set_clipboard_text("hello\nworld"):
@@ -188,7 +188,7 @@ class TestPasteHandlerIsGeneric:
         """The generalization that lets one handler serve every field: the
         text goes to the control the paste came from, not to a hardcoded
         message_field."""
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             if not set_clipboard_text("A\u2029B"):

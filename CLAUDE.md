@@ -30,7 +30,19 @@ Entry point is `client/main.py`, guarded by `if __name__ == "__main__":` near th
 pytest                                   # from repo root; pytest.ini sets pythonpath=client, asyncio_mode=auto
 pytest tests/test_database.py            # single file
 pytest tests/test_database.py::TestChats::test_upsert_chat_creates_record  # single test
+pytest -m "not wxgui"                    # skip the modules that open a real dialog
 ```
+**Run `-m "not wxgui"` whenever somebody is actually using the machine.** A
+handful of modules construct a real top-level wx dialog, and that steals focus
+from whatever the user is doing — worse, it has crashed NVDA live: NVDA takes
+focus on the throwaway window and is still enumerating its children over COM
+(`event_gainFocus` → `getDialogText` → `IAccessible._get_children` →
+`oleacc.AccessibleObjectFromEvent`) when the test destroys it. Confirmed from
+NVDA's own traceback. Everything else builds its windows through
+`tests/conftest.py`'s `hidden_frame()` — real, fully functional parents, but
+off-screen tool windows with no taskbar button, so they never become
+foreground. `tests/test_no_desktop_visible_windows.py` enforces both halves;
+CI has no screen reader and runs the whole suite.
 Tests cover `client/core/database.py` and `client/core/database_bridge.py` (async SQLite layer + its sync façade) and small islands of pure logic pulled out of `main.py`/`core/notification_manager.py`/`ui/conversations.py` (e.g. `tests/test_sender_names.py`, `tests/test_notifications.py`, `tests/test_delivery_status.py`, `tests/test_send_jid_resolution.py`, `tests/test_message_bookmarks.py`) by binding their unbound methods onto a plain stub object — `MainWindow`/`ConversationsPanel` are wx.Frame/wx.Panel and can't be instantiated without a running wx.App, so the stub carries only the attributes the method under test actually touches. There are no tests for the wx UI in bulk. Async tests use `pytest-asyncio` in `auto` mode — no `@pytest.mark.asyncio` decorator needed, just declare test functions `async def`. **New functions/features should come with a test in this style as part of the same change.**
 
 ### Building the distributable

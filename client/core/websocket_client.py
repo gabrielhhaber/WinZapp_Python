@@ -322,6 +322,17 @@ class WebSocketClient:
                 data.get("loggedOut", False)
                 or status_code == 401
             )
+
+            if self.main_window._self_inflicted_teardown_expected():
+                # We are mid our own deliberate shutdown or a WPPConnect
+                # Server auto-update — both POST /close-session themselves
+                # with the WebSocket deliberately left connected throughout,
+                # so this "close" is the direct, expected result of that
+                # call, not WhatsApp unlinking anything. A self-inflicted
+                # close is reported the exact same way as a real phone-side
+                # logout (loggedOut=True / statusCode 401).
+                return
+
             # A connection that closes again — for ANY reason, not just an
             # explicit 401/loggedOut — while a pairing attempt is still in
             # progress and before WPPConnect ever delivered real chat data
@@ -1323,7 +1334,13 @@ class WebSocketClient:
             if status in ("disconnectedMobile", "notLogged", "UNPAIRED", "UNPAIRED_IDLE"):
                 # Handle permanent WhatsApp logout / disconnection.
                 # Only trigger if we were previously fully connected (preventing startup false positives).
-                if self.main_window._wa_connected and self.main_window.settings.get("privateinfo", {}).get("paired"):
+                if self.main_window._self_inflicted_teardown_expected():
+                    # Same self-inflicted-close reasoning as on_connection_update's
+                    # "close" branch: never treat this as a real unlink while we
+                    # are the ones tearing the session down, whether that's a
+                    # full app shutdown or a WPPConnect Server auto-update.
+                    pass
+                elif self.main_window._wa_connected and self.main_window.settings.get("privateinfo", {}).get("paired"):
                     wx.CallAfter(self._handle_logout)
         except Exception:
             logging.exception("[WebSocketClient] on_wpp_status_find error")

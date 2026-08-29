@@ -60,7 +60,7 @@ class TestInvalidNamespaceRetries:
 class TestInvalidNamespaceNeverWipes:
     def test_the_invalid_namespace_branch_disconnects_without_wiping(self):
         step6 = _step6_source()
-        assert "self._on_disconnect(wipe=False)" in step6
+        assert "self._on_disconnect(wipe=False" in step6
 
     def test_the_default_wipe_true_disconnect_call_is_gone(self):
         """Guards against the exact old call (self._on_disconnect() with no

@@ -44,11 +44,14 @@ class _Stub:
             MainWindow._set_preparing_status_if_idle.__get__(self))
         self._reset_startup_probe = MainWindow._reset_startup_probe.__get__(self)
         self._announce_sync_events_enabled = MainWindow._announce_sync_events_enabled.__get__(self)
+        self._self_inflicted_teardown_expected = (
+            MainWindow._self_inflicted_teardown_expected.__get__(self))
         self._WA_STARTUP_GRACE_SECONDS = MainWindow._WA_STARTUP_GRACE_SECONDS
 
         self.settings = {}
 
         self._shutting_down = False
+        self._wpp_updating = False
         self._wa_connected = False
         self._auto_offline = False
         self._wa_connect_announced = False

@@ -145,10 +145,38 @@ class MessageQueue:
             self._report_cancelled_drop(msg)
         return stopped
 
+    # Bounded wait, in stop(), for a send genuinely on the wire to finish
+    # before returning. _perform_shutdown() calls stop() BEFORE
+    # _stop_wpp_server(), which taskkills the same Node process a worker's
+    # HTTP request is talking to — cutting that off mid-flight turns a send
+    # seconds from succeeding into an ambiguous/lost one for no reason.
+    # Bounded (a stuck upload must never block shutdown forever) and kept
+    # short since it is one of the terms ipc.py's _QUIT_RELEASE_POLL_SECONDS
+    # is sized against — raising it requires raising that too.
+    _STOP_DRAIN_SECONDS = 4.0
+    _STOP_DRAIN_POLL_SECONDS = 0.1
+
     def stop(self):
-        """Signal the worker to exit cleanly (call at app shutdown)."""
+        """Signal the worker to exit cleanly (call at app shutdown).
+
+        Waits briefly (see _STOP_DRAIN_SECONDS) for any in-flight send to
+        finish before returning."""
         self._stop.set()
         self.flush()
+        deadline = time.monotonic() + self._STOP_DRAIN_SECONDS
+        while time.monotonic() < deadline:
+            with self._lock:
+                if not self._in_flight:
+                    return
+            time.sleep(self._STOP_DRAIN_POLL_SECONDS)
+        with self._lock:
+            remaining = len(self._in_flight)
+        if remaining:
+            logging.warning(
+                "[MessageQueue] stop() gave up waiting for %d in-flight "
+                "send(s) after %.1fs — proceeding with shutdown anyway",
+                remaining, self._STOP_DRAIN_SECONDS,
+            )
 
     # ── Worker thread ─────────────────────────────────────────────────────────
 
