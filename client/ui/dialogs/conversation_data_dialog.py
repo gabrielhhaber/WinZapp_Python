@@ -459,6 +459,7 @@ class ConversationDataDialog(wx.Dialog):
         self._media_types_list.Bind(
             wx.EVT_LIST_ITEM_UNCHECKED, self._on_media_type_toggled
         )
+        self._focus_first(self._media_types_list)
         md_sizer.Add(
             self._media_types_list, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8
         )
@@ -834,25 +835,39 @@ class ConversationDataDialog(wx.Dialog):
         finally:
             self._media_list.Thaw()
 
-        summary = (
+        # Shown, deliberately NOT spoken. An earlier version announced this
+        # through speak_output on every refresh, on the theory that a count in
+        # a StaticText after the list is unreachable by Tab. In use it was the
+        # opposite of helpful: changing a filter is exactly when the screen
+        # reader should be reading the LIST, and a spoken count talked over
+        # that every single time. The first row being focused below is the
+        # feedback that the filter changed.
+        self._media_label.SetLabel(
             self._i18n.t("group_media_empty") if not self._media_messages
             else self._i18n.t("group_media_count_label").format(
                 count=len(self._media_messages))
         )
-        self._media_label.SetLabel(summary)
-        # Spoken as well as shown: the count lives in a StaticText AFTER the
-        # list, so it is not focusable and a screen-reader user would never
-        # reach it - leaving the actual result of the filter they just changed
-        # invisible to them. Skipped on the initial build, where nothing has
-        # been filtered yet.
-        if getattr(self, "_media_list_built", False):
-            speak = getattr(self._mw, "speak_output", None)
-            if speak is not None:
-                try:
-                    speak.output(summary, interrupt=False)
-                except Exception:
-                    logging.exception("[conversation_data] media summary speech failed")
-        self._media_list_built = True
+
+        self._focus_first(self._media_list)
+
+    @staticmethod
+    def _focus_first(list_ctrl):
+        """Select and focus row 0, WITHOUT taking keyboard focus.
+
+        Select()/Focus() move the item cursor inside the control; only
+        SetFocus() would move the caret into it, and that is deliberately not
+        called — the user must keep whatever they were on (the filter radio,
+        a checkbox) after a refresh reorders the list under them.
+
+        It matters more here than it looks: with nothing selected, the context
+        menu and Enter have no row to act on, and a screen reader reaching the
+        list by Tab lands on "no selection" instead of on a message. Same
+        convention the participants list above and the conversation list in
+        conversations.py already follow.
+        """
+        if list_ctrl.GetItemCount() > 0:
+            list_ctrl.Focus(0)
+            list_ctrl.Select(0)
 
     def _selected_media_message(self):
         idx = self._media_list.GetFirstSelected()

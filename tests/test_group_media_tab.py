@@ -334,3 +334,99 @@ class TestTheDownloadFilter:
         out = filter_group_media_by_download(
             self._records(), GROUP_MEDIA_FILTER_DOWNLOADED, None)
         assert out == []
+
+
+# ── Selection/focus, and the silence around it ───────────────────────────────
+
+
+class _FakeListCtrl:
+    def __init__(self, count=0):
+        self._count = count
+        self.focused = []
+        self.selected = []
+        self.set_focus_calls = 0
+
+    def GetItemCount(self):
+        return self._count
+
+    def Focus(self, idx):
+        self.focused.append(idx)
+
+    def Select(self, idx, on=True):
+        self.selected.append((idx, on))
+
+    def SetFocus(self):
+        self.set_focus_calls += 1
+
+
+class TestTheFirstRowIsAlwaysSelected:
+    """With nothing selected, the context menu and Enter have no row to act
+    on, and a screen reader arriving by Tab lands on "no selection" instead of
+    on a message."""
+
+    def test_row_zero_is_focused_and_selected(self):
+        lst = _FakeListCtrl(count=5)
+        ConversationDataDialog._focus_first(lst)
+        assert lst.focused == [0]
+        assert lst.selected == [(0, True)]
+
+    def test_keyboard_focus_is_not_taken(self):
+        """The user must keep whatever they were on — the filter radio, a
+        checkbox — after a refresh reorders the list under them. Select/Focus
+        move the item cursor; only SetFocus would move the caret."""
+        lst = _FakeListCtrl(count=5)
+        ConversationDataDialog._focus_first(lst)
+        assert lst.set_focus_calls == 0
+
+    def test_an_empty_list_is_left_alone(self):
+        lst = _FakeListCtrl(count=0)
+        ConversationDataDialog._focus_first(lst)
+        assert lst.focused == [] and lst.selected == []
+
+
+class TestRefreshingAlwaysRefocuses:
+    """Every path that changes what the list holds — both checkbox routes, the
+    filter radio, and the history landing from the background thread — goes
+    through _refresh_media_list, so one call there covers all of them."""
+
+    @staticmethod
+    def _src(fn):
+        import inspect
+        return inspect.getsource(fn)
+
+    def test_refresh_focuses_the_first_row(self):
+        assert "self._focus_first(self._media_list)" in self._src(
+            ConversationDataDialog._refresh_media_list)
+
+    @pytest.mark.parametrize("method", [
+        "_on_media_type_activated",
+        "_on_media_type_toggled",
+        "_on_media_filter_changed",
+        "_on_media_history_loaded",
+    ])
+    def test_every_changing_path_refreshes(self, method):
+        assert "_refresh_media_list()" in self._src(
+            getattr(ConversationDataDialog, method))
+
+    def test_the_types_list_starts_on_its_first_row_too(self):
+        assert "self._focus_first(self._media_types_list)" in self._src(
+            ConversationDataDialog._build_group_ui)
+
+
+class TestTheCountIsNotSpoken:
+    def test_refresh_does_not_announce_through_speak_output(self):
+        """Changing a filter is exactly when the screen reader should be
+        reading the list; a spoken count talked over it every time."""
+        import ast
+        import inspect
+        import textwrap
+
+        tree = ast.parse(textwrap.dedent(
+            inspect.getsource(ConversationDataDialog._refresh_media_list)))
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.FunctionDef) and node.body
+                    and isinstance(node.body[0], ast.Expr)
+                    and isinstance(node.body[0].value, ast.Constant)):
+                node.body.pop(0)
+        code = ast.unparse(tree)
+        assert "speak_output" not in code
