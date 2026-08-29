@@ -49,7 +49,8 @@ from ui.accessible import (
     CompatListBoxMessagesCtrl,
 )
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
-from core.utils import reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, paginated_window, db_fetch_limit, looks_like_binary_blob, get_downloads_folder, normalize_for_search, normalize_line_separators, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
+from core.save_location import resolve_save_dialog_folder
+from core.utils import reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, paginated_window, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.message_copy_format import format_copied_message
 from core.video_player import VideoPlayer
@@ -6723,7 +6724,7 @@ class ConversationsPanel(wx.Panel):
         with wx.FileDialog(
             self,
             dlg_title,
-            defaultDir=get_downloads_folder(),
+            defaultDir=resolve_save_dialog_folder(self.main_window.settings),
             defaultFile=default_file,
             wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
@@ -6731,6 +6732,7 @@ class ConversationsPanel(wx.Panel):
             if dlg.ShowModal() != wx.ID_OK:
                 return
             save_path = dlg.GetPath()
+        self.main_window.remember_save_folder(save_path)
 
         threading.Thread(target=self._save_message_media, args=(msg, save_path), daemon=True).start()
 
@@ -13579,12 +13581,15 @@ class ConversationsPanel(wx.Panel):
         with wx.DirDialog(
             self,
             i18n.t("select_folder_dialog_title"),
-            defaultPath=get_downloads_folder(),
+            defaultPath=resolve_save_dialog_folder(self.main_window.settings),
             style=wx.DD_DEFAULT_STYLE,
         ) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
                 return
             target_dir = dlg.GetPath()
+        # A folder, not a file — join a name so dirname() lands on the folder
+        # the user actually picked rather than on its parent.
+        self.main_window.remember_save_folder(os.path.join(target_dir, "x"))
 
         # Resolve filenames up front and dedupe within this batch so two
         # messages that would otherwise collide (e.g. same original name)

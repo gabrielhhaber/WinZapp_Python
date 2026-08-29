@@ -114,6 +114,7 @@ class _HotkeyCapture(wx.TextCtrl):
 
 
 from core.utils import DEFAULT_SETTINGS, SEARCH_NORMALIZATION_MODES, search_normalization_mode, GROUP_MEDIA_TYPES
+from core import save_location
 
 
 def ensure_default_settings_file():
@@ -883,6 +884,63 @@ class SettingsDialog(wx.Dialog):
             group=_alert_preview_group,
         )
 
+        # ── Files and saving tab ────────────────────────────────────────────
+        # Placed right after Armazenamento, which is the neighbouring subject.
+        # Inserting here shifts the two tabs below it, so the SetPageText
+        # indices in _retranslate() move with it — but every hardcoded
+        # SetSelection() in this file and in main.py targets a tab at index 8
+        # or lower, so none of them needed touching. Adding a tab ABOVE index 8
+        # would be a different job.
+        self._files_page = wx.Panel(self._notebook)
+        files_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Radio group rather than a checkbox pair: the three answers are
+        # mutually exclusive and none is "more of" another. This is only about
+        # the folder the Explorer dialog opens on — nothing here saves without
+        # asking. See core/save_location.py for why it is a setting at all.
+        self._save_folder_radio = wx.RadioBox(
+            self._files_page,
+            label=i18n.t("save_folder_mode_label"),
+            choices=[
+                i18n.t("save_folder_mode_last"),
+                i18n.t("save_folder_mode_downloads"),
+                i18n.t("save_folder_mode_custom"),
+            ],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_COLS,
+        )
+        files_sizer.Add(self._save_folder_radio, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._save_folder_custom_label = wx.StaticText(
+            self._files_page, label=i18n.t("save_folder_custom_label")
+        )
+        files_sizer.Add(
+            self._save_folder_custom_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8
+        )
+
+        # Field and button on one row, with the field taking the slack: the
+        # path is the long part and the button is a fixed word.
+        custom_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._save_folder_custom_field = wx.TextCtrl(
+            self._files_page, style=wx.TE_DONTWRAP
+        )
+        custom_row.Add(self._save_folder_custom_field, 1, wx.EXPAND | wx.RIGHT, 8)
+        self._save_folder_browse_btn = wx.Button(
+            self._files_page, label=i18n.t("save_folder_browse_btn")
+        )
+        custom_row.Add(self._save_folder_browse_btn, 0)
+        files_sizer.Add(custom_row, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._save_folder_radio.Bind(
+            wx.EVT_RADIOBOX, self._on_save_folder_mode_changed
+        )
+        self._save_folder_browse_btn.Bind(
+            wx.EVT_BUTTON, self._on_browse_save_folder
+        )
+
+        self._files_page.SetSizer(files_sizer)
+        self._notebook.AddPage(self._files_page, i18n.t("tab_files_saving"))
+
         # ── Audio playback tab ───────────────────────────────────────────────
         self._audio_page = wx.Panel(self._notebook)
         audio_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -958,6 +1016,17 @@ class SettingsDialog(wx.Dialog):
         self._call_alerts_check.SetValue(call_settings.get("alerts_enabled", True))
         self._call_popup_check.SetValue(call_settings.get("popup_enabled", True))
         self._update_call_fields_state()
+
+        files_settings = self.main_window.settings.get(save_location.SECTION, {})
+        self._save_folder_radio.SetSelection(
+            save_location.mode_index(
+                files_settings.get(save_location.MODE_KEY, save_location.DEFAULT_MODE)
+            )
+        )
+        self._save_folder_custom_field.SetValue(
+            files_settings.get(save_location.CUSTOM_KEY, "") or ""
+        )
+        self._sync_save_folder_controls()
 
         keep_muted_silent = self.main_window.settings.get("general", {}).get(
             "keep_muted_chats_silent_when_open", True
@@ -1395,6 +1464,56 @@ class SettingsDialog(wx.Dialog):
         self._reload_alert_tone_choices()
         event.Skip()
 
+    # ── Files and saving tab ────────────────────────────────────────────────
+
+    def _sync_save_folder_controls(self):
+        """Enable the custom-folder controls only for the mode that uses them.
+
+        Disabled rather than hidden: hiding reflows the tab every time the
+        radio moves, and a control that appears and disappears under a screen
+        reader is harder to follow than one that is consistently there and
+        consistently unavailable. Disabling also takes them out of the tab
+        order, so they are not dead stops for someone arrowing through.
+        """
+        is_custom = (
+            save_location.mode_from_index(self._save_folder_radio.GetSelection())
+            == save_location.MODE_CUSTOM
+        )
+        for control in (self._save_folder_custom_label,
+                        self._save_folder_custom_field,
+                        self._save_folder_browse_btn):
+            control.Enable(is_custom)
+
+    def _on_save_folder_mode_changed(self, event):
+        self._sync_save_folder_controls()
+        event.Skip()
+
+    def _on_browse_save_folder(self, event):
+        """Pick the custom folder through Explorer's own folder picker.
+
+        defaultPath is whatever the field currently holds, when that is still a
+        real directory — reopening the picker on the folder the user already
+        chose is the difference between adjusting a choice and making it again
+        from the drive root.
+        """
+        i18n = self.main_window.i18n
+        current = (self._save_folder_custom_field.GetValue() or "").strip()
+        try:
+            default_path = current if current and os.path.isdir(current) else ""
+        except (OSError, ValueError):
+            default_path = ""
+        with wx.DirDialog(
+            self,
+            message=i18n.t("save_folder_browse_dialog_title"),
+            defaultPath=default_path,
+            style=wx.DD_DEFAULT_STYLE,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            chosen = dlg.GetPath()
+        self._save_folder_custom_field.SetValue(chosen)
+        self._save_folder_custom_field.SetFocus()
+
     def _on_import_sound_pack_folder(self, event):
         i18n = self.main_window.i18n
         with wx.DirDialog(
@@ -1571,6 +1690,31 @@ class SettingsDialog(wx.Dialog):
 
     def _validate(self) -> bool:
         """Return True if all values are valid; show an error and return False otherwise."""
+        # Custom save folder: only meaningful when that mode is the one
+        # selected, and only worth refusing when the folder does not exist.
+        # Saying so here beats accepting it silently — resolve_save_dialog_folder()
+        # would fall back to Downloads and the user would be left thinking the
+        # setting does not work.
+        if (save_location.mode_from_index(self._save_folder_radio.GetSelection())
+                == save_location.MODE_CUSTOM):
+            custom = (self._save_folder_custom_field.GetValue() or "").strip()
+            try:
+                custom_ok = bool(custom) and os.path.isdir(custom)
+            except (OSError, ValueError):
+                custom_ok = False
+            if not custom_ok:
+                wx.MessageBox(
+                    self.main_window.i18n.t("save_folder_custom_missing"),
+                    self.main_window.i18n.t("error").format(
+                        app_name=self.main_window.app_name),
+                    wx.OK | wx.ICON_ERROR,
+                    self,
+                )
+                self._notebook.SetSelection(
+                    self._notebook.FindPage(self._files_page))
+                self._save_folder_custom_field.SetFocus()
+                return False
+
         page_size_str = self._messages_page_size_field.GetValue().strip()
         try:
             page_size = int(page_size_str)
@@ -1846,6 +1990,18 @@ class SettingsDialog(wx.Dialog):
         page_jump_size = int(self._page_jump_size_field.GetValue().strip())
         self.main_window.settings.setdefault("user_interface", {})["page_jump_size"] = page_jump_size
         self.main_window.settings.setdefault("user_interface", {})["page_up_down_step"] = page_jump_size
+
+        # Files and saving: which folder a Save As dialog opens on.
+        # save_dialog_last_folder is deliberately NOT written here — it is
+        # owned by the save dialogs themselves (see
+        # save_location.remember_save_dialog_folder), and overwriting it from
+        # this dialog would discard the folder the user last actually saved to.
+        files_section = self.main_window.settings.setdefault(
+            save_location.SECTION, {})
+        files_section[save_location.MODE_KEY] = save_location.mode_from_index(
+            self._save_folder_radio.GetSelection())
+        files_section[save_location.CUSTOM_KEY] = (
+            self._save_folder_custom_field.GetValue() or "").strip()
 
         # UI: focus on open
         focus_on_open = (
@@ -2202,8 +2358,9 @@ class SettingsDialog(wx.Dialog):
         self._notebook.SetPageText(6, i18n.t("tab_sound_events"))
         self._notebook.SetPageText(7, i18n.t("tab_alert_tones"))
         self._notebook.SetPageText(8, i18n.t("tab_storage"))
-        self._notebook.SetPageText(9, i18n.t("tab_audio_playback"))
-        self._notebook.SetPageText(10, i18n.t("tab_calls"))
+        self._notebook.SetPageText(9, i18n.t("tab_files_saving"))
+        self._notebook.SetPageText(10, i18n.t("tab_audio_playback"))
+        self._notebook.SetPageText(11, i18n.t("tab_calls"))
         self._audio_input_label.SetLabel(i18n.t("audio_input_device_label"))
         self._audio_output_label.SetLabel(i18n.t("audio_output_device_label"))
         self._audio_effects_label.SetLabel(i18n.t("audio_effects_output_device_label"))
@@ -2221,6 +2378,15 @@ class SettingsDialog(wx.Dialog):
             "search_normalization_nfkd",
         )):
             self._search_norm_radio.SetItemLabel(_i, i18n.t(_key))
+        self._save_folder_radio.SetLabel(i18n.t("save_folder_mode_label"))
+        for _i, _key in enumerate((
+            "save_folder_mode_last",
+            "save_folder_mode_downloads",
+            "save_folder_mode_custom",
+        )):
+            self._save_folder_radio.SetItemLabel(_i, i18n.t(_key))
+        self._save_folder_custom_label.SetLabel(i18n.t("save_folder_custom_label"))
+        self._save_folder_browse_btn.SetLabel(i18n.t("save_folder_browse_btn"))
         self._autostart_check.SetLabel(i18n.t("autostart_label"))
         self._tray_icon_check.SetLabel(i18n.t("tray_show_icon"))
         self._updates_check.SetLabel(i18n.t("updates_label"))

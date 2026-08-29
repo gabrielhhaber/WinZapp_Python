@@ -1009,5 +1009,14 @@
     "group_media_filter_all": "Todas",
     "group_media_filter_downloaded": "Transferidas",
     "group_media_filter_not_downloaded": "Não transferidas / ligações",
-    "group_media_loading_history": "A carregar o histórico do grupo..."
+    "group_media_loading_history": "A carregar o histórico do grupo...",
+    "tab_files_saving": "Ficheiros e gravação",
+    "save_folder_mode_label": "&Comportamento predefinido do Explorador do Windows ao guardar ficheiros",
+    "save_folder_mode_last": "Guardar na última pasta definida",
+    "save_folder_mode_downloads": "Guardar na pasta de transferências do utilizador atual",
+    "save_folder_mode_custom": "Guardar numa pasta personalizada",
+    "save_folder_custom_label": "Pasta &personalizada:",
+    "save_folder_browse_btn": "P&rocurar...",
+    "save_folder_browse_dialog_title": "Selecione a pasta predefinida para guardar ficheiros",
+    "save_folder_custom_missing": "A pasta personalizada indicada não existe. Escolha uma pasta válida ou selecione outra opção."
 }

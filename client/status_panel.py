@@ -15,7 +15,8 @@ from ui.accessible import (
     AccessibleSendVoiceMessage, AccessiblePlayRecordedAudio,
 )
 from core.api_client import api_get, api_post, redact_api_url
-from core.utils import format_number, get_downloads_folder, normalize_line_separators, is_voice_message
+from core.save_location import resolve_save_dialog_folder
+from core.utils import format_number, normalize_line_separators, is_voice_message
 from core.video_player import VideoPlayer
 from core.audio_devices import (
     find_input_device_index, fallback_input_device_indices, RECORDING_SAMPLE_CONFIGS,
@@ -2105,7 +2106,7 @@ class StatusPanel(wx.Panel):
 
         with wx.FileDialog(
             self, mw.i18n.t("status_save_media"),
-            defaultDir=get_downloads_folder(),
+            defaultDir=resolve_save_dialog_folder(mw.settings),
             defaultFile=f"status{ext}",
             wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
@@ -2113,6 +2114,7 @@ class StatusPanel(wx.Panel):
             if dlg.ShowModal() != wx.ID_OK:
                 return
             save_path = dlg.GetPath()
+        mw.remember_save_folder(save_path)
 
         threading.Thread(
             target=self._save_status_media_bg,

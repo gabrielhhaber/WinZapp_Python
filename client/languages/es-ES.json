@@ -1009,5 +1009,14 @@
     "group_media_filter_all": "Todas",
     "group_media_filter_downloaded": "Descargadas",
     "group_media_filter_not_downloaded": "No descargadas / enlaces",
-    "group_media_loading_history": "Cargando el historial del grupo..."
+    "group_media_loading_history": "Cargando el historial del grupo...",
+    "tab_files_saving": "Archivos y guardado",
+    "save_folder_mode_label": "&Comportamiento predeterminado del Explorador de Windows al guardar archivos",
+    "save_folder_mode_last": "Guardar en la última carpeta utilizada",
+    "save_folder_mode_downloads": "Guardar en la carpeta de descargas del usuario actual",
+    "save_folder_mode_custom": "Guardar en una carpeta personalizada",
+    "save_folder_custom_label": "Carpeta &personalizada:",
+    "save_folder_browse_btn": "E&xaminar...",
+    "save_folder_browse_dialog_title": "Elija la carpeta predeterminada para guardar archivos",
+    "save_folder_custom_missing": "La carpeta personalizada indicada no existe. Elija una carpeta válida o seleccione otra opción."
 }

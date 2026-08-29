@@ -583,6 +583,16 @@ DEFAULT_SETTINGS = {
         "extended_sr_compat_enabled": True,
         "sapi_fallback_enabled": True
     },
+    # See core/save_location.py — which folder a Save As dialog opens on.
+    # "last" is the default and is a deliberate change from the old
+    # unconditional Downloads: it degrades to Downloads on the first save of a
+    # fresh install, so nobody has to open the settings to get sensible
+    # behaviour.
+    "files": {
+        "save_dialog_folder_mode": "last",
+        "save_dialog_custom_folder": "",
+        "save_dialog_last_folder": "",
+    },
     "speech_content": {
         "announce_typing": True,
         "announce_recording": True,

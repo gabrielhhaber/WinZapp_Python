@@ -10,7 +10,8 @@ from typing import Callable, Optional
 
 import wx
 
-from core.utils import get_downloads_folder, is_voice_message
+from core.save_location import resolve_save_dialog_folder
+from core.utils import is_voice_message
 from core.video_player import VideoPlayer
 from ui.accessible import AccessibleStatusPrev, AccessibleStatusNext, AccessibleSaveAs, AccessibleMediaViewerSeekBack, AccessibleMediaViewerSeekForward, AccessibleMediaBitmapPanel
 
@@ -734,7 +735,8 @@ class MediaViewerDialog(wx.Dialog):
         with wx.FileDialog(
             self,
             self.i18n.t("save_as"),
-            defaultDir=get_downloads_folder(),
+            defaultDir=resolve_save_dialog_folder(
+                getattr(self.main_window, "settings", {})),
             defaultFile=default_name,
             wildcard=f"{self.i18n.t('all_files')} (*.*)|*.*",
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
@@ -742,6 +744,7 @@ class MediaViewerDialog(wx.Dialog):
             if dlg.ShowModal() != wx.ID_OK:
                 return
             target = dlg.GetPath()
+        self.main_window.remember_save_folder(target)
         try:
             shutil.copyfile(path, target)
         except Exception as exc:

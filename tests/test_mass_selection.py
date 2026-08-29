@@ -96,6 +96,12 @@ class _FakeMainWindow:
         self.saves = 0
         self.pin_calls = []
         self.pin_results = None
+        # Every save dialog reports the folder it wrote into, so
+        # Configuracoes > Arquivos e salvamento can reopen there next time.
+        self.remembered_folders = []
+
+    def remember_save_folder(self, saved_path):
+        self.remembered_folders.append(saved_path)
 
     def output(self, text, interrupt=False):
         self.announced.append(text)
@@ -880,6 +886,17 @@ class TestMassMessageActions:
         for _msg_obj, save_path in panel.saved:
             assert os.path.dirname(save_path) == str(choose_folder)
         assert panel.selected_messages == set()
+
+    def test_the_chosen_folder_is_remembered(self, choose_folder, run_threads_inline):
+        """Configuracoes > Arquivos e salvamento defaults to reopening the last
+        folder used, so every save dialog has to report where it went — bulk
+        save included, which is the one that picks a folder rather than a file."""
+        panel = _Panel(messages=[_saveable_msg("m1")])
+        panel.selected_messages = {"m1"}
+        panel._on_mass_save_messages(None)
+        remembered = panel.main_window.remembered_folders
+        assert len(remembered) == 1
+        assert os.path.dirname(remembered[0]) == str(choose_folder)
 
     def test_saving_skips_non_saveable_messages_in_the_selection(
         self, choose_folder, run_threads_inline

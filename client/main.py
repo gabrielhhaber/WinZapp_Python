@@ -8342,6 +8342,27 @@ class MainWindow(wx.Frame):
         if hasattr(self, "db") and self.db is not None:
             self.db.set_metadata_json("messages_set_completed", val)
 
+    def remember_save_folder(self, saved_path: str) -> None:
+        """Record the folder a Save As dialog just wrote into.
+
+        Called by every save dialog after the user confirms one, so
+        Configuracoes > Arquivos e salvamento's "ultima pasta definida" mode
+        has something to open on next time. Recorded whatever the active mode
+        is — switching to that mode later should not find it empty — and the
+        other modes simply ignore the value.
+
+        Writes settings only when the folder actually changed: saving a run of
+        files into one folder is the common case, and each of those would
+        otherwise be a full settings write for no new information.
+        """
+        try:
+            from core.save_location import remember_save_dialog_folder
+            if remember_save_dialog_folder(self.settings, saved_path):
+                self.save_settings()
+        except Exception as exc:
+            # Never let bookkeeping break a save the user already completed.
+            logging.info("[remember_save_folder] ignored: %s", exc)
+
     def save_settings(self):
         try:
             # WebSocket handlers and the debounce timer can save concurrently.

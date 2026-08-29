@@ -71,6 +71,11 @@
         "extended_sr_compat_enabled": true,
         "sapi_fallback_enabled": true
     },
+    "files": {
+        "save_dialog_folder_mode": "last",
+        "save_dialog_custom_folder": "",
+        "save_dialog_last_folder": ""
+    },
     "speech_content": {
         "announce_typing": true,
         "announce_recording": true,
