@@ -6,6 +6,10 @@ from ui.dialogs.emoji_picker import (
     filter_emojis,
     insert_emoji,
 )
+import pytest
+
+# Constructs a REAL top-level wx dialog - see the wxgui marker in pytest.ini.
+pytestmark = pytest.mark.wxgui
 
 
 class _TextCtrl:

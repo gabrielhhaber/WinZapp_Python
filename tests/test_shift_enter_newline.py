@@ -15,6 +15,7 @@ correctly) — same approach as tests/test_conversation_video_playback.py.
 import wx
 
 from ui.conversations import ConversationsPanel
+from tests.conftest import hidden_frame
 
 
 class _FakeKeyEvent:
@@ -61,7 +62,7 @@ class _Stub:
 
 class TestShiftEnterInsertsNewline:
     def test_shift_enter_inserts_newline_at_cursor(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             stub.message_field.SetValue("hello world")
@@ -86,7 +87,7 @@ class TestShiftEnterInsertsNewline:
     def test_plain_enter_is_left_alone_to_send(self, wx_app):
         """Plain Enter must not be consumed here — EVT_TEXT_ENTER (send)
         depends on the event propagating normally."""
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             stub.message_field.SetValue("hello")
@@ -109,7 +110,7 @@ class TestShiftEnterInsertsNewline:
         only checked the value WE fed back into SetInsertionPoint(), so it
         never caught this — it needs a second WriteText() simulating the
         user's next keystrokes to actually observe where they land."""
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             stub.message_field.SetValue("hello world")
@@ -124,7 +125,7 @@ class TestShiftEnterInsertsNewline:
             frame.Destroy()
 
     def test_shift_enter_also_works_with_numpad_enter(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame)
             stub.message_field.SetValue("ab")

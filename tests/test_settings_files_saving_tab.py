@@ -18,6 +18,10 @@ from core import save_location
 from core.i18n import I18n
 from core.sound_system import DEFAULT_PACK_ID
 from ui.dialogs.settings_dialog import SettingsDialog
+from tests.conftest import hidden_frame
+
+# Creates a REAL top-level wx dialog - see the wxgui marker in pytest.ini.
+pytestmark = pytest.mark.wxgui
 
 
 class _FakeSoundSystem:
@@ -35,7 +39,7 @@ class _FakeSoundSystem:
 
 
 def _make_frame(settings):
-    frame = wx.Frame(None)
+    frame = hidden_frame()
     frame.settings = settings
     frame.app_name = "WinZapp"
     frame.i18n = I18n(frame)

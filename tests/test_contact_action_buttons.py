@@ -15,6 +15,7 @@ same approach as tests/test_group_data_dialog_admin_ui.py.
 import wx
 
 from ui.dialogs.conversation_data_dialog import ConversationDataDialog
+from tests.conftest import hidden_frame
 
 
 class _FakeI18n:
@@ -95,7 +96,7 @@ class TestLocalContactEntry:
 
 class TestPopulateContactActionButtons:
     def test_shows_only_add_when_no_local_contact_exists(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub("5511999999999@s.whatsapp.net", frame)
             stub._populate_contact_action_buttons()
@@ -107,7 +108,7 @@ class TestPopulateContactActionButtons:
             frame.Destroy()
 
     def test_shows_edit_and_delete_when_a_local_contact_exists(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             jid = "5511999999999@s.whatsapp.net"
             stub = _Stub(jid, frame)
@@ -124,7 +125,7 @@ class TestPopulateContactActionButtons:
         """Simulates what _on_add_contact() does after a successful add:
         re-running this must swap the button set without leaving stale
         widgets from the previous state around."""
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             jid = "5511999999999@s.whatsapp.net"
             stub = _Stub(jid, frame)

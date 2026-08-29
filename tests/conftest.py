@@ -260,6 +260,39 @@ def set_clipboard_data(make_data_object, attempts=10, delay=0.05):
     return False
 
 
+
+def hidden_frame(**kwargs):
+    """A real wx.Frame for tests that need a live parent window, created so
+    the DESKTOP never sees it.
+
+    A plain `wx.Frame(None)` is a normal top-level window: Windows gives it a
+    taskbar button and, as it is created and destroyed, moves the foreground
+    around. A screen reader reacts to that. Running the suite on a machine
+    with NVDA active crashed NVDA repeatedly, and its traceback named the
+    mechanism exactly - event_gainFocus -> reportFocus -> getDialogText ->
+    IAccessible _get_children -> oleacc.AccessibleObjectFromEvent: NVDA got
+    focus on one of these windows and was still enumerating its children over
+    COM when the test destroyed it, so the object it was reading vanished
+    mid-call. Dozens of these windows appear and disappear within a single
+    pytest run, which makes that race very easy to lose.
+
+    Off-screen (well outside any real monitor), WS_EX_TOOLWINDOW and no
+    taskbar button: the window is fully real - it has an HWND, children lay
+    out and size normally, and every test that needs a parent still works -
+    but it never becomes the foreground window, so no focus event is ever
+    raised for a screen reader to chase.
+
+    Tests must still Destroy() what they create; this only stops the window
+    being visible to the desktop while it lives.
+    """
+    import wx
+
+    kwargs.setdefault("pos", (-32000, -32000))
+    kwargs.setdefault(
+        "style", wx.FRAME_TOOL_WINDOW | wx.FRAME_NO_TASKBAR | wx.DEFAULT_FRAME_STYLE
+    )
+    return wx.Frame(None, **kwargs)
+
 def set_clipboard_text(text):
     """Write plain text to the clipboard, with the same retry guarantee."""
     import wx

@@ -13,6 +13,11 @@ import wx
 
 import updater
 from updater import UpdateDialog, WppUpdateChecker
+from tests.conftest import hidden_frame
+import pytest
+
+# Creates a REAL top-level wx dialog - see the wxgui marker in pytest.ini.
+pytestmark = pytest.mark.wxgui
 
 
 class _FakeI18n:
@@ -22,7 +27,7 @@ class _FakeI18n:
 
 class TestUpdateDialogDefaultButton:
     def test_no_button_is_the_default_item(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         frame.i18n = _FakeI18n()
         try:
             dlg = UpdateDialog(frame, "2026.01.01.0000", changelog="")

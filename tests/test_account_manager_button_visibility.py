@@ -18,6 +18,7 @@ tests/test_contact_action_buttons.py).
 import wx
 
 from account_ui import AccountManagerDialog
+from tests.conftest import hidden_frame
 
 
 def _acc(aid, state="paired"):
@@ -54,7 +55,7 @@ class _Stub:
 
 class TestAccountManagerButtonVisibility:
     def test_current_account_hides_open_and_pair(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame, [_acc(CURRENT)], 0)
             stub._update_button_visibility()
@@ -64,7 +65,7 @@ class TestAccountManagerButtonVisibility:
             frame.Destroy()
 
     def test_other_paired_account_shows_open_but_not_pair_or_restore(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame, [_acc(OTHER_PAIRED)], 0)
             stub._update_button_visibility()
@@ -76,7 +77,7 @@ class TestAccountManagerButtonVisibility:
             frame.Destroy()
 
     def test_other_pending_account_shows_open_and_pair(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame, [_acc(OTHER_PENDING, state="pending")], 0)
             stub._update_button_visibility()
@@ -87,7 +88,7 @@ class TestAccountManagerButtonVisibility:
             frame.Destroy()
 
     def test_archived_account_shows_restore_but_not_archive(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame, [_acc(OTHER_ARCHIVED, state="archived")], 0)
             stub._update_button_visibility()
@@ -97,7 +98,7 @@ class TestAccountManagerButtonVisibility:
             frame.Destroy()
 
     def test_no_selection_hides_every_conditional_button(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         try:
             stub = _Stub(frame, [_acc(OTHER_PAIRED)], -1)
             stub._update_button_visibility()

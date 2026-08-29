@@ -25,6 +25,9 @@ from core.i18n import I18n
 from core.sound_system import DEFAULT_PACK_ID
 from ui.dialogs.conversation_data_dialog import ConversationDataDialog
 
+# Constructs a REAL top-level wx dialog - see the wxgui marker in pytest.ini.
+pytestmark = pytest.mark.wxgui
+
 PRIVATE_JID = "5511900000000@s.whatsapp.net"
 GROUP_JID = "120363000000000000@g.us"
 

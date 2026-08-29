@@ -33,6 +33,7 @@ import time
 import pytest
 
 from core.video_player import extract_jpeg_frames, fit_frame_size, VideoPlayer
+from tests.conftest import hidden_frame
 
 
 def _jpeg(payload: bytes) -> bytes:
@@ -146,7 +147,7 @@ _created_players = []
 
 def _make_player(wx_app, on_frame_size=None, box_size=None):
     import wx
-    frame = wx.Frame(None)
+    frame = hidden_frame()
     bitmap = wx.StaticBitmap(frame)
     if box_size is not None:
         # SetSize (not SetMinSize) so GetSize() reports it back
