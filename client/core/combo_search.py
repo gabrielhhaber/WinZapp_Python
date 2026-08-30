@@ -48,7 +48,16 @@ from core.utils import normalize_for_search
 # resets to just the new key, instead of extending the previous search.
 # Windows' own native list/combo incremental search doesn't expose its
 # timeout to applications; this is the same rough order of magnitude.
-SEARCH_TIMEOUT_SECONDS = 1.0
+#
+# Deliberately more generous than the ~1s a sighted user needs. This control
+# is driven by people navigating by ear: they type a letter, WAIT for the
+# screen reader to announce where it landed, and only then type the next one.
+# At 1.0s that pause routinely exceeded the window, so the second letter
+# silently started a fresh search — typing "b" then "o" landed on Oman
+# instead of Bolivia, reported live from a test build, while the same two
+# keys typed quickly worked. The failure is invisible from the inside: it
+# looks exactly like "there is no country starting with bo".
+SEARCH_TIMEOUT_SECONDS = 2.5
 
 
 def find_incremental_match(choices, prefix: str):
