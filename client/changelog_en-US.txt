@@ -1,0 +1,65 @@
+V1.1.0.0
+
+This release adds the Media tab, a media viewer in its own window, link previews, bulk actions and an Accessibility tab in settings. Conversation syncing is much faster, and the conversation list is no longer rebuilt on every message, which cuts down a great deal of screen-reader re-reading.
+
+WHAT'S NEW
+
+- Media tab in conversations and groups. It lists photos, videos, audio, documents and links, with filtering by type and by downloaded or not downloaded, full history loading, and open, save and delete actions on each message.
+
+- Media viewer in its own window, with play and pause, skip forward and back 10 seconds, position, volume and speed. You choose in settings whether conversation videos and statuses open in it.
+
+- Link previews in messages. When a message has two or more links, they become a list you can navigate. Your outgoing messages now carry a preview too.
+
+- Bulk actions on messages and conversations: copy, star, pin, forward, save and delete messages; mark conversations read or unread, archive and clear them. Each action has its own shortcut, and Ctrl+C copies the selection.
+
+- Accessibility tab in settings, with extended screen-reader compatibility and the option to use the SAPI voice when no screen reader is running.
+
+- Files and saving tab, to choose whether save dialogs open in the last folder you used, in your Downloads folder, or in a folder you pick.
+
+- Reactions: you can now see which reaction is yours and remove it by selecting it again.
+
+- Save a received contact message as a contact, with Enter or Space.
+
+- Play back the audio you have already recorded while recording is paused, with Ctrl+P.
+
+- Rebuilt country selector in the pairing dialog: it uses the country and language configured in Windows, is sorted alphabetically, accepts multi-letter type-ahead search, and protects the country code from accidental editing.
+
+- New settings: show "yesterday" instead of the date, announce "Forwarded" before the sender, tell voice messages apart from audio files, determine a video's length as soon as it is downloaded, choose which media types are shown by default, and stop marking audio as played.
+
+IMPROVEMENTS
+
+- Incremental conversation syncing. Starting the app and refreshing is much faster, and WinZapp announces when the update starts and when it finishes.
+
+- The conversation list is far faster. A new message or a delivery receipt updates only that one row instead of rebuilding the whole list. In practice, the screen reader re-reads far less.
+
+- Actions on a message also update only that message's row, and editing a message no longer freezes the interface.
+
+- Notifications respect Windows Focus Assist.
+
+- Groups: a notice when only admins may send messages, with the message field set to read-only. The add-member dialog shows names instead of numbers and reports who could not be added.
+
+- Attaching a contact: the list has no duplicates, is sorted, and no longer shows unresolved entries.
+
+- Audio: OGG files the app could not decode are now converted automatically, and sending WAV files works.
+
+FIXES
+
+- Unread counts: already-read messages no longer come back as new, a chat read on your phone is respected, and the open conversation no longer loses its count.
+
+- The unread separator and your reading position are no longer lost while you read. The open conversation was being rebuilt periodically, which interrupted the screen reader mid-sentence.
+
+- Session: closing and reopening WinZapp no longer asks you to pair again. Shutdown now waits for the session to be written before closing.
+
+- Pairing: when WhatsApp refuses the code, the real reason is shown, and a server update no longer interrupts pairing in progress.
+
+- Automatic updates work again when the app is installed in a folder with accents or other special characters.
+
+- Privacy: the app no longer writes message content or credentials to the log file.
+
+- Sending: cancelling a message that had already been sent is now explained clearly, and large uploads are no longer lost along the way.
+
+- Videos with no reported length no longer show "0 seconds".
+
+- The first message from a contact no longer disappears when the conversation is opened.
+
+- Accessibility: the emoji shortcut is now reported to the screen reader, Alt+T works inside a conversation again, and speech is no longer cut off by every delivery receipt.

@@ -1,0 +1,65 @@
+V1.1.0.0
+
+Esta versão traz o separador de multimédia, o visualizador de multimédia em janela própria, pré-visualizações de ligações, ações em massa e um separador de Acessibilidade nas definições. A sincronização de conversas ficou bastante mais rápida, e a lista de conversas deixou de ser refeita a cada mensagem, o que reduz muito a releitura pelo leitor de ecrã.
+
+NOVIDADES
+
+- Separador Multimédia nas conversas e nos grupos. Lista fotografias, vídeos, áudios, documentos e ligações, com filtro por tipo e por transferidas ou não transferidas, carregamento do histórico completo e ações de abrir, guardar e apagar em cada mensagem.
+
+- Visualizador de multimédia em janela própria, com reproduzir e pausar, avançar e recuar 10 segundos, posição, volume e velocidade. Pode escolher nas definições se os vídeos das conversas e os estados abrem nele.
+
+- Pré-visualizações de ligações nas mensagens. Quando a mensagem tem duas ou mais ligações, estas passam a ser uma lista navegável. As suas mensagens enviadas também passam a levar pré-visualização.
+
+- Ações em massa nas mensagens e nas conversas: copiar, marcar como favorita, afixar, reencaminhar, guardar e apagar mensagens; marcar conversas como lidas ou não lidas, arquivar e limpar. Cada ação tem o seu próprio atalho, e Ctrl+C copia a seleção.
+
+- Separador Acessibilidade nas definições, com a compatibilidade alargada com o leitor de ecrã e a opção de usar a voz SAPI quando nenhum leitor estiver ativo.
+
+- Separador Ficheiros e gravação, para escolher se as caixas de diálogo de gravação abrem na última pasta usada, na pasta de Transferências ou numa pasta à sua escolha.
+
+- Reações: agora é possível ver qual é a sua reação atual e removê-la selecionando-a novamente.
+
+- Guardar como contacto uma mensagem de contacto recebida, com Enter ou Espaço.
+
+- Reproduzir o áudio já gravado enquanto a gravação está em pausa, com Ctrl+P.
+
+- Seletor de país no emparelhamento refeito: usa o país e o idioma configurados no Windows, fica por ordem alfabética, aceita pesquisa escrevendo várias letras e protege o indicativo do país contra edição acidental.
+
+- Novas opções nas definições: mostrar "ontem" em vez da data, anunciar "Reencaminhada" antes do remetente, distinguir mensagem de voz de ficheiro de áudio, determinar a duração do vídeo logo ao transferir, escolher os tipos de multimédia mostrados por predefinição e não marcar áudios como reproduzidos.
+
+MELHORIAS
+
+- Sincronização incremental das conversas. Abrir o programa e atualizar ficou bastante mais rápido, e o WinZapp avisa quando a atualização começa e quando termina.
+
+- A lista de conversas ficou muito mais rápida. Uma mensagem nova ou uma confirmação de entrega atualiza apenas aquela linha, em vez de refazer a lista inteira. Na prática, o leitor de ecrã relê muito menos.
+
+- As ações sobre uma mensagem também atualizam apenas a linha dessa mensagem, e editar uma mensagem deixou de bloquear a interface.
+
+- As notificações respeitam o Assistente de Foco do Windows.
+
+- Grupos: aviso quando apenas os administradores podem enviar mensagens, com o campo de mensagem só de leitura. A caixa de diálogo de adicionar membro mostra nomes em vez de números e indica quem não pôde ser adicionado.
+
+- Anexar contacto: lista sem duplicados, ordenada e sem entradas por resolver.
+
+- Áudio: os ficheiros OGG que o programa não conseguia descodificar são convertidos automaticamente, e o envio de ficheiros WAV passou a funcionar.
+
+CORREÇÕES
+
+- Contagem de não lidas: as mensagens já lidas não voltam a aparecer como novas, a leitura feita no telemóvel é respeitada e a conversa aberta deixou de perder o contador.
+
+- O separador de mensagens não lidas e a sua posição de leitura deixaram de se perder enquanto lê. A conversa aberta estava a ser reconstruída de tempos a tempos, o que interrompia o leitor de ecrã a meio da leitura.
+
+- Sessão: fechar e reabrir o WinZapp deixou de pedir novo emparelhamento. O encerramento espera agora que a sessão seja gravada antes de fechar.
+
+- Emparelhamento: quando o WhatsApp recusa o código, é mostrado o motivo real, e a atualização do servidor deixou de interromper um emparelhamento em curso.
+
+- As atualizações automáticas voltaram a funcionar quando o programa está instalado numa pasta com acentos ou outros carateres especiais.
+
+- Privacidade: o programa deixou de gravar conteúdo de mensagens e credenciais no ficheiro de registo.
+
+- Envio: cancelar uma mensagem que já tinha sido enviada passa a ser explicado com clareza, e os envios grandes não se perdem a meio.
+
+- Os vídeos sem duração indicada deixaram de mostrar "0 segundos".
+
+- A primeira mensagem de um contacto deixou de desaparecer ao abrir a conversa.
+
+- Acessibilidade: o atalho dos emojis passou a ser comunicado ao leitor de ecrã, o Alt+T voltou a funcionar dentro da conversa e a fala deixou de ser cortada a cada confirmação de entrega.

@@ -1,0 +1,65 @@
+V1.1.0.0
+
+Esta versión incorpora la pestaña de multimedia, el visor de multimedia en su propia ventana, las vistas previas de enlaces, las acciones en lote y una pestaña de Accesibilidad en la configuración. La sincronización de conversaciones es mucho más rápida, y la lista de conversaciones ya no se reconstruye con cada mensaje, lo que reduce bastante la relectura por parte del lector de pantalla.
+
+NOVEDADES
+
+- Pestaña Multimedia en las conversaciones y en los grupos. Muestra fotos, vídeos, audios, documentos y enlaces, con filtro por tipo y por descargados o no descargados, carga del historial completo y acciones de abrir, guardar y eliminar en cada mensaje.
+
+- Visor de multimedia en su propia ventana, con reproducir y pausar, avanzar y retroceder 10 segundos, posición, volumen y velocidad. Puedes elegir en la configuración si los vídeos de las conversaciones y los estados se abren en él.
+
+- Vistas previas de enlaces en los mensajes. Cuando un mensaje tiene dos o más enlaces, estos se convierten en una lista que puedes recorrer. Tus mensajes enviados también incluyen ahora una vista previa.
+
+- Acciones en lote sobre mensajes y conversaciones: copiar, destacar, fijar, reenviar, guardar y eliminar mensajes; marcar conversaciones como leídas o no leídas, archivarlas y vaciarlas. Cada acción tiene su propio atajo, y Ctrl+C copia la selección.
+
+- Pestaña Accesibilidad en la configuración, con la compatibilidad ampliada con el lector de pantalla y la opción de usar la voz SAPI cuando no haya ningún lector activo.
+
+- Pestaña Archivos y guardado, para elegir si los cuadros de diálogo de guardado se abren en la última carpeta usada, en la carpeta de Descargas o en una carpeta que tú indiques.
+
+- Reacciones: ahora puedes ver cuál es tu reacción actual y quitarla seleccionándola de nuevo.
+
+- Guardar como contacto un mensaje de contacto recibido, con Intro o Espacio.
+
+- Reproducir el audio ya grabado mientras la grabación está en pausa, con Ctrl+P.
+
+- Selector de país del emparejamiento rehecho: usa el país y el idioma configurados en Windows, se ordena alfabéticamente, admite búsqueda escribiendo varias letras y protege el código de país frente a ediciones accidentales.
+
+- Nuevas opciones en la configuración: mostrar "ayer" en lugar de la fecha, anunciar "Reenviado" antes del remitente, distinguir los mensajes de voz de los archivos de audio, averiguar la duración del vídeo al descargarlo, elegir qué tipos de multimedia se muestran de forma predeterminada y no marcar los audios como reproducidos.
+
+MEJORAS
+
+- Sincronización incremental de las conversaciones. Abrir el programa y actualizar es mucho más rápido, y WinZapp avisa cuando la actualización empieza y cuando termina.
+
+- La lista de conversaciones es mucho más rápida. Un mensaje nuevo o una confirmación de entrega actualiza solo esa fila en lugar de rehacer la lista entera. En la práctica, el lector de pantalla relee mucho menos.
+
+- Las acciones sobre un mensaje también actualizan solo la fila de ese mensaje, y editar un mensaje ya no bloquea la interfaz.
+
+- Las notificaciones respetan el Asistente de concentración de Windows.
+
+- Grupos: aviso cuando solo los administradores pueden enviar mensajes, con el campo de mensaje en solo lectura. El cuadro de diálogo para añadir miembros muestra nombres en lugar de números e informa de quién no pudo añadirse.
+
+- Adjuntar contacto: la lista no tiene duplicados, está ordenada y ya no muestra entradas sin resolver.
+
+- Audio: los archivos OGG que el programa no podía descodificar se convierten automáticamente, y el envío de archivos WAV ya funciona.
+
+CORRECCIONES
+
+- Recuento de no leídos: los mensajes ya leídos no vuelven a aparecer como nuevos, se respeta la lectura hecha en el móvil y la conversación abierta ya no pierde el contador.
+
+- El separador de mensajes no leídos y tu posición de lectura ya no se pierden mientras lees. La conversación abierta se estaba reconstruyendo cada cierto tiempo, lo que interrumpía al lector de pantalla en mitad de la lectura.
+
+- Sesión: cerrar y volver a abrir WinZapp ya no pide emparejar de nuevo. El cierre ahora espera a que la sesión se guarde antes de terminar.
+
+- Emparejamiento: cuando WhatsApp rechaza el código se muestra el motivo real, y la actualización del servidor ya no interrumpe un emparejamiento en curso.
+
+- Las actualizaciones automáticas vuelven a funcionar cuando el programa está instalado en una carpeta con acentos u otros caracteres especiales.
+
+- Privacidad: el programa ya no guarda el contenido de los mensajes ni credenciales en el archivo de registro.
+
+- Envío: cancelar un mensaje que ya se había enviado se explica ahora con claridad, y los envíos grandes no se pierden por el camino.
+
+- Los vídeos sin duración indicada ya no muestran "0 segundos".
+
+- El primer mensaje de un contacto ya no desaparece al abrir la conversación.
+
+- Accesibilidad: el atajo de los emojis ahora se comunica al lector de pantalla, Alt+T vuelve a funcionar dentro de la conversación y el habla ya no se corta con cada confirmación de entrega.

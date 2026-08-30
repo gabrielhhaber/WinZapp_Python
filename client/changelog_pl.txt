@@ -1,0 +1,65 @@
+V1.1.0.0
+
+Ta wersja wprowadza kartę multimediów, odtwarzacz multimediów w osobnym oknie, podglądy linków, operacje zbiorcze oraz kartę Dostępność w ustawieniach. Synchronizacja rozmów jest znacznie szybsza, a lista rozmów nie jest już przebudowywana przy każdej wiadomości, co bardzo ogranicza ponowne odczytywanie przez czytnik ekranu.
+
+NOWOŚCI
+
+- Karta Multimedia w rozmowach i w grupach. Zawiera zdjęcia, filmy, nagrania dźwiękowe, dokumenty i linki, z filtrowaniem według typu oraz według pobranych i niepobranych, wczytywaniem pełnej historii i akcjami otwierania, zapisywania i usuwania dla każdej wiadomości.
+
+- Odtwarzacz multimediów w osobnym oknie, z odtwarzaniem i pauzą, przewijaniem o 10 sekund do przodu i do tyłu, pozycją, głośnością i prędkością. W ustawieniach wybierasz, czy filmy z rozmów i statusy mają się w nim otwierać.
+
+- Podglądy linków w wiadomościach. Gdy wiadomość zawiera dwa lub więcej linków, stają się one listą, po której można się poruszać. Wysyłane przez Ciebie wiadomości również zawierają teraz podgląd.
+
+- Operacje zbiorcze na wiadomościach i rozmowach: kopiowanie, oznaczanie gwiazdką, przypinanie, przekazywanie, zapisywanie i usuwanie wiadomości; oznaczanie rozmów jako przeczytane lub nieprzeczytane, archiwizowanie i czyszczenie. Każda akcja ma własny skrót, a Ctrl+C kopiuje zaznaczenie.
+
+- Karta Dostępność w ustawieniach, z rozszerzoną zgodnością z czytnikiem ekranu i opcją korzystania z głosu SAPI, gdy żaden czytnik nie jest uruchomiony.
+
+- Karta Pliki i zapisywanie, w której wybierasz, czy okna zapisu mają się otwierać w ostatnio używanym folderze, w folderze Pobrane, czy we wskazanym przez Ciebie folderze.
+
+- Reakcje: teraz widać, która reakcja jest Twoja, i można ją usunąć, wybierając ją ponownie.
+
+- Zapisywanie otrzymanej wiadomości z kontaktem jako kontaktu, klawiszem Enter lub Spacja.
+
+- Odtwarzanie już nagranego dźwięku w czasie, gdy nagrywanie jest wstrzymane, skrótem Ctrl+P.
+
+- Przebudowany wybór kraju w oknie parowania: korzysta z kraju i języka ustawionych w systemie Windows, jest posortowany alfabetycznie, obsługuje wyszukiwanie przez wpisywanie kilku liter i chroni numer kierunkowy kraju przed przypadkową edycją.
+
+- Nowe opcje w ustawieniach: pokazywanie "wczoraj" zamiast daty, zapowiadanie "Przekazano" przed nadawcą, odróżnianie wiadomości głosowych od plików dźwiękowych, ustalanie długości filmu już przy pobieraniu, wybór domyślnie wyświetlanych typów multimediów oraz rezygnacja z oznaczania nagrań jako odtworzonych.
+
+USPRAWNIENIA
+
+- Przyrostowa synchronizacja rozmów. Uruchamianie programu i odświeżanie jest znacznie szybsze, a WinZapp informuje o rozpoczęciu i zakończeniu aktualizacji.
+
+- Lista rozmów działa dużo szybciej. Nowa wiadomość lub potwierdzenie dostarczenia aktualizuje tylko ten jeden wiersz, zamiast przebudowywać całą listę. W praktyce czytnik ekranu czyta ponownie znacznie rzadziej.
+
+- Akcje na wiadomości również aktualizują tylko wiersz tej wiadomości, a edytowanie wiadomości nie blokuje już interfejsu.
+
+- Powiadomienia respektują Asystenta koncentracji uwagi systemu Windows.
+
+- Grupy: komunikat, gdy wiadomości mogą wysyłać tylko administratorzy, z polem wiadomości ustawionym tylko do odczytu. Okno dodawania członków pokazuje nazwy zamiast numerów i informuje, kogo nie udało się dodać.
+
+- Załączanie kontaktu: lista bez duplikatów, posortowana i bez nierozpoznanych pozycji.
+
+- Dźwięk: pliki OGG, których program nie potrafił zdekodować, są teraz konwertowane automatycznie, a wysyłanie plików WAV działa.
+
+POPRAWKI
+
+- Liczniki nieprzeczytanych: przeczytane już wiadomości nie wracają jako nowe, przeczytanie rozmowy na telefonie jest respektowane, a otwarta rozmowa nie traci już licznika.
+
+- Separator nieprzeczytanych wiadomości i Twoja pozycja czytania nie są już tracone w trakcie czytania. Otwarta rozmowa była okresowo przebudowywana, co przerywało czytnik ekranu w połowie zdania.
+
+- Sesja: zamknięcie i ponowne otwarcie WinZapp nie wymaga już ponownego parowania. Zamykanie czeka teraz na zapisanie sesji.
+
+- Parowanie: gdy WhatsApp odrzuci kod, pokazywany jest rzeczywisty powód, a aktualizacja serwera nie przerywa już trwającego parowania.
+
+- Automatyczne aktualizacje znów działają, gdy program jest zainstalowany w folderze ze znakami diakrytycznymi lub innymi znakami specjalnymi.
+
+- Prywatność: program nie zapisuje już treści wiadomości ani danych uwierzytelniających w pliku dziennika.
+
+- Wysyłanie: anulowanie wiadomości, która została już wysłana, jest teraz jasno wyjaśniane, a duże przesyłane pliki nie giną po drodze.
+
+- Filmy bez podanej długości nie pokazują już "0 sekund".
+
+- Pierwsza wiadomość od kontaktu nie znika już po otwarciu rozmowy.
+
+- Dostępność: skrót do emoji jest teraz przekazywany czytnikowi ekranu, Alt+T znów działa wewnątrz rozmowy, a mowa nie jest już przerywana przy każdym potwierdzeniu dostarczenia.

@@ -1,0 +1,65 @@
+V1.1.0.0
+
+Esta versão traz a aba de mídias, o visualizador de mídia em janela própria, prévias de links, ações em massa e uma aba de Acessibilidade nas configurações. A sincronização de conversas ficou bem mais rápida, e a lista de conversas parou de ser refeita a cada mensagem, o que reduz muito a releitura pelo leitor de tela.
+
+NOVIDADES
+
+- Aba Mídia nas conversas e nos grupos. Lista fotos, vídeos, áudios, documentos e links, com filtro por tipo e por baixadas ou não baixadas, carregamento do histórico completo e ações de abrir, salvar e apagar em cada mensagem.
+
+- Visualizador de mídia em janela própria, com reproduzir e pausar, avançar e voltar 10 segundos, posição, volume e velocidade. Você escolhe nas configurações se vídeos das conversas e status abrem nele.
+
+- Prévias de links nas mensagens. Quando a mensagem tem dois ou mais links, eles viram uma lista que dá para navegar. Suas mensagens enviadas também passam a levar prévia.
+
+- Ações em massa nas mensagens e nas conversas: copiar, favoritar, fixar, encaminhar, salvar e apagar mensagens; marcar conversas como lidas ou não lidas, arquivar e limpar. Cada ação tem seu próprio atalho, e Ctrl+C copia a seleção.
+
+- Aba Acessibilidade nas configurações, com a compatibilidade estendida com o leitor de tela e a opção de usar a voz SAPI quando nenhum leitor estiver ativo.
+
+- Aba Arquivos e salvamento, para escolher se os diálogos de salvar abrem na última pasta usada, na pasta de Downloads ou numa pasta que você definir.
+
+- Reações: agora dá para ver qual é a sua reação atual e removê-la selecionando ela de novo.
+
+- Salvar como contato uma mensagem de contato recebida, com Enter ou Espaço.
+
+- Reproduzir o áudio já gravado enquanto a gravação está pausada, com Ctrl+P.
+
+- Seletor de país no pareamento refeito: usa o país e o idioma configurados no Windows, fica em ordem alfabética, aceita busca digitando várias letras e protege o código do país contra edição acidental.
+
+- Opções novas nas configurações: mostrar "ontem" no lugar da data, anunciar "Encaminhada" antes do remetente, distinguir mensagem de voz de arquivo de áudio, descobrir a duração do vídeo já ao baixar, escolher os tipos de mídia exibidos por padrão e não marcar áudios como reproduzidos.
+
+MELHORIAS
+
+- Sincronização incremental das conversas. Abrir o programa e atualizar ficou bem mais rápido, e o WinZapp avisa quando a atualização começa e quando termina.
+
+- A lista de conversas ficou muito mais rápida. Uma mensagem nova ou uma confirmação de entrega atualiza apenas aquela linha, em vez de refazer a lista inteira. Na prática, o leitor de tela relê muito menos.
+
+- Ações sobre uma mensagem também atualizam só a linha daquela mensagem, e editar uma mensagem não trava mais a interface.
+
+- As notificações respeitam o Assistente de Foco do Windows.
+
+- Grupos: aviso quando somente administradores podem enviar mensagens, com o campo de mensagem em somente leitura. O diálogo de adicionar membro mostra nomes em vez de números e informa quem não pôde ser adicionado.
+
+- Anexar contato: lista sem duplicados, em ordem e sem entradas não resolvidas.
+
+- Áudio: arquivos OGG que o programa não conseguia decodificar são convertidos automaticamente, e o envio de arquivos WAV passou a funcionar.
+
+CORREÇÕES
+
+- Contagem de não lidas: mensagens já lidas não voltam a aparecer como novas, a leitura feita no celular é respeitada e a conversa aberta não perde mais o contador.
+
+- O separador de mensagens não lidas e a sua posição de leitura não são mais perdidos enquanto você lê. A conversa aberta estava sendo reconstruída de tempos em tempos, o que interrompia o leitor de tela no meio da leitura.
+
+- Sessão: fechar e reabrir o WinZapp não pede mais para parear de novo. O encerramento agora espera a sessão ser gravada antes de fechar.
+
+- Pareamento: quando o WhatsApp recusa o código, o motivo real é mostrado, e a atualização do servidor não interrompe mais um pareamento em andamento.
+
+- Atualizações automáticas voltaram a funcionar quando o programa está instalado em uma pasta com acentos ou outros caracteres especiais.
+
+- Privacidade: o programa não grava mais conteúdo de mensagens nem credenciais no arquivo de log.
+
+- Envio: cancelar uma mensagem que já tinha sido enviada agora é explicado com clareza, e envios grandes não se perdem no caminho.
+
+- Vídeos sem duração informada não mostram mais "0 segundos".
+
+- A primeira mensagem de um contato não some mais ao abrir a conversa.
+
+- Acessibilidade: o atalho dos emojis passou a ser informado ao leitor de tela, Alt+T voltou a funcionar dentro da conversa e a fala não é mais cortada a cada confirmação de entrega.
