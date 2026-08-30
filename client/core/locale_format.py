@@ -26,6 +26,9 @@ LOCALE_SSHORTDATE  = 0x0000001F
 # to LOCALE_STIMEFORMAT on anything older that doesn't recognize it.
 LOCALE_SSHORTTIME  = 0x00000079
 LOCALE_STIMEFORMAT = 0x00001003
+# MUI_LANGUAGE_NAME: makes GetUserPreferredUILanguages() return BCP-47 tags
+# ("en-US") instead of LANGIDs — for get_system_ui_language() below.
+MUI_LANGUAGE_NAME = 0x8
 
 # Longest-match-first per family, so e.g. "yyyy" is consumed before "yy".
 _DATE_TOKENS = [
@@ -104,6 +107,97 @@ def _windows_time_strftime() -> str | None:
         if not pattern:
             return None
         return _translate_pattern(pattern, _TIME_TOKENS)
+    except Exception:
+        return None
+
+
+def _get_windows_geo_name() -> str | None:
+    """Raw two-letter code from GetUserDefaultGeoName (Windows 10 1709+),
+    or None off-Windows, on an older Windows build, or on API failure."""
+    try:
+        kernel32 = ctypes.windll.kernel32
+    except (AttributeError, OSError):
+        return None
+    try:
+        size = kernel32.GetUserDefaultGeoName(None, 0)
+        if size <= 0:
+            return None
+        buf = ctypes.create_unicode_buffer(size)
+        if kernel32.GetUserDefaultGeoName(buf, size) <= 0:
+            return None
+        return buf.value or None
+    except Exception:
+        return None
+
+
+@functools.lru_cache(maxsize=1)
+def get_country_or_region_iso2() -> str | None:
+    """ISO 3166-1 alpha-2 code (e.g. "US", "BA") of the user's Windows
+    "Country or region" setting — Settings > Time & Language > Language &
+    region > Country or region, the field Windows describes as "Windows and
+    apps might use your country or region to give you local content". None
+    off-Windows or on API failure.
+
+    Deliberately NOT the "Regional format" locale that get_date_format() /
+    get_time_format() below use (GetUserDefaultLocaleName, reached via
+    GetLocaleInfoEx(NULL, ...)): the two Windows settings are independent.
+    A machine can have an English "Regional format" (it defaults to
+    whatever the UI language was at install time and most people never
+    change it) while "Country or region" is set to the user's actual
+    location. Reading Regional format here — an earlier version of this
+    function did — silently ignored a correctly-configured Country or
+    region and kept resolving to the Regional format's country instead;
+    reported live as the pairing dialog's country selector defaulting to
+    the United States on a machine whose Country or region was set to
+    Bosnia and Herzegovina. GetUserDefaultGeoName reads the Country or
+    region field directly, with no dependency on any language setting."""
+    try:
+        code = _get_windows_geo_name()
+        return code.upper() if code else None
+    except Exception:
+        return None
+
+
+def _get_windows_ui_language_raw() -> str | None:
+    """Raw top-priority tag from GetUserPreferredUILanguages, or None
+    off-Windows or on API failure."""
+    try:
+        kernel32 = ctypes.windll.kernel32
+    except (AttributeError, OSError):
+        return None
+    try:
+        num_languages = ctypes.c_ulong(0)
+        buf_len = ctypes.c_ulong(0)
+        if not kernel32.GetUserPreferredUILanguages(
+            MUI_LANGUAGE_NAME, ctypes.byref(num_languages), None, ctypes.byref(buf_len)
+        ) or buf_len.value == 0:
+            return None
+        buf = ctypes.create_unicode_buffer(buf_len.value)
+        if not kernel32.GetUserPreferredUILanguages(
+            MUI_LANGUAGE_NAME, ctypes.byref(num_languages), buf, ctypes.byref(buf_len)
+        ) or num_languages.value == 0:
+            return None
+        # buf is a MULTI_SZ (a list of NUL-terminated strings, double-NUL
+        # terminated); wstring_at() with no length reads up to the first
+        # embedded NUL, i.e. just the top-priority language.
+        return ctypes.wstring_at(buf) or None
+    except Exception:
+        return None
+
+
+@functools.lru_cache(maxsize=1)
+def get_system_ui_language() -> str | None:
+    """BCP-47 tag (e.g. "en-US") of the user's top-priority Windows display
+    language (GetUserPreferredUILanguages), or None off-Windows or on API
+    failure.
+
+    Also independent of get_country_or_region_iso2() and of "Regional
+    format" above — this is the actual "Windows display language" setting.
+    Used only to pick a sensible default in the first-run language picker
+    (ui/dialogs/language_dialog.py), which has no saved language to read
+    from I18n yet."""
+    try:
+        return _get_windows_ui_language_raw()
     except Exception:
         return None
 
