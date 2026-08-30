@@ -441,6 +441,36 @@ const WA_CHECK_UPDATE = 'https://web.whatsapp.com/check-update';
 
 async function installPinnedPageInterception(page, body, log) {
   const cdp = await page.createCDPSession();
+  // Breadcrumbs for the reload loop reported live (both pairing routes show
+  // nothing on screen, wppconnect.log shows "Execution context was destroyed,
+  // most likely because of a navigation" every ~10s until the session is force
+  // killed at notLogged). Without these there is no way to tell from a user's
+  // log whether a reload was re-served the pinned document or escaped the
+  // interception entirely and got WhatsApp's current build — which decides
+  // whether the bug is in this pattern or upstream of it.
+  let documentsServed = 0;
+  page.on('framenavigated', (frame) => {
+    if (frame === page.mainFrame()) {
+      console.log(`[WinZapp] main frame navigated -> ${frame.url()}`);
+    }
+  });
+  // The exact-match urlPattern is deliberate — do NOT widen it.
+  //
+  // On a fresh unpaired profile WhatsApp Web navigates itself to
+  // `https://web.whatsapp.com/?post_logout=1&logout_reason=0`, which this
+  // pattern does not match. That looks like a bug (the pin covers the first
+  // load and nothing after) and was "fixed" once by matching every Document
+  // navigation on the origin — `urlPattern: WA_WEB_URL + '*'` with
+  // `resourceType: 'Document'`. That made pairing WORSE, not better: forcing
+  // the pinned document onto the post_logout navigation too means the page can
+  // never complete the logout/fresh-start cycle it is asking for, so it loops
+  // roughly every 10s until WPPConnect force-kills the session at notLogged,
+  // and neither the QR nor the pairing code is ever produced.
+  //
+  // Letting that one navigation through is what allows WhatsApp Web to settle;
+  // measured on the real app, the QR then arrives about 12s after
+  // start-session. The pin's job is to decide which build BOOTS, not to hold
+  // the page hostage to it.
   await cdp.send('Fetch.enable', {
     patterns: [
       { urlPattern: WA_WEB_URL, requestStage: 'Request' },
@@ -451,8 +481,13 @@ async function installPinnedPageInterception(page, body, log) {
     const { requestId, request } = event;
     try {
       if (request.url.startsWith(WA_CHECK_UPDATE)) {
+        console.log('[WinZapp] check-update aborted by the interception.');
         await cdp.send('Fetch.failRequest', { requestId, errorReason: 'Aborted' });
       } else if (request.url === WA_WEB_URL) {
+        documentsServed += 1;
+        console.log(
+          `[WinZapp] pinned document served (#${documentsServed}) for ${request.url}`
+        );
         await cdp.send('Fetch.fulfillRequest', {
           requestId,
           responseCode: 200,

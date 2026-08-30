@@ -61,6 +61,7 @@ const apiDir = process.argv[2];
 
 const out = {
   fetchEnableSent: false,
+  fetchPatterns: [],
   versionPassedOnward: 'INIT_WHATSAPP_NEVER_CALLED',
   error: null,
 };
@@ -92,10 +93,24 @@ browser.initWhatsapp = async function (page, token, clear, version) {
 require(path.join(apiDir, 'start.js'));
 
 const cdp = {
-  send: async (method) => { if (method === 'Fetch.enable') out.fetchEnableSent = true; },
+  send: async (method, params) => {
+    if (method === 'Fetch.enable') {
+      out.fetchEnableSent = true;
+      out.fetchPatterns = (params && params.patterns) || [];
+    }
+  },
   on: () => {},
 };
-const page = { createCDPSession: async () => cdp };
+// A real puppeteer Page is an EventEmitter that also exposes mainFrame();
+// start.js subscribes to 'framenavigated' to record reloads, so a stub
+// without these makes the interception install throw and silently fall back
+// to WPPConnect's blanket one — which is exactly what these tests exist to
+// catch, so the stub has to be faithful enough not to trigger it spuriously.
+const page = {
+  createCDPSession: async () => cdp,
+  on: () => {},
+  mainFrame: () => ({ url: () => 'https://web.whatsapp.com/' }),
+};
 
 const waVersion = require(require.resolve('@wppconnect/wa-version', { paths: [path.dirname(wppEntry)] }));
 const versions = waVersion.getAvailableVersions();
@@ -215,3 +230,48 @@ class TestTheSourceItself:
         if not (API / "start.js").exists():
             pytest.skip("client/api/ not set up here")
         assert (API / "start.js").read_bytes() == (PATCHES / "start.js").read_bytes()
+
+
+class TestTheDocumentPatternStaysAnExactMatch:
+    """Widening this pattern is a trap that has already been walked into once.
+
+    WhatsApp Web navigates itself to
+    `https://web.whatsapp.com/?post_logout=1&logout_reason=0` on a fresh
+    unpaired profile, which the exact-match pattern does not cover. Making it
+    cover that (an origin-wide glob scoped to `resourceType: 'Document'`) looks
+    like the obvious fix and breaks pairing outright: the page is force-fed the
+    pinned document on the very navigation it is using to restart itself, so it
+    loops every ~10s until WPPConnect force-kills the session at notLogged, and
+    neither the QR nor the pairing code ever appears. With the exact match, the
+    QR arrives about 12s after start-session."""
+
+    def test_the_document_pattern_is_an_exact_match(self, tmp_path):
+        result = _run_harness(tmp_path)
+        assert result["error"] is None, result["error"]
+        doc_patterns = [
+            p for p in result["fetchPatterns"]
+            if "web.whatsapp.com" in p.get("urlPattern", "")
+            and "check-update" not in p.get("urlPattern", "")
+        ]
+        assert doc_patterns, f"no document pattern at all: {result['fetchPatterns']}"
+        for pattern in doc_patterns:
+            assert not pattern["urlPattern"].endswith("*"), (
+                f"urlPattern {pattern['urlPattern']!r} is a glob. That re-serves the "
+                "pinned document on WhatsApp Web's own ?post_logout navigation and "
+                "puts the session into the reload loop. See this class's docstring."
+            )
+
+    def test_the_post_logout_url_is_deliberately_not_matched(self, tmp_path):
+        """Asserted against the real URL taken from a live log, so the intent
+        is unmistakable to whoever reads this next: that navigation is meant
+        to reach the network untouched."""
+        import fnmatch
+        result = _run_harness(tmp_path)
+        assert result["error"] is None, result["error"]
+        post_logout = "https://web.whatsapp.com/?post_logout=1&logout_reason=0"
+        for pattern in result["fetchPatterns"]:
+            if "check-update" in pattern.get("urlPattern", ""):
+                continue
+            assert not fnmatch.fnmatchcase(post_logout, pattern["urlPattern"]), (
+                f"{post_logout!r} must NOT match {pattern['urlPattern']!r}"
+            )

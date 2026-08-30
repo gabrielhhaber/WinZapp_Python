@@ -36,7 +36,18 @@ Timeline:
   same generic "no pairing code received" after 90 seconds. The end-to-end
   path is covered by tests/test_pairing_code_error_reporting.py.
 
-* v5 (current): a doubling backoff between consecutive failures. v2's cooldown
+* v6 (current): the phoneNumber branch waits for WhatsApp Web's auth state
+  before calling the link-device API, and getQrCode() reads the payload from
+  wa-js instead of scraping the DOM. Both pairing routes were dead at the same
+  time for unrelated reasons that looked identical from the outside (nothing
+  appears on screen): the code threw Invariant Violation #56367 because v1..v5
+  had hoisted its branch above the `await this.getQrCode()` that used to
+  guarantee the auth state existed, and the QR emitted nothing because
+  upstream's scraper looks for a <canvas> WhatsApp Web no longer renders —
+  landing instead on the download banner's `https://wa.me/...` data-ref, which
+  is not a login payload at all.
+
+* v5: a doubling backoff between consecutive failures. v2's cooldown
   only ever gates a success, so a run of failures was paced by nothing at all —
   measured live at one attempt every 20 seconds, nine and counting, which for a
   failure that is plausibly rate-limiting made the problem self-sustaining.
@@ -55,7 +66,9 @@ import pytest
 
 from core.wppconnect_host_layer_patch import (
     ORIGINAL_CHECK_QR_CODE, V1_CHECK_QR_CODE, V2_CHECK_QR_CODE,
-    V3_CHECK_QR_CODE, V4_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE,
+    V3_CHECK_QR_CODE, V4_CHECK_QR_CODE, V5_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE,
+    ORIGINAL_GET_QR_CODE, PATCHED_GET_QR_CODE,
+    ORIGINAL_WAIT_FOR_QR_CODE_SCAN, PATCHED_WAIT_FOR_QR_CODE_SCAN,
     ORIGINAL_LOGIN_BY_CODE, LEGACY_LOGIN_BY_CODE_RAW, PATCHED_LOGIN_BY_CODE,
 )
 
@@ -82,20 +95,24 @@ def fake_wppconnect_dist(tmp_path):
     return tmp_path, host_layer
 
 
-def _write(host_layer, checkqrcode_text, loginbycode_text=ORIGINAL_LOGIN_BY_CODE):
+def _write(host_layer, checkqrcode_text, loginbycode_text=ORIGINAL_LOGIN_BY_CODE,
+           getqrcode_text=ORIGINAL_GET_QR_CODE,
+           waitforscan_text=ORIGINAL_WAIT_FOR_QR_CODE_SCAN):
     """Wrap the (v0/v1/v2/v3) checkQrCode() body in enough surrounding class
     boilerplate to look like the real compiled file, without needing the
     other unrelated methods.
 
-    loginByCode() comes from the shared constants verbatim rather than being
-    paraphrased here: the patcher rewrites that method too, so an
-    approximate copy would make every test in this file see a spurious
-    "DID NOT MATCH" for a file the real patcher handles fine."""
+    loginByCode() and getQrCode() come from the shared constants verbatim
+    rather than being paraphrased here: the patcher rewrites those methods
+    too, so an approximate copy would make every test in this file see a
+    spurious "DID NOT MATCH" for a file the real patcher handles fine."""
     host_layer.write_text(
         "class HostLayer {\n"
         "    urlCode = '';\n"
         "    attempt = 0;\n"
         + checkqrcode_text
+        + getqrcode_text
+        + waitforscan_text
         + loginbycode_text +
         "}\n",
         encoding="utf-8",
@@ -690,3 +707,162 @@ class TestManagedLinkingApiMigration:
             outputs.append(host_layer.read_text(encoding="utf-8"))
 
         assert outputs[0] == outputs[1]
+
+
+class TestV6WaitsForTheAuthStateBeforeAskingForACode:
+    """v1..v5 hoisted the phoneNumber branch above `await this.getQrCode()`
+    to stop the pairing code regenerating on every rotation, and in doing so
+    dropped the only thing that kept the call safe: upstream only ever
+    reached loginByCode() once a urlCode existed, which is also when
+    WhatsApp Web's user-prefs storage is initialised. Without that, wa-js
+    walks setADVSecretKey -> getStorage into an uninitialised table and
+    WhatsApp Web throws Invariant Violation #56367 — both pairing routes
+    dead, nothing on screen, and the real error swallowed."""
+
+    def test_the_gate_runs_before_login_by_code(self):
+        gate = PATCHED_CHECK_QR_CODE.index("const ready = await this.getQrCode();")
+        login_call = PATCHED_CHECK_QR_CODE.index(
+            "await this.loginByCode(this.options.phoneNumber);"
+        )
+        assert gate < login_call
+
+    def test_a_missing_auth_code_defers_instead_of_calling(self):
+        """Returning (not throwing, not calling anyway) matters: checkQrCode is
+        bound to the auth-code rotation, so a deferral is retried for free on
+        the next tick — while calling anyway is the invariant."""
+        assert "if (!ready?.urlCode) {" in PATCHED_CHECK_QR_CODE
+        gate = PATCHED_CHECK_QR_CODE.index("if (!ready?.urlCode) {")
+        login_call = PATCHED_CHECK_QR_CODE.index(
+            "await this.loginByCode(this.options.phoneNumber);"
+        )
+        deferred_return = PATCHED_CHECK_QR_CODE.index("return;", gate)
+        assert deferred_return < login_call
+
+    def test_the_gate_does_not_cost_the_v5_cooldown(self):
+        """The cooldown/backoff checks must still run BEFORE the gate: probing
+        the auth state on every rotation while a code is already valid would
+        undo v4/v5 and hammer WhatsApp for nothing."""
+        cooldown = PATCHED_CHECK_QR_CODE.index("this.linkCodeIssuedAt && (now - this.linkCodeIssuedAt) < 60000")
+        backoff = PATCHED_CHECK_QR_CODE.index("this.linkCodeRetryAfter && now < this.linkCodeRetryAfter")
+        gate = PATCHED_CHECK_QR_CODE.index("const ready = await this.getQrCode();")
+        assert cooldown < gate
+        assert backoff < gate
+
+    def test_v5_is_recognised_and_upgraded(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write(host_layer, V5_CHECK_QR_CODE, PATCHED_LOGIN_BY_CODE)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_CHECK_QR_CODE in content
+        assert V5_CHECK_QR_CODE not in content
+
+    def test_v5_and_v6_are_distinct(self):
+        assert V5_CHECK_QR_CODE != PATCHED_CHECK_QR_CODE
+
+
+class TestGetQrCodeReadsWaJsNotTheDom:
+    """Upstream scrapes `document.querySelector('canvas').closest('[data-ref]')`.
+    Current WhatsApp Web often has no <canvas> when that runs, and once it
+    does the nearest data-ref ancestor is the download / "link with phone
+    number instead" banner, whose data-ref is a wa.me URL — so the emitted
+    payload was not a login code at all, and a phone could never pair from
+    it. A real payload starts with `2@`."""
+
+    def test_the_dom_scraper_is_gone(self):
+        assert "scrapeImg" in ORIGINAL_GET_QR_CODE
+        assert "scrapeImg" not in PATCHED_GET_QR_CODE
+        assert "querySelector" not in PATCHED_GET_QR_CODE
+
+    def test_it_reads_the_auth_code_from_wa_js(self):
+        assert "WPP.conn.getAuthCode()" in PATCHED_GET_QR_CODE
+        assert "urlCode: auth.fullCode" in PATCHED_GET_QR_CODE
+
+    def test_the_png_carries_no_quiet_zone(self):
+        """connect.py's display_qrcode_image() adds its own quiet zone and then
+        magnifies by a whole integer factor with nearest-neighbour, and
+        documents that it is fed a borderless image. A margin here would
+        double the border and shrink the modules — the exact shape of the
+        "QR Code inválido" that scaling code already exists to prevent."""
+        assert "margin: 0" in PATCHED_GET_QR_CODE
+
+    def test_a_missing_auth_code_returns_undefined(self):
+        """checkQrCode's own `!result?.urlCode` guard — and now the v6 pairing
+        gate — both depend on this returning a falsy result rather than a
+        half-built object when the auth state is not up yet."""
+        assert "return undefined;" in PATCHED_GET_QR_CODE
+
+    def test_a_pristine_install_is_patched(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write(host_layer, ORIGINAL_CHECK_QR_CODE, ORIGINAL_LOGIN_BY_CODE,
+               ORIGINAL_GET_QR_CODE)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_GET_QR_CODE in content
+        assert ORIGINAL_GET_QR_CODE not in content
+
+    def test_reapplying_is_idempotent(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write(host_layer, ORIGINAL_CHECK_QR_CODE, ORIGINAL_LOGIN_BY_CODE,
+               ORIGINAL_GET_QR_CODE)
+
+        setup_api._patch_wppconnect_host_layer(str(api_dir))
+        once = host_layer.read_text(encoding="utf-8")
+        setup_api._patch_wppconnect_host_layer(str(api_dir))
+        assert host_layer.read_text(encoding="utf-8") == once
+
+
+class TestWaitForQrCodeScanDoesNotMistakeAFailedProbeForALogin:
+    """`this.isLogged = !needScan` where needScan came from
+    `.catch(() => null)` reads "we could not find out" as "the user has
+    logged in" — the strongest possible claim from the one value that
+    carries no information. The scan wait then exits early, waitForLogin()
+    re-probes, gets null again, and reports `Failed to authenticate` with
+    the actual browser-side error written down nowhere."""
+
+    def test_the_swallowing_catch_is_gone(self):
+        assert ".catch(() => null)" in ORIGINAL_WAIT_FOR_QR_CODE_SCAN
+        assert ".catch(() => null)" not in PATCHED_WAIT_FOR_QR_CODE_SCAN
+
+    def test_a_failed_probe_keeps_waiting_instead_of_declaring_a_login(self):
+        """The assignment must be unreachable from the failure path: on a
+        throw we `continue`, so isLogged is never written from a probe that
+        did not actually answer."""
+        catch_block = PATCHED_WAIT_FOR_QR_CODE_SCAN.index("catch (error) {")
+        continue_stmt = PATCHED_WAIT_FOR_QR_CODE_SCAN.index("continue;", catch_block)
+        assignment = PATCHED_WAIT_FOR_QR_CODE_SCAN.index("this.isLogged = !needScan;")
+        assert catch_block < continue_stmt < assignment
+
+    def test_the_real_error_is_logged(self):
+        assert "Auth probe failed" in PATCHED_WAIT_FOR_QR_CODE_SCAN
+        assert "error?.message" in PATCHED_WAIT_FOR_QR_CODE_SCAN
+
+    def test_a_permanently_broken_probe_still_gives_up(self):
+        """Retrying forever would replace a wrong answer with a hang, which
+        for a pairing dialog is no better. The bound is generous enough to
+        ride out a navigation but finite, and it says why it stopped."""
+        assert "probeFailures >= 150" in PATCHED_WAIT_FOR_QR_CODE_SCAN
+        assert "giving up on the scan wait" in PATCHED_WAIT_FOR_QR_CODE_SCAN
+
+    def test_a_successful_probe_resets_the_failure_run(self):
+        """Otherwise a session that hiccups once every few minutes would
+        eventually cross the give-up threshold for no reason."""
+        assert "probeFailures = 0;" in PATCHED_WAIT_FOR_QR_CODE_SCAN
+        reset = PATCHED_WAIT_FOR_QR_CODE_SCAN.rindex("probeFailures = 0;")
+        assignment = PATCHED_WAIT_FOR_QR_CODE_SCAN.index("this.isLogged = !needScan;")
+        assert reset < assignment
+
+    def test_a_pristine_install_is_patched(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write(host_layer, ORIGINAL_CHECK_QR_CODE, ORIGINAL_LOGIN_BY_CODE,
+               ORIGINAL_GET_QR_CODE, ORIGINAL_WAIT_FOR_QR_CODE_SCAN)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_WAIT_FOR_QR_CODE_SCAN in content
+        assert ORIGINAL_WAIT_FOR_QR_CODE_SCAN not in content
