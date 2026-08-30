@@ -2,6 +2,7 @@ import ctypes
 import os
 import wx
 from core.i18n import LANGUAGE_NAMES
+from core.combo_search import bind_incremental_search
 from core.sound_system import (
     SOUND_EVENTS, discover_alert_tone_choices, resolve_alert_tone_path,
     DEFAULT_PACK_ID, import_soundpack, AlertPreviewController,
@@ -218,6 +219,13 @@ class SettingsDialog(wx.Dialog):
             style=wx.CB_READONLY,
             choices=list(LANGUAGE_NAMES.values()),
         )
+        # Same multi-character type-ahead as the pairing dialog's country
+        # combo and the first-run language picker — see
+        # core.combo_search.bind_incremental_search()'s own docstring for
+        # why a read-only wx.ComboBox needs this reimplemented by hand at
+        # all. No on_select needed: nothing reacts live to this combo, its
+        # selection is only read at Save/Apply time (_on_apply()).
+        bind_incremental_search(self._lang_combo)
         gen_sizer.Add(self._lang_combo, 0, wx.EXPAND | wx.ALL, 8)
 
         self._notifications_check = wx.CheckBox(

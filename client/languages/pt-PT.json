@@ -3,7 +3,7 @@
     "connect_phone": "Ligar ao {app_name}",
     "enter_phone": "&Introduza o seu número de telefone",
     "country_label": "Selecione um país:",
-    "invalid_char": "Carácter inválido",
+    "connect_dialog_cancel": "Ca&ncelar",
     "continue": "&Continuar",
     "connection_error": "Erro de ligação",
     "connection_failed": "Não foi possível estabelecer ligação com o {app_name}. A mensagem de erro apresentada foi:",

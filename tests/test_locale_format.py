@@ -20,14 +20,20 @@ from core import locale_format as lf
 
 @pytest.fixture(autouse=True)
 def _clear_cache():
-    """The get_*_strftime() helpers are lru_cache'd (regional settings
-    don't change mid-session) — clear between tests so monkeypatching
-    _get_windows_locale_pattern actually takes effect each time."""
+    """The get_*_strftime() / get_country_or_region_iso2() /
+    get_system_ui_language() helpers are all lru_cache'd (these Windows
+    settings don't change mid-session) — clear between tests so
+    monkeypatching their underlying raw getters actually takes effect each
+    time."""
     lf._windows_date_strftime.cache_clear()
     lf._windows_time_strftime.cache_clear()
+    lf.get_country_or_region_iso2.cache_clear()
+    lf.get_system_ui_language.cache_clear()
     yield
     lf._windows_date_strftime.cache_clear()
     lf._windows_time_strftime.cache_clear()
+    lf.get_country_or_region_iso2.cache_clear()
+    lf.get_system_ui_language.cache_clear()
 
 
 class TestTranslatePattern:
@@ -113,3 +119,58 @@ class TestGetWindowsLocalePatternItself:
                 raise AttributeError(name)
         monkeypatch.setattr(lf.ctypes, "windll", _NoWindll(), raising=False)
         assert lf._get_windows_locale_pattern(lf.LOCALE_SSHORTDATE) is None
+
+
+class TestGetCountryOrRegionIso2:
+    """Regression: this used to read the "Regional format" locale
+    (GetLocaleInfoEx(NULL, LOCALE_SISO3166CTRYNAME)) instead of the actual
+    "Country or region" setting (GetUserDefaultGeoName) — the two are
+    independent Windows settings, and a machine can have an English
+    Regional format (it defaults to the install-time UI language) while
+    Country or region is set to the user's real location. Reported live:
+    Country or region = Bosnia and Herzegovina, but the pairing dialog's
+    country selector still defaulted to the United States."""
+
+    def test_uppercases_the_detected_code(self, monkeypatch):
+        monkeypatch.setattr(lf, "_get_windows_geo_name", lambda: "ba")
+        assert lf.get_country_or_region_iso2() == "BA"
+
+    def test_falls_back_to_none_when_detection_fails(self, monkeypatch):
+        monkeypatch.setattr(lf, "_get_windows_geo_name", lambda: None)
+        assert lf.get_country_or_region_iso2() is None
+
+    def test_missing_kernel32_returns_none(self, monkeypatch):
+        class _NoWindll:
+            def __getattr__(self, name):
+                raise AttributeError(name)
+        monkeypatch.setattr(lf.ctypes, "windll", _NoWindll(), raising=False)
+        assert lf._get_windows_geo_name() is None
+
+    def test_a_raising_getter_never_propagates(self, monkeypatch):
+        def _raise():
+            raise OSError("no geo name")
+        monkeypatch.setattr(lf, "_get_windows_geo_name", _raise)
+        assert lf.get_country_or_region_iso2() is None
+
+
+class TestGetSystemUiLanguage:
+    def test_returns_the_detected_tag(self, monkeypatch):
+        monkeypatch.setattr(lf, "_get_windows_ui_language_raw", lambda: "en-US")
+        assert lf.get_system_ui_language() == "en-US"
+
+    def test_falls_back_to_none_when_detection_fails(self, monkeypatch):
+        monkeypatch.setattr(lf, "_get_windows_ui_language_raw", lambda: None)
+        assert lf.get_system_ui_language() is None
+
+    def test_missing_kernel32_returns_none(self, monkeypatch):
+        class _NoWindll:
+            def __getattr__(self, name):
+                raise AttributeError(name)
+        monkeypatch.setattr(lf.ctypes, "windll", _NoWindll(), raising=False)
+        assert lf._get_windows_ui_language_raw() is None
+
+    def test_a_raising_getter_never_propagates(self, monkeypatch):
+        def _raise():
+            raise OSError("no UI languages")
+        monkeypatch.setattr(lf, "_get_windows_ui_language_raw", _raise)
+        assert lf.get_system_ui_language() is None

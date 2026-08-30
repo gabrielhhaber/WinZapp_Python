@@ -8,15 +8,27 @@ Cada entrada de _COUNTRIES é uma tupla (chave_estável, código_discagem, nomes
   • nomes: dict {"pt": ..., "en": ..., "es": ...} com o nome do país em
     português (usado tanto para pt-BR quanto pt-PT), inglês e espanhol.
 
-get_countries(lang) devolve [(nome_exibição, código_discagem), ...] na MESMA
-ORDEM independentemente do idioma (Brasil primeiro, depois ordem alfabética
-em português) — os diálogos que consomem esta lista indexam por posição
-(ComboBox.GetSelection()), então a ordem não pode variar entre idiomas sem
-também atualizar esses call sites.
+get_countries(lang) devolve [(nome_exibição, código_discagem), ...] ordenada
+alfabeticamente pelo NOME LOCALIZADO no idioma pedido (acentos ignorados na
+comparação, para que "Áustria"/"Austrália" fiquem ao lado de outras entradas
+com "A"). A ordem portanto muda entre idiomas — nenhum país (nem Brasil, nem
+o país detectado do Windows) é fixado artificialmente no topo; a posição de
+cada item só é usada para indexar de volta na MESMA lista que populou o
+ComboBox (ver get_default_country_index()), nunca comparada entre chamadas
+com idiomas diferentes.
+
+get_default_country_index() devolve o índice, dentro de uma lista já
+devolvida por get_countries(), do país que corresponde a "Country or region"
+configurado no Windows (core.locale_format.get_country_or_region_iso2() —
+NÃO o idioma de exibição do Windows nem o "Formato regional") — ou dos
+Estados Unidos, se essa detecção falhar ou o país detectado não estiver em
+_COUNTRIES.
 
 COUNTRIES continua exportado como a lista estática em pt-BR, para código que
 só precisa dos códigos de discagem (ex.: core/utils.py) e não da tradução.
 """
+
+from core.utils import normalize_for_search
 
 _LANG_ALIASES = {
     "pt-BR": "pt",
@@ -275,17 +287,145 @@ _COUNTRIES: list[tuple[str, str, dict[str, str]]] = [
 ]
 
 
+# ISO 3166-1 alpha-2 code for every entry in _COUNTRIES, keyed by the same
+# stable key — used only to match the Windows "Country or region" setting
+# (core.locale_format.get_country_or_region_iso2(), an ISO 3166 alpha-2 code
+# itself) back to one of our entries in get_default_country_index(). NOT the
+# "Regional format" locale: reading that is the bug this whole path exists to
+# fix, and the two Windows settings are independent — see that function's own
+# docstring for the case that was reported live. Kept as
+# a separate table rather than a 4th tuple field so the country data above
+# stays exactly as easy to scan/edit as it was before this existed.
+_KEY_TO_ISO2: dict[str, str] = {
+    "brazil": "BR",
+    "afghanistan": "AF", "south_africa": "ZA", "albania": "AL", "germany": "DE",
+    "andorra": "AD", "angola": "AO", "antigua_and_barbuda": "AG",
+    "saudi_arabia": "SA", "algeria": "DZ", "argentina": "AR", "armenia": "AM",
+    "aruba": "AW", "australia": "AU", "austria": "AT", "azerbaijan": "AZ",
+    "bahamas": "BS", "bangladesh": "BD", "barbados": "BB", "bahrain": "BH",
+    "belgium": "BE", "belize": "BZ", "benin": "BJ", "bolivia": "BO",
+    "bosnia_and_herzegovina": "BA", "botswana": "BW", "brunei": "BN",
+    "bulgaria": "BG", "burkina_faso": "BF", "burundi": "BI", "bhutan": "BT",
+    "cape_verde": "CV", "cambodia": "KH", "cameroon": "CM", "canada": "CA",
+    "qatar": "QA", "kazakhstan": "KZ", "chad": "TD", "chile": "CL",
+    "china": "CN", "cyprus": "CY", "colombia": "CO", "comoros": "KM",
+    "congo": "CG", "north_korea": "KP", "south_korea": "KR",
+    "ivory_coast": "CI", "costa_rica": "CR", "croatia": "HR", "cuba": "CU",
+    "curacao": "CW", "denmark": "DK", "djibouti": "DJ", "dominica": "DM",
+    "egypt": "EG", "el_salvador": "SV", "united_arab_emirates": "AE",
+    "ecuador": "EC", "eritrea": "ER", "slovakia": "SK", "slovenia": "SI",
+    "spain": "ES", "united_states": "US", "estonia": "EE", "eswatini": "SZ",
+    "ethiopia": "ET", "fiji": "FJ", "philippines": "PH", "finland": "FI",
+    "france": "FR", "gabon": "GA", "gambia": "GM", "ghana": "GH",
+    "georgia": "GE", "gibraltar": "GI", "greece": "GR", "grenada": "GD",
+    "guatemala": "GT", "guyana": "GY", "guinea": "GN",
+    "guinea_bissau": "GW", "equatorial_guinea": "GQ", "haiti": "HT",
+    "honduras": "HN", "hong_kong": "HK", "hungary": "HU", "yemen": "YE",
+    "cayman_islands": "KY", "cook_islands": "CK", "faroe_islands": "FO",
+    "marshall_islands": "MH", "solomon_islands": "SB",
+    "turks_and_caicos_islands": "TC", "british_virgin_islands": "VG",
+    "us_virgin_islands": "VI", "india": "IN", "indonesia": "ID",
+    "iran": "IR", "iraq": "IQ", "ireland": "IE", "iceland": "IS",
+    "israel": "IL", "italy": "IT", "jamaica": "JM", "japan": "JP",
+    "jordan": "JO", "kuwait": "KW", "kyrgyzstan": "KG", "laos": "LA",
+    "lesotho": "LS", "latvia": "LV", "lebanon": "LB", "liberia": "LR",
+    "libya": "LY", "liechtenstein": "LI", "lithuania": "LT",
+    "luxembourg": "LU", "macau": "MO", "madagascar": "MG", "malawi": "MW",
+    "malaysia": "MY", "maldives": "MV", "mali": "ML", "malta": "MT",
+    "morocco": "MA", "mauritania": "MR", "mauritius": "MU", "mexico": "MX",
+    "micronesia": "FM", "myanmar": "MM", "mozambique": "MZ",
+    "moldova": "MD", "monaco": "MC", "mongolia": "MN", "montenegro": "ME",
+    "namibia": "NA", "nauru": "NR", "nepal": "NP", "nicaragua": "NI",
+    "niger": "NE", "nigeria": "NG", "norway": "NO", "new_zealand": "NZ",
+    "oman": "OM", "pakistan": "PK", "palau": "PW", "panama": "PA",
+    "papua_new_guinea": "PG", "paraguay": "PY", "peru": "PE",
+    "poland": "PL", "portugal": "PT", "puerto_rico": "PR",
+    "united_kingdom": "GB", "central_african_republic": "CF",
+    "democratic_republic_congo": "CD", "dominican_republic": "DO",
+    "czech_republic": "CZ", "romania": "RO", "rwanda": "RW", "russia": "RU",
+    "samoa": "WS", "san_marino": "SM", "saint_lucia": "LC",
+    "saint_kitts_and_nevis": "KN", "sao_tome_and_principe": "ST",
+    "saint_vincent_grenadines": "VC", "senegal": "SN", "sierra_leone": "SL",
+    "serbia": "RS", "seychelles": "SC", "singapore": "SG", "syria": "SY",
+    "somalia": "SO", "sri_lanka": "LK", "sudan": "SD", "south_sudan": "SS",
+    "sweden": "SE", "switzerland": "CH", "suriname": "SR", "thailand": "TH",
+    "taiwan": "TW", "tanzania": "TZ", "timor_leste": "TL", "togo": "TG",
+    "trinidad_and_tobago": "TT", "tunisia": "TN", "turkmenistan": "TM",
+    "turkey": "TR", "tuvalu": "TV", "ukraine": "UA", "uganda": "UG",
+    "uruguay": "UY", "uzbekistan": "UZ", "vanuatu": "VU",
+    "venezuela": "VE", "vietnam": "VN", "zambia": "ZM", "zimbabwe": "ZW",
+}
+_ISO2_TO_KEY: dict[str, str] = {v: k for k, v in _KEY_TO_ISO2.items()}
+
+
+def _sort_key(name: str) -> str:
+    """Diacritic-insensitive, case-insensitive sort key so e.g. "Áustria"
+    sorts next to "Austrália" instead of after every plain ASCII letter.
+    Reuses core.utils.normalize_for_search()'s "nfkd" mode (lowercase,
+    NFKD-decompose, drop combining marks) rather than duplicating that
+    logic here."""
+    return normalize_for_search(name, mode="nfkd")
+
+
+def _localized_name(names: dict[str, str], lang_key: str) -> str:
+    return names.get(lang_key) or names["pt"]
+
+
 def get_countries(lang: str = "pt-BR") -> list[tuple[str, str]]:
-    """Return [(display_name, dial_code), ...] localized for *lang*, same
-    order as _COUNTRIES regardless of language — callers index into this
-    list by ComboBox position, so the order must stay stable across
-    languages. Falls back to Portuguese for any unrecognized lang code."""
+    """Return [(display_name, dial_code), ...] localized for *lang* and
+    sorted alphabetically (start to end, diacritics ignored) by that
+    localized name. Falls back to Portuguese for any unrecognized lang code.
+
+    The order is intentionally NOT stable across languages — display names
+    differ per language, so alphabetical order does too — and no entry is
+    pinned first. Callers must index back into the SAME list this returned,
+    never assume a fixed position for a given country."""
     key = _LANG_ALIASES.get(lang, "pt")
-    result = []
-    for _, code, names in _COUNTRIES:
-        name = names.get(key) or names["pt"]
-        result.append((f"{name} (+{code})", code))
-    return result
+    entries = [
+        (_localized_name(names, key), code) for _, code, names in _COUNTRIES
+    ]
+    entries.sort(key=lambda item: _sort_key(item[0]))
+    return [(f"{name} (+{code})", code) for name, code in entries]
+
+
+def get_default_country_index(countries: list[tuple[str, str]], lang: str = "pt-BR") -> int:
+    """Index into *countries* (as returned by get_countries(lang)) of the
+    country matching the user's Windows "Country or region" setting, or of
+    the United States if that can't be detected or isn't one of our
+    entries. Falls back to index 0 if even the United States entry can't be
+    found (should not happen — it's always present in _COUNTRIES).
+
+    Deliberately based on Country or region (a location, independent of any
+    language setting) rather than the UI/display language or the "Regional
+    format" locale — see core.locale_format.get_country_or_region_iso2()'s
+    own docstring for why those would give the wrong answer here."""
+    # Imported here, not at module load, so this module (and get_countries())
+    # stays importable/testable without pulling in ctypes/Windows-only code.
+    from core.locale_format import get_country_or_region_iso2
+
+    iso2 = (get_country_or_region_iso2() or "").upper()
+    stable_key = _ISO2_TO_KEY.get(iso2, "united_states")
+    lang_key = _LANG_ALIASES.get(lang, "pt")
+
+    target = None
+    for key, code, names in _COUNTRIES:
+        if key == stable_key:
+            target = (f"{_localized_name(names, lang_key)} (+{code})", code)
+            break
+    if target is None or target not in countries:
+        # Detected country isn't one of ours (or detection failed) — fall
+        # back to the United States entry.
+        for key, code, names in _COUNTRIES:
+            if key == "united_states":
+                target = (f"{_localized_name(names, lang_key)} (+{code})", code)
+                break
+
+    if target is not None:
+        try:
+            return countries.index(target)
+        except ValueError:
+            pass
+    return 0
 
 
 # Backward-compat: static pt-BR list for code that only needs the dial codes
