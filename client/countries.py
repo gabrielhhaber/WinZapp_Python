@@ -288,9 +288,12 @@ _COUNTRIES: list[tuple[str, str, dict[str, str]]] = [
 
 
 # ISO 3166-1 alpha-2 code for every entry in _COUNTRIES, keyed by the same
-# stable key — used only to match the Windows "Regional format" country
-# (core.locale_format.get_regional_country_iso2(), an ISO 3166 alpha-2 code
-# itself) back to one of our entries in get_default_country_index(). Kept as
+# stable key — used only to match the Windows "Country or region" setting
+# (core.locale_format.get_country_or_region_iso2(), an ISO 3166 alpha-2 code
+# itself) back to one of our entries in get_default_country_index(). NOT the
+# "Regional format" locale: reading that is the bug this whole path exists to
+# fix, and the two Windows settings are independent — see that function's own
+# docstring for the case that was reported live. Kept as
 # a separate table rather than a 4th tuple field so the country data above
 # stays exactly as easy to scan/edit as it was before this existed.
 _KEY_TO_ISO2: dict[str, str] = {

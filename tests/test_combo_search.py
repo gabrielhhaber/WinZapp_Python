@@ -24,6 +24,9 @@ pin the actual reported bug, not just the two pure halves in isolation.
 import wx
 
 from tests.conftest import hidden_frame
+import time
+
+from core import combo_search
 from core.combo_search import (
     bind_incremental_search,
     find_incremental_match,
@@ -125,6 +128,62 @@ class TestBindIncrementalSearch:
             combo_event.SetEventObject(combo)
             combo_event.SetInt(naive_idx)
             combo.GetEventHandler().ProcessEvent(combo_event)
+
+    def _select_without_typing(self, combo, idx):
+        """A selection change from a source that is NOT a keystroke — an arrow
+        key or a mouse click. The native control fires EVT_COMBOBOX for these
+        exactly as it does for a typed jump; only EVT_CHAR is absent."""
+        combo.SetSelection(idx)
+        combo_event = wx.CommandEvent(wx.EVT_COMBOBOX.typeId, combo.GetId())
+        combo_event.SetEventObject(combo)
+        combo_event.SetInt(idx)
+        combo.GetEventHandler().ProcessEvent(combo_event)
+
+    def test_a_keystroke_that_moved_nothing_does_not_hijack_the_next_arrow_key(
+        self, wx_app, monkeypatch
+    ):
+        """The pending-correction flag is raised on every letter, but
+        EVT_COMBOBOX only fires when the selection actually MOVES. A letter
+        that lands on the entry already selected therefore leaves the flag
+        raised with no event to consume it, and the NEXT selection change —
+        from an arrow key, seconds later — was then "corrected" back to
+        whatever that stale buffer matched. The arrow key appears not to work,
+        which for someone navigating this list by ear reads as the control
+        being stuck.
+        """
+        frame, combo = self._make_combo(wx_app)
+        try:
+            notifications = []
+            bind_incremental_search(combo, on_select=lambda idx: notifications.append(idx))
+
+            # "B" moves the selection: consumed normally.
+            self._type_char(combo, "B")
+            # A second "B" lands on the same entry, so the real control fires
+            # no EVT_COMBOBOX at all — the flag stays raised.
+            char_event = wx.KeyEvent(wx.EVT_CHAR.typeId)
+            char_event.SetEventObject(combo)
+            char_event.SetUnicodeKey(ord("B"))
+            combo.GetEventHandler().ProcessEvent(char_event)
+
+            # ...and now the user arrows, well after the search window.
+            # Captured BEFORE patching: `combo_search.time` is the very same
+            # module object as `time` here, so a lambda that called
+            # time.monotonic() would resolve to itself and recurse forever.
+            real_monotonic = time.monotonic
+            skew = combo_search.SEARCH_TIMEOUT_SECONDS + 1
+            monkeypatch.setattr(
+                combo_search.time, "monotonic", lambda: real_monotonic() + skew
+            )
+            target = self.CHOICES.index("Croatia")
+            self._select_without_typing(combo, target)
+
+            assert combo.GetSelection() == target, (
+                "a stale keystroke flag overrode a selection the user made "
+                "with the arrow keys"
+            )
+            assert notifications[-1] == target
+        finally:
+            frame.Destroy()
 
     def test_b_then_a_lands_on_bane_not_on_the_native_single_char_jump_to_ana(self, wx_app):
         frame, combo = self._make_combo(wx_app)

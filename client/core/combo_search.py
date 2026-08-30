@@ -129,6 +129,23 @@ def bind_incremental_search(combo: wx.ComboBox, on_select=None) -> None:
             _notify(combo.GetSelection())
             return
 
+        # The flag is raised on every letter, but EVT_COMBOBOX only fires when
+        # the selection actually MOVES — so a keystroke that lands on the entry
+        # already selected (typing "b" while sitting on the first "B" entry)
+        # leaves it raised with no event to consume it. The next selection
+        # change from any source then looks like that stale keystroke: pressing
+        # Down would be corrected back to whatever the old buffer matched,
+        # i.e. the arrow key appears not to work. For someone navigating this
+        # list by ear that reads as the control being stuck.
+        #
+        # Bounding it by the same window that governs the buffer keeps the two
+        # consistent: a keystroke old enough to have started a fresh search is
+        # also too old to still be awaiting correction.
+        if time.monotonic() - state["last_time"] > SEARCH_TIMEOUT_SECONDS:
+            state["buffer"] = ""
+            _notify(combo.GetSelection())
+            return
+
         buffer = state["buffer"]
         if len(buffer) > 1:
             choices = [combo.GetString(i) for i in range(combo.GetCount())]
