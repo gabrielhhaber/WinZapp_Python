@@ -12706,6 +12706,47 @@ class MainWindow(wx.Frame):
                                             continue
                                         self._locally_read_at.pop(jid, None)
                                         self._persist_locally_read_at()
+                                    # Store the DISCOUNTED count, not the raw
+                                    # `v` this loop is iterating. The other two
+                                    # branches above already assign `v` from
+                                    # server_val (directly, or through
+                                    # reconcile_*); this one used to fall
+                                    # through and write the raw snapshot value,
+                                    # so the discount computed above decided
+                                    # the branch and was then thrown away.
+                                    #
+                                    # That single omission is self-sustaining,
+                                    # not cosmetic. The stored count stays at
+                                    # the server's number (say 31) while
+                                    # sync_chat_messages()'s
+                                    # apply_history_sync_unread_correction()
+                                    # immediately discounts the same chat back
+                                    # down (30). _capture_chat_sync_baseline()
+                                    # then snapshots 30, the next 60s round
+                                    # merges 31 again, and
+                                    # chat_sync_marker_changed() reads 31 != 30
+                                    # as "this chat changed" — every round,
+                                    # forever, for a chat where nothing
+                                    # happened. Confirmed live: 39 consecutive
+                                    # "[unread] <jid>: 31 -> 30 after history
+                                    # sync" lines, one per minute, same numbers
+                                    # every time, and a periodic delta that
+                                    # never once reported 0 chats to sync.
+                                    #
+                                    # The cost lands on the person reading:
+                                    # re-syncing the OPEN conversation runs
+                                    # _refresh_open_conversation_after_sync()
+                                    # -> refresh_messages_if_changed(), whose
+                                    # signature legitimately differs, so
+                                    # populate_messages() rebuilds the native
+                                    # list with DeleteAllItems() + Append().
+                                    # A screen reader is handed a brand-new
+                                    # list once a minute, mid-sentence, and
+                                    # the unread separator and focus go with
+                                    # it — which is exactly the symptom
+                                    # refresh_messages_if_changed()'s own
+                                    # docstring warns about.
+                                    v = server_val
                                 # A real chat-list snapshot now backs this
                                 # chat's unreadCount, whichever way the guards
                                 # above resolved it — the notification code can
