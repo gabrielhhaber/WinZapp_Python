@@ -52,6 +52,16 @@ the `wxgui` marker and are **skipped unless explicitly asked for**, via
 
 Every CI workflow passes `--run-wx-gui`, so the coverage is never actually
 lost — it just stops running on a human's desktop by accident.
+
+**`--run-wx-gui` is for CI, and for nothing else.** Do not pass it on a
+developer machine, and do not instruct an agent, script or helper to pass it:
+background agents run on the *user's own desktop*, not somewhere else, so a
+subagent told to "just run the full suite" opens those dialogs in that user's
+face. It has already happened once — a review agent was told to use the flag on
+the reasoning that no human was at that desktop, and the pairing dialog's
+country list was read aloud by the user's screen reader mid-session. The same
+applies to ad-hoc probe scripts: anything that constructs a real wx window, or
+hooks WinEvents to watch one, belongs in CI or nowhere.
 `tests/test_no_desktop_visible_windows.py` enforces all of it: no module may
 reintroduce a bare `wx.Frame(None)`, a new module building a real dialog must
 carry the marker, and a CI step running a bare `pytest` fails the suite rather

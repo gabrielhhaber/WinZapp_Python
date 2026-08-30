@@ -23,6 +23,7 @@ pin the actual reported bug, not just the two pure halves in isolation.
 
 import wx
 
+from tests.conftest import hidden_frame
 from core.combo_search import (
     bind_incremental_search,
     find_incremental_match,
@@ -102,7 +103,7 @@ class TestBindIncrementalSearch:
     CHOICES = ["Croatia", "Blindography", "Ana", "Bane", "Bojan"]
 
     def _make_combo(self, wx_app):
-        frame = wx.Frame(None)
+        frame = hidden_frame()
         combo = wx.ComboBox(frame, style=wx.CB_READONLY, choices=self.CHOICES)
         return frame, combo
 
