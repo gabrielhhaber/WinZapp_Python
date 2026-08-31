@@ -488,6 +488,72 @@ LEGACY_API_STATE_MARKER = ".migrated_from_install_dir"
 LEGACY_API_STATE_DIRS = ("userDataDir", "tokens")
 
 
+def shorten_windows_path(path: str) -> str:
+    """Return the Windows 8.3 short form of an existing directory, or `path`
+    unchanged when that is not available (non-Windows, path missing, 8.3
+    generation disabled on the volume, or the API failing for any reason).
+
+    This exists for exactly one caller: the Chrome profile root handed to
+    WPPConnect as WINZAPP_USER_DATA_DIR. Chrome builds deep paths inside a
+    profile, and the deepest of them are its Service Worker CacheStorage
+    entries — two 32-character hashed directory names plus `index-dir\\
+    the-real-index`, about 127 characters below the profile root, on top of
+    the profile's own 32-character session name.
+
+    Measured on the install this was found on:
+
+        <global_dir>/api/userDataDir/<session>   profile root 135  -> 262  OVER
+        8.3-shortened equivalent                 profile root  92  -> 219  ok
+
+    MAX_PATH is 260. Over it, Chrome cannot create the CacheStorage entries,
+    WhatsApp Web never gets the persistent storage bucket it needs, and it
+    responds by logging ITSELF out: the page navigates to
+    `/?post_logout=1&logout_reason=0`, wa-js is destroyed with it, and the
+    session loops that roughly every 10s until WPPConnect force-kills it at
+    notLogged. Neither the QR nor the pairing code is ever produced, and
+    nothing in any log says "path too long" — the only visible symptom is the
+    navigation itself.
+
+    This was found by comparing two installs that differed in nothing but
+    this path. The working one passed a cwd-RELATIVE './userDataDir/', which
+    Chrome resolved against a working directory Windows had already handed
+    back in 8.3 form (the install lives under a directory name containing a
+    space), so it was accidentally 31 characters shorter and stayed under the
+    limit. Its profile still *reports* a 262-character path when listed,
+    because Windows reports the long form — which is why measuring the
+    directory after the fact says the opposite of what Chrome experienced,
+    and cost a wrong "MAX_PATH is ruled out" along the way.
+
+    Shortening is best-effort on purpose. 8.3 generation can be turned off
+    per volume (`fsutil 8dot3name`), in which case this returns the long path
+    and the caller is no worse off than before.
+    """
+    if os.name != "nt" or not path:
+        return path
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        _GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW
+        _GetShortPathNameW.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
+        _GetShortPathNameW.restype = wintypes.DWORD
+
+        needed = _GetShortPathNameW(path, None, 0)
+        if not needed:
+            return path
+        buf = ctypes.create_unicode_buffer(needed)
+        if not _GetShortPathNameW(path, buf, needed):
+            return path
+        short = buf.value or path
+        if short != path:
+            logging.info("[paths] shortened %s -> %s (%d -> %d chars)",
+                         path, short, len(path), len(short))
+        return short
+    except Exception:
+        logging.exception("[paths] could not shorten %s — using it as-is", path)
+        return path
+
+
 def migrate_legacy_api_state(legacy_api_dir: str, persistent_api_dir: str) -> list:
     """Move a pre-existing install's WhatsApp session state from the old,
     cwd-relative location into the new persistent one. Returns what moved.
@@ -7239,7 +7305,15 @@ class MainWindow(wx.Frame):
                 # ever changes.
                 _persistent_api_dir = os.path.join(self.global_dir, "api")
                 _token_dir = os.path.join(_persistent_api_dir, "tokens")
-                os.environ["WINZAPP_USER_DATA_DIR"] = os.path.join(_persistent_api_dir, "userDataDir") + os.sep
+                _udd = os.path.join(_persistent_api_dir, "userDataDir")
+                # The long forms go in FIRST and unconditionally. Everything
+                # below this line can raise, and a launch that reaches Node
+                # with neither variable set is the worst outcome available:
+                # config.ts falls back to './userDataDir/' relative to Node's
+                # cwd, which in a --onefile build is PyInstaller's per-launch
+                # temp dir, so the paired session is orphaned on exit. Being
+                # long is survivable; being unset is not.
+                os.environ["WINZAPP_USER_DATA_DIR"] = _udd + os.sep
                 os.environ["WINZAPP_TOKEN_STORE_DIR"] = _token_dir
                 # One-time move of an ALREADY PAIRED install's session state
                 # from the old cwd-relative location. Without it, every
@@ -7249,6 +7323,37 @@ class MainWindow(wx.Frame):
                 # Node not yet spawned, because moving a userDataDir out from
                 # under a live Chrome would corrupt it.
                 migrate_legacy_api_state(resource_path("api"), _persistent_api_dir)
+                # Only NOW may these be created. migrate_legacy_api_state()
+                # skips any folder that already exists at the destination —
+                # deliberately, since one being there means this install is
+                # already on the new location — and then writes its
+                # run-once marker even when nothing needed moving. Creating
+                # them beforehand therefore does not just skip the move, it
+                # makes the skip PERMANENT: an already-paired install is
+                # pointed at a virgin profile, asked to pair again, and the
+                # real one is stranded under resource_path("api") with the
+                # marker guaranteeing no retry. That is the exact report the
+                # migration exists to prevent, delivered by its own fix.
+                #
+                # They have to exist at all because shorten_windows_path()
+                # wraps a Win32 call that resolves a real directory entry and
+                # returns the long path untouched for one that is not there.
+                os.makedirs(_udd, exist_ok=True)
+                os.makedirs(_token_dir, exist_ok=True)
+                # Shorten only the ANCESTOR, never the whole path: 8.3
+                # rewrites every component over 8 characters, and
+                # "userDataDir" is 11. Losing that literal breaks the two
+                # places that identify a session's Chrome by matching it in a
+                # command line — chrome_cmdline_owns_session()
+                # (client/connection_state.py) and forceKillByUserDataDir()
+                # (api_patches/src/util/createSessionUtil.ts) — and both fail
+                # by matching NOTHING, so a stale Chrome holding the profile
+                # lock is never killed and the session hangs in INITIALIZING.
+                # Keeping the component costs 3 characters of the 43 saved.
+                os.environ["WINZAPP_USER_DATA_DIR"] = os.path.join(
+                    shorten_windows_path(_persistent_api_dir), "userDataDir"
+                ) + os.sep
+                os.environ["WINZAPP_TOKEN_STORE_DIR"] = shorten_windows_path(_token_dir)
             except Exception:
                 logging.exception("[startup] persistent userDataDir/token-store env injection failed (non-fatal)")
 

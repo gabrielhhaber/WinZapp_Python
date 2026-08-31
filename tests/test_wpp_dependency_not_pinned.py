@@ -104,4 +104,5 @@ def test_the_patched_set_stays_narrow():
         "prom-client",              # src/middleware/instrumentation.ts
         "zod",                      # src/dto/sync.ts response contracts
         "@ffmpeg-installer/ffmpeg", # main.py's _find_api_ffmpeg/_convert_wav_to_ogg
+        "qrcode",                   # the getQrCode patch renders the QR PNG
     }
