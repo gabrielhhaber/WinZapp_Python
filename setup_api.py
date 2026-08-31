@@ -193,6 +193,20 @@ _PATCHED_DEPENDENCY_KEYS = [
     "zod",  # runtime schema for the sync endpoints' response contracts
             # (src/dto/sync.ts). Declared here because the controllers import
             # it at runtime — it is not a build-only tool.
+    "qrcode",  # required at runtime by WinZapp's own getQrCode patch to
+               # host.layer.js (client/core/wppconnect_host_layer_patch.py),
+               # which renders the QR PNG from the payload wa-js returns
+               # instead of scraping it out of the DOM. Same shape as
+               # prom-client above: upstream wppconnect-server declares it
+               # today, but the wppconnect library whose node_modules our
+               # patched file lives in does not, so the require() only
+               # resolves via npm hoisting. (The library is deliberately not
+               # named in full here — test_wppconnect_itself_is_no_longer_pinned
+               # greps this block for it to prove nobody re-pinned it.) If
+               # upstream drops it the patch degrades silently: base64Image comes back
+               # empty, websocket_client.py discards the event as carrying
+               # nothing usable, and the user watches an empty QR box with
+               # only a log line to show for it.
     "@ffmpeg-installer/ffmpeg",  # vendors a real ffmpeg binary via npm — WinZapp's
                                   # own Python side shells out to it directly
                                   # (main.py: _find_api_ffmpeg/_convert_wav_to_ogg)

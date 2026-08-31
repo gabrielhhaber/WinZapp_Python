@@ -20,7 +20,9 @@ so the tests below are mostly about what it must refuse to do.
 import os
 
 from main import (
+    LEGACY_API_STATE_DIRS,
     LEGACY_API_STATE_MARKER,
+    MainWindow,
     migrate_legacy_api_state,
 )
 
@@ -134,3 +136,57 @@ class TestItIsWiredIntoStartup:
         assert src.index("migrate_legacy_api_state(") < src.index("subprocess.Popen("), (
             "the migration must run before Node is spawned"
         )
+
+
+class TestNothingMayPreCreateTheDestination:
+    """The migration skips any folder already present at the destination —
+    deliberately, since one being there means this install is already on the
+    new location. It then writes its run-once marker even when nothing moved.
+
+    So creating those folders before it runs does not merely skip the move,
+    it makes the skip PERMANENT. An already-paired install gets a virgin
+    Chrome profile, is asked to pair again, and its real profile is stranded
+    under the old location with the marker guaranteeing no retry — the exact
+    report this migration was written to prevent, delivered by its own fix.
+
+    This nearly shipped: two `os.makedirs` calls were added just above the
+    call, to satisfy a Win32 path-shortening helper that needs a real
+    directory entry. Ordering was the only thing wrong with them.
+    """
+
+    def test_an_empty_pre_created_destination_permanently_blocks_the_move(self, tmp_path):
+        """States the bug as a test: this is what pre-creating causes."""
+        legacy = tmp_path / "install" / "api"
+        (legacy / "userDataDir" / "session-a").mkdir(parents=True)
+        (legacy / "tokens").mkdir(parents=True)
+        persistent = tmp_path / "global" / "api"
+        for name in LEGACY_API_STATE_DIRS:
+            (persistent / name).mkdir(parents=True)
+
+        moved = migrate_legacy_api_state(str(legacy), str(persistent))
+
+        assert moved == []
+        assert (legacy / "userDataDir" / "session-a").is_dir(), "profile stranded"
+        assert (persistent / LEGACY_API_STATE_MARKER).is_file(), (
+            "and the marker is written anyway, so no launch ever retries"
+        )
+
+    def test_the_directories_are_created_only_after_the_migration(self):
+        """A source-order assertion because the failure is invisible at
+        runtime: nothing raises, nothing logs, the session simply comes up
+        unpaired once and never recovers."""
+        import inspect
+        src = inspect.getsource(MainWindow._start_wpp_background)
+        assert src.index("migrate_legacy_api_state(") < src.index("os.makedirs(_udd"), (
+            "os.makedirs(_udd) runs before migrate_legacy_api_state(), which "
+            "makes the migration skip every folder and then write its marker"
+        )
+
+    def test_the_env_vars_are_set_before_anything_that_can_raise(self):
+        """They are assigned twice on purpose: the long forms first and
+        unconditionally, the shortened ones after the directories exist. A
+        launch that reaches Node with neither set falls back to a cwd-relative
+        profile, which a --onefile build loses on every exit."""
+        import inspect
+        src = inspect.getsource(MainWindow._start_wpp_background)
+        assert src.index('os.environ["WINZAPP_USER_DATA_DIR"]') < src.index("os.makedirs(_udd")

@@ -66,7 +66,8 @@ import pytest
 
 from core.wppconnect_host_layer_patch import (
     ORIGINAL_CHECK_QR_CODE, V1_CHECK_QR_CODE, V2_CHECK_QR_CODE,
-    V3_CHECK_QR_CODE, V4_CHECK_QR_CODE, V5_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE,
+    V3_CHECK_QR_CODE, V4_CHECK_QR_CODE, V5_CHECK_QR_CODE, V6_CHECK_QR_CODE,
+    PATCHED_CHECK_QR_CODE,
     ORIGINAL_GET_QR_CODE, PATCHED_GET_QR_CODE,
     ORIGINAL_WAIT_FOR_QR_CODE_SCAN, PATCHED_WAIT_FOR_QR_CODE_SCAN,
     ORIGINAL_LOGIN_BY_CODE, LEGACY_LOGIN_BY_CODE_RAW, PATCHED_LOGIN_BY_CODE,
@@ -342,7 +343,9 @@ class TestV3CatchesPairingCodeFailures:
         auth_code_change tick retries."""
         issued_at = PATCHED_CHECK_QR_CODE.index("this.linkCodeIssuedAt = Date.now();")
         login_call = PATCHED_CHECK_QR_CODE.index("await this.loginByCode(this.options.phoneNumber);")
-        catch_block = PATCHED_CHECK_QR_CODE.index("catch (error) {")
+        # Anchored AFTER the call: v7 added a catch at the head of the
+        # method, so the first occurrence is no longer this branch's.
+        catch_block = PATCHED_CHECK_QR_CODE.index("catch (error) {", login_call)
         assert login_call < issued_at < catch_block
 
     def test_every_checkqrcode_generation_is_distinct(self):
@@ -388,7 +391,9 @@ class TestV4ReportsTheFailureToTheClient:
     def test_v4_still_never_permanently_latches(self):
         issued_at = PATCHED_CHECK_QR_CODE.index("this.linkCodeIssuedAt = Date.now();")
         login_call = PATCHED_CHECK_QR_CODE.index("await this.loginByCode(this.options.phoneNumber);")
-        catch_block = PATCHED_CHECK_QR_CODE.index("catch (error) {")
+        # Anchored AFTER the call: v7 added a catch at the head of the
+        # method, so the first occurrence is no longer this branch's.
+        catch_block = PATCHED_CHECK_QR_CODE.index("catch (error) {", login_call)
         assert login_call < issued_at < catch_block
 
 
@@ -560,7 +565,10 @@ class TestV5BacksOffBetweenFailures:
     def test_a_success_resets_the_failure_count_and_deadline(self):
         try_block = PATCHED_CHECK_QR_CODE[
             PATCHED_CHECK_QR_CODE.index("await this.loginByCode(this.options.phoneNumber);")
-            : PATCHED_CHECK_QR_CODE.index("catch (error) {")
+            : PATCHED_CHECK_QR_CODE.index(
+                "catch (error) {",
+                PATCHED_CHECK_QR_CODE.index("await this.loginByCode(this.options.phoneNumber);"),
+            )
         ]
         assert "this.linkCodeFailures = 0;" in try_block
         assert "this.linkCodeRetryAfter = 0;" in try_block
@@ -845,13 +853,22 @@ class TestWaitForQrCodeScanDoesNotMistakeAFailedProbeForALogin:
         """Retrying forever would replace a wrong answer with a hang, which
         for a pairing dialog is no better. The bound is generous enough to
         ride out a navigation but finite, and it says why it stopped."""
-        assert "probeFailures >= 150" in PATCHED_WAIT_FOR_QR_CODE_SCAN
         assert "giving up on the scan wait" in PATCHED_WAIT_FOR_QR_CODE_SCAN
+        # Bounded by the WALL CLOCK, not by an iteration count. Each probe
+        # goes through page.evaluate under a 300s protocolTimeout, so a
+        # wedged renderer makes "150 iterations" mean 12.5 hours while the
+        # log line claims 30 seconds.
+        assert "Date.now() >= probeDeadline" in PATCHED_WAIT_FOR_QR_CODE_SCAN
+        assert "probeFailures >= 150" not in PATCHED_WAIT_FOR_QR_CODE_SCAN
 
     def test_a_successful_probe_resets_the_failure_run(self):
         """Otherwise a session that hiccups once every few minutes would
         eventually cross the give-up threshold for no reason."""
         assert "probeFailures = 0;" in PATCHED_WAIT_FOR_QR_CODE_SCAN
+        # The deadline has to be cleared alongside the counter, or a
+        # run that recovers keeps an armed deadline and the NEXT
+        # failure gives up against a clock that started minutes ago.
+        assert "probeDeadline = 0;" in PATCHED_WAIT_FOR_QR_CODE_SCAN
         reset = PATCHED_WAIT_FOR_QR_CODE_SCAN.rindex("probeFailures = 0;")
         assignment = PATCHED_WAIT_FOR_QR_CODE_SCAN.index("this.isLogged = !needScan;")
         assert reset < assignment
@@ -866,3 +883,45 @@ class TestWaitForQrCodeScanDoesNotMistakeAFailedProbeForALogin:
         content = host_layer.read_text(encoding="utf-8")
         assert PATCHED_WAIT_FOR_QR_CODE_SCAN in content
         assert ORIGINAL_WAIT_FOR_QR_CODE_SCAN not in content
+
+
+class TestV7ClosesTheSameHoleInCheckQrCode:
+    """waitForQrCodeScan stopped reading a failed probe as "the user logged
+    in", but checkQrCode's own first two lines still did exactly that — and
+    it runs CONCURRENTLY, invoked from the page on every auth-code rotation.
+    One failed probe there set isLogged, and the scan wait this patch series
+    had just made honest exited on its very next check."""
+
+    def test_the_swallowing_catch_is_gone_from_the_head(self):
+        head = PATCHED_CHECK_QR_CODE[:PATCHED_CHECK_QR_CODE.index("if (!needScan)")]
+        assert ".catch(() => null)" in V6_CHECK_QR_CODE
+        assert ".catch(() => null)" not in head
+
+    def test_a_failed_probe_leaves_is_logged_alone(self):
+        """Returning without writing isLogged is the whole point: the next
+        rotation re-enters for free, whereas writing it ends someone else's
+        loop."""
+        # The FIRST catch is the head one v7 added — that is the one
+        # under test here, not the pairing-code branch's.
+        catch_block = PATCHED_CHECK_QR_CODE.index("catch (error) {")
+        early_return = PATCHED_CHECK_QR_CODE.index("return;", catch_block)
+        assignment = PATCHED_CHECK_QR_CODE.index("this.isLogged = !needScan;")
+        assert catch_block < early_return < assignment
+
+    def test_v6_is_recognised_and_upgraded(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write(host_layer, V6_CHECK_QR_CODE, PATCHED_LOGIN_BY_CODE,
+               PATCHED_GET_QR_CODE, PATCHED_WAIT_FOR_QR_CODE_SCAN)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_CHECK_QR_CODE in content
+        assert V6_CHECK_QR_CODE not in content
+
+    def test_v6_and_v7_differ_only_in_that_head(self):
+        """Guards the upgrade arm: if a future edit changes the body too, the
+        v6 -> v7 replacement silently stops matching real installs."""
+        marker = "if (!needScan) {"
+        assert (V6_CHECK_QR_CODE[V6_CHECK_QR_CODE.index(marker):]
+                == PATCHED_CHECK_QR_CODE[PATCHED_CHECK_QR_CODE.index(marker):])
