@@ -54,6 +54,10 @@ class _Stub:
     close_conversation = ConversationsPanel.close_conversation
     close_conversation_for_panel_switch = ConversationsPanel.close_conversation_for_panel_switch
     _stop_typing_for_current_conversation = ConversationsPanel._stop_typing_for_current_conversation
+    # Closing the conversation also drops the expanded history window, so the
+    # next chat opens at the configured page size instead of inheriting this
+    # one's thousands of rows.
+    _reset_expanded_window = ConversationsPanel._reset_expanded_window
 
     def __init__(self, conversation):
         self.main_window = _FakeMainWindow()
@@ -67,6 +71,8 @@ class _Stub:
         self._search_result_idx = -1
         self._msg_bookmarks = {}
         self._msg_temp_bookmarks = {}
+        self._expanded_visible_count = 0
+        self._expanded_oldest_msg_id = ""
         self.conversation_panel = _FakeWidget(shown=True)
         self.message_field = _FakeWidget()
         self.restore_calls = []
@@ -160,6 +166,23 @@ class TestBookmarkLifetimeOnClose:
         stub.close_conversation_for_panel_switch()
 
         assert stub._msg_bookmarks == {1: ("5511999999999@s.whatsapp.net", "MSG-A")}
+
+
+class TestExpandedHistoryWindowOnClose:
+    """History the user loaded with Home widens the message list past
+    messages_page_size for as long as that conversation is open. Closing it has
+    to drop that, or the next conversation opens rendering the previous one's
+    thousands of rows."""
+
+    def test_closing_resets_the_expanded_window(self):
+        stub = _Stub(_conv())
+        stub._expanded_visible_count = 4200
+        stub._expanded_oldest_msg_id = "MSG-OLD"
+
+        stub.close_conversation_for_panel_switch()
+
+        assert stub._expanded_visible_count == 0
+        assert stub._expanded_oldest_msg_id == ""
 
 
 class TestCloseConversationStillRestoresFocus:

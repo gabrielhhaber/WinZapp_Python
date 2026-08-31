@@ -1182,7 +1182,8 @@ def db_fetch_limit(configured_limit: int, unread_count: int, cap: int = 2000, bu
     return visible_page
 
 
-def paginated_window(total_len: int, limit: int, unread_sep_idx: int) -> tuple:
+def paginated_window(total_len: int, limit: int, unread_sep_idx: int,
+                     min_visible: int = 0) -> tuple:
     """Where populate_messages()'s pagination window should start.
 
     Returns ``(offset, adjusted_sep_idx)``: ``offset`` is how many leading
@@ -1200,10 +1201,19 @@ def paginated_window(total_len: int, limit: int, unread_sep_idx: int) -> tuple:
     demonstrably still unread. So the window widens — but only while there is
     something unread to protect (``unread_sep_idx >= 0``); a fully-read
     conversation still respects the configured limit exactly as before.
+
+    ``min_visible`` widens the window for the same kind of reason, but for
+    history the user asked for by hand: Home/scroll-up loads older messages
+    and grows the rendered list past the page size, and a background rebuild
+    (the 60s resync, or the one every new message triggers) recomputing the
+    window from the end alone would throw all of it away and snap back to the
+    configured limit. It is a count of rows already materialized, not an
+    offset, so it stays anchored to the same old point as new messages arrive,
+    and it only grows when the user actually pulls more history in.
     """
-    effective_limit = limit
+    effective_limit = max(limit, min_visible)
     if unread_sep_idx >= 0:
-        effective_limit = max(limit, total_len - unread_sep_idx)
+        effective_limit = max(effective_limit, total_len - unread_sep_idx)
     if total_len <= effective_limit:
         return 0, unread_sep_idx
     offset = total_len - effective_limit
@@ -1211,6 +1221,68 @@ def paginated_window(total_len: int, limit: int, unread_sep_idx: int) -> tuple:
     if adjusted < 0:
         adjusted = -1
     return offset, adjusted
+
+
+def expanded_min_visible(displayable: list, anchor_id: str, fallback_count: int,
+                         cap: int = 0) -> int:
+    """How wide populate_messages() must keep the window it rebuilds.
+
+    ``fallback_count`` is how many rows the list had after the user last pulled
+    older history in. On its own it is not enough: every message that arrives
+    afterwards grows ``displayable``, so a window sized purely by that count
+    slides one row forward per arrival and eats back exactly the history that
+    was loaded. ``anchor_id`` — the oldest message displayed at that moment —
+    pins it instead, and the count stays as the floor for when that message is
+    no longer there (deleted remotely), so a missing anchor widens the window
+    less rather than collapsing it back to the page size.
+
+    ``cap`` is off by default (0, or any non-positive value) and exists only
+    for a caller that has a reason to bound the window. A standing cap must
+    NOT be reintroduced here: it reproduces the original bug with a higher
+    floor. Expanded to 4200 rows, the next arriving message recomputes the
+    window at the cap and 2200 rows vanish under the reader mid-read;
+    ``_expanded_visible_count`` is not rewritten, so every later rebuild
+    performs the same cut, and the Home that follows only reaches
+    ``_load_more_messages()`` and is undone again — above the cap the user can
+    never reach older history at all. Rendering cost was the argument for one,
+    but the multi-second stalls that argument cited were measured to be caused
+    by *frequency*, not window size (see main.py's _schedule_refresh_active_
+    messages(), where an oversized pagination window is recorded as a tested
+    and discarded theory) and are fixed by its 1s debounce. Whether a very
+    large window costs anything on its own has not been measured.
+    """
+    try:
+        floor = max(0, int(fallback_count))
+    except (TypeError, ValueError):
+        floor = 0
+    widened = floor
+    if anchor_id:
+        for idx, msg in enumerate(displayable):
+            if isinstance(msg, dict) and msg.get("key", {}).get("id") == anchor_id:
+                widened = max(floor, len(displayable) - idx)
+                break
+    try:
+        ceiling = int(cap)
+    except (TypeError, ValueError):
+        ceiling = 0
+    return min(widened, ceiling) if ceiling > 0 else widened
+
+
+def history_window(displayable: list, anchor_id: str, expanded_count: int,
+                   limit: int, unread_sep_idx: int, cap: int = 0) -> tuple:
+    """The pagination window populate_messages() should rebuild with.
+
+    Pulled out of populate_messages() whole because it is the entire fix for
+    "the conversation drops the history I loaded": the panel state, the
+    anchoring and the widening only matter together, and testing the two
+    halves separately left the wiring between them — the one line that carries
+    the expanded window into paginated_window() — covered by nothing.
+
+    Returns ``paginated_window()``'s own ``(offset, adjusted_sep_idx)``.
+    """
+    min_visible = expanded_min_visible(displayable, anchor_id, expanded_count, cap)
+    return paginated_window(len(displayable), limit, unread_sep_idx,
+                            min_visible=min_visible)
 
 
 def reaction_targets_status(msg: dict) -> bool:

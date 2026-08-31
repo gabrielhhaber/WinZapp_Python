@@ -15007,10 +15007,22 @@ class MainWindow(wx.Frame):
         cp = getattr(self, "conversations_panel", None)
         if cp is None:
             return
+        # Medido, não estimado: a janela de paginação deixou de ser limitada a
+        # messages_page_size quando o usuário carrega histórico, e a suspeita de
+        # que uma janela grande custa caro aqui já foi levantada duas vezes sem
+        # nenhum número. Uma linha por repaint responde se 4000 linhas custam
+        # 80 ms ou 900 ms — e é o mesmo laço que os stacks do watchdog apontam.
+        started = time.monotonic()
         try:
             cp.refresh_active_conversation_messages()
         except Exception:
             logging.exception("[_do_scheduled_refresh_active_messages] repaint failed")
+        else:
+            logging.info(
+                "[_do_scheduled_refresh_active_messages] repainted %d row(s) in %.0f ms.",
+                len(getattr(cp, "_sorted_messages", []) or []),
+                (time.monotonic() - started) * 1000.0,
+            )
 
     def _schedule_refresh_messages(self):
         """Debounce the open conversation's message-list rebuild.

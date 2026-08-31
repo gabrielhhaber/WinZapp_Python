@@ -50,7 +50,7 @@ from ui.accessible import (
 )
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
 from core.save_location import resolve_save_dialog_folder
-from core.utils import reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, paginated_window, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
+from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.message_copy_format import format_copied_message
 from core.video_player import VideoPlayer
@@ -522,6 +522,16 @@ class ConversationsPanel(wx.Panel):
         self._messages_offset: int = 0
         # Guard to prevent recursive load-more triggers during list rebuild
         self._is_loading_more: bool = False
+        # Quantas mensagens exibíveis a lista passou a mostrar depois que o
+        # usuário puxou histórico (Home/scroll ao topo). populate_messages()
+        # reconstrói a janela sempre a partir do fim, então sem isso um
+        # rebuild de fundo — e há um a cada mensagem nova — descartava tudo
+        # que o usuário tinha carregado e voltava ao messages_page_size.
+        self._expanded_visible_count: int = 0
+        # Id da mensagem mais antiga exibida naquele momento: é a âncora real
+        # da janela, já que a contagem sozinha escorrega uma linha para frente
+        # a cada mensagem nova. Vazio quando ela não existe mais.
+        self._expanded_oldest_msg_id: str = ""
 
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self.init_UI()
@@ -1586,6 +1596,7 @@ class ConversationsPanel(wx.Panel):
         self._quoted_message = None
         self._reaction_map   = {}
         self._is_loading_more = False
+        self._reset_expanded_window()
         # Reset mention state for the new conversation
         self._pending_mentions.clear()
         self._pending_mention_display_names.clear()
@@ -3558,6 +3569,7 @@ class ConversationsPanel(wx.Panel):
         # _msg_bookmarks is intentionally NOT reset here — see __init__.
         # _msg_temp_bookmarks is, for the same reason spelled out there.
         self._msg_temp_bookmarks.clear()
+        self._reset_expanded_window()
         closed_jid = self._last_open_jid
         self.conversation = None
         self.conversation_panel.Hide()
@@ -5424,6 +5436,127 @@ class ConversationsPanel(wx.Panel):
             return mapped_lid
         return remote_jid
 
+    def _reset_expanded_window(self) -> None:
+        """Volta a lista ao messages_page_size normal.
+
+        A janela expandida pertence à conversa em que o usuário pediu o
+        histórico; abrir outra (ou fechar esta) tem de recomeçar do limite
+        configurado, senão o chat seguinte já nasce renderizando milhares de
+        linhas por causa de uma conversa anterior.
+        """
+        self._expanded_visible_count = 0
+        self._expanded_oldest_msg_id = ""
+
+    def _history_window_for_rebuild(self, displayable: list, limit: int) -> tuple:
+        """(offset, sep_idx) da janela que populate_messages() vai reconstruir.
+
+        Método próprio, e não duas linhas dentro do rebuild, porque é aqui que
+        o histórico que o usuário carregou à mão sobrevive: a âncora diz até
+        onde a janela tem de continuar aberta (ver _remember_expanded_window()).
+        populate_messages() não é testável sem um wx.ListCtrl de verdade, então
+        sem isto o passo que corrige o bug ficava sem teste nenhum — dava para
+        apagar o argumento da âncora com a suíte inteira verde.
+        """
+        return history_window(
+            displayable,
+            getattr(self, "_expanded_oldest_msg_id", ""),
+            getattr(self, "_expanded_visible_count", 0),
+            limit,
+            self._unread_sep_idx,
+        )
+
+    def _remember_expanded_window(self) -> None:
+        """Registra até onde a lista foi expandida por um carregamento de histórico.
+
+        A contagem é o piso e o id da mensagem mais antiga exibida é a âncora:
+        cada mensagem nova aumenta o total de exibíveis, e uma janela definida
+        só por contagem andaria uma linha para frente a cada chegada, comendo
+        de volta justamente o histórico que o usuário pediu. Quando esse id
+        some (mensagem apagada remotamente), a contagem ainda segura a janela.
+        """
+        self._expanded_visible_count = len(self._sorted_messages)
+        self._expanded_oldest_msg_id = ""
+        for msg in self._sorted_messages:
+            if isinstance(msg, dict) and not self._is_separator(msg):
+                self._expanded_oldest_msg_id = msg.get("key", {}).get("id", "") or ""
+                break
+
+    def _merge_history_into_records(self, older_messages: list) -> None:
+        """Guarda no chat aberto o histórico recém-carregado.
+
+        O prepend feito por _load_older_messages()/_on_older_messages_loaded()
+        só vive nas listas em memória do painel, mas populate_messages()
+        reconstrói a conversa inteira a partir de
+        conversation["messages"]["messages"]["records"] — então um rebuild de
+        fundo redesenhava a conversa sem essas mensagens. É o mesmo merge que
+        MainWindow.fetch_older_messages() faz do lado do servidor, repetido
+        aqui porque self.conversation nem sempre é o mesmo dict que
+        main_window.chats[jid] (o resync da conversa aberta troca o dict), e é
+        idempotente: dedup por key.id, sem reordenar o que já existe
+        (populate_messages() ordena por timestamp de qualquer forma).
+
+        Só entra o que pertence mesmo à conversa aberta: a consulta local usa
+        _history_storage_jid() (que pode ser um @lid) e o fallback do servidor
+        reconsulta sob o JID alternativo, então um mapeamento @lid errado ou
+        velho traz mensagens de outro contato. Antes elas sumiam no rebuild
+        seguinte; guardadas nos records elas viram história permanente daquele
+        contato — sync_chat_messages() recolhe os records locais sem filtrar.
+        """
+        if not self.conversation or not older_messages:
+            return
+        try:
+            jid = self.conversation.get("remoteJid", "")
+            own = [
+                m for m in older_messages
+                if isinstance(m, dict) and self.main_window._chat_jids_equivalent(
+                    (m.get("key") or {}).get("remoteJid", ""), jid
+                )
+            ]
+            if len(own) != len(older_messages):
+                logging.warning(
+                    "[_merge_history_into_records] %d de %d mensagens descartadas "
+                    "por não pertencerem a %s",
+                    len(older_messages) - len(own), len(older_messages), jid,
+                )
+            if not own:
+                return
+            container = self.conversation.setdefault("messages", {}).setdefault(
+                "messages", {}
+            )
+            records = container.get("records") or []
+            existing_ids = {
+                (r.get("key") or {}).get("id")
+                for r in records
+                if isinstance(r, dict) and (r.get("key") or {}).get("id")
+            }
+            # Mensagem sem key.id fica de fora: um "" nos records faz
+            # _signature_changed_ids() devolver None para sempre, e aí todo
+            # repaint local (estrela, fixar) vira rebuild completo — sai mais
+            # caro do que perder uma linha que nem dá para endereçar.
+            new_records = [
+                m for m in own
+                if (m.get("key") or {}).get("id")
+                and (m.get("key") or {}).get("id") not in existing_ids
+            ]
+            if not new_records:
+                return
+            container["records"] = new_records + records
+            # "total" pode ser a contagem real do chat (db.get_message_count()),
+            # maior do que o que está carregado, então aqui só sobe. Vale até o
+            # próximo sync_chat_messages(), que reescreve com len(all_messages).
+            container["total"] = max(
+                int(container.get("total") or 0), len(container["records"])
+            )
+            logging.info(
+                "[_merge_history_into_records] %d mensagem(ns) antigas guardadas "
+                "nos records (total agora %d)",
+                len(new_records), container["total"],
+            )
+        except Exception:
+            logging.exception(
+                "[_merge_history_into_records] falha ao mesclar o histórico carregado"
+            )
+
     def _load_older_messages(self):
         """Load older messages from the local database, or fall back to the server if none remain locally."""
         if not self.conversation or not self._all_sorted_messages:
@@ -5468,6 +5601,8 @@ class ConversationsPanel(wx.Panel):
                         logging.info(f"[_load_older_messages] Prepend finished. Added {n_new} new unique messages. Rebuilding UI list.")
                         
                         if n_new > 0:
+                            self._merge_history_into_records(displayable)
+                            self._remember_expanded_window()
                             self._recompute_unread_sep_idx()
                                 
                             self.messages_list.DeleteAllItems()
@@ -5634,6 +5769,9 @@ class ConversationsPanel(wx.Panel):
                 return
 
             self._server_history_anchor.pop(requested_jid, None)
+
+            self._merge_history_into_records(displayable)
+            self._remember_expanded_window()
             
             self._recompute_unread_sep_idx()
 
@@ -5666,6 +5804,7 @@ class ConversationsPanel(wx.Panel):
             # Extend the in-memory list and update the offset
             self._sorted_messages   = new_msgs + self._sorted_messages
             self._messages_offset   = new_start
+            self._remember_expanded_window()
             if self._unread_sep_idx >= 0:
                 self._unread_sep_idx += n_new
 
@@ -9747,9 +9886,25 @@ class ConversationsPanel(wx.Panel):
         """Re-render all messages in the active message list (useful after background name/LID resolution)."""
         if not self.conversation or not hasattr(self, "messages_list"):
             return
-        for i, msg in enumerate(self._sorted_messages):
-            if not self._is_separator(msg):
-                self.messages_list.SetItemText(i, self._render_message_line(msg))
+        # Um SetItemText por linha é um evento de acessibilidade por linha, e
+        # os lotes de resolução de nomes/LID chamam isto repetidamente sobre a
+        # lista inteira — sem congelar, o leitor de tela recebe a enxurrada e a
+        # janela trava por segundos (ver as notas do watchdog em main.py).
+        self.messages_list.Freeze()
+        try:
+            total = len(self._sorted_messages)
+            for i, msg in enumerate(self._sorted_messages):
+                if not self._is_separator(msg):
+                    # index/total explícitos como em _set_message_row_texts():
+                    # sem eles o modo listbox com contagem de itens cai no
+                    # fallback self._sorted_messages.index(msg), uma varredura
+                    # linear com comparação profunda de dicts por linha — e duas
+                    # mensagens de mesmo conteúdo anunciam a posição errada.
+                    self.messages_list.SetItemText(
+                        i, self._render_message_line(msg, index=i, total=total)
+                    )
+        finally:
+            self.messages_list.Thaw()
 
     def _on_menu_reply_private(self, msg: dict, participant_jid: str):
         """Open a private conversation with the group participant and cite their message."""
@@ -13328,8 +13483,8 @@ class ConversationsPanel(wx.Panel):
             limit = int(
                 self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
             )
-            self._messages_offset, self._unread_sep_idx = paginated_window(
-                len(displayable), limit, self._unread_sep_idx
+            self._messages_offset, self._unread_sep_idx = (
+                self._history_window_for_rebuild(displayable, limit)
             )
             paginated = displayable[self._messages_offset:]
 
