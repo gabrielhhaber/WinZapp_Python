@@ -32,12 +32,18 @@ class _FakeDb:
     def __init__(self):
         self.upserted = []
         self.inserted = []
+        # A single ordered log of every durable write the round makes, the
+        # repair-state ones included. Which writes happen is only half of the
+        # contract here — see TestTheDurableWritesAreOrderedForACrash.
+        self.calls = []
 
     def upsert_chat(self, jid, data):
         self.upserted.append(jid)
+        self.calls.append("upsert_chat")
 
     def insert_messages_batch(self, jid, messages):
         self.inserted.append((jid, messages))
+        self.calls.append("insert_messages_batch")
 
 
 class _DeltaStub:
@@ -47,10 +53,11 @@ class _DeltaStub:
     _canonical_backfill_jid = MainWindow._canonical_backfill_jid
     _counts_as_last_message = MainWindow._counts_as_last_message
     _is_backfill_pending = MainWindow._is_backfill_pending
-    _persist_history_gap_jids = lambda self: None
-    _persist_backfill_pending_state = lambda self: None
     _is_conversation_open_jid = lambda self, jid: False
     _schedule_set_chats = lambda self: None
+    # Read off MainWindow rather than left to sync_chat_messages()'s getattr
+    # default, so the warm window under test is the shipped one.
+    _INCREMENTAL_MESSAGE_WINDOW = MainWindow._INCREMENTAL_MESSAGE_WINDOW
 
     def __init__(self, normalized=None):
         self.settings = {"user_interface": {"messages_page_size": 200}}
@@ -72,6 +79,19 @@ class _DeltaStub:
         self._backfill_pending = set()
         self._backfill_retries = {}
         self._normalized = normalized if normalized is not None else []
+
+    def _persist_history_gap_jids(self):
+        self.db.calls.append("persist_history_gap_jids")
+
+    def _persist_backfill_pending_state(self):
+        self.db.calls.append("persist_backfill_pending_state")
+
+    def _refetch_history_gap(self, remote_jid, fetch_jid, headers, page_size,
+                             reference, hole_top_ts):
+        # A widening that comes back with nothing: WhatsApp Web routinely never
+        # decodes the missing stretch, so the gap stays open and the chat is
+        # left queued. Reached only by the tests that saturate the window.
+        return []
 
     def _extract_lid_mapping(self, msg):
         pass
@@ -326,3 +346,116 @@ class TestAnUnsatisfiedDeltaDoesNotFailTheRound:
         stub._message_retry_jids = {A}
         MainWindow.sync_remote_chats(stub, incremental=True)
         assert stub._message_retry_jids == set()
+
+
+class TestTheWarmWindowIsBoundedAndAdaptive:
+    """A warm round must not re-download a full page per changed chat.
+
+    get-messages has no `after_id`, so the closest available thing is to ask
+    for a narrow newest-message window and widen it only when that window
+    turns out not to touch anything already stored — which is the signal that
+    the conversation outran the window while WinZapp was closed. Growth stops
+    at the configured page size, so a long outage repairs itself and a common
+    reconnect costs 50 messages instead of 200.
+
+    The growth rule itself is a pure function covered by
+    tests/test_incremental_sync.py::TestAdaptiveWindow; what is exercised here
+    is that sync_chat_messages() actually asks with it.
+    """
+
+    def _counts_requested(self, monkeypatch, stub, response_size):
+        counts = []
+
+        def _get(url, **kwargs):
+            count = int(url.rsplit("count=", 1)[1])
+            counts.append(count)
+            size = count if response_size == "saturated" else response_size
+            return _Resp(200, {"response": [{"id": f"r{i}"} for i in range(size)]})
+
+        monkeypatch.setattr(main_module.requests, "get", _get)
+        MainWindow.sync_chat_messages(
+            stub, {"remoteJid": "5511900000000@s.whatsapp.net", "t": 100},
+            sync_mode="incremental",
+        )
+        return counts
+
+    def test_the_first_request_is_the_narrow_window_not_the_page(self, monkeypatch):
+        stub = _DeltaStub()
+        _seed_warm_chat(stub)
+        counts = self._counts_requested(monkeypatch, stub, response_size=0)
+        assert counts == [MainWindow._INCREMENTAL_MESSAGE_WINDOW]
+
+    def test_a_saturated_window_with_no_local_overlap_widens_to_the_page(self, monkeypatch):
+        """Every message came back newer than everything stored and the window
+        was full, so there is no way to know how much is missing behind it —
+        keep doubling until the page size proves it either way."""
+        stub = _DeltaStub(normalized=[{
+            "key": {"remoteJid": "5511900000000@s.whatsapp.net", "id": "new", "fromMe": False},
+            "message": {"conversation": "oi"},
+            "messageType": "conversation",
+            "messageTimestamp": 900,
+        }])
+        _seed_warm_chat(stub)
+        counts = self._counts_requested(monkeypatch, stub, response_size="saturated")
+        window = MainWindow._INCREMENTAL_MESSAGE_WINDOW
+        page_size = stub.settings["user_interface"]["messages_page_size"]
+        assert counts == [window, 2 * window, page_size]
+
+    def test_a_window_that_overlaps_the_cache_never_widens(self, monkeypatch):
+        """Overlap proves nothing is missing between the two blocks, which is
+        the whole point of the narrow window — one 50-message request."""
+        stub = _DeltaStub(normalized=[{
+            "key": {"remoteJid": "5511900000000@s.whatsapp.net", "id": "old", "fromMe": False},
+            "message": {"conversation": "anterior"},
+            "messageType": "conversation",
+            "messageTimestamp": 50,
+        }])
+        _seed_warm_chat(stub)
+        counts = self._counts_requested(monkeypatch, stub, response_size="saturated")
+        assert counts == [MainWindow._INCREMENTAL_MESSAGE_WINDOW]
+
+
+class TestTheDurableWritesAreOrderedForACrash:
+    """Every write this method makes is ordered against the activity marker.
+
+    The marker is what the next launch reads to decide the chat needs nothing.
+    So it is written last, and only once everything that would make the next
+    launch come back for the chat is already on disk: the message rows, the
+    known history gap, the short-history repair queue. A process killed
+    anywhere in between then leaves at worst one redundant re-fetch, never a
+    conversation that no future round will ever look at again.
+    """
+
+    def _sync_one(self, monkeypatch, stub):
+        monkeypatch.setattr(
+            main_module.requests, "get",
+            lambda url, **kwargs: _Resp(200, {"response": [{"id": "m1"}]}),
+        )
+        MainWindow.sync_chat_messages(
+            stub, {"remoteJid": "5511900000000@s.whatsapp.net", "t": 100})
+
+    def _fetched_stub(self):
+        return _DeltaStub(normalized=[{
+            "key": {"remoteJid": "5511900000000@s.whatsapp.net", "id": "m1", "fromMe": False},
+            "message": {"conversation": "oi"},
+            "messageType": "conversation",
+            "messageTimestamp": 150,
+        }])
+
+    def test_the_messages_land_before_the_marker(self, monkeypatch):
+        stub = self._fetched_stub()
+        self._sync_one(monkeypatch, stub)
+        assert stub.db.calls[-2:] == ["insert_messages_batch", "upsert_chat"]
+
+    def test_the_repair_state_lands_before_the_marker(self, monkeypatch):
+        """A gap and a queued short history are both reasons to come back for
+        this chat. Committing the marker first and dying would drop both."""
+        stub = self._fetched_stub()
+        stub._history_gap_jids = {"5511900000000@s.whatsapp.net"}
+        stub._chats_awaiting_messages = {"5511900000000@s.whatsapp.net"}
+        self._sync_one(monkeypatch, stub)
+
+        calls = stub.db.calls
+        marker = calls.index("upsert_chat")
+        assert calls.index("persist_history_gap_jids") < marker
+        assert calls.index("persist_backfill_pending_state") < marker

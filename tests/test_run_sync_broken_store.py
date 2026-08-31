@@ -109,6 +109,17 @@ class _Stub:
         idx = min(self.fetches, len(self._counts) - 1)
         self.fetches += 1
         self._last_chat_fetch_count = self._counts[idx]
+        # Mirrors the real method's own write decision (main.py, end of
+        # get_remote_chats()). Reproduced here rather than assumed away
+        # because it is the only place a *caller* that forgets
+        # defer_chat_save=True becomes visible: dropping the kwarg commits the
+        # fresh activity markers to disk while message_sync_ok is still
+        # undecided, and the next launch then classifies the chat "unchanged"
+        # and never asks for the message behind that marker again.
+        if persist_full:
+            self.save_data_calls = getattr(self, "save_data_calls", 0) + 1
+        elif not defer_chat_save:
+            self._schedule_save()
         return dict(chats)
 
     def _wa_web_chat_count(self):
@@ -155,7 +166,13 @@ class _Stub:
 
     # ── everything else downstream: no-ops ───────────────────────────
     def __getattr__(self, name):
-        if name.startswith("__"):
+        # Names in _absent raise, so a test can reproduce "this attribute has
+        # never been set" — which MainWindow, having no __getattr__ of its
+        # own, answers as a real hasattr() False. Without the opt-out every
+        # unknown name here is a lambda, i.e. always present and always truthy,
+        # and a branch keyed on the attribute simply never existing could not
+        # be reached at all. __dict__ directly: self._absent would recurse.
+        if name.startswith("__") or name in self.__dict__.get("_absent", ()):
             raise AttributeError(name)
         return lambda *a, **kw: None
 
