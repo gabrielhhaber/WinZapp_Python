@@ -36,12 +36,15 @@ class _Panel:
         self.conversation = conversation
         self.refreshes = 0
         self.repaints = 0
+        self.repaint_jids = []   # what each repaint was scoped to (None = all)
 
     def refresh_messages_if_changed(self):
         self.refreshes += 1
 
-    def refresh_active_conversation_messages(self):
+    def refresh_active_conversation_messages(self, jids=None):
         self.repaints += 1
+        self.repaint_jids.append(jids)
+        return 0
 
 
 class _Stub:
@@ -194,14 +197,32 @@ class TestScheduleRefreshActiveMessages:
         _fire(later)
         assert s._refresh_active_pending is False
 
-    def test_a_raising_repaint_does_not_wedge_the_flag(self, later):
+    def test_a_raising_repaint_reschedules_itself(self, monkeypatch, later):
+        """The flag is cleared before the call, so a failure can never wedge
+        the scheduler — and since the repaint became scoped (see
+        tests/test_selective_message_repaint.py) the failed round also has to
+        come back as a full one, or the rows it never painted are lost."""
+        monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
         panel = _Panel(conversation={"remoteJid": "g@g.us"})
 
-        def _boom():
+        def _boom(jids=None):
             raise RuntimeError("render failed")
 
         panel.refresh_active_conversation_messages = _boom
         s = _Stub(panel)
         s._schedule_refresh_active_messages()
         _fire(later)
+        # Still the original point of this test: the flag is cleared before the
+        # call, so a raising repaint can never leave the scheduler wedged.
+        # (It reads True here only because the retry has already re-armed it.)
+        assert s._refresh_active_pending is True
+        assert len(later) == 1
+        assert s._refresh_active_jids is None
+        # …and the scheduler is genuinely still usable afterwards, which is
+        # what "does not wedge" actually means.
+        panel.refresh_active_conversation_messages = _Panel.refresh_active_conversation_messages.__get__(panel)
+        _fire(later)
+        s._schedule_refresh_active_messages()
+        _fire(later)
+        assert panel.repaints == 2
         assert s._refresh_active_pending is False

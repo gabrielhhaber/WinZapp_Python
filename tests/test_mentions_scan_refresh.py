@@ -53,6 +53,9 @@ class _Stub:
         self._contact_resolution_lock = threading.Lock()
         self.refreshes = 0
         self.message_refreshes = 0
+        self.message_refresh_jids = []
+        self.bulk_name_batches = []
+        self.bulk_learns_names = False
         self.mapped_calls = []
         self.resolved_lid_batches = []
         self.profile_lookups = []
@@ -72,7 +75,8 @@ class _Stub:
         return {"response": {"name": "Alguém"}}
 
     def _learn_sender_names_bulk(self, records):
-        pass
+        self.bulk_name_batches.append(list(records))
+        return self.bulk_learns_names
 
     def _needs_sender_resolution(self, jid):
         return False
@@ -83,8 +87,9 @@ class _Stub:
     def _schedule_set_chats(self):
         self.refreshes += 1
 
-    def _schedule_refresh_active_messages(self):
+    def _schedule_refresh_active_messages(self, jids=None):
         self.message_refreshes += 1
+        self.message_refresh_jids.append(None if jids is None else set(jids))
 
 
 def _make(chats):
@@ -120,6 +125,15 @@ class TestAScanThatOnlyLearnsMappings:
         stub = _make({LID: _chat_with_alt()})
         stub.scan_all_cached_messages_for_mentions()
         assert stub.message_refreshes == 1
+
+    def test_the_repaint_is_scoped_to_both_sides_of_the_learned_mapping(self):
+        """The rows of a conversation with thousands of loaded messages are
+        repainted selectively now, and the open conversation may render this
+        participant under either address — so both have to be handed over or
+        the row keeps announcing raw @lid digits."""
+        stub = _make({LID: _chat_with_alt()})
+        stub.scan_all_cached_messages_for_mentions()
+        assert stub.message_refresh_jids == [{LID, PHONE}]
 
     def test_nothing_was_resolved_through_the_api(self):
         """Pins the premise: this scan never reaches
@@ -216,3 +230,45 @@ class TestTheEmptyAccount:
         stub = _make({})
         stub.scan_all_cached_messages_for_mentions()
         assert stub.refreshes == 0
+
+
+class TestTheBulkPushNamePassForcesAFullRepaint:
+    """_learn_sender_names_bulk() writes names for arbitrary participant JIDs
+    and reports none of them — not in `mapped_jids` (only remoteJidAlt pairs)
+    and not in `updated_contacts` (only mentions resolved through the API).
+
+    Routine on a new account: an open group of ~4000 rows, the scan learns
+    pushNames for 40 participants plus one unrelated 1:1 mapping. `mapped == 1`
+    opens the gate, the repaint goes out scoped to that one pair, no row of the
+    group matches, and all 40 participants keep showing a formatted number
+    until the conversation is reopened. The scan runs once, not at 1 Hz, so
+    asking for the whole list back is free here.
+    """
+
+    def test_learning_any_pushname_asks_for_the_full_repaint(self):
+        stub = _make({LID: _chat_with_alt()})
+        stub.bulk_learns_names = True
+        stub.scan_all_cached_messages_for_mentions()
+        assert stub.message_refresh_jids == [None]
+
+    def test_it_alone_is_enough_to_open_the_gate(self):
+        """A scan that learned only pushNames changes no contact record and no
+        mapping, so `updated_contacts or mapped` would have skipped the refresh
+        entirely and left every one of those names unpainted."""
+        chat = {PHONE: {"remoteJid": PHONE, "messages": {"messages": {"records": [
+            {"key": {"id": "m1", "remoteJid": PHONE}},
+        ]}}}}
+        stub = _make(chat)
+        stub.bulk_learns_names = True
+        stub.scan_all_cached_messages_for_mentions()
+        assert stub.message_refreshes == 1
+        assert stub.message_refresh_jids == [None]
+        assert stub.refreshes == 1
+
+    def test_learning_nothing_keeps_the_repaint_scoped(self):
+        """The widening must be conditional — otherwise the scan is back to a
+        full repaint of a 4000-row conversation on every run."""
+        stub = _make({LID: _chat_with_alt()})
+        stub.bulk_learns_names = False
+        stub.scan_all_cached_messages_for_mentions()
+        assert stub.message_refresh_jids == [{LID, PHONE}]

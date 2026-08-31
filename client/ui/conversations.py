@@ -9882,27 +9882,203 @@ class ConversationsPanel(wx.Panel):
         return participant_jid.rsplit("@", 1)[0]
 
 
-    def refresh_active_conversation_messages(self):
-        """Re-render all messages in the active message list (useful after background name/LID resolution)."""
+    def _row_jids(self, msg, participant_by_id=None) -> set:
+        """Every JID whose newly-resolved name can change this row's text.
+
+        _render_message_line() resolves a name from five different places, and
+        all five have to be collected here or the row silently stops being
+        repainted:
+
+        * the sender (_sender_label);
+        * the quoted message's sender (_get_quoted_sender), by contextInfo
+          participant or, failing that, by stanzaId;
+        * every mention in the body and in the quoted preview
+          (_resolve_mentions_in_text);
+        * a group notification's author and recipients, which
+          _get_message_content() runs through _get_participant_name() to build
+          the "X added Y" sentence.
+
+        Each is expanded through the @lid <-> phone bridge: the row can carry
+        the @lid while the resolution loop reported the phone JID, and
+        comparing the raw strings would leave it stale.
+
+        *participant_by_id* maps message id -> sender JID for the rows
+        currently loaded. _get_quoted_sender() falls back to the quoted
+        message's own recorded sender when contextInfo carries a stanzaId but
+        no participant, so without that map such a reply would be missed.
+        """
+        if not isinstance(msg, dict):
+            return set()
+
+        def _as_jid_str(j) -> str:
+            # Same tolerance _get_message_content()'s own _as_jid_str() has:
+            # records written to disk by an older build can still carry a raw
+            # WPPConnect Wid dict here.
+            if isinstance(j, dict):
+                return j.get("_serialized") or j.get("id") or ""
+            return j if isinstance(j, str) else ""
+
+        key = msg.get("key") or {}
+        raw = [
+            key.get("participant") or "",
+            key.get("remoteJid") or "",
+            key.get("remoteJidAlt") or "",
+            msg.get("participant") or "",
+        ]
+        raw.extend(self._raw_mentioned_jids(msg) or [])
+        msg_obj = msg.get("message") or {}
+        ext = msg_obj.get("extendedTextMessage") or {} if isinstance(msg_obj, dict) else {}
+        # _raw_mentioned_jids() only reads mentionedJid; _get_message_content()
+        # also accepts the mentionedJidList spelling, so both are collected.
+        for ctx_candidate in (
+            msg.get("contextInfo"),
+            msg_obj.get("contextInfo") if isinstance(msg_obj, dict) else None,
+            ext.get("contextInfo") if isinstance(ext, dict) else None,
+        ):
+            if isinstance(ctx_candidate, dict):
+                raw.extend(ctx_candidate.get("mentionedJidList") or [])
+        # A group notification names its author and everyone it acted on, and
+        # the recipients live nowhere else in the message: only key.participant
+        # happens to mirror the author (WebSocketClient copies it there). A row
+        # left out here is the worst case this whole path has — the "X entrou
+        # no grupo" line falls back to raw @lid digits, _get_participant_name()
+        # itself kicks off the resolution meant to fix that very line, and the
+        # scoped repaint it schedules would then skip it.
+        notif = msg_obj.get("groupNotification") or {} if isinstance(msg_obj, dict) else {}
+        if isinstance(notif, dict) and notif:
+            raw.append(_as_jid_str(notif.get("author")))
+            raw.extend(_as_jid_str(r) for r in (notif.get("recipients") or []))
+        ctx = self._get_context_info(msg)
+        if ctx:
+            quoted_participant = ctx.get("participant") or ""
+            raw.append(quoted_participant)
+            if not quoted_participant and participant_by_id:
+                raw.append(participant_by_id.get(ctx.get("stanzaId") or "", ""))
+            quoted = ctx.get("quotedMessage") or {}
+            if isinstance(quoted, dict):
+                q_ext = quoted.get("extendedTextMessage") or {}
+                for holder in (
+                    quoted,
+                    quoted.get("contextInfo"),
+                    q_ext.get("contextInfo") if isinstance(q_ext, dict) else None,
+                ):
+                    if isinstance(holder, dict):
+                        raw.extend(holder.get("mentionedJid") or [])
+                        raw.extend(holder.get("mentionedJidList") or [])
+        mw = self.main_window
+        forms = set()
+        for jid in raw:
+            if not isinstance(jid, str) or not jid:
+                continue
+            normalized = mw._normalize_jid(jid)
+            if normalized:
+                forms.update(mw._jid_address_forms(normalized) or (normalized,))
+        return forms
+
+    def _message_ids_touching_jids(self, jids):
+        """Ids of the loaded messages whose rendered text depends on *jids*,
+        or None when the selective repaint cannot be trusted.
+
+        None means "repaint everything": a row that matches but carries no
+        key.id cannot be addressed by _set_message_row_texts(), and leaving it
+        behind is exactly the failure this path must never cause — the row
+        keeps announcing raw @lid/phone digits to the screen reader, which is
+        worse than the slowness the selective repaint buys back.
+        """
+        mw = self.main_window
+        targets = set()
+        for jid in jids or ():
+            if not isinstance(jid, str) or not jid:
+                continue
+            normalized = mw._normalize_jid(jid)
+            if normalized:
+                targets.update(mw._jid_address_forms(normalized) or (normalized,))
+        if not targets:
+            return None
+        # Built in its own pass so the quoted-sender fallback is a dict lookup
+        # rather than a scan of _sorted_messages per reply row.
+        participant_by_id = {}
+        for m in self._sorted_messages:
+            if not isinstance(m, dict) or self._is_separator(m):
+                continue
+            m_key = m.get("key") or {}
+            m_id = m_key.get("id") or ""
+            if m_id:
+                participant_by_id[m_id] = (
+                    m_key.get("participant") or m.get("participant")
+                    or m_key.get("remoteJid") or ""
+                )
+        ids = set()
+        for m in self._sorted_messages:
+            if not isinstance(m, dict) or self._is_separator(m):
+                continue
+            if not (self._row_jids(m, participant_by_id) & targets):
+                continue
+            m_id = (m.get("key") or {}).get("id") or ""
+            if not m_id:
+                return None
+            ids.add(m_id)
+        return ids
+
+    def refresh_active_conversation_messages(self, jids=None) -> int:
+        """Re-render messages in the active message list (useful after
+        background name/LID resolution). Returns how many rows it repainted.
+
+        *jids* narrows the work to the rows whose text can depend on those
+        JIDs. The message window has had no ceiling since it started
+        preserving the history the user loads with Home, so a full pass is
+        thousands of _render_message_line() calls once per resolved batch —
+        while a batch typically renames one person. None (the default) keeps
+        the original behaviour of re-rendering everything, and every path that
+        cannot say with certainty which rows changed falls back to it.
+        """
         if not self.conversation or not hasattr(self, "messages_list"):
-            return
+            return 0
+        target_ids = self._message_ids_touching_jids(jids) if jids else None
         # Um SetItemText por linha é um evento de acessibilidade por linha, e
         # os lotes de resolução de nomes/LID chamam isto repetidamente sobre a
         # lista inteira — sem congelar, o leitor de tela recebe a enxurrada e a
         # janela trava por segundos (ver as notas do watchdog em main.py).
         self.messages_list.Freeze()
         try:
+            if target_ids is not None:
+                # Reuses the same SetItemText loop the selection-marker
+                # refresh goes through; it already renders with an explicit
+                # index/total.
+                return len(self._set_message_row_texts(target_ids))
+            painted = 0
+            failed = 0
             total = len(self._sorted_messages)
             for i, msg in enumerate(self._sorted_messages):
                 if not self._is_separator(msg):
-                    # index/total explícitos como em _set_message_row_texts():
-                    # sem eles o modo listbox com contagem de itens cai no
-                    # fallback self._sorted_messages.index(msg), uma varredura
-                    # linear com comparação profunda de dicts por linha — e duas
-                    # mensagens de mesmo conteúdo anunciam a posição errada.
-                    self.messages_list.SetItemText(
-                        i, self._render_message_line(msg, index=i, total=total)
-                    )
+                    # Per row, not around the loop: a single malformed record
+                    # used to abort the whole pass, so every row after it kept
+                    # its old text — one bad message turning into a whole
+                    # conversation that stops being repainted. Only the first
+                    # traceback is logged, since this runs on a timer and a
+                    # permanently bad record would otherwise fill log.log.
+                    try:
+                        # index/total explícitos como em _set_message_row_texts():
+                        # sem eles o modo listbox com contagem de itens cai no
+                        # fallback self._sorted_messages.index(msg), uma varredura
+                        # linear com comparação profunda de dicts por linha — e duas
+                        # mensagens de mesmo conteúdo anunciam a posição errada.
+                        self.messages_list.SetItemText(
+                            i, self._render_message_line(msg, index=i, total=total)
+                        )
+                    except Exception:
+                        if not failed:
+                            logging.exception(
+                                "[refresh_active_conversation_messages] row %d "
+                                "failed to render; skipping it and continuing.", i)
+                        failed += 1
+                    else:
+                        painted += 1
+            if failed > 1:
+                logging.warning(
+                    "[refresh_active_conversation_messages] %d of %d rows failed "
+                    "to render.", failed, total)
+            return painted
         finally:
             self.messages_list.Thaw()
 

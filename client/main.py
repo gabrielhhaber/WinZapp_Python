@@ -14976,7 +14976,7 @@ class MainWindow(wx.Frame):
     # resolution loops that trigger it run in batches for minutes on end.
     _ACTIVE_REFRESH_DEBOUNCE_MS = 1000
 
-    def _schedule_refresh_active_messages(self):
+    def _schedule_refresh_active_messages(self, jids=None):
         """Debounce refresh_active_conversation_messages().
 
         That method re-renders every row of the open conversation
@@ -14993,7 +14993,35 @@ class MainWindow(wx.Frame):
         self._render_message_line(msg))`. Two earlier theories about this
         freeze (a refresh storm on the history path, then an oversized
         pagination window) were wrong; this is what the stacks actually show.
+
+        *jids* are the JIDs the caller has just resolved, accumulated across
+        every batch that lands inside one debounce window. The resolution
+        loops know exactly whose name changed, and since the message window no
+        longer has a ceiling (it keeps whatever history the user loaded with
+        Home) the difference is repainting a handful of rows instead of
+        thousands. Omitting it — or passing an empty collection — still means
+        "I don't know what changed, repaint everything", which stays the safe
+        default for any caller that can't tell: a row that should have been
+        repainted and wasn't keeps announcing raw @lid/phone digits, which is
+        worse than the slowness this avoids.
+
+        **UI thread only.** The accumulator below is a plain set with no lock,
+        and every caller reaches it through wx.CallAfter — including
+        register_jid_mapping(), which is itself a multi-threaded writer (the
+        sync thread and the Socket.IO thread both call it, under
+        _lid_mapping_lock). Dropping that wx.CallAfter because it looks
+        redundant corrupts this set silently, with no exception to point at it.
         """
+        if jids:
+            pending = getattr(self, "_refresh_active_jids", set())
+            # None is the sticky "repaint everything" request — a later batch
+            # that does know its JIDs must not narrow it back down.
+            if pending is not None:
+                pending = set(pending)
+                pending.update(j for j in jids if isinstance(j, str) and j)
+                self._refresh_active_jids = pending
+        else:
+            self._refresh_active_jids = None
         if getattr(self, "_refresh_active_pending", False):
             return
         self._refresh_active_pending = True
@@ -15004,8 +15032,22 @@ class MainWindow(wx.Frame):
         """Run the coalesced name repaint. Flag is cleared first so a failure
         cannot wedge every later batch."""
         self._refresh_active_pending = False
+        # Drain before rendering, not after: a batch arriving while the
+        # repaint runs then finds an empty accumulator and a cleared pending
+        # flag, so it schedules its own round instead of being swallowed by
+        # this one (or repainted twice by it).
+        jids = getattr(self, "_refresh_active_jids", None)
+        self._refresh_active_jids = set()
+        # An empty set means every JID handed in was filtered out, i.e. we no
+        # longer know what changed — same contract as None.
+        if not jids:
+            jids = None
         cp = getattr(self, "conversations_panel", None)
         if cp is None:
+            # The drained JIDs are dropped here, unlike on the failure path
+            # below, and that is fine rather than overlooked: with no panel
+            # there is no open conversation to leave stale, and whenever one is
+            # opened it renders from scratch.
             return
         # Medido, não estimado: a janela de paginação deixou de ser limitada a
         # messages_page_size quando o usuário carrega histórico, e a suspeita de
@@ -15014,15 +15056,48 @@ class MainWindow(wx.Frame):
         # 80 ms ou 900 ms — e é o mesmo laço que os stacks do watchdog apontam.
         started = time.monotonic()
         try:
-            cp.refresh_active_conversation_messages()
+            painted = cp.refresh_active_conversation_messages(jids=jids)
         except Exception:
             logging.exception("[_do_scheduled_refresh_active_messages] repaint failed")
+            # The batch was drained before the call, so those JIDs are gone and
+            # the next one would be scoped to its own — the rows this round was
+            # meant to fix would never be repainted again. _render_message_line()
+            # has raised in production, which is why the try exists at all, so
+            # degrade to a full repaint and reschedule it.
+            #
+            # Exactly once, though. A malformed record makes the render raise
+            # every time, and rescheduling unconditionally turns that into a
+            # permanent 1 Hz Freeze/SetItemText/Thaw cycle on messages_list —
+            # the accessibility-event flood the Freeze() exists to prevent, now
+            # forever — plus log.log growing without bound on one traceback, in
+            # the file that is this project's primary diagnostic tool. One
+            # retry keeps the whole point (a lost scoped round comes back as a
+            # full one) and gives up when the failure is deterministic.
+            if getattr(self, "_refresh_active_failed_once", False):
+                logging.error(
+                    "[_do_scheduled_refresh_active_messages] repaint failed twice "
+                    "in a row — not rescheduling; the open conversation keeps "
+                    "whatever text it currently shows until something else "
+                    "rebuilds it.")
+            else:
+                self._refresh_active_failed_once = True
+                self._refresh_active_jids = None
+                wx.CallAfter(self._schedule_refresh_active_messages)
         else:
-            logging.info(
-                "[_do_scheduled_refresh_active_messages] repainted %d row(s) in %.0f ms.",
-                len(getattr(cp, "_sorted_messages", []) or []),
-                (time.monotonic() - started) * 1000.0,
-            )
+            self._refresh_active_failed_once = False
+            if logging.getLogger().isEnabledFor(logging.INFO):
+                # The panel widens a scoped request back to a full pass when it
+                # can't address every affected row, so "requested" is all this
+                # side can honestly claim.
+                scope = "full" if jids is None else f"{len(jids)} resolved JID(s) requested"
+                logging.info(
+                    "[_do_scheduled_refresh_active_messages] repainted %d of %d row(s) "
+                    "in %.0f ms (%s).",
+                    painted,
+                    len(getattr(cp, "_sorted_messages", []) or []),
+                    (time.monotonic() - started) * 1000.0,
+                    scope,
+                )
 
     def _schedule_refresh_messages(self):
         """Debounce the open conversation's message-list rebuild.
@@ -15369,7 +15444,10 @@ class MainWindow(wx.Frame):
                         logging.error(f"[Contact Resolution] Error saving contacts incrementally: {e}")
                         self.save_data(self.chats, self.contacts)
                     wx.CallAfter(self._schedule_set_chats)
-                    wx.CallAfter(self._schedule_refresh_active_messages)
+                    # Only the contacts this batch actually named can change a
+                    # rendered row — every other row already reads the same.
+                    wx.CallAfter(self._schedule_refresh_active_messages,
+                                 set(updated_contacts))
             threading.Thread(target=resolve_phones_in_bg, daemon=True).start()
 
     def _queue_lid_resolutions(self, jids) -> None:
@@ -15456,6 +15534,17 @@ class MainWindow(wx.Frame):
             # Mappings learned by this scan, so the single end-of-scan refresh
             # below fires even when no contact record happened to change.
             mapped = 0
+            # Both sides of each mapping learned above: the open conversation
+            # may render the participant under either form, so the selective
+            # repaint has to be told about both.
+            mapped_jids = set()
+            # _learn_sender_names_bulk() writes names for arbitrary participant
+            # JIDs and reports none of them, so a scan that learned any is a
+            # scan that cannot say which rows changed — it asks for the full
+            # repaint. This scan runs once, not at 1 Hz, so that costs nothing;
+            # scoping it to mapped_jids instead left a 4000-row group showing
+            # formatted numbers for 40 participants until it was reopened.
+            learned_names = False
             # Senders are collected separately and capped: a busy account can
             # hold thousands of distinct group participants, and every one of
             # them would otherwise become an API round-trip through the single
@@ -15472,7 +15561,8 @@ class MainWindow(wx.Frame):
                 # Learn every sender name the stored history already carries.
                 # This is local and cheap, and it is what keeps the API lookups
                 # below down to the handful that genuinely need them.
-                self._learn_sender_names_bulk(records)
+                if self._learn_sender_names_bulk(records):
+                    learned_names = True
                 for msg in list(records):
                     if not isinstance(msg, dict):
                         continue
@@ -15489,10 +15579,12 @@ class MainWindow(wx.Frame):
                         if remote.endswith("@lid") and self._lid_to_phone.get(remote) != alt:
                             self.register_jid_mapping(remote, alt, defer_ui=True)
                             mapped += 1
+                            mapped_jids.update((remote, alt))
                     elif alt and alt.endswith("@lid") and remote.endswith("@s.whatsapp.net"):
                         if self._lid_to_phone.get(alt) != remote:
                             self.register_jid_mapping(alt, remote, defer_ui=True)
                             mapped += 1
+                            mapped_jids.update((alt, remote))
 
                     # Sender of a group message. Only mentioned JIDs used to be
                     # collected here, so a participant whose @lid we cannot
@@ -15585,9 +15677,17 @@ class MainWindow(wx.Frame):
             # and finds no unnamed mention refreshed nothing at all — with the
             # per-mapping refreshes deferred, the list kept showing raw @lid
             # until something unrelated happened to rebuild it.
-            if updated_contacts or mapped:
+            if updated_contacts or mapped or learned_names:
                 wx.CallAfter(self._schedule_set_chats)
-                wx.CallAfter(self._schedule_refresh_active_messages)
+                # resolve_lid_jids_via_api() above schedules its own repaint
+                # for the LIDs it resolved; this one only owns what this scan
+                # itself learned — the named mentions, the @lid <-> phone pairs
+                # read off remoteJidAlt, and (unscopable) the bulk pushName
+                # pass, which forces the full repaint.
+                wx.CallAfter(
+                    self._schedule_refresh_active_messages,
+                    None if learned_names else (set(updated_contacts) | mapped_jids),
+                )
             
             logging.info("[Mentions Scan] Scan and resolution of cached messages completed.")
 
@@ -21786,6 +21886,17 @@ class MainWindow(wx.Frame):
                     self.save_data(self.chats, self.contacts)
             if not defer_ui:
                 wx.CallAfter(self._schedule_set_chats)
+                # The open conversation needs the same treatment as the chat
+                # list, and only since the message repaint became scoped: the
+                # non-batch mapping writers (_extract_lid_mapping() on the
+                # Socket.IO thread, _get_participant_name()'s inline learn)
+                # never scheduled one of their own and used to be fixed up by
+                # whatever unrelated full repaint happened next. Both JIDs go
+                # in, since the rows can carry either form. Terminating even
+                # though rendering itself can reach here: a mapping is only
+                # `changed` once, so the second pass schedules nothing.
+                wx.CallAfter(self._schedule_refresh_active_messages,
+                             {lid_jid, phone_jid})
 
     def resolve_lid_jids_via_api(self, jids):
         """Resolve a list of @lid JIDs to phone JIDs using WPPConnect contact endpoint."""
@@ -22038,7 +22149,12 @@ class MainWindow(wx.Frame):
                 logging.error(f"[LID Resolution] Error saving contacts incrementally: {e}")
                 self.save_data(self.chats, self.contacts)
         wx.CallAfter(self._schedule_set_chats)
-        wx.CallAfter(self._schedule_refresh_active_messages)
+        # Every LID this batch was asked about (its name and/or its phone
+        # bridge may have just been filled in) plus the phone JIDs the answers
+        # named. _jid_address_forms() expands each into its counterpart, so a
+        # row still carrying the @lid matches a phone JID listed here.
+        wx.CallAfter(self._schedule_refresh_active_messages,
+                     {j for j in jids if isinstance(j, str) and j} | set(updated_contacts))
 
     def get_contact_profile(self, jid: str) -> dict:
         """Fetch contact profile from WPPConnect (runs on background thread)."""
