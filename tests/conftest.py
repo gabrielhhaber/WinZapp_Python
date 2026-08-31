@@ -238,6 +238,38 @@ def sample_data(
     }
 
 
+# ── Helpers: a chat as the warm cache holds it ───────────────────────────────
+
+
+def warm_cached_chat(jid: str, t: int = 100, records: int = 1) -> dict:
+    """One chat in the shape the incremental sync planner compares against.
+
+    Shared rather than copied because the three modules that drive a sync
+    round — tests/test_run_sync_warm_path.py, tests/test_periodic_poll_delta.py
+    and tests/test_repair_state_durability.py — all need the same two fields
+    and both are load-bearing in a way that is easy to get subtly wrong in a
+    private copy: `t` is the activity marker the plan diffs, and the record
+    count is what tells "unchanged" apart from "missing-local-history"
+    (core/incremental_sync.classify_chat_sync). A chat built with no records
+    is classified full on every path, which is exactly the shape that cannot
+    tell a warm round from a cold one — so `records=0` is a deliberate choice
+    a test makes, never an accident of which copy of the helper it used.
+
+    Lives in conftest (imported as tests.conftest — tests/ is a package) for
+    the same reason set_clipboard_data() below does.
+    """
+    return {
+        "remoteJid": jid,
+        "t": t,
+        "messages": {"messages": {"records": [{
+            "key": {"remoteJid": jid, "id": f"{jid}-m{n}", "fromMe": False},
+            "message": {"conversation": "x"},
+            "messageType": "conversation",
+            "messageTimestamp": t - 10,
+        } for n in range(records)]}},
+    }
+
+
 # ── Fixtures: Temporary files / directories ───────────────────────────────────
 
 

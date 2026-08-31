@@ -245,3 +245,42 @@ class TestTheSweepIsIndependentOfTheSave:
         result = _make().get_remote_chats(cache, persist_full=False,
                                           prune_stale=True, notify_errors=False)
         assert "5511900000009@s.whatsapp.net" in result
+
+
+class TestTheSnapshotCanBeHeldBackFromDisk:
+    """`defer_chat_save` keeps a fresh list-chats snapshot memory-only.
+
+    The snapshot carries the activity markers (`t`, lastReceivedKey,
+    unreadCount) that the *next* launch reads to decide a chat needs no
+    get-messages call at all. Persisting it before the message delta selected
+    by those markers has succeeded is how a conversation loses a message
+    permanently: the marker says "already seen", and nothing ever asks again.
+    So every caller inside a sync round passes this flag and the round itself
+    commits once, at the end, only on success.
+    """
+
+    def test_the_deferred_call_writes_nothing(self, post):
+        post["payload"] = [_chat("5511900000001@c.us")]
+        stub = _make()
+        result = stub.get_remote_chats({}, persist_full=False, notify_errors=False,
+                                       defer_chat_save=True)
+        assert result is not None
+        assert (stub.save_data_calls, stub.schedule_save_calls) == (0, 0)
+
+    def test_the_merged_snapshot_is_still_returned_in_full(self, post):
+        """Deferring the write must not defer the data — the message phase
+        reads the returned dict, not the database."""
+        post["payload"] = [_chat("5511900000001@c.us"), _chat("5511900000002@c.us")]
+        result = _make().get_remote_chats({}, persist_full=False, notify_errors=False,
+                                          defer_chat_save=True)
+        assert set(result) == {"5511900000001@s.whatsapp.net",
+                               "5511900000002@s.whatsapp.net"}
+
+    def test_the_full_save_still_wins_over_it(self, post):
+        """persist_full is the F5/first-pairing path, which has no marker to
+        protect: it rebuilds every chat from scratch anyway."""
+        post["payload"] = [_chat("5511900000001@c.us")]
+        stub = _make()
+        stub.get_remote_chats({}, persist_full=True, notify_errors=False,
+                              defer_chat_save=True)
+        assert stub.save_data_calls == 1

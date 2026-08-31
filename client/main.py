@@ -11669,13 +11669,99 @@ class MainWindow(wx.Frame):
                     self.chats = self.normalize_chats(refreshed)
                     wx.CallAfter(self.set_chats)
         else:
-            self._history_still_landing = False
             logging.info(
-                "[start_sync] Warm-cache incremental round: skipping RECENT "
-                "history restart/wait; changed chats will widen on demand."
+                "[start_sync] Warm-cache incremental round: skipping the RECENT "
+                "history restart and wait; changed chats will widen on demand."
             )
-        if force_full:
-            self.refresh_history_still_landing(context="before message sync")
+            # Fallback for the read below, warm path only.
+            # refresh_history_still_landing() answers an unreadable status by
+            # preserving the previous value and defaults to True when there is
+            # none — and on an installation whose client/api/ predates the
+            # /history-sync-status route (it is one of WinZapp's own patches)
+            # the status is unreadable on every call, so that True would latch
+            # for the whole session: phase 2 media auto-download deferred
+            # permanently, since _start_deferred_media_sync() only ever fires
+            # from the backfill loop once a later read comes back False.
+            #
+            # False here is not a new guess. It is exactly what this branch
+            # asserted before it started reading the status at all, so an
+            # install without the route keeps the behaviour it already had, and
+            # it matches what every *reader* of this flag already assumes when
+            # it is missing (each one is a getattr(..., False)).
+            #
+            # hasattr, and deliberately not a plain assignment: a value already
+            # read this session — by a cold round, or by an earlier warm one
+            # while the route was answering — is real knowledge, and a blind
+            # False every round would discard it precisely when the status goes
+            # briefly unreadable, which is the moment carrying it over is worth
+            # most. (hasattr answers the real question here only because
+            # MainWindow defines no __getattr__: every attribute it does not
+            # hold is genuinely absent. The test stub does define one, and has
+            # to opt out of it to reproduce this branch at all.)
+            #
+            # And inside the else, not in front of the read below: seeding it
+            # on both paths — or in __init__/prepare_sync() — is the tidier
+            # shape and the wrong trade, because it would also decide the COLD
+            # path. That path's True default is conservative on purpose
+            # ("assume history is still arriving"), and on a build without the
+            # route it is the only thing keeping a first pairing from retiring
+            # every short chat minutes later while the phone is still decoding.
+            if not hasattr(self, "_history_still_landing"):
+                self._history_still_landing = False
+        # Read on BOTH paths, and never asserted. The warm branch used to set
+        # this False outright, which is a claim it had no evidence for and got
+        # wrong in one specific, reachable case: a chat restored from
+        # backfill_pending_v1 has `previous is not None`, so if it answers short
+        # and did not grow, every term of _note_backfill_state()'s short-page
+        # rule (still_landing or grew or first_short_page) is False and the chat
+        # leaves the repair queue — while WhatsApp Web is still decoding the
+        # rest of its history. Nothing puts it back: _backfill_empty_chats()
+        # only re-reads the queue. Getting there takes an ordinary restart — a
+        # cold round finishes with chats queued (the queue deliberately does not
+        # block completion), the user reopens the app minutes later, and the
+        # first warm round retires them.
+        #
+        # This does NOT put the RECENT restart/wait back on the warm path. That
+        # skip is the whole point of the warm round and it stands:
+        # unblock_history_sync() *restarts* the phone's RECENT pass and
+        # wait_for_restarted_history_sync() blocks for up to ten minutes, and
+        # neither runs here. This is one GET on /history-sync-status — the
+        # thing that tells a short chat that is early from one that is short.
+        #
+        # The context differs per path on purpose: [history-sync] lines are the
+        # first thing read when a user reports missing history, and a log that
+        # cannot tell a warm round from a cold one costs a diagnosis.
+        #
+        # What reading this costs, stated plainly, because it is not free.
+        # refresh_history_still_landing() ORs three signals, and the third is
+        # `recentCompleted is False` — which our own Node patch documents as
+        # diagnostic only: "a session whose recent sync was interrupted leaves
+        # this false forever, so nothing schedules work off it"
+        # (api_patches/src/controller/deviceController.ts, getHistorySyncStatus).
+        # This read now does schedule work off it. In that state every warm
+        # round sees landing=True, so _note_backfill_state() keeps every short
+        # chat queued, phase 1 never drains the queue, it is persisted to
+        # backfill_pending_v1, and the next launch pays a FULL page per restored
+        # chat before draining — the incremental round's whole saving, spent.
+        #
+        # It does terminate, but not here and not in this process: the stuck
+        # flag is repaired in-page by request_older_messages() (deviceController
+        # patches WhatsApp's own getHistorySyncStatus getter once the
+        # notification table proves no chunk can be overtaken), which runs from
+        # _backfill_empty_chats() AFTER this phase and does not survive a page
+        # reload. So the cost above is real, bounded by that repair, and paid
+        # only by sessions whose RECENT pass was interrupted.
+        #
+        # Narrowing the third signal here (`... is False and queued`) was
+        # considered and refused: refresh_history_still_landing()'s own
+        # docstring says that signal exists precisely for the case where the
+        # decoder queue is empty right now, so `and queued` would make it
+        # redundant with the first signal and delete the reason it is there.
+        # The function is also shared with the cold path, and rewriting it is
+        # the scope creep this change has already declined twice.
+        self.refresh_history_still_landing(
+            context="before message sync" if force_full
+            else "before warm message sync")
 
         # Decide message I/O only after the final chat-list snapshot (and, for
         # a fresh pairing, after the RECENT wait/refresh) so chats that arrived
