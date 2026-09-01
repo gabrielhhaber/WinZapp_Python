@@ -356,26 +356,130 @@ const waVersion = (() => {
   }
 })();
 
+// How close to its own expiry a pinned build may be before every launch says
+// so. The catalogue's entries carry an ~2-month window, so two weeks still
+// leaves `npm update @wppconnect/wa-version` something newer to find, while
+// not crying wolf on a build that has weeks left.
+const VERSION_EXPIRY_WARNING_MS = 14 * 24 * 60 * 60 * 1000;
+
+// Expiry timestamp of one catalogue entry, or null when it cannot be known.
+//
+// Every entry in wa-version's versions.json carries `released` and `expire` —
+// Meta stops serving a build's assets around that date, and nothing local can
+// tell: getPageContent() only proves the HTML can be assembled from disk, and
+// it keeps succeeding happily for a build WhatsApp abandoned weeks ago. That
+// is what made "the pin works fine" and "sending silently fails" coexist.
+//
+// null (no metadata, unparseable date, an older wa-version without
+// getVersionInfo) means "cannot prove it is dead", never "expired": an install
+// whose catalogue carries no dates keeps exactly the previous behaviour.
+function versionExpiry(catalogue, version) {
+  try {
+    if (typeof catalogue.getVersionInfo !== 'function') return null;
+    const info = catalogue.getVersionInfo(version);
+    if (!info || !info.expire) return null;
+    const expire = Date.parse(info.expire);
+    return Number.isNaN(expire) ? null : expire;
+  } catch (e) {
+    return null;
+  }
+}
+
+// The newest build this install can serve AND that Meta has not expired yet.
+//
+// Walks the catalogue newest-first and stops at the first entry that is both
+// unexpired and actually assemblable — getPageContent() throws when the HTML
+// is missing from this install, so a pin is only ever a build known to exist
+// locally. The expiry check comes first because it is the cheap one; reading
+// every HTML file down the list would be minutes of I/O.
+//
+// Returns { version, expire, expired, total }, or null when the catalogue is
+// empty/unusable. `expired: true` means nothing valid was left and this is the
+// newest servable build regardless — see the call site for why that is still
+// pinned rather than dropped.
+function selectServableVersion(catalogue, now) {
+  const available = catalogue.getAvailableVersions();
+  if (!Array.isArray(available) || available.length === 0) return null;
+  const canServe = (version) => {
+    try {
+      catalogue.getPageContent(version);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+  for (let i = available.length - 1; i >= 0; i--) {
+    const version = available[i];
+    const expire = versionExpiry(catalogue, version);
+    if (expire !== null && expire <= now) continue;
+    if (!canServe(version)) continue;
+    return { version, expire, expired: false, total: available.length };
+  }
+  for (let i = available.length - 1; i >= 0; i--) {
+    const version = available[i];
+    if (canServe(version)) {
+      return {
+        version,
+        expire: versionExpiry(catalogue, version),
+        expired: true,
+        total: available.length,
+      };
+    }
+  }
+  return null;
+}
+
 function resolveWhatsappVersion() {
   try {
     if (!waVersion) throw new Error('@wppconnect/wa-version could not be resolved');
-    const available = waVersion.getAvailableVersions();
-    if (!Array.isArray(available) || available.length === 0) return undefined;
-    const newest = available[available.length - 1];
-    // getPageContent throws when the version cannot be served, so only pin what
-    // is known to work: no pin at all beats silently landing in the fallback.
-    //
-    // Deliberately the newest the installed catalogue can serve, never a
-    // hardcoded build. A fixed version here rots the moment WhatsApp removes
-    // that build's assets (HTTP 410), and it only ever gets refreshed when
-    // WinZapp itself ships — the same "stale from the day it is set" failure
-    // mode that removed the @wppconnect-team/wppconnect dependency pin (see
-    // setup_api.py's _PATCHED_DEPENDENCY_KEYS comment block and
+    // Deliberately the newest build the installed catalogue can still serve,
+    // never a hardcoded one. A fixed version here rots the moment WhatsApp
+    // removes that build's assets (HTTP 410), and it only ever gets refreshed
+    // when WinZapp itself ships — the same "stale from the day it is set"
+    // failure mode that removed the @wppconnect-team/wppconnect dependency pin
+    // (see setup_api.py's _PATCHED_DEPENDENCY_KEYS comment block and
     // tests/test_wpp_dependency_not_pinned.py). Keeping up is
     // `npm update @wppconnect/wa-version`, not editing this file.
-    waVersion.getPageContent(newest);
-    console.log(`[WinZapp] Pinning WhatsApp Web to ${newest} (of ${available.length} available)`);
-    return newest;
+    const selected = selectServableVersion(waVersion, Date.now());
+    if (!selected) return undefined;
+    if (selected.expired) {
+      // Every entry in the catalogue is past its expiry date, so whatever we
+      // pin here may already be refused by Meta. We pin anyway, loudly.
+      //
+      // Not pinning has a known, measured cost and this does not: unpinned,
+      // WPPConnect logs "using latest as fallback", WhatsApp Web serves its
+      // newest build, and the bundled wa-js may not support it — which showed
+      // up as sending to an individual contact failing IN SILENCE (usync
+      // queries hanging, isSendFailure with ack 0, REST still answering 200,
+      // groups unaffected because they use sender keys). An expired pin fails
+      // visibly and recoverably; silent send failure does not. So the choice
+      // is: keep pinning, and make the log say exactly what happened and what
+      // fixes it, so the next user log names the cause instead of nobody
+      // knowing.
+      console.error(
+        '[WinZapp] ATTENTION: every WhatsApp Web build in @wppconnect/wa-version has ' +
+        `EXPIRED (catalogue holds ${selected.total}; newest is ${selected.version}). ` +
+        'Meta may already refuse to serve it, and this install cannot know a newer ' +
+        'one exists. Pinning it anyway, because running unpinned makes sending to ' +
+        'individual contacts fail silently. FIX: npm update @wppconnect/wa-version ' +
+        '(or reinstall the API from WinZapp) and restart.'
+      );
+    } else if (selected.expire !== null
+        && selected.expire - Date.now() <= VERSION_EXPIRY_WARNING_MS) {
+      console.warn(
+        `[WinZapp] The newest usable WhatsApp Web build (${selected.version}) expires on ` +
+        `${new Date(selected.expire).toISOString()} and this catalogue has nothing newer. ` +
+        'Run: npm update @wppconnect/wa-version (or reinstall the API from WinZapp).'
+      );
+    }
+    const expiryNote = selected.expire === null
+      ? 'no expiry recorded'
+      : `expires ${new Date(selected.expire).toISOString()}`;
+    console.log(
+      `[WinZapp] Pinning WhatsApp Web to ${selected.version} ` +
+      `(of ${selected.total} available, ${expiryNote})`
+    );
+    return selected.version;
   } catch (e) {
     console.error(
       '[WinZapp] Could not resolve a WhatsApp Web version via @wppconnect/wa-version ' +
