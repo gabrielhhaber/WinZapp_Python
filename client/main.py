@@ -832,6 +832,13 @@ def _consolidate_legacy_log_dir() -> None:
 # state for some chats, so this has to terminate.
 _MAX_EMPTY_DELTA_RETRIES = 3
 
+# How many consecutive rounds the store may answer chat_not_found for a chat
+# before that chat stops being queried every round. See sync_chat_messages():
+# a JID that only ever appeared in an encryption housekeeping event has no
+# chat behind it and never will, but a chat CAN come into existence later, so
+# this is a small budget rather than either extreme.
+_MAX_ABSENT_CHAT_RETRIES = 3
+
 
 def _report_media_fetch_failure(msg_id: str, status_code: int, body: str) -> bool:
     """Log a "message not found" media failure as a tally. True when handled.
@@ -1577,6 +1584,12 @@ class MainWindow(wx.Frame):
         # one more look anyway, and why that look is bounded.
         self._delta_unsatisfied_chats = set()
         self._delta_unsatisfied_attempts = {}
+        # Chats the store answered chat_not_found for. Same reasoning as the
+        # empty delta above — an answer, not a failure — bounded by
+        # _MAX_ABSENT_CHAT_RETRIES so a phantom JID minted by an
+        # e2e_notification does not cost one request per round forever.
+        self._absent_chats = set()
+        self._absent_chat_attempts = {}
         # Per-session record of the activity each chat's get-messages actually
         # completed on — see _note_verified_activity(). Bound here rather than
         # lazily, because up to six sync_chat_messages() workers write it in
@@ -12321,6 +12334,8 @@ class MainWindow(wx.Frame):
             self._sync_failed_chats.clear()
             self._delta_unsatisfied_chats.clear()
             self._delta_unsatisfied_attempts.clear()
+            self._absent_chats.clear()
+            self._absent_chat_attempts.clear()
         self._persist_backfill_pending_state()
         self._persist_history_gap_jids()
         self._persist_message_retry_jids()
@@ -16241,12 +16256,25 @@ class MainWindow(wx.Frame):
                 }
                 unsatisfied = {jid for jid in unsatisfied if jid in target_ids}
                 successful_jids.difference_update(unsatisfied)
+                # Chats the store answered chat_not_found for: also an answer
+                # and not an I/O failure, so they must not reach
+                # message_sync_ok either — one phantom @lid from an
+                # e2e_notification used to hold the whole sync incomplete for
+                # the rest of the session. Bounded in sync_chat_messages() by
+                # _MAX_ABSENT_CHAT_RETRIES.
+                absent = {
+                    normalize_jid(jid) or jid
+                    for jid in (getattr(self, "_absent_chats", set()) or set())
+                }
+                absent = {jid for jid in absent if jid in target_ids}
+                successful_jids.difference_update(absent)
                 retry_jids = getattr(self, "_message_retry_jids", None)
                 if retry_jids is None:
                     retry_jids = self._message_retry_jids = set()
                 retry_jids.difference_update(successful_jids)
                 retry_jids.update(failed_jids)
                 retry_jids.update(unsatisfied)
+                retry_jids.update(absent)
 
         persist_retries = getattr(self, "_persist_message_retry_jids", None)
         if callable(persist_retries):
@@ -17687,6 +17715,11 @@ class MainWindow(wx.Frame):
         all_messages = []
         api_ok = False
         fetched_payload_has_messages = False
+        # The store answered "there is no such chat", for every JID form we
+        # know. Deliberately NOT the same thing as api_ok being False: that is
+        # an I/O fault to report, this is an answer. See the _absent_chats
+        # block near the end of this method.
+        chat_absent = False
         # The JID form that actually answered. Starts as the one built above and
         # is corrected when the alternate-JID fallback below is what worked —
         # the history-gap re-query has to reuse the form the store recognises,
@@ -17888,6 +17921,7 @@ class MainWindow(wx.Frame):
                         logging.warning(f"[sync_chat_messages] Retryable error {response.status_code} for {remote_jid} (attempt {attempt+1}/{max_retries}): {response.text[:120]}")
                         hard_chat_miss = "chat not found" in response.text.lower()
                         if hard_chat_miss:
+                            chat_absent = True
                             logging.warning(
                                 "[sync_chat_messages] Giving up immediately for %s — "
                                 "the store definitively reported chat_not_found.",
@@ -18190,11 +18224,12 @@ class MainWindow(wx.Frame):
             self._persist_history_gap_jids()
         if pending_before or pending_after:
             self._persist_backfill_pending_state()
-        if not api_ok:
+        if not api_ok and not chat_absent:
             # Counted so the sync stops reporting a clean run over chats whose
             # messages never arrived. sync_remote_chats() cannot see this from
             # the future alone: exhausting the retries returns normally, it
-            # does not raise.
+            # does not raise. A chat the store says does not exist is excluded
+            # here on purpose — nothing failed, so there is nothing to report.
             with self._sync_failures_lock:
                 self._sync_failed_chats.add(remote_jid)
 
@@ -18243,6 +18278,12 @@ class MainWindow(wx.Frame):
             # to whoever touches this next. The lock is not reentrant and this
             # block calls nothing that takes it.
             with self._sync_failures_lock:
+                # The chat answered, so it exists: forget any earlier absence,
+                # and let a future disappearance start counting from scratch.
+                if getattr(self, "_absent_chats", None):
+                    self._absent_chats.discard(remote_jid)
+                if getattr(self, "_absent_chat_attempts", None):
+                    self._absent_chat_attempts.pop(remote_jid, None)
                 attempts_by_jid = getattr(self, "_delta_unsatisfied_attempts", None)
                 if attempts_by_jid is None:
                     attempts_by_jid = self._delta_unsatisfied_attempts = {}
@@ -18266,7 +18307,80 @@ class MainWindow(wx.Frame):
                     else:
                         attempts_by_jid[remote_jid] = attempts
                         unsatisfied_jids.add(remote_jid)
-        message_fetch_satisfied = bool(api_ok and incremental_satisfied)
+        # chat_not_found is the store ANSWERING, not failing — the same
+        # distinction the empty-delta block above exists for, reached through
+        # the other door. It arrives as a 404 whose body says
+        # {"reason":"chat_not_found"}, and it is a stable fact: WhatsApp Web
+        # looked, under every JID form we know (the alternate-JID fallback runs
+        # before this), and there is no such chat.
+        #
+        # Recognised by the literal phrase in the body, not by the status code
+        # or by that `reason` field, and deliberately so in both directions.
+        # An older/unpatched server flattens the same failure into a 401 or a
+        # 500 (see hard_chat_miss above), so the status is not reliable; and
+        # deviceController's own classifier stamps `chat_not_found` on anything
+        # matching /not found/i, which "Session not found" and "Message not
+        # found" also match — trusting it would let a genuine transient fault
+        # be recorded as a chat that does not exist, which is the one way this
+        # relaxation could mask a real failure. If WPPConnect ever reworded the
+        # message, this stops matching and the chat goes back to being counted
+        # as a failed fetch: the old behaviour, not a false success. It happens routinely for a
+        # JID that only ever appeared in an e2e_notification — an encryption
+        # housekeeping event, never a conversation. is_countable_message()
+        # already keeps one of those off the badge and out of the sort order,
+        # but the entry it leaves in self.chats is still a sync target, so
+        # every round asked for its messages and every round got a 404.
+        # Counted as a failure, that single phantom chat held message_sync_ok
+        # False forever: last_success stayed "never", force_full_pending was
+        # never released, and the health checker resynced — announcing itself
+        # to the screen reader — on every cooldown, with all 155 chats replanned
+        # as forced-full each time. Observed live, exactly as described above.
+        #
+        # Bounded rather than latched forever: a JID with no chat behind it
+        # today can get one tomorrow (the person finally writes), so it is
+        # worth a few more looks, but the latch itself has to terminate —
+        # every new e2e_notification mints another such entry, and an entry
+        # that never leaves _absent_chats never leaves _message_retry_jids
+        # either, which is a durable, persisted list.
+        #
+        # What retiring buys is exactly that drain, and nothing more. It does
+        # NOT stop the chat being queried: a phantom has no stored records and
+        # a nonzero `t`, which is _plan_message_sync()'s "missing-local-history"
+        # case, so it is re-selected as a full target every round regardless of
+        # this latch. That costs one get-messages per round per phantom and is
+        # deliberately left alone — narrowing missing-local-history is a change
+        # to the planner, and the planner is not what was broken here.
+        #
+        # Retiring is also safe in the other direction: nothing marks the chat
+        # as skippable, so if it ever becomes real, both its activity marker
+        # moving and that same missing-local-history rule bring it straight
+        # back.
+        absent_satisfied = False
+        if chat_absent:
+            with self._sync_failures_lock:
+                absent_attempts = getattr(self, "_absent_chat_attempts", None)
+                if absent_attempts is None:
+                    absent_attempts = self._absent_chat_attempts = {}
+                absent_jids = getattr(self, "_absent_chats", None)
+                if absent_jids is None:
+                    absent_jids = self._absent_chats = set()
+                attempts = absent_attempts.get(remote_jid, 0) + 1
+                if attempts >= _MAX_ABSENT_CHAT_RETRIES:
+                    absent_attempts.pop(remote_jid, None)
+                    absent_jids.discard(remote_jid)
+                    absent_satisfied = True
+                    logging.info(
+                        "[sync_chat_messages] %s: still chat_not_found after %d "
+                        "attempts — retiring it from the retry list.",
+                        remote_jid, attempts,
+                    )
+                else:
+                    absent_attempts[remote_jid] = attempts
+                    absent_jids.add(remote_jid)
+
+        message_fetch_satisfied = bool(
+            (api_ok and incremental_satisfied) or (chat_absent and absent_satisfied)
+        )
 
         # Incremental DB save: write only this chat + its messages. The chat-list
         # activity marker is committed only after the message request that marker
@@ -18293,11 +18407,12 @@ class MainWindow(wx.Frame):
             logging.warning("[sync_chat_messages] incremental DB save failed for %s: %s",
                             remote_jid, exc)
 
-        # Reports whether this chat's sync FAILED, which an empty delta did
-        # not: the retry for that is carried by _delta_unsatisfied_chats, which
-        # sync_remote_chats() folds into the durable retry list without letting
-        # it count as a failed run.
-        return bool(api_ok and persist_ok)
+        # Reports whether this chat's sync FAILED, which neither an empty delta
+        # nor a chat_not_found did: the retry for those is carried by
+        # _delta_unsatisfied_chats/_absent_chats, which sync_remote_chats()
+        # folds into the durable retry list without letting either count as a
+        # failed run.
+        return bool((api_ok or chat_absent) and persist_ok)
 
     # ── Phone-side deletions/clears — active conversation only ──────────────
     # sync_chat_messages() above deliberately never removes anything: its
