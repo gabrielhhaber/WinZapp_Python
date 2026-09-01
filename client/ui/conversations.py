@@ -5510,8 +5510,20 @@ class ConversationsPanel(wx.Panel):
         for msg in self._sorted_messages:
             if isinstance(msg, dict) and not self._is_separator(msg):
                 found_real_row = True
-                oldest_id = (msg.get("key") or {}).get("id", "") or ""
-                break
+                # A primeira linha COM id, não simplesmente a primeira linha:
+                # populate_messages() mantém registros sem key.id, e parar no
+                # primeiro deles deixava a âncora vazia para sempre naquela
+                # conversa. Só o piso por contagem sobraria — e ele escorrega
+                # uma linha para frente a cada mensagem que chega ao vivo
+                # (on_incoming_message() não registra a janela), reintroduzindo
+                # em silêncio o mesmo sintoma que esta janela existe para
+                # corrigir. Pegar uma linha mais nova como âncora só pode
+                # alargar a janela, nunca estreitá-la: expanded_min_visible()
+                # aplica max(piso, âncora).
+                mid = (msg.get("key") or {}).get("id", "") or ""
+                if mid:
+                    oldest_id = mid
+                    break
         if not found_real_row:
             return
         self._expanded_visible_count = len(self._sorted_messages)
@@ -9961,6 +9973,17 @@ class ConversationsPanel(wx.Panel):
             key.get("remoteJidAlt") or "",
             msg.get("participant") or "",
         ]
+        # O JID da CONVERSA, e não só os que estão na mensagem: em 1:1
+        # _sender_label() e os dois ramos 1:1 de _get_quoted_sender() resolvem
+        # o nome a partir de self.conversation quando a linha não tem
+        # participant, então uma linha cujo key.remoteJid está sob outra forma
+        # (@lid) e ainda sem bridge não cruzaria com o JID de telefone que o
+        # laço de resolução reportou — e ficaria anunciando o número cru.
+        # Excluído em grupo: lá o nome nunca vem da conversa, e nenhum laço de
+        # resolução reporta um @g.us, então incluí-lo não pegaria nada.
+        conv_jid = (self.conversation or {}).get("remoteJid", "") or ""
+        if conv_jid and not conv_jid.endswith("@g.us"):
+            raw.append(conv_jid)
         raw.extend(self._raw_mentioned_jids(msg) or [])
         msg_obj = msg.get("message") or {}
         ext = msg_obj.get("extendedTextMessage") or {} if isinstance(msg_obj, dict) else {}
@@ -10071,6 +10094,18 @@ class ConversationsPanel(wx.Panel):
         if not self.conversation or not hasattr(self, "messages_list"):
             return 0
         target_ids = self._message_ids_touching_jids(jids) if jids else None
+        # Mesma guarda de _repaint_message_rows(): _set_message_row_texts()
+        # escreve por índice, então uma lista fora de passo com o controle põe
+        # o texto certo na linha errada — e um descompasso só de prefixo não
+        # levanta exceção nenhuma, o leitor de tela simplesmente passa a ler a
+        # mensagem trocada. Degrada para o passe completo, que percorre as duas
+        # em paralelo e no máximo pinta linhas a mais.
+        if (target_ids is not None
+                and self.messages_list.GetItemCount() != len(self._sorted_messages)):
+            logging.info(
+                "[refresh_active_conversation_messages] list out of step with rows "
+                "— full path")
+            target_ids = None
         # Um SetItemText por linha é um evento de acessibilidade por linha, e
         # os lotes de resolução de nomes/LID chamam isto repetidamente sobre a
         # lista inteira — sem congelar, o leitor de tela recebe a enxurrada e a
@@ -13654,10 +13689,16 @@ class ConversationsPanel(wx.Panel):
             # _all_sorted_messages só acompanha enquanto as duas listas
             # terminarem no mesmo objeto. O append ao vivo de
             # on_incoming_message() já as deixa fora de passo no fim (situação
-            # anterior a isto, e inofensiva: _load_more_messages() fatia só a
-            # cabeça e _load_older_messages() no máximo re-consulta algumas
-            # mensagens que o dedup descarta), e não é este método que vai
-            # inventar um alinhamento que ele não tem como verificar.
+            # anterior a isto), e não é este método que vai inventar um
+            # alinhamento que ele não tem como verificar.
+            # A consequência do desalinhamento é maior do que parece e vale
+            # dizer por extenso: _load_older_messages() tira loaded_db_count
+            # de _all_sorted_messages, então com ela curta a consulta local
+            # devolve mensagens que já estão em memória, o dedup zera n_new e
+            # ele cai para o servidor ANTES de esgotar o histórico local. O
+            # usuário ainda recebe o histórico, só que pelo caminho caro. É
+            # pré-existente, não regressão deste método — mas é o que dá para
+            # perder aqui, não "algumas mensagens que o dedup descarta".
             # O `is not` não é paranoia: _sorted_messages tem de ser um SUFIXO
             # de _all_sorted_messages, nunca o mesmo objeto de lista. Hoje todo
             # produtor fatia ou concatena, então são sempre listas distintas;

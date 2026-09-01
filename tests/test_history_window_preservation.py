@@ -594,8 +594,35 @@ class TestTheRenderedWindowIsTheFloor:
         no finally de todo rebuild — levantar aqui derrubaria a lista inteira."""
         stub = _Stub(sorted_messages=[{"timestamp": 1}, _msg("m-1", 1)])
         stub._remember_expanded_window()
-        assert stub._expanded_oldest_msg_id == ""
         assert stub._expanded_visible_count == 2
         stub = _Stub(sorted_messages=[{"key": None, "timestamp": 1}])
         stub._remember_expanded_window()
         assert stub._expanded_oldest_msg_id == ""
+
+    def test_a_malformed_record_on_top_does_not_cost_the_anchor(self):
+        """Um registro sem key.id no topo não pode zerar a âncora.
+
+        Parar nele deixava só o piso por contagem, e o piso sozinho escorrega
+        uma linha para frente a cada mensagem que chega ao vivo — que é
+        exatamente o sintoma que esta janela existe para corrigir, reaparecendo
+        por outra porta. A âncora passa a ser a primeira linha que TEM id.
+        """
+        stub = _Stub(sorted_messages=[
+            {"timestamp": 1},
+            {"key": None, "timestamp": 2},
+            {"key": {"id": ""}, "timestamp": 3},
+            _msg("m-4", 4),
+            _msg("m-5", 5),
+        ])
+        stub._remember_expanded_window()
+        assert stub._expanded_oldest_msg_id == "m-4"
+        assert stub._expanded_visible_count == 5
+
+    def test_an_anchor_further_in_only_widens_the_window(self):
+        """A âncora mais nova nunca estreita: expanded_min_visible() aplica
+        max(piso, âncora), e o piso é a contagem inteira da lista."""
+        displayable = [_msg(f"m-{i}", i) for i in range(500)]
+        # Âncora em m-100 => 400 linhas; piso (contagem registrada) => 450.
+        assert expanded_min_visible(displayable, "m-100", 450) == 450
+        # E com a âncora mais antiga que o piso, é ela que manda.
+        assert expanded_min_visible(displayable, "m-100", 10) == 400

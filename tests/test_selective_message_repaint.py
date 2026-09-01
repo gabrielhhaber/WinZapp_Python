@@ -275,10 +275,18 @@ class TestScheduledJidAccumulation:
 class _FakeList:
     """Just enough wx.ListCtrl to record what was re-rendered."""
 
-    def __init__(self):
+    def __init__(self, item_count=0):
         self.painted = []
         self.frozen = 0
         self.thawed = 0
+        # O caminho seletivo escreve por indice, entao ele confere se a lista
+        # esta em passo com o controle antes de enderecar linha nenhuma - como
+        # _repaint_message_rows() ja fazia. Um fake sem contagem deixaria essa
+        # guarda sem cobertura.
+        self.item_count = item_count
+
+    def GetItemCount(self):
+        return self.item_count
 
     def Freeze(self):
         self.frozen += 1
@@ -321,8 +329,8 @@ class _PanelStub:
     def __init__(self, messages, main_window=None):
         self.conversation = {"remoteJid": "group-1@g.us"}
         self.main_window = main_window if main_window is not None else _FakeMainWindow()
-        self.messages_list = _FakeList()
         self._sorted_messages = list(messages)
+        self.messages_list = _FakeList(len(self._sorted_messages))
 
     def _render_message_line(self, msg, index=None, total=None):
         return f"row {index}"
@@ -884,3 +892,75 @@ class TestTheSameCriterionInAOneToOneChat:
         panel = self._panel()
         selected = panel._message_ids_touching_jids({PHONE})
         assert selected is None or "o1" in selected
+
+
+class TestAOneToOneChatWhoseRowsCarryTheLid:
+    """O caso que a classe acima não alcança: as linhas sob a forma @lid e a
+    conversa sob o telefone, sem bridge entre as duas ainda.
+
+    _sender_label() e os dois ramos 1:1 de _get_quoted_sender() resolvem o nome
+    a partir de self.conversation, e não de nenhum JID que esteja na mensagem.
+    Coletando só os JIDs da mensagem, o conjunto seletivo não cruza com o JID
+    de telefone que o laço de resolução reporta, e a linha muda sem ser
+    repintada — o leitor de tela continua lendo o número cru. Por isso
+    _row_jids() coleta também o JID da conversa.
+
+    Sem bridge de propósito: é justamente o estado em que as duas formas não se
+    encontram por normalização nenhuma.
+    """
+
+    def _panel(self):
+        rows = []
+        incoming = _msg("i1", participant=None)
+        incoming["key"]["remoteJid"] = LID
+        rows.append(incoming)
+        reply = _msg("r1", participant=None)
+        reply["key"]["remoteJid"] = LID
+        reply["contextInfo"] = {"_quotedFromMe": False,
+                                "quotedMessage": {"conversation": "oi"}}
+        rows.append(reply)
+        mw = _RenderMainWindow()  # sem _lid_to_phone
+        panel = _RenderPanel(rows, main_window=mw)
+        panel.conversation = {"remoteJid": PHONE}
+        return panel
+
+    def test_every_changed_row_is_in_the_selective_set(self):
+        panel = self._panel()
+        changed = _rows_the_full_pass_would_change(
+            panel, lambda m: m.contacts.__setitem__(PHONE, {"name": "Fulano"}))
+        assert changed, "o cenário precisa mudar alguma linha de verdade"
+        selected = panel._message_ids_touching_jids({PHONE})
+        assert selected is None or not (changed - selected)
+
+    def test_a_group_conversation_jid_is_not_collected(self):
+        """Em grupo o nome nunca vem da conversa, e nenhum laço de resolução
+        reporta um @g.us — incluí-lo só alargaria o conjunto à toa."""
+        panel = self._panel()
+        panel.conversation = {"remoteJid": "12036304@g.us"}
+        assert "12036304@g.us" not in panel._row_jids(panel._sorted_messages[0])
+
+
+class TestTheListOutOfStepWithTheControl:
+    """Escrever por índice numa lista fora de passo põe o texto certo na linha
+    errada, e um descompasso só de prefixo não levanta exceção nenhuma: o
+    leitor de tela simplesmente passa a ler a mensagem trocada. É a mesma
+    guarda que _repaint_message_rows() já tinha, e o caminho seletivo herda os
+    mesmos índices."""
+
+    def _panel(self):
+        rows = [_msg("m1", participant=PHONE), _msg("m2", participant=OTHER)]
+        return _PanelStub(rows)
+
+    def test_a_mismatch_degrades_to_the_full_pass(self):
+        panel = self._panel()
+        panel.messages_list.item_count = 5  # controle com mais linhas que a lista
+        painted = panel.refresh_active_conversation_messages(jids={PHONE})
+        # Passe completo: as duas linhas, não só a que casa com PHONE.
+        assert painted == 2
+        assert sorted(panel.messages_list.painted) == [0, 1]
+
+    def test_in_step_still_takes_the_selective_path(self):
+        panel = self._panel()
+        painted = panel.refresh_active_conversation_messages(jids={PHONE})
+        assert painted == 1
+        assert panel.messages_list.painted == [0]
