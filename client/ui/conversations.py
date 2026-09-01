@@ -13504,6 +13504,188 @@ class ConversationsPanel(wx.Panel):
         if not self._repaint_message_rows(msg_ids):
             self.populate_messages(preserve_focus=True)
 
+    def _row_position_suffix_active(self) -> bool:
+        """Se cada linha carrega o sufixo ", N de M" (modo listbox com a
+        contagem de itens ligada).
+
+        Importa para quem acrescenta linha em vez de reconstruir: acrescentar
+        muda o M de TODAS as linhas já renderizadas, e só o rebuild re-renderiza
+        todas. Com o sufixo ligado, o caminho incremental deixaria a lista
+        inteira anunciando um total velho ao leitor de tela — pior que a
+        lentidão que ele evita.
+        """
+        if getattr(self, "_message_list_mode", "classic") != "listbox":
+            return False
+        mw = getattr(self, "main_window", None)
+        settings = getattr(mw, "settings", None)
+        if not isinstance(settings, dict):
+            return False
+        return bool(settings.get("user_interface", {}).get("show_listbox_item_count", False))
+
+    def _append_new_tail_rows(self, old_sig, new_sig) -> bool:
+        """Renderiza mensagens que só chegaram no FIM da conversa acrescentando
+        as linhas delas, em vez de reconstruir a lista. Devolve se a diferença
+        inteira entre as duas assinaturas foi coberta assim; quem chama
+        reconstrói quando não foi.
+
+        É o caso mais comum que sobrou passando pelo rebuild: mensagem nova. O
+        painel já a acrescenta ao vivo em on_incoming_message(), mas o refresh
+        de fundo que vem segundos depois (sync_chat_messages() ->
+        _refresh_open_conversation_after_sync(), o backfill de histórico, a
+        rodada de 60s) só sabia comparar a assinatura e chamar
+        populate_messages(): DeleteAllItems() mais um Append() por linha, para
+        pintar de novo o que já estava na tela — numa janela que agora pode ter
+        milhares de linhas. Mesma ideia de _repaint_message_rows(), que já faz
+        isso para estrela/fixar/apagar, e de refresh_chat_row_text() na lista de
+        conversas.
+
+        Na prática o caminho normal acrescenta ZERO linha: a mensagem já foi
+        pintada ao vivo, e o que este método faz é reconhecer isso e adotar a
+        assinatura, transformando o rebuild seguinte em nada. Acrescentar de
+        fato é o caminho de quem chegou pelo sync sem passar pelo live.
+
+        Recusa tudo que não seja "linhas novas no fim, nada mais mudou", porque
+        aí o rebuild é a única coisa que sabe onde a linha vai:
+
+        - qualquer linha existente que mudou de texto ou sumiu (a comparação
+          por id de _signature_changed_ids(), que já devolve None sozinha para
+          conversa trocada, separador movido ou id vazio/repetido);
+        - registro novo que não vira linha — a reação é o caso comum: ela muda
+          o texto de OUTRA linha, e a assinatura não diz de qual;
+        - registro novo mais antigo que a última linha, que entraria no meio da
+          lista ordenada por timestamp, não no fim;
+        - qualquer reordenação dos registros antigos, que a comparação por id
+          não veria e o sort estável do rebuild veria;
+        - lista fora de passo com o controle, lista vazia (acrescentar na lista
+          vazia com foco reproduz o pulo de foco para a linha 0 que o Freeze()
+          de populate_messages() documenta) e a lista de placeholder;
+        - o sufixo ", N de M" ligado (ver _row_position_suffix_active()).
+
+        Uma exceção à recusa por registro não exibível: reação a um status
+        NOSSO é linha de verdade (_is_displayable_message() ->
+        reaction_targets_status()), então ela é acrescentada como qualquer
+        mensagem. O rebuild também a poria em _reaction_map, e o atalho não —
+        sem divergência visível, porque essa entrada é chaveada por um id de
+        status@broadcast, que não tem linha nesta conversa para decorar.
+
+        Consequência deliberada, não efeito colateral: o separador de não
+        lidas que on_incoming_message() insere ao vivo passa a sobreviver a
+        este refresh. Ele nunca escreve _first_unread_msg_id, então o rebuild
+        não o renderizava de volta e ele sumia poucos segundos depois de
+        aparecer — o marcador de "onde começa o que eu não li" e o alvo do
+        Alt+3 evaporavam sozinhos. Mantê-lo é o que a inserção ao vivo
+        pretendia, e é seguro porque só se acrescenta na cauda: _unread_sep_idx
+        continua apontando para a mesma linha e _dismiss_unread_separator()
+        continua funcionando. A assimetria que sobra vale saber: o separador
+        ainda é removido pelo primeiro rebuild que qualquer OUTRA mudança
+        provocar.
+        """
+        if self.conversation is None or not self._sorted_messages:
+            return False
+        changed = self._signature_changed_ids(old_sig, new_sig)
+        if changed is None:
+            return False
+        old_rows, new_rows = old_sig[3], new_sig[3]
+        # Crescimento no fim, e nada mais: os registros antigos têm de continuar
+        # lá, iguais e na mesma ordem. Comparar só os conjuntos de id deixaria
+        # passar uma reordenação pura, e ela não é inócua — populate_messages()
+        # ordena por timestamp com sort estável, então duas mensagens de mesmo
+        # timestamp trocam de lugar no rebuild e a lista na tela deixaria de ser
+        # a que o rebuild produziria.
+        if len(new_rows) < len(old_rows) or new_rows[:len(old_rows)] != old_rows:
+            return False
+        added = {row[0] for row in new_rows[len(old_rows):]}
+        # Implicado pelo prefixo acima; custa uma comparação de conjuntos e
+        # prende a conclusão em vez de depender do raciocínio.
+        if changed != added:
+            return False
+        if self._row_position_suffix_active():
+            return False
+        # Lista de fora de passo com o controle: um Append() aqui desalinharia
+        # texto e registro para sempre. Mesma guarda de _repaint_message_rows().
+        if self.messages_list.GetItemCount() != len(self._sorted_messages):
+            logging.info("[_append_new_tail_rows] list out of step with rows — full path")
+            return False
+        first_row = self._sorted_messages[0]
+        if isinstance(first_row, dict) and first_row.get("_type") == "empty_placeholder":
+            return False
+
+        records = []
+        container = self.conversation.get("messages")
+        if isinstance(container, dict):
+            inner = container.get("messages")
+            if isinstance(inner, dict) and isinstance(inner.get("records"), list):
+                records = inner["records"]
+        newly = {}
+        for m in records:
+            if not isinstance(m, dict):
+                continue
+            mid = (m.get("key") or {}).get("id", "")
+            # `mid not in newly` é inalcançável — _signature_changed_ids() já
+            # devolveu None para id repetido — e fica pelo mesmo motivo que a
+            # comparação `changed != added` acima: o mapa por id só é seguro se
+            # o id for único, e isso passa a estar dito aqui também.
+            if mid in added and mid not in newly:
+                newly[mid] = m
+        if len(newly) != len(added):
+            return False
+        if any(not self._is_displayable_message(m) for m in newly.values()):
+            return False
+
+        rendered = {
+            (m.get("key") or {}).get("id", "")
+            for m in self._sorted_messages if not self._is_separator(m)
+        }
+        newcomers = [m for mid, m in newly.items() if mid not in rendered]
+        newcomers.sort(key=lambda m: self._extract_timestamp(m) or 0)
+        tail_ts = None
+        for m in reversed(self._sorted_messages):
+            if not self._is_separator(m):
+                tail_ts = self._extract_timestamp(m) or 0
+                break
+        if tail_ts is None:
+            # Só sentinela na tela e nenhuma mensagem: não há cauda contra a
+            # qual comparar, e um piso 0 aqui aprovaria qualquer timestamp.
+            return False
+        if any((self._extract_timestamp(m) or 0) < tail_ts for m in newcomers):
+            return False
+
+        if newcomers:
+            # _all_sorted_messages só acompanha enquanto as duas listas
+            # terminarem no mesmo objeto. O append ao vivo de
+            # on_incoming_message() já as deixa fora de passo no fim (situação
+            # anterior a isto, e inofensiva: _load_more_messages() fatia só a
+            # cabeça e _load_older_messages() no máximo re-consulta algumas
+            # mensagens que o dedup descarta), e não é este método que vai
+            # inventar um alinhamento que ele não tem como verificar.
+            # O `is not` não é paranoia: _sorted_messages tem de ser um SUFIXO
+            # de _all_sorted_messages, nunca o mesmo objeto de lista. Hoje todo
+            # produtor fatia ou concatena, então são sempre listas distintas;
+            # se alguma passar a aliasar, os dois append() abaixo virariam dois
+            # na mesma lista e ela desalinharia do controle.
+            in_step = (
+                self._all_sorted_messages
+                and self._all_sorted_messages is not self._sorted_messages
+                and self._all_sorted_messages[-1] is self._sorted_messages[-1]
+            )
+            self.messages_list.Freeze()
+            try:
+                for m in newcomers:
+                    if in_step:
+                        self._all_sorted_messages.append(m)
+                    self._sorted_messages.append(m)
+                    self.messages_list.Append((self._render_message_line(m),))
+            finally:
+                self.messages_list.Thaw()
+            self._remember_expanded_window()
+        self._messages_signature_cache = new_sig
+        logging.info(
+            "[_append_new_tail_rows] %d new record(s), %d row(s) appended, %d row(s) total "
+            "— no rebuild.",
+            len(added), len(newcomers), len(self._sorted_messages),
+        )
+        return True
+
     def refresh_messages_if_changed(self):
         """Repopulate the messages list only when its content actually changed.
 
@@ -13518,8 +13700,12 @@ class ConversationsPanel(wx.Panel):
         of the conversation roughly once a minute, mid-read.
 
         Nothing periodic needs a rebuild when nothing changed, so compare first
-        and skip. When something genuinely did change, the rebuild still runs
-        (and still preserves focus as best it can).
+        and skip. When the only difference is messages at the END of the
+        conversation — a new message, which is the overwhelmingly common case —
+        _append_new_tail_rows() covers it by appending those rows (usually
+        none: the live path already painted them) and the rebuild is skipped
+        too. Anything else still rebuilds in full, preserving focus as best it
+        can.
         """
         if self.conversation is None:
             return
@@ -13532,6 +13718,16 @@ class ConversationsPanel(wx.Panel):
             return
         if sig == getattr(self, "_messages_signature_cache", None):
             return
+        try:
+            if self._append_new_tail_rows(
+                getattr(self, "_messages_signature_cache", None), sig
+            ):
+                return
+        except Exception:
+            # O rebuild abaixo repinta a conversa inteira de qualquer forma, e
+            # é ele que estava aqui antes: uma falha no atalho não pode custar
+            # a atualização.
+            logging.exception("[refresh_messages_if_changed] tail append failed — full path")
         self._messages_signature_cache = sig
         self.populate_messages(preserve_focus=True)
 
