@@ -442,6 +442,7 @@ function resolveWhatsappVersion() {
     // `npm update @wppconnect/wa-version`, not editing this file.
     const selected = selectServableVersion(waVersion, Date.now());
     if (!selected) return undefined;
+    pinnedCatalogueExpired = Boolean(selected.expired);
     if (selected.expired) {
       // Every entry in the catalogue is past its expiry date, so whatever we
       // pin here may already be refused by Meta. We pin anyway, loudly.
@@ -487,6 +488,59 @@ function resolveWhatsappVersion() {
       'build, which the bundled wa-js may not support. Run: npm update @wppconnect/wa-version'
     );
     return undefined;
+  }
+}
+
+// Set by resolveWhatsappVersion() when NOTHING in the catalogue is still valid.
+// Read once, by the interception wrapper below, to decide whether to try Meta's
+// own current document before falling back to the expired local copy.
+let pinnedCatalogueExpired = false;
+
+// How long to wait for Meta's live document before giving up and using the
+// expired local build. This runs inside session startup, so it is a budget, not
+// a best effort: a user on a dead network must not have pairing held hostage by
+// a hanging fetch.
+const LIVE_DOCUMENT_FETCH_TIMEOUT_MS = 10000;
+
+// The current WhatsApp Web document, fetched from Meta at session start.
+//
+// Only ever used when the whole local catalogue has expired. In that state the
+// two options used to be: pin a build Meta may already refuse, or run unpinned
+// — and unpinned is the one with the measured silent failure (usync hanging,
+// isSendFailure with ack 0, REST answering 200; see resolveWhatsappVersion()).
+// Fetching the live document is strictly better than both: the page is still
+// substituted through our own document-only interception, so WPPConnect never
+// installs its blanket one and the backend worker is never starved, and the
+// build being served is by definition one Meta still serves.
+//
+// It is NOT used while the catalogue is healthy. The live build can be ahead of
+// what the bundled wa-js supports, which is the same silent-send failure by
+// another door; an unexpired pinned build is the known-good pairing. So this is
+// the expired branch's fallback, never the default.
+//
+// wa-version does the request itself (fetchLatestAlpha sends the user-agent,
+// language and cache headers Meta expects, which a bare fetch here would get
+// wrong). Older copies of the package may not export it — hence the typeof
+// guard rather than a call that would throw at startup.
+async function fetchLiveWhatsappDocument() {
+  if (!waVersion || typeof waVersion.fetchLatestAlpha !== 'function') return null;
+  let timer = null;
+  try {
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(() => resolve(null), LIVE_DOCUMENT_FETCH_TIMEOUT_MS);
+    });
+    const html = await Promise.race([waVersion.fetchLatestAlpha(), timeout]);
+    // Anything can answer an HTTP request — a captive portal, a proxy error
+    // page, a consent interstitial. Serving one of those AS the WhatsApp Web
+    // document would look like a WhatsApp bug rather than a network one, so
+    // require it to actually be the app shell before trusting it.
+    if (typeof html !== 'string' || html.length < 1000) return null;
+    if (!/web\.whatsapp\.com|WhatsApp/i.test(html)) return null;
+    return html;
+  } catch (e) {
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
@@ -634,18 +688,45 @@ function patchWppconnectVersionPinning() {
     if (version) {
       let body = null;
       let bodyError = null;
-      try {
-        body = waVersion ? waVersion.getPageContent(version) : null;
-        if (!waVersion) bodyError = '@wppconnect/wa-version could not be resolved';
-      } catch (e) {
-        body = null;
-        bodyError = (e && e.message) || String(e);
+      let source = `pinned ${version}`;
+      // Expired catalogue only: ask Meta for the document it is serving right
+      // now, and pin THAT for the session. See fetchLiveWhatsappDocument() for
+      // why this is not the default and why it beats both alternatives here.
+      // Awaited before the local read so the fallback below is reached with
+      // `body` still null — a failed fetch must cost nothing but the timeout.
+      if (pinnedCatalogueExpired) {
+        const live = await fetchLiveWhatsappDocument();
+        if (live) {
+          body = live;
+          source = 'live from Meta (local catalogue fully expired)';
+          console.warn(
+            '[WinZapp] Every build in the local catalogue has expired; serving the ' +
+            'document Meta is currently returning instead. This keeps the page pinned ' +
+            'and the worker unblocked, but the bundled wa-js may lag that build — ' +
+            'run: npm update @wppconnect/wa-version (or reinstall the API from WinZapp).'
+          );
+        } else {
+          console.warn(
+            '[WinZapp] Could not fetch the live WhatsApp Web document (offline, blocked, ' +
+            `or slower than ${LIVE_DOCUMENT_FETCH_TIMEOUT_MS}ms); falling back to the ` +
+            'expired local build, which Meta may already refuse.'
+          );
+        }
+      }
+      if (!body) {
+        try {
+          body = waVersion ? waVersion.getPageContent(version) : null;
+          if (!waVersion) bodyError = '@wppconnect/wa-version could not be resolved';
+        } catch (e) {
+          body = null;
+          bodyError = (e && e.message) || String(e);
+        }
       }
       if (body) {
         try {
           await installPinnedPageInterception(page, body, log);
           console.log(
-            `[WinZapp] Serving pinned WhatsApp Web ${version} via a document-only ` +
+            `[WinZapp] Serving WhatsApp Web (${source}) via a document-only ` +
             'interception (worker requests left alone).'
           );
           // Consumed here — WPPConnect must not add its blanket interception.

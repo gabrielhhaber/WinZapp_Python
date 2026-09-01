@@ -205,3 +205,144 @@ class TestTheSourceSaysWhatToDoAboutIt:
         source = START_JS.read_text(encoding="utf-8")
         assert "EXPIRED" in source
         assert source.count("npm update @wppconnect/wa-version") >= 3
+
+
+# ── The expired-catalogue fallback ──────────────────────────────────────────
+#
+# When every local build has expired the old code had two options and both were
+# bad: pin a build Meta may already refuse, or run unpinned — and unpinned is
+# the one with the measured silent failure (usync hanging, isSendFailure with
+# ack 0, REST answering 200). Asking Meta for the document it is serving right
+# now beats both: the page is still substituted through our own document-only
+# interception, so the backend worker is never starved, and the build is by
+# definition one Meta still serves.
+
+LIVE_HARNESS = r"""
+'use strict';
+const scenario = JSON.parse(process.argv[2]);
+
+let waVersion = null;
+if (scenario.mode !== 'no-package') {
+  waVersion = {};
+  if (scenario.mode !== 'no-method') {
+    waVersion.fetchLatestAlpha = () => {
+      if (scenario.mode === 'throws') return Promise.reject(new Error('offline'));
+      if (scenario.mode === 'hangs') return new Promise(() => {});
+      return Promise.resolve(scenario.html);
+    };
+  }
+}
+
+__HELPER_SOURCE__
+
+(async () => {
+  const started = Date.now();
+  const html = await fetchLiveWhatsappDocument();
+  console.log('__RESULT__' + JSON.stringify({
+    ok: typeof html === 'string',
+    length: typeof html === 'string' ? html.length : 0,
+    elapsed: Date.now() - started,
+  }));
+  process.exit(0);
+})();
+"""
+
+
+def _helper_source():
+    """The real shipped source of fetchLiveWhatsappDocument(), plus the timeout
+    constant it reads.
+
+    Sliced on load-bearing code, like _selector_source() above: a reorder that
+    broke the slice raises ValueError here rather than quietly passing.
+    """
+    source = START_JS.read_text(encoding="utf-8")
+    start = source.index("const LIVE_DOCUMENT_FETCH_TIMEOUT_MS")
+    end = source.index("const whatsappVersion = resolveWhatsappVersion();", start)
+    return source[start:end]
+
+
+def _fetch_live(tmp_path, mode="ok", html=None):
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not on PATH")
+    if html is None:
+        html = "<!doctype html>" + ("x" * 2000) + "web.whatsapp.com"
+    harness = tmp_path / "live_harness.js"
+    harness.write_text(
+        LIVE_HARNESS.replace("__HELPER_SOURCE__", _helper_source()), encoding="utf-8")
+    proc = subprocess.run(
+        [node, str(harness), json.dumps({"mode": mode, "html": html})],
+        capture_output=True, text=True, timeout=60,
+    )
+    for line in proc.stdout.splitlines():
+        if line.startswith("__RESULT__"):
+            return json.loads(line[len("__RESULT__"):])
+    raise AssertionError(
+        f"live harness produced no result.\nexit={proc.returncode}\n"
+        f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+    )
+
+
+class TestTheLiveDocumentFallback:
+    def test_a_real_document_is_accepted(self, tmp_path):
+        assert _fetch_live(tmp_path)["ok"] is True
+
+    def test_a_network_failure_answers_none_instead_of_throwing(self, tmp_path):
+        """Startup must survive a dead network: the caller falls back to the
+        expired local build, which is still better than running unpinned."""
+        assert _fetch_live(tmp_path, mode="throws")["ok"] is False
+
+    def test_a_hanging_fetch_gives_up_on_the_budget(self, tmp_path):
+        """Pairing cannot be held hostage by a fetch that never answers."""
+        result = _fetch_live(tmp_path, mode="hangs")
+        assert result["ok"] is False
+        assert result["elapsed"] < 30000, "the timeout did not fire"
+
+    def test_an_older_wa_version_without_the_method_is_not_a_crash(self, tmp_path):
+        """fetchLatestAlpha is not in every published copy of the package."""
+        assert _fetch_live(tmp_path, mode="no-method")["ok"] is False
+
+    def test_no_package_at_all_is_not_a_crash(self, tmp_path):
+        assert _fetch_live(tmp_path, mode="no-package")["ok"] is False
+
+    @pytest.mark.parametrize("body, why", [
+        ("<html>Sign in to the hotel wifi</html>", "captive portal"),
+        ("", "empty body"),
+        ("<html>502 Bad Gateway</html>", "proxy error page"),
+    ])
+    def test_something_that_is_not_whatsapp_is_refused(self, tmp_path, body, why):
+        """Anything can answer an HTTP request. Serving a captive portal AS the
+        WhatsApp Web document would read as a WhatsApp bug, not a network one."""
+        assert _fetch_live(tmp_path, html=body)["ok"] is False, why
+
+    def test_a_long_page_that_never_mentions_whatsapp_is_refused(self, tmp_path):
+        assert _fetch_live(tmp_path, html="<html>" + ("y" * 5000) + "</html>")["ok"] is False
+
+
+class TestTheFallbackIsWiredOnlyToTheExpiredBranch:
+    """The live document must NOT become the default. A live build can be ahead
+    of what the bundled wa-js supports, which is the same silent-send failure by
+    another door; an unexpired pinned build is the known-good pairing."""
+
+    def test_the_flag_is_set_from_the_selection(self):
+        source = START_JS.read_text(encoding="utf-8")
+        assert "pinnedCatalogueExpired = Boolean(selected.expired);" in source
+
+    def test_the_fetch_is_guarded_by_that_flag(self):
+        source = START_JS.read_text(encoding="utf-8")
+        guard = source.index("if (pinnedCatalogueExpired) {")
+        call = source.index("await fetchLiveWhatsappDocument();")
+        assert guard < call, "the live fetch must sit inside the expired-only guard"
+
+    def test_the_local_read_still_happens_when_the_fetch_returned_nothing(self):
+        source = START_JS.read_text(encoding="utf-8")
+        assert "if (!body) {" in source
+        assert "waVersion.getPageContent(version)" in source
+
+    def test_it_never_falls_through_to_running_unpinned(self):
+        """The whole point: no path added here leaves WPPConnect to install its
+        blanket interception, which starves the backend worker."""
+        source = START_JS.read_text(encoding="utf-8")
+        start = source.index("if (pinnedCatalogueExpired) {")
+        end = source.index("if (body) {", start)
+        assert "version = undefined" not in source[start:end]
