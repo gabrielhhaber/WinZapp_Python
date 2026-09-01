@@ -44,6 +44,7 @@ class _FakeI18n:
         "status_read": "Lida",
         "status_played": "Reproduzida",
         "status_failed": "Falha ao enviar",
+        "status_pending": "Pendente",
         "time_fmt": "%H:%M",
         "datetime_fmt": "%d/%m/%Y %H:%M",
     }
@@ -53,8 +54,13 @@ class _FakeI18n:
 
 
 class _FakeMainWindow:
-    def __init__(self):
+    def __init__(self, self_jids=()):
         self.i18n = _FakeI18n()
+        # JIDs that should be treated as "me" — the self-chat ("Me") case.
+        self._self_jids = set(self_jids)
+
+    def _is_self_jid(self, jid):
+        return jid in self._self_jids
 
 
 def _panel():
@@ -161,3 +167,99 @@ class TestStatusHistoryLines:
         ], from_me=False)
         lines = p._status_history_lines(msg)
         assert lines == [f"Reproduzida: {_fmt(_T1)}"]
+
+
+SELF_JID = "5511999999999@s.whatsapp.net"
+OTHER_JID = "5511888888888@s.whatsapp.net"
+
+
+class TestStatusHistoryLinesSelfChat:
+    """Issue #95: the "Me" chat has only one participant, so
+    sent/delivered/read are never a real receipt there — only the "played"
+    stage (and a genuine failure) can still appear in the timeline."""
+
+    def _msg(self, updates, from_me=True, remote_jid=SELF_JID):
+        return {
+            "key": {"fromMe": from_me, "remoteJid": remote_jid},
+            "MessageUpdate": updates,
+        }
+
+    def test_sent_delivered_read_are_suppressed_in_the_self_chat(self):
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        msg = self._msg([
+            {"status": "2", "ts": _T0},
+            {"status": "3", "ts": _T1},
+            {"status": "4", "ts": _T2},
+        ])
+        assert p._status_history_lines(msg) == []
+
+    def test_played_still_shows_in_the_self_chat(self):
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        msg = self._msg([
+            {"status": "2", "ts": _T0},
+            {"status": "5", "ts": _T1},
+        ])
+        assert p._status_history_lines(msg) == [f"Reproduzida: {_fmt(_T1)}"]
+
+    def test_failure_still_shows_in_the_self_chat(self):
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        msg = self._msg([
+            {"status": "2", "ts": _T0},
+            {"status": "-1", "ts": _T1},
+        ])
+        assert p._status_history_lines(msg) == [f"Falha ao enviar: {_fmt(_T1)}"]
+
+    def test_a_different_chat_still_shows_the_full_timeline(self):
+        """Only the actual self-chat is affected — _is_self_jid returning
+        False for a normal 1:1/group chat must not change anything."""
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        msg = self._msg([
+            {"status": "2", "ts": _T0},
+            {"status": "3", "ts": _T1},
+            {"status": "4", "ts": _T2},
+        ], remote_jid=OTHER_JID)
+        assert p._status_history_lines(msg) == [
+            f"Enviada: {_fmt(_T0)}",
+            f"Entregue: {_fmt(_T1)}",
+            f"Lida: {_fmt(_T2)}",
+        ]
+
+
+class TestMapStatusSelfChat:
+    """Same issue #95 exception applied to _map_status() — the single-line
+    status shown in the message list, the chat list preview and (as a
+    fallback) the message data dialog."""
+
+    def _msg(self, status, from_me=True, remote_jid=SELF_JID):
+        return {"key": {"fromMe": from_me, "remoteJid": remote_jid}, "status": status}
+
+    @pytest.mark.parametrize("status", ["READ", "DELIVERED", "SENT"])
+    def test_receipt_statuses_are_suppressed_in_the_self_chat(self, status):
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        assert p._map_status(self._msg(status)) == ""
+
+    def test_failed_status_still_shows_in_the_self_chat(self):
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        assert p._map_status(self._msg("-1")) == "Falha ao enviar"
+
+    def test_played_status_still_shows_in_the_self_chat(self):
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        assert p._map_status(self._msg("PLAYED")) == "Reproduzida"
+
+    def test_pending_message_still_shows_in_the_self_chat(self):
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        msg = self._msg("READ")
+        msg["_local_pending"] = True
+        assert p._map_status(msg) == "Pendente"
+
+    def test_a_different_chat_still_shows_read(self):
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        msg = self._msg("READ", remote_jid=OTHER_JID)
+        assert p._map_status(msg) == "Lida"
+
+    def test_received_message_in_the_self_chat_is_unaffected(self):
+        """not from_me already returns "" before the self-chat check is ever
+        reached — this only pins that the two don't interact oddly."""
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        msg = self._msg("READ", from_me=False)
+        assert p._map_status(msg) == ""

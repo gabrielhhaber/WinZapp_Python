@@ -4,22 +4,32 @@ no-op there (there's no one else to delete it for), so the message stayed
 on every other linked device and reappeared in WinZapp itself after the
 next resync, while the app had told the user it was gone for everyone.
 
-_on_menu_delete_message() now detects the self-chat up front and skips the
+_on_menu_delete_message() detects the self-chat up front and skips the
 whole "delete for me / for everyone" dialog entirely, going straight to a
 plain local delete (delete_message_for_me) — matching the reporter's own
 suggested fix.
 
+Issue #95: that self-chat path used to fire with zero confirmation at all.
+It now shows a plain Delete/Cancel prompt (_confirm_local_only_delete) —
+no scope choice, since "for everyone" was never real here, just a yes/no on
+the delete itself — before actually deleting.
+
 ConversationsPanel is a wx.Panel and can't be instantiated without a
-running wx.App. The self-chat path returns before touching anything
-wx-specific (no dialog, no wx.Dialog(...) construction), so it's safe to
-exercise directly against a plain stub without a wx.App fixture at all —
-unlike the non-self-chat path, which is left untested here since it builds
-a real modal dialog.
+running wx.App, so wx.MessageDialog (the confirmation) is faked below
+rather than exercised for real — unlike the non-self-chat path, which is
+left untested here since it builds a real modal dialog.
 """
 
 import threading
 
+import wx
+
 from ui.conversations import ConversationsPanel
+
+
+class _FakeI18n:
+    def t(self, key):
+        return key
 
 
 class _FakeMainWindow:
@@ -27,7 +37,7 @@ class _FakeMainWindow:
         self._is_self_chat = is_self_chat
         self.delete_for_me_calls = []
         self.delete_for_everyone_calls = []
-        self.i18n = None  # unused on the self-chat path (returns before it's read)
+        self.i18n = _FakeI18n()
 
     def _is_self_jid(self, jid):
         return self._is_self_chat
@@ -42,10 +52,11 @@ class _FakeMainWindow:
 
 
 class _Stub:
-    _on_menu_delete_message     = ConversationsPanel._on_menu_delete_message
-    _delete_message_for_me_only = ConversationsPanel._delete_message_for_me_only
+    _on_menu_delete_message      = ConversationsPanel._on_menu_delete_message
+    _delete_message_for_me_only  = ConversationsPanel._delete_message_for_me_only
+    _confirm_local_only_delete   = ConversationsPanel._confirm_local_only_delete
     _is_separator                = ConversationsPanel._is_separator
-    _is_system_event              = lambda self, msg: False
+    _is_system_event             = lambda self, msg: False
 
     def __init__(self, jid, is_self_chat):
         self.main_window = _FakeMainWindow(is_self_chat)
@@ -71,8 +82,10 @@ def _run_and_join_threads(fn):
         t.join(timeout=2)
 
 
-class TestSelfChatSkipsTheDialog:
-    def test_self_chat_deletes_locally_only_without_any_dialog(self):
+class TestSelfChatSkipsTheScopeDialog:
+    def test_self_chat_deletes_locally_only_after_a_plain_confirm(self, monkeypatch):
+        monkeypatch.setattr(wx, "MessageDialog",
+                             lambda *a, **k: _FakeMessageDialog(wx.ID_YES))
         stub = _Stub(SELF_JID, is_self_chat=True)
 
         _run_and_join_threads(lambda: stub._on_menu_delete_message(0))
@@ -80,3 +93,50 @@ class TestSelfChatSkipsTheDialog:
         assert stub.removed_ids == [{"m1"}]
         assert len(stub.main_window.delete_for_me_calls) == 1
         assert stub.main_window.delete_for_everyone_calls == []
+
+    def test_declining_the_confirmation_deletes_nothing(self, monkeypatch):
+        monkeypatch.setattr(wx, "MessageDialog",
+                             lambda *a, **k: _FakeMessageDialog(wx.ID_NO))
+        stub = _Stub(SELF_JID, is_self_chat=True)
+
+        _run_and_join_threads(lambda: stub._on_menu_delete_message(0))
+
+        assert stub.removed_ids == []
+        assert stub.main_window.delete_for_me_calls == []
+        assert stub.main_window.delete_for_everyone_calls == []
+
+    def test_confirmation_offers_no_scope_choice(self, monkeypatch):
+        """No radios, no "for everyone" option — just Delete/Cancel."""
+        captured = {}
+
+        class _CapturingDialog(_FakeMessageDialog):
+            def __init__(self, parent, message, caption, style):
+                super().__init__(wx.ID_YES)
+                captured["message"] = message
+                captured["caption"] = caption
+
+            def SetYesNoLabels(self, yes, no):
+                captured["labels"] = (yes, no)
+
+        monkeypatch.setattr(wx, "MessageDialog", _CapturingDialog)
+        stub = _Stub(SELF_JID, is_self_chat=True)
+
+        _run_and_join_threads(lambda: stub._on_menu_delete_message(0))
+
+        assert captured["message"] == "delete_msg_confirm"
+        assert captured["caption"] == "delete_message"
+        assert captured["labels"] == ("delete_message", "cancel")
+
+
+class _FakeMessageDialog:
+    def __init__(self, result):
+        self._result = result
+
+    def SetYesNoLabels(self, yes, no):
+        pass
+
+    def ShowModal(self):
+        return self._result
+
+    def Destroy(self):
+        pass

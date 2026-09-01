@@ -142,6 +142,12 @@ class _FakeMainWindow:
     def add_chats_to_ui(self):
         pass
 
+    def _is_self_jid(self, jid):
+        # Overridden per-test (monkeypatch/attribute set) for the self-chat
+        # ("Me") bulk-delete cases; every other test's conversation is a
+        # regular group/individual chat.
+        return False
+
 
 class _FakeEvent:
     def __init__(self, key, ctrl=False, shift=False):
@@ -177,6 +183,7 @@ class _Panel:
     _on_mass_forward_messages = ConversationsPanel._on_mass_forward_messages
     _on_mass_save_messages = ConversationsPanel._on_mass_save_messages
     _on_mass_delete_messages = ConversationsPanel._on_mass_delete_messages
+    _confirm_local_only_delete = ConversationsPanel._confirm_local_only_delete
     _on_mass_copy_messages = ConversationsPanel._on_mass_copy_messages
     _on_mass_star_messages = ConversationsPanel._on_mass_star_messages
     _on_mass_pin_messages = ConversationsPanel._on_mass_pin_messages
@@ -741,6 +748,33 @@ def fake_delete_dialog(monkeypatch):
     return state
 
 
+@pytest.fixture
+def fake_confirm_dialog(monkeypatch):
+    """Fakes the wx.MessageDialog _confirm_local_only_delete() builds (the
+    plain Delete/Cancel prompt for the "Me" chat's local-only delete — no
+    running wx.App needed). Returns a dict the test sets before calling the
+    handler: result (wx.ID_YES/wx.ID_NO, default YES) and captures the
+    prompt/title/labels actually passed in."""
+    state = {"result": wx.ID_YES, "prompt": None, "title": None, "labels": None}
+
+    class _FakeMessageDialog:
+        def __init__(self, parent, message, caption, style):
+            state["prompt"] = message
+            state["title"] = caption
+
+        def SetYesNoLabels(self, yes, no):
+            state["labels"] = (yes, no)
+
+        def ShowModal(self):
+            return state["result"]
+
+        def Destroy(self):
+            pass
+
+    monkeypatch.setattr(wx, "MessageDialog", _FakeMessageDialog)
+    return state
+
+
 class TestMassChatActions:
     def test_clearing_applies_to_every_selected_chat(self, confirm_yes):
         panel = _Panel()
@@ -1053,6 +1087,59 @@ class TestMassMessageActions:
         assert panel.removed_locally == []
         assert panel.starred == []
         assert panel.pinned == []
+
+
+class TestSelfChatBulkDelete:
+    """Issue #95: the "Me" chat has only one participant, so "delete for
+    everyone" is a no-op there for every message (same reasoning as issue
+    #73's single-message fix). Bulk delete on that chat must skip the
+    for-me/for-everyone dialog entirely and go straight to a plain
+    Delete/Cancel confirmation, always deleting locally only."""
+
+    def test_skips_the_scope_dialog_and_deletes_locally_only(
+        self, fake_confirm_dialog, run_threads_inline
+    ):
+        panel = _Panel(messages=[_msg("m1", jid="me@s.whatsapp.net", from_me=True),
+                                  _msg("m2", jid="me@s.whatsapp.net", from_me=True)])
+        panel.conversation = {"remoteJid": "me@s.whatsapp.net"}
+        panel.main_window._is_self_jid = lambda jid: True
+        panel.selected_messages = {"m1", "m2"}
+
+        panel._on_mass_delete_messages(None)
+
+        assert sorted(k["id"] for _jid, k in panel.main_window.deleted_messages) == ["m1", "m2"]
+        assert panel.main_window.deleted_for_everyone == []
+        (removed, focus_previous), = panel.removed_locally
+        assert removed == {"m1", "m2"}
+        assert focus_previous is True
+        assert panel.selected_messages == set()
+        assert panel.main_window.announced == ["success_delete"]
+
+    def test_confirmation_names_the_count_not_a_single_message(self, fake_confirm_dialog, run_threads_inline):
+        panel = _Panel(messages=[_msg("m1", jid="me@s.whatsapp.net", from_me=True),
+                                  _msg("m2", jid="me@s.whatsapp.net", from_me=True)])
+        panel.conversation = {"remoteJid": "me@s.whatsapp.net"}
+        panel.main_window._is_self_jid = lambda jid: True
+        panel.selected_messages = {"m1", "m2"}
+
+        panel._on_mass_delete_messages(None)
+
+        assert fake_confirm_dialog["prompt"] == "Delete 2 selected messages?"
+        assert fake_confirm_dialog["title"] == "delete_messages_bulk_title"
+        assert fake_confirm_dialog["labels"] == ("delete_message", "cancel")
+
+    def test_declining_the_confirmation_deletes_nothing(self, fake_confirm_dialog, run_threads_inline):
+        fake_confirm_dialog["result"] = wx.ID_NO
+        panel = _Panel(messages=[_msg("m1", jid="me@s.whatsapp.net", from_me=True)])
+        panel.conversation = {"remoteJid": "me@s.whatsapp.net"}
+        panel.main_window._is_self_jid = lambda jid: True
+        panel.selected_messages = {"m1"}
+
+        panel._on_mass_delete_messages(None)
+
+        assert panel.main_window.deleted_messages == []
+        assert panel.removed_locally == []
+        assert panel.selected_messages == {"m1"}
 
 
 class _CapturedThread:

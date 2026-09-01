@@ -965,6 +965,7 @@
     "success_clear": "Conversas limpas.",
     "success_delete": "Apagado com sucesso.",
     "success_archive": "Conversas arquivadas.",
+    "delete_msg_confirm": "Tem certeza de que deseja apagar esta mensagem?",
     "delete_msg_confirm_bulk": "Tem certeza de que deseja apagar as {count} mensagens selecionadas?",
     "all_selected": "Tudo selecionado",
     "all_unselected": "Tudo desmarcado",

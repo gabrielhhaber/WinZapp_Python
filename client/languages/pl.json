@@ -965,6 +965,7 @@
     "success_clear": "Rozmowy wyczyszczone.",
     "success_delete": "Usunięto pomyślnie.",
     "success_archive": "Rozmowy zarchiwizowane.",
+    "delete_msg_confirm": "Czy na pewno chcesz usunąć tę wiadomość?",
     "delete_msg_confirm_bulk": "Czy na pewno chcesz usunąć {count} zaznaczonych wiadomości?",
     "all_selected": "Wszystko zaznaczone",
     "all_unselected": "Wszystko odznaczone",

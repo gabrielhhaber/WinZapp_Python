@@ -8373,6 +8373,18 @@ class ConversationsPanel(wx.Panel):
         if latest.startswith("-") or str(msg.get("status", "")).startswith("-"):
             return i18n.t("status_failed")
 
+        # The "Me" chat has only one participant — there is no one else to
+        # deliver to or read the message, so "Enviada"/"Entregue"/"Lida" are
+        # never a real receipt there, only a stale/misleading ack WPPConnect
+        # still happens to report (issue #95). Failure/pending/played above
+        # are left untouched: they are not receipts and stay meaningful.
+        conv = getattr(self, "conversation", None)
+        remote_jid = msg.get("key", {}).get("remoteJid", "") or (
+            conv.get("remoteJid", "") if conv else ""
+        )
+        if remote_jid and self.main_window._is_self_jid(remote_jid):
+            return ""
+
         for s in statuses:
             if "READ" in s or s == "4":
                 return i18n.t("status_read")
@@ -8418,7 +8430,18 @@ class ConversationsPanel(wx.Panel):
         updates = msg.get("MessageUpdate")
         if not isinstance(updates, list):
             return []
-        stage_order = ["sent", "delivered", "read", "played"] if from_me else ["played"]
+        # Same "Me" chat exception as _map_status(): sent/delivered/read are
+        # never a real receipt when the only participant is yourself, so only
+        # "played" (and, below, a genuine failure) can appear there.
+        conv = getattr(self, "conversation", None)
+        remote_jid = msg.get("key", {}).get("remoteJid", "") or (
+            conv.get("remoteJid", "") if conv else ""
+        )
+        is_self_chat = bool(remote_jid) and self.main_window._is_self_jid(remote_jid)
+        if from_me and not is_self_chat:
+            stage_order = ["sent", "delivered", "read", "played"]
+        else:
+            stage_order = ["played"]
         label_keys = {
             "sent": "status_sent", "delivered": "status_delivered",
             "read": "status_read", "played": "status_played",
@@ -10398,6 +10421,25 @@ class ConversationsPanel(wx.Panel):
             wx.OK | wx.ICON_WARNING,
         )
 
+    def _confirm_local_only_delete(self, count: int) -> bool:
+        """Plain Delete/Cancel confirmation for a delete whose scope is
+        already fixed to "for me only" — the "Me" chat's only real option
+        (issue #73: "for everyone" is a no-op there). There is no scope left
+        to choose, only the delete itself to confirm (issue #95). Shared by
+        the single-message self-chat branch of _on_menu_delete_message() and
+        the bulk self-chat branch of _on_mass_delete_messages()."""
+        i18n = self.main_window.i18n
+        title = i18n.t("delete_message") if count == 1 else i18n.t("delete_messages_bulk_title")
+        prompt = (
+            i18n.t("delete_msg_confirm") if count == 1
+            else i18n.t("delete_msg_confirm_bulk").format(count=count)
+        )
+        dlg = wx.MessageDialog(self, prompt, title, wx.YES_NO | wx.ICON_QUESTION)
+        dlg.SetYesNoLabels(i18n.t("delete_message"), i18n.t("cancel"))
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        return result == wx.ID_YES
+
     def _on_menu_delete_message(self, index: int):
         """Show delete-scope dialog and delete locally or for everyone.
 
@@ -10430,8 +10472,14 @@ class ConversationsPanel(wx.Panel):
         is_self_chat = bool(conv_jid) and self.main_window._is_self_jid(conv_jid)
         can_delete_for_all = from_me and not is_system and not is_self_chat
 
+        # There is only one scope possible here ("for me"), so there is
+        # nothing to choose — but a delete is still a delete, and used to fire
+        # with zero confirmation of any kind (issue #95). A plain Delete/
+        # Cancel prompt replaces the for-me/for-everyone dialog below, which
+        # would be misleading anyway (see the comment above).
         if is_self_chat and not is_system:
-            self._delete_message_for_me_only(msg, msg_id, index)
+            if self._confirm_local_only_delete(1):
+                self._delete_message_for_me_only(msg, msg_id, index)
             return
 
         if not can_delete_for_all and not is_system and self.conversation:
@@ -13764,6 +13812,30 @@ class ConversationsPanel(wx.Panel):
             if msg: msgs_to_delete.append(msg)
         if not msgs_to_delete:
             self.selected_messages.clear()
+            return
+
+        # The "Me" chat has only one participant, so "delete for everyone" is
+        # a no-op there for every message in the selection — same reasoning
+        # _on_menu_delete_message() applies to a single message (issue #73).
+        # Skip the for-me/for-everyone dialog below entirely and go straight
+        # to a plain Delete/Cancel confirmation (issue #95).
+        conv_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
+        is_self_chat = bool(conv_jid) and self.main_window._is_self_jid(conv_jid)
+        if is_self_chat:
+            if not self._confirm_local_only_delete(len(msgs_to_delete)):
+                return
+
+            def _delete_bg_self():
+                for msg in msgs_to_delete:
+                    msg_key = dict(msg.get("key", {}))
+                    jid = msg_key.get("remoteJid", "") or conv_jid
+                    if jid:
+                        self.main_window.delete_message_for_me(jid, msg_key)
+            threading.Thread(target=_delete_bg_self, daemon=True).start()
+
+            self.remove_messages_by_id(set(self.selected_messages), focus_previous=True)
+            self.selected_messages.clear()
+            self.main_window.output(i18n.t("success_delete"), interrupt=True)
             return
 
         admin_override = self._group_admin_delete_override()
