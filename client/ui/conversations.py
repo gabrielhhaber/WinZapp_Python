@@ -8169,7 +8169,7 @@ class ConversationsPanel(wx.Panel):
                 audio = msg.get("audioMessage") or {}
             dur   = self._format_duration(audio.get("seconds"))
             is_ptt = is_voice_message(msg)
-            vm_mode = (self.main_window.settings.get("user_interface", {}) if hasattr(self, "main_window") and self.main_window and hasattr(self.main_window, "settings") else {}).get("voice_message_mode", "audio")
+            vm_mode = (self.main_window.settings.get("user_interface", {}) if hasattr(self, "main_window") and self.main_window and hasattr(self.main_window, "settings") else {}).get("voice_message_mode", "voice_message")
             lbl = i18n.t("message_type_voice_message") if (vm_mode == "voice_message" and is_ptt) else i18n.t("message_type_audio")
             if not dur:
                 # Unknown duration (e.g. a non-.wav file sent via the
@@ -8816,7 +8816,7 @@ class ConversationsPanel(wx.Panel):
             return text
 
         # Support raw WPPConnect types and body/text keys
-        vm_mode = (self.main_window.settings.get("user_interface", {}) if hasattr(self, "main_window") and self.main_window and hasattr(self.main_window, "settings") else {}).get("voice_message_mode", "audio")
+        vm_mode = (self.main_window.settings.get("user_interface", {}) if hasattr(self, "main_window") and self.main_window and hasattr(self.main_window, "settings") else {}).get("voice_message_mode", "voice_message")
         use_voice_msg = (vm_mode == "voice_message")
         msg_type_raw = quoted_msg.get("type")
         if msg_type_raw:

@@ -88,7 +88,7 @@ def _status_content_label(msg_type: str, msg_obj: dict, i18n, settings: dict = N
         caption = ((msg_obj.get("videoMessage") or {}).get("caption") or "").strip()
         return f"{i18n.t('video')}: {caption}" if caption else i18n.t("video")
     if msg_type in ("audioMessage", "audio", "ptt"):
-        vm_mode = (settings.get("user_interface", {}) if isinstance(settings, dict) else {}).get("voice_message_mode", "audio")
+        vm_mode = (settings.get("user_interface", {}) if isinstance(settings, dict) else {}).get("voice_message_mode", "voice_message")
         if vm_mode == "voice_message":
             is_ptt = is_voice_message(msg_obj) or bool(isinstance(msg_obj, dict) and is_voice_message({"messageType": "audioMessage", "message": msg_obj}))
             return i18n.t("message_type_voice_message") if is_ptt else i18n.t("message_type_audio")
@@ -1578,7 +1578,7 @@ class StatusPanel(wx.Panel):
             item.update(kind="text", text=text)
             return item
 
-        vm_mode = (self.main_window.settings.get("user_interface", {}) if hasattr(self, "main_window") and self.main_window and hasattr(self.main_window, "settings") else {}).get("voice_message_mode", "audio")
+        vm_mode = (self.main_window.settings.get("user_interface", {}) if hasattr(self, "main_window") and self.main_window and hasattr(self.main_window, "settings") else {}).get("voice_message_mode", "voice_message")
         is_ptt = is_voice_message(msg_obj) or bool(isinstance(msg_obj, dict) and is_voice_message({"messageType": "audioMessage", "message": msg_obj}))
         audio_label_key = "message_type_voice_message" if (vm_mode == "voice_message" and is_ptt) else "message_type_audio"
         type_map = {

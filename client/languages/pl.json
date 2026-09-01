@@ -1000,6 +1000,7 @@
     "group_media_type_photos": "Zdjęcia",
     "group_media_type_videos": "Filmy",
     "group_media_type_audios": "Audio",
+    "group_media_type_voice_messages": "Wiadomości głosowe",
     "group_media_type_documents": "Dokumenty",
     "group_media_empty": "Brak multimediów dla wybranych typów",
     "group_media_count_label": "Elementy multimedialne: {count}",

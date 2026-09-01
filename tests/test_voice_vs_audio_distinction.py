@@ -9,6 +9,8 @@ import sys
 import types
 from unittest.mock import MagicMock
 
+import pytest
+
 try:
     import wx
     import wx.adv
@@ -167,6 +169,20 @@ class TestIsVoiceMessageHelper:
         }
         assert is_voice_message(msg) is False
 
+    def test_the_bare_ptt_message_type_is_enough(self):
+        """"ptt" IS the voice-note type. A record carrying only the type — no
+        inner audioMessage to read a flag off — used to fall through to the
+        flag check and be reported as a plain audio file, which was harmless
+        while both were one media category and is not now that they are two."""
+        assert is_voice_message({"messageType": "ptt"}) is True
+        assert is_voice_message({"messageType": "ptt", "message": {}}) is True
+
+    def test_a_bare_audio_message_type_is_not_a_voice_note(self):
+        """The other half of the same guard: absent any ptt evidence, an
+        audioMessage stays an audio file."""
+        assert is_voice_message({"messageType": "audioMessage"}) is False
+        assert is_voice_message({"messageType": "audio", "message": {}}) is False
+
 
 class TestConversationGetMessageContent:
     def test_ptt_voice_message_content_pt_br_distinct_mode(self):
@@ -316,3 +332,202 @@ class TestStatusAudioDistinction:
         audio_obj = {"audioMessage": {"ptt": False}}
         assert _status_content_label("audioMessage", ptt_obj, i18n, settings) == "áudio"
         assert _status_content_label("audioMessage", audio_obj, i18n, settings) == "áudio"
+
+
+class TestTheDefaultMode:
+    """The default is "voice_message": distinguishing a voice note from an
+    audio file is the normal behaviour, not the opt-in one.
+
+    It used to be "audio", and the switch is only half of the change — see
+    TestTheDefaultModeMigration for the other half. What this class pins is
+    that there is exactly *one* answer to "what does WinZapp do when nothing
+    is saved": a `.get("voice_message_mode", ...)` fallback that disagrees
+    with DEFAULT_SETTINGS is a silent per-call-site divergence, and there are
+    nine of those fallback reads across five modules.
+    """
+
+    def test_the_default_distinguishes_voice_notes(self):
+        from core.utils import DEFAULT_SETTINGS
+        assert DEFAULT_SETTINGS["user_interface"]["voice_message_mode"] == "voice_message"
+
+    def test_the_seed_file_agrees_with_it(self):
+        import json
+        from pathlib import Path
+        from core.utils import DEFAULT_SETTINGS
+        seed = json.loads(
+            (Path(__file__).resolve().parents[1]
+             / "client" / "data" / "settings_default.json").read_text(encoding="utf-8")
+        )
+        assert (seed["user_interface"]["voice_message_mode"]
+                == DEFAULT_SETTINGS["user_interface"]["voice_message_mode"])
+
+    def test_no_call_site_falls_back_to_a_different_mode(self):
+        """Scans the client for a literal fallback rather than testing each
+        one by hand: a new call site copied from an old one is exactly how the
+        previous default would come back."""
+        import re
+        from pathlib import Path
+        from core.utils import DEFAULT_SETTINGS
+
+        expected = DEFAULT_SETTINGS["user_interface"]["voice_message_mode"]
+        # Both quote styles, and \s matches the newline of the one call site
+        # that wraps its arguments (settings_dialog._load_ui_page).
+        pattern = re.compile(
+            r"""['"]voice_message_mode['"]\s*,\s*['"]([a-z_]*)['"]""")
+        client = Path(__file__).resolve().parents[1] / "client"
+        divergent = []
+        found_any = 0
+        for path in client.rglob("*.py"):
+            if "api" in path.parts or "node" in path.parts:
+                continue
+            for found in pattern.findall(path.read_text(encoding="utf-8")):
+                found_any += 1
+                if found != expected:
+                    divergent.append(f"{path.name}: {found}")
+        assert divergent == []
+        # A scan that matches nothing passes vacuously, which is how a regex
+        # broken by a reformat would go unnoticed.
+        assert found_any >= 8, f"the scan matched only {found_any} call sites"
+
+
+class TestTheDefaultModeMigration:
+    """core.utils.migrate_voice_message_mode_default().
+
+    Changing the default alone would have reached nobody: settings.json is
+    seeded from settings_default.json, so every existing install has the
+    literal old value saved. The users who asked for this change are exactly
+    the ones with such a file.
+    """
+
+    @staticmethod
+    def _settings(mode=..., **general):
+        settings = {"user_interface": {}, "general": dict(general)}
+        if mode is not ...:
+            settings["user_interface"]["voice_message_mode"] = mode
+        return settings
+
+    def test_a_saved_audio_becomes_voice_message(self):
+        from core.utils import migrate_voice_message_mode_default
+        settings = self._settings("audio")
+        assert migrate_voice_message_mode_default(settings) is True
+        assert settings["user_interface"]["voice_message_mode"] == "voice_message"
+
+    def test_it_records_that_it_ran(self):
+        from core.utils import (VOICE_MESSAGE_MODE_MIGRATION_FLAG,
+                                migrate_voice_message_mode_default)
+        settings = self._settings("audio")
+        migrate_voice_message_mode_default(settings)
+        assert settings["general"][VOICE_MESSAGE_MODE_MIGRATION_FLAG] is True
+
+    def test_it_only_runs_once(self):
+        """The whole point of the flag: a user who goes back to Configuracoes
+        and picks "Audio" again must keep it."""
+        from core.utils import migrate_voice_message_mode_default
+        settings = self._settings("audio")
+        migrate_voice_message_mode_default(settings)
+        settings["user_interface"]["voice_message_mode"] = "audio"   # user's choice
+        assert migrate_voice_message_mode_default(settings) is False
+        assert settings["user_interface"]["voice_message_mode"] == "audio"
+
+    def test_a_file_already_on_the_new_mode_only_gains_the_flag(self):
+        from core.utils import migrate_voice_message_mode_default
+        settings = self._settings("voice_message")
+        assert migrate_voice_message_mode_default(settings) is True
+        assert settings["user_interface"]["voice_message_mode"] == "voice_message"
+
+    def test_a_missing_value_is_left_absent(self):
+        """backfill_missing_defaults() writes the new default straight after;
+        inserting it here would only duplicate that."""
+        from core.utils import migrate_voice_message_mode_default
+        settings = self._settings()
+        assert migrate_voice_message_mode_default(settings) is True
+        assert "voice_message_mode" not in settings["user_interface"]
+
+    @pytest.mark.parametrize("junk", ["banana", "", 3, None, ["audio"]])
+    def test_an_unrecognized_value_is_not_rewritten(self, junk):
+        from core.utils import migrate_voice_message_mode_default
+        settings = self._settings(junk)
+        assert migrate_voice_message_mode_default(settings) is True
+        assert settings["user_interface"]["voice_message_mode"] == junk
+
+    def test_a_missing_section_does_not_raise(self):
+        from core.utils import migrate_voice_message_mode_default
+        for settings in ({}, {"user_interface": None}, {"general": "texto"}):
+            assert migrate_voice_message_mode_default(settings) is True
+
+    def test_junk_settings_are_refused(self):
+        from core.utils import migrate_voice_message_mode_default
+        assert migrate_voice_message_mode_default(None) is False
+        assert migrate_voice_message_mode_default("texto") is False
+
+    def test_it_has_its_own_flag(self):
+        """Separate from the media-types migration: an install that already
+        ran that one must still be moved onto the new default."""
+        from core.utils import (VOICE_MEDIA_TYPE_MIGRATION_FLAG,
+                                VOICE_MESSAGE_MODE_MIGRATION_FLAG,
+                                migrate_voice_message_mode_default)
+        assert VOICE_MESSAGE_MODE_MIGRATION_FLAG != VOICE_MEDIA_TYPE_MIGRATION_FLAG
+        settings = self._settings("audio", **{VOICE_MEDIA_TYPE_MIGRATION_FLAG: True})
+        assert migrate_voice_message_mode_default(settings) is True
+        assert settings["user_interface"]["voice_message_mode"] == "voice_message"
+
+    def test_a_second_launch_keeps_what_the_user_picked_afterwards(self):
+        """Both migrations end to end through MainWindow._migrate_settings(),
+        over a settings.json that carries no flags — i.e. the state a real
+        install is in the moment it updates, not a pre-flagged fixture.
+
+        The launch after the update must change nothing and save nothing:
+        every value here is byte-identical to what the migration produces,
+        so only the flags tell "the user picked this" from "we never ran".
+        """
+        from main import MainWindow
+
+        class _Stub:
+            _migrate_settings = MainWindow._migrate_settings
+
+            def __init__(self, settings):
+                self.settings = settings
+                self.save_calls = 0
+
+            def save_settings(self):
+                self.save_calls += 1
+
+        settings = {
+            "user_interface": {"voice_message_mode": "audio",
+                               "group_media_default_types": ["photos", "audios"]},
+            "storage": {"auto_download_media_types": ["audios"]},
+            "general": {},
+        }
+        mw = _Stub(settings)
+        mw._migrate_settings()
+        assert settings["user_interface"]["voice_message_mode"] == "voice_message"
+        assert settings["user_interface"]["group_media_default_types"] == [
+            "photos", "audios", "voice_messages"]
+        assert settings["storage"]["auto_download_media_types"] == [
+            "audios", "voice_messages"]
+        assert mw.save_calls == 1
+
+        # The user goes to Configuracoes and puts both back the way they were.
+        settings["user_interface"]["voice_message_mode"] = "audio"
+        settings["user_interface"]["group_media_default_types"] = ["photos", "audios"]
+        settings["storage"]["auto_download_media_types"] = ["audios"]
+
+        mw._migrate_settings()          # next launch
+
+        assert settings["user_interface"]["voice_message_mode"] == "audio"
+        assert settings["user_interface"]["group_media_default_types"] == [
+            "photos", "audios"]
+        assert settings["storage"]["auto_download_media_types"] == ["audios"]
+        assert mw.save_calls == 1, "an already-migrated settings.json was rewritten"
+
+    def test_the_loader_runs_it_and_saves(self):
+        """A migration that runs without reaching disk re-runs every launch —
+        and would undo the user's choice each time. _migrate_settings() is
+        where it belongs, and its save_settings() call is what makes it
+        one-shot."""
+        import inspect
+        from main import MainWindow
+        src = inspect.getsource(MainWindow._migrate_settings)
+        assert "migrate_voice_message_mode_default(self.settings)" in src
+        assert "changed = True" in src
+        assert "self.save_settings()" in src

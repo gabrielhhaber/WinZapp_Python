@@ -1242,7 +1242,7 @@ class SettingsDialog(wx.Dialog):
         self._status_media_viewer_dialog_cb.SetValue(bool(status_media_viewer_dialog))
 
         voice_message_mode = self.main_window.settings.get("user_interface", {}).get(
-            "voice_message_mode", "audio"
+            "voice_message_mode", "voice_message"
         )
         if voice_message_mode == "voice_message":
             self._voice_msg_mode_voice_rb.SetValue(True)
@@ -2168,7 +2168,7 @@ class SettingsDialog(wx.Dialog):
         ] = self._status_media_viewer_dialog_cb.GetValue()
         # UI: reading voice messages in chats and status
         voice_message_mode = "voice_message" if self._voice_msg_mode_voice_rb.GetValue() else "audio"
-        old_vm_mode = self.main_window.settings.get("user_interface", {}).get("voice_message_mode", "audio")
+        old_vm_mode = self.main_window.settings.get("user_interface", {}).get("voice_message_mode", "voice_message")
         vm_mode_changed = (old_vm_mode != voice_message_mode)
         self.main_window.settings.setdefault("user_interface", {})[
             "voice_message_mode"

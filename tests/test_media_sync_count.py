@@ -195,9 +195,12 @@ class TestAutoDownloadTypeFilter:
     about what the app fetches without being asked.
     """
 
-    def _msg(self, message_type="imageMessage"):
-        return {"key": {"id": "3EB0AA"}, "messageType": message_type,
-                "messageTimestamp": int(time.time())}
+    def _msg(self, message_type="imageMessage", inner=None):
+        msg = {"key": {"id": "3EB0AA"}, "messageType": message_type,
+               "messageTimestamp": int(time.time())}
+        if inner is not None:
+            msg["message"] = inner
+        return msg
 
     def test_an_unchecked_category_is_not_downloaded(self):
         stub = _SyncIfMediaStub(allowed_types=["videos", "audios", "documents"])
@@ -227,13 +230,20 @@ class TestAutoDownloadTypeFilter:
 
     def test_each_category_can_be_switched_off_on_its_own(self):
         from core.utils import AUTO_DOWNLOAD_MEDIA_TYPES
-        sample = {"photos": "imageMessage", "videos": "videoMessage",
-                  "audios": "audioMessage", "documents": "documentMessage"}
+        # A voice note is an audioMessage like any other — the ptt flag, not
+        # the message type, is what puts it in its own category, so that one
+        # sample carries a payload rather than just a type name.
+        sample = {"photos": {"message_type": "imageMessage"},
+                  "videos": {"message_type": "videoMessage"},
+                  "audios": {"message_type": "audioMessage"},
+                  "voice_messages": {"message_type": "audioMessage",
+                                     "inner": {"audioMessage": {"ptt": True}}},
+                  "documents": {"message_type": "documentMessage"}}
         assert set(sample) == set(AUTO_DOWNLOAD_MEDIA_TYPES), \
             "a new category needs a message type here"
-        for category, message_type in sample.items():
+        for category, kwargs in sample.items():
             others = [k for k in AUTO_DOWNLOAD_MEDIA_TYPES if k != category]
             assert _SyncIfMediaStub(allowed_types=others).sync_if_media(
-                self._msg(message_type)) is False
+                self._msg(**kwargs)) is False
             assert _SyncIfMediaStub(allowed_types=[category]).sync_if_media(
-                self._msg(message_type)) is True
+                self._msg(**kwargs)) is True

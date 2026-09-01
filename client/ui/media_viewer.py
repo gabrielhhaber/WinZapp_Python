@@ -362,7 +362,7 @@ class MediaViewerDialog(wx.Dialog):
         elif kind == "audio":
             item = self._current_item()
             is_ptt = is_voice_message(item) or bool(item.get("is_ptt"))
-            vm_mode = (self.main_window.settings.get("user_interface", {}) if hasattr(self, "main_window") and self.main_window and hasattr(self.main_window, "settings") else {}).get("voice_message_mode", "audio")
+            vm_mode = (self.main_window.settings.get("user_interface", {}) if hasattr(self, "main_window") and self.main_window and hasattr(self.main_window, "settings") else {}).get("voice_message_mode", "voice_message")
             label = self.i18n.t("message_type_voice_message") if (vm_mode == "voice_message" and is_ptt) else self.i18n.t("message_type_audio")
         elif kind == "text":
             label = self.i18n.t("media_viewer_text_status")

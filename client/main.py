@@ -57,7 +57,7 @@ from core.incremental_sync import (
 )
 from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
-from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows
+from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
 from core.database_bridge import DatabaseBridge
@@ -8910,6 +8910,19 @@ class MainWindow(wx.Frame):
             if event_keys & events.keys():
                 self.settings["sound_events"] = {DEFAULT_PACK_ID: events}
                 changed = True
+        # "audios" split into "audios" + "voice_messages": a list saved before
+        # the split has to inherit the old box's state, or every existing user
+        # silently loses voice notes from the Media tab and the auto-download.
+        # Runs here rather than at each read site because it can only be done
+        # once — see migrate_voice_messages_media_types().
+        if migrate_voice_messages_media_types(self.settings):
+            changed = True
+        # voice_message_mode default "audio" -> "voice_message": every
+        # existing settings.json has the old value written out, so the new
+        # default only reaches anyone through a conversion. One shot, with
+        # its own flag — see migrate_voice_message_mode_default().
+        if migrate_voice_message_mode_default(self.settings):
+            changed = True
         if changed:
             self.save_settings()
 
@@ -24362,7 +24375,7 @@ class MainWindow(wx.Frame):
                             orig_text = ((orig_obj.get("extendedTextMessage") or {}).get("text") or "")
                         elif orig_type in ("audioMessage", "audio", "ptt"):
                             is_ptt = is_voice_message(m) or bool(isinstance(orig_obj, dict) and is_voice_message({"messageType": "audioMessage", "message": orig_obj}))
-                            vm_mode = self.settings.get("user_interface", {}).get("voice_message_mode", "audio")
+                            vm_mode = self.settings.get("user_interface", {}).get("voice_message_mode", "voice_message")
                             orig_text = i18n.t("message_type_voice_message") if (vm_mode == "voice_message" and is_ptt) else i18n.t("message_type_audio")
                         elif orig_type == "videoMessage":
                             orig_text = i18n.t("video")
@@ -24482,7 +24495,7 @@ class MainWindow(wx.Frame):
             audio_inner = (msg_obj.get("audioMessage") or {}) if isinstance(msg_obj, dict) else {}
             dur = _dur(audio_inner.get("seconds"))
             is_ptt = is_voice_message(last) or bool(isinstance(msg_obj, dict) and is_voice_message({"messageType": "audioMessage", "message": msg_obj}))
-            vm_mode = self.settings.get("user_interface", {}).get("voice_message_mode", "audio")
+            vm_mode = self.settings.get("user_interface", {}).get("voice_message_mode", "voice_message")
             lbl = i18n.t("message_type_voice_message") if (vm_mode == "voice_message" and is_ptt) else i18n.t("message_type_audio")
             content = f"{lbl} {dur}".strip()
         elif msg_type == "videoMessage":

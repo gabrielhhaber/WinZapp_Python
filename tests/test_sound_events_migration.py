@@ -18,6 +18,8 @@ tests/test_reported_bugfixes.py.
 
 from main import MainWindow
 from core.sound_system import DEFAULT_PACK_ID
+from core.utils import (VOICE_MEDIA_TYPE_MIGRATION_FLAG,
+                        VOICE_MESSAGE_MODE_MIGRATION_FLAG)
 
 
 class _MainWindowStub:
@@ -25,6 +27,15 @@ class _MainWindowStub:
 
     def __init__(self, settings):
         self.settings = settings
+        # _migrate_settings() runs every one-shot migration, and each of them
+        # writes its own flag the first time — which would save the settings
+        # here even when the sound-events migration, the only one this file is
+        # about, did nothing. Mark the others as already done so save_calls
+        # keeps answering the question these tests are asking.
+        self.settings.setdefault("general", {}).update({
+            VOICE_MEDIA_TYPE_MIGRATION_FLAG: True,
+            VOICE_MESSAGE_MODE_MIGRATION_FLAG: True,
+        })
         self.save_calls = 0
 
     def save_settings(self):

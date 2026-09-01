@@ -17,9 +17,11 @@ import pytest
 from core.utils import (
     AUTO_DOWNLOAD_MEDIA_TYPES,
     GROUP_MEDIA_TYPES,
+    VOICE_MEDIA_TYPE_MIGRATION_FLAG,
     auto_download_allows,
     filter_group_media,
     group_media_category,
+    migrate_voice_messages_media_types,
     DEFAULT_SETTINGS,
 )
 
@@ -28,13 +30,19 @@ def _msg(msg_type, mid="m1"):
     return {"key": {"id": mid}, "messageType": msg_type, "message": {}}
 
 
+def _voice(mid="v1"):
+    """A voice note as WPPConnect delivers it: an audioMessage carrying ptt."""
+    return {"key": {"id": mid}, "messageType": "audioMessage",
+            "message": {"audioMessage": {"ptt": True, "seconds": 7}}}
+
+
 class TestTheCategories:
     @pytest.mark.parametrize("msg_type,expected", [
         ("imageMessage", "photos"),
         ("stickerMessage", "photos"),
         ("videoMessage", "videos"),
         ("audioMessage", "audios"),
-        ("ptt", "audios"),
+        ("ptt", "voice_messages"),
         ("documentMessage", "documents"),
     ])
     def test_media_types_map_to_a_category(self, msg_type, expected):
@@ -47,13 +55,32 @@ class TestTheCategories:
     def test_non_media_has_no_category(self, msg_type):
         assert group_media_category(_msg(msg_type)) == ""
 
-    def test_a_voice_note_counts_as_audio(self):
-        """Voice notes and audio files are one thing to someone looking for
-        "the audio someone sent" — splitting them would leave a voice note
-        invisible under any single box."""
-        ptt = _msg("audioMessage")
-        ptt["message"] = {"audioMessage": {"ptt": True}}
-        assert group_media_category(ptt) == "audios"
+    def test_a_voice_note_is_its_own_category(self):
+        """Users asked to filter one without the other, so a voice note is
+        never "audios" — its messageType is "audioMessage" like any audio
+        file, which is why is_voice_message() has to be consulted before the
+        message-type table."""
+        assert group_media_category(_voice()) == "voice_messages"
+
+    def test_an_audio_file_is_not_a_voice_note(self):
+        """The other direction, and the one a wrong ptt test breaks: an audio
+        file must stay under "Áudios" alone."""
+        audio = _msg("audioMessage")
+        audio["message"] = {"audioMessage": {"ptt": False, "seconds": 200}}
+        assert group_media_category(audio) == "audios"
+        assert group_media_category(_msg("audioMessage")) == "audios"
+
+    def test_a_stray_ptt_flag_does_not_move_a_photo(self):
+        """is_voice_message() answers a top-level ptt/isPtt flag before it
+        looks at the message type at all — correct where it is asked about a
+        known audio, and a silent reclassification here: a photo filed under
+        voice notes disappears from "Fotos" and is judged against the wrong
+        auto-download checkbox."""
+        assert group_media_category(
+            {"messageType": "imageMessage", "message": {"imageMessage": {}},
+             "ptt": True}) == "photos"
+        assert group_media_category(
+            {"messageType": "documentMessage", "isPtt": True}) == "documents"
 
     def test_junk_records_do_not_raise(self):
         assert group_media_category(None) == ""
@@ -66,6 +93,17 @@ class TestTheFilter:
         records = [_msg("imageMessage"), _msg("videoMessage"), _msg("documentMessage")]
         assert len(filter_group_media(records, ("photos",))) == 1
         assert len(filter_group_media(records, ("photos", "videos"))) == 2
+
+    def test_voice_notes_and_audio_files_filter_apart(self):
+        """The reason for the split: checking one box must not drag the other
+        category in. Both directions, because a category that matched
+        everything would pass a one-sided test."""
+        records = [_msg("audioMessage", "a"), _voice("v")]
+        assert [m["key"]["id"] for m
+                in filter_group_media(records, ("audios",))] == ["a"]
+        assert [m["key"]["id"] for m
+                in filter_group_media(records, ("voice_messages",))] == ["v"]
+        assert len(filter_group_media(records, ("audios", "voice_messages"))) == 2
 
     def test_text_is_excluded_whatever_is_checked(self):
         """The tab is a media browser, not a filtered conversation."""
@@ -807,6 +845,18 @@ class TestAutoDownloadAllows:
         assert auto_download_allows(
             self._settings("videos"), self._media("imageMessage")) is False
 
+    def test_voice_notes_and_audio_files_are_chosen_separately(self):
+        """A user who wants voice notes fetched but not the 30 MB music file
+        someone forwarded — the reason "audios" was split in the first place."""
+        voice = _voice()
+        audio = self._media("audioMessage")
+        only_voice = self._settings("voice_messages")
+        only_audio = self._settings("audios")
+        assert auto_download_allows(only_voice, voice) is True
+        assert auto_download_allows(only_voice, audio) is False
+        assert auto_download_allows(only_audio, audio) is True
+        assert auto_download_allows(only_audio, voice) is False
+
     def test_no_setting_at_all_allows_everything(self):
         """What a settings.json predating the option looks like. Reading it as
         "nothing selected" would stop every media download for existing
@@ -840,3 +890,91 @@ class TestAutoDownloadAllows:
         """Derived from GROUP_MEDIA_TYPES rather than written out, so a new
         category cannot silently become undownloadable."""
         assert set(AUTO_DOWNLOAD_MEDIA_TYPES) == set(GROUP_MEDIA_TYPES) - {"links"}
+
+
+class TestTheVoiceMessagesMigration:
+    """core.utils.migrate_voice_messages_media_types().
+
+    "audios" used to mean audio files AND voice notes. Splitting it in two
+    would, read literally, leave every existing settings.json with the new box
+    unchecked — voice notes silently gone from the Media tab and never
+    auto-downloaded, on the first launch after an update nobody asked for.
+    """
+
+    @staticmethod
+    def _settings(ui_types=..., storage_types=..., **general):
+        settings = {"user_interface": {}, "storage": {}, "general": dict(general)}
+        if ui_types is not ...:
+            settings["user_interface"]["group_media_default_types"] = ui_types
+        if storage_types is not ...:
+            settings["storage"]["auto_download_media_types"] = storage_types
+        return settings
+
+    def test_a_checked_audios_box_ticks_voice_messages_too(self):
+        settings = self._settings(["photos", "audios"], ["audios", "documents"])
+        assert migrate_voice_messages_media_types(settings) is True
+        assert settings["user_interface"]["group_media_default_types"] == [
+            "photos", "audios", "voice_messages"]
+        assert settings["storage"]["auto_download_media_types"] == [
+            "audios", "voice_messages", "documents"]
+
+    def test_the_rebuilt_list_is_in_category_order(self):
+        """So a migrated file is indistinguishable from one the dialogs saved."""
+        settings = self._settings(["links", "audios", "photos"])
+        migrate_voice_messages_media_types(settings)
+        saved = settings["user_interface"]["group_media_default_types"]
+        assert saved == [k for k in GROUP_MEDIA_TYPES if k in saved]
+
+    def test_an_empty_list_stays_empty(self):
+        """Unchecking everything is a real choice, and "nothing" never meant
+        "voice notes as well"."""
+        settings = self._settings([], [])
+        migrate_voice_messages_media_types(settings)
+        assert settings["user_interface"]["group_media_default_types"] == []
+        assert settings["storage"]["auto_download_media_types"] == []
+
+    def test_a_list_without_audios_does_not_gain_voice_messages(self):
+        settings = self._settings(["photos", "videos"])
+        migrate_voice_messages_media_types(settings)
+        assert settings["user_interface"]["group_media_default_types"] == [
+            "photos", "videos"]
+
+    def test_a_missing_or_corrupt_value_is_left_alone(self):
+        """Every reader treats those as "all categories" already; writing a
+        list here would turn an un-chosen default into a saved choice."""
+        settings = self._settings()
+        assert migrate_voice_messages_media_types(settings) is True
+        assert settings["user_interface"] == {}
+        corrupt = self._settings("audios")
+        migrate_voice_messages_media_types(corrupt)
+        assert corrupt["user_interface"]["group_media_default_types"] == "audios"
+
+    def test_it_only_runs_once(self):
+        """A list holding "audios" without "voice_messages" is byte-identical
+        before the migration and after the user unchecks "Mensagens de voz" —
+        only the flag tells them apart, so without it every launch would
+        re-tick the box the user just unticked."""
+        settings = self._settings(["audios"])
+        migrate_voice_messages_media_types(settings)
+        settings["user_interface"]["group_media_default_types"] = ["audios"]
+        assert migrate_voice_messages_media_types(settings) is False
+        assert settings["user_interface"]["group_media_default_types"] == ["audios"]
+
+    def test_it_records_that_it_ran(self):
+        settings = self._settings(["audios"])
+        migrate_voice_messages_media_types(settings)
+        assert settings["general"][VOICE_MEDIA_TYPE_MIGRATION_FLAG] is True
+
+    def test_junk_settings_are_refused(self):
+        assert migrate_voice_messages_media_types(None) is False
+        assert migrate_voice_messages_media_types("texto") is False
+        assert migrate_voice_messages_media_types({}) is True
+
+    def test_the_loader_runs_it_and_saves(self):
+        """A migration whose result never reaches disk runs again next launch,
+        undoing whatever the user changed in between."""
+        import inspect
+        from main import MainWindow
+        src = inspect.getsource(MainWindow._migrate_settings)
+        assert "migrate_voice_messages_media_types(self.settings)" in src
+        assert "self.save_settings()" in src

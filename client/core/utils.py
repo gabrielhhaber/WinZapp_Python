@@ -247,6 +247,13 @@ def is_voice_message(msg) -> bool:
     msg_type = msg.get("messageType") or msg.get("type")
     if msg_type not in ("audioMessage", "audio", "ptt"):
         return False
+    if msg_type == "ptt":
+        # "ptt" IS the voice-note type — the name says so. It used to fall
+        # through to the ptt-flag check below, which a record carrying only
+        # the type (no inner audioMessage) failed, reporting a voice note as a
+        # plain audio file. Harmless while both were one category; not once
+        # they are two.
+        return True
     msg_obj = msg.get("message")
     inner = (msg_obj.get("audioMessage") or {}) if isinstance(msg_obj, dict) else {}
     if not inner and isinstance(msg.get("audioMessage"), dict):
@@ -266,19 +273,41 @@ def is_voice_message(msg) -> bool:
 # user_interface.group_media_default_types - so renaming one silently drops a
 # user's saved choice, exactly like SOUND_EVENTS' keys.
 #
-# "audios" deliberately covers BOTH voice notes and audio files: they are one
-# thing to a user looking for "the audio someone sent", and splitting them
-# would leave a voice note invisible under any single box. is_voice_message()
-# still separates them everywhere the distinction matters (playback, the
-# message-type label).
-GROUP_MEDIA_TYPES = ("photos", "videos", "audios", "documents", "links")
+# "audios" and "voice_messages" are two categories, not one. They used to be
+# one — deliberately, on the reasoning that both are "the audio someone sent"
+# — but users asked for the split: they want the Media tab to show only voice
+# notes (or only music/audio files), and they want to choose whether the
+# automatic download fetches one, the other or both. is_voice_message() is the
+# single test that separates them, here as everywhere else.
+#
+# The risk the old grouping was avoiding is real and is handled by a migration
+# rather than by the grouping: a settings.json written before this split has
+# "audios" saved and cannot have "voice_messages", so read literally it would
+# leave every existing user's voice notes unchecked — invisible in the Media
+# tab and never auto-downloaded — silently, on the first launch after the
+# update. migrate_voice_messages_media_types() below inherits the "audios"
+# state into the new key once, at settings-load time.
+GROUP_MEDIA_TYPES = ("photos", "videos", "audios", "voice_messages",
+                     "documents", "links")
 
 _GROUP_MEDIA_MESSAGE_TYPES = {
     "photos":    ("imageMessage", "image", "stickerMessage", "sticker"),
     "videos":    ("videoMessage", "video"),
-    "audios":    ("audioMessage", "audio", "ptt"),
+    # No "ptt" here: group_media_category() tests is_voice_message() before
+    # this table, so a PTT never reaches it. Leaving it would only look like
+    # the two categories disagree.
+    "audios":    ("audioMessage", "audio"),
     "documents": ("documentMessage", "document"),
 }
+
+# The message types a voice note can possibly arrive under. is_voice_message()
+# answers "is this audio a voice note" for records already known to be audio,
+# so it honours a top-level ptt/isPtt flag BEFORE looking at the type at all —
+# right at its own call sites, wrong as a category test: a photo record
+# carrying a stray truthy "ptt" would be filed under voice notes and vanish
+# from "Fotos" (and be judged against the wrong auto-download checkbox).
+# group_media_category() gates on the type first.
+_VOICE_CAPABLE_MESSAGE_TYPES = ("audioMessage", "audio", "ptt")
 
 
 # Same shape conversations._URL_RE matches, kept here rather than imported so
@@ -320,6 +349,13 @@ def group_media_category(msg) -> str:
     if not isinstance(msg, dict):
         return ""
     msg_type = msg.get("messageType") or msg.get("type") or ""
+    # Before the type table, not inside it: a voice note's messageType is
+    # "audioMessage" too, so the table would claim it as "audios" first and
+    # the new category would never match anything. Gated on the type as well —
+    # see _VOICE_CAPABLE_MESSAGE_TYPES for why that gate has to be here even
+    # though is_voice_message() has a type check of its own.
+    if msg_type in _VOICE_CAPABLE_MESSAGE_TYPES and is_voice_message(msg):
+        return "voice_messages"
     for category, types in _GROUP_MEDIA_MESSAGE_TYPES.items():
         if msg_type in types:
             return category
@@ -338,6 +374,118 @@ def group_media_category(msg) -> str:
 # Derived from GROUP_MEDIA_TYPES rather than written out, so a category added
 # there appears here too instead of silently becoming undownloadable.
 AUTO_DOWNLOAD_MEDIA_TYPES = tuple(k for k in GROUP_MEDIA_TYPES if k != "links")
+
+
+# Marks that the one-shot "audios" -> "audios" + "voice_messages" migration has
+# already run for this install. A flag, not a shape check, because there is no
+# shape to check: after the migration, a list holding "audios" without
+# "voice_messages" is exactly what a user who unchecked "Mensagens de voz"
+# leaves behind, and it is byte-for-byte identical to a pre-split list. Without
+# something recording that the migration ran, every launch would re-tick the
+# box the user just unticked. Lives in "general" because it describes the file,
+# not a single section, and it is deliberately absent from DEFAULT_SETTINGS: a
+# fresh install runs the migration once over lists that already contain the new
+# key (a no-op) and writes the flag itself, which is one write and no special
+# case.
+VOICE_MEDIA_TYPE_MIGRATION_FLAG = "voice_messages_media_type_migrated"
+
+# The persisted lists this migration has to fix up, section by section. Both
+# hold GROUP_MEDIA_TYPES keys, both were written before "voice_messages"
+# existed.
+_MIGRATED_MEDIA_TYPE_SETTINGS = (
+    ("user_interface", "group_media_default_types"),
+    ("storage", "auto_download_media_types"),
+)
+
+
+def migrate_voice_messages_media_types(settings) -> bool:
+    """Teach a pre-split settings.json about the "voice_messages" category.
+
+    In a list written before the category existed, a checked "audios" meant
+    "audio files AND voice notes" — that is what the single box did — so the
+    new key inherits that state, and only that state. Nothing else is touched:
+
+    * an explicitly empty list stays empty, because unchecking everything is a
+      legitimate choice (see auto_download_allows()) and "empty" never meant
+      "voice notes too";
+    * a list without "audios" stays without "voice_messages", for the same
+      reason — the user had audio off, and off is what the split should keep;
+    * a missing or corrupt value is left alone, because every reader already
+      treats that as "all categories" and inserting a list here would turn an
+      un-chosen default into a saved choice.
+
+    Returns True whenever *settings* changed, which includes merely writing the
+    flag: the flag has to reach disk or the migration runs again next launch
+    and re-checks a box the user has since unchecked.
+    """
+    if not isinstance(settings, dict):
+        return False
+    general = settings.get("general")
+    if not isinstance(general, dict):
+        general = {}
+        settings["general"] = general
+    if general.get(VOICE_MEDIA_TYPE_MIGRATION_FLAG):
+        return False
+    for section_name, key in _MIGRATED_MEDIA_TYPE_SETTINGS:
+        section = settings.get(section_name)
+        if not isinstance(section, dict):
+            continue
+        saved = section.get(key)
+        if not isinstance(saved, (list, tuple)):
+            continue
+        if "audios" not in saved or "voice_messages" in saved:
+            continue
+        # Rebuilt in GROUP_MEDIA_TYPES order, the order both dialogs write
+        # these lists in, so a migrated file looks like one the user saved.
+        section[key] = [k for k in GROUP_MEDIA_TYPES
+                        if k in saved or k == "voice_messages"]
+    general[VOICE_MEDIA_TYPE_MIGRATION_FLAG] = True
+    return True
+
+
+# Marks that the one-shot voice_message_mode "audio" -> "voice_message" default
+# change has already run for this install. Its own flag, deliberately not the
+# media-types one: the two migrations are independent and an install that ran
+# only the first one must still get this one.
+VOICE_MESSAGE_MODE_MIGRATION_FLAG = "voice_message_mode_default_migrated"
+
+
+def migrate_voice_message_mode_default(settings) -> bool:
+    """Move an existing install onto the new voice_message_mode default.
+
+    The default became "voice_message" (announce a voice note as "mensagem de
+    voz", not as "audio") — but every settings.json in existence was seeded
+    from settings_default.json and therefore already has the literal string
+    "audio" saved, so changing the default alone would reach nobody. Hence the
+    conversion, which is the deliberate cost of this change: a user who chose
+    "Audio" on purpose cannot be told apart from one who never opened the
+    setting, so both are converted and the first has to re-tick the radio in
+    Configuracoes > Interface do usuario.
+
+    Only the exact string "audio" is converted. A missing value is left absent
+    (backfill_missing_defaults() puts the new default there straight after),
+    and an unrecognized value is left untouched — rewriting a value we cannot
+    interpret would be guessing at what the user meant.
+
+    The flag is what makes this a one-shot change rather than a permanent
+    override: without it, the user who does go back and re-tick "Audio" would
+    find it silently reverted on the next launch, and that is exactly the user
+    who cares. Returns True whenever *settings* changed, the flag included —
+    an unwritten flag is the same as no flag.
+    """
+    if not isinstance(settings, dict):
+        return False
+    general = settings.get("general")
+    if not isinstance(general, dict):
+        general = {}
+        settings["general"] = general
+    if general.get(VOICE_MESSAGE_MODE_MIGRATION_FLAG):
+        return False
+    section = settings.get("user_interface")
+    if isinstance(section, dict) and section.get("voice_message_mode") == "audio":
+        section["voice_message_mode"] = "voice_message"
+    general[VOICE_MESSAGE_MODE_MIGRATION_FLAG] = True
+    return True
 
 
 def auto_download_allows(settings, msg) -> bool:
@@ -601,7 +749,7 @@ DEFAULT_SETTINGS = {
         "forwarded_prefix_enabled": False,
         "conversation_video_media_viewer_dialog": True,
         "status_media_viewer_dialog": True,
-        "voice_message_mode": "audio",
+        "voice_message_mode": "voice_message",
         # Which media categories start checked in a group's Media tab.
         # A list, not four booleans, so GROUP_MEDIA_TYPES stays the single
         # place a category is declared.
