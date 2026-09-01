@@ -753,17 +753,19 @@ def fake_confirm_dialog(monkeypatch):
     """Fakes the wx.MessageDialog _confirm_local_only_delete() builds (the
     plain Delete/Cancel prompt for the "Me" chat's local-only delete — no
     running wx.App needed). Returns a dict the test sets before calling the
-    handler: result (wx.ID_YES/wx.ID_NO, default YES) and captures the
-    prompt/title/labels actually passed in."""
-    state = {"result": wx.ID_YES, "prompt": None, "title": None, "labels": None}
+    handler: result (wx.ID_OK/wx.ID_CANCEL, default OK) and captures the
+    prompt/title/labels/style actually passed in."""
+    state = {"result": wx.ID_OK, "prompt": None, "title": None,
+             "labels": None, "style": None}
 
     class _FakeMessageDialog:
         def __init__(self, parent, message, caption, style):
             state["prompt"] = message
             state["title"] = caption
+            state["style"] = style
 
-        def SetYesNoLabels(self, yes, no):
-            state["labels"] = (yes, no)
+        def SetOKCancelLabels(self, ok, cancel):
+            state["labels"] = (ok, cancel)
 
         def ShowModal(self):
             return state["result"]
@@ -1126,10 +1128,15 @@ class TestSelfChatBulkDelete:
 
         assert fake_confirm_dialog["prompt"] == "Delete 2 selected messages?"
         assert fake_confirm_dialog["title"] == "delete_messages_bulk_title"
-        assert fake_confirm_dialog["labels"] == ("delete_message", "cancel")
+        assert fake_confirm_dialog["labels"] == ("delete_msg_confirm_yes", "cancel")
+        # Escape must dismiss it (wxMSW only allows that when wx.CANCEL is
+        # present) and the destructive button must not be the default —
+        # this dialog is one keystroke away from a focused message.
+        assert fake_confirm_dialog["style"] & wx.CANCEL
+        assert fake_confirm_dialog["style"] & wx.CANCEL_DEFAULT
 
     def test_declining_the_confirmation_deletes_nothing(self, fake_confirm_dialog, run_threads_inline):
-        fake_confirm_dialog["result"] = wx.ID_NO
+        fake_confirm_dialog["result"] = wx.ID_CANCEL
         panel = _Panel(messages=[_msg("m1", jid="me@s.whatsapp.net", from_me=True)])
         panel.conversation = {"remoteJid": "me@s.whatsapp.net"}
         panel.main_window._is_self_jid = lambda jid: True

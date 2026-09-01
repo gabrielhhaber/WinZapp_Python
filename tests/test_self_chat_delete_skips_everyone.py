@@ -85,7 +85,7 @@ def _run_and_join_threads(fn):
 class TestSelfChatSkipsTheScopeDialog:
     def test_self_chat_deletes_locally_only_after_a_plain_confirm(self, monkeypatch):
         monkeypatch.setattr(wx, "MessageDialog",
-                             lambda *a, **k: _FakeMessageDialog(wx.ID_YES))
+                             lambda *a, **k: _FakeMessageDialog(wx.ID_OK))
         stub = _Stub(SELF_JID, is_self_chat=True)
 
         _run_and_join_threads(lambda: stub._on_menu_delete_message(0))
@@ -96,7 +96,7 @@ class TestSelfChatSkipsTheScopeDialog:
 
     def test_declining_the_confirmation_deletes_nothing(self, monkeypatch):
         monkeypatch.setattr(wx, "MessageDialog",
-                             lambda *a, **k: _FakeMessageDialog(wx.ID_NO))
+                             lambda *a, **k: _FakeMessageDialog(wx.ID_CANCEL))
         stub = _Stub(SELF_JID, is_self_chat=True)
 
         _run_and_join_threads(lambda: stub._on_menu_delete_message(0))
@@ -111,12 +111,13 @@ class TestSelfChatSkipsTheScopeDialog:
 
         class _CapturingDialog(_FakeMessageDialog):
             def __init__(self, parent, message, caption, style):
-                super().__init__(wx.ID_YES)
+                super().__init__(wx.ID_OK)
                 captured["message"] = message
                 captured["caption"] = caption
+                captured["style"] = style
 
-            def SetYesNoLabels(self, yes, no):
-                captured["labels"] = (yes, no)
+            def SetOKCancelLabels(self, ok, cancel):
+                captured["labels"] = (ok, cancel)
 
         monkeypatch.setattr(wx, "MessageDialog", _CapturingDialog)
         stub = _Stub(SELF_JID, is_self_chat=True)
@@ -125,14 +126,20 @@ class TestSelfChatSkipsTheScopeDialog:
 
         assert captured["message"] == "delete_msg_confirm"
         assert captured["caption"] == "delete_message"
-        assert captured["labels"] == ("delete_message", "cancel")
+        assert captured["labels"] == ("delete_msg_confirm_yes", "cancel")
+        # Escape has to dismiss it — wxMSW only allows the native dialog to be
+        # cancelled when wx.CANCEL is in the style — and the destructive
+        # button must not be the default, since this prompt is one keystroke
+        # away from a focused message.
+        assert captured["style"] & wx.CANCEL
+        assert captured["style"] & wx.CANCEL_DEFAULT
 
 
 class _FakeMessageDialog:
     def __init__(self, result):
         self._result = result
 
-    def SetYesNoLabels(self, yes, no):
+    def SetOKCancelLabels(self, ok, cancel):
         pass
 
     def ShowModal(self):

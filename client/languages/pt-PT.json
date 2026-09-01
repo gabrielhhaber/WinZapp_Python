@@ -966,6 +966,7 @@
     "success_delete": "Eliminado com sucesso.",
     "success_archive": "Conversas arquivadas.",
     "delete_msg_confirm": "Tem a certeza de que pretende eliminar esta mensagem?",
+    "delete_msg_confirm_yes": "&Eliminar",
     "delete_msg_confirm_bulk": "Tem a certeza de que pretende eliminar as {count} mensagens selecionadas?",
     "all_selected": "Tudo selecionado",
     "all_unselected": "Tudo desmarcado",

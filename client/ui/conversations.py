@@ -8318,7 +8318,34 @@ class ConversationsPanel(wx.Panel):
             return subtype not in ("initial_phash_mismatch", "phash_mismatch")
         return True
 
-    def _map_status(self, msg) -> str:
+    def _receipts_are_meaningless(self, chat_jid: "str | None" = None) -> bool:
+        """True when the chat being rendered is the "Me" chat, where Sent/
+        Delivered/Read/Played are never a real receipt (issue #95): there is
+        no second participant to deliver to, read or play anything, so the
+        ack WPPConnect still reports there is stale at best and misleading at
+        worst. Pending/failed are deliberately not covered — they describe
+        whether the send itself worked, not who received it.
+
+        Deliberately keyed on the *chat* the message is being rendered in,
+        never on msg["key"]["remoteJid"]: the "Me" chat legitimately holds
+        records whose key still carries the raw self-chat artifact JID —
+        _redirect_self_chat_artifact() (main.py) files such a message under
+        my_jid and deduplicate_chats()'s Pass 0a merges an already-stored
+        phantom chat's records into it, but neither rewrites the key. Those
+        keys end in "@g.us", for which _is_self_jid() returns False by
+        design, so reading the key would leave receipts showing on exactly
+        the self-chat messages that needed the artifact machinery.
+
+        *chat_jid* must be passed by any caller rendering a chat other than
+        the open conversation (the conversations list's preview line reuses
+        this panel for every row — see MainWindow._last_msg_preview()).
+        """
+        if chat_jid is None:
+            conv = getattr(self, "conversation", None)
+            chat_jid = conv.get("remoteJid", "") if isinstance(conv, dict) else ""
+        return bool(chat_jid) and self.main_window._is_self_jid(chat_jid)
+
+    def _map_status(self, msg, chat_jid: "str | None" = None) -> str:
         i18n = self.main_window.i18n
         # Locally-queued messages have their own pending status.
         if msg.get("_local_pending"):
@@ -8363,11 +8390,7 @@ class ConversationsPanel(wx.Panel):
         # misleading ack WPPConnect still happens to report (issue #95).
         # Pending/failed below are left untouched: they are not receipts,
         # they describe whether the send itself worked.
-        conv = getattr(self, "conversation", None)
-        remote_jid = msg.get("key", {}).get("remoteJid", "") or (
-            conv.get("remoteJid", "") if conv else ""
-        )
-        is_self_chat = bool(remote_jid) and self.main_window._is_self_jid(remote_jid)
+        is_self_chat = self._receipts_are_meaningless(chat_jid)
 
         if not is_self_chat:
             for s in statuses:
@@ -8419,7 +8442,7 @@ class ConversationsPanel(wx.Panel):
             return "sent"
         return ""
 
-    def _status_history_lines(self, msg) -> list:
+    def _status_history_lines(self, msg, chat_jid: "str | None" = None) -> list:
         """Per-stage delivery/read/played timeline for a sent message, one
         line per stage actually reached ("Enviada: 14:29", "Entregue: 14:30",
         "Lida: 14:32", …), mirroring the official WhatsApp message-info
@@ -8437,15 +8460,19 @@ class ConversationsPanel(wx.Panel):
         # Same "Me" chat exception as _map_status(): sent/delivered/read/
         # played are never a real receipt when the only participant is
         # yourself, so only a genuine failure (below) can appear there.
-        conv = getattr(self, "conversation", None)
-        remote_jid = msg.get("key", {}).get("remoteJid", "") or (
-            conv.get("remoteJid", "") if conv else ""
-        )
-        is_self_chat = bool(remote_jid) and self.main_window._is_self_jid(remote_jid)
-        if not from_me:
-            stage_order = ["played"]
-        elif is_self_chat:
+        # Checked *before* the not-from_me case, never after: a self-chat
+        # record can legitimately carry fromMe=False (the artifact shapes
+        # _redirect_self_chat_artifact() handles arrive that way, and
+        # on_new_message() only corrects its own local variable, never
+        # msg["key"]["fromMe"]), and mark_audio_message_played() records a
+        # timestamped "played" for exactly those messages — so ordering this
+        # the other way round left the message-data dialog printing
+        # "Reproduzida: 14:31" for a message whose row _map_status() had
+        # already, correctly, blanked.
+        if self._receipts_are_meaningless(chat_jid):
             stage_order = []
+        elif not from_me:
+            stage_order = ["played"]
         else:
             stage_order = ["sent", "delivered", "read", "played"]
         label_keys = {
@@ -10433,18 +10460,37 @@ class ConversationsPanel(wx.Panel):
         (issue #73: "for everyone" is a no-op there). There is no scope left
         to choose, only the delete itself to confirm (issue #95). Shared by
         the single-message self-chat branch of _on_menu_delete_message() and
-        the bulk self-chat branch of _on_mass_delete_messages()."""
+        the bulk self-chat branch of _on_mass_delete_messages().
+
+        OK/Cancel rather than Yes/No, for two reasons that both matter to a
+        keyboard-only user. wxMSW only sets the task dialog's
+        "allow cancellation" flag when wxCANCEL is present, so a wxYES_NO
+        prompt cannot be dismissed with Escape — this one is reached by a
+        keystroke on a focused message, and would have been the single
+        dialog in the app that swallows Escape. And wxCANCEL_DEFAULT keeps
+        the destructive button off the default: Enter must not carry
+        straight through from the message list into the delete, the same
+        reasoning tests/test_update_dialog_default_button.py pins for the
+        updater's own dialog.
+
+        Both labels carry a mnemonic (delete_msg_confirm_yes is the
+        Alt-accelerated form of delete_message): giving Cancelar an
+        accelerator the other button lacks would leave the two buttons
+        reachable in different ways."""
         i18n = self.main_window.i18n
         title = i18n.t("delete_message") if count == 1 else i18n.t("delete_messages_bulk_title")
         prompt = (
             i18n.t("delete_msg_confirm") if count == 1
             else i18n.t("delete_msg_confirm_bulk").format(count=count)
         )
-        dlg = wx.MessageDialog(self, prompt, title, wx.YES_NO | wx.ICON_QUESTION)
-        dlg.SetYesNoLabels(i18n.t("delete_message"), i18n.t("cancel"))
+        dlg = wx.MessageDialog(
+            self, prompt, title,
+            wx.OK | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_QUESTION,
+        )
+        dlg.SetOKCancelLabels(i18n.t("delete_msg_confirm_yes"), i18n.t("cancel"))
         result = dlg.ShowModal()
         dlg.Destroy()
-        return result == wx.ID_YES
+        return result == wx.ID_OK
 
     def _on_menu_delete_message(self, index: int):
         """Show delete-scope dialog and delete locally or for everyone.
@@ -13808,7 +13854,9 @@ class ConversationsPanel(wx.Panel):
         """Same delete-scope dialog _on_menu_delete_message() shows for a
         single message — radio buttons for "delete for me"/"delete for
         everyone" plus Apagar/Cancelar — applied to every selected message
-        instead of the old plain Yes/No "apagar N mensagens?" confirmation."""
+        instead of the old plain Yes/No "apagar N mensagens?" confirmation.
+        In the "Me" chat that scope dialog is replaced by a plain Delete/
+        Cancel confirmation, since "for everyone" is a no-op there."""
         i18n = self.main_window.i18n
         if not self.selected_messages: return
 
@@ -13820,29 +13868,8 @@ class ConversationsPanel(wx.Panel):
             self.selected_messages.clear()
             return
 
-        # The "Me" chat has only one participant, so "delete for everyone" is
-        # a no-op there for every message in the selection — same reasoning
-        # _on_menu_delete_message() applies to a single message (issue #73).
-        # Skip the for-me/for-everyone dialog below entirely and go straight
-        # to a plain Delete/Cancel confirmation (issue #95).
         conv_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
         is_self_chat = bool(conv_jid) and self.main_window._is_self_jid(conv_jid)
-        if is_self_chat:
-            if not self._confirm_local_only_delete(len(msgs_to_delete)):
-                return
-
-            def _delete_bg_self():
-                for msg in msgs_to_delete:
-                    msg_key = dict(msg.get("key", {}))
-                    jid = msg_key.get("remoteJid", "") or conv_jid
-                    if jid:
-                        self.main_window.delete_message_for_me(jid, msg_key)
-            threading.Thread(target=_delete_bg_self, daemon=True).start()
-
-            self.remove_messages_by_id(set(self.selected_messages), focus_previous=True)
-            self.selected_messages.clear()
-            self.main_window.output(i18n.t("success_delete"), interrupt=True)
-            return
 
         admin_override = self._group_admin_delete_override()
 
@@ -13851,46 +13878,58 @@ class ConversationsPanel(wx.Panel):
                 return False
             return admin_override or msg.get("key", {}).get("fromMe", False)
 
-        any_eligible = any(_can_delete_for_all(m) for m in msgs_to_delete)
+        # The "Me" chat has only one participant, so "delete for everyone" is
+        # a no-op there for every message in the selection — same reasoning
+        # _on_menu_delete_message() applies to a single message (issue #73).
+        # Skip the for-me/for-everyone dialog entirely and go straight to a
+        # plain Delete/Cancel confirmation (issue #95). Only the scope choice
+        # is skipped: the delete itself goes through the same worker and the
+        # same local-removal tail as every other bulk delete.
+        if is_self_chat:
+            if not self._confirm_local_only_delete(len(msgs_to_delete)):
+                return
+            for_everyone = False
+        else:
+            any_eligible = any(_can_delete_for_all(m) for m in msgs_to_delete)
 
-        dlg = wx.Dialog(
-            self,
-            title=i18n.t("delete_messages_bulk_title"),
-            style=wx.DEFAULT_DIALOG_STYLE,
-        )
-        panel = wx.Panel(dlg)
-        sizer = wx.BoxSizer(wx.VERTICAL)
+            dlg = wx.Dialog(
+                self,
+                title=i18n.t("delete_messages_bulk_title"),
+                style=wx.DEFAULT_DIALOG_STYLE,
+            )
+            panel = wx.Panel(dlg)
+            sizer = wx.BoxSizer(wx.VERTICAL)
 
-        rb_me = wx.RadioButton(panel, label=i18n.t("delete_for_me"), style=wx.RB_GROUP)
-        rb_me.SetValue(True)
-        sizer.Add(rb_me, 0, wx.ALL, 8)
+            rb_me = wx.RadioButton(panel, label=i18n.t("delete_for_me"), style=wx.RB_GROUP)
+            rb_me.SetValue(True)
+            sizer.Add(rb_me, 0, wx.ALL, 8)
 
-        rb_all = None
-        if any_eligible:
-            rb_all = wx.RadioButton(panel, label=i18n.t("delete_for_everyone"))
-            sizer.Add(rb_all, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+            rb_all = None
+            if any_eligible:
+                rb_all = wx.RadioButton(panel, label=i18n.t("delete_for_everyone"))
+                sizer.Add(rb_all, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        btn_sizer  = wx.StdDialogButtonSizer()
-        ok_btn     = wx.Button(panel, wx.ID_OK,     label=i18n.t("delete_messages_bulk_title"))
-        cancel_btn = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("cancel"))
-        btn_sizer.AddButton(ok_btn)
-        btn_sizer.AddButton(cancel_btn)
-        btn_sizer.Realize()
-        sizer.Add(btn_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+            btn_sizer  = wx.StdDialogButtonSizer()
+            ok_btn     = wx.Button(panel, wx.ID_OK,     label=i18n.t("delete_messages_bulk_title"))
+            cancel_btn = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("cancel"))
+            btn_sizer.AddButton(ok_btn)
+            btn_sizer.AddButton(cancel_btn)
+            btn_sizer.Realize()
+            sizer.Add(btn_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        panel.SetSizer(sizer)
-        dlg_sizer = wx.BoxSizer(wx.VERTICAL)
-        dlg_sizer.Add(panel, 1, wx.EXPAND)
-        dlg.SetSizer(dlg_sizer)
-        dlg.Fit()
-        dlg.CentreOnParent()
+            panel.SetSizer(sizer)
+            dlg_sizer = wx.BoxSizer(wx.VERTICAL)
+            dlg_sizer.Add(panel, 1, wx.EXPAND)
+            dlg.SetSizer(dlg_sizer)
+            dlg.Fit()
+            dlg.CentreOnParent()
 
-        result       = dlg.ShowModal()
-        for_everyone = rb_all.GetValue() if rb_all else False
-        dlg.Destroy()
+            result       = dlg.ShowModal()
+            for_everyone = rb_all.GetValue() if rb_all else False
+            dlg.Destroy()
 
-        if result != wx.ID_OK:
-            return
+            if result != wx.ID_OK:
+                return
 
         def _delete_bg():
             for msg in msgs_to_delete:

@@ -966,6 +966,7 @@
     "success_delete": "Deleted successfully.",
     "success_archive": "Chats archived.",
     "delete_msg_confirm": "Are you sure you want to delete this message?",
+    "delete_msg_confirm_yes": "&Delete",
     "delete_msg_confirm_bulk": "Are you sure you want to delete the {count} selected messages?",
     "all_selected": "All selected",
     "all_unselected": "All deselected",

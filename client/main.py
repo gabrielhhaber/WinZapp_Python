@@ -23652,7 +23652,12 @@ class MainWindow(wx.Frame):
             panel = getattr(self, "conversations_panel", None)
             if panel is not None:
                 try:
-                    status_text = panel._map_status(last)
+                    # The panel renders every row here, not just its own open
+                    # conversation, so the chat has to be named explicitly —
+                    # otherwise _map_status() falls back to whichever chat
+                    # happens to be open and applies its "Me"-chat receipt
+                    # rule to somebody else's preview line.
+                    status_text = panel._map_status(last, chat.get("remoteJid", ""))
                 except Exception:
                     status_text = ""
                 if status_text:
