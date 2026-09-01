@@ -5466,20 +5466,56 @@ class ConversationsPanel(wx.Panel):
         )
 
     def _remember_expanded_window(self) -> None:
-        """Registra até onde a lista foi expandida por um carregamento de histórico.
+        """Registra até onde a lista está materializada agora.
 
         A contagem é o piso e o id da mensagem mais antiga exibida é a âncora:
         cada mensagem nova aumenta o total de exibíveis, e uma janela definida
         só por contagem andaria uma linha para frente a cada chegada, comendo
         de volta justamente o histórico que o usuário pediu. Quando esse id
         some (mensagem apagada remotamente), a contagem ainda segura a janela.
+
+        Chamado por quem carrega histórico (Home) E pelo fim de
+        populate_messages(): o piso não é "o que o Home trouxe", é "o que já
+        está na tela". Sem a segunda chamada, uma conversa aberta e nunca
+        expandida abre com messages_page_size linhas, cresce por append a cada
+        mensagem que chega ou que o usuário manda (on_incoming_message() e os
+        caminhos de envio otimista apendam sem cortar nada), e o primeiro
+        rebuild de fundo recalcula a janela do fim e devolve a lista a
+        exatamente o page size — apagando da lista, sob o leitor de tela, uma
+        linha antiga por mensagem nova. Foi assim que o bug reapareceu depois
+        da âncora: com 200 linhas na tela, 4 mensagens enviadas e o repaint
+        seguinte, as 4 mais antigas sumiram.
+
+        "O que está na tela" inclui o alargamento que paginated_window() faz
+        por causa do separador de não lidas, e não só o histórico que o usuário
+        puxou: um grupo com 4000 não lidas abre com 4001 linhas, e essas 4001
+        viram o piso da sessão inteira — o separador ser descartado depois não
+        as estreita. É de propósito. Apará-las é apagar da lista, sob o leitor
+        de tela, exatamente as mensagens que ele acabou de ler, que é o bug.
+        Quem for medir custo de rebuild em conversa nunca expandida precisa
+        saber que essa janela larga é esperada, não defeito.
+
+        Uma lista só com sentinela (o placeholder de "sem mensagens") não
+        registra nada: um piso de 1 linha não significa nada e a âncora vazia
+        não prenderia coisa alguma. Também não zera o que já estava gravado, e
+        isso é escolha, não esquecimento: "Limpar conversa" esvazia records e
+        cai aqui, mas um records momentaneamente vazio no meio de um resync
+        cairia igual, e zerar ali derrubaria um piso legítimo — de novo linhas
+        sumindo sob o leitor. O custo de manter é o oposto e é suportável: se o
+        chat limpo voltar a encher na mesma sessão, o rebuild seguinte pinta
+        uma janela mais larga que o page size até a conversa ser fechada.
         """
-        self._expanded_visible_count = len(self._sorted_messages)
-        self._expanded_oldest_msg_id = ""
+        oldest_id = ""
+        found_real_row = False
         for msg in self._sorted_messages:
             if isinstance(msg, dict) and not self._is_separator(msg):
-                self._expanded_oldest_msg_id = msg.get("key", {}).get("id", "") or ""
+                found_real_row = True
+                oldest_id = (msg.get("key") or {}).get("id", "") or ""
                 break
+        if not found_real_row:
+            return
+        self._expanded_visible_count = len(self._sorted_messages)
+        self._expanded_oldest_msg_id = oldest_id
 
     def _merge_history_into_records(self, older_messages: list) -> None:
         """Guarda no chat aberto o histórico recém-carregado.
@@ -13570,6 +13606,13 @@ class ConversationsPanel(wx.Panel):
         # suppresses native repaint/accessibility notifications until Thaw()
         # runs in the finally block below, by which point only the final,
         # correct Focus()/Select() call (or lack thereof) is ever observed.
+        #
+        # Medido, não estimado, pelo mesmo motivo do repaint de nomes em
+        # main.py: este rebuild é DeleteAllItems() + um Append() por linha, ele
+        # roda a cada mensagem nova, e a janela deixou de ser limitada ao
+        # messages_page_size. Uma linha por rebuild diz quanto custa a janela
+        # no tamanho a que ela chegou.
+        _rebuild_started = time.monotonic()
         self.messages_list.Freeze()
         try:
             self.messages_list.DeleteAllItems()
@@ -13740,6 +13783,15 @@ class ConversationsPanel(wx.Panel):
                         logging.info("[populate_messages] default-select tail: list is empty (last=-1)")
         finally:
             self.messages_list.Thaw()
+            # A janela que acabou de ser pintada é o piso da próxima. Aqui, no
+            # finally, pelo mesmo motivo da assinatura abaixo: o corpo retorna
+            # de vários pontos, e um rebuild que não registrasse a janela
+            # deixaria o seguinte livre para cortá-la. Ver
+            # _remember_expanded_window().
+            try:
+                self._remember_expanded_window()
+            except Exception:
+                logging.exception("[populate_messages] failed to record the rendered window")
             # Snapshot what is now on screen so the next background refresh can
             # tell "nothing changed" apart from "needs a rebuild" — see
             # refresh_messages_if_changed(). Taken here, in the finally, because
@@ -13748,6 +13800,24 @@ class ConversationsPanel(wx.Panel):
                 self._messages_signature_cache = self._messages_signature()
             except Exception:
                 self._messages_signature_cache = None
+            _rebuild_ms = (time.monotonic() - _rebuild_started) * 1000.0
+            # Acima do limiar sobe para WARNING. Em INFO o número só aparece
+            # para quem já foi procurar por ele, e este é o laço que a janela
+            # sem teto alarga: DeleteAllItems() + um Append() por linha, a cada
+            # mensagem nova. 250 ms é uma ordem de grandeza abaixo dos stalls
+            # que o watchdog mediu no laço vizinho (9,4 s / 19,8 s / 40,1 s —
+            # ver _schedule_refresh_active_messages() em main.py), então o
+            # aviso chega no log antes de o usuário sentir travamento.
+            if _rebuild_ms > 250.0:
+                logging.warning(
+                    "[populate_messages] rebuilt %d row(s) in %.0f ms (offset=%d).",
+                    len(self._sorted_messages), _rebuild_ms, self._messages_offset,
+                )
+            elif logging.getLogger().isEnabledFor(logging.INFO):
+                logging.info(
+                    "[populate_messages] rebuilt %d row(s) in %.0f ms (offset=%d).",
+                    len(self._sorted_messages), _rebuild_ms, self._messages_offset,
+                )
 
 
     # ── Mass action handlers ────────────────────────────────────────────────

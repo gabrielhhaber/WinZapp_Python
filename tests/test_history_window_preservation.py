@@ -23,12 +23,21 @@ The rebuild became frequent (every new message, plus the 60s resync) when
 started showing up recently — the destructive rebuild is the bug, not its
 trigger.
 
-Two things the fix must NOT do are pinned here as well: the window is capped,
-because nothing shrinks it back while the conversation stays open and every row
-in it is re-rendered one by one by refresh_active_conversation_messages(); and
-only messages belonging to the open conversation reach ``records``, since the
-history query runs against ``_history_storage_jid()`` (possibly a stale @lid)
-and anything stored under the wrong contact now survives the whole session.
+3. The anchor was recorded only where history was pulled in by hand, so a
+   conversation the user never expanded kept the old behaviour with the floor
+   at the page size: it opens with 200 rows, the live-append paths grow it past
+   that (nothing trims on append), and the first background rebuild snapped it
+   back to 200 — one old row deleted under the reader per new message. That is
+   how the report came back after (1) and (2) shipped. ``populate_messages()``
+   now records the window it just painted, so the floor is what is on screen,
+   not what Home loaded.
+
+Two things the fix must NOT do are pinned here as well: the window must not be
+capped, because a standing cap is this same bug with a higher floor (see
+``test_a_huge_expansion_is_not_capped``); and only messages belonging to the
+open conversation may reach ``records``, since the history query runs against
+``_history_storage_jid()`` (possibly a stale @lid) and anything stored under
+the wrong contact now survives the whole session.
 
 ConversationsPanel is a wx.Panel and cannot be instantiated without a running
 wx.App, so the methods under test are exercised as plain functions against a
@@ -507,3 +516,86 @@ class TestHistoryWindow:
         assert history_window(displayable, "m-100", 300, 200, -1) == paginated_window(
             900, 200, -1, min_visible=min_visible
         )
+
+
+class TestTheRenderedWindowIsTheFloor:
+    """A segunda metade do mesmo bug, relatada depois da âncora: sem nunca
+    pressionar Home, a lista abre com 200 linhas, cresce por append a cada
+    mensagem, e o rebuild seguinte a devolve a 200 — sumindo com uma linha
+    antiga por mensagem nova, exatamente o sintoma original com o piso no page
+    size. O log da sessão que reproduziu isto mostra a sequência inteira:
+    200 -> 201 -> 202 -> 204 linhas e, 17 segundos depois, 200 de novo.
+
+    A correção é o piso deixar de ser "o que o Home trouxe" e passar a ser "o
+    que já está na tela": populate_messages() registra a janela que acabou de
+    pintar."""
+
+    def _rendered(self, n, offset=0):
+        stub = _Stub(sorted_messages=[_msg(f"m-{i}", i) for i in range(offset, offset + n)])
+        stub._remember_expanded_window()
+        return stub
+
+    def test_four_sent_messages_do_not_drop_four_rows(self):
+        """O relato, ponta a ponta: 200 linhas na tela, 4 mensagens enviadas,
+        repaint. As 4 linhas mais antigas têm de continuar lá."""
+        stub = self._rendered(200, offset=300)
+        # Os appends ao vivo (on_incoming_message() e o envio otimista) não
+        # passam por populate_messages(); o rebuild é que vem depois.
+        displayable = [_msg(f"m-{i}", i) for i in range(300, 504)]
+        offset, sep = stub._history_window_for_rebuild(displayable, 200)
+        assert (offset, sep) == (0, -1), "o rebuild cortou de volta ao page size"
+        assert len(displayable[offset:]) == 204
+
+    def test_the_window_only_grows_while_the_conversation_stays_open(self):
+        """Cada rebuild registra a janela que pintou, então o piso acompanha as
+        chegadas em vez de ficar preso na contagem da abertura."""
+        stub = self._rendered(200, offset=300)
+        displayable = [_msg(f"m-{i}", i) for i in range(300, 504)]
+        stub._sorted_messages = displayable[stub._history_window_for_rebuild(displayable, 200)[0]:]
+        stub._remember_expanded_window()
+        assert stub._expanded_visible_count == 204
+        assert stub._expanded_oldest_msg_id == "m-300"
+        displayable = [_msg(f"m-{i}", i) for i in range(300, 510)]
+        assert stub._history_window_for_rebuild(displayable, 200)[0] == 0
+
+    def test_opening_a_conversation_still_honours_the_page_size(self):
+        """O piso é o que foi pintado, não tudo que existe: uma conversa recém
+        aberta continua rendendo messages_page_size linhas, e só a partir daí
+        para de encolher."""
+        stub = _Stub()
+        displayable = [_msg(f"m-{i}", i) for i in range(500)]
+        assert stub._history_window_for_rebuild(displayable, 200)[0] == 300
+
+    def test_populate_messages_records_the_window_it_rendered(self):
+        """populate_messages() precisa de um wx.ListCtrl de verdade, então o
+        que dá para prender aqui é a chamada — sem ela o piso volta a ser só o
+        que o Home carregou e o corte a cada mensagem nova volta junto."""
+        src = inspect.getsource(ConversationsPanel.populate_messages)
+        assert "self._remember_expanded_window()" in src
+
+    def test_a_list_with_only_a_placeholder_records_nothing(self):
+        """Conversa sem histórico exibível: um piso de 1 linha não significa
+        nada e a âncora vazia não prenderia coisa alguma."""
+        stub = _Stub(sorted_messages=[{"_type": "empty_placeholder"}])
+        stub._remember_expanded_window()
+        assert stub._expanded_visible_count == 0
+        assert stub._expanded_oldest_msg_id == ""
+
+    def test_the_unread_separator_is_never_the_anchor(self):
+        """O separador não tem key.id; ancorar nele perderia a âncora inteira."""
+        sep = {"_type": "unread_separator", "count": 3}
+        stub = _Stub(sorted_messages=[sep] + [_msg(f"m-{i}", i) for i in range(10)])
+        stub._remember_expanded_window()
+        assert stub._expanded_oldest_msg_id == "m-0"
+        assert stub._expanded_visible_count == 11
+
+    def test_a_record_without_a_key_does_not_take_the_rebuild_down(self):
+        """key ausente ou None aparece em registro malformado, e isto agora roda
+        no finally de todo rebuild — levantar aqui derrubaria a lista inteira."""
+        stub = _Stub(sorted_messages=[{"timestamp": 1}, _msg("m-1", 1)])
+        stub._remember_expanded_window()
+        assert stub._expanded_oldest_msg_id == ""
+        assert stub._expanded_visible_count == 2
+        stub = _Stub(sorted_messages=[{"key": None, "timestamp": 1}])
+        stub._remember_expanded_window()
+        assert stub._expanded_oldest_msg_id == ""
