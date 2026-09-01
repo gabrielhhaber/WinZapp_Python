@@ -175,8 +175,8 @@ OTHER_JID = "5511888888888@s.whatsapp.net"
 
 class TestStatusHistoryLinesSelfChat:
     """Issue #95: the "Me" chat has only one participant, so
-    sent/delivered/read are never a real receipt there — only the "played"
-    stage (and a genuine failure) can still appear in the timeline."""
+    sent/delivered/read/played are never a real receipt there — only a
+    genuine failure can still appear in the timeline."""
 
     def _msg(self, updates, from_me=True, remote_jid=SELF_JID):
         return {
@@ -193,13 +193,13 @@ class TestStatusHistoryLinesSelfChat:
         ])
         assert p._status_history_lines(msg) == []
 
-    def test_played_still_shows_in_the_self_chat(self):
+    def test_played_is_also_suppressed_in_the_self_chat(self):
         p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
         msg = self._msg([
             {"status": "2", "ts": _T0},
             {"status": "5", "ts": _T1},
         ])
-        assert p._status_history_lines(msg) == [f"Reproduzida: {_fmt(_T1)}"]
+        assert p._status_history_lines(msg) == []
 
     def test_failure_still_shows_in_the_self_chat(self):
         p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
@@ -233,18 +233,17 @@ class TestMapStatusSelfChat:
     def _msg(self, status, from_me=True, remote_jid=SELF_JID):
         return {"key": {"fromMe": from_me, "remoteJid": remote_jid}, "status": status}
 
-    @pytest.mark.parametrize("status", ["READ", "DELIVERED", "SENT"])
+    @pytest.mark.parametrize("status", ["READ", "DELIVERED", "SENT", "PLAYED"])
     def test_receipt_statuses_are_suppressed_in_the_self_chat(self, status):
+        """Played is suppressed here too — it's just as much a receipt as
+        sent/delivered/read, and objectively meaningless when the only
+        participant is yourself."""
         p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
         assert p._map_status(self._msg(status)) == ""
 
     def test_failed_status_still_shows_in_the_self_chat(self):
         p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
         assert p._map_status(self._msg("-1")) == "Falha ao enviar"
-
-    def test_played_status_still_shows_in_the_self_chat(self):
-        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
-        assert p._map_status(self._msg("PLAYED")) == "Reproduzida"
 
     def test_pending_message_still_shows_in_the_self_chat(self):
         p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
@@ -257,9 +256,15 @@ class TestMapStatusSelfChat:
         msg = self._msg("READ", remote_jid=OTHER_JID)
         assert p._map_status(msg) == "Lida"
 
+    def test_a_different_chat_still_shows_played(self):
+        p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
+        msg = self._msg("PLAYED", remote_jid=OTHER_JID)
+        assert p._map_status(msg) == "Reproduzida"
+
     def test_received_message_in_the_self_chat_is_unaffected(self):
-        """not from_me already returns "" before the self-chat check is ever
-        reached — this only pins that the two don't interact oddly."""
+        """not from_me already returns "" for a non-played status regardless
+        of the self-chat gate — this only pins that the two don't interact
+        oddly."""
         p = _stub(_FakeMainWindow(self_jids={SELF_JID}))
         msg = self._msg("READ", from_me=False)
         assert p._map_status(msg) == ""

@@ -8357,9 +8357,22 @@ class ConversationsPanel(wx.Panel):
 
         from_me = msg.get("key", {}).get("fromMe", False)
 
-        for s in statuses:
-            if "PLAYED" in s or s == "5":
-                return i18n.t("status_played")
+        # The "Me" chat has only one participant — there is no one else to
+        # deliver to, read or play the message for, so "Enviada"/"Entregue"/
+        # "Lida"/"Reproduzida" are never a real receipt there, only a stale/
+        # misleading ack WPPConnect still happens to report (issue #95).
+        # Pending/failed below are left untouched: they are not receipts,
+        # they describe whether the send itself worked.
+        conv = getattr(self, "conversation", None)
+        remote_jid = msg.get("key", {}).get("remoteJid", "") or (
+            conv.get("remoteJid", "") if conv else ""
+        )
+        is_self_chat = bool(remote_jid) and self.main_window._is_self_jid(remote_jid)
+
+        if not is_self_chat:
+            for s in statuses:
+                if "PLAYED" in s or s == "5":
+                    return i18n.t("status_played")
 
         if not from_me:
             # Received messages only show status if they were played
@@ -8373,16 +8386,7 @@ class ConversationsPanel(wx.Panel):
         if latest.startswith("-") or str(msg.get("status", "")).startswith("-"):
             return i18n.t("status_failed")
 
-        # The "Me" chat has only one participant — there is no one else to
-        # deliver to or read the message, so "Enviada"/"Entregue"/"Lida" are
-        # never a real receipt there, only a stale/misleading ack WPPConnect
-        # still happens to report (issue #95). Failure/pending/played above
-        # are left untouched: they are not receipts and stay meaningful.
-        conv = getattr(self, "conversation", None)
-        remote_jid = msg.get("key", {}).get("remoteJid", "") or (
-            conv.get("remoteJid", "") if conv else ""
-        )
-        if remote_jid and self.main_window._is_self_jid(remote_jid):
+        if is_self_chat:
             return ""
 
         for s in statuses:
@@ -8430,18 +8434,20 @@ class ConversationsPanel(wx.Panel):
         updates = msg.get("MessageUpdate")
         if not isinstance(updates, list):
             return []
-        # Same "Me" chat exception as _map_status(): sent/delivered/read are
-        # never a real receipt when the only participant is yourself, so only
-        # "played" (and, below, a genuine failure) can appear there.
+        # Same "Me" chat exception as _map_status(): sent/delivered/read/
+        # played are never a real receipt when the only participant is
+        # yourself, so only a genuine failure (below) can appear there.
         conv = getattr(self, "conversation", None)
         remote_jid = msg.get("key", {}).get("remoteJid", "") or (
             conv.get("remoteJid", "") if conv else ""
         )
         is_self_chat = bool(remote_jid) and self.main_window._is_self_jid(remote_jid)
-        if from_me and not is_self_chat:
-            stage_order = ["sent", "delivered", "read", "played"]
-        else:
+        if not from_me:
             stage_order = ["played"]
+        elif is_self_chat:
+            stage_order = []
+        else:
+            stage_order = ["sent", "delivered", "read", "played"]
         label_keys = {
             "sent": "status_sent", "delivered": "status_delivered",
             "read": "status_read", "played": "status_played",
