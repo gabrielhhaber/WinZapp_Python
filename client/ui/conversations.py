@@ -149,6 +149,11 @@ def local_media_cache_paths(voice_dir: str, media_dir: str, msg_id: str) -> list
     and voice playback find them instead of re-downloading a file already on
     disk (see _mark_message_sent).  Module-level so the cancelled-but-delivered
     path can reach the same two names without a panel instance.
+
+    They are also the only two names a *received* message's media can be cached
+    under (handle_audio_message writes the first, handle_media_message the
+    second), so the Media tab's "baixada / nao baixada" scan asks here rather
+    than keeping its own idea of where a file might be.
     """
     return [
         os.path.join(voice_dir, f"{msg_id}.msv"),

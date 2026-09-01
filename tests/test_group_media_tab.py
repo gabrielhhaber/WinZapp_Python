@@ -300,6 +300,65 @@ class TestTheCacheId:
         assert media_cache_id({}) == ""
 
 
+class TestScanningWhatIsOnDisk:
+    """Which files count as "baixada".
+
+    The scan only looked in media/<id>.wzmedia, so a voice message — cached as
+    voice_messages/<id>.msv by the audio download, i.e. by simply playing it in
+    the app — was never in the downloaded set and the "Nao baixadas" filter
+    listed audios the user had already listened to.
+    """
+
+    @staticmethod
+    def _dirs(tmp_path, monkeypatch):
+        import ui.dialogs.conversation_data_dialog as dlg
+
+        media = tmp_path / "media"
+        voice = tmp_path / "voice_messages"
+        media.mkdir()
+        voice.mkdir()
+        monkeypatch.setattr(dlg, "data_path", lambda *parts: str(tmp_path.joinpath(*parts)))
+        return voice, media
+
+    def test_a_played_voice_message_counts_as_downloaded(self, tmp_path, monkeypatch):
+        voice, _ = self._dirs(tmp_path, monkeypatch)
+        (voice / "AUDIO1.msv").write_bytes(b"x")
+        found = ConversationDataDialog._scan_downloaded_media(
+            [_msg("audioMessage", "AUDIO1")])
+        assert found == {"AUDIO1"}
+
+    def test_a_cached_photo_still_counts(self, tmp_path, monkeypatch):
+        _, media = self._dirs(tmp_path, monkeypatch)
+        (media / "PIC1.wzmedia").write_bytes(b"x")
+        found = ConversationDataDialog._scan_downloaded_media(
+            [_msg("imageMessage", "PIC1")])
+        assert found == {"PIC1"}
+
+    def test_the_compound_id_is_unpacked_the_same_way_the_writer_does(
+            self, tmp_path, monkeypatch):
+        """The file is written under media_cache_id(), not the raw key id."""
+        voice, _ = self._dirs(tmp_path, monkeypatch)
+        (voice / "REAL.msv").write_bytes(b"x")
+        found = ConversationDataDialog._scan_downloaded_media(
+            [_msg("audioMessage", "false_5511999999999@c.us_REAL")])
+        assert found == {"REAL"}
+
+    def test_nothing_on_disk_yields_an_empty_set(self, tmp_path, monkeypatch):
+        self._dirs(tmp_path, monkeypatch)
+        found = ConversationDataDialog._scan_downloaded_media(
+            [_msg("audioMessage", "AUDIO1"), _msg("imageMessage", "PIC1")])
+        assert found == set()
+
+    def test_the_downloaded_filter_then_keeps_that_audio(self, tmp_path, monkeypatch):
+        voice, _ = self._dirs(tmp_path, monkeypatch)
+        (voice / "AUDIO1.msv").write_bytes(b"x")
+        records = [_msg("audioMessage", "AUDIO1"), _msg("audioMessage", "AUDIO2")]
+        downloaded = ConversationDataDialog._scan_downloaded_media(records)
+        out = filter_group_media_by_download(
+            records, GROUP_MEDIA_FILTER_NOT_DOWNLOADED, downloaded)
+        assert [m["key"]["id"] for m in out] == ["AUDIO2"]
+
+
 class TestTheDownloadFilter:
     def _records(self):
         return [

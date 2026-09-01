@@ -28,6 +28,11 @@ from core.utils import (
     group_media_category,
 )
 from core.locale_format import get_datetime_format
+# Imported for the "baixada / nao baixada" scan below: the two places a
+# message's media can be cached are defined once, next to the code that writes
+# and renames those files. conversations.py only imports this module inside a
+# function, so this direction of the pair is not a cycle.
+from ui.conversations import local_media_cache_paths
 from app_paths import data_path
 from core.sound_system import (
     discover_alert_tone_choices, resolve_alert_tone_path, AlertPreviewController,
@@ -1028,15 +1033,34 @@ class ConversationDataDialog(wx.Dialog):
         except Exception:
             logging.exception("[conversation_data] media history load failed")
             return
-        downloaded = set()
-        media_dir = data_path("media")
-        for msg in history or []:
-            cache_id = media_cache_id(msg)
-            if cache_id and os.path.isfile(os.path.join(media_dir, f"{cache_id}.wzmedia")):
-                downloaded.add(cache_id)
         self._media_history = list(history or [])
-        self._downloaded_media_ids = downloaded
+        self._downloaded_media_ids = self._scan_downloaded_media(history)
         wx.CallAfter(self._on_media_history_loaded)
+
+    @staticmethod
+    def _scan_downloaded_media(records) -> set:
+        """The media_cache_id()s in *records* whose bytes are already on disk.
+
+        Both cache locations count. A voice/audio message is written to
+        voice_messages/<id>.msv (main.save_audio_locally, and the recorder for
+        our own sends), everything else to media/<id>.wzmedia — checking only
+        the latter, as this did, reported every audio the user had already
+        played inside the app as "nao baixada". The candidate names come from
+        ui.conversations' own local_media_cache_paths() rather than a third
+        copy of them, so this cannot disagree with the code that wrote the
+        file.
+        """
+        voice_dir = data_path("voice_messages")
+        media_dir = data_path("media")
+        downloaded = set()
+        for msg in records or []:
+            cache_id = media_cache_id(msg)
+            if not cache_id:
+                continue
+            if any(os.path.isfile(path) for path
+                   in local_media_cache_paths(voice_dir, media_dir, cache_id)):
+                downloaded.add(cache_id)
+        return downloaded
 
     def _on_media_history_loaded(self):
         """Back on the UI thread: redraw with the full history."""
