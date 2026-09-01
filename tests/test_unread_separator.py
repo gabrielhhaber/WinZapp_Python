@@ -193,6 +193,68 @@ class TestPaginatedWindow:
         assert sep == 0
 
 
+class TestPaginatedWindowMinVisible:
+    """History the user pulled in by hand (Home/scroll to top) must survive a
+    background rebuild — see ConversationsPanel._remember_expanded_window()."""
+
+    def test_min_visible_below_the_limit_changes_nothing(self):
+        offset, sep = paginated_window(
+            total_len=500, limit=200, unread_sep_idx=-1, min_visible=120
+        )
+        assert offset == 300
+        assert sep == -1
+
+    def test_min_visible_defaults_to_no_effect(self):
+        """The default keeps every existing caller behaving exactly as before."""
+        assert paginated_window(500, 200, -1) == paginated_window(
+            500, 200, -1, min_visible=0
+        )
+
+    def test_a_widened_window_is_not_cut_back_to_the_page_size(self):
+        """The reported case: 400 messages loaded against a 200 page size, and
+        a refresh a few seconds later snapped the list back to 200."""
+        offset, sep = paginated_window(
+            total_len=400, limit=200, unread_sep_idx=-1, min_visible=400
+        )
+        assert offset == 0
+        assert sep == -1
+
+    def test_the_window_grows_only_up_to_what_was_loaded(self):
+        """min_visible is a count of rows already materialized, so a new page
+        of older history arriving from a sync is not pulled in by itself."""
+        offset, _sep = paginated_window(
+            total_len=600, limit=200, unread_sep_idx=-1, min_visible=400
+        )
+        assert offset == 200
+
+    def test_the_unread_separator_still_wins_when_it_needs_more(self):
+        total = 500
+        sep_idx = total - 450
+        offset, sep = paginated_window(
+            total_len=total, limit=200, unread_sep_idx=sep_idx, min_visible=300
+        )
+        assert offset == sep_idx
+        assert sep == 0
+
+    def test_min_visible_wins_when_the_separator_needs_less(self):
+        total = 500
+        sep_idx = total - 250
+        offset, sep = paginated_window(
+            total_len=total, limit=200, unread_sep_idx=sep_idx, min_visible=400
+        )
+        assert offset == 100
+        assert sep == sep_idx - 100
+
+    def test_min_visible_larger_than_the_whole_history(self):
+        """A message deleted since the expansion leaves the count over-counting;
+        it must not produce a negative offset."""
+        offset, sep = paginated_window(
+            total_len=50, limit=200, unread_sep_idx=-1, min_visible=400
+        )
+        assert offset == 0
+        assert sep == -1
+
+
 # ── How much history navigate_to_conversation() pulls from the DB ──────────
 
 

@@ -117,6 +117,9 @@ class _Stub:
     def _schedule_set_chats(self):
         pass
 
+    def _schedule_refresh_active_messages(self, jids=None):
+        pass
+
 
 def _msg(i):
     lid = f"{1000 + i}@lid"

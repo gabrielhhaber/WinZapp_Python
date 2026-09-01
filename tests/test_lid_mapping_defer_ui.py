@@ -47,12 +47,16 @@ class _Stub:
         # (see tests/test_lid_mapping_thread_safety.py for what it guards).
         self._lid_mapping_lock = threading.RLock()
         self.refreshes = 0
+        self.message_refresh_jids = []
 
     def _is_self_jid(self, jid):
         return False
 
     def _schedule_set_chats(self):
         self.refreshes += 1
+
+    def _schedule_refresh_active_messages(self, jids=None):
+        self.message_refresh_jids.append(None if jids is None else set(jids))
 
 
 LID = "111222333444555@lid"
@@ -109,3 +113,37 @@ class TestRegisterJidMapping:
         stub.db.set_lid_mapping = lambda l, p: written.append((l, p))
         stub.register_jid_mapping(LID, PHONE, defer_ui=True)
         assert written == [(LID, PHONE)]
+
+
+class TestTheOpenConversationIsRepaintedToo:
+    """Only relevant since the message repaint became scoped.
+
+    The non-batch mapping writers — _extract_lid_mapping() on the Socket.IO
+    thread and _get_participant_name()'s inline learn — never scheduled a
+    message repaint of their own; they were fixed up by whatever unrelated full
+    repaint happened next. Now that every repaint is scoped to the JIDs its own
+    caller resolved, that free ride is gone and a chat whose @lid was just
+    bridged would keep announcing raw digits until it was reopened.
+    """
+
+    def test_a_new_mapping_repaints_the_open_conversation(self, stub):
+        stub.register_jid_mapping(LID, PHONE)
+        assert stub.message_refresh_jids == [{LID, PHONE}]
+
+    def test_both_address_forms_are_handed_over(self, stub):
+        """The rows can carry either one, and which they carry depends on who
+        sent the message."""
+        stub.register_jid_mapping(LID, PHONE)
+        assert stub.message_refresh_jids[0] == {LID, PHONE}
+
+    def test_defer_ui_suppresses_it_like_the_chat_list(self, stub):
+        stub.register_jid_mapping(LID, PHONE, defer_ui=True)
+        assert stub.message_refresh_jids == []
+
+    def test_a_mapping_already_known_schedules_nothing(self, stub):
+        """What keeps this terminating: _get_participant_name() can reach here
+        from inside a render, so a repaint could schedule a repaint. A mapping
+        is only `changed` once, so the second pass is silent."""
+        stub.register_jid_mapping(LID, PHONE)
+        stub.register_jid_mapping(LID, PHONE)
+        assert len(stub.message_refresh_jids) == 1

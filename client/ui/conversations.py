@@ -50,7 +50,7 @@ from ui.accessible import (
 )
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
 from core.save_location import resolve_save_dialog_folder
-from core.utils import reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, paginated_window, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
+from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.message_copy_format import format_copied_message
 from core.video_player import VideoPlayer
@@ -522,6 +522,16 @@ class ConversationsPanel(wx.Panel):
         self._messages_offset: int = 0
         # Guard to prevent recursive load-more triggers during list rebuild
         self._is_loading_more: bool = False
+        # Quantas mensagens exibíveis a lista passou a mostrar depois que o
+        # usuário puxou histórico (Home/scroll ao topo). populate_messages()
+        # reconstrói a janela sempre a partir do fim, então sem isso um
+        # rebuild de fundo — e há um a cada mensagem nova — descartava tudo
+        # que o usuário tinha carregado e voltava ao messages_page_size.
+        self._expanded_visible_count: int = 0
+        # Id da mensagem mais antiga exibida naquele momento: é a âncora real
+        # da janela, já que a contagem sozinha escorrega uma linha para frente
+        # a cada mensagem nova. Vazio quando ela não existe mais.
+        self._expanded_oldest_msg_id: str = ""
 
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self.init_UI()
@@ -1586,6 +1596,7 @@ class ConversationsPanel(wx.Panel):
         self._quoted_message = None
         self._reaction_map   = {}
         self._is_loading_more = False
+        self._reset_expanded_window()
         # Reset mention state for the new conversation
         self._pending_mentions.clear()
         self._pending_mention_display_names.clear()
@@ -3558,6 +3569,7 @@ class ConversationsPanel(wx.Panel):
         # _msg_bookmarks is intentionally NOT reset here — see __init__.
         # _msg_temp_bookmarks is, for the same reason spelled out there.
         self._msg_temp_bookmarks.clear()
+        self._reset_expanded_window()
         closed_jid = self._last_open_jid
         self.conversation = None
         self.conversation_panel.Hide()
@@ -5424,6 +5436,175 @@ class ConversationsPanel(wx.Panel):
             return mapped_lid
         return remote_jid
 
+    def _reset_expanded_window(self) -> None:
+        """Volta a lista ao messages_page_size normal.
+
+        A janela expandida pertence à conversa em que o usuário pediu o
+        histórico; abrir outra (ou fechar esta) tem de recomeçar do limite
+        configurado, senão o chat seguinte já nasce renderizando milhares de
+        linhas por causa de uma conversa anterior.
+        """
+        self._expanded_visible_count = 0
+        self._expanded_oldest_msg_id = ""
+
+    def _history_window_for_rebuild(self, displayable: list, limit: int) -> tuple:
+        """(offset, sep_idx) da janela que populate_messages() vai reconstruir.
+
+        Método próprio, e não duas linhas dentro do rebuild, porque é aqui que
+        o histórico que o usuário carregou à mão sobrevive: a âncora diz até
+        onde a janela tem de continuar aberta (ver _remember_expanded_window()).
+        populate_messages() não é testável sem um wx.ListCtrl de verdade, então
+        sem isto o passo que corrige o bug ficava sem teste nenhum — dava para
+        apagar o argumento da âncora com a suíte inteira verde.
+        """
+        return history_window(
+            displayable,
+            getattr(self, "_expanded_oldest_msg_id", ""),
+            getattr(self, "_expanded_visible_count", 0),
+            limit,
+            self._unread_sep_idx,
+        )
+
+    def _remember_expanded_window(self) -> None:
+        """Registra até onde a lista está materializada agora.
+
+        A contagem é o piso e o id da mensagem mais antiga exibida é a âncora:
+        cada mensagem nova aumenta o total de exibíveis, e uma janela definida
+        só por contagem andaria uma linha para frente a cada chegada, comendo
+        de volta justamente o histórico que o usuário pediu. Quando esse id
+        some (mensagem apagada remotamente), a contagem ainda segura a janela.
+
+        Chamado por quem carrega histórico (Home) E pelo fim de
+        populate_messages(): o piso não é "o que o Home trouxe", é "o que já
+        está na tela". Sem a segunda chamada, uma conversa aberta e nunca
+        expandida abre com messages_page_size linhas, cresce por append a cada
+        mensagem que chega ou que o usuário manda (on_incoming_message() e os
+        caminhos de envio otimista apendam sem cortar nada), e o primeiro
+        rebuild de fundo recalcula a janela do fim e devolve a lista a
+        exatamente o page size — apagando da lista, sob o leitor de tela, uma
+        linha antiga por mensagem nova. Foi assim que o bug reapareceu depois
+        da âncora: com 200 linhas na tela, 4 mensagens enviadas e o repaint
+        seguinte, as 4 mais antigas sumiram.
+
+        "O que está na tela" inclui o alargamento que paginated_window() faz
+        por causa do separador de não lidas, e não só o histórico que o usuário
+        puxou: um grupo com 4000 não lidas abre com 4001 linhas, e essas 4001
+        viram o piso da sessão inteira — o separador ser descartado depois não
+        as estreita. É de propósito. Apará-las é apagar da lista, sob o leitor
+        de tela, exatamente as mensagens que ele acabou de ler, que é o bug.
+        Quem for medir custo de rebuild em conversa nunca expandida precisa
+        saber que essa janela larga é esperada, não defeito.
+
+        Uma lista só com sentinela (o placeholder de "sem mensagens") não
+        registra nada: um piso de 1 linha não significa nada e a âncora vazia
+        não prenderia coisa alguma. Também não zera o que já estava gravado, e
+        isso é escolha, não esquecimento: "Limpar conversa" esvazia records e
+        cai aqui, mas um records momentaneamente vazio no meio de um resync
+        cairia igual, e zerar ali derrubaria um piso legítimo — de novo linhas
+        sumindo sob o leitor. O custo de manter é o oposto e é suportável: se o
+        chat limpo voltar a encher na mesma sessão, o rebuild seguinte pinta
+        uma janela mais larga que o page size até a conversa ser fechada.
+        """
+        oldest_id = ""
+        found_real_row = False
+        for msg in self._sorted_messages:
+            if isinstance(msg, dict) and not self._is_separator(msg):
+                found_real_row = True
+                # A primeira linha COM id, não simplesmente a primeira linha:
+                # populate_messages() mantém registros sem key.id, e parar no
+                # primeiro deles deixava a âncora vazia para sempre naquela
+                # conversa. Só o piso por contagem sobraria — e ele escorrega
+                # uma linha para frente a cada mensagem que chega ao vivo
+                # (on_incoming_message() não registra a janela), reintroduzindo
+                # em silêncio o mesmo sintoma que esta janela existe para
+                # corrigir. Pegar uma linha mais nova como âncora só pode
+                # alargar a janela, nunca estreitá-la: expanded_min_visible()
+                # aplica max(piso, âncora).
+                mid = (msg.get("key") or {}).get("id", "") or ""
+                if mid:
+                    oldest_id = mid
+                    break
+        if not found_real_row:
+            return
+        self._expanded_visible_count = len(self._sorted_messages)
+        self._expanded_oldest_msg_id = oldest_id
+
+    def _merge_history_into_records(self, older_messages: list) -> None:
+        """Guarda no chat aberto o histórico recém-carregado.
+
+        O prepend feito por _load_older_messages()/_on_older_messages_loaded()
+        só vive nas listas em memória do painel, mas populate_messages()
+        reconstrói a conversa inteira a partir de
+        conversation["messages"]["messages"]["records"] — então um rebuild de
+        fundo redesenhava a conversa sem essas mensagens. É o mesmo merge que
+        MainWindow.fetch_older_messages() faz do lado do servidor, repetido
+        aqui porque self.conversation nem sempre é o mesmo dict que
+        main_window.chats[jid] (o resync da conversa aberta troca o dict), e é
+        idempotente: dedup por key.id, sem reordenar o que já existe
+        (populate_messages() ordena por timestamp de qualquer forma).
+
+        Só entra o que pertence mesmo à conversa aberta: a consulta local usa
+        _history_storage_jid() (que pode ser um @lid) e o fallback do servidor
+        reconsulta sob o JID alternativo, então um mapeamento @lid errado ou
+        velho traz mensagens de outro contato. Antes elas sumiam no rebuild
+        seguinte; guardadas nos records elas viram história permanente daquele
+        contato — sync_chat_messages() recolhe os records locais sem filtrar.
+        """
+        if not self.conversation or not older_messages:
+            return
+        try:
+            jid = self.conversation.get("remoteJid", "")
+            own = [
+                m for m in older_messages
+                if isinstance(m, dict) and self.main_window._chat_jids_equivalent(
+                    (m.get("key") or {}).get("remoteJid", ""), jid
+                )
+            ]
+            if len(own) != len(older_messages):
+                logging.warning(
+                    "[_merge_history_into_records] %d de %d mensagens descartadas "
+                    "por não pertencerem a %s",
+                    len(older_messages) - len(own), len(older_messages), jid,
+                )
+            if not own:
+                return
+            container = self.conversation.setdefault("messages", {}).setdefault(
+                "messages", {}
+            )
+            records = container.get("records") or []
+            existing_ids = {
+                (r.get("key") or {}).get("id")
+                for r in records
+                if isinstance(r, dict) and (r.get("key") or {}).get("id")
+            }
+            # Mensagem sem key.id fica de fora: um "" nos records faz
+            # _signature_changed_ids() devolver None para sempre, e aí todo
+            # repaint local (estrela, fixar) vira rebuild completo — sai mais
+            # caro do que perder uma linha que nem dá para endereçar.
+            new_records = [
+                m for m in own
+                if (m.get("key") or {}).get("id")
+                and (m.get("key") or {}).get("id") not in existing_ids
+            ]
+            if not new_records:
+                return
+            container["records"] = new_records + records
+            # "total" pode ser a contagem real do chat (db.get_message_count()),
+            # maior do que o que está carregado, então aqui só sobe. Vale até o
+            # próximo sync_chat_messages(), que reescreve com len(all_messages).
+            container["total"] = max(
+                int(container.get("total") or 0), len(container["records"])
+            )
+            logging.info(
+                "[_merge_history_into_records] %d mensagem(ns) antigas guardadas "
+                "nos records (total agora %d)",
+                len(new_records), container["total"],
+            )
+        except Exception:
+            logging.exception(
+                "[_merge_history_into_records] falha ao mesclar o histórico carregado"
+            )
+
     def _load_older_messages(self):
         """Load older messages from the local database, or fall back to the server if none remain locally."""
         if not self.conversation or not self._all_sorted_messages:
@@ -5468,6 +5649,8 @@ class ConversationsPanel(wx.Panel):
                         logging.info(f"[_load_older_messages] Prepend finished. Added {n_new} new unique messages. Rebuilding UI list.")
                         
                         if n_new > 0:
+                            self._merge_history_into_records(displayable)
+                            self._remember_expanded_window()
                             self._recompute_unread_sep_idx()
                                 
                             self.messages_list.DeleteAllItems()
@@ -5634,6 +5817,9 @@ class ConversationsPanel(wx.Panel):
                 return
 
             self._server_history_anchor.pop(requested_jid, None)
+
+            self._merge_history_into_records(displayable)
+            self._remember_expanded_window()
             
             self._recompute_unread_sep_idx()
 
@@ -5666,6 +5852,7 @@ class ConversationsPanel(wx.Panel):
             # Extend the in-memory list and update the offset
             self._sorted_messages   = new_msgs + self._sorted_messages
             self._messages_offset   = new_start
+            self._remember_expanded_window()
             if self._unread_sep_idx >= 0:
                 self._unread_sep_idx += n_new
 
@@ -9743,13 +9930,228 @@ class ConversationsPanel(wx.Panel):
         return participant_jid.rsplit("@", 1)[0]
 
 
-    def refresh_active_conversation_messages(self):
-        """Re-render all messages in the active message list (useful after background name/LID resolution)."""
+    def _row_jids(self, msg, participant_by_id=None) -> set:
+        """Every JID whose newly-resolved name can change this row's text.
+
+        _render_message_line() resolves a name from five different places, and
+        all five have to be collected here or the row silently stops being
+        repainted:
+
+        * the sender (_sender_label);
+        * the quoted message's sender (_get_quoted_sender), by contextInfo
+          participant or, failing that, by stanzaId;
+        * every mention in the body and in the quoted preview
+          (_resolve_mentions_in_text);
+        * a group notification's author and recipients, which
+          _get_message_content() runs through _get_participant_name() to build
+          the "X added Y" sentence.
+
+        Each is expanded through the @lid <-> phone bridge: the row can carry
+        the @lid while the resolution loop reported the phone JID, and
+        comparing the raw strings would leave it stale.
+
+        *participant_by_id* maps message id -> sender JID for the rows
+        currently loaded. _get_quoted_sender() falls back to the quoted
+        message's own recorded sender when contextInfo carries a stanzaId but
+        no participant, so without that map such a reply would be missed.
+        """
+        if not isinstance(msg, dict):
+            return set()
+
+        def _as_jid_str(j) -> str:
+            # Same tolerance _get_message_content()'s own _as_jid_str() has:
+            # records written to disk by an older build can still carry a raw
+            # WPPConnect Wid dict here.
+            if isinstance(j, dict):
+                return j.get("_serialized") or j.get("id") or ""
+            return j if isinstance(j, str) else ""
+
+        key = msg.get("key") or {}
+        raw = [
+            key.get("participant") or "",
+            key.get("remoteJid") or "",
+            key.get("remoteJidAlt") or "",
+            msg.get("participant") or "",
+        ]
+        # O JID da CONVERSA, e não só os que estão na mensagem: em 1:1
+        # _sender_label() e os dois ramos 1:1 de _get_quoted_sender() resolvem
+        # o nome a partir de self.conversation quando a linha não tem
+        # participant, então uma linha cujo key.remoteJid está sob outra forma
+        # (@lid) e ainda sem bridge não cruzaria com o JID de telefone que o
+        # laço de resolução reportou — e ficaria anunciando o número cru.
+        # Excluído em grupo: lá o nome nunca vem da conversa, e nenhum laço de
+        # resolução reporta um @g.us, então incluí-lo não pegaria nada.
+        conv_jid = (self.conversation or {}).get("remoteJid", "") or ""
+        if conv_jid and not conv_jid.endswith("@g.us"):
+            raw.append(conv_jid)
+        raw.extend(self._raw_mentioned_jids(msg) or [])
+        msg_obj = msg.get("message") or {}
+        ext = msg_obj.get("extendedTextMessage") or {} if isinstance(msg_obj, dict) else {}
+        # _raw_mentioned_jids() only reads mentionedJid; _get_message_content()
+        # also accepts the mentionedJidList spelling, so both are collected.
+        for ctx_candidate in (
+            msg.get("contextInfo"),
+            msg_obj.get("contextInfo") if isinstance(msg_obj, dict) else None,
+            ext.get("contextInfo") if isinstance(ext, dict) else None,
+        ):
+            if isinstance(ctx_candidate, dict):
+                raw.extend(ctx_candidate.get("mentionedJidList") or [])
+        # A group notification names its author and everyone it acted on, and
+        # the recipients live nowhere else in the message: only key.participant
+        # happens to mirror the author (WebSocketClient copies it there). A row
+        # left out here is the worst case this whole path has — the "X entrou
+        # no grupo" line falls back to raw @lid digits, _get_participant_name()
+        # itself kicks off the resolution meant to fix that very line, and the
+        # scoped repaint it schedules would then skip it.
+        notif = msg_obj.get("groupNotification") or {} if isinstance(msg_obj, dict) else {}
+        if isinstance(notif, dict) and notif:
+            raw.append(_as_jid_str(notif.get("author")))
+            raw.extend(_as_jid_str(r) for r in (notif.get("recipients") or []))
+        ctx = self._get_context_info(msg)
+        if ctx:
+            quoted_participant = ctx.get("participant") or ""
+            raw.append(quoted_participant)
+            if not quoted_participant and participant_by_id:
+                raw.append(participant_by_id.get(ctx.get("stanzaId") or "", ""))
+            quoted = ctx.get("quotedMessage") or {}
+            if isinstance(quoted, dict):
+                q_ext = quoted.get("extendedTextMessage") or {}
+                for holder in (
+                    quoted,
+                    quoted.get("contextInfo"),
+                    q_ext.get("contextInfo") if isinstance(q_ext, dict) else None,
+                ):
+                    if isinstance(holder, dict):
+                        raw.extend(holder.get("mentionedJid") or [])
+                        raw.extend(holder.get("mentionedJidList") or [])
+        mw = self.main_window
+        forms = set()
+        for jid in raw:
+            if not isinstance(jid, str) or not jid:
+                continue
+            normalized = mw._normalize_jid(jid)
+            if normalized:
+                forms.update(mw._jid_address_forms(normalized) or (normalized,))
+        return forms
+
+    def _message_ids_touching_jids(self, jids):
+        """Ids of the loaded messages whose rendered text depends on *jids*,
+        or None when the selective repaint cannot be trusted.
+
+        None means "repaint everything": a row that matches but carries no
+        key.id cannot be addressed by _set_message_row_texts(), and leaving it
+        behind is exactly the failure this path must never cause — the row
+        keeps announcing raw @lid/phone digits to the screen reader, which is
+        worse than the slowness the selective repaint buys back.
+        """
+        mw = self.main_window
+        targets = set()
+        for jid in jids or ():
+            if not isinstance(jid, str) or not jid:
+                continue
+            normalized = mw._normalize_jid(jid)
+            if normalized:
+                targets.update(mw._jid_address_forms(normalized) or (normalized,))
+        if not targets:
+            return None
+        # Built in its own pass so the quoted-sender fallback is a dict lookup
+        # rather than a scan of _sorted_messages per reply row.
+        participant_by_id = {}
+        for m in self._sorted_messages:
+            if not isinstance(m, dict) or self._is_separator(m):
+                continue
+            m_key = m.get("key") or {}
+            m_id = m_key.get("id") or ""
+            if m_id:
+                participant_by_id[m_id] = (
+                    m_key.get("participant") or m.get("participant")
+                    or m_key.get("remoteJid") or ""
+                )
+        ids = set()
+        for m in self._sorted_messages:
+            if not isinstance(m, dict) or self._is_separator(m):
+                continue
+            if not (self._row_jids(m, participant_by_id) & targets):
+                continue
+            m_id = (m.get("key") or {}).get("id") or ""
+            if not m_id:
+                return None
+            ids.add(m_id)
+        return ids
+
+    def refresh_active_conversation_messages(self, jids=None) -> int:
+        """Re-render messages in the active message list (useful after
+        background name/LID resolution). Returns how many rows it repainted.
+
+        *jids* narrows the work to the rows whose text can depend on those
+        JIDs. The message window has had no ceiling since it started
+        preserving the history the user loads with Home, so a full pass is
+        thousands of _render_message_line() calls once per resolved batch —
+        while a batch typically renames one person. None (the default) keeps
+        the original behaviour of re-rendering everything, and every path that
+        cannot say with certainty which rows changed falls back to it.
+        """
         if not self.conversation or not hasattr(self, "messages_list"):
-            return
-        for i, msg in enumerate(self._sorted_messages):
-            if not self._is_separator(msg):
-                self.messages_list.SetItemText(i, self._render_message_line(msg))
+            return 0
+        target_ids = self._message_ids_touching_jids(jids) if jids else None
+        # Mesma guarda de _repaint_message_rows(): _set_message_row_texts()
+        # escreve por índice, então uma lista fora de passo com o controle põe
+        # o texto certo na linha errada — e um descompasso só de prefixo não
+        # levanta exceção nenhuma, o leitor de tela simplesmente passa a ler a
+        # mensagem trocada. Degrada para o passe completo, que percorre as duas
+        # em paralelo e no máximo pinta linhas a mais.
+        if (target_ids is not None
+                and self.messages_list.GetItemCount() != len(self._sorted_messages)):
+            logging.info(
+                "[refresh_active_conversation_messages] list out of step with rows "
+                "— full path")
+            target_ids = None
+        # Um SetItemText por linha é um evento de acessibilidade por linha, e
+        # os lotes de resolução de nomes/LID chamam isto repetidamente sobre a
+        # lista inteira — sem congelar, o leitor de tela recebe a enxurrada e a
+        # janela trava por segundos (ver as notas do watchdog em main.py).
+        self.messages_list.Freeze()
+        try:
+            if target_ids is not None:
+                # Reuses the same SetItemText loop the selection-marker
+                # refresh goes through; it already renders with an explicit
+                # index/total.
+                return len(self._set_message_row_texts(target_ids))
+            painted = 0
+            failed = 0
+            total = len(self._sorted_messages)
+            for i, msg in enumerate(self._sorted_messages):
+                if not self._is_separator(msg):
+                    # Per row, not around the loop: a single malformed record
+                    # used to abort the whole pass, so every row after it kept
+                    # its old text — one bad message turning into a whole
+                    # conversation that stops being repainted. Only the first
+                    # traceback is logged, since this runs on a timer and a
+                    # permanently bad record would otherwise fill log.log.
+                    try:
+                        # index/total explícitos como em _set_message_row_texts():
+                        # sem eles o modo listbox com contagem de itens cai no
+                        # fallback self._sorted_messages.index(msg), uma varredura
+                        # linear com comparação profunda de dicts por linha — e duas
+                        # mensagens de mesmo conteúdo anunciam a posição errada.
+                        self.messages_list.SetItemText(
+                            i, self._render_message_line(msg, index=i, total=total)
+                        )
+                    except Exception:
+                        if not failed:
+                            logging.exception(
+                                "[refresh_active_conversation_messages] row %d "
+                                "failed to render; skipping it and continuing.", i)
+                        failed += 1
+                    else:
+                        painted += 1
+            if failed > 1:
+                logging.warning(
+                    "[refresh_active_conversation_messages] %d of %d rows failed "
+                    "to render.", failed, total)
+            return painted
+        finally:
+            self.messages_list.Thaw()
 
     def _on_menu_reply_private(self, msg: dict, participant_jid: str):
         """Open a private conversation with the group participant and cite their message."""
@@ -13137,6 +13539,194 @@ class ConversationsPanel(wx.Panel):
         if not self._repaint_message_rows(msg_ids):
             self.populate_messages(preserve_focus=True)
 
+    def _row_position_suffix_active(self) -> bool:
+        """Se cada linha carrega o sufixo ", N de M" (modo listbox com a
+        contagem de itens ligada).
+
+        Importa para quem acrescenta linha em vez de reconstruir: acrescentar
+        muda o M de TODAS as linhas já renderizadas, e só o rebuild re-renderiza
+        todas. Com o sufixo ligado, o caminho incremental deixaria a lista
+        inteira anunciando um total velho ao leitor de tela — pior que a
+        lentidão que ele evita.
+        """
+        if getattr(self, "_message_list_mode", "classic") != "listbox":
+            return False
+        mw = getattr(self, "main_window", None)
+        settings = getattr(mw, "settings", None)
+        if not isinstance(settings, dict):
+            return False
+        return bool(settings.get("user_interface", {}).get("show_listbox_item_count", False))
+
+    def _append_new_tail_rows(self, old_sig, new_sig) -> bool:
+        """Renderiza mensagens que só chegaram no FIM da conversa acrescentando
+        as linhas delas, em vez de reconstruir a lista. Devolve se a diferença
+        inteira entre as duas assinaturas foi coberta assim; quem chama
+        reconstrói quando não foi.
+
+        É o caso mais comum que sobrou passando pelo rebuild: mensagem nova. O
+        painel já a acrescenta ao vivo em on_incoming_message(), mas o refresh
+        de fundo que vem segundos depois (sync_chat_messages() ->
+        _refresh_open_conversation_after_sync(), o backfill de histórico, a
+        rodada de 60s) só sabia comparar a assinatura e chamar
+        populate_messages(): DeleteAllItems() mais um Append() por linha, para
+        pintar de novo o que já estava na tela — numa janela que agora pode ter
+        milhares de linhas. Mesma ideia de _repaint_message_rows(), que já faz
+        isso para estrela/fixar/apagar, e de refresh_chat_row_text() na lista de
+        conversas.
+
+        Na prática o caminho normal acrescenta ZERO linha: a mensagem já foi
+        pintada ao vivo, e o que este método faz é reconhecer isso e adotar a
+        assinatura, transformando o rebuild seguinte em nada. Acrescentar de
+        fato é o caminho de quem chegou pelo sync sem passar pelo live.
+
+        Recusa tudo que não seja "linhas novas no fim, nada mais mudou", porque
+        aí o rebuild é a única coisa que sabe onde a linha vai:
+
+        - qualquer linha existente que mudou de texto ou sumiu (a comparação
+          por id de _signature_changed_ids(), que já devolve None sozinha para
+          conversa trocada, separador movido ou id vazio/repetido);
+        - registro novo que não vira linha — a reação é o caso comum: ela muda
+          o texto de OUTRA linha, e a assinatura não diz de qual;
+        - registro novo mais antigo que a última linha, que entraria no meio da
+          lista ordenada por timestamp, não no fim;
+        - qualquer reordenação dos registros antigos, que a comparação por id
+          não veria e o sort estável do rebuild veria;
+        - lista fora de passo com o controle, lista vazia (acrescentar na lista
+          vazia com foco reproduz o pulo de foco para a linha 0 que o Freeze()
+          de populate_messages() documenta) e a lista de placeholder;
+        - o sufixo ", N de M" ligado (ver _row_position_suffix_active()).
+
+        Uma exceção à recusa por registro não exibível: reação a um status
+        NOSSO é linha de verdade (_is_displayable_message() ->
+        reaction_targets_status()), então ela é acrescentada como qualquer
+        mensagem. O rebuild também a poria em _reaction_map, e o atalho não —
+        sem divergência visível, porque essa entrada é chaveada por um id de
+        status@broadcast, que não tem linha nesta conversa para decorar.
+
+        Consequência deliberada, não efeito colateral: o separador de não
+        lidas que on_incoming_message() insere ao vivo passa a sobreviver a
+        este refresh. Ele nunca escreve _first_unread_msg_id, então o rebuild
+        não o renderizava de volta e ele sumia poucos segundos depois de
+        aparecer — o marcador de "onde começa o que eu não li" e o alvo do
+        Alt+3 evaporavam sozinhos. Mantê-lo é o que a inserção ao vivo
+        pretendia, e é seguro porque só se acrescenta na cauda: _unread_sep_idx
+        continua apontando para a mesma linha e _dismiss_unread_separator()
+        continua funcionando. A assimetria que sobra vale saber: o separador
+        ainda é removido pelo primeiro rebuild que qualquer OUTRA mudança
+        provocar.
+        """
+        if self.conversation is None or not self._sorted_messages:
+            return False
+        changed = self._signature_changed_ids(old_sig, new_sig)
+        if changed is None:
+            return False
+        old_rows, new_rows = old_sig[3], new_sig[3]
+        # Crescimento no fim, e nada mais: os registros antigos têm de continuar
+        # lá, iguais e na mesma ordem. Comparar só os conjuntos de id deixaria
+        # passar uma reordenação pura, e ela não é inócua — populate_messages()
+        # ordena por timestamp com sort estável, então duas mensagens de mesmo
+        # timestamp trocam de lugar no rebuild e a lista na tela deixaria de ser
+        # a que o rebuild produziria.
+        if len(new_rows) < len(old_rows) or new_rows[:len(old_rows)] != old_rows:
+            return False
+        added = {row[0] for row in new_rows[len(old_rows):]}
+        # Implicado pelo prefixo acima; custa uma comparação de conjuntos e
+        # prende a conclusão em vez de depender do raciocínio.
+        if changed != added:
+            return False
+        if self._row_position_suffix_active():
+            return False
+        # Lista de fora de passo com o controle: um Append() aqui desalinharia
+        # texto e registro para sempre. Mesma guarda de _repaint_message_rows().
+        if self.messages_list.GetItemCount() != len(self._sorted_messages):
+            logging.info("[_append_new_tail_rows] list out of step with rows — full path")
+            return False
+        first_row = self._sorted_messages[0]
+        if isinstance(first_row, dict) and first_row.get("_type") == "empty_placeholder":
+            return False
+
+        records = []
+        container = self.conversation.get("messages")
+        if isinstance(container, dict):
+            inner = container.get("messages")
+            if isinstance(inner, dict) and isinstance(inner.get("records"), list):
+                records = inner["records"]
+        newly = {}
+        for m in records:
+            if not isinstance(m, dict):
+                continue
+            mid = (m.get("key") or {}).get("id", "")
+            # `mid not in newly` é inalcançável — _signature_changed_ids() já
+            # devolveu None para id repetido — e fica pelo mesmo motivo que a
+            # comparação `changed != added` acima: o mapa por id só é seguro se
+            # o id for único, e isso passa a estar dito aqui também.
+            if mid in added and mid not in newly:
+                newly[mid] = m
+        if len(newly) != len(added):
+            return False
+        if any(not self._is_displayable_message(m) for m in newly.values()):
+            return False
+
+        rendered = {
+            (m.get("key") or {}).get("id", "")
+            for m in self._sorted_messages if not self._is_separator(m)
+        }
+        newcomers = [m for mid, m in newly.items() if mid not in rendered]
+        newcomers.sort(key=lambda m: self._extract_timestamp(m) or 0)
+        tail_ts = None
+        for m in reversed(self._sorted_messages):
+            if not self._is_separator(m):
+                tail_ts = self._extract_timestamp(m) or 0
+                break
+        if tail_ts is None:
+            # Só sentinela na tela e nenhuma mensagem: não há cauda contra a
+            # qual comparar, e um piso 0 aqui aprovaria qualquer timestamp.
+            return False
+        if any((self._extract_timestamp(m) or 0) < tail_ts for m in newcomers):
+            return False
+
+        if newcomers:
+            # _all_sorted_messages só acompanha enquanto as duas listas
+            # terminarem no mesmo objeto. O append ao vivo de
+            # on_incoming_message() já as deixa fora de passo no fim (situação
+            # anterior a isto), e não é este método que vai inventar um
+            # alinhamento que ele não tem como verificar.
+            # A consequência do desalinhamento é maior do que parece e vale
+            # dizer por extenso: _load_older_messages() tira loaded_db_count
+            # de _all_sorted_messages, então com ela curta a consulta local
+            # devolve mensagens que já estão em memória, o dedup zera n_new e
+            # ele cai para o servidor ANTES de esgotar o histórico local. O
+            # usuário ainda recebe o histórico, só que pelo caminho caro. É
+            # pré-existente, não regressão deste método — mas é o que dá para
+            # perder aqui, não "algumas mensagens que o dedup descarta".
+            # O `is not` não é paranoia: _sorted_messages tem de ser um SUFIXO
+            # de _all_sorted_messages, nunca o mesmo objeto de lista. Hoje todo
+            # produtor fatia ou concatena, então são sempre listas distintas;
+            # se alguma passar a aliasar, os dois append() abaixo virariam dois
+            # na mesma lista e ela desalinharia do controle.
+            in_step = (
+                self._all_sorted_messages
+                and self._all_sorted_messages is not self._sorted_messages
+                and self._all_sorted_messages[-1] is self._sorted_messages[-1]
+            )
+            self.messages_list.Freeze()
+            try:
+                for m in newcomers:
+                    if in_step:
+                        self._all_sorted_messages.append(m)
+                    self._sorted_messages.append(m)
+                    self.messages_list.Append((self._render_message_line(m),))
+            finally:
+                self.messages_list.Thaw()
+            self._remember_expanded_window()
+        self._messages_signature_cache = new_sig
+        logging.info(
+            "[_append_new_tail_rows] %d new record(s), %d row(s) appended, %d row(s) total "
+            "— no rebuild.",
+            len(added), len(newcomers), len(self._sorted_messages),
+        )
+        return True
+
     def refresh_messages_if_changed(self):
         """Repopulate the messages list only when its content actually changed.
 
@@ -13151,8 +13741,12 @@ class ConversationsPanel(wx.Panel):
         of the conversation roughly once a minute, mid-read.
 
         Nothing periodic needs a rebuild when nothing changed, so compare first
-        and skip. When something genuinely did change, the rebuild still runs
-        (and still preserves focus as best it can).
+        and skip. When the only difference is messages at the END of the
+        conversation — a new message, which is the overwhelmingly common case —
+        _append_new_tail_rows() covers it by appending those rows (usually
+        none: the live path already painted them) and the rebuild is skipped
+        too. Anything else still rebuilds in full, preserving focus as best it
+        can.
         """
         if self.conversation is None:
             return
@@ -13165,6 +13759,16 @@ class ConversationsPanel(wx.Panel):
             return
         if sig == getattr(self, "_messages_signature_cache", None):
             return
+        try:
+            if self._append_new_tail_rows(
+                getattr(self, "_messages_signature_cache", None), sig
+            ):
+                return
+        except Exception:
+            # O rebuild abaixo repinta a conversa inteira de qualquer forma, e
+            # é ele que estava aqui antes: uma falha no atalho não pode custar
+            # a atualização.
+            logging.exception("[refresh_messages_if_changed] tail append failed — full path")
         self._messages_signature_cache = sig
         self.populate_messages(preserve_focus=True)
 
@@ -13239,6 +13843,13 @@ class ConversationsPanel(wx.Panel):
         # suppresses native repaint/accessibility notifications until Thaw()
         # runs in the finally block below, by which point only the final,
         # correct Focus()/Select() call (or lack thereof) is ever observed.
+        #
+        # Medido, não estimado, pelo mesmo motivo do repaint de nomes em
+        # main.py: este rebuild é DeleteAllItems() + um Append() por linha, ele
+        # roda a cada mensagem nova, e a janela deixou de ser limitada ao
+        # messages_page_size. Uma linha por rebuild diz quanto custa a janela
+        # no tamanho a que ela chegou.
+        _rebuild_started = time.monotonic()
         self.messages_list.Freeze()
         try:
             self.messages_list.DeleteAllItems()
@@ -13328,8 +13939,8 @@ class ConversationsPanel(wx.Panel):
             limit = int(
                 self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
             )
-            self._messages_offset, self._unread_sep_idx = paginated_window(
-                len(displayable), limit, self._unread_sep_idx
+            self._messages_offset, self._unread_sep_idx = (
+                self._history_window_for_rebuild(displayable, limit)
             )
             paginated = displayable[self._messages_offset:]
 
@@ -13409,6 +14020,15 @@ class ConversationsPanel(wx.Panel):
                         logging.info("[populate_messages] default-select tail: list is empty (last=-1)")
         finally:
             self.messages_list.Thaw()
+            # A janela que acabou de ser pintada é o piso da próxima. Aqui, no
+            # finally, pelo mesmo motivo da assinatura abaixo: o corpo retorna
+            # de vários pontos, e um rebuild que não registrasse a janela
+            # deixaria o seguinte livre para cortá-la. Ver
+            # _remember_expanded_window().
+            try:
+                self._remember_expanded_window()
+            except Exception:
+                logging.exception("[populate_messages] failed to record the rendered window")
             # Snapshot what is now on screen so the next background refresh can
             # tell "nothing changed" apart from "needs a rebuild" — see
             # refresh_messages_if_changed(). Taken here, in the finally, because
@@ -13417,6 +14037,24 @@ class ConversationsPanel(wx.Panel):
                 self._messages_signature_cache = self._messages_signature()
             except Exception:
                 self._messages_signature_cache = None
+            _rebuild_ms = (time.monotonic() - _rebuild_started) * 1000.0
+            # Acima do limiar sobe para WARNING. Em INFO o número só aparece
+            # para quem já foi procurar por ele, e este é o laço que a janela
+            # sem teto alarga: DeleteAllItems() + um Append() por linha, a cada
+            # mensagem nova. 250 ms é uma ordem de grandeza abaixo dos stalls
+            # que o watchdog mediu no laço vizinho (9,4 s / 19,8 s / 40,1 s —
+            # ver _schedule_refresh_active_messages() em main.py), então o
+            # aviso chega no log antes de o usuário sentir travamento.
+            if _rebuild_ms > 250.0:
+                logging.warning(
+                    "[populate_messages] rebuilt %d row(s) in %.0f ms (offset=%d).",
+                    len(self._sorted_messages), _rebuild_ms, self._messages_offset,
+                )
+            elif logging.getLogger().isEnabledFor(logging.INFO):
+                logging.info(
+                    "[populate_messages] rebuilt %d row(s) in %.0f ms (offset=%d).",
+                    len(self._sorted_messages), _rebuild_ms, self._messages_offset,
+                )
 
 
     # ── Mass action handlers ────────────────────────────────────────────────
