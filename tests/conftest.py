@@ -255,6 +255,13 @@ def warm_cached_chat(jid: str, t: int = 100, records: int = 1) -> dict:
     tell a warm round from a cold one — so `records=0` is a deliberate choice
     a test makes, never an accident of which copy of the helper it used.
 
+    The records carry `t` as their own timestamp, because that is what a chat
+    that is actually up to date looks like: the activity the chat list claims
+    is the timestamp of the newest message we stored. A record older than `t`
+    means the server has something we never stored, and
+    incremental_sync.local_history_behind_server() reads it as exactly that —
+    a chat built that way is not "unchanged", it is one of the broken ones.
+
     Lives in conftest (imported as tests.conftest — tests/ is a package) for
     the same reason set_clipboard_data() below does.
     """
@@ -265,7 +272,7 @@ def warm_cached_chat(jid: str, t: int = 100, records: int = 1) -> dict:
             "key": {"remoteJid": jid, "id": f"{jid}-m{n}", "fromMe": False},
             "message": {"conversation": "x"},
             "messageType": "conversation",
-            "messageTimestamp": t - 10,
+            "messageTimestamp": t,
         } for n in range(records)]}},
     }
 

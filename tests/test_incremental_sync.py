@@ -2,6 +2,7 @@ from core.incremental_sync import (
     chat_sync_marker,
     chat_sync_marker_changed,
     classify_chat_sync,
+    local_history_behind_server,
     messages_overlap,
     next_incremental_limit,
 )
@@ -129,6 +130,108 @@ class TestChatClassification:
         assert classify_chat_sync(
             chat, chat_sync_marker(chat), force_full=True
         ) == ("full", "forced-full")
+
+
+class TestTheMarkerCannotOutrankTheContent:
+    """The exact false negative behind "only F5 brings that chat up to date".
+
+    A round can commit a chat's new activity marker without ever storing the
+    message it belongs to — sync_chat_messages() does it deliberately once a
+    delta has come back empty too often. The next baseline is a copy of that
+    committed marker, so every snapshot-vs-snapshot signal agrees the chat is
+    unchanged, for ever. Measured on a real account: 20 of 155 chats were in
+    exactly this state, all of them skipped every round.
+    """
+
+    def _poisoned(self):
+        # t says 14:00, the newest message we actually stored is from 13:00,
+        # and the baseline already carries the same claim.
+        chat = _chat(t=1400, last_received="M2", records=[_message("M2", 1300)])
+        baseline = chat_sync_marker(chat)
+        return chat, baseline
+
+    def test_the_old_snapshot_signals_all_agree_it_is_unchanged(self):
+        chat, baseline = self._poisoned()
+        assert baseline["activity"] == 1400
+        assert baseline["newest_local_id"] == "M2"
+        assert baseline["last_received_id"] == "M2"
+
+    def test_a_chat_whose_stored_history_lags_its_marker_is_refreshed(self):
+        chat, baseline = self._poisoned()
+        assert classify_chat_sync(chat, baseline) == (
+            "incremental", "local-behind-server")
+
+    def test_a_confirmed_fetch_stops_it_asking_again(self):
+        """Otherwise a chat whose newest event never becomes a stored message
+        (a filtered protocol row) would be re-queried on every round."""
+        chat, baseline = self._poisoned()
+        assert classify_chat_sync(
+            chat, baseline, verified_activity=1400) == ("skip", "unchanged")
+
+    def test_a_chat_that_really_is_up_to_date_is_still_skipped(self):
+        """The guard against turning the plan into a full sync in disguise."""
+        chat = _chat(t=1400, last_received="M2", records=[_message("M2", 1400)])
+        assert classify_chat_sync(chat, chat_sync_marker(chat)) == (
+            "skip", "unchanged")
+
+    def test_millisecond_timestamps_do_not_read_as_newer_than_the_server(self):
+        chat = _chat(t=1_400_000_000, last_received="M2",
+                     records=[_message("M2", 1_400_000_000_000)])
+        assert local_history_behind_server(chat) is False
+
+    def test_an_empty_local_cache_is_left_to_the_full_path(self):
+        assert local_history_behind_server(_chat(t=1400)) is False
+
+
+class TestTheReasonNamesTheSignal:
+    """The plan's log line reported every incremental target as
+    "activity-changed" whatever had moved, which made a planner bug
+    indistinguishable from a genuinely quiet account."""
+
+    def test_an_unread_change_is_not_called_activity(self):
+        old = _chat(t=30, last_received="M2", records=[_message("M2", 30)])
+        new = _chat(t=30, last_received="M2", records=[_message("M2", 30)])
+        new["unreadCount"] = 2
+        assert classify_chat_sync(new, chat_sync_marker(old)) == (
+            "incremental", "unread-changed")
+
+    def test_a_new_last_received_id_says_so(self):
+        old = _chat(t=30, last_received="M2", records=[_message("M2", 30)])
+        new = _chat(t=30, last_received="M3", records=[_message("M2", 30)])
+        assert classify_chat_sync(new, chat_sync_marker(old)) == (
+            "incremental", "last-received-changed")
+
+
+class TestActivityMovingBackwards:
+    """A baseline above the current activity must NOT count as a change.
+
+    The baseline is not "what the server last said": sync_chat_messages()
+    raises chat["t"] to the newest displayable message whenever that is newer
+    than the server's marker, and on_historical_message() can write a raw
+    millisecond timestamp into it. Once local `t` sits above the server's, a
+    backwards-counts-too rule re-selects that chat every 60s poll round for
+    ever — and the fetch it triggers raises `t` again, re-arming the next
+    round. Nothing useful comes back either way: sync_chat_messages()
+    deliberately never deletes, so a revoke is not actionable from a delta.
+    """
+
+    def test_a_lower_server_activity_is_not_a_reason_to_refetch(self):
+        old = _chat(t=30, last_received="M2", records=[_message("M2", 30)])
+        new = _chat(t=25, last_received="M2", records=[_message("M2", 30)])
+        assert chat_sync_marker_changed(new, chat_sync_marker(old)) is False
+
+    def test_and_the_content_signal_does_not_smuggle_it_back_in(self):
+        """local_history_behind_server() must stay quiet here too: the server
+        claims *less* than we hold, which is the one direction that cannot mean
+        a message is missing locally."""
+        new = _chat(t=25, last_received="M2", records=[_message("M2", 30)])
+        assert local_history_behind_server(new) is False
+
+    def test_a_higher_server_activity_is_still_the_first_signal(self):
+        old = _chat(t=30, last_received="M2", records=[_message("M2", 30)])
+        new = _chat(t=45, last_received="M2", records=[_message("M2", 30)])
+        assert classify_chat_sync(new, chat_sync_marker(old)) == (
+            "incremental", "activity-changed")
 
 
 class TestAdaptiveWindow:

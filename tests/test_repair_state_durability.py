@@ -49,6 +49,7 @@ class _StateStub:
     _jid_address_forms = MainWindow._jid_address_forms
     _baseline_marker_for_jid = MainWindow._baseline_marker_for_jid
     _plan_message_sync = MainWindow._plan_message_sync
+    _note_verified_activity = MainWindow._note_verified_activity
     _persist_message_retry_jids = MainWindow._persist_message_retry_jids
     _persist_history_gap_jids = MainWindow._persist_history_gap_jids
     _persist_backfill_pending_state = MainWindow._persist_backfill_pending_state
@@ -162,6 +163,60 @@ class TestWhatIsRestoredActuallyDrivesTheNextRound:
         full, incremental, skipped, _reasons = stub._plan_message_sync(baseline)
 
         assert (full, incremental, skipped) == ([], [], 1)
+
+
+class TestTheOneMarkerThatIsDeliberatelyNotDurable:
+    """The counterpart to everything above: the per-session record of which
+    chats a get-messages already covered.
+
+    It exists because a chat can legitimately claim activity newer than any
+    message that will ever be stored (a filtered protocol row), and the
+    content-based signal would otherwise re-query it every round. It is
+    _not_ persisted precisely because the state it suppresses — an activity
+    marker that reached the database without its message — is exactly the one
+    a restart must be free to look at again.
+    """
+
+    @staticmethod
+    def _behind(jid):
+        """A chat whose newest stored message is older than what `t` claims."""
+        chat = _chat(jid, t=100)
+        chat["messages"]["messages"]["records"][0]["messageTimestamp"] = 90
+        return chat
+
+    def test_a_chat_whose_stored_history_lags_its_marker_is_queried(self):
+        stub = _StateStub()
+        stub.chats = {PHONE: self._behind(PHONE)}
+        baseline = {PHONE: MainWindow._capture_chat_sync_baseline(stub)[PHONE]}
+
+        _full, incremental, _skipped, reasons = stub._plan_message_sync(baseline)
+
+        assert [c["remoteJid"] for c in incremental] == [PHONE]
+        assert reasons[PHONE] == "local-behind-server"
+
+    def test_a_completed_fetch_this_session_settles_it(self):
+        stub = _StateStub()
+        stub.chats = {PHONE: self._behind(PHONE)}
+        baseline = {PHONE: MainWindow._capture_chat_sync_baseline(stub)[PHONE]}
+        stub._note_verified_activity(PHONE, stub.chats[PHONE])
+
+        full, incremental, skipped, _reasons = stub._plan_message_sync(baseline)
+
+        assert (full, incremental, skipped) == ([], [], 1)
+
+    def test_it_is_recorded_under_the_normalized_jid(self):
+        """The legacy @c.us form reaches sync_chat_messages() too, and the plan
+        only ever looks the chat up under its @s.whatsapp.net form."""
+        stub = _StateStub()
+        stub._note_verified_activity(PHONE.replace("@s.whatsapp.net", "@c.us"),
+                                     {"t": 100})
+        assert stub._verified_activity == {PHONE: 100}
+
+    def test_a_newer_fetch_never_lowers_it(self):
+        stub = _StateStub()
+        stub._note_verified_activity(PHONE, {"t": 100})
+        stub._note_verified_activity(PHONE, {"t": 90})
+        assert stub._verified_activity == {PHONE: 100}
 
 
 class TestTheFullSyncLatchSurvivesAFailedRound:

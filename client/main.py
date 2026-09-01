@@ -1535,6 +1535,12 @@ class MainWindow(wx.Frame):
         # one more look anyway, and why that look is bounded.
         self._delta_unsatisfied_chats = set()
         self._delta_unsatisfied_attempts = {}
+        # Per-session record of the activity each chat's get-messages actually
+        # completed on — see _note_verified_activity(). Bound here rather than
+        # lazily, because up to six sync_chat_messages() workers write it in
+        # parallel and two of them racing the lazy `= {}` would drop one
+        # chat's entry (one wasted refetch, invisible in a log).
+        self._verified_activity = {}
         self._chats_awaiting_messages = set()
         self._partial_history_counts = {}
         self._history_gap_jids = set()
@@ -14393,10 +14399,22 @@ class MainWindow(wx.Frame):
                         )
                         message_failures = set()
                         if full_targets or incremental_targets:
+                            # The reason histogram, same as [start_sync]'s.
+                            # This loop runs once a minute for the whole
+                            # session, so it is the only place a planner that
+                            # has started selecting every chat every round
+                            # (one over-eager signal is enough) is visible at
+                            # all — the counts alone cannot say whether 40
+                            # incremental targets are 40 real changes or one
+                            # bad comparison.
+                            reason_counts = {}
+                            for _reason in reasons.values():
+                                reason_counts[_reason] = reason_counts.get(_reason, 0) + 1
                             logging.info(
                                 "[periodic_contacts_sync] message delta: %d full/new, "
-                                "%d incremental, %d unchanged.",
+                                "%d incremental, %d unchanged. reasons=%s",
                                 len(full_targets), len(incremental_targets), skipped,
+                                reason_counts,
                             )
                             if full_targets:
                                 message_failures.update(
@@ -15942,6 +15960,34 @@ class MainWindow(wx.Frame):
             pass
         return {}
 
+    def _note_verified_activity(self, remote_jid: str, chat: dict) -> None:
+        """Record that this chat's messages were fetched up to its current `t`.
+
+        Deliberately per-session and in memory only: it exists to keep
+        local_history_behind_server() from re-querying, on every single round,
+        a chat whose newest server-side event never becomes a stored message
+        (see _MAX_EMPTY_DELTA_RETRIES below). Persisting it would also carry
+        over the one case it must never suppress — an activity marker that
+        reached the database without its message — so every launch is allowed
+        to confirm such a chat again from scratch. That costs at most
+        _MAX_EMPTY_DELTA_RETRIES get-messages per chat per launch, not one:
+        an empty delta parks the chat on _message_retry_jids, which re-selects
+        it on the next round until the retry budget runs out and this gets
+        written.
+        """
+        # Bound in __init__ so the six parallel sync workers share one dict;
+        # the getattr is only for the test stubs, which carry no __init__.
+        synced = getattr(self, "_verified_activity", None)
+        if not isinstance(synced, dict):
+            synced = self._verified_activity = {}
+        try:
+            activity = int((chat or {}).get("t", 0) or 0)
+        except (TypeError, ValueError, AttributeError):
+            return
+        jid = self._normalize_jid(remote_jid or "")
+        if jid and activity > int(synced.get(jid, 0) or 0):
+            synced[jid] = activity
+
     def _plan_message_sync(self, baseline: dict, force_full: bool = False,
                            include_repairs: bool = True):
         """Return (full_targets, incremental_targets, skipped_count, reasons).
@@ -15958,6 +16004,13 @@ class MainWindow(wx.Frame):
         gap_jids = set(getattr(self, "_history_gap_jids", set()) or set())
         pending_jids = set(getattr(self, "_chats_awaiting_messages", set()) or set())
         failed_jids = set(getattr(self, "_message_retry_jids", set()) or set())
+        # getattr-guarded like every other lazily-present sync attribute here:
+        # the test stubs that bind this method carry only what the path under
+        # test touches, and answer anything else with a lambda — hence the
+        # type check rather than a bare `or {}`. See _note_verified_activity().
+        verified = getattr(self, "_verified_activity", None)
+        if not isinstance(verified, dict):
+            verified = {}
 
         for key, chat in list(getattr(self, "chats", {}).items()):
             if not isinstance(chat, dict):
@@ -15994,6 +16047,10 @@ class MainWindow(wx.Frame):
             mode, reason = _classify_chat_sync(
                 chat, marker, force_full=force_full, repair_needed=repair_needed,
                 server_claims_content=self._server_claims_content(chat),
+                verified_activity=max(
+                    (int(verified.get(form, 0) or 0) for form in forms),
+                    default=0,
+                ),
             )
             if mode == "full":
                 full_targets.append(chat)
@@ -18168,6 +18225,12 @@ class MainWindow(wx.Frame):
                 self.db.insert_messages_batch(remote_jid, all_messages)
             if message_fetch_satisfied:
                 self.db.upsert_chat(remote_jid, chat)
+                # Same condition as committing the marker, for the same reason:
+                # this chat has now been queried up to the activity it claims,
+                # so local_history_behind_server() may stop asking about it for
+                # the rest of this session even if the tail never materialised
+                # as a stored message.
+                self._note_verified_activity(remote_jid, chat)
         except Exception as exc:
             persist_ok = False
             logging.warning("[sync_chat_messages] incremental DB save failed for %s: %s",
