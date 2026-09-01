@@ -2515,6 +2515,37 @@ export async function getHistorySyncStatus(req: Request, res: Response) {
       await safe('backendWorkerBridgeReady', () =>
         req_('WAWebBackendWorkerClient').isBackendWorkerBridgeReady()
       );
+      // The four below answer questions a captured wppconnect.log currently
+      // cannot, in the one failure that matters most: a freshly paired session
+      // where the phone shows "keep the app open" for three minutes, nothing
+      // at all arrives (chats 0, messages 0, unprocessed 0, contacts just
+      // "You"), and WhatsApp then unlinks the device. Nothing in the log says
+      // whether the page considers itself visible, nor which build the code
+      // actually running came from — and both are live hypotheses:
+      //
+      //   pageVisibility / pageHasFocus — WinZapp runs Chrome headless and
+      //     the page never gets a real window. If WhatsApp Web gates the
+      //     history handshake on being active, this is where it shows.
+      //   webVersion — the document is served from the pinned build
+      //     (@wppconnect/wa-version's newest), but every sub-resource,
+      //     including the workers, is fetched live and unintercepted. A page
+      //     reporting a version other than the one start.js logged pinning is
+      //     a version split, which is exactly the shape of a handshake that
+      //     stalls with no error.
+      //   serviceWorker — a controlling service worker can serve the current
+      //     build's assets past the document-only interception.
+      await safe('pageVisibility', () => document.visibilityState);
+      await safe('pageHasFocus', () => document.hasFocus());
+      // WAPI.getWAVersion() is the same reader host.layer.js uses for its
+      // "WhatsApp WEB version: ..." log line, so the two are directly
+      // comparable against start.js's "Pinning WhatsApp Web to ...".
+      await safe('webVersion', () => (window as any).WAPI?.getWAVersion?.());
+      await safe('serviceWorker', () => {
+        const controller = navigator.serviceWorker?.controller;
+        return controller
+          ? { scriptURL: controller.scriptURL, state: controller.state }
+          : null;
+      });
       await safe('persistedStorage', () => navigator.storage.persisted());
       await safe(
         'notificationApi',

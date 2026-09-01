@@ -896,6 +896,48 @@ def reset_media_not_in_store_count() -> None:
         _media_not_in_store = 0
 
 
+def describe_history_sync_health(status) -> str:
+    """The half of /history-sync-status that says *why* nothing is arriving.
+
+    The progress lines below already report how much has landed (messages,
+    chats, unprocessed, recentCompleted, initialSyncComplete). All of those
+    read zero/False both when history is merely slow and when WhatsApp Web
+    cannot ingest history at all, so on their own they cannot tell a first
+    pairing on a big account from a session that is wedged — which is exactly
+    the ambiguity a captured log was read against and lost to.
+
+    The endpoint has answered ``backendWorkerBridgeReady`` since it was written
+    (see getHistorySyncStatus in api_patches/src/controller/deviceController.ts,
+    where it is documented as *the* field that matters) and nothing on this
+    side ever wrote it down. False there means the chunk decoder is not
+    running and no amount of waiting will help; the page/version fields next to
+    it are the newer hypotheses about why.
+
+    Every field is optional on purpose: a WPPConnect Server that predates them
+    simply omits them, and this must stay readable rather than raise.
+    """
+    if not isinstance(status, dict):
+        return "no status"
+    counts = status.get("storeCounts")
+    if not isinstance(counts, dict):
+        counts = {}
+    sw = status.get("serviceWorker")
+    if isinstance(sw, dict):
+        sw = sw.get("state") or "controlling"
+    return (
+        "bridge={} stored_chunks={} chunk_status={} page={}/focus={} "
+        "web={} sw={}".format(
+            status.get("backendWorkerBridgeReady", "?"),
+            counts.get("history-sync-notification", "?"),
+            status.get("chunkStatus", "?"),
+            status.get("pageVisibility", "?"),
+            status.get("pageHasFocus", "?"),
+            status.get("webVersion", "?"),
+            sw if sw is not None else "none",
+        )
+    )
+
+
 def apply_history_sync_unread_correction(remote_jid: str, chat: dict) -> bool:
     """Re-discount a chat's badge now that its messages have been fetched.
 
@@ -16381,9 +16423,10 @@ class MainWindow(wx.Frame):
         self._history_still_landing = landing
         logging.info(
             "[history-sync] %s: unprocessed=%s initial_complete=%s recent_complete=%s "
-            "— short chats %s.",
+            "[%s] — short chats %s.",
             context or "check", unprocessed, status.get("initialSyncComplete"),
             status.get("recentCompleted"),
+            describe_history_sync_health(status),
             "will be re-queried as history lands" if landing
             else "will get one confirming retry only",
         )
@@ -16455,11 +16498,12 @@ class MainWindow(wx.Frame):
                 last_progress_log = now
                 logging.info(
                     "[history-sync] Restarted RECENT wait: messages=%s chats=%s "
-                    "unprocessed=%s recent_complete=%s initial_complete=%s — "
-                    "%.0fs of budget left.",
+                    "unprocessed=%s recent_complete=%s initial_complete=%s "
+                    "[%s] — %.0fs of budget left.",
                     message_count, counts.get("chat"),
                     status.get("unprocessedChunks"), status.get("recentCompleted"),
                     status.get("initialSyncComplete"),
+                    describe_history_sync_health(status),
                     max(0.0, deadline - time.monotonic()),
                 )
             time.sleep(2)
