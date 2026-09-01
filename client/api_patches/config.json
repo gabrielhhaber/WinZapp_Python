@@ -2,6 +2,7 @@
   "secretKey": "70733f08be1ed195bda1c31b6e135f5ebeb9fb8c6c28530a3a46e4093357b037",
   "startAllSession": false,
   "createOptions": {
-    "autoClose": 0
+    "autoClose": 0,
+    "deviceSyncTimeout": 0
   }
 }

@@ -59,6 +59,22 @@ export default {
   },
   createOptions: {
     autoClose: 0,
+    // autoClose alone does NOT mean "never close the page on us", and reading
+    // it that way cost a real investigation. wppconnect has a second timer,
+    // deviceSyncTimeout (default 180000), which waitForLogin() starts right
+    // after a successful login — `startAutoClose(this.options.deviceSyncTimeout)`
+    // in host.layer.js — and which closes the page through the same
+    // tryAutoClose() path. It even logs under the same wording, so
+    // wppconnect.log says "Auto close configured to 180s" on a session
+    // configured with autoClose: 0, which reads like the setting was ignored.
+    //
+    // Three minutes is a plausible amount of time for a first sync on a busy
+    // account to still be running, and killing the page mid-sync is the exact
+    // opposite of what autoClose: 0 was set here to express. Pinned to 0 so
+    // both halves of "WinZapp closes its own browser, nothing else does" are
+    // actually stated. Nothing in WinZapp consumes the 'phoneNotConnected'
+    // status this timer produces.
+    deviceSyncTimeout: 0,
     // IMPORTANT: index.ts merges this with the config start.js passes to
     // initServer() using `merge-deep`, and merge-deep UNIONS arrays rather
     // than replacing them. A flag listed here therefore reaches Chrome no
@@ -91,15 +107,23 @@ export default {
       '--ignore-certificate-errors',
       '--ignore-ssl-errors',
       '--ignore-certificate-errors-spki-list',
-      '--disable-3d-apis',
-      '--disable-webgl',
       '--disable-component-update',
       '--disable-speech-api',
       '--disable-voice-input',
       '--disable-renderer-backgrounding',
       '--disable-backgrounding-occluded-windows',
       '--disable-features=OptimizationGuideOnDeviceModel,PromptAPIForGeminiNano,AISummarization,HelpMeWrite,OptimizationGuide,OptimizationHints,OptimizationTargetPrediction',
-      '--disable-software-rasterizer',
+      // '--disable-software-rasterizer', '--disable-3d-apis' and
+      // '--disable-webgl' used to sit in this list and have been removed, not
+      // moved: stacked on top of '--disable-gpu' they leave the renderer with
+      // no rasterization backend at all, and every video send failed with
+      // "MediaUnsupportedError: video loaded with duration but no dims"
+      // because reading videoWidth/videoHeight needs one frame actually
+      // decoded. start.js documents that at length and dropped them from its
+      // own list — but per the note at the top of this array, merge-deep
+      // UNIONS the two, so deleting a flag there while it stayed here changed
+      // nothing whatsoever. The fix was only ever half-applied; this is the
+      // other half. Do not re-add them here.
       '--disable-ipc-flooding-protection',
       '--password-store=basic',
       '--use-mock-keychain',
