@@ -67,7 +67,7 @@ import pytest
 from core.wppconnect_host_layer_patch import (
     ORIGINAL_CHECK_QR_CODE, V1_CHECK_QR_CODE, V2_CHECK_QR_CODE,
     V3_CHECK_QR_CODE, V4_CHECK_QR_CODE, V5_CHECK_QR_CODE, V6_CHECK_QR_CODE,
-    PATCHED_CHECK_QR_CODE,
+    V7_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE,
     ORIGINAL_GET_QR_CODE, PATCHED_GET_QR_CODE,
     ORIGINAL_WAIT_FOR_QR_CODE_SCAN, PATCHED_WAIT_FOR_QR_CODE_SCAN,
     ORIGINAL_LOGIN_BY_CODE, LEGACY_LOGIN_BY_CODE_RAW, PATCHED_LOGIN_BY_CODE,
@@ -750,7 +750,7 @@ class TestV6WaitsForTheAuthStateBeforeAskingForACode:
         """The cooldown/backoff checks must still run BEFORE the gate: probing
         the auth state on every rotation while a code is already valid would
         undo v4/v5 and hammer WhatsApp for nothing."""
-        cooldown = PATCHED_CHECK_QR_CODE.index("this.linkCodeIssuedAt && (now - this.linkCodeIssuedAt) < 60000")
+        cooldown = PATCHED_CHECK_QR_CODE.index("this.linkCodeIssuedAt && (now - this.linkCodeIssuedAt) < reuseWindow")
         backoff = PATCHED_CHECK_QR_CODE.index("this.linkCodeRetryAfter && now < this.linkCodeRetryAfter")
         gate = PATCHED_CHECK_QR_CODE.index("const ready = await this.getQrCode();")
         assert cooldown < gate
@@ -924,4 +924,120 @@ class TestV7ClosesTheSameHoleInCheckQrCode:
         v6 -> v7 replacement silently stops matching real installs."""
         marker = "if (!needScan) {"
         assert (V6_CHECK_QR_CODE[V6_CHECK_QR_CODE.index(marker):]
-                == PATCHED_CHECK_QR_CODE[PATCHED_CHECK_QR_CODE.index(marker):])
+                == V7_CHECK_QR_CODE[V7_CHECK_QR_CODE.index(marker):])
+
+    def test_v7_kept_the_head_v8_inherited(self):
+        head = PATCHED_CHECK_QR_CODE[:PATCHED_CHECK_QR_CODE.index("if (!needScan)")]
+        assert head == V7_CHECK_QR_CODE[:V7_CHECK_QR_CODE.index("if (!needScan)")]
+
+
+class TestV8StopsBurningThePairingCodeQuota:
+    """checkQrCode runs on every auth-code rotation — roughly once a minute
+    for as long as the page is unpaired. v2..v7 paced that with a flat 60s
+    reuse cooldown, which is right while somebody is reading the code off the
+    screen and wrong the moment nobody is.
+
+    From a real wppconnect.log: a session WhatsApp had logged out of, left
+    running by WinZapp, asked for a fresh pairing code roughly every minute for
+    eighteen minutes and was then refused with
+    ``{"name":"IQErrorRateOverlimit","value":{"text":"rate-overlimit",
+    "code":429}}``. The quota is per phone number and lives on WhatsApp's side,
+    so it outlives both the session and the process — which is the whole of the
+    "the first pairing code after a drop always fails, the second works"
+    report."""
+
+    def test_the_reuse_window_is_no_longer_a_flat_minute(self):
+        assert "(now - this.linkCodeIssuedAt) < 60000" in V7_CHECK_QR_CODE
+        assert "(now - this.linkCodeIssuedAt) < 60000" not in PATCHED_CHECK_QR_CODE
+        assert "(now - this.linkCodeIssuedAt) < reuseWindow" in PATCHED_CHECK_QR_CODE
+
+    def test_the_window_widens_with_unclaimed_codes_and_has_a_ceiling(self):
+        assert (
+            "const reuseWindow = Math.min(60000 * Math.pow(2, "
+            "Math.max(0, issued - 1)), 240000);" in PATCHED_CHECK_QR_CODE
+        )
+
+    def test_the_first_two_reissues_still_come_fast(self):
+        """Those are the attended ones — a mistyped or expired code while the
+        pairing dialog is open. Mirrors the JS so a change to the formula has
+        to be a deliberate one."""
+        def window(issued):
+            return min(60000 * 2 ** max(0, issued - 1), 240000)
+
+        assert [window(n) for n in (0, 1, 2, 3, 4)] == [
+            60000, 60000, 120000, 240000, 240000,
+        ]
+        assert window(99) == 240000
+
+    def test_the_reuse_ceiling_never_outlasts_whatsapps_own_code_rotation(self):
+        """checkQrCode() is also the ONLY thing that refreshes the code shown
+        in the pairing dialog (on_wpp_phone_code -> update_pairing_code). In
+        the captured log WhatsApp issued a genuinely new code about every 3.5
+        minutes, so a reuse ceiling above that leaves a blind user typing a
+        code WhatsApp has already rotated past, with nothing on screen saying
+        so — in the one flow that is their only way back into the app.
+
+        The 15-minute figure belongs to the rate-limit backoff, which only
+        starts after WhatsApp has already refused, and which a manual retry
+        clears anyway because it mints a fresh session.
+        """
+        def window(issued):
+            return min(60000 * 2 ** max(0, issued - 1), 240000)
+
+        assert max(window(n) for n in range(200)) <= 240000
+        assert "? 900000" in PATCHED_CHECK_QR_CODE  # the backoff, not the reuse
+
+    def test_the_counter_only_advances_on_a_code_that_was_actually_issued(self):
+        """Same property v2 established for linkCodeIssuedAt: a failed
+        loginByCode() must not widen the window, or one transient failure
+        would push a waiting user's next code minutes away."""
+        login_call = PATCHED_CHECK_QR_CODE.index(
+            "await this.loginByCode(this.options.phoneNumber);"
+        )
+        bump = PATCHED_CHECK_QR_CODE.index("this.linkCodeIssues = issued + 1;")
+        catch_block = PATCHED_CHECK_QR_CODE.index("catch (error) {", login_call)
+        assert login_call < bump < catch_block
+
+    def test_a_successful_pairing_resets_the_counter(self):
+        """Otherwise a re-pair later in the same session would start out
+        throttled by codes nobody is still waiting on."""
+        head = PATCHED_CHECK_QR_CODE[
+            PATCHED_CHECK_QR_CODE.index("if (!needScan) {"):
+            PATCHED_CHECK_QR_CODE.index("if (typeof this.options.phoneNumber")
+        ]
+        assert "this.linkCodeIssues = 0;" in head
+
+    def test_a_rate_limited_failure_backs_off_far_longer_than_the_ladder(self):
+        """Retrying a 429 on the generic 20s first step is what keeps the
+        limit alive."""
+        assert "const backoff = rateLimited" in PATCHED_CHECK_QR_CODE
+        assert "? 900000" in PATCHED_CHECK_QR_CODE
+        # ...and the ordinary ladder is untouched for everything else.
+        assert (
+            "Math.min(20000 * Math.pow(2, this.linkCodeFailures - 1), 300000)"
+            in PATCHED_CHECK_QR_CODE
+        )
+
+    def test_the_rate_limit_is_read_off_whatsapps_own_answer(self):
+        assert "/rate-overlimit|RateOverlimit/i.test(" in PATCHED_CHECK_QR_CODE
+        assert "detail = JSON.stringify(error?.winzappDetails || {});" in PATCHED_CHECK_QR_CODE
+
+    def test_the_flag_reaches_the_reporting_hook(self):
+        """createSessionUtil forwards it to the client, which is what lets the
+        pairing dialog say "wait a few minutes" instead of showing the class
+        name CompanionHelloError."""
+        assert "rateLimited: rateLimited," in PATCHED_CHECK_QR_CODE
+
+    def test_v7_is_recognised_and_upgraded(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write(host_layer, V7_CHECK_QR_CODE, PATCHED_LOGIN_BY_CODE,
+               PATCHED_GET_QR_CODE, PATCHED_WAIT_FOR_QR_CODE_SCAN)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_CHECK_QR_CODE in content
+        assert V7_CHECK_QR_CODE not in content
+
+    def test_v7_and_v8_are_distinct(self):
+        assert V7_CHECK_QR_CODE != PATCHED_CHECK_QR_CODE

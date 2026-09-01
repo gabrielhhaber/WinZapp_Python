@@ -534,6 +534,7 @@ export default class CreateSessionUtil {
               session?: string;
               attempt?: number;
               retryInSeconds?: number;
+              rateLimited?: boolean;
               stack?: string;
               details?: Record<string, string>;
             }) => {
@@ -783,6 +784,7 @@ export default class CreateSessionUtil {
       message?: string;
       attempt?: number;
       retryInSeconds?: number;
+      rateLimited?: boolean;
       stack?: string;
       details?: Record<string, string>;
     },
@@ -798,6 +800,12 @@ export default class CreateSessionUtil {
     // diagnosable after the fact.
     const attempt = failure?.attempt;
     const retryInSeconds = failure?.retryInSeconds;
+    // Set by checkQrCode v8 when WhatsApp answered rate-overlimit (429). The
+    // quota is per phone number and lives on WhatsApp's side, so it outlives
+    // this session and this process — which is why the first pairing code
+    // after a dropped session fails and the second one works. Forwarded so
+    // the client can say that instead of showing "CompanionHelloError".
+    const rateLimited = failure?.rateLimited === true;
 
     req.logger?.warn(
       `[${client.session}] pairing code request failed: ${name}: ${message}` +
@@ -829,6 +837,7 @@ export default class CreateSessionUtil {
       session: client.session,
       attempt: attempt,
       retryInSeconds: retryInSeconds,
+      rateLimited: rateLimited,
       stack: failure?.stack || '',
       details: failure?.details || {},
     };

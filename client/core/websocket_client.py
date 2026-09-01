@@ -50,6 +50,32 @@ def ack_to_status(wpp_ack):
     return _ACK_TO_STATUS.get(wpp_ack)
 
 
+def phone_code_error_is_rate_limit(data) -> bool:
+    """Is this ``phoneCodeError`` payload WhatsApp refusing on quota grounds?
+
+    The pairing-code quota is enforced per phone number on WhatsApp's side, so
+    it outlives the session and the process — which is exactly why the first
+    code after a dropped session fails while the second one works. Telling the
+    user that is worth a dedicated message; "CompanionHelloError" is not.
+
+    Read three ways on purpose. ``rateLimited`` is the flag host.layer.js's
+    checkQrCode v8 sets, and it is the one to trust — but it only exists once
+    both the rebuilt WPPConnect Server and the re-applied node_modules patch
+    are in place, and this has to keep working on an install that is only
+    halfway there. The raw ``details`` blob carries WhatsApp's own answer
+    (``{"name":"IQErrorRateOverlimit","value":{"text":"rate-overlimit",
+    "code":429}}``) whatever the server-side version, so it is matched as text.
+    """
+    if not isinstance(data, dict):
+        return False
+    if data.get("rateLimited") is True:
+        return True
+    haystack = " ".join(
+        str(data.get(key) or "") for key in ("name", "message", "details")
+    )
+    return "rate-overlimit" in haystack or "RateOverlimit" in haystack
+
+
 def _media_seconds(wpp_msg: dict):
     """Duration in whole seconds, or None when the payload never stated one.
 
@@ -137,6 +163,7 @@ class WebSocketClient:
         self._phone_code_value: str = ""
 
         self._phone_code_error: str = ""
+        self._phone_code_rate_limited: bool = False
 
         # Debounce timer for on_disconnect() — see that method.
         self._disconnect_timer = None
@@ -1398,6 +1425,7 @@ class WebSocketClient:
             message = str(data.get("message") or "")
             detail = name if (not message or message == name) else f"{name}: {message}"
             self._phone_code_error = detail
+            self._phone_code_rate_limited = phone_code_error_is_rate_limit(data)
             attempt = data.get("attempt")
             retry_in = data.get("retryInSeconds")
             if attempt and retry_in:

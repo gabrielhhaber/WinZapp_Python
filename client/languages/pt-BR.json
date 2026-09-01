@@ -58,6 +58,7 @@
     "remove_mention": "Remover menção a @{name}",
     "no_pairing_code_received": "Não foi possível conectar ao {app_name}. Nenhum código de pareamento foi recebido.",
     "no_pairing_code_received_reason": "Não foi possível conectar ao {app_name}. O WhatsApp recusou o pedido de código de pareamento: {reason}.",
+    "pairing_code_rate_limited": "O WhatsApp está limitando temporariamente os pedidos de código de pareamento para este número. Aguarde alguns minutos e tente novamente no {app_name}.",
     "no_QRcode_received": "Não foi possível conectar ao {app_name}. Nenhum QR-CODE foi recebido.",
     "settings_load_failed": "Falha ao carregar o arquivo de configuração:",
     "settings_save_failed": "Ocorreu um erro ao salvar as configurações:",

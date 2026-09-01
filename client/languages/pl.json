@@ -58,6 +58,7 @@
     "remove_mention": "Usuń wzmiankę o @{name}",
     "no_pairing_code_received": "Nie udało się połączyć z {app_name}. Nie otrzymano kodu parowania.",
     "no_pairing_code_received_reason": "Nie udało się połączyć z {app_name}. WhatsApp odrzucił żądanie kodu parowania: {reason}.",
+    "pairing_code_rate_limited": "WhatsApp tymczasowo ogranicza żądania kodu parowania dla tego numeru. Odczekaj kilka minut i spróbuj ponownie w {app_name}.",
     "no_QRcode_received": "Nie udało się połączyć z {app_name}. Nie otrzymano kodu QR.",
     "settings_load_failed": "Nie udało się wczytać pliku konfiguracji:",
     "settings_save_failed": "Wystąpił błąd podczas zapisywania ustawień:",

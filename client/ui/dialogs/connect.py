@@ -1167,7 +1167,10 @@ class Connect:
                     self.main_window._set_wa_token("")
                     self.main_window.save_settings()
                     reason = getattr(self.main_window.ws, "_phone_code_error", "")
-                    wx.CallAfter(self._on_pairing_code_error, reason)
+                    rate_limited = bool(
+                        getattr(self.main_window.ws, "_phone_code_rate_limited", False)
+                    )
+                    wx.CallAfter(self._on_pairing_code_error, reason, rate_limited)
 
             except Exception as exc:
                 # On any unexpected error, clear the token so next launch works correctly.
@@ -1190,7 +1193,7 @@ class Connect:
         self.continue_btn.SetLabel(self.i18n.t("continue"))
         self.show_pairing_dial(pairing_code)
 
-    def _on_pairing_code_error(self, reason: str = ""):
+    def _on_pairing_code_error(self, reason: str = "", rate_limited: bool = False):
         try:
             if not self or not self.continue_btn:
                 return
@@ -1198,7 +1201,14 @@ class Connect:
             return
         self.continue_btn.Enable()
         self.continue_btn.SetLabel(self.i18n.t("continue"))
-        if reason:
+        if rate_limited:
+            # WhatsApp is refusing on quota grounds, not failing. The generic
+            # message sends the user round the same loop immediately, which is
+            # precisely what keeps the quota spent — say to wait instead.
+            message = self.i18n.t("pairing_code_rate_limited").format(
+                app_name=self.main_window.app_name,
+            )
+        elif reason:
             message = self.i18n.t("no_pairing_code_received_reason").format(
                 app_name=self.main_window.app_name, reason=reason,
             )

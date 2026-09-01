@@ -58,6 +58,7 @@
     "remove_mention": "Remover menção a @{name}",
     "no_pairing_code_received": "Não foi possível estabelecer ligação com o {app_name}. Não foi recebido nenhum código de emparelhamento.",
     "no_pairing_code_received_reason": "Não foi possível estabelecer ligação com o {app_name}. O WhatsApp recusou o pedido de código de emparelhamento: {reason}.",
+    "pairing_code_rate_limited": "O WhatsApp está a limitar temporariamente os pedidos de código de emparelhamento para este número. Aguarde alguns minutos e tente novamente no {app_name}.",
     "no_QRcode_received": "Não foi possível estabelecer ligação com o {app_name}. Não foi recebido nenhum código QR.",
     "settings_load_failed": "Não foi possível carregar o ficheiro de configuração:",
     "settings_save_failed": "Ocorreu um erro ao guardar as definições:",

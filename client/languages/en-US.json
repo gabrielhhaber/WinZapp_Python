@@ -58,6 +58,7 @@
     "remove_mention": "Remove mention to @{name}",
     "no_pairing_code_received": "Could not connect to {app_name}. No pairing code was received.",
     "no_pairing_code_received_reason": "Could not connect to {app_name}. WhatsApp refused the pairing code request: {reason}.",
+    "pairing_code_rate_limited": "WhatsApp is temporarily limiting pairing code requests for this number. Wait a few minutes and try again in {app_name}.",
     "no_QRcode_received": "Could not connect to {app_name}. No QR code was received.",
     "settings_load_failed": "Failed to load the configuration file:",
     "settings_save_failed": "An error occurred while saving the settings:",

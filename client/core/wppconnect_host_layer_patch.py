@@ -466,7 +466,7 @@ V6_CHECK_QR_CODE = (
 #
 # A probe that could not answer leaves isLogged alone and returns; the next
 # auth-code rotation re-enters for free.
-PATCHED_CHECK_QR_CODE = (
+V7_CHECK_QR_CODE = (
     "    async checkQrCode() {\n"
     "        let needScan;\n"
     "        try {\n"
@@ -519,6 +519,159 @@ PATCHED_CHECK_QR_CODE = (
     "                    session: this.session,\n"
     "                    attempt: this.linkCodeFailures,\n"
     "                    retryInSeconds: retryInSeconds,\n"
+    "                    stack: String(error?.stack || ''),\n"
+    "                    details: error?.winzappDetails || {},\n"
+    "                });\n"
+    "            }\n"
+    "            finally {\n"
+    "                this.linkCodeInFlight = false;\n"
+    "            }\n"
+    "            return;\n"
+    "        }\n"
+    "        const result = await this.getQrCode();\n"
+    "        if (!result?.urlCode || this.urlCode === result.urlCode) {\n"
+    "            return;\n"
+    "        }\n"
+    "        this.urlCode = result.urlCode;\n"
+    "        this.attempt++;\n"
+    "        let qr = '';\n"
+    "        if (this.options.logQR || this.catchQR) {\n"
+    "            qr = await (0, auth_1.asciiQr)(this.urlCode);\n"
+    "        }\n"
+    "        if (this.options.logQR) {\n"
+    "            this.log('info', `Waiting for QRCode Scan (Attempt ${this.attempt})...:\\n${qr}`, { code: this.urlCode });\n"
+    "        }\n"
+    "        else {\n"
+    "            this.log('verbose', `Waiting for QRCode Scan: Attempt ${this.attempt}`);\n"
+    "        }\n"
+    "        this.catchQR?.(result.base64Image, qr, this.attempt, result.urlCode);\n"
+    "    }\n"
+)
+
+
+# v8 — stop burning WhatsApp's per-number pairing-code quota while nobody is
+# looking, and treat a rate-limit answer as a rate limit.
+#
+# checkQrCode() runs on every `conn.auth_code_change`, which WhatsApp Web fires
+# roughly once a minute for as long as the page is unpaired. v2..v7 paced that
+# with a flat 60s reuse cooldown, which is right while somebody is actually
+# reading the code off the screen and wrong the moment nobody is: a session
+# that WhatsApp logged out of, and that WinZapp leaves running, keeps asking
+# for a fresh pairing code once a minute, forever, unattended.
+#
+# Straight out of a real wppconnect.log, one stranded session over 18 minutes:
+#
+#   20:50:44 phoneCode TT8C58TB     20:55:34 phoneCode V2CAPF4B (re-emit)
+#   20:54:14 phoneCode V2CAPF4B     20:57:45 phoneCode YV74XX5Z
+#   20:59:05 / 21:00:05 re-emits    21:01:16 phoneCode ZHL8WQ9H
+#   21:02:36 re-emit                21:04:47 CompanionHelloError
+#     details: {"name":"IQErrorRateOverlimit","value":{"text":"rate-overlimit","code":429}}
+#
+# The quota is per phone number and lives on WhatsApp's side, so it outlives
+# both the session and the process. That is the whole of the "the FIRST pairing
+# code after a dropped session always fails, the second one works" report: by
+# the time the user asks for a code, the background loop has already spent the
+# allowance; the failure dialog appears; the user tries again a minute later,
+# by which point the window has moved on.
+#
+# Two changes, both local to this method:
+#
+#   * the reuse cooldown grows with the number of codes issued that nobody
+#     paired with — 60s, 60s, 2min, then a 4min ceiling. The first two
+#     reissues stay fast, because those are the attended ones (a mistyped or
+#     expired code while the dialog is open); after that the loop goes quiet
+#     without ever stopping outright, so a code always eventually refreshes for
+#     a user who is still waiting. Reset by a successful pairing.
+#
+#     The ceiling is 4 minutes and not longer ON PURPOSE, and it is the one
+#     number here that must not be raised casually. checkQrCode() is also the
+#     only thing that ever refreshes the code shown in the pairing dialog
+#     (on_wpp_phone_code -> Connect.update_pairing_code), and in the captured
+#     log WhatsApp handed out a genuinely new code roughly every 3.5 minutes,
+#     re-emitting the same one in between. A ceiling above that means a user
+#     sitting in front of the dialog is shown a code WhatsApp has already
+#     rotated past, with nothing on screen saying so — a 15min ceiling would
+#     leave a blind user typing a dead code for up to twelve minutes, in the
+#     exact flow that is their only way back into the app. 4min keeps the
+#     displayed code at most one WhatsApp rotation stale while still cutting
+#     the unattended request rate from one a minute to one every four.
+#   * a rate-limited failure backs off for 15 minutes instead of the generic
+#     20s/40s/80s ladder. Retrying a 429 sooner is what keeps it alive, and the
+#     ladder's 20s first step is far shorter than the window WhatsApp is
+#     enforcing.
+#
+# This reduces the burn rate; it does not remove the cause. The session only
+# keeps asking because WinZapp leaves a logged-out session running with
+# `phoneNumber` still set — closing it when nobody is pairing is the complete
+# fix and is deliberately not attempted here.
+PATCHED_CHECK_QR_CODE = (
+    "    async checkQrCode() {\n"
+    "        let needScan;\n"
+    "        try {\n"
+    "            needScan = await (0, auth_1.needsToScan)(this.page);\n"
+    "        }\n"
+    "        catch (error) {\n"
+    "            this.log('verbose', `Auth probe failed inside checkQrCode - leaving isLogged untouched: ${error?.name || 'Error'}: ${error?.message || error}`);\n"
+    "            return;\n"
+    "        }\n"
+    "        this.isLogged = !needScan;\n"
+    "        if (!needScan) {\n"
+    "            this.attempt = 0;\n"
+    "            this.linkCodeIssuedAt = 0;\n"
+    "            this.linkCodeIssues = 0;\n"
+    "            this.linkCodeFailures = 0;\n"
+    "            this.linkCodeRetryAfter = 0;\n"
+    "            return;\n"
+    "        }\n"
+    "        if (typeof this.options.phoneNumber === 'string') {\n"
+    "            if (this.linkCodeInFlight) {\n"
+    "                return;\n"
+    "            }\n"
+    "            const now = Date.now();\n"
+    "            const issued = this.linkCodeIssues || 0;\n"
+    "            const reuseWindow = Math.min(60000 * Math.pow(2, Math.max(0, issued - 1)), 240000);\n"
+    "            if (this.linkCodeIssuedAt && (now - this.linkCodeIssuedAt) < reuseWindow) {\n"
+    "                return;\n"
+    "            }\n"
+    "            if (this.linkCodeRetryAfter && now < this.linkCodeRetryAfter) {\n"
+    "                return;\n"
+    "            }\n"
+    "            const ready = await this.getQrCode();\n"
+    "            if (!ready?.urlCode) {\n"
+    "                this.log('verbose', 'Auth state not ready yet — deferring the pairing code.');\n"
+    "                return;\n"
+    "            }\n"
+    "            this.linkCodeInFlight = true;\n"
+    "            try {\n"
+    "                await this.loginByCode(this.options.phoneNumber);\n"
+    "                this.linkCodeIssuedAt = Date.now();\n"
+    "                this.linkCodeIssues = issued + 1;\n"
+    "                this.linkCodeFailures = 0;\n"
+    "                this.linkCodeRetryAfter = 0;\n"
+    "            }\n"
+    "            catch (error) {\n"
+    "                this.linkCodeFailures = (this.linkCodeFailures || 0) + 1;\n"
+    "                let detail = '';\n"
+    "                try {\n"
+    "                    detail = JSON.stringify(error?.winzappDetails || {});\n"
+    "                }\n"
+    "                catch (e) {\n"
+    "                    detail = '';\n"
+    "                }\n"
+    "                const rateLimited = /rate-overlimit|RateOverlimit/i.test(`${detail} ${error?.name || ''} ${error?.message || ''}`);\n"
+    "                const backoff = rateLimited\n"
+    "                    ? 900000\n"
+    "                    : Math.min(20000 * Math.pow(2, this.linkCodeFailures - 1), 300000);\n"
+    "                this.linkCodeRetryAfter = Date.now() + backoff;\n"
+    "                const retryInSeconds = Math.round(backoff / 1000);\n"
+    "                this.log('error', `Could not generate the pairing code (attempt ${this.linkCodeFailures}${rateLimited ? ', rate-limited by WhatsApp' : ''}, next retry in ${retryInSeconds}s): ${error?.name || 'Error'}: ${error?.message || error}`);\n"
+    "                this.options.catchLinkCodeError?.({\n"
+    "                    name: String(error?.name || 'Error'),\n"
+    "                    message: String(error?.message || error),\n"
+    "                    session: this.session,\n"
+    "                    attempt: this.linkCodeFailures,\n"
+    "                    retryInSeconds: retryInSeconds,\n"
+    "                    rateLimited: rateLimited,\n"
     "                    stack: String(error?.stack || ''),\n"
     "                    details: error?.winzappDetails || {},\n"
     "                });\n"
@@ -882,47 +1035,56 @@ def patch_host_layer_source(content: str):
     notes = []
 
     if PATCHED_CHECK_QR_CODE in content:
-        notes.append("checkQrCode: already at v7.")
+        notes.append("checkQrCode: already at v8.")
+    elif V7_CHECK_QR_CODE in content:
+        content = content.replace(V7_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE, 1)
+        notes.append(
+            "checkQrCode: upgraded v7 -> v8 — an unattended session no longer "
+            "asks for a fresh pairing code every minute until WhatsApp answers "
+            "rate-overlimit, and a rate-limited failure backs off for 15min."
+        )
     elif V6_CHECK_QR_CODE in content:
         content = content.replace(V6_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE, 1)
         notes.append(
-            "checkQrCode: upgraded v6 -> v7 — a failed auth probe here no "
-            "longer sets isLogged, which used to end the concurrent scan wait."
+            "checkQrCode: upgraded v6 -> v8 — a failed auth probe here no "
+            "longer sets isLogged, and the reissue loop stops burning the "
+            "pairing-code quota."
         )
     elif V5_CHECK_QR_CODE in content:
         content = content.replace(V5_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE, 1)
         notes.append(
-            "checkQrCode: upgraded v5 -> v7 — the pairing code now waits for "
+            "checkQrCode: upgraded v5 -> v8 — the pairing code now waits for "
             "WhatsApp Web's auth state instead of throwing Invariant #56367."
         )
     elif V4_CHECK_QR_CODE in content:
         content = content.replace(V4_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE, 1)
         notes.append(
-            "checkQrCode: upgraded v4 -> v7 — repeated pairing-code failures "
+            "checkQrCode: upgraded v4 -> v8 — repeated pairing-code failures "
             "now back off, and the code waits for the auth state to exist."
         )
     elif V3_CHECK_QR_CODE in content:
         content = content.replace(V3_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE, 1)
         notes.append(
-            "checkQrCode: upgraded v3 -> v7 — a pairing-code failure is now "
+            "checkQrCode: upgraded v3 -> v8 — a pairing-code failure is now "
             "reported to the client, not just written to wppconnect.log."
         )
     elif V2_CHECK_QR_CODE in content:
         content = content.replace(V2_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE, 1)
         notes.append(
-            "checkQrCode: upgraded v2 -> v7 — a failing loginByCode() is now "
+            "checkQrCode: upgraded v2 -> v8 — a failing loginByCode() is now "
             "caught, reported and logged instead of escaping as an unhandled "
             "rejection."
         )
     elif V1_CHECK_QR_CODE in content:
         content = content.replace(V1_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE, 1)
-        notes.append("checkQrCode: upgraded v1 (unsafe, could freeze forever) -> v7.")
+        notes.append("checkQrCode: upgraded v1 (unsafe, could freeze forever) -> v8.")
     elif ORIGINAL_CHECK_QR_CODE in content:
         content = content.replace(ORIGINAL_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE, 1)
         notes.append(
-            "checkQrCode: patched (v7) — pairing code no longer regenerates on "
-            "every QR rotation (60s reuse cooldown), waits for the auth state, "
-            "failures are reported."
+            "checkQrCode: patched (v8) — pairing code no longer regenerates on "
+            "every QR rotation (the reuse cooldown widens while nobody pairs), "
+            "waits for the auth state, failures are reported and a "
+            "rate-overlimit answer backs off for 15min."
         )
     else:
         notes.append("checkQrCode: DID NOT MATCH any known source text — left untouched.")
