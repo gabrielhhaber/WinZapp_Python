@@ -43,7 +43,7 @@ import wx
 from app_paths import _is_frozen
 from core.i18n import I18n
 from core.message_queue import PendingMessage
-from core.utils import looks_like_binary_blob, link_preview_text
+from core.utils import looks_like_binary_blob, link_preview_text, is_voice_message
 
 
 def _notif_duration(seconds) -> str:
@@ -221,6 +221,27 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
     if msg_type == "audioMessage":
         audio = msg_obj.get("audioMessage") or {}
         dur   = _notif_duration(audio.get("seconds"))
+        # user_interface.voice_message_mode, the same setting the message list,
+        # the chat-list preview and the quoted-message preview already read.
+        # This branch used to answer "voice message" for every audioMessage
+        # unconditionally, so a plain audio file was announced as a voice note
+        # in the toast while the conversation itself called it an audio file,
+        # and nothing the user could pick in Settings changed it. A toast is
+        # often the ONLY announcement a backgrounded message gets (see this
+        # module's header: speaking it through AO2 as well would deliver the
+        # message twice), which makes it the worst place for that label to be
+        # the one that disagrees.
+        #
+        # main_window is None in tests and reachable as None here, so the read
+        # is defensive; the fallback matches DEFAULT_SETTINGS deliberately, and
+        # test_voice_vs_audio_distinction scans for a fallback that drifts.
+        settings = getattr(main_window, "settings", None) if main_window else None
+        ui = settings.get("user_interface", {}) if isinstance(settings, dict) else {}
+        if not isinstance(ui, dict):
+            ui = {}
+        vm_mode = ui.get("voice_message_mode", "voice_message")
+        if vm_mode == "voice_message" and not is_voice_message(msg):
+            return f"{i18n.t('notif_audio')} ({dur})"
         return f"{i18n.t('notif_voice_message')} ({dur})"
 
     # ── Video ─────────────────────────────────────────────────────────────────

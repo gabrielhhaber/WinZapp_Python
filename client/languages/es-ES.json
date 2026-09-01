@@ -284,6 +284,7 @@
     "notif_send_reply": "Enviar respuesta",
     "notif_react_with": "Reaccionar con {emoji}",
     "notif_voice_message": "Mensaje de voz",
+    "notif_audio": "Audio",
     "notif_in_group": "{participant} en {group}",
     "notif_contact": "Contacto",
     "notif_location": "Ubicación",

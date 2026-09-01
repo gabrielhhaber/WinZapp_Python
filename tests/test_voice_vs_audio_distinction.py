@@ -531,3 +531,87 @@ class TestTheDefaultModeMigration:
         assert "migrate_voice_message_mode_default(self.settings)" in src
         assert "changed = True" in src
         assert "self.save_settings()" in src
+
+
+class _KeyEchoI18n:
+    """Returns the key itself, so an assertion names the string it expects
+    instead of a translation that could be reworded without failing."""
+
+    def t(self, key):
+        return key
+
+
+class _MwWithMode:
+    """format_notification_body() only ever reads main_window.settings here."""
+
+    def __init__(self, mode=None):
+        ui = {} if mode is None else {"voice_message_mode": mode}
+        self.settings = {"user_interface": ui}
+
+
+def _audio_msg(ptt):
+    inner = {"seconds": 5}
+    if ptt:
+        inner["ptt"] = True
+    return {"messageType": "audioMessage", "message": {"audioMessage": inner}}
+
+
+class TestTheToastFollowsTheSameSetting:
+    """The toast is often the ONLY announcement a backgrounded message gets, so
+    it is the worst place for the audio/voice label to be the one that
+    disagrees with the rest of the app. It used to say "voice message" for
+    every audioMessage, whatever the user had picked in Settings."""
+
+    def test_an_audio_file_is_not_announced_as_a_voice_note(self):
+        from core.notification_manager import format_notification_body
+        body = format_notification_body(
+            _audio_msg(ptt=False), _MwWithMode("voice_message"), _KeyEchoI18n())
+        assert body.startswith("notif_audio")
+
+    def test_a_voice_note_still_is_one(self):
+        from core.notification_manager import format_notification_body
+        body = format_notification_body(
+            _audio_msg(ptt=True), _MwWithMode("voice_message"), _KeyEchoI18n())
+        assert body.startswith("notif_voice_message")
+
+    @pytest.mark.parametrize("ptt", [True, False])
+    def test_audio_mode_reads_both_as_audio_the_way_it_always_did(self, ptt):
+        """Picking "Audio (read them all as audio)" is a choice the user can
+        still make, and it has to reach the toast too — otherwise the setting
+        means one thing in the conversation and another in the banner."""
+        from core.notification_manager import format_notification_body
+        body = format_notification_body(
+            _audio_msg(ptt), _MwWithMode("audio"), _KeyEchoI18n())
+        assert body.startswith("notif_voice_message")
+
+    def test_the_duration_survives(self):
+        from core.notification_manager import format_notification_body
+        body = format_notification_body(
+            _audio_msg(ptt=False), _MwWithMode("voice_message"), _KeyEchoI18n())
+        assert body == "notif_audio (0:05)"
+
+    @pytest.mark.parametrize("mw", [
+        None,                       # reachable, and what other tests pass
+        _MwWithMode(None),          # settings.json predating the option
+    ])
+    def test_no_settings_falls_back_to_the_default(self, mw):
+        """The fallback has to agree with DEFAULT_SETTINGS, or a missing value
+        would announce the opposite of what a saved one does."""
+        from core.notification_manager import format_notification_body
+        from core.utils import DEFAULT_SETTINGS
+        assert DEFAULT_SETTINGS["user_interface"]["voice_message_mode"] == "voice_message"
+        body = format_notification_body(_audio_msg(ptt=False), mw, _KeyEchoI18n())
+        assert body.startswith("notif_audio")
+
+    def test_the_new_key_is_in_every_locale(self):
+        """A key missing from a language file renders as the raw key name in
+        the UI, so "notif_audio" would be read aloud verbatim."""
+        import json
+        import pathlib
+        langs = pathlib.Path("client/languages")
+        for code in ("pt-BR", "pt-PT", "en-US", "es-ES", "pl"):
+            data = json.loads((langs / f"{code}.json").read_text(encoding="utf-8"))
+            assert data.get("notif_audio"), f"notif_audio missing from {code}"
+            assert data["notif_audio"] != data["notif_voice_message"], (
+                f"{code} gives the audio and voice toasts the same text, "
+                "which is the bug this fixes")
