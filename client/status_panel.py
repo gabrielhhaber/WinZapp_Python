@@ -18,6 +18,7 @@ from core.api_client import api_get, api_post, redact_api_url
 from core.save_location import resolve_save_dialog_folder
 from core.utils import format_number, normalize_line_separators, is_voice_message
 from core.video_player import VideoPlayer
+from core.focus_cloak import cloak_focus_announcement
 from core.audio_devices import (
     find_input_device_index, fallback_input_device_indices, RECORDING_SAMPLE_CONFIGS,
 )
@@ -2537,28 +2538,55 @@ class StatusPanel(wx.Panel):
             self._voice_send_btn.SetLabel(i18n.t("send_voice_message"))
             self._voice_send_btn.Show()
             self.Layout()
-            self._voice_send_btn.SetFocus()
-            self._silence_send_voice_focus_if_enabled()
+            self._focus_recording_button_silently(self._voice_send_btn)
 
         threading.Thread(target=_bg_open_stream, daemon=True).start()
 
+    def _voice_recording_silence_enabled(self):
+        """True when Settings > Conteúdo Falado asks for silence while
+        recording a voice message.
+
+        Keyed ONLY on that toggle, matching ConversationsPanel. This copy used
+        to also fire when extended_sr_compat_enabled was OFF — i.e. exactly
+        when the user had told WinZapp never to talk to their screen reader,
+        the app started interrupting it instead. The conversation panel's copy
+        was fixed for that; this one was left behind.
+        """
+        settings = getattr(self.main_window, "settings", None) or {}
+        return bool(
+            settings.get("speech_content", {}).get("silence_while_recording", False)
+        )
+
+    def _focus_recording_button_silently(self, button):
+        """Move focus to a recording button without the screen reader
+        announcing it. See ConversationsPanel._focus_recording_button_silently
+        for why the cloak, and not the silence() burst, is the mechanism."""
+        if self._voice_recording_silence_enabled():
+            # Armed BEFORE SetFocus(), or the screen reader reads the real
+            # (focused) state and speaks.
+            cloak_focus_announcement(button)
+        button.SetFocus()
+        self._silence_send_voice_focus_if_enabled()
+
     def _silence_send_voice_focus_if_enabled(self):
-        settings = self.main_window.settings
-        silence_while_recording = settings.get("speech_content", {}).get(
-            "silence_while_recording", False
-        )
-        extended_enabled = settings.get("accessibility", {}).get(
-            "extended_sr_compat_enabled", True
-        )
-        if not silence_while_recording and extended_enabled:
+        """Fallback for an announcement the cloak did not stop."""
+        if not self._voice_recording_silence_enabled():
             return
         speak_output = getattr(self.main_window, "speak_output", None)
         silence_focus = getattr(speak_output, "silence_screen_reader_focus", None)
         if not callable(silence_focus):
             return
-        silence_focus()
-        wx.CallAfter(silence_focus)
-        wx.CallLater(80, silence_focus)
+        silence_all = getattr(speak_output, "silence", None)
+
+        def _silence_now():
+            silence_focus()
+            if callable(silence_all):
+                silence_all()
+
+        _silence_now()
+        wx.CallAfter(_silence_now)
+        for delay_ms in (40, 90, 160, 260, 400):
+            wx.CallLater(delay_ms, _silence_now)
 
     def _toggle_pause_voice_recording(self, event):
         if not self._is_recording:
