@@ -1775,8 +1775,12 @@ class MainWindow(wx.Frame):
         # — rare, and correctness there matters more than another caller
         # waiting briefly. wx.CallAfter itself is non-blocking either way.
         self._unlink_decision_lock = threading.Lock()
-        # Consecutive failed network probes (see check_whatsapp_reachable).
+        # Consecutive failed network probes (see check_whatsapp_reachable),
+        # and when the current run of them started — the widened during-sync
+        # budget is capped in wall-clock time, not in readings (see
+        # connection_state.probe_strike_budget).
         self._offline_probe_strikes = 0
+        self._offline_probe_first_strike_ts = 0.0
         # Consecutive not-yet-connected results from _set_wa_connected() this
         # session, and when the session started — together these give the
         # first connection attempt a grace period before the UI is allowed to
@@ -10550,16 +10554,25 @@ class MainWindow(wx.Frame):
 
         Both negatives require _OFFLINE_PROBE_STRIKES *consecutive* readings
         before they count — see the session-probe branch below for why the
-        first one is not proof of anything. That threshold is widened the
-        same way check_wa_connection_http()'s except branch widens
-        _HTTP_PROBE_STRIKES while an initial sync is running, and for the
-        same reason: a long history sync can leave the local Node process too
-        busy to answer this probe quickly, and that must not be read as a
-        real outage.
+        first one is not proof of anything. While an initial sync is running
+        that budget is widened through connection_state.probe_strike_budget(),
+        each branch for its own reason (a WhatsApp Web page reload for the
+        session probe, resource/DNS contention for the host probe — both
+        spelled out at the branches themselves), and the widening is capped at
+        SYNC_TOLERANCE_MAX_SECONDS of wall clock so a real outage mid-sync is
+        not held invisible for the ten minutes the raw factor would buy.
+
+        Note what this widening is NOT for, because the obvious guess is
+        wrong: a Node too busy to answer at all never reaches either branch. A
+        request that times out raises, lands in the `except` below, and falls
+        through to _probe_whatsapp_host() without setting session_down or
+        counting a strike at all. Getting here means the local API *answered*.
         """
+        import connection_state as cs
         last_live = getattr(self, "_last_live_wpp_event_ts", 0.0)
         if last_live and (time.time() - last_live) < self._LIVE_WPP_EVENT_FRESHNESS_SECONDS:
             self._offline_probe_strikes = 0
+            self._offline_probe_first_strike_ts = 0.0
             return True
         url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/check-connection-session"
         session_down = False
@@ -10601,18 +10614,30 @@ class MainWindow(wx.Frame):
             # Requiring the same consecutive strikes the host probe already
             # requires rides out a reload; a genuine outage still registers
             # on the next health-check tick ~30 s later.
-            # Same "initial sync can block the Node event loop for a long
-            # time" reasoning check_wa_connection_http()'s except branch
-            # already applies to _HTTP_PROBE_STRIKES — this probe never got
-            # the same tolerance, so a busy initial sync could trip it into
-            # declaring the connection down (and aborting the very sync that
-            # was keeping Node busy) well before that other, more tolerant
-            # check ever would. Observed live: a long initial sync ending in
-            # "modo offline" and then a full disconnect a health-check cycle
-            # or two later, with no real network interruption.
-            allowed_strikes = self._OFFLINE_PROBE_STRIKES
-            if getattr(self, "_initial_sync_running", False):
-                allowed_strikes = self._OFFLINE_PROBE_STRIKES * 10
+            #
+            # And during an initial sync, two strikes / ~60 s is not enough of
+            # a window for it. This branch is reached only when the local API
+            # *answered* — with status:false, i.e. isConnected() threw inside
+            # the page — so the reason to be more patient here is the reload
+            # above, not a busy Node (a Node too busy to answer raises in the
+            # `except` and never gets this far). A reload is both likelier and
+            # slower to finish while WhatsApp Web is being driven through a
+            # long history download than it is on an idle session, and the
+            # measured one already lasted 28 s on its own. Observed live: a
+            # long initial sync ending in "modo offline" and then a full
+            # disconnect a health-check cycle or two later, with no real
+            # network interruption. The widened budget is capped in wall-clock
+            # time — see probe_strike_budget() for why ~10 minutes of holding
+            # a stale "connected" is its own bug.
+            now = time.time()
+            allowed_strikes = cs.probe_strike_budget(
+                self._OFFLINE_PROBE_STRIKES,
+                initial_sync_running=getattr(self, "_initial_sync_running", False),
+                first_strike_ts=getattr(self, "_offline_probe_first_strike_ts", 0.0),
+                now=now,
+            )
+            if not getattr(self, "_offline_probe_first_strike_ts", 0.0):
+                self._offline_probe_first_strike_ts = now
             self._offline_probe_strikes = getattr(self, "_offline_probe_strikes", 0) + 1
             if self._offline_probe_strikes >= allowed_strikes:
                 return False
@@ -10625,10 +10650,27 @@ class MainWindow(wx.Frame):
 
         if self._probe_whatsapp_host():
             self._offline_probe_strikes = 0
+            self._offline_probe_first_strike_ts = 0.0
             return True
-        allowed_strikes = self._OFFLINE_PROBE_STRIKES
-        if getattr(self, "_initial_sync_running", False):
-            allowed_strikes = self._OFFLINE_PROBE_STRIKES * 10
+        # This one is a HEAD straight at web.whatsapp.com — the local Node
+        # process is not on that route at all, so "Node is busy" explains
+        # nothing here. What an initial sync does explain is the machine
+        # itself being loaded: hundreds of media downloads in flight compete
+        # for sockets, DNS and CPU with a probe that has a short timeout, and
+        # a probe that loses that race is not an outage. That is a much
+        # weaker excuse than the session branch's reload, which is exactly
+        # why the ceiling matters more here: if the network really is gone,
+        # this is the signal that says so, and it must not stay muffled for
+        # the length of a sync.
+        now = time.time()
+        allowed_strikes = cs.probe_strike_budget(
+            self._OFFLINE_PROBE_STRIKES,
+            initial_sync_running=getattr(self, "_initial_sync_running", False),
+            first_strike_ts=getattr(self, "_offline_probe_first_strike_ts", 0.0),
+            now=now,
+        )
+        if not getattr(self, "_offline_probe_first_strike_ts", 0.0):
+            self._offline_probe_first_strike_ts = now
         self._offline_probe_strikes = getattr(self, "_offline_probe_strikes", 0) + 1
         if self._offline_probe_strikes >= allowed_strikes:
             return False
@@ -10989,12 +11031,22 @@ class MainWindow(wx.Frame):
             # process than a real outage.
             self._wa_http_fail_strikes = getattr(self, "_wa_http_fail_strikes", 0) + 1
 
-            allowed_strikes = self._HTTP_PROBE_STRIKES
             # If the initial sync is running and downloading history for hundreds of chats,
             # the Node.js server event loop can be blocked for >30s. Don't falsely declare
             # an offline outage just because of these timeouts.
-            if getattr(self, "_initial_sync_running", False):
-                allowed_strikes = self._HTTP_PROBE_STRIKES * 10
+            #
+            # max_seconds=None keeps this branch's behaviour exactly as it has
+            # shipped: no wall-clock ceiling, unlike check_whatsapp_reachable()'s
+            # two branches. Deliberate asymmetry — this x10 is the one already
+            # proven in the field against a Node blocked by a history download,
+            # and tightening a fix nobody has reported a problem with would be
+            # trading a known-good behaviour for a hypothetical one.
+            import connection_state as cs
+            allowed_strikes = cs.probe_strike_budget(
+                self._HTTP_PROBE_STRIKES,
+                initial_sync_running=getattr(self, "_initial_sync_running", False),
+                max_seconds=None,
+            )
 
             logging.warning(
                 "[check_wa_connection_http] Request failed (strike %d/%d): %s",

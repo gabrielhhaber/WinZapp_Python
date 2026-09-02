@@ -93,6 +93,71 @@ def should_count_strike(now: float, last_strike_ts: float,
     return (now - last_strike_ts) >= min_interval
 
 
+# How much a probe's consecutive-strike budget is widened while an initial sync
+# is running. The factor was a bare literal 10 repeated at three call sites in
+# main.py (check_whatsapp_reachable()'s two branches and
+# check_wa_connection_http()'s except branch); it is named here because it is
+# one decision, not three.
+SYNC_TOLERANCE_FACTOR = 10
+
+# How long the widened budget is allowed to hold the old state before the base
+# budget comes back.
+#
+# The widening is generous on purpose, and generous in the wrong units: the
+# health checker runs every _HEALTH_CHECK_INTERVAL (30 s) and
+# _OFFLINE_PROBE_STRIKES is 2, so x10 is ~10 minutes of answering "still
+# connected" to a probe that has said otherwise every single time. During those
+# ten minutes check_wa_connection_http()'s CONNECTED branch never reaches
+# _nudge_whatsapp_socket_stream() or escalates to _restart_wpp_session(), and
+# _should_abort_sync_for_offline() never fires — which is the ghost
+# "conversations synchronized" bug documented at that call site. A real outage
+# in the middle of a sync would be held invisible for the whole window.
+#
+# 180 s is chosen from the two real durations either side of it: comfortably
+# past the measured 28-second WhatsApp Web page reload that this tolerance
+# exists to ride out (see check_whatsapp_reachable()'s session_down branch), and
+# nowhere near the ~10 minutes the raw factor buys. This is a CLOCK and not a
+# strike count for the reason main.py has already had to learn twice (the
+# startup grace window, and STRIKE_MIN_INTERVAL_SECONDS above): a reading count
+# is a proxy for elapsed time that breaks the moment something polls at a
+# different rate.
+SYNC_TOLERANCE_MAX_SECONDS = 180.0
+
+
+def probe_strike_budget(base_strikes: int, *,
+                        initial_sync_running: bool,
+                        first_strike_ts: float = 0.0,
+                        now: float = 0.0,
+                        max_seconds: float | None = SYNC_TOLERANCE_MAX_SECONDS) -> int:
+    """How many consecutive negative probe readings to require before believing
+    the connection is really down.
+
+    Outside an initial sync this is just ``base_strikes``. While one is running
+    it is widened by SYNC_TOLERANCE_FACTOR, because a history download for
+    hundreds of chats keeps the local Node process (and the machine's own
+    network stack) busy enough that a slow or failed probe is far more often
+    that load than a real outage — and reading it as an outage aborts the very
+    sync that caused it.
+
+    ``first_strike_ts`` is when the CURRENT run of consecutive strikes began (0
+    when there is no run yet, i.e. this reading is starting one). Once that run
+    is older than ``max_seconds`` the widened budget expires and the base one
+    comes back: the tolerance is for a busy sync, not for holding a genuine
+    outage invisible for as long as the sync happens to last.
+
+    ``max_seconds=None`` disables the ceiling. That asymmetry is deliberate and
+    only check_wa_connection_http()'s except branch uses it: its x10 is the one
+    already shipped and proven against a Node blocked by a history download,
+    and tightening it now would reintroduce that risk for no reported problem.
+    The two check_whatsapp_reachable() branches are new and take the ceiling.
+    """
+    if not initial_sync_running:
+        return base_strikes
+    if max_seconds is not None and first_strike_ts and (now - first_strike_ts) >= max_seconds:
+        return base_strikes
+    return base_strikes * SYNC_TOLERANCE_FACTOR
+
+
 def is_zombie_session_after_resume(wa_connected: bool, status: str,
                                    host_reachable: bool) -> bool:
     """Decide whether a post-wake session is a 'zombie CONNECTED' worth an
@@ -160,6 +225,12 @@ def chrome_cmdline_owns_session(cmdline: str, session_name: str) -> bool:
 _RESET_ZERO_ATTRS = (
     "_wa_http_fail_strikes",
     "_offline_probe_strikes",
+    # When the current run of offline-probe strikes began, i.e. the clock
+    # probe_strike_budget()'s ceiling is measured against. It has to be zeroed
+    # wherever _offline_probe_strikes is, or a run that ended before the sleep
+    # leaves a stale start time behind and the first post-wake strike is
+    # already "too old" for the widened budget.
+    "_offline_probe_first_strike_ts",
     "_logout_strikes",
     "_resume_fail_strikes",
     # The host-device veto run (MainWindow._STILL_LINKED_VETO_LIMIT) counts

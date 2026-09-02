@@ -96,6 +96,71 @@ class TestClassifyUnlinkCandidate:
         assert _classify_candidate(False, 1000, 0) == cs.RESUMING
 
 
+# ── the during-sync strike budget (probe_strike_budget) ──────────────────────
+# Three call sites in main.py used to carry the same `if initial_sync_running:
+# allowed = base * 10` by hand — check_whatsapp_reachable()'s session-probe and
+# host-probe branches, and check_wa_connection_http()'s except branch. The
+# factor is one decision, and the wall-clock ceiling on it is the part that
+# needs a test: x10 at a 30 s health cadence is ~10 minutes of answering "still
+# connected" to a probe that has said otherwise every single time.
+
+BUDGET_BASE = 2
+
+
+def test_budget_is_the_base_outside_a_sync():
+    assert cs.probe_strike_budget(BUDGET_BASE, initial_sync_running=False) == BUDGET_BASE
+    # ...even with an ancient strike run behind it: no sync, no widening, so
+    # the ceiling never enters into it.
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=False,
+        first_strike_ts=1000.0, now=1000.0 + 10_000) == BUDGET_BASE
+
+
+def test_budget_widens_during_a_sync():
+    widened = BUDGET_BASE * cs.SYNC_TOLERANCE_FACTOR
+    # No run yet (ts 0) — this reading is starting one, so it gets the full
+    # window rather than being judged against a clock that has not started.
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True,
+        first_strike_ts=0.0, now=1000.0) == widened
+    # A run one health-check tick old is still well inside the window.
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True,
+        first_strike_ts=1000.0, now=1030.0) == widened
+
+
+def test_budget_returns_to_the_base_once_the_run_outlives_the_ceiling():
+    t0 = 1000.0
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True, first_strike_ts=t0,
+        now=t0 + cs.SYNC_TOLERANCE_MAX_SECONDS - 0.1
+    ) == BUDGET_BASE * cs.SYNC_TOLERANCE_FACTOR
+    # At the ceiling the sync stops being an excuse: a probe that has been
+    # negative for this long is an outage, and holding "connected" any longer
+    # keeps _should_abort_sync_for_offline() from ever firing.
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True, first_strike_ts=t0,
+        now=t0 + cs.SYNC_TOLERANCE_MAX_SECONDS) == BUDGET_BASE
+
+
+def test_the_ceiling_can_be_disabled_for_the_branch_already_in_production():
+    """check_wa_connection_http()'s except branch passes max_seconds=None: its
+    x10 is the one already proven against a Node blocked by a history download,
+    and tightening it now would trade a known-good behaviour for a guess."""
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True, first_strike_ts=1000.0,
+        now=1000.0 + 10_000, max_seconds=None
+    ) == BUDGET_BASE * cs.SYNC_TOLERANCE_FACTOR
+
+
+def test_the_ceiling_sits_between_a_page_reload_and_the_raw_ten_minutes():
+    """Both bounds are the numbers the constant was picked from: the measured
+    28-second WhatsApp Web reload it must ride out, and the ~10 minutes the raw
+    factor buys at the 30 s health-check cadence."""
+    assert cs.SYNC_TOLERANCE_MAX_SECONDS > 28.0 * 2
+    assert cs.SYNC_TOLERANCE_MAX_SECONDS < BUDGET_BASE * cs.SYNC_TOLERANCE_FACTOR * 30
+
+
 def test_wake_from_suspend_detects_long_gap():
     # A 30s loop that really took 5 minutes = the machine was asleep.
     assert cs.is_wake_from_suspend(300.0, 30, 90) is True

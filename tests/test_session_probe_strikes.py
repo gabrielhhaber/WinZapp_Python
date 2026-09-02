@@ -25,8 +25,12 @@ so the method under test is exercised as a plain function against a small stub
 — same approach as tests/test_socket_stream_nudge.py.
 """
 
+import time
+import types
+
 import pytest
 
+import connection_state as cs
 from main import MainWindow
 
 
@@ -41,6 +45,7 @@ class _Resp:
 
 class _Stub:
     _OFFLINE_PROBE_STRIKES = MainWindow._OFFLINE_PROBE_STRIKES
+    _LIVE_WPP_EVENT_FRESHNESS_SECONDS = MainWindow._LIVE_WPP_EVENT_FRESHNESS_SECONDS
     check_whatsapp_reachable = MainWindow.check_whatsapp_reachable
 
     def __init__(self, connected=True, host_reachable=True):
@@ -49,6 +54,7 @@ class _Stub:
         self.token = "test-token"
         self._wa_connected = connected
         self._offline_probe_strikes = 0
+        self._offline_probe_first_strike_ts = 0.0
         self._host_reachable = host_reachable
         self.host_probes = 0
 
@@ -65,6 +71,22 @@ def _session_says(monkeypatch, *responses):
         return queue.pop(0) if len(queue) > 1 else queue[0]
 
     monkeypatch.setattr("main.requests.get", _fake_get)
+
+
+def _fake_clock(monkeypatch, start=1000.0):
+    """Drive the wall clock check_whatsapp_reachable() reads, so the ceiling on
+    the widened during-sync budget can be crossed without the test waiting
+    SYNC_TOLERANCE_MAX_SECONDS. Returns the dict to advance."""
+    state = {"now": start}
+    monkeypatch.setattr(
+        "main.time",
+        types.SimpleNamespace(
+            time=lambda: state["now"],
+            sleep=time.sleep,
+            monotonic=time.monotonic,
+        ),
+    )
+    return state
 
 
 class TestSessionProbeStrikes:
@@ -188,3 +210,88 @@ class TestOfflineProbeToleranceDuringInitialSync:
         s._initial_sync_running = False
         assert s.check_whatsapp_reachable() is True
         assert s.check_whatsapp_reachable() is False
+
+
+class TestTheWidenedToleranceHasATimeCeiling:
+    """The tenfold budget is measured in READINGS, and the health checker runs
+    every 30 s — so x10 on _OFFLINE_PROBE_STRIKES(2) is ~10 minutes of holding
+    _wa_connected True through a real outage in the middle of a sync. For those
+    ten minutes check_wa_connection_http()'s CONNECTED branch never reaches
+    _nudge_whatsapp_socket_stream() or escalates to _restart_wpp_session(), and
+    _should_abort_sync_for_offline() never fires — the ghost "conversations
+    synchronized" bug. So the widening is bounded by the clock as well
+    (connection_state.SYNC_TOLERANCE_MAX_SECONDS), which is the same lesson
+    main.py already records twice: a reading count is a bad proxy for elapsed
+    time."""
+
+    def test_the_session_probe_run_starts_the_clock_on_its_first_strike(self, monkeypatch):
+        clock = _fake_clock(monkeypatch)
+        _session_says(monkeypatch, _Resp(200, {"status": False}))
+        s = _Stub(connected=True)
+        s._initial_sync_running = True
+        assert s.check_whatsapp_reachable() is True
+        assert s._offline_probe_first_strike_ts == clock["now"]
+
+    def test_the_session_probe_falls_back_to_the_base_budget_past_the_ceiling(self, monkeypatch):
+        clock = _fake_clock(monkeypatch)
+        _session_says(monkeypatch, _Resp(200, {"status": False}))
+        s = _Stub(connected=True)
+        s._initial_sync_running = True
+        assert s.check_whatsapp_reachable() is True   # strike 1 — starts the run
+        # Still inside the window: the widened budget still holds the state.
+        clock["now"] += cs.SYNC_TOLERANCE_MAX_SECONDS - 1.0
+        assert s.check_whatsapp_reachable() is True   # strike 2, would be enough at base
+        # Past it: two strikes is the whole base budget, and this is the third.
+        clock["now"] += 2.0
+        assert s.check_whatsapp_reachable() is False
+
+    def test_the_host_probe_falls_back_to_the_base_budget_past_the_ceiling(self, monkeypatch):
+        """The host probe is a HEAD straight at web.whatsapp.com — a busy Node
+        is not even on that route, so its excuse (socket/DNS/CPU contention
+        during a heavy download) is the weaker of the two and the ceiling
+        matters more here."""
+        clock = _fake_clock(monkeypatch)
+        _session_says(monkeypatch, _Resp(200, {"status": True}))
+        s = _Stub(connected=True, host_reachable=False)
+        s._initial_sync_running = True
+        assert s.check_whatsapp_reachable() is True
+        clock["now"] += cs.SYNC_TOLERANCE_MAX_SECONDS
+        assert s.check_whatsapp_reachable() is False
+
+    def test_a_recovered_probe_restarts_the_clock_as_well_as_the_tally(self, monkeypatch):
+        """A healthy reading ends the run, so a later, unrelated blip gets its
+        own full window rather than inheriting an expired one."""
+        clock = _fake_clock(monkeypatch)
+        _session_says(
+            monkeypatch,
+            _Resp(200, {"status": False}),
+            _Resp(200, {"status": True}),
+        )
+        s = _Stub(connected=True)
+        s._initial_sync_running = True
+        assert s.check_whatsapp_reachable() is True
+        assert s._offline_probe_first_strike_ts == 1000.0
+        assert s.check_whatsapp_reachable() is True   # healthy again
+        assert s._offline_probe_strikes == 0
+        assert s._offline_probe_first_strike_ts == 0.0
+
+    def test_a_fresh_live_event_also_clears_the_clock(self, monkeypatch):
+        """The Socket.IO short-circuit at the top of the method is the other
+        place the strike tally is reset — the timestamp has to go with it."""
+        clock = _fake_clock(monkeypatch)
+        _session_says(monkeypatch, _Resp(200, {"status": False}))
+        s = _Stub(connected=True)
+        s._initial_sync_running = True
+        assert s.check_whatsapp_reachable() is True
+        assert s._offline_probe_first_strike_ts == 1000.0
+        s._last_live_wpp_event_ts = clock["now"]
+        assert s.check_whatsapp_reachable() is True
+        assert s._offline_probe_strikes == 0
+        assert s._offline_probe_first_strike_ts == 0.0
+
+    def test_the_timestamp_is_reset_by_a_wake_from_suspend(self, monkeypatch):
+        """reset_state_for_resume() zeroes every strike tally so a resume is
+        classified like a fresh start; a start time left behind would make the
+        first post-wake strike look like the tail of a run from before the
+        sleep."""
+        assert "_offline_probe_first_strike_ts" in cs._RESET_ZERO_ATTRS
