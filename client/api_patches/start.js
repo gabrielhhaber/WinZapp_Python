@@ -393,6 +393,18 @@ function versionExpiry(catalogue, version) {
 // locally. The expiry check comes first because it is the cheap one; reading
 // every HTML file down the list would be minutes of I/O.
 //
+// Each tier below is walked twice: stable channel first (no "-alpha"/"-beta"
+// in the version string), then any channel. Meta's expiry window is a good
+// proxy for "still served", but not for "safe to link a device against" — a
+// pre-release build that was nowhere near expired still got every
+// freshly-paired session unpaired by WhatsApp within minutes of the pinned
+// page loading ("Session Unpaired" in wppconnect.log, immediately followed by
+// "notLogged", repeating on every re-pair attempt). A catalogue with no
+// pre-release entries at all is unaffected: every version in it is "stable"
+// by this check, so the first pass of each tier already finds what the
+// second pass would have, and behaves exactly as before this distinction
+// existed.
+//
 // Returns { version, expire, expired, total }, or null when the catalogue is
 // empty/unusable. `expired: true` means nothing valid was left and this is the
 // newest servable build regardless — see the call site for why that is still
@@ -408,22 +420,29 @@ function selectServableVersion(catalogue, now) {
       return false;
     }
   };
-  for (let i = available.length - 1; i >= 0; i--) {
-    const version = available[i];
-    const expire = versionExpiry(catalogue, version);
-    if (expire !== null && expire <= now) continue;
-    if (!canServe(version)) continue;
-    return { version, expire, expired: false, total: available.length };
+  const isStable = (version) => !/-alpha|-beta/i.test(version);
+  for (const stableOnly of [true, false]) {
+    for (let i = available.length - 1; i >= 0; i--) {
+      const version = available[i];
+      if (stableOnly && !isStable(version)) continue;
+      const expire = versionExpiry(catalogue, version);
+      if (expire !== null && expire <= now) continue;
+      if (!canServe(version)) continue;
+      return { version, expire, expired: false, total: available.length };
+    }
   }
-  for (let i = available.length - 1; i >= 0; i--) {
-    const version = available[i];
-    if (canServe(version)) {
-      return {
-        version,
-        expire: versionExpiry(catalogue, version),
-        expired: true,
-        total: available.length,
-      };
+  for (const stableOnly of [true, false]) {
+    for (let i = available.length - 1; i >= 0; i--) {
+      const version = available[i];
+      if (stableOnly && !isStable(version)) continue;
+      if (canServe(version)) {
+        return {
+          version,
+          expire: versionExpiry(catalogue, version),
+          expired: true,
+          total: available.length,
+        };
+      }
     }
   }
   return null;

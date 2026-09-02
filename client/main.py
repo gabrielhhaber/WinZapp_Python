@@ -10550,7 +10550,12 @@ class MainWindow(wx.Frame):
 
         Both negatives require _OFFLINE_PROBE_STRIKES *consecutive* readings
         before they count — see the session-probe branch below for why the
-        first one is not proof of anything.
+        first one is not proof of anything. That threshold is widened the
+        same way check_wa_connection_http()'s except branch widens
+        _HTTP_PROBE_STRIKES while an initial sync is running, and for the
+        same reason: a long history sync can leave the local Node process too
+        busy to answer this probe quickly, and that must not be read as a
+        real outage.
         """
         last_live = getattr(self, "_last_live_wpp_event_ts", 0.0)
         if last_live and (time.time() - last_live) < self._LIVE_WPP_EVENT_FRESHNESS_SECONDS:
@@ -10596,21 +10601,36 @@ class MainWindow(wx.Frame):
             # Requiring the same consecutive strikes the host probe already
             # requires rides out a reload; a genuine outage still registers
             # on the next health-check tick ~30 s later.
+            # Same "initial sync can block the Node event loop for a long
+            # time" reasoning check_wa_connection_http()'s except branch
+            # already applies to _HTTP_PROBE_STRIKES — this probe never got
+            # the same tolerance, so a busy initial sync could trip it into
+            # declaring the connection down (and aborting the very sync that
+            # was keeping Node busy) well before that other, more tolerant
+            # check ever would. Observed live: a long initial sync ending in
+            # "modo offline" and then a full disconnect a health-check cycle
+            # or two later, with no real network interruption.
+            allowed_strikes = self._OFFLINE_PROBE_STRIKES
+            if getattr(self, "_initial_sync_running", False):
+                allowed_strikes = self._OFFLINE_PROBE_STRIKES * 10
             self._offline_probe_strikes = getattr(self, "_offline_probe_strikes", 0) + 1
-            if self._offline_probe_strikes >= self._OFFLINE_PROBE_STRIKES:
+            if self._offline_probe_strikes >= allowed_strikes:
                 return False
             logging.info(
                 "[check_whatsapp_reachable] session probe reports disconnected "
                 "(strike %d/%d) — holding the current state for one more cycle.",
-                self._offline_probe_strikes, self._OFFLINE_PROBE_STRIKES,
+                self._offline_probe_strikes, allowed_strikes,
             )
             return bool(getattr(self, "_wa_connected", False))
 
         if self._probe_whatsapp_host():
             self._offline_probe_strikes = 0
             return True
+        allowed_strikes = self._OFFLINE_PROBE_STRIKES
+        if getattr(self, "_initial_sync_running", False):
+            allowed_strikes = self._OFFLINE_PROBE_STRIKES * 10
         self._offline_probe_strikes = getattr(self, "_offline_probe_strikes", 0) + 1
-        if self._offline_probe_strikes >= self._OFFLINE_PROBE_STRIKES:
+        if self._offline_probe_strikes >= allowed_strikes:
             return False
         # First strike: give it one more cycle before going offline.
         return bool(getattr(self, "_wa_connected", False))

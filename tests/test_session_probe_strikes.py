@@ -143,3 +143,48 @@ class TestSessionProbeStrikes:
         s = _Stub(connected=True)
         assert s.check_whatsapp_reachable() is True
         assert s.host_probes == 1
+
+
+class TestOfflineProbeToleranceDuringInitialSync:
+    """Both strike counters in check_whatsapp_reachable() now widen tenfold
+    while an initial sync is running — the same reasoning, and the same *10
+    factor, check_wa_connection_http()'s except branch already applies to
+    _HTTP_PROBE_STRIKES. Reported live: a long history sync can leave the
+    local Node process too busy to answer this probe quickly, which used to
+    flip the app to "modo offline" and abort the very sync that was keeping
+    Node busy, well before the more tolerant HTTP check ever would."""
+
+    def test_session_probe_tolerates_ten_times_the_strikes_during_sync(self, monkeypatch):
+        _session_says(monkeypatch, _Resp(200, {"status": False}))
+        s = _Stub(connected=True)
+        s._initial_sync_running = True
+        for _ in range(19):
+            assert s.check_whatsapp_reachable() is True
+        assert s._offline_probe_strikes == 19
+        assert s.check_whatsapp_reachable() is False
+        assert s._offline_probe_strikes == 20
+
+    def test_host_probe_tolerates_ten_times_the_strikes_during_sync(self, monkeypatch):
+        _session_says(monkeypatch, _Resp(200, {"status": True}))
+        s = _Stub(connected=True, host_reachable=False)
+        s._initial_sync_running = True
+        for _ in range(19):
+            assert s.check_whatsapp_reachable() is True
+        assert s.check_whatsapp_reachable() is False
+
+    def test_outside_a_sync_the_tolerance_is_unchanged(self, monkeypatch):
+        """_initial_sync_running absent (the common case) must behave exactly
+        as before this change — two strikes, not twenty."""
+        _session_says(monkeypatch, _Resp(200, {"status": False}))
+        s = _Stub(connected=True)
+        assert s.check_whatsapp_reachable() is True
+        assert s.check_whatsapp_reachable() is False
+
+    def test_a_finished_sync_goes_back_to_the_normal_tolerance(self, monkeypatch):
+        """_initial_sync_running=False (sync completed/aborted) must not
+        leave the widened budget behind."""
+        _session_says(monkeypatch, _Resp(200, {"status": False}))
+        s = _Stub(connected=True)
+        s._initial_sync_running = False
+        assert s.check_whatsapp_reachable() is True
+        assert s.check_whatsapp_reachable() is False
