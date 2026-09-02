@@ -243,6 +243,62 @@ def classify_unlink_candidate(
     return RESUMING  # connected before, brief blip — keep waiting (no wipe)
 
 
+# Why check_wa_connection_http() may NOT answer a CLOSED/DESTROYED/'' status
+# with /start-session. A CLOSED reading is normally an invitation to bring the
+# session back, and three of these four guards exist because something else
+# already owns the browser at that moment; the fourth (a halted unattended QR
+# flood) exists because bringing it back is the whole thing being prevented.
+# The strings are the reason logged by the caller, one per guard, so the log
+# still says which of the four fired.
+AUTO_START_BLOCKED_PAIRING_DIALOG = "pairing dialog is active"
+AUTO_START_BLOCKED_QR_FLOOD = (
+    "session halted after an unattended QR flood; waiting for the user to re-pair"
+)
+AUTO_START_BLOCKED_RECOVERY_RESTART = "recovery restart sequence in progress owns it"
+AUTO_START_BLOCKED_SELF_INFLICTED = "our own close-session teardown is in flight"
+
+
+def auto_start_block_reason(*, pairing_dialog_active: bool,
+                            qr_flood_halted: bool,
+                            recovery_restart_active: bool,
+                            self_inflicted_teardown: bool) -> str | None:
+    """Return the reason /start-session must be skipped for a CLOSED status, or
+    None when starting a fresh session is the right answer.
+
+    Extracted from MainWindow.check_wa_connection_http()'s CLOSED branch — a
+    four-way condition buried in a method that cannot be driven end to end in a
+    test (HTTP, wx, half a dozen other subsystems), while each guard is a
+    one-account-losing-or-not decision:
+
+    * pairing_dialog_active — the pairing flow manages its own session; starting
+      one here spawns a duplicate Chrome alongside it. (Unreachable in practice
+      now that check_wa_connection_http() returns early while the dialog is up,
+      kept as a defensive fallback.)
+    * qr_flood_halted — this CLOSED is MainWindow._halt_unattended_qr_session()'s
+      own doing. Restarting is exactly what that call exists to prevent: the
+      session comes back and resumes asking WhatsApp for a code every ~30s that
+      nobody can scan, which is what got an account banned. Only re-pairing or a
+      genuine reconnect clears the latch.
+    * recovery_restart_active — an active close/kill/start sequence owns the
+      browser; the CLOSED we see is likely ITS close-session in flight, and
+      racing it can spawn a duplicate Chrome / detached frame.
+    * self_inflicted_teardown — the expected result of our own close-session
+      (shutdown, WPPConnect update, session restart): starting here would revive
+      the browser moments before taskkill force-kills it.
+
+    Order matters only for which reason gets logged — any one of them blocks.
+    """
+    if pairing_dialog_active:
+        return AUTO_START_BLOCKED_PAIRING_DIALOG
+    if qr_flood_halted:
+        return AUTO_START_BLOCKED_QR_FLOOD
+    if recovery_restart_active:
+        return AUTO_START_BLOCKED_RECOVERY_RESTART
+    if self_inflicted_teardown:
+        return AUTO_START_BLOCKED_SELF_INFLICTED
+    return None
+
+
 def classify_unlinked(
     status: str,
     *,

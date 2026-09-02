@@ -698,6 +698,7 @@
     "unknown_group": "Unnamed group",
     "unnamed_participant": "Unnamed participant",
     "device_logged_out": "Your device has been disconnected from the WhatsApp account. Please connect again.",
+    "unattended_qr_session_closed": "WhatsApp disconnected this session, so it was closed. You need to connect again.",
     "pairing_failed_msg": "WinZapp couldn't finish pairing with WhatsApp. Please try connecting again.",
     "mentions_section_label": "Mentions in this message",
     "add_contact": "Add &local contact",

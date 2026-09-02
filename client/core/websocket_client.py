@@ -112,6 +112,17 @@ class WebSocketClient:
     # little later) or by the 30-second HTTP health check regardless.
     _DISCONNECT_CONFIRM_SECONDS = 20.0
 
+    # How many QR/pairing-code events may arrive with NO pairing dialog on
+    # screen before the session that mints them is closed outright. WhatsApp
+    # rotates roughly every 20-30s, so this is ~1 minute on an install that
+    # never paired. On one that did it is that dialog's lifetime plus ~1
+    # minute: there the very first unattended event opens the re-pairing
+    # dialog, and codes are attended for as long as it stays up, so the three
+    # counted events only start once the user dismisses it. Short enough
+    # that an app left open overnight on a session WhatsApp already
+    # dropped does not ask for hundreds of codes nobody will ever scan.
+    _UNATTENDED_QR_LIMIT = 3
+
     def __init__(self, main_window, connect, instance_name):
         self.main_window = main_window
         self.connect = connect
@@ -691,13 +702,39 @@ class WebSocketClient:
                      len(base64_img), bool(pairing_code))
 
         def _update_ui():
-            # Use connection_mode to determine which mode we're in
-            if self.connect.connection_mode == "qrcode" and base64_img:
+            # Both refresh branches below are only meaningful while the pairing
+            # dialog is genuinely on screen, and testing connection_mode alone
+            # was the whole of a reported account ban.
+            #
+            # connection_mode is written once, when the user picks a pairing
+            # method, and never reset: on an install that paired by QR it stays
+            # "qrcode" for the rest of the process's life. So when WhatsApp
+            # later dropped the session and WPPConnect went back to minting a
+            # fresh code every ~20-30s, every one of those events took the
+            # first branch — sound, "O QR-CODE foi atualizado" spoken over the
+            # chat list, and a redraw of a dialog closed hours earlier — and,
+            # being first in the chain, permanently shadowed the re-pairing
+            # branch below, the only thing that would have said the session was
+            # gone. The user stayed in the conversation list believing they
+            # were online while the session asked WhatsApp for a new code every
+            # half minute for as long as the app stayed open; the account was
+            # banned. See tests/test_qrcode_unattended_session.py.
+            #
+            # The two refresh branches still test the on-screen dialog and
+            # nothing else — they touch its widgets. Whether the codes are
+            # *attended* is the wider question _pairing_attended() answers, and
+            # it is the one the flood counter and the halt below key on.
+            dialog_open = self.main_window._is_pairing_dialog_active()
+            if self._pairing_attended():
+                # Somebody is pairing: this is a wanted rotation, not an
+                # unattended flood, whichever branch below ends up handling it.
+                self.main_window._unattended_qr_events = 0
+            if dialog_open and self.connect.connection_mode == "qrcode" and base64_img:
                 # QR-CODE mode: update the image
                 self.main_window.pairing_code_updated_sound.play()
                 self.main_window.speak_output.output(self.i18n.t("qrcode_image_updated"))
                 self.connect.display_qrcode_image(base64_img)
-            elif self.connect.connection_mode == "phone" and pairing_code:
+            elif dialog_open and self.connect.connection_mode == "phone" and pairing_code:
                 # Pairing code mode: update the text field only if it still exists.
                 # `if field` — not wx.IsDestroyed(field), which does not exist and
                 # raised AttributeError here on every single rotated code. Caught
@@ -721,56 +758,156 @@ class WebSocketClient:
                         # Never let a refresh failure go unnoticed again — this
                         # bug hid behind a silent `pass` for exactly that reason.
                         logging.exception("[on_qrcode_update] Failed to refresh the pairing code field.")
-            elif (
-                base64_img
-                and not self.main_window._is_pairing_dialog_active()
-                and self.main_window.settings.get("privateinfo", {}).get("paired")
-                and not getattr(self.main_window, "_auto_repair_dialog_shown", False)
-            ):
-                # WPPConnect just generated a real QR/pairing code with no
-                # pairing dialog open at all — it only does this once it has
-                # already decided the stored session can't be restored, so
-                # this is a reliable "you need to re-pair" signal on its own,
-                # unlike the coarse status-session string the health-check
-                # poll watches (which needs several minutes of confirmation
-                # to rule out a normal slow boot). Surfacing the pairing
-                # dialog immediately — instead of leaving the user staring at
-                # "offline" for however long _AUTO_RESTART_LOGOUT_GRACE_SECONDS
-                # or the multi-minute unlink confirmation takes with no
-                # explanation —
-                # was an explicit, accepted tradeoff: this dialog's own
-                # Cancel/close buttons quit the app / drop the WebSocket for
-                # good, which is fine here specifically because a session
-                # that reached this point has nothing left to lose by
-                # closing — see the conversation this was decided in.
-                # _auto_repair_dialog_shown latches so a 20-30s QR refresh
-                # while the user is still deciding what to do doesn't pop
-                # a second nested dialog.
-                self.main_window._auto_repair_dialog_shown = True
-                logging.warning(
-                    "[on_qrcode_update] Session needs re-pairing while "
-                    "previously paired, with no pairing dialog open — "
-                    "showing it proactively instead of waiting for the "
-                    "slower confirmed-logout detection."
-                )
-                # Same sound + MessageBox as the confirmed-logout path's own
-                # _logout_with_warning() (main.py) — recognisable, expected
-                # feedback that something happened, just without that path's
-                # _on_disconnect() call (no data wipe). Also bring the window
-                # to the foreground first: if it was minimized to the tray
-                # (background mode), a modal dialog appearing behind/under
-                # everything with no prior audible cue is easy to miss
-                # entirely — reported live as exactly that.
-                self.main_window.restore_window()
-                self.main_window.error_sound.play()
-                wx.MessageBox(
-                    self.i18n.t("device_logged_out"),
-                    self.i18n.t("error").format(app_name=self.main_window.app_name),
-                    wx.OK | wx.ICON_ERROR,
-                )
-                self.connect.show_connection_dial()
+            else:
+                self._handle_unattended_qr()
 
         wx.CallAfter(_update_ui)
+
+    def _pairing_attended(self) -> bool:
+        """True while somebody is actually pairing, so the codes WPPConnect is
+        producing are wanted rather than a flood nobody can consume.
+
+        BOTH signals, for the same reason check_wa_connection_http()'s own
+        early return consults both: _pairing_in_progress is the authoritative
+        "do not touch the session" flag, and the on-screen dialog alone does
+        not cover the whole pairing flow. on_pairing_complete() calls EndModal
+        on both dialogs — so _is_pairing_dialog_active() goes False — while
+        _pairing_in_progress stays set until messages.set arrives. On a fresh
+        install `paired` is still False through that window, so three codes
+        arriving in it (~60s of the first sync) would have sent /close-session
+        to the session that had just paired, with the latch blocking the
+        restart: the first sync killed, and no route back.
+        """
+        mw = self.main_window
+        return bool(mw._is_pairing_dialog_active()
+                    or getattr(mw, "_pairing_in_progress", False))
+
+    def _handle_unattended_qr(self):
+        """A real QR/pairing code arrived that no refresh branch wanted.
+
+        Usually that means no pairing dialog is on screen at all; see the
+        guard below for the one case where a dialog-less code is still
+        attended.
+
+        Two things have to happen, and only the first one used to: tell the
+        user, and stop the session asking WhatsApp for more codes.
+
+        Telling the user is the proactive pairing dialog — WPPConnect only
+        generates a code once it has already decided the stored session can't
+        be restored, so a code with no dialog open is a reliable "you need to
+        re-pair" signal on its own, unlike the coarse status-session string
+        the health-check poll watches (which needs several minutes of
+        confirmation to rule out a normal slow boot).
+
+        Stopping the churn is the part whose absence got an account banned.
+        `autoClose`/`deviceSyncTimeout` are pinned to 0 (client/api_patches/
+        src/config.ts) so WPPConnect never closes a code-producing session on
+        its own — deliberately, because a blind user needs unbounded time to
+        pair. That is the right answer while somebody is looking at the
+        dialog and the wrong one when nobody is: an app sitting in the tray
+        with a dropped session kept re-requesting a code every half minute
+        for hours. Nothing can consume those codes, so closing the session is
+        pure gain here; the user re-pairs from the dialog, which starts a
+        fresh session of its own.
+
+        Wider than the branch it replaced in one more way: that one required
+        base64_img, so an event carrying only a pairingCode escaped it
+        entirely. Both kinds of code are equally unscannable with nobody
+        watching, and equally worth a request to WhatsApp, so both count here.
+        """
+        mw = self.main_window
+        if self._pairing_attended():
+            # Reached with a dialog up whenever neither refresh branch wanted
+            # the event (wrong mode, or a code of the other kind), and with no
+            # dialog during the post-EndModal pairing window. Either way this
+            # is not a flood: nothing to count, nothing to close. The counter
+            # is already back to 0 — _update_ui() zeroes it for the same
+            # condition before any branch runs.
+            return
+        seen = getattr(mw, "_unattended_qr_events", 0) + 1
+        mw._unattended_qr_events = seen
+        if (
+            mw.settings.get("privateinfo", {}).get("paired")
+            and not getattr(mw, "_auto_repair_dialog_shown", False)
+        ):
+            self._show_repair_dialog()
+            return
+        if seen == self._UNATTENDED_QR_LIMIT:
+            # Never paired, or the dialog was already offered and is no longer
+            # up: nobody is going to scan these. Reached on the same event
+            # count either way, so the ceiling on codes requested from
+            # WhatsApp does not depend on which case we are in.
+            #
+            # `==`, not `>=`: _halt_unattended_qr_session() latches, so asking
+            # again on every later event changes nothing except filling the
+            # log. The counter is reset whenever somebody is pairing
+            # (_pairing_attended()) or the connection comes back, and those are
+            # also what clear the latch, so a second outage does get a second
+            # halt.
+            logging.warning(
+                "[on_qrcode_update] %d QR/pairing codes generated with no "
+                "pairing dialog on screen — closing the session so it stops "
+                "requesting codes from WhatsApp.", seen,
+            )
+            mw._halt_unattended_qr_session()
+            if not getattr(mw, "_auto_repair_dialog_shown", False):
+                # Never paired: the branch above never ran, so nothing has
+                # offered this install a way back — and the halt is permanent
+                # until something clears the latch, which only the pairing
+                # dialog does. Left alone the app sits offline forever with no
+                # route to re-pair at all, which is worse than the flood.
+                # Nothing can be lost by opening it here (no session, no
+                # history, nothing paired), and the halt has already played the
+                # error sound and said what happened, so this skips the
+                # MessageBox _show_repair_dialog() adds. The same latch is set
+                # so a dismissed dialog does not get re-opened every minute.
+                mw._auto_repair_dialog_shown = True
+                mw.restore_window()
+                self.connect.show_connection_dial()
+
+    def _show_repair_dialog(self):
+        """Tell a previously-paired user their session needs re-pairing, and
+        put the pairing dialog in front of them straight away.
+
+        WPPConnect just generated a real QR/pairing code with no pairing
+        dialog open at all — it only does this once it has already decided
+        the stored session can't be restored, so this is a reliable "you need
+        to re-pair" signal on its own, unlike the coarse status-session string
+        the health-check poll watches (which needs several minutes of
+        confirmation to rule out a normal slow boot). Surfacing the pairing
+        dialog immediately — instead of leaving the user staring at "offline"
+        for however long _AUTO_RESTART_LOGOUT_GRACE_SECONDS or the
+        multi-minute unlink confirmation takes with no explanation — was an
+        explicit, accepted tradeoff: this dialog's own Cancel/close buttons
+        quit the app / drop the WebSocket for good, which is fine here
+        specifically because a session that reached this point has nothing
+        left to lose by closing — see the conversation this was decided in.
+        _auto_repair_dialog_shown latches so a 20-30s QR refresh while the
+        user is still deciding what to do doesn't pop a second nested dialog.
+        """
+        self.main_window._auto_repair_dialog_shown = True
+        logging.warning(
+            "[on_qrcode_update] Session needs re-pairing while "
+            "previously paired, with no pairing dialog open — "
+            "showing it proactively instead of waiting for the "
+            "slower confirmed-logout detection."
+        )
+        # Same sound + MessageBox as the confirmed-logout path's own
+        # _logout_with_warning() (main.py) — recognisable, expected
+        # feedback that something happened, just without that path's
+        # _on_disconnect() call (no data wipe). Also bring the window
+        # to the foreground first: if it was minimized to the tray
+        # (background mode), a modal dialog appearing behind/under
+        # everything with no prior audible cue is easy to miss
+        # entirely — reported live as exactly that.
+        self.main_window.restore_window()
+        self.main_window.error_sound.play()
+        wx.MessageBox(
+            self.i18n.t("device_logged_out"),
+            self.i18n.t("error").format(app_name=self.main_window.app_name),
+            wx.OK | wx.ICON_ERROR,
+        )
+        self.connect.show_connection_dial()
 
     def on_messages_set(self, info):
         self.main_window.messages_set_completed = True

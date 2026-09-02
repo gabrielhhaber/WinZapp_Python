@@ -589,6 +589,20 @@ class Connect:
         logging.info("[show_connection_dial] Entering connection_dial modal loop.")
         if hasattr(self.main_window, "play_startup_sound"):
             self.main_window.play_startup_sound()
+        # Only now, with the dialog about to go up: a human is looking at the
+        # pairing UI, so the codes WPPConnect produces are wanted again and
+        # both unattended-QR guards (MainWindow._halt_unattended_qr_session)
+        # can go. Deliberately the statement immediately before ShowModal(),
+        # with nothing between them — and NOT merely "after the dialog is
+        # built": _is_pairing_dialog_active() is `bool(dial) and
+        # dial.IsShown()`, so a constructed-but-not-yet-shown dialog still
+        # reads False. Anywhere earlier leaves the ~125 lines of widget
+        # construction above running with every guard already clear (native
+        # calls that release the GIL for tens of milliseconds), and a
+        # health-check tick landing there sees CLOSED and fires /start-session
+        # against the same userDataDir the halt's close-session is tearing
+        # down. tests/test_unattended_qr_halt.py asserts the adjacency.
+        self.main_window._reset_unattended_qr_guards()
         self.connection_dial.ShowModal()
         logging.info("[show_connection_dial] connection_dial modal loop returned.")
         try:

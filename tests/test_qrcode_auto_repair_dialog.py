@@ -23,6 +23,7 @@ uses for _extract_qr_payload.
 import pytest
 
 from core.websocket_client import WebSocketClient
+from main import MainWindow
 
 
 class _FakeI18n:
@@ -41,12 +42,18 @@ class _FakeSpeakOutput:
 
 
 class _FakeConnect:
-    def __init__(self):
+    def __init__(self, main_window=None):
         self.connection_mode = "phone"
+        self.main_window = main_window
         self.show_connection_dial_calls = 0
 
     def show_connection_dial(self):
         self.show_connection_dial_calls += 1
+        # Mirrors the real Connect.show_connection_dial(), which drops both
+        # unattended-QR guards right before its modal loop. A fake that skips
+        # this makes the flood limit look one event closer than production
+        # ever reaches it — see tests/test_qrcode_unattended_session.py.
+        self.main_window._reset_unattended_qr_guards()
 
     def display_qrcode_image(self, base64_img):
         pass
@@ -61,6 +68,10 @@ class _FakeMainWindow:
         self.speak_output = _FakeSpeakOutput()
         self.app_name = "WinZapp"
         self.restore_window_calls = 0
+        self._unattended_qr_events = 0
+        self._qr_flood_halted = False
+        self._pairing_in_progress = False
+        self.halt_calls = 0
 
     def _is_pairing_dialog_active(self):
         return self._pairing_dialog_active
@@ -68,9 +79,21 @@ class _FakeMainWindow:
     def restore_window(self):
         self.restore_window_calls += 1
 
+    # The real method, so this fake cannot drift from what production does
+    # when the pairing dialog goes up.
+    _reset_unattended_qr_guards = MainWindow._reset_unattended_qr_guards
+
+    def _halt_unattended_qr_session(self):
+        self.halt_calls += 1
+        self._qr_flood_halted = True
+
 
 class _Stub:
     on_qrcode_update = WebSocketClient.on_qrcode_update
+    _pairing_attended = WebSocketClient._pairing_attended
+    _handle_unattended_qr = WebSocketClient._handle_unattended_qr
+    _show_repair_dialog = WebSocketClient._show_repair_dialog
+    _UNATTENDED_QR_LIMIT = WebSocketClient._UNATTENDED_QR_LIMIT
     _extract_qr_payload = staticmethod(WebSocketClient._extract_qr_payload)
 
     def __init__(self, main_window, connect):
@@ -91,7 +114,7 @@ def _synchronous_call_after(monkeypatch):
 class TestProactivePairingDialog:
     def test_opens_the_dialog_when_paired_and_nothing_is_showing(self):
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
-        connect = _FakeConnect()
+        connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)
@@ -104,7 +127,7 @@ class TestProactivePairingDialog:
         easy to miss entirely if the window was minimized to the tray at the
         time, reported live as exactly that."""
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
-        connect = _FakeConnect()
+        connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)
@@ -115,7 +138,7 @@ class TestProactivePairingDialog:
         """QR codes rotate every ~20-30s while waiting — must not stack
         nested dialogs on every refresh."""
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
-        connect = _FakeConnect()
+        connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)
@@ -123,13 +146,18 @@ class TestProactivePairingDialog:
         s.on_qrcode_update(QR_EVENT)
 
         assert connect.show_connection_dial_calls == 1
+        # And the refreshes behind the open dialog are not a flood: opening it
+        # resets the counter, so three events never reach the halt. Asserted
+        # here because this is exactly where a fake that skipped the reset
+        # would diverge from production while still passing the line above.
+        assert mw.halt_calls == 0
 
     def test_does_nothing_when_a_pairing_dialog_is_already_open(self):
         """The dialog is already up (e.g. user-initiated, or already shown
         proactively) — this is the existing display_qrcode_image()/pairing
         code field update path instead."""
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=True)
-        connect = _FakeConnect()
+        connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)
@@ -141,7 +169,7 @@ class TestProactivePairingDialog:
         first-run pairing flow already — this path is only for "was paired,
         suddenly needs a fresh QR"."""
         mw = _FakeMainWindow(paired=False, pairing_dialog_active=False)
-        connect = _FakeConnect()
+        connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)
@@ -152,7 +180,7 @@ class TestProactivePairingDialog:
         """_auto_repair_dialog_shown is reset by _set_wa_connected(True, ...)
         once the connection genuinely recovers — simulated here directly."""
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
-        connect = _FakeConnect()
+        connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)

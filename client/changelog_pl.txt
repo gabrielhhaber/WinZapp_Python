@@ -44,6 +44,8 @@ USPRAWNIENIA
 
 POPRAWKI
 
+- Sesja rozłączona przez WhatsAppa: WinZapp od razu o tym informuje i otwiera parowanie, zamiast dalej pokazywać listę rozmów i powtarzać, że kod QR został zaktualizowany. Jeśli nikogo nie ma na ekranie parowania, sesja zostaje zamknięta, zamiast bez końca prosić WhatsAppa o nowe kody — takie nieustanne prośby mogły doprowadzić do zablokowania konta — a WinZapp mówi na głos, że zamknął sesję i że trzeba połączyć się ponownie.
+
 - Liczniki nieprzeczytanych: przeczytane już wiadomości nie wracają jako nowe, przeczytanie rozmowy na telefonie jest respektowane, a otwarta rozmowa nie traci już licznika.
 
 - Separator nieprzeczytanych wiadomości i Twoja pozycja czytania nie są już tracone w trakcie czytania. Otwarta rozmowa była okresowo przebudowywana, co przerywało czytnik ekranu w połowie zdania.
