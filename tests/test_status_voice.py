@@ -144,6 +144,8 @@ class _Stub:
     _stop_recorded_audio_preview = StatusPanel._stop_recorded_audio_preview
     _cleanup_recorded_audio_temp_file = StatusPanel._cleanup_recorded_audio_temp_file
     _silence_send_voice_focus_if_enabled = StatusPanel._silence_send_voice_focus_if_enabled
+    _voice_recording_silence_enabled = StatusPanel._voice_recording_silence_enabled
+    _focus_recording_button_silently = StatusPanel._focus_recording_button_silently
 
     def __init__(self, convert_result="converted.ogg"):
         self.main_window = _FakeMainWindow(convert_result=convert_result)

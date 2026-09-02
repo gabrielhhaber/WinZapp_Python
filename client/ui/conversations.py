@@ -54,6 +54,7 @@ from core.utils import history_window, reaction_targets_status, format_number, d
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.message_copy_format import format_copied_message
 from core.video_player import VideoPlayer
+from core.focus_cloak import cloak_focus_announcement
 from ui.media_viewer import MediaViewerDialog
 from app_paths import data_path
 from core.message_queue import PendingMessage
@@ -2851,43 +2852,90 @@ class ConversationsPanel(wx.Panel):
 
     # ── Voice recording ──────────────────────────────────────────────────────
 
-    def _silence_send_voice_focus_if_enabled(self):
-        """Mute only the automatic focus announcement during voice recording.
+    def _voice_recording_silence_enabled(self):
+        """True when Settings > Conteúdo Falado asks for silence while
+        recording a voice message.
 
-        The button keeps its native accessible name and shortcut at all times —
-        blanking the name out was tried and removed: it stripped the control's
-        identity from the accessibility tree for every consumer, not just from
-        the one announcement we wanted gone. Cancelling the announcement after
-        SetFocus() is the whole mechanism now.
-
-        A silence() call issued synchronously right after SetFocus() is too
-        early on its own: on Windows the focus WinEvent reaches the screen
-        reader's hook synchronously, but the screen reader itself (NVDA, ...)
-        queues and speaks the announcement asynchronously on its own thread, so
-        an immediate call can run before that speech has even been queued and
-        cancel nothing. Firing immediately (covers a screen reader that speaks
-        synchronously), again on the next wx idle turn, and once more a beat
-        later catches it whichever way the screen reader schedules it — the call
-        is idempotent, so the repeats are harmless.
+        Keyed ONLY on that toggle. It used to also fire when
+        extended_sr_compat_enabled was OFF — i.e. exactly when the user had
+        told WinZapp never to talk to their screen reader, the app started
+        interrupting it instead. That switch stops WinZapp's own AO2
+        announcements; nothing about it asks for other applications' speech to
+        be cut off.
         """
-        # Keyed ONLY on the "silence while recording" toggle. It used to also
-        # fire when extended_sr_compat_enabled was OFF — i.e. exactly when the
-        # user had told WinZapp never to talk to their screen reader, the app
-        # started interrupting it instead. That switch stops WinZapp's own AO2
-        # announcements; nothing about it asks for other applications' speech
-        # to be cut off.
-        settings = self.main_window.settings
-        if not settings.get("speech_content", {}).get(
-            "silence_while_recording", False
-        ):
+        settings = getattr(self.main_window, "settings", None) or {}
+        return bool(
+            settings.get("speech_content", {}).get("silence_while_recording", False)
+        )
+
+    def _focus_recording_button_silently(self, button):
+        """Move focus to one of the voice-recording buttons without the screen
+        reader announcing it.
+
+        This is the primary mechanism, and it works by stopping the
+        announcement from ever being produced: core.focus_cloak briefly makes
+        the control report its MSAA state without STATE_SYSTEM_FOCUSED, which
+        NVDA checks (shouldAllowIAccessibleFocusEvent) *before* deciding to
+        speak, so the event is discarded rather than spoken and cancelled.
+
+        Cancelling after the fact — what this used to do alone — is a race the
+        app loses: the focus WinEvent is delivered synchronously but spoken
+        asynchronously on the screen reader's own thread, so the cancel either
+        arrives before anything is queued or after speech has already started.
+        Users heard the whole "enviar mensagem de voz, botão, Ctrl+R" clipped
+        part-way, which for someone recording on air is the exact failure the
+        setting exists to prevent. The silence() burst below stays as a
+        fallback for anything the cloak cannot reach (a control read over UIA
+        rather than MSAA, a platform that does not route WM_GETOBJECT through
+        wx), not as the mechanism.
+
+        Whether the button is Enviar or Descartar is the user's own choice in
+        Configurações > Interface do usuário; both go through here.
+        """
+        if self._voice_recording_silence_enabled():
+            # Must be armed BEFORE SetFocus(): the state has to already be
+            # hiding FOCUSED by the time the screen reader reads it back.
+            cloak_focus_announcement(button)
+        button.SetFocus()
+        self._silence_send_voice_focus_if_enabled()
+
+    def _silence_send_voice_focus_if_enabled(self):
+        """Fallback: cancel a focus announcement that was produced anyway.
+
+        Secondary to the cloak in :meth:`_focus_recording_button_silently` —
+        see there for why cancelling alone is not enough. The button keeps its
+        native accessible name and shortcut at all times; blanking the name out
+        was tried and removed, because it stripped the control's identity from
+        the accessibility tree for every consumer, not just from the one
+        announcement we wanted gone.
+
+        The repeats exist because there is no single right moment: a screen
+        reader that speaks synchronously is caught by the immediate call, and
+        one that queues on its own thread by a later one. The spacing is
+        front-loaded so that if the cloak did fail, what leaks out is a
+        syllable rather than a sentence. Each call is idempotent, so the
+        repeats are harmless.
+        """
+        if not self._voice_recording_silence_enabled():
             return
         speak_output = getattr(self.main_window, "speak_output", None)
         silence_focus = getattr(speak_output, "silence_screen_reader_focus", None)
         if not callable(silence_focus):
             return
-        silence_focus()
-        wx.CallAfter(silence_focus)
-        wx.CallLater(80, silence_focus)
+        # silence() (unlike silence_screen_reader_focus) also reaches the SAPI
+        # voice, which is WinZapp's own output when no screen reader is running
+        # — cutting it is cutting our own speech, never another app's.
+        silence_all = getattr(speak_output, "silence", None)
+
+        def _silence_now():
+            silence_focus()
+            if callable(silence_all):
+                silence_all()
+
+        _silence_now()
+        wx.CallAfter(_silence_now)
+        for delay_ms in (40, 90, 160, 260, 400):
+            wx.CallLater(delay_ms, _silence_now)
 
     def _start_voice_recording(self):
         """
@@ -2963,8 +3011,7 @@ class ConversationsPanel(wx.Panel):
                 self._pause_resume_btn.SetLabel(self.main_window.i18n.t("pause_recording"))
                 self._voice_panel.Show()
                 self.conversation_panel.Layout()
-                self._send_voice_btn.SetFocus()
-                self._silence_send_voice_focus_if_enabled()
+                self._focus_recording_button_silently(self._send_voice_btn)
 
                 def _bg_start_mic():
                     try:
@@ -3155,11 +3202,9 @@ class ConversationsPanel(wx.Panel):
                 "voice_record_focus", "send"
             )
             if voice_focus == "discard":
-                self._discard_voice_btn.SetFocus()
-                self._silence_send_voice_focus_if_enabled()
+                self._focus_recording_button_silently(self._discard_voice_btn)
             else:
-                self._send_voice_btn.SetFocus()
-                self._silence_send_voice_focus_if_enabled()
+                self._focus_recording_button_silently(self._send_voice_btn)
 
         threading.Thread(target=_bg_open_stream, daemon=True).start()
 

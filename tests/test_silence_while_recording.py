@@ -182,9 +182,16 @@ class TestSilenceSendVoiceFocusIfEnabled:
     class _FakeSpeakOutput:
         def __init__(self):
             self.focus_silence_calls = 0
+            self.silence_calls = 0
 
         def silence_screen_reader_focus(self):
             self.focus_silence_calls += 1
+
+        def silence(self):
+            # Reaches the SAPI voice too, which silence_screen_reader_focus
+            # deliberately skips. When no screen reader is running, SAPI is
+            # WinZapp's own output, so cutting it is cutting our own speech.
+            self.silence_calls += 1
 
     class _FakeMainWindow:
         def __init__(self, silence_enabled=False, extended_enabled=True):
@@ -197,10 +204,20 @@ class TestSilenceSendVoiceFocusIfEnabled:
     def _make_stub(self, silence_enabled=False, extended_enabled=True):
         stub = types.SimpleNamespace()
         stub.main_window = self._FakeMainWindow(silence_enabled, extended_enabled)
+        stub._voice_recording_silence_enabled = types.MethodType(
+            ConversationsPanel._voice_recording_silence_enabled, stub
+        )
         stub._silence_send_voice_focus_if_enabled = types.MethodType(
             ConversationsPanel._silence_send_voice_focus_if_enabled, stub
         )
         return stub
+
+    # The cancel burst is the FALLBACK, not the mechanism — core.focus_cloak
+    # stops the announcement from being produced at all (see
+    # tests/test_focus_cloak.py). The spacing here is front-loaded so that if
+    # the cloak ever fails, what leaks out is a syllable rather than the whole
+    # "enviar mensagem de voz, botão, Ctrl+R".
+    EXPECTED_DELAYS = [0, 40, 90, 160, 260, 400]
 
     @staticmethod
     def _capture_deferred_calls(monkeypatch):
@@ -231,10 +248,13 @@ class TestSilenceSendVoiceFocusIfEnabled:
         stub._silence_send_voice_focus_if_enabled()
 
         assert stub.main_window.speak_output.focus_silence_calls == 1
-        assert [delay for delay, _ in deferred] == [0, 80]
+        assert [delay for delay, _ in deferred] == self.EXPECTED_DELAYS
         for _, func in deferred:
             func()
-        assert stub.main_window.speak_output.focus_silence_calls == 3
+        expected = 1 + len(self.EXPECTED_DELAYS)
+        assert stub.main_window.speak_output.focus_silence_calls == expected
+        # silence() rides along on every one of them, for the SAPI case.
+        assert stub.main_window.speak_output.silence_calls == expected
 
     def test_does_not_fire_merely_because_extended_sr_compat_is_off(self, monkeypatch):
         """Turning extended screen-reader compatibility OFF means "stop talking
@@ -259,7 +279,9 @@ class TestSilenceSendVoiceFocusIfEnabled:
         assert stub.main_window.speak_output.focus_silence_calls == 1
         for _, func in deferred:
             func()
-        assert stub.main_window.speak_output.focus_silence_calls == 3
+        assert stub.main_window.speak_output.focus_silence_calls == 1 + len(
+            self.EXPECTED_DELAYS
+        )
 
 
 class TestVoiceButtonAccessibleName:

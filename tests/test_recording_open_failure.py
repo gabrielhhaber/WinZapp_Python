@@ -100,6 +100,12 @@ class _Stub:
     _silence_send_voice_focus_if_enabled = (
         ConversationsPanel._silence_send_voice_focus_if_enabled
     )
+    _voice_recording_silence_enabled = (
+        ConversationsPanel._voice_recording_silence_enabled
+    )
+    _focus_recording_button_silently = (
+        ConversationsPanel._focus_recording_button_silently
+    )
 
     def __init__(self):
         self.conversation = {"remoteJid": "5511999999999@s.whatsapp.net"}
