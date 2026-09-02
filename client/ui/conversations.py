@@ -441,13 +441,24 @@ class ConversationsPanel(wx.Panel):
         self._unread_sep_idx: int = -1
         # Unread count captured before mark-as-read thread starts (avoids race)
         self._pending_open_unread: int = 0
-        # True while the current separator anchors an already-read position —
-        # either it was placed from the initial open (unread messages that
-        # existed before this conversation was opened), or the user's focus
-        # has since passed it (see _on_message_focused()). In both cases the
-        # next live message must replace it with a fresh separator (count
-        # reset to 1) instead of just incrementing its count.
-        self._sep_from_open: bool = False
+        # True while the current separator anchors an already-read position:
+        # o foco do usuário já passou por ele (ver _on_message_focused()), a
+        # conversa já foi marcada como lida, e o separador continua visível só
+        # para a pessoa não se perder, como no WhatsApp oficial. Só nesse caso
+        # a próxima mensagem ao vivo o substitui por um separador novo
+        # (contagem de volta a 1). Um separador colocado na ABERTURA da
+        # conversa não entra aqui: as mensagens abaixo dele ainda são
+        # genuinamente não lidas, então a mensagem nova soma nele — tratar os
+        # dois casos igual é o que produzia "separador diz 1, duas mensagens
+        # abaixo dele".
+        self._sep_anchors_read_position: bool = False
+        # Par que populate_messages() lê de volta para recriar o separador
+        # depois de cada DeleteAllItems(): o id da mensagem que ele ancora (a
+        # primeira abaixo dele) e a contagem exibida. Todo caminho que mexe no
+        # separador tem de escrever este par, ou o rebuild seguinte desfaz o
+        # trabalho — ver _update_unread_separator_for_incoming().
+        self._first_unread_msg_id = None
+        self._first_unread_count: int = 0
         # Latch so the mark-as-read request fires once per separator, not on
         # every focus event at or below it. This used to be inferred from the
         # dismiss timer still running, which no longer exists — see
@@ -1595,7 +1606,7 @@ class ConversationsPanel(wx.Panel):
         self._hide_media_transfer_gauge()
         self._hide_attachment_panel()
         self._unread_sep_idx = -1  # reset separator for new conversation
-        self._sep_from_open = False
+        self._sep_anchors_read_position = False
         # _msg_bookmarks is intentionally NOT reset here — bookmarks now span
         # conversations (see the declaration in __init__). _msg_temp_bookmarks
         # is the opposite: scoped to one conversation, so switching away from
@@ -2345,6 +2356,17 @@ class ConversationsPanel(wx.Panel):
         """
         if self._unread_sep_idx >= 0:
             self._dismiss_unread_separator()
+        # Fora do if de propósito: _dismiss_unread_separator() era o único
+        # ponto do caminho de envio que largava a âncora, e ela deixou de ser
+        # volátil. Com _unread_sep_idx == -1 e a âncora ainda gravada —
+        # alcançável quando _place_unread_separator_for_rebuild() não a
+        # encontra num records transitoriamente vazio, ou depois de um
+        # _recompute_unread_sep_idx() que não achou a linha — o envio não
+        # limpava nada e o rebuild seguinte RESSUSCITAVA o separador acima da
+        # mensagem que o usuário acabou de mandar. Enviar apaga o separador,
+        # sempre; é também o que mantém o Alt+2 pousando na mensagem certa.
+        self._first_unread_msg_id = None
+        self._first_unread_count = 0
         remote_jid = virtual_msg.get("key", {}).get("remoteJid", "")
         if not remote_jid:
             return
@@ -5381,14 +5403,6 @@ class ConversationsPanel(wx.Panel):
                 if (not self._unread_sep_marked_read
                         and not getattr(self, "_populating_messages", False)):
                     self._unread_sep_marked_read = True
-                    # The user's focus has now actually passed this
-                    # separator, so it anchors an already-read position —
-                    # same situation as a separator placed at conversation
-                    # open time. The next live message must replace it
-                    # entirely (fresh separator, count reset to 1) rather
-                    # than just bumping its count, or the count would keep
-                    # accumulating on top of messages the user already read.
-                    self._sep_from_open = True
                     if self.conversation is not None:
                         jid = self.conversation.get("remoteJid", "")
                         if jid:
@@ -5397,6 +5411,30 @@ class ConversationsPanel(wx.Panel):
                                 args=(jid,),
                                 daemon=True,
                             ).start()
+                # Focus has now genuinely stepped PAST the separator, into the
+                # unread messages themselves, so it anchors an already-read
+                # position. The row stays on screen showing the old count (the
+                # official WhatsApp behaviour the user asked for: a marker of
+                # where you had stopped reading), but the next live message
+                # must replace it entirely (fresh separator, count reset to 1)
+                # rather than bumping its count, or the count would keep
+                # accumulating on top of messages already read. This is the
+                # ONLY situation that justifies that reset — a separator placed
+                # on conversation open still sits above genuinely unread
+                # messages, so there a new message just adds to it.
+                #
+                # Strictly PAST, via the same predicate that decides the
+                # dismissal, and not the `idx >= sep_idx` of the mark-as-read
+                # above: merely landing on the separator row is where
+                # populate_messages() itself parks focus on open, and Alt+3 /
+                # Alt+U land there on purpose. Under the old semantics setting
+                # the flag there was harmless (every rebuild set it anyway);
+                # now it is the single thing choosing between "add" and "move
+                # and restart at 1", so a user pressing Alt+3 just to get their
+                # bearings would have watched a separator reading "3" be
+                # replaced by a "1" on the next message.
+                if self._should_dismiss_unread_separator(idx, self._unread_sep_idx):
+                    self._sep_anchors_read_position = True
 
             # Keep the unread separator visible throughout navigation while the
             # conversation is open, allowing the user to jump back to it at any time
@@ -5542,10 +5580,10 @@ class ConversationsPanel(wx.Panel):
             self.messages_list.DeleteItem(sep_idx)
         finally:
             self.messages_list.Thaw()
-        self._unread_sep_idx  = -1
-        self._sep_from_open   = False
-        self._first_unread_msg_id  = None
-        self._first_unread_count   = 0
+        self._unread_sep_idx = -1
+        self._sep_anchors_read_position = False
+        self._first_unread_msg_id = None
+        self._first_unread_count = 0
         # Restore the focused row (shifted by 1 if it was after the separator)
         if focused > sep_idx:
             focused -= 1
@@ -8991,6 +9029,208 @@ class ConversationsPanel(wx.Panel):
                 self._unread_sep_idx = idx
                 break
 
+    def _counts_toward_unread_separator(self, msg: dict) -> bool:
+        """Mesmo teste que main.py usa para incrementar o unreadCount do chat.
+
+        O preview da lista de conversas e o separador têm de contar a MESMA
+        coisa. main.py só sobe o unreadCount para mensagens que passam por
+        is_countable_message(), enquanto este caminho olhava apenas fromMe: um
+        evento de sistema (groupNotification, protocolMessage,
+        e2e_notification, ...) chegando numa conversa aberta subia o separador
+        sem subir o preview, e a divergência aparecia exatamente como os dois
+        números discordando.
+
+        Consequência aceita, e não descuido: um groupNotification é EXIBÍVEL
+        mas não contável, então "o separador diz 1 e há duas linhas abaixo
+        dele" continua possível — e agora está certo, porque bate com o badge
+        da lista de conversas, que também não contou o evento de sistema. A
+        descrição solta desse estado é idêntica à do bug relatado; a diferença
+        é a linha extra ser um evento, não uma mensagem.
+
+        O import é feito aqui dentro de propósito: main.py importa este módulo,
+        então um import no topo seria circular. O fallback não protege a
+        mensagem (o append acontece fora deste ramo, ela aparece de qualquer
+        forma) — protege só a contagem, preferindo contar a mais a perder um
+        separador. E um erro real na cadeia de import de main.py não pode ser
+        enterrado mudo aqui, daí o log.
+        """
+        try:
+            from main import is_countable_message
+        except Exception:
+            logging.exception(
+                "[_counts_toward_unread_separator] import de is_countable_message falhou"
+            )
+            return True
+        return is_countable_message(msg)
+
+    def _update_unread_separator_for_incoming(self, msg: dict) -> None:
+        """Insere, move ou incrementa o separador para *msg*, que o chamador
+        acrescenta à cauda logo em seguida.
+
+        Grava sempre o par _first_unread_msg_id/_first_unread_count junto com a
+        linha: é esse par, e só ele, que populate_messages() lê para recriar o
+        separador depois do seu DeleteAllItems(). Enquanto este caminho
+        escrevia apenas _sorted_messages e _unread_sep_idx, o primeiro rebuild
+        (vários por minuto com a conversa aberta) apagava o separador e não o
+        recriava — e sem separador _on_message_focused() nunca chamava
+        mark_conversation_as_read(), então o chat ficava "1 mensagem não lida"
+        no preview e não lido no celular até o usuário marcar à mão.
+
+        Chamado de dentro do Freeze()/Thaw() de on_incoming_message(); não mexe
+        em foco.
+        """
+        # Uma mensagem nova ao vivo sempre representa conteúdo genuinamente não
+        # lido, mesmo que o usuário já tivesse chegado ao fim (e portanto
+        # marcado como lida) antes nesta mesma sessão de conversa. Rearma a
+        # trava para _on_message_focused() disparar o mark-as-read de novo
+        # quando o foco alcançar/passar esta mensagem.
+        self._unread_sep_marked_read = False
+        msg_id = (msg.get("key") or {}).get("id") or None
+        # _unread_sep_idx pode ficar velho para um _sorted_messages que foi
+        # esvaziado/reconstruído por baixo dele sem voltar para -1 (ex.:
+        # "Limpar conversa" no chat aberto) — todo ramo abaixo que indexa ou dá
+        # pop() nele tem de tratar índice fora de faixa como "ainda não há
+        # separador" em vez de estourar (visto ao vivo: "IndexError: pop from
+        # empty list").
+        sep_idx_valid = 0 <= self._unread_sep_idx < len(self._sorted_messages)
+        if sep_idx_valid and not self._is_separator(
+            self._sorted_messages[self._unread_sep_idx]
+        ):
+            sep_idx_valid = False
+        if not sep_idx_valid:
+            # Nenhum separador ainda — insere um antes desta mensagem nova.
+            sep_pos = len(self._sorted_messages)
+            sep = {"_type": "unread_separator", "count": 1}
+            self._sorted_messages.insert(sep_pos, sep)
+            self.messages_list.InsertItem(sep_pos, self._render_message_line(sep))
+            self._unread_sep_idx = sep_pos
+            self._sep_anchors_read_position = False
+            self._first_unread_msg_id = msg_id
+            self._first_unread_count = 1
+        elif self._sep_anchors_read_position:
+            # O foco do usuário já passou por este separador: ele ancora uma
+            # posição lida. Move-o para antes desta mensagem e reinicia em 1.
+            old_idx = self._unread_sep_idx
+            self._sorted_messages.pop(old_idx)
+            self.messages_list.DeleteItem(old_idx)
+            sep_pos = len(self._sorted_messages)
+            sep = {"_type": "unread_separator", "count": 1}
+            self._sorted_messages.insert(sep_pos, sep)
+            self.messages_list.InsertItem(sep_pos, self._render_message_line(sep))
+            self._unread_sep_idx = sep_pos
+            self._sep_anchors_read_position = False
+            self._first_unread_msg_id = msg_id
+            self._first_unread_count = 1
+        else:
+            # Separador ainda ancora conteúdo não lido (colocado na abertura da
+            # conversa ou por uma mensagem ao vivo anterior, e o foco não passou
+            # por ele): soma, sem mover. A âncora continua sendo a primeira
+            # mensagem abaixo dele — só recalculada quando falta, para um
+            # separador herdado de um estado que não gravava esse par.
+            sep = self._sorted_messages[self._unread_sep_idx]
+            sep["count"] = int(sep.get("count", 0) or 0) + 1
+            # Reescrever esta linha tem custo de acessibilidade, e ele foi
+            # pesado, não ignorado: a linha do wx.ListCtrl é um objeto MSAA
+            # cujo nome é a linha inteira, e o event_nameChange do NVDA a fala
+            # quando ela é a linha focada (ver "Played-row repaint hold" no
+            # CLAUDE.md). Com focus_on_open == "unread_or_last" é exatamente
+            # aqui que populate_messages() estaciona o foco de item, então cada
+            # mensagem que chega pode fazer o leitor reler "N mensagens não
+            # lidas". Não é regressão — o ramo antigo dava DeleteItem na mesma
+            # linha focada, que também emite evento — e a alternativa (segurar
+            # a escrita enquanto a linha está focada) é pior: um separador que
+            # para de somar na tela mente sobre quantas mensagens chegaram, que
+            # é o bug que este trecho existe para fechar. Fica a troca
+            # registrada; a linha é reescrita, o número na tela é verdadeiro.
+            self.messages_list.SetItemText(
+                self._unread_sep_idx, self._render_message_line(sep)
+            )
+            # Recalculada SEMPRE, não só quando falta: _delete_message_rows()
+            # ajusta _unread_sep_idx quando uma mensagem some, mas não toca na
+            # âncora, então ela pode apontar para um id que não existe mais em
+            # records. Sem recalcular aqui, o alinhamento de
+            # _messages_signature_cache abaixo passaria a valer para um id
+            # morto e _append_new_tail_rows() aceitaria uma tela que o rebuild
+            # daquele instante não produziria. É idempotente no caso normal.
+            self._first_unread_msg_id = (
+                self._anchor_below_unread_separator() or msg_id
+            )
+            self._first_unread_count = sep["count"]
+        # _first_unread_msg_id entra em _messages_signature() para que um
+        # separador que mudou de lugar force um rebuild. Aqui quem o moveu foi
+        # este método, na tela e em _sorted_messages ao mesmo tempo, então o
+        # atalho de acrescentar na cauda continua correto — sem alinhar a
+        # assinatura em cache, toda mensagem nova passaria a custar um rebuild
+        # inteiro da lista debaixo do leitor de tela.
+        cache = getattr(self, "_messages_signature_cache", None)
+        if isinstance(cache, tuple) and len(cache) == 4:
+            self._messages_signature_cache = (
+                cache[0], self._first_unread_msg_id, cache[2], cache[3]
+            )
+
+    def _anchor_below_unread_separator(self):
+        """Id da primeira mensagem de verdade abaixo do separador, ou None."""
+        if not (0 <= self._unread_sep_idx < len(self._sorted_messages)):
+            return None
+        for m in self._sorted_messages[self._unread_sep_idx + 1:]:
+            if not isinstance(m, dict) or self._is_separator(m):
+                continue
+            mid = (m.get("key") or {}).get("id")
+            if mid:
+                return mid
+        return None
+
+    def _place_unread_separator_for_rebuild(self, displayable: list) -> list:
+        """Devolve *displayable* com o separador de não lidas na posição certa.
+
+        Dois casos, e confundi-los é metade do bug do separador:
+
+        - **Derivação**, quando _pending_open_unread traz a contagem tirada da
+          lista de conversas no momento em que ela foi aberta. Aí o par
+          âncora/contagem é calculado do zero e o separador NÃO ancora posição
+          lida: as mensagens abaixo dele são genuinamente não lidas, então a
+          próxima mensagem ao vivo tem de somar nele.
+        - **Restauração**, quando o par já existe — tipicamente escrito pelo
+          caminho ao vivo. Aí _sep_anchors_read_position e
+          _unread_sep_marked_read são do separador que está sendo restaurado e
+          têm de ser PRESERVADOS: marcá-los aqui fazia a próxima mensagem ao
+          vivo mover o separador e reiniciar a contagem em 1 em vez de somar.
+
+        Fora de populate_messages() (que precisa de um wx.ListCtrl de verdade)
+        porque é exatamente este passo que desfazia o trabalho do caminho ao
+        vivo, e ele precisava de teste.
+        """
+        unread_count = self._pending_open_unread
+        self._pending_open_unread = 0
+        first_unread_idx = first_unread_index(displayable, unread_count)
+        if first_unread_idx >= 0:
+            first_unread_msg = displayable[first_unread_idx]
+            if isinstance(first_unread_msg, dict):
+                self._first_unread_msg_id = first_unread_msg.get("key", {}).get("id")
+                self._first_unread_count = unread_count
+                self._sep_anchors_read_position = False
+                self._unread_sep_marked_read = False
+
+        if self._first_unread_msg_id:
+            sep_pos = -1
+            for idx, msg in enumerate(displayable):
+                if isinstance(msg, dict) and msg.get("key", {}).get("id") == self._first_unread_msg_id:
+                    sep_pos = idx
+                    break
+            if sep_pos >= 0:
+                # max(1, ...) é puramente defensivo: um separador dizendo
+                # "0 mensagens não lidas" seria uma linha sem sentido para
+                # quem a ouvir. Consequência a saber caso alguém queira usar
+                # 0 para "esconder o separador": aqui ele vira 1 em silêncio,
+                # e o lugar de esconder é _dismiss_unread_separator().
+                sep = {
+                    "_type": "unread_separator",
+                    "count": max(1, int(self._first_unread_count or 1)),
+                }
+                displayable = displayable[:sep_pos] + [sep] + displayable[sep_pos:]
+                self._unread_sep_idx = sep_pos
+        return displayable
+
     def _render_separator(self, count: int) -> str:
         i18n = self.main_window.i18n
         if count == 1:
@@ -9786,12 +10026,18 @@ class ConversationsPanel(wx.Panel):
             self.messages_list.DeleteAllItems()
             # _unread_sep_idx pointed into the list just emptied above — left
             # stale, a live message arriving right after (on_incoming_message,
-            # the _sep_from_open branch) would pop() that now-out-of-range
-            # index from the now-empty _sorted_messages, crashing with
+            # the branch for a separator anchoring an already-read position)
+            # would pop() that now-out-of-range index from the now-empty
+            # _sorted_messages, crashing with
             # "IndexError: pop from empty list". Same pairing already reset
             # on conversation switch (see close_conversation()).
             self._unread_sep_idx = -1
-            self._sep_from_open = False
+            self._sep_anchors_read_position = False
+            # A âncora vai junto: populate_messages() recria o separador a
+            # partir dela, e um id que não existe mais em records deixaria a
+            # conversa limpa carregando um separador fantasma.
+            self._first_unread_msg_id = None
+            self._first_unread_count = 0
         # Refresh the conversations list so the emptied preview disappears.
         # The conversation itself stays in the list — clearing is not deleting.
         self.main_window._schedule_set_chats()
@@ -13633,50 +13879,8 @@ class ConversationsPanel(wx.Panel):
             # user's own just-sent message, which is what made Alt+2 ("jump
             # to last message") land on a stale earlier separator/row
             # instead of the message the user actually just sent.
-            if not from_me:
-                # A new live message always represents genuinely new unread
-                # content, even if the user had already reached the bottom
-                # (and thus marked-as-read) earlier in this same
-                # conversation session. Re-arm the latch so
-                # _on_message_focused() fires mark-as-read again once focus
-                # reaches/crosses this message.
-                self._unread_sep_marked_read = False
-                # _unread_sep_idx can go stale for a _sorted_messages that
-                # was emptied/rebuilt out from under it without resetting it
-                # back to -1 (e.g. "Limpar conversa" on the currently open
-                # chat) — every branch below that indexes/pops it with it
-                # must treat an out-of-range index the same as "no separator
-                # yet" instead of crashing (observed live: "IndexError: pop
-                # from empty list").
-                sep_idx_valid = 0 <= self._unread_sep_idx < len(self._sorted_messages)
-                if self._unread_sep_idx == -1 or not sep_idx_valid:
-                    # No separator yet — insert one before this new message
-                    sep_pos = len(self._sorted_messages)
-                    sep = {"_type": "unread_separator", "count": 1}
-                    self._sorted_messages.insert(sep_pos, sep)
-                    self.messages_list.InsertItem(sep_pos, self._render_message_line(sep))
-                    self._unread_sep_idx = sep_pos
-                    self._sep_from_open = False
-                elif self._sep_from_open:
-                    # Separator was placed when the conversation was opened (old
-                    # unread messages). Move it just before this new message and
-                    # reset the count to 1.
-                    old_idx = self._unread_sep_idx
-                    self._sorted_messages.pop(old_idx)
-                    self.messages_list.DeleteItem(old_idx)
-                    sep_pos = len(self._sorted_messages)
-                    sep = {"_type": "unread_separator", "count": 1}
-                    self._sorted_messages.insert(sep_pos, sep)
-                    self.messages_list.InsertItem(sep_pos, self._render_message_line(sep))
-                    self._unread_sep_idx = sep_pos
-                    self._sep_from_open = False
-                else:
-                    # Separator was placed by a previous live message — increment count
-                    sep = self._sorted_messages[self._unread_sep_idx]
-                    sep["count"] = sep.get("count", 0) + 1
-                    self.messages_list.SetItemText(
-                        self._unread_sep_idx, self._render_message_line(sep)
-                    )
+            if not from_me and self._counts_toward_unread_separator(msg):
+                self._update_unread_separator_for_incoming(msg)
 
             # Append the real message (focus must NOT move)
             self._clear_empty_placeholder()
@@ -13762,8 +13966,8 @@ class ConversationsPanel(wx.Panel):
             ))
         return (
             conv.get("remoteJid", ""),
-            getattr(self, "_first_unread_msg_id", None),
-            getattr(self, "_pending_open_unread", 0),
+            self._first_unread_msg_id,
+            self._pending_open_unread,
             tuple(sig),
         )
 
@@ -13930,16 +14134,15 @@ class ConversationsPanel(wx.Panel):
         status@broadcast, que não tem linha nesta conversa para decorar.
 
         Consequência deliberada, não efeito colateral: o separador de não
-        lidas que on_incoming_message() insere ao vivo passa a sobreviver a
-        este refresh. Ele nunca escreve _first_unread_msg_id, então o rebuild
-        não o renderizava de volta e ele sumia poucos segundos depois de
-        aparecer — o marcador de "onde começa o que eu não li" e o alvo do
-        Alt+3 evaporavam sozinhos. Mantê-lo é o que a inserção ao vivo
-        pretendia, e é seguro porque só se acrescenta na cauda: _unread_sep_idx
+        lidas que on_incoming_message() insere ao vivo sobrevive a este
+        refresh, e é seguro porque só se acrescenta na cauda: _unread_sep_idx
         continua apontando para a mesma linha e _dismiss_unread_separator()
-        continua funcionando. A assimetria que sobra vale saber: o separador
-        ainda é removido pelo primeiro rebuild que qualquer OUTRA mudança
-        provocar.
+        continua funcionando. A assimetria que existia aqui — o separador ao
+        vivo era removido pelo primeiro rebuild que qualquer OUTRA mudança
+        provocasse, porque este caminho não gravava _first_unread_msg_id — foi
+        fechada do outro lado: _update_unread_separator_for_incoming() grava a
+        âncora e a contagem, e _place_unread_separator_for_rebuild() as lê de
+        volta.
         """
         if self.conversation is None or not self._sorted_messages:
             return False
@@ -14237,28 +14440,11 @@ class ConversationsPanel(wx.Panel):
                 m for m in messages_sorted if self._is_displayable_message(m)
             ]
 
-            # Insert unread separator before the first unread message.
-            # Use the snapshot taken before mark_conversation_as_read() zeros the dict.
-            unread_count = self._pending_open_unread
-            self._pending_open_unread = 0
-            first_unread_idx = first_unread_index(displayable, unread_count)
-            if first_unread_idx >= 0:
-                first_unread_msg = displayable[first_unread_idx]
-                if isinstance(first_unread_msg, dict):
-                    self._first_unread_msg_id = first_unread_msg.get("key", {}).get("id")
-                    self._first_unread_count = unread_count
-
-            if getattr(self, "_first_unread_msg_id", None):
-                sep_pos = -1
-                for idx, msg in enumerate(displayable):
-                    if isinstance(msg, dict) and msg.get("key", {}).get("id") == self._first_unread_msg_id:
-                        sep_pos = idx
-                        break
-                if sep_pos >= 0:
-                    sep = {"_type": "unread_separator", "count": getattr(self, "_first_unread_count", 1)}
-                    displayable = displayable[:sep_pos] + [sep] + displayable[sep_pos:]
-                    self._unread_sep_idx = sep_pos
-                    self._sep_from_open = True
+            # Insert unread separator before the first unread message, either
+            # derived from the snapshot taken before mark_conversation_as_read()
+            # zeros the dict, or restored from the state the live path left
+            # behind (see _place_unread_separator_for_rebuild()).
+            displayable = self._place_unread_separator_for_rebuild(displayable)
 
             # ── Pagination: show only last N messages ────────────────────────────
             self._all_sorted_messages = displayable

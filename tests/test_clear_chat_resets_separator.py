@@ -2,7 +2,7 @@
 separator bookkeeping when clearing the currently open conversation.
 
 Reported live: "Limpar conversa" on the currently open chat reset
-_sorted_messages to [] but left _unread_sep_idx/_sep_from_open pointing at
+_sorted_messages to [] but left _unread_sep_idx/_sep_anchors_read_position pointing at
 the pre-clear position. A live message arriving right after crashed with
 "IndexError: pop from empty list" in on_incoming_message() (see
 tests/test_unread_separator_reuse.py::TestStaleSeparatorIndexDoesNotCrash
@@ -49,14 +49,16 @@ class _Stub:
         self.conversation = {"remoteJid": jid}
         self._sorted_messages = [{"key": {"id": "m1"}}, {"key": {"id": "m2"}}]
         self._unread_sep_idx = 1
-        self._sep_from_open = True
+        self._sep_anchors_read_position = True
+        self._first_unread_msg_id = "m2"
+        self._first_unread_count = 3
 
 
 JID = "120363409931936700@g.us"
 
 
 class TestClearChatResetsSeparatorBookkeeping:
-    def test_resets_unread_sep_idx_and_sep_from_open(self, monkeypatch):
+    def test_resets_unread_sep_idx_and_sep_anchors_read_position(self, monkeypatch):
         monkeypatch.setattr("ui.conversations.wx.MessageBox", lambda *a, **kw: wx.YES)
         stub = _Stub(JID)
 
@@ -64,7 +66,11 @@ class TestClearChatResetsSeparatorBookkeeping:
 
         assert stub._sorted_messages == []
         assert stub._unread_sep_idx == -1
-        assert stub._sep_from_open is False
+        assert stub._sep_anchors_read_position is False
+        # A âncora vai junto: populate_messages() recria o separador a partir
+        # dela, e um id que não existe mais deixaria um separador fantasma.
+        assert stub._first_unread_msg_id is None
+        assert stub._first_unread_count == 0
         assert stub.messages_list.delete_all_calls == 1
         assert stub.main_window.clear_chat_calls == [JID]
 
