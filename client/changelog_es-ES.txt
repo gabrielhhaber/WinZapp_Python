@@ -44,6 +44,8 @@ MEJORAS
 
 CORRECCIONES
 
+- Sesión desconectada por WhatsApp: WinZapp ahora avisa al momento y abre el emparejamiento, en lugar de seguir mostrando la lista de conversaciones y repetir que el código QR se ha actualizado. Si nadie está en la pantalla de emparejamiento, la sesión se cierra en vez de seguir pidiendo códigos nuevos a WhatsApp sin parar; esa petición interminable podía provocar el baneo de la cuenta. Además, WinZapp avisa en voz alta de que ha cerrado la sesión y de que tienes que conectarte de nuevo.
+
 - Recuento de no leídos: los mensajes ya leídos no vuelven a aparecer como nuevos, se respeta la lectura hecha en el móvil y la conversación abierta ya no pierde el contador.
 
 - El separador de mensajes no leídos y tu posición de lectura ya no se pierden mientras lees. La conversación abierta se estaba reconstruyendo cada cierto tiempo, lo que interrumpía al lector de pantalla en mitad de la lectura.

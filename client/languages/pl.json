@@ -698,6 +698,7 @@
     "unknown_group": "Grupa bez nazwy",
     "unnamed_participant": "Uczestnik bez nazwy",
     "device_logged_out": "Twoje urządzenie zostało odłączone od konta WhatsApp. Połącz się ponownie.",
+    "unattended_qr_session_closed": "WhatsApp rozłączył tę sesję, więc została zamknięta. Trzeba połączyć się ponownie.",
     "pairing_failed_msg": "WinZapp nie mógł ukończyć parowania z WhatsApp. Spróbuj połączyć się ponownie.",
     "mentions_section_label": "Wzmianki w tej wiadomości",
     "add_contact": "Dodaj &kontakt lokalny",

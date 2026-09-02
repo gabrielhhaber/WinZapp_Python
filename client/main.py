@@ -4029,6 +4029,8 @@ class MainWindow(wx.Frame):
             self._reset_startup_probe()
             self._dead_browser_strikes = 0
             self._auto_repair_dialog_shown = False
+            self._unattended_qr_events = 0
+            self._qr_flood_halted = False
             self._auto_offline = False
             self._offline_announce_deferred = False
             self._apply_offline_state()
@@ -7604,6 +7606,109 @@ class MainWindow(wx.Frame):
             or bool(getattr(self, "_restarting_wpp_session", False))
         )
 
+    def _reset_unattended_qr_guards(self) -> None:
+        """Drop both unattended-QR guards: a human is looking at the pairing
+        UI, so the codes WPPConnect produces are wanted again.
+
+        Called by Connect.show_connection_dial() immediately before its modal
+        loop opens. The counter goes back to 0 so this attempt's own rotations
+        are never counted as a flood, and the latch clears so
+        check_wa_connection_http() stops blocking the session this attempt is
+        about to start — without that the user sits in the dialog they just
+        opened with the halt still in force. A method of its own only so a
+        test can call it: show_connection_dial() builds real wx dialogs and
+        ends in ShowModal().
+        """
+        self._unattended_qr_events = 0
+        self._qr_flood_halted = False
+
+    def _halt_unattended_qr_session(self) -> None:
+        """Close a WPPConnect session that is minting QR/pairing codes with
+        nobody watching, and keep the health loop from restarting it.
+
+        Triggered by WebSocketClient._handle_unattended_qr() — see there for
+        why an unattended code stream is a real hazard rather than a cosmetic
+        one, and for the ban that motivated this. `autoClose`/
+        `deviceSyncTimeout` are pinned to 0 in client/api_patches/src/config.ts
+        precisely so WPPConnect never closes a code-producing session by
+        itself, so nothing below the Python layer will ever stop this.
+
+        The latch is what makes it stick. check_wa_connection_http()'s CLOSED
+        branch fires /start-session on the very next poll otherwise, which
+        revives the browser and restarts the same code stream about 30s later
+        — the close alone would have bought one poll cycle, not a fix.
+        Deliberately NOT folded into _self_inflicted_teardown_expected(): that
+        makes _set_wa_connected() show "connecting" and swallow the offline
+        announcement, and here the session is genuinely gone and the user
+        needs to hear so. The token and the `paired` flag are untouched (this
+        is not a logout and wipes nothing); the latch clears on a real
+        reconnect and when the pairing dialog opens, both of which imply a
+        session we did not halt.
+
+        One knock-on effect, deliberate but worth writing down since the rest
+        of this machinery is: after the halt, status-session answers CLOSED,
+        which is NOT in cs.UNLINKED_STATES, so the confirmed-logout path
+        (_act_on_unlink_decision) stops being fed strikes and never fires
+        again this run. On a genuine WhatsApp-side unlink that means the
+        dialog + wipe it would eventually have reached is replaced by the
+        announcement below plus a re-pairing the user drives themselves —
+        which loses nothing (a re-pair rebuilds the session either way) and
+        is the price of not asking WhatsApp for codes for hours.
+
+        Second knock-on, relying on an invariant documented elsewhere (see
+        _restart_session_once): close-session force-kills, with no auth flush,
+        any session whose status is not CONNECTED/open, and a session that got
+        here is never CONNECTED. Harmless here specifically — it only reached
+        this path because WhatsApp had already dropped its auth, which is what
+        makes it mint codes in the first place, so there is nothing left to
+        flush — but worth writing down, since a caller that ever reached this
+        with live auth WOULD lose it.
+        """
+        if getattr(self, "_qr_flood_halted", False):
+            return
+        self._qr_flood_halted = True
+        token = getattr(self, "token", "")
+        # Say it out loud, because nothing else will. By construction this only
+        # runs while already disconnected (on_qrcode_update returns early when
+        # _wa_connected), so _auto_offline is already True and the next poll's
+        # _set_wa_connected(False, "status-session CLOSED") hits its own
+        # no-change early return — silently. Deliberately not gated on
+        # background_mode either: an app sitting in the tray is exactly the
+        # case this fires in, and going permanently offline with no route back
+        # and no word said is what the whole fix is about.
+        self.error_sound.play()
+        self.output(self.i18n.t("unattended_qr_session_closed"), interrupt=False)
+        if not token:
+            # Said explicitly, because the caller has already logged that it
+            # is "closing the session" and nothing here would contradict it:
+            # with no token there is no session to address. The latch is still
+            # set and the announcement above still ran, which is the whole
+            # user-visible half — only the HTTP call is skipped.
+            logging.warning("[qr-flood] No token — nothing to close; the latch "
+                            "alone now blocks the auto-start.")
+            return
+
+        # Audited only from here on: with no token there is no session to
+        # address, and an audit line claiming a close that never left the
+        # process is exactly the kind of entry these logs are read to trust.
+        self._shutdown_audit("QR flood: closing unattended code-producing session")
+
+        def _close():
+            try:
+                resp = api_post(
+                    f"{self.wpp_server}:{self.wpp_port}/api/{token}/close-session",
+                    headers={"Authorization": f"Bearer {token}"}, timeout=10,
+                )
+                logging.warning("[qr-flood] Halted unattended code-producing "
+                                "session: close-session HTTP %s", resp.status_code)
+            except Exception as e:
+                # Never the raw exception: requests puts the whole URL, token
+                # included, into the message it would have logged.
+                logging.warning("[qr-flood] close-session failed: %s: %s",
+                                type(e).__name__, redact_credentials(str(e)))
+
+        threading.Thread(target=_close, daemon=True).start()
+
     def _wait_for_session_flushed(self, token: str, timeout: float = None) -> bool:
         """Poll status-session until WPPConnect reports the session closed, or
         the timeout elapses. Returns True if it confirmed, False on timeout.
@@ -10742,28 +10847,20 @@ class MainWindow(wx.Frame):
                         )
                 elif status in ("CLOSED", "DESTROYED", ""):
                     self._set_wa_connected(False, f"status-session {status or 'unknown'}")
-                    # Status is CLOSED or unknown: safe to start a new session.
-                    # But skip if the connection dialog is currently open (pairing in progress)
-                    # to avoid spawning a duplicate Chrome alongside the one the pairing flow manages.
-                    # (Unreachable in practice now that this whole method returns early
-                    # while the dialog is active — kept as a defensive fallback.)
-                    if self._is_pairing_dialog_active():
-                        logging.info("[check_wa_connection_http] Skipping auto-start — pairing dialog is active.")
-                    elif getattr(self, "_recovery_restart_active", False):
-                        # An ACTIVE close/kill/start restart sequence owns the
-                        # browser right now; the CLOSED we see is likely ITS own
-                        # close-session in flight. Firing start-session here would
-                        # race it and could spawn a duplicate Chrome / detached
-                        # frame (GPT r5 #3 — scoped to the active restart only, NOT
-                        # the whole passive observation window).
-                        logging.info("[check_wa_connection_http] Skipping auto-start — "
-                                     "recovery restart sequence in progress owns it.")
-                    elif self._self_inflicted_teardown_expected():
-                        # This CLOSED is the expected result of our own
-                        # close-session call — starting a fresh session here
-                        # would revive the browser moments before taskkill
-                        # force-kills it.
-                        pass
+                    # Status is CLOSED or unknown: normally safe to start a new
+                    # session — but four different things can own the browser (or
+                    # deliberately want it left closed) at this exact moment. That
+                    # four-way decision lives in connection_state so each guard is
+                    # testable on its own; it hands back the reason to log, one per
+                    # guard, or None when starting is the right answer.
+                    block = cs.auto_start_block_reason(
+                        pairing_dialog_active=self._is_pairing_dialog_active(),
+                        qr_flood_halted=getattr(self, "_qr_flood_halted", False),
+                        recovery_restart_active=getattr(self, "_recovery_restart_active", False),
+                        self_inflicted_teardown=self._self_inflicted_teardown_expected(),
+                    )
+                    if block:
+                        logging.info("[check_wa_connection_http] Skipping auto-start — %s.", block)
                     else:
                         try:
                             start_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/start-session"

@@ -44,6 +44,8 @@ IMPROVEMENTS
 
 FIXES
 
+- Session dropped by WhatsApp: WinZapp now says so straight away and opens pairing, instead of leaving you on the conversation list while repeating that the QR code has been updated. With nobody on the pairing screen the session is closed rather than left asking WhatsApp for a new code forever — that endless stream of requests could get the account banned — and WinZapp says out loud that it closed the session and that you need to connect again.
+
 - Unread counts: already-read messages no longer come back as new, a chat read on your phone is respected, and the open conversation no longer loses its count.
 
 - The unread separator and your reading position are no longer lost while you read. The open conversation was being rebuilt periodically, which interrupted the screen reader mid-sentence.

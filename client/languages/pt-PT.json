@@ -698,6 +698,7 @@
     "unknown_group": "Grupo sem nome",
     "unnamed_participant": "Membro sem nome",
     "device_logged_out": "O seu dispositivo foi desligado da conta do WhatsApp. Por favor, estabeleça ligação novamente.",
+    "unattended_qr_session_closed": "O WhatsApp desligou esta sessão, por isso ela foi terminada. É preciso estabelecer ligação novamente.",
     "pairing_failed_msg": "Não foi possível concluir o emparelhamento com o WhatsApp. Tente ligar novamente.",
     "mentions_section_label": "Menções nesta mensagem",
     "add_contact": "Adicionar &contacto local",
