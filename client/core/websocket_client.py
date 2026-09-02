@@ -1476,7 +1476,13 @@ class WebSocketClient:
         try:
             api_post(
                 url,
-                json={"type": "maxFileSize", "value": 1 * 1024 * 1024 * 1024},
+                # 2 GB: WhatsApp's document ceiling, the highest of the
+                # per-type limits WinZapp enforces (photos/videos/audio stay at
+                # 1 GB, gated in ConversationsPanel._on_send_attachment() and
+                # MainWindow.send_media_attachment()). This is one flat cap for
+                # everything, so it has to be the largest of them or a document
+                # between 1 and 2 GB is refused here instead.
+                json={"type": "maxFileSize", "value": 2 * 1024 * 1024 * 1024},
                 headers=headers,
                 timeout=10,
             )

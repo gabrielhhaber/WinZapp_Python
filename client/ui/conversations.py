@@ -13236,21 +13236,35 @@ class ConversationsPanel(wx.Panel):
         # Capture quoted state before looping (cleared after all enqueued)
         quoted = self._quoted_message
 
-        # WPPConnect supports files up to 1 GB. WinZapp's WPPConnect patch
-        # transfers large files to Chromium in bounded chunks, avoiding the
-        # single oversized CDP argument that previously killed the session —
-        # that used to be document-only but now covers image/video/audio too
-        # (see core/wppconnect_sender_layer_patch.py), so every attachment
-        # type shares the same ceiling.
-        _MAX_ATTACHMENT_BYTES = 1 * 1024 * 1024 * 1024
-        _MAX_ATTACHMENT_MB    = 1024
+        # WhatsApp's own ceiling is 2 GB for documents and 1 GB for photos,
+        # videos and audio — WinZapp used to cap documents at 1 GB as well,
+        # for no reason other than sharing one constant with the other types.
+        # WinZapp's WPPConnect patch transfers large files to Chromium in
+        # bounded chunks, avoiding the single oversized CDP argument that
+        # previously killed the session — that used to be document-only but now
+        # covers image/video/audio too (see
+        # core/wppconnect_sender_layer_patch.py), so size alone is no longer
+        # what limits this; the ceilings below are WhatsApp's, not ours.
+        #
+        # These are only the FIRST of four gates a large file passes, and all
+        # four have to agree or a document between 1 and 2 GB is refused
+        # somewhere the user cannot see: this pre-check, send_media_attachment()
+        # in main.py, the maxFileSize WPPConnect is told about in
+        # core/websocket_client.py, and WhatsApp Web's own MediaGatingUtils
+        # ceiling raised by the sender-layer patch.
+        _MAX_DOCUMENT_BYTES = 2 * 1024 * 1024 * 1024
+        _MAX_DOCUMENT_MB    = 2048
+        _MAX_MEDIA_BYTES    = 1 * 1024 * 1024 * 1024
+        _MAX_MEDIA_MB       = 1024
         i18n = self.main_window.i18n
         for attachment in list(self._staged_attachments):
             path       = attachment["path"]
             media_type = attachment.get("media_type", "document")
 
-            max_bytes = _MAX_ATTACHMENT_BYTES
-            max_mb    = _MAX_ATTACHMENT_MB
+            vtype      = _VTYPE.get(media_type, "documentMessage")
+            is_document = vtype == "documentMessage"
+            max_bytes = _MAX_DOCUMENT_BYTES if is_document else _MAX_MEDIA_BYTES
+            max_mb    = _MAX_DOCUMENT_MB if is_document else _MAX_MEDIA_MB
 
             try:
                 file_size = os.path.getsize(path)
@@ -13267,7 +13281,6 @@ class ConversationsPanel(wx.Panel):
                 )
                 continue
 
-            vtype      = _VTYPE.get(media_type, "documentMessage")
             local_id   = str(uuid.uuid4())
             _body = {
                 "caption":  caption,

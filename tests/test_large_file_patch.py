@@ -109,7 +109,11 @@ def test_browser_upload_limit_covers_every_supported_attachment_type():
         assert f"'{kind}'" in block
     assert "includes(options.type)" in block
     assert "includes(type)" in block
-    assert "type === 'document'" not in sender_patch.PATCHED_SEND_FILE
+    # The GATE must cover every type. The old document-only gate is what this
+    # guards against — not the words "type === 'document'", which now legitimately
+    # appear inside the ceiling expression, where documents get 2 GB and the rest
+    # 1 GB.
+    assert "options.type === 'document' &&" not in sender_patch.PATCHED_SEND_FILE
 
 
 def test_browser_media_prep_explicitly_marks_audio_mime_as_audio():
@@ -155,7 +159,7 @@ def test_sender_patch_removes_the_failed_native_wav_bypass():
     assert "__winzappWavPassthroughPatched" not in migrated
 
 
-def test_large_documents_use_bounded_browser_transfers_and_a_1gb_browser_limit():
+def test_large_documents_use_bounded_browser_transfers_and_a_browser_limit():
     patched = sender_patch.PATCHED_SEND_FILE
 
     assert "createReadStream(largeFilePath" in patched
@@ -167,27 +171,80 @@ def test_large_documents_use_bounded_browser_transfers_and_a_1gb_browser_limit()
     assert "1 * 1024 * 1024 * 1024" in patched
 
 
-def test_document_limits_match_the_1gb_whatsapp_ceiling():
+def test_document_limits_match_whatsapps_2gb_document_ceiling():
+    """WhatsApp allows 2 GB for documents. WinZapp capped them at 1 GB for no
+    reason other than sharing one constant with photos/videos/audio, which do
+    stop at 1 GB."""
     conversations = (ROOT / "client" / "ui" / "conversations.py").read_text(
         encoding="utf-8"
     )
     main = (ROOT / "client" / "main.py").read_text(encoding="utf-8")
 
-    assert "_MAX_ATTACHMENT_BYTES = 1 * 1024 * 1024 * 1024" in conversations
-    assert "MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024" in main
+    assert "_MAX_DOCUMENT_BYTES = 2 * 1024 * 1024 * 1024" in conversations
+    assert "_MAX_DOCUMENT_MB    = 2048" in conversations
+    assert "2 * 1024 * 1024 * 1024 if media_type == \"document\"" in main
 
 
-def test_media_and_document_ceilings_match():
+def test_media_ceilings_stay_at_1gb():
     """Image/video/audio used to be capped at 70MB in the UI's own
     pre-check, well under what sender.layer.js's bounded transfer can now
     actually move (see wppconnect_sender_layer_patch.py) — that gap is what
-    used to force a 500 for any media send past 70MB."""
+    used to force a 500 for any media send past 70MB. 1 GB is WhatsApp's own
+    limit for them, and raising documents to 2 GB must not drag these up too."""
     conversations = (ROOT / "client" / "ui" / "conversations.py").read_text(
         encoding="utf-8"
     )
 
-    assert "_MAX_ATTACHMENT_MB    = 1024" in conversations
+    assert "_MAX_MEDIA_BYTES    = 1 * 1024 * 1024 * 1024" in conversations
+    assert "_MAX_MEDIA_MB       = 1024" in conversations
     assert "70  * 1024 * 1024" not in conversations
+
+
+def test_every_gate_a_large_document_passes_agrees_on_2gb():
+    """A document between 1 and 2 GB crosses four independent ceilings. If any
+    one of them is still 1 GB the send fails somewhere the user cannot see, so
+    they are pinned together rather than one by one."""
+    conversations = (ROOT / "client" / "ui" / "conversations.py").read_text(
+        encoding="utf-8"
+    )
+    main = (ROOT / "client" / "main.py").read_text(encoding="utf-8")
+    websocket_client = (ROOT / "client" / "core" / "websocket_client.py").read_text(
+        encoding="utf-8"
+    )
+
+    # 1. the attachment panel's own pre-check
+    assert "_MAX_DOCUMENT_BYTES = 2 * 1024 * 1024 * 1024" in conversations
+    # 2. send_media_attachment(), which the queue calls
+    assert "2 * 1024 * 1024 * 1024 if media_type == \"document\"" in main
+    # 3. the flat cap WPPConnect is told about (one value for every type, so it
+    #    has to be the largest)
+    assert '"type": "maxFileSize", "value": 2 * 1024 * 1024 * 1024' in websocket_client
+    # 4. WhatsApp Web's own MediaGatingUtils ceiling, inside the page
+    assert (
+        "type === 'document' ? 2 * 1024 * 1024 * 1024 : 1 * 1024 * 1024 * 1024"
+        in sender_patch.PATCHED_SEND_FILE
+    )
+
+
+def test_an_install_still_on_the_flat_1gb_ceiling_is_migrated():
+    """npm install refetches pristine sources, so a reinstall takes the fresh
+    path — but an install patched in place would otherwise sit at 1 GB forever.
+    Both nesting depths the block appears at have to be migrated."""
+    already_patched = sender_patch.PATCHED_SEND_FILE.replace(
+        sender_patch._UPLOAD_LIMIT_CEILING_V3, sender_patch._UPLOAD_LIMIT_CEILING_V2
+    )
+    assert sender_patch._UPLOAD_LIMIT_CEILING_V2 in already_patched
+
+    migrated = sender_patch.patch_sender_layer_source(already_patched)
+
+    assert migrated == sender_patch.PATCHED_SEND_FILE
+    assert sender_patch._UPLOAD_LIMIT_CEILING_V2 not in migrated
+    assert migrated.count(sender_patch._UPLOAD_LIMIT_CEILING_V3) == 2
+
+
+def test_migrating_the_ceiling_twice_changes_nothing():
+    once = sender_patch.patch_sender_layer_source(sender_patch.PATCHED_SEND_FILE)
+    assert once == sender_patch.PATCHED_SEND_FILE
 
 
 def test_wpp_only_sets_the_effective_file_size_limit():

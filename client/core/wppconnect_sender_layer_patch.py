@@ -61,7 +61,9 @@ together since they touch the same method:
    'auto-detect') is what tells it that, identically on both paths — so
    PATCHED_FILE_LOADING widens the gate to image/video/audio too.
 
-3. Raising WhatsApp Web's own client-side attachment ceiling to 1 GB, by
+3. Raising WhatsApp Web's own client-side attachment ceiling — 2 GB for
+   documents, 1 GB for photos/videos/audio, which is what WhatsApp itself
+   allows — by
    wrapping MediaGatingUtils.getUploadLimit inside the page. This runs in a
    per-send callback, so it MUST install itself only once: the guard that
    decides whether to wrap cannot be "does getUploadLimit exist", because a
@@ -529,7 +531,35 @@ _BROWSER_ATTACHMENT_LIMIT_PATCH_WITH_WAV_BYPASS = (
 # resulting message with ACK -1. Keep the old block above only to migrate
 # already-patched installations back to the supported MediaPrep path. WAV is
 # now converted to OGG/Opus before sendFile() is called.
-_BROWSER_ATTACHMENT_LIMIT_PATCH = _BROWSER_ATTACHMENT_LIMIT_PATCH_V2
+
+
+#: V2 with WhatsApp's real per-type ceilings instead of one flat 1 GB for
+#: everything: documents go to 2 GB, photos/videos/audio stay at 1 GB. Every
+#: version up to V2 capped documents at 1 GB too, which was never WhatsApp's
+#: limit — just this block sharing a single constant across all four types.
+#:
+#: Derived from V2 by replacing the ceiling rather than written out again, so
+#: the two cannot drift: V2 must stay byte-for-byte what shipped, because it is
+#: the left-hand side of the migration in patch_sender_layer_source() that
+#: raises an already-patched node_modules to 2 GB. (npm install refetches
+#: pristine sources, so a reinstall takes the fresh path — but an install
+#: patched in place would otherwise sit at 1 GB forever.)
+_UPLOAD_LIMIT_CEILING_V2 = (
+    "Math.max(getUploadLimit(type, origin, isVcard), 1 * 1024 * 1024 * 1024)"
+)
+_UPLOAD_LIMIT_CEILING_V3 = (
+    "Math.max(getUploadLimit(type, origin, isVcard), "
+    "type === 'document' ? 2 * 1024 * 1024 * 1024 : 1 * 1024 * 1024 * 1024)"
+)
+
+assert _BROWSER_ATTACHMENT_LIMIT_PATCH_V2.count(_UPLOAD_LIMIT_CEILING_V2) == 1
+
+_BROWSER_ATTACHMENT_LIMIT_PATCH_V3 = _BROWSER_ATTACHMENT_LIMIT_PATCH_V2.replace(
+    _UPLOAD_LIMIT_CEILING_V2, _UPLOAD_LIMIT_CEILING_V3
+)
+
+
+_BROWSER_ATTACHMENT_LIMIT_PATCH = _BROWSER_ATTACHMENT_LIMIT_PATCH_V3
 
 
 def _deepen(block: str) -> str:
@@ -610,6 +640,18 @@ def patch_sender_layer_source(source: str) -> str:
             _BROWSER_ATTACHMENT_LIMIT_PATCH_V1,
             _BROWSER_ATTACHMENT_LIMIT_PATCH,
         )
+
+    # Flat 1 GB for every type -> WhatsApp's real per-type ceilings (2 GB for
+    # documents). Runs AFTER the WAV-bypass removal above, which matches on a
+    # block that has V2 as its prefix: rewriting the ceiling first would stop
+    # that match and strand the bypass in place.
+    source = source.replace(
+        _deepen(_BROWSER_ATTACHMENT_LIMIT_PATCH_V2),
+        _deepen(_BROWSER_ATTACHMENT_LIMIT_PATCH_V3),
+    )
+    source = source.replace(
+        _BROWSER_ATTACHMENT_LIMIT_PATCH_V2, _BROWSER_ATTACHMENT_LIMIT_PATCH_V3
+    )
 
     # Unmarked document-only -> current guarded attachment override.
     source = source.replace(

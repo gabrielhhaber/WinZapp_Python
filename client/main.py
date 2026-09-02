@@ -23640,9 +23640,19 @@ class MainWindow(wx.Frame):
         except Exception as exc:
             logging.error("[send_media] failed to stat file %s: %s", file_path, exc)
             return False
-        MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024
+        # WhatsApp allows 2 GB for documents and 1 GB for photos/videos/audio.
+        # Kept in step with ConversationsPanel._on_send_attachment()'s own
+        # pre-check — see the comment there for the four gates this is one of.
+        MAX_FILE_SIZE = (
+            2 * 1024 * 1024 * 1024 if media_type == "document"
+            else 1 * 1024 * 1024 * 1024
+        )
         if file_size > MAX_FILE_SIZE:
-            err_msg = f"File size ({file_size / (1024*1024):.1f} MB) exceeds the 1 GB WhatsApp attachment limit."
+            limit_gb = MAX_FILE_SIZE // (1024 ** 3)
+            err_msg = (
+                f"File size ({file_size / (1024*1024):.1f} MB) exceeds the "
+                f"{limit_gb} GB WhatsApp attachment limit for {media_type}."
+            )
             logging.error("[send_media] %s", err_msg)
             return {"ok": False, "error": err_msg, "retry": False}
         mime = mimetypes.guess_type(file_path)[0] or "application/octet-stream"

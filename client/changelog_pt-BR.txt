@@ -28,6 +28,8 @@ NOVIDADES
 
 MELHORIAS
 
+- Documentos agora podem ter até 2 GB, que é o limite real do WhatsApp. O WinZapp barrava em 1 GB sem motivo. Fotos, vídeos e áudios continuam em 1 GB, que é o limite do WhatsApp para eles.
+
 - Sincronização incremental das conversas. Abrir o programa e atualizar ficou bem mais rápido, e o WinZapp avisa quando a atualização começa e quando termina.
 
 - A lista de conversas ficou muito mais rápida. Uma mensagem nova ou uma confirmação de entrega atualiza apenas aquela linha, em vez de refazer a lista inteira. Na prática, o leitor de tela relê muito menos.
