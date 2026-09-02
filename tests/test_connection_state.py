@@ -6,6 +6,8 @@ treat that as a logout and wipe the local database — even though the server wa
 logging back in (a real log showed 'inChat' the same second the client wiped).
 """
 
+import pathlib
+
 import connection_state as cs
 
 LOGOUT_CONFIRM = 4
@@ -151,6 +153,46 @@ def test_the_ceiling_can_be_disabled_for_the_branch_already_in_production():
         BUDGET_BASE, initial_sync_running=True, first_strike_ts=1000.0,
         now=1000.0 + 10_000, max_seconds=None
     ) == BUDGET_BASE * cs.SYNC_TOLERANCE_FACTOR
+
+
+def test_the_production_branch_really_asks_for_the_disabled_ceiling():
+    """The test above proves the function honours max_seconds=None; this proves
+    the one branch that wants it still passes it.
+
+    Nothing else pins that wiring: check_wa_connection_http()'s except branch is
+    not covered by a behavioural test (it needs the whole requests/wx stack),
+    so a later tidy-up that "removes the asymmetry" by dropping the argument
+    would leave the whole suite green while silently capping the branch at
+    SYNC_TOLERANCE_MAX_SECONDS — reintroducing the false offline against a Node
+    blocked by a history download that the x10 exists to prevent. Read as
+    source, the way tests/test_wa_version_expiry_pin.py checks the stable
+    channel is asked for first.
+    """
+    main_py = (pathlib.Path(__file__).resolve().parents[1]
+               / "client" / "main.py").read_text(encoding="utf-8")
+    method = main_py[main_py.index("    def check_wa_connection_http("):]
+    method = method[:method.index("\n    def ", 10)]
+    # The method's own except, at method indentation — not the two nested ones
+    # inside the CONNECTED branch.
+    branch = method[method.index("\n        except Exception as e:"):]
+    # Balanced-paren slice rather than a search for the closing line: the call
+    # already nests a getattr(), and reading to the first ")" would cut inside
+    # it and hide the very argument this is checking for.
+    call_start = branch.index("cs.probe_strike_budget(")
+    depth, end = 0, call_start
+    for end in range(call_start, len(branch)):
+        if branch[end] == "(":
+            depth += 1
+        elif branch[end] == ")":
+            depth -= 1
+            if depth == 0:
+                break
+    call = branch[call_start:end + 1]
+    assert "max_seconds=None" in call, (
+        "check_wa_connection_http()'s except branch must keep passing "
+        "max_seconds=None — see probe_strike_budget()'s docstring for why this "
+        f"asymmetry is deliberate. Found:\n{call}"
+    )
 
 
 def test_the_ceiling_sits_between_a_page_reload_and_the_raw_ten_minutes():

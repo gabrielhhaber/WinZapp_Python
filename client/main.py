@@ -10643,7 +10643,7 @@ class MainWindow(wx.Frame):
                 return False
             logging.info(
                 "[check_whatsapp_reachable] session probe reports disconnected "
-                "(strike %d/%d) — holding the current state for one more cycle.",
+                "(strike %d/%d) — holding the current state until the budget is spent.",
                 self._offline_probe_strikes, allowed_strikes,
             )
             return bool(getattr(self, "_wa_connected", False))
@@ -10674,7 +10674,11 @@ class MainWindow(wx.Frame):
         self._offline_probe_strikes = getattr(self, "_offline_probe_strikes", 0) + 1
         if self._offline_probe_strikes >= allowed_strikes:
             return False
-        # First strike: give it one more cycle before going offline.
+        # Budget not spent yet: hold the current state and let the next
+        # health-check tick decide. Outside a sync that is the single
+        # extra cycle _OFFLINE_PROBE_STRIKES buys; during one it is as
+        # many cycles as the widened budget still allows, which the
+        # SYNC_TOLERANCE_MAX_SECONDS ceiling above bounds in real time.
         return bool(getattr(self, "_wa_connected", False))
 
     def _is_pairing_dialog_active(self) -> bool:

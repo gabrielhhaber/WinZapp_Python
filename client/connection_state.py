@@ -225,12 +225,6 @@ def chrome_cmdline_owns_session(cmdline: str, session_name: str) -> bool:
 _RESET_ZERO_ATTRS = (
     "_wa_http_fail_strikes",
     "_offline_probe_strikes",
-    # When the current run of offline-probe strikes began, i.e. the clock
-    # probe_strike_budget()'s ceiling is measured against. It has to be zeroed
-    # wherever _offline_probe_strikes is, or a run that ended before the sleep
-    # leaves a stale start time behind and the first post-wake strike is
-    # already "too old" for the widened budget.
-    "_offline_probe_first_strike_ts",
     "_logout_strikes",
     "_resume_fail_strikes",
     # The host-device veto run (MainWindow._STILL_LINKED_VETO_LIMIT) counts
@@ -274,6 +268,14 @@ def reset_state_for_resume(obj, now: float) -> None:
         setattr(obj, attr, False)
     obj._wa_startup_time = now
     obj._last_strike_ts = 0.0
+    # When the current run of offline-probe strikes began, i.e. the clock
+    # probe_strike_budget()'s ceiling is measured against. It has to be zeroed
+    # wherever _offline_probe_strikes is, or a run that ended before the sleep
+    # leaves a stale start time behind and the first post-wake strike is
+    # already "too old" for the widened budget. Set here rather than listed in
+    # _RESET_ZERO_ATTRS because it is a timestamp, and that loop assigns int 0
+    # — same reason _last_strike_ts above is written out.
+    obj._offline_probe_first_strike_ts = 0.0
 
 
 

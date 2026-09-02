@@ -294,4 +294,15 @@ class TestTheWidenedToleranceHasATimeCeiling:
         classified like a fresh start; a start time left behind would make the
         first post-wake strike look like the tail of a run from before the
         sleep."""
-        assert "_offline_probe_first_strike_ts" in cs._RESET_ZERO_ATTRS
+        clock = _fake_clock(monkeypatch)
+        _session_says(monkeypatch, _Resp(200, {"status": False}))
+        s = _Stub(connected=True)
+        s._initial_sync_running = True
+        assert s.check_whatsapp_reachable() is True    # starts a run
+        assert s._offline_probe_first_strike_ts == 1000.0
+        cs.reset_state_for_resume(s, clock["now"] + 100_000)
+        assert s._offline_probe_first_strike_ts == 0.0
+        assert s._offline_probe_strikes == 0
+        # And a timestamp, not the int the strike tallies are reset to — the
+        # attribute is compared against time.time() everywhere else.
+        assert isinstance(s._offline_probe_first_strike_ts, float)

@@ -594,11 +594,18 @@ async function fetchLiveWhatsappDocument() {
     // against each channel in turn, so once it has resolved the second attempt
     // is already over. Two channels must not mean twice the time a user on a
     // dead network waits with pairing held hostage.
+    //
+    // Answers with the channel that produced the HTML, not the HTML alone,
+    // because the caller has to be able to log WHICH one served the session.
+    // The catalogue pin gets that for free — it prints a version string, and a
+    // pre-release build wears `-alpha` on its face — but "live from Meta" says
+    // nothing, and a user reporting "Session Unpaired" hours after pairing is
+    // exactly the case where stable-vs-alpha is the first thing to check.
     const attempt = async (channel) => {
       if (typeof waVersion[channel] !== 'function') return null;
       try {
         const html = await Promise.race([waVersion[channel](), timeout]);
-        return isAppShell(html) ? html : null;
+        return isAppShell(html) ? { channel, html } : null;
       } catch (e) {
         return null;
       }
@@ -764,13 +771,16 @@ function patchWppconnectVersionPinning() {
       if (pinnedCatalogueExpired) {
         const live = await fetchLiveWhatsappDocument();
         if (live) {
-          body = live;
-          source = 'live from Meta (local catalogue fully expired)';
+          body = live.html;
+          source = `live from Meta via ${live.channel} (local catalogue fully expired)`;
           console.warn(
             '[WinZapp] Every build in the local catalogue has expired; serving the ' +
-            'document Meta is currently returning instead. This keeps the page pinned ' +
-            'and the worker unblocked, but the bundled wa-js may lag that build — ' +
-            'run: npm update @wppconnect/wa-version (or reinstall the API from WinZapp).'
+            `document Meta is currently returning, fetched with ${live.channel}(). This ` +
+            'keeps the page pinned and the worker unblocked, but the bundled wa-js may ' +
+            'lag that build — and fetchLatestAlpha() means a PRE-RELEASE build, which is ' +
+            'what the stable-first order exists to avoid, so a session that unpairs later ' +
+            'starts here. Run: npm update @wppconnect/wa-version (or reinstall the API ' +
+            'from WinZapp).'
           );
         } else {
           console.warn(

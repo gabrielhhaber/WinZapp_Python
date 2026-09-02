@@ -292,10 +292,12 @@ __HELPER_SOURCE__
 
 (async () => {
   const started = Date.now();
-  const html = await fetchLiveWhatsappDocument();
+  const live = await fetchLiveWhatsappDocument();
+  const html = live ? live.html : null;
   console.log('__RESULT__' + JSON.stringify({
     ok: typeof html === 'string',
     length: typeof html === 'string' ? html.length : 0,
+    channel: live ? live.channel : null,
     called,
     elapsed: Date.now() - started,
   }));
@@ -445,6 +447,53 @@ class TestTheLiveFetchAsksTheStableChannelFirst:
         stable = source.index("attempt('fetchLatest')")
         alpha = source.index("attempt('fetchLatestAlpha')")
         assert stable < alpha
+
+
+class TestTheLogSaysWhichChannelServedTheSession:
+    """The pin logs a version string, and a pre-release build wears `-alpha` on
+    its face — so for the catalogue path the channel is already visible in the
+    log. The live path had nothing equivalent: it said only "live from Meta",
+    and a user reporting "Session Unpaired" hours after pairing left no way to
+    tell whether fetchLatest() answered or whether the run fell through to
+    fetchLatestAlpha() — which is precisely the hypothesis the stable-first
+    order rests on."""
+
+    def test_the_stable_channel_is_named_when_it_answers(self, tmp_path):
+        result = _fetch_live(tmp_path, channels={
+            "fetchLatest": {"mode": "ok", "html": GOOD_HTML},
+            "fetchLatestAlpha": {"mode": "ok", "html": GOOD_HTML},
+        })
+        assert result["channel"] == "fetchLatest"
+
+    def test_the_alpha_channel_is_named_when_it_is_the_one_that_answered(self, tmp_path):
+        """The case worth reading a log for: stable failed, so this session is
+        running a pre-release build."""
+        result = _fetch_live(tmp_path, channels={
+            "fetchLatest": {"mode": "throws", "html": None},
+            "fetchLatestAlpha": {"mode": "ok", "html": GOOD_HTML},
+        })
+        assert result["called"] == ["fetchLatest", "fetchLatestAlpha"]
+        assert result["channel"] == "fetchLatestAlpha"
+
+    def test_nothing_is_named_when_nothing_answered(self, tmp_path):
+        """A failed fetch still answers a plain falsy value, because the caller
+        tests it with `if (live)` before falling back to the local build."""
+        assert _fetch_live(tmp_path, mode="throws")["channel"] is None
+
+    def test_the_caller_puts_the_channel_in_what_it_logs(self):
+        """The harness above proves the channel is reported; this proves it is
+        not then dropped on the floor at the one call site that has it."""
+        source = START_JS.read_text(encoding="utf-8")
+        start = source.index("const live = await fetchLiveWhatsappDocument();")
+        end = source.index("if (!body) {", start)
+        branch = source[start:end]
+        assert "body = live.html;" in branch
+        assert "live.channel" in branch
+        for line in branch.splitlines():
+            assert "= live;" not in line, (
+                "the live fetch answers {channel, html} now — assigning it whole "
+                "would serve the object as the document body"
+            )
 
 
 class TestTheFallbackIsWiredOnlyToTheExpiredBranch:
