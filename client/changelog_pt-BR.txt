@@ -4,7 +4,7 @@ Esta versão traz a aba de mídias, o visualizador de mídia em janela própria,
 
 NOVIDADES
 
-- Aba Mídia nas conversas e nos grupos. Lista fotos, vídeos, áudios, documentos e links, com filtro por tipo e por baixadas ou não baixadas, carregamento do histórico completo e ações de abrir, salvar e apagar em cada mensagem.
+- Aba Mídia nas conversas e nos grupos. Lista fotos, vídeos, áudios, mensagens de voz, documentos e links, com filtro por tipo e por baixadas ou não baixadas, carregamento do histórico completo e ações de abrir, salvar e apagar em cada mensagem. Áudios e mensagens de voz são dois filtros separados: dá para ver só um ou só o outro, e escolher se o download automático pega um, o outro ou os dois.
 
 - Visualizador de mídia em janela própria, com reproduzir e pausar, avançar e voltar 10 segundos, posição, volume e velocidade. Você escolhe nas configurações se vídeos das conversas e status abrem nele.
 
@@ -24,7 +24,7 @@ NOVIDADES
 
 - Seletor de país no pareamento refeito: usa o país e o idioma configurados no Windows, fica em ordem alfabética, aceita busca digitando várias letras e protege o código do país contra edição acidental.
 
-- Opções novas nas configurações: mostrar "ontem" no lugar da data, anunciar "Encaminhada" antes do remetente, distinguir mensagem de voz de arquivo de áudio, descobrir a duração do vídeo já ao baixar, escolher os tipos de mídia exibidos por padrão e não marcar áudios como reproduzidos.
+- Opções novas nas configurações: mostrar "ontem" no lugar da data, anunciar "Encaminhada" antes do remetente, distinguir mensagem de voz de arquivo de áudio, que agora é o padrão em vez de ler tudo como áudio, descobrir a duração do vídeo já ao baixar, escolher os tipos de mídia exibidos por padrão e não marcar áudios como reproduzidos.
 
 MELHORIAS
 
@@ -63,3 +63,13 @@ CORREÇÕES
 - A primeira mensagem de um contato não some mais ao abrir a conversa.
 
 - Acessibilidade: o atalho dos emojis passou a ser informado ao leitor de tela, Alt+T voltou a funcionar dentro da conversa e a fala não é mais cortada a cada confirmação de entrega.
+
+- A sincronização não fica mais recomeçando sem parar. Bastava uma conversa que o WhatsApp não reconhece, e que nunca foi conversa de verdade, para o WinZapp achar que a sincronização nunca terminou: ele recomeçava do zero a cada poucos minutos e se anunciava de novo a cada vez, mesmo com tudo já carregado.
+
+- A atualização rápida das conversas parou de pular conversas com mensagens novas. Elas ficavam paradas no estado antigo até você pressionar F5 e sincronizar tudo, o que anulava o ganho de velocidade.
+
+- O WinZapp passou a saber a validade da versão do WhatsApp Web que utiliza. Quando ela vence, ele busca a que o WhatsApp está servindo no momento em vez de insistir numa que já não é aceita. Era isso que travava a sincronização, deixava a lista de conversas vazia e acabava fazendo o WhatsApp desconectar o computador da lista de aparelhos conectados.
+
+- O primeiro código de pareamento depois de uma queda de conexão não falha mais. O WinZapp pedia códigos sozinho, em segundo plano, até o WhatsApp recusar por excesso de pedidos; agora ele espera entre um pedido e outro, e quando o WhatsApp recusa, a mensagem explica o motivo em vez de mostrar um erro interno.
+
+- O filtro de mídias não baixadas mostrava mensagens de voz que já estavam no computador, inclusive as que você já tinha ouvido dentro do programa.

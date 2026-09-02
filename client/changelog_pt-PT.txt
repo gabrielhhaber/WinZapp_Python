@@ -4,7 +4,7 @@ Esta versão traz o separador de multimédia, o visualizador de multimédia em j
 
 NOVIDADES
 
-- Separador Multimédia nas conversas e nos grupos. Lista fotografias, vídeos, áudios, documentos e ligações, com filtro por tipo e por transferidas ou não transferidas, carregamento do histórico completo e ações de abrir, guardar e apagar em cada mensagem.
+- Separador Multimédia nas conversas e nos grupos. Lista fotografias, vídeos, áudios, mensagens de voz, documentos e ligações, com filtro por tipo e por transferidas ou não transferidas, carregamento do histórico completo e ações de abrir, guardar e apagar em cada mensagem. Áudios e mensagens de voz são dois filtros separados: pode ver só um ou só o outro, e escolher se a transferência automática obtém um, o outro ou ambos.
 
 - Visualizador de multimédia em janela própria, com reproduzir e pausar, avançar e recuar 10 segundos, posição, volume e velocidade. Pode escolher nas definições se os vídeos das conversas e os estados abrem nele.
 
@@ -24,7 +24,7 @@ NOVIDADES
 
 - Seletor de país no emparelhamento refeito: usa o país e o idioma configurados no Windows, fica por ordem alfabética, aceita pesquisa escrevendo várias letras e protege o indicativo do país contra edição acidental.
 
-- Novas opções nas definições: mostrar "ontem" em vez da data, anunciar "Reencaminhada" antes do remetente, distinguir mensagem de voz de ficheiro de áudio, determinar a duração do vídeo logo ao transferir, escolher os tipos de multimédia mostrados por predefinição e não marcar áudios como reproduzidos.
+- Novas opções nas definições: mostrar "ontem" em vez da data, anunciar "Reencaminhada" antes do remetente, distinguir mensagem de voz de ficheiro de áudio, que passa a ser a predefinição em vez de ler tudo como áudio, determinar a duração do vídeo logo ao transferir, escolher os tipos de multimédia mostrados por predefinição e não marcar áudios como reproduzidos.
 
 MELHORIAS
 
@@ -63,3 +63,13 @@ CORREÇÕES
 - A primeira mensagem de um contacto deixou de desaparecer ao abrir a conversa.
 
 - Acessibilidade: o atalho dos emojis passou a ser comunicado ao leitor de ecrã, o Alt+T voltou a funcionar dentro da conversa e a fala deixou de ser cortada a cada confirmação de entrega.
+
+- A sincronização deixou de recomeçar sem parar. Bastava uma conversa que o WhatsApp não reconhece, e que nunca foi conversa a sério, para o WinZapp julgar que a sincronização nunca terminou: recomeçava do zero a cada poucos minutos e anunciava-se de novo de cada vez, mesmo com tudo já carregado.
+
+- A atualização rápida das conversas deixou de saltar conversas com mensagens novas. Ficavam paradas no estado antigo até carregar em F5 e sincronizar tudo, o que anulava o ganho de velocidade.
+
+- O WinZapp passou a saber a validade da versão do WhatsApp Web que utiliza. Quando expira, procura a que o WhatsApp está a servir no momento em vez de insistir numa que já não é aceite. Era isto que bloqueava a sincronização, deixava a lista de conversas vazia e acabava por levar o WhatsApp a desligar o computador da lista de aparelhos ligados.
+
+- O primeiro código de emparelhamento depois de uma quebra de ligação deixou de falhar. O WinZapp pedia códigos sozinho, em segundo plano, até o WhatsApp recusar por excesso de pedidos; agora espera entre pedidos e, quando o WhatsApp recusa, a mensagem explica o motivo em vez de mostrar um erro interno.
+
+- O filtro de multimédia não transferida mostrava mensagens de voz que já estavam no computador, incluindo as que já tinha ouvido dentro do programa.

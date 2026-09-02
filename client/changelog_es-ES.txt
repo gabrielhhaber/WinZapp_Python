@@ -4,7 +4,7 @@ Esta versión incorpora la pestaña de multimedia, el visor de multimedia en su 
 
 NOVEDADES
 
-- Pestaña Multimedia en las conversaciones y en los grupos. Muestra fotos, vídeos, audios, documentos y enlaces, con filtro por tipo y por descargados o no descargados, carga del historial completo y acciones de abrir, guardar y eliminar en cada mensaje.
+- Pestaña Multimedia en las conversaciones y en los grupos. Muestra fotos, vídeos, audios, mensajes de voz, documentos y enlaces, con filtro por tipo y por descargados o no descargados, carga del historial completo y acciones de abrir, guardar y eliminar en cada mensaje. Los audios y los mensajes de voz son dos filtros separados: puedes ver solo unos o solo otros, y elegir si la descarga automática obtiene unos, otros o ambos.
 
 - Visor de multimedia en su propia ventana, con reproducir y pausar, avanzar y retroceder 10 segundos, posición, volumen y velocidad. Puedes elegir en la configuración si los vídeos de las conversaciones y los estados se abren en él.
 
@@ -24,7 +24,7 @@ NOVEDADES
 
 - Selector de país del emparejamiento rehecho: usa el país y el idioma configurados en Windows, se ordena alfabéticamente, admite búsqueda escribiendo varias letras y protege el código de país frente a ediciones accidentales.
 
-- Nuevas opciones en la configuración: mostrar "ayer" en lugar de la fecha, anunciar "Reenviado" antes del remitente, distinguir los mensajes de voz de los archivos de audio, averiguar la duración del vídeo al descargarlo, elegir qué tipos de multimedia se muestran de forma predeterminada y no marcar los audios como reproducidos.
+- Nuevas opciones en la configuración: mostrar "ayer" en lugar de la fecha, anunciar "Reenviado" antes del remitente, distinguir los mensajes de voz de los archivos de audio, que ahora es lo predeterminado en vez de leerlo todo como audio, averiguar la duración del vídeo al descargarlo, elegir qué tipos de multimedia se muestran de forma predeterminada y no marcar los audios como reproducidos.
 
 MEJORAS
 
@@ -63,3 +63,13 @@ CORRECCIONES
 - El primer mensaje de un contacto ya no desaparece al abrir la conversación.
 
 - Accesibilidad: el atajo de los emojis ahora se comunica al lector de pantalla, Alt+T vuelve a funcionar dentro de la conversación y el habla ya no se corta con cada confirmación de entrega.
+
+- La sincronización ya no vuelve a empezar una y otra vez. Bastaba una conversación que WhatsApp no reconoce, y que nunca fue una conversación real, para que WinZapp creyera que la sincronización no había terminado nunca: empezaba de cero cada pocos minutos y se anunciaba de nuevo cada vez, aun con todo ya cargado.
+
+- La actualización rápida de las conversaciones ya no se salta las que recibieron mensajes nuevos. Se quedaban con el contenido antiguo hasta que pulsabas F5 y sincronizabas todo, lo que anulaba la ganancia de velocidad.
+
+- WinZapp ahora conoce la fecha de caducidad de la versión de WhatsApp Web que utiliza. Cuando vence, busca la que WhatsApp está sirviendo en ese momento en lugar de insistir en una que ya no se acepta. Eso era lo que bloqueaba la sincronización, dejaba la lista de conversaciones vacía y acababa haciendo que WhatsApp desconectara el ordenador de tus dispositivos vinculados.
+
+- El primer código de vinculación tras una caída de conexión ya no falla. WinZapp pedía códigos por su cuenta, en segundo plano, hasta que WhatsApp los rechazaba por exceso de peticiones; ahora espera entre una petición y otra, y cuando WhatsApp rechaza, el mensaje explica el motivo en vez de mostrar un error interno.
+
+- El filtro de multimedia no descargada mostraba mensajes de voz que ya estaban en el ordenador, incluidos los que ya habías escuchado dentro del programa.

@@ -4,7 +4,7 @@ This release adds the Media tab, a media viewer in its own window, link previews
 
 WHAT'S NEW
 
-- Media tab in conversations and groups. It lists photos, videos, audio, documents and links, with filtering by type and by downloaded or not downloaded, full history loading, and open, save and delete actions on each message.
+- Media tab in conversations and groups. It lists photos, videos, audio files, voice messages, documents and links, with filtering by type and by downloaded or not downloaded, full history loading, and open, save and delete actions on each message. Audio files and voice messages are two separate filters: you can show only one or only the other, and choose whether automatic downloading fetches one, the other or both.
 
 - Media viewer in its own window, with play and pause, skip forward and back 10 seconds, position, volume and speed. You choose in settings whether conversation videos and statuses open in it.
 
@@ -24,7 +24,7 @@ WHAT'S NEW
 
 - Rebuilt country selector in the pairing dialog: it uses the country and language configured in Windows, is sorted alphabetically, accepts multi-letter type-ahead search, and protects the country code from accidental editing.
 
-- New settings: show "yesterday" instead of the date, announce "Forwarded" before the sender, tell voice messages apart from audio files, determine a video's length as soon as it is downloaded, choose which media types are shown by default, and stop marking audio as played.
+- New settings: show "yesterday" instead of the date, announce "Forwarded" before the sender, tell voice messages apart from audio files, which is now the default instead of reading everything as audio, determine a video's length as soon as it is downloaded, choose which media types are shown by default, and stop marking audio as played.
 
 IMPROVEMENTS
 
@@ -63,3 +63,13 @@ FIXES
 - The first message from a contact no longer disappears when the conversation is opened.
 
 - Accessibility: the emoji shortcut is now reported to the screen reader, Alt+T works inside a conversation again, and speech is no longer cut off by every delivery receipt.
+
+- Syncing no longer restarts over and over. A single chat WhatsApp does not recognise, and that was never a real conversation, was enough to make WinZapp believe the sync had never finished: it started again from scratch every few minutes, announcing itself each time, even with everything already loaded.
+
+- The fast conversation refresh no longer skips chats that received new messages. They stayed on their old contents until you pressed F5 and synced everything, which defeated the point of the faster refresh.
+
+- WinZapp now knows the expiry date of the WhatsApp Web version it uses. When it lapses, it fetches the one WhatsApp is currently serving instead of insisting on one that is no longer accepted. This is what stalled syncing, left the conversation list empty, and ended with WhatsApp dropping the computer from your linked devices.
+
+- The first pairing code after a dropped connection no longer fails. WinZapp was requesting codes on its own, in the background, until WhatsApp refused for too many requests; it now waits between requests, and when WhatsApp does refuse, the message explains why instead of showing an internal error.
+
+- The "not downloaded" media filter was listing voice messages that were already on the computer, including ones you had played inside the app.

@@ -4,7 +4,7 @@ Ta wersja wprowadza kartę multimediów, odtwarzacz multimediów w osobnym oknie
 
 NOWOŚCI
 
-- Karta Multimedia w rozmowach i w grupach. Zawiera zdjęcia, filmy, nagrania dźwiękowe, dokumenty i linki, z filtrowaniem według typu oraz według pobranych i niepobranych, wczytywaniem pełnej historii i akcjami otwierania, zapisywania i usuwania dla każdej wiadomości.
+- Karta Multimedia w rozmowach i w grupach. Zawiera zdjęcia, filmy, pliki dźwiękowe, wiadomości głosowe, dokumenty i linki, z filtrowaniem według typu oraz według pobranych i niepobranych, wczytywaniem pełnej historii i akcjami otwierania, zapisywania i usuwania dla każdej wiadomości. Pliki dźwiękowe i wiadomości głosowe to dwa osobne filtry: można pokazać tylko jedne albo tylko drugie, a także wybrać, czy automatyczne pobieranie obejmuje jedne, drugie czy oba rodzaje.
 
 - Odtwarzacz multimediów w osobnym oknie, z odtwarzaniem i pauzą, przewijaniem o 10 sekund do przodu i do tyłu, pozycją, głośnością i prędkością. W ustawieniach wybierasz, czy filmy z rozmów i statusy mają się w nim otwierać.
 
@@ -24,7 +24,7 @@ NOWOŚCI
 
 - Przebudowany wybór kraju w oknie parowania: korzysta z kraju i języka ustawionych w systemie Windows, jest posortowany alfabetycznie, obsługuje wyszukiwanie przez wpisywanie kilku liter i chroni numer kierunkowy kraju przed przypadkową edycją.
 
-- Nowe opcje w ustawieniach: pokazywanie "wczoraj" zamiast daty, zapowiadanie "Przekazano" przed nadawcą, odróżnianie wiadomości głosowych od plików dźwiękowych, ustalanie długości filmu już przy pobieraniu, wybór domyślnie wyświetlanych typów multimediów oraz rezygnacja z oznaczania nagrań jako odtworzonych.
+- Nowe opcje w ustawieniach: pokazywanie "wczoraj" zamiast daty, zapowiadanie "Przekazano" przed nadawcą, odróżnianie wiadomości głosowych od plików dźwiękowych, teraz domyślnie włączone zamiast odczytywania wszystkiego jako dźwięk, ustalanie długości filmu już przy pobieraniu, wybór domyślnie wyświetlanych typów multimediów oraz rezygnacja z oznaczania nagrań jako odtworzonych.
 
 USPRAWNIENIA
 
@@ -63,3 +63,13 @@ POPRAWKI
 - Pierwsza wiadomość od kontaktu nie znika już po otwarciu rozmowy.
 
 - Dostępność: skrót do emoji jest teraz przekazywany czytnikowi ekranu, Alt+T znów działa wewnątrz rozmowy, a mowa nie jest już przerywana przy każdym potwierdzeniu dostarczenia.
+
+- Synchronizacja nie zaczyna się już bez końca od nowa. Wystarczyła jedna rozmowa, której WhatsApp nie rozpoznaje i która nigdy nie była prawdziwą rozmową, aby WinZapp uznał, że synchronizacja nigdy się nie zakończyła: zaczynał od zera co kilka minut i za każdym razem znów się zapowiadał, mimo że wszystko było już wczytane.
+
+- Szybkie odświeżanie rozmów nie pomija już rozmów z nowymi wiadomościami. Pozostawały one w starym stanie do czasu naciśnięcia F5 i pełnej synchronizacji, co niweczyło zysk na szybkości.
+
+- WinZapp zna teraz datę ważności używanej wersji WhatsApp Web. Gdy ta wygaśnie, pobiera wersję aktualnie udostępnianą przez WhatsApp, zamiast obstawać przy takiej, która nie jest już akceptowana. To właśnie blokowało synchronizację, zostawiało pustą listę rozmów i ostatecznie sprawiało, że WhatsApp usuwał komputer z listy połączonych urządzeń.
+
+- Pierwszy kod parowania po zerwaniu połączenia nie kończy się już błędem. WinZapp sam prosił o kody w tle, aż WhatsApp odmawiał z powodu zbyt wielu żądań; teraz odczekuje między żądaniami, a gdy WhatsApp odmówi, komunikat wyjaśnia przyczynę zamiast pokazywać błąd wewnętrzny.
+
+- Filtr niepobranych multimediów pokazywał wiadomości głosowe, które były już na komputerze, w tym te odsłuchane wewnątrz programu.
