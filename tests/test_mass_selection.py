@@ -184,6 +184,7 @@ class _Panel:
     _on_mass_save_messages = ConversationsPanel._on_mass_save_messages
     _on_mass_delete_messages = ConversationsPanel._on_mass_delete_messages
     _confirm_local_only_delete = ConversationsPanel._confirm_local_only_delete
+    _delete_target_jid = ConversationsPanel._delete_target_jid
     _on_mass_copy_messages = ConversationsPanel._on_mass_copy_messages
     _on_mass_star_messages = ConversationsPanel._on_mass_star_messages
     _on_mass_pin_messages = ConversationsPanel._on_mass_pin_messages
@@ -1134,6 +1135,25 @@ class TestSelfChatBulkDelete:
         # this dialog is one keystroke away from a focused message.
         assert fake_confirm_dialog["style"] & wx.CANCEL
         assert fake_confirm_dialog["style"] & wx.CANCEL_DEFAULT
+
+    def test_an_unrewritten_artifact_key_is_deleted_against_the_chat(
+        self, fake_confirm_dialog, run_threads_inline
+    ):
+        """A self-chat record can still carry the raw "<my digits>@g.us"
+        artifact JID in its key (_redirect_self_chat_artifact() files it under
+        my_jid, deduplicate_chats()'s Pass 0a merges a stored phantom chat's
+        records in, and neither rewrites the key). Deleting against that key
+        addresses a chat that does not exist server-side, so the message came
+        back on the next resync — the issue #73 symptom."""
+        panel = _Panel(messages=[_msg("m1", jid="5511999999999@g.us", from_me=True)])
+        panel.conversation = {"remoteJid": "me@s.whatsapp.net"}
+        panel.main_window._is_self_jid = lambda jid: jid == "me@s.whatsapp.net"
+        panel.selected_messages = {"m1"}
+
+        panel._on_mass_delete_messages(None)
+
+        (jid, _key), = panel.main_window.deleted_messages
+        assert jid == "me@s.whatsapp.net"
 
     def test_declining_the_confirmation_deletes_nothing(self, fake_confirm_dialog, run_threads_inline):
         fake_confirm_dialog["result"] = wx.ID_CANCEL

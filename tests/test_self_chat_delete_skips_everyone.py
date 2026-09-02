@@ -55,12 +55,17 @@ class _Stub:
     _on_menu_delete_message      = ConversationsPanel._on_menu_delete_message
     _delete_message_for_me_only  = ConversationsPanel._delete_message_for_me_only
     _confirm_local_only_delete   = ConversationsPanel._confirm_local_only_delete
+    _delete_target_jid           = ConversationsPanel._delete_target_jid
     _is_separator                = ConversationsPanel._is_separator
     _is_system_event             = lambda self, msg: False
 
-    def __init__(self, jid, is_self_chat):
+    def __init__(self, jid, is_self_chat, key_jid=None):
         self.main_window = _FakeMainWindow(is_self_chat)
-        msg = {"key": {"id": "m1", "fromMe": True, "remoteJid": jid}}
+        # key_jid differs from the chat's own JID only for a self-chat
+        # artifact record whose key was never rewritten (see
+        # ConversationsPanel._delete_target_jid).
+        msg = {"key": {"id": "m1", "fromMe": True,
+                       "remoteJid": key_jid if key_jid is not None else jid}}
         self._sorted_messages = [msg]
         self.conversation = {"remoteJid": jid}
         self.removed_ids = []
@@ -147,3 +152,43 @@ class _FakeMessageDialog:
 
     def Destroy(self):
         pass
+
+
+class TestTheDeleteIsAddressedAtTheChat:
+    """A self-chat record can still carry the raw "<my digits>@g.us" artifact
+    JID in its key: _redirect_self_chat_artifact() files it under my_jid and
+    deduplicate_chats()'s Pass 0a merges a stored phantom chat's records into
+    the "Me" chat, and neither rewrites the key. Deleting against that key
+    builds phone="<my digits>@g.us", isGroup=True server-side — a chat that
+    does not exist — so the message came back on the next resync, which is
+    exactly the issue #73 symptom this path exists to fix."""
+
+    ARTIFACT_JID = "5511999999999@g.us"
+
+    def test_an_unrewritten_artifact_key_is_deleted_against_the_chat(self, monkeypatch):
+        monkeypatch.setattr(wx, "MessageDialog",
+                             lambda *a, **k: _FakeMessageDialog(wx.ID_OK))
+        stub = _Stub(SELF_JID, is_self_chat=True, key_jid=self.ARTIFACT_JID)
+
+        _run_and_join_threads(lambda: stub._on_menu_delete_message(0))
+
+        (jid, _key), = stub.main_window.delete_for_me_calls
+        assert jid == SELF_JID
+
+    def test_an_ordinary_chat_still_resolves_from_the_message_key(self, monkeypatch):
+        """The override is deliberately narrow — outside the "Me" chat the
+        key keeps deciding, exactly as before."""
+        monkeypatch.setattr(wx, "MessageDialog",
+                             lambda *a, **k: _FakeMessageDialog(wx.ID_OK))
+        stub = _Stub("group@g.us", is_self_chat=False)
+        stub._sorted_messages[0]["key"]["remoteJid"] = "group@g.us"
+
+        stub._delete_message_for_me_only(
+            stub._sorted_messages[0], "m1", 0
+        )
+        for t in list(threading.enumerate()):
+            if t is not threading.current_thread():
+                t.join(timeout=2)
+
+        (jid, _key), = stub.main_window.delete_for_me_calls
+        assert jid == "group@g.us"

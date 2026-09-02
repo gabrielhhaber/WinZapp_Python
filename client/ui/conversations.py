@@ -10767,6 +10767,31 @@ class ConversationsPanel(wx.Panel):
                 return i
         return -1
 
+    def _delete_target_jid(self, msg_key: dict) -> str:
+        """The chat a delete has to be addressed at.
+
+        Normally that is the message's own key.remoteJid, and the open
+        conversation is only a fallback for a record that somehow has none.
+        The "Me" chat is the exception, for the same reason
+        _receipts_are_meaningless() reads the chat rather than the key: it
+        holds records whose key still carries the raw self-chat artifact JID
+        ("<my digits>@g.us"), because _redirect_self_chat_artifact() files
+        such a message under my_jid and deduplicate_chats()'s Pass 0a merges
+        an already-stored phantom chat's records into it, and neither
+        rewrites the key. Handing that JID to delete_message_for_me() builds
+        phone="<my digits>@g.us", isGroup=True — a chat that does not exist
+        server-side — so the delete silently does nothing and the message
+        comes back on the next resync, which is issue #73's original symptom
+        in the one chat this whole path exists for.
+
+        Deliberately narrow: only the self-chat overrides the key, so a
+        group or 1:1 delete resolves exactly as it always did.
+        """
+        conv_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
+        if conv_jid and self.main_window._is_self_jid(conv_jid):
+            return conv_jid
+        return msg_key.get("remoteJid", "") or conv_jid
+
     def _delete_message_for_me_only(self, msg: dict, msg_id: str, index: int):
         """Delete a message for this account only (delete_message_for_me),
         then remove it locally — the plain "delete for me" path, shared by
@@ -10775,9 +10800,7 @@ class ConversationsPanel(wx.Panel):
         "delete for everyone" is a no-op there, since the "Me" chat has no
         one else to delete it for)."""
         msg_key = msg.get("key", {})
-        jid = msg_key.get("remoteJid", "") or (
-            self.conversation.get("remoteJid", "") if self.conversation else ""
-        )
+        jid = self._delete_target_jid(msg_key)
 
         def _delete_for_me(k=dict(msg_key), j=jid):
             self.main_window.delete_message_for_me(j, k)
@@ -13934,7 +13957,7 @@ class ConversationsPanel(wx.Panel):
         def _delete_bg():
             for msg in msgs_to_delete:
                 msg_key = dict(msg.get("key", {}))
-                jid = msg_key.get("remoteJid", "") or (self.conversation.get("remoteJid", "") if self.conversation else "")
+                jid = self._delete_target_jid(msg_key)
                 if not jid:
                     continue
                 # Per message, never once for the batch: a mixed selection
