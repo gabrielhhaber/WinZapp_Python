@@ -6,7 +6,7 @@ Lets the user select one or more contacts to add to a group.
 
 import threading
 import wx
-from core.utils import format_number
+from core.utils import format_number, contact_search_matches
 from countries import get_countries
 
 
@@ -48,6 +48,16 @@ class AddMemberDialog(wx.Dialog):
         # alternative first, which read backwards.
         contacts_label = wx.StaticText(self, label=i18n.t("add_member_contacts_list_label"))
         sizer.Add(contacts_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
+        # Search field, right under the list's own label and before the list
+        # itself, focused on open (issue #85): first-letter navigation searches
+        # from the start of the displayed name, so it cannot find anyone by
+        # surname. Same field, same matcher, as the "Anexar contato" dialog.
+        self._search_field = wx.TextCtrl(self, style=wx.TE_DONTWRAP)
+        self._search_field.SetHint(i18n.t("search_contact_label").replace("&", ""))
+        self._search_field.Bind(wx.EVT_TEXT, self._on_search_text)
+        self._search_field.Bind(wx.EVT_KEY_DOWN, self._on_search_key_down)
+        sizer.Add(self._search_field, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 8)
 
         self._list = wx.ListCtrl(
             self, style=wx.LC_REPORT | wx.LC_HRULES
@@ -114,14 +124,20 @@ class AddMemberDialog(wx.Dialog):
         cancel_btn.Bind(wx.EVT_BUTTON, lambda e: self.EndModal(wx.ID_CANCEL))
 
     def _select_first_contact(self):
-        """Auto-select and focus the first contact so a screen-reader user
-        lands directly on a pickable item instead of having to arrow down
-        into the list themselves before anything is selected."""
-        if self._list.GetItemCount() == 0:
-            return
-        self._list.Select(0)
-        self._list.Focus(0)
-        self._list.SetFocus()
+        """Pre-select the first contact, then put keyboard focus in the search
+        field.
+
+        The selection is still made so a screen-reader user arrowing into the
+        list lands on a pickable item rather than on nothing. Keyboard focus
+        goes to the search field instead of the list because issue #85 asks for
+        the field to be focused when the list opens — and Down/Up from there
+        step straight into the list (see _on_search_key_down), so the old
+        gesture still works with one extra key.
+        """
+        if self._list.GetItemCount():
+            self._list.Select(0)
+            self._list.Focus(0)
+        self._search_field.SetFocus()
 
     def _on_phone_char(self, event):
         """Only digits, navigation and Ctrl/Alt combos pass through — mirrors
@@ -195,7 +211,8 @@ class AddMemberDialog(wx.Dialog):
         isMyContact — e.g. someone who messaged first — but the user
         evidently already has a real conversation with).
         """
-        self._contact_jids = []  # parallel list of JIDs
+        self._contact_jids = []  # parallel list of JIDs, for the SHOWN rows
+        self._all_rows = []      # (name, phone, jid), unfiltered
         chats = getattr(self._mw, "chats", {})
         for jid, contact in self._mw.contacts.items():
             if not jid or jid.endswith("@g.us"):
@@ -209,11 +226,43 @@ class AddMemberDialog(wx.Dialog):
             if not is_own_contact:
                 continue
             name = contact.get("name") or contact.get("pushName") or format_number(jid)
-            phone = format_number(jid)
-            idx = self._list.GetItemCount()
-            self._list.InsertItem(idx, name)
-            self._list.SetItem(idx, 1, phone)
-            self._contact_jids.append(jid)
+            self._all_rows.append((name, format_number(jid), jid))
+        self._render_rows("")
+
+    def _render_rows(self, query: str):
+        """Repopulate the list with the rows matching *query*.
+
+        Frozen for the whole rebuild so the screen reader gets one
+        accessibility event rather than one per row — this runs on every
+        keystroke in the search field.
+
+        Selection is deliberately NOT carried across a filter change: this is a
+        multi-select list, and silently keeping a tick on a contact the user can
+        no longer see would add someone to the group without them knowing.
+        """
+        self._list.Freeze()
+        try:
+            self._list.DeleteAllItems()
+            self._contact_jids = []
+            for name, phone, jid in self._all_rows:
+                if not contact_search_matches(query, name, phone):
+                    continue
+                idx = self._list.GetItemCount()
+                self._list.InsertItem(idx, name)
+                self._list.SetItem(idx, 1, phone)
+                self._contact_jids.append(jid)
+        finally:
+            self._list.Thaw()
+
+    def _on_search_text(self, event):
+        self._render_rows(self._search_field.GetValue())
+        event.Skip()
+
+    def _on_search_key_down(self, event):
+        if event.GetKeyCode() in (wx.WXK_DOWN, wx.WXK_UP) and self._contact_jids:
+            self._list.SetFocus()
+            return
+        event.Skip()
 
     def _on_add(self, event):
         """Collect selected contacts and call the API."""

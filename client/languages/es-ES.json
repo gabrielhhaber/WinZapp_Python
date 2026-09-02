@@ -1027,5 +1027,14 @@
     "save_folder_custom_missing": "La carpeta personalizada indicada no existe. Elija una carpeta válida o seleccione otra opción.",
     "storage_auto_download_media_types_label": "&Tipos de multimedia que se descargan automáticamente",
     "media_action_needs_open_conversation": "Este mensaje está fuera de la parte cargada de la conversación. Abre la conversación y desplázate hasta él para usar esta acción.",
-    "audio_mark_played_in_list_label": "&Cambiar el estado de los audios a reproducidos en las conversaciones y anunciarlo al lector de pantalla"
+    "audio_mark_played_in_list_label": "&Cambiar el estado de los audios a reproducidos en las conversaciones y anunciarlo al lector de pantalla",
+    "no_chat_open": "No hay ninguna conversación abierta.",
+    "chat_is_empty": "Esta conversación está vacía.",
+    "contact_view_details": "Ver nombre y número",
+    "contact_copy_number": "Copiar número de teléfono",
+    "contact_number_copied": "Número de teléfono copiado.",
+    "contact_details_title": "Contacto",
+    "contact_pick_number": "Este contacto tiene más de un número. Elige uno:",
+    "contact_no_number": "Esta tarjeta de contacto no incluye ningún número de teléfono.",
+    "search_contact_label": "&Buscar contacto"
 }

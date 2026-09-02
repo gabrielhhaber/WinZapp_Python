@@ -1027,5 +1027,14 @@
     "save_folder_custom_missing": "A pasta personalizada indicada não existe. Escolha uma pasta válida ou selecione outra opção.",
     "storage_auto_download_media_types_label": "&Tipos de multimédia a descarregar automaticamente",
     "media_action_needs_open_conversation": "Esta mensagem está fora do trecho carregado da conversa. Abra a conversa e desloque-se até ela para usar esta ação.",
-    "audio_mark_played_in_list_label": "&Mudar o estado dos áudios para reproduzidos nas conversas e emitir anúncio ao leitor de ecrã"
+    "audio_mark_played_in_list_label": "&Mudar o estado dos áudios para reproduzidos nas conversas e emitir anúncio ao leitor de ecrã",
+    "no_chat_open": "Nenhuma conversa aberta.",
+    "chat_is_empty": "Esta conversa está vazia.",
+    "contact_view_details": "Ver nome e número",
+    "contact_copy_number": "Copiar número de telefone",
+    "contact_number_copied": "Número de telefone copiado.",
+    "contact_details_title": "Contacto",
+    "contact_pick_number": "Este contacto tem mais do que um número. Escolha um:",
+    "contact_no_number": "Este cartão de contacto não traz nenhum número de telefone.",
+    "search_contact_label": "&Procurar contacto"
 }

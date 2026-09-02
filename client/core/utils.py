@@ -128,6 +128,42 @@ def search_normalization_mode(value) -> str:
     return mode if mode in SEARCH_NORMALIZATION_MODES else "off"
 
 
+def contact_search_matches(query: str, name: str, number: str) -> bool:
+    """Whether a contact row survives the contact-list search box (issue #85).
+
+    Matches on the display name and on the phone number, and deliberately by
+    SUBSTRING on the name rather than by prefix: the whole point of the
+    request is that the lists only supported first-letter navigation, which
+    cannot find someone by surname. A substring match covers first name, last
+    name and full name in one rule, so there is nothing to keep in step.
+
+    Accents are folded (normalize_for_search's "nfd"), because a user typing a
+    surname into a search box is not going to reach for the dead-key: "assuncao"
+    has to find "Assunção". That is a stricter choice than the app-wide search
+    setting, which is a preference about the user's OWN text; here the text
+    being searched is other people's names, which the user did not write.
+
+    The number is compared digits-only on both sides, so a query typed as
+    "51 99999" finds a contact rendered "+55 51 99999-0000" — WinZapp formats
+    numbers for display and nobody types the formatting back.
+
+    An empty (or whitespace-only) query matches everything, which is what
+    restores the full list when the field is cleared.
+    """
+    q = (query or "").strip()
+    if not q:
+        return True
+    q_norm = normalize_for_search(q, "nfd")
+    if q_norm and q_norm in normalize_for_search(name or "", "nfd"):
+        return True
+    q_digits = re.sub(r"\D", "", q)
+    if q_digits:
+        num_digits = re.sub(r"\D", "", number or "")
+        if num_digits and q_digits in num_digits:
+            return True
+    return False
+
+
 def normalize_for_search(text: str, mode="off") -> str:
     """Prepare *text* for a case-insensitive substring search.
 

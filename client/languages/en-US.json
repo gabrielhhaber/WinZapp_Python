@@ -1027,5 +1027,14 @@
     "save_folder_custom_missing": "The custom folder you entered does not exist. Choose a valid folder or pick another option.",
     "storage_auto_download_media_types_label": "&Media types to download automatically",
     "media_action_needs_open_conversation": "This message is outside the loaded part of the conversation. Open the conversation and scroll to it to use this action.",
-    "audio_mark_played_in_list_label": "&Mark audios as played in conversations and announce it to the screen reader"
+    "audio_mark_played_in_list_label": "&Mark audios as played in conversations and announce it to the screen reader",
+    "no_chat_open": "No chat is open.",
+    "chat_is_empty": "This chat is empty.",
+    "contact_view_details": "View name and number",
+    "contact_copy_number": "Copy phone number",
+    "contact_number_copied": "Phone number copied.",
+    "contact_details_title": "Contact",
+    "contact_pick_number": "This contact has more than one number. Choose one:",
+    "contact_no_number": "This contact card carries no phone number.",
+    "search_contact_label": "&Search contact"
 }

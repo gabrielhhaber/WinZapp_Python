@@ -327,6 +327,10 @@ class ConversationsPanel(wx.Panel):
         self.conversation = None
         self.conversation_name = ""
         self._last_open_jid = ""
+        # Ultima linha da lista de conversas em que o foco pousou, aberta ou
+        # nao — ver _on_conversation_focused() e
+        # _restore_conversation_selection().
+        self._last_list_focus_jid = ""
 
         # ── Audio / video player state ──────────────────────────────────────
         self._sorted_messages = []
@@ -1151,6 +1155,16 @@ class ConversationsPanel(wx.Panel):
         self.ID_ARCHIVE_LIST        = wx.NewIdRef()
         self.ID_PIN_LIST            = wx.NewIdRef()
         self.ID_CLOSE_CONV_LIST     = wx.NewIdRef()
+        # Alt+2 / Alt+3 exist on conversation_panel's own table, and that panel
+        # is HIDDEN while no conversation is open — so with nothing open the
+        # two combos reached no handler at all and the user got silence, which
+        # reads as a broken shortcut (issue #86). Duplicated here, on the
+        # always-present panel table, purely so there is somewhere to say
+        # "no chat is open". With a conversation open and focus in the chat
+        # list they simply delegate to the real handlers, which is what Alt+2
+        # ("go to messages") is supposed to do from there anyway.
+        self.ID_ALT_2_LIST          = wx.NewIdRef()
+        self.ID_ALT_3_LIST          = wx.NewIdRef()
         # ── Mass actions (only act while conversations are selected) ─────────
         # One shortcut per entry of the chat list's "Ações em massa" submenu,
         # for the same reason the messages list has its own set (see
@@ -1193,6 +1207,8 @@ class ConversationsPanel(wx.Panel):
             (CS,              ord("Q"),         self.ID_ARCHIVE_LIST),
             (wx.ACCEL_CTRL,   ord("P"),         self.ID_PIN_LIST),
             (wx.ACCEL_CTRL,   ord("W"),         self.ID_CLOSE_CONV_LIST),
+            (wx.ACCEL_ALT,    ord("2"),         self.ID_ALT_2_LIST),
+            (wx.ACCEL_ALT,    ord("3"),         self.ID_ALT_3_LIST),
             (CAS,             ord("L"),         self.ID_BULK_CLEAR_CHATS),
             (CS,              wx.WXK_DELETE,    self.ID_BULK_DELETE_CHATS),
             (CAS,             ord("A"),         self.ID_BULK_ARCHIVE_CHATS),
@@ -1212,6 +1228,8 @@ class ConversationsPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self._on_accel_archive_list,        id=self.ID_ARCHIVE_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_pin_list,            id=self.ID_PIN_LIST)
         self.Bind(wx.EVT_MENU, self.on_context_menu_close,         id=self.ID_CLOSE_CONV_LIST)
+        self.Bind(wx.EVT_MENU, self._on_accel_jump_last,           id=self.ID_ALT_2_LIST)
+        self.Bind(wx.EVT_MENU, self._on_accel_jump_unread,         id=self.ID_ALT_3_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_clear_chats,    id=self.ID_BULK_CLEAR_CHATS)
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_delete_chats,   id=self.ID_BULK_DELETE_CHATS)
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_archive_chats,  id=self.ID_BULK_ARCHIVE_CHATS)
@@ -1447,6 +1465,13 @@ class ConversationsPanel(wx.Panel):
         if 0 <= idx < len(self.chats_list):
             chat = self.chats_list[idx]
             jid = chat.get("remoteJid", "")
+            # Onde o usuario parou na lista, que nao e a mesma coisa que qual
+            # conversa esta aberta: dava para mover o foco ate a Conversa 2 sem
+            # abri-la, ir para as mensagens da Conversa 1 com Alt+2 e voltar com
+            # Alt+1 na Conversa 1, porque _restore_conversation_selection() so
+            # sabia de _last_open_jid. Vale tambem para o Esc/Ctrl+W.
+            if jid:
+                self._last_list_focus_jid = jid
             if jid and jid in self.selected_chats:
                 self.selection_sound.play()
 
@@ -3770,14 +3795,31 @@ class ConversationsPanel(wx.Panel):
         self._close_conversation_core()
 
     def _restore_conversation_selection(self):
-        """Select, focus and give keyboard focus to the last-opened conversation."""
+        """Select, focus and give keyboard focus back to where the user last
+        was in the chat list.
+
+        That position is ``_last_list_focus_jid`` — the row the focus actually
+        sat on — and only falls back to ``_last_open_jid`` when that row is
+        gone from the list (deleted, archived, filtered out) or was never
+        recorded. Restoring the OPEN conversation instead was the whole of
+        issue #91: moving to another chat without opening it, going to the
+        messages with Alt+2 and coming back with Alt+1 (or closing the
+        conversation with Esc/Ctrl+W) dropped the user back on the open chat
+        every time, losing wherever they had navigated to.
+        """
         lst = self.conversations_list
         target = 0
-        if self._last_open_jid:
+        for candidate in (self._last_list_focus_jid, self._last_open_jid):
+            if not candidate:
+                continue
+            found = -1
             for i, chat in enumerate(self.chats_list):
-                if chat.get("remoteJid") == self._last_open_jid:
-                    target = i
+                if chat.get("remoteJid") == candidate:
+                    found = i
                     break
+            if found >= 0:
+                target = found
+                break
         if self.chats_list:
             lst.Focus(target)
             lst.Select(target)
@@ -3966,6 +4008,27 @@ class ConversationsPanel(wx.Panel):
     def on_context_menu_close(self, event):
         if self.conversation_panel.IsShown():
             self.close_conversation(event)
+            return
+        # Ctrl+W with nothing open used to do nothing at all, silently — see
+        # _no_conversation_open_announced() (issue #86).
+        self._no_conversation_open_announced()
+
+    def _no_conversation_open_announced(self) -> bool:
+        """Say "no chat is open" and return True when there is none.
+
+        The shortcuts that only make sense inside a conversation (Alt+2, Alt+3,
+        Ctrl+W) used to be completely silent with nothing open. For a
+        screen-reader user silence is indistinguishable from the shortcut being
+        broken — the same reasoning as _run_bulk_chat_action()'s
+        "bulk_no_chat_selection" and save_media_message()'s
+        "save_as_nothing_to_save".
+        """
+        if self.conversation is not None:
+            return False
+        self.main_window.output(
+            self.main_window.i18n.t("no_chat_open"), interrupt=True
+        )
+        return True
 
     # ── Messages list events ────────────────────────────────────────────────
 
@@ -4289,6 +4352,47 @@ class ConversationsPanel(wx.Panel):
                 wx.EVT_MENU,
                 lambda e, m=msg: self._on_menu_copy_file(m),
                 copy_file_item,
+            )
+
+        # ── Contact card actions (issue #84) ─────────────────────────────
+        # These used to exist only as two Tab-reachable buttons next to the
+        # message list (Conversar / Salvar contato), which a user navigating
+        # the messages with the arrow keys never meets, and there was no way
+        # at all to see or copy the number. The buttons stay where they are;
+        # this is the same set plus the two missing actions, in the place a
+        # screen-reader user actually looks for per-message actions.
+        if msg_type == "contactMessage":
+            details_item = menu.Append(wx.ID_ANY, i18n.t("contact_view_details"))
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_contact_view_details(m),
+                details_item,
+            )
+            copy_num_item = menu.Append(
+                wx.ID_ANY, f"{i18n.t('contact_copy_number')}\tCtrl+C"
+            )
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_contact_copy_number(m),
+                copy_num_item,
+            )
+            _card_jid = self._jid_from_vcard(
+                ((msg.get("message") or {}).get("contactMessage") or {}).get("vcard", "")
+            )
+            if _card_jid:
+                converse_card_item = menu.Append(wx.ID_ANY, i18n.t("converse"))
+                self.Bind(
+                    wx.EVT_MENU,
+                    lambda e, j=_card_jid: self._on_contact_converse(None, jid=j),
+                    converse_card_item,
+                )
+            save_card_item = menu.Append(
+                wx.ID_ANY, f"{i18n.t('save_contact')}\tCtrl+Shift+S"
+            )
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e: self._on_save_contact_message(None),
+                save_card_item,
             )
 
         # Copy caption (photo/video/document messages that have one) — a
@@ -12195,6 +12299,11 @@ class ConversationsPanel(wx.Panel):
 
         if msg_type in ("imageMessage", "videoMessage", "documentMessage", "audioMessage"):
             self._on_menu_copy_file(msg)
+        elif msg_type == "contactMessage":
+            # Ctrl+C on a contact card copies the phone number, not the row's
+            # rendered text — a card has no body to copy, and the number is the
+            # only thing anyone wants off it (issue #84).
+            self._on_contact_copy_number(msg)
         else:
             self._on_menu_copy_message(msg)
 
@@ -12368,9 +12477,22 @@ class ConversationsPanel(wx.Panel):
         directly, or Alt+2 would land on the separator (or, before that,
         potentially on a stale earlier row) instead of the newest message.
         """
+        if self._no_conversation_open_announced():
+            return
         last = len(self._sorted_messages) - 1
         while last >= 0 and self._is_separator(self._sorted_messages[last]):
             last -= 1
+        if last < 0:
+            # Nothing but sentinel rows: the conversation is open but empty, so
+            # the loop above walked off the top of the list. Alt+2 is defined as
+            # "focus the last real message", and the empty-list placeholder is
+            # not one (no more than the unread separator is) — so say the chat is
+            # empty instead of focusing the placeholder, which is what issue #87
+            # settled on. Silence here read as a dead shortcut.
+            self.main_window.output(
+                self.main_window.i18n.t("chat_is_empty"), interrupt=True
+            )
+            return
         if last >= 0:
             # Focus() (not just Select()) is what actually moves the
             # keyboard-focus/screen-reader cursor to the row — every other
@@ -12391,6 +12513,8 @@ class ConversationsPanel(wx.Panel):
 
     def _on_accel_jump_unread(self, event):
         i18n = self.main_window.i18n
+        if self._no_conversation_open_announced():
+            return
         if self._unread_sep_idx < 0 or self._unread_sep_idx >= self.messages_list.GetItemCount():
             self.main_window.output(i18n.t("no_unread_in_conv"), interrupt=True)
             return
@@ -13699,6 +13823,125 @@ class ConversationsPanel(wx.Panel):
                     break
             name = parsed_name or i18n.t("unknown_contact")
         return name
+
+    @staticmethod
+    def _vcard_phone_numbers(vcard: str) -> list:
+        """Every phone number a contact card carries, in card order.
+
+        A vCard can hold several TEL lines (mobile / work / home), and issue #84
+        asks for the user to pick which one when it does. Deliberately parses
+        the TEL lines rather than reusing _jid_from_vcard(), which answers a
+        different question ("which WhatsApp account is this?") and stops at the
+        first waid= it finds — the right answer for opening a conversation, and
+        the wrong one for "copy the number", which must be able to offer all of
+        them. Each entry is (label, number): the label is the TYPE= parameter
+        when the card names one, so a list of three bare numbers still reads as
+        something in a screen reader.
+
+        Numbers are returned exactly as the card writes them, minus whitespace
+        runs — WhatsApp cards are inconsistent about "+55 51 9..." vs
+        "+5551 9...", and rewriting them would mean guessing a country.
+        """
+        if not vcard:
+            return []
+        out = []
+        seen = set()
+        for line in vcard.splitlines():
+            line = line.strip()
+            if not line.upper().startswith("TEL"):
+                continue
+            prop, _, value = line.partition(":")
+            number = " ".join(value.split()).strip()
+            if not number:
+                continue
+            digits = re.sub(r"\D", "", number)
+            if not digits or digits in seen:
+                continue
+            seen.add(digits)
+            label = ""
+            m = re.search(r"TYPE=([^;:]+)", prop, re.IGNORECASE)
+            if m:
+                label = m.group(1).strip().strip('"')
+            out.append((label, number))
+        return out
+
+    def _contact_message_numbers(self, msg: dict) -> list:
+        """_vcard_phone_numbers() for a contactMessage, with the waid fallback.
+
+        Some cards carry the WhatsApp id and nothing parseable as a TEL line;
+        _jid_from_vcard() already knows how to dig that out, so fall back to it
+        rather than telling the user the card has no number when it plainly
+        shows one.
+        """
+        contact = (msg.get("message") or {}).get("contactMessage") or {}
+        numbers = self._vcard_phone_numbers(contact.get("vcard", ""))
+        if numbers:
+            return numbers
+        jid = self._jid_from_vcard(contact.get("vcard", ""))
+        if jid:
+            return [("", format_number(jid))]
+        return []
+
+    def _pick_contact_number(self, msg: dict) -> str:
+        """The number to act on, asking the user when the card holds several.
+
+        Returns "" when the card has no number (announced) or the user cancels
+        the choice. The dialog is a plain wx.SingleChoiceDialog on purpose —
+        the accessibility rule in CLAUDE.md is standard controls, and a
+        single-choice list is exactly what this is.
+        """
+        i18n = self.main_window.i18n
+        numbers = self._contact_message_numbers(msg)
+        if not numbers:
+            self.main_window.output(i18n.t("contact_no_number"), interrupt=True)
+            return ""
+        if len(numbers) == 1:
+            return numbers[0][1]
+        choices = [f"{lbl}: {num}" if lbl else num for lbl, num in numbers]
+        dlg = wx.SingleChoiceDialog(
+            self, i18n.t("contact_pick_number"), i18n.t("contact_details_title"),
+            choices,
+        )
+        try:
+            if dlg.ShowModal() != wx.ID_OK:
+                return ""
+            return numbers[dlg.GetSelection()][1]
+        finally:
+            dlg.Destroy()
+
+    def _on_contact_view_details(self, msg: dict):
+        """Context menu > "Ver nome e número": name plus every number on the
+        card, spoken and shown, since the message row itself only ever renders
+        the name (issue #84)."""
+        i18n = self.main_window.i18n
+        name = self._contact_display_name(msg)
+        numbers = self._contact_message_numbers(msg)
+        if numbers:
+            lines = [f"{lbl}: {num}" if lbl else num for lbl, num in numbers]
+            body = "\n".join([name] + lines)
+        else:
+            body = "\n".join([name, i18n.t("contact_no_number")])
+        self.main_window.output(body.replace("\n", ". "), interrupt=True)
+        wx.MessageBox(body, i18n.t("contact_details_title"), wx.OK | wx.ICON_INFORMATION, self)
+
+    def _on_contact_copy_number(self, msg: dict):
+        """Ctrl+C / context menu on a contact message: copy the phone number."""
+        number = self._pick_contact_number(msg)
+        if not number:
+            return
+        if wx.TheClipboard.Open():
+            try:
+                wx.TheClipboard.SetData(wx.TextDataObject(number))
+                wx.TheClipboard.Flush()
+            finally:
+                wx.TheClipboard.Close()
+            self.main_window.output(
+                self.main_window.i18n.t("contact_number_copied"), interrupt=True
+            )
+        else:
+            self.main_window.output(
+                self.main_window.i18n.t("msg_copy_error"), interrupt=True
+            )
 
     def _on_contact_converse(self, event, jid: str | None = None):
         """Navigate to the conversation with the contact from the selected

@@ -11,7 +11,7 @@ returns ``wx.ID_OK``.
 """
 
 import wx
-from core.utils import format_number, contact_dedup_key
+from core.utils import format_number, contact_dedup_key, contact_search_matches
 
 
 class AttachContactDialog(wx.Dialog):
@@ -32,7 +32,8 @@ class AttachContactDialog(wx.Dialog):
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
         self.selected_contact: dict | None = None
-        self._contacts_list: list = []   # parallel to list rows
+        self._contacts_list: list = []   # parallel to the CURRENTLY shown rows
+        self._all_rows: list = []        # (name, number, entry), unfiltered
 
         self._build_ui()
         self.SetSize((420, 440))
@@ -44,6 +45,19 @@ class AttachContactDialog(wx.Dialog):
         i18n = self._mw.i18n
         panel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Search field, above the list and focused on open (issue #85). The
+        # list only ever supported first-letter navigation, which searches from
+        # the start of the displayed name and so cannot find anyone by surname.
+        # Same shape the "Novo grupo" dialog already uses.
+        search_label = wx.StaticText(panel, label=i18n.t("search_contact_label"))
+        sizer.Add(search_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._search_field = wx.TextCtrl(panel, style=wx.TE_DONTWRAP)
+        self._search_field.Bind(wx.EVT_TEXT, self._on_search_text)
+        # Down/Up from the field walk into the list without a Tab, so the
+        # search-then-pick sequence is one continuous keyboard gesture.
+        self._search_field.Bind(wx.EVT_KEY_DOWN, self._on_search_key_down)
+        sizer.Add(self._search_field, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 8)
 
         self._list = wx.ListCtrl(panel, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
         self._list.InsertColumn(0, i18n.t("conversations"), width=200)
@@ -112,25 +126,60 @@ class AttachContactDialog(wx.Dialog):
             ):
                 best_by_key[key] = entry
 
-        if not best_by_key:
-            self._list.Append((i18n.t("no_contacts"), ""))
-        else:
-            rows = [
-                (
-                    entry.get("name") or entry.get("pushName")
-                    or format_number(entry["remoteJid"]),
-                    entry,
-                )
-                for entry in best_by_key.values()
-            ]
-            rows.sort(key=lambda r: r[0].lower())
-            for name, entry in rows:
-                self._list.Append((name, format_number(entry["remoteJid"])))
+        rows = [
+            (
+                entry.get("name") or entry.get("pushName")
+                or format_number(entry["remoteJid"]),
+                format_number(entry["remoteJid"]),
+                entry,
+            )
+            for entry in best_by_key.values()
+        ]
+        rows.sort(key=lambda r: r[0].lower())
+        self._all_rows = rows
+        self._render_rows("")
+        self._search_field.SetFocus()
+
+    def _render_rows(self, query: str):
+        """Repopulate the list with the rows matching *query*.
+
+        Frozen for the whole rebuild: a screen reader gets one accessibility
+        event for the new list instead of one per row, which matters here
+        because this runs on every keystroke in the search field.
+        """
+        i18n = self._mw.i18n
+        self._list.Freeze()
+        try:
+            self._list.DeleteAllItems()
+            self._contacts_list = []
+            for name, number, entry in self._all_rows:
+                if not contact_search_matches(query, name, number):
+                    continue
+                self._list.Append((name, number))
                 self._contacts_list.append(entry)
+            if not self._contacts_list:
+                # Never leave the list empty and silent: an empty result and an
+                # empty address book are different situations and both need to
+                # say so. The row is not selectable as a contact — _on_ok()
+                # indexes _contacts_list, which stays empty.
+                self._list.Append((i18n.t("no_contacts"), ""))
+        finally:
+            self._list.Thaw()
+        if self._contacts_list:
             self._list.Focus(0)
             self._list.Select(0)
 
     # ── Events ──────────────────────────────────────────────────────────────
+
+    def _on_search_text(self, event):
+        self._render_rows(self._search_field.GetValue())
+        event.Skip()
+
+    def _on_search_key_down(self, event):
+        if event.GetKeyCode() in (wx.WXK_DOWN, wx.WXK_UP) and self._contacts_list:
+            self._list.SetFocus()
+            return
+        event.Skip()
 
     def _on_activate(self, event):
         self._on_ok(event)

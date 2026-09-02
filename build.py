@@ -45,6 +45,7 @@ Usage:
 """
 
 import os
+import re
 import sys
 import shutil
 import subprocess
@@ -471,6 +472,91 @@ def check_tools():
 
 # -- Step 2: PyInstaller compile --------------------------------------------
 
+
+# -- Windows VERSIONINFO resource --------------------------------------------
+
+def _app_version_tuple():
+    """(major, minor, patch, build) read off client/version.py.
+
+    Windows VERSIONINFO wants exactly four 16-bit integers, and WinZapp's own
+    version string may carry a pre-release suffix ("0.25.0.0beta",
+    "1.0.0.2154alpha" — see the auto-updater section of CLAUDE.md), which has
+    no place in the resource. Only the numeric components are read; a missing
+    or unparseable one becomes 0 rather than failing the build, and each is
+    clamped to 65535 because an alpha's fourth component is a commit count and
+    will eventually pass that.
+    """
+    version = ""
+    version_py = os.path.join(CLIENT_DIR, "version.py")
+    try:
+        with io.open(version_py, encoding="utf-8") as fh:
+            for line in fh:
+                if line.strip().startswith("__version__"):
+                    version = line.split("=", 1)[1].strip().strip("\"'")
+                    break
+    except OSError:
+        pass
+    parts = []
+    for chunk in re.split(r"[.\-+]", version):
+        m = re.match(r"^(\d+)", chunk.strip())
+        parts.append(min(int(m.group(1)), 65535) if m else 0)
+    parts = (parts + [0, 0, 0, 0])[:4]
+    return version or "0.0.0.0", tuple(parts)
+
+
+def _write_version_file(work_dir):
+    """Generate the PyInstaller --version-file that fills in Windows'
+    Properties > Details for WinZapp.exe (issue #88).
+
+    Without it the built exe carries no VERSIONINFO resource at all: Windows
+    shows blank File description / File version / Product name, which also
+    makes the process indistinguishable in Task Manager and unhelpful to
+    anyone reporting a bug ("which version are you running?"). Generated on
+    every build from client/version.py, so it cannot drift from the version
+    the app itself displays — that is the "updated automatically as part of
+    the build process" half of the request.
+
+    Note this covers WinZapp.exe only. The onedir installer/uninstaller stubs
+    are C, compiled through installer/*.rc by windres, and would need their own
+    (generated) VERSIONINFO block there.
+    """
+    display, (maj, minr, patch, build) = _app_version_tuple()
+    os.makedirs(work_dir, exist_ok=True)
+    path = os.path.join(work_dir, "winzapp_version_info.txt")
+    content = f"""VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=({maj}, {minr}, {patch}, {build}),
+    prodvers=({maj}, {minr}, {patch}, {build}),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        '040904B0',
+        [StringStruct('CompanyName', 'WinZapp'),
+         StringStruct('FileDescription', 'WinZapp - accessible WhatsApp client'),
+         StringStruct('FileVersion', '{display}'),
+         StringStruct('InternalName', 'WinZapp'),
+         StringStruct('LegalCopyright', '© 2026 WinZapp - LGPLv3'),
+         StringStruct('OriginalFilename', 'WinZapp.exe'),
+         StringStruct('ProductName', 'WinZapp'),
+         StringStruct('ProductVersion', '{display}')])
+    ]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)
+"""
+    with io.open(path, "w", encoding="utf-8") as fh:
+        fh.write(content)
+    print(f"  [versioninfo] {display} -> {path}")
+    return path
+
+
 def pyinstaller_compile():
     mode = "onefile" if ONEFILE else "onedir"
     step(f"2/8  Compiling client with PyInstaller (--{mode})")
@@ -511,6 +597,7 @@ def pyinstaller_compile():
         "--name", "WinZapp",
         "--distpath", DIST_DIR if ONEFILE else PYINST_OUTDIR,
         "--workpath", work_dir,
+        "--version-file", _write_version_file(work_dir),
         "--noconfirm",
     ]
 

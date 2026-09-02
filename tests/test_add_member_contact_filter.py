@@ -22,6 +22,11 @@ from tests.conftest import hidden_frame
 
 class _Stub:
     _populate_contacts = AddMemberDialog._populate_contacts
+    # _populate_contacts() now collects the rows and hands them to
+    # _render_rows(), which is what applies the search filter (issue #85) —
+    # with an empty query it renders every row, so what this file asserts is
+    # unchanged.
+    _render_rows = AddMemberDialog._render_rows
 
     def __init__(self, frame, contacts, chats=None):
         self._mw = type("MW", (), {"contacts": contacts, "chats": chats or {}})()

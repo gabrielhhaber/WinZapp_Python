@@ -64,13 +64,36 @@ def _sep():
     return {"_type": "unread_separator", "count": 1}
 
 
+_CONV = {"remoteJid": "5551999990000@s.whatsapp.net"}
+
+
+class _I18n:
+    def t(self, key):
+        return key
+
+
+class _MainWindow:
+    def __init__(self):
+        self.i18n = _I18n()
+        self.spoken = []
+
+    def output(self, text, interrupt=False):
+        self.spoken.append(text)
+
+
 class _Stub:
     _on_accel_jump_last = ConversationsPanel._on_accel_jump_last
     _is_separator = ConversationsPanel._is_separator
+    # Alt+2 now speaks instead of doing nothing in the two cases this file
+    # already covered — no conversation open, and a conversation holding no
+    # real message (issues #86 and #87).
+    _no_conversation_open_announced = ConversationsPanel._no_conversation_open_announced
 
-    def __init__(self, sorted_messages):
+    def __init__(self, sorted_messages, conversation=_CONV):
         self._sorted_messages = sorted_messages
         self.messages_list = _FakeMessagesList()
+        self.conversation = conversation
+        self.main_window = _MainWindow()
 
 
 class TestJumpToLastMessage:
@@ -96,17 +119,25 @@ class TestJumpToLastMessage:
         assert stub.messages_list.selected == 0
         assert stub.messages_list.focused_item == 0
 
-    def test_empty_list_selects_nothing(self):
+    def test_empty_list_selects_nothing_and_says_the_chat_is_empty(self):
         stub = _Stub([])
         stub._on_accel_jump_last(None)
         assert stub.messages_list.selected is None
         assert stub.messages_list.focused_item is None
+        assert stub.main_window.spoken == ["chat_is_empty"]
 
-    def test_a_list_of_only_sentinels_selects_nothing(self):
+    def test_a_list_of_only_sentinels_selects_nothing_and_says_so(self):
         stub = _Stub([_sep()])
         stub._on_accel_jump_last(None)
         assert stub.messages_list.selected is None
         assert stub.messages_list.focused_item is None
+        assert stub.main_window.spoken == ["chat_is_empty"]
+
+    def test_with_no_conversation_open_it_says_that_instead(self):
+        stub = _Stub([], conversation=None)
+        stub._on_accel_jump_last(None)
+        assert stub.messages_list.selected is None
+        assert stub.main_window.spoken == ["no_chat_open"]
 
     def test_ensures_the_selected_row_is_visible_and_focuses_the_list(self):
         stub = _Stub([_msg("a"), _msg("b")])
