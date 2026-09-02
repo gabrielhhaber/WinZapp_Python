@@ -346,6 +346,11 @@ class ConversationsPanel(wx.Panel):
         self._chain_start_timer = None
         self._chain_end_timer = None
         self._pending_played_refresh_id = None
+        # Row repaints deferred while the audio chain is moving list focus —
+        # see _release_chain_held_repaints() for why they must not be written
+        # during the sequence at all.
+        self._hold_status_repaints_for_chain = False
+        self._chain_held_status_repaints = set()
         self._audio_stream_duration = 0
         self._audio_temp_file = None
         self._audio_speed_steps = [1.0, 1.5, 2.0]
@@ -2813,6 +2818,19 @@ class ConversationsPanel(wx.Panel):
         pending = getattr(self, "_pending_status_repaints", None)
         if not pending:
             return
+
+        # While the audio chain is moving list focus from one voice note to the
+        # next, NO row text may be written at all — see
+        # _release_chain_held_repaints() for the whole reasoning. Everything
+        # queued in that window is held and written once the chain is over.
+        if getattr(self, "_hold_status_repaints_for_chain", False):
+            held = getattr(self, "_chain_held_status_repaints", None)
+            if held is None:
+                held = self._chain_held_status_repaints = set()
+            held.update(pending)
+            pending.clear()
+            return
+
         ids = set(pending)
         pending.clear()
 
@@ -2849,6 +2867,86 @@ class ConversationsPanel(wx.Panel):
                     pass
         finally:
             self.messages_list.Thaw()
+
+    def _hold_status_repaints_until_chain_ends(self):
+        """Arm the hold. Called the moment we know the chain is about to move
+        list focus off the row we are about to mark as played."""
+        self._hold_status_repaints_for_chain = True
+
+    def _release_chain_held_repaints(self):
+        """Write out every row repaint held back while the audio chain ran.
+
+        Why the hold exists at all — the rule comes straight from NVDA's own
+        source. ``NVDAObject.event_nameChange`` is::
+
+            def event_nameChange(self):
+                if self is api.getFocusObject():
+                    speech.speakObjectProperties(self, name=True, reason=CHANGE)
+
+        A wx.ListCtrl row is one MSAA object whose *name* is the whole rendered
+        line, so rewriting a row to add "reproduzido" raises a name change, and
+        NVDA speaks the **entire row** — but only when that row is the object it
+        currently believes has focus. So the fix is not to time the write, it is
+        to never write the row NVDA is looking at while focus is moving away
+        from it.
+
+        The previous protection tried to order the two events instead: move
+        focus, then fire the "played" refresh from the same callback,
+        documented as "this can't lose the race because both actions run in the
+        same callback, in this order". It could, for two measured reasons:
+
+        * ``refresh_message_status()`` does not write anything — it queues the
+          row and starts a 120 ms coalescing timer. Measured on the real code
+          path, the write landed 142 ms *after* the focus move. That is a
+          margin, not a guarantee, and users on several machines with current
+          NVDA reported it losing.
+        * Worse, that margin can go negative. ``mark_audio_message_played()``
+          also POSTs a played receipt to WhatsApp, which echoes the same status
+          back over Socket.IO onto ``on_message_status_update()`` with
+          ``skip_panel_refresh=False`` — bypassing the chain protection
+          entirely. Measured on the real code path: the row was written 95 ms
+          *before* the focus move, so NVDA read the whole finished row out and
+          only then announced the newly focused one. That is exactly the
+          reported symptom, and it is a hole the ordering approach cannot cover
+          because the second write does not come through the chain at all.
+
+        Holding removes both: during the chain nothing is written, so there is
+        no event to lose a race with. At release time focus sits on the last
+        voice note of the sequence while every held row is an earlier one, so
+        each name change lands on a non-focused object and NVDA stays silent by
+        its own rule — no timing assumption anywhere.
+
+        Idempotent: the hold flag is cleared first, so the several places that
+        can end a sequence (the last voice note, the user stopping playback,
+        leaving the conversation) may all call this without writing the rows
+        twice. It does NOT check whether the chain is still running — call it
+        only once the sequence is genuinely over, which is why the call sites
+        sit next to where _is_in_audio_chain is cleared.
+        """
+        if not getattr(self, "_hold_status_repaints_for_chain", False):
+            return
+        self._hold_status_repaints_for_chain = False
+        held = getattr(self, "_chain_held_status_repaints", None)
+        if not held:
+            return
+        self._chain_held_status_repaints = set()
+        pending = getattr(self, "_pending_status_repaints", None)
+        if pending is None:
+            pending = self._pending_status_repaints = set()
+        pending.update(held)
+        # Straight to the write rather than through refresh_message_status():
+        # the chain is over, there is no focus move left to stay clear of, and
+        # another 120 ms of coalescing would only leave the rows stale for
+        # longer. A timer already in flight is cancelled so it cannot fire a
+        # second, empty flush.
+        timer = getattr(self, "_status_repaint_timer", None)
+        if timer is not None:
+            try:
+                timer.Stop()
+            except Exception:
+                pass
+            self._status_repaint_timer = None
+        self._flush_status_repaints()
 
     # ── Voice recording ──────────────────────────────────────────────────────
 
@@ -7520,6 +7618,10 @@ class ConversationsPanel(wx.Panel):
         self._current_audio_id = None
         if not getattr(self, "_in_auto_chain_transition", False) and not getattr(self, "_in_auto_timer_stop", False):
             self._is_in_audio_chain = False
+            # The sequence is over (user stopped it, started a different audio,
+            # or left the conversation): no further focus move is coming, so
+            # the rows held back during it are safe to write.
+            self._release_chain_held_repaints()
         if self._audio_temp_file and os.path.exists(self._audio_temp_file):
             try:
                 os.unlink(self._audio_temp_file)
@@ -7615,6 +7717,15 @@ class ConversationsPanel(wx.Panel):
                     # too. See MainWindow.mark_audio_message_played()'s own
                     # docstring for why this never applies to our own sends.
                     will_chain = bool(finished_id) and self._next_message_is_chainable_audio(finished_id)
+                    if will_chain:
+                        # Armed HERE, before anything can queue a row repaint —
+                        # not inside _auto_chain_next_audio() below. The played
+                        # receipt this send-off triggers echoes back from
+                        # WhatsApp onto on_message_status_update() on its own
+                        # schedule, and that path knows nothing about the chain;
+                        # the hold is what catches it. See
+                        # _release_chain_held_repaints().
+                        self._hold_status_repaints_until_chain_ends()
                     if finished_msg is not None:
                         self.main_window.mark_audio_message_played(
                             finished_msg,
@@ -7705,10 +7816,15 @@ class ConversationsPanel(wx.Panel):
         finished_id again — this method fires that refresh itself, exactly
         once, at whichever point it's actually safe: right after the chain
         moves focus onto the next voice note if it does, or immediately if it
-        turns out there's nothing to chain into after all. A fixed timeout
-        guess was tried first and lost the race in practice (reported live:
-        still announced "played" before the focus change); this can't lose
-        it because both actions run in the same callback, in this order.
+        turns out there's nothing to chain into after all.
+
+        Note this ordering is NOT what keeps the screen reader quiet, and it
+        never was — refresh_message_status() only queues the row and starts a
+        coalescing timer, so the write lands well after this callback returns,
+        and a played receipt echoing back from WhatsApp can write the same row
+        without passing through here at all. _release_chain_held_repaints() is
+        what actually guarantees no row is rewritten while the chain is moving
+        focus; this just keeps the queued refresh from being dropped.
         """
         # Cancel any timers left over from a previous chain step before
         # scheduling new ones — a stale timer must never start audio after
@@ -7770,6 +7886,9 @@ class ConversationsPanel(wx.Panel):
 
         if has_next_audio and target_msg is not None:
             self._is_in_audio_chain = True
+            # Normally already armed by on_audio_timer(); repeated here so a
+            # direct caller of this method gets the same protection.
+            self._hold_status_repaints_until_chain_ends()
             def _play_next():
                 snd = getattr(self.main_window, "audio_transition_next_sound", None)
                 if snd is not None:
@@ -7800,21 +7919,13 @@ class ConversationsPanel(wx.Panel):
                         self.messages_list.Focus(target_idx)
                         self.messages_list.Select(target_idx, True)
                         self.messages_list.EnsureVisible(target_idx)
-                    # Only now — focus has already landed wherever it's going
-                    # to land for this step — is it safe to refresh the
-                    # finished row's "played" status without that refresh's
-                    # own accessibility event competing with (and queuing
-                    # ahead of) the announcement of the newly focused row.
-                    # Still via wx.CallAfter, not a direct call: Focus()/
-                    # Select() above only *post* the focus-change
-                    # accessibility event, they don't wait for NVDA to have
-                    # actually processed it — calling the refresh in the very
-                    # same synchronous burst raced the two events in whatever
-                    # order NVDA's own internal queue happened to prefer,
-                    # confirmed live as "works for some audios, not others".
-                    # CallAfter defers to the next idle iteration of the
-                    # message loop, after the focus event has actually been
-                    # dispatched to the OS.
+                    # Queue the finished row's "played" refresh. It will not
+                    # be written now: the hold armed for this chain parks it
+                    # (and anything else queued during the sequence) until
+                    # _release_chain_held_repaints() runs at the end. Trying to
+                    # win the race by ordering the two events here is what used
+                    # to be attempted, and it could not work — see that
+                    # method's docstring for the measurements.
                     wx.CallAfter(_flush_pending_played_refresh)
                     clean_msg_id = msg_id
                     if "_" in msg_id:
@@ -7834,8 +7945,10 @@ class ConversationsPanel(wx.Panel):
         else:
             # No next voice note to chain into — nothing else is ever going
             # to move focus away from the finished row, so the "played"
-            # refresh (if any) is safe to fire right now.
+            # refresh (if any) is safe to fire right now, and every repaint
+            # held back during the sequence can finally be written.
             _flush_pending_played_refresh()
+            self._release_chain_held_repaints()
             if getattr(self, "_is_in_audio_chain", False):
                 def _play_end():
                     snd = getattr(self.main_window, "audio_transition_end_sound", None)

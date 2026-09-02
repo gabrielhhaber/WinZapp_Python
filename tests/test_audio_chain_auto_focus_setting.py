@@ -61,6 +61,11 @@ def _voice_msg(msg_id):
 class _Stub:
     _auto_chain_next_audio = ConversationsPanel._auto_chain_next_audio
     _cancel_pending_chain_timers = ConversationsPanel._cancel_pending_chain_timers
+    _hold_status_repaints_until_chain_ends = (
+        ConversationsPanel._hold_status_repaints_until_chain_ends
+    )
+    _release_chain_held_repaints = ConversationsPanel._release_chain_held_repaints
+    _flush_status_repaints = ConversationsPanel._flush_status_repaints
     _is_separator = ConversationsPanel._is_separator
     _is_voice_message = ConversationsPanel._is_voice_message
 
@@ -77,6 +82,10 @@ class _Stub:
         self._chain_start_timer = None
         self._chain_end_timer = None
         self._pending_played_refresh_id = None
+        self._hold_status_repaints_for_chain = False
+        self._chain_held_status_repaints = set()
+        self._pending_status_repaints = set()
+        self._status_repaint_timer = None
         self.toggle_calls = []
 
     def _toggle_playback(self, msg_id, duration, msg, file_path, audio_ext):

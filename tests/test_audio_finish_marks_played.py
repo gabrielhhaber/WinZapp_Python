@@ -144,6 +144,7 @@ class _Stub:
         self.stop_audio_calls = 0
         self.hide_audio_controls_calls = 0
         self.auto_chain_calls = []
+        self.hold_armed_calls = []
 
     def _stop_audio(self):
         self.stop_audio_calls += 1
@@ -154,6 +155,12 @@ class _Stub:
 
     def _auto_chain_next_audio(self, finished_id, pending_played_msg_id=None):
         self.auto_chain_calls.append((finished_id, pending_played_msg_id))
+
+    def _hold_status_repaints_until_chain_ends(self):
+        # Real method is a one-line flag set; recorded here so the tests can
+        # assert the hold is armed BEFORE mark_audio_message_played() runs —
+        # the played receipt it sends echoes back on its own schedule.
+        self.hold_armed_calls.append(len(self.main_window.mark_played_calls))
 
 
 class TestAudioFinishMarksPlayed:
@@ -208,11 +215,17 @@ class TestPendingPlayedRefreshHandoffWhenChainingIntoTheNextVoiceNote:
     before it got to announce focus landing on the next one. A first fix
     delayed the refresh by a fixed 300ms timeout — still lost the race in
     practice, because the real gap before the chain moves focus isn't a
-    fixed number. on_audio_timer() now hands the refresh off to
-    _auto_chain_next_audio() itself instead of guessing a delay: that method
-    fires it deterministically right after its own focus move happens (see
-    tests/test_audio_chain_auto_focus_setting.py for that half), never on a
-    timer that can race it."""
+    fixed number. The handoff to _auto_chain_next_audio() asserted here was
+    the second attempt, and it did not fix it either: refresh_message_status()
+    only queues the row behind a coalescing timer, and the played receipt this
+    very mark sends echoes back from WhatsApp onto a path that repaints the row
+    without touching the chain at all.
+
+    What actually silences it is ConversationsPanel._release_chain_held_repaints()
+    — no row is written while the chain is moving focus, full stop. See
+    tests/test_audio_chain_played_repaint_hold.py, which measures the real
+    ordering. The handoff still earns its place: it keeps the queued refresh
+    from being dropped, and arming the hold here is what covers the echo."""
 
     def test_skips_the_refresh_and_hands_it_to_the_chain_when_chainable(self):
         finished = _audio_msg("m1", ptt=True)
@@ -225,6 +238,9 @@ class TestPendingPlayedRefreshHandoffWhenChainingIntoTheNextVoiceNote:
 
         assert stub.main_window.skip_panel_refresh_calls == [True]
         assert stub.auto_chain_calls == [("m1", "m1")]
+        # Armed before the message was marked played, i.e. before anything —
+        # including the WhatsApp echo that mark triggers — can queue a repaint.
+        assert stub.hold_armed_calls == [0]
 
     def test_refreshes_immediately_when_nothing_chainable_follows(self):
         finished = _audio_msg("m1", ptt=True)
