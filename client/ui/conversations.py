@@ -13253,16 +13253,19 @@ class ConversationsPanel(wx.Panel):
             max_mb    = _MAX_ATTACHMENT_MB
 
             try:
-                if os.path.getsize(path) > max_bytes:
-                    wx.MessageBox(
-                        i18n.t("media_too_large").format(max_mb=max_mb),
-                        i18n.t("app_name"),
-                        wx.OK | wx.ICON_ERROR,
-                        self,
-                    )
-                    continue
+                file_size = os.path.getsize(path)
             except OSError:
-                pass
+                # Unreadable size is not a reason to refuse the send — the
+                # limit check below simply can't run, exactly as before.
+                file_size = None
+            if file_size is not None and file_size > max_bytes:
+                wx.MessageBox(
+                    i18n.t("media_too_large").format(max_mb=max_mb),
+                    i18n.t("app_name"),
+                    wx.OK | wx.ICON_ERROR,
+                    self,
+                )
+                continue
 
             vtype      = _VTYPE.get(media_type, "documentMessage")
             local_id   = str(uuid.uuid4())
@@ -13272,6 +13275,30 @@ class ConversationsPanel(wx.Panel):
                 "mimetype": mimetypes.guess_type(path)[0]
                             or "application/octet-stream",
             }
+            if vtype == "documentMessage" and file_size is not None:
+                # Issue #96: a document we send showed no size, while the same
+                # document received from someone else did. The rendering is
+                # shared and keys only on fileLength — the field just never
+                # reached it. WPPConnect's echo of our own send DOES carry the
+                # size, but on_new_message() merges an echo into the pending
+                # virtual message by copying id/timestamp/participant onto it,
+                # keeping this body, so the echo's copy is discarded and the
+                # record persisted to the DB never has it. (It reappeared only
+                # after a resync re-fetched the message from the server through
+                # _normalize_wpp_message.)
+                #
+                # Filling it here rather than from the echo is deliberate: the
+                # line is complete the moment it appears, instead of being
+                # rewritten once the echo lands — and rewriting a list row is
+                # what makes a screen reader read the whole row out again (see
+                # _release_chain_held_repaints()).
+                #
+                # Only documents: theirs is the one type whose rendered line
+                # shows a size, and fileLength is also read by
+                # MainWindow.sync_if_media() as an auto-download size gate, so
+                # populating it for our own images/videos would change that
+                # decision for something this issue never asked about.
+                _body["fileLength"] = file_size
             if media_type == "audio":
                 _dur = self._probe_audio_duration(path)
                 if _dur is not None:
