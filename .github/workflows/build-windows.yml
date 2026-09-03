@@ -159,15 +159,18 @@ jobs:
         run: venv\Scripts\python.exe setup_api.py
 
       # ensure_wpp_version() (client/main.py) compares an *installed*
-      # api/package.json's version against WPP_MINIMUM_VERSION baked into
-      # client/.env at build time, and prompts the user to update WPPConnect
-      # Server when the installed copy is older than what this WinZapp build
-      # was actually built/tested against. Without this step client/.env
-      # never contains the key at all, so that gate is silently a no-op on
-      # every shipped release. Reading it back out of client/api/package.json
-      # (rather than hardcoding a version string here) keeps it in sync with
-      # whatever setup_api.py just checked out above, tag pin or not.
-      - name: Write WPP_MINIMUM_VERSION into client/.env
+      # api/package.json's version against the minimum baked into
+      # client/wpp_minimum_version.txt at build time, and prompts the user
+      # to update WPPConnect Server when the installed copy is older than
+      # what this WinZapp build was actually built/tested against. Without
+      # this step the file never exists at all, so that gate is silently a
+      # no-op on every shipped release. Reading it back out of
+      # client/api/package.json (rather than hardcoding a version string
+      # here) keeps it in sync with whatever setup_api.py just checked out
+      # above, tag pin or not. A dedicated plain-text file rather than a
+      # bundled .env — see _read_wpp_minimum_version()'s docstring for why
+      # WinZapp no longer ships a .env from the build at all.
+      - name: Write the minimum WPPConnect version WinZapp requires
         shell: pwsh
         run: |
           $pkg = Get-Content "client\api\package.json" -Raw | ConvertFrom-Json
@@ -176,8 +179,8 @@ jobs:
             Write-Error "Could not read a version from client/api/package.json"
             exit 1
           }
-          Add-Content -Path "client\.env" -Value "WPP_MINIMUM_VERSION=$version" -Encoding utf8
-          Write-Output "[INFO] client/.env: WPP_MINIMUM_VERSION=$version"
+          Set-Content -Path "client\wpp_minimum_version.txt" -Value $version -Encoding utf8 -NoNewline
+          Write-Output "[INFO] client/wpp_minimum_version.txt: $version"
 
       # Install JS dependencies and compile TypeScript → dist/server.js.
       # PUPPETEER_SKIP_DOWNLOAD skips the ~680 MB Chrome download — the app

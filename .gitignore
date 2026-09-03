@@ -110,6 +110,7 @@ cover/
 # Environments
 .env
 .envrc
+client/wpp_minimum_version.txt
 .venv
 env/
 venv/

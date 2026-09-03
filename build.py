@@ -7,14 +7,14 @@ Build modes:
 
   --onefile:           PyInstaller --onefile -> WinZapp.exe (single file)
                        All Python deps + external resources (node/, api/, lib/,
-                       sounds/, languages/, data/, .env) are embedded in the exe
+                       sounds/, languages/, data/) are embedded in the exe
                        and extracted to a temp directory at runtime.
 
 Steps (onedir default):
   1. Check required tools (pyinstaller, gcc, windres) and pre-built api/ + client/node/
   2. Compile client with PyInstaller -> build/pyinstaller_out/
   3. Assemble staging dir -> WinZapp.exe + _internal/ + lib/ + sounds/ + languages/
-                            + data/ + .env + node/ + api/
+                            + data/ + node/ + api/
   4. Compile uninstaller -> build/uninstall.exe
   5. Create payload ZIP (ZIP_STORED) from staging/
   6. Compile installer stub -> build/installer_stub.exe
@@ -617,10 +617,9 @@ def pyinstaller_compile():
             (os.path.join(CLIENT_DIR, "languages"), "languages"),
             (SETTINGS_DEFAULT, os.path.join("data", "settings_default.json")),
         ]
-        if os.path.isfile(os.path.join(CLIENT_DIR, ".env")):
-            add_data_pairs.append(
-                (os.path.join(CLIENT_DIR, ".env"), ".env")
-            )
+        wpp_min_version_file = os.path.join(CLIENT_DIR, "wpp_minimum_version.txt")
+        if os.path.isfile(wpp_min_version_file):
+            add_data_pairs.append((wpp_min_version_file, "wpp_minimum_version.txt"))
 
         for src, dst in add_data_pairs:
             if os.path.exists(src):
@@ -743,12 +742,14 @@ def assemble_staging():
     shutil.copy2(SETTINGS_DEFAULT, os.path.join(data_dir, "settings_default.json"))
     print(f"  -> data/settings_default.json")
 
-    client_env = os.path.join(CLIENT_DIR, ".env")
-    if os.path.isfile(client_env):
-        shutil.copy2(client_env, os.path.join(STAGING_DIR, ".env"))
-        print(f"  -> .env")
-    else:
-        print(f"  [WARN] client/.env not found — skipping")
+    # wpp_minimum_version.txt (plain text, just the version string) feeds
+    # MainWindow.ensure_wpp_version() — see its own docstring for why this
+    # is a dedicated file rather than a bundled .env: only build-windows.yml
+    # writes it, so it's absent (silently skipped) on any local/dev build.
+    wpp_min_version_file = os.path.join(CLIENT_DIR, "wpp_minimum_version.txt")
+    if os.path.isfile(wpp_min_version_file):
+        shutil.copy2(wpp_min_version_file, os.path.join(STAGING_DIR, "wpp_minimum_version.txt"))
+        print(f"  -> wpp_minimum_version.txt")
 
     changelog_files = glob.glob(os.path.join(CLIENT_DIR, "changelog_*.txt"))
     for src in changelog_files:

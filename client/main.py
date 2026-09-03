@@ -7016,21 +7016,26 @@ class MainWindow(wx.Frame):
 
     # ── WPPConnect version gate ───────────────────────────────────────────────
 
-    def _read_env_value(self, key: str, default: str = "") -> str:
-        """Read a value from the bundled client .env file."""
-        env_path = resource_path(".env")
+    def _read_wpp_minimum_version(self) -> str:
+        """Read the minimum WPPConnect Server version this build was tested
+        against from the bundled wpp_minimum_version.txt (plain text, just
+        the version string) — written by build-windows.yml at build time,
+        absent entirely on a plain dev checkout.
+
+        This used to live as a WPP_MINIMUM_VERSION key inside a bundled
+        client/.env file, which meant every build (even ones with no other
+        use for it) shipped a .env alongside the exe. A dedicated file
+        carries the exact same one value without needing a whole
+        key=value config file format, or the general dotenv-override
+        mechanism (config.py's own _load_dotenv(), which still lets a user
+        manually drop a real .env next to the exe for WINZAPP_GITHUB_REPO —
+        that stays; it's just never build-injected any more).
+        """
         try:
-            with open(env_path, encoding="utf-8") as fh:
-                for line in fh:
-                    line = line.strip()
-                    if not line or line.startswith("#") or "=" not in line:
-                        continue
-                    k, _, v = line.partition("=")
-                    if k.strip() == key:
-                        return v.strip()
+            with open(resource_path("wpp_minimum_version.txt"), encoding="utf-8") as fh:
+                return fh.read().strip()
         except Exception:
-            pass
-        return default
+            return ""
 
     def _get_installed_wpp_version(self) -> str:
         """Read the WPPConnect Server version from api/package.json."""
@@ -7063,7 +7068,7 @@ class MainWindow(wx.Frame):
     def ensure_wpp_version(self):
         """
         Compare the installed WPPConnect version against the minimum required
-        by this WinZapp build (WPP_MINIMUM_VERSION in client/.env).
+        by this WinZapp build (see _read_wpp_minimum_version()).
 
         If the installed version is older the user is prompted to:
           • Update now   — re-download + rebuild via ApiSetupDialog, then continue
@@ -7073,7 +7078,7 @@ class MainWindow(wx.Frame):
         The check is skipped when:
           - Running in background mode (no UI)
           - api/package.json is absent (setup not done yet)
-          - WPP_MINIMUM_VERSION is not defined in the .env
+          - wpp_minimum_version.txt is not bundled (plain dev checkout)
         """
         if self.background_mode:
             return
@@ -7082,7 +7087,7 @@ class MainWindow(wx.Frame):
         if not os.path.isfile(dist_main):
             return  # API not installed yet — setup dialog will handle it
 
-        minimum  = self._read_env_value("WPP_MINIMUM_VERSION")
+        minimum  = self._read_wpp_minimum_version()
         if not minimum:
             return  # No minimum defined — nothing to check
 
