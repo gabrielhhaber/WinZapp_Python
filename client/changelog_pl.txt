@@ -26,6 +26,10 @@ NOWOŚCI
 
 - Nowe opcje w ustawieniach: pokazywanie "wczoraj" zamiast daty, zapowiadanie "Przekazano" przed nadawcą, odróżnianie wiadomości głosowych od plików dźwiękowych, teraz domyślnie włączone zamiast odczytywania wszystkiego jako dźwięk, ustalanie długości filmu już przy pobieraniu, wybór domyślnie wyświetlanych typów multimediów oraz rezygnacja z oznaczania nagrań jako odtworzonych.
 
+- Wyszukiwanie na listach kontaktów ("Załącz kontakt" i "Dodaj członka"): pole ma fokus od razu po otwarciu listy, filtruje według imienia i nazwiska oraz numeru w trakcie pisania, a wyczyszczenie pola przywraca pełną listę kontaktów.
+
+- Otrzymana wizytówka kontaktu: menu kontekstowe z podglądem nazwy i numeru, kopiowaniem numeru skrótem Ctrl+C oraz rozpoczęciem rozmowy. Gdy wizytówka zawiera więcej niż jeden numer, WinZapp pyta, którego użyć.
+
 USPRAWNIENIA
 
 - Dokumenty mogą teraz mieć do 2 GB, czyli tyle, ile faktycznie pozwala WhatsApp. WinZapp bez powodu zatrzymywał je na 1 GB. Zdjęcia, filmy i pliki dźwiękowe pozostają przy 1 GB, bo taki jest limit WhatsAppa dla nich.
@@ -77,3 +81,25 @@ POPRAWKI
 - Pierwszy kod parowania po zerwaniu połączenia nie kończy się już błędem. WinZapp sam prosił o kody w tle, aż WhatsApp odmawiał z powodu zbyt wielu żądań; teraz odczekuje między żądaniami, a gdy WhatsApp odmówi, komunikat wyjaśnia przyczynę zamiast pokazywać błąd wewnętrzny.
 
 - Filtr niepobranych multimediów pokazywał wiadomości głosowe, które były już na komputerze, w tym te odsłuchane wewnątrz programu.
+
+- Wysyłany dokument pokazuje teraz rozmiar pliku od razu po pojawieniu się na liście wiadomości, tak jak dotychczas otrzymywane.
+
+- WinZapp teraz preferuje stabilną wersję WhatsApp Web zamiast alpha, gdy dostępne są obie — korzystanie z wersji alpha powodowało odparowanie urządzenia kilka godzin po sparowaniu. Wstępna synchronizacja jest też bardziej tolerancyjna na opóźnienia, zanim uzna połączenie za przerwane.
+
+- Rozmowa Wiadomości do mnie przestała pokazywać potwierdzenia dostarczenia i przeczytania oraz oznaczenie dźwięku jako odtworzonego — nie mają sensu w rozmowie z samym sobą.
+
+- Usuwanie dla wszystkich w rozmowie Wiadomości do mnie teraz naprawdę działa. Wcześniej wiadomość znikała tylko lokalnie i wracała przy kolejnej synchronizacji.
+
+- Alt+2, Alt+3 i Ctrl+W bez żadnej otwartej rozmowy informują teraz "Żadna rozmowa nie jest otwarta", zamiast nic nie robić.
+
+- Alt+2 w pustej rozmowie informuje "Ta rozmowa jest pusta", zamiast pozostawać w ciszy.
+
+- Lista rozmów wraca do wiersza, na którym faktycznie był fokus, a nie zawsze do rozmowy, która była otwarta.
+
+- Separator nieprzeczytanych wiadomości przestał znikać lub pokazywać błędną liczbę, gdy program jest zminimalizowany do zasobnika systemowego z otwartą rozmową.
+
+- Zarchiwizowana rozmowa przestała być zapowiadana na głos, gdy nowa wiadomość przychodzi przy programie działającym na pierwszym planie.
+
+- Odtwarzanie wiadomości głosowych jedna po drugiej przestało odczytywać cały poprzedni wiersz na głos nad zapowiedzią nowego.
+
+- Opcja wyciszania czytnika ekranu podczas nagrywania dźwięku teraz zapobiega zapowiedzi u źródła, zamiast próbować ją anulować po tym, jak już zaczęła być odczytywana.

@@ -26,6 +26,10 @@ NOVIDADES
 
 - Opções novas nas configurações: mostrar "ontem" no lugar da data, anunciar "Encaminhada" antes do remetente, distinguir mensagem de voz de arquivo de áudio, que agora é o padrão em vez de ler tudo como áudio, descobrir a duração do vídeo já ao baixar, escolher os tipos de mídia exibidos por padrão e não marcar áudios como reproduzidos.
 
+- Busca nas listas de contato ("Anexar contato" e "Adicionar membro"): o campo já vem com foco quando a lista abre, filtra por nome (inclusive sobrenome) e por número enquanto você digita, e limpar o campo volta a mostrar todos os contatos.
+
+- Cartão de contato recebido: menu de contexto com ver nome e número, copiar o número com Ctrl+C e conversar. Quando o cartão traz mais de um número, o WinZapp pergunta qual usar.
+
 MELHORIAS
 
 - Documentos agora podem ter até 2 GB, que é o limite real do WhatsApp. O WinZapp barrava em 1 GB sem motivo. Fotos, vídeos e áudios continuam em 1 GB, que é o limite do WhatsApp para eles.
@@ -77,3 +81,25 @@ CORREÇÕES
 - O primeiro código de pareamento depois de uma queda de conexão não falha mais. O WinZapp pedia códigos sozinho, em segundo plano, até o WhatsApp recusar por excesso de pedidos; agora ele espera entre um pedido e outro, e quando o WhatsApp recusa, a mensagem explica o motivo em vez de mostrar um erro interno.
 
 - O filtro de mídias não baixadas mostrava mensagens de voz que já estavam no computador, inclusive as que você já tinha ouvido dentro do programa.
+
+- Documento enviado passa a mostrar o tamanho do arquivo assim que aparece na lista de mensagens, como já acontecia com os recebidos.
+
+- O WinZapp passa a preferir uma versão estável do WhatsApp Web em vez de uma alpha, quando as duas estão disponíveis — usar uma alpha estava fazendo o aparelho ser desparelhado horas depois do pareamento. A sincronização inicial também ficou mais tolerante a lentidão antes de considerar a conexão caída.
+
+- A conversa Mensagens para mim deixou de mostrar confirmações de entrega, de leitura e a marca de áudio reproduzido: não fazem sentido numa conversa com você mesmo.
+
+- Apagar para todos na conversa Mensagens para mim agora funciona de verdade. Antes a mensagem só sumia localmente e voltava a aparecer na sincronização seguinte.
+
+- Alt+2, Alt+3 e Ctrl+W sem nenhuma conversa aberta agora avisam "Nenhuma conversa aberta", em vez de não fazer nada.
+
+- Alt+2 numa conversa vazia avisa "Esta conversa está vazia", em vez de ficar em silêncio.
+
+- A lista de conversas volta para a linha em que o foco estava, e não sempre para a conversa que tinha sido aberta.
+
+- O separador de mensagens não lidas parou de sumir ou de mostrar uma contagem errada quando o programa é minimizado para a bandeja com a conversa aberta.
+
+- Uma conversa arquivada deixou de ser anunciada em voz alta quando chega mensagem nova com o programa em primeiro plano.
+
+- Reproduzir áudios um atrás do outro não lê mais a linha inteira do áudio anterior por cima do anúncio do novo.
+
+- A opção de silenciar o leitor de tela ao gravar um áudio agora impede o anúncio na origem, em vez de tentar cancelá-lo depois que ele já tinha começado a falar.

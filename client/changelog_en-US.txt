@@ -26,6 +26,10 @@ WHAT'S NEW
 
 - New settings: show "yesterday" instead of the date, announce "Forwarded" before the sender, tell voice messages apart from audio files, which is now the default instead of reading everything as audio, determine a video's length as soon as it is downloaded, choose which media types are shown by default, and stop marking audio as played.
 
+- Search in the contact lists ("Attach contact" and "Add member"): the field is focused as soon as the list opens, filters by name (including surname) and by number as you type, and clearing it shows every contact again.
+
+- Received contact card: a context menu with view name and number, copy the number with Ctrl+C, and converse. When the card carries more than one number, WinZapp asks which one to use.
+
 IMPROVEMENTS
 
 - Documents can now be up to 2 GB, which is WhatsApp's real limit. WinZapp used to stop them at 1 GB for no reason. Photos, videos and audio stay at 1 GB, which is WhatsApp's limit for those.
@@ -77,3 +81,25 @@ FIXES
 - The first pairing code after a dropped connection no longer fails. WinZapp was requesting codes on its own, in the background, until WhatsApp refused for too many requests; it now waits between requests, and when WhatsApp does refuse, the message explains why instead of showing an internal error.
 
 - The "not downloaded" media filter was listing voice messages that were already on the computer, including ones you had played inside the app.
+
+- A document you send now shows its file size as soon as it appears in the message list, like received ones already did.
+
+- WinZapp now prefers a stable WhatsApp Web build over an alpha one when both are available — using an alpha was getting the device unpaired hours after pairing. The initial sync is also more tolerant of slowness before it decides the connection is down.
+
+- The "Messages to myself" chat no longer shows delivery and read receipts, or the "played" audio mark — they make no sense in a chat with yourself.
+
+- "Delete for everyone" in the "Messages to myself" chat now actually works. The message used to disappear only locally and come back on the next sync.
+
+- Alt+2, Alt+3 and Ctrl+W with no conversation open now say "No chat is open" instead of doing nothing.
+
+- Alt+2 in an empty conversation says "This chat is empty" instead of staying silent.
+
+- The conversation list returns to the row focus was actually on, not always to the conversation that had been open.
+
+- The unread separator no longer disappears or shows the wrong count when the app is minimized to the system tray with the conversation open.
+
+- An archived conversation is no longer announced out loud when a new message arrives while the app is in the foreground.
+
+- Playing voice messages back to back no longer reads the whole previous row out loud over the new one.
+
+- The option to silence the screen reader while recording audio now stops the announcement at the source, instead of trying to cancel it after it has already started.
