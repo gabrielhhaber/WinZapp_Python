@@ -103,3 +103,13 @@ CORREÇÕES
 - Reproduzir áudios seguidos deixou de ler a linha inteira do áudio anterior por cima do anúncio do novo.
 
 - A opção de silenciar o leitor de ecrã ao gravar um áudio passa a impedir o anúncio na origem, em vez de tentar cancelá-lo depois de já ter começado a falar.
+
+- Adicionar um contacto novo pelo WinZapp podia duplicar a conversa e deixar a primeira mensagem sempre como "não confirmada", quando o WhatsApp reconhecia esse número noutro formato (por exemplo, com ou sem o 9.º dígito).
+
+- O nome de um grupo alterado no WhatsApp passa a ser atualizado no WinZapp, incluindo ao ressincronizar com F5. Antes, o nome antigo nunca era substituído.
+
+- Trocar o dispositivo de saída de som nas definições enquanto um áudio estava a tocar podia fazer com que a primeira tentativa de tocar outro áudio falhasse sem aviso; agora toca já na primeira vez.
+
+- Desligar pelo menu Ficheiro > Desconectar deixou de tocar novamente os sons de ligado e de início de sincronização, e deixou de tentar ligar-se sozinho: a conta fica realmente desligada.
+
+- O registo de instalação de atualizações passa a ficar dentro da pasta de registos da conta (junto com log.log e shutdown_audit.log), em vez de solto na pasta do programa.

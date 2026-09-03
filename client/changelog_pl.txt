@@ -103,3 +103,13 @@ POPRAWKI
 - Odtwarzanie wiadomości głosowych jedna po drugiej przestało odczytywać cały poprzedni wiersz na głos nad zapowiedzią nowego.
 
 - Opcja wyciszania czytnika ekranu podczas nagrywania dźwięku teraz zapobiega zapowiedzi u źródła, zamiast próbować ją anulować po tym, jak już zaczęła być odczytywana.
+
+- Dodanie nowego kontaktu w WinZapp mogło zduplikować rozmowę i sprawić, że pierwsza wiadomość zawsze pozostawała jako „niepotwierdzona”, gdy WhatsApp rozpoznawał ten numer w innym formacie (np. z lub bez 9. cyfry).
+
+- Nazwa grupy zmieniona w WhatsApp jest teraz aktualizowana w WinZapp, również po ponownej synchronizacji klawiszem F5. Wcześniej stara nazwa nigdy nie była zastępowana.
+
+- Zmiana urządzenia wyjścia dźwięku w Ustawieniach podczas odtwarzania innego audio mogła sprawić, że pierwsza próba odtworzenia kolejnego audio kończyła się cichym niepowodzeniem; teraz odtwarza się już za pierwszym razem.
+
+- Rozłączenie przez Plik > Rozłącz nie odtwarza już ponownie dźwięków „połączono” i „rozpoczęto synchronizację” ani nie próbuje samodzielnie połączyć się ponownie — konto pozostaje faktycznie rozłączone.
+
+- Dziennik instalacji aktualizacji jest teraz zapisywany w folderze dzienników konta (razem z log.log i shutdown_audit.log), zamiast osobno w folderze programu.

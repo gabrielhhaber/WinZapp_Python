@@ -103,3 +103,13 @@ FIXES
 - Playing voice messages back to back no longer reads the whole previous row out loud over the new one.
 
 - The option to silence the screen reader while recording audio now stops the announcement at the source, instead of trying to cancel it after it has already started.
+
+- Adding a new contact through WinZapp could duplicate the conversation and leave its first message permanently stuck as "not confirmed" whenever WhatsApp recognized that number in a different format (e.g. with or without the 9th digit).
+
+- A group's name changed on WhatsApp is now picked up by WinZapp, including on an F5 resync. Before, the old name was never replaced.
+
+- Switching the sound output device in Settings while an audio was playing could make the first attempt to play another audio silently fail; it now plays on the first try.
+
+- Disconnecting from File > Disconnect no longer plays the "connected"/"sync started" sounds again or tries to reconnect on its own — the account stays properly disconnected.
+
+- The update installer's log now lives inside the account's own logs folder (alongside log.log and shutdown_audit.log), instead of loose in the program folder.
