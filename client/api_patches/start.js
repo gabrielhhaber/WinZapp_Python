@@ -681,9 +681,34 @@ async function installPinnedPageInterception(page, body, log) {
   // interception entirely and got WhatsApp's current build — which decides
   // whether the bug is in this pattern or upstream of it.
   let documentsServed = 0;
+  const interceptionInstalledAt = Date.now();
   page.on('framenavigated', (frame) => {
     if (frame === page.mainFrame()) {
-      console.log(`[WinZapp] main frame navigated -> ${frame.url()}`);
+      const url = frame.url();
+      console.log(`[WinZapp] main frame navigated -> ${url}`);
+      // A forced `post_logout=1` this early — before the first pinned
+      // document has even been served once — means WhatsApp evicted the
+      // session before WPPConnect had a chance to log in at all, which is a
+      // different failure than the documented reload loop this pattern match
+      // was narrowed to avoid (see the comment on the exact-match urlPattern
+      // below). Both incidents that motivated this ([blindtec], [valmir],
+      // 2026-09-03) showed this exact shape: pair, list-chats stuck at 0
+      // chats the whole time, then this navigation 2-3 minutes later, on a
+      // pin that was not expired. Logged so a future occurrence is
+      // identifiable from log.log alone instead of requiring a fresh
+      // wppconnect.log grep session — this line changes no behavior.
+      if (/[?&]post_logout=1/.test(url)) {
+        const reasonMatch = url.match(/[?&]logout_reason=(\d+)/);
+        const reason = reasonMatch ? reasonMatch[1] : 'unknown';
+        const elapsedS = ((Date.now() - interceptionInstalledAt) / 1000).toFixed(1);
+        console.warn(
+          `[WinZapp] WhatsApp forced a logout (post_logout=1, logout_reason=${reason}) ` +
+          `${elapsedS}s after this session's document interception was installed, after ` +
+          `${documentsServed} pinned document(s) served. If this happens shortly after a ` +
+          'fresh pairing with the chat list still empty, it is WhatsApp evicting the ' +
+          'session server-side, not a local fault.'
+        );
+      }
     }
   });
   // The exact-match urlPattern is deliberate — do NOT widen it.
