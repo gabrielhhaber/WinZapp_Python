@@ -49,6 +49,7 @@ class _Stub:
         self._WA_STARTUP_GRACE_SECONDS = MainWindow._WA_STARTUP_GRACE_SECONDS
 
         self.settings = {}
+        self.token = "tok"
 
         self._shutting_down = False
         self._wpp_updating = False

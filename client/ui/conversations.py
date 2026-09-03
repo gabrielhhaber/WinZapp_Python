@@ -7455,14 +7455,28 @@ class ConversationsPanel(wx.Panel):
             try:
                 _ctrl.pause()
             except Exception:
-                pass
+                # The stream is dead (e.g. the output device was switched in
+                # Settings while this was playing — BASS_Free()/BASS_Init()
+                # during that switch invalidates it), not "already paused".
+                # Reopen fresh rather than leaving _is_audio_playing=False
+                # pointed at a channel that will also fail the next play().
+                if self._recover_audio_stream_after_device_switch():
+                    self._is_audio_playing = True
+                    self._audio_timer.Start(30)
+                else:
+                    self._stop_audio()
+                return
             self._is_audio_playing = False
             self._audio_timer.Stop()
         else:
             try:
                 _ctrl.play()
             except Exception:
-                self._stop_audio()
+                if self._recover_audio_stream_after_device_switch():
+                    self._is_audio_playing = True
+                    self._audio_timer.Start(30)
+                else:
+                    self._stop_audio()
                 return
             self._is_audio_playing = True
             self._audio_timer.Start(30)
@@ -7479,16 +7493,33 @@ class ConversationsPanel(wx.Panel):
                 try:
                     _ctrl.pause()
                 except Exception:
-                    # BASS may report "not playing" if the user switches
-                    # messages faster than the audio backend updates state.
-                    pass
+                    # Distinguish "not playing yet" (BASS's own report if the
+                    # user switches messages faster than the backend updates
+                    # state — harmless) from a genuinely dead channel (the
+                    # output device was switched in Settings while this was
+                    # playing, which frees + reinits BASS and invalidates
+                    # every stream that existed before it). The latter must
+                    # reopen fresh, or the next play() attempt on the same
+                    # dead object fails too — reported live as "doesn't play
+                    # the first time after switching output device, only the
+                    # second".
+                    if self._recover_audio_stream_after_device_switch():
+                        self._is_audio_playing = True
+                        self._audio_timer.Start(30)
+                    else:
+                        self._stop_audio()
+                    return
                 self._is_audio_playing = False
                 self._audio_timer.Stop()
             else:
                 try:
                     _ctrl.play()
                 except Exception:
-                    self._stop_audio()
+                    if self._recover_audio_stream_after_device_switch():
+                        self._is_audio_playing = True
+                        self._audio_timer.Start(30)
+                    else:
+                        self._stop_audio()
                     return
                 self._is_audio_playing = True
                 self._audio_timer.Start(30)
@@ -7568,6 +7599,70 @@ class ConversationsPanel(wx.Panel):
 
             threading.Thread(target=_download_and_play, daemon=True).start()
 
+    def _open_audio_stream_from_temp_file(self):
+        """Open a fresh BASS stream on the already-decrypted
+        self._audio_temp_file, wrapped in Tempo FX (enables speed control).
+
+        A decoded stream (BASS_STREAM_DECODE) cannot be played directly; it
+        must be wrapped by a BASS FX processor such as Tempo. If the FX
+        plugin is unavailable, falls back to a plain stream without the
+        effect. A method rather than a local closure inside _play_audio() so
+        the toggle-play recovery paths (_toggle_playback(),
+        toggle_current_audio_playback()) can reopen a fresh stream too — an
+        output device switch (Settings) frees + reinits BASS, invalidating
+        whatever stream/Tempo control was already loaded, and resuming that
+        SAME dead object on the next play() always failed silently: only
+        _play_audio() (a brand new message) reopened a fresh stream, so
+        toggling play/pause on the message that was already loaded when the
+        device switch happened never recovered — reported live as "doesn't
+        play the first time after switching output device, only the
+        second" (the second attempt worked only once _current_audio_id had
+        been reset by some other path, landing back on _play_audio()).
+        """
+        try:
+            s = sl_stream.FileStream(file=self._audio_temp_file, decode=True)
+            tempo = Tempo(s)
+            _speed = self._audio_speed_steps[self._audio_speed_index]
+            tempo.tempo = self._audio_tempo_map.get(_speed, 0)
+            return s, tempo
+        except Exception as e:
+            logging.info(f"[UI Audio Playback] Decode/Tempo stream failed ({e}), falling back to direct stream: {self._audio_temp_file}")
+            return sl_stream.FileStream(file=self._audio_temp_file), None
+
+    def _recover_audio_stream_after_device_switch(self) -> bool:
+        """Reopen self._audio_stream/_audio_tempo_ctrl from the still-valid
+        decrypted temp file and resume playback near where it was.
+
+        Called when a play()/pause() on the currently loaded stream raises
+        outside of _play_audio() (which already handles this) — see
+        _open_audio_stream_from_temp_file()'s docstring for why that
+        happens. Returns whether it succeeded; a caller whose recovery
+        fails should fall back to _stop_audio() so state doesn't stay
+        pointed at a permanently dead stream.
+        """
+        if not self._audio_temp_file or not os.path.isfile(self._audio_temp_file):
+            return False
+        old_ctrl = self._audio_tempo_ctrl if self._audio_tempo_ctrl is not None else self._audio_stream
+        pos = None
+        if old_ctrl is not None:
+            try:
+                pos = old_ctrl.get_position()
+            except Exception:
+                pos = None
+        try:
+            self._audio_stream, self._audio_tempo_ctrl = self._open_audio_stream_from_temp_file()
+            playback_ctrl = self._audio_tempo_ctrl if self._audio_tempo_ctrl is not None else self._audio_stream
+            if pos:
+                try:
+                    playback_ctrl.set_position(pos)
+                except Exception:
+                    pass
+            playback_ctrl.play()
+        except Exception as e:
+            logging.exception(f"[UI Audio Playback] Recovery after device switch failed: {e}")
+            return False
+        return True
+
     def _play_audio(self, msg_id, duration_seconds, file_path, audio_ext=".ogg"):
         if not os.path.isfile(file_path):
             return
@@ -7631,33 +7726,16 @@ class ConversationsPanel(wx.Panel):
             self._stop_audio()
             return
 
-        # ── Try decoded stream + Tempo FX (enables speed control) ───────────
-        # A decoded stream (BASS_STREAM_DECODE) cannot be played directly; it
-        # must be wrapped by a BASS FX processor such as Tempo. If the FX
-        # plugin is unavailable, fall back to a plain stream without the
-        # effect. Pulled into a helper since a device-switch fallback below
-        # needs to reopen a brand new stream, not just retry the old one.
-        def _open_stream():
-            try:
-                s = sl_stream.FileStream(file=self._audio_temp_file, decode=True)
-                tempo = Tempo(s)
-                _speed = self._audio_speed_steps[self._audio_speed_index]
-                tempo.tempo = self._audio_tempo_map.get(_speed, 0)
-                return s, tempo
-            except Exception as e:
-                logging.info(f"[UI Audio Playback] Decode/Tempo stream failed ({e}), falling back to direct stream: {self._audio_temp_file}")
-                return sl_stream.FileStream(file=self._audio_temp_file), None
-
         try:
-            self._audio_stream, self._audio_tempo_ctrl = _open_stream()
+            self._audio_stream, self._audio_tempo_ctrl = self._open_audio_stream_from_temp_file()
         except Exception as e:
             # Both the decode+Tempo stream and the plain direct stream failed
-            # (_open_stream()'s own fallback) — e.g. an OGG whose codec isn't
-            # Opus, or whose bassopus.dll plugin failed to register, which
-            # BASS rejects for both attempts with error 41 "unsupported file
-            # format". Re-encode through ffmpeg to PCM WAV, which sidesteps
-            # BASS's codec support entirely, and retry once from that file
-            # rather than giving up on the message.
+            # (_open_audio_stream_from_temp_file()'s own fallback) — e.g. an
+            # OGG whose codec isn't Opus, or whose bassopus.dll plugin failed
+            # to register, which BASS rejects for both attempts with error 41
+            # "unsupported file format". Re-encode through ffmpeg to PCM WAV,
+            # which sidesteps BASS's codec support entirely, and retry once
+            # from that file rather than giving up on the message.
             logging.info(
                 "[UI Audio Playback] Direct stream also failed (%s); "
                 "trying ffmpeg WAV fallback for %s", e, self._audio_temp_file,
@@ -7673,7 +7751,7 @@ class ConversationsPanel(wx.Panel):
             os.unlink(self._audio_temp_file)
             self._audio_temp_file = wav_path
             try:
-                self._audio_stream, self._audio_tempo_ctrl = _open_stream()
+                self._audio_stream, self._audio_tempo_ctrl = self._open_audio_stream_from_temp_file()
             except Exception as e2:
                 logging.exception(
                     f"[UI Audio Playback] Error creating stream from converted WAV: {e2}"

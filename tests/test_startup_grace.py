@@ -65,6 +65,7 @@ class _Stub:
 
     def __init__(self, started_ago=0.0, network_down=False):
         self.network_down = network_down
+        self.token = "tok"
         self.settings = {}
         self._shutting_down = False
         self._wpp_updating = False

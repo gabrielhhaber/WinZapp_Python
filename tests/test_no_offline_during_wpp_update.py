@@ -80,6 +80,7 @@ class _Stub:
     _apply_offline_state = MainWindow._apply_offline_state
 
     def __init__(self, updating=False):
+        self.token = "tok"
         self._wpp_updating = updating
         self._wa_connected = True
         self._wa_offline_strikes = 0

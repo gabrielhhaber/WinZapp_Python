@@ -4023,6 +4023,29 @@ class MainWindow(wx.Frame):
                 return
 
         if connected:
+            if not self.token:
+                # _on_disconnect() (Arquivo > Desconectar) clears self.token
+                # and self._wa_connected together, but a check_wa_connection_
+                # http()/pairing request already in flight at that moment
+                # can still land afterwards still reporting CONNECTED — it
+                # was issued against the session that just got disconnected,
+                # before the server-side close-session even ran. Without
+                # this guard that stale report looked exactly like a real
+                # offline→online transition (was=False after the reset
+                # above, connected=True now) and replayed the whole "just
+                # reconnected" sequence — sound, forced WebSocket reconnect,
+                # trigger_sync_if_needed() — seconds after the user
+                # explicitly asked to disconnect, against a session with no
+                # token left to use (measured live: the forced resync then
+                # 404'd on /api//list-chats, the double slash being the
+                # empty token). An empty self.token means there is no
+                # session to be validly "connected" to, full stop.
+                logging.info(
+                    "[connection] Ignoring a stale 'connected' report (%s) — "
+                    "no session token (disconnected intentionally).",
+                    reason or "checked",
+                )
+                return
             # True exactly when the connection just came back from being down
             # (auto-offline or the app never having connected this session) —
             # NOT when this call merely re-confirms an already-known-good

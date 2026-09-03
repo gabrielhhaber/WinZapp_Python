@@ -24,7 +24,7 @@ import subprocess
 import requests
 import wx
 
-from app_paths import _outer_exe_dir, _is_frozen, resource_path
+from app_paths import _outer_exe_dir, _is_frozen, resource_path, log_path
 from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
 from version import __version__
 
@@ -520,17 +520,32 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
     # does not exist. Only the DIRECTORIES are converted — GetShortPathNameW
     # answers for paths that exist, and the exe/marker/log are files the
     # script is about to create — so the ASCII file names are joined onto the
-    # already-safe directory afterwards. The log lives next to the install so
-    # it survives the update either way; the previous script left no record at
-    # all, which is why this failed silently.
+    # already-safe directory afterwards.
     safe_source  = _console_safe_path(source_dir)
     safe_install = _console_safe_path(install_dir)
+
+    # The log goes into the current account's own logs/ folder (same place
+    # log.log and shutdown_audit.log live), not loose next to the exe —
+    # multi-account installs share one exe dir across every account's
+    # process, and dropping an unaccounted-for file there is exactly the
+    # "solto com os arquivos principais do programa" complaint this fixes.
+    # update_failed.marker stays in the install dir on purpose: main.py
+    # reads it at the very start of __init__, before an account is even
+    # chosen, so it has to live somewhere account-agnostic.
+    try:
+        account_log_dir = log_path()
+        os.makedirs(account_log_dir, exist_ok=True)
+        safe_log_dir = _console_safe_path(account_log_dir)
+    except Exception:
+        # No active account yet (shouldn't happen — this runs from a live
+        # MainWindow instance — but the update must not be blocked by it).
+        safe_log_dir = safe_install
 
     script = _build_installer_script(
         safe_source,
         safe_install,
         os.path.join(safe_install, exe_name),
-        os.path.join(safe_install, "update_install.log"),
+        os.path.join(safe_log_dir, "update_install.log"),
         os.path.join(safe_install, "update_failed.marker"),
         pid,
         api_port,
