@@ -221,15 +221,7 @@ class NewConversationDialog(wx.Dialog):
             chat = {"remoteJid": jid, "pushName": name}
         self.EndModal(wx.ID_OK)
         mw = self._mw
-        # Normalize the JID (@c.us → @s.whatsapp.net) then reuse the existing
-        # chat entry when one is present to avoid a duplicate sidebar entry.
-        # Chats may be stored under either @c.us or @s.whatsapp.net depending on
-        # which format WPPConnect used when the event arrived, so check both.
-        norm_jid = mw._normalize_jid(jid)
-        get_chat = getattr(mw, "get_chat", None)
-        existing = get_chat(norm_jid) if get_chat is not None else None
-        if existing is None:
-            existing = mw.chats.get(norm_jid) or mw.chats.get(jid)
+        norm_jid, existing = self._find_existing_chat(mw, jid)
         if existing is None:
             chat["remoteJid"] = norm_jid
             mw.chats[norm_jid] = chat
@@ -239,6 +231,39 @@ class NewConversationDialog(wx.Dialog):
         # Navigate after the dialog is gone
         wx.CallAfter(mw.conversations_panel.navigate_to_conversation, chat)
         wx.CallAfter(mw.conversations_panel.message_field.SetFocus)
+
+    @staticmethod
+    def _find_existing_chat(mw, jid: str):
+        """Normalize `jid` and look for a chat already covering that person.
+
+        Returns (norm_jid, existing_chat_or_None). Three JID formats can all
+        refer to the very same contact — @c.us vs @s.whatsapp.net, @lid vs
+        the phone number WhatsApp bridges it to, and (for Brazilian mobiles)
+        the number with or without its 9th digit — and a chat may already
+        exist under any one of them depending on which form WPPConnect used
+        when its event first arrived, or which form the user typed. Missing
+        this reuse doesn't just create a cosmetic duplicate: the newly
+        created chat is a dead end nothing ever routes to (the real
+        conversation lives under the other JID), so its first message stays
+        "not confirmed" forever and the sidebar shows the same contact
+        twice — reported live 2026-09-03 for a manually-added local contact
+        whose typed number carried the 9th digit while WhatsApp's own
+        pn-lid resolution for that number did not.
+        """
+        norm_jid = mw._normalize_jid(jid)
+        get_chat = getattr(mw, "get_chat", None)
+        existing = get_chat(norm_jid) if get_chat is not None else None
+        if existing is None:
+            existing = mw.chats.get(norm_jid) or mw.chats.get(jid)
+        if existing is None:
+            target_key = contact_dedup_key(mw, norm_jid)
+            for existing_jid, existing_chat in mw.chats.items():
+                if existing_jid.endswith("@g.us"):
+                    continue
+                if contact_dedup_key(mw, existing_jid) == target_key:
+                    existing = existing_chat
+                    break
+        return norm_jid, existing
 
     # ── Sub-dialogs ───────────────────────────────────────────────────────────
 
@@ -257,10 +282,11 @@ class NewConversationDialog(wx.Dialog):
             dlg.Destroy()
             if jid:
                 self.EndModal(wx.ID_OK)
-                mw   = self._mw
-                chat = mw.chats.get(jid) or {"remoteJid": jid, "pushName": name}
-                if jid not in mw.chats:
-                    mw.chats[jid] = chat
+                mw = self._mw
+                norm_jid, chat = self._find_existing_chat(mw, jid)
+                if chat is None:
+                    chat = {"remoteJid": norm_jid, "pushName": name}
+                    mw.chats[norm_jid] = chat
                     mw._schedule_set_chats()
                 wx.CallAfter(mw.conversations_panel.navigate_to_conversation, chat)
                 wx.CallAfter(mw.conversations_panel.message_field.SetFocus)

@@ -13037,8 +13037,19 @@ class MainWindow(wx.Frame):
                                 continue
                             if k == "pushName" and jid.endswith("@g.us"):
                                 continue
-                            if k == "name" and jid.endswith("@g.us") and not v:
-                                v = self._group_name_from_chat_dict(chat)
+                            if k == "name" and jid.endswith("@g.us"):
+                                # Always prefer the freshly-computed name
+                                # (groupMetadata.subject when present, see
+                                # _group_name_from_chat_dict) over the raw
+                                # flat field this loop is iterating — a
+                                # renamed group's flat "name" can be a
+                                # non-empty but STALE cache, and gating this
+                                # on "only when v is blank" is exactly what
+                                # let a rename never reach chats[jid] even
+                                # after a full resync.
+                                fresh = self._group_name_from_chat_dict(chat)
+                                if fresh:
+                                    v = fresh
                             # Don't let the server overwrite a positive local
                             # unreadCount with a lower one — the local counter
                             # may have incremented since the server snapshot
@@ -13199,10 +13210,13 @@ class MainWindow(wx.Frame):
                         # "name" key at all, in which case the loop above
                         # never touched chats[jid]["name"] — re-derive from
                         # the raw incoming `chat` (not chats[jid]) so this
-                        # still catches it.
-                        if jid.endswith("@g.us") and not chats[jid].get("name"):
+                        # still catches it. Not gated on the stored name
+                        # being empty: a rename this round has to be able to
+                        # replace an already-set (now stale) name too, same
+                        # reasoning as the per-key loop above.
+                        if jid.endswith("@g.us"):
                             subj = self._group_name_from_chat_dict(chat)
-                            if subj:
+                            if subj and subj != chats[jid].get("name"):
                                 chats[jid]["name"] = subj
                                 self._group_name_cache = getattr(self, "_group_name_cache", {})
                                 self._group_name_cache[jid] = subj
@@ -13794,18 +13808,31 @@ class MainWindow(wx.Frame):
         internal timing, outside this app's control) never picked itself
         back up on a later periodic refresh even once WhatsApp Web did
         catch up, because the fallback was looking in the wrong place.
+
+        groupMetadata.subject is checked FIRST, not last: it is fetched
+        fresh on every list-chats round (see the "group metadata shape" log
+        line in get_remote_chats()), while the flat "name"/"subject" fields
+        are whatever WhatsApp Web's own chat-store cache happened to hold
+        and can lag a real rename by an unknown amount. Checking the flat
+        fields first meant a renamed group's OLD name (non-empty, so every
+        "fall back only when blank" guard downstream skipped right past it)
+        permanently won over the correct one already sitting in
+        groupMetadata on that very same sync — reported live as group names
+        never updating even after a full F5 resync. A brand-new group with
+        no groupMetadata yet still falls through to the flat fields exactly
+        as before, so first-time naming is unaffected.
         """
+        group_meta = chat.get("groupMetadata")
+        if isinstance(group_meta, dict):
+            gm_subject = (group_meta.get("subject") or "").strip()
+            if gm_subject:
+                return gm_subject
         name = (chat.get("name") or "").strip()
         if name:
             return name
         subject = (chat.get("subject") or "").strip()
         if subject:
             return subject
-        group_meta = chat.get("groupMetadata")
-        if isinstance(group_meta, dict):
-            gm_subject = (group_meta.get("subject") or "").strip()
-            if gm_subject:
-                return gm_subject
         return ""
 
     _GROUP_SEND_PERMS_MAX_AGE_SECONDS = 24 * 3600
