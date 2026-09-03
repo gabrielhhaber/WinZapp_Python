@@ -15055,10 +15055,11 @@ class MainWindow(wx.Frame):
                 )
             if my_jid and not jid.endswith("@g.us") and self._is_self_jid(jid):
                 name = self.i18n.t("self_chat_name")
-            raw_arch = chat.get("archive")
-            if raw_arch is None:
-                raw_arch = chat.get("archived")
-            arch_flag = _parse_bool_flag(raw_arch)
+            # Same parse is_chat_archived() uses — the two must answer this
+            # identically, or a chat sits under Arquivadas while the
+            # notification path believes it is a normal conversation and
+            # announces its messages out loud.
+            arch_flag = self._chat_archive_flag(chat)
             # An explicit flag on the chat record (server truth) wins over the
             # persisted set; the set only decides when the record says nothing.
             is_archived = arch_flag if arch_flag is not None else (jid in archived)
@@ -23076,38 +23077,112 @@ class MainWindow(wx.Frame):
             and effective_unread_count(chat) > 0
         )
 
-    def is_chat_archived(self, jid: str) -> bool:
-        if not jid:
-            return False
+    def _archived_lookup_jids(self, jid: str) -> list:
+        """Every JID string under which *jid*'s archive state might be filed.
+
+        Both the normalized form and the raw one, because the two writers of
+        ``_archived_chats`` disagree about which they store: normalize_chats()
+        adds the ``self.chats`` KEY exactly as it found it, while
+        _set_archived_state() adds the normalized JID. A chat still keyed
+        ``@c.us`` (or carrying a ``:N`` device suffix) therefore sits in the set
+        under a string _normalize_jid() rewrites, so looking it up normalized
+        alone never found it. Plus the LID/phone counterpart, in both forms, for
+        the same reason.
+
+        Order matters: it is the order the answers are consulted in, and the
+        first definite one wins.
+        """
+        out = []
+        for candidate in (self._normalize_jid(jid), jid):
+            if candidate and candidate not in out:
+                out.append(candidate)
         jid_norm = self._normalize_jid(jid)
-        chat = self.chats.get(jid_norm, {})
+        if jid_norm.endswith("@lid"):
+            alt = getattr(self, "_lid_to_phone", {}).get(jid_norm, "")
+        else:
+            alt = getattr(self, "_phone_to_lid", {}).get(jid_norm, "")
+        if alt:
+            for candidate in (self._normalize_jid(alt), alt):
+                if candidate and candidate not in out:
+                    out.append(candidate)
+        return out
+
+    @staticmethod
+    def _chat_archive_flag(chat):
+        """A chat record's stated archive flag, or None when it states none.
+
+        The single parse of that tri-state — _compute_chat_lists() (which
+        decides what the Archived tab shows) and is_chat_archived() (which
+        decides whether a message may make a sound) have to answer this the
+        same way, and used to hold their own copies of it.
+        """
+        if not isinstance(chat, dict):
+            return None
         raw = chat.get("archive")
         if raw is None:
             raw = chat.get("archived")
-        flag = _parse_bool_flag(raw)
-        if flag is not None:
-            return flag
-        if jid_norm in self._archived_chats:
-            return True
+        return _parse_bool_flag(raw)
 
-        alt_jid = ""
-        if jid_norm.endswith("@lid"):
-            alt_jid = getattr(self, "_lid_to_phone", {}).get(jid_norm, "")
-        else:
-            alt_jid = getattr(self, "_phone_to_lid", {}).get(jid_norm, "")
+    def _chat_entry_for_archive(self, candidate: str):
+        """(key, record) for *candidate*, found by ``self.chats`` key or, failing
+        that, by a record whose own ``remoteJid`` matches. (None, None) if absent.
 
-        if alt_jid:
-            alt_jid_norm = self._normalize_jid(alt_jid)
-            alt_chat = self.chats.get(alt_jid_norm, {})
-            alt_raw = alt_chat.get("archive")
-            if alt_raw is None:
-                alt_raw = alt_chat.get("archived")
-            alt_flag = _parse_bool_flag(alt_raw)
-            if alt_flag is not None:
-                return alt_flag
-            if alt_jid_norm in self._archived_chats:
+        The second lookup is the one that was missing. A chat's key and its
+        ``chat["remoteJid"]`` are NOT always the same string — a chat merged or
+        renamed in place keeps the dict it already had (see
+        _merge_lid_into_phone/deduplicate_chats, and _compute_chat_lists' own
+        comment about rendering by remoteJid). The Archived tab decides by the
+        KEY, so such a chat shows as archived; a message for it arrives resolved
+        to its remoteJid, and a lookup by that string alone found nothing at all
+        and answered "not archived".
+        """
+        chat = self.chats.get(candidate)
+        if isinstance(chat, dict):
+            return candidate, chat
+        # list(): this also runs off the wx thread (on_new_message is dispatched
+        # via CallAfter, but _compute_chat_lists' background thread reaches
+        # is_chat_archived too), and _extract_lid_mapping() can be adding keys
+        # on the Socket.IO thread meanwhile.
+        for key, record in list(self.chats.items()):
+            if not isinstance(record, dict):
+                continue
+            if self._normalize_jid(record.get("remoteJid", "")) == candidate:
+                return key, record
+        return None, None
+
+    def is_chat_archived(self, jid: str) -> bool:
+        """Whether this chat lives in the Archived tab.
+
+        Has to agree with _compute_chat_lists(), which is what actually puts a
+        row there — it decides ``arch_flag if arch_flag is not None else (key in
+        _archived_chats)``. This answers the same question for a JID rather than
+        for a record, and every candidate/lookup below exists to reach the same
+        record and the same set entry that the list builder used.
+
+        They disagreeing is a real reported bug, not a theoretical one: an
+        archived conversation kept announcing "Nova mensagem de X" with the
+        window open, because on_new_message()'s ``if archived and not
+        is_current_conv: return`` guard was asking this method, and this method
+        was answering False for a chat the user could see under Arquivadas.
+
+        Precedence is per candidate and unchanged: a record that states a flag
+        settles it, the persisted set only decides when the record says nothing.
+        """
+        if not jid:
+            return False
+        for candidate in self._archived_lookup_jids(jid):
+            key, chat = self._chat_entry_for_archive(candidate)
+            flag = self._chat_archive_flag(chat)
+            if flag is not None:
+                return flag
+            if candidate in self._archived_chats:
                 return True
-
+            # The set is keyed by whatever normalize_chats() saw as the key,
+            # which is exactly what the list builder tests — so when the record
+            # was found under a different key, that key is the membership to
+            # check, not the JID we were handed.
+            if key and key in self._archived_chats:
+                return True
         return False
 
 

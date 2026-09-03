@@ -52,6 +52,12 @@ class _MainWindowStub:
             setattr(self, key, value)
 
     is_chat_archived           = MainWindow.is_chat_archived
+    # is_chat_archived() now resolves the same record and the same
+    # _archived_chats entry the Archived tab's own builder uses, instead of
+    # trusting a single normalized key — see tests/test_archived_chat_announcements.py.
+    _archived_lookup_jids      = MainWindow._archived_lookup_jids
+    _chat_entry_for_archive    = MainWindow._chat_entry_for_archive
+    _chat_archive_flag         = staticmethod(MainWindow._chat_archive_flag)
     get_archived_unread_count  = MainWindow.get_archived_unread_count
     _normalize_jid             = staticmethod(MainWindow._normalize_jid)
     _resolve_contact_name      = MainWindow._resolve_contact_name
