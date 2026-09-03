@@ -6,6 +6,8 @@ treat that as a logout and wipe the local database — even though the server wa
 logging back in (a real log showed 'inChat' the same second the client wiped).
 """
 
+import pathlib
+
 import connection_state as cs
 
 LOGOUT_CONFIRM = 4
@@ -94,6 +96,111 @@ class TestClassifyUnlinkCandidate:
         # The same destructive-bug guard as classify_unlinked(): a huge
         # logout-strike count means nothing before ever_connected is True.
         assert _classify_candidate(False, 1000, 0) == cs.RESUMING
+
+
+# ── the during-sync strike budget (probe_strike_budget) ──────────────────────
+# Three call sites in main.py used to carry the same `if initial_sync_running:
+# allowed = base * 10` by hand — check_whatsapp_reachable()'s session-probe and
+# host-probe branches, and check_wa_connection_http()'s except branch. The
+# factor is one decision, and the wall-clock ceiling on it is the part that
+# needs a test: x10 at a 30 s health cadence is ~10 minutes of answering "still
+# connected" to a probe that has said otherwise every single time.
+
+BUDGET_BASE = 2
+
+
+def test_budget_is_the_base_outside_a_sync():
+    assert cs.probe_strike_budget(BUDGET_BASE, initial_sync_running=False) == BUDGET_BASE
+    # ...even with an ancient strike run behind it: no sync, no widening, so
+    # the ceiling never enters into it.
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=False,
+        first_strike_ts=1000.0, now=1000.0 + 10_000) == BUDGET_BASE
+
+
+def test_budget_widens_during_a_sync():
+    widened = BUDGET_BASE * cs.SYNC_TOLERANCE_FACTOR
+    # No run yet (ts 0) — this reading is starting one, so it gets the full
+    # window rather than being judged against a clock that has not started.
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True,
+        first_strike_ts=0.0, now=1000.0) == widened
+    # A run one health-check tick old is still well inside the window.
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True,
+        first_strike_ts=1000.0, now=1030.0) == widened
+
+
+def test_budget_returns_to_the_base_once_the_run_outlives_the_ceiling():
+    t0 = 1000.0
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True, first_strike_ts=t0,
+        now=t0 + cs.SYNC_TOLERANCE_MAX_SECONDS - 0.1
+    ) == BUDGET_BASE * cs.SYNC_TOLERANCE_FACTOR
+    # At the ceiling the sync stops being an excuse: a probe that has been
+    # negative for this long is an outage, and holding "connected" any longer
+    # keeps _should_abort_sync_for_offline() from ever firing.
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True, first_strike_ts=t0,
+        now=t0 + cs.SYNC_TOLERANCE_MAX_SECONDS) == BUDGET_BASE
+
+
+def test_the_ceiling_can_be_disabled_for_the_branch_already_in_production():
+    """check_wa_connection_http()'s except branch passes max_seconds=None: its
+    x10 is the one already proven against a Node blocked by a history download,
+    and tightening it now would trade a known-good behaviour for a guess."""
+    assert cs.probe_strike_budget(
+        BUDGET_BASE, initial_sync_running=True, first_strike_ts=1000.0,
+        now=1000.0 + 10_000, max_seconds=None
+    ) == BUDGET_BASE * cs.SYNC_TOLERANCE_FACTOR
+
+
+def test_the_production_branch_really_asks_for_the_disabled_ceiling():
+    """The test above proves the function honours max_seconds=None; this proves
+    the one branch that wants it still passes it.
+
+    Nothing else pins that wiring: check_wa_connection_http()'s except branch is
+    not covered by a behavioural test (it needs the whole requests/wx stack),
+    so a later tidy-up that "removes the asymmetry" by dropping the argument
+    would leave the whole suite green while silently capping the branch at
+    SYNC_TOLERANCE_MAX_SECONDS — reintroducing the false offline against a Node
+    blocked by a history download that the x10 exists to prevent. Read as
+    source, the way tests/test_wa_version_expiry_pin.py checks the stable
+    channel is asked for first.
+    """
+    main_py = (pathlib.Path(__file__).resolve().parents[1]
+               / "client" / "main.py").read_text(encoding="utf-8")
+    method = main_py[main_py.index("    def check_wa_connection_http("):]
+    method = method[:method.index("\n    def ", 10)]
+    # The method's own except, at method indentation — not the two nested ones
+    # inside the CONNECTED branch.
+    branch = method[method.index("\n        except Exception as e:"):]
+    # Balanced-paren slice rather than a search for the closing line: the call
+    # already nests a getattr(), and reading to the first ")" would cut inside
+    # it and hide the very argument this is checking for.
+    call_start = branch.index("cs.probe_strike_budget(")
+    depth, end = 0, call_start
+    for end in range(call_start, len(branch)):
+        if branch[end] == "(":
+            depth += 1
+        elif branch[end] == ")":
+            depth -= 1
+            if depth == 0:
+                break
+    call = branch[call_start:end + 1]
+    assert "max_seconds=None" in call, (
+        "check_wa_connection_http()'s except branch must keep passing "
+        "max_seconds=None — see probe_strike_budget()'s docstring for why this "
+        f"asymmetry is deliberate. Found:\n{call}"
+    )
+
+
+def test_the_ceiling_sits_between_a_page_reload_and_the_raw_ten_minutes():
+    """Both bounds are the numbers the constant was picked from: the measured
+    28-second WhatsApp Web reload it must ride out, and the ~10 minutes the raw
+    factor buys at the 30 s health-check cadence."""
+    assert cs.SYNC_TOLERANCE_MAX_SECONDS > 28.0 * 2
+    assert cs.SYNC_TOLERANCE_MAX_SECONDS < BUDGET_BASE * cs.SYNC_TOLERANCE_FACTOR * 30
 
 
 def test_wake_from_suspend_detects_long_gap():

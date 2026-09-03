@@ -393,6 +393,28 @@ function versionExpiry(catalogue, version) {
 // locally. The expiry check comes first because it is the cheap one; reading
 // every HTML file down the list would be minutes of I/O.
 //
+// Each tier below is walked twice: stable channel first (no "-alpha"/"-beta"
+// in the version string), then any channel. Meta's expiry window is a good
+// proxy for "still served", but not for "safe to link a device against" — a
+// pre-release build that was nowhere near expired still got every
+// freshly-paired session unpaired by WhatsApp within minutes of the pinned
+// page loading ("Session Unpaired" in wppconnect.log, immediately followed by
+// "notLogged", repeating on every re-pair attempt).
+//
+// Be honest about what this buys TODAY, because it is easy to read it as the
+// fix for that unpairing and it is not: the catalogue @wppconnect/wa-version
+// currently ships (1.5.4763) is 100% pre-release — all 392 entries end in
+// "-alpha", every file under html/ is an *-alpha.html, currentVersion is
+// itself an alpha and currentBeta is null. So the stable pass of each tier
+// matches nothing at all, the second pass does all the work, and the version
+// selected is byte-for-byte the one selected before this distinction existed.
+// The preference only starts having an effect if and when a stable build is
+// actually cached in the catalogue (an `npm update` after Meta promotes one,
+// or an older install whose catalogue still holds stables). That is the point
+// of it: it is the safety net for a catalogue that has stables again, not the
+// thing that keeps a freshly-paired session paired right now. Whatever does
+// fix the unpairing has to work on an all-alpha catalogue too.
+//
 // Returns { version, expire, expired, total }, or null when the catalogue is
 // empty/unusable. `expired: true` means nothing valid was left and this is the
 // newest servable build regardless — see the call site for why that is still
@@ -400,30 +422,49 @@ function versionExpiry(catalogue, version) {
 function selectServableVersion(catalogue, now) {
   const available = catalogue.getAvailableVersions();
   if (!Array.isArray(available) || available.length === 0) return null;
+  // Memoised per version, and that is not a micro-optimisation. The comment
+  // above about "minutes of I/O" is what is being protected here: each tier is
+  // walked twice (stable channel, then any channel), so without a cache the
+  // same entry can be handed to getPageContent up to four times — and one call
+  // is a readdirSync of html/ (392 files on the shipped package) plus a read of
+  // a ~600 KB HTML file. This runs inside session startup, so the passes added
+  // above must not put that cost back on the hot path they were written around.
+  const serveCache = new Map();
   const canServe = (version) => {
+    if (serveCache.has(version)) return serveCache.get(version);
+    let servable;
     try {
       catalogue.getPageContent(version);
-      return true;
+      servable = true;
     } catch (e) {
-      return false;
+      servable = false;
     }
+    serveCache.set(version, servable);
+    return servable;
   };
-  for (let i = available.length - 1; i >= 0; i--) {
-    const version = available[i];
-    const expire = versionExpiry(catalogue, version);
-    if (expire !== null && expire <= now) continue;
-    if (!canServe(version)) continue;
-    return { version, expire, expired: false, total: available.length };
+  const isStable = (version) => !/-alpha|-beta/i.test(version);
+  for (const stableOnly of [true, false]) {
+    for (let i = available.length - 1; i >= 0; i--) {
+      const version = available[i];
+      if (stableOnly && !isStable(version)) continue;
+      const expire = versionExpiry(catalogue, version);
+      if (expire !== null && expire <= now) continue;
+      if (!canServe(version)) continue;
+      return { version, expire, expired: false, total: available.length };
+    }
   }
-  for (let i = available.length - 1; i >= 0; i--) {
-    const version = available[i];
-    if (canServe(version)) {
-      return {
-        version,
-        expire: versionExpiry(catalogue, version),
-        expired: true,
-        total: available.length,
-      };
+  for (const stableOnly of [true, false]) {
+    for (let i = available.length - 1; i >= 0; i--) {
+      const version = available[i];
+      if (stableOnly && !isStable(version)) continue;
+      if (canServe(version)) {
+        return {
+          version,
+          expire: versionExpiry(catalogue, version),
+          expired: true,
+          total: available.length,
+        };
+      }
     }
   }
   return null;
@@ -518,25 +559,58 @@ const LIVE_DOCUMENT_FETCH_TIMEOUT_MS = 10000;
 // another door; an unexpired pinned build is the known-good pairing. So this is
 // the expired branch's fallback, never the default.
 //
-// wa-version does the request itself (fetchLatestAlpha sends the user-agent,
+// wa-version does the request itself (its fetchers send the user-agent,
 // language and cache headers Meta expects, which a bare fetch here would get
-// wrong). Older copies of the package may not export it — hence the typeof
-// guard rather than a call that would throw at startup.
+// wrong). It exposes two channels: fetchLatest() is the stable one and
+// fetchLatestAlpha() the pre-release one, and this asks for them IN THAT ORDER.
+// The alpha channel used to be the only thing asked, which quietly reintroduced
+// the very problem the pin exists to avoid: if pre-release builds are what
+// unpair freshly-linked sessions, then the one branch guaranteed to hand the
+// browser a pre-release build was the "everything local has expired" branch —
+// i.e. exactly the user least able to diagnose it. Stable first, alpha only as
+// the last thing before falling back to an expired local build.
+//
+// Older copies of the package may not export one or the other — hence the
+// typeof guards rather than calls that would throw at startup.
 async function fetchLiveWhatsappDocument() {
-  if (!waVersion || typeof waVersion.fetchLatestAlpha !== 'function') return null;
+  if (!waVersion) return null;
   let timer = null;
   try {
     const timeout = new Promise((resolve) => {
       timer = setTimeout(() => resolve(null), LIVE_DOCUMENT_FETCH_TIMEOUT_MS);
     });
-    const html = await Promise.race([waVersion.fetchLatestAlpha(), timeout]);
     // Anything can answer an HTTP request — a captive portal, a proxy error
     // page, a consent interstitial. Serving one of those AS the WhatsApp Web
     // document would look like a WhatsApp bug rather than a network one, so
-    // require it to actually be the app shell before trusting it.
-    if (typeof html !== 'string' || html.length < 1000) return null;
-    if (!/web\.whatsapp\.com|WhatsApp/i.test(html)) return null;
-    return html;
+    // require it to actually be the app shell before trusting it. A stable
+    // response that fails this is not trusted and not fatal either: it just
+    // means the alpha channel gets its turn.
+    const isAppShell = (html) => (
+      typeof html === 'string'
+      && html.length >= 1000
+      && /web\.whatsapp\.com|WhatsApp/i.test(html)
+    );
+    // ONE budget covers BOTH attempts: `timeout` is a single promise raced
+    // against each channel in turn, so once it has resolved the second attempt
+    // is already over. Two channels must not mean twice the time a user on a
+    // dead network waits with pairing held hostage.
+    //
+    // Answers with the channel that produced the HTML, not the HTML alone,
+    // because the caller has to be able to log WHICH one served the session.
+    // The catalogue pin gets that for free — it prints a version string, and a
+    // pre-release build wears `-alpha` on its face — but "live from Meta" says
+    // nothing, and a user reporting "Session Unpaired" hours after pairing is
+    // exactly the case where stable-vs-alpha is the first thing to check.
+    const attempt = async (channel) => {
+      if (typeof waVersion[channel] !== 'function') return null;
+      try {
+        const html = await Promise.race([waVersion[channel](), timeout]);
+        return isAppShell(html) ? { channel, html } : null;
+      } catch (e) {
+        return null;
+      }
+    };
+    return (await attempt('fetchLatest')) || (await attempt('fetchLatestAlpha'));
   } catch (e) {
     return null;
   } finally {
@@ -697,13 +771,16 @@ function patchWppconnectVersionPinning() {
       if (pinnedCatalogueExpired) {
         const live = await fetchLiveWhatsappDocument();
         if (live) {
-          body = live;
-          source = 'live from Meta (local catalogue fully expired)';
+          body = live.html;
+          source = `live from Meta via ${live.channel} (local catalogue fully expired)`;
           console.warn(
             '[WinZapp] Every build in the local catalogue has expired; serving the ' +
-            'document Meta is currently returning instead. This keeps the page pinned ' +
-            'and the worker unblocked, but the bundled wa-js may lag that build — ' +
-            'run: npm update @wppconnect/wa-version (or reinstall the API from WinZapp).'
+            `document Meta is currently returning, fetched with ${live.channel}(). This ` +
+            'keeps the page pinned and the worker unblocked, but the bundled wa-js may ' +
+            'lag that build — and fetchLatestAlpha() means a PRE-RELEASE build, which is ' +
+            'what the stable-first order exists to avoid, so a session that unpairs later ' +
+            'starts here. Run: npm update @wppconnect/wa-version (or reinstall the API ' +
+            'from WinZapp).'
           );
         } else {
           console.warn(

@@ -150,6 +150,59 @@ class TestTheNewestStillValidBuildIsPinned:
         assert result["selected"]["version"] == "2.3000.1000000001"
 
 
+class TestTheStableChannelIsPreferredOverPreRelease:
+    """Meta's expiry window says "still served", not "safe to link a device
+    against": a pre-release build nowhere near expired still got every
+    freshly-paired session unpaired within minutes ("Session Unpaired" then
+    "notLogged", on every re-pair attempt). Each tier is therefore walked
+    stable-first — while being honest that on the catalogue shipping today it
+    changes nothing at all (see the second test)."""
+
+    def test_a_stable_build_wins_over_a_newer_alpha(self, tmp_path):
+        result = _select(tmp_path, [
+            _entry("2.3000.1000000001", 10),
+            _entry("2.3000.1000000002-alpha", 40),
+        ])
+        assert result["selected"]["version"] == "2.3000.1000000001"
+
+    def test_an_all_alpha_catalogue_still_pins_its_newest_entry(self, tmp_path):
+        """The real world today: @wppconnect/wa-version 1.5.4763 ships 392
+        entries and every one of them is an -alpha, so the stable pass matches
+        nothing and the selection is identical to before the preference
+        existed. It must be — the alternative is pinning nothing."""
+        result = _select(tmp_path, [
+            _entry("2.3000.1000000001-alpha", 10),
+            _entry("2.3000.1000000002-alpha", 40),
+        ])
+        assert result["selected"]["version"] == "2.3000.1000000002-alpha"
+        assert result["selected"]["expired"] is False
+
+    def test_the_preference_also_applies_once_everything_has_expired(self, tmp_path):
+        """The expired tier is the one a user who has not reinstalled the API
+        in months actually lands in — the channel preference is worth as much
+        there as anywhere."""
+        result = _select(tmp_path, [
+            _entry("2.3000.1000000001", -30),
+            _entry("2.3000.1000000002-alpha", -2),
+        ])
+        assert result["selected"]["version"] == "2.3000.1000000001"
+        assert result["selected"]["expired"] is True
+
+    def test_the_html_of_a_version_is_only_read_once(self, tmp_path):
+        """Each tier is walked twice, so without memoisation the same entry is
+        handed to getPageContent up to four times — and one call is a readdir
+        of html/ (392 files) plus a ~600 KB read, during session startup."""
+        result = _select(tmp_path, [
+            _entry("2.3000.1000000001-alpha", 10),
+            _entry("2.3000.1000000002", 40, html_missing=True),
+        ])
+        # The stable pass asks for the newest (stable) entry and is refused;
+        # the any-channel pass walks past it again and must not re-read it.
+        assert result["pageContentAsked"] == [
+            "2.3000.1000000002", "2.3000.1000000001-alpha"]
+        assert result["selected"]["version"] == "2.3000.1000000001-alpha"
+
+
 class TestACatalogueWithNothingValidLeft:
     """The state a user who has not rebuilt the API in months ends up in."""
 
@@ -221,14 +274,16 @@ LIVE_HARNESS = r"""
 'use strict';
 const scenario = JSON.parse(process.argv[2]);
 
+const called = [];
 let waVersion = null;
-if (scenario.mode !== 'no-package') {
+if (scenario.channels !== null) {
   waVersion = {};
-  if (scenario.mode !== 'no-method') {
-    waVersion.fetchLatestAlpha = () => {
-      if (scenario.mode === 'throws') return Promise.reject(new Error('offline'));
-      if (scenario.mode === 'hangs') return new Promise(() => {});
-      return Promise.resolve(scenario.html);
+  for (const [name, behaviour] of Object.entries(scenario.channels)) {
+    waVersion[name] = () => {
+      called.push(name);
+      if (behaviour.mode === 'throws') return Promise.reject(new Error('offline'));
+      if (behaviour.mode === 'hangs') return new Promise(() => {});
+      return Promise.resolve(behaviour.html);
     };
   }
 }
@@ -237,15 +292,20 @@ __HELPER_SOURCE__
 
 (async () => {
   const started = Date.now();
-  const html = await fetchLiveWhatsappDocument();
+  const live = await fetchLiveWhatsappDocument();
+  const html = live ? live.html : null;
   console.log('__RESULT__' + JSON.stringify({
     ok: typeof html === 'string',
     length: typeof html === 'string' ? html.length : 0,
+    channel: live ? live.channel : null,
+    called,
     elapsed: Date.now() - started,
   }));
   process.exit(0);
 })();
 """
+
+GOOD_HTML = "<!doctype html>" + ("x" * 2000) + "web.whatsapp.com"
 
 
 def _helper_source():
@@ -261,17 +321,32 @@ def _helper_source():
     return source[start:end]
 
 
-def _fetch_live(tmp_path, mode="ok", html=None):
+def _fetch_live(tmp_path, mode="ok", html=None, channels=None):
+    """Run the real fetchLiveWhatsappDocument() under node.
+
+    ``channels`` gives per-channel behaviour ({name: {"mode", "html"}}) for the
+    stable-vs-alpha ordering tests; ``mode``/``html`` is the older shorthand
+    that applies the same behaviour to both channels, so the cases written
+    before the stable channel existed keep reading the way they did.
+    """
     node = shutil.which("node")
     if node is None:
         pytest.skip("node is not on PATH")
-    if html is None:
-        html = "<!doctype html>" + ("x" * 2000) + "web.whatsapp.com"
+    if channels is None:
+        if html is None:
+            html = GOOD_HTML
+        behaviour = {"mode": mode, "html": html}
+        if mode == "no-package":
+            channels = None
+        elif mode == "no-method":
+            channels = {}
+        else:
+            channels = {"fetchLatest": behaviour, "fetchLatestAlpha": behaviour}
     harness = tmp_path / "live_harness.js"
     harness.write_text(
         LIVE_HARNESS.replace("__HELPER_SOURCE__", _helper_source()), encoding="utf-8")
     proc = subprocess.run(
-        [node, str(harness), json.dumps({"mode": mode, "html": html})],
+        [node, str(harness), json.dumps({"channels": channels})],
         capture_output=True, text=True, timeout=60,
     )
     for line in proc.stdout.splitlines():
@@ -317,6 +392,108 @@ class TestTheLiveDocumentFallback:
 
     def test_a_long_page_that_never_mentions_whatsapp_is_refused(self, tmp_path):
         assert _fetch_live(tmp_path, html="<html>" + ("y" * 5000) + "</html>")["ok"] is False
+
+
+class TestTheLiveFetchAsksTheStableChannelFirst:
+    """This branch only runs when the whole local catalogue has expired — i.e.
+    for the user least able to diagnose anything. Asking fetchLatestAlpha()
+    there, as this used to, handed exactly that user a pre-release build, which
+    is the thing the stable-first selection above exists to avoid. Stable
+    first; alpha only as the last step before falling back to an expired local
+    build."""
+
+    def test_the_stable_channel_is_used_when_it_answers(self, tmp_path):
+        result = _fetch_live(tmp_path, channels={
+            "fetchLatest": {"mode": "ok", "html": GOOD_HTML},
+            "fetchLatestAlpha": {"mode": "ok", "html": GOOD_HTML},
+        })
+        assert result["ok"] is True
+        assert result["called"] == ["fetchLatest"]
+
+    def test_the_alpha_channel_is_the_fallback_when_stable_is_missing(self, tmp_path):
+        """Older copies of the package may not export fetchLatest — the typeof
+        guard has to keep both directions working, not just the new one."""
+        result = _fetch_live(tmp_path, channels={
+            "fetchLatestAlpha": {"mode": "ok", "html": GOOD_HTML},
+        })
+        assert result["ok"] is True
+        assert result["called"] == ["fetchLatestAlpha"]
+
+    @pytest.mark.parametrize("stable_mode, stable_html, why", [
+        ("throws", None, "the stable request failed outright"),
+        ("ok", "<html>Sign in to the hotel wifi</html>", "a captive portal answered it"),
+    ])
+    def test_a_stable_answer_that_is_not_the_app_shell_falls_through(
+            self, tmp_path, stable_mode, stable_html, why):
+        result = _fetch_live(tmp_path, channels={
+            "fetchLatest": {"mode": stable_mode, "html": stable_html},
+            "fetchLatestAlpha": {"mode": "ok", "html": GOOD_HTML},
+        })
+        assert result["ok"] is True, why
+        assert result["called"] == ["fetchLatest", "fetchLatestAlpha"]
+
+    def test_two_channels_do_not_mean_two_timeout_windows(self, tmp_path):
+        """The 10 s budget covers the SET. A user on a dead network must not
+        wait twice as long for pairing now that there are two channels."""
+        result = _fetch_live(tmp_path, channels={
+            "fetchLatest": {"mode": "hangs", "html": None},
+            "fetchLatestAlpha": {"mode": "hangs", "html": None},
+        })
+        assert result["ok"] is False
+        assert result["elapsed"] < 15000, "the budget was spent per channel"
+
+    def test_the_source_asks_for_the_stable_channel(self):
+        source = START_JS.read_text(encoding="utf-8")
+        stable = source.index("attempt('fetchLatest')")
+        alpha = source.index("attempt('fetchLatestAlpha')")
+        assert stable < alpha
+
+
+class TestTheLogSaysWhichChannelServedTheSession:
+    """The pin logs a version string, and a pre-release build wears `-alpha` on
+    its face — so for the catalogue path the channel is already visible in the
+    log. The live path had nothing equivalent: it said only "live from Meta",
+    and a user reporting "Session Unpaired" hours after pairing left no way to
+    tell whether fetchLatest() answered or whether the run fell through to
+    fetchLatestAlpha() — which is precisely the hypothesis the stable-first
+    order rests on."""
+
+    def test_the_stable_channel_is_named_when_it_answers(self, tmp_path):
+        result = _fetch_live(tmp_path, channels={
+            "fetchLatest": {"mode": "ok", "html": GOOD_HTML},
+            "fetchLatestAlpha": {"mode": "ok", "html": GOOD_HTML},
+        })
+        assert result["channel"] == "fetchLatest"
+
+    def test_the_alpha_channel_is_named_when_it_is_the_one_that_answered(self, tmp_path):
+        """The case worth reading a log for: stable failed, so this session is
+        running a pre-release build."""
+        result = _fetch_live(tmp_path, channels={
+            "fetchLatest": {"mode": "throws", "html": None},
+            "fetchLatestAlpha": {"mode": "ok", "html": GOOD_HTML},
+        })
+        assert result["called"] == ["fetchLatest", "fetchLatestAlpha"]
+        assert result["channel"] == "fetchLatestAlpha"
+
+    def test_nothing_is_named_when_nothing_answered(self, tmp_path):
+        """A failed fetch still answers a plain falsy value, because the caller
+        tests it with `if (live)` before falling back to the local build."""
+        assert _fetch_live(tmp_path, mode="throws")["channel"] is None
+
+    def test_the_caller_puts_the_channel_in_what_it_logs(self):
+        """The harness above proves the channel is reported; this proves it is
+        not then dropped on the floor at the one call site that has it."""
+        source = START_JS.read_text(encoding="utf-8")
+        start = source.index("const live = await fetchLiveWhatsappDocument();")
+        end = source.index("if (!body) {", start)
+        branch = source[start:end]
+        assert "body = live.html;" in branch
+        assert "live.channel" in branch
+        for line in branch.splitlines():
+            assert "= live;" not in line, (
+                "the live fetch answers {channel, html} now — assigning it whole "
+                "would serve the object as the document body"
+            )
 
 
 class TestTheFallbackIsWiredOnlyToTheExpiredBranch:
