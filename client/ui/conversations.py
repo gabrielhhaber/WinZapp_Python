@@ -1,66 +1,112 @@
 import base64 as _b64
+import ctypes
+from datetime import datetime, timedelta
+from datetime import datetime as _dt, timedelta as _td
+import glob as _glob
+import json
 import logging
+import math
 import mimetypes
+import mimetypes as _mimetypes
 import os
+import pyperclip
 import re
+import requests
+import shutil
+import sound_lib.stream as sl_stream
+from sound_lib.effects import Tempo
+import subprocess
+import sys
 import tempfile
 import threading
+import threading as _threading
 import time
+import time as _time
 import uuid
+import wave
 import wx
 import wx.adv
-import pyperclip
+
 try:
     import pyaudio
 except ImportError:
-    # No wheel exists for PyAudio on Python 3.14 at the time of writing —
-    # see requirements.txt's version marker. Voice recording degrades to a
-    # clear "not available" message (see _start_voice_recording()) instead
-    # of the whole app failing to import.
     pyaudio = None
-import wave
-import sound_lib.stream as sl_stream
-from sound_lib.effects import Tempo
-from core.audio_devices import (
-    find_input_device_index, fallback_input_device_indices, RECORDING_SAMPLE_CONFIGS,
-)
-from core.audio_transcode import transcode_audio_to_wav
+
+try:
+    import sounddevice as sd
+except ImportError:
+    sd = None
+
+from app_paths import data_path, log_path, resource_path
+from core.accessible_speech import AccessibleSpeechOutput
 from core.attachment_types import classify_attachment_media_type
-from core.sound_system import load_sound
-from core.link_preview import find_first_url, fetch_link_preview
+from core.audio_devices import (
+    RECORDING_SAMPLE_CONFIGS,
+    fallback_input_device_indices,
+    find_input_device_index,
+)
+from core.audio_processing import apply_noise_gate
+from core.audio_transcode import transcode_audio_to_wav
+from core.focus_cloak import cloak_focus_announcement
+from core.i18n import I18n
+from core.link_preview import fetch_link_preview, find_first_url
+from core.locale_format import get_date_format, get_datetime_format, get_time_format
+from core.message_copy_format import format_copied_message
+from core.message_queue import PendingMessage
+from core.save_location import remember_save_dialog_folder, resolve_save_dialog_folder
+from core.sound_system import NullSound, load_sound
+from core.utils import (
+    MEASURED_SECONDS_KEY,
+    append_selected_marker,
+    db_fetch_limit,
+    decrypt_bytes,
+    effective_unread_count,
+    encrypt,
+    first_unread_index,
+    format_number,
+    history_window,
+    is_message_forwarded,
+    is_phone_like,
+    is_voice_message,
+    link_preview_text,
+    looks_like_binary_blob,
+    normalize_for_search,
+    normalize_line_separators,
+    parse_bool_flag as _parse_bool_flag,
+    reaction_targets_status,
+    video_seconds,
+)
+from core.video_player import VideoPlayer
+from status_panel import MyStatusDialog
 from ui.accessible import (
-    AccessibleSearchConversations,
-    AccessibleRecordVoiceMessage,
-    AccessibleAudioSlider,
-    AccessibleSaveAs,
-    AccessibleConversationDataButton,
     AccessibleAddAttachmentButton,
-    AccessibleEmojiButton,
+    AccessibleAudioSlider,
+    AccessibleConversationDataButton,
     AccessibleDiscardVoiceMessage,
+    AccessibleEmojiButton,
+    AccessibleMessagesListControl,
+    AccessibleNewConversationButton,
     AccessiblePauseResumeRecording,
-    AccessibleSendVoiceMessage,
     AccessiblePlayRecordedAudio,
+    AccessibleReadMoreButton,
+    AccessibleRecordVoiceMessage,
+    AccessibleSaveAs,
+    AccessibleSearchConversations,
     AccessibleSearchInConversation,
     AccessibleSearchNextResult,
     AccessibleSearchPrevResult,
-    AccessibleNewConversationButton,
-    AccessibleMessagesListControl,
-    AccessibleReadMoreButton,
+    AccessibleSendVoiceMessage,
     CompatListBoxMessagesCtrl,
 )
+from ui.dialogs.add_member_dialog import AddMemberDialog
+from ui.dialogs.attach_contact_dialog import AttachContactDialog
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
-from core.save_location import resolve_save_dialog_folder
-from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
-from core.locale_format import get_date_format, get_time_format, get_datetime_format
-from core.message_copy_format import format_copied_message
-from core.video_player import VideoPlayer
-from core.focus_cloak import cloak_focus_announcement
+from ui.dialogs.new_contact import NewContactDialog
+from ui.dialogs.new_conversation import NewConversationDialog
+from ui.dialogs.reactions_dialog import ReactionsDialog
 from ui.media_viewer import MediaViewerDialog
-from app_paths import data_path
-from core.message_queue import PendingMessage
-from datetime import datetime, timedelta
 
-# Compiled URL regex used for link extraction from message text
+
 _URL_RE = re.compile(r'https?://\S+|www\.\S+')
 
 # Message types that carry a file "Save as" can actually write to disk.
@@ -127,7 +173,6 @@ def message_caption(msg) -> str:
         return ""
     inner = msg.get("message", {})
     if isinstance(inner, str):
-        import json
         try:
             inner = json.loads(inner)
         except Exception:
@@ -224,7 +269,6 @@ def probe_media_duration(path: str):
     #    MP4 file, which is why a probed duration used to drift a second or
     #    two from what the player itself later showed for the same file.
     try:
-        from sound_lib import stream
         s = stream.FileStream(file=path, decode=True)
         length_bytes = s.get_length()
         length_secs = s.bytes_to_seconds(length_bytes)
@@ -237,7 +281,6 @@ def probe_media_duration(path: str):
     # 2. Try stdlib wave module for .wav files
     if path.lower().endswith(".wav"):
         try:
-            import wave
             with wave.open(path, "rb") as wf:
                 frames = wf.getnframes()
                 rate   = wf.getframerate()
@@ -275,7 +318,6 @@ def _fmt_last_seen(ts, i18n) -> str:
     if not ts:
         return ""
     try:
-        from datetime import datetime as _dt, timedelta as _td
         ts_val = int(ts)
         if ts_val > 1_000_000_000_000:
             ts_val //= 1000
@@ -2518,7 +2560,6 @@ class ConversationsPanel(wx.Panel):
                     # For audio messages, kick off background download now that
                     # we have the real ID the WPPConnect API can look up.
                     if msg.get("messageType") == "audioMessage":
-                        import threading as _threading
                         _threading.Thread(
                             target=self.main_window.sync_if_media,
                             args=(msg,),
@@ -3137,7 +3178,6 @@ class ConversationsPanel(wx.Panel):
 
         if pyaudio is None or (self._recording_pa is None and pyaudio is None):
             try:
-                import sounddevice as sd
                 def _sd_callback(indata, frames, time_info, status):
                     if not self._recording_paused:
                         self._recording_frames.append(indata.tobytes())
@@ -3518,7 +3558,6 @@ class ConversationsPanel(wx.Panel):
         if not self._is_recording:
             return
 
-        import time as _time
         _t0 = _time.perf_counter()
         logging.info("[VOICE_TIMING] T+0.000s — user clicked send, stopping recording stream")
 
@@ -3612,7 +3651,6 @@ class ConversationsPanel(wx.Panel):
         enc_key = mw.key
 
         def _write_and_enqueue():
-            import time as _time
             _tw0 = _time.perf_counter()
             logging.info("[VOICE_TIMING] T+%.3fs — _write_and_enqueue thread started",
                          _tw0 - _t0)
@@ -3626,7 +3664,6 @@ class ConversationsPanel(wx.Panel):
             if mw.settings.get("general", {}).get("noise_reduction_enabled", False):
                 try:
                     logging.info("[VOICE_TIMING] Applying microphone noise reduction...")
-                    from core.audio_processing import apply_noise_gate
                     audio_data = apply_noise_gate(audio_data, actual_rate, actual_ch)
                     logging.info("[VOICE_TIMING] Noise reduction applied successfully")
                 except Exception as ex:
@@ -5613,7 +5650,6 @@ class ConversationsPanel(wx.Panel):
         per_msg = self._reaction_map.get(msg_id) or {}
         if not per_msg:
             return
-        from ui.dialogs.reactions_dialog import ReactionsDialog
         dlg = ReactionsDialog(self.main_window, self, per_msg)
         dlg.ShowModal()
         dlg.Destroy()
@@ -6660,9 +6696,6 @@ class ConversationsPanel(wx.Panel):
     def _open_file_safely(self, filepath: str):
         """Open a file with the default associated program in the foreground.
         Falls back to Windows 'openas' dialog if no program is associated."""
-        import sys
-        import os
-        import ctypes
         if sys.platform == "win32":
             try:
                 # SW_SHOW = 5
@@ -6680,10 +6713,8 @@ class ConversationsPanel(wx.Panel):
                     os.startfile(filepath)
         else:
             if sys.platform == "darwin":
-                import subprocess
                 subprocess.call(["open", filepath])
             else:
-                import subprocess
                 try:
                     subprocess.call(["xdg-open", filepath])
                 except Exception:
@@ -10262,7 +10293,6 @@ class ConversationsPanel(wx.Panel):
 
     def _on_menu_add_member(self, group_jid: str):
         """Open the add-member dialog for a group."""
-        from ui.dialogs.add_member_dialog import AddMemberDialog
         dlg = AddMemberDialog(self.main_window, group_jid)
         dlg.ShowModal()
         dlg.Destroy()
@@ -10951,7 +10981,6 @@ class ConversationsPanel(wx.Panel):
         sp = getattr(mw, "status_panel", None)
         if sp is not None and sp._video_player.is_playing:
             sp._video_player.stop()
-        from status_panel import MyStatusDialog
         dlg = MyStatusDialog(mw, my_statuses)
         if idx:
             dlg._current = idx
@@ -12538,7 +12567,6 @@ class ConversationsPanel(wx.Panel):
 
     def _on_new_conversation(self, event=None):
         """Ctrl+N / Nova conversa button: open the New Conversation dialog."""
-        from ui.dialogs.new_conversation import NewConversationDialog
         dlg = NewConversationDialog(self.main_window)
         dlg.ShowModal()
         dlg.Destroy()
@@ -13495,7 +13523,6 @@ class ConversationsPanel(wx.Panel):
             self._show_attachment_panel()
 
     def _on_attach_contact(self, event):
-        from ui.dialogs.attach_contact_dialog import AttachContactDialog
         dlg = AttachContactDialog(self.main_window)
         if dlg.ShowModal() != wx.ID_OK or dlg.selected_contact is None:
             dlg.Destroy()
@@ -14056,7 +14083,6 @@ class ConversationsPanel(wx.Panel):
         p_name = parts[0] if parts else ""
         p_sur  = parts[1] if len(parts) > 1 else ""
 
-        from ui.dialogs.new_contact import NewContactDialog
         dlg = NewContactDialog(
             self.main_window, self,
             prefill_phone=format_number(jid),
@@ -14166,7 +14192,6 @@ class ConversationsPanel(wx.Panel):
                 top_idx = self.messages_list.GetTopItem()
             else:
                 try:
-                    import ctypes
                     hwnd = self.messages_list.GetHandle()
                     top_idx = ctypes.windll.user32.SendMessageW(hwnd, 0x018E, 0, 0)
                 except Exception:
@@ -14665,7 +14690,6 @@ class ConversationsPanel(wx.Panel):
                 top_idx = self.messages_list.GetTopItem()
             else:
                 try:
-                    import ctypes
                     hwnd = self.messages_list.GetHandle()
                     top_idx = ctypes.windll.user32.SendMessageW(hwnd, 0x018E, 0, 0)
                 except Exception:
@@ -15371,7 +15395,6 @@ class ConversationsPanel(wx.Panel):
             # Check if mentioned
             msg_inner = msg.get("message", {})
             if isinstance(msg_inner, str):
-                import json
                 try:
                     msg_inner = json.loads(msg_inner)
                 except:
