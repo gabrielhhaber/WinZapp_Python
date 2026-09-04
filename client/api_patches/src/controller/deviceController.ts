@@ -1341,6 +1341,10 @@ export async function reactMessage(req: Request, res: Response) {
           }
           const reactionText = reaction || '';
           const sendStatusReaction = statusReactionAction.sendStatusReaction;
+          const hasCurrentReactionCompanions =
+            typeof statusReactionAction.mintStatusReactionKey === 'function' &&
+            typeof statusReactionAction.applyOptimisticStatusReaction ===
+              'function';
           let callShape = 'legacy-2';
 
           // WhatsApp Web changed this private action from
@@ -1349,12 +1353,8 @@ export async function reactMessage(req: Request, res: Response) {
           // arguments fails inside msgKey.toString(). Build the two values
           // through the companion exports from the same module, while keeping
           // the legacy call for older web builds.
-          if (sendStatusReaction.length >= 3) {
-            if (
-              typeof statusReactionAction.mintStatusReactionKey !== 'function' ||
-              typeof statusReactionAction.applyOptimisticStatusReaction !==
-                'function'
-            ) {
+          if (hasCurrentReactionCompanions || sendStatusReaction.length >= 3) {
+            if (!hasCurrentReactionCompanions) {
               return {
                 ok: false,
                 detail:
@@ -1466,12 +1466,12 @@ export async function getSendCapabilities(req: Request, res: Response) {
       const reactionArity = Number(
         reactionModule?.sendStatusReaction?.length ?? -1
       );
+      const hasCurrentReactionCompanions =
+        typeof reactionModule?.mintStatusReactionKey === 'function' &&
+        typeof reactionModule?.applyOptimisticStatusReaction === 'function';
       checks.statusReaction =
         typeof reactionModule?.sendStatusReaction === 'function' &&
-        (reactionArity < 3 ||
-          (typeof reactionModule?.mintStatusReactionKey === 'function' &&
-            typeof reactionModule?.applyOptimisticStatusReaction ===
-              'function'));
+        (reactionArity < 3 || hasCurrentReactionCompanions);
       const missing = Object.entries(checks)
         .filter(([, available]) => !available)
         .map(([name]) => name);

@@ -32,6 +32,7 @@ def test_status_like_uses_targeted_status_reaction_transport():
     assert "mintStatusReactionKey(model)" in status_branch
     assert "applyOptimisticStatusReaction(" in status_branch
     assert "previousOptimisticReaction" in status_branch
+    assert "hasCurrentReactionCompanions || sendStatusReaction.length >= 3" in status_branch
     assert "native-status-reaction-signature-unsupported" in status_branch
     assert "await sendStatusReaction(model, reactionText)" in status_branch
     assert "WPP.chat.sendRawMessage(" not in status_branch
