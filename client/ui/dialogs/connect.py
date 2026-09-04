@@ -121,6 +121,10 @@ class Connect:
         # dialogs — see on_continue()'s docstring for why this exists.
         self._pairing_attempt_id: int = 0
 
+        # Set by on_switch_to_phone() right before it clears WA_token via
+        # _close_active_session() — see that method's comment.
+        self._token_before_mode_switch: str = ""
+
     # ── Helpers ────────────────────────────────────────────────────────────
 
     def _wpp_headers(self, use_global_key=False):
@@ -659,6 +663,13 @@ class Connect:
                 threading.Thread(target=_close_api_session, daemon=True).start()
 
     def on_switch_to_phone(self, event):
+        # _close_active_session() below clears WA_token — capture it first so
+        # on_continue()'s _can_reuse_existing_session() can still recognise a
+        # same-number resume later, instead of seeing an empty token and
+        # treating it as a brand-new pairing (see on_switch_to_qrcode's own
+        # comment for the identical problem on the QR side).
+        self._token_before_mode_switch = self.main_window._get_wa_token()
+
         # Close the active QR code session first
         self._close_active_session()
 
@@ -676,6 +687,14 @@ class Connect:
         self.phone_field.SetInsertionPointEnd()
 
     def on_switch_to_qrcode(self, event):
+        # Was this account genuinely paired before we tear anything down?
+        # Captured BEFORE _close_active_session(), which clears WA_token —
+        # start_qrcode_connection() below can no longer tell "resuming a
+        # paired account" from "brand-new pairing" once that token is gone,
+        # and used to always wipe local data as a result. See that method's
+        # own docstring for the full story.
+        was_paired = bool(self.main_window.settings.get("privateinfo", {}).get("paired"))
+
         # Close the active phone code session first
         self._close_active_session()
 
@@ -687,13 +706,23 @@ class Connect:
         self.connection_dial.Layout()
 
         # Always start a fresh QR-CODE connection
-        self.start_qrcode_connection()
+        self.start_qrcode_connection(preserve_local_data=was_paired)
 
         self.main_window.qrcode_loaded_sound.play()
         self.main_window.output(self.i18n.t("qrcode_instructions"))
 
-    def start_qrcode_connection(self):
-        """Initiates QR-CODE connection without user interaction."""
+    def start_qrcode_connection(self, preserve_local_data=False):
+        """Initiates QR-CODE connection without user interaction.
+
+        preserve_local_data: True when the caller already established this
+        account was paired before whatever just closed its stored token (see
+        on_switch_to_qrcode). QR pairing can never confirm in advance which
+        phone number is about to scan the code — unlike on_continue()'s
+        _can_reuse_existing_session(), which can compare the number the user
+        just typed — so this is a coarser signal on purpose: it only rules
+        out wiping a history that was working a moment ago, never claims the
+        new scan is provably the same account.
+        """
         self.qrcode_connection_started = True
         # Mark pairing as actively in flight for the WHOLE QR flow. Without this,
         # the ~30s health poll (check_wa_connection_http) saw the expected QRCODE
@@ -741,7 +770,8 @@ class Connect:
             else:
                 # New pairing: reset sync flag so we wait for messages.set
                 self.main_window.messages_set_completed = False
-                self.main_window.clear_local_data()
+                if not preserve_local_data:
+                    self.main_window.clear_local_data()
                 raw_token = self.generate_random_token()
                 # Raise on failure so the outer except shows a meaningful message
                 # instead of an opaque 401 from _create_instance.
@@ -1030,7 +1060,15 @@ class Connect:
                 # _can_reuse_existing_session() for why the token alone is not
                 # enough. It normalises the stored number to digits itself.
                 _privateinfo = self.main_window.settings.get("privateinfo", {})
-                existing_token = self.main_window._get_wa_token()
+                # Falls back to whatever on_switch_to_phone captured before
+                # _close_active_session() cleared WA_token — see that
+                # method's comment. Empty when phone mode was never switched
+                # into (the common case), so _get_wa_token() alone still
+                # decides then.
+                existing_token = (
+                    self.main_window._get_wa_token()
+                    or getattr(self, "_token_before_mode_switch", "")
+                )
                 _instance_exists = self._can_reuse_existing_session(
                     _privateinfo, self.phone_number, existing_token
                 )
