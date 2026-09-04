@@ -28,6 +28,8 @@ Same stub approach as tests/test_qrcode_auto_repair_dialog.py — WebSocketClien
 methods bound onto a plain object, no socketio and no wx.App.
 """
 
+import time
+
 import pytest
 
 from core.websocket_client import WebSocketClient
@@ -106,6 +108,13 @@ class _FakeMainWindow:
         # still has to reach the dialog and the flood ceiling.
         self.profile_restore_available = False
         self.recover_calls = []
+        # Well past the startup grace window by default (see
+        # tests/test_qrcode_auto_repair_dialog.py::TestStartupGraceWindow
+        # for the dedicated coverage of that window itself) — nothing in
+        # this file is testing startup timing, so it should not interact.
+        self._wa_connect_announced = True
+        self._WA_STARTUP_GRACE_SECONDS = MainWindow._WA_STARTUP_GRACE_SECONDS
+        self._wa_startup_time = time.time() - (self._WA_STARTUP_GRACE_SECONDS * 10)
 
     def _recover_suspect_profile(self, reason=None, on_give_up=None):
         # on_give_up fires only when a restore was started and then failed;
@@ -135,6 +144,7 @@ class _Stub:
     on_qrcode_update = WebSocketClient.on_qrcode_update
     _pairing_attended = WebSocketClient._pairing_attended
     _handle_unattended_qr = WebSocketClient._handle_unattended_qr
+    _qr_within_startup_grace = WebSocketClient._qr_within_startup_grace
     _show_repair_dialog = WebSocketClient._show_repair_dialog
     _UNATTENDED_QR_LIMIT = WebSocketClient._UNATTENDED_QR_LIMIT
     _extract_qr_payload = staticmethod(WebSocketClient._extract_qr_payload)
