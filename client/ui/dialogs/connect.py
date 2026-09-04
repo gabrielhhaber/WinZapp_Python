@@ -240,6 +240,15 @@ class Connect:
         private_info = self.main_window.settings.get("privateinfo", {})
         token = self.main_window._get_wa_token()
 
+        if not token and private_info.get("paired"):
+            # paired=True with no token can mean the reference itself was
+            # lost while the actual WPPConnect session survived untouched
+            # (see MainWindow._recover_active_session_token() for why and
+            # how) — try to recover it before falling through to the
+            # pairing dialog. A never-paired account has nothing to
+            # recover and is deliberately excluded.
+            token = self.main_window._recover_active_session_token()
+
         # Legacy fallback: token.tk file means old-format paired session.
         if not token:
             return os.path.exists(data_path("token.tk"))
@@ -1719,6 +1728,27 @@ class Connect:
         # Invalidate any in-flight _bg_pairing_flow() — see on_continue().
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
+        if getattr(self.main_window, "_wa_connected", False):
+            # This dialog can now open on its own while already paired (the
+            # proactive re-pair dialog — websocket_client.py's
+            # _show_repair_dialog()), and WhatsApp can genuinely reconnect
+            # in the background — via the normal health check, independent
+            # of this dialog — before the user ever reacts to it. Below,
+            # every close path assumes the opposite: that a dialog on
+            # screen means nothing usable exists yet, so it always
+            # disconnects the live socket and clears the saved token.
+            # Reported live: an account that was working the entire session
+            # showed the pairing dialog again on the very next launch, with
+            # its WPPConnect session and Chrome profile completely intact —
+            # only the stored token reference had been wiped, by exactly
+            # this path, closing a dialog that should never have treated a
+            # live connection as disposable.
+            logging.info(
+                "[on_dialog_close] WhatsApp is connected — closing without "
+                "disconnecting the socket or clearing the saved session."
+            )
+            event.Skip()
+            return
         # Disconnect WebSocket if connected
         if hasattr(self.main_window, 'ws') and self.main_window.ws:
             try:
@@ -1738,6 +1768,19 @@ class Connect:
             return
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
+        if getattr(self.main_window, "_wa_connected", False):
+            # Same reasoning as on_dialog_close() above: WhatsApp is
+            # genuinely connected right now, so "Quit" here means exactly
+            # what it means from the main window — close the app through
+            # the normal graceful teardown, and do not disconnect the live
+            # socket or wipe the saved session first.
+            logging.info(
+                "[on_quit_from_connect] WhatsApp is connected — quitting "
+                "via the normal graceful shutdown instead of tearing down "
+                "the active session."
+            )
+            self.main_window.real_exit()
+            return
         if hasattr(self.main_window, 'ws') and self.main_window.ws:
             try:
                 logging.info("[on_quit_from_connect] Disconnecting WebSocket...")
