@@ -28,6 +28,8 @@ Same stub approach as tests/test_qrcode_auto_repair_dialog.py — WebSocketClien
 methods bound onto a plain object, no socketio and no wx.App.
 """
 
+import time
+
 import pytest
 
 from core.websocket_client import WebSocketClient
@@ -100,6 +102,13 @@ class _FakeMainWindow:
         self._pairing_in_progress = False
         self._auto_repair_dialog_shown = False
         self.halt_calls = 0
+        # Well past the startup grace window by default (see
+        # tests/test_qrcode_auto_repair_dialog.py::TestStartupGraceWindow
+        # for the dedicated coverage of that window itself) — nothing in
+        # this file is testing startup timing, so it should not interact.
+        self._wa_connect_announced = True
+        self._WA_STARTUP_GRACE_SECONDS = MainWindow._WA_STARTUP_GRACE_SECONDS
+        self._wa_startup_time = time.time() - (self._WA_STARTUP_GRACE_SECONDS * 10)
 
     def _is_pairing_dialog_active(self):
         return self._pairing_dialog_active
@@ -123,6 +132,7 @@ class _Stub:
     on_qrcode_update = WebSocketClient.on_qrcode_update
     _pairing_attended = WebSocketClient._pairing_attended
     _handle_unattended_qr = WebSocketClient._handle_unattended_qr
+    _qr_within_startup_grace = WebSocketClient._qr_within_startup_grace
     _show_repair_dialog = WebSocketClient._show_repair_dialog
     _UNATTENDED_QR_LIMIT = WebSocketClient._UNATTENDED_QR_LIMIT
     _extract_qr_payload = staticmethod(WebSocketClient._extract_qr_payload)

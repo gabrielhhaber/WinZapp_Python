@@ -20,6 +20,8 @@ WebSocketClient is exercised as a plain function bound onto a small stub
 uses for _extract_qr_payload.
 """
 
+import time
+
 import pytest
 
 from core.websocket_client import WebSocketClient
@@ -60,7 +62,8 @@ class _FakeConnect:
 
 
 class _FakeMainWindow:
-    def __init__(self, paired=True, pairing_dialog_active=False):
+    def __init__(self, paired=True, pairing_dialog_active=False,
+                 wa_connect_announced=True, wa_startup_time=None):
         self.settings = {"privateinfo": {"paired": paired}}
         self._pairing_dialog_active = pairing_dialog_active
         self.pairing_code_updated_sound = _FakeSound()
@@ -72,6 +75,15 @@ class _FakeMainWindow:
         self._qr_flood_halted = False
         self._pairing_in_progress = False
         self.halt_calls = 0
+        # Defaults put every pre-existing test well past the startup grace
+        # window (already connected once before, or started long ago) —
+        # only the dedicated grace-window tests below override these.
+        self._wa_connect_announced = wa_connect_announced
+        self._WA_STARTUP_GRACE_SECONDS = MainWindow._WA_STARTUP_GRACE_SECONDS
+        self._wa_startup_time = (
+            time.time() - (self._WA_STARTUP_GRACE_SECONDS * 10)
+            if wa_startup_time is None else wa_startup_time
+        )
 
     def _is_pairing_dialog_active(self):
         return self._pairing_dialog_active
@@ -92,6 +104,7 @@ class _Stub:
     on_qrcode_update = WebSocketClient.on_qrcode_update
     _pairing_attended = WebSocketClient._pairing_attended
     _handle_unattended_qr = WebSocketClient._handle_unattended_qr
+    _qr_within_startup_grace = WebSocketClient._qr_within_startup_grace
     _show_repair_dialog = WebSocketClient._show_repair_dialog
     _UNATTENDED_QR_LIMIT = WebSocketClient._UNATTENDED_QR_LIMIT
     _extract_qr_payload = staticmethod(WebSocketClient._extract_qr_payload)
@@ -189,3 +202,53 @@ class TestProactivePairingDialog:
         mw._auto_repair_dialog_shown = False  # what a real reconnect does
         s.on_qrcode_update(QR_EVENT)
         assert connect.show_connection_dial_calls == 2
+
+
+class TestStartupGraceWindow:
+    """Regression: a real log showed on_qrcode_update firing 11s after
+    process start, while /list-chats was still 404ing for another 50s
+    because the session itself had not finished starting — WPPConnect's
+    first QR event is not immune to the exact slow-boot race
+    _WA_STARTUP_GRACE_SECONDS exists for elsewhere. A single such event
+    used to open the proactive re-pair dialog immediately; the user then
+    followed it into a fresh pairing, which wiped their local history."""
+
+    def test_does_not_open_immediately_inside_the_startup_grace_window(self):
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=False, wa_startup_time=time.time(),
+        )
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert connect.show_connection_dial_calls == 0
+
+    def test_opens_once_the_grace_window_has_elapsed(self):
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=False,
+            wa_startup_time=time.time() - (MainWindow._WA_STARTUP_GRACE_SECONDS + 1),
+        )
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert connect.show_connection_dial_calls == 1
+
+    def test_opens_immediately_once_a_connection_was_ever_confirmed(self):
+        """The grace window only protects a (re)connect attempt that has
+        never yet succeeded — once _wa_connect_announced is True, a QR event
+        is exactly as conclusive as before, even seconds after it fires."""
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=True, wa_startup_time=time.time(),
+        )
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert connect.show_connection_dial_calls == 1

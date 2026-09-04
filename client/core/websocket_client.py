@@ -782,6 +782,31 @@ class WebSocketClient:
         return bool(mw._is_pairing_dialog_active()
                     or getattr(mw, "_pairing_in_progress", False))
 
+    def _qr_within_startup_grace(self) -> bool:
+        """True while this (re)connect attempt has never yet confirmed a
+        live WhatsApp connection and is still inside the same
+        _WA_STARTUP_GRACE_SECONDS window check_wa_connection_http() gives a
+        bare CLOSED/QRCODE status before it will trust it as anything more
+        than a slow boot still settling.
+
+        A previously-paired install that has genuinely lost its session can
+        start emitting QR codes within seconds of a fresh (re)connect — a
+        real log measured one 11 s after startup, while /list-chats was
+        still 404ing because the session itself had not finished starting.
+        Nothing about a QR event makes it immune to the exact race the
+        startup grace exists for elsewhere; it only looks immune because,
+        unlike a bare status string, a code is often also genuinely
+        conclusive. Both _wa_startup_time and _wa_connect_announced are
+        reset together on every fresh (re)connect (see main.py), so this
+        re-arms correctly across reconnects, not just the first launch.
+        """
+        mw = self.main_window
+        if getattr(mw, "_wa_connect_announced", False):
+            return False
+        started = getattr(mw, "_wa_startup_time", 0) or 0
+        grace = getattr(mw, "_WA_STARTUP_GRACE_SECONDS", 0) or 0
+        return (time.time() - started) < grace
+
     def _handle_unattended_qr(self):
         """A real QR/pairing code arrived that no refresh branch wanted.
 
@@ -794,10 +819,18 @@ class WebSocketClient:
 
         Telling the user is the proactive pairing dialog — WPPConnect only
         generates a code once it has already decided the stored session can't
-        be restored, so a code with no dialog open is a reliable "you need to
-        re-pair" signal on its own, unlike the coarse status-session string
-        the health-check poll watches (which needs several minutes of
-        confirmation to rule out a normal slow boot).
+        be restored, so a code with no dialog open is close to a reliable
+        "you need to re-pair" signal on its own — closer than the coarse
+        status-session string the health-check poll watches, which needs
+        several minutes of confirmation to rule out a normal slow boot. Not
+        immune to that same class of false positive, though: a code observed
+        seconds into a (re)connect attempt races the same stored-session
+        restore the status-session poll is still waiting on, so
+        _qr_within_startup_grace() below withholds judgment for exactly the
+        window that poll already gets (_WA_STARTUP_GRACE_SECONDS). See
+        tests/test_qrcode_auto_repair_dialog.py::TestStartupGraceWindow — a
+        code that keeps arriving with no dialog past that window still opens
+        it; this only delays the first one.
 
         Stopping the churn is the part whose absence got an account banned.
         `autoClose`/`deviceSyncTimeout` are pinned to 0 (client/api_patches/
@@ -829,6 +862,7 @@ class WebSocketClient:
         if (
             mw.settings.get("privateinfo", {}).get("paired")
             and not getattr(mw, "_auto_repair_dialog_shown", False)
+            and not self._qr_within_startup_grace()
         ):
             self._show_repair_dialog()
             return
