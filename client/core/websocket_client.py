@@ -116,12 +116,30 @@ class WebSocketClient:
     # screen before the session that mints them is closed outright. WhatsApp
     # rotates roughly every 20-30s, so this is ~1 minute on an install that
     # never paired. On one that did it is that dialog's lifetime plus ~1
-    # minute: there the very first unattended event opens the re-pairing
-    # dialog, and codes are attended for as long as it stays up, so the three
-    # counted events only start once the user dismisses it. Short enough
-    # that an app left open overnight on a session WhatsApp already
-    # dropped does not ask for hundreds of codes nobody will ever scan.
+    # minute: there the _REPAIR_DIALOG_CONFIRM_EVENTS'th unattended event
+    # opens the re-pairing dialog, and codes are attended for as long as it
+    # stays up, so the three counted events only start once the user
+    # dismisses it. Short enough that an app left open overnight on a
+    # session WhatsApp already dropped does not ask for hundreds of codes
+    # nobody will ever scan.
     _UNATTENDED_QR_LIMIT = 3
+
+    # How many unattended QR/pairing-code events in a row are required before
+    # the proactive re-pair dialog opens for a previously-paired account.
+    # Was 1 (the very first event), which raced main.py's own, much more
+    # careful check_wa_connection_http()/_act_on_unlink_decision() strike
+    # machinery for the exact same underlying "unlinked" reading — a real
+    # log captured that machinery logging "resuming — data preserved" (not
+    # yet confirmed) on the SAME reading this dialog had already acted on
+    # a QR event earlier for, seconds apart. Every other unlink-confirming
+    # path in this codebase requires more than a single reading before
+    # doing anything user-visible or destructive; this one now does too,
+    # at the cost of the same ~20-30s (one more QR rotation) every other
+    # such confirmation already accepts as the price of not alarming or
+    # wiping a session that was only ever transiently unhappy. Still well
+    # under _UNATTENDED_QR_LIMIT, so the harsher close-session action is
+    # never reached before the dialog has already offered a way out.
+    _REPAIR_DIALOG_CONFIRM_EVENTS = 2
 
     def __init__(self, main_window, connect, instance_name):
         self.main_window = main_window
@@ -782,6 +800,31 @@ class WebSocketClient:
         return bool(mw._is_pairing_dialog_active()
                     or getattr(mw, "_pairing_in_progress", False))
 
+    def _qr_within_startup_grace(self) -> bool:
+        """True while this (re)connect attempt has never yet confirmed a
+        live WhatsApp connection and is still inside the same
+        _WA_STARTUP_GRACE_SECONDS window check_wa_connection_http() gives a
+        bare CLOSED/QRCODE status before it will trust it as anything more
+        than a slow boot still settling.
+
+        A previously-paired install that has genuinely lost its session can
+        start emitting QR codes within seconds of a fresh (re)connect — a
+        real log measured one 11 s after startup, while /list-chats was
+        still 404ing because the session itself had not finished starting.
+        Nothing about a QR event makes it immune to the exact race the
+        startup grace exists for elsewhere; it only looks immune because,
+        unlike a bare status string, a code is often also genuinely
+        conclusive. Both _wa_startup_time and _wa_connect_announced are
+        reset together on every fresh (re)connect (see main.py), so this
+        re-arms correctly across reconnects, not just the first launch.
+        """
+        mw = self.main_window
+        if getattr(mw, "_wa_connect_announced", False):
+            return False
+        started = getattr(mw, "_wa_startup_time", 0) or 0
+        grace = getattr(mw, "_WA_STARTUP_GRACE_SECONDS", 0) or 0
+        return (time.time() - started) < grace
+
     def _handle_unattended_qr(self):
         """A real QR/pairing code arrived that no refresh branch wanted.
 
@@ -794,10 +837,20 @@ class WebSocketClient:
 
         Telling the user is the proactive pairing dialog — WPPConnect only
         generates a code once it has already decided the stored session can't
-        be restored, so a code with no dialog open is a reliable "you need to
-        re-pair" signal on its own, unlike the coarse status-session string
-        the health-check poll watches (which needs several minutes of
-        confirmation to rule out a normal slow boot).
+        be restored, so a code with no dialog open is close to a reliable
+        "you need to re-pair" signal on its own — closer than the coarse
+        status-session string the health-check poll watches, which needs
+        several minutes of confirmation to rule out a normal slow boot. Not
+        immune to that same class of false positive, though, in two
+        different ways: a code observed seconds into a (re)connect attempt
+        races the same stored-session restore the status-session poll is
+        still waiting on, so _qr_within_startup_grace() below withholds
+        judgment for exactly the window that poll already gets
+        (_WA_STARTUP_GRACE_SECONDS) — see
+        tests/test_qrcode_auto_repair_dialog.py::TestStartupGraceWindow. And
+        a single reading, however it arrives, is not what any *other*
+        unlink-confirming path in this codebase accepts either — see
+        _REPAIR_DIALOG_CONFIRM_EVENTS, which requires this one too.
 
         Stopping the churn is the part whose absence got an account banned.
         `autoClose`/`deviceSyncTimeout` are pinned to 0 (client/api_patches/
@@ -829,6 +882,8 @@ class WebSocketClient:
         if (
             mw.settings.get("privateinfo", {}).get("paired")
             and not getattr(mw, "_auto_repair_dialog_shown", False)
+            and not self._qr_within_startup_grace()
+            and seen >= self._REPAIR_DIALOG_CONFIRM_EVENTS
         ):
             self._show_repair_dialog()
             return
@@ -869,13 +924,14 @@ class WebSocketClient:
         """Tell a previously-paired user their session needs re-pairing, and
         put the pairing dialog in front of them straight away.
 
-        WPPConnect just generated a real QR/pairing code with no pairing
-        dialog open at all — it only does this once it has already decided
-        the stored session can't be restored, so this is a reliable "you need
-        to re-pair" signal on its own, unlike the coarse status-session string
-        the health-check poll watches (which needs several minutes of
-        confirmation to rule out a normal slow boot). Surfacing the pairing
-        dialog immediately — instead of leaving the user staring at "offline"
+        Called once _handle_unattended_qr() has already required everything
+        it requires before reaching here — outside the startup grace window
+        and confirmed by _REPAIR_DIALOG_CONFIRM_EVENTS consecutive readings,
+        not a single one — so by the time this runs, the signal is at least
+        as solid as the coarse status-session string the health-check poll
+        watches (which needs several minutes of confirmation to rule out a
+        normal slow boot). Surfacing the pairing dialog immediately —
+        instead of leaving the user staring at "offline"
         for however long _AUTO_RESTART_LOGOUT_GRACE_SECONDS or the
         multi-minute unlink confirmation takes with no explanation — was an
         explicit, accepted tradeoff: this dialog's own Cancel/close buttons
