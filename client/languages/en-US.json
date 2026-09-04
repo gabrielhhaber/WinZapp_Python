@@ -836,6 +836,7 @@
     "preview_sound_stop": "Stop sound preview",
     "preview_sound_error": "Could not play the preview — invalid or missing sound file.",
     "wpp_version_unpinned_warning": "Warning: could not pin the WhatsApp Web version. Sending to individual contacts may fail silently; groups still work. Please update WinZapp's WhatsApp Web.",
+    "send_capabilities_incompatible": "The installed update is incompatible with one or more send features. WinZapp blocked the false success and recorded technical details in the log.",
     "status_unconfirmed": "Delivery unconfirmed",
     "no_messages_in_conversation": "No messages available in this chat.",
     "audio_device_default": "System default",

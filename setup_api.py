@@ -182,6 +182,9 @@ def _current_tag(cwd: str) -> str:
 # api_patches/ at some earlier point, undoing legitimate upstream bumps on
 # every future tag this script prepares.
 _PATCHED_DEPENDENCY_KEYS = [
+    "@wppconnect-team/wppconnect",  # Exact runtime pair homologated by WinZapp.
+    "@wppconnect/wa-js",            # Prevent npm from changing browser APIs
+                                     # during a reinstall of the same server.
     "prom-client",  # imported by src/middleware/instrumentation.ts, which is
                     # WinZapp's own patch. Upstream happens to declare it too,
                     # but under devDependencies — so our production import is
@@ -214,23 +217,11 @@ _PATCHED_DEPENDENCY_KEYS = [
                                   # wppconnect-server does not declare it at all.
 ]
 
-# @wppconnect-team/wppconnect used to be pinned here too, to an exact version
-# ("2.2.4") that predated this comment. That went stale fast: this dependency
-# releases new patch versions multiple times a week, and wppconnect-server's
-# own main branch had already moved on to requiring "^2.2.6" — meaning a fresh
-# clone/build was running WPPConnect Server against an @wppconnect-team/wppconnect
-# release two patches behind what it was actually written and tested against,
-# silently, with no error anywhere.
-#
-# The fix is to not patch it at all: leave upstream's own declared range in
-# package.json exactly as the clone/checkout produced it, the same way every
-# OTHER unpinned dependency already works here. @wppconnect/wa-js and
-# @wppconnect/wa-version are never pinned by WinZapp either — they are pulled
-# in transitively through whatever @wppconnect-team/wppconnect version resolves,
-# so they now track the paired version automatically instead of needing to be
-# kept in sync by hand. This mirrors start.js's own resolveWhatsappVersion(),
-# which resolves the WhatsApp Web build version dynamically for exactly the
-# same reason ("Rather than hardcoding a version — which rots...").
+# Executable WPPConnect/WA-JS code is pinned to the exact pair validated with
+# this WinZapp patch set. Upstream uses caret ranges, so a plain npm install of
+# the same WPPConnect Server tag previously changed these APIs underneath an
+# unchanged WinZapp build. @wppconnect/wa-version remains transitively updated:
+# it is the expiring WhatsApp HTML catalogue, not the executable adapter API.
 
 
 def _recover_upstream_package_json():
@@ -561,9 +552,23 @@ def _merge_package_json_dependencies():
 def main():
     env = _load_env()
     tag = env.get("WPPCONNECT_TAG_VERSION", "").strip()
+    if not tag:
+        contract_path = os.path.join(ROOT_DIR, "client", "wpp_minimum_version.txt")
+        try:
+            with open(contract_path, encoding="utf-8") as fh:
+                homologated = fh.read().strip()
+            if homologated:
+                tag = f"v{homologated.lstrip('vV')}"
+                print(f"[INFO] Using WinZapp homologated WPPConnect tag {tag}.")
+        except OSError:
+            pass
 
     git_dir = os.path.join(CLIENT_API_DIR, ".git")
-    already_cloned = os.path.isdir(git_dir)
+    already_cloned = os.path.isdir(CLIENT_API_DIR)
+    managed_git_clone = (
+        os.path.isfile(os.path.join(git_dir, "HEAD"))
+        and os.path.isfile(os.path.join(git_dir, "config"))
+    )
 
     # Gather the content to restore for every patched file, preferring
     # client/api_patches/ (permanent, always-tracked) over whatever
@@ -597,7 +602,6 @@ def main():
         print(f"[INFO] client/api/ already exists — skipping clone (checking for updates below).")
     else:
         print(f"[INFO] Cloning WPPConnect Server …")
-        import shutil
         temp_node_modules = os.path.join(ROOT_DIR, "temp_node_modules")
         node_modules_path = os.path.join(CLIENT_API_DIR, "node_modules")
         has_node_modules = os.path.isdir(node_modules_path)
@@ -626,7 +630,7 @@ def main():
             except Exception as e:
                 print(f"[WARNING] Failed to restore node_modules: {e}")
 
-    if tag:
+    if tag and managed_git_clone:
         current = _current_tag(CLIENT_API_DIR)
         if current == tag:
             print(f"[INFO] Already pinned to {tag}.")
@@ -634,7 +638,7 @@ def main():
             print(f"[INFO] WPPCONNECT_TAG_VERSION pinned — checking out {tag}.")
             _run(["git", "fetch", "--tags", "--force"], cwd=CLIENT_API_DIR)
             _run(["git", "checkout", "-f", tag], cwd=CLIENT_API_DIR)
-    else:
+    elif not tag and managed_git_clone:
         latest = _latest_stable_tag(CLIENT_API_DIR)
         if not latest:
             print("[INFO] No stable release tag found (offline or no tags) — using default branch (main).")
@@ -648,6 +652,26 @@ def main():
                 else:
                     print(f"[INFO] No WPPCONNECT_TAG_VERSION pinned — using latest stable release {latest}.")
                 _run(["git", "checkout", "-f", latest], cwd=CLIENT_API_DIR)
+    elif tag:
+        # An extracted/recovered API can contain a partial `.git` directory.
+        # Running git from it walks upward into WinZapp's own repository and
+        # tries to check out the WPPConnect tag there. Never cross that boundary.
+        pkg_version = ""
+        try:
+            with open(os.path.join(CLIENT_API_DIR, "package.json"), encoding="utf-8") as fh:
+                pkg_version = str(json.load(fh).get("version", ""))
+        except Exception:
+            pass
+        expected = tag.lstrip("vV")
+        if pkg_version != expected:
+            raise RuntimeError(
+                f"Unmanaged client/api contains WPPConnect {pkg_version or 'unknown'}, "
+                f"but WinZapp requires {expected}; reinstall it through WinZapp."
+            )
+        print(
+            f"[INFO] Unmanaged API snapshot already reports homologated version "
+            f"{pkg_version}; skipping git checkout safely."
+        )
 
     # Single restore point, deliberately outside every branch above: the clone,
     # the tag checkout (`git checkout -f` overwrites the patched files with
@@ -679,6 +703,26 @@ def main():
                 win_npm = os.path.join(ROOT_DIR, "client", "node", "node_modules", "npm", "bin", "npm-cli.js")
                 if os.path.isfile(win_npm):
                     npm_bin = win_npm
+                    npm_probe = subprocess.run(
+                        [node_bin, npm_bin, "install", "--help"],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    if npm_probe.returncode != 0:
+                        system_node = shutil.which("node")
+                        system_npm = shutil.which("npm.cmd") or shutil.which("npm")
+                        if not system_node or not system_npm:
+                            raise RuntimeError(
+                                "Portable npm is unhealthy; reinstall the homologated "
+                                "Node.js runtime before building WPPConnect"
+                            )
+                        print(
+                            "[WARNING] Portable npm is unhealthy; using the system "
+                            "Node.js runtime for this build."
+                        )
+                        node_bin = system_node
+                        npm_bin = system_npm
 
         # Run npm install
         print("[INFO] Running npm install...")
@@ -769,7 +813,6 @@ def main():
     if not is_windows:
         print("\n[INFO] Detecting Linux OS and installing system dependencies for Chromium...")
         # Check if apt-get is available
-        import shutil
         if shutil.which("apt-get"):
             # Check if running as root or has sudo
             try:

@@ -1627,7 +1627,7 @@ class StatusPanel(wx.Panel):
         return self._is_status_liked(item.get("status_id", ""))
 
     def _viewer_like_status(self, item: dict, done):
-        """Send a status like and report completion back to MediaViewer."""
+        """Toggle the native status reaction from the separate media viewer."""
         status = item.get("status") or {}
         entry = item.get("entry") or {}
         status_key = status.get("key", {})
@@ -1635,25 +1635,32 @@ class StatusPanel(wx.Panel):
         if not status_id:
             wx.CallAfter(done, False)
             return
-        if self._is_status_liked(status_id):
-            self._on_unlike_status_attempted()
-            wx.CallAfter(done, False)
-            return
+
+        is_liked = self._is_status_liked(status_id)
 
         sender_jid = status_key.get("participant", "") or entry.get("jid", "")
         if not sender_jid:
             wx.CallAfter(done, False)
             return
 
+        reaction_key = dict(status_key)
+        reaction_key["remoteJid"] = "status@broadcast"
+        if not reaction_key.get("participant"):
+            reaction_key["participant"] = sender_jid
+
         mw = self.main_window
 
         def _send_like():
             try:
-                ok = bool(mw.send_text_message(sender_jid, "❤️"))
+                ok = bool(mw.send_reaction(
+                    "status@broadcast",
+                    reaction_key,
+                    "" if is_liked else "❤️",
+                ))
             except Exception:
                 ok = False
             if ok:
-                wx.CallAfter(self._on_like_sent, status_id)
+                wx.CallAfter(self._on_like_sent, status_id, not is_liked)
                 wx.CallAfter(done, True)
             else:
                 wx.CallAfter(
@@ -1676,7 +1683,9 @@ class StatusPanel(wx.Panel):
 
         def _send():
             try:
-                result = self.main_window.send_text_message(poster_jid, text)
+                result = self.main_window.send_text_message(
+                    poster_jid, text, quoted=status
+                )
                 ok = bool(result) and not isinstance(result, dict)
             except Exception:
                 ok = False

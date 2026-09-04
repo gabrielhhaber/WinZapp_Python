@@ -836,6 +836,7 @@
     "preview_sound_stop": "Detener vista previa del sonido",
     "preview_sound_error": "No se pudo reproducir la vista previa: archivo de sonido inválido o no encontrado.",
     "wpp_version_unpinned_warning": "Aviso: no se pudo fijar la versión de WhatsApp Web. El envío a contactos individuales puede fallar en silencio; los grupos siguen funcionando. Actualice el WhatsApp Web de WinZapp.",
+    "send_capabilities_incompatible": "La actualización instalada es incompatible con una o más funciones de envío. WinZapp bloqueó el falso éxito y registró los detalles técnicos.",
     "status_unconfirmed": "Envío no confirmado",
     "no_messages_in_conversation": "No hay mensajes disponibles en esta conversación.",
     "audio_device_default": "Predeterminado del sistema",

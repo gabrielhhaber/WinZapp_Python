@@ -222,6 +222,9 @@ class NodeDownloadDialog(wx.Dialog):
 
     def _extract_node(self, zip_path: str, node_dir: str) -> bool:
         self._set_status(self._i18n.t("node_download_extracting"))
+        parent_dir = os.path.dirname(node_dir)
+        staging_dir = tempfile.mkdtemp(prefix=".node-staging-", dir=parent_dir)
+        backup_dir = node_dir + ".previous"
         try:
             with zipfile.ZipFile(zip_path, "r") as zf:
                 for member in zf.infolist():
@@ -237,7 +240,7 @@ class NodeDownloadDialog(wx.Dialog):
                         continue
 
                     rel_os = rel.replace("/", os.sep)
-                    dest = os.path.join(node_dir, rel_os)
+                    dest = os.path.join(staging_dir, rel_os)
 
                     if member.is_dir() or rel.endswith("/"):
                         os.makedirs(dest, exist_ok=True)
@@ -245,10 +248,28 @@ class NodeDownloadDialog(wx.Dialog):
                         os.makedirs(os.path.dirname(dest), exist_ok=True)
                         with zf.open(member) as src_fh, open(dest, "wb") as dst_fh:
                             shutil.copyfileobj(src_fh, dst_fh)
+            if not os.path.isfile(os.path.join(staging_dir, "node.exe")):
+                raise RuntimeError("Downloaded Node.js archive has no node.exe")
+
+            # Never overlay a new npm tree on an old one: stale transitive
+            # packages can make `npm install` crash even though node.exe has
+            # the expected version. Swap the fully extracted runtime instead.
+            if os.path.isdir(backup_dir):
+                shutil.rmtree(backup_dir)
+            if os.path.isdir(node_dir):
+                os.replace(node_dir, backup_dir)
+            os.replace(staging_dir, node_dir)
+            if os.path.isdir(backup_dir):
+                shutil.rmtree(backup_dir)
         except Exception as exc:
+            if not os.path.isdir(node_dir) and os.path.isdir(backup_dir):
+                os.replace(backup_dir, node_dir)
             if not self._cancelled:
                 self._finish_error(self._i18n.t("node_download_error_extract").format(details=exc))
             return False
+        finally:
+            if os.path.isdir(staging_dir):
+                shutil.rmtree(staging_dir, ignore_errors=True)
 
         return not self._cancelled
 

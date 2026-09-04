@@ -836,6 +836,7 @@
     "preview_sound_stop": "Zatrzymaj podgląd dźwięku",
     "preview_sound_error": "Nie udało się odtworzyć podglądu — nieprawidłowy lub brakujący plik dźwiękowy.",
     "wpp_version_unpinned_warning": "Ostrzeżenie: nie udało się przypiąć wersji WhatsApp Web. Wysyłanie do pojedynczych kontaktów może po cichu zawodzić; grupy nadal działają. Zaktualizuj WhatsApp Web w WinZapp.",
+    "send_capabilities_incompatible": "Zainstalowana aktualizacja jest niezgodna z co najmniej jedną funkcją wysyłania. WinZapp zablokował fałszywy sukces i zapisał szczegóły techniczne.",
     "status_unconfirmed": "Dostarczenie niepotwierdzone",
     "no_messages_in_conversation": "Brak dostępnych wiadomości w tej rozmowie.",
     "audio_device_default": "Domyślne systemowe",

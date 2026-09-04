@@ -50,6 +50,49 @@ async function returnSucess(res: any, data: any) {
   res.status(201).json({ status: 'success', response: data, mapper: 'return' });
 }
 
+/** Reject the false-success shapes WPPConnect has returned after WA-JS/API
+ * changes. ACK 0 is valid (queued locally); a missing id, a negative ACK, an
+ * embedded error, or an explicit non-success send result is not. */
+function assertSendAccepted(result: any, operation: string) {
+  if (result === null || result === undefined || result === false) {
+    throw new Error(`${operation} returned no send result`);
+  }
+  if (typeof result === 'string') {
+    if (result.trim()) return result;
+    throw new Error(`${operation} returned an empty message id`);
+  }
+  if (typeof result !== 'object') {
+    throw new Error(`${operation} returned unsupported result type ${typeof result}`);
+  }
+
+  const embeddedError =
+    result.error?.message || result.error || result.erro?.message || result.erro;
+  if (embeddedError) {
+    throw new Error(`${operation} failed: ${String(embeddedError)}`);
+  }
+  const ack = result.ack;
+  if (ack !== undefined && ack !== null && Number(ack) < 0) {
+    throw new Error(`${operation} was rejected (ack=${String(ack)})`);
+  }
+  const sendResult = result.sendMsgResult?.messageSendResult;
+  if (
+    sendResult !== undefined &&
+    !['SUCCESS', 'OK'].includes(String(sendResult).toUpperCase())
+  ) {
+    throw new Error(`${operation} was rejected (${String(sendResult)})`);
+  }
+
+  const rawId = result.id ?? result.key?.id ?? result.messageId;
+  const id =
+    typeof rawId === 'string'
+      ? rawId
+      : rawId?._serialized || rawId?.toString?.() || '';
+  if (!id || id === '[object Object]') {
+    throw new Error(`${operation} returned success without a message id`);
+  }
+  return result;
+}
+
 async function watchMediaUpload(req: Request, uploadId: string, contact: string) {
   if (!uploadId) return;
   const client: any = req.client;
@@ -157,7 +200,12 @@ export async function sendMessage(req: Request, res: Response) {
   try {
     const results: any = [];
     for (const contato of phone) {
-      results.push(await req.client.sendText(contato, message, options));
+      results.push(
+        assertSendAccepted(
+          await req.client.sendText(contato, message, options),
+          'send-message'
+        )
+      );
     }
 
     if (results.length === 0) res.status(400).json('Error sending message');
@@ -285,7 +333,8 @@ export async function sendFile(req: Request, res: Response) {
     for (const contact of phone) {
       await watchMediaUpload(req, uploadId, contact);
       results.push(
-        await req.client.sendFile(contact, pathFile, {
+        assertSendAccepted(
+          await req.client.sendFile(contact, pathFile, {
           filename: filename,
           caption: msg,
           quotedMsg: quotedMessageId,
@@ -311,7 +360,9 @@ export async function sendFile(req: Request, res: Response) {
           // multipart upload's own Content-Type.
           mimetype: req.file?.mimetype,
           ...options,
-        })
+          }),
+          'send-file'
+        )
       );
     }
 
@@ -375,12 +426,15 @@ export async function sendVoice(req: Request, res: Response) {
     const results: any = [];
     for (const contato of phone) {
       results.push(
-        await req.client.sendPtt(
+        assertSendAccepted(
+          await req.client.sendPtt(
           contato,
           path,
           filename,
           message,
           quotedMessageId
+          ),
+          'send-voice'
         )
       );
     }
@@ -454,6 +508,7 @@ export async function sendVoice64(req: Request, res: Response) {
 
     for (const contato of phone) {
       results.push(
+        assertSendAccepted(
         // Use evaluateAndReturn directly so we can set waitForAck: false.
         // sendPttFromBase64 has waitForAck hardcoded to true, which blocks
         // the HTTP response until WhatsApp Web receives the upload ACK —
@@ -492,6 +547,8 @@ export async function sendVoice64(req: Request, res: Response) {
             }
           },
           { to: contato, varName: tempVar }
+        ),
+        'send-voice-base64'
         )
       );
     }
@@ -1355,7 +1412,12 @@ export async function replyMessage(req: Request, res: Response) {
           await replyToStatusMessage(req, contato, message, messageId)
         );
       } else {
-        results.push(await req.client.reply(contato, message, messageId));
+        results.push(
+          assertSendAccepted(
+            await req.client.reply(contato, message, messageId),
+            'send-reply'
+          )
+        );
       }
     }
 
@@ -1410,10 +1472,9 @@ export async function sendMentioned(req: Request, res: Response) {
   try {
     let response;
     for (const contato of phone) {
-      response = await req.client.sendMentioned(
-        `${contato}`,
-        message,
-        mentioned
+      response = assertSendAccepted(
+        await req.client.sendMentioned(`${contato}`, message, mentioned),
+        'send-mentioned'
       );
     }
 

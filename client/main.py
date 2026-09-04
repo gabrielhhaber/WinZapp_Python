@@ -57,6 +57,7 @@ from core.incremental_sync import (
 )
 from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
+from core.send_contract import accepted_message_id
 from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
@@ -6840,12 +6841,66 @@ class MainWindow(wx.Frame):
                 )
             sys.exit(1)
 
-        # Node.js is mandatory — auto-download portable version if missing.
-        if not os.path.isfile(node_exe):
+        # Node.js is mandatory. An existing portable binary can also be too
+        # old for the WPPConnect release (npm only warns on engines mismatch,
+        # then runtime features fail later), so upgrade it before starting.
+        node_needs_download = not os.path.isfile(node_exe)
+        installed_node_version = ""
+        if not node_needs_download and sys.platform == "win32":
+            try:
+                from node_download_config import NODE_VERSION
+                from packaging.version import Version
+                probe = subprocess.run(
+                    [node_exe, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+                installed_node_version = probe.stdout.strip().lstrip("vV")
+                node_needs_download = (
+                    probe.returncode != 0
+                    or Version(installed_node_version) < Version(NODE_VERSION)
+                )
+                npm_cli = resource_path(
+                    "node", "node_modules", "npm", "bin", "npm-cli.js"
+                )
+                if not node_needs_download:
+                    if os.path.isfile(npm_cli):
+                        npm_probe = subprocess.run(
+                            [node_exe, npm_cli, "install", "--help"],
+                            capture_output=True,
+                            text=True,
+                            timeout=10,
+                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                        )
+                        node_needs_download = npm_probe.returncode != 0
+                    else:
+                        node_needs_download = True
+                    if node_needs_download:
+                        logging.warning(
+                            "[ensure_api_modules_installed] Portable npm is missing "
+                            "or unhealthy; replacing the complete Node.js runtime."
+                        )
+            except Exception as exc:
+                logging.warning(
+                    "[ensure_api_modules_installed] Could not validate Node.js version: %s",
+                    exc,
+                )
+                node_needs_download = True
+        if node_needs_download:
             if self.background_mode:
-                logging.error("[ensure_api_modules_installed] Node.js not found and cannot show download dialog in background mode")
+                logging.error(
+                    "[ensure_api_modules_installed] Node.js missing/outdated (%s) "
+                    "and cannot show download dialog in background mode",
+                    installed_node_version or "missing",
+                )
                 sys.exit(0)
-            logging.info("[ensure_api_modules_installed] Node.js not found — downloading portable version...")
+            logging.info(
+                "[ensure_api_modules_installed] Node.js missing/outdated (%s) — "
+                "downloading the homologated portable version...",
+                installed_node_version or "missing",
+            )
             from ui.dialogs.node_download import NodeDownloadDialog
             def _show_node_download():
                 dlg = NodeDownloadDialog(self)
@@ -7567,8 +7622,42 @@ class MainWindow(wx.Frame):
                     line.strip(),
                 )
                 wx.CallAfter(self.output, self.i18n.t("wpp_version_unpinned_warning"))
+                self._check_send_capabilities()
                 return
         logging.info("[startup] WhatsApp Web version pin OK (no fallback reported by WPPConnect).")
+        self._check_send_capabilities()
+
+    def _check_send_capabilities(self):
+        """Warn once when an update changed a send API WinZapp depends on."""
+        try:
+            url = (
+                f"{self.wpp_server}:{self.wpp_port}/api/{self.token}"
+                "/send-capabilities"
+            )
+            response = api_get(url, token=self.token, timeout=10)
+            body = response.json()
+            details = body.get("response") if isinstance(body, dict) else None
+            if (
+                response.status_code == 200
+                and isinstance(details, dict)
+                and details.get("compatible") is True
+            ):
+                logging.info("[startup] Send compatibility probe passed: %s", details)
+                return
+            signature = json.dumps(
+                details or body, ensure_ascii=False, sort_keys=True
+            )[:1000]
+            if getattr(self, "_send_capabilities_warning", "") == signature:
+                return
+            self._send_capabilities_warning = signature
+            logging.error("[startup] Send compatibility probe failed: %s", signature)
+            wx.CallAfter(
+                self.output,
+                self.i18n.t("send_capabilities_incompatible"),
+                interrupt=True,
+            )
+        except Exception as exc:
+            logging.warning("[startup] Send compatibility probe unavailable: %s", exc)
 
     # How long to wait for a close-session to actually flush WhatsApp Web's auth
     # state to disk before we hard-kill the Node. Generous because a large
@@ -19507,27 +19596,13 @@ class MainWindow(wx.Frame):
 
             self._set_wa_connected(True, "send succeeded")
             try:
-                body = response.json()
-                # WPPConnect retorna a resposta dentro de 'response'
-                resp = body.get("response", {})
-                if isinstance(resp, list) and len(resp) > 0:
-                    resp = resp[0]
-                if isinstance(resp, dict):
-                    msg_id = resp.get("id")
-                    if isinstance(msg_id, dict):
-                        msg_id = msg_id.get("_serialized", "")
-                    parts = msg_id.split("_") if msg_id else []
-                    clean_id = parts[2] if len(parts) > 2 else (parts[-1] if parts else msg_id)
-                    if quote_stripped:
-                        return {"ok": True, "id": clean_id, "quote_lost": True}
-                    return clean_id or True
-                if quote_stripped:
-                    return {"ok": True, "quote_lost": True}
-                return True
-            except Exception:
-                if quote_stripped:
-                    return {"ok": True, "quote_lost": True}
-                return True
+                clean_id = accepted_message_id(response.json())
+            except (ValueError, TypeError) as exc:
+                logging.error("[send_text_message] invalid success response: %s", exc)
+                return {"ok": False, "error": str(exc), "retry": False}
+            if quote_stripped:
+                return {"ok": True, "id": clean_id, "quote_lost": True}
+            return clean_id
         except Exception as exc:
             return self._classify_send_exception(exc, "send_text_message")
 
@@ -19727,20 +19802,10 @@ class MainWindow(wx.Frame):
 
             self._set_wa_connected(True, "audio send succeeded")
             try:
-                body = response.json()
-                resp = body.get("response", {})
-                if isinstance(resp, list) and len(resp) > 0:
-                    resp = resp[0]
-                if isinstance(resp, dict):
-                    msg_id = resp.get("id")
-                    if isinstance(msg_id, dict):
-                        msg_id = msg_id.get("_serialized", "")
-                    parts = msg_id.split("_") if msg_id else []
-                    clean_id = parts[2] if len(parts) > 2 else (parts[-1] if parts else msg_id)
-                    return clean_id or True
-                return True
-            except Exception:
-                return True
+                return accepted_message_id(response.json())
+            except (ValueError, TypeError) as exc:
+                logging.error("[send_audio_message] invalid success response: %s", exc)
+                return {"ok": False, "error": str(exc), "retry": False}
         except Exception as e:
             return self._classify_send_exception(e, "send_audio_message")
 
@@ -19874,7 +19939,16 @@ class MainWindow(wx.Frame):
                     self._pending_own_reactions.pop(key, None)
             self._pending_own_reactions[reaction_signature] = now
         try:
-            response = api_post(url, json=payload, headers=headers, timeout=15)
+            response = api_post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=15,
+                # Setting/removing the same reaction is idempotent. A single
+                # retry is therefore safe when the local WPPConnect process
+                # drops a stale keep-alive socket under media-processing load.
+                retry_stale_socket=True,
+            )
             if response.status_code not in (200, 201):
                 # 1500 chars (not 500) — deviceController.ts's reactMessage
                 # now includes a real error message + stack trace in the
@@ -23982,36 +24056,14 @@ class MainWindow(wx.Frame):
                     if r.status_code in (200, 201):
                         logging.info("[send_media] legacy retry with %s succeeded", fb_phone)
             if r.status_code in (200, 201):
-                body = r.json()
-                resp = body.get("response", body)
-                if isinstance(resp, list) and resp:
-                    resp = resp[0]
-                msg_id = ""
-                if isinstance(resp, dict):
-                    raw_ack = resp.get("ack")
-                    try:
-                        ack = int(raw_ack) if raw_ack is not None else None
-                    except (TypeError, ValueError):
-                        ack = None
-                    if ack is not None and ack < 0:
-                        logging.error(
-                            "[send_media] WhatsApp rejected %s after upload (ack=%s)",
-                            filename, raw_ack,
-                        )
-                        return {
-                            "ok": False,
-                            "error": self.i18n.t("media_unsupported_error"),
-                            "retry": False,
-                        }
-                    msg_id = resp.get("id") or resp.get("key", {}).get("id") or ""
-                    if isinstance(msg_id, dict):
-                        msg_id = msg_id.get("_serialized", "")
-                    if msg_id:
-                        parts = msg_id.split("_")
-                        msg_id = parts[2] if len(parts) > 2 else (parts[-1] if parts else msg_id)
-                if msg_id:
-                    return msg_id
-                return {"ok": True, "error": "ID not found in response"}
+                try:
+                    return accepted_message_id(r.json())
+                except (ValueError, TypeError) as exc:
+                    logging.error("[send_media] invalid success response for %s: %s", filename, exc)
+                    error_text = str(exc)
+                    if "ack=" in error_text:
+                        error_text = self.i18n.t("media_unsupported_error")
+                    return {"ok": False, "error": error_text, "retry": False}
             err = f"HTTP {r.status_code}"
             inner_error_name = ""
             try:
@@ -24107,12 +24159,10 @@ class MainWindow(wx.Frame):
 
         def _parse(r):
             try:
-                resp = r.json().get("response", {})
-                if isinstance(resp, list) and resp:
-                    resp = resp[0]
-                return (resp or {}).get("id") or True
-            except Exception:
-                return True
+                return accepted_message_id(r.json())
+            except (ValueError, TypeError) as exc:
+                logging.error("[send_contact_attachment] invalid success response: %s", exc)
+                return None
 
         try:
             r = api_post(url, json=payload, headers=headers, timeout=15)
@@ -25546,6 +25596,39 @@ class MainWindow(wx.Frame):
                 logging.exception("[add_chats_to_ui] restoring focus after incremental update failed")
         return True
 
+    @staticmethod
+    def _conversation_search_candidates(
+        main_chats, main_names, archived_chats, archived_names, include_archived
+    ):
+        """Return aligned chat/name lists used by the global conversation search.
+
+        The ordinary conversations list deliberately excludes archived chats,
+        but a non-empty global search must query both lists, matching WhatsApp.
+        Keep the normal list unchanged when search is empty and de-duplicate by
+        rendered JID in case stale LID/phone entries straddle the two panels.
+        """
+        chats = list(main_chats)
+        names = list(main_names)
+        if not include_archived:
+            return chats, names
+
+        seen_jids = {
+            chat.get("remoteJid", "")
+            for chat in chats
+            if isinstance(chat, dict) and chat.get("remoteJid")
+        }
+        for index, chat in enumerate(archived_chats):
+            if not isinstance(chat, dict):
+                continue
+            jid = chat.get("remoteJid", "")
+            if jid and jid in seen_jids:
+                continue
+            if jid:
+                seen_jids.add(jid)
+            chats.append(chat)
+            names.append(archived_names[index] if index < len(archived_names) else "")
+        return chats, names
+
     def add_chats_to_ui(self):
         """Rebuild the conversations list from the current chats data.
 
@@ -25575,6 +25658,21 @@ class MainWindow(wx.Frame):
                                   self.conversations_panel.chats_list))
         full_names = list(getattr(self.conversations_panel, '_all_chat_names',
                                   self.conversations_panel.chat_names))
+        archived_panel = getattr(self, "archived_conversations_panel", None)
+        if archived_panel is not None:
+            archived_chats = list(getattr(
+                archived_panel, '_all_chats_list', archived_panel.chats_list
+            ))
+            archived_names = list(getattr(
+                archived_panel, '_all_chat_names', archived_panel.chat_names
+            ))
+            full_chats, full_names = self._conversation_search_candidates(
+                full_chats,
+                full_names,
+                archived_chats,
+                archived_names,
+                include_archived=bool(search),
+            )
 
         lst = self.conversations_panel.conversations_list
 

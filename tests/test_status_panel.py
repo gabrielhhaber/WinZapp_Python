@@ -254,6 +254,8 @@ class _Stub:
     _status_row_text              = StatusPanel._status_row_text
     _update_focused_status_row_text = StatusPanel._update_focused_status_row_text
     _on_viewer_status_opened      = StatusPanel._on_viewer_status_opened
+    _viewer_like_status           = StatusPanel._viewer_like_status
+    _viewer_reply_status          = StatusPanel._viewer_reply_status
 
     def __init__(self, contact_names=None, send_text_result=True,
                  send_reaction_result=True, settings=None):
@@ -1275,6 +1277,47 @@ class TestLikeStatusUsesTheNativeStatusReaction:
         assert status_id not in stub.main_window.settings["status_panel"]["liked_status_ids"]
         assert stub.main_window.save_settings_calls == 1
 
+    def test_separate_viewer_uses_reaction_endpoint_not_private_message(self, monkeypatch):
+        _run_threads_synchronously(monkeypatch)
+        status = _text_status("oi")
+        entry = _entry("poster@s.whatsapp.net", [status])
+        stub = _Stub()
+        done = []
+
+        stub._viewer_like_status({
+            "status": status,
+            "entry": entry,
+            "status_id": "s1",
+        }, done.append)
+
+        assert done == [True]
+        assert stub.main_window.send_text_calls == []
+        assert stub.main_window.send_reaction_calls == [(
+            "status@broadcast",
+            {
+                "fromMe": False,
+                "id": "s1",
+                "remoteJid": "status@broadcast",
+                "participant": "poster@s.whatsapp.net",
+            },
+            "❤️",
+        )]
+
+    def test_separate_viewer_removes_existing_native_reaction(self, monkeypatch):
+        _run_threads_synchronously(monkeypatch)
+        status = _text_status("oi")
+        entry = _entry("poster@s.whatsapp.net", [status])
+        stub = _Stub(settings={"status_panel": {"liked_status_ids": ["s1"]}})
+
+        stub._viewer_like_status({
+            "status": status,
+            "entry": entry,
+            "status_id": "s1",
+        }, lambda ok: None)
+
+        assert stub.main_window.send_reaction_calls[0][2] == ""
+        assert "s1" not in stub.main_window.settings["status_panel"]["liked_status_ids"]
+
 
 class TestIsStatusLikedRemembersAcrossSessions:
     """_liked_statuses only tracks likes sent THIS session — _is_status_liked()
@@ -1670,6 +1713,23 @@ class TestStatusReplyKeepsTheStatusQuote:
         assert stub.main_window.send_text_calls == [
             ("poster@s.whatsapp.net", "valeu!", status)
         ]
+
+    def test_media_viewer_reply_passes_the_open_status_as_quote(self, monkeypatch):
+        _run_threads_synchronously(monkeypatch)
+        status = _text_status("oi")
+        item = {
+            "status": status,
+            "entry": _entry("poster@s.whatsapp.net", [status]),
+        }
+        stub = _Stub()
+        completed = []
+
+        stub._viewer_reply_status(item, "valeu!", completed.append)
+
+        assert stub.main_window.send_text_calls == [
+            ("poster@s.whatsapp.net", "valeu!", status)
+        ]
+        assert completed == [True]
 
 
 class TestFailedStatusReplyNeverDegradesToPlainMessage:

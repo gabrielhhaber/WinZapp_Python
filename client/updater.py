@@ -1258,6 +1258,13 @@ class WppUpdateChecker:
 
     @staticmethod
     def _fetch_latest_tag() -> str:
+        try:
+            with open(resource_path("wpp_minimum_version.txt"), encoding="utf-8") as fh:
+                homologated = fh.read().strip()
+            if homologated:
+                return f"v{homologated.lstrip('vV')}"
+        except OSError:
+            pass
         from ui.dialogs.api_setup import fetch_latest_wpp_tag
         return fetch_latest_wpp_tag()
 

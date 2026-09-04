@@ -1,4 +1,4 @@
-"""WinZapp must never pin @wppconnect-team/wppconnect or its wa-* siblings.
+"""Executable WPPConnect dependencies must stay on the homologated pair.
 
 The history this guards, in order:
 
@@ -48,12 +48,9 @@ ROOT = Path(__file__).resolve().parents[1]
 #: Everything that must be left to upstream's own declared range. The first is
 #: what WinZapp used to pin directly; the other two come along transitively
 #: through it and were pinned by hand alongside it.
-_MUST_NOT_BE_PINNED = (
+_PINNED_RUNTIME = (
     "@wppconnect-team/wppconnect",
-    "@wppconnect-team/wa-js",
-    "@wppconnect-team/wa-version",
     "@wppconnect/wa-js",
-    "@wppconnect/wa-version",
 )
 
 
@@ -63,28 +60,20 @@ def _patch_package_json() -> dict:
     )
 
 
-@pytest.mark.parametrize("package_name", _MUST_NOT_BE_PINNED)
-@pytest.mark.parametrize("block", ("dependencies", "devDependencies"))
-def test_api_patches_package_json_declares_no_wpp_pin(package_name, block):
-    """api_patches/package.json is the file both installers merge *from*, so a
-    pin here is a pin everywhere."""
-    declared = _patch_package_json().get(block, {})
-    assert package_name not in declared, (
-        f"client/api_patches/package.json pins {package_name} in {block} as "
-        f"{declared.get(package_name)!r}. WinZapp does not pin this — upstream "
-        f"wppconnect-server's own declared range has to win, or a build runs "
-        f"against a release it was never tested against and stops picking up "
-        f"updates. See setup_api.py's _PATCHED_DEPENDENCY_KEYS comment block."
-    )
+@pytest.mark.parametrize("package_name", _PINNED_RUNTIME)
+def test_api_patches_declares_exact_homologated_runtime(package_name):
+    version = _patch_package_json()["dependencies"].get(package_name, "")
+    assert version and not version.startswith(("^", "~", "git+"))
 
 
-@pytest.mark.parametrize("package_name", _MUST_NOT_BE_PINNED)
-def test_neither_installer_copies_a_wpp_pin_across(package_name):
-    """Even with api_patches/package.json clean, listing one of these in a
-    _PATCHED_DEPENDENCY_KEYS would re-open the same hole the moment somebody
-    added the entry back."""
-    assert package_name not in setup_api._PATCHED_DEPENDENCY_KEYS
-    assert package_name not in _DIALOG_KEYS
+@pytest.mark.parametrize("package_name", _PINNED_RUNTIME)
+def test_both_installers_apply_the_runtime_pin(package_name):
+    assert package_name in setup_api._PATCHED_DEPENDENCY_KEYS
+    assert package_name in _DIALOG_KEYS
+
+
+def test_expiring_wa_version_catalogue_remains_unpinned():
+    assert "@wppconnect/wa-version" not in _patch_package_json()["dependencies"]
 
 
 def test_the_two_installers_patch_the_same_dependency_set():
@@ -105,4 +94,6 @@ def test_the_patched_set_stays_narrow():
         "zod",                      # src/dto/sync.ts response contracts
         "@ffmpeg-installer/ffmpeg", # main.py's _find_api_ffmpeg/_convert_wav_to_ogg
         "qrcode",                   # the getQrCode patch renders the QR PNG
+        "@wppconnect-team/wppconnect",
+        "@wppconnect/wa-js",
     }

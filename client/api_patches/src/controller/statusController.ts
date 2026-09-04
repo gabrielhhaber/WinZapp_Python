@@ -50,9 +50,21 @@ async function ensureStatusChat(client: any) {
         try {
           await WPP.chat.find('status@broadcast');
         } catch (e) {
-          // findOrCreateLatestChat can reject for the virtual status chat on
-          // some WA versions — the send below still runs and may succeed.
+          // WA-JS 4.6.0 reaches findOrCreateLatestChat, but WhatsApp no longer
+          // inserts the virtual status chat into ChatStore. Seed the same
+          // minimal ChatModel WA-JS already uses for media statuses so
+          // sendRawMessage/prepareRawMessage can complete for text statuses.
         }
+      }
+      const whatsapp = WPP?.whatsapp;
+      const statusWid = whatsapp?.WidFactory?.createWid?.('status@broadcast');
+      if (
+        statusWid &&
+        whatsapp?.ChatStore &&
+        !whatsapp.ChatStore.get(statusWid) &&
+        typeof whatsapp.ChatModel === 'function'
+      ) {
+        whatsapp.ChatStore.add(new whatsapp.ChatModel({ id: statusWid }));
       }
     });
   } catch (e) {

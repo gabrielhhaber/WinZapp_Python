@@ -167,7 +167,7 @@ def test_both_installers_patch_the_same_dependencies():
     assert '"@ffmpeg-installer/ffmpeg"' in dialog, "ApiSetupDialog does not patch @ffmpeg-installer/ffmpeg"
 
 
-def test_wppconnect_itself_is_no_longer_pinned():
+def test_wppconnect_runtime_is_pinned_by_both_installers():
     """@wppconnect-team/wppconnect used to be forced to an exact version here,
     and that went stale within days: this dependency releases multiple times a
     week, and wppconnect-server's own package.json had already moved on to a
@@ -183,8 +183,8 @@ def test_wppconnect_itself_is_no_longer_pinned():
         end = src.index("]", start)
         return src[start:end]
 
-    assert "@wppconnect-team/wppconnect" not in _patched_keys(setup, "_PATCHED_DEPENDENCY_KEYS")
-    assert "@wppconnect-team/wppconnect" not in _patched_keys(dialog, "_PATCHED_DEPENDENCY_KEYS")
+    assert "@wppconnect-team/wppconnect" in _patched_keys(setup, "_PATCHED_DEPENDENCY_KEYS")
+    assert "@wppconnect-team/wppconnect" in _patched_keys(dialog, "_PATCHED_DEPENDENCY_KEYS")
 
 
 def test_fluent_ffmpeg_is_gone_everywhere():
@@ -329,7 +329,7 @@ class TestPackageJsonMerge:
         out = json.loads((api / "package.json").read_text(encoding="utf-8"))
         assert out["dependencies"]["@ffmpeg-installer/ffmpeg"] == "^1.1.0"
 
-    def test_wppconnect_itself_is_never_touched_by_the_merge(self, tmp_path):
+    def test_wppconnect_runtime_pin_is_applied_by_the_merge(self, tmp_path):
         """The whole point of unpinning it: whatever range the real download
         declared must survive completely untouched, even if api_patches/
         package.json still happens to mention the key (e.g. as a leftover
@@ -342,10 +342,7 @@ class TestPackageJsonMerge:
         )
         self._dialog()._merge_package_json_dependencies(str(api), str(patches))
         out = json.loads((api / "package.json").read_text(encoding="utf-8"))
-        assert out["dependencies"]["@wppconnect-team/wppconnect"] == "^2.2.6", (
-            "the merge must never override @wppconnect-team/wppconnect — "
-            "it is not (and must not become) a patched key"
-        )
+        assert out["dependencies"]["@wppconnect-team/wppconnect"] == "2.2.4"
 
     def test_the_downloaded_version_field_is_never_overwritten(self, tmp_path):
         """WppUpdateChecker compares this against the latest GitHub release — it
@@ -398,10 +395,7 @@ class TestPackageJsonMerge:
         out = json.loads((api / "package.json").read_text(encoding="utf-8"))
         assert out["version"] == "9.9.9"
         assert "@ffmpeg-installer/ffmpeg" in out["dependencies"]
-        assert "@wppconnect-team/wppconnect" not in out["dependencies"], (
-            "the real api_patches/package.json must not (re-)declare this key, "
-            "or a future _PATCHED_DEPENDENCY_KEYS edit could start pinning it again"
-        )
+        assert out["dependencies"]["@wppconnect-team/wppconnect"] == "2.3.1"
 
 
 def test_patched_dependencies_are_present_in_the_live_package_json():
@@ -421,7 +415,7 @@ def test_patched_dependencies_are_present_in_the_live_package_json():
     )
 
 
-def test_wppconnect_is_not_frozen_in_the_live_package_json():
+def test_wppconnect_is_frozen_to_the_homologated_live_version():
     """Regression guard for the original bug report: client/api/package.json
     must track whatever range wppconnect-server's own upstream package.json
     declares, not a value someone hardcoded here at some point in the past.
@@ -437,13 +431,7 @@ def test_wppconnect_is_not_frozen_in_the_live_package_json():
     # above it dead: every non-empty string passed, including the exact pin
     # this test exists to reject. A guard that cannot fail is worse than no
     # guard, because the green run reads as evidence.
-    assert version.startswith("^") or version.startswith("git+"), (
-        f"@wppconnect-team/wppconnect is pinned to an exact version ({version!r}) "
-        f"in client/api/package.json — this is exactly the bug that made a real "
-        f"clone of wppconnect-server 2.10.1 (which wants ^2.2.6) run against a "
-        f"stale, incompatible 2.2.4. Let it float on upstream's own range, or "
-        f"point at a git dependency."
-    )
+    assert version == "2.3.1"
 
 
 # Matches `from './x'`, `import '../y'` and `require('./z')` — only the
