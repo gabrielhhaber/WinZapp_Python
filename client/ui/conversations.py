@@ -55,6 +55,7 @@ from core.locale_format import get_date_format, get_time_format, get_datetime_fo
 from core.message_copy_format import format_copied_message
 from core.video_player import VideoPlayer
 from core.focus_cloak import cloak_focus_announcement
+from core.spell_checker import WindowsSpellChecker
 from ui.media_viewer import MediaViewerDialog
 from app_paths import data_path
 from core.message_queue import PendingMessage
@@ -327,6 +328,14 @@ class ConversationsPanel(wx.Panel):
         self.conversation = None
         self.conversation_name = ""
         self._last_open_jid = ""
+        # The optional Windows checker only observes completed words; it does
+        # not alter keyboard handling or message sending. Its cue is a normal
+        # Sound Event, so it follows the active soundpack, per-event enabled
+        # state and custom path.
+        self._spell_checker = WindowsSpellChecker(
+            language=self.main_window.settings.get("general", {}).get("language"),
+            on_error=self._play_spelling_error_sound,
+        )
         # Ultima linha da lista de conversas em que o foco pousou, aberta ou
         # nao — ver _on_conversation_focused() e
         # _restore_conversation_selection().
@@ -1851,11 +1860,18 @@ class ConversationsPanel(wx.Panel):
             return
         event.Skip()
 
+    def _play_spelling_error_sound(self):
+        """Play the currently configured spelling-error Sound Event."""
+        self.main_window.spelling_error_sound.play()
+
     def on_change_message_field(self, event):
         # Don't touch button visibility while recording or staging attachments.
         if self._is_recording or self._attachment_panel.IsShown():
             return
         msg = self.message_field.GetValue()
+        spell_checker = getattr(self, "_spell_checker", None)
+        if spell_checker is not None:
+            spell_checker.text_changed(msg)
         if msg.strip():
             self.send_message_btn.Show()
             self.record_voice_message_btn.Hide()
@@ -2018,6 +2034,9 @@ class ConversationsPanel(wx.Panel):
     def refresh_labels(self):
         """Update all translatable labels and column headers after a language change."""
         i18n = self.main_window.i18n
+        self._spell_checker.set_language(
+            self.main_window.settings.get("general", {}).get("language")
+        )
 
         self.conversations_label.SetLabel(i18n.t("conversations"))
         col = wx.ListItem()

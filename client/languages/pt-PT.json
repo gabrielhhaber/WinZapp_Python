@@ -758,6 +758,7 @@
     "deactivate_all_sounds": "Desativar todos",
     "sound_event_startup": "Início do programa",
     "sound_event_error": "Erro",
+    "sound_event_spelling_error": "Erro ortográfico",
     "sound_event_qrcode_loaded": "Código QR carregado",
     "sound_event_waiting_pairing": "A aguardar emparelhamento",
     "sound_event_pairing_code_updated": "Código de emparelhamento atualizado",

@@ -758,6 +758,7 @@
     "deactivate_all_sounds": "Disable all",
     "sound_event_startup": "Program startup",
     "sound_event_error": "Error",
+    "sound_event_spelling_error": "Spelling error",
     "sound_event_qrcode_loaded": "QR code loaded",
     "sound_event_waiting_pairing": "Waiting for pairing",
     "sound_event_pairing_code_updated": "Pairing code updated",
