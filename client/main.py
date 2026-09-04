@@ -1,7 +1,35 @@
+import atexit
+import base64
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import ctypes
+import ctypes.wintypes
+from datetime import datetime as _dt
+import glob as _glob
 import io
+import json
+import json as _json
+import logging
+import logging.handlers
+import mimetypes
+import mimetypes as _mimetypes
 import os
+import re
+import shutil
+import signal
+import socket as _socket
+import socketio
+import subprocess
 import sys
+import sys as _sys
+import tempfile
+import textwrap
+import threading
 import time
+import time as _time
+from traceback import format_exc, format_exception
+import traceback as _traceback
+import urllib.parse
+import uuid
 
 # Add lib/ directory to Windows DLL search path so BASS and its plugins
 # (bass.dll, bassopus.dll) can find each other regardless of the process's
@@ -23,31 +51,33 @@ if sys.platform == 'win32':
         # Fallback: add to PATH environment variable
         os.environ['PATH'] = _lib_path + os.pathsep + os.environ.get('PATH', '')
 
-import shutil
-import socket as _socket
-
-import subprocess
-import tempfile
-import threading
-import textwrap
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import requests
-import base64
-import socketio
-import atexit
-import ctypes
-import ctypes.wintypes
-import uuid
 from accessible_output2 import outputs
+from packaging.version import Version
+import pyperclip
+import requests
+import requests as _req
+import wx
+import wx as _wx
+import wx.adv
+
+from account_bootstrap import parse_startup_source, resolve_startup
+from account_launcher import build_launch_command, switch_to_account
+from account_migration import migrate_if_needed
+import account_ui
+from accounts import AccountRegistry
+import app_paths
+from app_paths import _outer_exe_dir, accounts_root, data_path, log_path, resource_path
+from app_settings import AppSettings, _CONNECTION_GLOBAL, _GENERAL_GLOBAL
+from autostart import acquire_single_instance_mutex, disable_autostart, enable_autostart, is_autostart_enabled
+import connection_state as cs
+from coord_locks import LockTimeout, node_port_lock, sessions_lock
+from core import token_vault
 from core.accessible_speech import AccessibleSpeechOutput
-from core.sound_system import (
-    SoundSystem, Sound, load_sound, SOUND_EVENTS,
-    alert_tone_choice_keys, resolve_alert_tone_path,
-    discover_sound_packs, resolve_sound_event_path, DEFAULT_PACK_ID,
-)
+from core.api_client import api_get, api_post, redact_credentials
 from core.audio_devices import find_input_device_index, test_input_device
-from core.i18n import I18n
-from core.sync_contracts import observe_payload
+from core.audio_transcode import prepare_audio_for_whatsapp
+from core.database_bridge import DatabaseBridge
+from core.i18n import I18n, _load_translations
 from core.incremental_sync import (
     chat_message_records as _chat_message_records,
     chat_sync_marker as _chat_sync_marker,
@@ -55,34 +85,94 @@ from core.incremental_sync import (
     messages_overlap as _messages_overlap,
     next_incremental_limit as _next_incremental_limit,
 )
-from core.websocket_client import WebSocketClient
-from core.api_client import api_get, api_post, redact_credentials
-from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default
-from core.locale_format import get_date_format, get_time_format, get_datetime_format
-from core.quiet_hours import is_quiet_hours_active
-from core.database_bridge import DatabaseBridge
-from core import token_vault
-from app_paths import resource_path, data_path, accounts_root
-from core.message_queue import MessageQueue, PendingMessage, MessageCancelled
-import wx
-import wx.adv
-if sys.platform == "win32":
-    from core.tray_manager import TrayIcon
-from core.notification_manager import NotificationManager
-from ui.dialogs.connect import Connect
-from ui.navigation import NavigationPanel
-from ui.conversations import (
-    ConversationsPanel, ArchivedConversationsPanel, probe_media_duration,
+from core.locale_format import get_date_format, get_datetime_format, get_time_format
+from core.message_queue import MessageCancelled, MessageQueue, PendingMessage
+from core.multipart_stream import StreamingMultipartBody
+from core.notification_manager import (
+    NotificationManager,
+    announce_background_message,
+    format_foreground_sender,
+    format_notification_body,
+    format_notification_title,
+    should_speak_background_message,
 )
+from core.quiet_hours import is_quiet_hours_active
+from core.save_location import remember_save_dialog_folder
+from core.sound_system import (
+    DEFAULT_PACK_ID,
+    NullSound,
+    SOUND_EVENTS,
+    Sound,
+    SoundSystem,
+    alert_tone_choice_keys,
+    discover_sound_packs,
+    load_sound,
+    resolve_alert_tone_path,
+    resolve_sound_event_path,
+)
+from core.sync_contracts import observe_payload
+from core.utils import (
+    DEFAULT_SETTINGS,
+    MEASURED_SECONDS_KEY,
+    append_selected_marker,
+    auto_download_allows,
+    backfill_missing_defaults,
+    carry_over_video_durations,
+    decrypt,
+    decrypt_bytes,
+    decrypt_json,
+    display_page_fetch_limit,
+    effective_unread_count,
+    encrypt,
+    encrypt_json,
+    format_number,
+    generate_and_save_key,
+    group_setting_notif_value,
+    is_message_forwarded,
+    is_phone_like,
+    is_voice_message,
+    looks_like_binary_blob,
+    migrate_voice_message_mode_default,
+    migrate_voice_messages_media_types,
+    mute_response_accepted,
+    normalize_for_search,
+    parse_bool_flag as _parse_bool_flag,
+    plan_row_updates,
+    prune_chats_messages,
+    prune_message_record,
+    reaction_targets_status,
+    retrieve_key,
+    search_normalization_mode,
+    video_seconds,
+)
+from core.video_transcode import prepare_video_for_whatsapp
+from core.websocket_client import WebSocketClient
+import ipc
+import node_coord
+import node_ports
+import session_store
 from status_panel import StatusPanel
+from ui.conversations import ArchivedConversationsPanel, ConversationsPanel, probe_media_duration
+from ui.dialogs.api_setup import ApiSetupDialog
+from ui.dialogs.api_startup import ApiStartupDialog
+from ui.dialogs.api_version_check import ApiVersionOutdatedDialog, RESULT_CONTINUE, RESULT_EXIT, RESULT_UPDATE
+from ui.dialogs.connect import Connect
+from ui.dialogs.incoming_call import IncomingCallDialog
+from ui.dialogs.language_dialog import LanguageSelectionDialog
+from ui.dialogs.node_download import NodeDownloadDialog
+from ui.dialogs.settings_dialog import SettingsDialog, _HotkeyCapture
+from ui.dialogs.shortcuts_dialog import ShortcutsDialog
+from ui.navigation import NavigationPanel
+import update_coord
+from updater import UpdateChecker, WhatsNewDialog, WppUpdateChecker, load_changelog_text
 from version import __version__
 from window_title import format_window_title
-import json
-from traceback import format_exc, format_exception
-import pyperclip
-import logging
 
-# Enable global HTTP connection pooling (Keep-Alive) to optimize remote API request latency
+if sys.platform == "win32":
+    from core.tray_manager import TrayIcon
+    import msvcrt
+
+
 _http_session = requests.Session()
 _orig_get = requests.get
 _orig_post = requests.post
@@ -325,7 +415,6 @@ def _spawn_delevated(cmd: list, cwd: str, log_fh, main_window) -> bool:
     Returns True and sets main_window.wpp_process on success (de-elevated launch).
     Returns False when de-elevation is impossible or the API call fails.
     """
-    import msvcrt
 
     SAFER_SCOPEID_USER        = 1
     SAFER_LEVELID_NORMALUSER  = 0x20000
@@ -531,8 +620,6 @@ def shorten_windows_path(path: str) -> str:
     if os.name != "nt" or not path:
         return path
     try:
-        import ctypes
-        from ctypes import wintypes
 
         _GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW
         _GetShortPathNameW.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
@@ -791,7 +878,6 @@ def _consolidate_legacy_log_dir() -> None:
     a stale handle on Windows must not stop the app from starting — and the old
     directory is removed only when it actually ends up empty.
     """
-    from app_paths import data_path, log_path
     legacy_dir = data_path("log")
     if not os.path.isdir(legacy_dir):
         return
@@ -1321,7 +1407,6 @@ def unexpired_group_send_verdict(stored, now, max_age_seconds):
 class MainWindow(wx.Frame):
     def __init__(self, account_id=None, account_name=None, startup_source="user",
                  resume_pending=False, registry=None, global_dir=None):
-        import time as _time
         self._t_app_start = _time.perf_counter()
         is_post_update = "--post-update" in sys.argv
         logging.info("[STARTUP] ==================================================")
@@ -1332,7 +1417,6 @@ class MainWindow(wx.Frame):
 
         # Check for update marker file from previous update attempt
         try:
-            from updater import _outer_exe_dir
             marker_file = os.path.join(_outer_exe_dir(), "update_failed.marker")
             if os.path.exists(marker_file):
                 with open(marker_file, "r", encoding="utf-8", errors="ignore") as _mf:
@@ -1656,7 +1740,6 @@ class MainWindow(wx.Frame):
             # so the startup dialog shows first before opening the main conversation list.
             if not self.background_mode:
                 try:
-                    import time as _time
                     _t_start = getattr(self, "_t_app_start", _time.perf_counter())
                     logging.info("[STARTUP_TIMING] T+%.3fs — Checking/installing API modules...", _time.perf_counter() - _t_start)
                     self.ensure_api_modules_installed()
@@ -2162,7 +2245,6 @@ class MainWindow(wx.Frame):
         logging.info("[init_UI] tray icon initialized")
 
         # ── Notification manager ──────────────────────────────────────────────
-        from core.notification_manager import NotificationManager
         self.notification_manager = NotificationManager(self)
 
         # ── Global hotkey ─────────────────────────────────────────────────────
@@ -2207,12 +2289,10 @@ class MainWindow(wx.Frame):
             # appears already full-size instead of visibly resizing.
             self.Maximize(True)
             self.Show()
-            import time as _time
             _t_show = _time.perf_counter() - getattr(self, "_t_app_start", _time.perf_counter())
             logging.info("[STARTUP_TIMING] T+%.3fs — Window physically SHOWN on screen", _t_show)
             # Play startup sound only after the window is physically shown on screen (if not played already)
             self.play_startup_sound()
-        import time as _time
         logging.info("[STARTUP_TIMING] T+%.3fs — [init_UI] populating initial chat list", _time.perf_counter() - getattr(self, "_t_app_start", _time.perf_counter()))
         #Set offline chats for the first time
         self.set_chats()
@@ -2368,7 +2448,6 @@ class MainWindow(wx.Frame):
         if getattr(self, "account_id", None) and getattr(self, "registry", None):
             accounts_menu = wx.Menu()
             try:
-                import account_ui
                 # Keep the WindowIDRef objects ALIVE: wx.NewIdRef() reserves an id
                 # only for as long as the ref object exists. Casting to int() and
                 # dropping the ref frees the reservation, so AppendRadioItem then
@@ -2629,7 +2708,6 @@ class MainWindow(wx.Frame):
     def _on_accounts_menu(self, action: dict):
         """Handle a click in the Accounts menu (plan Zad 4.2-4.5)."""
         try:
-            import account_ui
             if action.get("switch"):
                 self._switch_to_account(action["switch"])
             elif action.get("open_switch"):
@@ -2651,7 +2729,6 @@ class MainWindow(wx.Frame):
         running process to the foreground via IPC, or spawn it. This window
         stays open (accounts run in the background, choice 1b)."""
         try:
-            from account_launcher import switch_to_account
             result = switch_to_account(self.global_dir, account_id)
             logging.info("[accounts] switch to %s -> %s", account_id, result)
             if result == "failed":
@@ -2710,7 +2787,6 @@ class MainWindow(wx.Frame):
         if not (getattr(self, "account_id", None) and registry):
             return
         try:
-            import account_ui
             current = account_ui.accounts_menu_signature(registry.list())
             if current != getattr(self, "_accounts_menu_signature", None):
                 logging.info("[accounts] menu stale on focus — rebuilding "
@@ -2740,7 +2816,6 @@ class MainWindow(wx.Frame):
         if not (registry and acc_id):
             return False
         try:
-            import account_ui
             accounts = registry.list()
             if not account_ui.unpaired_start_options(accounts, acc_id):
                 return False  # no other paired account — normal pairing flow
@@ -2751,7 +2826,6 @@ class MainWindow(wx.Frame):
             result = dlg.show()
             if result == account_ui.UnpairedStartDialog.RESULT_SWITCH and dlg.chosen_account_id:
                 logging.info("[accounts] unpaired start: switching to %s", dlg.chosen_account_id)
-                from account_launcher import switch_to_account
                 switch_result = switch_to_account(self.global_dir, dlg.chosen_account_id)
                 if switch_result == "failed":
                     # This path used to exit unconditionally right after —
@@ -2790,7 +2864,6 @@ class MainWindow(wx.Frame):
                          "gd=%s acc=%s", bool(gd), bool(acc_id))
             return
         try:
-            import ipc
             self._ipc_listener = ipc.IpcListener(
                 gd, acc_id,
                 on_activate=lambda source: wx.CallAfter(self._ipc_activate, source),
@@ -2911,9 +2984,6 @@ class MainWindow(wx.Frame):
 
         def _quit_peers_then_exit():
             try:
-                import ipc
-                import node_coord
-                import update_coord
                 others = [l.get("account_id") for l in node_coord.live_node_leases(
                     gd, is_alive=update_coord.lease_alive) if not l.get("_corrupt")]
                 others = [a for a in others if a and a != acc_id]
@@ -3007,7 +3077,6 @@ class MainWindow(wx.Frame):
         with this build (e.g. right after a version with no changelog file
         yet, like this one), show a small "no changelog" dialog instead of a
         blank/empty window."""
-        from updater import load_changelog_text, WhatsNewDialog
         i18n = self.i18n
         changelog = load_changelog_text(i18n.language)
         if changelog.strip():
@@ -3121,7 +3190,6 @@ class MainWindow(wx.Frame):
         if old_token:
             def _close():
                 try:
-                    import requests as _req
                     _req.post(
                         f"{self.wpp_server}:{self.wpp_port}/api/{old_token}/close-session",
                         headers={"Authorization": f"Bearer {old_token}", "Content-Type": "application/json"},
@@ -3344,7 +3412,6 @@ class MainWindow(wx.Frame):
         transient post-wake QRCODE was misread as a logout and wiped the token
         of accounts that did not re-attach instantly.
         """
-        import connection_state as cs
         cs.reset_state_for_resume(self, time.time())
 
     def _on_power_resume(self, event):
@@ -3379,7 +3446,6 @@ class MainWindow(wx.Frame):
         # If a recovery is already in progress, this trigger is redundant — drop
         # it rather than pile a second pass on top. try_begin_resume_recovery
         # holds the pure single-flight logic (connection_state, unit-tested).
-        import connection_state as cs
         if not cs.try_begin_resume_recovery(self, self._resume_recovery_lock):
             logging.info("[power] recovery already in progress — "
                          "skipping duplicate wake trigger.")
@@ -3455,7 +3521,6 @@ class MainWindow(wx.Frame):
         """
         if getattr(self, "_wa_connected", False):
             return  # recovered normally — nothing to do
-        import connection_state as cs
         self._logged_stuck_initializing = False  # per-observation, so each wake logs once
         deadline = time.monotonic() + self._RESUME_OBSERVE_SECONDS
         prev_status = None
@@ -3597,10 +3662,8 @@ class MainWindow(wx.Frame):
         return ""
 
     def _chrome_pids_owning_session(self, session_name: str) -> list:
-        import sys
         if sys.platform != "win32" or not session_name:
             return []
-        import connection_state as cs
         no_window = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
         try:
             out = subprocess.check_output(
@@ -3620,7 +3683,6 @@ class MainWindow(wx.Frame):
         return pids
 
     def wait_for_profile_release(self, session_name: str, timeout: float = 20.0) -> bool:
-        import sys
         if sys.platform != "win32" or not session_name:
             return True
         deadline = time.monotonic() + timeout
@@ -3667,10 +3729,8 @@ class MainWindow(wx.Frame):
         whose --user-data-dir carries THIS session name is touched — never the
         user's own Chrome, never another account's browser.
         """
-        import sys
         if sys.platform != "win32":
             return
-        import connection_state as cs
         session_name = session_name or (getattr(self, "token", "") or "").split(":")[0]
         if not session_name:
             return
@@ -3777,7 +3837,6 @@ class MainWindow(wx.Frame):
         token = getattr(self, "token", "")
         if not token:
             return
-        import connection_state as cs
         # Mark the ACTIVE restart sequence so the health loop won't fire a
         # competing start-session while we own the close/kill/start cycle
         # (GPT r5 #3). Scoped tightly to this method — NOT the whole observation.
@@ -3862,7 +3921,6 @@ class MainWindow(wx.Frame):
         # waiting for the browser to go DOWN, so a stale connected flag must not
         # abort the wait (GPT r3 #5). Fall back to a short sleep if the
         # close-session request itself failed and CLOSED never confirms.
-        import connection_state as cs
         closed = self._wait_for_status(cs.session_closed_after_flush,
                                        self._RECOVERY_CLOSE_WAIT,
                                        stop_when_connected=False)
@@ -4332,7 +4390,6 @@ class MainWindow(wx.Frame):
         only checks and installs when a newer version exists.
         """
         if self._update_checker is None:
-            from updater import UpdateChecker
             self._update_checker = UpdateChecker(self)
         self._update_checker.force_reinstall()
 
@@ -4342,7 +4399,6 @@ class MainWindow(wx.Frame):
         updates_enabled = self.settings.get("general", {}).get("updates_enabled", True)
         if not updates_enabled and not force:
             return
-        from updater import UpdateChecker
         self._update_checker = UpdateChecker(self)
         if force:
             self._update_checker.force_check()
@@ -4377,7 +4433,6 @@ class MainWindow(wx.Frame):
             )
             wx.CallLater(300000, self._start_wpp_update_checker)
             return
-        from updater import WppUpdateChecker
         self._wpp_update_checker = WppUpdateChecker(self)
         if force:
             self._wpp_update_checker.force_check()
@@ -4397,7 +4452,6 @@ class MainWindow(wx.Frame):
         bump upstream.
         """
         if self._wpp_update_checker is None:
-            from updater import WppUpdateChecker
             self._wpp_update_checker = WppUpdateChecker(self)
         self._wpp_update_checker.force_reinstall()
 
@@ -4440,7 +4494,6 @@ class MainWindow(wx.Frame):
 
         def _after_stop():
             try:
-                from ui.dialogs.api_setup import ApiSetupDialog
                 dlg = ApiSetupDialog(
                     self,
                     title_override=self.i18n.t("api_update_dialog_title"),
@@ -4598,7 +4651,6 @@ class MainWindow(wx.Frame):
         """Create the system-tray icon if the setting is enabled."""
         show = self.settings.get("general", {}).get("show_tray_icon", True)
         if show:
-            from core.tray_manager import TrayIcon
             self.tray_icon = TrayIcon(self)
 
     def _on_close(self, event):
@@ -4613,7 +4665,6 @@ class MainWindow(wx.Frame):
         """
         if self.tray_icon is not None:
             try:
-                import ctypes
                 ctypes.windll.user32.ShowWindow(self.GetHandle(), 0)  # SW_HIDE = 0
             except Exception:
                 self.Hide()
@@ -4636,7 +4687,6 @@ class MainWindow(wx.Frame):
         if getattr(self, "tray_icon", None) is None:
             return
         try:
-            import ctypes
             ctypes.windll.user32.ShowWindow(self.GetHandle(), 0)  # SW_HIDE
         except Exception:
             self.Hide()
@@ -4660,7 +4710,6 @@ class MainWindow(wx.Frame):
         Also refreshes the chat list in case sync updates happened while the
         window was hidden.
         """
-        import ctypes
         hwnd = self.GetHandle()
         SW_SHOWMAXIMIZED = 3
         user32 = ctypes.windll.user32
@@ -4893,7 +4942,6 @@ class MainWindow(wx.Frame):
                 wx.GetApp().ExitMainLoop()
             except Exception:
                 pass
-            import os
             os._exit(0)
 
         threading.Thread(target=_finish_exit, daemon=True).start()
@@ -4969,7 +5017,6 @@ class MainWindow(wx.Frame):
         getattr(self, "_incoming_call_dialogs", {}).pop(identity, None)
 
     def _show_incoming_call_dialog(self, identity: str, message: str):
-        from ui.dialogs.incoming_call import IncomingCallDialog
 
         # Keep the call surface visibly inside WinZapp.  When the application
         # is hidden in the tray, restoring its main frame first prevents the
@@ -5945,10 +5992,6 @@ class MainWindow(wx.Frame):
         ):
             return
 
-        from core.notification_manager import (
-            format_notification_title, format_notification_body,
-            format_foreground_sender,
-        )
 
         body  = format_notification_body(msg, self, self.i18n)
 
@@ -6056,9 +6099,6 @@ class MainWindow(wx.Frame):
         # should_speak_background_message() covers the cases where no toast
         # is even attempted — otherwise a user with toasts off would be left
         # with nothing but the sound cue.
-        from core.notification_manager import (
-            announce_background_message, should_speak_background_message,
-        )
 
         if should_speak_background_message(
             self.settings, hasattr(self, "notification_manager")
@@ -6353,7 +6393,6 @@ class MainWindow(wx.Frame):
         """Return a short text preview of the original message a reaction targets."""
         if not orig_id:
             return ""
-        from core.notification_manager import format_notification_body
         candidates = [remote_jid, self._normalize_jid(remote_jid)]
         lid = getattr(self, "_phone_to_lid", {}).get(remote_jid)
         phone = getattr(self, "_lid_to_phone", {}).get(remote_jid)
@@ -6498,7 +6537,6 @@ class MainWindow(wx.Frame):
             ):
                 return
 
-            from core.notification_manager import format_notification_title
 
             orig_text = self._reacted_message_preview(remote_jid, target_key.get("id", ""))
             if orig_text:
@@ -6557,7 +6595,6 @@ class MainWindow(wx.Frame):
         Retries up to 6 times with a 2-second delay to handle the brief
         window after session creation where the namespace isn't ready yet.
         """
-        import time
         max_attempts = 6
         delay = 2
         last_exc = None
@@ -6795,8 +6832,6 @@ class MainWindow(wx.Frame):
         In background mode dialogs are never shown; if the setup is incomplete
         the process exits silently.
         """
-        import sys
-        import shutil
         if sys.platform == "win32":
             node_exe = resource_path("node", "node.exe")
         else:
@@ -6846,7 +6881,6 @@ class MainWindow(wx.Frame):
                 logging.error("[ensure_api_modules_installed] Node.js not found and cannot show download dialog in background mode")
                 sys.exit(0)
             logging.info("[ensure_api_modules_installed] Node.js not found — downloading portable version...")
-            from ui.dialogs.node_download import NodeDownloadDialog
             def _show_node_download():
                 dlg = NodeDownloadDialog(self)
                 res = dlg.ShowModal()
@@ -6868,7 +6902,6 @@ class MainWindow(wx.Frame):
         if os.path.isdir(node_modules) and not os.path.isdir(wpp_marker):
             logging.info("[ensure_api_modules_installed] Legacy node_modules detected. Cleaning for WPPConnect...")
             try:
-                import shutil
                 shutil.rmtree(node_modules, ignore_errors=True)
             except Exception as e:
                 logging.error("[ensure_api_modules_installed] Failed to remove legacy node_modules: %s", e)
@@ -6961,7 +6994,6 @@ class MainWindow(wx.Frame):
                         # afterwards — without this they'd silently regress
                         # every time this "missing package" repair path runs.
                         try:
-                            from ui.dialogs.api_setup import ApiSetupDialog
                             ApiSetupDialog._apply_node_modules_patches(api_dir)
                         except Exception as exc:
                             logging.warning(
@@ -6984,7 +7016,6 @@ class MainWindow(wx.Frame):
                 # no-op if already applied), so checking on every startup is
                 # safe.
                 try:
-                    from ui.dialogs.api_setup import ApiSetupDialog
                     api_dir = resource_path("api")
                     ApiSetupDialog._apply_node_modules_patches(api_dir)
                 except Exception as exc:
@@ -7003,7 +7034,6 @@ class MainWindow(wx.Frame):
         # One dialog for both cases — it detects internally whether
         # dist/server.js already exists and runs only the npm-install portion
         # of its flow when so, instead of a second dialog for that case.
-        from ui.dialogs.api_setup import ApiSetupDialog
         def _show_api_setup():
             dlg = ApiSetupDialog(self)
             res = dlg.ShowModal()
@@ -7042,7 +7072,6 @@ class MainWindow(wx.Frame):
         pkg_path = resource_path("api", "package.json")
         try:
             with open(pkg_path, encoding="utf-8") as fh:
-                import json as _json
                 pkg = _json.load(fh)
             return pkg.get("version", "")
         except Exception:
@@ -7060,7 +7089,6 @@ class MainWindow(wx.Frame):
         if not installed or not minimum:
             return False
         try:
-            from packaging.version import Version
             return Version(installed) < Version(minimum)
         except Exception:
             return False
@@ -7099,10 +7127,6 @@ class MainWindow(wx.Frame):
             return  # Installed version meets (or exceeds) the minimum — all good
 
         # ── Installed version is older than the minimum ───────────────────────
-        from ui.dialogs.api_version_check import (
-            ApiVersionOutdatedDialog,
-            RESULT_UPDATE, RESULT_EXIT, RESULT_CONTINUE,
-        )
 
         def _show_outdated_dlg():
             dlg = ApiVersionOutdatedDialog(self, self.i18n, installed, minimum)
@@ -7118,7 +7142,6 @@ class MainWindow(wx.Frame):
             return  # Proceed with the outdated version — user's choice
 
         # RESULT_UPDATE: re-download and rebuild using the minimum-version tag
-        from ui.dialogs.api_setup import ApiSetupDialog
         def _show_update_dlg():
             update_dlg = ApiSetupDialog(
                 self,
@@ -7147,8 +7170,6 @@ class MainWindow(wx.Frame):
         if registry is None:
             return ports
         try:
-            import json as _json
-            import node_ports
             for acc in registry.list():
                 aid = acc.get("id")
                 if not aid or aid == acc_id:
@@ -7199,8 +7220,6 @@ class MainWindow(wx.Frame):
         if self._is_port_free(self.wpp_port):
             return
 
-        import node_ports
-        from coord_locks import node_port_lock
         logging.warning(
             "[node-port] port %s no longer free right before starting Node "
             "— re-resolving", self.wpp_port,
@@ -7255,7 +7274,6 @@ class MainWindow(wx.Frame):
         the lowest free port not used by a peer on first run — then persist it so
         it never drifts. This is what gives each account its own isolated Node.
         """
-        import node_ports
         if conn.get("wpp_custom_api"):
             saved = conn.get("wpp_port")
             return saved if isinstance(saved, int) and not isinstance(saved, bool) else node_ports.BASE_PORT
@@ -7266,7 +7284,6 @@ class MainWindow(wx.Frame):
         # Two accounts can start simultaneously. Keep peer discovery, free-port
         # selection and persistence in one cross-process critical section so
         # they cannot both claim the same port.
-        from coord_locks import node_port_lock
         with node_port_lock(self.global_dir):
             port = node_ports.resolve_account_port(
                 self.account_id,
@@ -7289,7 +7306,6 @@ class MainWindow(wx.Frame):
 
     def _is_wpp_running(self):
         """Return True if the WPPConnect is already listening on the configured server/port."""
-        import urllib.parse
         try:
             parsed = urllib.parse.urlparse(self.wpp_server)
             host = parsed.hostname or "127.0.0.1"
@@ -7311,8 +7327,6 @@ class MainWindow(wx.Frame):
         so that PostgreSQL's initdb can start (it refuses to run as root/admin).
         """
         self._ensure_wpp_port_still_free()
-        import sys
-        import shutil
 
         if sys.platform == "win32":
             node_exe = resource_path("node", "node.exe")
@@ -7341,7 +7355,6 @@ class MainWindow(wx.Frame):
         if not os.path.isfile(node_exe) or not os.path.isfile(start_js):
             return  # Not bundled — developer runs WPPConnect separately
         try:
-            from app_paths import log_path
             self._wpp_log_path = log_path("wppconnect.log")
             try:
                 if os.path.exists(self._wpp_log_path):
@@ -7370,7 +7383,6 @@ class MainWindow(wx.Frame):
             # server on the port is the one we started, and recover its pid
             # (plan Zad 3.0/3.1b). Best-effort — never blocks a legacy start.
             try:
-                import node_coord
                 gd = getattr(self, "global_dir", None)
                 if gd:
                     self._node_instance_id = getattr(self, "_node_instance_id", None) or uuid.uuid4().hex
@@ -7517,8 +7529,6 @@ class MainWindow(wx.Frame):
         polled QRCODE and wiped its own database. Idempotent (atomic overwrite).
         """
         try:
-            import node_coord
-            import update_coord
             gd = getattr(self, "global_dir", None)
             acc_id = getattr(self, "account_id", None)
             if gd and acc_id:
@@ -7604,7 +7614,6 @@ class MainWindow(wx.Frame):
         only way to prove what actually happened during a close that leads to a
         'Session Unpaired' on the following start."""
         try:
-            from app_paths import log_path
             line = f"{time.strftime('%Y-%m-%d %H:%M:%S')} [pid={os.getpid()}] {msg}\n"
             with open(log_path("shutdown_audit.log"), "a", encoding="utf-8") as f:
                 f.write(line)
@@ -7748,7 +7757,6 @@ class MainWindow(wx.Frame):
         This confirms only the SERVER's half of the teardown — see
         connection_state.session_closed_after_flush for what it does and does
         not promise, and why the caller also waits on the Chrome process."""
-        import connection_state as cs
         if timeout is None:
             timeout = self._SHUTDOWN_FLUSH_TIMEOUT
         deadline = time.monotonic() + timeout
@@ -7800,7 +7808,6 @@ class MainWindow(wx.Frame):
         the point), and the cases that would actually use the extra time are a
         suspended chrome.exe that is not writing anyway."""
         try:
-            import ctypes
             ctypes.windll.user32.ShutdownBlockReasonCreate(
                 self.GetHandle(),
                 ctypes.c_wchar_p("Closing the WhatsApp session safely..."),
@@ -7859,7 +7866,6 @@ class MainWindow(wx.Frame):
                 logging.warning("[_on_end_session] the owning teardown did not "
                                 "finish within the Windows budget - going anyway.")
             try:
-                import ctypes
                 ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
             except Exception:
                 pass
@@ -7911,7 +7917,6 @@ class MainWindow(wx.Frame):
         # wait instead of noticing this path already finished.
         self._teardown_complete_event.set()
         try:
-            import ctypes
             ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
         except Exception:
             pass
@@ -8159,7 +8164,6 @@ class MainWindow(wx.Frame):
         acc_id = getattr(self, "account_id", None)
         if gd and acc_id:
             try:
-                import node_coord
                 node_coord.release_node_lease(gd, acc_id)
                 logging.info("[node-lease] released lease for account %s", acc_id)
             except Exception:
@@ -8206,7 +8210,6 @@ class MainWindow(wx.Frame):
                         "leveldb may be incomplete")
             self._shutdown_audit(f"taskkill /F /T node pid={pid} (flush done above)")
             try:
-                import sys
                 if sys.platform == "win32":
                     subprocess.run(
                         ["taskkill", "/F", "/T", "/PID", str(pid)],
@@ -8297,7 +8300,6 @@ class MainWindow(wx.Frame):
         left behind by a previous session that was force-quit, so we still
         have a way to terminate it instead of leaving it running forever.
         """
-        import sys
         if sys.platform != "win32":
             return None
         no_window = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
@@ -8359,8 +8361,6 @@ class MainWindow(wx.Frame):
             self._register_node_lease()
             return  # Already up (e.g. left running from a previous session)
 
-        import sys
-        import shutil
 
         if sys.platform == "win32":
             node_exe = resource_path("node", "node.exe")
@@ -8430,7 +8430,6 @@ class MainWindow(wx.Frame):
         # The call in _start_wpp_background() stays; it is idempotent.
         self._ensure_wpp_port_still_free()
 
-        from ui.dialogs.api_startup import ApiStartupDialog
         def _show_startup_dlg():
             dlg = ApiStartupDialog(self, self.wpp_port)
             # Queued rather than called inline so the dialog is painted (and
@@ -8558,7 +8557,6 @@ class MainWindow(wx.Frame):
             cp._on_accel_jump_unread(event)
 
     def on_f1(self, event):
-        from ui.dialogs.shortcuts_dialog import ShortcutsDialog
         dlg = ShortcutsDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
@@ -8567,7 +8565,6 @@ class MainWindow(wx.Frame):
         self.open_settings()
 
     def open_settings(self):
-        from ui.dialogs.settings_dialog import SettingsDialog
         dlg = SettingsDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
@@ -8675,7 +8672,6 @@ class MainWindow(wx.Frame):
         if lang_already_set:
             return
 
-        from ui.dialogs.language_dialog import LanguageSelectionDialog
         dlg    = LanguageSelectionDialog(parent=None)
         result = dlg.ShowModal()
         lang   = dlg.selected_language
@@ -8721,7 +8717,6 @@ class MainWindow(wx.Frame):
             self.save_settings()
 
             # Open settings dialog on the Connection tab (index 4)
-            from ui.dialogs.settings_dialog import SettingsDialog
             dlg = SettingsDialog(self)
             dlg._notebook.SetSelection(4)
             settings_res = dlg.ShowModal()
@@ -8790,7 +8785,6 @@ class MainWindow(wx.Frame):
         self.save_settings()
         self._persist_global_settings()
 
-        from ui.dialogs.settings_dialog import _HotkeyCapture
 
         dlg = wx.Dialog(
             None,
@@ -8844,7 +8838,6 @@ class MainWindow(wx.Frame):
         On failure: shows an error dialog and stores ``autostart=False``.
         Called from ``_check_first_run()`` and from the Settings dialog.
         """
-        from autostart import enable_autostart, disable_autostart
         if enable:
             try:
                 enable_autostart()
@@ -8874,7 +8867,6 @@ class MainWindow(wx.Frame):
         Only runs on Windows. If autostart setting is True, ensures the registry key exists.
         If autostart setting is False (and it's not the first run), ensures the key is removed.
         """
-        import sys
         if sys.platform != "win32":
             return
 
@@ -8882,7 +8874,6 @@ class MainWindow(wx.Frame):
             return
 
         try:
-            from autostart import is_autostart_enabled, enable_autostart, disable_autostart
             setting_enabled = self.settings.get("general", {}).get("autostart", False)
             registry_enabled = is_autostart_enabled()
 
@@ -8994,7 +8985,6 @@ class MainWindow(wx.Frame):
                 msg   = self.i18n.t("settings_load_failed")
                 title = self.i18n.t("error").format(app_name=self.app_name)
             else:
-                from core.i18n import _load_translations
                 _pt   = _load_translations("pt-BR")
                 msg   = _pt.get("settings_load_failed",
                                 "Erro ao carregar o arquivo de configuração:")
@@ -9032,7 +9022,6 @@ class MainWindow(wx.Frame):
         if not gd:
             return
         try:
-            from app_settings import AppSettings, _GENERAL_GLOBAL, _CONNECTION_GLOBAL
             app = AppSettings(gd)
             self._app_settings = app
             general = self.settings.setdefault("general", {})
@@ -9060,7 +9049,6 @@ class MainWindow(wx.Frame):
         if app is None:
             return
         try:
-            from app_settings import _GENERAL_GLOBAL, _CONNECTION_GLOBAL
             general = self.settings.get("general", {})
             for k in _GENERAL_GLOBAL:
                 if k in general:
@@ -9145,7 +9133,6 @@ class MainWindow(wx.Frame):
         otherwise be a full settings write for no new information.
         """
         try:
-            from core.save_location import remember_save_dialog_folder
             if remember_save_dialog_folder(self.settings, saved_path):
                 self.save_settings()
         except Exception as exc:
@@ -9265,7 +9252,6 @@ class MainWindow(wx.Frame):
             else:
                 # Nothing resolves at all (broken install: even the default
                 # pack is missing this file) — a silent no-op beats a crash.
-                from core.sound_system import NullSound
                 setattr(self, f"{key}_sound", NullSound())
 
     def _apply_configured_audio_devices(self):
@@ -9463,7 +9449,6 @@ class MainWindow(wx.Frame):
                 # side-write reopens the TOCTOU and can corrupt sessions.json.
                 # On lock timeout we skip the store update (the session still
                 # works; the store is reconciled on a later register/startup).
-                from coord_locks import sessions_lock, LockTimeout
                 gd = getattr(self, "global_dir", None)
                 def _commit():
                     for s in store.list():
@@ -9501,7 +9486,6 @@ class MainWindow(wx.Frame):
                 )
                 return
 
-            from coord_locks import sessions_lock, LockTimeout
             gd = getattr(self, "global_dir", None)
 
             def _commit():
@@ -9557,7 +9541,6 @@ class MainWindow(wx.Frame):
         if store is not None:
             return store
         try:
-            import session_store
             acc_dir = os.path.dirname(data_path("settings.json"))
             self._session_store = session_store.SessionStore(acc_dir, self._session_crypto())
             return self._session_store
@@ -9579,7 +9562,6 @@ class MainWindow(wx.Frame):
         if token and ":" not in token:
             try:
                 url = f"{self.wpp_server}:{self.wpp_port}/api/{token}/{self.wpp_api_key}/generate-token"
-                import requests
                 response = api_post(url, timeout=10)
                 if response.status_code in (200, 201):
                     data = response.json()
@@ -9674,8 +9656,6 @@ class MainWindow(wx.Frame):
         return protected
 
     def _cleanup_abandoned_sessions_worker(self):
-        import connection_state as cs
-        from coord_locks import sessions_lock, LockTimeout
         # Custom API: the user's own external WPPConnect server owns and
         # manages userDataDir sessions — its session registry is not our
         # per-account sessions.json, so we cannot PROVE which session is
@@ -9687,7 +9667,6 @@ class MainWindow(wx.Frame):
             logging.info("[sessions] custom API active — skipping abandoned-session cleanup")
             return
         try:
-            import session_store
             store = self._get_session_store()
             if store is None:
                 return
@@ -10061,7 +10040,6 @@ class MainWindow(wx.Frame):
                 # Clock-gap wake detection: if the sleep above overran massively,
                 # the machine was suspended and just came back. Trigger recovery
                 # here because EVT_POWER_RESUME is unreliable for a tray app.
-                import connection_state as cs
                 elapsed = time.time() - slept_at
                 if cs.is_wake_from_suspend(elapsed, self._HEALTH_CHECK_INTERVAL,
                                            self._WAKE_DETECT_GAP) \
@@ -10146,7 +10124,6 @@ class MainWindow(wx.Frame):
         _act_on_unlink_decision(), which routes it to the pairing dialog with
         the data intact.
         """
-        import connection_state as cs
         try:
             resp = api_get(
                 f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/host-device",
@@ -10245,7 +10222,6 @@ class MainWindow(wx.Frame):
         method does not acquire the lock itself (it would deadlock re-taking
         a plain, non-reentrant Lock the caller already holds).
         """
-        import connection_state as cs
 
         def _logout_with_warning():
             self.error_sound.play()
@@ -10498,7 +10474,6 @@ class MainWindow(wx.Frame):
             # old fixed sleep reproduced a field failure where the close's
             # eight-second watchdog killed the replacement browser just after
             # it connected. Wait for the server's honest CLOSED transition.
-            import connection_state as cs
             closed_status = self._wait_for_status(
                 cs.session_closed_after_flush,
                 self._RECOVERY_CLOSE_WAIT,
@@ -10596,7 +10571,6 @@ class MainWindow(wx.Frame):
         through to _probe_whatsapp_host() without setting session_down or
         counting a strike at all. Getting here means the local API *answered*.
         """
-        import connection_state as cs
         last_live = getattr(self, "_last_live_wpp_event_ts", 0.0)
         if last_live and (time.time() - last_live) < self._LIVE_WPP_EVENT_FRESHNESS_SECONDS:
             self._offline_probe_strikes = 0
@@ -10743,7 +10717,6 @@ class MainWindow(wx.Frame):
         under a rotated local token would otherwise reach the same full wipe
         as before, merely a minute later.
         """
-        import connection_state as cs
         logging.warning(
             "[check_wa_connection_http] status-session returned HTTP %s "
             "(local auth rejected the request).", http_status,
@@ -10857,7 +10830,6 @@ class MainWindow(wx.Frame):
                 # Any status other than the two unlinked ones clears the logout
                 # tally, so only *consecutive* readings can ever confirm one —
                 # see _LOGOUT_CONFIRM_STRIKES.
-                import connection_state as cs
                 if status not in cs.UNLINKED_STATES:
                     # Under the same lock the counting paths take: this writes
                     # the very attributes their count-then-decide sequence
@@ -10993,7 +10965,6 @@ class MainWindow(wx.Frame):
                             # QRCODE during resume is NOT a logout (the bug that
                             # kept wiping accounts; a real log showed the server
                             # reaching 'inChat' the same second the client wiped).
-                            import connection_state as cs
                             with self._unlink_decision_lock:
                                 # An automatic _restart_wpp_session() (dead-browser
                                 # recovery) legitimately re-shows a fresh QR itself
@@ -11073,7 +11044,6 @@ class MainWindow(wx.Frame):
             # proven in the field against a Node blocked by a history download,
             # and tightening a fix nobody has reported a problem with would be
             # trading a known-good behaviour for a hypothetical one.
-            import connection_state as cs
             allowed_strikes = cs.probe_strike_budget(
                 self._HTTP_PROBE_STRIKES,
                 initial_sync_running=getattr(self, "_initial_sync_running", False),
@@ -12579,7 +12549,6 @@ class MainWindow(wx.Frame):
         for subdir in ("media", "voice_messages"):
             path = data_path(subdir)
             if os.path.exists(path):
-                import shutil
                 try:
                     for filename in os.listdir(path):
                         file_path = os.path.join(path, filename)
@@ -12608,7 +12577,6 @@ class MainWindow(wx.Frame):
         # user to send their logs, and there was never a reason for the split:
         # log_path() is the account's log directory and this was the only
         # writer that did not use it.
-        from app_paths import log_path
         _consolidate_legacy_log_dir()
         log_dir = log_path()
         os.makedirs(log_dir, exist_ok=True)
@@ -14574,11 +14542,9 @@ class MainWindow(wx.Frame):
                         break
                     else:
                         logging.info(f"[get_remote_contacts] Got 0 contacts from API, waiting for WPPConnect initialization... (attempt {attempt+1}/5)")
-                        import time
                         time.sleep(4)
                 except Exception as e:
                     logging.error(f"[get_remote_contacts] Request failed: {e}")
-                    import time
                     time.sleep(4)
 
             if not isinstance(response_data, list):
@@ -15257,8 +15223,6 @@ class MainWindow(wx.Frame):
         main_id = threading.main_thread().ident
 
         def _loop():
-            import sys as _sys
-            import traceback as _traceback
             while not getattr(self, "_shutting_down", False):
                 pong = threading.Event()
                 t0 = time.monotonic()
@@ -19534,8 +19498,6 @@ class MainWindow(wx.Frame):
     @staticmethod
     def _find_api_ffmpeg() -> str:
         """Locate ffmpeg binary: check bundled lib/ first, then node_modules, then system PATH."""
-        import glob as _glob
-        import shutil
         # 1. Check bundled lib/ directory first (client/lib in dev mode, lib/ in compiled mode)
         lib_dirs = [
             resource_path("lib"),
@@ -19632,7 +19594,6 @@ class MainWindow(wx.Frame):
         """
         # Canonical destination: @lid when known, else the @c.us phone form —
         # see _resolve_jid_for_send's docstring for why @lid has to win here.
-        import time as _time
         _tsend0 = _time.perf_counter()
         remote_jid = self._resolve_jid_for_send(remote_jid)
         is_lid_target = remote_jid.endswith("@lid")
@@ -19946,7 +19907,6 @@ class MainWindow(wx.Frame):
                 local_id, real_id, remote_jid, audio_path, quote_lost
             )
             return
-        import time as _time
         logging.info("[VOICE_TIMING] _on_message_sent — message LEFT pending state. local_id=%s real_id=%s",
                      local_id, real_id)
         if real_id and remote_jid:
@@ -19968,7 +19928,6 @@ class MainWindow(wx.Frame):
                     real_audio_path = os.path.join(voice_messages_dir, f"{real_id}.msv")
                     
                     if os.path.isfile(local_audio_path):
-                        import shutil
                         shutil.copy2(local_audio_path, real_audio_path)
                     else:
                         with open(audio_path, "rb") as f:
@@ -20446,7 +20405,6 @@ class MainWindow(wx.Frame):
         last_seen = presence.get("lastSeen")
         if last_seen:
             try:
-                from datetime import datetime as _dt
                 ts = int(last_seen)
                 if ts > 1_000_000_000_000:
                     ts //= 1000
@@ -23837,10 +23795,6 @@ class MainWindow(wx.Frame):
         remote_jid = self._resolve_jid_for_send(remote_jid)
         is_lid_target = remote_jid.endswith("@lid")
         logging.info("[send_media] destination resolved to %s (isLid=%s)", remote_jid, is_lid_target)
-        import mimetypes
-        from core.audio_transcode import prepare_audio_for_whatsapp
-        from core.video_transcode import prepare_video_for_whatsapp
-        from core.multipart_stream import StreamingMultipartBody
         try:
             file_size = os.path.getsize(file_path)
         except Exception as exc:
@@ -24455,9 +24409,6 @@ class MainWindow(wx.Frame):
         """Forward a media message by re-sending it as a new file upload,
         in order to preserve its caption which WPPConnect's native forward drops.
         """
-        import os
-        import json
-        from core.utils import decrypt_bytes
 
         msg_key = msg.get("key", {}) or {}
         msg_id = msg_key.get("id", "")
@@ -24501,7 +24452,6 @@ class MainWindow(wx.Frame):
                 encrypted_data = f.read()
             decrypted_data = decrypt_bytes(encrypted_data, self.key)
 
-            import mimetypes as _mimetypes
             ext = ".bin"
             custom_filename = ""
             if media_type == "document":
@@ -24868,7 +24818,6 @@ class MainWindow(wx.Frame):
             time_str = ""
             if ts_val:
                 try:
-                    from datetime import datetime as _dt
                     dt    = _dt.fromtimestamp(ts_val)
                     today = _dt.now().date()
                     if dt.date() == today:
@@ -25062,7 +25011,6 @@ class MainWindow(wx.Frame):
         time_str = ""
         if ts:
             try:
-                from datetime import datetime as _dt
                 ts_val = int(ts)
                 if ts_val > 1_000_000_000_000:
                     ts_val //= 1000
@@ -25937,7 +25885,6 @@ def _startup_critical_error_text(crash_path: str, tb: str) -> tuple[str, str]:
 
 def _write_crash_log(tb: str) -> str:
     """Write a traceback to crash.log next to the exe and return the path."""
-    from app_paths import _outer_exe_dir
     crash_path = os.path.join(_outer_exe_dir(), "crash.log")
     try:
         with open(crash_path, "w", encoding="utf-8", errors="replace") as fh:
@@ -25965,8 +25912,6 @@ class LoggerWriter:
 
 
 def setup_logging():
-    import logging.handlers
-    from app_paths import log_path
     try:
         os.makedirs(log_path(), exist_ok=True)
         log_file = log_path("log.log")
@@ -26020,7 +25965,6 @@ def setup_logging():
 
 if __name__ == "__main__":
     try:
-        import signal
 
         # Ctrl+C on the console must close WinZapp gracefully no matter which
         # wx handler happens to be running when the interrupt lands. python-
@@ -26041,7 +25985,6 @@ if __name__ == "__main__":
             logging.info("[main] SIGINT (Ctrl+C) received — closing WinZapp gracefully")
             try:
                 if _main_frame_ref:
-                    import wx as _wx
                     _wx.CallAfter(_main_frame_ref[0]._perform_shutdown)
                     _wx.CallAfter(_main_frame_ref[0]._terminate_process)
             except Exception:
@@ -26051,11 +25994,6 @@ if __name__ == "__main__":
         signal.signal(signal.SIGINT, _sigint_graceful)
         signal.signal(signal.SIGTERM, _sigint_graceful)
 
-        import app_paths
-        from account_bootstrap import resolve_startup, parse_startup_source
-        from account_migration import migrate_if_needed
-        from accounts import AccountRegistry
-        import update_coord
 
         background = "--background" in sys.argv
         startup_source = parse_startup_source(sys.argv)
@@ -26096,7 +26034,6 @@ if __name__ == "__main__":
             _resume_pending = True
         elif _mode == "autostart_boot":
             # Boot launcher: open foreground here, spawn the rest in background.
-            from account_launcher import build_launch_command
             _account_id = _startup["foreground"]
             for _bg_id in _startup.get("background", []):
                 try:
@@ -26124,14 +26061,12 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-        from autostart import acquire_single_instance_mutex
         first_instance = acquire_single_instance_mutex()  # keyed on per-account data_path()
         if not first_instance:
             # Another process already runs THIS account: ask it to come to the
             # foreground via account-scoped IPC (not a title match), then exit.
             if not background:
                 try:
-                    import ipc
                     ipc.request_activate(gd, _account_id, source=startup_source)
                 except Exception:
                     pass
