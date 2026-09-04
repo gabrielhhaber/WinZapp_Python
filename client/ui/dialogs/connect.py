@@ -260,17 +260,27 @@ class Connect:
             if check_resp.status_code in (401, 403):
                 logging.warning("[check_connection_status] check-connection-session returned unauthorized (HTTP %s).", check_resp.status_code)
                 if is_paired:
-                    self.main_window.error_sound.play()
-                    def _msg1():
-                        wx.MessageBox(
-                            self.i18n.t("device_logged_out"),
-                            self.i18n.t("error").format(app_name=self.main_window.app_name),
-                            wx.OK | wx.ICON_ERROR,
-                        )
-                    if wx.IsMainThread():
-                        _msg1()
-                    else:
-                        wx.CallAfter(_msg1)
+                    # Our OWN local Node auth middleware refused this request —
+                    # it never reached WhatsApp at all, so it is weaker
+                    # evidence of a real unlink than even a notLogged/QRCODE
+                    # reading, and can just as easily mean the local
+                    # session/secret-key state on a freshly started Node isn't
+                    # ready yet (this runs before the WebSocket/health-check
+                    # even exist — see MainWindow.__init__). check_wa_connection_http()
+                    # / _handle_local_auth_rejected() (main.py) already learned
+                    # this the hard way and never treat a single 401/403 as a
+                    # confirmed logout; this earlier, unprotected duplicate
+                    # used to wipe on the very first reading. Same call as the
+                    # transient-status branch a few lines below: keep the
+                    # paired session and let the real connect/reconnect flow
+                    # settle it.
+                    logging.info(
+                        "[check_connection_status] HTTP %s and paired=True — "
+                        "treating as a transient local-auth hiccup, not a "
+                        "confirmed logout; keeping the paired session.",
+                        check_resp.status_code,
+                    )
+                    return True
                 self.main_window._set_wa_token("")
                 self.main_window.settings.setdefault("privateinfo", {}).pop("paired", None)
                 self.main_window.settings.setdefault("privateinfo", {}).pop("WA_phone_number", None)
@@ -332,17 +342,17 @@ class Connect:
             if resp.status_code in (401, 403):
                 logging.warning("[check_connection_status] status-session returned unauthorized (HTTP %s).", resp.status_code)
                 if is_paired:
-                    self.main_window.error_sound.play()
-                    def _msg2():
-                        wx.MessageBox(
-                            self.i18n.t("device_logged_out"),
-                            self.i18n.t("error").format(app_name=self.main_window.app_name),
-                            wx.OK | wx.ICON_ERROR,
-                        )
-                    if wx.IsMainThread():
-                        _msg2()
-                    else:
-                        wx.CallAfter(_msg2)
+                    # Same local-auth-middleware reasoning as the
+                    # check-connection-session 401/403 branch above — see its
+                    # comment. Keep the paired session rather than wiping on
+                    # the first reading.
+                    logging.info(
+                        "[check_connection_status] HTTP %s and paired=True — "
+                        "treating as a transient local-auth hiccup, not a "
+                        "confirmed logout; keeping the paired session.",
+                        resp.status_code,
+                    )
+                    return True
                 self.main_window._set_wa_token("")
                 self.main_window.settings.setdefault("privateinfo", {}).pop("paired", None)
                 self.main_window.settings.setdefault("privateinfo", {}).pop("WA_phone_number", None)
