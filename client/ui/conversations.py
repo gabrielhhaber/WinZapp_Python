@@ -1953,6 +1953,17 @@ class ConversationsPanel(wx.Panel):
         choose_and_insert_emoji(self, self.message_field, self.main_window.i18n)
 
     def _on_conversation_char_hook(self, event):
+        if self._is_phantom_nvda_char(event):
+            # Veto here too, not just in _on_message_field_char(): this hook
+            # runs for the whole panel regardless of which child control
+            # currently has focus, and the "type anywhere to reply" redirect
+            # below treats 'ÿ' as an ordinary alnum character — chr(0xFF)
+            # .isalnum() is True in Python — so with focus on the
+            # conversations/messages list (the common case while browsing
+            # with a screen reader) it was moving focus to message_field and
+            # writing 'ÿ' into it via WriteText(), bypassing that other
+            # veto entirely, since WriteText() never raises EVT_CHAR.
+            return  # consume — do not insert, do not Skip()
         kc = event.GetKeyCode()
         # Intercept Esc and Enter when the mention suggestion list has focus so
         # they are handled here, before the accelerator table fires
@@ -1999,6 +2010,11 @@ class ConversationsPanel(wx.Panel):
 
         key = event.GetUnicodeKey()
         if key == wx.WXK_NONE:
+            return False
+        if self._is_phantom_nvda_char(event):
+            # chr(0xFF).isalnum() is True in Python, so the alnum check
+            # below would otherwise wave this straight through — see
+            # _is_phantom_nvda_char()'s docstring.
             return False
         try:
             # Only redirect alphanumeric characters — this prevents special
@@ -5238,9 +5254,11 @@ class ConversationsPanel(wx.Panel):
 
     @staticmethod
     def _is_phantom_nvda_char(event) -> bool:
-        """True for the bogus U+00FF character NVDA's laptop-layout object
-        navigation gestures (Windows+NVDA+Left/Right and others — issue #71)
-        leak into whatever wx.TextCtrl happens to be focused.
+        """True for the bogus U+00FF character that a screen reader's own
+        modifier-key gestures (Windows+NVDA+Left/Right and others — issue
+        #71 — and reportedly Alt+Tab as well) leak into whatever control is
+        focused, or into the message field via the "type anywhere to reply"
+        redirect below when it isn't (see _on_conversation_char_hook()).
 
         Reported live: each press of Windows+NVDA+Left/Right inserted one
         literal 'ÿ' into the message field, even though no text key was
@@ -5251,7 +5269,10 @@ class ConversationsPanel(wx.Panel):
         the character U+00FF — not a value any real keyboard layout produces
         by pressing the Windows key plus an arrow. That makes it safe to
         veto unconditionally rather than trying to special-case NVDA's own
-        modifier state, which wx never sees.
+        modifier state, which wx never sees. Checked at every entry point
+        that can put a character into the message field — see
+        _on_conversation_char_hook() for the other one — because this exact
+        code point is never a legitimate keystroke.
         """
         return event.GetUnicodeKey() == 0xFF
 
