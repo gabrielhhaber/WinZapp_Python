@@ -19,8 +19,6 @@ against a stub carrying only what it touches — same approach as
 tests/test_abandoned_pairing_session.py.
 """
 
-import pytest
-
 from main import MainWindow
 
 
@@ -35,8 +33,9 @@ class _FakeStore:
 class _Stub:
     _recover_active_session_token = MainWindow._recover_active_session_token
 
-    def __init__(self, store):
+    def __init__(self, store, paired=True):
         self._store = store
+        self.settings = {"privateinfo": {"paired": paired}}
         self.set_token_calls = []
 
     def _get_session_store(self):
@@ -69,6 +68,8 @@ class TestNoRecoverableSession:
     def test_no_store_available_recovers_nothing(self):
         class _NoStoreStub:
             _recover_active_session_token = MainWindow._recover_active_session_token
+
+            settings = {"privateinfo": {"paired": True}}
 
             def _get_session_store(self):
                 return None
@@ -126,6 +127,22 @@ class TestStoreReadFailureIsNonFatal:
                 raise RuntimeError("disk error")
 
         s = _Stub(_BrokenStore())
+
+        assert s._recover_active_session_token() == ""
+        assert s.set_token_calls == []
+
+
+class TestNeverPairedIsNeverRecovered:
+    def test_an_account_that_never_paired_recovers_nothing(self):
+        """The store of an account that never finished pairing can still hold
+        an 'active' entry — every pairing attempt registers one — but it
+        belongs to an attempt that never became a usable session. The guard
+        lives inside the method rather than only at its call site so a future
+        second caller cannot lose it."""
+        store = _FakeStore([
+            {"name": "sess1", "status": "active", "token": "sess1:hash1"},
+        ])
+        s = _Stub(store, paired=False)
 
         assert s._recover_active_session_token() == ""
         assert s.set_token_calls == []

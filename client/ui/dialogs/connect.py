@@ -121,6 +121,15 @@ class Connect:
         # dialogs — see on_continue()'s docstring for why this exists.
         self._pairing_attempt_id: int = 0
 
+        # Token of a BRAND-NEW WPPConnect session this dialog started itself
+        # (empty whenever it reused an existing one, or closed the one it
+        # started). Minting a new session overwrites the settings token and,
+        # via _set_wa_token(), abandons whatever the store held as active —
+        # so while this is set the dialog owns state that must be torn down
+        # on close even if WhatsApp reports itself connected. See
+        # on_dialog_close().
+        self._started_new_session_token: str = ""
+
     # ── Helpers ────────────────────────────────────────────────────────────
 
     def _wpp_headers(self, use_global_key=False):
@@ -633,6 +642,11 @@ class Connect:
             # Clear reference so we don't try to reuse/double-close this token
             self.raw_token = None
             self._last_started_qr_token = None
+            self._started_new_session_token = ""
+            # The store still holds this session as 'active'. We are closing
+            # it on purpose, so it must not stay a recovery candidate — see
+            # MainWindow._abandon_closed_session() for the failure it causes.
+            self.main_window._abandon_closed_session(token)
             mw_token = getattr(self.main_window, 'token', '')
             if mw_token.startswith(session_name):
                 if hasattr(self.main_window, 'token'):
@@ -756,6 +770,7 @@ class Connect:
                 # instead of an opaque 401 from _create_instance.
                 self.main_window.token = _generate_hash(raw_token)
                 self.main_window._set_wa_token(self.main_window.token)
+                self._started_new_session_token = self.main_window.token
 
             # Close any previous session that may still be alive on the server
             # (different token from the one we're about to start). This prevents
@@ -1067,6 +1082,8 @@ class Connect:
                         self.main_window.token = raw_token
 
                 _attempt_token = self.main_window.token or ""
+                if not _instance_exists:
+                    self._started_new_session_token = _attempt_token
 
                 # Terminate any existing session running on the server. If a session is already
                 # active/initializing in QR code mode (e.g. from the startup check), WPPConnect
@@ -1728,7 +1745,8 @@ class Connect:
         # Invalidate any in-flight _bg_pairing_flow() — see on_continue().
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
-        if getattr(self.main_window, "_wa_connected", False):
+        if (getattr(self.main_window, "_wa_connected", False)
+                and not self._started_new_session_token):
             # This dialog can now open on its own while already paired (the
             # proactive re-pair dialog — websocket_client.py's
             # _show_repair_dialog()), and WhatsApp can genuinely reconnect
@@ -1743,6 +1761,18 @@ class Connect:
             # only the stored token reference had been wiped, by exactly
             # this path, closing a dialog that should never have treated a
             # live connection as disposable.
+            #
+            # The second half of the condition is what keeps this from
+            # becoming a worse bug than the one it fixes. If the user
+            # actually started a NEW session from this dialog, minting it
+            # already overwrote the settings token and abandoned the live
+            # session's store entry — so skipping the teardown here would
+            # leave a half-paired session registered as the account's active
+            # one AND leave its Chrome alive, minting QR codes that
+            # on_qrcode_update() ignores while _wa_connected is True, which
+            # is exactly the unattended code stream that gets accounts
+            # banned. In that case we fall through to the normal teardown:
+            # no better than before this fix, but no worse either.
             logging.info(
                 "[on_dialog_close] WhatsApp is connected — closing without "
                 "disconnecting the socket or clearing the saved session."
@@ -1768,8 +1798,10 @@ class Connect:
             return
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
-        if getattr(self.main_window, "_wa_connected", False):
-            # Same reasoning as on_dialog_close() above: WhatsApp is
+        if (getattr(self.main_window, "_wa_connected", False)
+                and not self._started_new_session_token):
+            # Same reasoning as on_dialog_close() above, including why a
+            # session this dialog started itself is excluded: WhatsApp is
             # genuinely connected right now, so "Quit" here means exactly
             # what it means from the main window — close the app through
             # the normal graceful teardown, and do not disconnect the live
@@ -1779,6 +1811,20 @@ class Connect:
                 "via the normal graceful shutdown instead of tearing down "
                 "the active session."
             )
+            # real_exit() hides the main frame so quitting looks instant, but
+            # this modal dialog is not the frame: without hiding it too, it
+            # stays on screen and keyboard-focused, inert, for the whole
+            # graceful-stop budget (_stop_wpp_server() waits out the session
+            # flush). Hide(), never EndModal() — that would unwind into
+            # show_connection_dial()'s caller and run the post-dialog
+            # check_connection_status() path underneath a shutdown already in
+            # flight.
+            try:
+                self.connection_dial.Hide()
+            except Exception:
+                logging.exception(
+                    "[on_quit_from_connect] Could not hide the dialog before exit"
+                )
             self.main_window.real_exit()
             return
         if hasattr(self.main_window, 'ws') and self.main_window.ws:

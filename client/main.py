@@ -9528,6 +9528,58 @@ class MainWindow(wx.Frame):
                 "[sessions] recording an abandoned session failed (non-fatal)"
             )
 
+    def _abandon_closed_session(self, token: str) -> None:
+        """Mark a session we have just deliberately CLOSED as abandoned in
+        this account's SessionStore.
+
+        Distinct from _register_abandoned_session() above, which deliberately
+        refuses to touch an entry the store still holds as 'active' (it is
+        meant for pairing attempts that failed, where an active entry means a
+        reused, possibly live session it must not disturb). Here the opposite
+        is true: we sent /close-session ourselves, so the 'active' entry is
+        precisely the one that has to go.
+
+        Leaving it 'active' is what makes _recover_active_session_token()
+        unsafe — a session the user closed on purpose would come back as the
+        single "unambiguous" candidate on the next launch, and the app would
+        start attached to a session that is already dead instead of showing
+        the pairing dialog.
+        """
+        if not token:
+            return
+        try:
+            store = self._get_session_store()
+            if store is None:
+                return
+            name = token.replace("/", "_").replace("+", "-").split(":")[0]
+            if not name or store.get(name) is None:
+                return
+
+            from coord_locks import sessions_lock, LockTimeout
+            gd = getattr(self, "global_dir", None)
+
+            def _commit():
+                store.set_status(name, "abandoned")
+                logging.info(
+                    "[sessions] marked closed session %s as abandoned", name[:12],
+                )
+
+            if gd:
+                try:
+                    with sessions_lock(gd):
+                        _commit()
+                except LockTimeout:
+                    logging.warning(
+                        "[sessions] sessions_lock busy — could not mark closed "
+                        "session %s as abandoned", name[:12],
+                    )
+            else:
+                _commit()
+        except Exception:
+            logging.exception(
+                "[sessions] marking a closed session as abandoned failed (non-fatal)"
+            )
+
     def _recover_active_session_token(self) -> str:
         """Recover a lost WA_token reference from this account's own
         SessionStore, when exactly one active, decryptable entry exists to
@@ -9555,6 +9607,13 @@ class MainWindow(wx.Frame):
         its own, and guessing among several candidates could just as
         easily hand back the wrong session.
         """
+        if not self.settings.get("privateinfo", {}).get("paired"):
+            # An account that never finished pairing has nothing to recover:
+            # any 'active' entry it owns belongs to an attempt that never
+            # became a usable session. Enforced here rather than only at the
+            # call site so the contract in the docstring above cannot be lost
+            # by a future second caller.
+            return ""
         store = self._get_session_store()
         if store is None:
             return ""

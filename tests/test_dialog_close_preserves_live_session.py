@@ -73,12 +73,16 @@ class _FakeMainWindow:
         self.wpp_port = 6300
         self.real_exit_calls = 0
         self.close_active_session_calls = 0
+        self.abandoned = []
 
     def output(self, *a, **kw):
         pass
 
     def real_exit(self):
         self.real_exit_calls += 1
+
+    def _abandon_closed_session(self, token):
+        self.abandoned.append(token)
 
 
 @pytest.fixture(autouse=True)
@@ -89,8 +93,18 @@ def _no_sys_exit(monkeypatch):
     monkeypatch.setattr(connect_module.sys, "exit", lambda: (_ for _ in ()).throw(SystemExit))
 
 
-def _make_connect(mw):
+class _FakeDialog:
+    def __init__(self):
+        self.hide_calls = 0
+
+    def Hide(self):
+        self.hide_calls += 1
+
+
+def _make_connect(mw, started_new_session=""):
     c = Connect(mw)
+    c.connection_dial = _FakeDialog()
+    c._started_new_session_token = started_new_session
     calls = []
     c._close_active_session = lambda *a, **kw: calls.append((a, kw))
     return c, calls
@@ -151,3 +165,87 @@ class TestOnQuitFromConnectWhileNotConnected:
         assert close_calls[0] == ((), {"sync": True})
         assert mw.ws is None
         assert mw.real_exit_calls == 0
+
+
+class TestADialogThatStartedItsOwnSessionIsStillTornDown:
+    """The guard above is deliberately narrower than "WhatsApp is connected".
+
+    Starting a new pairing attempt from this dialog mints a fresh session and
+    hands it to _set_wa_token(), which points settings.json at it AND marks
+    the previously-active store entry abandoned. If the old session then
+    reconnects in the background (the premise of this whole fix) and the
+    guard skipped the teardown, the account would be left pointing at a
+    half-paired session that is not even the live one, with its Chrome still
+    running and minting QR codes that on_qrcode_update() ignores while
+    _wa_connected is True — the unattended code stream that gets accounts
+    banned. Falling through to the normal teardown is no better than the
+    pre-fix behaviour for this case, but it is no worse either.
+    """
+
+    def test_close_still_tears_down_when_this_dialog_started_a_session(self):
+        mw = _FakeMainWindow(wa_connected=True)
+        c, close_calls = _make_connect(mw, started_new_session="sess2:hash2")
+        event = _FakeCloseEvent()
+
+        c.on_dialog_close(event)
+
+        assert len(close_calls) == 1
+        assert mw.ws is None
+        assert event.skip_calls == 1
+
+    def test_quit_still_tears_down_when_this_dialog_started_a_session(self):
+        mw = _FakeMainWindow(wa_connected=True)
+        c, close_calls = _make_connect(mw, started_new_session="sess2:hash2")
+
+        with pytest.raises(SystemExit):
+            c.on_quit_from_connect(None)
+
+        assert len(close_calls) == 1
+        assert mw.real_exit_calls == 0
+
+
+class TestTheGuardsLeaveThePairingStateConsistent:
+    """Both guards return early from handlers whose remaining body is what
+    normally clears the pairing bookkeeping; the two lines that matter run
+    before the guard, and _pairing_attended() reads both."""
+
+    def test_close_clears_pairing_in_progress_and_bumps_the_attempt_id(self):
+        mw = _FakeMainWindow(wa_connected=True, pairing_in_progress=True)
+        c, _ = _make_connect(mw)
+        # The startup grace is a separate mechanism with its own tests; take
+        # it out of the way so this asserts the bookkeeping, not the wait.
+        c._pairing_startup_wait_done = True
+        before = c._pairing_attempt_id
+
+        c.on_dialog_close(_FakeCloseEvent(can_veto=False))
+
+        assert mw._pairing_in_progress is False
+        assert c._pairing_attempt_id == before + 1
+
+    def test_quit_clears_pairing_in_progress_and_bumps_the_attempt_id(self):
+        mw = _FakeMainWindow(wa_connected=True, pairing_in_progress=True)
+        c, _ = _make_connect(mw)
+        # The startup grace is a separate mechanism with its own tests; take
+        # it out of the way so this asserts the bookkeeping, not the wait.
+        c._pairing_startup_wait_done = True
+        before = c._pairing_attempt_id
+
+        c.on_quit_from_connect(None)
+
+        assert mw._pairing_in_progress is False
+        assert c._pairing_attempt_id == before + 1
+
+
+class TestQuitLeavesNothingOnScreen:
+    def test_the_modal_dialog_is_hidden_before_the_graceful_shutdown(self):
+        """real_exit() hides the main frame, not this dialog, and then takes
+        the whole graceful-stop budget (the session flush) before the process
+        goes. Without hiding it, a screen-reader user presses "Sair" and is
+        left focused on an inert dialog with nothing said."""
+        mw = _FakeMainWindow(wa_connected=True)
+        c, _ = _make_connect(mw)
+
+        c.on_quit_from_connect(None)
+
+        assert c.connection_dial.hide_calls == 1
+        assert mw.real_exit_calls == 1
