@@ -25,6 +25,7 @@ import requests
 import wx
 
 from app_paths import _outer_exe_dir, _is_frozen, resource_path, log_path
+from core.wpp_runtime import homologated_wpp_tag
 from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
 from version import __version__
 
@@ -1258,6 +1259,9 @@ class WppUpdateChecker:
 
     @staticmethod
     def _fetch_latest_tag() -> str:
+        homologated = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
+        if homologated:
+            return homologated
         from ui.dialogs.api_setup import fetch_latest_wpp_tag
         return fetch_latest_wpp_tag()
 

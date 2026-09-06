@@ -106,6 +106,48 @@ class TestMediaUnsupportedErrorStopsRetrying:
             "retry": False,
         }
 
+    def test_the_refusal_body_the_node_side_really_sends_reaches_the_same_message(
+        self, media_file, monkeypatch
+    ):
+        """The body above is not one auditSendResult() can produce.
+
+        describeSendRejection() (messageController.ts) checks the embedded
+        error before the ACK and annotates the result with
+        "send-file was rejected (ack=-1)", so a real refusal always carries
+        both. accepted_message_id() used to read that error first and report
+        reason="unconfirmed", which told the user to go and check a
+        conversation the file never reached.
+        """
+        import main
+
+        monkeypatch.setattr(
+            main.requests,
+            "post",
+            lambda *a, **k: _FakeResponse(
+                201,
+                {
+                    "status": "success",
+                    "response": [
+                        {
+                            "id": "true_5511999999999@c.us_REJECTED123",
+                            "ack": -1,
+                            "error": "send-file was rejected (ack=-1)",
+                        }
+                    ],
+                },
+            ),
+        )
+
+        result = _Stub().send_media_attachment(
+            "5511999999999@s.whatsapp.net", media_file, "video"
+        )
+
+        assert result == {
+            "ok": False,
+            "error": "the file appears to be corrupted or in a format WhatsApp cannot process",
+            "retry": False,
+        }
+
     def test_media_unsupported_error_is_not_retried_and_has_a_clear_message(self, media_file, monkeypatch):
         import main
 

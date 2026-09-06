@@ -37,6 +37,12 @@ class _I18n:
 
 
 class _Stub:
+    # The first confirmed connection of a session also kicks off the
+    # send-capabilities probe on a background thread — real HTTP, and not
+    # what any test here is about. Record it instead.
+    def _check_send_capabilities(self):
+        self.capability_probes = getattr(self, "capability_probes", 0) + 1
+
     def __init__(self):
         from main import MainWindow
         self._set_wa_connected = MainWindow._set_wa_connected.__get__(self)

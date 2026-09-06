@@ -42,6 +42,12 @@ class _I18n:
 
 
 class _Stub:
+    # The first confirmed connection of a session also kicks off the
+    # send-capabilities probe on a background thread — real HTTP, and not
+    # what any test here is about. Record it instead.
+    def _check_send_capabilities(self):
+        self.capability_probes = getattr(self, "capability_probes", 0) + 1
+
     def __init__(self, token="tok"):
         from main import MainWindow
         self._set_wa_connected = MainWindow._set_wa_connected.__get__(self)
@@ -111,7 +117,7 @@ def _no_threads(monkeypatch):
     must not actually spawn a thread in a unit test — run inline so the
     assertion can see whether it ran at all."""
     class _InlineThread:
-        def __init__(self, target=None, args=(), kwargs=None, daemon=None):
+        def __init__(self, target=None, args=(), kwargs=None, daemon=None, name=None):
             self._target = target
             self._args = args
             self._kwargs = kwargs or {}

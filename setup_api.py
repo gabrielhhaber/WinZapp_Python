@@ -182,6 +182,9 @@ def _current_tag(cwd: str) -> str:
 # api_patches/ at some earlier point, undoing legitimate upstream bumps on
 # every future tag this script prepares.
 _PATCHED_DEPENDENCY_KEYS = [
+    "@wppconnect-team/wppconnect",  # Exact runtime pair homologated by WinZapp.
+    "@wppconnect/wa-js",            # Prevent npm from changing browser APIs
+                                     # during a reinstall of the same server.
     "prom-client",  # imported by src/middleware/instrumentation.ts, which is
                     # WinZapp's own patch. Upstream happens to declare it too,
                     # but under devDependencies — so our production import is
@@ -214,23 +217,11 @@ _PATCHED_DEPENDENCY_KEYS = [
                                   # wppconnect-server does not declare it at all.
 ]
 
-# @wppconnect-team/wppconnect used to be pinned here too, to an exact version
-# ("2.2.4") that predated this comment. That went stale fast: this dependency
-# releases new patch versions multiple times a week, and wppconnect-server's
-# own main branch had already moved on to requiring "^2.2.6" — meaning a fresh
-# clone/build was running WPPConnect Server against an @wppconnect-team/wppconnect
-# release two patches behind what it was actually written and tested against,
-# silently, with no error anywhere.
-#
-# The fix is to not patch it at all: leave upstream's own declared range in
-# package.json exactly as the clone/checkout produced it, the same way every
-# OTHER unpinned dependency already works here. @wppconnect/wa-js and
-# @wppconnect/wa-version are never pinned by WinZapp either — they are pulled
-# in transitively through whatever @wppconnect-team/wppconnect version resolves,
-# so they now track the paired version automatically instead of needing to be
-# kept in sync by hand. This mirrors start.js's own resolveWhatsappVersion(),
-# which resolves the WhatsApp Web build version dynamically for exactly the
-# same reason ("Rather than hardcoding a version — which rots...").
+# Executable WPPConnect/WA-JS code is pinned to the exact pair validated with
+# this WinZapp patch set. Upstream uses caret ranges, so a plain npm install of
+# the same WPPConnect Server tag previously changed these APIs underneath an
+# unchanged WinZapp build. @wppconnect/wa-version remains transitively updated:
+# it is the expiring WhatsApp HTML catalogue, not the executable adapter API.
 
 
 def _recover_upstream_package_json():
@@ -302,6 +293,7 @@ from core.wppconnect_status_layer_patch import ALL_PATCHES as _STATUS_LAYER_PATC
 from core.wppconnect_sender_layer_patch import ALL_PATCHES as _SENDER_LAYER_PATCHES
 from core.wppconnect_sender_layer_patch import patch_sender_layer_source as _patch_sender_layer_source
 from core.wppconnect_welcome_layer_patch import ALL_PATCHES as _WELCOME_LAYER_PATCHES
+from core.wpp_runtime import homologated_wpp_tag
 
 
 def _patch_wppconnect_host_layer(client_api_dir: str = None) -> bool:
@@ -558,12 +550,87 @@ def _merge_package_json_dependencies():
     print(f"[INFO] Applied {applied} patched dependencies into package.json (version kept at {pkg.get('version', '?')})")
 
 
+def directory_has_entries(path):
+    """Is `path` a directory with anything in it?
+
+    Answers True for a directory we cannot read, which is the conservative half:
+    an unreadable client/api/ counts as an install, so the caller verifies it
+    instead of cloning on top of files it could not see. A bare os.listdir()
+    here raised PermissionError with a traceback ahead of every handled message
+    below it — a locked folder, or one left by another Windows user, is exactly
+    the case that deserves the friendlier path rather than the ugliest one.
+    """
+    if not os.path.isdir(path):
+        return False
+    try:
+        return bool(os.listdir(path))
+    except OSError:
+        return True
+
+
+def plan_api_checkout(api_dir_exists, api_dir_nonempty,
+                      git_has_head_and_config, tag):
+    """Decide what has to happen to client/api/ before npm install runs.
+
+    Split out of main() because the decision was otherwise only reachable by
+    running the whole script — network clone and npm install included — so the
+    branch a fresh checkout takes (every CI build: client/api/ is git-ignored
+    and simply absent there) could only ever be "tested" by grepping the
+    source, and a wrong answer survived two rounds of review that way.
+
+    Returns {"clone": bool, "action": str}, where action is one of:
+      "checkout"        — check the pinned tag out of a git clone we manage;
+      "latest"          — nothing pinned: track the newest stable release tag;
+      "verify-snapshot" — an extracted/recovered client/api/ that is not a
+                          clone we manage: either no .git at all (the common
+                          case — a zip unpacked over the folder) or one too
+                          partial to trust. Running git from it walks upward
+                          into WinZapp's own repository and checks the
+                          WPPConnect tag out *there*, so the version can only
+                          be read off package.json;
+      "none"            — unmanaged and nothing pinned: nothing safe to do.
+    """
+    # An *empty* client/api/ is not an install: a cancelled extraction, or a
+    # folder someone created by hand, used to skip the clone and then fall into
+    # "verify-snapshot", which raises "Unmanaged client/api contains WPPConnect
+    # unknown". Treating it as absent restores the old behaviour of simply
+    # cloning into it.
+    already_cloned = bool(api_dir_exists and api_dir_nonempty)
+    # Cloning creates a real .git, so every path that clones is one we manage,
+    # by construction. Answering this from the directory as it looked *before*
+    # the clone is what put every fresh install in "verify-snapshot" and left
+    # the homologated tag permanently unchecked-out.
+    managed = bool(git_has_head_and_config) or not already_cloned
+    if managed:
+        action = "checkout" if tag else "latest"
+    elif tag:
+        action = "verify-snapshot"
+    else:
+        action = "none"
+    return {"clone": not already_cloned, "action": action}
+
+
 def main():
     env = _load_env()
     tag = env.get("WPPCONNECT_TAG_VERSION", "").strip()
+    if not tag:
+        contract_path = os.path.join(ROOT_DIR, "client", "wpp_minimum_version.txt")
+        tag = homologated_wpp_tag(contract_path)
+        if tag:
+            print(f"[INFO] Using WinZapp homologated WPPConnect tag {tag}.")
 
     git_dir = os.path.join(CLIENT_API_DIR, ".git")
-    already_cloned = os.path.isdir(git_dir)
+    api_dir_exists = os.path.isdir(CLIENT_API_DIR)
+    plan = plan_api_checkout(
+        api_dir_exists=api_dir_exists,
+        api_dir_nonempty=directory_has_entries(CLIENT_API_DIR),
+        git_has_head_and_config=(
+            os.path.isfile(os.path.join(git_dir, "HEAD"))
+            and os.path.isfile(os.path.join(git_dir, "config"))
+        ),
+        tag=tag,
+    )
+    already_cloned = not plan["clone"]
 
     # Gather the content to restore for every patched file, preferring
     # client/api_patches/ (permanent, always-tracked) over whatever
@@ -597,7 +664,6 @@ def main():
         print(f"[INFO] client/api/ already exists — skipping clone (checking for updates below).")
     else:
         print(f"[INFO] Cloning WPPConnect Server …")
-        import shutil
         temp_node_modules = os.path.join(ROOT_DIR, "temp_node_modules")
         node_modules_path = os.path.join(CLIENT_API_DIR, "node_modules")
         has_node_modules = os.path.isdir(node_modules_path)
@@ -626,7 +692,7 @@ def main():
             except Exception as e:
                 print(f"[WARNING] Failed to restore node_modules: {e}")
 
-    if tag:
+    if plan["action"] == "checkout":
         current = _current_tag(CLIENT_API_DIR)
         if current == tag:
             print(f"[INFO] Already pinned to {tag}.")
@@ -634,7 +700,7 @@ def main():
             print(f"[INFO] WPPCONNECT_TAG_VERSION pinned — checking out {tag}.")
             _run(["git", "fetch", "--tags", "--force"], cwd=CLIENT_API_DIR)
             _run(["git", "checkout", "-f", tag], cwd=CLIENT_API_DIR)
-    else:
+    elif plan["action"] == "latest":
         latest = _latest_stable_tag(CLIENT_API_DIR)
         if not latest:
             print("[INFO] No stable release tag found (offline or no tags) — using default branch (main).")
@@ -648,6 +714,32 @@ def main():
                 else:
                     print(f"[INFO] No WPPCONNECT_TAG_VERSION pinned — using latest stable release {latest}.")
                 _run(["git", "checkout", "-f", latest], cwd=CLIENT_API_DIR)
+    elif plan["action"] == "verify-snapshot":
+        # An extracted/recovered API carries no `.git` of its own, or only a
+        # partial one. Running git from it walks upward into WinZapp's own
+        # repository and tries to check out the WPPConnect tag there. Never
+        # cross that boundary.
+        pkg_version = ""
+        try:
+            with open(os.path.join(CLIENT_API_DIR, "package.json"), encoding="utf-8") as fh:
+                pkg_version = str(json.load(fh).get("version", ""))
+        except Exception:
+            pass
+        expected = tag.lstrip("vV")
+        if pkg_version != expected:
+            # This script only ever runs from a dev checkout or CI (build.py
+            # re-runs it on detected drift), never from the app — so the advice
+            # has to be what works there. "Reinstall through WinZapp" belongs in
+            # ApiSetupDialog, which is the other caller of the same patches.
+            raise RuntimeError(
+                f"Unmanaged client/api contains WPPConnect {pkg_version or 'unknown'}, "
+                f"but WinZapp requires {expected}. Delete client/api/ and run "
+                f"setup_api.py again to get a managed clone at the pinned tag."
+            )
+        print(
+            f"[INFO] Unmanaged API snapshot already reports homologated version "
+            f"{pkg_version}; skipping git checkout safely."
+        )
 
     # Single restore point, deliberately outside every branch above: the clone,
     # the tag checkout (`git checkout -f` overwrites the patched files with
@@ -679,6 +771,26 @@ def main():
                 win_npm = os.path.join(ROOT_DIR, "client", "node", "node_modules", "npm", "bin", "npm-cli.js")
                 if os.path.isfile(win_npm):
                     npm_bin = win_npm
+                    npm_probe = subprocess.run(
+                        [node_bin, npm_bin, "install", "--help"],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    if npm_probe.returncode != 0:
+                        system_node = shutil.which("node")
+                        system_npm = shutil.which("npm.cmd") or shutil.which("npm")
+                        if not system_node or not system_npm:
+                            raise RuntimeError(
+                                "Portable npm is unhealthy; reinstall the homologated "
+                                "Node.js runtime before building WPPConnect"
+                            )
+                        print(
+                            "[WARNING] Portable npm is unhealthy; using the system "
+                            "Node.js runtime for this build."
+                        )
+                        node_bin = system_node
+                        npm_bin = system_npm
 
         # Run npm install
         print("[INFO] Running npm install...")
@@ -769,7 +881,6 @@ def main():
     if not is_windows:
         print("\n[INFO] Detecting Linux OS and installing system dependencies for Chromium...")
         # Check if apt-get is available
-        import shutil
         if shutil.which("apt-get"):
             # Check if running as root or has sudo
             try:
