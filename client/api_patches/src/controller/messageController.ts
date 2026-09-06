@@ -50,36 +50,36 @@ async function returnSucess(res: any, data: any) {
   res.status(201).json({ status: 'success', response: data, mapper: 'return' });
 }
 
-/** Reject the false-success shapes WPPConnect has returned after WA-JS/API
- * changes. ACK 0 is valid (queued locally); a missing id, a negative ACK, an
- * embedded error, or an explicit non-success send result is not. */
-function assertSendAccepted(result: any, operation: string) {
+/** Describe the false-success shapes WPPConnect has returned after WA-JS/API
+ * changes, or '' when the result is a genuine acceptance. ACK 0 is valid
+ * (queued locally); a missing id, a negative ACK, an embedded error, or an
+ * explicit non-success send result is not. */
+function describeSendRejection(result: any, operation: string): string {
   if (result === null || result === undefined || result === false) {
-    throw new Error(`${operation} returned no send result`);
+    return `${operation} returned no send result`;
   }
   if (typeof result === 'string') {
-    if (result.trim()) return result;
-    throw new Error(`${operation} returned an empty message id`);
+    return result.trim() ? '' : `${operation} returned an empty message id`;
   }
   if (typeof result !== 'object') {
-    throw new Error(`${operation} returned unsupported result type ${typeof result}`);
+    return `${operation} returned unsupported result type ${typeof result}`;
   }
 
   const embeddedError =
     result.error?.message || result.error || result.erro?.message || result.erro;
   if (embeddedError) {
-    throw new Error(`${operation} failed: ${String(embeddedError)}`);
+    return `${operation} failed: ${String(embeddedError)}`;
   }
   const ack = result.ack;
   if (ack !== undefined && ack !== null && Number(ack) < 0) {
-    throw new Error(`${operation} was rejected (ack=${String(ack)})`);
+    return `${operation} was rejected (ack=${String(ack)})`;
   }
   const sendResult = result.sendMsgResult?.messageSendResult;
   if (
     sendResult !== undefined &&
     !['SUCCESS', 'OK'].includes(String(sendResult).toUpperCase())
   ) {
-    throw new Error(`${operation} was rejected (${String(sendResult)})`);
+    return `${operation} was rejected (${String(sendResult)})`;
   }
 
   const rawId = result.id ?? result.key?.id ?? result.messageId;
@@ -88,9 +88,30 @@ function assertSendAccepted(result: any, operation: string) {
       ? rawId
       : rawId?._serialized || rawId?.toString?.() || '';
   if (!id || id === '[object Object]') {
-    throw new Error(`${operation} returned success without a message id`);
+    return `${operation} returned success without a message id`;
   }
-  return result;
+  return '';
+}
+
+/** Report a rejected send result inside the ordinary 201 body instead of
+ * throwing it.
+ *
+ * Every call site below runs *after* `await req.client.sendX(...)` resolved,
+ * so the message is already on the network. Throwing here would land in the
+ * handler's own catch — `returnError`, i.e. HTTP 500 — and main.py classifies
+ * 500 as retryable: MessageQueue would resend a message that went out fine
+ * (up to four times, on top of the quote-less and legacy-@c.us retries the
+ * send helpers try first). So the verdict rides back in the success body
+ * under `error`, where core/send_contract.py — the only side of this that is
+ * non-retryable by construction — turns it into a permanent failure. */
+function auditSendResult(req: Request, result: any, operation: string) {
+  const rejection = describeSendRejection(result, operation);
+  if (!rejection) return result;
+  req.logger.error(rejection);
+  return {
+    ...(result && typeof result === 'object' ? result : {}),
+    error: rejection,
+  };
 }
 
 async function watchMediaUpload(req: Request, uploadId: string, contact: string) {
@@ -201,7 +222,8 @@ export async function sendMessage(req: Request, res: Response) {
     const results: any = [];
     for (const contato of phone) {
       results.push(
-        assertSendAccepted(
+        auditSendResult(
+          req,
           await req.client.sendText(contato, message, options),
           'send-message'
         )
@@ -333,33 +355,34 @@ export async function sendFile(req: Request, res: Response) {
     for (const contact of phone) {
       await watchMediaUpload(req, uploadId, contact);
       results.push(
-        assertSendAccepted(
+        auditSendResult(
+          req,
           await req.client.sendFile(contact, pathFile, {
-          filename: filename,
-          caption: msg,
-          quotedMsg: quotedMessageId,
-          // Without this, sendFile() defaults to type: 'auto-detect', which
-          // picks the WhatsApp message kind from the file's mimetype — so an
-          // .mp3/.jpg sent via the "Document" attachment option uploaded as
-          // a playable audio/photo message instead of a document, unlike
-          // the official client (which only auto-detects for the Photos &
-          // Videos/Audio menu options, and always uploads as a document
-          // otherwise). Respect the type WinZapp explicitly requested.
-          type: type || 'auto-detect',
-          // The bounded/chunked transfer sender.layer.js's patched sendFile()
-          // uses for large uploads (see
-          // client/core/wppconnect_sender_layer_patch.py) rebuilds the file
-          // entirely from raw bytes in the browser — it never sees multer's
-          // own req.file.mimetype, only options.mimetype, which nothing set
-          // before this. Without it the reconstructed File always fell back
-          // to 'application/octet-stream', so a large video/audio/image
-          // routed through that path arrived with the wrong content type
-          // (still tagged the right WhatsApp message TYPE via options.type
-          // above, but not necessarily playable/previewable as one on the
-          // receiving end). multer already knows the real one from the
-          // multipart upload's own Content-Type.
-          mimetype: req.file?.mimetype,
-          ...options,
+            filename: filename,
+            caption: msg,
+            quotedMsg: quotedMessageId,
+            // Without this, sendFile() defaults to type: 'auto-detect', which
+            // picks the WhatsApp message kind from the file's mimetype — so an
+            // .mp3/.jpg sent via the "Document" attachment option uploaded as
+            // a playable audio/photo message instead of a document, unlike
+            // the official client (which only auto-detects for the Photos &
+            // Videos/Audio menu options, and always uploads as a document
+            // otherwise). Respect the type WinZapp explicitly requested.
+            type: type || 'auto-detect',
+            // The bounded/chunked transfer sender.layer.js's patched sendFile()
+            // uses for large uploads (see
+            // client/core/wppconnect_sender_layer_patch.py) rebuilds the file
+            // entirely from raw bytes in the browser — it never sees multer's
+            // own req.file.mimetype, only options.mimetype, which nothing set
+            // before this. Without it the reconstructed File always fell back
+            // to 'application/octet-stream', so a large video/audio/image
+            // routed through that path arrived with the wrong content type
+            // (still tagged the right WhatsApp message TYPE via options.type
+            // above, but not necessarily playable/previewable as one on the
+            // receiving end). multer already knows the real one from the
+            // multipart upload's own Content-Type.
+            mimetype: req.file?.mimetype,
+            ...options,
           }),
           'send-file'
         )
@@ -426,13 +449,14 @@ export async function sendVoice(req: Request, res: Response) {
     const results: any = [];
     for (const contato of phone) {
       results.push(
-        assertSendAccepted(
+        auditSendResult(
+          req,
           await req.client.sendPtt(
-          contato,
-          path,
-          filename,
-          message,
-          quotedMessageId
+            contato,
+            path,
+            filename,
+            message,
+            quotedMessageId
           ),
           'send-voice'
         )
@@ -508,47 +532,48 @@ export async function sendVoice64(req: Request, res: Response) {
 
     for (const contato of phone) {
       results.push(
-        assertSendAccepted(
-        // Use evaluateAndReturn directly so we can set waitForAck: false.
-        // sendPttFromBase64 has waitForAck hardcoded to true, which blocks
-        // the HTTP response until WhatsApp Web receives the upload ACK —
-        // causing 1–10 s of "pending" delay visible to the user.
-        // The payload is read from a page-side global (set above) so only
-        // a short string (contact JID + var name) crosses the CDP channel here.
-        await page.evaluate(
-          ({ to, varName }: { to: string; varName: string }) => {
-            try {
-              const { base64, quotedMsg } = (window as any)[varName] as {
-                base64: string;
-                quotedMsg: string | undefined;
-              };
-              return (window as any).WPP.chat
-                .sendFileMessage(to, base64, {
-                  type: 'audio',
-                  isPtt: true,
-                  filename: 'Voice Audio',
-                  caption: '',
-                  quotedMsg,
-                  waitForAck: false,
-                })
-                .then((result: any) => ({
-                  id: result?.id?.toString?.() ?? null,
-                  ack: result?.ack ?? 0,
-                }))
-                .catch((err: any) => ({
+        auditSendResult(
+          req,
+          // Use evaluateAndReturn directly so we can set waitForAck: false.
+          // sendPttFromBase64 has waitForAck hardcoded to true, which blocks
+          // the HTTP response until WhatsApp Web receives the upload ACK —
+          // causing 1–10 s of "pending" delay visible to the user.
+          // The payload is read from a page-side global (set above) so only
+          // a short string (contact JID + var name) crosses the CDP channel here.
+          await page.evaluate(
+            ({ to, varName }: { to: string; varName: string }) => {
+              try {
+                const { base64, quotedMsg } = (window as any)[varName] as {
+                  base64: string;
+                  quotedMsg: string | undefined;
+                };
+                return (window as any).WPP.chat
+                  .sendFileMessage(to, base64, {
+                    type: 'audio',
+                    isPtt: true,
+                    filename: 'Voice Audio',
+                    caption: '',
+                    quotedMsg,
+                    waitForAck: false,
+                  })
+                  .then((result: any) => ({
+                    id: result?.id?.toString?.() ?? null,
+                    ack: result?.ack ?? 0,
+                  }))
+                  .catch((err: any) => ({
+                    error: err?.message || String(err),
+                    ack: -1,
+                  }));
+              } catch (err: any) {
+                return Promise.resolve({
                   error: err?.message || String(err),
                   ack: -1,
-                }));
-            } catch (err: any) {
-              return Promise.resolve({
-                error: err?.message || String(err),
-                ack: -1,
-              });
-            }
-          },
-          { to: contato, varName: tempVar }
-        ),
-        'send-voice-base64'
+                });
+              }
+            },
+            { to: contato, varName: tempVar }
+          ),
+          'send-voice-base64'
         )
       );
     }
@@ -1413,7 +1438,8 @@ export async function replyMessage(req: Request, res: Response) {
         );
       } else {
         results.push(
-          assertSendAccepted(
+          auditSendResult(
+            req,
             await req.client.reply(contato, message, messageId),
             'send-reply'
           )
@@ -1472,7 +1498,8 @@ export async function sendMentioned(req: Request, res: Response) {
   try {
     let response;
     for (const contato of phone) {
-      response = assertSendAccepted(
+      response = auditSendResult(
+        req,
         await req.client.sendMentioned(`${contato}`, message, mentioned),
         'send-mentioned'
       );

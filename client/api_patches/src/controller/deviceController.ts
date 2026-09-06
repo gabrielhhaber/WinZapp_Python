@@ -1330,6 +1330,32 @@ export async function reactMessage(req: Request, res: Response) {
             }
           }
           if (typeof statusReactionAction?.sendStatusReaction !== 'function') {
+            // Last resort, and the one that matters on WhatsApp Web >= 2.3000:
+            // the module graph is split into bundles the Bootloader fetches on
+            // demand, so a module whose bundle this session never needed is
+            // absent from the registry entirely — moduleRequire, search and
+            // window.require above can all only ever see what is registered.
+            // ensureLazyModule() asks WhatsApp to fetch it the way the UI
+            // would. Best-effort by design: it answers false on the legacy
+            // webpack loader and for modules WA-JS does not list, in which
+            // case nothing changes and we fall through to the error below.
+            try {
+              await loader?.ensureLazyModule?.('WAWebSendStatusReactionAction');
+              statusReactionAction = loader?.moduleRequire?.(
+                'WAWebSendStatusReactionAction'
+              );
+              if (
+                typeof statusReactionAction?.sendStatusReaction === 'function'
+              ) {
+                moduleSource = 'wpp-loader-lazy';
+              }
+            } catch (error) {
+              moduleErrors.push(
+                `wpp-loader-lazy=${String((error as any)?.message || error)}`
+              );
+            }
+          }
+          if (typeof statusReactionAction?.sendStatusReaction !== 'function') {
             return {
               ok: false,
               detail:
@@ -1437,7 +1463,7 @@ export async function reactMessage(req: Request, res: Response) {
 /** Read-only compatibility probe for every send primitive WinZapp uses. */
 export async function getSendCapabilities(req: Request, res: Response) {
   try {
-    const capabilities = await req.client.page.evaluate(() => {
+    const capabilities = await req.client.page.evaluate(async () => {
       const WPP = (window as any).WPP;
       const loader = WPP?.loader;
       const checks: Record<string, boolean> = {
@@ -1460,6 +1486,18 @@ export async function getSendCapabilities(req: Request, res: Response) {
               typeof candidate?.sendStatusReaction === 'function',
             true,
             'StatusReaction'
+          );
+        } catch (_) {}
+      }
+      // Mirrors reactMessage()'s own lookup, including the lazy-bundle fetch.
+      // A probe that gives up earlier than the send path reports "send is
+      // incompatible" for a reaction that would actually have worked — and
+      // that verdict is spoken to the user.
+      if (typeof reactionModule?.sendStatusReaction !== 'function') {
+        try {
+          await loader?.ensureLazyModule?.('WAWebSendStatusReactionAction');
+          reactionModule = loader?.moduleRequire?.(
+            'WAWebSendStatusReactionAction'
           );
         } catch (_) {}
       }

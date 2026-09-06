@@ -50,12 +50,14 @@ async function ensureStatusChat(client: any) {
         try {
           await WPP.chat.find('status@broadcast');
         } catch (e) {
-          // WA-JS 4.6.0 reaches findOrCreateLatestChat, but WhatsApp no longer
-          // inserts the virtual status chat into ChatStore. Seed the same
-          // minimal ChatModel WA-JS already uses for media statuses so
-          // sendRawMessage/prepareRawMessage can complete for text statuses.
+          // Expected on current builds — the seeding below is what covers it.
         }
       }
+      // WA-JS 4.6.0 reaches findOrCreateLatestChat, but WhatsApp no longer
+      // inserts the virtual status chat into ChatStore, so the find above
+      // cannot succeed. Seed the same minimal ChatModel WA-JS already uses for
+      // media statuses, so sendRawMessage/prepareRawMessage can complete for
+      // text statuses too.
       const whatsapp = WPP?.whatsapp;
       const statusWid = whatsapp?.WidFactory?.createWid?.('status@broadcast');
       if (

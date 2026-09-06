@@ -223,9 +223,16 @@ class NodeDownloadDialog(wx.Dialog):
     def _extract_node(self, zip_path: str, node_dir: str) -> bool:
         self._set_status(self._i18n.t("node_download_extracting"))
         parent_dir = os.path.dirname(node_dir)
-        staging_dir = tempfile.mkdtemp(prefix=".node-staging-", dir=parent_dir)
         backup_dir = node_dir + ".previous"
+        # Bound before the try so the finally below can always test it. The
+        # mkdtemp itself belongs INSIDE: an install directory with no write
+        # permission raises right there, and raising out of _extract_node()
+        # skipped _finish_error() entirely — the dialog stayed open with no
+        # error shown and nothing announced, which is the worst possible
+        # outcome for a user who cannot see that nothing is happening.
+        staging_dir = ""
         try:
+            staging_dir = tempfile.mkdtemp(prefix=".node-staging-", dir=parent_dir)
             with zipfile.ZipFile(zip_path, "r") as zf:
                 for member in zf.infolist():
                     if self._cancelled:
@@ -268,7 +275,7 @@ class NodeDownloadDialog(wx.Dialog):
                 self._finish_error(self._i18n.t("node_download_error_extract").format(details=exc))
             return False
         finally:
-            if os.path.isdir(staging_dir):
+            if staging_dir and os.path.isdir(staging_dir):
                 shutil.rmtree(staging_dir, ignore_errors=True)
 
         return not self._cancelled

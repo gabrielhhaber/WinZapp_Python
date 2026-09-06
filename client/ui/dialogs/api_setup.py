@@ -60,6 +60,7 @@ import requests
 import wx
 
 from app_paths import resource_path
+from core.wpp_runtime import homologated_wpp_tag
 
 # GitHub download URLs — no git required
 _REPO_ZIP_MAIN = (
@@ -906,17 +907,12 @@ class ApiSetupDialog(wx.Dialog):
                 self._set_stage(self._i18n.t("api_setup_resolving_tag"), *stages["resolve_tag"])
                 tag = self._forced_tag if self._forced_tag is not None else self._read_env_value("WPPCONNECT_TAG_VERSION")
                 if not tag:
-                    try:
-                        with open(resource_path("wpp_minimum_version.txt"), encoding="utf-8") as fh:
-                            homologated = fh.read().strip()
-                        if homologated:
-                            tag = f"v{homologated.lstrip('vV')}"
-                            logging.info(
-                                "[api_setup] Using WinZapp homologated WPPConnect tag: %s",
-                                tag,
-                            )
-                    except OSError:
-                        pass
+                    tag = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
+                    if tag:
+                        logging.info(
+                            "[api_setup] Using WinZapp homologated WPPConnect tag: %s",
+                            tag,
+                        )
                 if not tag:
                     # No explicit tag was requested and .env doesn't pin one — resolve
                     # the actual latest GitHub release instead of defaulting straight

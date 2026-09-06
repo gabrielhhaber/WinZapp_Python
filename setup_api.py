@@ -293,6 +293,7 @@ from core.wppconnect_status_layer_patch import ALL_PATCHES as _STATUS_LAYER_PATC
 from core.wppconnect_sender_layer_patch import ALL_PATCHES as _SENDER_LAYER_PATCHES
 from core.wppconnect_sender_layer_patch import patch_sender_layer_source as _patch_sender_layer_source
 from core.wppconnect_welcome_layer_patch import ALL_PATCHES as _WELCOME_LAYER_PATCHES
+from core.wpp_runtime import homologated_wpp_tag
 
 
 def _patch_wppconnect_host_layer(client_api_dir: str = None) -> bool:
@@ -549,26 +550,67 @@ def _merge_package_json_dependencies():
     print(f"[INFO] Applied {applied} patched dependencies into package.json (version kept at {pkg.get('version', '?')})")
 
 
+def plan_api_checkout(api_dir_exists, api_dir_nonempty,
+                      git_has_head_and_config, tag):
+    """Decide what has to happen to client/api/ before npm install runs.
+
+    Split out of main() because the decision was otherwise only reachable by
+    running the whole script — network clone and npm install included — so the
+    branch a fresh checkout takes (every CI build: client/api/ is git-ignored
+    and simply absent there) could only ever be "tested" by grepping the
+    source, and a wrong answer survived two rounds of review that way.
+
+    Returns {"clone": bool, "action": str}, where action is one of:
+      "checkout"        — check the pinned tag out of a git clone we manage;
+      "latest"          — nothing pinned: track the newest stable release tag;
+      "verify-snapshot" — an extracted/recovered client/api/ carrying only a
+                          partial .git. Running git from it walks upward into
+                          WinZapp's own repository and checks the WPPConnect
+                          tag out *there*, so the version can only be read off
+                          package.json;
+      "none"            — unmanaged and nothing pinned: nothing safe to do.
+    """
+    # An *empty* client/api/ is not an install: a cancelled extraction, or a
+    # folder someone created by hand, used to skip the clone and then fall into
+    # "verify-snapshot", which raises "Unmanaged client/api contains WPPConnect
+    # unknown". Treating it as absent restores the old behaviour of simply
+    # cloning into it.
+    already_cloned = bool(api_dir_exists and api_dir_nonempty)
+    # Cloning creates a real .git, so every path that clones is one we manage,
+    # by construction. Answering this from the directory as it looked *before*
+    # the clone is what put every fresh install in "verify-snapshot" and left
+    # the homologated tag permanently unchecked-out.
+    managed = bool(git_has_head_and_config) or not already_cloned
+    if managed:
+        action = "checkout" if tag else "latest"
+    elif tag:
+        action = "verify-snapshot"
+    else:
+        action = "none"
+    return {"clone": not already_cloned, "action": action}
+
+
 def main():
     env = _load_env()
     tag = env.get("WPPCONNECT_TAG_VERSION", "").strip()
     if not tag:
         contract_path = os.path.join(ROOT_DIR, "client", "wpp_minimum_version.txt")
-        try:
-            with open(contract_path, encoding="utf-8") as fh:
-                homologated = fh.read().strip()
-            if homologated:
-                tag = f"v{homologated.lstrip('vV')}"
-                print(f"[INFO] Using WinZapp homologated WPPConnect tag {tag}.")
-        except OSError:
-            pass
+        tag = homologated_wpp_tag(contract_path)
+        if tag:
+            print(f"[INFO] Using WinZapp homologated WPPConnect tag {tag}.")
 
     git_dir = os.path.join(CLIENT_API_DIR, ".git")
-    already_cloned = os.path.isdir(CLIENT_API_DIR)
-    managed_git_clone = (
-        os.path.isfile(os.path.join(git_dir, "HEAD"))
-        and os.path.isfile(os.path.join(git_dir, "config"))
+    api_dir_exists = os.path.isdir(CLIENT_API_DIR)
+    plan = plan_api_checkout(
+        api_dir_exists=api_dir_exists,
+        api_dir_nonempty=bool(api_dir_exists and os.listdir(CLIENT_API_DIR)),
+        git_has_head_and_config=(
+            os.path.isfile(os.path.join(git_dir, "HEAD"))
+            and os.path.isfile(os.path.join(git_dir, "config"))
+        ),
+        tag=tag,
     )
+    already_cloned = not plan["clone"]
 
     # Gather the content to restore for every patched file, preferring
     # client/api_patches/ (permanent, always-tracked) over whatever
@@ -630,7 +672,7 @@ def main():
             except Exception as e:
                 print(f"[WARNING] Failed to restore node_modules: {e}")
 
-    if tag and managed_git_clone:
+    if plan["action"] == "checkout":
         current = _current_tag(CLIENT_API_DIR)
         if current == tag:
             print(f"[INFO] Already pinned to {tag}.")
@@ -638,7 +680,7 @@ def main():
             print(f"[INFO] WPPCONNECT_TAG_VERSION pinned — checking out {tag}.")
             _run(["git", "fetch", "--tags", "--force"], cwd=CLIENT_API_DIR)
             _run(["git", "checkout", "-f", tag], cwd=CLIENT_API_DIR)
-    elif not tag and managed_git_clone:
+    elif plan["action"] == "latest":
         latest = _latest_stable_tag(CLIENT_API_DIR)
         if not latest:
             print("[INFO] No stable release tag found (offline or no tags) — using default branch (main).")
@@ -652,7 +694,7 @@ def main():
                 else:
                     print(f"[INFO] No WPPCONNECT_TAG_VERSION pinned — using latest stable release {latest}.")
                 _run(["git", "checkout", "-f", latest], cwd=CLIENT_API_DIR)
-    elif tag:
+    elif plan["action"] == "verify-snapshot":
         # An extracted/recovered API can contain a partial `.git` directory.
         # Running git from it walks upward into WinZapp's own repository and
         # tries to check out the WPPConnect tag there. Never cross that boundary.
