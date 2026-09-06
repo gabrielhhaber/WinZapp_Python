@@ -550,6 +550,24 @@ def _merge_package_json_dependencies():
     print(f"[INFO] Applied {applied} patched dependencies into package.json (version kept at {pkg.get('version', '?')})")
 
 
+def directory_has_entries(path):
+    """Is `path` a directory with anything in it?
+
+    Answers True for a directory we cannot read, which is the conservative half:
+    an unreadable client/api/ counts as an install, so the caller verifies it
+    instead of cloning on top of files it could not see. A bare os.listdir()
+    here raised PermissionError with a traceback ahead of every handled message
+    below it — a locked folder, or one left by another Windows user, is exactly
+    the case that deserves the friendlier path rather than the ugliest one.
+    """
+    if not os.path.isdir(path):
+        return False
+    try:
+        return bool(os.listdir(path))
+    except OSError:
+        return True
+
+
 def plan_api_checkout(api_dir_exists, api_dir_nonempty,
                       git_has_head_and_config, tag):
     """Decide what has to happen to client/api/ before npm install runs.
@@ -563,11 +581,13 @@ def plan_api_checkout(api_dir_exists, api_dir_nonempty,
     Returns {"clone": bool, "action": str}, where action is one of:
       "checkout"        — check the pinned tag out of a git clone we manage;
       "latest"          — nothing pinned: track the newest stable release tag;
-      "verify-snapshot" — an extracted/recovered client/api/ carrying only a
-                          partial .git. Running git from it walks upward into
-                          WinZapp's own repository and checks the WPPConnect
-                          tag out *there*, so the version can only be read off
-                          package.json;
+      "verify-snapshot" — an extracted/recovered client/api/ that is not a
+                          clone we manage: either no .git at all (the common
+                          case — a zip unpacked over the folder) or one too
+                          partial to trust. Running git from it walks upward
+                          into WinZapp's own repository and checks the
+                          WPPConnect tag out *there*, so the version can only
+                          be read off package.json;
       "none"            — unmanaged and nothing pinned: nothing safe to do.
     """
     # An *empty* client/api/ is not an install: a cancelled extraction, or a
@@ -603,7 +623,7 @@ def main():
     api_dir_exists = os.path.isdir(CLIENT_API_DIR)
     plan = plan_api_checkout(
         api_dir_exists=api_dir_exists,
-        api_dir_nonempty=bool(api_dir_exists and os.listdir(CLIENT_API_DIR)),
+        api_dir_nonempty=directory_has_entries(CLIENT_API_DIR),
         git_has_head_and_config=(
             os.path.isfile(os.path.join(git_dir, "HEAD"))
             and os.path.isfile(os.path.join(git_dir, "config"))
@@ -695,9 +715,10 @@ def main():
                     print(f"[INFO] No WPPCONNECT_TAG_VERSION pinned — using latest stable release {latest}.")
                 _run(["git", "checkout", "-f", latest], cwd=CLIENT_API_DIR)
     elif plan["action"] == "verify-snapshot":
-        # An extracted/recovered API can contain a partial `.git` directory.
-        # Running git from it walks upward into WinZapp's own repository and
-        # tries to check out the WPPConnect tag there. Never cross that boundary.
+        # An extracted/recovered API carries no `.git` of its own, or only a
+        # partial one. Running git from it walks upward into WinZapp's own
+        # repository and tries to check out the WPPConnect tag there. Never
+        # cross that boundary.
         pkg_version = ""
         try:
             with open(os.path.join(CLIENT_API_DIR, "package.json"), encoding="utf-8") as fh:
@@ -706,9 +727,14 @@ def main():
             pass
         expected = tag.lstrip("vV")
         if pkg_version != expected:
+            # This script only ever runs from a dev checkout or CI (build.py
+            # re-runs it on detected drift), never from the app — so the advice
+            # has to be what works there. "Reinstall through WinZapp" belongs in
+            # ApiSetupDialog, which is the other caller of the same patches.
             raise RuntimeError(
                 f"Unmanaged client/api contains WPPConnect {pkg_version or 'unknown'}, "
-                f"but WinZapp requires {expected}; reinstall it through WinZapp."
+                f"but WinZapp requires {expected}. Delete client/api/ and run "
+                f"setup_api.py again to get a managed clone at the pinned tag."
             )
         print(
             f"[INFO] Unmanaged API snapshot already reports homologated version "

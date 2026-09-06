@@ -11,8 +11,8 @@ this file used to hold:
   every CI build, since the directory is git-ignored and absent on a clean
   checkout — was treated as unmanaged too. The homologated tag was never
   checked out, and depending on where upstream's default branch happened to
-  sit the run either aborted with "reinstall it through WinZapp" on a build
-  machine or built the default branch while reporting the pinned number.
+  sit the run either aborted on a build machine with the unmanaged-snapshot
+  error or built the default branch while reporting the pinned number.
 
 plan_api_checkout() exists so both are two-line assertions instead of a
 network clone followed by npm install.
@@ -70,6 +70,34 @@ class TestTheGitBoundaryIsStillHeld:
 
     def test_a_real_clone_on_disk_is_checked_out_in_place(self):
         assert _plan(True, True, True) == {"clone": False, "action": "checkout"}
+
+
+class TestReadingWhetherTheDirectoryIsAnInstall:
+    """The "is client/api/ empty" half of the plan's input, which main() reads
+    off the real filesystem. A bare os.listdir() here raised PermissionError
+    with a traceback ahead of every handled message in the script.
+    """
+
+    def test_a_missing_directory_is_not_an_install(self, tmp_path):
+        assert _setup_api_module().directory_has_entries(tmp_path / "nope") is False
+
+    def test_an_empty_directory_is_not_an_install(self, tmp_path):
+        assert _setup_api_module().directory_has_entries(tmp_path) is False
+
+    def test_a_directory_with_anything_in_it_is_an_install(self, tmp_path):
+        (tmp_path / "package.json").write_text("{}", encoding="utf-8")
+        assert _setup_api_module().directory_has_entries(tmp_path) is True
+
+    def test_an_unreadable_directory_counts_as_an_install(self, tmp_path, monkeypatch):
+        """Conservative on purpose: a folder we cannot read gets verified
+        rather than cloned on top of files we could not see."""
+        module = _setup_api_module()
+
+        def _denied(_path):
+            raise PermissionError(13, "Access is denied")
+
+        monkeypatch.setattr(module.os, "listdir", _denied)
+        assert module.directory_has_entries(tmp_path) is True
 
 
 class TestMainActuallyRunsThePlannedCheckout:
