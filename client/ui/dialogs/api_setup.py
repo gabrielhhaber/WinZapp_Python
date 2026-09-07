@@ -678,7 +678,9 @@ class ApiSetupDialog(wx.Dialog):
         Idempotent and best-effort, same pattern as the other layer patches
         above.
         """
-        from core.wppconnect_welcome_layer_patch import ALL_PATCHES
+        from core.wppconnect_welcome_layer_patch import (
+            ALL_PATCHES, latest_version_dependency_is_gone,
+        )
         welcome_layer_path = os.path.join(wppconnect_api_dir, "..", "controllers", "welcome.js")
         if not os.path.isfile(welcome_layer_path):
             logging.warning("[api_setup] welcome.js not found — skipping latest-version ESM patch.")
@@ -686,6 +688,13 @@ class ApiSetupDialog(wx.Dialog):
 
         with open(welcome_layer_path, encoding="utf-8") as f:
             content = f.read()
+
+        if latest_version_dependency_is_gone(content):
+            logging.info(
+                "[api_setup] welcome.js does not import latest-version at all "
+                "(wppconnect >= 2.3.2 asks the registry over fetch) — nothing to patch."
+            )
+            return True
 
         applied = 0
         already = 0

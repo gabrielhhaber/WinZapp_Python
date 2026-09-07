@@ -12,6 +12,7 @@
     "pairing_code_label": "Código de pareamento:",
     "connecting": "Conectando...",
     "qrcode_updated": "O código de pareamento foi atualizado.",
+    "pairing_code_expired": "O código de pareamento expirou e não será mais atualizado. Cancele e tente novamente para receber um novo código.",
     "qrcode_image_updated": "O QR-CODE foi atualizado.",
     "qrcode_instructions": "Aponte seu celular para o QR-CODE exibido do lado direito da tela.",
     "connect_with_phone": "Conectar com número de &telefone",

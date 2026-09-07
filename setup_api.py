@@ -293,6 +293,9 @@ from core.wppconnect_status_layer_patch import ALL_PATCHES as _STATUS_LAYER_PATC
 from core.wppconnect_sender_layer_patch import ALL_PATCHES as _SENDER_LAYER_PATCHES
 from core.wppconnect_sender_layer_patch import patch_sender_layer_source as _patch_sender_layer_source
 from core.wppconnect_welcome_layer_patch import ALL_PATCHES as _WELCOME_LAYER_PATCHES
+from core.wppconnect_welcome_layer_patch import (
+    latest_version_dependency_is_gone as _welcome_latest_version_dependency_is_gone,
+)
 from core.wpp_runtime import homologated_wpp_tag
 
 
@@ -486,6 +489,13 @@ def _patch_wppconnect_welcome_layer(client_api_dir: str = None) -> bool:
 
     with open(welcome_layer_path, encoding="utf-8") as f:
         content = f.read()
+
+    if _welcome_latest_version_dependency_is_gone(content):
+        print(
+            "[INFO] welcome.js does not import latest-version at all "
+            "(wppconnect >= 2.3.2 asks the registry over fetch) — nothing to patch."
+        )
+        return True
 
     applied = 0
     already = 0

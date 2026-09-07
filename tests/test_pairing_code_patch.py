@@ -61,6 +61,7 @@ shared module plus each of the two patch-applying entry points.
 
 import importlib.util
 import os
+import re
 
 import pytest
 
@@ -71,6 +72,12 @@ from core.wppconnect_host_layer_patch import (
     ORIGINAL_GET_QR_CODE, PATCHED_GET_QR_CODE,
     ORIGINAL_WAIT_FOR_QR_CODE_SCAN, PATCHED_WAIT_FOR_QR_CODE_SCAN,
     ORIGINAL_LOGIN_BY_CODE, LEGACY_LOGIN_BY_CODE_RAW, PATCHED_LOGIN_BY_CODE,
+    MANAGED_LINK_MARKER,
+    MANAGED_ORIGINAL_CHECK_QR_CODE, MANAGED_PATCHED_CHECK_QR_CODE,
+    MANAGED_ORIGINAL_LOGIN_BY_CODE, MANAGED_PATCHED_LOGIN_BY_CODE,
+    MANAGED_ORIGINAL_ON_LINK_CODE, MANAGED_PATCHED_ON_LINK_CODE,
+    MANAGED_ORIGINAL_LINK_CODE_HOOKS, MANAGED_PATCHED_LINK_CODE_HOOKS,
+    MANAGED_ORIGINAL_LINK_CODE_LISTENER, MANAGED_PATCHED_LINK_CODE_LISTENER,
 )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -115,6 +122,48 @@ def _write(host_layer, checkqrcode_text, loginbycode_text=ORIGINAL_LOGIN_BY_CODE
         + getqrcode_text
         + waitforscan_text
         + loginbycode_text +
+        "}\n",
+        encoding="utf-8",
+    )
+
+
+def _write_managed(host_layer, checkqrcode_text=MANAGED_ORIGINAL_CHECK_QR_CODE,
+                   loginbycode_text=MANAGED_ORIGINAL_LOGIN_BY_CODE,
+                   onlinkcode_text=MANAGED_ORIGINAL_ON_LINK_CODE,
+                   hooks_text=MANAGED_ORIGINAL_LINK_CODE_HOOKS,
+                   listener_text=MANAGED_ORIGINAL_LINK_CODE_LISTENER,
+                   getqrcode_text=ORIGINAL_GET_QR_CODE,
+                   waitforscan_text=ORIGINAL_WAIT_FOR_QR_CODE_SCAN):
+    """_write()'s counterpart for the file wppconnect >= 2.3.2 ships.
+
+    refreshLinkCode() is spelled out rather than omitted: it is the marker
+    patch_host_layer_source() reads to tell the two runtimes apart, so a
+    fixture without it is a 2.3.1 file as far as the patcher is concerned —
+    which is precisely the confusion these tests exist to rule out."""
+    host_layer.write_text(
+        "class HostLayer {\n"
+        "    urlCode = '';\n"
+        "    attempt = 0;\n"
+        "    async start() {\n"
+        + hooks_text +
+        "    }\n"
+        "    async afterPageScriptInjected() {\n"
+        "        if (typeof this.options.phoneNumber === 'string') {\n"
+        "            await (0, helpers_1.evaluateAndReturn)(this.page, () => {\n"
+        "                WPP.on('conn.link_code_change', window.onLinkCode);\n"
+        "                WPP.on('conn.link_code_expired', window.onLinkCodeExpired);\n"
+        + listener_text +
+        "            }).catch(() => null);\n"
+        "        }\n"
+        "    }\n"
+        + checkqrcode_text
+        + loginbycode_text
+        + onlinkcode_text
+        + MANAGED_LINK_MARKER +
+        "        return await (0, helpers_1.evaluateAndReturn)(this.page, () => WPP.conn.refreshLinkDeviceCode());\n"
+        "    }\n"
+        + getqrcode_text
+        + waitforscan_text +
         "}\n",
         encoding="utf-8",
     )
@@ -1041,3 +1090,533 @@ class TestV8StopsBurningThePairingCodeQuota:
 
     def test_v7_and_v8_are_distinct(self):
         assert V7_CHECK_QR_CODE != PATCHED_CHECK_QR_CODE
+
+
+class TestTheTwoRuntimesAreToldApartByTheFileItself:
+    """wppconnect 2.3.2 restructured the pairing flow, so there are two patch
+    sets now — and picking between them by matching, rather than by a version
+    string nothing here can see, is the whole safety property.
+
+    Both callers re-run these patches on every launch against whatever
+    node_modules holds, and a WinZapp update on its own never reinstalls
+    node_modules: an install that paired fine on 2.3.1 stays on 2.3.1 until the
+    user reinstalls the API. Writing the 2.3.2 checkQrCode into that file would
+    delete the only place that runtime calls loginByCode() from — pairing by
+    code, dead, with every patch still reporting OK.
+    """
+
+    def test_a_2_3_1_file_never_receives_the_2_3_2_text(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write(host_layer, ORIGINAL_CHECK_QR_CODE)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_CHECK_QR_CODE in content
+        assert MANAGED_PATCHED_CHECK_QR_CODE not in content
+        assert MANAGED_PATCHED_LOGIN_BY_CODE not in content
+        # The forward into loginByCode() is the 2.3.1 runtime's only route to
+        # a pairing code. It has to still be there.
+        assert "await this.loginByCode(this.options.phoneNumber);" in content
+
+    def test_a_2_3_2_file_never_receives_the_2_3_1_text(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(host_layer)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        content = host_layer.read_text(encoding="utf-8")
+        assert MANAGED_PATCHED_CHECK_QR_CODE in content
+        assert MANAGED_PATCHED_LOGIN_BY_CODE in content
+        assert PATCHED_CHECK_QR_CODE not in content
+        assert "linkCodeIssuedAt" not in content
+
+    def test_an_install_already_on_v8_is_left_alone_until_node_modules_moves(
+        self, fake_wppconnect_dist
+    ):
+        """The migration case that matters: updating WinZapp does not update
+        node_modules. A 2.3.1 tree already carrying v8 must come out
+        byte-identical, not half-rewritten into a shape its runtime cannot
+        use."""
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write(host_layer, PATCHED_CHECK_QR_CODE, PATCHED_LOGIN_BY_CODE,
+               PATCHED_GET_QR_CODE, PATCHED_WAIT_FOR_QR_CODE_SCAN)
+        before = host_layer.read_text(encoding="utf-8")
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        assert host_layer.read_text(encoding="utf-8") == before
+
+    def test_the_marker_is_a_method_no_patch_rewrites(self):
+        """A marker that one of the patches also edits stops identifying the
+        file the moment that patch applies, and the next run would fall back
+        to the wrong set."""
+        for patched in (
+            MANAGED_PATCHED_CHECK_QR_CODE, MANAGED_PATCHED_LOGIN_BY_CODE,
+            MANAGED_PATCHED_ON_LINK_CODE, MANAGED_PATCHED_LINK_CODE_HOOKS,
+            PATCHED_CHECK_QR_CODE, PATCHED_LOGIN_BY_CODE,
+            PATCHED_GET_QR_CODE, PATCHED_WAIT_FOR_QR_CODE_SCAN,
+        ):
+            assert MANAGED_LINK_MARKER not in patched
+
+    def test_the_marker_survives_a_full_patch_pass(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(host_layer)
+
+        setup_api._patch_wppconnect_host_layer(str(api_dir))
+
+        assert MANAGED_LINK_MARKER in host_layer.read_text(encoding="utf-8")
+
+    def test_a_file_that_is_neither_is_reported_and_left_untouched(
+        self, fake_wppconnect_dist
+    ):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        host_layer.write_text("// a future wppconnect rewrote this again\n", encoding="utf-8")
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is False
+        assert host_layer.read_text(encoding="utf-8") == (
+            "// a future wppconnect rewrote this again\n"
+        )
+
+
+class TestManagedCheckQrCodeKeepsTheProbeFixAndDropsTheCooldown:
+    """v8's two halves parted ways on 2.3.2, and only one of them was ported.
+
+    The reuse cooldown paced a mint loop that no longer exists: checkQrCode()
+    does not call loginByCode() any more, and afterPageScriptInjected() does
+    not even register it on `conn.auth_code_change` when a phone number is set.
+    wa-js's own linkDeviceCodeLifecycle reuses the active code for repeat calls
+    and re-mints on its own timer, bounded — so the cooldown was removed rather
+    than carried over. A cooldown wrapped around a call that cannot happen is
+    text that reads like a guard.
+
+    v7's auth-probe fix has nothing to do with that loop and is ported
+    unchanged: `!null` is still `true`, and checkQrCode() still runs on every
+    auth-code rotation in QR mode, concurrently with waitForQrCodeScan().
+    """
+
+    def test_upstream_itself_no_longer_mints_from_here(self):
+        assert "loginByCode" not in MANAGED_ORIGINAL_CHECK_QR_CODE
+        assert "loginByCode" in ORIGINAL_CHECK_QR_CODE
+
+    def test_the_cooldown_went_with_the_loop_it_paced(self):
+        assert "linkCode" not in MANAGED_PATCHED_CHECK_QR_CODE
+        assert "reuseWindow" not in MANAGED_PATCHED_CHECK_QR_CODE
+        assert "loginByCode" not in MANAGED_PATCHED_CHECK_QR_CODE
+
+    def test_the_v7_auth_probe_fix_survives(self):
+        assert (
+            "await (0, auth_1.needsToScan)(this.page).catch(() => null)"
+            not in MANAGED_PATCHED_CHECK_QR_CODE
+        )
+        probe = MANAGED_PATCHED_CHECK_QR_CODE.index(
+            "needScan = await (0, auth_1.needsToScan)(this.page);"
+        )
+        catch = MANAGED_PATCHED_CHECK_QR_CODE.index("catch (error) {", probe)
+        bail = MANAGED_PATCHED_CHECK_QR_CODE.index("return;", catch)
+        assigns = MANAGED_PATCHED_CHECK_QR_CODE.index("this.isLogged = !needScan;")
+        assert catch < bail < assigns
+
+    def test_nothing_else_about_upstreams_method_changed(self):
+        """Everything past the probe head is upstream's own text, so a future
+        release that touches the QR branch shows up as a DID NOT MATCH rather
+        than as WinZapp quietly reverting it."""
+        tail = "        this.isLogged = !needScan;\n"
+        assert (
+            MANAGED_PATCHED_CHECK_QR_CODE[MANAGED_PATCHED_CHECK_QR_CODE.index(tail):]
+            == MANAGED_ORIGINAL_CHECK_QR_CODE[MANAGED_ORIGINAL_CHECK_QR_CODE.index(tail):]
+        )
+
+    def test_a_pristine_install_is_patched(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(host_layer)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        assert MANAGED_PATCHED_CHECK_QR_CODE in host_layer.read_text(encoding="utf-8")
+
+
+MANAGED_MAX_MINT_ATTEMPTS = int(
+    re.search(r"attempt >= (\d+)", MANAGED_PATCHED_LOGIN_BY_CODE).group(1)
+)
+# Both halves of the wall-clock budget come off the patch itself: one probe per
+# second, so the probe ceiling *is* the gate in seconds. Hardcoding either side
+# would let the patch move without the bound noticing.
+MANAGED_AUTH_GATE_SECONDS = int(
+    re.search(r"probe <= (\d+)", MANAGED_PATCHED_LOGIN_BY_CODE).group(1)
+)
+
+
+class TestManagedLoginByCodeIsTheWholePairingAttempt:
+    """2.3.2 calls loginByCode() exactly once, from afterPageScriptInjected(),
+    under a `.catch(error => this.log('error', error))`. Everything checkQrCode
+    used to do around that call has to live inside it now, or not at all."""
+
+    def test_upstream_awaits_bare(self):
+        assert "__winzappError" not in MANAGED_ORIGINAL_LOGIN_BY_CODE
+        assert "catchLinkCodeError" not in MANAGED_ORIGINAL_LOGIN_BY_CODE
+
+    def test_the_auth_state_gate_runs_before_the_mint(self):
+        """v6's finding, and 2.3.2 walked straight back into it: 2.3.1's
+        upstream reached this call only after getQrCode() had produced a
+        urlCode, and calling the link-device API before that makes WhatsApp Web
+        throw `Invariant Violation #56367`."""
+        gate = MANAGED_PATCHED_LOGIN_BY_CODE.index("ready = await this.getQrCode();")
+        mint = MANAGED_PATCHED_LOGIN_BY_CODE.index(
+            "await WPP.conn.startLinkDeviceCodeForPhoneNumber(phone);"
+        )
+        assert gate < mint
+
+    def test_an_already_registered_session_never_asks_for_a_code(self):
+        """A page reload inside a pairing attempt re-enters this method, and
+        wa-js refuses a code for a registered session. Polling for an auth code
+        that by definition will never come would burn the whole gate window and
+        then report a failure for a session that is fine."""
+        short_circuit = MANAGED_PATCHED_LOGIN_BY_CODE.index("if (needScan === false) {")
+        mint = MANAGED_PATCHED_LOGIN_BY_CODE.index(
+            "await WPP.conn.startLinkDeviceCodeForPhoneNumber(phone);"
+        )
+        assert short_circuit < mint
+
+    def test_the_gate_is_bounded_and_says_so_when_it_gives_up(self):
+        assert "probe <= 60" in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert "LinkCodeAuthStateTimeout" in MANAGED_PATCHED_LOGIN_BY_CODE
+
+    def test_the_error_capture_survives(self):
+        """The diagnostics v3/v4 were written for. Upstream's bare await lets a
+        refusal cross the CDP boundary as the minified "t: t"."""
+        assert "Object.getOwnPropertyNames(Object(error))" in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert "__winzappManagedApi" in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert "failure.winzappDetails" in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert (
+            "String(error?.message || error?.reason || error?.text || error)"
+            in MANAGED_PATCHED_LOGIN_BY_CODE
+        )
+
+    def test_a_failure_reaches_the_client_not_just_wppconnect_log(self):
+        assert "this.options.catchLinkCodeError?.({" in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert "rateLimited: rateLimited," in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert "attempt: attempt," in MANAGED_PATCHED_LOGIN_BY_CODE
+
+    def test_a_cdp_level_rejection_is_reported_too(self):
+        """evaluateAndReturn can reject on its own (a destroyed execution
+        context, a closed target) without the page-side catch ever running. v8
+        caught that around the call; here it has to be caught inside."""
+        outer_catch = MANAGED_PATCHED_LOGIN_BY_CODE.index("            catch (error) {\n")
+        report = MANAGED_PATCHED_LOGIN_BY_CODE.index("name: failed.name,")
+        assert outer_catch < report
+
+    def test_a_transient_failure_is_retried_because_nothing_else_will(self):
+        """v2..v8 got a retry for free — `conn.auth_code_change` re-entered
+        checkQrCode() every minute or so. Nothing re-enters this method, so a
+        single "Execution context was destroyed" would otherwise end pairing
+        for the session with nothing on screen."""
+        assert "attempt >= 2" in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert (
+            "const backoff = giveUp ? 0 : 20000 * Math.pow(2, attempt - 1);"
+            in MANAGED_PATCHED_LOGIN_BY_CODE
+        )
+
+    def test_the_whole_ladder_fits_inside_the_client_wait(self):
+        """The bound is connect.py's, not the browser's: _bg_pairing_flow()
+        waits 90 s for a phoneCode and then clears the token, registers the
+        session as abandoned and shows `no_pairing_code_received`. Nothing
+        closes that session — `autoClose`/`deviceSyncTimeout` are pinned to 0 —
+        so a ladder outliving the wait goes on minting real codes against the
+        user's number for a dialog that no longer exists. That is a smaller
+        version of the thing the v8 cooldown existed to prevent.
+
+        Worst case here: the auth-state gate spends its full 60 probes, then
+        attempt 1 fails and attempt 2 fires 20 s later — still inside the
+        window, so one hiccup still does not end pairing. A third attempt
+        would have landed at ~120 s and a fourth at ~200 s.
+        """
+        assert "await (0, sleep_1.sleep)(1000);" in MANAGED_PATCHED_LOGIN_BY_CODE
+        backoffs = [20 * 2 ** (n - 1) for n in range(1, MANAGED_MAX_MINT_ATTEMPTS)]
+        assert MANAGED_AUTH_GATE_SECONDS + sum(backoffs) <= 90
+
+    def test_a_rate_limited_answer_stops_instead_of_backing_off(self):
+        """v8 answered a 429 with a 15-minute backoff because it could not
+        stop the loop it was in. Here there is no loop to slow down, only one
+        to not start — and the quota is per phone number and outlives the
+        process, so retrying at all is what keeps it alive."""
+        assert "const giveUp = rateLimited || attempt >= 2" in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert "900000" not in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert "/rate-overlimit|RateOverlimit/i.test(" in MANAGED_PATCHED_LOGIN_BY_CODE
+
+    def test_a_pristine_install_is_patched(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(host_layer)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        content = host_layer.read_text(encoding="utf-8")
+        assert MANAGED_PATCHED_LOGIN_BY_CODE in content
+        assert MANAGED_ORIGINAL_LOGIN_BY_CODE not in content
+
+
+class TestManagedOnLinkCodeAnnouncesEachCodeOnce:
+    """The code now arrives twice by design — `conn.link_code_change` routes it
+    to onLinkCode(), and startLinkDeviceCodeForPhoneNumber() also resolves with
+    it, which loginByCode() hands to the same method.
+
+    Neither route is redundant. The event is the only one that carries a later
+    re-mint; the returned value is the only one that survives
+    `WPP.on('conn.link_code_change', window.onLinkCode)` being registered
+    before page.exposeFunction('onLinkCode', ...) has resolved — a race
+    upstream loses by never producing a code at all.
+    """
+
+    def test_the_second_delivery_of_the_same_code_is_dropped(self):
+        assert "if (!code || this.lastLinkCode === code) {" in MANAGED_PATCHED_ON_LINK_CODE
+        guard = MANAGED_PATCHED_ON_LINK_CODE.index("this.lastLinkCode === code")
+        emit = MANAGED_PATCHED_ON_LINK_CODE.index("this.catchLinkCode?.(code);")
+        assert guard < emit
+
+    def test_a_genuinely_new_code_still_gets_through(self):
+        assert "this.lastLinkCode = code;" in MANAGED_PATCHED_ON_LINK_CODE
+
+    def test_login_by_code_delivers_through_the_same_door(self):
+        assert "this.onLinkCode(outcome?.code);" in MANAGED_PATCHED_LOGIN_BY_CODE
+        assert "this.catchLinkCode" not in MANAGED_PATCHED_LOGIN_BY_CODE
+
+    def test_upstream_had_no_guard_at_all(self):
+        assert "lastLinkCode" not in MANAGED_ORIGINAL_ON_LINK_CODE
+
+    def test_a_re_entered_login_by_code_starts_from_a_clean_slate(self):
+        """The dedup is per invocation, not per session, and only clearing it
+        here makes that true. `page.on('load')` -> afterPageLoad() ->
+        afterPageScriptInjected() -> loginByCode() re-runs on every WhatsApp
+        Web reload, on the same HostLayer, while wa-js's state inside the page
+        is reset. If the post-reload mint answered with the code already on
+        screen, a surviving lastLinkCode would drop both deliveries of it —
+        catchLinkCode never fires, no phoneCode reaches Python, and
+        connect.py's 90 s wait ends in "no pairing code received" for a session
+        that had a perfectly good code.
+
+        Defensive: WhatsApp re-issuing an identical code was not reproduced.
+        The fix is one line and matches what the expiry hook already does.
+        """
+        assert MANAGED_PATCHED_LOGIN_BY_CODE.index("this.lastLinkCode = null;") < (
+            MANAGED_PATCHED_LOGIN_BY_CODE.index("let ready = null;")
+        )
+
+
+class TestManagedLinkCodeHooksReachTheClient:
+    """From the first code onwards, every further failure and the end of the
+    stream arrive through `conn.link_code_expired`/`conn.link_code_error` and
+    nowhere else — loginByCode() has long since returned. Upstream writes both
+    to wppconnect.log, which is the one place a blind user pairing cannot look.
+    """
+
+    def test_upstream_only_logs_them(self):
+        assert "catchLinkCodeError" not in MANAGED_ORIGINAL_LINK_CODE_HOOKS
+
+    def test_an_expired_code_is_reported(self):
+        expiry = MANAGED_PATCHED_LINK_CODE_HOOKS[
+            MANAGED_PATCHED_LINK_CODE_HOOKS.index("'onLinkCodeExpired'"):
+            MANAGED_PATCHED_LINK_CODE_HOOKS.index("'onLinkCodeError'")
+        ]
+        assert "name: 'LinkCodeExpired'," in expiry
+        assert "this.lastLinkCode = null;" in expiry
+
+    def test_a_refresh_failure_is_reported(self):
+        """This is the only route a rate-limit hit on a *refresh* has: the
+        mint happens inside wa-js, and its rejection never reaches Node's own
+        promise chain."""
+        assert (
+            "name: hadCode ? 'LinkCodeRefreshFailed' : 'LinkCodeError',"
+            in MANAGED_PATCHED_LINK_CODE_HOOKS
+        )
+
+    def test_a_refresh_failure_is_named_apart_from_a_first_mint(self):
+        """`conn.link_code_error` carries two very different situations.
+
+        After a code has been delivered it is terminal: wa-js clears its 195 s
+        timer before minting and re-arms it only from a successful mint, so the
+        code on screen is dead and nothing will replace it — the Python end has
+        to say so. Before the first code it is just the initial mint failing,
+        which loginByCode()'s own ladder retries and connect.py's 90 s wait
+        reports; announcing "your code expired" there, over a dialog with no
+        code on it, would be noise. `lastLinkCode` is the only thing that tells
+        them apart, and only this side has it."""
+        hook = MANAGED_PATCHED_LINK_CODE_HOOKS[
+            MANAGED_PATCHED_LINK_CODE_HOOKS.index("'onLinkCodeError'"):
+        ]
+        assert "const hadCode = this.lastLinkCode != null;" in hook
+        # Read before it is cleared, or every failure looks like a first mint.
+        assert hook.index("const hadCode") < hook.index("this.lastLinkCode = null;")
+
+    def test_the_error_hook_clears_the_last_code_too(self):
+        """Same reason as the expiry hook's own line: the code is gone from
+        wa-js either way, so if WhatsApp Web does push
+        `refresh_alt_linking_code` and the mint behind it answers with the same
+        code, a surviving value would have onLinkCode's dedup swallow the one
+        delivery that would have recovered the attempt."""
+        hook = MANAGED_PATCHED_LINK_CODE_HOOKS[
+            MANAGED_PATCHED_LINK_CODE_HOOKS.index("'onLinkCodeError'"):
+        ]
+        assert "this.lastLinkCode = null;" in hook
+
+    def test_the_upstream_logging_is_kept_as_well(self):
+        assert (
+            "Login by code expired; call refreshLinkCode() to retry"
+            in MANAGED_PATCHED_LINK_CODE_HOOKS
+        )
+        assert (
+            "Login by code failed: ${failed.name || 'Error'}: ${message}"
+            in MANAGED_PATCHED_LINK_CODE_HOOKS
+        )
+
+    def test_the_hooks_are_patched_by_both_entry_points(self, tmp_path):
+        from ui.dialogs.api_setup import ApiSetupDialog
+        setup_api = _load_setup_api()
+
+        outputs = []
+        for name in ("setup_api", "api_setup"):
+            api_dir = tmp_path / name
+            layers = api_dir / "node_modules" / "@wppconnect-team" / "wppconnect" / "dist" / "api" / "layers"
+            layers.mkdir(parents=True)
+            host_layer = layers / "host.layer.js"
+            _write_managed(host_layer)
+
+            if name == "setup_api":
+                assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+            else:
+                assert ApiSetupDialog._patch_wppconnect_host_layer(
+                    str(api_dir / "node_modules" / "@wppconnect-team" / "wppconnect" / "dist" / "api")
+                ) is True
+            outputs.append(host_layer.read_text(encoding="utf-8"))
+
+        assert MANAGED_PATCHED_LINK_CODE_HOOKS in outputs[0]
+        assert MANAGED_PATCHED_LINK_CODE_LISTENER in outputs[0]
+        assert outputs[0] == outputs[1]
+
+
+class TestAQuotaRefusalOnARefreshIsNamedAsOne:
+    """"Cancel and try again" and "wait a few minutes" are opposite
+    instructions, and the first one is what spends the quota that produced the
+    refusal — so the Python end needs to know which ending this was. It cannot
+    work it out from what upstream forwards: wa-js emits `conn.link_code_error`
+    through `e instanceof Error ? e : new Error(String(e))` and upstream passes
+    only `error.message` to Node, while WhatsApp's own answer lives in the
+    error's own properties.
+    """
+
+    def test_upstream_forwards_only_the_message(self):
+        assert (
+            "window.onLinkCodeError(error.message)"
+            in MANAGED_ORIGINAL_LINK_CODE_LISTENER
+        )
+
+    def test_the_listener_serialises_the_error_inside_the_page(self):
+        """page.exposeFunction() serialises its arguments and an Error
+        serialises to `{}`, so the walk has to happen page-side — the same walk
+        loginByCode()'s own catch does, down to the guards."""
+        assert (
+            "Object.getOwnPropertyNames(Object(error))"
+            in MANAGED_PATCHED_LINK_CODE_LISTENER
+        )
+        assert "'[unserializable]'" in MANAGED_PATCHED_LINK_CODE_LISTENER
+        assert "details: details," in MANAGED_PATCHED_LINK_CODE_LISTENER
+        assert (
+            "name: String(error?.name || 'Error'),"
+            in MANAGED_PATCHED_LINK_CODE_LISTENER
+        )
+
+    def test_the_hook_classifies_it_the_way_login_by_code_does(self):
+        """One shape reaching phone_code_error_is_rate_limit() from both mint
+        paths, rather than a second rule for the refresh half."""
+        hook = MANAGED_PATCHED_LINK_CODE_HOOKS[
+            MANAGED_PATCHED_LINK_CODE_HOOKS.index("'onLinkCodeError'"):
+        ]
+        assert "/rate-overlimit|RateOverlimit/i.test(" in hook
+        assert "rateLimited: rateLimited," in hook
+        assert "details: failed.details || {}," in hook
+        # Same regex as the first-mint path, not a second dialect of it.
+        assert "/rate-overlimit|RateOverlimit/i.test(" in MANAGED_PATCHED_LOGIN_BY_CODE
+
+    def test_a_plain_string_is_still_accepted(self):
+        """The hook and the listener are matched and replaced independently, so
+        an install where only the hook took must degrade to a message-only
+        report rather than to a report with no message in it at all."""
+        hook = MANAGED_PATCHED_LINK_CODE_HOOKS[
+            MANAGED_PATCHED_LINK_CODE_HOOKS.index("'onLinkCodeError'"):
+        ]
+        assert (
+            "const failed = (report && typeof report === 'object') ? report : "
+            "{ message: String(report || '') };" in hook
+        )
+
+    def test_re_running_the_patcher_changes_nothing(self, fake_wppconnect_dist):
+        """Both call sites run on every launch against whatever node_modules
+        holds."""
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(host_layer)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        once = host_layer.read_text(encoding="utf-8")
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        assert host_layer.read_text(encoding="utf-8") == once
+
+
+class TestAHalfPatched232InstallIsCompleted:
+    """The state a real machine is already in. Before the runtime was pinned,
+    upstream's own ^2.2.7 resolved to 2.3.2, and the patcher applied the two
+    methods that DID still match — getQrCode() and waitForQrCodeScan() — while
+    checkQrCode() and loginByCode() were skipped with a warning.
+
+    So this is not a hypothetical fixture: it is what the previous release left
+    behind on every install that reinstalled the API after 2.3.2 shipped.
+    """
+
+    def test_the_two_skipped_methods_are_finished_off(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(
+            host_layer,
+            getqrcode_text=PATCHED_GET_QR_CODE,
+            waitforscan_text=PATCHED_WAIT_FOR_QR_CODE_SCAN,
+        )
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        content = host_layer.read_text(encoding="utf-8")
+        assert MANAGED_PATCHED_CHECK_QR_CODE in content
+        assert MANAGED_PATCHED_LOGIN_BY_CODE in content
+        assert PATCHED_GET_QR_CODE in content
+        assert PATCHED_WAIT_FOR_QR_CODE_SCAN in content
+
+    def test_the_shared_methods_are_patched_the_same_on_both_runtimes(
+        self, fake_wppconnect_dist
+    ):
+        """getQrCode() and waitForQrCodeScan() are byte-identical in 2.3.1 and
+        2.3.2, so they belong to neither branch and are applied once for
+        both."""
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(host_layer)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_GET_QR_CODE in content
+        assert PATCHED_WAIT_FOR_QR_CODE_SCAN in content
+
+    def test_reapplying_changes_nothing(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(host_layer)
+
+        setup_api._patch_wppconnect_host_layer(str(api_dir))
+        first_pass = host_layer.read_text(encoding="utf-8")
+        ok = setup_api._patch_wppconnect_host_layer(str(api_dir))
+
+        assert ok is True
+        assert host_layer.read_text(encoding="utf-8") == first_pass

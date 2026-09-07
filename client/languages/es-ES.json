@@ -12,6 +12,7 @@
     "pairing_code_label": "Código de emparejamiento:",
     "connecting": "Conectando...",
     "qrcode_updated": "El código de emparejamiento se ha actualizado.",
+    "pairing_code_expired": "El código de emparejamiento ha caducado y ya no se actualizará. Cancela e inténtalo de nuevo para recibir un código nuevo.",
     "qrcode_image_updated": "El código QR se ha actualizado.",
     "qrcode_instructions": "Apunta tu teléfono al código QR que se muestra en el lado derecho de la pantalla.",
     "connect_with_phone": "Conectar con número de &teléfono",

@@ -31,6 +31,7 @@ import { promisify } from 'util';
 import config from '../config';
 import { convert } from '../mapper/index';
 import { ServerOptions } from '../types/ServerOptions';
+import { WhatsAppServer } from '../types/WhatsAppServer';
 import { bucketAlreadyExists } from './bucketAlreadyExists';
 
 let mime: any, crypto: any; //, aws: any;
@@ -398,4 +399,40 @@ export const unlinkAsync = promisify(fs.unlink);
 export function createCatalogLink(session: any) {
   const [wid] = session.split('@');
   return `https://wa.me/c/${wid}`;
+}
+
+/**
+ * `client.isConnected()`, given at most `budgetMs` to answer. Resolves to
+ * undefined when the budget runs out first.
+ *
+ * wppconnect 2.3.2 made isConnected() await waitForPageLoad(), which sits on
+ * puppeteer's default 30s waiting for WPP.isReady — so on a WhatsApp Web
+ * reload this call stops being the cheap probe both of its callers were
+ * written around, and each of them has its own deadline it must answer
+ * within. Neither can wait 30s for it.
+ *
+ * The losing probe is left to settle on its own with a rejection handler
+ * already attached: an isConnected() that throws after the race was decided
+ * would otherwise be an unhandled rejection, and Node exits the process on
+ * those.
+ */
+export async function probeIsConnected(
+  client: WhatsAppServer,
+  budgetMs: number
+): Promise<boolean | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const probe = Promise.resolve(client.isConnected());
+  probe.catch(() => undefined);
+  try {
+    return await Promise.race<boolean | undefined>([
+      probe,
+      new Promise<undefined>((resolve) => {
+        timer = setTimeout(() => resolve(undefined), Math.max(0, budgetMs));
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }

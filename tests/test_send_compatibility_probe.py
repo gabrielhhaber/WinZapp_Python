@@ -98,6 +98,7 @@ class _Stub:
         self.token = "tok"
         self.i18n = _I18n()
         self.spoken = []
+        self._send_capabilities_checked = True
 
     def output(self, text, *args, **kwargs):
         self.spoken.append((text, args, kwargs))
@@ -142,6 +143,73 @@ class TestAnUnavailableProbeSaysNothing:
         stub._check_send_capabilities()
 
         assert stub.spoken == []
+
+
+class TestAnUnansweredProbeIsAskedAgain:
+    """The probe used to get one attempt per process, tied to the same latch as
+    the connected sound. On wppconnect 2.3.2 that attempt can be spent on
+    nothing: CONNECTED is promoted by the state listener even when
+    isConnected() never succeeded, and the route is fronted by a
+    statusConnection probe waiting on the same reloading page — so the one shot
+    times out, "unavailable" goes to the log, and the incompatibility warning
+    is silenced for the session that most needed it.
+    """
+
+    def test_an_answer_without_a_verdict_re_arms_the_probe(
+        self, stub, monkeypatch
+    ):
+        _answer(monkeypatch, 404, {"response": None, "status": "Disconnected"})
+
+        stub._check_send_capabilities()
+
+        assert stub._send_capabilities_checked is False
+
+    def test_a_request_that_failed_outright_re_arms_the_probe(
+        self, stub, monkeypatch
+    ):
+        def _boom(*args, **kwargs):
+            raise OSError("timed out")
+
+        monkeypatch.setattr(main, "api_get", _boom)
+
+        stub._check_send_capabilities()
+
+        assert stub._send_capabilities_checked is False
+
+    def test_a_real_verdict_does_not_re_arm_it(self, stub, monkeypatch):
+        """Compatible or not, the runtime answered — asking again on every
+        reconnection would be a request per connection drop for no new
+        information."""
+        _answer(monkeypatch, 200, {"response": {"compatible": True, "missing": []}})
+
+        stub._check_send_capabilities()
+
+        assert stub._send_capabilities_checked is True
+
+    def test_an_incompatible_verdict_does_not_re_arm_it_either(
+        self, stub, monkeypatch
+    ):
+        _answer(monkeypatch, 409, {"response": {"compatible": False}})
+
+        stub._check_send_capabilities()
+
+        assert stub._send_capabilities_checked is True
+
+    def test_a_retry_after_an_unavailable_answer_still_only_speaks_once(
+        self, stub, monkeypatch
+    ):
+        """Re-arming must not turn into repeating: _send_capabilities_warning
+        is what keeps a screen reader from hearing the same verdict on every
+        reconnection."""
+        _answer(monkeypatch, 404, {"response": None, "status": "Disconnected"})
+        stub._check_send_capabilities()
+
+        _answer(monkeypatch, 409, {"response": {"compatible": False}})
+        stub._check_send_capabilities()
+        stub._send_capabilities_checked = False
+        stub._check_send_capabilities()
+
+        assert len(stub.spoken) == 1
 
 
 class TestOnlyARealVerdictIsAnnounced:
@@ -197,6 +265,10 @@ def test_the_probe_runs_from_the_first_confirmed_connection():
     pin = pin[: pin.index("\n    def _check_send_capabilities(")]
     assert "_check_send_capabilities" not in pin
 
-    connect = source[source.index("            first_ever_connect = not self._wa_connect_announced") :]
+    connect = source[
+        source.index('logging.info("[connection] WhatsApp connection is up') :
+    ]
     connect = connect[: connect.index("self.connected_sound.play()")]
     assert "self._check_send_capabilities" in connect
+    # Its own latch, not the one that also gates the connected sound.
+    assert "if not self._send_capabilities_checked:" in connect

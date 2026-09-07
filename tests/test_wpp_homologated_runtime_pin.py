@@ -107,12 +107,15 @@ def test_the_patched_set_stays_narrow():
 def test_the_installed_runtime_is_the_one_that_was_pinned():
     """The pin only means something if a real install actually lands on it.
 
-    This machine ran @wppconnect-team/wppconnect 2.3.2 for a while, resolved
-    from upstream's own ^2.2.7 because nothing pinned the key yet — and 2.3.2
-    rewrote host.layer.js's checkQrCode()/loginByCode(), so the pairing-code
-    rotation cooldown (the patch that exists because a code stream nobody is
-    watching earned a real account ban) silently stopped applying. Nothing
-    failed; setup_api.py printed two warnings among forty lines of output.
+    This machine ran @wppconnect-team/wppconnect 2.3.2 for a while *before it
+    was homologated*, resolved from upstream's own ^2.2.7 because nothing
+    pinned the key yet — and 2.3.2 rewrote host.layer.js's
+    checkQrCode()/loginByCode(), so the pairing-code patches (the ones that
+    exist because a code stream nobody is watching earned a real account ban)
+    silently stopped applying. Nothing failed; setup_api.py printed two
+    warnings among forty lines of output. 2.3.2 is the pin now, but only after
+    those patches were ported to the shape it ships — which is exactly the
+    order this test exists to enforce.
     """
     live = ROOT / "client" / "api" / "node_modules" / "@wppconnect-team" / "wppconnect" / "package.json"
     if not live.exists():

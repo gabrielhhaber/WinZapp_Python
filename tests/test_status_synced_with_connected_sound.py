@@ -62,6 +62,7 @@ class _Stub:
         self._wa_connected = False
         self._auto_offline = False
         self._wa_connect_announced = False
+        self._send_capabilities_checked = False
         self._wa_offline_strikes = 0
         self._dead_browser_strikes = 0
         self._auto_repair_dialog_shown = False

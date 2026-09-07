@@ -85,6 +85,7 @@ class _Stub:
         self._wa_connected = True
         self._wa_offline_strikes = 0
         self._wa_connect_announced = True
+        self._send_capabilities_checked = True
         self._auto_offline = False
         self._user_offline = False
         self.offline_mode = False

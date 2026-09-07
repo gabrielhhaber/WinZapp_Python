@@ -56,6 +56,59 @@ History:
   worth keeping in mind the next time a patch here "simplifies" an upstream
   ordering: the ordering may be the guard.
 
+* v9 — wppconnect 2.3.2 restructured the pairing flow, so there are now TWO
+  patch sets in this module and patch_host_layer_source() picks between them
+  by reading the file (MANAGED_LINK_MARKER). Everything above stays exactly
+  as it shipped, for the installs whose node_modules is still on 2.3.1:
+  _apply_node_modules_patches() runs on every launch against whatever is on
+  disk, so a WinZapp update alone never moves node_modules, and applying the
+  2.3.2 text to a 2.3.1 file would strip the only call site that runtime has
+  for loginByCode() — pairing by code, dead, silently. The two sets are told
+  apart by matching, not by trusting a version string nothing here can see.
+
+  What 2.3.2 changed, and what survives of v8 because of it:
+
+  * checkQrCode() no longer forwards to loginByCode() at all, and is not even
+    registered on `conn.auth_code_change` when a phoneNumber is set —
+    afterPageScriptInjected() branches, subscribing the link-code events and
+    calling loginByCode() exactly once. The mint loop v2..v8 paced with a
+    reuse cooldown therefore does not exist any more, and neither does the
+    unattended stream it produced: wa-js's own linkDeviceCodeLifecycle now
+    reuses the active code for repeat calls and re-mints on a 195s timer,
+    bounded at 5 refreshes. So the cooldown is REMOVED rather than ported —
+    there is no longer anything for it to pace, and a cooldown wrapped around
+    a call that no longer happens is just text that reads like a guard.
+    v7's auth-probe fix is not about the mint loop and is ported unchanged:
+    `!null` is still `true`, and checkQrCode() still runs on every auth-code
+    rotation in QR mode.
+
+  * loginByCode() lost the gate that made it safe. 2.3.1's upstream called it
+    only after getQrCode() had returned a urlCode; 2.3.2 calls it straight
+    after injection, which is the exact condition v6 measured as `Invariant
+    Violation #56367` (see V6_CHECK_QR_CODE's comment — the auth state has to
+    exist first). Worse, nothing re-invokes it: upstream's single call is
+    `.catch(error => this.log('error', error))`, so one failure ends pairing
+    for that session with a line in wppconnect.log and nothing on screen. The
+    gate, the error extraction and the catchLinkCodeError reporting therefore
+    all move INTO loginByCode(), which also grows the bounded retry v8 used
+    to get for free from the auth-code rotation.
+
+  * the code itself now arrives at onLinkCode(), fired from
+    `conn.link_code_change`, and loginByCode()'s own resolved value is a
+    second copy of the same code — hence the dedup in onLinkCode(), which is
+    what lets both routes stay live without announcing the code twice.
+
+  * every failure after the first mint arrives at onLinkCodeError(), and
+    upstream hands that hook `error.message` and nothing else. wa-js emits
+    `conn.link_code_error` through
+    `e instanceof Error ? e : new Error(String(e))`, so WhatsApp's own answer
+    — the `IQErrorRateOverlimit` / `rate-overlimit` that decides whether the
+    user is told to retry or to wait — lives in the error's *own properties*,
+    never in `.message`. The page-side listener therefore serialises the error
+    the same way loginByCode()'s catch already does, and the hook classifies
+    it into the same `rateLimited` + `details` envelope. See
+    MANAGED_PATCHED_LINK_CODE_LISTENER.
+
 """
 
 ORIGINAL_CHECK_QR_CODE = (
@@ -1031,9 +1084,580 @@ PATCHED_LOGIN_BY_CODE = (
 )
 
 
+# ---------------------------------------------------------------------------
+# wppconnect >= 2.3.2 — the managed link-device flow.
+#
+# Everything above this line targets the 2.3.1-and-older file, where
+# checkQrCode() owned the whole pairing-code lifecycle. Everything below
+# targets the file 2.3.2 ships, where wa-js owns it. See the v9 entry in the
+# module docstring for what that moved and why the cooldown did not come with
+# it.
+# ---------------------------------------------------------------------------
+
+
+#: How patch_host_layer_source() tells the two runtimes apart. refreshLinkCode()
+#: is new in 2.3.2, and it is deliberately a method NO patch here rewrites — a
+#: marker that one of the patches also edits would stop identifying the file the
+#: moment that patch applied. A future release that removes it again falls back
+#: to the legacy set, where nothing matches, and says so loudly: the failure
+#: mode is a warning nobody can miss, never a 2.3.2 patch written into a 2.3.1
+#: file.
+MANAGED_LINK_MARKER = "    async refreshLinkCode() {\n"
+
+
+MANAGED_ORIGINAL_CHECK_QR_CODE = (
+    "    async checkQrCode() {\n"
+    "        const needScan = await (0, auth_1.needsToScan)(this.page).catch(() => null);\n"
+    "        this.isLogged = !needScan;\n"
+    "        if (!needScan) {\n"
+    "            this.attempt = 0;\n"
+    "            return;\n"
+    "        }\n"
+    "        const result = await this.getQrCode();\n"
+    "        if (!result?.urlCode || this.urlCode === result.urlCode) {\n"
+    "            return;\n"
+    "        }\n"
+    "        this.urlCode = result.urlCode;\n"
+    "        this.attempt++;\n"
+    "        let qr = '';\n"
+    "        if (this.options.logQR || this.catchQR) {\n"
+    "            qr = await (0, auth_1.asciiQr)(this.urlCode);\n"
+    "        }\n"
+    "        if (this.options.logQR) {\n"
+    "            this.log('info', `Waiting for QRCode Scan (Attempt ${this.attempt})...:\\n${qr}`, { code: this.urlCode });\n"
+    "        }\n"
+    "        else {\n"
+    "            this.log('verbose', `Waiting for QRCode Scan: Attempt ${this.attempt}`);\n"
+    "        }\n"
+    "        this.catchQR?.(result.base64Image, qr, this.attempt, result.urlCode);\n"
+    "    }\n"
+)
+
+
+# The v7 head, and nothing else. On this runtime checkQrCode() is the QR-mode
+# path only — it is registered on `conn.auth_code_change` just as before, so it
+# still runs concurrently with waitForQrCodeScan() and can still hand that loop
+# a `!null` "the user is logged in" out of a probe that could not answer.
+MANAGED_PATCHED_CHECK_QR_CODE = (
+    "    async checkQrCode() {\n"
+    "        let needScan;\n"
+    "        try {\n"
+    "            needScan = await (0, auth_1.needsToScan)(this.page);\n"
+    "        }\n"
+    "        catch (error) {\n"
+    "            this.log('verbose', `Auth probe failed inside checkQrCode - leaving isLogged untouched: ${error?.name || 'Error'}: ${error?.message || error}`);\n"
+    "            return;\n"
+    "        }\n"
+    "        this.isLogged = !needScan;\n"
+    "        if (!needScan) {\n"
+    "            this.attempt = 0;\n"
+    "            return;\n"
+    "        }\n"
+    "        const result = await this.getQrCode();\n"
+    "        if (!result?.urlCode || this.urlCode === result.urlCode) {\n"
+    "            return;\n"
+    "        }\n"
+    "        this.urlCode = result.urlCode;\n"
+    "        this.attempt++;\n"
+    "        let qr = '';\n"
+    "        if (this.options.logQR || this.catchQR) {\n"
+    "            qr = await (0, auth_1.asciiQr)(this.urlCode);\n"
+    "        }\n"
+    "        if (this.options.logQR) {\n"
+    "            this.log('info', `Waiting for QRCode Scan (Attempt ${this.attempt})...:\\n${qr}`, { code: this.urlCode });\n"
+    "        }\n"
+    "        else {\n"
+    "            this.log('verbose', `Waiting for QRCode Scan: Attempt ${this.attempt}`);\n"
+    "        }\n"
+    "        this.catchQR?.(result.base64Image, qr, this.attempt, result.urlCode);\n"
+    "    }\n"
+)
+
+
+MANAGED_ORIGINAL_LOGIN_BY_CODE = (
+    "    async loginByCode(phone) {\n"
+    "        await (0, helpers_1.evaluateAndReturn)(this.page, async ({ phone }) => {\n"
+    "            await WPP.conn.startLinkDeviceCodeForPhoneNumber(phone);\n"
+    "        }, { phone });\n"
+    "    }\n"
+)
+
+
+# loginByCode() is now the whole pairing attempt, because upstream calls it once
+# and never again. Three things ride on that, each of which was a shipped bug on
+# the previous runtime:
+#
+#   * the auth-state gate v6 restored. 2.3.1's upstream reached this call only
+#     after getQrCode() produced a urlCode; 2.3.2 calls it as soon as wapi.js is
+#     injected, which is precisely the window where wa-js walks setADVSecretKey
+#     -> allUserPrefsIdb -> getUserPrefsTable into an uninitialised table and
+#     WhatsApp Web throws `Invariant Violation #56367`. The probe is the same
+#     one v6 used and measured as side-effect-free.
+#
+#     `needScan === false` short-circuits it: WinZapp only sends `phone` on a
+#     real pairing attempt, but a page reload inside one re-enters here, and
+#     wa-js refuses a code for an already-registered session
+#     ("cannot_get_code_for_already_authenticated"). Polling for an auth code
+#     that by definition will never come would burn the whole gate window and
+#     then report a failure for a session that is fine.
+#
+#     60 probes is a ceiling for a second reason, and it is the easy one to
+#     miss: afterPageScriptInjected() *awaits* this method, and
+#     ListenerLayer.afterPageScriptInjected() registers
+#     `WPP.on('chat.new_message', ...)` / waitNewAcknowledgements only after
+#     `await super.afterPageScriptInjected()` returns. Every second spent here
+#     is a second the page-side message listeners do not exist. The happy path
+#     never pays it — a registered session short-circuits on the first probe
+#     just above, and a session actually pairing has no messages to miss — but
+#     a probe that kept failing on a live session reloading with
+#     options.phoneNumber still set would hold those listeners off for the
+#     whole window. 60s is the largest slice of connect.py's 90s wait that
+#     still leaves room for the second mint attempt below; it is a ceiling to
+#     stay under, not a budget to spend. Same reasoning createSessionUtil.ts's
+#     own bounded isConnected() loop spells out for what is registered behind
+#     it.
+#
+#   * the error detail. Upstream awaits bare, so a refusal crosses the CDP
+#     boundary as the minified "t: t" and lands in wppconnect.log — the exact
+#     state v3/v4 were written to end. The __winzappError envelope carries
+#     WhatsApp's own error properties back out of the page as plain data, and
+#     catchLinkCodeError puts them in front of the person pairing.
+#
+#   * a bounded retry. v2..v8 got one for free: `conn.auth_code_change` re-entered
+#     checkQrCode() every ~minute, so a transient failure fixed itself. Nothing
+#     re-enters this method, so a single "Execution context was destroyed" would
+#     otherwise end pairing for the session with nothing on screen. One retry,
+#     20s later — and a rate-limited answer gives up immediately instead of
+#     backing off, because the quota is per phone number and lives on
+#     WhatsApp's side: retrying a 429 is what keeps it alive, and here there is
+#     no loop to slow down, only one to not start.
+#
+#     Two attempts, not four, and the ceiling is the *client's* patience rather
+#     than anything on this side: connect.py waits 90s for a phoneCode and then
+#     abandons the session. The gate above can spend 60s of that on its own, so
+#     20s/40s/80s put attempts 3 and 4 at ~120s and ~200s — after the dialog is
+#     gone, the token cleared and `no_pairing_code_received` already shown.
+#     _belongs_to_this_session() drops whatever code they produce, so nothing
+#     breaks visibly; they just spend real quota on the user's number for a
+#     dialog nobody is looking at, which is a smaller version of the thing the
+#     v8 cooldown existed to prevent. 60s + 20s still lands attempt 2 inside
+#     the window, so a single hiccup still does not end pairing.
+#
+#   * `this.lastLinkCode = null` on entry. onLinkCode's dedup below is meant to
+#     cover the event and the return value of *this* call — per invocation, not
+#     per session — and clearing it here is what makes that true. `page.on
+#     ('load')` -> afterPageLoad() -> afterPageScriptInjected() re-enters this
+#     method on every WhatsApp Web reload, on the same HostLayer, while wa-js's
+#     own state inside the page is reset. If the post-reload mint answered with
+#     the code still on screen, a surviving value would drop both deliveries of
+#     it: catchLinkCode never fires, no phoneCode reaches Python, and
+#     connect.py's 90s wait ends in "no pairing code received" for a session
+#     that had a perfectly good code. Defensive — WhatsApp re-issuing an
+#     identical code was not reproduced.
+MANAGED_PATCHED_LOGIN_BY_CODE = (
+    "    async loginByCode(phone) {\n"
+    "        this.lastLinkCode = null;\n"
+    "        let ready = null;\n"
+    "        for (let probe = 1; probe <= 60 && !ready; probe++) {\n"
+    "            if (this.page.isClosed()) {\n"
+    "                return;\n"
+    "            }\n"
+    "            const needScan = await (0, auth_1.needsToScan)(this.page).catch(() => null);\n"
+    "            if (needScan === false) {\n"
+    "                this.log('verbose', 'Already registered — no pairing code needed.');\n"
+    "                return;\n"
+    "            }\n"
+    "            ready = await this.getQrCode();\n"
+    "            if (!ready?.urlCode) {\n"
+    "                ready = null;\n"
+    "                await (0, sleep_1.sleep)(1000);\n"
+    "            }\n"
+    "        }\n"
+    "        if (!ready) {\n"
+    "            const timeout = new Error('WhatsApp Web never produced an auth state to link against.');\n"
+    "            timeout.name = 'LinkCodeAuthStateTimeout';\n"
+    "            this.log('error', `Could not generate the pairing code: ${timeout.name}: ${timeout.message}`);\n"
+    "            this.options.catchLinkCodeError?.({\n"
+    "                name: timeout.name,\n"
+    "                message: timeout.message,\n"
+    "                session: this.session,\n"
+    "            });\n"
+    "            throw timeout;\n"
+    "        }\n"
+    "        for (let attempt = 1;; attempt++) {\n"
+    "            let outcome;\n"
+    "            try {\n"
+    "                outcome = await (0, helpers_1.evaluateAndReturn)(this.page, async ({ phone }) => {\n"
+    "                    try {\n"
+    "                        const value = await WPP.conn.startLinkDeviceCodeForPhoneNumber(phone);\n"
+    "                        return { code: value ? String(value) : '' };\n"
+    "                    }\n"
+    "                    catch (error) {\n"
+    "                        const details = {};\n"
+    "                        try {\n"
+    "                            for (const key of Object.getOwnPropertyNames(Object(error))) {\n"
+    "                                if (key === 'stack') { continue; }\n"
+    "                                const value = error[key];\n"
+    "                                const kind = typeof value;\n"
+    "                                if (value === null || kind === 'string' || kind === 'number' || kind === 'boolean') {\n"
+    "                                    details[key] = String(value);\n"
+    "                                }\n"
+    "                                else if (kind !== 'function') {\n"
+    "                                    try { details[key] = JSON.stringify(value); } catch (e) { details[key] = '[unserializable]'; }\n"
+    "                                }\n"
+    "                            }\n"
+    "                            details.__winzappManagedApi = String(typeof WPP.conn.startLinkDeviceCodeForPhoneNumber === 'function');\n"
+    "                        }\n"
+    "                        catch (e) { }\n"
+    "                        return {\n"
+    "                            __winzappError: {\n"
+    "                                name: String(error?.name || 'Error'),\n"
+    "                                message: String(error?.message || error?.reason || error?.text || error),\n"
+    "                                stack: String(error?.stack || ''),\n"
+    "                                details: details,\n"
+    "                            },\n"
+    "                        };\n"
+    "                    }\n"
+    "                }, { phone });\n"
+    "            }\n"
+    "            catch (error) {\n"
+    "                outcome = {\n"
+    "                    __winzappError: {\n"
+    "                        name: String(error?.name || 'Error'),\n"
+    "                        message: String(error?.message || error),\n"
+    "                        stack: String(error?.stack || ''),\n"
+    "                        details: {},\n"
+    "                    },\n"
+    "                };\n"
+    "            }\n"
+    "            if (!outcome?.__winzappError) {\n"
+    "                this.onLinkCode(outcome?.code);\n"
+    "                return;\n"
+    "            }\n"
+    "            const failed = outcome.__winzappError;\n"
+    "            let detail = '';\n"
+    "            try {\n"
+    "                detail = JSON.stringify(failed.details || {});\n"
+    "            }\n"
+    "            catch (e) {\n"
+    "                detail = '';\n"
+    "            }\n"
+    "            const rateLimited = /rate-overlimit|RateOverlimit/i.test(`${detail} ${failed.name} ${failed.message}`);\n"
+    "            const giveUp = rateLimited || attempt >= 2 || this.page.isClosed();\n"
+    "            const backoff = giveUp ? 0 : 20000 * Math.pow(2, attempt - 1);\n"
+    "            const retryInSeconds = Math.round(backoff / 1000);\n"
+    "            this.log('error', `Could not generate the pairing code (attempt ${attempt}${rateLimited ? ', rate-limited by WhatsApp' : ''}${giveUp ? ', giving up' : `, next retry in ${retryInSeconds}s`}): ${failed.name}: ${failed.message}`);\n"
+    "            this.options.catchLinkCodeError?.({\n"
+    "                name: failed.name,\n"
+    "                message: failed.message,\n"
+    "                session: this.session,\n"
+    "                attempt: attempt,\n"
+    "                retryInSeconds: retryInSeconds,\n"
+    "                rateLimited: rateLimited,\n"
+    "                stack: failed.stack,\n"
+    "                details: failed.details || {},\n"
+    "            });\n"
+    "            if (giveUp) {\n"
+    "                const failure = new Error(failed.message);\n"
+    "                failure.name = failed.name;\n"
+    "                if (failed.stack) {\n"
+    "                    failure.stack = failed.stack;\n"
+    "                }\n"
+    "                failure.winzappDetails = failed.details || {};\n"
+    "                throw failure;\n"
+    "            }\n"
+    "            await (0, sleep_1.sleep)(backoff);\n"
+    "        }\n"
+    "    }\n"
+)
+
+
+MANAGED_ORIGINAL_ON_LINK_CODE = (
+    "    onLinkCode(code) {\n"
+    "        if (this.options.logQR) {\n"
+    "            this.log('info', `Waiting for Login By Code (Code: ${code})\\n`);\n"
+    "        }\n"
+    "        else {\n"
+    "            this.log('verbose', `Waiting for Login By Code`);\n"
+    "        }\n"
+    "        this.catchLinkCode?.(code);\n"
+    "    }\n"
+)
+
+
+# The same code arrives twice, on purpose. wa-js emits `conn.link_code_change`
+# (which upstream routes here) AND resolves startLinkDeviceCodeForPhoneNumber
+# with the code, and loginByCode() above hands its own copy to this method
+# rather than to catchLinkCode directly. Neither route is redundant: the event
+# is the only one that carries a later re-mint, and the returned value is the
+# only one that survives `WPP.on('conn.link_code_change', window.onLinkCode)`
+# being registered before page.exposeFunction('onLinkCode', ...) has resolved —
+# a race upstream loses by never producing a code at all. Whichever lands first
+# wins; dedup by value keeps the pairing dialog from being rewritten, and the
+# code re-read aloud, for a code the user is already looking at.
+MANAGED_PATCHED_ON_LINK_CODE = (
+    "    onLinkCode(code) {\n"
+    "        if (!code || this.lastLinkCode === code) {\n"
+    "            return;\n"
+    "        }\n"
+    "        this.lastLinkCode = code;\n"
+    "        if (this.options.logQR) {\n"
+    "            this.log('info', `Waiting for Login By Code (Code: ${code})\\n`);\n"
+    "        }\n"
+    "        else {\n"
+    "            this.log('verbose', `Waiting for Login By Code`);\n"
+    "        }\n"
+    "        this.catchLinkCode?.(code);\n"
+    "    }\n"
+)
+
+
+MANAGED_ORIGINAL_LINK_CODE_HOOKS = (
+    "        await this.page.exposeFunction('onLinkCodeExpired', () => this.log('warn', 'Login by code expired; call refreshLinkCode() to retry'));\n"
+    "        await this.page.exposeFunction('onLinkCodeError', (message) => this.log('error', `Login by code failed: ${message}`));\n"
+)
+
+
+# wa-js re-mints the code on its own 195s timer and gives up after five
+# refreshes, so from the first code on, every further failure and the end of the
+# stream are reported through these two events and nowhere else — loginByCode()
+# has long since returned. Upstream writes both to wppconnect.log, which is the
+# one place a blind user pairing cannot look. Routed into catchLinkCodeError so
+# they reach the same phoneCodeError channel as a first-mint failure.
+#
+# Reaching that channel is not by itself reaching the user: `_phone_code_error`
+# is read only by connect.py's 90s wait, which has already returned by the time
+# either event can fire. So both are announced over the pairing dialog by
+# WebSocketClient._announce_pairing_code_expired(), and the name they are
+# announced under is decided here, because this is the only side that knows
+# whether a code was ever on screen.
+#
+# A refresh failure is the end of the stream, not a hiccup — read off wa-js's
+# own lifecycle rather than assumed. refreshLinkDeviceCode() clears the 195s
+# timer *before* minting, and the only thing that re-arms it is the success
+# continuation of the mint; so when the mint fails, wa-js is left with
+# `code = null`, no timer, and a rejection its own caller swallows with
+# `.catch(() => {})`. Nothing on wa-js's own side reschedules, and
+# `conn.link_code_expired` can no longer fire either — both of its emitters
+# need the timer still armed or a `force_manual_refresh` from WhatsApp Web.
+# The alternative-linking error has the same shape. Only WhatsApp Web can
+# restart it, by pushing `refresh_alt_linking_code`, which is not something to
+# leave a user waiting on. So the user is left holding a code wa-js has already
+# discarded, at t+195s instead of the ~19.5 minutes the expiry path takes: they
+# type it, WhatsApp refuses, they cancel and retry, and the retry mints a fresh
+# session and another six codes. It is the anti-abuse loop LinkCodeExpired was
+# surfaced to break, entered through a quieter door and sooner.
+#
+# `hadCode` is what keeps the *first* mint out of that. Its failure emits
+# `conn.link_code_error` too (startLinkDeviceCodeForPhoneNumber's own catch),
+# and that case is already covered — loginByCode()'s ladder retries it and
+# connect.py's 90s wait reports it — so announcing "your code expired" during
+# the initial wait, over a dialog with nothing on it to expire, would be pure
+# noise. `lastLinkCode` is the only signal that distinguishes the two, and
+# clearing it here is needed on its own account anyway, symmetrically with the
+# expiry hook: if WhatsApp Web does push `refresh_alt_linking_code` and the
+# mint that follows answers with the same code, a surviving value would drop
+# it at onLinkCode's dedup — the one delivery that would have recovered the
+# attempt.
+#
+# The report carries the quota verdict too. `name`/`message` alone cannot carry
+# it, and this hook is what decides between "cancel and try again" and "wait a
+# few minutes" on the Python side — opposite instructions, the first of which is precisely
+# what spends the quota that produced the refusal. wa-js hands this event an
+# error whose OWN properties hold WhatsApp's answer
+# ({"name":"IQErrorRateOverlimit","value":{"text":"rate-overlimit","code":429}})
+# while `.message` is whatever the minified class left there, so the page-side
+# listener serialises those properties (MANAGED_PATCHED_LINK_CODE_LISTENER) and
+# this hook classifies them exactly as loginByCode()'s own catch does — same
+# regex, same `rateLimited`/`details` fields, so phone_code_error_is_rate_limit()
+# reads one shape from both mint paths.
+#
+# The plain-string argument is still accepted, deliberately: the two blocks are
+# matched and replaced independently, so an install where only the hook took
+# must degrade to a message-only report rather than to no report at all.
+MANAGED_PATCHED_LINK_CODE_HOOKS = (
+    "        await this.page.exposeFunction('onLinkCodeExpired', () => {\n"
+    "            this.log('warn', 'Login by code expired; call refreshLinkCode() to retry');\n"
+    "            this.lastLinkCode = null;\n"
+    "            this.options.catchLinkCodeError?.({\n"
+    "                name: 'LinkCodeExpired',\n"
+    "                message: 'WhatsApp stopped refreshing the pairing code for this attempt.',\n"
+    "                session: this.session,\n"
+    "            });\n"
+    "        });\n"
+    "        await this.page.exposeFunction('onLinkCodeError', (report) => {\n"
+    "            const failed = (report && typeof report === 'object') ? report : { message: String(report || '') };\n"
+    "            const message = String(failed.message || '');\n"
+    "            this.log('error', `Login by code failed: ${failed.name || 'Error'}: ${message}`);\n"
+    "            const hadCode = this.lastLinkCode != null;\n"
+    "            this.lastLinkCode = null;\n"
+    "            let detail = '';\n"
+    "            try {\n"
+    "                detail = JSON.stringify(failed.details || {});\n"
+    "            }\n"
+    "            catch (e) {\n"
+    "                detail = '';\n"
+    "            }\n"
+    "            const rateLimited = /rate-overlimit|RateOverlimit/i.test(`${detail} ${failed.name || ''} ${message}`);\n"
+    "            this.options.catchLinkCodeError?.({\n"
+    "                name: hadCode ? 'LinkCodeRefreshFailed' : 'LinkCodeError',\n"
+    "                message: message,\n"
+    "                session: this.session,\n"
+    "                rateLimited: rateLimited,\n"
+    "                details: failed.details || {},\n"
+    "            });\n"
+    "        });\n"
+)
+
+
+MANAGED_ORIGINAL_LINK_CODE_LISTENER = (
+    "                WPP.on('conn.link_code_error', (error) => window.onLinkCodeError(error.message));\n"
+)
+
+
+# The other half of the envelope, and the half that has to run inside the page:
+# page.exposeFunction() serialises its arguments and an Error serialises to
+# `{}`, which is why upstream reads `.message` off it here instead of passing
+# the error across. Reading only `.message` throws away the one field that
+# identifies a quota refusal, so this walks the error's own properties the same
+# way MANAGED_PATCHED_LOGIN_BY_CODE's catch does — same skip of `stack`, same
+# '[unserializable]' guard for a getter that throws or a circular value — and
+# hands the hook a plain object it can classify.
+MANAGED_PATCHED_LINK_CODE_LISTENER = (
+    "                WPP.on('conn.link_code_error', (error) => {\n"
+    "                    const details = {};\n"
+    "                    try {\n"
+    "                        for (const key of Object.getOwnPropertyNames(Object(error))) {\n"
+    "                            if (key === 'stack') { continue; }\n"
+    "                            const value = error[key];\n"
+    "                            const kind = typeof value;\n"
+    "                            if (value === null || kind === 'string' || kind === 'number' || kind === 'boolean') {\n"
+    "                                details[key] = String(value);\n"
+    "                            }\n"
+    "                            else if (kind !== 'function') {\n"
+    "                                try { details[key] = JSON.stringify(value); } catch (e) { details[key] = '[unserializable]'; }\n"
+    "                            }\n"
+    "                        }\n"
+    "                    }\n"
+    "                    catch (e) { }\n"
+    "                    window.onLinkCodeError({\n"
+    "                        name: String(error?.name || 'Error'),\n"
+    "                        message: String(error?.message || error?.reason || error?.text || error),\n"
+    "                        details: details,\n"
+    "                    });\n"
+    "                });\n"
+)
+
+
 def patch_host_layer_source(content: str):
+    """Apply every host.layer.js patch, choosing the set that matches the
+    runtime actually on disk.
+
+    The choice is not cosmetic. Both call sites re-run this on every launch
+    against whatever node_modules holds, and a WinZapp update on its own never
+    reinstalls node_modules — so a 2.3.1 tree stays a 2.3.1 tree until the user
+    reinstalls the API. Writing the 2.3.2 text into it would remove the only
+    place that runtime calls loginByCode() from.
+    """
     notes = []
 
+    if MANAGED_LINK_MARKER in content:
+        content = _patch_managed_link_flow(content, notes)
+    else:
+        content = _patch_legacy_link_flow(content, notes)
+
+    # Neither method changed in 2.3.2, so both runtimes take the same text.
+    content = _patch_qr_reads(content, notes)
+
+    ok = not any("DID NOT MATCH" in note for note in notes)
+    return content, notes, ok
+
+
+def _patch_managed_link_flow(content: str, notes: list) -> str:
+    """wppconnect >= 2.3.2: wa-js owns the code's lifecycle, host.layer.js
+    starts it once. See the v9 entry in the module docstring."""
+    if MANAGED_PATCHED_CHECK_QR_CODE in content:
+        notes.append("checkQrCode: already carries the auth-probe fix.")
+    elif MANAGED_ORIGINAL_CHECK_QR_CODE in content:
+        content = content.replace(
+            MANAGED_ORIGINAL_CHECK_QR_CODE, MANAGED_PATCHED_CHECK_QR_CODE, 1
+        )
+        notes.append(
+            "checkQrCode: patched — a failed auth probe no longer sets "
+            "isLogged. The pairing-code cooldown is gone with the loop it "
+            "paced: this runtime never calls loginByCode() from here."
+        )
+    else:
+        notes.append("checkQrCode: DID NOT MATCH any known source text — left untouched.")
+
+    if MANAGED_PATCHED_LOGIN_BY_CODE in content:
+        notes.append("loginByCode: already gated, reporting and retrying.")
+    elif MANAGED_ORIGINAL_LOGIN_BY_CODE in content:
+        content = content.replace(
+            MANAGED_ORIGINAL_LOGIN_BY_CODE, MANAGED_PATCHED_LOGIN_BY_CODE, 1
+        )
+        notes.append(
+            "loginByCode: patched — waits for WhatsApp Web's auth state "
+            "before the one call this runtime makes, reports the real "
+            "browser-side error, and retries a transient failure instead of "
+            "ending pairing on it."
+        )
+    else:
+        notes.append("loginByCode: DID NOT MATCH the known source text — left untouched.")
+
+    if MANAGED_PATCHED_ON_LINK_CODE in content:
+        notes.append("onLinkCode: already deduping the code.")
+    elif MANAGED_ORIGINAL_ON_LINK_CODE in content:
+        content = content.replace(
+            MANAGED_ORIGINAL_ON_LINK_CODE, MANAGED_PATCHED_ON_LINK_CODE, 1
+        )
+        notes.append(
+            "onLinkCode: patched — the event and loginByCode()'s own return "
+            "value both deliver the code, and only the first of them is "
+            "announced."
+        )
+    else:
+        notes.append("onLinkCode: DID NOT MATCH the known source text — left untouched.")
+
+    if MANAGED_PATCHED_LINK_CODE_HOOKS in content:
+        notes.append("link-code hooks: already reported to the client.")
+    elif MANAGED_ORIGINAL_LINK_CODE_HOOKS in content:
+        content = content.replace(
+            MANAGED_ORIGINAL_LINK_CODE_HOOKS, MANAGED_PATCHED_LINK_CODE_HOOKS, 1
+        )
+        notes.append(
+            "link-code hooks: patched — an expired code and a refresh failure "
+            "now reach the pairing dialog instead of only wppconnect.log."
+        )
+    else:
+        notes.append(
+            "link-code hooks: DID NOT MATCH the known source text — left untouched."
+        )
+
+    if MANAGED_PATCHED_LINK_CODE_LISTENER in content:
+        notes.append("link-code error listener: already forwarding the error itself.")
+    elif MANAGED_ORIGINAL_LINK_CODE_LISTENER in content:
+        content = content.replace(
+            MANAGED_ORIGINAL_LINK_CODE_LISTENER,
+            MANAGED_PATCHED_LINK_CODE_LISTENER,
+            1,
+        )
+        notes.append(
+            "link-code error listener: patched — the error's own properties "
+            "now cross into Node, so a quota refusal can be told apart from a "
+            "plain failure."
+        )
+    else:
+        notes.append(
+            "link-code error listener: DID NOT MATCH the known source text — "
+            "left untouched."
+        )
+
+    return content
+
+
+def _patch_legacy_link_flow(content: str, notes: list) -> str:
+    """wppconnect <= 2.3.1: checkQrCode() owns the pairing-code lifecycle."""
     if PATCHED_CHECK_QR_CODE in content:
         notes.append("checkQrCode: already at v8.")
     elif V7_CHECK_QR_CODE in content:
@@ -1089,6 +1713,29 @@ def patch_host_layer_source(content: str):
     else:
         notes.append("checkQrCode: DID NOT MATCH any known source text — left untouched.")
 
+    if PATCHED_LOGIN_BY_CODE in content:
+        notes.append("loginByCode: already on the managed wa-js linking API.")
+    elif LEGACY_LOGIN_BY_CODE_RAW in content:
+        content = content.replace(LEGACY_LOGIN_BY_CODE_RAW, PATCHED_LOGIN_BY_CODE, 1)
+        notes.append(
+            "loginByCode: switched from the raw genLinkDeviceCodeForPhoneNumber "
+            "call to wa-js's managed linking lifecycle."
+        )
+    elif ORIGINAL_LOGIN_BY_CODE in content:
+        content = content.replace(ORIGINAL_LOGIN_BY_CODE, PATCHED_LOGIN_BY_CODE, 1)
+        notes.append(
+            "loginByCode: patched — uses wa-js's managed linking lifecycle and "
+            "reports the real browser-side error instead of the minified 't: t'."
+        )
+    else:
+        notes.append("loginByCode: DID NOT MATCH the known source text — left untouched.")
+
+    return content
+
+
+def _patch_qr_reads(content: str, notes: list) -> str:
+    """getQrCode() and waitForQrCodeScan(), which 2.3.2 left untouched — so
+    the same text applies to both runtimes and neither branch above owns it."""
     if PATCHED_WAIT_FOR_QR_CODE_SCAN in content:
         notes.append("waitForQrCodeScan: already retries a failed auth probe.")
     elif V1_WAIT_FOR_QR_CODE_SCAN in content:
@@ -1132,22 +1779,4 @@ def patch_host_layer_source(content: str):
     else:
         notes.append("getQrCode: DID NOT MATCH the known source text — left untouched.")
 
-    if PATCHED_LOGIN_BY_CODE in content:
-        notes.append("loginByCode: already on the managed wa-js linking API.")
-    elif LEGACY_LOGIN_BY_CODE_RAW in content:
-        content = content.replace(LEGACY_LOGIN_BY_CODE_RAW, PATCHED_LOGIN_BY_CODE, 1)
-        notes.append(
-            "loginByCode: switched from the raw genLinkDeviceCodeForPhoneNumber "
-            "call to wa-js's managed linking lifecycle."
-        )
-    elif ORIGINAL_LOGIN_BY_CODE in content:
-        content = content.replace(ORIGINAL_LOGIN_BY_CODE, PATCHED_LOGIN_BY_CODE, 1)
-        notes.append(
-            "loginByCode: patched — uses wa-js's managed linking lifecycle and "
-            "reports the real browser-side error instead of the minified 't: t'."
-        )
-    else:
-        notes.append("loginByCode: DID NOT MATCH the known source text — left untouched.")
-
-    ok = not any("DID NOT MATCH" in note for note in notes)
-    return content, notes, ok
+    return content
