@@ -739,6 +739,12 @@ DEFAULT_SETTINGS = {
         # client/updater.py's select_release().
         "alpha_updates_enabled": False,
         "noise_reduction_enabled": False,
+        # Windows spell checking in the message field (core/spell_checker.py).
+        # On by default — the cue is a Sound Event, so a user who wants the
+        # checking but not the sound can silence just that event in Settings >
+        # Eventos Sonoros; this switch turns the checking itself off, which is
+        # also what stops the COM/dictionary work from ever being done.
+        "spell_check_enabled": True,
         "first_run": True,
         "api_type_first_run_asked": False,
         "hotkey_first_run_asked": False,

@@ -243,6 +243,15 @@ class SettingsDialog(wx.Dialog):
         )
         gen_sizer.Add(self._announce_sync_check, 0, wx.ALL, 8)
 
+        # Turns the checking itself off, not just its sound: unchecked, the
+        # message field never calls into the Windows spell-check COM service
+        # at all (see ConversationsPanel._spell_check_enabled()). Silencing
+        # only the cue is already possible per-event under Eventos Sonoros.
+        self._spell_check_check = wx.CheckBox(
+            self._general_page, label=i18n.t("spell_check_enabled_label")
+        )
+        gen_sizer.Add(self._spell_check_check, 0, wx.ALL, 8)
+
         # Radio group, not a checkbox: the two folding levels are different
         # trades, not "more of the same", so the user picks one rather than
         # discovering NFKD's extra rewrites by surprise (see
@@ -1102,6 +1111,13 @@ class SettingsDialog(wx.Dialog):
 
         announce_sync = self.main_window.settings.get("general", {}).get("announce_sync_events", True)
         self._announce_sync_check.SetValue(announce_sync)
+
+        # On unless explicitly disabled — including on installs whose
+        # settings.json predates the option and has no key at all.
+        spell_check = self.main_window.settings.get("general", {}).get(
+            "spell_check_enabled", True
+        )
+        self._spell_check_check.SetValue(spell_check)
 
         # "off" unless the user chose otherwise — including for installs
         # whose settings.json predates the option and has no key at all.
@@ -2298,6 +2314,13 @@ class SettingsDialog(wx.Dialog):
             self._announce_sync_check.GetValue()
         )
 
+        # Spell checking in the message field. Read live on every keystroke by
+        # ConversationsPanel, so this takes effect immediately — no restart,
+        # and no need to rebuild the panel's checker here.
+        self.main_window.settings.setdefault("general", {})["spell_check_enabled"] = (
+            self._spell_check_check.GetValue()
+        )
+
         # Unicode folding in searches
         _sel = self._search_norm_radio.GetSelection()
         self.main_window.settings.setdefault("general", {})["search_normalization"] = (
@@ -2479,6 +2502,7 @@ class SettingsDialog(wx.Dialog):
         self._call_popup_check.SetLabel(i18n.t("calls_popup_enabled_label"))
         self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
         self._announce_sync_check.SetLabel(i18n.t("announce_sync_events_label"))
+        self._spell_check_check.SetLabel(i18n.t("spell_check_enabled_label"))
         self._search_norm_radio.SetLabel(i18n.t("search_normalization_label"))
         for _i, _key in enumerate((
             "search_normalization_off",

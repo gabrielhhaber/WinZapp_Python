@@ -270,6 +270,7 @@
     "notifications_label": "Enable background &notifications for new messages",
     "keep_muted_chats_silent_when_open_label": "Keep muted chats silent even when open",
     "announce_sync_events_label": "Announce sync, media downloads and automatic &offline mode",
+    "spell_check_enabled_label": "Enable spell &checking in the message field",
     "search_normalization_label": "Unicode &normalization in searches",
     "search_normalization_off": "Off (default): searching matches exactly what you type",
     "search_normalization_nfd": "Ignore accents: \"reuniao\" finds \"reunião\"",

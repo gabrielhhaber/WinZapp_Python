@@ -56,3 +56,26 @@ def test_changing_language_reopens_the_checker_lazily():
     assert checker.language == ""
     assert checker._checker is None
     assert checker._initialized is False
+
+
+def test_reset_rebaselines_without_checking_or_cueing():
+    """While the Settings > Geral switch is off the composer calls reset()
+    instead of text_changed(), so re-enabling mid-message cannot mistake the
+    text already in the field for a word just typed."""
+    played = []
+    checker = WindowsSpellChecker(on_error=lambda: played.append(True))
+    checker.errors_for_text = lambda text: [(0, 5)]
+
+    checker.reset("ktury")
+    assert played == []
+
+    # The very next keystroke is now a normal one-character append again.
+    assert checker.text_changed("ktury ") == [(0, 5)]
+    assert played == [True]
+
+
+def test_reset_with_no_argument_clears_the_baseline():
+    checker = WindowsSpellChecker()
+    checker.text_changed("abc")
+    checker.reset()
+    assert checker._last_text == ""

@@ -160,7 +160,7 @@ if comtypes is not None:
 
 
 def _unwrap_out(value):
-    """comtypes zwraca parametry [out] jako wartość albo krotkę."""
+    """comtypes returns [out] parameters either as a value or as a tuple."""
     if isinstance(value, (tuple, list)):
         return value[-1] if value else None
     return value
@@ -272,6 +272,19 @@ class WindowsSpellChecker:
         self._initialized = False
         self._last_text = ""
 
+    def reset(self, text: str = "") -> None:
+        """Re-baseline the last-seen text without checking anything.
+
+        The word-boundary test in _word_ended() is a comparison against the
+        previous value of the field, so a checker that stopped being called
+        (the user unticked Settings > Geral > spell checking) still has to be
+        told what the field holds now. Otherwise the first keystroke after
+        re-enabling it compares against text from minutes ago, fails the
+        one-character-append test, and — worse, when it happens to pass —
+        cues an error for a word the user typed long before.
+        """
+        self._last_text = text or ""
+
     def set_language(self, language: str | None) -> None:
         """Change the preferred language and reopen Windows' checker lazily."""
         language = _normalize_language_tag(language)
@@ -357,8 +370,9 @@ class WindowsSpellChecker:
                 action = int(_unwrap_out(item.get_CorrectiveAction()))
             except (COMError, OSError, RuntimeError, TypeError, AttributeError):
                 break
-            # Powtórzenie poprawnego słowa bywa zwracane jako sugestia usunięcia;
-            # traktujemy je jako sugestię gramatyczną, nie błąd pisowni.
+            # A repeated but correctly spelled word comes back as a "delete"
+            # suggestion; that is a grammar hint, not a spelling error, so it
+            # must not fire the cue.
             if action == CORRECTIVE_ACTION_DELETE:
                 continue
             if length > 0:

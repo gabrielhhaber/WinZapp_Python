@@ -270,6 +270,7 @@
     "notifications_label": "Activar &notificaciones de mensajes nuevos en segundo plano",
     "keep_muted_chats_silent_when_open_label": "Mantener los chats silenciados incluso cuando están abiertos",
     "announce_sync_events_label": "Anunciar sincronización, descarga de medios y modo &sin conexión automático",
+    "spell_check_enabled_label": "Activar la co&rrección ortográfica en el campo de mensaje",
     "search_normalization_label": "&Normalización Unicode en las búsquedas",
     "search_normalization_off": "Desactivada (predeterminado): la búsqueda coincide exactamente con lo que escribas",
     "search_normalization_nfd": "Ignorar acentos: \"reunion\" encuentra \"reunión\"",
