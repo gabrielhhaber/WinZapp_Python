@@ -163,6 +163,46 @@ def local_media_cache_paths(voice_dir: str, media_dir: str, msg_id: str) -> list
     ]
 
 
+def media_cache_id(msg_id: str) -> str:
+    """The id a message's cached media file is actually named after.
+
+    Some ids arrive in WhatsApp's composite `false_<jid>_<id>` form, and the
+    file on disk is named after the last component only. Playback, Save As and
+    the download button all reduced it with this same three-line rule, each
+    keeping its own copy.
+    """
+    if "_" in msg_id:
+        parts = msg_id.split("_")
+        return parts[2] if len(parts) > 2 else parts[-1]
+    return msg_id
+
+
+def cached_media_path(msg_type: str, msg_id: str) -> str:
+    """The one file this message's media is cached at, if it is cached at all.
+
+    **Voice notes and audio files do not live where the other media do.**
+    `handle_audio_message()` writes `voice_messages/<id>.msv`;
+    `handle_media_message()` writes `media/<id>.wzmedia`. Anything that answers
+    "where is this message's file" by hardcoding the second one is wrong for
+    every audio message — and wrong in the worst way, because the file IS on
+    disk: the caller concludes it is missing, downloads it (into the .msv path
+    it is not looking at), re-checks the .wzmedia path, finds nothing, and
+    tells the user the media could not be downloaded and the link may have
+    expired. Reported against Ctrl+C on a voice message that played perfectly
+    a second earlier.
+
+    This is the same rule `local_media_cache_paths()` states for the Media
+    tab's downloaded/not-downloaded scan, in the form a caller wanting ONE
+    path needs. CLAUDE.md's warning applies to both: a second copy of this
+    answer is how one part of the app starts disagreeing with whatever wrote
+    the file.
+    """
+    cache_id = media_cache_id(msg_id)
+    if msg_type == "audioMessage":
+        return data_path("voice_messages", f"{cache_id}.msv")
+    return data_path("media", f"{cache_id}.wzmedia")
+
+
 def promote_local_media_cache(voice_dir: str, media_dir: str,
                               local_id: str, real_id: str) -> None:
     """Rename a message's cached copies from its local UUID to its real id."""
@@ -7392,14 +7432,7 @@ class ConversationsPanel(wx.Panel):
         """
         msg_type = msg.get("messageType", "")
         msg_id   = msg.get("key", {}).get("id", "")
-        clean_msg_id = msg_id
-        if "_" in msg_id:
-            parts = msg_id.split("_")
-            clean_msg_id = parts[2] if len(parts) > 2 else parts[-1]
-        if msg_type == "audioMessage":
-            media_path = data_path("voice_messages", f"{clean_msg_id}.msv")
-        else:
-            media_path = data_path("media", f"{clean_msg_id}.wzmedia")
+        media_path = cached_media_path(msg_type, msg_id)
 
         if not os.path.isfile(media_path):
             if not getattr(self.main_window, "_wa_connected", False):
@@ -7458,7 +7491,7 @@ class ConversationsPanel(wx.Panel):
         msg_id   = msg.get("key", {}).get("id", "")
         mw       = self.main_window
         i18n     = mw.i18n
-        media_path = data_path("media", f"{msg_id}.wzmedia")
+        media_path = cached_media_path(msg_type, msg_id)
 
         if not getattr(mw, "_wa_connected", False):
             mw.output(i18n.t("media_download_offline"))
@@ -10442,7 +10475,11 @@ class ConversationsPanel(wx.Panel):
             return
 
         default_file = self._resolve_media_filename(msg)
-        media_path = data_path("media", f"{msg_id}.wzmedia")
+        # Through the shared resolver: a voice note is cached under
+        # voice_messages/<id>.msv, and hardcoding the media/ path here is what
+        # made Ctrl+C on an already-downloaded audio announce "could not
+        # download this media file, the link may have expired".
+        media_path = cached_media_path(msg_type, msg_id)
 
         def _run():
             if not self._ensure_media_on_disk(msg, media_path):
