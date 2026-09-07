@@ -365,6 +365,7 @@ class SoundSystem:
 SOUND_EVENTS: list[tuple[str, str]] = [
     ("startup", "startup.ogg"),
     ("error", "error.ogg"),
+    ("spelling_error", "textError.ogg"),
     ("qrcode_loaded", "qrcode_loaded.ogg"),
     ("waiting_pairing", "waiting_pairing.ogg"),
     ("pairing_code_updated", "pairing_code_updated.ogg"),
