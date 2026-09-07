@@ -7263,8 +7263,20 @@ class MainWindow(wx.Frame):
         if self.background_mode:
             return
 
-        dist_main = resource_path("api", "dist", "main.js")
-        if not os.path.isfile(dist_main):
+        # dist/server.js, which is what `npm run build` actually produces and
+        # what package.json's start script runs.
+        #
+        # This read `dist/main.js` for as long as the check has existed, and
+        # WPPConnect Server has never built a file by that name — so the guard
+        # was always false, the method always returned here, and the whole
+        # outdated-version prompt below has never run for anyone. Found by a
+        # user who set client/wpp_minimum_version.txt to a newer release,
+        # restarted, and watched WinZapp come up on the old one without a word.
+        #
+        # Note what that means for the code below: it is being reached for the
+        # first time now, not merely fixed.
+        dist_server = resource_path("api", "dist", "server.js")
+        if not os.path.isfile(dist_server):
             return  # API not installed yet — setup dialog will handle it
 
         minimum  = self._read_wpp_minimum_version()
@@ -7297,13 +7309,25 @@ class MainWindow(wx.Frame):
         if result == RESULT_CONTINUE:
             return  # Proceed with the outdated version — user's choice
 
-        # RESULT_UPDATE: re-download and rebuild using the minimum-version tag
+        # RESULT_UPDATE: re-download and rebuild using the minimum-version tag.
+        #
+        # As a TAG, not the bare version. `minimum` is what
+        # read_homologated_wpp_version() returns — "2.10.18" — while the
+        # release is tagged "v2.10.18", and ApiSetupDialog drops forced_tag
+        # straight into .../archive/refs/tags/{tag}.zip. Passing the bare
+        # number built a 404 URL, so this button could never have worked.
+        # Nobody found out because the guard at the top of this method named a
+        # file WPPConnect Server does not build, so nothing below it ever ran.
+        # homologated_wpp_tag() is the shared helper every other install path
+        # already uses for exactly this conversion.
+        from core.wpp_runtime import homologated_wpp_tag
         from ui.dialogs.api_setup import ApiSetupDialog
+        minimum_tag = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
         def _show_update_dlg():
             update_dlg = ApiSetupDialog(
                 self,
                 title_override=self.i18n.t("api_update_dialog_title"),
-                forced_tag=minimum,
+                forced_tag=minimum_tag or f"v{minimum.lstrip('vV')}",
             )
             res = update_dlg.ShowModal()
             update_dlg.Destroy()
