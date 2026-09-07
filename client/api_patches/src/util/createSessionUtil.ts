@@ -83,8 +83,17 @@ function forceKillBrowserProcess(page: any, logger?: any): boolean {
  * `taskkill /F /T` the whole Node process tree once its grace period ran
  * out, tearing down Chrome's profile (a LevelDB store) mid-write.
  */
-function forceKillByUserDataDir(userDataDir: string, logger?: any) {
-  if (!userDataDir) return;
+function forceKillByUserDataDir(
+  userDataDir: string,
+  logger?: any
+): Promise<void> {
+  if (!userDataDir) return Promise.resolve();
+  // Returns a promise so a caller that must not race the kill can await it.
+  // Every pre-existing call site ignores the return value and keeps the old
+  // fire-and-forget behaviour unchanged; only the stale-browser recovery
+  // below needs to know when the process is actually gone, because it relaunches
+  // Chrome against the very profile this is unlocking.
+  return new Promise<void>((resolve) => {
   if (process.platform === 'win32') {
     // Windows has no built-in "kill by command-line substring" either, so
     // this uses PowerShell's CIM/WMI process query — the closest equivalent
@@ -139,10 +148,99 @@ function forceKillByUserDataDir(userDataDir: string, logger?: any) {
             `[forceKillByUserDataDir] PowerShell kill failed: ${err.message}`
           );
         }
+        resolve();
       }
     );
   } else {
-    exec(`pkill -9 -f "${userDataDir}"`, () => {});
+    exec(`pkill -9 -f "${userDataDir}"`, () => resolve());
+  }
+  });
+}
+
+/**
+ * Does this launch failure mean "a Chrome we lost track of still holds the
+ * profile"?
+ *
+ * puppeteer's ChromeLauncher throws it verbatim:
+ *
+ *   The browser is already running for <dir>. Use a different `userDataDir`
+ *   or stop the running browser first.
+ *
+ * Matched on the wording rather than on an error class because puppeteer
+ * throws a plain Error here. Deliberately narrow: it must NOT match
+ * "Session not found"-style messages, for the same reason `chat not found`
+ * is matched by its exact phrase and not by its status code.
+ */
+function isStaleBrowserLockError(error: any): boolean {
+  const message = String(error?.message ?? error ?? '');
+  return /browser is already running for/i.test(message);
+}
+
+// How long to let Windows finish releasing the profile lock after the kill
+// returns. Stop-Process is asynchronous with respect to the file handles the
+// process held: relaunching Chrome the same millisecond hits the identical
+// error and burns the one retry for nothing.
+const STALE_BROWSER_RELEASE_MS = 1500;
+
+/**
+ * Start a session, and if the only thing standing in the way is a Chrome
+ * nobody is holding a handle to any more, kill it and try once more.
+ *
+ * This is a recovery from a state WinZapp can reach on its own and could not
+ * leave. Whenever a session dies *after* its browser launched — the injection
+ * of wa-js timing out is the case that produced this, but a crashed
+ * WPPConnect-side await does it too — the browser stays alive holding
+ * `userDataDir/<session>`, while `client.status` goes to CLOSED. Python's
+ * health checker sees CLOSED and POSTs /start-session, puppeteer refuses
+ * because the profile is locked, the status stays CLOSED, and the next poll
+ * does exactly the same thing 30s later. Forever: nothing in that loop ever
+ * touches the process holding the lock. Measured on a real install
+ * (2026-09-07), identically across two consecutive launches, and only broken
+ * by the user giving up and disconnecting by hand.
+ *
+ * Killing here is safe precisely because of where it sits. createSessionUtil()
+ * has already refused to run for any session whose status is not CLOSED, so a
+ * browser still holding this profile is by definition one no live session
+ * owns — and the profile is per session, so nothing another account is using
+ * can match. That is also why the kill is scoped to this session's
+ * userDataDir and never to "Chrome".
+ *
+ * Exactly one retry: if the relaunch hits the same error, something is holding
+ * that profile that we cannot kill (another Windows user, a debugger, an
+ * antivirus), and a loop would spin Chrome launches forever. Let it fail and
+ * be logged instead.
+ */
+async function launchWithStaleBrowserRecovery(
+  launch: () => Promise<any>,
+  userDataDir: string,
+  session: string,
+  logger?: any
+): Promise<any> {
+  try {
+    return await launch();
+  } catch (error: any) {
+    if (!isStaleBrowserLockError(error)) throw error;
+    logger?.warn?.(
+      `[${session}] Chrome is still holding this session's profile although no ` +
+        'session owns it — killing it and starting once more.'
+    );
+    await forceKillByUserDataDir(userDataDir, logger);
+    await new Promise((resolve) =>
+      setTimeout(resolve, STALE_BROWSER_RELEASE_MS)
+    );
+    try {
+      const client = await launch();
+      logger?.info?.(
+        `[${session}] Recovered from a stale browser profile lock.`
+      );
+      return client;
+    } catch (retryError: any) {
+      logger?.error?.(
+        `[${session}] Still could not start after clearing the profile lock: ` +
+          `${retryError?.message ?? retryError}`
+      );
+      throw retryError;
+    }
   }
 }
 
@@ -484,7 +582,10 @@ export default class CreateSessionUtil {
           forceKillByUserDataDir(`userDataDir/${session}`, req.logger);
       };
 
-      const wppClient = await create(
+      // Wrapped in a thunk purely so the stale-profile recovery below can call
+      // it twice. See launchWithStaleBrowserRecovery() for why that exists.
+      const launchWppClient = () =>
+        create(
         Object.assign(
           {},
           { tokenStore: myTokenStore },
@@ -633,6 +734,13 @@ export default class CreateSessionUtil {
             },
           }
         )
+      );
+
+      const wppClient = await launchWithStaleBrowserRecovery(
+        launchWppClient,
+        `userDataDir/${session}`,
+        session,
+        req.logger
       );
 
       // Poll every 2s: if shouldClose was set while create() is blocked, close browser immediately

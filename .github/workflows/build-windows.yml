@@ -141,6 +141,14 @@ jobs:
       # Cache node_modules to avoid re-downloading hundreds of packages on every run.
       # setup_api.py preserves node_modules across clones (moves/restores the folder),
       # so this cache survives the WPPConnect Server re-clone in the next step.
+      #
+      # Restoring it also CREATES client/api/, holding node_modules and nothing
+      # else, before setup_api.py has cloned anything. That folder must not read
+      # as "an install is already here" — it did once, and every alpha build
+      # after the first run to populate this cache died on "Unmanaged client/api
+      # contains WPPConnect unknown" with no release published. setup_api.py's
+      # _CACHE_ONLY_API_ENTRIES is what keeps that straight; anything else added
+      # to `path:` here has to be added there too.
       - name: Cache API node_modules
         uses: actions/cache@v4
         with:
