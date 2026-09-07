@@ -2582,6 +2582,36 @@ export async function requestOlderMessages(req: Request, res: Response) {
           out.primaryHasMore = null;
         }
 
+        // WhatsApp Web has just told us the phone has nothing older for this
+        // chat. Asking anyway is not merely wasted — every on-demand request
+        // is a peer-data-operation the PHONE reacts to, and the phone tells
+        // its owner: iOS puts "Synchronizing WhatsApp with Google Chrome
+        // (Windows)…" on the lock screen and follows it, when the request
+        // yields nothing, with "Sync paused. Open WhatsApp to resume." The
+        // user sees an endless flicker of sync notifications while WinZapp
+        // works perfectly — which is exactly issue #108, and is the kind of
+        // report that makes someone stop trusting the app.
+        //
+        // This value was already computed here and then ignored: the send
+        // went out regardless and `primaryHasMore` reached Python as a log
+        // field only. Measured on a real, fully-synced account: 34 requests in
+        // one launch, SEVENTEEN of them answered primaryHasMore=false, and the
+        // same chats asked again in a later pass because nothing retired them.
+        //
+        // Refusing here is also what retires them. The Python caller already
+        // treats a non-`requested` answer as the terminal "this chat has no
+        // older history" verdict and drops it from the backfill queue
+        // (_backfill_empty_chats), so this closes the loop rather than just
+        // skipping one send.
+        //
+        // Only an explicit `false` refuses. null means the lookup failed —
+        // an unknown must keep the old behaviour, or a renamed internal module
+        // would silently stop all history backfill.
+        if (out.primaryHasMore === false) {
+          out.error = 'primary has no older messages for this chat';
+          return out;
+        }
+
         let wid;
         try {
           wid = (window as any).WPP.whatsapp.WidFactory.createWid(chatId);

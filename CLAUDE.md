@@ -118,6 +118,14 @@ So the rule: **only a genuine I/O fault belongs in `message_failures`.** A defin
 
 Both follow the same shape: subtracted from `successful_jids`, folded into the durable `_message_retry_jids`, **never** added to `failed_jids`. Both are bounded (3 attempts) so the persisted retry list cannot grow without bound. If you add a third such case, follow it — do not invent a fourth mechanism.
 
+### An on-demand history request is visible to the user's phone
+
+`request_older_messages()` → `requestOlderMessages` (`deviceController.ts`) sends a **peer-data-operation to the phone**, and the phone tells its owner: iOS puts "Synchronizing WhatsApp with Google Chrome (Windows)…" on the lock screen and follows it, when the request yields nothing, with "Sync paused. Open WhatsApp to resume." So this is not a free background call — every one of them is a notification on someone's phone, and a stream of them reads as WinZapp being broken even while it works perfectly (issue #108).
+
+**Treat the phone's own answer as authoritative and check it before sending.** WhatsApp Web computes `primaryHasMoreMessagesReadyToLoad(chat.endOfHistoryTransferType)`; the controller computed it, ignored it, and sent anyway, so `primaryHasMore` reached Python as a log field only. Measured on a real fully-synced account: **34 requests in one launch, 17 of them answered `primaryHasMore=false`**, and the same chats asked again in a later pass because nothing retired them. A short chat is indistinguishable from a truncated one from the local side alone — the phone's answer is the only thing that tells them apart, which is why ignoring it loops forever.
+
+Two rules hold the fix together. Only an explicit `false` refuses: `null` means the internal lookup failed, and refusing on unknown would silently stop all history backfill the day WhatsApp renames that module. And the refusal must return a non-`requested` body, because `_backfill_empty_chats()` reads that as the **terminal** "no older history" verdict and drops the chat from the persisted queue — which is what stops the re-asking, not the skipped send. A `None` there would keep it queued and ask again after `_OLDER_REQUEST_GRACE`, which is the loop itself.
+
 ### The incremental round (`client/core/incremental_sync.py`)
 
 `_capture_chat_sync_baseline()` snapshots `self.chats`, and `get_remote_chats()` merges the server's `t`/`lastReceivedKey` into those same dicts. **So the baseline is a copy of the previous list-chats snapshot, not a record of what was actually stored.** A round that commits an activity marker without the message it refers to poisons the next baseline with its own claim: every snapshot-vs-snapshot signal then agrees the chat is unchanged, forever, and only F5 repairs it. That state is reachable in normal operation (`_MAX_EMPTY_DELTA_RETRIES` commits the marker of a delta that never produced a message), and it was measured at 20 of 155 chats on a real install, one stuck for 15 days.
