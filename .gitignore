@@ -236,3 +236,6 @@ shutdown_audit.log
 
 # Worktrees temporarios de agentes
 .claude/worktrees/
+
+# Scratch copies of tracked modules pulled out of git for one-off comparisons.
+.hl_*.py
