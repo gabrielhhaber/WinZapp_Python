@@ -78,6 +78,7 @@ from core.wppconnect_host_layer_patch import (
     MANAGED_ORIGINAL_ON_LINK_CODE, MANAGED_PATCHED_ON_LINK_CODE,
     MANAGED_ORIGINAL_LINK_CODE_HOOKS, MANAGED_PATCHED_LINK_CODE_HOOKS,
     MANAGED_ORIGINAL_LINK_CODE_LISTENER, MANAGED_PATCHED_LINK_CODE_LISTENER,
+    MANAGED_V233_CHECK_QR_CODE, V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN,
 )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -141,6 +142,30 @@ def _write_managed(host_layer, checkqrcode_text=MANAGED_ORIGINAL_CHECK_QR_CODE,
     fixture without it is a 2.3.1 file as far as the patcher is concerned —
     which is precisely the confusion these tests exist to rule out."""
     host_layer.write_text(
+        _managed_source(
+            checkqrcode_text=checkqrcode_text,
+            loginbycode_text=loginbycode_text,
+            onlinkcode_text=onlinkcode_text,
+            hooks_text=hooks_text,
+            listener_text=listener_text,
+            getqrcode_text=getqrcode_text,
+            waitforscan_text=waitforscan_text,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _managed_source(checkqrcode_text=MANAGED_ORIGINAL_CHECK_QR_CODE,
+                    loginbycode_text=MANAGED_ORIGINAL_LOGIN_BY_CODE,
+                    onlinkcode_text=MANAGED_ORIGINAL_ON_LINK_CODE,
+                    hooks_text=MANAGED_ORIGINAL_LINK_CODE_HOOKS,
+                    listener_text=MANAGED_ORIGINAL_LINK_CODE_LISTENER,
+                    getqrcode_text=ORIGINAL_GET_QR_CODE,
+                    waitforscan_text=ORIGINAL_WAIT_FOR_QR_CODE_SCAN):
+    """The same fixture as text, for the tests that call
+    patch_host_layer_source() directly to read its notes rather than going
+    through setup_api and a file on disk."""
+    return (
         "class HostLayer {\n"
         "    urlCode = '';\n"
         "    attempt = 0;\n"
@@ -164,8 +189,7 @@ def _write_managed(host_layer, checkqrcode_text=MANAGED_ORIGINAL_CHECK_QR_CODE,
         "    }\n"
         + getqrcode_text
         + waitforscan_text +
-        "}\n",
-        encoding="utf-8",
+        "}\n"
     )
 
 
@@ -1632,3 +1656,108 @@ class TestAHalfPatched232InstallIsCompleted:
 
         assert ok is True
         assert host_layer.read_text(encoding="utf-8") == first_pass
+
+
+class TestWppconnect233FixedTwoOfTheseUpstream:
+    """2.3.3's "preserve QR authentication state during navigation" (#2891) is
+    v7's bug, found independently: `needsToScan(...).catch(() => null)` answers
+    null when a navigation destroys the execution context, and `!null` is
+    `true`, so a probe that could not answer was read as "the user is logged
+    in". Upstream now guards both call sites.
+
+    That moved the source text out from under two patches at once, which is the
+    failure this class pins: on 2.3.3 both were reported DID NOT MATCH and
+    silently skipped — the same shape as the 2.3.2 regression above, which is
+    why the runtime is pinned exactly and why every bump re-runs this.
+    """
+
+    def test_checkqrcode_is_left_to_upstream(self, fake_wppconnect_dist):
+        """Upstream's guard is behaviourally identical to ours, so the patch is
+        dropped rather than rewritten — one less search-and-replace in a file
+        upstream is actively changing."""
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(host_layer, checkqrcode_text=MANAGED_V233_CHECK_QR_CODE)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        content = host_layer.read_text(encoding="utf-8")
+        assert MANAGED_V233_CHECK_QR_CODE in content
+        assert MANAGED_PATCHED_CHECK_QR_CODE not in content
+
+    def test_leaving_it_alone_is_not_reported_as_a_failure_to_match(self):
+        """The distinction that matters in a log: "upstream carries the fix"
+        and "the patch stopped matching" look identical to a reader and mean
+        opposite things. Only the second may set the DID NOT MATCH alarm."""
+        from core.wppconnect_host_layer_patch import patch_host_layer_source
+
+        content = _managed_source(checkqrcode_text=MANAGED_V233_CHECK_QR_CODE)
+        _, notes, ok = patch_host_layer_source(content)
+
+        assert ok is True
+        assert any("no patch needed" in note for note in notes)
+        assert not any("DID NOT MATCH" in note for note in notes)
+
+    def test_waitforqrcodescan_is_still_patched_because_upstream_is_weaker(
+        self, fake_wppconnect_dist
+    ):
+        """Upstream's `continue` retries forever, logs nothing and never gives
+        up: a wedged renderer leaves that loop spinning at 5 Hz for the rest of
+        the session with nothing to say why pairing never completed."""
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(
+            host_layer,
+            checkqrcode_text=MANAGED_V233_CHECK_QR_CODE,
+            waitforscan_text=V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN,
+        )
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_WAIT_FOR_QR_CODE_SCAN in content
+        assert V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN not in content
+
+    def test_the_patched_text_is_the_one_the_older_runtimes_already_carry(self):
+        """A second shipped variant would be a migration nobody has written —
+        every install carrying it would have to be rewritten later. Only the
+        left-hand side is new."""
+        with open(
+            os.path.join(
+                REPO_ROOT, "client", "core", "wppconnect_host_layer_patch.py"
+            ),
+            encoding="utf-8",
+        ) as fh:
+            source = fh.read()
+        assert "V233_PATCHED_WAIT_FOR_QR_CODE_SCAN" not in source
+
+    def test_a_233_file_is_fully_patched_and_idempotent(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(
+            host_layer,
+            checkqrcode_text=MANAGED_V233_CHECK_QR_CODE,
+            waitforscan_text=V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN,
+        )
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        first_pass = host_layer.read_text(encoding="utf-8")
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        assert host_layer.read_text(encoding="utf-8") == first_pass
+
+    def test_the_older_runtimes_are_untouched_by_the_233_left_hand_sides(
+        self, fake_wppconnect_dist
+    ):
+        """Adding a 2.3.3 branch must not change what a 2.3.2 tree gets: both
+        call sites re-run on every launch against whatever node_modules holds,
+        and a WinZapp update alone never reinstalls it."""
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(host_layer)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        content = host_layer.read_text(encoding="utf-8")
+        assert MANAGED_PATCHED_CHECK_QR_CODE in content
+        assert PATCHED_WAIT_FOR_QR_CODE_SCAN in content

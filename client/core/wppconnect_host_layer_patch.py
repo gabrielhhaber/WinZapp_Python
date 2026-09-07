@@ -109,6 +109,42 @@ History:
     it into the same `rateLimited` + `details` envelope. See
     MANAGED_PATCHED_LINK_CODE_LISTENER.
 
+* v10 — wppconnect 2.3.3 fixed v7's bug upstream, in both of the places
+  WinZapp was fixing it. Its changelog calls it "preserve QR authentication
+  state during navigation" (wppconnect-team/wppconnect#2891), and the change
+  is exactly the reading v7 arrived at: `needsToScan(...).catch(() => null)`
+  answers null when the execution context is destroyed mid-navigation, and
+  `!null` is `true`, so a probe that could not answer was being read as "the
+  user is logged in". Upstream now guards both call sites:
+
+      checkQrCode():        if (needScan === null) return;
+      waitForQrCodeScan():  if (needScan === null) continue;
+
+  So the two functions no longer match v7/v9's source text, and the patch set
+  needs a left-hand side for 2.3.3 or both are reported DID NOT MATCH. What
+  each side gets is deliberately different:
+
+  * checkQrCode() is left ALONE on 2.3.3. Upstream's guard is behaviourally
+    identical to MANAGED_PATCHED_CHECK_QR_CODE, whose only remaining addition
+    is a verbose log line — not worth rewriting a function upstream is
+    actively changing, in a file patched by literal search-and-replace. The
+    note says so out loud, because "no patch applied" and "upstream carries
+    the fix" look the same in a log and mean opposite things.
+
+  * waitForQrCodeScan() IS still patched, because upstream's `continue` is
+    strictly weaker than v7's: it retries forever, logs nothing, and never
+    gives up. A page whose renderer is wedged leaves that loop spinning at
+    5 Hz for the rest of the session with nothing in wppconnect.log to say
+    why pairing never completed. The patched text is byte-for-byte the one
+    2.3.1/2.3.2 already get — only the source it replaces is new — so no
+    install carries a variant that has to be migrated later.
+
+  Note what this says about the direction of travel: the pairing patches are
+  converging with upstream rather than diverging from it. Check each new
+  wppconnect release for the same, and delete a patch when upstream's version
+  is genuinely equivalent — every one kept alive is a search-and-replace that
+  can silently stop matching.
+
 """
 
 ORIGINAL_CHECK_QR_CODE = (
@@ -957,6 +993,29 @@ PATCHED_WAIT_FOR_QR_CODE_SCAN = (
 )
 
 
+# wppconnect 2.3.3's own waitForQrCodeScan(). Unlike checkQrCode() this one IS
+# still replaced, because upstream's guard is strictly weaker than v7's:
+# `continue` retries forever, logs nothing and never gives up, so a wedged
+# renderer leaves the loop spinning at 5 Hz for the rest of the session with
+# nothing in wppconnect.log to say why pairing never completed. It is replaced
+# by PATCHED_WAIT_FOR_QR_CODE_SCAN — the same text 2.3.1 and 2.3.2 already get,
+# so this adds a left-hand side and no new shipped variant to migrate later.
+V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN = (
+    "    async waitForQrCodeScan() {\n"
+    "        if (!this.isStarted) {\n"
+    "            throw new Error('waitForQrCodeScan error: Session not started');\n"
+    "        }\n"
+    "        while (!this.page.isClosed() && !this.isLogged) {\n"
+    "            await (0, sleep_1.sleep)(200);\n"
+    "            const needScan = await (0, auth_1.needsToScan)(this.page).catch(() => null);\n"
+    "            if (needScan === null)\n"
+    "                continue;\n"
+    "            this.isLogged = !needScan;\n"
+    "        }\n"
+    "    }\n"
+)
+
+
 ORIGINAL_LOGIN_BY_CODE = (
     "    async loginByCode(phone) {\n"
     "        const code = await (0, helpers_1.evaluateAndReturn)(this.page, async ({ phone }) => {\n"
@@ -1148,6 +1207,50 @@ MANAGED_PATCHED_CHECK_QR_CODE = (
     "            this.log('verbose', `Auth probe failed inside checkQrCode - leaving isLogged untouched: ${error?.name || 'Error'}: ${error?.message || error}`);\n"
     "            return;\n"
     "        }\n"
+    "        this.isLogged = !needScan;\n"
+    "        if (!needScan) {\n"
+    "            this.attempt = 0;\n"
+    "            return;\n"
+    "        }\n"
+    "        const result = await this.getQrCode();\n"
+    "        if (!result?.urlCode || this.urlCode === result.urlCode) {\n"
+    "            return;\n"
+    "        }\n"
+    "        this.urlCode = result.urlCode;\n"
+    "        this.attempt++;\n"
+    "        let qr = '';\n"
+    "        if (this.options.logQR || this.catchQR) {\n"
+    "            qr = await (0, auth_1.asciiQr)(this.urlCode);\n"
+    "        }\n"
+    "        if (this.options.logQR) {\n"
+    "            this.log('info', `Waiting for QRCode Scan (Attempt ${this.attempt})...:\\n${qr}`, { code: this.urlCode });\n"
+    "        }\n"
+    "        else {\n"
+    "            this.log('verbose', `Waiting for QRCode Scan: Attempt ${this.attempt}`);\n"
+    "        }\n"
+    "        this.catchQR?.(result.base64Image, qr, this.attempt, result.urlCode);\n"
+    "    }\n"
+)
+
+
+# wppconnect 2.3.3's own checkQrCode(). Present here only as something to
+# RECOGNISE — see the v10 entry in the module docstring. Upstream's
+# `if (needScan === null) return;` is behaviourally identical to
+# MANAGED_PATCHED_CHECK_QR_CODE, so there is nothing left to add but a log
+# line, and rewriting a function upstream is actively changing, in a file
+# patched by literal search-and-replace, is not worth a log line.
+#
+# It is matched rather than ignored because "no patch applied" and "upstream
+# already carries the fix" are indistinguishable in a log and mean opposite
+# things: without this constant the note would read DID NOT MATCH, which is
+# the alarm that means a pairing fix silently stopped being applied.
+MANAGED_V233_CHECK_QR_CODE = (
+    "    async checkQrCode() {\n"
+    "        const needScan = await (0, auth_1.needsToScan)(this.page).catch(() => null);\n"
+    "        // A navigation can invalidate the execution context while waiting for QR.\n"
+    "        // An unknown result is not proof that the session has registered.\n"
+    "        if (needScan === null)\n"
+    "            return;\n"
     "        this.isLogged = !needScan;\n"
     "        if (!needScan) {\n"
     "            this.attempt = 0;\n"
@@ -1578,6 +1681,15 @@ def _patch_managed_link_flow(content: str, notes: list) -> str:
     starts it once. See the v9 entry in the module docstring."""
     if MANAGED_PATCHED_CHECK_QR_CODE in content:
         notes.append("checkQrCode: already carries the auth-probe fix.")
+    elif MANAGED_V233_CHECK_QR_CODE in content:
+        # Left as upstream ships it — see the v10 entry in the module
+        # docstring. Recognised rather than ignored so this never reads as
+        # DID NOT MATCH, which is the alarm meaning a pairing fix stopped
+        # being applied.
+        notes.append(
+            "checkQrCode: no patch needed — wppconnect 2.3.3 carries the "
+            "auth-probe fix upstream."
+        )
     elif MANAGED_ORIGINAL_CHECK_QR_CODE in content:
         content = content.replace(
             MANAGED_ORIGINAL_CHECK_QR_CODE, MANAGED_PATCHED_CHECK_QR_CODE, 1
@@ -1754,6 +1866,15 @@ def _patch_qr_reads(content: str, notes: list) -> str:
         notes.append(
             "waitForQrCodeScan: patched — a failed auth probe is retried and "
             "logged instead of being read as 'the user is logged in'."
+        )
+    elif V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN in content:
+        content = content.replace(
+            V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN, PATCHED_WAIT_FOR_QR_CODE_SCAN, 1
+        )
+        notes.append(
+            "waitForQrCodeScan: patched — 2.3.3 stopped reading a failed auth "
+            "probe as a login, but retries it forever and silently; this bounds "
+            "the wait at 30s and logs why pairing stalled."
         )
     else:
         notes.append(
