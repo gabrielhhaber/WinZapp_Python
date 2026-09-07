@@ -8067,6 +8067,21 @@ class MainWindow(wx.Frame):
         moved off this thread (a blocked message pump reads as hung, defeating
         the point), and the cases that would actually use the extra time are a
         suspended chrome.exe that is not writing anyway."""
+        # First statement, before anything that can throw or return early.
+        #
+        # A real shutdown_audit.log covering 159 launches carries seventeen
+        # runs that ended with no _stop_wpp_server line at all — eleven of
+        # them overnight gaps of 7-12h, i.e. exactly the shape of Windows
+        # ending the session with WinZapp open — and NOT ONE line from either
+        # of these two handlers. That is the whole diagnosis stuck: it cannot
+        # be told apart from "Windows never asked us" (power loss, a forced
+        # Update restart that skips the polite path, a kill), and the two want
+        # opposite fixes. The existing audit line in _on_end_session is too
+        # late to answer it — it sits after the lock, after the
+        # already-tearing-down branch that returns without auditing, and after
+        # the timer. These two lines cost nothing and make the next occurrence
+        # self-diagnosing.
+        self._shutdown_audit("WM_QUERYENDSESSION — Windows is asking to shut down")
         try:
             import ctypes
             ctypes.windll.user32.ShutdownBlockReasonCreate(
@@ -8102,6 +8117,13 @@ class MainWindow(wx.Frame):
         resetting _shutting_down while the other path is still tearing down
         would reopen the self-inflicted-logout window.
         """
+        # Before the lock, and before the already-tearing-down branch that
+        # returns without reaching the audit line further down. See
+        # _on_query_end_session() for why this has to be the first statement:
+        # log.log is truncated every launch, so this file is the only place a
+        # previous run's ending survives, and its silence is currently
+        # unreadable.
+        self._shutdown_audit("WM_ENDSESSION — Windows is ending the session")
         logging.warning("[_on_end_session] Windows is ending the session — stopping WPPConnect.")
         with self._teardown_started_lock:
             already_tearing_down = getattr(self, "_shutting_down", False)
@@ -8277,6 +8299,157 @@ class MainWindow(wx.Frame):
                     or getattr(self, "_restarting_wpp_session", False)):
                 return
             time.sleep(self._SELF_RESTART_YIELD_POLL_SECONDS)
+
+    def _note_status_for_profile_health(self, status):
+        """Watch for a paired session that starts and dies without connecting.
+
+        A wedged Chrome profile does not announce itself. WhatsApp Web loads
+        and even authenticates — the phone lists the linked device as active —
+        but wa-js never reaches WPP.isReady, wppconnect's injectApi() times
+        out, and the session cycles INITIALIZING -> CLOSED with the UI saying
+        only "offline". Nothing in that loop ever recovers, and until this
+        existed the only way out was clearing all local data and pairing again.
+
+        See core/profile_recovery.py for why the signature is exactly this
+        shape and why three cycles rather than one.
+        """
+        try:
+            tracker = getattr(self, "_profile_health", None)
+            if tracker is None:
+                from core.profile_recovery import ProfileHealthTracker
+                tracker = self._profile_health = ProfileHealthTracker()
+            paired = bool(self.settings.get("privateinfo", {}).get("paired"))
+            if tracker.note_status(status, paired=paired):
+                self._recover_suspect_profile()
+        except Exception:
+            logging.exception("[profile-health] check failed (non-fatal)")
+
+    def _recover_suspect_profile(self):
+        """Put the last clean-shutdown profile back, or say why we cannot.
+
+        Runs at most once per launch. The retry it triggers is the ordinary
+        health-checker /start-session on the next poll, so if the restore did
+        not help, the tracker simply never fires again this run and the user
+        is left exactly where they were — offline, but told about it.
+
+        The order is load-bearing: close the session BEFORE touching the
+        profile. Restoring under a running browser overwrites a leveldb while
+        its owner holds it open, which manufactures the very corruption this
+        recovers from. wait_for_profile_release() is what makes "closed"
+        mean the files are actually free, and it kills an orphaned Chrome as
+        its fallback — the same helper _stop_wpp_server() relies on.
+        """
+        if getattr(self, "_profile_recovery_attempted", False):
+            return
+        self._profile_recovery_attempted = True
+
+        session_name = (getattr(self, "token", "") or "").split(":")[0]
+        global_dir = getattr(self, "global_dir", None)
+        if not session_name or not global_dir:
+            return
+
+        from core import profile_recovery
+        self._shutdown_audit("profile suspect — session started and died 3x "
+                             "without connecting")
+
+        if not profile_recovery.has_snapshot(global_dir, session_name):
+            # Nothing to restore. Say so plainly rather than leaving the user
+            # staring at "offline": this is the one outcome where the only fix
+            # is a human deciding to pair again, and a blind user has no way to
+            # discover that from silence.
+            logging.error("[profile-recovery] session %s looks broken and there "
+                          "is no snapshot to restore.", session_name[:12])
+            wx.CallAfter(self._announce_profile_beyond_repair)
+            return
+
+        def _restore():
+            try:
+                token = getattr(self, "token", "")
+                if token:
+                    try:
+                        api_post(
+                            f"{self.wpp_server}:{self.wpp_port}/api/{token}/close-session",
+                            headers={"Authorization": f"Bearer {token}"}, timeout=10,
+                        )
+                    except Exception as e:
+                        logging.warning("[profile-recovery] close-session failed: %s: %s",
+                                        type(e).__name__, redact_credentials(str(e)))
+                self.wait_for_profile_release(session_name, timeout=20.0)
+                if profile_recovery.restore_snapshot(global_dir, session_name):
+                    self._shutdown_audit("profile restored from snapshot")
+                    wx.CallAfter(self._announce_profile_restored)
+                else:
+                    wx.CallAfter(self._announce_profile_beyond_repair)
+            except Exception:
+                logging.exception("[profile-recovery] restore failed")
+                wx.CallAfter(self._announce_profile_beyond_repair)
+
+        threading.Thread(target=_restore, daemon=True).start()
+
+    def _announce_profile_restored(self):
+        try:
+            self.output(self.i18n.t("profile_restored_from_snapshot"), interrupt=False)
+        except Exception:
+            logging.exception("[profile-recovery] announcement failed")
+
+    def _announce_profile_beyond_repair(self):
+        """The dead end: the profile is unusable and there is no restore point.
+
+        Spoken as well as shown, and with the error sound, because by
+        construction this only happens while already offline — where
+        _set_wa_connected(False, ...) has long since hit its no-change early
+        return and said nothing. Same reasoning as _halt_unattended_qr_session().
+        """
+        try:
+            self.error_sound.play()
+        except Exception:
+            pass
+        try:
+            self.output(self.i18n.t("profile_corrupted_repair_needed"), interrupt=False)
+            if not getattr(self, "background_mode", False):
+                wx.MessageBox(
+                    self.i18n.t("profile_corrupted_repair_needed"),
+                    self.i18n.t("error").format(app_name=self.app_name),
+                    wx.OK | wx.ICON_ERROR,
+                )
+        except Exception:
+            logging.exception("[profile-recovery] announcement failed")
+
+    def _capture_profile_snapshot(self, session_name, browser_closed_cleanly, budget):
+        """Keep a restore point for this session's Chrome profile.
+
+        Called from exactly one place and it has to stay that way: right after
+        wait_for_profile_release() confirmed Chrome let go, on a close that
+        WPPConnect acknowledged. That is the only moment WinZapp can prove the
+        profile is both quiescent and completely written — see
+        core/profile_recovery.py for why a snapshot of a live profile is worse
+        than no snapshot at all.
+
+        Two refusals, both deliberate:
+
+        * `browser_closed_cleanly` False means the graceful close-session never
+          confirmed, so the leveldb may be mid-write. That is precisely the
+          state a restore point must never capture.
+        * A `budget` means Windows owns the clock (WM_ENDSESSION, ~5s before
+          the process is killed as hung). Spending it copying hundreds of
+          megabytes would take the time away from the flush that prevents the
+          corruption in the first place — and the run that most needs a
+          snapshot is the one before, not this one.
+
+        Never raises: a missing restore point is a nicety lost, while a
+        teardown that dies here is the corruption itself.
+        """
+        if not session_name or not browser_closed_cleanly or budget is not None:
+            return
+        global_dir = getattr(self, "global_dir", None)
+        if not global_dir:
+            return
+        try:
+            from core import profile_recovery
+            if profile_recovery.capture_snapshot(global_dir, session_name):
+                self._shutdown_audit("profile snapshot refreshed")
+        except Exception:
+            logging.exception("[profile-snapshot] failed (non-fatal)")
 
     def _stop_wpp_server(self, budget: float = None):
         """Terminate the WPPConnect Server process and all its children.
@@ -8468,6 +8641,8 @@ class MainWindow(wx.Frame):
                     session_name, timeout=_phase_timeout(15.0)
                 ):
                     self._shutdown_audit("Chrome released the profile before the kill")
+                    self._capture_profile_snapshot(session_name,
+                                                   browser_closed_cleanly, budget)
                 else:
                     self._shutdown_audit(
                         "Chrome STILL held the profile — killing anyway, its "
@@ -11234,6 +11409,20 @@ class MainWindow(wx.Frame):
                 )
 
                 logging.info("[check_wa_connection_http] Instance status: %s", status)
+
+                # Wrapped here as well as inside the method. Everything from
+                # the `try` above down to the request handler is what decides
+                # whether WinZapp believes it is online, and an exception
+                # escaping this line would be caught there and reported as
+                # "[check_wa_connection_http] Request failed" — a probe that
+                # answered perfectly well, recorded as a strike against the
+                # connection, because of a bug in a diagnostic. Profile health
+                # is an observer of this poll and must never be able to change
+                # its verdict.
+                try:
+                    self._note_status_for_profile_health(status)
+                except Exception:
+                    logging.exception("[profile-health] observer failed (non-fatal)")
 
                 # Any status other than the two unlinked ones clears the logout
                 # tally, so only *consecutive* readings can ever confirm one —

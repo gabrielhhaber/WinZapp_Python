@@ -1042,5 +1042,7 @@
     "contact_details_title": "Contacto",
     "contact_pick_number": "Este contacto tem mais do que um número. Escolha um:",
     "contact_no_number": "Este cartão de contacto não traz nenhum número de telefone.",
-    "search_contact_label": "&Procurar contacto"
+    "search_contact_label": "&Procurar contacto",
+    "profile_restored_from_snapshot": "O perfil do navegador estava danificado e foi restaurado a partir da última cópia guardada. A reconectar ao WhatsApp.",
+    "profile_corrupted_repair_needed": "O perfil do navegador usado para ligar ao WhatsApp está danificado e não existe cópia guardada para restaurar. Será necessário desligar a sessão e emparelhar novamente."
 }

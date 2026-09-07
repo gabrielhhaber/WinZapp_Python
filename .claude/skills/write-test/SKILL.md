@@ -24,7 +24,7 @@ exactly this reason, and `tests/test_delivery_status.py` just imports and calls
 them. No stub, no wx, nothing to keep in sync.
 
 This is the better outcome even ignoring tests: it shrinks `main.py`, which is
-~22,300 lines and where most logic ends up by default.
+~26,900 lines and where most logic ends up by default.
 
 ## Route 2 — unbound method against a stub
 
