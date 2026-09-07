@@ -18230,6 +18230,26 @@ class MainWindow(wx.Frame):
                     "%s (primary_has_more=%s).", jid, payload.get("primaryHasMore"),
                 )
                 return True
+            if isinstance(payload, dict) and payload.get("primaryHasMore") is False:
+                # Not a failure, and the commonest answer there is: WhatsApp
+                # Web checked and the phone has nothing older for this chat, so
+                # the request was deliberately not sent (see requestOlderMessages
+                # in deviceController.ts — every one that IS sent lights up the
+                # phone's lock screen with a sync notification).
+                #
+                # Logged apart from the generic "did not go out" line below
+                # because it is the ordinary, expected outcome for roughly half
+                # the queue, and a log full of 500s that are really "nothing to
+                # do" costs a diagnosis the next time something is genuinely
+                # wrong here.
+                #
+                # Still False, which is the terminal verdict the caller wants:
+                # this chat leaves the backfill queue and is not asked again.
+                logging.info(
+                    "[history-sync] The phone has no older messages for %s — "
+                    "not asking, and retiring it from the backfill queue.", jid,
+                )
+                return False
             if isinstance(payload, dict) and "recent history sync" in str(
                     payload.get("error", "")).lower():
                 logging.info(
