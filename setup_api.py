@@ -852,13 +852,45 @@ def main():
                 win_npm = os.path.join(ROOT_DIR, "client", "node", "node_modules", "npm", "bin", "npm-cli.js")
                 if os.path.isfile(win_npm):
                     npm_bin = win_npm
-                    npm_probe = subprocess.run(
-                        [node_bin, npm_bin, "install", "--help"],
-                        capture_output=True,
-                        text=True,
-                        timeout=10,
-                    )
-                    if npm_probe.returncode != 0:
+                    # A HEALTH PROBE MUST NEVER BE MORE FATAL THAN THE THING IT
+                    # STANDS IN FOR. This one asks "can the portable npm run at
+                    # all"; the real `npm install` two blocks below has no
+                    # timeout and fails loudly and informatively if npm is
+                    # genuinely broken. So a probe that does not answer in time
+                    # is "unknown", not "unhealthy" — and certainly not a reason
+                    # to abort the build.
+                    #
+                    # It was neither. At 10s, and with TimeoutExpired escaping
+                    # into the outer handler, a cold `npm install --help` on a
+                    # GitHub runner turned into
+                    #
+                    #   [ERROR] Node.js dependencies installation/build failed:
+                    #   Command '[... npm-cli.js, install, --help]' timed out
+                    #   after 10 seconds
+                    #
+                    # and no alpha was published (2026-09-07, run 34162896892),
+                    # on a commit whose two predecessors had built fine — the
+                    # signature of a threshold too close to the normal cost of
+                    # the operation, not of a broken runtime.
+                    #
+                    # 120s because this prints a help page: anything that slow
+                    # says something real about the machine, while ten seconds
+                    # says only that npm was cold.
+                    try:
+                        npm_probe = subprocess.run(
+                            [node_bin, npm_bin, "install", "--help"],
+                            capture_output=True,
+                            text=True,
+                            timeout=120,
+                        )
+                    except subprocess.TimeoutExpired:
+                        print(
+                            "[WARNING] The portable npm health probe timed out. "
+                            "Continuing with it anyway — the npm install below "
+                            "will report the real problem if there is one."
+                        )
+                        npm_probe = None
+                    if npm_probe is not None and npm_probe.returncode != 0:
                         system_node = shutil.which("node")
                         system_npm = shutil.which("npm.cmd") or shutil.which("npm")
                         if not system_node or not system_npm:
