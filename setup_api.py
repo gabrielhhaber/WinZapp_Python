@@ -568,6 +568,51 @@ def directory_has_entries(path):
         return True
 
 
+# Directory entries that can appear inside client/api/ without anyone having
+# installed WPPConnect Server there. Exactly one so far, and it is not a corner
+# case — it is what every CI build does:
+#
+#   - name: Cache node_modules
+#     uses: actions/cache@v4
+#     with:
+#       path: client/api/node_modules
+#
+# runs BEFORE setup_api.py, and restoring that cache creates client/api/ with
+# node_modules and nothing else in it. directory_has_entries() then answers
+# "an install is already here", the plan drops to "verify-snapshot", and the
+# version can only be read off a package.json that does not exist yet — so
+# every build after the first one to populate that cache died on
+#
+#   RuntimeError: Unmanaged client/api contains WPPConnect unknown, but
+#   WinZapp requires 2.10.16.
+#
+# with no alpha published. (_recover_upstream_package_json() would have put
+# that file back, but it runs after the check that raises.)
+#
+# Skipping the cached folder is the whole fix, and it costs nothing: the clone
+# branch below already moves node_modules aside and restores it afterwards,
+# which is precisely why the workflow caches that path in the first place.
+_CACHE_ONLY_API_ENTRIES = {"node_modules"}
+
+
+def api_dir_holds_an_install(path):
+    """Does `path` contain a WPPConnect Server install, as opposed to a cache?
+
+    Deliberately a separate question from directory_has_entries(): that one
+    answers "is anything here at all", which is the right test for the folder
+    itself and the wrong one for deciding whether to clone into it.
+    """
+    if not os.path.isdir(path):
+        return False
+    try:
+        entries = os.listdir(path)
+    except OSError:
+        # Same conservative half as directory_has_entries(): a folder we cannot
+        # read is verified, never cloned over.
+        return True
+    return any(entry not in _CACHE_ONLY_API_ENTRIES for entry in entries)
+
+
 def plan_api_checkout(api_dir_exists, api_dir_nonempty,
                       git_has_head_and_config, tag):
     """Decide what has to happen to client/api/ before npm install runs.
@@ -623,7 +668,7 @@ def main():
     api_dir_exists = os.path.isdir(CLIENT_API_DIR)
     plan = plan_api_checkout(
         api_dir_exists=api_dir_exists,
-        api_dir_nonempty=directory_has_entries(CLIENT_API_DIR),
+        api_dir_nonempty=api_dir_holds_an_install(CLIENT_API_DIR),
         git_has_head_and_config=(
             os.path.isfile(os.path.join(git_dir, "HEAD"))
             and os.path.isfile(os.path.join(git_dir, "config"))
@@ -726,6 +771,17 @@ def main():
         except Exception:
             pass
         expected = tag.lstrip("vV")
+        if not pkg_version:
+            # No package.json at all is not "the wrong version is installed",
+            # it is "nothing is installed" — and saying so is what points at
+            # the cause (something created client/api/ without cloning into
+            # it, e.g. a restored cache; see _CACHE_ONLY_API_ENTRIES).
+            raise RuntimeError(
+                "client/api/ exists but has no readable package.json, so it is "
+                "not a WPPConnect Server install. Something created the folder "
+                "without cloning into it. Delete client/api/ (keeping "
+                "node_modules if you want the cache) and run setup_api.py again."
+            )
         if pkg_version != expected:
             # This script only ever runs from a dev checkout or CI (build.py
             # re-runs it on detected drift), never from the app — so the advice

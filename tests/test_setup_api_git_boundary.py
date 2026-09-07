@@ -161,3 +161,58 @@ class TestMainActuallyRunsThePlannedCheckout:
         assert not [c for c in commands if c[:1] == ["git"]], (
             f"git was run inside an unmanaged client/api/: {commands}"
         )
+
+
+class TestARestoredNodeModulesCacheIsNotAnInstall:
+    """The failure that stopped every alpha build after 2026-09-07.
+
+    build-windows.yml restores `client/api/node_modules` from actions/cache
+    BEFORE running setup_api.py. That creates client/api/ holding nothing but
+    the cached folder, which read as "an install is already here": the plan
+    dropped to verify-snapshot, verify-snapshot read a package.json that had
+    not been cloned yet, and the run died with
+
+      RuntimeError: Unmanaged client/api contains WPPConnect unknown, ...
+
+    The first run to populate that cache therefore poisoned every run after
+    it, which is why this appeared as "CI was fine, then suddenly every merge
+    to main published no alpha".
+    """
+
+    def test_a_directory_holding_only_the_cached_node_modules_is_not_an_install(
+        self, tmp_path
+    ):
+        (tmp_path / "node_modules").mkdir()
+        assert _setup_api_module().api_dir_holds_an_install(tmp_path) is False
+
+    def test_such_a_directory_is_cloned_into_and_pinned(self, tmp_path):
+        """The whole point: it takes the clone branch, which moves node_modules
+        aside and restores it afterwards — so the cache still does its job."""
+        module = _setup_api_module()
+        (tmp_path / "node_modules").mkdir()
+        plan = module.plan_api_checkout(
+            api_dir_exists=True,
+            api_dir_nonempty=module.api_dir_holds_an_install(tmp_path),
+            git_has_head_and_config=False,
+            tag=PIN,
+        )
+        assert plan == {"clone": True, "action": "checkout"}
+
+    def test_a_real_install_beside_node_modules_is_still_an_install(self, tmp_path):
+        (tmp_path / "node_modules").mkdir()
+        (tmp_path / "package.json").write_text("{}", encoding="utf-8")
+        assert _setup_api_module().api_dir_holds_an_install(tmp_path) is True
+
+    def test_a_missing_directory_is_not_an_install(self, tmp_path):
+        assert _setup_api_module().api_dir_holds_an_install(tmp_path / "nope") is False
+
+    def test_an_unreadable_directory_is_still_verified_never_cloned_over(
+        self, tmp_path, monkeypatch
+    ):
+        module = _setup_api_module()
+
+        def _denied(_path):
+            raise PermissionError(13, "Access is denied")
+
+        monkeypatch.setattr(module.os, "listdir", _denied)
+        assert module.api_dir_holds_an_install(tmp_path) is True
