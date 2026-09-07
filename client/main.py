@@ -11029,11 +11029,11 @@ class MainWindow(wx.Frame):
             # the page, answered false, or was still unanswered when the
             # route's own budget ran out — so the reason to be more patient
             # here is the reload above, not a busy Node (a Node too busy to
-            # answer raises in the `except` and never gets this far). A reload is both likelier and
-            # slower to finish while WhatsApp Web is being driven through a
-            # long history download than it is on an idle session, and the
-            # measured one already lasted 28 s on its own. Observed live: a
-            # long initial sync ending in "modo offline" and then a full
+            # answer raises in the `except` and never gets this far). A reload
+            # is both likelier and slower to finish while WhatsApp Web is being
+            # driven through a long history download than on an idle session,
+            # and the measured one already lasted 28 s on its own. Observed
+            # live: a long initial sync ending in "modo offline" and then a full
             # disconnect a health-check cycle or two later, with no real
             # network interruption. The widened budget is capped in wall-clock
             # time — see probe_strike_budget() for why ~10 minutes of holding

@@ -419,7 +419,9 @@ export function createCatalogLink(session: any) {
  * Chromium — accepted deliberately: the callers are request- and tick-driven,
  * so the count is bounded by the request rate, and each one is discarded with
  * the page the moment the session is restarted (which is precisely what a
- * bounded probe reporting Disconnected is there to bring about).
+ * bounded probe reporting Disconnected is there to bring about). Concretely,
+ * the health check polls every ~30s and two consecutive strikes restart the
+ * session, so a stuck page accumulates ~2-3 of them before it is torn down.
  */
 export async function probeIsConnected(
   client: WhatsAppServer,
