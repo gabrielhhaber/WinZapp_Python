@@ -9528,6 +9528,112 @@ class MainWindow(wx.Frame):
                 "[sessions] recording an abandoned session failed (non-fatal)"
             )
 
+    def _abandon_closed_session(self, token: str) -> None:
+        """Mark a session we have just deliberately CLOSED as abandoned in
+        this account's SessionStore.
+
+        Distinct from _register_abandoned_session() above, which deliberately
+        refuses to touch an entry the store still holds as 'active' (it is
+        meant for pairing attempts that failed, where an active entry means a
+        reused, possibly live session it must not disturb). Here the opposite
+        is true: we sent /close-session ourselves, so the 'active' entry is
+        precisely the one that has to go.
+
+        Leaving it 'active' is what makes _recover_active_session_token()
+        unsafe — a session the user closed on purpose would come back as the
+        single "unambiguous" candidate on the next launch, and the app would
+        start attached to a session that is already dead instead of showing
+        the pairing dialog.
+        """
+        if not token:
+            return
+        try:
+            store = self._get_session_store()
+            if store is None:
+                return
+            name = token.replace("/", "_").replace("+", "-").split(":")[0]
+            if not name or store.get(name) is None:
+                return
+
+            from coord_locks import sessions_lock, LockTimeout
+            gd = getattr(self, "global_dir", None)
+
+            def _commit():
+                store.set_status(name, "abandoned")
+                logging.info(
+                    "[sessions] marked closed session %s as abandoned", name[:12],
+                )
+
+            if gd:
+                try:
+                    with sessions_lock(gd):
+                        _commit()
+                except LockTimeout:
+                    logging.warning(
+                        "[sessions] sessions_lock busy — could not mark closed "
+                        "session %s as abandoned", name[:12],
+                    )
+            else:
+                _commit()
+        except Exception:
+            logging.exception(
+                "[sessions] marking a closed session as abandoned failed (non-fatal)"
+            )
+
+    def _recover_active_session_token(self) -> str:
+        """Recover a lost WA_token reference from this account's own
+        SessionStore, when exactly one active, decryptable entry exists to
+        recover it from.
+
+        `paired=True` with an empty/absent token can happen while the
+        underlying WPPConnect session, its Chrome userDataDir profile, and
+        its SessionStore entry are all still completely intact — reported
+        live (issue #155): a session that worked normally for an entire run
+        showed the pairing dialog again on the very next launch, with
+        sessions.json still listing that session as active and its
+        token_enc still decrypting successfully. _set_wa_token("") clears
+        only the settings.json reference (see that method) — it was never
+        the SessionStore's job to track that, so a caller clearing the
+        reference alone (connect.py's on_dialog_close()/
+        on_quit_from_connect(), before they learned to leave a currently
+        connected session alone) leaves this exact, recoverable state
+        behind.
+
+        Deliberately narrow: only restores when the store leaves no
+        ambiguity — exactly one 'active' entry, and its token decrypts
+        under this account's own secret.key. No entries, several, or one
+        that fails to decrypt are all left alone; the normal pairing flow
+        is the correct, safe fallback for a state this cannot resolve on
+        its own, and guessing among several candidates could just as
+        easily hand back the wrong session.
+        """
+        if not self.settings.get("privateinfo", {}).get("paired"):
+            # An account that never finished pairing has nothing to recover:
+            # any 'active' entry it owns belongs to an attempt that never
+            # became a usable session. Enforced here rather than only at the
+            # call site so the contract in the docstring above cannot be lost
+            # by a future second caller.
+            return ""
+        store = self._get_session_store()
+        if store is None:
+            return ""
+        try:
+            active = [s for s in store.list()
+                      if s.get("status") == "active" and s.get("token")]
+        except Exception:
+            logging.exception("[token-recovery] Failed to read the session store")
+            return ""
+        if len(active) != 1:
+            return ""
+        token = active[0]["token"]
+        logging.warning(
+            "[token-recovery] paired=True with no saved token, but exactly "
+            "one active, decryptable session was found in the store — "
+            "restoring it instead of asking to pair again."
+        )
+        self._set_wa_token(token)
+        return token
+
     def _session_crypto(self):
         """Adapter exposing .encrypt/.decrypt over token_vault + this account's
         secret.key, for SessionStore (per-account WPPConnect session isolation)."""
