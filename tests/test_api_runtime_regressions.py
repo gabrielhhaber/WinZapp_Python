@@ -92,6 +92,11 @@ def test_the_is_connected_retry_window_is_bounded_by_wall_clock():
 
     assert "const RETRY_WINDOW_MS = 10000;" in source
     assert "for (let attempt = 1; Date.now() < deadline; attempt++)" in source
+    # A sliver of budget left is not an attempt: probeIsConnected() would
+    # resolve its own timer at once and answer undefined, spending an
+    # iteration on nothing and leaving one more isConnected() pending in the
+    # page.
+    assert "if (deadline - Date.now() < 250) break;" in source
     # Each probe is raced against what is left of the budget, and the losing
     # probe keeps a rejection handler — an unhandled rejection exits Node.
     assert "await probeIsConnected(" in source

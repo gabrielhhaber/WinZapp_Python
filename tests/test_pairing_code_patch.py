@@ -78,6 +78,7 @@ from core.wppconnect_host_layer_patch import (
     MANAGED_ORIGINAL_ON_LINK_CODE, MANAGED_PATCHED_ON_LINK_CODE,
     MANAGED_ORIGINAL_LINK_CODE_HOOKS, MANAGED_PATCHED_LINK_CODE_HOOKS,
     MANAGED_ORIGINAL_LINK_CODE_LISTENER, MANAGED_PATCHED_LINK_CODE_LISTENER,
+    MANAGED_UNBOUNDED_LOGIN_RETRY_HEADER, MANAGED_BOUNDED_LOGIN_RETRY_HEADER,
 )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1148,6 +1149,42 @@ class TestTheTwoRuntimesAreToldApartByTheFileItself:
 
         assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
         assert host_layer.read_text(encoding="utf-8") == before
+
+    def test_a_tree_on_the_previous_loop_header_is_migrated_not_abandoned(
+        self, fake_wppconnect_dist
+    ):
+        """loginByCode()'s retry bound used to be stated only inside `giveUp`;
+        the loop header now carries it. Two attempts either way — but a tree
+        patched before that matches neither the pristine source nor the current
+        block, so without the migration the whole method would report DID NOT
+        MATCH and sit on the old text until the user reinstalls the API."""
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        previous = MANAGED_PATCHED_LOGIN_BY_CODE.replace(
+            MANAGED_BOUNDED_LOGIN_RETRY_HEADER,
+            MANAGED_UNBOUNDED_LOGIN_RETRY_HEADER,
+            1,
+        )
+        assert previous != MANAGED_PATCHED_LOGIN_BY_CODE
+        _write_managed(host_layer, loginbycode_text=previous)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        content = host_layer.read_text(encoding="utf-8")
+        assert MANAGED_PATCHED_LOGIN_BY_CODE in content
+        assert MANAGED_UNBOUNDED_LOGIN_RETRY_HEADER not in content
+
+    def test_the_bound_in_the_header_matches_the_one_in_give_up(self):
+        """The header is documentation of `giveUp`, so a change to one that
+        misses the other silently halves or doubles the attempts — and the
+        ceiling is connect.py's own 90 s patience, not anything here."""
+        bound = int(
+            re.search(r"attempt <= (\d+)", MANAGED_BOUNDED_LOGIN_RETRY_HEADER).group(1)
+        )
+        give_up = int(
+            re.search(r"attempt >= (\d+)", MANAGED_PATCHED_LOGIN_BY_CODE).group(1)
+        )
+        assert bound == give_up == 2
 
     def test_the_marker_is_a_method_no_patch_rewrites(self):
         """A marker that one of the patches also edits stops identifying the

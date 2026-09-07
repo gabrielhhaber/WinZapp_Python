@@ -414,7 +414,12 @@ export function createCatalogLink(session: any) {
  * The losing probe is left to settle on its own with a rejection handler
  * already attached: an isConnected() that throws after the race was decided
  * would otherwise be an unhandled rejection, and Node exits the process on
- * those.
+ * those. On a page that never becomes ready that probe never settles either,
+ * so every timed-out call leaves one page.waitForFunction() pending inside
+ * Chromium — accepted deliberately: the callers are request- and tick-driven,
+ * so the count is bounded by the request rate, and each one is discarded with
+ * the page the moment the session is restarted (which is precisely what a
+ * bounded probe reporting Disconnected is there to bring about).
  */
 export async function probeIsConnected(
   client: WhatsAppServer,

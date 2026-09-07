@@ -931,6 +931,10 @@ export default class CreateSessionUtil {
     const RETRY_WINDOW_MS = 10000; // ~10s total; a warning, never a disconnect proof
     const deadline = Date.now() + RETRY_WINDOW_MS;
     for (let attempt = 1; Date.now() < deadline; attempt++) {
+      // With a sliver of the window left, probeIsConnected() would resolve its
+      // own timer immediately and answer undefined: an attempt spent on
+      // nothing that still leaves one more isConnected() pending in the page.
+      if (deadline - Date.now() < 250) break;
       try {
         const connected = await probeIsConnected(
           client,

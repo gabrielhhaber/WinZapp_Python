@@ -29,7 +29,11 @@ import {
 } from '../middleware/instrumentation';
 import { resolveMessageForMedia } from '../services/messageResolver';
 import CreateSessionUtil from '../util/createSessionUtil';
-import { callWebHook, contactToArray } from '../util/functions';
+import {
+  callWebHook,
+  contactToArray,
+  probeIsConnected,
+} from '../util/functions';
 import getAllTokens from '../util/getAllTokens';
 import { clientsArray, deleteSessionOnArray } from '../util/sessionUtil';
 
@@ -448,6 +452,18 @@ export async function logOutSession(req: Request, res: Response): Promise<any> {
   }
 }
 
+// How long this route waits for isConnected() before answering without it.
+// Deliberately under the 10 s check_whatsapp_reachable() gives this request:
+// on wppconnect 2.3.2 isConnected() awaits waitForPageLoad(), which sits on
+// puppeteer's default 30 s waiting for WPP.isReady — and never returns at all
+// on a page whose 'load' event never fired. Unbounded, the client always gave
+// up first, and a client-side timeout raises into an `except` that counts no
+// strike at all: the page stayed "connected" forever, every send came back
+// probe_timeout and got requeued in silence, and the whole recovery ladder
+// (_nudge_whatsapp_socket_stream -> _restart_wpp_session) was unreachable
+// because it is gated on this route answering false.
+const CONNECTION_PROBE_BUDGET_MS = 8000;
+
 export async function checkConnectionSession(
   req: Request,
   res: Response
@@ -464,9 +480,23 @@ export async function checkConnectionSession(
      }
    */
   try {
-    await req.client.isConnected();
+    // An unanswered probe is reported as Disconnected, exactly as a thrown
+    // one is — which is what 2.3.1 did for this same state, when isConnected()
+    // evaluated WAPI.isConnected() directly and threw straight away. Python
+    // needs two consecutive negatives before it acts on this
+    // (_OFFLINE_PROBE_STRIKES, widened again during an initial sync), so a
+    // WhatsApp Web reload that happens to overlap one tick is still ridden
+    // out rather than announced.
+    const connected = await probeIsConnected(
+      req.client,
+      CONNECTION_PROBE_BUDGET_MS
+    );
 
-    res.status(200).json({ status: true, message: 'Connected' });
+    if (connected === true) {
+      res.status(200).json({ status: true, message: 'Connected' });
+    } else {
+      res.status(200).json({ status: false, message: 'Disconnected' });
+    }
   } catch (error) {
     res.status(200).json({ status: false, message: 'Disconnected' });
   }

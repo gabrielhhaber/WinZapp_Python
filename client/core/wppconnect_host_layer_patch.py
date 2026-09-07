@@ -1284,7 +1284,7 @@ MANAGED_PATCHED_LOGIN_BY_CODE = (
     "            });\n"
     "            throw timeout;\n"
     "        }\n"
-    "        for (let attempt = 1;; attempt++) {\n"
+    "        for (let attempt = 1; attempt <= 2; attempt++) {\n"
     "            let outcome;\n"
     "            try {\n"
     "                outcome = await (0, helpers_1.evaluateAndReturn)(this.page, async ({ phone }) => {\n"
@@ -1369,6 +1369,20 @@ MANAGED_PATCHED_LOGIN_BY_CODE = (
     "            await (0, sleep_1.sleep)(backoff);\n"
     "        }\n"
     "    }\n"
+)
+
+
+# The retry bound used to live only in `giveUp` (`attempt >= 2`), with the loop
+# header written `for (let attempt = 1;; attempt++)`. Same two attempts either
+# way — the header now states the limit where a reader looks for it. It is a
+# rewrite rather than an edit because a tree already patched with the previous
+# text matches neither the pristine source nor the current patched block, so
+# without this the whole loginByCode block would report DID NOT MATCH and stay
+# on the old text forever — the same reason the sender layer migrates its own
+# shipped blocks. Only the header moved, so one line covers it.
+MANAGED_UNBOUNDED_LOGIN_RETRY_HEADER = "        for (let attempt = 1;; attempt++) {\n"
+MANAGED_BOUNDED_LOGIN_RETRY_HEADER = (
+    "        for (let attempt = 1; attempt <= 2; attempt++) {\n"
 )
 
 
@@ -1589,6 +1603,17 @@ def _patch_managed_link_flow(content: str, notes: list) -> str:
         )
     else:
         notes.append("checkQrCode: DID NOT MATCH any known source text — left untouched.")
+
+    if MANAGED_UNBOUNDED_LOGIN_RETRY_HEADER in content:
+        content = content.replace(
+            MANAGED_UNBOUNDED_LOGIN_RETRY_HEADER,
+            MANAGED_BOUNDED_LOGIN_RETRY_HEADER,
+            1,
+        )
+        notes.append(
+            "loginByCode: retry bound moved into the loop header — no "
+            "behaviour change, still two attempts."
+        )
 
     if MANAGED_PATCHED_LOGIN_BY_CODE in content:
         notes.append("loginByCode: already gated, reporting and retrying.")

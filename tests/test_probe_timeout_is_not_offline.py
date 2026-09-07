@@ -22,9 +22,14 @@ session probe after a measured 28 s reload did exactly this.
 So the middleware now names it (`reason: "probe_timeout"`) and the classifier
 splits the two verdicts: still "this call was not delivered" for every caller,
 never "WhatsApp is offline". Nothing is lost by staying quiet —
-`check-connection-session` is deliberately not behind this middleware, so a
-page that really is stuck still reaches `check_whatsapp_reachable()` on the
-next health-check tick, where the consecutive-strike tally already lives.
+`check-connection-session` is deliberately not behind this middleware, and it
+bounds its own `isConnected()` at 8 s (under the 10 s main.py gives that
+request), answering `status: false` when the probe goes unanswered. That is
+what makes the sentence above true: a page that really is stuck still lands on
+`check_whatsapp_reachable()`'s consecutive-strike tally on the next
+health-check tick. Unbounded, the client timed out first and the timeout raised
+into an `except` that counts no strike at all — the two halves are pinned
+together in tests/test_connection_probe_budget.py.
 
 MainWindow is a wx.Frame, so the methods are bound onto a stub carrying only
 the attributes they touch — the same pattern the other main.py tests use.

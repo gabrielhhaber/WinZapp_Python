@@ -92,13 +92,19 @@ class _Response:
 class _Stub:
     """Minimal stand-in for MainWindow for the capabilities probe."""
 
+    _SEND_CAPABILITIES_RETRY_DELAYS = MainWindow._SEND_CAPABILITIES_RETRY_DELAYS
+
     def __init__(self):
         self.wpp_server = "http://127.0.0.1"
         self.wpp_port = 6300
         self.token = "tok"
         self.i18n = _I18n()
         self.spoken = []
+        self.sleeps = []
         self._send_capabilities_checked = True
+        # The probe only ever runs from a confirmed connection, and the retry
+        # loop below reads this before waiting.
+        self._wa_connected = True
 
     def output(self, text, *args, **kwargs):
         self.spoken.append((text, args, kwargs))
@@ -109,7 +115,11 @@ class _Stub:
 @pytest.fixture
 def stub(monkeypatch):
     monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
-    return _Stub()
+    stub = _Stub()
+    # The retry delays are minutes long; record them instead of living through
+    # them, the way the other main.py tests do.
+    monkeypatch.setattr(main.time, "sleep", lambda seconds: stub.sleeps.append(seconds))
+    return stub
 
 
 def _answer(monkeypatch, status_code, body):
@@ -210,6 +220,99 @@ class TestAnUnansweredProbeIsAskedAgain:
         stub._check_send_capabilities()
 
         assert len(stub.spoken) == 1
+
+
+class TestTheRetryInsideOneConnection:
+    """Re-arming the latch is not enough on its own, and this is the case it
+    misses. _set_wa_connected() returns early when nothing changed, so the
+    latch is only re-read on a real offline→online transition — while the
+    session this exists for ("the event wins": CONNECTED promoted by the state
+    listener with isConnected() never having succeeded) is exactly the one
+    whose connection may never oscillate again. Without the retry the warning
+    is dropped for the whole session, in the release whose point is that the
+    runtime changed.
+    """
+
+    def _answers(self, monkeypatch, *responses):
+        """Return each response in turn, the last one repeating."""
+        queue = list(responses)
+        calls = []
+
+        def _fake_get(*args, **kwargs):
+            calls.append(kwargs)
+            return queue.pop(0) if len(queue) > 1 else queue[0]
+
+        monkeypatch.setattr(main, "api_get", _fake_get)
+        return calls
+
+    def test_an_unanswered_probe_is_asked_again_without_a_reconnection(
+        self, stub, monkeypatch
+    ):
+        calls = self._answers(
+            monkeypatch, _Response(404, {"response": None, "status": "Disconnected"})
+        )
+
+        stub._check_send_capabilities()
+
+        assert len(calls) == 1 + len(_Stub._SEND_CAPABILITIES_RETRY_DELAYS)
+        assert stub.sleeps == list(_Stub._SEND_CAPABILITIES_RETRY_DELAYS)
+        # Spent the budget without an answer: hand the next confirmed
+        # connection its own chance.
+        assert stub._send_capabilities_checked is False
+
+    def test_a_verdict_arriving_on_a_retry_is_still_announced(
+        self, stub, monkeypatch
+    ):
+        calls = self._answers(
+            monkeypatch,
+            _Response(404, {"response": None, "status": "Disconnected"}),
+            _Response(409, {"response": {"compatible": False, "missing": ["x"]}}),
+        )
+
+        stub._check_send_capabilities()
+
+        assert len(calls) == 2
+        assert [text for text, _, _ in stub.spoken] == [
+            "<send_capabilities_incompatible>"
+        ]
+        # A real verdict, so nothing is owed to a later connection.
+        assert stub._send_capabilities_checked is True
+
+    def test_a_dropped_connection_ends_the_retries_instead_of_waiting(
+        self, stub, monkeypatch
+    ):
+        """The reconnection re-arms the latch and starts a fresh probe of its
+        own, so waiting here would only race it — and the delay is checked
+        before it is slept through, not after."""
+        self._answers(
+            monkeypatch, _Response(404, {"response": None, "status": "Disconnected"})
+        )
+        stub._wa_connected = False
+
+        stub._check_send_capabilities()
+
+        assert stub.sleeps == []
+        assert stub._send_capabilities_checked is False
+
+    def test_a_shutdown_ends_the_retries_too(self, stub, monkeypatch):
+        self._answers(
+            monkeypatch, _Response(404, {"response": None, "status": "Disconnected"})
+        )
+        stub._shutting_down = True
+
+        stub._check_send_capabilities()
+
+        assert stub.sleeps == []
+
+    def test_a_compatible_answer_never_retries(self, stub, monkeypatch):
+        calls = self._answers(
+            monkeypatch, _Response(200, {"response": {"compatible": True}})
+        )
+
+        stub._check_send_capabilities()
+
+        assert len(calls) == 1
+        assert stub.sleeps == []
 
 
 class TestOnlyARealVerdictIsAnnounced:
