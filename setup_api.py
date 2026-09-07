@@ -53,6 +53,21 @@ if _CLIENT_DIR not in sys.path:
 # happened to get stashed months earlier) — client/api_patches/ never has
 # that problem since it's never inside the folder that gets deleted.
 #
+# These are FULL-FILE restores, so any upstream change to one of them is
+# silently discarded on the next setup run. That is the intended trade — our
+# copies are the patches — but it means a server bump has to be read as "what
+# did upstream change in these 28 files", not only "does it still build".
+#
+# Audited at wppconnect-server 2.10.18 (2026-09-07). 2.10.17 added the Manager
+# dashboard and wired it into four of them (jest.config.js, src/index.ts,
+# src/util/createSessionUtil.ts, src/types/express/index.d.ts); every one of
+# those hooks is an emitManager()/installManager*() call feeding a web UI
+# WinZapp does not use, so dropping them costs nothing. The one substantive
+# change, `io: Socket` -> `io: Server` in the express typings, our copy already
+# carried as `Server as Socket`. 2.10.18 itself touched no source file at all —
+# it is a dependency bump moving @wppconnect-team/wppconnect from ^2.2.7 to
+# ^2.3.3, which is why the homologated pin had to reach 2.3.3 first.
+#
 # package.json is NOT in this list — see _merge_package_json_dependencies().
 # It used to be a full-file overwrite like the others, which meant its
 # "version" field (WPPConnect Server's own self-reported version — what
