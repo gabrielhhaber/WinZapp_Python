@@ -1042,5 +1042,7 @@
     "contact_details_title": "Contact",
     "contact_pick_number": "This contact has more than one number. Choose one:",
     "contact_no_number": "This contact card carries no phone number.",
-    "search_contact_label": "&Search contact"
+    "search_contact_label": "&Search contact",
+    "profile_restored_from_snapshot": "The browser profile was damaged and has been restored from the last saved copy. Reconnecting to WhatsApp.",
+    "profile_corrupted_repair_needed": "The browser profile used to connect to WhatsApp is damaged and there is no saved copy to restore. You will need to disconnect the session and pair again."
 }

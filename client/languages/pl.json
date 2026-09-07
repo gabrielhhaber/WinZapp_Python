@@ -1042,5 +1042,7 @@
     "contact_details_title": "Kontakt",
     "contact_pick_number": "Ten kontakt ma więcej niż jeden numer. Wybierz jeden:",
     "contact_no_number": "Ta wizytówka kontaktu nie zawiera numeru telefonu.",
-    "search_contact_label": "&Szukaj kontaktu"
+    "search_contact_label": "&Szukaj kontaktu",
+    "profile_restored_from_snapshot": "Profil przeglądarki był uszkodzony i został przywrócony z ostatniej zapisanej kopii. Ponowne łączenie z WhatsApp.",
+    "profile_corrupted_repair_needed": "Profil przeglądarki używany do połączenia z WhatsApp jest uszkodzony i nie ma zapisanej kopii do przywrócenia. Trzeba będzie rozłączyć sesję i sparować ponownie."
 }

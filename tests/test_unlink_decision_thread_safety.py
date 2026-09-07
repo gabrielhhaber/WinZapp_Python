@@ -65,7 +65,14 @@ class _Stub:
     _STILL_LINKED_VETO_LIMIT = MainWindow._STILL_LINKED_VETO_LIMIT
     _act_on_unlink_decision = MainWindow._act_on_unlink_decision
 
+    def _note_status_for_profile_health(self, status):
+        # The profile-health observer hangs off this very call site; without
+        # it the guard there swallows an AttributeError and these tests pass
+        # for the wrong reason.
+        self.profile_health_readings.append(status)
+
     def __init__(self, *, probe=cs.LINK_PROBE_UNLINKED):
+        self.profile_health_readings = []
         self._unlink_decision_lock = threading.Lock()
         self._probe = probe
         self.still_linked_probe_calls = 0
