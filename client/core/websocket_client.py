@@ -58,11 +58,13 @@ def phone_code_error_is_rate_limit(data) -> bool:
     code after a dropped session fails while the second one works. Telling the
     user that is worth a dedicated message; "CompanionHelloError" is not.
 
-    Read three ways on purpose. ``rateLimited`` is the flag host.layer.js's
-    checkQrCode v8 sets, and it is the one to trust — but it only exists once
-    both the rebuilt WPPConnect Server and the re-applied node_modules patch
-    are in place, and this has to keep working on an install that is only
-    halfway there. The raw ``details`` blob carries WhatsApp's own answer
+    Read three ways on purpose. ``rateLimited`` is the flag the host.layer.js
+    patch sets (checkQrCode on wppconnect <= 2.3.1, loginByCode on 2.3.2,
+    which moved the minting there), and it is the one to trust — but it only
+    exists once both the rebuilt WPPConnect Server and the re-applied
+    node_modules patch are in place, and this has to keep working on an
+    install that is only halfway there. The raw ``details`` blob carries
+    WhatsApp's own answer
     (``{"name":"IQErrorRateOverlimit","value":{"text":"rate-overlimit",
     "code":429}}``) whatever the server-side version, so it is matched as text.
     """
@@ -1590,8 +1592,85 @@ class WebSocketClient:
                 logging.warning(
                     "[WebSocketClient] pairing-code failure details: %r", details
                 )
+            if name in ("LinkCodeExpired", "LinkCodeRefreshFailed"):
+                # The quota verdict is read here, not inside the announcement:
+                # CallAfter runs on the wx thread whenever it gets there, and
+                # `_phone_code_rate_limited` is a single slot a later event
+                # would already have overwritten by then.
+                wx.CallAfter(
+                    self._announce_pairing_code_expired,
+                    self._phone_code_rate_limited,
+                )
         except Exception:
             logging.exception("[WebSocketClient] on_wpp_phone_code_error error")
+
+    def _announce_pairing_code_expired(self, rate_limited: bool = False):
+        """Say out loud that the code on the pairing dialog is dead.
+
+        Everything else this handler does is a log entry, and until now that
+        was the whole of it: `_phone_code_error` is read only by connect.py's
+        90 s phoneCode wait, which has long since returned by the time the
+        pairing dialog is on screen. Both names routed here can *only* arrive
+        after it — on wppconnect 2.3.2 wa-js re-mints on its own 195 s timer
+        and stops after five refreshes, so an attended dialog gets roughly six
+        codes over ~19.5 minutes and then `LinkCodeExpired`. Left in the log,
+        the dialog goes on showing the last, now-dead code and reading it back
+        exactly as before: the user types it, WhatsApp refuses, they cancel and
+        retry, and the retry mints a fresh session and another six codes —
+        the anti-abuse loop update_pairing_code()'s own docstring describes.
+
+        `LinkCodeRefreshFailed` is that same ending reached sooner, which is
+        why it is announced too rather than left as the log line it used to be.
+        wa-js clears the 195 s timer before minting and only re-arms it from a
+        successful mint, so a refresh that fails ends the stream then and there
+        — no timer, no code, the rejection swallowed by its own caller, and
+        `conn.link_code_expired` unreachable unless WhatsApp Web itself pushes
+        `refresh_alt_linking_code`, which is not something to wait on. The user
+        is left with a code wa-js already discarded, at t+195 s rather than
+        ~19.5 minutes: the unannounced case stranded them earlier than the
+        announced one. The name is minted by the host.layer.js hook, which is
+        the only side that knows whether a code was ever on screen — a *first*
+        mint failing reports `LinkCodeError` instead and stays silent here,
+        since loginByCode()'s own retry ladder and the 90 s wait already own
+        that case.
+
+        Keyed on `_is_pairing_dialog_active()`, which asks about
+        `connection_dial` rather than `pairing_dial`: a user who cancelled the
+        code sub-dialog but is still on the method chooser hears "cancel and
+        try again" for a code they already walked away from. Accepted rather
+        than narrowed — it is accurate about the attempt they just made, and
+        the alternative (a second signal for "the code widget is up") buys a
+        few seconds of silence at the cost of another two-signal rule to keep
+        in step.
+
+        `rate_limited` splits off the one ending where "cancel and try again"
+        is the wrong advice. WhatsApp refusing on quota grounds is reachable
+        here — every manual retry mints a fresh session and up to six codes,
+        and 10 codes in 12 minutes was enough to earn IQErrorRateOverlimit —
+        and telling the user to retry immediately is precisely what keeps the
+        quota spent. connect.py's `_on_pairing_code_error()` already reached
+        that conclusion for the first mint; this is the same conclusion on the
+        channel that carries every *later* failure, i.e. the one the 90 s
+        phoneCode wait can no longer report on.
+
+        Runs on the wx thread via CallAfter: _is_pairing_dialog_active() reads
+        the dialog's own IsShown(), and Socket.IO delivers this on its thread.
+        """
+        try:
+            if not self.main_window._is_pairing_dialog_active():
+                return
+            if rate_limited:
+                text = self.i18n.t("pairing_code_rate_limited").format(
+                    app_name=self.main_window.app_name,
+                )
+            else:
+                text = self.i18n.t("pairing_code_expired")
+            self.main_window.error_sound.play()
+            self.main_window.speak_output.output(text)
+        except Exception:
+            logging.exception(
+                "[WebSocketClient] Failed to announce the expired pairing code."
+            )
 
     def _belongs_to_this_session(self, info) -> bool:
         if not isinstance(info, dict):

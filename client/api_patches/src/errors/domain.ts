@@ -105,8 +105,23 @@ export function classifyPageError(error: any): DomainError {
   if (/not found|no such chat|chat not exist/i.test(detail)) {
     return new NotFoundError(detail);
   }
+  // `Page closed` and `Waiting failed: <n>ms exceeded` both come from
+  // host.layer.js's waitForPageLoad(), which wppconnect 2.3.2 made
+  // isConnected() await: the first when the document died mid-injection, the
+  // second when it loaded but never reached WPP.isReady within puppeteer's
+  // default timeout. statusConnection.ts already names both, but it only runs
+  // ahead of the routes that declare it — everything else reaches this
+  // function through errorHandler, where the same two strings used to come
+  // back as internal_error/500. They belong beside `Target closed`, which is
+  // the same situation under puppeteer's older wording and already sits here.
+  // This is a consistency fix, not a behaviour change for the sender: 500 and
+  // 503 land in the same retryable bucket on the Python side. What it buys is
+  // that one string stops meaning two different things in two files.
+  // Widening is safe in a way `/not found/i` is not: no puppeteer or
+  // wppconnect message carries "Page closed" for anything other than a dead
+  // page, whereas "not found" also matches "Session not found".
   if (
-    /WAPI is not defined|not connected|Session (closed|not active)|Execution context|Target closed/i.test(
+    /WAPI is not defined|not connected|Session (closed|not active)|Execution context|Target closed|Page closed|Waiting failed: \d+ms exceeded/i.test(
       detail
     )
   ) {

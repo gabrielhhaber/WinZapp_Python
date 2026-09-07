@@ -20,7 +20,12 @@ import { Request } from 'express';
 import { download } from '../controller/sessionController';
 import { WhatsAppServer } from '../types/WhatsAppServer';
 import chatWootClient from './chatWootClient';
-import { autoDownload, callWebHook, startHelper } from './functions';
+import {
+  autoDownload,
+  callWebHook,
+  probeIsConnected,
+  startHelper,
+} from './functions';
 import { clientsArray, eventEmitter } from './sessionUtil';
 import Factory from './tokenStore/factory';
 
@@ -628,7 +633,10 @@ export default class CreateSessionUtil {
             // Not a WPPConnect option — WinZapp's own host.layer.js patch reads
             // it off `this.options` (create() spreads the caller's options into
             // the Whatsapp instance verbatim, so an unknown key survives). See
-            // client/core/wppconnect_host_layer_patch.py, checkQrCode v4.
+            // client/core/wppconnect_host_layer_patch.py: checkQrCode v4
+            // introduced it, and on wppconnect >= 2.3.2 it is loginByCode and
+            // the two link-code hooks that call it, since that runtime mints
+            // the code from there rather than from checkQrCode.
             catchLinkCodeError: (failure: {
               name?: string;
               message?: string;
@@ -908,7 +916,8 @@ export default class CreateSessionUtil {
     // diagnosable after the fact.
     const attempt = failure?.attempt;
     const retryInSeconds = failure?.retryInSeconds;
-    // Set by checkQrCode v8 when WhatsApp answered rate-overlimit (429). The
+    // Set by the host.layer.js patch when WhatsApp answered rate-overlimit
+    // (429) — checkQrCode on wppconnect <= 2.3.1, loginByCode on 2.3.2. The
     // quota is per phone number and lives on WhatsApp's side, so it outlives
     // this session and this process — which is why the first pairing code
     // after a dropped session fails and the second one works. Forwarded so
@@ -1015,10 +1024,30 @@ export default class CreateSessionUtil {
     // and skip status=CONNECTED entirely, leaving the session stuck reporting
     // INITIALIZING forever even though it connected seconds later. Bounded retry
     // until wa-js answers, and only accept an explicit `true`.
-    const maxAttempts = 20; // ~10s total; a warning, never a disconnect proof
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    //
+    // Bounded by wall clock rather than by attempt count, and each probe is
+    // raced against what is left of the budget. `attempts * sleep` was a fair
+    // estimate of the total while isConnected() answered straight away;
+    // wppconnect 2.3.2 made it await waitForPageLoad(), which sits on
+    // puppeteer's default 30s timeout waiting for WPP.isReady — so on a page
+    // that loads but never becomes ready one attempt cost ~30s and the loop
+    // ran for ~10 minutes, with everything registered after start()
+    // (onParticipantsChanged / onReactionMessage / onRevokedMessage /
+    // onPollResponse, back in createSessionUtil()) waiting behind all of it.
+    // message/ack/presence are safe either way: wireListeners() runs above
+    // this loop, deliberately.
+    const RETRY_WINDOW_MS = 10000; // ~10s total; a warning, never a disconnect proof
+    const deadline = Date.now() + RETRY_WINDOW_MS;
+    for (let attempt = 1; Date.now() < deadline; attempt++) {
+      // With a sliver of the window left, probeIsConnected() would resolve its
+      // own timer immediately and answer undefined: an attempt spent on
+      // nothing that still leaves one more isConnected() pending in the page.
+      if (deadline - Date.now() < 250) break;
       try {
-        const connected = await client.isConnected();
+        const connected = await probeIsConnected(
+          client,
+          deadline - Date.now()
+        );
         if (connected === true) {
           // Only promote if the state listener hasn't already moved us to a
           // newer terminal state (UNPAIRED/TIMEOUT/etc). The event wins.
@@ -1033,7 +1062,7 @@ export default class CreateSessionUtil {
         // "WAPI is not defined" is an initialization race, NOT a session error.
         // Do not emit session-error for it; just wait for wa-js to load.
         req.logger.info(
-          `[${client.session}] isConnected() not ready yet (attempt ${attempt}/${maxAttempts})`
+          `[${client.session}] isConnected() not ready yet (attempt ${attempt})`
         );
       }
       await new Promise((r) => setTimeout(r, 500));

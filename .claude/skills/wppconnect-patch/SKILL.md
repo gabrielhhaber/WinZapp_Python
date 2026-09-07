@@ -55,14 +55,21 @@ search-and-replace and that `deviceController.ts` drives through private WA-JS
 loader APIs, so a caret range lets a plain reinstall move the browser-side send
 and status APIs underneath an unchanged WinZapp build, with nothing failing
 until a user tries to send something. Measured: `2.3.2` (resolved from
-upstream's own `^2.2.7` while nothing pinned the key) rewrote `host.layer.js`'s
-`checkQrCode()`/`loginByCode()`, which turned the v8 pairing-code rotation
-cooldown into a silent no-op — two warnings among forty lines of `setup_api.py`
-output, and nothing else.
+upstream's own `^2.2.7` while nothing pinned the key, *before* it was
+homologated) rewrote `host.layer.js`'s `checkQrCode()`/`loginByCode()`, which
+turned the v8 pairing-code rotation cooldown into a silent no-op — two warnings
+among forty lines of `setup_api.py` output, and nothing else. It is the pinned
+version today, but only because those patches were ported to the shape it ships
+first; that order is the whole point.
 
 Moving the pair is a deliberate act: bump both keys **and**
 `client/wpp_minimum_version.txt` in the same commit, after running all four
 `node_modules` patches against the candidate and confirming each still matches.
+When a runtime restructures the code a patch rewrites, expect the answer to be
+a **second patch set selected by matching the file** (`host.layer.js` carries
+one for ≤ 2.3.1 and one for ≥ 2.3.2), not an edit of the shipped one: both call
+sites re-run on every launch against whatever `node_modules` holds, and a
+WinZapp update on its own never reinstalls it.
 
 The pin is also why the server tag and the pin cannot be edited independently —
 the original reason the pin was once removed was a stale `2.2.4` sitting under
@@ -82,7 +89,7 @@ WPPConnect Server's source, so mechanism 1 cannot reach it. There are four such
 patch modules in `client/core/`:
 
 ```
-wppconnect_host_layer_patch.py      host.layer.js    — pairing-code rotation cooldown
+wppconnect_host_layer_patch.py      host.layer.js    — pairing-code lifecycle (rotation cooldown on <= 2.3.1, link-code gating + reporting on >= 2.3.2)
 wppconnect_sender_layer_patch.py    sender.layer.js  — attachment sending
 wppconnect_status_layer_patch.py    status.layer.js  — status post success/failure
 wppconnect_welcome_layer_patch.py   welcome.js

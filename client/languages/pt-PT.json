@@ -12,6 +12,7 @@
     "pairing_code_label": "Código de emparelhamento:",
     "connecting": "A conectar...",
     "qrcode_updated": "O código de emparelhamento foi atualizado.",
+    "pairing_code_expired": "O código de emparelhamento expirou e não será mais atualizado. Cancele e tente novamente para receber um novo código.",
     "qrcode_image_updated": "O código QR foi atualizado.",
     "qrcode_instructions": "Aponte o telemóvel para o código QR exibido do lado direito do ecrã.",
     "connect_with_phone": "Ligar através do número de &telemóvel",

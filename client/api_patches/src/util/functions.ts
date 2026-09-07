@@ -31,6 +31,7 @@ import { promisify } from 'util';
 import config from '../config';
 import { convert } from '../mapper/index';
 import { ServerOptions } from '../types/ServerOptions';
+import { WhatsAppServer } from '../types/WhatsAppServer';
 import { bucketAlreadyExists } from './bucketAlreadyExists';
 
 let mime: any, crypto: any; //, aws: any;
@@ -398,4 +399,47 @@ export const unlinkAsync = promisify(fs.unlink);
 export function createCatalogLink(session: any) {
   const [wid] = session.split('@');
   return `https://wa.me/c/${wid}`;
+}
+
+/**
+ * `client.isConnected()`, given at most `budgetMs` to answer. Resolves to
+ * undefined when the budget runs out first.
+ *
+ * wppconnect 2.3.2 made isConnected() await waitForPageLoad(), which sits on
+ * puppeteer's default 30s waiting for WPP.isReady — so on a WhatsApp Web
+ * reload this call stops being the cheap probe both of its callers were
+ * written around, and each of them has its own deadline it must answer
+ * within. Neither can wait 30s for it.
+ *
+ * The losing probe is left to settle on its own with a rejection handler
+ * already attached: an isConnected() that throws after the race was decided
+ * would otherwise be an unhandled rejection, and Node exits the process on
+ * those. On a page that never becomes ready that probe never settles either,
+ * so every timed-out call leaves one page.waitForFunction() pending inside
+ * Chromium — accepted deliberately: the callers are request- and tick-driven,
+ * so the count is bounded by the request rate, and each one is discarded with
+ * the page the moment the session is restarted (which is precisely what a
+ * bounded probe reporting Disconnected is there to bring about). Concretely,
+ * the health check polls every ~30s and two consecutive strikes restart the
+ * session, so a stuck page accumulates ~2-3 of them before it is torn down.
+ */
+export async function probeIsConnected(
+  client: WhatsAppServer,
+  budgetMs: number
+): Promise<boolean | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const probe = Promise.resolve(client.isConnected());
+  probe.catch(() => undefined);
+  try {
+    return await Promise.race<boolean | undefined>([
+      probe,
+      new Promise<undefined>((resolve) => {
+        timer = setTimeout(() => resolve(undefined), Math.max(0, budgetMs));
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }

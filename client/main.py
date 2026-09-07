@@ -1840,6 +1840,10 @@ class MainWindow(wx.Frame):
         # confirmed, so the "connected" sound plays on connection to WhatsApp
         # and not merely on connection to the local API.
         self._wa_connect_announced = False
+        # Whether /send-capabilities has already given a verdict this session.
+        # Its own latch rather than _wa_connect_announced's: the probe has to
+        # be able to ask again when it could not be answered at all.
+        self._send_capabilities_checked = False
         # IDs of messages sent by WinZapp itself (via MessageQueue).  Used by
         # WebSocketClient.on_messages_upsert to distinguish "echo of our own
         # send" (skip — already in UI) from "sent on another device" (show).
@@ -4183,18 +4187,41 @@ class MainWindow(wx.Frame):
             self._offline_announce_deferred = False
             self._apply_offline_state()
             logging.info("[connection] WhatsApp connection is up (%s)", reason or "checked")
-            first_ever_connect = not self._wa_connect_announced
-            if first_ever_connect:
-                self._wa_connect_announced = True
-                # Earliest moment /send-capabilities can answer anything: the
-                # route sits behind statusConnection, which 404s "Disconnected"
-                # until the session is attached. On its own thread because this
-                # method also runs on the message-queue worker.
+            # Earliest moment /send-capabilities can answer anything: the
+            # route sits behind statusConnection, which 404s "Disconnected"
+            # until the session is attached. On its own thread because this
+            # method also runs on the message-queue worker.
+            #
+            # Gated on its own latch rather than on first_ever_connect, which
+            # gave the probe exactly one attempt per process: CONNECTED can be
+            # promoted by the state listener without isConnected() ever having
+            # succeeded (createSessionUtil.start()'s "The event wins"), and in
+            # that state the probe queues behind the same statusConnection
+            # probe, gives up unanswered and logs "unavailable" — silencing the
+            # incompatibility warning for the rest of the session, in the very
+            # release whose point is that the runtime changed.
+            # _check_send_capabilities() retries an unavailable answer on
+            # its own thread first (this latch is only re-read on a real
+            # offline→online transition, and the session that case describes
+            # may never oscillate again) and clears the latch only once that
+            # budget is spent; _send_capabilities_warning still dedupes the
+            # announcement, so a later attempt cannot speak twice.
+            #
+            # Read and written without a lock, deliberately and in the same
+            # shape as _wa_connect_announced right below it: this method runs
+            # both on the wx thread and on the MessageQueue worker, and the
+            # worst a lost race can cost is one extra probe and a duplicate log
+            # line — the dedupe above already owns what the user hears.
+            if not self._send_capabilities_checked:
+                self._send_capabilities_checked = True
                 threading.Thread(
                     target=self._check_send_capabilities,
                     daemon=True,
                     name="wpp-send-capabilities",
                 ).start()
+            first_ever_connect = not self._wa_connect_announced
+            if first_ever_connect:
+                self._wa_connect_announced = True
                 if not self.background_mode:
                     self.connected_sound.play()
             elif announce and not self.background_mode:
@@ -7723,6 +7750,13 @@ class MainWindow(wx.Frame):
                 return
         logging.info("[startup] WhatsApp Web version pin OK (no fallback reported by WPPConnect).")
 
+    # Delays between attempts when the route could not answer, and the whole
+    # budget: ~2.5 minutes, then the latch is re-armed and a later confirmed
+    # connection may try again. Bounded and short on purpose — all this decides
+    # is whether one incompatibility warning is spoken, so it must never turn
+    # into a background poller of a route that runs page.evaluate work.
+    _SEND_CAPABILITIES_RETRY_DELAYS = (30.0, 120.0)
+
     def _check_send_capabilities(self):
         """Warn once when an update changed a send API WinZapp depends on.
 
@@ -7737,39 +7771,72 @@ class MainWindow(wx.Frame):
         same branch. This now runs from the first confirmed connection instead
         (see _set_wa_connected), which is the earliest point the probe can
         answer at all.
+
+        An unavailable answer is retried here, on this thread, along
+        _SEND_CAPABILITIES_RETRY_DELAYS, and only then re-arms the probe
+        (`_send_capabilities_checked`) for a later confirmed connection. On
+        wppconnect 2.3.2 the route can be fronted by a statusConnection probe
+        that is itself waiting on a reloading page, and a connection whose
+        CONNECTED came from the state listener rather than from isConnected()
+        is exactly when that happens — one shot per process would spend it
+        there and never warn.
+
+        The retry is what covers that case, and the re-arm alone does not:
+        _set_wa_connected() returns early when nothing changed, so the latch is
+        only ever re-read on a real offline→online transition — and the
+        "the event wins" session this is written for is precisely the one whose
+        connection may never oscillate again. The latch stays set while the
+        retries run, so a reconnection in the middle of them cannot start a
+        second probe alongside this one.
         """
-        try:
-            url = (
-                f"{self.wpp_server}:{self.wpp_port}/api/{self.token}"
-                "/send-capabilities"
-            )
-            response = api_get(url, token=self.token, timeout=10)
-            body = response.json()
-            details = body.get("response") if isinstance(body, dict) else None
-            if not isinstance(details, dict) or "compatible" not in details:
-                # 404/Disconnected, a 500 from a page.evaluate that could not
-                # run, anything else without a verdict: unavailable, not
-                # incompatible.
-                logging.warning(
-                    "[startup] Send compatibility probe unavailable (HTTP %s): %s",
-                    response.status_code, str(body)[:300],
+        for delay in (0.0,) + self._SEND_CAPABILITIES_RETRY_DELAYS:
+            if delay:
+                # Checked before sleeping, not after: a connection that has
+                # already dropped will re-arm the latch and start a fresh probe
+                # of its own when it comes back, so waiting here would only
+                # race it — and this thread would sit through the whole delay
+                # for nothing on the way to a shutdown.
+                if not getattr(self, "_wa_connected", False):
+                    break
+                if getattr(self, "_shutting_down", False):
+                    break
+                time.sleep(delay)
+            try:
+                url = (
+                    f"{self.wpp_server}:{self.wpp_port}/api/{self.token}"
+                    "/send-capabilities"
                 )
+                response = api_get(url, token=self.token, timeout=10)
+                body = response.json()
+                details = body.get("response") if isinstance(body, dict) else None
+                if not isinstance(details, dict) or "compatible" not in details:
+                    # 404/Disconnected, a 500 from a page.evaluate that could
+                    # not run, anything else without a verdict: unavailable,
+                    # not incompatible.
+                    logging.warning(
+                        "[startup] Send compatibility probe unavailable (HTTP %s): %s",
+                        response.status_code, str(body)[:300],
+                    )
+                    continue
+                if details.get("compatible") is True:
+                    logging.info("[startup] Send compatibility probe passed: %s", details)
+                    return
+                signature = json.dumps(details, ensure_ascii=False, sort_keys=True)[:1000]
+                if getattr(self, "_send_capabilities_warning", "") == signature:
+                    return
+                self._send_capabilities_warning = signature
+                logging.error("[startup] Send compatibility probe failed: %s", signature)
+                # Deliberately NOT interrupt=True: the unpinned-version warning
+                # is queued moments earlier on the one path where both fire, and
+                # interrupting cut it off mid-sentence — leaving the user with
+                # neither message.
+                wx.CallAfter(self.output, self.i18n.t("send_capabilities_incompatible"))
                 return
-            if details.get("compatible") is True:
-                logging.info("[startup] Send compatibility probe passed: %s", details)
-                return
-            signature = json.dumps(details, ensure_ascii=False, sort_keys=True)[:1000]
-            if getattr(self, "_send_capabilities_warning", "") == signature:
-                return
-            self._send_capabilities_warning = signature
-            logging.error("[startup] Send compatibility probe failed: %s", signature)
-            # Deliberately NOT interrupt=True: the unpinned-version warning is
-            # queued moments earlier on the one path where both fire, and
-            # interrupting cut it off mid-sentence — leaving the user with
-            # neither message.
-            wx.CallAfter(self.output, self.i18n.t("send_capabilities_incompatible"))
-        except Exception as exc:
-            logging.warning("[startup] Send compatibility probe unavailable: %s", exc)
+            except Exception as exc:
+                logging.warning("[startup] Send compatibility probe unavailable: %s", exc)
+        # Nothing answered within the budget — hand the next confirmed
+        # connection its own chance.
+        self._send_capabilities_checked = False
 
     # How long to wait for a close-session to actually flush WhatsApp Web's auth
     # state to disk before we hard-kill the Node. Generous because a large
@@ -10882,8 +10949,14 @@ class MainWindow(wx.Frame):
           because this signal didn't exist yet).
         * ``/check-connection-session``, which reports the session as
           Disconnected when WhatsApp Web itself has gone down inside the
-          browser.  (It only reports a failure when the underlying call
-          *throws*, so a False here is meaningful but a True is not conclusive.)
+          browser.  Only an explicit ``true`` from the page counts as
+          Connected there: a thrown ``isConnected()`` (a reload with the WAPI
+          namespace gone), a ``false`` one, and one still unanswered after the
+          route's own 8 s budget all answer False — so a False here is
+          meaningful but a True is not conclusive.  That budget matters: it is
+          what keeps the answer inside the 10 s allowed below, and a request
+          that times out instead raises into the ``except`` and counts no
+          strike at all.
         * a direct reachability probe against WhatsApp's servers, which is what
           catches the plain "this machine has no internet" case.
 
@@ -10953,13 +11026,14 @@ class MainWindow(wx.Frame):
             # And during an initial sync, two strikes / ~60 s is not enough of
             # a window for it. This branch is reached only when the local API
             # *answered* — with status:false, i.e. isConnected() threw inside
-            # the page — so the reason to be more patient here is the reload
-            # above, not a busy Node (a Node too busy to answer raises in the
-            # `except` and never gets this far). A reload is both likelier and
-            # slower to finish while WhatsApp Web is being driven through a
-            # long history download than it is on an idle session, and the
-            # measured one already lasted 28 s on its own. Observed live: a
-            # long initial sync ending in "modo offline" and then a full
+            # the page, answered false, or was still unanswered when the
+            # route's own budget ran out — so the reason to be more patient
+            # here is the reload above, not a busy Node (a Node too busy to
+            # answer raises in the `except` and never gets this far). A reload
+            # is both likelier and slower to finish while WhatsApp Web is being
+            # driven through a long history download than on an idle session,
+            # and the measured one already lasted 28 s on its own. Observed
+            # live: a long initial sync ending in "modo offline" and then a full
             # disconnect a health-check cycle or two later, with no real
             # network interruption. The widened budget is capped in wall-clock
             # time — see probe_strike_budget() for why ~10 minutes of holding
@@ -19465,8 +19539,36 @@ class MainWindow(wx.Frame):
 
         Marks the connection as down (which pauses the MessageQueue and turns
         on automatic offline mode) and returns True when either is seen.
+
+        **``reason: "probe_timeout"`` is the exception, and the only one.**
+        That 404 says the middleware's own bounded ``isConnected()`` probe went
+        unanswered inside its 8 s budget — proof that the request never reached
+        a controller, and no evidence at all about WhatsApp.  It is still
+        "disconnected" for the caller (every send returns
+        ``{"disconnected": True}`` so MessageQueue keeps the message queued
+        rather than dropping it as ambiguous, and every sync caller leaves its
+        retry ladder), but it must not flip the connection state: this
+        middleware also fronts ``list-chats``, whose callers
+        (``get_remote_chats`` from ``start_sync``, the post-sync settling pass,
+        ``_probe_chats_and_start_sync``) are background work nobody asked for.
+        An ordinary WhatsApp Web reload overlapping a sync round would then
+        announce "modo offline" with sound and speech and, once the next probe
+        found the page healthy again, "conexão restaurada" seconds later — the
+        exact outcome ``_OFFLINE_PROBE_STRIKES`` was added for, over the
+        session probe, after a measured 28 s reload did it.  Nothing is lost by
+        staying quiet: ``check-connection-session`` is deliberately *not* behind
+        this middleware, and it runs a bounded probe of its own (8 s, under the
+        10 s ``check_whatsapp_reachable()`` gives that request) that answers
+        ``status: false`` when the probe goes unanswered — so a page that really
+        is stuck still reaches the consecutive-strike tally there on the next
+        health-check tick.  That budget on the Node side is what makes this
+        sentence true, and it is not decoration: unbounded, this client timed
+        out first, and a client-side timeout raises into an ``except`` that
+        counts no strike at all — a page that never reaches ``WPP.isReady``
+        would stay "connected" forever with every send quietly requeued.
         """
         disconnected = False
+        probe_timeout = False
         try:
             body = response.json()
         except Exception:
@@ -19475,6 +19577,7 @@ class MainWindow(wx.Frame):
             if response.status_code == 404 and isinstance(body, dict):
                 if str(body.get("status", "")).lower() == "disconnected":
                     disconnected = True
+                    probe_timeout = str(body.get("reason", "")) == "probe_timeout"
             if response.status_code in (500, 502, 503) and isinstance(body, dict):
                 err_obj = body.get("error", {})
                 err_name = str(err_obj.get("name", "")) if isinstance(err_obj, dict) else ""
@@ -19487,6 +19590,13 @@ class MainWindow(wx.Frame):
                     disconnected = True
         except Exception:
             pass
+        if disconnected and probe_timeout:
+            logging.info(
+                "[send] The connection probe in front of this route went unanswered "
+                "(HTTP 404 probe_timeout) — treating the call as not delivered, but "
+                "leaving the connection state alone; the health checker decides that."
+            )
+            return True
         if disconnected:
             logging.warning("[send] WhatsApp reported Disconnected or TargetCloseError — pausing queue and triggering session recovery")
             self._set_wa_connected(False, "API answered Disconnected or TargetCloseError")

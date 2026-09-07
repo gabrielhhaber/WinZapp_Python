@@ -27,7 +27,10 @@ import os
 
 import pytest
 
-from core.wppconnect_welcome_layer_patch import ALL_PATCHES
+from core.wppconnect_welcome_layer_patch import (
+    ALL_PATCHES, PATCHED_LATEST_VERSION_REQUIRE,
+    latest_version_dependency_is_gone,
+)
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -166,3 +169,72 @@ class TestApiSetupDialogPatch:
         content = welcome_js.read_text(encoding="utf-8")
         assert 'require("latest-version")' not in content
         assert "__importDefault((async () => \"\"))" in content
+
+
+#: welcome.js as wppconnect 2.3.2 ships it: `latest-version` is gone from
+#: package.json entirely and the update check asks the npm registry over
+#: `fetch`. There is no require() left to stub, so the crash this whole module
+#: exists for cannot happen on that runtime.
+_WELCOME_JS_WITHOUT_LATEST_VERSION = '''"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.welcomeScreen = welcomeScreen;
+exports.checkUpdates = checkUpdates;
+const boxen_1 = __importDefault(require("boxen"));
+const chalk_1 = __importDefault(require("chalk"));
+const logger_1 = require("../utils/logger");
+async function checkUpdates() {
+    const response = await fetch(`https://registry.npmjs.org/${packageName}/latest`);
+    return (await response.json()).version;
+}
+'''
+
+
+class TestARuntimeThatNeverImportsItIsAlreadySatisfied:
+    """wppconnect 2.3.2 removed the dependency, which is the patch's goal
+    reached — not a pattern that failed to match.
+
+    Reported as a miss it is a warning on every single launch (both callers
+    re-run these patches from an already-installed tree), and a warning that
+    means "everything is fine" is exactly how the two real misses on that same
+    release — checkQrCode and loginByCode silently unpatched — went unread for
+    a whole version.
+    """
+
+    def test_the_helper_reads_the_absence_as_satisfied(self):
+        assert latest_version_dependency_is_gone(_WELCOME_JS_WITHOUT_LATEST_VERSION)
+
+    def test_a_file_that_still_imports_it_is_not(self):
+        assert not latest_version_dependency_is_gone(_PRISTINE_WELCOME_JS)
+
+    def test_an_already_patched_file_is_not_mistaken_for_one(self):
+        """Applying the patch is itself what removes the last mention of the
+        package name, so the package-name check alone would report a file this
+        module had just fixed as one that never needed fixing."""
+        patched = _PRISTINE_WELCOME_JS.replace(
+            'require("latest-version")', PATCHED_LATEST_VERSION_REQUIRE, 1
+        )
+        assert "latest-version" not in patched
+        assert not latest_version_dependency_is_gone(patched)
+
+    def test_setup_api_reports_success_and_writes_nothing(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        client_api_root, _, welcome_js = fake_wppconnect_dist
+        welcome_js.write_text(_WELCOME_JS_WITHOUT_LATEST_VERSION, encoding="utf-8")
+
+        ok = setup_api._patch_wppconnect_welcome_layer(str(client_api_root))
+
+        assert ok is True
+        assert welcome_js.read_text(encoding="utf-8") == _WELCOME_JS_WITHOUT_LATEST_VERSION
+
+    def test_the_dialog_agrees(self, fake_wppconnect_dist):
+        from ui.dialogs.api_setup import ApiSetupDialog
+        _, dist_api_dir, welcome_js = fake_wppconnect_dist
+        welcome_js.write_text(_WELCOME_JS_WITHOUT_LATEST_VERSION, encoding="utf-8")
+
+        ok = ApiSetupDialog._patch_wppconnect_welcome_layer(str(dist_api_dir))
+
+        assert ok is True
+        assert welcome_js.read_text(encoding="utf-8") == _WELCOME_JS_WITHOUT_LATEST_VERSION
