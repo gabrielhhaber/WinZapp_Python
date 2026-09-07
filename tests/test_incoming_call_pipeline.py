@@ -1,8 +1,8 @@
 """Regression coverage for the native incoming-call pipeline.
 
 (This file used to also carry test_wa_js_dependency_is_pinned_to_an_exact_
-revision, which asserted the opposite of WinZapp's actual policy — see
-tests/test_wpp_dependency_not_pinned.py, which replaced it.)
+revision, a guard that could not fail — see
+tests/test_wpp_homologated_runtime_pin.py, which replaced it.)
 """
 
 from pathlib import Path

@@ -151,36 +151,50 @@ jobs:
 
       # Clones the WPPConnect Server repo into client/api/ and restores
       # WinZapp's custom files (start.js, package.json, config.json, src patches).
-      # No WPPCONNECT_TAG_VERSION is set here on purpose — setup_api.py
-      # auto-tracks the latest stable wppconnect-server release tag when
-      # unset, so this always builds against whatever is current instead of
-      # a hand-maintained pin that silently goes stale.
+      # No WPPCONNECT_TAG_VERSION is set here on purpose — with the env var
+      # unset, setup_api.py falls back to client/wpp_minimum_version.txt and
+      # checks out that exact tag, which is what the verification step below
+      # depends on. (It only auto-tracks the latest release when that file is
+      # unreadable too.) The homologated tag and the exact
+      # @wppconnect-team/wppconnect + @wppconnect/wa-js pins in
+      # client/api_patches/package.json move together, by hand, on purpose.
       - name: Set up WPPConnect Server
         run: venv\Scripts\python.exe setup_api.py
 
       # ensure_wpp_version() (client/main.py) compares an *installed*
       # api/package.json's version against the minimum baked into
-      # client/wpp_minimum_version.txt at build time, and prompts the user
-      # to update WPPConnect Server when the installed copy is older than
-      # what this WinZapp build was actually built/tested against. Without
-      # this step the file never exists at all, so that gate is silently a
-      # no-op on every shipped release. Reading it back out of
-      # client/api/package.json (rather than hardcoding a version string
-      # here) keeps it in sync with whatever setup_api.py just checked out
-      # above, tag pin or not. A dedicated plain-text file rather than a
-      # bundled .env — see _read_wpp_minimum_version()'s docstring for why
-      # WinZapp no longer ships a .env from the build at all.
-      - name: Write the minimum WPPConnect version WinZapp requires
+      # client/wpp_minimum_version.txt, and prompts the user to update
+      # WPPConnect Server when the installed copy is older than what this
+      # WinZapp build was actually built/tested against.
+      #
+      # That file is now committed, and it is the INPUT rather than the
+      # output: setup_api.py reads it to decide which WPPConnect tag to check
+      # out, so a step that overwrote it from client/api/package.json could
+      # only ever agree with itself — and would silently rewrite the
+      # homologated pair the moment the checkout drifted. Verify instead and
+      # fail the build on a mismatch, which is the only signal that says
+      # somebody has to move the pin deliberately. A dedicated plain-text file
+      # rather than a bundled .env — see _read_wpp_minimum_version()'s
+      # docstring for why WinZapp no longer ships a .env from the build.
+      - name: Verify the homologated WPPConnect version matches what was built
         shell: pwsh
         run: |
           $pkg = Get-Content "client\api\package.json" -Raw | ConvertFrom-Json
-          $version = $pkg.version
-          if ([string]::IsNullOrWhiteSpace($version)) {
+          $built = $pkg.version
+          if ([string]::IsNullOrWhiteSpace($built)) {
             Write-Error "Could not read a version from client/api/package.json"
             exit 1
           }
-          Set-Content -Path "client\wpp_minimum_version.txt" -Value $version -Encoding utf8 -NoNewline
-          Write-Output "[INFO] client/wpp_minimum_version.txt: $version"
+          $declared = (Get-Content "client\wpp_minimum_version.txt" -Raw).Trim()
+          if ([string]::IsNullOrWhiteSpace($declared)) {
+            Write-Error "client/wpp_minimum_version.txt is missing or empty"
+            exit 1
+          }
+          if ($declared -ne $built) {
+            Write-Error "client/wpp_minimum_version.txt says $declared but client/api/ was built from $built. Update the committed file (and client/api_patches/package.json) on purpose."
+            exit 1
+          }
+          Write-Output "[INFO] client/wpp_minimum_version.txt: $declared"
 
       # Install JS dependencies and compile TypeScript → dist/server.js.
       # PUPPETEER_SKIP_DOWNLOAD skips the ~680 MB Chrome download — the app

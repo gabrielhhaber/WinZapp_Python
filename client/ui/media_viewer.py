@@ -689,7 +689,14 @@ class MediaViewerDialog(wx.Dialog):
                 return
             self._like_btn.Enable()
             if ok:
-                self._like_btn.SetLabel(self.i18n.t("status_unlike"))
+                liked = bool(
+                    self._is_liked_cb(item)
+                    if self._is_liked_cb is not None
+                    else True
+                )
+                self._like_btn.SetLabel(
+                    self.i18n.t("status_unlike" if liked else "status_like")
+                )
 
         try:
             self._on_like_cb(item, _done)

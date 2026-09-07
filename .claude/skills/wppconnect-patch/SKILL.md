@@ -44,15 +44,36 @@ check is containment rather than equality.
 
 Not a full-file restore. `_merge_package_json_dependencies()` overrides only the
 entries named in `_PATCHED_DEPENDENCY_KEYS` (today: `prom-client`, `zod`,
-`@ffmpeg-installer/ffmpeg`) and re-serializes, so WPPConnect Server's own
-`version` field keeps reflecting the tag actually cloned. Both `setup_api.py`
-and `api_setup.py` carry that list and a test holds them equal.
+`@ffmpeg-installer/ffmpeg`, `qrcode`, `@wppconnect-team/wppconnect`,
+`@wppconnect/wa-js`) and re-serializes, so WPPConnect Server's own `version`
+field keeps reflecting the tag actually cloned. Both `setup_api.py` and
+`api_setup.py` carry that list and a test holds them equal.
 
-**Never pin `@wppconnect-team/wppconnect`.** It was once forced to an exact
-version that went stale within days — that package releases several times a
-week, and wppconnect-server's own `package.json` had already moved to a newer
-one, so WinZapp silently ran an incompatible pairing implementation. A test
-exists solely to assert the pin stays gone.
+**`@wppconnect-team/wppconnect` + `@wppconnect/wa-js` are one homologated pair,
+pinned exact.** They are the compiled code mechanism 3 rewrites by literal
+search-and-replace and that `deviceController.ts` drives through private WA-JS
+loader APIs, so a caret range lets a plain reinstall move the browser-side send
+and status APIs underneath an unchanged WinZapp build, with nothing failing
+until a user tries to send something. Measured: `2.3.2` (resolved from
+upstream's own `^2.2.7` while nothing pinned the key) rewrote `host.layer.js`'s
+`checkQrCode()`/`loginByCode()`, which turned the v8 pairing-code rotation
+cooldown into a silent no-op — two warnings among forty lines of `setup_api.py`
+output, and nothing else.
+
+Moving the pair is a deliberate act: bump both keys **and**
+`client/wpp_minimum_version.txt` in the same commit, after running all four
+`node_modules` patches against the candidate and confirming each still matches.
+
+The pin is also why the server tag and the pin cannot be edited independently —
+the original reason the pin was once removed was a stale `2.2.4` sitting under
+a server release that had already moved to `^2.2.6`, i.e. a pin that no longer
+satisfied its own server's range. That is now a test
+(`tests/test_wpp_homologated_runtime_pin.py`), not a prohibition.
+
+**`@wppconnect/wa-version` stays unpinned**, deliberately: it is the expiring
+catalogue of WhatsApp Web builds, not an API surface, and freezing it strands
+an install on entries Meta has stopped serving (see CLAUDE.md's version-pin
+section).
 
 ## Mechanism 3 — compiled code inside `node_modules`
 
@@ -64,11 +85,8 @@ patch modules in `client/core/`:
 wppconnect_host_layer_patch.py      host.layer.js    — pairing-code rotation cooldown
 wppconnect_sender_layer_patch.py    sender.layer.js  — attachment sending
 wppconnect_status_layer_patch.py    status.layer.js  — status post success/failure
-wppconnect_welcome_layer_patch.py   welcome.layer.js
+wppconnect_welcome_layer_patch.py   welcome.js
 ```
-
-(Note: CLAUDE.md still describes only the first and third — it predates the
-other two.)
 
 Each holds the patch text as `ORIGINAL_*` / `PATCHED_*` constants plus an
 `ALL_PATCHES` tuple, applied by **idempotent search-and-replace**. Follow that

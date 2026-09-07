@@ -250,6 +250,7 @@ _STALE_RETRY_TIMEOUT = 2.0
 
 def api_request(method: str, url: str, *, token: str = "", request_id: str = "",
                 timeout: float = 30, session: requests.Session = None,
+                retry_stale_socket: bool = False,
                 **kwargs) -> requests.Response:
     """Perform one call to the Node API, logged and correlated.
 
@@ -282,7 +283,8 @@ def api_request(method: str, url: str, *, token: str = "", request_id: str = "",
         _scrub_exception_args(exc)
 
         # Retry a stale keep-alive socket ONCE — but only for a method that is
-        # safe to repeat.
+        # safe to repeat, or when the caller explicitly guarantees that its
+        # operation is idempotent (status reaction set/remove is one).
         #
         # A connection dropped before any response is ambiguous by nature: the
         # server may have processed the request and lost the socket while
@@ -299,7 +301,7 @@ def api_request(method: str, url: str, *, token: str = "", request_id: str = "",
         # errors — a blanket retry doubles every poll's worst case inside that
         # budget, which is what keeps taskkill off a half-written profile.
         is_stale_socket = (
-            method.lower() in ("get", "head")
+            (method.lower() in ("get", "head") or retry_stale_socket)
             and (time.monotonic() - started) < 2.0
             and any(err in str(exc) for err in (
                 "RemoteDisconnected", "Connection aborted", "ConnectionResetError",

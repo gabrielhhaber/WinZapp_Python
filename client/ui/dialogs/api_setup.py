@@ -60,6 +60,7 @@ import requests
 import wx
 
 from app_paths import resource_path
+from core.wpp_runtime import homologated_wpp_tag
 
 # GitHub download URLs — no git required
 _REPO_ZIP_MAIN = (
@@ -131,16 +132,13 @@ _CUSTOM_ROOT_FILES = [
 # against the latest GitHub release — at a value that has nothing to do with
 # the tag actually downloaded here.
 #
-# @wppconnect-team/wppconnect is deliberately NOT in this list. It used to be,
-# pinned to an exact version that went stale within days — this dependency
-# releases multiple times a week, and wppconnect-server's own package.json can
-# (and did) move on to requiring a newer one than whatever WinZapp had frozen,
-# silently running an incompatible pairing with no error anywhere. Leaving it
-# out means upstream's own declared range wins, same as every other unpinned
-# dependency — and @wppconnect/wa-js / @wppconnect/wa-version, which WinZapp
-# never pins directly either, come along transitively at whichever paired
-# version @wppconnect-team/wppconnect itself resolves to.
+# Executable WPPConnect/WA-JS code is pinned to the exact pair homologated with
+# this WinZapp patch set. A caret range allowed reinstalling an unchanged server
+# to silently replace both APIs. The expiring wa-version HTML catalogue remains
+# transitively updateable and is deliberately not frozen here.
 _PATCHED_DEPENDENCY_KEYS = [
+    "@wppconnect-team/wppconnect",
+    "@wppconnect/wa-js",
     "prom-client",  # imported by src/middleware/instrumentation.ts, which is
                     # WinZapp's own patch. Upstream happens to declare it too,
                     # but under devDependencies — so our production import is
@@ -908,6 +906,13 @@ class ApiSetupDialog(wx.Dialog):
             if not modules_only:
                 self._set_stage(self._i18n.t("api_setup_resolving_tag"), *stages["resolve_tag"])
                 tag = self._forced_tag if self._forced_tag is not None else self._read_env_value("WPPCONNECT_TAG_VERSION")
+                if not tag:
+                    tag = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
+                    if tag:
+                        logging.info(
+                            "[api_setup] Using WinZapp homologated WPPConnect tag: %s",
+                            tag,
+                        )
                 if not tag:
                     # No explicit tag was requested and .env doesn't pin one — resolve
                     # the actual latest GitHub release instead of defaulting straight

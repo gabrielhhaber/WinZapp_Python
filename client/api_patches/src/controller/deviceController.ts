@@ -1273,29 +1273,148 @@ export async function reactMessage(req: Request, res: Response) {
           }
 
           const pageWindow = window as any;
+          const loader = WPP?.loader;
           let statusReactionAction: any = null;
+          let moduleSource = 'none';
+          const moduleErrors: string[] = [];
+
+          // Prefer WA-JS's loader: unlike window.require it survives the
+          // webpack/meta loader changes made by WhatsApp Web. If the exported
+          // module name changes, locate it by capability instead of coupling
+          // the status feature to another private module id.
           try {
-            statusReactionAction = pageWindow.require?.(
+            statusReactionAction = loader?.moduleRequire?.(
               'WAWebSendStatusReactionAction'
             );
+            if (typeof statusReactionAction?.sendStatusReaction === 'function') {
+              moduleSource = 'wpp-loader-name';
+            }
           } catch (error) {
-            return {
-              ok: false,
-              detail: `native-status-reaction-module-error: ${String(
-                (error as any)?.message || error
-              )}`,
-            };
+            moduleErrors.push(
+              `wpp-loader-name=${String((error as any)?.message || error)}`
+            );
+          }
+          if (typeof statusReactionAction?.sendStatusReaction !== 'function') {
+            try {
+              statusReactionAction = loader?.search?.(
+                (candidate: any) =>
+                  typeof candidate?.sendStatusReaction === 'function',
+                true,
+                'StatusReaction'
+              );
+              if (
+                typeof statusReactionAction?.sendStatusReaction === 'function'
+              ) {
+                moduleSource = 'wpp-loader-capability';
+              }
+            } catch (error) {
+              moduleErrors.push(
+                `wpp-loader-search=${String((error as any)?.message || error)}`
+              );
+            }
+          }
+          if (typeof statusReactionAction?.sendStatusReaction !== 'function') {
+            try {
+              statusReactionAction = pageWindow.require?.(
+                'WAWebSendStatusReactionAction'
+              );
+              if (
+                typeof statusReactionAction?.sendStatusReaction === 'function'
+              ) {
+                moduleSource = 'window-require';
+              }
+            } catch (error) {
+              moduleErrors.push(
+                `window-require=${String((error as any)?.message || error)}`
+              );
+            }
+          }
+          if (typeof statusReactionAction?.sendStatusReaction !== 'function') {
+            // Last resort, and the one that matters on WhatsApp Web >= 2.3000:
+            // the module graph is split into bundles the Bootloader fetches on
+            // demand, so a module whose bundle this session never needed is
+            // absent from the registry entirely — moduleRequire, search and
+            // window.require above can all only ever see what is registered.
+            // ensureLazyModule() asks WhatsApp to fetch it the way the UI
+            // would. Best-effort by design: it answers false on the legacy
+            // webpack loader and for modules WA-JS does not list, in which
+            // case nothing changes and we fall through to the error below.
+            try {
+              await loader?.ensureLazyModule?.('WAWebSendStatusReactionAction');
+              statusReactionAction = loader?.moduleRequire?.(
+                'WAWebSendStatusReactionAction'
+              );
+              if (
+                typeof statusReactionAction?.sendStatusReaction === 'function'
+              ) {
+                moduleSource = 'wpp-loader-lazy';
+              }
+            } catch (error) {
+              moduleErrors.push(
+                `wpp-loader-lazy=${String((error as any)?.message || error)}`
+              );
+            }
           }
           if (typeof statusReactionAction?.sendStatusReaction !== 'function') {
             return {
               ok: false,
-              detail: 'native-status-reaction-action-not-found',
+              detail:
+                'native-status-reaction-action-not-found; ' +
+                `loader=${String(loader?.loaderType || 'unknown')}; ` +
+                `ready=${String(loader?.isReady ?? 'unknown')}; ` +
+                `errors=${moduleErrors.join('|') || 'none'}`,
             };
           }
-          await statusReactionAction.sendStatusReaction(model, reaction || '');
+          const reactionText = reaction || '';
+          const sendStatusReaction = statusReactionAction.sendStatusReaction;
+          const hasCurrentReactionCompanions =
+            typeof statusReactionAction.mintStatusReactionKey === 'function' &&
+            typeof statusReactionAction.applyOptimisticStatusReaction ===
+              'function';
+          let callShape = 'legacy-2';
+
+          // WhatsApp Web changed this private action from
+          // (status, reaction) to (status, reaction, reactionKey,
+          // previousOptimisticReaction). Calling the new form with two
+          // arguments fails inside msgKey.toString(). Build the two values
+          // through the companion exports from the same module, while keeping
+          // the legacy call for older web builds.
+          if (hasCurrentReactionCompanions || sendStatusReaction.length >= 3) {
+            if (!hasCurrentReactionCompanions) {
+              return {
+                ok: false,
+                detail:
+                  'native-status-reaction-signature-unsupported; ' +
+                  `arity=${sendStatusReaction.length}; ` +
+                  `mint=${typeof statusReactionAction.mintStatusReactionKey}; ` +
+                  `optimistic=${typeof statusReactionAction.applyOptimisticStatusReaction}`,
+              };
+            }
+            const reactionKey =
+              await statusReactionAction.mintStatusReactionKey(model);
+            const previousOptimisticReaction =
+              statusReactionAction.applyOptimisticStatusReaction(
+                model,
+                reactionText,
+                reactionKey
+              );
+            await sendStatusReaction(
+              model,
+              reactionText,
+              reactionKey,
+              previousOptimisticReaction
+            );
+            callShape = `current-${sendStatusReaction.length}`;
+          } else {
+            await sendStatusReaction(model, reactionText);
+          }
           return {
             ok: true,
-            detail: `native-status-reaction-completed; author=${authorText}`,
+            detail:
+              `native-status-reaction-completed; author=${authorText}; ` +
+              `module=${moduleSource}; signature=${callShape}; loader=${String(
+                loader?.loaderType || 'unknown'
+              )}`,
           };
         },
         { msgId, reaction }
@@ -1337,6 +1456,86 @@ export async function reactMessage(req: Request, res: Response) {
       message: 'Error on send reaction to message',
       error: e && e.message ? e.message : String(e),
       stack: e && e.stack ? String(e.stack) : undefined,
+    });
+  }
+}
+
+/** Read-only compatibility probe for every send primitive WinZapp uses. */
+export async function getSendCapabilities(req: Request, res: Response) {
+  try {
+    const capabilities = await req.client.page.evaluate(async () => {
+      const WPP = (window as any).WPP;
+      const loader = WPP?.loader;
+      const checks: Record<string, boolean> = {
+        text: typeof WPP?.chat?.sendTextMessage === 'function',
+        media: typeof WPP?.chat?.sendFileMessage === 'function',
+        statusText: typeof WPP?.status?.sendTextStatus === 'function',
+        statusImage: typeof WPP?.status?.sendImageStatus === 'function',
+        statusVideo: typeof WPP?.status?.sendVideoStatus === 'function',
+      };
+      let reactionModule: any = null;
+      try {
+        reactionModule = loader?.moduleRequire?.(
+          'WAWebSendStatusReactionAction'
+        );
+      } catch (_) {}
+      if (typeof reactionModule?.sendStatusReaction !== 'function') {
+        try {
+          reactionModule = loader?.search?.(
+            (candidate: any) =>
+              typeof candidate?.sendStatusReaction === 'function',
+            true,
+            'StatusReaction'
+          );
+        } catch (_) {}
+      }
+      // Mirrors reactMessage()'s own lookup, including the lazy-bundle fetch.
+      // A probe that gives up earlier than the send path reports "send is
+      // incompatible" for a reaction that would actually have worked — and
+      // that verdict is spoken to the user.
+      if (typeof reactionModule?.sendStatusReaction !== 'function') {
+        try {
+          await loader?.ensureLazyModule?.('WAWebSendStatusReactionAction');
+          reactionModule = loader?.moduleRequire?.(
+            'WAWebSendStatusReactionAction'
+          );
+        } catch (_) {}
+      }
+      const reactionArity = Number(
+        reactionModule?.sendStatusReaction?.length ?? -1
+      );
+      const hasCurrentReactionCompanions =
+        typeof reactionModule?.mintStatusReactionKey === 'function' &&
+        typeof reactionModule?.applyOptimisticStatusReaction === 'function';
+      checks.statusReaction =
+        typeof reactionModule?.sendStatusReaction === 'function' &&
+        (reactionArity < 3 || hasCurrentReactionCompanions);
+      const missing = Object.entries(checks)
+        .filter(([, available]) => !available)
+        .map(([name]) => name);
+      return {
+        compatible: missing.length === 0,
+        checks,
+        missing,
+        statusReactionArity: reactionArity,
+        loaderType: String(loader?.loaderType || 'unknown'),
+        webVersion: String((window as any).WAPI?.getWAVersion?.() || 'unknown'),
+      };
+    });
+    req.logger.info(`[send-capabilities] ${JSON.stringify(capabilities)}`);
+    res.status(capabilities.compatible ? 200 : 409).json({
+      status: capabilities.compatible ? 'success' : 'incompatible',
+      response: capabilities,
+      nodeVersion: process.version,
+    });
+  } catch (error: any) {
+    req.logger.error(
+      `[send-capabilities] probe failed: ${error?.message || String(error)}`
+    );
+    res.status(500).json({
+      status: 'error',
+      message: error?.message || String(error),
+      nodeVersion: process.version,
     });
   }
 }
