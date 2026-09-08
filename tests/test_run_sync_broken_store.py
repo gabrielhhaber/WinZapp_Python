@@ -262,13 +262,39 @@ class TestTheCapturedSessions:
         stub._run_sync()
         assert stub.media_sync_ran == 0
 
-    def test_the_second_such_round_recreates_the_session(self):
+    def test_no_number_of_such_rounds_recreates_the_session(self):
+        """This asserted the opposite until a field log falsified the premise.
+
+        The rebuild ran exactly as designed on a user's machine — browserClose,
+        a fresh browser, the pinned document served again, a new session
+        reaching inChat, all inside seven seconds — and list-chats answered 0
+        again THREE SECONDS LATER, against the same 938 chats in IndexedDB.
+        Four more rounds followed.
+
+        It is not merely useless: WPP.chat.list() reads the page's in-memory
+        ChatStore, which a new document starts empty and fills from IndexedDB,
+        so tearing the page down throws away whatever progress it had made and
+        starts that over.
+        """
         stub = _make([0] * 60, wa_web=937, local_chats=931, high_water=935)
         stub._broken_store_rounds = MainWindow._BROKEN_STORE_REPAIR_ROUNDS - 1
         stub._run_sync()
-        assert stub.restarted is True
+        assert stub.restarted is False
         assert stub._sync_completed is False
-        assert stub.message_sync_ran == 0, "ran the message phase into a dying session"
+
+    def test_it_keeps_counting_rounds_so_the_log_still_says_how_many(self):
+        stub = _make([0] * 60, wa_web=937, local_chats=931, high_water=935)
+        stub._broken_store_rounds = 4
+        stub._run_sync()
+        assert stub._broken_store_rounds == 5
+        assert stub.restarted is False
+
+    def test_a_far_higher_round_count_still_does_not_rebuild(self):
+        """No threshold anywhere: the escalation is gone, not raised."""
+        stub = _make([0] * 60, wa_web=937, local_chats=931, high_water=935)
+        stub._broken_store_rounds = 500
+        stub._run_sync()
+        assert stub.restarted is False
 
     def test_the_amputated_account_is_refused(self):
         """Session two: fresh install, no cache, 36 seen once, then 0. The old

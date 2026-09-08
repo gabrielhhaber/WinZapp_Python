@@ -1810,8 +1810,9 @@ class MainWindow(wx.Frame):
         # that is merely cold. Never reset while the process lives; a chat
         # count that was real once does not stop having been real.
         self._chat_list_high_water = 0
-        # Consecutive sync rounds that found the store not answering, counted
-        # towards recreating the session. See _BROKEN_STORE_REPAIR_ROUNDS.
+        # Consecutive sync rounds that found the store not answering. Purely a
+        # diagnostic since the session-rebuild escalation was removed — see the
+        # store_broken branch in start_sync() for the field log that killed it.
         self._broken_store_rounds = 0
         # Message-sync workers discover incomplete chats concurrently. Keep the
         # queue and its growth counters behind one lock so a LID and its phone
@@ -11973,11 +11974,11 @@ class MainWindow(wx.Frame):
     # legitimately sit at zero for a moment while the in-memory store hydrates
     # behind the IndexedDB side that storeCounts reads.
     _BROKEN_STORE_CONFIRM = 3
-    # Rounds that must detect a broken store before the session is recreated.
-    # One round backs off and re-checks; the second repairs. _restart_wpp_session()
-    # carries its own re-entrancy guard, its own 120 s cooldown and the
-    # _auto_restart_grace_active() window that keeps a restart from being
-    # mistaken for a phone-side unlink.
+    # Kept, unused by the sync path, and deliberately not deleted: it is the
+    # number this codebase used to rebuild the page on, and a reader who finds
+    # the round counter needs to be able to find out what it used to mean.
+    # Nothing schedules a rebuild from a broken store any more — see the
+    # store_broken branch in start_sync().
     _BROKEN_STORE_REPAIR_ROUNDS = 2
 
     # A list-chats snapshot does not have to equal storeCounts.chat exactly:
@@ -12414,10 +12415,10 @@ class MainWindow(wx.Frame):
                     and self.store_looks_broken(server_count, wa_web_count, evidence_count)):
                 broken_readings += 1
                 logging.warning(
-                    "[start_sync] list-chats answered %d chat(s) while WhatsApp Web "
-                    "reports %s in its own store and we have evidence for %d "
-                    "(reading %d/%d) — the page's in-memory chat store looks broken, "
-                    "not cold.",
+                    "[start_sync] list-chats answered %d chat(s) (the page's "
+                    "in-memory ChatStore) while %s chat(s) sit in WhatsApp Web's "
+                    "IndexedDB and we have evidence for %d (reading %d/%d) — two "
+                    "different stores, and the in-memory one is the empty side.",
                     server_count, wa_web_count, evidence_count,
                     broken_readings, self._BROKEN_STORE_CONFIRM,
                 )
@@ -12535,34 +12536,46 @@ class MainWindow(wx.Frame):
             # its one pruning pass is keyed on JIDs present in the response,
             # which is empty here.
             self._broken_store_rounds = getattr(self, "_broken_store_rounds", 0) + 1
+            # This used to recreate the WPPConnect session after two such
+            # rounds, on the reasoning that "nothing short of rebuilding the
+            # page recovers a store in this state". A field log falsified it
+            # directly, and the escalation is gone rather than retuned.
+            #
+            # Measured: the rebuild ran exactly as designed — browserClose, a
+            # fresh browser, the pinned document served again, a new session
+            # reaching inChat, all inside seven seconds — and list-chats
+            # answered 0 again THREE SECONDS LATER, against the same 938 chats
+            # in IndexedDB it had been answering 0 against before. Four more
+            # rounds followed, each detecting the same thing.
+            #
+            # And rebuilding is not merely useless here, it is destructive:
+            # WPP.chat.list() reads the page's in-memory ChatStore, which a new
+            # document starts empty and fills from IndexedDB. Tearing the page
+            # down throws away whatever progress it had made and starts that
+            # over — which is the most plausible reading of why the ONE
+            # non-zero answer in the whole session (37 chats, five seconds
+            # after the session came up) was never built on.
+            #
+            # What is left is what the rest of this branch already did: refuse
+            # the known-wrong snapshot, keep the sync incomplete, and let the
+            # health checker come back. That is strictly better than a rebuild
+            # for the case above, and no worse for the case the escalation was
+            # written for — where re-asking did not help either, over 37
+            # minutes, WITHOUT anyone having rebuilt anything.
             logging.error(
-                "[start_sync] WhatsApp Web's in-memory chat store is not answering "
-                "(round %d of %d before recreating the session). Messages are "
-                "unaffected — get-messages reads IndexedDB and keeps working — so "
-                "this sync continues with the chats already known locally.",
-                self._broken_store_rounds, self._BROKEN_STORE_REPAIR_ROUNDS,
+                "[start_sync] WhatsApp Web's in-memory chat store answered %d "
+                "while IndexedDB holds far more (round %d). Not rebuilding the "
+                "page: a rebuild empties that store and restarts the load from "
+                "scratch, which is measurably what this state does not need. "
+                "Messages are unaffected — get-messages reads IndexedDB — so "
+                "this sync continues with the chats already known locally and "
+                "the health checker retries.",
+                server_count, self._broken_store_rounds,
             )
-            if self._broken_store_rounds >= self._BROKEN_STORE_REPAIR_ROUNDS:
-                self._broken_store_rounds = 0
-                # Nothing short of rebuilding the page recovers a store in
-                # this state: it stayed broken for 37 minutes and four full
-                # sync rounds in the captured session, and no amount of
-                # re-asking changed it. Stop here rather than running the
-                # message and media phases into a session about to be torn
-                # down; the health checker starts a fresh sync once the new
-                # session is up.
-                logging.error(
-                    "[start_sync] Recreating the WPPConnect session to rebuild the "
-                    "store — this restores the existing WhatsApp session from its "
-                    "saved token, it does not ask for a new QR code."
-                )
-                self._sync_completed = False
-                self._sync_retry_count = getattr(self, "_sync_retry_count", 0) + 1
-                threading.Thread(target=self._restart_wpp_session, daemon=True).start()
-                return
         else:
-            # A plausible answer clears the tally: only *consecutive* rounds
-            # count towards recreating the session.
+            # A plausible answer clears the tally, which is now purely a
+            # diagnostic: it says how many consecutive rounds saw the store
+            # empty, and nothing acts on it.
             self._broken_store_rounds = 0
         if not chat_list_ok:
             # Report once, after every attempt is exhausted, instead of one
