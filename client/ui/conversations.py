@@ -50,7 +50,7 @@ from ui.accessible import (
 )
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
 from core.save_location import resolve_save_dialog_folder
-from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
+from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, to_editor_line_endings, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.message_copy_format import format_copied_message
 from core.video_player import VideoPlayer
@@ -5399,8 +5399,16 @@ class ConversationsPanel(wx.Panel):
             text = data.GetText()
         finally:
             wx.TheClipboard.Close()
-        normalized = normalize_line_separators(text)
         target = event.GetEventObject()
+        normalized = normalize_line_separators(text)
+        # Multiline only: a screen reader needs CRLF to navigate the pasted
+        # block line by line, and the send path collapses it back to a bare
+        # newline before anything reaches WhatsApp. The caption field shares
+        # this handler and
+        # is single-line — it cannot navigate lines and would just hold the
+        # control characters. See to_editor_line_endings().
+        if normalized and getattr(target, "IsMultiLine", None) and target.IsMultiLine():
+            normalized = to_editor_line_endings(normalized)
         if normalized != text and target is not None:
             # WriteText() replaces the current selection and fires EVT_TEXT,
             # keeping the mention check / send-button logic in sync.
@@ -5430,7 +5438,9 @@ class ConversationsPanel(wx.Panel):
             if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_UNICODETEXT)):
                 data = wx.TextDataObject()
                 if wx.TheClipboard.GetData(data):
-                    text = normalize_line_separators(data.GetText())
+                    # message_field is multiline; same reasoning as
+                    # _on_text_field_paste().
+                    text = to_editor_line_endings(data.GetText())
         finally:
             wx.TheClipboard.Close()
 
@@ -12059,7 +12069,9 @@ class ConversationsPanel(wx.Panel):
             self._pending_mention_display_names[jid] = self._get_participant_name(jid)
         self._rebuild_mention_pills()
 
-        self.message_field.SetValue(content)
+        # Stored text uses bare newlines; the field wants CRLF so the screen
+        # reader can arrow through a multi-line message being edited.
+        self.message_field.SetValue(to_editor_line_endings(content))
         self.message_field.SetInsertionPointEnd()
         self.message_field.SetFocus()
 
