@@ -1163,20 +1163,31 @@ class Connect:
                 if _instance_exists:
                     self.main_window.token = existing_token
                     if not _old_token:
-                        # The reuse candidate came from the mode-switch
-                        # capture, which means _close_active_session() already
-                        # cleared main_window.token — so _old_token is empty
-                        # and the close/flush/profile-release handshake below
-                        # would be skipped entirely. But the session we are
-                        # about to /start-session IS the one that close is
-                        # still tearing down, on the very same userDataDir:
-                        # without waiting for it, puppeteer answers "The
-                        # browser is already running for <dir>" and the
-                        # recovery kills Chrome mid-LevelDB-flush, which is
-                        # the only copy of the WhatsApp login
-                        # (core/profile_recovery.py). Hand it to _old_token so
-                        # it takes the same wait the no-mode-switch reuse path
-                        # already takes.
+                        # We are about to /start-session a session that is
+                        # already on disk, on a userDataDir something else may
+                        # still hold — while _old_token being empty is exactly
+                        # what makes the close/flush/profile-release handshake
+                        # below skip itself. Without that wait puppeteer
+                        # answers "The browser is already running for <dir>",
+                        # the status stays CLOSED, and the recovery kills
+                        # Chrome by userDataDir mid-LevelDB-flush, on the only
+                        # copy of the WhatsApp login (core/profile_recovery.py
+                        # and CLAUDE.md).
+                        #
+                        # Two states reach here empty, and the handshake is
+                        # right for both. The one this change created: the
+                        # candidate came from the mode-switch capture, so
+                        # _close_active_session() cleared main_window.token on
+                        # the way in and its close is still running. The one
+                        # that was always here: the first Continue of a
+                        # startup dialog, where retrieve_token() has not run
+                        # yet (MainWindow.__init__ shows this dialog before
+                        # it), so main_window.token is still "" from __init__
+                        # even though a stored session exists. That one used
+                        # to start straight on top of whatever held the
+                        # profile; it now closes and waits first, which costs
+                        # up to the flush + profile-release timeouts before
+                        # the dialog says anything.
                         _old_token = existing_token
                 else:
                     # Kill any leftover Chromium sessions from previous failed attempts
