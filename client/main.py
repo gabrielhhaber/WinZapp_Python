@@ -3491,15 +3491,17 @@ class MainWindow(wx.Frame):
         self._set_wa_token("")
         pi.pop("WA_phone_number", None)
         pi.pop("paired", None)
-        if wipe:
-            # WA_phone_number_linked describes the data that is on disk, so it
-            # goes only when that data goes. Dropping it on the wipe=False path
-            # disarmed _wipe_local_data_if_another_number_linked() in precisely
-            # the case it is for: the history survives here, the user is sent
-            # to the pairing dialog, another phone scans the code, and with no
-            # recorded number the check falls into its "learn it, delete
-            # nothing" branch and lets the two accounts merge.
-            pi.pop("WA_phone_number_linked", None)
+        # WA_phone_number_linked is deliberately NOT dropped here on either
+        # path. It describes the data that is on disk, so it goes only when
+        # that data goes, and clear_local_data() below owns that — dropping it
+        # after the database has been emptied rather than before, which is what
+        # keeps a process killed mid-wipe from losing the record while the
+        # messages it names are still there. On the wipe=False path it must
+        # survive outright: that is precisely the case
+        # _wipe_local_data_if_another_number_linked() is for — the history
+        # survives, the user is sent to the pairing dialog, another phone scans
+        # the code, and with no recorded number the check falls into its "learn
+        # it, delete nothing" branch and lets the two accounts merge.
         self.messages_set_completed = False
         self.token = ""
         self.save_settings()
@@ -4679,6 +4681,50 @@ class MainWindow(wx.Frame):
         self.output(self.i18n.t("resyncing_all_announcement"), interrupt=True)
         threading.Thread(target=self._resync_all_worker, daemon=True).start()
 
+    def _teardown_conversation_ui(self):
+        """Empty the conversation panels before the data under them is wiped.
+
+        Shared by the two wipes that run with the UI already up — F5
+        (_resync_all_worker()) and the account switch
+        (_apply_another_number_wipe()) — which had a verbatim copy of this
+        each. None of it is cosmetic: the list keeps rendering rows whose
+        chats are about to stop existing, Enter on one of them opens a
+        conversation that is gone, and a voice note still playing holds its
+        .msv open, so clear_local_data()'s os.unlink raises PermissionError
+        on it.
+
+        Marshalled to the main thread and waited on, because both callers run
+        on a background thread. The event is set in a finally, so a panel in a
+        state this does not expect costs the visible cleanup only — never the
+        wipe behind it, and never a thread parked on a wait nobody will set.
+        """
+        ui_ready = threading.Event()
+
+        def _prepare_ui():
+            try:
+                panel = self.conversations_panel
+                panel._stop_audio()
+                panel.close_conversation()
+                panel.chats_list = []
+                panel.chat_names = []
+                panel._all_chats_list = []
+                panel._all_chat_names = []
+                panel._displayed_jids = None
+                panel.conversations_list.DeleteAllItems()
+                if hasattr(self, "archived_conversations_panel"):
+                    ap = self.archived_conversations_panel
+                    ap.chats_list = []
+                    ap.chat_names = []
+                    ap._all_chats_list = []
+                    ap._all_chat_names = []
+                    ap._displayed_jids = None
+                    ap.conversations_list.DeleteAllItems()
+            finally:
+                ui_ready.set()
+
+        wx.CallAfter(_prepare_ui)
+        ui_ready.wait(timeout=5)
+
     def _resync_all_worker(self):
         """Background worker for _on_menu_resync_all(). See that method."""
         # Claim this immediately, before clear_local_data() runs — not just
@@ -4693,32 +4739,7 @@ class MainWindow(wx.Frame):
         # which one's status/sound/speech calls land last.
         self._initial_sync_running = True
         try:
-            ui_ready = threading.Event()
-
-            def _prepare_ui():
-                try:
-                    panel = self.conversations_panel
-                    panel._stop_audio()
-                    panel.close_conversation()
-                    panel.chats_list = []
-                    panel.chat_names = []
-                    panel._all_chats_list = []
-                    panel._all_chat_names = []
-                    panel._displayed_jids = None
-                    panel.conversations_list.DeleteAllItems()
-                    if hasattr(self, "archived_conversations_panel"):
-                        ap = self.archived_conversations_panel
-                        ap.chats_list = []
-                        ap.chat_names = []
-                        ap._all_chats_list = []
-                        ap._all_chat_names = []
-                        ap._displayed_jids = None
-                        ap.conversations_list.DeleteAllItems()
-                finally:
-                    ui_ready.set()
-
-            wx.CallAfter(_prepare_ui)
-            ui_ready.wait(timeout=5)
+            self._teardown_conversation_ui()
 
             # Wipe the local database and downloaded media/voice-message caches.
             # F5 is the explicit escape hatch from the incremental strategy: the
@@ -4736,13 +4757,7 @@ class MainWindow(wx.Frame):
             # clear_local_data()'s own docstring).
             self.clear_local_data(wipe_metadata=False)
             self._forget_history_exhaustion()
-            try:
-                media_failed_path = data_path("media_failed.json")
-                if os.path.isfile(media_failed_path):
-                    os.remove(media_failed_path)
-            except Exception as exc:
-                logging.warning("[resync_all] failed to remove media_failed.json: %s", exc)
-            self._media_failed_ids = {}
+            self._forget_media_failures()
 
             # Resync from scratch, exactly like a fresh pairing. start_sync()
             # takes over _initial_sync_running from here (it sets it True
@@ -11240,10 +11255,11 @@ class MainWindow(wx.Frame):
 
         The write comes last on purpose. If the process is killed mid-wipe
         (this runs on a daemon thread), the database has already been emptied
-        — clear_local_data() commits that before it starts deleting files — so
-        the merge is prevented either way, and what survives is orphaned media
-        of the previous number plus a key that still names it. The next
-        pairing of the new phone reads that as the same divergence and
+        — clear_local_data() commits that before it drops the recorded number
+        and before it starts deleting files — so the merge is prevented either
+        way, and what survives is orphaned media of the previous number, plus,
+        if the kill landed before that drop, a key that still names it. The
+        next pairing of the new phone reads that as the same divergence and
         finishes the job, which is why a partial wipe is self-healing and does
         not need the app's shutdown to wait for this thread.
 
@@ -11357,7 +11373,7 @@ class MainWindow(wx.Frame):
             # Captured BEFORE the wipe: a sync already in flight keeps running
             # right through it (see _restart_sync_after_another_number_wipe()).
             in_flight = getattr(self, "sync_thread", None) if live else None
-            self._apply_another_number_wipe(new_digits, live)
+            self._apply_another_number_wipe(new_digits, teardown_ui=live)
 
             if live:
                 # The database of the account that is actually linked is now
@@ -11370,6 +11386,13 @@ class MainWindow(wx.Frame):
                 # _resync_all_worker().
                 self._sync_completed = False
                 self._force_full_sync = True
+                # Latched on disk too, exactly as _resync_all_worker() does
+                # for F5 and for the same reason: closing the app during this
+                # corrective round would otherwise have the next launch read
+                # force_full_pending=False out of the table the wipe just
+                # emptied, and run an incremental round over an empty
+                # database.
+                self._persist_full_sync_pending("another-number-wipe")
                 handed_off = True
                 try:
                     if in_flight is not None and in_flight.is_alive():
@@ -11408,52 +11431,28 @@ class MainWindow(wx.Frame):
                 if existing is None or not existing.is_alive():
                     self._initial_sync_running = False
 
-    def _apply_another_number_wipe(self, new_digits: str, live: bool) -> None:
-        """Tear the visible half down (live only), wipe, record the number.
+    def _apply_another_number_wipe(self, new_digits: str,
+                                   teardown_ui: bool = True) -> None:
+        """Tear the visible half down (with the UI up), wipe, record the number.
 
         Split out of _wipe_local_data_if_another_number_linked() only because
         _restart_sync_after_another_number_wipe() has to run this exact
         sequence a second time — see its docstring for why once is not enough.
 
-        The UI teardown is marshalled to the main thread and waited on, same
-        shape as _resync_all_worker(). Not cosmetic on either count: the list
-        keeps rendering the previous account's rows, Enter on one of them
-        opens a conversation that no longer exists, and a voice note still
-        playing holds its .msv open, so clear_local_data()'s os.unlink raises
-        PermissionError on it.
+        ``teardown_ui`` is the mid-session case, where there are panels on
+        screen to empty first — the same teardown F5 needs, which is why both
+        go through _teardown_conversation_ui(). At startup this runs inside
+        __init__ before init_UI() and there is nothing yet to tear down, so
+        that caller passes False; the resync thread below always runs with the
+        UI up, hence the default.
 
         The number is recorded last, after the wipe rather than before it:
         clear_local_data(wipe_metadata=True) drops WA_phone_number_linked
         along with the data it describes, and what is written here describes
         the empty database the next sync is about to fill.
         """
-        if live:
-            ui_ready = threading.Event()
-
-            def _prepare_ui():
-                try:
-                    panel = self.conversations_panel
-                    panel._stop_audio()
-                    panel.close_conversation()
-                    panel.chats_list = []
-                    panel.chat_names = []
-                    panel._all_chats_list = []
-                    panel._all_chat_names = []
-                    panel._displayed_jids = None
-                    panel.conversations_list.DeleteAllItems()
-                    if hasattr(self, "archived_conversations_panel"):
-                        ap = self.archived_conversations_panel
-                        ap.chats_list = []
-                        ap.chat_names = []
-                        ap._all_chats_list = []
-                        ap._all_chat_names = []
-                        ap._displayed_jids = None
-                        ap.conversations_list.DeleteAllItems()
-                finally:
-                    ui_ready.set()
-
-            wx.CallAfter(_prepare_ui)
-            ui_ready.wait(timeout=5)
+        if teardown_ui:
+            self._teardown_conversation_ui()
 
         self.clear_local_data()
         privateinfo = self.settings.setdefault("privateinfo", {})
@@ -11499,6 +11498,19 @@ class MainWindow(wx.Frame):
         waited for cleared it in its own finally, and the loop exists for the
         gap between that clear and this retake, in which yet another trigger
         can have started one more round.
+
+        Known residue, left as a follow-up rather than fixed here: _run_sync()
+        never consults _sync_run_id, so the round being waited out keeps
+        calling set_chats() for its whole remaining life. Between the spoken
+        "as conversas foram apagadas" and the second wipe below, the list
+        therefore refills with the PREVIOUS account's conversations — for as
+        long as that round takes, which is minutes — and then empties again.
+        Nothing is lost by it, since both the second wipe and the full sync
+        after it run later, but for somebody reading that list with a screen
+        reader the sequence is genuinely confusing: told the history was
+        deleted, then hearing it come back, then hearing it disappear a second
+        time with nothing said. Honouring _sync_run_id in _run_sync()'s own
+        write path is what closes it.
         """
         try:
             for _ in range(self._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS):
@@ -11508,14 +11520,40 @@ class MainWindow(wx.Frame):
                 if nxt is None or nxt is in_flight or not nxt.is_alive():
                     break
                 in_flight = nxt
-            self._apply_another_number_wipe(new_digits, True)
+            else:
+                # Every round of the bound spent on yet another sync starting
+                # in the gap. The wipe below then runs beside a live round and
+                # _try_start_sync_thread() answers True without starting
+                # anything — the exact failure this thread exists to avoid,
+                # back again. Practically unreachable, which is precisely why
+                # it needs a line: without one the only way to diagnose it is
+                # to guess.
+                still = getattr(self, "sync_thread", None)
+                logging.warning(
+                    "[another_number_check] Gave up after %d joins — %s is "
+                    "still running, so the corrective full sync may be refused "
+                    "and never restarted.",
+                    self._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS,
+                    getattr(still, "name", still))
+            self._apply_another_number_wipe(new_digits)
             self._sync_completed = False
             self._force_full_sync = True
+            # Same latch F5 sets, for the same reason — see the first call
+            # site in _wipe_local_data_if_another_number_linked().
+            self._persist_full_sync_pending("another-number-wipe")
             self._try_start_sync_thread()
         except Exception:
-            # Nothing took the claim over, so it has to go back — leaked, it
-            # blocks every sync for the rest of the session.
-            self._initial_sync_running = False
+            # Only if nobody else holds it, exactly as the check's own finally
+            # decides it — and for the same reason. This raising does not mean
+            # the slot is free: _apply_another_number_wipe() can raise (a
+            # wx.CallAfter after the MainLoop is gone, a save_settings() on a
+            # locked file) while on_messages_set() → _try_start_sync_thread()
+            # has already started a round of its own, whose claim this would
+            # clear from underneath it — releasing the 60 s incremental poll
+            # and F5 to write self.chats while it runs.
+            existing = getattr(self, "sync_thread", None)
+            if existing is None or not existing.is_alive():
+                self._initial_sync_running = False
             logging.exception(
                 "[another_number_check] Could not restart the sync after the "
                 "wipe; the database is empty and the next reconnect will "
@@ -13990,17 +14028,19 @@ class MainWindow(wx.Frame):
             # belong to the previous account's messages, and the file outlives
             # the account switch entirely, so a fresh install of account B
             # started life refusing to download media it had never tried.
-            # F5 does its own removal (it passes wipe_metadata=False and keeps
-            # nothing else here either), so this touches only the account
-            # switch.
-            self._media_failed_ids = {}
-            try:
-                media_failed_path = data_path("media_failed.json")
-                if os.path.isfile(media_failed_path):
-                    os.remove(media_failed_path)
-            except Exception as exc:
-                logging.warning(
-                    "[clear_local_data] failed to remove media_failed.json: %s", exc)
+            # F5 calls the same helper itself (it passes wipe_metadata=False
+            # and keeps nothing else here either), so this line touches only
+            # the account switch.
+            self._forget_media_failures()
+
+        try:
+            if hasattr(self, "db") and self.db is not None:
+                self.db.save_full_state({"chats": {}, "contacts": {}}, clear_metadata=wipe_metadata)
+                logging.info("[clear_local_data] Database cleared successfully.")
+        except Exception as e:
+            logging.error(f"[clear_local_data] Failed to clear database: {e}")
+
+        if wipe_metadata:
             # The number this data belonged to. The invariant the divergence
             # check is written around is that the key describes what is on
             # disk, and six call sites in connect.py wipe through here without
@@ -14010,6 +14050,18 @@ class MainWindow(wx.Frame):
             # deliberately does not come through here, so the armed case stays
             # armed. _wipe_local_data_if_another_number_linked() rewrites it
             # immediately after its own call.
+            #
+            # Dropped down here, after the database has actually been emptied,
+            # rather than with the rest of the in-memory wipe above. A process
+            # killed between the two is routine — 17 of the 159 launches in one
+            # field shutdown_audit.log ended with no _stop_wpp_server line at
+            # all — and killed with the key already gone while the messages were
+            # still on disk, the next launch has nothing to compare against,
+            # takes the "learn this number, delete nothing" branch, and lets
+            # account B merge onto account A: the merge this key exists to
+            # prevent, disarmed by its own cleanup. The other order costs
+            # nothing — a key naming a database that is already empty is read as
+            # a divergence and wipes an empty database a second time.
             privateinfo = getattr(self, "settings", {}).get("privateinfo")
             if (isinstance(privateinfo, dict)
                     and privateinfo.pop("WA_phone_number_linked", None) is not None):
@@ -14023,13 +14075,6 @@ class MainWindow(wx.Frame):
                     logging.exception(
                         "[clear_local_data] Could not persist dropping the "
                         "recorded linked number.")
-
-        try:
-            if hasattr(self, "db") and self.db is not None:
-                self.db.save_full_state({"chats": {}, "contacts": {}}, clear_metadata=wipe_metadata)
-                logging.info("[clear_local_data] Database cleared successfully.")
-        except Exception as e:
-            logging.error(f"[clear_local_data] Failed to clear database: {e}")
             
         # Clear local downloaded media files to prevent cross-account leakage
         for subdir in ("media", "voice_messages"):
@@ -20541,6 +20586,25 @@ class MainWindow(wx.Frame):
                     json.dump(self._media_failed_ids, f)
             except Exception:
                 pass
+
+    def _forget_media_failures(self):
+        """Drop the ids of media whose CDN URL had already expired (403/410),
+        from RAM and from data/media_failed.json.
+
+        Both wipes need exactly this and had a copy each. F5 because the
+        messages those ids name were just deleted; the account switch because
+        they name the PREVIOUS account's messages, and the file outlives the
+        switch entirely — a fresh install of account B started life refusing
+        to download media it had never once tried.
+        """
+        self._media_failed_ids = {}
+        try:
+            media_failed_path = data_path("media_failed.json")
+            if os.path.isfile(media_failed_path):
+                os.remove(media_failed_path)
+        except Exception as exc:
+            logging.warning(
+                "[media_failures] failed to remove media_failed.json: %s", exc)
 
     def _is_conversation_open_for(self, msg) -> bool:
         """True if msg belongs to the conversation currently shown on screen."""

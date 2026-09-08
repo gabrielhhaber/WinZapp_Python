@@ -674,8 +674,21 @@ class Connect:
         # back with wx.CallAfter by the method itself — same reason
         # on_continue() runs its own pairing flow on a thread.
         if self.main_window._ui_ready_event.is_set():
+            def _check_another_number():
+                # Wrapped rather than passed as the thread target directly:
+                # anything escaping goes to threading.excepthook, which writes
+                # to a stderr the frozen build does not have. A wipe that
+                # failed would then leave no trace at all in log.log — the one
+                # file the user attaches to the bug report.
+                try:
+                    self.main_window._wipe_local_data_if_another_number_linked()
+                except Exception:
+                    logging.exception(
+                        "[another_number_check] The check thread failed — the "
+                        "local data may still belong to the previous number.")
+
             threading.Thread(
-                target=self.main_window._wipe_local_data_if_another_number_linked,
+                target=_check_another_number,
                 name="another-number-check", daemon=True,
             ).start()
 

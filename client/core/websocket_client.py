@@ -507,10 +507,11 @@ class WebSocketClient:
         pi = mw.settings.setdefault("privateinfo", {})
         mw._set_wa_token("")
         pi.pop("WA_phone_number", None)
-        # Unlike main.py's _on_disconnect(), this path always wipes (a few
-        # lines below), so the record of which phone the local data belonged
-        # to describes nothing any more and goes with it.
-        pi.pop("WA_phone_number_linked", None)
+        # WA_phone_number_linked is not dropped here: mw.clear_local_data() a
+        # few lines below does it itself, and does it after the database has
+        # actually been emptied — the order that keeps a process killed
+        # mid-wipe from losing the record while the messages it names are
+        # still on disk.
         pi.pop("paired", None)
         mw.messages_set_completed = False
         mw.token = ""

@@ -30,6 +30,7 @@ open is the measured case — used to abort the sweep of its whole directory
 from that point on, leaving the rest of the previous account's files on disk.
 """
 
+import inspect
 import threading
 from contextlib import contextmanager
 
@@ -139,6 +140,7 @@ class _Stub:
     # since F5 needed exactly this, and its docstring already describes the
     # damage of keeping them.
     _forget_history_exhaustion = MainWindow._forget_history_exhaustion
+    _forget_media_failures = MainWindow._forget_media_failures
     _persist_exhausted_chats = MainWindow._persist_exhausted_chats
     _persist_older_requested = MainWindow._persist_older_requested
 
@@ -228,6 +230,15 @@ class TestWhatIsOutsideTheDatabaseGoesToo:
         assert stub._media_failed_ids == {}
         assert not (tmp_path / "media_failed.json").exists()
 
+    def test_the_resync_forgets_them_through_the_same_helper(self):
+        """F5 deletes the messages those ids name, so it drops the map too —
+        and had its own copy of this removal rather than sharing one. Source
+        level: _resync_all_worker() is all wx teardown and cannot be bound to
+        a stub the way the rest of this file is."""
+        source = inspect.getsource(MainWindow._resync_all_worker)
+        assert "self._forget_media_failures()" in source
+        assert "media_failed_path" not in source
+
     def test_a_resync_keeps_the_failed_media_file(self, tmp_path):
         (tmp_path / "media_failed.json").write_text('{"3EB0ABC": 1700000000.0}')
         stub = _Stub()
@@ -272,6 +283,64 @@ class TestWhatIsOutsideTheDatabaseGoesToo:
 
         assert stub.settings["privateinfo"]["WA_phone_number_linked"] == "5511999999999"
         assert stub.saved == 0
+
+
+class TestTheRecordedNumberOutlivesTheDataItDescribes:
+    """The key names what is on disk, so it may only be dropped once what it
+    names is really gone.
+
+    A process killed between the two halves is routine here, not exotic: one
+    field shutdown_audit.log covering 159 launches held 17 runs that ended
+    with no _stop_wpp_server line at all. Killed in that window with the key
+    dropped first, settings.json comes back without WA_phone_number_linked
+    while messages.db still holds account A's history — so the next launch has
+    nothing to compare against, takes the "learn this number, delete nothing"
+    branch, and lets account B merge onto A. That is the merge this key exists
+    to prevent, disarmed by its own cleanup. The other order costs one
+    redundant wipe of an already empty database.
+    """
+
+    def _trace(self, stub):
+        """The recorded number as each durable step saw it, in order."""
+        seen = []
+
+        def _recorded():
+            return stub.settings["privateinfo"].get("WA_phone_number_linked")
+
+        emptied = stub.db.save_full_state
+
+        def _save_full_state(data, clear_metadata=True):
+            seen.append(("database-emptied", _recorded()))
+            return emptied(data, clear_metadata=clear_metadata)
+
+        def _save_settings():
+            seen.append(("settings-written", _recorded()))
+            stub.saved += 1
+
+        stub.db.save_full_state = _save_full_state
+        stub.save_settings = _save_settings
+        return seen
+
+    def test_the_number_is_still_on_file_while_the_database_is_emptied(self):
+        stub = _Stub()
+        seen = self._trace(stub)
+
+        stub.clear_local_data()
+
+        assert seen[0] == ("database-emptied", "5511999999999")
+        assert "WA_phone_number_linked" not in stub.settings["privateinfo"]
+
+    def test_settings_are_written_only_after_the_database_is_empty(self):
+        """The in-memory pop is not what the next launch reads — settings.json
+        is, so it is the write that has to come second."""
+        stub = _Stub()
+        seen = self._trace(stub)
+
+        stub.clear_local_data()
+
+        assert [step for step, _ in seen] == ["database-emptied",
+                                              "settings-written"]
+        assert seen[1][1] is None
 
 
 class TestAResyncKeepsEveryLocalActionTheUserTook:

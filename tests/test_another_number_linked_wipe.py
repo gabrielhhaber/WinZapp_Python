@@ -43,6 +43,7 @@ happens, and the round keeps writing until it exits.
 """
 
 import inspect
+import logging
 import threading
 
 import connection_state as cs
@@ -172,6 +173,7 @@ class _Stub:
         self.syncs_started = 0
         self.i18n = _FakeI18n()
         self.spoken = []
+        self.full_sync_latches = []
 
     def _host_device_link_probe(self):
         self.probe_calls += 1
@@ -188,6 +190,16 @@ class _Stub:
 
     def save_settings(self):
         self.saved += 1
+
+    def _persist_full_sync_pending(self, reason):
+        """The on-disk half of _force_full_sync.
+
+        The real one writes into the same system_metadata table the wipe
+        empties, so when it runs matters as much as whether it runs — hence
+        the event as well as the count.
+        """
+        self.full_sync_latches.append(reason)
+        self.events.append(("full-latch", reason))
 
     def output(self, text, interrupt=False):
         self.spoken.append(text)
@@ -215,6 +227,7 @@ class _Stub:
         MainWindow._wipe_local_data_if_another_number_linked
     )
     _apply_another_number_wipe = MainWindow._apply_another_number_wipe
+    _teardown_conversation_ui = MainWindow._teardown_conversation_ui
     _restart_sync_after_another_number_wipe = (
         MainWindow._restart_sync_after_another_number_wipe
     )
@@ -784,6 +797,28 @@ class TestTheMidSessionWipeDoesNotRaceTheAppAroundIt:
         assert stub._sync_completed is False
         assert stub._force_full_sync is True
 
+    def test_the_full_mode_is_latched_on_disk_as_well(self, monkeypatch):
+        """_force_full_sync alone lives in RAM. F5 deletes strictly less than
+        this and still latches it (_persist_full_sync_pending("manual-resync"))
+        so full mode survives a restart in the middle of the round; this path
+        latched nothing, so closing the app during the corrective sync had the
+        next launch read force_full_pending=False — out of the very table the
+        wipe had just emptied — and run an incremental round over an empty
+        database. No content is lost by that, only the depth of the mode.
+
+        After the wipe, not before: the latch is written into the metadata
+        table clear_local_data() empties, so the other order writes it and
+        then deletes it.
+        """
+        stub = _Stub(ui_ready=True,
+                     probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.full_sync_latches == ["another-number-wipe"]
+        names = [e if isinstance(e, str) else e[0] for e in stub.events]
+        assert names.index("wipe") < names.index("full-latch")
+
     def test_the_deletion_is_announced_before_anything_disappears(
             self, monkeypatch):
         """Nothing else says it. The list empties on its own, which a
@@ -1020,6 +1055,91 @@ class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
         in_flight.finish()
         assert stub._initial_sync_running is False
 
+    def test_the_restart_latches_the_full_mode_on_disk_too(self, monkeypatch):
+        """The second wipe empties the metadata table again, so the latch the
+        first pass wrote is gone by the time this round starts."""
+        stub = self._diverged()
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        in_flight.finish()
+        worker.join(timeout=5)
+
+        assert stub.full_sync_latches == ["another-number-wipe"] * 2
+        names = [e if isinstance(e, str) else e[0] for e in stub.events]
+        wipes = [i for i, n in enumerate(names) if n == "wipe"]
+        latches = [i for i, n in enumerate(names) if n == "full-latch"]
+        assert wipes[-1] < latches[-1]
+
+    def test_a_wipe_that_raises_does_not_release_a_round_somebody_else_started(
+            self, monkeypatch):
+        """The same defect the check's own finally already avoids, two methods
+        up, and it has to be avoided here for the same reason.
+
+        This raising says nothing about who holds the slot: the second wipe
+        can throw (a wx.CallAfter after the MainLoop is gone is the reachable
+        one) while on_messages_set() → _try_start_sync_thread() has already
+        started a round of its own in the gap. Zeroing the claim under it
+        releases the 60 s incremental poll and F5 to write self.chats while it
+        runs — which is the whole reason the claim exists.
+        """
+        stub = self._diverged()
+        first = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+
+        second = []
+
+        def _boom(*args, **kwargs):
+            second.append(_InFlightSync(stub))
+            raise RuntimeError("CallAfter after the MainLoop was destroyed")
+
+        stub._apply_another_number_wipe = _boom
+        first.finish()
+        worker.join(timeout=5)
+
+        assert stub._initial_sync_running is True
+        # And that round gives it back on its own schedule, as it always does.
+        second[0].finish()
+        assert stub._initial_sync_running is False
+
+    def test_giving_up_after_the_bound_leaves_a_line_in_the_log(
+            self, monkeypatch, caplog):
+        """Three rounds born back to back in the gaps and the bound is spent:
+        the second wipe then runs beside a live round, _try_start_sync_thread()
+        answers "there is already one running" and starts nothing, and the
+        corrective full sync never happens — the bug this whole thread exists
+        to fix, back again.
+
+        Practically unreachable, which is exactly why the line matters: with
+        the loop falling out silently, the only way to diagnose it afterwards
+        would be to guess.
+        """
+        stub = self._diverged()
+        stub._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS = 1
+        first = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        second = _InFlightSync(stub)
+        # Distinct from the first round's, so the assertion below is about the
+        # line naming the round that would not end.
+        second.thread.name = "the-round-that-would-not-end"
+        with caplog.at_level(logging.WARNING):
+            first.finish()
+            worker.join(timeout=5)
+
+        assert not worker.is_alive()
+        # The state the line is there to explain.
+        assert stub.syncs_started == 0
+        assert "another_number_check" in caplog.text.replace("[", "").replace("]", "")
+        # Named, or the next reader cannot tell which round would not end.
+        assert "the-round-that-would-not-end" in caplog.text
+
+        second.finish()
+
     def test_a_teardown_that_raises_still_releases_the_wait(self, monkeypatch):
         """_prepare_ui() sets its event in a finally, so a panel in a state
         this does not expect costs the visible cleanup, never the wipe — and
@@ -1057,10 +1177,57 @@ class TestTheStartupPathTouchesNoneOfThat:
         assert called == []
         assert stub.sync_starts == 0
         assert stub._initial_sync_running is False
-        # Not announced either: the user paired seconds ago and the window is
-        # not on screen yet, so there is nothing to explain the disappearance
-        # of — and speak_output is not reachable from here anyway.
+        # Not announced either. The user paired seconds ago and init_UI() has
+        # not run, so there is no list whose emptying would need explaining —
+        # which is the whole of the reason. speak_output IS reachable by then
+        # (it is built earlier in the same __init__, well before this check
+        # runs), so the silence is a decision rather than a limitation, and
+        # the startup case is the one where the user is told least about a
+        # history that is gone.
         assert stub.spoken == []
+
+
+class TestBothWipesTearTheSameUIDown:
+    """F5 and the account switch had a verbatim copy each of the same ~25-line
+    panel teardown, and nothing held them together.
+
+    The way that bites is quiet: a list cache added to ConversationsPanel and
+    cleared in the F5 copy alone leaves the archived-conversations panel
+    rendering the PREVIOUS account's rows after a switch — rows whose chats no
+    longer exist, read out by the screen reader like any other.
+    """
+
+    def test_both_wipe_paths_clear_the_same_panel_caches(self, monkeypatch):
+        """One teardown, so there is one place for the next cache to be added
+        to. The archived panel is optional — it does not exist on every
+        install — and it is the one the drifting copy used to miss."""
+        _install_inline_call_after(monkeypatch)
+        stub = _Stub(ui_ready=True)
+        stub.archived_conversations_panel = _Panel(stub.events)
+
+        stub._teardown_conversation_ui()
+
+        for panel in (stub.conversations_panel,
+                      stub.archived_conversations_panel):
+            assert panel.chats_list == []
+            assert panel.chat_names == []
+            assert panel._all_chats_list == []
+            assert panel._all_chat_names == []
+            assert panel._displayed_jids is None
+        assert stub.events.count("list-cleared") == 2
+        # The two that are about the open conversation rather than the list:
+        # a .msv still playing blocks its own deletion.
+        assert "audio-stopped" in stub.events
+        assert "conversation-closed" in stub.events
+
+    def test_neither_wipe_path_keeps_a_copy_of_it(self):
+        """Source level, because the failure is two copies drifting apart and
+        no behavioural test of either one alone can see it."""
+        for method in (MainWindow._resync_all_worker,
+                       MainWindow._apply_another_number_wipe):
+            source = inspect.getsource(method)
+            assert "self._teardown_conversation_ui()" in source, method.__name__
+            assert "DeleteAllItems" not in source, method.__name__
 
 
 class TestANonWipingDisconnectLeavesTheCheckArmed:
@@ -1103,6 +1270,10 @@ class TestANonWipingDisconnectLeavesTheCheckArmed:
 
         def clear_local_data(self):
             self.wipes += 1
+            # The real one drops the recorded number itself, after emptying
+            # the database — which is why _on_disconnect() no longer does it
+            # on its way past.
+            self.settings["privateinfo"].pop("WA_phone_number_linked", None)
 
         def _reset_startup_probe(self):
             pass
@@ -1138,6 +1309,10 @@ class TestANonWipingDisconnectLeavesTheCheckArmed:
         assert stub.wipe_calls == 1
 
     def test_a_confirmed_logout_drops_it_with_the_data(self):
+        """Through clear_local_data(), which drops it only once the database
+        is actually empty. _on_disconnect() dropping it on its way past put it
+        back in front of that — a window a killed process leaves half applied,
+        with the key gone and account A's messages still on disk."""
         stub = self._DisconnectStub()
 
         stub._on_disconnect(wipe=True)
@@ -1185,9 +1360,37 @@ class TestBothCallSitesStayWired:
         over the pairing flow."""
         tail = inspect.getsource(Connect.show_connection_dial).split(
             "self.connection_dial.ShowModal()", 1)[1]
-        spawn = tail.index("threading.Thread(")
-        called = tail.index("_wipe_local_data_if_another_number_linked")
-        assert spawn < called
+        before, inside = tail.split("def _check_another_number():", 1)
+        # The only mention is inside the function the thread is handed, never
+        # in the body still running on the main thread.
+        assert "_wipe_local_data_if_another_number_linked" not in before
+        assert "_wipe_local_data_if_another_number_linked" in inside
+        assert "target=_check_another_number" in inside
+
+    def test_a_check_that_raises_still_reaches_the_log(self):
+        """Passed as the thread target directly, an exception escaping the
+        check goes to threading.excepthook — stderr, which the frozen build
+        does not have. A wipe that failed would then leave nothing at all in
+        log.log, the file the user attaches to the bug report, and "my history
+        is still there" would be indistinguishable from the check never having
+        run."""
+        import ast
+        import textwrap
+
+        tree = ast.parse(textwrap.dedent(
+            inspect.getsource(Connect.show_connection_dial)))
+        wrapper = next(
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_check_another_number")
+        assert len(wrapper.body) == 1
+        guarded = wrapper.body[0]
+        assert isinstance(guarded, ast.Try)
+        handler = guarded.handlers[0]
+        assert ast.unparse(handler.type) == "Exception"
+        assert any(isinstance(node, ast.Call)
+                   and ast.unparse(node.func) == "logging.exception"
+                   for node in ast.walk(handler))
 
     def test_the_dialog_only_checks_when_the_ui_is_already_up(self):
         """MainWindow.__init__ ShowModal()s the startup dialog and then runs
