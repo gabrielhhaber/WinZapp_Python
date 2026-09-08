@@ -132,6 +132,13 @@ class _SweepLoadStub:
     _backfill_short_queue_delays = MainWindow._backfill_short_queue_delays
     _keep_backfill_pending = MainWindow._keep_backfill_pending
     history_page_target = MainWindow.history_page_target
+    # The backfill reads the oldest stored message per short chat to tell
+    # "the phone sent older history" apart from "someone wrote in this chat".
+    # Bound from the real class, against a db that answers nothing, so this
+    # load test keeps measuring the per-pass cost of that read.
+    _oldest_stored_message = MainWindow._oldest_stored_message
+    _anchor_identity = staticmethod(MainWindow._anchor_identity)
+    _phone_request_gap_elapsed = staticmethod(MainWindow._phone_request_gap_elapsed)
 
     _BACKFILL_BUDGET = MainWindow._BACKFILL_BUDGET
     _BACKFILL_LANDING_BUDGET = MainWindow._BACKFILL_LANDING_BUDGET
@@ -143,6 +150,8 @@ class _SweepLoadStub:
     _DEEP_CHATS_PER_PASS = MainWindow._DEEP_CHATS_PER_PASS
     _OLDER_REQUESTS_PER_PASS = MainWindow._OLDER_REQUESTS_PER_PASS
     _OLDER_REQUEST_GRACE = getattr(MainWindow, "_OLDER_REQUEST_GRACE", 300)
+    _MAX_PHONE_HISTORY_REQUESTS = MainWindow._MAX_PHONE_HISTORY_REQUESTS
+    _PHONE_REQUEST_MIN_GAP = MainWindow._PHONE_REQUEST_MIN_GAP
 
     def __init__(self, chat_count: int):
         self._backfill_state_lock = threading.RLock()
