@@ -8447,6 +8447,19 @@ class MainWindow(wx.Frame):
         makes it mint codes in the first place, so there is nothing left to
         flush — but worth writing down, since a caller that ever reached this
         with live auth WOULD lose it.
+
+        _qr_within_startup_grace() (websocket_client.py) looks like it
+        contradicts that: it withholds judgment on a code arriving seconds
+        into a boot, on the grounds that the session may still be coming up.
+        It does not, and the distinction is worth keeping straight. That
+        grace protects the USER from acting on one reading — the re-pairing
+        dialog that wipes history — and says nothing about whether the code
+        is real. By the time any code exists, catchQR has already fired,
+        which happens only after getQrCode() returned a urlCode, i.e. after
+        wa-js reached require_auth and restoring the stored auth had failed.
+        Reaching _UNATTENDED_QR_LIMIT codes inside that window is stronger
+        evidence than the two readings the dialog itself asks for, so the
+        halt stays deliberately outside the grace.
         """
         if getattr(self, "_qr_flood_halted", False):
             return
