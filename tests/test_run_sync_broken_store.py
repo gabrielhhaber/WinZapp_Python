@@ -18,6 +18,7 @@ tests use.
 """
 
 import threading
+import time
 import types
 
 import pytest
@@ -48,6 +49,11 @@ class _Stub:
             for i in range(local_chats)
         }
         self._chat_list_high_water = high_water
+        # Warm account: every chat was fetched moments ago. Left unset they
+        # read as never verified and _plan_message_sync()'s staleness net
+        # (issue #181) promotes them — correct, but not what these tests
+        # measure. It has its own tests in tests/test_stale_chat_recheck.py.
+        self._chat_verified_at = {j: int(time.time()) for j in self.chats}
         self._broken_store_rounds = 0
 
         self._wa_connected = True

@@ -33,6 +33,7 @@ The stub harness is tests/test_run_sync_broken_store.py's, imported rather than
 copied for the reason that module's own docstring gives.
 """
 
+import time
 import types
 
 import pytest
@@ -125,6 +126,12 @@ def _warm_stub():
     stub = _make([len(_JIDS)] * 2, wa_web=len(_JIDS), local_chats=len(_JIDS))
     stub.chats = {jid: _chat(jid) for jid in _JIDS}
     stub._force_full_sync = False
+    # Every chat was fetched moments ago, which is what "warm" means. Without
+    # this they read as never verified, and _plan_message_sync()'s staleness
+    # net (issue #181) correctly promotes them — so these tests would be
+    # measuring that net rather than the signal each one is about. It has its
+    # own tests in tests/test_stale_chat_recheck.py.
+    stub._chat_verified_at = {jid: int(time.time()) for jid in _JIDS}
     return _instrumented(stub)
 
 

@@ -52,6 +52,7 @@ from core.incremental_sync import (
     chat_message_records as _chat_message_records,
     chat_sync_marker as _chat_sync_marker,
     classify_chat_sync as _classify_chat_sync,
+    select_stale_rechecks as _select_stale_rechecks,
     messages_overlap as _messages_overlap,
     next_incremental_limit as _next_incremental_limit,
 )
@@ -10804,6 +10805,17 @@ class MainWindow(wx.Frame):
         else:
             self._older_requested_chats = {}
 
+        # When get-messages last actually ran for each chat, for the staleness
+        # net in _plan_message_sync(). Persisted on purpose: a chat last
+        # fetched before a restart is exactly as stale afterwards, and starting
+        # empty would re-check the whole account on every launch.
+        _verified_at = self.db.get_metadata_json("chat_verified_at_v1", {})
+        self._chat_verified_at = {
+            str(jid): int(ts) for jid, ts in _verified_at.items()
+            if isinstance(ts, (int, float))
+        } if isinstance(_verified_at, dict) else {}
+        self._chat_verified_at_dirty = False
+
         # How many times the backfill has asked the phone about each chat this
         # session. Deliberately in memory and not persisted, for the same reason
         # _note_verified_activity() is: the bound exists to stop one run asking
@@ -17287,6 +17299,58 @@ class MainWindow(wx.Frame):
         if jid and activity > int(synced.get(jid, 0) or 0):
             synced[jid] = activity
 
+    #: How long a chat may go without an actual get-messages before it is
+    #: re-checked whatever the chat-list markers say, and how many such
+    #: re-checks one planning round may add.
+    #:
+    #: Every signal classify_chat_sync() reads is chat-list metadata, so a
+    #: chat whose metadata goes stale is skipped on every round forever while
+    #: get-messages for it would have returned newer messages the whole time.
+    #: Issue #181 is exactly that: two chats stuck at 200 messages ending at
+    #: 08:35 and 07:34, which F5 advanced to 17:12 and 17:11 — 34 and 7
+    #: messages *newer* than anything stored. Nothing but a forced full
+    #: rebuild of all 295 chats could reach them.
+    #:
+    #: Five per round against a 60 s poll is 300 chats an hour, so an account
+    #: the size of that report is fully re-verified in about the hour this
+    #: bounds staleness to — at a fixed cost per round however large the
+    #: account grows, which is the property a full sweep does not have.
+    _STALE_RECHECK_AFTER = 60 * 60
+    _STALE_RECHECK_PER_ROUND = 5
+
+    def _note_chat_verified_now(self, remote_jid: str) -> None:
+        """Record that get-messages actually ran for this chat, just now.
+
+        Separate from _note_verified_activity(), which records *which activity
+        value* was covered and is deliberately per-session. This one answers
+        "when did we last really look?", which is what the staleness net needs,
+        and it is persisted: a chat last fetched before a restart is exactly as
+        stale afterwards, and forgetting that on every launch would re-check
+        the whole account each time WinZapp opens.
+        """
+        seen = getattr(self, "_chat_verified_at", None)
+        if not isinstance(seen, dict):
+            seen = self._chat_verified_at = {}
+        jid = self._normalize_jid(remote_jid or "")
+        if not jid:
+            return
+        seen[jid] = int(time.time())
+        self._chat_verified_at_dirty = True
+
+    def _persist_chat_verified_at(self) -> None:
+        """Best effort, like every other sync-state persist: losing it costs
+        one extra round of re-checks, never a message."""
+        if not getattr(self, "_chat_verified_at_dirty", False):
+            return
+        try:
+            if getattr(self, "db", None) is not None:
+                self.db.set_metadata_json(
+                    "chat_verified_at_v1",
+                    dict(getattr(self, "_chat_verified_at", {})))
+                self._chat_verified_at_dirty = False
+        except Exception as exc:
+            logging.warning("[sync] failed to persist chat_verified_at: %s", exc)
+
     def _plan_message_sync(self, baseline: dict, force_full: bool = False,
                            include_repairs: bool = True):
         """Return (full_targets, incremental_targets, skipped_count, reasons).
@@ -17298,7 +17362,7 @@ class MainWindow(wx.Frame):
         """
         full_targets = []
         incremental_targets = []
-        skipped = 0
+        skipped_chats = []
         reasons = {}
         gap_jids = set(getattr(self, "_history_gap_jids", set()) or set())
         pending_jids = set(getattr(self, "_chats_awaiting_messages", set()) or set())
@@ -17358,7 +17422,31 @@ class MainWindow(wx.Frame):
                 incremental_targets.append(chat)
                 reasons[jid] = reason
             else:
-                skipped += 1
+                skipped_chats.append((jid, chat))
+
+        # The staleness net. Everything above reads chat-list metadata, so a
+        # chat whose metadata stops moving is skipped on every round forever —
+        # see _STALE_RECHECK_AFTER and issue #181. Never on a forced full
+        # sync, where every chat is already a target.
+        skipped = len(skipped_chats)
+        if not force_full and skipped_chats:
+            verified_at = getattr(self, "_chat_verified_at", None)
+            due = set(_select_stale_rechecks(
+                [jid for jid, _ in skipped_chats],
+                verified_at if isinstance(verified_at, dict) else {},
+                int(time.time()),
+                # Off the class, not the instance: these are constants, and
+                # the test stubs that bind this method answer any unknown
+                # attribute with a lambda — see the _verified_activity guard
+                # above for the same hazard.
+                MainWindow._STALE_RECHECK_PER_ROUND,
+                MainWindow._STALE_RECHECK_AFTER,
+            ))
+            for jid, chat in skipped_chats:
+                if jid in due:
+                    incremental_targets.append(chat)
+                    reasons[jid] = "stale-recheck"
+                    skipped -= 1
 
         return full_targets, incremental_targets, skipped, reasons
 
@@ -17391,6 +17479,13 @@ class MainWindow(wx.Frame):
                 self.db.set_metadata_json("sync_state_v1", state)
         except Exception as exc:
             logging.warning("[sync] failed to persist sync_state_v1: %s", exc)
+        # Guarded on its own: sync_state_v1 is the latch that decides whether
+        # the next round is another full sync, and a fault in the staleness
+        # net's bookkeeping must not be able to leave it unwritten.
+        try:
+            self._persist_chat_verified_at()
+        except Exception as exc:
+            logging.warning("[sync] failed to persist chat_verified_at: %s", exc)
 
     def sync_remote_chats(self, target_chats=None, incremental: bool = False):
         chats = list(target_chats) if target_chats is not None else list(self.chats.values())
@@ -19808,6 +19903,18 @@ class MainWindow(wx.Frame):
             persist_ok = False
             logging.warning("[sync_chat_messages] incremental DB save failed for %s: %s",
                             remote_jid, exc)
+
+        # Outside the block above, and guarded on its own. This is bookkeeping
+        # for the staleness net and nothing reads it to decide correctness —
+        # letting it raise in there would set persist_ok False and report a
+        # perfectly good fetch as a failed one, which is how a diagnostic
+        # starts causing the resync loop it was added to help diagnose.
+        if message_fetch_satisfied:
+            try:
+                self._note_chat_verified_now(remote_jid)
+            except Exception as exc:
+                logging.warning("[sync_chat_messages] could not record the "
+                                "verification time for %s: %s", remote_jid, exc)
 
         # Reports whether this chat's sync FAILED, which neither an empty delta
         # nor a chat_not_found did: the retry for those is carried by
