@@ -100,6 +100,18 @@ class _FakeMainWindow:
         self._pairing_in_progress = False
         self._auto_repair_dialog_shown = False
         self.halt_calls = 0
+        # Whether a snapshot exists to put back before the user is asked to
+        # pair by hand. False everywhere in this module: these tests are about
+        # what happens when nothing can be repaired, which is the path that
+        # still has to reach the dialog and the flood ceiling.
+        self.profile_restore_available = False
+        self.recover_calls = []
+
+    def _recover_suspect_profile(self, reason=None, on_give_up=None):
+        # on_give_up fires only when a restore was started and then failed;
+        # a False return means nothing was started. See the real method.
+        self.recover_calls.append(reason)
+        return bool(self.profile_restore_available)
 
     def _is_pairing_dialog_active(self):
         return self._pairing_dialog_active

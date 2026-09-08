@@ -72,6 +72,18 @@ class _FakeMainWindow:
         self._qr_flood_halted = False
         self._pairing_in_progress = False
         self.halt_calls = 0
+        # Whether a snapshot exists to put back. False keeps every test
+        # written before the profile-repair step behaving exactly as it did:
+        # nothing to restore, so the pairing dialog is the outcome.
+        self.profile_restore_available = False
+        self.recover_calls = []
+
+    def _recover_suspect_profile(self, reason=None, on_give_up=None):
+        self.recover_calls.append(reason)
+        # Mirrors the real contract: on_give_up fires only when a restore was
+        # started and then failed. A False return means nothing was started,
+        # and the caller handles it inline — see _recover_suspect_profile().
+        return bool(self.profile_restore_available)
 
     def _is_pairing_dialog_active(self):
         return self._pairing_dialog_active
@@ -189,3 +201,77 @@ class TestProactivePairingDialog:
         mw._auto_repair_dialog_shown = False  # what a real reconnect does
         s.on_qrcode_update(QR_EVENT)
         assert connect.show_connection_dial_calls == 2
+
+
+class TestTheProfileIsRepairedBeforeAskingTheUserToPair:
+    """A code minted for a *paired* install means the stored session could not
+    be restored — which is exactly the condition the profile recovery exists
+    for, and this is the earliest and cleanest evidence of it available.
+
+    Measured on a real install on 2026-09-08. A clean Ctrl+Shift+Q shutdown
+    (close-session acknowledged, session observed CLOSED, Chrome confirmed to
+    have released the profile), and the next launch logged itself out seven
+    seconds into the page load. ProfileHealthTracker counted
+    INITIALIZING/CLOSED cycles at ~60 s each and stood at 2 of 3 when the code
+    arrived at t+2.4 min — and opening the pairing dialog then froze it there
+    for good, because check_wa_connection_http() returns immediately while a
+    pairing dialog is up, so the poll that feeds the tracker never ran again.
+    The snapshot was restorable by hand the whole time; the app could never
+    reach it.
+    """
+
+    def test_a_restorable_profile_is_repaired_instead_of_re_paired(self):
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        mw.profile_restore_available = True
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert len(mw.recover_calls) == 1
+        assert connect.show_connection_dial_calls == 0
+
+    def test_the_reason_says_what_was_observed(self):
+        # It lands in shutdown_audit.log, which survives the launch — the one
+        # place the next diagnosis can read why a restore was attempted.
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        mw.profile_restore_available = True
+        s = _Stub(mw, _FakeConnect(mw))
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert "pairing code" in (mw.recover_calls[0] or "")
+
+    def test_with_nothing_to_restore_the_user_is_still_sent_to_pair(self):
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        mw.profile_restore_available = False
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert len(mw.recover_calls) == 1
+        assert connect.show_connection_dial_calls == 1
+
+    def test_an_install_that_never_paired_is_not_a_broken_profile(self):
+        # Nothing to restore and nothing lost: this is an ordinary first
+        # pairing, and the recovery must not run at all.
+        mw = _FakeMainWindow(paired=False, pairing_dialog_active=False)
+        s = _Stub(mw, _FakeConnect(mw))
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert mw.recover_calls == []
+
+    def test_a_qr_refresh_during_the_restore_does_not_retry_it(self):
+        # Codes rotate every ~20-30 s. _recover_suspect_profile() latches on
+        # its own, but the caller must not be the thing relying on that.
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        mw.profile_restore_available = True
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)
+
+        assert connect.show_connection_dial_calls == 0

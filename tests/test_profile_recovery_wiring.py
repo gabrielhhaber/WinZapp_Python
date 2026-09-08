@@ -24,6 +24,19 @@ from core.profile_recovery import ProfileHealthTracker
 from main import MainWindow
 
 
+class _MetadataDB:
+    """Just the metadata pair the recovery generation is persisted through."""
+
+    def __init__(self):
+        self.values = {}
+
+    def get_metadata_json(self, key, default=None):
+        return self.values.get(key, default)
+
+    def set_metadata_json(self, key, value):
+        self.values[key] = value
+
+
 class _Stub:
     """Carries only what the methods under test actually touch."""
 
@@ -39,6 +52,14 @@ class _Stub:
         self.recovered = 0
         self.error_sound = types.SimpleNamespace(play=lambda: None)
         self.i18n = types.SimpleNamespace(t=lambda key: key)
+        self.db = _MetadataDB()
+
+    # Bound from the real class: the generation ladder decides *which*
+    # snapshot goes back, so a stub that faked it would let the wiring drift
+    # from the module its own tests cover.
+    _PROFILE_RECOVERY_GENERATION_KEY = MainWindow._PROFILE_RECOVERY_GENERATION_KEY
+    _profile_recovery_generation = MainWindow._profile_recovery_generation
+    _set_profile_recovery_generation = MainWindow._set_profile_recovery_generation
 
     def _shutdown_audit(self, msg):
         self.audits.append(msg)
@@ -110,7 +131,7 @@ class TestRecoveryRunsAtMostOncePerLaunch:
         calls = []
         monkeypatch.setattr(
             "core.profile_recovery.has_snapshot",
-            lambda *a: calls.append(a) or False)
+            lambda *a, **kw: calls.append(a) or False)
         monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: None)
         MainWindow._recover_suspect_profile(stub)
         MainWindow._recover_suspect_profile(stub)
@@ -120,7 +141,7 @@ class TestRecoveryRunsAtMostOncePerLaunch:
         stub = _Stub(token="")
         monkeypatch.setattr(
             "core.profile_recovery.has_snapshot",
-            lambda *a: pytest.fail("should not have looked for a snapshot"))
+            lambda *a, **kw: pytest.fail("should not have looked for a snapshot"))
         MainWindow._recover_suspect_profile(stub)
 
 
@@ -131,7 +152,7 @@ class TestWithNoSnapshotTheUserIsTold:
 
     def test_the_message_is_announced(self, monkeypatch):
         stub = _Stub()
-        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a: False)
+        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a, **kw: False)
         monkeypatch.setattr("main.wx.CallAfter",
                             lambda fn, *a, **kw: fn(*a, **kw))
         MainWindow._recover_suspect_profile(stub)
@@ -141,7 +162,7 @@ class TestWithNoSnapshotTheUserIsTold:
         """shutdown_audit.log is the only file that survives the next launch,
         and this is exactly the diagnosis a user's next report needs."""
         stub = _Stub()
-        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a: False)
+        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a, **kw: False)
         monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: None)
         MainWindow._recover_suspect_profile(stub)
         assert any("profile suspect" in line for line in stub.audits)

@@ -88,6 +88,28 @@ def snapshot_dir(global_dir, session_name):
     return os.path.join(global_dir, "api", SNAPSHOT_DIR_NAME, session_name)
 
 
+def previous_snapshot_dir(global_dir, session_name):
+    """The snapshot the last refresh replaced.
+
+    Kept because a clean close is not proof that the profile it wrote will
+    still authenticate. Measured across one day on a real install: four clean
+    shutdowns, each with close-session acknowledged, the session observed
+    CLOSED and Chrome confirmed to have released the profile — and two of the
+    four were followed by a launch where WhatsApp Web logged itself out seven
+    seconds into the page load. The two hard-killed runs that day both came
+    back fine, which is the opposite of what the module docstring above
+    predicts.
+
+    So `capture_snapshot()`'s conditions can all hold and still write a
+    restore point that does not work, and on that install the good one was
+    22.7 h old against a 24 h refresh window: one more hour and the refresh
+    would have overwritten the only profile that still authenticated. Keeping
+    the generation it replaces costs one extra copy on disk and is the
+    difference between a recoverable session and a re-pairing.
+    """
+    return snapshot_dir(global_dir, session_name) + ".prev"
+
+
 def snapshot_age_seconds(global_dir, session_name, now=None):
     """Seconds since this session's snapshot was completed, or None if there
     is none. Read off the directory itself, which `capture_snapshot()` renames
@@ -184,6 +206,22 @@ def capture_snapshot(global_dir, session_name, budget=SNAPSHOT_BUDGET_SECONDS,
         shutil.rmtree(staged, ignore_errors=True)
         os.makedirs(staged, exist_ok=True)
         _copy_tree_bounded(source, staged, deadline)
+        # Demote the snapshot being replaced rather than dropping it. See
+        # previous_snapshot_dir(): a clean close is not proof that what it
+        # wrote will authenticate on the next load, and the generation being
+        # overwritten is the one already known to have worked. Everything above
+        # happened in `staged`, so a failure before this point still leaves
+        # both generations untouched.
+        previous = previous_snapshot_dir(global_dir, session_name)
+        if os.path.isdir(final):
+            shutil.rmtree(previous, ignore_errors=True)
+            try:
+                os.replace(final, previous)
+            except OSError as exc:
+                # Not fatal: losing the older generation costs a fallback,
+                # while refusing to refresh at all costs the restore point.
+                logging.warning("[profile-snapshot] could not keep the previous "
+                                "generation for %s: %s", session_name[:12], exc)
         _replace_directory(staged, final)
         logging.info("[profile-snapshot] restore point written for session %s",
                      session_name[:12])
@@ -197,8 +235,13 @@ def capture_snapshot(global_dir, session_name, budget=SNAPSHOT_BUDGET_SECONDS,
         return False
 
 
-def restore_snapshot(global_dir, session_name):
+def restore_snapshot(global_dir, session_name, prefer_previous=False):
     """Put the saved profile back. Returns True if the live profile was replaced.
+
+    `prefer_previous` restores the generation before the newest one — the
+    ladder for the case the newest snapshot is itself a profile that no longer
+    authenticates. See previous_snapshot_dir() for why that is reachable from
+    a shutdown that did everything right.
 
     The caller must have stopped Chrome first — restoring under a running
     browser would be overwriting a LevelDB while its owner holds it open, i.e.
@@ -208,7 +251,8 @@ def restore_snapshot(global_dir, session_name):
     is the only evidence of what went wrong, and deleting the one copy of a
     failure nobody has reproduced is how a bug survives another release.
     """
-    source = snapshot_dir(global_dir, session_name)
+    source = (previous_snapshot_dir(global_dir, session_name) if prefer_previous
+              else snapshot_dir(global_dir, session_name))
     if not os.path.isdir(source):
         return False
     live = profile_dir(global_dir, session_name)
@@ -238,8 +282,10 @@ def restore_snapshot(global_dir, session_name):
         return False
 
 
-def has_snapshot(global_dir, session_name):
-    return os.path.isdir(snapshot_dir(global_dir, session_name))
+def has_snapshot(global_dir, session_name, prefer_previous=False):
+    return os.path.isdir(previous_snapshot_dir(global_dir, session_name)
+                         if prefer_previous
+                         else snapshot_dir(global_dir, session_name))
 
 
 class ProfileHealthTracker:
