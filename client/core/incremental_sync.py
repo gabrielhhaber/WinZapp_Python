@@ -234,6 +234,46 @@ def classify_chat_sync(
     return "skip", "unchanged"
 
 
+def select_stale_rechecks(candidates, verified_at, now, per_round, after):
+    """Which skipped chats have gone too long without an actual get-messages.
+
+    Every signal classify_chat_sync() reads — `t`, `unreadCount`,
+    `lastReceivedKey`, `lastMessage` — is chat-list *metadata*. When that
+    metadata is stale for one chat, every signal agrees nothing changed and the
+    chat is skipped on every round, forever, while get-messages for it would
+    have returned newer messages the whole time. Nothing in the plan can break
+    out of that, which is why the only cure users found was F5 — a forced full
+    rebuild of every chat in the account (issue #181: two chats stuck at 200
+    messages, ending at 08:35 and 07:34, that F5 advanced to 17:12 and 17:11
+    by fetching 34 and 7 messages *newer* than anything stored).
+
+    The history-repair queue does not cover it either: that asks the phone for
+    history *older* than what is held, and these messages were newer.
+
+    So staleness is bounded by time rather than trusted to the markers. The
+    chats that have gone longest without a successful fetch are re-checked, a
+    few per round, whatever the markers say. Returned oldest-first and capped,
+    so the cost per round is fixed no matter how large the account is; a chat
+    with no recorded verification at all sorts first, because it is the one
+    nothing is known about.
+    """
+    if per_round <= 0 or after < 0:
+        return []
+    verified_at = verified_at if isinstance(verified_at, dict) else {}
+    due = []
+    for jid in candidates or ():
+        if not jid:
+            continue
+        try:
+            last = int(verified_at.get(jid, 0) or 0)
+        except (TypeError, ValueError):
+            last = 0
+        if now - last >= after:
+            due.append((last, jid))
+    due.sort()
+    return [jid for _, jid in due[:per_round]]
+
+
 def next_incremental_limit(
     current_limit: int,
     page_size: int,

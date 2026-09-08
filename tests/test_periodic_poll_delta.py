@@ -20,6 +20,7 @@ a plain stub — the same pattern the other main.py tests use.
 """
 
 import threading
+import time
 import types
 
 import pytest
@@ -39,6 +40,12 @@ class _StopLoop(Exception):
 class _PollStub:
     def __init__(self):
         self.chats = {A: _chat(A), B: _chat(B)}
+        # Every chat was fetched moments ago: these stubs model a warm,
+        # already-synced account. Left unset they read as never verified and
+        # _plan_message_sync()'s staleness net (issue #181) promotes them,
+        # which is correct but is not what these tests measure. That net has
+        # its own tests in tests/test_stale_chat_recheck.py.
+        self._chat_verified_at = {j: int(time.time()) for j in self.chats}
         self.settings = {"storage": {"auto_download_media": True}}
         self._wa_connected = True
         self._initial_sync_running = False
