@@ -29,6 +29,10 @@ class _Stub:
     authenticates with."""
 
     _still_linked_on_server = MainWindow._still_linked_on_server
+    # The sibling it delegates to, under its real name: the probe itself
+    # lives there and also reports WHICH phone answered, which only
+    # MainWindow._wipe_local_data_if_another_number_linked() reads.
+    _host_device_link_probe = MainWindow._host_device_link_probe
 
     def __init__(self):
         self.wpp_server = "http://127.0.0.1"

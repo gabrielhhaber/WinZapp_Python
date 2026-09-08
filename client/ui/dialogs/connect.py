@@ -632,6 +632,14 @@ class Connect:
             self.connection_dial.Destroy()
         except Exception:
             pass
+        # Pairing has closed: only now can WPPConnect be asked which phone it
+        # actually ended up linked to, which is the only way the QR flow can
+        # tell "the same account resumed" from "somebody scanned with another
+        # phone". A no-op on the startup path — the database is not open yet
+        # there, and MainWindow.__init__ runs this again right after
+        # prepare_sync(); this call is what covers the dialogs opened while
+        # the app is already running (websocket_client's _show_repair_dialog).
+        self.main_window._wipe_local_data_if_another_number_linked()
 
     def _close_active_session(self, sync=False):
         # Retrieve the active token from the dialog state

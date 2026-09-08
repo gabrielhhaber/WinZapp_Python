@@ -59,7 +59,7 @@ from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
 from core.send_contract import accepted_message_id
 from core.wpp_runtime import read_homologated_wpp_version
-from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default
+from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default, contact_dedup_key
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
 from core.database_bridge import DatabaseBridge
@@ -1488,6 +1488,73 @@ def history_gap_closed(fetched: list, local_records: list, hole_top_ts: int) -> 
     return bool(below & got)
 
 
+# Fewest digits a value has to carry before it may be read as a phone number
+# at all. These two helpers are the last gate before deleting the whole local
+# history, so anything shorter — a truncated field, a short code, an @lid's
+# raw digits — has to read as "no verdict", never as "a different account".
+_MIN_COMPARABLE_PHONE_DIGITS = 8
+
+
+def linked_phone_digits(main_window, linked_value) -> str:
+    """Digits of the phone WPPConnect says is linked, or "" when unprovable.
+
+    ``linked_value`` is whatever host-device answered with (see
+    MainWindow._host_device_link_probe): a bare digit string, a phone JID in
+    either format, possibly with a device suffix, possibly an @lid.
+
+    Everything this cannot positively resolve to a phone number comes back
+    empty, because the only caller turns a non-empty answer into permission
+    to wipe. In particular an @lid is only accepted once the usual
+    _lid_to_phone bridge already holds its phone number: an @lid's own digits
+    are not a phone number, and comparing them against a stored one would
+    "prove" a difference for every single @lid.
+    """
+    linked = (linked_value or "").strip() if isinstance(linked_value, str) else ""
+    if not linked:
+        return ""
+    if "@" not in linked:
+        linked = f"{linked}@s.whatsapp.net"
+    normalized = main_window._normalize_jid(linked)
+    if normalized.endswith("@lid"):
+        bridged = (getattr(main_window, "_lid_to_phone", {}) or {}).get(normalized, "")
+        if not bridged:
+            return ""
+        normalized = main_window._normalize_jid(bridged)
+    if not normalized.endswith("@s.whatsapp.net"):
+        # A group, a broadcast, or a shape nobody here understands.
+        return ""
+    digits = normalized.split("@", 1)[0]
+    if not digits.isdigit() or len(digits) < _MIN_COMPARABLE_PHONE_DIGITS:
+        return ""
+    return digits
+
+
+def linked_number_differs(main_window, stored_number, linked_value) -> bool:
+    """True only when the linked phone is PROVABLY a different number.
+
+    Both sides are collapsed through contact_dedup_key(), the same helper the
+    contact list uses to recognise one person across JID formats — which is
+    what makes the Brazilian 8/9-digit mobile pair (5511999999999 ↔
+    551199999999) compare equal here. Comparing raw strings instead would
+    report "different account" for a user who re-paired the very number they
+    were already using, and the answer to that is deleting their history.
+
+    Anything less than two recognisable, non-empty numbers is False: no
+    stored number (a brand-new multi-account entry is created with an empty
+    privateinfo, so this is the normal state of one), no answer from the
+    server, or an answer this cannot read.
+    """
+    stored_raw = stored_number if isinstance(stored_number, str) else ""
+    stored_digits = "".join(c for c in stored_raw if c.isdigit())
+    if len(stored_digits) < _MIN_COMPARABLE_PHONE_DIGITS:
+        return False
+    linked_digits = linked_phone_digits(main_window, linked_value)
+    if not linked_digits:
+        return False
+    return (contact_dedup_key(main_window, f"{stored_digits}@s.whatsapp.net")
+            != contact_dedup_key(main_window, f"{linked_digits}@s.whatsapp.net"))
+
+
 def participant_digits(jid) -> str:
     if not isinstance(jid, str):
         return ""
@@ -2160,6 +2227,16 @@ class MainWindow(wx.Frame):
 
         logging.info("MainWindow: Preparing sync...")
         self.prepare_sync()
+        if self._just_paired:
+            # A pairing that just happened through the dialog above may have
+            # linked a phone this account's history does not belong to (only
+            # the QR flow can: see the method's own docstring). Here, and not
+            # at the dialog's own end, because that runs before prepare_sync()
+            # opens the database — a wipe there would clear media/ and
+            # voice_messages/ and leave messages.db to be loaded back in a few
+            # lines later. Still before the first sync, which is the merge
+            # this prevents.
+            self._wipe_local_data_if_another_number_linked()
         # Initialise outgoing-message queue (must exist before init_UI so the
         # ConversationsPanel can call self.main_window.message_queue.enqueue).
         self.message_queue = MessageQueue(self)
@@ -10829,6 +10906,17 @@ class MainWindow(wx.Frame):
     def _still_linked_on_server(self) -> str:
         """Ask WPPConnect whether this session still holds a linked phone.
 
+        Thin wrapper: the probe itself also reports WHICH phone answered, and
+        only _wipe_local_data_if_another_number_linked() cares about that.
+        Every caller of this one is deciding a logout, where the identity of
+        the phone is irrelevant and the three-way outcome is the whole
+        answer.
+        """
+        return self._host_device_link_probe()[0]
+
+    def _host_device_link_probe(self) -> tuple:
+        """(outcome, phone) for this session's linked phone, from host-device.
+
         Returns one of connection_state's LINK_PROBE_* outcomes: LINKED
         (host-device answered with our own phone number), UNLINKED (it
         answered, and holds none — including the missing-key shape a real
@@ -10863,32 +10951,32 @@ class MainWindow(wx.Frame):
             # change, so the leak it would publish into the log.log users
             # paste into bug reports is new even though the line is not.
             logging.info(
-                "[_still_linked_on_server] host-device probe failed: %s: %s",
+                "[_host_device_link_probe] host-device probe failed: %s: %s",
                 type(exc).__name__, redact_credentials(str(exc)),
             )
-            return cs.LINK_PROBE_UNKNOWN
+            return cs.LINK_PROBE_UNKNOWN, ""
         if resp.status_code not in (200, 201):
             # Notably 401/403: our own middleware refused the probe, so it
             # never reached WhatsApp and says nothing about the link at all.
             logging.info(
-                "[_still_linked_on_server] host-device answered HTTP %s — the "
+                "[_host_device_link_probe] host-device answered HTTP %s — the "
                 "probe proves nothing either way.", resp.status_code,
             )
-            return cs.LINK_PROBE_UNKNOWN
+            return cs.LINK_PROBE_UNKNOWN, ""
         try:
             body = resp.json().get("response")
         except Exception as exc:
             logging.info(
-                "[_still_linked_on_server] host-device body unreadable: %s", exc)
-            return cs.LINK_PROBE_UNKNOWN
+                "[_host_device_link_probe] host-device body unreadable: %s", exc)
+            return cs.LINK_PROBE_UNKNOWN, ""
         if not isinstance(body, dict):
             # No "response" object at all, or one that is not a mapping: a
             # shape we do not understand, which may not be read as any verdict
             # about the link.
             logging.info(
-                "[_still_linked_on_server] host-device answered 2xx with no "
+                "[_host_device_link_probe] host-device answered 2xx with no "
                 "readable response object — the probe proves nothing either way.")
-            return cs.LINK_PROBE_UNKNOWN
+            return cs.LINK_PROBE_UNKNOWN, ""
         # Deliberately keyed on the VALUE being falsy, not on the key being
         # absent, because absent is exactly the shape a real unlink produces:
         # deviceController's host-device sends `{...hostDevice, phoneNumber}`
@@ -10906,7 +10994,98 @@ class MainWindow(wx.Frame):
         phone = body.get("phoneNumber", "")
         if isinstance(phone, dict):
             phone = phone.get("_serialized", "")
-        return cs.LINK_PROBE_LINKED if phone else cs.LINK_PROBE_UNLINKED
+        if not isinstance(phone, str):
+            phone = str(phone) if phone else ""
+        return ((cs.LINK_PROBE_LINKED, phone) if phone
+                else (cs.LINK_PROBE_UNLINKED, ""))
+
+    def _wipe_local_data_if_another_number_linked(self) -> None:
+        """Wipe this account's local data when a DIFFERENT phone just linked.
+
+        The QR flow cannot ask which phone is about to scan the code, so
+        Connect.start_qrcode_connection() decides its wipe from
+        `preserve_local_data` — "this installation had a working history a
+        moment ago", not "this is the same number". Scan that code with
+        another phone and the history of the first account survives while the
+        second one's sync merges on top of it, which is exactly the merge
+        clear_local_data() exists to prevent. The phone-code flow has no such
+        gap: the number is typed in before anything starts, so
+        _can_reuse_existing_session() already decides that wipe from it.
+
+        So the comparison happens here instead, once pairing has closed and
+        WPPConnect can be asked which phone it actually holds. Every step
+        refuses to act on anything short of proof, because a false positive
+        deletes a history a blind user pays for with the whole pairing flow
+        again, while a false negative is a wipe they can still ask for:
+
+          * no stored WA_phone_number — nothing to compare against, and the
+            normal state of a freshly created multi-account entry (`pending`,
+            empty privateinfo). It never reaches the probe at all;
+          * no open database — the startup dialog runs before prepare_sync(),
+            where clear_local_data() would delete media/ and voice_messages/
+            and leave every message in messages.db behind. The call right
+            after prepare_sync() owns that case;
+          * anything but LINK_PROBE_LINKED — a failed, refused or unreadable
+            probe proves nothing (see _host_device_link_probe);
+          * linked_number_differs() False — same number, an 8/9-digit
+            Brazilian variant of it, an unbridged @lid, or a value we cannot
+            read as a phone number.
+
+        The stored number is replaced on the way out, since it is now the
+        record of an account whose data is gone: leaving the old one there
+        would make the next pairing of THIS number look like another
+        divergence and wipe a second time.
+        """
+        import connection_state as cs
+
+        privateinfo = self.settings.get("privateinfo")
+        if not isinstance(privateinfo, dict):
+            return
+        stored = privateinfo.get("WA_phone_number") or ""
+        if not stored:
+            logging.info(
+                "[another_number_check] No stored phone number for this "
+                "account — nothing to compare, nothing deleted.")
+            return
+        if getattr(self, "db", None) is None:
+            logging.info(
+                "[another_number_check] Database not open yet — deferring to "
+                "the check that runs after prepare_sync().")
+            return
+        if not getattr(self, "token", ""):
+            logging.info(
+                "[another_number_check] No session token — the probe could "
+                "not prove anything, nothing deleted.")
+            return
+
+        outcome, linked = self._host_device_link_probe()
+        if outcome != cs.LINK_PROBE_LINKED:
+            logging.info(
+                "[another_number_check] host-device returned %s — no verdict "
+                "on which number is linked, nothing deleted.", outcome)
+            return
+        try:
+            differs = linked_number_differs(self, stored, linked)
+        except Exception:
+            # A bug in the comparison must not be able to delete anything.
+            logging.exception(
+                "[another_number_check] Could not compare the linked number — "
+                "nothing deleted.")
+            return
+        if not differs:
+            logging.info(
+                "[another_number_check] The linked phone is this account's own "
+                "number — keeping the local history.")
+            return
+
+        new_digits = linked_phone_digits(self, linked)
+        logging.warning(
+            "[another_number_check] A different phone is linked to this "
+            "account (stored ...%s, linked ...%s) — wiping the local data the "
+            "previous number left behind.", stored[-4:], new_digits[-4:])
+        self.clear_local_data()
+        privateinfo["WA_phone_number"] = new_digits
+        self.save_settings()
 
     def _act_on_unlink_decision(self, decision: str, *, log_label: str) -> None:
         """Common epilogue for connection_state.classify_unlinked()/
