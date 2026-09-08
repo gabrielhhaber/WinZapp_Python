@@ -15,6 +15,7 @@ class _ListBoxLike:
 def test_upload_progress_refreshes_listbox_compatible_control():
     panel = ConversationsPanel.__new__(ConversationsPanel)
     panel._media_upload_progress = {}
+    panel._upload_stages_seen = {}
     panel._media_transfer_started = set()
     panel._sorted_messages = [{"_local_id": "upload-1", "_local_pending": True}]
     panel.messages_list = _ListBoxLike()

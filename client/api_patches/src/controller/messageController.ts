@@ -131,21 +131,39 @@ async function watchMediaUpload(req: Request, uploadId: string, contact: string)
   await page.evaluate(({ uploadId, contact }: any) => {
     const onMessage = (message: any) => {
       if (!message?.isSentByMe || message?.to?.toString?.() !== contact) return;
+      // This used to emit ONLY when Number(progressiveStage) was finite, and
+      // on a current stack that is never: `progressiveStage` does not appear
+      // anywhere in @wppconnect/wa-js 4.6.0 — grepped, not guessed — and
+      // `mediaData.mediaStage`, the field wa-js itself listens to, carries a
+      // lifecycle STRING (its own handler logs "message file <id> is
+      // <stage>"). Number("ENCRYPT") is NaN, so the guard rejected every
+      // event and the upload gauge sat at zero until the send finished and
+      // the client forced it to 1.0. The bar was inert, not merely
+      // inaccurate.
+      //
+      // So: emit whatever arrives, and let the client decide what it means.
+      // The stage NAME goes across as well as any numeric value, because
+      // WhatsApp's stage vocabulary is its own and versioned — hardcoding a
+      // stage->fraction table here would be inventing semantics we cannot
+      // verify, and would rot silently the next time WhatsApp renames one.
+      // The client advances monotonically on each distinct stage it has not
+      // seen before, so an unrecognised vocabulary still moves the bar.
       const report = () => {
-        const stage = message.mediaData?.progressiveStage;
-        const numeric = Number(stage);
-        if (Number.isFinite(numeric)) {
-          (window as any).__winzappMediaProgress({
-            uploadId,
-            progress: numeric > 1 ? Math.min(numeric, 100) / 100 : numeric,
-          });
-        }
+        const stage = message.mediaData?.mediaStage;
+        const legacy = message.mediaData?.progressiveStage;
+        const numeric = Number(legacy);
+        (window as any).__winzappMediaProgress({
+          uploadId,
+          stage: stage === undefined || stage === null ? null : String(stage),
+          // Kept because it costs nothing and is the only real percentage
+          // available on any build that does expose it.
+          progress: Number.isFinite(numeric)
+            ? numeric > 1
+              ? Math.min(numeric, 100) / 100
+              : numeric
+            : null,
+        });
       };
-      // WA-JS' own sendFileMessage() uses mediaStage as the upload
-      // lifecycle signal.  progressiveStage still exists on MediaDataModel and
-      // can carry a numeric fraction on some WhatsApp builds, so listen to both:
-      // mediaStage guarantees that report() is re-run as the upload advances,
-      // while progressiveStage preserves the real numeric value where available.
       message.on('change:mediaData.mediaStage', report);
       message.on('change:mediaData.progressiveStage', report);
       report();

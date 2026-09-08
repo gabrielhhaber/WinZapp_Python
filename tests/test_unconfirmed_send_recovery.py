@@ -189,6 +189,7 @@ class _DeleteStub:
         self.conversation = {"remoteJid": REMOTE}
         self._outgoing_virtual_messages = {msg.get("_local_id"): msg} if msg.get("_local_id") else {}
         self._media_upload_progress = {}
+        self._upload_stages_seen = {}
         self._media_transfer_started = set()
         self.removed_ids = []
         self.gauge_hidden = 0

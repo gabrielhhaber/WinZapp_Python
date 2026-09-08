@@ -643,6 +643,132 @@ export async function downloadMediaByMessage(req: Request, res: Response) {
   }
 }
 
+/**
+ * Download a message's media while reporting real progress, then decrypt it.
+ *
+ * `client.decryptFile()` is a black box: one axios GET of the whole file from
+ * WhatsApp's CDN, then `magix()` to decrypt. Nothing observes the bytes, so
+ * WinZapp's download gauge had nothing to watch but the localhost hop that
+ * follows — which is the *fast* part. The bar sat at 0% for the entire real
+ * wait and then flashed to 100% as the finished file crossed a loopback
+ * socket. Users noticed, and they were right.
+ *
+ * This is the same two steps with the download counted. It reaches into
+ * wppconnect's own decrypt helper for `makeOptions`/`magix` rather than
+ * reimplementing either: that file is already one WinZapp patches by name
+ * (api_patches/decrypt.js), so the coupling exists and the exact-version pin
+ * on @wppconnect-team/wppconnect is what keeps it honest.
+ *
+ * Every failure falls back to `client.decryptFile()`. A progress bar is worth
+ * exactly nothing if wanting one can cost the download.
+ */
+async function downloadMediaWithProgress(
+  req: Request,
+  client: any,
+  message: any
+): Promise<Buffer> {
+  const progressId = req.body?.progressId;
+  const mediaUrl = message.clientUrl || message.deprecatedMms3Url;
+  if (!mediaUrl) return await client.decryptFile(message);
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const decrypt = require('@wppconnect-team/wppconnect/dist/api/helpers/decrypt');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const axios = require('axios').default;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // Same two internals whatsapp.js's own decryptFile() uses, by the same
+    // paths — verified importable against the pinned runtime rather than
+    // assumed from the source.
+    const ua = require('@wppconnect-team/wppconnect/dist/config/WAuserAgente');
+    if (typeof decrypt?.magix !== 'function' ||
+        typeof decrypt?.makeOptions !== 'function') {
+      return await client.decryptFile(message);
+    }
+
+    const options = decrypt.makeOptions(ua?.useragentOverride);
+    let lastSent = 0;
+    if (progressId) {
+      // Throttled to whole percent AND to a minimum interval: a 200 MB file
+      // produces thousands of progress events, and every one of them would be
+      // a Socket.IO frame plus a wx.CallAfter on the UI thread of a client
+      // whose screen reader is already announcing the value.
+      options.onDownloadProgress = (event: any) => {
+        const total = Number(event?.total) || Number(message.size) || 0;
+        const loaded = Number(event?.loaded) || 0;
+        if (total <= 0 || loaded <= 0) return;
+        const fraction = Math.min(1, loaded / total);
+        const now = Date.now();
+        if (fraction < 1 && now - lastSent < 250) return;
+        lastSent = now;
+        req.io?.emit('media-download-progress', {
+          progressId,
+          progress: fraction,
+          session: client.session,
+        });
+      };
+    }
+
+    const response = await axios.get(String(mediaUrl).trim(), options);
+    if (response.status !== 200) return await client.decryptFile(message);
+    const buffer = Buffer.from(response.data, 'binary');
+    return decrypt.magix(buffer, message.mediaKey, message.type, message.size);
+  } catch (progressErr) {
+    req.logger.warn(
+      `[getMediaByMessage] progress-reporting download failed, falling back to ` +
+        `decryptFile: ${progressErr}`
+    );
+    return await client.decryptFile(message);
+  }
+}
+
+/**
+ * Send a decrypted media buffer back, as raw bytes when the caller can take
+ * them and as the historical base64 JSON otherwise.
+ *
+ * `res.json({ base64: buffer.toString('base64') })` is what every media
+ * download used to do, and it is why a large document could not be downloaded
+ * at all. For a 200 MB file it holds, at once: the 200 MB Buffer, a 267 MB
+ * base64 string, and the ~267 MB string JSON.stringify builds from it — and it
+ * produces not one byte of response until all three exist. The client, which
+ * has a read timeout measured between bytes, sees total silence for minutes
+ * and gives up; Node keeps working on the abandoned request, which is the
+ * memory the user watches fill. Past roughly 400 MB it cannot work at all:
+ * `toString('base64')` exceeds V8's maximum string length and throws.
+ *
+ * Raw bytes remove both extra copies and start flowing immediately, which is
+ * the same change that made large *uploads* work — see
+ * wppconnect_sender_layer_patch.py, where the fix was to stop handing one
+ * enormous argument across a boundary that cannot take it.
+ *
+ * Negotiated rather than switched, because `client/api/` is reinstalled
+ * independently of the Python app: a newer server must keep answering an older
+ * client, which only knows how to read `{base64, mimetype}`.
+ */
+function sendMediaBuffer(
+  req: Request,
+  res: Response,
+  buffer: Buffer,
+  mimetype?: string
+) {
+  const resolved = mimetype || 'application/octet-stream';
+  const accept = String(req.headers['accept'] || '');
+  if (accept.includes('application/octet-stream')) {
+    res.status(200);
+    res.setHeader('Content-Type', resolved);
+    // The mimetype rides in its own header because the body is now the file
+    // itself. Named x-winzapp-* so it cannot be confused with a standard
+    // header a proxy might rewrite.
+    res.setHeader('x-winzapp-mimetype', resolved);
+    res.setHeader('Content-Length', String(buffer.length));
+    return res.end(buffer);
+  }
+  return res.status(200).json({
+    base64: buffer.toString('base64'),
+    mimetype: mimetype || 'audio/ogg',
+  });
+}
+
 export async function getMediaByMessage(req: Request, res: Response) {
   /**
    * #swagger.tags = ["Messages"]
@@ -810,11 +936,8 @@ export async function getMediaByMessage(req: Request, res: Response) {
     }
 
     try {
-      const buffer = await client.decryptFile(message);
-      res.status(200).json({
-        base64: buffer.toString('base64'),
-        mimetype: message.mimetype || 'audio/ogg',
-      });
+      const buffer = await downloadMediaWithProgress(req, client, message);
+      return sendMediaBuffer(req, res, buffer, message.mimetype);
     } catch (decryptErr) {
       req.logger.error(
         `decryptFile failed, trying browser-side recovery: ${decryptErr}`
@@ -852,11 +975,8 @@ export async function getMediaByMessage(req: Request, res: Response) {
           req.logger.info(
             `Found fresh message in browser for ${cleanMsgId}, attempting decryption...`
           );
-          const buffer = await client.decryptFile(freshMessage);
-          return res.status(200).json({
-            base64: buffer.toString('base64'),
-            mimetype: freshMessage.mimetype || 'audio/ogg',
-          });
+          const buffer = await downloadMediaWithProgress(req, client, freshMessage);
+          return sendMediaBuffer(req, res, buffer, freshMessage.mimetype);
         } catch (freshDecryptErr) {
           req.logger.error(
             `Decryption of fresh browser message failed: ${freshDecryptErr}`

@@ -707,6 +707,7 @@ class _RenderPanel(_PanelStub):
         super().__init__(messages, main_window=main_window or _RenderMainWindow())
         self.selected_messages = set()
         self._media_upload_progress = {}
+        self._upload_stages_seen = {}
         self._download_progress = {}
         self._message_list_mode = "classic"
         self._group_participants_cache = []

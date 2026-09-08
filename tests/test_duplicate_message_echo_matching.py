@@ -71,6 +71,7 @@ def _make_panel(msg):
     panel._played_sent_local_ids = set()
     panel._outgoing_virtual_messages = {"loc-1": msg}
     panel._media_upload_progress = {}
+    panel._upload_stages_seen = {}
     panel._media_transfer_started = set()
     panel.gauge_hidden = False
     def _hide():

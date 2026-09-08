@@ -734,6 +734,74 @@ def node_runtime_needs_download(node_exe, npm_cli, marker_path):
     return needs_download, installed_version
 
 
+def _looks_like_json_response(response) -> bool:
+    """Did the server answer with the historical ``{base64, mimetype}`` JSON?
+
+    Read off Content-Type rather than by sniffing the body: sniffing means
+    touching the body, and the whole point of the binary path is that the body
+    may be hundreds of megabytes that must be read exactly once.
+
+    Answers True when the header is missing or unreadable — an unknown shape is
+    treated as the old one, so a server that says nothing keeps the behaviour
+    it has always had instead of having raw JSON written to disk as if it were
+    a file.
+    """
+    try:
+        content_type = (response.headers.get("Content-Type") or "").lower()
+    except Exception:
+        return True
+    if not content_type:
+        return True
+    return "json" in content_type
+
+
+#: Bytes per second assumed when turning a media file's declared size into a
+#: read timeout. Deliberately pessimistic: this is not a throughput estimate,
+#: it is the answer to "how long may the server be SILENT before we conclude it
+#: is never going to answer". WPPConnect downloads the whole file from
+#: WhatsApp's CDN and decrypts it before writing a single byte back, so the
+#: silence lasts as long as that takes, and a 200 MB document on a slow line
+#: takes far longer than the flat 60s every media request used to get.
+_MEDIA_ASSUMED_BYTES_PER_SECOND = 200 * 1024
+
+#: Never wait longer than this for one media request, however large the file
+#: claims to be. A declared size is attacker-controlled in principle and
+#: wrong-by-accident in practice, and a request that hangs forever is a worker
+#: thread that never comes back.
+_MEDIA_FETCH_TIMEOUT_CEILING = 30 * 60
+
+
+def media_fetch_timeout(msg: dict, base: int = 60) -> int:
+    """How long to let one media download go quiet, given its declared size.
+
+    A flat 60s is right for a photo and hopeless for a 200 MB document: the
+    request is abandoned while the server is still fetching it, the user is
+    told the download failed, and the server keeps working on a request nobody
+    is reading any more — which is the memory that fills. Reported as "it says
+    it is downloading, takes forever, downloads nothing, fills the RAM, and the
+    button goes back to Download".
+
+    Falls back to `base` whenever the size is missing or unparseable, so a
+    message that declares nothing behaves exactly as before.
+    """
+    inner = (msg or {}).get("message")
+    if not isinstance(inner, dict):
+        return base
+    size = None
+    for value in inner.values():
+        if isinstance(value, dict) and value.get("fileLength") is not None:
+            size = value.get("fileLength")
+            break
+    try:
+        size = int(size)
+    except (TypeError, ValueError):
+        return base
+    if size <= 0:
+        return base
+    return int(min(_MEDIA_FETCH_TIMEOUT_CEILING,
+                   max(base, base + size / _MEDIA_ASSUMED_BYTES_PER_SECOND)))
+
+
 def is_countable_message(msg: dict) -> bool:
     """True for a message type that should count as real conversation
     activity (unread badge, chat-list sort order, notifications).
@@ -1254,6 +1322,46 @@ def reconcile_open_chat_unread(
     return min(server_unread, local_new), False
 
 
+def _log_refused_read_receipt(jid: str, server_unread: int, local_unread: int,
+                             incoming_timestamp, local_timestamp,
+                             merged: int) -> None:
+    """Say so when a snapshot reporting "read" was not allowed to clear a badge.
+
+    The only symptom of this from outside is a conversation that stays unread
+    forever and comes back only after F5, and until this line existed the logs
+    could not tell whether WPPConnect had reported a stale count or WinZapp had
+    refused a good one (issue #173 says exactly that: "the available
+    diagnostics do not establish" which).
+
+    Both timestamps go in raw, because the units are the thing under
+    suspicion — see _unread_seconds().
+    """
+    if server_unread != 0 or local_unread <= 0 or merged == 0:
+        return
+    logging.info(
+        "[unread] %s: snapshot says read (0) but kept %d — "
+        "snapshot t=%s local t=%s",
+        jid, merged, incoming_timestamp, local_timestamp,
+    )
+
+
+def _unread_seconds(value) -> int:
+    """A timestamp in seconds, whatever unit it arrived in.
+
+    Deliberately the same rule as core/incremental_sync.py's _seconds(), and
+    deliberately a second copy rather than an import: main.py is the module
+    incremental_sync is imported INTO, and reaching back the other way for four
+    lines would make the dependency circular. The threshold is the one that
+    cannot be ambiguous — 1e12 seconds is the year 33658, so anything above it
+    is milliseconds.
+    """
+    try:
+        ts = int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    return ts // 1000 if ts > 1_000_000_000_000 else ts
+
+
 def reconcile_snapshot_unread(
     server_unread: int,
     local_unread: int,
@@ -1261,12 +1369,33 @@ def reconcile_snapshot_unread(
     local_timestamp: int,
     unsynced: bool = False,
 ) -> int:
-    """Merge an authoritative chat snapshot without losing newer live arrivals."""
+    """Merge an authoritative chat snapshot without losing newer live arrivals.
+
+    The timestamp guard below is what let a conversation read on the phone sit
+    at 8 unread forever, curable only with F5 (issue #173) — and the reason is
+    not the rule, it is that the two sides were being compared in different
+    units. `t` arrives from WhatsApp Web in seconds, while several local paths
+    write a millisecond value into the very same field (on_historical_message()
+    is the one CLAUDE.md names). A millisecond local timestamp is a thousand
+    times any second-based snapshot, so `incoming < local` became permanently
+    true and NO later snapshot could ever lower the count again. F5 "fixed" it
+    only by wiping self.chats, leaving nothing to preserve.
+
+    core/incremental_sync.py learned this on its own side and its _seconds()
+    docstring says it outright: comparing the two raw "makes the local side
+    look impossibly newer, which is the direction that silently skips a chat".
+    The same normalisation belongs here, on the comparison that decides whether
+    a read is allowed to reach the badge.
+
+    The guard itself stays exactly as it was, because it protects a real case:
+    a snapshot a second older than a live arrival must not clear the count that
+    arrival just raised.
+    """
     server_unread = max(0, int(server_unread or 0))
     local_unread = max(0, int(local_unread or 0))
     if server_unread >= local_unread:
         return server_unread
-    if unsynced or int(incoming_timestamp or 0) < int(local_timestamp or 0):
+    if unsynced or _unread_seconds(incoming_timestamp) < _unread_seconds(local_timestamp):
         return local_unread
     return server_unread
 
@@ -13649,6 +13778,11 @@ class MainWindow(wx.Frame):
                                 self.chats[jid].get("t", 0),
                                 bool(self.chats[jid].get("_unread_count_unsynced")),
                             )
+                            _log_refused_read_receipt(
+                                jid, server_unread, local_unread,
+                                chat.get("t", 0), self.chats[jid].get("t", 0),
+                                chat["unreadCount"],
+                            )
                         chats[jid] = chat
                     else:
                         local_activity_t = int(chats[jid].get("t", 0) or 0)
@@ -19673,11 +19807,17 @@ class MainWindow(wx.Frame):
             # something that tells the user to wait for the connection.
             logging.info("[handle_media_message] Skipping download for %s — not connected.", msg_id)
             return False
-        b64 = self.get_base64_from_media(msg, progress_callback=progress_callback,
-                                         timeout=timeout)
-        if not b64:
+        # Bytes, and a timeout that knows how big the file is. Between them
+        # these are what make a 200 MB document downloadable at all: the base64
+        # route allocated roughly 1.3 GB in this process for one, and the flat
+        # 60s abandoned the request long before the server had finished
+        # fetching it. See fetch_media_bytes() and media_fetch_timeout().
+        content = self.fetch_media_bytes(
+            msg, progress_callback=progress_callback,
+            timeout=media_fetch_timeout(msg, timeout),
+        )
+        if not content:
             return False
-        content = base64.b64decode(b64)
         encrypted = encrypt(content, self.key)
         with open(media_path, "wb") as f:
             f.write(encrypted)
@@ -21806,13 +21946,39 @@ class MainWindow(wx.Frame):
         audio_content = base64.b64decode(base64_audio)
         return self.save_audio_locally(msg, audio_content)
 
-    def get_base64_from_media(self, media, progress_callback=None, timeout=60):
+    def fetch_media_bytes(self, media, progress_callback=None, timeout=60):
+        """The media file itself, as bytes — never as base64.
+
+        Preferred over get_base64_from_media() by anything that just wants to
+        write the file somewhere. For a 200 MB document the base64 route holds,
+        in Python alone, the chunk list (267 MB), the joined buffer (267 MB),
+        its decoded str (267 MB), the str json.loads builds (267 MB) and only
+        then the 200 MB of actual file — before encrypt() adds its own ~267 MB
+        Fernet token. That is the "it says it is downloading, downloads
+        nothing, and fills the RAM" report.
+
+        Returns b"" on every failure, exactly as its base64 sibling returns "".
+        """
+        return self.get_base64_from_media(
+            media, progress_callback=progress_callback, timeout=timeout,
+            _binary=True,
+        ) or b""
+
+    def get_base64_from_media(self, media, progress_callback=None, timeout=60,
+                              _binary=False):
         """
         Fetch encrypted media from WPPConnect and return its base64 string.
 
         Raises MediaExpiredError when the WhatsApp CDN URL has expired (HTTP 403/410).
         When *progress_callback* is provided the request is streamed and the
         callback is called with a float in [0, 1] as each chunk arrives.
+
+        `_binary` is private and belongs to fetch_media_bytes() — see there for
+        why bytes matter. It changes the return type to bytes, which is exactly
+        why no caller should pass it directly. Everything up to the response is
+        shared rather than duplicated: the body this endpoint needs is ninety
+        lines of JID and mediaKey archaeology, and a second copy of it would
+        drift the moment either is touched.
         """
         _key = media.get("key", {})
         remote_jid = _key.get("remoteJid", "") or media.get("from", "")
@@ -21830,6 +21996,13 @@ class MainWindow(wx.Frame):
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
         }
+        if _binary:
+            # Content negotiation, not a switch: client/api/ is reinstalled
+            # independently of this app, so an older server that has never
+            # heard of this header must keep working. It answers with the
+            # base64 JSON it always did, and the reader below detects which
+            # shape came back rather than assuming.
+            headers["Accept"] = "application/octet-stream"
 
         # Prepare body with media details to bypass Puppeteer cache lookups in WPPConnect Server
         body_data = dict(media)
@@ -21882,6 +22055,13 @@ class MainWindow(wx.Frame):
         if msg_type:
             body_data["type"] = msg_type.replace("Message", "")
 
+        # Correlation id for the server's progress events. Deliberately the
+        # message's own key id rather than the serialized form sent in the URL:
+        # the panel keys its gauge by that, and the serialized form goes
+        # through @lid/@c.us rewriting on both sides, so matching on it would
+        # mean re-deriving the same guess in two places.
+        body_data["progressId"] = _key.get("id", "") or msg_id
+
         has_media_key = bool(body_data.get("mediaKey"))
         has_client_url = bool(body_data.get("clientUrl"))
         has_direct_path = bool(body_data.get("directPath"))
@@ -21909,7 +22089,16 @@ class MainWindow(wx.Frame):
                         continue
                     return ""
                 
-                resp_text = response.text or ""
+                # Deliberately NOT response.text on a successful body. That
+                # decodes the whole response into a str just to log its first
+                # 200 characters — for a 200 MB document, a quarter-gigabyte
+                # allocation whose only purpose is a log line, and on the
+                # binary path it would also be a str built out of arbitrary
+                # bytes. The snippet is only ever read on a failure, so pay
+                # for it only there.
+                resp_text = ""
+                if response.status_code not in (200, 201):
+                    resp_text = response.text or ""
                 logging.info(
                     "[get_base64_from_media] WPPConnect server status=%d for msg_id=%s, body_snippet=%s",
                     response.status_code, msg_id, resp_text[:200]
@@ -21919,9 +22108,18 @@ class MainWindow(wx.Frame):
                     logging.warning("[get_base64_from_media] HTTP %d (CDN expired) for %s", response.status_code, msg_id)
                     raise MediaExpiredError(response.status_code)
                 if response.status_code in (200, 201):
+                    if _binary and not _looks_like_json_response(response):
+                        # The server honoured the octet-stream Accept: the body
+                        # IS the file. response.content is the only copy.
+                        payload = response.content
+                        logging.info(
+                            "[get_base64_from_media] Success for %s — %d raw byte(s)",
+                            msg_id, len(payload),
+                        )
+                        return payload
                     b64 = response.json().get("base64", "")
                     logging.info("[get_base64_from_media] Success for %s — base64 len=%d", msg_id, len(b64))
-                    return b64
+                    return base64.b64decode(b64) if _binary else b64
 
                 # Check for transient session not active errors
                 if response.status_code in (400, 500) and any(x in resp_text.lower() for x in ("session is not active", "not active", "disconnected")):
@@ -21975,19 +22173,31 @@ class MainWindow(wx.Frame):
                     
                     total = int(response.headers.get("content-length", 0))
                     downloaded = 0
-                    chunks: list = []
+                    # A bytearray, not a list of chunks joined afterwards. The
+                    # join doubles the peak — and this is the path the Download
+                    # button uses, so it is the one a 200 MB document dies on.
+                    body = bytearray()
                     for chunk in response.iter_content(chunk_size=65536):
                         if chunk:
-                            chunks.append(chunk)
+                            body += chunk
                             downloaded += len(chunk)
                             if total > 0:
                                 progress_callback(downloaded / total)
-                    body = b"".join(chunks).decode("utf-8", errors="replace")
+
+                    if _binary and not _looks_like_json_response(response):
+                        # Raw file bytes: nothing to decode, nothing to parse.
+                        return bytes(body)
+
                     try:
-                        return json.loads(body).get("base64", "")
+                        parsed = json.loads(bytes(body))
+                        b64 = parsed.get("base64", "")
+                        return base64.b64decode(b64) if _binary else b64
                     except Exception:
-                        # Caso o body retornado seja o base64 bruto ou binário
-                        return base64.b64encode(b"".join(chunks)).decode("utf-8")
+                        # The body was the raw file (or raw base64) rather than
+                        # the JSON envelope — an older or unexpected server.
+                        if _binary:
+                            return bytes(body)
+                        return base64.b64encode(bytes(body)).decode("utf-8")
                 except MediaExpiredError:
                     raise
                 except Exception as exc:
@@ -24704,9 +24914,17 @@ class MainWindow(wx.Frame):
                 except OSError:
                     pass
 
-    def on_media_upload_progress(self, upload_id: str, progress: float):
+    def on_media_upload_progress(self, upload_id: str, progress, stage: str = ""):
         if hasattr(self, "conversations_panel"):
-            self.conversations_panel.update_media_upload_progress(upload_id, progress)
+            self.conversations_panel.update_media_upload_progress(
+                upload_id, progress, stage)
+
+    def on_media_download_progress(self, progress_id: str, progress: float):
+        """Server-side CDN download progress, keyed by the id we sent with the
+        request. See _media_progress_id() for why the client picks that id."""
+        if hasattr(self, "conversations_panel"):
+            self.conversations_panel.update_message_download_progress(
+                progress_id, progress)
 
     def send_contact_attachment(self, remote_jid: str, contact_info: dict,
                                 quoted: dict = None):
