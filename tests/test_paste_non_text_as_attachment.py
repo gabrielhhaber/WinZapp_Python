@@ -213,7 +213,11 @@ class TestPasteFromMessagesList:
         stub._on_messages_list_key_down(event)
 
         assert stub.message_field.focused is True
-        assert stub.message_field.value == "texto\ncolado"
+        # CRLF, not a bare newline: the composer is multiline and a screen
+        # reader needs carriage returns to arrow through the pasted block.
+        # on_send_message() collapses it back before posting — see
+        # tests/test_editor_line_endings.py.
+        assert stub.message_field.value == "texto\r\ncolado"
         assert event.skipped is False
 
     def test_ctrl_v_copied_file_uses_attachment_not_text_path(self, wx_app, tmp_path):

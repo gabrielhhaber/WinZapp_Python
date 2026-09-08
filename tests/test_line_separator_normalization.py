@@ -125,7 +125,13 @@ class TestPasteNormalization:
         finally:
             frame.Destroy()
 
-    def test_paste_of_plain_text_is_left_alone(self, wx_app):
+    def test_multiline_plain_text_is_converted_for_the_screen_reader(self, wx_app):
+        """This asserted the opposite until now — that plain text was handed
+        to the native paste untouched — and that WAS the bug: NVDA reads a
+        block joined by bare newlines as ONE line, so Up/Down walk straight
+        through the breaks. A multiline field now receives CRLF, and the send
+        path collapses it back before anything reaches WhatsApp (see
+        tests/test_editor_line_endings.py)."""
         frame = hidden_frame()
         try:
             stub = _Stub(frame)
@@ -135,11 +141,21 @@ class TestPasteNormalization:
             event = _FakeKeyEvent(stub.message_field)
             stub._on_text_field_paste(event)
 
-            # Plain text is delegated to the native paste (Skip), which the
-            # handler must not itself touch — the assertion is the delegation
-            # itself, since no real paste event is being processed here.
-            assert event.skipped
-            assert stub.message_field.GetValue() == ""
+            # Consumed, not delegated: the handler wrote the converted text
+            # itself, so letting the native paste run on top would double it.
+            assert not event.skipped
+
+            # And GetValue() answers with bare newlines even though CRLF was
+            # written — wxWidgets normalizes line endings on read for a
+            # multiline control on MSW. Measured here, against a real
+            # wx.TextCtrl, not assumed.
+            #
+            # Two things follow. It is why putting CRLF in the field is safe:
+            # the send path cannot see a carriage return even if it forgot to
+            # normalize. And it is why this assertion is what it is — the
+            # converted form is genuinely unobservable through GetValue(), so
+            # a test claiming to see it would only be testing itself.
+            assert stub.message_field.GetValue() == "hello\nworld"
         finally:
             frame.Destroy()
 
