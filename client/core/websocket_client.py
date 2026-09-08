@@ -833,6 +833,35 @@ class WebSocketClient:
             mw.settings.get("privateinfo", {}).get("paired")
             and not getattr(mw, "_auto_repair_dialog_shown", False)
         ):
+            # Try to repair the profile before sending the user off to pair by
+            # hand. This event is the *earliest and strongest* evidence that
+            # the Chrome profile lost its login: as this method's own docstring
+            # says, WPPConnect only mints a code once it has decided the stored
+            # session cannot be restored — which is exactly the condition
+            # ProfileHealthTracker spends minutes trying to infer from
+            # status-session strings.
+            #
+            # Measured on a real install on 2026-09-08: a clean Ctrl+Shift+Q
+            # shutdown, and the next launch logged itself out 7 s into the page
+            # load. The tracker counted INITIALIZING/CLOSED cycles at ~60 s
+            # each and had reached 2 of 3 when the code arrived at t+2.4 min —
+            # and _show_repair_dialog() then froze it there for good, because
+            # check_wa_connection_http() returns immediately while a pairing
+            # dialog is up, so the poll that feeds the tracker never ran again.
+            # The restore was reachable by hand and never by the app; doing it
+            # here removes the race instead of retuning it.
+            #
+            # A user who genuinely unlinked from their phone lands here too and
+            # gets a snapshot whose credentials the server has already revoked.
+            # That costs one cycle before the dialog appears after all —
+            # _recover_suspect_profile() runs at most once per launch and calls
+            # back when it gives up — against a re-pairing saved every time the
+            # profile was the actual fault.
+            if mw._recover_suspect_profile(
+                    reason="WPPConnect minted a pairing code for a paired "
+                           "install — the stored session could not be restored",
+                    on_give_up=self._show_repair_dialog):
+                return
             self._show_repair_dialog()
             return
         if seen == self._UNATTENDED_QR_LIMIT:

@@ -342,3 +342,78 @@ class TestEverConnected:
         for s in ("INITIALIZING", "disconnectedMobile", "CLOSED", "QRCODE"):
             t.note_status(s)
         assert t.ever_connected() is False
+
+
+class TestKeepingTheGenerationARefreshReplaces:
+    """A clean close is not proof the profile it wrote will authenticate.
+
+    Measured across one day on a real install: four clean shutdowns, each with
+    close-session acknowledged, the session observed CLOSED and Chrome
+    confirmed to have released the profile — and two of the four were followed
+    by a launch where WhatsApp Web logged itself out seven seconds into the
+    page load. Both hard-killed runs that day came back fine, which is the
+    opposite of what this module's docstring predicts.
+
+    So capture_snapshot()'s conditions can all hold and still write a restore
+    point that does not work. On that install the one that *did* work was
+    22.7 h old against a 24 h refresh window — one hour from being overwritten
+    by the profile that fails to load.
+    """
+
+    def _profile(self, tmp_path, marker):
+        live = pr.profile_dir(str(tmp_path), "sess")
+        os.makedirs(live, exist_ok=True)
+        with open(os.path.join(live, "who.txt"), "w") as fh:
+            fh.write(marker)
+        return live
+
+    def _read(self, path):
+        with open(os.path.join(path, "who.txt")) as fh:
+            return fh.read()
+
+    def test_the_first_snapshot_leaves_no_previous_generation(self, tmp_path):
+        self._profile(tmp_path, "first")
+        assert pr.capture_snapshot(str(tmp_path), "sess") is True
+        assert pr.has_snapshot(str(tmp_path), "sess") is True
+        assert pr.has_snapshot(str(tmp_path), "sess", prefer_previous=True) is False
+
+    def test_a_refresh_demotes_the_snapshot_it_replaces(self, tmp_path):
+        self._profile(tmp_path, "good")
+        pr.capture_snapshot(str(tmp_path), "sess")
+        self._profile(tmp_path, "doomed")
+        pr.capture_snapshot(str(tmp_path), "sess", max_age=0)
+
+        assert self._read(pr.snapshot_dir(str(tmp_path), "sess")) == "doomed"
+        assert self._read(pr.previous_snapshot_dir(str(tmp_path), "sess")) == "good"
+
+    def test_the_previous_generation_can_be_restored(self, tmp_path):
+        self._profile(tmp_path, "good")
+        pr.capture_snapshot(str(tmp_path), "sess")
+        self._profile(tmp_path, "doomed")
+        pr.capture_snapshot(str(tmp_path), "sess", max_age=0)
+        self._profile(tmp_path, "broken-live")
+
+        assert pr.restore_snapshot(str(tmp_path), "sess", prefer_previous=True) is True
+        assert self._read(pr.profile_dir(str(tmp_path), "sess")) == "good"
+
+    def test_restoring_the_newest_is_still_the_default(self, tmp_path):
+        self._profile(tmp_path, "good")
+        pr.capture_snapshot(str(tmp_path), "sess")
+        self._profile(tmp_path, "doomed")
+        pr.capture_snapshot(str(tmp_path), "sess", max_age=0)
+        self._profile(tmp_path, "broken-live")
+
+        assert pr.restore_snapshot(str(tmp_path), "sess") is True
+        assert self._read(pr.profile_dir(str(tmp_path), "sess")) == "doomed"
+
+    def test_asking_for_a_previous_generation_that_does_not_exist_is_refused(self, tmp_path):
+        self._profile(tmp_path, "only")
+        pr.capture_snapshot(str(tmp_path), "sess")
+        assert pr.restore_snapshot(str(tmp_path), "sess", prefer_previous=True) is False
+
+    def test_a_third_refresh_keeps_only_two_generations(self, tmp_path):
+        for marker in ("oldest", "middle", "newest"):
+            self._profile(tmp_path, marker)
+            pr.capture_snapshot(str(tmp_path), "sess", max_age=0)
+        assert self._read(pr.snapshot_dir(str(tmp_path), "sess")) == "newest"
+        assert self._read(pr.previous_snapshot_dir(str(tmp_path), "sess")) == "middle"

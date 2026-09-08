@@ -8473,6 +8473,11 @@ class MainWindow(wx.Frame):
                 from core.profile_recovery import ProfileHealthTracker
                 tracker = self._profile_health = ProfileHealthTracker()
             paired = bool(self.settings.get("privateinfo", {}).get("paired"))
+            if ((status or "").upper() == "CONNECTED"
+                    and self._profile_recovery_generation()):
+                # Whatever was put back is working. The ladder starts over, so
+                # a future break restores the newest snapshot first again.
+                self._set_profile_recovery_generation(0)
             if tracker.note_status(status, paired=paired):
                 self._recover_suspect_profile()
         except Exception:
@@ -8494,8 +8499,19 @@ class MainWindow(wx.Frame):
         except Exception:
             logging.exception("[profile-health] start note failed (non-fatal)")
 
-    def _recover_suspect_profile(self):
+    def _recover_suspect_profile(self, reason="session started and died 3x "
+                                              "without connecting",
+                                 on_give_up=None):
         """Put the last clean-shutdown profile back, or say why we cannot.
+
+        Returns True when a restore was actually started, and `on_give_up` is
+        called — on the UI thread — if that restore then fails. A False return
+        means nothing was started and the caller should handle it inline;
+        `on_give_up` is deliberately *not* called in that case, so a caller
+        that both passes it and falls through on False cannot act twice. The
+        QR caller is exactly that shape: it is choosing between repairing the
+        profile and sending the user off to re-pair by hand, and only one of
+        those may happen.
 
         Runs at most once per launch. The retry it triggers is the ordinary
         health-checker /start-session on the next poll, so if the restore did
@@ -8510,19 +8526,36 @@ class MainWindow(wx.Frame):
         its fallback — the same helper _stop_wpp_server() relies on.
         """
         if getattr(self, "_profile_recovery_attempted", False):
-            return
+            return False
         self._profile_recovery_attempted = True
 
         session_name = (getattr(self, "token", "") or "").split(":")[0]
         global_dir = getattr(self, "global_dir", None)
         if not session_name or not global_dir:
-            return
+            return False
 
         from core import profile_recovery
-        self._shutdown_audit("profile suspect — session started and died 3x "
-                             "without connecting")
+        self._shutdown_audit("profile suspect — %s" % reason)
 
-        if not profile_recovery.has_snapshot(global_dir, session_name):
+        # Which generation to put back. A restore that did not hold means the
+        # newest snapshot is itself a profile that no longer authenticates —
+        # reachable from a shutdown that did everything right, see
+        # previous_snapshot_dir() — so the next launch climbs to the one
+        # before it rather than restoring the same failure again. Persisted,
+        # because one launch cannot observe its own outcome; cleared the
+        # moment a session reports CONNECTED.
+        generation = self._profile_recovery_generation()
+        prefer_previous = generation >= 1
+        if prefer_previous and not profile_recovery.has_snapshot(
+                global_dir, session_name, prefer_previous=True):
+            prefer_previous = False
+        self._set_profile_recovery_generation(generation + 1)
+        if prefer_previous:
+            logging.warning("[profile-recovery] the newest snapshot did not hold "
+                            "— restoring the generation before it.")
+
+        if not profile_recovery.has_snapshot(global_dir, session_name,
+                                             prefer_previous=prefer_previous):
             # Nothing to restore. Say so plainly rather than leaving the user
             # staring at "offline": this is the one outcome where the only fix
             # is a human deciding to pair again, and a blind user has no way to
@@ -8530,7 +8563,7 @@ class MainWindow(wx.Frame):
             logging.error("[profile-recovery] session %s looks broken and there "
                           "is no snapshot to restore.", session_name[:12])
             wx.CallAfter(self._announce_profile_beyond_repair)
-            return
+            return False
 
         def _restore():
             try:
@@ -8545,16 +8578,48 @@ class MainWindow(wx.Frame):
                         logging.warning("[profile-recovery] close-session failed: %s: %s",
                                         type(e).__name__, redact_credentials(str(e)))
                 self.wait_for_profile_release(session_name, timeout=20.0)
-                if profile_recovery.restore_snapshot(global_dir, session_name):
+                if profile_recovery.restore_snapshot(
+                        global_dir, session_name, prefer_previous=prefer_previous):
                     self._shutdown_audit("profile restored from snapshot")
+                    # The QR burst that triggered this was produced by the
+                    # profile now moved aside; counting it against the flood
+                    # ceiling would halt a session that is about to be fine.
+                    self._unattended_qr_events = 0
                     wx.CallAfter(self._announce_profile_restored)
                 else:
                     wx.CallAfter(self._announce_profile_beyond_repair)
+                    if on_give_up is not None:
+                        wx.CallAfter(on_give_up)
             except Exception:
                 logging.exception("[profile-recovery] restore failed")
                 wx.CallAfter(self._announce_profile_beyond_repair)
+                if on_give_up is not None:
+                    wx.CallAfter(on_give_up)
 
         threading.Thread(target=_restore, daemon=True).start()
+        return True
+
+    _PROFILE_RECOVERY_GENERATION_KEY = "profile_recovery_generation"
+
+    def _profile_recovery_generation(self) -> int:
+        """How many recoveries have been attempted since the last CONNECTED."""
+        try:
+            if getattr(self, "db", None) is None:
+                return 0
+            return max(0, int(self.db.get_metadata_json(
+                self._PROFILE_RECOVERY_GENERATION_KEY, 0) or 0))
+        except Exception:
+            return 0
+
+    def _set_profile_recovery_generation(self, value: int) -> None:
+        """Best effort, like every other persist on this path: losing it costs
+        a repeated restore attempt, never the profile."""
+        try:
+            if getattr(self, "db", None) is not None:
+                self.db.set_metadata_json(
+                    self._PROFILE_RECOVERY_GENERATION_KEY, max(0, int(value)))
+        except Exception as exc:
+            logging.warning("[profile-recovery] could not persist the generation: %s", exc)
 
     def _announce_profile_restored(self):
         try:
