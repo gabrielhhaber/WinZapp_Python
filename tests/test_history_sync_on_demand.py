@@ -984,3 +984,110 @@ class TestTheNodeSideRefusesBeforeSending:
         all history backfill the day WhatsApp renames that internal module."""
         source = self._source()
         assert "if (out.primaryHasMore === false) {" in source
+
+
+class TestBackfillPhoneRequestBudget:
+    """The backfill may not ask the phone about one chat forever.
+
+    Every request that actually goes out lights up the phone's lock screen
+    ("Synchronizing WhatsApp with Google Chrome (Windows)…", then "Sync
+    paused. Open WhatsApp to resume." when it yields nothing — issue #108).
+    The primaryHasMore gate stopped the requests the phone itself refuses, but
+    a chat whose endOfHistoryTransferType claims more history, that is asked,
+    and that gains nothing, stays short of history_page_target() forever — so
+    the every-15-minute re-ask never retires. Measured on a real account: the
+    same four groups asked at 10:08, 10:23 and 10:38 in one run.
+    """
+
+    GRACE = MainWindow._OLDER_REQUEST_GRACE
+    MAX = MainWindow._MAX_PHONE_HISTORY_REQUESTS
+
+    def test_a_chat_never_asked_before_is_due(self):
+        assert MainWindow._phone_history_request_due(
+            None, 0, 1000.0, self.GRACE, self.MAX) is True
+
+    def test_a_chat_asked_moments_ago_is_not_due(self):
+        assert MainWindow._phone_history_request_due(
+            1000.0, 1, 1000.0 + self.GRACE - 1, self.GRACE, self.MAX) is False
+
+    def test_the_grace_elapsing_makes_a_second_ask_due(self):
+        assert MainWindow._phone_history_request_due(
+            1000.0, 1, 1000.0 + self.GRACE, self.GRACE, self.MAX) is True
+
+    def test_the_attempt_budget_outranks_the_elapsed_grace(self):
+        # This is the whole fix: without it the same chat is asked again every
+        # _OLDER_REQUEST_GRACE for as long as the backfill runs.
+        assert MainWindow._phone_history_request_due(
+            1000.0, self.MAX, 1000.0 + self.GRACE * 100,
+            self.GRACE, self.MAX) is False
+
+    def test_the_budget_allows_one_genuine_retry(self):
+        # A single lost request must not write the chat off, so the bound is a
+        # retry rather than a one-shot.
+        assert self.MAX >= 2
+        assert MainWindow._phone_history_request_due(
+            1000.0, self.MAX - 1, 1000.0 + self.GRACE,
+            self.GRACE, self.MAX) is True
+
+    def test_resetting_the_history_walk_clears_the_attempt_counters(self):
+        # F5 / "resync everything" is the only escape from a wrong conclusion,
+        # and it has to reach this bound too.
+        stub = _Stub()
+        stub._older_request_attempts = {"5511@s.whatsapp.net": 2}
+        stub._persist_exhausted_chats = lambda: None
+        stub._persist_older_requested = lambda: None
+        MainWindow._forget_history_exhaustion(stub)
+        assert stub._older_request_attempts == {}
+
+
+class TestPhoneRequestsAreSpacedNotBunched:
+    """Every phone-history request is a notification on the user's phone.
+
+    Read off a real install on 2026-09-08, running the bounded-attempts fix:
+    the requests were *productive* (one chat walked 50 -> 63 -> 113 -> 163
+    messages, another 2 -> 52 -> 102), so the answer is not to stop asking.
+    What the user actually reported was the bunching — four requests inside
+    900 ms, and bursts that kept arriving while he was using the app.
+
+    Two things caused that, and both are gone:
+
+      * ten requests per pass, fired back to back;
+      * a backoff that collapsed to _BACKFILL_FIRST_DELAY whenever a pass made
+        progress — and a chunk landing *is* progress, so every productive
+        request bought itself another pass 30 s later. On that install the
+        passes had settled at the 5-minute ceiling and then ran at 32 s
+        intervals for three passes as soon as chunks began landing.
+    """
+
+    GAP = MainWindow._PHONE_REQUEST_MIN_GAP
+
+    def test_only_one_request_leaves_per_pass(self):
+        assert MainWindow._OLDER_REQUESTS_PER_PASS == 1
+
+    def test_the_first_request_of_a_run_is_never_held_back(self):
+        assert MainWindow._phone_request_gap_elapsed(None, 10_000.0, self.GAP) is True
+
+    def test_a_second_request_inside_the_gap_is_refused(self):
+        assert MainWindow._phone_request_gap_elapsed(
+            1000.0, 1000.0 + self.GAP - 1, self.GAP) is False
+
+    def test_the_gap_elapsing_lets_the_next_one_through(self):
+        assert MainWindow._phone_request_gap_elapsed(
+            1000.0, 1000.0 + self.GAP, self.GAP) is True
+
+    def test_the_measured_burst_would_now_be_one_request(self):
+        # The four requests the install actually sent, in monotonic seconds
+        # relative to the first: 0.000, 0.045, 0.249, 0.448.
+        last = None
+        sent = 0
+        for offset in (0.0, 0.045, 0.249, 0.448):
+            if MainWindow._phone_request_gap_elapsed(last, offset, self.GAP):
+                sent += 1
+                last = offset
+        assert sent == 1
+
+    def test_the_gap_is_long_enough_to_separate_two_notifications(self):
+        # Short enough that the backfill still finishes in the same order of
+        # time (16 requests in 20 minutes on the measured install), long
+        # enough that two notifications never stack.
+        assert 60 <= MainWindow._PHONE_REQUEST_MIN_GAP <= 300

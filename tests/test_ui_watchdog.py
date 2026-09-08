@@ -32,6 +32,7 @@ class _Stub:
     # seconds (asserted separately below).
     _UI_WATCHDOG_INTERVAL = 0.02
     _UI_WATCHDOG_STALL_SECONDS = 0.05
+    _UI_WATCHDOG_MAX_REPORT_GAP = 0.2
 
     def __init__(self):
         self._shutting_down = False
@@ -137,3 +138,35 @@ class TestUiWatchdog:
         real load on the very loop it is measuring."""
         assert MainWindow._UI_WATCHDOG_INTERVAL >= 1.0
         assert MainWindow._UI_WATCHDOG_STALL_SECONDS >= 2.0
+
+
+class TestAnUnchangingStackIsNotRepeatedForever:
+    """A modal dialog is indistinguishable from a freeze, from out here.
+
+    `_show_repair_dialog()` runs its own event loop and never answers the
+    ping, so on a real install a re-pairing prompt left on screen produced
+    1,400 lines of identical stack in four minutes. log.log is truncated every
+    launch and was the only record of the session failure that had opened that
+    dialog, so the noise cost the diagnosis. Sampling still happens at the
+    stall interval; only the *writing* of an unchanged sample backs off.
+    """
+
+    def test_reports_of_an_identical_stack_thin_out(self, fake_main_loop, caplog):
+        caplog.set_level(logging.WARNING)
+        s = _Stub()
+        s.start_ui_watchdog()
+        time.sleep(0.6)
+        stalls = [r for r in caplog.records if "unresponsive" in r.getMessage()]
+        _stop(s)
+
+        # Un-backed-off, a 0.05s sampling interval over 0.6s would be ~12
+        # lines. The cap is 0.2s, so it cannot exceed roughly a third of that.
+        assert 2 <= len(stalls) <= 6, len(stalls)
+
+    def test_a_changing_stack_is_always_reported(self):
+        # The interesting freeze moves between calls, and must never be
+        # thinned: only an identical sample waits for the backoff.
+        assert MainWindow._UI_WATCHDOG_MAX_REPORT_GAP > MainWindow._UI_WATCHDOG_STALL_SECONDS
+
+    def test_the_shipped_cap_is_a_minute(self):
+        assert MainWindow._UI_WATCHDOG_MAX_REPORT_GAP == 60.0

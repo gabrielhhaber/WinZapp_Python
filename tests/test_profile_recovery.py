@@ -254,3 +254,166 @@ class TestDecidingAProfileIsBroken:
             t.note_status("initializing")
             fired = t.note_status("closed")
         assert fired is True
+
+
+class TestTheRealBrokenInstallSequence:
+    """The sequence that shipped with the detector unreachable.
+
+    Read off log.log + wppconnect.log from a real install on 2026-09-08. The
+    health checker polls every 30 s; one failed cycle takes about 60 s
+    (/start-session, browser up, wa-js never ready, injectApi times out at
+    30 s, CLOSED). So the poll landed on INITIALIZING exactly once, at launch,
+    and thereafter only ever saw disconnectedMobile and CLOSED alternating.
+
+    The old rule cleared its arming flag on every CLOSED, so the counter
+    reached 1 and stayed there for the life of the process: twelve minutes of
+    that loop, zero [profile-health] lines, and a good snapshot on disk the
+    whole time. WhatsApp Web then logged itself out of the profile it could
+    not use (post_logout=1, logout_reason=0) and the user was asked to pair
+    again for an account whose phone still listed the device as linked —
+    restoring that snapshot by hand brought the same login straight back.
+    """
+
+    #: The statuses in the order the poll actually observed them.
+    OBSERVED = [
+        "INITIALIZING", "INITIALIZING",
+        "disconnectedMobile", "CLOSED",
+        "disconnectedMobile", "CLOSED",
+        "disconnectedMobile", "CLOSED",
+        "disconnectedMobile", "CLOSED",
+    ]
+
+    def test_the_recorded_sequence_now_fires(self):
+        t = pr.ProfileHealthTracker()
+        assert any(t.note_status(s) for s in self.OBSERVED)
+
+    def test_it_fires_before_the_logged_out_page_starts_pushing_qr_codes(self):
+        # On the measured install the break began at 11:29:55 and the QR
+        # reached the user at 11:37:10 — seven minutes. Each CLOSED here is
+        # about one minute apart, so firing on the third keeps a wide margin.
+        t = pr.ProfileHealthTracker()
+        fired_at = next(i for i, s in enumerate(self.OBSERVED)
+                        if t.note_status(s))
+        assert self.OBSERVED[fired_at] == "CLOSED"
+        assert self.OBSERVED[:fired_at + 1].count("CLOSED") == 3
+
+    def test_a_start_request_arms_it_without_any_initializing_reading(self):
+        """The poll may never catch INITIALIZING at all — the window is
+        narrower than the polling interval. Asking for a start is the
+        evidence that does not depend on timing."""
+        t = pr.ProfileHealthTracker()
+        fired = False
+        for _ in range(3):
+            t.note_session_start_requested()
+            fired = t.note_status("CLOSED") or fired
+        assert fired is True
+
+    def test_a_start_request_on_an_unpaired_account_arms_nothing(self):
+        t = pr.ProfileHealthTracker()
+        for _ in range(5):
+            t.note_session_start_requested(paired=False)
+            assert t.note_status("CLOSED", paired=False) is False
+
+    def test_a_connection_still_clears_a_latched_arming(self):
+        t = pr.ProfileHealthTracker()
+        t.note_status("INITIALIZING")
+        t.note_status("CLOSED")
+        t.note_status("CONNECTED")
+        for _ in range(5):
+            assert t.note_status("CLOSED") is False
+
+
+class TestEverConnected:
+    """Read by the snapshot side so a run that never worked cannot overwrite
+    the restore point that would have rescued it."""
+
+    def test_a_fresh_tracker_has_not_connected(self):
+        assert pr.ProfileHealthTracker().ever_connected() is False
+
+    def test_one_connection_is_remembered_through_later_failures(self):
+        t = pr.ProfileHealthTracker()
+        t.note_status("CONNECTED")
+        t.note_status("INITIALIZING")
+        t.note_status("CLOSED")
+        assert t.ever_connected() is True
+
+    def test_a_run_that_only_ever_failed_reports_false(self):
+        t = pr.ProfileHealthTracker()
+        for s in ("INITIALIZING", "disconnectedMobile", "CLOSED", "QRCODE"):
+            t.note_status(s)
+        assert t.ever_connected() is False
+
+
+class TestKeepingTheGenerationARefreshReplaces:
+    """A clean close is not proof the profile it wrote will authenticate.
+
+    Measured across one day on a real install: four clean shutdowns, each with
+    close-session acknowledged, the session observed CLOSED and Chrome
+    confirmed to have released the profile — and two of the four were followed
+    by a launch where WhatsApp Web logged itself out seven seconds into the
+    page load. Both hard-killed runs that day came back fine, which is the
+    opposite of what this module's docstring predicts.
+
+    So capture_snapshot()'s conditions can all hold and still write a restore
+    point that does not work. On that install the one that *did* work was
+    22.7 h old against a 24 h refresh window — one hour from being overwritten
+    by the profile that fails to load.
+    """
+
+    def _profile(self, tmp_path, marker):
+        live = pr.profile_dir(str(tmp_path), "sess")
+        os.makedirs(live, exist_ok=True)
+        with open(os.path.join(live, "who.txt"), "w") as fh:
+            fh.write(marker)
+        return live
+
+    def _read(self, path):
+        with open(os.path.join(path, "who.txt")) as fh:
+            return fh.read()
+
+    def test_the_first_snapshot_leaves_no_previous_generation(self, tmp_path):
+        self._profile(tmp_path, "first")
+        assert pr.capture_snapshot(str(tmp_path), "sess") is True
+        assert pr.has_snapshot(str(tmp_path), "sess") is True
+        assert pr.has_snapshot(str(tmp_path), "sess", prefer_previous=True) is False
+
+    def test_a_refresh_demotes_the_snapshot_it_replaces(self, tmp_path):
+        self._profile(tmp_path, "good")
+        pr.capture_snapshot(str(tmp_path), "sess")
+        self._profile(tmp_path, "doomed")
+        pr.capture_snapshot(str(tmp_path), "sess", max_age=0)
+
+        assert self._read(pr.snapshot_dir(str(tmp_path), "sess")) == "doomed"
+        assert self._read(pr.previous_snapshot_dir(str(tmp_path), "sess")) == "good"
+
+    def test_the_previous_generation_can_be_restored(self, tmp_path):
+        self._profile(tmp_path, "good")
+        pr.capture_snapshot(str(tmp_path), "sess")
+        self._profile(tmp_path, "doomed")
+        pr.capture_snapshot(str(tmp_path), "sess", max_age=0)
+        self._profile(tmp_path, "broken-live")
+
+        assert pr.restore_snapshot(str(tmp_path), "sess", prefer_previous=True) is True
+        assert self._read(pr.profile_dir(str(tmp_path), "sess")) == "good"
+
+    def test_restoring_the_newest_is_still_the_default(self, tmp_path):
+        self._profile(tmp_path, "good")
+        pr.capture_snapshot(str(tmp_path), "sess")
+        self._profile(tmp_path, "doomed")
+        pr.capture_snapshot(str(tmp_path), "sess", max_age=0)
+        self._profile(tmp_path, "broken-live")
+
+        assert pr.restore_snapshot(str(tmp_path), "sess") is True
+        assert self._read(pr.profile_dir(str(tmp_path), "sess")) == "doomed"
+
+    def test_asking_for_a_previous_generation_that_does_not_exist_is_refused(self, tmp_path):
+        self._profile(tmp_path, "only")
+        pr.capture_snapshot(str(tmp_path), "sess")
+        assert pr.restore_snapshot(str(tmp_path), "sess", prefer_previous=True) is False
+
+    def test_a_third_refresh_keeps_only_two_generations(self, tmp_path):
+        for marker in ("oldest", "middle", "newest"):
+            self._profile(tmp_path, marker)
+            pr.capture_snapshot(str(tmp_path), "sess", max_age=0)
+        assert self._read(pr.snapshot_dir(str(tmp_path), "sess")) == "newest"
+        assert self._read(pr.previous_snapshot_dir(str(tmp_path), "sess")) == "middle"

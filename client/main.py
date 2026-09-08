@@ -1944,8 +1944,9 @@ class MainWindow(wx.Frame):
         # that is merely cold. Never reset while the process lives; a chat
         # count that was real once does not stop having been real.
         self._chat_list_high_water = 0
-        # Consecutive sync rounds that found the store not answering, counted
-        # towards recreating the session. See _BROKEN_STORE_REPAIR_ROUNDS.
+        # Consecutive sync rounds that found the store not answering. Purely a
+        # diagnostic since the session-rebuild escalation was removed — see the
+        # store_broken branch in start_sync() for the field log that killed it.
         self._broken_store_rounds = 0
         # Message-sync workers discover incomplete chats concurrently. Keep the
         # queue and its growth counters behind one lock so a LID and its phone
@@ -8624,13 +8625,45 @@ class MainWindow(wx.Frame):
                 from core.profile_recovery import ProfileHealthTracker
                 tracker = self._profile_health = ProfileHealthTracker()
             paired = bool(self.settings.get("privateinfo", {}).get("paired"))
+            if ((status or "").upper() == "CONNECTED"
+                    and self._profile_recovery_generation()):
+                # Whatever was put back is working. The ladder starts over, so
+                # a future break restores the newest snapshot first again.
+                self._set_profile_recovery_generation(0)
             if tracker.note_status(status, paired=paired):
                 self._recover_suspect_profile()
         except Exception:
             logging.exception("[profile-health] check failed (non-fatal)")
 
-    def _recover_suspect_profile(self):
+    def _note_session_start_for_profile_health(self):
+        """Arm the profile-health tracker when we ask for a session start.
+
+        Wrapped like its sibling: profile health observes the connection poll
+        and must never be able to change that poll's verdict.
+        """
+        try:
+            tracker = getattr(self, "_profile_health", None)
+            if tracker is None:
+                from core.profile_recovery import ProfileHealthTracker
+                tracker = self._profile_health = ProfileHealthTracker()
+            paired = bool(self.settings.get("privateinfo", {}).get("paired"))
+            tracker.note_session_start_requested(paired=paired)
+        except Exception:
+            logging.exception("[profile-health] start note failed (non-fatal)")
+
+    def _recover_suspect_profile(self, reason="session started and died 3x "
+                                              "without connecting",
+                                 on_give_up=None):
         """Put the last clean-shutdown profile back, or say why we cannot.
+
+        Returns True when a restore was actually started, and `on_give_up` is
+        called — on the UI thread — if that restore then fails. A False return
+        means nothing was started and the caller should handle it inline;
+        `on_give_up` is deliberately *not* called in that case, so a caller
+        that both passes it and falls through on False cannot act twice. The
+        QR caller is exactly that shape: it is choosing between repairing the
+        profile and sending the user off to re-pair by hand, and only one of
+        those may happen.
 
         Runs at most once per launch. The retry it triggers is the ordinary
         health-checker /start-session on the next poll, so if the restore did
@@ -8645,19 +8678,36 @@ class MainWindow(wx.Frame):
         its fallback — the same helper _stop_wpp_server() relies on.
         """
         if getattr(self, "_profile_recovery_attempted", False):
-            return
+            return False
         self._profile_recovery_attempted = True
 
         session_name = (getattr(self, "token", "") or "").split(":")[0]
         global_dir = getattr(self, "global_dir", None)
         if not session_name or not global_dir:
-            return
+            return False
 
         from core import profile_recovery
-        self._shutdown_audit("profile suspect — session started and died 3x "
-                             "without connecting")
+        self._shutdown_audit("profile suspect — %s" % reason)
 
-        if not profile_recovery.has_snapshot(global_dir, session_name):
+        # Which generation to put back. A restore that did not hold means the
+        # newest snapshot is itself a profile that no longer authenticates —
+        # reachable from a shutdown that did everything right, see
+        # previous_snapshot_dir() — so the next launch climbs to the one
+        # before it rather than restoring the same failure again. Persisted,
+        # because one launch cannot observe its own outcome; cleared the
+        # moment a session reports CONNECTED.
+        generation = self._profile_recovery_generation()
+        prefer_previous = generation >= 1
+        if prefer_previous and not profile_recovery.has_snapshot(
+                global_dir, session_name, prefer_previous=True):
+            prefer_previous = False
+        self._set_profile_recovery_generation(generation + 1)
+        if prefer_previous:
+            logging.warning("[profile-recovery] the newest snapshot did not hold "
+                            "— restoring the generation before it.")
+
+        if not profile_recovery.has_snapshot(global_dir, session_name,
+                                             prefer_previous=prefer_previous):
             # Nothing to restore. Say so plainly rather than leaving the user
             # staring at "offline": this is the one outcome where the only fix
             # is a human deciding to pair again, and a blind user has no way to
@@ -8665,7 +8715,7 @@ class MainWindow(wx.Frame):
             logging.error("[profile-recovery] session %s looks broken and there "
                           "is no snapshot to restore.", session_name[:12])
             wx.CallAfter(self._announce_profile_beyond_repair)
-            return
+            return False
 
         def _restore():
             try:
@@ -8680,16 +8730,48 @@ class MainWindow(wx.Frame):
                         logging.warning("[profile-recovery] close-session failed: %s: %s",
                                         type(e).__name__, redact_credentials(str(e)))
                 self.wait_for_profile_release(session_name, timeout=20.0)
-                if profile_recovery.restore_snapshot(global_dir, session_name):
+                if profile_recovery.restore_snapshot(
+                        global_dir, session_name, prefer_previous=prefer_previous):
                     self._shutdown_audit("profile restored from snapshot")
+                    # The QR burst that triggered this was produced by the
+                    # profile now moved aside; counting it against the flood
+                    # ceiling would halt a session that is about to be fine.
+                    self._unattended_qr_events = 0
                     wx.CallAfter(self._announce_profile_restored)
                 else:
                     wx.CallAfter(self._announce_profile_beyond_repair)
+                    if on_give_up is not None:
+                        wx.CallAfter(on_give_up)
             except Exception:
                 logging.exception("[profile-recovery] restore failed")
                 wx.CallAfter(self._announce_profile_beyond_repair)
+                if on_give_up is not None:
+                    wx.CallAfter(on_give_up)
 
         threading.Thread(target=_restore, daemon=True).start()
+        return True
+
+    _PROFILE_RECOVERY_GENERATION_KEY = "profile_recovery_generation"
+
+    def _profile_recovery_generation(self) -> int:
+        """How many recoveries have been attempted since the last CONNECTED."""
+        try:
+            if getattr(self, "db", None) is None:
+                return 0
+            return max(0, int(self.db.get_metadata_json(
+                self._PROFILE_RECOVERY_GENERATION_KEY, 0) or 0))
+        except Exception:
+            return 0
+
+    def _set_profile_recovery_generation(self, value: int) -> None:
+        """Best effort, like every other persist on this path: losing it costs
+        a repeated restore attempt, never the profile."""
+        try:
+            if getattr(self, "db", None) is not None:
+                self.db.set_metadata_json(
+                    self._PROFILE_RECOVERY_GENERATION_KEY, max(0, int(value)))
+        except Exception as exc:
+            logging.warning("[profile-recovery] could not persist the generation: %s", exc)
 
     def _announce_profile_restored(self):
         try:
@@ -8730,7 +8812,7 @@ class MainWindow(wx.Frame):
         core/profile_recovery.py for why a snapshot of a live profile is worse
         than no snapshot at all.
 
-        Two refusals, both deliberate:
+        Three refusals, all deliberate:
 
         * `browser_closed_cleanly` False means the graceful close-session never
           confirmed, so the leveldb may be mid-write. That is precisely the
@@ -8740,11 +8822,32 @@ class MainWindow(wx.Frame):
           megabytes would take the time away from the flush that prevents the
           corruption in the first place — and the run that most needs a
           snapshot is the one before, not this one.
+        * The session never reported CONNECTED in this run. A profile can be
+          quiescent, completely written, closed in perfect order — and hold no
+          login at all, because WhatsApp Web logged itself out of a profile it
+          could not use (`post_logout=1`) hours earlier. Snapshotting that
+          overwrites the one restore point that would have rescued the account
+          with a copy of the failure. It came within hours of happening on a
+          real install: the profile broke, the good snapshot was 16.5 h old,
+          and the 24 h refresh window was the only thing standing between a
+          successful hand-restore and a permanently lost session. Closing
+          cleanly is evidence about *how* the profile was written, never about
+          whether what was written is worth keeping.
 
         Never raises: a missing restore point is a nicety lost, while a
         teardown that dies here is the corruption itself.
         """
         if not session_name or not browser_closed_cleanly or budget is not None:
+            return
+        tracker = getattr(self, "_profile_health", None)
+        if tracker is not None and not tracker.ever_connected():
+            # Absent tracker means no connection poll ever ran, which is not
+            # evidence of anything — fall through and behave as before.
+            logging.info(
+                "[profile-snapshot] Not refreshing the restore point: this run "
+                "never reached CONNECTED, so the profile on disk may be the "
+                "broken one.")
+            self._shutdown_audit("profile snapshot skipped — never connected this run")
             return
         global_dir = getattr(self, "global_dir", None)
         if not global_dir:
@@ -10733,6 +10836,13 @@ class MainWindow(wx.Frame):
         else:
             self._older_requested_chats = {}
 
+        # How many times the backfill has asked the phone about each chat this
+        # session. Deliberately in memory and not persisted, for the same reason
+        # _note_verified_activity() is: the bound exists to stop one run asking
+        # the same chat forever, and one confirming look per launch is cheap
+        # next to permanently writing off a chat that really does have history.
+        self._older_request_attempts: dict[str, int] = {}
+
         # Short/provisional history is also durable. An incremental startup
         # must remember that a chat still owed us history in the previous
         # session; otherwise a restart could turn an unfinished backfill into
@@ -12198,6 +12308,12 @@ class MainWindow(wx.Frame):
                             start_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/start-session"
                             api_post(start_url, json={"waitQrCode": False}, headers=headers, timeout=10)
                             logging.info("[check_wa_connection_http] Sent auto-start session command")
+                            # Direct evidence that a start is being attempted.
+                            # The tracker used to depend on a 30 s poll landing
+                            # on INITIALIZING inside a ~60 s cycle, which in
+                            # the field it never did after launch — see
+                            # ProfileHealthTracker's own docstring.
+                            self._note_session_start_for_profile_health()
                         except Exception as e:
                             logging.error("[check_wa_connection_http] Failed to auto-start session: %s", e)
                 else:
@@ -12488,11 +12604,11 @@ class MainWindow(wx.Frame):
     # legitimately sit at zero for a moment while the in-memory store hydrates
     # behind the IndexedDB side that storeCounts reads.
     _BROKEN_STORE_CONFIRM = 3
-    # Rounds that must detect a broken store before the session is recreated.
-    # One round backs off and re-checks; the second repairs. _restart_wpp_session()
-    # carries its own re-entrancy guard, its own 120 s cooldown and the
-    # _auto_restart_grace_active() window that keeps a restart from being
-    # mistaken for a phone-side unlink.
+    # Kept, unused by the sync path, and deliberately not deleted: it is the
+    # number this codebase used to rebuild the page on, and a reader who finds
+    # the round counter needs to be able to find out what it used to mean.
+    # Nothing schedules a rebuild from a broken store any more — see the
+    # store_broken branch in start_sync().
     _BROKEN_STORE_REPAIR_ROUNDS = 2
 
     # A list-chats snapshot does not have to equal storeCounts.chat exactly:
@@ -12929,10 +13045,10 @@ class MainWindow(wx.Frame):
                     and self.store_looks_broken(server_count, wa_web_count, evidence_count)):
                 broken_readings += 1
                 logging.warning(
-                    "[start_sync] list-chats answered %d chat(s) while WhatsApp Web "
-                    "reports %s in its own store and we have evidence for %d "
-                    "(reading %d/%d) — the page's in-memory chat store looks broken, "
-                    "not cold.",
+                    "[start_sync] list-chats answered %d chat(s) (the page's "
+                    "in-memory ChatStore) while %s chat(s) sit in WhatsApp Web's "
+                    "IndexedDB and we have evidence for %d (reading %d/%d) — two "
+                    "different stores, and the in-memory one is the empty side.",
                     server_count, wa_web_count, evidence_count,
                     broken_readings, self._BROKEN_STORE_CONFIRM,
                 )
@@ -13050,34 +13166,46 @@ class MainWindow(wx.Frame):
             # its one pruning pass is keyed on JIDs present in the response,
             # which is empty here.
             self._broken_store_rounds = getattr(self, "_broken_store_rounds", 0) + 1
+            # This used to recreate the WPPConnect session after two such
+            # rounds, on the reasoning that "nothing short of rebuilding the
+            # page recovers a store in this state". A field log falsified it
+            # directly, and the escalation is gone rather than retuned.
+            #
+            # Measured: the rebuild ran exactly as designed — browserClose, a
+            # fresh browser, the pinned document served again, a new session
+            # reaching inChat, all inside seven seconds — and list-chats
+            # answered 0 again THREE SECONDS LATER, against the same 938 chats
+            # in IndexedDB it had been answering 0 against before. Four more
+            # rounds followed, each detecting the same thing.
+            #
+            # And rebuilding is not merely useless here, it is destructive:
+            # WPP.chat.list() reads the page's in-memory ChatStore, which a new
+            # document starts empty and fills from IndexedDB. Tearing the page
+            # down throws away whatever progress it had made and starts that
+            # over — which is the most plausible reading of why the ONE
+            # non-zero answer in the whole session (37 chats, five seconds
+            # after the session came up) was never built on.
+            #
+            # What is left is what the rest of this branch already did: refuse
+            # the known-wrong snapshot, keep the sync incomplete, and let the
+            # health checker come back. That is strictly better than a rebuild
+            # for the case above, and no worse for the case the escalation was
+            # written for — where re-asking did not help either, over 37
+            # minutes, WITHOUT anyone having rebuilt anything.
             logging.error(
-                "[start_sync] WhatsApp Web's in-memory chat store is not answering "
-                "(round %d of %d before recreating the session). Messages are "
-                "unaffected — get-messages reads IndexedDB and keeps working — so "
-                "this sync continues with the chats already known locally.",
-                self._broken_store_rounds, self._BROKEN_STORE_REPAIR_ROUNDS,
+                "[start_sync] WhatsApp Web's in-memory chat store answered %d "
+                "while IndexedDB holds far more (round %d). Not rebuilding the "
+                "page: a rebuild empties that store and restarts the load from "
+                "scratch, which is measurably what this state does not need. "
+                "Messages are unaffected — get-messages reads IndexedDB — so "
+                "this sync continues with the chats already known locally and "
+                "the health checker retries.",
+                server_count, self._broken_store_rounds,
             )
-            if self._broken_store_rounds >= self._BROKEN_STORE_REPAIR_ROUNDS:
-                self._broken_store_rounds = 0
-                # Nothing short of rebuilding the page recovers a store in
-                # this state: it stayed broken for 37 minutes and four full
-                # sync rounds in the captured session, and no amount of
-                # re-asking changed it. Stop here rather than running the
-                # message and media phases into a session about to be torn
-                # down; the health checker starts a fresh sync once the new
-                # session is up.
-                logging.error(
-                    "[start_sync] Recreating the WPPConnect session to rebuild the "
-                    "store — this restores the existing WhatsApp session from its "
-                    "saved token, it does not ask for a new QR code."
-                )
-                self._sync_completed = False
-                self._sync_retry_count = getattr(self, "_sync_retry_count", 0) + 1
-                threading.Thread(target=self._restart_wpp_session, daemon=True).start()
-                return
         else:
-            # A plausible answer clears the tally: only *consecutive* rounds
-            # count towards recreating the session.
+            # A plausible answer clears the tally, which is now purely a
+            # diagnostic: it says how many consecutive rounds saw the store
+            # empty, and nothing acts on it.
             self._broken_store_rounds = 0
         if not chat_list_ok:
             # Report once, after every attempt is exhausted, instead of one
@@ -16590,6 +16718,11 @@ class MainWindow(wx.Frame):
     # costs a single no-op CallAfter per second while everything is healthy.
     _UI_WATCHDOG_INTERVAL = 1.0
     _UI_WATCHDOG_STALL_SECONDS = 2.0
+    #: Longest gap between two reports of the *same* unchanging stack. The
+    #: sampling rate does not change, only how often an identical sample is
+    #: written, so a genuine freeze still leaves periodic evidence while an
+    #: open modal dialog costs one line a minute instead of thirty.
+    _UI_WATCHDOG_MAX_REPORT_GAP = 60.0
 
     def start_ui_watchdog(self):
         """Detect a frozen wx main loop and log *where* it is frozen.
@@ -16624,6 +16757,9 @@ class MainWindow(wx.Frame):
                 except Exception:
                     return          # app is going away
                 stalled = False
+                last_stack = None
+                next_report = 0.0
+                report_gap = self._UI_WATCHDOG_STALL_SECONDS
                 while not pong.wait(self._UI_WATCHDOG_STALL_SECONDS):
                     if getattr(self, "_shutting_down", False):
                         return
@@ -16631,9 +16767,25 @@ class MainWindow(wx.Frame):
                     frame = _sys._current_frames().get(main_id)
                     stack = ("".join(_traceback.format_stack(frame)) if frame
                              else "<main thread frame unavailable>")
-                    logging.warning(
-                        "[ui-watchdog] UI thread unresponsive for %.1fs — main thread stack:\n%s",
-                        time.monotonic() - t0, stack)
+                    elapsed = time.monotonic() - t0
+                    # A stack that keeps changing is the interesting case, so
+                    # it is always logged. An unchanging one is reported on a
+                    # doubling backoff instead of every couple of seconds,
+                    # because the longest "stall" this ever sees is not a bug
+                    # at all: a modal dialog runs its own event loop and never
+                    # answers the ping, so a re-pairing prompt left on screen
+                    # produced 1,400 lines of identical stack in four minutes
+                    # and buried the session failure that had opened it. The
+                    # log is truncated every launch and is the only record of
+                    # that failure; drowning it costs the diagnosis.
+                    if stack != last_stack or elapsed >= next_report:
+                        logging.warning(
+                            "[ui-watchdog] UI thread unresponsive for %.1fs — main thread stack:\n%s",
+                            elapsed, stack)
+                        last_stack = stack
+                        next_report = elapsed + report_gap
+                        report_gap = min(report_gap * 2,
+                                         self._UI_WATCHDOG_MAX_REPORT_GAP)
                 if stalled:
                     logging.warning(
                         "[ui-watchdog] UI thread responsive again after %.1fs.",
@@ -17907,7 +18059,27 @@ class MainWindow(wx.Frame):
     # burst of automation traffic on top of the media phase.
     _BACKFILL_WORKERS     = 3
     _BACKFILL_CHUNK       = 60     # chats re-queried per pass
-    _OLDER_REQUESTS_PER_PASS = 10  # bounded phone-history requests per pass
+    # Phone-history requests per pass. **One**, not a batch, and the reason is
+    # not load: every one of these lights up the user's phone with a sync
+    # notification (see request_older_messages()). Ten per pass meant four of
+    # them inside 900 ms on a real install — the phone stacks four
+    # notifications, which reads as WinZapp spamming even though each request
+    # was productive. One per pass is the same throughput spread over the pass
+    # loop, and the user sees one notification resolve before the next starts.
+    _OLDER_REQUESTS_PER_PASS = 1
+
+    #: Floor between any two phone-history requests, whatever the pass loop is
+    #: doing. The backoff below is not a substitute: it collapses back to
+    #: _BACKFILL_FIRST_DELAY the moment a pass makes progress, and a chunk
+    #: landing *is* progress — so a productive request guarantees the next pass
+    #: 30 s later, which is precisely the burst being removed. Measured on a
+    #: real install: passes settled at the 5-minute ceiling, then ran at 32 s
+    #: intervals for three passes as soon as chunks started landing.
+    #:
+    #: Two minutes keeps the total unchanged (16 requests in 20 minutes on that
+    #: install) while never bunching them. Nothing here is urgent — this is
+    #: history the user is not looking at yet.
+    _PHONE_REQUEST_MIN_GAP = 120
 
     @classmethod
     def _initial_backfill_delay(cls, short_chats_pending: bool) -> int:
@@ -17919,6 +18091,20 @@ class MainWindow(wx.Frame):
                                           continuing_short_sweep: bool) -> bool:
         """Names and deep history must not block short-page recovery."""
         return not short_chats_pending and not continuing_short_sweep
+
+    @staticmethod
+    def _phone_request_gap_elapsed(last_at, now_monotonic, min_gap) -> bool:
+        """Whether enough time has passed since the last phone-history request.
+
+        A floor that the pass loop cannot talk its way out of. Every request
+        this gates is a notification on the user's phone, and the pass cadence
+        is driven by whether the *queue* is advancing — which a successful
+        request makes true, so the requests kept pulling their own next round
+        forward. Monotonic on purpose: a clock change must not open the gate.
+        """
+        if last_at is None:
+            return True
+        return (now_monotonic - last_at) >= min_gap
 
     @classmethod
     def _backfill_short_queue_delays(cls, retry_delay: int, sweep_finished: bool,
@@ -18727,6 +18913,21 @@ class MainWindow(wx.Frame):
                 # from 15 to 90 messages made real progress and must not read as
                 # a wasted pass — that is what backs the delay off.
                 counts_before = {j: self._local_record_count(j) for j in window}
+                # ...and which message is the oldest one on disk, which is the
+                # only signal that separates "the phone sent us older history"
+                # from "someone wrote in this chat". See the phone-request
+                # block below for why that distinction is load-bearing.
+                #
+                # Only for the chats that could possibly ask the phone this
+                # pass: this is a SQLite read each, and a window is up to
+                # _BACKFILL_CHUNK chats while the short queue is typically a
+                # handful. A chat already holding a full page is not a
+                # candidate and is not read.
+                _target = self.history_page_target()
+                oldest_before = {
+                    j: self._anchor_identity(self._oldest_stored_message(j))
+                    for j, c in counts_before.items() if c < _target
+                }
                 if targets:
                     with ThreadPoolExecutor(max_workers=self._BACKFILL_WORKERS) as pool:
                         futs = [pool.submit(
@@ -18748,17 +18949,46 @@ class MainWindow(wx.Frame):
                 # for older history, a few chats per pass, and keep every such
                 # chat queued while its asynchronous reply is pending.
                 phone_requests_left = self._OLDER_REQUESTS_PER_PASS
+                attempts = getattr(self, "_older_request_attempts", None)
+                if attempts is None:
+                    attempts = self._older_request_attempts = {}
+                older_arrived = set()
                 for jid, was in counts_before.items():
                     now = self._local_record_count(jid)
+                    if jid in oldest_before and (
+                            self._anchor_identity(self._oldest_stored_message(jid))
+                            != oldest_before[jid]):
+                        # *Older* history arrived, so the ask this chat spent
+                        # its budget on worked and the budget starts over.
+                        #
+                        # Deliberately not "the record count grew". A chat also
+                        # grows when a message is sent or received in it, and
+                        # reading that as backfill progress hands the chat two
+                        # more phone requests — so every message the user sends
+                        # into a short chat buys itself a round of sync
+                        # notifications. The oldest stored message can only stay
+                        # put or move further back (see _anchor_identity), which
+                        # is exactly the question being asked here.
+                        attempts.pop(jid, None)
+                        older_arrived.add(jid)
                     if now >= self.history_page_target() or now > was:
                         continue
                     self._keep_backfill_pending(jid, now)
                     asked_at = getattr(self, "_older_requested_chats", {}).get(jid)
-                    request_due = asked_at is None or (
-                        time.time() - asked_at >= self._OLDER_REQUEST_GRACE)
-                    if not request_due or phone_requests_left <= 0:
+                    if not MainWindow._phone_history_request_due(
+                            asked_at, attempts.get(jid, 0), time.time(),
+                            self._OLDER_REQUEST_GRACE,
+                            self._MAX_PHONE_HISTORY_REQUESTS):
+                        continue
+                    if phone_requests_left <= 0:
+                        continue
+                    if not MainWindow._phone_request_gap_elapsed(
+                            getattr(self, "_last_phone_request_at", None),
+                            time.monotonic(), self._PHONE_REQUEST_MIN_GAP):
                         continue
                     phone_requests_left -= 1
+                    self._last_phone_request_at = time.monotonic()
+                    attempts[jid] = attempts.get(jid, 0) + 1
                     requested = self.request_older_messages(jid)
                     if requested is True:
                         if not hasattr(self, "_older_requested_chats"):
@@ -18772,6 +19002,18 @@ class MainWindow(wx.Frame):
                         # and it is also the terminal answer for a persisted gap
                         # whose phone no longer has any older page to provide.
                         self._remove_backfill_pending(jid)
+                        # ...and record it as asked. _keep_backfill_pending()
+                        # above runs before this decision on every pass, so the
+                        # removal is undone by the next sweep and the chat comes
+                        # straight back. Without a timestamp its asked_at stays
+                        # None, the request is therefore always due, and a chat
+                        # the API has already refused is re-asked every ~30 s
+                        # for the whole backfill budget — measured at 40+ round
+                        # trips for one @lid chat in a single 46-minute run.
+                        if not hasattr(self, "_older_requested_chats"):
+                            self._older_requested_chats = {}
+                        self._older_requested_chats[jid] = time.time()
+                        self._persist_older_requested()
                         with self._backfill_state_guard():
                             gap_forms = set(self._jid_address_forms(jid))
                             gap_forms.update(
@@ -18783,11 +19025,20 @@ class MainWindow(wx.Frame):
                 grew = sum(1 for j, was in counts_before.items()
                            if self._local_record_count(j) > was)
                 logging.info(
-                    "[backfill] Pass %d: %d chat(s) gained messages, %d no longer pending "
-                    "(of %d).", attempt, grew, completed, before)
+                    "[backfill] Pass %d: %d chat(s) gained messages (%d of them older "
+                    "history), %d no longer pending (of %d).",
+                    attempt, grew, len(older_arrived), completed, before)
                 made_progress = (grew > 0 or completed > 0 or named > 0
                                  or deep_stored > 0)
-                sweep_made_progress = sweep_made_progress or made_progress
+                # What may pull the *next* pass forward is narrower than what
+                # justifies a repaint. A live message arriving in a short chat
+                # is real progress for the UI and no evidence at all that the
+                # phone has more history to give — resetting the backoff on it
+                # is how an ordinary conversation drags the whole queue back to
+                # a 30 s cadence, and with it the sync notifications.
+                queue_advanced = (len(older_arrived) > 0 or completed > 0
+                                  or named > 0 or deep_stored > 0)
+                sweep_made_progress = sweep_made_progress or queue_advanced
                 if made_progress:
                     # Unread badges, the "is this chat worth showing" decision and
                     # the displayed name all depend on this, so rebuild the list.
@@ -23027,6 +23278,41 @@ class MainWindow(wx.Frame):
     # evidence that outlived the reply window.
     _OLDER_REQUEST_GRACE = 15 * 60
 
+    # How many times the *backfill* may ask the phone about one chat in a
+    # single run before giving up on it.
+    #
+    # request_older_messages() sends a peer-data-operation the phone tells its
+    # owner about: iOS puts "Synchronizing WhatsApp with Google Chrome
+    # (Windows)…" on the lock screen and, when the request yields nothing,
+    # follows it with "Sync paused. Open WhatsApp to resume." (issue #108).
+    #
+    # The primaryHasMore gate stopped the requests the phone itself refuses.
+    # It cannot stop these: a chat whose endOfHistoryTransferType claims more
+    # history, that is asked, and that gains nothing, stays short of
+    # history_page_target() forever — so the every-_OLDER_REQUEST_GRACE re-ask
+    # never retires. Measured on a real account: the same four groups (holding
+    # 1, 2, 26 and 82 messages against a 200-message target) asked at 10:08,
+    # 10:23 and 10:38, twelve lock-screen notifications, and only the 45-minute
+    # backfill budget expiring ended it. That is the "it still happens at
+    # random moments" report — random because it is 15 minutes into a run, not
+    # at startup.
+    #
+    # Two is a genuine retry, not a loop: the first ask can be lost, the
+    # second answers it. A chat that gains messages has its counter cleared,
+    # so this only ever bites where asking has already been shown to achieve
+    # nothing. The user scrolling up (fetch_older_messages) is unaffected —
+    # that request is attended, and a notification the user just caused is not
+    # the problem being fixed here.
+    _MAX_PHONE_HISTORY_REQUESTS = 2
+
+    @staticmethod
+    def _phone_history_request_due(asked_at, attempts, now_ts,
+                                   grace, max_attempts) -> bool:
+        """Whether the backfill may ask the phone about this chat right now."""
+        if attempts >= max_attempts:
+            return False
+        return asked_at is None or (now_ts - asked_at) >= grace
+
     def _persist_exhausted_chats(self):
         """Write the exhausted-chat set to DB metadata. Best effort — losing it
         only costs one wasted round-trip per chat on the next launch."""
@@ -23056,6 +23342,7 @@ class MainWindow(wx.Frame):
         """
         self._exhausted_chats = set()
         self._older_requested_chats = {}
+        self._older_request_attempts = {}
         self._persist_exhausted_chats()
         self._persist_older_requested()
 

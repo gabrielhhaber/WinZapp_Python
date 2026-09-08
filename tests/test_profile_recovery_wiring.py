@@ -24,6 +24,19 @@ from core.profile_recovery import ProfileHealthTracker
 from main import MainWindow
 
 
+class _MetadataDB:
+    """Just the metadata pair the recovery generation is persisted through."""
+
+    def __init__(self):
+        self.values = {}
+
+    def get_metadata_json(self, key, default=None):
+        return self.values.get(key, default)
+
+    def set_metadata_json(self, key, value):
+        self.values[key] = value
+
+
 class _Stub:
     """Carries only what the methods under test actually touch."""
 
@@ -39,6 +52,14 @@ class _Stub:
         self.recovered = 0
         self.error_sound = types.SimpleNamespace(play=lambda: None)
         self.i18n = types.SimpleNamespace(t=lambda key: key)
+        self.db = _MetadataDB()
+
+    # Bound from the real class: the generation ladder decides *which*
+    # snapshot goes back, so a stub that faked it would let the wiring drift
+    # from the module its own tests cover.
+    _PROFILE_RECOVERY_GENERATION_KEY = MainWindow._PROFILE_RECOVERY_GENERATION_KEY
+    _profile_recovery_generation = MainWindow._profile_recovery_generation
+    _set_profile_recovery_generation = MainWindow._set_profile_recovery_generation
 
     def _shutdown_audit(self, msg):
         self.audits.append(msg)
@@ -110,7 +131,7 @@ class TestRecoveryRunsAtMostOncePerLaunch:
         calls = []
         monkeypatch.setattr(
             "core.profile_recovery.has_snapshot",
-            lambda *a: calls.append(a) or False)
+            lambda *a, **kw: calls.append(a) or False)
         monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: None)
         MainWindow._recover_suspect_profile(stub)
         MainWindow._recover_suspect_profile(stub)
@@ -120,7 +141,7 @@ class TestRecoveryRunsAtMostOncePerLaunch:
         stub = _Stub(token="")
         monkeypatch.setattr(
             "core.profile_recovery.has_snapshot",
-            lambda *a: pytest.fail("should not have looked for a snapshot"))
+            lambda *a, **kw: pytest.fail("should not have looked for a snapshot"))
         MainWindow._recover_suspect_profile(stub)
 
 
@@ -131,7 +152,7 @@ class TestWithNoSnapshotTheUserIsTold:
 
     def test_the_message_is_announced(self, monkeypatch):
         stub = _Stub()
-        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a: False)
+        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a, **kw: False)
         monkeypatch.setattr("main.wx.CallAfter",
                             lambda fn, *a, **kw: fn(*a, **kw))
         MainWindow._recover_suspect_profile(stub)
@@ -141,7 +162,7 @@ class TestWithNoSnapshotTheUserIsTold:
         """shutdown_audit.log is the only file that survives the next launch,
         and this is exactly the diagnosis a user's next report needs."""
         stub = _Stub()
-        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a: False)
+        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a, **kw: False)
         monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: None)
         MainWindow._recover_suspect_profile(stub)
         assert any("profile suspect" in line for line in stub.audits)
@@ -199,3 +220,87 @@ class TestTheTrackerItselfIsTheOneUsed:
         stub = _Stub()
         _note(stub, "INITIALIZING")
         assert isinstance(stub._profile_health, ProfileHealthTracker)
+
+
+class TestTheStartRequestArmsTheDetector:
+    """/start-session is the timing-independent evidence that a start is being
+    attempted; the INITIALIZING window is narrower than the polling interval,
+    so the poll cannot be relied on to catch it. See the tracker's docstring."""
+
+    def _start(self, stub):
+        return MainWindow._note_session_start_for_profile_health(stub)
+
+    def test_start_requests_alone_reach_the_threshold(self):
+        stub = _Stub()
+        for _ in range(3):
+            self._start(stub)
+            _note(stub, "CLOSED")
+        assert stub.recovered == 1
+
+    def test_the_real_broken_installs_poll_sequence_recovers(self):
+        # The readings log.log actually recorded on 2026-09-08, with the
+        # start-session POSTs the health checker made between them.
+        stub = _Stub()
+        _note(stub, "INITIALIZING")
+        for _ in range(3):
+            _note(stub, "disconnectedMobile")
+            _note(stub, "CLOSED")
+            self._start(stub)
+        assert stub.recovered == 1
+
+    def test_an_unpaired_account_is_still_never_touched(self):
+        stub = _Stub(paired=False)
+        for _ in range(6):
+            self._start(stub)
+            _note(stub, "CLOSED")
+        assert stub.recovered == 0
+
+    def test_a_broken_tracker_never_breaks_the_health_poll(self, monkeypatch):
+        """Same rule as its sibling: profile health observes the connection
+        poll and must never be able to change that poll's verdict."""
+        stub = _Stub()
+        stub.settings = None          # any access raises
+        self._start(stub)             # must not propagate
+
+
+class TestARunThatNeverConnectedMayNotOverwriteTheRestorePoint:
+    """The trap that came within hours of costing a real session.
+
+    Closing cleanly is evidence about *how* the profile was written, never
+    about whether what was written is worth keeping. On 2026-09-08 the profile
+    stopped carrying a login, WhatsApp Web logged itself out of it, and the
+    good snapshot was 16.5 h old — the only thing standing between a
+    successful hand-restore and a permanently lost session was the 24 h
+    refresh window not having elapsed yet.
+    """
+
+    @pytest.fixture
+    def captured(self, monkeypatch):
+        calls = []
+        monkeypatch.setattr("core.profile_recovery.capture_snapshot",
+                            lambda *a, **kw: calls.append(a) or True)
+        return calls
+
+    def test_a_clean_close_after_a_run_that_never_connected_is_refused(self, captured):
+        stub = _Stub()
+        _note(stub, "INITIALIZING")
+        _note(stub, "CLOSED")
+        MainWindow._capture_profile_snapshot(stub, "sess123", True, None)
+        assert captured == []
+        assert any("never connected" in line for line in stub.audits)
+
+    def test_a_run_that_connected_at_some_point_still_snapshots(self, captured):
+        stub = _Stub()
+        _note(stub, "CONNECTED")
+        _note(stub, "CLOSED")        # ordinary quit after a healthy session
+        MainWindow._capture_profile_snapshot(stub, "sess123", True, None)
+        assert len(captured) == 1
+
+    def test_no_tracker_at_all_behaves_as_before(self, captured):
+        """Absent tracker means no connection poll ever ran, which is not
+        evidence of anything — refusing there would silently stop snapshotting
+        on installs this was never meant to touch."""
+        stub = _Stub()
+        assert not hasattr(stub, "_profile_health")
+        MainWindow._capture_profile_snapshot(stub, "sess123", True, None)
+        assert len(captured) == 1

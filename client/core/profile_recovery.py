@@ -88,6 +88,28 @@ def snapshot_dir(global_dir, session_name):
     return os.path.join(global_dir, "api", SNAPSHOT_DIR_NAME, session_name)
 
 
+def previous_snapshot_dir(global_dir, session_name):
+    """The snapshot the last refresh replaced.
+
+    Kept because a clean close is not proof that the profile it wrote will
+    still authenticate. Measured across one day on a real install: four clean
+    shutdowns, each with close-session acknowledged, the session observed
+    CLOSED and Chrome confirmed to have released the profile — and two of the
+    four were followed by a launch where WhatsApp Web logged itself out seven
+    seconds into the page load. The two hard-killed runs that day both came
+    back fine, which is the opposite of what the module docstring above
+    predicts.
+
+    So `capture_snapshot()`'s conditions can all hold and still write a
+    restore point that does not work, and on that install the good one was
+    22.7 h old against a 24 h refresh window: one more hour and the refresh
+    would have overwritten the only profile that still authenticated. Keeping
+    the generation it replaces costs one extra copy on disk and is the
+    difference between a recoverable session and a re-pairing.
+    """
+    return snapshot_dir(global_dir, session_name) + ".prev"
+
+
 def snapshot_age_seconds(global_dir, session_name, now=None):
     """Seconds since this session's snapshot was completed, or None if there
     is none. Read off the directory itself, which `capture_snapshot()` renames
@@ -184,6 +206,22 @@ def capture_snapshot(global_dir, session_name, budget=SNAPSHOT_BUDGET_SECONDS,
         shutil.rmtree(staged, ignore_errors=True)
         os.makedirs(staged, exist_ok=True)
         _copy_tree_bounded(source, staged, deadline)
+        # Demote the snapshot being replaced rather than dropping it. See
+        # previous_snapshot_dir(): a clean close is not proof that what it
+        # wrote will authenticate on the next load, and the generation being
+        # overwritten is the one already known to have worked. Everything above
+        # happened in `staged`, so a failure before this point still leaves
+        # both generations untouched.
+        previous = previous_snapshot_dir(global_dir, session_name)
+        if os.path.isdir(final):
+            shutil.rmtree(previous, ignore_errors=True)
+            try:
+                os.replace(final, previous)
+            except OSError as exc:
+                # Not fatal: losing the older generation costs a fallback,
+                # while refusing to refresh at all costs the restore point.
+                logging.warning("[profile-snapshot] could not keep the previous "
+                                "generation for %s: %s", session_name[:12], exc)
         _replace_directory(staged, final)
         logging.info("[profile-snapshot] restore point written for session %s",
                      session_name[:12])
@@ -197,8 +235,13 @@ def capture_snapshot(global_dir, session_name, budget=SNAPSHOT_BUDGET_SECONDS,
         return False
 
 
-def restore_snapshot(global_dir, session_name):
+def restore_snapshot(global_dir, session_name, prefer_previous=False):
     """Put the saved profile back. Returns True if the live profile was replaced.
+
+    `prefer_previous` restores the generation before the newest one — the
+    ladder for the case the newest snapshot is itself a profile that no longer
+    authenticates. See previous_snapshot_dir() for why that is reachable from
+    a shutdown that did everything right.
 
     The caller must have stopped Chrome first — restoring under a running
     browser would be overwriting a LevelDB while its owner holds it open, i.e.
@@ -208,7 +251,8 @@ def restore_snapshot(global_dir, session_name):
     is the only evidence of what went wrong, and deleting the one copy of a
     failure nobody has reproduced is how a bug survives another release.
     """
-    source = snapshot_dir(global_dir, session_name)
+    source = (previous_snapshot_dir(global_dir, session_name) if prefer_previous
+              else snapshot_dir(global_dir, session_name))
     if not os.path.isdir(source):
         return False
     live = profile_dir(global_dir, session_name)
@@ -238,39 +282,79 @@ def restore_snapshot(global_dir, session_name):
         return False
 
 
-def has_snapshot(global_dir, session_name):
-    return os.path.isdir(snapshot_dir(global_dir, session_name))
+def has_snapshot(global_dir, session_name, prefer_previous=False):
+    return os.path.isdir(previous_snapshot_dir(global_dir, session_name)
+                         if prefer_previous
+                         else snapshot_dir(global_dir, session_name))
 
 
 class ProfileHealthTracker:
     """Decides when a paired session's failure to start means a broken profile.
 
-    The signature is specific, and being specific is what keeps this from
-    firing on an ordinary offline spell: a session that is **paired** (there is
-    a token, so no pairing is pending), that WPPConnect reports as
-    INITIALIZING, and that then reaches CLOSED without ever having reported
-    CONNECTED. That is the browser starting, failing to bring WhatsApp Web up,
-    and being torn down — repeatedly.
+    The signature is: a **paired** session that has been observed trying to
+    start, that has reached CLOSED that many times, and that has never once
+    reported CONNECTED in between. That is the browser starting, failing to
+    bring WhatsApp Web up, and being torn down — repeatedly.
 
     A plain network outage does not look like this: an established session
-    reports CONNECTED first, and a session that never gets that far still
-    passes through CONNECTED at some point in the account's life. The tracker
-    resets on any CONNECTED, so a single good connection clears whatever came
-    before it.
+    reports CONNECTED, and any CONNECTED resets everything, so a single good
+    connection clears whatever came before it.
+
+    **What "observed trying to start" must not mean is "we caught a status
+    reading that said INITIALIZING".** That was the original rule and it made
+    the whole recovery unreachable in the field. Measured on a real broken
+    install: `check_wa_connection_http()` polls every 30 s while one failed
+    cycle takes ~60 s (start-session, browser up, wa-js never ready,
+    `injectApi()` times out at 30 s, CLOSED), and the poll only ever landed on
+    `disconnectedMobile` and `CLOSED`. INITIALIZING was seen exactly once, at
+    launch, and the old code cleared its arming flag on every CLOSED — so the
+    counter reached 1 and stayed there for the entire life of the process. The
+    log carried twelve minutes of that loop and not one `[profile-health]`
+    line, with a perfectly good snapshot sitting on disk. WhatsApp Web then
+    logged *itself* out of the unusable profile (`post_logout=1`,
+    `logout_reason=0`), and the user was left re-pairing an account whose
+    phone still listed the device as linked — restoring that snapshot by hand
+    brought the same login straight back, connected and syncing.
+
+    So arming is latched until CONNECTED, and `note_session_start_requested()`
+    arms it too: the health checker POSTing /start-session is direct evidence
+    that a start is being attempted, and it does not depend on a poll landing
+    inside a window narrower than the poll interval.
 
     Three cycles rather than one, because the first can be a slow machine and
-    the second can be the wake-from-hibernate path that already has its own
-    recovery; a profile that is genuinely unreadable fails every time.
+    the second the wake-from-hibernate path that has its own recovery; a
+    profile that is genuinely unreadable fails every time. At roughly a minute
+    per cycle that fires about three minutes in — comfortably before the
+    logged-out page starts pushing QR codes at the user, which on the measured
+    install took seven.
+
+    One case is deliberately accepted rather than excluded: a user who unlinks
+    the device from their phone produces the same readings, and this will
+    restore a snapshot whose credentials the server has already revoked. That
+    costs one cycle — WhatsApp Web rejects it and asks to pair again, which is
+    where they were going anyway — and `_recover_suspect_profile()` runs at
+    most once per launch, so it cannot loop. Being wrong in that direction
+    costs a minute; being wrong in the other direction is what this class was
+    written for, and it cost a re-pairing.
     """
 
-    #: Consecutive INITIALIZING->CLOSED cycles before the profile is suspect.
+    #: Consecutive failed start cycles before the profile is suspect.
     FAILED_CYCLES_BEFORE_SUSPECT = 3
 
     def __init__(self, threshold=None):
         self.threshold = threshold or self.FAILED_CYCLES_BEFORE_SUSPECT
         self.failed_cycles = 0
-        self._saw_initializing = False
+        self._armed = False
         self._ever_connected = False
+
+    def note_session_start_requested(self, paired=True):
+        """The health checker just POSTed /start-session for this session.
+
+        Arms the tracker without waiting for a poll to catch INITIALIZING —
+        see the class docstring for why that catch cannot be relied on.
+        """
+        if paired:
+            self._armed = True
 
     def note_status(self, status, paired=True):
         """Feed one status-session reading. Returns True the moment the profile
@@ -279,26 +363,37 @@ class ProfileHealthTracker:
         normalized = (status or "").upper()
         if normalized == "CONNECTED":
             self._ever_connected = True
-            self._saw_initializing = False
+            self._armed = False
             self.failed_cycles = 0
             return False
         if not paired:
             # Mid-pairing there is no profile worth preserving and no login to
             # lose, and the QR/code flow drives the session through these very
             # states on purpose.
-            self._saw_initializing = False
+            self._armed = False
             self.failed_cycles = 0
             return False
         if normalized == "INITIALIZING":
-            self._saw_initializing = True
+            self._armed = True
             return False
-        if normalized == "CLOSED" and self._saw_initializing:
-            self._saw_initializing = False
+        if normalized == "CLOSED" and self._armed:
+            # Deliberately stays armed. Clearing it here is the original bug:
+            # the next cycle's INITIALIZING falls between two polls and the
+            # count never advances again.
             self.failed_cycles += 1
             if self.failed_cycles == self.threshold:
                 return True
         return False
 
+    def ever_connected(self):
+        """Whether this session reported CONNECTED at least once this run.
+
+        Read by the snapshot side, not by the recovery side: a run that never
+        connected must not be allowed to overwrite the restore point that
+        would have rescued it. See _capture_profile_snapshot().
+        """
+        return self._ever_connected
+
     def reset(self):
         self.failed_cycles = 0
-        self._saw_initializing = False
+        self._armed = False
