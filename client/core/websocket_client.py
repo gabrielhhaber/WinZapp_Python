@@ -78,6 +78,19 @@ def phone_code_error_is_rate_limit(data) -> bool:
     return "rate-overlimit" in haystack or "RateOverlimit" in haystack
 
 
+def qr_within_startup_grace(announced, started, grace, now) -> bool:
+    """Is a QR event still inside the slow-boot window, given the four
+    values WebSocketClient._qr_within_startup_grace() reads off MainWindow?
+
+    Module-level so the window itself can be tested without a MainWindow —
+    see that method for what each value means and why the pair is read
+    exactly the way check_wa_connection_http() reads it.
+    """
+    if announced:
+        return False
+    return (now - (started or 0)) < (grace or 0)
+
+
 def _media_seconds(wpp_msg: dict):
     """Duration in whole seconds, or None when the payload never stated one.
 
@@ -155,15 +168,36 @@ class WebSocketClient:
     # straight past this counter.
     #
     # The halt itself moves by one event, in both directions, and that is
-    # the whole cost in codes actually requested from WhatsApp. Measured on
-    # a paired install by counting past the limit rather than stopping at
-    # it: outside the grace the halt lands on the 5th unattended code
-    # instead of the 4th (this counter withholds the dialog for one extra
-    # event, and the dialog is what used to reset the count); inside the
-    # grace it lands on the 3rd instead of the 4th, since nothing resets the
-    # count there at all. Bounded at +-1 either way — never a widening
+    # this counter's whole cost in codes actually requested from WhatsApp.
+    # Measured on a paired install by counting past the limit rather than
+    # stopping at it: outside the grace the halt lands on the 5th unattended
+    # code instead of the 4th (this counter withholds the dialog for one
+    # extra event, and the dialog is what used to reset the count); inside
+    # the grace it lands on the 3rd instead of the 4th, since nothing resets
+    # the count there at all. Bounded at +-1 either way — never a widening
     # window, which is the property that matters for an account that was
     # banned over code volume.
+    #
+    # The profile repair adds its own, separate allowance:
+    # _recover_suspect_profile() zeroes this counter when a restore actually
+    # succeeds (main.py), because the burst that triggered it was minted by
+    # the profile now moved aside. That zeroing happens on the restore
+    # thread, with close-session, wait_for_profile_release and a copy of a
+    # few hundred MB between the trigger and it — so it is NOT one event
+    # later, and writing it as if it were understates the one number an
+    # account was banned over. By the time it lands, 1 or 2 codes have
+    # usually been counted already and those are not given back; what the
+    # reset does hand back is the run-up, since the count towards this
+    # constant starts again from 0. Bounded, because the branch that starts
+    # the restore has already passed both gates and every route out of it
+    # returns above the halt: the reset can only push the *dialog* out by up
+    # to _REPAIR_DIALOG_CONFIRM_EVENTS - 1 further codes, and the dialog then
+    # resets the counter itself (_reset_unattended_qr_guards()). Once per
+    # recovery rather than once per launch — a session reporting CONNECTED
+    # hands _recover_suspect_profile()'s latch straight back (main.py's
+    # _note_status_for_profile_health()) — and a second allowance can only be
+    # spent on a second flood, which had its own full ceiling regardless. See
+    # TestTheProfileIsRepairedBeforeAskingTheUserToPair for both orderings.
     _REPAIR_DIALOG_CONFIRM_EVENTS = 2
 
     def __init__(self, main_window, connect, instance_name):
@@ -872,11 +906,12 @@ class WebSocketClient:
         on its own, so the clock under it no longer decides anything.
         """
         mw = self.main_window
-        if getattr(mw, "_wa_connect_announced", False):
-            return False
-        started = getattr(mw, "_wa_startup_time", 0) or 0
-        grace = getattr(mw, "_WA_STARTUP_GRACE_SECONDS", 0) or 0
-        return (time.time() - started) < grace
+        return qr_within_startup_grace(
+            getattr(mw, "_wa_connect_announced", False),
+            getattr(mw, "_wa_startup_time", 0) or 0,
+            getattr(mw, "_WA_STARTUP_GRACE_SECONDS", 0) or 0,
+            time.time(),
+        )
 
     def _handle_unattended_qr(self):
         """A real QR/pairing code arrived that no refresh branch wanted.
@@ -968,6 +1003,25 @@ class WebSocketClient:
                            "install — the stored session could not be restored",
                     on_give_up=self._show_repair_dialog):
                 return
+            # Nothing was started (no snapshot, or the recovery budget is
+            # already spent), so a human is the only way back — and that is
+            # the judgment, not the observation.
+            #
+            # KNOWN GAP, inherited and not introduced here: "already spent"
+            # also covers a restore still IN FLIGHT. _recover_suspect_profile()
+            # latches the moment it starts its thread, so the next code ~20-30s
+            # later is refused with False and lands right here, opening the
+            # pairing dialog on top of a restore_snapshot() that may still be
+            # writing into userDataDir/<session>. If the user pairs from that
+            # dialog, _reset_unattended_qr_guards() clears _qr_flood_halted and
+            # /start-session launches Chrome over the directory being written —
+            # precisely what core/profile_recovery.py forbids ("restoring under
+            # a running browser manufactures the corruption it recovers from").
+            # Closing it means exposing a "restore in flight" state and holding
+            # _show_repair_dialog() on it, which is a production change of its
+            # own; see tests/test_qrcode_auto_repair_dialog.py::
+            # TestTheProfileIsRepairedBeforeAskingTheUserToPair for both
+            # orderings, the losing one pinned as today's real behaviour.
             self._show_repair_dialog()
             return
         if seen == self._UNATTENDED_QR_LIMIT:
