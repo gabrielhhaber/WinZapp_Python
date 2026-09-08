@@ -10582,6 +10582,13 @@ class MainWindow(wx.Frame):
         else:
             self._older_requested_chats = {}
 
+        # How many times the backfill has asked the phone about each chat this
+        # session. Deliberately in memory and not persisted, for the same reason
+        # _note_verified_activity() is: the bound exists to stop one run asking
+        # the same chat forever, and one confirming look per launch is cheap
+        # next to permanently writing off a chat that really does have history.
+        self._older_request_attempts: dict[str, int] = {}
+
         # Short/provisional history is also durable. An incremental startup
         # must remember that a chat still owed us history in the previous
         # session; otherwise a restart could turn an unfinished backfill into
@@ -18132,17 +18139,29 @@ class MainWindow(wx.Frame):
                 # for older history, a few chats per pass, and keep every such
                 # chat queued while its asynchronous reply is pending.
                 phone_requests_left = self._OLDER_REQUESTS_PER_PASS
+                attempts = getattr(self, "_older_request_attempts", None)
+                if attempts is None:
+                    attempts = self._older_request_attempts = {}
                 for jid, was in counts_before.items():
                     now = self._local_record_count(jid)
+                    if now > was:
+                        # The chat gained messages, so whatever was asked for
+                        # arrived: the attempt budget below starts over. Only a
+                        # chat that asks and gains nothing ever spends it.
+                        attempts.pop(jid, None)
                     if now >= self.history_page_target() or now > was:
                         continue
                     self._keep_backfill_pending(jid, now)
                     asked_at = getattr(self, "_older_requested_chats", {}).get(jid)
-                    request_due = asked_at is None or (
-                        time.time() - asked_at >= self._OLDER_REQUEST_GRACE)
-                    if not request_due or phone_requests_left <= 0:
+                    if not MainWindow._phone_history_request_due(
+                            asked_at, attempts.get(jid, 0), time.time(),
+                            self._OLDER_REQUEST_GRACE,
+                            self._MAX_PHONE_HISTORY_REQUESTS):
+                        continue
+                    if phone_requests_left <= 0:
                         continue
                     phone_requests_left -= 1
+                    attempts[jid] = attempts.get(jid, 0) + 1
                     requested = self.request_older_messages(jid)
                     if requested is True:
                         if not hasattr(self, "_older_requested_chats"):
@@ -18156,6 +18175,18 @@ class MainWindow(wx.Frame):
                         # and it is also the terminal answer for a persisted gap
                         # whose phone no longer has any older page to provide.
                         self._remove_backfill_pending(jid)
+                        # ...and record it as asked. _keep_backfill_pending()
+                        # above runs before this decision on every pass, so the
+                        # removal is undone by the next sweep and the chat comes
+                        # straight back. Without a timestamp its asked_at stays
+                        # None, the request is therefore always due, and a chat
+                        # the API has already refused is re-asked every ~30 s
+                        # for the whole backfill budget — measured at 40+ round
+                        # trips for one @lid chat in a single 46-minute run.
+                        if not hasattr(self, "_older_requested_chats"):
+                            self._older_requested_chats = {}
+                        self._older_requested_chats[jid] = time.time()
+                        self._persist_older_requested()
                         with self._backfill_state_guard():
                             gap_forms = set(self._jid_address_forms(jid))
                             gap_forms.update(
@@ -22411,6 +22442,41 @@ class MainWindow(wx.Frame):
     # evidence that outlived the reply window.
     _OLDER_REQUEST_GRACE = 15 * 60
 
+    # How many times the *backfill* may ask the phone about one chat in a
+    # single run before giving up on it.
+    #
+    # request_older_messages() sends a peer-data-operation the phone tells its
+    # owner about: iOS puts "Synchronizing WhatsApp with Google Chrome
+    # (Windows)…" on the lock screen and, when the request yields nothing,
+    # follows it with "Sync paused. Open WhatsApp to resume." (issue #108).
+    #
+    # The primaryHasMore gate stopped the requests the phone itself refuses.
+    # It cannot stop these: a chat whose endOfHistoryTransferType claims more
+    # history, that is asked, and that gains nothing, stays short of
+    # history_page_target() forever — so the every-_OLDER_REQUEST_GRACE re-ask
+    # never retires. Measured on a real account: the same four groups (holding
+    # 1, 2, 26 and 82 messages against a 200-message target) asked at 10:08,
+    # 10:23 and 10:38, twelve lock-screen notifications, and only the 45-minute
+    # backfill budget expiring ended it. That is the "it still happens at
+    # random moments" report — random because it is 15 minutes into a run, not
+    # at startup.
+    #
+    # Two is a genuine retry, not a loop: the first ask can be lost, the
+    # second answers it. A chat that gains messages has its counter cleared,
+    # so this only ever bites where asking has already been shown to achieve
+    # nothing. The user scrolling up (fetch_older_messages) is unaffected —
+    # that request is attended, and a notification the user just caused is not
+    # the problem being fixed here.
+    _MAX_PHONE_HISTORY_REQUESTS = 2
+
+    @staticmethod
+    def _phone_history_request_due(asked_at, attempts, now_ts,
+                                   grace, max_attempts) -> bool:
+        """Whether the backfill may ask the phone about this chat right now."""
+        if attempts >= max_attempts:
+            return False
+        return asked_at is None or (now_ts - asked_at) >= grace
+
     def _persist_exhausted_chats(self):
         """Write the exhausted-chat set to DB metadata. Best effort — losing it
         only costs one wasted round-trip per chat on the next launch."""
@@ -22440,6 +22506,7 @@ class MainWindow(wx.Frame):
         """
         self._exhausted_chats = set()
         self._older_requested_chats = {}
+        self._older_request_attempts = {}
         self._persist_exhausted_chats()
         self._persist_older_requested()
 
