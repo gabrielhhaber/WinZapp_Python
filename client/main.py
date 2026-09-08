@@ -1322,6 +1322,46 @@ def reconcile_open_chat_unread(
     return min(server_unread, local_new), False
 
 
+def _log_refused_read_receipt(jid: str, server_unread: int, local_unread: int,
+                             incoming_timestamp, local_timestamp,
+                             merged: int) -> None:
+    """Say so when a snapshot reporting "read" was not allowed to clear a badge.
+
+    The only symptom of this from outside is a conversation that stays unread
+    forever and comes back only after F5, and until this line existed the logs
+    could not tell whether WPPConnect had reported a stale count or WinZapp had
+    refused a good one (issue #173 says exactly that: "the available
+    diagnostics do not establish" which).
+
+    Both timestamps go in raw, because the units are the thing under
+    suspicion — see _unread_seconds().
+    """
+    if server_unread != 0 or local_unread <= 0 or merged == 0:
+        return
+    logging.info(
+        "[unread] %s: snapshot says read (0) but kept %d — "
+        "snapshot t=%s local t=%s",
+        jid, merged, incoming_timestamp, local_timestamp,
+    )
+
+
+def _unread_seconds(value) -> int:
+    """A timestamp in seconds, whatever unit it arrived in.
+
+    Deliberately the same rule as core/incremental_sync.py's _seconds(), and
+    deliberately a second copy rather than an import: main.py is the module
+    incremental_sync is imported INTO, and reaching back the other way for four
+    lines would make the dependency circular. The threshold is the one that
+    cannot be ambiguous — 1e12 seconds is the year 33658, so anything above it
+    is milliseconds.
+    """
+    try:
+        ts = int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    return ts // 1000 if ts > 1_000_000_000_000 else ts
+
+
 def reconcile_snapshot_unread(
     server_unread: int,
     local_unread: int,
@@ -1329,12 +1369,33 @@ def reconcile_snapshot_unread(
     local_timestamp: int,
     unsynced: bool = False,
 ) -> int:
-    """Merge an authoritative chat snapshot without losing newer live arrivals."""
+    """Merge an authoritative chat snapshot without losing newer live arrivals.
+
+    The timestamp guard below is what let a conversation read on the phone sit
+    at 8 unread forever, curable only with F5 (issue #173) — and the reason is
+    not the rule, it is that the two sides were being compared in different
+    units. `t` arrives from WhatsApp Web in seconds, while several local paths
+    write a millisecond value into the very same field (on_historical_message()
+    is the one CLAUDE.md names). A millisecond local timestamp is a thousand
+    times any second-based snapshot, so `incoming < local` became permanently
+    true and NO later snapshot could ever lower the count again. F5 "fixed" it
+    only by wiping self.chats, leaving nothing to preserve.
+
+    core/incremental_sync.py learned this on its own side and its _seconds()
+    docstring says it outright: comparing the two raw "makes the local side
+    look impossibly newer, which is the direction that silently skips a chat".
+    The same normalisation belongs here, on the comparison that decides whether
+    a read is allowed to reach the badge.
+
+    The guard itself stays exactly as it was, because it protects a real case:
+    a snapshot a second older than a live arrival must not clear the count that
+    arrival just raised.
+    """
     server_unread = max(0, int(server_unread or 0))
     local_unread = max(0, int(local_unread or 0))
     if server_unread >= local_unread:
         return server_unread
-    if unsynced or int(incoming_timestamp or 0) < int(local_timestamp or 0):
+    if unsynced or _unread_seconds(incoming_timestamp) < _unread_seconds(local_timestamp):
         return local_unread
     return server_unread
 
@@ -13716,6 +13777,11 @@ class MainWindow(wx.Frame):
                                 chat.get("t", 0),
                                 self.chats[jid].get("t", 0),
                                 bool(self.chats[jid].get("_unread_count_unsynced")),
+                            )
+                            _log_refused_read_receipt(
+                                jid, server_unread, local_unread,
+                                chat.get("t", 0), self.chats[jid].get("t", 0),
+                                chat["unreadCount"],
                             )
                         chats[jid] = chat
                     else:
