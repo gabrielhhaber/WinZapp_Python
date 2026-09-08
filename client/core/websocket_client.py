@@ -158,6 +158,7 @@ class WebSocketClient:
         self.sio.on("messages.update", self.on_messages_update)
         self.sio.on("onreactionmessage", self.on_wpp_reaction)
         self.sio.on("media-upload-progress", self.on_media_upload_progress)
+        self.sio.on("media-download-progress", self.on_media_download_progress)
         self.sio.on("incomingcall", self.on_wpp_incoming_call)
         # These two handlers existed but were never registered — contact
         # name/photo updates and presence changes only ever reached the app
@@ -1742,15 +1743,60 @@ class WebSocketClient:
             logging.exception("[WebSocketClient] on_wpp_message_received error")
 
     def on_media_upload_progress(self, data):
+        """Upload progress from inside WhatsApp Web.
+
+        `progress` is a real fraction when the build exposes one and None
+        otherwise; `stage` is WhatsApp's own lifecycle label. Both are
+        forwarded and the panel decides — see update_media_upload_progress().
+        Rejecting an event for having no number is what made this feature
+        inert: nothing on a current build ever carries one.
+        """
         if not isinstance(data, dict) or not self._belongs_to_this_session(data):
             return
+        upload_id = str(data.get("uploadId") or "")
+        if not upload_id:
+            return
+        progress = None
         try:
-            upload_id = str(data.get("uploadId") or "")
+            raw = data.get("progress")
+            if raw is not None:
+                value = float(raw)
+                if 0 <= value <= 1:
+                    progress = value
+        except (TypeError, ValueError):
+            progress = None
+        stage = data.get("stage")
+        stage = str(stage) if stage else ""
+        if progress is None and not stage:
+            return
+        logging.info(
+            "[media-progress] upload %s stage=%s progress=%s",
+            upload_id[:12], stage or "-",
+            f"{progress:.2f}" if progress is not None else "-",
+        )
+        wx.CallAfter(self.main_window.on_media_upload_progress,
+                     upload_id, progress, stage)
+
+    def on_media_download_progress(self, data):
+        """Bytes actually arriving from WhatsApp's CDN, counted server-side.
+
+        The old gauge watched the localhost hop instead, which only begins
+        once the whole file has already been fetched and decrypted — so it
+        showed 0% for the entire real wait and then jumped. This is the wait.
+        """
+        if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+            return
+        progress_id = str(data.get("progressId") or "")
+        if not progress_id:
+            return
+        try:
             progress = float(data.get("progress"))
-            if upload_id and 0 <= progress <= 1:
-                wx.CallAfter(self.main_window.on_media_upload_progress, upload_id, progress)
         except (TypeError, ValueError):
             return
+        if not 0 <= progress <= 1:
+            return
+        wx.CallAfter(self.main_window.on_media_download_progress,
+                     progress_id, progress)
 
     def on_wpp_reaction(self, data):
         try:

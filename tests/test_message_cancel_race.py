@@ -920,6 +920,7 @@ def _make_panel(main_window, msg=None):
     panel.main_window = main_window
     panel._outgoing_virtual_messages = {msg["_local_id"]: msg} if msg else {}
     panel._media_upload_progress = {}
+    panel._upload_stages_seen = {}
     panel._media_transfer_started = set()
     panel._cancelled_pending_messages = {}
     panel._hide_media_transfer_gauge = lambda: None

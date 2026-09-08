@@ -21989,6 +21989,13 @@ class MainWindow(wx.Frame):
         if msg_type:
             body_data["type"] = msg_type.replace("Message", "")
 
+        # Correlation id for the server's progress events. Deliberately the
+        # message's own key id rather than the serialized form sent in the URL:
+        # the panel keys its gauge by that, and the serialized form goes
+        # through @lid/@c.us rewriting on both sides, so matching on it would
+        # mean re-deriving the same guess in two places.
+        body_data["progressId"] = _key.get("id", "") or msg_id
+
         has_media_key = bool(body_data.get("mediaKey"))
         has_client_url = bool(body_data.get("clientUrl"))
         has_direct_path = bool(body_data.get("directPath"))
@@ -24841,9 +24848,17 @@ class MainWindow(wx.Frame):
                 except OSError:
                     pass
 
-    def on_media_upload_progress(self, upload_id: str, progress: float):
+    def on_media_upload_progress(self, upload_id: str, progress, stage: str = ""):
         if hasattr(self, "conversations_panel"):
-            self.conversations_panel.update_media_upload_progress(upload_id, progress)
+            self.conversations_panel.update_media_upload_progress(
+                upload_id, progress, stage)
+
+    def on_media_download_progress(self, progress_id: str, progress: float):
+        """Server-side CDN download progress, keyed by the id we sent with the
+        request. See _media_progress_id() for why the client picks that id."""
+        if hasattr(self, "conversations_panel"):
+            self.conversations_panel.update_message_download_progress(
+                progress_id, progress)
 
     def send_contact_attachment(self, remote_jid: str, contact_info: dict,
                                 quoted: dict = None):
