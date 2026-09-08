@@ -489,6 +489,19 @@ class Connect:
             evt.wait()
             return
 
+        # Nothing captured while a PREVIOUS dialog was open may survive into
+        # this one. on_switch_to_phone() arms the capture and only on_continue
+        # (on read) and on_switch_to_qrcode clear it, so closing the dialog in
+        # phone mode without clicking Continue used to leave it armed for the
+        # rest of the process — this object is created once (main.py) and
+        # reused by every dialog, including the ones opened later by
+        # _show_repair_dialog()/device_logged_out, which leave `paired`
+        # intact. The next Continue would then reuse a token whose session was
+        # closed minutes earlier: no pairing code, 90 s on "Conectando…",
+        # which is precisely the failure _can_reuse_existing_session()'s
+        # docstring describes.
+        self._token_before_mode_switch = ""
+
         # Wide enough to fit the instructions/QR-CODE side by side (like the
         # official WhatsApp Web/Desktop layout) — users coming from there are
         # used to finding the QR-CODE on the right, with instructions on the

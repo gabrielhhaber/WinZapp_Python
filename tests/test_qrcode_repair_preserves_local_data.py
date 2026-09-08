@@ -21,6 +21,7 @@ time the user clicks Continue.
 Connect is a plain class — same approach as tests/test_pairing_startup_grace.py.
 """
 
+import inspect
 import threading
 
 import pytest
@@ -428,3 +429,57 @@ class TestReusingTheJustClosedSessionWaitsForItsProfile:
         assert ("flush", "sess1:hash1") in mw.events
         assert steps.index("profile-release") < steps.index("start-session")
         assert steps.index("flush") < steps.index("profile-release")
+
+
+class TestTheCaptureDoesNotOutliveTheDialogThatArmedIt:
+    """Connect is instantiated once (main.py) and reused by every dialog, so
+    a capture left armed belongs to a session that is long gone.
+
+    on_switch_to_phone() arms it and only two paths drop it: on_continue()
+    spends it on read, and on_switch_to_qrcode() drops it going back. Close
+    the dialog in phone mode without clicking Continue and neither runs — the
+    capture stays armed for the rest of the process. The app opens this dialog
+    again on its own later (websocket_client's _show_repair_dialog on
+    device_logged_out, and main.py's websocket_failed_reconnect path), both
+    leaving `paired` intact, so the next Continue would hand
+    _can_reuse_existing_session() a token whose session was closed minutes
+    earlier: no pairing code, 90 s on "Conectando...", the exact failure that
+    method's own docstring describes.
+    """
+
+    def test_opening_the_dialog_drops_a_previous_dialogs_capture(self):
+        """Source level: show_connection_dial() builds real wx dialogs and
+        ends in ShowModal(), so it cannot be called here (same approach as
+        tests/test_unattended_qr_halt.py). The reset has to come before the
+        dialog exists at all — every path that could read the capture again
+        runs from a control on it."""
+        lines = inspect.getsource(Connect.show_connection_dial).splitlines()
+        reset = next(i for i, ln in enumerate(lines)
+                     if 'self._token_before_mode_switch = ""' in ln)
+        built = next(i for i, ln in enumerate(lines)
+                     if "self.connection_dial = wx.Dialog(" in ln)
+        assert reset < built, (
+            "the mode-switch capture must be dropped before the dialog is "
+            "built, so nothing armed by a previous dialog survives into it"
+        )
+
+    def test_the_legitimate_same_dialog_reuse_still_happens(self):
+        """The reset is per dialog, not per Continue: switching to phone mode
+        and clicking Continue inside that same dialog must still resume the
+        pre-close session, which is what this PR added the capture for."""
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = "5511999999999"
+        c = Connect(mw)
+        c.qrcode_panel = _Panel()
+        c.phone_panel = _Panel()
+        c.phone_field = _Field("5511999999999")
+        c.connection_dial = _Dial()
+
+        c.on_switch_to_phone(None)
+
+        # Exactly what _bg_pairing_flow() feeds _can_reuse_existing_session().
+        existing_token = mw._get_wa_token() or c._token_before_mode_switch
+        assert existing_token == "sess1:hash1"
+        assert c._can_reuse_existing_session(
+            mw.settings["privateinfo"], "5511999999999", existing_token
+        )
