@@ -984,3 +984,57 @@ class TestTheNodeSideRefusesBeforeSending:
         all history backfill the day WhatsApp renames that internal module."""
         source = self._source()
         assert "if (out.primaryHasMore === false) {" in source
+
+
+class TestBackfillPhoneRequestBudget:
+    """The backfill may not ask the phone about one chat forever.
+
+    Every request that actually goes out lights up the phone's lock screen
+    ("Synchronizing WhatsApp with Google Chrome (Windows)…", then "Sync
+    paused. Open WhatsApp to resume." when it yields nothing — issue #108).
+    The primaryHasMore gate stopped the requests the phone itself refuses, but
+    a chat whose endOfHistoryTransferType claims more history, that is asked,
+    and that gains nothing, stays short of history_page_target() forever — so
+    the every-15-minute re-ask never retires. Measured on a real account: the
+    same four groups asked at 10:08, 10:23 and 10:38 in one run.
+    """
+
+    GRACE = MainWindow._OLDER_REQUEST_GRACE
+    MAX = MainWindow._MAX_PHONE_HISTORY_REQUESTS
+
+    def test_a_chat_never_asked_before_is_due(self):
+        assert MainWindow._phone_history_request_due(
+            None, 0, 1000.0, self.GRACE, self.MAX) is True
+
+    def test_a_chat_asked_moments_ago_is_not_due(self):
+        assert MainWindow._phone_history_request_due(
+            1000.0, 1, 1000.0 + self.GRACE - 1, self.GRACE, self.MAX) is False
+
+    def test_the_grace_elapsing_makes_a_second_ask_due(self):
+        assert MainWindow._phone_history_request_due(
+            1000.0, 1, 1000.0 + self.GRACE, self.GRACE, self.MAX) is True
+
+    def test_the_attempt_budget_outranks_the_elapsed_grace(self):
+        # This is the whole fix: without it the same chat is asked again every
+        # _OLDER_REQUEST_GRACE for as long as the backfill runs.
+        assert MainWindow._phone_history_request_due(
+            1000.0, self.MAX, 1000.0 + self.GRACE * 100,
+            self.GRACE, self.MAX) is False
+
+    def test_the_budget_allows_one_genuine_retry(self):
+        # A single lost request must not write the chat off, so the bound is a
+        # retry rather than a one-shot.
+        assert self.MAX >= 2
+        assert MainWindow._phone_history_request_due(
+            1000.0, self.MAX - 1, 1000.0 + self.GRACE,
+            self.GRACE, self.MAX) is True
+
+    def test_resetting_the_history_walk_clears_the_attempt_counters(self):
+        # F5 / "resync everything" is the only escape from a wrong conclusion,
+        # and it has to reach this bound too.
+        stub = _Stub()
+        stub._older_request_attempts = {"5511@s.whatsapp.net": 2}
+        stub._persist_exhausted_chats = lambda: None
+        stub._persist_older_requested = lambda: None
+        MainWindow._forget_history_exhaustion(stub)
+        assert stub._older_request_attempts == {}
