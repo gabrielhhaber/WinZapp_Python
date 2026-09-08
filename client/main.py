@@ -8478,6 +8478,22 @@ class MainWindow(wx.Frame):
         except Exception:
             logging.exception("[profile-health] check failed (non-fatal)")
 
+    def _note_session_start_for_profile_health(self):
+        """Arm the profile-health tracker when we ask for a session start.
+
+        Wrapped like its sibling: profile health observes the connection poll
+        and must never be able to change that poll's verdict.
+        """
+        try:
+            tracker = getattr(self, "_profile_health", None)
+            if tracker is None:
+                from core.profile_recovery import ProfileHealthTracker
+                tracker = self._profile_health = ProfileHealthTracker()
+            paired = bool(self.settings.get("privateinfo", {}).get("paired"))
+            tracker.note_session_start_requested(paired=paired)
+        except Exception:
+            logging.exception("[profile-health] start note failed (non-fatal)")
+
     def _recover_suspect_profile(self):
         """Put the last clean-shutdown profile back, or say why we cannot.
 
@@ -8579,7 +8595,7 @@ class MainWindow(wx.Frame):
         core/profile_recovery.py for why a snapshot of a live profile is worse
         than no snapshot at all.
 
-        Two refusals, both deliberate:
+        Three refusals, all deliberate:
 
         * `browser_closed_cleanly` False means the graceful close-session never
           confirmed, so the leveldb may be mid-write. That is precisely the
@@ -8589,11 +8605,32 @@ class MainWindow(wx.Frame):
           megabytes would take the time away from the flush that prevents the
           corruption in the first place — and the run that most needs a
           snapshot is the one before, not this one.
+        * The session never reported CONNECTED in this run. A profile can be
+          quiescent, completely written, closed in perfect order — and hold no
+          login at all, because WhatsApp Web logged itself out of a profile it
+          could not use (`post_logout=1`) hours earlier. Snapshotting that
+          overwrites the one restore point that would have rescued the account
+          with a copy of the failure. It came within hours of happening on a
+          real install: the profile broke, the good snapshot was 16.5 h old,
+          and the 24 h refresh window was the only thing standing between a
+          successful hand-restore and a permanently lost session. Closing
+          cleanly is evidence about *how* the profile was written, never about
+          whether what was written is worth keeping.
 
         Never raises: a missing restore point is a nicety lost, while a
         teardown that dies here is the corruption itself.
         """
         if not session_name or not browser_closed_cleanly or budget is not None:
+            return
+        tracker = getattr(self, "_profile_health", None)
+        if tracker is not None and not tracker.ever_connected():
+            # Absent tracker means no connection poll ever ran, which is not
+            # evidence of anything — fall through and behave as before.
+            logging.info(
+                "[profile-snapshot] Not refreshing the restore point: this run "
+                "never reached CONNECTED, so the profile on disk may be the "
+                "broken one.")
+            self._shutdown_audit("profile snapshot skipped — never connected this run")
             return
         global_dir = getattr(self, "global_dir", None)
         if not global_dir:
@@ -11691,6 +11728,12 @@ class MainWindow(wx.Frame):
                             start_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/start-session"
                             api_post(start_url, json={"waitQrCode": False}, headers=headers, timeout=10)
                             logging.info("[check_wa_connection_http] Sent auto-start session command")
+                            # Direct evidence that a start is being attempted.
+                            # The tracker used to depend on a 30 s poll landing
+                            # on INITIALIZING inside a ~60 s cycle, which in
+                            # the field it never did after launch — see
+                            # ProfileHealthTracker's own docstring.
+                            self._note_session_start_for_profile_health()
                         except Exception as e:
                             logging.error("[check_wa_connection_http] Failed to auto-start session: %s", e)
                 else:
@@ -15981,6 +16024,11 @@ class MainWindow(wx.Frame):
     # costs a single no-op CallAfter per second while everything is healthy.
     _UI_WATCHDOG_INTERVAL = 1.0
     _UI_WATCHDOG_STALL_SECONDS = 2.0
+    #: Longest gap between two reports of the *same* unchanging stack. The
+    #: sampling rate does not change, only how often an identical sample is
+    #: written, so a genuine freeze still leaves periodic evidence while an
+    #: open modal dialog costs one line a minute instead of thirty.
+    _UI_WATCHDOG_MAX_REPORT_GAP = 60.0
 
     def start_ui_watchdog(self):
         """Detect a frozen wx main loop and log *where* it is frozen.
@@ -16015,6 +16063,9 @@ class MainWindow(wx.Frame):
                 except Exception:
                     return          # app is going away
                 stalled = False
+                last_stack = None
+                next_report = 0.0
+                report_gap = self._UI_WATCHDOG_STALL_SECONDS
                 while not pong.wait(self._UI_WATCHDOG_STALL_SECONDS):
                     if getattr(self, "_shutting_down", False):
                         return
@@ -16022,9 +16073,25 @@ class MainWindow(wx.Frame):
                     frame = _sys._current_frames().get(main_id)
                     stack = ("".join(_traceback.format_stack(frame)) if frame
                              else "<main thread frame unavailable>")
-                    logging.warning(
-                        "[ui-watchdog] UI thread unresponsive for %.1fs — main thread stack:\n%s",
-                        time.monotonic() - t0, stack)
+                    elapsed = time.monotonic() - t0
+                    # A stack that keeps changing is the interesting case, so
+                    # it is always logged. An unchanging one is reported on a
+                    # doubling backoff instead of every couple of seconds,
+                    # because the longest "stall" this ever sees is not a bug
+                    # at all: a modal dialog runs its own event loop and never
+                    # answers the ping, so a re-pairing prompt left on screen
+                    # produced 1,400 lines of identical stack in four minutes
+                    # and buried the session failure that had opened it. The
+                    # log is truncated every launch and is the only record of
+                    # that failure; drowning it costs the diagnosis.
+                    if stack != last_stack or elapsed >= next_report:
+                        logging.warning(
+                            "[ui-watchdog] UI thread unresponsive for %.1fs — main thread stack:\n%s",
+                            elapsed, stack)
+                        last_stack = stack
+                        next_report = elapsed + report_gap
+                        report_gap = min(report_gap * 2,
+                                         self._UI_WATCHDOG_MAX_REPORT_GAP)
                 if stalled:
                     logging.warning(
                         "[ui-watchdog] UI thread responsive again after %.1fs.",
