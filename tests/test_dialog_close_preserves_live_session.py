@@ -63,10 +63,17 @@ class _FakeCloseEvent:
 
 
 class _FakeMainWindow:
-    def __init__(self, wa_connected, pairing_in_progress=False):
+    def __init__(self, wa_connected, pairing_in_progress=False, logout_handled=True):
         self.settings = {"general": {"language": "pt-BR"}}
         self._wa_connected = wa_connected
         self._pairing_in_progress = pairing_in_progress
+        # Defaults to True (a confirmed logout already happened) so every
+        # pre-existing "not connected" test below keeps meaning what its own
+        # docstring says: a confirmed-dead session, not merely a currently
+        # unconnected one. See TestDismissWhileNeitherConnectedNorConfirmed
+        # for the actual new gap (_logout_handled defaults to False on a
+        # real MainWindow — see main.py — until something confirms a wipe).
+        self._logout_handled = logout_handled
         self.ws = _FakeWs()
         self.token = "sess1:hash1"
         self.wpp_server = "http://127.0.0.1"
@@ -127,9 +134,12 @@ class TestOnDialogCloseWhileConnected:
 
 class TestOnDialogCloseWhileNotConnected:
     def test_disconnects_and_clears_as_before(self):
-        """Unchanged behaviour: nothing usable is connected, so closing the
-        dialog still tears the attempt down."""
-        mw = _FakeMainWindow(wa_connected=False)
+        """Unchanged behaviour: not connected AND main.py has already
+        independently confirmed the account is logged out (logout_handled),
+        so closing the dialog still tears the attempt down. See
+        TestDismissWhileNeitherConnectedNorConfirmedLoggedOut for the case
+        this class used to also (incorrectly) cover."""
+        mw = _FakeMainWindow(wa_connected=False, logout_handled=True)
         c, close_calls = _make_connect(mw)
         event = _FakeCloseEvent()
 
@@ -155,7 +165,9 @@ class TestOnQuitFromConnectWhileConnected:
 
 class TestOnQuitFromConnectWhileNotConnected:
     def test_disconnects_clears_and_exits_as_before(self):
-        mw = _FakeMainWindow(wa_connected=False)
+        """Unchanged behaviour: not connected AND already confirmed logged
+        out — see TestOnDialogCloseWhileNotConnected above."""
+        mw = _FakeMainWindow(wa_connected=False, logout_handled=True)
         c, close_calls = _make_connect(mw)
 
         with pytest.raises(SystemExit):
@@ -202,6 +214,63 @@ class TestADialogThatStartedItsOwnSessionIsStillTornDown:
 
         assert len(close_calls) == 1
         assert mw.real_exit_calls == 0
+
+
+class TestDismissWhileNeitherConnectedNorConfirmedLoggedOut:
+    """The actual gap this fix closes, reported live: status-session read
+    'disconnectedMobile', which _act_on_unlink_decision() (main.py)
+    classifies as RESUMING and explicitly does not wipe anything for.
+    Ten seconds later WPPConnect minted a fresh QR with no dialog open,
+    and _show_repair_dialog() opened this dialog on the strength of that
+    QR alone, reasoning (in its own docstring) that an unattended QR means
+    "nothing left to lose". The dialog's Cancel button carries
+    wx.ID_CANCEL, so a plain Escape reaches it too — and either dismissal
+    reached this handler with _wa_connected already False (offline had
+    already been announced) and _logout_handled never set (RESUMING never
+    sets it), destroying a session main.py's own, more careful classifier
+    was not yet willing to give up on.
+
+    A real MainWindow never initializes _logout_handled at all — every
+    read goes through getattr(..., False) — so logout_handled=False here
+    is the actual default a fresh process starts in, not a contrived edge
+    case.
+    """
+
+    def test_close_preserves_the_session(self):
+        mw = _FakeMainWindow(wa_connected=False, logout_handled=False)
+        c, close_calls = _make_connect(mw)
+        event = _FakeCloseEvent()
+
+        c.on_dialog_close(event)
+
+        assert close_calls == []
+        assert mw.ws is not None
+        assert mw.ws.sio.disconnect_calls == 0
+        assert event.skip_calls == 1
+
+    def test_quit_preserves_the_session_and_exits_gracefully(self):
+        mw = _FakeMainWindow(wa_connected=False, logout_handled=False)
+        c, close_calls = _make_connect(mw)
+
+        c.on_quit_from_connect(None)
+
+        assert close_calls == []
+        assert mw.ws is not None
+        assert mw.ws.sio.disconnect_calls == 0
+        assert mw.real_exit_calls == 1
+
+    def test_a_session_this_dialog_itself_started_is_still_torn_down(self):
+        """_started_new_session_token still wins even when nothing has
+        confirmed a logout — same reasoning as
+        TestADialogThatStartedItsOwnSessionIsStillTornDown above."""
+        mw = _FakeMainWindow(wa_connected=False, logout_handled=False)
+        c, close_calls = _make_connect(mw, started_new_session="sess2:hash2")
+        event = _FakeCloseEvent()
+
+        c.on_dialog_close(event)
+
+        assert len(close_calls) == 1
+        assert mw.ws is None
 
 
 class TestTheGuardsLeaveThePairingStateConsistent:
