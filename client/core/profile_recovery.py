@@ -245,32 +245,70 @@ def has_snapshot(global_dir, session_name):
 class ProfileHealthTracker:
     """Decides when a paired session's failure to start means a broken profile.
 
-    The signature is specific, and being specific is what keeps this from
-    firing on an ordinary offline spell: a session that is **paired** (there is
-    a token, so no pairing is pending), that WPPConnect reports as
-    INITIALIZING, and that then reaches CLOSED without ever having reported
-    CONNECTED. That is the browser starting, failing to bring WhatsApp Web up,
-    and being torn down — repeatedly.
+    The signature is: a **paired** session that has been observed trying to
+    start, that has reached CLOSED that many times, and that has never once
+    reported CONNECTED in between. That is the browser starting, failing to
+    bring WhatsApp Web up, and being torn down — repeatedly.
 
     A plain network outage does not look like this: an established session
-    reports CONNECTED first, and a session that never gets that far still
-    passes through CONNECTED at some point in the account's life. The tracker
-    resets on any CONNECTED, so a single good connection clears whatever came
-    before it.
+    reports CONNECTED, and any CONNECTED resets everything, so a single good
+    connection clears whatever came before it.
+
+    **What "observed trying to start" must not mean is "we caught a status
+    reading that said INITIALIZING".** That was the original rule and it made
+    the whole recovery unreachable in the field. Measured on a real broken
+    install: `check_wa_connection_http()` polls every 30 s while one failed
+    cycle takes ~60 s (start-session, browser up, wa-js never ready,
+    `injectApi()` times out at 30 s, CLOSED), and the poll only ever landed on
+    `disconnectedMobile` and `CLOSED`. INITIALIZING was seen exactly once, at
+    launch, and the old code cleared its arming flag on every CLOSED — so the
+    counter reached 1 and stayed there for the entire life of the process. The
+    log carried twelve minutes of that loop and not one `[profile-health]`
+    line, with a perfectly good snapshot sitting on disk. WhatsApp Web then
+    logged *itself* out of the unusable profile (`post_logout=1`,
+    `logout_reason=0`), and the user was left re-pairing an account whose
+    phone still listed the device as linked — restoring that snapshot by hand
+    brought the same login straight back, connected and syncing.
+
+    So arming is latched until CONNECTED, and `note_session_start_requested()`
+    arms it too: the health checker POSTing /start-session is direct evidence
+    that a start is being attempted, and it does not depend on a poll landing
+    inside a window narrower than the poll interval.
 
     Three cycles rather than one, because the first can be a slow machine and
-    the second can be the wake-from-hibernate path that already has its own
-    recovery; a profile that is genuinely unreadable fails every time.
+    the second the wake-from-hibernate path that has its own recovery; a
+    profile that is genuinely unreadable fails every time. At roughly a minute
+    per cycle that fires about three minutes in — comfortably before the
+    logged-out page starts pushing QR codes at the user, which on the measured
+    install took seven.
+
+    One case is deliberately accepted rather than excluded: a user who unlinks
+    the device from their phone produces the same readings, and this will
+    restore a snapshot whose credentials the server has already revoked. That
+    costs one cycle — WhatsApp Web rejects it and asks to pair again, which is
+    where they were going anyway — and `_recover_suspect_profile()` runs at
+    most once per launch, so it cannot loop. Being wrong in that direction
+    costs a minute; being wrong in the other direction is what this class was
+    written for, and it cost a re-pairing.
     """
 
-    #: Consecutive INITIALIZING->CLOSED cycles before the profile is suspect.
+    #: Consecutive failed start cycles before the profile is suspect.
     FAILED_CYCLES_BEFORE_SUSPECT = 3
 
     def __init__(self, threshold=None):
         self.threshold = threshold or self.FAILED_CYCLES_BEFORE_SUSPECT
         self.failed_cycles = 0
-        self._saw_initializing = False
+        self._armed = False
         self._ever_connected = False
+
+    def note_session_start_requested(self, paired=True):
+        """The health checker just POSTed /start-session for this session.
+
+        Arms the tracker without waiting for a poll to catch INITIALIZING —
+        see the class docstring for why that catch cannot be relied on.
+        """
+        if paired:
+            self._armed = True
 
     def note_status(self, status, paired=True):
         """Feed one status-session reading. Returns True the moment the profile
@@ -279,26 +317,37 @@ class ProfileHealthTracker:
         normalized = (status or "").upper()
         if normalized == "CONNECTED":
             self._ever_connected = True
-            self._saw_initializing = False
+            self._armed = False
             self.failed_cycles = 0
             return False
         if not paired:
             # Mid-pairing there is no profile worth preserving and no login to
             # lose, and the QR/code flow drives the session through these very
             # states on purpose.
-            self._saw_initializing = False
+            self._armed = False
             self.failed_cycles = 0
             return False
         if normalized == "INITIALIZING":
-            self._saw_initializing = True
+            self._armed = True
             return False
-        if normalized == "CLOSED" and self._saw_initializing:
-            self._saw_initializing = False
+        if normalized == "CLOSED" and self._armed:
+            # Deliberately stays armed. Clearing it here is the original bug:
+            # the next cycle's INITIALIZING falls between two polls and the
+            # count never advances again.
             self.failed_cycles += 1
             if self.failed_cycles == self.threshold:
                 return True
         return False
 
+    def ever_connected(self):
+        """Whether this session reported CONNECTED at least once this run.
+
+        Read by the snapshot side, not by the recovery side: a run that never
+        connected must not be allowed to overwrite the restore point that
+        would have rescued it. See _capture_profile_snapshot().
+        """
+        return self._ever_connected
+
     def reset(self):
         self.failed_cycles = 0
-        self._saw_initializing = False
+        self._armed = False

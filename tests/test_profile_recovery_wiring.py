@@ -199,3 +199,87 @@ class TestTheTrackerItselfIsTheOneUsed:
         stub = _Stub()
         _note(stub, "INITIALIZING")
         assert isinstance(stub._profile_health, ProfileHealthTracker)
+
+
+class TestTheStartRequestArmsTheDetector:
+    """/start-session is the timing-independent evidence that a start is being
+    attempted; the INITIALIZING window is narrower than the polling interval,
+    so the poll cannot be relied on to catch it. See the tracker's docstring."""
+
+    def _start(self, stub):
+        return MainWindow._note_session_start_for_profile_health(stub)
+
+    def test_start_requests_alone_reach_the_threshold(self):
+        stub = _Stub()
+        for _ in range(3):
+            self._start(stub)
+            _note(stub, "CLOSED")
+        assert stub.recovered == 1
+
+    def test_the_real_broken_installs_poll_sequence_recovers(self):
+        # The readings log.log actually recorded on 2026-09-08, with the
+        # start-session POSTs the health checker made between them.
+        stub = _Stub()
+        _note(stub, "INITIALIZING")
+        for _ in range(3):
+            _note(stub, "disconnectedMobile")
+            _note(stub, "CLOSED")
+            self._start(stub)
+        assert stub.recovered == 1
+
+    def test_an_unpaired_account_is_still_never_touched(self):
+        stub = _Stub(paired=False)
+        for _ in range(6):
+            self._start(stub)
+            _note(stub, "CLOSED")
+        assert stub.recovered == 0
+
+    def test_a_broken_tracker_never_breaks_the_health_poll(self, monkeypatch):
+        """Same rule as its sibling: profile health observes the connection
+        poll and must never be able to change that poll's verdict."""
+        stub = _Stub()
+        stub.settings = None          # any access raises
+        self._start(stub)             # must not propagate
+
+
+class TestARunThatNeverConnectedMayNotOverwriteTheRestorePoint:
+    """The trap that came within hours of costing a real session.
+
+    Closing cleanly is evidence about *how* the profile was written, never
+    about whether what was written is worth keeping. On 2026-09-08 the profile
+    stopped carrying a login, WhatsApp Web logged itself out of it, and the
+    good snapshot was 16.5 h old — the only thing standing between a
+    successful hand-restore and a permanently lost session was the 24 h
+    refresh window not having elapsed yet.
+    """
+
+    @pytest.fixture
+    def captured(self, monkeypatch):
+        calls = []
+        monkeypatch.setattr("core.profile_recovery.capture_snapshot",
+                            lambda *a, **kw: calls.append(a) or True)
+        return calls
+
+    def test_a_clean_close_after_a_run_that_never_connected_is_refused(self, captured):
+        stub = _Stub()
+        _note(stub, "INITIALIZING")
+        _note(stub, "CLOSED")
+        MainWindow._capture_profile_snapshot(stub, "sess123", True, None)
+        assert captured == []
+        assert any("never connected" in line for line in stub.audits)
+
+    def test_a_run_that_connected_at_some_point_still_snapshots(self, captured):
+        stub = _Stub()
+        _note(stub, "CONNECTED")
+        _note(stub, "CLOSED")        # ordinary quit after a healthy session
+        MainWindow._capture_profile_snapshot(stub, "sess123", True, None)
+        assert len(captured) == 1
+
+    def test_no_tracker_at_all_behaves_as_before(self, captured):
+        """Absent tracker means no connection poll ever ran, which is not
+        evidence of anything — refusing there would silently stop snapshotting
+        on installs this was never meant to touch."""
+        stub = _Stub()
+        assert not hasattr(stub, "_profile_health")
+        MainWindow._capture_profile_snapshot(stub, "sess123", True, None)
+        assert len(captured) == 1
