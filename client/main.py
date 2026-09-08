@@ -10805,6 +10805,12 @@ class MainWindow(wx.Frame):
         else:
             self._older_requested_chats = {}
 
+        # Conversations the user has actually opened — the gate on asking the
+        # phone for older history. Persisted: a chat opened last week is still
+        # a chat whose history the user cares about.
+        _opened = self.db.get_metadata_json("opened_conversations_v1", [])
+        self._opened_conversations = set(_opened) if isinstance(_opened, list) else set()
+
         # When get-messages last actually ran for each chat, for the staleness
         # net in _plan_message_sync(). Persisted on purpose: a chat last
         # fetched before a restart is exactly as stale afterwards, and starting
@@ -18174,6 +18180,59 @@ class MainWindow(wx.Frame):
             self._chats_awaiting_messages.add(canonical)
             self._partial_history_counts[canonical] = count
 
+    def _note_conversation_opened(self, remote_jid: str) -> None:
+        """Remember that the user opened this conversation, durably.
+
+        Gates the *phone* request in _backfill_empty_chats(). Everything else
+        the backfill does is local and free; asking the phone is the one step
+        that puts a notification on the user's own device, and until this
+        existed it was spent on every chat in the account.
+
+        Measured on the reporting install: 82 chats short of the 200-message
+        target, marching one phone request every two minutes for hours, for
+        conversations the user had never opened — on an account synced for
+        weeks. His words, twice: it should be following new messages, not
+        fetching old history for other conversations in the background.
+
+        Opening a conversation is the signal that its history is worth a
+        notification, and it is exactly the moment the user would accept one.
+        Scrolling up (fetch_older_messages) is unaffected and always was —
+        that request is attended by definition.
+        """
+        jid = self._normalize_jid(remote_jid or "")
+        if not jid:
+            return
+        opened = getattr(self, "_opened_conversations", None)
+        if not isinstance(opened, set):
+            opened = self._opened_conversations = set()
+        forms = {jid}
+        try:
+            forms.update(f for f in self._jid_address_forms(jid) if f)
+        except Exception:
+            pass
+        if forms <= opened:
+            return
+        opened.update(forms)
+        try:
+            if getattr(self, "db", None) is not None:
+                self.db.set_metadata_json(
+                    "opened_conversations_v1", sorted(opened))
+        except Exception as exc:
+            logging.warning("[history-sync] could not persist opened conversations: %s", exc)
+
+    def _user_has_opened(self, jid: str) -> bool:
+        """Whether the phone may be asked about this chat's older history."""
+        opened = getattr(self, "_opened_conversations", None)
+        if not isinstance(opened, set) or not opened:
+            return False
+        forms = {jid}
+        try:
+            forms.update(f for f in self._jid_address_forms(jid) if f)
+            forms.add(self._canonical_backfill_jid(jid))
+        except Exception:
+            pass
+        return bool(forms & opened)
+
     def _retire_chat_without_older_history(self, jid: str) -> None:
         """Record, durably, that the phone has no older history for this chat.
 
@@ -18606,6 +18665,12 @@ class MainWindow(wx.Frame):
                         # had nothing older. Re-queuing it here is what made
                         # that answer worthless — see the retirement below.
                         self._remove_backfill_pending(jid)
+                        continue
+                    if not self._user_has_opened(jid):
+                        # Never opened, so nobody is waiting on its history and
+                        # nobody would welcome a notification about it. The
+                        # local fetch above still runs and still stores whatever
+                        # WhatsApp Web has; only the phone is left alone.
                         continue
                     asked_at = getattr(self, "_older_requested_chats", {}).get(jid)
                     if MainWindow._older_history_is_exhausted(

@@ -1661,6 +1661,15 @@ class ConversationsPanel(wx.Panel):
             # Conversation already open — just focus the message input field.
             wx.CallAfter(self.message_field.SetFocus)
             return
+        # Record that the user actually looked at this conversation. It is the
+        # gate on asking the *phone* for its older history: every such request
+        # notifies the phone, so it is spent on chats the user opens rather
+        # than on every chat in the account. See _note_conversation_opened().
+        try:
+            self.main_window._note_conversation_opened(
+                conversation.get("remoteJid") or "")
+        except Exception:
+            logging.exception("[conversations] could not record the open (non-fatal)")
         self._stop_typing_for_current_conversation()
         self._cancel_active_recording()
         # Leaving the conversation invalidates any pending auto-chain timers —
