@@ -122,7 +122,9 @@ class Connect:
         self._pairing_attempt_id: int = 0
 
         # Set by on_switch_to_phone() right before it clears WA_token via
-        # _close_active_session() — see that method's comment.
+        # _close_active_session() — see that method's comment. One-shot: it
+        # stands for one specific pre-close session, so a pairing attempt
+        # clears it as it reads it and a switch back to QR mode drops it.
         self._token_before_mode_switch: str = ""
         # Token of a BRAND-NEW WPPConnect session this dialog started itself
         # (empty whenever it reused an existing one, or closed the one it
@@ -690,7 +692,19 @@ class Connect:
         # same-number resume later, instead of seeing an empty token and
         # treating it as a brand-new pairing (see on_switch_to_qrcode's own
         # comment for the identical problem on the QR side).
-        self._token_before_mode_switch = self.main_window._get_wa_token()
+        #
+        # Never a session this dialog minted itself, though. A detour through
+        # QR mode leaves start_qrcode_connection()'s brand-new, never
+        # authenticated session sitting in WA_token, while `paired` is still
+        # True from the account's previous life and the stored number still
+        # matches — so carrying that one forward makes
+        # _can_reuse_existing_session() "resume" a session that never logged
+        # in. Only a token that predates our own minting stands for a real,
+        # authenticated session.
+        _live_token = self.main_window._get_wa_token()
+        if _live_token and _live_token == self._started_new_session_token:
+            _live_token = ""
+        self._token_before_mode_switch = _live_token
 
         # Close the active QR code session first
         self._close_active_session()
@@ -716,6 +730,12 @@ class Connect:
         # and used to always wipe local data as a result. See that method's
         # own docstring for the full story.
         was_paired = bool(self.main_window.settings.get("privateinfo", {}).get("paired"))
+
+        # Whatever on_switch_to_phone() captured belongs to the session we are
+        # about to tear down, so it must not survive as a reuse candidate for
+        # a later attempt: this switch either resumes WA_token itself or mints
+        # a brand-new session below.
+        self._token_before_mode_switch = ""
 
         # Close the active phone code session first
         self._close_active_session()
@@ -1087,11 +1107,15 @@ class Connect:
                 # _close_active_session() cleared WA_token — see that
                 # method's comment. Empty when phone mode was never switched
                 # into (the common case), so _get_wa_token() alone still
-                # decides then.
+                # decides then. Spent on read: the capture stands for one
+                # specific pre-close session, and a later attempt — whose
+                # failure path has already abandoned that session and cleared
+                # WA_token — must not reuse it.
                 existing_token = (
                     self.main_window._get_wa_token()
-                    or getattr(self, "_token_before_mode_switch", "")
+                    or self._token_before_mode_switch
                 )
+                self._token_before_mode_switch = ""
                 _instance_exists = self._can_reuse_existing_session(
                     _privateinfo, self.phone_number, existing_token
                 )

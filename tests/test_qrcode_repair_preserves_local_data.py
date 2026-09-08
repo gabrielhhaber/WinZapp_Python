@@ -21,6 +21,8 @@ time the user clicks Continue.
 Connect is a plain class — same approach as tests/test_pairing_startup_grace.py.
 """
 
+import threading
+
 import pytest
 
 import ui.dialogs.connect as connect_module
@@ -67,6 +69,7 @@ class _FakeMainWindow:
         self.messages_set_completed = True
         self.qrcode_loaded_sound = _Sound()
         self.error_sound = _Sound()
+        self.abandoned = []
 
     def _get_wa_token(self):
         return self._token
@@ -85,6 +88,17 @@ class _FakeMainWindow:
 
     def connect_websocket(self):
         pass
+
+    def _abandon_closed_session(self, token):
+        # _close_active_session() marks the session it just closed as
+        # abandoned in this account's SessionStore. Recorded rather than
+        # swallowed so the tests below can assert it was the live token that
+        # went, not a leftover from somewhere else.
+        self.abandoned.append(token)
+
+    def _register_abandoned_session(self, token):
+        # Reached from _bg_pairing_flow()'s failure paths.
+        self.abandoned.append(token)
 
 
 class _Sound:
@@ -138,7 +152,7 @@ class TestStartQrcodeConnectionPreservesOnRequest:
 
 
 class TestOnSwitchToQrcodeThreadsThePairedFlag:
-    def test_paired_account_preserves_data_across_the_switch(self, monkeypatch):
+    def test_paired_account_preserves_data_across_the_switch(self):
         mw = _FakeMainWindow(paired=True, token="sess1:hash1")
         c = Connect(mw)
         c.qrcode_panel = _Panel()
@@ -151,8 +165,11 @@ class TestOnSwitchToQrcodeThreadsThePairedFlag:
         c.on_switch_to_qrcode(None)
 
         assert mw.clear_local_data_calls == 0
+        # The real _close_active_session() ran: the account's live session is
+        # the one it abandoned.
+        assert mw.abandoned == ["sess1:hash1"]
 
-    def test_never_paired_account_still_wipes(self, monkeypatch):
+    def test_never_paired_account_still_wipes(self):
         mw = _FakeMainWindow(paired=False, token="")
         c = Connect(mw)
         c.qrcode_panel = _Panel()
@@ -180,6 +197,7 @@ class TestOnSwitchToPhoneCarriesTheTokenForward:
         # _close_active_session() has now cleared the live token, same as
         # before this fix — only the captured copy is new.
         assert mw._get_wa_token() == ""
+        assert mw.abandoned == ["sess1:hash1"]
 
     def test_no_prior_token_leaves_the_capture_empty(self):
         mw = _FakeMainWindow(paired=False, token="")
@@ -191,6 +209,110 @@ class TestOnSwitchToPhoneCarriesTheTokenForward:
 
         c.on_switch_to_phone(None)
 
+        assert c._token_before_mode_switch == ""
+
+
+class TestModeRoundTripLeavesNothingBogusReusable:
+    """A detour through QR mode mints a brand-new session and writes it into
+    WA_token. `paired` is still True from the account's previous life and the
+    stored number still matches, so carrying that token forward would make
+    _can_reuse_existing_session() "resume" a session that never authenticated
+    — no crash, but a semantically wrong resume that also skips the wipe."""
+
+    def test_a_session_this_dialog_minted_itself_is_not_carried_forward(self):
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = "5511999999999"
+        c = Connect(mw)
+        c.qrcode_panel = _Panel()
+        c.phone_panel = _Panel()
+        c.phone_field = _Field()
+        c.connection_dial = _Dial()
+        c._create_instance = lambda token: None
+
+        c.on_switch_to_qrcode(None)
+        # Sanity: the QR switch really did mint a fresh session over WA_token.
+        assert mw._get_wa_token() == c._started_new_session_token != ""
+
+        c.on_switch_to_phone(None)
+
+        # These two, in this order, are exactly what _bg_pairing_flow() feeds
+        # into _can_reuse_existing_session().
+        existing_token = mw._get_wa_token() or c._token_before_mode_switch
+        assert existing_token == ""
+        assert not c._can_reuse_existing_session(
+            mw.settings["privateinfo"], "5511999999999", existing_token
+        )
+
+    def test_a_pre_existing_paired_session_is_still_carried_forward(self):
+        """The case the PR exists to fix must survive the guard above: no QR
+        detour happened, so the token predates anything this dialog minted."""
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = "5511999999999"
+        c = Connect(mw)
+        c.qrcode_panel = _Panel()
+        c.phone_panel = _Panel()
+        c.phone_field = _Field()
+        c.connection_dial = _Dial()
+
+        c.on_switch_to_phone(None)
+
+        assert c._can_reuse_existing_session(
+            mw.settings["privateinfo"], "5511999999999",
+            mw._get_wa_token() or c._token_before_mode_switch,
+        )
+
+    def test_switching_back_to_qrcode_drops_the_capture(self):
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        c = Connect(mw)
+        c.qrcode_panel = _Panel()
+        c.phone_panel = _Panel()
+        c.phone_field = _Field()
+        c.connection_dial = _Dial()
+        c._create_instance = lambda token: None
+
+        c.on_switch_to_phone(None)
+        assert c._token_before_mode_switch == "sess1:hash1"
+
+        c.on_switch_to_qrcode(None)
+
+        assert c._token_before_mode_switch == ""
+
+
+class TestTheCaptureIsSpentByOnePairingAttempt:
+    def test_on_continue_consumes_it_and_clears_it(self, monkeypatch):
+        """It must not outlive the attempt that reads it: a failed attempt
+        abandons that session and clears WA_token, so a later Continue would
+        otherwise resume a token that is already dead."""
+        # on_continue() rebinds wx.GetApp on the module itself; going through
+        # monkeypatch keeps that out of the rest of the suite.
+        monkeypatch.setattr(connect_module.wx, "GetApp", lambda: None)
+
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = "5511999999999"
+        c = Connect(mw)
+        c.qrcode_panel = _Panel()
+        c.phone_panel = _Panel()
+        c.phone_field = _Field("5511999999999")
+        c.connection_dial = _Dial()
+        c.continue_btn = _Button()
+
+        seen = []
+        reached = threading.Event()
+
+        def _fake_reuse(privateinfo, phone_number, existing_token):
+            seen.append(existing_token)
+            reached.set()
+            # Abort the rest of _bg_pairing_flow() (start-session, the 90 s
+            # phoneCode wait) — its own except clause handles this.
+            raise RuntimeError("stop the pairing flow here")
+
+        c._can_reuse_existing_session = _fake_reuse
+
+        c.on_switch_to_phone(None)
+        c.on_continue(None)
+
+        assert reached.wait(5)
+        assert seen == ["sess1:hash1"]
         assert c._token_before_mode_switch == ""
 
 
@@ -208,8 +330,25 @@ class _Dial:
 
 
 class _Field:
+    def __init__(self, value=""):
+        self._value = value
+
+    def GetValue(self):
+        return self._value
+
     def SetFocus(self):
         pass
 
     def SetInsertionPointEnd(self):
+        pass
+
+
+class _Button:
+    def Disable(self):
+        pass
+
+    def Enable(self):
+        pass
+
+    def SetLabel(self, label):
         pass
