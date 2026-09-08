@@ -701,9 +701,36 @@ class Connect:
         # _can_reuse_existing_session() "resume" a session that never logged
         # in. Only a token that predates our own minting stands for a real,
         # authenticated session.
+        #
+        # Known cost of dropping it, and it is a limitation rather than a
+        # judgement: paired account → QR → back to phone → same number typed
+        # in still ends up wiping the local database, even though `paired`
+        # and the stored WA_phone_number both agree it is the same account
+        # and the history is therefore still valid. The database's validity
+        # depends on the NUMBER, not on which WPPConnect session is alive;
+        # what wipes it is _bg_pairing_flow() keying clear_local_data() on
+        # "is this token reusable", so a missing token drags the wipe along
+        # with it. on_switch_to_qrcode() right below shows the inconsistency
+        # plainly — it preserves on `was_paired` alone, with no number check
+        # at all, while this path has strictly more information and deletes.
+        # The coherent fix is to decide the wipe from the number and drop
+        # that coupling; deliberately out of scope for this change.
         _live_token = self.main_window._get_wa_token()
         if _live_token and _live_token == self._started_new_session_token:
+            logging.info(
+                "[on_switch_to_phone] Discarding the reuse capture: WA_token "
+                "holds a session this dialog minted itself."
+            )
             _live_token = ""
+        elif _live_token:
+            logging.info(
+                "[on_switch_to_phone] Captured pre-close token for reuse: %s",
+                redact_token(_live_token),
+            )
+        else:
+            logging.info(
+                "[on_switch_to_phone] No stored token to capture for reuse."
+            )
         self._token_before_mode_switch = _live_token
 
         # Close the active QR code session first
@@ -733,8 +760,10 @@ class Connect:
 
         # Whatever on_switch_to_phone() captured belongs to the session we are
         # about to tear down, so it must not survive as a reuse candidate for
-        # a later attempt: this switch either resumes WA_token itself or mints
-        # a brand-new session below.
+        # a later attempt. Nothing here needs it either: _close_active_session()
+        # below clears WA_token, so start_qrcode_connection() only ever finds a
+        # token to resume when that close found none to clear, and otherwise
+        # mints a brand-new session.
         self._token_before_mode_switch = ""
 
         # Close the active phone code session first
@@ -1111,10 +1140,17 @@ class Connect:
                 # specific pre-close session, and a later attempt — whose
                 # failure path has already abandoned that session and cleared
                 # WA_token — must not reuse it.
-                existing_token = (
-                    self.main_window._get_wa_token()
-                    or self._token_before_mode_switch
-                )
+                existing_token = self.main_window._get_wa_token()
+                if existing_token:
+                    logging.info(
+                        "[_bg_pairing_flow] Reuse candidate came from WA_token."
+                    )
+                elif self._token_before_mode_switch:
+                    existing_token = self._token_before_mode_switch
+                    logging.info(
+                        "[_bg_pairing_flow] Reuse candidate came from the "
+                        "mode-switch capture."
+                    )
                 self._token_before_mode_switch = ""
                 _instance_exists = self._can_reuse_existing_session(
                     _privateinfo, self.phone_number, existing_token
@@ -1126,6 +1162,22 @@ class Connect:
 
                 if _instance_exists:
                     self.main_window.token = existing_token
+                    if not _old_token:
+                        # The reuse candidate came from the mode-switch
+                        # capture, which means _close_active_session() already
+                        # cleared main_window.token — so _old_token is empty
+                        # and the close/flush/profile-release handshake below
+                        # would be skipped entirely. But the session we are
+                        # about to /start-session IS the one that close is
+                        # still tearing down, on the very same userDataDir:
+                        # without waiting for it, puppeteer answers "The
+                        # browser is already running for <dir>" and the
+                        # recovery kills Chrome mid-LevelDB-flush, which is
+                        # the only copy of the WhatsApp login
+                        # (core/profile_recovery.py). Hand it to _old_token so
+                        # it takes the same wait the no-mode-switch reuse path
+                        # already takes.
+                        _old_token = existing_token
                 else:
                     # Kill any leftover Chromium sessions from previous failed attempts
                     # so only ONE browser runs at a time (prevents Auto Close race).

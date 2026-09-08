@@ -51,6 +51,10 @@ class _FakeWs:
 
     def __init__(self, *a, **kw):
         self.sio = self._Sio()
+        # _bg_pairing_flow() clears these and then waits up to 90 s on the
+        # event, so they have to be the real thing or the flow never returns.
+        self._phone_code_event = threading.Event()
+        self._phone_code_value = ""
 
 
 class _FakeMainWindow:
@@ -70,6 +74,12 @@ class _FakeMainWindow:
         self.qrcode_loaded_sound = _Sound()
         self.error_sound = _Sound()
         self.abandoned = []
+        # Ordered trace of every step that touches the session's browser
+        # profile — the close-session/flush/profile-release handshake and the
+        # start-session that must come last. Appended to by the stubs below
+        # and by the recording api_post in
+        # TestReusingTheJustClosedSessionWaitsForItsProfile.
+        self.events = []
 
     def _get_wa_token(self):
         return self._token
@@ -100,9 +110,55 @@ class _FakeMainWindow:
         # Reached from _bg_pairing_flow()'s failure paths.
         self.abandoned.append(token)
 
+    def _wait_for_session_flushed(self, token):
+        self.events.append(("flush", token))
+        return True
+
+    def wait_for_profile_release(self, session_name, timeout=15.0):
+        self.events.append(("profile-release", session_name))
+        return True
+
 
 class _Sound:
     def play(self):
+        pass
+
+
+class _Panel:
+    def Hide(self):
+        pass
+
+    def Show(self):
+        pass
+
+
+class _Dial:
+    def Layout(self):
+        pass
+
+
+class _Field:
+    def __init__(self, value=""):
+        self._value = value
+
+    def GetValue(self):
+        return self._value
+
+    def SetFocus(self):
+        pass
+
+    def SetInsertionPointEnd(self):
+        pass
+
+
+class _Button:
+    def Disable(self):
+        pass
+
+    def Enable(self):
+        pass
+
+    def SetLabel(self, label):
         pass
 
 
@@ -316,39 +372,59 @@ class TestTheCaptureIsSpentByOnePairingAttempt:
         assert c._token_before_mode_switch == ""
 
 
-class _Panel:
-    def Hide(self):
-        pass
+class TestReusingTheJustClosedSessionWaitsForItsProfile:
+    """The reuse branch this PR opened up re-starts the SAME session name that
+    on_switch_to_phone() just closed, so it lands on the same userDataDir.
 
-    def Show(self):
-        pass
+    _bg_pairing_flow()'s close/flush/profile-release handshake keys on
+    _old_token = main_window.token, and _close_active_session() cleared that on
+    the way into phone mode — so the handshake would be skipped entirely and
+    /start-session would race the Chrome still shutting down on that profile.
+    Puppeteer answers "The browser is already running for <dir>" and the
+    recovery kills Chrome by userDataDir, mid-LevelDB-flush, on the only copy
+    of the WhatsApp login (see CLAUDE.md and core/profile_recovery.py). The
+    same reuse reached WITHOUT a mode switch has always taken that wait; this
+    is that wait, on the second route to the same place.
+    """
 
+    def test_the_profile_is_released_before_start_session(self, monkeypatch):
+        monkeypatch.setattr(connect_module.wx, "GetApp", lambda: None)
 
-class _Dial:
-    def Layout(self):
-        pass
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = "5511999999999"
 
+        started = threading.Event()
 
-class _Field:
-    def __init__(self, value=""):
-        self._value = value
+        def _recording_post(url, *a, **kw):
+            if "/close-session" in url:
+                mw.events.append(("close-session", url))
+            elif "/start-session" in url:
+                mw.events.append(("start-session", url))
+                started.set()
+                # Inline phoneCode: unblocks the 90 s _phone_code_event wait
+                # so the flow finishes instead of holding the test open.
+                return _Response(201, {"phoneCode": "ABCD1234"})
+            return _Response(201, {"token": "hash123"})
 
-    def GetValue(self):
-        return self._value
+        monkeypatch.setattr(connect_module, "api_post", _recording_post)
 
-    def SetFocus(self):
-        pass
+        c = Connect(mw)
+        c.qrcode_panel = _Panel()
+        c.phone_panel = _Panel()
+        c.phone_field = _Field("5511999999999")
+        c.connection_dial = _Dial()
+        c.continue_btn = _Button()
 
-    def SetInsertionPointEnd(self):
-        pass
+        c.on_switch_to_phone(None)
+        c.on_continue(None)
 
+        assert started.wait(10)
+        # The reuse really happened — otherwise a fresh session name would
+        # have been minted and there would be no profile collision to avoid.
+        assert mw.token == "sess1:hash1"
 
-class _Button:
-    def Disable(self):
-        pass
-
-    def Enable(self):
-        pass
-
-    def SetLabel(self, label):
-        pass
+        steps = [name for name, _ in mw.events]
+        assert ("profile-release", "sess1") in mw.events
+        assert ("flush", "sess1:hash1") in mw.events
+        assert steps.index("profile-release") < steps.index("start-session")
+        assert steps.index("flush") < steps.index("profile-release")
