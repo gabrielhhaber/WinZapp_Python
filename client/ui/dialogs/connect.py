@@ -648,10 +648,18 @@ class Connect:
         # Pairing has closed: only now can WPPConnect be asked which phone it
         # actually ended up linked to, which is the only way the QR flow can
         # tell "the same account resumed" from "somebody scanned with another
-        # phone". A no-op on the startup path — the database is not open yet
-        # there, and MainWindow.__init__ runs this again right after
-        # prepare_sync(); this call is what covers the dialogs opened while
-        # the app is already running (websocket_client's _show_repair_dialog).
+        # phone".
+        #
+        # Only for the dialogs opened while the app is already running
+        # (websocket_client's _show_repair_dialog). The startup dialog is
+        # ShowModal()'d from inside MainWindow.__init__, which calls the same
+        # check itself right after prepare_sync() — running it here as well
+        # would put a second copy on a thread racing the rest of __init__, and
+        # the only thing separating them would be "the database is not open
+        # yet", which is a matter of timing rather than a decision.
+        # _ui_ready_event is the deterministic form of the same distinction:
+        # init_UI() sets it, so it is False for every startup dialog and True
+        # for every mid-session one.
         #
         # On a thread, because this whole method runs on the main thread (see
         # the CallAfter bounce at the top) and those mid-session dialogs are
@@ -662,13 +670,14 @@ class Connect:
         # save_full_state(). Held on the main thread that is seconds without
         # pumping messages, which is where Windows ghosts the window: the
         # title becomes "(Not Responding)" and the screen reader announces it
-        # over the pairing flow. Nothing here touches a widget, so there is
-        # nothing to marshal back — same reason on_continue() runs its own
-        # pairing flow on a thread.
-        threading.Thread(
-            target=self.main_window._wipe_local_data_if_another_number_linked,
-            name="another-number-check", daemon=True,
-        ).start()
+        # over the pairing flow. The UI teardown that wipe needs is marshalled
+        # back with wx.CallAfter by the method itself — same reason
+        # on_continue() runs its own pairing flow on a thread.
+        if self.main_window._ui_ready_event.is_set():
+            threading.Thread(
+                target=self.main_window._wipe_local_data_if_another_number_linked,
+                name="another-number-check", daemon=True,
+            ).start()
 
     def _close_active_session(self, sync=False):
         # Retrieve the active token from the dialog state
@@ -1109,25 +1118,20 @@ class Connect:
         host-device fetch, and check_connection_status()), never by merely
         showing a code — which is what makes it the honest test here.
 
-        The two numbers go through same_phone_for_pairing() rather than an
-        exact `!=`, and it is the same helper the wipe decision uses, so the
-        two cannot disagree about one pair of numbers. WA_phone_number no
-        longer only ever holds what the user typed:
-        MainWindow._wipe_local_data_if_another_number_linked() writes the
-        canonical digits WhatsApp itself reports for the linked phone. A
-        Brazilian whose wid comes back with 12 digits and who types 13 would
-        otherwise fail this test on every later pairing — and the branch that
-        failure leads to is clear_local_data().
+        Both numbers are compared exactly. WA_phone_number holds what the user
+        typed into this same dialog and nothing else — the divergence check
+        keeps what WhatsApp reports about the linked phone under its own key
+        (WA_phone_number_linked) — so this compares like with like. A tolerant
+        comparison is what let the session of +49 211 1234567 be resumed, and
+        that account connected, for somebody typing +49 211 234567.
         """
         if not isinstance(privateinfo, dict):
             return False
-        # Local import: main imports this module, so this cannot be top-level.
-        from main import same_phone_for_pairing
         stored_raw = "".join(
             c for c in (privateinfo.get("WA_phone_number") or "") if c.isdigit()
         )
         phone_digits = "".join(c for c in (phone_number or "") if c.isdigit())
-        if not phone_digits or not same_phone_for_pairing(stored_raw, phone_digits):
+        if not phone_digits or stored_raw != phone_digits:
             return False
         return bool(existing_token) and bool(privateinfo.get("paired", False))
 

@@ -23,6 +23,11 @@ to the "Eu" self-chat.
 wipe_metadata=False (F5/resync) must preserve every one of them — that is the
 entire point of the flag, and resyncing used to silently undo all of those
 local actions.
+
+The media sweep at the end of the method is here too, for a failure of the
+same family: one entry Windows refuses to delete — a voice note BASS still has
+open is the measured case — used to abort the sweep of its whole directory
+from that point on, leaving the rest of the previous account's files on disk.
 """
 
 import threading
@@ -45,9 +50,13 @@ def _media_dirs_elsewhere(tmp_path, monkeypatch):
 class _FakeDB:
     def __init__(self):
         self.calls = []
+        self.metadata = {}
 
     def save_full_state(self, data, clear_metadata=True):
         self.calls.append(clear_metadata)
+
+    def set_metadata_json(self, key, value):
+        self.metadata[key] = value
 
 
 class _Stub:
@@ -75,6 +84,12 @@ class _Stub:
         self._locally_read_at = {"5511988887777@s.whatsapp.net": 1700000000}
         self.my_jid = "5511999999999@s.whatsapp.net"
         self.my_lid = "182736450192837@lid"
+        self._group_send_perms = {
+            "120363000000000000@g.us": {"can_send": True, "announce": False},
+        }
+        self._last_sync_state = {"mode": "incremental", "chat_count": 155}
+        self._exhausted_chats = {"5511988887777@s.whatsapp.net"}
+        self._older_requested_chats = {"5511988887777@s.whatsapp.net": 1700000000.0}
 
         # Backfill/LID state the method already cleared before this change.
         self._sync_run_id = 3
@@ -110,11 +125,25 @@ class _Stub:
         pass
 
     clear_local_data = MainWindow.clear_local_data
+    # Bound for real: the exhausted-history pair has had a one-line helper
+    # since F5 needed exactly this, and its docstring already describes the
+    # damage of keeping them.
+    _forget_history_exhaustion = MainWindow._forget_history_exhaustion
+    _persist_exhausted_chats = MainWindow._persist_exhausted_chats
+    _persist_older_requested = MainWindow._persist_older_requested
 
 
 _METADATA = ("_deleted_chats", "_archived_chats", "_pinned_chats",
              "_muted_chats", "_blocked_contacts", "_presence_pushname_map",
-             "_locally_read_at")
+             "_locally_read_at",
+             # Which groups the previous account was in at all.
+             "_group_send_perms",
+             # The last round's checkpoint, including the force_full_pending
+             # latch prepare_sync() restores _force_full_sync from.
+             "_last_sync_state",
+             # "This chat has no older history", and the requests that
+             # concluded it.
+             "_exhausted_chats", "_older_requested_chats")
 
 
 class TestAnAccountSwitchClearsTheMetadataInMemoryToo:
@@ -186,3 +215,56 @@ class TestAResyncKeepsEveryLocalActionTheUserTook:
         stub.clear_local_data(wipe_metadata=False)
 
         assert stub.db.calls == [False]
+
+
+class TestOneUndeletableFileDoesNotStrandTheRest:
+    """The wipe runs on a daemon thread while a voice note may still be
+    playing, and os.unlink on a file BASS holds open raises PermissionError.
+    Caught around the whole os.listdir loop, that one file used to cost every
+    file after it — the previous account's media, still on disk, in a folder
+    the user is never shown."""
+
+    def _populate(self, tmp_path):
+        for subdir in ("media", "voice_messages"):
+            folder = tmp_path / subdir
+            folder.mkdir()
+            for name in ("a", "b", "c"):
+                (folder / f"{name}.bin").write_bytes(b"x")
+
+    def test_every_other_file_still_goes(self, tmp_path, monkeypatch):
+        self._populate(tmp_path)
+        locked = tmp_path / "voice_messages" / "b.bin"
+        real_unlink = main_module.os.unlink
+
+        def _unlink(path):
+            if str(path) == str(locked):
+                raise PermissionError(32, "file is in use by another process")
+            real_unlink(path)
+
+        monkeypatch.setattr(main_module.os, "unlink", _unlink)
+        stub = _Stub()
+
+        stub.clear_local_data()
+
+        assert sorted(p.name for p in (tmp_path / "media").iterdir()) == []
+        assert sorted(p.name for p in (tmp_path / "voice_messages").iterdir()) == ["b.bin"]
+
+    def test_an_undeletable_file_does_not_stop_the_next_folder(self, tmp_path, monkeypatch):
+        """media/ is swept first, so a failure there used to be survivable by
+        accident; make it the first folder that fails and the second one still
+        has to be cleared."""
+        self._populate(tmp_path)
+        real_unlink = main_module.os.unlink
+
+        def _unlink(path):
+            if path.endswith("media\\a.bin") or path.endswith("media/a.bin"):
+                raise PermissionError(32, "file is in use by another process")
+            real_unlink(path)
+
+        monkeypatch.setattr(main_module.os, "unlink", _unlink)
+        stub = _Stub()
+
+        stub.clear_local_data()
+
+        assert [p.name for p in (tmp_path / "media").iterdir()] == ["a.bin"]
+        assert list((tmp_path / "voice_messages").iterdir()) == []
