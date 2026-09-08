@@ -115,6 +115,12 @@ class TestWaitForProfileRelease:
             # One entry per poll: the PIDs still holding the profile.
             self._sequence = list(holder_sequence)
             self.kills = []
+            # How long the wait really took now goes to shutdown_audit.log,
+            # which survives the log truncation that hides it today.
+            self.audits = []
+
+        def _shutdown_audit(self, msg):
+            self.audits.append(msg)
 
         def _chrome_pids_owning_session(self, session_name):
             return self._sequence.pop(0) if self._sequence else []

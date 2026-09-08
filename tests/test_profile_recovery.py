@@ -417,3 +417,57 @@ class TestKeepingTheGenerationARefreshReplaces:
             pr.capture_snapshot(str(tmp_path), "sess", max_age=0)
         assert self._read(pr.snapshot_dir(str(tmp_path), "sess")) == "newest"
         assert self._read(pr.previous_snapshot_dir(str(tmp_path), "sess")) == "middle"
+
+
+class TestFingerprintingTheLoginStore:
+    """Written to shutdown_audit.log at both ends of a restart, to settle a
+    question the existing logs cannot answer.
+
+    Four clean shutdowns on a real install — close-session acknowledged, the
+    session observed CLOSED, Chrome confirmed released after 5-6 s of genuine
+    waiting in every one — produced two launches where WhatsApp Web had already
+    logged itself out and two that were fine. Nothing in the audit told them
+    apart, and log.log is truncated by the launch that would report it.
+
+    A fingerprint that moved between the shutdown line and the next STARTUP
+    line means something wrote to the profile after WinZapp let go; an
+    identical pair means the profile WinZapp left is the one WhatsApp Web
+    rejected, which clears the shutdown path.
+    """
+
+    def _store(self, tmp_path, contents):
+        path = os.path.join(pr.profile_dir(str(tmp_path), "sess"),
+                            pr._LOGIN_STORE_RELPATH)
+        os.makedirs(path, exist_ok=True)
+        for name, body in contents.items():
+            with open(os.path.join(path, name), "w") as fh:
+                fh.write(body)
+        return path
+
+    def test_a_missing_profile_fingerprints_as_nothing(self, tmp_path):
+        assert pr.login_store_fingerprint(str(tmp_path), "sess") is None
+
+    def test_an_empty_store_fingerprints_as_nothing(self, tmp_path):
+        self._store(tmp_path, {})
+        assert pr.login_store_fingerprint(str(tmp_path), "sess") is None
+
+    def test_the_same_bytes_fingerprint_the_same(self, tmp_path):
+        self._store(tmp_path, {"000001.ldb": "aaa", "CURRENT": "x"})
+        first = pr.login_store_fingerprint(str(tmp_path), "sess")
+        assert first == pr.login_store_fingerprint(str(tmp_path), "sess")
+
+    def test_a_changed_file_changes_the_fingerprint(self, tmp_path):
+        self._store(tmp_path, {"000001.ldb": "aaa"})
+        before = pr.login_store_fingerprint(str(tmp_path), "sess")
+        self._store(tmp_path, {"000001.ldb": "aaaa"})
+        assert pr.login_store_fingerprint(str(tmp_path), "sess") != before
+
+    def test_a_new_file_changes_the_fingerprint(self, tmp_path):
+        self._store(tmp_path, {"000001.ldb": "aaa"})
+        before = pr.login_store_fingerprint(str(tmp_path), "sess")
+        self._store(tmp_path, {"000002.ldb": "b"})
+        assert pr.login_store_fingerprint(str(tmp_path), "sess") != before
+
+    def test_it_never_raises_on_a_path_it_cannot_read(self, tmp_path):
+        # A diagnostic must not be able to cost a teardown.
+        assert pr.login_store_fingerprint(None, "sess") is None

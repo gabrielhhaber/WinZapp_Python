@@ -3851,7 +3851,12 @@ class MainWindow(wx.Frame):
             logging.info("[_raw_session_status] probe failed: %s", e)
         return ""
 
-    def _chrome_pids_owning_session(self, session_name: str) -> list:
+    def _chrome_pids_owning_session(self, session_name: str):
+        """PIDs of chrome.exe processes holding this session's profile.
+
+        A list — possibly empty, which is an answer — or None when the
+        process list could not be read at all, which is not.
+        """
         import sys
         if sys.platform != "win32" or not session_name:
             return []
@@ -3865,8 +3870,21 @@ class MainWindow(wx.Frame):
                 creationflags=no_window, text=True, stderr=subprocess.DEVNULL, timeout=15,
             )
         except Exception as e:
-            logging.info("[profile-lock] could not list chrome processes: %s", e)
-            return []
+            # None, not []. An empty list is an *answer* — "nothing holds this
+            # profile" — and wait_for_profile_release() acts on it by letting
+            # the taskkill proceed. A failed query knows nothing, and reading
+            # it as the answer turns a slow or refused PowerShell spawn into
+            # "Chrome released the profile", audited as such, immediately
+            # before the tree kill that then hits a browser still writing.
+            #
+            # Measured on the reporting machine this query runs in 0.21 s idle
+            # and 0.31 s under six competing PowerShell processes, with no
+            # failures in 65 runs — so this is a latent fault, not the cause of
+            # the losses that prompted the review. It is still the wrong
+            # default, and its only trace today is a logging.info into log.log,
+            # which the next launch truncates.
+            logging.warning("[profile-lock] could not list chrome processes: %s", e)
+            return None
         pids = []
         for line in out.splitlines():
             pid, _, cmdline = line.partition("\t")
@@ -3874,16 +3892,59 @@ class MainWindow(wx.Frame):
                 pids.append(pid.strip())
         return pids
 
+    def _login_store_fingerprint(self, session_name: str = None) -> str:
+        """Fingerprint of the store WhatsApp Web keeps its login in.
+
+        Written into shutdown_audit.log at the end of a shutdown and again at
+        the start of the next launch, because that file survives and log.log
+        does not. Two clean shutdowns on the reporting install were followed by
+        a launch that had already logged itself out, and two identical ones
+        were fine — with nothing in the audit telling them apart. This does:
+        a fingerprint that moved between the two lines means something wrote to
+        the profile after WinZapp let go of it, and one that is identical means
+        the profile WinZapp left is exactly the one WhatsApp Web rejected,
+        which clears the shutdown path entirely.
+
+        Never raises and never blocks — a diagnostic must not be able to cost
+        a teardown.
+        """
+        try:
+            from core import profile_recovery
+            global_dir = getattr(self, "global_dir", None)
+            name = session_name or (getattr(self, "token", "") or "").split(":")[0]
+            if not global_dir or not name:
+                return "unknown"
+            return profile_recovery.login_store_fingerprint(global_dir, name) or "absent"
+        except Exception:
+            return "unknown"
+
     def wait_for_profile_release(self, session_name: str, timeout: float = 20.0) -> bool:
         import sys
         if sys.platform != "win32" or not session_name:
             return True
         deadline = time.monotonic() + timeout
+        started = time.monotonic()
         polls = 0
+        unreadable = 0
         while time.monotonic() < deadline:
             polls += 1
             holders = self._chrome_pids_owning_session(session_name)
+            if holders is None:
+                # Could not tell. Keep waiting rather than assuming the best:
+                # the only thing after this gate is a /T kill of the process
+                # tree Chrome is in.
+                unreadable += 1
+                time.sleep(0.5)
+                continue
             if not holders:
+                # Into the audit, not just log.log: log.log is truncated by the
+                # launch that would report the damage, so "Chrome exited after
+                # 6 s of real waiting" and "the very first poll said nothing
+                # was there" are indistinguishable the morning after. They are
+                # opposite diagnoses.
+                self._shutdown_audit(
+                    "profile released after %d poll(s) in %.1fs "
+                    "(%d unreadable)" % (polls, time.monotonic() - started, unreadable))
                 if polls > 1:
                     logging.info(
                         "[profile-lock] %s released after %d poll(s)",
@@ -3898,7 +3959,7 @@ class MainWindow(wx.Frame):
         self._kill_orphaned_chrome_for_session(session_name)
         grace_deadline = time.monotonic() + 5.0
         for _ in range(10):
-            if not self._chrome_pids_owning_session(session_name):
+            if self._chrome_pids_owning_session(session_name) == []:
                 return True
             if time.monotonic() >= grace_deadline:
                 break
@@ -8896,7 +8957,13 @@ class MainWindow(wx.Frame):
                 if self.wait_for_profile_release(
                     session_name, timeout=_phase_timeout(15.0)
                 ):
-                    self._shutdown_audit("Chrome released the profile before the kill")
+                    try:
+                        released_fp = self._login_store_fingerprint(session_name)
+                    except Exception:
+                        released_fp = "unknown"
+                    self._shutdown_audit(
+                        "Chrome released the profile before the kill "
+                        f"login_store={released_fp}")
                     self._capture_profile_snapshot(session_name,
                                                    browser_closed_cleanly, budget)
                 else:
@@ -10421,6 +10488,13 @@ class MainWindow(wx.Frame):
         # store think of it + every sibling. If a working session silently turned
         # 'abandoned' and a fresh (unpaired) one took over between quit and this
         # launch, THIS line proves it across the log truncation.
+        # Computed before the audit block, and separately, so a diagnostic can
+        # never take the STARTUP line down with it. That line is the anchor of
+        # every cross-launch diagnosis this file exists for.
+        try:
+            login_store = self._login_store_fingerprint()
+        except Exception:
+            login_store = "unknown"
         try:
             store = self._get_session_store()
             listing = []
@@ -10431,7 +10505,8 @@ class MainWindow(wx.Frame):
                 f"STARTUP account={getattr(self,'account_id','?')} "
                 f"active_session={self.token.split(':')[0]!r} "
                 f"paired={self.settings.get('privateinfo',{}).get('paired')} "
-                f"store=[{', '.join(listing)}]")
+                f"store=[{', '.join(listing)}] "
+                f"login_store={login_store}")
         except Exception:
             pass
 
@@ -17959,6 +18034,48 @@ class MainWindow(wx.Frame):
             self._chats_awaiting_messages.add(canonical)
             self._partial_history_counts[canonical] = count
 
+    def _retire_chat_without_older_history(self, jid: str) -> None:
+        """Record, durably, that the phone has no older history for this chat.
+
+        The backfill asked, spent its budget, and nothing came back. Until
+        this existed that verdict lived only in `_older_request_attempts`,
+        which is in memory — so every launch handed the same chat a fresh
+        budget and asked again. Each of those asks is a notification on the
+        user's phone, and the phone answers a request it cannot satisfy with
+        "Sync paused. Open WhatsApp to resume." — an *error*, on an account
+        that has been fully synced for weeks, for a conversation the user
+        never opened. Reported exactly that way.
+
+        Measured on a real install: two groups holding 1 and 2 messages, each
+        asked twice, `oldestMsgKey` byte-identical across both asks, twelve
+        get-messages rounds in between, nothing ever delivered. Their
+        `endOfHistoryTransferType` was 4 and null, where every ask that *did*
+        deliver came back as 0 — worth knowing, but the verdict here is taken
+        from the outcome rather than from an undocumented enum value, so it
+        stays right if WhatsApp renumbers them.
+
+        `_exhausted_chats` is the same set fetch_older_messages() writes and
+        the deep walk reads, so this also stops the chat being re-queried from
+        the other direction. The user scrolling up clears it — see
+        _forget_history_exhaustion() and the F5 resync.
+        """
+        if not hasattr(self, "_exhausted_chats"):
+            self._exhausted_chats = set()
+        if jid in self._exhausted_chats:
+            return
+        self._exhausted_chats.add(jid)
+        self._persist_exhausted_chats()
+        self._remove_backfill_pending(jid)
+        with self._backfill_state_guard():
+            gap_forms = set(self._jid_address_forms(jid))
+            gap_forms.update(
+                self._jid_address_forms(self._canonical_backfill_jid(jid)))
+            self._history_gap_jids.difference_update(gap_forms)
+        logging.info(
+            "[history-sync] The phone answered nothing for %s after %d request(s) "
+            "— retiring it for good so it is never asked again.",
+            jid, self._MAX_PHONE_HISTORY_REQUESTS)
+
     def _is_backfill_pending(self, jid: str) -> bool:
         """Whether a conversation is queued under either known address."""
         with self._backfill_state_guard():
@@ -18344,8 +18461,20 @@ class MainWindow(wx.Frame):
                         older_arrived.add(jid)
                     if now >= self.history_page_target() or now > was:
                         continue
-                    self._keep_backfill_pending(jid, now)
+                    if jid in getattr(self, "_exhausted_chats", set()):
+                        # Already answered, durably: the phone was asked and
+                        # had nothing older. Re-queuing it here is what made
+                        # that answer worthless — see the retirement below.
+                        self._remove_backfill_pending(jid)
+                        continue
                     asked_at = getattr(self, "_older_requested_chats", {}).get(jid)
+                    if MainWindow._older_history_is_exhausted(
+                            asked_at, attempts.get(jid, 0), time.time(),
+                            self._OLDER_REQUEST_GRACE,
+                            self._MAX_PHONE_HISTORY_REQUESTS):
+                        self._retire_chat_without_older_history(jid)
+                        continue
+                    self._keep_backfill_pending(jid, now)
                     if not MainWindow._phone_history_request_due(
                             asked_at, attempts.get(jid, 0), time.time(),
                             self._OLDER_REQUEST_GRACE,
@@ -22675,6 +22804,29 @@ class MainWindow(wx.Frame):
     # that request is attended, and a notification the user just caused is not
     # the problem being fixed here.
     _MAX_PHONE_HISTORY_REQUESTS = 2
+
+    @staticmethod
+    def _older_history_is_exhausted(asked_at, attempts, now_ts,
+                                    grace, max_attempts) -> bool:
+        """Whether the phone has answered, by silence, that it has no more.
+
+        True once a chat has spent its whole request budget and the reply
+        window has closed on the last of those asks with no older history
+        having arrived — because gaining any would have cleared the budget
+        (see the caller). That is the phone's answer; it just arrives as
+        nothing rather than as a refusal.
+
+        The grace is the same one fetch_older_messages() writes its own
+        write-off behind, and for the same reason: the request is
+        fire-and-forget and the reply is a history-sync chunk minutes later,
+        so a verdict reached inside that window is a guess. Here it makes the
+        verdict *durable*, which is the whole point — without it the in-memory
+        budget resets on every launch and the chat is asked twice again,
+        forever.
+        """
+        if attempts < max_attempts or asked_at is None:
+            return False
+        return (now_ts - asked_at) >= grace
 
     @staticmethod
     def _phone_history_request_due(asked_at, attempts, now_ts,

@@ -84,6 +84,55 @@ def profile_dir(global_dir, session_name):
     return os.path.join(global_dir, "api", "userDataDir", session_name)
 
 
+#: The subtree WhatsApp Web keeps its login in. Fingerprinted rather than
+#: read: the point is only whether it changed, and its contents are the user's
+#: message history.
+_LOGIN_STORE_RELPATH = os.path.join(
+    "Default", "IndexedDB", "https_web.whatsapp.com_0.indexeddb.leveldb")
+
+
+def login_store_fingerprint(global_dir, session_name):
+    """A cheap "is this the same bytes as last time" reading of the profile.
+
+    Exists to settle one question the logs cannot currently answer. Across one
+    day on a real install, four clean shutdowns — close-session acknowledged,
+    the session observed CLOSED, Chrome confirmed to have released the profile,
+    5-6 s of genuine waiting in every one of them — produced two launches where
+    WhatsApp Web logged itself out seven seconds into the page load, and two
+    that were fine. Nothing in `shutdown_audit.log` distinguishes them, and
+    `log.log` is truncated on the launch that would report it.
+
+    Recorded at the end of a shutdown and again at the start of the next
+    launch, this separates the two remaining explanations: a fingerprint that
+    moved in between means something wrote to the profile after WinZapp let go
+    of it, and one that is identical means the profile WinZapp left is exactly
+    the one WhatsApp Web then rejected — which is a stale credential, not a
+    lost write, and would rule out the whole shutdown path.
+
+    Never raises: this is a diagnostic, and a shutdown must not die in one.
+    """
+    try:
+        path = os.path.join(profile_dir(global_dir, session_name),
+                            _LOGIN_STORE_RELPATH)
+        newest = 0.0
+        total = 0
+        count = 0
+        for entry in os.scandir(path):
+            try:
+                st = entry.stat()
+            except OSError:
+                continue
+            if entry.is_file():
+                count += 1
+                total += st.st_size
+                newest = max(newest, st.st_mtime)
+        if not count:
+            return None
+        return "files=%d bytes=%d newest=%.0f" % (count, total, newest)
+    except Exception:
+        return None
+
+
 def snapshot_dir(global_dir, session_name):
     return os.path.join(global_dir, "api", SNAPSHOT_DIR_NAME, session_name)
 
