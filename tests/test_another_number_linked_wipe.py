@@ -13,13 +13,22 @@ asking WPPConnect, once pairing has closed, which phone actually linked. It
 deletes the user's history, so every test below is really about the same
 property: it may act on proof of divergence and on nothing else. In
 particular a freshly created multi-account entry is `pending` with an empty
-privateinfo — no stored number, no `paired` — and must never so much as reach
-the probe.
+privateinfo and no session token, and must never so much as reach the probe.
+
+The mirror-image half is here too: an install that has only ever paired by QR
+carries no WA_phone_number at all, because connect.py's phone-code flow is its
+only other writer. Without recording the number the probe reports — which
+deletes nothing — the comparison could never fire for that user, and that is
+precisely the user this whole check exists for.
 """
+
+import inspect
 
 import connection_state as cs
 import main as main_module
-from main import MainWindow, linked_number_differs, linked_phone_digits
+from main import (MainWindow, linked_number_differs, linked_phone_digits,
+                  same_phone_for_pairing)
+from ui.dialogs.connect import Connect
 
 
 class _Stub:
@@ -101,8 +110,9 @@ class TestLinkedNumberDiffers:
             _Stub(), "5511999999999", "5511999999999@c.us")
 
     def test_the_brazilian_eight_nine_digit_variant_is_the_same_number(self):
-        """5511999999999 ↔ 551199999999: the collapse contact_dedup_key()
-        already does for the contact list. Comparing raw strings here would
+        """5511999999999 ↔ 551199999999: the collapse
+        MainWindow._phone_digits_equivalent() already does everywhere else in
+        the app. Comparing raw strings here would
         wipe the history of a user who re-paired the number they were
         already using — the very bug this whole PR is about."""
         assert not linked_number_differs(
@@ -156,23 +166,17 @@ class TestWipeOnlyOnProvenDivergence:
 
     def test_a_new_multi_account_entry_is_never_touched_or_even_probed(self):
         """`pending` state: empty privateinfo, no WA_phone_number, no
-        `paired`. Adding an account to the manager must not be able to delete
-        anything, in this account or any other — and with nothing to compare
-        against there is no reason to ask the server either."""
-        stub = _Stub(stored_number=None, paired=False)
+        `paired`, and — what actually stops it here — no session token.
+        Adding an account to the manager must not be able to delete anything,
+        in this account or any other, nor go asking a server it holds no
+        session on."""
+        stub = _Stub(stored_number=None, paired=False, token="")
 
         stub._wipe_local_data_if_another_number_linked()
 
         assert stub.wipe_calls == 0
         assert stub.probe_calls == 0
-
-    def test_an_empty_stored_number_is_treated_the_same(self):
-        stub = _Stub(stored_number="", paired=True)
-
-        stub._wipe_local_data_if_another_number_linked()
-
-        assert stub.wipe_calls == 0
-        assert stub.probe_calls == 0
+        assert stub.stored_number is None
 
     def test_a_server_answer_we_cannot_read_keeps_everything(self):
         for linked in ("", None, "not-a-number", "182736450192837@lid"):
@@ -278,3 +282,155 @@ class TestHostDeviceProbeReportsThePhoneItSaw:
 
         assert stub._host_device_link_probe() == (cs.LINK_PROBE_UNKNOWN, "")
         assert stub._still_linked_on_server() == cs.LINK_PROBE_UNKNOWN
+
+
+class TestLearningTheNumberOfAQrOnlyInstall:
+    """WA_phone_number is written in exactly one other place — connect.py's
+    phone-code flow — so an install that has only ever paired by QR has none.
+
+    Its session drops, _show_repair_dialog() reopens the pairing dialog with
+    `paired` and WA_token intact, somebody else's phone scans the code, and
+    B's sync merges straight onto A's database: the scenario this whole check
+    exists for, and the one it could not see, because an empty stored number
+    returned before anything was compared. Recording what the probe reports
+    deletes nothing by itself and arms the comparison from the second pairing
+    onwards.
+    """
+
+    def test_a_linked_number_is_recorded_without_deleting_anything(self):
+        stub = _Stub(stored_number=None,
+                     probe=(cs.LINK_PROBE_LINKED, "5511999999999@c.us"))
+
+        stub._wipe_local_data_if_another_number_linked()
+
+        assert stub.wipe_calls == 0
+        assert stub.stored_number == "5511999999999"
+        assert stub.saved == 1
+
+    def test_an_empty_stored_number_is_treated_the_same(self):
+        stub = _Stub(stored_number="",
+                     probe=(cs.LINK_PROBE_LINKED, "5511999999999@c.us"))
+
+        stub._wipe_local_data_if_another_number_linked()
+
+        assert stub.wipe_calls == 0
+        assert stub.stored_number == "5511999999999"
+
+    def test_the_next_pairing_can_then_see_a_different_phone(self):
+        """The point of recording it: the very next divergence is caught."""
+        stub = _Stub(stored_number=None,
+                     probe=(cs.LINK_PROBE_LINKED, "5511999999999@c.us"))
+        stub._wipe_local_data_if_another_number_linked()
+        assert stub.wipe_calls == 0
+
+        stub._probe = (cs.LINK_PROBE_LINKED, "5521988887777@c.us")
+        stub._wipe_local_data_if_another_number_linked()
+
+        assert stub.wipe_calls == 1
+        assert stub.stored_number == "5521988887777"
+
+    def test_nothing_is_recorded_when_the_probe_has_no_verdict(self):
+        for outcome in (cs.LINK_PROBE_UNKNOWN, cs.LINK_PROBE_UNLINKED):
+            stub = _Stub(stored_number=None,
+                         probe=(outcome, "5511999999999@c.us"))
+
+            stub._wipe_local_data_if_another_number_linked()
+
+            assert stub.stored_number is None, outcome
+            assert stub.saved == 0, outcome
+
+    def test_nothing_is_recorded_from_an_answer_we_cannot_read(self):
+        """An unbridged @lid's digits are not a phone number — storing them
+        would make the NEXT pairing of the real number look like a divergence,
+        and wipe."""
+        for linked in ("182736450192837@lid", "1234", "not-a-number",
+                       "120363000000000000@g.us"):
+            stub = _Stub(stored_number=None, probe=(cs.LINK_PROBE_LINKED, linked))
+
+            stub._wipe_local_data_if_another_number_linked()
+
+            assert stub.stored_number is None, linked
+            assert stub.saved == 0, linked
+
+
+class TestSamePhoneForPairing:
+    """The one predicate both destructive decisions read — this check and
+    Connect._can_reuse_existing_session(), whose "no" also ends in
+    clear_local_data()."""
+
+    def test_identical_numbers_match(self):
+        assert same_phone_for_pairing("5511999999999", "5511999999999")
+
+    def test_the_brazilian_ninth_digit_matches(self):
+        assert same_phone_for_pairing("5511999999999", "551199999999")
+        assert same_phone_for_pairing("551199999999", "5511999999999")
+
+    def test_the_argentinian_nine_matches(self):
+        """54 9 11 XXXX-XXXX is what getWid() reports; users write the number
+        without the 9. Never measured disagreeing, but being wrong here
+        deletes the history on its own and es-ES is a shipped locale — so
+        this errs towards NOT deleting."""
+        assert same_phone_for_pairing("5491123456789", "541123456789")
+
+    def test_the_mexican_one_matches(self):
+        assert same_phone_for_pairing("5215512345678", "525512345678")
+
+    def test_two_genuinely_different_numbers_do_not_match(self):
+        assert not same_phone_for_pairing("5511999999999", "5521988887777")
+        assert not same_phone_for_pairing("541123456789", "541123456788")
+
+    def test_a_different_country_code_never_matches(self):
+        """The extra digit has to sit in the prefix, not replace the country
+        code — otherwise two unrelated people collapse into one."""
+        assert not same_phone_for_pairing("5491123456789", "441123456789")
+
+    def test_a_different_subscriber_number_never_matches(self):
+        """Same country code and one digit longer, but the last 8 differ."""
+        assert not same_phone_for_pairing("5491123456789", "541123456780")
+
+    def test_two_digits_apart_never_matches(self):
+        assert not same_phone_for_pairing("54911123456789", "541123456789")
+
+
+class TestBothCallSitesStayWired:
+    """Nothing else in the suite would notice the check being dropped: it is
+    called for its side effect, from two places that cannot be constructed in
+    a test (a wx.Frame's __init__ and a method ending in ShowModal()), and
+    "no wipe happened" is also what a removed call looks like. Source level,
+    same approach as test_opening_the_dialog_drops_a_previous_dialogs_capture
+    above."""
+
+    def test_the_startup_check_runs_after_prepare_sync(self):
+        """Not at the dialog's own end: that runs before prepare_sync() opens
+        the database, and a wipe there would clear media/ and voice_messages/
+        and leave messages.db to be read back a few lines later."""
+        lines = inspect.getsource(MainWindow.__init__).splitlines()
+        prepared = next(i for i, ln in enumerate(lines)
+                        if "self.prepare_sync()" in ln)
+        guarded = next(i for i, ln in enumerate(lines)
+                       if "if self._just_paired:" in ln and i > prepared)
+        called = next(i for i, ln in enumerate(lines)
+                      if "_wipe_local_data_if_another_number_linked" in ln)
+        assert prepared < guarded < called
+
+    def test_the_dialog_checks_once_its_modal_loop_has_returned(self):
+        """Before that the session is not linked to anything yet, so
+        host-device has nothing to report."""
+        lines = inspect.getsource(Connect.show_connection_dial).splitlines()
+        shown = next(i for i, ln in enumerate(lines)
+                     if "self.connection_dial.ShowModal()" in ln)
+        called = next(i for i, ln in enumerate(lines)
+                      if "_wipe_local_data_if_another_number_linked" in ln)
+        assert shown < called
+
+    def test_the_dialog_never_runs_it_on_the_main_thread(self):
+        """show_connection_dial() bounces itself to the main thread, and the
+        mid-session dialogs are opened with the MainLoop alive and the main
+        window on screen. A 10 s Puppeteer probe plus a file-by-file wipe held
+        there is Windows ghosting the window — "(Not Responding)" read out
+        over the pairing flow."""
+        tail = inspect.getsource(Connect.show_connection_dial).split(
+            "self.connection_dial.ShowModal()", 1)[1]
+        spawn = tail.index("threading.Thread(")
+        called = tail.index("_wipe_local_data_if_another_number_linked")
+        assert spawn < called

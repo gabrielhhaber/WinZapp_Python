@@ -59,7 +59,7 @@ from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
 from core.send_contract import accepted_message_id
 from core.wpp_runtime import read_homologated_wpp_version
-from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default, contact_dedup_key
+from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
 from core.database_bridge import DatabaseBridge
@@ -1529,15 +1529,49 @@ def linked_phone_digits(main_window, linked_value) -> str:
     return digits
 
 
+def same_phone_for_pairing(a: str, b: str) -> bool:
+    """True when two bare digit strings identify the same phone.
+
+    Shared by the only two decisions in the app whose "no" deletes the local
+    history — linked_number_differs() below and
+    Connect._can_reuse_existing_session() — so they cannot drift apart and
+    disagree about the same pair of numbers.
+
+    MainWindow._phone_digits_equivalent() is the primary test: it is literally
+    this question, it is what the rest of the app uses to recognise one
+    person, and it already collapses the Brazilian 8/9-digit mobile pair
+    (55 DDD **9** XXXXXXXX ↔ 55 DDD XXXXXXXX).
+
+    The second clause generalises that shape to any country code, for the two
+    WhatsApp is known to store differently from the way people write their
+    number down — Argentina's `54 9` and Mexico's legacy `52 1`. Nothing here
+    has measured getWid() disagreeing with what those users type into the
+    pairing dialog, but this is the first place where being wrong deletes data
+    on its own, es-ES is a shipped locale, and widening "same number" can only
+    ever make a wipe LESS likely. It is deliberately not folded into
+    _phone_digits_equivalent(), which would change contact and self-JID
+    matching across the whole app on the strength of an unproven risk.
+
+    Two constraints keep that clause from collapsing unrelated people: the
+    country code (the first two digits) and the last 8 — the subscriber
+    number — must be identical, so the extra digit has to sit in the prefix.
+    """
+    if MainWindow._phone_digits_equivalent(a, b):
+        return True
+    long_, short = (a, b) if len(a) > len(b) else (b, a)
+    if len(long_) != len(short) + 1:
+        return False
+    if long_[:2] != short[:2] or long_[-8:] != short[-8:]:
+        return False
+    return any(long_[:i] + long_[i + 1:] == short for i in range(len(long_)))
+
+
 def linked_number_differs(main_window, stored_number, linked_value) -> bool:
     """True only when the linked phone is PROVABLY a different number.
 
-    Both sides are collapsed through contact_dedup_key(), the same helper the
-    contact list uses to recognise one person across JID formats — which is
-    what makes the Brazilian 8/9-digit mobile pair (5511999999999 ↔
-    551199999999) compare equal here. Comparing raw strings instead would
-    report "different account" for a user who re-paired the very number they
-    were already using, and the answer to that is deleting their history.
+    Equality goes through same_phone_for_pairing(), so a user who re-paired
+    the very number they were already using is never read as "another
+    account" — and the answer to that reading is deleting their history.
 
     Anything less than two recognisable, non-empty numbers is False: no
     stored number (a brand-new multi-account entry is created with an empty
@@ -1551,8 +1585,7 @@ def linked_number_differs(main_window, stored_number, linked_value) -> bool:
     linked_digits = linked_phone_digits(main_window, linked_value)
     if not linked_digits:
         return False
-    return (contact_dedup_key(main_window, f"{stored_digits}@s.whatsapp.net")
-            != contact_dedup_key(main_window, f"{linked_digits}@s.whatsapp.net"))
+    return not same_phone_for_pairing(stored_digits, linked_digits)
 
 
 def participant_digits(jid) -> str:
@@ -11018,34 +11051,38 @@ class MainWindow(wx.Frame):
         deletes a history a blind user pays for with the whole pairing flow
         again, while a false negative is a wipe they can still ask for:
 
-          * no stored WA_phone_number — nothing to compare against, and the
-            normal state of a freshly created multi-account entry (`pending`,
-            empty privateinfo). It never reaches the probe at all;
           * no open database — the startup dialog runs before prepare_sync(),
             where clear_local_data() would delete media/ and voice_messages/
             and leave every message in messages.db behind. The call right
             after prepare_sync() owns that case;
+          * no session token — nothing to ask, and the normal state of a
+            freshly created multi-account entry (`pending`, empty
+            privateinfo);
           * anything but LINK_PROBE_LINKED — a failed, refused or unreadable
             probe proves nothing (see _host_device_link_probe);
-          * linked_number_differs() False — same number, an 8/9-digit
-            Brazilian variant of it, an unbridged @lid, or a value we cannot
-            read as a phone number.
+          * an answer we cannot read as a phone number — an unbridged @lid, a
+            group, a truncated field;
+          * linked_number_differs() False — the same number, or an 8/9-digit
+            Brazilian / one-inserted-digit variant of it.
 
-        The stored number is replaced on the way out, since it is now the
-        record of an account whose data is gone: leaving the old one there
-        would make the next pairing of THIS number look like another
+        The stored number is written on the way out in BOTH outcomes, and the
+        no-wipe one is the load-bearing half. WA_phone_number has exactly one
+        other writer — connect.py's phone-code flow — so an install that has
+        only ever paired by QR carries no number at all, and without learning
+        it here the comparison could never fire for that user at all: their
+        session drops, _show_repair_dialog() reopens the dialog with `paired`
+        and WA_token intact, another phone scans the code, and B's sync merges
+        on top of A's database. That is the exact scenario this method exists
+        for. Recording a number it deleted nothing over is non-destructive by
+        itself and arms the comparison from the second pairing onwards. After
+        a wipe it is replaced for the mirror-image reason: left at the old
+        number, the next pairing of THIS one would look like another
         divergence and wipe a second time.
         """
         import connection_state as cs
 
         privateinfo = self.settings.get("privateinfo")
         if not isinstance(privateinfo, dict):
-            return
-        stored = privateinfo.get("WA_phone_number") or ""
-        if not stored:
-            logging.info(
-                "[another_number_check] No stored phone number for this "
-                "account — nothing to compare, nothing deleted.")
             return
         if getattr(self, "db", None) is None:
             logging.info(
@@ -11057,12 +11094,30 @@ class MainWindow(wx.Frame):
                 "[another_number_check] No session token — the probe could "
                 "not prove anything, nothing deleted.")
             return
+        stored = privateinfo.get("WA_phone_number") or ""
 
         outcome, linked = self._host_device_link_probe()
         if outcome != cs.LINK_PROBE_LINKED:
             logging.info(
                 "[another_number_check] host-device returned %s — no verdict "
                 "on which number is linked, nothing deleted.", outcome)
+            return
+        new_digits = linked_phone_digits(self, linked)
+        if not new_digits:
+            logging.info(
+                "[another_number_check] host-device answered with a value this "
+                "cannot read as a phone number — nothing deleted.")
+            return
+        if not stored:
+            # First time this account is told its own number: the QR flow
+            # never writes one. Nothing to compare against, so nothing is
+            # deleted — this only arms the comparison for the next pairing.
+            logging.info(
+                "[another_number_check] No stored phone number for this "
+                "account — recording the linked one (...%s), nothing deleted.",
+                new_digits[-4:])
+            privateinfo["WA_phone_number"] = new_digits
+            self.save_settings()
             return
         try:
             differs = linked_number_differs(self, stored, linked)
@@ -11078,7 +11133,6 @@ class MainWindow(wx.Frame):
                 "number — keeping the local history.")
             return
 
-        new_digits = linked_phone_digits(self, linked)
         logging.warning(
             "[another_number_check] A different phone is linked to this "
             "account (stored ...%s, linked ...%s) — wiping the local data the "
@@ -13470,6 +13524,34 @@ class MainWindow(wx.Frame):
         else:
             self._resolving_lids = set()
             
+        if wipe_metadata:
+            # The in-memory half of the system_metadata wipe below. prepare_sync()
+            # reads every one of these OUT of that table into RAM at startup, and
+            # _wipe_local_data_if_another_number_linked() is the first caller that
+            # runs AFTER that load — so clearing only the table left account A's
+            # deleted/archived/pinned/muted sets, its block list, its push names
+            # and its own JID live in this process, and account B's very first
+            # sync wrote all of them straight back into B's database
+            # (get_remote_chats() persists muted/pinned/archived, the deleted set
+            # is persisted from the chat-list build, _resolve_self_referential_jid()
+            # reads my_jid). A conversation of B's that A had deleted then never
+            # appeared in B's list at all — on disk, permanently.
+            #
+            # Only under wipe_metadata: F5/resync must keep every one of them,
+            # which is the whole point of the flag (see the docstring above).
+            self._deleted_chats = set()
+            self._archived_chats = set()
+            self._pinned_chats = set()
+            self._muted_chats = {}
+            self._blocked_contacts = set()
+            self._presence_pushname_map = {}
+            self._locally_read_at = {}
+            # Left as the empty string rather than deleted: _is_self_jid() and
+            # the "Eu" label read them unconditionally, and the next
+            # host-device/self-LID lookup rewrites them.
+            self.my_jid = ""
+            self.my_lid = ""
+
         try:
             if hasattr(self, "db") and self.db is not None:
                 self.db.save_full_state({"chats": {}, "contacts": {}}, clear_metadata=wipe_metadata)

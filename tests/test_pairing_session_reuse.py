@@ -100,3 +100,29 @@ def test_number_comparison_ignores_formatting(stored, typed):
     """The stored number keeps whatever formatting the user typed; both sides
     are normalised to digits before comparing."""
     assert can_reuse(_priv(WA_phone_number=stored), typed, TOKEN) is True
+
+
+class TestTheStoredNumberIsNotAlwaysTheTypedOne:
+    """WA_phone_number used to hold only what the user typed into this very
+    dialog, so an exact `!=` was a fair comparison.
+
+    MainWindow._wipe_local_data_if_another_number_linked() now also writes it,
+    with the canonical digits WhatsApp reports for the linked phone — which
+    for a Brazilian mobile is routinely the 12-digit form of a number its
+    owner types with 13. Compared exactly, that user stops resuming their own
+    session on every later pairing, and the branch they fall into is
+    clear_local_data(). Both sides now go through same_phone_for_pairing(),
+    the same predicate the wipe decision itself reads.
+    """
+
+    def test_the_wid_form_of_the_typed_number_still_resumes(self):
+        assert can_reuse(_priv(WA_phone_number="551199999999"),
+                         "5511999999999", TOKEN) is True
+
+    def test_and_the_other_way_round(self):
+        assert can_reuse(_priv(WA_phone_number="5511999999999"),
+                         "551199999999", TOKEN) is True
+
+    def test_a_genuinely_different_number_is_still_refused(self):
+        assert can_reuse(_priv(WA_phone_number="551199999999"),
+                         "5521988887777", TOKEN) is False
