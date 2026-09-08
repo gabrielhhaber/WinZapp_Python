@@ -1038,3 +1038,56 @@ class TestBackfillPhoneRequestBudget:
         stub._persist_older_requested = lambda: None
         MainWindow._forget_history_exhaustion(stub)
         assert stub._older_request_attempts == {}
+
+
+class TestPhoneRequestsAreSpacedNotBunched:
+    """Every phone-history request is a notification on the user's phone.
+
+    Read off a real install on 2026-09-08, running the bounded-attempts fix:
+    the requests were *productive* (one chat walked 50 -> 63 -> 113 -> 163
+    messages, another 2 -> 52 -> 102), so the answer is not to stop asking.
+    What the user actually reported was the bunching — four requests inside
+    900 ms, and bursts that kept arriving while he was using the app.
+
+    Two things caused that, and both are gone:
+
+      * ten requests per pass, fired back to back;
+      * a backoff that collapsed to _BACKFILL_FIRST_DELAY whenever a pass made
+        progress — and a chunk landing *is* progress, so every productive
+        request bought itself another pass 30 s later. On that install the
+        passes had settled at the 5-minute ceiling and then ran at 32 s
+        intervals for three passes as soon as chunks began landing.
+    """
+
+    GAP = MainWindow._PHONE_REQUEST_MIN_GAP
+
+    def test_only_one_request_leaves_per_pass(self):
+        assert MainWindow._OLDER_REQUESTS_PER_PASS == 1
+
+    def test_the_first_request_of_a_run_is_never_held_back(self):
+        assert MainWindow._phone_request_gap_elapsed(None, 10_000.0, self.GAP) is True
+
+    def test_a_second_request_inside_the_gap_is_refused(self):
+        assert MainWindow._phone_request_gap_elapsed(
+            1000.0, 1000.0 + self.GAP - 1, self.GAP) is False
+
+    def test_the_gap_elapsing_lets_the_next_one_through(self):
+        assert MainWindow._phone_request_gap_elapsed(
+            1000.0, 1000.0 + self.GAP, self.GAP) is True
+
+    def test_the_measured_burst_would_now_be_one_request(self):
+        # The four requests the install actually sent, in monotonic seconds
+        # relative to the first: 0.000, 0.045, 0.249, 0.448.
+        last = None
+        sent = 0
+        for offset in (0.0, 0.045, 0.249, 0.448):
+            if MainWindow._phone_request_gap_elapsed(last, offset, self.GAP):
+                sent += 1
+                last = offset
+        assert sent == 1
+
+    def test_the_gap_is_long_enough_to_separate_two_notifications(self):
+        # Short enough that the backfill still finishes in the same order of
+        # time (16 requests in 20 minutes on the measured install), long
+        # enough that two notifications never stack.
+        assert 60 <= MainWindow._PHONE_REQUEST_MIN_GAP <= 300

@@ -539,3 +539,51 @@ class TestBackgroundNeverFloodsThePhone:
         stub.deep_backfill_chat("chat@g.us")
 
         assert stub.requested == []
+
+
+class TestOlderHistoryIsToldApartFromANewMessage:
+    """The signal the backfill's phone requests are budgeted on.
+
+    `_backfill_empty_chats()` used to read "the record count grew" as "the ask
+    we spent this chat's budget on worked", which handed the chat a fresh
+    budget — and two more sync notifications on the user's phone — every time
+    anyone wrote in it. Reported on 2026-09-08 as notifications firing while
+    sending a message. The oldest stored message can only stay put or move
+    further back (see `_anchor_identity`), so it answers the narrower question
+    the budget actually meant to ask.
+    """
+
+    OLD = {"key": {"id": "OLD"}, "messageTimestamp": 1000}
+    OLDER = {"key": {"id": "OLDER"}, "messageTimestamp": 500}
+
+    def _stub(self, oldest):
+        stub = _Stub(pages=[])
+        stub.db = _DB({"5511@s.whatsapp.net": oldest})
+        return stub
+
+    def _anchor(self, stub):
+        return MainWindow._anchor_identity(
+            MainWindow._oldest_stored_message(stub, "5511@s.whatsapp.net"))
+
+    def test_a_newer_message_leaves_the_anchor_untouched(self):
+        # Sending or receiving adds at the top; the oldest row does not move.
+        stub = self._stub(self.OLD)
+        before = self._anchor(stub)
+        stub.db.oldest["5511@s.whatsapp.net"] = self.OLD   # unchanged
+        assert self._anchor(stub) == before
+
+    def test_older_history_landing_moves_the_anchor(self):
+        stub = self._stub(self.OLD)
+        before = self._anchor(stub)
+        stub.db.oldest["5511@s.whatsapp.net"] = self.OLDER
+        assert self._anchor(stub) != before
+
+    def test_two_messages_sharing_a_timestamp_are_still_told_apart(self):
+        # Why identity and not order: get_messages_asc() breaks a tie on id.
+        a = MainWindow._anchor_identity({"key": {"id": "A"}, "messageTimestamp": 1000})
+        b = MainWindow._anchor_identity({"key": {"id": "B"}, "messageTimestamp": 1000})
+        assert a != b
+
+    def test_an_empty_chat_has_a_stable_anchor(self):
+        stub = self._stub(None)
+        assert self._anchor(stub) == self._anchor(stub)

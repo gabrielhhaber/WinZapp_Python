@@ -17365,7 +17365,27 @@ class MainWindow(wx.Frame):
     # burst of automation traffic on top of the media phase.
     _BACKFILL_WORKERS     = 3
     _BACKFILL_CHUNK       = 60     # chats re-queried per pass
-    _OLDER_REQUESTS_PER_PASS = 10  # bounded phone-history requests per pass
+    # Phone-history requests per pass. **One**, not a batch, and the reason is
+    # not load: every one of these lights up the user's phone with a sync
+    # notification (see request_older_messages()). Ten per pass meant four of
+    # them inside 900 ms on a real install — the phone stacks four
+    # notifications, which reads as WinZapp spamming even though each request
+    # was productive. One per pass is the same throughput spread over the pass
+    # loop, and the user sees one notification resolve before the next starts.
+    _OLDER_REQUESTS_PER_PASS = 1
+
+    #: Floor between any two phone-history requests, whatever the pass loop is
+    #: doing. The backoff below is not a substitute: it collapses back to
+    #: _BACKFILL_FIRST_DELAY the moment a pass makes progress, and a chunk
+    #: landing *is* progress — so a productive request guarantees the next pass
+    #: 30 s later, which is precisely the burst being removed. Measured on a
+    #: real install: passes settled at the 5-minute ceiling, then ran at 32 s
+    #: intervals for three passes as soon as chunks started landing.
+    #:
+    #: Two minutes keeps the total unchanged (16 requests in 20 minutes on that
+    #: install) while never bunching them. Nothing here is urgent — this is
+    #: history the user is not looking at yet.
+    _PHONE_REQUEST_MIN_GAP = 120
 
     @classmethod
     def _initial_backfill_delay(cls, short_chats_pending: bool) -> int:
@@ -17377,6 +17397,20 @@ class MainWindow(wx.Frame):
                                           continuing_short_sweep: bool) -> bool:
         """Names and deep history must not block short-page recovery."""
         return not short_chats_pending and not continuing_short_sweep
+
+    @staticmethod
+    def _phone_request_gap_elapsed(last_at, now_monotonic, min_gap) -> bool:
+        """Whether enough time has passed since the last phone-history request.
+
+        A floor that the pass loop cannot talk its way out of. Every request
+        this gates is a notification on the user's phone, and the pass cadence
+        is driven by whether the *queue* is advancing — which a successful
+        request makes true, so the requests kept pulling their own next round
+        forward. Monotonic on purpose: a clock change must not open the gate.
+        """
+        if last_at is None:
+            return True
+        return (now_monotonic - last_at) >= min_gap
 
     @classmethod
     def _backfill_short_queue_delays(cls, retry_delay: int, sweep_finished: bool,
@@ -18185,6 +18219,21 @@ class MainWindow(wx.Frame):
                 # from 15 to 90 messages made real progress and must not read as
                 # a wasted pass — that is what backs the delay off.
                 counts_before = {j: self._local_record_count(j) for j in window}
+                # ...and which message is the oldest one on disk, which is the
+                # only signal that separates "the phone sent us older history"
+                # from "someone wrote in this chat". See the phone-request
+                # block below for why that distinction is load-bearing.
+                #
+                # Only for the chats that could possibly ask the phone this
+                # pass: this is a SQLite read each, and a window is up to
+                # _BACKFILL_CHUNK chats while the short queue is typically a
+                # handful. A chat already holding a full page is not a
+                # candidate and is not read.
+                _target = self.history_page_target()
+                oldest_before = {
+                    j: self._anchor_identity(self._oldest_stored_message(j))
+                    for j, c in counts_before.items() if c < _target
+                }
                 if targets:
                     with ThreadPoolExecutor(max_workers=self._BACKFILL_WORKERS) as pool:
                         futs = [pool.submit(
@@ -18209,13 +18258,25 @@ class MainWindow(wx.Frame):
                 attempts = getattr(self, "_older_request_attempts", None)
                 if attempts is None:
                     attempts = self._older_request_attempts = {}
+                older_arrived = set()
                 for jid, was in counts_before.items():
                     now = self._local_record_count(jid)
-                    if now > was:
-                        # The chat gained messages, so whatever was asked for
-                        # arrived: the attempt budget below starts over. Only a
-                        # chat that asks and gains nothing ever spends it.
+                    if jid in oldest_before and (
+                            self._anchor_identity(self._oldest_stored_message(jid))
+                            != oldest_before[jid]):
+                        # *Older* history arrived, so the ask this chat spent
+                        # its budget on worked and the budget starts over.
+                        #
+                        # Deliberately not "the record count grew". A chat also
+                        # grows when a message is sent or received in it, and
+                        # reading that as backfill progress hands the chat two
+                        # more phone requests — so every message the user sends
+                        # into a short chat buys itself a round of sync
+                        # notifications. The oldest stored message can only stay
+                        # put or move further back (see _anchor_identity), which
+                        # is exactly the question being asked here.
                         attempts.pop(jid, None)
+                        older_arrived.add(jid)
                     if now >= self.history_page_target() or now > was:
                         continue
                     self._keep_backfill_pending(jid, now)
@@ -18227,7 +18288,12 @@ class MainWindow(wx.Frame):
                         continue
                     if phone_requests_left <= 0:
                         continue
+                    if not MainWindow._phone_request_gap_elapsed(
+                            getattr(self, "_last_phone_request_at", None),
+                            time.monotonic(), self._PHONE_REQUEST_MIN_GAP):
+                        continue
                     phone_requests_left -= 1
+                    self._last_phone_request_at = time.monotonic()
                     attempts[jid] = attempts.get(jid, 0) + 1
                     requested = self.request_older_messages(jid)
                     if requested is True:
@@ -18265,11 +18331,20 @@ class MainWindow(wx.Frame):
                 grew = sum(1 for j, was in counts_before.items()
                            if self._local_record_count(j) > was)
                 logging.info(
-                    "[backfill] Pass %d: %d chat(s) gained messages, %d no longer pending "
-                    "(of %d).", attempt, grew, completed, before)
+                    "[backfill] Pass %d: %d chat(s) gained messages (%d of them older "
+                    "history), %d no longer pending (of %d).",
+                    attempt, grew, len(older_arrived), completed, before)
                 made_progress = (grew > 0 or completed > 0 or named > 0
                                  or deep_stored > 0)
-                sweep_made_progress = sweep_made_progress or made_progress
+                # What may pull the *next* pass forward is narrower than what
+                # justifies a repaint. A live message arriving in a short chat
+                # is real progress for the UI and no evidence at all that the
+                # phone has more history to give — resetting the backoff on it
+                # is how an ordinary conversation drags the whole queue back to
+                # a 30 s cadence, and with it the sync notifications.
+                queue_advanced = (len(older_arrived) > 0 or completed > 0
+                                  or named > 0 or deep_stored > 0)
+                sweep_made_progress = sweep_made_progress or queue_advanced
                 if made_progress:
                     # Unread badges, the "is this chat worth showing" decision and
                     # the displayed name all depend on this, so rebuild the list.
