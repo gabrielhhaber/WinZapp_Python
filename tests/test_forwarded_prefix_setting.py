@@ -40,6 +40,7 @@ class _Stub:
         })()
         self._message_list_mode = "classic"
         self._media_upload_progress = {}
+        self._upload_stages_seen = {}
         self.selected_messages = set()
 
     def _is_separator(self, msg):

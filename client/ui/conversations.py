@@ -533,6 +533,10 @@ class ConversationsPanel(wx.Panel):
         self._quoted_message: dict | None = None
         self._outgoing_virtual_messages: dict = {}
         self._media_upload_progress: dict = {}
+        # Stage names already seen per upload, so a re-reported stage is
+        # not mistaken for forward motion. See
+        # update_media_upload_progress().
+        self._upload_stages_seen: dict = {}
         self._media_transfer_started: set = set()
         # local_id → the virtual message dict of a row the user deleted while it
         # was still pending. Kept because cancelling an in-flight send is only
@@ -2567,6 +2571,7 @@ class ConversationsPanel(wx.Panel):
             if real_id and isinstance(real_id, str):
                 tracked.setdefault("key", {})["id"] = real_id
         self._media_upload_progress.pop(local_id, None)
+        self._upload_stages_seen.pop(local_id, None)
         # Panel-level guard: survive _sorted_messages rebuilds that replace dict
         # objects, keeping the per-dict _ui_sent flag from being seen by both callers.
         _played = getattr(self, "_played_sent_local_ids", None)
@@ -7509,6 +7514,10 @@ class ConversationsPanel(wx.Panel):
 
         mw.output(i18n.t("downloading"))
         self._action_download_btn.Hide()
+        # The gauge only moves forward now (see
+        # update_message_download_progress), so a previous attempt's value has
+        # to be cleared or this one starts wherever that one stopped.
+        self._download_progress.pop(msg_id, None)
         self._hide_media_transfer_gauge()
         self._show_media_transfer_gauge()
         self.conversation_panel.Layout()
@@ -9932,7 +9941,32 @@ class ConversationsPanel(wx.Panel):
         """
         Called from the main thread (via wx.CallAfter) when a media file's
         download progress changes.  Refreshes the relevant row in the list.
+
+        Two sources now feed this and they measure different things, which is
+        why it only ever moves forward. The server reports the real download
+        from WhatsApp's CDN — the part that actually takes minutes — and the
+        HTTP read of the finished file over loopback follows it, restarting
+        from near zero. Without the monotonic guard the bar would climb to
+        100%, drop, and climb again.
+
+        Keeping the second source rather than deleting it is deliberate:
+        client/api/ is reinstalled independently of this app, so a server that
+        has never heard of media-download-progress still has to move the bar,
+        and there it is the only signal there is.
         """
+        try:
+            progress = float(progress)
+        except (TypeError, ValueError):
+            return
+        # NaN would survive the clamp below and arrive as 1.0: min(1.0, nan)
+        # is 1.0, because every comparison with NaN is False. A malformed
+        # progress event would complete the bar over a download that has not
+        # started.
+        if progress != progress:
+            return
+        progress = max(0.0, min(1.0, progress))
+        if progress <= self._download_progress.get(msg_id, 0.0):
+            return
         self._download_progress[msg_id] = progress
         self._update_media_transfer_gauge(progress)
         for i, msg in enumerate(self._sorted_messages):
@@ -9940,11 +9974,42 @@ class ConversationsPanel(wx.Panel):
                 self.messages_list.SetItemText(i, self._render_message_line(msg))
                 break
 
-    def update_media_upload_progress(self, upload_id: str, progress: float):
+    #: How far each unrecognised upload stage advances the bar, and how far it
+    #: may get. WhatsApp's stage vocabulary is its own and versioned, so this
+    #: does not pretend to know what fraction "ENCRYPT" represents — it only
+    #: guarantees the bar MOVES on every distinct stage, which is the whole
+    #: complaint. Capped below 1.0 because only the send completing means done,
+    #: and a bar that reaches 100% while the file is still going up is a worse
+    #: lie than one that stops at 90%.
+    _UPLOAD_STAGE_STEP = 0.15
+    _UPLOAD_STAGE_CEILING = 0.9
+
+    def update_media_upload_progress(self, upload_id: str, progress=None,
+                                     stage: str = ""):
+        """Advance an upload's progress from a real fraction or a stage name.
+
+        `progress` is None on every current WhatsApp build: `progressiveStage`,
+        the only numeric source this ever had, does not exist in
+        @wppconnect/wa-js 4.6.0 at all. Refusing to act without a number is
+        exactly what left this feature inert — the bar sat at zero until the
+        send completed and something else forced it to 1.0.
+        """
+        if progress is None:
+            if not stage:
+                return
+            seen = self._upload_stages_seen.setdefault(upload_id, [])
+            if stage in seen:
+                return  # the same stage re-reported is not forward motion
+            seen.append(stage)
+            progress = min(self._UPLOAD_STAGE_CEILING,
+                           len(seen) * self._UPLOAD_STAGE_STEP)
         try:
-            progress = max(0.0, min(1.0, float(progress)))
+            progress = float(progress)
         except (TypeError, ValueError):
             return
+        if progress != progress:  # NaN — see update_message_download_progress
+            return
+        progress = max(0.0, min(1.0, progress))
         previous = self._media_upload_progress.get(upload_id, 0.0)
         progress = max(previous, progress)
         self._media_upload_progress[upload_id] = progress
@@ -11799,6 +11864,7 @@ class ConversationsPanel(wx.Panel):
         stopped = self.main_window.message_queue.cancel(pending_local_id)
         tracked = self._outgoing_virtual_messages.pop(pending_local_id, None)
         self._media_upload_progress.pop(pending_local_id, None)
+        self._upload_stages_seen.pop(pending_local_id, None)
         self._media_transfer_started.discard(pending_local_id)
         self._hide_media_transfer_gauge()
         record = tracked or msg
