@@ -28,7 +28,18 @@ WA_phone_number_linked, written by this method and nothing else.
 
 The mirror-image half is here too: an install that has never been through this
 check carries no such key, and that absence means "learn it now, delete
-nothing" — which is also the migration path for every existing install.
+nothing". That branch is not the migration, though — it is reached for the
+first time on a pairing, which is precisely the pairing that may already have
+linked another phone. record_linked_phone_if_unknown() is the migration: it
+learns the number from an ordinary connection, before anybody scans anything.
+
+The other half of these tests is what surrounds the wipe mid-session. By the
+time this check starts, a sync of the newly paired account is nearly always
+already in flight — started synchronously by the event that concluded the
+pairing, before the dialog even closed — holding the previous account's chats.
+The wipe alone does not deal with it: _try_start_sync_thread() refuses to start
+anything while that round lives, so the corrective full sync silently never
+happens, and the round keeps writing until it exits.
 """
 
 import inspect
@@ -65,6 +76,57 @@ class _Panel:
 
     def close_conversation(self):
         self._events.append("conversation-closed")
+
+
+class _FakeI18n:
+    """t() answers with the key, so an assertion names the key rather than a
+    sentence five files would have to be kept in step with."""
+
+    def t(self, key):
+        return key
+
+
+class _InFlightSync:
+    """The sync round that is already running when the check starts.
+
+    Nothing of start_sync() except the two things this code can observe: the
+    thread stays alive until it is released, and — like start_sync()'s own
+    finally — it clears _initial_sync_running on the way out, whoever set it.
+    """
+
+    def __init__(self, stub):
+        self._stub = stub
+        self._release = threading.Event()
+        stub._initial_sync_running = True
+        self.thread = threading.Thread(target=self._run, daemon=True,
+                                       name="fake-initial-sync")
+        stub.sync_thread = self.thread
+        self.thread.start()
+
+    def _run(self):
+        try:
+            self._release.wait(timeout=10)
+        finally:
+            self._stub.events.append("in-flight-sync-ended")
+            self._stub._initial_sync_running = False
+
+    def finish(self):
+        self._release.set()
+        self.thread.join(timeout=5)
+        assert not self.thread.is_alive()
+
+
+def _resync_thread():
+    """The handoff thread, by the name the code gives it.
+
+    It is created before the check returns, so looking it up right after is
+    deterministic — and it must be looked up before the in-flight round is
+    released, since a finished thread is gone from enumerate().
+    """
+    for thread in threading.enumerate():
+        if thread.name == "another-number-resync":
+            return thread
+    return None
 
 
 class _Stub:
@@ -105,7 +167,11 @@ class _Stub:
         self._initial_sync_running = False
         self._sync_completed = True
         self._force_full_sync = False
+        self.sync_thread = None
         self.sync_starts = 0
+        self.syncs_started = 0
+        self.i18n = _FakeI18n()
+        self.spoken = []
 
     def _host_device_link_probe(self):
         self.probe_calls += 1
@@ -115,20 +181,44 @@ class _Stub:
     def clear_local_data(self):
         self.wipe_calls += 1
         self.events.append(("wipe", self._initial_sync_running))
+        # The real one drops the recorded number along with the data it
+        # describes, which is what makes "the number is written afterwards"
+        # an assertion about ordering rather than about nothing.
+        self.settings["privateinfo"].pop("WA_phone_number_linked", None)
 
     def save_settings(self):
         self.saved += 1
 
+    def output(self, text, interrupt=False):
+        self.spoken.append(text)
+        self.events.append(("spoken", text))
+
     def _try_start_sync_thread(self):
+        """Honest about the one answer that matters here.
+
+        The real one holds _sync_start_lock, sees a live self.sync_thread and
+        returns True having started nothing — which is why a check that simply
+        called it while the contaminated round was still running requested a
+        corrective full sync that never happened.
+        """
         self.sync_starts += 1
         self.events.append(
             ("sync", self._sync_completed, self._force_full_sync))
+        existing = getattr(self, "sync_thread", None)
+        if existing is not None and existing.is_alive():
+            return True
+        self.syncs_started += 1
         return True
 
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
     _wipe_local_data_if_another_number_linked = (
         MainWindow._wipe_local_data_if_another_number_linked
     )
+    _apply_another_number_wipe = MainWindow._apply_another_number_wipe
+    _restart_sync_after_another_number_wipe = (
+        MainWindow._restart_sync_after_another_number_wipe
+    )
+    _ANOTHER_NUMBER_SYNC_JOIN_ROUNDS = MainWindow._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS
 
     @property
     def recorded_number(self):
@@ -534,6 +624,100 @@ class TestLearningTheNumberOfAnInstallThatNeverRanThisCheck:
             assert stub.saved == 0, linked
 
 
+class TestTheNumberIsLearnedBeforeItIsEverNeeded:
+    """The migration, and why it cannot wait for the check itself.
+
+    The check only runs on a pairing (_just_paired) or when a mid-session
+    pairing dialog closes. So an install that predates this code — and every
+    QR-only install, which has never written a number anywhere — reaches it
+    for the first time on a pairing, and that is exactly the pairing that may
+    already have linked somebody else's phone. With no recorded number it
+    takes the "learn it, delete nothing" branch there: the feature would arm
+    itself only from the *second* divergent pairing onwards, and it is the
+    first one that costs the history.
+
+    record_linked_phone_if_unknown() reads the same host-device answer
+    check_wa_connection_http() already fetches every poll, so the number is on
+    file from the first launch after the update. It only ever writes.
+    """
+
+    def test_an_account_with_no_number_on_file_learns_it(self):
+        stub = _Stub(recorded_number=None)
+
+        assert main_module.record_linked_phone_if_unknown(
+            stub, "5511999999999@c.us") is True
+        assert stub.recorded_number == "5511999999999"
+
+    def test_an_empty_value_counts_as_none(self):
+        stub = _Stub(recorded_number="")
+
+        assert main_module.record_linked_phone_if_unknown(
+            stub, "5511999999999@c.us") is True
+        assert stub.recorded_number == "5511999999999"
+
+    def test_a_number_already_on_file_is_never_overwritten(self):
+        """This runs on every connection, including the one right after a
+        different phone linked. Overwriting there would erase the very
+        divergence the check is about to be asked to find."""
+        stub = _Stub(recorded_number="5511999999999")
+
+        assert main_module.record_linked_phone_if_unknown(
+            stub, "5521988887777@c.us") is False
+        assert stub.recorded_number == "5511999999999"
+
+    def test_an_answer_that_is_not_a_phone_number_records_nothing(self):
+        """Storing an unbridged @lid's digits would make the NEXT pairing of
+        the real number look like a divergence, and wipe."""
+        for value in ("182736450192837@lid", "1234", "not-a-number", "",
+                      None, {"_serialized": "5511999999999@c.us"}):
+            stub = _Stub(recorded_number=None)
+
+            assert main_module.record_linked_phone_if_unknown(
+                stub, value) is False, value
+            assert stub.recorded_number is None, value
+
+    def test_privateinfo_that_is_not_a_dict_is_left_alone(self):
+        stub = _Stub(recorded_number=None)
+        stub.settings = {"privateinfo": None}
+
+        assert main_module.record_linked_phone_if_unknown(
+            stub, "5511999999999@c.us") is False
+
+    def test_it_deletes_nothing_of_its_own(self):
+        """Guard on the property the whole helper rests on: it is reachable
+        from a code path that runs every few seconds."""
+        stub = _Stub(recorded_number=None)
+
+        main_module.record_linked_phone_if_unknown(stub, "5511999999999@c.us")
+
+        assert stub.wipe_calls == 0
+        assert stub.probe_calls == 0
+
+    def test_the_first_divergent_pairing_is_then_caught(self):
+        """End to end, on the install this exists for: it learns the number
+        from an ordinary connection, and the very next pairing — the first
+        one after the update — sees the difference."""
+        stub = _Stub(recorded_number=None)
+        main_module.record_linked_phone_if_unknown(stub, "5511999999999@c.us")
+
+        stub._probe = (cs.LINK_PROBE_LINKED, "5521988887777@c.us")
+        stub._wipe_local_data_if_another_number_linked()
+
+        assert stub.wipe_calls == 1
+        assert stub.recorded_number == "5521988887777"
+
+    def test_the_connection_check_is_where_it_is_wired(self):
+        """Source level, same approach as TestBothCallSitesStayWired below:
+        it is called for its side effect, from a method no test can construct,
+        and "nothing was recorded" is also what a removed call looks like."""
+        source = inspect.getsource(MainWindow.check_wa_connection_http)
+        assert "record_linked_phone_if_unknown(self, wuid)" in source
+        # Written straight through to settings.json, or the next launch reads
+        # an install that still has nothing on file.
+        after = source.split("record_linked_phone_if_unknown(self, wuid)", 1)[1]
+        assert "self.save_settings()" in after
+
+
 class TestTheMidSessionWipeDoesNotRaceTheAppAroundIt:
     """The dialog this check runs behind is usually _show_repair_dialog()'s,
     which reopens over a fully running app: a chat list on screen, an audio
@@ -594,18 +778,53 @@ class TestTheMidSessionWipeDoesNotRaceTheAppAroundIt:
         names = [e if isinstance(e, str) else e[0] for e in stub.events]
         assert names.index("wipe") < names.index("sync")
         assert stub.sync_starts == 1
+        # With nothing in flight it really starts, rather than being answered
+        # "there is already one running" — see the class below.
+        assert stub.syncs_started == 1
         assert stub._sync_completed is False
         assert stub._force_full_sync is True
 
+    def test_the_deletion_is_announced_before_anything_disappears(
+            self, monkeypatch):
+        """Nothing else says it. The list empties on its own, which a
+        screen-reader user cannot see, and the sync that follows announces a
+        synchronization rather than a deletion — so the one clue would be a
+        history that is simply gone. Ahead of the teardown, so the reason
+        arrives before the effect."""
+        stub = _Stub(ui_ready=True,
+                     probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.spoken == ["another_number_linked_data_cleared"]
+        names = [e if isinstance(e, str) else e[0] for e in stub.events]
+        for step in ("audio-stopped", "list-cleared", "wipe"):
+            assert names.index("spoken") < names.index(step), step
+
+    def test_nothing_is_announced_when_nothing_is_deleted(self, monkeypatch):
+        stub = _Stub(ui_ready=True,
+                     probe=(cs.LINK_PROBE_LINKED, "5511999999999@c.us"))
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.spoken == []
+
     def test_the_claim_is_released_when_nothing_was_wiped(self, monkeypatch):
         """The overwhelmingly common outcome. Holding _initial_sync_running
-        after it would block every later sync for the rest of the session."""
+        after it would block every later sync for the rest of the session.
+
+        Both halves are asserted, because the end state alone proves nothing:
+        the stub starts at False, so "it is False afterwards" passes just as
+        well against a version that never claimed it at all. The probe event
+        records the flag as it was when the probe ran.
+        """
         stub = _Stub(ui_ready=True,
                      probe=(cs.LINK_PROBE_LINKED, "5511999999999@c.us"))
 
         _run_live(stub, monkeypatch)
 
         assert stub.wipe_calls == 0
+        assert ("probe", True) in stub.events
         assert stub._initial_sync_running is False
         assert stub.sync_starts == 0
 
@@ -614,6 +833,191 @@ class TestTheMidSessionWipeDoesNotRaceTheAppAroundIt:
 
         _run_live(stub, monkeypatch)
 
+        assert ("probe", True) in stub.events
+        assert stub._initial_sync_running is False
+
+    def test_a_restart_that_raises_gives_the_claim_back(self, monkeypatch):
+        """handed_off is set before the call, which is the right order against
+        the race — start_sync() can be running before that line returns — but
+        it means a throw there leaks the claim, and a leaked claim stops every
+        sync for the rest of the session."""
+        stub = _Stub(ui_ready=True,
+                     probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
+
+        def _boom():
+            raise RuntimeError("thread creation failed")
+
+        stub._try_start_sync_thread = _boom
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.wipe_calls == 1
+        assert stub._initial_sync_running is False
+
+
+class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
+    """Mid-session, a sync is nearly always in flight before this check even
+    starts, and it is not started by anything this can see coming.
+
+    The event that concludes the pairing does it synchronously and before the
+    dialog closes: websocket_client's on_wpp_session_logged() calls
+    on_connection_update({state: "open"}) — _set_wa_connected(True) →
+    _sync_completed = False → trigger_sync_if_needed() — and then
+    on_messages_set(), which goes straight to _try_start_sync_thread() without
+    consulting _initial_sync_running at all. Only afterwards does
+    on_pairing_complete() end the modal loop, so show_connection_dial() can
+    return and start the thread this check runs on.
+
+    That round captured self.chats holding account A's chats and is merging
+    B's list onto them. Two separate consequences, and the wipe fixes neither:
+    _try_start_sync_thread() answers "there is already one running" and starts
+    nothing, so the corrective full sync never happens and nothing ever fires
+    again; and the round keeps writing until it exits, so what it commits
+    after the wipe survives it — in self.chats too, which the corrective round
+    would merge onto rather than replace.
+    """
+
+    def _diverged(self):
+        return _Stub(ui_ready=True,
+                     probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
+
+    def test_the_wipe_still_happens_immediately(self, monkeypatch):
+        """It cannot wait for a round that may take minutes: a process killed
+        in between must find the database already emptied."""
+        stub = self._diverged()
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.wipe_calls == 1
+        in_flight.finish()
+
+    def test_no_sync_is_requested_while_that_round_is_still_alive(
+            self, monkeypatch):
+        """Asking there is the same as not asking: the answer is True and
+        nothing starts."""
+        stub = self._diverged()
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.syncs_started == 0
+        in_flight.finish()
+
+    def test_the_restart_waits_for_it_and_then_really_starts(self, monkeypatch):
+        stub = self._diverged()
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        assert worker is not None
+        in_flight.finish()
+        worker.join(timeout=5)
+
+        assert not worker.is_alive()
+        assert stub.syncs_started == 1
+        assert stub._sync_completed is False
+        assert stub._force_full_sync is True
+        names = [e if isinstance(e, str) else e[0] for e in stub.events]
+        assert names.index("in-flight-sync-ended") < names.index("sync")
+
+    def test_the_wipe_runs_again_once_that_round_has_exited(self, monkeypatch):
+        """The round kept writing until it exited, so everything it committed
+        after the first wipe — into the database and into self.chats — is
+        still there. Without this the corrective full sync merges onto the
+        previous account's chats instead of replacing them, and the merge
+        becomes permanent."""
+        stub = self._diverged()
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        in_flight.finish()
+        worker.join(timeout=5)
+
+        assert stub.wipe_calls == 2
+        names = [e if isinstance(e, str) else e[0] for e in stub.events]
+        assert names.index("in-flight-sync-ended") < len(names) - 1
+        # The second wipe is before the sync it is clearing the ground for.
+        assert [i for i, n in enumerate(names) if n == "wipe"][-1] < names.index("sync")
+        # And the recorded number survives that second wipe: clear_local_data()
+        # drops it, this writes it back.
+        assert stub.recorded_number == "5521988887777"
+
+    def test_the_claim_is_retaken_after_the_join(self, monkeypatch):
+        """The round we waited for clears _initial_sync_running in its own
+        finally, whoever set it — so between its exit and the corrective sync
+        the slot would be free for the 60 s incremental poll to walk into."""
+        stub = self._diverged()
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        in_flight.finish()
+        worker.join(timeout=5)
+
+        assert stub.events[-1][0] == "sync"
+        assert stub._initial_sync_running is True
+
+    def test_a_restart_that_raises_after_the_join_gives_the_claim_back(
+            self, monkeypatch):
+        stub = self._diverged()
+        in_flight = _InFlightSync(stub)
+
+        def _boom():
+            raise RuntimeError("thread creation failed")
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        stub._try_start_sync_thread = _boom
+        in_flight.finish()
+        worker.join(timeout=5)
+
+        assert stub._initial_sync_running is False
+
+    def test_yet_another_round_that_started_in_the_gap_is_waited_for_too(
+            self, monkeypatch):
+        """Bounded, but not one-shot: the claim can only be retaken after the
+        join, and anything reaching _try_start_sync_thread() in that gap gets
+        a thread of its own — which would leave the corrective sync refused
+        again, for a round that started before the second wipe."""
+        stub = self._diverged()
+        first = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        second = _InFlightSync(stub)
+        first.finish()
+        # The worker joins `second` too; nothing else can end it.
+        worker.join(timeout=1)
+        assert worker.is_alive()
+        assert stub.syncs_started == 0
+
+        second.finish()
+        worker.join(timeout=5)
+
+        assert stub.syncs_started == 1
+        assert stub.wipe_calls == 2
+
+    def test_the_claim_of_a_round_we_did_not_start_is_not_released(
+            self, monkeypatch):
+        """The common path: same number, nothing deleted — and a
+        post-pairing sync running, whose claim this check would otherwise
+        clear in its finally. Left cleared, the 60 s incremental poll
+        (_initial_sync_running is the only thing it consults) and F5 both walk
+        straight into the initial sync and write self.chats underneath it."""
+        stub = _Stub(ui_ready=True,
+                     probe=(cs.LINK_PROBE_LINKED, "5511999999999@c.us"))
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.wipe_calls == 0
+        assert stub._initial_sync_running is True
+
+        # And it is that round's own finally that gives it back, on its own
+        # schedule — not this check's.
+        in_flight.finish()
         assert stub._initial_sync_running is False
 
     def test_a_teardown_that_raises_still_releases_the_wait(self, monkeypatch):
@@ -653,6 +1057,10 @@ class TestTheStartupPathTouchesNoneOfThat:
         assert called == []
         assert stub.sync_starts == 0
         assert stub._initial_sync_running is False
+        # Not announced either: the user paired seconds ago and the window is
+        # not on screen yet, so there is nothing to explain the disappearance
+        # of — and speak_output is not reachable from here anyway.
+        assert stub.spoken == []
 
 
 class TestANonWipingDisconnectLeavesTheCheckArmed:

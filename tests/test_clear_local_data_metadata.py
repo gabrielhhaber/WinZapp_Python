@@ -73,6 +73,11 @@ class _Stub:
         self.contacts = {"5511988887777@s.whatsapp.net": {}}
         self._status_updates = {"a": {}}
         self.db = _FakeDB()
+        self.settings = {"privateinfo": {
+            "WA_phone_number_linked": "5511999999999",
+            "paired": True,
+        }}
+        self.saved = 0
 
         # The metadata prepare_sync() loads out of system_metadata.
         self._deleted_chats = {"5511988887777@s.whatsapp.net"}
@@ -90,6 +95,7 @@ class _Stub:
         self._last_sync_state = {"mode": "incremental", "chat_count": 155}
         self._exhausted_chats = {"5511988887777@s.whatsapp.net"}
         self._older_requested_chats = {"5511988887777@s.whatsapp.net": 1700000000.0}
+        self._media_failed_ids = {"3EB0ABC": 1700000000.0}
 
         # Backfill/LID state the method already cleared before this change.
         self._sync_run_id = 3
@@ -124,7 +130,11 @@ class _Stub:
     def _persist_message_retry_jids(self):
         pass
 
+    def save_settings(self):
+        self.saved += 1
+
     clear_local_data = MainWindow.clear_local_data
+    _MAX_MEDIA_DELETE_ERRORS_LOGGED = MainWindow._MAX_MEDIA_DELETE_ERRORS_LOGGED
     # Bound for real: the exhausted-history pair has had a one-line helper
     # since F5 needed exactly this, and its docstring already describes the
     # damage of keeping them.
@@ -143,7 +153,11 @@ _METADATA = ("_deleted_chats", "_archived_chats", "_pinned_chats",
              "_last_sync_state",
              # "This chat has no older history", and the requests that
              # concluded it.
-             "_exhausted_chats", "_older_requested_chats")
+             "_exhausted_chats", "_older_requested_chats",
+             # Ids of the previous account's messages whose media CDN URL had
+             # already expired — the twelfth collection of this same family,
+             # and the one that also has a file of its own on disk.
+             "_media_failed_ids")
 
 
 class TestAnAccountSwitchClearsTheMetadataInMemoryToo:
@@ -186,6 +200,78 @@ class TestAnAccountSwitchClearsTheMetadataInMemoryToo:
         assert stub._status_updates == {}
         assert stub._lid_to_phone == {}
         assert stub._phone_to_lid == {}
+
+
+class TestWhatIsOutsideTheDatabaseGoesToo:
+    """Two records of the deleted data that live in their own files.
+
+    data/media_failed.json holds message ids whose media CDN URL answered
+    403/410, and survived the account switch whole: account B started life
+    refusing to download media it had never once tried. F5 has removed it by
+    hand since before this flag existed (it passes wipe_metadata=False, and
+    keeps everything else here too), so only the account switch changes.
+
+    privateinfo["WA_phone_number_linked"] is the number the deleted data
+    belonged to. The divergence check is written around that key describing
+    what is on disk, and six call sites in connect.py wipe through here
+    without ever having heard of it — leaving it naming an account whose
+    database no longer exists, which is read as "no divergence" the next time
+    somebody else's phone pairs.
+    """
+
+    def test_the_failed_media_file_goes_with_the_media(self, tmp_path):
+        (tmp_path / "media_failed.json").write_text('{"3EB0ABC": 1700000000.0}')
+        stub = _Stub()
+
+        stub.clear_local_data()
+
+        assert stub._media_failed_ids == {}
+        assert not (tmp_path / "media_failed.json").exists()
+
+    def test_a_resync_keeps_the_failed_media_file(self, tmp_path):
+        (tmp_path / "media_failed.json").write_text('{"3EB0ABC": 1700000000.0}')
+        stub = _Stub()
+
+        stub.clear_local_data(wipe_metadata=False)
+
+        assert stub._media_failed_ids
+        assert (tmp_path / "media_failed.json").exists()
+
+    def test_the_recorded_linked_number_goes_with_the_data(self):
+        stub = _Stub()
+
+        stub.clear_local_data()
+
+        assert "WA_phone_number_linked" not in stub.settings["privateinfo"]
+        # And persisted: most of those call sites never save settings of their
+        # own, and a key that survives in settings.json is exactly as wrong as
+        # one that survives in memory.
+        assert stub.saved == 1
+
+    def test_nothing_else_in_privateinfo_is_touched(self):
+        stub = _Stub()
+
+        stub.clear_local_data()
+
+        assert stub.settings["privateinfo"] == {"paired": True}
+
+    def test_no_save_when_there_was_no_number_recorded(self):
+        stub = _Stub()
+        stub.settings["privateinfo"].pop("WA_phone_number_linked")
+
+        stub.clear_local_data()
+
+        assert stub.saved == 0
+
+    def test_a_resync_keeps_the_recorded_linked_number(self):
+        """F5 refetches the same account's chats; the number that account is
+        linked to has not changed."""
+        stub = _Stub()
+
+        stub.clear_local_data(wipe_metadata=False)
+
+        assert stub.settings["privateinfo"]["WA_phone_number_linked"] == "5511999999999"
+        assert stub.saved == 0
 
 
 class TestAResyncKeepsEveryLocalActionTheUserTook:
@@ -268,3 +354,28 @@ class TestOneUndeletableFileDoesNotStrandTheRest:
 
         assert [p.name for p in (tmp_path / "media").iterdir()] == ["a.bin"]
         assert list((tmp_path / "voice_messages").iterdir()) == []
+
+    def test_a_folder_that_fails_whole_does_not_flood_the_log(
+            self, tmp_path, monkeypatch, caplog):
+        """log.log is truncated every launch and is the one file a user pastes
+        into a bug report. A media/ folder an antivirus has locked fails on
+        every entry, and there are thousands of them — one line each buries
+        the whole rest of the run."""
+        folder = tmp_path / "media"
+        folder.mkdir()
+        for i in range(20):
+            (folder / f"{i}.bin").write_bytes(b"x")
+
+        def _unlink(path):
+            raise PermissionError(32, "file is in use by another process")
+
+        monkeypatch.setattr(main_module.os, "unlink", _unlink)
+        stub = _Stub()
+
+        with caplog.at_level("ERROR"):
+            stub.clear_local_data()
+
+        per_file = [r for r in caplog.messages if "Failed to delete" in r]
+        assert len(per_file) == MainWindow._MAX_MEDIA_DELETE_ERRORS_LOGGED
+        # The count is what is not allowed to go missing with them.
+        assert any("except 20 entries" in r for r in caplog.messages)
