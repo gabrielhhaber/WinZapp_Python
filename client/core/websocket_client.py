@@ -861,9 +861,10 @@ class WebSocketClient:
 
         Reads exactly the pair check_wa_connection_http()'s own
         `within_grace` reads, so the two windows open and close together.
-        They are cleared as a pair by the three places that treat what
+        They are cleared as a pair by the four places that treat what
         follows as a fresh launch — MainWindow.__init__, _on_disconnect()
-        (main.py) and reset_state_for_resume() (connection_state.py) — and
+        (main.py), reset_state_for_resume() (connection_state.py) and
+        _reset_credentials_and_show_pairing() (this file) — and
         NOT by _set_wa_connected(), which leaves _wa_connect_announced True
         and _wa_startup_time where it was. That is the right behaviour for
         this gate rather than a gap in it: once a connection has actually
@@ -1009,13 +1010,19 @@ class WebSocketClient:
                 # it now has to do.
                 #
                 # play_sound=False because the halt has just played that very
-                # same error_sound object and spoken over it. Playing it again
-                # ~0 ms later does not read as two cues: sound_lib restarts
-                # the one stream, so the user hears a single truncated blip,
-                # and the halt's own line is cut mid-sentence by the
-                # MessageBox's focus announcement — which then says the same
-                # thing anyway. Same shape as the clipped speech the
-                # focus_cloak work was written for (see CLAUDE.md).
+                # same error_sound object. Replaying one stream ~0 ms later is
+                # not heard as two cues — sound_lib restarts it, so it comes
+                # out as a single truncated blip, the shape of clipped output
+                # the focus_cloak work was written for (see CLAUDE.md).
+                #
+                # It buys nothing either: the halt's spoken line is cut
+                # mid-sentence by the MessageBox's focus announcement no
+                # matter what this flag says (output(interrupt=False) queues,
+                # and the screen reader preempts on focus), and that
+                # announcement says the same thing. So the second sound has
+                # no cue left to carry. The MessageBox still raises its own
+                # MB_ICONERROR system sound, which is a different sound and
+                # not subject to that restart.
                 self._show_repair_dialog(play_sound=False)
                 return
             # Never paired: the branch above never ran because there is no
@@ -1045,8 +1052,7 @@ class WebSocketClient:
         reading still. That second route runs after the halt has already
         closed the session and announced it, which is what play_sound=False is
         for; see the call site. Either way, by the time this runs the signal
-        is at least
-        as solid as the coarse status-session string the health-check poll
+        is at least as solid as the coarse status-session string the poll
         watches (which needs several minutes of confirmation to rule out a
         normal slow boot). Surfacing the pairing dialog immediately —
         instead of leaving the user staring at "offline"

@@ -214,6 +214,11 @@ class TestNoAnnouncementWithoutADialog:
 
         assert connect.show_connection_dial_calls == 1
         assert mw.restore_window_calls == 1
+        # Nothing has been closed or announced on this route, so the sound is
+        # the only cue the user gets before the modal takes focus. It is the
+        # other half of the post-halt route's play_sound=False: asserting one
+        # without the other lets the default be flipped with the suite green.
+        assert mw.error_sound.plays == 1
 
 
 class TestNormalRotationStillWorks:
@@ -473,6 +478,14 @@ class TestAPairedInstallBarredByTheGraceWindowStillGetsTheExplanation:
         assert boxes == ["device_logged_out"]
         assert connect.show_connection_dial_calls == 1
         assert mw.restore_window_calls == 1
+        # play_sound=False on this route: the real halt has just played this
+        # very error_sound object and spoken over it, and replaying the same
+        # stream ~0 ms later is heard as one truncated blip, not two cues.
+        # (_FakeMainWindow._halt_unattended_qr_session() plays nothing, so
+        # this counts only what _show_repair_dialog() itself did.) The
+        # MessageBox still carries its own MB_ICONERROR system sound, which
+        # is a different sound and not subject to that restart.
+        assert mw.error_sound.plays == 0
 
     def test_a_never_paired_install_still_skips_the_logged_out_message(self, monkeypatch):
         """The other side of the same routing: with nothing paired there is
