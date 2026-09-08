@@ -5638,6 +5638,16 @@ class MainWindow(wx.Frame):
         self._schedule_set_chats()
         return True
 
+    #: WhatsApp Web's "arrived, not decrypted yet" placeholder. It is followed
+    #: by the real message under the same key.id.
+    _UNDECRYPTED_PLACEHOLDER_TYPES = frozenset({"ciphertext"})
+
+    @staticmethod
+    def _is_undecrypted_placeholder(msg: dict) -> bool:
+        """Whether this event is a placeholder rather than a message."""
+        return (((msg or {}).get("messageType") or "")
+                in MainWindow._UNDECRYPTED_PLACEHOLDER_TYPES)
+
     def _apply_possible_edit(self, existing: dict, incoming: dict, remote_jid: str):
         """Detect and apply a text-message edit re-delivered under the same key.id.
 
@@ -5895,6 +5905,41 @@ class MainWindow(wx.Frame):
 
         # Extract mapping and mentions from incoming messages
         self._extract_lid_mapping(msg)
+
+        # A `ciphertext` is not a message — it is WhatsApp Web saying "something
+        # arrived and I have not decrypted it yet". The real one follows under
+        # the SAME key.id (2.5 s and 4.2 s in the two occurrences measured on a
+        # live install), and storing the placeholder is what makes that second
+        # delivery look like a duplicate.
+        #
+        # The damage is the whole notification, not a cosmetic one. Measured:
+        #
+        #   18:30:49 on_messages_upsert id=ACBF…B49F type=ciphertext
+        #   18:30:49 [unread] chats-update in: …936700@g.us unread=1 previous=0
+        #   18:30:49 [unread] …936700@g.us: no change after discounting
+        #                     non-countable messages (already 0, previous=0)
+        #   18:30:51 on_messages_upsert id=ACBF…B49F type=audioMessage
+        #
+        # WhatsApp said unread=1; the placeholder is not countable (correctly —
+        # it has no content), so the badge was discounted back to zero, and the
+        # real message 2.5 s later hit the same-id dedup and was routed to
+        # _apply_possible_edit(), which never announces anything. The user got
+        # a voice message with no sound, no badge and no screen-reader
+        # announcement, and the row read "Mensagem incompatível" until a later
+        # poll rewrote it.
+        #
+        # Dropping it costs nothing that is not already lost: the placeholder
+        # renders as "Mensagem incompatível", and on the path where the
+        # decrypted copy never arrives at all the 60 s poll is what recovers
+        # the message today either way. _extract_lid_mapping() above still runs
+        # first, since the envelope's addressing is real even when its content
+        # is not.
+        if MainWindow._is_undecrypted_placeholder(msg):
+            logging.info(
+                "[on_new_message] %s: ignoring the ciphertext placeholder for %s "
+                "— waiting for the decrypted copy under the same id.",
+                remote_jid, (key or {}).get("id", "")[:22])
+            return
 
         # Statuses (stories) arrive as messages on status@broadcast; they are
         # stored in _status_updates for the Status tab, not in a conversation.
