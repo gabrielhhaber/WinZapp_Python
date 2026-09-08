@@ -120,9 +120,9 @@ class WebSocketClient:
     # never paired. On one that did it is that dialog's lifetime plus ~1
     # minute: there the _REPAIR_DIALOG_CONFIRM_EVENTS'th unattended event
     # opens the re-pairing dialog, and codes are attended for as long as it
-    # stays up, so the three counted events only start once the user
-    # dismisses it. Short enough that an app left open overnight on a
-    # session WhatsApp already dropped does not ask for hundreds of codes
+    # stays up, so the _UNATTENDED_QR_LIMIT counted events only start once
+    # the user dismisses it. Short enough that an app left open overnight on
+    # a session WhatsApp already dropped does not ask for hundreds of codes
     # nobody will ever scan.
     _UNATTENDED_QR_LIMIT = 3
 
@@ -135,12 +135,24 @@ class WebSocketClient:
     # yet confirmed) on the SAME reading this dialog had already acted on
     # a QR event earlier for, seconds apart. Every other unlink-confirming
     # path in this codebase requires more than a single reading before
-    # doing anything user-visible or destructive; this one now does too,
-    # at the cost of the same ~20-30s (one more QR rotation) every other
-    # such confirmation already accepts as the price of not alarming or
-    # wiping a session that was only ever transiently unhappy. Still well
-    # under _UNATTENDED_QR_LIMIT, so the harsher close-session action is
-    # never reached before the dialog has already offered a way out.
+    # doing anything user-visible or destructive; this one now does too.
+    #
+    # What it buys is precisely that no single reading acts on its own —
+    # not a guaranteed wait. Nothing on the unattended path dedups by
+    # payload (the value check lives in _update_ui()'s `phone` refresh
+    # branch, which needs a dialog on screen), so two socket emissions
+    # carrying the SAME code satisfy this counter without any of WhatsApp's
+    # ~20-30s rotation having passed. In the steady-state flood this was
+    # written for the codes really are rotating and it does cost one
+    # rotation, the same price every other confirmation here accepts for
+    # not alarming a session that was only ever transiently unhappy; in a
+    # boot-time burst it costs almost nothing, which is why
+    # _qr_within_startup_grace() is a separate requirement rather than a
+    # stronger version of this one. Still under _UNATTENDED_QR_LIMIT
+    # either way, so the dialog is offered before the harsher close-session
+    # action — and _handle_unattended_qr() offers it after that action too,
+    # for the paired install a burst inside the grace window carried
+    # straight past this counter.
     _REPAIR_DIALOG_CONFIRM_EVENTS = 2
 
     def __init__(self, main_window, connect, instance_name):
@@ -834,9 +846,18 @@ class WebSocketClient:
         Nothing about a QR event makes it immune to the exact race the
         startup grace exists for elsewhere; it only looks immune because,
         unlike a bare status string, a code is often also genuinely
-        conclusive. Both _wa_startup_time and _wa_connect_announced are
-        reset together on every fresh (re)connect (see main.py), so this
-        re-arms correctly across reconnects, not just the first launch.
+        conclusive.
+
+        Reads exactly the pair check_wa_connection_http()'s own
+        `within_grace` reads, so the two windows open and close together.
+        They are cleared as a pair by the three places that treat what
+        follows as a fresh launch — MainWindow.__init__, _on_disconnect()
+        (main.py) and reset_state_for_resume() (connection_state.py) — and
+        NOT by _set_wa_connected(), which leaves _wa_connect_announced True
+        and _wa_startup_time where it was. That is the right behaviour for
+        this gate rather than a gap in it: once a connection has actually
+        been confirmed, the _wa_connect_announced check below returns False
+        on its own, so the clock under it no longer decides anything.
         """
         mw = self.main_window
         if getattr(mw, "_wa_connect_announced", False):
@@ -899,8 +920,9 @@ class WebSocketClient:
             return
         seen = getattr(mw, "_unattended_qr_events", 0) + 1
         mw._unattended_qr_events = seen
+        paired = bool(mw.settings.get("privateinfo", {}).get("paired"))
         if (
-            mw.settings.get("privateinfo", {}).get("paired")
+            paired
             and not getattr(mw, "_auto_repair_dialog_shown", False)
             and not self._qr_within_startup_grace()
             and seen >= self._REPAIR_DIALOG_CONFIRM_EVENTS
@@ -937,10 +959,11 @@ class WebSocketClient:
             self._show_repair_dialog()
             return
         if seen == self._UNATTENDED_QR_LIMIT:
-            # Never paired, or the dialog was already offered and is no longer
-            # up: nobody is going to scan these. Reached on the same event
-            # count either way, so the ceiling on codes requested from
-            # WhatsApp does not depend on which case we are in.
+            # Nobody is going to scan these, whichever case we are in. Reached
+            # on the same event count regardless — deliberately NOT delayed by
+            # the startup grace or the confirmation counter above, since the
+            # ceiling on codes requested from WhatsApp is the half of this
+            # protection an account was banned for not having.
             #
             # `==`, not `>=`: _halt_unattended_qr_session() latches, so asking
             # again on every later event changes nothing except filling the
@@ -954,20 +977,42 @@ class WebSocketClient:
                 "requesting codes from WhatsApp.", seen,
             )
             mw._halt_unattended_qr_session()
-            if not getattr(mw, "_auto_repair_dialog_shown", False):
-                # Never paired: the branch above never ran, so nothing has
-                # offered this install a way back — and the halt is permanent
-                # until something clears the latch, which only the pairing
-                # dialog does. Left alone the app sits offline forever with no
-                # route to re-pair at all, which is worse than the flood.
-                # Nothing can be lost by opening it here (no session, no
-                # history, nothing paired), and the halt has already played the
-                # error sound and said what happened, so this skips the
-                # MessageBox _show_repair_dialog() adds. The same latch is set
-                # so a dismissed dialog does not get re-opened every minute.
-                mw._auto_repair_dialog_shown = True
-                mw.restore_window()
-                self.connect.show_connection_dial()
+            if getattr(mw, "_auto_repair_dialog_shown", False):
+                # Already offered a way back, and dismissed: re-opening it on
+                # every flood would hand the user a fresh dialog every minute.
+                return
+            # Two different states arrive here with nothing yet offered, and
+            # `paired` is what tells them apart — _auto_repair_dialog_shown
+            # cannot, since it is also False for a paired install the branch
+            # above merely withheld (inside the startup grace, or before
+            # _REPAIR_DIALOG_CONFIRM_EVENTS confirmed it). Both are reachable
+            # in one flood: the grace is _WA_STARTUP_GRACE_SECONDS wide and
+            # nothing on this path dedups a repeated code, so a boot-time
+            # burst can spend the whole limit inside it.
+            if paired:
+                # A paired install whose session has just been closed by the
+                # halt. It needs the same explanation the branch above would
+                # have given it — the device_logged_out MessageBox — because
+                # otherwise all it is told is that a session was closed, with
+                # nothing said about the login it just lost or the re-pairing
+                # it now has to do. The halt has already played the error
+                # sound and spoken, so this repeats that cue; the specific
+                # explanation is worth hearing it twice.
+                self._show_repair_dialog()
+                return
+            # Never paired: the branch above never ran because there is no
+            # session to re-pair — and the halt is permanent until something
+            # clears the latch, which only the pairing dialog does. Left alone
+            # the app sits offline forever with no route to re-pair at all,
+            # which is worse than the flood. Nothing can be lost by opening it
+            # here (no session, no history, nothing paired), and the halt has
+            # already played the error sound and said what happened, so this
+            # skips the MessageBox _show_repair_dialog() adds — there is no
+            # logged-out device to explain. The same latch is set so a
+            # dismissed dialog does not get re-opened every minute.
+            mw._auto_repair_dialog_shown = True
+            mw.restore_window()
+            self.connect.show_connection_dial()
 
     def _show_repair_dialog(self):
         """Tell a previously-paired user their session needs re-pairing, and

@@ -417,6 +417,77 @@ class TestNeverPairedGetsARouteBack:
         assert connect.show_connection_dial_calls == 1
 
 
+class TestAPairedInstallBarredByTheGraceWindowStillGetsTheExplanation:
+    """The one case the startup grace and _REPAIR_DIALOG_CONFIRM_EVENTS
+    changed the behaviour of, and the one nothing else covers: paired,
+    inside the grace window, and a full _UNATTENDED_QR_LIMIT of unattended
+    events.
+
+    TestStartupGraceWindow (tests/test_qrcode_auto_repair_dialog.py) stops at
+    two events, and the flood tests above are all outside the grace window —
+    one with paired=False, the other already past the dialog. In between,
+    every event walks past the proactive branch (withheld by the grace) and
+    reaches the halt with _auto_repair_dialog_shown still False, which is the
+    never-paired route: /close-session, which force-kills without flushing
+    auth, and then the generic pairing dialog with no word about the login
+    that was just lost. Routing that on `paired` instead is what keeps the
+    device_logged_out explanation for the user who has something to re-pair.
+
+    The halt itself must NOT move: it is the half of this protection an
+    account was banned for not having, so neither new condition may delay
+    it."""
+
+    def test_the_halt_still_fires_at_the_limit_and_the_user_is_told_why(self, monkeypatch):
+        boxes = []
+        monkeypatch.setattr(
+            "core.websocket_client.wx.MessageBox",
+            lambda text, *a, **kw: boxes.append(text),
+        )
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        # A (re)connect that has never confirmed a live connection, seconds
+        # old: exactly the window _qr_within_startup_grace() withholds
+        # judgment for. Codes are not deduped on this path, so a boot-time
+        # burst spends the whole limit inside it.
+        mw._wa_connect_announced = False
+        mw._wa_startup_time = time.time()
+        connect = _FakeConnect(mode="qrcode", main_window=mw)
+        s = _Stub(mw, connect)
+
+        for _ in range(WebSocketClient._UNATTENDED_QR_LIMIT - 1):
+            s.on_qrcode_update(QR_EVENT)
+        # Withheld so far — that is what the grace window is for.
+        assert connect.show_connection_dial_calls == 0
+        assert mw.halt_calls == 0
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert mw.halt_calls == 1
+        assert boxes == ["device_logged_out"]
+        assert connect.show_connection_dial_calls == 1
+        assert mw.restore_window_calls == 1
+
+    def test_a_never_paired_install_still_skips_the_logged_out_message(self, monkeypatch):
+        """The other side of the same routing: with nothing paired there is
+        no logged-out device to explain, and the halt has already played the
+        error sound and said what happened — so that install gets the pairing
+        dialog and no MessageBox, exactly as before."""
+        boxes = []
+        monkeypatch.setattr(
+            "core.websocket_client.wx.MessageBox",
+            lambda text, *a, **kw: boxes.append(text),
+        )
+        mw = _FakeMainWindow(paired=False, pairing_dialog_active=False)
+        connect = _FakeConnect(mode="qrcode", main_window=mw)
+        s = _Stub(mw, connect)
+
+        for _ in range(WebSocketClient._UNATTENDED_QR_LIMIT):
+            s.on_qrcode_update(QR_EVENT)
+
+        assert mw.halt_calls == 1
+        assert boxes == []
+        assert connect.show_connection_dial_calls == 1
+
+
 class TestConnectedSessionStillWins:
     def test_a_live_connection_ignores_the_event_entirely(self):
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
