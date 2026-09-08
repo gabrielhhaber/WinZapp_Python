@@ -153,6 +153,17 @@ class WebSocketClient:
     # action — and _handle_unattended_qr() offers it after that action too,
     # for the paired install a burst inside the grace window carried
     # straight past this counter.
+    #
+    # The halt itself moves by one event, in both directions, and that is
+    # the whole cost in codes actually requested from WhatsApp. Measured on
+    # a paired install by counting past the limit rather than stopping at
+    # it: outside the grace the halt lands on the 5th unattended code
+    # instead of the 4th (this counter withholds the dialog for one extra
+    # event, and the dialog is what used to reset the count); inside the
+    # grace it lands on the 3rd instead of the 4th, since nothing resets the
+    # count there at all. Bounded at +-1 either way — never a widening
+    # window, which is the property that matters for an account that was
+    # banned over code volume.
     _REPAIR_DIALOG_CONFIRM_EVENTS = 2
 
     def __init__(self, main_window, connect, instance_name):
@@ -995,10 +1006,17 @@ class WebSocketClient:
                 # have given it — the device_logged_out MessageBox — because
                 # otherwise all it is told is that a session was closed, with
                 # nothing said about the login it just lost or the re-pairing
-                # it now has to do. The halt has already played the error
-                # sound and spoken, so this repeats that cue; the specific
-                # explanation is worth hearing it twice.
-                self._show_repair_dialog()
+                # it now has to do.
+                #
+                # play_sound=False because the halt has just played that very
+                # same error_sound object and spoken over it. Playing it again
+                # ~0 ms later does not read as two cues: sound_lib restarts
+                # the one stream, so the user hears a single truncated blip,
+                # and the halt's own line is cut mid-sentence by the
+                # MessageBox's focus announcement — which then says the same
+                # thing anyway. Same shape as the clipped speech the
+                # focus_cloak work was written for (see CLAUDE.md).
+                self._show_repair_dialog(play_sound=False)
                 return
             # Never paired: the branch above never ran because there is no
             # session to re-pair — and the halt is permanent until something
@@ -1014,14 +1032,20 @@ class WebSocketClient:
             mw.restore_window()
             self.connect.show_connection_dial()
 
-    def _show_repair_dialog(self):
+    def _show_repair_dialog(self, play_sound=True):
         """Tell a previously-paired user their session needs re-pairing, and
         put the pairing dialog in front of them straight away.
 
-        Called once _handle_unattended_qr() has already required everything
-        it requires before reaching here — outside the startup grace window
-        and confirmed by _REPAIR_DIALOG_CONFIRM_EVENTS consecutive readings,
-        not a single one — so by the time this runs, the signal is at least
+        Reached from _handle_unattended_qr() by two routes, and both mean the
+        signal has been confirmed rather than acted on once. Either it cleared
+        that method's own bar — outside the startup grace window and confirmed
+        by _REPAIR_DIALOG_CONFIRM_EVENTS consecutive readings, not a single
+        one — or the grace/counter withheld it and the flood then spent the
+        entire _UNATTENDED_QR_LIMIT inside that window, which is a stronger
+        reading still. That second route runs after the halt has already
+        closed the session and announced it, which is what play_sound=False is
+        for; see the call site. Either way, by the time this runs the signal
+        is at least
         as solid as the coarse status-session string the health-check poll
         watches (which needs several minutes of confirmation to rule out a
         normal slow boot). Surfacing the pairing dialog immediately —
@@ -1051,7 +1075,8 @@ class WebSocketClient:
         # everything with no prior audible cue is easy to miss
         # entirely — reported live as exactly that.
         self.main_window.restore_window()
-        self.main_window.error_sound.play()
+        if play_sound:
+            self.main_window.error_sound.play()
         wx.MessageBox(
             self.i18n.t("device_logged_out"),
             self.i18n.t("error").format(app_name=self.main_window.app_name),

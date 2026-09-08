@@ -82,6 +82,14 @@ class _FakeConnect:
         # looking at the pairing UI, so both unattended-QR guards are dropped.
         # Without this the fake made the flood limit look one event closer
         # than production ever reaches it.
+        #
+        # It does NOT mirror the other half: the real dialog is modal, so in
+        # production every later code is attended and the counter is reset by
+        # _pairing_attended() on each one. Here it keeps counting after the
+        # call. No test relies on that difference today — the dismissal tests
+        # model a dialog already closed — but a test that opens the dialog and
+        # then expects production's counts must set _pairing_dialog_active
+        # itself.
         self.main_window._reset_unattended_qr_guards()
 
     def display_qrcode_image(self, base64_img):
@@ -486,6 +494,30 @@ class TestAPairedInstallBarredByTheGraceWindowStillGetsTheExplanation:
         assert mw.halt_calls == 1
         assert boxes == []
         assert connect.show_connection_dial_calls == 1
+
+    def test_a_dismissed_dialog_is_not_reopened_for_a_paired_install(self, monkeypatch):
+        """The dismissal check has to keep running BEFORE the `paired` split.
+
+        Both guard the same block, and only the order separates them: swap
+        the two and a paired user who already dismissed the dialog gets a
+        fresh device_logged_out MessageBox on every flood. The pre-existing
+        cover for this branch is paired=False, which passes either way."""
+        boxes = []
+        monkeypatch.setattr(
+            "core.websocket_client.wx.MessageBox",
+            lambda text, *a, **kw: boxes.append(text),
+        )
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        mw._auto_repair_dialog_shown = True
+        connect = _FakeConnect(mode="qrcode", main_window=mw)
+        s = _Stub(mw, connect)
+
+        for _ in range(WebSocketClient._UNATTENDED_QR_LIMIT * 3):
+            s.on_qrcode_update(QR_EVENT)
+
+        assert mw.halt_calls == 1
+        assert boxes == []
+        assert connect.show_connection_dial_calls == 0
 
 
 class TestConnectedSessionStillWins:
