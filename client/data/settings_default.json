@@ -13,6 +13,7 @@
         "updates_enabled": true,
         "alpha_updates_enabled": false,
         "noise_reduction_enabled": false,
+        "spell_check_enabled": true,
         "first_run": true,
         "api_type_first_run_asked": false,
         "hotkey_first_run_asked": false,

@@ -237,6 +237,34 @@ def normalize_line_separators(text) -> str:
     return text
 
 
+def to_editor_line_endings(text) -> str:
+    """The same text with CRLF breaks, for insertion into a MULTILINE field.
+
+    The inverse of normalize_line_separators(), and both are needed because
+    two consumers disagree about what a line break is:
+
+    * WhatsApp, the database and every comparison in this codebase want the
+      canonical ``\\n`` — which is what normalize_line_separators() produces and
+      what the send paths call on the field's value before posting.
+    * A screen reader navigating a ``wx.TextCtrl`` with the arrow keys wants
+      ``\\r\\n``. With a bare ``\\n``, NVDA reads a pasted block as ONE line and
+      Up/Down move through it as if the breaks were not there. Reported after
+      pasting a plain-LF file (a text file with 644 LF breaks and not one CR)
+      out of Notepad.
+
+    So the field holds the editor form and the send path collapses it back —
+    which it already did before this existed, for the CRLF that Windows
+    clipboard sources supply anyway. Nothing reaches WhatsApp with a stray CR.
+
+    **Only ever apply this to a multiline control.** A single-line
+    ``wx.TextCtrl`` cannot navigate lines, does not translate line endings the
+    way the multiline one does, and would simply hold the control characters
+    verbatim — the attachment caption field is exactly that, and shares the
+    paste handler with the message field.
+    """
+    return normalize_line_separators(text).replace("\n", "\r\n")
+
+
 _FORWARDABLE_SUB_KEYS = (
     "extendedTextMessage", "audioMessage", "imageMessage",
     "videoMessage", "documentMessage", "stickerMessage",
@@ -739,6 +767,12 @@ DEFAULT_SETTINGS = {
         # client/updater.py's select_release().
         "alpha_updates_enabled": False,
         "noise_reduction_enabled": False,
+        # Windows spell checking in the message field (core/spell_checker.py).
+        # On by default — the cue is a Sound Event, so a user who wants the
+        # checking but not the sound can silence just that event in Settings >
+        # Eventos Sonoros; this switch turns the checking itself off, which is
+        # also what stops the COM/dictionary work from ever being done.
+        "spell_check_enabled": True,
         "first_run": True,
         "api_type_first_run_asked": False,
         "hotkey_first_run_asked": False,

@@ -50,11 +50,12 @@ from ui.accessible import (
 )
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
 from core.save_location import resolve_save_dialog_folder
-from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
+from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, to_editor_line_endings, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.message_copy_format import format_copied_message
 from core.video_player import VideoPlayer
 from core.focus_cloak import cloak_focus_announcement
+from core.spell_checker import WindowsSpellChecker
 from ui.media_viewer import MediaViewerDialog
 from app_paths import data_path
 from core.message_queue import PendingMessage
@@ -160,6 +161,46 @@ def local_media_cache_paths(voice_dir: str, media_dir: str, msg_id: str) -> list
         os.path.join(voice_dir, f"{msg_id}.msv"),
         os.path.join(media_dir, f"{msg_id}.wzmedia"),
     ]
+
+
+def media_cache_id(msg_id: str) -> str:
+    """The id a message's cached media file is actually named after.
+
+    Some ids arrive in WhatsApp's composite `false_<jid>_<id>` form, and the
+    file on disk is named after the last component only. Playback, Save As and
+    the download button all reduced it with this same three-line rule, each
+    keeping its own copy.
+    """
+    if "_" in msg_id:
+        parts = msg_id.split("_")
+        return parts[2] if len(parts) > 2 else parts[-1]
+    return msg_id
+
+
+def cached_media_path(msg_type: str, msg_id: str) -> str:
+    """The one file this message's media is cached at, if it is cached at all.
+
+    **Voice notes and audio files do not live where the other media do.**
+    `handle_audio_message()` writes `voice_messages/<id>.msv`;
+    `handle_media_message()` writes `media/<id>.wzmedia`. Anything that answers
+    "where is this message's file" by hardcoding the second one is wrong for
+    every audio message — and wrong in the worst way, because the file IS on
+    disk: the caller concludes it is missing, downloads it (into the .msv path
+    it is not looking at), re-checks the .wzmedia path, finds nothing, and
+    tells the user the media could not be downloaded and the link may have
+    expired. Reported against Ctrl+C on a voice message that played perfectly
+    a second earlier.
+
+    This is the same rule `local_media_cache_paths()` states for the Media
+    tab's downloaded/not-downloaded scan, in the form a caller wanting ONE
+    path needs. CLAUDE.md's warning applies to both: a second copy of this
+    answer is how one part of the app starts disagreeing with whatever wrote
+    the file.
+    """
+    cache_id = media_cache_id(msg_id)
+    if msg_type == "audioMessage":
+        return data_path("voice_messages", f"{cache_id}.msv")
+    return data_path("media", f"{cache_id}.wzmedia")
 
 
 def promote_local_media_cache(voice_dir: str, media_dir: str,
@@ -327,6 +368,14 @@ class ConversationsPanel(wx.Panel):
         self.conversation = None
         self.conversation_name = ""
         self._last_open_jid = ""
+        # The optional Windows checker only observes completed words; it does
+        # not alter keyboard handling or message sending. Its cue is a normal
+        # Sound Event, so it follows the active soundpack, per-event enabled
+        # state and custom path.
+        self._spell_checker = WindowsSpellChecker(
+            language=self.main_window.settings.get("general", {}).get("language"),
+            on_error=self._play_spelling_error_sound,
+        )
         # Ultima linha da lista de conversas em que o foco pousou, aberta ou
         # nao — ver _on_conversation_focused() e
         # _restore_conversation_selection().
@@ -1851,11 +1900,43 @@ class ConversationsPanel(wx.Panel):
             return
         event.Skip()
 
+    def _spell_check_enabled(self) -> bool:
+        """Whether Settings > Geral leaves spell checking on (default: yes).
+
+        Read on every keystroke rather than cached at construction, so the
+        checkbox takes effect the moment it is applied — no restart, and no
+        need for the settings dialog to reach into this panel. Missing key
+        means on, which is what installs whose settings.json predates the
+        option get.
+        """
+        try:
+            return bool(
+                self.main_window.settings.get("general", {}).get(
+                    "spell_check_enabled", True
+                )
+            )
+        except Exception:
+            return True
+
+    def _play_spelling_error_sound(self):
+        """Play the currently configured spelling-error Sound Event."""
+        self.main_window.spelling_error_sound.play()
+
     def on_change_message_field(self, event):
         # Don't touch button visibility while recording or staging attachments.
         if self._is_recording or self._attachment_panel.IsShown():
             return
         msg = self.message_field.GetValue()
+        spell_checker = getattr(self, "_spell_checker", None)
+        if spell_checker is not None:
+            if self._spell_check_enabled():
+                spell_checker.text_changed(msg)
+            else:
+                # Keep the checker's view of the field current while it is
+                # switched off, so re-enabling it mid-message does not read
+                # the whole existing text as one freshly typed word and fire
+                # the cue for something the user typed minutes ago.
+                spell_checker.reset(msg)
         if msg.strip():
             self.send_message_btn.Show()
             self.record_voice_message_btn.Hide()
@@ -1953,6 +2034,17 @@ class ConversationsPanel(wx.Panel):
         choose_and_insert_emoji(self, self.message_field, self.main_window.i18n)
 
     def _on_conversation_char_hook(self, event):
+        if self._is_phantom_nvda_char(event):
+            # Veto here too, not just in _on_message_field_char(): this hook
+            # runs for the whole panel regardless of which child control
+            # currently has focus, and the "type anywhere to reply" redirect
+            # below treats 'ÿ' as an ordinary alnum character — chr(0xFF)
+            # .isalnum() is True in Python — so with focus on the
+            # conversations/messages list (the common case while browsing
+            # with a screen reader) it was moving focus to message_field and
+            # writing 'ÿ' into it via WriteText(), bypassing that other
+            # veto entirely, since WriteText() never raises EVT_CHAR.
+            return  # consume — do not insert, do not Skip()
         kc = event.GetKeyCode()
         # Intercept Esc and Enter when the mention suggestion list has focus so
         # they are handled here, before the accelerator table fires
@@ -2000,6 +2092,11 @@ class ConversationsPanel(wx.Panel):
         key = event.GetUnicodeKey()
         if key == wx.WXK_NONE:
             return False
+        if self._is_phantom_nvda_char(event):
+            # chr(0xFF).isalnum() is True in Python, so the alnum check
+            # below would otherwise wave this straight through — see
+            # _is_phantom_nvda_char()'s docstring.
+            return False
         try:
             # Only redirect alphanumeric characters — this prevents special
             # keys like Delete (127), Backspace (8), and other control/function
@@ -2018,6 +2115,9 @@ class ConversationsPanel(wx.Panel):
     def refresh_labels(self):
         """Update all translatable labels and column headers after a language change."""
         i18n = self.main_window.i18n
+        self._spell_checker.set_language(
+            self.main_window.settings.get("general", {}).get("language")
+        )
 
         self.conversations_label.SetLabel(i18n.t("conversations"))
         col = wx.ListItem()
@@ -5238,9 +5338,11 @@ class ConversationsPanel(wx.Panel):
 
     @staticmethod
     def _is_phantom_nvda_char(event) -> bool:
-        """True for the bogus U+00FF character NVDA's laptop-layout object
-        navigation gestures (Windows+NVDA+Left/Right and others — issue #71)
-        leak into whatever wx.TextCtrl happens to be focused.
+        """True for the bogus U+00FF character that a screen reader's own
+        modifier-key gestures (Windows+NVDA+Left/Right and others — issue
+        #71 — and reportedly Alt+Tab as well) leak into whatever control is
+        focused, or into the message field via the "type anywhere to reply"
+        redirect below when it isn't (see _on_conversation_char_hook()).
 
         Reported live: each press of Windows+NVDA+Left/Right inserted one
         literal 'ÿ' into the message field, even though no text key was
@@ -5251,7 +5353,10 @@ class ConversationsPanel(wx.Panel):
         the character U+00FF — not a value any real keyboard layout produces
         by pressing the Windows key plus an arrow. That makes it safe to
         veto unconditionally rather than trying to special-case NVDA's own
-        modifier state, which wx never sees.
+        modifier state, which wx never sees. Checked at every entry point
+        that can put a character into the message field — see
+        _on_conversation_char_hook() for the other one — because this exact
+        code point is never a legitimate keystroke.
         """
         return event.GetUnicodeKey() == 0xFF
 
@@ -5294,8 +5399,16 @@ class ConversationsPanel(wx.Panel):
             text = data.GetText()
         finally:
             wx.TheClipboard.Close()
-        normalized = normalize_line_separators(text)
         target = event.GetEventObject()
+        normalized = normalize_line_separators(text)
+        # Multiline only: a screen reader needs CRLF to navigate the pasted
+        # block line by line, and the send path collapses it back to a bare
+        # newline before anything reaches WhatsApp. The caption field shares
+        # this handler and
+        # is single-line — it cannot navigate lines and would just hold the
+        # control characters. See to_editor_line_endings().
+        if normalized and getattr(target, "IsMultiLine", None) and target.IsMultiLine():
+            normalized = to_editor_line_endings(normalized)
         if normalized != text and target is not None:
             # WriteText() replaces the current selection and fires EVT_TEXT,
             # keeping the mention check / send-button logic in sync.
@@ -5325,7 +5438,9 @@ class ConversationsPanel(wx.Panel):
             if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_UNICODETEXT)):
                 data = wx.TextDataObject()
                 if wx.TheClipboard.GetData(data):
-                    text = normalize_line_separators(data.GetText())
+                    # message_field is multiline; same reasoning as
+                    # _on_text_field_paste().
+                    text = to_editor_line_endings(data.GetText())
         finally:
             wx.TheClipboard.Close()
 
@@ -7327,14 +7442,7 @@ class ConversationsPanel(wx.Panel):
         """
         msg_type = msg.get("messageType", "")
         msg_id   = msg.get("key", {}).get("id", "")
-        clean_msg_id = msg_id
-        if "_" in msg_id:
-            parts = msg_id.split("_")
-            clean_msg_id = parts[2] if len(parts) > 2 else parts[-1]
-        if msg_type == "audioMessage":
-            media_path = data_path("voice_messages", f"{clean_msg_id}.msv")
-        else:
-            media_path = data_path("media", f"{clean_msg_id}.wzmedia")
+        media_path = cached_media_path(msg_type, msg_id)
 
         if not os.path.isfile(media_path):
             if not getattr(self.main_window, "_wa_connected", False):
@@ -7393,7 +7501,7 @@ class ConversationsPanel(wx.Panel):
         msg_id   = msg.get("key", {}).get("id", "")
         mw       = self.main_window
         i18n     = mw.i18n
-        media_path = data_path("media", f"{msg_id}.wzmedia")
+        media_path = cached_media_path(msg_type, msg_id)
 
         if not getattr(mw, "_wa_connected", False):
             mw.output(i18n.t("media_download_offline"))
@@ -10377,7 +10485,11 @@ class ConversationsPanel(wx.Panel):
             return
 
         default_file = self._resolve_media_filename(msg)
-        media_path = data_path("media", f"{msg_id}.wzmedia")
+        # Through the shared resolver: a voice note is cached under
+        # voice_messages/<id>.msv, and hardcoding the media/ path here is what
+        # made Ctrl+C on an already-downloaded audio announce "could not
+        # download this media file, the link may have expired".
+        media_path = cached_media_path(msg_type, msg_id)
 
         def _run():
             if not self._ensure_media_on_disk(msg, media_path):
@@ -11957,7 +12069,9 @@ class ConversationsPanel(wx.Panel):
             self._pending_mention_display_names[jid] = self._get_participant_name(jid)
         self._rebuild_mention_pills()
 
-        self.message_field.SetValue(content)
+        # Stored text uses bare newlines; the field wants CRLF so the screen
+        # reader can arrow through a multi-line message being edited.
+        self.message_field.SetValue(to_editor_line_endings(content))
         self.message_field.SetInsertionPointEnd()
         self.message_field.SetFocus()
 

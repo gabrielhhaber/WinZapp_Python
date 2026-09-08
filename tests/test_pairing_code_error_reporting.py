@@ -362,3 +362,227 @@ class TestPatchSerializesTheWholeError:
 
         assert "stack: String(error?.stack || '')," in PATCHED_CHECK_QR_CODE
         assert "details: error?.winzappDetails || {}," in PATCHED_CHECK_QR_CODE
+
+
+class _FakeSound:
+    def __init__(self):
+        self.plays = 0
+
+    def play(self):
+        self.plays += 1
+
+
+class _FakeSpeakOutput:
+    def __init__(self):
+        self.spoken = []
+
+    def output(self, text):
+        self.spoken.append(text)
+
+
+class _AnnouncingMainWindowStub:
+    app_name = "WinZapp"
+
+    def __init__(self, pairing_dialog_active=True):
+        self._pairing_dialog_active = pairing_dialog_active
+        self.error_sound = _FakeSound()
+        self.speak_output = _FakeSpeakOutput()
+
+    def _is_pairing_dialog_active(self):
+        return self._pairing_dialog_active
+
+
+class _AnnouncingWsStub(_WsStub):
+    """_WsStub plus the two attributes the announcement itself touches."""
+
+    _announce_pairing_code_expired = WebSocketClient._announce_pairing_code_expired
+
+    def __init__(self, pairing_dialog_active=True, instance_name=SESSION):
+        super().__init__(instance_name=instance_name)
+        self.main_window = _AnnouncingMainWindowStub(pairing_dialog_active)
+        self.i18n = _I18nStub(
+            {
+                "pairing_code_expired": "O codigo expirou.",
+                "pairing_code_rate_limited": (
+                    "O WhatsApp esta limitando os pedidos. Aguarde alguns "
+                    "minutos e tente novamente no {app_name}."
+                ),
+            }
+        )
+
+
+@pytest.fixture
+def synchronous_call_after(monkeypatch):
+    import core.websocket_client as ws_module
+
+    monkeypatch.setattr(
+        ws_module.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw)
+    )
+
+
+class TestExpiredPairingCodeIsAnnounced:
+    """The blocker this class was written for: wa-js stops refreshing after
+    five re-mints, so an attended dialog gets ~six codes over ~19.5 minutes and
+    then `LinkCodeExpired`. Recorded in `_phone_code_error` it reaches nobody —
+    the only reader is connect.py's 90 s phoneCode wait, which returned long
+    before the dialog even opened. The dialog therefore kept showing the last,
+    now-dead code; the user typed it, WhatsApp refused, and the retry minted a
+    fresh session and another six codes.
+
+    `LinkCodeRefreshFailed` is the same ending arrived at from the other side —
+    a refresh that fails rather than a refresh budget that runs out — and it is
+    announced for the same reason. The two names exist only because the *first*
+    mint fails through the same wa-js event, and that case is already handled
+    elsewhere.
+    """
+
+    def test_it_speaks_and_plays_the_error_sound(self, synchronous_call_after):
+        ws = _AnnouncingWsStub(pairing_dialog_active=True)
+
+        ws.on_wpp_phone_code_error({"session": SESSION, "name": "LinkCodeExpired"})
+
+        assert ws.main_window.speak_output.spoken == ["O codigo expirou."]
+        assert ws.main_window.error_sound.plays == 1
+
+    def test_it_says_nothing_with_no_dialog_on_screen(self, synchronous_call_after):
+        """Same reasoning as on_qrcode_update()'s refresh branches: an event
+        for a session nobody is watching must not talk over whatever the user
+        is actually doing."""
+        ws = _AnnouncingWsStub(pairing_dialog_active=False)
+
+        ws.on_wpp_phone_code_error({"session": SESSION, "name": "LinkCodeExpired"})
+
+        assert ws.main_window.speak_output.spoken == []
+        assert ws.main_window.error_sound.plays == 0
+
+    def test_another_sessions_expiry_is_ignored(self, synchronous_call_after):
+        ws = _AnnouncingWsStub(pairing_dialog_active=True)
+
+        ws.on_wpp_phone_code_error(
+            {"session": OTHER_SESSION, "name": "LinkCodeExpired"}
+        )
+
+        assert ws.main_window.speak_output.spoken == []
+
+    def test_a_failed_refresh_is_announced_too(self, synchronous_call_after):
+        """A refresh that fails ends the stream just as surely, and sooner.
+
+        wa-js clears its 195 s timer before minting and re-arms it only from a
+        successful mint, so a failed refresh leaves no timer, no code and a
+        rejection its own caller swallows — `conn.link_code_expired` cannot
+        fire afterwards either. Left as a log line, this stranded the user at
+        t+195 s with a code wa-js had already discarded, where the announced
+        case reaches them at ~19.5 minutes: the quiet failure was the earlier
+        one. The host.layer.js hook names it apart precisely so it can be
+        announced without dragging the first mint's failure in with it."""
+        ws = _AnnouncingWsStub(pairing_dialog_active=True)
+
+        ws.on_wpp_phone_code_error(
+            {
+                "session": SESSION,
+                "name": "LinkCodeRefreshFailed",
+                "message": "CompanionHelloError",
+            }
+        )
+
+        assert ws.main_window.speak_output.spoken == ["O codigo expirou."]
+        assert ws.main_window.error_sound.plays == 1
+        assert ws._phone_code_error == "LinkCodeRefreshFailed: CompanionHelloError"
+
+    def test_a_quota_refusal_says_to_wait_instead_of_to_retry(
+        self, synchronous_call_after
+    ):
+        """"Cancel and try again" is the one piece of advice that must not be
+        given here. A refresh refused on quota grounds is reachable — every
+        manual retry mints a fresh session and up to six codes — and sending
+        the user round that loop immediately is what keeps the quota spent.
+        connect.py's _on_pairing_code_error() reached the same conclusion for
+        the first mint; this is the channel that carries every later one."""
+        ws = _AnnouncingWsStub(pairing_dialog_active=True)
+
+        ws.on_wpp_phone_code_error(
+            {
+                "session": SESSION,
+                "name": "LinkCodeRefreshFailed",
+                "message": "rate-overlimit",
+                "rateLimited": True,
+            }
+        )
+
+        assert ws.main_window.speak_output.spoken == [
+            "O WhatsApp esta limitando os pedidos. Aguarde alguns minutos e "
+            "tente novamente no WinZapp."
+        ]
+        assert ws.main_window.error_sound.plays == 1
+
+    def test_an_expiry_after_a_quota_refusal_is_read_at_the_call_site(
+        self, synchronous_call_after
+    ):
+        """`_phone_code_rate_limited` is a single slot overwritten by every
+        event, and CallAfter runs on the wx thread whenever it gets there. Read
+        inside the announcement instead of at the call site, a later non-quota
+        expiry would be announced with the previous event's verdict."""
+        ws = _AnnouncingWsStub(pairing_dialog_active=True)
+
+        ws.on_wpp_phone_code_error(
+            {
+                "session": SESSION,
+                "name": "LinkCodeRefreshFailed",
+                "rateLimited": True,
+            }
+        )
+        ws.on_wpp_phone_code_error({"session": SESSION, "name": "LinkCodeExpired"})
+
+        assert ws.main_window.speak_output.spoken[-1] == "O codigo expirou."
+
+    def test_a_first_mint_failure_stays_in_the_log(self, synchronous_call_after):
+        """`LinkCodeError` is what the hook reports when no code ever reached
+        the screen — the initial mint failing. loginByCode()'s retry ladder
+        owns that one and connect.py's 90 s wait reports it, so announcing
+        "your code expired" during the initial wait would name a code that
+        never existed."""
+        ws = _AnnouncingWsStub(pairing_dialog_active=True)
+
+        ws.on_wpp_phone_code_error(
+            {"session": SESSION, "name": "LinkCodeError", "message": "timeout"}
+        )
+
+        assert ws.main_window.speak_output.spoken == []
+        assert ws._phone_code_error == "LinkCodeError: timeout"
+
+    def test_a_failed_refresh_says_nothing_with_no_dialog_on_screen(
+        self, synchronous_call_after
+    ):
+        ws = _AnnouncingWsStub(pairing_dialog_active=False)
+
+        ws.on_wpp_phone_code_error(
+            {"session": SESSION, "name": "LinkCodeRefreshFailed"}
+        )
+
+        assert ws.main_window.speak_output.spoken == []
+        assert ws.main_window.error_sound.plays == 0
+
+    def test_it_still_records_the_reason(self, synchronous_call_after):
+        """Announcing is additional, not instead of: a retry that goes on to
+        time out must still be able to report why."""
+        ws = _AnnouncingWsStub(pairing_dialog_active=True)
+
+        ws.on_wpp_phone_code_error({"session": SESSION, "name": "LinkCodeExpired"})
+
+        assert ws._phone_code_error == "LinkCodeExpired"
+
+    def test_a_destroyed_dialog_cannot_crash_the_handler(
+        self, synchronous_call_after
+    ):
+        """CallAfter runs later than the event, so the dialog can be gone by
+        then — a wx wrapper whose C++ object died raises RuntimeError on any
+        call, and this handler must survive it."""
+        ws = _AnnouncingWsStub(pairing_dialog_active=True)
+
+        def _boom():
+            raise RuntimeError("wrapped C/C++ object has been deleted")
+
+        ws.main_window._is_pairing_dialog_active = _boom
+        ws.on_wpp_phone_code_error({"session": SESSION, "name": "LinkCodeExpired"})
+
+        assert ws.main_window.speak_output.spoken == []

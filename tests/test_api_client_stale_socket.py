@@ -87,6 +87,22 @@ class TestASendIsNeverRetriedHere:
         assert len(calls) == 1
 
 
+class TestAnExplicitlyIdempotentPostIsRetried:
+    def test_status_reaction_can_opt_in_to_one_retry(self, monkeypatch):
+        calls = []
+        monkeypatch.setattr("requests.post", _make_caller(calls))
+
+        response = api_request(
+            "POST",
+            "http://127.0.0.1:6300/api/tok/react-message",
+            token="tok",
+            retry_stale_socket=True,
+        )
+
+        assert response.status_code == 200
+        assert len(calls) == 2
+
+
 class TestTheRetryDoesNotLeakTheToken:
     def test_the_failure_log_is_scrubbed(self, monkeypatch, caplog):
         """requests copies the failed URL — which carries <session>:<secret> —

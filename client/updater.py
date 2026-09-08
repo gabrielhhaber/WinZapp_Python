@@ -25,6 +25,7 @@ import requests
 import wx
 
 from app_paths import _outer_exe_dir, _is_frozen, resource_path, log_path
+from core.wpp_runtime import homologated_wpp_tag
 from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
 from version import __version__
 
@@ -110,6 +111,20 @@ def _safe_extract_zip(zf: zipfile.ZipFile, dest_dir: str) -> None:
 _PRE_ORDER = {"dev": 0, "alpha": 1, "beta": 2, "": 3}
 
 _VER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)\.(\d+)(dev|alpha|beta)?$", re.IGNORECASE)
+
+
+def _version_is_older(candidate: str, reference: str) -> bool:
+    """Is `candidate` strictly older than `reference`, as release tags?
+
+    Used only to stop force-reinstall going backwards. Unparseable input
+    answers False — "I cannot tell" must not become "downgrade", and the
+    caller's fallback is the homologated tag either way.
+    """
+    try:
+        from packaging.version import Version
+        return Version(candidate.lstrip("vV")) < Version(reference.lstrip("vV"))
+    except Exception:
+        return False
 
 
 def parse_version(v: str):
@@ -1257,9 +1272,57 @@ class WppUpdateChecker:
     # ── Internal ──────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _fetch_latest_tag() -> str:
+    def _homologated_or_latest_tag() -> str:
+        """The tag the PERIODIC check compares against: the homologated server
+        release, falling back to GitHub's latest when none is bundled.
+
+        Deliberately not "whatever is newest". WinZapp ships a homologated pair
+        (see tests/test_wpp_homologated_runtime_pin.py), and prompting every
+        user onto every wppconnect-server release the day it appears is how a
+        patch set that no longer matches reaches people — which is the failure
+        wppconnect 2.3.2 produced. Raising client/wpp_minimum_version.txt is the
+        deliberate act that offers an update.
+
+        Renamed from _fetch_latest_tag(): it never fetched the latest anything
+        when a homologated tag was bundled, which is always in a release build,
+        and the force-reinstall path below trusted the name.
+        """
+        homologated = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
+        if homologated:
+            return homologated
         from ui.dialogs.api_setup import fetch_latest_wpp_tag
         return fetch_latest_wpp_tag()
+
+    @staticmethod
+    def _newest_available_tag() -> str:
+        """The tag FORCE-REINSTALL uses: genuinely the newest release.
+
+        Both this method's caller and the menu item that reaches it have always
+        documented "always fetches whatever is currently the latest release,
+        regardless of version". They called _fetch_latest_tag(), which returned
+        the homologated tag whenever one was bundled — so a user forcing a
+        reinstall to move off a stale server reinstalled the exact same version,
+        repeatedly, with the dialog cheerfully naming it. Reported live: three
+        forced reinstalls, each "successful", package.json unchanged at 2.10.16.
+
+        Floored at the homologated tag rather than taken raw: this must be able
+        to move a user forward, never backward, and a GitHub hiccup answering
+        with something older must not silently downgrade an install below the
+        version WinZapp was built against.
+        """
+        from ui.dialogs.api_setup import fetch_latest_wpp_tag
+        latest = fetch_latest_wpp_tag()
+        homologated = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
+        if not latest:
+            return homologated
+        if homologated and _version_is_older(latest, homologated):
+            logging.warning(
+                "[WppUpdateChecker] The latest published release (%s) is older "
+                "than the homologated one (%s) — reinstalling the homologated "
+                "tag instead of going backwards.", latest, homologated,
+            )
+            return homologated
+        return latest
 
     def _check_once(self):
         logging.info("[WppUpdateChecker] Checking for wppconnect-server updates...")
@@ -1271,7 +1334,7 @@ class WppUpdateChecker:
             self._schedule_retry()
             return
 
-        tag = self._fetch_latest_tag()
+        tag = self._homologated_or_latest_tag()
         if not tag:
             self._schedule_retry()
             return
@@ -1325,7 +1388,7 @@ class WppUpdateChecker:
 
     def _force_reinstall_worker(self):
         logging.info("[WppUpdateChecker] Force-reinstall requested — fetching latest release tag...")
-        tag = self._fetch_latest_tag()
+        tag = self._newest_available_tag()
         if not tag:
             wx.CallAfter(
                 wx.MessageBox,

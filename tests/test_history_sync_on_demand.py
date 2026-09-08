@@ -865,3 +865,122 @@ class TestInteractiveHistoryWait:
             timeout=5, should_continue=lambda: False)
         assert got is None
         assert stub.calls == []
+
+
+class TestAPhoneWithNothingOlderIsNotAsked:
+    """Issue #108: the iPhone flickering sync notifications while WinZapp works.
+
+    Every on-demand request is a peer-data-operation the PHONE reacts to, and
+    the phone tells its owner about it — iOS shows "Synchronizing WhatsApp with
+    Google Chrome (Windows)…" on the lock screen and follows it, when the
+    request yields nothing, with "Sync paused. Open WhatsApp to resume."
+
+    WhatsApp Web already computes whether the phone has anything older
+    (`primaryHasMoreMessagesReadyToLoad`), and deviceController.ts computed it
+    and then sent the request anyway — `primaryHasMore` reached Python as a log
+    field and nothing else. Measured on a real, fully-synced account: 34
+    requests in one launch, SEVENTEEN answered primaryHasMore=false, and the
+    same chats asked again in a later pass because nothing retired them.
+
+    The verdict has to be False rather than None: False is the terminal answer
+    _backfill_empty_chats() reads as "this chat has no older history", which is
+    what drops it from the queue for good. None keeps it queued and asks again
+    after the grace period — which is the loop being fixed.
+    """
+
+    def test_a_refusal_for_lack_of_older_history_is_terminal(self, monkeypatch):
+        stub = _Stub()
+        monkeypatch.setattr(
+            "main.requests.post",
+            lambda *a, **k: _Response(500, {"status": "error", "response": {
+                "primaryHasMore": False,
+                "error": "primary has no older messages for this chat",
+            }}),
+        )
+        assert stub.request_older_messages("120363000000000000@g.us") is False
+
+    def test_it_is_logged_as_the_ordinary_outcome_it_is(self, monkeypatch, caplog):
+        """Roughly half the queue answers this way. A log full of 500s that are
+        really "nothing to do" costs a diagnosis the next time something here
+        is genuinely wrong."""
+        stub = _Stub()
+        monkeypatch.setattr(
+            "main.requests.post",
+            lambda *a, **k: _Response(500, {"status": "error", "response": {
+                "primaryHasMore": False,
+                "error": "primary has no older messages for this chat",
+            }}),
+        )
+        with caplog.at_level("INFO"):
+            stub.request_older_messages("120363000000000000@g.us")
+        assert any("no older messages" in r.message for r in caplog.records)
+        assert not any("did not go out" in r.message for r in caplog.records)
+
+    def test_an_unknown_answer_is_not_read_as_nothing_older(self, monkeypatch):
+        """null means the lookup failed, not that the phone is empty. Treating
+        it as terminal would silently write off chats that do have history."""
+        stub = _Stub()
+        monkeypatch.setattr(
+            "main.requests.post",
+            lambda *a, **k: _Response(200, {"status": "success", "response": {
+                "primaryHasMore": None, "requested": True,
+            }}),
+        )
+        assert stub.request_older_messages("120363000000000000@g.us") is True
+
+    def test_a_successful_send_still_reports_true(self, monkeypatch):
+        """primaryHasMore true is the case the request exists for."""
+        stub = _Stub()
+        monkeypatch.setattr(
+            "main.requests.post",
+            lambda *a, **k: _Response(200, {"status": "success", "response": {
+                "primaryHasMore": True, "requested": True,
+            }}),
+        )
+        assert stub.request_older_messages("120363000000000000@g.us") is True
+
+    def test_the_deferral_for_an_unfinished_recent_pass_still_wins(self, monkeypatch):
+        """That one must stay None — the chat has to be asked again once RECENT
+        finishes, so it may not be retired."""
+        stub = _Stub()
+        monkeypatch.setattr(
+            "main.requests.post",
+            lambda *a, **k: _Response(500, {"status": "error", "response": {
+                "error": "recent history sync is not complete yet",
+            }}),
+        )
+        assert stub.request_older_messages("120363000000000000@g.us") is None
+
+
+class TestTheNodeSideRefusesBeforeSending:
+    """The Python verdict above is only half of it: the point is that the
+    request never reaches the phone, because the notification is raised by the
+    send itself."""
+
+    @staticmethod
+    def _source():
+        from pathlib import Path
+        return (Path(__file__).resolve().parents[1] / "client" / "api_patches"
+                / "src" / "controller" / "deviceController.ts").read_text(
+                    encoding="utf-8")
+
+    def test_the_refusal_precedes_the_send(self):
+        # Scoped to requestOlderMessages' own body: the file mentions
+        # sendPeerDataOperationRequest elsewhere, and a whole-file index would
+        # compare against the wrong one.
+        source = self._source()
+        source = source[source.index("export async function requestOlderMessages("):]
+        refusal = source.index("primary has no older messages for this chat")
+        # The actual invocation, not the capability guard higher up that only
+        # checks `typeof sender?.sendPeerDataOperationRequest`.
+        send = source.index("await sender.sendPeerDataOperationRequest(")
+        assert refusal < send, (
+            "the primaryHasMore check must come before the send, or the phone "
+            "is notified anyway and only the bookkeeping changes"
+        )
+
+    def test_only_an_explicit_false_refuses(self):
+        """`null` is "the lookup failed". Refusing on it would silently stop
+        all history backfill the day WhatsApp renames that internal module."""
+        source = self._source()
+        assert "if (out.primaryHasMore === false) {" in source

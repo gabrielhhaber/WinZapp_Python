@@ -7,7 +7,7 @@ description: Pull a slice of logic out of one of WinZapp's god files without cha
 
 ## The two files, and the actual reason to do this
 
-`client/main.py` is ~22,300 lines and `client/ui/conversations.py` ~13,500.
+`client/main.py` is ~26,900 lines and `client/ui/conversations.py` ~16,000.
 `client/status_panel.py` (~3,000) is a distant third.
 
 The reason to extract is **not** that big files are ugly. It is that

@@ -609,6 +609,12 @@ routes.post(
   statusConnection,
   DeviceController.reactMessage
 );
+routes.get(
+  '/api/:session/send-capabilities',
+  verifyToken,
+  statusConnection,
+  DeviceController.getSendCapabilities
+);
 routes.post(
   '/api/:session/forward-messages',
   verifyToken,

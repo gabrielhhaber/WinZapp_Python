@@ -375,6 +375,16 @@ class MessageQueue:
                         # right here. main_window._wa_connected was just set to
                         # False by the send call, so the next loop iteration
                         # parks the whole queue until the connection is back.
+                        #
+                        # One 404 deliberately does not set it: the one that
+                        # carries reason "probe_timeout", where WPPConnect's own
+                        # connection probe went unanswered and nothing was
+                        # learned about WhatsApp (see
+                        # MainWindow._check_wa_connection_closed). The break
+                        # still applies — the send provably never reached a
+                        # controller — but with the flag untouched the queue
+                        # simply picks the message up again on the next cycle
+                        # instead of parking.
                         logging.info(
                             "[MessageQueue] %s stays queued — WhatsApp disconnected", msg.local_id
                         )
