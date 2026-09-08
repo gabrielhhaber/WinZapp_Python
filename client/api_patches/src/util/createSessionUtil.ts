@@ -1229,10 +1229,43 @@ export default class CreateSessionUtil {
           // like the MsgKey._serialized and status sender shims. See this
           // method's own doc comment for why a single attempt was never
           // enough here.
+          // One timer per page, and it settles exactly once — neither of which
+          // clearInterval() can be trusted to deliver here.
+          //
+          // Measured on a user's session: a SINGLE scheduled installer logged
+          // "installed after 0 retries" every 500ms for three minutes and ten
+          // seconds, stopping only when the session was torn down. One timer,
+          // 364 lines. So the `if` body ran 364 times, which means
+          // clearInterval(timer) ran 364 times and did not stop it. The likely
+          // reason is that WhatsApp Web wraps setInterval for its own
+          // scheduler and returns a handle the native clearInterval does not
+          // recognise — but the fix must not depend on knowing that, because
+          // whatever the cause, a page.evaluate'd loop running at 2 Hz inside
+          // WhatsApp Web is not something to leave to a call that has already
+          // been observed to fail.
+          //
+          // `settled` closes over this one timer, so the callback becomes a
+          // bare return the moment its work is done. The interval may keep
+          // ticking; it can no longer do anything or say anything.
+          const w = window as any;
+          if (w.__winzappUnreadListenerScheduled) {
+            // A second installer would stack a second uncancellable timer on
+            // top of the first. page.on('load') can fire this repeatedly.
+            return 'already scheduled';
+          }
+          w.__winzappUnreadListenerScheduled = true;
           let tries = 0;
+          let settled = false;
           const timer = setInterval(() => {
+            if (settled) return;
             if (install() || ++tries > 60) {
-              clearInterval(timer);
+              settled = true;
+              w.__winzappUnreadListenerScheduled = false;
+              try {
+                clearInterval(timer);
+              } catch (e) {
+                /* see above — the timer is disarmed by `settled` regardless */
+              }
               // The evaluate below can only ever log 'scheduled' — it returns
               // long before this loop resolves — so without this line the log
               // cannot tell "installed three seconds later" apart from "gave
