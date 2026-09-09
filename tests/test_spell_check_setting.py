@@ -31,6 +31,10 @@ from ui.conversations import ConversationsPanel
 from core.spell_checker import (
     SPELL_CHECK_MODES, spell_check_active, spell_check_mode,
 )
+from core.utils import (
+    DEFAULT_SETTINGS, SPELL_CHECK_MODE_MIGRATION_FLAG,
+    backfill_missing_defaults, migrate_spell_check_mode,
+)
 
 
 _CLIENT = pathlib.Path(__file__).resolve().parents[1] / "client"
@@ -112,6 +116,68 @@ class TestTheLegacyBoolIsMigrated:
         assert spell_check_mode(
             {"spell_check_mode": "on", "spell_check_enabled": False}
         ) == "on"
+
+
+class TestTheMigrationSurvivesTheBackfill:
+    """The read-time fallback above is correct and, on its own, unreachable.
+
+    `spell_check_mode` is in DEFAULT_SETTINGS, so backfill_missing_defaults()
+    inserts it on the first launch after the update — before anything has read
+    the setting. Every later call then finds a recognised mode and never looks
+    at the legacy bool, so a user who had turned checking off got it back on
+    while their settings.json still said `spell_check_enabled: false`.
+    Confirmed against a real install, whose settings.json came out of the
+    update carrying both keys.
+
+    These drive the two functions in the order MainWindow.load_settings() runs
+    them, because testing the fallback against a dict holding only the legacy
+    key — which is what the class above does — passes either way.
+    """
+
+    def _loaded(self, general):
+        """settings as load_settings() leaves them: migrate, then backfill."""
+        settings = {"general": dict(general)}
+        migrate_spell_check_mode(settings)
+        backfill_missing_defaults(settings, DEFAULT_SETTINGS)
+        return settings["general"]
+
+    def test_an_explicit_false_survives_the_backfill(self):
+        assert spell_check_mode(
+            self._loaded({"spell_check_enabled": False})) == "off"
+
+    def test_it_stays_off_on_the_next_launch_too(self):
+        settings = {"general": {"spell_check_enabled": False}}
+        migrate_spell_check_mode(settings)
+        backfill_missing_defaults(settings, DEFAULT_SETTINGS)
+        migrate_spell_check_mode(settings)  # second launch
+        assert spell_check_mode(settings["general"]) == "off"
+
+    def test_a_legacy_true_still_lands_on_the_new_default(self):
+        assert spell_check_mode(
+            self._loaded({"spell_check_enabled": True})) == "windows"
+
+    def test_a_fresh_install_is_untouched(self):
+        assert spell_check_mode(self._loaded({})) == "windows"
+
+    def test_a_choice_made_under_the_new_setting_outranks_the_old_bool(self):
+        assert spell_check_mode(self._loaded(
+            {"spell_check_mode": "on", "spell_check_enabled": False})) == "on"
+
+    def test_the_flag_makes_it_one_shot(self):
+        """Without it, a user who goes back to "follow Windows" finds it
+        reverted to "off" on the next launch — and that is the user who
+        cares."""
+        settings = {"general": {"spell_check_enabled": False}}
+        migrate_spell_check_mode(settings)
+        settings["general"]["spell_check_mode"] = "windows"  # user re-chooses
+        assert migrate_spell_check_mode(settings) is False
+        assert settings["general"]["spell_check_mode"] == "windows"
+
+    def test_the_flag_is_written_even_when_nothing_was_converted(self):
+        """An unwritten flag is the same as no flag."""
+        settings = {"general": {}}
+        assert migrate_spell_check_mode(settings) is True
+        assert settings["general"][SPELL_CHECK_MODE_MIGRATION_FLAG] is True
 
 
 class TestTheDecision:

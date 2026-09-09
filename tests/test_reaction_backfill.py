@@ -54,6 +54,10 @@ class _FakeMainWindow:
         self._lid_to_phone = dict(lid_to_phone or {})
         self.my_jid = ME
         self.my_lid = ""
+        # The real fetch_message_reactions() refuses to send anything while
+        # this is False, so the backfill refuses to spend its cooldown on a
+        # pass that could not fetch — see TestItDoesNotSpendItsCooldownOffline.
+        self._wa_connected = True
 
     def get_chat(self, jid):
         return self._chat
@@ -513,6 +517,50 @@ class TestTheCooldown:
         stub._backfill_reactions_for_open_conversation()
 
         assert stub.main_window.fetch_calls == ["m1", "m1"]
+
+
+class TestItDoesNotSpendItsCooldownOffline:
+    """The cooldown may only be spent on a pass that could actually fetch.
+
+    Every request this makes bails on `_wa_connected` inside
+    MainWindow.fetch_message_reactions(), so a pass armed while disconnected
+    fetches nothing and still locks the chat out for five minutes. The pass
+    most likely to run disconnected is the one right after a reconnection —
+    the health poll can take ~30 s to confirm it — which is exactly the case
+    this backfill exists for: reactions that arrived while WinZapp was away.
+    """
+
+    def test_a_disconnected_open_fetches_nothing(self, monkeypatch):
+        monkeypatch.setattr(
+            threading.Thread, "start",
+            lambda self: self._target(*self._args, **self._kwargs),
+        )
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+        stub.main_window._wa_connected = False
+
+        stub._backfill_reactions_for_open_conversation()
+
+        assert stub.main_window.fetch_calls == []
+
+    def test_and_leaves_the_cooldown_unspent(self, monkeypatch):
+        """The point of the fix: the open that follows, once the connection is
+        up, still does the work instead of waiting out five minutes."""
+        monkeypatch.setattr(
+            threading.Thread, "start",
+            lambda self: self._target(*self._args, **self._kwargs),
+        )
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+        stub.main_window._wa_connected = False
+
+        stub._backfill_reactions_for_open_conversation()
+        assert stub._reaction_backfill_last == {}, (
+            "the cooldown was stamped by a pass that could not fetch"
+        )
+
+        stub.main_window._wa_connected = True
+        stub._backfill_reactions_for_open_conversation()
+
+        assert stub.main_window.fetch_calls == ["m1"]
 
 
 class TestGenerationGuard:
