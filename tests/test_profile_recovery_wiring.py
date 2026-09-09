@@ -304,3 +304,59 @@ class TestARunThatNeverConnectedMayNotOverwriteTheRestorePoint:
         assert not hasattr(stub, "_profile_health")
         MainWindow._capture_profile_snapshot(stub, "sess123", True, None)
         assert len(captured) == 1
+
+
+class TestARestoreThatConnectedEarnsAnotherChance:
+    """The once-per-launch bound, and the case where it is the wrong answer.
+
+    Measured live on 2026-09-09. The QR-triggered recovery fired, the snapshot
+    went back, and the session connected and began syncing at 00:55:51. Eleven
+    seconds later a *superseded* session start — a create() from 45 s earlier,
+    still counting down its 30 s auth-probe bound against the profile that had
+    since been replaced — timed out and force-killed the browser by
+    userDataDir, taking the healthy session with it. The relaunch found a
+    profile WhatsApp then logged out of, and the launch's only recovery had
+    already been spent, so the user reached the pairing dialog with a good
+    snapshot still on disk.
+
+    The bound exists to stop a restore loop on a snapshot that does not work.
+    A snapshot that reached CONNECTED is not that snapshot.
+    """
+
+    def test_the_budget_is_spent_by_a_first_recovery(self, monkeypatch):
+        stub = _Stub()
+        monkeypatch.setattr("core.profile_recovery.has_snapshot",
+                            lambda *a, **kw: False)
+        monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: None)
+        MainWindow._recover_suspect_profile(stub)
+        assert stub._profile_recovery_attempted is True
+
+    def test_a_connection_gives_it_back(self):
+        stub = _Stub()
+        stub._profile_recovery_attempted = True
+        _note(stub, "CONNECTED")
+        assert stub._profile_recovery_attempted is False
+
+    def test_a_second_break_after_that_connection_recovers_again(self, monkeypatch):
+        stub = _Stub()
+        monkeypatch.setattr("core.profile_recovery.has_snapshot",
+                            lambda *a, **kw: True)
+        monkeypatch.setattr("main.threading.Thread",
+                            lambda *a, **kw: types.SimpleNamespace(start=lambda: None))
+        assert MainWindow._recover_suspect_profile(stub) is True
+        assert MainWindow._recover_suspect_profile(stub) is False
+        _note(stub, "CONNECTED")
+        assert MainWindow._recover_suspect_profile(stub) is True
+
+    def test_without_a_connection_it_still_runs_once(self, monkeypatch):
+        """The loop guard is intact: nothing here can re-arm without a
+        CONNECTED in between."""
+        stub = _Stub()
+        monkeypatch.setattr("core.profile_recovery.has_snapshot",
+                            lambda *a, **kw: True)
+        monkeypatch.setattr("main.threading.Thread",
+                            lambda *a, **kw: types.SimpleNamespace(start=lambda: None))
+        assert MainWindow._recover_suspect_profile(stub) is True
+        for _ in range(5):
+            _note(stub, "CLOSED")
+            assert MainWindow._recover_suspect_profile(stub) is False

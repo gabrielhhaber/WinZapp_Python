@@ -579,12 +579,52 @@ export default class CreateSessionUtil {
       // precise process-tree kill first and only falls back to the
       // userDataDir scan when no live page/pid is reachable yet.
       const killBrowserOrFallback = () => {
+        // Refuse the userDataDir fallback once this create() has been
+        // superseded. That scan kills whatever browser currently holds the
+        // profile, and after a takeover that is somebody else's — measured
+        // live, and it cost a working session:
+        //
+        //   03:55:50  Connected / inChat        (restored profile, syncing)
+        //   03:56:01  Auth probe has failed for 30s straight — giving up
+        //   03:56:02  shouldClose detected in statusFind. Force-killing browser.
+        //   03:56:02  browserClose
+        //
+        // The 30 s auth-probe bound belonged to a create() started 45 s
+        // earlier against the *broken* profile. While it was still counting,
+        // WinZapp restored the profile and the health poll started a second
+        // session that connected and began syncing. The old create() then
+        // timed out, could not reach its own page (`wppClient` is still in the
+        // temporal dead zone during create(), which is why the fallback exists
+        // at all), and killed the profile's browser by directory — the new
+        // one. WhatsApp logged that session out on the next load, and the
+        // once-per-launch profile recovery had already been spent.
+        //
+        // A precise kill stays unconditional: if forceKillBrowserProcess()
+        // can reach this create()'s own page, it is killing its own browser
+        // and cannot touch a successor.
         let killed = false;
         try {
           killed = forceKillBrowserProcess(wppClient?.page, req.logger);
         } catch (e) {}
-        if (!killed)
-          forceKillByUserDataDir(`userDataDir/${session}`, req.logger);
+        if (killed) return;
+        const current: any = clientsArray[session];
+        if (current && current !== client) {
+          req.logger.warn(
+            `[${session}] not killing the browser by userDataDir: this session ` +
+              `start was superseded by a newer one, which owns that profile now.`
+          );
+          return;
+        }
+        forceKillByUserDataDir(`userDataDir/${session}`, req.logger);
+      };
+
+      // Same reasoning for the slot itself: clearing it would drop a
+      // successor's client, leaving the session unreachable while its browser
+      // keeps running.
+      const clearSessionSlotIfStillOurs = () => {
+        if (clientsArray[session] === undefined || clientsArray[session] === client) {
+          clientsArray[session] = undefined;
+        }
       };
 
       // Wrapped in a thunk purely so the stale-profile recovery below can call
@@ -625,7 +665,7 @@ export default class CreateSessionUtil {
                   `[${session}] shouldClose detected in catchLinkCode. Force-killing browser.`
                 );
                 killBrowserOrFallback();
-                clientsArray[session] = undefined;
+                clearSessionSlotIfStillOurs();
                 return;
               }
               this.exportPhoneCode(req, client.config.phone, code, client, res);
@@ -666,7 +706,7 @@ export default class CreateSessionUtil {
                   `[${session}] shouldClose detected in catchQR. Force-killing browser.`
                 );
                 killBrowserOrFallback();
-                clientsArray[session] = undefined;
+                clearSessionSlotIfStillOurs();
                 return;
               }
               this.exportQR(req, base64Qr, urlCode, client, res);
@@ -681,7 +721,7 @@ export default class CreateSessionUtil {
                     `[${session}] shouldClose detected in statusFind. Force-killing browser.`
                   );
                   killBrowserOrFallback();
-                  clientsArray[session] = undefined;
+                  clearSessionSlotIfStillOurs();
                   return;
                 }
                 eventEmitter.emit(
@@ -759,7 +799,7 @@ export default class CreateSessionUtil {
           );
           clearInterval(shouldClosePoller);
           killBrowserOrFallback();
-          clientsArray[session] = undefined;
+          clearSessionSlotIfStillOurs();
         }
       }, 2000);
 
