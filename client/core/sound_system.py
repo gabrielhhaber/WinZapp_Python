@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import sys
+import time
 import tempfile
 import zipfile
 import wx
@@ -44,6 +45,7 @@ class SoundSystem:
         # apply_output_device(), read by handle_playback_failure().
         self._configured_output_device = ""
         self._warned_output_failure = False
+        self._last_recovery_at = None
         # Optional SEPARATE output device for one-shot UI effect sounds (the
         # Sound class), so alerts can play on a different device than voice/
         # conversation audio. None = route effects to the main output device
@@ -197,10 +199,80 @@ class SoundSystem:
         stayed active. Free + reinit directly instead, skipping Output.
         set_device()'s own broken second call.
         """
-        if self.output._device == -1:
-            return
-        self.output.free()
-        self.output.init_device(device=-1)
+        return self._reinit_output_device(-1)
+
+    @staticmethod
+    def _is_already_initialised(exc) -> bool:
+        """BASS error 14 — the device is up, which is what we wanted."""
+        text = str(exc)
+        return "14" in text or "already" in text.lower()
+
+    def _reinit_output_device(self, device: int) -> bool:
+        """Free BASS's current output device and bring `device` up, safely.
+
+        Three faults lived in the two lines this replaces, and together they
+        are both reported audio bugs.
+
+        **It could raise, and did.** `Output.free()` is BASS_Free(), which
+        frees only the *current* device; `init_device(-1)` then BASS_Init's the
+        system default — which apply_effects_device() has usually already
+        initialised, because it pins effects to the concrete default index. So
+        BASS_Init answered 14, "already initialized", and the exception escaped
+        apply_output_device() (only the set_device() branch was ever wrapped),
+        through settings_dialog._validate/_apply_values/_on_ok, to the global
+        handler. Captured on a live install:
+
+            File "core/sound_system.py", line 203, in _switch_to_default_device
+            File "sound_lib/output.py", line 65, in init_device
+            sound_lib.main.BassError: 14, already initialized/paused/whatever
+
+        The old device was freed and no new one was initialised, so every later
+        play() raised "invalid handle" or "BASS_Start has not been successfully
+        called" — the endless errors while arrowing through voice messages.
+        Being already initialised is success here, not failure.
+
+        **It skipped the case that matters.** `if self.output._device == -1:
+        return` reads "already on default, nothing to do", but the device
+        BASS is bound to is a concrete one resolved when -1 was last passed. If
+        that device then disappears — unplug a wireless dongle and let a USB
+        device take over as default — BASS is still bound to a device that no
+        longer exists, and this returned without touching it. That is bug one:
+        nothing plays, and only switching the device away and back repairs it,
+        because that is the one path that reaches the free/init.
+
+        **-1 is not selectable.** BASS_Init accepts -1; BASS_SetDevice rejects
+        it. So the default is resolved to its real index and selected
+        explicitly, leaving BASS's current device and `output._device`
+        agreeing with each other.
+
+        Never raises. Returns whether a device is usable afterwards.
+        """
+        from sound_lib.external.pybass import BASS_SetDevice
+        try:
+            self.output.free()
+        except Exception as exc:
+            # Nothing initialised, or the device is already gone. Both are
+            # fine: the point of this call is what comes next.
+            logging.debug("[sound_system] BASS_Free before reinit: %s", exc)
+        try:
+            self.output.init_device(device=device)
+        except Exception as exc:
+            if not self._is_already_initialised(exc):
+                logging.warning("[sound_system] could not initialise output device %s: %s",
+                                device, exc)
+                return False
+            self.output._device = device
+        target = device
+        if target == -1:
+            target = find_default_output_device_index()
+        if target is not None and target >= 0:
+            try:
+                BASS_SetDevice(target)
+            except Exception as exc:
+                logging.warning("[sound_system] could not select output device %s: %s",
+                                target, exc)
+                return False
+        return True
 
     def apply_output_device(self, device_name: str, warn_on_failure: bool = False) -> bool:
         """Switch the single process-wide BASS output device to the one
@@ -214,9 +286,11 @@ class SoundSystem:
         """
         self._configured_output_device = device_name or ""
         self._warned_output_failure = False
+        # A deliberate change is not a recovery, and must not be held off by
+        # one: the user is entitled to be listened to immediately.
+        self._last_recovery_at = None
         if not device_name:
-            self._switch_to_default_device()
-            return True
+            return self._switch_to_default_device()
 
         idx = find_output_device_index(device_name)
         ok = False
@@ -321,6 +395,16 @@ class SoundSystem:
             wx.OK | wx.ICON_WARNING,
         )
 
+    #: Floor between two output-device recoveries. See handle_playback_failure().
+    _RECOVERY_COOLDOWN_SECONDS = 5.0
+
+    def _recovery_cooldown_elapsed(self, now=None) -> bool:
+        last = getattr(self, "_last_recovery_at", None)
+        if last is None:
+            return True
+        now = time.monotonic() if now is None else now
+        return (now - last) >= self._RECOVERY_COOLDOWN_SECONDS
+
     def handle_playback_failure(self) -> bool:
         """Called when playing a BASS stream raises, on some already-active
         output device configured earlier (not the default). Falls back to
@@ -340,16 +424,38 @@ class SoundSystem:
         Returns True if it just performed that fallback (caller should open
         and play a brand new stream rather than retry the old one).
         """
-        if not self._configured_output_device or self._warned_output_failure:
+        # No gate on _configured_output_device. It used to return False for
+        # anyone whose output was "system default", on the reasoning that there
+        # is nothing to fall back *to* — but that is precisely the reported
+        # failure: the default device changed under BASS (a wireless dongle
+        # unplugged, a USB device taking over as default), BASS stayed bound to
+        # the one that no longer exists, and nothing plays. The recovery those
+        # users need is the same free/init this performs; only the *warning*
+        # about a named device that could not be opened depends on there being
+        # a name.
+        already_warned = self._warned_output_failure
+        if not self._recovery_cooldown_elapsed():
+            # A reinit invalidates every existing stream, so each one produces
+            # a fresh crop of failures from whatever was mid-play. Without a
+            # floor between attempts those failures drive the next reinit and
+            # the app spends itself rebuilding BASS. A few seconds is long
+            # enough to tell "the device moved again" from "we are chasing our
+            # own invalidations", and short enough that a user unplugging a
+            # headset does not sit in silence.
             return False
-        self._warned_output_failure = True
+        self._last_recovery_at = time.monotonic()
         name = self._configured_output_device
-        self._switch_to_default_device()
+        self._warned_output_failure = True
+        if not self._switch_to_default_device():
+            return False
         try:
             self.main_window.load_sounds()
         except Exception:
             logging.exception("[sound_system] load_sounds() failed while recovering from a playback failure")
-        self._warn_device_failure("output", name)
+        if name and not already_warned:
+            # Only a device the user named can have "failed to open"; falling
+            # back from a default that moved is not something to apologise for.
+            self._warn_device_failure("output", name)
         return True
 
 
