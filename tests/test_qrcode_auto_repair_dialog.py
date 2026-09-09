@@ -8,17 +8,21 @@ explanation for however long _AUTO_RESTART_LOGOUT_GRACE_SECONDS or the
 multi-minute confirmed-logout detection (several minutes either way) took
 before finally showing a dialog.
 
-A real QR/pairing-code event with no pairing dialog already open is actually
-a reliable "you need to re-pair" signal on its own — WPPConnect only ever
-generates one once it has decided the stored session can't be restored — so
-on_qrcode_update() now opens the pairing dialog immediately in that specific
-case, decoupled entirely from the slower, destructive confirmed-logout path
+A real QR/pairing-code event with no pairing dialog already open is a
+fairly reliable "you need to re-pair" signal — WPPConnect only ever
+generates one once it has decided the stored session can't be restored —
+so on_qrcode_update() opens the pairing dialog once that is confirmed by
+a second such reading (TestStartupGraceWindow and
+TestProactivePairingDialog below cover why one alone is not enough),
+decoupled entirely from the slower, destructive confirmed-logout path
 (_on_disconnect(), which wipes local data, is never called from here).
 
 WebSocketClient is exercised as a plain function bound onto a small stub
 (no real socketio/wx.App needed) — same approach as tests/test_qrcode_event.py
 uses for _extract_qr_payload.
 """
+
+import time
 
 import pytest
 
@@ -60,7 +64,8 @@ class _FakeConnect:
 
 
 class _FakeMainWindow:
-    def __init__(self, paired=True, pairing_dialog_active=False):
+    def __init__(self, paired=True, pairing_dialog_active=False,
+                 wa_connect_announced=True, wa_startup_time=None):
         self.settings = {"privateinfo": {"paired": paired}}
         self._pairing_dialog_active = pairing_dialog_active
         self.pairing_code_updated_sound = _FakeSound()
@@ -77,8 +82,26 @@ class _FakeMainWindow:
         # nothing to restore, so the pairing dialog is the outcome.
         self.profile_restore_available = False
         self.recover_calls = []
+        # Defaults put every pre-existing test well past the startup grace
+        # window (already connected once before, or started long ago) —
+        # only the dedicated grace-window tests below override these.
+        self._wa_connect_announced = wa_connect_announced
+        self._WA_STARTUP_GRACE_SECONDS = MainWindow._WA_STARTUP_GRACE_SECONDS
+        self._wa_startup_time = (
+            time.time() - (self._WA_STARTUP_GRACE_SECONDS * 10)
+            if wa_startup_time is None else wa_startup_time
+        )
 
     def _recover_suspect_profile(self, reason=None, on_give_up=None):
+        # Mirrors the real method's own "runs at most once per launch" latch
+        # (main.py: _profile_recovery_attempted) — the caller
+        # (_handle_unattended_qr) does not itself guard against a later QR
+        # refresh calling this again, so the fake has to model the latch or
+        # a test asserting "no second attempt" would pass for the wrong
+        # reason.
+        if getattr(self, "_profile_recovery_attempted", False):
+            return False
+        self._profile_recovery_attempted = True
         self.recover_calls.append(reason)
         # Mirrors the real contract: on_give_up fires only when a restore was
         # started and then failed. A False return means nothing was started,
@@ -104,8 +127,10 @@ class _Stub:
     on_qrcode_update = WebSocketClient.on_qrcode_update
     _pairing_attended = WebSocketClient._pairing_attended
     _handle_unattended_qr = WebSocketClient._handle_unattended_qr
+    _qr_within_startup_grace = WebSocketClient._qr_within_startup_grace
     _show_repair_dialog = WebSocketClient._show_repair_dialog
     _UNATTENDED_QR_LIMIT = WebSocketClient._UNATTENDED_QR_LIMIT
+    _REPAIR_DIALOG_CONFIRM_EVENTS = WebSocketClient._REPAIR_DIALOG_CONFIRM_EVENTS
     _extract_qr_payload = staticmethod(WebSocketClient._extract_qr_payload)
 
     def __init__(self, main_window, connect):
@@ -124,11 +149,27 @@ def _synchronous_call_after(monkeypatch):
 
 
 class TestProactivePairingDialog:
-    def test_opens_the_dialog_when_paired_and_nothing_is_showing(self):
+    def test_does_not_open_on_a_single_event(self):
+        """Regression: a real log showed one QR event, seconds apart from
+        _act_on_unlink_decision() (main.py) independently logging "resuming
+        — data preserved" for the very same underlying reading — the two
+        mechanisms disagreed because this one used to act on one reading
+        while the other, more careful one required several. A single event
+        must not be enough on its own any more."""
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
         connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
+        s.on_qrcode_update(QR_EVENT)
+
+        assert connect.show_connection_dial_calls == 0
+
+    def test_opens_the_dialog_once_confirmed_by_a_second_event(self):
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
         s.on_qrcode_update(QR_EVENT)
 
         assert connect.show_connection_dial_calls == 1
@@ -142,6 +183,7 @@ class TestProactivePairingDialog:
         connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
+        s.on_qrcode_update(QR_EVENT)
         s.on_qrcode_update(QR_EVENT)
 
         assert mw.restore_window_calls == 1
@@ -173,6 +215,7 @@ class TestProactivePairingDialog:
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)
 
         assert connect.show_connection_dial_calls == 0
 
@@ -185,6 +228,7 @@ class TestProactivePairingDialog:
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)
 
         assert connect.show_connection_dial_calls == 0
 
@@ -196,9 +240,14 @@ class TestProactivePairingDialog:
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)
         assert connect.show_connection_dial_calls == 1
 
         mw._auto_repair_dialog_shown = False  # what a real reconnect does
+        # _unattended_qr_events is already back at 0: show_connection_dial()
+        # (the fake mirrors the real one) calls _reset_unattended_qr_guards()
+        # the moment the first dialog opens above.
+        s.on_qrcode_update(QR_EVENT)
         s.on_qrcode_update(QR_EVENT)
         assert connect.show_connection_dial_calls == 2
 
@@ -226,6 +275,10 @@ class TestTheProfileIsRepairedBeforeAskingTheUserToPair:
         connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
+        # Two events: this branch is also gated by _REPAIR_DIALOG_CONFIRM_EVENTS
+        # (TestProactivePairingDialog above), so a single reading is not
+        # enough to reach the profile-repair attempt either.
+        s.on_qrcode_update(QR_EVENT)
         s.on_qrcode_update(QR_EVENT)
 
         assert len(mw.recover_calls) == 1
@@ -239,6 +292,7 @@ class TestTheProfileIsRepairedBeforeAskingTheUserToPair:
         s = _Stub(mw, _FakeConnect(mw))
 
         s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)
 
         assert "pairing code" in (mw.recover_calls[0] or "")
 
@@ -248,6 +302,7 @@ class TestTheProfileIsRepairedBeforeAskingTheUserToPair:
         connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
+        s.on_qrcode_update(QR_EVENT)
         s.on_qrcode_update(QR_EVENT)
 
         assert len(mw.recover_calls) == 1
@@ -265,7 +320,9 @@ class TestTheProfileIsRepairedBeforeAskingTheUserToPair:
 
     def test_a_qr_refresh_during_the_restore_does_not_retry_it(self):
         # Codes rotate every ~20-30 s. _recover_suspect_profile() latches on
-        # its own, but the caller must not be the thing relying on that.
+        # its own (main.py: _profile_recovery_attempted), so a second attempt
+        # is never started. Two events reach _REPAIR_DIALOG_CONFIRM_EVENTS and
+        # start the restore.
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
         mw.profile_restore_available = True
         connect = _FakeConnect(mw)
@@ -274,4 +331,91 @@ class TestTheProfileIsRepairedBeforeAskingTheUserToPair:
         s.on_qrcode_update(QR_EVENT)
         s.on_qrcode_update(QR_EVENT)
 
+        assert len(mw.recover_calls) == 1
         assert connect.show_connection_dial_calls == 0
+
+        # KNOWN GAP (not introduced by this branch — see PR #183, already on
+        # upstream/main): a THIRD event, arriving while the restore from the
+        # second is still unresolved, calls _recover_suspect_profile() again.
+        # Its latch correctly refuses to start a second restore and returns
+        # False — but _handle_unattended_qr() treats every False the same
+        # way ("nothing was started, send the user to pair by hand") and
+        # falls through to _show_repair_dialog() anyway, even though a
+        # restore it started one event ago may still be in flight or may
+        # have already quietly succeeded. The bare boolean return of
+        # _recover_suspect_profile() cannot currently tell those two "False"
+        # cases apart. Documented here rather than silently asserted around,
+        # since a passing assert on this line would hide a real interaction
+        # this test suite does not otherwise cover.
+        s.on_qrcode_update(QR_EVENT)
+        assert connect.show_connection_dial_calls == 1
+
+
+class TestStartupGraceWindow:
+    """Regression: a real log showed on_qrcode_update firing 11s after
+    process start, while /list-chats was still 404ing for another 50s
+    because the session itself had not finished starting — WPPConnect's
+    first QR event is not immune to the exact slow-boot race
+    _WA_STARTUP_GRACE_SECONDS exists for elsewhere. A single such event
+    used to open the proactive re-pair dialog immediately; the user then
+    followed it into a fresh pairing, which wiped their local history."""
+
+    def test_does_not_open_inside_the_startup_grace_window_even_with_two_events(self):
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=False, wa_startup_time=time.time(),
+        )
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)
+
+        assert connect.show_connection_dial_calls == 0
+
+    def test_opens_once_the_grace_window_has_elapsed_and_a_second_event_confirms(self):
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=False,
+            wa_startup_time=time.time() - (MainWindow._WA_STARTUP_GRACE_SECONDS + 1),
+        )
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)
+
+        assert connect.show_connection_dial_calls == 1
+
+    def test_a_lone_event_past_the_grace_window_still_is_not_enough(self):
+        """The grace window and _REPAIR_DIALOG_CONFIRM_EVENTS are two
+        independent requirements — clearing one must not silently satisfy
+        the other."""
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=False,
+            wa_startup_time=time.time() - (MainWindow._WA_STARTUP_GRACE_SECONDS + 1),
+        )
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert connect.show_connection_dial_calls == 0
+
+    def test_opens_once_confirmed_by_a_second_event_once_a_connection_was_ever_confirmed(self):
+        """The grace window only protects a (re)connect attempt that has
+        never yet succeeded — once _wa_connect_announced is True, a QR event
+        is exactly as conclusive as before, even seconds after it fires. The
+        _REPAIR_DIALOG_CONFIRM_EVENTS requirement still applies regardless."""
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=True, wa_startup_time=time.time(),
+        )
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)
+
+        assert connect.show_connection_dial_calls == 1
