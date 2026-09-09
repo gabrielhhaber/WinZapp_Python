@@ -8458,8 +8458,9 @@ class MainWindow(wx.Frame):
         routes, and each proves the same thing by its own means. A QR event
         reaches catchQR only once getQrCode() returned a urlCode, and that
         urlCode *is* the code. A pairing code — on a session started with a
-        phone number, host.layer.js never registers catchQR at all — is minted
-        by WPP.conn.startLinkDeviceCodeForPhoneNumber() behind loginByCode's
+        phone number, host.layer.js never registers checkQrCode at all, so
+        catchQR is never reached — is minted by
+        WPP.conn.startLinkDeviceCodeForPhoneNumber() behind loginByCode's
         own gate, which is a wait for WhatsApp Web's auth state (probed
         through getQrCode(), but as a readiness check; the urlCode is thrown
         away and is not the code) and which returns without minting anything

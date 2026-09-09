@@ -36,8 +36,11 @@ class _FakeI18n:
 
 
 class _FakeSound:
+    def __init__(self):
+        self.plays = 0
+
     def play(self):
-        pass
+        self.plays += 1
 
 
 class _FakeSpeakOutput:
@@ -82,6 +85,9 @@ class _FakeMainWindow:
         # nothing to restore, so the pairing dialog is the outcome.
         self.profile_restore_available = False
         self.recover_calls = []
+        # Every on_give_up handed over, kept so a test can fire one the way
+        # the restore thread does — see fail_restore().
+        self.give_up_callbacks = []
         # Defaults put every pre-existing test well past the startup grace
         # window (already connected once before, or started long ago) —
         # only the dedicated grace-window tests below override these.
@@ -102,6 +108,7 @@ class _FakeMainWindow:
         # refresh calling this again, so what it does with the NEXT code is
         # exactly what these tests are about.
         self.recover_calls.append(reason)
+        self.give_up_callbacks.append(on_give_up)
         # Mirrors the real contract: on_give_up fires only when a restore was
         # started and then failed. A False return means nothing was started,
         # and the caller handles it inline — see _recover_suspect_profile().
@@ -130,6 +137,19 @@ class _FakeMainWindow:
         TestASuccessfulRestoreGivesBackTheQrFloodAllowance.
         """
         self._unattended_qr_events = 0
+
+    def fail_restore(self):
+        """The restore thread's give-up path, in the order production runs it.
+
+        _recover_suspect_profile() queues wx.CallAfter(
+        self._announce_profile_beyond_repair) — whose *first* statement is
+        error_sound.play() — and immediately behind it wx.CallAfter(
+        on_give_up), which passes no arguments at all. Both land on the wx
+        main thread milliseconds apart, so what the callback does with the
+        sound is the whole question here.
+        """
+        self.error_sound.play()           # _announce_profile_beyond_repair()
+        self.give_up_callbacks[-1]()      # wx.CallAfter(on_give_up): no args
 
     def _is_pairing_dialog_active(self):
         return self._pairing_dialog_active
@@ -340,6 +360,43 @@ class TestTheProfileIsRepairedBeforeAskingTheUserToPair:
         s.on_qrcode_update(QR_EVENT)
 
         assert mw.recover_calls == []
+
+    def test_a_failed_restore_sends_the_user_to_pair_without_a_second_sound(self):
+        """The give-up route is a third caller of _show_repair_dialog(), and
+        nothing used to bind its play_sound.
+
+        wx.CallAfter(on_give_up) invokes it with no arguments, so it took the
+        default — and it is queued directly behind
+        wx.CallAfter(self._announce_profile_beyond_repair), whose first
+        statement is error_sound.play() and whose MessageBox then pumps the
+        queue this callback is sitting in. The two plays therefore landed on
+        one stream milliseconds apart, which sound_lib restarts: heard as a
+        single truncated blip rather than as two cues, the same defect the
+        post-halt route is written around (see
+        tests/test_qrcode_unattended_session.py, which pins that one).
+
+        So exactly one error sound belongs on this route — the
+        announcement's, which has already explained itself in words the
+        second one cannot add to."""
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        mw.profile_restore_available = True
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)          # this one starts the restore
+        assert mw.restore_starts == 1
+        assert mw.error_sound.plays == 0      # nothing has been played yet
+
+        mw.fail_restore()
+
+        # The user is still sent to pair by hand — the repair is what failed,
+        # not the reading that prompted it.
+        assert connect.show_connection_dial_calls == 1
+        assert mw.restore_window_calls == 1
+        assert mw.error_sound.plays == 1, (
+            "the give-up route played the error sound again on top of "
+            "_announce_profile_beyond_repair()'s own")
 
     def test_a_qr_refresh_after_the_restore_finished_does_not_retry_it(self):
         # Codes rotate every ~20-30 s. _recover_suspect_profile() latches on

@@ -1,3 +1,4 @@
+import functools
 import logging
 import threading
 import time
@@ -1047,10 +1048,22 @@ class WebSocketClient:
             # _recover_suspect_profile() runs at most once per launch and calls
             # back when it gives up — against a re-pairing saved every time the
             # profile was the actual fault.
+            #
+            # play_sound is bound here rather than left to its default
+            # because wx.CallAfter(on_give_up) invokes this with no
+            # arguments: the restore's give-up path queues it directly behind
+            # wx.CallAfter(self._announce_profile_beyond_repair), whose very
+            # first statement is that same error_sound.play() — and whose
+            # own MessageBox then pumps the queue, so this callback runs from
+            # inside it. Two plays milliseconds apart on one stream are not
+            # two cues: sound_lib restarts it and they are heard as a single
+            # truncated blip, the same defect the post-halt route below is
+            # written around.
             if mw._recover_suspect_profile(
                     reason="WPPConnect minted a pairing code for a paired "
                            "install — the stored session could not be restored",
-                    on_give_up=self._show_repair_dialog):
+                    on_give_up=functools.partial(self._show_repair_dialog,
+                                                 play_sound=False)):
                 return
             # Nothing was started (no snapshot, or the recovery budget is
             # already spent), so a human is the only way back — and that is
@@ -1155,15 +1168,27 @@ class WebSocketClient:
         """Tell a previously-paired user their session needs re-pairing, and
         put the pairing dialog in front of them straight away.
 
-        Reached from _handle_unattended_qr() by two routes, and both mean the
-        signal has been confirmed rather than acted on once. Either it cleared
-        that method's own bar — outside the startup grace window and confirmed
-        by _REPAIR_DIALOG_CONFIRM_EVENTS consecutive readings, not a single
-        one — or the grace/counter withheld it and the flood then spent the
-        entire _UNATTENDED_QR_LIMIT inside that window, which is a stronger
-        reading still. That second route runs after the halt has already
-        closed the session and announced it, which is what play_sound=False is
-        for; see the call site. Either way, by the time this runs the signal
+        Reached from _handle_unattended_qr() by three routes, and every one
+        of them means the signal has been confirmed rather than acted on once.
+        Two cleared that method's own bar — outside the startup grace window
+        and confirmed by _REPAIR_DIALOG_CONFIRM_EVENTS consecutive readings,
+        not a single one — and differ only in what the profile repair then
+        did with it: called inline when _recover_suspect_profile() refused to
+        start one (no snapshot, or the once-per-launch budget already spent),
+        and handed to it as on_give_up for the restore that started and then
+        failed. The third runs when the grace/counter withheld those two and
+        the flood then spent the entire _UNATTENDED_QR_LIMIT inside that
+        window, which is a stronger reading still.
+
+        The last two run behind something that has already played error_sound
+        — _announce_profile_beyond_repair() on the give-up route, the halt on
+        the third — which is what play_sound=False is for; see those call
+        sites. The inline route keeps the sound: its no-snapshot sub-case
+        announces too and so doubles the cue, but its budget-spent sub-case
+        has played nothing at all, and one flag at one call site cannot tell
+        them apart. A cue too many on a route that is sometimes silent is the
+        safe direction to be wrong in; silence on a route that is sometimes
+        the only cue is not. Either way, by the time this runs the signal
         is at least as solid as the coarse status-session string the poll
         watches (which needs several minutes of confirmation to rule out a
         normal slow boot). Surfacing the pairing dialog immediately —

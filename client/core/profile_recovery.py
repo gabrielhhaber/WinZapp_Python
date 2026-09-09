@@ -396,11 +396,16 @@ class ProfileHealthTracker:
     given back by the same reading. The generation ladder does not close it
     either: it has two rungs, and that CONNECTED resets it to the newest one.
 
-    So the real guarantee is a rate limit, not impossibility — the tracker has
-    to count FAILED_CYCLES_BEFORE_SUSPECT more failed start cycles, roughly a
-    minute each, before anything can be restored again. Being wrong in that
-    direction costs a minute; being wrong in the other direction is what this
-    class was written for, and it cost a re-pairing.
+    So the real guarantee is a rate limit, not impossibility — before
+    anything can be restored again, either the tracker counts
+    FAILED_CYCLES_BEFORE_SUSPECT more failed start cycles at roughly a minute
+    each, or a fresh flood of codes clears both of _handle_unattended_qr()'s
+    gates (past the startup grace, _REPAIR_DIALOG_CONFIRM_EVENTS consecutive
+    readings) while _auto_repair_dialog_shown is still False. The QR route is
+    the faster of the two and does not consult this tracker at all — that is
+    the seam the paragraph above describes, seen from the other side. Being
+    wrong in that direction costs a minute; being wrong in the other
+    direction is what this class was written for, and it cost a re-pairing.
     """
 
     #: Consecutive failed start cycles before the profile is suspect.
