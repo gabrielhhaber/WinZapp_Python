@@ -768,11 +768,13 @@ DEFAULT_SETTINGS = {
         "alpha_updates_enabled": False,
         "noise_reduction_enabled": False,
         # Windows spell checking in the message field (core/spell_checker.py).
-        # On by default — the cue is a Sound Event, so a user who wants the
+        # One of SPELL_CHECK_MODES: "windows" (default — follow Windows' own
+        # Settings > Time & language > Typing > Spelling), or "on"/"off" to
+        # override it. The cue is a Sound Event, so a user who wants the
         # checking but not the sound can silence just that event in Settings >
-        # Eventos Sonoros; this switch turns the checking itself off, which is
+        # Eventos Sonoros; "off" turns the checking itself off, which is
         # also what stops the COM/dictionary work from ever being done.
-        "spell_check_enabled": True,
+        "spell_check_mode": "windows",
         "first_run": True,
         "api_type_first_run_asked": False,
         "hotkey_first_run_asked": False,
