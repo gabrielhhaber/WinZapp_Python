@@ -126,6 +126,19 @@ class Connect:
         # stands for one specific pre-close session, so a pairing attempt
         # clears it as it reads it and a switch back to QR mode drops it.
         self._token_before_mode_switch: str = ""
+
+        # privateinfo["WA_phone_number"] as it stood before this dialog's
+        # current pairing attempt overwrote it, or None when no attempt has.
+        # _bg_pairing_flow() writes that key the instant a phone code
+        # arrives — long before the pairing concludes — and nothing used to
+        # put the previous value back when the attempt was abandoned, so the
+        # key could end up naming a number the local database has nothing to
+        # do with. That was harmless while it only fed
+        # _can_reuse_existing_session(), which also required a token the
+        # abandonment had cleared; it stopped being harmless when
+        # _is_same_account() started deciding the wipe from that key alone.
+        # See _close_active_session(), which restores it.
+        self._phone_number_before_attempt = None
         # Token of a BRAND-NEW WPPConnect session this dialog started itself
         # (empty whenever it reused an existing one, or closed the one it
         # started). Minting a new session overwrites the settings token and,
@@ -703,6 +716,37 @@ class Connect:
             ).start()
 
     def _close_active_session(self, sync=False):
+        # Every route out of an unfinished pairing attempt comes through
+        # here — switching mode either way, Cancel/Escape, Quit — so this is
+        # the one place that has to undo what the attempt wrote to
+        # privateinfo["WA_phone_number"]. Left standing, that number outlives
+        # the attempt that never completed and _is_same_account() reads it as
+        # the local database's owner: type a second number, get a code for
+        # it, abandon, pair that number for real, and its sync lands on top
+        # of the first account's chats, media and voice notes.
+        #
+        # Never after a pairing that actually succeeded, which is what
+        # _wa_connected distinguishes: there the number this attempt wrote is
+        # the correct one and the capture is merely dropped. That is also why
+        # the restore lives here rather than on each caller — a path added
+        # later gets it for free, and missing one is silent.
+        # getattr-guarded like the other dialog state this method reads: the
+        # stubs that bind it unbound carry only what the path under test
+        # touches (tests/test_token_not_logged.py).
+        if getattr(self, "_phone_number_before_attempt", None) is not None:
+            if not getattr(self.main_window, "_wa_connected", False):
+                privateinfo = self.main_window.settings.setdefault("privateinfo", {})
+                logging.info(
+                    "[_close_active_session] Pairing attempt abandoned — "
+                    "restoring the previous WA_phone_number."
+                )
+                if self._phone_number_before_attempt:
+                    privateinfo["WA_phone_number"] = self._phone_number_before_attempt
+                else:
+                    privateinfo.pop("WA_phone_number", None)
+                self.main_window.save_settings()
+            self._phone_number_before_attempt = None
+
         # Retrieve the active token from the dialog state
         token = getattr(self, 'raw_token', '')
         if not token:
@@ -1264,13 +1308,10 @@ class Connect:
                 _instance_exists = self._can_reuse_existing_session(
                     _privateinfo, self.phone_number, existing_token
                 )
-                # Two questions, deliberately no longer one — see
-                # _is_same_account(). A session that cannot be resumed still
-                # has to wait for messages.set, because it will sync from
-                # scratch; only a DIFFERENT account justifies deleting what
-                # is on disk. Keyed together, the phone→QR→phone round trip
-                # wiped a database whose owner had not changed, purely
-                # because the detour left no token to resume.
+                # Two questions, deliberately no longer one — a session
+                # that cannot be resumed still has to sync from scratch,
+                # while only a DIFFERENT account justifies deleting what is
+                # on disk. See _is_same_account().
                 if not _instance_exists:
                     # New session: sync from scratch, so wait for messages.set
                     self.main_window.messages_set_completed = False
@@ -1438,6 +1479,16 @@ class Connect:
                     # Only now persist the token — pairing has actually started.
                     if "privateinfo" not in self.main_window.settings:
                         self.main_window.settings["privateinfo"] = {}
+                    # Remember what this key said before, so an attempt that
+                    # never completes can put it back — see
+                    # _close_active_session(). Captured once per dialog: the
+                    # first attempt is the only one that can still see the
+                    # value the database's real owner left behind.
+                    if self._phone_number_before_attempt is None:
+                        self._phone_number_before_attempt = (
+                            self.main_window.settings["privateinfo"].get(
+                                "WA_phone_number") or ""
+                        )
                     self.main_window.settings["privateinfo"]["WA_phone_number"] = self.phone_number
                     self.main_window._set_wa_token(self.main_window.token)
                     wx.CallAfter(self._on_pairing_code_success, pairing_code)

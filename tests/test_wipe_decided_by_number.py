@@ -132,11 +132,19 @@ def _run_pairing_flow(c, monkeypatch):
 
     The decision runs before any network call, so failing every request is
     enough to keep the test to the branch under test instead of waiting 90 s
-    for a phoneCode that will never arrive. _bg_pairing_flow()'s own except
-    clause handles it, and GetApp() answering None is what keeps its error
-    MessageBox from needing a real wx.App.
+    for a phoneCode that will never arrive; _bg_pairing_flow()'s own except
+    clause handles it.
+
+    on_continue() rebinds wx.GetApp on the module itself — going through
+    monkeypatch keeps that out of the rest of the suite, the same reason
+    tests/test_qrcode_repair_preserves_local_data.py gives. CallAfter goes
+    with it: there is no wx.App in this file, so the marshalling
+    _bg_pairing_flow()'s failure path does would assert inside the pairing
+    thread and surface as a PytestUnhandledThreadExceptionWarning that has
+    nothing to do with what is being tested.
     """
     monkeypatch.setattr(connect_module.wx, "GetApp", lambda: None)
+    monkeypatch.setattr(connect_module.wx, "CallAfter", lambda *a, **kw: None)
     monkeypatch.setattr(
         connect_module, "api_post",
         lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("no network in tests")),
@@ -186,6 +194,13 @@ class TestTheRoundTripKeepsItsHistory:
         _run_pairing_flow(c, monkeypatch)
 
         assert mw.clear_local_data_calls == before + 1
+        # The whole safety argument for splitting the two flags is that the
+        # wipe branch is a SUBSET of the reset branch — a different account
+        # can never have a resumable session, so everything that reaches the
+        # wipe has already passed the reset. This is that proof as a test:
+        # it is what fails if someone later re-keys the reset on
+        # _is_same_account() for symmetry.
+        assert mw.messages_set_completed is False
 
     def test_a_never_paired_account_still_wipes(self, monkeypatch):
         """Nothing to lose, and a leftover from an abandoned pairing is not
@@ -216,3 +231,95 @@ class TestWaitingForTheSyncIsStillKeyedOnTheSession:
 
         assert mw.messages_set_completed is False
         assert mw.clear_local_data_calls == 0
+
+
+class TestAnAbandonedAttemptDoesNotRenameTheDatabasesOwner:
+    """_bg_pairing_flow() writes privateinfo["WA_phone_number"] the instant a
+    phone code arrives — long before the pairing concludes — and nothing used
+    to put the previous value back when the attempt was abandoned.
+
+    Harmless while that key only fed _can_reuse_existing_session(), which also
+    required a token the abandonment had cleared. Not harmless once
+    _is_same_account() decides the wipe from it alone: account A is paired,
+    the user types B, gets a code, abandons, then pairs B for real — and the
+    stale key says "same account", so B's sync lands on top of A's chats,
+    media and voice notes. The backstop only catches that when
+    WA_phone_number_linked already exists (main.py's another_number_check
+    learns the number instead of deleting when it does not), so this must not
+    depend on it.
+    """
+
+    def _dialog_that_got_a_code_for(self, mw, number):
+        """The state an attempt leaves behind once a code has arrived."""
+        c = _connect_for(mw, typed_number=number)
+        privateinfo = mw.settings["privateinfo"]
+        c._phone_number_before_attempt = privateinfo.get("WA_phone_number") or ""
+        privateinfo["WA_phone_number"] = number
+        return c
+
+    def test_the_previous_number_comes_back_when_the_attempt_is_abandoned(self):
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = NUMBER
+        c = self._dialog_that_got_a_code_for(mw, "5511888888888")
+
+        c._close_active_session()
+
+        assert mw.settings["privateinfo"]["WA_phone_number"] == NUMBER
+
+    def test_the_other_number_is_then_read_as_another_account(self):
+        """The point of restoring it: the wipe decision has to see the number
+        the database actually belongs to."""
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = NUMBER
+        c = self._dialog_that_got_a_code_for(mw, "5511888888888")
+
+        c._close_active_session()
+
+        assert c._is_same_account(
+            mw.settings["privateinfo"], "5511888888888") is False
+        assert c._is_same_account(mw.settings["privateinfo"], NUMBER) is True
+
+    def test_a_completed_pairing_keeps_its_own_number(self):
+        """_wa_connected is what separates "abandoned" from "succeeded": the
+        number a successful attempt wrote is the correct one, and restoring
+        over it would rename a database that had just been paired."""
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = NUMBER
+        c = self._dialog_that_got_a_code_for(mw, "5511888888888")
+        mw._wa_connected = True
+
+        c._close_active_session()
+
+        assert mw.settings["privateinfo"]["WA_phone_number"] == "5511888888888"
+
+    def test_an_account_that_had_no_number_gets_the_key_removed_again(self):
+        """Restoring "" as a value would leave a key that reads as a real
+        stored number to anything comparing digits."""
+        mw = _FakeMainWindow(paired=False, token="")
+        c = self._dialog_that_got_a_code_for(mw, "5511888888888")
+
+        c._close_active_session()
+
+        assert "WA_phone_number" not in mw.settings["privateinfo"]
+
+    def test_the_restore_happens_only_once(self):
+        """One-shot, like the mode-switch capture: a second close must not
+        put the number back over whatever legitimately replaced it."""
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = NUMBER
+        c = self._dialog_that_got_a_code_for(mw, "5511888888888")
+
+        c._close_active_session()
+        mw.settings["privateinfo"]["WA_phone_number"] = "5511777777777"
+        c._close_active_session()
+
+        assert mw.settings["privateinfo"]["WA_phone_number"] == "5511777777777"
+
+    def test_nothing_is_touched_when_no_attempt_wrote_anything(self):
+        mw = _FakeMainWindow(paired=True, token="sess1:hash1")
+        mw.settings["privateinfo"]["WA_phone_number"] = NUMBER
+        c = _connect_for(mw)
+
+        c._close_active_session()
+
+        assert mw.settings["privateinfo"]["WA_phone_number"] == NUMBER
