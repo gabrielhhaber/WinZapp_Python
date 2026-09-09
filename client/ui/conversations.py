@@ -522,6 +522,12 @@ class ConversationsPanel(wx.Panel):
         # ── Reaction tracking ───────────────────────────────────────────────
         # Maps original_msg_id → {emoji: count}
         self._reaction_map: dict = {}
+        # Bumped by _backfill_reactions_for_open_conversation() on every
+        # conversation open; a background fetch started for an earlier
+        # generation checks this before applying its results, so switching
+        # away mid-fetch cannot write a stale conversation's reactions into
+        # whatever is open by the time it finishes.
+        self._reaction_backfill_generation: int = 0
         # Keep track of chats where we reached the start of history on the server
         self._reached_server_start: dict = {}
         # When a server page overlaps local history completely, keep walking
@@ -1814,6 +1820,7 @@ class ConversationsPanel(wx.Panel):
             self.search_field.Clear()
         self.populate_messages()
         self._sync_pending_document_gauge()
+        self._backfill_reactions_for_open_conversation()
 
         # Re-show audio controls only if the playing audio message is focused.
         if (self._current_audio_id is not None
@@ -13555,6 +13562,167 @@ class ConversationsPanel(wx.Panel):
         except Exception:
             logging.exception("[conversations] insert reaction failed")
         return reaction_record
+
+    # Bounded, not exhaustive: there is no cheap way to know in advance which
+    # of a chat's messages actually have a reaction to find, so this is one
+    # request per message checked. Scoped to what a user opening a chat can
+    # actually see without scrolling — asking for an entire multi-year
+    # history would be thousands of requests for a handful of hits.
+    _REACTION_BACKFILL_LIMIT = 40
+
+    def _backfill_reactions_for_open_conversation(self):
+        """Fetch reactions for the most recent messages of the conversation
+        just opened, so one that happened while WinZapp was disconnected —
+        never delivered live, and not something a normal resync re-fetches
+        either, see MainWindow.fetch_message_reactions()'s docstring — is
+        picked up the moment the chat is opened, instead of never at all.
+
+        Runs in the background; _apply_backfilled_reactions() (back on the
+        UI thread) is what actually touches _reaction_map/records, guarded
+        by the generation counter so a fetch for a conversation the user has
+        since navigated away from cannot land on whatever is open by then.
+        """
+        if self.conversation is None:
+            return
+        jid = self.conversation.get("remoteJid", "")
+        if not jid:
+            return
+        records = (
+            self.conversation.get("messages", {})
+                .get("messages", {})
+                .get("records", [])
+        )
+        candidates = [
+            r for r in records
+            if isinstance(r, dict)
+            and r.get("messageType") != "reactionMessage"
+            and r.get("key", {}).get("id")
+        ]
+        try:
+            candidates.sort(key=lambda m: self._extract_timestamp(m) or 0, reverse=True)
+        except Exception:
+            pass
+        msg_ids = [
+            m.get("key", {}).get("id") for m in candidates[: self._REACTION_BACKFILL_LIMIT]
+        ]
+        if not msg_ids:
+            return
+        self._reaction_backfill_generation += 1
+        generation = self._reaction_backfill_generation
+        threading.Thread(
+            target=self._do_backfill_reactions,
+            args=(jid, msg_ids, generation),
+            daemon=True,
+        ).start()
+
+    def _do_backfill_reactions(self, jid: str, msg_ids: list, generation: int):
+        """Background: one GET per candidate message. A single message's
+        request failing (offline blip, timeout) must not lose the ones
+        already fetched, so each is caught and skipped individually rather
+        than aborting the whole batch."""
+        results = []
+        for msg_id in msg_ids:
+            if generation != self._reaction_backfill_generation:
+                return  # superseded — the user already opened something else
+            try:
+                payload = self.main_window.fetch_message_reactions(msg_id)
+            except Exception:
+                logging.exception(
+                    "[conversations] reaction backfill failed for %s", msg_id)
+                continue
+            if payload:
+                results.append((msg_id, payload))
+        if results:
+            wx.CallAfter(self._apply_backfilled_reactions, jid, results, generation)
+
+    def _apply_backfilled_reactions(self, jid: str, results: list, generation: int):
+        if generation != self._reaction_backfill_generation:
+            return
+        if self.conversation is None or self.conversation.get("remoteJid") != jid:
+            return
+        changed = False
+        for orig_id, payload in results:
+            if self._merge_fetched_reactions(jid, orig_id, payload):
+                changed = True
+        if changed:
+            self.populate_messages(preserve_focus=True)
+
+    def _merge_fetched_reactions(self, jid: str, orig_id: str, payload: dict) -> bool:
+        """Reconcile one message's /reactions/{id} response against whatever
+        is already persisted for it, via the same _persist_reaction_record()
+        every other reaction source uses — so a reaction already known from
+        a live event, or from a previous backfill, can never be duplicated
+        under a different id, only updated in place.
+
+        Handles removal too: a sender who is stored locally but absent from
+        this response removed their reaction while WinZapp could not see it
+        either way, and _persist_reaction_record(..., emoji="") is the same
+        "removed" convention apply_incoming_reaction() already relies on.
+        """
+        reactions = payload.get("reactions")
+        if not isinstance(reactions, list):
+            return False
+        reaction_by_me = payload.get("reactionByMe")
+        self_jid = (
+            reaction_by_me.get("senderUserJid")
+            if isinstance(reaction_by_me, dict) else None
+        )
+
+        fetched: dict = {}  # sender_key -> (emoji, from_me, participant_jid)
+        for group in reactions:
+            if not isinstance(group, dict):
+                continue
+            for sender in (group.get("senders") or []):
+                if not isinstance(sender, dict):
+                    continue
+                sender_jid = sender.get("senderUserJid") or ""
+                emoji = (sender.get("reactionText") or "").strip()
+                if not sender_jid or not emoji:
+                    continue
+                from_me = bool(self_jid) and sender_jid == self_jid
+                sender_key = self._SELF_REACTOR_KEY if from_me else sender_jid
+                fetched[sender_key] = (emoji, from_me, sender_jid)
+
+        existing: dict = {}  # sender_key -> emoji currently stored
+        for r in self._chat_records_for(jid):
+            if not (isinstance(r, dict) and r.get("messageType") == "reactionMessage"):
+                continue
+            reaction = (r.get("message") or {}).get("reactionMessage") or {}
+            if (reaction.get("key") or {}).get("id") != orig_id:
+                continue
+            existing[self._reactor_key_from_msg(r)] = (reaction.get("text") or "").strip()
+
+        changed = False
+        for sender_key, (emoji, from_me, sender_jid) in fetched.items():
+            if existing.get(sender_key) == emoji:
+                continue  # already known — nothing to persist or redraw for
+            if self._persist_reaction_record(
+                jid, orig_id, {"id": orig_id}, sender_key, from_me, emoji,
+                participant="" if from_me else sender_jid,
+            ) is not None:
+                changed = True
+        # Whoever was known locally but is not in this response any more
+        # removed their reaction while disconnected.
+        for sender_key in set(existing) - set(fetched):
+            if not existing.get(sender_key):
+                continue  # already empty/removed locally
+            from_me = sender_key == self._SELF_REACTOR_KEY
+            if self._persist_reaction_record(
+                jid, orig_id, {"id": orig_id}, sender_key, from_me, "",
+                participant="" if from_me else sender_key,
+            ) is not None:
+                changed = True
+        return changed
+
+    def _chat_records_for(self, jid: str) -> list:
+        """The stored records list for `jid`, or [] if there is none —
+        shared by _merge_fetched_reactions() so it does not have to
+        duplicate get_chat()'s @lid/phone resolution."""
+        chat = self.main_window.get_chat(jid)
+        if not chat:
+            return []
+        records = chat.get("messages", {}).get("messages", {}).get("records", [])
+        return records if isinstance(records, list) else []
 
     def _on_own_reaction_sent(self, jid: str, msg_key: dict, emoji: str):
         """Update reaction_map, re-render the original message, and refresh the list."""

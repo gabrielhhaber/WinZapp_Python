@@ -17487,6 +17487,33 @@ class MainWindow(wx.Frame):
                     reasons[jid] = "stale-recheck"
                     skipped -= 1
 
+        # Diagnostic only — no behavior here, just what "Message plan:
+        # ...unchanged=N" (logged by the caller) cannot show on its own: the
+        # actual markers behind the "nothing changed" verdict, for a report
+        # of "sync said done, but F5 found more" to be read directly off the
+        # jid/activity/newest-stored numbers instead of re-deriving them from
+        # this function on a future occurrence. Bounded (first 15) so a large
+        # account's ordinary skip list — most rounds, most chats — cannot
+        # turn this into noise; the chats that stayed skipped after the
+        # staleness net above already had every other chance to be excluded.
+        if not force_full and skipped_chats:
+            still_skipped = [
+                (jid, chat) for jid, chat in skipped_chats if reasons.get(jid) != "stale-recheck"
+            ]
+            if still_skipped:
+                sample = []
+                for jid, chat in still_skipped[:15]:
+                    marker = _chat_sync_marker(chat)
+                    sample.append(
+                        f"{jid}(activity={marker['activity']},"
+                        f"newest_local={marker['newest_local_ts']})"
+                    )
+                logging.info(
+                    "[start_sync] %d chat(s) classified unchanged this round "
+                    "(showing up to 15): %s",
+                    len(still_skipped), ", ".join(sample),
+                )
+
         return full_targets, incremental_targets, skipped, reasons
 
     def _persist_full_sync_pending(self, reason: str) -> None:
@@ -19248,6 +19275,57 @@ class MainWindow(wx.Frame):
                              remote_jid, count, len(widest))
                 break
         return widest
+
+    def fetch_message_reactions(self, msg_id: str) -> "dict | None":
+        """GET /reactions/{msgId} — DeviceController.getReactions(), already
+        registered by wppconnect-server itself as
+        /api/:session/reactions/:id (client/api_patches/src/routes/index.ts,
+        unmodified from upstream). WinZapp never called it before this.
+
+        Exists because reactions have no backfill path of their own: a
+        reactionMessage only ever arrives as a live WebSocket event
+        (WebSocketClient.on_wpp_reaction() / on_messages_upsert()), and
+        get-messages — what every normal sync round re-fetches — replays
+        WhatsApp Web's own message *history*, which does not include past
+        reactions on messages it already has (confirmed against this
+        endpoint's own response shape, retriever.layer.d.ts:
+        getReactions() -> {reactionByMe, reactions: [{aggregateEmoji,
+        hasReactionByMe, senders: [...]}]} — a live, current snapshot, not a
+        history entry). So a reaction added while WinZapp was disconnected —
+        the WebSocket never delivered it — is invisible forever unless
+        something asks for it explicitly, per message, after the fact. See
+        ConversationsPanel._backfill_reactions_for_open_conversation(),
+        which does exactly that, bounded to the messages currently on
+        screen — asking for every message in an account's whole history
+        would be thousands of extra requests for nothing most of them ever
+        had a reaction to find.
+
+        Returns the raw `response` object on success, or None on any
+        failure (offline, timeout, malformed body) — the caller treats
+        "nothing found" and "could not check" identically, since neither
+        should ever wipe an already-known reaction.
+        """
+        if not msg_id or not getattr(self, "_wa_connected", False):
+            return None
+        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/reactions/{msg_id}"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+        }
+        try:
+            response = api_get(url, headers=headers, timeout=8)
+        except Exception:
+            logging.exception(
+                "[fetch_message_reactions] request failed for %s", msg_id)
+            return None
+        if response.status_code != 200:
+            return None
+        try:
+            body = response.json()
+        except Exception:
+            return None
+        payload = body.get("response") if isinstance(body, dict) else None
+        return payload if isinstance(payload, dict) else None
 
     def sync_chat_messages(self, chat, expected_run_id=None, sync_mode="full"):
         if (expected_run_id is not None
