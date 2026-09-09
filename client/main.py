@@ -11379,7 +11379,8 @@ class MainWindow(wx.Frame):
             # Captured BEFORE the wipe: a sync already in flight keeps running
             # right through it (see _restart_sync_after_another_number_wipe()).
             in_flight = getattr(self, "sync_thread", None) if live else None
-            self._apply_another_number_wipe(new_digits, teardown_ui=live)
+            self._apply_another_number_wipe(new_digits, teardown_ui=live,
+                                            previous_digits=stored)
 
             if live:
                 # The database of the account that is actually linked is now
@@ -11409,7 +11410,7 @@ class MainWindow(wx.Frame):
                         # thread that outlives it.
                         threading.Thread(
                             target=self._restart_sync_after_another_number_wipe,
-                            args=(in_flight, new_digits),
+                            args=(in_flight, new_digits, stored),
                             name="another-number-resync", daemon=True,
                         ).start()
                     else:
@@ -11438,7 +11439,8 @@ class MainWindow(wx.Frame):
                     self._initial_sync_running = False
 
     def _apply_another_number_wipe(self, new_digits: str,
-                                   teardown_ui: bool = True) -> None:
+                                   teardown_ui: bool = True,
+                                   previous_digits: str = "") -> None:
         """Tear the visible half down (with the UI up), wipe, record the number.
 
         Split out of _wipe_local_data_if_another_number_linked() only because
@@ -11455,6 +11457,16 @@ class MainWindow(wx.Frame):
         — before MainLoop() nothing dispatches the wx.CallAfter — and then
         _prepare_ui() raises on self.conversations_panel, which does not exist
         yet.
+
+        ``previous_digits`` is the number the key named before this pass,
+        and it is what the key goes back to when the wipe empties nothing. The
+        direct caller can hand it over for free — it read exactly that value to
+        decide there was a divergence at all — and
+        _restart_sync_after_another_number_wipe() carries it down to the second
+        pass, which is the one that needs it: by then the first pass has
+        already recorded the new number, so leaving the key alone there would
+        leave it naming the new account over rows the contaminated round
+        committed on its way out.
 
         The number is recorded last, after the wipe rather than before it,
         and only when the wipe really emptied the database:
@@ -11481,6 +11493,25 @@ class MainWindow(wx.Frame):
             # told the previous number's conversations were deleted. Left armed,
             # the next pass or the next pairing re-detects it and finishes the
             # job.
+            #
+            # Not writing is enough on the first pass, where clear_local_data()
+            # skipped its own drop for the same reason and the key therefore
+            # still names previous_digits. It is not enough on the second one:
+            # _restart_sync_after_another_number_wipe() runs this whole sequence
+            # again once the contaminated round has exited, and by then the
+            # first pass has recorded the new number — so a second pass that
+            # empties nothing would leave the key naming the new account over
+            # the rows that round committed while it was exiting, which is the
+            # same disarmed state, one wipe later and with nothing left pointing
+            # at it. Hence putting the previous number back rather than only
+            # returning: what the key has to name is whichever account the
+            # messages on disk belong to, and in both passes that is the
+            # previous one.
+            privateinfo = self.settings.setdefault("privateinfo", {})
+            if (previous_digits
+                    and privateinfo.get("WA_phone_number_linked") != previous_digits):
+                privateinfo["WA_phone_number_linked"] = previous_digits
+                self.save_settings()
             logging.error(
                 "[another_number_check] The wipe emptied no database — leaving "
                 "the recorded number armed so the divergence is found again.")
@@ -11502,7 +11533,8 @@ class MainWindow(wx.Frame):
     # only whether the refill starts now or on the next reconnect.
     _ANOTHER_NUMBER_SYNC_JOIN_ROUNDS = 3
 
-    def _restart_sync_after_another_number_wipe(self, in_flight, new_digits: str) -> None:
+    def _restart_sync_after_another_number_wipe(self, in_flight, new_digits: str,
+                                                previous_digits: str) -> None:
         """Wait out the sync that was already running, wipe again, then resync.
 
         The mid-session check runs behind a pairing dialog, and by the time
@@ -11529,6 +11561,18 @@ class MainWindow(wx.Frame):
         the end of a completed pass), and this thread runs the same pass again
         once the contaminated round has genuinely exited. The second pass is
         cheap by then: an empty database and two empty directories.
+
+        The second pass takes ``previous_digits`` for the reason the first
+        one does not have to. By the time it runs the key already names the new
+        account — the first pass recorded it — so a wipe that empties nothing
+        here (this thread is a daemon too, and the shutdown does not wait for
+        it either) would leave that name standing over the rows the
+        contaminated round committed while it was exiting: an account switch
+        left half done with nothing able to see it any more, since every later
+        pass compares the key against the linked phone and finds them equal.
+        Handing the previous number back down keeps the key describing whichever
+        account the messages on disk belong to, which is the invariant the whole
+        check is written around.
 
         _initial_sync_running is retaken after the join because the round we
         waited for cleared it in its own finally, and the loop exists for the
@@ -11571,7 +11615,8 @@ class MainWindow(wx.Frame):
                     "and never restarted.",
                     self._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS,
                     getattr(still, "name", still))
-            self._apply_another_number_wipe(new_digits)
+            self._apply_another_number_wipe(new_digits,
+                                            previous_digits=previous_digits)
             self._sync_completed = False
             self._force_full_sync = True
             # Same latch F5 sets, for the same reason — see the first call
@@ -13970,15 +14015,17 @@ class MainWindow(wx.Frame):
         number this data belonged to). Both describe data that no longer
         exists once this returns.
 
-        Returns whether the database really was emptied — the same answer the
-        WA_phone_number_linked drop below is already gated on. Only
-        _apply_another_number_wipe() reads it, and it has to: it records the
-        newly linked number the moment this returns, and doing that after a
-        wipe that emptied nothing would leave the key naming the new account
-        while the old account's messages are still in messages.db, which reads
-        as "no divergence" from then on. Every other caller ignores it, F5
-        (wipe_metadata=False) included: the flag changes what gets emptied, not
-        whether this reports having emptied it.
+        Returns whether the database really was emptied. That is one of the
+        two conditions the WA_phone_number_linked drop below is gated on, not
+        the same one: the drop also needs wipe_metadata, so F5
+        (wipe_metadata=False) empties the message tables, is reported here as
+        True and still drops nothing — the flag decides what is emptied, never
+        whether emptying it is reported. Only _apply_another_number_wipe()
+        reads the answer, and it has to: it records the newly linked number the
+        moment this returns, and doing that after a wipe that emptied nothing
+        would leave the key naming the new account while the old account's
+        messages are still in messages.db, which reads as "no divergence" from
+        then on. Every other caller ignores it.
         """
         logging.info("[clear_local_data] Clearing all local caches, media, and database...")
         # Invalidate every background job before touching shared chat state.
@@ -14178,6 +14225,20 @@ class MainWindow(wx.Frame):
             else:
                 logging.info(f"[clear_local_data] Cleared folder: {subdir}")
 
+        # Returned after the media sweep, and the sweep is deliberately not
+        # gated on db_emptied: media/ and voice_messages/ are cleared either
+        # way. So a False answer describes a middle state neither this method's
+        # callers nor the divergence check's docstrings otherwise name, and it
+        # is the one that turns up in a field report — the previous account's
+        # rows still in messages.db, its media and voice notes already gone from
+        # disk, and, on the account-switch path, the user already told out loud
+        # that those conversations were deleted. The list therefore comes back
+        # holding chats whose attachments no longer resolve locally and cannot
+        # be fetched again either, since the session now belongs to the other
+        # account. Nothing here can undo that half — the files are gone — which
+        # is precisely why the other half is reported rather than assumed: the
+        # caller keeps the key naming the account those rows belong to, so the
+        # next pass finishes the wipe instead of merging on top of it.
         return db_emptied
 
     def create_basic_files(self):

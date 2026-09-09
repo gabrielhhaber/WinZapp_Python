@@ -184,14 +184,21 @@ class _Stub:
     def clear_local_data(self):
         self.wipe_calls += 1
         self.events.append(("wipe", self._initial_sync_running))
+        # A tuple answers per pass. The mid-session path wipes twice — once
+        # immediately, once after the contaminated round has exited — and the
+        # two passes leave the recorded number in different states, so a single
+        # answer cannot describe the case where only the second one fails.
+        emptied = self._wipe_empties_db
+        if isinstance(emptied, tuple):
+            emptied = emptied[min(self.wipe_calls, len(emptied)) - 1]
         # The real one drops the recorded number along with the data it
         # describes, which is what makes "the number is written afterwards"
         # an assertion about ordering rather than about nothing — and it drops
         # it only when it really emptied the database, which is the same answer
         # it hands back here.
-        if self._wipe_empties_db:
+        if emptied:
             self.settings["privateinfo"].pop("WA_phone_number_linked", None)
-        return self._wipe_empties_db
+        return emptied
 
     def save_settings(self):
         self.saved += 1
@@ -1302,6 +1309,83 @@ class TestAWipeThatEmptiedNothingLeavesTheOldNumberRecorded:
 
         assert stub.recorded_number == "5521988887777"
         assert stub.saved == 1
+
+
+class TestASecondPassThatEmptiedNothingPutsThePreviousNumberBack:
+    """The same hole as the class above, one wipe later — and the only pass
+    where declining to write is not enough on its own.
+
+    Mid-session the sequence runs twice: once immediately, and once from
+    _restart_sync_after_another_number_wipe() after the contaminated round has
+    finally exited. The first pass empties the database and records B. The
+    second one runs on a daemon thread the shutdown does not wait for either,
+    so it gets the same DatabaseBridgeClosed/Timeout out of save_full_state()
+    — except that this time the key already names B, and simply returning
+    leaves it there over the rows that round committed while it was exiting.
+    That is A's history under B's name: every later pass compares the key
+    against the linked phone, finds them equal, and reports no divergence, so
+    the check never runs against this pair again and B's next sync merges onto
+    A's rows — after the user was told A's conversations had been deleted.
+
+    Putting the previous number back is what closes it, and it is the same rule
+    both passes obey: the key names whichever account the messages on disk
+    belong to.
+    """
+
+    def _stub(self, wipe_empties_db):
+        return _Stub(ui_ready=True, wipe_empties_db=wipe_empties_db,
+                     probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
+
+    def test_the_key_goes_back_to_the_previous_number(self, monkeypatch):
+        """Both halves in one test, because the first is what makes the second
+        a hole: after the immediate wipe the key really does name B."""
+        stub = self._stub((True, False))
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+
+        # The check has returned and the resync thread is parked on the join,
+        # so this reads the state the first pass left behind.
+        assert stub.recorded_number == "5521988887777"
+
+        worker = _resync_thread()
+        assert worker is not None
+        in_flight.finish()
+        worker.join(timeout=5)
+
+        assert stub.wipe_calls == 2
+        assert stub.recorded_number == "5511999999999"
+
+    def test_the_restore_reaches_settings_json(self, monkeypatch):
+        """In memory only it is exactly as disarmed: the next launch reads the
+        file. One write for the first pass recording B, one for putting A
+        back."""
+        stub = self._stub((True, False))
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        in_flight.finish()
+        worker.join(timeout=5)
+
+        assert stub.saved == 2
+
+    def test_the_corrective_sync_still_starts(self, monkeypatch):
+        """The restore happens on the way to it, not instead of it — the
+        database this thread wanted refilled is in no better state for having
+        failed to empty."""
+        stub = self._stub((True, False))
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        in_flight.finish()
+        worker.join(timeout=5)
+
+        assert stub.syncs_started == 1
+        assert stub._force_full_sync is True
+        assert stub.full_sync_latches == [
+            MainWindow._ANOTHER_NUMBER_WIPE_REASON] * 2
 
 
 class TestANonWipingDisconnectLeavesTheCheckArmed:

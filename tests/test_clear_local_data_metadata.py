@@ -136,6 +136,10 @@ class _Stub:
         self.saved += 1
 
     clear_local_data = MainWindow.clear_local_data
+    # The one caller that reads the answer, bound for real beside it: with a
+    # stub on either side of that call nothing tests the two together, and the
+    # return value could be dropped without a failure anywhere.
+    _apply_another_number_wipe = MainWindow._apply_another_number_wipe
     _MAX_MEDIA_DELETE_ERRORS_LOGGED = MainWindow._MAX_MEDIA_DELETE_ERRORS_LOGGED
     # Bound for real: the exhausted-history pair has had a one-line helper
     # since F5 needed exactly this, and its docstring already describes the
@@ -409,17 +413,18 @@ class TestAWipeThatEmptiedNothingLeavesTheNumberArmed:
 
 
 class TestTheWipeReportsWhetherItEmptiedAnything:
-    """The same answer the WA_phone_number_linked drop is gated on, handed back
-    to the caller, because one caller has to make the same decision one level
-    up: _apply_another_number_wipe() records the NEWLY linked number the moment
-    this returns, and a wipe that emptied nothing would leave the key naming
-    account B while account A's messages are still in messages.db — no
+    """One of the two conditions the WA_phone_number_linked drop is gated on
+    — not the same one, since that drop also needs wipe_metadata — handed back
+    to the caller, because one caller has to make a decision of its own one
+    level up: _apply_another_number_wipe() records the NEWLY linked number the
+    moment this returns, and a wipe that emptied nothing would leave the key
+    naming account B while account A's messages are still in messages.db — no
     divergence left for any later pass to find, after the user has already been
     told A's conversations were deleted.
 
     Nothing else reads it. F5 (wipe_metadata=False) empties the message tables
-    too, so it gets the same True; the flag decides what is emptied, not whether
-    that is reported.
+    too, so it gets the same True and still drops no key; the flag decides what
+    is emptied, not whether that is reported.
     """
 
     def test_an_emptied_database_reports_true(self):
@@ -452,6 +457,81 @@ class TestTheWipeReportsWhetherItEmptiedAnything:
         stub = _Stub()
 
         assert stub.clear_local_data(wipe_metadata=False) is True
+
+
+class TestTheWipeAndItsOneCallerBoundTogether:
+    """The seam: the real clear_local_data() driving the real
+    _apply_another_number_wipe(), over a database that refuses the write.
+
+    Both sides already have tests, and each side has its own stub for the
+    other — so the wire between them was the one thing nothing covered.
+    Deleting `return db_emptied` left every test above green (the caller reads
+    None, which is falsy, and takes the same branch for the wrong reason), and
+    a future stub of clear_local_data() answering None would do the same to the
+    tests one level up. What has to hold is the whole path: a save_full_state()
+    that raises reaches the decision not to record the newly linked number.
+    """
+
+    _A = "5511999999999"
+    _B = "5521988887777"
+
+    def _refusing_db(self, stub):
+        """The routine mid-session failure: the user closes WinZapp while the
+        daemon another-number-check thread is inside the wipe."""
+        def _closed(data, clear_metadata=True):
+            raise DatabaseBridgeClosed("database bridge is closed")
+
+        stub.db.save_full_state = _closed
+
+    def test_a_database_that_refused_the_write_keeps_the_previous_number(self):
+        stub = _Stub()
+        self._refusing_db(stub)
+
+        stub._apply_another_number_wipe(self._B, teardown_ui=False,
+                                        previous_digits=self._A)
+
+        assert stub.settings["privateinfo"]["WA_phone_number_linked"] == self._A
+        # And nothing was written, since the key already named A: the value on
+        # disk is the value in memory.
+        assert stub.saved == 0
+
+    def test_no_database_open_keeps_it_too(self):
+        """The other real route to False, and the one every connect.py call
+        site takes: __init__ has not reached prepare_sync() yet."""
+        stub = _Stub()
+        del stub.db
+
+        stub._apply_another_number_wipe(self._B, teardown_ui=False,
+                                        previous_digits=self._A)
+
+        assert stub.settings["privateinfo"]["WA_phone_number_linked"] == self._A
+
+    def test_an_emptied_database_records_the_new_number(self):
+        """The control, and the half that catches the return value going
+        missing: with nothing handed back, this path stops recording anything
+        at all and the account switch never completes."""
+        stub = _Stub()
+
+        stub._apply_another_number_wipe(self._B, teardown_ui=False,
+                                        previous_digits=self._A)
+
+        assert stub.db.calls == [True]
+        assert stub.settings["privateinfo"]["WA_phone_number_linked"] == self._B
+
+    def test_the_previous_number_is_put_back_when_the_key_had_moved_on(self):
+        """The second pass of a mid-session switch, end to end: the key already
+        names B (the first pass recorded it), the database refuses, and A's
+        rows are still there — so the key has to name A again or no later pass
+        ever sees the divergence."""
+        stub = _Stub()
+        stub.settings["privateinfo"]["WA_phone_number_linked"] = self._B
+        self._refusing_db(stub)
+
+        stub._apply_another_number_wipe(self._B, teardown_ui=False,
+                                        previous_digits=self._A)
+
+        assert stub.settings["privateinfo"]["WA_phone_number_linked"] == self._A
+        assert stub.saved == 1
 
 
 class TestAResyncKeepsEveryLocalActionTheUserTook:
