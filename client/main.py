@@ -14542,6 +14542,13 @@ class MainWindow(wx.Frame):
             # and keeps nothing else here either), so this line touches only
             # the account switch.
             self._forget_media_failures()
+            # Same family by origin as everything above (fed by
+            # _note_verified_activity(), consulted by
+            # local_history_behind_server() as a floor), inert here today
+            # only because it is deliberately never persisted — clearing it
+            # anyway keeps it out of the same leak class the moment that
+            # changes, rather than relying on that being true forever.
+            self._verified_activity = {}
 
         db_emptied = False
         try:
