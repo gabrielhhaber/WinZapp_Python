@@ -10,6 +10,7 @@ from core.sound_system import (
 from core.audio_devices import (
     enumerate_output_devices, enumerate_input_devices, test_input_device,
 )
+from core.spell_checker import is_windows_spellcheck_enabled
 
 # Win32 modifier constants for RegisterHotKey
 _MOD_ALT     = 0x0001
@@ -1077,6 +1078,29 @@ class SettingsDialog(wx.Dialog):
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
+    def _apply_spell_check_windows_state(self):
+        """Seed the spell-check checkbox's value from Windows' own spelling
+        setting when it can be read (is_windows_spellcheck_enabled(),
+        core/spell_checker.py — not a documented API, see its docstring),
+        falling back to the stored preference otherwise (on by default).
+
+        The checkbox itself stays exactly as it always has: one label,
+        always editable, always saved back to settings.json on OK/Apply
+        like any other checkbox on this tab (_apply_values() below) — this
+        only decides what it shows when the dialog opens or the language
+        changes.
+        """
+        windows_setting = is_windows_spellcheck_enabled()
+        if windows_setting is None:
+            # On unless explicitly disabled — including on installs whose
+            # settings.json predates the option and has no key at all.
+            spell_check = self.main_window.settings.get("general", {}).get(
+                "spell_check_enabled", True
+            )
+        else:
+            spell_check = windows_setting
+        self._spell_check_check.SetValue(spell_check)
+
     def _load_values(self):
         """Populate controls from current settings."""
         lang_code = self.main_window.settings.get("general", {}).get("language", "pt-BR")
@@ -1112,12 +1136,7 @@ class SettingsDialog(wx.Dialog):
         announce_sync = self.main_window.settings.get("general", {}).get("announce_sync_events", True)
         self._announce_sync_check.SetValue(announce_sync)
 
-        # On unless explicitly disabled — including on installs whose
-        # settings.json predates the option and has no key at all.
-        spell_check = self.main_window.settings.get("general", {}).get(
-            "spell_check_enabled", True
-        )
-        self._spell_check_check.SetValue(spell_check)
+        self._apply_spell_check_windows_state()
 
         # "off" unless the user chose otherwise — including for installs
         # whose settings.json predates the option and has no key at all.

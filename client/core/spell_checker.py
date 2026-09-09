@@ -23,6 +23,11 @@ try:
 except ImportError:  # pragma: no cover - only relevant off Windows
     winsound = None
 
+try:
+    import winreg
+except ImportError:  # pragma: no cover - only relevant off Windows
+    winreg = None
+
 
 if os.name == "nt":
     try:
@@ -34,6 +39,35 @@ if os.name == "nt":
         comtypes = None
 else:
     comtypes = None
+
+
+def is_windows_spellcheck_enabled() -> bool | None:
+    """Whether Windows' own spelling setting ("Settings > Time & language >
+    Typing > Spelling > Highlight misspelled words") is currently on.
+
+    Not a documented Microsoft API — the Spell Checking API this module
+    otherwise uses (spellcheck.h / ISpellCheckerFactory) covers *running* a
+    spell checker, not reading this system preference, and no public API for
+    it appears to exist. The value lives at HKCU\\Software\\Microsoft\\Input\\
+    Settings\\EnableSpellchecking (DWORD), which is itself an undocumented
+    implementation detail: a Windows Update has been reported to delete it
+    outright (regression, March 2026). Treated accordingly — best-effort,
+    never assumed to keep existing. Any failure to read it (key/value
+    absent, wrong type, non-Windows, a permission error) returns None so the
+    caller falls back to its own stored preference rather than guessing.
+    """
+    if winreg is None:
+        return None
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Input\Settings"
+        ) as key:
+            value, value_type = winreg.QueryValueEx(key, "EnableSpellchecking")
+    except OSError:
+        return None
+    if value_type != winreg.REG_DWORD:
+        return None
+    return bool(value)
 
 
 CLSID_SPELL_CHECKER_FACTORY = GUID(

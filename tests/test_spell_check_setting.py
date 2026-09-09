@@ -6,6 +6,17 @@ Eventos Sonoros. This switch is the other half: it turns the *checking* off,
 which is also what stops the Windows COM spell-check service from ever being
 touched (core/spell_checker.py only opens it lazily, on the first check).
 
+Windows' own "Highlight misspelled words" setting (Settings > Time & language
+> Typing > Spelling) now comes first: whenever it can be read
+(is_windows_spellcheck_enabled(), core/spell_checker.py), it decides the
+outcome directly — on there means on here, off there means off here. The
+Settings > Geral checkbox stays an ordinary, always-editable control (see
+tests/test_settings_dialog_spell_check_windows_state.py for that half); its
+stored value is only what this falls back to when Windows' own setting
+cannot be read — which is why every test below that means to exercise
+*that* path explicitly forces the Windows reading to unavailable via the
+autouse fixture.
+
 ConversationsPanel is a wx.Panel and cannot be instantiated without a running
 wx.App, so the two methods are exercised unbound against a stub carrying only
 what they touch — the pattern CLAUDE.md prescribes.
@@ -14,6 +25,9 @@ what they touch — the pattern CLAUDE.md prescribes.
 import json
 import pathlib
 
+import pytest
+
+import ui.conversations as conversations_module
 from ui.conversations import ConversationsPanel
 
 
@@ -46,6 +60,18 @@ class _Panel:
         self.main_window = _FakeMainWindow(enabled)
 
 
+@pytest.fixture(autouse=True)
+def _windows_setting_unreadable(monkeypatch):
+    """Every test in this file predates Windows' setting taking priority and
+    means to exercise the stored-preference fallback specifically — without
+    this, the suite's result would depend on the Windows spelling setting of
+    whatever machine happens to run it. TestWindowsSettingTakesPriority below
+    overrides this per-test to exercise the other path."""
+    monkeypatch.setattr(
+        conversations_module, "is_windows_spellcheck_enabled", lambda: None
+    )
+
+
 class TestTheFlagIsReadLive:
     def test_enabled_by_default_when_the_key_is_absent(self):
         """Installs whose settings.json predates the option have no key at
@@ -66,6 +92,34 @@ class TestTheFlagIsReadLive:
             _spell_check_enabled = ConversationsPanel._spell_check_enabled
 
         assert _Broken()._spell_check_enabled() is True
+
+
+class TestWindowsSettingTakesPriority:
+    """The new, primary source of truth — see core/spell_checker.py's
+    is_windows_spellcheck_enabled(). Overrides the stored WinZapp preference
+    in both directions whenever it can be read at all."""
+
+    def test_windows_off_overrides_a_winzapp_setting_of_on(self, monkeypatch):
+        monkeypatch.setattr(
+            conversations_module, "is_windows_spellcheck_enabled", lambda: False
+        )
+        assert _Panel(True)._spell_check_enabled() is False
+
+    def test_windows_on_overrides_a_winzapp_setting_of_off(self, monkeypatch):
+        monkeypatch.setattr(
+            conversations_module, "is_windows_spellcheck_enabled", lambda: True
+        )
+        assert _Panel(False)._spell_check_enabled() is True
+
+    def test_unreadable_falls_back_to_the_stored_winzapp_preference(self, monkeypatch):
+        """None (registry key/value absent, non-Windows, a permission
+        error — see is_windows_spellcheck_enabled()'s own docstring) is not
+        the same as False; it means "unknown", not "off"."""
+        monkeypatch.setattr(
+            conversations_module, "is_windows_spellcheck_enabled", lambda: None
+        )
+        assert _Panel(False)._spell_check_enabled() is False
+        assert _Panel(True)._spell_check_enabled() is True
 
 
 class TestTheComposerHonoursTheFlag:
