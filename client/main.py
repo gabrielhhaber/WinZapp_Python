@@ -4199,9 +4199,19 @@ class MainWindow(wx.Frame):
             time.sleep(2)
         # A hibernation-suspended chrome.exe may still hold the userDataDir lock,
         # which makes the start-session below fail with "browser is already
-        # running" and hangs the session in INITIALIZING forever. Kill that
-        # orphan (this account's only) and clear its lockfile first.
-        self._kill_orphaned_chrome_for_session()
+        # running" and hangs the session in INITIALIZING forever. Clear that
+        # orphan before starting — but through wait_for_profile_release(),
+        # which is "wait for it to let go, and kill only if it never does".
+        #
+        # The bare kill this replaces ran unconditionally, moments after a
+        # close-session that had usually already worked: a SIGKILL delivered to
+        # a Chrome that was in the middle of flushing WhatsApp Web's IndexedDB,
+        # for no gain, on every wake. That database is the only carrier of the
+        # login, and the losses it produces do not look like corruption — the
+        # profile comes back structurally perfect and simply stops being
+        # accepted. See closeBrowserGracefully() in createSessionUtil.ts.
+        self.wait_for_profile_release(
+            (getattr(self, "token", "") or "").split(":")[0], timeout=10.0)
         try:
             api_post(
                 f"{self.wpp_server}:{self.wpp_port}/api/{token}/start-session",
@@ -4774,7 +4784,11 @@ class MainWindow(wx.Frame):
                 self._stop_wpp_server()
                 self.wpp_process = None
 
-                self._kill_orphaned_chrome_for_session()
+                # _stop_wpp_server() has already closed the session and waited
+                # for Chrome to release the profile. Kill only what is still
+                # holding it — same reasoning as the wake path above.
+                self.wait_for_profile_release(
+                    (getattr(self, "token", "") or "").split(":")[0], timeout=10.0)
             except Exception:
                 logging.exception("[wpp_update] Stopping the server before the "
                                   "update failed — reinstalling anyway, which is "
