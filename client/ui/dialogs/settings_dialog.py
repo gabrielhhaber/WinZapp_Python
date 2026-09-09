@@ -10,6 +10,7 @@ from core.sound_system import (
 from core.audio_devices import (
     enumerate_output_devices, enumerate_input_devices, test_input_device,
 )
+from core.spell_checker import SPELL_CHECK_MODES, spell_check_mode
 
 # Win32 modifier constants for RegisterHotKey
 _MOD_ALT     = 0x0001
@@ -243,14 +244,29 @@ class SettingsDialog(wx.Dialog):
         )
         gen_sizer.Add(self._announce_sync_check, 0, wx.ALL, 8)
 
-        # Turns the checking itself off, not just its sound: unchecked, the
+        # Turns the checking itself off, not just its sound: set to off, the
         # message field never calls into the Windows spell-check COM service
         # at all (see ConversationsPanel._spell_check_enabled()). Silencing
         # only the cue is already possible per-event under Eventos Sonoros.
-        self._spell_check_check = wx.CheckBox(
-            self._general_page, label=i18n.t("spell_check_enabled_label")
+        #
+        # Radio group, not a checkbox: Windows has a spelling setting of its
+        # own (Settings > Time & language > Typing > Spelling), and following
+        # it is the right default — but a checkbox that silently lost to
+        # Windows would announce a state the app does not actually have, and
+        # every control here is read out loud. Three options say what is
+        # really going on and leave the override available.
+        self._spell_check_radio = wx.RadioBox(
+            self._general_page,
+            label=i18n.t("spell_check_label"),
+            choices=[
+                i18n.t("spell_check_mode_windows"),
+                i18n.t("spell_check_mode_on"),
+                i18n.t("spell_check_mode_off"),
+            ],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_COLS,
         )
-        gen_sizer.Add(self._spell_check_check, 0, wx.ALL, 8)
+        gen_sizer.Add(self._spell_check_radio, 0, wx.EXPAND | wx.ALL, 8)
 
         # Radio group, not a checkbox: the two folding levels are different
         # trades, not "more of the same", so the user picks one rather than
@@ -1077,6 +1093,23 @@ class SettingsDialog(wx.Dialog):
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
+    def _apply_spell_check_mode(self):
+        """Select the stored spell-check mode in the radio group.
+
+        Shows the user's own choice, never Windows' current reading: the
+        "follow Windows" option is what expresses the deference, so seeding
+        the control from the registry instead would leave no way to tell the
+        two apart — and no way to keep following Windows once it changed.
+        spell_check_mode() (core/spell_checker.py) resolves the default and
+        migrates the legacy `spell_check_enabled` bool.
+
+        Its own method, rather than inline in _load_values(), so it can be
+        exercised against a stub carrying just the radio — SettingsDialog is
+        a wx.Dialog and cannot be built without a running wx.App.
+        """
+        mode = spell_check_mode(self.main_window.settings.get("general", {}))
+        self._spell_check_radio.SetSelection(SPELL_CHECK_MODES.index(mode))
+
     def _load_values(self):
         """Populate controls from current settings."""
         lang_code = self.main_window.settings.get("general", {}).get("language", "pt-BR")
@@ -1112,12 +1145,7 @@ class SettingsDialog(wx.Dialog):
         announce_sync = self.main_window.settings.get("general", {}).get("announce_sync_events", True)
         self._announce_sync_check.SetValue(announce_sync)
 
-        # On unless explicitly disabled — including on installs whose
-        # settings.json predates the option and has no key at all.
-        spell_check = self.main_window.settings.get("general", {}).get(
-            "spell_check_enabled", True
-        )
-        self._spell_check_check.SetValue(spell_check)
+        self._apply_spell_check_mode()
 
         # "off" unless the user chose otherwise — including for installs
         # whose settings.json predates the option and has no key at all.
@@ -2317,8 +2345,8 @@ class SettingsDialog(wx.Dialog):
         # Spell checking in the message field. Read live on every keystroke by
         # ConversationsPanel, so this takes effect immediately — no restart,
         # and no need to rebuild the panel's checker here.
-        self.main_window.settings.setdefault("general", {})["spell_check_enabled"] = (
-            self._spell_check_check.GetValue()
+        self.main_window.settings.setdefault("general", {})["spell_check_mode"] = (
+            SPELL_CHECK_MODES[self._spell_check_radio.GetSelection()]
         )
 
         # Unicode folding in searches
@@ -2502,7 +2530,13 @@ class SettingsDialog(wx.Dialog):
         self._call_popup_check.SetLabel(i18n.t("calls_popup_enabled_label"))
         self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
         self._announce_sync_check.SetLabel(i18n.t("announce_sync_events_label"))
-        self._spell_check_check.SetLabel(i18n.t("spell_check_enabled_label"))
+        self._spell_check_radio.SetLabel(i18n.t("spell_check_label"))
+        for _i, _key in enumerate((
+            "spell_check_mode_windows",
+            "spell_check_mode_on",
+            "spell_check_mode_off",
+        )):
+            self._spell_check_radio.SetItemLabel(_i, i18n.t(_key))
         self._search_norm_radio.SetLabel(i18n.t("search_normalization_label"))
         for _i, _key in enumerate((
             "search_normalization_off",

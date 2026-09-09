@@ -2436,8 +2436,49 @@ class MainWindow(wx.Frame):
         # come back corrupted, which looks exactly like being unlinked even
         # though the phone still shows the session. Ask Windows to hold the
         # shutdown while we close WPPConnect properly.
-        self.Bind(wx.EVT_QUERY_END_SESSION, self._on_query_end_session)
-        self.Bind(wx.EVT_END_SESSION, self._on_end_session)
+        #
+        # **On the wx.App, never on this frame.** wxMSW routes both messages to
+        # wxTheApp and to nothing else — `wxWindowMSW::HandleQueryEndSession()`
+        # and `HandleEndSession()` build the wxCloseEvent and dispatch it with
+        # `wxTheApp->SafelyProcessEvent(event)` — and a wxCloseEvent is not a
+        # command event, so it never propagates to a frame. Bound here, these
+        # two handlers could not run, and did not: a shutdown_audit.log
+        # covering 159 launches carries seventeen runs that ended with no
+        # teardown at all, eleven of them overnight, and not one line from
+        # either handler. Confirmed live by sending WM_QUERYENDSESSION to the
+        # running app's own window: delivered, and no audit line.
+        #
+        # What ran instead is wxApp's own static table entry, and it is the
+        # rest of the bug (src/msw/app.cpp):
+        #
+        #     void wxApp::OnQueryEndSession(wxCloseEvent& event)
+        #     {
+        #         if (GetTopWindow())
+        #             if (!GetTopWindow()->Close(!event.CanVeto()))
+        #                 event.Veto(true);
+        #     }
+        #
+        # `Close()` on this frame fires EVT_CLOSE, which is _on_close() — and
+        # _on_close() hides to the tray and **vetoes**, because that is the
+        # right answer when a human clicks the X. So WinZapp answered "no, you
+        # may not shut down" to Windows on every single shutdown. Measured on
+        # the live app: 0, a veto. Windows then puts up the blocking-apps
+        # screen and, on the way past it, terminates the process outright —
+        # which is precisely the STARTUP-with-no-_stop_wpp_server pattern that
+        # comes back as a profile WhatsApp Web refuses.
+        #
+        # A dynamic Bind is searched before the class's static event table, so
+        # binding here replaces that default rather than adding to it. Which is
+        # also why neither handler may call event.Skip(): skipping resumes the
+        # search, reaches wxApp::OnQueryEndSession, and restores the veto.
+        _app = wx.GetApp()
+        if _app is not None:
+            _app.Bind(wx.EVT_QUERY_END_SESSION, self._on_query_end_session)
+            _app.Bind(wx.EVT_END_SESSION, self._on_end_session)
+        else:
+            logging.error("[init_UI] no wx.App to bind the Windows shutdown "
+                          "handlers to — WPPConnect will not be closed cleanly "
+                          "on a Windows shutdown.")
 
         # System sleep/resume: the socket.io client, its underlying TCP
         # connection, and the local Puppeteer/Chrome session all go stale the
@@ -8127,9 +8168,10 @@ class MainWindow(wx.Frame):
     # above are free: they only ever elapse when something is genuinely wrong.
     # On WM_ENDSESSION we are on a clock we do not control. _on_query_end_session
     # registers a ShutdownBlockReason but still lets the shutdown proceed
-    # (event.Skip() answers TRUE to WM_QUERYENDSESSION — registering a reason
-    # without ALSO vetoing buys no extra time; see that method), so what we
-    # really have is Windows' hung-app timeout, ~5s by default.
+    # (handling the event without skipping answers TRUE to WM_QUERYENDSESSION —
+    # registering a reason without ALSO vetoing buys no extra time; see that
+    # method), so what we really have is Windows' hung-app timeout, ~5s by
+    # default.
     #
     # Left unbounded, the phases below sum to ~40s (10 POST + 15 flush + 15
     # profile release). Windows would cut that off partway — which is the very
@@ -8328,12 +8370,22 @@ class MainWindow(wx.Frame):
     def _on_query_end_session(self, event):
         """Windows is asking whether it may shut down. We say yes.
 
+        Saying yes is the whole job, and it is what this handler exists to do:
+        left to wxApp's own default (see the Bind in init_UI) WinZapp answered
+        FALSE, because that default closes the top window and _on_close() vetoes
+        to hide to the tray. Windows then blocks, times out, and kills us
+        mid-flush — the corruption this path exists to prevent.
+
+        Returning WITHOUT event.Skip() is what answers TRUE. Not skipping means
+        the event is fully handled here, so wx reports mayEnd = !GetVeto() =
+        true; skipping would resume the handler search, reach
+        wxApp::OnQueryEndSession, and put the veto straight back.
+
         The ShutdownBlockReason registered here does NOT buy extra time, and it
         is important not to believe otherwise: Windows only holds a shutdown for
-        an app that ALSO answers FALSE to WM_QUERYENDSESSION, and `event.Skip()`
-        below answers TRUE. All the reason string does is name us on the
-        blocking-apps screen if something else vetoes. It is kept for that, and
-        because _on_end_session has to destroy it either way.
+        an app that ALSO answers FALSE. All the reason string does is name us on
+        the blocking-apps screen if something else vetoes. It is kept for that,
+        and because _on_end_session has to destroy it either way.
 
         So the real deadline for _on_end_session is Windows' hung-app timeout,
         ~5s — which is why it passes _WINDOWS_SHUTDOWN_BUDGET rather than
@@ -8365,7 +8417,8 @@ class MainWindow(wx.Frame):
             )
         except Exception:
             pass
-        event.Skip()
+        # No event.Skip() — see the docstring. Skipping hands the event on to
+        # wxApp::OnQueryEndSession, which is the veto.
 
     # How long to wait after WM_ENDSESSION before assuming the shutdown was
     # cancelled and undoing _shutting_down. Per Windows docs bEnding can in
@@ -8428,7 +8481,9 @@ class MainWindow(wx.Frame):
                 ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
             except Exception:
                 pass
-            event.Skip()
+            # No Skip: wxApp::OnEndSession would run DeleteAllTLWs(), OnExit()
+            # and exit() after we have already spent the Windows budget, and
+            # the process is terminated the moment this returns anyway.
             return
 
         def _unstick_if_still_running():
@@ -8480,7 +8535,7 @@ class MainWindow(wx.Frame):
             ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
         except Exception:
             pass
-        event.Skip()
+        # No Skip, for the same reason as the branch above.
 
     # How long to wait for WPPConnect's /close-session request to confirm
     # Chrome closed gracefully before giving up and force-killing.
@@ -8735,8 +8790,40 @@ class MainWindow(wx.Frame):
                 wx.CallAfter(self._announce_profile_beyond_repair)
                 if on_give_up is not None:
                     wx.CallAfter(on_give_up)
+            finally:
+                # Released only once the profile is back in place, so the very
+                # next health poll starts a session on the restored profile
+                # rather than on the broken one.
+                self._recovery_restart_active = False
 
-        threading.Thread(target=_restore, daemon=True).start()
+        # This sequence is a close/kill/restore cycle that owns the browser and
+        # the profile for as long as it runs — up to ~25 s of it spent inside
+        # wait_for_profile_release() while Chrome still holds the directory.
+        # It is exactly what _recovery_restart_active exists to announce, and
+        # not setting it cost a session on 2026-09-09: the 30 s health poll
+        # landed 14 s in, read CLOSED, and fired its own /start-session into a
+        # profile that was still locked. That start failed with "The browser is
+        # already running", which (before the createSessionUtil.ts fix that
+        # ships with this change) left the session wedged in INITIALIZING for
+        # good — so the restore completed onto a profile nothing could start
+        # any more, and the app sat offline in silence until it was restarted
+        # by hand.
+        #
+        # Setting it also makes _self_inflicted_teardown_expected() true for
+        # the duration, which is correct on its own terms: the close-session
+        # above is ours, so the CLOSED/loggedOut readings that follow it are
+        # the expected result of this call and not WhatsApp unlinking the
+        # device. And _yield_to_in_progress_self_restart() will now give a quit
+        # landing mid-restore a few seconds to let the profile finish being put
+        # back, instead of tearing down on top of a half-copied leveldb.
+        self._recovery_restart_active = True
+        try:
+            threading.Thread(target=_restore, daemon=True).start()
+        except Exception:
+            # A flag nobody clears blocks every future auto-start for the life
+            # of the process — worse than the race it guards against.
+            self._recovery_restart_active = False
+            raise
         return True
 
     _PROFILE_RECOVERY_GENERATION_KEY = "profile_recovery_generation"
@@ -25688,7 +25775,8 @@ class MainWindow(wx.Frame):
 
     def on_media_download_progress(self, progress_id: str, progress: float):
         """Server-side CDN download progress, keyed by the id we sent with the
-        request. See _media_progress_id() for why the client picks that id."""
+        request — the message's own `key.id` (see the `progressId` the
+        get-media request carries), which is what the panel matches rows by."""
         if hasattr(self, "conversations_panel"):
             self.conversations_panel.update_message_download_progress(
                 progress_id, progress)

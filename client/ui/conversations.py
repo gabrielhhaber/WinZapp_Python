@@ -55,7 +55,9 @@ from core.locale_format import get_date_format, get_time_format, get_datetime_fo
 from core.message_copy_format import format_copied_message
 from core.video_player import VideoPlayer
 from core.focus_cloak import cloak_focus_announcement
-from core.spell_checker import WindowsSpellChecker
+from core.spell_checker import (
+    WindowsSpellChecker, spell_check_active, windows_spellcheck_enabled,
+)
 from ui.media_viewer import MediaViewerDialog
 from app_paths import data_path
 from core.message_queue import PendingMessage
@@ -1921,22 +1923,26 @@ class ConversationsPanel(wx.Panel):
         event.Skip()
 
     def _spell_check_enabled(self) -> bool:
-        """Whether Settings > Geral leaves spell checking on (default: yes).
+        """Whether spell checking runs in the message field.
 
-        Read on every keystroke rather than cached at construction, so the
-        checkbox takes effect the moment it is applied — no restart, and no
-        need for the settings dialog to reach into this panel. Missing key
-        means on, which is what installs whose settings.json predates the
-        option get.
+        Three-valued, set in Settings > Geral (`spell_check_mode`): follow
+        Windows' own spelling setting (Settings > Time & language > Typing >
+        Spelling — the default), or override it in either direction. The
+        whole decision lives in spell_check_active() (core/spell_checker.py),
+        which is pure and therefore testable without a wx.App; this only
+        supplies its two inputs.
+
+        Read on every keystroke rather than cached at construction, so both
+        sources of truth take effect immediately — no restart, and no need
+        for the settings dialog to reach into this panel. The registry read
+        behind windows_spellcheck_enabled() is memoised for a couple of
+        seconds precisely because of that call rate.
         """
         try:
-            return bool(
-                self.main_window.settings.get("general", {}).get(
-                    "spell_check_enabled", True
-                )
-            )
+            general = self.main_window.settings.get("general", {})
         except Exception:
             return True
+        return spell_check_active(general, windows_spellcheck_enabled())
 
     def _play_spelling_error_sound(self):
         """Play the currently configured spelling-error Sound Event."""
@@ -4729,10 +4735,13 @@ class ConversationsPanel(wx.Panel):
         self._action_save_as_btn.Hide()
         self._action_download_btn.Hide()
         self._hide_media_transfer_gauge()
-        # The transfer gauge is not a selection-specific media control.  Hiding
-        # it here made an in-flight upload/download disappear whenever focus or
-        # message selection changed.  Transfer completion / conversation exit
-        # owns its lifetime instead.
+        # The gauge IS selection-scoped, and the comment that used to sit here
+        # said the opposite while this very call contradicted it. One gauge
+        # serves every transfer, so the only reading of it that means anything
+        # is "the row you are on". Moving off hides it here; a transfer still
+        # running on the row you move back to re-shows it on its next progress
+        # tick, and _sync_pending_document_gauge() restores a pending upload
+        # when the conversation is (re)opened. See _transfer_owns_gauge().
         self._buttons_container.Hide()
         self._contact_converse_btn.Hide()
         self._contact_save_btn.Hide()
@@ -9984,7 +9993,11 @@ class ConversationsPanel(wx.Panel):
         if progress <= self._download_progress.get(msg_id, 0.0):
             return
         self._download_progress[msg_id] = progress
-        self._update_media_transfer_gauge(progress)
+        # The row always repaints — its own text carries the percentage, and it
+        # is unambiguous about which message it belongs to. The shared gauge
+        # only moves for the row the user is actually standing on.
+        if self._transfer_owns_gauge(msg_id):
+            self._update_media_transfer_gauge(progress)
         for i, msg in enumerate(self._sorted_messages):
             if msg.get("key", {}).get("id") == msg_id:
                 self.messages_list.SetItemText(i, self._render_message_line(msg))
@@ -10033,7 +10046,8 @@ class ConversationsPanel(wx.Panel):
         for index, msg in enumerate(self._sorted_messages):
             if msg.get("_local_id") != upload_id:
                 continue
-            self._update_media_transfer_gauge(progress)
+            if self._transfer_owns_gauge(upload_id):
+                self._update_media_transfer_gauge(progress)
             self.messages_list.SetItemText(index, self._render_message_line(msg))
             # wx.ListCtrl provides RefreshItem(), but the accessibility
             # fallback is a native wx.ListBox and only supports Refresh().
@@ -10094,9 +10108,58 @@ class ConversationsPanel(wx.Panel):
         self._media_action_slot.Show()
         self.conversation_panel.Layout()
 
+    def _transfer_owns_gauge(self, transfer_id: str) -> bool:
+        """Whether this transfer's progress may drive the shared gauge.
+
+        There is one gauge and any number of transfers. Nothing used to check
+        which of them was writing to it, so a background download three
+        conversations away moved the bar of whatever row the user was standing
+        on, and two concurrent transfers drove the same widget to two different
+        values — reported as bars "going up and down on top of each other".
+
+        Selection already scopes the gauge in every other direction:
+        on_message_selected() hides it through _hide_all_media_controls(), and
+        _sync_pending_document_gauge() restores "only the selected active
+        transfer". Updating it from anywhere was the odd one out.
+
+        Downloads are keyed by the WhatsApp message id and uploads by the
+        virtual `_local_id`, so both are accepted here — a row can only be one
+        of the two.
+        """
+        if not transfer_id:
+            return False
+        # Both real controls have it (CompatListBoxMessagesCtrl maps it onto
+        # GetSelection), but this runs inside a wx.CallAfter, and an
+        # AttributeError raised there is exactly how upload progress died once
+        # before — see tests/test_compat_listbox_refresh_item.py. Not knowing
+        # which row is focused means leaving the gauge alone, which is the safe
+        # direction: every symptom here is a bar that should not be on screen.
+        focused = getattr(self.messages_list, "GetFocusedItem", None)
+        if focused is None:
+            return False
+        index = focused()
+        if index < 0 or index >= len(self._sorted_messages):
+            return False
+        msg = self._sorted_messages[index]
+        if self._is_separator(msg):
+            return False
+        return transfer_id in (msg.get("key", {}).get("id", ""),
+                               msg.get("_local_id", ""))
+
     def _update_media_transfer_gauge(self, progress: float):
         gauge = getattr(self, "_media_transfer_gauge", None)
         if gauge is None:
+            return
+        if progress >= 1.0:
+            # A finished transfer has nothing left to report, and a bar parked
+            # at 100% is worse than no bar: it stays in the Tab order after the
+            # message list, where the user meets it long after the download it
+            # described is over, with no way to tell what it belongs to. This
+            # is the state the app got stuck in most often — MainWindow's bulk
+            # media sync calls update_message_download_progress(msg_id, 1.0)
+            # purely to repaint a row, and that call used to *show* the gauge
+            # at 100% and leave it there for the rest of the conversation.
+            self._hide_media_transfer_gauge()
             return
         gauge.SetValue(max(0, min(100, round(progress * 100))))
         if not gauge.IsShown():
