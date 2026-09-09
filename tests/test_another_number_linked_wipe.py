@@ -232,6 +232,7 @@ class _Stub:
         MainWindow._restart_sync_after_another_number_wipe
     )
     _ANOTHER_NUMBER_SYNC_JOIN_ROUNDS = MainWindow._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS
+    _ANOTHER_NUMBER_WIPE_REASON = MainWindow._ANOTHER_NUMBER_WIPE_REASON
 
     @property
     def recorded_number(self):

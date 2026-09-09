@@ -36,6 +36,7 @@ from contextlib import contextmanager
 
 import pytest
 
+from core.database_bridge import DatabaseBridgeTimeout
 import main as main_module
 from main import MainWindow
 
@@ -341,6 +342,70 @@ class TestTheRecordedNumberOutlivesTheDataItDescribes:
         assert [step for step, _ in seen] == ["database-emptied",
                                               "settings-written"]
         assert seen[1][1] is None
+
+
+class TestAWipeThatEmptiedNothingLeavesTheNumberArmed:
+    """The key describes what is on disk, so nothing may drop it while the
+    data it names is still there — and "the wipe ran" is not the same thing as
+    "the database was emptied".
+
+    self.db only exists from prepare_sync() onwards, and all six connect.py
+    call sites run before that, inside __init__'s connection dialog. The
+    canonical case this feature exists for goes straight through one of them:
+    account A is paired, the phone revokes the session, the next launch reads
+    401 and clear_local_data() runs with no database open — messages.db keeps
+    every chat and message of A (the divergence check's own docstring says so)
+    while settings.json loses WA_phone_number_linked. Phone B then pairs,
+    _wipe_local_data_if_another_number_linked() reads no recorded number, takes
+    the "learn it, delete nothing" branch, and B's sync merges onto A. The
+    merge this key exists to prevent, disarmed by its own cleanup, with no
+    kill involved anywhere.
+
+    save_full_state() raising is the same fault reached a second way:
+    DatabaseBridgeTimeout/DatabaseBridgeClosed are swallowed by design there,
+    so the messages stay on disk exactly as above.
+
+    Keeping it armed is strictly better, not a trade: the check that runs
+    right after prepare_sync() is the one that owns the no-database case, and
+    it can only act on a number it can still read.
+    """
+
+    def test_no_database_open_keeps_the_number_and_writes_nothing(self):
+        stub = _Stub()
+        # Every connect.py call site: __init__ has not reached prepare_sync().
+        del stub.db
+
+        stub.clear_local_data()
+
+        assert stub.settings["privateinfo"]["WA_phone_number_linked"] == "5511999999999"
+        assert stub.saved == 0
+
+    def test_a_database_that_refused_to_empty_keeps_the_number(self):
+        stub = _Stub()
+
+        def _timeout(data, clear_metadata=True):
+            raise DatabaseBridgeTimeout("db-asyncio thread is not running")
+
+        stub.db.save_full_state = _timeout
+
+        stub.clear_local_data()
+
+        assert stub.settings["privateinfo"]["WA_phone_number_linked"] == "5511999999999"
+        assert stub.saved == 0
+
+    def test_the_rest_of_the_wipe_still_happens_without_a_database(self, tmp_path):
+        """Only the recorded number is conditional. The in-memory metadata and
+        the media on disk belong to data that is going either way."""
+        (tmp_path / "media_failed.json").write_text('{"3EB0ABC": 1700000000.0}')
+        stub = _Stub()
+        del stub.db
+
+        stub.clear_local_data()
+
+        assert stub.chats == {}
+        for name in _METADATA:
+            assert not getattr(stub, name), name
+        assert not (tmp_path / "media_failed.json").exists()
 
 
 class TestAResyncKeepsEveryLocalActionTheUserTook:

@@ -11392,7 +11392,7 @@ class MainWindow(wx.Frame):
                 # force_full_pending=False out of the table the wipe just
                 # emptied, and run an incremental round over an empty
                 # database.
-                self._persist_full_sync_pending("another-number-wipe")
+                self._persist_full_sync_pending(self._ANOTHER_NUMBER_WIPE_REASON)
                 handed_off = True
                 try:
                     if in_flight is not None and in_flight.is_alive():
@@ -11444,12 +11444,18 @@ class MainWindow(wx.Frame):
         go through _teardown_conversation_ui(). At startup this runs inside
         __init__ before init_UI() and there is nothing yet to tear down, so
         that caller passes False; the resync thread below always runs with the
-        UI up, hence the default.
+        UI up, hence the default. A future startup caller that forgets to pass
+        False sits out _teardown_conversation_ui()'s full 5 s ui_ready.wait()
+        — before MainLoop() nothing dispatches the wx.CallAfter — and then
+        _prepare_ui() raises on self.conversations_panel, which does not exist
+        yet.
 
         The number is recorded last, after the wipe rather than before it:
         clear_local_data(wipe_metadata=True) drops WA_phone_number_linked
-        along with the data it describes, and what is written here describes
-        the empty database the next sync is about to fill.
+        along with the data it describes whenever it really emptied the
+        database, and what is written here describes the empty database the
+        next sync is about to fill — so this write is what makes the key
+        correct either way.
         """
         if teardown_ui:
             self._teardown_conversation_ui()
@@ -11458,6 +11464,12 @@ class MainWindow(wx.Frame):
         privateinfo = self.settings.setdefault("privateinfo", {})
         privateinfo["WA_phone_number_linked"] = new_digits
         self.save_settings()
+
+    # The reason string _persist_full_sync_pending() records for this wipe.
+    # Named because both halves of it — the check and the resync thread that
+    # repeats the wipe — write it, and a log field that only matches in one of
+    # them is worse than useless when reading a field report.
+    _ANOTHER_NUMBER_WIPE_REASON = "another-number-wipe"
 
     # How many times _restart_sync_after_another_number_wipe() will wait for
     # "one more" sync thread before giving up and restarting anyway. Bounded
@@ -11540,7 +11552,7 @@ class MainWindow(wx.Frame):
             self._force_full_sync = True
             # Same latch F5 sets, for the same reason — see the first call
             # site in _wipe_local_data_if_another_number_linked().
-            self._persist_full_sync_pending("another-number-wipe")
+            self._persist_full_sync_pending(self._ANOTHER_NUMBER_WIPE_REASON)
             self._try_start_sync_thread()
         except Exception:
             # Only if nobody else holds it, exactly as the check's own finally
@@ -14033,14 +14045,16 @@ class MainWindow(wx.Frame):
             # the account switch.
             self._forget_media_failures()
 
+        db_emptied = False
         try:
             if hasattr(self, "db") and self.db is not None:
                 self.db.save_full_state({"chats": {}, "contacts": {}}, clear_metadata=wipe_metadata)
+                db_emptied = True
                 logging.info("[clear_local_data] Database cleared successfully.")
         except Exception as e:
             logging.error(f"[clear_local_data] Failed to clear database: {e}")
 
-        if wipe_metadata:
+        if wipe_metadata and db_emptied:
             # The number this data belonged to. The invariant the divergence
             # check is written around is that the key describes what is on
             # disk, and six call sites in connect.py wipe through here without
@@ -14062,6 +14076,20 @@ class MainWindow(wx.Frame):
             # prevent, disarmed by its own cleanup. The other order costs
             # nothing — a key naming a database that is already empty is read as
             # a divergence and wipes an empty database a second time.
+            #
+            # And only when the database really was emptied, which is why
+            # db_emptied is a variable and not just the `if` above. self.db
+            # exists from prepare_sync() onwards, and all six connect.py call
+            # sites run before that, inside __init__'s connection dialog: there
+            # the write is skipped entirely and every message of the previous
+            # account stays in messages.db (the divergence check's own docstring
+            # says so). save_full_state() can also raise DatabaseBridgeTimeout/
+            # Closed, which is swallowed right above. Either way the key is
+            # still describing what is on disk, so it has to stay armed for the
+            # check after prepare_sync() to act on — dropping it there is the
+            # kill window above without the kill. The account-switch path is
+            # unaffected: _apply_another_number_wipe() rewrites the key
+            # immediately after its own call.
             privateinfo = getattr(self, "settings", {}).get("privateinfo")
             if (isinstance(privateinfo, dict)
                     and privateinfo.pop("WA_phone_number_linked", None) is not None):
@@ -14075,7 +14103,7 @@ class MainWindow(wx.Frame):
                     logging.exception(
                         "[clear_local_data] Could not persist dropping the "
                         "recorded linked number.")
-            
+
         # Clear local downloaded media files to prevent cross-account leakage
         for subdir in ("media", "voice_messages"):
             path = data_path(subdir)
