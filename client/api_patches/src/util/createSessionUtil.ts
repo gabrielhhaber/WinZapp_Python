@@ -626,9 +626,27 @@ export default class CreateSessionUtil {
     session: string,
     res?: any
   ) {
+    // Resolved once this attempt has taken ownership of the slot, so the catch
+    // at the bottom can tell whether the client it is about to touch is still
+    // its own. `client` itself is declared inside the try and is out of scope
+    // there, which is why the old catch had to re-resolve it through
+    // getClient() — and why it could not tell a superseded attempt apart.
+    let ownClient: any = null;
     try {
       let client = this.getClient(session) as any;
-      if (client.status != null && client.status !== 'CLOSED') return;
+      if (client.status != null && client.status !== 'CLOSED') {
+        // Silent until now, and the silence is most of why the deadlock below
+        // was so hard to see: this returns without starting anything while
+        // startSession() still answers HTTP 200, so WinZapp logs "Sent
+        // auto-start session command" every 30 s for a session that no code
+        // path is ever going to start.
+        req.logger?.info?.(
+          `[${session}] start-session ignored: status is ${client.status}, ` +
+            `not CLOSED — another attempt owns this session.`
+        );
+        return;
+      }
+      ownClient = client;
       client.status = 'INITIALIZING';
       client.config = req.body;
 
@@ -968,9 +986,51 @@ export default class CreateSessionUtil {
       }
     } catch (e) {
       req.logger.error(e);
-      if (e instanceof Error && e.name == 'TimeoutError') {
-        const client = this.getClient(session) as any;
-        client.status = 'CLOSED';
+      // A create() that threw owns no browser: whatever went wrong, this
+      // attempt is over. Leaving the status at INITIALIZING is not neutral,
+      // it is permanent — and it takes the whole account offline in silence.
+      // createSessionUtil() returns early for any status other than CLOSED
+      // (right at the top of this method), and WinZapp's health checker skips
+      // /start-session for every "active" state, so after one failed start
+      // neither side ever starts a session again. Upstream reset the status
+      // only for a TimeoutError, which covers exactly one of the ways create()
+      // can fail.
+      //
+      // Measured on 2026-09-09: a start-session that raced a profile restore
+      // failed with `The browser is already running for <userDataDir>` — an
+      // Error, not a TimeoutError, so the old branch did not fire. The
+      // recovery finished 6 s later and put a profile back that had
+      // authenticated fine hours earlier, and there was nothing left able to
+      // start it. status-session answered INITIALIZING for the rest of the
+      // process's life, with no chrome.exe in existence, while /start-session
+      // kept returning 200 and launching nothing. Only closing the app cleared
+      // it, because the wedged status lives in this process's memory.
+      //
+      // Two conditions, both load-bearing:
+      //
+      // * the slot must still hold OUR client. A create() superseded by a
+      //   newer one must never write CLOSED over the successor's status, or
+      //   the next /start-session launches a duplicate Chrome onto a profile a
+      //   live session is using — the same failure killBrowserOrFallback()
+      //   above refuses the userDataDir scan for, and it cost a working
+      //   session once already.
+      // * the status must still be INITIALIZING. Anything else means something
+      //   already promoted this session to a real state, and the throw came
+      //   from one of the webhook wirings that run past this.start(); reporting
+      //   a connected session as CLOSED would hand it the same duplicate
+      //   launch.
+      const failed: any = ownClient;
+      if (
+        failed &&
+        clientsArray[session] === failed &&
+        failed.status === 'INITIALIZING'
+      ) {
+        failed.status = 'CLOSED';
+        failed.qrcode = null;
+        req.logger.warn(
+          `[${session}] session start failed before it reached a real state — ` +
+            `status reset to CLOSED so the next /start-session can run.`
+        );
       }
     }
   }

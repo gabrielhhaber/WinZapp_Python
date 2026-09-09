@@ -86,7 +86,11 @@ class TestTeardownOwnedElsewhere:
             "the losing branch returned immediately — Windows then terminates "
             "the process while the owning path is still mid _stop_wpp_server()"
         )
-        assert evt.skipped
+        # Deliberately NOT skipped: Skip() resumes the handler search and
+        # reaches wxApp::OnEndSession (DeleteAllTLWs/OnExit/exit()), spending a
+        # Windows budget this teardown has already used. See
+        # tests/test_windows_shutdown_handlers.py.
+        assert evt.skipped is False
         # It must NOT start a competing teardown of its own; that is exactly
         # what the lock is there to prevent.
         assert stub.stopped_with is None
@@ -99,7 +103,11 @@ class TestTeardownOwnedElsewhere:
 
         assert stub.stopped_with == stub._WINDOWS_SHUTDOWN_BUDGET
         assert stub._shutting_down is True
-        assert evt.skipped
+        # Deliberately NOT skipped: Skip() resumes the handler search and
+        # reaches wxApp::OnEndSession (DeleteAllTLWs/OnExit/exit()), spending a
+        # Windows budget this teardown has already used. See
+        # tests/test_windows_shutdown_handlers.py.
+        assert evt.skipped is False
 
 
 class TestUnstickTimer:
