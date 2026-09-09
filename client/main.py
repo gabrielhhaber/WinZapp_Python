@@ -25697,7 +25697,8 @@ class MainWindow(wx.Frame):
 
     def on_media_download_progress(self, progress_id: str, progress: float):
         """Server-side CDN download progress, keyed by the id we sent with the
-        request. See _media_progress_id() for why the client picks that id."""
+        request — the message's own `key.id` (see the `progressId` the
+        get-media request carries), which is what the panel matches rows by."""
         if hasattr(self, "conversations_panel"):
             self.conversations_panel.update_message_download_progress(
                 progress_id, progress)
