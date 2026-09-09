@@ -451,3 +451,116 @@ class TestTheSyncDoesNotBlockOnNameResolution:
         stub._run_sync()
 
         assert stub.backfill_started is True
+
+
+def _supersede_during_fetch(stub, new_run_id):
+    """Bumps _sync_run_id from inside the first chat-list fetch, the way a
+    concurrent clear_local_data() would while this round is mid-flight —
+    every _make() scenario below calls get_remote_chats() at least once,
+    success or failure, so hooking it here covers both."""
+    original = stub.get_remote_chats
+
+    def _bump(*a, **kw):
+        stub._sync_run_id = new_run_id
+        return original(*a, **kw)
+
+    stub.get_remote_chats = _bump
+
+
+class TestTheSupersededRoundGuard:
+    """issue #198/#199: _wipe_local_data_if_another_number_linked() bumps
+    _sync_run_id (via clear_local_data()) out from under a round already in
+    flight rather than cancelling it, because that wipe cannot wait minutes
+    for a sync to notice. A round that reaches the final commit point after
+    losing the race must not touch _sync_completed either way — True would
+    silently undo the wipe's own False (the account it was switched away
+    from would look synced again and never get corrected); False would stomp
+    whatever the newer round has since decided.
+    """
+
+    def test_a_successful_round_superseded_mid_flight_leaves_sync_completed_untouched(self):
+        stub = _make([680, 0], wa_web=682, local_chats=681)
+        stub._sync_run_id = 1
+        stub._sync_completed = "sentinel"
+        _supersede_during_fetch(stub, 2)
+
+        stub._run_sync()
+
+        # Without the guard this scenario commits True (see the sibling test
+        # below, which is identical except for the supersession).
+        assert stub._sync_completed == "sentinel"
+
+    def test_a_failing_round_superseded_mid_flight_also_leaves_state_untouched(self):
+        stub = _make([36, 0, 0], wa_web=682, local_chats=0)
+        stub._sync_run_id = 1
+        stub._sync_completed = "sentinel"
+        stub._sync_retry_count = "sentinel_retry"
+        _supersede_during_fetch(stub, 2)
+
+        stub._run_sync()
+
+        assert stub._sync_completed == "sentinel"
+        assert stub._sync_retry_count == "sentinel_retry"
+
+    def test_the_same_round_not_superseded_commits_normally(self):
+        """Control for the two tests above: identical setup, no bump."""
+        stub = _make([680, 0], wa_web=682, local_chats=681)
+        stub._sync_run_id = 1
+
+        stub._run_sync()
+
+        assert stub._sync_completed is True
+
+    def test_a_stub_that_never_sets_sync_run_id_still_commits_normally(self):
+        """The __getattr__ hazard this guard had to be written around: the
+        test stubs answer any unknown attribute with a *fresh* lambda every
+        call, so two separate getattr(self, "_sync_run_id", 0) reads on a
+        stub that never sets it would compare unequal to each other and the
+        guard would wrongly believe every such round was superseded."""
+        stub = _make([680, 0], wa_web=682, local_chats=681)
+
+        stub._run_sync()
+
+        assert stub._sync_completed is True
+
+
+class TestTheSupersededRoundStaysSilent:
+    """The sync-complete chime/speech is queued via wx.CallAfter, so it can
+    run after a later round has already superseded this one. It writes
+    nothing (_sync_completed is untouched either way), but announcing
+    "conversations synchronized" for an account this round no longer
+    represents is its own bug — the exact kind of spoken-false-completion
+    surprise this codebase treats as seriously as a data bug (see the QR
+    flood section of CLAUDE.md)."""
+
+    @pytest.fixture(autouse=True)
+    def _run_callafter_inline(self, monkeypatch):
+        # The suite-wide _fast fixture above turns wx.CallAfter into a
+        # no-op so _run_sync() returns immediately in every other test here;
+        # this class exists specifically to inspect what that deferred call
+        # would have done, so it has to actually run it.
+        monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+
+    def _wired_for_announcement(self):
+        stub = _make([680, 0], wa_web=682, local_chats=681)
+        stub._sync_run_id = 1
+        stub.background_mode = False
+        stub.played = []
+        stub.sync_complete_sound.play = lambda: stub.played.append(True)
+        return stub
+
+    def test_a_superseded_round_does_not_play_the_completion_sound(self):
+        stub = self._wired_for_announcement()
+        _supersede_during_fetch(stub, 2)
+
+        stub._run_sync()
+
+        assert stub.played == []
+
+    def test_the_same_round_not_superseded_plays_it_normally(self):
+        """Control for the test above: identical setup, no bump."""
+        stub = self._wired_for_announcement()
+
+        stub._run_sync()
+
+        assert stub.played == [True]

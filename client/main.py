@@ -11883,18 +11883,30 @@ class MainWindow(wx.Frame):
         gap between that clear and this retake, in which yet another trigger
         can have started one more round.
 
-        Known residue, left as a follow-up rather than fixed here: _run_sync()
-        never consults _sync_run_id, so the round being waited out keeps
-        calling set_chats() for its whole remaining life. Between the spoken
+        _run_sync() now refuses to commit _sync_completed either way once its
+        own _sync_run_id has been superseded (see the guard just before
+        "Mark sync as done", added for this same issue — #198/#199) — that
+        was the dangerous half of the residue below: a contaminated round
+        reaching that point used to overwrite this method's own
+        _sync_completed=False back to True, which is not a cosmetic glitch
+        but a permanent one, since trigger_sync_if_needed() would then never
+        see a reason to run the corrective full sync at all.
+
+        Known residue, still left as a follow-up: the guard only covers that
+        one commit. Every earlier write in the round being waited out —
+        set_chats() and the rest — is untouched, so between the spoken
         "as conversas foram apagadas" and the second wipe below, the list
-        therefore refills with the PREVIOUS account's conversations — for as
+        still refills with the PREVIOUS account's conversations — for as
         long as that round takes, which is minutes — and then empties again.
         Nothing is lost by it, since both the second wipe and the full sync
-        after it run later, but for somebody reading that list with a screen
-        reader the sequence is genuinely confusing: told the history was
-        deleted, then hearing it come back, then hearing it disappear a second
-        time with nothing said. Honouring _sync_run_id in _run_sync()'s own
-        write path is what closes it.
+        after it run later and _sync_completed can no longer be left stuck,
+        but for somebody reading that list with a screen reader the sequence
+        is genuinely confusing: told the history was deleted, then hearing it
+        come back, then hearing it disappear a second time with nothing said.
+        Guarding every mid-round write the same way would close it, at the
+        cost of touching every one of that ~900-line method's write sites for
+        a cosmetic flicker rather than the correctness bug the commit-time
+        guard above already closes.
         """
         try:
             for _ in range(self._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS):
@@ -13227,6 +13239,23 @@ class MainWindow(wx.Frame):
         return bool(getattr(self, "offline_mode", False)) and not getattr(self, "_sync_completed", False)
 
     def _run_sync(self):
+        # Identifies which sync_thread this particular call belongs to — see
+        # the guard right before "Mark sync as done" far below, added for
+        # issue #199/#198: a round superseded mid-flight by
+        # _wipe_local_data_if_another_number_linked() (clear_local_data()
+        # bumps _sync_run_id) used to keep running to its own natural end
+        # regardless, and could then commit _sync_completed=True over data
+        # that belongs to the account it was just wiped for switching away
+        # from — silently undoing the wipe's own _sync_completed=False.
+        def _current_run_id():
+            # The test stubs that bind this method answer any unknown
+            # attribute with a fresh lambda each time (see the
+            # _verified_activity guard elsewhere in this file for the same
+            # hazard) — normalize rather than let two getattr() calls on an
+            # unset attribute compare unequal to each other.
+            value = getattr(self, "_sync_run_id", 0)
+            return value if isinstance(value, int) else 0
+        my_run_id = _current_run_id()
         logging.info("[start_sync] Checking WhatsApp connection status...")
         self.check_wa_connection_http()
         for _ in range(25):
@@ -13951,7 +13980,15 @@ class MainWindow(wx.Frame):
             # server was still filling in is precisely what made the
             # 3-or-4-conversations failure look like a success, right before
             # the sync restarted itself.
+            # Re-checked at the moment this actually runs (wx.CallAfter,
+            # so possibly well after the round below decided anything): a
+            # round superseded by an another-number wipe (or an F5/logout
+            # racing the same round — see _current_run_id() above) must not
+            # speak "conversations synchronized" for data that isn't the
+            # current account any more, even though nothing here writes
+            # _sync_completed and so nothing is actually lost by it.
             if (chat_list_ok and chat_list_settled and message_sync_ok
+                    and _current_run_id() == my_run_id
                     and self._announce_sync_events_enabled()):
                 self.sync_complete_sound.play()
                 if effective_full:
@@ -13981,7 +14018,37 @@ class MainWindow(wx.Frame):
         # that same flag and would never run a real sync again.
         # `chat_list_settled` is required for the same reason: a snapshot the
         # server was still growing is a partial account, not a finished sync.
-        if (len(self.chats) > 0 and getattr(self, "_wa_connected", False)
+        #
+        # A general safety net, not a special case for one caller: anything
+        # that bumps _sync_run_id (start_sync() itself, F5's
+        # _resync_all_worker(), a confirmed logout, and — the case this was
+        # written for — _wipe_local_data_if_another_number_linked() via
+        # clear_local_data()) out from under a round already running, rather
+        # than cancelling that round outright, leaves exactly this gap open.
+        # The another-number wipe is the sharpest instance: it cannot wait
+        # minutes for a sync to notice (see
+        # _restart_sync_after_another_number_wipe()'s own docstring — issue
+        # #198/#199), so it always races a round already in flight. Without
+        # this check, a round that captured the PREVIOUS account's chats
+        # would reach here after the wipe, find its own non-empty self.chats
+        # and a settled/successful round, and commit _sync_completed=True
+        # over the account it was just wiped for switching away from —
+        # silently undoing the wipe's own _sync_completed=False and leaving
+        # trigger_sync_if_needed() with no reason left to ever start the
+        # corrective full sync. A stale False commit here is comparatively
+        # harmless (self-corrects on the next trigger), which is why only
+        # this one write — not every self.chats write earlier in this round
+        # — is guarded; see _restart_sync_after_another_number_wipe()'s
+        # docstring for the mid-round residue this does not close.
+        current_run_id = _current_run_id()
+        if current_run_id != my_run_id:
+            logging.info(
+                "[start_sync] A newer sync run (%s) started while this one "
+                "(%s) was still finishing — not committing its outcome "
+                "either way; the newer round owns _sync_completed now.",
+                current_run_id, my_run_id,
+            )
+        elif (len(self.chats) > 0 and getattr(self, "_wa_connected", False)
                 and chat_list_ok and chat_list_settled and message_sync_ok):
             self._sync_completed = True
             self._sync_retry_count = 0
