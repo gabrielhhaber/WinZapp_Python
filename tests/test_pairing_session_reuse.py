@@ -100,3 +100,47 @@ def test_number_comparison_ignores_formatting(stored, typed):
     """The stored number keeps whatever formatting the user typed; both sides
     are normalised to digits before comparing."""
     assert can_reuse(_priv(WA_phone_number=stored), typed, TOKEN) is True
+
+
+class TestOnlyTheVerySameNumberResumesASession:
+    """WA_phone_number holds what the user typed into this dialog and nothing
+    else, so the comparison is exact — and briefly was not.
+
+    A tolerant version was introduced here while the wipe check still compared
+    a typed number against the one WhatsApp reported; it accepted any pair one
+    digit apart whose first two digits and last eight matched. "The first two
+    digits are the country code" is false for every three-digit dialling code,
+    and the pairs below are real, distinct subscribers it collapsed. Reusing a
+    session across one of them is worse than the missing wipe it was meant to
+    avoid: WinZapp connects the account belonging to the other number, without
+    deleting anything, and shows it as the user's own.
+
+    The wipe check now compares a confirmed number against a confirmed number
+    (WA_phone_number_linked, tests/test_another_number_linked_wipe.py), which
+    is what removed the reason for any tolerance here.
+    """
+
+    COLLIDING = [
+        # +49 211 1234567 vs +49 211 234567 — two Düsseldorf subscribers.
+        ("492111234567", "49211234567"),
+        # +43 1 ... — two Vienna landlines.
+        ("431123456789", "43123456789"),
+        # Italian mobiles, 10 and 9 digits.
+        ("393331234567", "39331234567"),
+        # A Portuguese mobile against a Sofia landline: different countries.
+        ("351924567890", "35924567890"),
+    ]
+
+    def test_a_number_one_digit_away_never_resumes(self):
+        for stored, typed in self.COLLIDING:
+            assert can_reuse(_priv(WA_phone_number=stored), typed, TOKEN) is False
+            assert can_reuse(_priv(WA_phone_number=typed), stored, TOKEN) is False
+
+    def test_the_brazilian_ninth_digit_form_is_not_the_typed_number_either(self):
+        """The user types what they type; nothing else writes this field."""
+        assert can_reuse(_priv(WA_phone_number="551199999999"),
+                         "5511999999999", TOKEN) is False
+
+    def test_the_same_number_still_resumes(self):
+        assert can_reuse(_priv(WA_phone_number="5511999999999"),
+                         "5511999999999", TOKEN) is True

@@ -121,6 +121,11 @@ class Connect:
         # dialogs — see on_continue()'s docstring for why this exists.
         self._pairing_attempt_id: int = 0
 
+        # Set by on_switch_to_phone() right before it clears WA_token via
+        # _close_active_session() — see that method's comment. One-shot: it
+        # stands for one specific pre-close session, so a pairing attempt
+        # clears it as it reads it and a switch back to QR mode drops it.
+        self._token_before_mode_switch: str = ""
         # Token of a BRAND-NEW WPPConnect session this dialog started itself
         # (empty whenever it reused an existing one, or closed the one it
         # started). Minting a new session overwrites the settings token and,
@@ -494,6 +499,19 @@ class Connect:
             evt.wait()
             return
 
+        # Nothing captured while a PREVIOUS dialog was open may survive into
+        # this one. on_switch_to_phone() arms the capture and only on_continue
+        # (on read) and on_switch_to_qrcode clear it, so closing the dialog in
+        # phone mode without clicking Continue used to leave it armed for the
+        # rest of the process — this object is created once (main.py) and
+        # reused by every dialog, including the ones opened later by
+        # _show_repair_dialog()/device_logged_out, which leave `paired`
+        # intact. The next Continue would then reuse a token whose session was
+        # closed minutes earlier: no pairing code, 90 s on "Conectando…",
+        # which is precisely the failure _can_reuse_existing_session()'s
+        # docstring describes.
+        self._token_before_mode_switch = ""
+
         # Wide enough to fit the instructions/QR-CODE side by side (like the
         # official WhatsApp Web/Desktop layout) — users coming from there are
         # used to finding the QR-CODE on the right, with instructions on the
@@ -637,6 +655,52 @@ class Connect:
             self.connection_dial.Destroy()
         except Exception:
             pass
+        # Pairing has closed: only now can WPPConnect be asked which phone it
+        # actually ended up linked to, which is the only way the QR flow can
+        # tell "the same account resumed" from "somebody scanned with another
+        # phone".
+        #
+        # Only for the dialogs opened while the app is already running
+        # (websocket_client's _show_repair_dialog). The startup dialog is
+        # ShowModal()'d from inside MainWindow.__init__, which calls the same
+        # check itself right after prepare_sync() — running it here as well
+        # would put a second copy on a thread racing the rest of __init__, and
+        # the only thing separating them would be "the database is not open
+        # yet", which is a matter of timing rather than a decision.
+        # _ui_ready_event is the deterministic form of the same distinction:
+        # init_UI() sets it, so it is False for every startup dialog and True
+        # for every mid-session one.
+        #
+        # On a thread, because this whole method runs on the main thread (see
+        # the CallAfter bounce at the top) and those mid-session dialogs are
+        # opened with the MainLoop alive and the main window on screen. The
+        # probe drives Puppeteer through getHostDevice() on a page that has
+        # just come up, with a 10 s ceiling, and the wipe it can trigger then
+        # deletes media/ and voice_messages/ file by file and blocks on
+        # save_full_state(). Held on the main thread that is seconds without
+        # pumping messages, which is where Windows ghosts the window: the
+        # title becomes "(Not Responding)" and the screen reader announces it
+        # over the pairing flow. The UI teardown that wipe needs is marshalled
+        # back with wx.CallAfter by the method itself — same reason
+        # on_continue() runs its own pairing flow on a thread.
+        if self.main_window._ui_ready_event.is_set():
+            def _check_another_number():
+                # Wrapped rather than passed as the thread target directly:
+                # anything escaping goes to threading.excepthook, which writes
+                # to a stderr the frozen build does not have. A wipe that
+                # failed would then leave no trace at all in log.log — the one
+                # file the user attaches to the bug report.
+                try:
+                    self.main_window._wipe_local_data_if_another_number_linked()
+                except Exception:
+                    logging.exception(
+                        "[another_number_check] The check thread failed — the "
+                        "local data may still belong to the previous number.")
+
+            threading.Thread(
+                target=_check_another_number,
+                name="another-number-check", daemon=True,
+            ).start()
 
     def _close_active_session(self, sync=False):
         # Retrieve the active token from the dialog state
@@ -692,6 +756,52 @@ class Connect:
                 threading.Thread(target=_close_api_session, daemon=True).start()
 
     def on_switch_to_phone(self, event):
+        # _close_active_session() below clears WA_token — capture it first so
+        # on_continue()'s _can_reuse_existing_session() can still recognise a
+        # same-number resume later, instead of seeing an empty token and
+        # treating it as a brand-new pairing (see on_switch_to_qrcode's own
+        # comment for the identical problem on the QR side).
+        #
+        # Never a session this dialog minted itself, though. A detour through
+        # QR mode leaves start_qrcode_connection()'s brand-new, never
+        # authenticated session sitting in WA_token, while `paired` is still
+        # True from the account's previous life and the stored number still
+        # matches — so carrying that one forward makes
+        # _can_reuse_existing_session() "resume" a session that never logged
+        # in. Only a token that predates our own minting stands for a real,
+        # authenticated session.
+        #
+        # Known cost of dropping it, and it is a limitation rather than a
+        # judgement: paired account → QR → back to phone → same number typed
+        # in still ends up wiping the local database, even though `paired`
+        # and the stored WA_phone_number both agree it is the same account
+        # and the history is therefore still valid. The database's validity
+        # depends on the NUMBER, not on which WPPConnect session is alive;
+        # what wipes it is _bg_pairing_flow() keying clear_local_data() on
+        # "is this token reusable", so a missing token drags the wipe along
+        # with it. on_switch_to_qrcode() right below shows the inconsistency
+        # plainly — it preserves on `was_paired` alone, with no number check
+        # at all, while this path has strictly more information and deletes.
+        # The coherent fix is to decide the wipe from the number and drop
+        # that coupling; deliberately out of scope for this change.
+        _live_token = self.main_window._get_wa_token()
+        if _live_token and _live_token == self._started_new_session_token:
+            logging.info(
+                "[on_switch_to_phone] Discarding the reuse capture: WA_token "
+                "holds a session this dialog minted itself."
+            )
+            _live_token = ""
+        elif _live_token:
+            logging.info(
+                "[on_switch_to_phone] Captured pre-close token for reuse: %s",
+                redact_token(_live_token),
+            )
+        else:
+            logging.info(
+                "[on_switch_to_phone] No stored token to capture for reuse."
+            )
+        self._token_before_mode_switch = _live_token
+
         # Close the active QR code session first
         self._close_active_session()
 
@@ -709,6 +819,22 @@ class Connect:
         self.phone_field.SetInsertionPointEnd()
 
     def on_switch_to_qrcode(self, event):
+        # Was this account genuinely paired before we tear anything down?
+        # Captured BEFORE _close_active_session(), which clears WA_token —
+        # start_qrcode_connection() below can no longer tell "resuming a
+        # paired account" from "brand-new pairing" once that token is gone,
+        # and used to always wipe local data as a result. See that method's
+        # own docstring for the full story.
+        was_paired = bool(self.main_window.settings.get("privateinfo", {}).get("paired"))
+
+        # Whatever on_switch_to_phone() captured belongs to the session we are
+        # about to tear down, so it must not survive as a reuse candidate for
+        # a later attempt. Nothing here needs it either: _close_active_session()
+        # below clears WA_token, so start_qrcode_connection() only ever finds a
+        # token to resume when that close found none to clear, and otherwise
+        # mints a brand-new session.
+        self._token_before_mode_switch = ""
+
         # Close the active phone code session first
         self._close_active_session()
 
@@ -720,13 +846,23 @@ class Connect:
         self.connection_dial.Layout()
 
         # Always start a fresh QR-CODE connection
-        self.start_qrcode_connection()
+        self.start_qrcode_connection(preserve_local_data=was_paired)
 
         self.main_window.qrcode_loaded_sound.play()
         self.main_window.output(self.i18n.t("qrcode_instructions"))
 
-    def start_qrcode_connection(self):
-        """Initiates QR-CODE connection without user interaction."""
+    def start_qrcode_connection(self, preserve_local_data=False):
+        """Initiates QR-CODE connection without user interaction.
+
+        preserve_local_data: True when the caller already established this
+        account was paired before whatever just closed its stored token (see
+        on_switch_to_qrcode). QR pairing can never confirm in advance which
+        phone number is about to scan the code — unlike on_continue()'s
+        _can_reuse_existing_session(), which can compare the number the user
+        just typed — so this is a coarser signal on purpose: it only rules
+        out wiping a history that was working a moment ago, never claims the
+        new scan is provably the same account.
+        """
         self.qrcode_connection_started = True
         # Mark pairing as actively in flight for the WHOLE QR flow. Without this,
         # the ~30s health poll (check_wa_connection_http) saw the expected QRCODE
@@ -774,7 +910,8 @@ class Connect:
             else:
                 # New pairing: reset sync flag so we wait for messages.set
                 self.main_window.messages_set_completed = False
-                self.main_window.clear_local_data()
+                if not preserve_local_data:
+                    self.main_window.clear_local_data()
                 raw_token = self.generate_random_token()
                 # Raise on failure so the outer except shows a meaningful message
                 # instead of an opaque 401 from _create_instance.
@@ -1003,6 +1140,13 @@ class Connect:
         connection update in websocket_client.py, check_wa_connection_http()'s
         host-device fetch, and check_connection_status()), never by merely
         showing a code — which is what makes it the honest test here.
+
+        Both numbers are compared exactly. WA_phone_number holds what the user
+        typed into this same dialog and nothing else — the divergence check
+        keeps what WhatsApp reports about the linked phone under its own key
+        (WA_phone_number_linked) — so this compares like with like. A tolerant
+        comparison is what let the session of +49 211 1234567 be resumed, and
+        that account connected, for somebody typing +49 211 234567.
         """
         if not isinstance(privateinfo, dict):
             return False
@@ -1064,7 +1208,26 @@ class Connect:
                 # _can_reuse_existing_session() for why the token alone is not
                 # enough. It normalises the stored number to digits itself.
                 _privateinfo = self.main_window.settings.get("privateinfo", {})
+                # Falls back to whatever on_switch_to_phone captured before
+                # _close_active_session() cleared WA_token — see that
+                # method's comment. Empty when phone mode was never switched
+                # into (the common case), so _get_wa_token() alone still
+                # decides then. Spent on read: the capture stands for one
+                # specific pre-close session, and a later attempt — whose
+                # failure path has already abandoned that session and cleared
+                # WA_token — must not reuse it.
                 existing_token = self.main_window._get_wa_token()
+                if existing_token:
+                    logging.info(
+                        "[_bg_pairing_flow] Reuse candidate came from WA_token."
+                    )
+                elif self._token_before_mode_switch:
+                    existing_token = self._token_before_mode_switch
+                    logging.info(
+                        "[_bg_pairing_flow] Reuse candidate came from the "
+                        "mode-switch capture."
+                    )
+                self._token_before_mode_switch = ""
                 _instance_exists = self._can_reuse_existing_session(
                     _privateinfo, self.phone_number, existing_token
                 )
@@ -1075,6 +1238,33 @@ class Connect:
 
                 if _instance_exists:
                     self.main_window.token = existing_token
+                    if not _old_token:
+                        # We are about to /start-session a session that is
+                        # already on disk, on a userDataDir something else may
+                        # still hold — while _old_token being empty is exactly
+                        # what makes the close/flush/profile-release handshake
+                        # below skip itself. Without that wait puppeteer
+                        # answers "The browser is already running for <dir>",
+                        # the status stays CLOSED, and the recovery kills
+                        # Chrome by userDataDir mid-LevelDB-flush, on the only
+                        # copy of the WhatsApp login (core/profile_recovery.py
+                        # and CLAUDE.md).
+                        #
+                        # Two states reach here empty, and the handshake is
+                        # right for both. The one this change created: the
+                        # candidate came from the mode-switch capture, so
+                        # _close_active_session() cleared main_window.token on
+                        # the way in and its close is still running. The one
+                        # that was always here: the first Continue of a
+                        # startup dialog, where retrieve_token() has not run
+                        # yet (MainWindow.__init__ shows this dialog before
+                        # it), so main_window.token is still "" from __init__
+                        # even though a stored session exists. That one used
+                        # to start straight on top of whatever held the
+                        # profile; it now closes and waits first, which costs
+                        # up to the flush + profile-release timeouts before
+                        # the dialog says anything.
+                        _old_token = existing_token
                 else:
                     # Kill any leftover Chromium sessions from previous failed attempts
                     # so only ONE browser runs at a time (prevents Auto Close race).

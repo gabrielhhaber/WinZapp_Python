@@ -704,6 +704,7 @@
     "unknown_group": "Grupo sem nome",
     "unnamed_participant": "Participante sem nome",
     "device_logged_out": "Seu dispositivo foi desconectado da conta do WhatsApp. Por favor, conecte novamente.",
+    "another_number_linked_data_cleared": "Outro número de telefone foi conectado a esta conta. As conversas do número anterior foram apagadas deste computador.",
     "unattended_qr_session_closed": "O WhatsApp desconectou esta sessão, por isso ela foi encerrada. É preciso conectar novamente.",
     "pairing_failed_msg": "Não foi possível concluir o pareamento com o WhatsApp. Tente conectar novamente.",
     "mentions_section_label": "Menções nesta mensagem",

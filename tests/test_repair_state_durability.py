@@ -277,6 +277,13 @@ class TestF5LatchesTheFullRebuild:
         stub.clear_local_data = lambda wipe_metadata=True: stub.cleared.append(wipe_metadata)
         stub._forget_history_exhaustion = lambda: None
         stub._try_start_sync_thread = lambda: stub.started.append(True)
+        # The two steps F5 shares with the account-switch wipe, bound for real
+        # rather than stubbed: they are what the handler now delegates the
+        # panel teardown and the expired-media map to.
+        stub._teardown_conversation_ui = types.MethodType(
+            MainWindow._teardown_conversation_ui, stub)
+        stub._forget_media_failures = types.MethodType(
+            MainWindow._forget_media_failures, stub)
 
         # The handler hands its UI teardown to wx.CallAfter and then blocks on
         # an Event for 5 s; with no event loop running, nothing would ever set

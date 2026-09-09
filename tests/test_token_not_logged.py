@@ -247,6 +247,10 @@ class TestTheHostDeviceProbeMasksItsTransportError:
             token=TOKEN, wpp_server="http://127.0.0.1", wpp_port=6300)
         stub._still_linked_on_server = types.MethodType(
             main.MainWindow._still_linked_on_server, stub)
+        # The sibling holding the request itself, and the log line
+        # this test is about.
+        stub._host_device_link_probe = types.MethodType(
+            main.MainWindow._host_device_link_probe, stub)
         return stub
 
     @pytest.fixture

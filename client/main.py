@@ -1489,6 +1489,140 @@ def history_gap_closed(fetched: list, local_records: list, hole_top_ts: int) -> 
     return bool(below & got)
 
 
+# Fewest digits a value has to carry before it may be read as a phone number
+# at all. These helpers are the last gate before deleting the whole local
+# history, so anything shorter — a truncated field, a short code, an @lid's
+# raw digits — has to read as "no verdict", never as "a different account".
+_MIN_COMPARABLE_PHONE_DIGITS = 8
+
+
+def linked_phone_digits(main_window, linked_value) -> str:
+    """Digits of the phone WPPConnect says is linked, or "" when unprovable.
+
+    ``linked_value`` is whatever host-device answered with (see
+    MainWindow._host_device_link_probe): a bare digit string, a phone JID in
+    either format, possibly with a device suffix, possibly an @lid.
+
+    Everything this cannot positively resolve to a phone number comes back
+    empty, because the only caller turns a non-empty answer into permission
+    to wipe. In particular an @lid is only accepted once the usual
+    _lid_to_phone bridge already holds its phone number: an @lid's own digits
+    are not a phone number, and comparing them against a stored one would
+    "prove" a difference for every single @lid.
+
+    Two refusals are worth naming because they read like oversights and are
+    not; both land on the side that deletes nothing. A value that still
+    carries its "+" (or a space, or a dash) does not pass isdigit() and comes
+    back empty — only _normalize_jid()'s own output is trusted here, and
+    host-device has never been seen to answer in that shape. And
+    _MIN_COMPARABLE_PHONE_DIGITS refuses genuinely short international
+    numbering too: Saint Helena (+290) and Niue (+683) reach seven digits in
+    total, so an account on one of those never arms the comparison at all
+    rather than being judged on a value this cannot tell apart from a
+    truncated field. Never arming it is the old behaviour — a merge the user
+    can still resolve by hand — while getting it wrong is a history nobody
+    can get back.
+    """
+    linked = (linked_value or "").strip() if isinstance(linked_value, str) else ""
+    if not linked:
+        return ""
+    if "@" not in linked:
+        linked = f"{linked}@s.whatsapp.net"
+    normalized = main_window._normalize_jid(linked)
+    if normalized.endswith("@lid"):
+        bridged = (getattr(main_window, "_lid_to_phone", {}) or {}).get(normalized, "")
+        if not bridged:
+            return ""
+        normalized = main_window._normalize_jid(bridged)
+    if not normalized.endswith("@s.whatsapp.net"):
+        # A group, a broadcast, or a shape nobody here understands.
+        return ""
+    digits = normalized.split("@", 1)[0]
+    if not digits.isdigit() or len(digits) < _MIN_COMPARABLE_PHONE_DIGITS:
+        return ""
+    return digits
+
+
+def linked_number_differs(stored_digits, linked_digits) -> bool:
+    """True only when the linked phone is PROVABLY a different number.
+
+    Both sides are the same kind of value, and that is the whole point: the
+    digits WhatsApp itself reported through host-device for the phone it had
+    linked, read out by linked_phone_digits(). ``stored_digits`` is what a
+    previous run of this check recorded under
+    privateinfo["WA_phone_number_linked"]; ``linked_digits`` is what the probe
+    just answered.
+
+    Nothing the user typed reaches here any more, and that was the bug. The
+    check used to read privateinfo["WA_phone_number"], which connect.py writes
+    the moment a pairing code arrives — before the pairing concludes, and with
+    nothing restoring the previous value if the attempt is abandoned. So a
+    number typed in by mistake, abandoned, and followed by a perfectly correct
+    QR pairing of the account's OWN phone read as "another number is linked",
+    and the answer to that reading is deleting the user's whole history.
+
+    Equality is MainWindow._phone_digits_equivalent(), the same test the rest
+    of the app uses to recognise one person. It only ever widens equality (the
+    Brazilian 8/9-digit mobile pair), and widening equality can only make a
+    wipe less likely — which is the only direction this function may be wrong
+    in. Nothing wider is needed now that both sides come from getWid(): a
+    heuristic that guessed at national-prefix variants collapsed genuinely
+    different subscribers (measured on +49 211 1234567 vs +49 211 234567, and
+    on a Portuguese mobile against a Sofia landline), and the reason it existed
+    was comparing a typed number against a reported one.
+
+    Anything less than two recognisable, non-empty numbers is False: no
+    recorded number (an install that predates this check, or the normal state
+    of a freshly created multi-account entry), or an answer the probe could
+    not read.
+    """
+    stored_raw = stored_digits if isinstance(stored_digits, str) else ""
+    stored = "".join(c for c in stored_raw if c.isdigit())
+    if len(stored) < _MIN_COMPARABLE_PHONE_DIGITS:
+        return False
+    if not linked_digits:
+        return False
+    return not MainWindow._phone_digits_equivalent(stored, linked_digits)
+
+
+def record_linked_phone_if_unknown(main_window, linked_value) -> bool:
+    """Record WA_phone_number_linked when this account has none on file yet.
+
+    Write-only, by design: it never compares and never deletes. This is the
+    migration half of _wipe_local_data_if_another_number_linked(), which only
+    runs on a pairing (_just_paired) or when a mid-session pairing dialog
+    closes. So every install that predates this code — and every QR-only one
+    — reaches that check for the first time on a pairing, which is precisely
+    the moment a different phone may already have linked, and there the empty
+    key sends it down the "learn it, delete nothing" branch. The feature
+    would arm itself only from the *second* divergent pairing onwards, and it
+    is the first one that costs the history.
+
+    Learning the number from an ordinary host-device answer closes that: the
+    first launch after the update records the phone WhatsApp says is linked,
+    which by construction is the one the local data belongs to. It cannot
+    disarm the check either, because it refuses to overwrite an existing
+    value — the only thing that rewrites the key is the check itself, after
+    the wipe.
+
+    Returns True when settings were changed, so the caller decides when to
+    save.
+    """
+    privateinfo = getattr(main_window, "settings", {}).get("privateinfo")
+    if not isinstance(privateinfo, dict):
+        return False
+    if privateinfo.get("WA_phone_number_linked"):
+        return False
+    digits = linked_phone_digits(main_window, linked_value)
+    if not digits:
+        return False
+    logging.info(
+        "[another_number_check] Recording the phone host-device reports as "
+        "linked (...%s) — this account had none on file.", digits[-4:])
+    privateinfo["WA_phone_number_linked"] = digits
+    return True
+
+
 def participant_digits(jid) -> str:
     if not isinstance(jid, str):
         return ""
@@ -2162,6 +2296,15 @@ class MainWindow(wx.Frame):
 
         logging.info("MainWindow: Preparing sync...")
         self.prepare_sync()
+        if self._just_paired:
+            # A pairing that just happened through the dialog above may have
+            # linked a phone this account's history does not belong to (see
+            # the method's own docstring). Here, and not at the dialog's own
+            # end, because that runs before prepare_sync() opens the database
+            # — a wipe there would clear media/ and voice_messages/ and leave
+            # messages.db to be loaded back in a few lines later. Still before
+            # the first sync, which is the merge this prevents.
+            self._wipe_local_data_if_another_number_linked()
         # Initialise outgoing-message queue (must exist before init_UI so the
         # ConversationsPanel can call self.main_window.message_queue.enqueue).
         self.message_queue = MessageQueue(self)
@@ -3390,6 +3533,17 @@ class MainWindow(wx.Frame):
         self._set_wa_token("")
         pi.pop("WA_phone_number", None)
         pi.pop("paired", None)
+        # WA_phone_number_linked is deliberately NOT dropped here on either
+        # path. It describes the data that is on disk, so it goes only when
+        # that data goes, and clear_local_data() below owns that — dropping it
+        # after the database has been emptied rather than before, which is what
+        # keeps a process killed mid-wipe from losing the record while the
+        # messages it names are still there. On the wipe=False path it must
+        # survive outright: that is precisely the case
+        # _wipe_local_data_if_another_number_linked() is for — the history
+        # survives, the user is sent to the pairing dialog, another phone scans
+        # the code, and with no recorded number the check falls into its "learn
+        # it, delete nothing" branch and lets the two accounts merge.
         self.messages_set_completed = False
         self.token = ""
         self.save_settings()
@@ -4640,6 +4794,50 @@ class MainWindow(wx.Frame):
         self.output(self.i18n.t("resyncing_all_announcement"), interrupt=True)
         threading.Thread(target=self._resync_all_worker, daemon=True).start()
 
+    def _teardown_conversation_ui(self):
+        """Empty the conversation panels before the data under them is wiped.
+
+        Shared by the two wipes that run with the UI already up — F5
+        (_resync_all_worker()) and the account switch
+        (_apply_another_number_wipe()) — which had a verbatim copy of this
+        each. None of it is cosmetic: the list keeps rendering rows whose
+        chats are about to stop existing, Enter on one of them opens a
+        conversation that is gone, and a voice note still playing holds its
+        .msv open, so clear_local_data()'s os.unlink raises PermissionError
+        on it.
+
+        Marshalled to the main thread and waited on, because both callers run
+        on a background thread. The event is set in a finally, so a panel in a
+        state this does not expect costs the visible cleanup only — never the
+        wipe behind it, and never a thread parked on a wait nobody will set.
+        """
+        ui_ready = threading.Event()
+
+        def _prepare_ui():
+            try:
+                panel = self.conversations_panel
+                panel._stop_audio()
+                panel.close_conversation()
+                panel.chats_list = []
+                panel.chat_names = []
+                panel._all_chats_list = []
+                panel._all_chat_names = []
+                panel._displayed_jids = None
+                panel.conversations_list.DeleteAllItems()
+                if hasattr(self, "archived_conversations_panel"):
+                    ap = self.archived_conversations_panel
+                    ap.chats_list = []
+                    ap.chat_names = []
+                    ap._all_chats_list = []
+                    ap._all_chat_names = []
+                    ap._displayed_jids = None
+                    ap.conversations_list.DeleteAllItems()
+            finally:
+                ui_ready.set()
+
+        wx.CallAfter(_prepare_ui)
+        ui_ready.wait(timeout=5)
+
     def _resync_all_worker(self):
         """Background worker for _on_menu_resync_all(). See that method."""
         # Claim this immediately, before clear_local_data() runs — not just
@@ -4654,32 +4852,7 @@ class MainWindow(wx.Frame):
         # which one's status/sound/speech calls land last.
         self._initial_sync_running = True
         try:
-            ui_ready = threading.Event()
-
-            def _prepare_ui():
-                try:
-                    panel = self.conversations_panel
-                    panel._stop_audio()
-                    panel.close_conversation()
-                    panel.chats_list = []
-                    panel.chat_names = []
-                    panel._all_chats_list = []
-                    panel._all_chat_names = []
-                    panel._displayed_jids = None
-                    panel.conversations_list.DeleteAllItems()
-                    if hasattr(self, "archived_conversations_panel"):
-                        ap = self.archived_conversations_panel
-                        ap.chats_list = []
-                        ap.chat_names = []
-                        ap._all_chats_list = []
-                        ap._all_chat_names = []
-                        ap._displayed_jids = None
-                        ap.conversations_list.DeleteAllItems()
-                finally:
-                    ui_ready.set()
-
-            wx.CallAfter(_prepare_ui)
-            ui_ready.wait(timeout=5)
+            self._teardown_conversation_ui()
 
             # Wipe the local database and downloaded media/voice-message caches.
             # F5 is the explicit escape hatch from the incremental strategy: the
@@ -4697,13 +4870,7 @@ class MainWindow(wx.Frame):
             # clear_local_data()'s own docstring).
             self.clear_local_data(wipe_metadata=False)
             self._forget_history_exhaustion()
-            try:
-                media_failed_path = data_path("media_failed.json")
-                if os.path.isfile(media_failed_path):
-                    os.remove(media_failed_path)
-            except Exception as exc:
-                logging.warning("[resync_all] failed to remove media_failed.json: %s", exc)
-            self._media_failed_ids = {}
+            self._forget_media_failures()
 
             # Resync from scratch, exactly like a fresh pairing. start_sync()
             # takes over _initial_sync_running from here (it sets it True
@@ -11197,6 +11364,17 @@ class MainWindow(wx.Frame):
     def _still_linked_on_server(self) -> str:
         """Ask WPPConnect whether this session still holds a linked phone.
 
+        Thin wrapper: the probe itself also reports WHICH phone answered, and
+        only _wipe_local_data_if_another_number_linked() cares about that.
+        Every caller of this one is deciding a logout, where the identity of
+        the phone is irrelevant and the three-way outcome is the whole
+        answer.
+        """
+        return self._host_device_link_probe()[0]
+
+    def _host_device_link_probe(self) -> tuple:
+        """(outcome, phone) for this session's linked phone, from host-device.
+
         Returns one of connection_state's LINK_PROBE_* outcomes: LINKED
         (host-device answered with our own phone number), UNLINKED (it
         answered, and holds none — including the missing-key shape a real
@@ -11231,32 +11409,32 @@ class MainWindow(wx.Frame):
             # change, so the leak it would publish into the log.log users
             # paste into bug reports is new even though the line is not.
             logging.info(
-                "[_still_linked_on_server] host-device probe failed: %s: %s",
+                "[_host_device_link_probe] host-device probe failed: %s: %s",
                 type(exc).__name__, redact_credentials(str(exc)),
             )
-            return cs.LINK_PROBE_UNKNOWN
+            return cs.LINK_PROBE_UNKNOWN, ""
         if resp.status_code not in (200, 201):
             # Notably 401/403: our own middleware refused the probe, so it
             # never reached WhatsApp and says nothing about the link at all.
             logging.info(
-                "[_still_linked_on_server] host-device answered HTTP %s — the "
+                "[_host_device_link_probe] host-device answered HTTP %s — the "
                 "probe proves nothing either way.", resp.status_code,
             )
-            return cs.LINK_PROBE_UNKNOWN
+            return cs.LINK_PROBE_UNKNOWN, ""
         try:
             body = resp.json().get("response")
         except Exception as exc:
             logging.info(
-                "[_still_linked_on_server] host-device body unreadable: %s", exc)
-            return cs.LINK_PROBE_UNKNOWN
+                "[_host_device_link_probe] host-device body unreadable: %s", exc)
+            return cs.LINK_PROBE_UNKNOWN, ""
         if not isinstance(body, dict):
             # No "response" object at all, or one that is not a mapping: a
             # shape we do not understand, which may not be read as any verdict
             # about the link.
             logging.info(
-                "[_still_linked_on_server] host-device answered 2xx with no "
+                "[_host_device_link_probe] host-device answered 2xx with no "
                 "readable response object — the probe proves nothing either way.")
-            return cs.LINK_PROBE_UNKNOWN
+            return cs.LINK_PROBE_UNKNOWN, ""
         # Deliberately keyed on the VALUE being falsy, not on the key being
         # absent, because absent is exactly the shape a real unlink produces:
         # deviceController's host-device sends `{...hostDevice, phoneNumber}`
@@ -11274,7 +11452,500 @@ class MainWindow(wx.Frame):
         phone = body.get("phoneNumber", "")
         if isinstance(phone, dict):
             phone = phone.get("_serialized", "")
-        return cs.LINK_PROBE_LINKED if phone else cs.LINK_PROBE_UNLINKED
+        if not isinstance(phone, str):
+            phone = str(phone) if phone else ""
+        return ((cs.LINK_PROBE_LINKED, phone) if phone
+                else (cs.LINK_PROBE_UNLINKED, ""))
+
+    def _wipe_local_data_if_another_number_linked(self) -> None:
+        """Wipe this account's local data when a DIFFERENT phone just linked.
+
+        The QR flow cannot ask which phone is about to scan the code, so
+        Connect.start_qrcode_connection() decides its wipe from
+        `preserve_local_data` — "this installation had a working history a
+        moment ago", not "this is the same number". Scan that code with
+        another phone and the history of the first account survives while the
+        second one's sync merges on top of it, which is exactly the merge
+        clear_local_data() exists to prevent.
+
+        So the comparison happens here instead, once pairing has closed and
+        WPPConnect can be asked which phone it actually holds. Every step
+        refuses to act on anything short of proof, because a false positive
+        deletes a history a blind user pays for with the whole pairing flow
+        again, while a false negative is a wipe they can still ask for:
+
+          * no open database — the startup dialog runs before prepare_sync(),
+            where clear_local_data() would delete media/ and voice_messages/
+            and leave every message in messages.db behind. The call right
+            after prepare_sync() owns that case;
+          * no session token — nothing to ask, and the normal state of a
+            freshly created multi-account entry (`pending`, empty
+            privateinfo);
+          * anything but LINK_PROBE_LINKED — a failed, refused or unreadable
+            probe proves nothing (see _host_device_link_probe);
+          * an answer we cannot read as a phone number — an unbridged @lid, a
+            group, a truncated field;
+          * linked_number_differs() False — the same number, or the Brazilian
+            8/9-digit variant of it.
+
+        **What it compares is a phone WhatsApp itself confirmed as linked, on
+        both sides.** The recorded value lives under its own key,
+        WA_phone_number_linked, written by this method and by
+        record_linked_phone_if_unknown(), which only ever fills it in when it
+        is absent and reads the same host-device answer this does.
+        It is deliberately NOT privateinfo["WA_phone_number"], which holds
+        what the user typed into the pairing dialog: connect.py writes that
+        the instant a phone code arrives — before the pairing concludes — and
+        nothing restores the previous value when the attempt is abandoned. A
+        user who mistyped their number, got a code for it, went back to QR and
+        scanned with their own correct phone would have had every message,
+        every downloaded file and every voice note of their own account
+        deleted, by a check that exists to protect them.
+
+        An install that has never been through this check carries no such key,
+        and that absence means "learn this number now", never "it diverged" —
+        the same non-destructive branch a QR-only install has always taken.
+        Recording a number it deleted nothing over is harmless by itself and
+        arms the comparison from the second pairing onwards. After a wipe it
+        is replaced for the mirror-image reason: left at the old number, the
+        next pairing of THIS one would look like another divergence and wipe a
+        second time.
+
+        The write comes last on purpose, and only happens when the wipe really
+        emptied the database. If the process is killed mid-wipe (this runs on a
+        daemon thread, and the shutdown does not wait for it), one of two states
+        survives and neither of them merges the accounts. Either the emptying
+        landed — clear_local_data() commits it before it drops the recorded
+        number and before it starts deleting files — and what is left is an
+        empty database plus orphaned media of the previous number, plus, if the
+        kill landed before that drop, a key that still names it; or it never
+        landed (no database open yet, or the DatabaseBridgeTimeout/Closed a
+        shutdown mid-wipe raises, swallowed there by design), and then that drop
+        and the write here are both skipped, so the key still names the previous
+        number while its messages are still on disk — on the first pass because
+        nothing ever moved it, on the second, when the first pass got as far as
+        recording the new number, because _apply_another_number_wipe() writes it
+        back there before it starts deleting anything (and when it did not, the
+        first reason covers the second pass too: the key never left the previous
+        number, and the guard on that write skips it). Either way the next pass or
+        the next pairing reads the same divergence and finishes the job, which is
+        why a partial wipe is self-healing and does not need the app's shutdown
+        to wait for this thread.
+
+        Mid-session there is almost always a sync already in flight when this
+        starts, claim or no claim — it was started synchronously by the event
+        that concluded the pairing, before the dialog even closed. The wipe
+        still runs immediately; everything about outliving that round is in
+        _restart_sync_after_another_number_wipe().
+        """
+        import connection_state as cs
+
+        privateinfo = self.settings.get("privateinfo")
+        if not isinstance(privateinfo, dict):
+            return
+        if getattr(self, "db", None) is None:
+            logging.info(
+                "[another_number_check] Database not open yet — deferring to "
+                "the check that runs after prepare_sync().")
+            return
+        if not getattr(self, "token", ""):
+            logging.info(
+                "[another_number_check] No session token — the probe could "
+                "not prove anything, nothing deleted.")
+            return
+
+        # `live` is the mid-session case: the repair dialog reopened over a
+        # running app, so there is a chat list on screen, an audio player that
+        # may hold a .msv open, and syncs firing on their own. At startup this
+        # runs inside __init__ before init_UI(), where none of that exists yet
+        # and the first sync is still ahead of us.
+        live = self._ui_ready_event.is_set()
+        handed_off = False
+        if live:
+            # Claim the sync slot for the whole probe-and-wipe window, exactly
+            # as _resync_all_worker() claims it before its own
+            # clear_local_data() and for the same reason. The health checker
+            # and websocket_client's _recheck_connection_after_connect() both
+            # call trigger_sync_if_needed() on their own — and the reconnect
+            # that follows a repaired session fires the second one — so a sync
+            # can start inside the (up to 10 s) probe below, capture self.chats
+            # while it still holds the previous account's chats, and write them
+            # straight back into the new account's database after the wipe:
+            # the merge this method exists to prevent, with the user believing
+            # the protection ran.
+            #
+            # The flag is a claim, not a lock: a sync that started before this
+            # already holds it, which is why the release in the finally below
+            # has to ask whether it is still ours to release.
+            self._initial_sync_running = True
+        try:
+            outcome, linked = self._host_device_link_probe()
+            if outcome != cs.LINK_PROBE_LINKED:
+                logging.info(
+                    "[another_number_check] host-device returned %s — no verdict "
+                    "on which number is linked, nothing deleted.", outcome)
+                return
+            new_digits = linked_phone_digits(self, linked)
+            if not new_digits:
+                logging.info(
+                    "[another_number_check] host-device answered with a value this "
+                    "cannot read as a phone number — nothing deleted.")
+                return
+            stored = privateinfo.get("WA_phone_number_linked") or ""
+            if not stored:
+                # First time this account is told, by WhatsApp, which phone it
+                # holds. Nothing to compare against, so nothing is deleted —
+                # this only arms the comparison for the next pairing.
+                logging.info(
+                    "[another_number_check] No confirmed phone number recorded "
+                    "for this account — recording the linked one (...%s), "
+                    "nothing deleted.", new_digits[-4:])
+                privateinfo["WA_phone_number_linked"] = new_digits
+                self.save_settings()
+                return
+            try:
+                differs = linked_number_differs(stored, new_digits)
+            except Exception:
+                # A bug in the comparison must not be able to delete anything.
+                logging.exception(
+                    "[another_number_check] Could not compare the linked number — "
+                    "nothing deleted.")
+                return
+            if not differs:
+                logging.info(
+                    "[another_number_check] The linked phone is this account's own "
+                    "number — keeping the local history.")
+                return
+
+            logging.warning(
+                "[another_number_check] A different phone is linked to this "
+                "account (recorded ...%s, linked ...%s) — wiping the local data "
+                "the previous number left behind.", stored[-4:], new_digits[-4:])
+            if live:
+                # Said out loud before anything disappears, so the reason
+                # arrives ahead of the effect. Nothing else would say it: the
+                # list simply empties, which a screen-reader user does not see
+                # at all, and the sync that follows announces a
+                # synchronization rather than a deletion. Same reasoning as
+                # _halt_unattended_qr_session() — speech only, no message box,
+                # because this lands on a thread with the pairing flow just
+                # closed and a modal here would take the focus off whatever
+                # the user moved to next.
+                try:
+                    self.output(
+                        self.i18n.t("another_number_linked_data_cleared"),
+                        interrupt=False)
+                except Exception:
+                    logging.exception(
+                        "[another_number_check] announcement failed")
+
+            # Captured BEFORE the wipe: a sync already in flight keeps running
+            # right through it (see _restart_sync_after_another_number_wipe()).
+            in_flight = getattr(self, "sync_thread", None) if live else None
+            self._apply_another_number_wipe(new_digits, teardown_ui=live,
+                                            previous_digits=stored)
+
+            if live:
+                # The database of the account that is actually linked is now
+                # empty, and the sync that would have filled it either never
+                # ran or ran against the previous account. Ask for a fresh full
+                # one. _try_start_sync_thread() rather than
+                # trigger_sync_if_needed(), because the claim above is still
+                # held and that method's own guard would refuse — start_sync()
+                # takes the claim over from here, exactly as it does for
+                # _resync_all_worker().
+                self._sync_completed = False
+                self._force_full_sync = True
+                # Latched on disk too, exactly as _resync_all_worker() does
+                # for F5 and for the same reason: closing the app during this
+                # corrective round would otherwise have the next launch read
+                # force_full_pending=False out of the table the wipe just
+                # emptied, and run an incremental round over an empty
+                # database.
+                self._persist_full_sync_pending(self._ANOTHER_NUMBER_WIPE_REASON)
+                handed_off = True
+                try:
+                    if in_flight is not None and in_flight.is_alive():
+                        # …except that _try_start_sync_thread() answers "there
+                        # is already one running" and starts nothing at all
+                        # while that thread lives, and the round it refers to
+                        # is the contaminated one. Hand the restart to a
+                        # thread that outlives it.
+                        threading.Thread(
+                            target=self._restart_sync_after_another_number_wipe,
+                            args=(in_flight, new_digits, stored),
+                            name="another-number-resync", daemon=True,
+                        ).start()
+                    else:
+                        self._try_start_sync_thread()
+                except Exception:
+                    # The claim was handed over one statement too early to be
+                    # safe against the race, so take it back here: leaked, it
+                    # blocks every sync for the rest of the session.
+                    handed_off = False
+                    logging.exception(
+                        "[another_number_check] Could not start the sync that "
+                        "refills the emptied database.")
+        finally:
+            if live and not handed_off:
+                # Only if nobody else holds it. By the time this runs, the
+                # pairing that opened the dialog has usually already started
+                # the post-pairing sync of its own (on_wpp_session_logged →
+                # on_messages_set → _try_start_sync_thread, which never looks
+                # at this flag), and that sync set the very same flag on its
+                # way in. Clearing it here left the initial sync running with
+                # its claim gone: the 60 s incremental poll and F5 both consult
+                # nothing else, so both would start a second round writing
+                # self.chats underneath the first.
+                existing = getattr(self, "sync_thread", None)
+                if existing is None or not existing.is_alive():
+                    self._initial_sync_running = False
+
+    def _apply_another_number_wipe(self, new_digits: str,
+                                   teardown_ui: bool = True,
+                                   previous_digits: str = "") -> None:
+        """Tear the visible half down (with the UI up), wipe, record the number.
+
+        Split out of _wipe_local_data_if_another_number_linked() only because
+        _restart_sync_after_another_number_wipe() has to run this exact
+        sequence a second time — see its docstring for why once is not enough.
+
+        ``teardown_ui`` is the mid-session case, where there are panels on
+        screen to empty first — the same teardown F5 needs, which is why both
+        go through _teardown_conversation_ui(). At startup this runs inside
+        __init__ before init_UI() and there is nothing yet to tear down, so
+        that caller passes False; the resync thread below always runs with the
+        UI up, hence the default. A future startup caller that forgets to pass
+        False sits out _teardown_conversation_ui()'s full 5 s ui_ready.wait()
+        — before MainLoop() nothing dispatches the wx.CallAfter — and then
+        _prepare_ui() raises on self.conversations_panel, which does not exist
+        yet.
+
+        ``previous_digits`` is the number the key named before this pass, and
+        the key is put back on it BEFORE anything is deleted, so that through
+        the whole pass it names whichever account the messages on disk belong
+        to. The direct caller can hand it over for free — it read exactly that
+        value to decide there was a divergence at all — and
+        _restart_sync_after_another_number_wipe() carries it down to the second
+        pass, which is the one that needs it: when the first pass got as far as
+        recording the new number, a second pass that empties nothing would
+        otherwise leave the key naming the new account over rows the
+        contaminated round committed on its way out. Nothing conditions that
+        second pass on the first having succeeded, and the `!=` guard covers
+        that case for free — a first pass that recorded nothing left the key on
+        the previous number, so the write is skipped.
+
+        The number is recorded last, after the wipe rather than before it,
+        and only when the wipe really emptied the database:
+        clear_local_data(wipe_metadata=True) drops WA_phone_number_linked
+        along with the data it describes whenever it emptied it, and what is
+        written here describes the empty database the next sync is about to
+        fill. When it emptied nothing, the key simply stays on the previous
+        number — see the branch below.
+        """
+        privateinfo = self.settings.setdefault("privateinfo", {})
+        if (previous_digits
+                and privateinfo.get("WA_phone_number_linked") != previous_digits):
+            # Re-armed BEFORE the deletion starts rather than repaired after
+            # it, which is the same argument clear_local_data() makes one level
+            # up about dropping this key only once the database is really
+            # empty. The second pass enters with the key naming the NEW account
+            # (the first pass recorded it) while the previous account's
+            # messages may still be in messages.db, and everything that can
+            # fail from here on is slow: save_full_state() raises, and
+            # clear_local_data() then sweeps media/ and voice_messages/ entry
+            # by entry — seconds on a large install — before it finally answers
+            # False. This runs on a daemon thread the shutdown does not wait
+            # for, and the user closing WinZapp mid-switch is exactly what
+            # produces that failure, so repairing afterwards left the whole of
+            # that window open: a process killed inside it kept a settings.json
+            # naming B over A's rows, every later pass compared the key against
+            # the linked phone, found them equal, and the merge happened with
+            # nothing left pointing at it. Written first, the key describes
+            # what is on disk for the whole pass instead of only at the end of
+            # it, and the one extra settings write it costs lands on a path
+            # that is about to delete an account's history anyway.
+            #
+            # The first pass and every startup call are untouched: there the
+            # key already names previous_digits, so the guard skips the write.
+            #
+            # A write that fails here fails silently — save_settings() catches
+            # everything, plays the error sound and marshals a MessageBox
+            # rather than propagating — so the worst it can leave behind is the
+            # state the old order left open for the whole window (the previous
+            # number in memory, the new one in settings.json), and never an
+            # exception, which is what would cost the caller the corrective
+            # full sync it starts after this.
+            privateinfo["WA_phone_number_linked"] = previous_digits
+            self.save_settings()
+
+        # After the re-arming above, never before it: _teardown_conversation_ui()
+        # ends in a 5 s ui_ready.wait(), and the case that spends all five is
+        # the very one this key protects against — the user closing WinZapp, so
+        # the MainLoop dies, the wx.CallAfter is never dispatched, and the
+        # shutdown does not wait for this daemon thread. Torn down first, that
+        # was five seconds of the second pass with the key naming the new
+        # account over rows the contaminated round had committed, and a process
+        # killed inside it leaves no divergence for any later pass to find.
+        if teardown_ui:
+            self._teardown_conversation_ui()
+
+        if not self.clear_local_data():
+            # The wipe emptied no database, and clear_local_data() swallows the
+            # reason — no database open, or a save_full_state() that raised
+            # DatabaseBridgeTimeout/Closed, which is what the user closing
+            # WinZapp during a mid-session wipe produces, since the shutdown
+            # does not wait for this daemon thread. The previous number's
+            # messages are therefore still in messages.db, so the key has to go
+            # on naming it: recording the new one here would tell every later
+            # pass there is no divergence left, and the new account's first sync
+            # would write over rows the old account still owns — the merge this
+            # check exists to prevent, reached after the user has already been
+            # told the previous number's conversations were deleted. Left armed,
+            # the next pass or the next pairing re-detects it and finishes the
+            # job.
+            #
+            # There is nothing to repair here, because the block above already
+            # made sure of it: the key names previous_digits either because
+            # nobody had moved it (the first pass, and every startup call,
+            # where clear_local_data() skipped its own drop for the same
+            # reason) or because it was put back there before the deletion
+            # started. What the key has to name is whichever account the
+            # messages on disk belong to, and in both passes that is the
+            # previous one.
+            logging.error(
+                "[another_number_check] The wipe emptied no database — the "
+                "recorded number goes on naming the account whose messages are "
+                "still on disk, so the divergence is found again.")
+            return
+        privateinfo["WA_phone_number_linked"] = new_digits
+        self.save_settings()
+
+    # The reason string _persist_full_sync_pending() records for this wipe.
+    # Named because both halves of it — the check and the resync thread that
+    # repeats the wipe — write it, and a log field that only matches in one of
+    # them is worse than useless when reading a field report.
+    _ANOTHER_NUMBER_WIPE_REASON = "another-number-wipe"
+
+    # How many times _restart_sync_after_another_number_wipe() will wait for
+    # "one more" sync thread before giving up and restarting anyway. Bounded
+    # because an account whose syncs keep restarting must not park this thread
+    # forever — the wipe has already happened, so what is at stake here is
+    # only whether the refill starts now or on the next reconnect.
+    _ANOTHER_NUMBER_SYNC_JOIN_ROUNDS = 3
+
+    def _restart_sync_after_another_number_wipe(self, in_flight, new_digits: str,
+                                                previous_digits: str) -> None:
+        """Wait out the sync that was already running, wipe again, then resync.
+
+        The mid-session check runs behind a pairing dialog, and by the time
+        that dialog closes a sync is usually already in flight: the event that
+        concludes pairing (websocket_client's on_wpp_session_logged) calls
+        on_messages_set() → _try_start_sync_thread() synchronously, and
+        _set_wa_connected(True) fires trigger_sync_if_needed() beside it —
+        both well before show_connection_dial()'s ShowModal() returns and
+        starts this check at all. That round captured self.chats while it
+        still held the previous account's chats and is merging the new
+        account's list on top of them.
+
+        Two things follow, and neither is fixed by the wipe itself.
+        _try_start_sync_thread() sees that thread alive and returns True
+        having started nothing, so the corrective full sync never happens;
+        and the round keeps writing until it exits, so anything it commits
+        after the wipe survives it — including into self.chats, which the
+        corrective round would then merge onto rather than replace, leaving
+        the merge permanently.
+
+        So the wipe runs immediately (the protection cannot wait on a round
+        that may take minutes, and a process killed in between still finds
+        the divergence armed, since the recorded number is only rewritten at
+        the end of a completed pass), and this thread runs the same pass again
+        once the contaminated round has genuinely exited. The second pass is
+        cheap by then: an empty database and two empty directories.
+
+        The second pass takes ``previous_digits`` for the reason the first
+        one does not have to. Whenever the first pass got as far as recording
+        the new account, this one starts with the key naming it — so a wipe
+        that empties nothing here (this thread is a daemon too, and the
+        shutdown does not wait for it either) would leave that name standing
+        over the rows the contaminated round committed while it was exiting:
+        an account switch left half done with nothing able to see it any more,
+        since every later pass compares the key against the linked phone and
+        finds them equal. Handing the previous number back down keeps the key
+        describing whichever account the messages on disk belong to, which is
+        the invariant the whole check is written around. When the first pass
+        emptied nothing, the key never moved off the previous account and the
+        `!=` guard skips the write instead — nothing here is conditional on
+        that pass having succeeded, and neither is this one running at all.
+
+        _initial_sync_running is retaken after the join because the round we
+        waited for cleared it in its own finally, and the loop exists for the
+        gap between that clear and this retake, in which yet another trigger
+        can have started one more round.
+
+        Known residue, left as a follow-up rather than fixed here: _run_sync()
+        never consults _sync_run_id, so the round being waited out keeps
+        calling set_chats() for its whole remaining life. Between the spoken
+        "as conversas foram apagadas" and the second wipe below, the list
+        therefore refills with the PREVIOUS account's conversations — for as
+        long as that round takes, which is minutes — and then empties again.
+        Nothing is lost by it, since both the second wipe and the full sync
+        after it run later, but for somebody reading that list with a screen
+        reader the sequence is genuinely confusing: told the history was
+        deleted, then hearing it come back, then hearing it disappear a second
+        time with nothing said. Honouring _sync_run_id in _run_sync()'s own
+        write path is what closes it.
+        """
+        try:
+            for _ in range(self._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS):
+                in_flight.join()
+                self._initial_sync_running = True
+                nxt = getattr(self, "sync_thread", None)
+                if nxt is None or nxt is in_flight or not nxt.is_alive():
+                    break
+                in_flight = nxt
+            else:
+                # Every round of the bound spent on yet another sync starting
+                # in the gap. The wipe below then runs beside a live round and
+                # _try_start_sync_thread() answers True without starting
+                # anything — the exact failure this thread exists to avoid,
+                # back again. Practically unreachable, which is precisely why
+                # it needs a line: without one the only way to diagnose it is
+                # to guess.
+                still = getattr(self, "sync_thread", None)
+                logging.warning(
+                    "[another_number_check] Gave up after %d joins — %s is "
+                    "still running, so the corrective full sync may be refused "
+                    "and never restarted.",
+                    self._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS,
+                    getattr(still, "name", still))
+            self._apply_another_number_wipe(new_digits,
+                                            previous_digits=previous_digits)
+            self._sync_completed = False
+            self._force_full_sync = True
+            # Same latch F5 sets, for the same reason — see the first call
+            # site in _wipe_local_data_if_another_number_linked().
+            self._persist_full_sync_pending(self._ANOTHER_NUMBER_WIPE_REASON)
+            self._try_start_sync_thread()
+        except Exception:
+            # Only if nobody else holds it, exactly as the check's own finally
+            # decides it — and for the same reason. This raising does not mean
+            # the slot is free: _apply_another_number_wipe() can raise (a wx
+            # call from _teardown_conversation_ui() after the MainLoop is gone,
+            # clear_local_data() failing outside the two faults it swallows
+            # itself — not save_settings(), which catches everything and
+            # marshals a MessageBox rather than propagating) while
+            # on_messages_set() → _try_start_sync_thread()
+            # has already started a round of its own, whose claim this would
+            # clear from underneath it — releasing the 60 s incremental poll
+            # and F5 to write self.chats while it runs.
+            existing = getattr(self, "sync_thread", None)
+            if existing is None or not existing.is_alive():
+                self._initial_sync_running = False
+            logging.exception(
+                "[another_number_check] Could not restart the sync after the "
+                "wipe; the database is empty and the next reconnect will "
+                "refill it.")
 
     def _act_on_unlink_decision(self, decision: str, *, log_label: str) -> None:
         """Common epilogue for connection_state.classify_unlinked()/
@@ -12019,8 +12690,20 @@ class MainWindow(wx.Frame):
                                 self.resolve_self_lid()
                                 # Mark as paired on successful HTTP host check too
                                 pi = self.settings.setdefault("privateinfo", {})
+                                settings_changed = False
                                 if not pi.get("paired"):
                                     pi["paired"] = True
+                                    settings_changed = True
+                                # Same answer, read for a second purpose: this
+                                # is the ordinary, non-pairing moment at which
+                                # WhatsApp tells us which phone is linked, so
+                                # an install that has never recorded one learns
+                                # it here rather than during the divergent
+                                # pairing it is meant to catch. Write-only —
+                                # see record_linked_phone_if_unknown().
+                                if record_linked_phone_if_unknown(self, wuid):
+                                    settings_changed = True
+                                if settings_changed:
                                     self.save_settings()
                     except Exception as e:
                         # Same host-device URL, same token in its path — see
@@ -13616,7 +14299,11 @@ class MainWindow(wx.Frame):
             if sp:
                 threading.Thread(target=sp._load_statuses, daemon=True).start()
 
-    def clear_local_data(self, wipe_metadata: bool = True):
+    # How many individual "could not delete this file" lines the media sweep
+    # below may write per folder before it falls back to the count alone.
+    _MAX_MEDIA_DELETE_ERRORS_LOGGED = 5
+
+    def clear_local_data(self, wipe_metadata: bool = True) -> bool:
         """Wipe all cached chats, contacts, messages, media, and mapping caches.
 
         wipe_metadata=True (default, used for a confirmed logout/account
@@ -13628,6 +14315,24 @@ class MainWindow(wx.Frame):
         chats/messages from WhatsApp again, not to also discard every local
         action (a cleared/deleted/archived/muted/blocked chat) the user took
         on top of them — resyncing used to silently undo all of those too.
+
+        Two things outside system_metadata go with it, for the same reason and
+        under the same flag: data/media_failed.json (ids of the previous
+        account's messages) and privateinfo["WA_phone_number_linked"] (the
+        number this data belonged to). Both describe data that no longer
+        exists once this returns.
+
+        Returns whether the database really was emptied. That is one of the
+        two conditions the WA_phone_number_linked drop below is gated on, not
+        the same one: the drop also needs wipe_metadata, so F5
+        (wipe_metadata=False) empties the message tables, is reported here as
+        True and still drops nothing — the flag decides what is emptied, never
+        whether emptying it is reported. Only _apply_another_number_wipe()
+        reads the answer, and it has to: it records the newly linked number the
+        moment this returns, and doing that after a wipe that emptied nothing
+        would leave the key naming the new account while the old account's
+        messages are still in messages.db, which reads as "no divergence" from
+        then on. Every other caller ignores it.
         """
         logging.info("[clear_local_data] Clearing all local caches, media, and database...")
         # Invalidate every background job before touching shared chat state.
@@ -13677,28 +14382,197 @@ class MainWindow(wx.Frame):
         else:
             self._resolving_lids = set()
             
+        if wipe_metadata:
+            # The in-memory half of the system_metadata wipe below. prepare_sync()
+            # reads every one of these OUT of that table into RAM at startup, and
+            # _wipe_local_data_if_another_number_linked() is the first caller that
+            # runs AFTER that load — so clearing only the table left account A's
+            # deleted/archived/pinned/muted sets, its block list, its push names
+            # and its own JID live in this process, and account B's very first
+            # sync wrote all of them straight back into B's database
+            # (get_remote_chats() persists muted/pinned/archived, the deleted set
+            # is persisted from the chat-list build, _resolve_self_referential_jid()
+            # reads my_jid). A conversation of B's that A had deleted then never
+            # appeared in B's list at all — on disk, permanently.
+            #
+            # Only under wipe_metadata: F5/resync must keep every one of them,
+            # which is the whole point of the flag (see the docstring above).
+            self._deleted_chats = set()
+            self._archived_chats = set()
+            self._pinned_chats = set()
+            self._muted_chats = {}
+            self._blocked_contacts = set()
+            self._presence_pushname_map = {}
+            self._locally_read_at = {}
+            # Which groups the previous account could post in — i.e. which
+            # groups it was a member of at all. _persist_group_send_perms()
+            # writes it back out of RAM, so the emptied table filled up again
+            # with the other account's group list.
+            self._group_send_perms = {}
+            # The last round's diagnostic checkpoint, including the
+            # force_full_pending latch prepare_sync() restores _force_full_sync
+            # from. Persisted again by _persist_successful_sync_state() /
+            # _persist_full_sync_pending().
+            self._last_sync_state = {}
+            # Left as the empty string rather than deleted: _is_self_jid() and
+            # the "Eu" label read them unconditionally, and the next
+            # host-device/self-LID lookup rewrites them.
+            self.my_jid = ""
+            self.my_lid = ""
+            # "This chat has no older history" and the requests that concluded
+            # it — one line, because F5 already needed exactly this and its
+            # docstring already describes the damage of keeping them.
+            self._forget_history_exhaustion()
+            # When get-messages last really ran for each chat, keyed by JID and
+            # persisted. Same family as everything above and reached the same
+            # way: prepare_sync() loads it out of chat_verified_at_v1 into RAM,
+            # so emptying the table left account A's timestamps live here and
+            # _persist_chat_verified_at() wrote the whole dict — A's JIDs
+            # included — straight back into B's freshly emptied entry. For a
+            # contact both accounts have, that stale timestamp then keeps B's
+            # chat out of select_stale_rechecks() for a full
+            # _STALE_RECHECK_AFTER.
+            self._chat_verified_at = {}
+            # Which conversations the user opened — the gate on asking the
+            # PHONE for older history, and the one collection here whose
+            # leftovers the user of the new account can see, on their own
+            # device. Reached exactly like the two above: prepare_sync() loads
+            # opened_conversations_v1 into RAM, so emptying the table left
+            # account A's JIDs live here, and _backfill_empty_chats() read
+            # _user_has_opened() as True for a contact both accounts have and
+            # sent request_older_messages() for a conversation B's user never
+            # opened — the lock-screen "Synchronizing WhatsApp with Google
+            # Chrome (Windows)…" followed by "Sync paused", which is issue
+            # #108 all over again. Worse, _note_conversation_opened() writes
+            # the whole set back on the first conversation B opens, so A's
+            # JIDs become durable on B's disk; and _forget_history_exhaustion()
+            # above hands B the full _MAX_PHONE_HISTORY_REQUESTS budget to
+            # spend on them.
+            self._opened_conversations = set()
+            # Media whose CDN URL answered 403/410, keyed by message id. Same
+            # family as everything above and the last member of it: the ids
+            # belong to the previous account's messages, and the file outlives
+            # the account switch entirely, so a fresh install of account B
+            # started life refusing to download media it had never tried.
+            # F5 calls the same helper itself (it passes wipe_metadata=False
+            # and keeps nothing else here either), so this line touches only
+            # the account switch.
+            self._forget_media_failures()
+
+        db_emptied = False
         try:
             if hasattr(self, "db") and self.db is not None:
                 self.db.save_full_state({"chats": {}, "contacts": {}}, clear_metadata=wipe_metadata)
+                db_emptied = True
                 logging.info("[clear_local_data] Database cleared successfully.")
         except Exception as e:
             logging.error(f"[clear_local_data] Failed to clear database: {e}")
-            
+
+        if wipe_metadata and db_emptied:
+            # The number this data belonged to. The invariant the divergence
+            # check is written around is that the key describes what is on
+            # disk, and six call sites in connect.py wipe through here without
+            # ever having heard of it — leaving the key naming an account whose
+            # database no longer exists, which reads as "no divergence" the
+            # next time somebody else's phone pairs. _on_disconnect(wipe=False)
+            # deliberately does not come through here, so the armed case stays
+            # armed. _wipe_local_data_if_another_number_linked() rewrites it
+            # immediately after its own call.
+            #
+            # Dropped down here, after the database has actually been emptied,
+            # rather than with the rest of the in-memory wipe above. A process
+            # killed between the two is routine — 17 of the 159 launches in one
+            # field shutdown_audit.log ended with no _stop_wpp_server line at
+            # all — and killed with the key already gone while the messages were
+            # still on disk, the next launch has nothing to compare against,
+            # takes the "learn this number, delete nothing" branch, and lets
+            # account B merge onto account A: the merge this key exists to
+            # prevent, disarmed by its own cleanup. The other order costs
+            # nothing — a key naming a database that is already empty is read as
+            # a divergence and wipes an empty database a second time.
+            #
+            # And only when the database really was emptied, which is why
+            # db_emptied is a variable and not just the `if` above. self.db
+            # exists from prepare_sync() onwards, and all six connect.py call
+            # sites run before that, inside __init__'s connection dialog: there
+            # the write is skipped entirely and every message of the previous
+            # account stays in messages.db (the divergence check's own docstring
+            # says so). save_full_state() can also raise DatabaseBridgeTimeout/
+            # Closed, which is swallowed right above. Either way the key is
+            # still describing what is on disk, so it has to stay armed for the
+            # check after prepare_sync() to act on — dropping it there is the
+            # kill window above without the kill. The account-switch path is
+            # unaffected: _apply_another_number_wipe() rewrites the key
+            # immediately after its own call.
+            privateinfo = getattr(self, "settings", {}).get("privateinfo")
+            if (isinstance(privateinfo, dict)
+                    and privateinfo.pop("WA_phone_number_linked", None) is not None):
+                # Saved here rather than left to the caller: most of those six
+                # call sites never save at all, and a key that survives in
+                # settings.json is exactly as wrong as one that survives in
+                # memory — the next launch reads it straight back.
+                try:
+                    self.save_settings()
+                except Exception:
+                    logging.exception(
+                        "[clear_local_data] Could not persist dropping the "
+                        "recorded linked number.")
+
         # Clear local downloaded media files to prevent cross-account leakage
         for subdir in ("media", "voice_messages"):
             path = data_path(subdir)
-            if os.path.exists(path):
-                import shutil
+            if not os.path.exists(path):
+                continue
+            try:
+                entries = os.listdir(path)
+            except Exception as e:
+                logging.error(f"[clear_local_data] Failed to list {subdir} folder: {e}")
+                continue
+            failed = 0
+            for filename in entries:
+                file_path = os.path.join(path, filename)
+                # Per file, not per folder. A single entry Windows refuses to
+                # delete — a voice note BASS still has open is the measured one
+                # — used to abort the sweep of the whole directory from its
+                # first failure onwards, leaving the rest of the previous
+                # account's media on disk.
                 try:
-                    for filename in os.listdir(path):
-                        file_path = os.path.join(path, filename)
-                        if os.path.isfile(file_path) or os.path.islink(file_path):
-                            os.unlink(file_path)
-                        elif os.path.isdir(file_path):
-                            shutil.rmtree(file_path)
-                    logging.info(f"[clear_local_data] Cleared folder: {subdir}")
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
                 except Exception as e:
-                    logging.error(f"[clear_local_data] Failed to clear {subdir} folder: {e}")
+                    failed += 1
+                    # Only the first few, with the count reported below. A
+                    # folder an antivirus (or a crashed BASS handle) has locked
+                    # fails on every single entry, and a media/ directory holds
+                    # thousands of them — in log.log, which is truncated every
+                    # launch and is the one file a user pastes into a bug
+                    # report, that buries the whole rest of the run.
+                    if failed <= self._MAX_MEDIA_DELETE_ERRORS_LOGGED:
+                        logging.error(
+                            f"[clear_local_data] Failed to delete {file_path}: {e}")
+            if failed:
+                logging.error(
+                    f"[clear_local_data] Cleared folder {subdir} except {failed} entries")
+            else:
+                logging.info(f"[clear_local_data] Cleared folder: {subdir}")
+
+        # Returned after the media sweep, and the sweep is deliberately not
+        # gated on db_emptied: media/ and voice_messages/ are cleared either
+        # way. So a False answer describes a middle state neither this method's
+        # callers nor the divergence check's docstrings otherwise name, and it
+        # is the one that turns up in a field report — the previous account's
+        # rows still in messages.db, its media and voice notes already gone from
+        # disk, and, on the account-switch path, the user already told out loud
+        # that those conversations were deleted. The list therefore comes back
+        # holding chats whose attachments no longer resolve locally and cannot
+        # be fetched again either, since the session now belongs to the other
+        # account. Nothing here can undo that half — the files are gone — which
+        # is precisely why the other half is reported rather than assumed: the
+        # caller keeps the key naming the account those rows belong to, so the
+        # next pass finishes the wipe instead of merging on top of it.
+        return db_emptied
 
     def create_basic_files(self):
         data_dir = data_path("")
@@ -20378,6 +21252,25 @@ class MainWindow(wx.Frame):
                     json.dump(self._media_failed_ids, f)
             except Exception:
                 pass
+
+    def _forget_media_failures(self):
+        """Drop the ids of media whose CDN URL had already expired (403/410),
+        from RAM and from data/media_failed.json.
+
+        Both wipes need exactly this and had a copy each. F5 because the
+        messages those ids name were just deleted; the account switch because
+        they name the PREVIOUS account's messages, and the file outlives the
+        switch entirely — a fresh install of account B started life refusing
+        to download media it had never once tried.
+        """
+        self._media_failed_ids = {}
+        try:
+            media_failed_path = data_path("media_failed.json")
+            if os.path.isfile(media_failed_path):
+                os.remove(media_failed_path)
+        except Exception as exc:
+            logging.warning(
+                "[media_failures] failed to remove media_failed.json: %s", exc)
 
     def _is_conversation_open_for(self, msg) -> bool:
         """True if msg belongs to the conversation currently shown on screen."""
