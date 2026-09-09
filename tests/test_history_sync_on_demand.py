@@ -1091,3 +1091,113 @@ class TestPhoneRequestsAreSpacedNotBunched:
         # time (16 requests in 20 minutes on the measured install), long
         # enough that two notifications never stack.
         assert 60 <= MainWindow._PHONE_REQUEST_MIN_GAP <= 300
+
+
+class TestAChatThePhoneCannotHelpIsRetiredForGood:
+    """The phone answers "I have nothing older" two ways, and only one of them
+    used to be durable.
+
+    An explicit `primaryHasMore=false` is a refusal, costs no notification and
+    retires the chat. The other answer is *silence*: the request goes out, the
+    phone tells its owner it is synchronising, delivers nothing, and follows up
+    with "Sync paused. Open WhatsApp to resume." — an error notification, on an
+    account synced for weeks, for a conversation the user never opened.
+
+    Measured on a real install on 2026-09-08: two groups holding 1 and 2
+    messages, each asked twice, `oldestMsgKey` byte-identical across both asks
+    and twelve get-messages rounds in between. `_older_request_attempts` is in
+    memory, so every launch handed them a fresh budget and asked again.
+    """
+
+    GRACE = MainWindow._OLDER_REQUEST_GRACE
+    MAX = MainWindow._MAX_PHONE_HISTORY_REQUESTS
+
+    def test_a_budget_still_unspent_is_not_a_verdict(self):
+        assert MainWindow._older_history_is_exhausted(
+            1000.0, self.MAX - 1, 1000.0 + self.GRACE * 10,
+            self.GRACE, self.MAX) is False
+
+    def test_a_chat_never_asked_is_not_a_verdict(self):
+        assert MainWindow._older_history_is_exhausted(
+            None, self.MAX, 10_000.0, self.GRACE, self.MAX) is False
+
+    def test_the_reply_window_must_close_first(self):
+        # The request is fire-and-forget and the chunk lands minutes later;
+        # a verdict inside that window is a guess, and this one is permanent.
+        assert MainWindow._older_history_is_exhausted(
+            1000.0, self.MAX, 1000.0 + self.GRACE - 1,
+            self.GRACE, self.MAX) is False
+
+    def test_budget_spent_and_window_closed_is_the_verdict(self):
+        assert MainWindow._older_history_is_exhausted(
+            1000.0, self.MAX, 1000.0 + self.GRACE,
+            self.GRACE, self.MAX) is True
+
+    def test_the_verdict_only_follows_a_full_budget(self):
+        # Gaining older history clears the budget (see the caller), so
+        # reaching the cap already means every ask came back with nothing.
+        assert self.MAX >= 2
+        for spent in range(self.MAX):
+            assert MainWindow._older_history_is_exhausted(
+                1000.0, spent, 1000.0 + self.GRACE * 5,
+                self.GRACE, self.MAX) is False
+
+
+class TestRetirementIsWrittenDownAndRespected:
+    class _Stub:
+        _retire_chat_without_older_history = MainWindow._retire_chat_without_older_history
+        _jid_address_forms = MainWindow._jid_address_forms
+        _canonical_backfill_jid = MainWindow._canonical_backfill_jid
+        _MAX_PHONE_HISTORY_REQUESTS = MainWindow._MAX_PHONE_HISTORY_REQUESTS
+
+        def __init__(self):
+            self._exhausted_chats = set()
+            self._history_gap_jids = set()
+            self._lid_to_phone = {}
+            self._phone_to_lid = {}
+            self._chats_awaiting_messages = set()
+            self._partial_history_counts = {}
+            self.persisted = 0
+            self.removed = []
+
+        def _persist_exhausted_chats(self):
+            self.persisted += 1
+
+        def _remove_backfill_pending(self, jid):
+            self.removed.append(jid)
+
+        class _Guard:
+            def __enter__(self):
+                return None
+
+            def __exit__(self, *a):
+                return False
+
+        def _backfill_state_guard(self):
+            return self._Guard()
+
+    JID = "120363166461067873@g.us"
+
+    def test_the_verdict_is_persisted_not_just_remembered(self):
+        stub = self._Stub()
+        stub._retire_chat_without_older_history(self.JID)
+        assert self.JID in stub._exhausted_chats
+        assert stub.persisted == 1
+
+    def test_it_leaves_the_backfill_queue(self):
+        stub = self._Stub()
+        stub._retire_chat_without_older_history(self.JID)
+        assert stub.removed == [self.JID]
+
+    def test_the_history_gap_is_cleared_under_every_address(self):
+        stub = self._Stub()
+        stub._lid_to_phone = {self.JID: "5511@s.whatsapp.net"}
+        stub._history_gap_jids = {self.JID, "5511@s.whatsapp.net"}
+        stub._retire_chat_without_older_history(self.JID)
+        assert stub._history_gap_jids == set()
+
+    def test_retiring_twice_writes_once(self):
+        stub = self._Stub()
+        stub._retire_chat_without_older_history(self.JID)
+        stub._retire_chat_without_older_history(self.JID)
+        assert stub.persisted == 1

@@ -178,9 +178,40 @@ class TestApplyOutputDevice:
 
 
 class TestHandlePlaybackFailure:
-    def test_no_configured_device_means_nothing_to_fall_back_from(self, monkeypatch):
+    def test_a_default_device_user_is_recovered_too(self, monkeypatch):
+        """This used to return False for anyone on "system default", on the
+        reasoning that there is nothing to fall back *to*.
+
+        That is precisely the reported failure. The default device changed
+        under BASS — a wireless dongle unplugged, a USB device taking over as
+        default — BASS stayed bound to a device that no longer exists, and
+        nothing played: not voice messages, not UI effects. The only thing
+        that repaired it was switching the output device away and back, which
+        is the one path that reached the free/init this performs.
+
+        The recovery those users need is exactly the same reinit; only the
+        *warning* about a named device that could not be opened depends on
+        there being a name."""
         ss = _make_sound_system(monkeypatch, {})
-        assert ss.handle_playback_failure() is False
+        assert ss.handle_playback_failure() is True
+        assert ss.output.free_calls == 1
+
+    def test_the_default_case_says_nothing_to_the_user(self, monkeypatch):
+        """Falling back from a default that moved is not something to
+        apologise for — there is no device name that failed to open."""
+        ss = _make_sound_system(monkeypatch, {})
+        warned = []
+        ss._warn_device_failure = lambda kind, name: warned.append(name)
+        ss.handle_playback_failure()
+        assert warned == []
+
+    def test_a_named_device_that_failed_is_still_reported(self, monkeypatch):
+        ss = _make_sound_system(monkeypatch, {"Speakers": 3})
+        ss.apply_output_device("Speakers")
+        warned = []
+        ss._warn_device_failure = lambda kind, name: warned.append(name)
+        ss.handle_playback_failure()
+        assert warned == ["Speakers"]
 
     def test_first_failure_falls_back_and_reports_true(self, monkeypatch):
         ss = _make_sound_system(monkeypatch, {"Speakers": 1})
@@ -489,3 +520,174 @@ class TestFallbackInputDeviceIndices:
         escaping exception dies unseen."""
         monkeypatch.setattr(audio_devices_module.pyaudio, "PyAudio", lambda: _BrokenPyAudio())
         assert fallback_input_device_indices() == []
+
+
+class TestReinitialisingTheOutputDevice:
+    """The two lines behind both reported audio bugs.
+
+    `Output.free()` is BASS_Free(), which frees only the *current* device, and
+    `init_device(-1)` then BASS_Init's the system default — which
+    apply_effects_device() has usually already initialised, since it pins
+    effects to the concrete default index. BASS answers 14, "already
+    initialized", and the exception escaped apply_output_device() (only the
+    set_device() branch was ever wrapped) all the way to the global handler,
+    twice captured on a live install:
+
+        File "core/sound_system.py", line 203, in _switch_to_default_device
+        File "sound_lib/output.py", line 65, in init_device
+        sound_lib.main.BassError: 14, already initialized/paused/whatever
+
+    The old device was freed and no new one initialised, so every later play()
+    raised "invalid handle" or "BASS_Start has not been successfully called" —
+    the endless errors while arrowing through voice messages.
+    """
+
+    def test_already_initialised_is_success_not_failure(self, monkeypatch):
+        ss = _make_sound_system(monkeypatch, {})
+
+        def _boom(device=None):
+            raise Exception("14, already initialized/paused/whatever")
+
+        ss.output.init_device = _boom
+        assert ss.apply_output_device("") is True
+
+    def test_a_real_init_failure_is_reported_not_raised(self, monkeypatch):
+        ss = _make_sound_system(monkeypatch, {})
+
+        def _boom(device=None):
+            raise Exception("23, illegal device number")
+
+        ss.output.init_device = _boom
+        assert ss.apply_output_device("") is False
+
+    def test_the_switch_never_raises_out_of_apply(self, monkeypatch):
+        """It escaped through settings_dialog._validate/_apply_values/_on_ok
+        and killed the dialog, leaving BASS freed and nothing initialised."""
+        ss = _make_sound_system(monkeypatch, {})
+
+        def _boom(*_a, **_kw):
+            raise Exception("14, already initialized/paused/whatever")
+
+        ss.output.free = _boom
+        ss.output.init_device = _boom
+        ss.apply_output_device("")          # must not raise
+
+    def test_error_fourteen_is_recognised_by_text_and_by_code(self):
+        from core.sound_system import SoundSystem
+        assert SoundSystem._is_already_initialised(
+            Exception("14, already initialized/paused/whatever")) is True
+        assert SoundSystem._is_already_initialised(
+            Exception("already initialized")) is True
+        assert SoundSystem._is_already_initialised(
+            Exception("5, invalid handle")) is False
+
+
+class TestTheRecoveryCooldown:
+    """A reinit invalidates every existing stream, so each one produces a
+    fresh crop of failures from whatever was mid-play. Without a floor between
+    attempts those failures drive the next reinit."""
+
+    def test_a_second_failure_straight_away_is_not_another_reinit(self, monkeypatch):
+        ss = _make_sound_system(monkeypatch, {})
+        assert ss.handle_playback_failure() is True
+        assert ss.handle_playback_failure() is False
+        assert ss.output.free_calls == 1
+
+    def test_the_cooldown_expiring_allows_another(self, monkeypatch):
+        ss = _make_sound_system(monkeypatch, {})
+        ss.handle_playback_failure()
+        ss._last_recovery_at -= ss._RECOVERY_COOLDOWN_SECONDS
+        assert ss.handle_playback_failure() is True
+        assert ss.output.free_calls == 2
+
+    def test_the_user_changing_the_setting_is_never_held_off(self, monkeypatch):
+        """A deliberate change is not a recovery; the user is entitled to be
+        listened to immediately."""
+        ss = _make_sound_system(monkeypatch, {})
+        ss.handle_playback_failure()
+        ss.apply_output_device("")
+        assert ss._recovery_cooldown_elapsed() is True
+
+
+class TestAHealthyDeviceIsLeftAlone:
+    """The restraint the removed `if self.output._device == -1: return`
+    sentinel was really providing, and whose loss shipped a regression.
+
+    MainWindow.__init__ calls apply_output_device() at line 1694, load_sounds()
+    at 1702, and _apply_configured_audio_devices() calls apply_output_device()
+    a second time at 1741. For a user on "system default" that second call used
+    to be a no-op. Unguarded it frees and re-initialises BASS, invalidating
+    every Sound stream load_sounds() had just built — so the startup sound and
+    every effect afterwards raised "5, invalid handle". Reported by a user on a
+    fresh install within hours of the alpha:
+
+        [sound] Error playing startup sound: 5, invalid handle
+
+    The sentinel could not see the case it was removed for: a device unplugged
+    while BASS stays bound to its cached index. Hence a health check rather
+    than a sentinel — already on the requested device AND that device still
+    exists.
+    """
+
+    def _healthy(self, ss, healthy):
+        ss._output_device_is_healthy = lambda device: healthy
+
+    def test_a_second_apply_does_not_tear_bass_down(self, monkeypatch):
+        ss = _make_sound_system(monkeypatch, {})
+        self._healthy(ss, True)
+        ss.apply_output_device("")
+        ss.apply_output_device("")
+        assert ss.output.free_calls == 0
+
+    def test_an_unhealthy_device_is_still_reinitialised(self, monkeypatch):
+        ss = _make_sound_system(monkeypatch, {})
+        self._healthy(ss, False)
+        ss.apply_output_device("")
+        assert ss.output.free_calls == 1
+
+    def test_the_recovery_path_reinitialises_even_when_bass_looks_fine(self, monkeypatch):
+        """handle_playback_failure() is reached *because* a stream just failed
+        to play. BASS answering "all good" is exactly the case that needs
+        forcing — otherwise the recovery is a no-op and nothing ever plays."""
+        ss = _make_sound_system(monkeypatch, {})
+        self._healthy(ss, True)
+        assert ss.handle_playback_failure() is True
+        assert ss.output.free_calls == 1
+
+
+class TestStoppingAStaleChannelIsNotFatal:
+    """Sound.play()'s first act is a BASS_ChannelStop on a handle that may have
+    been freed underneath it. Outside the try it escaped play() entirely, so
+    the device recovery never ran and the error reached the global handler —
+    which plays a sound of its own and raised again from inside sys.excepthook,
+    producing two tracebacks per QR refresh, forever."""
+
+    def test_play_survives_a_stop_that_raises(self, monkeypatch):
+        import core.sound_system as mod
+
+        base = mod.Sound.__mro__[1]          # what super() in Sound.play() reaches
+        played = []
+        monkeypatch.setattr(
+            base, "stop",
+            lambda self: (_ for _ in ()).throw(Exception("5, invalid handle")),
+            raising=False)
+        monkeypatch.setattr(
+            base, "play",
+            lambda self, restart=False: played.append(restart), raising=False)
+
+        snd = mod.Sound.__new__(mod.Sound)
+        snd.sound_system = _make_sound_system(monkeypatch, {})
+        snd.sound_system._effects_device = None
+        snd.event_key = None
+        snd.pack_id = None
+        snd.file = "x.ogg"
+
+        mod.Sound.play(snd)                  # must not raise
+        assert played == [True]
+
+    def test_the_stop_is_inside_the_guarded_region(self):
+        """Structural, because the ordering is the whole bug: a stop() above
+        the try cannot be recovered by the except below it."""
+        import inspect
+        src = inspect.getsource(__import__("core.sound_system", fromlist=["Sound"]).Sound.play)
+        assert src.index("try:") < src.index("super().stop()")

@@ -88,6 +88,81 @@ function forceKillBrowserProcess(page: any, logger?: any): boolean {
  * `taskkill /F /T` the whole Node process tree once its grace period ran
  * out, tearing down Chrome's profile (a LevelDB store) mid-write.
  */
+/** How long a graceful browser close gets before the kill takes over. */
+const GRACEFUL_CLOSE_MS = 8000;
+
+/**
+ * Ask this session's browser to close itself, and wait for it to actually go.
+ *
+ * Every force-kill in this file is a SIGKILL-equivalent (`taskkill /F`,
+ * `Stop-Process -Force`, `pkill -9`) delivered to a Chrome that may be
+ * mid-write. What it writes is WhatsApp Web's IndexedDB — the sole carrier of
+ * the login, since WPPConnect's token store is empty on a real install — and
+ * the failure that follows is not a corrupt database. Measured across several
+ * losses on a real install: the profile comes back structurally perfect,
+ * differing from a working snapshot only by ordinary LevelDB compaction, its
+ * shutdown fingerprint identical to the one the next launch reads, and
+ * WhatsApp Web still answers `post_logout=1` seven seconds in while an older
+ * copy of the same profile authenticates. Nothing on disk is broken; the state
+ * in it has stopped matching what the server expects, which is what killing a
+ * browser part-way through a key rotation would produce.
+ *
+ * So: ask first, kill second. `client.close()` is wppconnect's own teardown
+ * (browser.close(), which lets the page run its unload path and flush), and
+ * this waits for the process to be gone rather than trusting the call.
+ *
+ * Returns true only when the browser is confirmed gone. Never throws — a
+ * failure here just means the caller force-kills, which is what it did
+ * unconditionally before.
+ */
+async function closeBrowserGracefully(
+  session: string,
+  logger?: any,
+  timeoutMs: number = GRACEFUL_CLOSE_MS,
+  candidate?: any
+): Promise<boolean> {
+  const client: any = candidate ?? clientsArray[session];
+  const page: any = client?.page;
+  let proc: any;
+  try {
+    proc = page?.browser?.()?.process?.();
+  } catch (e) {}
+  if (!client && !proc) return false;
+  try {
+    if (typeof client?.close === 'function') {
+      await Promise.race([
+        client.close(),
+        new Promise((r) => setTimeout(r, timeoutMs)),
+      ]);
+    } else if (page?.browser) {
+      await Promise.race([
+        page.browser().close(),
+        new Promise((r) => setTimeout(r, timeoutMs)),
+      ]);
+    }
+  } catch (e: any) {
+    logger?.warn?.(
+      `[${session}] graceful browser close raised: ${e?.message || e}`
+    );
+  }
+  // The call returning is not the process being gone. Poll for the exit so a
+  // caller that is about to relaunch against this very profile does not race
+  // a Chrome that is still flushing it.
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const alive = proc && proc.exitCode === null && proc.signalCode === null;
+    if (!alive) {
+      logger?.info?.(`[${session}] browser closed gracefully.`);
+      return true;
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  logger?.warn?.(
+    `[${session}] browser did not close within ${timeoutMs}ms — falling back to the kill.`
+  );
+  return false;
+}
+
 function forceKillByUserDataDir(
   userDataDir: string,
   logger?: any
@@ -229,7 +304,14 @@ async function launchWithStaleBrowserRecovery(
       `[${session}] Chrome is still holding this session's profile although no ` +
         'session owns it — killing it and starting once more.'
     );
-    await forceKillByUserDataDir(userDataDir, logger);
+    // The orphan holding this profile very often still has its client object
+    // in clientsArray — createSessionUtil() refuses to run unless the session
+    // reports CLOSED, but a status of CLOSED does not mean the browser went
+    // away. When it is reachable, close it properly rather than SIGKILLing a
+    // Chrome that is holding this session's login database open.
+    if (!(await closeBrowserGracefully(session, logger))) {
+      await forceKillByUserDataDir(userDataDir, logger);
+    }
     await new Promise((resolve) =>
       setTimeout(resolve, STALE_BROWSER_RELEASE_MS)
     );
@@ -504,8 +586,26 @@ async function grantPersistentStorage(page: any, logger: any, session: string) {
 }
 
 export default class CreateSessionUtil {
-  forceKillSession(session: string, logger?: any) {
-    const client: any = clientsArray[session];
+  /**
+   * `candidate` is for callers that clear `clientsArray[session]` immediately
+   * after calling this: the graceful close needs the client, and reading it
+   * back off the array would race that clear.
+   *
+   * `graceful` is false only where a close has *already* been tried and
+   * failed — asking twice would just spend the caller's budget again.
+   */
+  async forceKillSession(
+    session: string,
+    logger?: any,
+    candidate?: any,
+    graceful = true,
+    timeoutMs?: number
+  ) {
+    const client: any = candidate ?? clientsArray[session];
+    // Ask before killing — see closeBrowserGracefully() for what a SIGKILL
+    // mid-write costs here.
+    if (graceful && (await closeBrowserGracefully(session, logger, timeoutMs, client)))
+      return;
     if (!forceKillBrowserProcess(client?.page, logger)) {
       forceKillByUserDataDir(`userDataDir/${session}`, logger);
     }
@@ -579,12 +679,52 @@ export default class CreateSessionUtil {
       // precise process-tree kill first and only falls back to the
       // userDataDir scan when no live page/pid is reachable yet.
       const killBrowserOrFallback = () => {
+        // Refuse the userDataDir fallback once this create() has been
+        // superseded. That scan kills whatever browser currently holds the
+        // profile, and after a takeover that is somebody else's — measured
+        // live, and it cost a working session:
+        //
+        //   03:55:50  Connected / inChat        (restored profile, syncing)
+        //   03:56:01  Auth probe has failed for 30s straight — giving up
+        //   03:56:02  shouldClose detected in statusFind. Force-killing browser.
+        //   03:56:02  browserClose
+        //
+        // The 30 s auth-probe bound belonged to a create() started 45 s
+        // earlier against the *broken* profile. While it was still counting,
+        // WinZapp restored the profile and the health poll started a second
+        // session that connected and began syncing. The old create() then
+        // timed out, could not reach its own page (`wppClient` is still in the
+        // temporal dead zone during create(), which is why the fallback exists
+        // at all), and killed the profile's browser by directory — the new
+        // one. WhatsApp logged that session out on the next load, and the
+        // once-per-launch profile recovery had already been spent.
+        //
+        // A precise kill stays unconditional: if forceKillBrowserProcess()
+        // can reach this create()'s own page, it is killing its own browser
+        // and cannot touch a successor.
         let killed = false;
         try {
           killed = forceKillBrowserProcess(wppClient?.page, req.logger);
         } catch (e) {}
-        if (!killed)
-          forceKillByUserDataDir(`userDataDir/${session}`, req.logger);
+        if (killed) return;
+        const current: any = clientsArray[session];
+        if (current && current !== client) {
+          req.logger.warn(
+            `[${session}] not killing the browser by userDataDir: this session ` +
+              `start was superseded by a newer one, which owns that profile now.`
+          );
+          return;
+        }
+        forceKillByUserDataDir(`userDataDir/${session}`, req.logger);
+      };
+
+      // Same reasoning for the slot itself: clearing it would drop a
+      // successor's client, leaving the session unreachable while its browser
+      // keeps running.
+      const clearSessionSlotIfStillOurs = () => {
+        if (clientsArray[session] === undefined || clientsArray[session] === client) {
+          clientsArray[session] = undefined;
+        }
       };
 
       // Wrapped in a thunk purely so the stale-profile recovery below can call
@@ -625,7 +765,7 @@ export default class CreateSessionUtil {
                   `[${session}] shouldClose detected in catchLinkCode. Force-killing browser.`
                 );
                 killBrowserOrFallback();
-                clientsArray[session] = undefined;
+                clearSessionSlotIfStillOurs();
                 return;
               }
               this.exportPhoneCode(req, client.config.phone, code, client, res);
@@ -666,7 +806,7 @@ export default class CreateSessionUtil {
                   `[${session}] shouldClose detected in catchQR. Force-killing browser.`
                 );
                 killBrowserOrFallback();
-                clientsArray[session] = undefined;
+                clearSessionSlotIfStillOurs();
                 return;
               }
               this.exportQR(req, base64Qr, urlCode, client, res);
@@ -681,7 +821,7 @@ export default class CreateSessionUtil {
                     `[${session}] shouldClose detected in statusFind. Force-killing browser.`
                   );
                   killBrowserOrFallback();
-                  clientsArray[session] = undefined;
+                  clearSessionSlotIfStillOurs();
                   return;
                 }
                 eventEmitter.emit(
@@ -759,7 +899,7 @@ export default class CreateSessionUtil {
           );
           clearInterval(shouldClosePoller);
           killBrowserOrFallback();
-          clientsArray[session] = undefined;
+          clearSessionSlotIfStillOurs();
         }
       }, 2000);
 

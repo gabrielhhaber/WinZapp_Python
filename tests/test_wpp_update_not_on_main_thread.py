@@ -106,6 +106,14 @@ class _Stub:
     def _kill_orphaned_chrome_for_session(self):
         self.events.append("kill")
 
+    def wait_for_profile_release(self, session_name, timeout=None):
+        # The update path clears the profile through this now: wait for the
+        # release, kill only what never lets go. Recorded under the same name
+        # so the sequence assertions keep reading as "the profile was freed
+        # between the stop and the restart".
+        self.events.append("kill")
+        return True
+
     def ensure_wpp_running(self):
         self.events.append("restart")
 

@@ -20,6 +20,7 @@ use.
 
 import pathlib
 import threading
+import time
 import types
 
 from main import MainWindow
@@ -63,6 +64,11 @@ class _StateStub:
         # Taken by _persist_message_retry_jids() before it reads the set.
         self._sync_failures_lock = threading.Lock()
         self._chats_awaiting_messages = set()
+        # Warm account: every chat was fetched moments ago. Left unset they
+        # read as never verified and _plan_message_sync()'s staleness net
+        # (issue #181) promotes them — correct, but not what these tests
+        # measure. It has its own tests in tests/test_stale_chat_recheck.py.
+        self._chat_verified_at = {j: int(time.time()) for j in self.chats}
         self._partial_history_counts = {}
         self._history_gap_jids = set()
         self._message_retry_jids = set()
@@ -158,6 +164,9 @@ class TestWhatIsRestoredActuallyDrivesTheNextRound:
         all — which is the entire reason the incremental path exists."""
         stub = _StateStub()
         stub.chats = {PHONE: _chat(PHONE)}
+        # Fetched moments ago, so the staleness net (issue #181) has no reason
+        # to promote it — otherwise this control measures that net instead.
+        stub._chat_verified_at = {PHONE: int(time.time())}
         baseline = {PHONE: MainWindow._capture_chat_sync_baseline(stub)[PHONE]}
 
         full, incremental, skipped, _reasons = stub._plan_message_sync(baseline)
@@ -197,6 +206,7 @@ class TestTheOneMarkerThatIsDeliberatelyNotDurable:
     def test_a_completed_fetch_this_session_settles_it(self):
         stub = _StateStub()
         stub.chats = {PHONE: self._behind(PHONE)}
+        stub._chat_verified_at = {PHONE: int(time.time())}
         baseline = {PHONE: MainWindow._capture_chat_sync_baseline(stub)[PHONE]}
         stub._note_verified_activity(PHONE, stub.chats[PHONE])
 

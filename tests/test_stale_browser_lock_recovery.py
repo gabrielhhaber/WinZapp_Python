@@ -148,3 +148,127 @@ class TestTheKillCanActuallyBeAwaited:
         assert "if (!userDataDir) return Promise.resolve();" in kill
         # One for the Windows PowerShell path, one for the POSIX pkill path.
         assert kill.count("resolve()") >= 2
+
+
+class TestASupersededCreateMustNotKillItsSuccessor:
+    """The userDataDir kill is a fallback, and it is not always safe.
+
+    `killBrowserOrFallback()` tries a precise process-tree kill through
+    `wppClient?.page` first, but `wppClient` is only assigned once create()
+    returns — so during create() itself it is in the temporal dead zone and the
+    fallback always runs. That fallback kills whatever browser currently holds
+    the profile, which after a takeover is somebody else's.
+
+    Measured live on 2026-09-09:
+
+        03:55:50  Connected / inChat        (restored profile, syncing)
+        03:56:01  Auth probe has failed for 30s straight — giving up
+        03:56:02  shouldClose detected in statusFind. Force-killing browser.
+        03:56:02  browserClose
+
+    The 30 s auth-probe bound belonged to a create() started 45 s earlier
+    against the *broken* profile. While it counted, WinZapp restored the
+    profile and the health poll started a second session that connected and
+    began syncing. The old create() then timed out and killed the new one's
+    browser by directory. WhatsApp logged that session out on the next load,
+    and the once-per-launch profile recovery had already been spent.
+    """
+
+    def _kill_helper(self, source):
+        start = source.index("const killBrowserOrFallback = () => {")
+        return source[start:source.index("};", start)]
+
+    def test_a_precise_kill_is_still_unconditional(self, source):
+        """It can only reach this create()'s own page, so it cannot touch a
+        successor and must not be gated on ownership."""
+        body = self._kill_helper(source)
+        assert body.index("forceKillBrowserProcess") < body.index("clientsArray[session]")
+
+    def test_the_directory_scan_is_gated_on_still_owning_the_session(self, source):
+        body = self._kill_helper(source)
+        gate = body.index("current !== client")
+        assert gate < body.index("forceKillByUserDataDir")
+
+    def test_a_superseded_create_returns_without_killing(self, source):
+        body = self._kill_helper(source)
+        superseded = body[body.index("current !== client"):]
+        assert "return;" in superseded[:superseded.index("forceKillByUserDataDir")]
+
+    def test_the_refusal_is_logged(self, source):
+        """Silently not killing is as hard to diagnose as wrongly killing."""
+        body = self._kill_helper(source)
+        assert "superseded" in body
+
+    def test_the_session_slot_is_only_cleared_when_it_is_ours(self, source):
+        """Clearing it would drop a successor's client, leaving the session
+        unreachable while its browser keeps running."""
+        helper = source[source.index("const clearSessionSlotIfStillOurs = () => {"):]
+        helper = helper[:helper.index("};")]
+        assert "clientsArray[session] === client" in helper
+
+    @pytest.mark.parametrize("branch", ["catchLinkCode", "catchQR", "statusFind", "poller"])
+    def test_every_shouldClose_branch_uses_the_guarded_clear(self, source, branch):
+        marker = f"shouldClose detected in {branch}." if branch != "poller" \
+            else "shouldClose detected by poller."
+        # rindex: the same sentence appears in killBrowserOrFallback()'s own
+        # comment, which quotes the log line this was diagnosed from.
+        tail = source[source.rindex(marker):]
+        end = tail.index("}, 2000);") if branch == "poller" else 400
+        window = tail[:end]
+        assert "clearSessionSlotIfStillOurs()" in window
+        assert "clientsArray[session] = undefined" not in window
+
+
+class TestEveryKillAsksFirst:
+    """Force-killing a Chrome that is mid-write is the leading explanation for
+    the profile losses this file's recovery keeps having to repair.
+
+    What that Chrome is writing is WhatsApp Web's IndexedDB — the sole carrier
+    of the login, since WPPConnect's token store is empty on a real install.
+    The resulting failure is not a corrupt database, which is what made it hard
+    to see: measured across several losses, the profile comes back
+    structurally perfect, differing from a working snapshot only by ordinary
+    LevelDB compaction, with a shutdown fingerprint identical to the one the
+    next launch reads — and WhatsApp Web still answers `post_logout=1` seven
+    seconds in while an older copy of the same profile authenticates. Nothing
+    on disk is broken; the state in it stopped matching the server's, which is
+    what killing a browser part-way through a key rotation would produce.
+
+    So every kill site asks first.
+    """
+
+    def _helper(self, source, name):
+        start = source.index(f"async function {name}(")
+        return source[start:source.index("\n}\n", start)]
+
+    def test_the_graceful_close_waits_for_the_process_to_be_gone(self, source):
+        """The call returning is not the process exiting, and a caller about to
+        relaunch against this profile must not race a Chrome still flushing."""
+        body = self._helper(source, "closeBrowserGracefully")
+        assert "exitCode" in body and "deadline" in body
+
+    def test_it_never_throws(self, source):
+        """A failure here just means the caller force-kills, which is what it
+        did unconditionally before."""
+        body = self._helper(source, "closeBrowserGracefully")
+        assert "catch" in body
+
+    def test_it_reports_whether_the_browser_actually_went(self, source):
+        body = self._helper(source, "closeBrowserGracefully")
+        assert "return true;" in body and "return false;" in body
+
+    def test_the_stale_lock_recovery_asks_before_killing(self, source):
+        body = self._helper(source, "launchWithStaleBrowserRecovery")
+        assert body.index("closeBrowserGracefully") < body.index("forceKillByUserDataDir")
+
+    def test_force_kill_session_asks_before_killing(self, source):
+        start = source.index("async forceKillSession(")
+        body = source[start:source.index("\n  }\n", start)]
+        assert body.index("closeBrowserGracefully") < body.index("forceKillBrowserProcess")
+
+    def test_it_can_be_told_not_to_ask_twice(self, source):
+        """Only where a close has already been tried and failed — asking again
+        would just spend the caller's budget a second time."""
+        start = source.index("async forceKillSession(")
+        body = source[start:source.index("\n  }\n", start)]
+        assert "graceful = true" in body

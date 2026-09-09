@@ -42,32 +42,50 @@ class TestTheUpdateReleasesTheProfile:
     def _source():
         return inspect.getsource(MainWindow._update_wpp_server)
 
-    def test_the_orphan_killer_runs_during_the_update(self):
-        assert "_kill_orphaned_chrome_for_session()" in self._source()
+    def test_the_profile_is_released_during_the_update(self):
+        """Through wait_for_profile_release(), not a bare kill.
+
+        The invariant is unchanged — nothing may still hold the profile when
+        the restarted server calls start-session — but the means matter.
+        _stop_wpp_server() has already closed the session and waited, so by
+        this point Chrome has almost always let go on its own; the bare kill
+        this replaced fired anyway, delivering a SIGKILL to a browser that was
+        very likely mid-flush of WhatsApp Web's IndexedDB. That database is the
+        only carrier of the login, and what it produces is not a corrupt file:
+        the profile comes back structurally perfect and simply stops being
+        accepted. wait_for_profile_release() waits for the release and kills
+        only what never lets go — which is the case this test was written for.
+        """
+        assert "self.wait_for_profile_release(" in self._source()
 
     def test_it_runs_after_the_stop_and_before_the_restart(self):
-        """Killing before the server is stopped would race the shutdown;
-        killing after it is back up is too late — start-session has already
+        """Clearing before the server is stopped would race the shutdown;
+        clearing after it is back up is too late — start-session has already
         failed by then."""
         source = self._source()
         stop = source.index("self._stop_wpp_server()")
-        kill = source.index("self._kill_orphaned_chrome_for_session()")
+        release = source.index("self.wait_for_profile_release(")
         restart = source.index("self.ensure_wpp_running()")
-        assert stop < kill < restart
+        assert stop < release < restart
 
     def test_it_covers_the_failed_update_path_too(self):
         """_update_wpp_server restarts the server on BOTH branches — a
         cancelled or failed reinstall still calls ensure_wpp_running(). A lock
         left over there strands the user just as badly."""
         source = self._source()
-        kill = source.index("self._kill_orphaned_chrome_for_session()")
-        # Every restart must come after the single kill.
+        release = source.index("self.wait_for_profile_release(")
         restarts = [
             i for i in range(len(source))
             if source.startswith("self.ensure_wpp_running()", i)
         ]
         assert len(restarts) >= 2
-        assert all(i > kill for i in restarts)
+        assert all(i > release for i in restarts)
+
+    def test_the_release_still_kills_a_profile_nothing_lets_go_of(self):
+        """The escape hatch the bare kill existed for is intact: a suspended
+        chrome.exe that never releases is still killed, just last."""
+        source = inspect.getsource(MainWindow.wait_for_profile_release)
+        assert "_kill_orphaned_chrome_for_session" in source
 
     def test_the_helper_still_exists_with_that_name(self):
         assert callable(getattr(MainWindow, "_kill_orphaned_chrome_for_session"))

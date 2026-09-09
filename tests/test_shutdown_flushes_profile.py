@@ -115,3 +115,62 @@ class TestWppconnectLogKeepsOneGeneration:
         following = source[rotate : rotate + 400]
         assert "except Exception" in following
         assert "could not rotate wppconnect.log" in following
+
+
+class TestAnUnreadableProcessListIsNotAnAnswer:
+    """"I could not tell" must never reach the caller as "nothing holds it".
+
+    The only thing after wait_for_profile_release() is `taskkill /F /T` on the
+    process tree Chrome is in, so reading a failed query as a release turns a
+    slow or refused PowerShell spawn into a hard kill of a browser that is
+    still writing its LevelDB — and audits it as "Chrome released the profile
+    before the kill". Its only trace today is a logging.info into log.log,
+    which the launch that would report the damage truncates.
+
+    Measured on the reporting machine before changing this: 0.21 s idle, 0.31 s
+    under six competing PowerShell processes, zero failures in 65 runs. So this
+    is a latent fault rather than the cause of the losses that prompted the
+    review — and still the wrong default.
+    """
+
+    class _Stub:
+        wait_for_profile_release = MainWindow.wait_for_profile_release
+
+        def __init__(self, answers):
+            self._answers = list(answers)
+            self.audits = []
+            self.killed = 0
+
+        def _chrome_pids_owning_session(self, session_name):
+            return self._answers.pop(0) if self._answers else []
+
+        def _shutdown_audit(self, msg):
+            self.audits.append(msg)
+
+        def _kill_orphaned_chrome_for_session(self, session_name):
+            self.killed += 1
+
+    def test_an_empty_list_still_means_released(self):
+        stub = self._Stub([[]])
+        assert stub.wait_for_profile_release("sess", timeout=2.0) is True
+        assert stub.killed == 0
+
+    def test_an_unreadable_answer_keeps_waiting(self):
+        # None first, then a real empty answer: it must not have concluded on
+        # the None.
+        stub = self._Stub([None, []])
+        assert stub.wait_for_profile_release("sess", timeout=5.0) is True
+        assert any("unreadable" in a for a in stub.audits)
+
+    def test_a_held_profile_is_still_reported_as_held(self):
+        stub = self._Stub([["1234"]] * 50)
+        assert stub.wait_for_profile_release("sess", timeout=1.0) is False
+        assert stub.killed == 1
+
+    def test_the_audit_records_how_long_the_wait_actually_took(self):
+        """"Chrome exited after 6 s of real waiting" and "the first poll said
+        nothing was there" are opposite diagnoses and looked identical."""
+        stub = self._Stub([["1234"], []])
+        stub.wait_for_profile_release("sess", timeout=5.0)
+        released = [a for a in stub.audits if "profile released" in a]
+        assert released and "poll(s)" in released[0]

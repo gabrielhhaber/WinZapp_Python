@@ -280,7 +280,15 @@ export async function closeSession(req: Request, res: Response): Promise<any> {
       );
       client.shouldClose = true;
       try {
-        SessionUtil.forceKillSession(session, req.logger);
+        // Awaited, and with the client handed over explicitly: the slot is
+        // cleared on the next line, and the graceful close needs it.
+        //
+        // A QRCODE/notLogged status does not mean there is nothing to lose.
+        // That is exactly what a *paired* install reports when its profile
+        // has stopped being accepted — and force-killing there SIGKILLs a
+        // Chrome holding the login database open. Five seconds keeps this
+        // inside WinZapp's own 10s POST budget.
+        await SessionUtil.forceKillSession(session, req.logger, client, true, 5000);
       } catch (e) {}
       (clientsArray as any)[session] = undefined;
       return await res
@@ -348,7 +356,8 @@ export async function closeSession(req: Request, res: Response): Promise<any> {
                 `the session slot is not left stuck in CLOSING.`
             );
             try {
-              SessionUtil.forceKillSession(session, req.logger);
+              // graceful=false: close() has already had its eight seconds.
+              SessionUtil.forceKillSession(session, req.logger, undefined, false);
             } catch (e) {}
             resolve();
           }, 8000);
@@ -364,7 +373,8 @@ export async function closeSession(req: Request, res: Response): Promise<any> {
         `[${session}] Error during req.client.close(): ${closeErr}. Force killing session.`
       );
       try {
-        SessionUtil.forceKillSession(session, req.logger);
+        // graceful=false: the close is what just raised.
+        SessionUtil.forceKillSession(session, req.logger, undefined, false);
       } catch (e) {}
     } finally {
       // Do not let an old close request erase a replacement client that may
