@@ -185,7 +185,7 @@ class SoundSystem:
         if not (self._load_bass_plugin('bass_aac.dll') or self._load_bass_plugin('bassaac.dll')):
             logging.warning("[sound_system] bass_aac.dll not loaded")
 
-    def _switch_to_default_device(self):
+    def _switch_to_default_device(self, force: bool = False):
         """Actually switch BASS back to the system default device.
 
         sound_lib.output.Output.set_device(-1) does NOT work for this:
@@ -199,7 +199,7 @@ class SoundSystem:
         stayed active. Free + reinit directly instead, skipping Output.
         set_device()'s own broken second call.
         """
-        return self._reinit_output_device(-1)
+        return self._reinit_output_device(-1, force=force)
 
     @staticmethod
     def _is_already_initialised(exc) -> bool:
@@ -207,7 +207,39 @@ class SoundSystem:
         text = str(exc)
         return "14" in text or "already" in text.lower()
 
-    def _reinit_output_device(self, device: int) -> bool:
+    def _output_device_is_healthy(self, device: int) -> bool:
+        """Whether BASS is already on `device` and that device still exists.
+
+        Both halves matter. "Already on it" alone is what the old sentinel
+        checked, and it cannot see a device that has since been unplugged —
+        BASS stays bound to an index that no longer resolves. "Still exists"
+        alone would churn BASS on every call.
+        """
+        try:
+            from sound_lib.external.pybass import (
+                BASS_DEVICEINFO, BASS_GetDevice, BASS_GetDeviceInfo, BASS_DEVICE_ENABLED,
+            )
+        except Exception:
+            return False
+        target = device
+        if target == -1:
+            target = find_default_output_device_index()
+        if target is None:
+            return False
+        try:
+            if BASS_GetDevice() != target:
+                return False
+            info = BASS_DEVICEINFO()
+            if not BASS_GetDeviceInfo(target, ctypes.byref(info)):
+                return False
+            return bool(info.flags & BASS_DEVICE_ENABLED)
+        except Exception:
+            # Unreadable is not healthy: fall through and reinitialise, which
+            # is the safe direction — a needless reinit costs the streams that
+            # are currently open, a skipped one costs all audio until restart.
+            return False
+
+    def _reinit_output_device(self, device: int, force: bool = False) -> bool:
         """Free BASS's current output device and bring `device` up, safely.
 
         Three faults lived in the two lines this replaces, and together they
@@ -248,6 +280,27 @@ class SoundSystem:
         Never raises. Returns whether a device is usable afterwards.
         """
         from sound_lib.external.pybass import BASS_SetDevice
+        if not force and self._output_device_is_healthy(device):
+            # Nothing to change, and changing it anyway is destructive: a
+            # free/init invalidates every BASS stream already created against
+            # the device, including every Sound load_sounds() built.
+            #
+            # This is what the `if self.output._device == -1: return` line this
+            # method replaced was really doing, and removing it shipped a
+            # regression: __init__ calls apply_output_device() at line 1694,
+            # load_sounds() at 1702, and _apply_configured_audio_devices() at
+            # 1741 calls apply_output_device() a second time. For a user on
+            # "system default" the second call used to be a no-op; unguarded it
+            # frees every stream that had just been loaded, so the startup
+            # sound and every effect afterwards raised "5, invalid handle".
+            # Reported by a user on a fresh install within hours of the alpha.
+            #
+            # So the sentinel is gone but the restraint is not: skip when BASS
+            # is already on the device asked for AND that device still exists.
+            # The dead-device case the sentinel could not see — a dongle
+            # unplugged, its index still cached — fails the health check and
+            # falls through to the reinit, which is the whole point.
+            return True
         try:
             self.output.free()
         except Exception as exc:
@@ -446,7 +499,10 @@ class SoundSystem:
         self._last_recovery_at = time.monotonic()
         name = self._configured_output_device
         self._warned_output_failure = True
-        if not self._switch_to_default_device():
+        # Forced: this is the recovery path, reached because a stream just
+        # failed to play. The device may look healthy from BASS's own answers
+        # and still not be usable, which is exactly why we are here.
+        if not self._switch_to_default_device(force=True):
             return False
         try:
             self.main_window.load_sounds()
@@ -726,7 +782,25 @@ class Sound(stream.FileStream):
         super().__init__(*args, file=self.file, **kwargs)
 
     def play(self):
-        super().stop()
+        # Guarded, and it has to be: this is a BASS_ChannelStop on a handle
+        # that may have been freed underneath us — the single commonest way
+        # this whole class fails. Outside the try it escaped `play()` entirely,
+        # so the recovery below never ran and the error reached the global
+        # handler, which plays a sound of its own and raised again from inside
+        # sys.excepthook. One stale handle then produced a pair of tracebacks
+        # per QR refresh, forever:
+        #
+        #   File "core/sound_system.py", line 729, in play
+        #   File "sound_lib/channel.py", line 139, in stop
+        #   sound_lib.main.BassError: 5, invalid handle
+        #
+        # Stopping a channel that is not playing, or no longer exists, is not
+        # a failure worth propagating — the caller asked for a sound, and the
+        # try below is what knows how to deliver one.
+        try:
+            super().stop()
+        except Exception as exc:
+            logging.debug("[sound_system] stop() before play: %s", exc)
         # Each sound event can be individually enabled/disabled from the
         # Settings > Sound Events tab. Sounds not tied to an event (e.g. the
         # background notification tone, resolved dynamically elsewhere) always

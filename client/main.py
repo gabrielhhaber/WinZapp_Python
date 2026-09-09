@@ -27450,8 +27450,16 @@ class MainWindow(wx.Frame):
             wx.CallAfter(lambda: self.exception_handler(exc_type, exc_value, exc_traceback))
             return
 
-        #Play error sound
-        self.error_sound.play()
+        # Play error sound. Guarded because this handler is the last line of
+        # defence: a raise here lands in sys.excepthook itself, which Python
+        # reports as "Error in sys.excepthook" and then re-prints the original
+        # exception — so a broken audio device turned every unhandled error
+        # into two tracebacks and hid the one that mattered. Seen live with a
+        # stale BASS handle after a device reinit.
+        try:
+            self.error_sound.play()
+        except Exception:
+            logging.warning("[error-dialog] could not play the error sound", exc_info=True)
 
         # Create error dialog
         dialog = wx.Dialog(None, title=self.i18n.t("error").format(app_name=self.app_name), size=(600, 400), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
