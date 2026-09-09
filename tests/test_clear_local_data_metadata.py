@@ -98,6 +98,7 @@ class _Stub:
         self._exhausted_chats = {"5511988887777@s.whatsapp.net"}
         self._older_requested_chats = {"5511988887777@s.whatsapp.net": 1700000000.0}
         self._media_failed_ids = {"3EB0ABC": 1700000000.0}
+        self._chat_verified_at = {"5511988887777@s.whatsapp.net": 1700000000}
 
         # Backfill/LID state the method already cleared before this change.
         self._sync_run_id = 3
@@ -164,7 +165,13 @@ _METADATA = ("_deleted_chats", "_archived_chats", "_pinned_chats",
              # Ids of the previous account's messages whose media CDN URL had
              # already expired — the twelfth collection of this same family,
              # and the one that also has a file of its own on disk.
-             "_media_failed_ids")
+             "_media_failed_ids",
+             # When get-messages last really ran for each chat. Left behind, a
+             # timestamp of A's keeps a chat B shares with A out of the
+             # staleness net for a full _STALE_RECHECK_AFTER — and
+             # _persist_chat_verified_at() writes the whole dict, so A's JIDs
+             # land in B's freshly emptied chat_verified_at_v1.
+             "_chat_verified_at")
 
 
 class TestAnAccountSwitchClearsTheMetadataInMemoryToo:
@@ -517,6 +524,62 @@ class TestTheWipeAndItsOneCallerBoundTogether:
 
         assert stub.db.calls == [True]
         assert stub.settings["privateinfo"]["WA_phone_number_linked"] == self._B
+
+    def test_nothing_is_deleted_before_the_key_names_the_previous_account(
+            self, tmp_path, monkeypatch):
+        """The ordering, over the real methods: the second pass writes the
+        previous number back BEFORE it starts deleting, not after.
+
+        The failure it is written against is not instantaneous.
+        save_full_state() raises, and clear_local_data() then sweeps media/ and
+        voice_messages/ entry by entry — seconds on a real install — before it
+        answers False, all of it on a daemon thread the shutdown does not wait
+        for. Repaired afterwards, a process killed anywhere in that window left
+        settings.json naming B while A's rows were still in messages.db, which
+        every later pass reads as no divergence at all.
+        """
+        for subdir in ("media", "voice_messages"):
+            folder = tmp_path / subdir
+            folder.mkdir()
+            (folder / "a.bin").write_bytes(b"x")
+
+        stub = _Stub()
+        stub.settings["privateinfo"]["WA_phone_number_linked"] = self._B
+
+        persisted = []
+        stub.save_settings = lambda: persisted.append(
+            stub.settings["privateinfo"].get("WA_phone_number_linked"))
+
+        seen = []
+
+        def _record(label):
+            seen.append((
+                label,
+                stub.settings["privateinfo"].get("WA_phone_number_linked"),
+                list(persisted)))
+
+        def _closed(data, clear_metadata=True):
+            _record("db")
+            raise DatabaseBridgeClosed("database bridge is closed")
+
+        stub.db.save_full_state = _closed
+        real_unlink = main_module.os.unlink
+
+        def _unlink(path):
+            _record("file")
+            real_unlink(path)
+
+        monkeypatch.setattr(main_module.os, "unlink", _unlink)
+
+        stub._apply_another_number_wipe(self._B, teardown_ui=False,
+                                        previous_digits=self._A)
+
+        # Every destructive step of the pass, and not one of them ran under a
+        # key naming B — in memory or in the file the next launch reads.
+        assert [label for label, _, _ in seen] == ["db", "file", "file"]
+        assert all(value == self._A for _, value, _ in seen), seen
+        assert all(snapshot == [self._A] for _, _, snapshot in seen), seen
+        assert persisted == [self._A]
 
     def test_the_previous_number_is_put_back_when_the_key_had_moved_on(self):
         """The second pass of a mid-session switch, end to end: the key already

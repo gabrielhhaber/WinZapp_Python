@@ -158,6 +158,7 @@ class _Stub:
         self._wipe_empties_db = wipe_empties_db
         self.probe_calls = 0
         self.wipe_calls = 0
+        self.wipe_key_names = []
         self.saved = 0
         # Ordered trace of everything whose relative order matters: the claim
         # on the sync slot, the UI teardown, the wipe, the sync restart.
@@ -184,13 +185,21 @@ class _Stub:
     def clear_local_data(self):
         self.wipe_calls += 1
         self.events.append(("wipe", self._initial_sync_running))
+        # What the key named when the deletion started, and how many settings
+        # writes had landed by then. The real one deletes messages.db, media/
+        # and voice_messages/ from here on, so this is the value a process
+        # killed mid-wipe leaves behind — the one the invariant is about, and
+        # not the same as the value the pass ends on.
+        self.wipe_key_names.append(
+            (self.settings["privateinfo"].get("WA_phone_number_linked"),
+             self.saved))
         # A tuple answers per pass. The mid-session path wipes twice — once
         # immediately, once after the contaminated round has exited — and the
         # two passes leave the recorded number in different states, so a single
         # answer cannot describe the case where only the second one fails.
         emptied = self._wipe_empties_db
         if isinstance(emptied, tuple):
-            emptied = emptied[min(self.wipe_calls, len(emptied)) - 1]
+            emptied = emptied[min(self.wipe_calls - 1, len(emptied) - 1)]
         # The real one drops the recorded number along with the data it
         # describes, which is what makes "the number is written afterwards"
         # an assertion about ordering rather than about nothing — and it drops
@@ -1329,7 +1338,12 @@ class TestASecondPassThatEmptiedNothingPutsThePreviousNumberBack:
 
     Putting the previous number back is what closes it, and it is the same rule
     both passes obey: the key names whichever account the messages on disk
-    belong to.
+    belong to. It goes back BEFORE the wipe rather than after it, because the
+    failure is not instantaneous — save_full_state() raises and
+    clear_local_data() then sweeps media/ and voice_messages/ entry by entry,
+    seconds on a large install, before it answers False — and the process being
+    killed anywhere inside that window is the very thing that produced the
+    failure in the first place.
     """
 
     def _stub(self, wipe_empties_db):
@@ -1356,6 +1370,31 @@ class TestASecondPassThatEmptiedNothingPutsThePreviousNumberBack:
         assert stub.wipe_calls == 2
         assert stub.recorded_number == "5511999999999"
 
+    def test_the_key_names_the_previous_account_while_each_wipe_runs(
+            self, monkeypatch):
+        """The ordering, not just the outcome: repairing afterwards left the
+        whole of clear_local_data() running under a key naming B, and this
+        thread is a daemon the shutdown does not wait for.
+
+        The second pass is the one that has to write to get there — the first
+        pass recorded B — so its restore is also asserted to have landed in
+        settings before the deletion starts, not after it.
+        """
+        stub = self._stub((True, False))
+        in_flight = _InFlightSync(stub)
+
+        _run_live(stub, monkeypatch)
+        worker = _resync_thread()
+        assert worker is not None
+        in_flight.finish()
+        worker.join(timeout=5)
+
+        # (what the key named, how many settings writes had landed) at the
+        # start of each wipe: pass 1 finds A untouched and has written nothing,
+        # pass 2 finds B and has already put A back on disk.
+        assert stub.wipe_key_names == [("5511999999999", 0),
+                                       ("5511999999999", 2)]
+
     def test_the_restore_reaches_settings_json(self, monkeypatch):
         """In memory only it is exactly as disarmed: the next launch reads the
         file. One write for the first pass recording B, one for putting A
@@ -1365,6 +1404,7 @@ class TestASecondPassThatEmptiedNothingPutsThePreviousNumberBack:
 
         _run_live(stub, monkeypatch)
         worker = _resync_thread()
+        assert worker is not None
         in_flight.finish()
         worker.join(timeout=5)
 
@@ -1379,6 +1419,7 @@ class TestASecondPassThatEmptiedNothingPutsThePreviousNumberBack:
 
         _run_live(stub, monkeypatch)
         worker = _resync_thread()
+        assert worker is not None
         in_flight.finish()
         worker.join(timeout=5)
 

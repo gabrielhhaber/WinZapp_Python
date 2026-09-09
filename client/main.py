@@ -11435,7 +11435,10 @@ class MainWindow(wx.Frame):
         landed (no database open yet, or the DatabaseBridgeTimeout/Closed a
         shutdown mid-wipe raises, swallowed there by design), and then that drop
         and the write here are both skipped, so the key still names the previous
-        number while its messages are still on disk. Either way the next pass or
+        number while its messages are still on disk — on the first pass because
+        nothing ever moved it, on the second because _apply_another_number_wipe()
+        writes it back there before it starts deleting anything, the first pass
+        having already recorded the new number by then. Either way the next pass or
         the next pairing reads the same divergence and finishes the job, which is
         why a partial wipe is self-healing and does not need the app's shutdown
         to wait for this thread.
@@ -11629,26 +11632,63 @@ class MainWindow(wx.Frame):
         _prepare_ui() raises on self.conversations_panel, which does not exist
         yet.
 
-        ``previous_digits`` is the number the key named before this pass,
-        and it is what the key goes back to when the wipe empties nothing. The
-        direct caller can hand it over for free — it read exactly that value to
-        decide there was a divergence at all — and
+        ``previous_digits`` is the number the key named before this pass, and
+        the key is put back on it BEFORE anything is deleted, so that through
+        the whole pass it names whichever account the messages on disk belong
+        to. The direct caller can hand it over for free — it read exactly that
+        value to decide there was a divergence at all — and
         _restart_sync_after_another_number_wipe() carries it down to the second
         pass, which is the one that needs it: by then the first pass has
-        already recorded the new number, so leaving the key alone there would
-        leave it naming the new account over rows the contaminated round
-        committed on its way out.
+        already recorded the new number, so a second pass that empties nothing
+        would leave the key naming the new account over rows the contaminated
+        round committed on its way out.
 
         The number is recorded last, after the wipe rather than before it,
         and only when the wipe really emptied the database:
         clear_local_data(wipe_metadata=True) drops WA_phone_number_linked
         along with the data it describes whenever it emptied it, and what is
         written here describes the empty database the next sync is about to
-        fill. When it emptied nothing, the key is left naming the previous
-        number instead — see the branch below.
+        fill. When it emptied nothing, the key simply stays on the previous
+        number — see the branch below.
         """
         if teardown_ui:
             self._teardown_conversation_ui()
+
+        privateinfo = self.settings.setdefault("privateinfo", {})
+        if (previous_digits
+                and privateinfo.get("WA_phone_number_linked") != previous_digits):
+            # Re-armed BEFORE the deletion starts rather than repaired after
+            # it, which is the same argument clear_local_data() makes one level
+            # up about dropping this key only once the database is really
+            # empty. The second pass enters with the key naming the NEW account
+            # (the first pass recorded it) while the previous account's
+            # messages may still be in messages.db, and everything that can
+            # fail from here on is slow: save_full_state() raises, and
+            # clear_local_data() then sweeps media/ and voice_messages/ entry
+            # by entry — seconds on a large install — before it finally answers
+            # False. This runs on a daemon thread the shutdown does not wait
+            # for, and the user closing WinZapp mid-switch is exactly what
+            # produces that failure, so repairing afterwards left the whole of
+            # that window open: a process killed inside it kept a settings.json
+            # naming B over A's rows, every later pass compared the key against
+            # the linked phone, found them equal, and the merge happened with
+            # nothing left pointing at it. Written first, the key describes
+            # what is on disk for the whole pass instead of only at the end of
+            # it, and the one extra settings write it costs lands on a path
+            # that is about to delete an account's history anyway.
+            #
+            # The first pass and every startup call are untouched: there the
+            # key already names previous_digits, so the guard skips the write.
+            #
+            # A write that fails here fails silently — save_settings() catches
+            # everything, plays the error sound and marshals a MessageBox
+            # rather than propagating — so the worst it can leave behind is the
+            # state the old order left open for the whole window (the previous
+            # number in memory, the new one in settings.json), and never an
+            # exception, which is what would cost the caller the corrective
+            # full sync it starts after this.
+            privateinfo["WA_phone_number_linked"] = previous_digits
+            self.save_settings()
 
         if not self.clear_local_data():
             # The wipe emptied no database, and clear_local_data() swallows the
@@ -11665,29 +11705,19 @@ class MainWindow(wx.Frame):
             # the next pass or the next pairing re-detects it and finishes the
             # job.
             #
-            # Not writing is enough on the first pass, where clear_local_data()
-            # skipped its own drop for the same reason and the key therefore
-            # still names previous_digits. It is not enough on the second one:
-            # _restart_sync_after_another_number_wipe() runs this whole sequence
-            # again once the contaminated round has exited, and by then the
-            # first pass has recorded the new number — so a second pass that
-            # empties nothing would leave the key naming the new account over
-            # the rows that round committed while it was exiting, which is the
-            # same disarmed state, one wipe later and with nothing left pointing
-            # at it. Hence putting the previous number back rather than only
-            # returning: what the key has to name is whichever account the
+            # There is nothing to repair here, because the block above already
+            # made sure of it: the key names previous_digits either because
+            # nobody had moved it (the first pass, and every startup call,
+            # where clear_local_data() skipped its own drop for the same
+            # reason) or because it was put back there before the deletion
+            # started. What the key has to name is whichever account the
             # messages on disk belong to, and in both passes that is the
             # previous one.
-            privateinfo = self.settings.setdefault("privateinfo", {})
-            if (previous_digits
-                    and privateinfo.get("WA_phone_number_linked") != previous_digits):
-                privateinfo["WA_phone_number_linked"] = previous_digits
-                self.save_settings()
             logging.error(
-                "[another_number_check] The wipe emptied no database — leaving "
-                "the recorded number armed so the divergence is found again.")
+                "[another_number_check] The wipe emptied no database — the "
+                "recorded number goes on naming the account whose messages are "
+                "still on disk, so the divergence is found again.")
             return
-        privateinfo = self.settings.setdefault("privateinfo", {})
         privateinfo["WA_phone_number_linked"] = new_digits
         self.save_settings()
 
@@ -11797,9 +11827,12 @@ class MainWindow(wx.Frame):
         except Exception:
             # Only if nobody else holds it, exactly as the check's own finally
             # decides it — and for the same reason. This raising does not mean
-            # the slot is free: _apply_another_number_wipe() can raise (a
-            # wx.CallAfter after the MainLoop is gone, a save_settings() on a
-            # locked file) while on_messages_set() → _try_start_sync_thread()
+            # the slot is free: _apply_another_number_wipe() can raise (a wx
+            # call from _teardown_conversation_ui() after the MainLoop is gone,
+            # clear_local_data() failing outside the two faults it swallows
+            # itself — not save_settings(), which catches everything and
+            # marshals a MessageBox rather than propagating) while
+            # on_messages_set() → _try_start_sync_thread()
             # has already started a round of its own, whose claim this would
             # clear from underneath it — releasing the 60 s incremental poll
             # and F5 to write self.chats while it runs.
@@ -14287,6 +14320,16 @@ class MainWindow(wx.Frame):
             # it — one line, because F5 already needed exactly this and its
             # docstring already describes the damage of keeping them.
             self._forget_history_exhaustion()
+            # When get-messages last really ran for each chat, keyed by JID and
+            # persisted. Same family as everything above and reached the same
+            # way: prepare_sync() loads it out of chat_verified_at_v1 into RAM,
+            # so emptying the table left account A's timestamps live here and
+            # _persist_chat_verified_at() wrote the whole dict — A's JIDs
+            # included — straight back into B's freshly emptied entry. For a
+            # contact both accounts have, that stale timestamp then keeps B's
+            # chat out of select_stale_rechecks() for a full
+            # _STALE_RECHECK_AFTER.
+            self._chat_verified_at = {}
             # Media whose CDN URL answered 403/410, keyed by message id. Same
             # family as everything above and the last member of it: the ids
             # belong to the previous account's messages, and the file outlives

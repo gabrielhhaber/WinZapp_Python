@@ -510,14 +510,20 @@ class WebSocketClient:
         # WA_phone_number_linked is not dropped here: mw.clear_local_data() a
         # few lines below drops it itself whenever it really emptied the
         # database — the order, and the condition, that keep the record from
-        # being lost while the messages it names are still on disk. Both routes
-        # into this handler reach it differently. A 401 read on a cold start has
-        # no database open yet, so nothing is emptied and the key deliberately
-        # survives: the divergence check that runs after prepare_sync() is the
-        # one that owns that case, and it can only act on a number it can still
-        # read. A logout mid-session (on_wpp_status_find, which requires
-        # _wa_connected) arrives with the database open, so it is emptied and
-        # the key goes with the data it named.
+        # being lost while the messages it names are still on disk. Which of
+        # the two happens is decided by the state this runs in, not by the
+        # event that got here: there are four entries (on_connection_update's
+        # is_logout and failed-pairing branches, the pairing watchdog, and
+        # on_wpp_status_find), and every one of them is reachable in either
+        # state — an unlink done on the phone over a running, fully synced
+        # session comes through the is_logout branch with no cold-start guard
+        # anywhere on it. So: no database open yet — the whole startup half,
+        # where a 401 or a pairing that never completed arrives before
+        # prepare_sync() — means nothing is emptied and the key deliberately
+        # survives, because the divergence check that runs after prepare_sync()
+        # owns that case and can only act on a number it can still read.
+        # Anything mid-session arrives with the database open, so it is emptied
+        # and the key goes with the data it named.
         pi.pop("paired", None)
         mw.messages_set_completed = False
         mw.token = ""
