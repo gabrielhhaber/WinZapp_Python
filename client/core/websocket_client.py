@@ -902,8 +902,9 @@ class WebSocketClient:
         NOT by _set_wa_connected(), which leaves _wa_connect_announced True
         and _wa_startup_time where it was. That is the right behaviour for
         this gate rather than a gap in it: once a connection has actually
-        been confirmed, the _wa_connect_announced check below returns False
-        on its own, so the clock under it no longer decides anything.
+        been confirmed, qr_within_startup_grace()'s own _wa_connect_announced
+        check returns False on its own, so the clock under it no longer
+        decides anything.
         """
         mw = self.main_window
         return qr_within_startup_grace(
@@ -1009,14 +1010,16 @@ class WebSocketClient:
             #
             # KNOWN GAP, inherited and not introduced here: "already spent"
             # also covers a restore still IN FLIGHT. _recover_suspect_profile()
-            # latches the moment it starts its thread, so the next code ~20-30s
-            # later is refused with False and lands right here, opening the
-            # pairing dialog on top of a restore_snapshot() that may still be
-            # writing into userDataDir/<session>. If the user pairs from that
-            # dialog, _reset_unattended_qr_guards() clears _qr_flood_halted and
+            # latches at the top of the method, before it has even looked for a
+            # snapshot, so the next code ~20-30s later is refused with False and
+            # lands right here, opening the pairing dialog on top of a
+            # restore_snapshot() that may still be writing into
+            # userDataDir/<session>. If the user pairs from that dialog,
+            # _reset_unattended_qr_guards() clears _qr_flood_halted and
             # /start-session launches Chrome over the directory being written —
-            # precisely what core/profile_recovery.py forbids ("restoring under
-            # a running browser manufactures the corruption it recovers from").
+            # precisely what core/profile_recovery.py forbids: restoring under a
+            # running browser is "manufacturing the exact corruption this
+            # recovers from".
             # Closing it means exposing a "restore in flight" state and holding
             # _show_repair_dialog() on it, which is a production change of its
             # own; see tests/test_qrcode_auto_repair_dialog.py::

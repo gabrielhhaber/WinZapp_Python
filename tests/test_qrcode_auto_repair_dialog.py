@@ -124,7 +124,10 @@ class _FakeMainWindow:
         counter inline here would model a race production does not reliably
         win, and every test resting on it would be asserting a guarantee the
         app does not have. So the tests say when it lands, and both orderings
-        are covered.
+        are covered. The production line this stands in for has its own test,
+        against the real MainWindow method that runs it:
+        tests/test_profile_recovery_wiring.py::
+        TestASuccessfulRestoreGivesBackTheQrFloodAllowance.
         """
         self._unattended_qr_events = 0
 
