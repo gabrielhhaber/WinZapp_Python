@@ -607,3 +607,87 @@ class TestTheRecoveryCooldown:
         ss.handle_playback_failure()
         ss.apply_output_device("")
         assert ss._recovery_cooldown_elapsed() is True
+
+
+class TestAHealthyDeviceIsLeftAlone:
+    """The restraint the removed `if self.output._device == -1: return`
+    sentinel was really providing, and whose loss shipped a regression.
+
+    MainWindow.__init__ calls apply_output_device() at line 1694, load_sounds()
+    at 1702, and _apply_configured_audio_devices() calls apply_output_device()
+    a second time at 1741. For a user on "system default" that second call used
+    to be a no-op. Unguarded it frees and re-initialises BASS, invalidating
+    every Sound stream load_sounds() had just built — so the startup sound and
+    every effect afterwards raised "5, invalid handle". Reported by a user on a
+    fresh install within hours of the alpha:
+
+        [sound] Error playing startup sound: 5, invalid handle
+
+    The sentinel could not see the case it was removed for: a device unplugged
+    while BASS stays bound to its cached index. Hence a health check rather
+    than a sentinel — already on the requested device AND that device still
+    exists.
+    """
+
+    def _healthy(self, ss, healthy):
+        ss._output_device_is_healthy = lambda device: healthy
+
+    def test_a_second_apply_does_not_tear_bass_down(self, monkeypatch):
+        ss = _make_sound_system(monkeypatch, {})
+        self._healthy(ss, True)
+        ss.apply_output_device("")
+        ss.apply_output_device("")
+        assert ss.output.free_calls == 0
+
+    def test_an_unhealthy_device_is_still_reinitialised(self, monkeypatch):
+        ss = _make_sound_system(monkeypatch, {})
+        self._healthy(ss, False)
+        ss.apply_output_device("")
+        assert ss.output.free_calls == 1
+
+    def test_the_recovery_path_reinitialises_even_when_bass_looks_fine(self, monkeypatch):
+        """handle_playback_failure() is reached *because* a stream just failed
+        to play. BASS answering "all good" is exactly the case that needs
+        forcing — otherwise the recovery is a no-op and nothing ever plays."""
+        ss = _make_sound_system(monkeypatch, {})
+        self._healthy(ss, True)
+        assert ss.handle_playback_failure() is True
+        assert ss.output.free_calls == 1
+
+
+class TestStoppingAStaleChannelIsNotFatal:
+    """Sound.play()'s first act is a BASS_ChannelStop on a handle that may have
+    been freed underneath it. Outside the try it escaped play() entirely, so
+    the device recovery never ran and the error reached the global handler —
+    which plays a sound of its own and raised again from inside sys.excepthook,
+    producing two tracebacks per QR refresh, forever."""
+
+    def test_play_survives_a_stop_that_raises(self, monkeypatch):
+        import core.sound_system as mod
+
+        base = mod.Sound.__mro__[1]          # what super() in Sound.play() reaches
+        played = []
+        monkeypatch.setattr(
+            base, "stop",
+            lambda self: (_ for _ in ()).throw(Exception("5, invalid handle")),
+            raising=False)
+        monkeypatch.setattr(
+            base, "play",
+            lambda self, restart=False: played.append(restart), raising=False)
+
+        snd = mod.Sound.__new__(mod.Sound)
+        snd.sound_system = _make_sound_system(monkeypatch, {})
+        snd.sound_system._effects_device = None
+        snd.event_key = None
+        snd.pack_id = None
+        snd.file = "x.ogg"
+
+        mod.Sound.play(snd)                  # must not raise
+        assert played == [True]
+
+    def test_the_stop_is_inside_the_guarded_region(self):
+        """Structural, because the ordering is the whole bug: a stop() above
+        the try cannot be recovered by the except below it."""
+        import inspect
+        src = inspect.getsource(__import__("core.sound_system", fromlist=["Sound"]).Sound.play)
+        assert src.index("try:") < src.index("super().stop()")
