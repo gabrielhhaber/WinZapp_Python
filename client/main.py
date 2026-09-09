@@ -8580,11 +8580,30 @@ class MainWindow(wx.Frame):
                 from core.profile_recovery import ProfileHealthTracker
                 tracker = self._profile_health = ProfileHealthTracker()
             paired = bool(self.settings.get("privateinfo", {}).get("paired"))
-            if ((status or "").upper() == "CONNECTED"
-                    and self._profile_recovery_generation()):
-                # Whatever was put back is working. The ladder starts over, so
-                # a future break restores the newest snapshot first again.
-                self._set_profile_recovery_generation(0)
+            if (status or "").upper() == "CONNECTED":
+                if self._profile_recovery_generation():
+                    # Whatever was put back is working. The ladder starts over,
+                    # so a future break restores the newest snapshot first again.
+                    self._set_profile_recovery_generation(0)
+                if getattr(self, "_profile_recovery_attempted", False):
+                    # A restore that reached CONNECTED has proved the snapshot
+                    # good, so the once-per-launch budget it spent is earned
+                    # back. Measured live: a restore connected and began
+                    # syncing at 00:55:51, a superseded session start
+                    # force-killed its browser 11 s later, and the relaunch
+                    # found a profile WhatsApp then logged out of — with the
+                    # only recovery of the launch already spent, so the user
+                    # was sent to the pairing dialog with a good snapshot
+                    # still sitting on disk.
+                    #
+                    # The bound this relaxes exists to stop a restore loop on a
+                    # snapshot that does not work. One that connected is not
+                    # that snapshot, and nothing here can loop without a
+                    # CONNECTED in between.
+                    logging.info("[profile-recovery] the restored profile "
+                                 "connected — allowing another recovery if it "
+                                 "breaks again this launch.")
+                    self._profile_recovery_attempted = False
             if tracker.note_status(status, paired=paired):
                 self._recover_suspect_profile()
         except Exception:

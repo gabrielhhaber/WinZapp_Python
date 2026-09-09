@@ -148,3 +148,72 @@ class TestTheKillCanActuallyBeAwaited:
         assert "if (!userDataDir) return Promise.resolve();" in kill
         # One for the Windows PowerShell path, one for the POSIX pkill path.
         assert kill.count("resolve()") >= 2
+
+
+class TestASupersededCreateMustNotKillItsSuccessor:
+    """The userDataDir kill is a fallback, and it is not always safe.
+
+    `killBrowserOrFallback()` tries a precise process-tree kill through
+    `wppClient?.page` first, but `wppClient` is only assigned once create()
+    returns — so during create() itself it is in the temporal dead zone and the
+    fallback always runs. That fallback kills whatever browser currently holds
+    the profile, which after a takeover is somebody else's.
+
+    Measured live on 2026-09-09:
+
+        03:55:50  Connected / inChat        (restored profile, syncing)
+        03:56:01  Auth probe has failed for 30s straight — giving up
+        03:56:02  shouldClose detected in statusFind. Force-killing browser.
+        03:56:02  browserClose
+
+    The 30 s auth-probe bound belonged to a create() started 45 s earlier
+    against the *broken* profile. While it counted, WinZapp restored the
+    profile and the health poll started a second session that connected and
+    began syncing. The old create() then timed out and killed the new one's
+    browser by directory. WhatsApp logged that session out on the next load,
+    and the once-per-launch profile recovery had already been spent.
+    """
+
+    def _kill_helper(self, source):
+        start = source.index("const killBrowserOrFallback = () => {")
+        return source[start:source.index("};", start)]
+
+    def test_a_precise_kill_is_still_unconditional(self, source):
+        """It can only reach this create()'s own page, so it cannot touch a
+        successor and must not be gated on ownership."""
+        body = self._kill_helper(source)
+        assert body.index("forceKillBrowserProcess") < body.index("clientsArray[session]")
+
+    def test_the_directory_scan_is_gated_on_still_owning_the_session(self, source):
+        body = self._kill_helper(source)
+        gate = body.index("current !== client")
+        assert gate < body.index("forceKillByUserDataDir")
+
+    def test_a_superseded_create_returns_without_killing(self, source):
+        body = self._kill_helper(source)
+        superseded = body[body.index("current !== client"):]
+        assert "return;" in superseded[:superseded.index("forceKillByUserDataDir")]
+
+    def test_the_refusal_is_logged(self, source):
+        """Silently not killing is as hard to diagnose as wrongly killing."""
+        body = self._kill_helper(source)
+        assert "superseded" in body
+
+    def test_the_session_slot_is_only_cleared_when_it_is_ours(self, source):
+        """Clearing it would drop a successor's client, leaving the session
+        unreachable while its browser keeps running."""
+        helper = source[source.index("const clearSessionSlotIfStillOurs = () => {"):]
+        helper = helper[:helper.index("};")]
+        assert "clientsArray[session] === client" in helper
+
+    @pytest.mark.parametrize("branch", ["catchLinkCode", "catchQR", "statusFind", "poller"])
+    def test_every_shouldClose_branch_uses_the_guarded_clear(self, source, branch):
+        marker = f"shouldClose detected in {branch}." if branch != "poller" \
+            else "shouldClose detected by poller."
+        # rindex: the same sentence appears in killBrowserOrFallback()'s own
+        # comment, which quotes the log line this was diagnosed from.
+        tail = source[source.rindex(marker):]
+        end = tail.index("}, 2000);") if branch == "poller" else 400
+        window = tail[:end]
+        assert "clearSessionSlotIfStillOurs()" in window
+        assert "clientsArray[session] = undefined" not in window
