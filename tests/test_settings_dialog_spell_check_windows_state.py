@@ -1,14 +1,16 @@
-"""Tests for the spell-check checkbox's initial value in the Settings
-dialog — see SettingsDialog._apply_spell_check_windows_state().
+"""Tests for the spell-check control in Settings > Geral — see
+SettingsDialog._apply_spell_check_mode().
 
-Windows' own spelling setting (Settings > Time & language > Typing >
-Spelling), when it can be read at all, decides whether spell checking runs
-(tests/test_spell_check_setting.py covers that half, in ConversationsPanel).
-This file covers the Settings > Geral checkbox itself: it stays an
-ordinary, always-editable checkbox — no extra label, nothing disabled —
-whose value simply mirrors Windows' setting each time the dialog opens,
-falling back to the stored WinZapp preference when Windows' setting cannot
-be read.
+Windows has a spelling setting of its own (Settings > Time & language >
+Typing > Spelling), and following it is the default; tests/
+test_spell_check_setting.py covers what that resolves to at typing time. This
+file covers the control itself, and the property that made it a radio group
+rather than a checkbox: it shows the user's own stored *choice*, so
+"following Windows" is visibly distinct from "on" and from "off". A checkbox
+seeded from the registry could not express that difference — it would report
+"on" for a user who never chose anything, and a user who unticked it would
+watch it come back ticked, which on a screen reader is a control lying about
+itself.
 
 Needs a real wx.App — same reasoning and fixture pattern as
 tests/test_settings_dialog_apply_button.py.
@@ -18,7 +20,7 @@ import pytest
 
 from core.i18n import I18n
 from core.sound_system import DEFAULT_PACK_ID
-import ui.dialogs.settings_dialog as settings_dialog_module
+from core.spell_checker import SPELL_CHECK_MODES
 from ui.dialogs.settings_dialog import SettingsDialog
 from tests.conftest import hidden_frame
 
@@ -40,9 +42,9 @@ class _FakeSoundSystem:
         return True
 
 
-def _make_dialog(wx_app, spell_check_enabled=True):
+def _make_dialog(wx_app, general=None):
     frame = hidden_frame()
-    frame.settings = {"general": {"spell_check_enabled": spell_check_enabled}}
+    frame.settings = {"general": dict(general or {})}
     frame.app_name = "WinZapp"
     frame.i18n = I18n(frame)
     frame.i18n.get_language()
@@ -57,76 +59,93 @@ def _make_dialog(wx_app, spell_check_enabled=True):
     frame.sound_system = _FakeSoundSystem()
     frame.refresh_sound_packs = lambda: None
 
-    dlg = SettingsDialog(frame)
-    return dlg
+    return SettingsDialog(frame)
 
 
-class TestTheCheckboxStaysOrdinary:
-    """No matter what Windows' setting reads as, this is still just a
-    normal checkbox: always shown with its one usual label, always
-    editable, always saved back on OK/Apply like every other control on
-    this tab."""
+class TestTheControlOffersAllThreeModes:
+    def test_one_option_per_mode_each_with_a_real_label(self, wx_app):
+        dlg = _make_dialog(wx_app)
+        try:
+            radio = dlg._spell_check_radio
+            assert radio.GetCount() == len(SPELL_CHECK_MODES)
+            i18n = dlg.main_window.i18n
+            for index, mode in enumerate(SPELL_CHECK_MODES):
+                key = f"spell_check_mode_{mode}"
+                # I18n.t() returns the key itself when it is missing, which
+                # is exactly what a user would hear read out loud.
+                assert radio.GetString(index) == i18n.t(key) != key
+            assert radio.GetLabel() == i18n.t("spell_check_label")
+        finally:
+            dlg.Destroy()
 
-    def test_always_editable_regardless_of_windows(self, wx_app, monkeypatch):
-        for windows_value in (True, False, None):
-            monkeypatch.setattr(
-                settings_dialog_module, "is_windows_spellcheck_enabled",
-                lambda v=windows_value: v,
-            )
-            dlg = _make_dialog(wx_app)
+    def test_it_is_enabled(self, wx_app):
+        """Nothing about Windows' setting disables this — following Windows
+        is one of the choices, not a reason to take the choice away."""
+        dlg = _make_dialog(wx_app)
+        try:
+            assert dlg._spell_check_radio.IsEnabled() is True
+        finally:
+            dlg.Destroy()
+
+
+class TestItShowsTheStoredChoice:
+    def test_each_stored_mode_selects_its_own_option(self, wx_app):
+        for index, mode in enumerate(SPELL_CHECK_MODES):
+            dlg = _make_dialog(wx_app, {"spell_check_mode": mode})
             try:
-                assert dlg._spell_check_check.IsEnabled() is True
-                assert dlg._spell_check_check.GetLabel() == dlg.main_window.i18n.t(
-                    "spell_check_enabled_label"
-                )
+                assert dlg._spell_check_radio.GetSelection() == index, mode
             finally:
                 dlg.Destroy()
 
-
-class TestTheValueMirrorsWindowsWhenReadable:
-    def test_seeded_on_when_windows_says_on(self, wx_app, monkeypatch):
-        monkeypatch.setattr(
-            settings_dialog_module, "is_windows_spellcheck_enabled", lambda: True
-        )
-        dlg = _make_dialog(wx_app, spell_check_enabled=False)
+    def test_nothing_stored_selects_follow_windows(self, wx_app):
+        dlg = _make_dialog(wx_app)
         try:
-            assert dlg._spell_check_check.GetValue() is True
+            assert dlg._spell_check_radio.GetSelection() == SPELL_CHECK_MODES.index(
+                "windows"
+            )
         finally:
             dlg.Destroy()
 
-    def test_seeded_off_when_windows_says_off(self, wx_app, monkeypatch):
-        monkeypatch.setattr(
-            settings_dialog_module, "is_windows_spellcheck_enabled", lambda: False
-        )
-        dlg = _make_dialog(wx_app, spell_check_enabled=True)
+    def test_a_legacy_disabled_install_selects_off(self, wx_app):
+        """The migration has to be visible in the dialog too, or a user who
+        turned checking off before this change would open Settings and be
+        told it is following Windows."""
+        dlg = _make_dialog(wx_app, {"spell_check_enabled": False})
         try:
-            assert dlg._spell_check_check.GetValue() is False
-        finally:
-            dlg.Destroy()
-
-    def test_falls_back_to_the_stored_preference_when_unreadable(self, wx_app, monkeypatch):
-        monkeypatch.setattr(
-            settings_dialog_module, "is_windows_spellcheck_enabled", lambda: None
-        )
-        dlg = _make_dialog(wx_app, spell_check_enabled=False)
-        try:
-            assert dlg._spell_check_check.GetValue() is False
+            assert dlg._spell_check_radio.GetSelection() == SPELL_CHECK_MODES.index(
+                "off"
+            )
         finally:
             dlg.Destroy()
 
 
-class TestSavingAlwaysPersistsTheCheckbox:
-    """Unconditional, like every other checkbox on this tab — the Windows
-    reading only ever decides what the checkbox starts out showing."""
+class TestSavingPersistsTheChoice:
+    def test_each_selection_is_written_back_as_its_mode(self, wx_app):
+        for index, mode in enumerate(SPELL_CHECK_MODES):
+            dlg = _make_dialog(wx_app)
+            try:
+                dlg._spell_check_radio.SetSelection(index)
+                dlg._on_apply(None)
+                assert dlg.main_window.settings["general"]["spell_check_mode"] == mode
+            finally:
+                dlg.Destroy()
 
-    def test_a_user_edit_is_saved_even_though_windows_disagrees(self, wx_app, monkeypatch):
-        monkeypatch.setattr(
-            settings_dialog_module, "is_windows_spellcheck_enabled", lambda: False
-        )
-        dlg = _make_dialog(wx_app, spell_check_enabled=True)
+    def test_an_explicit_override_survives_being_reopened(self, wx_app):
+        """The bug this control replaced: the stored value was overwritten
+        from Windows every time the dialog opened, so an override could never
+        be kept."""
+        dlg = _make_dialog(wx_app)
         try:
-            dlg._spell_check_check.SetValue(True)
+            dlg._spell_check_radio.SetSelection(SPELL_CHECK_MODES.index("on"))
             dlg._on_apply(None)
-            assert dlg.main_window.settings["general"]["spell_check_enabled"] is True
+            saved = dict(dlg.main_window.settings["general"])
         finally:
             dlg.Destroy()
+
+        reopened = _make_dialog(wx_app, saved)
+        try:
+            assert reopened._spell_check_radio.GetSelection() == SPELL_CHECK_MODES.index(
+                "on"
+            )
+        finally:
+            reopened.Destroy()

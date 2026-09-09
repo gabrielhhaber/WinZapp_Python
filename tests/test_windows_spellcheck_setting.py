@@ -15,6 +15,8 @@ machine (or OS) runs the suite, and covers the "not on Windows at all"
 branch, which a real registry never can.
 """
 
+import pytest
+
 import core.spell_checker as spell_checker
 from core.spell_checker import is_windows_spellcheck_enabled
 
@@ -97,3 +99,64 @@ class TestEveryFailureModeReturnsNoneRatherThanGuessing:
     def test_off_windows_winreg_is_unavailable(self, monkeypatch):
         monkeypatch.setattr(spell_checker, "winreg", None)
         assert is_windows_spellcheck_enabled() is None
+
+
+class _CountingWinreg(_FakeWinreg):
+    """_FakeWinreg that records how often the registry was actually read."""
+
+    def __init__(self, value=None, **kw):
+        super().__init__(value=value, **kw)
+        self.reads = 0
+
+    def QueryValueEx(self, key, name):
+        self.reads += 1
+        return super().QueryValueEx(key, name)
+
+
+class TestTheReadingIsMemoised:
+    """windows_spellcheck_enabled() is called from
+    ConversationsPanel._spell_check_enabled(), which runs on every keystroke —
+    an OpenKey/QueryValueEx pair per typed character is pure waste."""
+
+    @pytest.fixture(autouse=True)
+    def _clean_cache(self):
+        spell_checker.forget_windows_spellcheck_cache()
+        yield
+        spell_checker.forget_windows_spellcheck_cache()
+
+    def test_repeated_calls_read_the_registry_once(self, monkeypatch):
+        fake = _CountingWinreg(value=1)
+        monkeypatch.setattr(spell_checker, "winreg", fake)
+        for _ in range(50):
+            assert spell_checker.windows_spellcheck_enabled() is True
+        assert fake.reads == 1
+
+    def test_an_unknown_reading_is_cached_too(self, monkeypatch):
+        """A machine where the value does not exist at all (a Windows Update
+        has been reported to delete it) must not pay for a doomed lookup on
+        every keystroke either."""
+        fake = _CountingWinreg(raise_on_open=FileNotFoundError())
+        monkeypatch.setattr(spell_checker, "winreg", fake)
+        for _ in range(50):
+            assert spell_checker.windows_spellcheck_enabled() is None
+        assert fake.reads == 0  # never got past OpenKey
+
+    def test_the_cache_expires_so_a_change_in_windows_is_picked_up(self, monkeypatch):
+        """No restart: changing the setting in Windows has to take effect
+        while the user watches."""
+        fake = _CountingWinreg(value=1)
+        monkeypatch.setattr(spell_checker, "winreg", fake)
+        assert spell_checker.windows_spellcheck_enabled() is True
+
+        fake._value = 0
+        # max_age=0 stands in for "the TTL has elapsed" without sleeping.
+        assert spell_checker.windows_spellcheck_enabled(max_age=0) is False
+        assert fake.reads == 2
+
+    def test_forgetting_the_cache_forces_a_fresh_read(self, monkeypatch):
+        fake = _CountingWinreg(value=1)
+        monkeypatch.setattr(spell_checker, "winreg", fake)
+        assert spell_checker.windows_spellcheck_enabled() is True
+        spell_checker.forget_windows_spellcheck_cache()
+        assert spell_checker.windows_spellcheck_enabled() is True
+        assert fake.reads == 2

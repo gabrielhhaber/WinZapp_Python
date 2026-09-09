@@ -55,7 +55,9 @@ from core.locale_format import get_date_format, get_time_format, get_datetime_fo
 from core.message_copy_format import format_copied_message
 from core.video_player import VideoPlayer
 from core.focus_cloak import cloak_focus_announcement
-from core.spell_checker import WindowsSpellChecker, is_windows_spellcheck_enabled
+from core.spell_checker import (
+    WindowsSpellChecker, spell_check_active, windows_spellcheck_enabled,
+)
 from ui.media_viewer import MediaViewerDialog
 from app_paths import data_path
 from core.message_queue import PendingMessage
@@ -1916,32 +1918,24 @@ class ConversationsPanel(wx.Panel):
     def _spell_check_enabled(self) -> bool:
         """Whether spell checking runs in the message field.
 
-        Windows' own spelling setting decides this whenever it can be read
-        (is_windows_spellcheck_enabled(), core/spell_checker.py) — on there
-        means on here, off there means off here. Settings > Geral's own
-        checkbox is seeded from the same reading each time the dialog opens
-        (SettingsDialog._apply_spell_check_windows_state()), but stays an
-        ordinary, always-editable checkbox; its stored value is what this
-        falls back to when Windows' setting cannot be determined (older
-        Windows, a registry read failure) — default: yes.
+        Three-valued, set in Settings > Geral (`spell_check_mode`): follow
+        Windows' own spelling setting (Settings > Time & language > Typing >
+        Spelling — the default), or override it in either direction. The
+        whole decision lives in spell_check_active() (core/spell_checker.py),
+        which is pure and therefore testable without a wx.App; this only
+        supplies its two inputs.
 
-        Read on every keystroke rather than cached at construction, so
-        either source of truth takes effect immediately — no restart, and no
-        need for the settings dialog to reach into this panel. Missing key
-        means on, which is what installs whose settings.json predates the
-        option get.
+        Read on every keystroke rather than cached at construction, so both
+        sources of truth take effect immediately — no restart, and no need
+        for the settings dialog to reach into this panel. The registry read
+        behind windows_spellcheck_enabled() is memoised for a couple of
+        seconds precisely because of that call rate.
         """
-        windows_setting = is_windows_spellcheck_enabled()
-        if windows_setting is not None:
-            return windows_setting
         try:
-            return bool(
-                self.main_window.settings.get("general", {}).get(
-                    "spell_check_enabled", True
-                )
-            )
+            general = self.main_window.settings.get("general", {})
         except Exception:
             return True
+        return spell_check_active(general, windows_spellcheck_enabled())
 
     def _play_spelling_error_sound(self):
         """Play the currently configured spelling-error Sound Event."""

@@ -13,6 +13,7 @@ when no suitable Windows dictionary can be opened.
 from __future__ import annotations
 
 import os
+import time
 import ctypes
 from ctypes import POINTER, c_int, c_ulong, wintypes
 from typing import Callable
@@ -68,6 +69,102 @@ def is_windows_spellcheck_enabled() -> bool | None:
     if value_type != winreg.REG_DWORD:
         return None
     return bool(value)
+
+
+#: The three answers Settings > Geral can give for message-field spell
+#: checking, in the order the radio group offers them. "windows" defers to
+#: Windows' own setting (and to on when it cannot be read); the other two are
+#: explicit overrides that ignore Windows entirely.
+#:
+#: Three-valued rather than a checkbox because the honest answer is
+#: three-valued. A checkbox that silently lost to Windows would announce a
+#: state the app does not actually have, and this app is read out loud.
+SPELL_CHECK_MODES = ("windows", "on", "off")
+
+#: How long one reading of Windows' spelling setting is reused before the
+#: registry is consulted again. _spell_check_enabled() is called on every
+#: keystroke, and an OpenKey/QueryValueEx pair per typed character is pure
+#: waste; short enough that changing the setting in Windows still takes
+#: effect while the user watches, with no restart.
+_WINDOWS_SETTING_TTL_SECONDS = 2.0
+
+#: (monotonic timestamp, reading) of the last registry consultation, or None
+#: when there has not been one yet.
+_windows_setting_cache: "tuple[float, bool | None] | None" = None
+
+
+def windows_spellcheck_enabled(
+        max_age: float = _WINDOWS_SETTING_TTL_SECONDS) -> bool | None:
+    """is_windows_spellcheck_enabled(), memoised for ``max_age`` seconds.
+
+    Same three-valued answer, including None for "could not be read" — a
+    failed reading is cached exactly like a successful one, so a machine
+    where the value does not exist at all (see the note above about a
+    Windows Update deleting it) does not pay for a doomed registry lookup
+    on every keystroke either.
+    """
+    global _windows_setting_cache
+    now = time.monotonic()
+    cached = _windows_setting_cache
+    if cached is not None and (now - cached[0]) < max_age:
+        return cached[1]
+    value = is_windows_spellcheck_enabled()
+    _windows_setting_cache = (now, value)
+    return value
+
+
+def forget_windows_spellcheck_cache() -> None:
+    """Drop the memoised reading so the next call consults the registry.
+
+    Exists for the tests, which change what the fake registry returns
+    between assertions and would otherwise be reading each other's cached
+    answers.
+    """
+    global _windows_setting_cache
+    _windows_setting_cache = None
+
+
+def spell_check_mode(general: dict) -> str:
+    """Canonicalize ``settings["general"]`` into one of SPELL_CHECK_MODES.
+
+    Anything unrecognised — a missing key, a typo, a hand-edited file, a
+    value from a newer version — reads as "windows", the mode that cannot
+    surprise anyone: spell checking then behaves the way the rest of the
+    system does.
+
+    Migrates the legacy ``spell_check_enabled`` bool this option shipped as
+    before Windows' own setting was consulted at all. Only an explicit False
+    carries information worth migrating: True was the default everyone got
+    without ever choosing it, so it reads as "expressed no preference" and
+    lands on the new default rather than being frozen into an override that
+    would then ignore Windows forever.
+    """
+    try:
+        raw = general.get("spell_check_mode")
+        mode = str(raw).strip().lower() if raw is not None else ""
+        if mode in SPELL_CHECK_MODES:
+            return mode
+        return "windows" if general.get("spell_check_enabled", True) else "off"
+    except Exception:
+        return "windows"
+
+
+def spell_check_active(general: dict, windows_setting: bool | None) -> bool:
+    """Whether spell checking should actually run, given the stored mode and
+    whatever Windows currently reports (None when it could not be read).
+
+    Pure and wx-free on purpose: this is the whole decision, so it can be
+    tested without a running wx.App — ConversationsPanel._spell_check_enabled()
+    is a two-line caller that only supplies the two inputs.
+    """
+    mode = spell_check_mode(general)
+    if mode == "on":
+        return True
+    if mode == "off":
+        return False
+    # "windows", with the historical default (on) standing in wherever
+    # Windows has no readable answer to follow.
+    return True if windows_setting is None else windows_setting
 
 
 CLSID_SPELL_CHECKER_FACTORY = GUID(
