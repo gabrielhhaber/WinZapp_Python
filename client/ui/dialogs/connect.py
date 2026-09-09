@@ -1742,6 +1742,45 @@ class Connect:
                          name="winzapp-pairing-grace").start()
         return True
 
+    def _dialog_dismiss_should_preserve_session(self) -> bool:
+        """True when Cancel/Escape/Quit from this dialog must not touch the
+        saved session — either because WhatsApp is confirmed connected right
+        now, or because nothing has actually confirmed it is NOT, which is
+        just as important and easy to miss.
+
+        Reported live: status-session read 'disconnectedMobile', which
+        _act_on_unlink_decision() (main.py) classifies as RESUMING — its
+        own docstring calls this a transient, recoverable state and
+        deliberately does not wipe anything for it. Ten seconds later,
+        WPPConnect minted a fresh QR with no dialog open, and
+        _show_repair_dialog() (websocket_client.py) opened this dialog on
+        the strength of that QR alone — its own docstring reasons that an
+        unattended QR means the stored session "can't be restored" and
+        therefore Cancel/close/Quit have "nothing left to lose". That
+        premise was false here: main.py's own, more careful classifier had
+        independently looked at the very same disconnect and judged it
+        recoverable. The user dismissed the unexpected dialog (its Cancel
+        button carries wx.ID_CANCEL, so a plain Escape reaches it too) and
+        the session was destroyed anyway, on a signal main.py itself was
+        not yet willing to act on.
+        _logout_handled (main.py) is the one place that distinction already
+        lives: _act_on_unlink_decision() sets it only for a decision that
+        actually authorizes a wipe (LOGOUT confirmed by the host-device
+        probe, or RESUME_FAILED after repeated strikes) — never for
+        RESUMING, and never merely because a QR arrived. Folding it in here
+        means Cancel/Escape/Quit are only ever destructive once main.py's
+        own, much more careful machinery has independently reached the same
+        conclusion — not on the say-so of a lone QR event.
+        """
+        if self._started_new_session_token:
+            # Narrower than "nothing confirmed yet" on purpose — see the
+            # class-level tests for why: a session this dialog itself
+            # started must still be torn down on Cancel, or it is left
+            # registered as the account's active session while orphaned.
+            return False
+        return (getattr(self.main_window, "_wa_connected", False)
+                or not getattr(self.main_window, "_logout_handled", False))
+
     def on_dialog_close(self, event):
         logging.info("[on_dialog_close] Dialog close event triggered.")
         if event.CanVeto() and self._defer_close_for_pairing_startup(
@@ -1755,37 +1794,17 @@ class Connect:
         # Invalidate any in-flight _bg_pairing_flow() — see on_continue().
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
-        if (getattr(self.main_window, "_wa_connected", False)
-                and not self._started_new_session_token):
-            # This dialog can now open on its own while already paired (the
-            # proactive re-pair dialog — websocket_client.py's
-            # _show_repair_dialog()), and WhatsApp can genuinely reconnect
-            # in the background — via the normal health check, independent
-            # of this dialog — before the user ever reacts to it. Below,
-            # every close path assumes the opposite: that a dialog on
-            # screen means nothing usable exists yet, so it always
-            # disconnects the live socket and clears the saved token.
-            # Reported live: an account that was working the entire session
-            # showed the pairing dialog again on the very next launch, with
-            # its WPPConnect session and Chrome profile completely intact —
-            # only the stored token reference had been wiped, by exactly
-            # this path, closing a dialog that should never have treated a
-            # live connection as disposable.
-            #
-            # The second half of the condition is what keeps this from
-            # becoming a worse bug than the one it fixes. If the user
-            # actually started a NEW session from this dialog, minting it
-            # already overwrote the settings token and abandoned the live
-            # session's store entry — so skipping the teardown here would
-            # leave a half-paired session registered as the account's active
-            # one AND leave its Chrome alive, minting QR codes that
-            # on_qrcode_update() ignores while _wa_connected is True, which
-            # is exactly the unattended code stream that gets accounts
-            # banned. In that case we fall through to the normal teardown:
-            # no better than before this fix, but no worse either.
+        if self._dialog_dismiss_should_preserve_session():
+            # See _dialog_dismiss_should_preserve_session()'s docstring —
+            # either WhatsApp is genuinely connected right now, or nothing
+            # has actually confirmed it isn't, and either way a dialog that
+            # can now open on its own (websocket_client.py's proactive
+            # _show_repair_dialog()) closing here is not evidence the
+            # session is disposable.
             logging.info(
-                "[on_dialog_close] WhatsApp is connected — closing without "
-                "disconnecting the socket or clearing the saved session."
+                "[on_dialog_close] WhatsApp is connected, or nothing has "
+                "confirmed it is logged out — closing without disconnecting "
+                "the socket or clearing the saved session."
             )
             event.Skip()
             return
@@ -1808,18 +1827,17 @@ class Connect:
             return
         self._pairing_attempt_id += 1
         self.main_window._pairing_in_progress = False
-        if (getattr(self.main_window, "_wa_connected", False)
-                and not self._started_new_session_token):
-            # Same reasoning as on_dialog_close() above, including why a
-            # session this dialog started itself is excluded: WhatsApp is
-            # genuinely connected right now, so "Quit" here means exactly
-            # what it means from the main window — close the app through
-            # the normal graceful teardown, and do not disconnect the live
-            # socket or wipe the saved session first.
+        if self._dialog_dismiss_should_preserve_session():
+            # Same reasoning as on_dialog_close() above: "Quit" here means
+            # exactly what it means from the main window — close the app
+            # through the normal graceful teardown, and do not disconnect
+            # the live socket or wipe the saved session first, unless
+            # main.py's own classifier has actually confirmed there is
+            # nothing left to preserve.
             logging.info(
-                "[on_quit_from_connect] WhatsApp is connected — quitting "
-                "via the normal graceful shutdown instead of tearing down "
-                "the active session."
+                "[on_quit_from_connect] WhatsApp is connected, or nothing "
+                "has confirmed it is logged out — quitting via the normal "
+                "graceful shutdown instead of tearing down the session."
             )
             # real_exit() hides the main frame so quitting looks instant, but
             # this modal dialog is not the frame: without hiding it too, it
