@@ -8168,9 +8168,10 @@ class MainWindow(wx.Frame):
     # above are free: they only ever elapse when something is genuinely wrong.
     # On WM_ENDSESSION we are on a clock we do not control. _on_query_end_session
     # registers a ShutdownBlockReason but still lets the shutdown proceed
-    # (event.Skip() answers TRUE to WM_QUERYENDSESSION — registering a reason
-    # without ALSO vetoing buys no extra time; see that method), so what we
-    # really have is Windows' hung-app timeout, ~5s by default.
+    # (handling the event without skipping answers TRUE to WM_QUERYENDSESSION —
+    # registering a reason without ALSO vetoing buys no extra time; see that
+    # method), so what we really have is Windows' hung-app timeout, ~5s by
+    # default.
     #
     # Left unbounded, the phases below sum to ~40s (10 POST + 15 flush + 15
     # profile release). Windows would cut that off partway — which is the very
