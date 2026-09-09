@@ -100,6 +100,7 @@ class _Stub:
         self._media_failed_ids = {"3EB0ABC": 1700000000.0}
         self._chat_verified_at = {"5511988887777@s.whatsapp.net": 1700000000}
         self._opened_conversations = {"5511988887777@s.whatsapp.net"}
+        self._verified_activity = {"5511988887777@s.whatsapp.net": 1700000000}
 
         # Backfill/LID state the method already cleared before this change.
         self._sync_run_id = 3
@@ -179,7 +180,12 @@ _METADATA = ("_deleted_chats", "_archived_chats", "_pinned_chats",
              # "Synchronizing WhatsApp…"/"Sync paused" pair on B's own lock
              # screen for a conversation B never opened (issue #108), then
              # _note_conversation_opened() makes A's JIDs durable on B's disk.
-             "_opened_conversations")
+             "_opened_conversations",
+             # Same family and same origin as _chat_verified_at, just never
+             # persisted (issue #201) — inert today only because nothing
+             # currently writes it to disk, so clearing it here keeps it out
+             # of the same leak the moment that changes.
+             "_verified_activity")
 
 
 class TestAnAccountSwitchClearsTheMetadataInMemoryToo:
@@ -731,3 +737,67 @@ class TestOneUndeletableFileDoesNotStrandTheRest:
         assert len(per_file) == MainWindow._MAX_MEDIA_DELETE_ERRORS_LOGGED
         # The count is what is not allowed to go missing with them.
         assert any("except 20 entries" in r for r in caplog.messages)
+
+
+class TestMediaIsSweptBeforeTheKeyIsDropped:
+    """Issue #200: a process killed anywhere between the media sweep and the
+    key drop below now leaves the previous account's media already gone, not
+    still on disk under a key that has already stopped naming it.
+
+    Swept in the other order (as this method used to), a kill between the key
+    drop and the sweep left settings.json with no linked number and
+    messages.db already empty while the previous account's media files were
+    still on disk — a state the next launch's "learn this number, delete
+    nothing" branch (TestAWipeThatEmptiedNothingLeavesTheNumberArmed above)
+    never revisits, since an empty database never trips the divergence check
+    again: the media orphan was permanent. Swept first, as here, the same
+    kill instead leaves the key still naming the previous account, so the
+    divergence check fires again on the next launch and repeats the whole
+    method — re-sweeping an already-empty media/voice_messages (a per-file
+    no-op, nothing left to delete) before it ever reaches the key drop.
+    """
+
+    def _trace(self, stub, tmp_path):
+        for subdir in ("media", "voice_messages"):
+            folder = tmp_path / subdir
+            folder.mkdir()
+            (folder / "a.bin").write_bytes(b"x")
+
+        seen = []
+        real_unlink = main_module.os.unlink
+
+        def _unlink(path):
+            seen.append("media-swept")
+            real_unlink(path)
+
+        real_save_settings = stub.save_settings
+
+        def _save_settings():
+            seen.append("key-dropped")
+            real_save_settings()
+
+        return seen, _unlink, _save_settings
+
+    def test_the_success_path_sweeps_media_before_dropping_the_key(
+            self, tmp_path, monkeypatch):
+        stub = _Stub()
+        seen, _unlink, _save_settings = self._trace(stub, tmp_path)
+        monkeypatch.setattr(main_module.os, "unlink", _unlink)
+        stub.save_settings = _save_settings
+
+        stub.clear_local_data()
+
+        assert seen == ["media-swept", "media-swept", "key-dropped"]
+
+    def test_a_resync_still_sweeps_media_though_no_key_is_ever_dropped(
+            self, tmp_path, monkeypatch):
+        """wipe_metadata=False: the reordering must not accidentally start
+        gating the sweep on the block it was moved out from under."""
+        stub = _Stub()
+        seen, _unlink, _save_settings = self._trace(stub, tmp_path)
+        monkeypatch.setattr(main_module.os, "unlink", _unlink)
+        stub.save_settings = _save_settings
+
+        stub.clear_local_data(wipe_metadata=False)
+
+        assert seen == ["media-swept", "media-swept"]

@@ -26,7 +26,7 @@ import time
 
 import pytest
 
-from core.websocket_client import WebSocketClient
+from core.websocket_client import WebSocketClient, qr_within_startup_grace
 from main import MainWindow
 
 
@@ -36,8 +36,11 @@ class _FakeI18n:
 
 
 class _FakeSound:
+    def __init__(self):
+        self.plays = 0
+
     def play(self):
-        pass
+        self.plays += 1
 
 
 class _FakeSpeakOutput:
@@ -82,6 +85,9 @@ class _FakeMainWindow:
         # nothing to restore, so the pairing dialog is the outcome.
         self.profile_restore_available = False
         self.recover_calls = []
+        # Every on_give_up handed over, kept so a test can fire one the way
+        # the restore thread does — see fail_restore().
+        self.give_up_callbacks = []
         # Defaults put every pre-existing test well past the startup grace
         # window (already connected once before, or started long ago) —
         # only the dedicated grace-window tests below override these.
@@ -91,22 +97,59 @@ class _FakeMainWindow:
             time.time() - (self._WA_STARTUP_GRACE_SECONDS * 10)
             if wa_startup_time is None else wa_startup_time
         )
+        # Modelling the restore's own two effects separately, because they
+        # land at very different moments — see finish_restore() below.
+        self._recovery_spent = False
+        self.restore_starts = 0
 
     def _recover_suspect_profile(self, reason=None, on_give_up=None):
-        # Mirrors the real method's own "runs at most once per launch" latch
-        # (main.py: _profile_recovery_attempted) — the caller
-        # (_handle_unattended_qr) does not itself guard against a later QR
-        # refresh calling this again, so the fake has to model the latch or
-        # a test asserting "no second attempt" would pass for the wrong
-        # reason.
-        if getattr(self, "_profile_recovery_attempted", False):
-            return False
-        self._profile_recovery_attempted = True
+        # Every call is recorded, including the ones the latch refuses: the
+        # caller (_handle_unattended_qr) does not guard against a later QR
+        # refresh calling this again, so what it does with the NEXT code is
+        # exactly what these tests are about.
         self.recover_calls.append(reason)
+        self.give_up_callbacks.append(on_give_up)
         # Mirrors the real contract: on_give_up fires only when a restore was
         # started and then failed. A False return means nothing was started,
         # and the caller handles it inline — see _recover_suspect_profile().
-        return bool(self.profile_restore_available)
+        if not self.profile_restore_available or self._recovery_spent:
+            return False
+        # The latch is what the real one does synchronously: it is set before
+        # the restore thread is even started, so a second call is refused
+        # whether or not that thread has finished.
+        self._recovery_spent = True
+        self.restore_starts += 1
+        return True
+
+    def finish_restore(self):
+        """The restore thread reaching `self._unattended_qr_events = 0`.
+
+        Kept separate from _recover_suspect_profile() on purpose. In
+        production that line runs on a background thread, after close-session
+        (10 s timeout), wait_for_profile_release (20 s) and a copy of a few
+        hundred MB — while codes keep arriving every ~20-30 s. Zeroing the
+        counter inline here would model a race production does not reliably
+        win, and every test resting on it would be asserting a guarantee the
+        app does not have. So the tests say when it lands, and both orderings
+        are covered. The production line this stands in for has its own test,
+        against the real MainWindow method that runs it:
+        tests/test_profile_recovery_wiring.py::
+        TestASuccessfulRestoreGivesBackTheQrFloodAllowance.
+        """
+        self._unattended_qr_events = 0
+
+    def fail_restore(self):
+        """The restore thread's give-up path, in the order production runs it.
+
+        _recover_suspect_profile() queues wx.CallAfter(
+        self._announce_profile_beyond_repair) — whose *first* statement is
+        error_sound.play() — and immediately behind it wx.CallAfter(
+        on_give_up), which passes no arguments at all. Both land on the wx
+        main thread milliseconds apart, so what the callback does with the
+        sound is the whole question here.
+        """
+        self.error_sound.play()           # _announce_profile_beyond_repair()
+        self.give_up_callbacks[-1]()      # wx.CallAfter(on_give_up): no args
 
     def _is_pairing_dialog_active(self):
         return self._pairing_dialog_active
@@ -318,37 +361,145 @@ class TestTheProfileIsRepairedBeforeAskingTheUserToPair:
 
         assert mw.recover_calls == []
 
-    def test_a_qr_refresh_during_the_restore_does_not_retry_it(self):
-        # Codes rotate every ~20-30 s. _recover_suspect_profile() latches on
-        # its own (main.py: _profile_recovery_attempted), so a second attempt
-        # is never started. Two events reach _REPAIR_DIALOG_CONFIRM_EVENTS and
-        # start the restore.
+    def test_a_failed_restore_sends_the_user_to_pair_without_a_second_sound(self):
+        """The give-up route is a third caller of _show_repair_dialog(), and
+        nothing used to bind its play_sound.
+
+        wx.CallAfter(on_give_up) invokes it with no arguments, so it took the
+        default — and it is queued directly behind
+        wx.CallAfter(self._announce_profile_beyond_repair), whose first
+        statement is error_sound.play() and whose MessageBox then pumps the
+        queue this callback is sitting in. The two plays therefore landed on
+        one stream milliseconds apart, which sound_lib restarts: heard as a
+        single truncated blip rather than as two cues, the same defect the
+        post-halt route is written around (see
+        tests/test_qrcode_unattended_session.py, which pins that one).
+
+        So exactly one error sound belongs on this route — the
+        announcement's, which has already explained itself in words the
+        second one cannot add to."""
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
         mw.profile_restore_available = True
         connect = _FakeConnect(mw)
         s = _Stub(mw, connect)
 
         s.on_qrcode_update(QR_EVENT)
-        s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)          # this one starts the restore
+        assert mw.restore_starts == 1
+        assert mw.error_sound.plays == 0      # nothing has been played yet
 
-        assert len(mw.recover_calls) == 1
-        assert connect.show_connection_dial_calls == 0
+        mw.fail_restore()
 
-        # KNOWN GAP (not introduced by this branch — see PR #183, already on
-        # upstream/main): a THIRD event, arriving while the restore from the
-        # second is still unresolved, calls _recover_suspect_profile() again.
-        # Its latch correctly refuses to start a second restore and returns
-        # False — but _handle_unattended_qr() treats every False the same
-        # way ("nothing was started, send the user to pair by hand") and
-        # falls through to _show_repair_dialog() anyway, even though a
-        # restore it started one event ago may still be in flight or may
-        # have already quietly succeeded. The bare boolean return of
-        # _recover_suspect_profile() cannot currently tell those two "False"
-        # cases apart. Documented here rather than silently asserted around,
-        # since a passing assert on this line would hide a real interaction
-        # this test suite does not otherwise cover.
-        s.on_qrcode_update(QR_EVENT)
+        # The user is still sent to pair by hand — the repair is what failed,
+        # not the reading that prompted it.
         assert connect.show_connection_dial_calls == 1
+        assert mw.restore_window_calls == 1
+        assert mw.error_sound.plays == 1, (
+            "the give-up route played the error sound again on top of "
+            "_announce_profile_beyond_repair()'s own")
+
+    def test_a_qr_refresh_after_the_restore_finished_does_not_retry_it(self):
+        # Codes rotate every ~20-30 s. _recover_suspect_profile() latches on
+        # its own, so the code after the one that started the restore is
+        # refused — and when the restore thread's own reset has already
+        # landed, that refusal has nothing to fall through into: the counter
+        # is back at 0, so the next code is only the first of a fresh run and
+        # _REPAIR_DIALOG_CONFIRM_EVENTS is not met.
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        mw.profile_restore_available = True
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)          # this one starts the restore
+        assert mw.restore_starts == 1
+        mw.finish_restore()
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert mw.restore_starts == 1
+        assert connect.show_connection_dial_calls == 0
+        assert mw.halt_calls == 0
+
+    def test_a_qr_refresh_while_the_restore_still_runs_opens_the_dialog_today(self):
+        """The other ordering, which is the one production usually gets: the
+        restore thread is still inside close-session / wait_for_profile_release
+        / the profile copy when the next code arrives ~20-30 s later.
+
+        Nothing resets the counter in time, so the refused code is still the
+        _REPAIR_DIALOG_CONFIRM_EVENTS'th one and the pairing dialog goes up on
+        top of a restore still in flight. Pinned as today's behaviour rather
+        than as desired behaviour: pairing from that dialog starts a session
+        over the very directory restore_snapshot() may still be writing, which
+        is the known gap recorded beside _show_repair_dialog()'s call in
+        _handle_unattended_qr(). Closing it needs an "in flight" state this
+        test would then update."""
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        mw.profile_restore_available = True
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+        s.on_qrcode_update(QR_EVENT)          # this one starts the restore
+        s.on_qrcode_update(QR_EVENT)          # the restore thread has not landed
+
+        assert mw.restore_starts == 1         # never retried, whichever way it goes
+        assert connect.show_connection_dial_calls == 1
+
+    @pytest.mark.parametrize(
+        "reset_after_code, dialog_opens_on_code",
+        [
+            (None, WebSocketClient._REPAIR_DIALOG_CONFIRM_EVENTS + 1),
+            (WebSocketClient._REPAIR_DIALOG_CONFIRM_EVENTS,
+             WebSocketClient._REPAIR_DIALOG_CONFIRM_EVENTS * 2),
+        ],
+        ids=["reset-never-lands", "reset-lands-while-codes-keep-arriving"],
+    )
+    def test_what_the_restores_counter_reset_costs_in_codes(
+            self, reset_after_code, dialog_opens_on_code):
+        """The restore thread zeroes _unattended_qr_events when it succeeds,
+        and the cost of that has to stay bounded and stated: an account was
+        banned over the volume of codes requested from WhatsApp.
+
+        Calling it "one more event" would be optimistic in exactly the wrong
+        direction, because the zeroing lands on the restore thread, behind
+        close-session, wait_for_profile_release and a copy of a few hundred
+        MB — codes counted before it arrives are not given back, and the
+        run-up to _REPAIR_DIALOG_CONFIRM_EVENTS starts over. What holds is
+        that it can only push the dialog out by that run-up once: the repair
+        is attempted only after both gates have passed, both routes out of it
+        return above the halt, and the dialog then resets the counter itself.
+
+        So the halt never fires in this flood either way — the dialog is what
+        ends it, on the code named by the parametrization. Both are ceilings;
+        which one applies is what changes here, and only the dialog's moves.
+        """
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=False)
+        mw.profile_restore_available = True
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        for code in range(1, dialog_opens_on_code + 1):
+            s.on_qrcode_update(QR_EVENT)
+            if code == reset_after_code:
+                mw.finish_restore()
+            # Told apart on purpose: one message for both would read "the
+            # dialog opened on code 3, expected it on 3" in the case where it
+            # never opened at all, which is the one worth naming plainly.
+            if code == dialog_opens_on_code:
+                assert connect.show_connection_dial_calls == 1, (
+                    "no dialog on code %d, where it was expected" % code)
+            else:
+                assert connect.show_connection_dial_calls == 0, (
+                    "the dialog opened on code %d, expected it on %d"
+                    % (code, dialog_opens_on_code))
+            assert mw.halt_calls == 0, (
+                "the halt fired on code %d; the dialog is what ends this "
+                "flood" % code)
+
+        # Once per recovery: the latch means no later code starts a second
+        # restore, so the allowance above cannot be taken twice.
+        assert mw.restore_starts == 1
 
 
 class TestStartupGraceWindow:
@@ -419,3 +570,23 @@ class TestStartupGraceWindow:
         s.on_qrcode_update(QR_EVENT)
 
         assert connect.show_connection_dial_calls == 1
+
+
+class TestQrWithinStartupGraceIsPureLogic:
+    """The window itself, with no MainWindow and no socket in the way —
+    _qr_within_startup_grace() is the four-value reader in front of it."""
+
+    def test_a_confirmed_connection_ends_the_window_whatever_the_clock_says(self):
+        assert qr_within_startup_grace(True, 1000.0, 60.0, 1000.0) is False
+
+    def test_inside_the_window_when_no_connection_was_ever_confirmed(self):
+        assert qr_within_startup_grace(False, 1000.0, 60.0, 1030.0) is True
+
+    def test_outside_the_window_once_the_grace_has_elapsed(self):
+        assert qr_within_startup_grace(False, 1000.0, 60.0, 1061.0) is False
+
+    def test_a_missing_startup_time_or_grace_never_opens_the_window(self):
+        # getattr(..., 0) or 0 is what the caller passes when MainWindow has
+        # not written either attribute yet; that must read as "not in a grace
+        # window", never as an open-ended one.
+        assert qr_within_startup_grace(False, 0, 0, 1000.0) is False

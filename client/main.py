@@ -59,7 +59,9 @@ from core.incremental_sync import (
 from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
 from core.send_contract import accepted_message_id
-from core.wpp_runtime import read_homologated_wpp_version
+from core.wpp_runtime import (
+    read_homologated_wpp_version, wppconnect_library_drift, WPPCONNECT_PACKAGE,
+)
 from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
@@ -7719,6 +7721,39 @@ class MainWindow(wx.Frame):
             return ""
 
 
+    def _server_version_below_minimum(self):
+        """(installed, minimum) when the WPPConnect Server itself is too old,
+        else None.
+
+        Worth knowing what this can and cannot see: both numbers come out of
+        the release ZIP — api/package.json's own "version" field and
+        wpp_minimum_version.txt — so an update rewrites the two together and
+        they agree by construction afterwards. This catches an install that
+        has NOT been updated (a server left behind by an older WinZapp, a
+        hand-built api/), never a drift the update itself introduced. That
+        second case is _wppconnect_library_drift()'s, and it is the one that
+        was going unnoticed.
+        """
+        minimum = self._read_wpp_minimum_version()
+        installed = self._get_installed_wpp_version() if minimum else ""
+        if not minimum or not installed:
+            return None  # Nothing pinned, or unreadable — skip silently
+        return (installed, minimum) if self._version_is_below(installed, minimum) else None
+
+    def _wppconnect_library_drift(self):
+        """(installed, pinned) when node_modules holds a wppconnect other than
+        the one api/package.json pins, else None.
+
+        The whole reasoning lives in core/wpp_runtime.wppconnect_library_drift()
+        — this only supplies the api/ path and never lets a failure here stop
+        the server from starting.
+        """
+        try:
+            return wppconnect_library_drift(resource_path("api"))
+        except Exception:
+            logging.exception("[ensure_wpp_version] library drift check failed")
+            return None
+
     @staticmethod
     def _version_is_below(installed: str, minimum: str) -> bool:
         """
@@ -7737,8 +7772,15 @@ class MainWindow(wx.Frame):
 
     def ensure_wpp_version(self):
         """
-        Compare the installed WPPConnect version against the minimum required
-        by this WinZapp build (see _read_wpp_minimum_version()).
+        Two independent checks, either of which offers the same repair:
+
+        * the WPPConnect Server itself older than this build's minimum
+          (_server_version_below_minimum());
+        * node_modules holding a wppconnect other than the one
+          api/package.json pins (_wppconnect_library_drift()) — the drift an
+          update introduces on its own, because the release ZIP ships
+          dist/server.js and package.json but NOT node_modules, and which
+          silently un-patches the pairing-code path.
 
         If the installed version is older the user is prompted to:
           • Update now   — re-download + rebuild via ApiSetupDialog, then continue
@@ -7769,18 +7811,27 @@ class MainWindow(wx.Frame):
         if not os.path.isfile(dist_server):
             return  # API not installed yet — setup dialog will handle it
 
-        minimum  = self._read_wpp_minimum_version()
-        if not minimum:
-            return  # No minimum defined — nothing to check
+        outdated = self._server_version_below_minimum()
+        drifted = self._wppconnect_library_drift()
 
-        installed = self._get_installed_wpp_version()
-        if not installed:
-            return  # Could not determine installed version — skip silently
+        if outdated:
+            installed, minimum = outdated
+        elif drifted:
+            # The server itself is fine; what is wrong is the library it runs
+            # on. Same prompt, same repair — the reinstall runs npm install,
+            # which brings node_modules to the pinned version, and re-applies
+            # the node_modules patches against source they will now match.
+            installed, minimum = drifted
+            logging.warning(
+                "[ensure_wpp_version] node_modules holds %s %s but "
+                "api/package.json pins %s — the compiled-output patches are "
+                "matched against the pinned version's source, so offering the "
+                "reinstall.", WPPCONNECT_PACKAGE, installed, minimum,
+            )
+        else:
+            return  # Server and library both as expected — nothing to do
 
-        if not self._version_is_below(installed, minimum):
-            return  # Installed version meets (or exceeds) the minimum — all good
-
-        # ── Installed version is older than the minimum ───────────────────────
+        # ── Something is older/other than what this build expects ─────────────
         from ui.dialogs.api_version_check import (
             ApiVersionOutdatedDialog,
             RESULT_UPDATE, RESULT_EXIT, RESULT_CONTINUE,
@@ -7813,11 +7864,20 @@ class MainWindow(wx.Frame):
         from core.wpp_runtime import homologated_wpp_tag
         from ui.dialogs.api_setup import ApiSetupDialog
         minimum_tag = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
+        if not minimum_tag and outdated:
+            # Only the server branch may fall back to `minimum` here: it IS a
+            # server version. The library branch's is a wppconnect version
+            # ("2.3.3"), and there is no wppconnect-server release tagged
+            # v2.3.3 — passing it would build a 404 archive URL, the same
+            # failure the comment above describes. With no tag at all,
+            # ApiSetupDialog resolves the latest release itself, which is the
+            # right answer when we cannot name a better one.
+            minimum_tag = f"v{minimum.lstrip('vV')}"
         def _show_update_dlg():
             update_dlg = ApiSetupDialog(
                 self,
                 title_override=self.i18n.t("api_update_dialog_title"),
-                forced_tag=minimum_tag or f"v{minimum.lstrip('vV')}",
+                forced_tag=minimum_tag,
             )
             res = update_dlg.ShowModal()
             update_dlg.Destroy()
@@ -8478,6 +8538,29 @@ class MainWindow(wx.Frame):
         makes it mint codes in the first place, so there is nothing left to
         flush — but worth writing down, since a caller that ever reached this
         with live auth WOULD lose it.
+
+        _qr_within_startup_grace() (websocket_client.py) looks like it
+        contradicts that: it withholds judgment on a code arriving seconds
+        into a boot, on the grounds that the session may still be coming up.
+        It does not, and the distinction is worth keeping straight. That
+        grace protects the USER from acting on one reading — the re-pairing
+        dialog that wipes history — and says nothing about whether the code
+        is real. By the time any code exists, it has come through one of two
+        routes, and each proves the same thing by its own means. A QR event
+        reaches catchQR only once getQrCode() returned a urlCode, and that
+        urlCode *is* the code. A pairing code — on a session started with a
+        phone number, host.layer.js never registers checkQrCode at all, so
+        catchQR is never reached — is minted by
+        WPP.conn.startLinkDeviceCodeForPhoneNumber() behind loginByCode's
+        own gate, which is a wait for WhatsApp Web's auth state (probed
+        through getQrCode(), but as a readiness check; the urlCode is thrown
+        away and is not the code) and which returns without minting anything
+        the moment needsToScan() says the session is registered. wa-js
+        produces neither while paired and authenticated, so on either route
+        the stored auth has already failed to restore.
+        Reaching _UNATTENDED_QR_LIMIT codes inside that window is stronger
+        evidence than the two readings the dialog itself asks for, so the
+        halt stays deliberately outside the grace.
         """
         if getattr(self, "_qr_flood_halted", False):
             return
@@ -11528,24 +11611,25 @@ class MainWindow(wx.Frame):
 
         The write comes last on purpose, and only happens when the wipe really
         emptied the database. If the process is killed mid-wipe (this runs on a
-        daemon thread, and the shutdown does not wait for it), one of two states
-        survives and neither of them merges the accounts. Either the emptying
-        landed — clear_local_data() commits it before it drops the recorded
-        number and before it starts deleting files — and what is left is an
-        empty database plus orphaned media of the previous number, plus, if the
-        kill landed before that drop, a key that still names it; or it never
-        landed (no database open yet, or the DatabaseBridgeTimeout/Closed a
-        shutdown mid-wipe raises, swallowed there by design), and then that drop
-        and the write here are both skipped, so the key still names the previous
-        number while its messages are still on disk — on the first pass because
-        nothing ever moved it, on the second, when the first pass got as far as
-        recording the new number, because _apply_another_number_wipe() writes it
-        back there before it starts deleting anything (and when it did not, the
-        first reason covers the second pass too: the key never left the previous
-        number, and the guard on that write skips it). Either way the next pass or
-        the next pairing reads the same divergence and finishes the job, which is
-        why a partial wipe is self-healing and does not need the app's shutdown
-        to wait for this thread.
+        daemon thread, and the shutdown does not wait for it), the key still
+        names the previous number in every reachable state, so the next pass or
+        the next pairing always reads the same divergence and finishes the job.
+        clear_local_data() commits the database emptying first, THEN sweeps
+        media/ and voice_messages/, and only after both of those does it drop
+        the recorded number — deliberately in that order, because a media sweep
+        that ran after the drop used to leave orphaned files with nothing left
+        able to see them once the key was already gone (issue #200: the
+        divergence check that would otherwise clean them up never fires again
+        once the key no longer names the account they belong to). With the
+        sweep moved ahead of the drop, a kill between the two leaves the key
+        still armed and the media already gone — self-healing, not orphaning:
+        the next pass re-detects the divergence, finds the database and media
+        already empty (both idempotent no-ops), and drops the key. A kill
+        before the sweep leaves the key armed and the media still on disk,
+        which the next pass sweeps and then drops as normal. Either way the
+        key is never left naming an account whose database or media a kill
+        left non-empty, which is what makes a partial wipe self-healing and
+        lets this thread's shutdown go unwaited.
 
         Mid-session there is almost always a sync already in flight when this
         starts, claim or no claim — it was started synchronously by the event
@@ -11898,18 +11982,30 @@ class MainWindow(wx.Frame):
         gap between that clear and this retake, in which yet another trigger
         can have started one more round.
 
-        Known residue, left as a follow-up rather than fixed here: _run_sync()
-        never consults _sync_run_id, so the round being waited out keeps
-        calling set_chats() for its whole remaining life. Between the spoken
+        _run_sync() now refuses to commit _sync_completed either way once its
+        own _sync_run_id has been superseded (see the guard just before
+        "Mark sync as done", added for this same issue — #198/#199) — that
+        was the dangerous half of the residue below: a contaminated round
+        reaching that point used to overwrite this method's own
+        _sync_completed=False back to True, which is not a cosmetic glitch
+        but a permanent one, since trigger_sync_if_needed() would then never
+        see a reason to run the corrective full sync at all.
+
+        Known residue, still left as a follow-up: the guard only covers that
+        one commit. Every earlier write in the round being waited out —
+        set_chats() and the rest — is untouched, so between the spoken
         "as conversas foram apagadas" and the second wipe below, the list
-        therefore refills with the PREVIOUS account's conversations — for as
+        still refills with the PREVIOUS account's conversations — for as
         long as that round takes, which is minutes — and then empties again.
         Nothing is lost by it, since both the second wipe and the full sync
-        after it run later, but for somebody reading that list with a screen
-        reader the sequence is genuinely confusing: told the history was
-        deleted, then hearing it come back, then hearing it disappear a second
-        time with nothing said. Honouring _sync_run_id in _run_sync()'s own
-        write path is what closes it.
+        after it run later and _sync_completed can no longer be left stuck,
+        but for somebody reading that list with a screen reader the sequence
+        is genuinely confusing: told the history was deleted, then hearing it
+        come back, then hearing it disappear a second time with nothing said.
+        Guarding every mid-round write the same way would close it, at the
+        cost of touching every one of that ~900-line method's write sites for
+        a cosmetic flicker rather than the correctness bug the commit-time
+        guard above already closes.
         """
         try:
             for _ in range(self._ANOTHER_NUMBER_SYNC_JOIN_ROUNDS):
@@ -13242,6 +13338,23 @@ class MainWindow(wx.Frame):
         return bool(getattr(self, "offline_mode", False)) and not getattr(self, "_sync_completed", False)
 
     def _run_sync(self):
+        # Identifies which sync_thread this particular call belongs to — see
+        # the guard right before "Mark sync as done" far below, added for
+        # issue #199/#198: a round superseded mid-flight by
+        # _wipe_local_data_if_another_number_linked() (clear_local_data()
+        # bumps _sync_run_id) used to keep running to its own natural end
+        # regardless, and could then commit _sync_completed=True over data
+        # that belongs to the account it was just wiped for switching away
+        # from — silently undoing the wipe's own _sync_completed=False.
+        def _current_run_id():
+            # The test stubs that bind this method answer any unknown
+            # attribute with a fresh lambda each time (see the
+            # _verified_activity guard elsewhere in this file for the same
+            # hazard) — normalize rather than let two getattr() calls on an
+            # unset attribute compare unequal to each other.
+            value = getattr(self, "_sync_run_id", 0)
+            return value if isinstance(value, int) else 0
+        my_run_id = _current_run_id()
         logging.info("[start_sync] Checking WhatsApp connection status...")
         self.check_wa_connection_http()
         for _ in range(25):
@@ -13966,7 +14079,15 @@ class MainWindow(wx.Frame):
             # server was still filling in is precisely what made the
             # 3-or-4-conversations failure look like a success, right before
             # the sync restarted itself.
+            # Re-checked at the moment this actually runs (wx.CallAfter,
+            # so possibly well after the round below decided anything): a
+            # round superseded by an another-number wipe (or an F5/logout
+            # racing the same round — see _current_run_id() above) must not
+            # speak "conversations synchronized" for data that isn't the
+            # current account any more, even though nothing here writes
+            # _sync_completed and so nothing is actually lost by it.
             if (chat_list_ok and chat_list_settled and message_sync_ok
+                    and _current_run_id() == my_run_id
                     and self._announce_sync_events_enabled()):
                 self.sync_complete_sound.play()
                 if effective_full:
@@ -13996,7 +14117,37 @@ class MainWindow(wx.Frame):
         # that same flag and would never run a real sync again.
         # `chat_list_settled` is required for the same reason: a snapshot the
         # server was still growing is a partial account, not a finished sync.
-        if (len(self.chats) > 0 and getattr(self, "_wa_connected", False)
+        #
+        # A general safety net, not a special case for one caller: anything
+        # that bumps _sync_run_id (start_sync() itself, F5's
+        # _resync_all_worker(), a confirmed logout, and — the case this was
+        # written for — _wipe_local_data_if_another_number_linked() via
+        # clear_local_data()) out from under a round already running, rather
+        # than cancelling that round outright, leaves exactly this gap open.
+        # The another-number wipe is the sharpest instance: it cannot wait
+        # minutes for a sync to notice (see
+        # _restart_sync_after_another_number_wipe()'s own docstring — issue
+        # #198/#199), so it always races a round already in flight. Without
+        # this check, a round that captured the PREVIOUS account's chats
+        # would reach here after the wipe, find its own non-empty self.chats
+        # and a settled/successful round, and commit _sync_completed=True
+        # over the account it was just wiped for switching away from —
+        # silently undoing the wipe's own _sync_completed=False and leaving
+        # trigger_sync_if_needed() with no reason left to ever start the
+        # corrective full sync. A stale False commit here is comparatively
+        # harmless (self-corrects on the next trigger), which is why only
+        # this one write — not every self.chats write earlier in this round
+        # — is guarded; see _restart_sync_after_another_number_wipe()'s
+        # docstring for the mid-round residue this does not close.
+        current_run_id = _current_run_id()
+        if current_run_id != my_run_id:
+            logging.info(
+                "[start_sync] A newer sync run (%s) started while this one "
+                "(%s) was still finishing — not committing its outcome "
+                "either way; the newer round owns _sync_completed now.",
+                current_run_id, my_run_id,
+            )
+        elif (len(self.chats) > 0 and getattr(self, "_wa_connected", False)
                 and chat_list_ok and chat_list_settled and message_sync_ok):
             self._sync_completed = True
             self._sync_retry_count = 0
@@ -14473,6 +14624,13 @@ class MainWindow(wx.Frame):
             # and keeps nothing else here either), so this line touches only
             # the account switch.
             self._forget_media_failures()
+            # Same family by origin as everything above (fed by
+            # _note_verified_activity(), consulted by
+            # local_history_behind_server() as a floor), inert here today
+            # only because it is deliberately never persisted — clearing it
+            # anyway keeps it out of the same leak class the moment that
+            # changes, rather than relying on that being true forever.
+            self._verified_activity = {}
 
         db_emptied = False
         try:
@@ -14483,57 +14641,24 @@ class MainWindow(wx.Frame):
         except Exception as e:
             logging.error(f"[clear_local_data] Failed to clear database: {e}")
 
-        if wipe_metadata and db_emptied:
-            # The number this data belonged to. The invariant the divergence
-            # check is written around is that the key describes what is on
-            # disk, and six call sites in connect.py wipe through here without
-            # ever having heard of it — leaving the key naming an account whose
-            # database no longer exists, which reads as "no divergence" the
-            # next time somebody else's phone pairs. _on_disconnect(wipe=False)
-            # deliberately does not come through here, so the armed case stays
-            # armed. _wipe_local_data_if_another_number_linked() rewrites it
-            # immediately after its own call.
-            #
-            # Dropped down here, after the database has actually been emptied,
-            # rather than with the rest of the in-memory wipe above. A process
-            # killed between the two is routine — 17 of the 159 launches in one
-            # field shutdown_audit.log ended with no _stop_wpp_server line at
-            # all — and killed with the key already gone while the messages were
-            # still on disk, the next launch has nothing to compare against,
-            # takes the "learn this number, delete nothing" branch, and lets
-            # account B merge onto account A: the merge this key exists to
-            # prevent, disarmed by its own cleanup. The other order costs
-            # nothing — a key naming a database that is already empty is read as
-            # a divergence and wipes an empty database a second time.
-            #
-            # And only when the database really was emptied, which is why
-            # db_emptied is a variable and not just the `if` above. self.db
-            # exists from prepare_sync() onwards, and all six connect.py call
-            # sites run before that, inside __init__'s connection dialog: there
-            # the write is skipped entirely and every message of the previous
-            # account stays in messages.db (the divergence check's own docstring
-            # says so). save_full_state() can also raise DatabaseBridgeTimeout/
-            # Closed, which is swallowed right above. Either way the key is
-            # still describing what is on disk, so it has to stay armed for the
-            # check after prepare_sync() to act on — dropping it there is the
-            # kill window above without the kill. The account-switch path is
-            # unaffected: _apply_another_number_wipe() rewrites the key
-            # immediately after its own call.
-            privateinfo = getattr(self, "settings", {}).get("privateinfo")
-            if (isinstance(privateinfo, dict)
-                    and privateinfo.pop("WA_phone_number_linked", None) is not None):
-                # Saved here rather than left to the caller: most of those six
-                # call sites never save at all, and a key that survives in
-                # settings.json is exactly as wrong as one that survives in
-                # memory — the next launch reads it straight back.
-                try:
-                    self.save_settings()
-                except Exception:
-                    logging.exception(
-                        "[clear_local_data] Could not persist dropping the "
-                        "recorded linked number.")
-
-        # Clear local downloaded media files to prevent cross-account leakage
+        # Clear local downloaded media files to prevent cross-account leakage.
+        # Swept here — after the database is emptied above, but BEFORE the
+        # WA_phone_number_linked key is dropped below — deliberately, not
+        # left in its previous position after the key drop (issue #200). A
+        # process killed anywhere in the account-switch window is routine: 17
+        # of the 159 launches in one field shutdown_audit.log ended with no
+        # _stop_wpp_server line at all. Swept after the key drop, a kill
+        # between the two left the key already gone with the previous
+        # account's media still on disk — the next launch's "learn this
+        # number, delete nothing" branch (see below) is exactly the one that
+        # never comes back to clean orphaned media up, since a database with
+        # nothing in it never trips the divergence check again. Swept first,
+        # as here, a kill in the same spot instead leaves the key still
+        # naming the previous account, so the next launch detects the
+        # divergence and repeats this whole method — re-sweeping an
+        # already-empty media/voice_messages (a per-file no-op, each entry
+        # already missing) before reaching the key drop again. Nothing is
+        # ever orphaned; at worst one redundant pass runs on the next launch.
         for subdir in ("media", "voice_messages"):
             path = data_path(subdir)
             if not os.path.exists(path):
@@ -14573,13 +14698,67 @@ class MainWindow(wx.Frame):
             else:
                 logging.info(f"[clear_local_data] Cleared folder: {subdir}")
 
-        # Returned after the media sweep, and the sweep is deliberately not
-        # gated on db_emptied: media/ and voice_messages/ are cleared either
-        # way. So a False answer describes a middle state neither this method's
-        # callers nor the divergence check's docstrings otherwise name, and it
-        # is the one that turns up in a field report — the previous account's
-        # rows still in messages.db, its media and voice notes already gone from
-        # disk, and, on the account-switch path, the user already told out loud
+        if wipe_metadata and db_emptied:
+            # The number this data belonged to. The invariant the divergence
+            # check is written around is that the key describes what is on
+            # disk, and six call sites in connect.py wipe through here without
+            # ever having heard of it — leaving the key naming an account whose
+            # database no longer exists, which reads as "no divergence" the
+            # next time somebody else's phone pairs. _on_disconnect(wipe=False)
+            # deliberately does not come through here, so the armed case stays
+            # armed. _wipe_local_data_if_another_number_linked() rewrites it
+            # immediately after its own call.
+            #
+            # Dropped down here, after both the database has actually been
+            # emptied AND the previous account's media has been swept above
+            # (issue #200), rather than with the rest of the in-memory wipe
+            # higher up. A process killed between the two is routine — 17 of
+            # the 159 launches in one field shutdown_audit.log ended with no
+            # _stop_wpp_server line at all — and killed with the key already
+            # gone while the messages were still on disk, the next launch has
+            # nothing to compare against, takes the "learn this number,
+            # delete nothing" branch, and lets account B merge onto account
+            # A: the merge this key exists to prevent, disarmed by its own
+            # cleanup. The other order costs nothing — a key naming a
+            # database that is already empty (and media that is already
+            # swept) is read as a divergence and wipes both a second time,
+            # harmlessly.
+            #
+            # And only when the database really was emptied, which is why
+            # db_emptied is a variable and not just the `if` above. self.db
+            # exists from prepare_sync() onwards, and all six connect.py call
+            # sites run before that, inside __init__'s connection dialog: there
+            # the write is skipped entirely and every message of the previous
+            # account stays in messages.db (the divergence check's own docstring
+            # says so). save_full_state() can also raise DatabaseBridgeTimeout/
+            # Closed, which is swallowed right above. Either way the key is
+            # still describing what is on disk, so it has to stay armed for the
+            # check after prepare_sync() to act on — dropping it there is the
+            # kill window above without the kill. The account-switch path is
+            # unaffected: _apply_another_number_wipe() rewrites the key
+            # immediately after its own call.
+            privateinfo = getattr(self, "settings", {}).get("privateinfo")
+            if (isinstance(privateinfo, dict)
+                    and privateinfo.pop("WA_phone_number_linked", None) is not None):
+                # Saved here rather than left to the caller: most of those six
+                # call sites never save at all, and a key that survives in
+                # settings.json is exactly as wrong as one that survives in
+                # memory — the next launch reads it straight back.
+                try:
+                    self.save_settings()
+                except Exception:
+                    logging.exception(
+                        "[clear_local_data] Could not persist dropping the "
+                        "recorded linked number.")
+
+        # Returned after both the database clear and the media sweep (the
+        # sweep is deliberately not gated on db_emptied: media/ and
+        # voice_messages/ are cleared either way). A False answer means
+        # self.db didn't exist yet or save_full_state() raised — the key
+        # above was therefore deliberately left in place (see its own
+        # comment), so the previous account's rows are still in messages.db
+        # even though its media and voice notes are already gone from disk
+        # and, on the account-switch path, the user already told out loud
         # that those conversations were deleted. The list therefore comes back
         # holding chats whose attachments no longer resolve locally and cannot
         # be fetched again either, since the session now belongs to the other

@@ -1,3 +1,4 @@
+import functools
 import logging
 import threading
 import time
@@ -78,6 +79,19 @@ def phone_code_error_is_rate_limit(data) -> bool:
     return "rate-overlimit" in haystack or "RateOverlimit" in haystack
 
 
+def qr_within_startup_grace(announced, started, grace, now) -> bool:
+    """Is a QR event still inside the slow-boot window, given the four
+    values WebSocketClient._qr_within_startup_grace() reads off MainWindow?
+
+    Module-level so the window itself can be tested without a MainWindow —
+    see that method for what each value means and why the pair is read
+    exactly the way check_wa_connection_http() reads it.
+    """
+    if announced:
+        return False
+    return (now - (started or 0)) < (grace or 0)
+
+
 def _media_seconds(wpp_msg: dict):
     """Duration in whole seconds, or None when the payload never stated one.
 
@@ -120,9 +134,9 @@ class WebSocketClient:
     # never paired. On one that did it is that dialog's lifetime plus ~1
     # minute: there the _REPAIR_DIALOG_CONFIRM_EVENTS'th unattended event
     # opens the re-pairing dialog, and codes are attended for as long as it
-    # stays up, so the three counted events only start once the user
-    # dismisses it. Short enough that an app left open overnight on a
-    # session WhatsApp already dropped does not ask for hundreds of codes
+    # stays up, so the _UNATTENDED_QR_LIMIT counted events only start once
+    # the user dismisses it. Short enough that an app left open overnight on
+    # a session WhatsApp already dropped does not ask for hundreds of codes
     # nobody will ever scan.
     _UNATTENDED_QR_LIMIT = 3
 
@@ -135,12 +149,97 @@ class WebSocketClient:
     # yet confirmed) on the SAME reading this dialog had already acted on
     # a QR event earlier for, seconds apart. Every other unlink-confirming
     # path in this codebase requires more than a single reading before
-    # doing anything user-visible or destructive; this one now does too,
-    # at the cost of the same ~20-30s (one more QR rotation) every other
-    # such confirmation already accepts as the price of not alarming or
-    # wiping a session that was only ever transiently unhappy. Still well
-    # under _UNATTENDED_QR_LIMIT, so the harsher close-session action is
-    # never reached before the dialog has already offered a way out.
+    # doing anything user-visible or destructive; this one now does too.
+    #
+    # What it buys is precisely that no single reading acts on its own —
+    # not a guaranteed wait. Nothing on the unattended path dedups by
+    # payload (the value check lives in _update_ui()'s `phone` refresh
+    # branch, which needs a dialog on screen), so two socket emissions
+    # carrying the SAME code satisfy this counter without any of WhatsApp's
+    # ~20-30s rotation having passed. In the steady-state flood this was
+    # written for the codes really are rotating and it does cost one
+    # rotation, the same price every other confirmation here accepts for
+    # not alarming a session that was only ever transiently unhappy; in a
+    # boot-time burst it costs almost nothing, which is why
+    # _qr_within_startup_grace() is a separate requirement rather than a
+    # stronger version of this one. Still under _UNATTENDED_QR_LIMIT
+    # either way, so the dialog is offered before the harsher close-session
+    # action — and _handle_unattended_qr() offers it after that action too,
+    # for the paired install a burst inside the grace window carried
+    # straight past this counter.
+    #
+    # The halt itself moves by one event, in both directions, and that is
+    # this counter's whole cost in codes actually requested from WhatsApp.
+    # Measured on a paired install by counting past the limit rather than
+    # stopping at it: outside the grace the halt lands on the 5th unattended
+    # code instead of the 4th (this counter withholds the dialog for one
+    # extra event, and the dialog is what used to reset the count); inside
+    # the grace it lands on the 3rd instead of the 4th, since nothing resets
+    # the count there at all. Bounded at +-1 either way — never a widening
+    # window, which is the property that matters for an account that was
+    # banned over code volume.
+    #
+    # The profile repair adds its own, separate allowance:
+    # _recover_suspect_profile() zeroes this counter when a restore actually
+    # succeeds (main.py), because the burst that triggered it was minted by
+    # the profile now moved aside. That zeroing happens on the restore
+    # thread, with close-session, wait_for_profile_release and a copy of a
+    # few hundred MB between the trigger and it — so it is NOT one event
+    # later, and writing it as if it were understates the one number an
+    # account was banned over. By the time it lands, 1 or 2 codes have
+    # usually been counted already and those are not given back; what the
+    # reset does hand back is the run-up, since the count towards this
+    # constant starts again from 0. Bounded, because the branch that starts
+    # the restore has already passed both gates and every route out of it
+    # returns above the halt: the reset can only push the *dialog* out by up
+    # to _REPAIR_DIALOG_CONFIRM_EVENTS - 1 further codes, and the dialog then
+    # resets the counter itself (_reset_unattended_qr_guards()). See
+    # TestTheProfileIsRepairedBeforeAskingTheUserToPair for both orderings,
+    # and tests/test_profile_recovery_wiring.py::
+    # TestASuccessfulRestoreGivesBackTheQrFloodAllowance for the production
+    # line the fake there stands in for.
+    #
+    # Once per recovery, and a launch is no longer bounded to one of those:
+    # _recover_suspect_profile() latches, but a session reporting CONNECTED
+    # hands that latch straight back (main.py's
+    # _note_status_for_profile_health() — a snapshot that connected has
+    # proved itself and may be restored again if it breaks later in the same
+    # run). It still does not widen this window, because the CONNECTED
+    # reading that re-arms the recovery is the same one
+    # _set_wa_connected(True, ...) acts on, and that zeroes this counter and
+    # clears the halt latch anyway: the second allowance can only ever be
+    # spent on a second flood, which had its own full ceiling regardless.
+    # The one seam is that the re-arm reads the status string alone while the
+    # counter reset also needs the live isConnected() probe to agree, so a
+    # CONNECTED the probe refuses gives the recovery back without giving the
+    # counter back. KNOWN, not fixed here, and written out because the cost is
+    # not the extra codes it was found for.
+    #
+    # A second recovery can therefore start mid-flood, on an event the counter
+    # has already counted — and _handle_unattended_qr() returns the moment it
+    # starts (`if mw._recover_suspect_profile(...): return`, above the halt).
+    # If that lands on the very event where `seen` reached
+    # _UNATTENDED_QR_LIMIT, the halt is not postponed: it stops being
+    # evaluated at all, because the test there is `==` and `seen` only grows
+    # from there. The only thing that makes it reachable again is a zeroing,
+    # and the only zeroing on this path is the restore succeeding — which
+    # restarts the count from 0 and pays the whole ceiling over again, rather
+    # than halting. A restore that starts and then fails never gets even that.
+    # What bounds the damage is the dialog: the branch that call sits in has
+    # already cleared the startup grace and this counter, so the next code
+    # takes the refusal straight into _show_repair_dialog() and the flood ends
+    # there. Same order of magnitude as the allowance above, which is why it
+    # is an issue and not a blocker.
+    #
+    # The fix that works is to move the re-arm into _set_wa_connected()
+    # (main.py), beside its own `self._unattended_qr_events = 0`: it runs on
+    # the same poll, right after the probe has agreed, making the re-arm and
+    # the reset one event — which is the property this comment already claims.
+    # Gating the re-arm on _wa_connected instead is the obvious alternative
+    # and does not work: it delays the recovery by a whole poll (~30 s) and
+    # breaks the case it was added for — _note_status_for_profile_health()
+    # measured 11 s between a restored profile connecting and a superseded
+    # session start force-killing its browser.
     _REPAIR_DIALOG_CONFIRM_EVENTS = 2
 
     def __init__(self, main_window, connect, instance_name):
@@ -834,16 +933,28 @@ class WebSocketClient:
         Nothing about a QR event makes it immune to the exact race the
         startup grace exists for elsewhere; it only looks immune because,
         unlike a bare status string, a code is often also genuinely
-        conclusive. Both _wa_startup_time and _wa_connect_announced are
-        reset together on every fresh (re)connect (see main.py), so this
-        re-arms correctly across reconnects, not just the first launch.
+        conclusive.
+
+        Reads exactly the pair check_wa_connection_http()'s own
+        `within_grace` reads, so the two windows open and close together.
+        They are cleared as a pair by the four places that treat what
+        follows as a fresh launch — MainWindow.__init__, _on_disconnect()
+        (main.py), reset_state_for_resume() (connection_state.py) and
+        _reset_credentials_and_show_pairing() (this file) — and
+        NOT by _set_wa_connected(), which leaves _wa_connect_announced True
+        and _wa_startup_time where it was. That is the right behaviour for
+        this gate rather than a gap in it: once a connection has actually
+        been confirmed, qr_within_startup_grace()'s own _wa_connect_announced
+        check returns False on its own, so the clock under it no longer
+        decides anything.
         """
         mw = self.main_window
-        if getattr(mw, "_wa_connect_announced", False):
-            return False
-        started = getattr(mw, "_wa_startup_time", 0) or 0
-        grace = getattr(mw, "_WA_STARTUP_GRACE_SECONDS", 0) or 0
-        return (time.time() - started) < grace
+        return qr_within_startup_grace(
+            getattr(mw, "_wa_connect_announced", False),
+            getattr(mw, "_wa_startup_time", 0) or 0,
+            getattr(mw, "_WA_STARTUP_GRACE_SECONDS", 0) or 0,
+            time.time(),
+        )
 
     def _handle_unattended_qr(self):
         """A real QR/pairing code arrived that no refresh branch wanted.
@@ -899,18 +1010,26 @@ class WebSocketClient:
             return
         seen = getattr(mw, "_unattended_qr_events", 0) + 1
         mw._unattended_qr_events = seen
+        paired = bool(mw.settings.get("privateinfo", {}).get("paired"))
         if (
-            mw.settings.get("privateinfo", {}).get("paired")
+            paired
             and not getattr(mw, "_auto_repair_dialog_shown", False)
             and not self._qr_within_startup_grace()
             and seen >= self._REPAIR_DIALOG_CONFIRM_EVENTS
         ):
             # Try to repair the profile before sending the user off to pair by
             # hand. This event is the *earliest and strongest* evidence that
-            # the Chrome profile lost its login: as this method's own docstring
-            # says, WPPConnect only mints a code once it has decided the stored
-            # session cannot be restored — which is exactly the condition
-            # ProfileHealthTracker spends minutes trying to infer from
+            # the Chrome profile lost its login, and
+            # _halt_unattended_qr_session() (main.py) is where that is spelled
+            # out: by the time any code exists it has come through catchQR
+            # (which fires only once getQrCode() returned a urlCode, the QR
+            # itself) or from WPP.conn.startLinkDeviceCodeForPhoneNumber()
+            # behind loginByCode's own wait for WhatsApp Web's auth state,
+            # which refuses to mint at all for a registered session — and
+            # wa-js produces neither while paired and authenticated. So the
+            # stored session has already failed to restore, which is exactly
+            # the condition the profile recovery exists for and the one
+            # ProfileHealthTracker otherwise spends minutes inferring from
             # status-session strings.
             #
             # Measured on a real install on 2026-09-08: a clean Ctrl+Shift+Q
@@ -929,18 +1048,52 @@ class WebSocketClient:
             # _recover_suspect_profile() runs at most once per launch and calls
             # back when it gives up — against a re-pairing saved every time the
             # profile was the actual fault.
+            #
+            # play_sound is bound here rather than left to its default
+            # because wx.CallAfter(on_give_up) invokes this with no
+            # arguments: the restore's give-up path queues it directly behind
+            # wx.CallAfter(self._announce_profile_beyond_repair), whose very
+            # first statement is that same error_sound.play() — and whose
+            # own MessageBox then pumps the queue, so this callback runs from
+            # inside it. Two plays milliseconds apart on one stream are not
+            # two cues: sound_lib restarts it and they are heard as a single
+            # truncated blip, the same defect the post-halt route below is
+            # written around.
             if mw._recover_suspect_profile(
                     reason="WPPConnect minted a pairing code for a paired "
                            "install — the stored session could not be restored",
-                    on_give_up=self._show_repair_dialog):
+                    on_give_up=functools.partial(self._show_repair_dialog,
+                                                 play_sound=False)):
                 return
+            # Nothing was started (no snapshot, or the recovery budget is
+            # already spent), so a human is the only way back — and that is
+            # the judgment, not the observation.
+            #
+            # KNOWN GAP, inherited and not introduced here: "already spent"
+            # also covers a restore still IN FLIGHT. _recover_suspect_profile()
+            # latches at the top of the method, before it has even looked for a
+            # snapshot, so the next code ~20-30s later is refused with False and
+            # lands right here, opening the pairing dialog on top of a
+            # restore_snapshot() that may still be writing into
+            # userDataDir/<session>. If the user pairs from that dialog,
+            # _reset_unattended_qr_guards() clears _qr_flood_halted and
+            # /start-session launches Chrome over the directory being written —
+            # precisely what core/profile_recovery.py forbids: restoring under a
+            # running browser is "manufacturing the exact corruption this
+            # recovers from".
+            # Closing it means exposing a "restore in flight" state and holding
+            # _show_repair_dialog() on it, which is a production change of its
+            # own; see tests/test_qrcode_auto_repair_dialog.py::
+            # TestTheProfileIsRepairedBeforeAskingTheUserToPair for both
+            # orderings, the losing one pinned as today's real behaviour.
             self._show_repair_dialog()
             return
         if seen == self._UNATTENDED_QR_LIMIT:
-            # Never paired, or the dialog was already offered and is no longer
-            # up: nobody is going to scan these. Reached on the same event
-            # count either way, so the ceiling on codes requested from
-            # WhatsApp does not depend on which case we are in.
+            # Nobody is going to scan these, whichever case we are in. Reached
+            # on the same event count regardless — deliberately NOT delayed by
+            # the startup grace or the confirmation counter above, since the
+            # ceiling on codes requested from WhatsApp is the half of this
+            # protection an account was banned for not having.
             #
             # `==`, not `>=`: _halt_unattended_qr_session() latches, so asking
             # again on every later event changes nothing except filling the
@@ -948,36 +1101,95 @@ class WebSocketClient:
             # (_pairing_attended()) or the connection comes back, and those are
             # also what clear the latch, so a second outage does get a second
             # halt.
+            #
+            # One case does not hold that, and it is why `==` is the
+            # load-bearing half of the seam described on
+            # _REPAIR_DIALOG_CONFIRM_EVENTS: an event that returns above this
+            # line never evaluates the halt, and `seen` can only grow past the
+            # limit afterwards, so a skipped event withholds the halt for the
+            # rest of the flood rather than delaying it by one.
             logging.warning(
                 "[on_qrcode_update] %d QR/pairing codes generated with no "
                 "pairing dialog on screen — closing the session so it stops "
                 "requesting codes from WhatsApp.", seen,
             )
             mw._halt_unattended_qr_session()
-            if not getattr(mw, "_auto_repair_dialog_shown", False):
-                # Never paired: the branch above never ran, so nothing has
-                # offered this install a way back — and the halt is permanent
-                # until something clears the latch, which only the pairing
-                # dialog does. Left alone the app sits offline forever with no
-                # route to re-pair at all, which is worse than the flood.
-                # Nothing can be lost by opening it here (no session, no
-                # history, nothing paired), and the halt has already played the
-                # error sound and said what happened, so this skips the
-                # MessageBox _show_repair_dialog() adds. The same latch is set
-                # so a dismissed dialog does not get re-opened every minute.
-                mw._auto_repair_dialog_shown = True
-                mw.restore_window()
-                self.connect.show_connection_dial()
+            if getattr(mw, "_auto_repair_dialog_shown", False):
+                # Already offered a way back, and dismissed: re-opening it on
+                # every flood would hand the user a fresh dialog every minute.
+                return
+            # Two different states arrive here with nothing yet offered, and
+            # `paired` is what tells them apart — _auto_repair_dialog_shown
+            # cannot, since it is also False for a paired install the branch
+            # above merely withheld (inside the startup grace, or before
+            # _REPAIR_DIALOG_CONFIRM_EVENTS confirmed it). Both are reachable
+            # in one flood: the grace is _WA_STARTUP_GRACE_SECONDS wide and
+            # nothing on this path dedups a repeated code, so a boot-time
+            # burst can spend the whole limit inside it.
+            if paired:
+                # A paired install whose session has just been closed by the
+                # halt. It needs the same explanation the branch above would
+                # have given it — the device_logged_out MessageBox — because
+                # otherwise all it is told is that a session was closed, with
+                # nothing said about the login it just lost or the re-pairing
+                # it now has to do.
+                #
+                # play_sound=False because the halt has just played that very
+                # same error_sound object. Replaying one stream ~0 ms later is
+                # not heard as two cues — sound_lib restarts it, so it comes
+                # out as a single truncated blip, the shape of clipped output
+                # the focus_cloak work was written for (see CLAUDE.md).
+                #
+                # It buys nothing either: the halt's spoken line is cut
+                # mid-sentence by the MessageBox's focus announcement no
+                # matter what this flag says (output(interrupt=False) queues,
+                # and the screen reader preempts on focus), and that
+                # announcement says the same thing. So the second sound has
+                # no cue left to carry. The MessageBox still raises its own
+                # MB_ICONERROR system sound, which is a different sound and
+                # not subject to that restart.
+                self._show_repair_dialog(play_sound=False)
+                return
+            # Never paired: the branch above never ran because there is no
+            # session to re-pair — and the halt is permanent until something
+            # clears the latch, which only the pairing dialog does. Left alone
+            # the app sits offline forever with no route to re-pair at all,
+            # which is worse than the flood. Nothing can be lost by opening it
+            # here (no session, no history, nothing paired), and the halt has
+            # already played the error sound and said what happened, so this
+            # skips the MessageBox _show_repair_dialog() adds — there is no
+            # logged-out device to explain. The same latch is set so a
+            # dismissed dialog does not get re-opened every minute.
+            mw._auto_repair_dialog_shown = True
+            mw.restore_window()
+            self.connect.show_connection_dial()
 
-    def _show_repair_dialog(self):
+    def _show_repair_dialog(self, play_sound=True):
         """Tell a previously-paired user their session needs re-pairing, and
         put the pairing dialog in front of them straight away.
 
-        Called once _handle_unattended_qr() has already required everything
-        it requires before reaching here — outside the startup grace window
+        Reached from _handle_unattended_qr() by three routes, and every one
+        of them means the signal has been confirmed rather than acted on once.
+        Two cleared that method's own bar — outside the startup grace window
         and confirmed by _REPAIR_DIALOG_CONFIRM_EVENTS consecutive readings,
-        not a single one — so by the time this runs, the signal is at least
-        as solid as the coarse status-session string the health-check poll
+        not a single one — and differ only in what the profile repair then
+        did with it: called inline when _recover_suspect_profile() refused to
+        start one (no snapshot, or the once-per-launch budget already spent),
+        and handed to it as on_give_up for the restore that started and then
+        failed. The third runs when the grace/counter withheld those two and
+        the flood then spent the entire _UNATTENDED_QR_LIMIT inside that
+        window, which is a stronger reading still.
+
+        The last two run behind something that has already played error_sound
+        — _announce_profile_beyond_repair() on the give-up route, the halt on
+        the third — which is what play_sound=False is for; see those call
+        sites. The inline route keeps the sound: its no-snapshot sub-case
+        announces too and so doubles the cue, but its budget-spent sub-case
+        has played nothing at all, and one flag at one call site cannot tell
+        them apart. A cue too many on a route that is sometimes silent is the
+        safe direction to be wrong in; silence on a route that is sometimes
+        the only cue is not. Either way, by the time this runs the signal
+        is at least as solid as the coarse status-session string the poll
         watches (which needs several minutes of confirmation to rule out a
         normal slow boot). Surfacing the pairing dialog immediately —
         instead of leaving the user staring at "offline"
@@ -1006,7 +1218,8 @@ class WebSocketClient:
         # everything with no prior audible cue is easy to miss
         # entirely — reported live as exactly that.
         self.main_window.restore_window()
-        self.main_window.error_sound.play()
+        if play_sound:
+            self.main_window.error_sound.play()
         wx.MessageBox(
             self.i18n.t("device_logged_out"),
             self.i18n.t("error").format(app_name=self.main_window.app_name),

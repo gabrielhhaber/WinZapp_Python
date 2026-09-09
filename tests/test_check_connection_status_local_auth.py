@@ -71,6 +71,29 @@ def _synchronous_ui(monkeypatch):
     monkeypatch.setattr(connect_module.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
     monkeypatch.setattr(connect_module.wx, "MessageBox", lambda *a, **kw: None)
     monkeypatch.setattr(connect_module.wx, "IsMainThread", lambda: True)
+    # The unpaired branch fires a daemon thread that POSTs close-session.
+    # Today it never leaves the process only by accident: _wpp_headers()
+    # reads main_window.wpp_api_key, which _FakeMainWindow does not have, and
+    # the AttributeError is swallowed by that thread's own try/except before
+    # api_post runs. Giving the fake a wpp_api_key — an entirely plausible
+    # edit — would silently turn these into tests that hit 127.0.0.1:6300.
+    monkeypatch.setattr(connect_module, "api_post",
+                        lambda *a, **kw: _Response(200))
+
+
+def _assert_paired_survives(mw):
+    """`paired` surviving is the load-bearing half of keeping the account.
+
+    Everything protecting this database downstream reads it: with `paired`
+    gone, _handle_local_auth_rejected() (main.py) takes its own
+    `if not ... get("paired")` branch and calls _on_disconnect() with the
+    default wipe=True on the FIRST health-check tick, skipping the whole
+    strike/veto machinery — the database dies ~30 s in instead of surviving.
+    Asserting only clear_local_data_calls would let a refactor that drops
+    the pop("paired") out of this branch keep the suite green.
+    """
+    assert mw.settings["privateinfo"]["paired"] is True
+    assert mw.save_settings_calls == 0
 
 
 class TestCheckConnectionSession401:
@@ -85,6 +108,7 @@ class TestCheckConnectionSession401:
         assert result is True
         assert mw.clear_local_data_calls == 0
         assert mw.set_wa_token_calls == []
+        _assert_paired_survives(mw)
 
     def test_never_paired_account_still_gets_wiped(self, monkeypatch):
         """Nothing to preserve for an account that never finished pairing —
@@ -128,6 +152,7 @@ class TestStatusSessionFallback401:
         assert mw.clear_local_data_calls == 0
         assert mw.set_wa_token_calls == []
         assert calls["n"] == 2
+        _assert_paired_survives(mw)
 
     def test_never_paired_account_is_wiped_by_the_first_branch_already(self, monkeypatch):
         """paired=False never reaches the fallback at all: the

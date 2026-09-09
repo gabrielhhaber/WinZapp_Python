@@ -11,6 +11,9 @@ between a restore point that helps and one that makes things worse:
   needed by the flush;
 * the session must be closed before the profile is touched, or the restore
   overwrites a leveldb while Chrome holds it open;
+* a restore that succeeded has to hand back the QR-flood allowance the burst
+  that triggered it already spent, or the flood halt latches over a profile
+  that was just repaired and nothing ever starts it again;
 * and when there is nothing to restore, the user has to be *told* — this only
   ever happens while already offline, where the connection announcements have
   long since gone quiet.
@@ -53,6 +56,7 @@ class _Stub:
         self.error_sound = types.SimpleNamespace(play=lambda: None)
         self.i18n = types.SimpleNamespace(t=lambda key: key)
         self.db = _MetadataDB()
+        self.profile_released = False
 
     # Bound from the real class: the generation ladder decides *which*
     # snapshot goes back, so a stub that faked it would let the wiring drift
@@ -60,6 +64,12 @@ class _Stub:
     _PROFILE_RECOVERY_GENERATION_KEY = MainWindow._PROFILE_RECOVERY_GENERATION_KEY
     _profile_recovery_generation = MainWindow._profile_recovery_generation
     _set_profile_recovery_generation = MainWindow._set_profile_recovery_generation
+
+    def wait_for_profile_release(self, session_name, timeout=20.0):
+        """Only reached by the tests that let the restore thread run; every
+        other one is refused before this by has_snapshot."""
+        self.profile_released = True
+        return True
 
     def _shutdown_audit(self, msg):
         self.audits.append(msg)
@@ -78,6 +88,19 @@ class _Stub:
 
     def _announce_profile_restored(self):
         MainWindow._announce_profile_restored(self)
+
+
+class _InlineThread:
+    """The restore runs on its own daemon thread in production; nothing here
+    could observe what it did otherwise."""
+
+    def __init__(self, target=None, args=(), kwargs=None, daemon=None, name=None):
+        self._target = target
+        self._args = args
+        self._kwargs = kwargs or {}
+
+    def start(self):
+        self._target(*self._args, **self._kwargs)
 
 
 def _note(stub, status):
@@ -376,3 +399,63 @@ class TestARestoreThatConnectedEarnsAnotherChance:
         for _ in range(5):
             _note(stub, "CLOSED")
             assert MainWindow._recover_suspect_profile(stub) is False
+
+
+class TestASuccessfulRestoreGivesBackTheQrFloodAllowance:
+    """The restore thread's own `self._unattended_qr_events = 0`.
+
+    The burst of QR/pairing codes that brought us here was minted by the
+    profile now moved aside, so counting it against
+    WebSocketClient._UNATTENDED_QR_LIMIT halts a session that is about to be
+    fine — and the halt is the expensive half: _halt_unattended_qr_session()
+    latches _qr_flood_halted, so check_wa_connection_http() never issues
+    another /start-session and the profile just restored is never started at
+    all. The user is left offline with no route back, which is exactly the
+    "worse than the flood" outcome _handle_unattended_qr() describes.
+
+    Reachable in ordinary operation: a paired install's counter normally
+    stands at 1 or 2 by the time the restore lands, because the reset happens
+    behind close-session, wait_for_profile_release and a copy of a few hundred
+    megabytes while codes keep arriving every ~20-30 s.
+    tests/test_qrcode_auto_repair_dialog.py models that timing from the QR
+    side (_FakeMainWindow.finish_restore()); this is the production line it
+    stands in for.
+    """
+
+    @pytest.fixture
+    def restoring(self, monkeypatch):
+        """Everything between the trigger and the reset, made synchronous.
+        Returns a setter for the one outcome the two tests differ on."""
+        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a, **kw: True)
+        monkeypatch.setattr("main.api_post", lambda *a, **kw: None)
+        monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+        monkeypatch.setattr("main.threading.Thread", _InlineThread)
+
+        def _restore_succeeds(restored):
+            monkeypatch.setattr("core.profile_recovery.restore_snapshot",
+                                lambda *a, **kw: restored)
+        return _restore_succeeds
+
+    def test_the_flood_counter_is_cleared_once_the_restore_succeeded(self, restoring):
+        restoring(True)
+        stub = _Stub()
+        stub._unattended_qr_events = 2      # one code short of the halt
+
+        assert MainWindow._recover_suspect_profile(stub) is True
+
+        assert stub.profile_released
+        assert stub._unattended_qr_events == 0
+        assert "profile_restored_from_snapshot" in stub.announced
+
+    def test_a_failed_restore_leaves_the_flood_counter_alone(self, restoring):
+        """Nothing was moved aside, so the codes counted so far are real ones
+        and the ceiling on them has to keep applying — the halt is the only
+        thing that stops WhatsApp being asked for more."""
+        restoring(False)
+        stub = _Stub()
+        stub._unattended_qr_events = 2
+
+        MainWindow._recover_suspect_profile(stub)
+
+        assert stub._unattended_qr_events == 2
+        assert "profile_corrupted_repair_needed" in stub.announced
