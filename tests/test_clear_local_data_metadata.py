@@ -100,6 +100,7 @@ class _Stub:
         self._media_failed_ids = {"3EB0ABC": 1700000000.0}
         self._chat_verified_at = {"5511988887777@s.whatsapp.net": 1700000000}
         self._opened_conversations = {"5511988887777@s.whatsapp.net"}
+        self._verified_activity = {"5511988887777@s.whatsapp.net": 1700000000}
 
         # Backfill/LID state the method already cleared before this change.
         self._sync_run_id = 3
@@ -179,7 +180,12 @@ _METADATA = ("_deleted_chats", "_archived_chats", "_pinned_chats",
              # "Synchronizing WhatsApp…"/"Sync paused" pair on B's own lock
              # screen for a conversation B never opened (issue #108), then
              # _note_conversation_opened() makes A's JIDs durable on B's disk.
-             "_opened_conversations")
+             "_opened_conversations",
+             # Same family and same origin as _chat_verified_at, just never
+             # persisted (issue #201) — inert today only because nothing
+             # currently writes it to disk, so clearing it here keeps it out
+             # of the same leak the moment that changes.
+             "_verified_activity")
 
 
 class TestAnAccountSwitchClearsTheMetadataInMemoryToo:
