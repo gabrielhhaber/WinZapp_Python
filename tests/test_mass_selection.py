@@ -191,6 +191,9 @@ class _Panel:
     _on_mass_pin_failed = ConversationsPanel._on_mass_pin_failed
     _mass_message_targets = ConversationsPanel._mass_message_targets
     _on_accel_copy_message = ConversationsPanel._on_accel_copy_message
+    # Ctrl+C now asks whether a link has focus before anything else.
+    _focused_link_url      = ConversationsPanel._focused_link_url
+    _link_url_for          = ConversationsPanel._link_url_for
     _bulk_shortcuts_enabled = ConversationsPanel._bulk_shortcuts_enabled
     _group_admin_delete_override = ConversationsPanel._group_admin_delete_override
     _is_system_event = staticmethod(ConversationsPanel._is_system_event)
