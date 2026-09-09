@@ -59,7 +59,9 @@ from core.incremental_sync import (
 from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
 from core.send_contract import accepted_message_id
-from core.wpp_runtime import read_homologated_wpp_version
+from core.wpp_runtime import (
+    read_homologated_wpp_version, wppconnect_library_drift, WPPCONNECT_PACKAGE,
+)
 from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
@@ -7688,6 +7690,39 @@ class MainWindow(wx.Frame):
             return ""
 
 
+    def _server_version_below_minimum(self):
+        """(installed, minimum) when the WPPConnect Server itself is too old,
+        else None.
+
+        Worth knowing what this can and cannot see: both numbers come out of
+        the release ZIP — api/package.json's own "version" field and
+        wpp_minimum_version.txt — so an update rewrites the two together and
+        they agree by construction afterwards. This catches an install that
+        has NOT been updated (a server left behind by an older WinZapp, a
+        hand-built api/), never a drift the update itself introduced. That
+        second case is _wppconnect_library_drift()'s, and it is the one that
+        was going unnoticed.
+        """
+        minimum = self._read_wpp_minimum_version()
+        installed = self._get_installed_wpp_version() if minimum else ""
+        if not minimum or not installed:
+            return None  # Nothing pinned, or unreadable — skip silently
+        return (installed, minimum) if self._version_is_below(installed, minimum) else None
+
+    def _wppconnect_library_drift(self):
+        """(installed, pinned) when node_modules holds a wppconnect other than
+        the one api/package.json pins, else None.
+
+        The whole reasoning lives in core/wpp_runtime.wppconnect_library_drift()
+        — this only supplies the api/ path and never lets a failure here stop
+        the server from starting.
+        """
+        try:
+            return wppconnect_library_drift(resource_path("api"))
+        except Exception:
+            logging.exception("[ensure_wpp_version] library drift check failed")
+            return None
+
     @staticmethod
     def _version_is_below(installed: str, minimum: str) -> bool:
         """
@@ -7706,8 +7741,15 @@ class MainWindow(wx.Frame):
 
     def ensure_wpp_version(self):
         """
-        Compare the installed WPPConnect version against the minimum required
-        by this WinZapp build (see _read_wpp_minimum_version()).
+        Two independent checks, either of which offers the same repair:
+
+        * the WPPConnect Server itself older than this build's minimum
+          (_server_version_below_minimum());
+        * node_modules holding a wppconnect other than the one
+          api/package.json pins (_wppconnect_library_drift()) — the drift an
+          update introduces on its own, because the release ZIP ships
+          dist/server.js and package.json but NOT node_modules, and which
+          silently un-patches the pairing-code path.
 
         If the installed version is older the user is prompted to:
           • Update now   — re-download + rebuild via ApiSetupDialog, then continue
@@ -7738,18 +7780,27 @@ class MainWindow(wx.Frame):
         if not os.path.isfile(dist_server):
             return  # API not installed yet — setup dialog will handle it
 
-        minimum  = self._read_wpp_minimum_version()
-        if not minimum:
-            return  # No minimum defined — nothing to check
+        outdated = self._server_version_below_minimum()
+        drifted = self._wppconnect_library_drift()
 
-        installed = self._get_installed_wpp_version()
-        if not installed:
-            return  # Could not determine installed version — skip silently
+        if outdated:
+            installed, minimum = outdated
+        elif drifted:
+            # The server itself is fine; what is wrong is the library it runs
+            # on. Same prompt, same repair — the reinstall runs npm install,
+            # which brings node_modules to the pinned version, and re-applies
+            # the node_modules patches against source they will now match.
+            installed, minimum = drifted
+            logging.warning(
+                "[ensure_wpp_version] node_modules holds %s %s but "
+                "api/package.json pins %s — the compiled-output patches are "
+                "matched against the pinned version's source, so offering the "
+                "reinstall.", WPPCONNECT_PACKAGE, installed, minimum,
+            )
+        else:
+            return  # Server and library both as expected — nothing to do
 
-        if not self._version_is_below(installed, minimum):
-            return  # Installed version meets (or exceeds) the minimum — all good
-
-        # ── Installed version is older than the minimum ───────────────────────
+        # ── Something is older/other than what this build expects ─────────────
         from ui.dialogs.api_version_check import (
             ApiVersionOutdatedDialog,
             RESULT_UPDATE, RESULT_EXIT, RESULT_CONTINUE,
@@ -7782,11 +7833,20 @@ class MainWindow(wx.Frame):
         from core.wpp_runtime import homologated_wpp_tag
         from ui.dialogs.api_setup import ApiSetupDialog
         minimum_tag = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
+        if not minimum_tag and outdated:
+            # Only the server branch may fall back to `minimum` here: it IS a
+            # server version. The library branch's is a wppconnect version
+            # ("2.3.3"), and there is no wppconnect-server release tagged
+            # v2.3.3 — passing it would build a 404 archive URL, the same
+            # failure the comment above describes. With no tag at all,
+            # ApiSetupDialog resolves the latest release itself, which is the
+            # right answer when we cannot name a better one.
+            minimum_tag = f"v{minimum.lstrip('vV')}"
         def _show_update_dlg():
             update_dlg = ApiSetupDialog(
                 self,
                 title_override=self.i18n.t("api_update_dialog_title"),
-                forced_tag=minimum_tag or f"v{minimum.lstrip('vV')}",
+                forced_tag=minimum_tag,
             )
             res = update_dlg.ShowModal()
             update_dlg.Destroy()
