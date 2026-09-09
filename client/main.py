@@ -4584,6 +4584,51 @@ class MainWindow(wx.Frame):
             self._qr_flood_halted = False
             self._auto_offline = False
             self._offline_announce_deferred = False
+            # Re-arm profile recovery in the same event that zeroes the QR
+            # counter above, rather than on the bare status string
+            # _note_status_for_profile_health() used to read for this earlier
+            # in the same poll. createSessionUtil.start() can promote a session to
+            # CONNECTED on its own state listener before isConnected() ever
+            # agrees ("the event wins") — reading the string there re-armed
+            # recovery on a CONNECTED the probe was about to refuse, without
+            # resetting the counter this method only just zeroed above. A
+            # second recovery could then start mid-flood, on an event the
+            # counter had already counted, and the caller (on_qrcode_update())
+            # returns as soon as recovery starts — landing exactly on the
+            # event where seen == _UNATTENDED_QR_LIMIT stops the halt from
+            # ever being evaluated for the rest of that flood, since seen only
+            # grows from there (issue #202). Living here instead means both
+            # only ever happen together, on the one event this method already
+            # treats as the real online transition.
+            # Wrapped, and not defensively: its old home was inside
+            # _note_status_for_profile_health()'s blanket handler AND
+            # check_wa_connection_http()'s own wrapper, whose comment states
+            # the invariant — a bug in a diagnostic must never change the
+            # connection verdict. Here it would: this runs inside the same
+            # try: whose handler ends in _set_wa_connected(False, ...), so a
+            # raise would flip a healthy connection to offline AND abandon
+            # the rest of this branch (offline state, connected sound,
+            # _wa_connect_announced, trigger_sync_if_needed) halfway. The
+            # invariant was structural before the move; this keeps it.
+            #
+            # Only the recovery budget is re-armed here. The generation
+            # ladder stays on the status-string reading in
+            # _note_status_for_profile_health() — see the comment there for
+            # what it would cost to move it.
+            try:
+                if getattr(self, "_profile_recovery_attempted", False):
+                    # A restore that reached here has proved the snapshot
+                    # good, so the once-per-launch budget it spent is earned
+                    # back — see _recover_suspect_profile()'s own docstring
+                    # for the measured case this relaxes (11 s between a
+                    # restored profile connecting and a superseded session
+                    # start force-killing its browser).
+                    logging.info("[profile-recovery] the restored profile "
+                                 "connected — allowing another recovery if it "
+                                 "breaks again this launch.")
+                    self._profile_recovery_attempted = False
+            except Exception:
+                logging.exception("[profile-recovery] re-arm failed (non-fatal)")
             self._apply_offline_state()
             logging.info("[connection] WhatsApp connection is up (%s)", reason or "checked")
             # Earliest moment /send-capabilities can answer anything: the
@@ -8899,30 +8944,33 @@ class MainWindow(wx.Frame):
                 from core.profile_recovery import ProfileHealthTracker
                 tracker = self._profile_health = ProfileHealthTracker()
             paired = bool(self.settings.get("privateinfo", {}).get("paired"))
-            if (status or "").upper() == "CONNECTED":
-                if self._profile_recovery_generation():
-                    # Whatever was put back is working. The ladder starts over,
-                    # so a future break restores the newest snapshot first again.
-                    self._set_profile_recovery_generation(0)
-                if getattr(self, "_profile_recovery_attempted", False):
-                    # A restore that reached CONNECTED has proved the snapshot
-                    # good, so the once-per-launch budget it spent is earned
-                    # back. Measured live: a restore connected and began
-                    # syncing at 00:55:51, a superseded session start
-                    # force-killed its browser 11 s later, and the relaunch
-                    # found a profile WhatsApp then logged out of — with the
-                    # only recovery of the launch already spent, so the user
-                    # was sent to the pairing dialog with a good snapshot
-                    # still sitting on disk.
-                    #
-                    # The bound this relaxes exists to stop a restore loop on a
-                    # snapshot that does not work. One that connected is not
-                    # that snapshot, and nothing here can loop without a
-                    # CONNECTED in between.
-                    logging.info("[profile-recovery] the restored profile "
-                                 "connected — allowing another recovery if it "
-                                 "breaks again this launch.")
-                    self._profile_recovery_attempted = False
+            # Only HALF of what used to happen here moved out. Clearing
+            # _profile_recovery_attempted went to _set_wa_connected()'s own
+            # "connection just came back up" branch, because this status
+            # string alone does not mean the live isConnected() probe agrees,
+            # and re-arming the recovery budget on it regardless let a second
+            # recovery start mid QR-flood on an event the flood counter had
+            # already counted (issue #202).
+            #
+            # The generation ladder deliberately stays. It never interacts
+            # with _unattended_qr_events at all — it only chooses WHICH
+            # snapshot a restore reaches for — so #202's argument does not
+            # reach it, and moving it costs a property it depends on. It is
+            # re-asserted on every CONNECTED poll rather than once per
+            # transition, which is what lets it self-heal on a launch where
+            # the write could not land: a manual re-pair completes inside
+            # Connect.show_connection_dial(), which runs BEFORE
+            # prepare_sync() opens the database, so the write
+            # _set_profile_recovery_generation() would do there is a silent
+            # no-op (see its own db guard) — and a transition-only reset
+            # never runs again for the rest of that launch, leaving a stale
+            # ladder to send the next break at a day-old .prev snapshot
+            # instead of the newest one. Idempotent and cheap, so paying for
+            # it every poll is the right trade.
+            if (status or "").upper() == "CONNECTED" and self._profile_recovery_generation():
+                # Whatever was put back is working. The ladder starts over,
+                # so a future break restores the newest snapshot first again.
+                self._set_profile_recovery_generation(0)
             if tracker.note_status(status, paired=paired):
                 self._recover_suspect_profile()
         except Exception:
