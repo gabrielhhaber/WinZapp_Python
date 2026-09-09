@@ -231,3 +231,41 @@ class TestTheFlushPollWaitsOutClosing:
         timeout_line = next(l for l in stub.audit if "flush TIMEOUT" in l)
         assert "0.1s" in timeout_line
         assert "15.0s" not in timeout_line
+
+
+class TestClosingAQrcodeSessionAlsoAsksFirst:
+    """A QRCODE/notLogged status does not mean there is nothing to lose.
+
+    That is exactly what a *paired* install reports once its Chrome profile has
+    stopped being accepted — and the close-session handler's fast path
+    force-killed the browser there, SIGKILLing a Chrome holding WhatsApp Web's
+    IndexedDB open. The comment above it said CONNECTED/open are closed
+    gracefully "to preserve LevelDB pairing state", which is the right instinct
+    applied to the wrong half of the condition.
+    """
+
+    @staticmethod
+    def _source():
+        return PATCHED_CONTROLLER.read_text(encoding="utf-8")
+
+    def _fast_path(self):
+        src = self._source()
+        return src[src.index("Force killing session because status is"):][:800]
+
+    def test_the_force_kill_path_is_awaited(self):
+        """The slot is cleared on the next line, so a fire-and-forget close
+        would race its own lookup of the client."""
+        assert "await SessionUtil.forceKillSession(" in self._fast_path()
+
+    def test_the_client_is_handed_over_explicitly(self):
+        assert "forceKillSession(session, req.logger, client" in self._fast_path()
+
+    def test_it_stays_inside_winzapps_own_post_budget(self):
+        """_WPP_GRACEFUL_STOP_SECONDS is 10s; the graceful attempt has to
+        answer first or WinZapp times out the POST and kills Node anyway."""
+        assert "5000" in self._fast_path()
+
+    def test_a_close_that_already_failed_is_not_asked_twice(self):
+        src = self._source()
+        for marker in ("did not settle in 8s", "Error during req.client.close()"):
+            assert "undefined, false" in src[src.index(marker):][:700]
