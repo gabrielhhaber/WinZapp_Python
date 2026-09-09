@@ -11864,16 +11864,19 @@ class MainWindow(wx.Frame):
         cheap by then: an empty database and two empty directories.
 
         The second pass takes ``previous_digits`` for the reason the first
-        one does not have to. By the time it runs the key already names the new
-        account — the first pass recorded it — so a wipe that empties nothing
-        here (this thread is a daemon too, and the shutdown does not wait for
-        it either) would leave that name standing over the rows the
-        contaminated round committed while it was exiting: an account switch
-        left half done with nothing able to see it any more, since every later
-        pass compares the key against the linked phone and finds them equal.
-        Handing the previous number back down keeps the key describing whichever
-        account the messages on disk belong to, which is the invariant the whole
-        check is written around.
+        one does not have to. Whenever the first pass got as far as recording
+        the new account, this one starts with the key naming it — so a wipe
+        that empties nothing here (this thread is a daemon too, and the
+        shutdown does not wait for it either) would leave that name standing
+        over the rows the contaminated round committed while it was exiting:
+        an account switch left half done with nothing able to see it any more,
+        since every later pass compares the key against the linked phone and
+        finds them equal. Handing the previous number back down keeps the key
+        describing whichever account the messages on disk belong to, which is
+        the invariant the whole check is written around. When the first pass
+        emptied nothing, the key never moved off the previous account and the
+        `!=` guard skips the write instead — nothing here is conditional on
+        that pass having succeeded, and neither is this one running at all.
 
         _initial_sync_running is retaken after the join because the round we
         waited for cleared it in its own finally, and the loop exists for the
