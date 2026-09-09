@@ -8454,12 +8454,18 @@ class MainWindow(wx.Frame):
         It does not, and the distinction is worth keeping straight. That
         grace protects the USER from acting on one reading — the re-pairing
         dialog that wipes history — and says nothing about whether the code
-        is real. By the time any code exists, it has come through catchQR (a
-        QR event) or through loginByCode's own auth-state gate (a pairing
-        code — on a session started with a phone number, host.layer.js never
-        registers catchQR at all), and both proceed only once getQrCode()
-        has returned a urlCode: wa-js hands one out only while unpaired and
-        not authenticated, so the stored auth has already failed to restore.
+        is real. By the time any code exists, it has come through one of two
+        routes, and each proves the same thing by its own means. A QR event
+        reaches catchQR only once getQrCode() returned a urlCode, and that
+        urlCode *is* the code. A pairing code — on a session started with a
+        phone number, host.layer.js never registers catchQR at all — is minted
+        by WPP.conn.startLinkDeviceCodeForPhoneNumber() behind loginByCode's
+        own gate, which is a wait for WhatsApp Web's auth state (probed
+        through getQrCode(), but as a readiness check; the urlCode is thrown
+        away and is not the code) and which returns without minting anything
+        the moment needsToScan() says the session is registered. wa-js
+        produces neither while paired and authenticated, so on either route
+        the stored auth has already failed to restore.
         Reaching _UNATTENDED_QR_LIMIT codes inside that window is stronger
         evidence than the two readings the dialog itself asks for, so the
         halt stays deliberately outside the grace.

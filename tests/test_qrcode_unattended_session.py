@@ -84,9 +84,11 @@ class _FakeConnect:
         # than production ever reaches it.
         #
         # It does NOT mirror the other half: the real dialog is modal, so in
-        # production every later code is attended and the counter is reset by
-        # _pairing_attended() on each one. Here it keeps counting after the
-        # call. No test relies on that difference today — the dismissal tests
+        # production every later code is attended and _update_ui() zeroes the
+        # counter on each one, before any branch runs (websocket_client.py) —
+        # _pairing_attended() is only the condition it tests, never the thing
+        # that writes. Here it keeps counting after the call.
+        # No test relies on that difference today — the dismissal tests
         # model a dialog already closed — but a test that opens the dialog and
         # then expects production's counts must set _pairing_dialog_active
         # itself.
