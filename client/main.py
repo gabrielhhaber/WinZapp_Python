@@ -11513,24 +11513,25 @@ class MainWindow(wx.Frame):
 
         The write comes last on purpose, and only happens when the wipe really
         emptied the database. If the process is killed mid-wipe (this runs on a
-        daemon thread, and the shutdown does not wait for it), one of two states
-        survives and neither of them merges the accounts. Either the emptying
-        landed — clear_local_data() commits it before it drops the recorded
-        number and before it starts deleting files — and what is left is an
-        empty database plus orphaned media of the previous number, plus, if the
-        kill landed before that drop, a key that still names it; or it never
-        landed (no database open yet, or the DatabaseBridgeTimeout/Closed a
-        shutdown mid-wipe raises, swallowed there by design), and then that drop
-        and the write here are both skipped, so the key still names the previous
-        number while its messages are still on disk — on the first pass because
-        nothing ever moved it, on the second, when the first pass got as far as
-        recording the new number, because _apply_another_number_wipe() writes it
-        back there before it starts deleting anything (and when it did not, the
-        first reason covers the second pass too: the key never left the previous
-        number, and the guard on that write skips it). Either way the next pass or
-        the next pairing reads the same divergence and finishes the job, which is
-        why a partial wipe is self-healing and does not need the app's shutdown
-        to wait for this thread.
+        daemon thread, and the shutdown does not wait for it), the key still
+        names the previous number in every reachable state, so the next pass or
+        the next pairing always reads the same divergence and finishes the job.
+        clear_local_data() commits the database emptying first, THEN sweeps
+        media/ and voice_messages/, and only after both of those does it drop
+        the recorded number — deliberately in that order, because a media sweep
+        that ran after the drop used to leave orphaned files with nothing left
+        able to see them once the key was already gone (issue #200: the
+        divergence check that would otherwise clean them up never fires again
+        once the key no longer names the account they belong to). With the
+        sweep moved ahead of the drop, a kill between the two leaves the key
+        still armed and the media already gone — self-healing, not orphaning:
+        the next pass re-detects the divergence, finds the database and media
+        already empty (both idempotent no-ops), and drops the key. A kill
+        before the sweep leaves the key armed and the media still on disk,
+        which the next pass sweeps and then drops as normal. Either way the
+        key is never left naming an account whose database or media a kill
+        left non-empty, which is what makes a partial wipe self-healing and
+        lets this thread's shutdown go unwaited.
 
         Mid-session there is almost always a sync already in flight when this
         starts, claim or no claim — it was started synchronously by the event
@@ -14468,57 +14469,24 @@ class MainWindow(wx.Frame):
         except Exception as e:
             logging.error(f"[clear_local_data] Failed to clear database: {e}")
 
-        if wipe_metadata and db_emptied:
-            # The number this data belonged to. The invariant the divergence
-            # check is written around is that the key describes what is on
-            # disk, and six call sites in connect.py wipe through here without
-            # ever having heard of it — leaving the key naming an account whose
-            # database no longer exists, which reads as "no divergence" the
-            # next time somebody else's phone pairs. _on_disconnect(wipe=False)
-            # deliberately does not come through here, so the armed case stays
-            # armed. _wipe_local_data_if_another_number_linked() rewrites it
-            # immediately after its own call.
-            #
-            # Dropped down here, after the database has actually been emptied,
-            # rather than with the rest of the in-memory wipe above. A process
-            # killed between the two is routine — 17 of the 159 launches in one
-            # field shutdown_audit.log ended with no _stop_wpp_server line at
-            # all — and killed with the key already gone while the messages were
-            # still on disk, the next launch has nothing to compare against,
-            # takes the "learn this number, delete nothing" branch, and lets
-            # account B merge onto account A: the merge this key exists to
-            # prevent, disarmed by its own cleanup. The other order costs
-            # nothing — a key naming a database that is already empty is read as
-            # a divergence and wipes an empty database a second time.
-            #
-            # And only when the database really was emptied, which is why
-            # db_emptied is a variable and not just the `if` above. self.db
-            # exists from prepare_sync() onwards, and all six connect.py call
-            # sites run before that, inside __init__'s connection dialog: there
-            # the write is skipped entirely and every message of the previous
-            # account stays in messages.db (the divergence check's own docstring
-            # says so). save_full_state() can also raise DatabaseBridgeTimeout/
-            # Closed, which is swallowed right above. Either way the key is
-            # still describing what is on disk, so it has to stay armed for the
-            # check after prepare_sync() to act on — dropping it there is the
-            # kill window above without the kill. The account-switch path is
-            # unaffected: _apply_another_number_wipe() rewrites the key
-            # immediately after its own call.
-            privateinfo = getattr(self, "settings", {}).get("privateinfo")
-            if (isinstance(privateinfo, dict)
-                    and privateinfo.pop("WA_phone_number_linked", None) is not None):
-                # Saved here rather than left to the caller: most of those six
-                # call sites never save at all, and a key that survives in
-                # settings.json is exactly as wrong as one that survives in
-                # memory — the next launch reads it straight back.
-                try:
-                    self.save_settings()
-                except Exception:
-                    logging.exception(
-                        "[clear_local_data] Could not persist dropping the "
-                        "recorded linked number.")
-
-        # Clear local downloaded media files to prevent cross-account leakage
+        # Clear local downloaded media files to prevent cross-account leakage.
+        # Swept here — after the database is emptied above, but BEFORE the
+        # WA_phone_number_linked key is dropped below — deliberately, not
+        # left in its previous position after the key drop (issue #200). A
+        # process killed anywhere in the account-switch window is routine: 17
+        # of the 159 launches in one field shutdown_audit.log ended with no
+        # _stop_wpp_server line at all. Swept after the key drop, a kill
+        # between the two left the key already gone with the previous
+        # account's media still on disk — the next launch's "learn this
+        # number, delete nothing" branch (see below) is exactly the one that
+        # never comes back to clean orphaned media up, since a database with
+        # nothing in it never trips the divergence check again. Swept first,
+        # as here, a kill in the same spot instead leaves the key still
+        # naming the previous account, so the next launch detects the
+        # divergence and repeats this whole method — re-sweeping an
+        # already-empty media/voice_messages (a per-file no-op, each entry
+        # already missing) before reaching the key drop again. Nothing is
+        # ever orphaned; at worst one redundant pass runs on the next launch.
         for subdir in ("media", "voice_messages"):
             path = data_path(subdir)
             if not os.path.exists(path):
@@ -14558,13 +14526,67 @@ class MainWindow(wx.Frame):
             else:
                 logging.info(f"[clear_local_data] Cleared folder: {subdir}")
 
-        # Returned after the media sweep, and the sweep is deliberately not
-        # gated on db_emptied: media/ and voice_messages/ are cleared either
-        # way. So a False answer describes a middle state neither this method's
-        # callers nor the divergence check's docstrings otherwise name, and it
-        # is the one that turns up in a field report — the previous account's
-        # rows still in messages.db, its media and voice notes already gone from
-        # disk, and, on the account-switch path, the user already told out loud
+        if wipe_metadata and db_emptied:
+            # The number this data belonged to. The invariant the divergence
+            # check is written around is that the key describes what is on
+            # disk, and six call sites in connect.py wipe through here without
+            # ever having heard of it — leaving the key naming an account whose
+            # database no longer exists, which reads as "no divergence" the
+            # next time somebody else's phone pairs. _on_disconnect(wipe=False)
+            # deliberately does not come through here, so the armed case stays
+            # armed. _wipe_local_data_if_another_number_linked() rewrites it
+            # immediately after its own call.
+            #
+            # Dropped down here, after both the database has actually been
+            # emptied AND the previous account's media has been swept above
+            # (issue #200), rather than with the rest of the in-memory wipe
+            # higher up. A process killed between the two is routine — 17 of
+            # the 159 launches in one field shutdown_audit.log ended with no
+            # _stop_wpp_server line at all — and killed with the key already
+            # gone while the messages were still on disk, the next launch has
+            # nothing to compare against, takes the "learn this number,
+            # delete nothing" branch, and lets account B merge onto account
+            # A: the merge this key exists to prevent, disarmed by its own
+            # cleanup. The other order costs nothing — a key naming a
+            # database that is already empty (and media that is already
+            # swept) is read as a divergence and wipes both a second time,
+            # harmlessly.
+            #
+            # And only when the database really was emptied, which is why
+            # db_emptied is a variable and not just the `if` above. self.db
+            # exists from prepare_sync() onwards, and all six connect.py call
+            # sites run before that, inside __init__'s connection dialog: there
+            # the write is skipped entirely and every message of the previous
+            # account stays in messages.db (the divergence check's own docstring
+            # says so). save_full_state() can also raise DatabaseBridgeTimeout/
+            # Closed, which is swallowed right above. Either way the key is
+            # still describing what is on disk, so it has to stay armed for the
+            # check after prepare_sync() to act on — dropping it there is the
+            # kill window above without the kill. The account-switch path is
+            # unaffected: _apply_another_number_wipe() rewrites the key
+            # immediately after its own call.
+            privateinfo = getattr(self, "settings", {}).get("privateinfo")
+            if (isinstance(privateinfo, dict)
+                    and privateinfo.pop("WA_phone_number_linked", None) is not None):
+                # Saved here rather than left to the caller: most of those six
+                # call sites never save at all, and a key that survives in
+                # settings.json is exactly as wrong as one that survives in
+                # memory — the next launch reads it straight back.
+                try:
+                    self.save_settings()
+                except Exception:
+                    logging.exception(
+                        "[clear_local_data] Could not persist dropping the "
+                        "recorded linked number.")
+
+        # Returned after both the database clear and the media sweep (the
+        # sweep is deliberately not gated on db_emptied: media/ and
+        # voice_messages/ are cleared either way). A False answer means
+        # self.db didn't exist yet or save_full_state() raised — the key
+        # above was therefore deliberately left in place (see its own
+        # comment), so the previous account's rows are still in messages.db
+        # even though its media and voice notes are already gone from disk
+        # and, on the account-switch path, the user already told out loud
         # that those conversations were deleted. The list therefore comes back
         # holding chats whose attachments no longer resolve locally and cannot
         # be fetched again either, since the session now belongs to the other
