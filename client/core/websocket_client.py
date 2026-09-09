@@ -200,42 +200,38 @@ class WebSocketClient:
     # line the fake there stands in for.
     #
     # Once per recovery, and a launch is no longer bounded to one of those:
-    # _recover_suspect_profile() latches, but a session reporting CONNECTED
-    # hands that latch straight back (main.py's
-    # _note_status_for_profile_health() — a snapshot that connected has
-    # proved itself and may be restored again if it breaks later in the same
-    # run). It still does not widen this window, because the CONNECTED
-    # reading that re-arms the recovery is the same one
-    # _set_wa_connected(True, ...) acts on, and that zeroes this counter and
-    # clears the halt latch anyway: the second allowance can only ever be
-    # spent on a second flood, which had its own full ceiling regardless.
-    # The one seam is that the re-arm reads the status string alone while the
-    # counter reset also needs the live isConnected() probe to agree, so a
-    # CONNECTED the probe refuses gives the recovery back without giving the
-    # counter back. KNOWN, not fixed here, and written out because the cost is
-    # not the extra codes it was found for.
+    # _recover_suspect_profile() latches, but a connection that comes back up
+    # hands that latch straight back (main.py's _set_wa_connected() — a
+    # snapshot that connected has proved itself and may be restored again if
+    # it breaks later in the same run). That does not widen this window: the
+    # re-arm now lives in the same branch as this counter's own
+    # `self._unattended_qr_events = 0`, so the two are one event by
+    # construction, and the second allowance can only ever be spent on a
+    # second flood, which had its own full ceiling regardless.
     #
-    # A second recovery can therefore start mid-flood, on an event the counter
-    # has already counted — and _handle_unattended_qr() returns the moment it
-    # starts (`if mw._recover_suspect_profile(...): return`, above the halt).
-    # If that lands on the very event where `seen` reached
-    # _UNATTENDED_QR_LIMIT, the halt is not postponed: it stops being
-    # evaluated at all, because the test there is `==` and `seen` only grows
-    # from there. The only thing that makes it reachable again is a zeroing,
-    # and the only zeroing on this path is the restore succeeding — which
-    # restarts the count from 0 and pays the whole ceiling over again, rather
-    # than halting. A restore that starts and then fails never gets even that.
-    # What bounds the damage is the dialog: the branch that call sits in has
-    # already cleared the startup grace and this counter, so the next code
-    # takes the refusal straight into _show_repair_dialog() and the flood ends
-    # there. Same order of magnitude as the allowance above, which is why it
-    # is an issue and not a blocker.
+    # It used to live on the bare status string in
+    # _note_status_for_profile_health(), which is a weaker reading — the live
+    # isConnected() probe had not agreed yet. A CONNECTED the probe went on
+    # to refuse gave the recovery back without giving the counter back, so a
+    # second recovery could start mid-flood on an event the counter had
+    # already counted; _handle_unattended_qr() returns the moment one starts
+    # (`if mw._recover_suspect_profile(...): return`, above the halt), and
+    # landing on the very event where `seen` reached _UNATTENDED_QR_LIMIT
+    # stopped the halt being evaluated at all rather than postponing it,
+    # because that test is `==` and `seen` only grows. Fixed in #209 by
+    # moving the re-arm to the probe-agreeing branch; the seam this paragraph
+    # describes is closed, and the paragraph is kept because the shape is
+    # worth recognising if either half is ever moved again.
     #
-    # The fix that works is to move the re-arm into _set_wa_connected()
-    # (main.py), beside its own `self._unattended_qr_events = 0`: it runs on
-    # the same poll, right after the probe has agreed, making the re-arm and
-    # the reset one event — which is the property this comment already claims.
-    # Gating the re-arm on _wa_connected instead is the obvious alternative
+    # Note what did NOT move with it: the generation ladder
+    # (_profile_recovery_generation, which chooses WHICH snapshot a restore
+    # reaches for) still resets on the status-string reading, deliberately —
+    # it never interacts with this counter, and it needs to be re-asserted on
+    # every poll rather than once per transition to survive a launch whose
+    # pairing completes before prepare_sync() has opened the database. See
+    # main.py's comment at that call site.
+    #
+    # Gating the re-arm on _wa_connected instead was the obvious alternative
     # and does not work: it delays the recovery by a whole poll (~30 s) and
     # breaks the case it was added for — _note_status_for_profile_health()
     # measured 11 s between a restored profile connecting and a superseded

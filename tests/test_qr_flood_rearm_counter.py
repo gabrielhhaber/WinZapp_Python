@@ -45,6 +45,14 @@ class _I18n:
         return key
 
 
+class _BoomOnBool:
+    """Raises when the re-arm tests it, standing in for any failure inside
+    the wrapped block."""
+
+    def __bool__(self):
+        raise RuntimeError("diagnostic is broken")
+
+
 class _Stub:
     # The first confirmed connection of a session also kicks off the
     # send-capabilities probe on a background thread — real HTTP, and not
@@ -162,13 +170,49 @@ class TestTheRearmAndTheCounterResetTogether:
         assert s._unattended_qr_events == 0
         assert s._profile_recovery_attempted is False
 
-    def test_the_generation_ladder_resets_alongside_them_too(self):
+    def test_the_generation_ladder_is_deliberately_left_behind(self):
+        """Only the recovery BUDGET moved here. The generation ladder — which
+        chooses WHICH snapshot a restore reaches for — stays on the
+        status-string reading in _note_status_for_profile_health(), and this
+        pins that on purpose rather than by omission.
+
+        #202 is about the budget racing the flood counter. The ladder never
+        touches _unattended_qr_events at all, so that argument does not reach
+        it — and moving it costs a property it depends on: it has to be
+        re-asserted on EVERY CONNECTED poll, not once per transition. A manual
+        re-pair completes inside Connect.show_connection_dial(), which runs
+        before prepare_sync() opens the database, so the write here would be a
+        silent no-op (_set_profile_recovery_generation() guards on self.db) —
+        and with a transition-only reset nothing would clear it again for the
+        rest of that launch, sending the next break at a day-old .prev
+        snapshot instead of the newest one. See
+        TestTheLadderStillResetsOnTheStatusReading below for the other half.
+        """
         s = _Stub()
         s._recovery_generation = 2
 
         s._set_wa_connected(True, "status-session CONNECTED")
 
-        assert s._recovery_generation == 0
+        assert s._recovery_generation == 2
+        # ...while the two that DID move still fire on this same event.
+        assert s._profile_recovery_attempted is False
+        assert s._unattended_qr_events == 0
+
+    def test_a_broken_generation_read_cannot_take_the_connection_offline(self):
+        """The block is wrapped because its old home was wrapped twice — a bug
+        in a diagnostic must never change the connection verdict. Here it
+        would: this runs inside check_wa_connection_http()'s try, whose
+        handler ends in _set_wa_connected(False, ...)."""
+        s = _Stub()
+
+        s._profile_recovery_attempted = _BoomOnBool()
+
+        s._set_wa_connected(True, "status-session CONNECTED")
+
+        # Reached the rest of the branch regardless.
+        assert s._unattended_qr_events == 0
+        assert s._wa_connected is True
+
 
     def test_a_disagreeing_probe_then_a_later_agreeing_one_only_rearms_once_it_agrees(self):
         """The realistic sequence: the flood carries on across a couple of
@@ -209,3 +253,93 @@ class TestTheRearmAndTheCounterResetTogether:
         s._set_wa_connected(True, "status-session CONNECTED (re-poll)")
 
         assert s._unattended_qr_events == 5  # untouched: early return, not a reset
+
+
+class TestTheLadderStillResetsOnTheStatusReading:
+    """The other half of the split: the generation ladder stays in
+    _note_status_for_profile_health(), re-asserted on every CONNECTED poll.
+
+    Moving it into _set_wa_connected() alongside the budget looks tidier and
+    is wrong. That block sits below a no-change early return, so it only runs
+    on a real False->True transition — and the one transition every manual
+    re-pair goes through happens inside Connect.show_connection_dial(), which
+    MainWindow.__init__ calls BEFORE prepare_sync() opens the database. The
+    write would find no self.db, no-op silently, and never be attempted again
+    for the rest of that launch: a stale ladder then sends the next break at
+    the .prev snapshot — up to a day older — instead of the newest one.
+    """
+
+    class _HealthStub:
+        def __init__(self, generation=0, db=object()):
+            from main import MainWindow
+            self._note_status_for_profile_health = (
+                MainWindow._note_status_for_profile_health.__get__(self))
+            self.settings = {"privateinfo": {"paired": True}}
+            self.db = db
+            self._generation = generation
+            self.generation_writes = []
+            self.recover_calls = 0
+
+        def _profile_recovery_generation(self):
+            # The real one answers 0 when there is no database to read.
+            return self._generation if self.db is not None else 0
+
+        def _set_profile_recovery_generation(self, value):
+            # The real one is a no-op without a database — that is the whole
+            # point of this test.
+            if self.db is None:
+                return
+            self._generation = value
+            self.generation_writes.append(value)
+
+        def _recover_suspect_profile(self, *a, **kw):
+            self.recover_calls += 1
+            return True
+
+    def test_a_connected_reading_clears_a_stale_ladder(self):
+        s = self._HealthStub(generation=2)
+
+        s._note_status_for_profile_health("CONNECTED")
+
+        assert s._generation == 0
+        assert s.generation_writes == [0]
+
+    def test_every_poll_re_asserts_it_not_just_the_first(self):
+        """The property a transition-only reset would lose."""
+        s = self._HealthStub(generation=1)
+
+        s._note_status_for_profile_health("CONNECTED")
+        s._generation = 1          # something armed it again mid-launch
+        s._note_status_for_profile_health("CONNECTED")
+
+        assert s._generation == 0
+        assert s.generation_writes == [0, 0]
+
+    def test_a_ladder_already_at_zero_is_not_rewritten(self):
+        s = self._HealthStub(generation=0)
+
+        s._note_status_for_profile_health("CONNECTED")
+
+        assert s.generation_writes == []
+
+    def test_a_non_connected_reading_leaves_it_alone(self):
+        s = self._HealthStub(generation=2)
+
+        s._note_status_for_profile_health("CLOSED")
+
+        assert s._generation == 2
+
+    def test_the_pairing_launch_that_has_no_database_yet_recovers_next_poll(self):
+        """The failure a transition-only reset would make permanent: pairing
+        completes before prepare_sync(), so this write cannot land — and
+        because this path runs on EVERY poll, the one after the database
+        opens finishes the job."""
+        s = self._HealthStub(generation=2, db=None)
+
+        s._note_status_for_profile_health("CONNECTED")
+        assert s._generation == 2          # nothing could be written yet
+
+        s.db = object()                    # prepare_sync() has now run
+        s._note_status_for_profile_health("CONNECTED")
+
+        assert s._generation == 0
