@@ -8735,8 +8735,40 @@ class MainWindow(wx.Frame):
                 wx.CallAfter(self._announce_profile_beyond_repair)
                 if on_give_up is not None:
                     wx.CallAfter(on_give_up)
+            finally:
+                # Released only once the profile is back in place, so the very
+                # next health poll starts a session on the restored profile
+                # rather than on the broken one.
+                self._recovery_restart_active = False
 
-        threading.Thread(target=_restore, daemon=True).start()
+        # This sequence is a close/kill/restore cycle that owns the browser and
+        # the profile for as long as it runs — up to ~25 s of it spent inside
+        # wait_for_profile_release() while Chrome still holds the directory.
+        # It is exactly what _recovery_restart_active exists to announce, and
+        # not setting it cost a session on 2026-09-09: the 30 s health poll
+        # landed 14 s in, read CLOSED, and fired its own /start-session into a
+        # profile that was still locked. That start failed with "The browser is
+        # already running", which (before the createSessionUtil.ts fix that
+        # ships with this change) left the session wedged in INITIALIZING for
+        # good — so the restore completed onto a profile nothing could start
+        # any more, and the app sat offline in silence until it was restarted
+        # by hand.
+        #
+        # Setting it also makes _self_inflicted_teardown_expected() true for
+        # the duration, which is correct on its own terms: the close-session
+        # above is ours, so the CLOSED/loggedOut readings that follow it are
+        # the expected result of this call and not WhatsApp unlinking the
+        # device. And _yield_to_in_progress_self_restart() will now give a quit
+        # landing mid-restore a few seconds to let the profile finish being put
+        # back, instead of tearing down on top of a half-copied leveldb.
+        self._recovery_restart_active = True
+        try:
+            threading.Thread(target=_restore, daemon=True).start()
+        except Exception:
+            # A flag nobody clears blocks every future auto-start for the life
+            # of the process — worse than the race it guards against.
+            self._recovery_restart_active = False
+            raise
         return True
 
     _PROFILE_RECOVERY_GENERATION_KEY = "profile_recovery_generation"
