@@ -11436,9 +11436,11 @@ class MainWindow(wx.Frame):
         shutdown mid-wipe raises, swallowed there by design), and then that drop
         and the write here are both skipped, so the key still names the previous
         number while its messages are still on disk — on the first pass because
-        nothing ever moved it, on the second because _apply_another_number_wipe()
-        writes it back there before it starts deleting anything, the first pass
-        having already recorded the new number by then. Either way the next pass or
+        nothing ever moved it, on the second, when the first pass got as far as
+        recording the new number, because _apply_another_number_wipe() writes it
+        back there before it starts deleting anything (and when it did not, the
+        first reason covers the second pass too: the key never left the previous
+        number, and the guard on that write skips it). Either way the next pass or
         the next pairing reads the same divergence and finishes the job, which is
         why a partial wipe is self-healing and does not need the app's shutdown
         to wait for this thread.
@@ -11638,10 +11640,13 @@ class MainWindow(wx.Frame):
         to. The direct caller can hand it over for free — it read exactly that
         value to decide there was a divergence at all — and
         _restart_sync_after_another_number_wipe() carries it down to the second
-        pass, which is the one that needs it: by then the first pass has
-        already recorded the new number, so a second pass that empties nothing
-        would leave the key naming the new account over rows the contaminated
-        round committed on its way out.
+        pass, which is the one that needs it: when the first pass got as far as
+        recording the new number, a second pass that empties nothing would
+        otherwise leave the key naming the new account over rows the
+        contaminated round committed on its way out. Nothing conditions that
+        second pass on the first having succeeded, and the `!=` guard covers
+        that case for free — a first pass that recorded nothing left the key on
+        the previous number, so the write is skipped.
 
         The number is recorded last, after the wipe rather than before it,
         and only when the wipe really emptied the database:
@@ -11651,9 +11656,6 @@ class MainWindow(wx.Frame):
         fill. When it emptied nothing, the key simply stays on the previous
         number — see the branch below.
         """
-        if teardown_ui:
-            self._teardown_conversation_ui()
-
         privateinfo = self.settings.setdefault("privateinfo", {})
         if (previous_digits
                 and privateinfo.get("WA_phone_number_linked") != previous_digits):
@@ -11689,6 +11691,17 @@ class MainWindow(wx.Frame):
             # full sync it starts after this.
             privateinfo["WA_phone_number_linked"] = previous_digits
             self.save_settings()
+
+        # After the re-arming above, never before it: _teardown_conversation_ui()
+        # ends in a 5 s ui_ready.wait(), and the case that spends all five is
+        # the very one this key protects against — the user closing WinZapp, so
+        # the MainLoop dies, the wx.CallAfter is never dispatched, and the
+        # shutdown does not wait for this daemon thread. Torn down first, that
+        # was five seconds of the second pass with the key naming the new
+        # account over rows the contaminated round had committed, and a process
+        # killed inside it leaves no divergence for any later pass to find.
+        if teardown_ui:
+            self._teardown_conversation_ui()
 
         if not self.clear_local_data():
             # The wipe emptied no database, and clear_local_data() swallows the
@@ -14330,6 +14343,22 @@ class MainWindow(wx.Frame):
             # chat out of select_stale_rechecks() for a full
             # _STALE_RECHECK_AFTER.
             self._chat_verified_at = {}
+            # Which conversations the user opened — the gate on asking the
+            # PHONE for older history, and the one collection here whose
+            # leftovers the user of the new account can see, on their own
+            # device. Reached exactly like the two above: prepare_sync() loads
+            # opened_conversations_v1 into RAM, so emptying the table left
+            # account A's JIDs live here, and _backfill_empty_chats() read
+            # _user_has_opened() as True for a contact both accounts have and
+            # sent request_older_messages() for a conversation B's user never
+            # opened — the lock-screen "Synchronizing WhatsApp with Google
+            # Chrome (Windows)…" followed by "Sync paused", which is issue
+            # #108 all over again. Worse, _note_conversation_opened() writes
+            # the whole set back on the first conversation B opens, so A's
+            # JIDs become durable on B's disk; and _forget_history_exhaustion()
+            # above hands B the full _MAX_PHONE_HISTORY_REQUESTS budget to
+            # spend on them.
+            self._opened_conversations = set()
             # Media whose CDN URL answered 403/410, keyed by message id. Same
             # family as everything above and the last member of it: the ids
             # belong to the previous account's messages, and the file outlives

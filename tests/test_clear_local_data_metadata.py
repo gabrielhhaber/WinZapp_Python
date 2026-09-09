@@ -99,6 +99,7 @@ class _Stub:
         self._older_requested_chats = {"5511988887777@s.whatsapp.net": 1700000000.0}
         self._media_failed_ids = {"3EB0ABC": 1700000000.0}
         self._chat_verified_at = {"5511988887777@s.whatsapp.net": 1700000000}
+        self._opened_conversations = {"5511988887777@s.whatsapp.net"}
 
         # Backfill/LID state the method already cleared before this change.
         self._sync_run_id = 3
@@ -171,7 +172,14 @@ _METADATA = ("_deleted_chats", "_archived_chats", "_pinned_chats",
              # staleness net for a full _STALE_RECHECK_AFTER — and
              # _persist_chat_verified_at() writes the whole dict, so A's JIDs
              # land in B's freshly emptied chat_verified_at_v1.
-             "_chat_verified_at")
+             "_chat_verified_at",
+             # Which conversations the user opened — the gate on asking the
+             # PHONE for older history. Left behind, a chat B shares with A
+             # reads as opened, and _backfill_empty_chats() puts the
+             # "Synchronizing WhatsApp…"/"Sync paused" pair on B's own lock
+             # screen for a conversation B never opened (issue #108), then
+             # _note_conversation_opened() makes A's JIDs durable on B's disk.
+             "_opened_conversations")
 
 
 class TestAnAccountSwitchClearsTheMetadataInMemoryToo:
@@ -595,6 +603,27 @@ class TestTheWipeAndItsOneCallerBoundTogether:
 
         assert stub.settings["privateinfo"]["WA_phone_number_linked"] == self._A
         assert stub.saved == 1
+
+    def test_the_ui_teardown_waits_for_the_key_too(self):
+        """_teardown_conversation_ui() is not free: it ends in a 5 s
+        ui_ready.wait(), and the case that spends all five is the user closing
+        WinZapp — the MainLoop dies, the wx.CallAfter is never dispatched, and
+        the shutdown does not wait for this daemon thread. Run before the
+        re-arming, that was five seconds of the second pass with the key naming
+        B over A's rows, and a process killed inside it leaves no divergence for
+        any later pass to find."""
+        stub = _Stub()
+        stub.settings["privateinfo"]["WA_phone_number_linked"] = self._B
+        self._refusing_db(stub)
+
+        seen = []
+        stub._teardown_conversation_ui = lambda: seen.append(
+            stub.settings["privateinfo"].get("WA_phone_number_linked"))
+
+        stub._apply_another_number_wipe(self._B, teardown_ui=True,
+                                        previous_digits=self._A)
+
+        assert seen == [self._A]
 
 
 class TestAResyncKeepsEveryLocalActionTheUserTook:
