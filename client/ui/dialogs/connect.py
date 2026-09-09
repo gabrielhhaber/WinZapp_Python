@@ -771,19 +771,19 @@ class Connect:
         # in. Only a token that predates our own minting stands for a real,
         # authenticated session.
         #
-        # Known cost of dropping it, and it is a limitation rather than a
-        # judgement: paired account → QR → back to phone → same number typed
-        # in still ends up wiping the local database, even though `paired`
-        # and the stored WA_phone_number both agree it is the same account
-        # and the history is therefore still valid. The database's validity
-        # depends on the NUMBER, not on which WPPConnect session is alive;
-        # what wipes it is _bg_pairing_flow() keying clear_local_data() on
-        # "is this token reusable", so a missing token drags the wipe along
-        # with it. on_switch_to_qrcode() right below shows the inconsistency
-        # plainly — it preserves on `was_paired` alone, with no number check
-        # at all, while this path has strictly more information and deletes.
-        # The coherent fix is to decide the wipe from the number and drop
-        # that coupling; deliberately out of scope for this change.
+        # Dropping it no longer costs the local database, though it used to,
+        # and the reason is worth keeping: paired account → QR → back to
+        # phone → same number typed in wiped everything, even with `paired`
+        # and the stored WA_phone_number both agreeing it was the same
+        # account. A database's validity depends on the NUMBER, not on which
+        # WPPConnect session is alive, and _bg_pairing_flow() was keying
+        # clear_local_data() on "is this token reusable" — so a missing token
+        # dragged the wipe along with it. on_switch_to_qrcode() right below
+        # showed the inconsistency plainly: it preserves on `was_paired`
+        # alone, with no number check at all, while this path had strictly
+        # more information and deleted. The two questions are now asked
+        # separately — see _is_same_account() — so this capture being
+        # discarded costs only the session resume it was ever about.
         _live_token = self.main_window._get_wa_token()
         if _live_token and _live_token == self._started_new_session_token:
             logging.info(
@@ -1115,6 +1115,46 @@ class Connect:
             wx.MessageBox(f"{self.i18n.t('websocket_init_failed')} {format_exc()}", self.i18n.t("connection_error"), wx.OK | wx.ICON_ERROR)
 
     @staticmethod
+    def _is_same_account(privateinfo: dict, phone_number: str) -> bool:
+        """True when the number just typed is the one the local database
+        belongs to — the question that decides whether it may be wiped.
+
+        Split out of _can_reuse_existing_session() because the two questions
+        it used to answer at once have different answers. Whether a WPPConnect
+        *session* can be resumed depends on holding a token for it; whether
+        the stored history is still this account's depends only on the
+        NUMBER. Asked as one, a missing token dragged the wipe along with it:
+        paired account → QR mode → back to phone → same number typed in still
+        deleted the whole database, because the QR detour deliberately
+        discards the reuse capture (on_switch_to_phone's own comment says why
+        — that token stands for a session that never authenticated) and
+        _close_active_session() had already cleared WA_token. Nothing about
+        either of those says the history stopped belonging to this number.
+
+        Deliberately not weaker than the check it came out of: `paired` is
+        still required, and the digits are still compared exactly. A tolerant
+        comparison is what let +49 211 1234567's session be resumed by
+        somebody typing +49 211 234567.
+
+        Not the final word on identity, and does not need to be — this only
+        decides an upfront guess. MainWindow._wipe_local_data_if_another_number_linked()
+        asks WhatsApp itself which phone actually ended up linked once
+        pairing closes (see show_connection_dial()), and wipes then if they
+        diverge. Being wrong here in the preserving direction costs one
+        deferred wipe; being wrong in the deleting direction costs history
+        that nothing can bring back.
+        """
+        if not isinstance(privateinfo, dict):
+            return False
+        stored_raw = "".join(
+            c for c in (privateinfo.get("WA_phone_number") or "") if c.isdigit()
+        )
+        phone_digits = "".join(c for c in (phone_number or "") if c.isdigit())
+        if not phone_digits or stored_raw != phone_digits:
+            return False
+        return bool(privateinfo.get("paired", False))
+
+    @staticmethod
     def _can_reuse_existing_session(privateinfo: dict, phone_number: str,
                                     existing_token: str) -> bool:
         """True when a stored WPPConnect token is worth reusing for this number.
@@ -1148,15 +1188,8 @@ class Connect:
         comparison is what let the session of +49 211 1234567 be resumed, and
         that account connected, for somebody typing +49 211 234567.
         """
-        if not isinstance(privateinfo, dict):
-            return False
-        stored_raw = "".join(
-            c for c in (privateinfo.get("WA_phone_number") or "") if c.isdigit()
-        )
-        phone_digits = "".join(c for c in (phone_number or "") if c.isdigit())
-        if not phone_digits or stored_raw != phone_digits:
-            return False
-        return bool(existing_token) and bool(privateinfo.get("paired", False))
+        return (Connect._is_same_account(privateinfo, phone_number)
+                and bool(existing_token))
 
     def on_continue(self, event):
         """Phone-number pairing flow (asynchronous to prevent GUI freeze).
@@ -1231,9 +1264,17 @@ class Connect:
                 _instance_exists = self._can_reuse_existing_session(
                     _privateinfo, self.phone_number, existing_token
                 )
+                # Two questions, deliberately no longer one — see
+                # _is_same_account(). A session that cannot be resumed still
+                # has to wait for messages.set, because it will sync from
+                # scratch; only a DIFFERENT account justifies deleting what
+                # is on disk. Keyed together, the phone→QR→phone round trip
+                # wiped a database whose owner had not changed, purely
+                # because the detour left no token to resume.
                 if not _instance_exists:
-                    # New pairing: reset sync flag so we wait for messages.set
+                    # New session: sync from scratch, so wait for messages.set
                     self.main_window.messages_set_completed = False
+                if not self._is_same_account(_privateinfo, self.phone_number):
                     self.main_window.clear_local_data()
 
                 if _instance_exists:
