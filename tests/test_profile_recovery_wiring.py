@@ -321,6 +321,18 @@ class TestARestoreThatConnectedEarnsAnotherChance:
 
     The bound exists to stop a restore loop on a snapshot that does not work.
     A snapshot that reached CONNECTED is not that snapshot.
+
+    The re-arm itself (clearing _profile_recovery_attempted and the
+    generation ladder) used to happen right here, inside
+    _note_status_for_profile_health(), triggered by the bare status string.
+    It moved to _set_wa_connected()'s own "connection just came back up"
+    branch (issue #202 — a CONNECTED the live isConnected() probe was about
+    to refuse could re-arm recovery without the QR-flood counter it must
+    stay in lockstep with resetting alongside it; see
+    tests/test_qr_flood_rearm_counter.py for that half). What is pinned here
+    is only _recover_suspect_profile()'s own once-per-launch bound —
+    _profile_recovery_attempted is set directly to stand in for whichever
+    caller re-armed it.
     """
 
     def test_the_budget_is_spent_by_a_first_recovery(self, monkeypatch):
@@ -331,11 +343,16 @@ class TestARestoreThatConnectedEarnsAnotherChance:
         MainWindow._recover_suspect_profile(stub)
         assert stub._profile_recovery_attempted is True
 
-    def test_a_connection_gives_it_back(self):
+    def test_a_connected_status_alone_no_longer_rearms_it_here(self):
+        """Regression guard for the move described in the class docstring:
+        this status-observer path must not duplicate the re-arm any more,
+        or a CONNECTED the probe later refuses would re-arm recovery again
+        exactly as issue #202 described — just from this call site instead
+        of the old one."""
         stub = _Stub()
         stub._profile_recovery_attempted = True
         _note(stub, "CONNECTED")
-        assert stub._profile_recovery_attempted is False
+        assert stub._profile_recovery_attempted is True
 
     def test_a_second_break_after_that_connection_recovers_again(self, monkeypatch):
         stub = _Stub()
@@ -345,12 +362,11 @@ class TestARestoreThatConnectedEarnsAnotherChance:
                             lambda *a, **kw: types.SimpleNamespace(start=lambda: None))
         assert MainWindow._recover_suspect_profile(stub) is True
         assert MainWindow._recover_suspect_profile(stub) is False
-        _note(stub, "CONNECTED")
+        stub._profile_recovery_attempted = False  # what _set_wa_connected() now does
         assert MainWindow._recover_suspect_profile(stub) is True
 
     def test_without_a_connection_it_still_runs_once(self, monkeypatch):
-        """The loop guard is intact: nothing here can re-arm without a
-        CONNECTED in between."""
+        """The loop guard is intact: nothing here can re-arm on its own."""
         stub = _Stub()
         monkeypatch.setattr("core.profile_recovery.has_snapshot",
                             lambda *a, **kw: True)

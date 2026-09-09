@@ -64,6 +64,11 @@ class _Stub:
     _announce_sync_events_enabled = MainWindow._announce_sync_events_enabled
     _self_inflicted_teardown_expected = MainWindow._self_inflicted_teardown_expected
     _WA_STARTUP_GRACE_SECONDS = MainWindow._WA_STARTUP_GRACE_SECONDS
+    # Not what this file is testing — a real connect just needs these two to
+    # exist so _set_wa_connected()'s own profile-recovery re-arm (issue #202,
+    # see tests/test_qr_flood_rearm_counter.py) doesn't AttributeError here.
+    _profile_recovery_generation = lambda self: 0
+    _set_profile_recovery_generation = lambda self, value: None
 
     # Overridden per-test; the default keeps the grace intact.
     def _startup_offline_confirmed(self):

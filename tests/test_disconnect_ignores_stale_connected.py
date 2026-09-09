@@ -58,6 +58,12 @@ class _Stub:
         self._self_inflicted_teardown_expected = (
             MainWindow._self_inflicted_teardown_expected.__get__(self))
         self._WA_STARTUP_GRACE_SECONDS = MainWindow._WA_STARTUP_GRACE_SECONDS
+        # Not what this file is testing — a real connect just needs these two
+        # to exist so _set_wa_connected()'s own profile-recovery re-arm
+        # (issue #202, see tests/test_qr_flood_rearm_counter.py) doesn't
+        # AttributeError here.
+        self._profile_recovery_generation = lambda: 0
+        self._set_profile_recovery_generation = lambda value: None
 
         self.settings = {}
         self.token = token
