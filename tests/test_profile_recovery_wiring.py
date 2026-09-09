@@ -67,6 +67,12 @@ class _Stub:
     def output(self, text, interrupt=False):
         self.announced.append(text)
 
+    def wait_for_profile_release(self, session_name, timeout=20.0):
+        # Real implementation polls win32 process handles for up to
+        # `timeout` seconds -- not appropriate off the real profile paths a
+        # unit test stub has none of.
+        return True
+
     def _recover_suspect_profile(self):
         self.recovered += 1
 
@@ -360,3 +366,62 @@ class TestARestoreThatConnectedEarnsAnotherChance:
         for _ in range(5):
             _note(stub, "CLOSED")
             assert MainWindow._recover_suspect_profile(stub) is False
+
+
+class TestASuccessfulFileLevelRestoreResetsTheQrRepairLatch:
+    """issue #203 review finding: _profile_repair_started (set by
+    core/websocket_client.py's _handle_unattended_qr(), tracked separately
+    from _profile_recovery_attempted so a QR event arriving mid-restore
+    cannot mistake "still in flight" for "confirmed nothing to restore") has
+    no reset of its own anywhere else -- unlike _profile_recovery_attempted,
+    which _note_status_for_profile_health() clears on a CONNECTED reading.
+
+    A snapshot restore can succeed at the file level and still not reach
+    CONNECTED (this same method's own generation-climbing branch above exists
+    because a restored snapshot sometimes does not hold). Left unreset,
+    _profile_repair_started would silently swallow every later unattended-QR
+    event for the rest of the launch -- no repair dialog, and, worse, no
+    flood halt either, since _handle_unattended_qr()'s early return on this
+    flag skips past the halt check too. So the success branch of _restore()
+    resets it alongside _unattended_qr_events: the ambiguity the flag exists
+    to prevent is over the moment this branch runs (the restore is no longer
+    "in flight"), so a later event can only be a genuinely new flood, which
+    the ordinary grace/confirm/halt path is built to handle on its own.
+    """
+
+    @pytest.fixture
+    def stub(self, monkeypatch):
+        s = _Stub()
+        s._unattended_qr_events = 4
+        s._profile_repair_started = True
+        monkeypatch.setattr(
+            "main.threading.Thread",
+            lambda target=None, **kw: types.SimpleNamespace(
+                start=lambda: target and target()))
+        monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+        monkeypatch.setattr("main.api_post", lambda *a, **kw: None)
+        monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a, **kw: True)
+        return s
+
+    def test_a_successful_restore_clears_the_latch(self, stub, monkeypatch):
+        monkeypatch.setattr("core.profile_recovery.restore_snapshot",
+                            lambda *a, **kw: True)
+
+        MainWindow._recover_suspect_profile(stub)
+
+        assert stub._profile_repair_started is False
+        assert stub._unattended_qr_events == 0
+
+    def test_a_failed_restore_leaves_the_latch_alone(self, stub, monkeypatch):
+        """on_give_up already surfaces the failure and _auto_repair_dialog_shown
+        (set by the caller) takes over routing every later event straight to
+        the halt check -- nothing needs _profile_repair_started reset here,
+        and this pins that the fix above did not widen to this branch too."""
+        monkeypatch.setattr("core.profile_recovery.restore_snapshot",
+                            lambda *a, **kw: False)
+        gave_up = []
+
+        MainWindow._recover_suspect_profile(stub, on_give_up=lambda: gave_up.append(1))
+
+        assert gave_up == [1]
+        assert stub._profile_repair_started is True

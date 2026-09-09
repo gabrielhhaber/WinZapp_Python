@@ -872,6 +872,15 @@ class WebSocketClient:
         unlink-confirming path in this codebase accepts either — see
         _REPAIR_DIALOG_CONFIRM_EVENTS, which requires this one too.
 
+        The profile *repair* attempt (_recover_suspect_profile(), inside the
+        block below) is deliberately NOT behind either of those two gates —
+        only the dialog is. A code already proves what the gates exist to
+        rule out for the dialog's own harsher conclusion, so making repair
+        wait for them too used to mean a flood confined entirely to the
+        startup grace window ran its whole budget out and hit the halt with
+        a good profile snapshot on disk nothing had ever looked at (issue
+        #203).
+
         Stopping the churn is the part whose absence got an account banned.
         `autoClose`/`deviceSyncTimeout` are pinned to 0 (client/api_patches/
         src/config.ts) so WPPConnect never closes a code-producing session on
@@ -902,8 +911,6 @@ class WebSocketClient:
         if (
             mw.settings.get("privateinfo", {}).get("paired")
             and not getattr(mw, "_auto_repair_dialog_shown", False)
-            and not self._qr_within_startup_grace()
-            and seen >= self._REPAIR_DIALOG_CONFIRM_EVENTS
         ):
             # Try to repair the profile before sending the user off to pair by
             # hand. This event is the *earliest and strongest* evidence that
@@ -929,13 +936,67 @@ class WebSocketClient:
             # _recover_suspect_profile() runs at most once per launch and calls
             # back when it gives up — against a re-pairing saved every time the
             # profile was the actual fault.
+            #
+            # Recover early, confirm late (issue #203): unlike the dialog just
+            # below, the repair attempt itself does NOT wait out
+            # _qr_within_startup_grace() or _REPAIR_DIALOG_CONFIRM_EVENTS. The
+            # grace window and the confirm-count exist to protect a
+            # user-visible, history-wiping conclusion ("you must pair again")
+            # from a single transient reading — they were never meant to gate
+            # the *observation* a code already settles on its own: wa-js only
+            # ever hands one back while unpaired and unauthenticated, so a code
+            # arriving even inside the grace window already proves the stored
+            # session could not be restored. Waiting for the two gates before
+            # even trying the repair used to mean a flood confined entirely to
+            # the grace window (a fresh boot, session gone) ran out its whole
+            # budget and hit the halt below with a good profile snapshot on
+            # disk that nothing had ever looked at — and the halt latches, so
+            # a snapshot restored after that point would never be started
+            # either.
+            #
+            # _recover_suspect_profile() latches once-per-launch
+            # (_profile_recovery_attempted) and its bare boolean return
+            # cannot tell "already started, still in flight" apart from "just
+            # confirmed there is nothing to restore" on a later call — both
+            # come back False once latched. That ambiguity is fine for THIS
+            # call (a fresh False here genuinely means nothing was found, so
+            # falling through to the dialog gate below is correct), but not
+            # for a LATER event: without remembering that an earlier call
+            # already started a restore, a later event's latched False would
+            # wrongly fall through and send the user to pair by hand while a
+            # legitimate restore from a few seconds ago is still resolving or
+            # has already succeeded — on_give_up is what surfaces its actual
+            # failure, so there is nothing for this method to add. Tracked
+            # separately on _profile_repair_started rather than trusting the
+            # latch's own reset (_note_status_for_profile_health() clears
+            # _profile_recovery_attempted once a restored profile reaches
+            # CONNECTED, on purpose, to allow a second recovery if it breaks
+            # again — checking that flag too here means this skip only holds
+            # while that first attempt has neither resolved nor been
+            # forgiven). "Resolved" also covers a restore that lands at the
+            # file level but never reaches CONNECTED — _restore() (main.py)
+            # resets _profile_repair_started itself the moment the file copy
+            # succeeds, precisely so this skip does not hold past that point
+            # with nothing left to clear it.
+            if (getattr(mw, "_profile_repair_started", False)
+                    and getattr(mw, "_profile_recovery_attempted", False)):
+                return
             if mw._recover_suspect_profile(
                     reason="WPPConnect minted a pairing code for a paired "
                            "install — the stored session could not be restored",
                     on_give_up=self._show_repair_dialog):
+                mw._profile_repair_started = True
                 return
-            self._show_repair_dialog()
-            return
+            # The dialog is the user-visible conclusion, so it still keeps
+            # both gates: outside the startup grace window (still settling
+            # from a normal slow boot is not the same as confirmed lost) and
+            # confirmed by _REPAIR_DIALOG_CONFIRM_EVENTS consecutive readings,
+            # not a single one — same reasoning as every other unlink-confirming
+            # path in this codebase.
+            if (not self._qr_within_startup_grace()
+                    and seen >= self._REPAIR_DIALOG_CONFIRM_EVENTS):
+                self._show_repair_dialog()
+                return
         if seen == self._UNATTENDED_QR_LIMIT:
             # Never paired, or the dialog was already offered and is no longer
             # up: nobody is going to scan these. Reached on the same event

@@ -334,21 +334,23 @@ class TestTheProfileIsRepairedBeforeAskingTheUserToPair:
         assert len(mw.recover_calls) == 1
         assert connect.show_connection_dial_calls == 0
 
-        # KNOWN GAP (not introduced by this branch — see PR #183, already on
-        # upstream/main): a THIRD event, arriving while the restore from the
-        # second is still unresolved, calls _recover_suspect_profile() again.
-        # Its latch correctly refuses to start a second restore and returns
-        # False — but _handle_unattended_qr() treats every False the same
-        # way ("nothing was started, send the user to pair by hand") and
-        # falls through to _show_repair_dialog() anyway, even though a
-        # restore it started one event ago may still be in flight or may
-        # have already quietly succeeded. The bare boolean return of
-        # _recover_suspect_profile() cannot currently tell those two "False"
-        # cases apart. Documented here rather than silently asserted around,
-        # since a passing assert on this line would hide a real interaction
-        # this test suite does not otherwise cover.
+        # GAP CLOSED (issue #203): a THIRD event, arriving while the restore
+        # from the second is still unresolved, used to call
+        # _recover_suspect_profile() again, get back a latched False (the
+        # bare boolean cannot tell "already started, still in flight" apart
+        # from "just confirmed nothing to restore"), and fall through to
+        # _show_repair_dialog() anyway — sending the user to pair by hand
+        # over a restore that may already have quietly succeeded. Moving the
+        # repair attempt ahead of the startup-grace/confirm-events gates
+        # (this same change) required tracking "already started" on its own
+        # flag (_profile_repair_started) rather than trusting the latch's
+        # bare return, which incidentally closes this gap too: a third (or
+        # later) event while the first attempt is still unresolved is now a
+        # no-op here, exactly as it should be — on_give_up is what surfaces
+        # an eventual failure.
         s.on_qrcode_update(QR_EVENT)
-        assert connect.show_connection_dial_calls == 1
+        assert connect.show_connection_dial_calls == 0
+        assert len(mw.recover_calls) == 1
 
 
 class TestStartupGraceWindow:
@@ -419,3 +421,76 @@ class TestStartupGraceWindow:
         s.on_qrcode_update(QR_EVENT)
 
         assert connect.show_connection_dial_calls == 1
+
+
+class TestRepairIsAttemptedInsideTheGraceWindow:
+    """Issue #203: recover early, confirm late. A flood confined entirely to
+    the startup grace window used to let every _UNATTENDED_QR_LIMIT code pass
+    through _handle_unattended_qr() without ever trying the profile repair —
+    the repair attempt sat behind the exact same two gates as the dialog. A
+    code already proves what those gates exist to rule out for the DIALOG's
+    own harsher, history-wiping conclusion ("you must pair again"); it does
+    not need to wait for them itself. The halt still fires at exactly
+    _UNATTENDED_QR_LIMIT regardless — this must not delay it."""
+
+    def test_the_very_first_code_inside_the_grace_window_still_attempts_repair(self):
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=False, wa_startup_time=time.time(),
+        )
+        mw.profile_restore_available = True
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert len(mw.recover_calls) == 1
+        # The repair attempt is not the dialog: still inside the grace
+        # window and short of _REPAIR_DIALOG_CONFIRM_EVENTS, so the
+        # user-visible conclusion is correctly withheld either way.
+        assert connect.show_connection_dial_calls == 0
+
+    def test_a_flood_entirely_inside_the_grace_window_still_repairs_before_halting(self):
+        """The exact shape the issue describes: every event of the flood
+        lands inside the startup grace window, so the dialog gate never
+        clears at all before the halt. Repair must still have been tried."""
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=False, wa_startup_time=time.time(),
+        )
+        mw.profile_restore_available = False
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        for _ in range(WebSocketClient._UNATTENDED_QR_LIMIT):
+            s.on_qrcode_update(QR_EVENT)
+
+        assert len(mw.recover_calls) == 1
+        # The halt is not delayed by any of this — still exactly at the
+        # limit, no new condition in front of it.
+        assert mw.halt_calls == 1
+        # Nothing to restore, so the dialog never opens here either — this
+        # install falls through to the halt's own "never offered a way
+        # back" branch instead (covered by test_qrcode_unattended_session.py).
+        assert connect.show_connection_dial_calls == 1
+
+    def test_a_restorable_profile_inside_the_grace_window_never_reaches_the_halt(self):
+        """With something to restore, the repair started on the first event
+        suppresses the dialog AND the halt for as long as it is unresolved —
+        matching TestTheProfileIsRepairedBeforeAskingTheUserToPair's
+        behaviour once a restore is in flight, just reached one gate
+        earlier."""
+        mw = _FakeMainWindow(
+            paired=True, pairing_dialog_active=False,
+            wa_connect_announced=False, wa_startup_time=time.time(),
+        )
+        mw.profile_restore_available = True
+        connect = _FakeConnect(mw)
+        s = _Stub(mw, connect)
+
+        for _ in range(WebSocketClient._UNATTENDED_QR_LIMIT * 2):
+            s.on_qrcode_update(QR_EVENT)
+
+        assert len(mw.recover_calls) == 1
+        assert mw.halt_calls == 0
+        assert connect.show_connection_dial_calls == 0

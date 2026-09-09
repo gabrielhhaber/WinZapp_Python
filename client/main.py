@@ -8947,6 +8947,23 @@ class MainWindow(wx.Frame):
                     # profile now moved aside; counting it against the flood
                     # ceiling would halt a session that is about to be fine.
                     self._unattended_qr_events = 0
+                    # issue #203 review: a restore that lands at the file
+                    # level does not guarantee the profile ever reaches
+                    # CONNECTED (see the generation-climbing comment above —
+                    # this same snapshot can itself be one that doesn't hold).
+                    # _profile_repair_started has no other reset — it is not
+                    # cleared by CONNECTED the way _profile_recovery_attempted
+                    # is — so leaving it set here would silently swallow every
+                    # later unattended-QR event for the rest of the launch
+                    # (neither the repair dialog nor the flood halt would ever
+                    # run again, against this codebase's own "a code stream
+                    # nobody is watching is a ban" rule). Resetting it here is
+                    # safe exactly because the ambiguity it exists to prevent
+                    # is gone the moment this branch runs: the restore is no
+                    # longer "still in flight," so a later event can only be a
+                    # genuinely new flood, which the ordinary grace/confirm/
+                    # halt path below is built to handle on its own.
+                    self._profile_repair_started = False
                     wx.CallAfter(self._announce_profile_restored)
                 else:
                     wx.CallAfter(self._announce_profile_beyond_repair)
