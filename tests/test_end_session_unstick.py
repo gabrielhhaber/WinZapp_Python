@@ -65,7 +65,11 @@ class TestShuttingDownIsSetImmediately:
 
         assert s._shutting_down is True
         assert s.stop_wpp_server_calls == 1
-        assert event.skipped is True
+        # Deliberately NOT skipped: Skip() resumes the handler search and
+        # reaches wxApp::OnEndSession (DeleteAllTLWs/OnExit/exit()), spending a
+        # Windows budget this teardown has already used. See
+        # tests/test_windows_shutdown_handlers.py.
+        assert event.skipped is False
 
     def test_signals_teardown_complete_when_it_owns_teardown(self):
         """A real_exit()/_ipc_quit() call that lost the lock race waits on
@@ -99,7 +103,11 @@ class TestDoesNotDoubleTeardownWhenAlreadyInProgress:
 
         assert s.stop_wpp_server_calls == 0
         assert s.flush_calls == 0
-        assert event.skipped is True
+        # Deliberately NOT skipped: Skip() resumes the handler search and
+        # reaches wxApp::OnEndSession (DeleteAllTLWs/OnExit/exit()), spending a
+        # Windows budget this teardown has already used. See
+        # tests/test_windows_shutdown_handlers.py.
+        assert event.skipped is False
 
     def test_does_not_signal_completion_for_teardown_it_does_not_own(self):
         """This path only skips out of the way -- the OTHER path (still
