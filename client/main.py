@@ -62,7 +62,7 @@ from core.send_contract import accepted_message_id
 from core.wpp_runtime import (
     read_homologated_wpp_version, wppconnect_library_drift, WPPCONNECT_PACKAGE,
 )
-from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default
+from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default, migrate_spell_check_mode
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
 from core.database_bridge import DatabaseBridge
@@ -10344,6 +10344,13 @@ class MainWindow(wx.Frame):
         # default only reaches anyone through a conversion. One shot, with
         # its own flag — see migrate_voice_message_mode_default().
         if migrate_voice_message_mode_default(self.settings):
+            changed = True
+        # spell_check_enabled (bool) -> spell_check_mode (three-valued).
+        # core/spell_checker.py's own read-time fallback cannot reach a real
+        # install: backfill_missing_defaults() below invents spell_check_mode
+        # before anything reads it. Must run here, ahead of that backfill —
+        # see migrate_spell_check_mode().
+        if migrate_spell_check_mode(self.settings):
             changed = True
         if changed:
             self.save_settings()

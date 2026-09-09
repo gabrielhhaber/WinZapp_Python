@@ -552,6 +552,54 @@ def migrate_voice_message_mode_default(settings) -> bool:
     return True
 
 
+# Marks that the one-shot spell_check_enabled -> spell_check_mode conversion
+# has already run. Its own flag, like the two above, for the same reason.
+SPELL_CHECK_MODE_MIGRATION_FLAG = "spell_check_mode_migrated"
+
+
+def migrate_spell_check_mode(settings) -> bool:
+    """Carry a legacy ``spell_check_enabled`` bool onto ``spell_check_mode``.
+
+    core/spell_checker.py's spell_check_mode() already knows how to read the
+    old bool, but that fallback is unreachable on a real install:
+    backfill_missing_defaults() inserts the new key (it is in DEFAULT_SETTINGS)
+    on the first launch after the update, before anything has read the setting,
+    so every later call finds a recognised mode and never looks at the legacy
+    value. A user who had turned spell checking off got it back on, while their
+    settings.json still said ``spell_check_enabled: false`` — the setting
+    looking honoured is what makes that hard to notice.
+
+    Hence a migration rather than a read-time fallback, run from
+    _migrate_settings() and therefore BEFORE the backfill that would otherwise
+    invent the value this reads.
+
+    Only an explicit False is carried across, matching what spell_check_mode()
+    already decided: True was the default nobody chose, so it means "expressed
+    no preference" and lands on the new default instead of being frozen into an
+    override that would ignore Windows forever. An already-present
+    ``spell_check_mode`` is never overwritten — that is a choice made under the
+    new setting and outranks the old one.
+
+    The flag is what keeps this one-shot: without it, a user who deliberately
+    goes back to "follow Windows" would find it reverted to "off" on the next
+    launch, and that is exactly the user who cares. Returns True whenever
+    *settings* changed, the flag included — an unwritten flag is no flag.
+    """
+    if not isinstance(settings, dict):
+        return False
+    general = settings.get("general")
+    if not isinstance(general, dict):
+        general = {}
+        settings["general"] = general
+    if general.get(SPELL_CHECK_MODE_MIGRATION_FLAG):
+        return False
+    if ("spell_check_mode" not in general
+            and general.get("spell_check_enabled") is False):
+        general["spell_check_mode"] = "off"
+    general[SPELL_CHECK_MODE_MIGRATION_FLAG] = True
+    return True
+
+
 def auto_download_allows(settings, msg) -> bool:
     """Whether the background auto-download may fetch *msg*'s media.
 

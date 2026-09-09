@@ -13683,6 +13683,17 @@ class ConversationsPanel(wx.Panel):
         jid = self.conversation.get("remoteJid", "")
         if not jid:
             return
+        # Before the cooldown is stamped, not after. Every request this pass
+        # would make bails on the same flag inside
+        # MainWindow.fetch_message_reactions(), so arming it while offline
+        # spends the whole 5 minutes on a pass that cannot fetch anything —
+        # and the pass that most often runs disconnected is the one right
+        # after a reconnection, which is the case this backfill exists for:
+        # the health poll can take ~30 s to confirm the connection, and a
+        # chat opened inside that window would then stay stale until the user
+        # left it and came back more than five minutes later.
+        if not getattr(self.main_window, "_wa_connected", False):
+            return
         if not self._reaction_backfill_is_due(jid):
             return
         records = (

@@ -18,7 +18,8 @@ tests/test_reported_bugfixes.py.
 
 from main import MainWindow
 from core.sound_system import DEFAULT_PACK_ID
-from core.utils import (VOICE_MEDIA_TYPE_MIGRATION_FLAG,
+from core.utils import (SPELL_CHECK_MODE_MIGRATION_FLAG,
+                        VOICE_MEDIA_TYPE_MIGRATION_FLAG,
                         VOICE_MESSAGE_MODE_MIGRATION_FLAG)
 
 
@@ -35,6 +36,7 @@ class _MainWindowStub:
         self.settings.setdefault("general", {}).update({
             VOICE_MEDIA_TYPE_MIGRATION_FLAG: True,
             VOICE_MESSAGE_MODE_MIGRATION_FLAG: True,
+            SPELL_CHECK_MODE_MIGRATION_FLAG: True,
         })
         self.save_calls = 0
 
