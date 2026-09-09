@@ -29,6 +29,7 @@ same pattern as tests/test_reaction_persisted_from_others.py.
 
 import threading
 
+from main import MainWindow
 from ui.conversations import ConversationsPanel
 
 
@@ -41,11 +42,18 @@ class _FakeDB:
 
 
 class _FakeMainWindow:
-    def __init__(self, chat, reactions_by_msg_id=None):
+    def __init__(self, chat, reactions_by_msg_id=None, lid_to_phone=None):
         self._chat = chat
         self.db = _FakeDB()
         self._reactions_by_msg_id = reactions_by_msg_id or {}
         self.fetch_calls = []
+        # The real thing, not a fake: the whole point of the canonicalization
+        # under test is that it agrees with what the rest of the app does to
+        # a JID, so substituting a simplified version here would test nothing.
+        self._normalize_jid = MainWindow._normalize_jid
+        self._lid_to_phone = dict(lid_to_phone or {})
+        self.my_jid = ME
+        self.my_lid = ""
 
     def get_chat(self, jid):
         return self._chat
@@ -62,16 +70,25 @@ class _Stub:
     _merge_fetched_reactions    = ConversationsPanel._merge_fetched_reactions
     _persist_reaction_record    = ConversationsPanel._persist_reaction_record
     _reactor_key_from_msg       = ConversationsPanel._reactor_key_from_msg
+    _reactor_key_from_api       = ConversationsPanel._reactor_key_from_api
+    _canonical_reactor_key      = ConversationsPanel._canonical_reactor_key
+    _is_self_reactor            = ConversationsPanel._is_self_reactor
+    _reaction_backfill_is_due   = ConversationsPanel._reaction_backfill_is_due
     _chat_records_for           = ConversationsPanel._chat_records_for
     _extract_timestamp          = ConversationsPanel._extract_timestamp
     _SELF_REACTOR_KEY           = ConversationsPanel._SELF_REACTOR_KEY
     _REACTION_BACKFILL_LIMIT    = ConversationsPanel._REACTION_BACKFILL_LIMIT
+    _REACTION_BACKFILL_COOLDOWN_SECONDS = (
+        ConversationsPanel._REACTION_BACKFILL_COOLDOWN_SECONDS
+    )
 
-    def __init__(self, jid, records=None, reactions_by_msg_id=None):
+    def __init__(self, jid, records=None, reactions_by_msg_id=None,
+                 lid_to_phone=None):
         chat = {"messages": {"messages": {"records": list(records or [])}}}
-        self.main_window = _FakeMainWindow(chat, reactions_by_msg_id)
+        self.main_window = _FakeMainWindow(chat, reactions_by_msg_id, lid_to_phone)
         self.conversation = {"remoteJid": jid, "messages": chat["messages"]}
         self._reaction_backfill_generation = 0
+        self._reaction_backfill_last = {}
         self.populate_calls = 0
 
     def populate_messages(self, preserve_focus=False):
@@ -79,6 +96,8 @@ class _Stub:
 
 
 JID = "5511999999999@s.whatsapp.net"
+#: This account. _is_self_reactor() compares against main_window.my_jid.
+ME = "5511000000000@s.whatsapp.net"
 
 
 def _msg(mid, ts):
@@ -179,18 +198,33 @@ class TestMergeFetchedReactions:
         assert rxn[0]["message"]["reactionMessage"]["text"] == "👍"
         assert rxn[0]["key"]["participant"] == "a@s.whatsapp.net"
 
-    def test_own_reaction_is_recognised_via_reactionByMe(self):
+    def test_own_reaction_is_recognised_from_our_own_jid(self):
+        """Not from the response's reactionByMe: that field is absent exactly
+        when we hold no reaction on the message yet, which is the state a
+        reaction made on the phone while offline starts from — the one this
+        backfill exists to find."""
         stub = _Stub(JID, records=[_msg("m1", 100)])
 
         stub._merge_fetched_reactions(
-            JID, "m1",
-            _reactions_payload([("me@s.whatsapp.net", "❤️")], me_jid="me@s.whatsapp.net"),
+            JID, "m1", _reactions_payload([(ME, "❤️")]),
         )
 
         records = stub._chat_records_for(JID)
         rxn = [r for r in records if r.get("messageType") == "reactionMessage"][0]
         assert rxn["key"]["fromMe"] is True
         assert rxn["key"]["id"] == "_rxn_m1"  # the SELF namespacing _persist_reaction_record() uses
+
+    def test_own_reaction_is_recognised_through_our_own_lid(self):
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+        stub.main_window.my_lid = "77777@lid"
+
+        stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("77777@lid", "❤️")]),
+        )
+
+        rxn = [r for r in stub._chat_records_for(JID)
+               if r.get("messageType") == "reactionMessage"][0]
+        assert rxn["key"]["fromMe"] is True
 
     def test_a_reaction_already_known_with_the_same_emoji_reports_no_change(self):
         stub = _Stub(JID, records=[_msg("m1", 100)])
@@ -222,31 +256,43 @@ class TestMergeFetchedReactions:
         assert len(rxn) == 1  # updated, not duplicated
         assert rxn[0]["message"]["reactionMessage"]["text"] == "😂"
 
-    def test_a_sender_missing_from_the_response_is_treated_as_removed(self):
+    def test_a_sender_missing_from_a_populated_response_is_treated_as_removed(self):
         """They reacted, then removed it while WinZapp could not see either
-        event — the response simply does not list them any more."""
+        event. Somebody else is still listed, which is what proves the
+        response was actually read rather than merely empty."""
         stub = _Stub(JID, records=[_msg("m1", 100)])
         stub._merge_fetched_reactions(
-            JID, "m1", _reactions_payload([("a@s.whatsapp.net", "👍")]),
+            JID, "m1", _reactions_payload([
+                ("a@s.whatsapp.net", "👍"), ("b@s.whatsapp.net", "😂"),
+            ]),
         )
 
-        changed = stub._merge_fetched_reactions(JID, "m1", _reactions_payload([]))
+        changed = stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("b@s.whatsapp.net", "😂")]),
+        )
 
         assert changed is True
-        records = stub._chat_records_for(JID)
-        rxn = [r for r in records if r.get("messageType") == "reactionMessage"]
-        assert len(rxn) == 1
-        assert rxn[0]["message"]["reactionMessage"]["text"] == ""
+        rxn = {r["key"].get("participant"): r["message"]["reactionMessage"]["text"]
+               for r in stub._chat_records_for(JID)
+               if r.get("messageType") == "reactionMessage"}
+        assert rxn["a@s.whatsapp.net"] == ""
+        assert rxn["b@s.whatsapp.net"] == "😂"
 
     def test_an_already_removed_sender_is_not_reprocessed(self):
         stub = _Stub(JID, records=[_msg("m1", 100)])
         stub._merge_fetched_reactions(
-            JID, "m1", _reactions_payload([("a@s.whatsapp.net", "👍")]),
+            JID, "m1", _reactions_payload([
+                ("a@s.whatsapp.net", "👍"), ("b@s.whatsapp.net", "😂"),
+            ]),
         )
-        stub._merge_fetched_reactions(JID, "m1", _reactions_payload([]))
+        stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("b@s.whatsapp.net", "😂")]),
+        )
         before = len(stub.main_window.db.inserted)
 
-        changed = stub._merge_fetched_reactions(JID, "m1", _reactions_payload([]))
+        changed = stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("b@s.whatsapp.net", "😂")]),
+        )
 
         assert changed is False
         assert len(stub.main_window.db.inserted) == before
@@ -269,6 +315,204 @@ class TestMergeFetchedReactions:
         records = stub._chat_records_for(JID)
         rxn = [r for r in records if r.get("messageType") == "reactionMessage"]
         assert len(rxn) == 2
+
+
+class TestTheReactorIsTheSamePersonOnBothSides:
+    """The bug that made this whole pass destructive rather than merely
+    useless. `senderUserJid` is built by wa-js as createWid(...) and carries
+    WhatsApp Web's own JID forms, while a stored reaction's participant was
+    normalized by the WebSocketClient on the way in. Compared raw, one person
+    held two keys: their reaction was persisted a SECOND time (the count
+    visibly inflating) and, in the same pass, their original record was
+    marked removed. Every time the conversation was opened."""
+
+    def test_a_c_us_response_matches_a_stored_s_whatsapp_net_reaction(self):
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+        stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("a@s.whatsapp.net", "👍")]),
+        )
+
+        changed = stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("a@c.us", "👍")]),
+        )
+
+        assert changed is False
+        rxn = [r for r in stub._chat_records_for(JID)
+               if r.get("messageType") == "reactionMessage"]
+        assert len(rxn) == 1                     # not duplicated
+        assert rxn[0]["message"]["reactionMessage"]["text"] == "👍"  # not removed
+
+    def test_a_device_suffix_does_not_split_one_person_in_two(self):
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+        stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("a@s.whatsapp.net", "👍")]),
+        )
+
+        stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("a:60@c.us", "👍")]),
+        )
+
+        assert len([r for r in stub._chat_records_for(JID)
+                    if r.get("messageType") == "reactionMessage"]) == 1
+
+    def test_a_lid_response_matches_through_the_lid_cache(self):
+        """@lid survives _normalize_jid untouched by design — only
+        main.py's _lid_to_phone bridges it to the phone JID."""
+        stub = _Stub(JID, records=[_msg("m1", 100)],
+                     lid_to_phone={"12345@lid": "a@s.whatsapp.net"})
+        stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("a@s.whatsapp.net", "👍")]),
+        )
+
+        changed = stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("12345@lid", "👍")]),
+        )
+
+        assert changed is False
+        assert len([r for r in stub._chat_records_for(JID)
+                    if r.get("messageType") == "reactionMessage"]) == 1
+
+    def test_a_reaction_stored_under_a_lid_is_updated_not_duplicated(self):
+        """The mirror case: the live event arrived as @lid, the response
+        comes back as the phone JID. The update has to land on the record
+        that already exists — _persist_reaction_record() dedups by
+        "_rxn_{id}_{sender_key}", so writing under the canonical key would
+        append a second record for the same person."""
+        stored = {
+            "key": {"id": "_rxn_m1_12345@lid", "fromMe": False,
+                    "participant": "12345@lid"},
+            "messageType": "reactionMessage",
+            "message": {"reactionMessage": {"key": {"id": "m1"},
+                                            "text": "👍"}},
+            "messageTimestamp": 400,
+        }
+        stub = _Stub(JID, records=[_msg("m1", 100), stored],
+                     lid_to_phone={"12345@lid": "a@s.whatsapp.net"})
+
+        changed = stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("a@s.whatsapp.net", "😂")]),
+        )
+
+        assert changed is True
+        rxn = [r for r in stub._chat_records_for(JID)
+               if r.get("messageType") == "reactionMessage"]
+        assert len(rxn) == 1
+        assert rxn[0]["key"]["id"] == "_rxn_m1_12345@lid"   # updated in place
+        assert rxn[0]["message"]["reactionMessage"]["text"] == "😂"
+
+    def test_a_wid_that_arrived_as_an_object_is_still_read(self):
+        """createWid() returns a Wid; whether it reaches Python as its
+        string or as the object it serializes to depends on the WhatsApp Web
+        build. As an object it used to be handed straight to a dict key —
+        TypeError: unhashable type: 'dict', on the wx main thread."""
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+        wid = {"server": "c.us", "user": "a", "_serialized": "a@c.us"}
+
+        changed = stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([(wid, "👍")]),
+        )
+
+        assert changed is True
+        rxn = [r for r in stub._chat_records_for(JID)
+               if r.get("messageType") == "reactionMessage"][0]
+        assert rxn["key"]["participant"] == "a@s.whatsapp.net"
+
+    def test_an_unusable_sender_is_skipped_rather_than_crashing(self):
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+
+        for junk in (None, "", {}, "no-at-sign", 42):
+            assert stub._merge_fetched_reactions(
+                JID, "m1", _reactions_payload([(junk, "👍")]),
+            ) is False
+
+
+class TestAnEmptyResponseIsNotConfirmedRemoval:
+    """/reactions/{id} reads WhatsApp Web's live Store, not a history: a
+    message the Store does not currently hold — routine for the older end of
+    the 40 this backfill walks — answers 200 with nothing at all. Reading
+    that as "nobody reacted" wiped every reaction the app already knew."""
+
+    def test_an_empty_response_leaves_known_reactions_alone(self):
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+        stub._merge_fetched_reactions(
+            JID, "m1", _reactions_payload([("a@s.whatsapp.net", "👍")]),
+        )
+        before = len(stub.main_window.db.inserted)
+
+        changed = stub._merge_fetched_reactions(JID, "m1", _reactions_payload([]))
+
+        assert changed is False
+        assert len(stub.main_window.db.inserted) == before
+        rxn = [r for r in stub._chat_records_for(JID)
+               if r.get("messageType") == "reactionMessage"][0]
+        assert rxn["message"]["reactionMessage"]["text"] == "👍"
+
+    def test_an_empty_response_on_a_message_with_no_reactions_is_a_no_op(self):
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+
+        assert stub._merge_fetched_reactions(JID, "m1", _reactions_payload([])) is False
+
+
+class TestTheCooldown:
+    """One open costs up to _REACTION_BACKFILL_LIMIT sequential requests;
+    alternating between two chats must not pay that every single time."""
+
+    def test_reopening_the_same_chat_does_not_refetch(self, monkeypatch):
+        monkeypatch.setattr(
+            threading.Thread, "start",
+            lambda self: self._target(*self._args, **self._kwargs),
+        )
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+
+        stub._backfill_reactions_for_open_conversation()
+        stub._backfill_reactions_for_open_conversation()
+
+        assert stub.main_window.fetch_calls == ["m1"]
+
+    def test_the_cooldown_expires(self, monkeypatch):
+        monkeypatch.setattr(
+            threading.Thread, "start",
+            lambda self: self._target(*self._args, **self._kwargs),
+        )
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+
+        stub._backfill_reactions_for_open_conversation()
+        # Pushed far enough into the past that the window has elapsed,
+        # without the test having to wait it out.
+        for key in stub._reaction_backfill_last:
+            stub._reaction_backfill_last[key] -= (
+                stub._REACTION_BACKFILL_COOLDOWN_SECONDS + 1
+            )
+        stub._backfill_reactions_for_open_conversation()
+
+        assert stub.main_window.fetch_calls == ["m1", "m1"]
+
+    def test_the_lid_and_phone_forms_of_one_chat_share_a_cooldown(self, monkeypatch):
+        monkeypatch.setattr(
+            threading.Thread, "start",
+            lambda self: self._target(*self._args, **self._kwargs),
+        )
+        stub = _Stub(JID, records=[_msg("m1", 100)],
+                     lid_to_phone={"12345@lid": JID})
+
+        stub._backfill_reactions_for_open_conversation()
+        stub.conversation = dict(stub.conversation, remoteJid="12345@lid")
+        stub._backfill_reactions_for_open_conversation()
+
+        assert stub.main_window.fetch_calls == ["m1"]
+
+    def test_a_different_chat_is_not_blocked_by_another_chats_cooldown(self, monkeypatch):
+        monkeypatch.setattr(
+            threading.Thread, "start",
+            lambda self: self._target(*self._args, **self._kwargs),
+        )
+        stub = _Stub(JID, records=[_msg("m1", 100)])
+
+        stub._backfill_reactions_for_open_conversation()
+        stub.conversation = dict(stub.conversation, remoteJid="other@s.whatsapp.net")
+        stub._backfill_reactions_for_open_conversation()
+
+        assert stub.main_window.fetch_calls == ["m1", "m1"]
 
 
 class TestGenerationGuard:
