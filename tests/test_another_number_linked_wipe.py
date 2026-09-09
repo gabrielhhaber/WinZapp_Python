@@ -142,7 +142,7 @@ class _Stub:
     def __init__(self, recorded_number="5511999999999", typed_number=None,
                  paired=True, probe=(cs.LINK_PROBE_LINKED, ""),
                  token="sess1:hash1", db=object(), lid_to_phone=None,
-                 ui_ready=False):
+                 ui_ready=False, wipe_empties_db=True):
         privateinfo = {}
         if recorded_number is not None:
             privateinfo["WA_phone_number_linked"] = recorded_number
@@ -155,6 +155,7 @@ class _Stub:
         self.db = db
         self._lid_to_phone = lid_to_phone or {}
         self._probe = probe
+        self._wipe_empties_db = wipe_empties_db
         self.probe_calls = 0
         self.wipe_calls = 0
         self.saved = 0
@@ -185,8 +186,12 @@ class _Stub:
         self.events.append(("wipe", self._initial_sync_running))
         # The real one drops the recorded number along with the data it
         # describes, which is what makes "the number is written afterwards"
-        # an assertion about ordering rather than about nothing.
-        self.settings["privateinfo"].pop("WA_phone_number_linked", None)
+        # an assertion about ordering rather than about nothing — and it drops
+        # it only when it really emptied the database, which is the same answer
+        # it hands back here.
+        if self._wipe_empties_db:
+            self.settings["privateinfo"].pop("WA_phone_number_linked", None)
+        return self._wipe_empties_db
 
     def save_settings(self):
         self.saved += 1
@@ -1229,6 +1234,74 @@ class TestBothWipesTearTheSameUIDown:
             source = inspect.getsource(method)
             assert "self._teardown_conversation_ui()" in source, method.__name__
             assert "DeleteAllItems" not in source, method.__name__
+
+
+class TestAWipeThatEmptiedNothingLeavesTheOldNumberRecorded:
+    """The new number is recorded only when the wipe really emptied the
+    database, for the same reason clear_local_data() drops the old one only
+    then: the key describes what is on disk.
+
+    clear_local_data() swallows a database failure and returns normally, so
+    "the wipe ran" is not "the wipe emptied anything". Mid-session it runs on
+    the daemon another-number-check thread, which the shutdown does not wait
+    for — the user closing WinZapp during the wipe gets
+    DatabaseBridgeClosed/Timeout, account A's messages stay in messages.db, and
+    writing B's number here would tell every later pass there is no divergence
+    to find. B's first sync then writes over A's rows: the merge this check
+    exists to prevent, reached after the user has already heard that A's
+    conversations were deleted.
+
+    Left naming A, the next pass or the next pairing re-detects the same
+    divergence and finishes the job — which is the self-healing the method's
+    own docstring claims.
+    """
+
+    def test_a_wipe_that_emptied_nothing_keeps_the_previous_number(
+            self, monkeypatch):
+        stub = _Stub(ui_ready=True, wipe_empties_db=False,
+                     probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.wipe_calls == 1
+        assert stub.recorded_number == "5511999999999"
+
+    def test_nothing_is_written_to_settings_either(self, monkeypatch):
+        """A key that survives in memory but not in settings.json is exactly as
+        disarmed as one that survives in neither: the next launch reads the
+        file."""
+        stub = _Stub(ui_ready=True, wipe_empties_db=False,
+                     probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.saved == 0
+
+    def test_the_startup_path_keeps_it_too(self, monkeypatch):
+        """Same hole with no UI: here the database is open (the check returns
+        early otherwise), so what reaches it is a save_full_state() that
+        raised."""
+        monkeypatch.setattr(main_module.wx, "CallAfter",
+                            lambda fn, *a, **kw: None)
+        stub = _Stub(ui_ready=False, wipe_empties_db=False,
+                     probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
+
+        stub._wipe_local_data_if_another_number_linked()
+
+        assert stub.wipe_calls == 1
+        assert stub.recorded_number == "5511999999999"
+        assert stub.saved == 0
+
+    def test_an_emptied_database_still_takes_over_the_number(
+            self, monkeypatch):
+        """The control: nothing about the ordinary path changed."""
+        stub = _Stub(ui_ready=True,
+                     probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
+
+        _run_live(stub, monkeypatch)
+
+        assert stub.recorded_number == "5521988887777"
+        assert stub.saved == 1
 
 
 class TestANonWipingDisconnectLeavesTheCheckArmed:

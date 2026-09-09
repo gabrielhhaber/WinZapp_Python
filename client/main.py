@@ -11253,15 +11253,21 @@ class MainWindow(wx.Frame):
         next pairing of THIS one would look like another divergence and wipe a
         second time.
 
-        The write comes last on purpose. If the process is killed mid-wipe
-        (this runs on a daemon thread), the database has already been emptied
-        — clear_local_data() commits that before it drops the recorded number
-        and before it starts deleting files — so the merge is prevented either
-        way, and what survives is orphaned media of the previous number, plus,
-        if the kill landed before that drop, a key that still names it. The
-        next pairing of the new phone reads that as the same divergence and
-        finishes the job, which is why a partial wipe is self-healing and does
-        not need the app's shutdown to wait for this thread.
+        The write comes last on purpose, and only happens when the wipe really
+        emptied the database. If the process is killed mid-wipe (this runs on a
+        daemon thread, and the shutdown does not wait for it), one of two states
+        survives and neither of them merges the accounts. Either the emptying
+        landed — clear_local_data() commits it before it drops the recorded
+        number and before it starts deleting files — and what is left is an
+        empty database plus orphaned media of the previous number, plus, if the
+        kill landed before that drop, a key that still names it; or it never
+        landed (no database open yet, or the DatabaseBridgeTimeout/Closed a
+        shutdown mid-wipe raises, swallowed there by design), and then that drop
+        and the write here are both skipped, so the key still names the previous
+        number while its messages are still on disk. Either way the next pass or
+        the next pairing reads the same divergence and finishes the job, which is
+        why a partial wipe is self-healing and does not need the app's shutdown
+        to wait for this thread.
 
         Mid-session there is almost always a sync already in flight when this
         starts, claim or no claim — it was started synchronously by the event
@@ -11450,17 +11456,35 @@ class MainWindow(wx.Frame):
         _prepare_ui() raises on self.conversations_panel, which does not exist
         yet.
 
-        The number is recorded last, after the wipe rather than before it:
+        The number is recorded last, after the wipe rather than before it,
+        and only when the wipe really emptied the database:
         clear_local_data(wipe_metadata=True) drops WA_phone_number_linked
-        along with the data it describes whenever it really emptied the
-        database, and what is written here describes the empty database the
-        next sync is about to fill — so this write is what makes the key
-        correct either way.
+        along with the data it describes whenever it emptied it, and what is
+        written here describes the empty database the next sync is about to
+        fill. When it emptied nothing, the key is left naming the previous
+        number instead — see the branch below.
         """
         if teardown_ui:
             self._teardown_conversation_ui()
 
-        self.clear_local_data()
+        if not self.clear_local_data():
+            # The wipe emptied no database, and clear_local_data() swallows the
+            # reason — no database open, or a save_full_state() that raised
+            # DatabaseBridgeTimeout/Closed, which is what the user closing
+            # WinZapp during a mid-session wipe produces, since the shutdown
+            # does not wait for this daemon thread. The previous number's
+            # messages are therefore still in messages.db, so the key has to go
+            # on naming it: recording the new one here would tell every later
+            # pass there is no divergence left, and the new account's first sync
+            # would write over rows the old account still owns — the merge this
+            # check exists to prevent, reached after the user has already been
+            # told the previous number's conversations were deleted. Left armed,
+            # the next pass or the next pairing re-detects it and finishes the
+            # job.
+            logging.error(
+                "[another_number_check] The wipe emptied no database — leaving "
+                "the recorded number armed so the divergence is found again.")
+            return
         privateinfo = self.settings.setdefault("privateinfo", {})
         privateinfo["WA_phone_number_linked"] = new_digits
         self.save_settings()
@@ -13927,7 +13951,7 @@ class MainWindow(wx.Frame):
     # below may write per folder before it falls back to the count alone.
     _MAX_MEDIA_DELETE_ERRORS_LOGGED = 5
 
-    def clear_local_data(self, wipe_metadata: bool = True):
+    def clear_local_data(self, wipe_metadata: bool = True) -> bool:
         """Wipe all cached chats, contacts, messages, media, and mapping caches.
 
         wipe_metadata=True (default, used for a confirmed logout/account
@@ -13945,6 +13969,16 @@ class MainWindow(wx.Frame):
         account's messages) and privateinfo["WA_phone_number_linked"] (the
         number this data belonged to). Both describe data that no longer
         exists once this returns.
+
+        Returns whether the database really was emptied — the same answer the
+        WA_phone_number_linked drop below is already gated on. Only
+        _apply_another_number_wipe() reads it, and it has to: it records the
+        newly linked number the moment this returns, and doing that after a
+        wipe that emptied nothing would leave the key naming the new account
+        while the old account's messages are still in messages.db, which reads
+        as "no divergence" from then on. Every other caller ignores it, F5
+        (wipe_metadata=False) included: the flag changes what gets emptied, not
+        whether this reports having emptied it.
         """
         logging.info("[clear_local_data] Clearing all local caches, media, and database...")
         # Invalidate every background job before touching shared chat state.
@@ -14143,6 +14177,8 @@ class MainWindow(wx.Frame):
                     f"[clear_local_data] Cleared folder {subdir} except {failed} entries")
             else:
                 logging.info(f"[clear_local_data] Cleared folder: {subdir}")
+
+        return db_emptied
 
     def create_basic_files(self):
         data_dir = data_path("")

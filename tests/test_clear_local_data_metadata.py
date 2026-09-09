@@ -36,7 +36,7 @@ from contextlib import contextmanager
 
 import pytest
 
-from core.database_bridge import DatabaseBridgeTimeout
+from core.database_bridge import DatabaseBridgeClosed, DatabaseBridgeTimeout
 import main as main_module
 from main import MainWindow
 
@@ -406,6 +406,52 @@ class TestAWipeThatEmptiedNothingLeavesTheNumberArmed:
         for name in _METADATA:
             assert not getattr(stub, name), name
         assert not (tmp_path / "media_failed.json").exists()
+
+
+class TestTheWipeReportsWhetherItEmptiedAnything:
+    """The same answer the WA_phone_number_linked drop is gated on, handed back
+    to the caller, because one caller has to make the same decision one level
+    up: _apply_another_number_wipe() records the NEWLY linked number the moment
+    this returns, and a wipe that emptied nothing would leave the key naming
+    account B while account A's messages are still in messages.db — no
+    divergence left for any later pass to find, after the user has already been
+    told A's conversations were deleted.
+
+    Nothing else reads it. F5 (wipe_metadata=False) empties the message tables
+    too, so it gets the same True; the flag decides what is emptied, not whether
+    that is reported.
+    """
+
+    def test_an_emptied_database_reports_true(self):
+        stub = _Stub()
+
+        assert stub.clear_local_data() is True
+
+    def test_no_database_open_reports_false(self):
+        """Every connect.py call site: __init__ has not reached prepare_sync()
+        yet, so messages.db is untouched."""
+        stub = _Stub()
+        del stub.db
+
+        assert stub.clear_local_data() is False
+
+    def test_a_save_full_state_that_raised_reports_false(self):
+        """Routine mid-session: the user closes WinZapp while the daemon
+        another-number-check thread is inside the wipe, and the bridge is gone
+        before the write lands."""
+        stub = _Stub()
+
+        def _closed(data, clear_metadata=True):
+            raise DatabaseBridgeClosed("database bridge is closed")
+
+        stub.db.save_full_state = _closed
+
+        assert stub.clear_local_data() is False
+
+    def test_the_resync_path_reports_it_too(self):
+        stub = _Stub()
+
+        assert stub.clear_local_data(wipe_metadata=False) is True
 
 
 class TestAResyncKeepsEveryLocalActionTheUserTook:
