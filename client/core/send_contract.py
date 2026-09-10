@@ -79,3 +79,43 @@ def accepted_message_id(body) -> str:
         raise SendContractError("success response has no message id")
     parts = message_id.split("_")
     return parts[2] if len(parts) > 2 else parts[-1]
+
+
+def send_failure_is_ambiguous(status_code) -> bool:
+    """Whether a failed send might nevertheless have reached WhatsApp.
+
+    A 5xx from a send endpoint is `returnError` on the Node side — an
+    exception raised somewhere inside the controller — and by then WPPConnect
+    has usually already handed the message to WhatsApp Web. Measured on a real
+    install on 2026-09-09, and the ordering is the whole point:
+
+        16:17:04.744  echo  id=3EB0B499A4020A9246C939  extendedTextMessage
+        16:17:04.754  POST /send-reply -> 500
+
+    The echo of the delivered reply arrived **ten milliseconds before** the
+    error response for the very request that sent it. Everything the caller
+    does after that 500 is acting on a message that is already on its way.
+
+    So a 5xx proves nothing, and no caller may answer it by sending again:
+    send_text_message()'s own fallbacks used to retry it without the quote,
+    which put a second copy in the conversation (the user's report: "the reply
+    shows up correctly and is then duplicated"). The shape to answer with is
+    the one _classify_send_exception() already uses for a timeout —
+    ``retry: False, ambiguous: True`` — so the queue drops the message rather
+    than resending it and the WebSocket echo resolves the pending row if and
+    when WhatsApp really delivers it.
+
+    4xx is the opposite: the controller rejected the request before doing
+    anything with it (a bad phone, a quoted message it cannot find), so a
+    fallback there is free. That is the distinction the fallbacks lost by
+    testing "not 200/201".
+
+    An unreadable status is treated as ambiguous, because the only cost of
+    being wrong that way is a message the user has to send again — against a
+    duplicate nobody can take back.
+    """
+    try:
+        code = int(status_code)
+    except (TypeError, ValueError):
+        return True
+    return code >= 500
