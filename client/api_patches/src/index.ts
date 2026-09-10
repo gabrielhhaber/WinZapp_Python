@@ -38,6 +38,10 @@ import {
 } from './util/functions';
 import { createLogger } from './util/logger';
 
+// Upstream deleted this dead comment in 2.10.19 when it moved dotenv loading
+// into config.ts. Kept here purely so this file stays a minimal delta from the
+// tag it is restored over; see the long note at the top of config.ts for why
+// WinZapp does not load a .env at all.
 //require('dotenv').config();
 
 export const logger = createLogger(config.log);
