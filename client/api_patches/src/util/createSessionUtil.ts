@@ -343,7 +343,14 @@ function clearRestorableSession(profileDir: string, logger?: any): void {
         ) {
           prefs.profile.exit_type = 'Normal';
           prefs.profile.exited_cleanly = true;
-          fs.writeFileSync(prefsPath, JSON.stringify(prefs), 'utf8');
+          // Temp + rename, never in place. writeFileSync truncates first, and
+          // this can run while a stale Chrome still owns the profile (rung one
+          // runs before any kill) — a death between the truncate and the write
+          // would hand Chrome an unparseable Preferences and a reset profile.
+          // Chrome writes this file the same way, for the same reason.
+          const prefsTmp = prefsPath + '.winzapp.tmp';
+          fs.writeFileSync(prefsTmp, JSON.stringify(prefs), 'utf8');
+          fs.renameSync(prefsTmp, prefsPath);
         }
       }
     } catch (e) {}
@@ -773,7 +780,26 @@ export default class CreateSessionUtil {
     // mid-write costs here.
     if (graceful && (await closeBrowserGracefully(session, logger, timeoutMs, client)))
       return;
+    // The precise kill can only ever reach this client's own page, so it is
+    // unconditional. The directory scan cannot: it kills whoever holds the
+    // profile, which after a takeover is a successor's browser — the
+    // 03:55:50 incident killBrowserOrFallback() carries in its own comment.
+    //
+    // This guard is new because the path is new. closeBrowserGracefully()
+    // used to answer `true` for a client with no page at all (during
+    // create(), clientsArray[session] holds a stub and Object.assign() has
+    // not run yet), so this returned early and killed nothing — which is how
+    // the stale lock this branch fixes was reached in the first place. Now it
+    // answers `false`, honestly, and the fallback below actually runs.
     if (!forceKillBrowserProcess(client?.page, logger)) {
+      const current: any = clientsArray[session];
+      if (current && client && current !== client) {
+        logger?.warn?.(
+          `[${session}] not killing the browser by userDataDir: this session ` +
+            'has been taken over by a newer client, and the profile is its.'
+        );
+        return;
+      }
       forceKillByUserDataDir(`userDataDir/${session}`, logger);
     }
   }

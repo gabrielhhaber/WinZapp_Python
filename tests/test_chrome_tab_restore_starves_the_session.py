@@ -122,8 +122,19 @@ class TestBothHalvesOfTheFixAreThere:
         """Preferences carries far more than the exit record. Replacing the file
         drops every setting the profile has accumulated."""
         read_at = sweep.index("JSON.parse(fs.readFileSync(prefsPath")
-        write_at = sweep.index("fs.writeFileSync(prefsPath")
+        write_at = sweep.index("fs.writeFileSync(prefsTmp")
         assert read_at < write_at
+
+    def test_preferences_is_written_atomically(self, sweep):
+        """Temp + rename, never in place. This runs while a stale Chrome may
+        still own the profile — the first rung of the recovery sweeps before
+        any kill — and writeFileSync truncates before it writes, so a death in
+        between hands Chrome an unparseable Preferences and a reset profile.
+        Chrome writes this file the same way, for the same reason."""
+        assert "fs.writeFileSync(prefsPath" not in sweep
+        write_at = sweep.index("fs.writeFileSync(prefsTmp")
+        rename_at = sweep.index("fs.renameSync(prefsTmp, prefsPath)")
+        assert write_at < rename_at
 
     def test_an_unreadable_preferences_is_left_alone(self, sweep):
         """Not defaulting to `{}` on a read failure, for the same reason the

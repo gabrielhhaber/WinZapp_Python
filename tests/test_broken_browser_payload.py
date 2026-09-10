@@ -168,8 +168,14 @@ def window(tmp_path, monkeypatch):
 
     stub = _StubWindow(cache)
     stub.find_headless_shell = winzapp_main.MainWindow.find_headless_shell.__get__(stub)
+    stub.iter_incomplete_browsers = (
+        winzapp_main.MainWindow.iter_incomplete_browsers.__get__(stub)
+    )
     stub.find_incomplete_browser = (
         winzapp_main.MainWindow.find_incomplete_browser.__get__(stub)
+    )
+    stub.browser_payload_blocks_startup = (
+        winzapp_main.MainWindow.browser_payload_blocks_startup.__get__(stub)
     )
     stub.cache = cache
     return stub
@@ -202,6 +208,38 @@ class TestTheFindersDisagreeOnPurpose:
         good = _make_browser(window.cache, version="win64-148.0.7778.97")
         assert window.find_headless_shell() == str(good)
 
+    def test_a_broken_dir_beside_a_good_one_does_not_block_startup(self, window):
+        """The question the recovery asks is "is a broken browser the reason
+        nothing can start", not "is there a broken browser". Getting those two
+        confused costs a healthy install its profile recovery for good — and
+        the state is reachable straight out of the repair path below: a delete
+        antivirus blocks leaves the old directory behind while puppeteer
+        installs a complete one beside it."""
+        _make_browser(window.cache, version="win64-147.0.0.0", icu_bytes=None)
+        good = _make_browser(window.cache, version="win64-148.0.7778.97")
+        assert window.find_headless_shell() == str(good)
+        # Still reported as present — that half is true and the repair uses it.
+        assert window.find_incomplete_browser()[0] is not None
+        # But it is not what is stopping anything.
+        assert window.browser_payload_blocks_startup() == (None, None)
+
+    def test_with_nothing_usable_the_broken_one_blocks_startup(self, window):
+        broken = _make_browser(window.cache, icu_bytes=None)
+        found, problem = window.browser_payload_blocks_startup()
+        assert found == str(broken)
+        assert problem == "icudtl.dat is missing"
+
+    def test_every_broken_version_is_listed_not_just_the_first(self, window):
+        """Nothing ever removes an old version directory, so a cache can hold
+        several; repairing one leaves the next launch doing this again."""
+        _make_browser(window.cache, version="win64-146.0.0.0", icu_bytes=None)
+        _make_browser(window.cache, version="win64-147.0.0.0", icu_bytes=b"")
+        found = list(window.iter_incomplete_browsers())
+        assert len(found) == 2
+        assert {problem for _binary, problem in found} == {
+            "icudtl.dat is missing", "icudtl.dat is empty"
+        }
+
     def test_an_empty_cache_is_neither(self, window):
         assert window.find_headless_shell() is None
         assert window.find_incomplete_browser() == (None, None)
@@ -229,20 +267,20 @@ class TestTheRecoveryRefusesWhenTheBrowserIsTheFault:
         """Before the once-per-launch latch, so a launch spent refusing here
         still has its one real recovery left for the fault this exists to fix.
         """
-        refusal = recovery_source.index("find_incomplete_browser()")
+        refusal = recovery_source.index("browser_payload_blocks_startup()")
         latch = recovery_source.index("self._profile_recovery_attempted = True")
         assert refusal < latch
 
     def test_the_refusal_returns_false_without_restoring(self, recovery_source):
         head = recovery_source[: recovery_source.index("session_name =")]
-        assert "return False" in head[head.index("find_incomplete_browser()") :]
+        assert "return False" in head[head.index("browser_payload_blocks_startup()") :]
         assert "restore_snapshot" not in head
 
     def test_the_refusal_is_audited(self, recovery_source):
         """shutdown_audit.log is the only log that survives the next launch,
         and this is a diagnosis someone will be reading after the fact."""
         assert "_shutdown_audit(" in recovery_source[
-            recovery_source.index("find_incomplete_browser()") :
+            recovery_source.index("browser_payload_blocks_startup()") :
             recovery_source.index("self._profile_recovery_attempted = True")
         ]
 
@@ -286,7 +324,7 @@ class _RecoveryStub:
         self.db = _MetadataDB()
         self._broken = broken
 
-    def find_incomplete_browser(self):
+    def browser_payload_blocks_startup(self):
         return self._broken
 
     def _announce_profile_beyond_repair(self):
@@ -370,3 +408,46 @@ class TestTheStringExistsInEveryLocale:
         for code in ("pt-BR", "pt-PT", "en-US", "es-ES", "pl"):
             data = json.loads((languages / f"{code}.json").read_text(encoding="utf-8"))
             assert data.get("browser_install_broken"), code
+
+
+@pytest.mark.skipif(os.name != "nt", reason="renaming a locked directory is a Windows behaviour")
+class TestClearingABrokenBrowserFreesTheName:
+    """@puppeteer/browsers skips its download outright while the version
+    directory exists, so "mostly deleted" is the worst possible outcome: the
+    tree is emptier than it started and the install is skipped anyway, one
+    file per launch, for good."""
+
+    def test_a_deletable_directory_is_deleted(self, tmp_path):
+        binary = _make_browser(tmp_path, icu_bytes=None)
+        version_dir = browser_payload.installed_version_dir(str(binary), str(tmp_path))
+        assert MainWindow._clear_broken_browser_dir(version_dir) is True
+        assert not os.path.isdir(version_dir)
+
+    def test_an_undeletable_directory_is_renamed_aside(self, tmp_path, monkeypatch):
+        """Antivirus holding a handle is how the payload got damaged in the
+        first place, so the delete failing is the expected case, not the
+        exotic one. Windows renames a directory holding a locked file where it
+        refuses to delete it."""
+        binary = _make_browser(tmp_path, icu_bytes=None)
+        version_dir = browser_payload.installed_version_dir(str(binary), str(tmp_path))
+        monkeypatch.setattr("main.shutil.rmtree", lambda *a, **kw: None)
+
+        assert MainWindow._clear_broken_browser_dir(version_dir) is True
+        assert not os.path.isdir(version_dir), "the name must be free"
+        aside = f"{version_dir}.broken.{os.getpid()}"
+        assert os.path.isdir(aside), "and the evidence must be kept"
+
+    def test_a_missing_directory_is_already_clear(self, tmp_path):
+        assert MainWindow._clear_broken_browser_dir(str(tmp_path / "gone")) is True
+
+    def test_it_never_raises(self, tmp_path, monkeypatch):
+        """It runs on the startup path; a browser that cannot be tidied is a
+        reason to try the download anyway, not to give up."""
+        binary = _make_browser(tmp_path, icu_bytes=None)
+        version_dir = browser_payload.installed_version_dir(str(binary), str(tmp_path))
+        monkeypatch.setattr("main.shutil.rmtree", lambda *a, **kw: None)
+        monkeypatch.setattr(
+            "main.os.replace",
+            lambda *a, **kw: (_ for _ in ()).throw(OSError("held open")),
+        )
+        assert MainWindow._clear_broken_browser_dir(version_dir) is False

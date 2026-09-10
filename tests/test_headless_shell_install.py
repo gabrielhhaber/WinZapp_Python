@@ -47,6 +47,9 @@ class _Stub:
     _WINDOWS_CHROME_NAMES = getattr(MainWindow, "_WINDOWS_CHROME_NAMES", ("chrome.exe",))
     find_headless_shell = MainWindow.find_headless_shell
     find_incomplete_browser = MainWindow.find_incomplete_browser
+    iter_incomplete_browsers = MainWindow.iter_incomplete_browsers
+    browser_payload_blocks_startup = MainWindow.browser_payload_blocks_startup
+    _clear_broken_browser_dir = MainWindow._clear_broken_browser_dir
     ensure_headless_shell_installed = MainWindow.ensure_headless_shell_installed
     ensure_api_modules_installed = MainWindow.ensure_api_modules_installed
 
