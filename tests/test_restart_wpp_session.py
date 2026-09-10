@@ -27,6 +27,7 @@ class _Stub:
     _WPP_SESSION_RESTART_COOLDOWN = MainWindow._WPP_SESSION_RESTART_COOLDOWN
     _AUTO_RESTART_LOGOUT_GRACE_SECONDS = MainWindow._AUTO_RESTART_LOGOUT_GRACE_SECONDS
     _RECOVERY_CLOSE_WAIT = MainWindow._RECOVERY_CLOSE_WAIT
+    _RESTART_PROFILE_RELEASE_WAIT = MainWindow._RESTART_PROFILE_RELEASE_WAIT
     # The real gate the health loop reads, not a reimplementation of it.
     _self_inflicted_teardown_expected = MainWindow._self_inflicted_teardown_expected
 
@@ -37,6 +38,16 @@ class _Stub:
         self.waited_statuses = []
         self.closed_status = "CLOSED"
         self._recovery_restart_active = False
+        self.profile_release_waits = []
+
+    def wait_for_profile_release(self, session_name, timeout=20.0):
+        """The SECOND gate, between the close and the start. CLOSED only says
+        WPPConnect's state machine finished; this says Chrome let go of
+        userDataDir. Skipping it let a replacement browser open the login
+        database 80 ms after the close, which is how a suspend/resume cost a
+        user their profile — see tests/test_suspend_resume_profile_loss.py."""
+        self.profile_release_waits.append((session_name, timeout))
+        return True
 
     def _wait_for_status(self, predicate, timeout, stop_when_connected=True):
         self.waited_statuses.append((predicate, timeout, stop_when_connected))

@@ -9490,6 +9490,34 @@ class MainWindow(wx.Frame):
                 if profile_recovery.restore_snapshot(
                         global_dir, session_name, prefer_previous=prefer_previous):
                     self._shutdown_audit("profile restored from snapshot")
+                    # The restore rolled WhatsApp Web's OWN store back to
+                    # whenever the snapshot was taken — up to
+                    # SNAPSHOT_MAX_AGE_SECONDS. Measured 2026-09-10: the
+                    # snapshot was from 09-09 21:20 and the restore ran at
+                    # 09-10 18:36, so the browser came back knowing 21 hours
+                    # less than WinZapp's own database did.
+                    #
+                    # That matters far beyond a stale view, because
+                    # _reconcile_active_conversation_with_remote() reads "the
+                    # server does not have this message" as "the phone deleted
+                    # it" and mirrors it — deleting, from the only complete
+                    # copy, messages that were correctly synced before the
+                    # rollback. The server cannot be the source of truth about
+                    # deletions while it is behind us; nothing here can tell a
+                    # real deletion from a message the rolled-back store simply
+                    # has not heard of yet.
+                    #
+                    # So mirroring is suspended for the rest of the launch. A
+                    # genuine phone-side deletion missed until the next launch
+                    # is a cosmetic staleness; a mirrored rollback is
+                    # irreversible data loss, and only one of those is worth
+                    # risking.
+                    self._remote_deletions_untrusted = True
+                    logging.warning(
+                        "[profile-recovery] the restored profile is older than "
+                        "the local history — not mirroring remote deletions for "
+                        "the rest of this launch."
+                    )
                     # The QR burst that triggered this was produced by the
                     # profile now moved aside; counting it against the flood
                     # ceiling would halt a session that is about to be fine.
@@ -12772,6 +12800,12 @@ class MainWindow(wx.Frame):
         ts = getattr(self, "_auto_session_restart_ts", 0)
         return bool(ts) and (time.time() - ts) < self._AUTO_RESTART_LOGOUT_GRACE_SECONDS
 
+    #: How long to wait for Chrome to release userDataDir between the close
+    #: and the restart. Sized like _stop_wpp_server()'s own wait rather than
+    #: the 12 s close wait beside it: the measured worst case on this path was
+    #: a browser resumed from a long suspend, which took 20 s to let go.
+    _RESTART_PROFILE_RELEASE_WAIT = 25.0
+
     def _restart_wpp_session(self):
         """Recreate the WPPConnect Chrome session in place (close-session +
         start-session), without touching the Node process or WinZapp itself.
@@ -12880,6 +12914,48 @@ class MainWindow(wx.Frame):
                     closed_status or "?",
                 )
                 return
+
+            # CLOSED is the FIRST of two gates and never the second. It says
+            # WPPConnect's own state machine finished; it says nothing about
+            # Chrome having let go of userDataDir. _stop_wpp_server() has
+            # always waited for both ("Neither substitutes for the other"),
+            # and this path waited only for the first — so the replacement
+            # browser opened the login database while the outgoing Chrome was
+            # still flushing it.
+            #
+            # That is how a SUSPEND destroyed a profile, which is otherwise
+            # hard to credit — nothing is killed by suspending. Measured
+            # 2026-09-10, after 5.5 hours asleep:
+            #
+            #   18:34:09.496  close-session -> 200
+            #   18:34:09.536  status-session -> CLOSED   (first gate, 40 ms)
+            #   18:34:09.576  start-session  -> 200      (80 ms after close)
+            #   18:34:18      Session Unpaired -> post_logout=1&logout_reason=0
+            #
+            # Eighty milliseconds. The Chrome that had just been resumed from
+            # a 5.5-hour suspend, with a whole session's worth of state to
+            # write back, had not finished — and the same wait that was
+            # skipped here took 20 s when the recovery finally ran it at
+            # 18:36:01 ("still held after 20s — killing the holder(s)"). The
+            # session then looked logged out, the QR handler read that as a
+            # broken profile, and a 21-hour-old snapshot was restored over it.
+            #
+            # wait_for_profile_release() is the same helper _stop_wpp_server()
+            # uses, and it kills an orphaned Chrome as its fallback, so a
+            # browser that never lets go still ends with a startable profile.
+            # Not fatal if it times out: starting anyway is exactly what this
+            # did before, and createSessionUtil's stale-lock recovery is the
+            # net under it.
+            session_name = (getattr(self, "token", "") or "").split(":")[0]
+            if session_name:
+                if not self.wait_for_profile_release(
+                    session_name, timeout=self._RESTART_PROFILE_RELEASE_WAIT
+                ):
+                    logging.warning(
+                        "[_restart_wpp_session] Chrome still holds %s after %ss "
+                        "— starting anyway; the stale-lock recovery is the net.",
+                        session_name[:12], self._RESTART_PROFILE_RELEASE_WAIT,
+                    )
 
             start_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/start-session"
             try:
@@ -21873,6 +21949,11 @@ class MainWindow(wx.Frame):
             self._remote_clear_strikes = {}
         cp = getattr(self, "conversations_panel", None)
         if cp is None or cp.conversation is None:
+            return
+        if getattr(self, "_remote_deletions_untrusted", False):
+            # A profile restore rolled WhatsApp Web's store back behind our own
+            # database, so "the server has not got this message" no longer means
+            # the phone deleted it. See where the flag is set.
             return
         remote_jid = self._normalize_jid(cp.conversation.get("remoteJid", ""))
         if not remote_jid or not getattr(self, "messages_set_completed", False):
