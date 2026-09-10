@@ -12211,9 +12211,22 @@ class ConversationsPanel(wx.Panel):
             i for i, m in enumerate(self._sorted_messages)
             if isinstance(m, dict) and m.get("key", {}).get("id") in msg_ids
         )
-        if not indices:
-            return
-        earliest = indices[0]
+        # An id with no row on screen still has to leave `records` and the DB.
+        # This used to `return` here, and that turned _mirror_remote_deletions()
+        # into a permanent no-op loop: the ids it mirrors are the ones the phone
+        # no longer has, and those are routinely NOT rendered rows — a reaction
+        # or other non-displayable record (_is_displayable_message()), or a
+        # message paginated out of the current window. Nothing was removed, so
+        # the next poll found exactly the same ids missing, and the next, and
+        # the next. Measured on a real session: the same 21 ids re-reported
+        # every 60s, sixty times in one log, each round paying a
+        # get-messages?count=200 round trip and printing a line claiming a
+        # removal that never happened.
+        #
+        # Only the row-level work below is conditional now. Everything from
+        # `if self.conversation:` on is unconditional, because it is what makes
+        # the removal stick.
+        earliest = indices[0] if indices else -1
         _preserved_msg_id = self._focused_msg_id() if focus_previous else ""
         _preserved_idx = self.messages_list.GetFocusedItem() if focus_previous else -1
         _preserved_was_separator = (
@@ -12266,7 +12279,14 @@ class ConversationsPanel(wx.Panel):
                 self.main_window._recompute_chat_last_message(jid)
                 self.main_window._schedule_set_chats()
 
-        if focus_previous:
+        if focus_previous and indices:
+            # `and indices`: with no row removed there is nothing to adjust
+            # focus for, and calling Focus()/Select() on the row the user is
+            # already sitting on fires EVT_LIST_ITEM_FOCUSED for a move that
+            # did not happen — the screen reader re-announces the row and the
+            # selection sound fires again. Reached whenever the ids being
+            # removed are all off-screen, which is the ordinary case for
+            # _mirror_remote_deletions().
             count = self.messages_list.GetItemCount()
             if count > 0:
                 new_focus = -1
@@ -15065,6 +15085,205 @@ class ConversationsPanel(wx.Panel):
         self._adopt_signature_after_repaint(ids)
         return True
 
+    def _sorted_deduped_records(self, messages: list) -> list:
+        """The record list ``populate_messages()`` renders from: sorted by
+        timestamp, then de-duplicated by key.id keeping the LAST occurrence.
+
+        Extracted from that method verbatim so the in-place repaint path below
+        can derive the same reaction map the rebuild would, rather than a second
+        opinion about it. Records accumulate duplicates when the same message
+        arrives via both the initial sync and messages.upsert; the latest
+        version of the message wins. A record with no id is never a duplicate of
+        anything and is always kept.
+        """
+        try:
+            messages_sorted = sorted(
+                messages, key=lambda m: self._extract_timestamp(m) or 0
+            )
+        except Exception:
+            messages_sorted = messages
+        _seen_ids: dict = {}
+        for i, m in enumerate(messages_sorted):
+            if not isinstance(m, dict):
+                continue
+            mid = m.get("key", {}).get("id", "")
+            if mid:
+                _seen_ids[mid] = i
+        _kept = set(_seen_ids.values())
+        return [
+            m for i, m in enumerate(messages_sorted)
+            if isinstance(m, dict) and (
+                not m.get("key", {}).get("id", "") or i in _kept
+            )
+        ]
+
+    def _reaction_map_from_sorted(self, messages_sorted: list) -> dict:
+        """Build the reaction map from an already sorted+deduped record list.
+
+        Each sender can only have ONE active reaction on a message at a time —
+        later records for the same (message, sender) pair replace the earlier
+        one instead of accumulating a count, and an empty emoji means that
+        sender removed their reaction. Order therefore matters, which is why
+        this takes the sorted list rather than raw records.
+        """
+        reaction_map: dict = {}
+        for m in messages_sorted:
+            if isinstance(m, dict) and m.get("messageType") == "reactionMessage":
+                reaction   = (m.get("message") or {}).get("reactionMessage") or {}
+                emoji      = reaction.get("text", "")
+                orig_id    = (reaction.get("key") or {}).get("id", "")
+                sender_key = self._reactor_key_from_msg(m)
+                if orig_id and sender_key:
+                    per_msg = reaction_map.setdefault(orig_id, {})
+                    if emoji:
+                        per_msg[sender_key] = emoji
+                    else:
+                        per_msg.pop(sender_key, None)
+        return reaction_map
+
+    @staticmethod
+    def _reaction_target_id(msg: dict) -> str:
+        """The id of the message a reaction record decorates, or ""."""
+        if not isinstance(msg, dict) or msg.get("messageType") != "reactionMessage":
+            return ""
+        reaction = (msg.get("message") or {}).get("reactionMessage") or {}
+        return (reaction.get("key") or {}).get("id", "") or ""
+
+    def _repaint_changed_rows_in_place(self, old_sig, new_sig) -> bool:
+        """Rewrite only the rows whose text actually changed, instead of
+        rebuilding the whole list. Returns whether the entire difference between
+        the two signatures was covered.
+
+        This is the rung that was missing between _append_new_tail_rows() (rows
+        added at the END) and the full rebuild, and its absence is what the 60s
+        poll was landing on. Two very ordinary things change a row that is
+        already on screen without adding or removing any row:
+
+        * a delivery/read receipt moving a message's ``status``;
+        * a reaction, which is a record that never becomes a row of its own and
+          instead changes the text of ANOTHER row.
+
+        Neither is expressible as a tail append, so both fell through to
+        ``populate_messages(preserve_focus=True)`` — DeleteAllItems() plus one
+        Append() per row, followed by re-Focus()/re-Select()ing the row the user
+        was already on. That last part is the damage: a native ListView row is a
+        single MSAA object, so re-focusing it fires EVT_LIST_ITEM_FOCUSED and
+        the screen reader re-announces a row the user never moved off, once a
+        minute, mid-read. It cannot be fixed by making the rebuild quieter —
+        the focus event is unavoidable once the control has been cleared — so
+        the rebuild has to not happen.
+
+        Refuses anything that moves, adds or removes a ROW, because only the
+        rebuild knows where a row goes:
+
+        * a changed record whose timestamp moved (the list is sorted by
+          timestamp, so it may belong somewhere else now);
+        * a displayable record added or removed (that is a row appearing or
+          disappearing — _append_new_tail_rows() owns the tail case);
+        * a reaction whose target is not currently rendered (paginated out, or
+          in another conversation) — there is no row to repaint;
+        * everything _signature_changed_ids() already refuses on its own: a
+          different conversation, a moved unread separator, an empty or
+          repeated id;
+        * a list out of step with the control, or the placeholder list, on the
+          same reasoning as _repaint_message_rows().
+        """
+        if self.conversation is None or not self._sorted_messages:
+            return False
+        changed = self._signature_changed_ids(old_sig, new_sig)
+        if not changed:
+            # None (not comparable) and the empty set (nothing to do, which
+            # refresh_messages_if_changed() would not have called us for) both
+            # belong to the caller's slower path.
+            return False
+        old_rows = {r[0]: r for r in old_sig[3]}
+        new_rows = {r[0]: r for r in new_sig[3]}
+
+        records = []
+        container = self.conversation.get("messages")
+        if isinstance(container, dict):
+            inner = container.get("messages")
+            if isinstance(inner, dict) and isinstance(inner.get("records"), list):
+                records = inner["records"]
+        by_id = {}
+        for m in records:
+            if isinstance(m, dict):
+                mid = (m.get("key") or {}).get("id", "")
+                if mid:
+                    by_id[mid] = m
+
+        rendered = {}
+        for idx, m in enumerate(self._sorted_messages):
+            if isinstance(m, dict) and not self._is_separator(m):
+                mid = (m.get("key") or {}).get("id", "")
+                if mid:
+                    rendered[mid] = idx
+
+        targets = set()
+        for mid in changed:
+            before, after = old_rows.get(mid), new_rows.get(mid)
+            if before is not None and after is not None:
+                # Index 7 of the signature tuple is the timestamp; a row whose
+                # sort key moved may not belong where it currently sits.
+                if before[7] != after[7]:
+                    return False
+                if mid in rendered:
+                    targets.add(mid)
+                    continue
+                # Not a row of its own: only a reaction may legitimately be
+                # invisible, and only if what it decorates is on screen.
+                target = self._reaction_target_id(by_id.get(mid) or {})
+                if target and target in rendered:
+                    targets.add(target)
+                    continue
+                return False
+            # Added or removed outright.
+            record = by_id.get(mid)
+            if record is None:
+                # Gone from `records`: either a row disappeared, or a reaction
+                # was withdrawn. Both need the rebuild — a withdrawn reaction
+                # changed some other row's text and there is nothing left to
+                # read the target off, so it cannot be repainted either.
+                return False
+            if self._is_displayable_message(record):
+                return False        # a row appears — not ours to place
+            target = self._reaction_target_id(record)
+            if not (target and target in rendered):
+                return False
+            targets.add(target)
+
+        if not targets:
+            return False
+        if self.messages_list.GetItemCount() != len(self._sorted_messages):
+            logging.info("[_repaint_changed_rows_in_place] list out of step with rows — full path")
+            return False
+        first_row = self._sorted_messages[0]
+        if isinstance(first_row, dict) and first_row.get("_type") == "empty_placeholder":
+            return False
+
+        # The reaction map has to move first: _render_message_line() reads it,
+        # so repainting before rebuilding it would write the OLD reaction back
+        # into the row that just changed.
+        try:
+            self._reaction_map = self._reaction_map_from_sorted(
+                self._sorted_deduped_records(records)
+            )
+            found = self._set_message_row_texts(targets)
+        except Exception:
+            logging.exception("[_repaint_changed_rows_in_place] failed — full path")
+            return False
+        if found != targets:
+            logging.info("[_repaint_changed_rows_in_place] %d of %d rows not rendered — full path",
+                         len(targets - found), len(targets))
+            return False
+        self._messages_signature_cache = new_sig
+        logging.info(
+            "[_repaint_changed_rows_in_place] %d changed record(s) -> %d row(s) "
+            "repainted, %d row(s) total — no rebuild.",
+            len(changed), len(targets), len(self._sorted_messages),
+        )
+        return True
+
     def _repaint_or_repopulate(self, msg_ids) -> None:
         """Repaint just the rows of *msg_ids*, rebuilding the list only if
         that isn't possible. The shape every local flag change uses."""
@@ -15290,16 +15509,37 @@ class ConversationsPanel(wx.Panel):
             return
         if sig == getattr(self, "_messages_signature_cache", None):
             return
+        cached = getattr(self, "_messages_signature_cache", None)
         try:
-            if self._append_new_tail_rows(
-                getattr(self, "_messages_signature_cache", None), sig
-            ):
+            if self._append_new_tail_rows(cached, sig):
                 return
         except Exception:
             # O rebuild abaixo repinta a conversa inteira de qualquer forma, e
             # é ele que estava aqui antes: uma falha no atalho não pode custar
             # a atualização.
             logging.exception("[refresh_messages_if_changed] tail append failed — full path")
+        try:
+            if self._repaint_changed_rows_in_place(cached, sig):
+                return
+        except Exception:
+            logging.exception("[refresh_messages_if_changed] in-place repaint failed — full path")
+        # Neither shortcut covered it, so the list really is being rebuilt and
+        # the user really will be re-announced their own row. Say what forced
+        # it: without this the only evidence in a log is a populate_messages
+        # line every 60s, and working out which record moved took a session of
+        # inference. Cheap — it runs only on the path that is about to spend
+        # tens of milliseconds rebuilding.
+        try:
+            changed = self._signature_changed_ids(cached, sig)
+            if changed is None:
+                logging.info("[refresh_messages_if_changed] rebuild: signatures not "
+                             "comparable (conversation, unread separator, or an "
+                             "empty/repeated message id changed)")
+            else:
+                logging.info("[refresh_messages_if_changed] rebuild: %d record(s) "
+                             "changed, ids=%s", len(changed), sorted(changed)[:8])
+        except Exception:
+            pass
         self._messages_signature_cache = sig
         self.populate_messages(preserve_focus=True)
 
@@ -15394,48 +15634,8 @@ class ConversationsPanel(wx.Panel):
                 inner = messages_container.get("messages")
                 if isinstance(inner, dict) and isinstance(inner.get("records"), list):
                     messages = inner["records"]
-            try:
-                messages_sorted = sorted(
-                    messages, key=lambda m: self._extract_timestamp(m) or 0
-                )
-            except Exception:
-                messages_sorted = messages
-
-            # Deduplicate by key.id — records may accumulate duplicates when the
-            # same message arrives via both the initial sync and messages.upsert.
-            # Keep the last occurrence (latest version of the message wins).
-            _seen_ids: dict = {}
-            for i, m in enumerate(messages_sorted):
-                if not isinstance(m, dict):
-                    continue
-                mid = m.get("key", {}).get("id", "")
-                if mid:
-                    _seen_ids[mid] = i
-            _kept = set(_seen_ids.values())
-            messages_sorted = [
-                m for i, m in enumerate(messages_sorted)
-                if isinstance(m, dict) and (
-                    not m.get("key", {}).get("id", "") or i in _kept
-                )
-            ]
-
-            # Build reaction map from all reaction messages. Each sender can only
-            # have ONE active reaction on a message at a time — later records for
-            # the same (message, sender) pair replace the earlier one instead of
-            # accumulating a count, and an empty emoji means that sender removed
-            # their reaction.
-            for m in messages_sorted:
-                if isinstance(m, dict) and m.get("messageType") == "reactionMessage":
-                    reaction   = (m.get("message") or {}).get("reactionMessage") or {}
-                    emoji      = reaction.get("text", "")
-                    orig_id    = (reaction.get("key") or {}).get("id", "")
-                    sender_key = self._reactor_key_from_msg(m)
-                    if orig_id and sender_key:
-                        per_msg = self._reaction_map.setdefault(orig_id, {})
-                        if emoji:
-                            per_msg[sender_key] = emoji
-                        else:
-                            per_msg.pop(sender_key, None)
+            messages_sorted = self._sorted_deduped_records(messages)
+            self._reaction_map = self._reaction_map_from_sorted(messages_sorted)
 
             # Exclude reaction messages — they must not affect index mapping
             displayable = [
