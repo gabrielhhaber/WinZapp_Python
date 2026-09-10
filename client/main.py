@@ -58,7 +58,7 @@ from core.incremental_sync import (
 )
 from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
-from core.send_contract import accepted_message_id
+from core.send_contract import accepted_message_id, send_failure_is_ambiguous
 from core.wpp_runtime import (
     read_homologated_wpp_version, wppconnect_library_drift, WPPCONNECT_PACKAGE,
 )
@@ -22146,8 +22146,15 @@ class MainWindow(wx.Frame):
                 #    Skipped when the API reports the session as disconnected:
                 #    nothing was sent, and the message must stay queued as-is
                 #    instead of burning a retry (see MessageQueue).
+                #
+                #    A 5xx is excluded, and that is not a narrowing of "any
+                #    definite 4xx/5xx" — it is the word *definite* being
+                #    honoured. See send_failure_is_ambiguous(): the controller
+                #    threw after handing the message to WhatsApp Web, so a
+                #    second attempt here is a second message.
                 fb_phone = self._legacy_phone_for_send(remote_jid) if is_lid_target else ""
-                if fb_phone and not self._check_wa_connection_closed(response):
+                if (fb_phone and not self._check_wa_connection_closed(response)
+                        and not send_failure_is_ambiguous(response.status_code)):
                     logging.warning(
                         "[send_text_message] @lid destination %s refused (HTTP %s: %s) — retrying with legacy %s",
                         remote_jid, response.status_code, response.text[:200], fb_phone,
@@ -22187,7 +22194,19 @@ class MainWindow(wx.Frame):
                 #    never take this fallback: a plain DM is observably the
                 #    wrong operation, so report failure and let the user retry
                 #    instead of claiming that an unquoted reply succeeded.
-                if response.status_code not in (200, 201) and quoted_id and not is_status_reply:
+                #
+                #    Nor may it take it after an ambiguous failure. This is the
+                #    duplicate a user reported as "the reply shows up correctly
+                #    and is then duplicated": /send-reply answered 500, the
+                #    quote was stripped, the plain copy was sent — and the echo
+                #    of the ORIGINAL reply had already arrived 10 ms before that
+                #    500 (see send_failure_is_ambiguous() for the measurement).
+                #    Two messages on WhatsApp for one action, the second one
+                #    quietly missing the quote, which is what makes it read as
+                #    the same message sent twice.
+                if (response.status_code not in (200, 201) and quoted_id
+                        and not is_status_reply
+                        and not send_failure_is_ambiguous(response.status_code)):
                     logging.warning("[send_text_message] Quoted send failed (HTTP %s). Retrying without quote on %s...",
                                     response.status_code, active_dest)
                     url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/send-message"
@@ -22212,8 +22231,24 @@ class MainWindow(wx.Frame):
                         # so it stays queued — but never retried in a loop while
                         # the connection is out (see MessageQueue).
                         return {"ok": False, "error": err, "retry": False, "disconnected": True}
+                    if send_failure_is_ambiguous(response.status_code):
+                        # Skipping the fallbacks above only moves the duplicate
+                        # if this hands the same send back to the queue as
+                        # retryable — MessageQueue would then resend a message
+                        # that may already be on its way, which is the failure
+                        # _classify_send_exception() exists to prevent for a
+                        # timeout. Same evidence, same answer: drop it here and
+                        # let the WebSocket echo resolve the pending row if
+                        # WhatsApp really delivered it.
+                        logging.warning(
+                            "[send_text_message] HTTP %s is ambiguous — the message "
+                            "may already be on its way, so it is NOT resent. Body: %s",
+                            response.status_code, response.text[:300],
+                        )
+                        return {"ok": False, "error": err, "retry": False,
+                                "ambiguous": True}
                     # If it's a transient error, mark retryable
-                    is_retryable = response.status_code in (408, 429, 500, 502, 503, 504)
+                    is_retryable = response.status_code in (408, 429)
                     return {"ok": False, "error": err, "retry": is_retryable}
 
 
