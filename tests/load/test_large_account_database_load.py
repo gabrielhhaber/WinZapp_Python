@@ -39,6 +39,8 @@ import time
 import pytest
 from cryptography.fernet import Fernet
 
+from tests.conftest import fastest_of_async
+
 
 pytestmark = pytest.mark.load
 
@@ -179,10 +181,10 @@ class TestCostStaysProportionalToTheData:
         """
         quarter = max(2, CHAT_COUNT // 4)
         await _populate(disk_db, quarter, PER_CHAT)
-        await disk_db.get_chats()
-        started = time.perf_counter()
-        await disk_db.get_chats()
-        small_elapsed = max(time.perf_counter() - started, 1e-6)
+        await disk_db.get_chats()          # warm the page cache
+        # Quickest of several, not one sample — see conftest.fastest_of().
+        small_elapsed = max(
+            await fastest_of_async(lambda _i: disk_db.get_chats()), 1e-6)
 
         for index in range(quarter, CHAT_COUNT):
             jid = _jid(index)
@@ -191,11 +193,9 @@ class TestCostStaysProportionalToTheData:
             await disk_db.upsert_chat(jid, _chat(jid, messages[-1]))
 
         await disk_db.get_chats()
-        started = time.perf_counter()
-        chats = await disk_db.get_chats()
-        large_elapsed = time.perf_counter() - started
+        large_elapsed = await fastest_of_async(lambda _i: disk_db.get_chats())
 
-        assert len(chats) == CHAT_COUNT
+        assert len(await disk_db.get_chats()) == CHAT_COUNT
         ratio = large_elapsed / small_elapsed
         print(
             f"\n[load] get_chats() — {quarter} chats: {small_elapsed:.3f}s | "
@@ -212,27 +212,31 @@ class TestCostStaysProportionalToTheData:
         """The shape that would fail this: re-reading a chat's stored messages
         to insert one more (_with_known_video_duration is called per message
         and does touch the table), or a per-batch full scan."""
-        jid_small, jid_large = _jid(90_001), _jid(90_002)
-        small_batch = [_message(jid_small, n) for n in range(PER_CHAT)]
-        large_batch = [_message(jid_large, n) for n in range(PER_CHAT * 4)]
+        # A fresh chat per repeat: inserting the same batch into the same chat
+        # twice measures an update, not an insert. Quickest of several runs —
+        # see conftest.fastest_of().
+        def _insert(base, count):
+            async def _run(index):
+                jid = _jid(base + index)
+                await disk_db.insert_messages_batch(
+                    jid, [_message(jid, n) for n in range(count)])
+            return _run
 
         # Warm-up so neither measurement pays for connection setup.
-        await disk_db.insert_messages_batch(_jid(90_000), small_batch)
+        warm = _jid(90_000)
+        await disk_db.insert_messages_batch(
+            warm, [_message(warm, n) for n in range(PER_CHAT)])
 
-        started = time.perf_counter()
-        await disk_db.insert_messages_batch(jid_small, small_batch)
-        small_elapsed = max(time.perf_counter() - started, 1e-6)
-
-        started = time.perf_counter()
-        await disk_db.insert_messages_batch(jid_large, large_batch)
-        large_elapsed = time.perf_counter() - started
+        small_elapsed = max(
+            await fastest_of_async(_insert(91_000, PER_CHAT)), 1e-6)
+        large_elapsed = await fastest_of_async(_insert(92_000, PER_CHAT * 4))
 
         ratio = large_elapsed / small_elapsed
         print(
             f"\n[load] insert {PER_CHAT} msgs: {small_elapsed:.4f}s | "
             f"{PER_CHAT * 4} msgs: {large_elapsed:.4f}s | ratio {ratio:.1f}x"
         )
-        assert await disk_db.get_message_count(jid_large) == PER_CHAT * 4
+        assert await disk_db.get_message_count(_jid(92_000)) == PER_CHAT * 4
         # Linear is 4x. The ceiling absorbs timer noise on a loaded machine
         # while still failing a quadratic, which lands near 16x.
         assert ratio < 12, (

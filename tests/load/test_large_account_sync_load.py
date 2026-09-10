@@ -41,7 +41,7 @@ import time
 import pytest
 
 from main import MainWindow
-from tests.conftest import warm_cached_chat
+from tests.conftest import fastest_of, warm_cached_chat
 
 
 pytestmark = pytest.mark.load
@@ -134,6 +134,13 @@ class TestTheStalenessNetCostsTheSameAtAnySize:
         assert not full and not incremental
         assert skipped == CHAT_COUNT
 
+    @staticmethod
+    def _fastest_plan(stub, baseline):
+        """The quickest of several planning runs — see conftest.fastest_of()
+        for why a single sample is not usable here."""
+        stub._plan_message_sync(baseline)      # warm-up: lazily-built state
+        return fastest_of(lambda: stub._plan_message_sync(baseline))
+
     def test_planning_cost_grows_no_faster_than_the_account(self):
         """An accidental O(n^2) — a nested scan over self.chats, a per-chat
         rebuild of the verified-at map — is invisible on the 2-chat fixtures
@@ -144,17 +151,8 @@ class TestTheStalenessNetCostsTheSameAtAnySize:
         large = _PlanStub(CHAT_COUNT, verified_now=False)
         small_baseline, large_baseline = small.baseline(), large.baseline()
 
-        # One warm-up each: first call pays for lazily-built module state.
-        small._plan_message_sync(small_baseline)
-        large._plan_message_sync(large_baseline)
-
-        started = time.perf_counter()
-        small._plan_message_sync(small_baseline)
-        small_elapsed = max(time.perf_counter() - started, 1e-6)
-
-        started = time.perf_counter()
-        large._plan_message_sync(large_baseline)
-        large_elapsed = time.perf_counter() - started
+        small_elapsed = max(self._fastest_plan(small, small_baseline), 1e-6)
+        large_elapsed = self._fastest_plan(large, large_baseline)
 
         ratio = large_elapsed / small_elapsed
         print(
