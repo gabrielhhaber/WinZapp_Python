@@ -4653,6 +4653,21 @@ class MainWindow(wx.Frame):
                     self._profile_recovery_attempted = False
             except Exception:
                 logging.exception("[profile-recovery] re-arm failed (non-fatal)")
+            try:
+                # Whatever WhatsApp was refusing is over: a state that
+                # authenticates now must not go on being refused by a verdict
+                # recorded before it did. Clearing on CONNECTED — rather than
+                # ageing the entries out — keeps the record meaning exactly
+                # "states this account has been logged out of since it last
+                # worked", which is the only question it is consulted for.
+                from core import profile_recovery as _pr
+                gd = getattr(self, "global_dir", None)
+                name = (getattr(self, "token", "") or "").split(":")[0]
+                if gd and name:
+                    _pr.clear_rejected_profiles(gd, name)
+            except Exception:
+                logging.exception("[profile-recovery] clearing the rejected "
+                                  "states failed (non-fatal)")
             self._apply_offline_state()
             logging.info("[connection] WhatsApp connection is up (%s)", reason or "checked")
             # Earliest moment /send-capabilities can answer anything: the
@@ -9201,6 +9216,12 @@ class MainWindow(wx.Frame):
             logging.warning("[profile-recovery] the newest snapshot did not hold "
                             "— restoring the generation before it.")
 
+        # WhatsApp refused to restore a session from the profile currently on
+        # disk. Write that down before anything moves it: after the restore
+        # below, the live profile stops being evidence of anything, and the
+        # next launch would have nothing left to reason from.
+        profile_recovery.note_profile_rejected(global_dir, session_name)
+
         # A snapshot identical to the profile that was just rejected cannot
         # help, and restoring it is worse than doing nothing: it reports
         # success, spends the launch's one recovery attempt, and leaves the
@@ -9228,29 +9249,37 @@ class MainWindow(wx.Frame):
         # genuinely different: a `.prev` that also matches is no better, and
         # announcing "beyond repair" is the honest answer — it sends the user
         # to re-pair instead of leaving them watching an offline app.
-        if profile_recovery.snapshot_matches_live_profile(
-                global_dir, session_name, prefer_previous=prefer_previous):
+        def _known_bad(previous):
+            """Would restoring this generation offer WhatsApp bytes it has
+            already refused? Two readings of the same question: identical to
+            what is on disk right now (this launch), or matching a fingerprint
+            an earlier launch recorded as rejected."""
+            return (profile_recovery.snapshot_matches_live_profile(
+                        global_dir, session_name, prefer_previous=previous)
+                    or profile_recovery.snapshot_was_rejected(
+                        global_dir, session_name, prefer_previous=previous))
+
+        if _known_bad(prefer_previous):
             logging.warning(
-                "[profile-recovery] the %s snapshot is byte-identical to the "
-                "profile WhatsApp just rejected — restoring it would restore "
+                "[profile-recovery] the %s snapshot holds a profile state "
+                "WhatsApp has already refused — restoring it would restore "
                 "the failure.",
                 "previous" if prefer_previous else "newest",
             )
             if (not prefer_previous
                     and profile_recovery.has_snapshot(global_dir, session_name,
                                                       prefer_previous=True)
-                    and not profile_recovery.snapshot_matches_live_profile(
-                        global_dir, session_name, prefer_previous=True)):
+                    and not _known_bad(True)):
                 prefer_previous = True
                 logging.warning("[profile-recovery] climbing to the generation "
                                 "before it in this same launch.")
             else:
                 self._shutdown_audit(
-                    "profile suspect — every snapshot matches the rejected "
-                    "profile, nothing to restore")
-                logging.error("[profile-recovery] no snapshot differs from the "
-                              "rejected profile — cannot recover session %s.",
-                              session_name[:12])
+                    "profile suspect — every snapshot holds a state WhatsApp "
+                    "has already refused, nothing to restore")
+                logging.error("[profile-recovery] no snapshot holds a state "
+                              "that has not already been refused — cannot "
+                              "recover session %s.", session_name[:12])
                 wx.CallAfter(self._announce_profile_beyond_repair)
                 return False
 

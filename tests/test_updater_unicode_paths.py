@@ -146,13 +146,45 @@ class TestInstallerScript:
         move_line = s[move_idx:s.index("\n", move_idx)]
         assert ">NUL 2>&1" in move_line
 
+    def test_a_locked_file_is_retried_once_before_giving_up(self):
+        """Reported live: an update copied hundreds of files into the install
+        directory and then died on a sharing violation — an on-access antivirus
+        scan holding a .pyd xcopy had just written. WinZapp had already exited
+        and its Node was killed, so nothing of ours held it; seconds later it
+        was free. Without a retry that is a failed update over an install that
+        has ALREADY been half-overwritten."""
+        s = _script()
+        first = s.index("xcopy /E /Y /I /H")
+        retry = s.index("xcopy /E /Y /I /H", first + 1)
+        assert s.index("if errorlevel 4", first) < retry, (
+            "the second copy must be guarded by the first one's failure, not "
+            "run unconditionally"
+        )
+        assert "timeout /t 5 /nobreak" in s[first:retry], (
+            "retrying instantly retries the same lock"
+        )
+
+    def test_the_retry_is_the_same_idempotent_copy(self):
+        """Repeating it is only safe because /E /Y /I /H overwrites what the
+        first pass already wrote with the same bytes."""
+        s = _script()
+        copies = [line.strip() for line in s.splitlines()
+                  if line.strip().startswith("xcopy ")]
+        assert len(copies) == 2 and copies[0] == copies[1]
+
     def test_a_failed_copy_marks_it_and_keeps_the_evidence(self):
         s = _script()
         assert r'echo update failed > "C:\WinZapp\update_failed.marker"' in s
-        failure_block = s[s.index("if errorlevel 4"):s.index(")\n", s.index("if errorlevel 4"))]
+        # The LAST errorlevel-4 block is the verdict; the first is the retry.
+        start = s.rindex("if errorlevel 4")
+        failure_block = s[start:s.index(")\n", start)]
         assert "exit /b 1" in failure_block
         assert 'del "%~f0"' not in failure_block, (
             "deleting the script on failure erases the only evidence of what went wrong"
+        )
+        assert "xcopy /E" not in failure_block, (
+            "the verdict block must not copy anything — it runs when the retry "
+            "above has already failed"
         )
 
     def test_a_successful_copy_relaunches_and_cleans_up(self):
