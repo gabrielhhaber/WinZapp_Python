@@ -892,8 +892,31 @@ class Connect:
         # Always start a fresh QR-CODE connection
         self.start_qrcode_connection(preserve_local_data=was_paired)
 
-        self.main_window.qrcode_loaded_sound.play()
-        self.main_window.output(self.i18n.t("qrcode_instructions"))
+        # NOT "the QR is ready" — it is not, and saying so is the bug this
+        # replaces. Measured on a real install:
+        #
+        #   21:47:13.174  POST /start-session -> 200
+        #   21:47:13.245  GET /status-session -> 200   (71 ms later: no qrcode)
+        #   21:47:13.245  "No QR in status-session yet — waiting for the event"
+        #   21:47:18.683  the QR finally arrives over the WebSocket
+        #
+        # start_qrcode_connection() returns as soon as /start-session is
+        # acknowledged, so this line used to play the "QR loaded" sound and
+        # read the instructions out over an empty box, five and a half seconds
+        # before there was anything to point a phone at. A sighted user sees
+        # the box fill in; a blind user was simply told a lie.
+        #
+        # The single status-session poll inside start_qrcode_connection() reads
+        # the right field — sessionController.ts answers `qrcode` at the top
+        # level, and display_qrcode_image() strips the data-URI prefix it
+        # carries. It is fired 71 ms after asking the session to start, so on a
+        # fresh session it cannot yet have one; it only ever pays off when an
+        # already-running session is reused. Keeping it costs nothing and this
+        # no longer depends on it.
+        self._qr_displayed = False
+        self._last_qr_payload = None
+        self.main_window.output(self.i18n.t("qrcode_generating"))
+        self._arm_qr_watchdog()
 
     def start_qrcode_connection(self, preserve_local_data=False):
         """Initiates QR-CODE connection without user interaction.
@@ -1143,12 +1166,74 @@ class Connect:
             # re-measure or the image is clipped to the old placeholder size.
             self.qrcode_panel.Layout()
 
-            self.main_window.pairing_code_updated_sound.play()
+            first = not getattr(self, "_qr_displayed", False)
+            self._qr_displayed = True
+            self._cancel_qr_watchdog()
+            if first:
+                # The honest moment for "here is your QR, point your phone at
+                # it" — the one the panel used to claim on open. Before this,
+                # the first code a user ever saw announced itself as an
+                # *update* (on_qrcode_update's refresh branch), which is what
+                # made the QR seem to appear only on the second try.
+                self.main_window.qrcode_loaded_sound.play()
+                self.main_window.output(self.i18n.t("qrcode_instructions"))
+            # No sound for a refresh: on_qrcode_update() already plays that one
+            # before calling here, and both firing left a single truncated blip
+            # rather than two cues — sound_lib restarts the stream (see
+            # CLAUDE.md on the focus_cloak work, same defect).
 
         except Exception:
             # Never silently: a QR that fails to render leaves the user staring
             # at an empty box with no idea why.
             logging.exception("[display_qrcode_image] Failed to render the QR code.")
+            self._announce_qr_failure("render failed")
+
+    # How long the dialog waits for a QR before saying it never arrived.
+    # Generously above the 5.4 s measured on the reporting install: this is the
+    # bound on a *silent* failure, and cutting a slow-but-working session short
+    # would replace one wrong announcement with another.
+    _QR_WATCHDOG_SECONDS = 25
+
+    def _arm_qr_watchdog(self):
+        """Say so if no QR ever reaches the screen.
+
+        The dialog's whole content is an image, so a blind user has no way to
+        tell "still generating" from "this is never going to work" — and the
+        old code could not tell them either, because it had already announced
+        success. Every path that fails to paint one is silent on its own:
+        status-session answering no qrcode, a qrCode event that carries nothing
+        usable, an undecodable payload, a session that never reaches QRCODE.
+        """
+        self._cancel_qr_watchdog()
+        # Per attempt: a user who cancels and tries again must be told about
+        # the second failure too.
+        self._qr_failure_announced = False
+        self._qr_watchdog = wx.CallLater(
+            self._QR_WATCHDOG_SECONDS * 1000,
+            self._announce_qr_failure, "no QR within %ds" % self._QR_WATCHDOG_SECONDS,
+        )
+
+    def _cancel_qr_watchdog(self):
+        timer = getattr(self, "_qr_watchdog", None)
+        self._qr_watchdog = None
+        if timer is not None:
+            try:
+                timer.Stop()
+            except Exception:
+                pass
+
+    def _announce_qr_failure(self, reason: str):
+        """Error sound and a spoken explanation, at most once per attempt."""
+        self._cancel_qr_watchdog()
+        if getattr(self, "_qr_failure_announced", False):
+            return
+        self._qr_failure_announced = True
+        logging.warning("[display_qrcode_image] No QR reached the screen (%s).", reason)
+        try:
+            self.main_window.error_sound.play()
+        except Exception:
+            pass
+        self.main_window.output(self.i18n.t("qrcode_not_generated"))
 
     def reconnect_websocket(self):
         """Reconnects WebSocket for QR-CODE mode (instance already created)."""

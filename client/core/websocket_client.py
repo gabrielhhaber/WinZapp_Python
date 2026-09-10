@@ -863,9 +863,18 @@ class WebSocketClient:
                 # unattended flood, whichever branch below ends up handling it.
                 self.main_window._unattended_qr_events = 0
             if dialog_open and self.connect.connection_mode == "qrcode" and base64_img:
-                # QR-CODE mode: update the image
-                self.main_window.pairing_code_updated_sound.play()
-                self.main_window.speak_output.output(self.i18n.t("qrcode_image_updated"))
+                # QR-CODE mode: update the image.
+                #
+                # "Updated" only once there is something to have updated. The
+                # first code a user ever sees arrives here too — the single
+                # status-session poll fires 71 ms after /start-session and
+                # measured 5.4 s before this event — and announcing it as a
+                # refresh is what made the QR seem to appear only on the second
+                # try. display_qrcode_image() owns the first one, where it can
+                # say the true thing at the moment it is actually on screen.
+                if getattr(self.connect, "_qr_displayed", False):
+                    self.main_window.pairing_code_updated_sound.play()
+                    self.main_window.speak_output.output(self.i18n.t("qrcode_image_updated"))
                 self.connect.display_qrcode_image(base64_img)
             elif dialog_open and self.connect.connection_mode == "phone" and pairing_code:
                 # Pairing code mode: update the text field only if it still exists.
