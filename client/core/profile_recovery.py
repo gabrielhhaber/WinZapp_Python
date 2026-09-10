@@ -91,6 +91,78 @@ _LOGIN_STORE_RELPATH = os.path.join(
     "Default", "IndexedDB", "https_web.whatsapp.com_0.indexeddb.leveldb")
 
 
+def _fingerprint_login_store(root):
+    """The fingerprint of one profile root, or None when it has no login store.
+
+    Split out of login_store_fingerprint() so the same reading can be taken of
+    a SNAPSHOT rather than only of the live profile — see
+    snapshot_matches_live_profile(), which is the difference between a restore
+    that can help and one that provably cannot.
+    """
+    try:
+        path = os.path.join(root, _LOGIN_STORE_RELPATH)
+        newest = 0.0
+        total = 0
+        count = 0
+        for entry in os.scandir(path):
+            try:
+                st = entry.stat()
+            except OSError:
+                continue
+            if entry.is_file():
+                count += 1
+                total += st.st_size
+                newest = max(newest, st.st_mtime)
+        if not count:
+            return None
+        return "files=%d bytes=%d newest=%.0f" % (count, total, newest)
+    except Exception:
+        return None
+
+
+def snapshot_matches_live_profile(global_dir, session_name, prefer_previous=False):
+    """Would restoring this snapshot put back exactly what is already there?
+
+    True means the restore is a no-op in content terms and cannot possibly
+    change the outcome — the profile WhatsApp just rejected would be replaced
+    by an identical copy of itself.
+
+    Measured on a real install (2026-09-10), from one launch:
+
+        10:52:45  Chrome released the profile   files=21 bytes=27793052 newest=1789048351
+        10:52:46  profile snapshot refreshed
+        10:53:46  STARTUP                       files=21 bytes=27793052 newest=1789048351
+        10:53:56  Session Unpaired -> post_logout=1&logout_reason=0
+        10:55:48  profile restored from snapshot
+        10:55:56  Session Unpaired -> post_logout=1&logout_reason=0
+
+    The two fingerprints are identical, so the "successful" restore restored
+    the failure, and the second rejection landed eight seconds later with the
+    same timing as the first. It also spent the launch's one recovery attempt:
+    the generation ladder only climbs to `.prev` on the NEXT launch, so the
+    user sat offline until they happened to restart.
+
+    The comparison is safe because both sides are read the same way and
+    `_copy_tree_bounded()`/`restore_snapshot()` copy with `shutil.copy2`, which
+    preserves mtimes — so a faithful copy fingerprints identically, and any
+    real difference in the login store shows up. `_TRANSIENT_ENTRIES` are
+    excluded from snapshots but all live at the profile root, never inside the
+    login store, so they cannot make a matching snapshot look different.
+
+    Answers False whenever either side cannot be read: an unknown fingerprint
+    must never talk the caller out of attempting a restore that might work.
+    """
+    live = _fingerprint_login_store(profile_dir(global_dir, session_name))
+    if live is None:
+        return False
+    source = (previous_snapshot_dir(global_dir, session_name) if prefer_previous
+              else snapshot_dir(global_dir, session_name))
+    saved = _fingerprint_login_store(source)
+    if saved is None:
+        return False
+    return saved == live
+
+
 def login_store_fingerprint(global_dir, session_name):
     """A cheap "is this the same bytes as last time" reading of the profile.
 
@@ -110,27 +182,14 @@ def login_store_fingerprint(global_dir, session_name):
     lost write, and would rule out the whole shutdown path.
 
     Never raises: this is a diagnostic, and a shutdown must not die in one.
+    The path build is inside the guard too — profile_dir() joins its arguments,
+    so a None global_dir raises there rather than in the scan below.
     """
     try:
-        path = os.path.join(profile_dir(global_dir, session_name),
-                            _LOGIN_STORE_RELPATH)
-        newest = 0.0
-        total = 0
-        count = 0
-        for entry in os.scandir(path):
-            try:
-                st = entry.stat()
-            except OSError:
-                continue
-            if entry.is_file():
-                count += 1
-                total += st.st_size
-                newest = max(newest, st.st_mtime)
-        if not count:
-            return None
-        return "files=%d bytes=%d newest=%.0f" % (count, total, newest)
+        root = profile_dir(global_dir, session_name)
     except Exception:
         return None
+    return _fingerprint_login_store(root)
 
 
 def snapshot_dir(global_dir, session_name):
