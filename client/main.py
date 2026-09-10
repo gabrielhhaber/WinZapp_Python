@@ -9201,6 +9201,59 @@ class MainWindow(wx.Frame):
             logging.warning("[profile-recovery] the newest snapshot did not hold "
                             "— restoring the generation before it.")
 
+        # A snapshot identical to the profile that was just rejected cannot
+        # help, and restoring it is worse than doing nothing: it reports
+        # success, spends the launch's one recovery attempt, and leaves the
+        # user offline until they happen to restart — because the generation
+        # ladder above only climbs on the NEXT launch.
+        #
+        # This is not hypothetical. Measured on a real install (2026-09-10):
+        #
+        #   10:52:45  Chrome released the profile  files=21 bytes=27793052 newest=1789048351
+        #   10:52:46  profile snapshot refreshed
+        #   10:53:46  STARTUP                      files=21 bytes=27793052 newest=1789048351
+        #   10:53:56  Session Unpaired -> post_logout=1&logout_reason=0
+        #   10:55:48  profile restored from snapshot
+        #   10:55:56  Session Unpaired -> post_logout=1&logout_reason=0
+        #
+        # Byte-identical fingerprints, and the restored profile was rejected on
+        # the same 7.5 s timing as the one it replaced. The run that produced
+        # that snapshot HAD reported CONNECTED, which is capture_snapshot()'s
+        # gate — so "the session connected" is not evidence that the state it
+        # leaves behind will be accepted next time, exactly as
+        # previous_snapshot_dir() already says. What was missing is acting on
+        # it before spending the attempt.
+        #
+        # Climbing here rather than next launch, and only when `.prev` is
+        # genuinely different: a `.prev` that also matches is no better, and
+        # announcing "beyond repair" is the honest answer — it sends the user
+        # to re-pair instead of leaving them watching an offline app.
+        if profile_recovery.snapshot_matches_live_profile(
+                global_dir, session_name, prefer_previous=prefer_previous):
+            logging.warning(
+                "[profile-recovery] the %s snapshot is byte-identical to the "
+                "profile WhatsApp just rejected — restoring it would restore "
+                "the failure.",
+                "previous" if prefer_previous else "newest",
+            )
+            if (not prefer_previous
+                    and profile_recovery.has_snapshot(global_dir, session_name,
+                                                      prefer_previous=True)
+                    and not profile_recovery.snapshot_matches_live_profile(
+                        global_dir, session_name, prefer_previous=True)):
+                prefer_previous = True
+                logging.warning("[profile-recovery] climbing to the generation "
+                                "before it in this same launch.")
+            else:
+                self._shutdown_audit(
+                    "profile suspect — every snapshot matches the rejected "
+                    "profile, nothing to restore")
+                logging.error("[profile-recovery] no snapshot differs from the "
+                              "rejected profile — cannot recover session %s.",
+                              session_name[:12])
+                wx.CallAfter(self._announce_profile_beyond_repair)
+                return False
+
         if not profile_recovery.has_snapshot(global_dir, session_name,
                                              prefer_previous=prefer_previous):
             # Nothing to restore. Say so plainly rather than leaving the user
