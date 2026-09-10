@@ -30,6 +30,9 @@ class _RollbackStub:
     _restore_unread_after_mark_unread_failure = (
         MainWindow._restore_unread_after_mark_unread_failure
     )
+    # Undoing a read (or marking a chat unread) also drops the anchor that
+    # read installed — see tests/test_unread_reread_race.py.
+    _drop_unread_local_read_anchor = MainWindow._drop_unread_local_read_anchor
 
     def __init__(self, *, archived=False):
         self.chats = {
@@ -41,6 +44,7 @@ class _RollbackStub:
         }
         self._locally_read_at = {JID: 2000}
         self._new_since_read = {JID: 0}
+        self._unread_read_anchors = {JID}
         self.persisted = 0
         self.saved = []
         self.refreshed = []
@@ -66,6 +70,10 @@ def test_failed_send_seen_restores_normal_chat_unread_state():
 
     assert stub.chats[JID]["unreadCount"] == 3
     assert JID not in stub._locally_read_at
+    # The read is being undone, so the ceiling it installed goes with it —
+    # otherwise the restored backlog is clamped back down to a counter no read
+    # backs (see tests/test_unread_reread_race.py).
+    assert JID not in stub._unread_read_anchors
     assert stub.saved == [JID]
 
 
@@ -114,6 +122,7 @@ def test_mark_unread_clears_stale_read_ack_and_syncs_to_whatsapp(monkeypatch):
 
     assert stub.chats[JID]["unreadCount"] == 1
     assert JID not in stub._locally_read_at
+    assert JID not in stub._unread_read_anchors
     assert stub.remote_changes[0][:2] == (JID, True)
     assert stub.saved == [JID]
 

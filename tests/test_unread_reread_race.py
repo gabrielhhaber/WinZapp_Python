@@ -35,6 +35,11 @@ class _Stub:
     # restart — see tests/test_locally_read_at_persisted.py); the real method
     # is a no-op without a `db` attribute, which this stub deliberately lacks.
     _persist_locally_read_at = MainWindow._persist_locally_read_at
+    # Says whether _new_since_read counts from a local read of this chat or
+    # merely from process start — see TestNeverReadChatKeepsTheServerTotal.
+    _anchor_unread_to_local_read = MainWindow._anchor_unread_to_local_read
+    _drop_unread_local_read_anchor = MainWindow._drop_unread_local_read_anchor
+    _unread_anchored_to_local_read = MainWindow._unread_anchored_to_local_read
 
     def __init__(self, chat):
         self.chats = {"5511999999999@s.whatsapp.net": chat}
@@ -43,8 +48,26 @@ class _Stub:
         self.conversations_panel = None
         self._locally_read_at = {}
         self._new_since_read = {}
+        self._unread_read_anchors = set()
         self.saved = []
         self.set_chats_calls = 0
+
+    def read_locally(self, jid):
+        """What mark_conversation_as_read() does to the tracking state."""
+        self._new_since_read[jid] = 0
+        self._anchor_unread_to_local_read(jid)
+
+    def open_conversation(self, jid):
+        """Put the panel on a chat the way navigate_to_conversation() does.
+
+        Opening always runs mark_conversation_as_read() on the way in
+        (ui/conversations.py), and that read is what lets the open branch
+        treat the panel showing a chat as proof it has been read. Tests that
+        want the other state — open, but the read undone on screen — set the
+        panel directly and leave the anchor off.
+        """
+        self.conversations_panel = _CP(jid)
+        self.read_locally(jid)
 
     def _schedule_save(self, dirty_jid=None):
         self.saved.append(dirty_jid)
@@ -119,6 +142,7 @@ class TestStaleServerCountAfterLocalRead:
         already-read message back into "unread" (first_unread_index() places
         the separator by counting backwards from unreadCount)."""
         stub = _Stub(_chat(t=2000))
+        stub.read_locally(JID)  # the local read this whole branch stands on
         stub.chats[JID]["unreadCount"] = 1
         stub._new_since_read[JID] = 1
         # _locally_read_at has no entry for JID — already consumed/popped.
@@ -143,7 +167,7 @@ class _CP:
 class TestCurrentlyOpenConversation:
     def test_an_open_conversation_with_nothing_new_clears_to_zero(self):
         stub = _Stub(_chat(t=1000))
-        stub.conversations_panel = _CP(JID)
+        stub.open_conversation(JID)
 
         stub.on_chat_unread_update(JID, 5)
 
@@ -154,7 +178,7 @@ class TestCurrentlyOpenConversation:
         landed while the window was minimized are tracked in _new_since_read
         and stay counted, clamped down to that locally-known number."""
         stub = _Stub(_chat(t=1000))
-        stub.conversations_panel = _CP(JID)
+        stub.open_conversation(JID)
         stub._new_since_read[JID] = 2
 
         stub.on_chat_unread_update(JID, 5)
@@ -192,7 +216,7 @@ class TestOpenConversationSurvivesSpuriousServerZeros:
         # a chat at 0 with a nonzero _new_since_read is not a reachable state.
         chat["unreadCount"] = 4
         stub = _Stub(chat)
-        stub.conversations_panel = _CP(JID)
+        stub.open_conversation(JID)
         stub._new_since_read[JID] = 4
 
         stub.on_chat_unread_update(JID, 0)
@@ -204,7 +228,7 @@ class TestOpenConversationSurvivesSpuriousServerZeros:
         must leave five unread, not one. Mirrors what on_new_message() does
         (increment both the chat and _new_since_read) between the events."""
         stub = _Stub(_chat(t=1000))
-        stub.conversations_panel = _CP(JID)
+        stub.open_conversation(JID)
         seen_by_toasts = []
 
         for _ in range(5):
@@ -224,7 +248,7 @@ class TestOpenConversationSurvivesSpuriousServerZeros:
         server's absolute total, which can still be counting messages already
         read locally — that is the bug this whole function exists to prevent."""
         stub = _Stub(_chat(t=1000))
-        stub.conversations_panel = _CP(JID)
+        stub.open_conversation(JID)
         stub._new_since_read[JID] = 2
 
         stub.on_chat_unread_update(JID, 7)
@@ -239,7 +263,7 @@ class TestOpenConversationSurvivesSpuriousServerZeros:
         chat = _chat(t=1000)
         chat["unreadCount"] = 4
         stub = _Stub(chat)
-        stub.conversations_panel = _CP(JID)
+        stub.open_conversation(JID)
         stub._new_since_read[JID] = 4
 
         stub.on_chat_unread_update(JID, 0, previous_unread=4)
@@ -268,7 +292,7 @@ class TestOpenConversationSurvivesSpuriousServerZeros:
         chat = _chat(t=1000)
         chat["unreadCount"] = 4
         stub = _Stub(chat)
-        stub.conversations_panel = _CP(JID)
+        stub.open_conversation(JID)
         stub._new_since_read[JID] = 4
 
         stub.on_chat_unread_update(JID, 0, previous_unread=None)
@@ -281,7 +305,7 @@ class TestOpenConversationSurvivesSpuriousServerZeros:
         chat = _chat(t=1000)
         chat["unreadCount"] = 2
         stub = _Stub(chat)
-        stub.conversations_panel = _CP(JID)
+        stub.open_conversation(JID)
         stub._new_since_read[JID] = 2
 
         stub.on_chat_unread_update(JID, 0, previous_unread=0)
@@ -295,7 +319,7 @@ class TestOpenConversationSurvivesSpuriousServerZeros:
         chat = _chat(t=1000)
         chat["unreadCount"] = 3
         stub = _Stub(chat)
-        stub.conversations_panel = _CP(JID)
+        stub.open_conversation(JID)
 
         stub.on_chat_unread_update(JID, 0)
 
@@ -354,3 +378,188 @@ class TestReadOnAnotherDeviceAfterALocalRead:
         stub.on_chat_unread_update(JID, 0, 0)
 
         assert stub.chats[JID]["unreadCount"] == 3
+
+
+class TestNeverReadChatKeepsTheServerTotal:
+    """Reported live: a group holding 34 thousand unread messages had its badge
+    collapse to 21, climb one at a time, get restored to ~34 thousand by the
+    next 60s resync, and collapse again a second later — over and over, in the
+    four busiest groups on the account.
+
+    The clamp above is only meaningful when _new_since_read counts from a read
+    that really happened. on_new_message() creates that entry for any chat
+    receiving a message, so in a chat never read in WinZapp it counts arrivals
+    since the process started; clamping WhatsApp Web's absolute total to it
+    discards every unread message older than this launch. Straight from the
+    log: `[unread] ...@g.us: 34876 -> 21 (previous=34944, open=False,
+    read_ack=None)`.
+    """
+
+    def test_a_backlog_survives_a_climbing_server_count(self):
+        chat = _chat(t=2000)
+        chat["unreadCount"] = 34876
+        stub = _Stub(chat)
+        # 21 messages have arrived since launch; the chat was never read here,
+        # so nothing anchors that counter to a read.
+        stub._new_since_read[JID] = 21
+
+        stub.on_chat_unread_update(JID, 34945, previous_unread=34944)
+
+        assert stub.chats[JID]["unreadCount"] == 34945
+
+    def test_the_clamp_still_applies_once_the_chat_has_been_read_here(self):
+        """The regression this branch exists to prevent is untouched: after a
+        real local read, the server's inflated total is still clamped down."""
+        chat = _chat(t=2000)
+        chat["unreadCount"] = 1
+        stub = _Stub(chat)
+        stub.read_locally(JID)
+        stub._new_since_read[JID] = 1
+
+        stub.on_chat_unread_update(JID, 4, previous_unread=3)
+
+        assert stub.chats[JID]["unreadCount"] == 1
+
+    def test_marking_the_chat_unread_again_drops_the_anchor(self):
+        """mark_conversation_as_unread() reverses the read, so the ceiling it
+        installed must go too — otherwise the next server total is clamped to
+        a read the user has explicitly undone."""
+        chat = _chat(t=2000)
+        chat["unreadCount"] = 1
+        stub = _Stub(chat)
+        stub.read_locally(JID)
+        stub._drop_unread_local_read_anchor(JID)
+        stub._new_since_read[JID] = 1
+
+        stub.on_chat_unread_update(JID, 4, previous_unread=3)
+
+        assert stub.chats[JID]["unreadCount"] == 4
+
+    def test_the_anchor_resolves_both_identities_of_one_chat(self):
+        """mark_conversation_as_read() is called with whatever key self.chats
+        holds; the handler looks it up normalized. A @c.us read must still
+        anchor the @s.whatsapp.net form the handler resolves to."""
+        chat = _chat(t=2000)
+        chat["unreadCount"] = 1
+        stub = _Stub(chat)
+        stub.read_locally("5511999999999@c.us")
+        stub._new_since_read[JID] = 1
+
+        stub.on_chat_unread_update(JID, 4, previous_unread=3)
+
+        assert stub.chats[JID]["unreadCount"] == 1
+
+
+class TestTheAnchorSurvivesTheHandlerConsumingItsOwnState:
+    """The question the anchor has to answer: does dropping the clamp for
+    never-read chats let already-read messages come back as unread?
+
+    The end-to-end sequence, in one test rather than in three separate
+    fixtures, because the whole risk is in the transitions: the handler pops
+    both _locally_read_at and _new_since_read once it has used them, and the
+    protection has to outlive that. It does, because only
+    mark_conversation_as_read() sets the anchor and only an explicit reversal
+    clears it.
+    """
+
+    def test_a_read_then_two_arrivals_then_an_inflated_total_stays_clamped(self):
+        chat = _chat(t=1000)
+        chat["unreadCount"] = 3  # stale badge from an earlier sync
+        stub = _Stub(chat)
+
+        # 1. The user reads the chat here.
+        stub._locally_read_at[JID] = 1000
+        stub.read_locally(JID)
+        chat["unreadCount"] = 0
+
+        # 2. One genuinely new message arrives (on_new_message).
+        chat["t"] = 2000
+        chat["unreadCount"] = 1
+        stub._new_since_read[JID] = 1
+
+        # 3. The chats-update for it carries WhatsApp Web's inflated total and
+        #    consumes the read-ack on its way through.
+        stub.on_chat_unread_update(JID, 5, previous_unread=4)
+        assert stub.chats[JID]["unreadCount"] == 1
+        assert JID not in stub._locally_read_at      # ack consumed...
+        assert JID not in stub._new_since_read       # ...and counter popped
+
+        # 4. A second message arrives — on_new_message recreates the counter.
+        chat["t"] = 3000
+        chat["unreadCount"] = 2
+        stub._new_since_read[JID] = 1
+
+        # 5. A later chats-update still counting the messages read in step 1.
+        stub.on_chat_unread_update(JID, 6, previous_unread=5)
+
+        # One unread, not six: the anchor outlived both pops.
+        assert stub.chats[JID]["unreadCount"] == 1
+        assert stub._unread_anchored_to_local_read(JID)
+
+
+OTHER_JID = "5511888888888@s.whatsapp.net"
+
+
+class TestTheAnchorIsPerChat:
+    """The anchor is one process-wide set, so the thing that must not happen
+    is a read of one chat authorising the clamp for another — that is the
+    collapse of a backlog again, just sourced from the wrong conversation."""
+
+    def test_reading_one_chat_does_not_anchor_another(self):
+        stub = _Stub(_chat(t=2000))
+        stub.chats[OTHER_JID] = _chat(t=2000)
+        stub.chats[OTHER_JID]["unreadCount"] = 34876
+        stub.read_locally(JID)
+        # Arrivals in the OTHER chat, which was never read here.
+        stub._new_since_read[OTHER_JID] = 21
+
+        stub.on_chat_unread_update(OTHER_JID, 34945, previous_unread=34944)
+
+        assert stub.chats[OTHER_JID]["unreadCount"] == 34945
+        assert not stub._unread_anchored_to_local_read(OTHER_JID)
+
+
+class TestAnOpenChatWhoseReadWasUndone:
+    """The live-event half of tests/test_resync_open_chat_unread.py's class of
+    the same name. "Open" is proof of "read" only until the read is undone
+    with the conversation still on screen — Ctrl+Shift+M (_on_accel_toggle_read
+    -> mark_conversation_as_unread) and the /send-seen rollback both do that,
+    and both leave _new_since_read at 0, which is the exact shape
+    reconcile_open_chat_unread() answers 0 for.
+    """
+
+    def _open_but_unread(self, unread):
+        chat = _chat(t=1000)
+        chat["unreadCount"] = unread
+        stub = _Stub(chat)
+        stub.conversations_panel = _CP(JID)  # open, but no anchor: read undone
+        return stub
+
+    def test_a_chat_marked_unread_on_screen_keeps_its_badge(self):
+        """mark_conversation_as_unread() set 1; the next chats-update used to
+        take the open branch and put it straight back to 0."""
+        stub = self._open_but_unread(unread=1)
+
+        stub.on_chat_unread_update(JID, 0, previous_unread=None)
+
+        assert stub.chats[JID]["unreadCount"] == 1
+
+    def test_a_restored_backlog_survives_the_next_arrival(self):
+        """The /send-seen rollback case: the backlog is back, the conversation
+        is still open, and a new message pushes the server's total up by one.
+        It used to be answered with 0 (open, nothing counted locally)."""
+        stub = self._open_but_unread(unread=34876)
+
+        stub.on_chat_unread_update(JID, 34877, previous_unread=34876)
+
+        assert stub.chats[JID]["unreadCount"] == 34877
+
+    def test_reading_it_again_restores_the_open_behaviour(self):
+        """And the ordinary path is untouched: read the chat again and the
+        open branch takes over exactly as before."""
+        stub = self._open_but_unread(unread=1)
+        stub.read_locally(JID)
+
+        stub.on_chat_unread_update(JID, 5)
+
+        assert stub.chats[JID]["unreadCount"] == 0

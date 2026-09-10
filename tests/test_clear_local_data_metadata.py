@@ -89,6 +89,8 @@ class _Stub:
         self._blocked_contacts = {"5511988887777"}
         self._presence_pushname_map = {"5511988887777@s.whatsapp.net": "Ana"}
         self._locally_read_at = {"5511988887777@s.whatsapp.net": 1700000000}
+        self._unread_read_anchors = {"120363000000000000@g.us"}
+        self._new_since_read = {"120363000000000000@g.us": 4}
         self.my_jid = "5511999999999@s.whatsapp.net"
         self.my_lid = "182736450192837@lid"
         self._group_send_perms = {
@@ -185,7 +187,17 @@ _METADATA = ("_deleted_chats", "_archived_chats", "_pinned_chats",
              # persisted (issue #201) — inert today only because nothing
              # currently writes it to disk, so clearing it here keeps it out
              # of the same leak the moment that changes.
-             "_verified_activity")
+             "_verified_activity",
+             # "This chat's arrivals counter starts from a read", and the
+             # counter itself. Neither is persisted, but both outlive the
+             # switch in RAM, and a GROUP JID is the same string in both
+             # accounts — so an anchor earned in A authorises
+             # on_chat_unread_update()'s clamp for the same group in B, where
+             # nothing has been read and the counter holds only what arrived
+             # since the switch. That clamp is what collapsed a 34-thousand
+             # backlog to 21 (see tests/test_unread_reread_race.py); leaving
+             # these behind hands it the same power across accounts.
+             "_unread_read_anchors", "_new_since_read")
 
 
 class TestAnAccountSwitchClearsTheMetadataInMemoryToo:

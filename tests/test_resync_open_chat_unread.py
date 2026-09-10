@@ -90,6 +90,11 @@ class TestTheResyncKeepsTheOpenChatsBacklog:
         stub = _make(existing)
         stub.conversations_panel = _OpenPanel(JID)
         stub._new_since_read = {JID: new_since_read}
+        # Opening a conversation always runs mark_conversation_as_read
+        # (navigate_to_conversation, ui/conversations.py), which is what makes
+        # "open" mean "read" here. The tests below that need the opposite —
+        # open but deliberately NOT read — drop it again.
+        stub._anchor_unread_to_local_read(JID)
         return stub, existing
 
     def test_a_server_zero_does_not_wipe_the_backlog(self, post):
@@ -129,3 +134,48 @@ class TestTheResyncKeepsTheOpenChatsBacklog:
         stub.get_remote_chats(existing, persist_full=False, notify_errors=False)
 
         assert existing[JID]["unreadCount"] == 4
+
+
+class TestAnOpenChatWhoseReadWasUndone:
+    """"Open" stops meaning "read" the moment the read is undone with the
+    conversation still on screen, and two paths do that:
+
+      * Ctrl+Shift+M on the open chat (_on_accel_toggle_read ->
+        mark_conversation_as_unread), which pops _new_since_read and drops
+        the anchor.
+      * _restore_unread_after_send_seen_failure(), putting a backlog back
+        after WhatsApp refused all three /send-seen attempts.
+
+    Both leave _new_since_read at 0 with the panel still showing the chat, and
+    reconcile_open_chat_unread() answers 0 for exactly that shape — so this
+    resync erased what the user had just asked for, up to a whole backlog,
+    within 60 seconds and straight to disk.
+    """
+
+    def _open_but_unread(self, unread):
+        existing = {JID: {
+            "remoteJid": JID, "t": 1700000000, "unreadCount": unread,
+            "messages": {"messages": {"records": []}},
+        }}
+        stub = _make(existing)
+        stub.conversations_panel = _OpenPanel(JID)
+        stub._new_since_read = {JID: 0}
+        # No anchor: the read this chat had was undone.
+        return stub, existing
+
+    def test_a_chat_marked_unread_on_screen_keeps_its_badge(self, post):
+        post["payload"] = [_chat(JID, unreadCount=1)]
+        stub, existing = self._open_but_unread(unread=1)
+
+        stub.get_remote_chats(existing, persist_full=False, notify_errors=False)
+
+        assert existing[JID]["unreadCount"] == 1
+
+    def test_a_restored_backlog_is_not_erased_by_the_resync(self, post):
+        """The send-seen rollback case, at the scale it was measured at."""
+        post["payload"] = [_chat(JID, unreadCount=34876)]
+        stub, existing = self._open_but_unread(unread=34876)
+
+        stub.get_remote_chats(existing, persist_full=False, notify_errors=False)
+
+        assert existing[JID]["unreadCount"] == 34876

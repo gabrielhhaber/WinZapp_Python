@@ -66,6 +66,10 @@ class _Stub:
     # reads via getattr defaults; a plain phone JID resolves on the first
     # lookup anyway.
     _resolve_chat_for_event = MainWindow._resolve_chat_for_event
+    # mark_conversation_as_read() also records that _new_since_read now counts
+    # from a real read — see tests/test_unread_reread_race.py.
+    _anchor_unread_to_local_read = MainWindow._anchor_unread_to_local_read
+    _unread_anchored_to_local_read = MainWindow._unread_anchored_to_local_read
 
     def __init__(self, chat, db=None):
         self.chats = {JID: chat}
@@ -109,6 +113,13 @@ class TestMarkAsReadPersistsTheAck:
 
         assert stub._locally_read_at == {JID: 777}
         assert db.metadata["locally_read_at"] == {JID: 777}
+        # The other half of what this read establishes: from here on the
+        # arrivals counter for this chat means "since a read", which is what
+        # lets on_chat_unread_update() clamp a server total to it. Asserted
+        # here because this is the only site that sets it — without this line
+        # the call could be deleted with the whole suite still green, and the
+        # clamp would silently stop protecting anything.
+        assert stub._unread_anchored_to_local_read(JID)
 
     def test_a_chat_with_no_timestamp_records_zero_instead_of_crashing(self):
         db = _FakeDB()
