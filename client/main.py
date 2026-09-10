@@ -14094,6 +14094,28 @@ class MainWindow(wx.Frame):
                 "[Sync] Deferring %d unresolved @lid chat(s) to background name backfill.",
                 len(unresolved_lids),
             )
+            # …and actually hand them over. This said "deferring" and then did
+            # nothing: the only producers for that queue are per-message (a
+            # group message's sender, and @lid mentions), so a chat whose own
+            # JID is an @lid was bridged only if the same person happened to
+            # turn up as a sender or a mention somewhere. Measured on a real
+            # install: 132 of 159 chats are @lid and 244 of 487 contacts are,
+            # while _lid_to_phone held 42 entries.
+            #
+            # Everything downstream of that gap follows from it, because
+            # contact_dedup_key() collapses the two forms of one person only
+            # once the bridge holds the pair. Reported as duplicated contacts
+            # in the "new conversation" picker — 208 names appearing twice on
+            # that install, each once as @lid and once as the phone — and the
+            # same unbridged @lid is why those chats need a name backfill at
+            # all.
+            #
+            # Deferring is still honoured: _queue_lid_resolutions()' drain loop
+            # sleeps until _sync_completed, so this costs the sync nothing. It
+            # is a set, so re-queuing an already-pending JID on a later round
+            # is free, and resolve_lid_jids_via_api() skips whatever the bridge
+            # or _unresolvable_lids already answers for.
+            self._queue_lid_resolutions(unresolved_lids)
 
         # Conversations are fully sorted as soon as messages are synced.
         # Sort, display, play sync-complete sound, and announce to the user
