@@ -36,6 +36,7 @@ Everything here is filesystem-only and free of wx, so it is testable directly;
 `main.py` owns the policy of when to call it.
 """
 
+import json
 import logging
 import os
 import shutil
@@ -118,6 +119,113 @@ def _fingerprint_login_store(root):
         return "files=%d bytes=%d newest=%.0f" % (count, total, newest)
     except Exception:
         return None
+
+
+#: How many rejected login-store fingerprints to remember per session. Small on
+#: purpose: the point is to recognise the handful of states this account has
+#: actually been logged out of, not to build a history. Oldest drops first.
+_REJECTED_HISTORY = 8
+
+_REJECTED_FILE = "rejected_profiles.json"
+
+
+def _rejected_path(global_dir):
+    return os.path.join(global_dir, "api", SNAPSHOT_DIR_NAME, _REJECTED_FILE)
+
+
+def _read_rejected(global_dir):
+    try:
+        with open(_rejected_path(global_dir), "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return {}
+        return {k: [str(x) for x in v]
+                for k, v in data.items() if isinstance(v, list)}
+    except Exception:
+        return {}
+
+
+def note_profile_rejected(global_dir, session_name, fingerprint=None):
+    """Remember that WhatsApp refused to restore a session from THIS profile
+    state, so no later launch offers the same bytes back to it.
+
+    The state is identified by its login-store fingerprint, the same reading
+    `login_store_fingerprint()` already writes into `shutdown_audit.log` — so
+    what is persisted here is exactly what a human reads off that file when
+    diagnosing one of these by hand.
+
+    Why it has to survive the launch: the in-launch check compares a snapshot
+    against the profile currently on disk, which stops being the rejected one
+    the moment a restore replaces it. Measured on a user's install
+    (2026-09-10), the restore put an identical copy of the rejected state back
+    and it was refused again eight seconds later; on the launch after that,
+    the live profile was no longer evidence of anything, and only a persisted
+    verdict can still say "we have tried these bytes, they do not work".
+
+    Never raises. Being unable to record a verdict must not cost the recovery
+    that is about to run.
+    """
+    try:
+        if fingerprint is None:
+            fingerprint = login_store_fingerprint(global_dir, session_name)
+        if not fingerprint:
+            return False
+        data = _read_rejected(global_dir)
+        seen = [f for f in data.get(session_name, []) if f != fingerprint]
+        seen.append(fingerprint)
+        data[session_name] = seen[-_REJECTED_HISTORY:]
+        path = _rejected_path(global_dir)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        os.replace(tmp, path)
+        return True
+    except Exception:
+        logging.debug("[profile-recovery] could not record a rejected profile",
+                      exc_info=True)
+        return False
+
+
+def profile_state_was_rejected(global_dir, session_name, fingerprint):
+    """Have we already offered these exact bytes to WhatsApp and been refused?
+
+    False for an unknown or unreadable fingerprint: never let a missing record
+    talk the caller out of a restore that might work.
+    """
+    if not fingerprint:
+        return False
+    try:
+        return fingerprint in _read_rejected(global_dir).get(session_name, [])
+    except Exception:
+        return False
+
+
+def snapshot_was_rejected(global_dir, session_name, prefer_previous=False):
+    """Whether the saved generation holds a state already refused once."""
+    source = (previous_snapshot_dir(global_dir, session_name) if prefer_previous
+              else snapshot_dir(global_dir, session_name))
+    return profile_state_was_rejected(
+        global_dir, session_name, _fingerprint_login_store(source))
+
+
+def clear_rejected_profiles(global_dir, session_name):
+    """Forget this session's verdicts. Called when a session reaches CONNECTED:
+    whatever was wrong is over, and a state that authenticates now must not be
+    refused by a record from before it did."""
+    try:
+        data = _read_rejected(global_dir)
+        if session_name not in data:
+            return False
+        data.pop(session_name, None)
+        path = _rejected_path(global_dir)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        os.replace(tmp, path)
+        return True
+    except Exception:
+        return False
 
 
 def snapshot_matches_live_profile(global_dir, session_name, prefer_previous=False):

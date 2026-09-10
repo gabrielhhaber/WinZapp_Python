@@ -207,7 +207,7 @@ class TestItDoesNotRestoreTheFailure:
 
         MainWindow._recover_suspect_profile(stub)
 
-        assert any("every snapshot matches" in line for line in stub.audits)
+        assert any("already refused" in line for line in stub.audits)
 
 
 class TestItClimbsWithinTheSameLaunch:

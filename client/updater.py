@@ -451,6 +451,26 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         # leave a marker file WinZapp checks on next startup so the user is
         # told instead of silently running a stale/partial install.
         f'xcopy /E /Y /I /H "{source_dir}\\*" "{install_dir}\\" >> "{log_path}" 2>&1\n'
+        # One retry, because the failure this converts is transient and
+        # common. Reported live: an update that copied hundreds of files
+        # into the install directory and then died on "Violacao de
+        # compartilhamento" — a sharing violation on a freshly-written
+        # .pyd, i.e. an on-access antivirus scan holding a file xcopy had
+        # just put there. WinZapp itself had already exited (the WAIT loop
+        # above) and its Node was killed, so nothing of ours held it; five
+        # seconds later it would have been free. Without a retry the user
+        # got update_failed.marker, an install that had ALREADY been
+        # partially overwritten, and the old exe relaunched over it.
+        #
+        # Safe to repeat: xcopy /E /Y /I /H is idempotent — every file it
+        # already wrote is overwritten with the same bytes — so the second
+        # pass either finishes the copy or fails the same way, and only
+        # then is the update declared failed.
+        "if errorlevel 4 (\n"
+        f'    >> "{log_path}" echo xcopy hit a locked file - retrying once in 5s\n'
+        "    timeout /t 5 /nobreak >NUL\n"
+        f'    xcopy /E /Y /I /H "{source_dir}\\*" "{install_dir}\\" >> "{log_path}" 2>&1\n'
+        ")\n"
         "if errorlevel 4 (\n"
         f'    >> "{log_path}" echo xcopy FAILED\n'
         f'    echo update failed > "{marker_path}"\n'
