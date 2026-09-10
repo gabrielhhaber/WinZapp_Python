@@ -120,18 +120,86 @@ class TestTheRetryIsBoundedAndOrdered:
         the one retry for nothing."""
         killed_at = recovery.index("await forceKillByUserDataDir(")
         settled_at = recovery.index("STALE_BROWSER_RELEASE_MS")
-        relaunched_at = recovery.index("await launch()", killed_at)
+        relaunched_at = recovery.index("await attempt()", killed_at)
         assert killed_at < settled_at < relaunched_at
 
-    def test_there_is_exactly_one_retry(self, recovery):
+    def test_the_ladder_is_bounded_at_three_launches(self, recovery):
         """A loop would spin Chrome launches forever against a profile held by
         something we cannot kill — another Windows user, a debugger, an
-        antivirus."""
-        assert recovery.count("launch()") == 2
+        antivirus. Three rungs rather than two, because a graceful close that
+        reports success can leave the profile locked (see the class below); the
+        extra rung exists only for that case and is gated on it.
+        """
+        assert recovery.count("await attempt()") == 3
+        assert recovery.count("return launch();") == 1
         assert not re.search(r"\b(for|while)\s*\(", recovery)
+
+    def test_every_attempt_clears_the_restorable_tabs_first(self, recovery):
+        """Not only the first: an attempt that got far enough to start Chrome
+        writes a fresh Sessions/ record on its way down, and the next one would
+        restore it."""
+        attempt = recovery[recovery.index("const attempt = () => {"):]
+        attempt = attempt[: attempt.index("};")]
+        assert attempt.index("clearRestorableSession(") < attempt.index("launch()")
 
     def test_a_failed_retry_still_propagates(self, recovery):
         assert "throw retryError;" in recovery
+        assert "throw finalError;" in recovery
+
+
+class TestAGracefulCloseIsNotProofTheProfileWasFreed:
+    """``closeBrowserGracefully()`` speaks for the client object in
+    ``clientsArray[session]``, never for whatever process actually holds the
+    profile — and once a run has accumulated orphans those stop being the
+    same thing.
+
+    Measured on 2026-09-10, from one install's wppconnect.log::
+
+        13:02:01.520Z warn: Chrome is still holding this session's profile ...
+        13:02:01.520Z info: [90d32cee...] browser closed gracefully.
+        13:02:01.6xxZ error: The browser is already running for ...userDataDir...
+
+    The close and its success line land in the *same millisecond* as the
+    warning above them. ``client.close()`` cannot complete in zero time, and it
+    did not: there was no process handle to watch, so the poll read ``alive`` as
+    false on its first pass and reported a browser it had never touched as
+    gone. The kill was skipped on the strength of that, the retry hit the
+    identical lock, and the account stayed offline across every 30 s poll for
+    hours while fifteen orphan Chromes piled up behind the profile.
+    """
+
+    def _close_body(self, source):
+        start = source.index("async function closeBrowserGracefully(")
+        return source[start : source.index("\n}", start)]
+
+    def test_an_unconfirmed_close_reports_failure(self, source):
+        """No process handle means no confirmation. Callers read ``true`` as
+        "the profile is free, go ahead" — the opposite of what is known."""
+        body = self._close_body(source)
+        guard = body.index("if (!proc) {")
+        assert guard < body.index("const deadline")
+        refusal = body[guard : body.index("const deadline")]
+        assert "return false;" in refusal
+        assert "return true;" not in refusal
+
+    def test_the_poll_no_longer_treats_a_missing_handle_as_gone(self, source):
+        body = self._close_body(source)
+        assert "const alive = proc.exitCode === null" in body
+        assert "const alive = proc && proc.exitCode === null" not in body
+
+    def test_the_escalation_is_gated_on_the_lock_still_being_there(self, recovery):
+        """Not on the close having been graceful: a second kill has to be
+        justified by evidence, and the profile still refusing the launch is
+        that evidence."""
+        assert (
+            "if (!forceKilled && isStaleBrowserLockError(retryError)) {" in recovery
+        )
+
+    def test_the_escalation_does_not_run_when_the_kill_already_did(self, recovery):
+        """``forceKilled`` is what stops the fallback from re-killing a profile
+        the first rung already killed — that path has had its one retry."""
+        assert "let forceKilled = false;" in recovery
+        assert recovery.count("forceKilled = true;") == 1
 
 
 class TestTheKillCanActuallyBeAwaited:

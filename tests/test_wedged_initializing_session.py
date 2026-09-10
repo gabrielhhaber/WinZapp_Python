@@ -176,6 +176,13 @@ class _Stub:
     _profile_recovery_generation = MainWindow._profile_recovery_generation
     _set_profile_recovery_generation = MainWindow._set_profile_recovery_generation
 
+    def browser_payload_blocks_startup(self):
+        """A healthy browser by default. _recover_suspect_profile() now refuses
+        outright when the bundled Chromium cannot start, because a failed
+        browser launch produces exactly the "died without connecting" the
+        tracker counts — see tests/test_broken_browser_payload.py."""
+        return None, None
+
     def _shutdown_audit(self, msg):
         self.audits.append(msg)
 

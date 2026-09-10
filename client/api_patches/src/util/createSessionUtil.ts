@@ -16,6 +16,8 @@
 import { create, SocketState, StatusFind } from '@wppconnect-team/wppconnect';
 import { exec, execFile, execSync } from 'child_process';
 import { Request } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { download } from '../controller/sessionController';
 import { WhatsAppServer } from '../types/WhatsAppServer';
@@ -145,12 +147,29 @@ async function closeBrowserGracefully(
       `[${session}] graceful browser close raised: ${e?.message || e}`
     );
   }
+  // With no process handle there is nothing to observe, and the loop below
+  // would read `alive` as false on its very first pass and report success in
+  // the same millisecond it was called — for a browser it never touched. That
+  // is not a confirmation, it is the absence of one, and the callers treat the
+  // two as opposites: `true` means "the profile is free, go ahead", so a
+  // caller that is about to relaunch skips the kill and walks straight back
+  // into the lock. Measured on 2026-09-10, where it kept an account offline
+  // through every 30s retry for hours. Say so instead; an unconfirmed close
+  // costs the caller a force-kill, which is what it did unconditionally
+  // before this function existed.
+  if (!proc) {
+    logger?.warn?.(
+      `[${session}] no browser process handle to confirm the close against — ` +
+        'treating it as unconfirmed.'
+    );
+    return false;
+  }
   // The call returning is not the process being gone. Poll for the exit so a
   // caller that is about to relaunch against this very profile does not race
   // a Chrome that is still flushing it.
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const alive = proc && proc.exitCode === null && proc.signalCode === null;
+    const alive = proc.exitCode === null && proc.signalCode === null;
     if (!alive) {
       logger?.info?.(`[${session}] browser closed gracefully.`);
       return true;
@@ -238,6 +257,118 @@ function forceKillByUserDataDir(
 }
 
 /**
+ * Chrome files that let a profile reopen the tabs it had last time.
+ *
+ * `Sessions/Session_*` and `Sessions/Tabs_*` are the live records; the four
+ * loose files are the legacy pair plus the copy Chrome promotes on startup.
+ * All of them are caches of window state, never credentials — the WhatsApp
+ * login lives in the profile's IndexedDB and nothing here touches it.
+ */
+const RESTORABLE_SESSION_FILES = [
+  'Last Session',
+  'Last Tabs',
+  'Current Session',
+  'Current Tabs',
+];
+
+/**
+ * Stop this session's Chrome profile from restoring the tabs it had open, and
+ * do it before every launch.
+ *
+ * WPPConnect drives exactly one page. A profile that restores tabs hands it
+ * more, and the extra ones are actively harmful rather than merely untidy:
+ * they are opened by Chrome itself, so they never pass through start.js's
+ * document-only interception (they load whatever build Meta is serving right
+ * now, not the pinned one) and never receive wppconnect's user-agent
+ * override, so WhatsApp answers them with "WhatsApp works with Google Chrome
+ * 100 or newer". They still share the profile's IndexedDB and the single
+ * WAWebBackendWorker with the page that matters, and they are enough to push
+ * it past the 30s `injectApi()` waits for `WAPI && Store && WPP.isReady`.
+ *
+ * Measured live on 2026-09-10, by attaching to the wedged browser: three
+ * web.whatsapp.com tabs, two of them on the unsupported-browser screen with
+ * `HeadlessChrome/148.0.0.0` and no wa-js at all, and one — the puppeteer
+ * page, user-agent `Chrome/102.0.5005.63` — fully logged in with
+ * `WPP.isReady === true`, having got there only *after* injectApi had already
+ * timed out. The session was never logged out; it was starved.
+ *
+ * The loop is self-feeding, which is why it never recovered on its own: the
+ * timeout leaves Chrome alive, the recovery force-kills it, a force-killed
+ * Chrome has no clean exit recorded, and the next launch therefore restores
+ * the tabs of the run before — one more each time.
+ *
+ * Two halves, because either one alone leaves a way back in. The files are
+ * removed, and `exit_type` is set to `Normal` in Preferences, since a profile
+ * whose last exit was not recorded as clean is one Chrome offers to restore
+ * regardless of what is left in Sessions/.
+ *
+ * Best-effort by construction: every failure is swallowed. This runs on the
+ * startup path of every session, and a profile that cannot be tidied is not a
+ * reason to refuse to start one.
+ */
+function clearRestorableSession(profileDir: string, logger?: any): void {
+  if (!profileDir) return;
+  try {
+    const defaultDir = path.join(profileDir, 'Default');
+    const sessionsDir = path.join(defaultDir, 'Sessions');
+    let removed = 0;
+    try {
+      for (const name of fs.readdirSync(sessionsDir)) {
+        if (!/^(Session|Tabs)_/.test(name)) continue;
+        try {
+          fs.unlinkSync(path.join(sessionsDir, name));
+          removed++;
+        } catch (e) {}
+      }
+    } catch (e) {}
+    for (const name of RESTORABLE_SESSION_FILES) {
+      try {
+        fs.unlinkSync(path.join(defaultDir, name));
+        removed++;
+      } catch (e) {}
+    }
+
+    // Merge, never rewrite. Preferences carries far more than the exit
+    // record, and replacing the file would drop settings this profile has
+    // accumulated. An unreadable or unparseable file is left exactly as it
+    // is — the file deletions above already do most of the work.
+    const prefsPath = path.join(defaultDir, 'Preferences');
+    try {
+      const prefs = JSON.parse(fs.readFileSync(prefsPath, 'utf8'));
+      if (prefs && typeof prefs === 'object') {
+        prefs.profile = prefs.profile || {};
+        if (
+          prefs.profile.exit_type !== 'Normal' ||
+          prefs.profile.exited_cleanly !== true
+        ) {
+          prefs.profile.exit_type = 'Normal';
+          prefs.profile.exited_cleanly = true;
+          // Temp + rename, never in place. writeFileSync truncates first, and
+          // this can run while a stale Chrome still owns the profile (rung one
+          // runs before any kill) — a death between the truncate and the write
+          // would hand Chrome an unparseable Preferences and a reset profile.
+          // Chrome writes this file the same way, for the same reason.
+          const prefsTmp = prefsPath + '.winzapp.tmp';
+          fs.writeFileSync(prefsTmp, JSON.stringify(prefs), 'utf8');
+          fs.renameSync(prefsTmp, prefsPath);
+        }
+      }
+    } catch (e) {}
+
+    if (removed) {
+      logger?.info?.(
+        `[clearRestorableSession] dropped ${removed} restorable-tab file(s) ` +
+          `from ${profileDir}`
+      );
+    }
+  } catch (e: any) {
+    logger?.warn?.(
+      `[clearRestorableSession] could not tidy ${profileDir}: ${e?.message || e}`
+    );
+  }
+}
+
+/**
  * Does this launch failure mean "a Chrome we lost track of still holds the
  * profile"?
  *
@@ -294,10 +425,17 @@ async function launchWithStaleBrowserRecovery(
   launch: () => Promise<any>,
   userDataDir: string,
   session: string,
-  logger?: any
+  logger?: any,
+  profileDir?: string
 ): Promise<any> {
+  // Before every attempt, not just the first: an attempt that got far enough
+  // to start Chrome can write a fresh Sessions/ record on its way down.
+  const attempt = () => {
+    if (profileDir) clearRestorableSession(profileDir, logger);
+    return launch();
+  };
   try {
-    return await launch();
+    return await attempt();
   } catch (error: any) {
     if (!isStaleBrowserLockError(error)) throw error;
     logger?.warn?.(
@@ -309,19 +447,55 @@ async function launchWithStaleBrowserRecovery(
     // reports CLOSED, but a status of CLOSED does not mean the browser went
     // away. When it is reachable, close it properly rather than SIGKILLing a
     // Chrome that is holding this session's login database open.
+    let forceKilled = false;
     if (!(await closeBrowserGracefully(session, logger))) {
       await forceKillByUserDataDir(userDataDir, logger);
+      forceKilled = true;
     }
     await new Promise((resolve) =>
       setTimeout(resolve, STALE_BROWSER_RELEASE_MS)
     );
     try {
-      const client = await launch();
+      const client = await attempt();
       logger?.info?.(
         `[${session}] Recovered from a stale browser profile lock.`
       );
       return client;
     } catch (retryError: any) {
+      // The graceful close reporting success is not evidence that THIS
+      // profile was released — it only ever speaks for the client object in
+      // clientsArray, and the Chrome holding the lock is very often a
+      // different, older process that no client object points at any more.
+      // Measured on 2026-09-10: the close and its "browser closed gracefully"
+      // line landed in the same millisecond as the warning above (nothing was
+      // actually closed — there was no process handle to watch), the kill was
+      // skipped because of it, the retry hit the identical lock, and the
+      // account stayed offline through fifteen accumulated orphan Chromes.
+      // The profile still being locked is the proof, so escalate on it.
+      if (!forceKilled && isStaleBrowserLockError(retryError)) {
+        logger?.warn?.(
+          `[${session}] the graceful close did not free the profile — ` +
+            'killing whatever still holds it.'
+        );
+        await forceKillByUserDataDir(userDataDir, logger);
+        await new Promise((resolve) =>
+          setTimeout(resolve, STALE_BROWSER_RELEASE_MS)
+        );
+        try {
+          const client = await attempt();
+          logger?.info?.(
+            `[${session}] Recovered from a stale browser profile lock after ` +
+              'the fallback kill.'
+          );
+          return client;
+        } catch (finalError: any) {
+          logger?.error?.(
+            `[${session}] Still could not start after killing the profile ` +
+              `holder: ${finalError?.message ?? finalError}`
+          );
+          throw finalError;
+        }
+      }
       logger?.error?.(
         `[${session}] Still could not start after clearing the profile lock: ` +
           `${retryError?.message ?? retryError}`
@@ -606,7 +780,26 @@ export default class CreateSessionUtil {
     // mid-write costs here.
     if (graceful && (await closeBrowserGracefully(session, logger, timeoutMs, client)))
       return;
+    // The precise kill can only ever reach this client's own page, so it is
+    // unconditional. The directory scan cannot: it kills whoever holds the
+    // profile, which after a takeover is a successor's browser — the
+    // 03:55:50 incident killBrowserOrFallback() carries in its own comment.
+    //
+    // This guard is new because the path is new. closeBrowserGracefully()
+    // used to answer `true` for a client with no page at all (during
+    // create(), clientsArray[session] holds a stub and Object.assign() has
+    // not run yet), so this returned early and killed nothing — which is how
+    // the stale lock this branch fixes was reached in the first place. Now it
+    // answers `false`, honestly, and the fallback below actually runs.
     if (!forceKillBrowserProcess(client?.page, logger)) {
+      const current: any = clientsArray[session];
+      if (current && client && current !== client) {
+        logger?.warn?.(
+          `[${session}] not killing the browser by userDataDir: this session ` +
+            'has been taken over by a newer client, and the profile is its.'
+        );
+        return;
+      }
       forceKillByUserDataDir(`userDataDir/${session}`, logger);
     }
   }
@@ -906,7 +1099,12 @@ export default class CreateSessionUtil {
         launchWppClient,
         `userDataDir/${session}`,
         session,
-        req.logger
+        req.logger,
+        path.resolve(
+          req.serverOptions.customUserDataDir
+            ? req.serverOptions.customUserDataDir + session
+            : `userDataDir/${session}`
+        )
       );
 
       // Poll every 2s: if shouldClose was set while create() is blocked, close browser immediately

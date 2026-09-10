@@ -162,6 +162,17 @@ export default {
       '--use-mock-keychain',
       '--no-pings',
       '--disable-client-side-phishing-detection',
+      // Belt to clearRestorableSession()'s braces (createSessionUtil.ts).
+      // That function removes the saved-tab files and records a clean exit
+      // before every launch; these two stop Chrome from acting on a restore
+      // record that appears anyway — a crash mid-session, or a profile
+      // restored from a snapshot taken elsewhere. WPPConnect drives exactly
+      // one page, and every extra tab a restore reopens loads outside
+      // start.js's document interception and outside wppconnect's user-agent
+      // override, then competes for the same IndexedDB and backend worker
+      // until injectApi() times out.
+      '--hide-crash-restore-bubble',
+      '--disable-session-crashed-bubble',
     ],
     /**
      * Example of configuring the linkPreview generator
