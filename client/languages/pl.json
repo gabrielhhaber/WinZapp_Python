@@ -15,6 +15,8 @@
     "pairing_code_expired": "Kod parowania wygasł i nie będzie już aktualizowany. Anuluj i spróbuj ponownie, aby otrzymać nowy kod.",
     "qrcode_image_updated": "Kod QR został zaktualizowany.",
     "qrcode_instructions": "Skieruj telefon na kod QR wyświetlony na ekranie.",
+    "qrcode_generating": "Generowanie kodu QR, proszę czekać...",
+    "qrcode_not_generated": "Nie udało się wygenerować kodu QR. Anuluj i spróbuj ponownie.",
     "connect_with_phone": "Połącz za pomocą &numeru telefonu",
     "connect_with_qrcode": "Połącz za pomocą kodu &QR",
     "cancel_pairing": "&Anuluj parowanie",

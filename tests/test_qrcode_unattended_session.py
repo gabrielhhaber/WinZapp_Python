@@ -69,12 +69,20 @@ class _FakeField:
 
 
 class _FakeConnect:
-    def __init__(self, mode="qrcode", main_window=None):
+    def __init__(self, mode="qrcode", main_window=None, qr_displayed=True):
         self.connection_mode = mode
         self.main_window = main_window
         self.show_connection_dial_calls = 0
         self.displayed = []
         self.pairing_code_field = _FakeField()
+        # Whether a QR is already painted. The refresh announcement is gated on
+        # it, because the FIRST code arrives through this same branch — the
+        # single status-session poll fires 71 ms after /start-session, measured
+        # 5.4 s before the event — and calling that a refresh is what made the
+        # QR seem to appear only on the second try. Defaults True: every test
+        # here but one is about a rotation, which by definition has one on
+        # screen already. See tests/test_qr_is_announced_when_it_exists.py.
+        self._qr_displayed = qr_displayed
 
     def show_connection_dial(self):
         self.show_connection_dial_calls += 1
@@ -236,6 +244,18 @@ class TestNormalRotationStillWorks:
         assert mw.speak_output.spoken == ["qrcode_image_updated"]
         assert connect.displayed == [QR_EVENT["data"]]
         assert connect.show_connection_dial_calls == 0
+
+    def test_the_very_first_code_is_not_announced_as_an_update(self):
+        """It still gets drawn — display_qrcode_image() is what announces it,
+        at the moment it is really on screen."""
+        mw = _FakeMainWindow(paired=True, pairing_dialog_active=True)
+        connect = _FakeConnect(mode="qrcode", main_window=mw, qr_displayed=False)
+        s = _Stub(mw, connect)
+
+        s.on_qrcode_update(QR_EVENT)
+
+        assert mw.speak_output.spoken == []
+        assert connect.displayed == [QR_EVENT["data"]]
 
     def test_phone_mode_updates_the_field(self):
         mw = _FakeMainWindow(paired=True, pairing_dialog_active=True)

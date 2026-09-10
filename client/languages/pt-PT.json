@@ -15,6 +15,8 @@
     "pairing_code_expired": "O código de emparelhamento expirou e não será mais atualizado. Cancele e tente novamente para receber um novo código.",
     "qrcode_image_updated": "O código QR foi atualizado.",
     "qrcode_instructions": "Aponte o telemóvel para o código QR exibido do lado direito do ecrã.",
+    "qrcode_generating": "A gerar o QR-code, aguarde...",
+    "qrcode_not_generated": "Não foi possível gerar o QR-code. Cancele e tente novamente.",
     "connect_with_phone": "Ligar através do número de &telemóvel",
     "connect_with_qrcode": "Ligar-se através do código &QR",
     "cancel_pairing": "&Cancelar emparelhamento",
