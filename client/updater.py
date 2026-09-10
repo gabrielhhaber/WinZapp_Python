@@ -900,6 +900,60 @@ class UpdateChecker:
         self._mw           = main_window
         self._retry_timer  = None
         self._force        = False
+        # Owner-token from update_coord.try_claim_update_prompt() while this
+        # process is the one asking the user about an update; None otherwise.
+        self._prompt_token = None
+
+    def _global_dir(self):
+        """The multi-account global dir, or None in a single-account/dev run.
+
+        None disables the cross-account prompt claim entirely, which is the
+        right degradation: with no shared directory there is no second account
+        to duplicate the dialog for.
+        """
+        return getattr(self._mw, "global_dir", None) or None
+
+    def _claim_prompt(self, remote_version: str) -> bool:
+        """Become the one process that asks about this update.
+
+        Every account runs its own UpdateChecker in its own process, so without
+        this each of them found the same release and opened its own dialog —
+        two accounts, two "a new version is available" windows for one update.
+        Only one of them could ever have installed it anyway: the install is
+        already gated by try_begin_update(), which refuses while any other
+        account's runtime lease is live. The duplicate dialogs were never a
+        second chance at anything, just a second thing to dismiss.
+
+        Fails OPEN on any error. A prompt that cannot be coordinated is worth
+        far more than a prompt suppressed by a bug in the coordination.
+        """
+        gd = self._global_dir()
+        if not gd:
+            return True
+        try:
+            import update_coord
+            token = update_coord.try_claim_update_prompt(gd, remote_version)
+        except Exception:
+            logging.exception("Auto-updater: prompt claim failed — asking anyway")
+            return True
+        if token is None:
+            return False
+        self._prompt_token = token
+        return True
+
+    def _release_prompt(self) -> None:
+        """Hand the prompt back, so the next account may ask when its own timer
+        comes round. Never raises: it runs on the way out of a dialog, and an
+        exception here would swallow the user's answer."""
+        token, self._prompt_token = self._prompt_token, None
+        gd = self._global_dir()
+        if not (gd and token):
+            return
+        try:
+            import update_coord
+            update_coord.release_update_prompt(gd, token)
+        except Exception:
+            logging.exception("Auto-updater: releasing the prompt claim failed")
 
     def _alpha_enabled(self) -> bool:
         """Whether the user opted into alpha builds (Settings > General).
@@ -1074,12 +1128,28 @@ class UpdateChecker:
             return
 
         logging.info("Auto-updater: Newer version %s is available!", remote_version)
+        was_forced = self._force
         self._force = False
 
         # Prefer a local, per-version changelog file (see resolve_changelog())
         # over the GitHub release body — only used as a last resort.
         lang_code = self._mw.i18n.get_language() if hasattr(self._mw, "i18n") else "pt-BR"
         changelog = resolve_changelog(local_version, remote_version, lang_code, data.get("body", ""))
+
+        if not self._claim_prompt(remote_version):
+            # Another account is already asking. Do NOT install behind its back
+            # and do not stack a second dialog — just come back later, by which
+            # time either the update happened or that dialog was dismissed and
+            # the claim released.
+            logging.info(
+                "Auto-updater: another account is already showing the update "
+                "prompt for this machine — skipping this one's dialog."
+            )
+            if was_forced:
+                wx.CallAfter(self._show_prompt_open_elsewhere)
+            else:
+                self._schedule_retry()
+            return
 
         wx.CallAfter(self._show_update_dialog, remote_version, changelog, zip_url, sha256sums_url)
 
@@ -1143,15 +1213,34 @@ class UpdateChecker:
             self._mw,
         )
 
+    def _show_prompt_open_elsewhere(self):
+        """Only for a check the user asked for by hand (Help > Check for
+        updates). An automatic check that loses the claim stays silent and
+        retries; a manual one that stayed silent would just look broken."""
+        i18n = self._mw.i18n
+        wx.MessageBox(
+            i18n.t("update_prompt_open_elsewhere"),
+            i18n.t("update_available_title"),
+            wx.OK | wx.ICON_INFORMATION,
+            self._mw,
+        )
+
     def _show_update_dialog(self, remote_version: str, changelog: str, zip_url: str, sha256sums_url: str = ""):
         dlg    = UpdateDialog(self._mw, remote_version, changelog)
         result = dlg.ShowModal()
         dlg.Destroy()
 
         if result == wx.ID_YES:
+            # Deliberately still held across the install: releasing here would
+            # let another account open its own dialog while this one is already
+            # downloading and about to relaunch the whole install directory.
+            # _do_install() releases it on every path that does not end in
+            # real_exit() (which takes the claim's owner process with it, so a
+            # crashed-owner recovery clears it for free).
             self._do_install(remote_version, zip_url, sha256sums_url)
         else:
             # User said No — retry in 3 hours
+            self._release_prompt()
             self._schedule_retry()
 
     def _do_install(self, new_version: str, zip_url: str, sha256sums_url: str = ""):
@@ -1175,6 +1264,7 @@ class UpdateChecker:
                         "Auto-updater: nothing was installed and no installer is "
                         "waiting — staying open instead of exiting."
                     )
+                    self._release_prompt()
                     return
                 # Install launched — quit the app so the batch script can run
                 self._mw.real_exit()
@@ -1182,6 +1272,7 @@ class UpdateChecker:
 
             if result == wx.ID_CANCEL:
                 # User cancelled
+                self._release_prompt()
                 self._schedule_retry()
                 return
 
@@ -1195,6 +1286,7 @@ class UpdateChecker:
                 self._mw,
             )
             if retry != wx.YES:
+                self._release_prompt()
                 self._schedule_retry()
                 return
             # else: loop and retry the download

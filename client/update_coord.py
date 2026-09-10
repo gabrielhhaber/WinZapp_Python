@@ -349,6 +349,126 @@ def is_update_in_progress(global_dir: str,
         return _is_update_in_progress_locked(global_dir, is_alive)
 
 
+# ── update-prompt claim (one dialog per machine, not one per account) ────────
+#
+# ``try_begin_update`` guards the INSTALL. Nothing guarded the PROMPT, and the
+# two are different moments: every account runs its own UpdateChecker in its own
+# process, so a release that is newer than the running build is found N times
+# and asked about N times — two accounts open meant two "a new version is
+# available" dialogs, on two windows, for one update. The install could only
+# ever have happened once (the second one's ``try_begin_update`` refuses while
+# the first holds a live runtime lease), so the extra dialogs were never even
+# useful; they were purely a second thing to dismiss.
+#
+# So the prompt is claimed the same way the install is, and released when the
+# dialog closes. Shape deliberately mirrors update_state.json — same lock, same
+# atomic write, same (pid, create_time) liveness so a crashed holder is
+# recovered rather than blocking every account forever.
+_PROMPT_FILE = "update_prompt.json"
+
+
+def _prompt_path(global_dir: str) -> str:
+    return os.path.join(global_dir, _PROMPT_FILE)
+
+
+def _read_prompt(global_dir: str):
+    """Return the claim dict, or _CORRUPT if the file exists but is unreadable
+    or fails validation.
+
+    Fails OPEN where the state file fails closed, and the asymmetry is
+    deliberate: an unreadable update_state must block an install, because
+    installing twice corrupts the installation. An unreadable prompt claim must
+    NOT block the prompt, because the worst case it guards against is a second
+    dialog — while treating it as held would silently suppress update prompts
+    on every account, forever, with nothing to show the user why.
+    """
+    path = _prompt_path(global_dir)
+    if not os.path.lexists(path):
+        return None
+    if not os.path.isfile(path):
+        return _CORRUPT
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return _CORRUPT
+    if not isinstance(data, dict):
+        return _CORRUPT
+    if not _valid_pid(data.get("owner_pid")) or not _valid_ct(data.get("owner_create_time")):
+        return _CORRUPT
+    tok = data.get("owner_token")
+    if not isinstance(tok, str) or len(tok) != 32 or not all(c in "0123456789abcdef" for c in tok):
+        return _CORRUPT
+    return data
+
+
+def _prompt_holder_locked(global_dir: str,
+                          is_alive: Callable[[int, float], bool]) -> "dict | None":
+    """Caller holds updater_lock. Returns the live holder, or None. A dead or
+    corrupt claim is cleared on the way past, so it blocks nobody twice."""
+    claim = _read_prompt(global_dir)
+    if claim is None:
+        return None
+    if claim is _CORRUPT or not is_alive(int(claim["owner_pid"]),
+                                         float(claim["owner_create_time"])):
+        try:
+            os.remove(_prompt_path(global_dir))
+        except OSError:
+            pass
+        return None
+    return claim
+
+
+def try_claim_update_prompt(global_dir: str, version: str,
+                            pid: Optional[int] = None,
+                            create_time: Optional[float] = None,
+                            is_alive: Callable[[int, float], bool] = lease_alive):
+    """Claim the right to ask the user about an update. Returns an owner-token
+    dict, or None when another live process is already asking.
+
+    Held regardless of which version the holder is asking about: while a dialog
+    is on screen there is nothing useful a second one can add, and the blocked
+    account re-checks on its own retry timer anyway. Re-entrant for the SAME
+    process, so a checker that somehow asks twice replaces its own claim rather
+    than deadlocking against itself.
+    """
+    pid, create_time = _resolve_identity(pid, create_time)
+    with updater_lock(global_dir):
+        holder = _prompt_holder_locked(global_dir, is_alive)
+        if holder is not None and int(holder["owner_pid"]) != pid:
+            return None
+        token = {"owner_pid": pid, "owner_create_time": create_time,
+                 "owner_token": uuid.uuid4().hex}
+        _atomic_write(_prompt_path(global_dir),
+                      {"version": str(version), "claimed_at": int(time.time()), **token})
+        return token
+
+
+def release_update_prompt(global_dir: str, token: dict) -> bool:
+    """Release a claim from try_claim_update_prompt. Only the matching
+    owner_token may release, so a checker that claims again after a decline
+    cannot be cleared by its own earlier dialog closing late."""
+    if not isinstance(token, dict) or not token.get("owner_token"):
+        return False
+    with updater_lock(global_dir):
+        claim = _read_prompt(global_dir)
+        if claim is _CORRUPT or claim is None:
+            return False
+        if claim.get("owner_token") != token["owner_token"]:
+            return False
+        try:
+            os.remove(_prompt_path(global_dir))
+        except OSError:
+            return False
+        return True
+
+
+def update_prompt_holder(global_dir: str,
+                         is_alive: Callable[[int, float], bool] = lease_alive) -> "dict | None":
+    with updater_lock(global_dir):
+        return _prompt_holder_locked(global_dir, is_alive)
+
+
 # ── pure decision helpers (unit-tested) ──────────────────────────────────────
 def should_block_start(update_state: dict) -> bool:
     return bool(update_state.get("update_in_progress"))

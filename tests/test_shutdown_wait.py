@@ -147,10 +147,12 @@ class TestPerformShutdownReentrancyIsAtomic:
             "one of them"
         )
 
-    def test_on_end_session_uses_the_same_lock(self):
-        src = inspect.getsource(MainWindow._on_end_session)
+    def test_the_windows_teardown_uses_the_same_lock(self):
+        """Both Windows handlers delegate here, so this is the one place the
+        WM_QUERYENDSESSION / WM_ENDSESSION side takes the flag."""
+        src = inspect.getsource(MainWindow._run_windows_session_teardown)
         assert "self._teardown_started_lock" in src, (
-            "_on_end_session() must guard its own _shutting_down "
+            "the Windows teardown must guard its own _shutting_down "
             "check-and-set with the same lock _perform_shutdown() uses, or "
             "the two can still race each other"
         )

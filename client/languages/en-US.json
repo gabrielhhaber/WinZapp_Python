@@ -311,6 +311,7 @@
     "notif_mentioned_all": "Mentioned everyone",
     "notif_unsupported": "Incompatible message",
     "update_available_title": "WinZapp update available",
+    "update_prompt_open_elsewhere": "An update window is already open in another WinZapp account. Finish or close that window to update.",
     "update_available_msg": "A new version of WinZapp is available (v{new_version}). Would you like to download and install it now?",
     "update_yes": "&Yes",
     "update_no": "&No",
