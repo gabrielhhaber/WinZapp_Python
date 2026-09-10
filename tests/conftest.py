@@ -37,6 +37,60 @@ from cryptography.fernet import Fernet
 _WX_GUI_OPT_IN_ENV = "WINZAPP_RUN_WX_GUI_TESTS"
 
 
+#: Repeats behind fastest_of()/fastest_of_async(). Enough to find the floor
+#: without making a load test noticeably slower.
+TIMING_REPEATS = 7
+
+
+def fastest_of(call, repeats: int = TIMING_REPEATS) -> float:
+    """Seconds taken by the quickest of *repeats* runs of ``call``.
+
+    The load tests assert that doubling the data does not more than double the
+    work. Timing a single run makes that assertion unreliable in exactly one
+    direction: noise is one-sided — a sample can only ever come out slower than
+    the truth, never faster — so one unlucky garbage collection inside the
+    larger measurement inflates the ratio without any code having changed.
+
+    Measured in a full suite run on 2026-09-10: the 2,000-chat planning call
+    was recorded at 69.9 ms against a median of 6.5 ms on the same machine,
+    while the 500-chat call was recorded at its clean 1.6 ms — "44.1x for 4x
+    the chats", failing the build over an implementation that is perfectly
+    linear (3.2 microseconds per chat, flat from 250 to 4,000 chats).
+
+    That is worth a helper rather than a local fix, because a red run is not
+    the worst outcome: release.yml's reject-on-test-failure DELETES a stable
+    release whose test job failed, so a test that fails at random can throw
+    away a good release.
+
+    The minimum is the right statistic precisely because of the one-sidedness:
+    it converges on the cost of the work itself, and it still grows when the
+    work genuinely grows, which is all these assertions read.
+    """
+    best = None
+    for _ in range(repeats):
+        started = time.perf_counter()
+        call()
+        elapsed = time.perf_counter() - started
+        if best is None or elapsed < best:
+            best = elapsed
+    return best
+
+
+async def fastest_of_async(make_awaitable, repeats: int = TIMING_REPEATS) -> float:
+    """fastest_of() for async work. ``make_awaitable`` is called once per
+    repeat and must return a FRESH awaitable — an already-created coroutine
+    cannot be awaited twice, and a factory also lets a caller vary anything
+    that must differ between runs (a fresh chat id per insert, say)."""
+    best = None
+    for index in range(repeats):
+        started = time.perf_counter()
+        await make_awaitable(index)
+        elapsed = time.perf_counter() - started
+        if best is None or elapsed < best:
+            best = elapsed
+    return best
+
+
 def pytest_addoption(parser):
     parser.addoption(
         "--run-wx-gui",
