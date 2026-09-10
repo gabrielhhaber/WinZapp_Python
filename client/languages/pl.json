@@ -1053,5 +1053,6 @@
     "contact_no_number": "Ta wizytówka kontaktu nie zawiera numeru telefonu.",
     "search_contact_label": "&Szukaj kontaktu",
     "profile_restored_from_snapshot": "Profil przeglądarki był uszkodzony i został przywrócony z ostatniej zapisanej kopii. Ponowne łączenie z WhatsApp.",
-    "profile_corrupted_repair_needed": "Profil przeglądarki używany do połączenia z WhatsApp jest uszkodzony i nie ma zapisanej kopii do przywrócenia. Trzeba będzie rozłączyć sesję i sparować ponownie."
+    "profile_corrupted_repair_needed": "Profil przeglądarki używany do połączenia z WhatsApp jest uszkodzony i nie ma zapisanej kopii do przywrócenia. Trzeba będzie rozłączyć sesję i sparować ponownie.",
+    "browser_install_broken": "Wbudowana przeglądarka, której WinZapp używa do połączenia z WhatsApp, jest niekompletna i nie może się uruchomić. Otwórz Ustawienia i zainstaluj ponownie API. Jeśli problem wróci, przed ponowną instalacją dodaj folder WinZapp do wyjątków programu antywirusowego."
 }

@@ -1053,5 +1053,6 @@
     "contact_no_number": "Este cartão de contato não traz nenhum número de telefone.",
     "search_contact_label": "&Buscar contato",
     "profile_restored_from_snapshot": "O perfil do navegador estava danificado e foi restaurado a partir da última cópia salva. Reconectando ao WhatsApp.",
-    "profile_corrupted_repair_needed": "O perfil do navegador usado para conectar ao WhatsApp está danificado e não há cópia salva para restaurar. Será necessário desconectar a sessão e parear novamente."
+    "profile_corrupted_repair_needed": "O perfil do navegador usado para conectar ao WhatsApp está danificado e não há cópia salva para restaurar. Será necessário desconectar a sessão e parear novamente.",
+    "browser_install_broken": "O navegador interno que o WinZapp usa para conectar ao WhatsApp está incompleto e não consegue iniciar. Vá em Configurações e reinstale a API. Se o problema voltar, adicione a pasta do WinZapp às exceções do seu antivírus antes de reinstalar."
 }

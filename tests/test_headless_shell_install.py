@@ -46,6 +46,7 @@ class _Stub:
     _HEADLESS_SHELL_NAMES = MainWindow._HEADLESS_SHELL_NAMES
     _WINDOWS_CHROME_NAMES = getattr(MainWindow, "_WINDOWS_CHROME_NAMES", ("chrome.exe",))
     find_headless_shell = MainWindow.find_headless_shell
+    find_incomplete_browser = MainWindow.find_incomplete_browser
     ensure_headless_shell_installed = MainWindow.ensure_headless_shell_installed
     ensure_api_modules_installed = MainWindow.ensure_api_modules_installed
 
@@ -66,8 +67,13 @@ def api_tree(tmp_path, monkeypatch):
     return api
 
 
-def _install_shell(api, version="win64-1.2.3"):
-    """Mirror puppeteer's real nesting, so the walk is genuinely exercised."""
+def _install_shell(api, version="win64-1.2.3", complete=True):
+    """Mirror puppeteer's real nesting, so the walk is genuinely exercised.
+
+    `complete` lays down the payload files a browser cannot start without —
+    see core/browser_payload.py. Default True because every test here is about
+    *finding* a browser, and one that cannot start no longer counts as found.
+    """
     import sys
     if sys.platform == "win32":
         d = api / ".cache" / "puppeteer" / "chrome" / version / "chrome-win64"
@@ -78,6 +84,8 @@ def _install_shell(api, version="win64-1.2.3"):
         d.mkdir(parents=True, exist_ok=True)
         exe = d / SHELL
     exe.write_text("binary", encoding="utf-8")
+    if complete:
+        (d / "icudtl.dat").write_bytes(b"icu" * 8)
     return exe
 
 
@@ -95,6 +103,9 @@ class TestFindingTheShell:
         d = api_tree / ".cache" / "puppeteer" / "chrome" / "win64-148" / "chrome-win64"
         d.mkdir(parents=True, exist_ok=True)
         (d / "chrome.exe").write_text("binary", encoding="utf-8")
+        # Complete on purpose: this must fail on the binary NAME, not on a
+        # payload check that would make it pass for the wrong reason.
+        (d / "icudtl.dat").write_bytes(b"icu" * 8)
         assert _Stub().find_headless_shell() is None
 
     def test_a_missing_cache_directory_is_not_an_error(self, tmp_path, monkeypatch):

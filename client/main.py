@@ -65,6 +65,7 @@ from core.wpp_runtime import (
 from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default, migrate_spell_check_mode
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
+from core import browser_payload
 from core.database_bridge import DatabaseBridge
 from core import token_vault
 from app_paths import resource_path, data_path, accounts_root
@@ -7354,7 +7355,21 @@ class MainWindow(wx.Frame):
     _WINDOWS_CHROME_NAMES = ("chrome.exe",)
 
     def find_headless_shell(self):
-        """Path to chrome-headless-shell inside client/api/.cache, or None."""
+        """Path to a *usable* browser inside client/api/.cache, or None.
+
+        Usable, not merely present. This used to return the first matching
+        executable it walked past, and that is the check every "is the API set
+        up?" path relies on — so an install whose payload is incomplete was
+        accepted forever. Measured on 2026-09-10: a Chromium missing
+        `icudtl.dat` aborted with STATUS_BREAKPOINT before it could report
+        anything, on every session start, while this logged "Already
+        installed" on every launch. See core/browser_payload.py for what is
+        checked and why the check is deliberately narrow.
+
+        A binary that fails the check is skipped rather than returned, so the
+        walk keeps looking: a cache holding both a broken version directory
+        and a good one still starts.
+        """
         cache_dir = resource_path("api", ".cache")
         if not os.path.isdir(cache_dir):
             return None
@@ -7365,9 +7380,48 @@ class MainWindow(wx.Frame):
         )
         for root, _dirs, files in os.walk(cache_dir):
             for name in files:
-                if name in preferred_names:
-                    return os.path.join(root, name)
+                if name not in preferred_names:
+                    continue
+                candidate = os.path.join(root, name)
+                problem = browser_payload.payload_problem(candidate)
+                if problem:
+                    logging.warning(
+                        "[headless-shell] ignoring an incomplete browser at %s "
+                        "(%s) — it cannot start, so it does not count as "
+                        "installed.", candidate, problem,
+                    )
+                    continue
+                return candidate
         return None
+
+    def find_incomplete_browser(self):
+        """The first browser in the cache that exists but cannot start.
+
+        Kept apart from find_headless_shell() because the two answer opposite
+        questions and one caller needs both: "have I got a browser?" and "is
+        the reason I have not got one that a broken one is sitting in its
+        place?". Returns (binary_path, problem) or (None, None).
+        """
+        cache_dir = resource_path("api", ".cache")
+        if not os.path.isdir(cache_dir):
+            return None, None
+        preferred_names = (
+            self._WINDOWS_CHROME_NAMES
+            if sys.platform == "win32"
+            else self._HEADLESS_SHELL_NAMES
+        )
+        try:
+            for root, _dirs, files in os.walk(cache_dir):
+                for name in files:
+                    if name not in preferred_names:
+                        continue
+                    candidate = os.path.join(root, name)
+                    problem = browser_payload.payload_problem(candidate)
+                    if problem:
+                        return candidate, problem
+        except OSError:
+            pass
+        return None, None
 
     def ensure_headless_shell_installed(self) -> bool:
         """Download chrome-headless-shell if client/api/.cache has none.
@@ -7394,6 +7448,38 @@ class MainWindow(wx.Frame):
         if existing:
             logging.info("[headless-shell] Already installed: %s", existing)
             return True
+
+        # Nothing usable — but "nothing usable" and "nothing there" are
+        # different, and the difference decides whether the download below can
+        # help at all. @puppeteer/browsers skips its install outright while the
+        # version directory exists, so a payload that is present and broken
+        # would survive every retry for the life of the install. Take it out
+        # of the way first, and say so: this is the one line that tells a user
+        # (or a log) that the browser, not WhatsApp, is what is wrong.
+        broken, problem = self.find_incomplete_browser()
+        if broken:
+            version_dir = browser_payload.installed_version_dir(
+                broken, resource_path("api", ".cache")
+            )
+            logging.error(
+                "[headless-shell] the installed browser cannot start (%s): %s",
+                problem, broken,
+            )
+            if version_dir and os.path.isdir(version_dir):
+                try:
+                    shutil.rmtree(version_dir)
+                    logging.warning(
+                        "[headless-shell] removed the incomplete browser at %s "
+                        "so it can be downloaded again.", version_dir,
+                    )
+                except OSError as exc:
+                    # Antivirus holding the file open is one of the ways it got
+                    # here in the first place. Log and let the download try
+                    # anyway; a failure there is already handled below.
+                    logging.error(
+                        "[headless-shell] could not remove %s: %s",
+                        version_dir, exc,
+                    )
 
         browser_product = "chrome" if sys.platform == "win32" else "chrome-headless-shell"
         logging.info(
@@ -9189,6 +9275,34 @@ class MainWindow(wx.Frame):
         """
         if getattr(self, "_profile_recovery_attempted", False):
             return False
+
+        # A browser that cannot start is not a profile that cannot connect,
+        # and the tracker that calls this cannot tell them apart: it counts
+        # sessions that died without connecting, which is exactly what a
+        # failed Chrome launch produces. Checked BEFORE the once-per-launch
+        # latch is taken, so a launch spent refusing here still has its one
+        # real recovery left for the fault this exists to fix.
+        #
+        # The cost of getting it wrong is not a wasted restore, it is the
+        # account. Measured on 2026-09-10 on an install whose Chromium was
+        # missing icudtl.dat: the recovery fired, spent both snapshot
+        # generations on a profile that was never at fault, and left the user
+        # unpaired — then unable to pair, because the QR needs the same
+        # browser that will not start. Restoring a snapshot cannot put an
+        # `icudtl.dat` back.
+        broken, problem = self.find_incomplete_browser()
+        if broken:
+            logging.error(
+                "[profile-recovery] refusing to restore: the browser itself "
+                "cannot start (%s: %s). The profile is not the fault here.",
+                problem, broken,
+            )
+            self._shutdown_audit(
+                "profile recovery refused — browser payload incomplete (%s)" % problem
+            )
+            wx.CallAfter(self._announce_browser_beyond_repair)
+            return False
+
         self._profile_recovery_attempted = True
 
         session_name = (getattr(self, "token", "") or "").split(":")[0]
@@ -9387,6 +9501,31 @@ class MainWindow(wx.Frame):
             self.output(self.i18n.t("profile_restored_from_snapshot"), interrupt=False)
         except Exception:
             logging.exception("[profile-recovery] announcement failed")
+
+    def _announce_browser_beyond_repair(self):
+        """The browser WinZapp bundles cannot start, so nothing else can work.
+
+        Spoken as well as shown, with the error sound, for the same reason as
+        _announce_profile_beyond_repair(): this only ever happens while already
+        offline, where _set_wa_connected(False, ...) has hit its no-change early
+        return and said nothing at all. A blind user has no way to discover any
+        of this from silence — and here silence is worse than usual, because the
+        thing that looks broken (WhatsApp) is not the thing that is.
+        """
+        try:
+            self.error_sound.play()
+        except Exception:
+            pass
+        try:
+            self.output(self.i18n.t("browser_install_broken"), interrupt=False)
+            if not getattr(self, "background_mode", False):
+                wx.MessageBox(
+                    self.i18n.t("browser_install_broken"),
+                    self.i18n.t("error").format(app_name=self.app_name),
+                    wx.OK | wx.ICON_ERROR,
+                )
+        except Exception:
+            logging.exception("[browser-payload] announcement failed")
 
     def _announce_profile_beyond_repair(self):
         """The dead end: the profile is unusable and there is no restore point.
