@@ -22,7 +22,8 @@ import wave
 import sound_lib.stream as sl_stream
 from sound_lib.effects import Tempo
 from core.audio_devices import (
-    find_input_device_index, fallback_input_device_indices, RECORDING_SAMPLE_CONFIGS,
+    find_input_device_index, fallback_input_device_indices,
+    recording_configs_for,
 )
 from core.audio_transcode import transcode_audio_to_wav
 from core.attachment_types import classify_attachment_media_type
@@ -3256,13 +3257,12 @@ class ConversationsPanel(wx.Panel):
             pa_cont = getattr(pyaudio, "paContinue", 0) if pyaudio is not None else 0
             return (None, pa_cont)
 
-        # Try each (rate, channels) combination in preference order (shared
-        # with core.audio_devices.test_input_device()'s Settings-dialog
-        # validation, so a device that validates there is guaranteed to open
-        # here too). WhatsApp voice messages are natively 48 kHz Mono.
-        # Prioritizing Mono avoids CPU-intensive downmixing loops in pure
-        # Python.
-        _configs = RECORDING_SAMPLE_CONFIGS
+        # The (rate, channels) combinations are resolved per device down in
+        # _try_open(), through the same recording_configs_for() that
+        # core.audio_devices.test_input_device() uses for the Settings-dialog
+        # validation — so a device that validates there is still guaranteed to
+        # open here. Mono stays first in both: WhatsApp voice messages are
+        # mono, and a stereo capture costs a downmix loop in pure Python.
         if self._recording_pa is None and pyaudio is not None:
             try:
                 self._recording_pa = pyaudio.PyAudio()
@@ -3309,7 +3309,11 @@ class ConversationsPanel(wx.Panel):
         pa = self._recording_pa
 
         def _try_open(device_index):
-            for rate, ch in _configs:
+            # Per device, not the shared list: a Bluetooth headset recording
+            # over HFP offers only its own 8/16 kHz mono link and refuses every
+            # fixed combination. See recording_configs_for(), which keeps the
+            # fixed list as the tail so nothing that worked before changes.
+            for rate, ch in recording_configs_for(device_index, pa):
                 try:
                     s = pa.open(
                         rate=rate,

@@ -256,6 +256,77 @@ def fallback_input_device_indices(pa: "pyaudio.PyAudio | None" = None, exclude=(
 RECORDING_SAMPLE_CONFIGS = [(48000, 1), (48000, 2), (44100, 1), (44100, 2)]
 
 
+def recording_configs_for(device_index, pa=None) -> list:
+    """RECORDING_SAMPLE_CONFIGS with `device_index`'s own native rate first.
+
+    The fixed list above was written for WASAPI devices, whose native rate is
+    48000 on everything tested, and it leaves out the one family that never
+    offers either rate: a Bluetooth headset used as a *microphone*. Recording
+    takes it out of A2DP and into the Hands-Free Profile, whose SCO link is
+    mono at 8000 Hz (CVSD) or 16000 Hz (mSBC) — so every combination above is
+    refused and the device looks broken.
+
+    Reported from a real install on 2026-09-09, four times across two sessions:
+
+        [audio_devices] Input device test failed for every sample-rate/channel
+        combo (index=14)
+
+    (index 19 in the later session — a Bluetooth device's index is not stable,
+    which is why devices are stored by name.) Note the failure was never
+    confined to Settings validation: the constant above says it must mirror
+    _start_voice_recording()'s chain and does, so recording with that headset
+    could not have worked either. The dialog was telling the truth about a
+    limit that is WinZapp's, not the device's.
+
+    Asking the device rather than widening the list is what makes this general:
+    PortAudio already reports `defaultSampleRate`, which is the rate Windows
+    has the endpoint opened at, so this covers 8000 and 16000 without naming
+    them and covers whatever comes next for free. The fixed list stays as the
+    tail, because `defaultSampleRate` is a *default*, not the only rate a
+    device accepts, and a driver that reports one thing and accepts another
+    was the situation this whole chain exists for.
+
+    Never raises, and never returns an empty list: a device whose info cannot
+    be read falls back to exactly the previous behaviour.
+    """
+    if pyaudio is None:
+        return list(RECORDING_SAMPLE_CONFIGS)
+    owns_pa = pa is None
+    try:
+        if owns_pa:
+            pa = pyaudio.PyAudio()
+        info = pa.get_device_info_by_index(int(device_index))
+        native = int(round(float(info.get("defaultSampleRate") or 0)))
+        max_channels = int(info.get("maxInputChannels") or 0)
+    except Exception:
+        logging.info(
+            "[audio_devices] Could not read the native rate of input device %s "
+            "— falling back to the fixed combinations.", device_index,
+        )
+        return list(RECORDING_SAMPLE_CONFIGS)
+    finally:
+        if owns_pa and pa is not None:
+            try:
+                pa.terminate()
+            except Exception:
+                pass
+
+    configs = []
+    if native > 0:
+        # Mono first for the same reason the fixed list does it: WhatsApp voice
+        # messages are mono, and a stereo capture costs a downmix loop in pure
+        # Python. A device reporting a single input channel never gets asked
+        # for two — an HFP microphone is exactly that.
+        for channels in (1, 2):
+            if max_channels and channels > max_channels:
+                continue
+            configs.append((native, channels))
+    for combo in RECORDING_SAMPLE_CONFIGS:
+        if combo not in configs:
+            configs.append(combo)
+    return configs
+
+
 def test_input_device(device_index: int) -> bool:
     """Try to briefly open (without starting) an input stream on
     `device_index`, across every sample-rate/channel combo recording itself
@@ -266,7 +337,7 @@ def test_input_device(device_index: int) -> bool:
         return False
     pa = pyaudio.PyAudio()
     try:
-        for rate, channels in RECORDING_SAMPLE_CONFIGS:
+        for rate, channels in recording_configs_for(device_index, pa):
             try:
                 stream = pa.open(
                     rate=rate,
