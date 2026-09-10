@@ -1296,6 +1296,13 @@ def reconcile_open_chat_unread(
     with the live one, which is exactly the shape that hides a bug from code
     review. Same reasoning as link_preview_text() and _status_content_label().
 
+    Both callers also decide "is this chat open" the same way, and that test
+    includes _unread_anchored_to_local_read(): this function answers for an
+    open chat that is also READ, which is not the same thing once a read has
+    been undone on screen (see the _open_now comment in
+    on_chat_unread_update()). Whichever one of the two you are changing, the
+    other has the same condition and has to move with it.
+
     ``remote_read_confirmed`` says a zero really is somebody reading the chat
     elsewhere rather than an uninformative one. The resync has no
     previousUnreadCount to derive it from, so it passes False — the
@@ -6521,6 +6528,14 @@ class MainWindow(wx.Frame):
                 # tell a real new-unread total apart from a stale server
                 # count that still includes messages we already read locally
                 # but the server hasn't acknowledged as read yet.
+                #
+                # Note what this line does NOT establish: it creates the entry
+                # for a chat that has never been read here either, where the
+                # number means "arrivals since this process started" and is no
+                # ceiling for anything. Only mark_conversation_as_read() makes
+                # it a count since a read — which is why the clamp in
+                # on_chat_unread_update() asks _unread_anchored_to_local_read()
+                # rather than trusting a nonzero entry on its own.
                 if not hasattr(self, "_new_since_read"):
                     self._new_since_read = {}
                 self._new_since_read[remote_jid] = self._new_since_read.get(remote_jid, 0) + 1
@@ -14632,6 +14647,15 @@ class MainWindow(wx.Frame):
             self._blocked_contacts = set()
             self._presence_pushname_map = {}
             self._locally_read_at = {}
+            # The read anchors and the arrivals counter they qualify. A group
+            # JID is the same string in both accounts, so an anchor left over
+            # from A authorises the clamp in on_chat_unread_update() for the
+            # same group in B — where the chat has never been read and the
+            # counter measures only arrivals since the switch. That is the
+            # collapse this whole mechanism exists to prevent, reintroduced
+            # through the back door.
+            self._unread_read_anchors = set()
+            self._new_since_read = {}
             # Which groups the previous account could post in — i.e. which
             # groups it was a member of at all. _persist_group_send_perms()
             # writes it back out of RAM, so the emptied table filled up again
@@ -15363,12 +15387,20 @@ class MainWindow(wx.Frame):
                                 # list-chats carries no previousUnreadCount — see the
                                 # helper for what that costs.
                                 _cp = getattr(self, "conversations_panel", None)
+                                # Gated on the read anchor exactly like the live
+                                # handler's own _open_now — an open chat whose
+                                # read was undone (Ctrl+Shift+M, or a restored
+                                # backlog after /send-seen failed) is open but
+                                # not read, and answering 0 for it here erases
+                                # that state a minute later. See the comment on
+                                # _open_now in on_chat_unread_update().
                                 open_now = (
                                     _cp is not None
                                     and _cp.conversation is not None
                                     and self._normalize_jid(
                                         _cp.conversation.get("remoteJid", "")
                                     ) == jid
+                                    and self._unread_anchored_to_local_read(jid)
                                 )
                                 if open_now:
                                     _local_new = getattr(
@@ -23693,10 +23725,25 @@ class MainWindow(wx.Frame):
         # this jid) instead of _last_open_jid: that field is never cleared on
         # close, so a chat the user already left kept being treated as "open"
         # forever and any chats-update for it was force-zeroed.
+        # ...and only while it is also READ. The open branch below treats the
+        # panel showing a chat as proof the user has read it, which stops
+        # being true the moment a read is deliberately undone with the
+        # conversation still on screen. Two reachable paths do exactly that:
+        # Ctrl+Shift+M on the open chat (_on_accel_toggle_read ->
+        # mark_conversation_as_unread), and _restore_unread_after_send_seen_
+        # failure() putting a backlog back after WhatsApp refused every
+        # /send-seen attempt. Both leave _new_since_read at 0, and
+        # reconcile_open_chat_unread() answers 0 for that — so the next
+        # chats-update (or the 60s resync at the latest) silently erased the
+        # unread state the user had just asked for, backlog and all. The
+        # anchor is what separates "open" from "read": without it this falls
+        # through to the ordinary closed-chat branches, which already refuse
+        # a server count below the local one and accept an honest higher one.
         _open_now = (
             cp is not None
             and cp.conversation is not None
             and cp.conversation.get("remoteJid") == normalized
+            and self._unread_anchored_to_local_read(normalized)
         )
         read_at_t = getattr(self, "_locally_read_at", {}).get(normalized)
         # A zero that fell from a positive count is somebody actually reading
@@ -23769,6 +23816,7 @@ class MainWindow(wx.Frame):
             and unread_count > old_count
             and not _remote_read
             and getattr(self, "_new_since_read", {}).get(normalized)
+            and self._unread_anchored_to_local_read(normalized)
         ):
             # Once the read_at_t entry that protected a chat has been
             # consumed and popped (see the `elif read_at_t is not None`
@@ -23783,13 +23831,24 @@ class MainWindow(wx.Frame):
             # already-read message back into "unread" (first_unread_index()
             # draws the separator by counting backwards from unreadCount, so
             # a count too high by N drags N already-read messages along with
-            # it). _new_since_read is only ever set together with the local
-            # unreadCount increment in on_new_message(), so a nonzero entry
-            # here means old_count is itself locally verified, not merely
-            # "whatever the last sync happened to say" — clamp to it exactly
-            # like the read_at_t-present branch does, rather than rejecting
-            # the update outright (a chat truly gaining more unread than
-            # tracked locally, e.g. from another device, still updates).
+            # it).
+            #
+            # _new_since_read counts arrivals since the last local read —
+            # but ONLY for a chat that has actually had one. on_new_message()
+            # creates the entry from nothing for any chat that receives a
+            # message, so in a chat never read here it counts arrivals since
+            # the process started, and clamping an absolute total to it
+            # throws away every unread message that predates this launch.
+            # Measured on a live session, in the four busiest groups on the
+            # account: `34876 -> 21`, `7232 -> 3`, `3366 -> 2`, `2767 -> 6`,
+            # each one restored to its real value by the next 60s resync and
+            # collapsed again by the chats-update a second later — the badge
+            # visibly flipping between 34 thousand and 21 for as long as the
+            # app stayed open. _unread_anchored_to_local_read() is what tells
+            # the two kinds of entry apart: without a local read behind it
+            # there is no locally verified total to clamp to, and the
+            # server's own count (already discounted above) is the best
+            # answer available.
             unread_count = min(unread_count, self._new_since_read[normalized])
             logging.info(
                 "[unread] %s: %s -> %s (previous=%s, open=%s, read_ack=%s).",
@@ -24831,6 +24890,58 @@ class MainWindow(wx.Frame):
         except Exception as exc:
             logging.warning("[mark_as_read] failed to persist locally_read_at: %s", exc)
 
+    def _anchor_unread_to_local_read(self, remote_jid: str) -> None:
+        """Record that this chat's _new_since_read counter starts from a read.
+
+        Both identities are stored — the raw key mark_conversation_as_read()
+        was called with, and its normalized form — purely so the lookup
+        cannot depend on which of the two a caller happened to hold. It is
+        belt-and-braces rather than a bridge: _resolve_chat_for_event()
+        returns the key self.chats actually holds the chat under, and
+        mark_conversation_as_read() is called with that same key, so today
+        the second entry is inert.
+
+        It is deliberately NOT an @lid bridge. _normalize_jid() leaves @lid
+        untouched on purpose, and resolving one here would be wrong rather
+        than merely redundant: a read of the @lid entry would anchor the
+        phone entry, whose own _new_since_read has no read behind it, and
+        that unearned anchor is precisely what authorises the clamp that
+        collapses a backlog. When _merge_lid_into_phone() renames a key, the
+        anchor, _new_since_read and _locally_read_at are orphaned together —
+        the clamp's own `_new_since_read` guard then reads false and it does
+        not run, which is the safe direction.
+        """
+        if not hasattr(self, "_unread_read_anchors"):
+            self._unread_read_anchors = set()
+        self._unread_read_anchors.add(remote_jid)
+        self._unread_read_anchors.add(self._normalize_jid(remote_jid))
+
+    def _drop_unread_local_read_anchor(self, remote_jid: str) -> None:
+        """Forget the anchor — the read behind it was undone or reversed."""
+        anchors = getattr(self, "_unread_read_anchors", None)
+        if not anchors:
+            return
+        anchors.discard(remote_jid)
+        anchors.discard(self._normalize_jid(remote_jid))
+
+    def _unread_anchored_to_local_read(self, remote_jid: str) -> bool:
+        """Whether _new_since_read[jid] counts from a local read of this chat.
+
+        The distinction is the whole point of the anchor. on_new_message()
+        creates a _new_since_read entry for ANY chat that receives a message,
+        read here or not, so the counter alone cannot say whether it measures
+        "since the user read this chat" (a real ceiling for the absolute
+        total WhatsApp Web reports) or merely "since this process started"
+        (no ceiling at all — everything unread before the launch is missing
+        from it). Only mark_conversation_as_read() sets the anchor, and it is
+        deliberately in memory only: after a restart the counter starts from
+        zero again, so the ceiling it would imply is gone too.
+        """
+        anchors = getattr(self, "_unread_read_anchors", None)
+        if not anchors:
+            return False
+        return remote_jid in anchors or self._normalize_jid(remote_jid) in anchors
+
     def mark_conversation_as_read(self, remote_jid: str, force: bool = False):
         """Mark conversation as read locally and notify WPPConnect."""
         chat = self.chats.get(remote_jid)
@@ -24854,6 +24965,11 @@ class MainWindow(wx.Frame):
         if not hasattr(self, "_new_since_read"):
             self._new_since_read = {}
         self._new_since_read[remote_jid] = 0
+        # From here on this chat's _new_since_read entry means "arrivals since
+        # a read that actually happened", which is the only reading that lets
+        # on_chat_unread_update() clamp an absolute server total to it — see
+        # _unread_anchored_to_local_read().
+        self._anchor_unread_to_local_read(remote_jid)
         self._schedule_save(dirty_jid=remote_jid)
         # Immediate single-row update: unlike _schedule_set_chats()/set_chats(),
         # this isn't suppressed while a media sync is running, so the badge
@@ -24978,6 +25094,9 @@ class MainWindow(wx.Frame):
         chat["unreadCount"] = max(0, int(previous_unread or 0))
         self._locally_read_at.pop(normalized, None)
         self._locally_read_at.pop(remote_jid, None)
+        # The read is being undone, so the anchor it installed goes with it.
+        self._drop_unread_local_read_anchor(normalized)
+        self._drop_unread_local_read_anchor(remote_jid)
         self._persist_locally_read_at()
         self._schedule_save(dirty_jid=normalized)
         self._refresh_chat_row_in_list(normalized)
@@ -24994,6 +25113,10 @@ class MainWindow(wx.Frame):
                 self._persist_locally_read_at()
             if hasattr(self, "_new_since_read"):
                 self._new_since_read.pop(remote_jid, None)
+            # Explicitly marking a chat unread undoes the read this anchor
+            # stood for; anything counted from here on is arrivals in a chat
+            # with no local read behind it again.
+            self._drop_unread_local_read_anchor(remote_jid)
             self._schedule_save(dirty_jid=remote_jid)
             wx.CallAfter(self.set_chats)
             self._sync_conversation_read_state(
@@ -25019,6 +25142,13 @@ class MainWindow(wx.Frame):
         ):
             return
         chat["unreadCount"] = max(0, previous_unread)
+        # Deliberately does not put _locally_read_at or the read anchor back:
+        # this undoes a mark-UNREAD, so the chat returns to a read-looking
+        # state with no ceiling attached. Leaving both absent means the next
+        # server count is taken as it comes instead of being clamped to a
+        # local counter that no read backs — the safe direction, and the same
+        # one _restore_unread_after_send_seen_failure() takes from the other
+        # side by dropping the anchor outright.
         self._schedule_save(dirty_jid=remote_jid)
         self._refresh_chat_row_in_list(remote_jid)
         self._schedule_set_chats()

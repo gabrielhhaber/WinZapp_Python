@@ -47,6 +47,11 @@ class _Stub:
     """Minimum surface get_remote_chats() actually reads on the happy path."""
 
     _mute_state_jids = MainWindow._mute_state_jids
+    # The open-chat branch of the merge asks whether the chat is also READ —
+    # see the _open_now comment in on_chat_unread_update().
+    _normalize_jid = staticmethod(MainWindow._normalize_jid)
+    _anchor_unread_to_local_read = MainWindow._anchor_unread_to_local_read
+    _unread_anchored_to_local_read = MainWindow._unread_anchored_to_local_read
 
     def __init__(self, chats=None):
         self.wpp_server = "http://127.0.0.1"
@@ -64,6 +69,7 @@ class _Stub:
         self._phone_to_lid = {}
         self._group_name_cache = {}
         self._locally_read_at = {}
+        self._unread_read_anchors = set()
         self.conversations_panel = None
         self.save_data_calls = 0
         self.schedule_save_calls = 0
