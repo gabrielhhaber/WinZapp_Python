@@ -132,8 +132,11 @@ class TestTheServerParksClosingNotNull:
 
 
 class TestTheWindowsShutdownBudget:
-    def test_end_session_passes_a_budget(self):
-        src = inspect.getsource(MainWindow._on_end_session)
+    def test_the_windows_teardown_passes_a_budget(self):
+        """Shared by both Windows handlers. It normally runs from
+        WM_QUERYENDSESSION, because by WM_ENDSESSION Windows may already have
+        killed the Node this budget is spent talking to."""
+        src = inspect.getsource(MainWindow._run_windows_session_teardown)
         assert "_stop_wpp_server(budget=" in src
 
     def test_the_budget_fits_the_hung_app_timeout(self):

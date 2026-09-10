@@ -64,18 +64,26 @@ def test_the_two_markers_are_distinguishable():
     assert "WM_QUERYENDSESSION" not in ending
 
 
-def test_end_session_still_audits_the_budget_it_is_working_to():
+def test_the_teardown_still_audits_the_budget_it_is_working_to():
     """The later, more detailed line is kept: the breadcrumb says Windows
-    called, that one says what the teardown was given to work with."""
-    source = inspect.getsource(MainWindow._on_end_session)
+    called, that one says what the teardown was given to work with.
+
+    It lives on _run_windows_session_teardown now — the body moved there when
+    the teardown was hoisted to WM_QUERYENDSESSION, because Windows can kill
+    our Node before WM_ENDSESSION ever arrives."""
+    source = inspect.getsource(MainWindow._run_windows_session_teardown)
     assert "_WINDOWS_SHUTDOWN_BUDGET" in source
-    assert source.count("_shutdown_audit(") >= 2
+    assert "_shutdown_audit(" in source
 
 
 def test_the_already_tearing_down_branch_is_covered_by_the_breadcrumb():
     """That branch returns before the detailed audit line, which is one of the
-    ways the file ended up silent."""
-    source = inspect.getsource(MainWindow._on_end_session)
-    breadcrumb = source.index("_shutdown_audit(")
-    branch = source.index("if already_tearing_down:")
-    assert breadcrumb < branch
+    ways the file ended up silent. Both handlers breadcrumb before delegating,
+    so the branch is reached with the mark already written either way."""
+    for handler in (MainWindow._on_query_end_session, MainWindow._on_end_session):
+        source = inspect.getsource(handler)
+        assert source.index("_shutdown_audit(") < source.index(
+            "_run_windows_session_teardown")
+
+    teardown = inspect.getsource(MainWindow._run_windows_session_teardown)
+    assert "if already_tearing_down:" in teardown

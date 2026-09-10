@@ -2047,30 +2047,47 @@ class MainWindow(wx.Frame):
         if self.wpp_custom_api:
             logging.info("MainWindow: Custom API enabled — preserving all local API files, cache, and remote session state.")
         else:
-            # Check API modules and start WPPConnect Server synchronously BEFORE init_UI
-            # so the startup dialog shows first before opening the main conversation list.
-            if not self.background_mode:
-                try:
-                    import time as _time
-                    _t_start = getattr(self, "_t_app_start", _time.perf_counter())
-                    logging.info("[STARTUP_TIMING] T+%.3fs — Checking/installing API modules...", _time.perf_counter() - _t_start)
-                    self.ensure_api_modules_installed()
-                    logging.info("[STARTUP_TIMING] T+%.3fs — Checking WPPConnect Server version...", _time.perf_counter() - _t_start)
-                    self.ensure_wpp_version()
-                    logging.info("[STARTUP_TIMING] T+%.3fs — Ensuring WPPConnect Server process is running...", _time.perf_counter() - _t_start)
-                    self.ensure_wpp_running()
-                    logging.info("[STARTUP_TIMING] T+%.3fs — WPPConnect Server process ready!", _time.perf_counter() - _t_start)
-                except Exception as exc:
-                    logging.error("[STARTUP_TIMING] Error in API initialization: %s", exc)
-            else:
-                def _async_api_init():
-                    try:
-                        self.ensure_api_modules_installed()
-                        self.ensure_wpp_version()
-                        self.ensure_wpp_running()
-                    except Exception as exc:
-                        logging.error("Error in background API init: %s", exc)
-                threading.Thread(target=_async_api_init, daemon=True, name="wpp-api-init").start()
+            # Check API modules and start WPPConnect Server synchronously BEFORE
+            # init_UI so the startup dialog shows first before opening the main
+            # conversation list.
+            #
+            # SYNCHRONOUS IN BACKGROUND MODE TOO. This used to hand the same
+            # three calls to a daemon thread when started with --background,
+            # on the reasoning that a boot-time launch has no dialog to show
+            # and should not hold anything up. What it actually did was let
+            # __init__ run on to init_UI() and post_ui_init() while Node was
+            # still booting, so the whole connect sequence ran against a port
+            # nobody was listening on. Measured on a real boot (2026-09-10
+            # 09:39:52, background_mode=True):
+            #
+            #   T+1.1s   tray icon up, post_ui_init reaches STEP 5
+            #   T+1.2s   check_wa_connection_http -> WinError 10061 (refused)
+            #   T+2.0s   connect_websocket attempt 1/6 -> Connection error
+            #   ...      attempts 2 and 3 fail the same way
+            #   T+15.0s  Node finally answers; session CLOSED, then
+            #            INITIALIZING, disconnectedMobile, QRCODE
+            #
+            # i.e. a tray icon claiming to be offline, a WebSocket ladder burnt
+            # on a dead port, and a session driven from a cold start by the
+            # health checker instead of by the launch. The foreground path has
+            # always waited for the port before any of that, and the background
+            # path has exactly the same reason to: what background mode should
+            # skip is the DIALOG, not the wait. ensure_wpp_running() already
+            # knows the difference — its own background branch polls the port
+            # for up to 300s and never constructs ApiStartupDialog — so calling
+            # it here is enough, and nothing appears on screen while it works.
+            try:
+                import time as _time
+                _t_start = getattr(self, "_t_app_start", _time.perf_counter())
+                logging.info("[STARTUP_TIMING] T+%.3fs — Checking/installing API modules...", _time.perf_counter() - _t_start)
+                self.ensure_api_modules_installed()
+                logging.info("[STARTUP_TIMING] T+%.3fs — Checking WPPConnect Server version...", _time.perf_counter() - _t_start)
+                self.ensure_wpp_version()
+                logging.info("[STARTUP_TIMING] T+%.3fs — Ensuring WPPConnect Server process is running...", _time.perf_counter() - _t_start)
+                self.ensure_wpp_running()
+                logging.info("[STARTUP_TIMING] T+%.3fs — WPPConnect Server process ready!", _time.perf_counter() - _t_start)
+            except Exception as exc:
+                logging.error("[STARTUP_TIMING] Error in API initialization: %s", exc)
 
         # Effective offline state = user-toggled OR auto-detected (no WhatsApp
         # connection).  Kept as a single attribute because everything else in
@@ -8697,13 +8714,49 @@ class MainWindow(wx.Frame):
         the blocking-apps screen if something else vetoes. It is kept for that,
         and because _on_end_session has to destroy it either way.
 
-        So the real deadline for _on_end_session is Windows' hung-app timeout,
-        ~5s — which is why it passes _WINDOWS_SHUTDOWN_BUDGET rather than
-        letting the teardown's own ~40s of per-phase timeouts run. Vetoing to
-        claim the full budget was considered and rejected: it needs the teardown
-        moved off this thread (a blocked message pump reads as hung, defeating
-        the point), and the cases that would actually use the extra time are a
-        suspended chrome.exe that is not writing anyway."""
+        THE TEARDOWN RUNS HERE, NOT IN _on_end_session, AND THAT IS THE WHOLE
+        POINT OF THIS HANDLER. Answering the query is what releases Windows to
+        start ending processes, and our WPPConnect Node is one of them: it is a
+        separate console process, so CSRSS terminates it during the end phase,
+        concurrently with our own WM_ENDSESSION handler and with no ordering
+        guarantee whatsoever. Measured on 2026-09-10, from one shutdown:
+
+            02:20:14  node answering /list-chats in 79ms, session CONNECTED
+            02:20:18  WM_QUERYENDSESSION, answered TRUE
+            02:20:18  WM_ENDSESSION — teardown starts, capped at 4s
+            02:20:20  close-session -> ConnectTimeout on 127.0.0.1:6300
+            02:20:27  "no node pid to kill (proc gone / port free)"
+
+        Node was dead within two seconds of us saying yes, so the graceful
+        close-session had nothing left to talk to; pre_close_status was already
+        '' at the top of _stop_wpp_server. Chrome went down with it, its last
+        write to userDataDir landing at 02:20:18 — and the profile came back
+        the next morning unable to restore the session, which is the exact
+        corruption the graceful close exists to prevent. The budget was never
+        the constraint here. The ORDERING was: by WM_ENDSESSION there is
+        nothing left to close.
+
+        During the query phase Windows has terminated nothing — it is still
+        polling applications — so this is the only moment where our Node and
+        its Chrome are guaranteed alive. _stop_wpp_server() therefore runs
+        below, before we answer, and _on_end_session() finds the work already
+        done and returns straight away.
+
+        Blocking here does NOT veto: not answering yet is not answering FALSE.
+        Windows waits, and if we overrun its hung-app timeout (~5s) it puts us
+        on the blocking-apps screen under the reason string registered above
+        rather than killing anything — which is why the reason is created
+        BEFORE the teardown and destroyed after it. Every clean teardown in the
+        field completes inside one second, and _WINDOWS_SHUTDOWN_BUDGET caps it
+        at 4s regardless.
+
+        The one case this gives up: a shutdown another application cancels
+        after we have already closed the session. wx does not deliver
+        EVT_END_SESSION when bEnding is FALSE, so nothing tells us — the
+        _END_SESSION_UNSTICK_SECONDS timer below is what notices (it can only
+        ever fire in a process that outlived the shutdown) and it restarts
+        WPPConnect. Being offline for a minute after a cancelled shutdown is a
+        trade the corruption above wins easily."""
         # First statement, before anything that can throw or return early.
         #
         # A real shutdown_audit.log covering 159 launches carries seventeen
@@ -8727,6 +8780,17 @@ class MainWindow(wx.Frame):
             )
         except Exception:
             pass
+        try:
+            # While Node is still alive. See the docstring — this is the only
+            # phase of a Windows shutdown where that is true.
+            self._run_windows_session_teardown("WM_QUERYENDSESSION")
+        except Exception:
+            logging.exception("[_on_query_end_session] Teardown failed")
+        try:
+            import ctypes
+            ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
+        except Exception:
+            pass
         # No event.Skip() — see the docstring. Skipping hands the event on to
         # wxApp::OnQueryEndSession, which is the veto.
 
@@ -8743,17 +8807,19 @@ class MainWindow(wx.Frame):
     _END_SESSION_UNSTICK_SECONDS = 60.0
 
     def _on_end_session(self, event):
-        """Windows is shutting down: stop WPPConnect gracefully before we go.
+        """Windows is ending the session. The teardown has normally already run.
 
-        Guarded by the same _teardown_started_lock _perform_shutdown() uses:
-        WM_ENDSESSION can arrive while a local quit or an IPC "quit" from
-        another account is already mid-teardown, and without this both would
-        call _stop_wpp_server() concurrently. When teardown already started
-        elsewhere, this waits (bounded by _WINDOWS_SHUTDOWN_BUDGET) for that
-        path's _teardown_complete_event before releasing the
-        shutdown-block-reason — it does not arm its own unstick timer, since
-        resetting _shutting_down while the other path is still tearing down
-        would reopen the self-inflicted-logout window.
+        _on_query_end_session() does the work, because by the time this fires
+        Windows may already have terminated our WPPConnect Node — see that
+        method's docstring for the measured shutdown where it had. This handler
+        therefore almost always takes the already-tearing-down branch below and
+        returns immediately.
+
+        It still runs the teardown itself when nothing else has, because
+        WM_ENDSESSION can arrive with no query before it: a forced shutdown
+        (`shutdown /f`), some logoff paths, and a session end that another
+        top-level window answered on our behalf all skip the query. In that
+        case this is the last chance to close the session, late as it is.
         """
         # Before the lock, and before the already-tearing-down branch that
         # returns without reaching the audit line further down. See
@@ -8763,6 +8829,37 @@ class MainWindow(wx.Frame):
         # unreadable.
         self._shutdown_audit("WM_ENDSESSION — Windows is ending the session")
         logging.warning("[_on_end_session] Windows is ending the session — stopping WPPConnect.")
+        try:
+            self._run_windows_session_teardown("WM_ENDSESSION")
+        except Exception:
+            logging.exception("[_on_end_session] Failed to stop WPPConnect cleanly")
+        try:
+            import ctypes
+            ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
+        except Exception:
+            pass
+        # No Skip: wxApp::OnEndSession would run DeleteAllTLWs(), OnExit() and
+        # exit() after we have already spent the Windows budget, and the
+        # process is terminated the moment this returns anyway.
+
+    def _run_windows_session_teardown(self, phase: str):
+        """Stop WPPConnect for a Windows session end, once per shutdown.
+
+        Called from _on_query_end_session() (the normal path, and the only one
+        where Node is guaranteed alive) and from _on_end_session() (when no
+        query preceded it). Both may also race a local quit or an IPC "quit"
+        from another account, so everything is guarded by the same
+        _teardown_started_lock _perform_shutdown() uses — without it two paths
+        would call _stop_wpp_server() concurrently.
+
+        A caller that finds the teardown already owned elsewhere waits
+        (bounded by _WINDOWS_SHUTDOWN_BUDGET) on that path's
+        _teardown_complete_event rather than returning at once, and does not
+        arm its own unstick timer: resetting _shutting_down while another path
+        is still tearing down would reopen the self-inflicted-logout window.
+
+        Returns True when this call owned and performed the teardown.
+        """
         with self._teardown_started_lock:
             already_tearing_down = getattr(self, "_shutting_down", False)
             self._shutting_down = True
@@ -8778,25 +8875,26 @@ class MainWindow(wx.Frame):
             # same budget the owning path would have got here, and let
             # _teardown_complete_event release us the moment it is genuinely
             # done (usually well inside it).
-            logging.warning("[_on_end_session] teardown already owned elsewhere - "
+            logging.warning("[%s] teardown already owned elsewhere - "
                             "waiting up to %ss for it to finish.",
-                            self._WINDOWS_SHUTDOWN_BUDGET)
+                            phase, self._WINDOWS_SHUTDOWN_BUDGET)
             finished = self._teardown_complete_event.wait(
                 timeout=self._WINDOWS_SHUTDOWN_BUDGET)
             if not finished:
-                logging.warning("[_on_end_session] the owning teardown did not "
-                                "finish within the Windows budget - going anyway.")
-            try:
-                import ctypes
-                ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
-            except Exception:
-                pass
-            # No Skip: wxApp::OnEndSession would run DeleteAllTLWs(), OnExit()
-            # and exit() after we have already spent the Windows budget, and
-            # the process is terminated the moment this returns anyway.
-            return
+                logging.warning("[%s] the owning teardown did not finish "
+                                "within the Windows budget - going anyway.",
+                                phase)
+            return False
 
         def _unstick_if_still_running():
+            # Reaching this at all means the process outlived the shutdown by
+            # a full minute, i.e. the shutdown was cancelled — on a real one we
+            # are terminated within seconds of answering the query. So this is
+            # not only a flag reset any more: the teardown has already closed
+            # the session and killed Node, and nothing else in the app restarts
+            # a dead Node PROCESS (the health checker only ever re-issues
+            # /start-session, which needs a server to talk to).
+            #
             # Under the same lock as every other mutation of these two: an
             # unlocked reset can land between a genuinely-new teardown taking
             # the flag and its finally setting the event, clearing an event
@@ -8810,42 +8908,83 @@ class MainWindow(wx.Frame):
                 # this abandoned attempt's event and wrongly assume it
                 # finished.
                 self._teardown_complete_event.clear()
+            self._shutdown_audit("shutdown was cancelled — restarting WPPConnect")
+            try:
+                self._restart_wpp_after_cancelled_shutdown()
+            except Exception:
+                logging.exception("[%s] Failed to restart WPPConnect after a "
+                                  "cancelled shutdown", phase)
 
         try:
             t = threading.Timer(self._END_SESSION_UNSTICK_SECONDS, _unstick_if_still_running)
             t.daemon = True
             t.start()
         except Exception:
-            logging.exception("[_on_end_session] Failed to arm the _shutting_down safety timer")
+            logging.exception("[%s] Failed to arm the _shutting_down safety timer",
+                              phase)
 
         try:
-            # Deliberately still on this thread: when this handler returns,
-            # Windows terminates the process, so a background thread doing
-            # the teardown would be killed mid-flush.
+            # Deliberately still on this thread: the caller is answering
+            # Windows, and Windows may terminate the process the moment it
+            # does, so a background thread doing the teardown would be killed
+            # mid-flush.
             self._shutdown_audit(
-                f"WM_ENDSESSION — teardown capped at {self._WINDOWS_SHUTDOWN_BUDGET}s")
+                f"{phase} — teardown capped at {self._WINDOWS_SHUTDOWN_BUDGET}s")
             self._stop_wpp_server(budget=self._WINDOWS_SHUTDOWN_BUDGET)
         except Exception:
-            logging.exception("[_on_end_session] Failed to stop WPPConnect cleanly")
+            logging.exception("[%s] Failed to stop WPPConnect cleanly", phase)
         try:
             # This path never calls _perform_shutdown(), so without this
             # call it has none of that method's write protection. Does NOT
-            # also close the DB here: bEnding can still turn out to be a
-            # shutdown another app cancels, and closing the DB now would
-            # leave it unusable if the user goes back to using WinZapp.
+            # also close the DB here: the shutdown can still turn out to be one
+            # another app cancels, and closing the DB now would leave it
+            # unusable if the user goes back to using WinZapp.
             self._flush_pending_debounced_saves()
         except Exception:
-            logging.exception("[_on_end_session] Failed to flush pending debounced saves")
+            logging.exception("[%s] Failed to flush pending debounced saves", phase)
         # A caller that lost the lock race above waits on this before
         # self-terminating — without it, it would sit out its full bounded
         # wait instead of noticing this path already finished.
         self._teardown_complete_event.set()
+        return True
+
+    def _restart_wpp_after_cancelled_shutdown(self):
+        """Bring WPPConnect back after a Windows shutdown that never happened.
+
+        _on_query_end_session() closes the session and kills Node before
+        answering, because that is the only moment Node is still alive (see its
+        docstring). When another application then cancels the shutdown, wx
+        never delivers EVT_END_SESSION — bEnding is FALSE and wxApp drops the
+        message — so the only thing that notices is the unstick timer, a minute
+        later.
+
+        Deliberately does NOT go through ensure_wpp_running(): that shows
+        ApiStartupDialog, a modal that would take focus away from whatever the
+        user went back to doing, and re-runs install/version checks that were
+        already done at launch. Just the spawn, the wait, and a reconnect.
+        """
+        if getattr(self, "wpp_custom_api", False):
+            return          # not ours to start
+        if self._is_wpp_running():
+            return
+        self._start_wpp_background()
+        deadline = time.time() + 120
+        while time.time() < deadline:
+            if self._is_wpp_running():
+                break
+            time.sleep(1)
+        else:
+            logging.error("[shutdown-cancelled] WPPConnect did not come back up.")
+            return
+        logging.info("[shutdown-cancelled] WPPConnect is listening again — reconnecting.")
         try:
-            import ctypes
-            ctypes.windll.user32.ShutdownBlockReasonDestroy(self.GetHandle())
+            self._reconnect_websocket_now()
         except Exception:
-            pass
-        # No Skip, for the same reason as the branch above.
+            logging.exception("[shutdown-cancelled] WebSocket reconnect failed")
+        try:
+            self.check_wa_connection_http()
+        except Exception:
+            logging.exception("[shutdown-cancelled] Connection re-check failed")
 
     # How long to wait for WPPConnect's /close-session request to confirm
     # Chrome closed gracefully before giving up and force-killing.
@@ -9631,7 +9770,31 @@ class MainWindow(wx.Frame):
         self._wpp_log_path = None
         self._wpp_log_fh   = None
 
+        # A WPPConnect left listening by a previous run (a crash, or an exit
+        # that never got to force-kill it) is already serving this port.
+        # _start_wpp_background() has no guard of its own, so without this the
+        # launch below spawns a second node that cannot bind 6300 and dies —
+        # and the dialog then "succeeds" against the *old* server, which may be
+        # holding a long-dead Chrome. Reuse what is up, or nothing is.
+        #
+        # Checked before the background branch as well as the foreground one:
+        # that branch used to spawn unconditionally, so a leftover Node meant a
+        # second one launched only to die on EADDRINUSE while the poll below
+        # reported success against the first. Same false success, no dialog to
+        # show it.
+        if self._is_wpp_running():
+            logging.info("[ensure_wpp_running] WPPConnect already listening on %s — reusing it.",
+                         self.wpp_port)
+            self._check_wpp_version_pin()
+            return
+
         if self.background_mode:
+            # No dialog to show and no port for it to capture, so the
+            # foreground path's _ensure_wpp_port_still_free() dance is left to
+            # _start_wpp_background()'s own idempotent call. The wait is the
+            # point: __init__ blocks here until Node answers, which is what
+            # keeps the tray icon and the connect sequence from starting
+            # against a dead port.
             self._start_wpp_background()
             deadline = time.time() + 300
             while time.time() < deadline:
@@ -9639,19 +9802,9 @@ class MainWindow(wx.Frame):
                     self._check_wpp_version_pin()
                     return
                 time.sleep(1)
+            logging.error("[ensure_wpp_running] WPPConnect never came up within "
+                          "300s in background mode — exiting.")
             sys.exit(1)
-
-        # A WPPConnect left listening by a previous run (a crash, or an exit
-        # that never got to force-kill it) is already serving this port.
-        # _start_wpp_background() has no guard of its own, so without this the
-        # launch below spawns a second node that cannot bind 6300 and dies —
-        # and the dialog then "succeeds" against the *old* server, which may be
-        # holding a long-dead Chrome. Reuse what is up, or nothing is.
-        if self._is_wpp_running():
-            logging.info("[ensure_wpp_running] WPPConnect already listening on %s — reusing it.",
-                         self.wpp_port)
-            self._check_wpp_version_pin()
-            return
 
         # Settle the port BEFORE the dialog captures it. _start_wpp_background()
         # calls this too, but it runs from the wx.CallAfter below — i.e. after
