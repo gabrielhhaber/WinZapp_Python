@@ -40,8 +40,6 @@ CORREÇÕES
 
 - Suspender o computador não quebra mais a sessão. Ao retomar, o WinZapp reiniciava a conexão sem esperar o navegador terminar de gravar o que tinha em mãos, e isso bastava para perder o pareamento. Agora ele espera.
 
-- Restaurar o perfil não apaga mais as suas mensagens. A cópia restaurada é mais antiga do que o seu histórico, e o WinZapp interpretava a diferença como mensagens apagadas no celular — removendo do computador conversas que estavam corretamente sincronizadas.
-
 - Responder a um status voltou a funcionar. A resposta falhava dizendo que não foi possível enviar.
 
 - Uma falha de envio ambígua não gera mais mensagens duplicadas: quando não dá para saber se o WhatsApp recebeu, o WinZapp não reenvia por conta própria.
@@ -62,7 +60,7 @@ CORREÇÕES
 
 - Conversas que apareciam com o número em vez do nome agora são resolvidas.
 
-- Trocar de conta não deixa mais restos da conta anterior na sincronização, nas mídias e nas conversas abertas.
+- Trocar de conta apaga corretamente as mídias da conta anterior, que antes podiam ficar para trás no computador.
 
 V1.1.0.0
 

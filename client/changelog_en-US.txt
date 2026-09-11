@@ -40,8 +40,6 @@ FIXES
 
 - Suspending the computer no longer breaks the session. On resume, WinZapp restarted the connection without waiting for the browser to finish writing what it had in hand, and that alone was enough to lose the pairing. It now waits.
 
-- Restoring the profile no longer deletes your messages. The restored copy is older than your history, and WinZapp read the difference as messages deleted on the phone — removing correctly synced conversations from the computer.
-
 - Replying to a status works again. The reply failed saying it could not be sent.
 
 - An ambiguous send failure no longer produces duplicate messages: when there is no way to tell whether WhatsApp received it, WinZapp does not resend on its own.
@@ -62,7 +60,7 @@ FIXES
 
 - Conversations that showed a number instead of a name are now resolved.
 
-- Switching accounts no longer leaves remnants of the previous account in the sync, the media or the open conversations.
+- Switching accounts now clears the previous account's media properly, which could otherwise be left behind on the computer.
 
 V1.1.0.0
 

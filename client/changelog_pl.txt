@@ -40,8 +40,6 @@ POPRAWKI
 
 - Wstrzymanie komputera nie przerywa już sesji. Po wznowieniu WinZapp uruchamiał połączenie ponownie, nie czekając, aż przeglądarka dokończy zapisywanie tego, co miała w ręku, a to wystarczało, by utracić sparowanie. Teraz czeka.
 
-- Przywrócenie profilu nie usuwa już Twoich wiadomości. Przywrócona kopia jest starsza niż Twoja historia, a WinZapp odczytywał tę różnicę jako wiadomości usunięte na telefonie — kasując z komputera rozmowy, które były poprawnie zsynchronizowane.
-
 - Odpowiadanie na status znowu działa. Odpowiedź kończyła się komunikatem, że nie udało się jej wysłać.
 
 - Niejednoznaczne niepowodzenie wysyłki nie tworzy już zduplikowanych wiadomości: gdy nie da się stwierdzić, czy WhatsApp ją otrzymał, WinZapp nie wysyła ponownie na własną rękę.
@@ -62,7 +60,7 @@ POPRAWKI
 
 - Rozmowy, które pokazywały numer zamiast nazwy, są teraz rozwiązywane.
 
-- Przełączanie kont nie zostawia już pozostałości poprzedniego konta w synchronizacji, w multimediach ani w otwartych rozmowach.
+- Przełączanie kont poprawnie usuwa teraz multimedia poprzedniego konta, które wcześniej mogły zostać na komputerze.
 
 V1.1.0.0
 
