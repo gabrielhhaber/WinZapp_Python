@@ -48,7 +48,7 @@ on:
         default: 14
 
 env:
-  NODE_VERSION: "24.15.0"
+  NODE_VERSION: "22.22.2"
   PYTHON_VERSION: "3.13"
 
 jobs:
@@ -104,6 +104,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       # build.py expects client/node/node.exe — download the same portable ZIP
       # version that developers use and place it at the right path.
       - name: Download portable Node.js v${{ env.NODE_VERSION }}
@@ -131,12 +136,8 @@ jobs:
           Expand-Archive $zip -DestinationPath . -Force
           Move-Item "node-v${version}-win-x64" "client\node"
 
-      - name: Create Python venv and install dependencies
-        run: |
-          python -m venv venv
-          venv\Scripts\pip install --upgrade pip --quiet
-          venv\Scripts\pip install -r requirements-dev.txt --quiet
-          venv\Scripts\pip install -r requirements.txt --quiet
+      - name: Install locked Python dependencies
+        run: uv sync --locked
 
       # Cache node_modules to avoid re-downloading hundreds of packages on every run.
       # setup_api.py preserves node_modules across clones (moves/restores the folder),
@@ -167,7 +168,7 @@ jobs:
       # @wppconnect-team/wppconnect + @wppconnect/wa-js pins in
       # client/api_patches/package.json move together, by hand, on purpose.
       - name: Set up WPPConnect Server
-        run: venv\Scripts\python.exe setup_api.py
+        run: uv run python setup_api.py
 
       # ensure_wpp_version() (client/main.py) compares an *installed*
       # api/package.json's version against the minimum baked into
@@ -229,7 +230,7 @@ jobs:
 
       # Runs all 8 build steps: PyInstaller → staging → C installer/uninstaller → ZIP.
       - name: Build WinZapp
-        run: venv\Scripts\python.exe build.py
+        run: uv run python build.py
 
       # Sanity-check that the portable ZIP contains the expected directories.
       # A missing sounds/ or lib/ entry means the staging step silently failed.

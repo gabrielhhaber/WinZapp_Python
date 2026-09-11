@@ -38,18 +38,20 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip --quiet
-          pip install -r requirements.txt --quiet
-          pip install -r requirements-dev.txt --quiet
+        run: uv sync --locked
 
       # -m "not docs": the docs-marked tests assert that CLAUDE.md still
       # describes the code accurately. Useful on a PR, but this job's
       # reject-on-test-failure below DELETES the release and its tag, and a
       # stale sentence in a Markdown file must never be able to do that.
       - name: Run pytest
-        run: pytest --run-wx-gui -m "not docs"
+        run: uv run pytest --run-wx-gui -m "not docs"
 
       # Alpha builds (alpha-release.yml) are versioned as
       # <major>.<minor>.<patch>.<commit count>alpha off the CURRENT stable
@@ -65,7 +67,7 @@ jobs:
       - name: Reject a stable tag that alphas have already passed
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: python .github/scripts/check_stable_release_ordering.py
+        run: uv run python .github/scripts/check_stable_release_ordering.py
 
   # A release object already exists on GitHub by the time this workflow runs
   # (the `release: created` trigger fires once the release itself is made,

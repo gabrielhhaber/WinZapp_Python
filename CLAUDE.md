@@ -8,7 +8,20 @@ WinZapp is a free, self-hosted Windows desktop WhatsApp client built specificall
 
 ## Commands
 
-### Dev setup
+### Current uv workflow
+```powershell
+uv sync
+uv run setup-api
+uv run winzapp
+uv run test
+uv run build-onefile
+uv run build-installer
+```
+`uv sync` is the sole Python dependency install step. `build-onefile` prepares
+the portable Node.js runtime and WPPConnect API automatically if they are
+missing; `build-installer` additionally requires `gcc` and `windres`.
+
+### Legacy venv workflow (removed)
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1

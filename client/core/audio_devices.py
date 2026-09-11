@@ -19,7 +19,7 @@ try:
 except ImportError:
     # No wheel exists for PyAudio on Python 3.14 at the time of writing (it
     # bundles a C extension nobody has published a matching build for yet —
-    # see requirements.txt's version marker), so `pip install` skips it
+    # see pyproject.toml's version marker), so uv skips it
     # entirely there rather than failing outright. Recording device
     # selection just degrades to "no input devices available" below instead
     # of crashing the whole Settings dialog / app startup over it.

@@ -341,7 +341,7 @@ class TestApplyEffectsDevice:
 
 class TestPyAudioUnavailable:
     """No wheel exists for PyAudio on Python 3.14 at the time of writing
-    (see requirements.txt's version marker), so audio_devices.py imports
+    (see pyproject.toml's version marker), so audio_devices.py imports
     pyaudio inside a try/except and leaves the module-level name None
     rather than failing outright. These paths must degrade gracefully
     instead of raising AttributeError on `pyaudio.PyAudio`."""

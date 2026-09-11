@@ -1,6 +1,6 @@
 """Regression coverage for ConversationsPanel._start_voice_recording()'s
 graceful degradation when PyAudio isn't installed (no wheel exists for it on
-Python 3.14 at the time of writing — see requirements.txt's version marker
+Python 3.14 at the time of writing — see pyproject.toml's version marker
 and conversations.py's own `import pyaudio` try/except).
 
 ConversationsPanel is a wx.Panel and can't be instantiated without a running
