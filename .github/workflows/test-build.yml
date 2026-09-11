@@ -65,14 +65,16 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip --quiet
-          pip install -r requirements.txt --quiet
-          pip install -r requirements-dev.txt --quiet
+        run: uv sync --locked
 
       - name: Run pytest
-        run: pytest --run-wx-gui
+        run: uv run pytest --run-wx-gui
 
   build:
     # always() so the build still runs when `test` was skipped by run_tests

@@ -8,29 +8,40 @@ WinZapp is a free, self-hosted Windows desktop WhatsApp client built specificall
 
 ## Commands
 
-### Dev setup
+### Current uv workflow
 ```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pip install -r requirements-dev.txt   # adds pytest, pytest-cov, pytest-asyncio
-python setup_api.py                   # clones + builds client/api/ (WPPConnect Server) — one-time, requires Node
+uv sync
+uv run setup-api
+uv run winzapp
+uv run api
+uv run test
+uv run build-onefile
+uv run build-installer
 ```
+`uv sync` is the sole Python dependency install step and creates the locked
+`.venv`. These project commands replace the removed `venv`/`pip` workflow:
+`winzapp` starts the client, `api` starts an already-prepared API, and
+`setup-api` clones, patches and builds it. `build-onefile` and
+`build-installer` prepare the portable Node.js runtime and WPPConnect API when
+they are missing; the installer build additionally requires `gcc` and
+`windres`.
 `setup_api.py` clones WPPConnect Server into `client/api/`, restores WinZapp's custom patched files (`start.js`, `config.json`, plus `src/config.ts`, `src/index.ts`, `src/util/{createSessionUtil,sessionUtil,functions}.ts`, `src/middleware/statusConnection.ts`, `src/controller/{deviceController,messageController,sessionController,statusController}.ts`, `src/routes/index.ts`, `decrypt.js` — the full, current list is `CUSTOM_ROOT_FILES + CUSTOM_SRC_FILES` at the top of the script), then runs `npm install` and `npm run build` inside `client/api/`. `package.json` is handled separately by `_merge_package_json_dependencies()` (overrides only WinZapp's specific dependency entries, not a full-file restore — see that function's own docstring for why). Re-run it any time `client/api/` needs to be rebuilt — it preserves `node_modules` and the custom files across re-clones. `build.py` also auto-detects when `client/api/` has drifted from `client/api_patches/` (a patch edited but this script never re-run) and re-runs it automatically before compiling — see the Packaging section below.
 
 ### Run the client in dev mode
 ```powershell
-cd client
-python main.py
+uv run winzapp
 ```
-Entry point is `client/main.py`, guarded by `if __name__ == "__main__":` near the bottom of the file. There is no separate "start the API server" dev command — `main.py` launches/manages the local Node WPPConnect Server process itself.
+The entry point is `client/main.py`, guarded by `if __name__ == "__main__":` near
+the bottom of the file. There is also `uv run api` for an already-prepared API;
+normally use `winzapp`, because `main.py` launches and manages its local Node
+WPPConnect Server process itself.
 
 ### Tests
 ```powershell
-pytest                                   # from repo root; pytest.ini sets pythonpath=client, asyncio_mode=auto
-pytest tests/test_database.py            # single file
-pytest tests/test_database.py::TestChats::test_upsert_chat_creates_record  # single test
-pytest --run-wx-gui                      # ...including the ones that open a real dialog
+uv run test                                   # from repo root; pytest.ini sets pythonpath=client, asyncio_mode=auto
+uv run test tests/test_database.py            # single file
+uv run test tests/test_database.py::TestChats::test_upsert_chat_creates_record  # single test
+uv run test --run-wx-gui                      # ...including the ones that open a real dialog
 ```
 **A plain `pytest` never opens anything in the foreground, and that is a
 deliberate default, not a convenience.** WinZapp is maintained by blind
@@ -70,10 +81,16 @@ Tests cover `client/core/database.py` and `client/core/database_bridge.py` (asyn
 
 ### Building the distributable
 ```powershell
-venv\Scripts\python.exe build.py             # onedir: WinZappInstaller.exe + WinZapp.zip
-venv\Scripts\python.exe build.py --onefile   # single-file WinZapp.exe + WinZapp.zip
+uv run build-installer  # onedir: WinZappInstaller.exe + WinZapp.zip
+uv run build-onefile    # single-file WinZapp.exe + WinZapp.zip
 ```
-Requires, in addition to the venv: `client/node/` (portable Windows x64 Node.js extracted there), `client/api/dist/server.js` built (via `setup_api.py`), and — for `--onedir` only — `gcc`/`windres` in `PATH` (MSYS2 UCRT64) to compile the C installer/uninstaller stubs in `installer/`. `client/api/` and `client/node/` are git-ignored and must be prepared locally before building; see `.github/workflows/release.yml` for the exact CI sequence if reproducing a release build. `check_tools()` (step 1) also diffs every patched file in `client/api_patches/` against its live copy in `client/api/` and, on drift, re-runs `setup_api.py` automatically before continuing — a patch edited only in `client/api_patches/` without rebuilding used to ship a stale/reverted `dist/server.js` with no warning.
+Requires `uv sync` and — for `build-installer` only — `gcc`/`windres` in `PATH`
+(MSYS2 UCRT64) to compile the C installer/uninstaller stubs in `installer/`.
+`build.py` downloads the checksum-verified portable Node.js runtime and runs
+`setup_api.py` if `client/node/` or `client/api/dist/server.js` is missing.
+Both remain git-ignored. `check_tools()` also diffs every patched file in
+`client/api_patches/` against its live copy in `client/api/` and, on drift,
+re-runs `setup_api.py` automatically before compiling.
 
 ## Architecture
 

@@ -39,6 +39,7 @@ WhatsApp uses several different identifier formats for the same contact (`@s.wha
 
 ### Prerequisites
 * **Python 3.13**
+* **uv** (recommended Python package and environment manager; install with `winget install --id=astral-sh.uv -e`)
 * **Node.js** (used by `setup_api.py` to build the WPPConnect Server; a portable copy can also be placed at `client/node/`)
 * **Git**
 * For building the installer locally only: **GCC** and **windres** (available via [MSYS2](https://www.msys2.org/), UCRT64 toolchain)
@@ -50,30 +51,38 @@ WhatsApp uses several different identifier formats for the same contact (`@s.wha
 git clone https://github.com/gabrielhhaber/WinZapp_Python.git
 cd WinZapp_Python
 
-# 2. Create and activate a virtual environment
-python -m venv venv
-.\venv\Scripts\Activate.ps1
+# 2. Create the managed environment and install Python dependencies
+uv sync
 
-# 3. Install dependencies
-pip install -r requirements.txt
-pip install -r requirements-dev.txt   # adds pytest and friends, for running tests
+# 3. Set up the WPPConnect Server (clones and builds client/api/)
+uv run python setup_api.py
 
-# 4. Set up the WPPConnect Server (clones and builds client/api/)
-python setup_api.py
-
-# 5. Start the client in development mode
-cd client
-python main.py
+# 4. Start the client in development mode
+uv run python client/main.py
 ```
 
-`setup_api.py` clones WPPConnect Server into `client/api/`, restores WinZapp's own patched files on top, then installs its Node dependencies and builds it. Re-run it whenever `client/api/` needs to be rebuilt from scratch — it preserves `node_modules` across re-clones.
+### Atalhos de desenvolvimento
+
+Depois de executar `uv sync`, os comandos abaixo ficam disponíveis sem precisar
+lembrar caminhos de arquivos:
+
+```powershell
+uv run winzapp                 # inicia o aplicativo (e a API é gerenciada por ele)
+uv run api                     # inicia somente uma API WPPConnect já preparada
+uv run setup-api               # clona, aplica patches e compila a API
+uv run build-onefile           # cria o executável portátil, sem GCC/windres
+uv run build-installer         # cria instalador + ZIP; requer MSYS2/GCC/windres
+uv run test                    # executa testes sem abrir diálogos wx
+```
+
+`uv sync` uses the committed `uv.lock` to create a reproducible `.venv`. `setup_api.py` clones WPPConnect Server into `client/api/`, restores WinZapp's own patched files on top, then installs its Node dependencies and builds it. Re-run it whenever `client/api/` needs to be rebuilt from scratch — it preserves `node_modules` across re-clones.
 
 ### Running tests
 
 ```powershell
-pytest                                   # full suite, from the repository root
-pytest tests/test_database.py            # a single file
-pytest tests/test_database.py::TestChats::test_upsert_chat_creates_record  # a single test
+uv run test                                   # full suite, from the repository root
+uv run test tests/test_database.py            # a single file
+uv run test tests/test_database.py::TestChats::test_upsert_chat_creates_record  # a single test
 ```
 
 Tests cover the async SQLite storage layer and the pure-logic pieces of the client (name resolution, notification formatting, message classification, etc.) using small stand-in objects, since the wxPython UI classes cannot be instantiated without a running `wx.App`.
@@ -99,9 +108,9 @@ gh release create v1.2.3 --title "v1.2.3" --notes "Release notes here"
 Requires the portable Node.js runtime placed at `client/node/` and the WPPConnect Server built at `client/api/dist/server.js` (via `setup_api.py`). The default onedir build additionally requires MSYS2 with GCC/windres in `PATH`, used to compile the C installer/uninstaller stubs.
 
 ```powershell
-# With the virtual environment active (and GCC/windres in PATH for the onedir build):
-python build.py             # onedir build: WinZappInstaller.exe + WinZapp.zip
-python build.py --onefile   # single-file build: WinZapp.exe + WinZapp.zip (no GCC/windres needed)
+# With the uv environment synchronized (and GCC/windres in PATH for the onedir build):
+uv run build-installer             # onedir build: WinZappInstaller.exe + WinZapp.zip
+uv run build-onefile               # single-file build: WinZapp.exe + WinZapp.zip (no GCC/windres needed)
 ```
 
 The resulting files are written to the `dist/` directory.
