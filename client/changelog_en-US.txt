@@ -1,3 +1,69 @@
+V1.1.1.0
+
+This release is about keeping your account connected. WinZapp now keeps a backup copy of the browser profile — which is where your WhatsApp connection actually lives — and restores it on its own when it stops being accepted, telling you what happened. Alongside it come fixes for the situations that broke the session and left the app asking you to pair again: shutting the computer down, suspending and resuming, and the app restarting the connection by itself. Spell checking in the message field and link actions arrived too.
+
+WHAT'S NEW
+
+- Automatic browser profile recovery. Your WhatsApp connection is stored in the browser profile WinZapp uses underneath, and when that profile stopped being accepted the only way out was to pair again. WinZapp now keeps a backup copy of it, keeps the previous copy as well, and restores it on its own when it sees the connection was refused — saying out loud that it restored and is reconnecting. It never offers back a copy WhatsApp has already refused, and when no usable copy exists it says so plainly instead of leaving you offline with no explanation.
+
+- Spell checking in the message field. In Settings you choose between following Windows' own spelling setting (the default), always on, or always off. There is also a dedicated spelling-error sound, configurable alongside the other sounds.
+
+- Link actions on messages. When a message contains links, the context menu now offers Open link and Copy link for the link you are on, and Ctrl+C copies that link instead of the whole message.
+
+- A warning when the internal browser is incomplete. If the browser WinZapp uses to connect to WhatsApp cannot start — usually because antivirus software removed part of it — the app says so in plain words and explains what to do, instead of looking like a WhatsApp problem.
+
+- A warning for an unconfirmed send. When WhatsApp accepts a message but does not confirm delivery, WinZapp tells you to check the conversation before resending, rather than risking the same message arriving twice.
+
+IMPROVEMENTS
+
+- Starting with Windows now connects far sooner. The app used to wait for the connection only after it had already tried to use it, and spent a long time showing "disconnected from WhatsApp" for no reason. It now waits for everything to be ready before appearing in the system tray.
+
+- The message list is no longer rebuilt in full every minute. Only the rows that actually changed are rewritten, so the screen reader stops re-reading the message you are on and the selection sound no longer fires by itself.
+
+- Fewer sync notifications on your phone. WinZapp only asks the phone for older history in conversations you have opened, one request at a time, and stops asking altogether once a conversation has answered that it has nothing more.
+
+- Conversations the sync had stopped looking at are checked again on their own, without you having to refresh with F5.
+
+- With several accounts open at once, a WinZapp update opens a single window instead of one per account.
+
+- Audio: WinZapp asks the microphone for its own sample rate before trying the fixed ones, and sound output recovers on its own when the default device changes or is unplugged.
+
+- Reactions that arrived while a conversation was closed now show up when you open it.
+
+- Line breaks in the message box can now be navigated normally by the screen reader.
+
+- Updated WhatsApp connection (WPPConnect 2.10.21), including security fixes, and WinZapp now notices on its own when that connection has drifted and needs reinstalling.
+
+FIXES
+
+- Shutting the computer down no longer breaks the session. WinZapp closed the WhatsApp connection too late in the Windows shutdown, once the process holding it had already been killed — and the profile came back unusable, asking to pair again next time. It now closes everything while Windows is still asking whether it may shut down.
+
+- Suspending the computer no longer breaks the session. On resume, WinZapp restarted the connection without waiting for the browser to finish writing what it had in hand, and that alone was enough to lose the pairing. It now waits.
+
+- Restoring the profile no longer deletes your messages. The restored copy is older than your history, and WinZapp read the difference as messages deleted on the phone — removing correctly synced conversations from the computer.
+
+- Replying to a status works again. The reply failed saying it could not be sent.
+
+- An ambiguous send failure no longer produces duplicate messages: when there is no way to tell whether WhatsApp received it, WinZapp does not resend on its own.
+
+- Downloading large documents is possible again. Files of a few hundred megabytes announced "downloading" and produced nothing.
+
+- The upload and download progress indicator now reports the transfer that is actually happening, and no longer keeps spinning on a message that has finished or appears on the wrong row.
+
+- Cancelling or closing the pairing screen no longer deletes your conversations, and neither does a momentary authentication failure at startup. History is only cleared when a different phone number is genuinely connected — and WinZapp tells you when that happens.
+
+- The QR code is only announced once it is genuinely on screen. WinZapp used to say "the QR code was updated" before any code had been shown at all, which made the code seem to appear only on the second try. The pairing screen now says the code is being generated, announces it when it actually appears, and says when it could not be generated or when the pairing code has expired — instead of staying silent or announcing an update that never happened.
+
+- Unread counts: conversations no longer come back as unread without a new message having arrived.
+
+- The phantom character that appeared in the message field when returning from another program with NVDA running is gone.
+
+- Copying a voice message now works.
+
+- Conversations that showed a number instead of a name are now resolved.
+
+- Switching accounts no longer leaves remnants of the previous account in the sync, the media or the open conversations.
+
 V1.1.0.0
 
 This release adds the Media tab, a media viewer in its own window, link previews, bulk actions and an Accessibility tab in settings. Conversation syncing is much faster, and the conversation list is no longer rebuilt on every message, which cuts down a great deal of screen-reader re-reading.

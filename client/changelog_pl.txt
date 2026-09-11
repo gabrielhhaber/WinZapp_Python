@@ -1,3 +1,69 @@
+V1.1.1.0
+
+Ta wersja dotyczy utrzymania połączenia z Twoim kontem. WinZapp zapisuje teraz kopię zapasową profilu przeglądarki — to w nim faktycznie przechowywane jest Twoje połączenie z WhatsApp — i sam ją przywraca, gdy przestaje być akceptowana, informując o tym, co się stało. Razem z nią pojawiają się poprawki sytuacji, które przerywały sesję i zmuszały do ponownego parowania: wyłączenie komputera, wstrzymanie i wznowienie oraz samo ponowne uruchamianie połączenia przez program. Doszły również sprawdzanie pisowni w polu wiadomości i akcje na odnośnikach.
+
+NOWOŚCI
+
+- Automatyczne odzyskiwanie profilu przeglądarki. Twoje połączenie z WhatsApp jest przechowywane w profilu przeglądarki, z której WinZapp korzysta pod spodem, a gdy ten profil przestawał być akceptowany, pozostawało tylko sparować konto od nowa. Teraz WinZapp zapisuje jego kopię zapasową, zachowuje też kopię poprzednią i sam ją przywraca, gdy wykryje, że połączenie zostało odrzucone — mówiąc na głos, że przywrócił profil i ponownie się łączy. Nigdy nie proponuje ponownie kopii, którą WhatsApp już odrzucił, a gdy nie ma żadnej użytecznej kopii, mówi to wprost, zamiast zostawiać Cię bez połączenia i bez wyjaśnienia.
+
+- Sprawdzanie pisowni w polu wiadomości. W Ustawieniach wybierasz między podążaniem za ustawieniem pisowni samego systemu Windows (domyślnie), zawsze włączonym lub zawsze wyłączonym. Jest też osobny dźwięk błędu pisowni, konfigurowalny razem z pozostałymi dźwiękami.
+
+- Akcje na odnośnikach w wiadomościach. Gdy wiadomość zawiera odnośniki, menu kontekstowe oferuje teraz Otwórz odnośnik i Kopiuj odnośnik dla odnośnika, na którym się znajdujesz, a Ctrl+C kopiuje ten odnośnik zamiast całej wiadomości.
+
+- Ostrzeżenie, gdy wewnętrzna przeglądarka jest niekompletna. Jeśli przeglądarka, której WinZapp używa do połączenia z WhatsApp, nie może się uruchomić — zwykle dlatego, że program antywirusowy usunął jej część — aplikacja mówi to wprost i wyjaśnia, co zrobić, zamiast sprawiać wrażenie problemu z WhatsApp.
+
+- Ostrzeżenie o niepotwierdzonym wysłaniu. Gdy WhatsApp przyjmuje wiadomość, ale nie potwierdza dostarczenia, WinZapp radzi sprawdzić rozmowę przed ponownym wysłaniem, zamiast ryzykować dostarczenie tej samej wiadomości dwa razy.
+
+ULEPSZENIA
+
+- Uruchamianie razem z systemem Windows łączy się teraz znacznie szybciej. Program czekał na połączenie dopiero po tym, jak już próbował z niego skorzystać, i przez dłuższy czas bez powodu pokazywał „rozłączono z WhatsApp". Teraz czeka, aż wszystko będzie gotowe, zanim pojawi się w zasobniku systemowym.
+
+- Lista wiadomości nie jest już przebudowywana w całości co minutę. Przepisywane są tylko te wiersze, które faktycznie się zmieniły, więc czytnik ekranu przestaje ponownie odczytywać wiadomość, na której jesteś, a dźwięk zaznaczenia nie odtwarza się sam z siebie.
+
+- Mniej powiadomień o synchronizacji na telefonie. WinZapp prosi telefon o starszą historię tylko dla rozmów, które otworzyłeś, po jednym żądaniu naraz, i przestaje prosić zupełnie, gdy rozmowa odpowiedziała już, że nie ma nic więcej.
+
+- Rozmowy, którym synchronizacja przestała się przyglądać, są znowu sprawdzane samoczynnie, bez konieczności odświeżania klawiszem F5.
+
+- Przy kilku otwartych kontach jednocześnie aktualizacja WinZapp otwiera jedno okno zamiast jednego na każde konto.
+
+- Dźwięk: WinZapp pyta mikrofon o jego własną częstotliwość próbkowania, zanim spróbuje tych ustalonych, a wyjście dźwięku samo wraca do działania, gdy urządzenie domyślne zmienia się lub zostaje odłączone.
+
+- Reakcje, które nadeszły przy zamkniętej rozmowie, pojawiają się po jej otwarciu.
+
+- Po podziałach wiersza w polu wiadomości można teraz normalnie nawigować czytnikiem ekranu.
+
+- Zaktualizowane połączenie z WhatsApp (WPPConnect 2.10.21) wraz z poprawkami bezpieczeństwa, a WinZapp sam zauważa, gdy to połączenie odbiegło od wzorca i wymaga ponownej instalacji.
+
+POPRAWKI
+
+- Wyłączenie komputera nie przerywa już sesji. WinZapp zamykał połączenie z WhatsApp zbyt późno podczas zamykania systemu Windows, gdy proces je utrzymujący był już zakończony — a profil wracał bezużyteczny, prosząc o ponowne parowanie. Teraz zamyka wszystko, kiedy Windows wciąż pyta, czy może się wyłączyć.
+
+- Wstrzymanie komputera nie przerywa już sesji. Po wznowieniu WinZapp uruchamiał połączenie ponownie, nie czekając, aż przeglądarka dokończy zapisywanie tego, co miała w ręku, a to wystarczało, by utracić sparowanie. Teraz czeka.
+
+- Przywrócenie profilu nie usuwa już Twoich wiadomości. Przywrócona kopia jest starsza niż Twoja historia, a WinZapp odczytywał tę różnicę jako wiadomości usunięte na telefonie — kasując z komputera rozmowy, które były poprawnie zsynchronizowane.
+
+- Odpowiadanie na status znowu działa. Odpowiedź kończyła się komunikatem, że nie udało się jej wysłać.
+
+- Niejednoznaczne niepowodzenie wysyłki nie tworzy już zduplikowanych wiadomości: gdy nie da się stwierdzić, czy WhatsApp ją otrzymał, WinZapp nie wysyła ponownie na własną rękę.
+
+- Pobieranie dużych dokumentów znów jest możliwe. Pliki o rozmiarze kilkuset megabajtów zapowiadały „pobieranie" i nie dawały żadnego efektu.
+
+- Wskaźnik postępu wysyłania i pobierania pokazuje teraz transfer, który naprawdę trwa, i nie kręci się dalej przy wiadomości, która już się zakończyła, ani nie pojawia się w niewłaściwym wierszu.
+
+- Anulowanie lub zamknięcie ekranu parowania nie usuwa już Twoich rozmów, podobnie jak chwilowe niepowodzenie uwierzytelniania przy uruchamianiu programu. Historia jest czyszczona tylko wtedy, gdy faktycznie zostanie podłączony inny numer telefonu — i wtedy WinZapp o tym informuje.
+
+- Kod QR jest ogłaszany dopiero wtedy, gdy naprawdę znajduje się na ekranie. WinZapp mówił „kod QR został zaktualizowany" zanim jakikolwiek kod w ogóle się pojawił, przez co wydawało się, że kod pojawia się dopiero za drugim razem. Ekran parowania informuje teraz, że kod jest generowany, ogłasza go, gdy faktycznie się pojawi, i mówi, kiedy nie udało się go wygenerować lub kiedy kod parowania wygasł — zamiast milczeć albo ogłaszać aktualizację, której nie było.
+
+- Liczniki nieprzeczytanych: rozmowy nie wracają już jako nieprzeczytane bez nadejścia nowej wiadomości.
+
+- Znika widmowy znak, który pojawiał się w polu wiadomości po powrocie z innego programu przy włączonym NVDA.
+
+- Kopiowanie wiadomości głosowej już działa.
+
+- Rozmowy, które pokazywały numer zamiast nazwy, są teraz rozwiązywane.
+
+- Przełączanie kont nie zostawia już pozostałości poprzedniego konta w synchronizacji, w multimediach ani w otwartych rozmowach.
+
 V1.1.0.0
 
 Ta wersja wprowadza kartę multimediów, odtwarzacz multimediów w osobnym oknie, podglądy linków, operacje zbiorcze oraz kartę Dostępność w ustawieniach. Synchronizacja rozmów jest znacznie szybsza, a lista rozmów nie jest już przebudowywana przy każdej wiadomości, co bardzo ogranicza ponowne odczytywanie przez czytnik ekranu.
