@@ -1274,14 +1274,77 @@ async function replyToStatusMessage(
           matchedPoster,
           quotedIsStatusV3: Boolean(quoted.isStatusV3),
         });
+
+        // Quote by handing wa-js the LIVE model, and only fall back to a
+        // serialised payload.
+        //
+        // It used to be payload-only, and that is why status replies keep
+        // breaking and un-breaking across WhatsApp Web builds. wa-js's own
+        // contract for `quotedMsgPayload` is "the JSON string representation
+        // of a RAW message ... obtained when using getMessageById or
+        // getMessages" — a model's `toJSON()` is a different shape, and what
+        // wa-js does with it is `rehydrateMessage(payload)`, i.e. rebuild a
+        // MsgModel out of whatever fields happen to be in there. It then
+        // finishes with `quotedMsg.msgContextInfo(chatId)`, which reads the
+        // quoted message's own getters. Any field the rehydration did not
+        // carry across is undefined by the time a getter asks for it, and the
+        // getter does not return undefined — it throws.
+        //
+        // Measured 2026-09-10, a status reply that failed every attempt:
+        //
+        //   error: "Getter was called with undefined data."
+        //   stack: ... getIsBroadcast ... at t.prepareRawMessage
+        //   matchedPoster: 68904344899801@lid, statusMessagesSeen: 1
+        //
+        // The status WAS found; rebuilding it is what failed. A live model
+        // needs no rebuilding, so this whole class of breakage does not apply
+        // to it: wa-js takes `quotedMsg` as `string | MsgKey | MsgModel` and
+        // passes a MsgModel straight through to msgContextInfo().
+        //
+        // The payload stays as the second rung rather than being deleted,
+        // because it is not strictly weaker: wa-js skips its
+        // `canReplyMsg(quotedMsg)` gate when a payload was supplied, so a
+        // status whose model does not satisfy that check can still go out
+        // that way. That is also why the live model is tried FIRST — the
+        // fallback's permissiveness is exactly what let this failure reach
+        // `msgContextInfo` instead of being refused by name.
+        const attempts: any[] = [];
         const quotedPayload = JSON.stringify(
           typeof quoted.toJSON === 'function' ? quoted.toJSON() : quoted
         );
-        const sendResult = await WPP.chat.sendTextMessage(to, content, {
-          quotedMsgPayload: quotedPayload,
-          linkPreview: false,
-          waitForAck: true,
-        });
+        const strategies: { via: string; options: any }[] = [
+          { via: 'live-model', options: { quotedMsg: quoted } },
+          { via: 'payload', options: { quotedMsgPayload: quotedPayload } },
+        ];
+        let sendResult: any = null;
+        let usedVia = '';
+        for (const strategy of strategies) {
+          try {
+            sendResult = await WPP.chat.sendTextMessage(to, content, {
+              ...strategy.options,
+              linkPreview: false,
+              waitForAck: true,
+            });
+            usedVia = strategy.via;
+            break;
+          } catch (attemptError) {
+            attempts.push({
+              via: strategy.via,
+              error: String(
+                (attemptError as any)?.message || attemptError
+              ),
+            });
+          }
+        }
+        // Recorded whether or not a later rung succeeded: a first rung that
+        // starts failing is how the next regression announces itself, and
+        // without this the log would only ever show the one that worked.
+        Object.assign(probe, { quotedVia: usedVia, quotedAttempts: attempts });
+        if (!sendResult) {
+          throw new Error(
+            `Every status reply strategy failed: ${JSON.stringify(attempts)}`
+          );
+        }
         const sentId =
           typeof sendResult?.id === 'string'
             ? sendResult.id
