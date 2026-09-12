@@ -26,6 +26,7 @@
     "main_nav": "&Navegação principal",
     "conversations": "Conversas",
     "search_conversations": "Pesquisar nas conversas",
+    "search_archived_conversations": "Pesquisar nas conversas arquivadas",
     "chat_retrieval_failed": "Falha ao obter a lista de conversas do servidor.",
     "chat_load_failed": "Não foi possível carregar o seu arquivo local de mensagens. Reinicie o programa e tente novamente.",
     "contact_load_failed": "Não foi possível carregar a lista de contatos local.",

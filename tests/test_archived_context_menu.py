@@ -14,8 +14,10 @@ deliberate differences: Archive/Unarchive always shows "Desarquivar" (every
 row here is archived by definition, nothing to toggle), and "Close
 conversation" is left out (there is no split conversation view to close from
 this list). create_accelerator_table() gives it the same key combos as the
-normal list's, minus Ctrl+F/Ctrl+N (no search field here) and Ctrl+W (not
-applicable), with Ctrl+Q hardwired to unarchive instead of toggling.
+normal list's, minus Ctrl+N (nowhere to create a conversation from this list)
+and Ctrl+W (not applicable), with Ctrl+Q hardwired to unarchive instead of
+toggling. Ctrl+F is bound too, now that this panel has its own search field
+(scoped to archived chats only — see tests/test_archived_chats_search.py).
 
 Both panels are wx.Panel subclasses and cannot be instantiated without a
 running wx.App, so the menu-building methods (which construct real wx.Menu
@@ -126,13 +128,20 @@ class TestAcceleratorTableParity:
         ):
             assert combo in src, f"{combo} missing from the archived list's accelerator table"
 
-    def test_search_and_new_conversation_and_close_are_not_bound(self):
-        """No search field and no split conversation view on this panel —
-        binding these would either do nothing or crash."""
+    def test_new_conversation_and_close_are_not_bound(self):
+        """Nowhere to create a conversation from, and no split conversation
+        view on this panel — binding these would either do nothing or crash."""
         src = inspect.getsource(ArchivedConversationsPanel.create_accelerator_table)
-        assert 'ord("F")' not in src
         assert 'ord("N")' not in src
         assert 'ord("W")' not in src
+
+    def test_ctrl_f_focuses_this_panels_own_search_field(self):
+        """This panel gained its own search field (scoped to archived chats
+        only) — Ctrl+F must focus it, distinct from ConversationsPanel's,
+        which additionally merges in archived results on a non-empty query."""
+        src = inspect.getsource(ArchivedConversationsPanel.create_accelerator_table)
+        assert 'ord("F")' in src
+        assert "self.on_ctrl_f" in src
 
     def test_ctrl_q_always_unarchives_never_toggles(self):
         src = inspect.getsource(ArchivedConversationsPanel.create_accelerator_table)
