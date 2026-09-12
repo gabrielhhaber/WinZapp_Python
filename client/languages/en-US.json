@@ -26,6 +26,7 @@
     "main_nav": "&Main navigation",
     "conversations": "Chats",
     "search_conversations": "Search chats",
+    "search_archived_conversations": "Search archived chats",
     "chat_retrieval_failed": "Failed to retrieve the chat list from the server.",
     "chat_load_failed": "Could not load your local message file. Restart the program and try again.",
     "contact_load_failed": "Could not load the local contact list.",

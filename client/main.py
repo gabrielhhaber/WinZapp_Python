@@ -28683,6 +28683,37 @@ class MainWindow(wx.Frame):
                     parts.append(status_text)
         return " ".join(parts)
 
+    @staticmethod
+    def _filter_archived_chats(chats: list, names: list, conv_filter: str,
+                               search: str, fold_mode: str) -> "tuple[list, list]":
+        """Return (chats, names) after applying the archived panel's own
+        filter tabs and its own search field.
+
+        Extracted so this can be tested directly without instantiating
+        ArchivedConversationsPanel or MainWindow (both require a running
+        wx.App) — mirrors why _conversation_search_candidates() above is a
+        staticmethod. *search* and *fold_mode* are already normalized by the
+        caller (normalize_for_search()/self._search_normalization_mode()),
+        same as add_chats_to_ui() does for the main list's own search field —
+        this one never reaches outside the archived list it filters.
+        """
+        displayed_chats: list = []
+        displayed_names: list = []
+        for i, chat in enumerate(chats):
+            chat_jid = chat.get("remoteJid", "")
+            if conv_filter == 'unread' and effective_unread_count(chat) == 0:
+                continue
+            if conv_filter == 'groups' and not chat_jid.endswith("@g.us"):
+                continue
+            if conv_filter == 'individual' and chat_jid.endswith("@g.us"):
+                continue
+            name = names[i] if i < len(names) else ""
+            if search and search not in normalize_for_search(name, fold_mode):
+                continue
+            displayed_chats.append(chat)
+            displayed_names.append(name)
+        return displayed_chats, displayed_names
+
     def _refresh_archived_chats_in_ui(self, arch_focused_jid: "str | None" = None):
         """Update the archived conversations list using SetItem when possible.
 
@@ -28696,21 +28727,20 @@ class MainWindow(wx.Frame):
         arch_full_names = list(getattr(panel, '_all_chat_names', panel.chat_names))
         arch_lst = panel.conversations_list
         arch_filter = getattr(panel, '_conv_filter', 'all')
+        _fold = self._search_normalization_mode()
+        arch_search = normalize_for_search(
+            panel.search_field.GetValue().strip() if hasattr(panel, "search_field") else "",
+            _fold,
+        )
+        filtered_chats, filtered_names = self._filter_archived_chats(
+            arch_full_chats, arch_full_names, arch_filter, arch_search, _fold
+        )
 
         new_arch_chats: list = []
         new_arch_names: list = []
         new_arch_texts: list = []
-        for i, chat in enumerate(arch_full_chats):
-            chat_jid = chat.get("remoteJid", "")
-            unread_count = effective_unread_count(chat)
-            if arch_filter == 'unread' and unread_count == 0:
-                continue
-            if arch_filter == 'groups' and not chat_jid.endswith("@g.us"):
-                continue
-            if arch_filter == 'individual' and chat_jid.endswith("@g.us"):
-                continue
-            name = arch_full_names[i] if i < len(arch_full_names) else ""
-            unread = unread_count
+        for chat, name in zip(filtered_chats, filtered_names):
+            unread = effective_unread_count(chat)
             unread_str = (
                 f" {unread} " + (self.i18n.t("unread_messages") if unread > 1 else self.i18n.t("unread_message"))
                 if unread > 0 else ""

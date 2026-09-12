@@ -16350,6 +16350,25 @@ class ArchivedConversationsPanel(wx.Panel):
         self._filter_radio.Bind(wx.EVT_RADIOBOX, self._on_filter_changed)
         sizer.Add(self._filter_radio, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
 
+        # ── Search ──────────────────────────────────────────────────────────
+        # Mirrors ConversationsPanel's own search field (same Ctrl+F shortcut,
+        # same Down-arrow-to-first-result behavior) but placed after the
+        # filter tabs rather than before them — there is no "Nova conversa"
+        # button here to separate the two — and scoped to only this panel's
+        # own list: unlike the main panel's search field, which merges in
+        # archived results (see MainWindow._conversation_search_candidates()),
+        # this one never reaches outside the archived list it sits in.
+        self.search_label = wx.StaticText(
+            self, label=i18n.t("search_archived_conversations")
+        )
+        sizer.Add(self.search_label, 0, wx.LEFT | wx.TOP, 5)
+
+        self.search_field = wx.TextCtrl(self, style=wx.TE_DONTWRAP)
+        self.search_field.Bind(wx.EVT_TEXT, self.on_search_query_changed)
+        self.search_field.Bind(wx.EVT_KEY_DOWN, self._on_search_field_key_down)
+        self.search_field.SetAccessible(AccessibleSearchConversations("Ctrl+F"))
+        sizer.Add(self.search_field, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+
         self.conversations_list = wx.ListCtrl(
             self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL
         )
@@ -16386,13 +16405,17 @@ class ArchivedConversationsPanel(wx.Panel):
         applied to this panel instead. The archived list used to have none of
         these at all — Delete and Ctrl+Shift+L (clear) worked in the normal
         list but silently did nothing here, and the row context menu was
-        missing everything except unarchive/clear/delete. Ctrl+F (search) and
-        Ctrl+N (new conversation) are left out: this panel has no search field
-        of its own, and Ctrl+W (close conversation) doesn't apply — there is no
-        split conversation view to close from this list. Ctrl+Shift+Q always
+        missing everything except unarchive/clear/delete. Ctrl+F now focuses
+        this panel's own search field (see _init_ui()), scoped to archived
+        chats only — never the main panel's, which additionally merges in
+        archived results on a non-empty query. Ctrl+N (new conversation) is
+        still left out — there is nowhere to create a conversation from this
+        list — and Ctrl+W (close conversation) doesn't apply either: there is
+        no split conversation view to close from here. Ctrl+Shift+Q always
         means "unarchive" here rather than toggling, since every row is
         archived by definition.
         """
+        self.ID_CTRL_F           = wx.NewIdRef()
         self.ID_DELETE_CONV      = wx.NewIdRef()
         self.ID_ALT_SHIFT_C_LIST = wx.NewIdRef()
         self.ID_CONV_DATA_LIST   = wx.NewIdRef()
@@ -16405,6 +16428,7 @@ class ArchivedConversationsPanel(wx.Panel):
         CS = wx.ACCEL_CTRL | wx.ACCEL_SHIFT
         AS = wx.ACCEL_ALT | wx.ACCEL_SHIFT
         accel_tbl = wx.AcceleratorTable([
+            (wx.ACCEL_CTRL,   ord("F"),        self.ID_CTRL_F),
             (wx.ACCEL_NORMAL, wx.WXK_DELETE, self.ID_DELETE_CONV),
             (AS,              ord("C"),      self.ID_ALT_SHIFT_C_LIST),
             (CS,              ord("D"),      self.ID_CONV_DATA_LIST),
@@ -16416,6 +16440,7 @@ class ArchivedConversationsPanel(wx.Panel):
             (wx.ACCEL_CTRL,   ord("P"),      self.ID_PIN_LIST),
         ])
         self.SetAcceleratorTable(accel_tbl)
+        self.Bind(wx.EVT_MENU, self.on_ctrl_f,                    id=self.ID_CTRL_F)
         self.Bind(wx.EVT_MENU, self._on_accel_delete,             id=self.ID_DELETE_CONV)
         self.Bind(wx.EVT_MENU, self._on_accel_copy_number,        id=self.ID_ALT_SHIFT_C_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_conversation_data,  id=self.ID_CONV_DATA_LIST)
@@ -16520,6 +16545,29 @@ class ArchivedConversationsPanel(wx.Panel):
             self._on_pin(jid)
 
     # ── Events ────────────────────────────────────────────────────────────────
+
+    def on_search_query_changed(self, event):
+        """Mirrors ConversationsPanel.on_search_query_changed(): route through
+        add_chats_to_ui() (never _refresh_archived_chats_in_ui() directly) so
+        the active filter and this field's own query are applied together and
+        every other consequence of a rebuild (focus/selection restore) is
+        the one already exercised by the filter tabs above."""
+        self.main_window.add_chats_to_ui()
+
+    def on_ctrl_f(self, event):
+        self.search_field.SetFocus()
+
+    def _on_search_field_key_down(self, event):
+        """Down arrow in the search field moves focus to the first archived
+        conversation — mirrors ConversationsPanel._on_search_field_key_down()."""
+        if event.GetKeyCode() == wx.WXK_DOWN:
+            lst = self.conversations_list
+            if lst.GetItemCount() > 0:
+                lst.SetFocus()
+                lst.Focus(0)
+                lst.Select(0)
+            return
+        event.Skip()
 
     def _on_filter_changed(self, event):
         """Update the active conversation filter and rebuild the list."""
@@ -16782,6 +16830,8 @@ class ArchivedConversationsPanel(wx.Panel):
         self.conversations_list.SetColumn(0, col)
         if getattr(self, "_list_accessible", None) is not None:
             self._list_accessible._label = i18n.t("archived_chats")
+        if hasattr(self, "search_label"):
+            self.search_label.SetLabel(i18n.t("search_archived_conversations"))
 
         if hasattr(self, "_filter_radio"):
             self._filter_radio.SetLabel(i18n.t("conv_filter_label"))

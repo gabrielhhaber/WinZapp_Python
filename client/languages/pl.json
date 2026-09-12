@@ -26,6 +26,7 @@
     "main_nav": "&Nawigacja główna",
     "conversations": "Rozmowy",
     "search_conversations": "Szukaj rozmów",
+    "search_archived_conversations": "Szukaj w zarchiwizowanych rozmowach",
     "chat_retrieval_failed": "Nie udało się pobrać listy rozmów z serwera.",
     "chat_load_failed": "Nie udało się wczytać lokalnego pliku wiadomości. Uruchom program ponownie i spróbuj jeszcze raz.",
     "contact_load_failed": "Nie udało się wczytać lokalnej listy kontaktów.",
