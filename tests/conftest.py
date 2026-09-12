@@ -58,9 +58,8 @@ def fastest_of(call, repeats: int = TIMING_REPEATS) -> float:
     linear (3.2 microseconds per chat, flat from 250 to 4,000 chats).
 
     That is worth a helper rather than a local fix, because a red run is not
-    the worst outcome: release.yml's reject-on-test-failure DELETES a stable
-    release whose test job failed, so a test that fails at random can throw
-    away a good release.
+    the worst outcome: release.yml builds nothing when its test job fails, so a
+    test that fails at random blocks a good stable release (and an alpha).
 
     The minimum is the right statistic precisely because of the one-sidedness:
     it converges on the cost of the work itself, and it still grows when the

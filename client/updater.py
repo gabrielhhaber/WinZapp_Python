@@ -25,48 +25,94 @@ import requests
 import wx
 
 from app_paths import _outer_exe_dir, _is_frozen, resource_path, log_path
+from core import release_keys
+from core.release_signature import SIGNATURE_ASSET_NAME, check_release_manifest
 from core.wpp_runtime import homologated_wpp_tag
 from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
 from version import __version__
+
+
+def _find_named_asset(assets: list, name: str) -> str:
+    """browser_download_url of the asset called *name* (case-insensitive), or ""."""
+    for asset in assets or []:
+        if (asset.get("name") or "").lower() == name.lower():
+            return asset.get("browser_download_url", "")
+    return ""
 
 
 def _find_sha256sums_asset(assets: list) -> str:
     """Return the browser_download_url of a SHA256SUMS.txt asset in a GitHub
     release's asset list, or "" if the release predates this check (older
     releases published before CI started generating one)."""
-    for asset in assets:
-        if (asset.get("name") or "").lower() == "sha256sums.txt":
-            return asset.get("browser_download_url", "")
-    return ""
+    return _find_named_asset(assets, "SHA256SUMS.txt")
 
 
-def _verify_sha256sums(file_path: str, filename: str, sha256sums_url: str) -> "tuple[bool, str]":
+def _find_signature_asset(assets: list) -> str:
+    """URL of the release's SHA256SUMS.txt.sig (see core/release_signature.py), or ""."""
+    return _find_named_asset(assets, SIGNATURE_ASSET_NAME)
+
+
+def _verify_sha256sums(file_path: str, filename: str, sha256sums_url: str,
+                       signature_url: str = "", expected_version: str = "",
+                       is_alpha: bool = False,
+                       stable_keys=None, alpha_keys=None) -> "tuple[bool, str]":
     """Verify file_path's SHA256 against the checksum manifest published
-    alongside the GitHub release (see .github/workflows/release.yml's
-    "Generate SHA256SUMS.txt" step). Returns (ok, detail).
+    alongside the GitHub release (see .github/workflows/build-windows.yml's
+    "Generate SHA256SUMS.txt" step), and — once this build trusts any release
+    keys — that the manifest carries a valid signature for *expected_version*.
+    Returns (ok, detail).
 
-    Fails OPEN (ok=True) only when sha256sums_url itself is empty — i.e. the
-    release predates this feature and never published a manifest at all;
-    there is nothing to compare against, so refusing to update forever on
-    every pre-existing release would be worse than the risk it closes going
-    forward. Any release that DOES publish a manifest is fully enforced:
-    a fetch failure, a missing entry for our filename, or an actual hash
-    mismatch all fail CLOSED and abort the install.
+    Before release keys exist (core/release_keys.py empty), fails OPEN only when
+    sha256sums_url itself is empty — the release predates the manifest and
+    there is nothing to compare against. Once keys exist, that same absence
+    fails CLOSED, as does a missing or wrong signature: after signing is set up,
+    an unsigned release is what a forged one looks like. A fetch failure, a
+    missing entry for our filename, or a hash mismatch always fail CLOSED.
+
+    *stable_keys*/*alpha_keys* default to the ones compiled into this build;
+    tests pass their own.
     """
-    if not sha256sums_url:
+    if stable_keys is None:
+        stable_keys = release_keys.STABLE_PUBLIC_KEYS
+    if alpha_keys is None:
+        alpha_keys = release_keys.ALPHA_PUBLIC_KEYS
+
+    manifest = None
+    if sha256sums_url:
+        try:
+            resp = requests.get(sha256sums_url, timeout=15)
+            resp.raise_for_status()
+        except Exception as exc:
+            return False, f"Failed to download SHA256SUMS.txt: {exc}"
+        manifest = resp.content
+
+    signature_text = None
+    if manifest is not None and signature_url:
+        try:
+            sig_resp = requests.get(signature_url, timeout=15)
+            sig_resp.raise_for_status()
+        except Exception as exc:
+            return False, f"Failed to download {SIGNATURE_ASSET_NAME}: {exc}"
+        signature_text = sig_resp.text
+
+    ok, detail = check_release_manifest(
+        manifest, signature_text, expected_version, is_alpha,
+        stable_keys, alpha_keys,
+    )
+    if not ok:
+        return False, detail
+    if manifest is not None and signature_text is not None:
+        logging.info("Auto-updater: Release signature verified for version %s.", expected_version)
+
+    if manifest is None:
         logging.warning(
             "Auto-updater: Release has no SHA256SUMS.txt asset (older release) — "
             "skipping checksum verification for %s.", filename,
         )
         return True, ""
-    try:
-        resp = requests.get(sha256sums_url, timeout=15)
-        resp.raise_for_status()
-    except Exception as exc:
-        return False, f"Failed to download SHA256SUMS.txt: {exc}"
 
     expected = ""
-    for line in resp.text.splitlines():
+    for line in manifest.decode("utf-8", errors="replace").splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
@@ -683,7 +729,8 @@ class UpdateProgressDialog(wx.Dialog):
     Runs the download in a background thread, updates gauge via CallAfter.
     """
 
-    def __init__(self, parent, new_version: str, main_window, zip_url: str, sha256sums_url: str = ""):
+    def __init__(self, parent, new_version: str, main_window, zip_url: str, sha256sums_url: str = "",
+                 signature_url: str = "", is_alpha: bool = False):
         i18n = main_window.i18n
         super().__init__(
             parent,
@@ -694,6 +741,8 @@ class UpdateProgressDialog(wx.Dialog):
         self._new_version    = new_version
         self._zip_url        = zip_url
         self._sha256sums_url = sha256sums_url
+        self._signature_url  = signature_url
+        self._is_alpha       = is_alpha
         self._cancelled      = False
         self._install_ok     = False
         self._error_msg      = ""
@@ -764,7 +813,12 @@ class UpdateProgressDialog(wx.Dialog):
             # release edit. See _verify_sha256sums()'s docstring for the
             # fail-open/fail-closed policy.
             filename = os.path.basename(self._zip_url.split("?")[0])
-            ok, detail = _verify_sha256sums(zip_path, filename, self._sha256sums_url)
+            ok, detail = _verify_sha256sums(
+                zip_path, filename, self._sha256sums_url,
+                signature_url=self._signature_url,
+                expected_version=self._new_version,
+                is_alpha=self._is_alpha,
+            )
             if not ok:
                 logging.error("Auto-updater: Checksum verification failed for %s: %s", filename, detail)
                 try:
@@ -1134,6 +1188,8 @@ class UpdateChecker:
             return
 
         sha256sums_url = _find_sha256sums_asset(data.get("assets", []))
+        signature_url  = _find_signature_asset(data.get("assets", []))
+        release_is_alpha = is_alpha_release(data)
 
         local_version = __version__
         logging.info("Auto-updater: Local version is %s", local_version)
@@ -1171,7 +1227,10 @@ class UpdateChecker:
                 self._schedule_retry()
             return
 
-        wx.CallAfter(self._show_update_dialog, remote_version, changelog, zip_url, sha256sums_url)
+        wx.CallAfter(
+            self._show_update_dialog, remote_version, changelog, zip_url, sha256sums_url,
+            signature_url=signature_url, is_alpha=release_is_alpha,
+        )
 
     def _show_no_update(self):
         i18n = self._mw.i18n
@@ -1211,9 +1270,14 @@ class UpdateChecker:
 
         sha256sums_url = _find_sha256sums_asset(data.get("assets", []))
 
-        wx.CallAfter(self._confirm_and_reinstall, remote_version, zip_url, sha256sums_url)
+        wx.CallAfter(
+            self._confirm_and_reinstall, remote_version, zip_url, sha256sums_url,
+            signature_url=_find_signature_asset(data.get("assets", [])),
+            is_alpha=is_alpha_release(data),
+        )
 
-    def _confirm_and_reinstall(self, remote_version: str, zip_url: str, sha256sums_url: str = ""):
+    def _confirm_and_reinstall(self, remote_version: str, zip_url: str, sha256sums_url: str = "",
+                               signature_url: str = "", is_alpha: bool = False):
         i18n = self._mw.i18n
         if wx.MessageBox(
             i18n.t("force_reinstall_confirm_msg").format(version=remote_version),
@@ -1222,7 +1286,7 @@ class UpdateChecker:
             self._mw,
         ) != wx.YES:
             return
-        self._do_install(remote_version, zip_url, sha256sums_url)
+        self._do_install(remote_version, zip_url, sha256sums_url, signature_url, is_alpha)
 
     def _show_reinstall_error(self, error_msg: str):
         i18n = self._mw.i18n
@@ -1245,7 +1309,8 @@ class UpdateChecker:
             self._mw,
         )
 
-    def _show_update_dialog(self, remote_version: str, changelog: str, zip_url: str, sha256sums_url: str = ""):
+    def _show_update_dialog(self, remote_version: str, changelog: str, zip_url: str, sha256sums_url: str = "",
+                            signature_url: str = "", is_alpha: bool = False):
         dlg    = UpdateDialog(self._mw, remote_version, changelog)
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -1257,15 +1322,19 @@ class UpdateChecker:
             # _do_install() releases it on every path that does not end in
             # real_exit() (which takes the claim's owner process with it, so a
             # crashed-owner recovery clears it for free).
-            self._do_install(remote_version, zip_url, sha256sums_url)
+            self._do_install(remote_version, zip_url, sha256sums_url, signature_url, is_alpha)
         else:
             # User said No — retry in 3 hours
             self._release_prompt()
             self._schedule_retry()
 
-    def _do_install(self, new_version: str, zip_url: str, sha256sums_url: str = ""):
+    def _do_install(self, new_version: str, zip_url: str, sha256sums_url: str = "",
+                    signature_url: str = "", is_alpha: bool = False):
         while True:
-            prog = UpdateProgressDialog(self._mw, new_version, self._mw, zip_url, sha256sums_url)
+            prog = UpdateProgressDialog(
+                self._mw, new_version, self._mw, zip_url, sha256sums_url,
+                signature_url=signature_url, is_alpha=is_alpha,
+            )
             result = prog.run()
             # Read before Destroy(): this is the dialog's answer to "is a batch
             # installer now running and waiting for this process to exit?", and

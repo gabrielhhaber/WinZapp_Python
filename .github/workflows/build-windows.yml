@@ -61,7 +61,7 @@ jobs:
       # whatever branch/tag the caller was triggered on — which is what makes
       # one pipeline serve a release tag, main, and an arbitrary test branch.
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
@@ -85,7 +85,7 @@ jobs:
       # the C installer/uninstaller.  libopus-0.dll is committed to client/lib/
       # so no opus package is needed here.
       - name: Set up MSYS2 (GCC + windres)
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
         with:
           msystem: UCRT64
           update: false
@@ -100,7 +100,7 @@ jobs:
         run: echo "$(cygpath -w /ucrt64/bin)" >> "$GITHUB_PATH"
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -150,7 +150,7 @@ jobs:
       # _CACHE_ONLY_API_ENTRIES is what keeps that straight; anything else added
       # to `path:` here has to be added there too.
       - name: Cache API node_modules
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: client/api/node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('client/api/package.json') }}
@@ -281,10 +281,24 @@ jobs:
       # it elevated write access to the install directory — without this,
       # nothing checks that a release asset wasn't tampered with in transit
       # or via a compromised/hijacked GitHub release edit.
+      #
+      # The first line names the version the manifest belongs to. A release
+      # signature covers this file (client/core/release_signature.py), so the
+      # line is what stops a genuine signature on an OLD release from being
+      # replayed under a newer tag. The updater skips `#` lines when reading
+      # hashes, including builds released before the line existed. A test
+      # build (no version) gets no line — it is never signed or offered.
       - name: Generate SHA256SUMS.txt for release assets
         shell: pwsh
         run: |
           $lines = @()
+          $ver = "${{ inputs.version }}"
+          if ("${{ inputs.strip-version-prefix }}" -eq "true") {
+            $ver = $ver -replace '^[vV]', ''
+          }
+          if ($ver -ne "") {
+            $lines += "# winzapp-version: $($ver.ToLower())"
+          }
           foreach ($f in @("dist/WinZappInstaller.exe", "dist/WinZapp.zip")) {
             $hash = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
             $name = Split-Path $f -Leaf
@@ -296,7 +310,7 @@ jobs:
 
 
       - name: Upload dist as an artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ inputs.artifact-name }}
           retention-days: ${{ inputs.retention-days }}

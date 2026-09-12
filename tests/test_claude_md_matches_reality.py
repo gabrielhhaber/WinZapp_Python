@@ -32,10 +32,9 @@ guards asserting the parse found anything at all.
 Where these run
 ---------------
 Marked ``docs`` and deselected by release.yml's test step (``pytest -m "not
-docs"``). That job's ``reject-on-test-failure`` DELETES the just-created
-release and its tag, and these tests have no tolerance band: rename a module,
-forget to grep CLAUDE.md, and a stable cut would be destroyed over a Markdown
-edit.
+docs"``). A failure there stops the stable build, and these tests have no
+tolerance band: rename a module, forget to grep CLAUDE.md, and a stable cut
+would be blocked over a Markdown edit.
 
 The first version of this file argued that risk was covered because
 alpha-release.yml runs the suite on every push to main. That argument was

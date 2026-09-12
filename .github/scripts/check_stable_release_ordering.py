@@ -7,13 +7,12 @@ fourth component therefore sorts BELOW alphas that are already out — and
 client/updater.py would never offer it to anyone running one, stranding every
 alpha user permanently with no error anywhere.
 
-Run from .github/workflows/release.yml's test job, so that a failure reaches
-`reject-on-test-failure` and the bad release is deleted rather than left on the
-Releases page looking normal.
+Run from .github/workflows/release.yml's test job, triggered by pushing the
+stable tag, so a rejected tag never gets as far as a build or a draft release.
 
 This lives in a file rather than inline in the workflow because getting it
 wrong is expensive in both directions: a false negative strands alpha users, and
-a false positive deletes a perfectly good release. tests/test_release_ordering_guard.py
+a false positive blocks a perfectly good release. tests/test_release_ordering_guard.py
 covers it.
 """
 

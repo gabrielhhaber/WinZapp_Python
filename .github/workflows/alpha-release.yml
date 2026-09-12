@@ -31,7 +31,7 @@ name: Alpha Build
 on:
   push:
     branches: [main]
-    # version.py-only commits come from release.yml's bump-version job (which
+    # version.py-only commits come from release-published.yml's bump-version job (which
     # already marks them [skip ci]); nothing in a docs/CI-only change alters
     # what gets compiled, so don't burn a ~15 minute build and a release on it.
     paths-ignore:
@@ -70,10 +70,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -91,14 +91,14 @@ jobs:
   # and a reusable workflow's `with:` cannot read a value a step exported into
   # $GITHUB_ENV — it has to come from a job output.
   #
-  # release.yml takes its version from the tag of a release a human already
-  # created. Nothing created one here, so derive one — and it has to be
+  # release.yml takes its version from the tag a maintainer pushed. Nothing
+  # pushed one here, so derive one — and it has to be
   # derived from the STABLE version line, not invented independently, or the
   # two channels stop ordering against each other. updater.py compares
   # ((major, minor, patch, build), pre_order) with alpha < beta < final, so:
   #
-  #   base 0.25.0.0beta (client/version.py, kept current by release.yml's
-  #   bump-version job) + commit count N  ->  0.25.0.<N>alpha
+  #   base 0.25.0.0beta (client/version.py, kept current by
+  #   release-published.yml's bump-version job) + commit count N  ->  0.25.0.<N>alpha
   #
   # The suffix on the base is irrelevant to all of this — only major.minor.
   # patch are read off it — so the scheme keeps working unchanged when the
@@ -132,7 +132,7 @@ jobs:
       alpha_version: ${{ steps.resolve.outputs.alpha_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
@@ -184,21 +184,60 @@ jobs:
     name: Create and publish the alpha release
     runs-on: ubuntu-latest
     needs: [version, build]
+    # Holds ALPHA_SIGNING_KEY. An environment secret rather than a repository
+    # one so it can be restricted to `main` in Settings > Environments: a
+    # repository secret is readable by a workflow pushed to ANY branch by
+    # anyone with write access. Never add required reviewers here — alphas
+    # are published with nobody at the keyboard, and a reviewer gate would
+    # silently stop every one of them.
+    environment: alpha-release
     permissions:
       contents: write
     env:
       ALPHA_VERSION: ${{ needs.version.outputs.alpha_version }}
     steps:
       - name: Download the built assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: winzapp-alpha
           path: dist
 
+      # The signing script and client/core/release_keys.py, from the same
+      # commit that was built.
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Only cryptography, at the exact version the app ships with, so a
+      # signature CI makes is checked by the same library that will check it on
+      # a user's machine.
+      - name: Install the signing dependency
+        run: python -m pip install --quiet "$(grep -i '^cryptography==' requirements.txt)"
+
+      # Signs dist/SHA256SUMS.txt into dist/SHA256SUMS.txt.sig (see
+      # client/core/release_signature.py). While client/core/release_keys.py is
+      # still empty this signs nothing and succeeds, so alphas keep publishing
+      # before signing is set up. Once keys are committed, a missing or wrong
+      # ALPHA_SIGNING_KEY fails HERE, before anything is uploaded — every client
+      # built from that commit on would refuse an unsigned alpha anyway.
+      - name: Sign the checksum manifest
+        env:
+          ALPHA_SIGNING_KEY: ${{ secrets.ALPHA_SIGNING_KEY }}
+        run: python .github/scripts/release_signing.py ci-sign dist/SHA256SUMS.txt --version "$ALPHA_VERSION"
+
       # ── ALPHA-SPECIFIC ──────────────────────────────────────────────────────
-      # Creates the tag AND the release (release.yml only uploads into one a
-      # human already made). Both tag_name and name carry "alpha", which is
-      # what client/updater.py's is_alpha_release() matches on.
+      # Creates the tag AND the release. Both tag_name and name carry "alpha",
+      # which is what client/updater.py's is_alpha_release() matches on.
+      #
+      # The draft-then-publish order below is also what "Immutable releases"
+      # (Settings > General) requires: once published, a release's assets can
+      # no longer be added, replaced or deleted — which is the point, since
+      # otherwise anyone with write access could swap WinZapp.zip on a release
+      # users already trust.
       #
       # Created as a DRAFT, published only by the next step. This run can be
       # cancelled at any moment by a newer commit (see `concurrency` above),
@@ -210,9 +249,9 @@ jobs:
       #
       # Uses the default GITHUB_TOKEN deliberately: GitHub does not re-trigger
       # workflows for events raised by GITHUB_TOKEN, so publishing this release
-      # does NOT fire release.yml's `release: created` trigger and cause a
-      # second, duplicate build (release.yml also skips alpha tags outright,
-      # as a second line of defence).
+      # (and the tag GitHub creates for it) does NOT fire release.yml's tag
+      # push trigger or release-published.yml (both also skip alpha tags
+      # outright, as a second line of defence).
       # A run cancelled partway through the upload below leaves its draft
       # behind, and cancellation is routine here (a newer commit supersedes an
       # in-flight build). Nothing ever collects those, so they'd pile up on the
@@ -234,7 +273,7 @@ jobs:
 
       - name: Create draft alpha release and upload assets
         id: draft_release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: v${{ env.ALPHA_VERSION }}
           name: "WinZapp Alpha ${{ env.ALPHA_VERSION }}"
@@ -248,10 +287,14 @@ jobs:
           # is the word "alpha" in the name/tag, not this flag.
           prerelease: true
           generate_release_notes: true
+          # SHA256SUMS.txt.sig is absent while signing is not configured; the
+          # action only warns about an unmatched pattern (fail_on_unmatched_files
+          # defaults to false), so that state still publishes.
           files: |
             dist/WinZappInstaller.exe
             dist/WinZapp.zip
             dist/SHA256SUMS.txt
+            dist/SHA256SUMS.txt.sig
 
       # Every asset is uploaded by now, so the release is safe to expose. This
       # is deliberately the very last step: until it runs, nothing this workflow

@@ -20,6 +20,9 @@ import updater
 class _FakeResponse:
     def __init__(self, text="", status_code=200):
         self.text = text
+        # The manifest is read as bytes now: its signature covers the exact
+        # bytes served, which decoding and re-encoding would not preserve.
+        self.content = text.encode("utf-8")
         self.status_code = status_code
 
     def raise_for_status(self):

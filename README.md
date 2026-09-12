@@ -78,7 +78,7 @@ pytest tests/test_database.py::TestChats::test_upsert_chat_creates_record  # a s
 
 Tests cover the async SQLite storage layer and the pure-logic pieces of the client (name resolution, notification formatting, message classification, etc.) using small stand-in objects, since the wxPython UI classes cannot be instantiated without a running `wx.App`.
 
-Every release build is gated on the full test suite passing (see [.github/workflows/release.yml](.github/workflows/release.yml)) — a failing test suite deletes the release instead of shipping it.
+Every release build is gated on the full test suite passing (see [.github/workflows/release.yml](.github/workflows/release.yml)) — a failing test suite stops the build before any release is created.
 
 ---
 
@@ -86,13 +86,16 @@ Every release build is gated on the full test suite passing (see [.github/workfl
 
 ### Automated (recommended)
 
-Creating a GitHub release triggers the [release workflow](.github/workflows/release.yml), which runs the test suite and, if it passes, builds `WinZappInstaller.exe` and `WinZapp.zip` on GitHub's own servers and attaches them to the release.
-
-To publish a new release (requires the [GitHub CLI](https://cli.github.com/)):
+Pushing a stable version tag triggers the [release workflow](.github/workflows/release.yml), which runs the test suite and, if it passes, builds `WinZappInstaller.exe` and `WinZapp.zip` on GitHub's own servers and attaches them to a **draft** release. The maintainer then signs the draft with the offline release key and publishes it (requires the [GitHub CLI](https://cli.github.com/)):
 
 ```powershell
-gh release create v1.2.3 --title "v1.2.3" --notes "Release notes here"
+git tag v1.2.3.0
+git push origin v1.2.3.0
+# wait for the Release Build workflow to finish, then:
+venv\Scripts\python.exe .github\scripts\release_signing.py sign-stable v1.2.3.0 --key <path to stable-primary.pem>
 ```
+
+Releases are signed so that the auto-updater only installs builds the maintainer vouched for with a key that never lives on GitHub — see `client/core/release_signature.py`.
 
 ### Local build (fallback)
 

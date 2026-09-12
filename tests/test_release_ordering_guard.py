@@ -1,10 +1,9 @@
 """Tests for .github/scripts/check_stable_release_ordering.py.
 
-That guard runs in release.yml's test job, and a failure there makes
-`reject-on-test-failure` DELETE the release and its tag. Getting it wrong is
-expensive in both directions: a false negative strands every alpha user on the
-alpha channel forever, a false positive deletes a perfectly good release. Hence
-tests.
+That guard runs in release.yml's test job, and a failure there stops the
+release from being built at all. Getting it wrong is expensive in both
+directions: a false negative strands every alpha user on the alpha channel
+forever, a false positive blocks a perfectly good release. Hence tests.
 
 The bug that motivated them: this repo carries historical alpha tags predating
 the alpha channel, including `v0.3.4.0alpha1` — whose trailing digit
