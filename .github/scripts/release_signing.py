@@ -130,6 +130,11 @@ def ci_sign(manifest_path: pathlib.Path, expected_version: str, key_pem: "str | 
             stable_keys, alpha_keys) -> "tuple[int, str]":
     """Sign an alpha manifest in CI. Returns (exit code, message); writes the
     .sig next to the manifest only on success."""
+    # Checked before the not-configured early return: a missing manifest means
+    # the build's output is not where the upload expects it, which is never
+    # fine, signed or not.
+    if not manifest_path.is_file() or manifest_path.stat().st_size == 0:
+        return 1, f"::error::{manifest_path} is missing or empty — nothing to sign or publish"
     if not rs.signing_is_configured(stable_keys, alpha_keys):
         return 0, (
             "::warning::Release signing is not configured yet (client/core/release_keys.py "

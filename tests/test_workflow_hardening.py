@@ -72,6 +72,24 @@ def test_alpha_signing_key_is_only_read_from_its_environment():
                 )
 
 
+def test_no_publish_job_checks_out_after_downloading_its_assets():
+    """actions/checkout empties the workspace. Placed after the download it
+    deleted dist/, and an alpha was published with no assets."""
+    for name in ("alpha-release.yml", "release.yml"):
+        publish = _jobs(_read(name))["publish"]
+        download = publish.index("actions/download-artifact@")
+        checkout = publish.find("actions/checkout@")
+        assert checkout == -1 or checkout < download, f"{name}: checkout after download wipes dist/"
+
+
+def test_alpha_refuses_to_publish_without_its_assets():
+    publish = _jobs(_read("alpha-release.yml"))["publish"]
+    verify = publish.index("Verify the required assets are present")
+    assert verify < publish.index("softprops/action-gh-release@")
+    for asset in ("dist/WinZappInstaller.exe", "dist/WinZapp.zip", "dist/SHA256SUMS.txt"):
+        assert asset in publish[verify:publish.index("softprops/action-gh-release@")]
+
+
 def test_alpha_is_signed_before_its_draft_is_created_and_uploads_the_signature():
     publish = _jobs(_read("alpha-release.yml"))["publish"]
     sign = publish.index("release_signing.py ci-sign dist/SHA256SUMS.txt")

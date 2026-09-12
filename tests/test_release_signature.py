@@ -298,6 +298,13 @@ def test_ci_sign_skips_quietly_while_signing_is_not_configured(tmp_path):
     assert not (tmp_path / rs.SIGNATURE_ASSET_NAME).exists()
 
 
+def test_ci_sign_fails_on_a_missing_manifest_even_before_signing_is_configured(tmp_path):
+    """The run that published an empty alpha: dist/ had been wiped, and the
+    not-configured early return never looked at it."""
+    code, message = signing.ci_sign(tmp_path / "SHA256SUMS.txt", "1.2.0.5alpha", None, (), ())
+    assert code == 1 and "missing" in message
+
+
 def test_ci_sign_fails_when_keys_exist_but_the_secret_is_missing(tmp_path, keys):
     manifest = tmp_path / "SHA256SUMS.txt"
     manifest.write_bytes(_manifest("1.2.0.5alpha"))
