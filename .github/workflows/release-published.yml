@@ -42,7 +42,7 @@ jobs:
       actions: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
           token: ${{ secrets.RELEASE_BUMP_TOKEN }}
@@ -59,7 +59,7 @@ jobs:
 
       - name: Commit version.py bump back to the repository
         id: commit_version
-        uses: stefanzweifel/git-auto-commit-action@b863ae1933cb653a53c021fe36dbb774e1fb9403 # v5.2.0
+        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         continue-on-error: true
         with:
           commit_message: "chore: bump version to ${{ github.event.release.tag_name }} [skip ci]"
