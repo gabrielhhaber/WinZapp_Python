@@ -28,6 +28,11 @@ refused by tests/test_release_signature.py: a half-configured install would
 reject every release of the other channel.
 """
 
-STABLE_PUBLIC_KEYS: "tuple[str, ...]" = ()
+STABLE_PUBLIC_KEYS: "tuple[str, ...]" = (
+    "yNdwTQyRVL1jhcxVEfgBTF/VJEy6XV6UQHdQBf5TQYs=",
+    "SJSYzWyEEteXtd8tsODFTgqrWOv5yYPd1bBfL+x1Zeo=",
+)
 
-ALPHA_PUBLIC_KEYS: "tuple[str, ...]" = ()
+ALPHA_PUBLIC_KEYS: "tuple[str, ...]" = (
+    "wHxSl1b+vy66X/JVPUudHbS4q9Z4qhknSNjl/OgtZHQ=",
+)
