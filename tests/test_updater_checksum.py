@@ -67,10 +67,22 @@ class TestFindSha256sumsAsset:
 
 
 class TestVerifySha256sums:
+    """Exercises the plain checksum-only path — signing NOT configured — in
+    isolation, by passing empty key lists explicitly rather than relying on
+    _verify_sha256sums()'s defaults (core/release_keys.py's real committed
+    keys). Signature enforcement itself is covered separately, with its own
+    generated keys, by tests/test_release_signature.py; conflating the two
+    is what broke here once real keys were committed — see that module's own
+    docstring, and CLAUDE.md's "Release integrity" section, for why every
+    build made after the keys exist enforces them unconditionally.
+    """
+
     def test_no_manifest_url_fails_open(self, tmp_file):
         """Older releases published before this feature existed have no
         manifest at all — must not permanently block updating from them."""
-        ok, detail = updater._verify_sha256sums(tmp_file, "WinZapp.zip", "")
+        ok, detail = updater._verify_sha256sums(
+            tmp_file, "WinZapp.zip", "", stable_keys=(), alpha_keys=()
+        )
         assert ok is True
         assert detail == ""
 
@@ -79,7 +91,9 @@ class TestVerifySha256sums:
         manifest = f"{expected}  WinZapp.zip\nsomeotherhash  WinZappInstaller.exe\n"
         monkeypatch.setattr(updater.requests, "get", lambda *a, **kw: _FakeResponse(manifest))
 
-        ok, detail = updater._verify_sha256sums(tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt")
+        ok, detail = updater._verify_sha256sums(
+            tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt", stable_keys=(), alpha_keys=()
+        )
 
         assert ok is True
         assert detail == ""
@@ -88,7 +102,9 @@ class TestVerifySha256sums:
         manifest = "0000000000000000000000000000000000000000000000000000000000000000  WinZapp.zip\n"
         monkeypatch.setattr(updater.requests, "get", lambda *a, **kw: _FakeResponse(manifest))
 
-        ok, detail = updater._verify_sha256sums(tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt")
+        ok, detail = updater._verify_sha256sums(
+            tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt", stable_keys=(), alpha_keys=()
+        )
 
         assert ok is False
         assert "mismatch" in detail.lower()
@@ -100,7 +116,9 @@ class TestVerifySha256sums:
         manifest = "abc123  SomeOtherFile.zip\n"
         monkeypatch.setattr(updater.requests, "get", lambda *a, **kw: _FakeResponse(manifest))
 
-        ok, detail = updater._verify_sha256sums(tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt")
+        ok, detail = updater._verify_sha256sums(
+            tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt", stable_keys=(), alpha_keys=()
+        )
 
         assert ok is False
         assert "no checksum entry" in detail.lower()
@@ -110,7 +128,9 @@ class TestVerifySha256sums:
             raise Exception("network error")
         monkeypatch.setattr(updater.requests, "get", _raise)
 
-        ok, detail = updater._verify_sha256sums(tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt")
+        ok, detail = updater._verify_sha256sums(
+            tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt", stable_keys=(), alpha_keys=()
+        )
 
         assert ok is False
         assert "failed to download" in detail.lower()
@@ -122,6 +142,28 @@ class TestVerifySha256sums:
         manifest = f"{expected} *WinZapp.zip\n"
         monkeypatch.setattr(updater.requests, "get", lambda *a, **kw: _FakeResponse(manifest))
 
-        ok, _ = updater._verify_sha256sums(tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt")
+        ok, _ = updater._verify_sha256sums(
+            tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt", stable_keys=(), alpha_keys=()
+        )
 
         assert ok is True
+
+    def test_defaults_to_the_committed_keys_not_to_empty(self, tmp_file, monkeypatch):
+        """The one case deliberately NOT passing explicit keys: proves
+        _verify_sha256sums() reads core/release_keys.py by default rather
+        than silently defaulting to "signing off" — which is exactly the gap
+        that let this class ship without noticing enforcement had turned on
+        for every other, unguarded call site the day real keys landed."""
+        from core import release_keys
+
+        manifest = "abc123  SomeOtherFile.zip\n"
+        monkeypatch.setattr(updater.requests, "get", lambda *a, **kw: _FakeResponse(manifest))
+
+        ok, detail = updater._verify_sha256sums(tmp_file, "WinZapp.zip", "https://x/SHA256SUMS.txt")
+
+        if release_keys.STABLE_PUBLIC_KEYS or release_keys.ALPHA_PUBLIC_KEYS:
+            assert ok is False
+            assert "sha256sums.txt.sig" in detail.lower()
+        else:
+            assert ok is False
+            assert "no checksum entry" in detail.lower()
