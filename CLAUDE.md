@@ -61,6 +61,14 @@ the `wxgui` marker and are **skipped unless explicitly asked for**, via
 Every CI workflow passes `--run-wx-gui`, so the coverage is never actually
 lost — it just stops running on a human's desktop by accident.
 
+### Commits
+Keep commits small, atomic, and reviewable: one user-visible change, bug fix,
+refactor, or test-only change per commit. Do not mix unrelated cleanup,
+formatting, dependency changes, or generated files into a functional change.
+Include the tests and translations required by that change in the same commit.
+Before creating a commit, review its staged diff and split independent changes
+into separate commits. Do not create commits unless the user explicitly asks.
+
 **`--run-wx-gui` is for CI, and for nothing else.** Do not pass it on a
 developer machine, and do not instruct an agent, script or helper to pass it:
 background agents run on the *user's own desktop*, not somewhere else, so a
