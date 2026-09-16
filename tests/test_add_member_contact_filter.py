@@ -1,5 +1,12 @@
-"""Tests for AddMemberDialog._populate_contacts() only listing the user's
-own contacts.
+"""Tests for the "own contact" legitimacy filter shared by every contact
+picker in WinZapp (ui.dialogs.contact_list_picker.build_own_contact_rows).
+
+Originally these guarded AddMemberDialog._populate_contacts() alone, and
+attach_contact_dialog.py kept its own near-identical copy of the same
+filter — the two had already drifted (the attach picker deduplicated the
+same person appearing under several bridged JIDs, this one didn't). Both
+dialogs now build their contact list through the one shared function this
+file tests directly.
 
 Reported live: the group-member picker showed contacts main_window.contacts
 never actually earned that status for — a JID that only ever appeared there
@@ -9,102 +16,84 @@ isSaved flag and aren't backed by a 1:1 chat, so they now get filtered out;
 only genuine WhatsApp contacts (isMyContact), locally-added ones (isSaved),
 "me", and anyone with an existing 1:1 chat still show up.
 
-AddMemberDialog is a wx.Dialog and can't be instantiated without a running
-wx.App, so the method under test is bound onto a plain stub carrying a real
-wx.ListCtrl — same approach as the rest of this test suite.
+The function under test never touches wx, so no wx.App/ListCtrl stub is
+needed here (contrast test_attach_contact_dedup.py's own docstring, which
+predates this — both now exercise the same shared function).
 """
 
-import wx
-
-from ui.dialogs.add_member_dialog import AddMemberDialog
-from tests.conftest import hidden_frame
+from ui.dialogs.contact_list_picker import build_own_contact_rows
 
 
-class _Stub:
-    _populate_contacts = AddMemberDialog._populate_contacts
-    # _populate_contacts() now collects the rows and hands them to
-    # _render_rows(), which is what applies the search filter (issue #85) —
-    # with an empty query it renders every row, so what this file asserts is
-    # unchanged.
-    _render_rows = AddMemberDialog._render_rows
+class _FakeMw:
+    def __init__(self, contacts=None, chats=None):
+        self.contacts = dict(contacts or {})
+        self.chats = dict(chats or {})
 
-    def __init__(self, frame, contacts, chats=None):
-        self._mw = type("MW", (), {"contacts": contacts, "chats": chats or {}})()
-        self._list = wx.ListCtrl(frame, style=wx.LC_REPORT)
-        self._list.InsertColumn(0, "Name")
-        self._list.InsertColumn(1, "Phone")
+    def _normalize_jid(self, jid):
+        return jid
+
+
+def _jids(rows):
+    return [entry["remoteJid"] for _, _, entry in rows]
 
 
 class TestAddMemberContactFilter:
-    def test_group_participant_only_entry_is_excluded(self, wx_app):
+    def test_group_participant_only_entry_is_excluded(self):
         """No isMyContact/isSaved, no 1:1 chat — just a name learned from
         some other group's presence updates."""
-        frame = hidden_frame()
-        try:
-            jid = "5511999999999@s.whatsapp.net"
-            stub = _Stub(frame, {jid: {"name": "Alice", "pushName": "Alice"}})
-            stub._populate_contacts()
-            assert stub._contact_jids == []
-        finally:
-            frame.Destroy()
-
-    def test_genuine_whatsapp_contact_is_included(self, wx_app):
         jid = "5511999999999@s.whatsapp.net"
-        frame = hidden_frame()
-        try:
-            stub = _Stub(frame, {jid: {"name": "Alice", "isMyContact": True}})
-            stub._populate_contacts()
-            assert stub._contact_jids == [jid]
-        finally:
-            frame.Destroy()
+        mw = _FakeMw({jid: {"name": "Alice", "pushName": "Alice"}})
 
-    def test_locally_added_contact_is_included(self, wx_app):
+        rows = build_own_contact_rows(mw)
+
+        assert _jids(rows) == []
+
+    def test_genuine_whatsapp_contact_is_included(self):
         jid = "5511999999999@s.whatsapp.net"
-        frame = hidden_frame()
-        try:
-            stub = _Stub(frame, {jid: {"name": "Alice", "isSaved": True}})
-            stub._populate_contacts()
-            assert stub._contact_jids == [jid]
-        finally:
-            frame.Destroy()
+        mw = _FakeMw({jid: {"name": "Alice", "isMyContact": True}})
 
-    def test_contact_with_an_existing_1to1_chat_is_included(self, wx_app):
+        rows = build_own_contact_rows(mw)
+
+        assert _jids(rows) == [jid]
+
+    def test_locally_added_contact_is_included(self):
+        jid = "5511999999999@s.whatsapp.net"
+        mw = _FakeMw({jid: {"name": "Alice", "isSaved": True}})
+
+        rows = build_own_contact_rows(mw)
+
+        assert _jids(rows) == [jid]
+
+    def test_contact_with_an_existing_1to1_chat_is_included(self):
         """Someone who messaged first without being in the user's own
         address book — WhatsApp may never flag them isMyContact, but the
         user clearly already has a real conversation with them."""
         jid = "5511999999999@s.whatsapp.net"
-        frame = hidden_frame()
-        try:
-            stub = _Stub(
-                frame,
-                {jid: {"name": "Alice"}},
-                chats={jid: {"remoteJid": jid}},
-            )
-            stub._populate_contacts()
-            assert stub._contact_jids == [jid]
-        finally:
-            frame.Destroy()
+        mw = _FakeMw(
+            {jid: {"name": "Alice"}},
+            chats={jid: {"remoteJid": jid}},
+        )
 
-    def test_groups_are_always_excluded_regardless_of_flags(self, wx_app):
+        rows = build_own_contact_rows(mw)
+
+        assert _jids(rows) == [jid]
+
+    def test_groups_are_always_excluded_regardless_of_flags(self):
         jid = "123456789-987654321@g.us"
-        frame = hidden_frame()
-        try:
-            stub = _Stub(frame, {jid: {"name": "Some Group", "isMyContact": True}})
-            stub._populate_contacts()
-            assert stub._contact_jids == []
-        finally:
-            frame.Destroy()
+        mw = _FakeMw({jid: {"name": "Some Group", "isMyContact": True}})
 
-    def test_mixed_list_keeps_only_the_legitimate_ones(self, wx_app):
+        rows = build_own_contact_rows(mw)
+
+        assert _jids(rows) == []
+
+    def test_mixed_list_keeps_only_the_legitimate_ones(self):
         real = "5511111111111@s.whatsapp.net"
         leaked = "5522222222222@s.whatsapp.net"
-        frame = hidden_frame()
-        try:
-            stub = _Stub(frame, {
-                real:   {"name": "Real Contact", "isMyContact": True},
-                leaked: {"name": "Leaked From Another Group"},
-            })
-            stub._populate_contacts()
-            assert stub._contact_jids == [real]
-        finally:
-            frame.Destroy()
+        mw = _FakeMw({
+            real:   {"name": "Real Contact", "isMyContact": True},
+            leaked: {"name": "Leaked From Another Group"},
+        })
+
+        rows = build_own_contact_rows(mw)
+
+        assert _jids(rows) == [real]
