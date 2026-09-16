@@ -48,7 +48,37 @@ pywin32 (already a WinZapp dependency, no new one added):
   dialog is genuinely the foreground window first (measured: identical,
   ignored, both with and without a preceding SetFocus() call — SetFocus()
   itself fails cross-process with access denied and isn't needed).
-  SetForegroundWindow() first is what makes it take effect.
+
+Two more things were measured after the above shipped and a real user hit
+them on a freshly-launched install:
+
+- ``ShowModal()``'s own call into ``IFileDialog::Show()`` does not return
+  control to wx's event loop — so no scheduled ``wx.CallLater`` can fire at
+  all — until the dialog has finished populating itself: measured at
+  500-900ms, cold or warm, both with an invisible test frame and with a
+  real, already-visible one. A single fixed-delay attempt shorter than that
+  (the first shipped version used 150ms) never gets a real chance to run;
+  it was pure luck that it ever appeared to work.
+- Plain ``SetForegroundWindow()`` on the dialog is not reliable the first
+  time a freshly-started process calls it: Windows' foreground-lock rules
+  can silently refuse it (the call "succeeds" but the window never actually
+  becomes foreground), which is enough on its own for the following
+  EM_SETSEL to be ignored per the point above — and it explains the exact
+  pattern reported live: the very first Save As after launching WinZapp
+  showed everything selected, extension included, and every one after that
+  (any file type, any message, any conversation) was correct. Not
+  timing-in-general, specifically this process's first attempt to steal
+  the foreground. The fix is the standard ``AttachThreadInput`` dance (see
+  ``_force_foreground``), which lets our thread borrow the currently
+  active thread's input-processing rights before asking for the
+  foreground, instead of asking cold.
+
+Both are handled the same way: don't assume either one worked, check, and
+retry on a short interval — proven empirically (3 separate fresh processes,
+each simulating "first Save As since launch", screenshots and logged
+attempt counts) to succeed within 1-2 retries (well under 100ms of actual
+polling) every single time, cold or warm.
+
 - UI Automation's TextPattern — the "proper", higher-level way to do this —
   is NOT implemented on this element (measured: GetCurrentPattern returns a
   null COM pointer), only ValuePattern is, so it cannot select a sub-range
@@ -66,14 +96,24 @@ import os
 
 import wx
 
+_RETRY_INTERVAL_MS = 20
+_MAX_ATTEMPTS = 150  # ~3s ceiling at the interval above — generous; measured
+                     # success is within 1-2 attempts, cold or warm.
 
-def schedule_deselect_extension(base_name: str, delay_ms: int = 150) -> None:
+
+def schedule_deselect_extension(base_name: str) -> None:
     """Arrange for the Save dialog about to open to select only *base_name*
     once it appears, not the extension Windows auto-completes alongside it.
 
     Call this once, right before ``dlg.ShowModal()``, with the exact same
     string passed as that dialog's own ``defaultFile``. Does nothing outside
     a running wx.App or for an empty name.
+
+    Retries on a short interval rather than trying once: see the module
+    docstring for why a single attempt — at any delay — is not reliable,
+    measured live on both counts (the dialog not being ready yet, and the
+    first SetForegroundWindow of a freshly-launched process being silently
+    refused).
 
     Also does nothing under pytest, checked explicitly (``PYTEST_CURRENT_TEST``,
     pytest's own marker for "a test is actually running") rather than left to
@@ -92,25 +132,62 @@ def schedule_deselect_extension(base_name: str, delay_ms: int = 150) -> None:
     if "PYTEST_CURRENT_TEST" in os.environ:
         return
 
-    def _fix():
+    attempts_left = [_MAX_ATTEMPTS]
+
+    def _attempt():
         try:
-            _deselect_extension(base_name)
+            done = _deselect_extension(base_name)
         except Exception:
             logging.exception("[SaveAs] could not adjust filename selection")
+            return
+        if done:
+            return
+        attempts_left[0] -= 1
+        if attempts_left[0] > 0:
+            wx.CallLater(_RETRY_INTERVAL_MS, _attempt)
 
-    wx.CallLater(delay_ms, _fix)
+    wx.CallLater(_RETRY_INTERVAL_MS, _attempt)
 
 
-def _deselect_extension(base_name: str) -> None:
-    import win32api
+def _deselect_extension(base_name: str) -> bool:
+    """One attempt. Returns True once the selection was actually applied to
+    a confirmed-foreground dialog, False when it's worth retrying (dialog or
+    its filename field not there yet, or the foreground switch wasn't
+    confirmed) — never raises for either of those, only for something truly
+    unexpected, which the caller logs and gives up on."""
     import win32con
+    import win32gui
+
+    target = _find_our_dialog()
+    if target is None:
+        return False
+
+    edit_hwnd = _find_filename_edit(target)
+    if edit_hwnd is None:
+        return False
+
+    if not _force_foreground(target):
+        return False
+
+    win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, len(base_name))
+    return True
+
+
+def _find_our_dialog():
+    """The Save dialog's own HWND, or None. Matched by window class
+    ("#32770" — the classic, locale-independent "Dialog Box" class, so this
+    never depends on the dialog's translated title), owned by this same
+    process (each account runs its own process), and actually containing a
+    filename Edit control — never just the first "#32770" window found,
+    since a wx.MessageBox uses the identical class."""
+    import win32api
     import win32gui
     import win32process
 
     own_pid = win32api.GetCurrentProcessId()
     target = None
 
-    def _enum_top(hwnd, _):
+    def _cb(hwnd, _):
         nonlocal target
         if not win32gui.IsWindowVisible(hwnd):
             return True
@@ -121,19 +198,11 @@ def _deselect_extension(base_name: str) -> None:
             return True
         if _find_filename_edit(hwnd) is not None:
             target = hwnd
-            return False  # stop enumerating, found our dialog
+            return False  # stop enumerating, found it
         return True
 
-    win32gui.EnumWindows(_enum_top, None)
-    if target is None:
-        return
-
-    edit_hwnd = _find_filename_edit(target)
-    if edit_hwnd is None:
-        return
-
-    win32gui.SetForegroundWindow(target)
-    win32gui.SendMessage(edit_hwnd, win32con.EM_SETSEL, 0, len(base_name))
+    win32gui.EnumWindows(_cb, None)
+    return target
 
 
 def _find_filename_edit(dialog_hwnd):
@@ -153,3 +222,41 @@ def _find_filename_edit(dialog_hwnd):
     if not candidates:
         return None
     return max(candidates, key=lambda item: item[1][1])[0]
+
+
+def _force_foreground(hwnd) -> bool:
+    """SetForegroundWindow(), confirmed — not just called.
+
+    Windows refuses a bare SetForegroundWindow() from a process that hasn't
+    itself just received input, and a freshly-launched process's first-ever
+    call is exactly that case (measured: this is what made the very first
+    Save As after launching WinZapp behave differently from every one
+    after). Temporarily attaching this thread's input state to whichever
+    thread currently owns the foreground is the standard, documented way
+    around that restriction — attach, ask, detach, and then check the
+    foreground window is genuinely ours before reporting success, since a
+    refused call does not raise anything on its own.
+    """
+    import win32api
+    import win32gui
+    import win32process
+
+    current_fg = win32gui.GetForegroundWindow()
+    if current_fg == hwnd:
+        return True
+
+    my_thread_id = win32api.GetCurrentThreadId()
+    attached = False
+    fg_thread_id = 0
+    if current_fg:
+        fg_thread_id, _ = win32process.GetWindowThreadProcessId(current_fg)
+        if fg_thread_id and fg_thread_id != my_thread_id:
+            attached = win32process.AttachThreadInput(fg_thread_id, my_thread_id, True)
+
+    try:
+        win32gui.SetForegroundWindow(hwnd)
+    finally:
+        if attached:
+            win32process.AttachThreadInput(fg_thread_id, my_thread_id, False)
+
+    return win32gui.GetForegroundWindow() == hwnd
