@@ -8026,7 +8026,15 @@ class ConversationsPanel(wx.Panel):
             self,
             dlg_title,
             defaultDir=resolve_save_dialog_folder(self.main_window.settings),
-            defaultFile=default_file,
+            # Extension left off on purpose: the native Save dialog selects
+            # the whole suggested name (extension included) for editing, so a
+            # user who starts renaming loses the extension along with it
+            # unless they retype it by hand. Windows re-appends it from the
+            # wildcard's first filter when nothing is typed — that filter is
+            # built from this same ext_clean whenever one was found above, so
+            # this changes nothing about what actually gets saved. A no-op
+            # when default_file had no extension to begin with.
+            defaultFile=os.path.splitext(default_file)[0],
             wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as dlg:

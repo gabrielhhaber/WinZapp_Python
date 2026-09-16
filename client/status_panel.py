@@ -2117,7 +2117,12 @@ class StatusPanel(wx.Panel):
         with wx.FileDialog(
             self, mw.i18n.t("status_save_media"),
             defaultDir=resolve_save_dialog_folder(mw.settings),
-            defaultFile=f"status{ext}",
+            # No ext here: the native Save dialog selects the whole suggested
+            # name for editing, extension included, so renaming it loses the
+            # extension unless retyped by hand — Windows re-appends it from
+            # wildcard's first filter (built from this same ext) when nothing
+            # is typed, so this changes nothing about what gets saved.
+            defaultFile="status",
             wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as dlg:
