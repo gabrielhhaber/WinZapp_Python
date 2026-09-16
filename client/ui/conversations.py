@@ -60,6 +60,7 @@ from ui.accessible import (
 )
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
 from core.save_location import resolve_save_dialog_folder
+from core.save_dialog_selection import schedule_deselect_extension
 from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, to_editor_line_endings, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.message_copy_format import format_copied_message
@@ -8022,6 +8023,7 @@ class ConversationsPanel(wx.Panel):
             self.main_window.i18n.t("save_audio_as") if msg_type == "audioMessage"
             else self.main_window.i18n.t("save_as")
         )
+        base_name = os.path.splitext(default_file)[0]
         with wx.FileDialog(
             self,
             dlg_title,
@@ -8034,10 +8036,14 @@ class ConversationsPanel(wx.Panel):
             # built from this same ext_clean whenever one was found above, so
             # this changes nothing about what actually gets saved. A no-op
             # when default_file had no extension to begin with.
-            defaultFile=os.path.splitext(default_file)[0],
+            defaultFile=base_name,
             wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as dlg:
+            # Belt and suspenders: Windows still visually selects the
+            # extension it auto-completes into the box regardless of the
+            # above — see core/save_dialog_selection.py for why and how.
+            schedule_deselect_extension(base_name)
             if dlg.ShowModal() != wx.ID_OK:
                 return
             save_path = dlg.GetPath()

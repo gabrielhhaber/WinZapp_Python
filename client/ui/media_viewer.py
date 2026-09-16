@@ -11,6 +11,7 @@ from typing import Callable, Optional
 import wx
 
 from core.save_location import resolve_save_dialog_folder
+from core.save_dialog_selection import schedule_deselect_extension
 from core.utils import is_voice_message
 from core.video_player import VideoPlayer
 from ui.accessible import AccessibleStatusPrev, AccessibleStatusNext, AccessibleSaveAs, AccessibleMediaViewerSeekBack, AccessibleMediaViewerSeekForward, AccessibleMediaBitmapPanel
@@ -759,6 +760,10 @@ class MediaViewerDialog(wx.Dialog):
             wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as dlg:
+            # Belt and suspenders: Windows still visually selects the
+            # extension it auto-completes into the box regardless of the
+            # above — see core/save_dialog_selection.py for why and how.
+            schedule_deselect_extension(base_name)
             if dlg.ShowModal() != wx.ID_OK:
                 return
             target = dlg.GetPath()

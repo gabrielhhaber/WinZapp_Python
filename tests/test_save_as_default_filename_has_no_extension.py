@@ -10,6 +10,15 @@ Three "Save as" dialogs build a suggested filename this way (conversations.py,
 status_panel.py, media_viewer.py) — one test per call site, each mocking
 wx.FileDialog to capture the constructor's own defaultFile/wildcard kwargs
 without ever opening a real dialog window.
+
+Leaving the extension off defaultFile turned out not to be enough on its
+own: measured live, Windows auto-completes the extension into the box from
+the active file-type filter and selects it right along with the rest,
+regardless of what defaultFile contained. Each call site also calls
+core.save_dialog_selection.schedule_deselect_extension(base_name) — the
+tests below only check that it's called with the right name; what it
+actually does to a real native window is out of reach for this suite (see
+that module's own docstring) and guarded to never run under pytest anyway.
 """
 
 import os
@@ -111,6 +120,19 @@ class TestConversationsPanelSaveMediaMessage:
         wildcard = _CapturingFileDialog.captured["wildcard"]
         assert wildcard.split("|")[0].upper().startswith("JPG")
 
+    def test_schedules_the_extension_deselect_fix_with_the_same_base_name(self, monkeypatch):
+        monkeypatch.setattr(wx, "FileDialog", _CapturingFileDialog)
+        calls = []
+        monkeypatch.setattr(
+            "ui.conversations.schedule_deselect_extension",
+            lambda base_name: calls.append(base_name),
+        )
+        panel = self._panel()
+
+        panel.save_media_message(self._msg())
+
+        assert calls == [_CapturingFileDialog.captured["defaultFile"]]
+
 
 class TestStatusPanelSaveStatusMedia:
     _stub_cls = type(
@@ -133,6 +155,24 @@ class TestStatusPanelSaveStatusMedia:
         assert _CapturingFileDialog.captured["defaultFile"] == "status"
         wildcard = _CapturingFileDialog.captured["wildcard"]
         assert wildcard.split("|")[1].lower() == "*.png"
+
+    def test_schedules_the_extension_deselect_fix(self, monkeypatch):
+        monkeypatch.setattr(wx, "FileDialog", _CapturingFileDialog)
+        calls = []
+        monkeypatch.setattr(
+            "status_panel.schedule_deselect_extension",
+            lambda base_name: calls.append(base_name),
+        )
+        panel = self._stub_cls()
+        panel.main_window = _FakeMainWindow()
+        panel._current_status = {
+            "messageType": "imageMessage",
+            "message": {"imageMessage": {"mimetype": "image/png"}},
+        }
+
+        panel._on_save_status_media(None)
+
+        assert calls == ["status"]
 
 
 class TestMediaViewerSave:
@@ -177,3 +217,16 @@ class TestMediaViewerSave:
 
         assert _CapturingFileDialog.captured["defaultFile"] == "status_media"
         assert _CapturingFileDialog.captured["wildcard"] == "Todos os arquivos (*.*)|*.*"
+
+    def test_schedules_the_extension_deselect_fix_with_the_same_base_name(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(wx, "FileDialog", _CapturingFileDialog)
+        calls = []
+        monkeypatch.setattr(
+            "ui.media_viewer.schedule_deselect_extension",
+            lambda base_name: calls.append(base_name),
+        )
+        panel = self._panel(tmp_path)
+
+        panel._on_save(None)
+
+        assert calls == [_CapturingFileDialog.captured["defaultFile"]]
