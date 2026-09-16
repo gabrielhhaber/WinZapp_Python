@@ -383,7 +383,7 @@
     "add_member_error": "Error al agregar miembros: {error}",
     "add_member_privacy_invite_sent": "No se pudo agregar a {names} directamente debido a su configuración de privacidad — WhatsApp envió una invitación en su lugar.",
     "add_member_could_not_add": "No se pudo agregar a {names} al grupo.",
-    "add_member_contacts_list_label": "Seleccionar un contacto",
+    "add_member_contacts_list_label": "Lista de contactos",
     "add_member_custom_number_label": "O, añadir por número de teléfono",
     "add_member_country_label": "Seleccionar el país para añadir por número",
     "add_member_phone_number_label": "Escriba un número de teléfono",
