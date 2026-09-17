@@ -37,13 +37,30 @@ LOGIN_STORE = os.path.join(
     "Default", "IndexedDB", "https_web.whatsapp.com_0.indexeddb.leveldb")
 SESSION = "c77cc915f87e4b1a371ebe2c105cee9b"
 
+# _fingerprint_login_store() rounds its "newest" component to the whole
+# second, which is fine in real use — a real snapshot is always made FROM
+# the live profile via shutil.copy2(), which preserves mtimes exactly, so
+# there is never a real clock between the two sides. This helper writes
+# "live" and "snapshot" independently instead, purely for test convenience,
+# and that independence is what a real restore never has: two writes a
+# wall-clock second apart round to different "newest" values and make an
+# intentionally-identical pair fingerprint as different — a real flake,
+# caught live in CI (not locally, where the two writes are reliably faster
+# than a second) on test_an_identical_snapshot_is_not_restored. Pinning
+# every file this helper writes to the same fixed mtime removes the clock
+# from the comparison entirely; a genuine content difference still shows up
+# through the fingerprint's file-count/byte-count components.
+_FIXED_MTIME = 1_700_000_000
+
 
 def _write_login_store(root, payload):
     path = os.path.join(root, LOGIN_STORE)
     os.makedirs(path, exist_ok=True)
     for name, content in payload.items():
-        with open(os.path.join(path, name), "w", encoding="utf-8") as f:
+        file_path = os.path.join(path, name)
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
+        os.utime(file_path, (_FIXED_MTIME, _FIXED_MTIME))
     return path
 
 
