@@ -205,21 +205,26 @@ class TestPairingCodeErrorDialog:
 
 
 class TestLocalesCarryTheReasonKey:
-    """CLAUDE.md's rule: a user-facing string exists in all five locales or it
-    renders as the raw key name. Placeholders must survive translation too — a
-    dropped {reason} would silently hide the very detail this change adds."""
+    """CLAUDE.md's rule: a user-facing string exists in every registered locale
+    or it renders as the raw key name. Placeholders must survive translation
+    too — a dropped {reason} would silently hide the very detail this change
+    adds. The set of locales is whatever language_map.json registers, not a
+    hardcoded count: a new locale must not fail this test by merely existing."""
 
     def test_every_locale_has_both_placeholders(self):
         import glob
         import json
         import os
 
+        languages_dir = os.path.join("client", "languages")
+        with open(os.path.join(languages_dir, "language_map.json"), encoding="utf-8") as fh:
+            registered = set(json.load(fh))
         files = [
             f
-            for f in glob.glob(os.path.join("client", "languages", "*.json"))
+            for f in glob.glob(os.path.join(languages_dir, "*.json"))
             if os.path.basename(f) != "language_map.json"
         ]
-        assert len(files) == 5
+        assert {os.path.splitext(os.path.basename(f))[0] for f in files} == registered
 
         for path in files:
             with open(path, encoding="utf-8") as fh:
