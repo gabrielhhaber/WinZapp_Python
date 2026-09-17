@@ -191,13 +191,18 @@ class _Stub:
     _drop_unread_local_read_anchor = MainWindow._drop_unread_local_read_anchor
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
 
-    def __init__(self, chats):
+    def __init__(self, chats, settings=None):
         self.chats = chats
         self.i18n = _I18n()
         self.announced = []
         self.persists = 0
         self.sent = []
         self.failing = set()
+        self.settings = settings if settings is not None else {}
+        self.settings_saves = 0
+
+    def save_settings(self):
+        self.settings_saves += 1
 
     def output(self, text, interrupt=False):
         self.announced.append(text)
@@ -258,15 +263,19 @@ def _chats():
     }
 
 
+def _answer(monkeypatch, confirmed, dont_ask_again=False, seen=None):
+    def _confirm(parent, message, title, checkbox_label, **kw):
+        if seen is not None:
+            seen.update(message=message, title=title, checkbox_label=checkbox_label, **kw)
+        return confirmed, dont_ask_again
+
+    monkeypatch.setattr("main.confirm_with_checkbox", _confirm)
+
+
 class TestMarkAllReadConfirmation:
     def test_declining_changes_nothing(self, inline, monkeypatch):
         seen = {}
-
-        def box(message, title, style, parent):
-            seen.update(message=message, style=style)
-            return wx.NO
-
-        monkeypatch.setattr("main.wx.MessageBox", box)
+        _answer(monkeypatch, False, seen=seen)
         stub = _Stub(_chats())
         stub._on_mark_all_read()
 
@@ -276,10 +285,13 @@ class TestMarkAllReadConfirmation:
         assert seen["message"].endswith("2")
         # Enter on the dialog must not confirm — that is the keystroke that
         # triggered the accident in the first place.
-        assert seen["style"] & wx.NO_DEFAULT
+        assert seen["default_yes"] is False
+        # "Don't show again" starts unticked.
+        assert seen["checked"] is False
+        assert seen["checkbox_label"] == "mark_all_read_dont_show_again{count}"
 
     def test_accepting_marks_only_the_unread_chats(self, inline, monkeypatch):
-        monkeypatch.setattr("main.wx.MessageBox", lambda *a, **k: wx.YES)
+        _answer(monkeypatch, True)
         stub = _Stub(_chats())
         stub._on_mark_all_read()
 
@@ -291,10 +303,13 @@ class TestMarkAllReadConfirmation:
         assert {attempts for _, _, attempts in stub.sent} == {1}
         assert stub.persists == 1
         assert stub.announced == []
+        # Not asked to stop asking: nothing is written.
+        assert stub.settings == {}
+        assert stub.settings_saves == 0
 
     def test_nothing_unread_says_so_without_a_dialog(self, inline, monkeypatch):
         monkeypatch.setattr(
-            "main.wx.MessageBox", lambda *a, **k: pytest.fail("asked")
+            "main.confirm_with_checkbox", lambda *a, **k: pytest.fail("asked")
         )
         chats = _chats()
         for chat in chats.values():
@@ -302,6 +317,60 @@ class TestMarkAllReadConfirmation:
         stub = _Stub(chats)
         stub._on_mark_all_read()
         assert stub.announced == ["mark_all_read_none{count}"]
+
+
+class TestDontShowAgain:
+    """The confirmation carries a "don't show again" checkbox; ticked and
+    confirmed it clears user_interface.confirm_mark_all_read, the same key
+    Settings > Interface mirrors so the confirmation can be turned back on."""
+
+    def test_ticked_and_confirmed_stops_asking_and_persists(self, inline, monkeypatch):
+        _answer(monkeypatch, True, dont_ask_again=True)
+        stub = _Stub(_chats())
+
+        stub._on_mark_all_read()
+
+        assert stub.settings["user_interface"]["confirm_mark_all_read"] is False
+        assert stub.settings_saves == 1
+        assert all(c["unreadCount"] == 0 for c in stub.chats.values())
+
+    def test_ticked_but_declined_changes_nothing_at_all(self, inline, monkeypatch):
+        """No with the box ticked must not turn every later request into an
+        unconfirmed one."""
+        _answer(monkeypatch, False, dont_ask_again=True)
+        stub = _Stub(_chats())
+
+        stub._on_mark_all_read()
+
+        assert stub.settings == {}
+        assert stub.settings_saves == 0
+        assert stub.sent == []
+
+    def test_once_turned_off_it_marks_without_asking(self, inline, monkeypatch):
+        monkeypatch.setattr(
+            "main.confirm_with_checkbox", lambda *a, **k: pytest.fail("asked")
+        )
+        stub = _Stub(_chats(), settings={"user_interface": {"confirm_mark_all_read": False}})
+
+        stub._on_mark_all_read()
+
+        assert all(c["unreadCount"] == 0 for c in stub.chats.values())
+        assert stub.settings_saves == 0
+
+    def test_turned_back_on_it_asks_again(self, inline, monkeypatch):
+        seen = {}
+        _answer(monkeypatch, False, seen=seen)
+        stub = _Stub(_chats(), settings={"user_interface": {"confirm_mark_all_read": True}})
+
+        stub._on_mark_all_read()
+
+        assert seen
+        assert stub.sent == []
+
+    def test_the_default_is_to_ask(self):
+        from core.utils import DEFAULT_SETTINGS
+
+        assert DEFAULT_SETTINGS["user_interface"]["confirm_mark_all_read"] is True
 
 
 class TestBulkReadFailure:

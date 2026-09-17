@@ -138,6 +138,55 @@ def local_history_behind_server(chat: dict, verified_activity: int = 0) -> bool:
     return _seconds(marker["activity"]) > floor
 
 
+def timestamp_seconds(value) -> int:
+    """Public form of _seconds() for callers outside this module."""
+    return _seconds(value)
+
+
+def chat_activity_floor(chat: dict, counts_as_last_message, now: int = 0) -> int:
+    """Seconds of the newest stored message that counts as the chat's last one.
+
+    A chat's activity marker `t` can never honestly be older than a message we
+    hold that decides its preview — the chat was active at least then. A
+    list-chats snapshot claiming less is behind us, not ahead: WhatsApp Web
+    after a profile restore comes back with every marker from its snapshot,
+    up to a day old. Merging that `t` in lowered the local one, and on the
+    next round reconcile_snapshot_unread() saw the snapshot as current and
+    accepted its unread counts — which, for a snapshot taken after a mass
+    mark-as-read, put the whole list back near zero.
+
+    *counts_as_last_message* is MainWindow._counts_as_last_message, the same
+    filter sync_chat_messages() uses before raising `t` itself, so a system
+    event (a join, a revoke) cannot push the floor up. Returns 0 when nothing
+    counts, meaning "no floor".
+
+    A message still pending locally is skipped — it has not reached WhatsApp
+    and carries this PC's clock, not the server's — and so, when *now* is
+    given, is any message stamped after it: a clock running ahead must not
+    hold `t` (and with it an unread badge the server has since cleared) above
+    anything the server will ever report. Skipped rather than clamped to
+    *now*: a clamped floor would rise every round, reading as new activity
+    against the previous baseline and costing that chat a get-messages every
+    other poll for as long as the clock stays ahead.
+    """
+    best = 0
+    for message in chat_message_records(chat):
+        if isinstance(message, dict) and message.get("_local_pending"):
+            continue
+        try:
+            counts = counts_as_last_message(message)
+        except Exception:
+            counts = False
+        if not counts:
+            continue
+        seconds = _seconds(message_timestamp(message))
+        if now and seconds > now:
+            continue
+        if seconds > best:
+            best = seconds
+    return best
+
+
 def chat_sync_change_reason(chat: dict, baseline: dict,
                             verified_activity: int = 0) -> str:
     """Which signal says this chat changed, or "" when none does.

@@ -86,6 +86,13 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         assert dialog._notebook.FindPage(dialog._audio_page) == 10
         assert dialog._notebook.FindPage(dialog._calls_page) == 11
 
+    def test_the_profile_backup_tab_is_appended_last(self, make_dialog):
+        """Added after Calls so no earlier index moved; SetPageText(12) in
+        _refresh_dialog_labels() relies on it being the thirteenth page."""
+        dialog = make_dialog()
+        assert dialog._notebook.FindPage(dialog._profile_backup_page) == 12
+        assert dialog._notebook.GetPageCount() == 13
+
     def test_the_tabs_that_are_opened_by_number_did_not_move(self, make_dialog):
         """main.py's custom-API first-run flow does SetSelection(4), and this
         file has SetSelection() calls up to 8. The new tab is below all of
@@ -102,6 +109,7 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         assert dialog._notebook.GetPageText(9) == i18n.t("tab_files_saving")
         assert dialog._notebook.GetPageText(10) == i18n.t("tab_audio_playback")
         assert dialog._notebook.GetPageText(11) == i18n.t("tab_calls")
+        assert dialog._notebook.GetPageText(12) == i18n.t("tab_profile_backup")
 
 
 class TestLoadingTheCurrentSetting:

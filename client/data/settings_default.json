@@ -37,19 +37,26 @@
         "alerts_enabled": true,
         "popup_enabled": true
     },
+    "profile_backup": {
+        "close_snapshot_min_hours": 24,
+        "live_snapshot_enabled": false,
+        "live_snapshot_interval_hours": 24,
+        "live_snapshot_confirm": true
+    },
     "user_interface": {
         "messages_page_size": 200,
         "page_jump_size": 15,
         "focus_on_open": "message_field",
-        "voice_record_focus": "send_button",
+        "voice_record_focus": "send",
         "message_list_mode": "classic",
         "show_listbox_item_count": false,
-        "page_up_down_step": 10,
+        "page_up_down_step": 15,
         "self_reference_mode": "eu",
         "self_reference_custom_word": "",
         "show_delivery_status_in_chat_list": true,
         "preserve_typed_text_as_attachment_caption": true,
         "bulk_action_shortcuts": true,
+        "confirm_mark_all_read": true,
         "space_selects_in_selection_mode": true,
         "escape_clears_selection": true,
         "auto_focus_next_audio": true,
@@ -99,6 +106,7 @@
     },
     "conversation_sounds": {},
     "cleared_chats": {},
+    "cleared_starred_chats": {},
     "storage": {
         "auto_download_media": true,
         "auto_download_media_types": [

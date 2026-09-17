@@ -858,19 +858,26 @@ DEFAULT_SETTINGS = {
         "alerts_enabled": True,
         "popup_enabled": True
     },
+    "profile_backup": {
+        "close_snapshot_min_hours": 24,
+        "live_snapshot_enabled": False,
+        "live_snapshot_interval_hours": 24,
+        "live_snapshot_confirm": True
+    },
     "user_interface": {
         "messages_page_size": 200,
         "page_jump_size": 15,
         "focus_on_open": "message_field",
-        "voice_record_focus": "send_button",
+        "voice_record_focus": "send",
         "message_list_mode": "classic",
         "show_listbox_item_count": False,
-        "page_up_down_step": 10,
+        "page_up_down_step": 15,
         "self_reference_mode": "eu",
         "self_reference_custom_word": "",
         "show_delivery_status_in_chat_list": True,
         "preserve_typed_text_as_attachment_caption": True,
         "bulk_action_shortcuts": True,
+        "confirm_mark_all_read": True,
         # Once a selection exists, plain Space keeps selecting instead of
         # playing/pausing the focused message ("selection mode"), and Esc
         # clears the message selection before it closes the conversation.
@@ -937,6 +944,7 @@ DEFAULT_SETTINGS = {
     },
     "conversation_sounds": {},
     "cleared_chats": {},
+    "cleared_starred_chats": {},
     "storage": {
         "auto_download_media": True,
         # Which categories the auto-download covers. All of them by default —
@@ -947,6 +955,41 @@ DEFAULT_SETTINGS = {
         "probe_video_duration_on_download": False
     }
 }
+
+def clear_chat_keep_starred_echo(body):
+    """What a /clear-chat response says it applied for keepStarred.
+
+    True/False when the server echoed it; None when it did not — an older
+    client/api that ignores keepStarred and therefore kept the starred
+    messages. Anything unparseable is None too: only an explicit False may
+    make WinZapp treat starred messages as cleared for good.
+    """
+    if not isinstance(body, dict):
+        return None
+    response = body.get("response")
+    if not isinstance(response, dict):
+        return None
+    value = response.get("keepStarred")
+    return value if isinstance(value, bool) else None
+
+
+def clear_chat_applied(body, phone) -> bool:
+    """Whether a /clear-chat response says the clear itself succeeded for
+    *phone* — `response.data[phone]`, which wppconnect's clearChat() sets to
+    `WPP.chat.clear(...).status === 200`.
+
+    The keepStarred echo alone is not that: the controller echoes what it was
+    asked to apply even when WhatsApp Web answered the clear with a failure
+    and nothing threw, and recording the starred cutoff on that would hide,
+    in WinZapp only and for good, starred messages still on the phone. Only
+    an explicit True counts.
+    """
+    if not isinstance(body, dict):
+        return False
+    response = body.get("response")
+    data = response.get("data") if isinstance(response, dict) else None
+    return isinstance(data, dict) and data.get(phone) is True
+
 
 def generate_and_save_key(filepath):
     key = Fernet.generate_key()

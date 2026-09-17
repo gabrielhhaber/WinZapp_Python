@@ -1,8 +1,16 @@
 V1.1.2.0
 
-Esta versão corrige situações em que o WinZapp pedia para emparelhar de novo sem necessidade, e traz uma forma mais rápida de marcar vários itens de uma vez.
+Esta versão corrige situações em que o WinZapp pedia para emparelhar de novo sem necessidade, traz uma forma mais rápida de marcar vários itens de uma vez e opções nas confirmações de limpar uma conversa e de marcar todas as conversas como lidas.
 
 NOVIDADES
+
+- Escolher se as mensagens marcadas com estrela ficam ao limpar uma conversa. A confirmação de limpar traz agora a opção "Manter mensagens marcadas com estrela", assinalada por predefinição, tal como no WhatsApp Web. Sem ela assinalada, essas mensagens são eliminadas juntamente com as restantes, também no telemóvel. Aplica-se a limpar uma conversa, várias selecionadas ou uma arquivada.
+
+- Confirmação ao marcar todas as conversas como lidas. O comando pergunta agora antes, com Não como predefinição, para que um Alt seguido de Enter por engano não marque tudo como lido, também no telemóvel. A pergunta tem a opção "Não mostrar novamente": assinalada e confirmada com Sim, as vezes seguintes marcam diretamente. Para voltar a ser perguntado, use a opção "Pedir confirmação ao marcar todas as conversas como lidas", no separador Interface do utilizador das Definições.
+
+- Cópia de segurança do perfil nas Definições. O novo separador Cópia de segurança define de quanto em quanto tempo o WinZapp renova, ao ser fechado, a cópia do perfil do navegador que usa para recuperar a ligação, com 24 horas por predefinição. A cópia também pode ser feita com o WinZapp aberto, no intervalo escolhido: a ligação ao WhatsApp é interrompida enquanto é feita, o que pode demorar alguns minutos, e o WinZapp pode perguntar antes de cada vez. A nova cópia só substitui a anterior depois de o WhatsApp voltar a ligar-se com ela.
+
+- Exportar e importar as definições. No menu Ficheiro, “Exportar definições” guarda as suas preferências num ficheiro, e “Importar definições” aplica esse ficheiro aqui, de imediato, sem reiniciar. Serve para levar tudo para outro computador ou outra conta. A sua ligação ao WhatsApp e o que pertence a cada conta, como as conversas limpas e os sons por conversa, não vão no ficheiro. Se usa uma API própria, o endereço, a porta e a chave dela vão juntos.
 
 - O Espaço reproduz e pausa o áudio ou o vídeo em foco. Antes esta tecla não fazia nada na lista de mensagens. Continua mais restrita do que o Enter: nunca abre ligação, documento, visualizador nem conversa de contacto.
 
@@ -18,7 +26,15 @@ CORREÇÕES
 
 - Adicionar um membro ao grupo pelo número de telefone não fazia nada: o botão "Adicionar número" não adicionava ninguém e não mostrava erro. Agora adiciona o número de imediato e mostra se correu bem, e um número inválido é assinalado. Na mesma janela, o campo de pesquisa passou a ser lido como "Procurar contacto".
 
-- Com uma conversa aberta, a lista de mensagens encolhia de volta ao limite configurado a cada minuto, e mensagens antigas desapareciam — incluindo do histórico guardado. O WinZapp confundia mensagens fora do intervalo que consulta no WhatsApp com mensagens apagadas no telemóvel. Agora só compara o intervalo que o WhatsApp de facto devolveu, e a lista já não encolhe enquanto está a ler.
+- Com uma conversa aberta, a lista de mensagens encolhia de volta ao limite configurado a cada minuto, e mensagens antigas desapareciam — incluindo do histórico guardado. O WinZapp confundia mensagens fora do intervalo que consulta no WhatsApp com mensagens apagadas no telemóvel. Agora uma mensagem só é apagada quando o WhatsApp mostra que ela realmente já não existe — nunca por simplesmente não a encontrar, nem no período que uma recuperação do perfil deixou para trás — e a lista já não encolhe enquanto está a ler.
+
+- Em grupos com muitos membros, os detalhes do grupo podiam ficar em "A carregar..." durante minutos — a vista Geral e a lista de Membros só apareciam depois de o WinZapp procurar o número de cada membro sem número conhecido, um de cada vez. Parecia bloqueado, e só voltava fechando e abrindo a janela. Agora os dados aparecem assim que o grupo responde, e os nomes e números em falta vão sendo preenchidos na lista a seguir, sem o tirar da linha em que está.
+
+- Mudar o idioma nas Definições e carregar em Aplicar traduz agora todas as opções. Algumas continuavam no idioma anterior até fechar e voltar a abrir as Definições, como "Ao iniciar uma conversa, apresentar este número de mensagens" e "Mensagens a saltar ao pressionar PageUp / PageDown".
+
+- A velocidade predefinida de reprodução de áudio já não volta sozinha a 1x. Ao abrir as Definições, o campo do separador Reprodução de áudio aparecia vazio, qualquer que fosse a velocidade guardada, e carregar em Aplicar e depois em OK gravava 1x por cima dela. Agora a velocidade guardada aparece selecionada e é mantida.
+
+- Depois de o WinZapp recuperar o perfil do navegador, as conversas com mensagens não lidas já não aparecem como lidas.
 
 V1.1.1.0
 

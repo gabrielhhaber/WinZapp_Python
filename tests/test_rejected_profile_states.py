@@ -31,12 +31,24 @@ SESSION = "c77cc915f87e4b1a371ebe2c105cee9b"
 OTHER = "9de1c2bf73b3ec8b8891febfe2bc4d48"
 
 
+#: Every seeded file gets this mtime. These tests write the "same" profile state
+#: into two places by hand (live and snapshot, snapshot and a scratch copy) and
+#: expect one fingerprint for both — but the fingerprint includes the newest
+#: mtime rounded to the second, so writes a few milliseconds apart could land on
+#: either side of a half-second and disagree, failing now and then under load.
+#: See SEEDED_MTIME in tests/test_restore_that_restores_the_failure.py, where the
+#: flake was caught. Production copies keep mtimes through shutil.copy2.
+SEEDED_MTIME = 1_700_000_000
+
+
 def _store(root, payload):
     path = os.path.join(root, LOGIN_STORE)
     os.makedirs(path, exist_ok=True)
     for name, content in payload.items():
-        with open(os.path.join(path, name), "w", encoding="utf-8") as f:
+        file_path = os.path.join(path, name)
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
+        os.utime(file_path, (SEEDED_MTIME, SEEDED_MTIME))
 
 
 @pytest.fixture
@@ -51,6 +63,19 @@ def _seed(gd, session=SESSION, live=None, snapshot=None, previous=None):
         _store(profile_recovery.snapshot_dir(gd, session), snapshot)
     if previous is not None:
         _store(profile_recovery.previous_snapshot_dir(gd, session), previous)
+
+
+def test_the_seed_pins_every_mtime(gd):
+    """Guards the fixture itself, as the same-named test does in
+    tests/test_restore_that_restores_the_failure.py: without the pinned mtime
+    the flake comes back intermittently, never deterministically."""
+    payload = {"000003.log": "same", "CURRENT": "MANIFEST-000002"}
+    _seed(gd, live=payload, snapshot=dict(payload))
+
+    for root in (profile_recovery.profile_dir(gd, SESSION),
+                 profile_recovery.snapshot_dir(gd, SESSION)):
+        for entry in os.scandir(os.path.join(root, LOGIN_STORE)):
+            assert entry.stat().st_mtime == SEEDED_MTIME
 
 
 class TestTheRecord:
@@ -246,6 +271,11 @@ class TestRecoveryRecordsAndRespectsTheVerdict:
         profile_recovery.note_profile_rejected(
             gd, SESSION,
             profile_recovery._fingerprint_login_store(os.path.join(gd, "scratch")))
+        # Only the persisted verdict may be what refuses here. With every
+        # seeded mtime pinned, the in-launch "identical to the live profile"
+        # check would refuse too if the two payloads ever had equal sizes, and
+        # the assertions below would still pass for the wrong reason.
+        assert profile_recovery.snapshot_matches_live_profile(gd, SESSION) is False
 
         assert MainWindow._recover_suspect_profile(_Stub(gd)) is False
         assert recovery.calls == []

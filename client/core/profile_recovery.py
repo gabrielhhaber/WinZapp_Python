@@ -40,6 +40,7 @@ import json
 import logging
 import os
 import shutil
+import threading
 import time
 
 
@@ -338,14 +339,44 @@ def snapshot_age_seconds(global_dir, session_name, now=None):
     return max(0.0, (time.time() if now is None else now) - mtime)
 
 
+def snapshot_taken_at(global_dir, session_name, prefer_previous=False):
+    """When the generation restore_snapshot() would restore was completed
+    (epoch seconds), or None. Read before restoring: the restore moves that
+    directory into place, so afterwards the question has no answer."""
+    path = (previous_snapshot_dir(global_dir, session_name) if prefer_previous
+            else snapshot_dir(global_dir, session_name))
+    try:
+        return os.path.getmtime(path)
+    except OSError:
+        return None
+
+
 def snapshot_is_fresh(global_dir, session_name, max_age=SNAPSHOT_MAX_AGE_SECONDS,
                       now=None):
     age = snapshot_age_seconds(global_dir, session_name, now=now)
     return age is not None and age < max_age
 
 
-def _copy_tree_bounded(source, destination, deadline):
-    """Copy `source` to `destination`, giving up if `deadline` passes.
+#: Every snapshot copy in this process goes through one lock. Two copies at
+#: once share the same `.partial` staging directory and the same demotion to
+#: `.prev`: the second one's cleanup deletes what the first is writing, and
+#: whichever finishes last can drop the good generation the other just
+#: demoted. Reachable once a backup can run with WinZapp open — closing the app
+#: mid-copy starts the close-path copy beside it. Non-blocking: a copy that
+#: finds another running gives up and leaves both generations untouched.
+_CAPTURE_LOCK = threading.Lock()
+
+
+def _check_copy(deadline, cancel):
+    if time.monotonic() > deadline:
+        raise TimeoutError("snapshot budget exhausted")
+    if cancel is not None and cancel():
+        raise TimeoutError("snapshot cancelled")
+
+
+def _copy_tree_bounded(source, destination, deadline, cancel=None):
+    """Copy `source` to `destination`, giving up if `deadline` passes or
+    `cancel()` turns True.
 
     Written out rather than delegating to `shutil.copytree` because the budget
     has to be checked *during* the walk: a copytree of a 200 MB profile on a
@@ -353,8 +384,7 @@ def _copy_tree_bounded(source, destination, deadline):
     budget is that the user is waiting for the app to close.
     """
     for root, dirs, files in os.walk(source):
-        if time.monotonic() > deadline:
-            raise TimeoutError("snapshot budget exhausted")
+        _check_copy(deadline, cancel)
         relative = os.path.relpath(root, source)
         target_root = (destination if relative == "."
                        else os.path.join(destination, relative))
@@ -362,8 +392,7 @@ def _copy_tree_bounded(source, destination, deadline):
         for name in files:
             if name in _TRANSIENT_ENTRIES:
                 continue
-            if time.monotonic() > deadline:
-                raise TimeoutError("snapshot budget exhausted")
+            _check_copy(deadline, cancel)
             try:
                 shutil.copy2(os.path.join(root, name),
                              os.path.join(target_root, name))
@@ -395,8 +424,14 @@ def _replace_directory(staged, final):
         shutil.rmtree(displaced, ignore_errors=True)
 
 
+def pending_snapshot_dir(global_dir, session_name):
+    """A complete copy waiting to be promoted — see capture_snapshot(stage_only=True)."""
+    return snapshot_dir(global_dir, session_name) + ".pending"
+
+
 def capture_snapshot(global_dir, session_name, budget=SNAPSHOT_BUDGET_SECONDS,
-                     max_age=SNAPSHOT_MAX_AGE_SECONDS):
+                     max_age=SNAPSHOT_MAX_AGE_SECONDS, cancel=None, stage_only=False,
+                     lock_wait=0.0):
     """Take a restore point, if one is due. Returns True if one was written.
 
     **Only ever call this after a confirmed clean close** — close-session
@@ -404,6 +439,15 @@ def capture_snapshot(global_dir, session_name, budget=SNAPSHOT_BUDGET_SECONDS,
     profile. See the module docstring: a snapshot of a live profile preserves
     whatever half-written state it was in, which is a restore point that
     restores the corruption.
+
+    `stage_only` writes the copy to pending_snapshot_dir() and touches neither
+    generation; promote_pending_snapshot() puts it in place once the caller has
+    seen the session accept those bytes, discard_pending_snapshot() drops it.
+    A regular capture removes any pending copy left behind, since it is older
+    than what it just wrote. `cancel`, when given, is polled during the copy.
+    `lock_wait` is how long to wait for another copy to finish before giving
+    up — the close path waits a moment, since a copy cancelled because the app
+    is closing lets go almost at once.
 
     Never raises. A failed snapshot is a missing nicety; a failed *shutdown* is
     the corruption this exists to protect against, so nothing here may put the
@@ -414,14 +458,33 @@ def capture_snapshot(global_dir, session_name, budget=SNAPSHOT_BUDGET_SECONDS,
         return False
     if snapshot_is_fresh(global_dir, session_name, max_age=max_age):
         return False
+    acquired = (_CAPTURE_LOCK.acquire(timeout=lock_wait) if lock_wait > 0
+                else _CAPTURE_LOCK.acquire(blocking=False))
+    if not acquired:
+        logging.warning("[profile-snapshot] another copy of %s is running — not "
+                        "starting a second one", session_name[:12])
+        return False
+    try:
+        return _capture_locked(global_dir, session_name, source, budget, cancel, stage_only)
+    finally:
+        _CAPTURE_LOCK.release()
 
+
+def _capture_locked(global_dir, session_name, source, budget, cancel, stage_only):
     final = snapshot_dir(global_dir, session_name)
+    pending = pending_snapshot_dir(global_dir, session_name)
     staged = final + ".partial"
     deadline = time.monotonic() + budget
     try:
         shutil.rmtree(staged, ignore_errors=True)
         os.makedirs(staged, exist_ok=True)
-        _copy_tree_bounded(source, staged, deadline)
+        _copy_tree_bounded(source, staged, deadline, cancel)
+        if stage_only:
+            _replace_directory(staged, pending)
+            logging.info("[profile-snapshot] copy of session %s staged, waiting "
+                         "to be confirmed", session_name[:12])
+            return True
+        shutil.rmtree(pending, ignore_errors=True)
         # Demote the snapshot being replaced rather than dropping it. See
         # previous_snapshot_dir(): a clean close is not proof that what it
         # wrote will authenticate on the next load, and the generation being
@@ -449,6 +512,58 @@ def capture_snapshot(global_dir, session_name, budget=SNAPSHOT_BUDGET_SECONDS,
                         session_name[:12], exc)
         shutil.rmtree(staged, ignore_errors=True)
         return False
+
+
+def promote_pending_snapshot(global_dir, session_name):
+    """Put a staged copy in place as the newest generation, demoting the
+    current one to `.prev` exactly as a regular capture does. Returns True if
+    a copy was promoted. Never raises."""
+    pending = pending_snapshot_dir(global_dir, session_name)
+    if not os.path.isdir(pending):
+        return False
+    if not _CAPTURE_LOCK.acquire(blocking=False):
+        logging.warning("[profile-snapshot] a copy of %s is running — not "
+                        "promoting the staged one over it", session_name[:12])
+        return False
+    try:
+        final = snapshot_dir(global_dir, session_name)
+        previous = previous_snapshot_dir(global_dir, session_name)
+        if os.path.isdir(final):
+            shutil.rmtree(previous, ignore_errors=True)
+            try:
+                os.replace(final, previous)
+            except OSError as exc:
+                logging.warning("[profile-snapshot] could not keep the previous "
+                                "generation for %s: %s", session_name[:12], exc)
+        _replace_directory(pending, final)
+        logging.info("[profile-snapshot] staged copy of %s promoted to the "
+                     "restore point", session_name[:12])
+        return True
+    except Exception as exc:
+        logging.warning("[profile-snapshot] could not promote the staged copy of "
+                        "%s: %s", session_name[:12], exc)
+        return False
+    finally:
+        _CAPTURE_LOCK.release()
+
+
+def discard_pending_snapshot(global_dir, session_name):
+    """Drop a staged copy that was not confirmed. Returns True if nothing is
+    left staged. Never raises.
+
+    Skipped while _CAPTURE_LOCK is held: whoever holds it is either promoting
+    this very copy — a delete racing its rename would leave the newest
+    generation missing files — or writing a capture that replaces it anyway.
+    """
+    if not _CAPTURE_LOCK.acquire(blocking=False):
+        logging.info("[profile-snapshot] a copy of %s is in progress — leaving "
+                     "the staged one to it", session_name[:12])
+        return False
+    try:
+        shutil.rmtree(pending_snapshot_dir(global_dir, session_name), ignore_errors=True)
+        return True
+    finally:
+        _CAPTURE_LOCK.release()
 
 
 def restore_snapshot(global_dir, session_name, prefer_previous=False):

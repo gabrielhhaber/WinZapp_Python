@@ -106,8 +106,9 @@ class _FakeMainWindow:
     def output(self, text, interrupt=False):
         self.announced.append(text)
 
-    def clear_chat(self, jid):
+    def clear_chat(self, jid, keep_starred=True):
         self.cleared.append(jid)
+        self.clear_keep_starred = keep_starred
 
     def delete_chat(self, jid):
         self.deleted.append(jid)
@@ -176,6 +177,7 @@ class _Panel:
     _on_messages_list_key_down = ConversationsPanel._on_messages_list_key_down
     _on_conv_list_key_down = ConversationsPanel._on_conv_list_key_down
     _on_mass_clear_chats = ConversationsPanel._on_mass_clear_chats
+    _reset_view_after_chat_cleared = ConversationsPanel._reset_view_after_chat_cleared
     _on_mass_delete_chats = ConversationsPanel._on_mass_delete_chats
     _on_mass_archive_chats = ConversationsPanel._on_mass_archive_chats
     _on_mass_mark_read_chats = ConversationsPanel._on_mass_mark_read_chats
@@ -625,6 +627,9 @@ class TestToggleMessageSelection:
 def confirm_yes(monkeypatch):
     """Every destructive mass action asks first; answer yes."""
     monkeypatch.setattr(wx, "MessageBox", lambda *a, **k: wx.YES)
+    # Clearing asks through its own dialog (it carries the "keep starred
+    # messages" checkbox); answer yes with the checkbox at its default.
+    monkeypatch.setattr("ui.conversations.confirm_clear_chat", lambda *a, **k: (True, True))
 
 
 @pytest.fixture
@@ -639,12 +644,19 @@ def confirm_yes_capture(monkeypatch):
         return wx.YES
 
     monkeypatch.setattr(wx, "MessageBox", _fake_message_box)
+
+    def _fake_clear_confirm(parent, message, title, keep_starred_label, **kw):
+        calls.append((message, title))
+        return True, True
+
+    monkeypatch.setattr("ui.conversations.confirm_clear_chat", _fake_clear_confirm)
     return calls
 
 
 @pytest.fixture
 def confirm_no(monkeypatch):
     monkeypatch.setattr(wx, "MessageBox", lambda *a, **k: wx.NO)
+    monkeypatch.setattr("ui.conversations.confirm_clear_chat", lambda *a, **k: (False, True))
 
 
 @pytest.fixture
@@ -817,6 +829,14 @@ class TestMassChatActions:
         assert panel.selected_chats == set()
         assert panel.main_window.announced == ["success_clear"]
 
+    def test_unticking_keep_starred_applies_to_every_selected_chat(self, monkeypatch):
+        monkeypatch.setattr("ui.conversations.confirm_clear_chat", lambda *a, **k: (True, False))
+        panel = _Panel()
+        panel.selected_chats = {"a@s.whatsapp.net", "b@s.whatsapp.net"}
+        panel._on_mass_clear_chats(None)
+        assert sorted(panel.main_window.cleared) == ["a@s.whatsapp.net", "b@s.whatsapp.net"]
+        assert panel.main_window.clear_keep_starred is False
+
     def test_declining_the_confirmation_clears_nothing(self, confirm_no):
         """And leaves the selection intact, so the user does not have to
         rebuild it after an accidental cancel."""
@@ -894,6 +914,7 @@ class TestMassChatActions:
         """Not even a confirmation dialog — the submenu is only built while a
         selection exists, but the handlers are reachable after it is cleared."""
         monkeypatch.setattr(wx, "MessageBox", lambda *a, **k: pytest.fail("asked"))
+        monkeypatch.setattr("ui.conversations.confirm_clear_chat", lambda *a, **k: pytest.fail("asked"))
         panel = _Panel()
         getattr(panel, handler)(None)
         assert panel.main_window.cleared == []

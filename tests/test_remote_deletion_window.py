@@ -89,6 +89,7 @@ class _Panel:
     def __init__(self):
         self.conversation = {"remoteJid": JID}
         self.removed = None
+        self.selected_messages = set()
 
     def remove_messages_by_id(self, ids, focus_previous=False):
         self.removed = set(ids)
@@ -100,9 +101,14 @@ class _Panel:
 class _Stub:
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
     _reconcile_active_conversation_with_remote = MainWindow._reconcile_active_conversation_with_remote
+    _rollback_gaps = MainWindow._rollback_gaps
+    _legacy_restore_gap = MainWindow._legacy_restore_gap
+    _ROLLBACK_GAPS_METADATA_KEY = MainWindow._ROLLBACK_GAPS_METADATA_KEY
     _mirror_remote_deletions = MainWindow._mirror_remote_deletions
     _mirror_remote_clear = MainWindow._mirror_remote_clear
+    _deletions_before_remote_window = MainWindow._deletions_before_remote_window
     _REMOTE_CLEAR_CONFIRM_STRIKES = MainWindow._REMOTE_CLEAR_CONFIRM_STRIKES
+    _REMOTE_BEFORE_PAGES = MainWindow._REMOTE_BEFORE_PAGES
 
     def __init__(self, records, remote, page_size=200):
         self.chats = {JID: {"remoteJid": JID, "messages": {"messages": {"records": records}}}}
@@ -114,7 +120,13 @@ class _Stub:
 
     def _fetch_remote_message_window(self, remote_jid):
         self.fetches += 1
-        return self._remote
+        ids, oldest = self._remote
+        return ids, oldest, ("anchor" if ids else "")
+
+    # The look further back into older history fails here: whatever it cannot
+    # account for must be kept, which is what these tests pin.
+    def _fetch_remote_messages_before(self, remote_jid, anchor_id):
+        return None
 
 
 @pytest.fixture(autouse=True)
@@ -213,6 +225,7 @@ class _Ws:
 
 class _FetchStub:
     _fetch_remote_message_window = MainWindow._fetch_remote_message_window
+    _get_remote_messages = MainWindow._get_remote_messages
 
     def __init__(self):
         self.ws = _Ws()
@@ -228,10 +241,10 @@ class TestFetchRemoteMessageWindow:
 
     def test_an_unmappable_entry_still_bounds_the_window(self, monkeypatch):
         entries = [{"id": "x", "boom": True, "t": OLD}, {"id": "m", "t": OLD + 5}]
-        assert self._fetch(monkeypatch, entries) == ({"m"}, OLD)
+        assert self._fetch(monkeypatch, entries) == ({"m"}, OLD, "")
 
     def test_an_empty_answer_is_data(self, monkeypatch):
-        assert self._fetch(monkeypatch, []) == (set(), None)
+        assert self._fetch(monkeypatch, []) == (set(), None, "")
 
     def test_entries_that_yield_no_ids_are_ambiguous_not_a_clear(self, monkeypatch):
         """A broken normaliser must not read as "the phone has nothing" — three

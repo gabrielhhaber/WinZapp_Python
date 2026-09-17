@@ -439,6 +439,40 @@ def hidden_frame(**kwargs):
     )
     return wx.Frame(None, **kwargs)
 
+def destroy_now(*windows):
+    """Destroy wx windows AND their parents for real, now.
+
+    Destroy() on a top-level window (a Dialog, a Frame) only queues it: wx
+    deletes it on the next idle cycle, and the test suite never runs an event
+    loop, so without this nothing a test creates is ever freed. A Settings
+    dialog is hundreds of native controls, and the roundtrip tests build one
+    per case: the process ran out of window handles part-way through
+    test_settings_checkboxes_roundtrip.py on CI, and every dialog test after
+    that point failed at creation ("Failed to create dialog. Incorrect
+    DLGTEMPLATE?") — 103 failures that had nothing to do with what they test.
+
+    wx.Yield() is what runs the idle cycle here (wxPython exposes no
+    ProcessIdle). Only ever reached from `wxgui` tests, which run on CI.
+    """
+    import wx
+
+    seen = []
+    for window in windows:
+        while window is not None and window not in seen:
+            seen.append(window)
+            try:
+                window = window.GetParent()
+            except RuntimeError:
+                break
+    for window in seen:
+        try:
+            if window:
+                window.Destroy()
+        except RuntimeError:
+            pass
+    wx.Yield()
+
+
 def set_clipboard_text(text):
     """Write plain text to the clipboard, with the same retry guarantee."""
     import wx

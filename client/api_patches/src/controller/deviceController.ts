@@ -866,6 +866,7 @@ export async function clearChat(req: Request, res: Response) {
             properties: {
               phone: { type: "string" },
               isGroup: { type: "boolean" },
+              keepStarred: { type: "boolean" },
             }
           },
           examples: {
@@ -873,6 +874,7 @@ export async function clearChat(req: Request, res: Response) {
               value: {
                 phone: "5521999999999",
                 isGroup: false,
+                keepStarred: true,
               }
             },
           }
@@ -880,15 +882,31 @@ export async function clearChat(req: Request, res: Response) {
       }
      }
    */
-  const { phone } = req.body;
+  const { phone, keepStarred } = req.body;
   const session = req.session;
+  // WinZapp: the user chooses whether starred messages survive, like WhatsApp
+  // Web's own "keep starred messages" checkbox. Anything but an explicit false
+  // keeps them — wppconnect's default, and what an older client expects.
+  const keep = keepStarred !== false;
 
   try {
     const results: any = {};
     for (const contato of phone) {
-      results[contato] = await req.client.clearChat(contato);
+      results[contato] = await req.client.clearChat(contato, keep);
     }
-    returnSucess(res, session, phone, results);
+    // Echo what was actually applied: WinZapp only treats starred messages as
+    // gone for good once the server confirms it cleared them, so an older
+    // server that ignores keepStarred cannot hide messages still on the phone.
+    res.status(201).json({
+      status: 'Success',
+      response: {
+        message: 'Information retrieved successfully.',
+        contact: phone,
+        session: session,
+        data: results,
+        keepStarred: keep,
+      },
+    });
   } catch (error) {
     returnError(req, res, session, error);
   }

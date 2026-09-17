@@ -59,6 +59,7 @@ from ui.accessible import (
     CompatListBoxMessagesCtrl,
 )
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
+from ui.dialogs.clear_chat_confirm import confirm_clear_chat
 from core.save_location import resolve_save_dialog_folder
 from core.save_dialog_selection import schedule_deselect_extension
 from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, to_editor_line_endings, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
@@ -11037,34 +11038,52 @@ class ConversationsPanel(wx.Panel):
     def _on_menu_unpin(self, jid: str):
         self.main_window.unpin_chat(jid)
 
+    def _reset_view_after_chat_cleared(self, jid: str):
+        """Empty the open conversation's list and selection after *jid* was
+        cleared, when *jid* is the open one.
+
+        Every "clear chat" entry point has to come through here — the chat
+        list's menu, the mass action on marked chats and the archived list.
+        Only the first one used to reset the panel, so clearing the open chat
+        from either of the other two left its rows on screen and, since the
+        selection mode is on whenever selected_messages is non-empty, marked
+        messages that no longer existed: Space kept marking instead of playing
+        and the first Esc announced "all unmarked" instead of closing.
+        """
+        if not (self.conversation and self.conversation.get("remoteJid") == jid):
+            return
+        self._sorted_messages = []
+        self.messages_list.DeleteAllItems()
+        self.selected_messages.clear()
+        # _unread_sep_idx pointed into the list just emptied above — left
+        # stale, a live message arriving right after (on_incoming_message,
+        # the branch for a separator anchoring an already-read position)
+        # would pop() that now-out-of-range index from the now-empty
+        # _sorted_messages, crashing with
+        # "IndexError: pop from empty list". Same pairing already reset
+        # on conversation switch (see close_conversation()).
+        self._unread_sep_idx = -1
+        self._sep_anchors_read_position = False
+        # A âncora vai junto: populate_messages() recria o separador a
+        # partir dela, e um id que não existe mais em records deixaria a
+        # conversa limpa carregando um separador fantasma.
+        self._first_unread_msg_id = None
+        self._first_unread_count = 0
+
     def _on_menu_clear_chat(self, jid: str):
         i18n = self.main_window.i18n
-        if wx.MessageBox(
+        confirmed, keep_starred = confirm_clear_chat(
+            self,
             i18n.t("clear_confirm_msg"),
             i18n.t("clear_chat"),
-            wx.YES_NO | wx.ICON_QUESTION,
-            self,
-        ) != wx.YES:
+            i18n.t("clear_chat_keep_starred"),
+            yes_label=i18n.t("yes_button"),
+            no_label=i18n.t("no_button"),
+        )
+        if not confirmed:
             return
-        self.main_window.clear_chat(jid)
-        # Refresh messages list if this conversation is open
-        if self.conversation and self.conversation.get("remoteJid") == jid:
-            self._sorted_messages = []
-            self.messages_list.DeleteAllItems()
-            # _unread_sep_idx pointed into the list just emptied above — left
-            # stale, a live message arriving right after (on_incoming_message,
-            # the branch for a separator anchoring an already-read position)
-            # would pop() that now-out-of-range index from the now-empty
-            # _sorted_messages, crashing with
-            # "IndexError: pop from empty list". Same pairing already reset
-            # on conversation switch (see close_conversation()).
-            self._unread_sep_idx = -1
-            self._sep_anchors_read_position = False
-            # A âncora vai junto: populate_messages() recria o separador a
-            # partir dela, e um id que não existe mais em records deixaria a
-            # conversa limpa carregando um separador fantasma.
-            self._first_unread_msg_id = None
-            self._first_unread_count = 0
+        self.main_window.clear_chat(jid, keep_starred=keep_starred)
+        self._reset_view_after_chat_cleared(jid)
         # Refresh the conversations list so the emptied preview disappears.
         # The conversation itself stays in the list — clearing is not deleting.
         self.main_window._schedule_set_chats()
@@ -16344,14 +16363,19 @@ class ConversationsPanel(wx.Panel):
         i18n = self.main_window.i18n
         if not self.selected_chats: return
         count = len(self.selected_chats)
-        if wx.MessageBox(
+        confirmed, keep_starred = confirm_clear_chat(
+            self,
             i18n.t("clear_confirm_msg_bulk").format(count=count),
             i18n.t("clear_chat_bulk_title"),
-            wx.YES_NO | wx.ICON_QUESTION, self,
-        ) != wx.YES:
+            i18n.t("clear_chat_keep_starred"),
+            yes_label=i18n.t("yes_button"),
+            no_label=i18n.t("no_button"),
+        )
+        if not confirmed:
             return
         for jid in list(self.selected_chats):
-            self.main_window.clear_chat(jid)
+            self.main_window.clear_chat(jid, keep_starred=keep_starred)
+            self._reset_view_after_chat_cleared(jid)
         self.selected_chats.clear()
         self.main_window.add_chats_to_ui()
         self.main_window.output(i18n.t("success_clear"), interrupt=True)
@@ -17359,14 +17383,21 @@ class ArchivedConversationsPanel(wx.Panel):
 
     def _on_clear(self, jid: str):
         i18n = self.main_window.i18n
-        if wx.MessageBox(
+        confirmed, keep_starred = confirm_clear_chat(
+            self,
             i18n.t("clear_confirm_msg"),
             i18n.t("clear_chat"),
-            wx.YES_NO | wx.ICON_QUESTION,
-            self,
-        ) != wx.YES:
+            i18n.t("clear_chat_keep_starred"),
+            yes_label=i18n.t("yes_button"),
+            no_label=i18n.t("no_button"),
+        )
+        if not confirmed:
             return
-        self.main_window.clear_chat(jid)
+        self.main_window.clear_chat(jid, keep_starred=keep_starred)
+        # An archived chat can be the one open in the conversation panel.
+        panel = getattr(self.main_window, "conversations_panel", None)
+        if panel is not None:
+            panel._reset_view_after_chat_cleared(jid)
         # Refresh this list so the emptied preview disappears immediately —
         # mirrors ConversationsPanel._on_menu_clear_chat's own refresh call.
         self.main_window._schedule_set_chats()

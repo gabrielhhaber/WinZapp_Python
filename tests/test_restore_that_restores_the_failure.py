@@ -37,20 +37,15 @@ LOGIN_STORE = os.path.join(
     "Default", "IndexedDB", "https_web.whatsapp.com_0.indexeddb.leveldb")
 SESSION = "c77cc915f87e4b1a371ebe2c105cee9b"
 
-# _fingerprint_login_store() rounds its "newest" component to the whole
-# second, which is fine in real use — a real snapshot is always made FROM
-# the live profile via shutil.copy2(), which preserves mtimes exactly, so
-# there is never a real clock between the two sides. This helper writes
-# "live" and "snapshot" independently instead, purely for test convenience,
-# and that independence is what a real restore never has: two writes a
-# wall-clock second apart round to different "newest" values and make an
-# intentionally-identical pair fingerprint as different — a real flake,
-# caught live in CI (not locally, where the two writes are reliably faster
-# than a second) on test_an_identical_snapshot_is_not_restored. Pinning
-# every file this helper writes to the same fixed mtime removes the clock
-# from the comparison entirely; a genuine content difference still shows up
-# through the fingerprint's file-count/byte-count components.
-_FIXED_MTIME = 1_700_000_000
+
+#: Every seeded file gets this mtime. The login-store fingerprint includes the
+#: newest mtime rounded to the second, so two copies of the same payload written
+#: a few milliseconds apart could straddle a half-second boundary and stop
+#: fingerprinting identically — which is what made test_it_is_audited fail now
+#: and then, more often under load. Production never hits this: its copies go
+#: through shutil.copy2, which preserves mtimes; a test that seeds both sides
+#: by hand has to pin them itself.
+SEEDED_MTIME = 1_700_000_000
 
 
 def _write_login_store(root, payload):
@@ -60,7 +55,7 @@ def _write_login_store(root, payload):
         file_path = os.path.join(path, name)
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
-        os.utime(file_path, (_FIXED_MTIME, _FIXED_MTIME))
+        os.utime(file_path, (SEEDED_MTIME, SEEDED_MTIME))
     return path
 
 
@@ -80,6 +75,32 @@ def _seed(gd, live=None, snapshot=None, previous=None):
 
 
 class TestTheComparison:
+    def test_the_seed_pins_every_mtime(self, gd):
+        """Guards the fixture itself. A file's mtime comes from the OS at write
+        time, so the only way two hand-seeded copies of one payload are
+        guaranteed to fingerprint identically — however far apart they were
+        written, whatever the machine's load — is for every seeded file to
+        carry the same fixed mtime."""
+        payload = {"000003.log": "same", "CURRENT": "MANIFEST-000002"}
+        _seed(gd, live=payload, snapshot=dict(payload))
+
+        for root in (profile_recovery.profile_dir(gd, SESSION),
+                     profile_recovery.snapshot_dir(gd, SESSION)):
+            for entry in os.scandir(os.path.join(root, LOGIN_STORE)):
+                assert entry.stat().st_mtime == SEEDED_MTIME
+
+    def test_the_mtime_is_still_part_of_the_fingerprint(self, gd):
+        """The pinned seeds above hide the mtime from every other test here,
+        so this is what notices if it is ever dropped from the format: same
+        files, same bytes, a different newest mtime must not compare equal."""
+        payload = {"000003.log": "same"}
+        _seed(gd, live=payload, snapshot=dict(payload))
+        snapshot_file = os.path.join(
+            profile_recovery.snapshot_dir(gd, SESSION), LOGIN_STORE, "000003.log")
+        os.utime(snapshot_file, (SEEDED_MTIME + 60, SEEDED_MTIME + 60))
+
+        assert profile_recovery.snapshot_matches_live_profile(gd, SESSION) is False
+
     def test_an_identical_snapshot_is_recognised(self, gd):
         payload = {"000003.log": "same", "CURRENT": "MANIFEST-000002"}
         _seed(gd, live=payload, snapshot=dict(payload))

@@ -234,6 +234,7 @@ class TestRemoveMessagesById:
 class _FakeConversationsPanel:
     def __init__(self, remote_jid=None):
         self.conversation = {"remoteJid": remote_jid} if remote_jid else None
+        self.selected_messages = {"A", "B", "C"}
         self.removed = None
         self.populate_called = False
 
@@ -256,7 +257,12 @@ class _ReconcileStub:
     methods as plain functions (no HTTP, no wx event loop)."""
 
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
+    _deletions_before_remote_window = MainWindow._deletions_before_remote_window
+    _REMOTE_BEFORE_PAGES = MainWindow._REMOTE_BEFORE_PAGES
     _reconcile_active_conversation_with_remote = MainWindow._reconcile_active_conversation_with_remote
+    _rollback_gaps = MainWindow._rollback_gaps
+    _legacy_restore_gap = MainWindow._legacy_restore_gap
+    _ROLLBACK_GAPS_METADATA_KEY = MainWindow._ROLLBACK_GAPS_METADATA_KEY
     _mirror_remote_clear = MainWindow._mirror_remote_clear
     _mirror_remote_deletions = MainWindow._mirror_remote_deletions
     _REMOTE_CLEAR_CONFIRM_STRIKES = MainWindow._REMOTE_CLEAR_CONFIRM_STRIKES
@@ -278,7 +284,14 @@ class _ReconcileStub:
     def _fetch_remote_message_window(self, remote_jid):
         if self._remote_ids is None:
             return None
-        return self._remote_ids, self._remote_oldest_ts
+        if not self._remote_ids:
+            return set(), None, ""
+        return set(self._remote_ids), self._remote_oldest_ts, "anchor"
+
+    # The look further back. Fails by default: a failed page must never turn
+    # into a deletion (see _deletions_before_remote_window).
+    def _fetch_remote_messages_before(self, remote_jid, anchor_id):
+        return None
 
     def clear_chat_messages_local(self, jid, record_cutoff=True):
         self.clear_calls.append((jid, record_cutoff))
@@ -340,6 +353,7 @@ class TestReconcileActiveConversation:
             stub._reconcile_active_conversation_with_remote()
         assert stub.clear_calls == [(jid, False)]  # record_cutoff=False: mirroring, not a new cutoff
         assert stub.conversations_panel.populate_called is True
+        assert stub.conversations_panel.selected_messages == set()
         assert stub._schedule_set_chats_calls == 1
 
     def test_a_single_empty_read_does_not_immediately_clear(self):

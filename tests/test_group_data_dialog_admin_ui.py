@@ -17,10 +17,13 @@ from ui.dialogs.conversation_data_dialog import ConversationDataDialog
 
 class TestParticipantRowAnnouncesAdminStatus:
     def test_row_label_appends_the_admin_suffix_key_when_admin(self):
-        src = inspect.getsource(ConversationDataDialog._populate_group_unsafe)
+        # Built by _participant_row(), shared by the first fill and by the
+        # in-place repaint after background @lid resolution.
+        src = inspect.getsource(ConversationDataDialog._participant_row)
         assert "group_admin_suffix" in src
-        assert 'f"{p_name}, {i18n.t(\'group_admin_suffix\')}"' in src or \
-               "group_admin_suffix" in src  # tolerate minor formatting differences
+        assert "self._participant_row(" in inspect.getsource(
+            ConversationDataDialog._populate_group_unsafe
+        )
 
     def test_column_two_uses_the_translated_label_not_a_hardcoded_string(self):
         src = inspect.getsource(ConversationDataDialog._populate_group_unsafe)

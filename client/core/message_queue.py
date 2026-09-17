@@ -79,6 +79,7 @@ class MessageQueue:
         self._in_flight: set = set()
         self._lock   = threading.Lock()
         self._stop   = threading.Event()
+        self._held   = threading.Event()
         self._quick_event = threading.Event()
         self._media_event = threading.Event()
         self._workers = (
@@ -109,6 +110,66 @@ class MessageQueue:
         """
         self._quick_event.set()
         self._media_event.set()
+
+    # -- A planned disconnection (the profile backup) ------------------------
+    # A backup taken with WinZapp open closes the WhatsApp session for as long
+    # as the copy takes, which can be minutes
+    # (MainWindow._refresh_profile_snapshot_live). Every send attempted in that
+    # window is at best wasted work against a session that is deliberately
+    # gone, and at worst a message reported failed to the user. While held, the
+    # workers attempt nothing at all and every message simply waits, exactly as
+    # it does while offline. The caller must release() in a finally: a queue
+    # left held sends nothing for the rest of the launch. Single holder —
+    # MainWindow._live_snapshot_pending is what guarantees only one backup runs
+    # — so this is deliberately not reference counted.
+    #
+    # wait_until_idle() is the load-bearing half of the pair. The session
+    # middleware (api_patches/src/middleware/statusConnection.ts) already turns
+    # every "session gone" shape into the 404 that keeps a message queued, so a
+    # send attempted after the close is largely safe on its own; what nothing
+    # covers is a request already past that middleware when Chrome is killed,
+    # which becomes an *ambiguous* outcome the queue deliberately never retries.
+    #
+    # Note what a hold shares with offline mode: messages waiting in it are
+    # discarded without a report if the app is quit meanwhile (stop() waits only
+    # for what is on the wire). The window is the length of a backup, and unlike
+    # offline mode the app chose it while looking online to the user.
+
+    def hold(self):
+        """Stop attempting sends, keeping everything queued, until release()."""
+        self._held.set()
+
+    def release(self):
+        """Resume sending, and try right away rather than after the interval."""
+        if self._held.is_set():
+            self._held.clear()
+            self.flush()
+
+    def is_held(self) -> bool:
+        return self._held.is_set()
+
+    def has_work(self) -> bool:
+        """Whether any message is queued or being sent right now."""
+        with self._lock:
+            return bool(self._pending or self._in_flight)
+
+    def wait_until_idle(self, timeout: float) -> bool:
+        """Wait for sends already on the wire to finish. True when none is left.
+
+        Nothing can recall a request in flight, so a caller about to close the
+        session waits for it rather than cutting it off — that is what turns a
+        send seconds from succeeding into an unconfirmed one. Bounded, and the
+        caller decides what to do when it runs out. Polls at
+        _STOP_DRAIN_POLL_SECONDS, which stop()'s own drain shares.
+        """
+        deadline = time.monotonic() + timeout
+        while True:
+            with self._lock:
+                if not self._in_flight:
+                    return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(self._STOP_DRAIN_POLL_SECONDS)
 
     def cancel(self, local_id: str) -> bool:
         """Cancel a queued or in-flight message by its local UI identifier.
@@ -271,6 +332,11 @@ class MessageQueue:
             if self._stop.is_set():
                 break
 
+            # A planned disconnection owns the session: attempt nothing, so
+            # every message stays queued rather than spending its retries.
+            if self._held.is_set():
+                continue
+
             # While offline or WhatsApp disconnected: skip this cycle.
             if self.main_window.offline_mode:
                 continue
@@ -286,6 +352,8 @@ class MessageQueue:
             for msg in items:
                 if self._stop.is_set():
                     break
+                if self._held.is_set():
+                    break
                 if self.main_window.offline_mode:
                     break
                 if not getattr(self.main_window, "_wa_connected", True):
@@ -296,6 +364,13 @@ class MessageQueue:
                 # the send would be told "stopped for good" while this thread
                 # went on to send the message anyway.
                 with self._lock:
+                    # Under the same lock wait_until_idle() reads: checked only
+                    # outside it (above), a hold landing between that check and
+                    # this claim would be invisible to a caller about to close
+                    # the session, and the POST it let through would die with
+                    # the browser as an ambiguous send nothing ever retries.
+                    if self._held.is_set():
+                        break
                     if msg.cancel_event.is_set():
                         continue
                     self._in_flight.add(msg.local_id)

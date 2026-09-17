@@ -1,8 +1,16 @@
 V1.1.2.0
 
-Ta wersja poprawia sytuacje, w których WinZapp niepotrzebnie prosił o ponowne parowanie, i wprowadza szybszy sposób zaznaczania wielu elementów naraz.
+Ta wersja poprawia sytuacje, w których WinZapp niepotrzebnie prosił o ponowne parowanie, wprowadza szybszy sposób zaznaczania wielu elementów naraz i dodaje opcje do potwierdzeń czyszczenia czatu oraz oznaczania wszystkich czatów jako przeczytane.
 
 NOWOŚCI
+
+- Wybór, czy wiadomości oznaczone gwiazdką zostają po wyczyszczeniu czatu. Potwierdzenie czyszczenia ma teraz opcję „Zachowaj wiadomości oznaczone gwiazdką", domyślnie zaznaczoną, tak jak w WhatsApp Web. Po jej odznaczeniu te wiadomości są usuwane razem z resztą, także na telefonie. Dotyczy czyszczenia jednego czatu, kilku zaznaczonych lub zarchiwizowanego.
+
+- Potwierdzenie przed oznaczeniem wszystkich czatów jako przeczytane. Polecenie najpierw pyta, z domyślną odpowiedzią Nie, aby przypadkowe naciśnięcie Alt, a potem Enter, nie oznaczyło wszystkiego jako przeczytane, także na telefonie. Pytanie ma opcję „Nie pokazuj ponownie": zaznaczona i potwierdzona przyciskiem Tak sprawia, że kolejne razy oznaczają wszystko od razu. Aby pytanie wróciło, użyj opcji „Pytaj o potwierdzenie przed oznaczeniem wszystkich czatów jako przeczytane" na karcie Interfejs użytkownika w Ustawieniach.
+
+- Kopia zapasowa profilu w Ustawieniach. Nowa karta Kopia zapasowa określa, jak często WinZapp przy zamykaniu odnawia kopię profilu przeglądarki, z której odzyskuje połączenie — domyślnie co 24 godziny. Kopię można też tworzyć przy otwartym WinZapp, w wybranym odstępie: WhatsApp jest wtedy rozłączony, co może potrwać kilka minut, a WinZapp może pytać przed każdą kopią. Nowa kopia zastępuje poprzednią dopiero wtedy, gdy WhatsApp ponownie się z nią połączy.
+
+- Eksport i import ustawień. W menu Plik „Eksportuj ustawienia” zapisuje twoje preferencje do pliku, a „Importuj ustawienia” stosuje ten plik od razu, bez ponownego uruchamiania — aby przenieść wszystko na inny komputer lub na inne konto. Połączenie z WhatsApp i to, co należy do jednego konta, jak wyczyszczone czaty i dźwięki dla czatu, nie trafia do pliku. Jeśli używasz własnego API, jego adres, port i klucz przenoszą się razem z ustawieniami.
 
 - Spacja odtwarza i wstrzymuje audio lub wideo, na którym jesteś. Wcześniej ten klawisz nie robił nic na liście wiadomości. Nadal działa węziej niż Enter: nigdy nie otwiera odnośnika, dokumentu, podglądu ani czatu z kontaktem.
 
@@ -18,7 +26,15 @@ POPRAWKI
 
 - Dodawanie członka grupy według numeru telefonu nic nie robiło: przycisk "Dodaj numer" nikogo nie dodawał i nie pokazywał błędu. Teraz od razu dodaje numer i informuje, czy się udało, a nieprawidłowy numer jest zgłaszany. W tym samym oknie pole wyszukiwania jest teraz odczytywane jako "Szukaj kontaktu".
 
-- Przy otwartym czacie lista wiadomości co minutę kurczyła się z powrotem do ustawionego limitu, a starsze wiadomości znikały — także z zapisanej historii. WinZapp mylił wiadomości spoza zakresu sprawdzanego w WhatsAppie z wiadomościami usuniętymi na telefonie. Teraz porównuje tylko zakres, który WhatsApp faktycznie zwrócił, i lista nie kurczy się już podczas czytania.
+- Przy otwartym czacie lista wiadomości co minutę kurczyła się z powrotem do ustawionego limitu, a starsze wiadomości znikały — także z zapisanej historii. WinZapp mylił wiadomości spoza zakresu sprawdzanego w WhatsAppie z wiadomościami usuniętymi na telefonie. Teraz wiadomość jest usuwana tylko wtedy, gdy WhatsApp pokazuje, że naprawdę już nie istnieje — nigdy tylko dlatego, że nie udało się jej znaleźć, ani w okresie cofniętym przez odzyskiwanie profilu — i lista nie kurczy się już podczas czytania.
+
+- W grupach z wieloma uczestnikami informacje o grupie mogły przez kilka minut pokazywać "Wczytywanie..." — Przegląd i lista Uczestników pojawiały się dopiero wtedy, gdy WinZapp po kolei sprawdził numer każdego członka, którego numeru jeszcze nie znał. Wyglądało to na zawieszenie i pomagało dopiero zamknięcie i ponowne otwarcie okna. Teraz informacje pojawiają się, gdy tylko grupa odpowie, a brakujące nazwy i numery są uzupełniane na liście później, bez przenoszenia Cię z wiersza, na którym jesteś.
+
+- Zmiana języka w Ustawieniach i naciśnięcie Zastosuj tłumaczy teraz wszystkie opcje. Niektóre pozostawały w poprzednim języku aż do zamknięcia i ponownego otwarcia Ustawień, na przykład „Przy otwieraniu czatu pokaż maksymalnie tyle wiadomości" i „Liczba wiadomości pomijanych klawiszami Page Up / Page Down".
+
+- Domyślna prędkość odtwarzania dźwięku nie wraca już sama do 1x. Po otwarciu Ustawień pole na karcie Odtwarzanie audio było puste niezależnie od zapisanej prędkości, a naciśnięcie Zastosuj, a potem OK zapisywało 1x w jej miejsce. Teraz zapisana prędkość jest zaznaczona i zachowywana.
+
+- Po odzyskaniu profilu przeglądarki przez WinZapp czaty z nieprzeczytanymi wiadomościami nie są już pokazywane jako przeczytane.
 
 V1.1.1.0
 

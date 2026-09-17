@@ -38,6 +38,7 @@ import atexit
 import ctypes
 import ctypes.wintypes
 import uuid
+from urllib.parse import quote as _url_quote
 from accessible_output2 import outputs
 from core.accessible_speech import AccessibleSpeechOutput
 from core.sound_system import (
@@ -55,9 +56,25 @@ from core.message_edit import (
     response_not_sent,
 )
 from core.i18n import I18n
-from core.remote_deletions import comparable_local_ids, message_timestamp_seconds
+from core.remote_deletions import (
+    comparable_local_ids,
+    comparable_local_records,
+    message_timestamp_seconds,
+)
 from core.sync_contracts import observe_payload
+from core.remote_reconcile import (
+    deletions_within_remote_window as _deletions_within_remote_window,
+    observe_deletions as _observe_deletions,
+    older_than_window as _older_than_window,
+    oldest_anchor as _oldest_anchor,
+    split_deletions as _split_deletions,
+    add_rollback_gap as _add_rollback_gap,
+    normalize_rollback_gaps as _normalize_rollback_gaps,
+    outside_rollback_gaps as _outside_rollback_gaps,
+)
 from core.incremental_sync import (
+    chat_activity_floor as _chat_activity_floor,
+    timestamp_seconds as _timestamp_seconds,
     chat_message_records as _chat_message_records,
     chat_sync_marker as _chat_sync_marker,
     classify_chat_sync as _classify_chat_sync,
@@ -72,6 +89,14 @@ from core.wpp_runtime import (
     read_homologated_wpp_version, wppconnect_library_drift, WPPCONNECT_PACKAGE,
 )
 from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default, migrate_spell_check_mode
+from core.utils import clear_chat_applied, clear_chat_keep_starred_echo
+from ui.dialogs.checkbox_confirm import confirm_with_checkbox
+from core.settings_transfer import connection_runtime as _connection_runtime
+from core.profile_backup import (
+    close_snapshot_max_age as _close_snapshot_max_age,
+    live_snapshot_due as _live_snapshot_due,
+    live_snapshot_policy as _live_snapshot_policy,
+)
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.quiet_hours import is_quiet_hours_active
 from core import browser_payload
@@ -2867,6 +2892,8 @@ class MainWindow(wx.Frame):
         """Create the menu bar with Arquivo, Sincronização and Ajuda menus."""
         self._ID_MARK_ALL_READ = wx.NewIdRef()
         self._ID_SETTINGS      = wx.NewIdRef()
+        self._ID_EXPORT_SETTINGS = wx.NewIdRef()
+        self._ID_IMPORT_SETTINGS = wx.NewIdRef()
         self._ID_DISCONNECT    = wx.NewIdRef()
         self._ID_EXIT          = wx.NewIdRef()
         self._ID_RESYNC_ALL    = wx.NewIdRef()
@@ -2892,6 +2919,11 @@ class MainWindow(wx.Frame):
             self._ID_SETTINGS,
             f"{self.i18n.t('menu_settings')}\tCtrl+,",
         )
+        # Carrying settings to another install. Next to Configurações because
+        # that is what they are about, and with no accelerator: they are rare,
+        # deliberate actions and every letter here is already spoken for.
+        file_menu.Append(self._ID_EXPORT_SETTINGS, self.i18n.t("menu_export_settings"))
+        file_menu.Append(self._ID_IMPORT_SETTINGS, self.i18n.t("menu_import_settings"))
         file_menu.AppendSeparator()
         file_menu.Append(
             self._ID_DISCONNECT,
@@ -3018,6 +3050,8 @@ class MainWindow(wx.Frame):
         self.SetMenuBar(menubar)
         self.Bind(wx.EVT_MENU, self._on_mark_all_read, id=self._ID_MARK_ALL_READ)
         self.Bind(wx.EVT_MENU, self.on_ctrl_comma,     id=self._ID_SETTINGS)
+        self.Bind(wx.EVT_MENU, self._on_export_settings, id=self._ID_EXPORT_SETTINGS)
+        self.Bind(wx.EVT_MENU, self._on_import_settings, id=self._ID_IMPORT_SETTINGS)
         self.Bind(wx.EVT_MENU, self._on_menu_disconnect, id=self._ID_DISCONNECT)
         self.Bind(wx.EVT_MENU, lambda e: self.quit_all_accounts(), id=self._ID_EXIT)
         self.Bind(wx.EVT_MENU, self._on_menu_resync_all, id=self._ID_RESYNC_ALL)
@@ -3508,6 +3542,12 @@ class MainWindow(wx.Frame):
         file_menu.FindItemById(self._ID_SETTINGS).SetItemLabel(
             f"{self.i18n.t('menu_settings')}\tCtrl+,"
         )
+        file_menu.FindItemById(self._ID_EXPORT_SETTINGS).SetItemLabel(
+            self.i18n.t("menu_export_settings")
+        )
+        file_menu.FindItemById(self._ID_IMPORT_SETTINGS).SetItemLabel(
+            self.i18n.t("menu_import_settings")
+        )
         file_menu.FindItemById(self._ID_DISCONNECT).SetItemLabel(
             f"{self.i18n.t('menu_disconnect')}\tCtrl+Alt+Shift+D"
         )
@@ -3716,6 +3756,11 @@ class MainWindow(wx.Frame):
         at 23:08:59.7 and 1.2 s later every one of 100+ unread chats was read
         on WhatsApp too, with no way back. The dialog defaults to No for
         exactly that keystroke.
+
+        Its "don't show again" checkbox turns that protection off, by the
+        user's explicit choice and only together with Yes;
+        user_interface.confirm_mark_all_read (Settings > Interface) turns it
+        back on.
         """
         unread_jids = [
             jid for jid, chat in list(self.chats.items())
@@ -3724,13 +3769,27 @@ class MainWindow(wx.Frame):
         if not unread_jids:
             self.output(self.i18n.t("mark_all_read_none"), interrupt=True)
             return
-        if wx.MessageBox(
-            self.i18n.t("mark_all_read_confirm").format(count=len(unread_jids)),
-            self.i18n.t("menu_mark_all_read"),
-            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
-            self,
-        ) != wx.YES:
-            return
+        if self.settings.get("user_interface", {}).get("confirm_mark_all_read", True):
+            t = self.i18n.t
+            confirmed, dont_ask_again = confirm_with_checkbox(
+                self,
+                t("mark_all_read_confirm").format(count=len(unread_jids)),
+                t("menu_mark_all_read"),
+                t("mark_all_read_dont_show_again"),
+                yes_label=t("yes_button"),
+                no_label=t("no_button"),
+                checked=False,
+                default_yes=False,
+            )
+            if not confirmed:
+                return
+            # "Don't show again" is only honoured together with Yes: saying
+            # No with it ticked must not turn every later request into an
+            # unconfirmed one. Settings > Interface mirrors the same key, so
+            # the confirmation can be turned back on from there.
+            if dont_ask_again:
+                self.settings.setdefault("user_interface", {})["confirm_mark_all_read"] = False
+                self.save_settings()
         self.mark_conversations_as_read(unread_jids)
 
     def _apply_global_hotkey(self):
@@ -5287,6 +5346,8 @@ class MainWindow(wx.Frame):
         # holding a system-global hotkey is only acceptable while this window
         # really is the active one (see _set_bookmark_zero_hotkey).
         active = bool(event.GetActive())
+        # Read by _window_can_ask() from the poll thread, which cannot ask wx.
+        self._main_window_active = active
         self._set_bookmark_zero_hotkey(active)
         if active:
             # Disabling the popup means "do not interrupt what I am doing",
@@ -9772,9 +9833,20 @@ class MainWindow(wx.Frame):
                     # recorded — WhatsApp really did refuse that profile.)
                     self._set_profile_recovery_generation(generation)
                     return
+                taken_at = profile_recovery.snapshot_taken_at(
+                    global_dir, session_name, prefer_previous=prefer_previous)
                 if profile_recovery.restore_snapshot(
                         global_dir, session_name, prefer_previous=prefer_previous):
                     self._shutdown_audit("profile restored from snapshot")
+                    # The suspension below lasts one launch; the gap the restore
+                    # leaves in WhatsApp Web's own database does not. Recorded
+                    # for good (core/remote_reconcile.py, "Periods a profile
+                    # restore rolled back").
+                    try:
+                        self._record_rollback_gap(taken_at, time.time())
+                    except Exception:
+                        logging.exception("[profile-recovery] could not record "
+                                          "the rolled-back period")
                     # The restore rolled WhatsApp Web's OWN store back to
                     # whenever the snapshot was taken — up to
                     # SNAPSHOT_MAX_AGE_SECONDS. Measured 2026-09-10: the
@@ -9997,9 +10069,11 @@ class MainWindow(wx.Frame):
     def _capture_profile_snapshot(self, session_name, browser_closed_cleanly, budget):
         """Keep a restore point for this session's Chrome profile.
 
-        Called from exactly one place and it has to stay that way: right after
+        Called only from _stop_wpp_server(), right after
         wait_for_profile_release() confirmed Chrome let go, on a close that
-        WPPConnect acknowledged. That is the only moment WinZapp can prove the
+        WPPConnect acknowledged. (_refresh_profile_snapshot_live() is the one
+        other place a snapshot is taken, behind the same gates, and it calls
+        capture_snapshot() itself.) That is the only moment WinZapp can prove the
         profile is both quiescent and completely written — see
         core/profile_recovery.py for why a snapshot of a live profile is worse
         than no snapshot at all.
@@ -10046,8 +10120,17 @@ class MainWindow(wx.Frame):
             return
         try:
             from core import profile_recovery
-            if profile_recovery.capture_snapshot(global_dir, session_name):
+            # How old the snapshot may be before a clean close refreshes it is
+            # the user's choice (Settings > Cópia de segurança), 24 h by default.
+            if profile_recovery.capture_snapshot(
+                    global_dir, session_name,
+                    max_age=_close_snapshot_max_age(getattr(self, "settings", {})),
+                    lock_wait=2.0):
                 self._shutdown_audit("profile snapshot refreshed")
+            # A copy staged by a backup with WinZapp open that never got to be
+            # confirmed (the app is closing) is dead weight the size of the
+            # profile; nothing will promote it any more.
+            profile_recovery.discard_pending_snapshot(global_dir, session_name)
         except Exception:
             logging.exception("[profile-snapshot] failed (non-fatal)")
 
@@ -11300,6 +11383,327 @@ class MainWindow(wx.Frame):
         was deleted outside the app)."""
         pack_id = self.settings.get("active_sound_pack", DEFAULT_PACK_ID)
         return self._sound_packs.get(pack_id) or self._default_sound_pack
+
+    # ── Carrying settings to another install ─────────────────────────────────
+    # settings.json cannot simply be copied: it also holds this install's
+    # session and this account's own state. core/settings_transfer.py decides
+    # what travels; this is the file dialog, the writing, and making what was
+    # imported take effect without a restart.
+
+    _SETTINGS_EXPORT_FILENAME = "winzapp-settings.json"
+
+    def _settings_transfer_folder(self) -> str:
+        """Where the file dialogs open: the same folder every other Save As
+        dialog uses (Settings > Arquivos e salvamento)."""
+        try:
+            from core import save_location
+            return save_location.resolve_save_dialog_folder(self.settings)
+        except Exception:
+            return ""
+
+    def _on_export_settings(self, event=None):
+        t = self.i18n.t
+        dlg = wx.FileDialog(
+            self, t("settings_export_dialog_title"),
+            defaultDir=self._settings_transfer_folder(),
+            defaultFile=self._SETTINGS_EXPORT_FILENAME,
+            wildcard=t("settings_file_wildcard"),
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+        )
+        try:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        finally:
+            dlg.Destroy()
+        error = self.export_settings_to_file(path)
+        if error:
+            self._announce_settings_transfer(error, error=True)
+            return
+        # A custom API travels with its address, port and key, so the file holds
+        # a credential — the user is told, since where they put it now matters.
+        from core.settings_transfer import uses_custom_api
+        done = ("settings_export_done_custom_api" if uses_custom_api(self.settings)
+                else "settings_export_done")
+        try:
+            from core import save_location
+            if save_location.remember_save_dialog_folder(self.settings, path):
+                self.save_settings()
+        except Exception:
+            logging.exception("[settings-transfer] could not remember the folder")
+        self._announce_settings_transfer(done, name=os.path.basename(path))
+
+    def _on_import_settings(self, event=None):
+        t = self.i18n.t
+        dlg = wx.FileDialog(
+            self, t("settings_import_dialog_title"),
+            defaultDir=self._settings_transfer_folder(),
+            wildcard=t("settings_file_wildcard"),
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        )
+        try:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        finally:
+            dlg.Destroy()
+        # Asked before anything is written: an import overwrites settings the
+        # user may have spent a while on, and No is the default so a stray
+        # Enter changes nothing.
+        confirm = wx.MessageDialog(
+            self, t("settings_import_confirm"), t("settings_import_confirm_title"),
+            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        try:
+            if confirm.ShowModal() != wx.ID_YES:
+                return
+        finally:
+            confirm.Destroy()
+        error, applied = self.import_settings_from_file(
+            path, confirm_api_change=self._confirm_imported_api)
+        if error:
+            self._announce_settings_transfer(error, error=True)
+            return
+        self._announce_settings_transfer("settings_import_done", count=applied)
+
+    def _confirm_imported_api(self, change: dict) -> bool:
+        """Ask, naming both addresses, before an import moves this install to
+        another API. The session token goes to both of them, and the change
+        reaches every account on this computer (app_settings'
+        _CONNECTION_GLOBAL), so this is not one more preference among the rest.
+        No is the default, and No still imports everything else
+        (import_settings_from_file())."""
+        t = self.i18n.t
+        dlg = wx.MessageDialog(
+            self, t("settings_import_api_confirm").format(
+                server=change.get("server") or "?",
+                ws_server=change.get("ws_server") or "?"),
+            t("settings_import_confirm_title"),
+            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+        )
+        # The message tells the person what No does, so the button has to say
+        # the same word in WinZapp's language, not in Windows'.
+        dlg.SetYesNoLabels(t("yes_button"), t("no_button"))
+        try:
+            return dlg.ShowModal() == wx.ID_YES
+        finally:
+            dlg.Destroy()
+
+    def _announce_settings_transfer(self, key: str, error: bool = False, **fields):
+        """Show the outcome: this is a rare, deliberate action whose result the
+        user has to be sure of, and the error path is the one that matters most
+        (nothing was changed). Shown rather than also spoken — the screen
+        reader reads the box when it takes focus."""
+        message = self.i18n.t(key)
+        if fields:
+            try:
+                message = message.format(**fields)
+            except (KeyError, IndexError, ValueError):
+                pass
+        # Shown, not also spoken: the screen reader reads the box when it takes
+        # focus, and saying the same sentence twice is worse than saying it once.
+        try:
+            wx.MessageBox(
+                message,
+                self.i18n.t("error").format(app_name=self.app_name) if error
+                else self.i18n.t("settings_title"),
+                wx.OK | (wx.ICON_ERROR if error else wx.ICON_INFORMATION),
+                self,
+            )
+        except Exception:
+            logging.exception("[settings-transfer] could not show the outcome")
+
+    def export_settings_to_file(self, path: str) -> str:
+        """Write the shareable settings to `path`; '' or an i18n error key."""
+        from core.settings_transfer import build_export
+        try:
+            payload = build_export(self.settings, __version__)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=4, ensure_ascii=False)
+            logging.info("[settings-transfer] settings exported to %s", path)
+            return ""
+        except Exception:
+            logging.exception("[settings-transfer] export failed")
+            return "settings_export_failed"
+
+    def import_settings_from_file(self, path: str, confirm_api_change=None):
+        """Apply the settings in `path`. Returns (i18n error key or '', count).
+
+        Nothing is written until the file has been read and understood, so a
+        file that is not an export, or holds nothing this build knows, leaves
+        the install exactly as it was.
+
+        `confirm_api_change(change) -> bool` is asked when the file would move
+        this install to another API (core/settings_transfer.api_change, a dict
+        naming both addresses). With no callback, or a No, the connection is
+        left exactly as it is and the rest is still imported — never the other
+        way round.
+        """
+        from core.settings_transfer import api_change, merge_settings, read_export
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                payload = json.load(f)
+        except Exception:
+            logging.exception("[settings-transfer] could not read %s", path)
+            return "settings_import_unreadable", 0
+        incoming, error = read_export(payload)
+        if error:
+            logging.warning("[settings-transfer] refused %s: %s", path, error)
+            return error, 0
+        server = api_change(self.settings, incoming)
+        include_connection = server is None
+        if server is not None and confirm_api_change is not None:
+            try:
+                include_connection = bool(confirm_api_change(server))
+            except Exception:
+                logging.exception("[settings-transfer] could not ask about the API")
+                include_connection = False
+        if server is not None:
+            logging.info("[settings-transfer] file moves the API to %s: %s",
+                         server, "accepted" if include_connection else "kept as it was")
+        merged, applied, ignored = merge_settings(
+            self.settings, incoming, include_connection=include_connection)
+        if ignored:
+            # Not an error: a newer export, or one carrying this install's own
+            # state, simply leaves those alone.
+            logging.info("[settings-transfer] %d setting(s) ignored: %s",
+                         len(ignored), ", ".join(sorted(ignored)[:20]))
+        if not applied:
+            return "settings_import_nothing", 0
+        # In place: panels and helpers hold a reference to this very dict. No
+        # clear() first — `merged` already holds every key this install had —
+        # and under the save lock: a save on another thread in between would
+        # otherwise iterate a dict changing size, or write settings.json empty.
+        with self._save_lock:
+            self.settings.update(merged)
+        self.save_settings()
+        self.apply_settings_live()
+        logging.info("[settings-transfer] %d setting(s) imported from %s", applied, path)
+        return "", applied
+
+    def apply_settings_live(self):
+        """Make the settings currently in self.settings take effect now.
+
+        The Settings dialog applies each control as it saves it; an import
+        replaces many at once, so this does the same work driven by the values
+        instead. Every step is guarded on its own: one that fails must not
+        leave the rest unapplied, and none of them may take the app down — the
+        settings are already saved by the time this runs.
+        """
+        # The install-wide copy every account reads is written by
+        # save_settings() itself (_persist_global_settings), which the import
+        # calls before this — including the connection block.
+
+        def _step(what, fn):
+            try:
+                fn()
+            except Exception:
+                logging.exception("[settings-transfer] could not apply %s", what)
+
+        general = self.settings.get("general", {})
+
+        # The API this account talks to, applied whole: every URL is built from
+        # server and port together and authenticated with the key, so moving
+        # the server while leaving the other two would point the app at the new
+        # host on the old port with the old key — working again only after a
+        # restart, which is exactly what an import promises not to need. For
+        # the bundled API these are this install's own values, unchanged by any
+        # import (core/settings_transfer.py).
+        # Outside _step() on purpose: connection_runtime() cannot raise (it is
+        # total over anything self.settings may hold), and these five have to
+        # move together or not at all. Anything added here needs its own guard.
+        runtime = _connection_runtime(self.settings, {
+            "wpp_custom_api": self.wpp_custom_api,
+            "wpp_server": self.wpp_server,
+            "wpp_ws_server": self.wpp_ws_server,
+            "wpp_port": getattr(self, "wpp_port", None),
+            "wpp_api_key": getattr(self, "wpp_api_key", None),
+        })
+        socket_moved = (runtime["wpp_ws_server"] != getattr(self, "wpp_ws_server", None)
+                        or runtime["wpp_port"] != getattr(self, "wpp_port", None))
+        self.wpp_custom_api = runtime["wpp_custom_api"]
+        self.wpp_server = runtime["wpp_server"]
+        self.wpp_ws_server = runtime["wpp_ws_server"]
+        self.wpp_port = runtime["wpp_port"]
+        self.wpp_api_key = runtime["wpp_api_key"]
+
+        def _reconnect_socket():
+            # REST calls read the attributes above on every request; the
+            # Socket.IO connection was opened against the old address and would
+            # keep delivering (or failing to deliver) live events from there
+            # until a restart. connect_websocket() disconnects first and blocks
+            # on the handshake, hence the thread.
+            if socket_moved and getattr(self, "ws", None) is not None:
+                threading.Thread(target=self.connect_websocket, daemon=True).start()
+
+        _step("live connection", _reconnect_socket)
+
+        _step("audio devices", self._apply_configured_audio_devices)
+        _step("sounds", self.load_sounds)
+
+        def _clear_sound_cache():
+            cache = getattr(self, "_notification_sound_cache", None)
+            if cache is not None:
+                cache.clear()
+
+        _step("notification sounds", _clear_sound_cache)
+
+        def _reload_language():
+            from core.i18n import I18n
+            I18n.invalidate_cache()
+            self.i18n.get_language()
+            self.apply_language_changes()
+
+        _step("language", _reload_language)
+
+        def _apply_tray():
+            show = general.get("show_tray_icon", True)
+            if show and self.tray_icon is None:
+                self._init_tray()
+            elif not show and self.tray_icon is not None:
+                self.tray_icon.RemoveIcon()
+                self.tray_icon.Destroy()
+                self.tray_icon = None
+
+        _step("tray icon", _apply_tray)
+
+        def _apply_hotkey():
+            hotkey = general.get("global_hotkey") or {}
+            self.set_global_hotkey(hotkey.get("vk", 0), hotkey.get("mod", 0))
+
+        _step("global hotkey", _apply_hotkey)
+
+        def _apply_calls():
+            if not self.settings.get("calls", {}).get("alerts_enabled", True):
+                self.stop_all_incoming_call_alerts()
+            self._sync_incoming_call_bar()
+
+        _step("calls", _apply_calls)
+
+        def _apply_conversation():
+            cp = getattr(self, "conversations_panel", None)
+            if cp is None:
+                return
+            ui = self.settings.get("user_interface", {})
+            cp.apply_message_list_mode(ui.get("message_list_mode", "classic"))
+            speed = float(self.settings.get("audio_playback", {}).get(
+                "audio_default_speed", 1.0))
+            if speed in cp._audio_speed_steps:
+                cp._audio_speed_index = cp._audio_speed_steps.index(speed)
+                cp.audio_speed_btn.SetLabel(cp._format_speed(speed))
+            if getattr(cp, "conversation", None) is not None:
+                cp.populate_messages(preserve_focus=True)
+
+        _step("open conversation", _apply_conversation)
+
+        def _rebuild_chat_list():
+            # The list embeds settings of its own (the self-reference word, the
+            # delivery status, the yesterday label), and its fingerprint has
+            # not changed — so it has to be cleared or the rebuild is skipped.
+            self._chats_ui_fp = None
+            self.add_chats_to_ui()
+
+        _step("chat list", _rebuild_chat_list)
 
     def load_sounds(self):
         """Load every per-event UI sound from the active soundpack (Settings >
@@ -13341,9 +13745,19 @@ class MainWindow(wx.Frame):
     #: a browser resumed from a long suspend, which took 20 s to let go.
     _RESTART_PROFILE_RELEASE_WAIT = 25.0
 
-    def _restart_wpp_session(self):
+    def _restart_wpp_session(self, on_profile_released=None, reason=None):
         """Recreate the WPPConnect Chrome session in place (close-session +
         start-session), without touching the Node process or WinZapp itself.
+
+        `on_profile_released`, when given, runs between the close and the
+        start — only once the session reached CLOSED AND Chrome released the
+        profile, the two gates a restore point needs (see
+        _refresh_profile_snapshot_live()). If Chrome never lets go it is not
+        run, and the session starts again either way. `reason` is only logged.
+
+        Returns True once start-session was requested, False when it bailed
+        out before that (cooldown, re-entry, no CLOSED, a restore or a
+        shutdown taking over). Existing callers ignore it.
 
         Used automatically when the Puppeteer page has structurally died
         (detached frame after a suspend/resume cycle — see
@@ -13380,11 +13794,11 @@ class MainWindow(wx.Frame):
         # expired window and treat a QRCODE reading as confirmable.
         self._auto_session_restart_ts = time.time()
         if getattr(self, "_restarting_wpp_session", False):
-            return
+            return False
         now = time.time()
         last = getattr(self, "_last_wpp_session_restart_ts", 0)
         if now - last < self._WPP_SESSION_RESTART_COOLDOWN:
-            return
+            return False
         # Deliberately does NOT also set _recovery_restart_active, even though
         # that is the flag check_wa_connection_http()'s CLOSED branch reads
         # first: _force_whatsapp_session_restart() owns that one for the whole
@@ -13402,11 +13816,16 @@ class MainWindow(wx.Frame):
         self._restarting_wpp_session = True
         self._last_wpp_session_restart_ts = now
         try:
-            logging.warning(
-                "[_restart_wpp_session] Browser page appears dead (detached "
-                "frame) after suspend/resume — restarting the WPPConnect "
-                "session in place."
-            )
+            if reason:
+                logging.warning(
+                    "[_restart_wpp_session] Restarting the WPPConnect session "
+                    "in place: %s.", reason)
+            else:
+                logging.warning(
+                    "[_restart_wpp_session] Browser page appears dead (detached "
+                    "frame) after suspend/resume — restarting the WPPConnect "
+                    "session in place."
+                )
             headers = {"Authorization": f"Bearer {self.token}"}
             close_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/close-session"
             close_accepted = False
@@ -13448,7 +13867,7 @@ class MainWindow(wx.Frame):
                     close_accepted,
                     closed_status or "?",
                 )
-                return
+                return False
 
             # CLOSED is the FIRST of two gates and never the second. It says
             # WPPConnect's own state machine finished; it says nothing about
@@ -13482,10 +13901,12 @@ class MainWindow(wx.Frame):
             # did before, and createSessionUtil's stale-lock recovery is the
             # net under it.
             session_name = (getattr(self, "token", "") or "").split(":")[0]
+            released = False
             if session_name:
-                if not self.wait_for_profile_release(
+                released = self.wait_for_profile_release(
                     session_name, timeout=self._RESTART_PROFILE_RELEASE_WAIT
-                ):
+                )
+                if not released:
                     logging.warning(
                         "[_restart_wpp_session] Chrome still holds %s after %ss "
                         "— starting anyway; the stale-lock recovery is the net.",
@@ -13497,15 +13918,352 @@ class MainWindow(wx.Frame):
                 # during the close or the release wait owns the profile now.
                 logging.info("[_restart_wpp_session] a profile restore took "
                              "the session over — not starting it.")
-                return
+                return False
+
+            if on_profile_released is not None:
+                if released:
+                    try:
+                        on_profile_released()
+                    except Exception:
+                        logging.exception("[_restart_wpp_session] the step between "
+                                          "close and start failed (%s)", reason)
+                else:
+                    logging.warning("[_restart_wpp_session] not running %s: Chrome "
+                                    "did not release the profile.", reason)
+                if getattr(self, "_profile_restore_in_flight", False):
+                    logging.info("[_restart_wpp_session] a profile restore took "
+                                 "the session over during %s — not starting it.",
+                                 reason)
+                    return False
+            if getattr(self, "_shutting_down", False) or getattr(self, "_wpp_updating", False):
+                # WinZapp began closing (or WPPConnect updating) while this
+                # waited or copied. A browser opened now would be killed by
+                # the teardown's taskkill mid-write — how profiles break.
+                logging.info("[_restart_wpp_session] WinZapp is closing or "
+                             "WPPConnect is updating — not starting a browser "
+                             "under the teardown.")
+                return False
             start_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/start-session"
             try:
                 api_post(start_url, json={"waitQrCode": False}, headers=headers, timeout=15)
                 logging.info("[_restart_wpp_session] start-session requested.")
             except Exception as exc:
                 logging.warning("[_restart_wpp_session] start-session failed: %s", exc)
+            return True
         finally:
             self._restarting_wpp_session = False
+
+    # ── Profile backup while WinZapp is open (Settings > Cópia de segurança) ──
+    # A restore point of the Chrome profile can only be copied from a profile
+    # Chrome has released (core/profile_recovery.py), and the one thing the age
+    # of that copy decides is how much WhatsApp Web forgets if it is ever put
+    # back. Refreshing it only at close leaves an app that stays open for days
+    # with an old copy, so this optionally closes the session on a schedule,
+    # copies, and starts it again.
+
+    # The copy is roughly a gigabyte; the one at close is capped at 25 s
+    # because the user is waiting for the app to exit. Here the user chose (or
+    # agreed to) the disconnection, and a cap that a slow disk always exceeds
+    # would mean the backup never happens. Past it the attempt is abandoned and
+    # the previous snapshot kept. It must stay well inside
+    # _AUTO_RESTART_LOGOUT_GRACE_SECONDS: that grace starts with the restart,
+    # and a QRCODE reading after it expires counts toward a real logout.
+    _LIVE_SNAPSHOT_BUDGET_SECONDS = 180.0
+
+    # A copy only becomes the restore point once the session restarted on those
+    # exact bytes reaches CONNECTED and is still CONNECTED a little later. A
+    # clean close is no evidence the profile will be accepted (see
+    # previous_snapshot_dir()), and a copy WhatsApp then refuses must not push
+    # the known-good generation out of `.prev`. The rejection signature lands
+    # ~7 s into the page load, so the stability wait covers it.
+    _LIVE_SNAPSHOT_CONFIRM_SECONDS = 120.0
+    _LIVE_SNAPSHOT_STABLE_SECONDS = 30.0
+
+    # How long to wait for a send already on the wire before giving up on this
+    # round. Nothing can recall a request in flight, and cutting one off with
+    # close-session is what turns a send seconds from succeeding into an
+    # unconfirmed one the queue deliberately never retries.
+    # Sized above the send timeouts themselves (25 s for text, 30 s for a
+    # voice message): nobody is waiting on this thread, and giving up early
+    # only throws the round away. stop()'s 4 s drain is the opposite case —
+    # there the user is waiting for the app to quit.
+    _LIVE_SNAPSHOT_DRAIN_SECONDS = 35.0
+
+    def _live_snapshot_cancelled(self) -> bool:
+        """Stop the copy: WinZapp is closing or WPPConnect is updating."""
+        return bool(getattr(self, "_shutting_down", False)
+                    or getattr(self, "_wpp_updating", False))
+
+    def _window_can_ask(self) -> bool:
+        """Whether a confirmation would be seen and heard: the main window is
+        the active one. A modal over a window in the tray, or behind another
+        app, is not announced — and would hold every later backup until
+        someone found and answered it.
+
+        Reads the flag _on_window_activate() keeps, never IsActive(): this runs
+        on the poll thread, where Windows answers "no active window" for a
+        thread that owns none — which made the question never appear at all.
+        """
+        return bool(getattr(self, "_main_window_active", False))
+
+    def _live_snapshot_session_accepted(self) -> bool:
+        """After the restart: did the session come back on the copied bytes?"""
+        import connection_state as cs
+        settled = self._wait_for_status(
+            cs.recovery_settled, self._LIVE_SNAPSHOT_CONFIRM_SECONDS,
+            stop_when_connected=False)
+        if not cs.recovery_connected(settled):
+            logging.warning("[profile-backup] the session did not come back "
+                            "connected (%s) — the copy is not kept.", settled or "?")
+            return False
+        time.sleep(self._LIVE_SNAPSHOT_STABLE_SECONDS)
+        if self._live_snapshot_cancelled() or getattr(self, "_profile_restore_in_flight", False):
+            return False
+        status = self._raw_session_status()
+        if not cs.recovery_connected(status):
+            logging.warning("[profile-backup] the session connected and then left "
+                            "(%s) — the copy is not kept.", status or "?")
+            return False
+        return True
+
+    def _live_snapshot_session(self):
+        """(global_dir, session_name), or (None, None) when there is none."""
+        session_name = (getattr(self, "token", "") or "").split(":")[0]
+        global_dir = getattr(self, "global_dir", None)
+        if not session_name or not global_dir:
+            return None, None
+        return global_dir, session_name
+
+    def _live_snapshot_blocked_reason(self, check_queue: bool = True) -> str:
+        """'' when the session may be closed for a backup right now, else why not.
+
+        Every refusal is a "not now", never a "no": the next poll asks again.
+        """
+        if not getattr(self, "_wa_connected", False):
+            return "WhatsApp is not connected"
+        if self._live_snapshot_session() == (None, None):
+            return "no session"
+        if getattr(self, "_initial_sync_running", False):
+            return "the initial sync is running"
+        if getattr(self, "_media_sync_running", False):
+            return "a media sync is running"
+        if self._self_inflicted_teardown_expected() or self._session_restart_owned():
+            return "another close/start cycle owns the session"
+        if (time.time() - getattr(self, "_last_wpp_session_restart_ts", 0)
+                < self._WPP_SESSION_RESTART_COOLDOWN):
+            return "the session was restarted moments ago"
+        if getattr(self, "_pairing_in_progress", False) or self._is_pairing_dialog_active():
+            return "pairing is in progress"
+        queue = getattr(self, "message_queue", None)
+        if (check_queue and queue is not None
+                and not getattr(self, "offline_mode", False)
+                and queue.has_work()):
+            # Closing the session under a message the user just sent is how a
+            # send becomes "not confirmed", so the free check before the
+            # question waits for a quiet moment; the next poll costs nothing.
+            # Asked again by the worker it would instead throw a whole interval
+            # away for a message the hold there already protects — and in
+            # manual offline mode the queue never empties at all, so a single
+            # message left in it would stop every backup for as long as the
+            # switch is on.
+            return "messages are still being sent"
+        tracker = getattr(self, "_profile_health", None)
+        if tracker is not None and not tracker.ever_connected():
+            # Same refusal as _capture_profile_snapshot(): a profile that never
+            # authenticated this run may be the broken one.
+            return "this run never reached CONNECTED"
+        return ""
+
+    def _maybe_refresh_profile_snapshot_live(self, now=None):
+        """Once per periodic poll: start (or ask about) a backup when it is due.
+
+        The interval counts from the last attempt, and the first call only
+        starts the clock, so nothing closes the session right after launch.
+        """
+        now = time.monotonic() if now is None else now
+        last = getattr(self, "_live_snapshot_last_attempt", None)
+        if last is None:
+            self._live_snapshot_last_attempt = now
+            return
+        enabled, interval, confirm = _live_snapshot_policy(getattr(self, "settings", {}))
+        if not enabled or getattr(self, "_live_snapshot_pending", False):
+            return
+        global_dir, session_name = self._live_snapshot_session()
+        if session_name is None:
+            return
+        from core import profile_recovery
+        age = profile_recovery.snapshot_age_seconds(global_dir, session_name)
+        if not _live_snapshot_due(enabled, interval, now - last, age):
+            return
+        reason = self._live_snapshot_blocked_reason()
+        if reason:
+            logging.info("[profile-backup] a backup is due but not now: %s.", reason)
+            return
+        if confirm and not self._window_can_ask():
+            # Not consumed: asked at the next poll with the window in front.
+            logging.info("[profile-backup] a backup is due; waiting for the "
+                         "WinZapp window to be active to ask about it.")
+            return
+        self._live_snapshot_previous_attempt = last
+        self._live_snapshot_last_attempt = now
+        self._live_snapshot_pending = True
+        if confirm:
+            wx.CallAfter(self._ask_live_profile_snapshot)
+        else:
+            self._start_live_snapshot_worker()
+
+    def _postpone_live_snapshot(self):
+        """Give the interval back after a round that closed nothing.
+
+        _maybe_refresh_profile_snapshot_live() spends the interval before the
+        question is even asked, so a worker that then bows out (another cycle
+        took the session, a send is still on the wire) would otherwise cost a
+        whole interval — a day on the shipped settings — for a backup the user
+        just agreed to. Putting the previous mark back leaves it due again at
+        the next poll, and uses that poll's own clock rather than a second
+        reading of this one.
+
+        A Yes is deliberately not carried over: the next poll asks again, since
+        by then the answer may have changed (the user is mid-call, or writing).
+        """
+        previous = getattr(self, "_live_snapshot_previous_attempt", None)
+        if previous is not None:
+            self._live_snapshot_last_attempt = previous
+
+    def _ask_live_profile_snapshot(self):
+        """Main thread. The same dialog as marking every chat as read: No is
+        the default, because it pops up over whatever the user is doing and a
+        habitual Enter must not disconnect WhatsApp. "Don't ask again" only
+        counts together with Yes; the settings tab turns asking back on."""
+        try:
+            t = self.i18n.t
+            confirmed, dont_ask_again = confirm_with_checkbox(
+                self,
+                t("profile_backup_live_confirm"),
+                t("profile_backup_live_confirm_title"),
+                t("profile_backup_live_dont_ask_again"),
+                yes_label=t("yes_button"),
+                no_label=t("no_button"),
+                checked=False,
+                default_yes=False,
+            )
+        except Exception:
+            logging.exception("[profile-backup] could not ask about the backup")
+            self._live_snapshot_pending = False
+            return
+        if not confirmed:
+            # Asked again after another interval, not at the next poll.
+            logging.info("[profile-backup] the user postponed the backup.")
+            self._live_snapshot_pending = False
+            return
+        if dont_ask_again:
+            self.settings.setdefault("profile_backup", {})["live_snapshot_confirm"] = False
+            self.save_settings()
+        self._start_live_snapshot_worker()
+
+    def _start_live_snapshot_worker(self):
+        threading.Thread(target=self._refresh_profile_snapshot_live, daemon=True).start()
+
+    def _refresh_profile_snapshot_live(self):
+        """Worker thread: close the session, copy the released profile, start it.
+
+        Goes through _restart_wpp_session(), so it inherits every gate that
+        path already has — CLOSED, then the profile release, the restore
+        ownership check, and _restarting_wpp_session, which keeps the health
+        loop from starting a competing session and the disconnection from
+        being announced as a real one.
+        """
+        from core import profile_recovery
+        global_dir, session_name = self._live_snapshot_session()
+        staged = {}
+        queue = getattr(self, "message_queue", None)
+        held = False
+        try:
+            if not _live_snapshot_policy(getattr(self, "settings", {}))[0]:
+                return
+            # Not the queue here: that is what the hold below is for, and
+            # refusing would cost the whole interval for a message the user
+            # sent while the question was on screen.
+            reason = self._live_snapshot_blocked_reason(check_queue=False)
+            if reason:
+                # The situation changed while the question was on screen.
+                logging.info("[profile-backup] not backing up after all: %s.", reason)
+                self._postpone_live_snapshot()
+                return
+            if queue is not None:
+                # Nothing may be attempted against the session this is about to
+                # close. Held, the queue keeps every message — including one the
+                # user writes during the backup — and sends it when the session
+                # is back, instead of spending its retries against a session
+                # that is deliberately gone. A send already on the wire is
+                # waited for rather than cut off.
+                queue.hold()
+                held = True
+                if not queue.wait_until_idle(self._LIVE_SNAPSHOT_DRAIN_SECONDS):
+                    logging.info("[profile-backup] a message is still being sent "
+                                 "— leaving the session alone this round.")
+                    self._postpone_live_snapshot()
+                    return
+
+            def _copy_released_profile():
+                # Announced here, not before the restart: a restart held back
+                # by its own cooldown or re-entry guard disconnects nothing,
+                # and must not be announced as a backup that then "failed".
+                staged["announced"] = True
+                wx.CallAfter(self.output, self.i18n.t("profile_backup_live_started"),
+                             interrupt=False)
+                # Staged, not in place: see _LIVE_SNAPSHOT_CONFIRM_SECONDS.
+                staged["copy"] = profile_recovery.capture_snapshot(
+                    global_dir, session_name,
+                    budget=self._LIVE_SNAPSHOT_BUDGET_SECONDS, max_age=0,
+                    cancel=self._live_snapshot_cancelled, stage_only=True)
+
+            restarted = self._restart_wpp_session(on_profile_released=_copy_released_profile,
+                                                  reason="profile backup")
+            if held:
+                # The session is starting again; queued messages go out as soon
+                # as it reports connected, without waiting for the copy to be
+                # confirmed below.
+                queue.release()
+                held = False
+            if (restarted and staged.get("copy")
+                    and self._live_snapshot_session_accepted()
+                    and profile_recovery.promote_pending_snapshot(global_dir, session_name)):
+                staged.clear()
+                self._shutdown_audit("profile snapshot refreshed with WinZapp open")
+                wx.CallAfter(self.output, self.i18n.t("profile_backup_live_done"), interrupt=False)
+                return
+            if not restarted and not staged.get("announced"):
+                # The restart did not get far enough to release the profile
+                # (its own cooldown or re-entry guard, or a session that never
+                # reported CLOSED), so this round cost nothing and must not
+                # cost the interval either. It cannot loop: the close stamps
+                # _last_wpp_session_restart_ts, whose cooldown refuses the next
+                # polls for free.
+                self._postpone_live_snapshot()
+            logging.warning("[profile-backup] the backup was not kept (restarted=%s, "
+                            "copied=%s); the previous snapshot stays.",
+                            restarted, bool(staged.get("copy")))
+            if staged.get("announced"):
+                wx.CallAfter(self.output, self.i18n.t("profile_backup_live_failed"),
+                             interrupt=False)
+        except Exception:
+            logging.exception("[profile-backup] backup with WinZapp open failed")
+        finally:
+            if held:
+                # Every path that leaves before the restart releases here: a
+                # queue left held sends nothing for the rest of the launch, and
+                # a raise here must not skip what follows either.
+                try:
+                    queue.release()
+                except Exception:
+                    logging.exception("[profile-backup] could not release the message queue")
+            if staged.get("copy"):
+                try:
+                    profile_recovery.discard_pending_snapshot(global_dir, session_name)
+                except Exception:
+                    logging.exception("[profile-backup] could not discard the staged copy")
+            self._live_snapshot_pending = False
 
     # A live WPPConnect Socket.IO event this recent is treated as direct
     # proof of connectivity — see _note_live_wpp_event() and the top of
@@ -16518,11 +17276,28 @@ class MainWindow(wx.Frame):
                         chats[jid] = chat
                     else:
                         local_activity_t = int(chats[jid].get("t", 0) or 0)
+                        # A snapshot can be BEHIND the messages we already
+                        # hold: a restored browser profile comes back with every
+                        # chat's `t` from its snapshot, up to a day old. Copying
+                        # that down lowered the local marker, and the next round
+                        # reconcile_snapshot_unread() saw the snapshot as current
+                        # and took its unread counts — putting the list back to
+                        # whatever the snapshot had (near zero, for one taken
+                        # after a mass mark-as-read). `t` is never lowered below
+                        # the newest stored message that counts as the chat's
+                        # last one, the same rule sync_chat_messages() applies
+                        # when it raises `t` itself. See chat_activity_floor().
+                        activity_floor = _chat_activity_floor(
+                            chats[jid], MainWindow._counts_as_last_message,
+                            now=int(time.time()))
                         for k, v in chat.items():
                             if k in ("messages", "remoteJid"):
                                 continue
                             if k == "lastMessage" and not v:
                                 continue
+                            if (k == "t" and activity_floor
+                                    and _timestamp_seconds(v) < activity_floor):
+                                v = activity_floor
                             if k == "pushName" and jid.endswith("@g.us"):
                                 continue
                             if k == "name" and jid.endswith("@g.us"):
@@ -18230,6 +19005,14 @@ class MainWindow(wx.Frame):
                     self._reconcile_active_conversation_with_remote()
                 except Exception as e:
                     logging.warning(f"[periodic_contacts_sync] error: {e}")
+                # Settings > Cópia de segurança, when on. Outside the try above
+                # so a failed chat poll never skips it, and inside its own so
+                # it can never break the poll.
+                try:
+                    if getattr(self, "_wa_connected", False):
+                        self._maybe_refresh_profile_snapshot_live()
+                except Exception as e:
+                    logging.warning(f"[periodic_contacts_sync] profile backup check failed: {e}")
 
         threading.Thread(target=_loop, daemon=True).start()
 
@@ -22675,18 +23458,22 @@ class MainWindow(wx.Frame):
     # payoff (not staring at a message that no longer exists, or a "cleared"
     # conversation that stays full until F5) is worth it.
 
-    def _fetch_remote_message_window(self, remote_jid: str) -> "tuple[set[str], int | None] | None":
-        """Best-effort GET of the messages WPPConnect currently has for
-        remote_jid, as ``(ids, oldest_timestamp)``. Returns None on ANY
-        failure/ambiguity — a failed fetch must never be read as "the phone
-        deleted everything". IDs are extracted via the same
-        _normalize_wpp_message() sync_chat_messages() uses, so they compare
-        equal to what's stored in key.id locally.
+    def _get_remote_messages(self, remote_jid: str,
+                             extra_query: str = "") -> "tuple[list, int, int | None] | None":
+        """Best-effort GET of get-messages for remote_jid.
 
-        The oldest timestamp is what bounds the comparison: the answer is only
-        the newest `limit` messages, and a local message older than the oldest
-        of those was never asked about (see core/remote_deletions.py). None
-        when nothing in the answer carried a usable timestamp.
+        Returns ((normalised, raw) pairs, number of raw items in the answer,
+        oldest timestamp among the RAW items or None), or None on ANY
+        failure/ambiguity — a failed fetch must never be read as "the phone
+        deleted everything". Messages go through the same
+        _normalize_wpp_message() sync_chat_messages() uses, so their key.id
+        compares equal to what's stored locally; the raw item is kept because
+        only it carries the full serialized id an anchored query needs.
+
+        The oldest timestamp is read off the raw items, before and regardless
+        of the normaliser: an answer is bounded by everything the server
+        returned, including entries the normaliser cannot map (see
+        core/remote_deletions.py).
         """
         if not self.ws:
             return None
@@ -22698,7 +23485,8 @@ class MainWindow(wx.Frame):
         else:
             phone = remote_jid
         limit = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
-        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}"
+        url = (f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/"
+               f"{phone}?count={limit}{extra_query}")
         headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
         try:
             response = api_get(url, headers=headers, timeout=15)
@@ -22708,16 +23496,11 @@ class MainWindow(wx.Frame):
             wpp_messages = body.get("response", []) if isinstance(body, dict) else []
             if not isinstance(wpp_messages, list):
                 return None
-            ids = set()
+            pairs = []
             oldest = None
-            answered = 0
             for wm in wpp_messages:
                 if not isinstance(wm, dict):
                     continue
-                answered += 1
-                # Read off the raw message, before and regardless of the
-                # normaliser: the window is bounded by everything the server
-                # returned, including what the normaliser cannot map.
                 ts = message_timestamp_seconds(
                     {"messageTimestamp": wm.get("t") or wm.get("timestamp")}
                 )
@@ -22727,32 +23510,218 @@ class MainWindow(wx.Frame):
                     normalized = self.ws._normalize_wpp_message(wm)
                 except Exception:
                     continue
-                mid = normalized.get("key", {}).get("id", "")
-                if mid:
-                    ids.add(mid)
-            # The server answered with entries, yet they yielded no id or no
-            # timestamp: the normaliser or the payload shape broke, not the
-            # conversation. Reading that as data is how it would go wrong —
-            # no ids is the shape of a phone-side clear (three polls later the
-            # whole conversation is wiped), and ids with no timestamp leave the
-            # comparison unbounded (the oldest local messages deleted again).
-            # Only a genuinely empty answer may count toward a clear.
-            if answered and (not ids or oldest is None):
-                logging.warning(
-                    "[_fetch_remote_message_window] %s: %d entr(ies) answered but "
-                    "%d id(s), oldest timestamp %s — treating as ambiguous.",
-                    remote_jid, answered, len(ids), oldest,
-                )
-                return None
-            return ids, oldest
+                if normalized.get("key", {}).get("id", ""):
+                    pairs.append((normalized, wm))
+            return pairs, len(wpp_messages), oldest
         except Exception as e:
-            logging.warning(f"[_fetch_remote_message_window] failed for {remote_jid}: {e}")
+            logging.warning(f"[_get_remote_messages] failed for {remote_jid}: {e}")
             return None
+
+    def _fetch_remote_message_window(self, remote_jid: str) -> "tuple[set[str], int | None, str] | None":
+        """The newest messages WhatsApp Web has for remote_jid:
+        (message ids, oldest timestamp in seconds — None when the answer is
+        empty, serialized id of the oldest message — '' when none), or None.
+
+        The oldest timestamp bounds which local messages this answer can say
+        anything about: only the ones WhatsApp Web has loaded, never older
+        history. The serialized id is where _deletions_before_remote_window()
+        continues from (see core/remote_reconcile.py).
+        """
+        answer = self._get_remote_messages(remote_jid)
+        if answer is None:
+            return None
+        pairs, raw_count, oldest = answer
+        ids = {n["key"]["id"] for n, _raw in pairs}
+        # The server answered with entries, yet they yielded no id or no
+        # timestamp: the normaliser or the payload shape broke, not the
+        # conversation. Reading that as data is how it would go wrong —
+        # no ids is the shape of a phone-side clear (three polls later the
+        # whole conversation is wiped), and ids with no timestamp leave the
+        # comparison unbounded (the oldest local messages deleted again).
+        # Only a genuinely empty answer may count toward a clear.
+        if raw_count and (not ids or oldest is None):
+            logging.warning(
+                "[_fetch_remote_message_window] %s: %d entr(ies) answered but "
+                "%d id(s), oldest timestamp %s — treating as ambiguous.",
+                remote_jid, raw_count, len(ids), oldest,
+            )
+            return None
+        return ids, oldest, _oldest_anchor(pairs)
+
+    def _fetch_remote_messages_before(self, remote_jid: str,
+                                      anchor_id: str) -> "tuple[set[str], int | None, str] | None":
+        """The page of messages WhatsApp Web's database holds before anchor_id:
+        (ids, oldest timestamp, serialized id of the oldest), or None.
+
+        An EMPTY id set with a successful answer means the database has nothing
+        earlier (msgFindBefore's own "end of history"). Raw items that came back
+        but could not be read are None, never an empty page.
+
+        A page is used even when it holds messages newer than the anchor: the
+        server swaps an anchor it cannot find for another one without saying so
+        (deviceController.ts getMessages, originalOldestId), but what it returns
+        is still one contiguous run of history, so everything after its oldest
+        message is covered.
+        """
+        answer = self._get_remote_messages(
+            remote_jid, f"&direction=before&id={_url_quote(anchor_id, safe='')}")
+        if answer is None:
+            return None
+        pairs, raw_count, oldest = answer
+        if raw_count and (not pairs or oldest is None):
+            return None
+        return ({n["key"]["id"] for n, _raw in pairs}, oldest, _oldest_anchor(pairs))
+
+    # How many anchored pages one poll may walk back into older history. Local
+    # candidates are only the last messages_page_size records, so one page
+    # normally settles all of them; the bound keeps a chat that never settles
+    # from costing more than a few GETs a minute.
+    _REMOTE_BEFORE_PAGES = 5
+
+    def _deletions_before_remote_window(self, remote_jid: str, candidates: list,
+                                        window_ids: set, window_oldest_ts: int,
+                                        anchor_id: str) -> set:
+        """Ids of local messages OLDER than the newest window that a page of
+        WhatsApp Web's database proves deleted.
+
+        The newest window says nothing about them: it is cut by count, and the
+        server's own paging behind it can stop early. So ask WhatsApp Web's
+        database again, anchored on the oldest message the window returned: a
+        message found in any page is kept, and a page proves deleted only the
+        ones inside the period it covers that are absent.
+
+        Whatever the walk cannot account for — an empty page (the database has
+        nothing earlier), a failed page, no anchor, a page that does not move
+        back, the page budget spent — is KEPT. A message WhatsApp Web's
+        database has lost answers exactly like a deleted one, and so does one
+        its store never held (a profile paired after the message arrived, a
+        store that simply holds little history). A missed phone-side deletion
+        is cosmetic and fixes itself on the next F5; a false one removes the
+        message from the only complete copy there is (core/remote_deletions.py).
+        The accepted cost: a chat cleared on the phone while WinZapp was closed,
+        with new messages since, is not mirrored.
+
+        Nothing returned here is mirrored from a single read either — the
+        caller confirms it on consecutive polls (split_deletions()), and a poll
+        that finds the message again drops it from the run (observe_deletions()).
+        """
+        unresolved = _older_than_window(candidates, window_ids, window_oldest_ts)
+        if not unresolved:
+            return set()
+        known = set(window_ids)
+        found = set()
+        anchor = anchor_id
+        cause = "page budget spent" if anchor else "no anchor"
+        for _page in range(self._REMOTE_BEFORE_PAGES):
+            if not anchor:
+                break
+            page = self._fetch_remote_messages_before(remote_jid, anchor)
+            if page is None:
+                cause = "page fetch failed"
+                break
+            page_ids, page_oldest_ts, page_anchor = page
+            if not page_ids:
+                cause = "history ends"
+                break
+            known |= page_ids
+            found |= _deletions_within_remote_window(unresolved, known, page_oldest_ts)
+            unresolved = _older_than_window(unresolved, known, page_oldest_ts)
+            if not unresolved:
+                break
+            if not page_anchor or page_anchor == anchor:
+                cause = "page did not move back"
+                break
+            anchor = page_anchor
+        if unresolved:
+            logging.info(
+                "[_deletions_before_remote_window] %s: %d older message(s) not "
+                "accounted for (%s) — kept.",
+                remote_jid, len(unresolved), cause,
+            )
+        return found
 
     # Consecutive polls a conversation must look fully cleared server-side
     # (see _reconcile_active_conversation_with_remote) before it's actually
     # mirrored locally — a single valid-but-empty read is not enough.
     _REMOTE_CLEAR_CONFIRM_STRIKES = 3
+
+    _ROLLBACK_GAPS_METADATA_KEY = "remote_rollback_gaps"
+
+    def _record_rollback_gap(self, taken_at, restored_at) -> None:
+        """Remember, persistently, the period a profile restore rolled
+        WhatsApp Web's database back. Kept in memory first: a restore can run
+        before prepare_sync() has created self.db, and losing the record to that
+        would bring back exactly the deletions it exists to prevent — it is
+        written to the database the next time _rollback_gaps() finds one."""
+        gaps = _add_rollback_gap(self._rollback_gaps(), taken_at, restored_at)
+        self._rollback_gaps_cache = gaps
+        self._rollback_gaps_dirty = True
+        logging.info("[profile-recovery] rolled-back period recorded: %s", gaps[-1:])
+        self._rollback_gaps()
+
+    def _rollback_gaps(self) -> list:
+        """The recorded rolled-back periods (see _record_rollback_gap())."""
+        lock = self.__dict__.setdefault("_rollback_gaps_lock", threading.Lock())
+        with lock:
+            cached = getattr(self, "_rollback_gaps_cache", None)
+            db = getattr(self, "db", None)
+            if cached is None and db is not None:
+                try:
+                    stored = db.get_metadata_json(self._ROLLBACK_GAPS_METADATA_KEY, None)
+                except Exception:
+                    logging.exception("[reconcile] could not read rolled-back periods")
+                    return []
+                if stored is None:
+                    # Never written: this is the first launch of a build that
+                    # records restores. One done earlier left its hole too, and
+                    # nothing recorded it (see _legacy_restore_gap()).
+                    cached = self._legacy_restore_gap()
+                    self._rollback_gaps_dirty = True
+                else:
+                    cached = _normalize_rollback_gaps(stored)
+                self._rollback_gaps_cache = cached
+            if getattr(self, "_rollback_gaps_dirty", False) and db is not None:
+                try:
+                    stored = _normalize_rollback_gaps(
+                        db.get_metadata_json(self._ROLLBACK_GAPS_METADATA_KEY, []) or [])
+                    cached = _normalize_rollback_gaps(stored + list(cached or []))
+                    db.set_metadata_json(self._ROLLBACK_GAPS_METADATA_KEY, cached)
+                    self._rollback_gaps_cache = cached
+                    self._rollback_gaps_dirty = False
+                except Exception:
+                    logging.exception("[reconcile] could not store rolled-back periods")
+            return list(cached or [])
+
+    def _legacy_restore_gap(self) -> list:
+        """The period a restore made BEFORE rolled-back periods were recorded
+        left behind, or [].
+
+        The walk back into older history ships in the same release as the
+        recording, so a profile restored on an earlier build has a hole nothing
+        knows about — and the first time that chat is opened it would be
+        confirmed away (reproduced in review). What survives of such a restore
+        is the broken profile it moved aside, `<profile>.broken`, whose mtime
+        is about when it happened. When the restore started from is not known,
+        so the period covers everything before it: that keeps messages, which
+        is the direction to be wrong in.
+        """
+        from core import profile_recovery
+        session_name = (getattr(self, "token", "") or "").split(":")[0]
+        global_dir = getattr(self, "global_dir", None)
+        if not session_name or not global_dir:
+            return []
+        try:
+            restored_at = os.path.getmtime(
+                profile_recovery.profile_dir(global_dir, session_name) + ".broken")
+        except OSError:
+            return []
+        except Exception:
+            logging.exception("[reconcile] could not look for an earlier restore")
+            return []
+        logging.info("[reconcile] an earlier profile restore (%s) left an unrecorded "
+                     "period — not judging anything before it.",
+                     time.strftime("%Y-%m-%d %H:%M", time.localtime(restored_at)))
+        return _add_rollback_gap([], None, restored_at)
 
     def _reconcile_active_conversation_with_remote(self):
         """Detect a phone-side clear or individual message deletions in
@@ -22762,6 +23731,8 @@ class MainWindow(wx.Frame):
         """
         if not hasattr(self, "_remote_clear_strikes"):
             self._remote_clear_strikes = {}
+        if not hasattr(self, "_remote_deletion_strikes"):
+            self._remote_deletion_strikes = {}
         cp = getattr(self, "conversations_panel", None)
         if cp is None or cp.conversation is None:
             return
@@ -22788,13 +23759,13 @@ class MainWindow(wx.Frame):
         # WinZapp's own local history shortly after being sent.
         #
         # The slice alone was not enough, and the rest of the bounding lives in
-        # core/remote_deletions.py: the server's last `limit` entries include
-        # edit events and placeholders WinZapp never stores as messages, so
-        # they reach less far back than the last `limit` local records, and
-        # the oldest local messages past that point were "mirrored" away on
-        # nearly every poll — measured 2026-09-16, one removal per round,
-        # each shrinking the list under the screen reader and deleting the
-        # message from the database.
+        # core/remote_deletions.py (which records are real, stable content)
+        # and core/remote_reconcile.py (which of them an answer covers): the
+        # server's last `limit` entries include edit events and placeholders
+        # WinZapp never stores as messages, so they reach less far back than
+        # the last `limit` local records — measured 2026-09-16, one removal per
+        # round — and an answer can shrink to a couple of messages, which is
+        # what deleted 199 messages at once from an open group on 2026-09-15.
         limit = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
 
         # Also exclude anything sent/received in roughly the last two
@@ -22814,51 +23785,77 @@ class MainWindow(wx.Frame):
         remote = self._fetch_remote_message_window(remote_jid)
         if remote is None:
             return
-        remote_ids, remote_oldest_ts = remote
+        remote_ids, remote_oldest_ts, anchor_id = remote
         # Messages with no bound would be the old unbounded comparison; the
         # fetch already refuses that, and this keeps any other source honest.
-        if remote_ids and remote_oldest_ts is None:
+        if remote_ids and not remote_oldest_ts:
             return
-        # An empty answer has no bound, and must not get one: that is the shape
-        # of a phone-side clear, confirmed over several polls below.
-        local_ids = comparable_local_ids(
-            records, limit, _stable_cutoff,
-            remote_oldest_ts if remote_ids else None,
-            is_countable_message,
+        # Messages already waiting for confirmation stay judged even once new
+        # messages push them out of the last-`limit` slice. Otherwise a bulk
+        # deletion in a busy chat would drop out of its own confirmation run
+        # and never be mirrored.
+        pending_run = self._remote_deletion_strikes.get(remote_jid)
+        candidates = comparable_local_records(
+            records, limit, _stable_cutoff, None, is_countable_message,
+            extra_ids=pending_run[0] if pending_run else (),
         )
-        if not local_ids:
+        # Nothing a profile restore rolled back is ever judged: WhatsApp Web's
+        # database has a hole there that answers exactly like a deletion.
+        candidates = _outside_rollback_gaps(candidates, self._rollback_gaps())
+        if remote_ids:
+            # The answer is cut by count, so it only proves deletions inside the
+            # period it covers. Older local messages are asked about again,
+            # anchored on its oldest message (_deletions_before_remote_window).
+            # A big batch, and anything about older history, waits for the
+            # confirmation strikes a clear does, and only what was missing on
+            # every one of those polls is mirrored.
             self._remote_clear_strikes.pop(remote_jid, None)
-            return
-        missing_ids = local_ids - remote_ids
-        if not missing_ids:
-            self._remote_clear_strikes.pop(remote_jid, None)
-            return
-        if missing_ids == local_ids:
-            # Every local message is gone server-side — a clear, not a
-            # handful of individually deleted messages. Require this to hold
-            # for _REMOTE_CLEAR_CONFIRM_STRIKES consecutive polls before
-            # actually wiping anything: _fetch_remote_message_window() returning
-            # a valid-but-empty list (as opposed to None, which already bails
-            # out above) is indistinguishable from a real clear, but can also
-            # come from a transient server-side hiccup — reported live as an
-            # actively-open group conversation briefly clearing to "no
-            # messages available" mid-read, only to "recover" once a new
-            # live message forced a repaint. A single bad read must never be
-            # enough to nuke a conversation's entire visible history.
-            strikes = self._remote_clear_strikes.get(remote_jid, 0) + 1
-            self._remote_clear_strikes[remote_jid] = strikes
-            if strikes < self._REMOTE_CLEAR_CONFIRM_STRIKES:
+            direct = _deletions_within_remote_window(candidates, remote_ids, remote_oldest_ts)
+            inferred = self._deletions_before_remote_window(
+                remote_jid, candidates, remote_ids, remote_oldest_ts, anchor_id)
+            immediate, to_confirm = _split_deletions(direct, inferred)
+            confirmed = _observe_deletions(self._remote_deletion_strikes, remote_jid,
+                                           to_confirm, self._REMOTE_CLEAR_CONFIRM_STRIKES)
+            run = self._remote_deletion_strikes.get(remote_jid)
+            if run:
                 logging.info(
-                    "[_reconcile_active_conversation_with_remote] %s looks fully "
-                    "cleared server-side (strike %d/%d) — waiting for confirmation.",
-                    remote_jid, strikes, self._REMOTE_CLEAR_CONFIRM_STRIKES,
+                    "[_reconcile_active_conversation_with_remote] %s: %d message(s) "
+                    "look deleted on the phone (confirmation %d/%d) — waiting.",
+                    remote_jid, len(run[0]), run[1], self._REMOTE_CLEAR_CONFIRM_STRIKES,
                 )
-                return
+            missing_ids = immediate | confirmed
+            if missing_ids:
+                wx.CallAfter(self._mirror_remote_deletions, remote_jid, missing_ids)
+            return
+        self._remote_deletion_strikes.pop(remote_jid, None)
+        if not candidates:
             self._remote_clear_strikes.pop(remote_jid, None)
-            wx.CallAfter(self._mirror_remote_clear, remote_jid)
-        else:
-            self._remote_clear_strikes.pop(remote_jid, None)
-            wx.CallAfter(self._mirror_remote_deletions, remote_jid, missing_ids)
+            return
+        # The answer is empty — every local message is gone server-side,
+        # which is what a clear looks like. Require this to hold for
+        # _REMOTE_CLEAR_CONFIRM_STRIKES consecutive polls before actually
+        # wiping anything: a valid-but-empty answer (as opposed to None,
+        # which already bails out above) is indistinguishable from a real
+        # clear, but can also come from a transient server-side hiccup —
+        # reported live as an actively-open group conversation briefly
+        # clearing to "no messages available" mid-read, only to "recover"
+        # once a new live message forced a repaint. A single bad read must
+        # never be enough to nuke a conversation's entire visible history.
+        #
+        # Only an EMPTY answer counts. A non-empty one that shares no id with
+        # local history used to count too, and that is exactly the shape of a
+        # window that shrank to a few new messages.
+        strikes = self._remote_clear_strikes.get(remote_jid, 0) + 1
+        self._remote_clear_strikes[remote_jid] = strikes
+        if strikes < self._REMOTE_CLEAR_CONFIRM_STRIKES:
+            logging.info(
+                "[_reconcile_active_conversation_with_remote] %s looks fully "
+                "cleared server-side (strike %d/%d) — waiting for confirmation.",
+                remote_jid, strikes, self._REMOTE_CLEAR_CONFIRM_STRIKES,
+            )
+            return
+        self._remote_clear_strikes.pop(remote_jid, None)
+        wx.CallAfter(self._mirror_remote_clear, remote_jid)
 
     def _mirror_remote_clear(self, remote_jid: str):
         """Mirror a conversation cleared on the phone. Runs on the main thread."""
@@ -22876,6 +23873,7 @@ class MainWindow(wx.Frame):
         # remember, the server is already the source of truth going forward.
         self.clear_chat_messages_local(remote_jid, record_cutoff=False)
         cp.conversation = self.chats.get(remote_jid, cp.conversation)
+        cp.selected_messages.clear()
         cp.populate_messages()
         self._schedule_set_chats()
 
@@ -27840,27 +28838,38 @@ class MainWindow(wx.Frame):
         self._schedule_save()
         self._schedule_set_chats()
 
-    def clear_chat_messages_local(self, jid: str, record_cutoff: bool = True):
+    def clear_chat_messages_local(self, jid: str, record_cutoff: bool = True,
+                                  keep_starred: bool = True):
         """Empty a conversation locally, keeping it in the chat list.
 
         Clearing removes the messages and the last-message preview — it must
         NOT remove the conversation itself; that is what "delete chat" does.
-        Starred messages are the one exception — starring is meant to make a
-        message durable, so clearing a chat must not wipe them, matching
-        WhatsApp's own behavior.
+        Starred messages survive when `keep_starred` is True, which is the
+        default of WhatsApp Web's own "keep starred messages" checkbox; the
+        user can untick it in the confirmation to clear those too.
         `record_cutoff` is False when we are only mirroring a clear that already
         happened on the phone (no new cutoff to remember, the server is the
         source of truth).
+
+        Returns the recorded cutoff (or None). The separate cutoff for starred
+        messages is NOT written here: clear_chat() writes it through
+        _record_starred_clear_cutoff() only once the server confirms it
+        cleared them too.
         """
         chat = self.chats.get(jid)
         if not chat:
-            return
+            return None
+        cutoff = None
         records = chat.get("messages", {}).get("messages", {}).get("records", [])
-        starred = [m for m in records if isinstance(m, dict) and m.get("starred")]
+        starred = (
+            [m for m in records if isinstance(m, dict) and m.get("starred")]
+            if keep_starred else []
+        )
         chat.setdefault("messages", {}).setdefault("messages", {})["records"] = starred
         chat["unreadCount"] = 0
         if record_cutoff:
-            self.settings.setdefault("cleared_chats", {})[jid] = int(time.time())
+            cutoff = int(time.time())
+            self.settings.setdefault("cleared_chats", {})[jid] = cutoff
             self.save_settings()
         self._schedule_save(dirty_jid=jid)
         # Recomputes lastMessage/t from the survivors (a kept starred message,
@@ -27890,6 +28899,37 @@ class MainWindow(wx.Frame):
                 self.db.delete_chat_messages_except(jid, keep_ids)
             except Exception as exc:
                 logging.warning("[clear_chat_messages_local] DB clear failed for %s: %s", jid, exc)
+        return cutoff
+
+    def _announce_starred_clear_unsupported(self):
+        """Say, once per process, that the installed client/api kept the
+        starred messages on the phone. Runs on the main thread, so the flag
+        needs no lock: a bulk clear of 20 chats must not read the same long
+        sentence 20 times, and the API version cannot change mid-process.
+        The menu path is built from the menu's own keys so it cannot drift
+        from what the user will actually find there."""
+        if getattr(self, "_starred_clear_unsupported_announced", False):
+            return
+        self._starred_clear_unsupported_announced = True
+        t = self.i18n.t
+        self.output(t("clear_chat_starred_kept_on_phone").format(
+            menu=t("menu_help").replace("&", ""),
+            option=t("menu_force_reinstall_wpp").replace("&", ""),
+        ))
+
+    def _record_starred_clear_cutoff(self, jid: str, cutoff):
+        """Remember that a clear of `jid` also dropped its starred messages.
+
+        The ordinary cutoff exempts starred messages (see
+        _is_cleared_message), so without this the next sync would bring the
+        ones just cleared back. Only ever advanced, never removed: a later
+        clear that keeps starred messages must not resurrect these.
+        """
+        cutoff = int(cutoff or time.time())
+        starred_cutoffs = self.settings.setdefault("cleared_starred_chats", {})
+        if cutoff > int(starred_cutoffs.get(jid) or 0):
+            starred_cutoffs[jid] = cutoff
+            self.save_settings()
 
     def delete_chat(self, jid: str):
         """Delete chat locally and sync to WPPConnect API."""
@@ -27920,20 +28960,52 @@ class MainWindow(wx.Frame):
                 logging.warning("[delete_chat] Request failed for %s: %s", jid, exc)
         threading.Thread(target=_api, daemon=True).start()
 
-    def clear_chat(self, jid: str):
+    def clear_chat(self, jid: str, keep_starred: bool = True):
         """Clear chat messages locally and sync to WPPConnect API."""
-        self.clear_chat_messages_local(jid)
+        cutoff = self.clear_chat_messages_local(jid, keep_starred=keep_starred)
         def _api():
             phone = jid.replace("@s.whatsapp.net", "@c.us")
             url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/clear-chat"
             headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
             try:
+                # An older client/api ignores keepStarred and keeps the starred
+                # messages on the phone. That is why the starred cutoff waits
+                # for the server's echo below: recording it regardless would
+                # hide, in WinZapp only and for good, messages still on the
+                # phone. Without it the next sync brings them back instead.
                 r = api_post(
-                    url, json={"phone": [phone], "isGroup": phone.endswith("@g.us")},
+                    url,
+                    json={
+                        "phone": [phone],
+                        "isGroup": phone.endswith("@g.us"),
+                        "keepStarred": bool(keep_starred),
+                    },
                     headers=headers, timeout=10,
                 )
                 if not r.ok:
                     logging.warning("[clear_chat] API error %s for %s: %s", r.status_code, jid, r.text[:200])
+                elif not keep_starred:
+                    try:
+                        body = r.json()
+                    except Exception:
+                        body = None
+                    echo = clear_chat_keep_starred_echo(body)
+                    if echo is False and clear_chat_applied(body, phone):
+                        wx.CallAfter(self._record_starred_clear_cutoff, jid, cutoff)
+                    elif echo is False:
+                        # The server understood keepStarred=false, but WhatsApp
+                        # Web did not confirm the clear: nothing proves the
+                        # starred messages are gone from the phone.
+                        logging.warning(
+                            "[clear_chat] %s: the clear was not confirmed by "
+                            "WhatsApp Web — starred messages not treated as cleared.", jid,
+                        )
+                    else:
+                        logging.warning(
+                            "[clear_chat] %s: server did not confirm keepStarred=false "
+                            "(outdated client/api?) — starred messages kept on the phone.", jid,
+                        )
+                        wx.CallAfter(self._announce_starred_clear_unsupported)
             except Exception as exc:
                 logging.warning("[clear_chat] Request failed for %s: %s", jid, exc)
         threading.Thread(target=_api, daemon=True).start()
@@ -28003,18 +29075,23 @@ class MainWindow(wx.Frame):
         clear appear to do nothing. Messages received after the clear have a
         newer timestamp and are kept.
 
-        Starred messages are never "cleared", whatever their timestamp.
-        clear_chat_messages_local() deliberately keeps them (starring is meant
+        Starred messages kept by a clear are not "cleared", whatever their
+        timestamp. clear_chat_messages_local() deliberately keeps them (starring is meant
         to make a message durable, same as WhatsApp itself), but every path
         that rebuilds a conversation — the history sync, the on-disk cache
         merge, a WebSocket re-delivery — filtered them right back out through
         this cutoff, so the survivors it had just saved disappeared again on
         the next sync or restart. Reported live as "limpar uma conversa
         tambem apaga as mensagens favoritas".
+
+        Unless the user unticked "keep starred messages" when clearing: that
+        records settings["cleared_starred_chats"], the cutoff starred
+        messages are judged against instead.
         """
-        if isinstance(msg, dict) and msg.get("starred"):
+        if not isinstance(msg, dict):
             return False
-        cutoff = self.settings.get("cleared_chats", {}).get(jid)
+        cutoff_key = "cleared_starred_chats" if msg.get("starred") else "cleared_chats"
+        cutoff = self.settings.get(cutoff_key, {}).get(jid)
         if not cutoff:
             return False
         try:

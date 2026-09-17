@@ -459,6 +459,29 @@ class TestASuccessfulRestoreGivesBackTheQrFloodAllowance:
         assert stub._unattended_qr_events == 0
         assert "profile_restored_from_snapshot" in stub.announced
 
+    def test_a_successful_restore_records_the_period_it_rolled_back(self, restoring, monkeypatch):
+        """The launch-long suspension of mirrored deletions does not cover the
+        hole the restore leaves in WhatsApp Web's database for good
+        (core/remote_reconcile.py, "Periods a profile restore rolled back")."""
+        restoring(True)
+        monkeypatch.setattr("core.profile_recovery.snapshot_taken_at",
+                            lambda *a, **kw: 1_000_000.0)
+        stub = _Stub()
+        recorded = []
+        stub._record_rollback_gap = lambda taken_at, restored_at: recorded.append(taken_at)
+
+        MainWindow._recover_suspect_profile(stub)
+
+        assert recorded == [1_000_000.0]
+
+    def test_a_failed_restore_records_no_period(self, restoring):
+        restoring(False)
+        stub = _Stub()
+        recorded = []
+        stub._record_rollback_gap = lambda *a: recorded.append(a)
+        MainWindow._recover_suspect_profile(stub)
+        assert recorded == []
+
     def test_a_failed_restore_leaves_the_flood_counter_alone(self, restoring):
         """Nothing was moved aside, so the codes counted so far are real ones
         and the ceiling on them has to keep applying — the halt is the only

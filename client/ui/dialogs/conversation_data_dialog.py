@@ -83,6 +83,28 @@ def _participant_is_me(p_jid: str, my_phone_digits: str, my_lid_digits: str, pho
     return False
 
 
+def unresolved_participant_lids(participants, lid_to_phone) -> list:
+    """The @lid participant JIDs with no phone mapping yet, in list order.
+
+    These are what resolve_lid_jids_via_api() is asked about, and each one
+    costs a /contact/pn-lid round trip, often a profile round trip after it,
+    and a fixed 0.5 s throttle — about 0.6 s apiece, measured on a real
+    install. Deduplicated, because a malformed response listing someone twice
+    would otherwise pay that twice.
+    """
+    seen = set()
+    result = []
+    for p in participants or []:
+        if not isinstance(p, dict):
+            continue
+        p_jid = p.get("id", "")
+        if (isinstance(p_jid, str) and p_jid.endswith("@lid")
+                and p_jid not in lid_to_phone and p_jid not in seen):
+            seen.add(p_jid)
+            result.append(p_jid)
+    return result
+
+
 def _fmt_ts(ts, i18n):
     """Format a Unix timestamp to a localised date string."""
     if not ts:
@@ -142,6 +164,14 @@ class ConversationDataDialog(wx.Dialog):
         self._participant_jids: list = []
         self._participant_names: list = []
         self._participant_is_admin: list = []
+        # The JID each row was built from, exactly as /group-info returned it
+        # — what _refresh_participant_rows() re-resolves once the background
+        # @lid resolution has learned more (see _resolve_participant_lids()).
+        self._participant_raw_jids: list = []
+        # Set when the dialog is destroyed. Read by the background thread,
+        # which has no other thread-safe way to know nobody is looking any
+        # more and should stop spending API calls on this dialog's behalf.
+        self._closed = threading.Event()
         # False until _populate_group() confirms the current user is a
         # group admin — the context menu / edit buttons stay hidden/disabled
         # until then, so a click landing before the background fetch
@@ -157,6 +187,7 @@ class ConversationDataDialog(wx.Dialog):
         self._build_ui()
         self.SetSize((500, 480))
         self.CentreOnParent()
+        self.Bind(wx.EVT_WINDOW_DESTROY, self._on_window_destroy)
 
         # Fetch data in background after the dialog is shown.
         threading.Thread(target=self._fetch_data, daemon=True).start()
@@ -174,6 +205,23 @@ class ConversationDataDialog(wx.Dialog):
             return
         self._name = subject
         self.SetTitle(self._dialog_title(subject))
+
+    def Destroy(self):
+        # Marked here, not only on EVT_WINDOW_DESTROY: a top-level window's
+        # Destroy() is deferred to the next idle cycle, so the event arrives
+        # late, and the background resolution kept going for another whole
+        # chunk after the dialog was gone — caught running the real dialog in
+        # CI. The event stays as the net for destruction that does not come
+        # through here (the parent being destroyed first).
+        self._closed.set()
+        return super().Destroy()
+
+    def _on_window_destroy(self, event):
+        # wxWindowDestroyEvent propagates up from every child as well; only
+        # the dialog's own destruction means nobody is looking any more.
+        if event.GetEventObject() is self:
+            self._closed.set()
+        event.Skip()
 
     def _on_back_button(self, event):
         if hasattr(self, "_sound_preview"):
@@ -582,20 +630,6 @@ class ConversationDataDialog(wx.Dialog):
                 # database plus the media folder.
                 self._load_media_history()
                 data = self._mw.get_group_info(self._jid)
-                participants = data.get("participants", [])
-                lid_jids_to_resolve = []
-                lid_to_phone = getattr(self._mw, "_lid_to_phone", {})
-                for p in participants:
-                    if not isinstance(p, dict):
-                        continue
-                    p_jid = p.get("id", "")
-                    if p_jid and p_jid.endswith("@lid") and p_jid not in lid_to_phone:
-                        lid_jids_to_resolve.append(p_jid)
-                if lid_jids_to_resolve:
-                    try:
-                        self._mw.resolve_lid_jids_via_api(lid_jids_to_resolve)
-                    except Exception:
-                        pass
                 # Media count needs one os.path.isfile() stat call per media
                 # message in the group — computed here, on the background
                 # thread, rather than inside _populate_group() (which runs via
@@ -606,7 +640,27 @@ class ConversationDataDialog(wx.Dialog):
                 # live as freezing specifically while switching between the
                 # dialog's tabs, which is just when a user's input happens to
                 # land during that window (issue #52).
+                #
+                # Posted BEFORE the @lid resolution, never after it. That
+                # resolution is sequential and throttled — about 0.6 s per
+                # unmapped participant — and it used to run first, so Overview
+                # and Participants both sat on "loading" until every last one
+                # was done. Measured on a real account: 305 unmapped members in
+                # a 368-member group, over three minutes of "loading" with the
+                # group-info answer already in hand after 50 ms. Reported as
+                # the dialog never loading when the user moved to another tab,
+                # which is simply what anyone does while nothing appears.
                 wx.CallAfter(self._populate_group, data)
+                # Guarded here as well as inside: the rows are already posted,
+                # and anything escaping to the handler below would post
+                # _populate_group({}) on top of them.
+                try:
+                    self._resolve_participant_lids(data)
+                except Exception:
+                    logging.exception(
+                        "[ConversationDataDialog] participant @lid resolution failed for %s",
+                        self._jid,
+                    )
             else:
                 # Same order as the group branch: the Media tab is visible from
                 # the moment the dialog opens and only touches the local
@@ -722,6 +776,141 @@ class ConversationDataDialog(wx.Dialog):
             # silently hanging the dialog.
             logging.exception("[ConversationDataDialog] _populate_group failed for %s", self._jid)
 
+    # Unmapped @lid participants resolved between repaints of the rows. At
+    # ~0.6 s each that is a repaint every ~15 s — often enough that names
+    # visibly arrive while the dialog is open, rarely enough that a screen
+    # reader sitting on a changed row is not re-reading it constantly.
+    _LID_RESOLVE_CHUNK = 25
+    # JIDs per resolve_lid_jids_via_api() call. Not one: every call ends by
+    # scheduling a full chat-list rebuild, the cost register_jid_mapping()'s
+    # defer_ui exists to avoid, and one JID per call would rebuild it every
+    # ~0.6 s for minutes. Not a whole chunk either: closing is only noticed
+    # between calls, and 25 JIDs is ~15 s of API calls for nobody. Five bounds
+    # both at ~3 s. Must divide _LID_RESOLVE_CHUNK.
+    _LID_RESOLVE_BATCH = 5
+
+    def _resolve_participant_lids(self, data: dict) -> None:
+        """Resolve unmapped @lid participants AFTER the rows are shown.
+
+        Runs on the background fetch thread, _LID_RESOLVE_BATCH JIDs per call
+        so that closing the dialog is noticed within a few seconds rather than
+        one chunk, and repaints the rows every _LID_RESOLVE_CHUNK lookups plus
+        once at the end. Stops when the dialog is closed: the resolution only
+        exists to improve this list, and a 300-member group would otherwise
+        keep calling the API for minutes on behalf of nobody — the next
+        opening picks up wherever this left off, since everything resolved so
+        far is already in the mapping caches.
+
+        This loop is the ONLY thing resolving on the dialog's behalf, which is
+        why _participant_row() passes resolve_missing=False. With the rows now
+        built before resolution, the default would start one unthrottled
+        thread per unmapped member — ~305 at once on the reported group — and
+        this loop would then skip every one of them as already in flight and
+        repaint before any answer came back.
+
+        Owns its own failures. It runs after the rows were posted, and letting
+        an exception reach _fetch_data()'s handler would post
+        _populate_group({}) on top of a perfectly good list.
+        """
+        lid_to_phone = getattr(self._mw, "_lid_to_phone", {})
+        lids = unresolved_participant_lids(
+            (data or {}).get("participants"), lid_to_phone
+        )
+        chunk = self._LID_RESOLVE_CHUNK
+        batch = self._LID_RESOLVE_BATCH
+        done = 0
+        for start in range(0, len(lids), batch):
+            if self._closed.is_set():
+                return
+            try:
+                self._mw.resolve_lid_jids_via_api(lids[start:start + batch])
+            except Exception:
+                logging.exception(
+                    "[ConversationDataDialog] participant @lid resolution failed for %s",
+                    self._jid,
+                )
+                break
+            done += len(lids[start:start + batch])
+            if done % chunk == 0 and not self._closed.is_set():
+                wx.CallAfter(self._refresh_participant_rows)
+        # The last partial round — and, after a failure, whatever did resolve.
+        # Also picks up a lookup another caller (a presence event, the
+        # conversation panel) finished before this point for a JID this loop
+        # skipped as already in flight; one finishing later waits for the next
+        # opening.
+        if done % chunk != 0 and not self._closed.is_set():
+            wx.CallAfter(self._refresh_participant_rows)
+
+    def _participant_row(self, p_jid: str, is_admin: bool):
+        """(row label, phone column, name, JID to navigate to) for one member.
+
+        Shared by the first fill and by _refresh_participant_rows(), so a row
+        repainted after @lid resolution reads exactly as it would have if the
+        mapping had been known from the start.
+        """
+        i18n = self._i18n
+        lid_to_phone = getattr(self._mw, "_lid_to_phone", {})
+        # Bridge @lid JIDs to phone-number JIDs via the reverse cache for correct phone display
+        display_phone_jid = p_jid
+        if p_jid.endswith("@lid"):
+            phone_jid = lid_to_phone.get(p_jid, "")
+            if phone_jid:
+                display_phone_jid = phone_jid
+        p_phone = format_number(display_phone_jid) if not display_phone_jid.endswith("@lid") else display_phone_jid.rsplit("@", 1)[0]
+        # Resolve name: use the robust display name resolution method from MainWindow
+        # which checks contacts, chats, presence pushNames, and messages.
+        # resolve_missing=False: _resolve_participant_lids() does the resolving,
+        # throttled — see its docstring for what the default did here.
+        p_name = self._mw._resolve_jid_name(p_jid, resolve_missing=False)
+        if not p_name or p_name == p_phone or p_name.isdigit() or p_name.replace("+", "").replace("-", "").replace(" ", "").isdigit():
+            p_name = p_phone
+        # Append the admin status directly onto the row's own text (not
+        # just a separate column) so a screen reader always announces it
+        # when arrowing through the list, regardless of whether it's
+        # configured to report every column of a report-view ListCtrl.
+        row_label = (
+            f"{p_name}, {i18n.t('group_admin_suffix')}" if is_admin else p_name
+        )
+        # Store the best available JID for conversation navigation
+        resolved_jid = lid_to_phone.get(p_jid, p_jid) if p_jid.endswith("@lid") else p_jid
+        return row_label, p_phone, p_name, resolved_jid
+
+    def _refresh_participant_rows(self) -> None:
+        """Rewrite, in place, the rows whose name or phone has since resolved.
+
+        Never rebuilds the list: the user may already be arrowing through it,
+        and DeleteAllItems() would throw away their position. Only rows whose
+        text actually changed are written — a ListCtrl row's accessible name is
+        its text, and NVDA re-reads the focused row whenever that name changes,
+        so rewriting unchanged rows would be noise for nothing.
+        """
+        try:
+            if not self:
+                return
+            lst = self._part_list
+            count = min(lst.GetItemCount(), len(self._participant_raw_jids))
+            lst.Freeze()
+            try:
+                for idx in range(count):
+                    is_admin = self._participant_is_admin[idx]
+                    row_label, p_phone, p_name, resolved_jid = self._participant_row(
+                        self._participant_raw_jids[idx], is_admin
+                    )
+                    self._participant_names[idx] = p_name
+                    self._participant_jids[idx] = resolved_jid
+                    if lst.GetItemText(idx, 0) != row_label:
+                        lst.SetItem(idx, 0, row_label)
+                    if lst.GetItemText(idx, 1) != p_phone:
+                        lst.SetItem(idx, 1, p_phone)
+            finally:
+                lst.Thaw()
+        except RuntimeError:
+            pass  # dialog was closed/destroyed before the resolution finished
+        except Exception:
+            logging.exception(
+                "[ConversationDataDialog] participant row refresh failed for %s", self._jid
+            )
+
     def _populate_group_unsafe(self, data: dict):
         i18n = self._i18n
 
@@ -768,30 +957,16 @@ class ConversationDataDialog(wx.Dialog):
         self._participant_jids = []
         self._participant_names: list = []
         self._participant_is_admin: list = []
+        self._participant_raw_jids = []
         participants = data.get("participants", [])
 
         my_phone_digits = _participant_phone_part(getattr(self._mw, "my_jid", ""))
         my_lid_digits   = _participant_phone_part(getattr(self._mw, "my_lid", ""))
         user_is_admin = False
-        lid_to_phone  = getattr(self._mw, "_lid_to_phone", {})
         for p in participants:
             if not isinstance(p, dict):
                 continue
             p_jid   = p.get("id", "")
-            
-            # Bridge @lid JIDs to phone-number JIDs via the reverse cache for correct phone display
-            display_phone_jid = p_jid
-            if p_jid.endswith("@lid"):
-                phone_jid = lid_to_phone.get(p_jid, "")
-                if phone_jid:
-                    display_phone_jid = phone_jid
-            
-            p_phone = format_number(display_phone_jid) if not display_phone_jid.endswith("@lid") else display_phone_jid.rsplit("@", 1)[0]
-            # Resolve name: use the robust display name resolution method from MainWindow
-            # which checks contacts, chats, presence pushNames, and messages.
-            p_name = self._mw._resolve_jid_name(p_jid)
-            if not p_name or p_name == p_phone or p_name.isdigit() or p_name.replace("+", "").replace("-", "").replace(" ", "").isdigit():
-                p_name = p_phone
             # get_group_info()'s real participant shape is {"id", "isAdmin"}
             # — "admin" doesn't exist on it, so this always read False.
             is_admin_bool = bool(p.get("isAdmin") or p.get("admin"))
@@ -799,22 +974,15 @@ class ConversationDataDialog(wx.Dialog):
                 p_jid, my_phone_digits, my_lid_digits, self._mw._phone_digits_equivalent
             ):
                 user_is_admin = True
+            row_label, p_phone, p_name, resolved_jid = self._participant_row(p_jid, is_admin_bool)
             idx = self._part_list.GetItemCount()
-            # Append the admin status directly onto the row's own text (not
-            # just a separate column) so a screen reader always announces it
-            # when arrowing through the list, regardless of whether it's
-            # configured to report every column of a report-view ListCtrl.
-            row_label = (
-                f"{p_name}, {i18n.t('group_admin_suffix')}" if is_admin_bool else p_name
-            )
             self._part_list.InsertItem(idx, row_label)
             self._part_list.SetItem(idx, 1, p_phone)
             self._part_list.SetItem(idx, 2, i18n.t("group_admin") if is_admin_bool else "")
-            # Store the best available JID for conversation navigation
-            resolved_jid = lid_to_phone.get(p_jid, p_jid) if p_jid.endswith("@lid") else p_jid
             self._participant_jids.append(resolved_jid)
             self._participant_names.append(p_name)
             self._participant_is_admin.append(is_admin_bool)
+            self._participant_raw_jids.append(p_jid)
 
         # Enable the Participants tab's "Add members" button, and show the
         # admin-only group-editing buttons, only if the current user is a

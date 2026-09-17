@@ -67,14 +67,15 @@ def oldest_timestamp(records: Iterable[dict]) -> Optional[int]:
     return min(stamps) if stamps else None
 
 
-def comparable_local_ids(
+def comparable_local_records(
     records: list,
     limit: int,
     stable_cutoff: float,
     remote_oldest_ts: Optional[int],
     is_content: Callable[[dict], bool] = lambda r: True,
-) -> set:
-    """Ids of the local records the remote window can speak for.
+    extra_ids: Iterable[str] = (),
+) -> list:
+    """The local records the remote window can speak for, in record order.
 
     ``remote_oldest_ts`` None means the server returned nothing at all (an
     answer with entries but no usable timestamp is refused as ambiguous before
@@ -82,9 +83,22 @@ def comparable_local_ids(
     its own, because that is the shape a phone-side clear has
     (every local message gone), which the caller confirms over several polls
     before acting on.
+
+    ``extra_ids`` are records to keep judging even once they fall out of the
+    last-``limit`` slice — the ones already part of a running confirmation, so
+    a deletion in a busy chat is not dropped from its own confirmation run by
+    the messages that arrive while it is being confirmed. They still pass
+    every other rule here.
     """
-    recent = records[-limit:] if limit > 0 and len(records) > limit else records
-    ids = set()
+    if limit > 0 and len(records) > limit:
+        extra = set(extra_ids or ())
+        recent = [
+            r for r in records[:-limit]
+            if extra and isinstance(r, dict) and (r.get("key") or {}).get("id") in extra
+        ] + records[-limit:]
+    else:
+        recent = records
+    out = []
     for r in recent:
         if not isinstance(r, dict) or r.get("_local_pending"):
             continue
@@ -103,5 +117,21 @@ def comparable_local_ids(
                 continue
         except Exception:
             continue
-        ids.add(mid)
-    return ids
+        out.append(r)
+    return out
+
+
+def comparable_local_ids(
+    records: list,
+    limit: int,
+    stable_cutoff: float,
+    remote_oldest_ts: Optional[int],
+    is_content: Callable[[dict], bool] = lambda r: True,
+) -> set:
+    """Ids of comparable_local_records() — see there."""
+    return {
+        (r.get("key") or {}).get("id")
+        for r in comparable_local_records(
+            records, limit, stable_cutoff, remote_oldest_ts, is_content
+        )
+    }

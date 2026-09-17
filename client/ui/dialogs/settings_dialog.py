@@ -117,6 +117,10 @@ class _HotkeyCapture(wx.TextCtrl):
 
 from core.utils import DEFAULT_SETTINGS, SEARCH_NORMALIZATION_MODES, search_normalization_mode, GROUP_MEDIA_TYPES, AUTO_DOWNLOAD_MEDIA_TYPES
 from core import save_location
+from core.profile_backup import (
+    CLOSE_HOURS_MINIMUM, DEFAULT_CLOSE_HOURS, DEFAULT_LIVE_HOURS, LIVE_HOURS_MINIMUM,
+    parse_hours_field, stored_hours,
+)
 
 
 def ensure_default_settings_file():
@@ -211,10 +215,10 @@ class SettingsDialog(wx.Dialog):
         self._general_page = wx.Panel(self._notebook)
         gen_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        gen_sizer.Add(
-            wx.StaticText(self._general_page, label=i18n.t("language_label")),
-            0, wx.LEFT | wx.TOP | wx.RIGHT, 8,
-        )
+        # Kept on self so _refresh_dialog_labels() can re-translate it after
+        # Apply; an inline StaticText can never be relabelled.
+        self._language_label = wx.StaticText(self._general_page, label=i18n.t("language_label"))
+        gen_sizer.Add(self._language_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
         self._lang_combo = wx.ComboBox(
             self._general_page,
             style=wx.CB_READONLY,
@@ -350,17 +354,20 @@ class SettingsDialog(wx.Dialog):
         self._ui_page = wx.Panel(self._notebook)
         ui_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        ui_sizer.Add(
-            wx.StaticText(self._ui_page, label=i18n.t("ui_messages_page_size_label")),
-            0, wx.LEFT | wx.TOP | wx.RIGHT, 8,
+        # Both labels are kept on self: they name the edit fields below them
+        # for the screen reader, and an inline StaticText stayed in the
+        # previous language after Apply (reported live, English -> pt-BR).
+        self._messages_page_size_label = wx.StaticText(
+            self._ui_page, label=i18n.t("ui_messages_page_size_label")
         )
+        ui_sizer.Add(self._messages_page_size_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
         self._messages_page_size_field = wx.TextCtrl(self._ui_page, style=wx.TE_DONTWRAP)
         ui_sizer.Add(self._messages_page_size_field, 0, wx.EXPAND | wx.ALL, 8)
 
-        ui_sizer.Add(
-            wx.StaticText(self._ui_page, label=i18n.t("ui_page_jump_size_label")),
-            0, wx.LEFT | wx.TOP | wx.RIGHT, 8,
+        self._page_jump_size_label = wx.StaticText(
+            self._ui_page, label=i18n.t("ui_page_jump_size_label")
         )
+        ui_sizer.Add(self._page_jump_size_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
         self._page_jump_size_field = wx.TextCtrl(self._ui_page, style=wx.TE_DONTWRAP)
         ui_sizer.Add(self._page_jump_size_field, 0, wx.EXPAND | wx.ALL, 8)
 
@@ -490,6 +497,16 @@ class SettingsDialog(wx.Dialog):
         )
         ui_sizer.Add(
             self._bulk_action_shortcuts_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        # Mirrors user_interface.confirm_mark_all_read, the same key the
+        # "don't show again" checkbox of that confirmation clears — this is
+        # the way back after ticking it.
+        self._confirm_mark_all_read_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_confirm_mark_all_read")
+        )
+        ui_sizer.Add(
+            self._confirm_mark_all_read_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
         self._space_selects_cb = wx.CheckBox(
@@ -1086,6 +1103,47 @@ class SettingsDialog(wx.Dialog):
         self._notebook.AddPage(self._calls_page, i18n.t("tab_calls"))
         self._call_alerts_check.Bind(wx.EVT_CHECKBOX, self._on_call_alerts_toggle)
 
+        # ── Profile backup tab ───────────────────────────────────────────────
+        # When the restore point of the Chrome profile that carries the
+        # WhatsApp login is refreshed (core/profile_backup.py). Appended last,
+        # so no hardcoded SetSelection() index of an earlier tab moves.
+        self._profile_backup_page = wx.Panel(self._notebook)
+        backup_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self._close_snapshot_hours_label = wx.StaticText(
+            self._profile_backup_page, label=i18n.t("profile_backup_close_hours_label")
+        )
+        backup_sizer.Add(self._close_snapshot_hours_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._close_snapshot_hours_field = wx.TextCtrl(
+            self._profile_backup_page, style=wx.TE_DONTWRAP
+        )
+        backup_sizer.Add(self._close_snapshot_hours_field, 0, wx.EXPAND | wx.ALL, 8)
+
+        # A live profile cannot be copied, so this closes the session for the
+        # copy: a short disconnection each time, off by default.
+        self._live_snapshot_check = wx.CheckBox(
+            self._profile_backup_page, label=i18n.t("profile_backup_live_label")
+        )
+        backup_sizer.Add(self._live_snapshot_check, 0, wx.ALL, 8)
+
+        self._live_snapshot_hours_label = wx.StaticText(
+            self._profile_backup_page, label=i18n.t("profile_backup_live_hours_label")
+        )
+        backup_sizer.Add(self._live_snapshot_hours_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._live_snapshot_hours_field = wx.TextCtrl(
+            self._profile_backup_page, style=wx.TE_DONTWRAP
+        )
+        backup_sizer.Add(self._live_snapshot_hours_field, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._live_snapshot_confirm_check = wx.CheckBox(
+            self._profile_backup_page, label=i18n.t("profile_backup_live_confirm_label")
+        )
+        backup_sizer.Add(self._live_snapshot_confirm_check, 0, wx.ALL, 8)
+
+        self._profile_backup_page.SetSizer(backup_sizer)
+        self._notebook.AddPage(self._profile_backup_page, i18n.t("tab_profile_backup"))
+        self._live_snapshot_check.Bind(wx.EVT_CHECKBOX, self._on_live_snapshot_toggle)
+
         # ── Button row ───────────────────────────────────────────────────────
         btn_sizer = wx.StdDialogButtonSizer()
         self._ok_btn = wx.Button(self, wx.ID_OK, label=i18n.t("ok"))
@@ -1139,6 +1197,21 @@ class SettingsDialog(wx.Dialog):
         self._call_alerts_check.SetValue(call_settings.get("alerts_enabled", True))
         self._call_popup_check.SetValue(call_settings.get("popup_enabled", True))
         self._update_call_fields_state()
+
+        profile_backup = self.main_window.settings.get("profile_backup", {})
+        # Shown as the value WinZapp actually applies (core/profile_backup.py):
+        # a hand-edited 0, null or "abc" in settings.json would otherwise open
+        # as a field the validation refuses, blocking OK for a user who only
+        # came to change something else.
+        self._close_snapshot_hours_field.SetValue(str(stored_hours(
+            profile_backup.get("close_snapshot_min_hours", 24),
+            DEFAULT_CLOSE_HOURS, CLOSE_HOURS_MINIMUM)))
+        self._live_snapshot_check.SetValue(profile_backup.get("live_snapshot_enabled", False))
+        self._live_snapshot_hours_field.SetValue(str(stored_hours(
+            profile_backup.get("live_snapshot_interval_hours", 24),
+            DEFAULT_LIVE_HOURS, LIVE_HOURS_MINIMUM)))
+        self._live_snapshot_confirm_check.SetValue(profile_backup.get("live_snapshot_confirm", True))
+        self._update_live_snapshot_fields()
 
         files_settings = self.main_window.settings.get(save_location.SECTION, {})
         self._save_folder_radio.SetSelection(
@@ -1259,6 +1332,11 @@ class SettingsDialog(wx.Dialog):
         )
         self._bulk_action_shortcuts_cb.SetValue(bool(bulk_action_shortcuts))
 
+        confirm_mark_all_read = self.main_window.settings.get("user_interface", {}).get(
+            "confirm_mark_all_read", True
+        )
+        self._confirm_mark_all_read_cb.SetValue(bool(confirm_mark_all_read))
+
         space_selects = self.main_window.settings.get("user_interface", {}).get(
             "space_selects_in_selection_mode", True
         )
@@ -1368,7 +1446,11 @@ class SettingsDialog(wx.Dialog):
 
         self._port_field.SetValue(str(self.main_window.wpp_port))
 
-        api_key = conn.get("wpp_api_key", "wz-local-api-key")
+        # The shipped default rather than a placeholder. load_settings() and the
+        # defaults backfill normally fill the key before this runs, so this is
+        # consistency more than a live path — but a fallback that differs from
+        # DEFAULT_SETTINGS would be written back on OK if it ever were reached.
+        api_key = conn.get("wpp_api_key", DEFAULT_SETTINGS["connection"]["wpp_api_key"])
         self._api_key_field.SetValue(api_key)
 
         self._update_fields_state()
@@ -1411,6 +1493,17 @@ class SettingsDialog(wx.Dialog):
         self._mark_audio_played_check.SetValue(
             audio_playback.get("mark_audio_played_in_list", True)
         )
+
+        # This load used to sit inside _on_custom_api_toggle() instead of here,
+        # so opening Settings showed the Audio playback speed with nothing
+        # selected — whatever speed was saved — until the custom-API checkbox
+        # happened to be toggled.
+        saved_speed = audio_playback.get("audio_default_speed", 1.0)
+        try:
+            speed_idx = self._AUDIO_SPEED_STEPS.index(float(saved_speed))
+        except (ValueError, TypeError):
+            speed_idx = 0
+        self._audio_speed_combo.SetSelection(speed_idx)
 
     def _set_alert_combo(self, combo, choice_key: str):
         try:
@@ -1812,13 +1905,6 @@ class SettingsDialog(wx.Dialog):
 
     def _on_custom_api_toggle(self, event):
         self._update_fields_state()
-
-        saved_speed = self.main_window.settings.get("audio_playback", {}).get("audio_default_speed", 1.0)
-        try:
-            speed_idx = self._AUDIO_SPEED_STEPS.index(float(saved_speed))
-        except (ValueError, TypeError):
-            speed_idx = 0
-        self._audio_speed_combo.SetSelection(speed_idx)
         event.Skip()
 
     def _on_call_alerts_toggle(self, event):
@@ -1828,6 +1914,21 @@ class SettingsDialog(wx.Dialog):
     def _update_call_fields_state(self):
         """A popup is meaningful only while incoming-call alerts are enabled."""
         self._call_popup_check.Enable(self._call_alerts_check.GetValue())
+
+    def _on_live_snapshot_toggle(self, event):
+        self._update_live_snapshot_fields()
+        event.Skip()
+
+    def _update_live_snapshot_fields(self):
+        """The interval and the confirmation only mean something while the
+        backup with WinZapp open is on. Hidden rather than disabled, so Tab
+        and the screen reader do not walk through options that do nothing."""
+        show = self._live_snapshot_check.GetValue()
+        for control in (self._live_snapshot_hours_label,
+                        self._live_snapshot_hours_field,
+                        self._live_snapshot_confirm_check):
+            control.Show(show)
+        self._profile_backup_page.Layout()
 
     def _validate(self) -> bool:
         """Return True if all values are valid; show an error and return False otherwise."""
@@ -1956,6 +2057,38 @@ class SettingsDialog(wx.Dialog):
                 self,
             )
             self._media_max_mb_field.SetFocus()
+            return False
+
+        # Profile backup: both hour fields must hold a whole number of hours —
+        # 0 is the documented "every clean close" for the first, while the live
+        # interval has no such sentinel (0 would close the session on every
+        # poll). Checked whether or not the live option is ticked: a value left
+        # in its hidden field is still what Apply would save.
+        if parse_hours_field(self._close_snapshot_hours_field.GetValue(),
+                             CLOSE_HOURS_MINIMUM) is None:
+            self._notebook.SetSelection(self._notebook.FindPage(self._profile_backup_page))
+            wx.MessageBox(
+                self.main_window.i18n.t("invalid_profile_backup_close_hours"),
+                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                wx.OK | wx.ICON_ERROR,
+                self,
+            )
+            self._close_snapshot_hours_field.SetFocus()
+            return False
+        if parse_hours_field(self._live_snapshot_hours_field.GetValue(),
+                             LIVE_HOURS_MINIMUM) is None:
+            self._notebook.SetSelection(self._notebook.FindPage(self._profile_backup_page))
+            # A hidden field cannot take focus or be corrected: show it.
+            for control in (self._live_snapshot_hours_label, self._live_snapshot_hours_field):
+                control.Show()
+            self._profile_backup_page.Layout()
+            wx.MessageBox(
+                self.main_window.i18n.t("invalid_profile_backup_live_hours"),
+                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                wx.OK | wx.ICON_ERROR,
+                self,
+            )
+            self._live_snapshot_hours_field.SetFocus()
             return False
 
         # Sound events: an ENABLED event's override path, if the user set one,
@@ -2214,6 +2347,9 @@ class SettingsDialog(wx.Dialog):
             "bulk_action_shortcuts"
         ] = self._bulk_action_shortcuts_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
+            "confirm_mark_all_read"
+        ] = self._confirm_mark_all_read_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
             "space_selects_in_selection_mode"
         ] = self._space_selects_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
@@ -2359,6 +2495,14 @@ class SettingsDialog(wx.Dialog):
         calls = self.main_window.settings.setdefault("calls", {})
         calls["alerts_enabled"] = self._call_alerts_check.GetValue()
         calls["popup_enabled"] = self._call_popup_check.GetValue()
+
+        profile_backup = self.main_window.settings.setdefault("profile_backup", {})
+        profile_backup["close_snapshot_min_hours"] = parse_hours_field(
+            self._close_snapshot_hours_field.GetValue(), CLOSE_HOURS_MINIMUM)
+        profile_backup["live_snapshot_enabled"] = self._live_snapshot_check.GetValue()
+        profile_backup["live_snapshot_interval_hours"] = parse_hours_field(
+            self._live_snapshot_hours_field.GetValue(), LIVE_HOURS_MINIMUM)
+        profile_backup["live_snapshot_confirm"] = self._live_snapshot_confirm_check.GetValue()
         if not calls["alerts_enabled"]:
             stop_alerts = getattr(self.main_window, "stop_all_incoming_call_alerts", None)
             if stop_alerts is not None:
@@ -2534,6 +2678,17 @@ class SettingsDialog(wx.Dialog):
 
         return True
 
+    @staticmethod
+    def _set_list_column_label(list_ctrl, text):
+        """Re-translate a single-column ListCtrl's header. NVDA reads it when
+        column headers are announced, and SetItem() on the rows leaves it
+        alone. Same `&` stripping as the InsertColumn() that created it, and
+        the same wx.ListItem/SetColumn() form conversations.py and
+        status_panel.py already use for their own headers."""
+        column = wx.ListItem()
+        column.SetText(text.replace("&", ""))
+        list_ctrl.SetColumn(0, column)
+
     def _refresh_dialog_labels(self):
         """Update this dialog's own title and notebook tab captions after a language change."""
         i18n = self.main_window.i18n
@@ -2550,6 +2705,11 @@ class SettingsDialog(wx.Dialog):
         self._notebook.SetPageText(9, i18n.t("tab_files_saving"))
         self._notebook.SetPageText(10, i18n.t("tab_audio_playback"))
         self._notebook.SetPageText(11, i18n.t("tab_calls"))
+        self._notebook.SetPageText(12, i18n.t("tab_profile_backup"))
+        self._close_snapshot_hours_label.SetLabel(i18n.t("profile_backup_close_hours_label"))
+        self._live_snapshot_check.SetLabel(i18n.t("profile_backup_live_label"))
+        self._live_snapshot_hours_label.SetLabel(i18n.t("profile_backup_live_hours_label"))
+        self._live_snapshot_confirm_check.SetLabel(i18n.t("profile_backup_live_confirm_label"))
         self._audio_input_label.SetLabel(i18n.t("audio_input_device_label"))
         self._audio_output_label.SetLabel(i18n.t("audio_output_device_label"))
         self._audio_effects_label.SetLabel(i18n.t("audio_effects_output_device_label"))
@@ -2588,6 +2748,15 @@ class SettingsDialog(wx.Dialog):
         self._updates_check.SetLabel(i18n.t("updates_label"))
         self._alpha_updates_check.SetLabel(i18n.t("alpha_updates_label"))
         self._alpha_updates_check.SetToolTip(i18n.t("alpha_updates_tooltip"))
+        self._language_label.SetLabel(i18n.t("language_label"))
+        self._switch_behavior_box.SetLabel(i18n.t("acc_switch_behavior_label"))
+        self._switch_behavior_single_rb.SetLabel(i18n.t("acc_switch_behavior_single"))
+        self._switch_behavior_keep_open_rb.SetLabel(i18n.t("acc_switch_behavior_keep_open"))
+        self._messages_page_size_label.SetLabel(i18n.t("ui_messages_page_size_label"))
+        self._page_jump_size_label.SetLabel(i18n.t("ui_page_jump_size_label"))
+        self._extended_sr_compat_check.SetLabel(i18n.t("accessibility_extended_sr_compat_label"))
+        self._sapi_fallback_check.SetLabel(i18n.t("accessibility_sapi_fallback_label"))
+        self._probe_video_duration_check.SetLabel(i18n.t("probe_video_duration_on_download_label"))
         self._focus_box.SetLabel(i18n.t("ui_focus_label"))
         self._focus_message_field_rb.SetLabel(i18n.t("ui_focus_message_field"))
         self._focus_unread_or_last_rb.SetLabel(i18n.t("ui_focus_unread_or_last"))
@@ -2605,6 +2774,7 @@ class SettingsDialog(wx.Dialog):
         self._self_ref_custom_label.SetLabel(i18n.t("ui_self_reference_custom_label"))
         self._show_delivery_status_cb.SetLabel(i18n.t("ui_show_delivery_status_in_chat_list"))
         self._show_link_previews_cb.SetLabel(i18n.t("ui_show_link_previews_label"))
+        self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
         self._forwarded_prefix_cb.SetLabel(i18n.t("ui_forwarded_prefix_label"))
         self._conversation_video_media_viewer_dialog_cb.SetLabel(
             i18n.t("ui_conversation_video_media_viewer_dialog_label")
@@ -2612,6 +2782,9 @@ class SettingsDialog(wx.Dialog):
         self._status_media_viewer_dialog_cb.SetLabel(i18n.t("ui_status_media_viewer_dialog_label"))
         self._group_media_types_label.SetLabel(
             i18n.t("ui_group_media_default_types_label")
+        )
+        self._set_list_column_label(
+            self._group_media_types_list, i18n.t("ui_group_media_default_types_label")
         )
         for _idx, _key in enumerate(GROUP_MEDIA_TYPES):
             self._group_media_types_list.SetItem(
@@ -2623,6 +2796,9 @@ class SettingsDialog(wx.Dialog):
         self._auto_download_types_label.SetLabel(
             i18n.t("storage_auto_download_media_types_label")
         )
+        self._set_list_column_label(
+            self._auto_download_types_list, i18n.t("storage_auto_download_media_types_label")
+        )
         for _idx, _key in enumerate(AUTO_DOWNLOAD_MEDIA_TYPES):
             self._auto_download_types_list.SetItem(
                 _idx, 0, i18n.t(f"group_media_type_{_key}")
@@ -2632,6 +2808,7 @@ class SettingsDialog(wx.Dialog):
         self._voice_msg_mode_voice_rb.SetLabel(i18n.t("ui_voice_message_mode_voice_message"))
         self._preserve_typed_caption_cb.SetLabel(i18n.t("ui_preserve_typed_text_as_caption"))
         self._bulk_action_shortcuts_cb.SetLabel(i18n.t("ui_bulk_action_shortcuts"))
+        self._confirm_mark_all_read_cb.SetLabel(i18n.t("ui_confirm_mark_all_read"))
         self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
         self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
         self._auto_focus_next_audio_cb.SetLabel(i18n.t("ui_auto_focus_next_audio"))
@@ -2736,12 +2913,20 @@ class SettingsDialog(wx.Dialog):
 
     def _on_apply(self, event):
         if self._apply_values():
+            # An invalid interval revealed its field even with the option
+            # off (_validate()); once the value is fixed, hide it again.
+            self._update_live_snapshot_fields()
             self._loading_values = True
             self._refresh_dialog_labels()
             self._loading_values = False
             self._maybe_warn_restart_required()
             self._dirty = False
             self._apply_btn.Hide()
+            # The notebook keeps its size, so the pages' own sizers would not
+            # recalculate on their own: a checkbox whose label got longer in
+            # the new language would stay at its old width, visibly cut off.
+            for _page in range(self._notebook.GetPageCount()):
+                self._notebook.GetPage(_page).Layout()
             self.Layout()
 
     def _mark_dirty(self, event=None):

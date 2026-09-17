@@ -1,8 +1,16 @@
 V1.1.2.0
 
-Esta versión corrige situaciones en las que WinZapp pedía vincular de nuevo sin necesidad, y trae una forma más rápida de marcar varios elementos a la vez.
+Esta versión corrige situaciones en las que WinZapp pedía vincular de nuevo sin necesidad, trae una forma más rápida de marcar varios elementos a la vez y añade opciones a las confirmaciones de vaciar una conversación y de marcar todas las conversaciones como leídas.
 
 NOVEDADES
+
+- Elegir si los mensajes destacados se conservan al vaciar una conversación. La confirmación de vaciar ahora incluye la opción "Conservar los mensajes destacados", marcada por defecto, igual que en WhatsApp Web. Si la desmarcas, los destacados se borran junto con el resto, también en tu teléfono. Sirve para vaciar una conversación, varias seleccionadas o una archivada.
+
+- Confirmación al marcar todas las conversaciones como leídas. El comando ahora pregunta antes, con No por defecto, para que un Alt seguido de Enter por error no marque todo como leído, también en tu teléfono. La pregunta tiene la opción "No volver a mostrar": marcada y confirmada con Sí, las siguientes veces se marca directamente. Para que vuelva a preguntar, usa la opción "Pedir confirmación al marcar todas las conversaciones como leídas" en la pestaña Interfaz de usuario de Configuración.
+
+- Copia de seguridad del perfil en Configuración. La nueva pestaña Copia de seguridad define cada cuánto WinZapp renueva, al cerrarse, la copia del perfil del navegador que usa para recuperar la conexión, cada 24 horas por defecto. La copia también puede hacerse con WinZapp abierto, en el intervalo que elijas: WhatsApp queda desconectado mientras se hace, lo que puede tardar unos minutos, y WinZapp puede preguntar antes de cada una. La nueva copia solo sustituye a la anterior cuando WhatsApp vuelve a conectarse con ella.
+
+- Exportar e importar la configuración. En el menú Archivo, “Exportar configuración” guarda tus preferencias en un archivo e “Importar configuración” lo aplica aquí, al instante, sin reiniciar. Sirve para llevarlo todo a otro ordenador o a otra cuenta. Tu conexión con WhatsApp y lo que es propio de cada cuenta, como las conversaciones vaciadas y los sonidos por conversación, no van en el archivo. Si usas tu propia API, su dirección, su puerto y su clave van con ella.
 
 - Espacio reproduce y pausa el audio o el vídeo enfocado. Antes esa tecla no hacía nada en la lista de mensajes. Sigue siendo más restringida que Enter: nunca abre un enlace, un documento, el visor ni la conversación de un contacto.
 
@@ -18,7 +26,15 @@ CORRECCIONES
 
 - Agregar un miembro al grupo por número de teléfono no hacía nada: el botón "Agregar número" no agregaba a nadie y no mostraba ningún error. Ahora agrega el número al instante e indica si funcionó, y avisa si el número no es válido. En el mismo diálogo, el campo de búsqueda ahora se lee como "Buscar contacto".
 
-- Con una conversación abierta, la lista de mensajes se reducía cada minuto al límite configurado, y los mensajes antiguos desaparecían — también del historial guardado. WinZapp confundía los mensajes fuera del tramo que consulta en WhatsApp con mensajes borrados en el teléfono. Ahora solo compara el tramo que WhatsApp realmente devolvió, y la lista ya no se reduce mientras lees.
+- Con una conversación abierta, la lista de mensajes se reducía cada minuto al límite configurado, y los mensajes antiguos desaparecían — también del historial guardado. WinZapp confundía los mensajes fuera del tramo que consulta en WhatsApp con mensajes borrados en el teléfono. Ahora un mensaje solo se borra cuando WhatsApp muestra que realmente ya no existe — nunca solo porque no se encontró, ni dentro del período que una recuperación del perfil dejó atrás — y la lista ya no se reduce mientras lees.
+
+- En grupos con muchos participantes, los datos del grupo podían quedarse en "Cargando..." durante minutos: el Resumen y la lista de Participantes solo aparecían después de que WinZapp buscara, uno por uno, el número de cada miembro cuyo número aún no conocía. Parecía bloqueado, y solo volvía cerrando y abriendo el diálogo. Ahora los datos aparecen en cuanto el grupo responde, y los nombres y números que faltan se completan en la lista a continuación, sin sacarte de la fila en la que estás.
+
+- Cambiar el idioma en Configuración y pulsar Aplicar ahora traduce todas las opciones. Algunas seguían en el idioma anterior hasta cerrar y volver a abrir Configuración, como "Al abrir una conversación, mostrar número de mensajes hasta" y "Mensajes a saltar al presionar Av Pág / Re Pág".
+
+- La velocidad predeterminada de reproducción de audio ya no vuelve sola a 1x. Al abrir Configuración, el campo de la pestaña Reproducción de audio aparecía vacío, fuera cual fuera la velocidad guardada, y pulsar Aplicar y después Aceptar guardaba 1x encima. Ahora la velocidad guardada aparece seleccionada y se conserva.
+
+- Después de que WinZapp recupera el perfil del navegador, las conversaciones con mensajes no leídos ya no aparecen como leídas.
 
 V1.1.1.0
 

@@ -1,8 +1,16 @@
 V1.1.2.0
 
-This release fixes situations where WinZapp asked you to pair again when it did not need to, and brings a faster way to select several items at once.
+This release fixes situations where WinZapp asked you to pair again when it did not need to, brings a faster way to select several items at once, and adds options to the confirmations for clearing a chat and for marking all chats as read.
 
 WHAT'S NEW
+
+- Choose whether starred messages stay when clearing a chat. The clear confirmation now has a "Keep starred messages" option, ticked by default, just like WhatsApp Web. Unticked, starred messages are cleared along with everything else, on your phone too. It applies to clearing one chat, several selected chats or an archived one.
+
+- Confirmation before marking all chats as read. The command now asks first, with No as the default, so a stray Alt followed by Enter no longer marks everything as read, on your phone too. The question has a "Don't show again" option: ticked and confirmed with Yes, later requests mark everything straight away. To be asked again, use the "Ask for confirmation before marking all chats as read" option in the User Interface tab of Settings.
+
+- Profile backup in Settings. The new Profile backup tab sets how often WinZapp renews, when it closes, the copy of the browser profile it uses to recover the connection, every 24 hours by default. The backup can also be taken while WinZapp is open, at the interval you choose: WhatsApp is disconnected while it runs, which can take a few minutes, and WinZapp can ask before each one. A new backup only replaces the previous one once WhatsApp has connected again with it.
+
+- Export and import your settings. In the File menu, “Export settings” writes your preferences to a file and “Import settings” applies that file here, right away, without restarting — for moving everything to another computer or another account. Your WhatsApp connection, and what belongs to one account such as cleared chats and per-chat sounds, stay out of the file. If you run your own API, its address, port and key travel with it.
 
 - Space plays and pauses the focused audio or video. That key did nothing in the message list before. It stays narrower than Enter: it never opens a link, a document, the viewer or a contact's conversation.
 
@@ -18,7 +26,15 @@ FIXES
 
 - Adding a group member by phone number did nothing: the "Add number" button added nobody and showed no error. It now adds the number right away and tells you whether it worked, and an invalid number is reported. In the same dialog, the search field is now read as "Search contact".
 
-- With a chat open, the message list shrank back to the configured limit every minute, and older messages disappeared — including from the stored history. WinZapp mistook messages outside the range it checks on WhatsApp for messages deleted on the phone. It now only compares the range WhatsApp actually returned, and the list no longer shrinks while you read.
+- With a chat open, the message list shrank back to the configured limit every minute, and older messages disappeared — including from the stored history. WinZapp mistook messages outside the range it checks on WhatsApp for messages deleted on the phone. A message is now only removed when WhatsApp shows it really no longer exists — never just because it could not be found, and never within the period a profile recovery rolled back — and the list no longer shrinks while you read.
+
+- In groups with many participants, group info could sit on "Loading..." for minutes — Overview and the Participants list only appeared after WinZapp had looked up, one at a time, the number of every member whose number it did not know yet. It looked frozen, and only closing and reopening the dialog brought it back. The info now appears as soon as the group answers, and missing names and numbers are filled into the list afterwards, without moving you off the row you are on.
+
+- Changing the language in Settings and pressing Apply now translates every option. Some stayed in the previous language until Settings was closed and opened again, such as "When opening a chat, show up to this many messages" and "Messages to skip when pressing Page Up / Page Down".
+
+- The default audio playback speed no longer drops back to 1x on its own. When Settings opened, the field in the Audio playback tab was empty whatever speed was saved, and pressing Apply and then OK saved 1x over it. The saved speed is now shown selected and kept.
+
+- After WinZapp recovers the browser profile, chats with unread messages no longer show up as read.
 
 V1.1.1.0
 
