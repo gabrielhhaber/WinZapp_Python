@@ -98,11 +98,11 @@ class AddMemberDialog(wx.Dialog):
         # dialog uses, in its multi-select mode (issue #85's search field,
         # same dedup rules, same layout — see contact_list_picker.py). It
         # places its own "Pesquisar contato" label right before the search
-        # field and "Selecionar um contato" right before the list, each
+        # field and "Lista de contatos" right before the list, each
         # control getting its own adjacent label rather than sharing one —
         # NVDA reads whatever StaticText sits right before a control as that
         # control's own name, and a shared label above both used to make the
-        # search field announce itself as "Selecionar um contato".
+        # search field announce itself as "Lista de contatos".
         self._picker = ContactListPicker(self._mw, self, sizer, multi_select=True)
 
         # "Add" button for contacts picked from the list above lives right
