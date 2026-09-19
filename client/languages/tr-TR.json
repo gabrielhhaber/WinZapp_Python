@@ -1098,7 +1098,6 @@
   "contact_details_title": "Kişi",
   "contact_pick_number": "Bu kişinin birden fazla numarası var. Birini seçin:",
   "contact_no_number": "Bu kişi kartında telefon numarası yok.",
-  "search_contact_label": "Kişi &ara",
   "profile_restored_from_snapshot": "Tarayıcı profili hasar görmüştü ve son kaydedilen kopyadan geri yüklendi. WhatsApp'a yeniden bağlanılıyor.",
   "profile_corrupted_repair_needed": "WhatsApp'a bağlanmak için kullanılan tarayıcı profili hasarlı ve geri yüklenebilecek kayıtlı bir kopya yok. Oturum bağlantısını kesip tekrar eşlemeniz gerekecektir.",
   "browser_install_broken": "WinZapp'in WhatsApp'a bağlanmak için kullandığı yerleşik tarayıcı eksik ve başlatılamıyor. Ayarlar'ı açın ve API'yi yeniden yükleyin. Tekrar olursa, yeniden yüklemeden önce WinZapp klasörünü antivirüs dışlamalarınıza ekleyin.",
