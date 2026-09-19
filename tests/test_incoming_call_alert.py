@@ -57,6 +57,22 @@ class _I18n:
             "incoming_group_call_announcement": "Chamada em grupo recebida no grupo {name}.",
             "unknown_contact": "Contato desconhecido",
             "unknown_group": "Grupo sem nome",
+            "incoming_call_answer_button": "Atender",
+            "incoming_call_reject_button": "Recusar",
+            "incoming_call_silence_button": "Silenciar alerta",
+            "incoming_call_video_not_supported": "Vídeo não suportado",
+            "incoming_call_group_not_supported": "Grupo não suportado",
+            "incoming_call_answered": "Ligação atendida.",
+            "incoming_call_answer_failed": "Falha ao atender: {error}",
+            "incoming_call_reject_failed": "Falha ao recusar: {error}",
+            "incoming_call_end_failed": "Falha ao desligar: {error}",
+            "voice_call_active_label": "Ligação de voz com {name}.",
+            "voice_call_individual_only": "Apenas individual.",
+            "voice_call_already_active": "Já em ligação.",
+            "voice_call_starting": "Ligando para {name}.",
+            "voice_call_start_failed": "Falha ao ligar: {error}",
+            "voice_call_connected": "Ligação conectada.",
+            "voice_call_ended": "Ligação encerrada.",
         }.get(key, key)
 
 
@@ -71,11 +87,24 @@ class _MainStub:
     stop_all_incoming_call_alerts = MainWindow.stop_all_incoming_call_alerts
     _close_incoming_call_dialog = MainWindow._close_incoming_call_dialog
     _sync_incoming_call_bar = MainWindow._sync_incoming_call_bar
+    _first_incoming_call_identity = MainWindow._first_incoming_call_identity
+    _call_control_payload = MainWindow._call_control_payload
+    _stop_active_voice_call_if_matches = MainWindow._stop_active_voice_call_if_matches
+    on_call_remote_audio = MainWindow.on_call_remote_audio
+    on_voice_call_state_event = MainWindow.on_voice_call_state_event
+    # The real bridged comparison, not string equality: the whole point of
+    # core/call_matching.py is that one call's events do not agree on whether
+    # the peer is an @lid or a phone JID.
+    _chat_jids_equivalent = MainWindow._chat_jids_equivalent
+    _jid_address_forms = MainWindow._jid_address_forms
 
     def __init__(self):
         self._active_incoming_calls = {}
+        self._incoming_call_details = {}
         self._incoming_call_watchdogs = {}
         self._incoming_call_dialogs = {}
+        self._active_voice_call = None
+        self._call_audio_session = None
         self.call_incoming_sound = _Sound()
         self.settings = {"calls": {"alerts_enabled": True, "popup_enabled": True}}
         self.i18n = _I18n()
@@ -83,15 +112,20 @@ class _MainStub:
         self.armed_watchdogs = []
         self.cancelled_watchdogs = []
         self.chats = {}
+        self._lid_to_phone = {}
+        self._phone_to_lid = {}
         self._group_name_cache = {}
         self.popups = []
         self.incoming_call_bar = _Bar()
         self.incoming_call_label = _Label()
+        self.voice_call_bar = _Bar()
+        self.voice_call_label = _Label()
         self.layout_calls = 0
         self.wpp_server = "http://127.0.0.1"
         self.wpp_port = 6300
         self.token = "session-token"
         self._wa_startup_time = 2_000_000_000
+        self._voice_call_last_announced_state = ""
 
     def _arm_incoming_call_watchdog(self, identity):
         self.armed_watchdogs.append(identity)
@@ -168,6 +202,39 @@ def test_offer_inside_startup_grace_is_still_live():
 
     assert stub.call_incoming_sound.play_calls == 1
     assert set(stub._active_incoming_calls) == {"call-1"}
+
+
+def test_offer_stores_call_details_for_real_answer_or_reject():
+    stub = _MainStub()
+
+    stub.on_incoming_call_event(_offer())
+
+    assert stub._incoming_call_details["call-1"] == {
+        "call_id": "call-1",
+        "peer_jid": "5511999999999@s.whatsapp.net",
+        "group_jid": "",
+        "is_video": False,
+        "is_group": False,
+        "name": "Fulano",
+        "message": "Fulano está te ligando.",
+    }
+    assert stub._call_control_payload("call-1") == {"callId": "call-1"}
+
+
+def test_call_control_payload_keeps_real_whatsapp_ids_with_at_sign():
+    stub = _MainStub()
+    call_id = "false_5511999999999@s.whatsapp.net_ABC123"
+
+    stub.on_incoming_call_event(_offer(call_id=call_id))
+
+    assert stub._call_control_payload(call_id) == {"callId": call_id}
+
+
+def test_call_control_payload_does_not_send_peer_jid_as_call_id():
+    stub = _MainStub()
+    stub._incoming_call_details["5511999999999@s.whatsapp.net"] = {"peer_jid": "5511999999999@s.whatsapp.net"}
+
+    assert stub._call_control_payload("5511999999999@s.whatsapp.net") == {}
 
 
 def test_offer_received_while_offline_is_ignored_even_if_recent():
@@ -297,6 +364,18 @@ def test_stop_button_only_stops_the_local_alert():
     assert stub.announcements == []
 
 
+def test_remote_call_audio_is_forwarded_to_python_session():
+    stub = _MainStub()
+    received = []
+    stub._call_audio_session = SimpleNamespace(
+        enqueue_remote_audio=lambda pcm, sample_rate: received.append((pcm, sample_rate))
+    )
+
+    stub.on_call_remote_audio(b"\x01\x02", 48000)
+
+    assert received == [(b"\x01\x02", 48000)]
+
+
 def test_websocket_normalizes_nested_call_payload(monkeypatch):
     delivered = []
     monkeypatch.setattr(wx, "CallAfter", lambda fn, *args: fn(*args))
@@ -344,3 +423,75 @@ def test_call_timestamp_normalizer_handles_seconds_millis_and_micros():
     assert normalize(2_000_000_001_000_000) == 2_000_000_001
     assert normalize("invalid") == 0
     assert normalize(True) == 0
+
+
+def test_websocket_normalizes_call_state_payload(monkeypatch):
+    delivered = []
+    monkeypatch.setattr(wx, "CallAfter", lambda fn, *args: fn(*args))
+    stub = SimpleNamespace(
+        instance_name="session-a",
+        main_window=SimpleNamespace(on_voice_call_state_event=delivered.append),
+    )
+    stub._belongs_to_this_session = WebSocketClient._belongs_to_this_session.__get__(stub)
+
+    WebSocketClient.on_wpp_call_state(stub, {
+        "session": "session-a",
+        "data": {
+            "event": "state",
+            "state": "active",
+            "id": "call-1",
+            "peer_jid": "5511999999999@s.whatsapp.net",
+        },
+    })
+
+    assert delivered == [{
+        "event": "state",
+        "state": "ACTIVE",
+        "id": "call-1",
+        "peerJid": "5511999999999@s.whatsapp.net",
+        "outgoing": False,
+        "isVideo": False,
+        "isGroup": False,
+    }]
+
+
+def test_stale_terminal_event_for_same_peer_does_not_end_current_call(monkeypatch):
+    stub = _MainStub()
+    stub._active_voice_call = {
+        "identity": "outgoing:5511999999999@s.whatsapp.net",
+        "call_id": "current-call",
+        "peer_jid": "5511999999999@s.whatsapp.net",
+        "name": "Fulano",
+    }
+    stopped = []
+    stub._stop_voice_call_audio = lambda: stopped.append(True)
+    stub._sync_voice_call_bar = lambda: None
+
+    stub.on_voice_call_state_event({
+        "event": "timeout",
+        "state": "NOT_ANSWERED",
+        "id": "old-call",
+        "peerJid": "5511999999999@s.whatsapp.net",
+    })
+
+    assert stopped == []
+    assert stub._active_voice_call["call_id"] == "current-call"
+
+
+def test_websocket_forwards_remote_call_audio_to_main_window():
+    delivered = []
+    stub = SimpleNamespace(
+        instance_name="session-a",
+        main_window=SimpleNamespace(
+            on_call_remote_audio=lambda pcm, sample_rate: delivered.append((pcm, sample_rate))
+        ),
+    )
+    stub._belongs_to_this_session = WebSocketClient._belongs_to_this_session.__get__(stub)
+
+    WebSocketClient.on_call_audio_remote(stub, {
+        "session": "session-a",
+        "sampleRate": "48000",
+        "pcm": {"type": "Buffer", "data": [1, 2, 3]},
+    })
+
+    assert delivered == [(b"\x01\x02\x03", 48000)]

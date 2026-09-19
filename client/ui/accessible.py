@@ -81,6 +81,13 @@ class AccessibleSaveAs(wx.Accessible):
         return (wx.ACC_OK, "Ctrl+Shift+S")
 
 
+class AccessibleShowInFolder(wx.Accessible):
+    """Reports Ctrl+Enter as the shortcut for the Show-in-folder button."""
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, "Ctrl+Enter")
+
+
 class AccessibleStatusCopyText(wx.Accessible):
     """Reports Ctrl+C as the keyboard shortcut for the status copy-text button."""
 
@@ -342,7 +349,16 @@ class CompatListBoxMessagesCtrl(wx.ListBox):
 
     def _on_char_hook(self, event):
         if self.HasFocus():
-            if event.GetKeyCode() == wx.WXK_RETURN:
+            if (event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
+                    and event.ControlDown()
+                    and self._key_down_handler is not None):
+                # Modified Enter belongs to the panel's shortcut handler.
+                # Sending it through the plain activation path made
+                # Ctrl+Enter play videos instead of handling issue #94.
+                self._key_down_handler(event)
+                if not event.GetSkipped():
+                    return
+            elif event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
                 row = self.GetSelection()
                 if row != wx.NOT_FOUND and self._activated_handler is not None:
                     self._activated_handler(MockListEvent(row))

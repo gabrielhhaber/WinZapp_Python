@@ -698,7 +698,12 @@ class TestBrowserFlagsStayRemoved:
         """Guards the parser above: a typo'd regex must not pass vacuously."""
         start = self._flags(*self.FLAG_LISTS[0])
         assert "--no-sandbox" in start
-        assert "--disable-web-security" in start
+        # Was --disable-web-security, which is now deliberately gone: web
+        # security off forces crossOriginIsolated false, and WhatsApp's VoIP
+        # WASM needs the COOP/COEP isolation the pinned document sets up.
+        # Repointed at a flag that is still there, since this assertion only
+        # exists to stop the parser above passing on an empty list.
+        assert "--disable-gpu" in start
 
 
 class TestRoutesArePatched:

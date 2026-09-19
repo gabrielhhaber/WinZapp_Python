@@ -453,14 +453,35 @@ def _console_safe_path(path: str) -> str:
 
 def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
                             log_path: str, marker_path: str, pid: int,
-                            api_port: int) -> str:
+                            api_port: int, extra_pids: "list[int] | tuple" = ()) -> str:
     """The batch script text. Pure — every path is already console-safe.
 
     Kept apart from _run_batch_installer() so what the script says can be
     asserted without launching anything.
+
+    ``extra_pids`` are the other accounts' processes: the script must not
+    copy over WinZapp.exe and its DLLs while any of them still has those
+    files mapped — that xcopy fails with a sharing violation and relaunches
+    the old build, which the next update check offers again (the "atualiza
+    e não muda" loop with two accounts open). They have already been asked
+    to quit over IPC by the time this runs; waiting here covers the seconds
+    between their ACK and the process actually being gone.
     """
+    wait_blocks = "".join(
+        f"set /a WAIT{i}_SECONDS=0\n"
+        f":WAIT{i}\n"
+        f'tasklist /FI "PID eq {p}" 2>NUL | find "{p}" >NUL\n'
+        "if not errorlevel 1 (\n"
+        f"    set /a WAIT{i}_SECONDS+=1\n"
+        f"    if !WAIT{i}_SECONDS! GEQ 60 goto OTHER_ACCOUNT_TIMEOUT\n"
+        "    timeout /t 1 /nobreak >NUL\n"
+        f"    goto WAIT{i}\n"
+        ")\n"
+        for i, p in enumerate(extra_pids, start=1)
+    )
     return (
         "@echo off\n"
+        "setlocal EnableDelayedExpansion\n"
         # Keep one previous run's log (as .old) before truncating: this file
         # is the only record of what the installer actually did, and an
         # update that goes wrong right as the app exits (issue: a Node/
@@ -484,6 +505,7 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         "    timeout /t 1 /nobreak >NUL\n"
         "    goto WAIT\n"
         ")\n"
+        + wait_blocks +
         # Give child processes a moment to exit, then kill stragglers holding file locks.
         "timeout /t 2 /nobreak >NUL\n"
         f"for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :{api_port} ^| findstr LISTENING') do taskkill /F /PID %%a >NUL 2>&1\n"
@@ -529,6 +551,15 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         f'>> "{log_path}" echo xcopy OK\n'
         f'if exist "{exe_path}" start "" "{exe_path}"\n'
         'del "%~f0"\n'
+        + (
+            "goto :EOF\n"
+            ":OTHER_ACCOUNT_TIMEOUT\n"
+            f'>> "{log_path}" echo timed out waiting for another WinZapp account to exit\n'
+            f'echo update failed: another WinZapp account did not exit > "{marker_path}"\n'
+            f'if exist "{exe_path}" start "" "{exe_path}"\n'
+            "exit /b 1\n"
+            if extra_pids else ""
+        )
     )
 
 
@@ -572,10 +603,11 @@ def _needs_admin() -> bool:
         return True
 
 
-def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pid: int, api_port: int = 6300) -> bool:
+def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pid: int, api_port: int = 6300,
+                         extra_pids: "list[int] | tuple" = ()) -> bool:
     """
     Write a batch script that:
-      1. Waits for PID to exit.
+      1. Waits for PID (and every other account's PID in extra_pids) to exit.
       2. Kills any leftover WPPConnect Server (api_port) and PostgreSQL (5433) processes.
       3. Copies all extracted files to install_dir.
       4. Restarts the client executable.
@@ -630,6 +662,7 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
         os.path.join(safe_install, "update_failed.marker"),
         pid,
         api_port,
+        extra_pids=extra_pids,
     )
     if not _write_installer_script(bat_path, script):
         return False
@@ -778,6 +811,8 @@ class UpdateProgressDialog(wx.Dialog):
 
     def _worker(self):
         """Download, extract, and launch installer — all in a background thread."""
+        update_token = None
+        installer_handed_off = False
         try:
             # ── Download ──────────────────────────────────────────────────────
             zip_fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="winzapp_upd_")
@@ -875,19 +910,116 @@ class UpdateProgressDialog(wx.Dialog):
             exe_name    = os.path.basename(sys.argv[0]) if sys.argv else "WinZapp.exe"
             pid         = os.getpid()
 
-            logging.info("Auto-updater: Launching batch installer from %s (PID %d)", install_dir, pid)
-            launched = _run_batch_installer(extract_dir, install_dir, exe_name, pid, api_port=getattr(self._main_window, "wpp_port", 6300))
+            # ── Other accounts ────────────────────────────────────────────────
+            # Every account is its own process on the same install dir, so
+            # any other one still running keeps WinZapp.exe and its DLLs
+            # mapped and xcopy fails on them. Ask them to quit (each closes
+            # its WhatsApp session gracefully on the way out, same as the
+            # Exit menu's quit_all_accounts()), then claim the install slot,
+            # which refuses while any of them is still alive.
+            other_pids = self._quit_other_accounts()
+            update_token = self._claim_install_slot()
+            if update_token is None:
+                self._error_msg = self._main_window.i18n.t("update_other_accounts_running")
+                wx.CallAfter(self.EndModal, wx.ID_ABORT)
+                return
+
+            logging.info("Auto-updater: Launching batch installer from %s (PID %d, also waiting on %s)",
+                         install_dir, pid, other_pids or "no other account")
+            launched = _run_batch_installer(extract_dir, install_dir, exe_name, pid,
+                                            api_port=getattr(self._main_window, "wpp_port", 6300),
+                                            extra_pids=other_pids)
             if not launched:
+                self._end_install_slot(update_token)
                 self._error_msg = self._main_window.i18n.t("update_uac_declined")
                 wx.CallAfter(self.EndModal, wx.ID_ABORT)
                 return
             self._install_ok = True
+            installer_handed_off = True
             wx.CallAfter(self.EndModal, wx.ID_OK)
 
         except Exception as exc:
             logging.exception("Auto-updater: Exception during update installation")
+            if update_token and not installer_handed_off:
+                self._end_install_slot(update_token)
             self._error_msg = str(exc)
             wx.CallAfter(self.EndModal, wx.ID_ABORT)
+
+
+    # ── Multi-account coordination ───────────────────────────────────────────
+    def _coord(self):
+        """(global_dir, account_id) or None when there is nothing to
+        coordinate with — a single-account/dev run has no second process."""
+        gd = getattr(self._main_window, "global_dir", None)
+        acc = getattr(self._main_window, "account_id", None)
+        return (gd, acc) if gd and acc else None
+
+    def _quit_other_accounts(self) -> list:
+        """Ask every other live account to quit and return their PIDs.
+
+        Same peer walk as MainWindow.quit_all_accounts(): sequential, each
+        request waits for the peer to confirm it RELEASED its session, so no
+        WhatsApp session is hard-killed by the update's own taskkill. Best
+        effort — a peer that never answers is left for _claim_install_slot()
+        to refuse on, and for the batch script to wait on if it does exit.
+        Never raises: the update must not fail on a diagnostic of its peers.
+        """
+        coord = self._coord()
+        if coord is None:
+            return []
+        gd, acc_id = coord
+        pids: list = []
+        try:
+            import ipc
+            import node_coord
+            import update_coord
+            pids = [
+                int(l["pid"]) for l in update_coord.other_live_leases(gd)
+                if not l.get("_corrupt") and l.get("pid")
+            ]
+            others = [l.get("account_id") for l in node_coord.live_node_leases(
+                gd, is_alive=update_coord.lease_alive) if not l.get("_corrupt")]
+            others = [a for a in others if a and a != acc_id]
+            if others:
+                wx.CallAfter(
+                    self._status_label.SetLabel,
+                    self._main_window.i18n.t("update_closing_other_accounts"),
+                )
+            for other in others:
+                try:
+                    logging.info("Auto-updater: asking account %s to quit before installing", other)
+                    ipc.request_quit(gd, other)
+                except Exception:
+                    logging.exception("Auto-updater: request_quit failed for %s", other)
+        except Exception:
+            logging.exception("Auto-updater: enumerating other accounts failed (non-fatal)")
+        return pids
+
+    def _claim_install_slot(self):
+        """The update_coord owner-token, or None when another account is
+        still alive. Without a global dir there is no one to coordinate with,
+        so a placeholder token lets the install go ahead."""
+        coord = self._coord()
+        if coord is None:
+            return {}
+        try:
+            import update_coord
+            return update_coord.try_begin_update(coord[0])
+        except Exception:
+            # Unlike a prompt claim, an install must never proceed unless it
+            # can prove no other account still maps the program files.
+            logging.exception("Auto-updater: try_begin_update failed — blocking installation")
+            return None
+
+    def _end_install_slot(self, token) -> None:
+        coord = self._coord()
+        if coord is None or not token:
+            return
+        try:
+            import update_coord
+            update_coord.end_update(coord[0], token)
+        except Exception:
+            logging.exception("Auto-updater: end_update failed")
 
 
 # ── UpdateDialog ──────────────────────────────────────────────────────────────
@@ -993,10 +1125,11 @@ class UpdateChecker:
         Every account runs its own UpdateChecker in its own process, so without
         this each of them found the same release and opened its own dialog —
         two accounts, two "a new version is available" windows for one update.
-        Only one of them could ever have installed it anyway: the install is
-        already gated by try_begin_update(), which refuses while any other
-        account's runtime lease is live. The duplicate dialogs were never a
-        second chance at anything, just a second thing to dismiss.
+        Only one of them can install it anyway: UpdateProgressDialog asks the
+        other accounts to quit and then claims the install slot through
+        try_begin_update(), which refuses while any other account's runtime
+        lease is still live. The duplicate dialogs were never a second chance
+        at anything, just a second thing to dismiss.
 
         Fails OPEN on any error. A prompt that cannot be coordinated is worth
         far more than a prompt suppressed by a bug in the coordination.

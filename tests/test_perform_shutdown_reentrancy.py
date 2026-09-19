@@ -36,6 +36,11 @@ from main import MainWindow
 class _Stub:
     _perform_shutdown = MainWindow._perform_shutdown
 
+    # Closing the app ends any call in progress. Nothing here is under
+    # test, so record the ask and move on.
+    def _stop_voice_call_audio(self, grace_seconds: float = 0.0):
+        self.call_audio_stopped = True
+
     def __init__(self, raise_in_stop_wpp_server=False):
         self._teardown_started_lock = threading.Lock()
         self._teardown_complete_event = threading.Event()

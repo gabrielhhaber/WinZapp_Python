@@ -348,11 +348,14 @@ API_EXCLUDE_SUB_DIRS = {"tests", "types"}
 # visible/patchable directly from an extracted install, not just at dev time.
 API_CUSTOM_SRC_FILES = [
     "src/config.ts",
+    "src/util/callMediaBridge.ts",
     "src/util/createSessionUtil.ts",
     "src/util/functions.ts",
     "src/util/tokenStore/fileTokenStory.ts",
     "src/middleware/statusConnection.ts",
     "src/middleware/auth.ts",
+    "src/middleware/socketAuth.ts",
+    "src/controller/callController.ts",
     "src/controller/deviceController.ts",
     "src/controller/messageController.ts",
     "src/controller/sessionController.ts",

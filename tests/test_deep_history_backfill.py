@@ -324,7 +324,14 @@ class _LoopStub:
 def _loop(deep_pending, pending=(), names=()):
     stub = _LoopStub(deep_pending, pending, names)
     for name in ("_backfill_empty_chats", "_collapse_and_list_backfill_pending",
-                 "_backfill_state_guard", "_canonical_backfill_jid"):
+                 "_backfill_state_guard", "_canonical_backfill_jid",
+                 # Bound explicitly, not left to __getattr__: the backfill loop
+                 # asks whether a voice call is up, and a stub answering with a
+                 # truthy lambda makes the pause permanent — the loop then
+                 # sleeps a second per iteration until its whole deadline
+                 # elapses, which is how one guard turned this file into a
+                 # multi-hour CI run.
+                 "_voice_call_in_progress"):
         setattr(stub, name, types.MethodType(MainWindow.__dict__[name], stub))
     for name in ("_initial_backfill_delay", "_background_backfill_work_allowed",
                  "_backfill_short_queue_delays"):
@@ -333,8 +340,12 @@ def _loop(deep_pending, pending=(), names=()):
                   "_BACKFILL_FIRST_DELAY", "_BACKFILL_CHUNK_DELAY",
                   "_BACKFILL_MAX_DELAY",
                   "_BACKFILL_CHUNK", "_BACKFILL_WORKERS",
-                  "_DEEP_CHATS_PER_PASS"):
+                  "_DEEP_CHATS_PER_PASS", "_VOICE_CALL_PAUSE_MAX_SECONDS"):
         setattr(stub, const, getattr(MainWindow, const))
+    # Same reason as the binding above: this must be a real falsy value, not
+    # whatever __getattr__ would invent for it.
+    stub._active_voice_call = None
+    stub._voice_call_pause_since = 0.0
     stub._backfill_empty_chats()
     return stub
 

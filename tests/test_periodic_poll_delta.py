@@ -76,6 +76,14 @@ class _PollStub:
     _baseline_marker_for_jid = MainWindow._baseline_marker_for_jid
     _plan_message_sync = MainWindow._plan_message_sync
     _jid_address_forms = MainWindow._jid_address_forms
+    # A voice call stands the recurring background work down while it is
+    # up. Bound from the real class rather than left to whatever a stub's
+    # __getattr__ would invent: a truthy answer makes the pause permanent,
+    # which is how one guard turned a test file into a multi-hour CI run.
+    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
+    _active_voice_call = None
+    _voice_call_pause_since = 0.0
 
     # ── collaborators ────────────────────────────────────────────────────
     def get_remote_contacts(self):

@@ -1,3 +1,4 @@
+import base64
 import logging
 import threading
 import time
@@ -49,6 +50,37 @@ def ack_to_status(wpp_ack):
         # gone, too big, …) all mean the same thing to the user: not delivered.
         return STATUS_FAILED
     return _ACK_TO_STATUS.get(wpp_ack)
+
+
+def _socketio_binary_to_bytes(value):
+    """Normalize a Socket.IO binary payload into bytes, or b"".
+
+    Node emits call audio as a Buffer inside an object. python-socketio
+    normally turns that into bytes, but test doubles and alternate transports
+    may surface Uint8Array-style lists or JSON Buffer objects.
+    """
+    if isinstance(value, str):
+        try:
+            return base64.b64decode(value, validate=True)
+        except (ValueError, TypeError):
+            return b""
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, bytearray):
+        return bytes(value)
+    if isinstance(value, list):
+        try:
+            return bytes(value)
+        except (TypeError, ValueError):
+            return b""
+    if isinstance(value, dict) and value.get("type") == "Buffer":
+        data = value.get("data")
+        if isinstance(data, list):
+            try:
+                return bytes(data)
+            except (TypeError, ValueError):
+                return b""
+    return b""
 
 
 def phone_code_error_is_rate_limit(data) -> bool:
@@ -308,6 +340,8 @@ class WebSocketClient:
         self.sio.on("media-upload-progress", self.on_media_upload_progress)
         self.sio.on("media-download-progress", self.on_media_download_progress)
         self.sio.on("incomingcall", self.on_wpp_incoming_call)
+        self.sio.on("callstate", self.on_wpp_call_state)
+        self.sio.on("call:audio:remote", self.on_call_audio_remote)
         # These two handlers existed but were never registered — contact
         # name/photo updates and presence changes only ever reached the app
         # through onpresencechanged and the 5-minute contacts poll, so a
@@ -1445,11 +1479,16 @@ class WebSocketClient:
             # sync echo, own-send echo, or a genuine live dispatch) a given
             # message id took, instead of only knowing the event arrived.
             key = msg.get("key", {})
+            # quoted= is what settles "the reply shows a quote in WinZapp but
+            # not on WhatsApp": the echo is WhatsApp's own record of the send,
+            # so a reply echoed back without a stanzaId never carried one.
+            ctx = msg.get("contextInfo")
             logging.info(
                 "[WebSocketClient] on_messages_upsert: id=%s remoteJid=%s fromMe=%s "
-                "type=%s isMdHistoryMsg=%s",
+                "type=%s isMdHistoryMsg=%s quoted=%s",
                 key.get("id", ""), key.get("remoteJid", ""), key.get("fromMe"),
                 msg.get("messageType", ""), msg.get("isMdHistoryMsg"),
+                (ctx.get("stanzaId") or "-") if isinstance(ctx, dict) else "-",
             )
 
             # ── Skip history-sync echoes ───────────────────────────────────────
@@ -2405,6 +2444,82 @@ class WebSocketClient:
             wx.CallAfter(self.main_window.on_incoming_call_event, normalized)
         except Exception:
             logging.exception("[WebSocketClient] on_wpp_incoming_call error")
+
+    def on_wpp_call_state(self, data):
+        """Forward the complete WhatsApp call lifecycle to MainWindow."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            payload = data.get("data") or data
+            if not isinstance(payload, dict):
+                return
+            normalized = dict(payload)
+            normalized["id"] = str(normalized.get("id") or "")
+            # One canonical key, not two: leaving `peer_jid` beside `peerJid`
+            # gives every consumer downstream a second place to read the peer
+            # from, and they will not stay in step.
+            normalized["peerJid"] = str(
+                normalized.get("peerJid") or normalized.pop("peer_jid", "") or ""
+            )
+            normalized.pop("peer_jid", None)
+            normalized["state"] = str(normalized.get("state") or "").upper()
+            normalized["event"] = str(normalized.get("event") or "state").lower()
+            normalized["outgoing"] = bool(normalized.get("outgoing", False))
+            normalized["isVideo"] = bool(normalized.get("isVideo", False))
+            normalized["isGroup"] = bool(normalized.get("isGroup", False))
+            wx.CallAfter(self.main_window.on_voice_call_state_event, normalized)
+        except Exception:
+            logging.exception("[WebSocketClient] on_wpp_call_state error")
+
+    def send_call_microphone_audio(self, pcm: bytes):
+        """Send a Python-captured PCM frame to the page call bridge."""
+        if not pcm:
+            return
+        try:
+            # Keep the remote media transport JSON-safe.  Sending raw Socket.IO
+            # binary here is not stable across polling/websocket upgrades and
+            # python-socketio versions (it can arrive in Node as an
+            # ArrayBuffer/placeholder and be discarded by the bridge).  The
+            # bridge already accepts base64 and this also makes the payload
+            # observable and reproducible across local/remote deployments.
+            self.sio.emit(
+                "call:audio:mic",
+                {
+                    "session": self.instance_name,
+                    "encoding": "base64",
+                    "sampleRate": 48000,
+                    "pcm": base64.b64encode(bytes(pcm)).decode("ascii"),
+                },
+            )
+        except Exception:
+            logging.exception("[WebSocketClient] failed to emit call microphone audio")
+
+    def stop_call_audio_stream(self):
+        """Tell the page call bridge to drop buffered microphone frames."""
+        try:
+            self.sio.emit("call:audio:stop", {"session": self.instance_name})
+        except Exception:
+            logging.debug(
+                "[WebSocketClient] failed to emit call audio stop", exc_info=True
+            )
+
+    def on_call_audio_remote(self, data):
+        """Forward remote WebRTC PCM from the page bridge to MainWindow."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            pcm = _socketio_binary_to_bytes(data.get("pcm"))
+            if not pcm:
+                return
+            try:
+                sample_rate = int(data.get("sampleRate") or 48000)
+            except (TypeError, ValueError):
+                sample_rate = 48000
+            handler = getattr(self.main_window, "on_call_remote_audio", None)
+            if handler is not None:
+                handler(pcm, sample_rate)
+        except Exception:
+            logging.exception("[WebSocketClient] on_call_audio_remote error")
 
     def on_wpp_ack(self, data):
         try:

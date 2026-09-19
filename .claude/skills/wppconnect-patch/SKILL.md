@@ -79,8 +79,8 @@ satisfied its own server's range. That is now a test
 
 **`@wppconnect/wa-version` stays unpinned**, deliberately: it is the expiring
 catalogue of WhatsApp Web builds, not an API surface, and freezing it strands
-an install on entries Meta has stopped serving (see CLAUDE.md's version-pin
-section).
+an install on entries Meta has stopped serving (see
+`docs/traps/whatsapp-web-version-pin.md`).
 
 ## Mechanism 3 — compiled code inside `node_modules`
 

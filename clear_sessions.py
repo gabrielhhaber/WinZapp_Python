@@ -4,6 +4,8 @@ import shutil
 import subprocess
 import signal
 
+from pulse_audio_lifecycle import cleanup_winzapp_pulse_modules
+
 def kill_port(port):
     print(f"Attempting to kill process on port {port}...")
     if sys.platform == "win32":
@@ -39,6 +41,7 @@ def kill_process_by_name(name):
         os.system(f"pkill -9 -f {name}")
 
 if __name__ == "__main__":
+    cleanup_winzapp_pulse_modules()
     # 1. Encerrar os processos ativos da API e do Chrome/Chromium
     kill_port(6300)
     # chrome-headless-shell is what WinZapp actually launches now (see

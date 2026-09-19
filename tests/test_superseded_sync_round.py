@@ -558,6 +558,14 @@ class _PhaseStub:
         self.wipe_on_first_call = False
 
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
+    # A voice call stands the recurring background work down while it is
+    # up. Bound from the real class rather than left to whatever a stub's
+    # __getattr__ would invent: a truthy answer makes the pause permanent,
+    # which is how one guard turned a test file into a multi-hour CI run.
+    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
+    _active_voice_call = None
+    _voice_call_pause_since = 0.0
 
     def sync_chat_messages(self, chat, expected_run_id=None, sync_mode="full"):
         with self._sync_failures_lock:

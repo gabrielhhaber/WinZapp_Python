@@ -17,7 +17,6 @@ import { Whatsapp } from '@wppconnect-team/wppconnect';
 import { EventEmitter } from 'events';
 
 export const chromiumArgs = [
-  '--disable-web-security', // Disables web security
   '--no-sandbox', // Disables sandbox
   '--aggressive-cache-discard', // Aggressively discards cache
   '--disable-cache', // Disables cache
@@ -31,21 +30,17 @@ export const chromiumArgs = [
   '--disable-translate', // Disables translation
   '--hide-scrollbars', // Hides scrollbars
   '--metrics-recording-only', // Records metrics only
-  '--mute-audio', // Mutes audio
+  '--use-fake-ui-for-media-stream', // Auto-grants WebRTC media permission for headless calls
   '--no-first-run', // Skips first run
   '--safebrowsing-disable-auto-update', // Disables Safe Browsing auto-update
   '--ignore-certificate-errors', // Ignores certificate errors
   '--ignore-ssl-errors', // Ignores SSL errors
   '--ignore-certificate-errors-spki-list', // Ignores certificate errors in SPKI list
-  '--disable-3d-apis',
-  '--disable-webgl',
   '--disable-component-update',
   '--disable-speech-api',
-  '--disable-voice-input',
   '--disable-renderer-backgrounding',
   '--disable-backgrounding-occluded-windows',
-  '--disable-features=OptimizationGuideOnDeviceModel,PromptAPIForGeminiNano,AISummarization,HelpMeWrite,OptimizationGuide,OptimizationHints,OptimizationTargetPrediction',
-  '--disable-software-rasterizer',
+  '--disable-features=OptimizationGuideOnDeviceModel,PromptAPIForGeminiNano,AISummarization,HelpMeWrite,OptimizationGuide,OptimizationHints,OptimizationTargetPrediction,WebRtcHideLocalIpsWithMdns',
   '--disable-ipc-flooding-protection',
   '--password-store=basic',
   '--use-mock-keychain',

@@ -139,6 +139,13 @@ class _SweepLoadStub:
     _oldest_stored_message = MainWindow._oldest_stored_message
     _anchor_identity = staticmethod(MainWindow._anchor_identity)
     _phone_request_gap_elapsed = staticmethod(MainWindow._phone_request_gap_elapsed)
+    # Bound from the real class rather than left to a default: the loop stands
+    # down while a voice call is up, and the predicate carries the time bound
+    # that keeps a call nobody ended from pausing the backfill forever.
+    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
+    _active_voice_call = None
+    _voice_call_pause_since = 0.0
 
     _BACKFILL_BUDGET = MainWindow._BACKFILL_BUDGET
     _BACKFILL_LANDING_BUDGET = MainWindow._BACKFILL_LANDING_BUDGET

@@ -14,13 +14,18 @@ read end to end.
 
 ## Before writing anything
 
-1. **Grep `main.py` first.** It is ~22,300 lines and `conversations.py` ~13,500.
-   The method you are about to write very likely already exists. CLAUDE.md
-   says this outright, and it is the most common wasted change here.
+1. **Grep `main.py` first.** It and `conversations.py` are the god files
+   (current sizes in `CLAUDE.md`). The method you are about to write very
+   likely already exists, and that is the most common wasted change here.
 2. **Load the skill that covers the area** — `accessible-ui`, `i18n-ui-string`,
    `write-test`, `wppconnect-patch`. They exist so you do not rediscover the
    traps.
-3. **Read the surrounding code**, not just the function you are changing.
+3. **Read the trap file for the area.** The measured history behind each
+   rule lives in `docs/traps/` (index: the table at the end of `CLAUDE.md`;
+   `.claude/rules/` loads the short form when you touch the files). A fix in
+   sync, pairing, profile recovery, media, calls, the updater or speech that
+   skips its trap file usually reintroduces the bug the file describes.
+4. **Read the surrounding code**, not just the function you are changing.
 
 ## Where new code goes
 

@@ -43,6 +43,31 @@ WPPCONNECT_REPO  = "https://github.com/wppconnect-team/wppconnect-server.git"
 _CLIENT_DIR = os.path.join(ROOT_DIR, "client")
 if _CLIENT_DIR not in sys.path:
     sys.path.insert(0, _CLIENT_DIR)
+# winzapp_tools.build_env is stdlib-only for the same reason, and holds the
+# Node.js decisions build.py already makes. ROOT_DIR is sys.path[0] for
+# `python setup_api.py` whatever the working directory, and on the path
+# already under `uv run setup-api`; inserting it keeps an embedded or
+# exec'd caller working too.
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+from node_download_config import NODE_VERSION  # noqa: E402
+from winzapp_tools.build_env import (  # noqa: E402
+    node_major,
+    portable_node_version,
+    system_node_is_refused,
+)
+
+# The escape hatch for the Node this gate has no evidence about — a major it
+# refuses that a fork has nonetheless verified. Named in the refusal itself,
+# so nobody has to read this file to get unblocked.
+ALLOW_SYSTEM_NODE_ENV = "WINZAPP_ALLOW_SYSTEM_NODE"
+
+
+def _homologated_major() -> str:
+    """The major of NODE_VERSION, for messages that talk about the line."""
+    major = node_major(NODE_VERSION)
+    return str(major) if major is not None else NODE_VERSION
 
 # Files WinZapp patches on top of upstream wppconnect-server. client/api_patches/
 # is the permanent, always-git-tracked source of truth for all of these —
@@ -91,12 +116,14 @@ CUSTOM_ROOT_FILES = [
 CUSTOM_SRC_FILES = [
     "src/config.ts",
     "src/index.ts",
+    "src/util/callMediaBridge.ts",
     "src/util/createSessionUtil.ts",
     "src/util/sessionUtil.ts",
     "src/util/functions.ts",
     "src/util/tokenStore/fileTokenStory.ts",
     "src/middleware/statusConnection.ts",
     "src/middleware/auth.ts",
+    "src/middleware/socketAuth.ts",
     "src/dto/sync.ts",
     "src/middleware/instrumentation.ts",
     "src/errors/domain.ts",
@@ -106,6 +133,7 @@ CUSTOM_SRC_FILES = [
     "src/tests/middleware/instrumentation.test.ts",
     "src/tests/dto/sync.test.ts",
     "src/tests/middleware/errorHandler.test.ts",
+    "src/controller/callController.ts",
     "src/controller/deviceController.ts",
     "src/controller/messageController.ts",
     "src/controller/sessionController.ts",
@@ -151,6 +179,100 @@ def _run(cmd: list, cwd: str = None):
     if result.returncode != 0:
         print(f"\n[ERROR] Command failed (exit {result.returncode}).")
         sys.exit(result.returncode)
+
+
+def npm_runs_under_portable_node(npm_bin: str) -> bool:
+    """Whether this npm is the one launched as ``[node_bin, npm_bin]``.
+
+    The portable npm is a .js file run by ``client/node/node.exe``; anything
+    else is a shim ``_run()`` resolves through ``shutil.which()``, which
+    launches whichever Node.js it was installed beside.
+
+    Deliberately the single predicate for BOTH "how is npm invoked" and "does
+    the system-Node gate apply", because the two cannot be allowed to drift:
+    a toolchain assembled half from ``client/node/`` and half from PATH runs
+    under the system Node while every local signal says otherwise.
+    """
+    return os.path.basename(npm_bin) == "npm-cli.js"
+
+
+def _gate_system_node(node_bin: str) -> None:
+    """Stop before spending a system Node.js this path is not verified on.
+
+    Reached whenever npm will not run under ``client/node/``: a fresh checkout,
+    a portable npm that failed its own health probe, a ``client/node/`` holding
+    node.exe and no npm tree, and — permanently — every non-Windows run, since
+    the portable runtime is a win-x64 archive and cannot exist there. That last
+    one is why the advice below is platform-aware: telling a Linux developer to
+    run ``build-onefile`` would send them after a Windows zip.
+
+    Prints and exits rather than raising: the caller's handler reports "Node.js
+    dependencies installation/build failed", which is the wrong sentence for a
+    run that has not installed anything yet.
+    """
+    resolved = node_bin
+    if not os.path.isabs(resolved):
+        resolved = shutil.which(resolved) or ""
+    installed = portable_node_version(resolved) if resolved else ""
+
+    overridden = bool(os.environ.get(ALLOW_SYSTEM_NODE_ENV, "").strip())
+
+    if system_node_is_refused(installed, NODE_VERSION):
+        # Announced only where it changes the outcome. Checking it first meant
+        # somebody who left it set was told they were using v22.22.2 "instead
+        # of the homologated v22.22.2".
+        if overridden:
+            print(
+                f"[WARNING] {ALLOW_SYSTEM_NODE_ENV} is set; using system "
+                f"Node.js v{installed}, which is not the homologated "
+                f"{_homologated_major()}.x line."
+            )
+            return
+        # Plain ASCII, deliberately. A Windows console on cp1252 renders the
+        # em dashes the rest of this script prints as mojibake, which is
+        # survivable in a progress line and not in the one message whose whole
+        # job is to be read at the moment everything stopped.
+        print(
+            f"\n[ERROR] System Node.js v{installed} is not on the homologated "
+            f"{_homologated_major()}.x line (v{NODE_VERSION}), and this setup "
+            "is only verified there."
+        )
+        print(
+            "        Newer majors fail in a way that never names Node: on v26 "
+            "the Chromium download stops two files in, reports no error, and "
+            "every later run then fails on the half-extracted folder it left "
+            "behind."
+        )
+        print("        Any of these gets you going:")
+        if sys.platform == "win32":
+            # Not offered off Windows: client/node/ is a win-x64 archive
+            # (client/node_download_config.py), so there is nothing to
+            # provision and this line would send somebody after a Windows zip.
+            print(
+                "          * Build once. `uv run build-onefile` provisions "
+                f"client/node/ with v{NODE_VERSION}, which this script prefers."
+            )
+        print(
+            f"          * Switch this shell to Node {_homologated_major()}.x "
+            "(nvm, fnm, volta)."
+        )
+        print(
+            f"          * Set {ALLOW_SYSTEM_NODE_ENV}=1 to use it anyway, if "
+            "you have verified this major yourself."
+        )
+        sys.exit(1)
+
+    if not installed:
+        # Only an answer refuses. A probe that could not speak is not a
+        # verdict, and npm install fails loudly a moment later if Node really
+        # is broken — see system_node_is_refused()'s docstring.
+        print(
+            "[WARNING] Could not read the system Node.js version; continuing. "
+            f"This setup is verified on v{NODE_VERSION}."
+        )
+        return
+
+    print(f"[INFO] Using system Node.js v{installed} (homologated: v{NODE_VERSION}).")
 
 
 def _latest_stable_tag(cwd: str) -> str:
@@ -850,10 +972,19 @@ def main():
         if is_windows:
             win_node = os.path.join(ROOT_DIR, "client", "node", "node.exe")
             if os.path.isfile(win_node):
-                node_bin = win_node
                 # Try to locate npm CLI
                 win_npm = os.path.join(ROOT_DIR, "client", "node", "node_modules", "npm", "bin", "npm-cli.js")
                 if os.path.isfile(win_npm):
+                    # BOTH halves or neither. node.exe is only ever reached
+                    # *through* npm here, so adopting it while npm_bin stays
+                    # the bare "npm" builds a toolchain that is portable in
+                    # name only: _run() resolves "npm" through shutil.which()
+                    # to the system npm.cmd, which launches the system Node.
+                    # client/node/ with a good node.exe and an incomplete npm
+                    # tree is a state already seen in the field — it is what
+                    # node_download.py's "swap the fully extracted runtime"
+                    # comment is about.
+                    node_bin = win_node
                     npm_bin = win_npm
                     # A HEALTH PROBE MUST NEVER BE MORE FATAL THAN THE THING IT
                     # STANDS IN FOR. This one asks "can the portable npm run at
@@ -907,10 +1038,18 @@ def main():
                         )
                         node_bin = system_node
                         npm_bin = system_npm
+                else:
+                    print(
+                        "[WARNING] client/node/node.exe is here but its npm tree "
+                        "is not; using the system Node.js toolchain instead."
+                    )
+
+        if not npm_runs_under_portable_node(npm_bin):
+            _gate_system_node(node_bin)
 
         # Run npm install
         print("[INFO] Running npm install...")
-        if npm_bin.endswith("npm-cli.js"):
+        if npm_runs_under_portable_node(npm_bin):
             _run([node_bin, npm_bin, "install", "--no-audit", "--no-fund", "--legacy-peer-deps"], cwd=CLIENT_API_DIR)
         else:
             _run([npm_bin, "install", "--no-audit", "--no-fund", "--legacy-peer-deps"], cwd=CLIENT_API_DIR)

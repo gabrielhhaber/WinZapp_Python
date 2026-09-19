@@ -18,6 +18,7 @@ import multer from 'multer';
 import swaggerUi from 'swagger-ui-express';
 
 import uploadConfig from '../config/upload';
+import * as CallController from '../controller/callController';
 import * as CatalogController from '../controller/catalogController';
 import * as CommunityController from '../controller/communityController';
 import ContactController from '../controller/contactController';
@@ -698,6 +699,43 @@ routes.post(
   verifyToken,
   statusConnection,
   DeviceController.rejectCall
+);
+
+routes.post(
+  '/api/:session/call/accept',
+  verifyToken,
+  statusConnection,
+  CallController.acceptCall
+);
+routes.post(
+  '/api/:session/call/audio/enable',
+  verifyToken,
+  statusConnection,
+  CallController.enableCallAudio
+);
+routes.post(
+  '/api/:session/call/reject',
+  verifyToken,
+  statusConnection,
+  CallController.rejectCall
+);
+routes.post(
+  '/api/:session/call/end',
+  verifyToken,
+  statusConnection,
+  CallController.endCall
+);
+routes.post(
+  '/api/:session/call/offer',
+  verifyToken,
+  statusConnection,
+  CallController.offerCall
+);
+routes.get(
+  '/api/:session/call/diagnostics',
+  verifyToken,
+  statusConnection,
+  CallController.callDiagnostics
 );
 
 // Catalog

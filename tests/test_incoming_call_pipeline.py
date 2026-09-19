@@ -17,7 +17,10 @@ def _source(relative: str) -> str:
 def test_api_patch_forwards_native_call_events_to_socket_io():
     source = _source("client/api_patches/src/util/createSessionUtil.ts")
     assert "WPP.on('call.incoming_call'" in source
-    assert "req.io.emit('incomingcall'" in source
+    # Room-scoped, not a broadcast: every socket is bound to one session by
+    # socketAuth.ts, and a call event must not reach another account's client.
+    assert "req.io.to(`session:${client.session}`).emit('incomingcall'" in source
+    assert "call?.id?.toString?.()" in source
     assert "ignored historical offer" in source
 
 

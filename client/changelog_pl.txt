@@ -4,6 +4,8 @@ Ta wersja poprawia sytuacje, w których WinZapp niepotrzebnie prosił o ponowne 
 
 NOWOŚCI
 
+- Pokazywanie w folderze pliku zapisanego za pomocą opcji Zapisz jako. Gdy istnieje kopia wybrana przez użytkownika, użyj Ctrl+Enter, pozycji „Pokaż w folderze” w menu kontekstowym albo przycisku dostępnego klawiszem Tab obok Otwórz i Zapisz jako; sam wewnętrzny plik pobrany przez WinZapp nie udostępnia tej akcji.
+
 - Wybór, czy wiadomości oznaczone gwiazdką zostają po wyczyszczeniu czatu. Potwierdzenie czyszczenia ma teraz opcję „Zachowaj wiadomości oznaczone gwiazdką", domyślnie zaznaczoną, tak jak w WhatsApp Web. Po jej odznaczeniu te wiadomości są usuwane razem z resztą, także na telefonie. Dotyczy czyszczenia jednego czatu, kilku zaznaczonych lub zarchiwizowanego.
 
 - Potwierdzenie przed oznaczeniem wszystkich czatów jako przeczytane. Polecenie najpierw pyta, z domyślną odpowiedzią Nie, aby przypadkowe naciśnięcie Alt, a potem Enter, nie oznaczyło wszystkiego jako przeczytane, także na telefonie. Pytanie ma opcję „Nie pokazuj ponownie": zaznaczona i potwierdzona przyciskiem Tak sprawia, że kolejne razy oznaczają wszystko od razu. Aby pytanie wróciło, użyj opcji „Pytaj o potwierdzenie przed oznaczeniem wszystkich czatów jako przeczytane" na karcie Interfejs użytkownika w Ustawieniach.

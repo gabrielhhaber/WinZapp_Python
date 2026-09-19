@@ -4,6 +4,7 @@ import logging
 import mimetypes
 import os
 import re
+import subprocess
 import tempfile
 import threading
 import time
@@ -43,6 +44,7 @@ from ui.accessible import (
     AccessibleRecordVoiceMessage,
     AccessibleAudioSlider,
     AccessibleSaveAs,
+    AccessibleShowInFolder,
     AccessibleConversationDataButton,
     AccessibleAddAttachmentButton,
     AccessibleEmojiButton,
@@ -61,6 +63,7 @@ from ui.accessible import (
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
 from ui.dialogs.clear_chat_confirm import confirm_clear_chat
 from core.save_location import resolve_save_dialog_folder
+from core.save_dialog_selection import schedule_deselect_extension
 from core.utils import history_window, reaction_targets_status, format_number, decrypt_bytes, is_phone_like, encrypt, effective_unread_count, first_unread_index, db_fetch_limit, looks_like_binary_blob, normalize_for_search, normalize_line_separators, to_editor_line_endings, parse_bool_flag as _parse_bool_flag, append_selected_marker, is_message_forwarded, is_voice_message, video_seconds, MEASURED_SECONDS_KEY, link_preview_text
 from core.locale_format import get_date_format, get_time_format, get_datetime_format
 from core.message_copy_format import format_copied_message
@@ -215,6 +218,29 @@ def cached_media_path(msg_type: str, msg_id: str) -> str:
     if msg_type == "audioMessage":
         return data_path("voice_messages", f"{cache_id}.msv")
     return data_path("media", f"{cache_id}.wzmedia")
+
+
+def saved_media_path(msg: dict) -> str:
+    """Return the existing user-visible copy created through Save As.
+
+    WinZapp's encrypted .wzmedia/.msv cache is an implementation detail, not a
+    file users asked to reveal.  Issue #94's three entry points therefore stay
+    unavailable until Save As has completed successfully, and become
+    unavailable again if that chosen copy is deleted or moved.
+    """
+    if not isinstance(msg, dict) or msg.get("messageType", "") not in _SAVEABLE_MESSAGE_TYPES:
+        return ""
+    saved = msg.get("_saved_media_path")
+    return os.path.abspath(saved) if saved and os.path.isfile(saved) else ""
+
+
+def reveal_file_in_folder(filepath: str) -> bool:
+    """Open File Explorer with *filepath* selected, if it still exists."""
+    if not filepath or not os.path.isfile(filepath):
+        return False
+    path = os.path.abspath(filepath)
+    subprocess.Popen(["explorer.exe", "/select,", path])
+    return True
 
 
 def promote_local_media_cache(voice_dir: str, media_dir: str,
@@ -550,6 +576,10 @@ class ConversationsPanel(wx.Panel):
         # ── Media download progress ─────────────────────────────────────────
         # msg_id -> float 0.0-1.0  (absent = not tracked / already complete)
         self._download_progress: dict = {}
+        # msg_id -> user-visible copy created by Save As. Kept in memory so a
+        # list rebuild can reconnect a fresh message dictionary to that copy;
+        # never persisted with the WhatsApp profile or included in exports.
+        self._saved_media_paths: dict[str, str] = {}
 
         # ── Unread separator ────────────────────────────────────────────────
         # Index in _sorted_messages of the unread-separator sentinel, or -1
@@ -765,6 +795,13 @@ class ConversationsPanel(wx.Panel):
         self._conv_data_btn.Bind(wx.EVT_BUTTON, self._show_conversation_data)
         conv_sizer.Add(self._conv_data_btn, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
 
+        self._voice_call_btn = wx.Button(
+            self.conversation_panel, label=i18n.t("voice_call_button")
+        )
+        self._voice_call_btn.Bind(wx.EVT_BUTTON, self._on_voice_call)
+        conv_sizer.Add(self._voice_call_btn, 0, wx.LEFT | wx.TOP, 5)
+        self._voice_call_btn.Hide()
+
         # ── Search in conversation button ───────────────────────────────────
         self._search_open_btn = wx.Button(
             self.conversation_panel, label=i18n.t("search_in_conv")
@@ -919,6 +956,18 @@ class ConversationsPanel(wx.Panel):
         self._action_save_as_btn.Bind(wx.EVT_BUTTON, self._on_action_save_as)
         self._media_action_sizer.Add(self._action_save_as_btn, 0, wx.TOP, 2)
         self._action_save_as_btn.Hide()
+
+        self._action_show_in_folder_btn = wx.Button(
+            self._media_action_slot, label=i18n.t("show_in_folder")
+        )
+        self._action_show_in_folder_btn.SetAccessible(AccessibleShowInFolder())
+        self._action_show_in_folder_btn.Bind(
+            wx.EVT_BUTTON, self._on_action_show_in_folder
+        )
+        self._media_action_sizer.Add(
+            self._action_show_in_folder_btn, 0, wx.TOP, 2
+        )
+        self._action_show_in_folder_btn.Hide()
 
         # ── Download button (shown when media is not yet cached locally) ───
         self._action_download_btn = wx.Button(
@@ -1702,6 +1751,10 @@ class ConversationsPanel(wx.Panel):
         conversation = self.main_window.chats.get(jid) or self.conversation
         was_editable = self.message_field.IsEditable()
         self._apply_composer_permissions(jid, conversation)
+        # Deliberately not re-syncing the call button here: whether a chat can
+        # be called depends only on its JID kind, which cannot change while the
+        # conversation stays open. The two places that DO open a conversation
+        # sync it; a live permission refresh only has to touch the composer.
         self.message_label.SetLabel(
             self._message_label_text(jid, conversation, self.conversation_name)
         )
@@ -1733,6 +1786,9 @@ class ConversationsPanel(wx.Panel):
     def navigate_to_conversation(self, conversation):
         if self.conversation is not None and self.conversation.get("remoteJid") == conversation.get("remoteJid"):
             self.conversation = conversation
+            self._sync_voice_call_button(conversation.get("remoteJid", ""))
+            self.conversation_panel.Layout()
+            self.Layout()
             # Conversation already open — just focus the message input field.
             wx.CallAfter(self.message_field.SetFocus)
             return
@@ -1854,6 +1910,7 @@ class ConversationsPanel(wx.Panel):
         )
 
         self._apply_composer_permissions(jid, conversation)
+        self._sync_voice_call_button(jid)
         self.message_label.SetLabel(
             self._message_label_text(jid, conversation, self.conversation_name)
         )
@@ -2232,6 +2289,7 @@ class ConversationsPanel(wx.Panel):
 
         self._new_conv_btn.SetLabel(i18n.t("new_conversation"))
         self._search_open_btn.SetLabel(i18n.t("search_in_conv"))
+        self._voice_call_btn.SetLabel(i18n.t("voice_call_button"))
         self._search_close_btn.SetLabel(i18n.t("search_close"))
         self._search_field_label.SetLabel(i18n.t("search_in_conv"))
         self._search_prev_btn.SetLabel(i18n.t("search_prev_result"))
@@ -2247,6 +2305,7 @@ class ConversationsPanel(wx.Panel):
 
         self.audio_progress_label.SetLabel(i18n.t("audio_progress_label"))
         self._action_save_as_btn.SetLabel(i18n.t("save_as"))
+        self._action_show_in_folder_btn.SetLabel(i18n.t("show_in_folder"))
         self._action_download_btn.SetLabel(i18n.t("download"))
 
         if self.conversation is not None and self.conversation_panel.IsShown():
@@ -2299,6 +2358,20 @@ class ConversationsPanel(wx.Panel):
             self._send_voice_message(event)
         elif not self._recording_starting:
             self._start_voice_recording()
+
+    def _sync_voice_call_button(self, jid: str):
+        jid = str(jid or "")
+        unavailable = jid.endswith(("@g.us", "@newsletter", "@broadcast"))
+        self._voice_call_btn.Show(bool(jid) and not unavailable)
+        self.conversation_panel.Layout()
+        self.Layout()
+
+    def _on_voice_call(self, _event=None):
+        if not self.conversation:
+            return
+        jid = str(self.conversation.get("remoteJid") or "")
+        name = self.conversation_name or self.conversation.get("name") or ""
+        self.main_window.start_voice_call(jid, name)
 
     # ── Text message sending ─────────────────────────────────────────────────
 
@@ -4060,6 +4133,7 @@ class ConversationsPanel(wx.Panel):
         self._reset_expanded_window()
         closed_jid = self._last_open_jid
         self.conversation = None
+        self._voice_call_btn.Hide()
         self.conversation_panel.Hide()
         self.Layout()
         return True, closed_jid
@@ -4439,6 +4513,9 @@ class ConversationsPanel(wx.Panel):
                 self._action_open_btn.Show()
                 self.conversation_panel.Layout()
 
+        if self._saved_media_path(msg):
+            self._action_show_in_folder_btn.Show()
+
         # ── Link detection ────────────────────────────────────────────────
         # Always check the rendered text for URLs (regardless of msg_type).
         # Must go through _message_own_links(), which renders the full,
@@ -4458,7 +4535,18 @@ class ConversationsPanel(wx.Panel):
     def on_message_activated(self, event):
         """Enter / double-click on a message item."""
         idx = self.messages_list.GetFocusedItem()
-        if idx >= 0:
+        if 0 <= idx < len(self._sorted_messages):
+            # Native list controls can emit ITEM_ACTIVATED for Ctrl+Enter even
+            # when EVT_KEY_DOWN consumed the key.  Route it here as well so it
+            # can never fall through to normal Enter (video/audio playback).
+            if wx.GetKeyState(wx.WXK_CONTROL):
+                msg = self._sorted_messages[idx]
+                if (
+                    not self._is_separator(msg)
+                    and msg.get("messageType", "") in _SAVEABLE_MESSAGE_TYPES
+                ):
+                    self.show_message_in_folder(msg)
+                return
             self._do_activate_message(idx)
 
     def _do_activate_message(self, index: int):
@@ -4864,10 +4952,12 @@ class ConversationsPanel(wx.Panel):
         if "_" in msg_id:
             parts = msg_id.split("_")
             clean_msg_id = parts[2] if len(parts) > 2 else parts[-1]
+        media_actions_added = False
         if msg_type in _SAVEABLE and os.path.isfile(
             data_path("media", f"{clean_msg_id}.wzmedia")
         ):
             menu.AppendSeparator()
+            media_actions_added = True
             save_item = menu.Append(
                 wx.ID_ANY, f"{i18n.t('save_as')}\tCtrl+Shift+S"
             )
@@ -4877,10 +4967,21 @@ class ConversationsPanel(wx.Panel):
             # can be saved even while a download is still pending — the save
             # flow downloads it first if needed, same as the other media types.
             menu.AppendSeparator()
+            media_actions_added = True
             save_audio_item = menu.Append(
                 wx.ID_ANY, f"{i18n.t('save_audio_as')}\tCtrl+Shift+S"
             )
             self.Bind(wx.EVT_MENU, self._on_action_save_as, save_audio_item)
+
+        if self._saved_media_path(msg):
+            if not media_actions_added:
+                menu.AppendSeparator()
+            show_in_folder_item = menu.Append(
+                wx.ID_ANY, f"{i18n.t('show_in_folder')}\tCtrl+Enter"
+            )
+            self.Bind(
+                wx.EVT_MENU, self._on_action_show_in_folder, show_in_folder_item
+            )
 
         # Edit (own text messages within WhatsApp's edit window — see
         # core.message_edit.EDIT_UI_WINDOW_SECONDS for how it was measured)
@@ -4968,6 +5069,9 @@ class ConversationsPanel(wx.Panel):
         self._media_bitmap.Hide()
         self._action_open_btn.Hide()
         self._action_save_as_btn.Hide()
+        button = getattr(self, "_action_show_in_folder_btn", None)
+        if button is not None:
+            button.Hide()
         self._action_download_btn.Hide()
         self._hide_media_transfer_gauge()
         # The gauge IS selection-scoped, and the comment that used to sit here
@@ -6831,6 +6935,16 @@ class ConversationsPanel(wx.Panel):
         total = self.messages_list.GetItemCount()
         logging.info(f"[_on_messages_list_key_down] Key down: {key}, idx: {idx}, is_loading_more: {self._is_loading_more}, offset: {self._messages_offset}")
 
+        if ctrl and not shift and key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            if 0 <= idx < len(self._sorted_messages):
+                msg = self._sorted_messages[idx]
+                if (
+                    not self._is_separator(msg)
+                    and msg.get("messageType", "") in _SAVEABLE_MESSAGE_TYPES
+                ):
+                    self.show_message_in_folder(msg)
+            return
+
         if ctrl and not shift and key == ord("V"):
             if self._paste_from_messages_list():
                 return
@@ -7942,6 +8056,60 @@ class ConversationsPanel(wx.Panel):
             return
         self.save_media_message(self._sorted_messages[index])
 
+    def _on_action_show_in_folder(self, event):
+        """Reveal the focused Save As copy in File Explorer."""
+        index = self.messages_list.GetFirstSelected()
+        if index < 0 or index >= len(self._sorted_messages):
+            return
+        self.show_message_in_folder(self._sorted_messages[index])
+
+    def _saved_media_path(self, msg: dict) -> str:
+        """Return a Save As copy, reconnecting rebuilt message dictionaries."""
+        paths = getattr(self, "_saved_media_paths", None)
+        if paths is None:
+            paths = self._saved_media_paths = {}
+        msg_id = (msg.get("key") or {}).get("id", "") if isinstance(msg, dict) else ""
+        remembered = paths.get(msg_id, "") if msg_id else ""
+        if os.path.isfile(remembered):
+            # The mapping represents the latest completed Save As. A rebuilt
+            # or previously unloaded message dict may still carry an older
+            # path, so the remembered value deliberately wins.
+            msg["_saved_media_path"] = remembered
+            return remembered
+        if msg_id:
+            paths.pop(msg_id, None)
+        direct = saved_media_path(msg)
+        if direct and msg_id:
+            paths[msg_id] = direct
+        return direct
+
+    def show_message_in_folder(self, msg: dict) -> bool:
+        """Reveal *msg*'s existing local file and report why that failed."""
+        path = self._saved_media_path(msg)
+        if not path:
+            unavailable_text = (
+                self.main_window.i18n.t("show_in_folder_missing")
+                if msg.get("_saved_media_path")
+                else self.main_window.i18n.t("show_in_folder_save_first")
+            )
+            self.main_window.output(
+                unavailable_text, interrupt=True
+            )
+            return False
+        try:
+            if reveal_file_in_folder(path):
+                return True
+            self.main_window.output(
+                self.main_window.i18n.t("show_in_folder_missing"), interrupt=True
+            )
+            return False
+        except OSError as exc:
+            logging.warning("[Show in folder] could not reveal %s: %s", path, exc)
+            self.main_window.output(
+                self.main_window.i18n.t("show_in_folder_failed"), interrupt=True
+            )
+            return False
+
     def save_media_message(self, msg: dict):
         """Save a message's media, given the message itself.
 
@@ -8024,14 +8192,27 @@ class ConversationsPanel(wx.Panel):
             self.main_window.i18n.t("save_audio_as") if msg_type == "audioMessage"
             else self.main_window.i18n.t("save_as")
         )
+        base_name = os.path.splitext(default_file)[0]
         with wx.FileDialog(
             self,
             dlg_title,
             defaultDir=resolve_save_dialog_folder(self.main_window.settings),
-            defaultFile=default_file,
+            # Extension left off on purpose: the native Save dialog selects
+            # the whole suggested name (extension included) for editing, so a
+            # user who starts renaming loses the extension along with it
+            # unless they retype it by hand. Windows re-appends it from the
+            # wildcard's first filter when nothing is typed — that filter is
+            # built from this same ext_clean whenever one was found above, so
+            # this changes nothing about what actually gets saved. A no-op
+            # when default_file had no extension to begin with.
+            defaultFile=base_name,
             wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as dlg:
+            # Belt and suspenders: Windows still visually selects the
+            # extension it auto-completes into the box regardless of the
+            # above — see core/save_dialog_selection.py for why and how.
+            schedule_deselect_extension(base_name)
             if dlg.ShowModal() != wx.ID_OK:
                 return
             save_path = dlg.GetPath()
@@ -8083,6 +8264,10 @@ class ConversationsPanel(wx.Panel):
                 content = decrypt_bytes(fh.read(), self.main_window.key)
             with open(save_path, "wb") as fh:
                 fh.write(content)
+            # Show in folder follows the copy the user explicitly chose, not
+            # the encrypted .wzmedia/.msv cache that supplied its contents.
+            msg["_saved_media_path"] = os.path.abspath(save_path)
+            wx.CallAfter(self._on_media_saved_as, msg)
         except Exception as exc:
             wx.CallAfter(
                 wx.MessageBox,
@@ -8092,6 +8277,34 @@ class ConversationsPanel(wx.Panel):
                 ),
                 wx.OK | wx.ICON_ERROR,
             )
+
+    def _on_media_saved_as(self, msg: dict) -> None:
+        """Expose Show in folder immediately when Save As finishes."""
+        saved_id = (msg.get("key") or {}).get("id", "")
+        path = saved_media_path(msg)
+        if not saved_id or not path:
+            return
+        paths = getattr(self, "_saved_media_paths", None)
+        if paths is None:
+            paths = self._saved_media_paths = {}
+        paths[saved_id] = path
+        # Save As may originate from a data dialog holding a different dict
+        # instance. Attach the path to every currently loaded copy as well.
+        for collection_name in ("_sorted_messages", "_all_sorted_messages"):
+            for candidate in getattr(self, collection_name, ()):
+                candidate_id = (candidate.get("key") or {}).get("id", "")
+                if candidate_id == saved_id:
+                    candidate["_saved_media_path"] = path
+        index = self.messages_list.GetFirstSelected()
+        if index < 0 or index >= len(self._sorted_messages):
+            return
+        selected = self._sorted_messages[index]
+        selected_id = (selected.get("key") or {}).get("id", "")
+        if selected_id != saved_id or not self._saved_media_path(selected):
+            return
+        self._action_show_in_folder_btn.Show()
+        self._sync_media_action_slot_visibility()
+        self.conversation_panel.Layout()
 
     def _on_action_download(self, event):
         """
@@ -10674,6 +10887,7 @@ class ConversationsPanel(wx.Panel):
             getattr(self, "_media_transfer_gauge", None),
             getattr(self, "_action_open_btn", None),
             getattr(self, "_action_save_as_btn", None),
+            getattr(self, "_action_show_in_folder_btn", None),
             getattr(self, "_action_download_btn", None),
         )
         visible = any(control is not None and control.IsShown() for control in controls)

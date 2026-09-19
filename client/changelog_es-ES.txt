@@ -4,6 +4,8 @@ Esta versión corrige situaciones en las que WinZapp pedía vincular de nuevo si
 
 NOVEDADES
 
+- Mostrar en su carpeta un archivo guardado con Guardar como. Cuando exista esa copia elegida por el usuario, usa Ctrl+Enter, la opción "Mostrar en carpeta" del menú contextual o el botón accesible con Tab junto a Abrir y Guardar como para abrir el Explorador con el archivo seleccionado; una descarga interna por sí sola no muestra la acción.
+
 - Elegir si los mensajes destacados se conservan al vaciar una conversación. La confirmación de vaciar ahora incluye la opción "Conservar los mensajes destacados", marcada por defecto, igual que en WhatsApp Web. Si la desmarcas, los destacados se borran junto con el resto, también en tu teléfono. Sirve para vaciar una conversación, varias seleccionadas o una archivada.
 
 - Confirmación al marcar todas las conversaciones como leídas. El comando ahora pregunta antes, con No por defecto, para que un Alt seguido de Enter por error no marque todo como leído, también en tu teléfono. La pregunta tiene la opción "No volver a mostrar": marcada y confirmada con Sí, las siguientes veces se marca directamente. Para que vuelva a preguntar, usa la opción "Pedir confirmación al marcar todas las conversaciones como leídas" en la pestaña Interfaz de usuario de Configuración.

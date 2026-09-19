@@ -820,7 +820,7 @@ DEFAULT_SETTINGS = {
         "notifications_enabled": True,
         "keep_muted_chats_silent_when_open": True,
         "updates_enabled": True,
-        # Alpha channel (one build per commit on main) — opt-in, see
+        # Alpha channel (one build per commit on main) - opt-in, see
         # client/updater.py's select_release().
         "alpha_updates_enabled": False,
         "noise_reduction_enabled": False,
@@ -909,6 +909,13 @@ DEFAULT_SETTINGS = {
     "audio_devices": {
         "output_device_name": "",
         "effects_output_device_name": "",
+        "input_device_name": ""
+    },
+    # Voice calls route through their own pair of devices, deliberately
+    # independent from audio_devices above: a headset chosen for calls must not
+    # silently become the microphone used to record voice messages.
+    "call_audio_devices": {
+        "output_device_name": "",
         "input_device_name": ""
     },
     "accessibility": {

@@ -16,6 +16,7 @@ from ui.accessible import (
 )
 from core.api_client import api_get, api_post, redact_api_url
 from core.save_location import resolve_save_dialog_folder
+from core.save_dialog_selection import schedule_deselect_extension
 from core.utils import format_number, normalize_line_separators, is_voice_message
 from core.video_player import VideoPlayer
 from core.focus_cloak import cloak_focus_announcement
@@ -2117,10 +2118,19 @@ class StatusPanel(wx.Panel):
         with wx.FileDialog(
             self, mw.i18n.t("status_save_media"),
             defaultDir=resolve_save_dialog_folder(mw.settings),
-            defaultFile=f"status{ext}",
+            # No ext here: the native Save dialog selects the whole suggested
+            # name for editing, extension included, so renaming it loses the
+            # extension unless retyped by hand — Windows re-appends it from
+            # wildcard's first filter (built from this same ext) when nothing
+            # is typed, so this changes nothing about what gets saved.
+            defaultFile="status",
             wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as dlg:
+            # Belt and suspenders: Windows still visually selects the
+            # extension it auto-completes into the box regardless of the
+            # above — see core/save_dialog_selection.py for why and how.
+            schedule_deselect_extension("status")
             if dlg.ShowModal() != wx.ID_OK:
                 return
             save_path = dlg.GetPath()

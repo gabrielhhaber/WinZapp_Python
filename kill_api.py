@@ -3,6 +3,8 @@ import sys
 import subprocess
 import signal
 
+from pulse_audio_lifecycle import cleanup_winzapp_pulse_modules
+
 def kill_port(port):
     print(f"Attempting to kill process on port {port}...")
     if sys.platform == "win32":
@@ -40,6 +42,7 @@ def kill_process_by_name(name):
         os.system(f"pkill -9 -f '{name}'")
 
 if __name__ == "__main__":
+    cleanup_winzapp_pulse_modules()
     kill_port(6300)
     kill_process_by_name("chrome")
     kill_process_by_name("chromium")

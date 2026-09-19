@@ -210,7 +210,7 @@ def test_the_patch_count_word_matches_the_modules_listed(real_patch_modules):
 # actually stale when this was written were `client/WinZapp.spec` (removed and
 # git-ignored in c752124, while the prose still called it "the checked-in" one)
 # and `client/api2/` (deleted in af250f7, still described as if it shipped).
-_DOC_PATH = re.compile(r"`(client/[\w./-]+)`")
+_DOC_PATH = re.compile(r"`((?:client|docs)/[\w./-]+)`")
 
 # client/api/ and client/node/ are git-ignored and deliberately absent from a
 # fresh checkout — the fast CI test job never has either (hence the skips in
@@ -276,11 +276,19 @@ CLAUDE_DOC_FLOOR = 5
 _EXCLUDED_DIRS = {"worktrees"}
 
 
+#: docs/ holds what CLAUDE.md used to: the post-mortems moved out so they load
+#: on demand (see the index at the end of CLAUDE.md and .claude/rules/). They
+#: name paths just as densely, and a rule file that sends the reader to a
+#: trap doc which in turn points at a renamed module is the same dead end.
+DOCS_DIR = ROOT / "docs"
+
+
 def _claude_docs():
-    return sorted(
+    under_claude = (
         p for p in CLAUDE_DIR.rglob("*.md")
         if not _EXCLUDED_DIRS.intersection(p.relative_to(CLAUDE_DIR).parts)
     )
+    return sorted([*under_claude, *DOCS_DIR.rglob("*.md")])
 
 
 def test_the_claude_directory_docs_are_still_being_found():
@@ -288,7 +296,7 @@ def test_the_claude_directory_docs_are_still_being_found():
     files matched, the parametrized test below runs zero cases and passes."""
     found = _claude_docs()
     assert len(found) >= CLAUDE_DOC_FLOOR, (
-        f"only {len(found)} Markdown file(s) found under {CLAUDE_DIR} (floor "
+        f"only {len(found)} Markdown file(s) found under {CLAUDE_DIR} and {DOCS_DIR} (floor "
         f"{CLAUDE_DOC_FLOOR}) — the skills/agents layout probably moved and "
         f"their paths stopped being checked. Found: {[str(p) for p in found]}"
     )

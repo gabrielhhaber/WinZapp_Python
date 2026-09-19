@@ -2,11 +2,17 @@
 WinZapp – Add Member to Group Dialog
 =====================================
 Lets the user select one or more contacts to add to a group.
+
+The contact list itself — search field, columns, dedup rules, empty-state
+row — is the shared ui.dialogs.contact_list_picker.ContactListPicker, the
+same widget the "attach a contact to a message" dialog uses
+(attach_contact_dialog.py), so the two always look, filter and populate
+identically.
 """
 
 import threading
 import wx
-from core.utils import format_number, contact_search_matches
+from ui.dialogs.contact_list_picker import ContactListPicker
 from countries import get_countries
 
 
@@ -68,8 +74,8 @@ class AddMemberDialog(wx.Dialog):
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
         self._build_ui()
-        self._populate_contacts()
-        self._select_first_contact()
+        self._picker.select_first_row()
+        self._picker.focus_search()
         self.SetMinSize((360, 400))
         self.SetSize((420, 500))
         self.CentreOnParent()
@@ -87,33 +93,17 @@ class AddMemberDialog(wx.Dialog):
         # primary/expected path, the number field is the alternative one —
         # a blind user tabbing through the dialog used to land on the
         # alternative first, which read backwards.
-        # Search field before the list, focused on open (issue #85): first-letter
-        # navigation searches from the start of the displayed name, so it
-        # cannot find anyone by surname. Same field, same matcher, as the
-        # "Anexar contato" dialog.
         #
-        # Each control gets its own label immediately before it, because NVDA
-        # reads the StaticText right before a control as that control's name.
-        # The list's label used to sit above the search field, so the field was
-        # announced as "Selecionar um contato". "Pesquisar contato" is the
-        # wording the "Novo grupo" dialog already uses for the same field.
-        search_label = wx.StaticText(self, label=i18n.t("group_search_label"))
-        sizer.Add(search_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-        # No SetHint: it would repeat the label, and NVDA reads both.
-        self._search_field = wx.TextCtrl(self, style=wx.TE_DONTWRAP)
-        self._search_field.Bind(wx.EVT_TEXT, self._on_search_text)
-        self._search_field.Bind(wx.EVT_KEY_DOWN, self._on_search_key_down)
-        sizer.Add(self._search_field, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 8)
-
-        contacts_label = wx.StaticText(self, label=i18n.t("add_member_contacts_list_label"))
-        sizer.Add(contacts_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-
-        self._list = wx.ListCtrl(
-            self, style=wx.LC_REPORT | wx.LC_HRULES
-        )
-        self._list.InsertColumn(0, i18n.t("conversations"), width=220)
-        self._list.InsertColumn(1, i18n.t("phone_label"),   width=140)
-        sizer.Add(self._list, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
+        # Search field + list: the same shared widget the "Anexar contato"
+        # dialog uses, in its multi-select mode (issue #85's search field,
+        # same dedup rules, same layout — see contact_list_picker.py). It
+        # places its own "Pesquisar contato" label right before the search
+        # field and "Lista de contatos" right before the list, each
+        # control getting its own adjacent label rather than sharing one —
+        # NVDA reads whatever StaticText sits right before a control as that
+        # control's own name, and a shared label above both used to make the
+        # search field announce itself as "Lista de contatos".
+        self._picker = ContactListPicker(self._mw, self, sizer, multi_select=True)
 
         # "Add" button for contacts picked from the list above lives right
         # here — immediately after the list, before the "add by number"
@@ -172,22 +162,6 @@ class AddMemberDialog(wx.Dialog):
         self.SetSizer(sizer)
         cancel_btn.Bind(wx.EVT_BUTTON, lambda e: self.EndModal(wx.ID_CANCEL))
 
-    def _select_first_contact(self):
-        """Pre-select the first contact, then put keyboard focus in the search
-        field.
-
-        The selection is still made so a screen-reader user arrowing into the
-        list lands on a pickable item rather than on nothing. Keyboard focus
-        goes to the search field instead of the list because issue #85 asks for
-        the field to be focused when the list opens — and Down/Up from there
-        step straight into the list (see _on_search_key_down), so the old
-        gesture still works with one extra key.
-        """
-        if self._list.GetItemCount():
-            self._list.Select(0)
-            self._list.Focus(0)
-        self._search_field.SetFocus()
-
     def _on_phone_char(self, event):
         """Only digits, navigation and Ctrl/Alt combos pass through — mirrors
         the pairing dialog's phone field filter (connect.py)."""
@@ -239,84 +213,11 @@ class AddMemberDialog(wx.Dialog):
             return
         self._start_add([jid])
 
-    def _populate_contacts(self):
-        """Fill the list with the user's own contacts — not every entry in
-        main_window.contacts. That dict is also where group-participant name
-        resolution (on_presence_update, LID bridging, sender-name learning)
-        writes {name, pushName} for anyone who ever spoke in a group with the
-        user, with no isMyContact/isSaved flag at all — those aren't real
-        WhatsApp contacts the user could plausibly add to a *different*
-        group, but used to show up here alongside genuine ones anyway.
-        Mirrors the same legitimacy check get_remote_contacts() already uses
-        to decide what counts as "my contact" in the first place, plus
-        isSaved for a contact added locally (NewContactDialog) and an
-        existing 1:1 chat (a contact WhatsApp itself may not flag as
-        isMyContact — e.g. someone who messaged first — but the user
-        evidently already has a real conversation with).
-        """
-        self._contact_jids = []  # parallel list of JIDs, for the SHOWN rows
-        self._all_rows = []      # (name, phone, jid), unfiltered
-        chats = getattr(self._mw, "chats", {})
-        for jid, contact in self._mw.contacts.items():
-            if not jid or jid.endswith("@g.us"):
-                continue
-            is_own_contact = (
-                contact.get("isMyContact") is True
-                or contact.get("isMe") is True
-                or contact.get("isSaved") is True
-                or jid in chats
-            )
-            if not is_own_contact:
-                continue
-            name = contact.get("name") or contact.get("pushName") or format_number(jid)
-            self._all_rows.append((name, format_number(jid), jid))
-        self._render_rows("")
-
-    def _render_rows(self, query: str):
-        """Repopulate the list with the rows matching *query*.
-
-        Frozen for the whole rebuild so the screen reader gets one
-        accessibility event rather than one per row — this runs on every
-        keystroke in the search field.
-
-        Selection is deliberately NOT carried across a filter change: this is a
-        multi-select list, and silently keeping a tick on a contact the user can
-        no longer see would add someone to the group without them knowing.
-        """
-        self._list.Freeze()
-        try:
-            self._list.DeleteAllItems()
-            self._contact_jids = []
-            for name, phone, jid in self._all_rows:
-                if not contact_search_matches(query, name, phone):
-                    continue
-                idx = self._list.GetItemCount()
-                self._list.InsertItem(idx, name)
-                self._list.SetItem(idx, 1, phone)
-                self._contact_jids.append(jid)
-        finally:
-            self._list.Thaw()
-
-    def _on_search_text(self, event):
-        self._render_rows(self._search_field.GetValue())
-        event.Skip()
-
-    def _on_search_key_down(self, event):
-        if event.GetKeyCode() in (wx.WXK_DOWN, wx.WXK_UP) and self._contact_jids:
-            self._list.SetFocus()
-            return
-        event.Skip()
-
     def _on_add(self, event):
         """Collect selected contacts and call the API."""
-        selected_jids = []
-        idx = -1
-        while True:
-            idx = self._list.GetNextItem(idx, wx.LIST_NEXT_ALL, wx.LIST_STATE_SELECTED)
-            if idx == -1:
-                break
-            if idx < len(self._contact_jids):
-                selected_jids.append(self._contact_jids[idx])
+        selected_jids = [
+            entry["remoteJid"] for entry in self._picker.selected_entries()
+        ]
 
         if not selected_jids:
             self.EndModal(wx.ID_CANCEL)

@@ -30,6 +30,15 @@ class _Stub:
     _MEDIA_SYNC_TIMEOUT = 60
     _MEDIA_SYNC_WORKERS = 2
     sync_media_for_all_chats = MainWindow.sync_media_for_all_chats
+    # A voice call stands the background work down while it is up, and
+    # ends when the app does. Bound here rather than left to whatever a
+    # stub's __getattr__ would invent: a truthy answer makes the pause
+    # permanent, which is how one guard turned a test file into a
+    # multi-hour CI run.
+    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
+    _active_voice_call = None
+    _voice_call_pause_since = 0.0
 
     def __init__(self, chats=None, downloads=None):
         self.chats = chats or {}

@@ -40,7 +40,7 @@ WhatsApp uses several different identifier formats for the same contact (`@s.wha
 ### Prerequisites
 * **Python 3.13**
 * **uv** — optional but recommended: it installs Python 3.13 and the locked dependencies for you (`winget install --id=astral-sh.uv -e`). A plain `venv` + `pip` works just as well.
-* **Node.js** (used by `setup_api.py` to build the WPPConnect Server; a portable copy can also be placed at `client/node/`)
+* **Node.js 22.x** — used by `setup_api.py` to build the WPPConnect Server, which pins `engines.node` exactly and is only verified on that line. A portable copy at `client/node/` is preferred over whatever is on `PATH`, and `uv run build-onefile` puts the right one there for you. A system Node on another major is refused with a message rather than allowed to fail later: on Node 26 the Chromium download stops part-way, reports nothing, and leaves a folder that makes every later run fail. Set `WINZAPP_ALLOW_SYSTEM_NODE=1` to use one anyway.
 * **Git**
 * For building the installer locally only: **GCC** and **windres** (available via [MSYS2](https://www.msys2.org/), UCRT64 toolchain)
 

@@ -78,6 +78,10 @@
         "effects_output_device_name": "",
         "input_device_name": ""
     },
+    "call_audio_devices": {
+        "output_device_name": "",
+        "input_device_name": ""
+    },
     "accessibility": {
         "extended_sr_compat_enabled": true,
         "sapi_fallback_enabled": true

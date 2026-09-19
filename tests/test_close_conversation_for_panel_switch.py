@@ -77,6 +77,9 @@ class _Stub:
         self._expanded_visible_count = 0
         self._expanded_oldest_msg_id = ""
         self.conversation_panel = _FakeWidget(shown=True)
+        # Hidden with the conversation: the call button is only meaningful
+        # while a callable chat is open.
+        self._voice_call_btn = _FakeWidget(shown=True)
         self.message_field = _FakeWidget()
         self.restore_calls = []
         self.restore_archived_calls = []

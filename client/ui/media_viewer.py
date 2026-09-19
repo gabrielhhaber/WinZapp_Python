@@ -11,6 +11,7 @@ from typing import Callable, Optional
 import wx
 
 from core.save_location import resolve_save_dialog_folder
+from core.save_dialog_selection import schedule_deselect_extension
 from core.utils import is_voice_message
 from core.video_player import VideoPlayer
 from ui.accessible import AccessibleStatusPrev, AccessibleStatusNext, AccessibleSaveAs, AccessibleMediaViewerSeekBack, AccessibleMediaViewerSeekForward, AccessibleMediaBitmapPanel
@@ -739,15 +740,30 @@ class MediaViewerDialog(wx.Dialog):
             return
         item = self._current_item()
         default_name = str(item.get("filename") or os.path.basename(path) or self.i18n.t("media_viewer_default_filename"))
+        base_name, ext = os.path.splitext(default_name)
+        all_files = self.i18n.t("all_files")
+        # A specific filter first (when there's an extension to name one
+        # after) rather than just "All files": that is what lets Windows
+        # re-append the extension from the wildcard when defaultFile below
+        # is given without one, instead of leaving the saved file with none.
+        wildcard = f"{ext.lstrip('.').upper()} (*{ext})|*{ext}|{all_files} (*.*)|*.*" if ext else f"{all_files} (*.*)|*.*"
         with wx.FileDialog(
             self,
             self.i18n.t("save_as"),
             defaultDir=resolve_save_dialog_folder(
                 getattr(self.main_window, "settings", {})),
-            defaultFile=default_name,
-            wildcard=f"{self.i18n.t('all_files')} (*.*)|*.*",
+            # No ext here: the native Save dialog selects the whole suggested
+            # name for editing, extension included, so renaming it loses the
+            # extension unless retyped by hand — Windows re-appends it from
+            # the wildcard's first filter above when nothing is typed.
+            defaultFile=base_name,
+            wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
         ) as dlg:
+            # Belt and suspenders: Windows still visually selects the
+            # extension it auto-completes into the box regardless of the
+            # above — see core/save_dialog_selection.py for why and how.
+            schedule_deselect_extension(base_name)
             if dlg.ShowModal() != wx.ID_OK:
                 return
             target = dlg.GetPath()

@@ -172,10 +172,18 @@ class TestAddTypedNumber:
 class TestSearchFieldLabel:
     def test_the_search_field_is_labelled_as_a_search(self):
         """NVDA names a control after the StaticText right before it; the list's
-        "Selecionar um contato" label used to sit there."""
-        src = inspect.getsource(AddMemberDialog._build_ui)
+        "Selecionar um contato" label used to sit there.
+
+        This ordering now lives in the shared ContactListPicker
+        (contact_list_picker.py) rather than in AddMemberDialog._build_ui
+        directly: both AddMemberDialog and AttachContactDialog build their
+        contact list through it, so the same ordering guard covers both.
+        """
+        from ui.dialogs.contact_list_picker import ContactListPicker
+
+        src = inspect.getsource(ContactListPicker.__init__)
         search_label = src.index('i18n.t("group_search_label")')
-        field = src.index("self._search_field = wx.TextCtrl")
-        list_label = src.index('i18n.t("add_member_contacts_list_label")')
-        the_list = src.index("self._list = wx.ListCtrl")
+        field = src.index("self.search_field = wx.TextCtrl")
+        list_label = src.index("i18n.t(list_label_key)")
+        the_list = src.index("self.list = wx.ListCtrl")
         assert search_label < field < list_label < the_list

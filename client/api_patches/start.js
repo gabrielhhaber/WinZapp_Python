@@ -210,6 +210,23 @@ const distPath = path.join(__dirname, 'dist');
 const configDefault = require(path.join(distPath, 'config')).default;
 const { initServer } = require(path.join(distPath, 'index'));
 
+// WPPConnect 2.3.3 still hard-codes Chrome/102 in WAuserAgente.  Current
+// WhatsApp Web uses that UA while deciding whether its VoIP backend worker may
+// initialize; overriding the feature checks later exposes the call methods but
+// leaves their RPC transport without a successful voipInit.  Advertise the
+// Chromium version we actually launch instead of an unrelated legacy build.
+try {
+  const uaModule = require('@wppconnect-team/wppconnect/dist/config/WAuserAgente');
+  const versionMatch = String(chromeExecutable || '').match(/(?:win64-|chrome-)(\d+\.\d+\.\d+\.\d+)/i);
+  const chromeVersion = versionMatch?.[1] || '148.0.7778.97';
+  uaModule.useragentOverride =
+    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ` +
+    `(KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+  console.log(`[WinZapp] Chromium user-agent aligned to Chrome/${chromeVersion}`);
+} catch (error) {
+  console.warn(`[WinZapp] Could not align Chromium user-agent: ${error.message || error}`);
+}
+
 // Carrega as configurações personalizadas de config.json
 let customConfig = {};
 const customConfigPath = path.join(__dirname, 'config.json');
@@ -268,7 +285,6 @@ if (process.env.AUTHENTICATION_API_KEY) {
 // software rasterizer fallback available.
 const optimizedBrowserArgs = [
   '--disable-renderer-accessibility',
-  '--disable-web-security',
   '--no-sandbox',
   '--disable-background-networking',
   '--disable-default-apps',
@@ -279,7 +295,8 @@ const optimizedBrowserArgs = [
   '--disable-translate',
   '--hide-scrollbars',
   '--metrics-recording-only',
-  '--mute-audio',
+  '--autoplay-policy=no-user-gesture-required',
+  '--use-fake-ui-for-media-stream',
   '--no-first-run',
   '--safebrowsing-disable-auto-update',
   '--ignore-certificate-errors',
@@ -288,7 +305,6 @@ const optimizedBrowserArgs = [
   '--no-zygote',
   '--disable-component-update',
   '--disable-speech-api',
-  '--disable-voice-input',
   '--disable-renderer-backgrounding',
   '--disable-backgrounding-occluded-windows',
   '--disable-features=OptimizationGuideOnDeviceModel,PromptAPIForGeminiNano,AISummarization,HelpMeWrite,OptimizationGuide,OptimizationHints,OptimizationTargetPrediction',
@@ -934,7 +950,18 @@ async function installPinnedPageInterception(page, body, log) {
         await cdp.send('Fetch.fulfillRequest', {
           requestId,
           responseCode: 200,
-          responseHeaders: [{ name: 'Content-Type', value: 'text/html' }],
+          // Keep the isolation contract from Meta's real document response.
+          // WhatsApp's browser VoIP backend uses pthread-enabled WebAssembly;
+          // without COOP+COEP, SharedArrayBuffer is unavailable, voipInit
+          // silently ends in the failed state, and every call RPC is rejected.
+          responseHeaders: [
+            { name: 'Content-Type', value: 'text/html; charset=utf-8' },
+            { name: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+            { name: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+            { name: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
+            { name: 'Origin-Agent-Cluster', value: '?1' },
+            { name: 'Cache-Control', value: 'no-store, must-revalidate, no-cache, private' },
+          ],
           body: Buffer.from(body).toString('base64'),
         });
       } else {
@@ -1087,6 +1114,10 @@ const finalConfig = {
     puppeteerOptions: {
       ...(configDefault.createOptions?.puppeteerOptions || {}),
       ...(customConfig.createOptions?.puppeteerOptions || {}),
+      // Puppeteer adds --mute-audio to its headless defaults independently of
+      // browserArgs.  Leaving it there discards the remote call audio in the
+      // Chromium audio service before WinZapp can play it.
+      ignoreDefaultArgs: ['--mute-audio'],
       protocolTimeout: 300000,
       executablePath: chromeExecutable || undefined,
     },

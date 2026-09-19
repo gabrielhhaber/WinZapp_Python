@@ -33,9 +33,10 @@ code is.
 
 1. **Load the skills.** `extract-from-god-file` is the process.
    `write-test` is how tests are written here. Load `accessible-ui` or
-   `i18n-ui-string` if the slice touches UI or strings. Read `CLAUDE.md` for
-   anything they do not cover. If a skill is missing, stop and report it —
-   never improvise the methodology from memory.
+   `i18n-ui-string` if the slice touches UI or strings. Read `CLAUDE.md`, and
+   the `docs/traps/` file for the area being extracted (index at the end of
+   `CLAUDE.md`), for anything they do not cover. If a skill is missing, stop
+   and report it — never improvise the methodology from memory.
 
 2. **Check the tree is clean.** `git status --porcelain`. If it is not empty,
    **stop and report it**. You must never commit on top of someone else's

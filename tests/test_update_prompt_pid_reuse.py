@@ -18,7 +18,14 @@ stale claim read as alive, for as long as that process lived.
 Fixed twice over: the fallback reads the real creation time (GetProcessTimes),
 and the prompt claim — which only ever guards against a second dialog — is
 held only on a positive (pid, create_time) match. Install leases keep failing
-closed (tests/test_update_coord.py::test_ct_unknown_sentinel_is_alive).
+closed on a merely UNKNOWN create_time
+(tests/test_update_coord.py::test_ct_unknown_sentinel_is_alive) — but a lease
+recorded at 0.0 is written once and never refreshed, so a crashed/killed
+process's leftover lease could never be disproved once its pid was reused,
+permanently blocking future updates. That gap is closed by proc_matches_us:
+a definite proof the pid's own executable image is not WinZapp
+(tests/test_update_coord.py::
+test_ct_unknown_sentinel_with_positive_proof_of_a_different_process_is_dead).
 """
 
 import json
@@ -67,6 +74,47 @@ class TestRealCreateTimeWithoutPsutil:
         assert ct not in (0.0, uc._CT_UNKNOWN)
 
 
+class TestProcMatchesUsWithoutPsutil:
+    """The second half of the same fix, and the one that actually mattered.
+
+    Reported live: after the first fix (proc_matches_us gating the 0.0
+    sentinel) had already shipped and was running, the exact same "another
+    account is open" error still fired on a genuinely single-account
+    install. The leaked leases' pids had been reused by Windows SERVICE
+    processes (svchost.exe, vmms.exe, vmcompute.exe — session 0, running as
+    SYSTEM) — and OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION) against one
+    of those from an ordinary user-session WinZapp.exe fails with
+    access-denied, indistinguishable to that API from "not allowed to know".
+    That is exactly the inconclusive case, which still fails closed, so the
+    first version of this check never actually broke the tie it existed for.
+
+    CreateToolhelp32Snapshot reads every process's image name system-wide
+    without opening a handle to any of them, so it can read a SYSTEM
+    service's name with the same ordinary-user permissions that list it in
+    Task Manager — which is what these tests pin against a REAL system
+    process, not a stub, since a stub would have passed the very first
+    (broken) OpenProcess-based version too.
+    """
+
+    @windows_only
+    def test_identifies_its_own_process(self, no_psutil):
+        assert uc._default_proc_matches_us(os.getpid()) is True
+
+    @windows_only
+    def test_a_pid_that_does_not_exist_is_a_definite_false(self, no_psutil):
+        assert uc._default_proc_matches_us(4_000_000_000) is False
+
+    @windows_only
+    def test_a_system_owned_service_process_is_a_definite_false(self, no_psutil):
+        """pid 4 is the Windows kernel "System" process — always present,
+        always SYSTEM-owned, and a pid no ordinary user process can
+        OpenProcess with anything beyond PROCESS_QUERY_LIMITED_INFORMATION
+        (and even that can be denied). If this ever regresses to the
+        OpenProcess-based check, it comes back as None (inconclusive) here,
+        not False — exactly the bug this whole class exists to catch."""
+        assert uc._default_proc_matches_us(4) is False
+
+
 class TestPromptOwnerAlive:
     def test_the_same_process_is_alive(self):
         assert uc.prompt_owner_alive(42, 1000.5, proc_create_time=lambda pid: 1000.5) is True
@@ -86,8 +134,15 @@ class TestPromptOwnerAlive:
         assert uc.prompt_owner_alive(42, 0.0, proc_create_time=lambda pid: 1000.5) is False
 
     def test_install_leases_still_fail_closed(self):
-        assert uc.lease_alive(42, 0.0, proc_create_time=lambda pid: 1000.5) is True
-        assert uc.lease_alive(42, 1000.5, proc_create_time=lambda pid: uc._CT_UNKNOWN) is True
+        # Unlike the prompt claim above, an install lease still fails closed
+        # on an unknown create_time — but only while the pid's own identity
+        # is ALSO inconclusive (proc_matches_us=None). A definite mismatch is
+        # covered separately: tests/test_update_coord.py::
+        # test_ct_unknown_sentinel_with_positive_proof_of_a_different_process_is_dead
+        assert uc.lease_alive(42, 0.0, proc_create_time=lambda pid: 1000.5,
+                              proc_matches_us=lambda pid: None) is True
+        assert uc.lease_alive(42, 1000.5, proc_create_time=lambda pid: uc._CT_UNKNOWN,
+                              proc_matches_us=lambda pid: None) is True
 
 
 def _write_claim(gd, owner_pid, owner_create_time):

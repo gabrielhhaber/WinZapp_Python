@@ -1,9 +1,11 @@
-"""Decisions build.py has to make before it can import anything heavy.
+"""Decisions build.py and setup_api.py have to make before importing anything heavy.
 
 Kept out of build.py itself because that script parses argv and downloads
 ffmpeg/libopus at import time, so none of its logic can be reached from a
-test. Standard library only: a bare system interpreter may run this before
-it hands the build over to a virtual environment.
+test. setup_api.py is the second consumer, for the Node.js version rules at
+the bottom of this file. Standard library only: a bare system interpreter may
+run this before it hands the build over to a virtual environment, and
+setup_api.py runs before client-side dependencies are installed at all.
 """
 
 from __future__ import annotations
@@ -124,3 +126,42 @@ def portable_node_needs_replacing(installed_version: str, homologated_version: s
     being bundled with no warning at all.
     """
     return installed_version != homologated_version
+
+
+def node_major(version: str):
+    """The integer major of a ``X.Y.Z`` version string, or None if unreadable."""
+    head = (version or "").strip().lstrip("vV").split(".", 1)[0]
+    return int(head) if head.isdigit() else None
+
+
+def system_node_is_refused(installed_version: str, homologated_version: str) -> bool:
+    """Whether a system Node.js must NOT stand in for the homologated runtime.
+
+    setup_api.py prefers ``client/node/node.exe`` and falls back to whatever
+    ``node`` is on PATH when that folder is absent — which is the state of
+    every fresh checkout, since only build.py and CI provision it. That
+    fallback accepted any version at all, and the way it fails is the reason
+    this exists: on Node 26, puppeteer's ``extract-zip@2.0.1`` never settles
+    the promisified ``stream.pipeline`` of the first multi-chunk zip entry, so
+    the Chromium download stops two files in, throws nothing and resolves
+    nothing. Puppeteer then finds a browser folder with no ``chrome.exe``,
+    refuses to re-download, and every later run fails on the stub it left
+    behind. Nothing in that chain names Node, and none of it is recoverable by
+    re-running the command.
+
+    Compared by MAJOR only, against the one runtime this path is actually
+    verified on: upstream pins ``engines.node`` exactly, ``client/node/``
+    ships exactly that, and CI builds on nothing else.
+
+    **Only an answer refuses.** An empty version is a probe that could not
+    speak — node.exe missing from PATH, or ``--version`` timing out on a cold
+    machine — never a verdict, and the same rule setup_api.py's own npm health
+    probe was taught after a 10s timeout failed a release build: a check must
+    not be more fatal than the thing it stands in for. A genuinely broken Node
+    still fails loudly, and legibly, at ``npm install`` a moment later.
+    """
+    installed_major = node_major(installed_version)
+    homologated_major = node_major(homologated_version)
+    if installed_major is None or homologated_major is None:
+        return False
+    return installed_major != homologated_major

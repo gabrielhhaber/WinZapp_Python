@@ -4,6 +4,8 @@ Esta versão corrige situações em que o WinZapp pedia para emparelhar de novo 
 
 NOVIDADES
 
+- Mostrar na pasta um ficheiro guardado com Guardar como. Quando essa cópia escolhida pelo utilizador existir, use Ctrl+Enter, o item "Mostrar na pasta" do menu de contexto ou o botão acessível com Tab junto a Abrir e Guardar como; apenas a transferência interna do WinZapp não apresenta a ação.
+
 - Escolher se as mensagens marcadas com estrela ficam ao limpar uma conversa. A confirmação de limpar traz agora a opção "Manter mensagens marcadas com estrela", assinalada por predefinição, tal como no WhatsApp Web. Sem ela assinalada, essas mensagens são eliminadas juntamente com as restantes, também no telemóvel. Aplica-se a limpar uma conversa, várias selecionadas ou uma arquivada.
 
 - Confirmação ao marcar todas as conversas como lidas. O comando pergunta agora antes, com Não como predefinição, para que um Alt seguido de Enter por engano não marque tudo como lido, também no telemóvel. A pergunta tem a opção "Não mostrar novamente": assinalada e confirmada com Sim, as vezes seguintes marcam diretamente. Para voltar a ser perguntado, use a opção "Pedir confirmação ao marcar todas as conversas como lidas", no separador Interface do utilizador das Definições.

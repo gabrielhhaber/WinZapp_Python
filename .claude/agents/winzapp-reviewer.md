@@ -36,7 +36,10 @@ isolation is usually right in context here — and vice versa.
 
 Consult the project skills as your checklist: `accessible-ui`,
 `i18n-ui-string`, `write-test`, `wppconnect-patch`. Read `CLAUDE.md` for
-anything they do not cover.
+anything they do not cover, and the `docs/traps/` file for every area the
+diff touches (index at the end of `CLAUDE.md`): each one records a bug this
+project already shipped, with the measurement, and a diff that walks back
+into one of them is a Tier 1 finding even when it looks like a cleanup.
 
 ## Tier 0 — is this change trying to hurt someone? (runs before anything else)
 

@@ -45,6 +45,19 @@ def test_default_proc_create_time_never_uses_os_kill_on_windows(monkeypatch):
     assert called["os_kill"] is False, "os.kill must never run on win32 (kills self)"
 
 
+def test_default_proc_matches_us_identifies_its_own_process():
+    # Our own pid's executable is whatever this test runs under (python.exe /
+    # WinZapp.exe) — _expected_process_basenames() always includes it via
+    # sys.executable, so this must never be a definite False.
+    assert uc._default_proc_matches_us(os.getpid()) is not False
+
+
+def test_default_proc_matches_us_is_false_for_a_pid_that_does_not_exist():
+    # A pid this large is vanishingly unlikely to be a live process on any
+    # real machine or CI runner.
+    assert uc._default_proc_matches_us(2 ** 30) is False
+
+
 def test_runtime_lease_create_and_list(tmp_path):
     gd = _gd(tmp_path)
     alive = lambda pid, ct: pid == 1111 and ct == 5.0
@@ -212,9 +225,56 @@ def test_state_missing_owner_token_is_corrupt(tmp_path):
 
 
 def test_ct_unknown_sentinel_is_alive():
-    # unknown create_time (sentinel 0.0) must count as alive (fail-closed)
-    assert uc.lease_alive(123, 5.0, proc_create_time=lambda pid: 0.0) is True
+    # unknown create_time (sentinel 0.0), and no way to identify the pid's
+    # own process either -> must still count as alive (fail-closed).
+    assert uc.lease_alive(123, 5.0, proc_create_time=lambda pid: 0.0,
+                          proc_matches_us=lambda pid: None) is True
     assert uc.lease_alive(123, 5.0, proc_create_time=lambda pid: None) is False
+
+
+def test_ct_unknown_sentinel_with_positive_proof_of_a_different_process_is_dead():
+    """A 0.0-recorded lease is written once at process start and never
+    refreshed, so a process that crashes/is killed without releasing it
+    leaves that lease on disk forever — and since create_time==0.0 can never
+    be disproved by pid existence alone, Windows reusing that pid for ANY
+    other process (routine) made it "alive" forever, permanently blocking
+    every future update on that install. Reported live: a genuinely
+    single-account install refused to update believing another account was
+    open, traced to 11 leaked 0.0 leases up to two weeks old.
+
+    A positive, non-None verdict that the pid's own image is NOT ours is the
+    one thing that can prove it's actually dead."""
+    assert uc.lease_alive(123, 5.0, proc_create_time=lambda pid: 0.0,
+                          proc_matches_us=lambda pid: False) is False
+
+
+def test_ct_unknown_sentinel_with_positive_match_is_alive():
+    assert uc.lease_alive(123, 5.0, proc_create_time=lambda pid: 0.0,
+                          proc_matches_us=lambda pid: True) is True
+
+
+def test_leftover_zero_leases_self_heal_once_their_pid_belongs_to_someone_else(tmp_path):
+    """The scenario end to end: other_live_leases() must stop counting a
+    leaked 0.0 lease as another account once its pid is proven to belong to
+    a different process, and _live_leases_locked() must remove it from disk
+    (the same self-healing path used for any other confirmed-dead lease)."""
+    import functools
+
+    gd = _gd(tmp_path)
+    uc.try_create_runtime_lease(gd, pid=900, create_time=5.0, is_alive=ALIVE)
+    # A leaked lease from a crashed process, recorded with the unknown-ct
+    # sentinel — its pid (777) now happens to be held by an unrelated process.
+    uc._write_lease(uc._runtime_dir(gd), 777, 0.0)
+
+    is_alive = functools.partial(
+        uc.lease_alive,
+        proc_create_time=lambda pid: 5.0 if pid == 900 else 12345.0,
+        proc_matches_us=lambda pid: pid != 777,  # pid 777 is provably not us
+    )
+    others = uc.other_live_leases(gd, pid=900, create_time=5.0, is_alive=is_alive)
+    assert others == []
+    remaining = [f for f in os.listdir(uc._runtime_dir(gd)) if not f.endswith(".tmp")]
+    assert len(remaining) == 1 and remaining[0].startswith("900_")
 
 
 # ── GPT r5 hardening ─────────────────────────────────────────────────────────
@@ -241,3 +301,28 @@ def test_state_dir_instead_of_file_is_corrupt(tmp_path):
     gd = _gd(tmp_path)
     os.mkdir(os.path.join(gd, "update_state.json"))  # a directory, not a file
     assert uc.is_update_in_progress(gd) is True  # corrupt -> fail-closed
+
+
+def test_try_begin_update_ignores_the_callers_own_lease(tmp_path):
+    """The updater runs inside a live account, so its own runtime lease must
+    not count as "another account is open" — it did, which is why the gate
+    was never wired up and two accounts could xcopy over each other."""
+    gd = _gd(tmp_path)
+    uc.try_create_runtime_lease(gd, pid=900, create_time=5.0, is_alive=ALIVE)
+    tok = uc.try_begin_update(gd, pid=900, create_time=5.0, is_alive=ALIVE)
+    assert tok is not None
+    assert uc.end_update(gd, tok) is True
+
+
+def test_other_live_leases_excludes_self_and_dead(tmp_path):
+    gd = _gd(tmp_path)
+    uc.try_create_runtime_lease(gd, pid=900, create_time=5.0, is_alive=ALIVE)
+    uc.try_create_runtime_lease(gd, pid=901, create_time=6.0, is_alive=ALIVE)
+    uc.try_create_runtime_lease(gd, pid=902, create_time=7.0, is_alive=ALIVE)
+    alive = lambda pid, ct: pid != 902
+    others = uc.other_live_leases(gd, pid=900, create_time=5.0, is_alive=alive)
+    assert [l["pid"] for l in others] == [901]
+    # A lease of ours from a previous life (same pid, other create_time) is
+    # a different process and still counts.
+    stale = uc.other_live_leases(gd, pid=900, create_time=4.0, is_alive=alive)
+    assert sorted(l["pid"] for l in stale) == [900, 901]

@@ -23,6 +23,11 @@ import { download } from '../controller/sessionController';
 import { WhatsAppServer } from '../types/WhatsAppServer';
 import chatWootClient from './chatWootClient';
 import {
+  ensureCallMediaBridge,
+  prepareLinuxCallAudioEnvironment,
+  warmCallVoipRuntime,
+} from './callMediaBridge';
+import {
   autoDownload,
   callWebHook,
   probeIsConnected,
@@ -696,7 +701,10 @@ async function restoreStatusSender(page: any, logger: any, session: string) {
  *   * No puppeteer overridePermissions() here. That call replaces the whole
  *     granted set for the origin, so asking for ['notifications'] flips
  *     durableStorage from 'prompt' to 'denied' — measurably worse than doing
- *     nothing. The CDP grant below covers notifications anyway.
+ *     nothing. The CDP grant below covers notifications anyway. The same single
+ *     grant also covers audioCapture so WhatsApp's VoIP bootstrap sees
+ *     microphone permission as granted while WinZapp's page patch still
+ *     replaces the physical microphone with the Python PCM bridge.
  *
  * Best-effort throughout: never throw from here.
  */
@@ -712,7 +720,12 @@ async function grantPersistentStorage(page: any, logger: any, session: string) {
     }
     await page.__wzPermissionSession.send('Browser.grantPermissions', {
       origin,
-      permissions: ['durableStorage', 'notifications'],
+      // audioCapture only: WhatsApp's VoIP bootstrap needs to see microphone
+      // permission granted, and the page patch replaces the physical
+      // microphone with the Python PCM bridge anyway. videoCapture is
+      // deliberately absent while video calls are out of scope — granted, it
+      // would let the page open the real camera with no prompt.
+      permissions: ['durableStorage', 'notifications', 'audioCapture'],
     });
   } catch (e: any) {
     page.__wzPermissionSession = null;
@@ -940,8 +953,24 @@ export default class CreateSessionUtil {
 
       // Wrapped in a thunk purely so the stale-profile recovery below can call
       // it twice. See launchWithStaleBrowserRecovery() for why that exists.
-      const launchWppClient = () =>
-        create(
+      const launchWppClient = () => {
+        if (prepareLinuxCallAudioEnvironment(session, req.logger)) {
+          const puppeteerOptions = req.serverOptions.createOptions.puppeteerOptions || {};
+          // Puppeteer passes `puppeteerOptions.env` verbatim when it exists;
+          // changing process.env after server startup is therefore not enough.
+          // Bind this account's Chrome explicitly to its PulseAudio devices.
+          req.serverOptions.createOptions.puppeteerOptions = {
+            ...puppeteerOptions,
+            env: {
+              ...process.env,
+              ...(puppeteerOptions.env || {}),
+              PULSE_SERVER: process.env.PULSE_SERVER,
+              PULSE_SOURCE: process.env.PULSE_SOURCE,
+              PULSE_SINK: process.env.PULSE_SINK,
+            },
+          };
+        }
+        return create(
         Object.assign(
           {},
           { tokenStore: myTokenStore },
@@ -1094,6 +1123,7 @@ export default class CreateSessionUtil {
           }
         )
       );
+      };
 
       const wppClient = await launchWithStaleBrowserRecovery(
         launchWppClient,
@@ -1157,12 +1187,25 @@ export default class CreateSessionUtil {
           // browser context), but the bucket request does not — persist() has
           // to be asked again by the new document, so re-run the whole thing.
           grantPersistentStorage(client.page, req.logger, session);
+          // The Python-owned call audio bridge lives in the page context and
+          // therefore has to be recreated after every WhatsApp Web reload.
+          ensureCallMediaBridge(client, req.io, req.logger);
+          // Warm the lazy WhatsApp VoIP backend after each page reload. This is
+          // deliberately fire-and-forget: normal messaging startup must never
+          // depend on the private calling backend becoming available.
+          setTimeout(() => {
+            void warmCallVoipRuntime(client, req.logger);
+          }, 1200);
         });
         await restoreMsgKeySerialized(client.page, req.logger, session);
         await restoreStatusSender(client.page, req.logger, session);
         await grantPersistentStorage(client.page, req.logger, session);
+        await ensureCallMediaBridge(client, req.io, req.logger);
       }
       await this.start(req, client);
+      // WhatsApp's VoIP bundle is lazy. Preload it while the session is idle so
+      // accepting an incoming call does not have to win the initialization race.
+      void warmCallVoipRuntime(client, req.logger);
 
       if (req.serverOptions.webhook.onParticipantsChanged) {
         await this.onParticipantsChanged(req, client);
@@ -1480,6 +1523,10 @@ export default class CreateSessionUtil {
    * regardless of how connection finalization resolves.
    */
   async wireListeners(req: Request, client: WhatsAppServer) {
+    // VoIP ringing is time-sensitive. Install this first so message history,
+    // presence subscriptions, and unread synchronization cannot delay or
+    // swallow the incoming-call notification.
+    await this.onIncomingCallDirect(client, req);
     await this.listenMessages(client, req);
 
     if (req.serverOptions.webhook.listenAcks) {
@@ -1491,7 +1538,6 @@ export default class CreateSessionUtil {
     }
 
     await this.onUnreadCountChanged(client, req);
-    await this.onIncomingCallDirect(client, req);
   }
 
   /**
@@ -1739,7 +1785,7 @@ export default class CreateSessionUtil {
           callTimestamp: number,
           observedAt: number
         ) => {
-          req.io.emit('incomingcall', {
+          req.io.to(`session:${client.session}`).emit('incomingcall', {
             session: client.session,
             data: {
               event: event,
@@ -1759,6 +1805,42 @@ export default class CreateSessionUtil {
       // exposeFunction throws if a prior session already registered this
       // name on the same page (e.g. a reconnect reusing the browser) —
       // harmless, the existing binding still works.
+    }
+
+    try {
+      await client.page.exposeFunction(
+        '__winzappOnCallState',
+        (
+          event: string,
+          state: string,
+          peerJid: string,
+          callId: string,
+          isVideo: boolean,
+          isGroup: boolean,
+          groupJid: string,
+          outgoing: boolean,
+          callTimestamp: number,
+          observedAt: number
+        ) => {
+          req.io.to(`session:${client.session}`).emit('callstate', {
+            session: client.session,
+            data: {
+              event,
+              state,
+              peerJid,
+              id: callId,
+              isVideo,
+              isGroup,
+              groupJid,
+              outgoing,
+              timestamp: callTimestamp,
+              observedAt,
+            },
+          });
+        }
+      );
+    } catch (e) {
+      // Same reconnect case as the incoming-call binding above.
     }
 
     const installListener = (attempt = 0) => {
@@ -1790,7 +1872,12 @@ export default class CreateSessionUtil {
             (window as any).Store?.Call,
           ].filter((store, index, all) => store && all.indexOf(store) === index);
           const callIdOf = (call: any) =>
-            String(call?.id?._serialized || call?.id || '');
+            String(
+              call?.id?._serialized ||
+              call?.id?.toString?.() ||
+              call?.id ||
+              ''
+            );
           const groupJidOf = (call: any) =>
             String(
               call?.groupJid?._serialized ||
@@ -1865,15 +1952,34 @@ export default class CreateSessionUtil {
             }
             return false;
           };
-          const emitCall = (event: string, call: any, state = '') => {
-            const peerJid =
+          const peerJidOf = (call: any) =>
+            String(
               call?.peerJid?._serialized ||
               call?.peerJid?.toString?.() ||
               call?.sender?._serialized ||
               call?.sender?.toString?.() ||
               call?.from?._serialized ||
               call?.from?.toString?.() ||
-              '';
+              ''
+            );
+          const emitCallState = (event: string, call: any, state = '') => {
+            const peerJid = peerJidOf(call);
+            if (!peerJid) return;
+            (window as any).__winzappOnCallState(
+              event,
+              state,
+              peerJid,
+              callIdOf(call),
+              !!call?.isVideo || !!call?.isVideoCall,
+              !!call?.isGroup || !!call?.isGroupCall,
+              groupJidOf(call),
+              !!call?.outgoing,
+              Math.floor(callTimestampOf(call) / 1000),
+              Math.floor(Date.now() / 1000)
+            );
+          };
+          const emitCall = (event: string, call: any, state = '') => {
+            const peerJid = peerJidOf(call);
             if (!peerJid) return;
             (window as any).__winzappOnIncomingCall(
               event,
@@ -1886,6 +1992,7 @@ export default class CreateSessionUtil {
               Math.floor(callTimestampOf(call) / 1000),
               Math.floor(Date.now() / 1000)
             );
+            emitCallState(event, call, state);
           };
           const rememberCall = (call: any) => {
             const id = callIdOf(call);
@@ -2058,6 +2165,54 @@ export default class CreateSessionUtil {
               }
             }
           }, 500);
+
+          // Native WhatsApp Web VoIP keeps the active call on CallStore.activeCall
+          // and may never add it to the legacy collection. Poll that slot so both
+          // incoming and outgoing calls expose their complete lifecycle to Python.
+          let lastActiveSignature = '';
+          let lastActiveCall: any = null;
+          (window as any).__winzappCallStatePoll = window.setInterval(() => {
+            try {
+              let activeCall: any = null;
+              for (const store of stores) {
+                activeCall = store?.activeCall || store?.get?.('activeCall') || activeCall;
+                if (activeCall) break;
+              }
+              if (!activeCall) {
+                activeCall =
+                  WPP?.whatsapp?.CallStore?.activeCall ||
+                  (window as any).Store?.Call?.activeCall ||
+                  null;
+              }
+
+              if (!activeCall) {
+                if (lastActiveCall) {
+                  const previousState = callStateOf(lastActiveCall);
+                  if (!['ENDED', 'REJECTED', 'FAILED', 'NOT_ANSWERED'].includes(previousState)) {
+                    emitCallState('ended', lastActiveCall, 'ENDED');
+                  }
+                }
+                lastActiveCall = null;
+                lastActiveSignature = '';
+                return;
+              }
+
+              const state = callStateOf(activeCall);
+              const signature = [
+                callIdOf(activeCall),
+                state,
+                peerJidOf(activeCall),
+                activeCall?.outgoing ? '1' : '0',
+              ].join('|');
+              if (signature !== lastActiveSignature) {
+                emitCallState('state', activeCall, state);
+                lastActiveSignature = signature;
+              }
+              lastActiveCall = activeCall;
+            } catch (e) {
+              // A later poll can recover from WhatsApp replacing CallStore.
+            }
+          }, 250);
           return true;
         }, listenerStartedAt)
         .then((installed: boolean) => {
@@ -2265,7 +2420,7 @@ export default class CreateSessionUtil {
         return;
       }
 
-      req.io.emit('incomingcall', {
+      req.io.to(`session:${client.session}`).emit('incomingcall', {
         ...call,
         session: client.session,
         timestamp: offerTimeMs ? Math.floor(offerTimeMs / 1000) : 0,
