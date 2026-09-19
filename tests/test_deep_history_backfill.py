@@ -77,6 +77,8 @@ class _Stub:
         self._deleted_chats = set()
         self.chats = {}
         self.settings = {"user_interface": {"messages_page_size": 200}}
+        self._active_voice_call = None
+        self._voice_call_pause_since = 0.0
         self.calls = []
         self.requested = []
 
@@ -114,7 +116,8 @@ def _make(pages, oldest=None, advances=True):
     stub = _Stub(pages, oldest, advances)
     for name in ("deep_backfill_chat", "_oldest_stored_message",
                  "_chats_needing_deep_history", "history_page_target",
-                 "_persist_exhausted_chats", "_anchor_identity"):
+                 "_persist_exhausted_chats", "_anchor_identity",
+                 "_voice_call_in_progress"):
         raw = MainWindow.__dict__[name]
         if isinstance(raw, (staticmethod, classmethod)):
             setattr(stub, name, getattr(MainWindow, name))
@@ -122,6 +125,7 @@ def _make(pages, oldest=None, advances=True):
             setattr(stub, name, types.MethodType(raw, stub))
     for const in ("_DEEP_PAGES_PER_VISIT", "_DEEP_PAGE_DELAY",
                   "_DEEP_CHATS_PER_PASS", "_DEEP_STALL_RETRY_SECONDS",
+                  "_VOICE_CALL_PAUSE_MAX_SECONDS",
                   # Gates asking the phone again for a chat still stalled at
                   # the same anchor.
                   "_OLDER_REQUEST_GRACE"):
@@ -183,6 +187,20 @@ class TestWalkingOneChatBack:
         stub = _make([[_msg(1)]], oldest=_msg(5))
         stub.offline_mode = True
         assert stub.deep_backfill_chat("chat@g.us") == 0
+
+    def test_it_stops_between_pages_when_a_voice_call_starts(self):
+        stub = _make([[_msg(4)], [_msg(3)], [_msg(2)]], oldest=_msg(5))
+        original_fetch = stub.fetch_older_messages
+
+        def _fetch_then_start_call(*args, **kwargs):
+            page = original_fetch(*args, **kwargs)
+            stub._active_voice_call = {"id": "call"}
+            return page
+
+        stub.fetch_older_messages = _fetch_then_start_call
+
+        assert stub.deep_backfill_chat("chat@g.us") == 1
+        assert len(stub.calls) == 1
 
     def test_the_anchor_comes_from_the_database_not_from_memory(self):
         """Anchoring on the in-memory list would re-request the newest window

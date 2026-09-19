@@ -22,6 +22,10 @@ WHAT'S NEW
 
 FIXES
 
+- Starting a voice message with recording announcements silenced no longer lets the screen reader begin saying “Send” before being cut off. WinZapp now avoids the automatic focus move that caused the clipped announcement while keeping Ctrl+R, Ctrl+Shift+P and Ctrl+Shift+D available.
+
+- Answered incoming calls are no longer marked “not answered” two minutes later. WinZapp now retires the incoming-call timer when a call is answered, rejected or ended, and brief WhatsApp Web call-state transitions no longer end an active call by mistake.
+
 - Messages you had selected in a conversation stayed selected after you closed it, and came back selected when you opened it again. The selection now ends with the conversation.
 
 - When WhatsApp refused the connection right after the app was opened, the backup copy of the browser profile was never restored: if pairing codes started arriving in the first few seconds, WinZapp closed the session and sent you to pair again even with a good copy saved. It now restores the copy as soon as the first code appears, and only asks you to pair when the restore does not help.

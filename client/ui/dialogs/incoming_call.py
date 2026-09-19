@@ -32,6 +32,7 @@ class IncomingCallDialog(wx.Dialog):
         self._on_stop_callback = on_stop
         self._on_closed_callback = on_closed
         self._closing = False
+        self._i18n = i18n
 
         panel = wx.Panel(self)
         content = wx.BoxSizer(wx.VERTICAL)
@@ -79,6 +80,21 @@ class IncomingCallDialog(wx.Dialog):
         self._silence_button.Bind(wx.EVT_BUTTON, self._on_stop)
         self._close_button.Bind(wx.EVT_BUTTON, self._on_close)
         self.Bind(wx.EVT_CLOSE, self._on_close)
+
+    def refresh_labels(self, message: str | None = None):
+        """Re-translate this modeless popup without closing the ringing call."""
+        i18n = self._i18n
+        self.SetTitle(i18n.t("incoming_call_popup_title"))
+        if message is not None:
+            self._message.SetLabel(message)
+            self._message.SetName(message)
+        self._answer_button.SetLabel(i18n.t("incoming_call_answer_button"))
+        self._reject_button.SetLabel(i18n.t("incoming_call_reject_button"))
+        self._silence_button.SetLabel(i18n.t("incoming_call_silence_button"))
+        self._close_button.SetLabel(i18n.t("incoming_call_close_button"))
+        self.Layout()
+        self.Fit()
+        self.SetMinSize((440, -1))
 
     def show_accessibly(self):
         """Display over the current app and focus the primary call action."""

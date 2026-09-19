@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import logging
 import queue
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -25,8 +26,15 @@ except ImportError:  # pragma: no cover - packaging always installs it
 CALL_SAMPLE_RATE = 48_000
 CALL_FRAME_MS = 20
 CALL_FRAME_SAMPLES = CALL_SAMPLE_RATE * CALL_FRAME_MS // 1000
-CALL_MIC_QUEUE_LIMIT = 75
+# 40 ms leaves two 20 ms hardware periods for ordinary Windows driver jitter
+# without adding the large latency of PortAudio's generic "high" preset.
+CALL_DEVICE_LATENCY_SECONDS = 0.040
+CALL_MIC_QUEUE_LIMIT = 12
+CALL_MIC_TARGET_BACKLOG_FRAMES = 2
 CALL_OUTPUT_QUEUE_LIMIT = 40
+CALL_OUTPUT_PREBUFFER_MS = 60
+CALL_OUTPUT_REBUFFER_WAIT_MS = CALL_FRAME_MS
+CALL_OUTPUT_MAX_BUFFER_MS = 200
 
 
 @dataclass(frozen=True)
@@ -85,7 +93,10 @@ class CallAudioSession:
         self._player_thread: Optional[threading.Thread] = None
         self._mic_frames_sent = 0
         self._mic_bytes_sent = 0
+        self._mic_frames_dropped_for_latency = 0
         self._microphone_muted = False
+        self._output_rebuffer_count = 0
+        self._output_samples_dropped = 0
 
     @property
     def microphone_muted(self) -> bool:
@@ -100,35 +111,56 @@ class CallAudioSession:
     def running(self) -> bool:
         return not self._stop_event.is_set() and self._input_stream is not None
 
+    @property
+    def output_running(self) -> bool:
+        return not self._stop_event.is_set() and self._output_stream is not None
+
+    def start_output_only(self) -> None:
+        """Open receive audio while ringing without opening the microphone."""
+        if self.output_running:
+            return
+        if self._sd is None:
+            raise CallAudioUnavailable("sounddevice is not available in this Python runtime")
+
+        self._stop_event.clear()
+        self._output_stream, self._output_rate = self._open_output_stream()
+        try:
+            self._output_stream.start()
+        except Exception:
+            self._close_stream(self._output_stream)
+            self._output_stream = None
+            raise
+        self._player_thread = threading.Thread(
+            target=self._play_remote_loop,
+            name="WinZappCallRemotePlayer",
+            daemon=True,
+        )
+        self._player_thread.start()
+        self._emit_start()
+
     def start(self) -> None:
         if self.running:
             return
         if self._sd is None:
             raise CallAudioUnavailable("sounddevice is not available in this Python runtime")
 
-        self._stop_event.clear()
-        self._input_stream, self._input_rate = self._open_input_stream()
+        # An incoming call may already have opened the receive side while it
+        # was ringing. Reuse it and only add microphone capture on answer.
+        self.start_output_only()
         try:
-            self._output_stream, self._output_rate = self._open_output_stream()
+            self._input_stream, self._input_rate = self._open_input_stream()
+            self._input_stream.start()
         except Exception:
             self._close_stream(self._input_stream)
             self._input_stream = None
             raise
 
-        self._input_stream.start()
-        self._output_stream.start()
         self._sender_thread = threading.Thread(
             target=self._send_microphone_loop,
             name="WinZappCallMicSender",
             daemon=True,
         )
-        self._player_thread = threading.Thread(
-            target=self._play_remote_loop,
-            name="WinZappCallRemotePlayer",
-            daemon=True,
-        )
         self._sender_thread.start()
-        self._player_thread.start()
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -176,10 +208,29 @@ class CallAudioSession:
                 candidates.append(index)
         return candidates[0] if candidates else None
 
+    def _default_device_index(self, *, input_device: bool) -> Optional[int]:
+        """Return PortAudio's concrete default device instead of opaque None."""
+        try:
+            defaults = getattr(getattr(self._sd, "default", None), "device", None)
+            index = defaults[0 if input_device else 1]
+            index = int(index)
+            return index if index >= 0 else None
+        except (AttributeError, IndexError, TypeError, ValueError):
+            return None
+
     def _candidate_devices(self, stored_name: str, *, input_device: bool):
         preferred = self._resolve_device(stored_name, input_device=input_device)
+        default_device = self._default_device_index(input_device=input_device)
         yielded = set()
-        for index in (preferred, None):
+        ordered = []
+        if preferred is not None:
+            ordered.append(preferred)
+        if default_device is not None:
+            ordered.append(default_device)
+        # Keep PortAudio's implicit default as a compatibility fallback, but
+        # prefer the concrete default index so we can inspect its native rate.
+        ordered.append(None)
+        for index in ordered:
             key = -1 if index is None else int(index)
             if key not in yielded:
                 yielded.add(key)
@@ -192,18 +243,50 @@ class CallAudioSession:
             yield index
 
     def _candidate_rates(self, device_index: Optional[int]):
-        rates = [CALL_SAMPLE_RATE]
+        # Opening the Windows mixer at its own rate avoids needless device
+        # reconfiguration/resampling in the driver. The call transport stays
+        # 48 kHz; Python already resamples at the boundary.
+        rates = []
         try:
             info = self._sd.query_devices(device_index)
             native = int(round(float(info.get("default_samplerate") or 0)))
-            if native > 0 and native not in rates:
+            if native > 0:
                 rates.append(native)
         except Exception:
             pass
-        for rate in (44_100, 32_000, 16_000):
+        for rate in (CALL_SAMPLE_RATE, 44_100, 32_000, 16_000):
             if rate not in rates:
                 rates.append(rate)
         return rates
+
+    def _stream_extra_settings(
+        self, device_index: Optional[int], *, input_device: bool
+    ):
+        """Keep WASAPI in shared mode so a call cannot take over the device."""
+        if sys.platform != "win32":
+            return None
+        actual_index = device_index
+        if actual_index is None:
+            actual_index = self._default_device_index(input_device=input_device)
+        if actual_index is None:
+            return None
+        try:
+            info = self._sd.query_devices(actual_index)
+            hostapi = self._sd.query_hostapis(int(info.get("hostapi", -1)))
+            if "wasapi" not in str(hostapi.get("name", "")).lower():
+                return None
+            settings_type = getattr(self._sd, "WasapiSettings", None)
+            if settings_type is None:
+                return None
+            # Explicitly shared; auto_convert is only a fallback for a device
+            # whose native rate cannot be opened for some reason.
+            return settings_type(exclusive=False, auto_convert=True)
+        except Exception:
+            logging.debug(
+                "[call_audio] could not apply shared WASAPI settings",
+                exc_info=True,
+            )
+            return None
 
     def _open_input_stream(self):
         last_error = None
@@ -216,10 +299,18 @@ class CallAudioSession:
                         device=device,
                         channels=1,
                         dtype="float32",
-                        latency="low",
+                        latency=CALL_DEVICE_LATENCY_SECONDS,
+                        extra_settings=self._stream_extra_settings(
+                            device, input_device=True
+                        ),
                         callback=self._on_microphone_frame(rate),
                     )
-                    logging.info("[call_audio] input opened device=%r rate=%s", device, rate)
+                    logging.info(
+                        "[call_audio] input opened device=%r rate=%s latency=%r",
+                        device,
+                        rate,
+                        getattr(stream, "latency", CALL_DEVICE_LATENCY_SECONDS),
+                    )
                     return stream, rate
                 except Exception as exc:
                     last_error = exc
@@ -236,9 +327,17 @@ class CallAudioSession:
                         device=device,
                         channels=1,
                         dtype="float32",
-                        latency="low",
+                        latency=CALL_DEVICE_LATENCY_SECONDS,
+                        extra_settings=self._stream_extra_settings(
+                            device, input_device=False
+                        ),
                     )
-                    logging.info("[call_audio] output opened device=%r rate=%s", device, rate)
+                    logging.info(
+                        "[call_audio] output opened device=%r rate=%s latency=%r",
+                        device,
+                        rate,
+                        getattr(stream, "latency", CALL_DEVICE_LATENCY_SECONDS),
+                    )
                     return stream, rate
                 except Exception as exc:
                     last_error = exc
@@ -256,12 +355,39 @@ class CallAudioSession:
 
         return _callback
 
+    def _dequeue_fresh_microphone_frame(self) -> tuple[bytes, int]:
+        """Return current microphone audio instead of replaying stale backlog."""
+        pcm = self._mic_queue.get(timeout=0.1)
+        dropped = 0
+        while self._mic_queue.qsize() > CALL_MIC_TARGET_BACKLOG_FRAMES:
+            try:
+                pcm = self._mic_queue.get_nowait()
+                dropped += 1
+            except queue.Empty:
+                break
+        return pcm, dropped
+
     def _send_microphone_loop(self) -> None:
         while not self._stop_event.is_set():
             try:
-                pcm = self._mic_queue.get(timeout=0.1)
+                pcm, dropped = self._dequeue_fresh_microphone_frame()
             except queue.Empty:
                 continue
+
+            if dropped:
+                previous_dropped = self._mic_frames_dropped_for_latency
+                self._mic_frames_dropped_for_latency += dropped
+                if previous_dropped == 0 or (
+                    previous_dropped // 50
+                    != self._mic_frames_dropped_for_latency // 50
+                ):
+                    logging.info(
+                        "[call_audio] skipped stale microphone audio frames=%s total=%s backlog=%s",
+                        dropped,
+                        self._mic_frames_dropped_for_latency,
+                        self._mic_queue.qsize(),
+                    )
+
             try:
                 if self._microphone_muted:
                     pcm = b"\x00" * len(pcm)
@@ -286,19 +412,105 @@ class CallAudioSession:
                 time.sleep(0.05)
 
     def _play_remote_loop(self) -> None:
+        """Play fixed 20 ms blocks behind a small jitter reservoir.
+
+        Remote PCM reaches Python over Socket.IO and therefore does not arrive
+        at perfectly even intervals. Writing every packet immediately made the
+        Windows output device run dry between otherwise healthy packets, which
+        sounded like short cuts. Keep only a small reservoir, re-prime after a
+        real starvation, and discard old receive audio if a long stall ever
+        builds an excessive backlog.
+        """
+        pending = np.empty(0, dtype=np.float32)
+        primed = False
+        priming_started_at: Optional[float] = None
+
         while not self._stop_event.is_set():
-            try:
-                pcm, source_rate = self._output_queue.get(timeout=0.1)
-            except queue.Empty:
+            frame_samples = max(1, int(self._output_rate * CALL_FRAME_MS / 1000))
+            prebuffer_samples = max(
+                frame_samples,
+                int(self._output_rate * CALL_OUTPUT_PREBUFFER_MS / 1000),
+            )
+            max_buffer_samples = max(
+                prebuffer_samples,
+                int(self._output_rate * CALL_OUTPUT_MAX_BUFFER_MS / 1000),
+            )
+
+            if primed and pending.size >= frame_samples:
+                if pending.size > max_buffer_samples:
+                    dropped = int(pending.size - prebuffer_samples)
+                    pending = pending[-prebuffer_samples:].copy()
+                    self._output_samples_dropped += dropped
+                    logging.info(
+                        "[call_audio] remote backlog trimmed dropped_ms=%.1f total_dropped_ms=%.1f",
+                        dropped * 1000.0 / self._output_rate,
+                        self._output_samples_dropped * 1000.0 / self._output_rate,
+                    )
+
+                frame = pending[:frame_samples]
+                pending = pending[frame_samples:]
+                try:
+                    if self._output_stream is not None:
+                        underflowed = self._output_stream.write(frame.reshape(-1, 1))
+                        if underflowed:
+                            logging.debug("[call_audio] output stream reported underflow")
+                except Exception:
+                    logging.exception("[call_audio] failed to play remote call audio")
+                    time.sleep(0.01)
                 continue
+
+            timeout = (
+                CALL_OUTPUT_REBUFFER_WAIT_MS / 1000.0
+                if primed
+                else CALL_OUTPUT_PREBUFFER_MS / 1000.0
+            )
+            try:
+                pcm, source_rate = self._output_queue.get(timeout=timeout)
+            except queue.Empty:
+                now = time.monotonic()
+                if primed:
+                    primed = False
+                    priming_started_at = now if pending.size else None
+                    self._output_rebuffer_count += 1
+                    if self._output_rebuffer_count == 1 or self._output_rebuffer_count % 10 == 0:
+                        logging.info(
+                            "[call_audio] remote audio rebuffering count=%s buffered_ms=%.1f",
+                            self._output_rebuffer_count,
+                            pending.size * 1000.0 / self._output_rate,
+                        )
+                elif (
+                    pending.size >= frame_samples
+                    and priming_started_at is not None
+                    and now - priming_started_at >= CALL_OUTPUT_PREBUFFER_MS / 1000.0
+                ):
+                    # Do not strand a short final packet forever just because
+                    # it never reached the normal prebuffer target.
+                    primed = True
+                continue
+
             try:
                 samples = _pcm16_float32(pcm)
                 samples = _resample_mono(samples, source_rate, self._output_rate)
-                if samples.size and self._output_stream is not None:
-                    self._output_stream.write(samples.reshape(-1, 1))
             except Exception:
-                logging.exception("[call_audio] failed to play remote call audio")
-                time.sleep(0.05)
+                logging.exception("[call_audio] failed to decode remote call audio")
+                continue
+
+            if not samples.size:
+                continue
+            if pending.size:
+                pending = np.concatenate((pending, samples))
+            else:
+                pending = samples.copy()
+            if priming_started_at is None:
+                priming_started_at = time.monotonic()
+            if not primed and pending.size >= prebuffer_samples:
+                primed = True
+
+    def _emit_start(self) -> None:
+        try:
+            self._sio.emit("call:audio:start", {"session": self._config.session})
+        except Exception:
+            logging.debug("[call_audio] could not emit call:audio:start", exc_info=True)
 
     def _emit_stop(self) -> None:
         try:

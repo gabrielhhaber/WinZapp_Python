@@ -1,0 +1,59 @@
+name: Apply ChatGPT WinZapp fixes
+
+on:
+  push:
+    branches:
+      - chatgpt/apply-winzapp-fixes-20260918
+
+permissions:
+  contents: write
+
+concurrency:
+  group: chatgpt-winzapp-fixes
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout patch branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Copy patch scripts
+        shell: bash
+        run: |
+          mkdir -p /tmp/winzapp-chatgpt-fixes
+          cp .chatgpt/apply_group_call_fix.py /tmp/winzapp-chatgpt-fixes/
+          cp .chatgpt/apply_nvda_mute_fix.py /tmp/winzapp-chatgpt-fixes/
+
+      - name: Apply fixes to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ChatGPT"
+          git config user.email "noreply@openai.com"
+          git fetch origin main
+          git checkout -B main origin/main
+
+          python /tmp/winzapp-chatgpt-fixes/apply_group_call_fix.py
+          python -m py_compile client/main.py client/ui/conversations.py client/ui/dialogs/group_voice_call.py
+          python -m pytest tests/test_group_voice_call_logic.py tests/test_group_voice_call_ui.py \
+            tests/test_call_control_api_patch.py::test_group_voice_call_offer_uses_whatsapp_web_native_group_controller \
+            tests/test_call_control_api_patch.py::test_group_voice_call_resolves_registered_participants_and_rejects_stale_active_call \
+            tests/test_call_control_api_patch.py::test_group_voice_call_falls_back_to_live_tested_one_to_one_plus_invites \
+            tests/test_call_control_api_patch.py::test_full_group_voice_call_uses_chat_model_instead_of_ad_hoc_wid_list
+          git add client/api_patches/src/controller/callController.ts client/main.py client/ui/conversations.py tests/test_call_control_api_patch.py tests/test_group_voice_call_logic.py tests/test_group_voice_call_ui.py
+          git commit -m "fix: use chat model for full group calls"
+
+          python /tmp/winzapp-chatgpt-fixes/apply_nvda_mute_fix.py
+          python -m py_compile client/main.py client/ui/conversations.py client/ui/dialogs/group_voice_call.py
+          python -m pytest tests/test_group_voice_call_ui.py
+          git add client/main.py tests/test_group_voice_call_ui.py
+          git commit -m "fix: keep mute button focus accessible"
+
+          git rm -f .github/workflows/apply-chatgpt-winzapp-fixes.yml
+          git commit -m "chore: remove temporary ChatGPT fix workflow"
+
+          git push origin HEAD:main

@@ -108,6 +108,50 @@ def test_fetch_from_api_returns_my_and_contacts_statuses(monkeypatch):
     assert len(contacts[0]["statuses"]) == 1
 
 
+def test_fetch_from_api_marks_genuinely_empty_my_status_as_ready(monkeypatch):
+    api_payload = {
+        "status": "success",
+        "response": {"myStatus": [], "contacts": [], "myStatusReady": True},
+    }
+
+    class _Resp:
+        status_code = 200
+
+        def json(self):
+            return api_payload
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp())
+
+    panel = _PanelStub(_MWStub())
+    my_statuses, contacts = panel._fetch_statuses_from_api()
+
+    assert my_statuses == []
+    assert contacts == []
+    assert panel._last_status_api_ok is True
+    assert panel._last_my_status_ready is True
+
+
+def test_fetch_from_old_api_keeps_empty_my_status_non_authoritative(monkeypatch):
+    api_payload = {
+        "status": "success",
+        "response": {"myStatus": [], "contacts": []},
+    }
+
+    class _Resp:
+        status_code = 200
+
+        def json(self):
+            return api_payload
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp())
+
+    panel = _PanelStub(_MWStub())
+    panel._fetch_statuses_from_api()
+
+    assert panel._last_status_api_ok is True
+    assert panel._last_my_status_ready is False
+
+
 def test_fetch_from_api_http_error_falls_back_empty(monkeypatch):
     class _Resp:
         status_code = 500

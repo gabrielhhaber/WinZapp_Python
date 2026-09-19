@@ -1,69 +1,19 @@
-"""Suppress a screen reader's spoken focus announcement for ONE programmatic
-focus move — at the source, before it can ever become speech.
+"""Reusable MSAA helper for suppressing one programmatic focus event.
 
-Why this exists
----------------
-Settings > Conteúdo Falado's "silence while recording a voice message" used to
-be implemented purely as ``AccessibleSpeechOutput.silence_screen_reader_focus()``
-fired right after ``SetFocus()``: cancel whatever the screen reader is saying.
-That is inherently a race, and it is the wrong side of the race. Windows fires
-``EVENT_OBJECT_FOCUS`` synchronously, but NVDA reads and speaks it on its own
-thread a moment later, so a cancel issued at 0 ms cancels nothing (nothing is
-queued yet) and one issued 80 ms later arrives after speech has already begun.
-The audible result was the whole phrase — "enviar mensagem de voz, botão,
-Ctrl+R" — clipped part-way. For a user recording for radio or production that
-is exactly the failure the setting was supposed to prevent.
+This helper briefly removes ``STATE_SYSTEM_FOCUSED`` from a wx control's MSAA
+state. NVDA's IAccessible path can then discard the corresponding focus event
+before speech is queued. It is useful when a focus move is unavoidable.
 
-Blanking the control's accessible name was tried before this and removed: it
-strips the button's identity from the accessibility tree for every consumer,
-not just from the announcement we wanted gone. ``wx.Window.SetName()`` does not
-even reach MSAA — it sets wx's internal window name, not the accessible name —
-which is why it appeared to do nothing at all.
+It is intentionally **not** the voice-recording start mechanism anymore. NVDA
+can receive focus through UIA as well as MSAA, and cancelling speech after
+``SetFocus()`` is racy (the user-visible symptom was the clipped ``"env..."``
+from the Send button). Voice recording now avoids the synthetic Send/Discard
+focus move entirely whenever recording-focus suppression is requested.
 
-How it actually works
----------------------
-NVDA decides whether a focus event is worth speaking *before* it speaks it, in
-``IAccessibleHandler.processFocusNVDAEvent()``::
-
-    if not obj.shouldAllowIAccessibleFocusEvent:
-        return False        # event dropped, never queued, never spoken
-
-and ``IAccessible._get_shouldAllowIAccessibleFocusEvent()`` answers by walking
-the object and its ancestors looking for ``State.FOCUSED``; if none of them
-reports it, the event is discarded. There is no later re-sync that would
-recover it: NVDA never polls the system focus, it only reacts to events (the
-one "fake focus" path in ``IAccessibleHandler.pumpAll()`` fires from menu and
-task-switch events only).
-
-So the control briefly reports its MSAA state *without*
-``STATE_SYSTEM_FOCUSED``. NVDA drops the event outright — nothing is spoken, so
-there is nothing left to cancel and no fragment to clip.
-
-wxWidgets makes that reachable: a ``wx.Accessible`` attached to a window answers
-``WM_GETOBJECT`` for it, and returning ``wx.ACC_NOT_IMPLEMENTED`` from any
-method falls straight back to the standard MSAA implementation. That is the
-whole reason the cloak is safe — outside the brief armed window the control is
-byte-for-byte as accessible as it was before, because the override answers
-"not implemented" and Windows' own object is used. Verified against oleacc:
-uncloaked a focused wx.Button reports ``0x100104`` (FOCUSABLE|DEFAULT|FOCUSED),
-cloaked it reports ``0x100000`` (FOCUSABLE only).
-
-Two deliberate limits
----------------------
-* The cloak is **armed for a few hundred milliseconds, not for the whole
-  recording.** It exists to hide the focus move *WinZapp itself* performs. If
-  the user then presses Tab, that is their own navigation and it must be
-  announced normally — silence there would be far worse than the noise this
-  module removes.
-* The accessible object is installed **once per window and then reused**,
-  toggled by a plain Python flag. ``SetAccessible()`` transfers ownership of the
-  object to C++, so installing and removing one repeatedly is a lifetime hazard
-  for no benefit.
-
-This complements, and does not replace, the ``silence()`` burst at the call
-sites: if the platform ever declines to route ``WM_GETOBJECT`` through wx, or
-the screen reader reads the control over UIA rather than MSAA, the cancel path
-is still there as the weaker fallback it always was.
+Outside the short armed interval the accessible object answers
+``wx.ACC_NOT_IMPLEMENTED``, so wx/Windows supplies the normal accessibility
+state. The object is installed once per window and reused because
+``SetAccessible()`` transfers ownership to C++.
 """
 
 import logging
@@ -149,6 +99,103 @@ def cloak_focus_announcement(window, duration_ms=DEFAULT_CLOAK_MS):
         return False
     return True
 
+
+
+# Where the transient parent-panel role cloak is parked.
+_PANEL_CLOAK_ATTR = "_winzapp_panel_focus_cloak"
+
+
+class PanelFocusCloakAccessible(wx.Accessible):
+    """Make one automatic panel-focus fallback silent to NVDA.
+
+    wx.Panel normally exposes the MSAA PANEL role. NVDA deliberately does
+    not suppress that role on focus, while its PANE role is listed in
+    controlTypes.silentRolesOnFocus. When wx hides the currently focused
+    recording trigger, Windows can focus the parent panel automatically; that
+    is the source of the otherwise isolated "Panel" announcement.
+
+    While armed, expose this structural container as an unnamed PANE.
+    Focus still exists, so keyboard accelerators and subsequent Tab navigation
+    keep working. Outside the short armed interval every method falls back to
+    wx's standard accessible object.
+    """
+
+    def __init__(self, window):
+        super().__init__(window)
+        self.cloaked = False
+
+    def GetRole(self, childId):
+        if not self.cloaked or childId != 0:
+            return (wx.ACC_NOT_IMPLEMENTED, wx.ROLE_NONE)
+        return (wx.ACC_OK, wx.ROLE_SYSTEM_PANE)
+
+    def GetName(self, childId):
+        if not self.cloaked or childId != 0:
+            return (wx.ACC_NOT_IMPLEMENTED, "")
+        return (wx.ACC_OK, "")
+
+    def GetDescription(self, childId):
+        if not self.cloaked or childId != 0:
+            return (wx.ACC_NOT_IMPLEMENTED, "")
+        return (wx.ACC_OK, "")
+
+
+def _get_or_install_panel_cloak(window):
+    cloak = getattr(window, _PANEL_CLOAK_ATTR, None)
+    if cloak is not None:
+        return cloak
+    cloak = PanelFocusCloakAccessible(window)
+    window.SetAccessible(cloak)
+    setattr(window, _PANEL_CLOAK_ATTR, cloak)
+    return cloak
+
+
+def _focus_is_within_any(focus, windows):
+    """Return True when focus is one of windows or below one of them."""
+    current = focus
+    while current is not None:
+        if any(current is window for window in windows if window is not None):
+            return True
+        try:
+            current = current.GetParent()
+        except Exception:
+            return False
+    return False
+
+
+def cloak_panel_focus_fallback(panel, *about_to_hide, duration_ms=DEFAULT_CLOAK_MS):
+    """Silence the parent-panel focus produced by hiding a focused child.
+
+    Nothing is armed unless the current focus is actually inside one of the
+    controls that is about to be hidden. This means Ctrl+R from a control that
+    remains visible keeps its existing focus untouched; only the automatic
+    wx/Windows fallback caused by the UI swap is affected.
+    """
+    try:
+        focus = wx.Window.FindFocus()
+        if focus is None or not _focus_is_within_any(focus, about_to_hide):
+            return False
+        cloak = _get_or_install_panel_cloak(panel)
+        cloak.cloaked = True
+    except Exception:
+        logging.debug(
+            "[focus_cloak] could not arm parent-panel fallback cloak",
+            exc_info=True,
+        )
+        return False
+
+    def _uncloak():
+        try:
+            cloak.cloaked = False
+        except Exception:
+            pass
+
+    try:
+        wx.CallLater(max(0, int(duration_ms)), _uncloak)
+    except Exception:
+        _uncloak()
+        return False
+    return True
 
 def uncloak_focus_announcement(window):
     """Disarm the cloak on ``window`` immediately, if it has one."""

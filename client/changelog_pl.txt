@@ -22,6 +22,10 @@ NOWOŚCI
 
 POPRAWKI
 
+- Po rozpoczęciu nagrywania wiadomości głosowej przy wyciszonych komunikatach czytnik ekranu nie zaczyna już wypowiadać „Wyślij”, zanim zostanie przerwany. WinZapp nie wykonuje teraz automatycznego przeniesienia fokusu, które powodowało ten urwany komunikat, a skróty Ctrl+R, Ctrl+Shift+P i Ctrl+Shift+D nadal działają.
+
+- Odebrane połączenia przychodzące nie są już oznaczane jako „nieodebrane” dwie minuty później. Licznik połączenia jest usuwany po odebraniu, odrzuceniu lub zakończeniu połączenia, a krótkie zmiany stanu połączenia w WhatsApp Web nie kończą już aktywnego połączenia przez pomyłkę.
+
 - Wiadomości zaznaczone w czacie pozostawały zaznaczone po jego zamknięciu i wracały zaznaczone po ponownym otwarciu. Teraz zaznaczenie kończy się razem z czatem.
 
 - Gdy WhatsApp odrzucał połączenie tuż po uruchomieniu programu, kopia zapasowa profilu przeglądarki w ogóle nie była przywracana: jeśli kody parowania zaczynały napływać w pierwszych sekundach, WinZapp zamykał sesję i kazał sparować konto od nowa, mimo że zapisana była dobra kopia. Teraz przywraca kopię, gdy tylko pojawi się pierwszy kod, i prosi o parowanie dopiero wtedy, gdy przywrócenie nie pomoże.

@@ -47,10 +47,30 @@ def test_call_media_bridge_replaces_browser_microphone_with_python_pcm():
     assert "RTCPeerConnection" in bridge
     assert "__winzappOnCallRemoteAudio" in bridge
     assert "if (!constraints?.audio && !constraints?.video) {" in bridge
+    assert "new MediaStream([cameraTrack()])" in bridge
+    assert "call:video:camera" in bridge
+    assert "call:video:remote" in bridge
+    assert "video-request-refused" not in bridge
     assert "microphone" in bridge
+    assert "camera" in bridge
     assert "webkitGetUserMedia" in bridge
     assert "if (!state.enabled || !constraints?.audio)" not in bridge
 
+
+def test_call_media_bridge_advertises_virtual_camera_on_headless_hosts():
+    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+
+    assert "nativeEnumerateDevices" in bridge
+    assert "bridgedEnumerateDevices" in bridge
+    assert "deviceId: 'winzapp-camera'" in bridge
+    assert "kind: 'videoinput'" in bridge
+    assert "label: 'WinZapp Camera'" in bridge
+    assert "devices.unshift(virtualCamera)" in bridge
+    assert "cameraTrackRequests" in bridge
+    assert "cameraFramesReceived" in bridge
+    assert "call camera frames received from desktop=" in bridge
+    assert "version === 7" in bridge
+    assert "version: 7" in bridge
 
 def test_chromium_does_not_disable_voice_input_for_python_call_bridge():
     start_js = _source("client/api_patches/start.js")
@@ -112,54 +132,20 @@ def test_chromium_keeps_rendering_backend_available_for_voip_runtime():
     assert "--disable-webgl" not in session_util
 
 
-def test_cdp_permission_grant_includes_the_microphone_but_not_the_camera():
-    """WhatsApp's VoIP bootstrap needs microphone permission to look granted.
-
-    It must not get the camera with it. --use-fake-ui-for-media-stream removes
-    the permission prompt that headless Chromium cannot answer anyway, so a
-    videoCapture grant means any page-side getUserMedia({video}) opens the real
-    camera silently, with no indicator, while video calls are out of scope.
-
-    Asserted on the grant list itself rather than on the words appearing
-    anywhere in the file — the word survives in the comment explaining why it
-    is absent, which would make a substring check pass vacuously.
-    """
+def test_cdp_permission_grant_includes_voip_capture_permissions():
     create_session = _source("client/api_patches/src/util/createSessionUtil.ts")
+    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+
     granted = [
         line for line in create_session.splitlines()
         if "permissions: [" in line and not line.lstrip().startswith("//")
     ]
     assert len(granted) == 1, granted
-
     assert "'audioCapture'" in granted[0]
-    assert "videoCapture" not in granted[0]
-    # And the page keeps the camera shut even if something asks for it. This
-    # asserts on the SHAPE of the guard, not on a removed expression: the first
-    # attempt at this fix left the refusal below an early return that sent
-    # `{video: true}` with no audio key straight to the real device, and a
-    # `"nativeGetUserMedia({ video:" not in bridge` check passed happily over
-    # it. With --use-fake-ui-for-media-stream the browser accepts that request
-    # itself, so the CDP grant above cannot close it on its own.
-    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
-    body = bridge[bridge.index("const bridgedGetUserMedia"):]
-    body = body[: body.index("\n  };")]
-    # The only way back to the native device is when NEITHER kind was asked
-    # for; a video-only request must not reach it.
-    natives = [line.strip() for line in body.splitlines() if "nativeGetUserMedia" in line]
-    assert natives == ["return nativeGetUserMedia(constraints);"], natives
-    assert "if (!constraints?.audio && !constraints?.video) {" in body
-    assert "video-request-refused" in body
-    # The stream handed back carries the synthetic microphone and nothing else.
-    assert "return new MediaStream([micTrack]);" in body
-
-    # The page must not claim the camera either: answering 'granted' from the
-    # patched permissions.query would undo dropping videoCapture for any page
-    # that checks before asking.
-    query = bridge[bridge.index("value: async (descriptor: PermissionDescriptor)"):]
-    query = query[: query.index("nativePermissionQuery(descriptor)")]
-    assert "name === 'microphone'" in query
-    assert "'camera'" not in query
-
+    assert "'videoCapture'" in granted[0]
+    assert "name === 'microphone' || name === 'camera'" in bridge
+    assert "new MediaStream([cameraTrack()])" in bridge
+    assert "video-request-refused" not in bridge
 
 def test_setup_api_copies_call_patch_files_into_runtime_api():
     setup_api = _source("setup_api.py")
@@ -171,14 +157,12 @@ def test_setup_api_copies_call_patch_files_into_runtime_api():
 def test_outgoing_call_allows_native_voip_more_than_generic_http_timeout():
     main_py = _source("client/main.py")
 
-    # Matched on the pieces rather than on one exact block of source, so
-    # reformatting the call cannot read as a lost timeout.
-    offer = main_py[main_py.index("def start_voice_call"):]
+    offer = main_py[main_py.index("def _start_individual_call"):]
     offer = offer[: offer.index("threading.Thread(target=_worker")]
     assert '"offer",' in offer
     assert "timeout=75," in offer
-    assert '{"to": dial_jid, "isVideo": False}' in offer
-
+    assert "dial_jid = self._resolve_jid_for_send(peer_jid) or peer_jid" in offer
+    assert '{"to": dial_jid, "isVideo": is_video}' in offer
 
 def test_outgoing_call_prefers_new_active_call_over_stale_collection_model():
     controller = _source("client/api_patches/src/controller/callController.ts")
@@ -190,6 +174,37 @@ def test_outgoing_call_prefers_new_active_call_over_stale_collection_model():
     assert "!preexistingIds.has(offeredId)" in controller
     assert "!preexistingIds.has(modelId)" in controller
 
+
+
+
+def test_active_call_poll_tolerates_transient_active_call_gaps():
+    source = _source("client/api_patches/src/util/createSessionUtil.ts")
+
+    assert "const ACTIVE_CALL_MISSING_GRACE_MS = 5000" in source
+    assert "let activeCallMissingSince = 0" in source
+    assert "if (previousId) activeCall = findCall(previousId)" in source
+    assert "now - activeCallMissingSince < ACTIVE_CALL_MISSING_GRACE_MS" in source
+    assert "emitCallState('ended', lastActiveCall, 'ENDED')" in source
+    # The regression was a one-poll null immediately becoming ENDED.
+    assert "if (!activeCall) {\n                if (lastActiveCall) {" not in source
+
+def test_handled_incoming_call_cannot_fire_stale_120_second_timeout():
+    create_session = _source("client/api_patches/src/util/createSessionUtil.ts")
+    controller = _source("client/api_patches/src/controller/callController.ts")
+
+    # Valmir's log showed offer -> accept -> NOT_ANSWERED exactly 120 seconds
+    # after the original offer. Newer WA keeps accepted calls in activeCall,
+    # so the incoming tracker must see that slot instead of its stale ring model.
+    assert "const active = store?.activeCall || store?.get?.('activeCall')" in create_session
+    assert "if (active && callIdOf(active) === id) return active" in create_session
+
+    # Successful WinZapp actions also retire the incoming watchdog explicitly,
+    # covering builds where activeCall changes identity during the transition.
+    assert "__winzappForgetIncomingCall" in create_session
+    assert "trackedCalls.delete(id)" in create_session
+    assert "forgetIncomingCall(callId || callIdOf(call))" in controller
+    assert "forgetIncomingCall(callId)" in controller
+    assert "forgetIncomingCall(handledCallId)" in controller
 
 def test_session_prewarms_lazy_whatsapp_voip_runtime():
     bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
@@ -212,22 +227,13 @@ def test_native_call_actions_wait_for_lazy_voip_rpc_initialization():
 
 
 def test_voip_initialization_can_retry_after_lazy_backend_failure():
-    """A failed VoIP init has to be retried, and the retry has to be OURS.
-
-    This used to read wa-js's own `enableCallInterface.ts` out of a checkout
-    that only ever existed on one machine, so it failed for everybody else and
-    in CI. Nothing in WinZapp patches wa-js here — the recovery lives in the
-    page script the bridge injects, which is the file to hold to it.
-    """
+    """A failed lazy VoIP initialization must be retried by WinZapp's bridge."""
     bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
 
     assert "WPP?.call?.enableCallInterface" in bridge
     assert "getDidVoipInitError" in bridge
     assert "retryWAWebVoipInitAfterFailure" in bridge
-    # A failure must be retried rather than returned: the backend is lazy and
-    # the first attempt losing the race is the normal case.
     assert "attempt < 10" in bridge
-
 
 def test_voip_runtime_warmup_is_deduplicated_per_session():
     bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
@@ -239,38 +245,69 @@ def test_voip_runtime_warmup_is_deduplicated_per_session():
     assert "getDidVoipInitError" in bridge
 
 
-def test_page_native_audio_is_always_muted_without_touching_real_call_audio():
-    """WhatsApp Web's own sounds (ringtone, message chimes) must never be
-    audible through this Chromium process. The prior diagnostic
-    instrumentation confirmed live that the ringtone plays as a plain,
-    looping <audio> element's native .play() (isRtcStream=false) — a
-    categorically different path from the call's own remote audio track,
-    which never touches an <audio>/Audio() element at all: it is tapped
-    directly off the RTCPeerConnection's MediaStreamTrack via the Web Audio
-    API and was already silenced before this fix (attachRemoteTrack's
-    `sink` GainNode, gain=0). So muting every native <audio>/<video> element
-    and every `new Audio()` instance, unconditionally, is safe — there is no
-    call-state window where it would also mute real call audio, so nothing
-    needs to be tracked or toggled back on.
-
-    This also fixes the sibling report from the same investigation: a
-    missed/unanswered call left the page's own ringtone looping forever,
-    because the terminal callstate/incomingcall handling in main.py only
-    ever stops WinZapp's own sound — it has no way to reach into the page.
-    Muting page audio unconditionally removes that dependency entirely.
-    """
+def test_page_native_audio_mutes_message_ping_but_preserves_call_end_chime():
+    """Page audio is muted by default, except for the real terminal-call chime."""
     bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
 
-    assert "el.muted = true;" in bridge
-    assert "el.volume = 0;" in bridge
+    # The old loop-only rule was the regression: it muted the ringtone but
+    # allowed WhatsApp Web's short incoming-message ping through.
+    assert "let allowCallEndChimeUntil = 0;" in bridge
+    assert "let callWasActive = false;" in bridge
+    assert "const silencePageAudio = (el: HTMLMediaElement)" in bridge
+    assert "silencePageAudio(el);" in bridge
+    assert "return !(el.srcObject instanceof MediaStream) && el.loop === true;" in bridge
+
+    # A live/ringing -> terminal transition opens the only short-audio
+    # exception, and local reject/end arms it before resetting the call bridge.
+    assert "if (callWasActive && !active) allowCallEndChime();" in bridge
+    assert "if (callWasActive || state.enabled) allowCallEndChime();" in bridge
+    assert "pageAudioNow() + 2500" in bridge
+    assert "if (pageAudioNow() <= allowCallEndChimeUntil)" in bridge
+    assert "restorePageAudio(el);" in bridge
+
+    # RTC audio is a separate MediaStream path and must never be page-muted.
+    assert "if (el.srcObject instanceof MediaStream) {" in bridge
+
+    # HTMLMediaElement.play is checked synchronously; periodic scanning covers
+    # autoplay/property changes and refreshes call lifecycle even with no media.
     assert "win.HTMLMediaElement.prototype.play = function" in bridge
-    assert "return nativeMediaPlay.apply(this, args);" in bridge
-    assert "win.Audio = new Proxy(NativeAudio" in bridge
-    # The autoplay-attribute backstop is scanMediaElements() itself — it must
-    # silence every element it finds, not only the RTC-stream ones.
+    assert "const silenced = applyPageAudioPolicy(el);" in bridge
     scan = bridge[bridge.index("const scanMediaElements = ()"):]
     scan = scan[: scan.index("\n  };")]
-    assert "silenceElement(element);" in scan
-    # Bounded, so a call with a looping/reactivating ringtone cannot flood
-    # wppconnect.log for the rest of the session.
+    assert "refreshCallAudioPolicy();" in scan
+    assert "applyPageAudioPolicy(element);" in scan
+
+    # Newly-created Audio objects enter the same policy, so message pings do
+    # not escape through a separate constructor path.
+    audio_proxy = bridge[bridge.index("const NativeAudio = win.Audio"):]
+    audio_proxy = audio_proxy[: audio_proxy.index("win.__winzappPageAudioMuteAudioWrapped = true;")]
+    assert "applyPageAudioPolicy(instance);" in audio_proxy
+
     assert "if (mutedLogCount > 40) return;" in bridge
+
+
+
+def test_remote_linux_call_audio_relay_can_start_while_call_is_still_ringing():
+    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+
+    assert "socket.on('call:audio:start'" in bridge
+    assert "ensureLinuxCallAudio(session, socket, logger)" in bridge
+    assert "Linux call speaker monitor started before answer" in bridge
+
+
+def test_call_media_bridge_bounds_microphone_backlog_to_live_audio():
+    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+
+    # Regression: all three microphone queues were raised to 75 x 20 ms,
+    # allowing roughly 1.5 seconds of old speech to be replayed after a stall.
+    assert "const MAX_MIC_QUEUE_FRAMES = 12;" in bridge
+    assert "const MIC_TARGET_BACKLOG_FRAMES = 3;" in bridge
+    assert "queue.length > MIC_TARGET_BACKLOG_FRAMES" in bridge
+    assert "queue.splice(0, dropped)" in bridge
+
+    # The final WebAudio queue inside the WhatsApp page has its own bound and
+    # preserves only a partially-consumed head plus the freshest frames.
+    assert "const PAGE_MIC_QUEUE_FRAMES = 4;" in bridge
+    assert "const PAGE_MIC_TARGET_BACKLOG_FRAMES = 2;" in bridge
+    assert "state.micFramesDroppedForLatency" in bridge
+    assert "const dropIndex = state.micOffset > 0 ? 1 : 0;" in bridge

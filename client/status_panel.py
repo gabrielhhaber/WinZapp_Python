@@ -19,7 +19,7 @@ from core.save_location import resolve_save_dialog_folder
 from core.save_dialog_selection import schedule_deselect_extension
 from core.utils import format_number, normalize_line_separators, is_voice_message
 from core.video_player import VideoPlayer
-from core.focus_cloak import cloak_focus_announcement
+from core.focus_cloak import cloak_panel_focus_fallback
 from core.audio_devices import (
     find_input_device_index, fallback_input_device_indices, RECORDING_SAMPLE_CONFIGS,
 )
@@ -808,7 +808,9 @@ class StatusPanel(wx.Panel):
         voice_btn_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._voice_close_btn = wx.Button(self._voice_post_panel, label=i18n.t("discard_voice_message"))
-        self._voice_close_btn.SetAccessible(AccessibleDiscardVoiceMessage(self.main_window))
+        self._voice_close_btn.SetAccessible(
+            AccessibleDiscardVoiceMessage(self.main_window, self._voice_close_btn)
+        )
         self._voice_close_btn.Bind(wx.EVT_BUTTON, self._on_close_voice_panel)
         self._voice_close_btn.Hide()
         voice_btn_sizer.Add(self._voice_close_btn, 0, wx.LEFT | wx.BOTTOM, 5)
@@ -819,7 +821,9 @@ class StatusPanel(wx.Panel):
         voice_btn_sizer.Add(self._voice_start_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
         self._voice_pause_btn = wx.Button(self._voice_post_panel, label=i18n.t("pause_recording"))
-        self._voice_pause_btn.SetAccessible(AccessiblePauseResumeRecording(self.main_window))
+        self._voice_pause_btn.SetAccessible(
+            AccessiblePauseResumeRecording(self.main_window, self._voice_pause_btn)
+        )
         self._voice_pause_btn.Bind(wx.EVT_BUTTON, self._toggle_pause_voice_recording)
         self._voice_pause_btn.Hide()
         voice_btn_sizer.Add(self._voice_pause_btn, 0, wx.LEFT | wx.BOTTOM, 5)
@@ -837,7 +841,9 @@ class StatusPanel(wx.Panel):
         )
 
         self._voice_send_btn = wx.Button(self._voice_post_panel, label=i18n.t("send_voice_message"))
-        self._voice_send_btn.SetAccessible(AccessibleSendVoiceMessage(self.main_window))
+        self._voice_send_btn.SetAccessible(
+            AccessibleSendVoiceMessage(self.main_window, self._voice_send_btn)
+        )
         self._voice_send_btn.Bind(wx.EVT_BUTTON, self._on_send_voice_status)
         self._voice_send_btn.Hide()
         voice_btn_sizer.Add(self._voice_send_btn, 0, wx.LEFT | wx.BOTTOM, 5)
@@ -974,10 +980,13 @@ class StatusPanel(wx.Panel):
         wx.CallAfter(self._set_list_loading)
         my_statuses, contacts = self._fetch_statuses_from_api()
         api_ok = getattr(self, "_last_status_api_ok", False)
-        # A successful WhatsApp response is authoritative for own stories.
-        # An empty list must clear stale local optimistic rows.
+        my_status_ready = getattr(self, "_last_my_status_ready", False)
+        # A non-empty legacy response is safe to reconcile. An empty list is
+        # authoritative only when the API confirms getMyStatus() was ready.
         if api_ok:
-            self._reconcile_my_status_cache(my_statuses)
+            self._reconcile_my_status_cache(
+                my_statuses, authoritative_empty=my_status_ready
+            )
         # Merge, never replace: the API's StatusV3Store may only hold the
         # pages loaded so far, while _status_updates (seeded from the DB at
         # startup) keeps the stories that arrived via status@broadcast
@@ -994,24 +1003,17 @@ class StatusPanel(wx.Panel):
             contacts = self._merge_status_contacts(contacts, fb_contacts)
         wx.CallAfter(self._populate_list, my_statuses, contacts)
 
-    def _reconcile_my_status_cache(self, remote_my_statuses: list) -> None:
+    def _reconcile_my_status_cache(
+        self, remote_my_statuses: list, *, authoritative_empty: bool = False
+    ) -> None:
         """Delete cached own stories absent from authoritative WhatsApp.
 
-        Only runs when *remote_my_statuses* is non-empty. _fetch_statuses_
-        from_api() marks the fetch "ok" as soon as it gets back HTTP 200
-        with a JSON dict body — it has no way to tell "you genuinely have
-        no live stories right now" apart from "WPPConnect's StatusV3Store
-        hasn't finished rehydrating yet" (routine right after a reconnect),
-        both of which look identical here: an empty myStatus list. Treating
-        an empty-but-"ok" response as authoritative used to permanently
-        delete every locally cached own status — from memory AND SQLite,
-        via remove_failed_status_update() — on the next reconnect after
-        posting one, even though it was still live on WhatsApp. A genuinely
-        expired own status (the one real case this deliberately no longer
-        catches) is the far cheaper failure to leave uncorrected than
-        wiping a user's own live content out from under them.
+        Empty lists are destructive only after the API confirms that
+        WPP.status.getMyStatus() actually returned a loaded status model.
+        Older/custom APIs without that readiness marker keep the safe legacy
+        behavior: a non-empty list can reconcile, an empty one cannot.
         """
-        if not remote_my_statuses:
+        if not remote_my_statuses and not authoritative_empty:
             return
         mw = self.main_window
         remote_ids = {
@@ -1103,15 +1105,18 @@ class StatusPanel(wx.Panel):
             resp = api_get(url, headers=headers, timeout=15)
             if resp.status_code not in (200, 201):
                 self._last_status_api_ok = False
+                self._last_my_status_ready = False
                 return [], []
             body = resp.json() or {}
             data = body.get("response") if isinstance(body, dict) else None
         except Exception as exc:
             logging.warning("[status_panel] statuses API failed, falling back to WebSocket cache: %s", exc)
             self._last_status_api_ok = False
+            self._last_my_status_ready = False
             return [], []
         if not isinstance(data, dict):
             self._last_status_api_ok = False
+            self._last_my_status_ready = False
             return [], []
 
         ws  = getattr(mw, "ws", None)
@@ -1134,6 +1139,11 @@ class StatusPanel(wx.Panel):
                     logging.warning("[status_panel] failed to normalize API status: %s", exc)
             records.append(wm)
         self._last_status_api_ok = True
+        # New APIs distinguish "loaded and genuinely empty" from "not ready".
+        # Non-empty responses remain authoritative for backward compatibility.
+        self._last_my_status_ready = bool(data.get("myStatusReady")) or bool(
+            data.get("myStatus")
+        )
         return self._parse_statuses(records, i18n)
 
     def _parse_statuses(self, items, i18n) -> tuple:
@@ -2551,6 +2561,10 @@ class StatusPanel(wx.Panel):
             self._voice_status_lbl.SetLabel(i18n.t("recording_in_progress"))
             self._voice_close_btn.SetLabel(i18n.t("discard_voice_message"))
             self._voice_close_btn.Show()
+            if self._voice_recording_focus_suppression_enabled():
+                cloak_panel_focus_fallback(
+                    self._voice_post_panel, self._voice_start_btn
+                )
             self._voice_start_btn.Hide()
             self._voice_pause_btn.SetLabel(i18n.t("pause_recording"))
             self._voice_pause_btn.Show()
@@ -2562,40 +2576,53 @@ class StatusPanel(wx.Panel):
         threading.Thread(target=_bg_open_stream, daemon=True).start()
 
     def _voice_recording_silence_enabled(self):
-        """True when Settings > Conteúdo Falado asks for silence while
-        recording a voice message.
-
-        Keyed ONLY on that toggle, matching ConversationsPanel. This copy used
-        to also fire when extended_sr_compat_enabled was OFF — i.e. exactly
-        when the user had told WinZapp never to talk to their screen reader,
-        the app started interrupting it instead. The conversation panel's copy
-        was fixed for that; this one was left behind.
-        """
+        """Whether all WinZapp spoken content is muted during recording."""
         settings = getattr(self.main_window, "settings", None) or {}
         return bool(
             settings.get("speech_content", {}).get("silence_while_recording", False)
         )
 
+    def _voice_recording_focus_suppression_enabled(self):
+        """Whether WinZapp's automatic recording-button focus stays silent.
+
+        The dedicated silence setting always enables this. Disabling extended
+        screen-reader compatibility also suppresses only this native focus
+        announcement, without muting unrelated screen-reader speech.
+        """
+        settings = getattr(self.main_window, "settings", None) or {}
+        silence_recording = settings.get("speech_content", {}).get(
+            "silence_while_recording", False
+        )
+        extended_enabled = settings.get("accessibility", {}).get(
+            "extended_sr_compat_enabled", True
+        )
+        return bool(silence_recording or not extended_enabled)
+
     def _focus_recording_button_silently(self, button):
-        """Move focus to a recording button without the screen reader
-        announcing it. See ConversationsPanel._focus_recording_button_silently
-        for why the cloak, and not the silence() burst, is the mechanism."""
-        if self._voice_recording_silence_enabled():
-            # Armed BEFORE SetFocus(), or the screen reader reads the real
-            # (focused) state and speaks.
-            cloak_focus_announcement(button)
+        """Apply recording focus without creating a suppressed focus event.
+
+        See ConversationsPanel._focus_recording_button_silently: when silence
+        is requested, the reliable cross-API solution is not to move focus to
+        Send at all.  The status recording shortcuts remain available.
+        """
+        if self._voice_recording_focus_suppression_enabled():
+            return False
         button.SetFocus()
-        self._silence_send_voice_focus_if_enabled()
+        return True
 
     def _silence_send_voice_focus_if_enabled(self):
-        """Fallback for an announcement the cloak did not stop."""
-        if not self._voice_recording_silence_enabled():
+        """Cancel delayed speech from non-focus recording state changes."""
+        if not self._voice_recording_focus_suppression_enabled():
             return
         speak_output = getattr(self.main_window, "speak_output", None)
         silence_focus = getattr(speak_output, "silence_screen_reader_focus", None)
         if not callable(silence_focus):
             return
-        silence_all = getattr(speak_output, "silence", None)
+        silence_all = (
+            getattr(speak_output, "silence", None)
+            if self._voice_recording_silence_enabled()
+            else None
+        )
 
         def _silence_now():
             silence_focus()

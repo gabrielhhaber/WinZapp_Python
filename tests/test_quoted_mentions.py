@@ -107,12 +107,17 @@ class _FakeI18n:
 
 
 class _FakeMainWindow:
-    def __init__(self, lid_to_phone=None):
+    def __init__(self, lid_to_phone=None, self_jid="", self_label="Me"):
         self._lid_to_phone = lid_to_phone or {}
         self.i18n = _FakeI18n()
+        self._self_jid = self_jid
+        self._self_label = self_label
 
     def _is_self_jid(self, jid):
-        return False
+        return bool(self._self_jid) and jid == self._self_jid
+
+    def self_reference_label(self):
+        return self._self_label
 
 
 class _Stub:
@@ -155,6 +160,13 @@ class TestGetQuotedPreviewResolvesMentions:
             "mentionedJid": ["111@lid"],
         }
         assert s._get_quoted_preview(quoted) == "oi @Ana bom dia"
+
+    def test_self_mention_uses_active_locale_self_reference_label(self):
+        own_jid = "5511999999999@s.whatsapp.net"
+        s = _Stub(_FakeMainWindow(self_jid=own_jid, self_label="Me"))
+        assert s._resolve_mentions_in_text(
+            "testing @5511999999999", [own_jid]
+        ) == "testing @Me"
 
     def test_no_mentioned_jid_key_leaves_the_text_unchanged(self):
         s = _Stub(_FakeMainWindow())

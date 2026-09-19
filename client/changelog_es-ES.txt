@@ -22,6 +22,10 @@ NOVEDADES
 
 CORRECCIONES
 
+- Al iniciar un mensaje de voz con los anuncios de grabación silenciados, el lector de pantalla ya no empieza a decir “Enviar” antes de ser interrumpido. WinZapp ahora evita el cambio automático de foco que causaba ese fragmento y mantiene disponibles Ctrl+R, Ctrl+Shift+P y Ctrl+Shift+D.
+
+- Las llamadas entrantes contestadas en WinZapp ya no se marcan como “no contestadas” dos minutos después. El temporizador de la llamada se retira al contestarla, rechazarla o finalizarla, y las transiciones breves del estado de llamadas de WhatsApp Web ya no terminan una llamada activa por error.
+
 - Los mensajes que habías marcado en una conversación seguían marcados después de cerrarla, y volvían a aparecer marcados al abrirla de nuevo. Ahora la selección termina junto con la conversación.
 
 - Cuando WhatsApp rechazaba la conexión justo al abrir el programa, la copia de seguridad del perfil nunca llegaba a restaurarse: si los códigos de vinculación empezaban a llegar en los primeros segundos, WinZapp cerraba la sesión y pedía vincular de nuevo aunque hubiera una copia buena guardada. Ahora restaura la copia en cuanto aparece el primer código, y solo pide vincular cuando la restauración no lo resuelve.

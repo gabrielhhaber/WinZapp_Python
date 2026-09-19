@@ -145,6 +145,7 @@ class _Stub:
     _cleanup_recorded_audio_temp_file = StatusPanel._cleanup_recorded_audio_temp_file
     _silence_send_voice_focus_if_enabled = StatusPanel._silence_send_voice_focus_if_enabled
     _voice_recording_silence_enabled = StatusPanel._voice_recording_silence_enabled
+    _voice_recording_focus_suppression_enabled = StatusPanel._voice_recording_focus_suppression_enabled
     _focus_recording_button_silently = StatusPanel._focus_recording_button_silently
 
     def __init__(self, convert_result="converted.ogg"):

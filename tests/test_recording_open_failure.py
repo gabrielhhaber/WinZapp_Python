@@ -103,6 +103,9 @@ class _Stub:
     _voice_recording_silence_enabled = (
         ConversationsPanel._voice_recording_silence_enabled
     )
+    _voice_recording_focus_suppression_enabled = (
+        ConversationsPanel._voice_recording_focus_suppression_enabled
+    )
     _focus_recording_button_silently = (
         ConversationsPanel._focus_recording_button_silently
     )

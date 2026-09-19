@@ -2309,8 +2309,10 @@ class SettingsDialog(wx.Dialog):
             return False
 
         # Language
+        old_lang = self.main_window.i18n.language
         sel = self._lang_combo.GetSelection()
         new_lang = self._lang_codes[sel] if sel != wx.NOT_FOUND else "pt-BR"
+        language_changed = new_lang != old_lang
         self.main_window.settings.setdefault("general", {})["language"] = new_lang
 
         # UI: messages page size
@@ -2663,13 +2665,14 @@ class SettingsDialog(wx.Dialog):
         # alert-tone defaults) take effect immediately, without a restart.
         self.main_window.load_sounds()
 
-        # Invalidate cache and re-read the new language
-        from core.i18n import I18n
-        I18n.invalidate_cache()
-        self.main_window.i18n.get_language()
-
-        # Refresh all visible labels in the main window
-        self.main_window.apply_language_changes()
+        # Reload translations and repaint the already-created UI only when the
+        # language actually changed. This includes dynamic rows and modeless
+        # call windows, so no application restart is needed.
+        if language_changed:
+            from core.i18n import I18n
+            I18n.invalidate_cache()
+            self.main_window.i18n.get_language()
+            self.main_window.apply_language_changes()
 
         cp = getattr(self.main_window, "conversations_panel", None)
         message_list_mode_changed = new_message_list_mode != old_message_list_mode

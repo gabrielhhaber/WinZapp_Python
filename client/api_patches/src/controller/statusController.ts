@@ -318,7 +318,7 @@ export async function getStatuses(req: Request, res: Response) {
   try {
     const result = await req.client.page.evaluate(async () => {
       const WPP = (window as any).WPP;
-      const out: any = { myStatus: [], contacts: [] };
+      const out: any = { myStatus: [], contacts: [], myStatusReady: false };
       if (!WPP?.status) return out;
 
       const serialize = (m: any) => {
@@ -351,10 +351,13 @@ export async function getStatuses(req: Request, res: Response) {
       // Own posted statuses, straight from the account.
       try {
         const my = await WPP.status.getMyStatus();
-        ownStatusJid = my?.id?._serialized || my?.id?.toString?.() || '';
-        await loadAllMessages(my);
-        const msgs = my?.getAllMsgs ? my.getAllMsgs() : [];
-        out.myStatus = (msgs || []).map(serialize).filter(Boolean);
+        if (my) {
+          ownStatusJid = my?.id?._serialized || my?.id?.toString?.() || '';
+          await loadAllMessages(my);
+          const msgs = my?.getAllMsgs ? my.getAllMsgs() : [];
+          out.myStatus = (msgs || []).map(serialize).filter(Boolean);
+          out.myStatusReady = true;
+        }
       } catch (e) {
         // not paired/ready yet — leave myStatus empty
       }

@@ -69,6 +69,7 @@ MIRRORED_FILES = [
     "src/util/createSessionUtil.ts",
     "src/util/sessionUtil.ts",
     "src/util/functions.ts",
+    "src/util/callMediaBridge.ts",
     "src/util/tokenStore/fileTokenStory.ts",
     "src/middleware/statusConnection.ts",
     "src/middleware/auth.ts",
@@ -158,6 +159,23 @@ def test_the_in_app_installer_restores_the_same_patches():
     src = (ROOT / "client" / "ui" / "dialogs" / "api_setup.py").read_text(encoding="utf-8")
     for rel_path in MIRRORED_FILES:
         assert f'"{rel_path}"' in src, f"ApiSetupDialog does not restore {rel_path}"
+
+
+def test_release_builder_packages_the_same_patch_sources():
+    """build.py must ship every canonical patch under api/ as well as api_patches/."""
+    build_src = (ROOT / "build.py").read_text(encoding="utf-8")
+    for rel_path in MIRRORED_FILES:
+        assert f'"{rel_path}"' in build_src, f"build.py does not package {rel_path}"
+
+
+def test_build_api_uses_the_canonical_patch_list_and_verifies_call_output():
+    """The developer build path must not silently compile a stale call controller."""
+    src = (ROOT / "build_api.py").read_text(encoding="utf-8")
+    assert "canonical_setup.CUSTOM_ROOT_FILES + canonical_setup.CUSTOM_SRC_FILES" in src
+    assert "canonical_setup._merge_package_json_dependencies()" in src
+    assert "_verify_critical_call_patch(api_dir)" in src
+    assert '"native-group-chat"' in src
+    assert '"native-group-wids"' in src
 
 
 def test_both_installers_patch_the_same_dependencies():

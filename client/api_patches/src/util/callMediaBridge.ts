@@ -4,7 +4,11 @@ import { ChildProcessWithoutNullStreams, execFileSync, spawn } from 'child_proce
 import { clientsArray } from './sessionUtil';
 
 const MAX_AUDIO_FRAME_BYTES = 64 * 1024;
-const MAX_MIC_QUEUE_FRAMES = 75;
+// Call audio is live media: after a local/page stall, stale microphone frames
+// are worse than a tiny discontinuity because they permanently put our voice
+// behind the conversation.
+const MAX_MIC_QUEUE_FRAMES = 12;
+const MIC_TARGET_BACKLOG_FRAMES = 3;
 const micQueues = new Map<string, Buffer[]>();
 const micDraining = new Set<string>();
 const micReceived = new Map<string, number>();
@@ -184,16 +188,19 @@ function ensureLinuxCallAudio(
   return processes;
 }
 
-function installCallMediaBridgeInPage(): boolean {
+function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const win = window as any;
-  if (win.__winzappCallMediaBridge?.version === 4) return true;
+  if (win.__winzappCallMediaBridge?.version === 7) return true;
   if (!navigator.mediaDevices?.getUserMedia || !win.RTCPeerConnection) return false;
 
   const AudioContextCtor = win.AudioContext || win.webkitAudioContext;
   if (!AudioContextCtor) return false;
 
+  const PAGE_MIC_QUEUE_FRAMES = 4;
+  const PAGE_MIC_TARGET_BACKLOG_FRAMES = 2;
+
   const state: any = {
-    version: 4,
+    version: 7,
     enabled: false,
     context: null,
     micDestination: null,
@@ -202,10 +209,19 @@ function installCallMediaBridgeInPage(): boolean {
     micOffset: 0,
     remotePipelines: new Map<string, any>(),
     remoteTrackIds: new Set<string>(),
+    remoteVideoIds: new Set<string>(),
+    remoteVideoTimers: new Map<string, number>(),
+    cameraCanvas: null,
+    cameraTrack: null,
+    cameraPending: false,
+    cameraFramesReceived: 0,
+    cameraFramesDropped: 0,
+    cameraTrackRequests: 0,
     localTrackIds: new Set<string>(),
     micFramesPushed: 0,
     micBytesPushed: 0,
     micSamplesConsumed: 0,
+    micFramesDroppedForLatency: 0,
     remoteFramesCaptured: 0,
     remoteTracksAttached: 0,
   };
@@ -214,16 +230,241 @@ function installCallMediaBridgeInPage(): boolean {
     try { win.__winzappOnCallBridgeEvent?.(event, details); } catch (_) {}
   };
 
-  // Silences WhatsApp Web's own page-native sounds (ringtone, message
-  // chimes, ...) without touching real call audio, which never plays
-  // through an <audio>/<video> element in the first place — see the wiring
-  // below (scanMediaElements, HTMLMediaElement.play, `new Audio()`) for why
-  // that split is safe.
-  const silenceElement = (el: HTMLMediaElement) => {
+  // WhatsApp Web's page-native audio must stay out of WinZapp except for
+  // the short call-ended chime. Real call audio is carried separately by the
+  // MediaStream/WebAudio bridge below, so this policy never touches the PCM
+  // that Python sends to the user's selected call speaker.
+  //
+  // The previous selective fix only muted loop=true, which correctly stopped
+  // the incoming-call ringtone but accidentally let the ordinary incoming-
+  // message notification ping through. Keep page audio muted by default and
+  // open a very small exception window when a real WhatsApp call transitions
+  // from a live/ringing state to terminal. That preserves the familiar
+  // call-ended sound without bringing message notifications back.
+  const pageAudioState = new WeakMap<
+    HTMLMediaElement,
+    { muted: boolean; volume: number }
+  >();
+  const mutedPageElements = new Set<HTMLMediaElement>();
+  let callWasActive = false;
+  let allowCallEndChimeUntil = 0;
+
+  const pageAudioNow = () => {
     try {
+      return Number(win.performance?.now?.() ?? Date.now());
+    } catch (_) {
+      return Date.now();
+    }
+  };
+
+  const pageCallState = (call: any): string => {
+    try {
+      const rawValue =
+        call?.getState?.() ?? call?.state ?? call?.get?.('state') ?? '';
+      const raw = String(rawValue);
+      const numericStates: Record<string, string> = {
+        '0': 'NONE',
+        '1': 'CALLING',
+        '2': 'PREACCEPT_RECEIVED',
+        '3': 'INCOMING_RING',
+        '4': 'ACCEPT_SENT',
+        '5': 'ACCEPT_RECEIVED',
+        '6': 'ACTIVE',
+        '7': 'HANDLED_REMOTELY',
+        '8': 'INCOMING_RING',
+        '9': 'REJOINING',
+        '10': 'LINK',
+        '11': 'CONNECTED_LONELY',
+        '12': 'PRE_CALLING',
+        '13': 'ENDED',
+        '14': 'CALL_B_STARTING',
+      };
+      return numericStates[raw] || raw;
+    } catch (_) {
+      return '';
+    }
+  };
+
+  const currentPageCall = (): any => {
+    try {
+      const module = win.require?.('WAWebCallCollection');
+      const store =
+        module?.activeCall !== undefined ? module : module?.get?.() || module;
+      const active = store?.activeCall || store?.get?.('activeCall');
+      if (active) return active;
+    } catch (_) {}
+    try {
+      const store = win.WPP?.whatsapp?.CallStore || win.Store?.Call;
+      return store?.activeCall || store?.get?.('activeCall') || null;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const isLivePageCall = (call: any): boolean => {
+    if (!call) return false;
+    const callState = pageCallState(call);
+    return !['', '0', 'NONE', 'ENDED', 'HANDLED_REMOTELY'].includes(callState);
+  };
+
+  const restorePageAudio = (el: HTMLMediaElement) => {
+    try {
+      const original = pageAudioState.get(el);
+      if (!original) return;
+      el.muted = original.muted;
+      el.volume = original.volume;
+      pageAudioState.delete(el);
+      mutedPageElements.delete(el);
+    } catch (_) {}
+  };
+
+  const allowCallEndChime = () => {
+    allowCallEndChimeUntil = Math.max(
+      allowCallEndChimeUntil,
+      pageAudioNow() + 2500
+    );
+    // A sound object may have been created/muted just before the call state
+    // flips. Restore those objects immediately so the terminal chime is not
+    // clipped while waiting for the next media scan.
+    for (const element of Array.from(mutedPageElements)) {
+      restorePageAudio(element);
+    }
+  };
+
+  const refreshCallAudioPolicy = () => {
+    const active = isLivePageCall(currentPageCall());
+    if (callWasActive && !active) allowCallEndChime();
+    callWasActive = active;
+  };
+
+  const isPageRingtone = (el: HTMLMediaElement) => {
+    try {
+      return !(el.srcObject instanceof MediaStream) && el.loop === true;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const silencePageAudio = (el: HTMLMediaElement) => {
+    try {
+      if (!pageAudioState.has(el)) {
+        pageAudioState.set(el, { muted: el.muted, volume: el.volume });
+        el.addEventListener(
+          'ended',
+          () => mutedPageElements.delete(el),
+          { once: true }
+        );
+      }
+      mutedPageElements.add(el);
       el.muted = true;
       el.volume = 0;
     } catch (_) {}
+  };
+
+  const applyPageAudioPolicy = (el: HTMLMediaElement) => {
+    try {
+      if (el.srcObject instanceof MediaStream) {
+        restorePageAudio(el);
+        return false;
+      }
+    } catch (_) {}
+
+    refreshCallAudioPolicy();
+
+    // The ringtone is always suppressed, even if a previous call just ended
+    // and the short terminal-chime exception window is still open.
+    if (isPageRingtone(el)) {
+      silencePageAudio(el);
+      return true;
+    }
+
+    if (pageAudioNow() <= allowCallEndChimeUntil) {
+      restorePageAudio(el);
+      return false;
+    }
+
+    // Non-looping page audio outside a call-end transition is the WhatsApp
+    // Web UI/notification path (not the RTC stream). This catches the
+    // incoming-message ping that the loop-only policy accidentally restored.
+    silencePageAudio(el);
+    return true;
+  };
+
+  state.pushCameraFrame = (jpeg: string) => {
+    if (typeof jpeg !== 'string' || jpeg.length > 350_000) return;
+    state.cameraFramesReceived += 1;
+    if (state.cameraFramesReceived === 1 || state.cameraFramesReceived % 100 === 0) {
+      report(
+        'camera-frame',
+        `received=${state.cameraFramesReceived} dropped=${state.cameraFramesDropped}`
+      );
+    }
+    if (state.cameraPending) {
+      state.cameraFramesDropped += 1;
+      return;
+    }
+    state.cameraPending = true;
+    const canvas = state.cameraCanvas || document.createElement('canvas');
+    if (!state.cameraCanvas) {
+      canvas.width = 640;
+      canvas.height = 360;
+      state.cameraCanvas = canvas;
+      const context = canvas.getContext('2d');
+      context?.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    const picture = new Image();
+    picture.onload = () => {
+      try { canvas.getContext('2d')?.drawImage(picture, 0, 0, 640, 360); } finally {
+        state.cameraPending = false;
+      }
+    };
+    picture.onerror = () => { state.cameraPending = false; };
+    picture.src = `data:image/jpeg;base64,${jpeg}`;
+  };
+
+  const cameraTrack = () => {
+    state.cameraTrackRequests += 1;
+    if (state.cameraTrackRequests === 1) {
+      report('camera-track', 'WhatsApp requested the synthetic video track');
+    }
+    if (!state.cameraCanvas) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      canvas.getContext('2d')?.fillRect(0, 0, 640, 360);
+      state.cameraCanvas = canvas;
+    }
+    if (!state.cameraTrack || state.cameraTrack.readyState !== 'live') {
+      state.cameraTrack = state.cameraCanvas.captureStream(10).getVideoTracks()[0];
+    }
+    return state.cameraTrack.clone();
+  };
+
+  const attachRemoteVideo = (track: MediaStreamTrack) => {
+    if (!track || track.kind !== 'video' || state.remoteVideoIds.has(track.id)) return;
+    state.remoteVideoIds.add(track.id);
+    const video = document.createElement('video');
+    video.muted = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.srcObject = new MediaStream([track]);
+    void video.play().catch(() => undefined);
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 360;
+    const timer = win.setInterval(() => {
+      if (track.readyState !== 'live' || !video.videoWidth) return;
+      canvas.getContext('2d')?.drawImage(video, 0, 0, 640, 360);
+      const jpeg = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
+      if (jpeg) win.__winzappOnCallRemoteVideo?.(jpeg).catch?.(() => undefined);
+    }, 125);
+    state.remoteVideoTimers.set(track.id, timer);
+    track.addEventListener('ended', () => {
+      win.clearInterval(timer);
+      state.remoteVideoTimers.delete(track.id);
+      state.remoteVideoIds.delete(track.id);
+      video.srcObject = null;
+    }, { once: true });
   };
 
   const ensureContext = () => {
@@ -327,7 +568,22 @@ function installCallMediaBridgeInPage(): boolean {
     state.micQueue.push(samples);
     state.micFramesPushed += 1;
     state.micBytesPushed += Math.floor(base64.length * 3 / 4);
-    while (state.micQueue.length > 75) state.micQueue.shift();
+
+    // Keep the page-side WebAudio queue close to real time. If Chromium was
+    // briefly busy, retain a partially-consumed head frame but skip old
+    // complete frames until only ~40 ms of queued microphone audio remains.
+    while (state.micQueue.length > PAGE_MIC_QUEUE_FRAMES) {
+      const dropIndex = state.micOffset > 0 ? 1 : 0;
+      if (dropIndex >= state.micQueue.length) break;
+      state.micQueue.splice(dropIndex, 1);
+      state.micFramesDroppedForLatency += 1;
+    }
+    while (state.micQueue.length > PAGE_MIC_TARGET_BACKLOG_FRAMES + (state.micOffset > 0 ? 1 : 0)) {
+      const dropIndex = state.micOffset > 0 ? 1 : 0;
+      if (dropIndex >= state.micQueue.length) break;
+      state.micQueue.splice(dropIndex, 1);
+      state.micFramesDroppedForLatency += 1;
+    }
   };
 
   state.pushMicrophoneBatch = (frames: string[]) => {
@@ -335,6 +591,10 @@ function installCallMediaBridgeInPage(): boolean {
   };
 
   state.reset = () => {
+    // Local reject/end stops the bridge immediately before WhatsApp performs
+    // the native action. Arm the terminal-chime exception first so that sound
+    // stays audible even if it starts before the CallStore poll observes ENDED.
+    if (callWasActive || state.enabled) allowCallEndChime();
     state.enabled = false;
     state.micQueue.length = 0;
     state.micOffset = 0;
@@ -345,6 +605,9 @@ function installCallMediaBridgeInPage(): boolean {
     }
     state.remotePipelines.clear();
     state.remoteTrackIds.clear();
+    for (const timer of state.remoteVideoTimers.values()) win.clearInterval(timer);
+    state.remoteVideoTimers.clear();
+    state.remoteVideoIds.clear();
     state.localTrackIds.clear();
   };
 
@@ -399,17 +662,19 @@ function installCallMediaBridgeInPage(): boolean {
   const attachRemoteStream = (stream: MediaStream | null | undefined) => {
     try {
       for (const track of stream?.getAudioTracks?.() || []) attachRemoteTrack(track);
+      for (const track of stream?.getVideoTracks?.() || []) attachRemoteVideo(track);
     } catch (_) {}
   };
 
   const scanMediaElements = () => {
     try {
+      // Keep call lifecycle tracking alive even on pages with no media
+      // elements. The HTMLMediaElement.play wrapper also refreshes this
+      // synchronously, which closes the race around the terminal chime.
+      refreshCallAudioPolicy();
       for (const element of Array.from(document.querySelectorAll('audio, video')) as HTMLMediaElement[]) {
-        // Silencing here too (not just on .play()/new Audio()) catches
-        // anything that starts playing without going through either wrapper
-        // — e.g. the native `autoplay` attribute, which Chromium does not
-        // route through the JS-visible .play() method.
-        silenceElement(element);
+        // Catch autoplay, element reuse and later property changes.
+        applyPageAudioPolicy(element);
         attachRemoteStream(element.srcObject instanceof MediaStream ? element.srcObject : null);
       }
     } catch (_) {}
@@ -421,10 +686,16 @@ function installCallMediaBridgeInPage(): boolean {
     tagged.__winzappCallMediaAttached = true;
     const attachRemoteReceivers = () => {
       try {
-        for (const receiver of pc.getReceivers?.() || []) attachRemoteTrack(receiver?.track);
+        for (const receiver of pc.getReceivers?.() || []) {
+          attachRemoteTrack(receiver?.track);
+          attachRemoteVideo(receiver?.track);
+        }
       } catch (_) {}
     };
-    pc.addEventListener('track', (event) => attachRemoteTrack(event.track));
+    pc.addEventListener('track', (event) => {
+      attachRemoteTrack(event.track);
+      attachRemoteVideo(event.track);
+    });
     // Some WhatsApp Web builds populate receivers while applying the remote
     // description without dispatching a page-visible `track` event. Inspecting
     // receivers after the native promise settles covers that path too.
@@ -530,7 +801,7 @@ function installCallMediaBridgeInPage(): boolean {
     }
   } catch (_) {}
 
-  // ── Silence WhatsApp Web's own page-native sounds ────────────────────────
+  // ── Silence WhatsApp Web notification audio, preserving call-end ────────
   // Reported live: the incoming-call ringtone played audibly through THIS
   // Chromium process at the same time WinZapp's own ring sound played, so
   // the user heard it twice — and separately, on a call nobody answered
@@ -547,15 +818,12 @@ function installCallMediaBridgeInPage(): boolean {
   // track, which never touches an <audio>/Audio() element — it is tapped
   // directly off the RTCPeerConnection's MediaStreamTrack via the Web Audio
   // API (attachRemoteTrack above) and was ALREADY muted before this fix
-  // (`sink.gain.value = 0`). So muting every native <audio>/<video> element
-  // and every `new Audio()` instance, unconditionally, for the life of the
-  // page, silences WhatsApp Web's own sound effects (ringtone, message
-  // chimes, anything else) without ever touching real call audio — no need
-  // to track call state and toggle mute on/off around it. Even a WhatsApp
-  // Web build that plays the remote track through a real
-  // <audio srcObject=...> element (the fallback path handled above) is
-  // unaffected: that pipeline reads PCM from the MediaStreamTrack directly,
-  // never from the element's own rendered output.
+  // (`sink.gain.value = 0`). Page-native media can therefore be muted
+  // independently. The only exception is the short terminal-call chime,
+  // opened by the lifecycle-aware policy above; ordinary message pings remain
+  // muted. Even a WhatsApp Web build that surfaces the remote track through
+  // <audio srcObject=...> is unaffected because srcObject streams bypass this
+  // page-sound mute policy and are read directly from the MediaStreamTrack.
   //
   // --mute-audio cannot be used at the Chromium launch level to get the same
   // effect (see start.js: that flag starves the Chromium audio SERVICE
@@ -578,12 +846,14 @@ function installCallMediaBridgeInPage(): boolean {
         try {
           const el = this as HTMLMediaElement;
           const isRtcStream = el.srcObject instanceof MediaStream;
-          silenceElement(el);
-          logMuted(
-            'media.play',
-            `tag=${el.tagName} isRtcStream=${isRtcStream} ` +
-              `src=${String(el.currentSrc || (el as any).src || '').slice(0, 120)} loop=${el.loop}`
-          );
+          const silenced = applyPageAudioPolicy(el);
+          if (silenced) {
+            logMuted(
+              'media.play',
+              `tag=${el.tagName} isRtcStream=${isRtcStream} ` +
+                `src=${String(el.currentSrc || (el as any).src || '').slice(0, 120)} loop=${el.loop}`
+            );
+          }
         } catch (_) {}
         return nativeMediaPlay.apply(this, args);
       };
@@ -596,8 +866,10 @@ function installCallMediaBridgeInPage(): boolean {
         construct(target, args) {
           const instance: HTMLAudioElement = Reflect.construct(target, args);
           try {
-            silenceElement(instance);
-            logMuted('new Audio()', `src=${String(args?.[0] || '').slice(0, 120)}`);
+            // Construction alone does not identify a ringtone: WhatsApp
+            // commonly sets .loop only after creating the element. The play
+            // wrapper and media scan apply the selective policy later.
+            applyPageAudioPolicy(instance);
           } catch (_) {}
           return instance;
         },
@@ -612,6 +884,57 @@ function installCallMediaBridgeInPage(): boolean {
   } catch (_) {}
 
   const nativeGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  const nativeEnumerateDevices = navigator.mediaDevices.enumerateDevices?.bind(
+    navigator.mediaDevices
+  );
+
+  // A remote/headless WPPConnect host has no physical webcam.  WhatsApp Web
+  // checks the media-device inventory before it asks getUserMedia() for video,
+  // so merely returning our canvas track from bridgedGetUserMedia() is not
+  // enough: with zero videoinput devices the page can decide there is no
+  // camera and never request that synthetic track at all.
+  //
+  // Always advertise one stable WinZapp camera device.  getUserMedia below
+  // ignores the physical device constraint and returns cameraTrack(), whose
+  // canvas is fed by JPEG frames captured on the Windows client.  Preserve the
+  // native inventory as well so audio-device discovery keeps its normal shape.
+  if (nativeEnumerateDevices) {
+    const virtualCamera = {
+      deviceId: 'winzapp-camera',
+      kind: 'videoinput',
+      label: 'WinZapp Camera',
+      groupId: 'winzapp-call-media',
+      toJSON() {
+        return {
+          deviceId: this.deviceId,
+          kind: this.kind,
+          label: this.label,
+          groupId: this.groupId,
+        };
+      },
+    };
+    const bridgedEnumerateDevices = async () => {
+      let devices: any[] = [];
+      try {
+        devices = Array.from(await nativeEnumerateDevices());
+      } catch (_) {}
+      if (!devices.some((device: any) =>
+        device?.kind === 'videoinput' && device?.deviceId === virtualCamera.deviceId
+      )) {
+        devices.unshift(virtualCamera);
+      }
+      return devices;
+    };
+    try {
+      Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', {
+        configurable: true,
+        writable: true,
+        value: bridgedEnumerateDevices,
+      });
+    } catch (_) {
+      (navigator.mediaDevices as any).enumerateDevices = bridgedEnumerateDevices;
+    }
+  }
   const permissionResult = (
     permissionName: string,
     stateValue: PermissionState = 'granted'
@@ -632,13 +955,10 @@ function installCallMediaBridgeInPage(): boolean {
         writable: true,
         value: async (descriptor: PermissionDescriptor) => {
           const name = String((descriptor as any)?.name || '');
-          // Microphone only. WhatsApp's VoIP bootstrap gates on this, and the
-          // physical device is never opened anyway — getUserMedia below hands
-          // back a synthetic track. The camera is deliberately NOT claimed:
-          // video calls are out of scope, and answering 'granted' here would
-          // undo removing videoCapture from the CDP grant for any page that
-          // checks before asking.
-          if (name === 'microphone') {
+          // WhatsApp's VoIP bootstrap gates on microphone/camera permission.
+          // Neither physical device is opened through this wrapper: audio is
+          // supplied by the WinZapp/Pulse bridge and video by cameraTrack().
+          if (name === 'microphone' || name === 'camera') {
             return permissionResult(name, 'granted');
           }
           return nativePermissionQuery(descriptor);
@@ -648,18 +968,24 @@ function installCallMediaBridgeInPage(): boolean {
   } catch (_) {}
 
   const bridgedGetUserMedia = async (constraints: MediaStreamConstraints = {}) => {
-    // Anything asking for a CAMERA OR A MICROPHONE is served synthetically,
-    // and the check covers video on its own. An earlier version returned to
-    // the native call whenever `audio` was falsy, which let a page-side
-    // getUserMedia({ video: true }) past the refusal further down: with
-    // --use-fake-ui-for-media-stream the browser auto-accepts the request, so
-    // the real webcam opened with no prompt and no indicator, in a page the
-    // user never sees. Removing videoCapture from the CDP grant does not close
-    // that — the grant governs the Permissions API, the flag governs the
-    // prompt.
+    if (constraints.video) {
+      const stream = new MediaStream([cameraTrack()]);
+      if (constraints.audio) {
+        if (linuxAudio) {
+          const nativeAudio = await nativeGetUserMedia({ audio: constraints.audio, video: false });
+          nativeAudio.getAudioTracks().forEach((track) => stream.addTrack(track));
+        } else {
+          const micTrack = ensureMicTrack().clone();
+          if (micTrack.id) state.localTrackIds.add(micTrack.id);
+          stream.addTrack(micTrack);
+        }
+      }
+      return stream;
+    }
     if (!constraints?.audio && !constraints?.video) {
       return nativeGetUserMedia(constraints);
     }
+    if (linuxAudio) return nativeGetUserMedia(constraints);
 
     // Never let WhatsApp Web open the physical microphone. Even while the
     // Python call engine is not active, expose a live silent synthetic track so
@@ -667,13 +993,6 @@ function installCallMediaBridgeInPage(): boolean {
     // Once state.enabled becomes true, Python PCM is written into this track.
     const micTrack = ensureMicTrack().clone();
     if (micTrack.id) state.localTrackIds.add(micTrack.id);
-    // Audio only, whatever was asked for: the returned stream has no video
-    // track, so every video path fails closed instead of reaching hardware.
-    // Deliberately not a rejection — WhatsApp's VoIP bootstrap probes this and
-    // a throw here would take voice calls down with video.
-    if (constraints.video) {
-      report('video-request-refused', 'video calls are not supported');
-    }
     return new MediaStream([micTrack]);
   };
   try {
@@ -708,9 +1027,7 @@ function toBuffer(value: any): Buffer | null {
 }
 
 export async function ensureCallMediaBridge(client: any, io: any, logger: any): Promise<boolean> {
-  if (process.platform === 'linux' && process.env.PULSE_SERVER === LINUX_PULSE_SERVER) {
-    return true;
-  }
+  const linuxAudio = process.platform === 'linux' && process.env.PULSE_SERVER === LINUX_PULSE_SERVER;
   const page = client?.waPage || client?.page;
   if (!page) return false;
 
@@ -742,8 +1059,20 @@ export async function ensureCallMediaBridge(client: any, io: any, logger: any): 
   }
 
   try {
+    await page.exposeFunction('__winzappOnCallRemoteVideo', (jpeg: string) => {
+      if (typeof jpeg !== 'string' || jpeg.length > 350_000) return;
+      io.to(`session:${client.session}`).emit('call:video:remote', {
+        session: client.session,
+        jpeg,
+      });
+    });
+  } catch (_) {
+    // Puppeteer bindings survive navigation.
+  }
+
+  try {
     if (!(client as any).__winzappCallMediaNewDocumentInstalled) {
-      await page.evaluateOnNewDocument(installCallMediaBridgeInPage);
+      await page.evaluateOnNewDocument(installCallMediaBridgeInPage, linuxAudio);
       (client as any).__winzappCallMediaNewDocumentInstalled = true;
 
       // WPPConnect hands the page to us only after WhatsApp Web has loaded.
@@ -759,7 +1088,7 @@ export async function ensureCallMediaBridge(client: any, io: any, logger: any): 
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 120000 });
       }
     }
-    const installed = await page.evaluate(installCallMediaBridgeInPage);
+    const installed = await page.evaluate(installCallMediaBridgeInPage, linuxAudio);
     if (installed) logger?.info?.(`[${client.session}] WinZapp call media bridge ready`);
     return !!installed;
   } catch (error: any) {
@@ -919,7 +1248,17 @@ async function drainMicrophoneQueue(session: string, logger: any): Promise<void>
         queue.length = 0;
         break;
       }
-      const frames = queue.splice(0, 8);
+      // page.evaluate can occasionally stall behind Chromium work. Do not
+      // replay everything accumulated during that stall; jump back near live
+      // audio and send only the freshest short batch.
+      if (queue.length > MIC_TARGET_BACKLOG_FRAMES) {
+        const dropped = queue.length - MIC_TARGET_BACKLOG_FRAMES;
+        queue.splice(0, dropped);
+        logger?.debug?.(
+          `[${session}] skipped stale microphone frames before page bridge=${dropped}`
+        );
+      }
+      const frames = queue.splice(0, MIC_TARGET_BACKLOG_FRAMES);
       if (!frames.length) continue;
       const base64Frames = frames.map((frame) => frame.toString('base64'));
       try {
@@ -944,6 +1283,38 @@ export function registerCallAudioSocket(
   logger: any,
   authenticatedSession: string
 ): void {
+  let cameraBusy = false;
+  let cameraFramesReceived = 0;
+
+  socket.on('call:audio:start', (payload: any) => {
+    const session = String(payload?.session || '');
+    if (!session || session !== authenticatedSession) return;
+    if (!(clientsArray as any)[session]) return;
+    const linuxAudio = ensureLinuxCallAudio(session, socket, logger);
+    if (linuxAudio) {
+      logger?.info?.(`[${session}] Linux call speaker monitor started before answer`);
+    }
+  });
+
+  socket.on('call:video:camera', (payload: any) => {
+    const session = String(payload?.session || '');
+    const jpeg = payload?.jpeg;
+    if (session !== authenticatedSession || typeof jpeg !== 'string' ||
+        jpeg.length > 350_000 || cameraBusy) return;
+    const client: any = (clientsArray as any)[session];
+    const page = client?.waPage || client?.page;
+    if (!page) return;
+    cameraFramesReceived += 1;
+    if (cameraFramesReceived === 1 || cameraFramesReceived % 100 === 0) {
+      logger?.info?.(
+        `[${session}] call camera frames received from desktop=${cameraFramesReceived}`
+      );
+    }
+    cameraBusy = true;
+    page.evaluate((frame: string) => {
+      (window as any).__winzappCallMediaBridge?.pushCameraFrame?.(frame);
+    }, jpeg).catch(() => undefined).finally(() => { cameraBusy = false; });
+  });
   socket.on('call:audio:mic', (payload: any) => {
     const session = String(payload?.session || '');
     const pcm =

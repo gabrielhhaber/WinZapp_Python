@@ -165,3 +165,27 @@ def test_every_built_label_is_reapplied_to_its_own_control():
         "self._ attribute and re-apply its label to that same control in "
         "_refresh_dialog_labels():\n  " + "\n  ".join(missing)
     )
+
+
+def test_main_language_change_repaints_dynamic_content_and_calls():
+    main_source = (
+        Path(__file__).resolve().parent.parent / "client" / "main.py"
+    ).read_text(encoding="utf-8")
+    start = main_source.index("    def apply_language_changes(self):")
+    end = main_source.index("\n    def on_alt_1", start)
+    body = main_source[start:end]
+
+    assert "self._refresh_call_language_surfaces()" in body
+    assert "cp.populate_messages(preserve_focus=True)" in body
+    assert "self._chats_ui_fp = None" in body
+    assert "self.add_chats_to_ui()" in body
+
+
+def test_incoming_call_popup_has_live_language_refresh_hook():
+    source = (
+        Path(__file__).resolve().parent.parent
+        / "client" / "ui" / "dialogs" / "incoming_call.py"
+    ).read_text(encoding="utf-8")
+    assert "def refresh_labels(self, message: str | None = None):" in source
+    assert 'self._answer_button.SetLabel(i18n.t("incoming_call_answer_button"))' in source
+    assert 'self._close_button.SetLabel(i18n.t("incoming_call_close_button"))' in source

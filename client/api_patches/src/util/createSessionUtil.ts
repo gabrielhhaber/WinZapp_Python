@@ -720,12 +720,9 @@ async function grantPersistentStorage(page: any, logger: any, session: string) {
     }
     await page.__wzPermissionSession.send('Browser.grantPermissions', {
       origin,
-      // audioCapture only: WhatsApp's VoIP bootstrap needs to see microphone
-      // permission granted, and the page patch replaces the physical
-      // microphone with the Python PCM bridge anyway. videoCapture is
-      // deliberately absent while video calls are out of scope — granted, it
-      // would let the page open the real camera with no prompt.
-      permissions: ['durableStorage', 'notifications', 'audioCapture'],
+      // This fork supports video calls. Grant both capture permissions while
+      // the page bridge substitutes Python-owned microphone/camera tracks.
+      permissions: ['durableStorage', 'notifications', 'audioCapture', 'videoCapture'],
     });
   } catch (e: any) {
     page.__wzPermissionSession = null;
@@ -1865,8 +1862,31 @@ export default class CreateSessionUtil {
           // firing the expected Backbone event, so retain and poll by call id.
           const trackedCalls = new Map<string, any>();
           const ignoredHistoricalCallIds = new Set<string>();
+          // Call-control actions run in separate page.evaluate() calls. Expose
+          // one tiny bridge so a successful accept/reject/end can retire the
+          // incoming-ring watchdog immediately instead of letting its 120 s
+          // timeout fire against an already handled call.
+          (window as any).__winzappForgetIncomingCall = (callId = '') => {
+            const id = String(callId || '');
+            if (id) trackedCalls.delete(id);
+          };
           const CALL_START_GRACE_MS = 5000;
+          let nativeCallCollection: any = null;
+          try {
+            const module = (window as any).require?.('WAWebCallCollection');
+            // The current native call implementation emits change:activeCall
+            // on the exported WAWebCallCollection object itself.  Prefer that
+            // exact event source even when activeCall is still undefined; the
+            // first transition is precisely the event we need to catch.
+            nativeCallCollection =
+              module && typeof module.on === 'function'
+                ? module
+                : module?.get?.() || module;
+          } catch (e) {
+            nativeCallCollection = null;
+          }
           const stores = [
+            nativeCallCollection,
             WPP?.whatsapp?.CallStore,
             WPP?.whatsapp?.CallCollection,
             (window as any).Store?.Call,
@@ -1882,8 +1902,25 @@ export default class CreateSessionUtil {
             String(
               call?.groupJid?._serialized ||
               call?.groupJid?.toString?.() ||
+              call?.get?.('groupJid')?._serialized ||
+              call?.get?.('groupJid')?.toString?.() ||
               ''
             );
+          const groupParticipantCountOf = (call: any): number => {
+            const participants = call?.groupCallParticipants ?? call?.get?.('groupCallParticipants');
+            if (Array.isArray(participants)) return participants.length;
+            try {
+              const models = participants?.getModelsArray?.();
+              if (Array.isArray(models)) return models.length;
+            } catch (_) {}
+            if (typeof participants?.size === 'number') return participants.size;
+            if (typeof participants?.length === 'number') return participants.length;
+            return 0;
+          };
+          const isGroupCall = (call: any): boolean =>
+            !!call?.isGroup || !!call?.isGroupCall ||
+            !!call?.get?.('isGroup') || !!call?.peerJid?.isGroupCall?.() ||
+            !!groupJidOf(call) || groupParticipantCountOf(call) > 1;
           const callStateOf = (call: any) => {
             const raw = String(
               call?.getState?.() || call?.state || call?.get?.('state') || ''
@@ -1909,6 +1946,26 @@ export default class CreateSessionUtil {
               '14': 'CALL_B_STARTING',
             };
             return numericStates[raw] || raw;
+          };
+          const isIncomingRingingCall = (call: any) => {
+            if (!call) return false;
+            const state = callStateOf(call);
+            const incomingRingStates = new Set([
+              'INCOMING_RING',
+              'PREACCEPT_RECEIVED',
+              'ReceivedCall',
+              'ReceivedCallWithoutOffer',
+            ]);
+            const isOutgoing =
+              call?.outgoing === true ||
+              call?.isOutgoing === true ||
+              call?.direction === 'outgoing';
+            return (
+              !isOutgoing &&
+              (incomingRingStates.has(state) ||
+                call?.isIncoming === true ||
+                call?.direction === 'incoming')
+            );
           };
           const callTimestampOf = (call: any) => {
             const raw =
@@ -1962,37 +2019,42 @@ export default class CreateSessionUtil {
               call?.from?.toString?.() ||
               ''
             );
-          const emitCallState = (event: string, call: any, state = '') => {
-            const peerJid = peerJidOf(call);
-            if (!peerJid) return;
+          const emitCallState = (event: string, call: any, state = '', evidence?: any) => {
+            const callId = callIdOf(call);
+            const peerJid = peerJidOf(call) || groupJidOf(call);
+            // Group activeCall models can be published before peerJid/groupJid
+            // is hydrated.  The call id is enough to keep the lifecycle alive;
+            // later state/model updates enrich the peer metadata.
+            if (!callId && !peerJid) return;
             (window as any).__winzappOnCallState(
               event,
               state,
               peerJid,
-              callIdOf(call),
+              callId,
               !!call?.isVideo || !!call?.isVideoCall,
-              !!call?.isGroup || !!call?.isGroupCall,
-              groupJidOf(call),
+              isGroupCall(call) || isGroupCall(evidence),
+              groupJidOf(call) || groupJidOf(evidence),
               !!call?.outgoing,
               Math.floor(callTimestampOf(call) / 1000),
               Math.floor(Date.now() / 1000)
             );
           };
-          const emitCall = (event: string, call: any, state = '') => {
-            const peerJid = peerJidOf(call);
-            if (!peerJid) return;
+          const emitCall = (event: string, call: any, state = '', evidence?: any) => {
+            const callId = callIdOf(call);
+            const peerJid = peerJidOf(call) || groupJidOf(call);
+            if (!callId && !peerJid) return;
             (window as any).__winzappOnIncomingCall(
               event,
               state,
               peerJid,
-              callIdOf(call),
+              callId,
               !!call?.isVideo || !!call?.isVideoCall,
-              !!call?.isGroup || !!call?.isGroupCall,
-              groupJidOf(call),
+              isGroupCall(call) || isGroupCall(evidence),
+              groupJidOf(call) || groupJidOf(evidence),
               Math.floor(callTimestampOf(call) / 1000),
               Math.floor(Date.now() / 1000)
             );
-            emitCallState(event, call, state);
+            emitCallState(event, call, state, evidence);
           };
           const rememberCall = (call: any) => {
             const id = callIdOf(call);
@@ -2008,6 +2070,13 @@ export default class CreateSessionUtil {
           const findCall = (id: string) => {
             for (const store of stores) {
               try {
+                // Newer WhatsApp Web builds keep an accepted native call only
+                // in CallStore.activeCall instead of the legacy collection.
+                // Without this lookup, the incoming-ring tracker kept polling
+                // its stale INCOMING_RING snapshot and fired NOT_ANSWERED at
+                // exactly 120 seconds even after WinZapp had accepted it.
+                const active = store?.activeCall || store?.get?.('activeCall');
+                if (active && callIdOf(active) === id) return active;
                 const direct = store?.get?.(id);
                 if (direct) return direct;
                 const models =
@@ -2028,8 +2097,8 @@ export default class CreateSessionUtil {
             const id = callIdOf(call);
             const richCall = findCall(id) || call;
             if (isHistoricalIncomingCall(richCall, source)) return;
-            const isGroup = !!richCall?.isGroup || !!richCall?.isGroupCall;
-            if (isGroup && !groupJidOf(richCall) && attempt < 10) {
+            const isGroup = isGroupCall(richCall) || isGroupCall(call);
+            if (isGroup && !groupJidOf(richCall) && !groupJidOf(call) && attempt < 10) {
               window.setTimeout(() => {
                 // A terminal Store event removes this id. Do not resurrect a
                 // call that ended while we were waiting for group metadata.
@@ -2038,7 +2107,7 @@ export default class CreateSessionUtil {
               }, 100);
               return;
             }
-            emitCall('offer', richCall, 'INCOMING_RING');
+            emitCall('offer', richCall, 'INCOMING_RING', call);
           };
 
           // ── Layer 1: WPP.on('call.incoming_call') ──────────────────
@@ -2065,10 +2134,65 @@ export default class CreateSessionUtil {
           }
 
           // ── Layer 2: direct internal CallStore access ──────────────
-          // If wa-js exposes the raw WhatsApp Web Store for calls, hook
-          // its collection's 'add' event directly. This bypasses wa-js's
-          // event plumbing entirely.
+          // Current WhatsApp Web promotes native VoIP calls through
+          // WAWebCallCollection.activeCall. Observe that property directly:
+          // relying only on collection `add` or WA-JS's public event misses
+          // real incoming calls on current builds.
           try {
+            if (nativeCallCollection && typeof nativeCallCollection.on === 'function') {
+              nativeCallCollection.on('change:activeCall', (call: any) => {
+                try {
+                  // Current WhatsApp Web passes the new active CallModel as the
+                  // handler argument.  Do not require peerJid here: group calls
+                  // can publish the model before peer/group metadata is hydrated.
+                  const activeCall = call || nativeCallCollection.activeCall;
+                  if (!activeCall) return;
+                  const callId = callIdOf(activeCall);
+                  const state = callStateOf(activeCall);
+                  const definitelyOutgoing =
+                    activeCall?.outgoing === true ||
+                    activeCall?.isOutgoing === true ||
+                    activeCall?.direction === 'outgoing' ||
+                    ['CALLING', 'PRE_CALLING', 'CALL_B_STARTING'].includes(state);
+                  const terminal = [
+                    'ENDED', 'REJECTED', 'FAILED', 'NOT_ANSWERED',
+                    'HANDLED_REMOTELY', 'REMOTE_CALL_IN_PROGRESS',
+                  ].includes(state);
+
+                  console.log(
+                    '[browser-evaluate] activeCall change ' +
+                    JSON.stringify({
+                      id: callId,
+                      state,
+                      outgoing: definitelyOutgoing,
+                      isGroup: isGroupCall(activeCall),
+                      hasPeer: !!peerJidOf(activeCall),
+                      hasGroup: !!groupJidOf(activeCall),
+                    })
+                  );
+
+                  // An incoming activeCall may arrive one tick before its state
+                  // and peer fields.  The id plus a non-outgoing active slot is
+                  // sufficient to retain it and let emitIncomingOffer wait for
+                  // group metadata rather than dropping the only notification.
+                  const incomingCandidate =
+                    !definitelyOutgoing &&
+                    !terminal &&
+                    !!callId &&
+                    (isIncomingRingingCall(activeCall) || !state || isGroupCall(activeCall));
+                  if (incomingCandidate) {
+                    if (isHistoricalIncomingCall(activeCall, 'activeCallChange')) return;
+                    rememberCall(activeCall);
+                    emitIncomingOffer(activeCall, 0, 'activeCallChange');
+                  } else if (state) {
+                    emitCallState('state', activeCall, state);
+                  }
+                } catch (e) {
+                  // A later activeCall transition or poll can recover.
+                }
+              });
+            }
+
             for (const store of stores) {
               if (store && typeof store.on === 'function') {
                 store.on('add', (call: any) => {
@@ -2171,6 +2295,13 @@ export default class CreateSessionUtil {
           // incoming and outgoing calls expose their complete lifecycle to Python.
           let lastActiveSignature = '';
           let lastActiveCall: any = null;
+          let lastActiveIncomingOfferId = '';
+          let activeCallMissingSince = 0;
+          const ACTIVE_CALL_MISSING_GRACE_MS = 5000;
+          const TERMINAL_CALL_STATES = new Set([
+            'ENDED', 'REJECTED', 'FAILED', 'NOT_ANSWERED',
+            'HANDLED_REMOTELY', 'REMOTE_CALL_IN_PROGRESS',
+          ]);
           (window as any).__winzappCallStatePoll = window.setInterval(() => {
             try {
               let activeCall: any = null;
@@ -2185,18 +2316,44 @@ export default class CreateSessionUtil {
                   null;
               }
 
+              // WhatsApp replaces CallStore.activeCall during some internal
+              // state transitions/rejoins.  A single null poll used to become
+              // a synthetic ENDED immediately, which could tear down a healthy
+              // WinZapp call after it had been running for a while.  Recover
+              // the same call from the collection first, then require a short
+              // sustained absence before synthesizing an end event.
+              if (!activeCall && lastActiveCall) {
+                const previousId = callIdOf(lastActiveCall);
+                if (previousId) activeCall = findCall(previousId);
+              }
+
               if (!activeCall) {
-                if (lastActiveCall) {
-                  const previousState = callStateOf(lastActiveCall);
-                  if (!['ENDED', 'REJECTED', 'FAILED', 'NOT_ANSWERED'].includes(previousState)) {
-                    emitCallState('ended', lastActiveCall, 'ENDED');
-                  }
+                if (!lastActiveCall) {
+                  activeCallMissingSince = 0;
+                  return;
                 }
+                const previousState = callStateOf(lastActiveCall);
+                if (TERMINAL_CALL_STATES.has(previousState)) {
+                  emitCallState('state', lastActiveCall, previousState);
+                  lastActiveCall = null;
+                  lastActiveSignature = '';
+                  activeCallMissingSince = 0;
+                  return;
+                }
+                const now = Date.now();
+                activeCallMissingSince = activeCallMissingSince || now;
+                if (now - activeCallMissingSince < ACTIVE_CALL_MISSING_GRACE_MS) {
+                  return;
+                }
+                emitCallState('ended', lastActiveCall, 'ENDED');
                 lastActiveCall = null;
                 lastActiveSignature = '';
+                lastActiveIncomingOfferId = '';
+                activeCallMissingSince = 0;
                 return;
               }
 
+              activeCallMissingSince = 0;
               const state = callStateOf(activeCall);
               const signature = [
                 callIdOf(activeCall),
@@ -2205,7 +2362,25 @@ export default class CreateSessionUtil {
                 activeCall?.outgoing ? '1' : '0',
               ].join('|');
               if (signature !== lastActiveSignature) {
-                emitCallState('state', activeCall, state);
+                const activeId = callIdOf(activeCall);
+                // Current WhatsApp Web can expose a ringing call only through
+                // CallStore.activeCall.  The public call.incoming_call event is
+                // not reliable enough to be the sole alert source (especially
+                // for group calls). Promote that active slot into the exact same
+                // incomingcall pipeline so Python rings, opens the accessible
+                // dialog and can answer it. emitCall() also emits callstate.
+                if (
+                  isIncomingRingingCall(activeCall) &&
+                  activeId &&
+                  activeId !== lastActiveIncomingOfferId &&
+                  !isHistoricalIncomingCall(activeCall, 'activeCall')
+                ) {
+                  rememberCall(activeCall);
+                  emitCall('offer', activeCall, 'INCOMING_RING');
+                  lastActiveIncomingOfferId = activeId;
+                } else {
+                  emitCallState('state', activeCall, state);
+                }
                 lastActiveSignature = signature;
               }
               lastActiveCall = activeCall;

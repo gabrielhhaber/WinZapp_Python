@@ -69,7 +69,7 @@ from core.locale_format import get_date_format, get_time_format, get_datetime_fo
 from core.message_copy_format import format_copied_message
 from core.wrapped_text import original_range, selection_offsets, word_wrap
 from core.video_player import VideoPlayer
-from core.focus_cloak import cloak_focus_announcement
+from core.focus_cloak import cloak_panel_focus_fallback
 from core.spell_checker import (
     WindowsSpellChecker, spell_check_active, windows_spellcheck_enabled,
 )
@@ -802,6 +802,13 @@ class ConversationsPanel(wx.Panel):
         conv_sizer.Add(self._voice_call_btn, 0, wx.LEFT | wx.TOP, 5)
         self._voice_call_btn.Hide()
 
+        self._video_call_btn = wx.Button(
+            self.conversation_panel, label=i18n.t("video_call_button")
+        )
+        self._video_call_btn.Bind(wx.EVT_BUTTON, self._on_video_call)
+        conv_sizer.Add(self._video_call_btn, 0, wx.LEFT | wx.TOP, 5)
+        self._video_call_btn.Hide()
+
         # ── Search in conversation button ───────────────────────────────────
         self._search_open_btn = wx.Button(
             self.conversation_panel, label=i18n.t("search_in_conv")
@@ -1188,14 +1195,18 @@ class ConversationsPanel(wx.Panel):
         self._discard_voice_btn = wx.Button(
             self._voice_panel, label=i18n.t("discard_voice_message")
         )
-        self._discard_voice_btn.SetAccessible(AccessibleDiscardVoiceMessage(self.main_window))
+        self._discard_voice_btn.SetAccessible(
+            AccessibleDiscardVoiceMessage(self.main_window, self._discard_voice_btn)
+        )
         self._discard_voice_btn.Bind(wx.EVT_BUTTON, self._discard_voice_message)
         voice_sizer.Add(self._discard_voice_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
         self._pause_resume_btn = wx.Button(
             self._voice_panel, label=i18n.t("pause_recording")
         )
-        self._pause_resume_btn.SetAccessible(AccessiblePauseResumeRecording(self.main_window))
+        self._pause_resume_btn.SetAccessible(
+            AccessiblePauseResumeRecording(self.main_window, self._pause_resume_btn)
+        )
         self._pause_resume_btn.Bind(wx.EVT_BUTTON, self._toggle_pause_recording)
         voice_sizer.Add(self._pause_resume_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
@@ -1218,7 +1229,9 @@ class ConversationsPanel(wx.Panel):
         self._send_voice_btn = wx.Button(
             self._voice_panel, label=i18n.t("send_voice_message")
         )
-        self._send_voice_btn.SetAccessible(AccessibleSendVoiceMessage(self.main_window))
+        self._send_voice_btn.SetAccessible(
+            AccessibleSendVoiceMessage(self.main_window, self._send_voice_btn)
+        )
         self._send_voice_btn.Bind(wx.EVT_BUTTON, self._send_voice_message)
         voice_sizer.Add(self._send_voice_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
@@ -2363,6 +2376,7 @@ class ConversationsPanel(wx.Panel):
         jid = str(jid or "")
         unavailable = jid.endswith(("@g.us", "@newsletter", "@broadcast"))
         self._voice_call_btn.Show(bool(jid) and not unavailable)
+        self._video_call_btn.Show(bool(jid) and not unavailable)
         self.conversation_panel.Layout()
         self.Layout()
 
@@ -2372,6 +2386,13 @@ class ConversationsPanel(wx.Panel):
         jid = str(self.conversation.get("remoteJid") or "")
         name = self.conversation_name or self.conversation.get("name") or ""
         self.main_window.start_voice_call(jid, name)
+
+    def _on_video_call(self, _event=None):
+        if not self.conversation:
+            return
+        jid = str(self.conversation.get("remoteJid") or "")
+        name = self.conversation_name or self.conversation.get("name") or ""
+        self.main_window.start_video_call(jid, name)
 
     # ── Text message sending ─────────────────────────────────────────────────
 
@@ -3356,57 +3377,53 @@ class ConversationsPanel(wx.Panel):
     # ── Voice recording ──────────────────────────────────────────────────────
 
     def _voice_recording_silence_enabled(self):
-        """True when Settings > Conteúdo Falado asks for silence while
-        recording a voice message.
-
-        Keyed ONLY on that toggle. It used to also fire when
-        extended_sr_compat_enabled was OFF — i.e. exactly when the user had
-        told WinZapp never to talk to their screen reader, the app started
-        interrupting it instead. That switch stops WinZapp's own AO2
-        announcements; nothing about it asks for other applications' speech to
-        be cut off.
-        """
+        """Whether all WinZapp spoken content is muted during recording."""
         settings = getattr(self.main_window, "settings", None) or {}
         return bool(
             settings.get("speech_content", {}).get("silence_while_recording", False)
         )
 
-    def _focus_recording_button_silently(self, button):
-        """Move focus to one of the voice-recording buttons without the screen
-        reader announcing it.
+    def _voice_recording_focus_suppression_enabled(self):
+        """Whether WinZapp's automatic recording-button focus stays silent.
 
-        This is the primary mechanism, and it works by stopping the
-        announcement from ever being produced: core.focus_cloak briefly makes
-        the control report its MSAA state without STATE_SYSTEM_FOCUSED, which
-        NVDA checks (shouldAllowIAccessibleFocusEvent) *before* deciding to
-        speak, so the event is discarded rather than spoken and cancelled.
-
-        Cancelling after the fact — what this used to do alone — is a race the
-        app loses: the focus WinEvent is delivered synchronously but spoken
-        asynchronously on the screen reader's own thread, so the cancel either
-        arrives before anything is queued or after speech has already started.
-        Users heard the whole "enviar mensagem de voz, botão, Ctrl+R" clipped
-        part-way, which for someone recording on air is the exact failure the
-        setting exists to prevent. The silence() burst below stays as a
-        fallback for anything the cloak cannot reach (a control read over UIA
-        rather than MSAA, a platform that does not route WM_GETOBJECT through
-        wx), not as the mechanism.
-
-        Whether the button is Enviar or Descartar is the user's own choice in
-        Configurações > Interface do usuário; both go through here.
+        The dedicated silence setting always enables this. Disabling extended
+        screen-reader compatibility also suppresses only this native focus
+        announcement, without muting unrelated screen-reader speech.
         """
-        if self._voice_recording_silence_enabled():
-            # Must be armed BEFORE SetFocus(): the state has to already be
-            # hiding FOCUSED by the time the screen reader reads it back.
-            cloak_focus_announcement(button)
+        settings = getattr(self.main_window, "settings", None) or {}
+        silence_recording = settings.get("speech_content", {}).get(
+            "silence_while_recording", False
+        )
+        extended_enabled = settings.get("accessibility", {}).get(
+            "extended_sr_compat_enabled", True
+        )
+        return bool(silence_recording or not extended_enabled)
+
+    def _focus_recording_button_silently(self, button):
+        """Apply the configured recording focus without leaking speech.
+
+        When recording-focus suppression is enabled, deliberately do not move
+        Windows focus to Send/Discard.  NVDA can receive a wx control focus
+        through MSAA or UIA; hiding only the MSAA focused state is therefore
+        not sufficient on every machine.  Cancelling speech afterwards is
+        also too late and is what produced the audible "env..." fragment.
+
+        The recording shortcuts remain frame accelerators (Ctrl+R sends,
+        Ctrl+Shift+P pauses, Ctrl+Shift+D discards), so the silent mode does not
+        require a synthetic focus event at all.  With suppression disabled we
+        preserve the user's normal Send/Discard focus preference.
+        """
+        if self._voice_recording_focus_suppression_enabled():
+            return False
         button.SetFocus()
-        self._silence_send_voice_focus_if_enabled()
+        return True
 
     def _silence_send_voice_focus_if_enabled(self):
         """Fallback: cancel a focus announcement that was produced anyway.
 
-        Secondary to the cloak in :meth:`_focus_recording_button_silently` —
-        see there for why cancelling alone is not enough. The button keeps its
+        Recording start avoids the focus event entirely when suppression is
+        requested. This cancellation burst remains only for other recording
+        state changes that can trigger speech. The button keeps its
         native accessible name and shortcut at all times; blanking the name out
         was tried and removed, because it stripped the control's identity from
         the accessibility tree for every consumer, not just from the one
@@ -3415,11 +3432,11 @@ class ConversationsPanel(wx.Panel):
         The repeats exist because there is no single right moment: a screen
         reader that speaks synchronously is caught by the immediate call, and
         one that queues on its own thread by a later one. The spacing is
-        front-loaded so that if the cloak did fail, what leaks out is a
-        syllable rather than a sentence. Each call is idempotent, so the
+        front-loaded so that delayed screen-reader output is caught as early
+        as possible. Each call is idempotent, so the
         repeats are harmless.
         """
-        if not self._voice_recording_silence_enabled():
+        if not self._voice_recording_focus_suppression_enabled():
             return
         speak_output = getattr(self.main_window, "speak_output", None)
         silence_focus = getattr(speak_output, "silence_screen_reader_focus", None)
@@ -3428,7 +3445,11 @@ class ConversationsPanel(wx.Panel):
         # silence() (unlike silence_screen_reader_focus) also reaches the SAPI
         # voice, which is WinZapp's own output when no screen reader is running
         # — cutting it is cutting our own speech, never another app's.
-        silence_all = getattr(speak_output, "silence", None)
+        silence_all = (
+            getattr(speak_output, "silence", None)
+            if self._voice_recording_silence_enabled()
+            else None
+        )
 
         def _silence_now():
             silence_focus()
@@ -3507,6 +3528,13 @@ class ConversationsPanel(wx.Panel):
                 _rec_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
                 if _rec_jid and not _rec_jid.endswith("@newsletter"):
                     self.main_window.send_recording_status(_rec_jid, True, _rec_jid.endswith("@g.us"))
+                if self._voice_recording_focus_suppression_enabled():
+                    cloak_panel_focus_fallback(
+                        self.conversation_panel,
+                        self.send_message_btn,
+                        self.record_voice_message_btn,
+                        self._add_attachment_btn,
+                    )
                 self.send_message_btn.Hide()
                 self.record_voice_message_btn.Hide()
                 self._add_attachment_btn.Hide()
@@ -3693,7 +3721,34 @@ class ConversationsPanel(wx.Panel):
             _rec_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
             if _rec_jid and not _rec_jid.endswith("@newsletter"):
                 self.main_window.send_recording_status(_rec_jid, True, _rec_jid.endswith("@g.us"))
-            self.message_field.Hide()
+            keep_message_field_focused = (
+                self._voice_recording_focus_suppression_enabled()
+            )
+            if keep_message_field_focused:
+                # Ctrl+R is commonly pressed while the message editor itself
+                # owns Windows focus. Hiding that focused native control makes
+                # wx/Windows transfer focus to the parent wx.Panel before our
+                # recording controls can do anything, which current NVDA
+                # announces simply as "Panel". The robust silent path is to
+                # leave the editor alive and focused for the recording
+                # session. No focus event means there is nothing for NVDA to
+                # announce or for WinZapp to race-cancel.
+                #
+                # The editor already remains visible in the sounddevice
+                # fallback path, so this also makes the normal PyAudio path
+                # consistent with that established behaviour.
+                recording_controls_to_hide = [
+                    self.send_message_btn,
+                    self.record_voice_message_btn,
+                    self._add_attachment_btn,
+                ]
+                if hasattr(self, "_emoji_btn"):
+                    recording_controls_to_hide.append(self._emoji_btn)
+                cloak_panel_focus_fallback(
+                    self.conversation_panel, *recording_controls_to_hide
+                )
+            else:
+                self.message_field.Hide()
             if hasattr(self, "_emoji_btn"):
                 self._emoji_btn.Hide()
             self.send_message_btn.Hide()
@@ -9385,7 +9440,7 @@ class ConversationsPanel(wx.Panel):
         for jid in mentioned or []:
             mw_ref = self.main_window
             if mw_ref._is_self_jid(jid):
-                name = "eu"
+                name = mw_ref.self_reference_label()
             else:
                 name = self._get_participant_name(jid)
 
@@ -12742,25 +12797,11 @@ class ConversationsPanel(wx.Panel):
                 hold_for_echo=bool(msg.get("_local_pending")),
             )
         elif for_everyone:
-            # Revoke for everyone via WPPConnect API (off the UI thread). The
-            # message key carries fromMe/participant so the server can build the
-            # correct serialized id and actually revoke it.
-            def _revoke(k=dict(msg_key), j=jid):
-                ok = self.main_window.delete_message_for_everyone(j, k)
-                if not ok:
-                    wx.CallAfter(
-                        wx.MessageBox,
-                        i18n.t("delete_for_everyone_failed"),
-                        i18n.t("delete_message"),
-                        wx.OK | wx.ICON_WARNING,
-                    )
-            threading.Thread(target=_revoke, daemon=True).start()
-            # Always delete locally
-            if msg_id:
-                self.remove_messages_by_id({msg_id}, focus_previous=True)
-            else:
-                self._sorted_messages.pop(index)
-                self.messages_list.DeleteItem(index)
+            # Do NOT remove the row locally. WhatsApp represents a successful
+            # revoke with a protocolMessage tombstone under the same message id;
+            # the live revoke path updates this record in place. Removing it
+            # here caused a visible disappear/reappear cycle after sync.
+            self._delete_message_for_everyone_keep_row(msg, jid)
         else:
             self._delete_message_for_me_only(msg, msg_id, index)
 
@@ -12901,6 +12942,52 @@ class ConversationsPanel(wx.Panel):
         if conv_jid and self.main_window._is_self_jid(conv_jid):
             return conv_jid
         return msg_key.get("remoteJid", "") or conv_jid
+
+    def _apply_confirmed_revoke(self, msg: dict, jid: str):
+        """Apply the revoke tombstone after our own API request succeeds.
+
+        WhatsApp normally echoes an onRevokedMessage event, but that echo is not
+        guaranteed to reach this client. The HTTP 200 is already authoritative
+        for the user-initiated revoke, so synthesize the same protocolMessage
+        MainWindow._apply_remote_revoke() handles for a live remote event.
+        A later real echo is harmless because that method is idempotent.
+        """
+        msg_id = (msg.get("key") or {}).get("id", "")
+        if not msg_id:
+            return
+        incoming = {
+            "key": dict(msg.get("key") or {}),
+            "messageType": "protocolMessage",
+            "message": {"protocolMessage": {"type": 3, "key": msg_id}},
+        }
+        self.main_window._apply_remote_revoke(msg, incoming, jid)
+
+    def _delete_message_for_everyone_keep_row(self, msg: dict, jid: str):
+        """Revoke remotely and turn the existing row into "message deleted".
+
+        Keep the row itself: a delete-for-everyone is represented by a
+        protocolMessage tombstone, not by removing the message from history.
+        Prefer WhatsApp's live revoke event, but when our own delete request is
+        confirmed first, apply the same tombstone locally immediately instead
+        of leaving stale content visible while waiting for an echo that may
+        never arrive.
+        """
+        i18n = self.main_window.i18n
+
+        def _revoke(record=msg, j=jid):
+            k = dict(record.get("key") or {})
+            ok = self.main_window.delete_message_for_everyone(j, k)
+            if ok:
+                wx.CallAfter(self._apply_confirmed_revoke, record, j)
+            else:
+                wx.CallAfter(
+                    wx.MessageBox,
+                    i18n.t("delete_for_everyone_failed"),
+                    i18n.t("delete_message"),
+                    wx.OK | wx.ICON_WARNING,
+                )
+
+        threading.Thread(target=_revoke, daemon=True).start()
 
     def _delete_message_for_me_only(self, msg: dict, msg_id: str, index: int):
         """Delete a message for this account only (delete_message_for_me),
@@ -16985,6 +17072,16 @@ class ConversationsPanel(wx.Panel):
             if result != wx.ID_OK:
                 return
 
+        # Only messages whose effective scope is "for me" disappear from
+        # WinZapp. A successful revoke-for-everyone must keep its row so the
+        # live protocolMessage can repaint it as "message deleted" in place.
+        local_delete_ids = {
+            msg.get("key", {}).get("id", "")
+            for msg in msgs_to_delete
+            if not (for_everyone and _can_delete_for_all(msg))
+        }
+        local_delete_ids.discard("")
+
         def _delete_bg():
             for msg in msgs_to_delete:
                 msg_key = dict(msg.get("key", {}))
@@ -16992,20 +17089,19 @@ class ConversationsPanel(wx.Panel):
                 if not jid:
                     continue
                 # Per message, never once for the batch: a mixed selection
-                # (e.g. admin revoking a mix of their own and others'
-                # messages, or a non-admin selection that also picked up a
-                # system event) can have members that aren't actually
-                # eligible for a real revoke even when "for everyone" was
-                # chosen — those still get deleted, just locally-only.
+                # can contain items that cannot be revoked for everyone. Those
+                # still use the local-only API and are the only rows removed.
                 if for_everyone and _can_delete_for_all(msg):
-                    self.main_window.delete_message_for_everyone(jid, msg_key)
+                    ok = self.main_window.delete_message_for_everyone(jid, msg_key)
+                    if ok:
+                        wx.CallAfter(self._apply_confirmed_revoke, msg, jid)
                 else:
                     self.main_window.delete_message_for_me(jid, msg_key)
 
         threading.Thread(target=_delete_bg, daemon=True).start()
 
-        # Always delete locally
-        self.remove_messages_by_id(set(self.selected_messages), focus_previous=True)
+        if local_delete_ids:
+            self.remove_messages_by_id(local_delete_ids, focus_previous=True)
         self.selected_messages.clear()
         self.main_window.output(i18n.t("success_delete"), interrupt=True)
 

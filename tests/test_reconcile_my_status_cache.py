@@ -1,15 +1,9 @@
-"""Regression: StatusPanel._reconcile_my_status_cache() used to treat any
-"ok" (HTTP 200, JSON dict body) response from GET /api/{session}/statuses as
-authoritative, including one with an EMPTY myStatus list — indistinguishable,
-from that endpoint alone, from WPPConnect's StatusV3Store not having
-finished rehydrating yet (routine right after a reconnect). Treating that
-as "you genuinely have zero live stories" permanently deleted every
-locally-cached own status (memory AND SQLite, via
-remove_failed_status_update()) even though it was still live on WhatsApp.
+"""Regression coverage for own-status cache reconciliation.
 
-StatusPanel is a wx.Panel and cannot be instantiated without a running
-wx.App — _reconcile_my_status_cache()/_parse_statuses() are exercised
-against a small stub, same approach as tests/test_status_panel.py.
+An empty /statuses response used to be ambiguous: it could mean either
+"WhatsApp has no own statuses" or "the status store is not ready yet". The
+API now exposes myStatusReady so an authoritative empty snapshot can clear
+SQLite/memory without reintroducing the reconnect cache-wipe bug.
 """
 
 from status_panel import StatusPanel
@@ -55,14 +49,22 @@ def _own_status(msg_id, ts=1700000000):
     }
 
 
-class TestEmptyRemoteListDoesNotWipeTheLocalCache:
-    def test_an_empty_remote_list_deletes_nothing(self):
+class TestEmptyRemoteListReadiness:
+    def test_empty_remote_list_without_ready_marker_deletes_nothing(self):
         stub = _Stub(status_updates={"me": [_own_status("s1"), _own_status("s2")]})
 
         stub._reconcile_my_status_cache([])
 
         assert stub.main_window.removed_ids == []
         assert stub.main_window._status_updates == {"me": [_own_status("s1"), _own_status("s2")]}
+
+    def test_authoritative_empty_remote_list_deletes_all_local_own_statuses(self):
+        stub = _Stub(status_updates={"me": [_own_status("s1"), _own_status("s2")]})
+
+        stub._reconcile_my_status_cache([], authoritative_empty=True)
+
+        assert set(stub.main_window.removed_ids) == {"s1", "s2"}
+        assert stub.main_window._status_updates == {}
 
     def test_a_nonempty_remote_list_still_removes_genuinely_stale_ids(self):
         """The one real case this is meant to still catch: the remote list

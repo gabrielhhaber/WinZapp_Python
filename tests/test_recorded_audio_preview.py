@@ -112,6 +112,7 @@ class _Panel:
     _on_accel_pin_list = ConversationsPanel._on_accel_pin_list
     _silence_send_voice_focus_if_enabled = ConversationsPanel._silence_send_voice_focus_if_enabled
     _voice_recording_silence_enabled = ConversationsPanel._voice_recording_silence_enabled
+    _voice_recording_focus_suppression_enabled = ConversationsPanel._voice_recording_focus_suppression_enabled
 
     def __init__(self):
         self.main_window = _FakeMainWindow()
