@@ -1418,6 +1418,24 @@ export async function reactMessage(req: Request, res: Response) {
                   candidates = allNames.filter((name) => pattern.test(name));
                   if (candidates.length > 0) break;
                 }
+                if (candidates.length === 0) {
+                  // Live 2026-09-20: of 520 components, NONE contain the
+                  // word "reaction" at all — confirmed via the full sample
+                  // dump below (see docs/traps/send-contract.md). WhatsApp
+                  // evidently bundles the private reaction action inside a
+                  // broader status-viewer flow instead of naming it after
+                  // itself. These are the two most plausible bundles from
+                  // that sample: the status drawer (where the reaction bar
+                  // lives in the real UI) and the status-reply flow (an
+                  // adjacent private action, often shipped together).
+                  const knownCandidates = [
+                    'WAWebStatusDrawerFlow.react',
+                    'WAWebStatusQuotedFlow.react',
+                  ];
+                  candidates = knownCandidates.filter((name) =>
+                    allNames.includes(name)
+                  );
+                }
                 candidates = candidates.slice(0, 6);
                 if (candidates.length === 0) {
                   // Nothing matched even the loose tier. Dumping all ~500+
@@ -1678,6 +1696,15 @@ export async function getSendCapabilities(req: Request, res: Response) {
             for (const pattern of tiers) {
               candidates = allNames.filter((name) => pattern.test(name));
               if (candidates.length > 0) break;
+            }
+            if (candidates.length === 0) {
+              const knownCandidates = [
+                'WAWebStatusDrawerFlow.react',
+                'WAWebStatusQuotedFlow.react',
+              ];
+              candidates = knownCandidates.filter((name) =>
+                allNames.includes(name)
+              );
             }
             candidates = candidates.slice(0, 6);
             for (const component of candidates) {
