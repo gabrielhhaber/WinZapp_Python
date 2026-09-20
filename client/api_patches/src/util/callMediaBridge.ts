@@ -248,6 +248,18 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   >();
   const mutedPageElements = new Set<HTMLMediaElement>();
   let callWasActive = false;
+  // A merely-ringing call (INCOMING_RING/CALLING/etc, counted "active" by
+  // isLivePageCall below) that is cancelled or rejected before anyone answers
+  // has no real terminal chime to protect. state.enabled only becomes true
+  // when the audio bridge is actually attached after answer, so it is the
+  // signal for "this call was ever really connected" — remembered here
+  // because refreshCallAudioPolicy's own poll can observe the ENDED
+  // transition after state.reset() has already cleared state.enabled back to
+  // false for the same call. Without this, cancelling a call before answer
+  // opened the same 2500ms exemption window as a genuine hangup, and the
+  // coincident missed-call message-notification ping slipped through it
+  // unmuted (measured 2026-09-20).
+  let callWasAnswered = false;
   let allowCallEndChimeUntil = 0;
 
   const pageAudioNow = () => {
@@ -334,7 +346,12 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
 
   const refreshCallAudioPolicy = () => {
     const active = isLivePageCall(currentPageCall());
-    if (callWasActive && !active) allowCallEndChime();
+    if (!callWasActive && active) callWasAnswered = false; // a new call just started ringing
+    if (state.enabled) callWasAnswered = true; // remember it was actually answered
+    if (callWasActive && !active) {
+      if (callWasAnswered) allowCallEndChime();
+      callWasAnswered = false;
+    }
     callWasActive = active;
   };
 
@@ -625,8 +642,12 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   state.reset = () => {
     // Local reject/end stops the bridge immediately before WhatsApp performs
     // the native action. Arm the terminal-chime exception first so that sound
-    // stays audible even if it starts before the CallStore poll observes ENDED.
-    if (callWasActive || state.enabled) allowCallEndChime();
+    // stays audible even if it starts before the CallStore poll observes
+    // ENDED — but only for a call that was actually answered. A ringing-only
+    // call being rejected/cancelled has no real terminal chime to protect,
+    // and opening this window for it let a coincident missed-call message
+    // ping slip through unmuted (measured 2026-09-20).
+    if (state.enabled) allowCallEndChime();
     state.enabled = false;
     state.micQueue.length = 0;
     state.micOffset = 0;

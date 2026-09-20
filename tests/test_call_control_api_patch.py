@@ -257,10 +257,14 @@ def test_page_native_audio_mutes_message_ping_but_preserves_call_end_chime():
     assert "silencePageAudio(el);" in bridge
     assert "return !(el.srcObject instanceof MediaStream) && el.loop === true;" in bridge
 
-    # A live/ringing -> terminal transition opens the only short-audio
-    # exception, and local reject/end arms it before resetting the call bridge.
-    assert "if (callWasActive && !active) allowCallEndChime();" in bridge
-    assert "if (callWasActive || state.enabled) allowCallEndChime();" in bridge
+    # A live/ringing -> terminal transition opens the short-audio exception,
+    # but only for a call that was actually answered (state.enabled at some
+    # point) — a merely-ringing call being cancelled/rejected must not open it,
+    # or a coincident missed-call message ping slips through unmuted.
+    assert "let callWasAnswered = false;" in bridge
+    assert "if (state.enabled) callWasAnswered = true;" in bridge
+    assert "if (callWasAnswered) allowCallEndChime();" in bridge
+    assert "if (state.enabled) allowCallEndChime();" in bridge
     assert "pageAudioNow() + 2500" in bridge
     assert "if (pageAudioNow() <= allowCallEndChimeUntil)" in bridge
     assert "restorePageAudio(el);" in bridge
