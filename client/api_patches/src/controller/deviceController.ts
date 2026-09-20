@@ -1398,20 +1398,35 @@ export async function reactMessage(req: Request, res: Response) {
                 componentMap &&
                 typeof componentMap.keys === 'function'
               ) {
-                const pattern = /status.*reaction|reaction.*status/i;
-                const candidates: string[] = [];
-                for (const name of componentMap.keys()) {
-                  if (candidates.length >= 6) break;
-                  if (pattern.test(String(name))) candidates.push(String(name));
+                // Tiered: try the specific combination first, then just
+                // "reaction" alone (2026-09-20 live test: zero of 520
+                // components matched the combined pattern, live-testing
+                // whether a status-only bundle also carries the reaction
+                // action). ".react" is a React component suffix WhatsApp
+                // uses on many unrelated names (e.g.
+                // "WAWebForwardMessageFlow.react", from WA-JS's own
+                // LAZY_MODULES) — "reaction" never collides with it, the
+                // word is four letters longer.
+                const tiers = [
+                  /status.*reaction|reaction.*status/i,
+                  /reaction/i,
+                ];
+                const allNames: string[] = [];
+                for (const name of componentMap.keys()) allNames.push(String(name));
+                let candidates: string[] = [];
+                for (const pattern of tiers) {
+                  candidates = allNames.filter((name) => pattern.test(name));
+                  if (candidates.length > 0) break;
                 }
+                candidates = candidates.slice(0, 6);
                 if (candidates.length === 0) {
+                  // Nothing matched even the loose tier: dump the component
+                  // names themselves so the next occurrence's log names the
+                  // real bundle instead of another blind guess.
                   moduleErrors.push(
                     'winzapp-bootloader=no-candidate-components; ' +
-                      `scanned=${
-                        typeof componentMap.size === 'number'
-                          ? componentMap.size
-                          : 'unknown'
-                      }`
+                      `scanned=${allNames.length}; ` +
+                      `components=${allNames.sort().join(',')}`
                   );
                 }
                 for (const component of candidates) {
@@ -1637,12 +1652,19 @@ export async function getSendCapabilities(req: Request, res: Response) {
             componentMap &&
             typeof componentMap.keys === 'function'
           ) {
-            const pattern = /status.*reaction|reaction.*status/i;
-            const candidates: string[] = [];
-            for (const name of componentMap.keys()) {
-              if (candidates.length >= 6) break;
-              if (pattern.test(String(name))) candidates.push(String(name));
+            // Tiered the same way reactMessage()'s copy is — keep in sync.
+            const tiers = [
+              /status.*reaction|reaction.*status/i,
+              /reaction/i,
+            ];
+            const allNames: string[] = [];
+            for (const name of componentMap.keys()) allNames.push(String(name));
+            let candidates: string[] = [];
+            for (const pattern of tiers) {
+              candidates = allNames.filter((name) => pattern.test(name));
+              if (candidates.length > 0) break;
             }
+            candidates = candidates.slice(0, 6);
             for (const component of candidates) {
               try {
                 await new Promise<void>((resolve, reject) => {
