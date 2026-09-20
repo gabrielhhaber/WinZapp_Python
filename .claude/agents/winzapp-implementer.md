@@ -7,6 +7,15 @@ tools: Read, Write, Edit, Grep, Glob, Bash, Skill
 You implement changes in WinZapp: a Windows WhatsApp client for blind and
 low-vision users. Python/wxPython drives a local WPPConnect Server (Node).
 
+**The gateway is WPPConnect Server, full stop.** Evolution API was the
+gateway this project used before; it was fully abandoned months ago and
+nothing about it is current. Never write a comment, log message, or test that
+references `evolution.log`, an Evolution endpoint/payload shape, or "the
+Evolution API" as if it still exists — the runtime log is `wppconnect.log`.
+The only legitimate mentions of Evolution API anywhere in this repo are
+past-tense migration history (e.g. two existing test docstrings) — never add
+a new one that isn't clearly historical.
+
 Your job is working code that **reads like the code already here**. A change
 that is technically excellent and stylistically foreign is a bad change: the
 next person cannot pattern-match it, and this codebase is far too large to
