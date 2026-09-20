@@ -1420,13 +1420,22 @@ export async function reactMessage(req: Request, res: Response) {
                 }
                 candidates = candidates.slice(0, 6);
                 if (candidates.length === 0) {
-                  // Nothing matched even the loose tier: dump the component
-                  // names themselves so the next occurrence's log names the
-                  // real bundle instead of another blind guess.
+                  // Nothing matched even the loose tier. Dumping all ~500+
+                  // names blew past the 1500-char cap main.py's
+                  // send_reaction() applies to the whole HTTP response body
+                  // (response.text[:1500]) on the very first live test —
+                  // the list got cut off alphabetically before reaching
+                  // anything starting with "WAWebSta..." or "WAWebReact...".
+                  // Filter to a loose diagnostic sample instead of the full
+                  // list: still wide enough to catch a name we would not
+                  // have guessed, small enough to survive that cap.
+                  const sample = allNames
+                    .filter((name) => /status|react|like|story|emoji/i.test(name))
+                    .sort();
                   moduleErrors.push(
                     'winzapp-bootloader=no-candidate-components; ' +
                       `scanned=${allNames.length}; ` +
-                      `components=${allNames.sort().join(',')}`
+                      `sample(${sample.length})=${sample.join(',')}`
                   );
                 }
                 for (const component of candidates) {

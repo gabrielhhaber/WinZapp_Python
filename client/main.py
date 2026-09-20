@@ -26224,13 +26224,17 @@ class MainWindow(wx.Frame):
                 retry_stale_socket=True,
             )
             if response.status_code not in (200, 201):
-                # 1500 chars (not 500) — deviceController.ts's reactMessage
-                # now includes a real error message + stack trace in the
-                # body (see its own comment on why a bare `error: e` used
-                # to serialize down to almost nothing), which can run
-                # longer than the old truncation allowed.
+                # 6000 chars (not 500, and not the original 1500) —
+                # deviceController.ts's reactMessage includes a real error
+                # message + stack trace in the body (see its own comment on
+                # why a bare `error: e` used to serialize down to almost
+                # nothing), and on a failed Bootloader component search it
+                # also appends a sample of scanned component names for
+                # diagnosis. 1500 chars cut that sample off alphabetically
+                # before it ever reached a name starting with "WAWebSta..."
+                # or "WAWebReact...", live-confirmed 2026-09-20.
                 logging.error("[send_reaction] HTTP %s: %s",
-                              response.status_code, response.text[:1500])
+                              response.status_code, response.text[:6000])
                 with self._pending_own_reactions_lock:
                     self._pending_own_reactions.pop(reaction_signature, None)
                 return False
