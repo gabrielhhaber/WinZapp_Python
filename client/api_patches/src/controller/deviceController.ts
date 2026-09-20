@@ -1428,9 +1428,15 @@ export async function reactMessage(req: Request, res: Response) {
                   // anything starting with "WAWebSta..." or "WAWebReact...".
                   // Filter to a loose diagnostic sample instead of the full
                   // list: still wide enough to catch a name we would not
-                  // have guessed, small enough to survive that cap.
+                  // have guessed, small enough to survive that cap. Bare
+                  // "react" was tried first and blew the sample up to 248/520
+                  // (live-confirmed 2026-09-20) — it matches the ".react"
+                  // suffix WhatsApp puts on every React component name (see
+                  // the tiers comment above), which is nearly everything in
+                  // this list. "reaction" (the full word) does not collide
+                  // with that suffix.
                   const sample = allNames
-                    .filter((name) => /status|react|like|story|emoji/i.test(name))
+                    .filter((name) => /status|reaction|like|story|emoji|curtir/i.test(name))
                     .sort();
                   moduleErrors.push(
                     'winzapp-bootloader=no-candidate-components; ' +
