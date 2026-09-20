@@ -829,6 +829,7 @@
     "sound_event_call_incoming": "Chamada recebida",
     "incoming_call_announcement": "{name} está te ligando.",
     "incoming_video_call_announcement": "{name} está te ligando por vídeo.",
+    "incoming_group_call_announcement": "Chamada em grupo recebida no grupo {name}.",
     "tab_calls": "Chamadas",
     "calls_alerts_enabled_label": "Permitir alertas de chamadas recebidas",
     "calls_popup_enabled_label": "Abrir uma janela ao receber uma chamada",

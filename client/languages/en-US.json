@@ -829,6 +829,7 @@
     "sound_event_call_incoming": "Incoming call",
     "incoming_call_announcement": "{name} is calling you.",
     "incoming_video_call_announcement": "{name} is video calling you.",
+    "incoming_group_call_announcement": "Incoming group call in {name}.",
     "tab_calls": "Calls",
     "calls_alerts_enabled_label": "Allow incoming call alerts",
     "calls_popup_enabled_label": "Open a window when a call comes in",

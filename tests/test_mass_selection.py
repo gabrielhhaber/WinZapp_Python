@@ -127,7 +127,10 @@ class _FakeMainWindow:
 
     def delete_message_for_everyone(self, jid, key):
         self.deleted_for_everyone.append((jid, key))
-        return True
+        # Overridable so a test can exercise the partial/total-failure path:
+        # a refused revoke leaves the row on screen, which is where the stale
+        # ", selected" marker used to survive.
+        return getattr(self, "delete_for_everyone_result", True)
 
     def _apply_remote_revoke(self, existing, incoming, jid):
         existing["messageType"] = incoming["messageType"]
@@ -1112,6 +1115,35 @@ class TestMassMessageActions:
         assert [k["id"] for _jid, k in panel.main_window.deleted_messages] == ["m2"]
         (removed, _focus), = panel.removed_locally
         assert removed == {"m2"}
+
+    def test_rows_that_stay_on_screen_lose_their_selected_marker(
+        self, fake_delete_dialog, run_threads_inline
+    ):
+        """REGRESSION: the ", selected" suffix lives in the ROW TEXT
+        (append_selected_marker()), so clearing selected_messages does not
+        rewrite it. Only rows whose revoke SUCCEEDED were repainted, by the
+        protocolMessage coming back through _apply_confirmed_revoke(); a row
+        whose revoke failed stayed on screen still reading ", selected" while
+        selected_messages was empty. A screen reader then announced it as
+        selected and every mass-action shortcut answered "nothing selected".
+        """
+        fake_delete_dialog["everyone"] = True
+        panel = _Panel(messages=[_msg("m1", from_me=True), _msg("m2", from_me=True)])
+        panel.selected_messages = {"m1", "m2"}
+        # Both revokes fail, so neither row is removed and neither is
+        # repainted by the confirmed-revoke path.
+        panel.main_window.delete_for_everyone_result = False
+        refreshed = []
+        panel._refresh_message_rows_by_ids = refreshed.extend
+        # The failure report is its own wx.MessageBox and its own concern
+        # (test_bulk_delete_reports_partial_failure covers it); stub it out so
+        # this test does not need a wx.App.
+        panel._on_bulk_delete_for_everyone_done = lambda failed_count: None
+
+        panel._on_mass_delete_messages(None)
+
+        assert panel.selected_messages == set()
+        assert sorted(refreshed) == ["m1", "m2"]
 
     def test_a_group_admin_can_delete_for_everyone_even_a_message_not_their_own(
         self, fake_delete_dialog, run_threads_inline

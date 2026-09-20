@@ -24,6 +24,8 @@ from pathlib import Path
 
 import wx
 
+from ui.conversations import ConversationsPanel
+
 from ui.accessible import (
     AccessibleVoiceCallButton,
     AccessibleVideoCallButton,
@@ -52,13 +54,13 @@ def test_voice_and_video_call_accelerators_bind_to_the_right_handlers():
     # (CS, ord("V"), self.ID_CTRL_SHIFT_V) -> voice call
     assert '(CS,               ord("V"),          self.ID_CTRL_SHIFT_V),' in _CONVERSATIONS_SRC
     assert (
-        "self.Bind(wx.EVT_MENU, self._on_voice_call,                id=self.ID_CTRL_SHIFT_V)"
+        "self.Bind(wx.EVT_MENU, self._on_accel_voice_call,          id=self.ID_CTRL_SHIFT_V)"
         in _CONVERSATIONS_SRC
     )
     # (CAS, ord("V"), self.ID_CTRL_ALT_SHIFT_V) -> video call
     assert '(CAS,              ord("V"),          self.ID_CTRL_ALT_SHIFT_V),' in _CONVERSATIONS_SRC
     assert (
-        "self.Bind(wx.EVT_MENU, self._on_video_call,                id=self.ID_CTRL_ALT_SHIFT_V)"
+        "self.Bind(wx.EVT_MENU, self._on_accel_video_call,          id=self.ID_CTRL_ALT_SHIFT_V)"
         in _CONVERSATIONS_SRC
     )
     # Alt+L, Alt+Shift+L, Ctrl+L and Ctrl+Shift+L are unrelated pre-existing
@@ -177,3 +179,103 @@ def test_active_call_window_button_labels_have_no_mnemonic_in_any_language():
         entries = json.loads(path.read_text(encoding="utf-8"))
         for key in keys:
             assert "&" not in entries[key], (path.name, key)
+
+
+class _CallAccelStub:
+    """Plain stub: ConversationsPanel is a wx.Panel and cannot be built without
+    a wx.App, so the accelerator handlers are bound onto this instead."""
+
+    def __init__(self, *, focus_in_text_entry):
+        self._focus_in_text_entry = focus_in_text_entry
+        self.voice_calls = 0
+        self.video_calls = 0
+
+    def _focus_is_in_a_text_entry(self):
+        return self._focus_in_text_entry
+
+    def _on_voice_call(self, _event=None):
+        self.voice_calls += 1
+
+    def _on_video_call(self, _event=None):
+        self.video_calls += 1
+
+
+def test_call_accelerators_never_dial_from_inside_the_message_editor():
+    """REGRESSION: the accelerator table lives on the message field's PARENT,
+    so it saw these keys before the TextCtrl. Ctrl+Shift+V is the universal
+    "paste without formatting" chord and Ctrl+Alt+Shift+V is indistinguishable
+    from AltGr+Shift+V on pt-BR/pl layouts -- either one placed a real call to
+    the open contact, with no confirmation, from the message being typed."""
+    stub = _CallAccelStub(focus_in_text_entry=True)
+
+    ConversationsPanel._on_accel_voice_call(stub, None)
+    ConversationsPanel._on_accel_video_call(stub, None)
+
+    assert stub.voice_calls == 0
+    assert stub.video_calls == 0
+
+
+def test_call_accelerators_still_dial_when_the_focus_is_not_a_text_entry():
+    """The other half: from the message list or the chat list the chord is
+    unambiguous and must keep working."""
+    stub = _CallAccelStub(focus_in_text_entry=False)
+
+    ConversationsPanel._on_accel_voice_call(stub, None)
+    ConversationsPanel._on_accel_video_call(stub, None)
+
+    assert stub.voice_calls == 1
+    assert stub.video_calls == 1
+
+
+def _mnemonic(label):
+    """The Alt+<letter> wx derives from an `&` in a button label, if any."""
+    index = label.find("&")
+    while index >= 0 and index + 1 < len(label):
+        following = label[index + 1]
+        if following == "&":  # literal "&&", not a mnemonic
+            index = label.find("&", index + 2)
+            continue
+        return following.upper()
+    return None
+
+
+def test_incoming_call_dialog_mnemonics_are_unique_in_every_language():
+    """REGRESSION (es-ES): "&Contestar con vídeo" and "&Cerrar ventana" both
+    claimed Alt+C in the same IncomingCallDialog. In wx/Windows two identical
+    mnemonics do not activate -- they only cycle focus between the candidates.
+    A screen-reader user who heard "Contestar con vídeo, Alt+C" and pressed it
+    landed on "Cerrar ventana" instead of answering, and a second Alt+C closed
+    the window on a ringing call.
+
+    The answer button shows exactly one of its two labels at a time, so each
+    is checked against the other simultaneously-visible buttons separately.
+    """
+    languages = Path(__file__).parents[1] / "client" / "languages"
+    always_visible = (
+        "incoming_call_reject_button",
+        "incoming_call_silence_button",
+        "incoming_call_close_button",
+    )
+    layouts = (
+        # voice offer: the plain Answer button
+        ("incoming_call_answer_button",),
+        # video offer: "answer with video" plus "answer without video"
+        (
+            "incoming_call_answer_with_video_button",
+            "incoming_call_answer_without_video_button",
+        ),
+    )
+    for path in sorted(languages.glob("*.json")):
+        if path.name == "language_map.json":
+            continue
+        entries = json.loads(path.read_text(encoding="utf-8"))
+        for layout in layouts:
+            seen = {}
+            for key in layout + always_visible:
+                letter = _mnemonic(entries[key])
+                if letter is None:
+                    continue
+                assert letter not in seen, (
+                    path.name, letter, seen.get(letter), key,
+                )
+                seen[letter] = key

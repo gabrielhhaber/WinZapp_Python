@@ -1124,6 +1124,7 @@
   "incoming_call_reject_failed": "Arama reddedilemedi: {error}",
   "incoming_call_silence_button": "Uyarıyı &Sustur",
   "incoming_video_call_announcement": "{name} sizi görüntülü olarak arıyor.",
+  "incoming_group_call_announcement": "{name} grubunda gelen grup araması.",
   "video_call_active_label": "{name} ile görüntülü arama.",
   "video_call_button": "Görüntülü ara",
   "video_call_window_title": "Görüntülü arama",

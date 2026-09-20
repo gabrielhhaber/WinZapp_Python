@@ -15,18 +15,42 @@ injects a page script that hands those frames to and from WhatsApp's own
 opens a physical device. `callController.ts` exposes
 `/api/:session/call/{accept,reject,end,offer,audio/enable,diagnostics}`, and
 `createSessionUtil.ts` re-emits both `incomingcall` and the full `callstate`
-lifecycle. Video calls are deliberately out of scope: the camera path fails
-closed, and it takes THREE things rather than one: no `videoCapture` in the CDP
-grant, the patched `navigator.permissions.query` claiming the microphone only,
-and `bridgedGetUserMedia` serving a synthetic stream for any request naming
-audio **or video**. The grant governs the Permissions API; the prompt is
-governed by `--use-fake-ui-for-media-stream`, which accepts the request itself
-— so dropping the grant closes nothing on its own. The first attempt at this
-put the video refusal *below* an early return that fell through to the real
-device whenever `audio` was falsy, which left `getUserMedia({video: true})`
-opening the webcam with no prompt and no indicator, in a page the user never
-sees, while a test asserting on the removed expression passed. Assert on the
-shape of the guard, not on the absence of a string.
+lifecycle.
+
+**Video calls used to be out of scope, and are not any more — read this before
+touching the camera path.** While they were, the camera failed closed through
+THREE independent things rather than one: no `videoCapture` in the CDP grant,
+the patched `navigator.permissions.query` claiming the microphone only, and
+`bridgedGetUserMedia` serving a synthetic stream for any request naming audio
+**or video**. The grant governs the Permissions API; the prompt is governed by
+`--use-fake-ui-for-media-stream`, which accepts the request itself — so
+dropping the grant closes nothing *on its own*, but as an explicit allowlist it
+does deny what it omits, which is what made it a real second layer. The first
+attempt at this put the video refusal *below* an early return that fell through
+to the real device whenever `audio` was falsy, which left
+`getUserMedia({video: true})` opening the webcam with no prompt and no
+indicator, in a page the user never sees, while a test asserting on the removed
+expression passed. Assert on the shape of the guard, not on the absence of a
+string.
+
+**One-to-one video calls are now supported, and TWO of those three layers are
+gone.** `createSessionUtil.ts` grants `videoCapture`, and
+`navigator.permissions.query` now answers `granted` for `'camera'` as well as
+`'microphone'` — WhatsApp's VoIP bootstrap gates on it, so video does not work
+without that one. What still holds the line is `bridgedGetUserMedia`, which
+returns `cameraTrack()` (a canvas `captureStream`, fed by the Python-owned
+ffmpeg capture in `client/core/call_video.py`) for any request naming video and
+never calls `nativeGetUserMedia` with a video constraint. That is now a
+**single** layer: any path that escapes the override — a reference to
+`getUserMedia` captured before the patch ran, an iframe with its own
+`navigator.mediaDevices`, a worker — reaches the physical webcam with no prompt
+and no indicator. `videoCapture` in the grant appears to be unnecessary for the
+feature (nothing in the bridge consults it), so removing just that one would
+restore a layer without costing anything; it was left in deliberately and is
+worth revisiting. The guard test is
+`tests/test_call_control_api_patch.py::test_cdp_permission_grant_includes_voip_capture_permissions`,
+which now asserts the grant *does* contain `videoCapture` — if you restore the
+denial, restore that half of the assertion with it.
 
 **Calls depend on the WhatsApp Web build, which is chosen by the age of the
 install's catalogue — so "works for some testers, not others" is the expected

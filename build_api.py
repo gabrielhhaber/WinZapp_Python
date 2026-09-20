@@ -45,12 +45,29 @@ def _verify_critical_call_patch(api_dir: str) -> None:
     # These strings are deliberately checked only when the current source
     # contains them, so future refactors can remove/rename the routing without
     # making build_api.py permanently depend on an obsolete implementation.
+    #
+    # That "only when the source contains them" clause is also how this guard
+    # silently stopped guarding anything: it was still naming the markers of
+    # the group-call routing this controller no longer has
+    # ("native-group-chat", "native-group-wids", "WhatsApp Web group calling
+    # gate is disabled"), none of which appear in the source any more, so
+    # `missing` was unconditionally empty and a stale dist/ passed. Markers
+    # here must be verified to exist in the CURRENT source -- the test below
+    # does exactly that, rather than only checking the literals are present in
+    # this file, which is what it used to do.
     markers = (
-        "native-group-chat",
-        "native-group-wids",
-        "WhatsApp Web group calling gate is disabled",
+        "forgetIncomingCall",
+        "__winzappForgetIncomingCall",
+        "runNativeVoipAction",
     )
-    missing = [marker for marker in markers if marker in source and marker not in compiled]
+    absent_from_source = [marker for marker in markers if marker not in source]
+    if absent_from_source:
+        raise RuntimeError(
+            "_verify_critical_call_patch markers no longer exist in "
+            "callController.ts, so this guard would never fire: "
+            + ", ".join(absent_from_source)
+        )
+    missing = [marker for marker in markers if marker not in compiled]
     if missing:
         raise RuntimeError(
             "Compiled callController.js is stale; missing current source markers: "

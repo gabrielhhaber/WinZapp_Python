@@ -829,6 +829,7 @@
     "sound_event_call_incoming": "Połączenie przychodzące",
     "incoming_call_announcement": "{name} dzwoni do ciebie.",
     "incoming_video_call_announcement": "{name} dzwoni do ciebie z wideo.",
+    "incoming_group_call_announcement": "Połączenie grupowe przychodzące w grupie {name}.",
     "tab_calls": "Połączenia",
     "calls_alerts_enabled_label": "Zezwalaj na alerty o połączeniach przychodzących",
     "calls_popup_enabled_label": "Otwieraj okno przy połączeniu przychodzącym",

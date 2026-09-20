@@ -434,3 +434,44 @@ def test_toggle_call_video_does_nothing_silently_on_a_voice_only_call():
     # shouldn't normally be reached — and if it is, there is still nothing
     # camera-related to complain about.
     assert stub.announcements == []
+
+
+_MAIN_SRC = (Path(__file__).parents[1] / "client" / "main.py").read_text(encoding="utf-8")
+
+
+def _body_between(source, start_marker, end_marker):
+    start = source.index(start_marker)
+    return source[start:source.index(end_marker, start)]
+
+
+def test_camera_starts_after_the_accept_post_not_before_it():
+    """REGRESSION: the camera was opened BEFORE the accept POST. Enumerating
+    DirectShow devices (a 10 s-timeout ffmpeg probe) plus waiting for the first
+    frame therefore sat between the user pressing Answer -- with the ring tone
+    already stopped -- and the caller being answered at all. A blind user got
+    seconds of total silence, and "answer without video" paid the same cost.
+
+    The camera is a local capability, never a precondition: a video call still
+    works with no camera, so it belongs after the peer has been answered.
+    """
+    body = _body_between(
+        _MAIN_SRC,
+        "    def accept_incoming_call(self",
+        "    def reject_incoming_call(self",
+    )
+    accept_post = body.index('self._post_call_control("accept", payload)')
+    camera_start = body.index("self._start_call_camera(")
+    assert accept_post < camera_start
+
+
+def test_camera_starts_after_the_offer_post_on_an_outgoing_video_call():
+    """Same ordering on the dialling side: enumerating the camera must not sit
+    between pressing "video call" and the offer actually being placed."""
+    body = _body_between(
+        _MAIN_SRC,
+        "    def _start_individual_call(self",
+        "    def _sync_voice_call_bar(self",
+    )
+    offer_post = body.index('"offer",')
+    camera_start = body.index("self._start_call_camera()")
+    assert offer_post < camera_start

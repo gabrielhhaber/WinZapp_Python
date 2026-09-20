@@ -6607,19 +6607,6 @@ class MainWindow(wx.Frame):
         def _worker():
             with self._call_action_lock:
                 try:
-                    if is_video:
-                        # "Answer without video" asked for no camera, so a
-                        # camera failure here is not an error worth speaking,
-                        # and transmit=False means the probe never sends a
-                        # real frame to the peer while proving the camera
-                        # works. _stop_call_camera() below is then just
-                        # cleanup, not a race against an in-flight frame.
-                        self._start_call_camera(
-                            announce_failure=start_camera_enabled,
-                            transmit=start_camera_enabled,
-                        )
-                        if not start_camera_enabled:
-                            self._stop_call_camera()
                     self._start_voice_call_audio(identity, details)
                     self._raise_for_call_response(
                         self._post_call_control("accept", payload), "accept"
@@ -6629,6 +6616,36 @@ class MainWindow(wx.Frame):
                         self.i18n.t("incoming_call_answered"),
                         True,
                     )
+                    # The camera comes LAST, after the peer has been answered.
+                    # It is a local capability, never a precondition: a video
+                    # call still works with no camera (audio continues, remote
+                    # frames still render). Opening DirectShow costs an ffmpeg
+                    # device enumeration plus the capture start timeout, and
+                    # running that BEFORE the accept POST -- with the ring tone
+                    # already stopped by stop_incoming_call_alert() -- left a
+                    # blind user in total silence for seconds after pressing
+                    # Answer, while the caller waited for a response that had
+                    # not been sent yet. "Answer without video" paid that cost
+                    # too, which is exactly the person who did not want to.
+                    if is_video:
+                        try:
+                            # transmit=False means the probe never sends a real
+                            # frame to the peer while proving the camera works,
+                            # so _stop_call_camera() below is cleanup rather
+                            # than a race against an in-flight frame.
+                            self._start_call_camera(
+                                announce_failure=start_camera_enabled,
+                                transmit=start_camera_enabled,
+                            )
+                            if not start_camera_enabled:
+                                self._stop_call_camera()
+                        except Exception:
+                            # The call is already accepted; a camera problem
+                            # must not be reported as "answer failed" nor tear
+                            # the audio down.
+                            logging.exception(
+                                "[call_video] camera setup failed after accept"
+                            )
                 except Exception as exc:
                     self._stop_voice_call_audio()
                     logging.exception("[call] accept failed")
@@ -6817,8 +6834,6 @@ class MainWindow(wx.Frame):
         def _worker():
             with self._call_action_lock:
                 try:
-                    if is_video:
-                        self._start_call_camera()
                     self._start_voice_call_audio(identity, details)
                     dial_jid = self._resolve_jid_for_send(peer_jid) or peer_jid
                     response = self._raise_for_call_response(
@@ -6837,6 +6852,19 @@ class MainWindow(wx.Frame):
                     active = getattr(self, "_active_voice_call", None)
                     if active is not None and call_id:
                         active["call_id"] = call_id
+                    # Camera last, for the same reason as accept_incoming_call():
+                    # enumerating DirectShow devices and waiting for the first
+                    # frame must not sit between the user pressing "video call"
+                    # and the offer actually being placed. The call is a video
+                    # call either way -- the camera only decides whether WE
+                    # transmit.
+                    if is_video:
+                        try:
+                            self._start_call_camera()
+                        except Exception:
+                            logging.exception(
+                                "[call_video] camera setup failed after offer"
+                            )
                 except Exception as exc:
                     self._stop_voice_call_audio()
                     logging.exception("[call] outgoing call failed")
@@ -6921,14 +6949,21 @@ class MainWindow(wx.Frame):
         state = str(event.get("state") or "").upper()
         call_id = str(event.get("id") or "")
         peer_jid = self._normalize_jid(str(event.get("peerJid") or ""))
-        if (
+        is_group_event = bool(
             event.get("isGroup")
             or peer_jid.endswith("@g.us")
             or str(event.get("groupJid") or "").endswith("@g.us")
-        ):
-            return
+        )
         active = getattr(self, "_active_voice_call", None)
         if not active:
+            # A group call is never adopted as the active call. This guard
+            # deliberately sits INSIDE the "no active call" branch: applied
+            # before the match below, a single false-positive isGroup (the Node
+            # side now also infers it from participant count) would swallow the
+            # terminal ENDED of a real one-to-one call, leaving the microphone
+            # open and the call window on screen after the other side hung up.
+            if is_group_event:
+                return
             if state != "ACTIVE" or not call_id:
                 return
             active = {
@@ -7092,27 +7127,51 @@ class MainWindow(wx.Frame):
         identity = call_id or peer_jid
         if not identity or identity in self._active_incoming_calls:
             return
-        # The client only supports one-to-one calls. Ignore group offers.
-        if event.get("isGroup") or peer_jid.endswith("@g.us") or str(event.get("groupJid") or "").endswith("@g.us"):
-            return
-        caller_name = self._preview_sender_from_jid(peer_jid) if peer_jid else ""
-        if not caller_name:
-            caller_name = self.i18n.t("unknown_contact")
-        announcement_key = (
-            "incoming_video_call_announcement" if event.get("isVideo")
-            else "incoming_call_announcement"
-        )
-        message = self.i18n.t(announcement_key).format(name=caller_name)
+        # WPPConnect cannot answer a group call, so `is_group` keeps the Answer
+        # button disabled (incoming_call_can_answer()). It must NOT silence the
+        # offer: the page's own ringtone is muted by callMediaBridge, so
+        # dropping the event here left a blind user with no signal at all that
+        # their phone was ringing -- and no log line to explain it afterwards.
+        # The alert follows the same two Calls settings as a one-to-one offer.
+        group_jid = self._normalize_jid(str(event.get("groupJid") or ""))
+        is_group = bool(event.get("isGroup")) or group_jid.endswith("@g.us") or peer_jid.endswith("@g.us")
+        if is_group:
+            chat = getattr(self, "chats", {}).get(group_jid, {}) if group_jid else {}
+            group_name = self._group_name_from_chat_dict(chat) if chat else ""
+            if not group_name and group_jid:
+                group_name = getattr(self, "_group_name_cache", {}).get(group_jid, "")
+            if not group_name:
+                group_name = self.i18n.t("unknown_group")
+            caller_name = group_name
+            message = self.i18n.t("incoming_group_call_announcement").format(name=group_name)
+        else:
+            # Keep the proven one-to-one call path unchanged: peerJid is the
+            # caller and resolves through the existing contact-name machinery.
+            caller_name = self._preview_sender_from_jid(peer_jid) if peer_jid else ""
+            if not caller_name:
+                caller_name = self.i18n.t("unknown_contact")
+            announcement_key = (
+                "incoming_video_call_announcement" if event.get("isVideo")
+                else "incoming_call_announcement"
+            )
+            message = self.i18n.t(announcement_key).format(name=caller_name)
         self._active_incoming_calls[identity] = peer_jid
         self._incoming_call_details[identity] = {
             "call_id": call_id,
             "peer_jid": peer_jid,
+            "group_jid": group_jid,
             "is_video": bool(event.get("isVideo")),
+            "is_group": is_group,
             "name": caller_name,
         }
         self._arm_incoming_call_watchdog(identity)
         self._incoming_call_details[identity]["message"] = message
-        self._start_incoming_call_audio_monitor(identity)
+        # Only for a call that CAN be answered: the monitor exists so accepting
+        # can promote the same session to full duplex without reopening the
+        # speaker, and a group offer never gets that far. Opening an output
+        # stream for it would hold the device for nothing.
+        if not is_group:
+            self._start_incoming_call_audio_monitor(identity)
         self.output(message, interrupt=True)
         if hasattr(self, "call_incoming_sound"):
             self.call_incoming_sound.play()
@@ -7122,8 +7181,8 @@ class MainWindow(wx.Frame):
                 show_popup(identity, message)
         self._sync_incoming_call_bar(message)
         logging.info(
-            "[incoming_call] ringing id=%s peer=%s video=%s",
-            call_id, peer_jid, bool(event.get("isVideo")),
+            "[incoming_call] ringing id=%s peer=%s video=%s group=%s group_jid=%s",
+            call_id, peer_jid, bool(event.get("isVideo")), is_group, group_jid,
         )
 
     @staticmethod

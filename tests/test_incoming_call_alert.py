@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import wx
 
+from core.call_logic import incoming_call_can_answer
 from core.websocket_client import WebSocketClient
 from main import MainWindow
 
@@ -74,7 +75,6 @@ class _I18n:
             "incoming_call_answer_button": "Atender",
             "incoming_call_reject_button": "Recusar",
             "incoming_call_silence_button": "Silenciar alerta",
-            "incoming_call_video_not_supported": "Vídeo não suportado",
             "incoming_call_group_not_supported": "Grupo não suportado",
             "incoming_call_answered": "Ligação atendida.",
             "incoming_call_answer_failed": "Falha ao atender: {error}",
@@ -243,7 +243,9 @@ def test_offer_stores_call_details_for_real_answer_or_reject():
     assert stub._incoming_call_details["call-1"] == {
         "call_id": "call-1",
         "peer_jid": "5511999999999@s.whatsapp.net",
+        "group_jid": "",
         "is_video": False,
+        "is_group": False,
         "name": "Fulano",
         "message": "Fulano está te ligando.",
     }
@@ -305,8 +307,45 @@ def test_in_window_stop_button_clears_non_popup_call_surface():
     assert stub.call_incoming_sound.stop_calls == 1
 
 
-def test_group_offer_is_ignored():
+def test_group_offer_is_announced_by_group_name_but_cannot_be_answered():
+    """REGRESSION: the group offer used to be dropped before the announcement,
+    the ring tone and even the log line. WhatsApp Web's own ringtone is muted
+    by callMediaBridge, so a blind user got NO signal at all that their phone
+    was ringing, and log.log had nothing to explain it afterwards.
+
+    WPPConnect still cannot answer a group call, so the offer is announced and
+    shown like any other -- only `is_group` keeps the Answer button disabled.
+    """
     stub = _MainStub()
+    group_jid = "120363427511142886@g.us"
+    stub.chats[group_jid] = {
+        "remoteJid": group_jid,
+        "groupMetadata": {"subject": "Família"},
+    }
+
+    event = _offer(peer="5511888888888@lid")
+    event.update({"isGroup": True, "groupJid": group_jid})
+    stub.on_incoming_call_event(event)
+
+    assert stub.announcements == [("Chamada em grupo recebida no grupo Família.", True)]
+    assert stub.call_incoming_sound.play_calls == 1
+    assert stub.popups == [("call-1", "Chamada em grupo recebida no grupo Família.")]
+    assert stub._active_incoming_calls != {}
+    details = stub._incoming_call_details["call-1"]
+    assert details["is_group"] is True
+    assert details["name"] == "Família"
+    assert incoming_call_can_answer(details) is False
+    # The receive-only monitor exists so ANSWERING can promote the same session
+    # to full duplex. A group offer never gets that far, so opening an output
+    # stream for it would hold the device for nothing.
+    assert stub.ring_monitor_starts == []
+
+
+def test_group_offer_still_obeys_the_calls_alert_setting():
+    """The group alert is an ordinary incoming-call alert, so "allow incoming
+    call alerts" turns it off exactly like a one-to-one one."""
+    stub = _MainStub()
+    stub.settings["calls"] = {"alerts_enabled": False}
     group_jid = "120363427511142886@g.us"
     stub.chats[group_jid] = {
         "remoteJid": group_jid,
