@@ -2,6 +2,7 @@ import base64
 import time
 
 import numpy as np
+import pytest
 
 from core.call_audio import (
     CALL_FRAME_SAMPLES,
@@ -122,6 +123,13 @@ class _SoundDevice:
     def _maybe_refuse(self, extra_settings):
         if self.refuse_exclusive and extra_settings is not None and extra_settings.exclusive:
             raise RuntimeError("device refused exclusive access")
+
+
+class _NoMicrophoneSoundDevice(_SoundDevice):
+    """The speaker opens fine; the microphone is held by another application."""
+
+    def InputStream(self, **kwargs):
+        raise RuntimeError("microphone is in use")
 
 
 def _wait_for(predicate, timeout=1.0):
@@ -254,6 +262,56 @@ def test_receive_only_session_promotes_to_full_duplex_on_answer():
     assert _wait_for(lambda: any(name == "call:audio:mic" for name, _ in sio.events))
 
     session.stop()
+
+
+def test_start_closes_the_output_it_opened_when_the_microphone_fails():
+    """REGRESSION: start() opens the receive side first (so an answered call can
+    reuse the ringing monitor's speaker), but its error path only closed the
+    INPUT stream. An outgoing call whose microphone is taken by another app
+    therefore stranded a live OutputStream and its player thread for the life
+    of the process -- unreachable, since the session never becomes
+    _call_audio_session. Under exclusive_mode that held the output device and
+    silenced the screen reader until restart."""
+    sio = _Socket()
+    sounddevice = _NoMicrophoneSoundDevice()
+    session = CallAudioSession(
+        sio,
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    with pytest.raises(Exception):
+        session.start()
+
+    assert sounddevice.output_streams, "the speaker was opened before the mic failed"
+    assert sounddevice.output_streams[0][1].closed is True
+    assert session.output_running is False
+
+
+def test_start_leaves_the_ringing_monitors_output_alone_when_the_microphone_fails():
+    """The other half of the rule above: a speaker opened by the ringing
+    monitor is not this call's to close. Its owner (_start_voice_call_audio)
+    stops that session on the same failure, and closing it here too would be a
+    double close."""
+    sio = _Socket()
+    sounddevice = _NoMicrophoneSoundDevice()
+    session = CallAudioSession(
+        sio,
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start_output_only()
+    output_stream = sounddevice.output_streams[0][1]
+
+    with pytest.raises(Exception):
+        session.start()
+
+    assert output_stream.closed is False
+    assert session.output_running is True
+
+    session.stop()
+    assert output_stream.closed is True
 
 
 def test_microphone_backlog_skips_old_audio_instead_of_adding_delay():

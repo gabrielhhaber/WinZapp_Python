@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 from threading import Event
 
+import pytest
+
 from core.call_logic import active_call_label_key, incoming_call_can_answer
 from core.call_video import CameraCapture, camera_names, jpeg_frames, list_camera_devices
 from main import MainWindow
@@ -38,9 +40,14 @@ class _FakeCompletedProcess:
 class _FakeCameraProcess:
     """Fake subprocess.Popen result: a fixed JPEG frame on stdout."""
 
-    def __init__(self, frame=b'\xff\xd8frame\xff\xd9'):
+    def __init__(self, frame=b'\xff\xd8frame\xff\xd9', returncode=None):
         self.stdout = BytesIO(frame)
         self.killed = False
+        self._returncode = returncode
+
+    def poll(self):
+        """None means "still running", like subprocess.Popen.poll()."""
+        return self._returncode
 
     def kill(self):
         self.killed = True
@@ -168,6 +175,45 @@ def test_camera_capture_transmits_by_default(monkeypatch):
     finally:
         capture.stop()
     assert sent == [b'\xff\xd8frame\xff\xd9']
+
+
+def test_jpeg_pipe_stops_mid_buffer_once_the_stop_event_is_set():
+    """REGRESSION: one read() can carry several complete JPEGs, and the inner
+    framing loop drained all of them regardless of stop_event. Turning video
+    off therefore still sent the peer the frames already decoded from that
+    last chunk, after WinZapp had announced video was off."""
+    stop_event = Event()
+    frames = b'\xff\xd8first\xff\xd9' + b'\xff\xd8second\xff\xd9'
+    produced = []
+    for frame in jpeg_frames(BytesIO(frames), stop_event):
+        produced.append(frame)
+        stop_event.set()  # "turn video off" lands right after the first frame
+    assert produced == [b'\xff\xd8first\xff\xd9']
+
+
+def test_camera_start_fails_fast_when_ffmpeg_exits_without_a_frame(monkeypatch):
+    """REGRESSION: a camera held by another app makes ffmpeg exit in
+    milliseconds, but start() waited out the whole 8 s ready timeout anyway.
+    That ran on the answer path, after the ring tone had been stopped, so a
+    blind user who pressed Answer got seconds of total silence first."""
+    import time as _time
+
+    import core.call_video as call_video
+    monkeypatch.setattr(call_video.sys, "platform", "win32")
+    monkeypatch.setattr(call_video.subprocess, "run",
+                        lambda *a, **kw: _FakeCompletedProcess(_CAMERA_LISTING))
+    # Empty stdout and a non-None returncode: ffmpeg refused the device.
+    monkeypatch.setattr(call_video.subprocess, "Popen",
+                        lambda *a, **kw: _FakeCameraProcess(frame=b'', returncode=1))
+
+    capture = CameraCapture("ffmpeg.exe", lambda _frame: None)
+    started = _time.monotonic()
+    try:
+        with pytest.raises(RuntimeError):
+            capture.start()
+    finally:
+        capture.stop()
+    assert _time.monotonic() - started < 3, "start() waited out the full ready timeout"
 
 
 def test_jpeg_pipe_discards_noise_and_yields_complete_frames():

@@ -139,6 +139,7 @@ class CallAudioSession:
 
         # An incoming call may already have opened the receive side while it
         # was ringing. Reuse it and only add microphone capture on answer.
+        opened_output_here = not self.output_running
         self.start_output_only()
         try:
             self._input_stream, self._input_rate = self._open_input_stream()
@@ -146,6 +147,20 @@ class CallAudioSession:
         except Exception:
             self._close_stream(self._input_stream)
             self._input_stream = None
+            # Tear down the receive side only when THIS call opened it.
+            # Without this, an outgoing call whose microphone cannot be
+            # opened (taken by another app) left the OutputStream and the
+            # player thread alive for the life of the process: nothing else
+            # can reach them, because the session never becomes
+            # _call_audio_session and _stop_voice_call_audio() therefore
+            # never sees it. Under exclusive_mode that stranded stream holds
+            # the output device, silencing the screen reader until restart,
+            # and _restart_active_voice_call_audio()'s three attempts each
+            # stranded another one. When the output was already running it
+            # belongs to the ringing monitor, whose owner stops it on this
+            # same failure -- stopping it here too would be a double close.
+            if opened_output_here:
+                self.stop()
             raise
 
         self._sender_thread = threading.Thread(
