@@ -52,6 +52,32 @@ def test_probe_covers_every_send_primitive_and_reaction_signature():
     assert "'/api/:session/send-capabilities'" in ROUTES.read_text(encoding="utf-8")
 
 
+def test_status_reaction_bootloader_fallback_is_mirrored_in_both_lookups():
+    """WA-JS's ensureLazyModule() is a guaranteed no-op for
+    WAWebSendStatusReactionAction: its own LAZY_MODULES table (read from the
+    compiled 4.6.0 loader) only lists WA-JS's own forward-message feature, so
+    the candidate-component list it builds for any other module id is always
+    empty and the Bootloader fetch it wraps never runs. reactMessage() and
+    getSendCapabilities() therefore fetch the Bootloader component
+    themselves; both copies must agree or the probe and the real send can
+    disagree about whether a reaction will work.
+    """
+    source = DEVICE.read_text(encoding="utf-8")
+    react = source[
+        source.index("export async function reactMessage") :
+        source.index("export async function getSendCapabilities")
+    ]
+    probe = source[source.index("export async function getSendCapabilities") :]
+    for section, name in ((react, "reactMessage"), (probe, "getSendCapabilities")):
+        for marker in (
+            "moduleRequire?.('Bootloader')",
+            "componentMap",
+            "loadModules",
+            "status.*reaction|reaction.*status",
+        ):
+            assert marker in section, f"{marker!r} missing from {name}"
+
+
 def test_no_send_handler_turns_a_post_send_verdict_into_a_500():
     source = MESSAGES.read_text(encoding="utf-8")
     for operation in (
@@ -327,7 +353,46 @@ class TestOnlyARealVerdictIsAnnounced:
         _answer(
             monkeypatch,
             409,
+            {"response": {"compatible": False, "missing": ["text"]}},
+        )
+
+        stub._check_send_capabilities()
+
+        assert [text for text, _, _ in stub.spoken] == [
+            "<send_capabilities_incompatible>"
+        ]
+
+    def test_statusreaction_alone_gets_its_own_narrower_warning(
+        self, stub, monkeypatch
+    ):
+        """statusReaction is a private, reverse-engineered lookup that breaks
+        on its own schedule (see deviceController.ts's getSendCapabilities);
+        when it is the only thing missing, real sending still works and the
+        generic warning was a chronic false positive."""
+        _answer(
+            monkeypatch,
+            409,
             {"response": {"compatible": False, "missing": ["statusReaction"]}},
+        )
+
+        stub._check_send_capabilities()
+
+        assert [text for text, _, _ in stub.spoken] == [
+            "<status_reaction_capability_incompatible>"
+        ]
+
+    def test_statusreaction_plus_a_real_gap_keeps_the_generic_warning(
+        self, stub, monkeypatch
+    ):
+        _answer(
+            monkeypatch,
+            409,
+            {
+                "response": {
+                    "compatible": False,
+                    "missing": ["text", "statusReaction"],
+                }
+            },
         )
 
         stub._check_send_capabilities()

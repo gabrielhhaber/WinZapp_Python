@@ -10034,11 +10034,25 @@ class MainWindow(wx.Frame):
                     return
                 self._send_capabilities_warning = signature
                 logging.error("[startup] Send compatibility probe failed: %s", signature)
+                # statusReaction is a private, reverse-engineered module lookup
+                # (see deviceController.ts) that WhatsApp Web breaks on its own
+                # schedule, independent of the public send primitives below it
+                # in the same probe. When it is the *only* thing missing, real
+                # sending is unaffected — announcing the generic warning here
+                # was a chronic false positive that told a blind user their
+                # whole connection was suspect over a feature they may never
+                # touch. Anything else missing still means real sending is at
+                # risk, so it keeps the broader warning.
+                missing = details.get("missing")
+                if missing == ["statusReaction"]:
+                    key = "status_reaction_capability_incompatible"
+                else:
+                    key = "send_capabilities_incompatible"
                 # Deliberately NOT interrupt=True: the unpinned-version warning
                 # is queued moments earlier on the one path where both fire, and
                 # interrupting cut it off mid-sentence — leaving the user with
                 # neither message.
-                wx.CallAfter(self.output, self.i18n.t("send_capabilities_incompatible"))
+                wx.CallAfter(self.output, self.i18n.t(key))
                 return
             except Exception as exc:
                 logging.warning("[startup] Send compatibility probe unavailable: %s", exc)

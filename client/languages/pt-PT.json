@@ -944,6 +944,7 @@
     "preview_sound_error": "Não foi possível reproduzir a pré-visualização — ficheiro de som inválido ou não encontrado.",
     "wpp_version_unpinned_warning": "Aviso: não foi possível fixar a versão do WhatsApp Web. O envio para contactos individuais pode falhar silenciosamente; grupos continuam a funcionar. Atualize o WhatsApp Web do WinZapp.",
     "send_capabilities_incompatible": "O envio pode não funcionar com esta ligação do WhatsApp. Se uma mensagem falhar, atualize o WinZapp e a ligação do WhatsApp e tente novamente.",
+    "status_reaction_capability_incompatible": "Gostar ou reagir a estados pode não funcionar com esta ligação do WhatsApp. O envio e receção de mensagens não é afetado.",
     "status_unconfirmed": "Envio não confirmado",
     "no_messages_in_conversation": "Nenhuma mensagem disponível nesta conversa.",
     "audio_device_default": "Predefinição do sistema",
