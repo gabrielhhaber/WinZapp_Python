@@ -649,6 +649,12 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     // ping slip through unmuted (measured 2026-09-20).
     if (state.enabled) allowCallEndChime();
     state.enabled = false;
+    // Otherwise this survives into the next call: if it starts ringing
+    // before refreshCallAudioPolicy()'s own poll ever observes the idle gap
+    // between the two (a near-immediate redial), callWasAnswered would still
+    // read true from the call this reset() just tore down, wrongly opening
+    // the chime exemption if the NEW call is itself cancelled unanswered.
+    callWasAnswered = false;
     state.micQueue.length = 0;
     state.micOffset = 0;
     for (const pipeline of state.remotePipelines.values()) {
