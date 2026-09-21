@@ -1099,10 +1099,20 @@ class SettingsDialog(wx.Dialog):
         )
         calls_sizer.Add(self._call_popup_check, 0, wx.ALL, 8)
 
-        self._call_exclusive_mode_check = wx.CheckBox(
-            self._calls_page, label=i18n.t("calls_exclusive_mode_label")
+        # Two checkboxes, not one: holding the MICROPHONE exclusively takes a
+        # device nothing else is using mid-call, while holding the SPEAKER
+        # exclusively silences every other application on it -- the screen
+        # reader included, for the whole call, which for this app's users means
+        # losing the call window's own controls. Only the output one warns.
+        self._call_exclusive_input_check = wx.CheckBox(
+            self._calls_page, label=i18n.t("calls_exclusive_input_label")
         )
-        calls_sizer.Add(self._call_exclusive_mode_check, 0, wx.ALL, 8)
+        calls_sizer.Add(self._call_exclusive_input_check, 0, wx.ALL, 8)
+
+        self._call_exclusive_output_check = wx.CheckBox(
+            self._calls_page, label=i18n.t("calls_exclusive_output_label")
+        )
+        calls_sizer.Add(self._call_exclusive_output_check, 0, wx.ALL, 8)
 
         self._call_audio_settings_button = wx.Button(
             self._calls_page, label=i18n.t("calls_audio_settings_button")
@@ -1117,6 +1127,9 @@ class SettingsDialog(wx.Dialog):
         self._calls_page.SetSizer(calls_sizer)
         self._notebook.AddPage(self._calls_page, i18n.t("tab_calls"))
         self._call_alerts_check.Bind(wx.EVT_CHECKBOX, self._on_call_alerts_toggle)
+        self._call_exclusive_output_check.Bind(
+            wx.EVT_CHECKBOX, self._on_call_exclusive_output_toggle
+        )
         # Bound to a local forwarder, not to self.main_window's own method:
         # every wxgui test in this file's suites stands a plain wx.Frame in for
         # MainWindow, so reaching for one of its methods while BUILDING the
@@ -1225,8 +1238,12 @@ class SettingsDialog(wx.Dialog):
         call_settings = self.main_window.settings.get("calls", {})
         self._call_alerts_check.SetValue(call_settings.get("alerts_enabled", True))
         self._call_popup_check.SetValue(call_settings.get("popup_enabled", True))
-        self._call_exclusive_mode_check.SetValue(
-            bool(self.main_window.settings.get("call_audio_devices", {}).get("exclusive_mode", False))
+        call_devices = self.main_window.settings.get("call_audio_devices", {})
+        self._call_exclusive_input_check.SetValue(
+            bool(call_devices.get("exclusive_input", False))
+        )
+        self._call_exclusive_output_check.SetValue(
+            bool(call_devices.get("exclusive_output", False))
         )
         self._update_call_fields_state()
 
@@ -1961,6 +1978,29 @@ class SettingsDialog(wx.Dialog):
             return
         opener(event, parent=self, include_audio=False, include_camera=True)
 
+    def _on_call_exclusive_output_toggle(self, event):
+        """Warn when the speaker is about to be held exclusively.
+
+        Only on the way ON, and only for the output device. Exclusive access
+        to the speaker silences every other application on it for the whole
+        call, screen reader included -- which for this app's users means
+        losing the spoken labels of the call window's own controls, with no
+        way to find out why. The microphone box has no equivalent cost and
+        therefore no equivalent interruption.
+
+        A modal box rather than a spoken line: the screen reader reads it
+        natively, and it cannot be missed the way a passing announcement can.
+        """
+        if event.IsChecked():
+            i18n = self.main_window.i18n
+            wx.MessageBox(
+                i18n.t("calls_exclusive_output_warning"),
+                i18n.t("tab_calls"),
+                wx.OK | wx.ICON_WARNING,
+                self,
+            )
+        event.Skip()
+
     def _on_call_alerts_toggle(self, event):
         self._update_call_fields_state()
         event.Skip()
@@ -2554,9 +2594,9 @@ class SettingsDialog(wx.Dialog):
         # Device/transport-level, not an alert setting, so it belongs in
         # call_audio_devices alongside the input/output device choices even
         # though its checkbox lives on this same Calls tab.
-        self.main_window.settings.setdefault("call_audio_devices", {})[
-            "exclusive_mode"
-        ] = self._call_exclusive_mode_check.GetValue()
+        call_devices = self.main_window.settings.setdefault("call_audio_devices", {})
+        call_devices["exclusive_input"] = self._call_exclusive_input_check.GetValue()
+        call_devices["exclusive_output"] = self._call_exclusive_output_check.GetValue()
 
         profile_backup = self.main_window.settings.setdefault("profile_backup", {})
         profile_backup["close_snapshot_min_hours"] = parse_hours_field(
@@ -2781,7 +2821,8 @@ class SettingsDialog(wx.Dialog):
         self._notifications_check.SetLabel(i18n.t("notifications_label"))
         self._call_alerts_check.SetLabel(i18n.t("calls_alerts_enabled_label"))
         self._call_popup_check.SetLabel(i18n.t("calls_popup_enabled_label"))
-        self._call_exclusive_mode_check.SetLabel(i18n.t("calls_exclusive_mode_label"))
+        self._call_exclusive_input_check.SetLabel(i18n.t("calls_exclusive_input_label"))
+        self._call_exclusive_output_check.SetLabel(i18n.t("calls_exclusive_output_label"))
         self._call_audio_settings_button.SetLabel(i18n.t("calls_audio_settings_button"))
         self._call_video_settings_button.SetLabel(i18n.t("calls_video_settings_button"))
         self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))

@@ -392,12 +392,16 @@ def test_call_audio_falls_back_to_native_rate_when_48k_is_refused():
 
 
 def test_exclusive_mode_default_is_disabled():
-    """Exclusive mode defaults off: it was suspected, then ruled out, as the
-    cause of the choppy-audio regression, but forcing every call onto a
-    device WASAPI exclusively still risks locking other applications out of
-    it — a real cost for users on a single physical microphone/speaker who
-    don't need exclusive mode. It stays available as an opt-in for whoever
-    genuinely benefits from it (see settings_dialog.py's checkbox)."""
+    """Both exclusive flags default off, per direction.
+
+    Exclusive access was suspected, then ruled out, as the cause of the
+    choppy-audio regression. It stays an opt-in because the two directions
+    have very different costs: an exclusive MICROPHONE takes a device nothing
+    else is using mid-call, while an exclusive SPEAKER silences every other
+    application on it -- the screen reader included, for the whole call, which
+    for WinZapp's users means losing the call window's own controls. Hence two
+    checkboxes in settings_dialog.py, and a spoken warning on the output one.
+    """
     sio = _Socket()
     sounddevice = _SoundDevice()
     session = CallAudioSession(
@@ -421,7 +425,7 @@ def test_exclusive_mode_falls_back_to_shared_when_device_refuses(caplog):
     session = CallAudioSession(
         sio,
         CallAudioConfig(
-            session="winzapp", output_device_name="Speaker", exclusive_mode=True
+            session="winzapp", output_device_name="Speaker", exclusive_output=True
         ),
         sounddevice_module=sounddevice,
     )
@@ -446,7 +450,7 @@ def test_exclusive_mode_disabled_never_attempts_exclusive():
     session = CallAudioSession(
         sio,
         CallAudioConfig(
-            session="winzapp", output_device_name="Speaker", exclusive_mode=False
+            session="winzapp", output_device_name="Speaker", exclusive_output=False
         ),
         sounddevice_module=sounddevice,
     )
@@ -456,5 +460,71 @@ def test_exclusive_mode_disabled_never_attempts_exclusive():
     assert len(sounddevice.output_streams) == 1
     kwargs = sounddevice.output_streams[0][0]
     assert kwargs["extra_settings"].exclusive is False
+
+    session.stop()
+
+
+class _MultiHostApiSoundDevice(_SoundDevice):
+    """Windows exposes one physical device once per host API.
+
+    PortAudio enumerates them MME first, then DirectSound, then WASAPI, so a
+    name lookup that takes the first match always lands on MME -- measured on
+    a real Realtek device at 90 ms of input buffering against 3 ms for the
+    very same hardware through WASAPI.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.devices = [
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 0},        # 0 MME
+            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2,
+             "default_samplerate": 48000, "hostapi": 0},        # 1 MME
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 2},        # 2 WASAPI
+            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2,
+             "default_samplerate": 48000, "hostapi": 2},        # 3 WASAPI
+        ]
+
+    def query_hostapis(self, index=None):
+        return {0: {"name": "MME"}, 2: {"name": "Windows WASAPI"}}[int(index)]
+
+
+def test_the_wasapi_twin_of_the_chosen_device_is_tried_first():
+    """REGRESSION: every lookup resolved by name and took the first match, and
+    MME comes first, so calls ran on MME -- ~90 ms of device buffering per
+    direction against ~3 ms for the same hardware on WASAPI. This is plain
+    SHARED-mode WASAPI (PortAudio's default), so nothing is taken away from
+    any other application, the screen reader included."""
+    sounddevice = _MultiHostApiSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    assert sounddevice.input_streams[0][0]["device"] == 2    # WASAPI Mic
+    assert sounddevice.output_streams[0][0]["device"] == 3   # WASAPI Speaker
+
+    session.stop()
+
+
+def test_a_device_with_no_wasapi_twin_still_opens_exactly_as_before():
+    """The twin is a preference, not a requirement: the original index stays
+    in the candidate list right behind it, so nothing regresses on hardware
+    that WASAPI does not expose."""
+    sounddevice = _SoundDevice()  # single host API, no twins
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    assert sounddevice.input_streams[0][0]["device"] == 0
+    assert sounddevice.output_streams[0][0]["device"] == 1
 
     session.stop()

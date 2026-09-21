@@ -75,7 +75,6 @@ class _I18n:
             "incoming_call_answer_button": "Atender",
             "incoming_call_reject_button": "Recusar",
             "incoming_call_silence_button": "Silenciar alerta",
-            "incoming_call_group_not_supported": "Grupo não suportado",
             "incoming_call_answered": "Ligação atendida.",
             "incoming_call_answer_failed": "Falha ao atender: {error}",
             "incoming_call_reject_failed": "Falha ao recusar: {error}",
@@ -627,3 +626,27 @@ def test_language_change_retranslates_an_already_ringing_call():
     expected = "Fulano está te ligando por vídeo."
     assert stub._incoming_call_details["call-1"]["message"] == expected
     assert dialog.refreshed_messages == [expected]
+
+
+def test_isgroup_without_a_group_jid_is_treated_as_an_individual_call():
+    """REGRESSION: the Node side now infers isGroup from participant count
+    (groupParticipantCountOf(call) > 1), so the flag can be asserted for a
+    real one-to-one call. Trusting it alone announced "incoming group call in
+    Unnamed group" instead of the caller's name AND disabled the Answer button
+    via incoming_call_can_answer() -- the user simply could not answer a call
+    from a friend. CLAUDE.md's rule applies in both directions: a @g.us is not
+    trustworthy alone, and neither is a group claim with no @g.us behind it.
+    """
+    stub = _MainStub()
+
+    event = _offer()
+    event["isGroup"] = True  # asserted, but no groupJid and a phone peerJid
+
+    stub.on_incoming_call_event(event)
+
+    assert stub.announcements == [("Fulano está te ligando.", True)]
+    details = stub._incoming_call_details["call-1"]
+    assert details["is_group"] is False
+    assert incoming_call_can_answer(details) is True
+    # A real one-to-one call still gets its receive-only monitor.
+    assert stub.ring_monitor_starts == ["call-1"]

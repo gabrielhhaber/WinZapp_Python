@@ -15,7 +15,7 @@ reverts to defaults — and the same backfill then writes that to disk.
 
 import inspect
 
-from core.utils import backfill_missing_defaults
+from core.utils import backfill_missing_defaults, migrate_call_exclusive_mode_split
 from main import MainWindow
 
 
@@ -88,3 +88,57 @@ class TestItPersistsThroughTheLock:
         # recovery earlier in this method legitimately writes the freshly
         # seeded fallback with a plain dump, before _save_lock is meaningful.
         assert "json.dump(self.settings" not in tail
+
+
+# ── call_audio_devices.exclusive_mode -> exclusive_input + exclusive_output ──
+#
+# One checkbox governed both directions. Holding the MICROPHONE exclusively
+# takes a device nothing else is using mid-call; holding the SPEAKER
+# exclusively silences every other application on it -- the screen reader
+# included, for the whole call, which for WinZapp's users means losing the
+# call window's own spoken controls. Only the output one now carries a warning.
+
+def test_a_legacy_exclusive_mode_choice_is_carried_to_both_directions():
+    """The user ticked one box meaning "use exclusive mode". Turning half of
+    it off silently would be inventing an intent they never expressed; they
+    can untick the speaker half in Settings > Calls, where the warning is."""
+    settings = {"call_audio_devices": {"exclusive_mode": True}}
+
+    assert migrate_call_exclusive_mode_split(settings) is True
+
+    section = settings["call_audio_devices"]
+    assert section["exclusive_input"] is True
+    assert section["exclusive_output"] is True
+    # The old key is gone, so a later build cannot read a stale value that no
+    # longer governs anything.
+    assert "exclusive_mode" not in section
+
+
+def test_the_migration_is_one_shot_and_does_not_undo_a_later_choice():
+    """Without the flag, a user who unticks the speaker box would find it back
+    on at the next launch -- and that is exactly the user who cares."""
+    settings = {"call_audio_devices": {"exclusive_mode": True}}
+    migrate_call_exclusive_mode_split(settings)
+
+    settings["call_audio_devices"]["exclusive_output"] = False
+    assert migrate_call_exclusive_mode_split(settings) is False
+    assert settings["call_audio_devices"]["exclusive_output"] is False
+
+
+def test_an_install_without_the_legacy_key_is_left_to_the_backfill():
+    """A missing old key is not invented here: backfill_missing_defaults()
+    puts both new keys in at their False defaults straight after."""
+    settings = {"call_audio_devices": {"input_device_name": "Mic"}}
+
+    assert migrate_call_exclusive_mode_split(settings) is True
+
+    section = settings["call_audio_devices"]
+    assert "exclusive_input" not in section
+    assert "exclusive_output" not in section
+
+
+def test_the_migration_runs_before_the_backfill_that_would_invent_the_value():
+    """Same ordering rule the other migrations rely on: run after the backfill
+    and it operates on a value it just made up."""
+    source = inspect.getsource(MainWindow._migrate_settings)
+    assert "migrate_call_exclusive_mode_split" in source
