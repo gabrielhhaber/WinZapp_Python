@@ -853,3 +853,50 @@ def test_the_label_has_a_row_of_its_own_above_the_buttons():
     source = (Path(__file__).parents[1] / "client" / "main.py").read_text(encoding="utf-8")
     assert "call_sizer.Add(self.voice_call_window_label, 0, wx.EXPAND" in source
     assert "controls.Add(self.voice_call_window_label" not in source
+
+
+class _JsonResponse:
+    def __init__(self, body=None, *, broken=False):
+        self._body = body
+        self._broken = broken
+
+    def json(self):
+        if self._broken:
+            raise ValueError("not json")
+        return self._body
+
+
+def test_call_response_route_names_the_native_path_and_state():
+    body = {"status": "success", "response": {
+        "handled": True, "via": "native-voip",
+        "call": {"id": "C1", "peerJid": "5511999999999@c.us", "state": "INCOMING_RING"},
+    }}
+    route = MainWindow._call_response_route(_JsonResponse(body))
+    assert route == "native-voip state=INCOMING_RING"
+    # the peer JID in the same body never makes it into the log line
+    assert "5511" not in route
+
+
+def test_call_response_route_reports_the_wa_js_fallback():
+    assert MainWindow._call_response_route(
+        _JsonResponse({"status": "success", "response": True})
+    ) == "wa-js"
+    assert MainWindow._call_response_route(
+        _JsonResponse({"status": "success", "response": {"id": "C1"}})
+    ) == "wa-js"
+
+
+def test_call_response_route_survives_a_body_that_is_not_json():
+    assert MainWindow._call_response_route(_JsonResponse(broken=True)) == "unknown"
+
+
+def test_reject_logs_the_request_before_waiting_for_the_call_lock():
+    body = _body_between(
+        _MAIN_SRC,
+        "    def reject_incoming_call(self",
+        "    def end_active_call(self",
+    )
+    requested = body.index('"[call] reject requested')
+    lock = body.index("with self._call_action_lock:")
+    answered = body.index('"[call] reject answered via %s"')
+    assert requested < lock < answered

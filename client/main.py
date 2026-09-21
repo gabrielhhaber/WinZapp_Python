@@ -6261,6 +6261,25 @@ class MainWindow(wx.Frame):
                         response.status_code, response.text[:500])
         raise RuntimeError(f"HTTP {response.status_code}")
 
+    @staticmethod
+    def _call_response_route(response) -> str:
+        """Which path the Node side took for a call action, for the log.
+
+        Only the route and the call state are read: the body also carries the
+        peer JID, which must not reach log.log (docs/traps/log-pii.md).
+        """
+        try:
+            body = response.json()
+        except Exception:
+            return "unknown"
+        data = body.get("response") if isinstance(body, dict) else None
+        if not isinstance(data, dict) or not data.get("via"):
+            return "wa-js"
+        call = data.get("call") if isinstance(data.get("call"), dict) else {}
+        state = str(call.get("state") or "")
+        via = str(data.get("via"))
+        return f"{via} state={state}" if state else via
+
     def _call_error_text(self, error) -> str:
         """Collapse any call failure into one short line fit for speech."""
         logging.info("[call] failure detail: %r", error)
@@ -6802,12 +6821,21 @@ class MainWindow(wx.Frame):
     def reject_incoming_call(self, identity: str):
         payload = self._call_control_payload(identity)
         self.stop_incoming_call_alert(identity)
+        # A reject that never reached WhatsApp (the caller's phone kept ringing)
+        # could not be told apart in the log from one WhatsApp ignored: this
+        # line against the POST's own line shows time spent waiting for the
+        # call-action lock, and the answer below names the route taken.
+        logging.info("[call] reject requested has_call_id=%s", bool(payload))
 
         def _worker():
             with self._call_action_lock:
                 try:
-                    self._raise_for_call_response(
+                    response = self._raise_for_call_response(
                         self._post_call_control("reject", payload), "reject"
+                    )
+                    logging.info(
+                        "[call] reject answered via %s",
+                        self._call_response_route(response),
                     )
                 except Exception as exc:
                     logging.exception("[call] reject failed")
