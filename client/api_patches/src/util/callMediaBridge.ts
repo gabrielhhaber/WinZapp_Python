@@ -686,6 +686,157 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     }
   } catch (_) {}
 
+  // TEMPORARY DIAGNOSTIC -- remove before the PR. Where does WhatsApp put the
+  // REMOTE video? With our own camera excluded from attachRemoteVideo, no
+  // remote video track reached the bridge at all: not through a
+  // RTCPeerConnection track event, not through any <video> the media scan
+  // sees. The WASM engine probably decodes it itself and draws it somewhere.
+  // Each hook reports a bounded number of times.
+  const rxCounts: Record<string, number> = {};
+  const rx = (key: string, limit: number, details: string) => {
+    rxCounts[key] = (rxCounts[key] || 0) + 1;
+    if (rxCounts[key] <= limit) report(`rxdiag-${key}`, details);
+  };
+  const rxLuma = (source: any, width: number, height: number): string => {
+    try {
+      if (!width || !height) return 'n/a';
+      const probe = document.createElement('canvas');
+      probe.width = 32;
+      probe.height = 18;
+      const ctx = probe.getContext('2d');
+      if (!ctx) return 'n/a';
+      ctx.drawImage(source, 0, 0, 32, 18);
+      const data = ctx.getImageData(0, 0, 32, 18).data;
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+      return (sum / (data.length / 4)).toFixed(1);
+    } catch (error: any) {
+      return `err:${String(error?.message || error).slice(0, 50)}`;
+    }
+  };
+
+  try {
+    const NativeDecoder = win.VideoDecoder;
+    if (typeof NativeDecoder === 'function' && !NativeDecoder.__winzappRx) {
+      const Wrapped: any = function (this: any, init: any) {
+        let n = 0;
+        const output = init?.output;
+        const wrappedInit = {
+          ...init,
+          output: (frame: any) => {
+            n += 1;
+            if (n === 1 || n % 100 === 0) {
+              rx('decoder', 20, `VideoDecoder frame #${n} ${frame?.displayWidth}x${frame?.displayHeight} luma=${rxLuma(frame, frame?.displayWidth, frame?.displayHeight)}`);
+            }
+            return output?.(frame);
+          },
+        };
+        rx('decoder', 20, 'VideoDecoder constructed');
+        return new NativeDecoder(wrappedInit);
+      };
+      Wrapped.prototype = NativeDecoder.prototype;
+      Wrapped.isConfigSupported = NativeDecoder.isConfigSupported?.bind(NativeDecoder);
+      Wrapped.__winzappRx = true;
+      win.VideoDecoder = Wrapped;
+    }
+  } catch (_) {}
+
+  try {
+    const NativeGenerator = win.MediaStreamTrackGenerator;
+    if (typeof NativeGenerator === 'function' && !NativeGenerator.__winzappRx) {
+      const Wrapped: any = function (this: any, init: any) {
+        const generated = new NativeGenerator(init);
+        rx('generator', 10, `MediaStreamTrackGenerator kind=${init?.kind} id=${generated?.id}`);
+        return generated;
+      };
+      Wrapped.prototype = NativeGenerator.prototype;
+      Wrapped.__winzappRx = true;
+      win.MediaStreamTrackGenerator = Wrapped;
+    }
+  } catch (_) {}
+
+  try {
+    const desc = Object.getOwnPropertyDescriptor(win.HTMLMediaElement.prototype, 'srcObject');
+    if (desc?.set && !(desc.set as any).__winzappRx) {
+      const nativeSet = desc.set;
+      const set = function (this: any, value: any) {
+        nativeSet.call(this, value);
+        try {
+          const foreign = (value?.getVideoTracks?.() || []).filter((t: any) => !isOurCameraTrack(t));
+          if (foreign.length) {
+            const el = this;
+            rx('video-el', 10, `foreign video track(s) ${foreign.map((t: any) => t.id).join(',')} on <${el.tagName}> inDom=${el.isConnected}`);
+            win.setTimeout(() => rx('video-el', 20, `after 1.5s ${el.videoWidth}x${el.videoHeight} paused=${el.paused} ready=${el.readyState} luma=${rxLuma(el, el.videoWidth, el.videoHeight)}`), 1500);
+          }
+        } catch (_) {}
+      };
+      (set as any).__winzappRx = true;
+      Object.defineProperty(win.HTMLMediaElement.prototype, 'srcObject', { ...desc, set });
+    }
+  } catch (_) {}
+
+  const describeSource = (source: any): string => {
+    try {
+      if (win.VideoFrame && source instanceof win.VideoFrame) return `VideoFrame ${source.displayWidth}x${source.displayHeight}`;
+      if (win.ImageBitmap && source instanceof win.ImageBitmap) return `ImageBitmap ${source.width}x${source.height}`;
+      if (source instanceof win.HTMLVideoElement) return `HTMLVideoElement ${source.videoWidth}x${source.videoHeight}`;
+      if (source instanceof win.HTMLCanvasElement) return `Canvas ${source.width}x${source.height}`;
+    } catch (_) {}
+    return '';
+  };
+  const drawCounts = new WeakMap<object, number>();
+  const noteDraw = (api: string, target: any, source: any) => {
+    const kind = describeSource(source);
+    if (!kind || /Canvas/.test(kind) && target === source) return;
+    const key = target || source;
+    const n = (drawCounts.get(key) || 0) + 1;
+    drawCounts.set(key, n);
+    if (n === 1 || n % 100 === 0) {
+      const w = source?.displayWidth || source?.videoWidth || source?.width;
+      const h = source?.displayHeight || source?.videoHeight || source?.height;
+      rx('draw', 40, `${api} #${n} src=${kind} into=${target?.width}x${target?.height} luma=${rxLuma(source, w, h)}`);
+    }
+  };
+  try {
+    const proto2d = win.CanvasRenderingContext2D?.prototype;
+    const nativeDraw = proto2d?.drawImage;
+    if (typeof nativeDraw === 'function' && !nativeDraw.__winzappRx) {
+      const drawImage = function (this: any, source: any, ...rest: any[]) {
+        if (!(this?.canvas?.width === 32 && this?.canvas?.height === 18)) noteDraw('2d.drawImage', this?.canvas, source);
+        return nativeDraw.call(this, source, ...rest);
+      };
+      (drawImage as any).__winzappRx = true;
+      proto2d.drawImage = drawImage;
+    }
+  } catch (_) {}
+  for (const ctxName of ['WebGLRenderingContext', 'WebGL2RenderingContext']) {
+    try {
+      const proto = win[ctxName]?.prototype;
+      const nativeTex = proto?.texImage2D;
+      if (typeof nativeTex === 'function' && !nativeTex.__winzappRx) {
+        const texImage2D = function (this: any, ...args: any[]) {
+          const source = args[args.length - 1];
+          noteDraw(`${ctxName}.texImage2D`, this?.canvas, source);
+          return nativeTex.apply(this, args);
+        };
+        (texImage2D as any).__winzappRx = true;
+        proto.texImage2D = texImage2D;
+      }
+    } catch (_) {}
+  }
+  try {
+    const protoBitmap = win.ImageBitmapRenderingContext?.prototype;
+    const nativeTransfer = protoBitmap?.transferFromImageBitmap;
+    if (typeof nativeTransfer === 'function' && !nativeTransfer.__winzappRx) {
+      const transfer = function (this: any, bitmap: any) {
+        noteDraw('bitmaprenderer.transfer', this?.canvas, bitmap);
+        return nativeTransfer.call(this, bitmap);
+      };
+      (transfer as any).__winzappRx = true;
+      protoBitmap.transferFromImageBitmap = transfer;
+    }
+  } catch (_) {}
+
   const cameraTrack = () => {
     state.cameraTrackRequests += 1;
     if (state.cameraTrackRequests === 1) {
