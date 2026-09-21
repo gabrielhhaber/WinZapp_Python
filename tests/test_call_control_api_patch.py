@@ -258,13 +258,17 @@ def test_page_native_audio_mutes_message_ping_but_preserves_call_end_chime():
     assert "return !(el.srcObject instanceof MediaStream) && el.loop === true;" in bridge
 
     # A live/ringing -> terminal transition opens the short-audio exception,
-    # but only for a call that was actually answered (state.enabled at some
-    # point) — a merely-ringing call being cancelled/rejected must not open it,
-    # or a coincident missed-call message ping slips through unmuted.
-    assert "let callWasAnswered = false;" in bridge
-    assert "if (state.enabled) callWasAnswered = true;" in bridge
-    assert "if (callWasAnswered) allowCallEndChime();" in bridge
-    assert "if (state.enabled) allowCallEndChime();" in bridge
+    # but only for a call that was actually CONNECTED -- a merely-ringing call
+    # being cancelled/rejected must not open it, or a coincident missed-call
+    # message ping slips through unmuted. "Connected" comes from the page's
+    # CallStore state, keyed by call id, never from state.enabled (enabled too
+    # early on outgoing calls, never on the Linux path). Its behaviour is
+    # executed for real in tests/test_call_end_chime_policy.py.
+    assert "let answeredPageCallKey: string | null = null;" in bridge
+    assert "if (active && isConnectedPageCall(call)) answeredPageCallKey = key;" in bridge
+    assert "if (lastCallWasAnswered()) allowCallEndChime();" in bridge
+    assert "state.enabled) allowCallEndChime" not in bridge
+    assert "callWasAnswered" not in bridge
     assert "pageAudioNow() + 2500" in bridge
     assert "if (pageAudioNow() <= allowCallEndChimeUntil)" in bridge
     assert "restorePageAudio(el);" in bridge

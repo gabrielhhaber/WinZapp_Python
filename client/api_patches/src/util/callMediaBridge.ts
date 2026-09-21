@@ -263,18 +263,29 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   >();
   const mutedPageElements = new Set<HTMLMediaElement>();
   let callWasActive = false;
-  // A merely-ringing call (INCOMING_RING/CALLING/etc, counted "active" by
-  // isLivePageCall below) that is cancelled or rejected before anyone answers
-  // has no real terminal chime to protect. state.enabled only becomes true
-  // when the audio bridge is actually attached after answer, so it is the
-  // signal for "this call was ever really connected" — remembered here
-  // because refreshCallAudioPolicy's own poll can observe the ENDED
-  // transition after state.reset() has already cleared state.enabled back to
-  // false for the same call. Without this, cancelling a call before answer
-  // opened the same 2500ms exemption window as a genuine hangup, and the
-  // coincident missed-call message-notification ping slipped through it
-  // unmuted (measured 2026-09-20).
-  let callWasAnswered = false;
+  // Key of the page call last seen live, so a call replaced by another one
+  // with no idle poll in between (a near-immediate redial) still counts as
+  // having ended.
+  let lastPageCallKey = '';
+  // Key of the call that was actually CONNECTED, or null. A merely-ringing
+  // call (INCOMING_RING/CALLING/etc, counted "active" by isLivePageCall) that
+  // is cancelled or rejected before anyone answers has no real terminal chime
+  // to protect, and opening the 2500ms exemption for it let a coincident
+  // missed-call message ping slip through unmuted (measured 2026-09-20).
+  //
+  // "Connected" is read from the page's own CallStore state, NOT from
+  // state.enabled, which is what this used to be and was wrong three ways:
+  // - offerCall() enables the bridge BEFORE the offer is sent, so an OUTGOING
+  //   call counted as answered while still ringing, and an unanswered outgoing
+  //   call reopened exactly the leak the flag was introduced to close;
+  // - on the Linux/PulseAudio path setCallMediaBridgeActive() returns before
+  //   enable(), so no call was ever "answered" and the real terminal chime
+  //   was muted on every remote-API install;
+  // - reset() cleared the flag, yet the poll can observe ENDED after reset()
+  //   (a slow teardown), and then the genuine chime was not re-armed.
+  // Keyed by call id rather than a boolean, it survives reset() without
+  // leaking into the next call: a new call has a new key.
+  let answeredPageCallKey: string | null = null;
   let allowCallEndChimeUntil = 0;
 
   const pageAudioNow = () => {
@@ -335,6 +346,31 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     return !['', '0', 'NONE', 'ENDED', 'HANDLED_REMOTELY'].includes(callState);
   };
 
+  // States a call only reaches once it has been answered, on either side.
+  // PREACCEPT_RECEIVED is deliberately absent: it arrives while still ringing.
+  const CONNECTED_PAGE_CALL_STATES = [
+    'ACCEPT_SENT',
+    'ACCEPT_RECEIVED',
+    'ACTIVE',
+    'CONNECTED_LONELY',
+    'REJOINING',
+  ];
+
+  const isConnectedPageCall = (call: any): boolean =>
+    !!call && CONNECTED_PAGE_CALL_STATES.includes(pageCallState(call));
+
+  const pageCallKey = (call: any): string => {
+    try {
+      const id = call?.id ?? call?.get?.('id') ?? '';
+      return String(id?._serialized ?? id ?? '');
+    } catch (_) {
+      return '';
+    }
+  };
+
+  const lastCallWasAnswered = (): boolean =>
+    answeredPageCallKey !== null && answeredPageCallKey === lastPageCallKey;
+
   const restorePageAudio = (el: HTMLMediaElement) => {
     try {
       const original = pageAudioState.get(el);
@@ -360,14 +396,18 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   };
 
   const refreshCallAudioPolicy = () => {
-    const active = isLivePageCall(currentPageCall());
-    if (!callWasActive && active) callWasAnswered = false; // a new call just started ringing
-    if (state.enabled) callWasAnswered = true; // remember it was actually answered
-    if (callWasActive && !active) {
-      if (callWasAnswered) allowCallEndChime();
-      callWasAnswered = false;
+    const call = currentPageCall();
+    const active = isLivePageCall(call);
+    const key = active ? pageCallKey(call) : '';
+    // The previous call ended -- or was replaced by a different one without
+    // an idle poll in between. Settle it BEFORE looking at the new one.
+    if (callWasActive && (!active || key !== lastPageCallKey)) {
+      if (lastCallWasAnswered()) allowCallEndChime();
+      answeredPageCallKey = null;
     }
+    if (active && isConnectedPageCall(call)) answeredPageCallKey = key;
     callWasActive = active;
+    lastPageCallKey = key;
   };
 
   const isPageRingtone = (el: HTMLMediaElement) => {
@@ -712,14 +752,14 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     // call being rejected/cancelled has no real terminal chime to protect,
     // and opening this window for it let a coincident missed-call message
     // ping slip through unmuted (measured 2026-09-20).
-    if (state.enabled) allowCallEndChime();
+    //
+    // The "answered" record is NOT cleared here. The poll can observe ENDED
+    // after this reset() on a slow teardown, and must still be able to re-arm
+    // the genuine chime then. It cannot leak into the next call either: that
+    // call has a different key, and refreshCallAudioPolicy() settles the old
+    // one as soon as it sees the key change.
+    if (lastCallWasAnswered()) allowCallEndChime();
     state.enabled = false;
-    // Otherwise this survives into the next call: if it starts ringing
-    // before refreshCallAudioPolicy()'s own poll ever observes the idle gap
-    // between the two (a near-immediate redial), callWasAnswered would still
-    // read true from the call this reset() just tore down, wrongly opening
-    // the chime exemption if the NEW call is itself cancelled unanswered.
-    callWasAnswered = false;
     state.micQueue.length = 0;
     state.micOffset = 0;
     for (const pipeline of state.remotePipelines.values()) {
