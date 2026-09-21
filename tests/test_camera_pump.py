@@ -65,8 +65,6 @@ let callLive = true;
 const isLivePageCall = () => callLive;
 const currentPageCall = () => ({});
 const report = () => {};
-const reportCallModules = () => {}; // TEMPORARY DIAGNOSTIC stub
-const reportEngineState = () => {}; // TEMPORARY DIAGNOSTIC stub
 const state = {
   cameraCanvas: canvas, cameraGeneration: 0, cameraPending: false,
   cameraStoppedEpoch: -1, cameraLastPicture: null, cameraShowing: false,
