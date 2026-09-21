@@ -730,3 +730,37 @@ def test_a_terminal_call_event_also_releases_the_speaker():
 
     assert "group-call" in stub._active_incoming_calls
     assert stub.ring_monitor_stops == 1
+
+
+class TestIncomingCallPopupDoesNotPinItselfOnTop:
+    """Reported live: while a call rang, Alt+Tab to WinZapp's main window
+    always landed back on the incoming-call popup -- the same defect fixed for
+    the call window in 7f50df41, from the same causes. Checked statically, as
+    that fix was: constructing a real wx.Dialog opens a window on whoever runs
+    the suite (CLAUDE.md rule 1)."""
+
+    SOURCE = (
+        __import__("pathlib").Path(__file__).parents[1]
+        / "client" / "ui" / "dialogs" / "incoming_call.py"
+    ).read_text(encoding="utf-8")
+
+    def _init_call(self):
+        start = self.SOURCE.index("super().__init__(")
+        return self.SOURCE[start:self.SOURCE.index(")", self.SOURCE.index("style=", start)) + 1]
+
+    def test_the_popup_is_not_an_owned_window(self):
+        """An owned window is kept above its owner by Windows itself, so no
+        focus code could ever put MainWindow in front of it."""
+        assert "super().__init__(\n            None," in self.SOURCE
+
+    def test_the_popup_is_not_created_stay_on_top(self):
+        assert "wx.STAY_ON_TOP" not in self._init_call()
+
+    def test_raising_the_popup_drops_topmost_straight_after(self):
+        """It must still appear over whatever app the user is in when the call
+        arrives -- that is how a blind user learns of it -- but only once:
+        HWND_TOPMOST (-1) followed by HWND_NOTOPMOST (-2)."""
+        topmost = self.SOURCE.index("wintypes.HWND(-1)")
+        notopmost = self.SOURCE.index("wintypes.HWND(-2)")
+        assert topmost < notopmost
+        assert self.SOURCE.count("wintypes.HWND(-1)") == 1

@@ -24,10 +24,24 @@ class IncomingCallDialog(wx.Dialog):
         on_answer_without_video=None,
     ):
         i18n = parent.i18n
+        # `parent` supplies i18n and owns the callbacks, but is deliberately
+        # NOT the wx parent, and the style carries no wx.STAY_ON_TOP. Reported
+        # live: while a call rang, Alt+Tab to WinZapp's main window always
+        # landed back on this popup, so the user could not move between them
+        # -- the same defect Gabriel fixed for the call window in 7f50df41, from
+        # the same causes. A wx.Dialog with a top-level frame as its parent is
+        # a Win32 OWNED window, which Windows keeps above its owner no matter
+        # what focus code does; and STAY_ON_TOP (plus the HWND_TOPMOST that
+        # _force_foreground() used to leave set) pinned it above every window
+        # on the desktop for as long as the call rang. The popup still has to
+        # appear over whatever app the user is in when the call arrives --
+        # that is how a blind user learns of it -- so _force_foreground()
+        # brings it to the top ONCE and then drops topmost, leaving an
+        # ordinary window the user can Alt+Tab away from.
         super().__init__(
-            parent,
+            None,
             title=i18n.t("incoming_call_popup_title"),
-            style=wx.DEFAULT_DIALOG_STYLE | wx.STAY_ON_TOP,
+            style=wx.DEFAULT_DIALOG_STYLE,
         )
         self._on_answer_callback = on_answer
         self._on_reject_callback = on_reject
@@ -163,15 +177,13 @@ class IncomingCallDialog(wx.Dialog):
                     and user32.AttachThreadInput(current_thread, foreground_thread, True)
                 )
                 try:
-                    user32.SetWindowPos(
-                        hwnd,
-                        wintypes.HWND(-1),
-                        0,
-                        0,
-                        0,
-                        0,
-                        0x0001 | 0x0002 | 0x0040,
-                    )
+                    # HWND_TOPMOST gets it above whatever app is in front right
+                    # now; HWND_NOTOPMOST straight after keeps it at the top of
+                    # the ordinary Z-order without pinning it there, so Alt+Tab
+                    # to another window -- WinZapp's own included -- works.
+                    swp_flags = 0x0001 | 0x0002 | 0x0040  # NOSIZE|NOMOVE|SHOWWINDOW
+                    user32.SetWindowPos(hwnd, wintypes.HWND(-1), 0, 0, 0, 0, swp_flags)
+                    user32.SetWindowPos(hwnd, wintypes.HWND(-2), 0, 0, 0, 0, swp_flags)
                     user32.BringWindowToTop(hwnd)
                     user32.SetForegroundWindow(hwnd)
                 finally:
