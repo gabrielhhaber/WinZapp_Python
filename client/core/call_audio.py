@@ -412,6 +412,17 @@ class CallAudioSession:
                         extra_settings = self._stream_extra_settings(
                             device, input_device=True, exclusive=exclusive
                         )
+                        # The exclusive pass may only open a device exclusive
+                        # mode actually APPLIES to. A non-WASAPI candidate gets
+                        # extra_settings=None and would open "successfully"
+                        # right here -- so with the WASAPI twin refusing
+                        # exclusive access (common), the MME entry behind it
+                        # won the exclusive pass and the shared pass, where the
+                        # same WASAPI device would have opened, never ran.
+                        # Measured live: exclusive_input on put the microphone
+                        # on MME at ~90 ms instead of shared WASAPI at ~3 ms.
+                        if exclusive and extra_settings is None:
+                            continue
                         stream = self._sd.InputStream(
                             samplerate=rate,
                             blocksize=max(1, int(rate * CALL_FRAME_MS / 1000)),
@@ -455,6 +466,17 @@ class CallAudioSession:
                         extra_settings = self._stream_extra_settings(
                             device, input_device=False, exclusive=exclusive
                         )
+                        # The exclusive pass may only open a device exclusive
+                        # mode actually APPLIES to. A non-WASAPI candidate gets
+                        # extra_settings=None and would open "successfully"
+                        # right here -- so with the WASAPI twin refusing
+                        # exclusive access (common), the MME entry behind it
+                        # won the exclusive pass and the shared pass, where the
+                        # same WASAPI device would have opened, never ran.
+                        # Measured live: exclusive_input on put the microphone
+                        # on MME at ~90 ms instead of shared WASAPI at ~3 ms.
+                        if exclusive and extra_settings is None:
+                            continue
                         stream = self._sd.OutputStream(
                             samplerate=rate,
                             blocksize=max(1, int(rate * CALL_FRAME_MS / 1000)),

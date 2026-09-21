@@ -573,3 +573,56 @@ def test_an_exact_wasapi_name_beats_a_partial_match_found_earlier():
     assert sounddevice.output_streams[0][0]["device"] == 3
 
     session.stop()
+
+
+def test_a_refused_exclusive_falls_back_to_shared_wasapi_not_to_mme():
+    """REGRESSION (seen live in log.log, 2026-09-21): with exclusive_input on,
+    the WASAPI twin refused exclusive access -- common -- and the MME entry
+    behind it has no exclusive mode at all, so it opened "successfully" inside
+    the exclusive pass. The shared pass, where the same WASAPI device would
+    have opened, never ran: the microphone landed on MME at ~90 ms instead of
+    shared WASAPI at ~3 ms, while the log honestly reported exclusive=False."""
+    sounddevice = _MultiHostApiSoundDevice(refuse_exclusive=True)
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_input=True, exclusive_output=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    input_kwargs = sounddevice.input_streams[0][0]
+    output_kwargs = sounddevice.output_streams[0][0]
+    assert input_kwargs["device"] == 2       # WASAPI Mic, not MME (0)
+    assert output_kwargs["device"] == 3      # WASAPI Speaker, not MME (1)
+    assert input_kwargs["extra_settings"].exclusive is False
+    assert output_kwargs["extra_settings"].exclusive is False
+
+    session.stop()
+
+
+def test_an_accepted_exclusive_still_opens_exclusively_on_wasapi():
+    """The other half: when the device does accept exclusive access, the
+    exclusive pass opens it, on the WASAPI twin."""
+    sounddevice = _MultiHostApiSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_input=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    input_kwargs = sounddevice.input_streams[0][0]
+    assert input_kwargs["device"] == 2
+    assert input_kwargs["extra_settings"].exclusive is True
+    # exclusive_output was left off, so the speaker is shared.
+    assert sounddevice.output_streams[0][0]["extra_settings"].exclusive is False
+
+    session.stop()
