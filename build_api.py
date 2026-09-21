@@ -28,7 +28,7 @@ def _sync_canonical_patches(api_dir: str, api_patches_dir: str) -> int:
 
 
 def _verify_critical_call_patch(api_dir: str) -> None:
-    """Fail if npm build left the old group-call controller in dist/."""
+    """Fail if dist/callController.js is older than the patched source."""
     source_path = os.path.join(api_dir, "src", "controller", "callController.ts")
     compiled_path = os.path.join(api_dir, "dist", "controller", "callController.js")
 
@@ -42,12 +42,10 @@ def _verify_critical_call_patch(api_dir: str) -> None:
     with open(compiled_path, encoding="utf-8", errors="replace") as fh:
         compiled = fh.read()
 
-    # These strings are deliberately checked only when the current source
-    # contains them, so future refactors can remove/rename the routing without
-    # making build_api.py permanently depend on an obsolete implementation.
-    #
-    # That "only when the source contains them" clause is also how this guard
-    # silently stopped guarding anything: it was still naming the markers of
+    # These strings used to be checked only when the current source contained
+    # them, so a refactor could rename the routing without breaking the build.
+    # That clause is how this guard silently stopped guarding anything: it was
+    # still naming the markers of
     # the group-call routing this controller no longer has
     # ("native-group-chat", "native-group-wids", "WhatsApp Web group calling
     # gate is disabled"), none of which appear in the source any more, so

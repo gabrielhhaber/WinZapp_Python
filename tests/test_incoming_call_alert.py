@@ -752,6 +752,9 @@ class TestIncomingCallPopupDoesNotPinItselfOnTop:
         """An owned window is kept above its owner by Windows itself, so no
         focus code could ever put MainWindow in front of it."""
         assert "super().__init__(\n            None," in self.SOURCE
+        # wxWidgets still makes the app's top-level window the owner of a
+        # NULL-parent dialog unless this style is set.
+        assert "wx.DIALOG_NO_PARENT" in self._init_call()
 
     def test_the_popup_is_not_created_stay_on_top(self):
         assert "wx.STAY_ON_TOP" not in self._init_call()

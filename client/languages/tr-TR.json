@@ -826,7 +826,7 @@
   "calls_popup_enabled_label": "Bir arama geldiğinde pencere aç",
   "calls_exclusive_input_label": "Arama sırasında mikrofon için özel modu kullan",
   "calls_exclusive_output_label": "Arama sırasında hoparlör için özel modu kullan",
-  "calls_exclusive_output_warning": "Uyarı: özel modda hoparlör arama için ayrılır. Arama sürdüğü sürece ekran okuyucunuz dahil başka hiçbir program bu aygıtta ses çalamaz. Yine de açılsın mı?",
+  "calls_exclusive_output_warning": "Uyarı: özel modda hoparlör arama için ayrılır. Arama sürdüğü sürece ekran okuyucunuz dahil başka hiçbir program bu cihazda ses çalamaz. Yine de açılsın mı?",
   "tab_profile_backup": "Profil yedekleme",
   "profile_backup_close_hours_label": "WinZapp kapatılırken alınan profil yedeklemeleri arasındaki en kısa süre (saat, 0 = her kapanışta)",
   "profile_backup_live_label": "WinZapp açıkken de profili yedekle (yedekleme çalışırken WhatsApp bağlantısı kesilir)",

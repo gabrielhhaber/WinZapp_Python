@@ -563,9 +563,11 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   // own UI -- so video off/on now goes through it.
   //
   // Its arguments are undocumented (wa-js types the interface as `any`), so
-  // this dispatches on arity and logs the arity, the start of the function's
-  // source and the outcome, which is what pins the real signature down if
-  // this guess is wrong.
+  // this dispatches on arity. The arity and the start of the function's
+  // source are logged once per page -- enough to pin the signature down if a
+  // WhatsApp update changes it (verified live 2026-09-21: arity 1, returns
+  // 0) -- and every toggle logs only its outcome.
+  let videoMuteSignatureReported = false;
   const setNativeVideoMute = (muted: boolean) => {
     const getter =
       win.WPP?.whatsapp?.functions?.getVoipStackInterface ||
@@ -582,12 +584,15 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
           return;
         }
         const callId = pageCallKey(currentPageCall());
-        const source = String(fn).replace(/\s+/g, ' ').slice(0, 160);
         const args = fn.length >= 2 ? [callId, muted] : [muted];
-        report(
-          'video-mute',
-          `muted=${muted} arity=${fn.length} args=${fn.length >= 2 ? 'callId,muted' : 'muted'} src=${source}`
-        );
+        if (!videoMuteSignatureReported) {
+          videoMuteSignatureReported = true;
+          const source = String(fn).replace(/\s+/g, ' ').slice(0, 160);
+          report(
+            'video-mute',
+            `signature arity=${fn.length} args=${fn.length >= 2 ? 'callId,muted' : 'muted'} src=${source}`
+          );
+        }
         const result = await fn.apply(stack, args);
         let shown = '';
         try { shown = JSON.stringify(result); } catch (_) { shown = String(result); }
@@ -1003,6 +1008,9 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     canvas: null as HTMLCanvasElement | null,
     source: null as any,
     timer: 0,
+    // The call key already reported as "renderer unavailable", so waiting for
+    // the lazily loaded VoIP bundle does not log every 250 ms scan.
+    unavailableReported: '',
   };
 
   const peerVideoRegistry = (): any => {
@@ -1046,7 +1054,15 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       const renderSource = win.require?.('WAWebVoipVideoRenderSource');
       const peer = call?.peerJid ?? call?.attributes?.peerJid ?? call?.get?.('peerJid');
       if (!registry || !renderSource || !peer) {
-        report('peer-video', `renderer unavailable registry=${!!registry} source=${!!renderSource} peer=${!!peer}`);
+        // Not a failure yet: WhatsApp loads its VoIP bundle on demand, so the
+        // renderer modules (or the peer) can still be missing when the call
+        // starts ringing. Release the claim so a later scan tries again --
+        // keeping it made the peer's video never appear for that call.
+        peerVideo.key = '';
+        if (peerVideo.unavailableReported !== key) {
+          peerVideo.unavailableReported = key;
+          report('peer-video', `renderer unavailable registry=${!!registry} source=${!!renderSource} peer=${!!peer}`);
+        }
         return;
       }
       const source = renderSource.WAWebVoipVideoRenderSource.peer(

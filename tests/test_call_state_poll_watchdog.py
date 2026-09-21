@@ -37,6 +37,7 @@ def _strip_types(block: str) -> str:
     block = block.replace("(window as any)", "window")
     block = block.replace("window as any", "window")
     block = re.sub(r"let engineEndProbe:[^=]+=", "let engineEndProbe =", block)
+    block = re.sub(r"\((\w+):\s*'[^)]*\)", r"(\1)", block)
     block = re.sub(r"\((\w+):\s*(?:any|string|number)\)(?::\s*string)?", r"(\1)", block)
     block = re.sub(r"(let \w+):\s*any\s*=", r"\1 =", block)
     return block
@@ -70,6 +71,7 @@ const stores = [{ get activeCall() { return activeCall; } }];
 const WPP = { whatsapp: { CallStore: null, functions: {
   getVoipStackInterface: async () => ({ getCallInfo: async () => '' }),
 } } };
+const incomingCallPollTick = () => { window.__winzappIncomingCallPollLastTick = Date.now(); };
 const findCall = () => null;
 const callIdOf = (c) => c?.id || '';
 const callStateOf = (c) => c?.state || '';
@@ -106,7 +108,7 @@ const tickAll = async (ms = 250) => {
   for (let i = 0; i < 12; i++) await tickAll();       // 3 s with no tick
   out.stale = reviveStalledCallStatePoll(2000);
   out.new_timer_differs = window.__winzappCallStatePoll !== lostId;
-  out.single_timer = timers.size === 1;
+  out.two_timers = timers.size === 2;
 
   // The closure survived: the call it remembered can still end.
   emits.length = 0;
@@ -118,6 +120,12 @@ const tickAll = async (ms = 250) => {
   window.__winzappRearmCallStatePoll();
   window.__winzappRearmCallStatePoll();
   out.timers_after_double_rearm = timers.size;
+
+  // Only the incoming-call poll loses its timer: that is caught too.
+  timers.delete(window.__winzappIncomingCallPoll);
+  for (let i = 0; i < 12; i++) await tickAll();
+  out.incoming_lost = reviveStalledCallStatePoll(2000);
+  out.incoming_back = timers.has(window.__winzappIncomingCallPoll);
 
   delete window.__winzappRearmCallStatePoll;
   out.absent = reviveStalledCallStatePoll(2000);
@@ -154,7 +162,7 @@ def test_a_ticking_poll_is_left_alone(outcomes):
 def test_a_lost_timer_is_recreated(outcomes):
     assert outcomes["stale"] == "rearmed"
     assert outcomes["new_timer_differs"] is True
-    assert outcomes["single_timer"] is True
+    assert outcomes["two_timers"] is True
 
 
 def test_rearming_keeps_the_call_it_was_tracking(outcomes):
@@ -164,7 +172,14 @@ def test_rearming_keeps_the_call_it_was_tracking(outcomes):
 
 
 def test_rearming_never_leaves_two_polls_running(outcomes):
-    assert outcomes["timers_after_double_rearm"] == 1
+    assert outcomes["timers_after_double_rearm"] == 2
+
+
+def test_the_incoming_call_poll_is_watched_as_well(outcomes):
+    """Created in the same instant as the activeCall poll, so it can lose its
+    timer the same way; then ringing offers never time out or end."""
+    assert outcomes["incoming_lost"] == "rearmed"
+    assert outcomes["incoming_back"] is True
 
 
 def test_no_listener_means_nothing_to_revive(outcomes):

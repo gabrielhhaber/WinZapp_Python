@@ -145,3 +145,8 @@ def test_the_migration_runs_before_the_backfill_that_would_invent_the_value():
     and it operates on a value it just made up."""
     source = inspect.getsource(MainWindow._migrate_settings)
     assert "migrate_call_exclusive_mode_split" in source
+    # and load_settings() calls _migrate_settings() before it backfills
+    loader = inspect.getsource(MainWindow.load_settings)
+    assert loader.index("self._migrate_settings()") < loader.index(
+        "backfill_missing_defaults("
+    )

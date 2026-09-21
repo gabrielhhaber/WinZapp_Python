@@ -61,7 +61,10 @@ export const CALL_STATE_POLL_STALE_MS = 2000;
 export function reviveStalledCallStatePoll(staleMs: number): string {
   const w = window as any;
   if (typeof w.__winzappRearmCallStatePoll !== 'function') return 'absent';
-  const last = Number(w.__winzappCallStatePollLastTick || 0);
+  const last = Math.min(
+    Number(w.__winzappCallStatePollLastTick || 0),
+    Number(w.__winzappIncomingCallPollLastTick || 0)
+  );
   if (Date.now() - last < staleMs) return 'ok';
   w.__winzappRearmCallStatePoll();
   return 'rearmed';
@@ -2260,7 +2263,11 @@ export default class CreateSessionUtil {
 
           // Poll only active incoming calls. If a model disappears for 2.5s,
           // WhatsApp has removed it after answer/rejection/caller cancellation.
-          (window as any).__winzappIncomingCallPoll = window.setInterval(() => {
+          // Armed by armCallStatePoll() below, together with the activeCall
+          // poll: both are created at the same moment and can lose their
+          // timers the same way.
+          const incomingCallPollTick = () => {
+            (window as any).__winzappIncomingCallPollLastTick = Date.now();
             const now = Date.now();
             for (const [id, tracked] of trackedCalls.entries()) {
               try {
@@ -2293,7 +2300,7 @@ export default class CreateSessionUtil {
                 // The next poll can recover from a transient Store mutation.
               }
             }
-          }, 500);
+          };
 
           // Native WhatsApp Web VoIP keeps the active call on CallStore.activeCall
           // and may never add it to the legacy collection. Poll that slot so both
@@ -2318,43 +2325,52 @@ export default class CreateSessionUtil {
           // different call" or "ending" ends it now, and only an engine that
           // still holds this very call keeps the grace.
           let engineEndProbe: 'idle' | 'pending' | 'ended' | 'ongoing' = 'idle';
-          const probeEngineForEnd = (callId: string) => {
+          // Bumped on every return to 'idle'. A probe answers asynchronously;
+          // one that resolves after its absence is over (activeCall came back,
+          // or the grace already ended the call) must not leave its verdict
+          // behind for the NEXT absence -- a stale 'ongoing' would skip that
+          // probe and wait the full grace, a stale 'ended' would end the next
+          // call on its first brief activeCall swap.
+          let engineProbeGeneration = 0;
+          const resetEngineEndProbe = () => {
+            engineEndProbe = 'idle';
+            engineProbeGeneration += 1;
+          };
+          const probeEngineForEnd = () => {
+            const generation = engineProbeGeneration;
+            const settle = (verdict: 'ended' | 'ongoing') => {
+              if (generation === engineProbeGeneration) engineEndProbe = verdict;
+            };
             engineEndProbe = 'pending';
             try {
               const getter =
                 WPP?.whatsapp?.functions?.getVoipStackInterface ||
                 WPP?.whatsapp?.getVoipStackInterface;
               if (typeof getter !== 'function') {
-                engineEndProbe = 'ongoing';
+                settle('ongoing');
                 return;
               }
               Promise.resolve(getter())
                 .then((stack: any) => stack?.getCallInfo?.())
                 .then((raw: any) => {
                   if (!raw) {
-                    engineEndProbe = 'ended';
+                    settle('ended');
                     return;
                   }
                   let info: any = raw;
                   if (typeof raw === 'string') {
                     try { info = JSON.parse(raw); } catch (_) { info = null; }
                   }
-                  const engineCallId = String(info?.call_id || '');
-                  if (
-                    !info ||
-                    info.call_ending === true ||
-                    (callId && engineCallId && engineCallId !== callId)
-                  ) {
-                    engineEndProbe = 'ended';
-                  } else {
-                    engineEndProbe = 'ongoing';
-                  }
+                  // Only "no call" and "ending" end it early. Whether the
+                  // engine's call_id has the same form as the CallStore id has
+                  // never been measured, so "the engine names another call" is
+                  // not trusted: a mismatch of form alone would end every
+                  // healthy call on its first brief activeCall swap.
+                  settle(!info || info.call_ending === true ? 'ended' : 'ongoing');
                 })
-                .catch(() => {
-                  engineEndProbe = 'ongoing';
-                });
+                .catch(() => settle('ongoing'));
             } catch (_) {
-              engineEndProbe = 'ongoing';
+              settle('ongoing');
             }
           };
           const TERMINAL_CALL_STATES = new Set([
@@ -2402,7 +2418,7 @@ export default class CreateSessionUtil {
                 }
                 const now = Date.now();
                 activeCallMissingSince = activeCallMissingSince || now;
-                if (engineEndProbe === 'idle') probeEngineForEnd(callIdOf(lastActiveCall));
+                if (engineEndProbe === 'idle') probeEngineForEnd();
                 if (
                   engineEndProbe !== 'ended' &&
                   now - activeCallMissingSince < ACTIVE_CALL_MISSING_GRACE_MS
@@ -2414,12 +2430,12 @@ export default class CreateSessionUtil {
                 lastActiveSignature = '';
                 lastActiveIncomingOfferId = '';
                 activeCallMissingSince = 0;
-                engineEndProbe = 'idle';
+                resetEngineEndProbe();
                 return;
               }
 
               activeCallMissingSince = 0;
-              engineEndProbe = 'idle';
+              if (engineEndProbe !== 'idle') resetEngineEndProbe();
               const state = callStateOf(activeCall);
               const signature = [
                 callIdOf(activeCall),
@@ -2465,16 +2481,30 @@ export default class CreateSessionUtil {
           // by hand. The closure (lastActiveCall and friends) is kept; only
           // the timer is re-created, by the Node-side watchdog, whenever the
           // last tick is stale.
+          // Both polls of this listener are (re)armed here. Clearing the old
+          // ids is for a false-positive rearm (page busy > 2 s, old timers
+          // alive); the first ids come from the browser's own setInterval, and
+          // WhatsApp's clearInterval wrapper only cancels ids it issued
+          // itself, so at worst an old timer keeps running once -- harmless,
+          // the closures dedupe by signature.
           const armCallStatePoll = () => {
-            try {
-              window.clearInterval((window as any).__winzappCallStatePoll);
-            } catch (_) {
-              // An id from before WhatsApp's wrapper: nothing to clear.
+            for (const name of ['__winzappCallStatePoll', '__winzappIncomingCallPoll']) {
+              try {
+                window.clearInterval((window as any)[name]);
+              } catch (_) {
+                // An id from before WhatsApp's wrapper: nothing to clear.
+              }
             }
-            (window as any).__winzappCallStatePollLastTick = Date.now();
+            const now = Date.now();
+            (window as any).__winzappCallStatePollLastTick = now;
+            (window as any).__winzappIncomingCallPollLastTick = now;
             (window as any).__winzappCallStatePoll = window.setInterval(
               callStatePollTick,
               250
+            );
+            (window as any).__winzappIncomingCallPoll = window.setInterval(
+              incomingCallPollTick,
+              500
             );
           };
           (window as any).__winzappRearmCallStatePoll = armCallStatePoll;

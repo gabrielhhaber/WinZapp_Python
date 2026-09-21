@@ -1,5 +1,6 @@
 import base64
 import time
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -270,7 +271,7 @@ def test_start_closes_the_output_it_opened_when_the_microphone_fails():
     INPUT stream. An outgoing call whose microphone is taken by another app
     therefore stranded a live OutputStream and its player thread for the life
     of the process -- unreachable, since the session never becomes
-    _call_audio_session. Under exclusive_mode that held the output device and
+    _call_audio_session. Under exclusive_output that held the output device and
     silenced the screen reader until restart."""
     sio = _Socket()
     sounddevice = _NoMicrophoneSoundDevice()
@@ -704,3 +705,95 @@ def test_the_every_device_sweep_still_rescues_the_shared_pass():
         "Unplugged headset", input_device=True, include_fallbacks=False,
     ))
     assert 2 not in exclusive_only
+
+
+class _CableIsDefaultDefaults:
+    device = (2, 1)
+
+
+def test_a_refused_exclusive_never_moves_to_the_system_default_either():
+    """Review finding: the exclusive pass still offered the SYSTEM DEFAULT
+    after the chosen device. With the virtual cable as the default input and
+    the microphone refusing exclusive access, the call opened the cable
+    exclusively -- and on the output side, a headset refusing exclusive put
+    the call exclusive on the default speakers, where the screen reader is.
+    The chosen device falls back to itself, shared."""
+    sounddevice = _VirtualCableSoundDevice()
+    sounddevice.default = _CableIsDefaultDefaults()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_input=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    input_kwargs = sounddevice.input_streams[0][0]
+    assert input_kwargs["device"] == 3
+    assert input_kwargs["extra_settings"].exclusive is False
+    assert all(kwargs["device"] != 2 for kwargs, _ in sounddevice.input_streams)
+
+    session.stop()
+
+
+def test_ringing_opens_the_speaker_shared_even_with_exclusive_output():
+    """Review finding: an exclusive output opened while the call still rings
+    takes the device from the ring tone and from the screen reader saying
+    who is calling -- the call arrives with no signal at all."""
+    sounddevice = _SoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_output=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start_output_only(allow_exclusive=False)
+
+    ring_kwargs, ring_stream = sounddevice.output_streams[-1]
+    assert ring_kwargs["extra_settings"].exclusive is False
+
+    # answered: the ring's shared stream is replaced by the exclusive one
+    session.start()
+
+    assert ring_stream.closed is True
+    answer_kwargs, answer_stream = sounddevice.output_streams[-1]
+    assert answer_stream is not ring_stream
+    assert answer_kwargs["extra_settings"].exclusive is True
+    assert answer_stream.started is True
+
+    # remote audio now goes to the exclusive stream only
+    session.enqueue_remote_audio(b"\x00\x10" * 960, 48000)
+    assert _wait_for(lambda: answer_stream.writes)
+    assert ring_stream.writes == []
+
+    session.stop()
+
+
+def test_ringing_without_exclusive_output_keeps_its_stream_on_answer():
+    sounddevice = _SoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start_output_only(allow_exclusive=False)
+    session.start()
+
+    assert len(sounddevice.output_streams) == 1
+    assert sounddevice.output_streams[0][1].closed is False
+
+    session.stop()
+
+
+def test_the_ringing_monitor_asks_for_a_shared_output():
+    src = (Path(__file__).parents[1] / "client" / "main.py").read_text(encoding="utf-8")
+    start = src.index("    def _start_incoming_call_audio_monitor(self")
+    body = src[start:src.index("\n    def ", start + 10)]
+    assert "audio.start_output_only(allow_exclusive=False)" in body

@@ -493,3 +493,40 @@ def test_the_probe_runs_from_the_first_confirmed_connection():
     assert "self._check_send_capabilities" in connect
     # Its own latch, not the one that also gates the connected sound.
     assert "if not self._send_capabilities_checked:" in connect
+
+
+class TestASlowReactionModuleIsNotCalledIncompatible:
+    """Review finding: the probe's Bootloader budget (5 s) is shorter than the
+    send path's (8 s), so a reaction module that took 5-8 s to load was
+    reported "incompatible" -- and that verdict is SPOKEN -- although the real
+    send would have succeeded. Out of budget with statusReaction the only
+    thing missing, the probe now gives no verdict and Python asks again."""
+
+    def test_the_node_probe_answers_without_a_verdict_when_out_of_budget(self):
+        source = DEVICE.read_text(encoding="utf-8")
+        probe = source[source.index("export async function getSendCapabilities"):]
+        spent = probe.index("bootloaderBudgetSpent = true;")
+        deadline_check = probe.index("Date.now() >= deadline")
+        assert deadline_check < spent
+        verdict = probe[probe.index("if (\n        bootloaderBudgetSpent &&"):]
+        early_return = verdict[:verdict.index("return {\n        compatible:")]
+        assert "missing[0] === 'statusReaction'" in early_return
+        # no `compatible` key in the inconclusive answer, and not a 409
+        assert "compatible:" not in early_return
+        assert "res.status(503)" in probe
+
+    def test_python_treats_it_as_unavailable_and_says_nothing(
+        self, stub, monkeypatch
+    ):
+        _answer(monkeypatch, 503, {
+            "status": "inconclusive",
+            "response": {
+                "inconclusive": "status-reaction-bootloader-budget",
+                "missing": ["statusReaction"],
+            },
+        })
+
+        stub._check_send_capabilities()
+
+        assert stub.spoken == []
+        assert stub._send_capabilities_checked is False

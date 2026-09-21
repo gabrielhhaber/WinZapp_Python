@@ -38,10 +38,16 @@ class IncomingCallDialog(wx.Dialog):
         # that is how a blind user learns of it -- so _force_foreground()
         # brings it to the top ONCE and then drops topmost, leaving an
         # ordinary window the user can Alt+Tab away from.
+        #
+        # Passing None is not enough on its own: wxWidgets gives a dialog
+        # created with a NULL parent the application's top-level window as
+        # parent anyway (on MSW, as the owner of its HWND), unless the style
+        # says DIALOG_NO_PARENT. The popup is modeless, which is what that
+        # style is meant for.
         super().__init__(
             None,
             title=i18n.t("incoming_call_popup_title"),
-            style=wx.DEFAULT_DIALOG_STYLE,
+            style=wx.DEFAULT_DIALOG_STYLE | wx.DIALOG_NO_PARENT,
         )
         self._on_answer_callback = on_answer
         self._on_reject_callback = on_reject
@@ -95,7 +101,7 @@ class IncomingCallDialog(wx.Dialog):
         outer.Add(panel, 1, wx.EXPAND)
         self.SetSizerAndFit(outer)
         self.SetMinSize((440, -1))
-        self.CentreOnParent()
+        self.CentreOnScreen()  # it has no parent (see __init__)
 
         self._answer_button.Enable(bool(can_answer))
         if is_video:

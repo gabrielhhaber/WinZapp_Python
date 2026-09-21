@@ -6323,7 +6323,10 @@ class MainWindow(wx.Frame):
             return True
         try:
             audio, session_name = self._build_call_audio_session()
-            audio.start_output_only()
+            # Shared while ringing, even with exclusive output on: the ring
+            # tone and the screen reader must still be heard (see
+            # CallAudioSession.start_output_only).
+            audio.start_output_only(allow_exclusive=False)
             self._call_ring_audio_session = audio
             logging.info(
                 "[call_audio] ringing monitor started identity=%s session=%s",
@@ -6344,7 +6347,16 @@ class MainWindow(wx.Frame):
         except Exception:
             logging.exception("[call_audio] failed to stop ringing monitor")
 
-    def _start_voice_call_audio(self, identity: str, details: dict | None = None):
+    def _start_voice_call_audio(self, identity: str, details: dict | None = None,
+                                *, keep_active_call: bool = False):
+        """Open Python's call audio and record the call it belongs to.
+
+        ``keep_active_call`` is for a device switch inside the same call: the
+        existing ``_active_voice_call`` object stays in place. A camera being
+        opened concurrently compares that object by identity to tell "same
+        call" from "another call", so replacing it here would make it discard
+        a perfectly good capture.
+        """
         logging.info("[call_audio] starting session identity=%s", identity)
         if getattr(self, "_call_audio_session", None) is not None:
             return True
@@ -6370,6 +6382,9 @@ class MainWindow(wx.Frame):
         self._call_ring_audio_session = None
         logging.info("[call_audio] streams started session=%s", session_name)
         self._call_audio_session = audio
+        if keep_active_call and getattr(self, "_active_voice_call", None) is not None:
+            wx.CallAfter(self._sync_voice_call_bar)
+            return True
         details = details or getattr(self, "_incoming_call_details", {}).get(identity, {})
         self._active_voice_call = {
             "identity": identity,
@@ -6383,7 +6398,17 @@ class MainWindow(wx.Frame):
         wx.CallAfter(self._sync_voice_call_bar)
         return True
 
-    def _stop_voice_call_audio(self, grace_seconds: float = 0.0):
+    def _stop_voice_call_audio(self, grace_seconds: float = 0.0, *, keep_call: bool = False):
+        """Stop Python's call audio; by default the call's whole local state.
+
+        ``keep_call`` stops the audio streams ONLY -- the camera, the active
+        call record and the announced state are left alone. It exists for
+        _restart_active_voice_call_audio(): switching the microphone in the
+        middle of a video call used to go through the end-of-call path, which
+        stopped the camera, and the capture reopened afterwards was discarded
+        as belonging to "another call", so the other person saw black for the
+        rest of the call with nothing spoken.
+        """
         session = getattr(self, "_call_audio_session", None)
         if session is None:
             self._stop_incoming_call_audio_monitor()
@@ -6410,9 +6435,10 @@ class MainWindow(wx.Frame):
             pending.cancel()
             self._call_audio_stop_timer = None
         self._call_audio_session = None
-        self._stop_call_camera(reset_availability=True)
-        self._active_voice_call = None
-        self._voice_call_last_announced_state = ""
+        if not keep_call:
+            self._stop_call_camera(reset_availability=True)
+            self._active_voice_call = None
+            self._voice_call_last_announced_state = ""
         if session is not None:
             try:
                 session.stop()
@@ -6439,7 +6465,7 @@ class MainWindow(wx.Frame):
         def _worker():
             with self._call_action_lock:
                 try:
-                    self._stop_voice_call_audio()
+                    self._stop_voice_call_audio(keep_call=True)
                     last_error = None
                     for attempt in range(3):
                         try:
@@ -6450,14 +6476,18 @@ class MainWindow(wx.Frame):
                             self._start_voice_call_audio(
                                 str(active.get("identity") or active.get("call_id") or "call"),
                                 active,
+                                keep_active_call=True,
                             )
                             logging.info("[call_audio] active call devices switched")
                             last_error = None
                             break
                         except Exception as exc:
                             last_error = exc
-                            self._stop_voice_call_audio()
+                            self._stop_voice_call_audio(keep_call=True)
                     if last_error is not None:
+                        # No audio device would open: tear the local call
+                        # down as before, camera included.
+                        self._stop_voice_call_audio()
                         raise last_error
                 except Exception:
                     logging.exception("[call_audio] failed to switch active call devices")
@@ -6583,7 +6613,8 @@ class MainWindow(wx.Frame):
         capture = CameraCapture(self._find_api_ffmpeg(), send_frame, transmit=transmit)
         # Captured BEFORE the blocking start below, and compared by identity
         # afterwards. `_active_voice_call` is mutated in place and only ever
-        # replaced wholesale by a new call, so identity -- not truthiness --
+        # replaced wholesale by a new call (a device switch keeps it: see
+        # keep_active_call in _start_voice_call_audio), so identity -- not truthiness --
         # is what distinguishes "still the same call" from "that call ended
         # and another one began while the camera was opening".
         expected_call = getattr(self, "_active_voice_call", None)
@@ -6705,6 +6736,14 @@ class MainWindow(wx.Frame):
             self._stop_call_camera(native=True)
             return
 
+        # A second press while the camera is still opening would start a
+        # second capture: with a camera that allows two readers, the first
+        # ffmpeg is left running with the webcam light on and no reference to
+        # stop it. The first press is already doing what was asked.
+        if getattr(self, "_call_camera_resuming", False):
+            return
+        self._call_camera_resuming = True
+
         # Opening DirectShow can block for a moment; never do it on the wx UI
         # thread. _start_call_camera() re-probes the camera and refreshes the
         # button when capture is ready (or hides it if the device disappeared).
@@ -6719,15 +6758,18 @@ class MainWindow(wx.Frame):
         peer stayed on black. The engine is told only once the capture is
         really running, so it never resumes onto a canvas nothing feeds.
         """
-        if not self._start_call_camera():
-            return
-        resume = getattr(getattr(self, "ws", None), "send_call_camera_start", None)
-        if resume is None:
-            return
         try:
-            resume()
-        except Exception:
-            logging.exception("[call_video] failed to resume page-side camera")
+            if not self._start_call_camera():
+                return
+            resume = getattr(getattr(self, "ws", None), "send_call_camera_start", None)
+            if resume is None:
+                return
+            try:
+                resume()
+            except Exception:
+                logging.exception("[call_video] failed to resume page-side camera")
+        finally:
+            self._call_camera_resuming = False
 
     def accept_incoming_call(self, identity: str, *, with_video: bool | None = None):
         if getattr(self, "_active_voice_call", None) is not None:

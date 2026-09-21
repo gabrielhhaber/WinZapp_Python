@@ -17,6 +17,28 @@ opens a physical device. `callController.ts` exposes
 `createSessionUtil.ts` re-emits both `incomingcall` and the full `callstate`
 lifecycle.
 
+**Which Windows host API a call device opens on is decided by NAME, and the
+first name match used to win.** PortAudio enumerates MME, then DirectSound,
+then WASAPI, then WDM-KS, each listing the same physical device; measured on a
+Realtek device, 90 ms of input buffering on MME and 120 ms on DirectSound
+against 3 ms on WASAPI, and DirectSound's burst-and-starve pacing at 20 ms
+blocks is the choppy audio of issue #272. `CallAudioSession._candidate_devices()`
+now tries the WASAPI twin of the chosen device (exact name before the
+31-character MME prefix match) first, shared mode. Exclusive mode is a
+per-direction opt-in (`exclusive_input`, `exclusive_output`; the latter warns
+that it silences the screen reader for the call) with three rules that each
+come from a failure: the exclusive pass opens only devices exclusive mode
+applies to (a non-WASAPI entry would "succeed" there and skip shared WASAPI);
+it never leaves the device the user chose — not for the all-devices sweep (it
+opened a virtual audio cable, the peer heard silence) and not for the system
+default (a refusing headset put the call exclusive on the default speakers);
+and the output opened while an incoming call RINGS is always shared, made
+exclusive only on answer, so the ring tone and the announcement of who is
+calling are still heard. A device switch mid-call
+(`_restart_active_voice_call_audio`) restarts the audio only — the camera and
+the `_active_voice_call` object stay, because `_start_call_camera()` compares
+that object by identity.
+
 **Video calls used to be out of scope, and are not any more — read this before
 touching the camera path.** While they were, the camera failed closed through
 THREE independent things rather than one: no `videoCapture` in the CDP grant,
@@ -109,7 +131,17 @@ and the call it was tracking, survive). `call-state poll had stopped ticking;
 re-armed` in `wppconnect.log` means it happened. To check a live page, count
 reads of `require('WAWebCallCollection').activeCall` for two seconds with an
 accessor that returns the same value (then restore the data property): the
-poll's reads should be among them.
+poll's reads should be among them. The incoming-offer poll
+(`__winzappIncomingCallPoll`) is created in the same instant, so it has its
+own heartbeat and is re-armed with it.
+
+When `activeCall` disappears, the same poll asks the VoIP engine once:
+`getCallInfo()` empty or `call_ending` ends the call at once, anything else
+keeps the 5 s grace. "The engine names a different call_id" is deliberately
+NOT used: whether that id has the CallStore id's form was never measured, and
+a mismatch of form alone would end healthy calls on a brief `activeCall`
+swap. Probe answers carry a generation, so one that resolves after its
+absence is over cannot decide the next.
 
 **Standing the background sync down during a call must happen where a round is
 *decided*, never inside one.** `sync_remote_chats()` returns the set of chats

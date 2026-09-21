@@ -1670,6 +1670,10 @@ export async function getSendCapabilities(req: Request, res: Response) {
         statusVideo: typeof WPP?.status?.sendVideoStatus === 'function',
       };
       let reactionModule: any = null;
+      // Set when the Bootloader fetch ran out of budget without finding the
+      // module. The send path has a longer budget than this probe, so that is
+      // "slow", not "incompatible" -- see the verdict at the end.
+      let bootloaderBudgetSpent = false;
       try {
         reactionModule = loader?.moduleRequire?.(
           'WAWebSendStatusReactionAction'
@@ -1776,6 +1780,12 @@ export async function getSendCapabilities(req: Request, res: Response) {
                 break;
               }
             }
+            if (
+              typeof reactionModule?.sendStatusReaction !== 'function' &&
+              Date.now() >= deadline
+            ) {
+              bootloaderBudgetSpent = true;
+            }
           }
         } catch (_) {}
       }
@@ -1791,6 +1801,25 @@ export async function getSendCapabilities(req: Request, res: Response) {
       const missing = Object.entries(checks)
         .filter(([, available]) => !available)
         .map(([name]) => name);
+      // Out of budget with statusReaction the ONLY thing missing: no verdict.
+      // Answering "incompatible" here had Python speak "status reactions are
+      // not supported" for a reaction whose module was merely slow to load --
+      // and that the send path, with its longer budget, would have sent.
+      // Without `compatible`, Python treats the probe as unavailable and
+      // retries it later, when the bundle has usually arrived.
+      if (
+        bootloaderBudgetSpent &&
+        missing.length === 1 &&
+        missing[0] === 'statusReaction'
+      ) {
+        return {
+          inconclusive: 'status-reaction-bootloader-budget',
+          checks,
+          missing,
+          loaderType: String(loader?.loaderType || 'unknown'),
+          webVersion: String((window as any).WAPI?.getWAVersion?.() || 'unknown'),
+        };
+      }
       return {
         compatible: missing.length === 0,
         checks,
@@ -1804,6 +1833,14 @@ export async function getSendCapabilities(req: Request, res: Response) {
       budgetMs: STATUS_REACTION_PROBE_BUDGET_MS,
     });
     req.logger.info(`[send-capabilities] ${JSON.stringify(capabilities)}`);
+    if (capabilities.inconclusive) {
+      res.status(503).json({
+        status: 'inconclusive',
+        response: capabilities,
+        nodeVersion: process.version,
+      });
+      return;
+    }
     res.status(capabilities.compatible ? 200 : 409).json({
       status: capabilities.compatible ? 'success' : 'incompatible',
       response: capabilities,

@@ -106,12 +106,10 @@ class CameraCapture:
         self.thread.start()
         # Poll instead of one flat ready.wait(8): when the camera is already
         # held by another app, ffmpeg exits within milliseconds, and waiting
-        # out the full 8 s afterwards is pure dead time on the answer path.
-        # accept_incoming_call() opens the camera BEFORE POSTing "accept",
-        # with the ring tone already stopped, so every second spent here is a
-        # second of total silence for a blind user who just pressed Answer --
-        # and it applied to "answer without video" too, which is precisely
-        # the person who did not want to wait for a camera.
+        # out the full 8 s afterwards is pure dead time: the call is already
+        # connected by then (the camera opens after the accept/offer POST),
+        # and until this returns the user's video neither starts nor reports
+        # "no camera" -- silence for a blind user who pressed Answer.
         deadline = time.monotonic() + 8
         while time.monotonic() < deadline:
             if self.ready.wait(0.1):

@@ -58,9 +58,10 @@ const renderSource = {
   WAWebVoipVideoRenderStream: { CAMERA: 'CAMERA' },
 };
 let timers = new Map(); let nextTimer = 1;
+let voipBundleLoaded = true;
 const win = {
   require(name) {
-    if (name === 'WAWebVoipVideoRendererRegistry') return { videoRendererRegistry: registry };
+    if (name === 'WAWebVoipVideoRendererRegistry') return voipBundleLoaded ? { videoRendererRegistry: registry } : null;
     if (name === 'WAWebVoipVideoRenderSource') return renderSource;
     return null;
   },
@@ -81,7 +82,8 @@ let call = null;
 const currentPageCall = () => call;
 const isLivePageCall = (c) => !!c && c.state === 'ACTIVE';
 const pageCallKey = (c) => String(c?.id || '');
-const report = () => {};
+const reports = [];
+const report = (kind, text) => reports.push(text);
 const state = { remoteVideoFramesSent: 0 };
 BLOCK
 const tickTimers = (n) => { for (let i = 0; i < n; i++) for (const fn of timers.values()) fn(); };
@@ -115,6 +117,18 @@ out.timers_left = timers.size;
 call = { id: 'video-2', state: 'ACTIVE', isVideo: true, peerJid: 'peer-B' };
 syncPeerVideo();
 out.next_call = log.slice();
+
+// the VoIP bundle is still loading when a video call starts: keep trying on
+// later scans instead of giving up on the peer's video for the whole call
+call = null; syncPeerVideo(); log.length = 0; reports.length = 0;
+voipBundleLoaded = false;
+call = { id: 'video-3', state: 'ACTIVE', isVideo: true, peerJid: 'peer-C' };
+for (let i = 0; i < 5; i++) syncPeerVideo();
+out.while_loading = log.slice();
+out.unavailable_reports = reports.filter((r) => r.startsWith('renderer unavailable')).length;
+voipBundleLoaded = true;
+syncPeerVideo(); syncPeerVideo();
+out.after_loading = log.slice();
 
 console.log(JSON.stringify(out));
 """
@@ -154,6 +168,17 @@ def test_painted_frames_reach_the_call_windows_callback(outcomes):
 def test_the_canvas_is_released_when_the_call_ends(outcomes):
     assert outcomes["teardown"] == [["unassign", "peer-A"], ["unregister"]]
     assert outcomes["timers_left"] == 0
+
+
+def test_a_renderer_that_loads_late_is_still_picked_up(outcomes):
+    """WhatsApp loads its VoIP bundle on demand; claiming the call before the
+    registry existed left the peer's video black for the whole call."""
+    assert outcomes["while_loading"] == []
+    assert outcomes["unavailable_reports"] == 1
+    assert outcomes["after_loading"] == [
+        ["register", False],
+        ["assign", "peer-C", "CAMERA", False],
+    ]
 
 
 def test_the_next_call_gets_its_own_canvas(outcomes):

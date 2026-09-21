@@ -900,3 +900,39 @@ def test_reject_logs_the_request_before_waiting_for_the_call_lock():
     lock = body.index("with self._call_action_lock:")
     answered = body.index('"[call] reject answered via %s"')
     assert requested < lock < answered
+
+
+def test_a_second_video_on_press_while_the_camera_opens_starts_nothing(monkeypatch):
+    """Review finding: two presses while DirectShow was still opening started
+    two captures; with a camera that allows two readers, the first ffmpeg
+    kept running with the webcam light on and nothing left to stop it."""
+    threads = []
+
+    class _HeldThread:
+        def __init__(self, target=None, daemon=None, **_kw):
+            self.target = target
+
+        def start(self):
+            threads.append(self.target)
+
+    monkeypatch.setattr("main.threading.Thread", _HeldThread)
+    stub = _ToggleMainWindow()
+    stub.start_result = True
+
+    stub.toggle_call_video()
+    stub.toggle_call_video()            # camera still opening
+    assert len(threads) == 1
+
+    threads[0]()                        # the first open finishes
+    assert stub.started == [{}]
+    assert stub._call_camera_resuming is False
+
+
+def test_a_failed_open_lets_the_user_try_video_on_again(monkeypatch):
+    stub = _ToggleMainWindow()
+    stub.start_result = False
+    stub._call_camera_resuming = True
+
+    stub._resume_call_camera()
+
+    assert stub._call_camera_resuming is False

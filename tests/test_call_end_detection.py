@@ -40,6 +40,7 @@ def _poll_block() -> str:
     block = src[start:src.index(end_marker, start) + len(end_marker)]
     block = block.replace("(window as any)", "window")
     block = re.sub(r"let engineEndProbe:[^=]+=", "let engineEndProbe =", block)
+    block = re.sub(r"\((\w+):\s*'[^)]*\)", r"(\1)", block)
     block = re.sub(r"\((\w+):\s*(?:any|string)\)", r"(\1)", block)
     block = re.sub(r"(let \w+):\s*any\s*=", r"\1 =", block)
     return block
@@ -49,17 +50,22 @@ _HARNESS = r"""
 let fakeNow = 1_000_000;
 Date.now = () => fakeNow;
 let pollFn = null;
-const window = { setInterval(fn) { pollFn = fn; return 1; }, clearInterval() {} };
+const window = { setInterval(fn, ms) { if (ms === 250) pollFn = fn; return ms; }, clearInterval() {} };
+const incomingCallPollTick = () => {};
 let activeCall = null;
 const stores = [{ get activeCall() { return activeCall; } }];
 let engineInfo = '';
 let engineAvailable = true;
+// When set, getCallInfo() answers only once engineGate resolves.
+let engineGate = null;
 const WPP = {
   whatsapp: {
     CallStore: null,
     functions: {
       get getVoipStackInterface() {
-        return engineAvailable ? async () => ({ getCallInfo: async () => engineInfo }) : undefined;
+        return engineAvailable
+          ? async () => ({ getCallInfo: () => (engineGate ? engineGate.then(() => engineInfo) : engineInfo) })
+          : undefined;
       },
     },
   },
@@ -104,7 +110,8 @@ const endedAfter = (since) => {
   for (let i = 0; i < 30; i++) await step();
   out.transient_ever_ended = emits.some((e) => e.event === 'ended');
 
-  // 3. the engine names a DIFFERENT call -> this one is over
+  // 3. the engine names a DIFFERENT call: the id forms were never measured
+  //    to match, so this is NOT trusted to end the call early
   emits.length = 0;
   activeCall = { id: 'C3', state: 'CALLING' };
   await step(); emits.length = 0;
@@ -121,6 +128,26 @@ const endedAfter = (since) => {
   const gone4 = fakeNow;
   for (let i = 0; i < 40 && !emits.some((e) => e.event === 'ended'); i++) await step();
   out.no_engine_ms = endedAfter(gone4);
+
+  // 5. a probe that answers after its absence is over must not decide the
+  //    next one: activeCall swaps briefly, the probe is still pending when it
+  //    comes back, then resolves "ongoing" -- the call's real end later must
+  //    still be caught by a fresh probe, not wait the whole grace
+  emits.length = 0;
+  engineAvailable = true;
+  activeCall = { id: 'C5', state: 'ACTIVE' };
+  await step(); emits.length = 0;
+  let openGate;
+  engineGate = new Promise((r) => { openGate = r; });
+  engineInfo = JSON.stringify({ call_id: 'C5', call_ending: false });
+  activeCall = null; await step();                       // probe sent, pending
+  activeCall = { id: 'C5', state: 'ACTIVE' }; await step(); // swap over
+  openGate(); await settle(); await settle();              // late "ongoing"
+  engineGate = null; engineInfo = '';
+  activeCall = null;
+  const gone5 = fakeNow;
+  for (let i = 0; i < 30 && !emits.some((e) => e.event === 'ended'); i++) await step();
+  out.after_late_probe_ms = endedAfter(gone5);
 
   console.log(JSON.stringify(out));
 })();
@@ -151,9 +178,16 @@ def test_a_mid_call_activecall_swap_still_never_ends_the_call(outcomes):
     assert outcomes["transient_ever_ended"] is False
 
 
-def test_an_engine_naming_another_call_ends_this_one_at_once(outcomes):
-    assert outcomes["other_call_ms"] is not None
-    assert outcomes["other_call_ms"] <= 1000
+def test_an_engine_naming_another_call_is_not_trusted_to_end_this_one(outcomes):
+    """Whether getCallInfo()'s call_id has the CallStore id's form was never
+    measured; trusting a mismatch could end every healthy call on its first
+    brief activeCall swap. Only the grace ends this case."""
+    assert 5000 <= outcomes["other_call_ms"] <= 5500
+
+
+def test_a_late_probe_answer_does_not_decide_the_next_absence(outcomes):
+    assert outcomes["after_late_probe_ms"] is not None
+    assert outcomes["after_late_probe_ms"] <= 1000
 
 
 def test_without_the_engine_the_original_grace_still_applies(outcomes):

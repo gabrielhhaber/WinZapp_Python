@@ -92,6 +92,12 @@ class CallAudioSession:
             maxsize=CALL_OUTPUT_QUEUE_LIMIT
         )
         self._stop_event = threading.Event()
+        # Held around every write to the output stream and around replacing
+        # it, so the player never writes to a stream being closed.
+        self._output_lock = threading.Lock()
+        # True while the output was opened SHARED for the ring although
+        # exclusive_output is on; start() reopens it exclusive on answer.
+        self._output_exclusive_deferred = False
         self._sender_thread: Optional[threading.Thread] = None
         self._player_thread: Optional[threading.Thread] = None
         self._mic_frames_sent = 0
@@ -116,15 +122,28 @@ class CallAudioSession:
     def output_running(self) -> bool:
         return not self._stop_event.is_set() and self._output_stream is not None
 
-    def start_output_only(self) -> None:
-        """Open receive audio while ringing without opening the microphone."""
+    def start_output_only(self, *, allow_exclusive: bool = True) -> None:
+        """Open receive audio while ringing without opening the microphone.
+
+        ``allow_exclusive=False`` is for the ringing monitor. An exclusive
+        output opened while the call is still ringing would take the device
+        away from the ring tone and from the screen reader announcing who is
+        calling -- the call would arrive with no signal at all, which the
+        exclusive-output warning never asked the user to accept. The output
+        is opened shared instead, and start() makes it exclusive on answer.
+        """
         if self.output_running:
             return
         if self._sd is None:
             raise CallAudioUnavailable("sounddevice is not available in this Python runtime")
 
         self._stop_event.clear()
-        self._output_stream, self._output_rate = self._open_output_stream()
+        self._output_stream, self._output_rate = self._open_output_stream(
+            allow_exclusive=allow_exclusive
+        )
+        self._output_exclusive_deferred = bool(
+            self._config.exclusive_output and not allow_exclusive
+        )
         try:
             self._output_stream.start()
         except Exception:
@@ -149,6 +168,8 @@ class CallAudioSession:
         # was ringing. Reuse it and only add microphone capture on answer.
         opened_output_here = not self.output_running
         self.start_output_only()
+        if self._output_exclusive_deferred:
+            self._reopen_output_exclusive()
         try:
             self._input_stream, self._input_rate = self._open_input_stream()
             self._input_stream.start()
@@ -161,7 +182,7 @@ class CallAudioSession:
             # player thread alive for the life of the process: nothing else
             # can reach them, because the session never becomes
             # _call_audio_session and _stop_voice_call_audio() therefore
-            # never sees it. Under exclusive_mode that stranded stream holds
+            # never sees it. Under exclusive_output that stranded stream holds
             # the output device, silencing the screen reader until restart,
             # and _restart_active_voice_call_audio()'s three attempts each
             # stranded another one. When the output was already running it
@@ -177,6 +198,26 @@ class CallAudioSession:
             daemon=True,
         )
         self._sender_thread.start()
+
+    def _reopen_output_exclusive(self) -> None:
+        """Swap the ring's shared output for the exclusive one on answer.
+
+        The shared stream must be closed first: while this process holds the
+        device shared, WASAPI refuses it exclusive. _open_output_stream()
+        still falls back to shared on its own if exclusive is refused.
+        """
+        self._output_exclusive_deferred = False
+        with self._output_lock:
+            old = self._output_stream
+            self._output_stream = None
+            self._close_stream(old)
+            stream, rate = self._open_output_stream()
+            try:
+                stream.start()
+            except Exception:
+                self._close_stream(stream)
+                raise
+            self._output_stream, self._output_rate = stream, rate
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -314,6 +355,13 @@ class CallAudioSession:
             if twin is not None:
                 ordered.append(twin)
             ordered.append(preferred)
+        # The exclusive pass (include_fallbacks=False) never leaves a device
+        # the user chose: offered the system default after the chosen one, a
+        # headset refusing exclusive access put the call EXCLUSIVE on the
+        # default speakers -- where the screen reader lives -- with the headset
+        # silent. The shared pass that follows still reaches the default.
+        if preferred is not None and not include_fallbacks:
+            default_device = None
         if default_device is not None:
             twin = self._wasapi_twin(default_device, input_device=input_device)
             if twin is not None:
@@ -321,7 +369,8 @@ class CallAudioSession:
             ordered.append(default_device)
         # Keep PortAudio's implicit default as a compatibility fallback, but
         # prefer the concrete default index so we can inspect its native rate.
-        ordered.append(None)
+        if preferred is None or include_fallbacks:
+            ordered.append(None)
         for index in ordered:
             key = -1 if index is None else int(index)
             if key not in yielded:
@@ -380,7 +429,8 @@ class CallAudioSession:
     # exclusivity and only routed every call through WASAPI's own format
     # converter (auto_convert), which measurably added the choppy, high-
     # latency playback reported after this landed. Now that exclusive mode is
-    # a real, deliberate feature (settings["call_audio_devices"]["exclusive_mode"]),
+    # a real, deliberate feature (settings["call_audio_devices"]["exclusive_input"]
+    # and ["exclusive_output"]),
     # auto_convert is kept in BOTH modes as a resilience fallback — it only
     # engages if the exact requested rate/format cannot be opened as-is, so it
     # does not reintroduce the earlier regression, which came from forcing
@@ -470,9 +520,11 @@ class CallAudioSession:
                         last_error = exc
         raise CallAudioUnavailable(f"No microphone could be opened for the call: {last_error}")
 
-    def _open_output_stream(self):
+    def _open_output_stream(self, *, allow_exclusive: bool = True):
         last_error = None
-        exclusive_attempts = [True, False] if self._config.exclusive_output else [False]
+        exclusive_attempts = (
+            [True, False] if (self._config.exclusive_output and allow_exclusive) else [False]
+        )
         for attempt_index, exclusive in enumerate(exclusive_attempts):
             for device in self._candidate_devices(
                 self._config.output_device_name, input_device=False,
@@ -614,9 +666,13 @@ class CallAudioSession:
                 continue
             try:
                 samples = _pcm16_float32(pcm)
-                samples = _resample_mono(samples, source_rate, self._output_rate)
-                if samples.size and self._output_stream is not None:
-                    self._output_stream.write(samples.reshape(-1, 1))
+                with self._output_lock:
+                    stream = self._output_stream
+                    if stream is None:
+                        continue
+                    samples = _resample_mono(samples, source_rate, self._output_rate)
+                    if samples.size:
+                        stream.write(samples.reshape(-1, 1))
             except Exception:
                 logging.exception("[call_audio] failed to play remote call audio")
                 time.sleep(0.05)
