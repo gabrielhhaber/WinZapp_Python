@@ -341,12 +341,22 @@ def test_turning_video_off_reaches_the_page_and_blanks_the_canvas():
 
     # Reachable from the Node layer, which is how "turn video off" travels.
     assert "socket.on('call:video:camera:stop'" in bridge
-    assert "__winzappCallMediaBridge?.stopCamera?.(stoppedEpoch)" in bridge
+    assert "__winzappCallMediaBridge?.stopCamera?.(stoppedEpoch, nativeMute)" in bridge
+
+    # WhatsApp Web sends our camera through its own call engine, so turning
+    # video off and on goes through that engine's camera toggle -- the same
+    # one WhatsApp's UI button uses -- with a key frame asked for on resume.
+    assert "socket.on('call:video:camera:start'" in bridge
+    assert "__winzappCallMediaBridge?.resumeCamera?.()" in bridge
+    assert "stack?.setCallVideoMute" in bridge
+    assert "if (native) setNativeVideoMute(true);" in bridge
+    assert "setNativeVideoMute(false);" in bridge
+    assert "stack.requestKeyFrame" in bridge
     assert "pushCameraFrame?.(frame, frameEpoch)" in bridge
 
     # The blank is what actually stops the transmission; the track stays live
     # so the peer connection is not torn down mid-call.
-    assert "state.stopCamera = (epoch?: number) =>" in bridge
+    assert "state.stopCamera = (epoch?: number, native?: boolean) =>" in bridge
     assert "blankCameraCanvas" in bridge
     assert "context.fillRect(0, 0, canvas.width, canvas.height)" in bridge
 
@@ -375,5 +385,7 @@ def test_turning_video_off_reaches_the_page_and_blanks_the_canvas():
 
 def test_the_desktop_side_has_a_camera_stop_channel():
     websocket_client = _source("client/core/websocket_client.py")
-    assert "def send_call_camera_stop(self, epoch: int | None = None)" in websocket_client
+    assert "def send_call_camera_stop(self, epoch: int | None = None, native: bool = False)" in websocket_client
+    assert "def send_call_camera_start(self)" in websocket_client
+    assert '"call:video:camera:start"' in websocket_client
     assert '"call:video:camera:stop"' in websocket_client

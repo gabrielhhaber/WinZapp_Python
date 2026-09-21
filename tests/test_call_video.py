@@ -399,7 +399,7 @@ def test_call_window_video_toggle_is_hidden_without_camera():
     assert 'self.voice_call_window_video_button.Hide()' in source
     assert 'video_button.Show(is_video and local_camera_available)' in source
     assert 'self.voice_call_window_video_button.Bind(wx.EVT_BUTTON, self.toggle_call_video)' in source
-    assert 'def _stop_call_camera(self, *, reset_availability: bool = False):' in source
+    assert 'def _stop_call_camera(self, *, reset_availability: bool = False, native: bool = False):' in source
 
 
 class _ToggleVideoMainWindow:
@@ -483,10 +483,16 @@ class _StopCameraWs(_NoCameraWs):
     def __init__(self):
         self.camera_stops = 0
         self.stopped_epochs = []
+        self.native_stops = []
+        self.camera_starts = 0
 
-    def send_call_camera_stop(self, epoch=None):
+    def send_call_camera_stop(self, epoch=None, native=False):
         self.camera_stops += 1
         self.stopped_epochs.append(epoch)
+        self.native_stops.append(native)
+
+    def send_call_camera_start(self):
+        self.camera_starts += 1
 
 
 class _StopCameraMainWindow(_NoCameraMainWindow):
@@ -716,3 +722,64 @@ def test_frames_carry_the_epoch_of_their_capture(monkeypatch):
 
     assert stub._start_call_camera() is True
     assert sent == [(b"jpeg", stub._call_camera_epoch)]
+
+
+class _ToggleMainWindow(_StopCameraMainWindow):
+    toggle_call_video = MainWindow.toggle_call_video
+    _resume_call_camera = MainWindow._resume_call_camera
+
+    def __init__(self):
+        super().__init__()
+        self._call_camera_available = True
+        self.started = []
+
+    def _start_call_camera(self, **kwargs):
+        self.started.append(kwargs)
+        return self.start_result
+
+
+def test_turning_video_off_from_the_call_window_tells_whatsapps_engine(monkeypatch):
+    """REGRESSION (live video call, 2026-09-21): WhatsApp Web transmits our
+    camera through its own WASM call engine -- a sender report showed no video
+    sender on any RTCPeerConnection. Blanking the canvas alone left that engine
+    treating the camera as off after the picture went black, and it never came
+    back. Video off must go through the engine's own camera toggle."""
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+    stub = _ToggleMainWindow()
+    stub._call_camera_capture = _RecordingCapture()
+    stub._call_camera_epoch = 77
+
+    stub.toggle_call_video()
+
+    assert stub.ws.native_stops == [True]
+    assert stub.ws.stopped_epochs == [77]
+
+
+def test_a_teardown_stop_only_blanks_and_never_touches_the_engine(monkeypatch):
+    """Call end or a discarded capture is not the user asking for video off:
+    only the page is blanked."""
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+    stub = _StopCameraMainWindow()
+    stub._call_camera_capture = _RecordingCapture()
+
+    stub._stop_call_camera(reset_availability=True)
+
+    assert stub.ws.native_stops == [False]
+
+
+def test_turning_video_back_on_resumes_the_engine_once_capture_runs():
+    stub = _ToggleMainWindow()
+    stub.start_result = True
+
+    stub._resume_call_camera()
+
+    assert stub.ws.camera_starts == 1
+
+
+def test_a_failed_restart_never_resumes_the_engine_onto_an_empty_canvas():
+    stub = _ToggleMainWindow()
+    stub.start_result = False
+
+    stub._resume_call_camera()
+
+    assert stub.ws.camera_starts == 0

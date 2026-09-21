@@ -40,7 +40,7 @@ def _pump_block() -> str:
     start = src.index("  const blankCameraCanvas = () => {")
     end_marker = "    state.cameraPump = win.setInterval(pumpCamera, CAMERA_PUMP_MS);\n  };\n"
     block = src[start:src.index(end_marker, start) + len(end_marker)]
-    block = re.sub(r"(\w+)\?:\s*number", r"\1", block)
+    block = re.sub(r"(\w+)\??:\s*(?:number|boolean)\b", r"\1", block)
     block = re.sub(r":\s*(?:RTCRtpSender\[\]|string\[\])", "", block)
     block = re.sub(r"\((\w+):\s*any\)", r"(\1)", block)
     block = block.replace(" as RTCPeerConnection[]", "")

@@ -539,12 +539,78 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   // Python-side ffmpeg capture froze the user's last frame and went on
   // transmitting that picture of them at 10 fps while WinZapp announced video
   // was off. Painting black keeps the stream valid and shows the peer nothing.
-  state.stopCamera = (epoch?: number) => {
+  state.stopCamera = (epoch?: number, native?: boolean) => {
     if (typeof epoch === 'number' && epoch > state.cameraStoppedEpoch) {
       state.cameraStoppedEpoch = epoch;
     }
     blankCamera();
-    report('camera-stop', `epoch=${state.cameraStoppedEpoch}`);
+    report('camera-stop', `epoch=${state.cameraStoppedEpoch} native=${!!native}`);
+    // The user turned video off: tell WhatsApp's own call engine, exactly
+    // as its camera button does. The blank above stays regardless -- it is
+    // the privacy guarantee if this native call ever fails.
+    if (native) setNativeVideoMute(true);
+  };
+
+  // The user turned video back on and the desktop capture is running again.
+  state.resumeCamera = () => {
+    report('camera-resume', 'desktop capture restarted');
+    setNativeVideoMute(false);
+  };
+
+  // WhatsApp Web sends our camera through its own WASM call engine, not a
+  // page-visible RTCPeerConnection sender (a live sender report showed
+  // senders=0 on every connection). That engine decides what the peer sees,
+  // and after the canvas went black it treated the camera as off and never
+  // came back: re-enabled frames kept landing on the canvas while the peer
+  // stayed on black for the rest of the call. The engine's interface exposes
+  // setCallVideoMute -- the same toggle as the camera button in WhatsApp's
+  // own UI -- so video off/on now goes through it, and a key frame is
+  // requested on resume so the peer's decoder does not wait for one.
+  //
+  // Its arguments are undocumented (wa-js types the interface as `any`), so
+  // this dispatches on arity and logs the arity, the start of the function's
+  // source and the outcome, which is what pins the real signature down if
+  // this guess is wrong.
+  const setNativeVideoMute = (muted: boolean) => {
+    const getter =
+      win.WPP?.whatsapp?.functions?.getVoipStackInterface ||
+      win.WPP?.whatsapp?.getVoipStackInterface;
+    if (typeof getter !== 'function') {
+      report('video-mute', `muted=${muted} getVoipStackInterface unavailable`);
+      return;
+    }
+    Promise.resolve(getter())
+      .then(async (stack: any) => {
+        const fn = stack?.setCallVideoMute;
+        if (typeof fn !== 'function') {
+          report('video-mute', `muted=${muted} setCallVideoMute unavailable`);
+          return;
+        }
+        const callId = pageCallKey(currentPageCall());
+        const source = String(fn).replace(/\s+/g, ' ').slice(0, 160);
+        const args = fn.length >= 2 ? [callId, muted] : [muted];
+        report(
+          'video-mute',
+          `muted=${muted} arity=${fn.length} args=${fn.length >= 2 ? 'callId,muted' : 'muted'} src=${source}`
+        );
+        const result = await fn.apply(stack, args);
+        let shown = '';
+        try { shown = JSON.stringify(result); } catch (_) { shown = String(result); }
+        report('video-mute', `muted=${muted} ok result=${String(shown).slice(0, 120)}`);
+        if (!muted && typeof stack?.requestKeyFrame === 'function') {
+          try {
+            await stack.requestKeyFrame.apply(
+              stack, stack.requestKeyFrame.length >= 1 ? [callId] : []
+            );
+            report('video-mute', 'requestKeyFrame ok');
+          } catch (error: any) {
+            report('video-mute', `requestKeyFrame error=${String(error?.message || error)}`);
+          }
+        }
+      })
+      .catch((error: any) =>
+        report('video-mute', `muted=${muted} error=${String(error?.message || error)}`)
+      );
   };
 
   // Blank without gating any epoch. This is what reset() uses, and it must
@@ -1673,10 +1739,27 @@ export function registerCallAudioSocket(
     const page = client?.waPage || client?.page;
     if (!page) return;
     const epoch = typeof payload?.epoch === 'number' ? payload.epoch : undefined;
-    logger?.info?.(`[${session}] call camera stopped by desktop epoch=${epoch}`);
-    page.evaluate((stoppedEpoch?: number) => {
-      (window as any).__winzappCallMediaBridge?.stopCamera?.(stoppedEpoch);
-    }, epoch).catch(() => undefined);
+    const native = payload?.native === true;
+    logger?.info?.(`[${session}] call camera stopped by desktop epoch=${epoch} native=${native}`);
+    page.evaluate(
+      ({ stoppedEpoch, nativeMute }: { stoppedEpoch?: number; nativeMute: boolean }) => {
+        (window as any).__winzappCallMediaBridge?.stopCamera?.(stoppedEpoch, nativeMute);
+      },
+      { stoppedEpoch: epoch, nativeMute: native }
+    ).catch(() => undefined);
+  });
+
+  // The user turned video back on from the call window.
+  socket.on('call:video:camera:start', (payload: any) => {
+    const session = String(payload?.session || '');
+    if (session !== authenticatedSession) return;
+    const client: any = (clientsArray as any)[session];
+    const page = client?.waPage || client?.page;
+    if (!page) return;
+    logger?.info?.(`[${session}] call camera resumed by desktop`);
+    page.evaluate(() => {
+      (window as any).__winzappCallMediaBridge?.resumeCamera?.();
+    }).catch(() => undefined);
   });
 
   socket.on('call:audio:mic', (payload: any) => {

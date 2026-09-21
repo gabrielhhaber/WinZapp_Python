@@ -6612,7 +6612,7 @@ class MainWindow(wx.Frame):
             wx.CallAfter(self._sync_voice_call_bar)
         return True
 
-    def _stop_call_camera(self, *, reset_availability: bool = False):
+    def _stop_call_camera(self, *, reset_availability: bool = False, native: bool = False):
         """Stop only local video capture, leaving audio and remote video alive."""
         camera = getattr(self, "_call_camera_capture", None)
         self._call_camera_capture = None
@@ -6629,7 +6629,7 @@ class MainWindow(wx.Frame):
             # of the user for the rest of the call while WinZapp announced
             # video was off. Only when a capture actually existed: a no-op
             # stop must not blank a canvas this call never drew on.
-            self._send_call_camera_stop(getattr(self, "_call_camera_epoch", None))
+            self._send_call_camera_stop(getattr(self, "_call_camera_epoch", None), native=native)
         if reset_availability:
             self._call_camera_available = None
         if hasattr(self, "voice_call_window"):
@@ -6652,12 +6652,12 @@ class MainWindow(wx.Frame):
         self._call_camera_last_epoch = epoch
         return epoch
 
-    def _send_call_camera_stop(self, epoch):
+    def _send_call_camera_stop(self, epoch, native: bool = False):
         stop_remote = getattr(getattr(self, "ws", None), "send_call_camera_stop", None)
         if stop_remote is None:
             return
         try:
-            stop_remote(epoch=epoch)
+            stop_remote(epoch=epoch, native=native)
         except Exception:
             logging.exception("[call_video] failed to stop page-side camera")
 
@@ -6672,13 +6672,35 @@ class MainWindow(wx.Frame):
             self.output(self.i18n.t("call_video_no_camera_error"), interrupt=True)
             return
         if getattr(self, "_call_camera_capture", None) is not None:
-            self._stop_call_camera()
+            # native=True: the user asked for video off, so WhatsApp's own call
+            # engine is told as well (its camera-button toggle), not just the
+            # page's canvas blanked.
+            self._stop_call_camera(native=True)
             return
 
         # Opening DirectShow can block for a moment; never do it on the wx UI
         # thread. _start_call_camera() re-probes the camera and refreshes the
         # button when capture is ready (or hides it if the device disappeared).
-        threading.Thread(target=self._start_call_camera, daemon=True).start()
+        threading.Thread(target=self._resume_call_camera, daemon=True).start()
+
+    def _resume_call_camera(self):
+        """Turn video back on: restart the capture, then tell WhatsApp.
+
+        WhatsApp Web transmits our camera through its own call engine, which
+        treated the camera as off once the picture went black and never came
+        back on its own -- re-enabled frames kept reaching the page while the
+        peer stayed on black. The engine is told only once the capture is
+        really running, so it never resumes onto a canvas nothing feeds.
+        """
+        if not self._start_call_camera():
+            return
+        resume = getattr(getattr(self, "ws", None), "send_call_camera_start", None)
+        if resume is None:
+            return
+        try:
+            resume()
+        except Exception:
+            logging.exception("[call_video] failed to resume page-side camera")
 
     def accept_incoming_call(self, identity: str, *, with_video: bool | None = None):
         if getattr(self, "_active_voice_call", None) is not None:

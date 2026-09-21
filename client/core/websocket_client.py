@@ -2538,7 +2538,7 @@ class WebSocketClient:
             payload["epoch"] = int(epoch)
         self.sio.emit("call:video:camera", payload)
 
-    def send_call_camera_stop(self, epoch: int | None = None):
+    def send_call_camera_stop(self, epoch: int | None = None, native: bool = False):
         """Tell the page to stop transmitting local video.
 
         Stopping the ffmpeg capture on this side is not enough: the page draws
@@ -2552,9 +2552,27 @@ class WebSocketClient:
             payload = {"session": self.instance_name}
             if epoch is not None:
                 payload["epoch"] = int(epoch)
+            if native:
+                # The USER turned video off: WhatsApp's own engine is told too,
+                # through the same toggle as its camera button. Teardown stops
+                # (call ended, capture discarded) only blank the page.
+                payload["native"] = True
             self.sio.emit("call:video:camera:stop", payload)
         except Exception:
             logging.debug("[call_video] could not emit call:video:camera:stop", exc_info=True)
+
+    def send_call_camera_start(self):
+        """Tell the page the user turned video back on.
+
+        WhatsApp Web transmits our camera through its own call engine, which
+        treated the camera as off once the picture went black and never came
+        back by itself. The page answers this with the engine's own camera
+        toggle (setCallVideoMute(false)), the one WhatsApp's UI button uses.
+        """
+        try:
+            self.sio.emit("call:video:camera:start", {"session": self.instance_name})
+        except Exception:
+            logging.debug("[call_video] could not emit call:video:camera:start", exc_info=True)
 
     def on_call_video_remote(self, data):
         try:
