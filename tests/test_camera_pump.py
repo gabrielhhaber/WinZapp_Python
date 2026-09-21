@@ -41,6 +41,9 @@ def _pump_block() -> str:
     end_marker = "    state.cameraPump = win.setInterval(pumpCamera, CAMERA_PUMP_MS);\n  };\n"
     block = src[start:src.index(end_marker, start) + len(end_marker)]
     block = re.sub(r"(\w+)\?:\s*number", r"\1", block)
+    block = re.sub(r":\s*(?:RTCRtpSender\[\]|string\[\])", "", block)
+    block = re.sub(r"\((\w+):\s*any\)", r"(\1)", block)
+    block = block.replace(" as RTCPeerConnection[]", "")
     return block
 
 
@@ -65,6 +68,8 @@ const state = {
   cameraCanvas: canvas, cameraGeneration: 0, cameraPending: false,
   cameraStoppedEpoch: -1, cameraLastPicture: null, cameraShowing: false,
   cameraPump: 0, cameraPumpIdleTicks: 0,
+  peerConnections: new Set(), cameraCloneIds: new Set(),
+  videoSenderReportTicks: 0, lastVideoSenderReport: '',
 };
 BLOCK
 const tick = (n = 1) => { for (let i = 0; i < n; i++) if (intervalFn) intervalFn(); };

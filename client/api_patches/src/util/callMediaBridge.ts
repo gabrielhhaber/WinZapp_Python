@@ -236,6 +236,13 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     cameraShowing: false,
     cameraPump: 0,
     cameraPumpIdleTicks: 0,
+    // Diagnostics only: the peer connections WhatsApp creates, and the ids of
+    // every clone of our camera track handed to it, so the sender report below
+    // can say whether WhatsApp is still sending OUR track.
+    peerConnections: new Set<RTCPeerConnection>(),
+    cameraCloneIds: new Set<string>(),
+    videoSenderReportTicks: 0,
+    lastVideoSenderReport: '',
     cameraFramesReceived: 0,
     cameraFramesDropped: 0,
     cameraTrackRequests: 0,
@@ -573,6 +580,60 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   // The track never goes idle, WhatsApp never pauses it, and turning video on
   // again only changes what is painted. The pump stops itself once the page
   // has had no live call for 5 s, so it costs nothing between calls.
+  // DIAGNOSTIC ONLY -- changes nothing about the call. After "turn video off"
+  // and back on, the peer stays on black even though fresh frames are drawn on
+  // the canvas and the track no longer idles. What happens between that canvas
+  // and the network is invisible in every existing log, so this reports, for
+  // each WhatsApp peer connection, what its VIDEO sender is actually doing:
+  // which track (and whether it is one of our clones), whether that track is
+  // enabled/muted/live, and the outbound-rtp counters. Logged only when the
+  // picture changes, at most every 2 s, and only while a page call is live.
+  const reportVideoSenders = () => {
+    for (const pc of Array.from(state.peerConnections) as RTCPeerConnection[]) {
+      if (pc.connectionState === 'closed') {
+        state.peerConnections.delete(pc);
+        continue;
+      }
+      let senders: RTCRtpSender[] = [];
+      try { senders = pc.getSenders(); } catch (_) { continue; }
+      const video = senders.filter(
+        (sender) => sender.track?.kind === 'video' || (!sender.track && sender.dtmf === null)
+      );
+      Promise.resolve(pc.getStats?.())
+        .then((stats: any) => {
+          const outbound: string[] = [];
+          stats?.forEach?.((entry: any) => {
+            if (entry?.type === 'outbound-rtp' && entry?.kind === 'video') {
+              outbound.push(
+                `encoded=${entry.framesEncoded ?? '?'} sent=${entry.framesSent ?? '?'} ` +
+                  `${entry.frameWidth ?? '?'}x${entry.frameHeight ?? '?'} ` +
+                  `fps=${entry.framesPerSecond ?? '?'} limit=${entry.qualityLimitationReason ?? '?'}`
+              );
+            }
+          });
+          const tracks = video.map((sender) => {
+            const track = sender.track;
+            if (!track) return 'track=null';
+            const ours = state.cameraCloneIds.has(track.id) ? 'ours' : 'FOREIGN';
+            return (
+              `track=${ours} enabled=${track.enabled} muted=${track.muted} ` +
+              `state=${track.readyState}`
+            );
+          });
+          const line =
+            `pc=${pc.connectionState} senders=${video.length} [${tracks.join('; ')}] ` +
+            `out=[${outbound.join('; ')}] showing=${state.cameraShowing}`;
+          // counters always move, so compare without them to spot real changes
+          const shape = line.replace(/encoded=\d+ sent=\d+ /g, '');
+          if (shape !== state.lastVideoSenderReport || Math.random() < 0.2) {
+            state.lastVideoSenderReport = shape;
+            report('video-sender', line);
+          }
+        })
+        .catch(() => undefined);
+    }
+  };
+
   const CAMERA_PUMP_MS = 100;
   const CAMERA_PUMP_IDLE_STOP_TICKS = 50;
 
@@ -592,6 +653,11 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       return;
     }
     state.cameraPumpIdleTicks = 0;
+    state.videoSenderReportTicks += 1;
+    if (state.videoSenderReportTicks >= 20) {
+      state.videoSenderReportTicks = 0;
+      reportVideoSenders();
+    }
     if (state.cameraShowing && state.cameraLastPicture) {
       context.drawImage(state.cameraLastPicture, 0, 0, 640, 360);
     } else {
@@ -622,7 +688,9 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       state.cameraTrack = state.cameraCanvas.captureStream(10).getVideoTracks()[0];
     }
     ensureCameraPump();
-    return state.cameraTrack.clone();
+    const clone = state.cameraTrack.clone();
+    if (clone?.id) state.cameraCloneIds.add(clone.id);
+    return clone;
   };
 
   const attachRemoteVideo = (track: MediaStreamTrack) => {
@@ -909,6 +977,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     const tagged = pc as any;
     if (tagged.__winzappCallMediaAttached) return pc;
     tagged.__winzappCallMediaAttached = true;
+    state.peerConnections.add(pc);
     const attachRemoteReceivers = () => {
       try {
         for (const receiver of pc.getReceivers?.() || []) {
