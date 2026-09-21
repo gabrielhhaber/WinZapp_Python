@@ -73,9 +73,62 @@ def test_status_reaction_bootloader_fallback_is_mirrored_in_both_lookups():
             "moduleRequire?.('Bootloader')",
             "componentMap",
             "loadModules",
-            "status.*reaction|reaction.*status",
+            # Both lookups read the SAME plan, handed in as an argument.
+            "bootloaderPlan: STATUS_REACTION_BOOTLOADER",
+            "bootloaderPlan.knownCandidates",
+            "bootloaderPlan.tierSources",
+            # A total deadline for the loop, never a flat per-candidate wait.
+            "const deadline = Date.now() + budgetMs;",
+            "Math.min(bootloaderPlan.perCandidateMs, remainingMs)",
         ):
             assert marker in section, f"{marker!r} missing from {name}"
+
+
+def test_the_status_reaction_candidate_list_exists_exactly_once():
+    """REGRESSION: the list the next WhatsApp rename will need updated was
+    copied literally into both page.evaluate calls, guarded only by a test that
+    checked four markers were present in each. Updating one copy left the
+    startup probe warning that reacting to a status may not work while
+    reacting worked -- or the reverse."""
+    source = DEVICE.read_text(encoding="utf-8")
+    assert source.count("'WAWebStatusDrawerFlow.react'") == 1
+    assert source.count("'WAWebStatusQuotedFlow.react'") == 1
+    assert "/status.*reaction|reaction.*status/i" not in source
+
+
+def _ts_number(source, name):
+    import re
+    match = re.search(rf"const {name} = (\d+);", source)
+    assert match, f"{name} not found"
+    return int(match.group(1))
+
+
+def test_the_bootloader_budgets_fit_inside_the_callers_timeouts():
+    """REGRESSION: each loadModules() attempt had its own 8 s, up to six
+    candidates -- 48 s -- while main.py gives up on /react-message after 15 s
+    and on /send-capabilities after 10 s. A slow Bootloader then made Python
+    report a reaction as failed while the page went on to SEND it (and the echo
+    arrived as someone else's reaction to the user's own message), and the
+    startup probe never returned a verdict at all.
+
+    Checked across the language boundary: the Node budgets are read from the
+    patched source and the Python timeouts from main.py, so tightening either
+    side without the other fails here."""
+    import re
+    source = DEVICE.read_text(encoding="utf-8")
+    main_py = (ROOT / "client" / "main.py").read_text(encoding="utf-8")
+
+    react_call = main_py[main_py.index('/react-message"'):]
+    react_timeout = int(re.search(r"timeout=(\d+)", react_call).group(1))
+    probe_call = main_py[main_py.index('"/send-capabilities"'):]
+    probe_timeout = int(re.search(r"timeout=(\d+)", probe_call).group(1))
+
+    send_budget = _ts_number(source, "STATUS_REACTION_SEND_BUDGET_MS")
+    probe_budget = _ts_number(source, "STATUS_REACTION_PROBE_BUDGET_MS")
+
+    # Leave at least a few seconds for everything else each request does.
+    assert send_budget <= react_timeout * 1000 - 5000
+    assert probe_budget <= probe_timeout * 1000 - 3000
 
 
 def test_no_send_handler_turns_a_post_send_verdict_into_a_500():
