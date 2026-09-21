@@ -213,3 +213,25 @@ least one real call to learn, so read before touching the video path.
   receiver is indistinguishable, from the sender's chair, from a broken
   sender. A sighted-assistance app describing the call window is how the own-
   camera bug was finally seen.
+- **The other person's video is never a track or a `<video>` the page can
+  read.** Measured over CDP during a live call with a phone: the engine's
+  `getShortStatisticString()` reported `Decoding 640x432 (H264) @ 19 fps`
+  while nothing on the page carried a single frame of it -- no track event,
+  no foreign `<video>`, no `VideoDecoder`, no canvas draw. The engine hands
+  decoded frames only to canvases registered with
+  `WAWebVoipVideoRendererRegistry` (`registerVideoCanvas(canvas, false)` then
+  `assignSourceToCanvas({canvas, mirror: false, source})`, with
+  `source = WAWebVoipVideoRenderSource.peer(peerJid, CAMERA)`), which is what
+  WhatsApp's own call UI does for the peer tile. `syncPeerVideo()` registers
+  one such canvas per video call and captures it into
+  `__winzappOnCallRemoteVideo`, released when the call ends. The registry keeps
+  a set of canvases per source, so this coexists with WhatsApp's own. Before
+  it, WinZapp had never shown the peer at all: the only "remote" video the
+  bridge ever found was the user's own camera.
+- **Debugging this live is far cheaper over CDP than by restarting WinZapp.**
+  WinZapp's Chrome is `HeadlessChrome` on a loopback remote-debugging port
+  (find it with `netstat` against the `chrome.exe` PIDs, confirm with
+  `/json/version` before listing targets so a personal Chrome's tabs are
+  never read). `getShortStatisticString()` and `getCallInfo()` on the VoIP
+  interface answer "is media arriving at all" in one call; `getCallInfo()`
+  carries account identifiers, so filter it before printing.

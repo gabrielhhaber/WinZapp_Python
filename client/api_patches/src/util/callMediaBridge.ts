@@ -983,7 +983,111 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     } catch (_) {}
   };
 
+  // The other person's video. WhatsApp Web never exposes it as a
+  // MediaStreamTrack or as a <video> the page can read -- the media scan and
+  // the RTCPeerConnection track event both come up empty for it. Its WASM
+  // engine decodes the peer's video itself (measured live on 2026-09-21:
+  // "Decoding 640x432 (H264) @ 19 fps") and draws frames only into canvases
+  // registered with WAWebVoipVideoRendererRegistry, which is what its own
+  // call UI does for the peer tile. So WinZapp registers a canvas of its own
+  // for the peer exactly the same way, and captures it at the same ~8 fps and
+  // through the same callback the call window already consumes. The registry
+  // keeps a set of canvases per source, so this coexists with WhatsApp's own.
+  //
+  // Everything before this was wrong in the same direction: the only "remote"
+  // video the bridge ever found was the user's own camera, played in hidden
+  // <video> elements to feed WhatsApp's encoder (see attachRemoteVideo).
+  const PEER_VIDEO_CAPTURE_MS = 125;
+  const peerVideo = {
+    key: '',
+    canvas: null as HTMLCanvasElement | null,
+    source: null as any,
+    timer: 0,
+  };
+
+  const peerVideoRegistry = (): any => {
+    try {
+      return win.require?.('WAWebVoipVideoRendererRegistry')?.videoRendererRegistry || null;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const stopPeerVideo = () => {
+    if (peerVideo.timer) win.clearInterval(peerVideo.timer);
+    const registry = peerVideoRegistry();
+    try {
+      if (registry && peerVideo.canvas) {
+        if (peerVideo.source) registry.unassignSourceFromCanvas?.(peerVideo.source, peerVideo.canvas);
+        registry.unregisterVideoCanvas?.(peerVideo.canvas);
+      }
+    } catch (_) {}
+    peerVideo.key = '';
+    peerVideo.canvas = null;
+    peerVideo.source = null;
+    peerVideo.timer = 0;
+  };
+
+  const syncPeerVideo = () => {
+    const call = currentPageCall();
+    const isVideo = !!(call?.isVideo ?? call?.attributes?.isVideo ?? call?.get?.('isVideo'));
+    const key = isLivePageCall(call) && isVideo ? pageCallKey(call) : '';
+    if (!key) {
+      if (peerVideo.key) stopPeerVideo();
+      return;
+    }
+    if (peerVideo.key === key) return;
+    if (peerVideo.key) stopPeerVideo();
+    // Claimed up front, so a registration that throws is not retried on every
+    // 250 ms scan for the rest of the call; the next call tries again.
+    peerVideo.key = key;
+    try {
+      const registry = peerVideoRegistry();
+      const renderSource = win.require?.('WAWebVoipVideoRenderSource');
+      const peer = call?.peerJid ?? call?.attributes?.peerJid ?? call?.get?.('peerJid');
+      if (!registry || !renderSource || !peer) {
+        report('peer-video', `renderer unavailable registry=${!!registry} source=${!!renderSource} peer=${!!peer}`);
+        return;
+      }
+      const source = renderSource.WAWebVoipVideoRenderSource.peer(
+        peer,
+        renderSource.WAWebVoipVideoRenderStream.CAMERA
+      );
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      registry.registerVideoCanvas(canvas, false);
+      registry.assignSourceToCanvas({ canvas, mirror: false, source });
+      peerVideo.canvas = canvas;
+      peerVideo.source = source;
+      report('peer-video', 'renderer canvas registered for the peer');
+
+      const capture = document.createElement('canvas');
+      capture.width = 640;
+      capture.height = 360;
+      peerVideo.timer = win.setInterval(() => {
+        // Nothing to send until the engine has actually painted a frame here.
+        if (registry.hasRenderedFirstFrameForCanvas?.(canvas) === false) return;
+        const context = capture.getContext('2d');
+        if (!context) return;
+        context.drawImage(canvas, 0, 0, 640, 360);
+        const jpeg = capture.toDataURL('image/jpeg', 0.6).split(',')[1];
+        if (!jpeg) return;
+        state.remoteVideoFramesSent += 1;
+        if (state.remoteVideoFramesSent === 1 || state.remoteVideoFramesSent % 100 === 0) {
+          report('remote-video-frame', `sent=${state.remoteVideoFramesSent} source=peer-renderer`);
+        }
+        win.__winzappOnCallRemoteVideo?.(jpeg)?.catch?.(() => undefined);
+      }, PEER_VIDEO_CAPTURE_MS);
+    } catch (error: any) {
+      report('peer-video', `could not register a renderer canvas: ${String(error?.message || error)}`);
+    }
+  };
+
   const scanMediaElements = () => {
+    try {
+      syncPeerVideo();
+    } catch (_) {}
     try {
       // Keep call lifecycle tracking alive even on pages with no media
       // elements. The HTMLMediaElement.play wrapper also refreshes this
