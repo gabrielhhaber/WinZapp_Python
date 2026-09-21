@@ -36,7 +36,7 @@ def _node():
 def _poll_block() -> str:
     src = SESSION_UTIL.read_text(encoding="utf-8")
     start = src.index("          let lastActiveSignature = '';")
-    end_marker = "          }, 250);\n"
+    end_marker = "          armCallStatePoll();\n"
     block = src[start:src.index(end_marker, start) + len(end_marker)]
     block = block.replace("(window as any)", "window")
     block = re.sub(r"let engineEndProbe:[^=]+=", "let engineEndProbe =", block)
@@ -49,7 +49,7 @@ _HARNESS = r"""
 let fakeNow = 1_000_000;
 Date.now = () => fakeNow;
 let pollFn = null;
-const window = { setInterval(fn) { pollFn = fn; return 1; } };
+const window = { setInterval(fn) { pollFn = fn; return 1; }, clearInterval() {} };
 let activeCall = null;
 const stores = [{ get activeCall() { return activeCall; } }];
 let engineInfo = '';

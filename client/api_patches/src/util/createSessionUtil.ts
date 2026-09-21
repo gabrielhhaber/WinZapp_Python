@@ -50,6 +50,23 @@ import Factory from './tokenStore/factory';
  * Falls back to forceKillByUserDataDir() (below) when no page/pid is
  * available, e.g. mid-pairing, before create() has returned.
  */
+/**
+ * Page-side half of the call-state poll watchdog (runs via page.evaluate, so
+ * it must stay self-contained). Re-arms the poll when its last tick is older
+ * than `staleMs`; the poll ticks every 250 ms, so a stale heartbeat means its
+ * timer is gone, not slow.
+ */
+export const CALL_STATE_POLL_WATCHDOG_MS = 3000;
+export const CALL_STATE_POLL_STALE_MS = 2000;
+export function reviveStalledCallStatePoll(staleMs: number): string {
+  const w = window as any;
+  if (typeof w.__winzappRearmCallStatePoll !== 'function') return 'absent';
+  const last = Number(w.__winzappCallStatePollLastTick || 0);
+  if (Date.now() - last < staleMs) return 'ok';
+  w.__winzappRearmCallStatePoll();
+  return 'rearmed';
+}
+
 function forceKillBrowserProcess(page: any, logger?: any): boolean {
   let pid: number | undefined;
   try {
@@ -2344,7 +2361,8 @@ export default class CreateSessionUtil {
             'ENDED', 'REJECTED', 'FAILED', 'NOT_ANSWERED',
             'HANDLED_REMOTELY', 'REMOTE_CALL_IN_PROGRESS',
           ]);
-          (window as any).__winzappCallStatePoll = window.setInterval(() => {
+          const callStatePollTick = () => {
+            (window as any).__winzappCallStatePollLastTick = Date.now();
             try {
               let activeCall: any = null;
               for (const store of stores) {
@@ -2435,7 +2453,32 @@ export default class CreateSessionUtil {
             } catch (e) {
               // A later poll can recover from WhatsApp replacing CallStore.
             }
-          }, 250);
+          };
+          // This listener is installed as soon as WA-JS appears, which can be
+          // before WhatsApp's own bundle has replaced window.setInterval and
+          // clearInterval with its JSScheduler wrappers. Measured live on
+          // 2026-09-21: the poll's native timer (id 4) had silently stopped
+          // -- a logpoint on its first line never fired while a fresh
+          // interval ticked normally -- so no call state reached Python at
+          // all: an outgoing call the other person rejected kept the call
+          // window open and the microphone capturing until the user hung up
+          // by hand. The closure (lastActiveCall and friends) is kept; only
+          // the timer is re-created, by the Node-side watchdog, whenever the
+          // last tick is stale.
+          const armCallStatePoll = () => {
+            try {
+              window.clearInterval((window as any).__winzappCallStatePoll);
+            } catch (_) {
+              // An id from before WhatsApp's wrapper: nothing to clear.
+            }
+            (window as any).__winzappCallStatePollLastTick = Date.now();
+            (window as any).__winzappCallStatePoll = window.setInterval(
+              callStatePollTick,
+              250
+            );
+          };
+          (window as any).__winzappRearmCallStatePoll = armCallStatePoll;
+          armCallStatePoll();
           return true;
         }, listenerStartedAt)
         .then((installed: boolean) => {
@@ -2453,6 +2496,36 @@ export default class CreateSessionUtil {
     // Re-install on page reload (fresh JS context loses the listener)
     client.page.on('load', installListener);
     installListener();
+
+    // The page-side call-state poll can lose its timer (see
+    // armCallStatePoll above). Check its heartbeat from here and re-arm it;
+    // one watchdog per client, replaced when listeners are wired again.
+    const previousWatchdog = (client as any).__winzappCallPollWatchdog;
+    if (previousWatchdog) clearInterval(previousWatchdog);
+    let watchdogBusy = false;
+    const watchdog = setInterval(() => {
+      const page: any = client.page;
+      if (!page || page.isClosed?.()) {
+        clearInterval(watchdog);
+        return;
+      }
+      if (watchdogBusy) return;
+      watchdogBusy = true;
+      page
+        .evaluate(reviveStalledCallStatePoll, CALL_STATE_POLL_STALE_MS)
+        .then((result: string) => {
+          if (result === 'rearmed') {
+            req.logger.warn(
+              `[${client.session}] call-state poll had stopped ticking; re-armed`
+            );
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          watchdogBusy = false;
+        });
+    }, CALL_STATE_POLL_WATCHDOG_MS);
+    (client as any).__winzappCallPollWatchdog = watchdog;
   }
 
   /**

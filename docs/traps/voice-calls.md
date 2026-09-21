@@ -95,6 +95,22 @@ tear down the current one. Outgoing calls go through `_resolve_jid_for_send()`
 like every send, for the same reason: an `@lid` is an identifier, not a number
 to dial.
 
+**That `activeCall` poll can lose its timer, and then no call state reaches
+Python at all.** The listener installs as soon as WA-JS appears, which can be
+before WhatsApp's bundle replaces `window.setInterval`/`clearInterval` with its
+`JSScheduler` wrappers; measured 2026-09-21, the poll's native timer (id 4) had
+silently stopped — a non-pausing Debugger logpoint on the tick never fired
+while a fresh interval ticked normally — so a rejected outgoing call left the
+call window up and the microphone capturing. Each tick now stamps
+`window.__winzappCallStatePollLastTick`, and a Node-side watchdog in
+`onIncomingCallDirect()` calls `reviveStalledCallStatePoll()` every 3 s, which
+re-creates only the timer through `__winzappRearmCallStatePoll` (the closure,
+and the call it was tracking, survive). `call-state poll had stopped ticking;
+re-armed` in `wppconnect.log` means it happened. To check a live page, count
+reads of `require('WAWebCallCollection').activeCall` for two seconds with an
+accessor that returns the same value (then restore the data property): the
+poll's reads should be among them.
+
 **Standing the background sync down during a call must happen where a round is
 *decided*, never inside one.** `sync_remote_chats()` returns the set of chats
 that FAILED, and `sync_chat_messages()` reports failure only by returning
