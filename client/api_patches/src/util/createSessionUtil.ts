@@ -2286,6 +2286,60 @@ export default class CreateSessionUtil {
           let lastActiveIncomingOfferId = '';
           let activeCallMissingSince = 0;
           const ACTIVE_CALL_MISSING_GRACE_MS = 5000;
+          // The grace above exists for one real case: WhatsApp briefly
+          // replacing CallStore.activeCall mid-call. It cannot tell that apart
+          // from a call that is simply over, so every rejected, unanswered or
+          // remotely ended call waited the full 5 s before Python heard of it
+          // -- measured live on 2026-09-21: a rejection left activeCall gone
+          // (last state PREACCEPT_RECEIVED, absent from the collection) while
+          // the call window stayed up until the user hung up by hand.
+          //
+          // The VoIP engine is the source of truth, and it answers the
+          // question directly: getCallInfo() returns an empty string once no
+          // call is ongoing (verified live), JSON naming the call otherwise.
+          // So on each disappearance the engine is asked once; "no call", "a
+          // different call" or "ending" ends it now, and only an engine that
+          // still holds this very call keeps the grace.
+          let engineEndProbe: 'idle' | 'pending' | 'ended' | 'ongoing' = 'idle';
+          const probeEngineForEnd = (callId: string) => {
+            engineEndProbe = 'pending';
+            try {
+              const getter =
+                WPP?.whatsapp?.functions?.getVoipStackInterface ||
+                WPP?.whatsapp?.getVoipStackInterface;
+              if (typeof getter !== 'function') {
+                engineEndProbe = 'ongoing';
+                return;
+              }
+              Promise.resolve(getter())
+                .then((stack: any) => stack?.getCallInfo?.())
+                .then((raw: any) => {
+                  if (!raw) {
+                    engineEndProbe = 'ended';
+                    return;
+                  }
+                  let info: any = raw;
+                  if (typeof raw === 'string') {
+                    try { info = JSON.parse(raw); } catch (_) { info = null; }
+                  }
+                  const engineCallId = String(info?.call_id || '');
+                  if (
+                    !info ||
+                    info.call_ending === true ||
+                    (callId && engineCallId && engineCallId !== callId)
+                  ) {
+                    engineEndProbe = 'ended';
+                  } else {
+                    engineEndProbe = 'ongoing';
+                  }
+                })
+                .catch(() => {
+                  engineEndProbe = 'ongoing';
+                });
+            } catch (_) {
+              engineEndProbe = 'ongoing';
+            }
+          };
           const TERMINAL_CALL_STATES = new Set([
             'ENDED', 'REJECTED', 'FAILED', 'NOT_ANSWERED',
             'HANDLED_REMOTELY', 'REMOTE_CALL_IN_PROGRESS',
@@ -2330,7 +2384,11 @@ export default class CreateSessionUtil {
                 }
                 const now = Date.now();
                 activeCallMissingSince = activeCallMissingSince || now;
-                if (now - activeCallMissingSince < ACTIVE_CALL_MISSING_GRACE_MS) {
+                if (engineEndProbe === 'idle') probeEngineForEnd(callIdOf(lastActiveCall));
+                if (
+                  engineEndProbe !== 'ended' &&
+                  now - activeCallMissingSince < ACTIVE_CALL_MISSING_GRACE_MS
+                ) {
                   return;
                 }
                 emitCallState('ended', lastActiveCall, 'ENDED');
@@ -2338,10 +2396,12 @@ export default class CreateSessionUtil {
                 lastActiveSignature = '';
                 lastActiveIncomingOfferId = '';
                 activeCallMissingSince = 0;
+                engineEndProbe = 'idle';
                 return;
               }
 
               activeCallMissingSince = 0;
+              engineEndProbe = 'idle';
               const state = callStateOf(activeCall);
               const signature = [
                 callIdOf(activeCall),
