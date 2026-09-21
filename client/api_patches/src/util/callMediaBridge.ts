@@ -230,6 +230,12 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     // never runs on the Linux/PulseAudio path, and reset() -- which clears
     // enabled -- also runs mid-call on an audio device restart.
     cameraStoppedEpoch: -1,
+    // The last real camera frame, redrawn by the steady pump below while video
+    // is on, and whether video is on at all (false paints black instead).
+    cameraLastPicture: null as HTMLImageElement | null,
+    cameraShowing: false,
+    cameraPump: 0,
+    cameraPumpIdleTicks: 0,
     cameraFramesReceived: 0,
     cameraFramesDropped: 0,
     cameraTrackRequests: 0,
@@ -496,6 +502,9 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
         // drawing it would repaint exactly the frame stopCamera() blanked.
         if (generation === state.cameraGeneration) {
           canvas.getContext('2d')?.drawImage(picture, 0, 0, 640, 360);
+          state.cameraLastPicture = picture;
+          state.cameraShowing = true;
+          ensureCameraPump();
         }
       } finally {
         state.cameraPending = false;
@@ -541,10 +550,60 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   // repaint it, and still means the next call starts black rather than on a
   // still of the previous one -- including a call answered without video.
   const blankCamera = () => {
+    state.cameraShowing = false;
+    state.cameraLastPicture = null;
     if (!state.cameraCanvas) return;
     state.cameraGeneration += 1;
     state.cameraPending = false;
     blankCameraCanvas();
+  };
+
+  // A canvas captureStream() only emits a frame when the canvas is PAINTED.
+  // Left to the desktop's frames alone, the track went idle whenever they
+  // stopped or stuttered: for the seconds between the offer and the first
+  // camera frame, across socket jitter, and for good after "turn video off"
+  // painted black once. WebRTC then reports the track as muted, and WhatsApp
+  // Web reacts on its own -- measured live 2026-09-21: 1 s after the blank it
+  // re-requested media with video=false, and after video was turned back on
+  // it asked for video=false AGAIN, never video=true. The peer saw the image
+  // flicker at the start of the call, and black for good after re-enabling.
+  //
+  // So the canvas is repainted at a steady 10 fps for as long as a page call
+  // is live: the last real frame while video is on, black while it is off.
+  // The track never goes idle, WhatsApp never pauses it, and turning video on
+  // again only changes what is painted. The pump stops itself once the page
+  // has had no live call for 5 s, so it costs nothing between calls.
+  const CAMERA_PUMP_MS = 100;
+  const CAMERA_PUMP_IDLE_STOP_TICKS = 50;
+
+  const stopCameraPump = () => {
+    if (state.cameraPump) win.clearInterval(state.cameraPump);
+    state.cameraPump = 0;
+    state.cameraPumpIdleTicks = 0;
+  };
+
+  const pumpCamera = () => {
+    const canvas = state.cameraCanvas;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+    if (!isLivePageCall(currentPageCall())) {
+      state.cameraPumpIdleTicks += 1;
+      if (state.cameraPumpIdleTicks >= CAMERA_PUMP_IDLE_STOP_TICKS) stopCameraPump();
+      return;
+    }
+    state.cameraPumpIdleTicks = 0;
+    if (state.cameraShowing && state.cameraLastPicture) {
+      context.drawImage(state.cameraLastPicture, 0, 0, 640, 360);
+    } else {
+      context.fillStyle = '#000';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+
+  const ensureCameraPump = () => {
+    state.cameraPumpIdleTicks = 0;
+    if (state.cameraPump) return;
+    state.cameraPump = win.setInterval(pumpCamera, CAMERA_PUMP_MS);
   };
 
   const cameraTrack = () => {
@@ -562,6 +621,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     if (!state.cameraTrack || state.cameraTrack.readyState !== 'live') {
       state.cameraTrack = state.cameraCanvas.captureStream(10).getVideoTracks()[0];
     }
+    ensureCameraPump();
     return state.cameraTrack.clone();
   };
 
