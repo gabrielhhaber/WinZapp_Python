@@ -5726,13 +5726,39 @@ class MainWindow(wx.Frame):
         wx.CallAfter(self._focus_primary_control)
 
     def _focus_primary_control(self):
-        """Move keyboard focus to the main navigable list (conversation list),
-        so arrow keys work right after a window restore / account switch."""
+        """Move keyboard focus to the primary navigable list of whichever
+        panel is actually on screen, so arrow keys work right after a window
+        restore / account switch.
+
+        `IsShown()` alone is not enough: switching tabs (Alt+1/2/4) hides the
+        PANEL container (`conversations_panel.Hide()`, `status_panel.Hide()`,
+        ...) but never explicitly hides the list widgets inside it, so a list
+        keeps reporting its own `IsShown()` as True forever after the last
+        time it was shown — even while a sibling panel is the one actually
+        visible. That made the global hotkey always land focus on the
+        conversations list, even when the Status (or Archived) tab was the
+        one on screen when the window was hidden. `IsShownOnScreen()` walks
+        the whole ancestor chain instead, so it reflects the panel's real
+        Hide()/Show() state too.
+        """
         try:
             panel = getattr(self, "conversations_panel", None)
             lst = getattr(panel, "conversations_list", None) if panel else None
-            if lst is not None and lst.IsShown():
+            if lst is not None and lst.IsShownOnScreen():
                 lst.SetFocus()
+                return
+            archived = getattr(self, "archived_conversations_panel", None)
+            archived_lst = (
+                getattr(archived, "conversations_list", None) if archived else None
+            )
+            if archived_lst is not None and archived_lst.IsShownOnScreen():
+                archived_lst.SetFocus()
+                return
+            status = getattr(self, "status_panel", None)
+            status_lst = getattr(status, "_status_list", None) if status else None
+            if status_lst is not None and status_lst.IsShownOnScreen():
+                status_lst.SetFocus()
+                return
         except Exception:
             logging.exception("[focus] restoring primary control focus failed")
 
@@ -10034,11 +10060,25 @@ class MainWindow(wx.Frame):
                     return
                 self._send_capabilities_warning = signature
                 logging.error("[startup] Send compatibility probe failed: %s", signature)
+                # statusReaction is a private, reverse-engineered module lookup
+                # (see deviceController.ts) that WhatsApp Web breaks on its own
+                # schedule, independent of the public send primitives below it
+                # in the same probe. When it is the *only* thing missing, real
+                # sending is unaffected — announcing the generic warning here
+                # was a chronic false positive that told a blind user their
+                # whole connection was suspect over a feature they may never
+                # touch. Anything else missing still means real sending is at
+                # risk, so it keeps the broader warning.
+                missing = details.get("missing")
+                if missing == ["statusReaction"]:
+                    key = "status_reaction_capability_incompatible"
+                else:
+                    key = "send_capabilities_incompatible"
                 # Deliberately NOT interrupt=True: the unpinned-version warning
                 # is queued moments earlier on the one path where both fire, and
                 # interrupting cut it off mid-sentence — leaving the user with
                 # neither message.
-                wx.CallAfter(self.output, self.i18n.t("send_capabilities_incompatible"))
+                wx.CallAfter(self.output, self.i18n.t(key))
                 return
             except Exception as exc:
                 logging.warning("[startup] Send compatibility probe unavailable: %s", exc)
@@ -26210,13 +26250,17 @@ class MainWindow(wx.Frame):
                 retry_stale_socket=True,
             )
             if response.status_code not in (200, 201):
-                # 1500 chars (not 500) — deviceController.ts's reactMessage
-                # now includes a real error message + stack trace in the
-                # body (see its own comment on why a bare `error: e` used
-                # to serialize down to almost nothing), which can run
-                # longer than the old truncation allowed.
+                # 6000 chars (not 500, and not the original 1500) —
+                # deviceController.ts's reactMessage includes a real error
+                # message + stack trace in the body (see its own comment on
+                # why a bare `error: e` used to serialize down to almost
+                # nothing), and on a failed Bootloader component search it
+                # also appends a sample of scanned component names for
+                # diagnosis. 1500 chars cut that sample off alphabetically
+                # before it ever reached a name starting with "WAWebSta..."
+                # or "WAWebReact...", live-confirmed 2026-09-20.
                 logging.error("[send_reaction] HTTP %s: %s",
-                              response.status_code, response.text[:1500])
+                              response.status_code, response.text[:6000])
                 with self._pending_own_reactions_lock:
                     self._pending_own_reactions.pop(reaction_signature, None)
                 return False

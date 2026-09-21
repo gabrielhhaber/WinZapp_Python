@@ -944,6 +944,7 @@
     "preview_sound_error": "Could not play the preview — invalid or missing sound file.",
     "wpp_version_unpinned_warning": "Warning: could not pin the WhatsApp Web version. Sending to individual contacts may fail silently; groups still work. Please update WinZapp's WhatsApp Web.",
     "send_capabilities_incompatible": "Sending may not work with this WhatsApp connection. If a message fails to send, update WinZapp and the WhatsApp connection, then try again.",
+    "status_reaction_capability_incompatible": "Liking or reacting to statuses may not work with this WhatsApp connection. Sending and receiving messages is not affected.",
     "status_unconfirmed": "Delivery unconfirmed",
     "no_messages_in_conversation": "No messages available in this chat.",
     "audio_device_default": "System default",

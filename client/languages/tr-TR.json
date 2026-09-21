@@ -896,6 +896,7 @@
   "preview_sound_error": "Önizleme çalınamadı — geçersiz veya eksik ses dosyası.",
   "wpp_version_unpinned_warning": "Uyarı: WhatsApp Web sürümü sabitlenemedi. Bireysel kişilere gönderme sessizce başarısız olabilir; gruplar çalışmaya devam eder. Lütfen WinZapp'in WhatsApp Web'ini güncelleyin.",
   "send_capabilities_incompatible": "Bu WhatsApp bağlantısıyla gönderme çalışmayabilir. Bir mesaj gönderilemezse, WinZapp'i ve WhatsApp bağlantısını güncelleyip tekrar deneyin.",
+  "status_reaction_capability_incompatible": "Bu WhatsApp bağlantısıyla durumları beğenme veya durumlara tepki verme çalışmayabilir. Mesaj gönderme ve alma bundan etkilenmez.",
   "status_unconfirmed": "İletim doğrulanmadı",
   "no_messages_in_conversation": "Bu sohbette kullanılabilir mesaj yok.",
   "audio_device_default": "Sistem varsayılanı",

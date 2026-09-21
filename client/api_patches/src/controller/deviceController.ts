@@ -1348,15 +1348,19 @@ export async function reactMessage(req: Request, res: Response) {
             }
           }
           if (typeof statusReactionAction?.sendStatusReaction !== 'function') {
-            // Last resort, and the one that matters on WhatsApp Web >= 2.3000:
-            // the module graph is split into bundles the Bootloader fetches on
+            // The module graph is split into bundles the Bootloader fetches on
             // demand, so a module whose bundle this session never needed is
             // absent from the registry entirely — moduleRequire, search and
             // window.require above can all only ever see what is registered.
             // ensureLazyModule() asks WhatsApp to fetch it the way the UI
-            // would. Best-effort by design: it answers false on the legacy
-            // webpack loader and for modules WA-JS does not list, in which
-            // case nothing changes and we fall through to the error below.
+            // would... but only for a module id listed in WA-JS's own private
+            // LAZY_MODULES table, which (confirmed by reading wa-js 4.6.0's
+            // compiled loader) has exactly two entries, both WA-JS's own
+            // forward-message feature. WAWebSendStatusReactionAction is
+            // WinZapp's own reverse-engineered id, absent from that table, so
+            // this call is a guaranteed no-op for it on every WhatsApp Web
+            // build — kept only because it is free and harmless if WA-JS ever
+            // adopts the id itself.
             try {
               await loader?.ensureLazyModule?.('WAWebSendStatusReactionAction');
               statusReactionAction = loader?.moduleRequire?.(
@@ -1370,6 +1374,149 @@ export async function reactMessage(req: Request, res: Response) {
             } catch (error) {
               moduleErrors.push(
                 `wpp-loader-lazy=${String((error as any)?.message || error)}`
+              );
+            }
+          }
+          if (typeof statusReactionAction?.sendStatusReaction !== 'function') {
+            // The real lazy-load, done ourselves: fetch the Bootloader
+            // component the same way WA-JS's ensureLazyModule() does
+            // internally (moduleRequire('Bootloader').loadModules(...)), but
+            // pick our own candidate component name instead of consulting
+            // WA-JS's table, which was never going to list a module WA-JS
+            // does not own. Mirrored in getSendCapabilities() below — keep
+            // both in sync, the way the file's other lookup chains already
+            // are.
+            try {
+              const bootloaderCandidate = loader?.moduleRequire?.('Bootloader');
+              const Bootloader =
+                typeof bootloaderCandidate?.loadModules === 'function'
+                  ? bootloaderCandidate
+                  : bootloaderCandidate?.default;
+              const componentMap = Bootloader?.__debug?.componentMap;
+              if (
+                typeof Bootloader?.loadModules === 'function' &&
+                componentMap &&
+                typeof componentMap.keys === 'function'
+              ) {
+                // Tiered: try the specific combination first, then just
+                // "reaction" alone (2026-09-20 live test: zero of 520
+                // components matched the combined pattern, live-testing
+                // whether a status-only bundle also carries the reaction
+                // action). ".react" is a React component suffix WhatsApp
+                // uses on many unrelated names (e.g.
+                // "WAWebForwardMessageFlow.react", from WA-JS's own
+                // LAZY_MODULES) — "reaction" never collides with it, the
+                // word is four letters longer.
+                const tiers = [
+                  /status.*reaction|reaction.*status/i,
+                  /reaction/i,
+                ];
+                const allNames: string[] = [];
+                for (const name of componentMap.keys()) allNames.push(String(name));
+                let candidates: string[] = [];
+                for (const pattern of tiers) {
+                  candidates = allNames.filter((name) => pattern.test(name));
+                  if (candidates.length > 0) break;
+                }
+                if (candidates.length === 0) {
+                  // Live 2026-09-20: of 520 components, NONE contain the
+                  // word "reaction" at all — confirmed via the full sample
+                  // dump below (see docs/traps/send-contract.md). WhatsApp
+                  // evidently bundles the private reaction action inside a
+                  // broader status-viewer flow instead of naming it after
+                  // itself. These are the two most plausible bundles from
+                  // that sample: the status drawer (where the reaction bar
+                  // lives in the real UI) and the status-reply flow (an
+                  // adjacent private action, often shipped together).
+                  const knownCandidates = [
+                    'WAWebStatusDrawerFlow.react',
+                    'WAWebStatusQuotedFlow.react',
+                  ];
+                  candidates = knownCandidates.filter((name) =>
+                    allNames.includes(name)
+                  );
+                }
+                candidates = candidates.slice(0, 6);
+                if (candidates.length === 0) {
+                  // Nothing matched even the loose tier. Dumping all ~500+
+                  // names blew past the 1500-char cap main.py's
+                  // send_reaction() applies to the whole HTTP response body
+                  // (response.text[:1500]) on the very first live test —
+                  // the list got cut off alphabetically before reaching
+                  // anything starting with "WAWebSta..." or "WAWebReact...".
+                  // Filter to a loose diagnostic sample instead of the full
+                  // list: still wide enough to catch a name we would not
+                  // have guessed, small enough to survive that cap. Bare
+                  // "react" was tried first and blew the sample up to 248/520
+                  // (live-confirmed 2026-09-20) — it matches the ".react"
+                  // suffix WhatsApp puts on every React component name (see
+                  // the tiers comment above), which is nearly everything in
+                  // this list. "reaction" (the full word) does not collide
+                  // with that suffix.
+                  const sample = allNames
+                    .filter((name) => /status|reaction|like|story|emoji|curtir/i.test(name))
+                    .sort();
+                  moduleErrors.push(
+                    'winzapp-bootloader=no-candidate-components; ' +
+                      `scanned=${allNames.length}; ` +
+                      `sample(${sample.length})=${sample.join(',')}`
+                  );
+                }
+                for (const component of candidates) {
+                  try {
+                    await new Promise<void>((resolve, reject) => {
+                      let settled = false;
+                      const timer = setTimeout(() => {
+                        if (!settled) {
+                          settled = true;
+                          reject(new Error('bootloader-timeout'));
+                        }
+                      }, 8000);
+                      try {
+                        Bootloader.loadModules(
+                          [component],
+                          () => {
+                            if (!settled) {
+                              settled = true;
+                              clearTimeout(timer);
+                              resolve();
+                            }
+                          },
+                          'WinZapp'
+                        );
+                      } catch (error) {
+                        if (!settled) {
+                          settled = true;
+                          clearTimeout(timer);
+                          reject(error);
+                        }
+                      }
+                    });
+                  } catch (error) {
+                    moduleErrors.push(
+                      `winzapp-bootloader[${component}]=${String(
+                        (error as any)?.message || error
+                      )}`
+                    );
+                    continue;
+                  }
+                  statusReactionAction = loader?.moduleRequire?.(
+                    'WAWebSendStatusReactionAction'
+                  );
+                  if (
+                    typeof statusReactionAction?.sendStatusReaction ===
+                    'function'
+                  ) {
+                    moduleSource = `winzapp-bootloader[${component}]`;
+                    break;
+                  }
+                }
+              } else {
+                moduleErrors.push('winzapp-bootloader=unavailable');
+              }
+            } catch (error) {
+              moduleErrors.push(
+                `winzapp-bootloader=${String((error as any)?.message || error)}`
               );
             }
           }
@@ -1517,6 +1664,90 @@ export async function getSendCapabilities(req: Request, res: Response) {
           reactionModule = loader?.moduleRequire?.(
             'WAWebSendStatusReactionAction'
           );
+        } catch (_) {}
+      }
+      // ensureLazyModule() above is a guaranteed no-op for this module id —
+      // it is absent from WA-JS's own LAZY_MODULES table (which only lists
+      // WA-JS's own forward-message feature) — so do the Bootloader fetch
+      // ourselves, exactly as reactMessage() now does. Kept in sync with
+      // that copy; both must agree or the probe and the real send can
+      // disagree about whether a reaction will work.
+      if (typeof reactionModule?.sendStatusReaction !== 'function') {
+        try {
+          const bootloaderCandidate = loader?.moduleRequire?.('Bootloader');
+          const Bootloader =
+            typeof bootloaderCandidate?.loadModules === 'function'
+              ? bootloaderCandidate
+              : bootloaderCandidate?.default;
+          const componentMap = Bootloader?.__debug?.componentMap;
+          if (
+            typeof Bootloader?.loadModules === 'function' &&
+            componentMap &&
+            typeof componentMap.keys === 'function'
+          ) {
+            // Tiered the same way reactMessage()'s copy is — keep in sync.
+            const tiers = [
+              /status.*reaction|reaction.*status/i,
+              /reaction/i,
+            ];
+            const allNames: string[] = [];
+            for (const name of componentMap.keys()) allNames.push(String(name));
+            let candidates: string[] = [];
+            for (const pattern of tiers) {
+              candidates = allNames.filter((name) => pattern.test(name));
+              if (candidates.length > 0) break;
+            }
+            if (candidates.length === 0) {
+              const knownCandidates = [
+                'WAWebStatusDrawerFlow.react',
+                'WAWebStatusQuotedFlow.react',
+              ];
+              candidates = knownCandidates.filter((name) =>
+                allNames.includes(name)
+              );
+            }
+            candidates = candidates.slice(0, 6);
+            for (const component of candidates) {
+              try {
+                await new Promise<void>((resolve, reject) => {
+                  let settled = false;
+                  const timer = setTimeout(() => {
+                    if (!settled) {
+                      settled = true;
+                      reject(new Error('bootloader-timeout'));
+                    }
+                  }, 8000);
+                  try {
+                    Bootloader.loadModules(
+                      [component],
+                      () => {
+                        if (!settled) {
+                          settled = true;
+                          clearTimeout(timer);
+                          resolve();
+                        }
+                      },
+                      'WinZapp'
+                    );
+                  } catch (error) {
+                    if (!settled) {
+                      settled = true;
+                      clearTimeout(timer);
+                      reject(error);
+                    }
+                  }
+                });
+              } catch (_) {
+                continue;
+              }
+              reactionModule = loader?.moduleRequire?.(
+                'WAWebSendStatusReactionAction'
+              );
+              if (typeof reactionModule?.sendStatusReaction === 'function') {
+                break;
+              }
+            }
+          }
         } catch (_) {}
       }
       const reactionArity = Number(
