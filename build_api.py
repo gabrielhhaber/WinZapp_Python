@@ -45,8 +45,8 @@ def _verify_critical_call_patch(api_dir: str) -> None:
     # These strings used to be checked only when the current source contained
     # them, so a refactor could rename the routing without breaking the build.
     # That clause is how this guard silently stopped guarding anything: it was
-    # still naming the markers of
-    # the group-call routing this controller no longer has
+    # still naming the markers of the group-call routing this controller no
+    # longer has
     # ("native-group-chat", "native-group-wids", "WhatsApp Web group calling
     # gate is disabled"), none of which appear in the source any more, so
     # `missing` was unconditionally empty and a stale dist/ passed. Markers

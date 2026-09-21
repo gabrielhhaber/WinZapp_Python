@@ -705,6 +705,21 @@ def test_the_every_device_sweep_still_rescues_the_shared_pass():
         "Unplugged headset", input_device=True, include_fallbacks=False,
     ))
     assert 2 not in exclusive_only
+    # A chosen device that does not resolve (unplugged) must not hand the
+    # exclusive pass the system default either -- nor PortAudio's None, which
+    # is that same default: the shared pass takes over instead.
+    assert exclusive_only == []
+
+
+def test_with_no_device_chosen_the_exclusive_pass_uses_the_default():
+    session = CallAudioSession(
+        _Socket(), CallAudioConfig(session="winzapp"),
+        sounddevice_module=_VirtualCableSoundDevice(),
+    )
+    exclusive_only = list(session._candidate_devices(
+        "", input_device=True, include_fallbacks=False,
+    ))
+    assert 0 in exclusive_only and None in exclusive_only
 
 
 class _CableIsDefaultDefaults:

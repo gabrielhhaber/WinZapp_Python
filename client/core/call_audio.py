@@ -14,11 +14,11 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
-
-from core.audio_devices import repair_device_name
 from typing import Optional
 
 import numpy as np
+
+from core.audio_devices import repair_device_name
 
 try:
     import sounddevice as sd
@@ -225,9 +225,12 @@ class CallAudioSession:
         self._stop_event.set()
         self._emit_stop()
         self._close_stream(self._input_stream)
-        self._close_stream(self._output_stream)
         self._input_stream = None
-        self._output_stream = None
+        # Under the same lock as the player's writes, so a write in flight
+        # does not hit a stream being closed and log a spurious exception.
+        with self._output_lock:
+            self._close_stream(self._output_stream)
+            self._output_stream = None
         self._drain_queue(self._mic_queue)
         self._drain_queue(self._output_queue)
 
@@ -366,7 +369,11 @@ class CallAudioSession:
         # headset refusing exclusive access put the call EXCLUSIVE on the
         # default speakers -- where the screen reader lives -- with the headset
         # silent. The shared pass that follows still reaches the default.
-        if preferred is not None and not include_fallbacks:
+        # Keyed on the user having CHOSEN a device, not on it resolving: a
+        # chosen headset that is unplugged resolves to nothing, and the
+        # exclusive pass must not take the default speakers in its place.
+        chosen = bool(str(stored_name or "").strip())
+        if chosen and not include_fallbacks:
             default_device = None
         if default_device is not None:
             twin = self._wasapi_twin(default_device, input_device=input_device)
@@ -375,7 +382,7 @@ class CallAudioSession:
             ordered.append(default_device)
         # Keep PortAudio's implicit default as a compatibility fallback, but
         # prefer the concrete default index so we can inspect its native rate.
-        if preferred is None or include_fallbacks:
+        if not chosen or include_fallbacks:
             ordered.append(None)
         for index in ordered:
             key = -1 if index is None else int(index)

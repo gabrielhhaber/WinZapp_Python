@@ -6383,7 +6383,18 @@ class MainWindow(wx.Frame):
         self._call_ring_audio_session = None
         logging.info("[call_audio] streams started session=%s", session_name)
         self._call_audio_session = audio
-        if keep_active_call and getattr(self, "_active_voice_call", None) is not None:
+        if keep_active_call:
+            if getattr(self, "_active_voice_call", None) is None:
+                # The call ended (ENDED arrives without _call_action_lock)
+                # while its devices were being switched: do not reopen the
+                # microphone and speaker for a call that is already over.
+                self._call_audio_session = None
+                try:
+                    audio.stop()
+                except Exception:
+                    logging.exception("[call_audio] failed to stop audio of an ended call")
+                logging.info("[call_audio] call ended during a device switch; audio not reopened")
+                return False
             wx.CallAfter(self._sync_voice_call_bar)
             return True
         details = details or getattr(self, "_incoming_call_details", {}).get(identity, {})
@@ -6474,12 +6485,12 @@ class MainWindow(wx.Frame):
                             # background callback immediately after close.
                             if attempt:
                                 time.sleep(0.25)
-                            self._start_voice_call_audio(
+                            if self._start_voice_call_audio(
                                 str(active.get("identity") or active.get("call_id") or "call"),
                                 active,
                                 keep_active_call=True,
-                            )
-                            logging.info("[call_audio] active call devices switched")
+                            ):
+                                logging.info("[call_audio] active call devices switched")
                             last_error = None
                             break
                         except Exception as exc:
@@ -6983,9 +6994,16 @@ class MainWindow(wx.Frame):
             self.save_settings()
             if include_audio and getattr(self, "_call_audio_session", None) is not None:
                 self._restart_active_voice_call_audio()
-            if include_camera and getattr(self, "_call_camera_capture", None) is not None:
+            if (
+                include_camera
+                and getattr(self, "_call_camera_capture", None) is not None
+                and not getattr(self, "_call_camera_resuming", False)
+            ):
                 self._stop_call_camera()
-                threading.Thread(target=self._start_call_camera, daemon=True).start()
+                # Same guard as toggle_call_video(): a video-on press while
+                # this reopen runs must not start a second capture.
+                self._call_camera_resuming = True
+                threading.Thread(target=self._resume_call_camera, daemon=True).start()
             if first_combo is not None:
                 wx.CallAfter(first_combo.SetFocus)
         apply_button.Bind(wx.EVT_BUTTON, apply)

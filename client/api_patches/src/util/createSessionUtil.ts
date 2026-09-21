@@ -2321,9 +2321,9 @@ export default class CreateSessionUtil {
           // The VoIP engine is the source of truth, and it answers the
           // question directly: getCallInfo() returns an empty string once no
           // call is ongoing (verified live), JSON naming the call otherwise.
-          // So on each disappearance the engine is asked once; "no call", "a
-          // different call" or "ending" ends it now, and only an engine that
-          // still holds this very call keeps the grace.
+          // So on each disappearance the engine is asked once; "no call" or
+          // "ending" ends it now, and anything else keeps the grace (see
+          // below for why "a different call_id" is not trusted).
           let engineEndProbe: 'idle' | 'pending' | 'ended' | 'ongoing' = 'idle';
           // Bumped on every return to 'idle'. A probe answers asynchronously;
           // one that resolves after its absence is over (activeCall came back,

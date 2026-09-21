@@ -154,3 +154,26 @@ def test_a_new_call_still_gets_its_own_record():
 
     assert window._active_voice_call["call_id"] == "CALL2"
     assert window._voice_call_last_announced_state == ""
+
+
+def test_a_call_that_ends_during_the_switch_is_not_reopened():
+    """Review nit: ENDED arrives without _call_action_lock, so it can land
+    between the switch's stop and its start. Reopening then would capture
+    the microphone for a call that is already over."""
+    window = _CallWindow()
+    window._call_audio_session = None
+    window._active_voice_call = None
+
+    opened = window._start_voice_call_audio("CALL1", {"call_id": "CALL1"}, keep_active_call=True)
+
+    assert opened is False
+    assert window._call_audio_session is None
+    assert window._active_voice_call is None
+
+
+def test_the_call_settings_camera_reopen_uses_the_guarded_path():
+    import inspect
+    source = inspect.getsource(MainWindow.open_call_audio_settings)
+    assert 'not getattr(self, "_call_camera_resuming", False)' in source
+    assert "target=self._resume_call_camera" in source
+    assert "target=self._start_call_camera" not in source
