@@ -89,6 +89,7 @@ from core.incremental_sync import (
 )
 from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
+from core.pii_redaction import redact_phone
 from core.send_contract import accepted_message_id, send_failure_is_ambiguous
 from core.wpp_runtime import (
     read_homologated_wpp_version, wppconnect_library_drift, WPPCONNECT_PACKAGE,
@@ -19656,7 +19657,10 @@ class MainWindow(wx.Frame):
         if chat.get("name") == new_name:
             return
 
-        logging.info(f"[on_group_subject_updated] Updating group {remote_jid} name to {new_name}")
+        # Not new_name itself: a group subject is free text (often a family
+        # or company name) with no pattern the logging formatter's phone/JID
+        # masking can catch.
+        logging.info(f"[on_group_subject_updated] Updating group {remote_jid} name ({len(new_name)} chars)")
         self._store_group_subject(remote_jid, chat, new_name)
 
         self._schedule_save(dirty_jid=remote_jid)
@@ -20026,12 +20030,15 @@ class MainWindow(wx.Frame):
             names_with_values = [c.get("name") or c.get("pushName") for c in filtered_contacts if c.get("name") or c.get("pushName")]
             logging.info(f"[get_remote_contacts] Total filtered contacts (phonebook): {len(filtered_contacts)} (with valid names: {len(names_with_values)})")
             if filtered_contacts:
-                logging.info(f"[get_remote_contacts] First contact raw keys: {list(filtered_contacts[0].keys())}")
-                logging.info(f"[get_remote_contacts] First contact raw data: {filtered_contacts[0]}")
-            if names_with_values:
-                logging.info(f"[get_remote_contacts] First 50 named contacts: {', '.join(names_with_values[:50])}")
-            else:
-                logging.info("[get_remote_contacts] No filtered contacts have a name or pushName field set in the API response.")
+                # Shape, not content — the same rule get_remote_chats() already
+                # follows (see tests/test_chat_log_has_no_pii.py). This used to
+                # log the first contact's raw dict (name, pushName, JID, signed
+                # profile-photo URL) AND the actual text of up to 50 contact
+                # names, at INFO, every sync — meaning every log.log anyone
+                # shared for diagnosis carried a slice of their address book.
+                # Key names and value TYPES are what was ever useful here.
+                shape = {k: type(v).__name__ for k, v in filtered_contacts[0].items()}
+                logging.info(f"[get_remote_contacts] First contact shape: {shape}")
             
             contacts = {}
             for contact in filtered_contacts:
@@ -20046,7 +20053,10 @@ class MainWindow(wx.Frame):
                     contact["pushName"] = name
                     
                     if jid not in self.contacts:
-                        logging.debug(f"[get_remote_contacts] Adding contact: {name} ({jid})")
+                        # Not the name: free text has no pattern the logging
+                        # formatter's phone/JID masking can catch, so it needs
+                        # to just never be interpolated into a log line.
+                        logging.debug(f"[get_remote_contacts] Adding contact: {jid}")
                         self.contacts[jid] = contact
                     else:
                         updated_fields = []
@@ -20056,7 +20066,7 @@ class MainWindow(wx.Frame):
                                     self.contacts[jid][k] = v
                                     updated_fields.append(k)
                         if updated_fields:
-                            logging.debug(f"[get_remote_contacts] Updated fields {updated_fields} for contact: {name} ({jid})")
+                            logging.debug(f"[get_remote_contacts] Updated fields {updated_fields} for contact: {jid}")
                     contacts[jid] = self.contacts[jid]
             self._schedule_save(contacts_dirty=True)
             return contacts
@@ -29266,7 +29276,19 @@ class MainWindow(wx.Frame):
                                 updated_contacts[canonical_jid] = self.contacts[canonical_jid]
                                 self._presence_pushname_map[canonical_jid] = name
                         else:
-                            logging.info(f"[LID Resolution] Profile name not resolved/accepted for {target_jid}. Original name field: {name}. Response data: {res_data}")
+                            # Not the name, and not the raw response (which
+                            # carries formattedName/pushname/a signed profile
+                            # photo URL) — same "shape, not content" rule as
+                            # get_remote_contacts(). Whether a name was present
+                            # at all, and why it was rejected, is the part that
+                            # was ever useful for debugging this path.
+                            reason = (
+                                "empty" if not name
+                                else "placeholder" if name == "Contato sem nome"
+                                else "phone-like"
+                            )
+                            res_shape = {k: type(v).__name__ for k, v in res_data.items()} if isinstance(res_data, dict) else type(res_data).__name__
+                            logging.info(f"[LID Resolution] Profile name not resolved/accepted for {target_jid}. reason={reason}. Response shape: {res_shape}")
                     else:
                         logging.error(f"[LID Resolution] fetchProfile API error {resp_profile.status_code} for {target_jid}: {resp_profile.text}")
                         # If the API returns 404/500 indicating the session was closed/disconnected, stop making calls immediately
@@ -32922,6 +32944,24 @@ class LoggerWriter:
             self.original_stream.flush()
 
 
+class _PiiRedactingFormatter(logging.Formatter):
+    """Masks WhatsApp phone numbers, LIDs and group ids in every log line.
+
+    Well over a hundred `logging.*()` call sites across this file log a JID
+    directly — a JID's leading digits ARE the contact's phone number.
+    Editing every one of them is both impossible to keep complete and
+    reopens the leak on the next new call site; this masks the fully
+    rendered message once instead, so it covers all of them (past and
+    future) by construction, regardless of whether the call used %-style
+    args or an f-string — by `format()` time both are already merged into
+    plain text. See `client/core/pii_redaction.py` for the actual pattern
+    and `client/api_patches/src/util/logger.ts` for the Node-side mirror.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        return redact_phone(super().format(record))
+
+
 def setup_logging():
     import logging.handlers
     from app_paths import log_path
@@ -32949,7 +32989,7 @@ def setup_logging():
             mode="w",
             encoding="utf-8",
         )
-        handler.setFormatter(logging.Formatter(
+        handler.setFormatter(_PiiRedactingFormatter(
             "%(asctime)s [%(levelname)s] (%(filename)s:%(lineno)d) - %(message)s"
         ))
 

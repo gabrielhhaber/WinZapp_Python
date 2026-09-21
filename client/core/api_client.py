@@ -41,6 +41,8 @@ import uuid
 
 import requests
 
+from core.pii_redaction import redact_phone
+
 # The Node middleware only accepts an id matching /^[A-Za-z0-9._:-]{1,128}$/ and
 # silently generates its own otherwise, which would break correlation without
 # anything saying so. A uuid4 hex is inside that set by construction.
@@ -77,11 +79,18 @@ _SECRET_KEY_SECOND_ROUTES = (  # /api/<session>/<key>/<endpoint>
 
 
 def redact_api_url(url: str) -> str:
-    """A log-safe label for an API URL: no token, just the endpoint.
+    """A log-safe label for an API URL: no token, no phone number/JID, just
+    the endpoint shape.
 
     WPPConnect's routes are /api/<session>:<token>/<endpoint>/..., so the
     credential sits in the path rather than a header. Everything before the
-    endpoint is dropped, and what remains is what a reader actually wants.
+    endpoint is dropped, and what remains is what a reader actually wants —
+    except most endpoints (get-messages/<jid>, profile-status/<jid>,
+    last-seen/<phone>, ...) carry a phone number or LID as their next path
+    segment, which `redact_phone()` masks the same way the global logging
+    formatter does (`main.py`'s `_PiiRedactingFormatter`). Applied here too,
+    not just relying on that formatter, so this function's own "log-safe"
+    contract holds for any caller — logging or not.
     """
     if not url:
         return ""
@@ -90,7 +99,8 @@ def redact_api_url(url: str) -> str:
     if index == -1:
         # Not an API URL (health checks, /metrics, ...): keep the path only.
         without_scheme = url.split("://", 1)[-1]
-        return "/" + without_scheme.split("/", 1)[1] if "/" in without_scheme else url
+        path = "/" + without_scheme.split("/", 1)[1] if "/" in without_scheme else url
+        return redact_phone(path)
     rest = url[index + len(marker):]
     # rest is "<session>:<token>/<endpoint>/<...>" — drop the credential segment.
     parts = rest.split("/", 1)
@@ -103,7 +113,8 @@ def redact_api_url(url: str) -> str:
     # already safe here, since that is the segment this drops anyway.
     if endpoint.endswith(_SECRET_KEY_SECOND_ROUTES):
         endpoint = endpoint.rsplit("/", 1)[-1]
-    return "/" + endpoint if endpoint else "/api/"
+    label = "/" + endpoint if endpoint else "/api/"
+    return redact_phone(label)
 
 
 def redact_token(token: str) -> str:

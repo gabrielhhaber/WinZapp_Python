@@ -351,6 +351,7 @@ API_CUSTOM_SRC_FILES = [
     "src/util/callMediaBridge.ts",
     "src/util/createSessionUtil.ts",
     "src/util/functions.ts",
+    "src/util/logger.ts",
     "src/util/tokenStore/fileTokenStory.ts",
     "src/middleware/statusConnection.ts",
     "src/middleware/auth.ts",
