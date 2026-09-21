@@ -107,6 +107,7 @@ class _MainStub:
     on_call_remote_audio = MainWindow.on_call_remote_audio
     on_voice_call_state_event = MainWindow.on_voice_call_state_event
     _stop_incoming_call_audio_monitor = MainWindow._stop_incoming_call_audio_monitor
+    _has_answerable_incoming_call = MainWindow._has_answerable_incoming_call
     # The real bridged comparison, not string equality: the whole point of
     # core/call_matching.py is that one call's events do not agree on whether
     # the peer is an @lid or a phone JID.
@@ -650,3 +651,40 @@ def test_isgroup_without_a_group_jid_is_treated_as_an_individual_call():
     assert incoming_call_can_answer(details) is True
     # A real one-to-one call still gets its receive-only monitor.
     assert stub.ring_monitor_starts == ["call-1"]
+
+
+def test_dismissing_the_only_answerable_call_releases_the_speaker():
+    """REGRESSION: the receive-only monitor is keyed to a call that can be
+    ANSWERED, but it was released only when _active_incoming_calls emptied.
+    Group offers now sit in that dictionary too -- announced, never answerable,
+    and they start no monitor -- so dismissing the one-to-one call left the
+    speaker held open for as long as a group offer kept ringing beside it."""
+    stub = _MainStub()
+    group_jid = "120363427511142886@g.us"
+    stub.chats[group_jid] = {"remoteJid": group_jid, "groupMetadata": {"subject": "Família"}}
+
+    stub.on_incoming_call_event(_offer(call_id="one-to-one"))
+    group_event = _offer(call_id="group-call", peer="5511888888888@lid")
+    group_event.update({"isGroup": True, "groupJid": group_jid})
+    stub.on_incoming_call_event(group_event)
+
+    assert stub.ring_monitor_starts == ["one-to-one"]
+    assert stub.ring_monitor_stops == 0
+
+    stub.stop_incoming_call_alert("one-to-one")
+
+    # The group offer is still ringing, so the alert list is not empty -- but
+    # nothing answerable remains, so the speaker must be released.
+    assert stub._active_incoming_calls == {"group-call": "5511888888888@lid"}
+    assert stub.ring_monitor_stops == 1
+
+
+def test_dismissing_one_of_two_answerable_calls_keeps_the_speaker():
+    """The other half: a second answerable call still needs the monitor."""
+    stub = _MainStub()
+    stub.on_incoming_call_event(_offer(call_id="first"))
+    stub.on_incoming_call_event(_offer(call_id="second", peer="5511777777777@s.whatsapp.net"))
+
+    stub.stop_incoming_call_alert("first")
+
+    assert stub.ring_monitor_stops == 0

@@ -2408,7 +2408,7 @@ class ConversationsPanel(wx.Panel):
     def _focus_is_in_a_text_entry(self) -> bool:
         """Whether the keyboard focus is somewhere the user is typing.
 
-        Same test `_should_start_type_ahead()` already uses above.
+        Same test `_should_redirect_char_to_message()` already uses above.
         """
         focus = wx.Window.FindFocus()
         return focus is self.message_field or isinstance(focus, wx.TextCtrl)

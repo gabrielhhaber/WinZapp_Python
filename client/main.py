@@ -6186,9 +6186,23 @@ class MainWindow(wx.Frame):
         if not self._active_incoming_calls:
             if hasattr(self, "call_incoming_sound"):
                 self.call_incoming_sound.stop()
-            if not keep_audio_monitor:
-                self._stop_incoming_call_audio_monitor()
+        # The receive-only monitor is keyed to a call that can actually be
+        # ANSWERED, not to "any alert is still up". Group offers now sit in
+        # _active_incoming_calls too (they are announced, just not answerable),
+        # and they never start a monitor -- so gating this on the dictionary
+        # being empty left the speaker held open after the one-to-one call was
+        # dismissed, for as long as a group offer kept ringing beside it.
+        if not keep_audio_monitor and not self._has_answerable_incoming_call():
+            self._stop_incoming_call_audio_monitor()
         self._sync_incoming_call_bar()
+
+    def _has_answerable_incoming_call(self) -> bool:
+        """Whether any still-ringing offer could be accepted (i.e. not a group)."""
+        details_map = getattr(self, "_incoming_call_details", {})
+        return any(
+            incoming_call_can_answer(details_map.get(identity))
+            for identity in self._active_incoming_calls
+        )
 
     def _call_control_payload(self, identity: str) -> dict:
         details = getattr(self, "_incoming_call_details", {}).get(identity, {})
