@@ -345,13 +345,12 @@ def test_turning_video_off_reaches_the_page_and_blanks_the_canvas():
 
     # WhatsApp Web sends our camera through its own call engine, so turning
     # video off and on goes through that engine's camera toggle -- the same
-    # one WhatsApp's UI button uses -- with a key frame asked for on resume.
+    # one WhatsApp's UI button uses.
     assert "socket.on('call:video:camera:start'" in bridge
     assert "__winzappCallMediaBridge?.resumeCamera?.()" in bridge
     assert "stack?.setCallVideoMute" in bridge
     assert "if (native) setNativeVideoMute(true);" in bridge
     assert "setNativeVideoMute(false);" in bridge
-    assert "stack.requestKeyFrame" in bridge
     assert "pushCameraFrame?.(frame, frameEpoch)" in bridge
 
     # The blank is what actually stops the transmission; the track stays live
@@ -390,22 +389,3 @@ def test_the_desktop_side_has_a_camera_stop_channel():
     assert '"call:video:camera:start"' in websocket_client
     assert '"call:video:camera:stop"' in websocket_client
 
-
-def test_a_hidden_video_element_carrying_our_camera_is_kept_playing():
-    """WhatsApp does not read our camera track directly: it plays it in a
-    hidden <video> and snapshots that element with new VideoFrame(video) for
-    its encoder. A live diagnostic (2026-09-21) found one of those elements
-    never started ("0x0 paused=true ready=0") while the peer saw black, and a
-    paused hidden element only ever yields black or stale snapshots. Any
-    element carrying OUR camera track is therefore kept playing, muted --
-    which the page-audio policy already imposes on every page media element.
-    """
-    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
-    helper = bridge[bridge.index("const keepCameraElementPlaying"):]
-    helper = helper[: helper.index("\n  };\n")]
-    assert "if (!el.paused) return;" in helper
-    assert "el.muted = true;" in helper
-    assert "el.play?.()" in helper
-    # wired to the moment our track is attached, and re-checked shortly after
-    assert "keepCameraElementPlaying(el, 'attach');" in bridge
-    assert "keepCameraElementPlaying(el, 'recheck');" in bridge

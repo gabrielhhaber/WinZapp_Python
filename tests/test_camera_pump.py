@@ -65,14 +65,10 @@ let callLive = true;
 const isLivePageCall = () => callLive;
 const currentPageCall = () => ({});
 const report = () => {};
-const reportCanvasLuma = () => {};
-const selfTestTrack = () => {};
 const state = {
   cameraCanvas: canvas, cameraGeneration: 0, cameraPending: false,
   cameraStoppedEpoch: -1, cameraLastPicture: null, cameraShowing: false,
   cameraPump: 0, cameraPumpIdleTicks: 0,
-  peerConnections: new Set(), cameraCloneIds: new Set(),
-  videoSenderReportTicks: 0, lastVideoSenderReport: '',
 };
 BLOCK
 const tick = (n = 1) => { for (let i = 0; i < n; i++) if (intervalFn) intervalFn(); };

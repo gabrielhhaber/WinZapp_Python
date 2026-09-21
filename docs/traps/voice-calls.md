@@ -178,3 +178,38 @@ account has its own Node on its own port. Related, and also not solved: with a
 user-supplied `http://`/`ws://` server the live microphone PCM crosses that
 network in the clear, which `settings_import_api_confirm` does not warn about
 — it covers the token.
+
+## How WhatsApp Web actually consumes our camera (measured 2026-09-21)
+
+Established with live instrumentation over a day of calls; each point cost at
+least one real call to learn, so read before touching the video path.
+
+- **There is no video sender to inspect.** Every RTCPeerConnection WhatsApp
+  creates reports `getSenders()` empty for video and no `outbound-rtp` video
+  stats. Its WASM call engine encodes and transmits on its own. Anything that
+  reasons about "the WebRTC sender" is reasoning about something that does
+  not exist.
+- **It plays our track in hidden `<video>` elements** (not in the DOM) and
+  snapshots them with `new VideoFrame(video)`. Our canvas, our own track and
+  those elements all carried the real picture; the loss people reported was
+  never on the sending side.
+- **The bridge's media scan sees those elements too.** `scanMediaElements()`
+  hands every `<video>` with a stream to `attachRemoteVideo()`, so without a
+  guard the "remote" picture in WinZapp's call window was the user's OWN
+  camera. Two WinZapp users calling each other each saw themselves (or black
+  with the camera off) while a phone on the other end saw them fine.
+  `attachRemoteVideo()` therefore refuses `isOurCameraTrack()`, and
+  `MediaStreamTrack.prototype.clone` is hooked so a clone WhatsApp makes of
+  our track stays marked. The microphone always had the equivalent guard
+  (`localTrackIds`).
+- **Video off/on must go through the engine's own toggle,**
+  `getVoipStackInterface().setCallVideoMute(muted)` (arity 1, resolves 0) --
+  the same as WhatsApp's camera button. With it, WhatsApp re-requests
+  `getUserMedia({video: true})` on resume. The canvas is still painted black
+  on "off" as the privacy guarantee if that native call ever fails.
+  `requestKeyFrame` exists but wants the peer JID and is not needed.
+- **Test video with a phone on the other end,** not a second WinZapp, until
+  you have confirmed WinZapp's own remote rendering on that build: a broken
+  receiver is indistinguishable, from the sender's chair, from a broken
+  sender. A sighted-assistance app describing the call window is how the own-
+  camera bug was finally seen.
