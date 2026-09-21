@@ -1060,7 +1060,14 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       registry.assignSourceToCanvas({ canvas, mirror: false, source });
       peerVideo.canvas = canvas;
       peerVideo.source = source;
-      report('peer-video', 'renderer canvas registered for the peer');
+      // Which renderer WhatsApp picked matters: it depends on what the browser
+      // offers (WEBCODECS_H264 = 4 on Windows' headless Chrome), and a remote
+      // Linux chrome-headless-shell may pick another (WEBGL = 3, RASTER = 1).
+      // Logged so a remote-API report can be read without anyone looking at
+      // the screen.
+      let rendererType = '?';
+      try { rendererType = String(registry.getRendererType?.()); } catch (_) {}
+      report('peer-video', `renderer canvas registered for the peer renderer=${rendererType}`);
 
       const capture = document.createElement('canvas');
       capture.width = 640;
