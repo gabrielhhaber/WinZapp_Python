@@ -299,7 +299,9 @@ class CallAudioSession:
                 partial = index
         return partial
 
-    def _candidate_devices(self, stored_name: str, *, input_device: bool):
+    def _candidate_devices(
+        self, stored_name: str, *, input_device: bool, include_fallbacks: bool = True
+    ):
         preferred = self._resolve_device(stored_name, input_device=input_device)
         default_device = self._default_device_index(input_device=input_device)
         yielded = set()
@@ -325,6 +327,15 @@ class CallAudioSession:
             if key not in yielded:
                 yielded.add(key)
                 yield index
+        # The sweep over EVERY device is a last resort for "open something
+        # rather than nothing", and it belongs to the shared pass only. Offered
+        # to the exclusive pass, it opened whatever unrelated device first
+        # accepted exclusive access once the intended one refused -- measured
+        # live on 2026-09-21: exclusive_input on opened "Line 1 (Virtual Audio
+        # Cable)" instead of the microphone, and the peer heard silence for the
+        # whole call.
+        if not include_fallbacks:
+            return
         channels_key = "max_input_channels" if input_device else "max_output_channels"
         for index, info in enumerate(self._query_devices()):
             if int(info.get(channels_key, 0) or 0) <= 0 or index in yielded:
@@ -406,7 +417,10 @@ class CallAudioSession:
         # device — it should fall back to the same device in shared mode.
         exclusive_attempts = [True, False] if self._config.exclusive_input else [False]
         for attempt_index, exclusive in enumerate(exclusive_attempts):
-            for device in self._candidate_devices(self._config.input_device_name, input_device=True):
+            for device in self._candidate_devices(
+                self._config.input_device_name, input_device=True,
+                include_fallbacks=not exclusive,
+            ):
                 for rate in self._candidate_rates(device):
                     try:
                         extra_settings = self._stream_extra_settings(
@@ -460,7 +474,10 @@ class CallAudioSession:
         last_error = None
         exclusive_attempts = [True, False] if self._config.exclusive_output else [False]
         for attempt_index, exclusive in enumerate(exclusive_attempts):
-            for device in self._candidate_devices(self._config.output_device_name, input_device=False):
+            for device in self._candidate_devices(
+                self._config.output_device_name, input_device=False,
+                include_fallbacks=not exclusive,
+            ):
                 for rate in self._candidate_rates(device):
                     try:
                         extra_settings = self._stream_extra_settings(

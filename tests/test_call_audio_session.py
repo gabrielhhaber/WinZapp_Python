@@ -626,3 +626,81 @@ def test_an_accepted_exclusive_still_opens_exclusively_on_wasapi():
     assert sounddevice.output_streams[0][0]["extra_settings"].exclusive is False
 
     session.stop()
+
+
+class _VirtualCableSoundDevice(_SoundDevice):
+    """The real layout that broke a live call on 2026-09-21: the microphone's
+    WASAPI entry refuses exclusive access, while an UNRELATED WASAPI input --
+    a virtual audio cable, which carries no microphone signal -- accepts it."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.devices = [
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 0},                     # 0 MME
+            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2,
+             "default_samplerate": 48000, "hostapi": 0},                     # 1 MME
+            {"name": "Line 1 (Virtual Audio Cable)", "max_input_channels": 1,
+             "max_output_channels": 0, "default_samplerate": 48000, "hostapi": 2},  # 2
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 2},                     # 3 WASAPI mic
+            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2,
+             "default_samplerate": 48000, "hostapi": 2},                     # 4
+        ]
+
+    def query_hostapis(self, index=None):
+        return {0: {"name": "MME"}, 2: {"name": "Windows WASAPI"}}[int(index)]
+
+    def InputStream(self, **kwargs):
+        settings = kwargs.get("extra_settings")
+        if kwargs.get("device") == 3 and settings is not None and settings.exclusive:
+            raise RuntimeError("the microphone refuses exclusive access")
+        return super().InputStream(**kwargs)
+
+
+def test_a_refused_exclusive_never_wanders_to_an_unrelated_device():
+    """REGRESSION (live call, 2026-09-21): with exclusive_input on and the
+    microphone refusing exclusive access, the exclusive pass went on through
+    the "try every device" safety sweep and opened "Line 1 (Virtual Audio
+    Cable)" exclusively -- the peer heard silence for the whole call while
+    frames kept flowing. A refused exclusive must fall back to the SAME device
+    in shared mode; the sweep belongs to the shared pass only."""
+    sounddevice = _VirtualCableSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_input=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    input_kwargs = sounddevice.input_streams[0][0]
+    assert input_kwargs["device"] == 3                    # the microphone...
+    assert input_kwargs["extra_settings"].exclusive is False   # ...shared
+    assert all(kwargs["device"] != 2 for kwargs, _ in sounddevice.input_streams)
+
+    session.stop()
+
+
+def test_the_every_device_sweep_still_rescues_the_shared_pass():
+    """The sweep is not removed, only kept out of the exclusive pass: when
+    the named device cannot be found at all, shared mode still opens
+    something rather than failing the call."""
+    sounddevice = _VirtualCableSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(session="winzapp", input_device_name="Unplugged headset"),
+        sounddevice_module=sounddevice,
+    )
+    candidates = list(session._candidate_devices(
+        "Unplugged headset", input_device=True, include_fallbacks=True,
+    ))
+    assert 2 in candidates and 3 in candidates
+
+    exclusive_only = list(session._candidate_devices(
+        "Unplugged headset", input_device=True, include_fallbacks=False,
+    ))
+    assert 2 not in exclusive_only
