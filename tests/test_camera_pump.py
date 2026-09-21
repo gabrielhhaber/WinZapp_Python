@@ -44,6 +44,7 @@ def _pump_block() -> str:
     block = re.sub(r":\s*(?:RTCRtpSender\[\]|string\[\])", "", block)
     block = re.sub(r"\((\w+):\s*any\)", r"(\1)", block)
     block = block.replace(" as RTCPeerConnection[]", "")
+    block = block.replace("new Set<string>()", "new Set()")
     return block
 
 

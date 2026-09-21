@@ -243,6 +243,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     cameraCloneIds: new Set<string>(),
     videoSenderReportTicks: 0,
     lastVideoSenderReport: '',
+    voipStackReported: false,
     cameraFramesReceived: 0,
     cameraFramesDropped: 0,
     cameraTrackRequests: 0,
@@ -634,6 +635,41 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     }
   };
 
+  // DIAGNOSTIC ONLY. The sender report showed WhatsApp keeps NO video sender
+  // on any RTCPeerConnection: its WASM call engine reads the track we hand it
+  // and encodes/transmits on its own. So whether the peer sees video is that
+  // engine's decision, and turning video back on probably has to go through
+  // the engine's own camera toggle -- the one its UI button uses. Its method
+  // names only exist at runtime (wa-js types the interface as `any`), so list
+  // them once per call.
+  const reportVoipStackMethods = () => {
+    const getter =
+      win.WPP?.whatsapp?.functions?.getVoipStackInterface ||
+      win.WPP?.whatsapp?.getVoipStackInterface;
+    if (typeof getter !== 'function') {
+      report('voip-stack', 'getVoipStackInterface unavailable');
+      return;
+    }
+    Promise.resolve(getter())
+      .then((stack: any) => {
+        const names = new Set<string>();
+        let proto = stack;
+        for (let depth = 0; proto && proto !== Object.prototype && depth < 6; depth += 1) {
+          for (const name of Object.getOwnPropertyNames(proto)) {
+            try {
+              if (typeof stack[name] === 'function' && name !== 'constructor') names.add(name);
+            } catch (_) {}
+          }
+          proto = Object.getPrototypeOf(proto);
+        }
+        const all = Array.from(names).sort();
+        const media = all.filter((name) => /video|camera|mute|preview|capture|media/i.test(name));
+        report('voip-stack', `media-related(${media.length})=${media.join(',')}`);
+        report('voip-stack', `all(${all.length})=${all.join(',')}`);
+      })
+      .catch((error: any) => report('voip-stack', `error=${String(error?.message || error)}`));
+  };
+
   const CAMERA_PUMP_MS = 100;
   const CAMERA_PUMP_IDLE_STOP_TICKS = 50;
 
@@ -653,6 +689,10 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       return;
     }
     state.cameraPumpIdleTicks = 0;
+    if (!state.voipStackReported) {
+      state.voipStackReported = true;
+      reportVoipStackMethods();
+    }
     state.videoSenderReportTicks += 1;
     if (state.videoSenderReportTicks >= 20) {
       state.videoSenderReportTicks = 0;
@@ -888,6 +928,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     // one as soon as it sees the key change.
     if (lastCallWasAnswered()) allowCallEndChime();
     state.enabled = false;
+    state.voipStackReported = false;
     state.micQueue.length = 0;
     state.micOffset = 0;
     for (const pipeline of state.remotePipelines.values()) {
