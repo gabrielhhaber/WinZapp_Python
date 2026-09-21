@@ -651,6 +651,8 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       return;
     }
     state.cameraPumpIdleTicks = 0;
+    reportCallModules(); // TEMPORARY DIAGNOSTIC
+    reportEngineState(); // TEMPORARY DIAGNOSTIC
     if (state.cameraShowing && state.cameraLastPicture) {
       context.drawImage(state.cameraLastPicture, 0, 0, 640, 360);
     } else {
@@ -834,6 +836,111 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       };
       (transfer as any).__winzappRx = true;
       protoBitmap.transferFromImageBitmap = transfer;
+    }
+  } catch (_) {}
+
+  // TEMPORARY DIAGNOSTIC (round 2) -- remove before the PR. Nothing on the
+  // page carried the remote video: no VideoDecoder, no generated track, no
+  // foreign <video>, no canvas draw. So: which call/video modules exist, what
+  // the engine itself says about the call (is video even being RECEIVED?), and
+  // whether rendering happens in a Worker / OffscreenCanvas / popup.
+  let rxModulesReported = false;
+  const reportCallModules = () => {
+    if (rxModulesReported) return;
+    rxModulesReported = true;
+    const names = new Set<string>();
+    try {
+      const bootloader = win.require?.('Bootloader');
+      const loader = typeof bootloader?.loadModules === 'function' ? bootloader : bootloader?.default;
+      const map = loader?.__debug?.componentMap;
+      if (map && typeof map.keys === 'function') for (const n of map.keys()) names.add(String(n));
+    } catch (_) {}
+    try {
+      const debug = win.require?.('__debug');
+      const map = debug?.modulesMap || debug?.modules;
+      if (map) for (const n of Object.keys(map)) names.add(String(n));
+    } catch (_) {}
+    const wanted = Array.from(names)
+      .filter((n) => /voip|call/i.test(n) && /video|render|stream|view|participant|rx|canvas|tile|grid|media/i.test(n))
+      .sort();
+    rx('modules', 3, `total=${names.size} matching=${wanted.length}`);
+    for (let i = 0; i < wanted.length && i < 240; i += 40) {
+      rx('modules', 12, wanted.slice(i, i + 40).join(','));
+    }
+  };
+
+  let rxStatsTicks = 0;
+  const reportEngineState = () => {
+    rxStatsTicks += 1;
+    if (rxStatsTicks % 50 !== 1) return; // ~every 5 s at the pump's 100 ms
+    const getter =
+      win.WPP?.whatsapp?.functions?.getVoipStackInterface ||
+      win.WPP?.whatsapp?.getVoipStackInterface;
+    if (typeof getter !== 'function') return;
+    Promise.resolve(getter())
+      .then(async (stack: any) => {
+        for (const name of ['getCallInfo', 'getShortStatisticString']) {
+          try {
+            const fn = stack?.[name];
+            if (typeof fn !== 'function') continue;
+            const value = await fn.call(stack);
+            let text = '';
+            try { text = typeof value === 'string' ? value : JSON.stringify(value); } catch (_) { text = String(value); }
+            rx(`engine-${name}`, 12, String(text).replace(/\s+/g, ' ').slice(0, 900));
+          } catch (error: any) {
+            rx(`engine-${name}`, 3, `error=${String(error?.message || error)}`);
+          }
+        }
+      })
+      .catch(() => undefined);
+  };
+
+  try {
+    const nativeTransfer = win.HTMLCanvasElement?.prototype?.transferControlToOffscreen;
+    if (typeof nativeTransfer === 'function' && !nativeTransfer.__winzappRx) {
+      const transfer = function (this: any) {
+        rx('offscreen', 10, `transferControlToOffscreen ${this?.width}x${this?.height} inDom=${this?.isConnected}`);
+        return nativeTransfer.call(this);
+      };
+      (transfer as any).__winzappRx = true;
+      win.HTMLCanvasElement.prototype.transferControlToOffscreen = transfer;
+    }
+  } catch (_) {}
+
+  try {
+    const NativeWorker = win.Worker;
+    if (typeof NativeWorker === 'function' && !NativeWorker.__winzappRx) {
+      const WrappedWorker: any = function (this: any, url: any, options?: any) {
+        const worker = new NativeWorker(url, options);
+        rx('worker', 15, `new Worker(${String(url).slice(0, 120)}) type=${options?.type || 'classic'}`);
+        return worker;
+      };
+      WrappedWorker.prototype = NativeWorker.prototype;
+      WrappedWorker.__winzappRx = true;
+      win.Worker = WrappedWorker;
+      const nativePost = NativeWorker.prototype.postMessage;
+      NativeWorker.prototype.postMessage = function (message: any, transfer?: any) {
+        try {
+          const list = Array.isArray(transfer) ? transfer : transfer?.transfer || [];
+          const kinds = list
+            .map((item: any) => item?.constructor?.name || typeof item)
+            .filter((k: string) => /Offscreen|Track|Frame|Stream|Bitmap/i.test(k));
+          if (kinds.length) rx('worker-transfer', 20, `postMessage transferring ${kinds.join(',')}`);
+        } catch (_) {}
+        return nativePost.apply(this, arguments as any);
+      };
+    }
+  } catch (_) {}
+
+  try {
+    const nativeOpen = win.open;
+    if (typeof nativeOpen === 'function' && !nativeOpen.__winzappRx) {
+      const open = function (this: any, ...args: any[]) {
+        rx('popup', 10, `window.open(${String(args[0] || '').slice(0, 120)}, ${String(args[1] || '')})`);
+        return nativeOpen.apply(this, args);
+      };
+      (open as any).__winzappRx = true;
+      win.open = open;
     }
   } catch (_) {}
 
