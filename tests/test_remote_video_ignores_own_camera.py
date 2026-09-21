@@ -73,7 +73,8 @@ def ownership(tmp_path_factory):
         pytest.skip("no Node runtime available")
     src = BRIDGE.read_text(encoding="utf-8")
     start = src.index("  const isOurCameraTrack = ")
-    block = src[start:src.index("  const cameraTrack = () => {", start)]
+    end_marker = "      proto.clone = clone;\n    }\n  } catch (_) {}\n"
+    block = src[start:src.index(end_marker, start) + len(end_marker)]
     # The specific `this` annotation must go first: the generic "(x: any)"
     # rule below would otherwise turn it into an invalid "function (this)".
     block = block.replace("function (this: any)", "function ()").replace("(clone as any)", "clone")
