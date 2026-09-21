@@ -33,10 +33,11 @@ class _Stub:
     _focus_primary_control = MainWindow._focus_primary_control
 
 
-def _set_visible(stub, *, conversations=False, archived=False, status=False):
+def _set_visible(stub, *, conversations=False, archived=False, status=False, messages=False):
     stub.conversations_panel.conversations_list.IsShownOnScreen.return_value = conversations
     stub.archived_conversations_panel.conversations_list.IsShownOnScreen.return_value = archived
     stub.status_panel._status_list.IsShownOnScreen.return_value = status
+    stub.conversations_panel.messages_list.IsShownOnScreen.return_value = messages
 
 
 def test_focuses_conversations_list_when_conversations_panel_is_visible():
@@ -82,3 +83,30 @@ def test_no_panel_visible_does_not_raise_or_focus_anything():
     stub.conversations_panel.conversations_list.SetFocus.assert_not_called()
     stub.archived_conversations_panel.conversations_list.SetFocus.assert_not_called()
     stub.status_panel._status_list.SetFocus.assert_not_called()
+    stub.conversations_panel.messages_list.SetFocus.assert_not_called()
+
+
+def test_an_open_archived_conversation_focuses_its_message_list():
+    """REGRESSION: with an archived conversation open, conversations_panel is
+    shown but its conversations_list is hidden, and the archived panel hides
+    itself -- so none of the three lists is on screen and focus used to land
+    nowhere: arrows did nothing after restoring the window."""
+    stub = _Stub()
+    _set_visible(stub, messages=True)
+
+    stub._focus_primary_control()
+
+    stub.conversations_panel.messages_list.SetFocus.assert_called_once()
+
+
+def test_the_message_list_never_outranks_a_visible_navigation_list():
+    """The fallback is a last resort. In the ordinary split view both the
+    chat list and the message list are on screen, and restoring the window
+    must keep landing on the chat list exactly as before."""
+    stub = _Stub()
+    _set_visible(stub, conversations=True, messages=True)
+
+    stub._focus_primary_control()
+
+    stub.conversations_panel.conversations_list.SetFocus.assert_called_once()
+    stub.conversations_panel.messages_list.SetFocus.assert_not_called()

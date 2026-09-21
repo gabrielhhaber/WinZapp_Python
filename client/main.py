@@ -5760,6 +5760,17 @@ class MainWindow(wx.Frame):
             if status_lst is not None and status_lst.IsShownOnScreen():
                 status_lst.SetFocus()
                 return
+            # Last resort, and only when none of the lists above is on screen:
+            # an ARCHIVED conversation open. ArchivedConversationsPanel shows
+            # conversations_panel but hides its conversations_list, and hides
+            # itself -- so every check above was False and focus landed
+            # nowhere, the exact "arrows do nothing after restoring the window"
+            # symptom this method exists to prevent. The navigable control in
+            # that state is the open conversation's message list.
+            messages = getattr(panel, "messages_list", None) if panel else None
+            if messages is not None and messages.IsShownOnScreen():
+                messages.SetFocus()
+                return
         except Exception:
             logging.exception("[focus] restoring primary control focus failed")
 
