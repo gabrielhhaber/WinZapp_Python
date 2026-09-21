@@ -201,6 +201,7 @@ also compiles the C installer stubs); `client/changelog_*.txt`
 | `updater.py`, `update_coord.py`, release workflows | `docs/traps/updater-channels.md`, `docs/traps/release-integrity.md` |
 | Settings defaults, `_migrate_settings()` | `docs/traps/settings-migrations.md` |
 | `tests/conftest.py`, anything creating a wx window in a test | `docs/traps/tests-never-open-windows.md` |
+| Logging a JID, phone number or contact/pushname anywhere | `docs/traps/log-pii.md` |
 
 ## Agent skills
 
