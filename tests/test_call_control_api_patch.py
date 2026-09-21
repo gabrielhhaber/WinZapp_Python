@@ -319,3 +319,44 @@ def test_call_media_bridge_bounds_microphone_backlog_to_live_audio():
     assert "const PAGE_MIC_TARGET_BACKLOG_FRAMES = 2;" in bridge
     assert "state.micFramesDroppedForLatency" in bridge
     assert "const dropIndex = state.micOffset > 0 ? 1 : 0;" in bridge
+
+
+def test_turning_video_off_reaches_the_page_and_blanks_the_canvas():
+    """REGRESSION: the page draws our camera frames onto a canvas and hands
+    WhatsApp a captureStream() of it, which keeps emitting whatever that
+    canvas last holds at 10 fps. Stopping the desktop-side ffmpeg capture
+    therefore froze the user's last frame and went on transmitting that
+    picture of them -- for the rest of the call, and into the next one,
+    because reset() never cleared the canvas or the track either.
+
+    Asserted on the shape of the mechanism rather than on one string: a
+    stopCamera() the socket can reach, a blank actually painted, and a
+    teardown wired into reset().
+    """
+    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+
+    # Reachable from the Node layer, which is how "turn video off" travels.
+    assert "socket.on('call:video:camera:stop'" in bridge
+    assert "__winzappCallMediaBridge?.stopCamera?.()" in bridge
+
+    # The blank is what actually stops the transmission; the track stays live
+    # so the peer connection is not torn down mid-call.
+    assert "state.stopCamera = () =>" in bridge
+    assert "blankCameraCanvas" in bridge
+    assert "context.fillRect(0, 0, canvas.width, canvas.height)" in bridge
+
+    # A decode that lands after the stop must not repaint the frame the blank
+    # just erased.
+    assert "generation === state.cameraGeneration" in bridge
+
+    # End of call releases the track and the canvas, so the next call cannot
+    # start by transmitting a still of the previous one.
+    assert "teardownCamera();" in bridge
+    assert "state.cameraTrack = null;" in bridge
+    assert "state.cameraCanvas = null;" in bridge
+
+
+def test_the_desktop_side_has_a_camera_stop_channel():
+    websocket_client = _source("client/core/websocket_client.py")
+    assert "def send_call_camera_stop(self)" in websocket_client
+    assert '"call:video:camera:stop"' in websocket_client

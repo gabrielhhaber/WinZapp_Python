@@ -688,3 +688,45 @@ def test_dismissing_one_of_two_answerable_calls_keeps_the_speaker():
     stub.stop_incoming_call_alert("first")
 
     assert stub.ring_monitor_stops == 0
+
+
+def _ringing_group_offer(stub, call_id="group-call"):
+    group_jid = "120363427511142886@g.us"
+    stub.chats[group_jid] = {"remoteJid": group_jid, "groupMetadata": {"subject": "Família"}}
+    event = _offer(call_id=call_id, peer="5511888888888@lid")
+    event.update({"isGroup": True, "groupJid": group_jid})
+    stub.on_incoming_call_event(event)
+
+
+def test_the_watchdog_timeout_also_releases_the_speaker():
+    """REGRESSION: the answerable-call gate was applied only in
+    stop_incoming_call_alert(). The watchdog path kept the old emptiness test,
+    so a one-to-one call expiring beside a still-ringing group offer left the
+    speaker held -- and with exclusive_output on, that silences the screen
+    reader with nothing on screen to explain it."""
+    stub = _MainStub()
+    stub.on_incoming_call_event(_offer(call_id="one-to-one"))
+    _ringing_group_offer(stub)
+    assert stub.ring_monitor_starts == ["one-to-one"]
+
+    stub._expire_incoming_call_alert("one-to-one")
+
+    assert "group-call" in stub._active_incoming_calls
+    assert stub.ring_monitor_stops == 1
+
+
+def test_a_terminal_call_event_also_releases_the_speaker():
+    """Same gap in the non-ringing branch of on_incoming_call_event()."""
+    stub = _MainStub()
+    stub.on_incoming_call_event(_offer(call_id="one-to-one"))
+    _ringing_group_offer(stub)
+
+    stub.on_incoming_call_event({
+        "event": "callstate",
+        "state": "ENDED",
+        "id": "one-to-one",
+        "peerJid": "5511999999999@s.whatsapp.net",
+    })
+
+    assert "group-call" in stub._active_incoming_calls
+    assert stub.ring_monitor_stops == 1

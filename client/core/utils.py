@@ -624,11 +624,26 @@ def migrate_call_exclusive_mode_split(settings) -> bool:
     users means losing the call window's own controls. They are now separate,
     and only the output one carries a warning.
 
-    An install that already has the old key keeps whatever it chose, applied
-    to BOTH directions: the user ticked one box meaning "use exclusive mode",
-    and silently turning half of it off would be inventing an intent they
-    never expressed. They can untick the speaker half in Settings > Calls,
-    which is where the warning now is.
+    An install that already has the old key keeps its choice for the
+    MICROPHONE only. The speaker starts off, deliberately, even for a user
+    whose old box was ticked.
+
+    That looks like discarding an intent, and is the opposite. The old
+    checkbox never did anything: _stream_extra_settings() returns None for
+    any non-WASAPI device, and until this same release nothing ever resolved
+    to one, so exclusive mode could not engage at all. Nobody who ticked that
+    box has experienced its consequences. Carrying it onto the speaker would
+    mean this release does two things at once -- makes WASAPI reachable for
+    the first time AND converts a dead flag into a live one -- so a user who
+    ticked it months ago would update, answer their first call, and lose the
+    screen reader for the whole of it, with no idea why. They would never see
+    the warning either: it fires when the box is TICKED in Settings, and they
+    are not going to go and tick a box they believe is already on.
+
+    Preserving an intent that never had an effect is not preserving intent;
+    it is delivering a new effect without the consent this very feature
+    treats as necessary. Whoever wants exclusive output ticks the box and
+    reads the warning.
 
     A missing old key is left alone -- backfill_missing_defaults() puts both
     new keys there straight after, at their False defaults. The old key is
@@ -652,7 +667,7 @@ def migrate_call_exclusive_mode_split(settings) -> bool:
     if isinstance(section, dict) and "exclusive_mode" in section:
         legacy = bool(section.pop("exclusive_mode"))
         section.setdefault("exclusive_input", legacy)
-        section.setdefault("exclusive_output", legacy)
+        section.setdefault("exclusive_output", False)
     general[CALL_EXCLUSIVE_SPLIT_MIGRATION_FLAG] = True
     return True
 

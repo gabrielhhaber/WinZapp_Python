@@ -98,17 +98,20 @@ class TestItPersistsThroughTheLock:
 # included, for the whole call, which for WinZapp's users means losing the
 # call window's own spoken controls. Only the output one now carries a warning.
 
-def test_a_legacy_exclusive_mode_choice_is_carried_to_both_directions():
-    """The user ticked one box meaning "use exclusive mode". Turning half of
-    it off silently would be inventing an intent they never expressed; they
-    can untick the speaker half in Settings > Calls, where the warning is."""
+def test_a_legacy_exclusive_choice_reaches_the_microphone_but_never_the_speaker():
+    """The old checkbox never did anything: exclusive mode could not engage at
+    all until this release made WASAPI reachable. Carrying it onto the SPEAKER
+    would turn a dead flag into a live one in the same update -- so a user who
+    ticked it months ago would answer their first call and lose the screen
+    reader for the whole of it, never having seen the warning, which only
+    fires when the box is ticked in Settings."""
     settings = {"call_audio_devices": {"exclusive_mode": True}}
 
     assert migrate_call_exclusive_mode_split(settings) is True
 
     section = settings["call_audio_devices"]
     assert section["exclusive_input"] is True
-    assert section["exclusive_output"] is True
+    assert section["exclusive_output"] is False
     # The old key is gone, so a later build cannot read a stale value that no
     # longer governs anything.
     assert "exclusive_mode" not in section

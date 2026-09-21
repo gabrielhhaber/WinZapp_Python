@@ -215,6 +215,11 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     cameraCanvas: null,
     cameraTrack: null,
     cameraPending: false,
+    // Bumped by stopCamera(). An Image decode started before the stop can
+    // only land after it, and drawing it then would repaint the very frame
+    // the blank was meant to erase -- so the onload handler checks that the
+    // generation it captured is still current before touching the canvas.
+    cameraGeneration: 0,
     cameraFramesReceived: 0,
     cameraFramesDropped: 0,
     cameraTrackRequests: 0,
@@ -432,14 +437,59 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       const context = canvas.getContext('2d');
       context?.fillRect(0, 0, canvas.width, canvas.height);
     }
+    const generation = state.cameraGeneration;
     const picture = new Image();
     picture.onload = () => {
-      try { canvas.getContext('2d')?.drawImage(picture, 0, 0, 640, 360); } finally {
+      try {
+        // Discard a decode that finished after the camera was turned off:
+        // drawing it would repaint exactly the frame stopCamera() blanked.
+        if (generation === state.cameraGeneration) {
+          canvas.getContext('2d')?.drawImage(picture, 0, 0, 640, 360);
+        }
+      } finally {
         state.cameraPending = false;
       }
     };
     picture.onerror = () => { state.cameraPending = false; };
     picture.src = `data:image/jpeg;base64,${jpeg}`;
+  };
+
+  const blankCameraCanvas = () => {
+    const canvas = state.cameraCanvas;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+    context.fillStyle = '#000';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  };
+
+  // "Turn video off" mid-call. Deliberately does NOT stop the track: the peer
+  // connection holds a clone of it, so stopping it would end the video sender
+  // outright and leave nothing to resume when video is turned back on.
+  //
+  // Blanking is what actually closes the leak. captureStream(10) emits
+  // whatever the canvas currently holds, forever -- so stopping only the
+  // Python-side ffmpeg capture froze the user's last frame and went on
+  // transmitting that picture of them at 10 fps while WinZapp announced video
+  // was off. Painting black keeps the stream valid and shows the peer nothing.
+  state.stopCamera = () => {
+    state.cameraGeneration += 1;
+    state.cameraPending = false;
+    blankCameraCanvas();
+    report('camera-stop', `generation=${state.cameraGeneration}`);
+  };
+
+  // Call over: nothing holds the track any more, so release it too. Without
+  // this the canvas -- and the last real frame drawn on it -- survived into
+  // the NEXT call, because cameraTrack() reuses any track still 'live' and
+  // reset() never cleared either. The next call therefore started by
+  // transmitting a still of the previous one, including a call answered with
+  // "answer without video".
+  const teardownCamera = () => {
+    state.stopCamera();
+    try { state.cameraTrack?.stop(); } catch (_) {}
+    state.cameraTrack = null;
+    state.cameraCanvas = null;
+    state.cameraTrackRequests = 0;
   };
 
   const cameraTrack = () => {
@@ -668,6 +718,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     state.remoteVideoTimers.clear();
     state.remoteVideoIds.clear();
     state.localTrackIds.clear();
+    teardownCamera();
   };
 
   const attachRemoteTrack = (track: MediaStreamTrack) => {
@@ -1385,6 +1436,22 @@ export function registerCallAudioSocket(
       (window as any).__winzappCallMediaBridge?.pushCameraFrame?.(frame);
     }, jpeg).catch(() => undefined).finally(() => { cameraBusy = false; });
   });
+  // Turning video off has to reach the page: the canvas keeps being captured
+  // at 10 fps regardless of whether the desktop is still sending frames, so
+  // without this the peer went on seeing the user's last frame, frozen, for
+  // the rest of the call.
+  socket.on('call:video:camera:stop', (payload: any) => {
+    const session = String(payload?.session || '');
+    if (session !== authenticatedSession) return;
+    const client: any = (clientsArray as any)[session];
+    const page = client?.waPage || client?.page;
+    if (!page) return;
+    logger?.info?.(`[${session}] call camera stopped by desktop`);
+    page.evaluate(() => {
+      (window as any).__winzappCallMediaBridge?.stopCamera?.();
+    }).catch(() => undefined);
+  });
+
   socket.on('call:audio:mic', (payload: any) => {
     const session = String(payload?.session || '');
     const pcm =

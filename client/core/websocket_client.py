@@ -2535,6 +2535,21 @@ class WebSocketClient:
             "jpeg": base64.b64encode(jpeg).decode("ascii"),
         })
 
+    def send_call_camera_stop(self):
+        """Tell the page to stop transmitting local video.
+
+        Stopping the ffmpeg capture on this side is not enough: the page draws
+        our frames onto a canvas and hands WhatsApp a captureStream() of it,
+        which keeps emitting whatever the canvas last held at 10 fps. Without
+        this the peer went on seeing a frozen picture of the user for the rest
+        of the call -- and into the next one -- while WinZapp announced that
+        video was off.
+        """
+        try:
+            self.sio.emit("call:video:camera:stop", {"session": self.instance_name})
+        except Exception:
+            logging.debug("[call_video] could not emit call:video:camera:stop", exc_info=True)
+
     def on_call_video_remote(self, data):
         try:
             if not isinstance(data, dict) or not self._belongs_to_this_session(data):

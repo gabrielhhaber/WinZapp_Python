@@ -1990,15 +1990,25 @@ class SettingsDialog(wx.Dialog):
 
         A modal box rather than a spoken line: the screen reader reads it
         natively, and it cannot be missed the way a passing announcement can.
+
+        And a confirmation rather than a notice. An OK-only box leaves the
+        option ticked whatever the user does, so a warning whose stated cost
+        is "your screen reader will not speak during the call" could be
+        dismissed by reflex. Answering No unticks it, which makes the default
+        outcome of not reading the box the safe one.
         """
-        if event.IsChecked():
-            i18n = self.main_window.i18n
-            wx.MessageBox(
-                i18n.t("calls_exclusive_output_warning"),
-                i18n.t("tab_calls"),
-                wx.OK | wx.ICON_WARNING,
-                self,
-            )
+        if not event.IsChecked():
+            event.Skip()
+            return
+        i18n = self.main_window.i18n
+        confirmed = wx.MessageBox(
+            i18n.t("calls_exclusive_output_warning"),
+            i18n.t("tab_calls"),
+            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+            self,
+        )
+        if confirmed != wx.YES:
+            self._call_exclusive_output_check.SetValue(False)
         event.Skip()
 
     def _on_call_alerts_toggle(self, event):

@@ -475,3 +475,156 @@ def test_camera_starts_after_the_offer_post_on_an_outgoing_video_call():
     offer_post = body.index('"offer",')
     camera_start = body.index("self._start_call_camera()")
     assert offer_post < camera_start
+
+
+class _StopCameraWs(_NoCameraWs):
+    def __init__(self):
+        self.camera_stops = 0
+
+    def send_call_camera_stop(self):
+        self.camera_stops += 1
+
+
+class _StopCameraMainWindow(_NoCameraMainWindow):
+    _stop_call_camera = MainWindow._stop_call_camera
+
+    def __init__(self):
+        super().__init__()
+        self.ws = _StopCameraWs()
+
+    def _sync_voice_call_bar(self):
+        pass
+
+
+class _RecordingCapture:
+    def __init__(self):
+        self.stopped = False
+
+    def stop(self):
+        self.stopped = True
+
+
+def test_stopping_the_camera_tells_the_page_to_stop_transmitting(monkeypatch):
+    """REGRESSION: killing ffmpeg only stops US sending. The page draws our
+    frames onto a canvas and hands WhatsApp a captureStream() of it, which
+    keeps emitting whatever the canvas last held at 10 fps -- so the peer went
+    on seeing a frozen picture of the user for the rest of the call, and into
+    the next one, while WinZapp announced video was off."""
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+    stub = _StopCameraMainWindow()
+    capture = _RecordingCapture()
+    stub._call_camera_capture = capture
+
+    stub._stop_call_camera()
+
+    assert capture.stopped is True
+    assert stub.ws.camera_stops == 1
+    assert stub._call_camera_enabled is False
+
+
+def test_stopping_a_camera_that_was_never_started_does_not_blank_the_page(monkeypatch):
+    """A no-op stop must not reach the page: blanking a canvas this call never
+    drew on would be pointless work, and _stop_call_camera() runs on teardown
+    paths that fire whether or not video was ever on."""
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+    stub = _StopCameraMainWindow()
+    stub._call_camera_capture = None
+
+    stub._stop_call_camera()
+
+    assert stub.ws.camera_stops == 0
+
+
+def test_a_camera_that_finished_opening_after_the_call_ended_is_discarded(monkeypatch):
+    """REGRESSION: the camera now opens OUTSIDE _call_action_lock (holding it
+    across the open blocked hang-up), so the call can end while we are in
+    there. The guard tested truthiness, and _stop_voice_call_audio()'s grace
+    path returns WITHOUT clearing _active_voice_call -- so the webcam lit up
+    seconds after the user hung up. Worse, starting another call in that
+    window made the guard pass and overwrote the new call's capture, leaking
+    the old ffmpeg process with the webcam still open."""
+    import core.call_video as call_video
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+    stub = _StopCameraMainWindow()
+    started = []
+
+    class ReplacingCapture:
+        def __init__(self, _ffmpeg, _send_frame, transmit=True):
+            self.stopped = False
+
+        def start(self, _preferred_name=""):
+            # The user hung up and dialled again while the camera was opening:
+            # a DIFFERENT dict, so truthiness alone would have let this pass.
+            stub._active_voice_call = {"identity": "call-2", "is_video": True}
+            started.append(self)
+
+        def stop(self):
+            self.stopped = True
+
+    monkeypatch.setattr(call_video, "CameraCapture", ReplacingCapture)
+
+    assert stub._start_call_camera() is False
+    assert started[0].stopped is True
+    assert stub._call_camera_capture is None
+
+
+class _NoThread:
+    def start(self):
+        pass
+
+
+class _SelfChatMainWindow:
+    _start_individual_call = MainWindow._start_individual_call
+    _normalize_jid = staticmethod(MainWindow._normalize_jid)
+
+    def __init__(self):
+        self._active_voice_call = None
+        self._active_incoming_calls = {}
+        self.i18n = _NoOpI18n()
+        self.announcements = []
+        self.dialled = []
+
+    def _is_self_jid(self, jid):
+        return jid == "5511999999999@s.whatsapp.net"
+
+    def output(self, text, interrupt=False):
+        self.announcements.append((text, interrupt))
+
+    def _preview_sender_from_jid(self, jid):
+        return "Eu"
+
+    def _sync_voice_call_bar(self):
+        pass
+
+    def _call_action_lock(self):
+        pass
+
+
+def test_the_self_chat_cannot_be_called_from_any_path():
+    """REGRESSION: hiding the call buttons in the self-chat covers the mouse
+    and the Tab order, but the accelerators reach _on_voice_call() directly.
+    From the message list of "Me" a shortcut still spoke "calling Me..." and
+    POSTed an offer to the user's own JID -- and with the button hidden, a
+    blind user had no way to know the action even existed there."""
+    stub = _SelfChatMainWindow()
+
+    stub._start_individual_call("5511999999999@s.whatsapp.net", "Eu", is_video=False)
+
+    assert stub.announcements == [("voice_call_individual_only", True)]
+    assert stub._active_voice_call is None
+
+
+def test_an_ordinary_contact_is_still_callable(monkeypatch):
+    """The guard must not catch everyone: only the self-chat and the kinds
+    that were already refused."""
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: None)
+    # The dialling itself happens on a worker thread that would POST to a
+    # server that is not running here; this test is about the guard, so the
+    # thread is never started.
+    monkeypatch.setattr("main.threading.Thread", lambda *a, **kw: _NoThread())
+    stub = _SelfChatMainWindow()
+
+    stub._start_individual_call("5511888888888@s.whatsapp.net", "Fulano", is_video=True)
+
+    assert stub._active_voice_call is not None
+    assert stub._active_voice_call["is_video"] is True

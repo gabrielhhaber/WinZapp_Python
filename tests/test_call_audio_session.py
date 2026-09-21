@@ -528,3 +528,48 @@ def test_a_device_with_no_wasapi_twin_still_opens_exactly_as_before():
     assert sounddevice.output_streams[0][0]["device"] == 1
 
     session.stop()
+
+
+class _CollidingNameSoundDevice(_SoundDevice):
+    """Two WASAPI endpoints whose names share the 31-character prefix MME
+    truncates at -- the partial match comes FIRST in enumeration order."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.devices = [
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 0},
+            {"name": "Headset Earphone (Jabra Evolve", "max_input_channels": 0,
+             "max_output_channels": 2, "default_samplerate": 48000, "hostapi": 0},
+            {"name": "Headset Earphone (Jabra Evolve 75)", "max_input_channels": 0,
+             "max_output_channels": 2, "default_samplerate": 48000, "hostapi": 2},
+            {"name": "Headset Earphone (Jabra Evolve", "max_input_channels": 0,
+             "max_output_channels": 2, "default_samplerate": 48000, "hostapi": 2},
+        ]
+
+    def query_hostapis(self, index=None):
+        return {0: {"name": "MME"}, 2: {"name": "Windows WASAPI"}}[int(index)]
+
+
+def test_an_exact_wasapi_name_beats_a_partial_match_found_earlier():
+    """REGRESSION: the twin lookup returned the first device satisfying exact
+    OR substring, so a partial match at a lower index beat an exact match
+    further down. Two endpoints sharing MME's 31-character truncation would
+    open the call on the wrong physical device, while the log reported
+    hostapi=wasapi as if all were well -- and a blind user has no visual tell
+    that the call is coming out of the monitor instead of the headset."""
+    sounddevice = _CollidingNameSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", output_device_name="Headset Earphone (Jabra Evolve"
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start_output_only()
+
+    # Index 3 is the exact match; index 2 only matches as a substring.
+    assert sounddevice.output_streams[0][0]["device"] == 3
+
+    session.stop()

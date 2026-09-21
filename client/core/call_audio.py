@@ -273,15 +273,31 @@ class CallAudioSession:
             return None
         if not wanted:
             return None
+        # Two passes, exact before partial. The substring tolerance is needed
+        # -- MME truncates device names at 31 characters, so the stored name
+        # can legitimately be a prefix of the WASAPI one -- but taking the
+        # first hit of EITHER kind let a partial match at a lower index beat
+        # an exact match further down. Two endpoints sharing a 31-character
+        # prefix ("Headset Earphone (Jabra Evolve 65/75)") would then open the
+        # call on the wrong physical device, while the log cheerfully reported
+        # hostapi=wasapi. For a blind user, hearing the call come out of the
+        # monitor's HDMI output instead of the headset has no visual tell.
+        partial = None
         for index, info in enumerate(self._query_devices()):
             if int(info.get(channels_key, 0) or 0) <= 0:
                 continue
-            if "wasapi" not in self._hostapi_name(index):
+            try:
+                hostapi = self._sd.query_hostapis(int(info.get("hostapi", -1)))
+                if "wasapi" not in str(hostapi.get("name", "")).lower():
+                    continue
+            except Exception:
                 continue
             actual = self._normalized_name(info.get("name", ""))
-            if actual == wanted or wanted in actual or actual in wanted:
+            if actual == wanted:
                 return index
-        return None
+            if partial is None and (wanted in actual or actual in wanted):
+                partial = index
+        return partial
 
     def _candidate_devices(self, stored_name: str, *, input_device: bool):
         preferred = self._resolve_device(stored_name, input_device=input_device)
