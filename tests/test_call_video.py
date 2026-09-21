@@ -783,3 +783,73 @@ def test_a_failed_restart_never_resumes_the_engine_onto_an_empty_canvas():
     stub._resume_call_camera()
 
     assert stub.ws.camera_starts == 0
+
+
+class _Recorder:
+    """Records every call made on it, in order, into a shared log."""
+
+    def __init__(self, name, log, shown=False):
+        self._name, self._log, self._shown = name, log, shown
+
+    def __getattr__(self, attr):
+        def call(*args, **kwargs):
+            self._log.append((self._name, attr, args))
+            if attr == "IsShown":
+                return self._shown
+            if attr == "Show":
+                self._shown = bool(args[0]) if args else True
+            return None
+        return call
+
+
+class _CallWindowStub:
+    _sync_voice_call_bar = MainWindow._sync_voice_call_bar
+
+    def __init__(self, *, is_video, camera):
+        self.log = []
+        self.i18n = _NoOpI18n()
+        self._active_voice_call = {"identity": "c1", "name": "Mae", "is_video": is_video}
+        self._call_audio_session = None
+        self._call_camera_available = True if camera else None
+        self._call_camera_enabled = bool(camera)
+        self.voice_call_window = _Recorder("window", self.log)
+        self.voice_call_window_mute_button = _Recorder("mute", self.log)
+        self.voice_call_window_video_button = _Recorder("video", self.log)
+        self.voice_call_window_label = _Recorder("label", self.log)
+        self.call_video_image = _Recorder("image", self.log)
+        self._call_window_sizer = _Recorder("sizer", self.log)
+
+
+def _calls(stub, name):
+    return [(attr, args) for who, attr, args in stub.log if who == name]
+
+
+def test_the_call_window_is_fitted_to_its_content_not_to_fixed_sizes():
+    """REGRESSION (sighted-assistance description, 2026-09-21): the label and
+    four buttons shared one fixed-width row, so "Video call: <name>." pushed
+    "turn video off" past the window's right edge -- reachable with Tab,
+    invisible on screen. The window is now fitted to what it shows."""
+    stub = _CallWindowStub(is_video=True, camera=True)
+
+    stub._sync_voice_call_bar()
+
+    assert ("Fit", (stub.voice_call_window,)) in _calls(stub, "sizer")
+    assert not any(attr == "SetSize" for attr, _ in _calls(stub, "window"))
+    # The video toggle is shown on a video call with a camera.
+    assert ("Show", (True,)) in _calls(stub, "video")
+
+
+def test_the_fit_measures_the_name_actually_shown():
+    """Fitting before SetLabel would size the window for the previous text."""
+    stub = _CallWindowStub(is_video=True, camera=True)
+
+    stub._sync_voice_call_bar()
+
+    order = [(who, attr) for who, attr, _ in stub.log]
+    assert order.index(("label", "SetLabel")) < order.index(("sizer", "Fit"))
+
+
+def test_the_label_has_a_row_of_its_own_above_the_buttons():
+    source = (Path(__file__).parents[1] / "client" / "main.py").read_text(encoding="utf-8")
+    assert "call_sizer.Add(self.voice_call_window_label, 0, wx.EXPAND" in source
+    assert "controls.Add(self.voice_call_window_label" not in source

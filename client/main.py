@@ -2747,13 +2747,21 @@ class MainWindow(wx.Frame):
         self.voice_call_window_settings_button.Bind(wx.EVT_BUTTON, self._open_active_call_settings)
         self.voice_call_window_mute_button.Bind(wx.EVT_BUTTON, self.toggle_call_microphone)
         self.voice_call_window_video_button.Bind(wx.EVT_BUTTON, self.toggle_call_video)
-        controls.Add(self.voice_call_window_label, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 12)
-        controls.Add(self.voice_call_window_end_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 8)
-        controls.Add(self.voice_call_window_settings_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 8)
-        controls.Add(self.voice_call_window_mute_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 8)
-        controls.Add(self.voice_call_window_video_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 8)
-        call_sizer.Add(controls, 0, wx.EXPAND)
+        # The label gets a row of its own. Sharing one fixed-width row with four
+        # buttons, "Video call: <name>." pushed the last button -- "turn video
+        # off" -- past the window's right edge: still reachable with Tab, but
+        # off-screen (confirmed with a sighted-assistance description, which
+        # listed three buttons). Longer locales and longer names only made it
+        # worse, which is also why the window is fitted to its content in
+        # _sync_voice_call_bar() rather than given fixed sizes.
+        call_sizer.Add(self.voice_call_window_label, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
+        controls.Add(self.voice_call_window_end_button, 0, wx.ALL, 8)
+        controls.Add(self.voice_call_window_settings_button, 0, wx.ALL, 8)
+        controls.Add(self.voice_call_window_mute_button, 0, wx.ALL, 8)
+        controls.Add(self.voice_call_window_video_button, 0, wx.ALL, 8)
+        call_sizer.Add(controls, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
         call_panel.SetSizer(call_sizer)
+        self._call_window_sizer = call_sizer
         self.voice_call_window.Bind(wx.EVT_CLOSE, self._on_voice_call_window_close)
 
         # Dedicated Ctrl-based shortcuts for the four call controls, reported
@@ -7069,11 +7077,17 @@ class MainWindow(wx.Frame):
                 "video_call_window_title" if is_video else "voice_call_window_title"
             )
         )
-        window.SetSize((700, 520) if is_video else (560, 150))
         window_label = getattr(self, "voice_call_window_label", None)
         if window_label is not None:
             window_label.SetLabel(active_text)
         window.Layout()
+        # Fitted to whatever is shown -- the video area only on video calls,
+        # the fourth button only with a camera, and the label's actual text --
+        # instead of fixed sizes that were right for one language and one name
+        # length. After SetLabel, so the fit measures the name being shown.
+        sizer = getattr(self, "_call_window_sizer", None)
+        if sizer is not None:
+            sizer.Fit(window)
         if not window.IsShown():
             window.Show()
             window.Raise()
