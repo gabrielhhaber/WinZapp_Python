@@ -5726,13 +5726,39 @@ class MainWindow(wx.Frame):
         wx.CallAfter(self._focus_primary_control)
 
     def _focus_primary_control(self):
-        """Move keyboard focus to the main navigable list (conversation list),
-        so arrow keys work right after a window restore / account switch."""
+        """Move keyboard focus to the primary navigable list of whichever
+        panel is actually on screen, so arrow keys work right after a window
+        restore / account switch.
+
+        `IsShown()` alone is not enough: switching tabs (Alt+1/2/4) hides the
+        PANEL container (`conversations_panel.Hide()`, `status_panel.Hide()`,
+        ...) but never explicitly hides the list widgets inside it, so a list
+        keeps reporting its own `IsShown()` as True forever after the last
+        time it was shown — even while a sibling panel is the one actually
+        visible. That made the global hotkey always land focus on the
+        conversations list, even when the Status (or Archived) tab was the
+        one on screen when the window was hidden. `IsShownOnScreen()` walks
+        the whole ancestor chain instead, so it reflects the panel's real
+        Hide()/Show() state too.
+        """
         try:
             panel = getattr(self, "conversations_panel", None)
             lst = getattr(panel, "conversations_list", None) if panel else None
-            if lst is not None and lst.IsShown():
+            if lst is not None and lst.IsShownOnScreen():
                 lst.SetFocus()
+                return
+            archived = getattr(self, "archived_conversations_panel", None)
+            archived_lst = (
+                getattr(archived, "conversations_list", None) if archived else None
+            )
+            if archived_lst is not None and archived_lst.IsShownOnScreen():
+                archived_lst.SetFocus()
+                return
+            status = getattr(self, "status_panel", None)
+            status_lst = getattr(status, "_status_list", None) if status else None
+            if status_lst is not None and status_lst.IsShownOnScreen():
+                status_lst.SetFocus()
+                return
         except Exception:
             logging.exception("[focus] restoring primary control focus failed")
 
