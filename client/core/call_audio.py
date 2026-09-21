@@ -14,6 +14,8 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
+
+from core.audio_devices import repair_device_name
 from typing import Optional
 
 import numpy as np
@@ -246,7 +248,11 @@ class CallAudioSession:
 
     @staticmethod
     def _normalized_name(value: str) -> str:
-        return " ".join(str(value or "").replace("(", "").replace(")", "").lower().split())
+        # repair_device_name: a microphone chosen from a PyAudio-built list was
+        # saved as mojibake ("estÃ©reo") and never matched sounddevice's
+        # correct name here, so the call used the default microphone instead.
+        value = repair_device_name(value)
+        return " ".join(value.replace("(", "").replace(")", "").lower().split())
 
     def _resolve_device(self, stored_name: str, *, input_device: bool) -> Optional[int]:
         if not stored_name:

@@ -50,6 +50,7 @@ from core.audio_devices import (
     find_input_device_index,
     test_input_device,
     enumerate_input_devices,
+    repair_stored_input_device_names,
 )
 from core.bulk_read_state import run_bulk_read_state
 from core.call_matching import call_event_matches_active
@@ -12746,6 +12747,10 @@ class MainWindow(wx.Frame):
         # reader on the first call after updating, with no warning ever seen.
         # One shot, with its own flag — see migrate_call_exclusive_mode_split().
         if migrate_call_exclusive_mode_split(self.settings):
+            changed = True
+        # Microphone names saved as mojibake by the PyAudio-built combos
+        # ("Mixagem estÃ©reo"). Idempotent -- see repair_device_name().
+        if repair_stored_input_device_names(self.settings):
             changed = True
         # voice_message_mode default "audio" -> "voice_message": every
         # existing settings.json has the old value written out, so the new
