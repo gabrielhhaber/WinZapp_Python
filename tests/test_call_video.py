@@ -251,12 +251,14 @@ def test_video_button_is_restricted_to_individual_chats():
 
 
 class _NoCameraWs:
-    def send_call_camera_frame(self, _frame):
+    def send_call_camera_frame(self, _frame, epoch=None):
         pass
 
 
 class _NoCameraMainWindow:
     _start_call_camera = MainWindow._start_call_camera
+    _next_call_camera_epoch = MainWindow._next_call_camera_epoch
+    _send_call_camera_stop = MainWindow._send_call_camera_stop
 
     def __init__(self):
         self.ws = _NoCameraWs()
@@ -480,9 +482,11 @@ def test_camera_starts_after_the_offer_post_on_an_outgoing_video_call():
 class _StopCameraWs(_NoCameraWs):
     def __init__(self):
         self.camera_stops = 0
+        self.stopped_epochs = []
 
-    def send_call_camera_stop(self):
+    def send_call_camera_stop(self, epoch=None):
         self.camera_stops += 1
+        self.stopped_epochs.append(epoch)
 
 
 class _StopCameraMainWindow(_NoCameraMainWindow):
@@ -566,6 +570,12 @@ def test_a_camera_that_finished_opening_after_the_call_ended_is_discarded(monkey
     assert stub._start_call_camera() is False
     assert started[0].stopped is True
     assert stub._call_camera_capture is None
+    # The discarded capture was already sending while start() blocked, so its
+    # epoch must be stopped on the page too -- otherwise its in-flight frames
+    # land after the call's reset() and leave the user's picture on the canvas
+    # for the next call to inherit.
+    assert stub.ws.camera_stops == 1
+    assert isinstance(stub.ws.stopped_epochs[0], int)
 
 
 class _NoThread:
@@ -628,3 +638,81 @@ def test_an_ordinary_contact_is_still_callable(monkeypatch):
 
     assert stub._active_voice_call is not None
     assert stub._active_voice_call["is_video"] is True
+
+
+def test_the_camera_is_refused_when_there_is_no_call_at_all(monkeypatch):
+    """REGRESSION: the post-open guard compares the call by identity, and
+    None-is-None passed as "same call". A camera opened after the call's grace
+    cleanup had already run therefore stayed on and kept transmitting with no
+    call at all -- a live webcam a blind user has no way to notice."""
+    import core.call_video as call_video
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+    stub = _StopCameraMainWindow()
+    stub._active_voice_call = None
+    opened = []
+
+    class OpeningCapture:
+        def __init__(self, _ffmpeg, _send_frame, transmit=True):
+            pass
+
+        def start(self, _preferred_name=""):
+            opened.append(True)
+
+        def stop(self):
+            pass
+
+    monkeypatch.setattr(call_video, "CameraCapture", OpeningCapture)
+
+    assert stub._start_call_camera() is False
+    assert opened == []  # never even opened the device
+    assert stub._call_camera_capture is None
+
+
+def test_each_capture_gets_a_strictly_increasing_epoch():
+    """The page drops frames whose epoch it has seen stopped, so a new capture
+    must never reuse or undercut an old epoch -- not even two captures started
+    within the same millisecond."""
+    stub = _NoCameraMainWindow()
+    epochs = [stub._next_call_camera_epoch() for _ in range(50)]
+    assert epochs == sorted(set(epochs))
+
+
+def test_stopping_the_camera_names_the_epoch_it_stops(monkeypatch):
+    """The stop has to name the capture it ends, so the page can tell a frame
+    that raced the stop (same epoch -- drop it) from the first frame of a
+    capture started afterwards (newer epoch -- draw it)."""
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+    stub = _StopCameraMainWindow()
+    stub._call_camera_capture = _RecordingCapture()
+    stub._call_camera_epoch = 1234
+
+    stub._stop_call_camera()
+
+    assert stub.ws.stopped_epochs == [1234]
+
+
+def test_frames_carry_the_epoch_of_their_capture(monkeypatch):
+    import core.call_video as call_video
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+    sent = []
+
+    class Ws(_StopCameraWs):
+        def send_call_camera_frame(self, frame, epoch=None):
+            sent.append((frame, epoch))
+
+    class SendingCapture:
+        def __init__(self, _ffmpeg, send_frame, transmit=True):
+            self.send_frame = send_frame
+
+        def start(self, _preferred_name=""):
+            self.send_frame(b"jpeg")
+
+        def stop(self):
+            pass
+
+    monkeypatch.setattr(call_video, "CameraCapture", SendingCapture)
+    stub = _StopCameraMainWindow()
+    stub.ws = Ws()
+
+    assert stub._start_call_camera() is True
+    assert sent == [(b"jpeg", stub._call_camera_epoch)]

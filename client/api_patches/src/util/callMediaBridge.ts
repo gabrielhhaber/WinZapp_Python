@@ -220,6 +220,16 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     // the blank was meant to erase -- so the onload handler checks that the
     // generation it captured is still current before touching the canvas.
     cameraGeneration: 0,
+    // Highest capture epoch the desktop has declared STOPPED. Every desktop
+    // camera capture carries its own increasing epoch, so a frame that was
+    // already in flight when its capture was stopped (a send racing the
+    // stop, or a capture discarded because the call ended while the camera
+    // was opening) is recognised and dropped instead of repainting a live
+    // picture of the user after video was turned off. Keyed on the
+    // desktop's own epochs rather than on state.enabled on purpose: enable()
+    // never runs on the Linux/PulseAudio path, and reset() -- which clears
+    // enabled -- also runs mid-call on an audio device restart.
+    cameraStoppedEpoch: -1,
     cameraFramesReceived: 0,
     cameraFramesDropped: 0,
     cameraTrackRequests: 0,
@@ -415,8 +425,9 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     return true;
   };
 
-  state.pushCameraFrame = (jpeg: string) => {
+  state.pushCameraFrame = (jpeg: string, epoch?: number) => {
     if (typeof jpeg !== 'string' || jpeg.length > 350_000) return;
+    if (typeof epoch === 'number' && epoch <= state.cameraStoppedEpoch) return;
     state.cameraFramesReceived += 1;
     if (state.cameraFramesReceived === 1 || state.cameraFramesReceived % 100 === 0) {
       report(
@@ -471,25 +482,29 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   // Python-side ffmpeg capture froze the user's last frame and went on
   // transmitting that picture of them at 10 fps while WinZapp announced video
   // was off. Painting black keeps the stream valid and shows the peer nothing.
-  state.stopCamera = () => {
+  state.stopCamera = (epoch?: number) => {
+    if (typeof epoch === 'number' && epoch > state.cameraStoppedEpoch) {
+      state.cameraStoppedEpoch = epoch;
+    }
+    blankCamera();
+    report('camera-stop', `epoch=${state.cameraStoppedEpoch}`);
+  };
+
+  // Blank without gating any epoch. This is what reset() uses, and it must
+  // NOT destroy the canvas or the track: reset() does not only mean "the call
+  // ended" -- an audio device change from the call window restarts the audio
+  // session, which emits call:audio:stop and lands here mid-call. WhatsApp
+  // keeps its clone of the ORIGINAL track and never asks for a new one, so
+  // replacing the canvas left the peer watching a black, orphaned canvas for
+  // the rest of the call while WinZapp said video was on. Blanking the same
+  // canvas instead lets the next frame from the still-running capture
+  // repaint it, and still means the next call starts black rather than on a
+  // still of the previous one -- including a call answered without video.
+  const blankCamera = () => {
+    if (!state.cameraCanvas) return;
     state.cameraGeneration += 1;
     state.cameraPending = false;
     blankCameraCanvas();
-    report('camera-stop', `generation=${state.cameraGeneration}`);
-  };
-
-  // Call over: nothing holds the track any more, so release it too. Without
-  // this the canvas -- and the last real frame drawn on it -- survived into
-  // the NEXT call, because cameraTrack() reuses any track still 'live' and
-  // reset() never cleared either. The next call therefore started by
-  // transmitting a still of the previous one, including a call answered with
-  // "answer without video".
-  const teardownCamera = () => {
-    state.stopCamera();
-    try { state.cameraTrack?.stop(); } catch (_) {}
-    state.cameraTrack = null;
-    state.cameraCanvas = null;
-    state.cameraTrackRequests = 0;
   };
 
   const cameraTrack = () => {
@@ -718,7 +733,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     state.remoteVideoTimers.clear();
     state.remoteVideoIds.clear();
     state.localTrackIds.clear();
-    teardownCamera();
+    blankCamera();
   };
 
   const attachRemoteTrack = (track: MediaStreamTrack) => {
@@ -1432,9 +1447,10 @@ export function registerCallAudioSocket(
       );
     }
     cameraBusy = true;
-    page.evaluate((frame: string) => {
-      (window as any).__winzappCallMediaBridge?.pushCameraFrame?.(frame);
-    }, jpeg).catch(() => undefined).finally(() => { cameraBusy = false; });
+    const epoch = typeof payload?.epoch === 'number' ? payload.epoch : undefined;
+    page.evaluate((frame: string, frameEpoch?: number) => {
+      (window as any).__winzappCallMediaBridge?.pushCameraFrame?.(frame, frameEpoch);
+    }, jpeg, epoch).catch(() => undefined).finally(() => { cameraBusy = false; });
   });
   // Turning video off has to reach the page: the canvas keeps being captured
   // at 10 fps regardless of whether the desktop is still sending frames, so
@@ -1446,10 +1462,11 @@ export function registerCallAudioSocket(
     const client: any = (clientsArray as any)[session];
     const page = client?.waPage || client?.page;
     if (!page) return;
-    logger?.info?.(`[${session}] call camera stopped by desktop`);
-    page.evaluate(() => {
-      (window as any).__winzappCallMediaBridge?.stopCamera?.();
-    }).catch(() => undefined);
+    const epoch = typeof payload?.epoch === 'number' ? payload.epoch : undefined;
+    logger?.info?.(`[${session}] call camera stopped by desktop epoch=${epoch}`);
+    page.evaluate((stoppedEpoch?: number) => {
+      (window as any).__winzappCallMediaBridge?.stopCamera?.(stoppedEpoch);
+    }, epoch).catch(() => undefined);
   });
 
   socket.on('call:audio:mic', (payload: any) => {

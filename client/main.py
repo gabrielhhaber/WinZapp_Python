@@ -6530,13 +6530,31 @@ class MainWindow(wx.Frame):
             return False
 
         camera_name = self.settings.get("call_video_devices", {}).get("camera_name", "")
-        capture = CameraCapture(self._find_api_ffmpeg(), sender, transmit=transmit)
+        # Every capture carries its own epoch on each frame, and every stop
+        # names the epoch it stops. The page drops frames from a stopped epoch,
+        # which is what closes the two late-frame leaks: a send racing the stop
+        # (CameraCapture.stop() does not join its thread), and a capture that
+        # finished opening after the call ended and is discarded below. Either
+        # used to repaint a live picture of the user onto the page's canvas
+        # after video was off -- and the next call inherited it.
+        epoch = self._next_call_camera_epoch()
+
+        def send_frame(frame, _send=sender, _epoch=epoch):
+            _send(frame, epoch=_epoch)
+
+        capture = CameraCapture(self._find_api_ffmpeg(), send_frame, transmit=transmit)
         # Captured BEFORE the blocking start below, and compared by identity
         # afterwards. `_active_voice_call` is mutated in place and only ever
         # replaced wholesale by a new call, so identity -- not truthiness --
         # is what distinguishes "still the same call" from "that call ended
         # and another one began while the camera was opening".
         expected_call = getattr(self, "_active_voice_call", None)
+        # The identity test below treats None-is-None as "same call", so the
+        # no-call case must be refused up front -- otherwise a camera opened
+        # after the call's grace cleanup already ran stays on, transmitting,
+        # with no call at all.
+        if expected_call is None:
+            return False
         try:
             capture.start(camera_name)
         except Exception:
@@ -6565,6 +6583,10 @@ class MainWindow(wx.Frame):
         # with the webcam still open and no reference left to stop it.
         if getattr(self, "_active_voice_call", None) is not expected_call:
             capture.stop()
+            # This capture was already sending while start() blocked; stop its
+            # epoch on the page too, or its in-flight frames land after the
+            # call's reset() and leave the user's picture on the canvas.
+            self._send_call_camera_stop(epoch)
             logging.info(
                 "[call_video] call ended or changed while the camera was opening; "
                 "discarding the capture"
@@ -6572,6 +6594,7 @@ class MainWindow(wx.Frame):
             return False
 
         self._call_camera_capture = capture
+        self._call_camera_epoch = epoch
         self._call_camera_available = True
         self._call_camera_enabled = True
         if hasattr(self, "voice_call_window"):
@@ -6595,16 +6618,37 @@ class MainWindow(wx.Frame):
             # of the user for the rest of the call while WinZapp announced
             # video was off. Only when a capture actually existed: a no-op
             # stop must not blank a canvas this call never drew on.
-            stop_remote = getattr(getattr(self, "ws", None), "send_call_camera_stop", None)
-            if stop_remote is not None:
-                try:
-                    stop_remote()
-                except Exception:
-                    logging.exception("[call_video] failed to stop page-side camera")
+            self._send_call_camera_stop(getattr(self, "_call_camera_epoch", None))
         if reset_availability:
             self._call_camera_available = None
         if hasattr(self, "voice_call_window"):
             wx.CallAfter(self._sync_voice_call_bar)
+
+    def _next_call_camera_epoch(self) -> int:
+        """A strictly increasing id for one camera capture.
+
+        Milliseconds of monotonic time rather than a plain counter: the page
+        (and the Node process behind it) can outlive a WinZapp restart, and a
+        counter starting over at 0 would sit below the stopped epoch the page
+        still remembers, so every frame of the new session would be dropped.
+        Monotonic time keeps rising across restarts within a boot, and the
+        page does not survive a reboot.
+        """
+        epoch = time.monotonic_ns() // 1_000_000
+        previous = getattr(self, "_call_camera_last_epoch", 0)
+        if epoch <= previous:
+            epoch = previous + 1
+        self._call_camera_last_epoch = epoch
+        return epoch
+
+    def _send_call_camera_stop(self, epoch):
+        stop_remote = getattr(getattr(self, "ws", None), "send_call_camera_stop", None)
+        if stop_remote is None:
+            return
+        try:
+            stop_remote(epoch=epoch)
+        except Exception:
+            logging.exception("[call_video] failed to stop page-side camera")
 
     def toggle_call_video(self, _event=None):
         """Enable/disable local camera video without changing the call itself."""
@@ -12580,9 +12624,10 @@ class MainWindow(wx.Frame):
         # exclusive_output: one checkbox governed both directions, and holding
         # the SPEAKER exclusively silences the screen reader for the whole
         # call while holding the microphone does not. An install that ticked
-        # the old box keeps it on both sides and can untick the speaker half
-        # in Settings > Calls. One shot, with its own flag — see
-        # migrate_call_exclusive_mode_split().
+        # the old box keeps it for the MICROPHONE only: that box never had any
+        # effect, so carrying it onto the speaker would silence the screen
+        # reader on the first call after updating, with no warning ever seen.
+        # One shot, with its own flag — see migrate_call_exclusive_mode_split().
         if migrate_call_exclusive_mode_split(self.settings):
             changed = True
         # voice_message_mode default "audio" -> "voice_message": every

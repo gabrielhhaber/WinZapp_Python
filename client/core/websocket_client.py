@@ -2527,15 +2527,18 @@ class WebSocketClient:
         except Exception:
             logging.exception("[WebSocketClient] on_call_audio_remote error")
 
-    def send_call_camera_frame(self, jpeg: bytes):
+    def send_call_camera_frame(self, jpeg: bytes, epoch: int | None = None):
         if not jpeg or len(jpeg) > 256_000:
             return
-        self.sio.emit("call:video:camera", {
+        payload = {
             "session": self.instance_name,
             "jpeg": base64.b64encode(jpeg).decode("ascii"),
-        })
+        }
+        if epoch is not None:
+            payload["epoch"] = int(epoch)
+        self.sio.emit("call:video:camera", payload)
 
-    def send_call_camera_stop(self):
+    def send_call_camera_stop(self, epoch: int | None = None):
         """Tell the page to stop transmitting local video.
 
         Stopping the ffmpeg capture on this side is not enough: the page draws
@@ -2546,7 +2549,10 @@ class WebSocketClient:
         video was off.
         """
         try:
-            self.sio.emit("call:video:camera:stop", {"session": self.instance_name})
+            payload = {"session": self.instance_name}
+            if epoch is not None:
+                payload["epoch"] = int(epoch)
+            self.sio.emit("call:video:camera:stop", payload)
         except Exception:
             logging.debug("[call_video] could not emit call:video:camera:stop", exc_info=True)
 

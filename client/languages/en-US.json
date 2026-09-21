@@ -835,7 +835,7 @@
     "calls_popup_enabled_label": "Open a window when a call comes in",
     "calls_exclusive_input_label": "Use exclusive mode for the microphone during the call",
     "calls_exclusive_output_label": "Use exclusive mode for the speaker during the call",
-    "calls_exclusive_output_warning": "Warning: in exclusive mode the speaker is reserved for the call. No other program can play sound on that device for as long as the call lasts, including your screen reader.",
+    "calls_exclusive_output_warning": "Warning: in exclusive mode the speaker is reserved for the call. No other program can play sound on that device for as long as the call lasts, including your screen reader. Turn it on anyway?",
     "tab_profile_backup": "Profile backup",
     "profile_backup_close_hours_label": "Minimum time between profile backups taken when closing WinZapp (hours, 0 = on every close)",
     "profile_backup_live_label": "Also back up the profile while WinZapp is open (WhatsApp is disconnected while the backup runs)",

@@ -337,11 +337,12 @@ def test_turning_video_off_reaches_the_page_and_blanks_the_canvas():
 
     # Reachable from the Node layer, which is how "turn video off" travels.
     assert "socket.on('call:video:camera:stop'" in bridge
-    assert "__winzappCallMediaBridge?.stopCamera?.()" in bridge
+    assert "__winzappCallMediaBridge?.stopCamera?.(stoppedEpoch)" in bridge
+    assert "pushCameraFrame?.(frame, frameEpoch)" in bridge
 
     # The blank is what actually stops the transmission; the track stays live
     # so the peer connection is not torn down mid-call.
-    assert "state.stopCamera = () =>" in bridge
+    assert "state.stopCamera = (epoch?: number) =>" in bridge
     assert "blankCameraCanvas" in bridge
     assert "context.fillRect(0, 0, canvas.width, canvas.height)" in bridge
 
@@ -349,14 +350,26 @@ def test_turning_video_off_reaches_the_page_and_blanks_the_canvas():
     # just erased.
     assert "generation === state.cameraGeneration" in bridge
 
-    # End of call releases the track and the canvas, so the next call cannot
-    # start by transmitting a still of the previous one.
-    assert "teardownCamera();" in bridge
-    assert "state.cameraTrack = null;" in bridge
-    assert "state.cameraCanvas = null;" in bridge
+    # A frame from a capture the desktop already stopped is dropped, keyed on
+    # the desktop's own epochs -- NOT on state.enabled, which never becomes
+    # true on the Linux/PulseAudio path and is cleared by a mid-call reset().
+    assert "epoch <= state.cameraStoppedEpoch" in bridge
+    push_body = bridge[
+        bridge.index("state.pushCameraFrame = "):bridge.index("const blankCameraCanvas")
+    ]
+    assert "state.enabled" not in push_body
+
+    # reset() blanks the SAME canvas and never replaces it: it also runs
+    # mid-call on an audio device restart, and WhatsApp keeps its clone of the
+    # original track, so replacing the canvas left the peer watching black for
+    # the rest of the call while WinZapp said video was on.
+    assert "blankCamera();" in bridge
+    assert "teardownCamera" not in bridge
+    assert "state.cameraCanvas = null;" not in bridge
+    assert "state.cameraTrack = null;" not in bridge
 
 
 def test_the_desktop_side_has_a_camera_stop_channel():
     websocket_client = _source("client/core/websocket_client.py")
-    assert "def send_call_camera_stop(self)" in websocket_client
+    assert "def send_call_camera_stop(self, epoch: int | None = None)" in websocket_client
     assert '"call:video:camera:stop"' in websocket_client

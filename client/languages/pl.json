@@ -835,7 +835,7 @@
     "calls_popup_enabled_label": "Otwieraj okno przy połączeniu przychodzącym",
     "calls_exclusive_input_label": "Używaj trybu wyłącznego dla mikrofonu podczas połączenia",
     "calls_exclusive_output_label": "Używaj trybu wyłącznego dla głośnika podczas połączenia",
-    "calls_exclusive_output_warning": "Uwaga: w trybie wyłącznym głośnik jest zarezerwowany dla połączenia. Żaden inny program nie może odtwarzać dźwięku na tym urządzeniu przez czas trwania połączenia, w tym czytnik ekranu.",
+    "calls_exclusive_output_warning": "Uwaga: w trybie wyłącznym głośnik jest zarezerwowany dla połączenia. Żaden inny program nie może odtwarzać dźwięku na tym urządzeniu przez czas trwania połączenia, w tym czytnik ekranu. Czy mimo to włączyć?",
     "tab_profile_backup": "Kopia zapasowa",
     "profile_backup_close_hours_label": "Minimalny odstęp między kopiami zapasowymi profilu tworzonymi przy zamykaniu WinZapp (godziny, 0 = przy każdym zamknięciu)",
     "profile_backup_live_label": "Twórz kopię zapasową także przy otwartym WinZapp (WhatsApp jest rozłączony podczas jej tworzenia)",
