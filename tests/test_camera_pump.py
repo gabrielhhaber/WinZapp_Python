@@ -65,6 +65,8 @@ let callLive = true;
 const isLivePageCall = () => callLive;
 const currentPageCall = () => ({});
 const report = () => {};
+const reportCanvasLuma = () => {};
+const selfTestTrack = () => {};
 const state = {
   cameraCanvas: canvas, cameraGeneration: 0, cameraPending: false,
   cameraStoppedEpoch: -1, cameraLastPicture: null, cameraShowing: false,

@@ -763,6 +763,8 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     if (state.videoSenderReportTicks >= 20) {
       state.videoSenderReportTicks = 0;
       reportVideoSenders();
+      reportCanvasLuma();
+      if (state.cameraShowing) selfTestTrack();
     }
     if (state.cameraShowing && state.cameraLastPicture) {
       context.drawImage(state.cameraLastPicture, 0, 0, 640, 360);
@@ -777,6 +779,155 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     if (state.cameraPump) return;
     state.cameraPump = win.setInterval(pumpCamera, CAMERA_PUMP_MS);
   };
+
+  // DIAGNOSTIC ONLY -- where does our camera picture turn black? The canvas
+  // holds a real frame (showing=true), yet the peer sees black flickering.
+  // WhatsApp's WASM engine consumes the track itself (no RTCPeerConnection
+  // sender carries it), so these hooks report HOW it reads our track and what
+  // it actually gets: the luminance of the canvas, of a frame read straight
+  // off our own track, and of what WhatsApp receives through whichever API
+  // it uses. Each hook reports a bounded number of times.
+  const lumaOf = (source: any, width: number, height: number): string => {
+    try {
+      const probe = document.createElement('canvas');
+      probe.width = 32;
+      probe.height = 18;
+      const ctx = probe.getContext('2d');
+      if (!ctx || !width || !height) return 'n/a';
+      ctx.drawImage(source, 0, 0, 32, 18);
+      const data = ctx.getImageData(0, 0, 32, 18).data;
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+      return (sum / (data.length / 4)).toFixed(1);
+    } catch (error: any) {
+      return `err:${String(error?.message || error).slice(0, 60)}`;
+    }
+  };
+  const isOurTrack = (track: any): boolean =>
+    !!track && (track === state.cameraTrack || state.cameraCloneIds.has(track.id));
+  const diagCounts: Record<string, number> = {};
+  const diag = (key: string, limit: number, details: string) => {
+    diagCounts[key] = (diagCounts[key] || 0) + 1;
+    if (diagCounts[key] <= limit) report(`camdiag-${key}`, details);
+  };
+
+  // (a) the canvas itself, sampled by the pump every 2 s
+  const reportCanvasLuma = () => {
+    const canvas = state.cameraCanvas;
+    if (!canvas) return;
+    diag('canvas', 20, `luma=${lumaOf(canvas, canvas.width, canvas.height)} ${canvas.width}x${canvas.height} showing=${state.cameraShowing}`);
+  };
+
+  // (b) a frame read straight off OUR track, once per page
+  let selfTestDone = false;
+  const selfTestTrack = () => {
+    if (selfTestDone || !state.cameraTrack) return;
+    selfTestDone = true;
+    const Processor = win.MediaStreamTrackProcessor;
+    if (typeof Processor !== 'function') {
+      diag('selftest', 3, 'MediaStreamTrackProcessor unavailable');
+      return;
+    }
+    try {
+      const probe = state.cameraTrack.clone();
+      const reader = new Processor({ track: probe }).readable.getReader();
+      reader.read().then(({ value }: any) => {
+        if (!value) { diag('selftest', 3, 'no frame'); return; }
+        diag('selftest', 3, `frame ${value.displayWidth}x${value.displayHeight} luma=${lumaOf(value, value.displayWidth, value.displayHeight)} settings=${JSON.stringify(probe.getSettings?.() || {})}`);
+        try { value.close(); } catch (_) {}
+        try { reader.cancel(); } catch (_) {}
+        try { probe.stop(); } catch (_) {}
+      }).catch((error: any) => diag('selftest', 3, `read error=${String(error?.message || error)}`));
+    } catch (error: any) {
+      diag('selftest', 3, `error=${String(error?.message || error)}`);
+    }
+  };
+
+  // (c) how WhatsApp consumes it
+  try {
+    const NativeProcessor = win.MediaStreamTrackProcessor;
+    if (typeof NativeProcessor === 'function' && !NativeProcessor.__winzappDiag) {
+      const Wrapped: any = function (this: any, init: any) {
+        const instance = new NativeProcessor(init);
+        if (isOurTrack(init?.track)) {
+          diag('wa-processor', 5, `WhatsApp built a MediaStreamTrackProcessor on our track`);
+          try {
+            const native = instance.readable.getReader.bind(instance.readable);
+            instance.readable.getReader = (...args: any[]) => {
+              const r = native(...args);
+              const nativeRead = r.read.bind(r);
+              let n = 0;
+              r.read = () => nativeRead().then((res: any) => {
+                n += 1;
+                const f = res?.value;
+                if (f && (n === 1 || n % 50 === 0)) {
+                  diag('wa-frame', 12, `#${n} ${f.displayWidth}x${f.displayHeight} luma=${lumaOf(f, f.displayWidth, f.displayHeight)}`);
+                }
+                return res;
+              });
+              return r;
+            };
+          } catch (_) {}
+        }
+        return instance;
+      };
+      Wrapped.prototype = NativeProcessor.prototype;
+      Wrapped.__winzappDiag = true;
+      win.MediaStreamTrackProcessor = Wrapped;
+    }
+  } catch (_) {}
+
+  try {
+    const desc = Object.getOwnPropertyDescriptor(win.HTMLMediaElement.prototype, 'srcObject');
+    if (desc?.set && !(desc.set as any).__winzappDiag) {
+      const nativeSet = desc.set;
+      const set = function (this: any, value: any) {
+        nativeSet.call(this, value);
+        try {
+          const tracks = value?.getVideoTracks?.() || [];
+          if (tracks.some((t: any) => isOurTrack(t))) {
+            const el = this;
+            diag('wa-video-el', 5, `our track attached to <${el.tagName}> inDom=${el.isConnected}`);
+            win.setTimeout(() => diag('wa-video-el', 10, `after 1.5s ${el.videoWidth}x${el.videoHeight} paused=${el.paused} ready=${el.readyState} luma=${lumaOf(el, el.videoWidth, el.videoHeight)}`), 1500);
+          }
+        } catch (_) {}
+      };
+      (set as any).__winzappDiag = true;
+      Object.defineProperty(win.HTMLMediaElement.prototype, 'srcObject', { ...desc, set });
+    }
+  } catch (_) {}
+
+  try {
+    const NativeVideoFrame = win.VideoFrame;
+    if (typeof NativeVideoFrame === 'function' && !NativeVideoFrame.__winzappDiag) {
+      const WrappedFrame: any = function (this: any, source: any, init?: any) {
+        const frame = new NativeVideoFrame(source, init);
+        const kind = source?.constructor?.name || typeof source;
+        if (source instanceof win.HTMLVideoElement || source instanceof win.HTMLCanvasElement ||
+            (win.OffscreenCanvas && source instanceof win.OffscreenCanvas) || source instanceof win.ImageBitmap) {
+          diag('wa-videoframe', 6, `new VideoFrame(${kind}) ${frame.displayWidth}x${frame.displayHeight} luma=${lumaOf(frame, frame.displayWidth, frame.displayHeight)}`);
+        }
+        return frame;
+      };
+      WrappedFrame.prototype = NativeVideoFrame.prototype;
+      WrappedFrame.__winzappDiag = true;
+      win.VideoFrame = WrappedFrame;
+    }
+  } catch (_) {}
+
+  try {
+    const proto = win.MediaStreamTrack?.prototype;
+    const nativeGetSettings = proto?.getSettings;
+    if (typeof nativeGetSettings === 'function' && !nativeGetSettings.__winzappDiag) {
+      const getSettings = function (this: any) {
+        const result = nativeGetSettings.call(this);
+        if (isOurTrack(this)) diag('wa-settings', 4, `getSettings()=${JSON.stringify(result)}`);
+        return result;
+      };
+      (getSettings as any).__winzappDiag = true;
+      proto.getSettings = getSettings;
+    }
+  } catch (_) {}
 
   const cameraTrack = () => {
     state.cameraTrackRequests += 1;
