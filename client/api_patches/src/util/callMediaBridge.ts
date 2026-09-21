@@ -877,6 +877,28 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     }
   } catch (_) {}
 
+  let camElementCount = 0;
+  // WhatsApp does not read our camera track directly: it plays it in a hidden
+  // <video> (not in the DOM) and snapshots that element with
+  // new VideoFrame(video) to feed its encoder. A live diagnostic found three
+  // such elements, one of them never started ("0x0 paused=true ready=0"),
+  // while the peer saw black. A hidden element that is not playing yields
+  // nothing but black/stale snapshots, so any element carrying OUR camera
+  // track is kept playing -- muted, which the page-audio policy already
+  // imposes on every page media element, and which is also what lets a
+  // gesture-less autoplay succeed.
+  const keepCameraElementPlaying = (el: any, why: string) => {
+    try {
+      if (!el.paused) return;
+      el.muted = true;
+      const played = el.play?.();
+      diag('wa-video-play', 12, `#${el.__winzappCamIdx} ${why}: play() on paused element ready=${el.readyState}`);
+      Promise.resolve(played).catch((error: any) =>
+        diag('wa-video-play', 12, `#${el.__winzappCamIdx} ${why}: play() rejected ${String(error?.name || error)}`)
+      );
+    } catch (_) {}
+  };
+
   try {
     const desc = Object.getOwnPropertyDescriptor(win.HTMLMediaElement.prototype, 'srcObject');
     if (desc?.set && !(desc.set as any).__winzappDiag) {
@@ -887,8 +909,13 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
           const tracks = value?.getVideoTracks?.() || [];
           if (tracks.some((t: any) => isOurTrack(t))) {
             const el = this;
-            diag('wa-video-el', 5, `our track attached to <${el.tagName}> inDom=${el.isConnected}`);
-            win.setTimeout(() => diag('wa-video-el', 10, `after 1.5s ${el.videoWidth}x${el.videoHeight} paused=${el.paused} ready=${el.readyState} luma=${lumaOf(el, el.videoWidth, el.videoHeight)}`), 1500);
+            if (!el.__winzappCamIdx) el.__winzappCamIdx = ++camElementCount;
+            diag('wa-video-el', 12, `#${el.__winzappCamIdx} our track attached to <${el.tagName}> inDom=${el.isConnected} paused=${el.paused}`);
+            keepCameraElementPlaying(el, 'attach');
+            win.setTimeout(() => {
+              diag('wa-video-el', 24, `#${el.__winzappCamIdx} after 1.5s ${el.videoWidth}x${el.videoHeight} paused=${el.paused} ready=${el.readyState} luma=${lumaOf(el, el.videoWidth, el.videoHeight)}`);
+              keepCameraElementPlaying(el, 'recheck');
+            }, 1500);
           }
         } catch (_) {}
       };
@@ -897,6 +924,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     }
   } catch (_) {}
 
+  const frameSamples: Record<string, number> = {};
   try {
     const NativeVideoFrame = win.VideoFrame;
     if (typeof NativeVideoFrame === 'function' && !NativeVideoFrame.__winzappDiag) {
@@ -905,7 +933,16 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
         const kind = source?.constructor?.name || typeof source;
         if (source instanceof win.HTMLVideoElement || source instanceof win.HTMLCanvasElement ||
             (win.OffscreenCanvas && source instanceof win.OffscreenCanvas) || source instanceof win.ImageBitmap) {
-          diag('wa-videoframe', 6, `new VideoFrame(${kind}) ${frame.displayWidth}x${frame.displayHeight} luma=${lumaOf(frame, frame.displayWidth, frame.displayHeight)}`);
+          const idx = source?.__winzappCamIdx || 0;
+          const key = `${kind}#${idx}`;
+          frameSamples[key] = (frameSamples[key] || 0) + 1;
+          const n = frameSamples[key];
+          if (n <= 3 || n % 30 === 0) {
+            const el = source instanceof win.HTMLVideoElement ? source : null;
+            diag('wa-videoframe', 80,
+              `${key} n=${n} ${frame.displayWidth}x${frame.displayHeight} luma=${lumaOf(frame, frame.displayWidth, frame.displayHeight)}` +
+              (el ? ` paused=${el.paused} ready=${el.readyState} t=${Number(el.currentTime).toFixed(2)}` : ''));
+          }
         }
         return frame;
       };
