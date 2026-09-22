@@ -2138,7 +2138,11 @@ SEARCH_STOP_WORDS = {
 
 def _search_text(value: str) -> str:
     decomposed = unicodedata.normalize("NFKD", value or "")
-    return "".join(ch for ch in decomposed if not unicodedata.combining(ch)).casefold()
+    # Turkish "ı" is its own letter to Unicode, so neither NFKD nor casefold()
+    # turns it into "i" -- and casefold() lowers "I" to "i". Folding it here
+    # lets "kirmizi" and "KIRMIZI" find the CLDR term "kırmızı".
+    folded = "".join(ch for ch in decomposed if not unicodedata.combining(ch)).casefold()
+    return folded.replace("ı", "i")
 
 
 def _unicode_name(emoji: str) -> str:
