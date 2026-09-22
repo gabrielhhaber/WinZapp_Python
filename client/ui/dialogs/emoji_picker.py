@@ -8,6 +8,8 @@ from itertools import chain
 
 import wx
 
+from ui.dialogs.emoji_cldr_keywords_tr import EMOJI_CLDR_KEYWORDS_TR
+
 
 # Categories follow the official Unicode/CLDR emoji ordering (Emoji 17.0,
 # fully-qualified set); "frequent" stays a short curated shortcut row.
@@ -2112,6 +2114,15 @@ EMOJI_CLDR_KEYWORDS = {
 }
 # <<< EMOJI_CLDR_KEYWORDS
 
+# Search stays multilingual regardless of the selected UI language, matching
+# the established aliases above: a Turkish user may search for "mavi kalp"
+# without losing the existing English "blue heart" lookup.  The generated
+# module comes from the same Unicode CLDR release as the picker data.
+EMOJI_LOCALIZED_KEYWORD_INDEXES = (
+    EMOJI_CLDR_KEYWORDS,
+    EMOJI_CLDR_KEYWORDS_TR,
+)
+
 # Connector words describe the phrase, not the emoji. Ignoring them lets
 # natural searches such as "fone de ouvido", "bandeira do Brasil" and
 # "emoji de coração" validate against the meaningful terms.
@@ -2121,6 +2132,7 @@ SEARCH_STOP_WORDS = {
     "se", "um", "uma",
     "and", "for", "of", "the", "with",
     "con", "del", "el", "la", "las", "los", "y",
+    "bir", "icin", "ile", "ve",
 }
 
 
@@ -2379,13 +2391,17 @@ def _build_search_index() -> tuple[dict[str, tuple[str, ...]],
             family = _family_of(emoji)
             rep = family[0] if family else emoji
             own_name = emoji if emoji == rep else ""
+            localized_keywords = tuple(
+                index.get(emoji, "")
+                for index in EMOJI_LOCALIZED_KEYWORD_INDEXES
+            )
             add(
                 words_by_row,
                 rep,
                 own_name,
                 _unicode_name(emoji),
                 alias_map.get(emoji, ""),
-                EMOJI_CLDR_KEYWORDS.get(emoji, ""),
+                *localized_keywords,
             )
             add(
                 names_by_row,
