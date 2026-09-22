@@ -1265,6 +1265,27 @@ def describe_history_sync_health(status) -> str:
     )
 
 
+#: Set on a chat whose unreadCount is the server's raw number, stored while the
+#: chat held no messages to discount it against. Absent means the stored count
+#: has already been through _discount_non_countable_unread() (or was counted
+#: locally, which only ever counts countable messages).
+_UNREAD_UNDISCOUNTED = "_unread_undiscounted"
+
+
+def note_unread_discount_state(chat: dict, discounted: bool) -> None:
+    """Record whether the unreadCount just stored on *chat* was discounted.
+
+    Whoever stores a server count calls this. *discounted* is False when the
+    chat held no records for _discount_non_countable_unread() to look at: the
+    count is raw and apply_history_sync_unread_correction() owes it exactly one
+    discount later. True makes it final.
+    """
+    if discounted:
+        chat.pop(_UNREAD_UNDISCOUNTED, None)
+    else:
+        chat[_UNREAD_UNDISCOUNTED] = True
+
+
 def apply_history_sync_unread_correction(remote_jid: str, chat: dict) -> bool:
     """Re-discount a chat's badge now that its messages have been fetched.
 
@@ -1287,12 +1308,28 @@ def apply_history_sync_unread_correction(remote_jid: str, chat: dict) -> bool:
     on_new_message() would never have counted itself, so a genuinely unread
     conversation keeps its badge untouched.
 
+    It runs only on a count marked raw (see note_unread_discount_state()), and
+    consumes the mark. The discount is not idempotent: it inspects the last N
+    records, and on an already-discounted N the shorter window still holds the
+    same system events, so it subtracts them again. This used to run on every
+    sync of every chat, on top of the discount the list-chats merge and the
+    live chats-update had already applied. Diagnosed from a real log.log, a
+    group the user watched fall from 68 to 62 with nothing read:
+
+        chats-update in: <group> unread=72 previous=71
+        [unread] <group>: 61 -> 67 (previous=71, open=False, read_ack=None).
+        [unread] <group>: 67 -> 62 after history sync (...)
+
+    once a minute, the badge see-sawing between the two numbers.
+
     Returns True when the badge changed.
     """
     records = (chat.get("messages", {})
                .get("messages", {})
                .get("records", []))
     if not records:
+        return False
+    if not chat.pop(_UNREAD_UNDISCOUNTED, False):
         return False
     before = int(chat.get("unreadCount") or 0)
     corrected = _discount_non_countable_unread(records, before)
@@ -18904,6 +18941,12 @@ class MainWindow(wx.Frame):
                                 chat.get("t", 0), self.chats[jid].get("t", 0),
                                 chat["unreadCount"],
                             )
+                        # list-chats carries no messages, so this count is raw.
+                        note_unread_discount_state(
+                            chat,
+                            bool(((chat.get("messages") or {}).get("messages") or {})
+                                 .get("records")),
+                        )
                         chats[jid] = chat
                     else:
                         local_activity_t = int(chats[jid].get("t", 0) or 0)
@@ -18963,11 +19006,13 @@ class MainWindow(wx.Frame):
                                 # "1 unread" for a chat whose only new record is a
                                 # group promote doesn't mint a phantom badge here
                                 # either. Same correction as on_chat_unread_update().
-                                server_val = _discount_non_countable_unread(
+                                _discount_records = (
                                     (chats[jid].get("messages") or {})
                                     .get("messages", {})
-                                    .get("records", []),
-                                    server_val,
+                                    .get("records", [])
+                                )
+                                server_val = _discount_non_countable_unread(
+                                    _discount_records, server_val,
                                 )
                                 # An open conversation is reconciled, not zeroed.
                                 # This used to be a bare `v = 0` under a comment
@@ -19105,6 +19150,7 @@ class MainWindow(wx.Frame):
                                 # above resolved it — the notification code can
                                 # trust the number again.
                                 chats[jid].pop("_unread_count_unsynced", None)
+                                note_unread_discount_state(chats[jid], bool(_discount_records))
                             chats[jid][k] = v
                         # The incoming chat dict may carry the group's real
                         # name only under groupMetadata.subject (see
@@ -27746,14 +27792,15 @@ class MainWindow(wx.Frame):
         # The server sometimes counts own (fromMe) messages — and system events
         # (group promotes, joins/leaves, revokes) — as unread. Correct for both
         # by inspecting the tail of the locally-stored message list.
-        if unread_count > 0:
-            records = (
-                (chat.get("messages") or {})
-                .get("messages", {})
-                .get("records", [])
-            )
-            if records:
-                unread_count = _discount_non_countable_unread(records, unread_count)
+        records = (
+            (chat.get("messages") or {})
+            .get("messages", {})
+            .get("records", [])
+        )
+        if unread_count > 0 and records:
+            unread_count = _discount_non_countable_unread(records, unread_count)
+        # A zero has nothing to discount, so it counts as final either way.
+        discounted = bool(records) or unread_count == 0
         old_count = int(chat.get("unreadCount") or 0)
         if old_count == unread_count:
             logging.info(
@@ -27904,6 +27951,7 @@ class MainWindow(wx.Frame):
                 normalized, old_count, unread_count, previous_unread, _open_now, read_at_t,
             )
             chat["unreadCount"] = unread_count
+            note_unread_discount_state(chat, discounted)
             self._schedule_save(dirty_jid=normalized)
             self._schedule_set_chats()
             return
@@ -27959,6 +28007,7 @@ class MainWindow(wx.Frame):
             normalized, old_count, unread_count, previous_unread, _open_now, read_at_t,
         )
         chat["unreadCount"] = unread_count
+        note_unread_discount_state(chat, discounted)
         self._schedule_save(dirty_jid=normalized)
         self._schedule_set_chats()
 
