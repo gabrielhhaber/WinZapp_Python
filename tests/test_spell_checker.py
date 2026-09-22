@@ -2,6 +2,7 @@
 
 import core.spell_checker as spell_checker
 from core.spell_checker import WindowsSpellChecker, _word_ended
+from tests.locales import registered_locale_codes
 
 
 def test_word_ended_only_on_transition_to_whitespace():
@@ -79,3 +80,12 @@ def test_reset_with_no_argument_clears_the_baseline():
     checker.text_changed("abc")
     checker.reset()
     assert checker._last_text == ""
+
+
+def test_every_registered_locale_reaches_windows_with_a_region():
+    # The Windows spelling API wants a full BCP 47 tag; a bare "pl" or "ro"
+    # (the codes language_map.json uses) left the checker silent. A new
+    # region-less locale has to be mapped in _WINZAPP_LANGUAGE_TAGS.
+    for code in registered_locale_codes():
+        tag = spell_checker._normalize_language_tag(code)
+        assert "-" in tag, (code, tag)

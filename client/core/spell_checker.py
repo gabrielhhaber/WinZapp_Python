@@ -187,16 +187,18 @@ S_FALSE = 1
 CORRECTIVE_ACTION_DELETE = 3
 LOCALE_NAME_MAX_LENGTH = 85
 
-# WinZapp uses a short code for Polish while the Windows spell-checking API
-# expects a BCP 47 language tag. The other currently bundled UI languages are
-# already valid Windows tags, but keeping the whole mapping explicit makes the
-# boundary between application locales and spell-checker locales clear.
+# WinZapp uses short codes for Polish and Romanian while the Windows
+# spell-checking API expects a BCP 47 language tag. The other currently
+# bundled UI languages are already valid Windows tags, but keeping the whole
+# mapping explicit makes the boundary between application locales and
+# spell-checker locales clear.
 _WINZAPP_LANGUAGE_TAGS = {
     "en-US": "en-US",
     "es-ES": "es-ES",
     "pl": "pl-PL",
     "pt-BR": "pt-BR",
     "pt-PT": "pt-PT",
+    "ro": "ro-RO",
 }
 
 
