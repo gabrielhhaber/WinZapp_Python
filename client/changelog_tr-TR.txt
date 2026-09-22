@@ -28,7 +28,7 @@ DÜZELTMELER
 
 - Bir sohbette seçtiğiniz mesajlar, sohbeti kapattıktan sonra seçili kalıyor ve tekrar açtığınızda seçili olarak geri geliyordu. Seçim artık sohbetle birlikte sonlanır.
 
-- WhatsApp uygulama açılır açılmaz bağlantıyı reddettiğinde, tarayıcı profilinin yedek kopyası hiçbir zaman geri yüklenmiyordu: İlk birkaç saniyede eşleme kodları gelmeye başlarsa, WinZapp iyi bir kopya kayıtlı olsa bile oturumu kapatıp sizi tekrar eşlemeye yönlendiriyordu. Artık ilk kod göründüğü anda kopyayı geri yükler ve yalnızca geri yükleme işe yaramadığında eşleme ister.
+- WhatsApp uygulaması açılır açılmaz bağlantıyı reddettiğinde, tarayıcı profilinin yedek kopyası hiçbir zaman geri yüklenmiyordu: İlk birkaç saniyede eşleme kodları gelmeye başlarsa, WinZapp iyi bir kopya kayıtlı olsa bile oturumu kapatıp sizi tekrar eşlemeye yönlendiriyordu. Artık ilk kod göründüğü anda kopyayı geri yükler ve yalnızca geri yükleme işe yaramadığında eşleme ister.
 
 - Telefon numarasıyla grup üyesi ekleme işlemi hiçbir şey yapmıyordu: "Numara ekle" butonu kimseyi eklemiyor ve hata göstermiyordu. Artık numarayı hemen ekler, çalışıp çalışmadığını bildirir ve geçersiz bir numara girildiğinde hata verir. Aynı diyalogda arama alanı artık "Kişi ara" olarak seslendirilir.
 
