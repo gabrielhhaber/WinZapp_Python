@@ -15,18 +15,64 @@ injects a page script that hands those frames to and from WhatsApp's own
 opens a physical device. `callController.ts` exposes
 `/api/:session/call/{accept,reject,end,offer,audio/enable,diagnostics}`, and
 `createSessionUtil.ts` re-emits both `incomingcall` and the full `callstate`
-lifecycle. Video calls are deliberately out of scope: the camera path fails
-closed, and it takes THREE things rather than one: no `videoCapture` in the CDP
-grant, the patched `navigator.permissions.query` claiming the microphone only,
-and `bridgedGetUserMedia` serving a synthetic stream for any request naming
-audio **or video**. The grant governs the Permissions API; the prompt is
-governed by `--use-fake-ui-for-media-stream`, which accepts the request itself
-— so dropping the grant closes nothing on its own. The first attempt at this
-put the video refusal *below* an early return that fell through to the real
-device whenever `audio` was falsy, which left `getUserMedia({video: true})`
-opening the webcam with no prompt and no indicator, in a page the user never
-sees, while a test asserting on the removed expression passed. Assert on the
-shape of the guard, not on the absence of a string.
+lifecycle.
+
+**Which Windows host API a call device opens on is decided by NAME, and the
+first name match used to win.** PortAudio enumerates MME, then DirectSound,
+then WASAPI, then WDM-KS, each listing the same physical device; measured on a
+Realtek device, 90 ms of input buffering on MME and 120 ms on DirectSound
+against 3 ms on WASAPI, and DirectSound's burst-and-starve pacing at 20 ms
+blocks is the choppy audio of issue #272. `CallAudioSession._candidate_devices()`
+now tries the WASAPI twin of the chosen device (exact name before the
+31-character MME prefix match) first, shared mode. Exclusive mode is a
+per-direction opt-in (`exclusive_input`, `exclusive_output`; the latter warns
+that it silences the screen reader for the call) with three rules that each
+come from a failure: the exclusive pass opens only devices exclusive mode
+applies to (a non-WASAPI entry would "succeed" there and skip shared WASAPI);
+it never leaves the device the user chose — not for the all-devices sweep (it
+opened a virtual audio cable, the peer heard silence) and not for the system
+default (a refusing headset put the call exclusive on the default speakers);
+and the output opened while an incoming call RINGS is always shared, made
+exclusive only on answer, so the ring tone and the announcement of who is
+calling are still heard. A device switch mid-call
+(`_restart_active_voice_call_audio`) restarts the audio only — the camera and
+the `_active_voice_call` object stay, because `_start_call_camera()` compares
+that object by identity.
+
+**Video calls used to be out of scope, and are not any more — read this before
+touching the camera path.** While they were, the camera failed closed through
+THREE independent things rather than one: no `videoCapture` in the CDP grant,
+the patched `navigator.permissions.query` claiming the microphone only, and
+`bridgedGetUserMedia` serving a synthetic stream for any request naming audio
+**or video**. The grant governs the Permissions API; the prompt is governed by
+`--use-fake-ui-for-media-stream`, which accepts the request itself — so
+dropping the grant closes nothing *on its own*, but as an explicit allowlist it
+does deny what it omits, which is what made it a real second layer. The first
+attempt at this put the video refusal *below* an early return that fell through
+to the real device whenever `audio` was falsy, which left
+`getUserMedia({video: true})` opening the webcam with no prompt and no
+indicator, in a page the user never sees, while a test asserting on the removed
+expression passed. Assert on the shape of the guard, not on the absence of a
+string.
+
+**One-to-one video calls are now supported, and TWO of those three layers are
+gone.** `createSessionUtil.ts` grants `videoCapture`, and
+`navigator.permissions.query` now answers `granted` for `'camera'` as well as
+`'microphone'` — WhatsApp's VoIP bootstrap gates on it, so video does not work
+without that one. What still holds the line is `bridgedGetUserMedia`, which
+returns `cameraTrack()` (a canvas `captureStream`, fed by the Python-owned
+ffmpeg capture in `client/core/call_video.py`) for any request naming video and
+never calls `nativeGetUserMedia` with a video constraint. That is now a
+**single** layer: any path that escapes the override — a reference to
+`getUserMedia` captured before the patch ran, an iframe with its own
+`navigator.mediaDevices`, a worker — reaches the physical webcam with no prompt
+and no indicator. `videoCapture` in the grant appears to be unnecessary for the
+feature (nothing in the bridge consults it), so removing just that one would
+restore a layer without costing anything; it was left in deliberately and is
+worth revisiting. The guard test is
+`tests/test_call_control_api_patch.py::test_cdp_permission_grant_includes_voip_capture_permissions`,
+which now asserts the grant *does* contain `videoCapture` — if you restore the
+denial, restore that half of the assertion with it.
 
 **Calls depend on the WhatsApp Web build, which is chosen by the age of the
 install's catalogue — so "works for some testers, not others" is the expected
@@ -70,6 +116,32 @@ so a delayed terminal event from an earlier call with the same person cannot
 tear down the current one. Outgoing calls go through `_resolve_jid_for_send()`
 like every send, for the same reason: an `@lid` is an identifier, not a number
 to dial.
+
+**That `activeCall` poll can lose its timer, and then no call state reaches
+Python at all.** The listener installs as soon as WA-JS appears, which can be
+before WhatsApp's bundle replaces `window.setInterval`/`clearInterval` with its
+`JSScheduler` wrappers; measured 2026-09-21, the poll's native timer (id 4) had
+silently stopped — a non-pausing Debugger logpoint on the tick never fired
+while a fresh interval ticked normally — so a rejected outgoing call left the
+call window up and the microphone capturing. Each tick now stamps
+`window.__winzappCallStatePollLastTick`, and a Node-side watchdog in
+`onIncomingCallDirect()` calls `reviveStalledCallStatePoll()` every 3 s, which
+re-creates only the timer through `__winzappRearmCallStatePoll` (the closure,
+and the call it was tracking, survive). `call-state poll had stopped ticking;
+re-armed` in `wppconnect.log` means it happened. To check a live page, count
+reads of `require('WAWebCallCollection').activeCall` for two seconds with an
+accessor that returns the same value (then restore the data property): the
+poll's reads should be among them. The incoming-offer poll
+(`__winzappIncomingCallPoll`) is created in the same instant, so it has its
+own heartbeat and is re-armed with it.
+
+When `activeCall` disappears, the same poll asks the VoIP engine once:
+`getCallInfo()` empty or `call_ending` ends the call at once, anything else
+keeps the 5 s grace. "The engine names a different call_id" is deliberately
+NOT used: whether that id has the CallStore id's form was never measured, and
+a mismatch of form alone would end healthy calls on a brief `activeCall`
+swap. Probe answers carry a generation, so one that resolves after its
+absence is over cannot decide the next.
 
 **Standing the background sync down during a call must happen where a round is
 *decided*, never inside one.** `sync_remote_chats()` returns the set of chats
@@ -154,3 +226,60 @@ account has its own Node on its own port. Related, and also not solved: with a
 user-supplied `http://`/`ws://` server the live microphone PCM crosses that
 network in the clear, which `settings_import_api_confirm` does not warn about
 — it covers the token.
+
+## How WhatsApp Web actually consumes our camera (measured 2026-09-21)
+
+Established with live instrumentation over a day of calls; each point cost at
+least one real call to learn, so read before touching the video path.
+
+- **There is no video sender to inspect.** Every RTCPeerConnection WhatsApp
+  creates reports `getSenders()` empty for video and no `outbound-rtp` video
+  stats. Its WASM call engine encodes and transmits on its own. Anything that
+  reasons about "the WebRTC sender" is reasoning about something that does
+  not exist.
+- **It plays our track in hidden `<video>` elements** (not in the DOM) and
+  snapshots them with `new VideoFrame(video)`. Our canvas, our own track and
+  those elements all carried the real picture; the loss people reported was
+  never on the sending side.
+- **The bridge's media scan sees those elements too.** `scanMediaElements()`
+  hands every `<video>` with a stream to `attachRemoteVideo()`, so without a
+  guard the "remote" picture in WinZapp's call window was the user's OWN
+  camera. Two WinZapp users calling each other each saw themselves (or black
+  with the camera off) while a phone on the other end saw them fine.
+  `attachRemoteVideo()` therefore refuses `isOurCameraTrack()`, and
+  `MediaStreamTrack.prototype.clone` is hooked so a clone WhatsApp makes of
+  our track stays marked. The microphone always had the equivalent guard
+  (`localTrackIds`).
+- **Video off/on must go through the engine's own toggle,**
+  `getVoipStackInterface().setCallVideoMute(muted)` (arity 1, resolves 0) --
+  the same as WhatsApp's camera button. With it, WhatsApp re-requests
+  `getUserMedia({video: true})` on resume. The canvas is still painted black
+  on "off" as the privacy guarantee if that native call ever fails.
+  `requestKeyFrame` exists but wants the peer JID and is not needed.
+- **Test video with a phone on the other end,** not a second WinZapp, until
+  you have confirmed WinZapp's own remote rendering on that build: a broken
+  receiver is indistinguishable, from the sender's chair, from a broken
+  sender. A sighted-assistance app describing the call window is how the own-
+  camera bug was finally seen.
+- **The other person's video is never a track or a `<video>` the page can
+  read.** Measured over CDP during a live call with a phone: the engine's
+  `getShortStatisticString()` reported `Decoding 640x432 (H264) @ 19 fps`
+  while nothing on the page carried a single frame of it -- no track event,
+  no foreign `<video>`, no `VideoDecoder`, no canvas draw. The engine hands
+  decoded frames only to canvases registered with
+  `WAWebVoipVideoRendererRegistry` (`registerVideoCanvas(canvas, false)` then
+  `assignSourceToCanvas({canvas, mirror: false, source})`, with
+  `source = WAWebVoipVideoRenderSource.peer(peerJid, CAMERA)`), which is what
+  WhatsApp's own call UI does for the peer tile. `syncPeerVideo()` registers
+  one such canvas per video call and captures it into
+  `__winzappOnCallRemoteVideo`, released when the call ends. The registry keeps
+  a set of canvases per source, so this coexists with WhatsApp's own. Before
+  it, WinZapp had never shown the peer at all: the only "remote" video the
+  bridge ever found was the user's own camera.
+- **Debugging this live is far cheaper over CDP than by restarting WinZapp.**
+  WinZapp's Chrome is `HeadlessChrome` on a loopback remote-debugging port
+  (find it with `netstat` against the `chrome.exe` PIDs, confirm with
+  `/json/version` before listing targets so a personal Chrome's tabs are
+  never read). `getShortStatisticString()` and `getCallInfo()` on the VoIP
+  interface answer "is media arriving at all" in one call; `getCallInfo()`
+  carries account identifiers, so filter it before printing.

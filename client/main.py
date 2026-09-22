@@ -50,6 +50,7 @@ from core.audio_devices import (
     find_input_device_index,
     test_input_device,
     enumerate_input_devices,
+    repair_stored_input_device_names,
 )
 from core.bulk_read_state import run_bulk_read_state
 from core.call_matching import call_event_matches_active
@@ -94,7 +95,7 @@ from core.send_contract import accepted_message_id, send_failure_is_ambiguous
 from core.wpp_runtime import (
     read_homologated_wpp_version, wppconnect_library_drift, WPPCONNECT_PACKAGE,
 )
-from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default, migrate_spell_check_mode
+from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default, migrate_spell_check_mode, migrate_call_exclusive_mode_split
 from core.utils import clear_chat_applied, clear_chat_keep_starred_echo
 from ui.dialogs.checkbox_confirm import confirm_with_checkbox
 from core.settings_transfer import connection_runtime as _connection_runtime
@@ -2747,13 +2748,21 @@ class MainWindow(wx.Frame):
         self.voice_call_window_settings_button.Bind(wx.EVT_BUTTON, self._open_active_call_settings)
         self.voice_call_window_mute_button.Bind(wx.EVT_BUTTON, self.toggle_call_microphone)
         self.voice_call_window_video_button.Bind(wx.EVT_BUTTON, self.toggle_call_video)
-        controls.Add(self.voice_call_window_label, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 12)
-        controls.Add(self.voice_call_window_end_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 8)
-        controls.Add(self.voice_call_window_settings_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 8)
-        controls.Add(self.voice_call_window_mute_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 8)
-        controls.Add(self.voice_call_window_video_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 8)
-        call_sizer.Add(controls, 0, wx.EXPAND)
+        # The label gets a row of its own. Sharing one fixed-width row with four
+        # buttons, "Video call: <name>." pushed the last button -- "turn video
+        # off" -- past the window's right edge: still reachable with Tab, but
+        # off-screen (confirmed with a sighted-assistance description, which
+        # listed three buttons). Longer locales and longer names only made it
+        # worse, which is also why the window is fitted to its content in
+        # _sync_voice_call_bar() rather than given fixed sizes.
+        call_sizer.Add(self.voice_call_window_label, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 12)
+        controls.Add(self.voice_call_window_end_button, 0, wx.ALL, 8)
+        controls.Add(self.voice_call_window_settings_button, 0, wx.ALL, 8)
+        controls.Add(self.voice_call_window_mute_button, 0, wx.ALL, 8)
+        controls.Add(self.voice_call_window_video_button, 0, wx.ALL, 8)
+        call_sizer.Add(controls, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
         call_panel.SetSizer(call_sizer)
+        self._call_window_sizer = call_sizer
         self.voice_call_window.Bind(wx.EVT_CLOSE, self._on_voice_call_window_close)
 
         # Dedicated Ctrl-based shortcuts for the four call controls, reported
@@ -5760,6 +5769,17 @@ class MainWindow(wx.Frame):
             if status_lst is not None and status_lst.IsShownOnScreen():
                 status_lst.SetFocus()
                 return
+            # Last resort, and only when none of the lists above is on screen:
+            # an ARCHIVED conversation open. ArchivedConversationsPanel shows
+            # conversations_panel but hides its conversations_list, and hides
+            # itself -- so every check above was False and focus landed
+            # nowhere, the exact "arrows do nothing after restoring the window"
+            # symptom this method exists to prevent. The navigable control in
+            # that state is the open conversation's message list.
+            messages = getattr(panel, "messages_list", None) if panel else None
+            if messages is not None and messages.IsShownOnScreen():
+                messages.SetFocus()
+                return
         except Exception:
             logging.exception("[focus] restoring primary control focus failed")
 
@@ -6042,6 +6062,11 @@ class MainWindow(wx.Frame):
         if not self._active_incoming_calls:
             if hasattr(self, "call_incoming_sound"):
                 self.call_incoming_sound.stop()
+        # Keyed to an ANSWERABLE call, not to "any alert is still up" -- see
+        # stop_incoming_call_alert(). Group offers sit in the dictionary too
+        # and never open a monitor, so the old emptiness test held the speaker
+        # for as long as one kept ringing beside the expired one-to-one call.
+        if not self._has_answerable_incoming_call():
             self._stop_incoming_call_audio_monitor()
         self._sync_incoming_call_bar()
 
@@ -6186,9 +6211,23 @@ class MainWindow(wx.Frame):
         if not self._active_incoming_calls:
             if hasattr(self, "call_incoming_sound"):
                 self.call_incoming_sound.stop()
-            if not keep_audio_monitor:
-                self._stop_incoming_call_audio_monitor()
+        # The receive-only monitor is keyed to a call that can actually be
+        # ANSWERED, not to "any alert is still up". Group offers now sit in
+        # _active_incoming_calls too (they are announced, just not answerable),
+        # and they never start a monitor -- so gating this on the dictionary
+        # being empty left the speaker held open after the one-to-one call was
+        # dismissed, for as long as a group offer kept ringing beside it.
+        if not keep_audio_monitor and not self._has_answerable_incoming_call():
+            self._stop_incoming_call_audio_monitor()
         self._sync_incoming_call_bar()
+
+    def _has_answerable_incoming_call(self) -> bool:
+        """Whether any still-ringing offer could be accepted (i.e. not a group)."""
+        details_map = getattr(self, "_incoming_call_details", {})
+        return any(
+            incoming_call_can_answer(details_map.get(identity))
+            for identity in self._active_incoming_calls
+        )
 
     def _call_control_payload(self, identity: str) -> dict:
         details = getattr(self, "_incoming_call_details", {}).get(identity, {})
@@ -6223,6 +6262,25 @@ class MainWindow(wx.Frame):
                         response.status_code, response.text[:500])
         raise RuntimeError(f"HTTP {response.status_code}")
 
+    @staticmethod
+    def _call_response_route(response) -> str:
+        """Which path the Node side took for a call action, for the log.
+
+        Only the route and the call state are read: the body also carries the
+        peer JID, which must not reach log.log (docs/traps/log-pii.md).
+        """
+        try:
+            body = response.json()
+        except Exception:
+            return "unknown"
+        data = body.get("response") if isinstance(body, dict) else None
+        if not isinstance(data, dict) or not data.get("via"):
+            return "wa-js"
+        call = data.get("call") if isinstance(data.get("call"), dict) else {}
+        state = str(call.get("state") or "")
+        via = str(data.get("via"))
+        return f"{via} state={state}" if state else via
+
     def _call_error_text(self, error) -> str:
         """Collapse any call failure into one short line fit for speech."""
         logging.info("[call] failure detail: %r", error)
@@ -6243,7 +6301,8 @@ class MainWindow(wx.Frame):
         audio_settings = self.settings.get("call_audio_devices", {})
         input_name = audio_settings.get("input_device_name", "")
         output_name = audio_settings.get("output_device_name", "")
-        exclusive_mode = bool(audio_settings.get("exclusive_mode", False))
+        exclusive_input = bool(audio_settings.get("exclusive_input", False))
+        exclusive_output = bool(audio_settings.get("exclusive_output", False))
         session_name = str(getattr(ws, "instance_name", "") or self.token).split(":", 1)[0]
         audio = CallAudioSession(
             sio,
@@ -6251,7 +6310,8 @@ class MainWindow(wx.Frame):
                 session=session_name,
                 input_device_name=input_name,
                 output_device_name=output_name,
-                exclusive_mode=exclusive_mode,
+                exclusive_input=exclusive_input,
+                exclusive_output=exclusive_output,
             ),
         )
         return audio, session_name
@@ -6264,7 +6324,10 @@ class MainWindow(wx.Frame):
             return True
         try:
             audio, session_name = self._build_call_audio_session()
-            audio.start_output_only()
+            # Shared while ringing, even with exclusive output on: the ring
+            # tone and the screen reader must still be heard (see
+            # CallAudioSession.start_output_only).
+            audio.start_output_only(allow_exclusive=False)
             self._call_ring_audio_session = audio
             logging.info(
                 "[call_audio] ringing monitor started identity=%s session=%s",
@@ -6285,7 +6348,16 @@ class MainWindow(wx.Frame):
         except Exception:
             logging.exception("[call_audio] failed to stop ringing monitor")
 
-    def _start_voice_call_audio(self, identity: str, details: dict | None = None):
+    def _start_voice_call_audio(self, identity: str, details: dict | None = None,
+                                *, keep_active_call: bool = False):
+        """Open Python's call audio and record the call it belongs to.
+
+        ``keep_active_call`` is for a device switch inside the same call: the
+        existing ``_active_voice_call`` object stays in place. A camera being
+        opened concurrently compares that object by identity to tell "same
+        call" from "another call", so replacing it here would make it discard
+        a perfectly good capture.
+        """
         logging.info("[call_audio] starting session identity=%s", identity)
         if getattr(self, "_call_audio_session", None) is not None:
             return True
@@ -6311,6 +6383,20 @@ class MainWindow(wx.Frame):
         self._call_ring_audio_session = None
         logging.info("[call_audio] streams started session=%s", session_name)
         self._call_audio_session = audio
+        if keep_active_call:
+            if getattr(self, "_active_voice_call", None) is None:
+                # The call ended (ENDED arrives without _call_action_lock)
+                # while its devices were being switched: do not reopen the
+                # microphone and speaker for a call that is already over.
+                self._call_audio_session = None
+                try:
+                    audio.stop()
+                except Exception:
+                    logging.exception("[call_audio] failed to stop audio of an ended call")
+                logging.info("[call_audio] call ended during a device switch; audio not reopened")
+                return False
+            wx.CallAfter(self._sync_voice_call_bar)
+            return True
         details = details or getattr(self, "_incoming_call_details", {}).get(identity, {})
         self._active_voice_call = {
             "identity": identity,
@@ -6324,7 +6410,17 @@ class MainWindow(wx.Frame):
         wx.CallAfter(self._sync_voice_call_bar)
         return True
 
-    def _stop_voice_call_audio(self, grace_seconds: float = 0.0):
+    def _stop_voice_call_audio(self, grace_seconds: float = 0.0, *, keep_call: bool = False):
+        """Stop Python's call audio; by default the call's whole local state.
+
+        ``keep_call`` stops the audio streams ONLY -- the camera, the active
+        call record and the announced state are left alone. It exists for
+        _restart_active_voice_call_audio(): switching the microphone in the
+        middle of a video call used to go through the end-of-call path, which
+        stopped the camera, and the capture reopened afterwards was discarded
+        as belonging to "another call", so the other person saw black for the
+        rest of the call with nothing spoken.
+        """
         session = getattr(self, "_call_audio_session", None)
         if session is None:
             self._stop_incoming_call_audio_monitor()
@@ -6351,9 +6447,10 @@ class MainWindow(wx.Frame):
             pending.cancel()
             self._call_audio_stop_timer = None
         self._call_audio_session = None
-        self._stop_call_camera(reset_availability=True)
-        self._active_voice_call = None
-        self._voice_call_last_announced_state = ""
+        if not keep_call:
+            self._stop_call_camera(reset_availability=True)
+            self._active_voice_call = None
+            self._voice_call_last_announced_state = ""
         if session is not None:
             try:
                 session.stop()
@@ -6380,7 +6477,7 @@ class MainWindow(wx.Frame):
         def _worker():
             with self._call_action_lock:
                 try:
-                    self._stop_voice_call_audio()
+                    self._stop_voice_call_audio(keep_call=True)
                     last_error = None
                     for attempt in range(3):
                         try:
@@ -6388,17 +6485,21 @@ class MainWindow(wx.Frame):
                             # background callback immediately after close.
                             if attempt:
                                 time.sleep(0.25)
-                            self._start_voice_call_audio(
+                            if self._start_voice_call_audio(
                                 str(active.get("identity") or active.get("call_id") or "call"),
                                 active,
-                            )
-                            logging.info("[call_audio] active call devices switched")
+                                keep_active_call=True,
+                            ):
+                                logging.info("[call_audio] active call devices switched")
                             last_error = None
                             break
                         except Exception as exc:
                             last_error = exc
-                            self._stop_voice_call_audio()
+                            self._stop_voice_call_audio(keep_call=True)
                     if last_error is not None:
+                        # No audio device would open: tear the local call
+                        # down as before, camera included.
+                        self._stop_voice_call_audio()
                         raise last_error
                 except Exception:
                     logging.exception("[call_audio] failed to switch active call devices")
@@ -6509,7 +6610,32 @@ class MainWindow(wx.Frame):
             return False
 
         camera_name = self.settings.get("call_video_devices", {}).get("camera_name", "")
-        capture = CameraCapture(self._find_api_ffmpeg(), sender, transmit=transmit)
+        # Every capture carries its own epoch on each frame, and every stop
+        # names the epoch it stops. The page drops frames from a stopped epoch,
+        # which is what closes the two late-frame leaks: a send racing the stop
+        # (CameraCapture.stop() does not join its thread), and a capture that
+        # finished opening after the call ended and is discarded below. Either
+        # used to repaint a live picture of the user onto the page's canvas
+        # after video was off -- and the next call inherited it.
+        epoch = self._next_call_camera_epoch()
+
+        def send_frame(frame, _send=sender, _epoch=epoch):
+            _send(frame, epoch=_epoch)
+
+        capture = CameraCapture(self._find_api_ffmpeg(), send_frame, transmit=transmit)
+        # Captured BEFORE the blocking start below, and compared by identity
+        # afterwards. `_active_voice_call` is mutated in place and only ever
+        # replaced wholesale by a new call (a device switch keeps it: see
+        # keep_active_call in _start_voice_call_audio), so identity -- not truthiness --
+        # is what distinguishes "still the same call" from "that call ended
+        # and another one began while the camera was opening".
+        expected_call = getattr(self, "_active_voice_call", None)
+        # The identity test below treats None-is-None as "same call", so the
+        # no-call case must be refused up front -- otherwise a camera opened
+        # after the call's grace cleanup already ran stays on, transmitting,
+        # with no call at all.
+        if expected_call is None:
+            return False
         try:
             capture.start(camera_name)
         except Exception:
@@ -6527,18 +6653,36 @@ class MainWindow(wx.Frame):
                 wx.CallAfter(self.output, self.i18n.t("call_video_no_camera_error"), True)
             return False
 
-        if not getattr(self, "_active_voice_call", None):
+        # Opening the camera blocks for up to several seconds, and it now runs
+        # OUTSIDE _call_action_lock (holding that across it blocked hang-up).
+        # So the call can end, or be replaced, while we are in here. A plain
+        # truthiness test let both slip through: after Ctrl+Shift+Q the grace
+        # path of _stop_voice_call_audio() returns without clearing
+        # _active_voice_call, so the webcam lit up seconds AFTER the user hung
+        # up; and if they started another call in that window, this line
+        # overwrote the new call's capture and leaked the old ffmpeg process
+        # with the webcam still open and no reference left to stop it.
+        if getattr(self, "_active_voice_call", None) is not expected_call:
             capture.stop()
+            # This capture was already sending while start() blocked; stop its
+            # epoch on the page too, or its in-flight frames land after the
+            # call's reset() and leave the user's picture on the canvas.
+            self._send_call_camera_stop(epoch)
+            logging.info(
+                "[call_video] call ended or changed while the camera was opening; "
+                "discarding the capture"
+            )
             return False
 
         self._call_camera_capture = capture
+        self._call_camera_epoch = epoch
         self._call_camera_available = True
         self._call_camera_enabled = True
         if hasattr(self, "voice_call_window"):
             wx.CallAfter(self._sync_voice_call_bar)
         return True
 
-    def _stop_call_camera(self, *, reset_availability: bool = False):
+    def _stop_call_camera(self, *, reset_availability: bool = False, native: bool = False):
         """Stop only local video capture, leaving audio and remote video alive."""
         camera = getattr(self, "_call_camera_capture", None)
         self._call_camera_capture = None
@@ -6548,10 +6692,44 @@ class MainWindow(wx.Frame):
                 camera.stop()
             except Exception:
                 logging.exception("[call_video] failed to stop local camera")
+            # Killing ffmpeg only stops US sending. The page draws our frames
+            # onto a canvas and hands WhatsApp a captureStream() of it, which
+            # goes on emitting whatever that canvas last held at 10 fps -- so
+            # without telling the page, the peer kept seeing a frozen picture
+            # of the user for the rest of the call while WinZapp announced
+            # video was off. Only when a capture actually existed: a no-op
+            # stop must not blank a canvas this call never drew on.
+            self._send_call_camera_stop(getattr(self, "_call_camera_epoch", None), native=native)
         if reset_availability:
             self._call_camera_available = None
         if hasattr(self, "voice_call_window"):
             wx.CallAfter(self._sync_voice_call_bar)
+
+    def _next_call_camera_epoch(self) -> int:
+        """A strictly increasing id for one camera capture.
+
+        Milliseconds of monotonic time rather than a plain counter: the page
+        (and the Node process behind it) can outlive a WinZapp restart, and a
+        counter starting over at 0 would sit below the stopped epoch the page
+        still remembers, so every frame of the new session would be dropped.
+        Monotonic time keeps rising across restarts within a boot, and the
+        page does not survive a reboot.
+        """
+        epoch = time.monotonic_ns() // 1_000_000
+        previous = getattr(self, "_call_camera_last_epoch", 0)
+        if epoch <= previous:
+            epoch = previous + 1
+        self._call_camera_last_epoch = epoch
+        return epoch
+
+    def _send_call_camera_stop(self, epoch, native: bool = False):
+        stop_remote = getattr(getattr(self, "ws", None), "send_call_camera_stop", None)
+        if stop_remote is None:
+            return
+        try:
+            stop_remote(epoch=epoch, native=native)
+        except Exception:
+            logging.exception("[call_video] failed to stop page-side camera")
 
     def toggle_call_video(self, _event=None):
         """Enable/disable local camera video without changing the call itself."""
@@ -6564,13 +6742,46 @@ class MainWindow(wx.Frame):
             self.output(self.i18n.t("call_video_no_camera_error"), interrupt=True)
             return
         if getattr(self, "_call_camera_capture", None) is not None:
-            self._stop_call_camera()
+            # native=True: the user asked for video off, so WhatsApp's own call
+            # engine is told as well (its camera-button toggle), not just the
+            # page's canvas blanked.
+            self._stop_call_camera(native=True)
             return
+
+        # A second press while the camera is still opening would start a
+        # second capture: with a camera that allows two readers, the first
+        # ffmpeg is left running with the webcam light on and no reference to
+        # stop it. The first press is already doing what was asked.
+        if getattr(self, "_call_camera_resuming", False):
+            return
+        self._call_camera_resuming = True
 
         # Opening DirectShow can block for a moment; never do it on the wx UI
         # thread. _start_call_camera() re-probes the camera and refreshes the
         # button when capture is ready (or hides it if the device disappeared).
-        threading.Thread(target=self._start_call_camera, daemon=True).start()
+        threading.Thread(target=self._resume_call_camera, daemon=True).start()
+
+    def _resume_call_camera(self):
+        """Turn video back on: restart the capture, then tell WhatsApp.
+
+        WhatsApp Web transmits our camera through its own call engine, which
+        treated the camera as off once the picture went black and never came
+        back on its own -- re-enabled frames kept reaching the page while the
+        peer stayed on black. The engine is told only once the capture is
+        really running, so it never resumes onto a canvas nothing feeds.
+        """
+        try:
+            if not self._start_call_camera():
+                return
+            resume = getattr(getattr(self, "ws", None), "send_call_camera_start", None)
+            if resume is None:
+                return
+            try:
+                resume()
+            except Exception:
+                logging.exception("[call_video] failed to resume page-side camera")
+        finally:
+            self._call_camera_resuming = False
 
     def accept_incoming_call(self, identity: str, *, with_video: bool | None = None):
         if getattr(self, "_active_voice_call", None) is not None:
@@ -6605,21 +6816,9 @@ class MainWindow(wx.Frame):
         wx.CallAfter(self._sync_voice_call_bar)
 
         def _worker():
+            accepted = False
             with self._call_action_lock:
                 try:
-                    if is_video:
-                        # "Answer without video" asked for no camera, so a
-                        # camera failure here is not an error worth speaking,
-                        # and transmit=False means the probe never sends a
-                        # real frame to the peer while proving the camera
-                        # works. _stop_call_camera() below is then just
-                        # cleanup, not a race against an in-flight frame.
-                        self._start_call_camera(
-                            announce_failure=start_camera_enabled,
-                            transmit=start_camera_enabled,
-                        )
-                        if not start_camera_enabled:
-                            self._stop_call_camera()
                     self._start_voice_call_audio(identity, details)
                     self._raise_for_call_response(
                         self._post_call_control("accept", payload), "accept"
@@ -6629,6 +6828,7 @@ class MainWindow(wx.Frame):
                         self.i18n.t("incoming_call_answered"),
                         True,
                     )
+                    accepted = True
                 except Exception as exc:
                     self._stop_voice_call_audio()
                     logging.exception("[call] accept failed")
@@ -6640,17 +6840,56 @@ class MainWindow(wx.Frame):
                         True,
                     )
 
+            # Camera work happens AFTER the peer is answered -- opening
+            # DirectShow costs an ffmpeg device enumeration plus the capture
+            # start timeout, and paying that before the accept POST, with the
+            # ring tone already stopped, left a blind user in total silence
+            # for seconds after pressing Answer.
+            #
+            # It is also OUTSIDE _call_action_lock, which end_active_call()
+            # takes as well: holding the lock across those seconds while the
+            # call is already live and the user has just been told so made
+            # Ctrl+Shift+Q (hang up) block with no spoken feedback at all.
+            # The camera needs no serialisation against other call actions --
+            # _start_call_camera() already re-checks _active_voice_call and
+            # stops itself if the call went away underneath it.
+            if accepted and is_video:
+                try:
+                    # transmit=False means the probe never sends a real frame
+                    # to the peer while proving the camera works, so
+                    # _stop_call_camera() below is cleanup rather than a race
+                    # against an in-flight frame.
+                    self._start_call_camera(
+                        announce_failure=start_camera_enabled,
+                        transmit=start_camera_enabled,
+                    )
+                    if not start_camera_enabled:
+                        self._stop_call_camera()
+                except Exception:
+                    # The call is already accepted; a camera problem must not
+                    # be reported as "answer failed" nor tear the audio down.
+                    logging.exception("[call_video] camera setup failed after accept")
+
         threading.Thread(target=_worker, daemon=True).start()
 
     def reject_incoming_call(self, identity: str):
         payload = self._call_control_payload(identity)
         self.stop_incoming_call_alert(identity)
+        # A reject that never reached WhatsApp (the caller's phone kept ringing)
+        # could not be told apart in the log from one WhatsApp ignored: this
+        # line against the POST's own line shows time spent waiting for the
+        # call-action lock, and the answer below names the route taken.
+        logging.info("[call] reject requested has_call_id=%s", bool(payload))
 
         def _worker():
             with self._call_action_lock:
                 try:
-                    self._raise_for_call_response(
+                    response = self._raise_for_call_response(
                         self._post_call_control("reject", payload), "reject"
+                    )
+                    logging.info(
+                        "[call] reject answered via %s",
+                        self._call_response_route(response),
                     )
                 except Exception as exc:
                     logging.exception("[call] reject failed")
@@ -6755,9 +6994,16 @@ class MainWindow(wx.Frame):
             self.save_settings()
             if include_audio and getattr(self, "_call_audio_session", None) is not None:
                 self._restart_active_voice_call_audio()
-            if include_camera and getattr(self, "_call_camera_capture", None) is not None:
+            if (
+                include_camera
+                and getattr(self, "_call_camera_capture", None) is not None
+                and not getattr(self, "_call_camera_resuming", False)
+            ):
                 self._stop_call_camera()
-                threading.Thread(target=self._start_call_camera, daemon=True).start()
+                # Same guard as toggle_call_video(): a video-on press while
+                # this reopen runs must not start a second capture.
+                self._call_camera_resuming = True
+                threading.Thread(target=self._resume_call_camera, daemon=True).start()
             if first_combo is not None:
                 wx.CallAfter(first_combo.SetFocus)
         apply_button.Bind(wx.EVT_BUTTON, apply)
@@ -6789,7 +7035,18 @@ class MainWindow(wx.Frame):
     def _start_individual_call(self, peer_jid: str, name: str, *, is_video: bool):
         """Start a one-to-one WhatsApp voice/video call using Python-owned media."""
         peer_jid = self._normalize_jid(str(peer_jid or ""))
-        if not peer_jid or peer_jid.endswith(("@g.us", "@newsletter", "@broadcast")):
+        # The self-chat belongs on this list with the other unreachable kinds.
+        # Hiding the call buttons for it (#268) covers the mouse and the Tab
+        # order, but not the keyboard: the accelerators reach _on_voice_call()
+        # directly, so from the message list of "Me" a shortcut still spoke
+        # "calling Me..." and POSTed an offer to the user's own JID -- with the
+        # button hidden, a blind user had no way to know the action even
+        # existed there. This is the layer every path goes through.
+        if (
+            not peer_jid
+            or peer_jid.endswith(("@g.us", "@newsletter", "@broadcast"))
+            or self._is_self_jid(peer_jid)
+        ):
             self.output(self.i18n.t("voice_call_individual_only"), interrupt=True)
             return
         if (
@@ -6815,10 +7072,9 @@ class MainWindow(wx.Frame):
         wx.CallAfter(self._sync_voice_call_bar)
 
         def _worker():
+            offered = False
             with self._call_action_lock:
                 try:
-                    if is_video:
-                        self._start_call_camera()
                     self._start_voice_call_audio(identity, details)
                     dial_jid = self._resolve_jid_for_send(peer_jid) or peer_jid
                     response = self._raise_for_call_response(
@@ -6837,6 +7093,7 @@ class MainWindow(wx.Frame):
                     active = getattr(self, "_active_voice_call", None)
                     if active is not None and call_id:
                         active["call_id"] = call_id
+                    offered = True
                 except Exception as exc:
                     self._stop_voice_call_audio()
                     logging.exception("[call] outgoing call failed")
@@ -6847,6 +7104,19 @@ class MainWindow(wx.Frame):
                         ),
                         True,
                     )
+
+            # Camera after the offer, and outside _call_action_lock, for the
+            # same two reasons as accept_incoming_call(): device enumeration
+            # must not sit between the user pressing "video call" and the
+            # offer being placed, and it must not hold the lock that
+            # end_active_call() needs while the call is already live. The call
+            # is a video call either way -- the camera only decides whether WE
+            # transmit.
+            if offered and is_video:
+                try:
+                    self._start_call_camera()
+                except Exception:
+                    logging.exception("[call_video] camera setup failed after offer")
 
         threading.Thread(target=_worker, daemon=True).start()
 
@@ -6896,11 +7166,17 @@ class MainWindow(wx.Frame):
                 "video_call_window_title" if is_video else "voice_call_window_title"
             )
         )
-        window.SetSize((700, 520) if is_video else (560, 150))
         window_label = getattr(self, "voice_call_window_label", None)
         if window_label is not None:
             window_label.SetLabel(active_text)
         window.Layout()
+        # Fitted to whatever is shown -- the video area only on video calls,
+        # the fourth button only with a camera, and the label's actual text --
+        # instead of fixed sizes that were right for one language and one name
+        # length. After SetLabel, so the fit measures the name being shown.
+        sizer = getattr(self, "_call_window_sizer", None)
+        if sizer is not None:
+            sizer.Fit(window)
         if not window.IsShown():
             window.Show()
             window.Raise()
@@ -6921,14 +7197,27 @@ class MainWindow(wx.Frame):
         state = str(event.get("state") or "").upper()
         call_id = str(event.get("id") or "")
         peer_jid = self._normalize_jid(str(event.get("peerJid") or ""))
-        if (
-            event.get("isGroup")
-            or peer_jid.endswith("@g.us")
+        # A real group JID, for the same reason as on_incoming_call_event():
+        # the Node side infers isGroup from participant count, so the flag can
+        # be asserted for a one-to-one call. Trusting it alone here meant a
+        # call answered on the phone or from the page controls arrived as
+        # ACTIVE, was discarded as a group event, and WinZapp never adopted
+        # it -- no "call connected", no Python audio attached, nothing on
+        # screen. The user was in a call their PC pretended not to see.
+        is_group_event = bool(
+            peer_jid.endswith("@g.us")
             or str(event.get("groupJid") or "").endswith("@g.us")
-        ):
-            return
+        )
         active = getattr(self, "_active_voice_call", None)
         if not active:
+            # A group call is never adopted as the active call. This guard
+            # deliberately sits INSIDE the "no active call" branch: applied
+            # before the match below, a single false-positive isGroup (the Node
+            # side now also infers it from participant count) would swallow the
+            # terminal ENDED of a real one-to-one call, leaving the microphone
+            # open and the call window on screen after the other side hung up.
+            if is_group_event:
+                return
             if state != "ACTIVE" or not call_id:
                 return
             active = {
@@ -7081,6 +7370,9 @@ class MainWindow(wx.Frame):
             if not self._active_incoming_calls:
                 if hasattr(self, "call_incoming_sound"):
                     self.call_incoming_sound.stop()
+            # Same rule as the two paths above: released once nothing that
+            # could be answered is still ringing.
+            if not self._has_answerable_incoming_call():
                 self._stop_incoming_call_audio_monitor()
             self._sync_incoming_call_bar()
             return
@@ -7092,27 +7384,68 @@ class MainWindow(wx.Frame):
         identity = call_id or peer_jid
         if not identity or identity in self._active_incoming_calls:
             return
-        # The client only supports one-to-one calls. Ignore group offers.
-        if event.get("isGroup") or peer_jid.endswith("@g.us") or str(event.get("groupJid") or "").endswith("@g.us"):
-            return
-        caller_name = self._preview_sender_from_jid(peer_jid) if peer_jid else ""
-        if not caller_name:
-            caller_name = self.i18n.t("unknown_contact")
-        announcement_key = (
-            "incoming_video_call_announcement" if event.get("isVideo")
-            else "incoming_call_announcement"
-        )
-        message = self.i18n.t(announcement_key).format(name=caller_name)
+        # WPPConnect cannot answer a group call, so `is_group` keeps the Answer
+        # button disabled (incoming_call_can_answer()). It must NOT silence the
+        # offer: the page's own ringtone is muted by callMediaBridge, so
+        # dropping the event here left a blind user with no signal at all that
+        # their phone was ringing -- and no log line to explain it afterwards.
+        # The alert follows the same two Calls settings as a one-to-one offer.
+        group_jid = self._normalize_jid(str(event.get("groupJid") or ""))
+        # A real group JID is required, not merely the isGroup flag. The Node
+        # side now infers isGroup from participant count too
+        # (groupParticipantCountOf(call) > 1 in createSessionUtil.ts), so the
+        # flag can be asserted for a one-to-one call -- which is exactly why
+        # on_voice_call_state_event's own group guard had to move inside its
+        # "no active call" branch. Trusting it here costs more, not less: a
+        # false positive would announce "incoming group call in Unnamed group"
+        # instead of the caller's name AND disable the Answer button via
+        # incoming_call_can_answer(), so the user simply could not answer a
+        # real call from a friend. CLAUDE.md's rule for the other direction
+        # applies here too: a @g.us is not trustworthy alone, and neither is
+        # a group claim with no @g.us behind it.
+        is_group = group_jid.endswith("@g.us") or peer_jid.endswith("@g.us")
+        if event.get("isGroup") and not is_group:
+            logging.info(
+                "[incoming_call] isGroup asserted with no group JID; treating as "
+                "individual id=%s peer=%s", call_id, peer_jid,
+            )
+        if is_group:
+            chat = getattr(self, "chats", {}).get(group_jid, {}) if group_jid else {}
+            group_name = self._group_name_from_chat_dict(chat) if chat else ""
+            if not group_name and group_jid:
+                group_name = getattr(self, "_group_name_cache", {}).get(group_jid, "")
+            if not group_name:
+                group_name = self.i18n.t("unknown_group")
+            caller_name = group_name
+            message = self.i18n.t("incoming_group_call_announcement").format(name=group_name)
+        else:
+            # Keep the proven one-to-one call path unchanged: peerJid is the
+            # caller and resolves through the existing contact-name machinery.
+            caller_name = self._preview_sender_from_jid(peer_jid) if peer_jid else ""
+            if not caller_name:
+                caller_name = self.i18n.t("unknown_contact")
+            announcement_key = (
+                "incoming_video_call_announcement" if event.get("isVideo")
+                else "incoming_call_announcement"
+            )
+            message = self.i18n.t(announcement_key).format(name=caller_name)
         self._active_incoming_calls[identity] = peer_jid
         self._incoming_call_details[identity] = {
             "call_id": call_id,
             "peer_jid": peer_jid,
+            "group_jid": group_jid,
             "is_video": bool(event.get("isVideo")),
+            "is_group": is_group,
             "name": caller_name,
         }
         self._arm_incoming_call_watchdog(identity)
         self._incoming_call_details[identity]["message"] = message
-        self._start_incoming_call_audio_monitor(identity)
+        # Only for a call that CAN be answered: the monitor exists so accepting
+        # can promote the same session to full duplex without reopening the
+        # speaker, and a group offer never gets that far. Opening an output
+        # stream for it would hold the device for nothing.
+        if not is_group:
+            self._start_incoming_call_audio_monitor(identity)
         self.output(message, interrupt=True)
         if hasattr(self, "call_incoming_sound"):
             self.call_incoming_sound.play()
@@ -7122,8 +7455,8 @@ class MainWindow(wx.Frame):
                 show_popup(identity, message)
         self._sync_incoming_call_bar(message)
         logging.info(
-            "[incoming_call] ringing id=%s peer=%s video=%s",
-            call_id, peer_jid, bool(event.get("isVideo")),
+            "[incoming_call] ringing id=%s peer=%s video=%s group=%s group_jid=%s",
+            call_id, peer_jid, bool(event.get("isVideo")), is_group, group_jid,
         )
 
     @staticmethod
@@ -12422,6 +12755,20 @@ class MainWindow(wx.Frame):
         # Runs here rather than at each read site because it can only be done
         # once — see migrate_voice_messages_media_types().
         if migrate_voice_messages_media_types(self.settings):
+            changed = True
+        # call_audio_devices.exclusive_mode split into exclusive_input +
+        # exclusive_output: one checkbox governed both directions, and holding
+        # the SPEAKER exclusively silences the screen reader for the whole
+        # call while holding the microphone does not. An install that ticked
+        # the old box keeps it for the MICROPHONE only: that box never had any
+        # effect, so carrying it onto the speaker would silence the screen
+        # reader on the first call after updating, with no warning ever seen.
+        # One shot, with its own flag — see migrate_call_exclusive_mode_split().
+        if migrate_call_exclusive_mode_split(self.settings):
+            changed = True
+        # Microphone names saved as mojibake by the PyAudio-built combos
+        # ("Mixagem estÃ©reo"). Idempotent -- see repair_device_name().
+        if repair_stored_input_device_names(self.settings):
             changed = True
         # voice_message_mode default "audio" -> "voice_message": every
         # existing settings.json has the old value written out, so the new

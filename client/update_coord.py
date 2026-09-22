@@ -141,12 +141,42 @@ def _default_proc_create_time(pid: int):
         return _CT_UNKNOWN  # unknown -> fail closed
 
 
+def _current_image_basename() -> str:
+    r"""Lower-cased basename of the image THIS process is actually running.
+
+    ``sys.executable`` is not always that image. Under the Microsoft Store
+    build of Python it reports the WindowsApps *alias*
+    (``...\AppData\Local\Microsoft\WindowsApps\...\python.exe``) while the
+    process Windows actually created — and the name every process listing,
+    psutil included, reports for it — is ``python3.13.exe`` under
+    ``C:\Program Files\WindowsApps\...``. Both liveness paths below compare
+    image basenames, so on such an install WinZapp failed to recognise even
+    its own pid: `_default_proc_matches_us(os.getpid())` returned False, and
+    a live holder read as dead. ``GetModuleFileNameW(NULL)`` resolves the
+    real image regardless of the alias, without adding a psutil dependency
+    the installed build does not have.
+    """
+    if sys.platform != "win32":
+        return ""
+    try:
+        import ctypes
+
+        buffer = ctypes.create_unicode_buffer(32768)
+        if ctypes.windll.kernel32.GetModuleFileNameW(None, buffer, len(buffer)):
+            return os.path.basename(buffer.value).lower()
+    except Exception:
+        pass
+    return ""
+
+
 def _expected_process_basenames() -> set:
     """Lower-cased executable basenames a live WinZapp process could have.
 
     sys.executable covers both the frozen build (WinZapp.exe) and a dev-mode
     run (python.exe/pythonw.exe); the literal fallback guards the unlikely
-    case sys.executable reports something else in a bundled runner."""
+    case sys.executable reports something else in a bundled runner. The real
+    running image is added on top of it, because the two genuinely differ
+    under an aliased interpreter — see _current_image_basename()."""
     names = {"winzapp.exe"}
     try:
         exe = os.path.basename(sys.executable or "").lower()
@@ -154,6 +184,9 @@ def _expected_process_basenames() -> set:
             names.add(exe)
     except Exception:
         pass
+    image = _current_image_basename()
+    if image:
+        names.add(image)
     return names
 
 

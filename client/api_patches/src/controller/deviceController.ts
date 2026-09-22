@@ -1114,6 +1114,31 @@ export async function deleteMessage(req: Request, res: Response) {
       .json({ status: 'error', message: 'Error on delete message', error: e });
   }
 }
+// The status-reaction Bootloader fallback runs from TWO page.evaluate calls:
+// reactMessage() (the real send) and getSendCapabilities() (the startup probe
+// that decides whether to warn the user). They must agree, or the probe tells
+// the user reacting to a status may not work while reacting works -- or the
+// reverse. The part that WILL need updating on the next WhatsApp rename is this
+// candidate list (see docs/traps/send-contract.md), so it lives here once and
+// is handed to both evaluates as an argument instead of being copied into each.
+//
+// budgetMs is a TOTAL for the whole candidate loop, not per candidate. Each
+// loadModules() attempt used to get its own 8 s, up to 6 candidates -- 48 s --
+// while the callers give up far sooner: main.py POSTs /react-message with a
+// 15 s timeout and GETs /send-capabilities with 10 s. A slow Bootloader then
+// made Python report a reaction as failed while the page went on to SEND it,
+// and the echo arrived as someone else's reaction to the user's own message;
+// and the startup probe simply never returned a verdict. Both budgets leave
+// the rest of each request comfortable room under its caller's timeout.
+const STATUS_REACTION_BOOTLOADER = {
+  tierSources: ['status.*reaction|reaction.*status', 'reaction'],
+  knownCandidates: ['WAWebStatusDrawerFlow.react', 'WAWebStatusQuotedFlow.react'],
+  maxCandidates: 6,
+  perCandidateMs: 8000,
+};
+const STATUS_REACTION_SEND_BUDGET_MS = 8000;
+const STATUS_REACTION_PROBE_BUDGET_MS = 5000;
+
 export async function reactMessage(req: Request, res: Response) {
   /**
    * #swagger.tags = ["Messages"]
@@ -1183,7 +1208,7 @@ export async function reactMessage(req: Request, res: Response) {
       // case a status is ever ALSO mirrored there on some WhatsApp Web
       // version.
       const outcome = await req.client.page.evaluate(
-        async ({ msgId, reaction }) => {
+        async ({ msgId, reaction, bootloaderPlan, budgetMs }) => {
           const parts = msgId.split('_');
           const rawId = parts.length > 2 ? parts[2] : msgId;
           const posterJid = parts.length > 3 ? parts[3] : null;
@@ -1407,10 +1432,9 @@ export async function reactMessage(req: Request, res: Response) {
                 // "WAWebForwardMessageFlow.react", from WA-JS's own
                 // LAZY_MODULES) — "reaction" never collides with it, the
                 // word is four letters longer.
-                const tiers = [
-                  /status.*reaction|reaction.*status/i,
-                  /reaction/i,
-                ];
+                const tiers = bootloaderPlan.tierSources.map(
+                  (source: string) => new RegExp(source, 'i')
+                );
                 const allNames: string[] = [];
                 for (const name of componentMap.keys()) allNames.push(String(name));
                 let candidates: string[] = [];
@@ -1428,15 +1452,12 @@ export async function reactMessage(req: Request, res: Response) {
                   // that sample: the status drawer (where the reaction bar
                   // lives in the real UI) and the status-reply flow (an
                   // adjacent private action, often shipped together).
-                  const knownCandidates = [
-                    'WAWebStatusDrawerFlow.react',
-                    'WAWebStatusQuotedFlow.react',
-                  ];
-                  candidates = knownCandidates.filter((name) =>
-                    allNames.includes(name)
+                  candidates = bootloaderPlan.knownCandidates.filter(
+                    (name: string) => allNames.includes(name)
                   );
                 }
-                candidates = candidates.slice(0, 6);
+                candidates = candidates.slice(0, bootloaderPlan.maxCandidates);
+                const deadline = Date.now() + budgetMs;
                 if (candidates.length === 0) {
                   // Nothing matched even the loose tier. Dumping all ~500+
                   // names blew past the 1500-char cap main.py's
@@ -1463,6 +1484,11 @@ export async function reactMessage(req: Request, res: Response) {
                   );
                 }
                 for (const component of candidates) {
+                  const remainingMs = deadline - Date.now();
+                  if (remainingMs <= 0) {
+                    moduleErrors.push('winzapp-bootloader=budget-exhausted');
+                    break;
+                  }
                   try {
                     await new Promise<void>((resolve, reject) => {
                       let settled = false;
@@ -1471,7 +1497,7 @@ export async function reactMessage(req: Request, res: Response) {
                           settled = true;
                           reject(new Error('bootloader-timeout'));
                         }
-                      }, 8000);
+                      }, Math.min(bootloaderPlan.perCandidateMs, remainingMs));
                       try {
                         Bootloader.loadModules(
                           [component],
@@ -1582,7 +1608,12 @@ export async function reactMessage(req: Request, res: Response) {
               )}`,
           };
         },
-        { msgId, reaction }
+        {
+          msgId,
+          reaction,
+          bootloaderPlan: STATUS_REACTION_BOOTLOADER,
+          budgetMs: STATUS_REACTION_SEND_BUDGET_MS,
+        }
       );
       if (!outcome?.ok) {
         throw new Error(
@@ -1628,7 +1659,7 @@ export async function reactMessage(req: Request, res: Response) {
 /** Read-only compatibility probe for every send primitive WinZapp uses. */
 export async function getSendCapabilities(req: Request, res: Response) {
   try {
-    const capabilities = await req.client.page.evaluate(async () => {
+    const capabilities = await req.client.page.evaluate(async ({ bootloaderPlan, budgetMs }) => {
       const WPP = (window as any).WPP;
       const loader = WPP?.loader;
       const checks: Record<string, boolean> = {
@@ -1639,6 +1670,10 @@ export async function getSendCapabilities(req: Request, res: Response) {
         statusVideo: typeof WPP?.status?.sendVideoStatus === 'function',
       };
       let reactionModule: any = null;
+      // Set when the Bootloader fetch ran out of budget without finding the
+      // module. The send path has a longer budget than this probe, so that is
+      // "slow", not "incompatible" -- see the verdict at the end.
+      let bootloaderBudgetSpent = false;
       try {
         reactionModule = loader?.moduleRequire?.(
           'WAWebSendStatusReactionAction'
@@ -1686,10 +1721,9 @@ export async function getSendCapabilities(req: Request, res: Response) {
             typeof componentMap.keys === 'function'
           ) {
             // Tiered the same way reactMessage()'s copy is — keep in sync.
-            const tiers = [
-              /status.*reaction|reaction.*status/i,
-              /reaction/i,
-            ];
+            const tiers = bootloaderPlan.tierSources.map(
+              (source: string) => new RegExp(source, 'i')
+            );
             const allNames: string[] = [];
             for (const name of componentMap.keys()) allNames.push(String(name));
             let candidates: string[] = [];
@@ -1698,16 +1732,15 @@ export async function getSendCapabilities(req: Request, res: Response) {
               if (candidates.length > 0) break;
             }
             if (candidates.length === 0) {
-              const knownCandidates = [
-                'WAWebStatusDrawerFlow.react',
-                'WAWebStatusQuotedFlow.react',
-              ];
-              candidates = knownCandidates.filter((name) =>
-                allNames.includes(name)
+              candidates = bootloaderPlan.knownCandidates.filter(
+                (name: string) => allNames.includes(name)
               );
             }
-            candidates = candidates.slice(0, 6);
+            candidates = candidates.slice(0, bootloaderPlan.maxCandidates);
+            const deadline = Date.now() + budgetMs;
             for (const component of candidates) {
+              const remainingMs = deadline - Date.now();
+              if (remainingMs <= 0) break;
               try {
                 await new Promise<void>((resolve, reject) => {
                   let settled = false;
@@ -1716,7 +1749,7 @@ export async function getSendCapabilities(req: Request, res: Response) {
                       settled = true;
                       reject(new Error('bootloader-timeout'));
                     }
-                  }, 8000);
+                  }, Math.min(bootloaderPlan.perCandidateMs, remainingMs));
                   try {
                     Bootloader.loadModules(
                       [component],
@@ -1747,6 +1780,12 @@ export async function getSendCapabilities(req: Request, res: Response) {
                 break;
               }
             }
+            if (
+              typeof reactionModule?.sendStatusReaction !== 'function' &&
+              Date.now() >= deadline
+            ) {
+              bootloaderBudgetSpent = true;
+            }
           }
         } catch (_) {}
       }
@@ -1762,6 +1801,25 @@ export async function getSendCapabilities(req: Request, res: Response) {
       const missing = Object.entries(checks)
         .filter(([, available]) => !available)
         .map(([name]) => name);
+      // Out of budget with statusReaction the ONLY thing missing: no verdict.
+      // Answering "incompatible" here had Python speak "status reactions are
+      // not supported" for a reaction whose module was merely slow to load --
+      // and that the send path, with its longer budget, would have sent.
+      // Without `compatible`, Python treats the probe as unavailable and
+      // retries it later, when the bundle has usually arrived.
+      if (
+        bootloaderBudgetSpent &&
+        missing.length === 1 &&
+        missing[0] === 'statusReaction'
+      ) {
+        return {
+          inconclusive: 'status-reaction-bootloader-budget',
+          checks,
+          missing,
+          loaderType: String(loader?.loaderType || 'unknown'),
+          webVersion: String((window as any).WAPI?.getWAVersion?.() || 'unknown'),
+        };
+      }
       return {
         compatible: missing.length === 0,
         checks,
@@ -1770,8 +1828,19 @@ export async function getSendCapabilities(req: Request, res: Response) {
         loaderType: String(loader?.loaderType || 'unknown'),
         webVersion: String((window as any).WAPI?.getWAVersion?.() || 'unknown'),
       };
+    }, {
+      bootloaderPlan: STATUS_REACTION_BOOTLOADER,
+      budgetMs: STATUS_REACTION_PROBE_BUDGET_MS,
     });
     req.logger.info(`[send-capabilities] ${JSON.stringify(capabilities)}`);
+    if (capabilities.inconclusive) {
+      res.status(503).json({
+        status: 'inconclusive',
+        response: capabilities,
+        nodeVersion: process.version,
+      });
+      return;
+    }
     res.status(capabilities.compatible ? 200 : 409).json({
       status: capabilities.compatible ? 'success' : 'incompatible',
       response: capabilities,

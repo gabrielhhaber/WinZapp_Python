@@ -50,6 +50,26 @@ import Factory from './tokenStore/factory';
  * Falls back to forceKillByUserDataDir() (below) when no page/pid is
  * available, e.g. mid-pairing, before create() has returned.
  */
+/**
+ * Page-side half of the call-state poll watchdog (runs via page.evaluate, so
+ * it must stay self-contained). Re-arms the poll when its last tick is older
+ * than `staleMs`; the poll ticks every 250 ms, so a stale heartbeat means its
+ * timer is gone, not slow.
+ */
+export const CALL_STATE_POLL_WATCHDOG_MS = 3000;
+export const CALL_STATE_POLL_STALE_MS = 2000;
+export function reviveStalledCallStatePoll(staleMs: number): string {
+  const w = window as any;
+  if (typeof w.__winzappRearmCallStatePoll !== 'function') return 'absent';
+  const last = Math.min(
+    Number(w.__winzappCallStatePollLastTick || 0),
+    Number(w.__winzappIncomingCallPollLastTick || 0)
+  );
+  if (Date.now() - last < staleMs) return 'ok';
+  w.__winzappRearmCallStatePoll();
+  return 'rearmed';
+}
+
 function forceKillBrowserProcess(page: any, logger?: any): boolean {
   let pid: number | undefined;
   try {
@@ -2243,7 +2263,11 @@ export default class CreateSessionUtil {
 
           // Poll only active incoming calls. If a model disappears for 2.5s,
           // WhatsApp has removed it after answer/rejection/caller cancellation.
-          (window as any).__winzappIncomingCallPoll = window.setInterval(() => {
+          // Armed by armCallStatePoll() below, together with the activeCall
+          // poll: both are created at the same moment and can lose their
+          // timers the same way.
+          const incomingCallPollTick = () => {
+            (window as any).__winzappIncomingCallPollLastTick = Date.now();
             const now = Date.now();
             for (const [id, tracked] of trackedCalls.entries()) {
               try {
@@ -2276,7 +2300,7 @@ export default class CreateSessionUtil {
                 // The next poll can recover from a transient Store mutation.
               }
             }
-          }, 500);
+          };
 
           // Native WhatsApp Web VoIP keeps the active call on CallStore.activeCall
           // and may never add it to the legacy collection. Poll that slot so both
@@ -2286,11 +2310,75 @@ export default class CreateSessionUtil {
           let lastActiveIncomingOfferId = '';
           let activeCallMissingSince = 0;
           const ACTIVE_CALL_MISSING_GRACE_MS = 5000;
+          // The grace above exists for one real case: WhatsApp briefly
+          // replacing CallStore.activeCall mid-call. It cannot tell that apart
+          // from a call that is simply over, so every rejected, unanswered or
+          // remotely ended call waited the full 5 s before Python heard of it
+          // -- measured live on 2026-09-21: a rejection left activeCall gone
+          // (last state PREACCEPT_RECEIVED, absent from the collection) while
+          // the call window stayed up until the user hung up by hand.
+          //
+          // The VoIP engine is the source of truth, and it answers the
+          // question directly: getCallInfo() returns an empty string once no
+          // call is ongoing (verified live), JSON naming the call otherwise.
+          // So on each disappearance the engine is asked once; "no call" or
+          // "ending" ends it now, and anything else keeps the grace (see
+          // below for why "a different call_id" is not trusted).
+          let engineEndProbe: 'idle' | 'pending' | 'ended' | 'ongoing' = 'idle';
+          // Bumped on every return to 'idle'. A probe answers asynchronously;
+          // one that resolves after its absence is over (activeCall came back,
+          // or the grace already ended the call) must not leave its verdict
+          // behind for the NEXT absence -- a stale 'ongoing' would skip that
+          // probe and wait the full grace, a stale 'ended' would end the next
+          // call on its first brief activeCall swap.
+          let engineProbeGeneration = 0;
+          const resetEngineEndProbe = () => {
+            engineEndProbe = 'idle';
+            engineProbeGeneration += 1;
+          };
+          const probeEngineForEnd = () => {
+            const generation = engineProbeGeneration;
+            const settle = (verdict: 'ended' | 'ongoing') => {
+              if (generation === engineProbeGeneration) engineEndProbe = verdict;
+            };
+            engineEndProbe = 'pending';
+            try {
+              const getter =
+                WPP?.whatsapp?.functions?.getVoipStackInterface ||
+                WPP?.whatsapp?.getVoipStackInterface;
+              if (typeof getter !== 'function') {
+                settle('ongoing');
+                return;
+              }
+              Promise.resolve(getter())
+                .then((stack: any) => stack?.getCallInfo?.())
+                .then((raw: any) => {
+                  if (!raw) {
+                    settle('ended');
+                    return;
+                  }
+                  let info: any = raw;
+                  if (typeof raw === 'string') {
+                    try { info = JSON.parse(raw); } catch (_) { info = null; }
+                  }
+                  // Only "no call" and "ending" end it early. Whether the
+                  // engine's call_id has the same form as the CallStore id has
+                  // never been measured, so "the engine names another call" is
+                  // not trusted: a mismatch of form alone would end every
+                  // healthy call on its first brief activeCall swap.
+                  settle(!info || info.call_ending === true ? 'ended' : 'ongoing');
+                })
+                .catch(() => settle('ongoing'));
+            } catch (_) {
+              settle('ongoing');
+            }
+          };
           const TERMINAL_CALL_STATES = new Set([
             'ENDED', 'REJECTED', 'FAILED', 'NOT_ANSWERED',
             'HANDLED_REMOTELY', 'REMOTE_CALL_IN_PROGRESS',
           ]);
-          (window as any).__winzappCallStatePoll = window.setInterval(() => {
+          const callStatePollTick = () => {
+            (window as any).__winzappCallStatePollLastTick = Date.now();
             try {
               let activeCall: any = null;
               for (const store of stores) {
@@ -2330,7 +2418,11 @@ export default class CreateSessionUtil {
                 }
                 const now = Date.now();
                 activeCallMissingSince = activeCallMissingSince || now;
-                if (now - activeCallMissingSince < ACTIVE_CALL_MISSING_GRACE_MS) {
+                if (engineEndProbe === 'idle') probeEngineForEnd();
+                if (
+                  engineEndProbe !== 'ended' &&
+                  now - activeCallMissingSince < ACTIVE_CALL_MISSING_GRACE_MS
+                ) {
                   return;
                 }
                 emitCallState('ended', lastActiveCall, 'ENDED');
@@ -2338,10 +2430,12 @@ export default class CreateSessionUtil {
                 lastActiveSignature = '';
                 lastActiveIncomingOfferId = '';
                 activeCallMissingSince = 0;
+                resetEngineEndProbe();
                 return;
               }
 
               activeCallMissingSince = 0;
+              if (engineEndProbe !== 'idle') resetEngineEndProbe();
               const state = callStateOf(activeCall);
               const signature = [
                 callIdOf(activeCall),
@@ -2375,7 +2469,46 @@ export default class CreateSessionUtil {
             } catch (e) {
               // A later poll can recover from WhatsApp replacing CallStore.
             }
-          }, 250);
+          };
+          // This listener is installed as soon as WA-JS appears, which can be
+          // before WhatsApp's own bundle has replaced window.setInterval and
+          // clearInterval with its JSScheduler wrappers. Measured live on
+          // 2026-09-21: the poll's native timer (id 4) had silently stopped
+          // -- a logpoint on its first line never fired while a fresh
+          // interval ticked normally -- so no call state reached Python at
+          // all: an outgoing call the other person rejected kept the call
+          // window open and the microphone capturing until the user hung up
+          // by hand. The closure (lastActiveCall and friends) is kept; only
+          // the timer is re-created, by the Node-side watchdog, whenever the
+          // last tick is stale.
+          // Both polls of this listener are (re)armed here. Clearing the old
+          // ids is for a false-positive rearm (page busy > 2 s, old timers
+          // alive); the first ids come from the browser's own setInterval, and
+          // WhatsApp's clearInterval wrapper only cancels ids it issued
+          // itself, so at worst an old timer keeps running once -- harmless,
+          // the closures dedupe by signature.
+          const armCallStatePoll = () => {
+            for (const name of ['__winzappCallStatePoll', '__winzappIncomingCallPoll']) {
+              try {
+                window.clearInterval((window as any)[name]);
+              } catch (_) {
+                // An id from before WhatsApp's wrapper: nothing to clear.
+              }
+            }
+            const now = Date.now();
+            (window as any).__winzappCallStatePollLastTick = now;
+            (window as any).__winzappIncomingCallPollLastTick = now;
+            (window as any).__winzappCallStatePoll = window.setInterval(
+              callStatePollTick,
+              250
+            );
+            (window as any).__winzappIncomingCallPoll = window.setInterval(
+              incomingCallPollTick,
+              500
+            );
+          };
+          (window as any).__winzappRearmCallStatePoll = armCallStatePoll;
+          armCallStatePoll();
           return true;
         }, listenerStartedAt)
         .then((installed: boolean) => {
@@ -2393,6 +2526,36 @@ export default class CreateSessionUtil {
     // Re-install on page reload (fresh JS context loses the listener)
     client.page.on('load', installListener);
     installListener();
+
+    // The page-side call-state poll can lose its timer (see
+    // armCallStatePoll above). Check its heartbeat from here and re-arm it;
+    // one watchdog per client, replaced when listeners are wired again.
+    const previousWatchdog = (client as any).__winzappCallPollWatchdog;
+    if (previousWatchdog) clearInterval(previousWatchdog);
+    let watchdogBusy = false;
+    const watchdog = setInterval(() => {
+      const page: any = client.page;
+      if (!page || page.isClosed?.()) {
+        clearInterval(watchdog);
+        return;
+      }
+      if (watchdogBusy) return;
+      watchdogBusy = true;
+      page
+        .evaluate(reviveStalledCallStatePoll, CALL_STATE_POLL_STALE_MS)
+        .then((result: string) => {
+          if (result === 'rearmed') {
+            req.logger.warn(
+              `[${client.session}] call-state poll had stopped ticking; re-armed`
+            );
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          watchdogBusy = false;
+        });
+    }, CALL_STATE_POLL_WATCHDOG_MS);
+    (client as any).__winzappCallPollWatchdog = watchdog;
   }
 
   /**

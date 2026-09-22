@@ -18,6 +18,8 @@ from typing import Optional
 
 import numpy as np
 
+from core.audio_devices import repair_device_name
+
 try:
     import sounddevice as sd
 except ImportError:  # pragma: no cover - packaging always installs it
@@ -36,7 +38,15 @@ class CallAudioConfig:
     session: str
     input_device_name: str = ""
     output_device_name: str = ""
-    exclusive_mode: bool = False
+    # Exclusive access is per direction, because the two have completely
+    # different costs. Holding the MICROPHONE exclusively takes it from other
+    # apps that are not using it during a call anyway. Holding the SPEAKER
+    # exclusively silences everything else on that device -- including the
+    # screen reader, for the whole call, which for WinZapp's users means
+    # losing the call window's own controls. Hence two flags, both default
+    # off, and only the output one carries a spoken warning in the UI.
+    exclusive_input: bool = False
+    exclusive_output: bool = False
 
 
 class CallAudioUnavailable(RuntimeError):
@@ -84,6 +94,12 @@ class CallAudioSession:
             maxsize=CALL_OUTPUT_QUEUE_LIMIT
         )
         self._stop_event = threading.Event()
+        # Held around every write to the output stream and around replacing
+        # it, so the player never writes to a stream being closed.
+        self._output_lock = threading.Lock()
+        # True while the output was opened SHARED for the ring although
+        # exclusive_output is on; start() reopens it exclusive on answer.
+        self._output_exclusive_deferred = False
         self._sender_thread: Optional[threading.Thread] = None
         self._player_thread: Optional[threading.Thread] = None
         self._mic_frames_sent = 0
@@ -108,15 +124,28 @@ class CallAudioSession:
     def output_running(self) -> bool:
         return not self._stop_event.is_set() and self._output_stream is not None
 
-    def start_output_only(self) -> None:
-        """Open receive audio while ringing without opening the microphone."""
+    def start_output_only(self, *, allow_exclusive: bool = True) -> None:
+        """Open receive audio while ringing without opening the microphone.
+
+        ``allow_exclusive=False`` is for the ringing monitor. An exclusive
+        output opened while the call is still ringing would take the device
+        away from the ring tone and from the screen reader announcing who is
+        calling -- the call would arrive with no signal at all, which the
+        exclusive-output warning never asked the user to accept. The output
+        is opened shared instead, and start() makes it exclusive on answer.
+        """
         if self.output_running:
             return
         if self._sd is None:
             raise CallAudioUnavailable("sounddevice is not available in this Python runtime")
 
         self._stop_event.clear()
-        self._output_stream, self._output_rate = self._open_output_stream()
+        self._output_stream, self._output_rate = self._open_output_stream(
+            allow_exclusive=allow_exclusive
+        )
+        self._output_exclusive_deferred = bool(
+            self._config.exclusive_output and not allow_exclusive
+        )
         try:
             self._output_stream.start()
         except Exception:
@@ -139,13 +168,30 @@ class CallAudioSession:
 
         # An incoming call may already have opened the receive side while it
         # was ringing. Reuse it and only add microphone capture on answer.
+        opened_output_here = not self.output_running
         self.start_output_only()
+        if self._output_exclusive_deferred:
+            self._reopen_output_exclusive()
         try:
             self._input_stream, self._input_rate = self._open_input_stream()
             self._input_stream.start()
         except Exception:
             self._close_stream(self._input_stream)
             self._input_stream = None
+            # Tear down the receive side only when THIS call opened it.
+            # Without this, an outgoing call whose microphone cannot be
+            # opened (taken by another app) left the OutputStream and the
+            # player thread alive for the life of the process: nothing else
+            # can reach them, because the session never becomes
+            # _call_audio_session and _stop_voice_call_audio() therefore
+            # never sees it. Under exclusive_output that stranded stream holds
+            # the output device, silencing the screen reader until restart,
+            # and _restart_active_voice_call_audio()'s three attempts each
+            # stranded another one. When the output was already running it
+            # belongs to the ringing monitor, whose owner stops it on this
+            # same failure -- stopping it here too would be a double close.
+            if opened_output_here:
+                self.stop()
             raise
 
         self._sender_thread = threading.Thread(
@@ -155,13 +201,36 @@ class CallAudioSession:
         )
         self._sender_thread.start()
 
+    def _reopen_output_exclusive(self) -> None:
+        """Swap the ring's shared output for the exclusive one on answer.
+
+        The shared stream must be closed first: while this process holds the
+        device shared, WASAPI refuses it exclusive. _open_output_stream()
+        still falls back to shared on its own if exclusive is refused.
+        """
+        self._output_exclusive_deferred = False
+        with self._output_lock:
+            old = self._output_stream
+            self._output_stream = None
+            self._close_stream(old)
+            stream, rate = self._open_output_stream()
+            try:
+                stream.start()
+            except Exception:
+                self._close_stream(stream)
+                raise
+            self._output_stream, self._output_rate = stream, rate
+
     def stop(self) -> None:
         self._stop_event.set()
         self._emit_stop()
         self._close_stream(self._input_stream)
-        self._close_stream(self._output_stream)
         self._input_stream = None
-        self._output_stream = None
+        # Under the same lock as the player's writes, so a write in flight
+        # does not hit a stream being closed and log a spurious exception.
+        with self._output_lock:
+            self._close_stream(self._output_stream)
+            self._output_stream = None
         self._drain_queue(self._mic_queue)
         self._drain_queue(self._output_queue)
 
@@ -182,7 +251,11 @@ class CallAudioSession:
 
     @staticmethod
     def _normalized_name(value: str) -> str:
-        return " ".join(str(value or "").replace("(", "").replace(")", "").lower().split())
+        # repair_device_name: a microphone chosen from a PyAudio-built list was
+        # saved as mojibake ("estÃ©reo") and never matched sounddevice's
+        # correct name here, so the call used the default microphone instead.
+        value = repair_device_name(value)
+        return " ".join(value.replace("(", "").replace(")", "").lower().split())
 
     def _resolve_device(self, stored_name: str, *, input_device: bool) -> Optional[int]:
         if not stored_name:
@@ -211,23 +284,120 @@ class CallAudioSession:
         except (AttributeError, IndexError, TypeError, ValueError):
             return None
 
-    def _candidate_devices(self, stored_name: str, *, input_device: bool):
+    def _hostapi_name(self, device_index) -> str:
+        """Lower-cased PortAudio host API name for *device_index*, or ""."""
+        try:
+            info = self._sd.query_devices(int(device_index))
+            hostapi = self._sd.query_hostapis(int(info.get("hostapi", -1)))
+            return str(hostapi.get("name", "")).lower()
+        except Exception:
+            return ""
+
+    def _wasapi_twin(self, device_index, *, input_device: bool):
+        """The WASAPI entry for the same physical device as *device_index*.
+
+        Windows exposes one device once per host API, and PortAudio enumerates
+        them MME first, then DirectSound, then WASAPI, then WDM-KS. Every
+        lookup here resolves by NAME and takes the first match, so calls ran on
+        MME -- measured on a real Realtek device, 90 ms of input buffering and
+        120 ms on DirectSound output, against 3 ms for the very same hardware
+        through WASAPI. That is device latency alone, before any network, and
+        it is the difference between a conversation and a walkie-talkie.
+
+        This is plain SHARED-mode WASAPI (PortAudio's default; exclusive is
+        opt-in through WasapiSettings), so nothing is taken away from any other
+        application -- the screen reader included. The exclusive_* flags stay a
+        separate, per-direction choice.
+
+        Returns None when there is no WASAPI twin, in which case the caller
+        keeps the original index and the existing fallback cascade applies.
+        """
+        if device_index is None:
+            return None
+        channels_key = "max_input_channels" if input_device else "max_output_channels"
+        try:
+            wanted = self._normalized_name(
+                self._sd.query_devices(int(device_index)).get("name", "")
+            )
+        except Exception:
+            return None
+        if not wanted:
+            return None
+        # Two passes, exact before partial. The substring tolerance is needed
+        # -- MME truncates device names at 31 characters, so the stored name
+        # can legitimately be a prefix of the WASAPI one -- but taking the
+        # first hit of EITHER kind let a partial match at a lower index beat
+        # an exact match further down. Two endpoints sharing a 31-character
+        # prefix ("Headset Earphone (Jabra Evolve 65/75)") would then open the
+        # call on the wrong physical device, while the log cheerfully reported
+        # hostapi=wasapi. For a blind user, hearing the call come out of the
+        # monitor's HDMI output instead of the headset has no visual tell.
+        partial = None
+        for index, info in enumerate(self._query_devices()):
+            if int(info.get(channels_key, 0) or 0) <= 0:
+                continue
+            try:
+                hostapi = self._sd.query_hostapis(int(info.get("hostapi", -1)))
+                if "wasapi" not in str(hostapi.get("name", "")).lower():
+                    continue
+            except Exception:
+                continue
+            actual = self._normalized_name(info.get("name", ""))
+            if actual == wanted:
+                return index
+            if partial is None and (wanted in actual or actual in wanted):
+                partial = index
+        return partial
+
+    def _candidate_devices(
+        self, stored_name: str, *, input_device: bool, include_fallbacks: bool = True
+    ):
         preferred = self._resolve_device(stored_name, input_device=input_device)
         default_device = self._default_device_index(input_device=input_device)
         yielded = set()
         ordered = []
+        # The WASAPI twin of whatever the user picked comes first, then the
+        # pick itself, so a device that refuses WASAPI still opens exactly the
+        # way it does today. Same for the system default below.
         if preferred is not None:
+            twin = self._wasapi_twin(preferred, input_device=input_device)
+            if twin is not None:
+                ordered.append(twin)
             ordered.append(preferred)
+        # The exclusive pass (include_fallbacks=False) never leaves a device
+        # the user chose: offered the system default after the chosen one, a
+        # headset refusing exclusive access put the call EXCLUSIVE on the
+        # default speakers -- where the screen reader lives -- with the headset
+        # silent. The shared pass that follows still reaches the default.
+        # Keyed on the user having CHOSEN a device, not on it resolving: a
+        # chosen headset that is unplugged resolves to nothing, and the
+        # exclusive pass must not take the default speakers in its place.
+        chosen = bool(str(stored_name or "").strip())
+        if chosen and not include_fallbacks:
+            default_device = None
         if default_device is not None:
+            twin = self._wasapi_twin(default_device, input_device=input_device)
+            if twin is not None:
+                ordered.append(twin)
             ordered.append(default_device)
         # Keep PortAudio's implicit default as a compatibility fallback, but
         # prefer the concrete default index so we can inspect its native rate.
-        ordered.append(None)
+        if not chosen or include_fallbacks:
+            ordered.append(None)
         for index in ordered:
             key = -1 if index is None else int(index)
             if key not in yielded:
                 yielded.add(key)
                 yield index
+        # The sweep over EVERY device is a last resort for "open something
+        # rather than nothing", and it belongs to the shared pass only. Offered
+        # to the exclusive pass, it opened whatever unrelated device first
+        # accepted exclusive access once the intended one refused -- measured
+        # live on 2026-09-21: exclusive_input on opened "Line 1 (Virtual Audio
+        # Cable)" instead of the microphone, and the peer heard silence for the
+        # whole call.
+        if not include_fallbacks:
+            return
         channels_key = "max_input_channels" if input_device else "max_output_channels"
         for index, info in enumerate(self._query_devices()):
             if int(info.get(channels_key, 0) or 0) <= 0 or index in yielded:
@@ -272,7 +442,8 @@ class CallAudioSession:
     # exclusivity and only routed every call through WASAPI's own format
     # converter (auto_convert), which measurably added the choppy, high-
     # latency playback reported after this landed. Now that exclusive mode is
-    # a real, deliberate feature (settings["call_audio_devices"]["exclusive_mode"]),
+    # a real, deliberate feature (settings["call_audio_devices"]["exclusive_input"]
+    # and ["exclusive_output"]),
     # auto_convert is kept in BOTH modes as a resilience fallback — it only
     # engages if the exact requested rate/format cannot be opened as-is, so it
     # does not reintroduce the earlier regression, which came from forcing
@@ -307,14 +478,28 @@ class CallAudioSession:
         # exhausted does the same matrix get retried in shared mode. A single
         # device refusing exclusive access must not fall back to a worse
         # device — it should fall back to the same device in shared mode.
-        exclusive_attempts = [True, False] if self._config.exclusive_mode else [False]
+        exclusive_attempts = [True, False] if self._config.exclusive_input else [False]
         for attempt_index, exclusive in enumerate(exclusive_attempts):
-            for device in self._candidate_devices(self._config.input_device_name, input_device=True):
+            for device in self._candidate_devices(
+                self._config.input_device_name, input_device=True,
+                include_fallbacks=not exclusive,
+            ):
                 for rate in self._candidate_rates(device):
                     try:
                         extra_settings = self._stream_extra_settings(
                             device, input_device=True, exclusive=exclusive
                         )
+                        # The exclusive pass may only open a device exclusive
+                        # mode actually APPLIES to. A non-WASAPI candidate gets
+                        # extra_settings=None and would open "successfully"
+                        # right here -- so with the WASAPI twin refusing
+                        # exclusive access (common), the MME entry behind it
+                        # won the exclusive pass and the shared pass, where the
+                        # same WASAPI device would have opened, never ran.
+                        # Measured live: exclusive_input on put the microphone
+                        # on MME at ~90 ms instead of shared WASAPI at ~3 ms.
+                        if exclusive and extra_settings is None:
+                            continue
                         stream = self._sd.InputStream(
                             samplerate=rate,
                             blocksize=max(1, int(rate * CALL_FRAME_MS / 1000)),
@@ -329,28 +514,51 @@ class CallAudioSession:
                             logging.info(
                                 "[call_audio] exclusive mode unavailable, fell back to shared mode for input"
                             )
+                        # Report what was actually APPLIED, not what was asked
+                        # for. _stream_extra_settings() returns None for any
+                        # non-WASAPI device, so this used to log exclusive=True
+                        # for streams running in ordinary shared mode -- which
+                        # is precisely what hid the fact that the whole
+                        # exclusive path was unreachable on a default install.
                         logging.info(
-                            "[call_audio] input opened device=%r rate=%s latency=%r exclusive=%s",
+                            "[call_audio] input opened device=%r hostapi=%s rate=%s latency=%r exclusive=%s",
                             device,
+                            self._hostapi_name(device) if device is not None else "default",
                             rate,
                             getattr(stream, "latency", "low"),
-                            exclusive,
+                            bool(exclusive and extra_settings is not None),
                         )
                         return stream, rate
                     except Exception as exc:
                         last_error = exc
         raise CallAudioUnavailable(f"No microphone could be opened for the call: {last_error}")
 
-    def _open_output_stream(self):
+    def _open_output_stream(self, *, allow_exclusive: bool = True):
         last_error = None
-        exclusive_attempts = [True, False] if self._config.exclusive_mode else [False]
+        exclusive_attempts = (
+            [True, False] if (self._config.exclusive_output and allow_exclusive) else [False]
+        )
         for attempt_index, exclusive in enumerate(exclusive_attempts):
-            for device in self._candidate_devices(self._config.output_device_name, input_device=False):
+            for device in self._candidate_devices(
+                self._config.output_device_name, input_device=False,
+                include_fallbacks=not exclusive,
+            ):
                 for rate in self._candidate_rates(device):
                     try:
                         extra_settings = self._stream_extra_settings(
                             device, input_device=False, exclusive=exclusive
                         )
+                        # The exclusive pass may only open a device exclusive
+                        # mode actually APPLIES to. A non-WASAPI candidate gets
+                        # extra_settings=None and would open "successfully"
+                        # right here -- so with the WASAPI twin refusing
+                        # exclusive access (common), the MME entry behind it
+                        # won the exclusive pass and the shared pass, where the
+                        # same WASAPI device would have opened, never ran.
+                        # Measured live: exclusive_input on put the microphone
+                        # on MME at ~90 ms instead of shared WASAPI at ~3 ms.
+                        if exclusive and extra_settings is None:
+                            continue
                         stream = self._sd.OutputStream(
                             samplerate=rate,
                             blocksize=max(1, int(rate * CALL_FRAME_MS / 1000)),
@@ -364,12 +572,15 @@ class CallAudioSession:
                             logging.info(
                                 "[call_audio] exclusive mode unavailable, fell back to shared mode for output"
                             )
+                        # Actually applied, not merely requested — see the
+                        # matching note in _open_input_stream().
                         logging.info(
-                            "[call_audio] output opened device=%r rate=%s latency=%r exclusive=%s",
+                            "[call_audio] output opened device=%r hostapi=%s rate=%s latency=%r exclusive=%s",
                             device,
+                            self._hostapi_name(device) if device is not None else "default",
                             rate,
                             getattr(stream, "latency", "low"),
-                            exclusive,
+                            bool(exclusive and extra_settings is not None),
                         )
                         return stream, rate
                     except Exception as exc:
@@ -468,9 +679,13 @@ class CallAudioSession:
                 continue
             try:
                 samples = _pcm16_float32(pcm)
-                samples = _resample_mono(samples, source_rate, self._output_rate)
-                if samples.size and self._output_stream is not None:
-                    self._output_stream.write(samples.reshape(-1, 1))
+                with self._output_lock:
+                    stream = self._output_stream
+                    if stream is None:
+                        continue
+                    samples = _resample_mono(samples, source_rate, self._output_rate)
+                    if samples.size:
+                        stream.write(samples.reshape(-1, 1))
             except Exception:
                 logging.exception("[call_audio] failed to play remote call audio")
                 time.sleep(0.05)

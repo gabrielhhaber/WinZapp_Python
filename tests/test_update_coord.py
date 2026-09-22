@@ -3,6 +3,7 @@ update_state), the TOCTOU-safe protocol that gates start vs update install.
 """
 
 import os
+import sys
 
 import pytest
 
@@ -47,9 +48,26 @@ def test_default_proc_create_time_never_uses_os_kill_on_windows(monkeypatch):
 
 def test_default_proc_matches_us_identifies_its_own_process():
     # Our own pid's executable is whatever this test runs under (python.exe /
-    # WinZapp.exe) — _expected_process_basenames() always includes it via
-    # sys.executable, so this must never be a definite False.
+    # python3.13.exe / WinZapp.exe) — _expected_process_basenames() covers it
+    # via sys.executable AND via the real running image, so this must never be
+    # a definite False.
     assert uc._default_proc_matches_us(os.getpid()) is not False
+
+
+@pytest.mark.skipif(os.name != "nt", reason="GetModuleFileNameW is Windows-only")
+def test_expected_basenames_survive_an_aliased_sys_executable(monkeypatch):
+    """REGRESSION (real Windows 11 host, Microsoft Store Python): sys.executable
+    reported the WindowsApps alias `python.exe` while the process Windows had
+    actually created was `python3.13.exe`, so matching purely on sys.executable
+    failed to recognise our OWN pid and a live holder read as dead.
+
+    Pointing sys.executable at a name that matches nothing reproduces that
+    split on any Windows machine: only the real running image can rescue it.
+    """
+    monkeypatch.setattr(sys, "executable", r"C:\aliased\not-the-real-image.exe")
+    names = uc._expected_process_basenames()
+    assert uc._current_image_basename() in names
+    assert uc._default_proc_matches_us(os.getpid()) is True
 
 
 def test_default_proc_matches_us_is_false_for_a_pid_that_does_not_exist():

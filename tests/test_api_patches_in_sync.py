@@ -168,8 +168,27 @@ def test_build_api_uses_the_canonical_patch_list_and_verifies_call_output():
     assert "canonical_setup.CUSTOM_ROOT_FILES + canonical_setup.CUSTOM_SRC_FILES" in src
     assert "canonical_setup._merge_package_json_dependencies()" in src
     assert "_verify_critical_call_patch(api_dir)" in src
-    assert '"native-group-chat"' in src
-    assert '"native-group-wids"' in src
+
+    # REGRESSION: this used to assert only that the marker literals appeared
+    # somewhere in build_api.py -- which is trivially true of any string
+    # written there, and stayed true after the markers stopped existing in
+    # callController.ts. With `marker in source` gating the check, that made
+    # `missing` unconditionally empty: a stale dist/controller/callController.js
+    # passed "verification" and the test reported green. Assert instead that
+    # every marker the guard relies on is actually present in the patched
+    # controller, which is the only thing that makes the guard able to fire.
+    markers = re.search(
+        r"markers = \(\s*(.*?)\s*\)", src, re.S
+    )
+    assert markers, "could not locate the markers tuple in build_api.py"
+    marker_values = re.findall(r'"([^"]+)"', markers.group(1))
+    assert marker_values, "the markers tuple is empty"
+
+    controller = (
+        ROOT / "client" / "api_patches" / "src" / "controller" / "callController.ts"
+    ).read_text(encoding="utf-8")
+    for marker in marker_values:
+        assert marker in controller, marker
 
 
 def test_both_installers_patch_the_same_dependencies():

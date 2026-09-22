@@ -609,6 +609,69 @@ def migrate_spell_check_mode(settings) -> bool:
     return True
 
 
+# Marks that the one-shot call_audio_devices.exclusive_mode split has run.
+# Its own flag, like the three above, for the same reason.
+CALL_EXCLUSIVE_SPLIT_MIGRATION_FLAG = "call_exclusive_mode_split_migrated"
+
+
+def migrate_call_exclusive_mode_split(settings) -> bool:
+    """Split ``call_audio_devices.exclusive_mode`` into input/output flags.
+
+    One checkbox governed both directions, and the two have very different
+    costs: an exclusive MICROPHONE takes a device nothing else is using during
+    a call, while an exclusive SPEAKER silences every other application on it
+    -- the screen reader included, for the whole call, which for WinZapp's
+    users means losing the call window's own controls. They are now separate,
+    and only the output one carries a warning.
+
+    An install that already has the old key keeps its choice for the
+    MICROPHONE only. The speaker starts off, deliberately, even for a user
+    whose old box was ticked.
+
+    That looks like discarding an intent, and is the opposite. The old
+    checkbox never did anything: _stream_extra_settings() returns None for
+    any non-WASAPI device, and until this same release nothing ever resolved
+    to one, so exclusive mode could not engage at all. Nobody who ticked that
+    box has experienced its consequences. Carrying it onto the speaker would
+    mean this release does two things at once -- makes WASAPI reachable for
+    the first time AND converts a dead flag into a live one -- so a user who
+    ticked it months ago would update, answer their first call, and lose the
+    screen reader for the whole of it, with no idea why. They would never see
+    the warning either: it fires when the box is TICKED in Settings, and they
+    are not going to go and tick a box they believe is already on.
+
+    Preserving an intent that never had an effect is not preserving intent;
+    it is delivering a new effect without the consent this very feature
+    treats as necessary. Whoever wants exclusive output ticks the box and
+    reads the warning.
+
+    A missing old key is left alone -- backfill_missing_defaults() puts both
+    new keys there straight after, at their False defaults. The old key is
+    removed once carried across, so a later build cannot read a stale value
+    that no longer governs anything.
+
+    The flag is what makes this one-shot rather than a permanent override:
+    without it, a user who unticks the speaker box would find it back on at
+    the next launch, and that is exactly the user who cares. Returns True
+    whenever *settings* changed, the flag included.
+    """
+    if not isinstance(settings, dict):
+        return False
+    general = settings.get("general")
+    if not isinstance(general, dict):
+        general = {}
+        settings["general"] = general
+    if general.get(CALL_EXCLUSIVE_SPLIT_MIGRATION_FLAG):
+        return False
+    section = settings.get("call_audio_devices")
+    if isinstance(section, dict) and "exclusive_mode" in section:
+        legacy = bool(section.pop("exclusive_mode"))
+        section.setdefault("exclusive_input", legacy)
+        section.setdefault("exclusive_output", False)
+    general[CALL_EXCLUSIVE_SPLIT_MIGRATION_FLAG] = True
+    return True
+
+
 def auto_download_allows(settings, msg) -> bool:
     """Whether the background auto-download may fetch *msg*'s media.
 
@@ -917,7 +980,12 @@ DEFAULT_SETTINGS = {
     "call_audio_devices": {
         "output_device_name": "",
         "input_device_name": "",
-        "exclusive_mode": False
+        # Per direction, because the costs differ completely: an exclusive
+        # microphone takes a device nothing else is using mid-call, while an
+        # exclusive speaker silences every other application on it -- the
+        # screen reader included, for the whole call. Both default off.
+        "exclusive_input": False,
+        "exclusive_output": False
     },
     # Camera choice for video calls, deliberately its own section for the
     # same reason as call_audio_devices above: swap devices per-call without

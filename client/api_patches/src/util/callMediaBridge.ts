@@ -215,6 +215,31 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     cameraCanvas: null,
     cameraTrack: null,
     cameraPending: false,
+    // Bumped by stopCamera(). An Image decode started before the stop can
+    // only land after it, and drawing it then would repaint the very frame
+    // the blank was meant to erase -- so the onload handler checks that the
+    // generation it captured is still current before touching the canvas.
+    cameraGeneration: 0,
+    // Highest capture epoch the desktop has declared STOPPED. Every desktop
+    // camera capture carries its own increasing epoch, so a frame that was
+    // already in flight when its capture was stopped (a send racing the
+    // stop, or a capture discarded because the call ended while the camera
+    // was opening) is recognised and dropped instead of repainting a live
+    // picture of the user after video was turned off. Keyed on the
+    // desktop's own epochs rather than on state.enabled on purpose: enable()
+    // never runs on the Linux/PulseAudio path, and reset() -- which clears
+    // enabled -- also runs mid-call on an audio device restart.
+    cameraStoppedEpoch: -1,
+    // The last real camera frame, redrawn by the steady pump below while video
+    // is on, and whether video is on at all (false paints black instead).
+    cameraLastPicture: null as HTMLImageElement | null,
+    cameraShowing: false,
+    cameraPump: 0,
+    cameraPumpIdleTicks: 0,
+    // Ids of every track that is OUR camera -- the canvas track, each clone
+    // handed to WhatsApp, and any clone WhatsApp makes of those. The remote
+    // video extraction must never pick one of these up: see attachRemoteVideo.
+    cameraCloneIds: new Set<string>(),
     cameraFramesReceived: 0,
     cameraFramesDropped: 0,
     cameraTrackRequests: 0,
@@ -248,18 +273,29 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   >();
   const mutedPageElements = new Set<HTMLMediaElement>();
   let callWasActive = false;
-  // A merely-ringing call (INCOMING_RING/CALLING/etc, counted "active" by
-  // isLivePageCall below) that is cancelled or rejected before anyone answers
-  // has no real terminal chime to protect. state.enabled only becomes true
-  // when the audio bridge is actually attached after answer, so it is the
-  // signal for "this call was ever really connected" — remembered here
-  // because refreshCallAudioPolicy's own poll can observe the ENDED
-  // transition after state.reset() has already cleared state.enabled back to
-  // false for the same call. Without this, cancelling a call before answer
-  // opened the same 2500ms exemption window as a genuine hangup, and the
-  // coincident missed-call message-notification ping slipped through it
-  // unmuted (measured 2026-09-20).
-  let callWasAnswered = false;
+  // Key of the page call last seen live, so a call replaced by another one
+  // with no idle poll in between (a near-immediate redial) still counts as
+  // having ended.
+  let lastPageCallKey = '';
+  // Key of the call that was actually CONNECTED, or null. A merely-ringing
+  // call (INCOMING_RING/CALLING/etc, counted "active" by isLivePageCall) that
+  // is cancelled or rejected before anyone answers has no real terminal chime
+  // to protect, and opening the 2500ms exemption for it let a coincident
+  // missed-call message ping slip through unmuted (measured 2026-09-20).
+  //
+  // "Connected" is read from the page's own CallStore state, NOT from
+  // state.enabled, which is what this used to be and was wrong three ways:
+  // - offerCall() enables the bridge BEFORE the offer is sent, so an OUTGOING
+  //   call counted as answered while still ringing, and an unanswered outgoing
+  //   call reopened exactly the leak the flag was introduced to close;
+  // - on the Linux/PulseAudio path setCallMediaBridgeActive() returns before
+  //   enable(), so no call was ever "answered" and the real terminal chime
+  //   was muted on every remote-API install;
+  // - reset() cleared the flag, yet the poll can observe ENDED after reset()
+  //   (a slow teardown), and then the genuine chime was not re-armed.
+  // Keyed by call id rather than a boolean, it survives reset() without
+  // leaking into the next call: a new call has a new key.
+  let answeredPageCallKey: string | null = null;
   let allowCallEndChimeUntil = 0;
 
   const pageAudioNow = () => {
@@ -320,6 +356,31 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     return !['', '0', 'NONE', 'ENDED', 'HANDLED_REMOTELY'].includes(callState);
   };
 
+  // States a call only reaches once it has been answered, on either side.
+  // PREACCEPT_RECEIVED is deliberately absent: it arrives while still ringing.
+  const CONNECTED_PAGE_CALL_STATES = [
+    'ACCEPT_SENT',
+    'ACCEPT_RECEIVED',
+    'ACTIVE',
+    'CONNECTED_LONELY',
+    'REJOINING',
+  ];
+
+  const isConnectedPageCall = (call: any): boolean =>
+    !!call && CONNECTED_PAGE_CALL_STATES.includes(pageCallState(call));
+
+  const pageCallKey = (call: any): string => {
+    try {
+      const id = call?.id ?? call?.get?.('id') ?? '';
+      return String(id?._serialized ?? id ?? '');
+    } catch (_) {
+      return '';
+    }
+  };
+
+  const lastCallWasAnswered = (): boolean =>
+    answeredPageCallKey !== null && answeredPageCallKey === lastPageCallKey;
+
   const restorePageAudio = (el: HTMLMediaElement) => {
     try {
       const original = pageAudioState.get(el);
@@ -345,14 +406,18 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   };
 
   const refreshCallAudioPolicy = () => {
-    const active = isLivePageCall(currentPageCall());
-    if (!callWasActive && active) callWasAnswered = false; // a new call just started ringing
-    if (state.enabled) callWasAnswered = true; // remember it was actually answered
-    if (callWasActive && !active) {
-      if (callWasAnswered) allowCallEndChime();
-      callWasAnswered = false;
+    const call = currentPageCall();
+    const active = isLivePageCall(call);
+    const key = active ? pageCallKey(call) : '';
+    // The previous call ended -- or was replaced by a different one without
+    // an idle poll in between. Settle it BEFORE looking at the new one.
+    if (callWasActive && (!active || key !== lastPageCallKey)) {
+      if (lastCallWasAnswered()) allowCallEndChime();
+      answeredPageCallKey = null;
     }
+    if (active && isConnectedPageCall(call)) answeredPageCallKey = key;
     callWasActive = active;
+    lastPageCallKey = key;
   };
 
   const isPageRingtone = (el: HTMLMediaElement) => {
@@ -410,8 +475,9 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     return true;
   };
 
-  state.pushCameraFrame = (jpeg: string) => {
+  state.pushCameraFrame = (jpeg: string, epoch?: number) => {
     if (typeof jpeg !== 'string' || jpeg.length > 350_000) return;
+    if (typeof epoch === 'number' && epoch <= state.cameraStoppedEpoch) return;
     state.cameraFramesReceived += 1;
     if (state.cameraFramesReceived === 1 || state.cameraFramesReceived % 100 === 0) {
       report(
@@ -432,15 +498,198 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       const context = canvas.getContext('2d');
       context?.fillRect(0, 0, canvas.width, canvas.height);
     }
+    const generation = state.cameraGeneration;
     const picture = new Image();
     picture.onload = () => {
-      try { canvas.getContext('2d')?.drawImage(picture, 0, 0, 640, 360); } finally {
+      try {
+        // Discard a decode that finished after the camera was turned off:
+        // drawing it would repaint exactly the frame stopCamera() blanked.
+        if (generation === state.cameraGeneration) {
+          canvas.getContext('2d')?.drawImage(picture, 0, 0, 640, 360);
+          state.cameraLastPicture = picture;
+          state.cameraShowing = true;
+          ensureCameraPump();
+        }
+      } finally {
         state.cameraPending = false;
       }
     };
     picture.onerror = () => { state.cameraPending = false; };
     picture.src = `data:image/jpeg;base64,${jpeg}`;
   };
+
+  const blankCameraCanvas = () => {
+    const canvas = state.cameraCanvas;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+    context.fillStyle = '#000';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  };
+
+  // "Turn video off" mid-call. Deliberately does NOT stop the track: the peer
+  // connection holds a clone of it, so stopping it would end the video sender
+  // outright and leave nothing to resume when video is turned back on.
+  //
+  // Blanking is what actually closes the leak. captureStream(10) emits
+  // whatever the canvas currently holds, forever -- so stopping only the
+  // Python-side ffmpeg capture froze the user's last frame and went on
+  // transmitting that picture of them at 10 fps while WinZapp announced video
+  // was off. Painting black keeps the stream valid and shows the peer nothing.
+  state.stopCamera = (epoch?: number, native?: boolean) => {
+    if (typeof epoch === 'number' && epoch > state.cameraStoppedEpoch) {
+      state.cameraStoppedEpoch = epoch;
+    }
+    blankCamera();
+    report('camera-stop', `epoch=${state.cameraStoppedEpoch} native=${!!native}`);
+    // The user turned video off: tell WhatsApp's own call engine, exactly
+    // as its camera button does. The blank above stays regardless -- it is
+    // the privacy guarantee if this native call ever fails.
+    if (native) setNativeVideoMute(true);
+  };
+
+  // The user turned video back on and the desktop capture is running again.
+  state.resumeCamera = () => {
+    report('camera-resume', 'desktop capture restarted');
+    setNativeVideoMute(false);
+  };
+
+  // WhatsApp Web sends our camera through its own WASM call engine, not a
+  // page-visible RTCPeerConnection sender (a live sender report showed
+  // senders=0 on every connection). That engine decides what the peer sees,
+  // and after the canvas went black it treated the camera as off and never
+  // came back: re-enabled frames kept landing on the canvas while the peer
+  // stayed on black for the rest of the call. The engine's interface exposes
+  // setCallVideoMute -- the same toggle as the camera button in WhatsApp's
+  // own UI -- so video off/on now goes through it.
+  //
+  // Its arguments are undocumented (wa-js types the interface as `any`), so
+  // this dispatches on arity. The arity and the start of the function's
+  // source are logged once per page -- enough to pin the signature down if a
+  // WhatsApp update changes it (verified live 2026-09-21: arity 1, returns
+  // 0) -- and every toggle logs only its outcome.
+  let videoMuteSignatureReported = false;
+  const setNativeVideoMute = (muted: boolean) => {
+    const getter =
+      win.WPP?.whatsapp?.functions?.getVoipStackInterface ||
+      win.WPP?.whatsapp?.getVoipStackInterface;
+    if (typeof getter !== 'function') {
+      report('video-mute', `muted=${muted} getVoipStackInterface unavailable`);
+      return;
+    }
+    Promise.resolve(getter())
+      .then(async (stack: any) => {
+        const fn = stack?.setCallVideoMute;
+        if (typeof fn !== 'function') {
+          report('video-mute', `muted=${muted} setCallVideoMute unavailable`);
+          return;
+        }
+        const callId = pageCallKey(currentPageCall());
+        const args = fn.length >= 2 ? [callId, muted] : [muted];
+        if (!videoMuteSignatureReported) {
+          videoMuteSignatureReported = true;
+          const source = String(fn).replace(/\s+/g, ' ').slice(0, 160);
+          report(
+            'video-mute',
+            `signature arity=${fn.length} args=${fn.length >= 2 ? 'callId,muted' : 'muted'} src=${source}`
+          );
+        }
+        const result = await fn.apply(stack, args);
+        let shown = '';
+        try { shown = JSON.stringify(result); } catch (_) { shown = String(result); }
+        report('video-mute', `muted=${muted} ok result=${String(shown).slice(0, 120)}`);
+      })
+      .catch((error: any) =>
+        report('video-mute', `muted=${muted} error=${String(error?.message || error)}`)
+      );
+  };
+
+  // Blank without gating any epoch. This is what reset() uses, and it must
+  // NOT destroy the canvas or the track: reset() does not only mean "the call
+  // ended" -- an audio device change from the call window restarts the audio
+  // session, which emits call:audio:stop and lands here mid-call. WhatsApp
+  // keeps its clone of the ORIGINAL track and never asks for a new one, so
+  // replacing the canvas left the peer watching a black, orphaned canvas for
+  // the rest of the call while WinZapp said video was on. Blanking the same
+  // canvas instead lets the next frame from the still-running capture
+  // repaint it, and still means the next call starts black rather than on a
+  // still of the previous one -- including a call answered without video.
+  const blankCamera = () => {
+    state.cameraShowing = false;
+    state.cameraLastPicture = null;
+    if (!state.cameraCanvas) return;
+    state.cameraGeneration += 1;
+    state.cameraPending = false;
+    blankCameraCanvas();
+  };
+
+  // A canvas captureStream() only emits a frame when the canvas is PAINTED.
+  // Left to the desktop's frames alone, the track went idle whenever they
+  // stopped or stuttered: for the seconds between the offer and the first
+  // camera frame, across socket jitter, and for good after "turn video off"
+  // painted black once. WebRTC then reports the track as muted, and WhatsApp
+  // Web reacts on its own -- measured live 2026-09-21: 1 s after the blank it
+  // re-requested media with video=false, and after video was turned back on
+  // it asked for video=false AGAIN, never video=true. The peer saw the image
+  // flicker at the start of the call, and black for good after re-enabling.
+  //
+  // So the canvas is repainted at a steady 10 fps for as long as a page call
+  // is live: the last real frame while video is on, black while it is off.
+  // The track never goes idle, WhatsApp never pauses it, and turning video on
+  // again only changes what is painted. The pump stops itself once the page
+  // has had no live call for 5 s, so it costs nothing between calls.
+  const CAMERA_PUMP_MS = 100;
+  const CAMERA_PUMP_IDLE_STOP_TICKS = 50;
+
+  const stopCameraPump = () => {
+    if (state.cameraPump) win.clearInterval(state.cameraPump);
+    state.cameraPump = 0;
+    state.cameraPumpIdleTicks = 0;
+  };
+
+  const pumpCamera = () => {
+    const canvas = state.cameraCanvas;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+    if (!isLivePageCall(currentPageCall())) {
+      state.cameraPumpIdleTicks += 1;
+      if (state.cameraPumpIdleTicks >= CAMERA_PUMP_IDLE_STOP_TICKS) stopCameraPump();
+      return;
+    }
+    state.cameraPumpIdleTicks = 0;
+    if (state.cameraShowing && state.cameraLastPicture) {
+      context.drawImage(state.cameraLastPicture, 0, 0, 640, 360);
+    } else {
+      context.fillStyle = '#000';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+
+  const ensureCameraPump = () => {
+    state.cameraPumpIdleTicks = 0;
+    if (state.cameraPump) return;
+    state.cameraPump = win.setInterval(pumpCamera, CAMERA_PUMP_MS);
+  };
+
+  const isOurCameraTrack = (track: any): boolean =>
+    !!track && (track === state.cameraTrack || state.cameraCloneIds.has(track.id));
+
+  // WhatsApp may clone the track we hand it; a clone of our camera is still our
+  // camera, so it inherits the mark.
+  try {
+    const proto = win.MediaStreamTrack?.prototype;
+    const nativeClone = proto?.clone;
+    if (typeof nativeClone === 'function' && !nativeClone.__winzappCameraMark) {
+      const clone = function (this: any) {
+        const copy = nativeClone.call(this);
+        try {
+          if (copy?.id && isOurCameraTrack(this)) state.cameraCloneIds.add(copy.id);
+        } catch (_) {}
+        return copy;
+      };
+      (clone as any).__winzappCameraMark = true;
+      proto.clone = clone;
+    }
+  } catch (_) {}
 
   const cameraTrack = () => {
     state.cameraTrackRequests += 1;
@@ -457,11 +706,24 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     if (!state.cameraTrack || state.cameraTrack.readyState !== 'live') {
       state.cameraTrack = state.cameraCanvas.captureStream(10).getVideoTracks()[0];
     }
-    return state.cameraTrack.clone();
+    ensureCameraPump();
+    const clone = state.cameraTrack.clone();
+    if (clone?.id) state.cameraCloneIds.add(clone.id);
+    return clone;
   };
 
   const attachRemoteVideo = (track: MediaStreamTrack) => {
     if (!track || track.kind !== 'video' || state.remoteVideoIds.has(track.id)) return;
+    // Never our own camera. WhatsApp plays the track we hand it in hidden
+    // <video> elements to feed its encoder, and the media scan below picks up
+    // every <video> with a stream -- so without this, the "remote" picture
+    // WinZapp showed in the call window was the user's OWN camera (confirmed
+    // live on 2026-09-21 with a sighted-assistance description of the call
+    // window). Two WinZapp users calling each other each saw themselves, or
+    // black with the camera off, while the video they sent arrived intact.
+    // The microphone has had the same guard all along (localTrackIds in
+    // attachRemoteTrack); video never did.
+    if (isOurCameraTrack(track)) return;
     state.remoteVideoIds.add(track.id);
     // One-shot: proves attachPeerConnection/the track event/the receiver scan
     // actually delivered a remote video track at all. If this never appears
@@ -647,14 +909,14 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     // call being rejected/cancelled has no real terminal chime to protect,
     // and opening this window for it let a coincident missed-call message
     // ping slip through unmuted (measured 2026-09-20).
-    if (state.enabled) allowCallEndChime();
+    //
+    // The "answered" record is NOT cleared here. The poll can observe ENDED
+    // after this reset() on a slow teardown, and must still be able to re-arm
+    // the genuine chime then. It cannot leak into the next call either: that
+    // call has a different key, and refreshCallAudioPolicy() settles the old
+    // one as soon as it sees the key change.
+    if (lastCallWasAnswered()) allowCallEndChime();
     state.enabled = false;
-    // Otherwise this survives into the next call: if it starts ringing
-    // before refreshCallAudioPolicy()'s own poll ever observes the idle gap
-    // between the two (a near-immediate redial), callWasAnswered would still
-    // read true from the call this reset() just tore down, wrongly opening
-    // the chime exemption if the NEW call is itself cancelled unanswered.
-    callWasAnswered = false;
     state.micQueue.length = 0;
     state.micOffset = 0;
     for (const pipeline of state.remotePipelines.values()) {
@@ -668,6 +930,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     state.remoteVideoTimers.clear();
     state.remoteVideoIds.clear();
     state.localTrackIds.clear();
+    blankCamera();
   };
 
   const attachRemoteTrack = (track: MediaStreamTrack) => {
@@ -725,7 +988,129 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     } catch (_) {}
   };
 
+  // The other person's video. WhatsApp Web never exposes it as a
+  // MediaStreamTrack or as a <video> the page can read -- the media scan and
+  // the RTCPeerConnection track event both come up empty for it. Its WASM
+  // engine decodes the peer's video itself (measured live on 2026-09-21:
+  // "Decoding 640x432 (H264) @ 19 fps") and draws frames only into canvases
+  // registered with WAWebVoipVideoRendererRegistry, which is what its own
+  // call UI does for the peer tile. So WinZapp registers a canvas of its own
+  // for the peer exactly the same way, and captures it at the same ~8 fps and
+  // through the same callback the call window already consumes. The registry
+  // keeps a set of canvases per source, so this coexists with WhatsApp's own.
+  //
+  // Everything before this was wrong in the same direction: the only "remote"
+  // video the bridge ever found was the user's own camera, played in hidden
+  // <video> elements to feed WhatsApp's encoder (see attachRemoteVideo).
+  const PEER_VIDEO_CAPTURE_MS = 125;
+  const peerVideo = {
+    key: '',
+    canvas: null as HTMLCanvasElement | null,
+    source: null as any,
+    timer: 0,
+    // The call key already reported as "renderer unavailable", so waiting for
+    // the lazily loaded VoIP bundle does not log every 250 ms scan.
+    unavailableReported: '',
+  };
+
+  const peerVideoRegistry = (): any => {
+    try {
+      return win.require?.('WAWebVoipVideoRendererRegistry')?.videoRendererRegistry || null;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const stopPeerVideo = () => {
+    if (peerVideo.timer) win.clearInterval(peerVideo.timer);
+    const registry = peerVideoRegistry();
+    try {
+      if (registry && peerVideo.canvas) {
+        if (peerVideo.source) registry.unassignSourceFromCanvas?.(peerVideo.source, peerVideo.canvas);
+        registry.unregisterVideoCanvas?.(peerVideo.canvas);
+      }
+    } catch (_) {}
+    peerVideo.key = '';
+    peerVideo.canvas = null;
+    peerVideo.source = null;
+    peerVideo.timer = 0;
+  };
+
+  const syncPeerVideo = () => {
+    const call = currentPageCall();
+    const isVideo = !!(call?.isVideo ?? call?.attributes?.isVideo ?? call?.get?.('isVideo'));
+    const key = isLivePageCall(call) && isVideo ? pageCallKey(call) : '';
+    if (!key) {
+      if (peerVideo.key) stopPeerVideo();
+      return;
+    }
+    if (peerVideo.key === key) return;
+    if (peerVideo.key) stopPeerVideo();
+    // Claimed up front, so a registration that throws is not retried on every
+    // 250 ms scan for the rest of the call; the next call tries again.
+    peerVideo.key = key;
+    try {
+      const registry = peerVideoRegistry();
+      const renderSource = win.require?.('WAWebVoipVideoRenderSource');
+      const peer = call?.peerJid ?? call?.attributes?.peerJid ?? call?.get?.('peerJid');
+      if (!registry || !renderSource || !peer) {
+        // Not a failure yet: WhatsApp loads its VoIP bundle on demand, so the
+        // renderer modules (or the peer) can still be missing when the call
+        // starts ringing. Release the claim so a later scan tries again --
+        // keeping it made the peer's video never appear for that call.
+        peerVideo.key = '';
+        if (peerVideo.unavailableReported !== key) {
+          peerVideo.unavailableReported = key;
+          report('peer-video', `renderer unavailable registry=${!!registry} source=${!!renderSource} peer=${!!peer}`);
+        }
+        return;
+      }
+      const source = renderSource.WAWebVoipVideoRenderSource.peer(
+        peer,
+        renderSource.WAWebVoipVideoRenderStream.CAMERA
+      );
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 360;
+      registry.registerVideoCanvas(canvas, false);
+      registry.assignSourceToCanvas({ canvas, mirror: false, source });
+      peerVideo.canvas = canvas;
+      peerVideo.source = source;
+      // Which renderer WhatsApp picked matters: it depends on what the browser
+      // offers (WEBCODECS_H264 = 4 on Windows' headless Chrome), and a remote
+      // Linux chrome-headless-shell may pick another (WEBGL = 3, RASTER = 1).
+      // Logged so a remote-API report can be read without anyone looking at
+      // the screen.
+      let rendererType = '?';
+      try { rendererType = String(registry.getRendererType?.()); } catch (_) {}
+      report('peer-video', `renderer canvas registered for the peer renderer=${rendererType}`);
+
+      const capture = document.createElement('canvas');
+      capture.width = 640;
+      capture.height = 360;
+      peerVideo.timer = win.setInterval(() => {
+        // Nothing to send until the engine has actually painted a frame here.
+        if (registry.hasRenderedFirstFrameForCanvas?.(canvas) === false) return;
+        const context = capture.getContext('2d');
+        if (!context) return;
+        context.drawImage(canvas, 0, 0, 640, 360);
+        const jpeg = capture.toDataURL('image/jpeg', 0.6).split(',')[1];
+        if (!jpeg) return;
+        state.remoteVideoFramesSent += 1;
+        if (state.remoteVideoFramesSent === 1 || state.remoteVideoFramesSent % 100 === 0) {
+          report('remote-video-frame', `sent=${state.remoteVideoFramesSent} source=peer-renderer`);
+        }
+        win.__winzappOnCallRemoteVideo?.(jpeg)?.catch?.(() => undefined);
+      }, PEER_VIDEO_CAPTURE_MS);
+    } catch (error: any) {
+      report('peer-video', `could not register a renderer canvas: ${String(error?.message || error)}`);
+    }
+  };
+
   const scanMediaElements = () => {
+    try {
+      syncPeerVideo();
+    } catch (_) {}
     try {
       // Keep call lifecycle tracking alive even on pages with no media
       // elements. The HTMLMediaElement.play wrapper also refreshes this
@@ -1381,10 +1766,45 @@ export function registerCallAudioSocket(
       );
     }
     cameraBusy = true;
-    page.evaluate((frame: string) => {
-      (window as any).__winzappCallMediaBridge?.pushCameraFrame?.(frame);
-    }, jpeg).catch(() => undefined).finally(() => { cameraBusy = false; });
+    const epoch = typeof payload?.epoch === 'number' ? payload.epoch : undefined;
+    page.evaluate((frame: string, frameEpoch?: number) => {
+      (window as any).__winzappCallMediaBridge?.pushCameraFrame?.(frame, frameEpoch);
+    }, jpeg, epoch).catch(() => undefined).finally(() => { cameraBusy = false; });
   });
+  // Turning video off has to reach the page: the canvas keeps being captured
+  // at 10 fps regardless of whether the desktop is still sending frames, so
+  // without this the peer went on seeing the user's last frame, frozen, for
+  // the rest of the call.
+  socket.on('call:video:camera:stop', (payload: any) => {
+    const session = String(payload?.session || '');
+    if (session !== authenticatedSession) return;
+    const client: any = (clientsArray as any)[session];
+    const page = client?.waPage || client?.page;
+    if (!page) return;
+    const epoch = typeof payload?.epoch === 'number' ? payload.epoch : undefined;
+    const native = payload?.native === true;
+    logger?.info?.(`[${session}] call camera stopped by desktop epoch=${epoch} native=${native}`);
+    page.evaluate(
+      ({ stoppedEpoch, nativeMute }: { stoppedEpoch?: number; nativeMute: boolean }) => {
+        (window as any).__winzappCallMediaBridge?.stopCamera?.(stoppedEpoch, nativeMute);
+      },
+      { stoppedEpoch: epoch, nativeMute: native }
+    ).catch(() => undefined);
+  });
+
+  // The user turned video back on from the call window.
+  socket.on('call:video:camera:start', (payload: any) => {
+    const session = String(payload?.session || '');
+    if (session !== authenticatedSession) return;
+    const client: any = (clientsArray as any)[session];
+    const page = client?.waPage || client?.page;
+    if (!page) return;
+    logger?.info?.(`[${session}] call camera resumed by desktop`);
+    page.evaluate(() => {
+      (window as any).__winzappCallMediaBridge?.resumeCamera?.();
+    }).catch(() => undefined);
+  });
+
   socket.on('call:audio:mic', (payload: any) => {
     const session = String(payload?.session || '');
     const pcm =

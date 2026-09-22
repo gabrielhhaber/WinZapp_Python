@@ -1638,8 +1638,8 @@ class ConversationsPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self._on_accel_mentions,            id=self.ID_ALT_SHIFT_M)
         self.Bind(wx.EVT_MENU, self._on_accel_copy_number_speak,   id=self.ID_ALT_SHIFT_C)
         self.Bind(wx.EVT_MENU, self._on_accel_alt_shift_v,         id=self.ID_ALT_SHIFT_V)
-        self.Bind(wx.EVT_MENU, self._on_voice_call,                id=self.ID_CTRL_SHIFT_V)
-        self.Bind(wx.EVT_MENU, self._on_video_call,                id=self.ID_CTRL_ALT_SHIFT_V)
+        self.Bind(wx.EVT_MENU, self._on_accel_voice_call,          id=self.ID_CTRL_SHIFT_V)
+        self.Bind(wx.EVT_MENU, self._on_accel_video_call,          id=self.ID_CTRL_ALT_SHIFT_V)
         self.Bind(wx.EVT_MENU, self._on_accel_goto_quoted,         id=self.ID_ALT_SHIFT_Q)
         self.Bind(wx.EVT_MENU, self._on_accel_mute,                id=self.ID_ALT_SHIFT_S)
         self.Bind(wx.EVT_MENU, self._on_accel_star,                 id=self.ID_CTRL_SHIFT_O)
@@ -2404,6 +2404,35 @@ class ConversationsPanel(wx.Panel):
         jid = str(self.conversation.get("remoteJid") or "")
         name = self.conversation_name or self.conversation.get("name") or ""
         self.main_window.start_video_call(jid, name)
+
+    def _focus_is_in_a_text_entry(self) -> bool:
+        """Whether the keyboard focus is somewhere the user is typing.
+
+        Same test `_should_redirect_char_to_message()` already uses above.
+        """
+        focus = wx.Window.FindFocus()
+        return focus is self.message_field or isinstance(focus, wx.TextCtrl)
+
+    # The accelerator table lives on `conversation_panel`, the message field's
+    # PARENT, so it sees these keys before the TextCtrl does -- that is how
+    # Ctrl+Shift+A/E work from inside the editor. For the call keys that is a
+    # trap rather than a feature: Ctrl+Shift+V is the universal "paste without
+    # formatting" chord, and Ctrl+Alt+Shift+V is indistinguishable from
+    # AltGr+Shift+V on pt-BR/pl layouts. Either one placed a REAL call to the
+    # open contact, with no confirmation, straight from the message the user
+    # was typing. A plain wx.TextCtrl binds neither chord to anything, so
+    # ignoring them while typing restores exactly what every other app does
+    # with them: nothing. Pressing the on-screen button still calls, because
+    # that is unambiguous -- these guards are only on the accelerator path.
+    def _on_accel_voice_call(self, event=None):
+        if self._focus_is_in_a_text_entry():
+            return
+        self._on_voice_call(event)
+
+    def _on_accel_video_call(self, event=None):
+        if self._focus_is_in_a_text_entry():
+            return
+        self._on_video_call(event)
 
     # ── Text message sending ─────────────────────────────────────────────────
 
@@ -17117,7 +17146,19 @@ class ConversationsPanel(wx.Panel):
 
         if local_delete_ids:
             self.remove_messages_by_id(local_delete_ids, focus_previous=True)
+        # The whole selection, not just the rows that go away: the ", selected"
+        # suffix lives in the ROW TEXT (append_selected_marker()), and clearing
+        # selected_messages below does not rewrite it. Only rows whose revoke
+        # succeeded get repainted, by the protocolMessage coming back through
+        # _apply_confirmed_revoke(); a row whose revoke FAILED stayed on screen
+        # reading ", selected" forever while selected_messages was empty -- so
+        # a screen reader announced it as selected and every mass-action
+        # shortcut answered "nothing selected". Same reasoning, and the same
+        # fix, as the note in _on_mass_star_messages().
+        still_marked = list(self.selected_messages)
         self.selected_messages.clear()
+        if still_marked:
+            self._refresh_message_rows_by_ids(still_marked)
 
     def _on_bulk_delete_for_everyone_done(self, failed_count: int):
         """Report the batch's real outcome instead of an unconditional

@@ -258,13 +258,17 @@ def test_page_native_audio_mutes_message_ping_but_preserves_call_end_chime():
     assert "return !(el.srcObject instanceof MediaStream) && el.loop === true;" in bridge
 
     # A live/ringing -> terminal transition opens the short-audio exception,
-    # but only for a call that was actually answered (state.enabled at some
-    # point) — a merely-ringing call being cancelled/rejected must not open it,
-    # or a coincident missed-call message ping slips through unmuted.
-    assert "let callWasAnswered = false;" in bridge
-    assert "if (state.enabled) callWasAnswered = true;" in bridge
-    assert "if (callWasAnswered) allowCallEndChime();" in bridge
-    assert "if (state.enabled) allowCallEndChime();" in bridge
+    # but only for a call that was actually CONNECTED -- a merely-ringing call
+    # being cancelled/rejected must not open it, or a coincident missed-call
+    # message ping slips through unmuted. "Connected" comes from the page's
+    # CallStore state, keyed by call id, never from state.enabled (enabled too
+    # early on outgoing calls, never on the Linux path). Its behaviour is
+    # executed for real in tests/test_call_end_chime_policy.py.
+    assert "let answeredPageCallKey: string | null = null;" in bridge
+    assert "if (active && isConnectedPageCall(call)) answeredPageCallKey = key;" in bridge
+    assert "if (lastCallWasAnswered()) allowCallEndChime();" in bridge
+    assert "state.enabled) allowCallEndChime" not in bridge
+    assert "callWasAnswered" not in bridge
     assert "pageAudioNow() + 2500" in bridge
     assert "if (pageAudioNow() <= allowCallEndChimeUntil)" in bridge
     assert "restorePageAudio(el);" in bridge
@@ -319,3 +323,69 @@ def test_call_media_bridge_bounds_microphone_backlog_to_live_audio():
     assert "const PAGE_MIC_TARGET_BACKLOG_FRAMES = 2;" in bridge
     assert "state.micFramesDroppedForLatency" in bridge
     assert "const dropIndex = state.micOffset > 0 ? 1 : 0;" in bridge
+
+
+def test_turning_video_off_reaches_the_page_and_blanks_the_canvas():
+    """REGRESSION: the page draws our camera frames onto a canvas and hands
+    WhatsApp a captureStream() of it, which keeps emitting whatever that
+    canvas last holds at 10 fps. Stopping the desktop-side ffmpeg capture
+    therefore froze the user's last frame and went on transmitting that
+    picture of them -- for the rest of the call, and into the next one,
+    because reset() never cleared the canvas or the track either.
+
+    Asserted on the shape of the mechanism rather than on one string: a
+    stopCamera() the socket can reach, a blank actually painted, and a
+    teardown wired into reset().
+    """
+    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+
+    # Reachable from the Node layer, which is how "turn video off" travels.
+    assert "socket.on('call:video:camera:stop'" in bridge
+    assert "__winzappCallMediaBridge?.stopCamera?.(stoppedEpoch, nativeMute)" in bridge
+
+    # WhatsApp Web sends our camera through its own call engine, so turning
+    # video off and on goes through that engine's camera toggle -- the same
+    # one WhatsApp's UI button uses.
+    assert "socket.on('call:video:camera:start'" in bridge
+    assert "__winzappCallMediaBridge?.resumeCamera?.()" in bridge
+    assert "stack?.setCallVideoMute" in bridge
+    assert "if (native) setNativeVideoMute(true);" in bridge
+    assert "setNativeVideoMute(false);" in bridge
+    assert "pushCameraFrame?.(frame, frameEpoch)" in bridge
+
+    # The blank is what actually stops the transmission; the track stays live
+    # so the peer connection is not torn down mid-call.
+    assert "state.stopCamera = (epoch?: number, native?: boolean) =>" in bridge
+    assert "blankCameraCanvas" in bridge
+    assert "context.fillRect(0, 0, canvas.width, canvas.height)" in bridge
+
+    # A decode that lands after the stop must not repaint the frame the blank
+    # just erased.
+    assert "generation === state.cameraGeneration" in bridge
+
+    # A frame from a capture the desktop already stopped is dropped, keyed on
+    # the desktop's own epochs -- NOT on state.enabled, which never becomes
+    # true on the Linux/PulseAudio path and is cleared by a mid-call reset().
+    assert "epoch <= state.cameraStoppedEpoch" in bridge
+    push_body = bridge[
+        bridge.index("state.pushCameraFrame = "):bridge.index("const blankCameraCanvas")
+    ]
+    assert "state.enabled" not in push_body
+
+    # reset() blanks the SAME canvas and never replaces it: it also runs
+    # mid-call on an audio device restart, and WhatsApp keeps its clone of the
+    # original track, so replacing the canvas left the peer watching black for
+    # the rest of the call while WinZapp said video was on.
+    assert "blankCamera();" in bridge
+    assert "teardownCamera" not in bridge
+    assert "state.cameraCanvas = null;" not in bridge
+    assert "state.cameraTrack = null;" not in bridge
+
+
+def test_the_desktop_side_has_a_camera_stop_channel():
+    websocket_client = _source("client/core/websocket_client.py")
+    assert "def send_call_camera_stop(self, epoch: int | None = None, native: bool = False)" in websocket_client
+    assert "def send_call_camera_start(self)" in websocket_client
+    assert '"call:video:camera:start"' in websocket_client
+    assert '"call:video:camera:stop"' in websocket_client
+

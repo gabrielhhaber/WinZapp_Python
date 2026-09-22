@@ -1,7 +1,9 @@
 import base64
 import time
+from pathlib import Path
 
 import numpy as np
+import pytest
 
 from core.call_audio import (
     CALL_FRAME_SAMPLES,
@@ -122,6 +124,13 @@ class _SoundDevice:
     def _maybe_refuse(self, extra_settings):
         if self.refuse_exclusive and extra_settings is not None and extra_settings.exclusive:
             raise RuntimeError("device refused exclusive access")
+
+
+class _NoMicrophoneSoundDevice(_SoundDevice):
+    """The speaker opens fine; the microphone is held by another application."""
+
+    def InputStream(self, **kwargs):
+        raise RuntimeError("microphone is in use")
 
 
 def _wait_for(predicate, timeout=1.0):
@@ -256,6 +265,56 @@ def test_receive_only_session_promotes_to_full_duplex_on_answer():
     session.stop()
 
 
+def test_start_closes_the_output_it_opened_when_the_microphone_fails():
+    """REGRESSION: start() opens the receive side first (so an answered call can
+    reuse the ringing monitor's speaker), but its error path only closed the
+    INPUT stream. An outgoing call whose microphone is taken by another app
+    therefore stranded a live OutputStream and its player thread for the life
+    of the process -- unreachable, since the session never becomes
+    _call_audio_session. Under exclusive_output that held the output device and
+    silenced the screen reader until restart."""
+    sio = _Socket()
+    sounddevice = _NoMicrophoneSoundDevice()
+    session = CallAudioSession(
+        sio,
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    with pytest.raises(Exception):
+        session.start()
+
+    assert sounddevice.output_streams, "the speaker was opened before the mic failed"
+    assert sounddevice.output_streams[0][1].closed is True
+    assert session.output_running is False
+
+
+def test_start_leaves_the_ringing_monitors_output_alone_when_the_microphone_fails():
+    """The other half of the rule above: a speaker opened by the ringing
+    monitor is not this call's to close. Its owner (_start_voice_call_audio)
+    stops that session on the same failure, and closing it here too would be a
+    double close."""
+    sio = _Socket()
+    sounddevice = _NoMicrophoneSoundDevice()
+    session = CallAudioSession(
+        sio,
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start_output_only()
+    output_stream = sounddevice.output_streams[0][1]
+
+    with pytest.raises(Exception):
+        session.start()
+
+    assert output_stream.closed is False
+    assert session.output_running is True
+
+    session.stop()
+    assert output_stream.closed is True
+
+
 def test_microphone_backlog_skips_old_audio_instead_of_adding_delay():
     session = CallAudioSession(
         _Socket(),
@@ -334,12 +393,16 @@ def test_call_audio_falls_back_to_native_rate_when_48k_is_refused():
 
 
 def test_exclusive_mode_default_is_disabled():
-    """Exclusive mode defaults off: it was suspected, then ruled out, as the
-    cause of the choppy-audio regression, but forcing every call onto a
-    device WASAPI exclusively still risks locking other applications out of
-    it — a real cost for users on a single physical microphone/speaker who
-    don't need exclusive mode. It stays available as an opt-in for whoever
-    genuinely benefits from it (see settings_dialog.py's checkbox)."""
+    """Both exclusive flags default off, per direction.
+
+    Exclusive access was suspected, then ruled out, as the cause of the
+    choppy-audio regression. It stays an opt-in because the two directions
+    have very different costs: an exclusive MICROPHONE takes a device nothing
+    else is using mid-call, while an exclusive SPEAKER silences every other
+    application on it -- the screen reader included, for the whole call, which
+    for WinZapp's users means losing the call window's own controls. Hence two
+    checkboxes in settings_dialog.py, and a spoken warning on the output one.
+    """
     sio = _Socket()
     sounddevice = _SoundDevice()
     session = CallAudioSession(
@@ -363,7 +426,7 @@ def test_exclusive_mode_falls_back_to_shared_when_device_refuses(caplog):
     session = CallAudioSession(
         sio,
         CallAudioConfig(
-            session="winzapp", output_device_name="Speaker", exclusive_mode=True
+            session="winzapp", output_device_name="Speaker", exclusive_output=True
         ),
         sounddevice_module=sounddevice,
     )
@@ -388,7 +451,7 @@ def test_exclusive_mode_disabled_never_attempts_exclusive():
     session = CallAudioSession(
         sio,
         CallAudioConfig(
-            session="winzapp", output_device_name="Speaker", exclusive_mode=False
+            session="winzapp", output_device_name="Speaker", exclusive_output=False
         ),
         sounddevice_module=sounddevice,
     )
@@ -400,3 +463,352 @@ def test_exclusive_mode_disabled_never_attempts_exclusive():
     assert kwargs["extra_settings"].exclusive is False
 
     session.stop()
+
+
+class _MultiHostApiSoundDevice(_SoundDevice):
+    """Windows exposes one physical device once per host API.
+
+    PortAudio enumerates them MME first, then DirectSound, then WASAPI, so a
+    name lookup that takes the first match always lands on MME -- measured on
+    a real Realtek device at 90 ms of input buffering against 3 ms for the
+    very same hardware through WASAPI.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.devices = [
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 0},        # 0 MME
+            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2,
+             "default_samplerate": 48000, "hostapi": 0},        # 1 MME
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 2},        # 2 WASAPI
+            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2,
+             "default_samplerate": 48000, "hostapi": 2},        # 3 WASAPI
+        ]
+
+    def query_hostapis(self, index=None):
+        return {0: {"name": "MME"}, 2: {"name": "Windows WASAPI"}}[int(index)]
+
+
+def test_the_wasapi_twin_of_the_chosen_device_is_tried_first():
+    """REGRESSION: every lookup resolved by name and took the first match, and
+    MME comes first, so calls ran on MME -- ~90 ms of device buffering per
+    direction against ~3 ms for the same hardware on WASAPI. This is plain
+    SHARED-mode WASAPI (PortAudio's default), so nothing is taken away from
+    any other application, the screen reader included."""
+    sounddevice = _MultiHostApiSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    assert sounddevice.input_streams[0][0]["device"] == 2    # WASAPI Mic
+    assert sounddevice.output_streams[0][0]["device"] == 3   # WASAPI Speaker
+
+    session.stop()
+
+
+def test_a_device_with_no_wasapi_twin_still_opens_exactly_as_before():
+    """The twin is a preference, not a requirement: the original index stays
+    in the candidate list right behind it, so nothing regresses on hardware
+    that WASAPI does not expose."""
+    sounddevice = _SoundDevice()  # single host API, no twins
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    assert sounddevice.input_streams[0][0]["device"] == 0
+    assert sounddevice.output_streams[0][0]["device"] == 1
+
+    session.stop()
+
+
+class _CollidingNameSoundDevice(_SoundDevice):
+    """Two WASAPI endpoints whose names share the 31-character prefix MME
+    truncates at -- the partial match comes FIRST in enumeration order."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.devices = [
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 0},
+            {"name": "Headset Earphone (Jabra Evolve", "max_input_channels": 0,
+             "max_output_channels": 2, "default_samplerate": 48000, "hostapi": 0},
+            {"name": "Headset Earphone (Jabra Evolve 75)", "max_input_channels": 0,
+             "max_output_channels": 2, "default_samplerate": 48000, "hostapi": 2},
+            {"name": "Headset Earphone (Jabra Evolve", "max_input_channels": 0,
+             "max_output_channels": 2, "default_samplerate": 48000, "hostapi": 2},
+        ]
+
+    def query_hostapis(self, index=None):
+        return {0: {"name": "MME"}, 2: {"name": "Windows WASAPI"}}[int(index)]
+
+
+def test_an_exact_wasapi_name_beats_a_partial_match_found_earlier():
+    """REGRESSION: the twin lookup returned the first device satisfying exact
+    OR substring, so a partial match at a lower index beat an exact match
+    further down. Two endpoints sharing MME's 31-character truncation would
+    open the call on the wrong physical device, while the log reported
+    hostapi=wasapi as if all were well -- and a blind user has no visual tell
+    that the call is coming out of the monitor instead of the headset."""
+    sounddevice = _CollidingNameSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", output_device_name="Headset Earphone (Jabra Evolve"
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start_output_only()
+
+    # Index 3 is the exact match; index 2 only matches as a substring.
+    assert sounddevice.output_streams[0][0]["device"] == 3
+
+    session.stop()
+
+
+def test_a_refused_exclusive_falls_back_to_shared_wasapi_not_to_mme():
+    """REGRESSION (seen live in log.log, 2026-09-21): with exclusive_input on,
+    the WASAPI twin refused exclusive access -- common -- and the MME entry
+    behind it has no exclusive mode at all, so it opened "successfully" inside
+    the exclusive pass. The shared pass, where the same WASAPI device would
+    have opened, never ran: the microphone landed on MME at ~90 ms instead of
+    shared WASAPI at ~3 ms, while the log honestly reported exclusive=False."""
+    sounddevice = _MultiHostApiSoundDevice(refuse_exclusive=True)
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_input=True, exclusive_output=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    input_kwargs = sounddevice.input_streams[0][0]
+    output_kwargs = sounddevice.output_streams[0][0]
+    assert input_kwargs["device"] == 2       # WASAPI Mic, not MME (0)
+    assert output_kwargs["device"] == 3      # WASAPI Speaker, not MME (1)
+    assert input_kwargs["extra_settings"].exclusive is False
+    assert output_kwargs["extra_settings"].exclusive is False
+
+    session.stop()
+
+
+def test_an_accepted_exclusive_still_opens_exclusively_on_wasapi():
+    """The other half: when the device does accept exclusive access, the
+    exclusive pass opens it, on the WASAPI twin."""
+    sounddevice = _MultiHostApiSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_input=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    input_kwargs = sounddevice.input_streams[0][0]
+    assert input_kwargs["device"] == 2
+    assert input_kwargs["extra_settings"].exclusive is True
+    # exclusive_output was left off, so the speaker is shared.
+    assert sounddevice.output_streams[0][0]["extra_settings"].exclusive is False
+
+    session.stop()
+
+
+class _VirtualCableSoundDevice(_SoundDevice):
+    """The real layout that broke a live call on 2026-09-21: the microphone's
+    WASAPI entry refuses exclusive access, while an UNRELATED WASAPI input --
+    a virtual audio cable, which carries no microphone signal -- accepts it."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.devices = [
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 0},                     # 0 MME
+            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2,
+             "default_samplerate": 48000, "hostapi": 0},                     # 1 MME
+            {"name": "Line 1 (Virtual Audio Cable)", "max_input_channels": 1,
+             "max_output_channels": 0, "default_samplerate": 48000, "hostapi": 2},  # 2
+            {"name": "Mic", "max_input_channels": 1, "max_output_channels": 0,
+             "default_samplerate": 48000, "hostapi": 2},                     # 3 WASAPI mic
+            {"name": "Speaker", "max_input_channels": 0, "max_output_channels": 2,
+             "default_samplerate": 48000, "hostapi": 2},                     # 4
+        ]
+
+    def query_hostapis(self, index=None):
+        return {0: {"name": "MME"}, 2: {"name": "Windows WASAPI"}}[int(index)]
+
+    def InputStream(self, **kwargs):
+        settings = kwargs.get("extra_settings")
+        if kwargs.get("device") == 3 and settings is not None and settings.exclusive:
+            raise RuntimeError("the microphone refuses exclusive access")
+        return super().InputStream(**kwargs)
+
+
+def test_a_refused_exclusive_never_wanders_to_an_unrelated_device():
+    """REGRESSION (live call, 2026-09-21): with exclusive_input on and the
+    microphone refusing exclusive access, the exclusive pass went on through
+    the "try every device" safety sweep and opened "Line 1 (Virtual Audio
+    Cable)" exclusively -- the peer heard silence for the whole call while
+    frames kept flowing. A refused exclusive must fall back to the SAME device
+    in shared mode; the sweep belongs to the shared pass only."""
+    sounddevice = _VirtualCableSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_input=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    input_kwargs = sounddevice.input_streams[0][0]
+    assert input_kwargs["device"] == 3                    # the microphone...
+    assert input_kwargs["extra_settings"].exclusive is False   # ...shared
+    assert all(kwargs["device"] != 2 for kwargs, _ in sounddevice.input_streams)
+
+    session.stop()
+
+
+def test_the_every_device_sweep_still_rescues_the_shared_pass():
+    """The sweep is not removed, only kept out of the exclusive pass: when
+    the named device cannot be found at all, shared mode still opens
+    something rather than failing the call."""
+    sounddevice = _VirtualCableSoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(session="winzapp", input_device_name="Unplugged headset"),
+        sounddevice_module=sounddevice,
+    )
+    candidates = list(session._candidate_devices(
+        "Unplugged headset", input_device=True, include_fallbacks=True,
+    ))
+    assert 2 in candidates and 3 in candidates
+
+    exclusive_only = list(session._candidate_devices(
+        "Unplugged headset", input_device=True, include_fallbacks=False,
+    ))
+    assert 2 not in exclusive_only
+    # A chosen device that does not resolve (unplugged) must not hand the
+    # exclusive pass the system default either -- nor PortAudio's None, which
+    # is that same default: the shared pass takes over instead.
+    assert exclusive_only == []
+
+
+def test_with_no_device_chosen_the_exclusive_pass_uses_the_default():
+    session = CallAudioSession(
+        _Socket(), CallAudioConfig(session="winzapp"),
+        sounddevice_module=_VirtualCableSoundDevice(),
+    )
+    exclusive_only = list(session._candidate_devices(
+        "", input_device=True, include_fallbacks=False,
+    ))
+    assert 0 in exclusive_only and None in exclusive_only
+
+
+class _CableIsDefaultDefaults:
+    device = (2, 1)
+
+
+def test_a_refused_exclusive_never_moves_to_the_system_default_either():
+    """Review finding: the exclusive pass still offered the SYSTEM DEFAULT
+    after the chosen device. With the virtual cable as the default input and
+    the microphone refusing exclusive access, the call opened the cable
+    exclusively -- and on the output side, a headset refusing exclusive put
+    the call exclusive on the default speakers, where the screen reader is.
+    The chosen device falls back to itself, shared."""
+    sounddevice = _VirtualCableSoundDevice()
+    sounddevice.default = _CableIsDefaultDefaults()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_input=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start()
+
+    input_kwargs = sounddevice.input_streams[0][0]
+    assert input_kwargs["device"] == 3
+    assert input_kwargs["extra_settings"].exclusive is False
+    assert all(kwargs["device"] != 2 for kwargs, _ in sounddevice.input_streams)
+
+    session.stop()
+
+
+def test_ringing_opens_the_speaker_shared_even_with_exclusive_output():
+    """Review finding: an exclusive output opened while the call still rings
+    takes the device from the ring tone and from the screen reader saying
+    who is calling -- the call arrives with no signal at all."""
+    sounddevice = _SoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_output=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start_output_only(allow_exclusive=False)
+
+    ring_kwargs, ring_stream = sounddevice.output_streams[-1]
+    assert ring_kwargs["extra_settings"].exclusive is False
+
+    # answered: the ring's shared stream is replaced by the exclusive one
+    session.start()
+
+    assert ring_stream.closed is True
+    answer_kwargs, answer_stream = sounddevice.output_streams[-1]
+    assert answer_stream is not ring_stream
+    assert answer_kwargs["extra_settings"].exclusive is True
+    assert answer_stream.started is True
+
+    # remote audio now goes to the exclusive stream only
+    session.enqueue_remote_audio(b"\x00\x10" * 960, 48000)
+    assert _wait_for(lambda: answer_stream.writes)
+    assert ring_stream.writes == []
+
+    session.stop()
+
+
+def test_ringing_without_exclusive_output_keeps_its_stream_on_answer():
+    sounddevice = _SoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=sounddevice,
+    )
+
+    session.start_output_only(allow_exclusive=False)
+    session.start()
+
+    assert len(sounddevice.output_streams) == 1
+    assert sounddevice.output_streams[0][1].closed is False
+
+    session.stop()
+
+
+def test_the_ringing_monitor_asks_for_a_shared_output():
+    src = (Path(__file__).parents[1] / "client" / "main.py").read_text(encoding="utf-8")
+    start = src.index("    def _start_incoming_call_audio_monitor(self")
+    body = src[start:src.index("\n    def ", start + 10)]
+    assert "audio.start_output_only(allow_exclusive=False)" in body
