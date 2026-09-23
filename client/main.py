@@ -7127,31 +7127,51 @@ class MainWindow(wx.Frame):
                     body = {}
                 call_id = str(body.get("id") or "") if isinstance(body, dict) else ""
                 with self._call_action_lock:
+                    # Everything this decision needs is re-read HERE, under the
+                    # lock, never carried in from before the POST: a hang-up, a
+                    # terminal event or a whole new call can have landed while
+                    # the offer blocked, and every branch below is about which
+                    # of those happened.
                     cancelled = attempt["cancelled"]
-                    still_ours = (
-                        getattr(self, "_active_voice_call", None) is call_record
-                    )
-                    if still_ours and call_id and not cancelled:
-                        call_record["call_id"] = call_id
+                    active = getattr(self, "_active_voice_call", None)
+                    still_ours = active is call_record
                     offered = still_ours and not cancelled
-                if cancelled:
-                    # The user hung up before the offer landed, so their "end"
-                    # POST named a call WhatsApp did not have yet and the peer
-                    # is ringing right now for a call WinZapp believes is over.
-                    # End the call this attempt just created, and never start
-                    # the camera for it. Only on an explicit cancel: a record
-                    # replaced by some other call is NOT a reason to POST
-                    # "end", which carries no call id and would hang up
-                    # whichever call the page holds now.
-                    logging.info(
-                        "[call] outgoing offer landed after the call was cancelled; ending it"
-                    )
-                    try:
-                        self._raise_for_call_response(
-                            self._post_call_control("end", {}), "end"
+                    # Adopting WhatsApp's real id happens only when the call
+                    # actually went live. On a cancel the record is about to be
+                    # dropped, and leaving the provisional ``outgoing:<jid>``
+                    # id on it means a terminal callstate for the real id
+                    # cannot match a call nobody holds any more.
+                    if offered and call_id:
+                        call_record["call_id"] = call_id
+                    if cancelled and (
+                        # A newer attempt owns the page now; its call is not
+                        # ours to hang up.
+                        getattr(self, "_outgoing_call_attempt", None) is attempt
+                        # Either this attempt's call is still the active one,
+                        # or there is no call at all. NOT "some other call is
+                        # active": the "end" action is unscoped on the Node
+                        # side -- callController.ts's 'end' branch uses the
+                        # requested callId only to flag userEndedCall, while
+                        # the action itself is voipStack.endCall(2, true) /
+                        # WPP.call.end() on whatever call the page holds -- so
+                        # posting it then would kill a second, live call a few
+                        # seconds in with nothing spoken.
+                        and (still_ours or active is None)
+                    ):
+                        # The user hung up before the offer landed, so their
+                        # "end" POST named a call WhatsApp did not have yet and
+                        # the peer is ringing right now for a call WinZapp
+                        # believes is over. End the call this attempt just
+                        # created, and never start the camera for it.
+                        logging.info(
+                            "[call] outgoing offer landed after the call was cancelled; ending it"
                         )
-                    except Exception:
-                        logging.exception("[call] failed to end a cancelled outgoing call")
+                        try:
+                            self._raise_for_call_response(
+                                self._post_call_control("end", {}), "end"
+                            )
+                        except Exception:
+                            logging.exception("[call] failed to end a cancelled outgoing call")
             except Exception as exc:
                 logging.exception("[call] outgoing call failed")
                 wx.CallAfter(
@@ -7197,7 +7217,14 @@ class MainWindow(wx.Frame):
         _start_call_camera() spells out: a call that replaced this one while
         the offer was in flight is a different call, and tearing its audio,
         camera and window down here would end a call the user is in.
+
+        ``None`` is refused up front for the reason _start_call_camera() gives
+        at its own identity test: None-is-None reads as "same call", so an
+        attempt that never got a record would otherwise tear down whatever
+        state happens to exist when it fails.
         """
+        if call_record is None:
+            return
         if getattr(self, "_active_voice_call", None) is not call_record:
             return
         self._stop_voice_call_audio()

@@ -266,9 +266,23 @@ is the one place that teardown lives, and it compares `_active_voice_call` by
 identity the way `_start_call_camera()` does: a terminal `callstate` event or
 an incoming call answered while the offer was in flight leaves a *different*
 record in place, and tearing that one down would hang up a call the user is
-in. For the same reason the cancel path's `end` POST is sent only on an
-explicit cancel — it carries no call id, so it would end whichever call the
-page holds now.
+in.
+
+**The cancel path's `end` POST is gated on three things, because `end` is
+unscoped on the Node side.** `callController.ts`'s `'end'` branch uses the
+requested `callId` only to set `userEndedCall` on the model; the action itself
+is `voipStack.endCall(2, true)` (or `WPP.call.end()`), which hangs up whatever
+call the page currently holds — passing an id does not scope it. A stalled
+offer therefore cannot post `end` on "the attempt was cancelled" alone: after
+the hang-up, `_stop_voice_call_audio(grace_seconds=1.25)` leaves the record up
+for another 1.25 s and the user is free to dial again or answer an incoming
+call long before a 75-second offer gives up, so a late `end` would kill that
+second, live call a few seconds in with nothing spoken. It is sent only when
+the attempt is still the current `_outgoing_call_attempt` **and** either its
+own record is still active or there is no active call at all — all three
+re-read inside `_call_action_lock` after the POST returns, never snapshotted
+before it. That second lock block is also why every call-control POST in the
+file is issued under the lock: `_attach_audio_to_browser_call()` takes it too.
 
 Call devices are their own pair (`settings["call_audio_devices"]`), separate
 from Settings > Dispositivos de áudio on purpose: a headset chosen for calls
