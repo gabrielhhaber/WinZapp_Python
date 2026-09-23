@@ -190,7 +190,7 @@ function ensureLinuxCallAudio(
 
 function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const win = window as any;
-  if (win.__winzappCallMediaBridge?.version === 7) return true;
+  if (win.__winzappCallMediaBridge?.version === 8) return true;
   if (!navigator.mediaDevices?.getUserMedia || !win.RTCPeerConnection) return false;
 
   const AudioContextCtor = win.AudioContext || win.webkitAudioContext;
@@ -198,9 +198,20 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
 
   const PAGE_MIC_QUEUE_FRAMES = 4;
   const PAGE_MIC_TARGET_BACKLOG_FRAMES = 2;
+  // The remote tap batches AudioWorklet quanta (128 samples) up to roughly the
+  // 1024-sample frame the ScriptProcessor used to deliver, so nothing
+  // downstream -- Socket.IO framing, the Python jitter buffer -- sees a
+  // different packet rate than it was tuned for. Batching happens INSIDE the
+  // worklet: batching on the main thread would put the main thread back on the
+  // audio path, which is the whole defect being fixed.
+  const REMOTE_TAP_BATCH_SAMPLES = 1024;
+  // Mirrors MAX_AUDIO_FRAME_BYTES on the Node side (this function is
+  // serialised into the page and cannot close over module constants). Node
+  // drops anything larger, so a frame over it would be silently lost.
+  const REMOTE_TAP_MAX_FRAME_BYTES = 64 * 1024;
 
   const state: any = {
-    version: 7,
+    version: 8,
     enabled: false,
     context: null,
     micDestination: null,
@@ -250,6 +261,12 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     micFramesDroppedForLatency: 0,
     remoteFramesCaptured: 0,
     remoteTracksAttached: 0,
+    // 'unknown' until addModule() has been tried once, then 'ready' or
+    // 'unavailable'. Read by the CDP probes as well as by the tap: a build
+    // that silently fell back to the ScriptProcessor would look fixed and
+    // would not be, which costs another live call with a blind user to find.
+    audioWorkletStatus: 'unknown',
+    remoteTapMode: '',
   };
 
   const report = (event: string, details = '') => {
@@ -784,6 +801,11 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
         latencyHint: 'interactive',
         sampleRate: 48000,
       });
+      // A worklet module is registered per AudioContext, so a brand-new one
+      // has none: the cached answer belongs to the context that is gone, and
+      // leaving it 'ready' here would only make the diagnostics lie about
+      // which tap ran.
+      state.audioWorkletStatus = 'unknown';
     }
     if (state.context.state === 'suspended') {
       state.context.resume().catch(() => undefined);
@@ -819,6 +841,133 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
       binary += String.fromCharCode(...bytes.subarray(i, i + step));
     }
     return btoa(binary);
+  };
+
+  // The worklet already did the float -> PCM16 conversion on the audio thread;
+  // the bytes are written out explicitly little-endian rather than reusing the
+  // Int16Array's own buffer, so the wire format does not depend on the host's
+  // endianness (exactly as encodePcm16 above does).
+  const encodeInt16 = (samples: Int16Array): string => {
+    const bytes = new Uint8Array(samples.length * 2);
+    for (let i = 0; i < samples.length; i += 1) {
+      const value = samples[i];
+      bytes[i * 2] = value & 0xff;
+      bytes[i * 2 + 1] = (value >> 8) & 0xff;
+    }
+    let binary = '';
+    const step = 0x8000;
+    for (let i = 0; i < bytes.length; i += step) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + step));
+    }
+    return btoa(binary);
+  };
+
+  // The remote tap used to be a createScriptProcessor(1024, 1, 1), and that is
+  // where the popping came from. Measured over CDP on a live, popping call
+  // (2026-09-23): the page's audio clock was exact (10.0000 s of ctx.
+  // currentTime over 10.0014 s of wall clock), but the ScriptProcessor fired
+  // 464 callbacks where 468.8 were due -- it dropped ~1% of its buffers
+  // outright, ~0.5 per second, 21.3 ms of audio gone each time, with
+  // longTaskCount 0. Net delivery to Python was 47,507 samples/s against the
+  // 48,000 it declares, and a source running under real time drains any fixed
+  // reservoir forever, so the Python jitter buffer starved ~2.8 times a second
+  // for 35 minutes. A worklet runs on the audio render thread and cannot be
+  // starved by main-thread scheduling, so delivery becomes exactly real time.
+  //
+  // It is deliberately a no-op on its outputs: the node is still connected
+  // through the muted gain to the destination, the same way the
+  // ScriptProcessor was, because that is what keeps the graph pulling.
+  const REMOTE_TAP_WORKLET_SOURCE = `
+class WinzappCallTapProcessor extends AudioWorkletProcessor {
+  constructor(options) {
+    super();
+    const size = (options && options.processorOptions && options.processorOptions.batchSamples) || 1024;
+    // Two batches used alternately, and postMessage is called WITHOUT a
+    // transfer list, so the batch is structured-cloned rather than neutered
+    // and these two buffers are the only ones process() ever writes into --
+    // no per-batch slice() to be collected ~47 times a second. The clone
+    // itself is still a copy taken on this thread; what is avoided is the JS
+    // allocation and the GC churn behind it, not the copy. The alternation is
+    // belt and braces: a structured clone is taken synchronously at post
+    // time, so reusing one buffer would also be safe.
+    this.batches = [new Int16Array(size), new Int16Array(size)];
+    this.active = 0;
+    this.filled = 0;
+  }
+  process(inputs) {
+    const channel = inputs[0] && inputs[0][0];
+    // No input yet (the track has not started, or it ended) is not a reason to
+    // let the node be collected: return true so it keeps running.
+    if (!channel || !channel.length) return true;
+    let batch = this.batches[this.active];
+    for (let i = 0; i < channel.length; i += 1) {
+      let sample = channel[i] || 0;
+      if (sample > 1) sample = 1;
+      else if (sample < -1) sample = -1;
+      batch[this.filled] = sample < 0 ? Math.round(sample * 32768) : Math.round(sample * 32767);
+      this.filled += 1;
+      if (this.filled === batch.length) {
+        this.filled = 0;
+        this.port.postMessage(batch);
+        this.active = this.active === 0 ? 1 : 0;
+        batch = this.batches[this.active];
+      }
+    }
+    return true;
+  }
+}
+registerProcessor('winzapp-call-tap', WinzappCallTapProcessor);
+`;
+
+  // Resolves true once 'winzapp-call-tap' is registered on this context.
+  // addModule() needs a URL and a Blob URL is the usual way to ship an inline
+  // worklet, but WhatsApp Web's CSP is entitled to refuse blob: scripts -- and
+  // a refusal must fall back to the old ScriptProcessor rather than leave the
+  // call with no remote audio at all. The promise is cached on the context
+  // because a worklet module is registered per AudioContext and ensureContext
+  // builds a new one whenever the old was closed.
+  const ensureRemoteTapWorklet = (context: any): Promise<boolean> => {
+    if (context.__winzappRemoteTapWorklet) return context.__winzappRemoteTapWorklet;
+    let pending: Promise<boolean>;
+    // Declared out here so the catch below can revoke it: a context with no
+    // audioWorklet at all throws between creating the URL and reaching the
+    // .finally that would have released it.
+    let url = '';
+    try {
+      url = URL.createObjectURL(
+        new Blob([REMOTE_TAP_WORKLET_SOURCE], { type: 'application/javascript' })
+      );
+      pending = context.audioWorklet
+        .addModule(url)
+        .then(() => {
+          state.audioWorkletStatus = 'ready';
+          report('remote-tap-worklet', 'audio worklet module registered');
+          return true;
+        })
+        .catch((error: any) => {
+          state.audioWorkletStatus = 'unavailable';
+          report(
+            'remote-tap-worklet',
+            `addModule refused: ${String(error?.message || error)}`
+          );
+          return false;
+        })
+        .finally(() => {
+          try { URL.revokeObjectURL(url); } catch (_) {}
+        });
+    } catch (error: any) {
+      if (url) {
+        try { URL.revokeObjectURL(url); } catch (_) {}
+      }
+      state.audioWorkletStatus = 'unavailable';
+      report(
+        'remote-tap-worklet',
+        `unavailable: ${String(error?.message || error)}`
+      );
+      pending = Promise.resolve(false);
+    }
+    context.__winzappRemoteTapWorklet = pending;
+    return pending;
   };
 
   const ensureMicTrack = () => {
@@ -867,7 +1016,12 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   state.enable = () => {
     state.enabled = true;
     ensureMicTrack();
-    ensureContext().resume().catch(() => undefined);
+    const context = ensureContext();
+    context.resume().catch(() => undefined);
+    // Registering the worklet module is asynchronous, so warm it up here
+    // rather than when the remote track arrives: by then the answer is
+    // cached and the tap is built in the same turn the track appears.
+    ensureRemoteTapWorklet(context);
     return true;
   };
 
@@ -901,6 +1055,16 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     for (const frame of frames || []) state.pushMicrophone(frame);
   };
 
+  // A remote pipeline carries either a worklet node or a ScriptProcessor,
+  // never both, so tearing one down has to cover the two shapes.
+  const disconnectRemotePipeline = (pipeline: any) => {
+    try { pipeline.source.disconnect(); } catch (_) {}
+    try { pipeline.processor?.disconnect(); } catch (_) {}
+    try { pipeline.node?.port?.close?.(); } catch (_) {}
+    try { pipeline.node?.disconnect(); } catch (_) {}
+    try { pipeline.sink.disconnect(); } catch (_) {}
+  };
+
   state.reset = () => {
     // Local reject/end stops the bridge immediately before WhatsApp performs
     // the native action. Arm the terminal-chime exception first so that sound
@@ -920,9 +1084,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     state.micQueue.length = 0;
     state.micOffset = 0;
     for (const pipeline of state.remotePipelines.values()) {
-      try { pipeline.source.disconnect(); } catch (_) {}
-      try { pipeline.processor.disconnect(); } catch (_) {}
-      try { pipeline.sink.disconnect(); } catch (_) {}
+      disconnectRemotePipeline(pipeline);
     }
     state.remotePipelines.clear();
     state.remoteTrackIds.clear();
@@ -948,34 +1110,115 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     const context = ensureContext();
     const stream = new MediaStream([track]);
     const source = context.createMediaStreamSource(stream);
-    const processor = context.createScriptProcessor(1024, 1, 1);
     const sink = context.createGain();
     sink.gain.value = 0;
-    processor.onaudioprocess = (event: AudioProcessingEvent) => {
-      if (!state.enabled) return;
-      const input = event.inputBuffer.getChannelData(0);
-      const callback = win.__winzappOnCallRemoteAudio;
-      if (typeof callback === 'function' && input.length) {
-        state.remoteFramesCaptured += 1;
-        if (state.remoteFramesCaptured === 1 || state.remoteFramesCaptured % 250 === 0) {
-          report('remote-frame', `track=${id} frames=${state.remoteFramesCaptured}`);
-        }
-        callback(encodePcm16(input), context.sampleRate).catch?.(() => undefined);
-      }
-      event.outputBuffer.getChannelData(0).fill(0);
-    };
-    source.connect(processor);
-    processor.connect(sink);
     sink.connect(context.destination);
-    state.remotePipelines.set(id, { source, processor, sink, track });
+    const pipeline: any = { source, sink, track, processor: null, node: null };
+
+    // Both taps hand Python the same thing: mono PCM16 plus the context's REAL
+    // sample rate (never a hardcoded 48000 -- only the Linux relay may assume
+    // a rate, because it created the device itself).
+    const deliver = (base64: string) => {
+      const callback = win.__winzappOnCallRemoteAudio;
+      if (typeof callback !== 'function' || !base64) return;
+      state.remoteFramesCaptured += 1;
+      if (state.remoteFramesCaptured === 1 || state.remoteFramesCaptured % 250 === 0) {
+        report(
+          'remote-frame',
+          `track=${id} frames=${state.remoteFramesCaptured} tap=${state.remoteTapMode}`
+        );
+      }
+      callback(base64, context.sampleRate).catch?.(() => undefined);
+    };
+
+    const startWorkletTap = () => {
+      const node = new win.AudioWorkletNode(context, 'winzapp-call-tap', {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        outputChannelCount: [1],
+        channelCount: 1,
+        channelCountMode: 'explicit',
+        processorOptions: { batchSamples: REMOTE_TAP_BATCH_SAMPLES },
+      });
+      // Registered on the pipeline before anything else can throw: a node
+      // connected but never recorded would survive disconnectRemotePipeline()
+      // and go on sending frames alongside the fallback tap.
+      pipeline.node = node;
+      node.port.onmessage = (event: MessageEvent) => {
+        if (!state.enabled) return;
+        const samples = event.data as Int16Array;
+        if (!samples?.length || samples.length * 2 > REMOTE_TAP_MAX_FRAME_BYTES) return;
+        deliver(encodeInt16(samples));
+      };
+      source.connect(node);
+      node.connect(sink);
+      state.remoteTapMode = 'audio-worklet';
+      report('remote-tap', `track=${id} tap=audio-worklet`);
+    };
+
+    const startScriptProcessorTap = (reason: string) => {
+      const processor = context.createScriptProcessor(1024, 1, 1);
+      processor.onaudioprocess = (event: AudioProcessingEvent) => {
+        if (!state.enabled) return;
+        const input = event.inputBuffer.getChannelData(0);
+        if (input.length) deliver(encodePcm16(input));
+        event.outputBuffer.getChannelData(0).fill(0);
+      };
+      source.connect(processor);
+      processor.connect(sink);
+      pipeline.processor = processor;
+      state.remoteTapMode = 'script-processor';
+      report('remote-tap', `track=${id} tap=script-processor reason=${reason}`);
+    };
+
+    state.remotePipelines.set(id, pipeline);
     state.remoteTracksAttached += 1;
     report('remote-track', `track=${id} tracks=${state.remoteTracksAttached}`);
+
+    // Once the module's fate is known the tap is built synchronously, which is
+    // the normal case: enable() warms the module up before any track arrives.
+    // Only the very first call on a page can land here with it still pending,
+    // and then the pipeline is checked for still being the current one --
+    // a track that ended while addModule() was in flight must not be revived.
+    // The module registering is not quite a guarantee that the node can be
+    // built (an older Chromium, a context that closed underneath us), and a
+    // throw here would leave the track with no tap at all -- silence on the
+    // call, which is the one outcome worse than the popping.
+    const startTap = (ready: boolean) => {
+      if (ready) {
+        try {
+          startWorkletTap();
+          return;
+        } catch (error: any) {
+          // A half-built worklet tap can already be connected and delivering,
+          // so take it out before adding the fallback: two taps on one track
+          // send every frame to Python twice.
+          try { pipeline.node?.port?.close?.(); } catch (_) {}
+          try { pipeline.node?.disconnect(); } catch (_) {}
+          pipeline.node = null;
+          state.audioWorkletStatus = 'unavailable';
+          startScriptProcessorTap(`worklet node failed: ${String(error?.message || error)}`);
+          return;
+        }
+      }
+      startScriptProcessorTap('worklet unavailable');
+    };
+
+    if (state.audioWorkletStatus === 'ready') {
+      startTap(true);
+    } else if (state.audioWorkletStatus === 'unavailable') {
+      startTap(false);
+    } else {
+      ensureRemoteTapWorklet(context).then((ready: boolean) => {
+        if (state.remotePipelines.get(id) !== pipeline) return;
+        startTap(ready);
+      });
+    }
+
     track.addEventListener('ended', () => {
-      const pipeline = state.remotePipelines.get(id);
-      if (!pipeline) return;
-      try { pipeline.source.disconnect(); } catch (_) {}
-      try { pipeline.processor.disconnect(); } catch (_) {}
-      try { pipeline.sink.disconnect(); } catch (_) {}
+      const ended = state.remotePipelines.get(id);
+      if (!ended) return;
+      disconnectRemotePipeline(ended);
       state.remotePipelines.delete(id);
       state.remoteTrackIds.delete(id);
     }, { once: true });

@@ -33,20 +33,39 @@ CALL_MIC_QUEUE_LIMIT = 12
 CALL_MIC_TARGET_BACKLOG_FRAMES = 2
 CALL_OUTPUT_QUEUE_LIMIT = 40
 # Playback reservoir, in milliseconds of audio at the output device's rate.
-# Remote PCM is tapped in the page by a createScriptProcessor(1024) — a
-# deprecated, main-thread node that delivers ~21.3 ms chunks in bursts — and
-# then crosses Socket.IO and a Python socket thread, so a few milliseconds of
-# arrival jitter is normal. Three packets of slack absorb that; the hard cap
-# is what keeps the slack from growing into latency (see _OutputJitterBuffer).
+# Remote PCM is tapped in the page by an AudioWorklet delivering ~21.3 ms
+# batches (falling back to the old main-thread createScriptProcessor(1024) when
+# the page's CSP refuses the worklet module) and then crosses Socket.IO and a
+# Python socket thread, so a few milliseconds of arrival jitter is normal.
+# Three packets of slack absorb that; the hard cap is what keeps the slack from
+# growing into latency (see _OutputJitterBuffer).
 # Note the prebuffer is one-way latency the listener pays on every call.
 CALL_OUTPUT_PREBUFFER_MS = 60
 CALL_OUTPUT_MAX_BUFFER_MS = 200
-# Refilling after an underrun waits for far less than the cold-start target.
-# Requiring the full 60 ms again would turn a network that is jittery but
-# adequate into roughly a 50% duty cycle -- speech chopped in half, which for
-# a blind user on a call is worse than the clicks this whole buffer exists to
-# remove. One packet is enough to get going again.
-CALL_OUTPUT_RESUME_MS = CALL_FRAME_MS
+# Refilling after an underrun aims at an ADAPTIVE target, and that this is not
+# a fixed threshold is measured history, not taste. It was a fixed 20 ms (one
+# packet), chosen in review because requiring the full 60 ms again would turn a
+# network that is jittery but adequate into roughly a 50% duty cycle. The live
+# data says the opposite failure is the one that actually happens: on
+# 2026-09-23 the page's createScriptProcessor tap was measured delivering
+# 47,507 samples/s against the 48,000 it declares -- it drops ~1% of its own
+# buffers outright -- and a source that runs under real time drains ANY fixed
+# reservoir forever. With a 20 ms resume the buffer re-starved within a packet
+# or two: ~2.8 underruns per second, steadily, for a 35-minute call, every one
+# of them a fade-out/fade-in chop. So the target starts at the cold-start value
+# and GROWS while underruns keep recurring (a slow source buys proportionally
+# more time from a deeper reservoir), then decays back while playback stays
+# clean, which serves the jittery line the 20 ms was protecting as well. The
+# ceiling stays well under CALL_OUTPUT_MAX_BUFFER_MS so the hard cap still
+# drops oldest and latency still cannot creep.
+CALL_OUTPUT_TARGET_STEP_MS = 20
+CALL_OUTPUT_TARGET_MAX_MS = 120
+# "Keeps recurring" means another underrun within this much PLAYED audio of
+# the previous one. It is also what stops the growth: once the deeper target
+# has pushed underruns further apart than this window, they stop counting as
+# recurring and the target settles.
+CALL_OUTPUT_TARGET_GROWTH_WINDOW_MS = 10_000
+CALL_OUTPUT_TARGET_DECAY_MS = 30_000
 # A discontinuity clicks even when the samples on either side are silence, so
 # starvation and resumption are ramped rather than cut.
 CALL_OUTPUT_FADE_MS = 5
@@ -126,6 +145,9 @@ class _OutputJitterBuffer:
         # second late beats taking the realtime thread's lock to report it.
         self.underruns = 0
         self.dropped_samples = 0
+        # The rate everything below is currently scaled to, so configure() can
+        # tell a real device change from a reopen of the same device.
+        self._rate = 0
         self.configure(rate)
 
     def configure(self, rate: int) -> None:
@@ -140,8 +162,17 @@ class _OutputJitterBuffer:
         """
         rate = max(1, int(rate or CALL_SAMPLE_RATE))
         with self._lock:
+            rate_changed = rate != self._rate
+            self._rate = rate
             self._prebuffer_samples = max(1, rate * CALL_OUTPUT_PREBUFFER_MS // 1000)
-            self._resume_samples = max(1, rate * CALL_OUTPUT_RESUME_MS // 1000)
+            self._target_step_samples = max(1, rate * CALL_OUTPUT_TARGET_STEP_MS // 1000)
+            self._max_target_samples = max(
+                self._prebuffer_samples, rate * CALL_OUTPUT_TARGET_MAX_MS // 1000
+            )
+            self._growth_window_samples = max(
+                1, rate * CALL_OUTPUT_TARGET_GROWTH_WINDOW_MS // 1000
+            )
+            self._decay_samples = max(1, rate * CALL_OUTPUT_TARGET_DECAY_MS // 1000)
             self._max_samples = max(
                 self._prebuffer_samples, rate * CALL_OUTPUT_MAX_BUFFER_MS // 1000
             )
@@ -150,17 +181,38 @@ class _OutputJitterBuffer:
             # the callback runs on PortAudio's realtime thread.
             self._fade_in_ramp = np.linspace(0.0, 1.0, self._fade_samples, dtype=np.float32)
             self._fade_out_ramp = self._fade_in_ramp[::-1].copy()
+            # Every threshold above is a duration in samples, so what the
+            # buffer learned about this source is meaningless at a NEW rate and
+            # is dropped with it. At the same rate it is kept, and that is the
+            # case that matters: _reopen_output_exclusive() reopens the same
+            # device at the same rate when an incoming call is answered, so
+            # discarding it here would throw away everything the ringing phase
+            # learned and re-chop the first minute of the actual conversation
+            # while it climbs back. _seen_underrun has the same lifetime as the
+            # target it qualifies: "one underrun is not a pattern" must not be
+            # re-armed by a reopen either.
+            if rate_changed:
+                self._target_samples = self._prebuffer_samples
+                self._seen_underrun = False
         self.reset()
 
     def reset(self) -> None:
         with self._lock:
             self._chunks.clear()
             self._size = 0
-            # Playback starts only once the prebuffer is there, and the first
-            # samples after any silence are faded in.
+            # Playback starts only once the target is there, and the first
+            # samples after any silence are faded in. The target is the
+            # adaptive one rather than the cold-start constant: reset() also
+            # runs on a mid-call device reopen, and the source being slow is a
+            # property of the page tap, not of the speaker just reopened.
             self._priming = True
-            self._priming_target = self._prebuffer_samples
+            self._priming_target = self._target_samples
             self._fade_in_pending = True
+            # Both counters measure PLAYED audio, which is the only clock a
+            # realtime callback may consult: time.monotonic() is cheap but the
+            # sample count is exact and is what the thresholds are written in.
+            self._samples_since_underrun = 0
+            self._clean_samples = 0
 
     @property
     def buffered_samples(self) -> int:
@@ -226,14 +278,49 @@ class _OutputJitterBuffer:
                     self._apply_ramp(out, written - length, length, fade_in=False)
                 out[written:] = 0.0
                 self.underruns += 1
-                # Refill before speaking again, or every callback from here
-                # on starves by the same handful of samples and clicks -- but
-                # only up to CALL_OUTPUT_RESUME_MS, never the cold-start
-                # target, which on a merely jittery line would chop the
-                # speech roughly in half.
+                # Refill before speaking again, or every callback from here on
+                # starves by the same handful of samples and clicks. How much
+                # to refill is the adaptive target: an underrun that arrives
+                # soon after audio resumed says this reservoir is too shallow
+                # for this source, so deepen it a step -- but not on the FIRST
+                # underrun at this rate, which proves nothing yet: one is an
+                # incident, a second one soon after is a pattern, and every
+                # step is one-way latency the listener pays. What the window
+                # bounds is the RATE of growth, not its total: two dropouts
+                # 5 s apart do buy a step each, which is the intended reading
+                # of "recurring". What it does rule out is a healthy call
+                # ratcheting to the ceiling over an hour on isolated
+                # incidents, and one continuous silence costing more than one
+                # step (re-priming means the next underrun cannot arrive until
+                # a whole target has been played again).
+                if (
+                    self._seen_underrun
+                    and self._samples_since_underrun < self._growth_window_samples
+                ):
+                    self._target_samples = min(
+                        self._max_target_samples,
+                        self._target_samples + self._target_step_samples,
+                    )
+                self._seen_underrun = True
+                self._samples_since_underrun = 0
+                self._clean_samples = 0
                 self._priming = True
-                self._priming_target = self._resume_samples
+                self._priming_target = self._target_samples
                 self._fade_in_pending = True
+            else:
+                self._samples_since_underrun += written
+                self._clean_samples += written
+                # Clean for a long stretch: give the latency back a step at a
+                # time, down to the cold-start target and never below it.
+                if (
+                    self._clean_samples >= self._decay_samples
+                    and self._target_samples > self._prebuffer_samples
+                ):
+                    self._target_samples = max(
+                        self._prebuffer_samples,
+                        self._target_samples - self._target_step_samples,
+                    )
+                    self._clean_samples = 0
 
     def _apply_ramp(self, out: np.ndarray, start: int, length: int, *, fade_in: bool) -> None:
         if length == self._fade_samples:

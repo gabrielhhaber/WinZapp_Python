@@ -11,7 +11,10 @@ from core.call_audio import (
     CALL_OUTPUT_FADE_MS,
     CALL_OUTPUT_MAX_BUFFER_MS,
     CALL_OUTPUT_PREBUFFER_MS,
-    CALL_OUTPUT_RESUME_MS,
+    CALL_OUTPUT_TARGET_DECAY_MS,
+    CALL_OUTPUT_TARGET_GROWTH_WINDOW_MS,
+    CALL_OUTPUT_TARGET_MAX_MS,
+    CALL_OUTPUT_TARGET_STEP_MS,
     CALL_OUTPUT_UNDERRUN_LOG_EVERY,
     CALL_SAMPLE_RATE,
     CallAudioConfig,
@@ -288,6 +291,39 @@ def test_answering_with_exclusive_output_restarts_the_reservoir_on_the_new_rate(
     session._reopen_output_exclusive()
 
     assert session._output_buffer.buffered_samples == 0
+    session.stop()
+
+
+def test_answering_keeps_what_the_ring_learned_about_a_slow_source():
+    """The reopen on answer is the same device at the same rate, so the
+    adaptive target has to survive it. Dropping it here would hand the first
+    30-60 s of the actual conversation — the part the user came for — back to
+    the chopping the ringing phase had just learned its way out of."""
+    sounddevice = _SoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(
+            session="winzapp", input_device_name="Mic", output_device_name="Speaker",
+            exclusive_output=True,
+        ),
+        sounddevice_module=sounddevice,
+    )
+    session.start_output_only(allow_exclusive=False)
+    buffer = session._output_buffer
+    rate = session._output_rate
+    learned = buffer._max_target_samples
+    buffer._target_samples = learned
+
+    session._reopen_output_exclusive()
+
+    assert session._output_rate == rate, "this test is about a SAME-rate reopen"
+    assert buffer._target_samples == learned
+    # And the re-prime after the reopen waits for the learned target, not for
+    # the cold-start one: half the target must still be silence.
+    buffer.push(np.full(buffer._prebuffer_samples, 0.5, dtype=np.float32))
+    assert np.all(_fill(buffer) == 0.0)
+    buffer.push(np.full(learned, 0.5, dtype=np.float32))
+    assert np.any(_fill(buffer) != 0.0)
     session.stop()
 
 
@@ -1023,47 +1059,179 @@ def test_a_failed_device_candidate_says_why_instead_of_being_swallowed(caplog):
     session.stop()
 
 
-def test_jitter_buffer_resumes_after_one_packet_not_the_cold_start_target():
-    """Re-priming the full 60 ms after every underrun would chop a jittery
-    but adequate line into roughly a 50% duty cycle — for a blind user on a
-    call, speech cut in half is worse than the clicks this buffer removes."""
+def test_jitter_buffer_starts_at_the_cold_start_target_and_never_exceeds_the_ceiling():
+    """The adaptive target is bounded on both sides: it never asks for less
+    than the cold-start prebuffer, and its ceiling stays well under the hard
+    cap so drop-oldest is still what bounds latency."""
     buffer = _OutputJitterBuffer(CALL_SAMPLE_RATE)
-    resume = CALL_SAMPLE_RATE * CALL_OUTPUT_RESUME_MS // 1000
     cold_start = CALL_SAMPLE_RATE * CALL_OUTPUT_PREBUFFER_MS // 1000
-    assert resume < cold_start
 
+    assert buffer._target_samples == cold_start
+    assert buffer._max_target_samples == CALL_SAMPLE_RATE * CALL_OUTPUT_TARGET_MAX_MS // 1000
+    assert buffer._max_target_samples < buffer._max_samples
+
+    # A single underrun proves nothing: one incident must not cost every
+    # later listener an extra step of one-way latency.
+    buffer.push(np.full(cold_start, 0.5, dtype=np.float32))
+    for _ in range(4):
+        _fill(buffer)
+    assert buffer.underruns == 1
+    assert buffer._target_samples == cold_start
+
+
+def test_jitter_buffer_deepens_when_underruns_keep_recurring():
+    """Measured 2026-09-23 on a live call: the page's ScriptProcessor tap
+    delivered 47,507 samples/s against the 48,000 it declared. A source that
+    runs ~1% under real time drains ANY fixed reservoir forever, so the fixed
+    20 ms resume threshold re-starved within a packet or two — ~2.8 underruns
+    per second for 35 minutes, each one an audible fade-out/fade-in chop.
+    The target has to grow until the underruns become rare."""
+    rate = CALL_SAMPLE_RATE
+    buffer = _OutputJitterBuffer(rate)
+    block = CALL_FRAME_SAMPLES
+    # 99 samples arrive for every 100 the device consumes.
+    delivered = 0.0
+    underruns_by_second = []
+    for second in range(90):
+        before = buffer.underruns
+        for _ in range(rate // block):
+            delivered += block * 0.99
+            take = int(delivered)
+            delivered -= take
+            buffer.push(np.full(take, 0.5, dtype=np.float32))
+            _fill(buffer, frames=block)
+        underruns_by_second.append(buffer.underruns - before)
+
+    assert buffer._target_samples == buffer._max_target_samples, "the target must grow"
+    # The first half of the call is where the learning happens; by the end the
+    # chopping has to have essentially stopped. With the old fixed 20 ms
+    # resume this stretch produced one underrun roughly every two seconds.
+    assert sum(underruns_by_second[-30:]) <= 3
+    assert sum(underruns_by_second[:30]) > sum(underruns_by_second[-30:])
+    # And latency never ran away: the reservoir is still bounded by its cap.
+    assert buffer.buffered_samples <= buffer._max_samples
+
+
+def test_jitter_buffer_gives_the_latency_back_while_playback_stays_clean():
+    """The deeper target is borrowed, not kept: a line that recovers must not
+    pay a permanently higher one-way latency for the rest of the call."""
+    rate = CALL_SAMPLE_RATE
+    buffer = _OutputJitterBuffer(rate)
+    cold_start = rate * CALL_OUTPUT_PREBUFFER_MS // 1000
+    step = rate * CALL_OUTPUT_TARGET_STEP_MS // 1000
+    buffer._target_samples = buffer._max_target_samples
+    buffer.reset()
+
+    # Feed a healthy source for two full decay windows' worth of audio.
+    block = CALL_FRAME_SAMPLES
+    blocks = 2 * (rate * CALL_OUTPUT_TARGET_DECAY_MS // 1000) // block
+    grown = buffer._max_target_samples
+    for _ in range(blocks + 10):
+        buffer.push(np.full(block, 0.5, dtype=np.float32))
+        _fill(buffer, frames=block)
+
+    assert buffer.underruns == 0
+    assert buffer._target_samples <= grown - 2 * step
+    assert buffer._target_samples >= cold_start
+
+    # Kept clean for long enough, it lands exactly on the cold-start value and
+    # stops there: the decay must never dig below the prebuffer, which is what
+    # every call starts from and is not an adaptation at all.
+    for _ in range(4 * blocks):
+        buffer.push(np.full(block, 0.5, dtype=np.float32))
+        _fill(buffer, frames=block)
+
+    assert buffer._target_samples == cold_start
+
+    # And a target less than a whole step above the floor decays TO the floor,
+    # not past it. Growth only ever moves in whole steps from the cold-start
+    # value, so this is the clamp's job rather than the loop's — assert it
+    # directly instead of trusting that alignment stays an invariant.
+    buffer._target_samples = cold_start + step // 2
+    for _ in range(blocks):
+        buffer.push(np.full(block, 0.5, dtype=np.float32))
+        _fill(buffer, frames=block)
+
+    assert buffer._target_samples == cold_start
+
+
+def test_jitter_buffer_ignores_underruns_that_are_far_apart():
+    """The growth window is the only thing standing between a healthy hour-
+    long call and a target ratcheted to the ceiling by isolated incidents,
+    each step of which is one-way latency every later listener pays."""
+    rate = CALL_SAMPLE_RATE
+    buffer = _OutputJitterBuffer(rate)
+    cold_start = rate * CALL_OUTPUT_PREBUFFER_MS // 1000
+    block = CALL_FRAME_SAMPLES
+    # Comfortably more than the window, so neither underrun counts as a
+    # recurrence of the other.
+    clean_blocks = 2 * (rate * CALL_OUTPUT_TARGET_GROWTH_WINDOW_MS // 1000) // block
+
+    for _ in range(2):
+        for _ in range(clean_blocks):
+            buffer.push(np.full(block, 0.5, dtype=np.float32))
+            _fill(buffer, frames=block)
+        while buffer.buffered_samples:  # starve it once
+            _fill(buffer, frames=block)
+        _fill(buffer, frames=block)
+
+    assert buffer.underruns >= 2
+    assert buffer._target_samples == cold_start
+
+
+def test_jitter_buffer_does_not_deepen_on_a_single_long_dropout():
+    """A silent dropout must cost one underrun, not one per device period,
+    and must not ratchet the target to its ceiling: re-priming is what keeps
+    the two apart, so a line that was never too shallow is never charged the
+    extra latency for a gap that was not its fault."""
+    rate = CALL_SAMPLE_RATE
+    buffer = _OutputJitterBuffer(rate)
+    cold_start = rate * CALL_OUTPUT_PREBUFFER_MS // 1000
     buffer.push(np.full(cold_start, 0.5, dtype=np.float32))
     for _ in range(4):
         _fill(buffer)
     assert buffer.underruns == 1
 
-    # One packet — far short of the cold-start target — is enough to speak
-    # again, and it is played rather than held.
-    buffer.push(np.full(resume, 0.5, dtype=np.float32))
-    assert np.any(_fill(buffer) != 0.0)
+    for _ in range(200):  # nothing arriving at all
+        assert np.all(_fill(buffer) == 0.0)
+
+    assert buffer.underruns == 1
+    assert buffer._target_samples == cold_start
 
 
 def test_jitter_buffer_thresholds_scale_with_the_device_rate():
     """Every threshold is a duration, so it has to be recomputed per device.
 
     _candidate_rates() deliberately reaches 16000 for an HFP-only Bluetooth
-    headset. A resume threshold left at 48 kHz samples would hold 60 ms of
-    audio at 16 kHz before speaking again instead of 20 ms — the exact 50%
-    duty-cycle chop the split threshold exists to prevent, on the hardware
-    most likely to be jittery in the first place.
+    headset. A ceiling or a growth window left in 48 kHz samples would mean
+    three times the intended milliseconds of latency and three times the
+    intended patience before the target grows, on the hardware most likely to
+    need the adaptation in the first place.
     """
     rate = 16_000
     buffer = _OutputJitterBuffer(rate)
 
     assert buffer._prebuffer_samples == rate * CALL_OUTPUT_PREBUFFER_MS // 1000
-    assert buffer._resume_samples == rate * CALL_OUTPUT_RESUME_MS // 1000
+    assert buffer._target_samples == rate * CALL_OUTPUT_PREBUFFER_MS // 1000
+    assert buffer._target_step_samples == rate * CALL_OUTPUT_TARGET_STEP_MS // 1000
+    assert buffer._max_target_samples == rate * CALL_OUTPUT_TARGET_MAX_MS // 1000
+    assert buffer._growth_window_samples == rate * CALL_OUTPUT_TARGET_GROWTH_WINDOW_MS // 1000
+    assert buffer._decay_samples == rate * CALL_OUTPUT_TARGET_DECAY_MS // 1000
     assert buffer._max_samples == rate * CALL_OUTPUT_MAX_BUFFER_MS // 1000
     assert buffer._fade_samples == rate * CALL_OUTPUT_FADE_MS // 1000
 
-    # And the same after a mid-call device switch reconfigures it.
+    # And the same after a mid-call device switch reconfigures it — including
+    # the learned target, which is a sample count and means nothing at a rate
+    # it was not learned at. Both directions: 16k -> 48k would look right by
+    # accident if the learned value were merely clamped.
+    buffer._target_samples = buffer._max_target_samples
     buffer.configure(CALL_SAMPLE_RATE)
     assert buffer._prebuffer_samples == CALL_SAMPLE_RATE * CALL_OUTPUT_PREBUFFER_MS // 1000
-    assert buffer._resume_samples == CALL_SAMPLE_RATE * CALL_OUTPUT_RESUME_MS // 1000
+    assert buffer._target_samples == CALL_SAMPLE_RATE * CALL_OUTPUT_PREBUFFER_MS // 1000
+
+    buffer._target_samples = buffer._max_target_samples
+    buffer.configure(rate)
+    assert buffer._target_samples == rate * CALL_OUTPUT_PREBUFFER_MS // 1000
 
 
 def test_jitter_buffer_serves_whatever_period_the_device_asks_for():
