@@ -281,8 +281,12 @@ second, live call a few seconds in with nothing spoken. It is sent only when
 the attempt is still the current `_outgoing_call_attempt` **and** either its
 own record is still active or there is no active call at all — all three
 re-read inside `_call_action_lock` after the POST returns, never snapshotted
-before it. That second lock block is also why every call-control POST in the
-file is issued under the lock: `_attach_audio_to_browser_call()` takes it too.
+before it. That second lock block is also why every *other* call-control POST in the
+file is issued under the lock (`_attach_audio_to_browser_call()` takes it
+too). **The offer POST is the one exception, deliberately** — holding the
+lock across its 75-second timeout is the whole of #275, and the paragraph
+above is why. Moving it back under the lock to make this sentence uniform
+would reintroduce that bug.
 
 Call devices are their own pair (`settings["call_audio_devices"]`), separate
 from Settings > Dispositivos de áudio on purpose: a headset chosen for calls
