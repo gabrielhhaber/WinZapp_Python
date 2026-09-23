@@ -1167,6 +1167,9 @@ class ConversationsPanel(wx.Panel):
         self._record_voice_alt_btn = wx.Button(
             self.conversation_panel, label=i18n.t(self._alternate_record_label_key())
         )
+        self._record_voice_alt_btn.SetAccessible(
+            AccessibleRecordVoiceMessage("Ctrl+Shift+G")
+        )
         self._record_voice_alt_btn.Bind(wx.EVT_BUTTON, self._on_record_alternate_mode)
         conv_sizer.Add(self._record_voice_alt_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
@@ -1451,6 +1454,7 @@ class ConversationsPanel(wx.Panel):
     def create_accel_conversation(self):
         # ── Navigation / recording ──────────────────────────────────────────
         self.ID_CTRL_R          = wx.NewIdRef()  # record voice            (Ctrl+R)
+        self.ID_CTRL_SHIFT_G    = wx.NewIdRef()  # record, other mode      (Ctrl+Shift+G)
         self.ID_ALT_2           = wx.NewIdRef()  # jump to last message    (Alt+2)
         self.ID_ESC             = wx.NewIdRef()  # close conversation      (Esc)
         self.CTRL_W             = wx.NewIdRef()  # close conversation      (Ctrl+W)
@@ -1572,6 +1576,10 @@ class ConversationsPanel(wx.Panel):
             (CS,               ord("E"),          self.ID_CTRL_SHIFT_E),
             (CS,               ord("P"),          self.ID_CTRL_SHIFT_P),
             (CS,               ord("R"),          self.ID_CTRL_SHIFT_R),
+            # G for "gravar": Ctrl+R records in the default mode, this one in
+            # the other (stereo / mono). Not Ctrl+Alt+R: that is AltGr+R, which
+            # types "®" on US-International and would be taken from the editor.
+            (CS,               ord("G"),          self.ID_CTRL_SHIFT_G),
             (wx.ACCEL_NORMAL,  wx.WXK_DELETE,     self.ID_DELETE_MSG),
             (wx.ACCEL_CTRL,    ord("C"),          self.ID_CTRL_C),
             (CS,               ord("C"),          self.ID_CTRL_SHIFT_C),
@@ -1626,6 +1634,7 @@ class ConversationsPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self._on_accel_focus_field,          id=self.ID_ALT_FOCUS_FIELD)
         self.Bind(wx.EVT_MENU, self._on_accel_focus_list,           id=self.ID_ALT_FOCUS_LIST)
         self.Bind(wx.EVT_MENU, self.on_record_voice_message,       id=self.ID_CTRL_R)
+        self.Bind(wx.EVT_MENU, self._on_record_alternate_mode,     id=self.ID_CTRL_SHIFT_G)
         self.Bind(wx.EVT_MENU, self._on_accel_jump_last,           id=self.ID_ALT_2)
         self.Bind(wx.EVT_MENU, self._on_escape_conversation,        id=self.ID_ESC)
         self.Bind(wx.EVT_MENU, self.close_conversation,            id=self.CTRL_W)
@@ -2412,6 +2421,12 @@ class ConversationsPanel(wx.Panel):
         """The second record button: one message in the mode Settings did not
         pick. Recording in stereo warns first that iPhone cannot play it."""
         if self._is_recording or self._recording_starting:
+            return
+        # Ctrl+Shift+G reaches here even when the button is disabled -- a
+        # channel, or a group only admins can post in -- where it must not
+        # record either.
+        button = getattr(self, "_record_voice_alt_btn", None)
+        if button is not None and not button.IsEnabled():
             return
         stereo = alternate_mode_is_stereo(self._default_recording_stereo())
         if stereo and stereo_warning_enabled(self.main_window.settings):

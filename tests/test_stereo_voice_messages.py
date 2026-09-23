@@ -347,3 +347,51 @@ class TestThePipelineIsWired:
         for action in ("Hide", "Show", "Enable", "Disable"):
             assert (src.count(f"self.record_voice_message_btn.{action}()")
                     == src.count(f"self._record_voice_alt_btn.{action}()")), action
+
+
+# ── Ctrl+Shift+G ──────────────────────────────────────────────────────────────
+
+
+class _EnabledButton:
+    def __init__(self, enabled):
+        self.enabled = enabled
+
+    def IsEnabled(self):
+        return self.enabled
+
+
+class TestTheShortcut:
+    def test_it_is_in_the_conversation_accelerators(self):
+        src = inspect.getsource(ConversationsPanel)
+        assert 'ord("G"),          self.ID_CTRL_SHIFT_G)' in src
+        assert "self._on_record_alternate_mode,     id=self.ID_CTRL_SHIFT_G)" in src
+
+    def test_the_screen_reader_announces_it_on_the_button(self):
+        src = inspect.getsource(ConversationsPanel)
+        assert ('self._record_voice_alt_btn.SetAccessible(\n'
+                '            AccessibleRecordVoiceMessage("Ctrl+Shift+G")') in src.replace("\r\n", "\n")
+
+    def test_it_is_listed_with_the_other_shortcuts(self):
+        from ui.dialogs import shortcuts_dialog
+        src = inspect.getsource(shortcuts_dialog)
+        assert src.index('i18n.t("shortcut_ctrl_r_label")') < src.index(
+            'i18n.t("shortcut_ctrl_shift_g_label")')
+
+    def test_it_does_nothing_where_the_button_is_disabled(self, answer):
+        """A channel, or a group only admins can post in: Ctrl+Shift+G reaches
+        the handler anyway, since accelerators ignore the button's state."""
+        panel = _Panel()
+        panel._record_voice_alt_btn = _EnabledButton(False)
+
+        panel._on_record_alternate_mode(None)
+
+        assert panel.started == []
+        assert answer["asked"] == 0
+
+    def test_it_records_where_the_button_is_enabled(self, answer):
+        panel = _Panel()
+        panel._record_voice_alt_btn = _EnabledButton(True)
+
+        panel._on_record_alternate_mode(None)
+
+        assert panel.started == [True]

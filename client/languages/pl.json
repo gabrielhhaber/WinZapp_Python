@@ -533,6 +533,7 @@
     "shortcut_alt_shift_num_label": "Alt+Shift+0 do Alt+Shift+9: ustaw zakładkę tymczasową na zaznaczonej wiadomości lub przejdź do istniejącej zakładki tymczasowej (usuwane po opuszczeniu czatu)",
     "shortcut_ctrl_alt_shift_num_label": "Ctrl+Alt+Shift+0 do Ctrl+Alt+Shift+9: usuń zakładkę tymczasową",
     "shortcut_ctrl_r_label": "Ctrl+R: nagraj wiadomość głosową",
+    "shortcut_ctrl_shift_g_label": "Ctrl+Shift+G: nagraj wiadomość głosową w drugim trybie (w stereo, jeśli domyślny jest mono, w mono, jeśli domyślny jest stereo)",
     "shortcut_esc_ctrl_w_label": "Esc / Ctrl+W: zamknij czat. Gdy wiadomości są zaznaczone, pierwszy Esc tylko odznacza wszystkie, a dopiero drugi zamyka czat, jeśli opcja jest włączona w Ustawieniach, Interfejs użytkownika",
     "shortcut_ctrl_shift_j_label": "Ctrl+Shift+A: dodaj załącznik",
     "shortcut_ctrl_shift_d_label": "Ctrl+Shift+D: informacje o czacie / odrzuć nagranie",

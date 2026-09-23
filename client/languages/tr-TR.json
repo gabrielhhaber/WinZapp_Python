@@ -533,6 +533,7 @@
   "shortcut_alt_shift_num_label": "Alt+Shift+0 - Alt+Shift+9: odaklanılan mesaja geçici yer işareti koy veya mevcut geçici yer işaretine git (sohbetten ayrıldığınızda temizlenir)",
   "shortcut_ctrl_alt_shift_num_label": "Ctrl+Alt+Shift+0 - Ctrl+Alt+Shift+9: geçici yer işaretini kaldır",
   "shortcut_ctrl_r_label": "Ctrl+R: sesli mesaj kaydet",
+  "shortcut_ctrl_shift_g_label": "Ctrl+Shift+G: sesli mesajı diğer modda kaydet (varsayılan mono ise stereo, stereo ise mono)",
   "shortcut_esc_ctrl_w_label": "Esc / Ctrl+W: sohbeti kapat. Mesajlar seçiliyken, Ayarlar > Kullanıcı Arayüzü bölümünde seçenek etkinse ilk Esc yalnızca tüm seçimleri kaldırır ve yalnızca ikincisi sohbeti kapatır",
   "shortcut_ctrl_shift_j_label": "Ctrl+Shift+A: ek ekle",
   "shortcut_ctrl_shift_d_label": "Ctrl+Shift+D: sohbet bilgisi / kaydı iptal et",

@@ -533,6 +533,7 @@
     "shortcut_alt_shift_num_label": "Alt+Shift+0 a Alt+Shift+9: marcar temporalmente el mensaje enfocado, o ir a un marcador temporal ya creado (se borran al salir de la conversación)",
     "shortcut_ctrl_alt_shift_num_label": "Ctrl+Alt+Shift+0 a Ctrl+Alt+Shift+9: eliminar un marcador temporal",
     "shortcut_ctrl_r_label": "Ctrl+R: grabar mensaje de voz",
+    "shortcut_ctrl_shift_g_label": "Ctrl+Shift+G: grabar mensaje de voz en el otro modo (en estéreo si el predeterminado es mono, en mono si es estéreo)",
     "shortcut_esc_ctrl_w_label": "Esc / Ctrl+W: cerrar conversación. Con mensajes marcados, el primer Esc solo los desmarca todos y únicamente el segundo cierra la conversación, si la opción está activada en Configuración, Interfaz de usuario",
     "shortcut_ctrl_shift_j_label": "Ctrl+Shift+A: agregar archivo adjunto",
     "shortcut_ctrl_shift_d_label": "Ctrl+Shift+D: datos de conversación / descartar grabación",

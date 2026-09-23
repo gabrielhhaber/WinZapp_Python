@@ -533,6 +533,7 @@
     "shortcut_alt_shift_num_label": "Alt+Shift+0 la Alt+Shift+9: marcați temporar mesajul concentrat sau treceți la un marcaj temporar existent (șters când părăsiți conversația)",
     "shortcut_ctrl_alt_shift_num_label": "Ctrl+Alt+Shift+0 la Ctrl+Alt+Shift+9: eliminați un marcaj temporar",
     "shortcut_ctrl_r_label": "Ctrl+R: înregistrarea mesajului vocal",
+    "shortcut_ctrl_shift_g_label": "Ctrl+Shift+G: înregistrarea mesajului vocal în celălalt mod (stereo dacă implicit este mono, mono dacă implicit este stereo)",
     "shortcut_esc_ctrl_w_label": "Esc / Ctrl+W: închideți conversația. Dacă sunt selectate mesaje, prima apăsare a tastei Esc doar le deselectează pe toate, iar abia a doua închide conversația, dacă opțiunea este activată în Setări, Interfață utilizator",
     "shortcut_ctrl_shift_j_label": "Ctrl+Shift+A: adăugați atașament",
     "shortcut_ctrl_shift_d_label": "Ctrl+Shift+D: date de chat/renunțare la înregistrare",

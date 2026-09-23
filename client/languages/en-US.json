@@ -533,6 +533,7 @@
     "shortcut_alt_shift_num_label": "Alt+Shift+0 to Alt+Shift+9: temporarily bookmark the focused message, or jump to an existing temporary bookmark (cleared when you leave the conversation)",
     "shortcut_ctrl_alt_shift_num_label": "Ctrl+Alt+Shift+0 to Ctrl+Alt+Shift+9: remove a temporary bookmark",
     "shortcut_ctrl_r_label": "Ctrl+R: record voice message",
+    "shortcut_ctrl_shift_g_label": "Ctrl+Shift+G: record voice message in the other mode (stereo if the default is mono, mono if it is stereo)",
     "shortcut_esc_ctrl_w_label": "Esc / Ctrl+W: close chat. With messages selected, the first Esc only deselects them all and just the second one closes the chat, if the option is enabled in Settings, User Interface",
     "shortcut_ctrl_shift_j_label": "Ctrl+Shift+A: add attachment",
     "shortcut_ctrl_shift_d_label": "Ctrl+Shift+D: chat data / discard recording",
