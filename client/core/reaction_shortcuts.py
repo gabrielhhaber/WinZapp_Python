@@ -74,7 +74,9 @@ def quick_reactions(history, current: str = "", *, fixed_slots=None) -> list[str
     The last hundred successful reactions adapt to changing habits. Defaults
     start with three virtual uses, so a new emoji does not displace one after
     a single exploratory pick. Always include the current reaction so its
-    checked row remains available for removal, even if it is not in the top 12.
+    checked row remains available for removal, even if it is not in the top 12
+    (with fixed rows it gets a thirteenth row instead, so no configured row
+    is ever replaced).
 
     The twelve are listed most-used first. With ``fixed_slots`` (Settings >
     Reactions, for users who pick a reaction by counting arrow presses) the
@@ -82,8 +84,10 @@ def quick_reactions(history, current: str = "", *, fixed_slots=None) -> list[str
     """
     if fixed_slots is not None:
         ranked = fixed_quick_reactions(fixed_slots)
-    else:
-        ranked = _ranked_by_use(history)
+        if current and current not in ranked:
+            ranked.append(current)
+        return ranked
+    ranked = _ranked_by_use(history)
     if current and current not in ranked:
         ranked[-1] = current
     return ranked

@@ -171,7 +171,9 @@ def test_single_emoji_picker_wording_follows_its_caller(wx_app, texts, title, hi
     try:
         assert dialog.GetTitle() == title
         assert hint in _static_labels(dialog)
-        assert dialog.FindWindowById(wx.ID_OK).GetLabel() == ok
+        # FindWindow searches this dialog's children only; FindWindowById is
+        # static and could return an earlier test's still-queued picker.
+        assert dialog.FindWindow(wx.ID_OK).GetLabel() == ok
         dialog._list.Select(0, False)
         dialog._queued_emojis[:] = ["😀"]
         dialog._selected_emoji = "🐶"

@@ -50,9 +50,11 @@ def test_fixed_slots_are_the_rows_whatever_the_history():
     assert quick_reactions(["😂"] * 50 + ["🐸"] * 50, fixed_slots=_CUSTOM) == _CUSTOM
 
 
-def test_fixed_slots_still_offer_the_current_reaction_for_removal():
+def test_fixed_slots_offer_the_current_reaction_on_a_row_of_its_own():
+    # Replacing row 12 would put 🐸 where the user expects 🥰, and Enter
+    # there removes the reaction instead of switching to 🥰.
     picks = quick_reactions([], current="🐸", fixed_slots=_CUSTOM)
-    assert picks == _CUSTOM[:11] + ["🐸"]
+    assert picks == _CUSTOM + ["🐸"]
     assert quick_reactions([], current="🐱", fixed_slots=_CUSTOM) == _CUSTOM
 
 
@@ -193,6 +195,13 @@ def test_more_reactions_row_opens_picker_and_sends_its_choice(
     monkeypatch, current, activate_index, picker_choice, expected, picker_calls,
     fixed_setting,
 ):
+    # Fixed rows are never overwritten: a current reaction outside them gets
+    # its own row after the twelve, which pushes "Add more reactions" down.
+    extra = 1 if fixed_setting and current else 0
+    if activate_index >= 11:
+        activate_index += extra
+    more_index = 12 + extra
+
     class _Control:
         def __init__(self, *args, **kwargs):
             self.handlers = {}
@@ -321,18 +330,20 @@ def test_more_reactions_row_opens_picker_and_sends_its_choice(
     ]
 
     assert _List.instance.checkboxes_enabled is True
-    assert len(_List.instance.rows) == 13
+    assert len(_List.instance.rows) == more_index + 1
     assert _List.instance.rows[-1] == "Daha fazla tepki ekle"
-    assert _List.instance.checked == ([11] if current else [])
+    assert _List.instance.checked == ([11 + extra] if current else [])
+    if extra:
+        assert _List.instance.rows[:12] == list(DEFAULT_QUICK_REACTIONS)
     assert len(picked) == picker_calls
     assert sends == ([] if expected is None else [({"id": "m1"}, expected)])
 
     # Space on "Add more reactions" must not leave it announced as checked;
     # checking a real reaction row is left alone.
     on_checked = _List.instance.handlers[wx.EVT_LIST_ITEM_CHECKED]
-    on_checked(type("Event", (), {"GetIndex": lambda self: 12})())
+    on_checked(type("Event", (), {"GetIndex": lambda self: more_index})())
     on_checked(type("Event", (), {"GetIndex": lambda self: 3})())
-    assert _List.instance.unchecked == [12]
+    assert _List.instance.unchecked == [more_index]
 
 
 class _KeyEvent:
