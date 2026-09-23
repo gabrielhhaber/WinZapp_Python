@@ -9470,6 +9470,44 @@ class ConversationsPanel(wx.Panel):
         else:
             return f"{size / 1024 ** 3:.2f}".replace(".", sep) + " gb"
 
+    @staticmethod
+    def _message_mentioned_jids(msg: dict) -> list:
+        """The JIDs a text message @mentions.
+
+        mentionedJid may live at the top-level contextInfo (the WPPConnect API
+        normalises it there), in message.contextInfo, or inside
+        extendedTextMessage.contextInfo.
+        """
+        msg_obj = msg.get("message") or {}
+        ext = msg_obj.get("extendedTextMessage") or {}
+        ctx_top = msg.get("contextInfo") or {}
+        ctx_msg = msg_obj.get("contextInfo") or {}
+        ctx_ext = (ext.get("contextInfo") or {}) if isinstance(ext, dict) else {}
+        return (
+            ctx_top.get("mentionedJid") or ctx_top.get("mentionedJidList")
+            or ctx_msg.get("mentionedJid") or ctx_msg.get("mentionedJidList")
+            or ctx_ext.get("mentionedJid") or ctx_ext.get("mentionedJidList")
+            or []
+        )
+
+    def _message_text_with_names(self, msg: dict) -> str:
+        """A text message's body as the list row shows it: @mentions as names.
+
+        What Ctrl+C, Alt+C and the bulk copy hand over. They used to read the
+        raw body, so a mention the row read as "@Maria" was copied and shown
+        as "@5511999999999" -- or as the @lid digits, which are not even a
+        phone number. "" for anything that is not a text message.
+        """
+        msg_obj = msg.get("message") or {}
+        msg_type = msg.get("messageType", "")
+        if msg_type == "conversation":
+            return msg_obj.get("conversation", "") or ""
+        if msg_type == "extendedTextMessage":
+            text = (msg_obj.get("extendedTextMessage") or {}).get("text", "") or ""
+            mentioned = self._message_mentioned_jids(msg)
+            return self._resolve_mentions_in_text(text, mentioned) if mentioned else text
+        return ""
+
     def _resolve_mentions_in_text(self, text: str, mentioned: list) -> str:
         """Replace @{number}/@{lid} placeholders in *text* with display names.
 
@@ -9552,18 +9590,7 @@ class ConversationsPanel(wx.Panel):
                     app_name=self.main_window.app_name
                 )
             # Resolve @mentions: replace @{number} with @{display_name}.
-            # mentionedJid may live at the top-level contextInfo (WPPConnect API
-            # normalises it there) or inside extendedTextMessage.contextInfo.
-            ctx_top = msg.get("contextInfo") or {}
-            ctx_msg = msg_obj.get("contextInfo") or {}
-            ctx_ext = ext.get("contextInfo") or {}
-            mentioned = (
-                ctx_top.get("mentionedJid") or ctx_top.get("mentionedJidList")
-                or ctx_msg.get("mentionedJid") or ctx_msg.get("mentionedJidList")
-                or ctx_ext.get("mentionedJid") or ctx_ext.get("mentionedJidList")
-                or []
-            )
-            text = self._resolve_mentions_in_text(text, mentioned)
+            text = self._resolve_mentions_in_text(text, self._message_mentioned_jids(msg))
 
             # Link preview (title/description WhatsApp itself generated for
             # the URL — see websocket_client.py's _has_link_preview). Shared
@@ -11499,13 +11526,7 @@ class ConversationsPanel(wx.Panel):
         return (inner.get("caption") or "").strip()
 
     def _on_menu_copy_message(self, msg: dict):
-        msg_obj  = msg.get("message") or {}
-        msg_type = msg.get("messageType", "")
-        text = ""
-        if msg_type == "conversation":
-            text = msg_obj.get("conversation", "")
-        elif msg_type == "extendedTextMessage":
-            text = (msg_obj.get("extendedTextMessage") or {}).get("text", "")
+        text = self._message_text_with_names(msg)
         if text:
             try:
                 pyperclip.copy(text)
@@ -14352,12 +14373,8 @@ class ConversationsPanel(wx.Panel):
         """Open a read-only dialog showing the full message text (or, for a
         photo/video/document message, its caption)."""
         msg_type = msg.get("messageType", "")
-        msg_obj  = msg.get("message") or {}
-        text = ""
-        if msg_type == "conversation":
-            text = msg_obj.get("conversation", "")
-        elif msg_type == "extendedTextMessage":
-            text = (msg_obj.get("extendedTextMessage") or {}).get("text", "")
+        if msg_type in ("conversation", "extendedTextMessage"):
+            text = self._message_text_with_names(msg)
         else:
             text = self._get_message_caption(msg)
         if not text:
@@ -16813,11 +16830,7 @@ class ConversationsPanel(wx.Panel):
             msg_type = m.get("messageType", "")
             if msg_type not in _TEXT_TYPES:
                 continue
-            msg_obj = m.get("message") or {}
-            text = (
-                msg_obj.get("conversation", "") if msg_type == "conversation"
-                else (msg_obj.get("extendedTextMessage") or {}).get("text", "")
-            )
+            text = self._message_text_with_names(m)
             if not text:
                 continue
             sender = self._sender_label(m)

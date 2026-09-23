@@ -17,6 +17,7 @@ class _FakeI18n:
 class _Stub:
     _get_message_content = ConversationsPanel._get_message_content
     _resolve_mentions_in_text = ConversationsPanel._resolve_mentions_in_text
+    _message_mentioned_jids = staticmethod(ConversationsPanel._message_mentioned_jids)
 
     def __init__(self, show_link_previews=True):
         self.main_window = type("MW", (), {

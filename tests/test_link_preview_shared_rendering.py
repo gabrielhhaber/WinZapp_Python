@@ -45,6 +45,7 @@ class _MainWindow:
 class _PanelStub:
     _get_message_content = ConversationsPanel._get_message_content
     _resolve_mentions_in_text = ConversationsPanel._resolve_mentions_in_text
+    _message_mentioned_jids = staticmethod(ConversationsPanel._message_mentioned_jids)
 
     def __init__(self, main_window):
         self.main_window = main_window
