@@ -7774,6 +7774,61 @@ class MainWindow(wx.Frame):
         return (((msg or {}).get("messageType") or "")
                 in MainWindow._UNDECRYPTED_PLACEHOLDER_TYPES)
 
+    @staticmethod
+    def _resolved_placeholder_is_fresh(records: list, index: int, incoming: dict,
+                                       connected_at: float) -> bool:
+        """Whether the decrypted copy of a STORED placeholder is a new arrival.
+
+        The live funnel never stores a placeholder, but a get-messages sync
+        does: it stores whatever WhatsApp Web's store holds, and a message that
+        device could not decrypt yet ("Aguardando mensagem") is held as a
+        `ciphertext`. When the real copy arrives later it is either
+        - still the newest message, and recent: a sync raced the 2-4 s the
+          decryption normally takes, and the copy must get the full new-message
+          path (badge, sound, announcement), or
+        - an older one, decrypted minutes or hours later (the sender's phone
+          answering WhatsApp's retry): it is filled in where it already sits,
+          silently, since appending it would put it after newer messages.
+        Same 60 s cutoff the notification path uses.
+        """
+        if index != len(records) - 1:
+            return False
+        try:
+            return int(incoming.get("messageTimestamp") or 0) >= connected_at - 60
+        except (TypeError, ValueError):
+            return False
+
+    def _fill_stored_placeholder(self, existing: dict, incoming: dict, remote_jid: str) -> None:
+        """Replace a stored placeholder with its decrypted copy, in place.
+
+        _apply_possible_edit() cannot do it: a placeholder has no text, so it
+        is never "an edit" there, and the decrypted copy was discarded as a
+        duplicate. The row stayed hidden for good (a ciphertext is not a
+        displayable type) and a reply quoting it pointed at nothing — measured
+        2026-09-23: 165 such rows on one install, 20 of them from that morning.
+        Local-only fields (`_`-prefixed) on the record are kept.
+        """
+        prune_message_record(incoming)
+        for field, value in incoming.items():
+            existing[field] = value
+        logging.info("[on_new_message] %s: decrypted copy of stored placeholder %s "
+                     "filled in (%s).", remote_jid,
+                     ((existing.get("key") or {}).get("id") or "")[:22],
+                     existing.get("messageType"))
+
+        def _bg_persist():
+            try:
+                self.db.insert_message(remote_jid, existing)
+            except Exception as e:
+                logging.error(f"[_fill_stored_placeholder] Failed to persist message: {e}")
+        self._msg_bg_executor.submit(_bg_persist)
+        # A row appears mid-history, so a repaint of the existing rows is not
+        # enough; refresh_messages_if_changed() rebuilds while keeping focus.
+        if hasattr(self, "conversations_panel"):
+            wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)
+        self._schedule_save(dirty_jid=remote_jid)
+        self._schedule_set_chats()
+
     def _drop_protocol_edit(self, remote_jid: str, msg: dict) -> bool:
         """True when *msg* is an edit protocol message, which is then dropped.
 
@@ -8439,10 +8494,23 @@ class MainWindow(wx.Frame):
                 return
 
         if msg_id:
-            for existing in records:
+            for index, existing in enumerate(records):
                 if existing.get("key", {}).get("id") == msg_id:
-                    self._apply_possible_edit(existing, msg, remote_jid)
-                    return  # already stored (edited in place if content changed)
+                    if not MainWindow._is_undecrypted_placeholder(existing):
+                        self._apply_possible_edit(existing, msg, remote_jid)
+                        return  # already stored (edited in place if content changed)
+                    # A sync stored WhatsApp Web's placeholder for this id and
+                    # this is its decrypted copy (see _resolved_placeholder_is_fresh).
+                    ws = getattr(self, "ws", None)
+                    connected_at = getattr(ws, "_connect_time", None) or time.time()
+                    if not MainWindow._resolved_placeholder_is_fresh(
+                            records, index, msg, connected_at):
+                        self._fill_stored_placeholder(existing, msg, remote_jid)
+                        return
+                    # Fresh: drop the placeholder and let the copy continue as
+                    # the new message it is; its DB insert replaces the row.
+                    del records[index]
+                    break
 
 
 

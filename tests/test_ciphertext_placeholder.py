@@ -22,6 +22,9 @@ So the placeholder must not be stored. Then the decrypted copy is what it
 actually is: a new message, arriving through the full notify/count path.
 """
 
+import pytest
+
+import main
 from main import MainWindow, is_countable_message
 
 
@@ -84,3 +87,114 @@ class TestTheDropIsWiredIntoTheLiveFunnel:
         import inspect
         src = inspect.getsource(MainWindow.on_new_message)
         assert src.index("_extract_lid_mapping") < src.index("_is_undecrypted_placeholder")
+
+
+class TestTheDecryptedCopyOfAStoredPlaceholder:
+    """The live funnel drops a placeholder, but a get-messages sync stores
+    whatever WhatsApp Web holds, and a message that device has not decrypted
+    ("Aguardando mensagem") is held as a ciphertext. Reported 2026-09-23: a
+    reply in a group quoted a message that never showed up. It was stored as a
+    ciphertext (hidden: not a displayable type), and when its real copy
+    arrived it hit the same-id dedup and _apply_possible_edit() dropped it,
+    because a placeholder has no text to compare."""
+
+    CONNECTED_AT = 1_790_000_000
+
+    def _records(self, *types):
+        return [_msg(t, mid=f"ID{i}") for i, t in enumerate(types)]
+
+    def test_an_older_placeholder_is_filled_in_place(self):
+        records = self._records("ciphertext", "conversation")
+        incoming = _msg("conversation", {"conversation": "oi"}, mid="ID0")
+        incoming["messageTimestamp"] = self.CONNECTED_AT
+        assert MainWindow._resolved_placeholder_is_fresh(
+            records, 0, incoming, self.CONNECTED_AT) is False
+
+    def test_the_newest_placeholder_decrypted_just_now_is_a_new_message(self):
+        """A sync raced the few seconds decryption takes: the copy must still be
+        announced, which only the new-message path does."""
+        records = self._records("conversation", "ciphertext")
+        incoming = _msg("conversation", {"conversation": "oi"}, mid="ID1")
+        incoming["messageTimestamp"] = self.CONNECTED_AT + 30
+        assert MainWindow._resolved_placeholder_is_fresh(
+            records, 1, incoming, self.CONNECTED_AT) is True
+
+    def test_the_newest_placeholder_decrypted_hours_later_is_filled_in_place(self):
+        records = self._records("conversation", "ciphertext")
+        incoming = _msg("conversation", {"conversation": "oi"}, mid="ID1")
+        incoming["messageTimestamp"] = self.CONNECTED_AT - 3600
+        assert MainWindow._resolved_placeholder_is_fresh(
+            records, 1, incoming, self.CONNECTED_AT) is False
+
+    def test_an_unreadable_timestamp_is_filled_in_place(self):
+        records = self._records("ciphertext")
+        incoming = _msg("conversation", {"conversation": "oi"}, mid="ID0")
+        incoming["messageTimestamp"] = "not a number"
+        assert MainWindow._resolved_placeholder_is_fresh(
+            records, 0, incoming, self.CONNECTED_AT) is False
+
+    def test_filling_replaces_the_content_on_the_same_record(self, monkeypatch):
+        monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
+        window = _FillStub()
+        existing = _msg("ciphertext", mid="ID0")
+        existing["_local_flag"] = True
+        incoming = _msg("extendedTextMessage",
+                        {"extendedTextMessage": {"text": "não chega nem a 1mb"}}, mid="ID0")
+
+        window._fill_stored_placeholder(existing, incoming, "g@g.us")
+
+        assert existing["messageType"] == "extendedTextMessage"
+        assert existing["message"]["extendedTextMessage"]["text"] == "não chega nem a 1mb"
+        assert existing["_local_flag"] is True
+        assert MainWindow._is_undecrypted_placeholder(existing) is False
+        assert window.db.inserted == [("g@g.us", existing)]
+        # mid-history row: a rebuild, not a repaint of existing rows
+        assert window.conversations_panel.refreshes == 1
+        assert window.saved == ["g@g.us"]
+        assert window.set_chats == 1
+
+    def test_the_dedup_checks_for_a_placeholder_before_treating_it_as_an_edit(self):
+        import inspect
+        src = inspect.getsource(MainWindow.on_new_message)
+        assert "_is_undecrypted_placeholder(existing)" in src
+        assert src.index("_is_undecrypted_placeholder(existing)") < src.index(
+            "self._apply_possible_edit(existing")
+        assert "_fill_stored_placeholder(existing" in src
+
+
+class _InlineExecutor:
+    def submit(self, fn, *args, **kwargs):
+        fn(*args, **kwargs)
+
+
+class _Db:
+    def __init__(self):
+        self.inserted = []
+
+    def insert_message(self, remote_jid, message):
+        self.inserted.append((remote_jid, message))
+
+
+class _Panel:
+    def __init__(self):
+        self.refreshes = 0
+
+    def refresh_messages_if_changed(self):
+        self.refreshes += 1
+
+
+class _FillStub:
+    _fill_stored_placeholder = MainWindow._fill_stored_placeholder
+
+    def __init__(self):
+        self.db = _Db()
+        self._msg_bg_executor = _InlineExecutor()
+        self.conversations_panel = _Panel()
+        self.saved = []
+        self.set_chats = 0
+
+    def _schedule_save(self, dirty_jid=None):
+        self.saved.append(dirty_jid)
+
+    def _schedule_set_chats(self):
+        self.set_chats += 1
