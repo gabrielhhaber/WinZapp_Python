@@ -2167,6 +2167,9 @@ class MainWindow(wx.Frame):
         self._call_action_lock = threading.Lock()
         self._call_audio_session = None
         self._active_voice_call = None
+        # Set while an outgoing offer is in flight; end_active_call() marks it
+        # cancelled so an offer that lands afterwards hangs itself up.
+        self._outgoing_call_attempt = None
         self._voice_call_last_announced_state = ""
         # Diagnostic-only: distinguish "never reached this method", "reached
         # it but is_video gated it out" and "gate passed, frame rendered" from
@@ -6904,6 +6907,16 @@ class MainWindow(wx.Frame):
         threading.Thread(target=_worker, daemon=True).start()
 
     def end_active_call(self, _event=None):
+        # Marked here, on the UI thread, before the worker even starts: an
+        # outgoing offer no longer holds _call_action_lock while it blocks
+        # (#275), so hanging up can reach WhatsApp before the offer does and
+        # the "end" below then names a call the server has not created yet.
+        # _start_individual_call()'s worker reads this when its offer lands and
+        # ends the call it just created instead of ringing the peer.
+        attempt = getattr(self, "_outgoing_call_attempt", None)
+        if attempt is not None:
+            attempt["cancelled"] = True
+
         def _worker():
             with self._call_action_lock:
                 try:
@@ -7070,40 +7083,96 @@ class MainWindow(wx.Frame):
         self._active_voice_call = dict(details)
         self._voice_call_last_announced_state = ""
         wx.CallAfter(self._sync_voice_call_bar)
+        # One token per outgoing attempt, kept on the window rather than on the
+        # call record: _start_voice_call_audio() below REPLACES
+        # _active_voice_call with a record of its own, so a flag written onto
+        # the record while the offer is in flight could land on a dict nobody
+        # reads again. end_active_call() sets ``cancelled`` here.
+        attempt = {"cancelled": False}
+        self._outgoing_call_attempt = attempt
 
         def _worker():
             offered = False
-            with self._call_action_lock:
-                try:
+            # The record this attempt owns, compared by identity from here on
+            # the way _start_call_camera() does: while the offer is in flight a
+            # terminal callstate event, or an incoming call the user answered,
+            # can replace _active_voice_call with a different call, and that
+            # call must not be torn down by this attempt's failure.
+            call_record = getattr(self, "_active_voice_call", None)
+            try:
+                with self._call_action_lock:
                     self._start_voice_call_audio(identity, details)
+                    # Taken after the audio start, which is what installs the
+                    # record this attempt owns.
+                    call_record = getattr(self, "_active_voice_call", None)
                     dial_jid = self._resolve_jid_for_send(peer_jid) or peer_jid
-                    response = self._raise_for_call_response(
-                        self._post_call_control(
-                            "offer",
-                            {"to": dial_jid, "isVideo": is_video},
-                            timeout=75,
-                        ),
+
+                # The offer POST runs OUTSIDE _call_action_lock, for the same
+                # reason as the camera below: it blocks for up to 75 seconds
+                # and end_active_call() needs that lock, so holding it here
+                # left "end call" dead for the whole timeout (#275). The price
+                # is that a hang-up can now reach WhatsApp while the offer is
+                # still in flight -- that is what ``cancelled`` settles.
+                response = self._raise_for_call_response(
+                    self._post_call_control(
                         "offer",
+                        {"to": dial_jid, "isVideo": is_video},
+                        timeout=75,
+                    ),
+                    "offer",
+                )
+                try:
+                    body = response.json().get("response") or {}
+                except Exception:
+                    body = {}
+                call_id = str(body.get("id") or "") if isinstance(body, dict) else ""
+                with self._call_action_lock:
+                    cancelled = attempt["cancelled"]
+                    still_ours = (
+                        getattr(self, "_active_voice_call", None) is call_record
+                    )
+                    if still_ours and call_id and not cancelled:
+                        call_record["call_id"] = call_id
+                    offered = still_ours and not cancelled
+                if cancelled:
+                    # The user hung up before the offer landed, so their "end"
+                    # POST named a call WhatsApp did not have yet and the peer
+                    # is ringing right now for a call WinZapp believes is over.
+                    # End the call this attempt just created, and never start
+                    # the camera for it. Only on an explicit cancel: a record
+                    # replaced by some other call is NOT a reason to POST
+                    # "end", which carries no call id and would hang up
+                    # whichever call the page holds now.
+                    logging.info(
+                        "[call] outgoing offer landed after the call was cancelled; ending it"
                     )
                     try:
-                        body = response.json().get("response") or {}
+                        self._raise_for_call_response(
+                            self._post_call_control("end", {}), "end"
+                        )
                     except Exception:
-                        body = {}
-                    call_id = str(body.get("id") or "") if isinstance(body, dict) else ""
-                    active = getattr(self, "_active_voice_call", None)
-                    if active is not None and call_id:
-                        active["call_id"] = call_id
-                    offered = True
-                except Exception as exc:
-                    self._stop_voice_call_audio()
-                    logging.exception("[call] outgoing call failed")
-                    wx.CallAfter(
-                        self.output,
-                        self.i18n.t("voice_call_start_failed").format(
-                            error=self._call_error_text(exc)
-                        ),
-                        True,
-                    )
+                        logging.exception("[call] failed to end a cancelled outgoing call")
+            except Exception as exc:
+                logging.exception("[call] outgoing call failed")
+                wx.CallAfter(
+                    self.output,
+                    self.i18n.t("voice_call_start_failed").format(
+                        error=self._call_error_text(exc)
+                    ),
+                    True,
+                )
+            finally:
+                # In a finally, not in the except: a refused offer, a hang-up
+                # that beat it and a record replaced underneath us all leave
+                # this attempt owning no live call, and the one path that
+                # forgets to clear _active_voice_call costs an orphaned call
+                # window, a "call already active" refusal of every later call
+                # and up to _VOICE_CALL_PAUSE_MAX_SECONDS of stood-down
+                # background sync (#275).
+                if not offered:
+                    self._abandon_outgoing_call(call_record)
+                if getattr(self, "_outgoing_call_attempt", None) is attempt:
+                    self._outgoing_call_attempt = None
 
             # Camera after the offer, and outside _call_action_lock, for the
             # same two reasons as accept_incoming_call(): device enumeration
@@ -7119,6 +7188,26 @@ class MainWindow(wx.Frame):
                     logging.exception("[call_video] camera setup failed after offer")
 
         threading.Thread(target=_worker, daemon=True).start()
+
+    def _abandon_outgoing_call(self, call_record):
+        """Drop the local state of an outgoing call that never went live.
+
+        ``call_record`` is the ``_active_voice_call`` object the attempt owned,
+        and the comparison is by identity rather than truthiness for the reason
+        _start_call_camera() spells out: a call that replaced this one while
+        the offer was in flight is a different call, and tearing its audio,
+        camera and window down here would end a call the user is in.
+        """
+        if getattr(self, "_active_voice_call", None) is not call_record:
+            return
+        self._stop_voice_call_audio()
+        # _stop_voice_call_audio() clears these itself on the path taken here
+        # (no grace period, so it never returns early), but the state this
+        # method exists to guarantee is written where it can be read, not left
+        # to a side effect of the audio teardown.
+        self._active_voice_call = None
+        self._voice_call_last_announced_state = ""
+        wx.CallAfter(self._sync_voice_call_bar)
 
     def _sync_voice_call_bar(self):
         """Keep the modeless call window in step without repeatedly stealing focus."""
