@@ -39,6 +39,61 @@ calling are still heard. A device switch mid-call
 the `_active_voice_call` object stay, because `_start_call_camera()` compares
 that object by identity.
 
+**Playback is callback driven, behind a bounded jitter buffer, and the two
+halves of that sentence are both load-bearing.** `_play_remote_loop()` used to
+write each arriving packet straight into a blocking `OutputStream` opened at a
+20 ms `blocksize` with `latency="low"` — one packet in, one write out, with no
+reservoir at all. The remote track is tapped in the page by a
+`createScriptProcessor(1024)`, a deprecated main-thread node that delivers
+~21.3 ms chunks in bursts, and the bytes then cross Socket.IO and a Python
+socket thread, so a few milliseconds of arrival jitter is routine. A device
+buffer holding barely two periods underflows on it, and every underflow is an
+audible click: hardware with a deep driver buffer hides it, a low-latency USB
+headset (CORSAIR HS80, reported 2026-09-22 as constant popping through both
+exclusive settings and after the WASAPI device-selection work) does not. The
+output stream is now opened with `blocksize=0` (PortAudio serves the device's
+own period, which is the only size WASAPI can serve without another conversion
+buffer) and a `callback=` that drains `_OutputJitterBuffer`: ~60 ms of
+prebuffer on cold start, only ~20 ms to resume after an underrun (requiring the
+full target again would chop a jittery-but-adequate line into a ~50% duty
+cycle, which is worse than the clicks), a ~200 ms hard cap that drops the
+**oldest** samples, and ~5 ms fades on starvation and resumption because the
+discontinuity clicks even between two stretches of silence.
+
+**A reservoir in front of the output is the exact thing the 2026-09-20
+bisection blamed, and it is back on purpose — so be accurate about what that
+bisection established.** It showed that swapping this file for main's version
+fixed severely choppy audio where three targeted fixes had not, which isolates
+the defect to the reservoir rewrite *as a whole*; c78fe4c7 states outright that
+the root cause was never pinned down further. The reverted version (0f11af9c)
+was already hard capped at `CALL_OUTPUT_MAX_BUFFER_MS` and already dropped its
+oldest samples, so neither of those is what makes this one different. What is
+different is that nothing blocks and nothing paces: that version drained its
+reservoir through blocking `stream.write()` calls, and on a device whose buffer
+turned out to be five frames deep those writes did not block, so frames landed
+in bursts (3d507ce1 added wall-clock pacing on top and that did not fix it
+either). Here there is no write call anywhere — PortAudio asks for one device
+period when it needs one, and that request rate is the only clock left. Treat
+this as a deliberate re-test of the suspect component with the write path
+removed: if choppiness returns, the next step is data (underrun counts, device
+period, reported latency), not another guess.
+
+Two consequences worth stating. The prebuffer is ~60 ms of one-way latency the
+listener pays on every call. And with the blocking write gone, `_output_queue`
+(40 packets, ~850 ms, drop-oldest) is effectively depth-1 — the player thread
+empties it into the reservoir as fast as it arrives — so the 200 ms cap is now
+the only bound in the path: a ~300 ms stall drops ~100 ms of speech where it
+used to play late but whole. That is the intended trade (latency that never
+creeps), not an oversight.
+
+The callback never raises, never blocks and never
+logs (all three are audible on a realtime thread); starvation is a counter, and
+the player thread logs a rate-limited summary. Every failed candidate in
+`_open_input_stream()`/`_open_output_stream()` is now logged at INFO too: the
+same headset opened on WASAPI (device 14) for one call and on MME (device 6,
+100 ms) for the next with nothing changed in between, and the reason the WASAPI
+twin lost was swallowed into `last_error`.
+
 **Video calls used to be out of scope, and are not any more — read this before
 touching the camera path.** While they were, the camera failed closed through
 THREE independent things rather than one: no `videoCapture` in the CDP grant,
