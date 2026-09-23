@@ -3991,7 +3991,7 @@ class MainWindow(wx.Frame):
         vk  = hk.get("vk", 0)
         mod = hk.get("mod", 0)
         if vk:
-            self._hotkey_manager = _HotkeyManager(vk, mod, self.restore_window)
+            self._hotkey_manager = _HotkeyManager(vk, mod, self.toggle_window_from_hotkey)
 
     def set_global_hotkey(self, vk: int, mod: int):
         """Save and apply a new global hotkey (vk=0 removes it)."""
@@ -5722,6 +5722,32 @@ class MainWindow(wx.Frame):
             self.tray_icon.update_tooltip()
         except Exception:
             pass
+
+    @staticmethod
+    def _hotkey_hides_window(has_tray: bool, window_hwnd, foreground_hwnd) -> bool:
+        """Whether the global hotkey should send the window to the tray.
+
+        Only when this very window is the one in front (issue #258): a window
+        that is hidden, minimised or merely behind another program is brought
+        forward, as the hotkey always did. A WinZapp dialog in front does not
+        count -- hiding the frame under it would strand the dialog. Without a
+        tray icon nothing could bring the window back but the hotkey itself,
+        so it is never hidden then (hide_to_tray() refuses for that reason).
+        """
+        return bool(has_tray and window_hwnd and foreground_hwnd == window_hwnd)
+
+    def toggle_window_from_hotkey(self):
+        """Global hotkey: open WinZapp, or hide it to the tray when it is in front."""
+        try:
+            foreground = ctypes.windll.user32.GetForegroundWindow()
+        except Exception:
+            foreground = None
+        if MainWindow._hotkey_hides_window(
+                getattr(self, "tray_icon", None) is not None, self.GetHandle(), foreground):
+            logging.info("[hotkey] window in front — hiding to the tray")
+            self.hide_to_tray()
+            return
+        self.restore_window()
 
     def restore_window(self):
         """Bring the WinZapp window to the foreground.
