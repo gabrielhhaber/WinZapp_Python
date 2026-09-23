@@ -4,7 +4,7 @@ This release fixes situations where WinZapp asked you to pair again when it did 
 
 WHAT'S NEW
 
-- React with any emoji. "Add more reactions" at the end of the 12 quick choices opens the full picker; emojis you use often gradually take their place among those quick choices, most used first. If you would rather find each reaction in the same position every time, turn on the matching option in the User Interface tab of Settings.
+- React with any emoji. "Add more reactions" at the end of the 12 quick choices opens the full picker; emojis you use often gradually take their place among those quick choices, most used first. If you would rather find each reaction in the same position every time, use the new Reactions tab in Settings: with "Use fixed quick reactions" on, the 12 positions no longer change with use, and Enter on a position opens the emoji picker to choose which reaction goes there.
 
 - Show a file saved with Save As in its folder. Once that user-chosen copy exists, use Ctrl+Enter, the "Show in folder" context-menu item or the Tab-reachable button beside Open and Save As to open File Explorer with it selected; internal downloads alone do not expose the action.
 

@@ -43,6 +43,10 @@
         "live_snapshot_interval_hours": 24,
         "live_snapshot_confirm": true
     },
+    "reactions": {
+        "fixed_quick_reactions": false,
+        "quick_reaction_slots": ["\u2764\ufe0f", "\ud83d\udc4d", "\ud83d\udc4e", "\ud83d\ude02", "\ud83d\ude2e", "\ud83d\ude22", "\ud83d\ude4f", "\ud83d\udd25", "\ud83c\udf89", "\ud83d\udcaf", "\ud83d\ude0e", "\ud83e\udd70"]
+    },
     "user_interface": {
         "messages_page_size": 200,
         "page_jump_size": 15,
@@ -64,7 +68,6 @@
         "show_yesterday_label": true,
         "show_link_previews": true,
         "forwarded_prefix_enabled": false,
-        "stable_quick_reactions_order": false,
         "conversation_video_media_viewer_dialog": true,
         "status_media_viewer_dialog": true,
         "voice_message_mode": "voice_message",

@@ -2529,9 +2529,14 @@ def insert_emoji(text_ctrl, emoji: str) -> bool:
 
 
 class EmojiPickerDialog(wx.Dialog):
-    def __init__(self, parent, i18n, *, reaction_mode: bool = False):
-        title = "react_dialog_title" if reaction_mode else "emoji_picker_title"
-        super().__init__(parent, title=i18n.t(title), size=(420, 480))
+    def __init__(self, parent, i18n, *, reaction_mode: bool = False,
+                 title: str | None = None, hint_text: str | None = None,
+                 ok_label: str | None = None):
+        """``reaction_mode`` picks exactly one emoji. ``title``/``hint_text``/
+        ``ok_label`` replace its reaction wording for other single-emoji uses
+        (Settings > Reactions), already translated by the caller."""
+        default_title = "react_dialog_title" if reaction_mode else "emoji_picker_title"
+        super().__init__(parent, title=title or i18n.t(default_title), size=(420, 480))
         self._i18n = i18n
         self._reaction_mode = reaction_mode
         self._selected_emoji = ""
@@ -2542,7 +2547,7 @@ class EmojiPickerDialog(wx.Dialog):
         panel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.VERTICAL)
         hint_key = "emoji_picker_reaction_hint" if reaction_mode else "emoji_picker_hint"
-        hint = wx.StaticText(panel, label=i18n.t(hint_key))
+        hint = wx.StaticText(panel, label=hint_text or i18n.t(hint_key))
         sizer.Add(hint, 0, wx.EXPAND | wx.ALL, 8)
 
         self._search_button = wx.Button(panel, label=i18n.t("emoji_picker_search"))
@@ -2592,7 +2597,7 @@ class EmojiPickerDialog(wx.Dialog):
 
         buttons = wx.StdDialogButtonSizer()
         ok_key = "react_to_message" if reaction_mode else "emoji_picker_insert"
-        insert_btn = wx.Button(panel, wx.ID_OK, i18n.t(ok_key))
+        insert_btn = wx.Button(panel, wx.ID_OK, ok_label or i18n.t(ok_key))
         cancel_btn = wx.Button(panel, wx.ID_CANCEL, i18n.t("cancel"))
         insert_btn.SetDefault()
         buttons.AddButton(insert_btn)
@@ -2757,9 +2762,12 @@ def choose_and_insert_emoji(parent, text_ctrl, i18n) -> bool:
         dialog.Destroy()
 
 
-def choose_reaction_emoji(parent, i18n) -> str | None:
-    """Select exactly one reaction from the complete emoji catalogue."""
-    dialog = EmojiPickerDialog(parent, i18n, reaction_mode=True)
+def choose_reaction_emoji(parent, i18n, **texts) -> str | None:
+    """Select exactly one emoji from the complete catalogue.
+
+    ``texts`` (title, hint_text, ok_label) reword the dialog for a caller that
+    is not reacting to a message right now."""
+    dialog = EmojiPickerDialog(parent, i18n, reaction_mode=True, **texts)
     try:
         if dialog.ShowModal() == wx.ID_OK:
             return dialog.get_selected_emoji() or None

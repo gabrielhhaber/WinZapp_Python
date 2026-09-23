@@ -26,7 +26,49 @@ def remember_reaction(history, emoji: str) -> list[str]:
     return recent[-REACTION_HISTORY_LIMIT:]
 
 
-def quick_reactions(history, current: str = "", *, stable_order: bool = False) -> list[str]:
+def fixed_quick_reactions(slots) -> list[str]:
+    """The twelve rows chosen in Settings > Reactions, in order.
+
+    Anything unusable (a hand-edited file, a wrong length, a repeated emoji)
+    falls back to the defaults as a whole rather than half-applying, so the
+    rows a user counts on are either all theirs or all the shipped ones.
+    """
+    if not isinstance(slots, list) or len(slots) != len(DEFAULT_QUICK_REACTIONS):
+        return list(DEFAULT_QUICK_REACTIONS)
+    valid = _valid_history(slots)
+    if len(valid) != len(slots) or len(set(valid)) != len(valid):
+        return list(DEFAULT_QUICK_REACTIONS)
+    return valid
+
+
+def assign_quick_reaction(slots, position: int, emoji: str) -> list[str]:
+    """Put *emoji* on row *position*; if another row already holds it, the
+    two rows swap, so every row stays a distinct reaction."""
+    rows = fixed_quick_reactions(slots)
+    if not (0 <= position < len(rows)) or not _valid_history([emoji]):
+        return rows
+    if emoji in rows:
+        other = rows.index(emoji)
+        rows[other] = rows[position]
+    rows[position] = emoji
+    return rows
+
+
+def _ranked_by_use(history) -> list[str]:
+    recent = _valid_history(history)
+    counts = Counter(recent)
+    defaults = {emoji: index for index, emoji in enumerate(DEFAULT_QUICK_REACTIONS)}
+    last_used = {emoji: index for index, emoji in enumerate(recent)}
+    choices = set(defaults) | set(counts)
+    return sorted(choices, key=lambda emoji: (
+        -(counts[emoji] + (_DEFAULT_HEAD_START if emoji in defaults else 0)),
+        0 if emoji in defaults else 1,
+        defaults.get(emoji, len(defaults)),
+        -last_used.get(emoji, -1),
+    ))[:len(DEFAULT_QUICK_REACTIONS)]
+
+
+def quick_reactions(history, current: str = "", *, fixed_slots=None) -> list[str]:
     """Rank recent choices; defaults yield a slot only after repeated use.
 
     The last hundred successful reactions adapt to changing habits. Defaults
@@ -34,28 +76,14 @@ def quick_reactions(history, current: str = "", *, stable_order: bool = False) -
     a single exploratory pick. Always include the current reaction so its
     checked row remains available for removal, even if it is not in the top 12.
 
-    By default the twelve are listed most-used first. With ``stable_order``
-    (Settings > User interface) ranking only decides *which* twelve appear:
-    a default that survives keeps its row and a newcomer takes the row of the
-    default it displaced, for users who pick a reaction by counting arrow
-    presses and would otherwise send the wrong emoji after a reordering.
+    The twelve are listed most-used first. With ``fixed_slots`` (Settings >
+    Reactions, for users who pick a reaction by counting arrow presses) the
+    rows are exactly the configured ones and history is ignored.
     """
-    recent = _valid_history(history)
-    counts = Counter(recent)
-    defaults = {emoji: index for index, emoji in enumerate(DEFAULT_QUICK_REACTIONS)}
-    last_used = {emoji: index for index, emoji in enumerate(recent)}
-    choices = set(defaults) | set(counts)
-    ranked = sorted(choices, key=lambda emoji: (
-        -(counts[emoji] + (_DEFAULT_HEAD_START if emoji in defaults else 0)),
-        0 if emoji in defaults else 1,
-        defaults.get(emoji, len(defaults)),
-        -last_used.get(emoji, -1),
-    ))[:len(DEFAULT_QUICK_REACTIONS)]
-    if stable_order:
-        members = set(ranked)
-        entrants = [emoji for emoji in ranked if emoji not in defaults]
-        ranked = [emoji if emoji in members else entrants.pop(0)
-                  for emoji in DEFAULT_QUICK_REACTIONS]
+    if fixed_slots is not None:
+        ranked = fixed_quick_reactions(fixed_slots)
+    else:
+        ranked = _ranked_by_use(history)
     if current and current not in ranked:
         ranked[-1] = current
     return ranked

@@ -4,7 +4,7 @@ Esta versión corrige situaciones en las que WinZapp pedía vincular de nuevo si
 
 NOVEDADES
 
-- Reaccionar con cualquier emoji. "Añadir más reacciones", al final de las 12 opciones rápidas, abre el panel completo de emojis; los emojis que usas con frecuencia van ocupando poco a poco esas opciones rápidas, con los más usados arriba. Si prefieres encontrar cada reacción siempre en la misma posición, marca la opción correspondiente en la pestaña Interfaz de usuario de Configuración.
+- Reaccionar con cualquier emoji. "Añadir más reacciones", al final de las 12 opciones rápidas, abre el panel completo de emojis; los emojis que usas con frecuencia van ocupando poco a poco esas opciones rápidas, con los más usados arriba. Si prefieres encontrar cada reacción siempre en la misma posición, usa la nueva pestaña Reacciones de Configuración: con "Usar reacciones rápidas fijas" marcada, las 12 posiciones dejan de cambiar con el uso, y Enter en una posición abre el panel de emojis para elegir qué reacción va en ella.
 
 - Mostrar en su carpeta un archivo guardado con Guardar como. Cuando exista esa copia elegida por el usuario, usa Ctrl+Enter, la opción "Mostrar en carpeta" del menú contextual o el botón accesible con Tab junto a Abrir y Guardar como para abrir el Explorador con el archivo seleccionado; una descarga interna por sí sola no muestra la acción.
 

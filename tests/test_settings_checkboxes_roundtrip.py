@@ -167,22 +167,22 @@ def test_unchanged_boxes_are_saved_as_they_were(make_dialog):
     assert {(s, k): stored[s][k] for (s, k) in expected} == expected
 
 
-def test_stable_quick_reactions_box_sits_on_the_ui_tab_and_reaches_the_reaction_dialog(
+def test_fixed_quick_reactions_box_sits_on_the_reactions_tab_and_reaches_the_reaction_dialog(
     make_dialog,
 ):
     """Pinned by name as well as by the parse above: this is the key
-    ConversationsPanel._on_menu_react reads to keep the twelve quick
-    reactions in fixed rows (off by default: most-used first)."""
-    assert ("_stable_quick_reactions_cb", "user_interface",
-            "stable_quick_reactions_order") in CHECKBOXES
+    ConversationsPanel._on_menu_react reads to use the twelve configured rows
+    (off by default: most-used first)."""
+    assert ("_fixed_quick_reactions_cb", "reactions",
+            "fixed_quick_reactions") in CHECKBOXES
 
     dialog = make_dialog({})
-    box = dialog._stable_quick_reactions_cb
-    assert box.GetParent() is dialog._ui_page
+    box = dialog._fixed_quick_reactions_cb
+    assert box.GetParent() is dialog._reactions_page
     assert box.GetValue() is False
 
     box.SetValue(True)
     assert dialog._apply_values() is True
-    assert dialog.main_window.settings["user_interface"]["stable_quick_reactions_order"] is True
+    assert dialog.main_window.settings["reactions"]["fixed_quick_reactions"] is True
 
-    assert make_dialog(dialog.main_window.settings)._stable_quick_reactions_cb.GetValue() is True
+    assert make_dialog(dialog.main_window.settings)._fixed_quick_reactions_cb.GetValue() is True

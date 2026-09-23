@@ -262,7 +262,7 @@ def test_the_parse_finds_the_checkboxes_on_every_tab():
     for page in (
         "_general_page", "_ui_page", "_accessibility_page", "_speech_page",
         "_conn_page", "_audio_devices_page", "_storage_page", "_audio_page",
-        "_calls_page", "_profile_backup_page",
+        "_calls_page", "_profile_backup_page", "_reactions_page",
     ):
         assert page in pages, f"no checkbox found on {page}"
     assert len(checkbox_keys()) == len(WIRED)
