@@ -100,6 +100,7 @@
   "and": "ve",
   "unsupported_message": "Uyumsuz mesaj",
   "message_awaiting_decryption": "Bu mesaj bekleniyor. Bu biraz zaman alabilir.",
+  "message_recovered_from_quote_suffix": "(bir yanıttan kurtarıldı)",
   "unexpected_error_message": "{app_name} beklenmeyen bir hatayla karşılaştı ve işlemi tamamlayamadı.",
   "error_details": "Hata ayrıntıları:",
   "copy_error_text": "Hata metnini panoya &kopyala",

@@ -32,6 +32,7 @@ from core.voice_stereo import (
     fell_back_to_mono,
 )
 from ui.dialogs.stereo_voice_warning import ask_stereo_voice, stereo_warning_enabled
+from core.quote_recovery import RECOVERED_FROM_QUOTE
 from core.audio_transcode import transcode_audio_to_wav
 from core.attachment_types import classify_attachment_media_type
 from core.message_edit import (
@@ -9652,6 +9653,14 @@ class ConversationsPanel(wx.Panel):
         # replaces this record when it arrives (MainWindow._fill_stored_placeholder).
         if msg_type == "ciphertext":
             return i18n.t("message_awaiting_decryption")
+
+        # Text taken from a reply's quote (core/quote_recovery.py) is the
+        # replier's word, not the author's: said so on the row, so a quote a
+        # modified client made up is never read as the author's own message.
+        if msg.get(RECOVERED_FROM_QUOTE):
+            unmarked = {k: v for k, v in msg.items() if k != RECOVERED_FROM_QUOTE}
+            return (f"{self._get_message_content(unmarked)} "
+                    f"{i18n.t('message_recovered_from_quote_suffix')}")
 
         # ── Text ────────────────────────────────────────────────────────────
         if msg_type == "conversation":

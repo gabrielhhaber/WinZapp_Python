@@ -13,6 +13,7 @@ menu and the sync hook are checked structurally.
 """
 
 import inspect
+import types
 
 import pytest
 
@@ -29,6 +30,13 @@ def _msg(mid, ts, **extra):
               "messageTimestamp": ts}
     record.update(extra)
     return record
+
+
+def _reaction(target, ts):
+    return {"key": {"remoteJid": JID, "fromMe": False, "id": f"_rxn_{target}_x"},
+            "messageType": "reactionMessage",
+            "message": {"reactionMessage": {"key": {"id": target}, "text": "❤️"}},
+            "messageTimestamp": ts}
 
 
 class TestWhatTheServerContradicts:
@@ -111,6 +119,15 @@ class _Window:
 
     def _refresh_open_conversation_after_sync(self, remote_jid, chat):
         self.refreshed.append(remote_jid)
+
+    conversations_panel = None
+    _normalize_jid = staticmethod(MainWindow._normalize_jid)
+
+    def _rollback_gaps(self):
+        return []
+
+    def _mirror_remote_deletions(self, remote_jid, msg_ids):
+        self.mirrored = (remote_jid, set(msg_ids))
 
     def _schedule_set_chats(self):
         pass
@@ -466,3 +483,71 @@ def test_shift_f5_is_listed_right_after_f5_in_the_shortcuts_dialog():
     src = inspect.getsource(shortcuts_dialog)
     assert src.index('i18n.t("shortcut_f5_label")') < src.index(
         'i18n.t("shortcut_shift_f5_label")')
+
+
+# ── Review round: what Shift+F5 must never delete ─────────────────────────────
+
+
+class TestNothingTheServerCannotListIsDeleted:
+    """Review blocker: the first version deleted reactions for good. WinZapp
+    stores each as its own `_rxn_` record, timestamped when it arrived, and
+    get-messages never lists that id, so every reaction inside the window
+    read as "gone from the phone"."""
+
+    def test_a_reaction_inside_the_window_is_kept(self):
+        records = [_msg("A", 100), _reaction("A", 150), _msg("B", 200)]
+        assert stale_ids_in_fetched_window(records, {"A", "B"}, main.is_countable_message) == []
+
+    def test_a_message_sharing_the_oldest_second_is_not_judged(self):
+        records = [_msg("EDGE", 100), _msg("A", 100), _msg("B", 200)]
+        assert stale_ids_in_fetched_window(records, {"A", "B"}, main.is_countable_message) == []
+
+    def test_a_system_event_is_not_judged(self):
+        notice = _msg("SYS", 150)
+        notice.update(messageType="groupNotification", message={})
+        records = [_msg("A", 100), notice, _msg("B", 200)]
+        assert stale_ids_in_fetched_window(records, {"A", "B"}, main.is_countable_message) == []
+
+    def test_a_real_message_the_server_no_longer_has_still_goes(self):
+        records = [_msg("A", 100), _reaction("A", 140), _msg("GHOST", 150), _msg("B", 200)]
+        assert stale_ids_in_fetched_window(records, {"A", "B"}, main.is_countable_message) == ["GHOST"]
+
+
+class TestTheOpenConversationGoesThroughThePanel:
+    def test_the_removal_is_mirrored_like_a_phone_deletion(self):
+        """remove_messages_by_id() also stops a removed audio and drops removed
+        ids from the selection; a bare record filter left those behind."""
+        records = [_msg("A", 100), _msg("GHOST", 150), _msg("B", 200)]
+        window = _Window(records, {"A", "B"})
+        window.conversations_panel = types.SimpleNamespace(conversation={"remoteJid": JID})
+
+        window._resync_conversation_worker(JID)
+
+        assert window.mirrored == (JID, {"GHOST"})
+        assert window.db.deleted == []  # the panel does it, with the rows
+        assert len(records) == 3
+
+    def test_after_a_profile_restore_the_hole_is_not_judged(self):
+        records = [_msg("A", 100), _msg("GHOST", 150), _msg("B", 200)]
+        window = _Window(records, {"A", "B"})
+        window._rollback_gaps = lambda: [(140, 160)]
+
+        window._resync_conversation_worker(JID)
+
+        assert window.db.deleted == []
+
+
+def test_f5_refuses_while_a_shift_f5_is_running(_inline_threads):
+    class _F5(_Handler):
+        _on_menu_resync_all = MainWindow._on_menu_resync_all
+
+        def _resync_all_worker(self):
+            self.started.append("all")
+
+    handler = _F5()
+    handler._resyncing_conversations = {JID}
+
+    handler._on_menu_resync_all()
+
+    assert handler.started == []
+    assert handler.spoken == ["resync_conversation_busy"]

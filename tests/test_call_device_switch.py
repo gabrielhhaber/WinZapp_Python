@@ -238,3 +238,27 @@ def test_the_call_settings_camera_reopen_uses_the_guarded_path():
     assert 'not getattr(self, "_call_camera_resuming", False)' in source
     assert "target=self._resume_call_camera" in source
     assert "target=self._start_call_camera" not in source
+
+
+
+def test_a_mute_toggled_while_the_switch_waits_is_carried_over(monkeypatch):
+    """Review: the mute used to be read when the switch was asked for, so a
+    toggle before the worker ran went to the old session and was lost."""
+    pending = []
+
+    class _Deferred:
+        def __init__(self, target=None, args=(), daemon=None, **_kw):
+            self._target, self._args = target, args
+
+        def start(self):
+            pending.append(self)
+
+    monkeypatch.setattr(main.threading, "Thread", _Deferred)
+    window = _CallWindow()
+    old = window._call_audio_session
+
+    window._restart_active_voice_call_audio()
+    old.set_microphone_muted(True)  # toggled before the worker gets to run
+    pending[0]._target(*pending[0]._args)
+
+    assert window._call_audio_session.muted_when_started is True

@@ -5269,6 +5269,11 @@ class MainWindow(wx.Frame):
             # Avoid corrupting state with two syncs writing to self.chats/db
             # at the same time.
             return
+        if getattr(self, "_resyncing_conversations", None):
+            # A Shift+F5 still running would write its chat back after the
+            # wipe; Shift+F5 refuses while F5 runs for the same reason.
+            self.output(self.i18n.t("resync_conversation_busy"), interrupt=True)
+            return
         # Ensure we are connected before wiping local data
         self.check_wa_connection_http()
         if not getattr(self, "_wa_connected", False):
@@ -5373,16 +5378,28 @@ class MainWindow(wx.Frame):
                 # database: its silence about a message proves nothing.
                 stale = []
             else:
-                stale = stale_ids_in_fetched_window(records, fetched_ids)
+                # Same rules as the open-chat deletion mirror, including the
+                # periods a profile restore left a hole in (core/conversation_resync.py).
+                judged = _outside_rollback_gaps(records, self._rollback_gaps())
+                stale = stale_ids_in_fetched_window(judged, fetched_ids, is_countable_message)
             if stale:
                 stale_set = set(stale)
-                records[:] = [r for r in records
-                              if ((r.get("key") or {}).get("id") or "") not in stale_set]
-                inner = chat.get("messages", {}).get("messages", {})
-                if isinstance(inner, dict) and "total" in inner:
-                    inner["total"] = len(records)
-                for message_id in stale:
-                    self.db.delete_message(remote_jid, message_id)
+                cp = getattr(self, "conversations_panel", None)
+                open_jid = (self._normalize_jid(cp.conversation.get("remoteJid", ""))
+                            if cp is not None and cp.conversation is not None else "")
+                if open_jid == remote_jid:
+                    # Through the panel, like a deletion made on the phone: it
+                    # also stops a removed audio and drops removed ids from the
+                    # selection, which a bare record filter would leave behind.
+                    wx.CallAfter(self._mirror_remote_deletions, remote_jid, stale_set)
+                else:
+                    records[:] = [r for r in records
+                                  if ((r.get("key") or {}).get("id") or "") not in stale_set]
+                    inner = (chat.get("messages") or {}).get("messages") or {}
+                    if isinstance(inner, dict) and "total" in inner:
+                        inner["total"] = len(records)
+                    for message_id in stale:
+                        self.db.delete_message(remote_jid, message_id)
             logging.info("[resync-conversation] %s: %d fetched, %d stale removed",
                          remote_jid, len(fetched_ids), len(stale))
             self._refresh_open_conversation_after_sync(remote_jid, chat)
@@ -6692,11 +6709,14 @@ class MainWindow(wx.Frame):
         ):
             return
         self._call_audio_restart_pending = True
-        muted = bool(getattr(self._call_audio_session, "microphone_muted", False))
 
         def _worker():
             with self._call_action_lock:
                 try:
+                    # Read at the moment the old session stops, not when the
+                    # switch was asked for: a mute toggled in between belongs
+                    # to the session being replaced and must carry over too.
+                    muted = bool(getattr(self._call_audio_session, "microphone_muted", False))
                     self._stop_voice_call_audio(keep_call=True)
                     last_error = None
                     for attempt in range(3):
@@ -8018,6 +8038,12 @@ class MainWindow(wx.Frame):
                     return
                 if fill_placeholders_from_replies(
                         [stored], self._chat_jids_equivalent, [reply]):
+                    # The decrypted copy may have landed since the read above
+                    # (the executor runs several writes at once): never write
+                    # a reply's quote over the real message.
+                    current = self.db.get_message_by_id(remote_jid, quoted_id)
+                    if current and not awaits_real_copy(current):
+                        return
                     self.db.insert_message(remote_jid, stored)
                     logging.info("[quote-recovery] %s: stored message %s recovered "
                                  "from a reply quote", remote_jid, str(quoted_id)[:22])
@@ -8070,8 +8096,8 @@ class MainWindow(wx.Frame):
             except Exception as e:
                 logging.error(f"[_fill_stored_placeholder] Failed to persist message: {e}")
         self._msg_bg_executor.submit(_bg_persist)
-        # A row appears mid-history, so a repaint of the existing rows is not
-        # enough; refresh_messages_if_changed() rebuilds while keeping focus.
+        # The row changes from "Aguardando mensagem" to the real message;
+        # refresh_messages_if_changed() repaints or rebuilds while keeping focus.
         if hasattr(self, "conversations_panel"):
             wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)
         self._schedule_save(dirty_jid=remote_jid)
@@ -8761,6 +8787,12 @@ class MainWindow(wx.Frame):
                     # Fresh: drop the placeholder and let the copy continue as
                     # the new message it is; its DB insert replaces the row.
                     del records[index]
+                    # The open list still shows the placeholder's row under
+                    # this same id (a ciphertext is displayable), so
+                    # on_incoming_message()'s own dedup refuses the real one:
+                    # rebuild once the record below is in place.
+                    if hasattr(self, "conversations_panel"):
+                        wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)
                     break
 
 
@@ -14619,11 +14651,17 @@ class MainWindow(wx.Frame):
             self._schedule_save()
         # Replies already on disk that quote an "Aguardando mensagem" stored
         # before quote recovery existed.
-        for jid, chat in list(self.chats.items()):
-            records = (chat.get("messages", {}).get("messages", {}).get("records")
-                       if isinstance(chat, dict) else None)
-            if records:
-                self._recover_placeholders_from_replies(jid, records)
+        # Guarded as a whole: this runs inside __init__, where anything that
+        # escapes stops WinZapp from starting at all -- this pass already did
+        # that once. A stored chat can hold "messages": None, which the
+        # chained .get() read raised on.
+        try:
+            for jid, chat in list(self.chats.items()):
+                records = _chat_message_records(chat)
+                if records:
+                    self._recover_placeholders_from_replies(jid, records)
+        except Exception:
+            logging.exception("[quote-recovery] startup pass failed")
         self.scan_all_cached_messages_for_mentions()
         # NOTE: the "connected" sound is deliberately NOT played here. Reaching
         # this point only proves the *local* WPPConnect API answered — with no

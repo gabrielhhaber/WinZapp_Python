@@ -52,7 +52,6 @@ DÜZELTMELER
 
 - Mesaj metni penceresinin bir bölümünü kopyalamak (Alt+C), pencerenin daha kolay okunması için uzun satırları böldüğü yerlerde mesajda bulunmayan satır sonlarını da getiriyordu. Kopyalama işlemi artık mesajı tam olarak yazıldığı gibi, yalnızca kendi satır sonlarıyla verir.
 
-
 - WhatsApp'ın henüz yükleyemediği mesajlar sohbetten kayboluyordu ve bunlardan birine verilen yanıt, hiçbir yerde görünmeyen bir mesajı alıntılıyordu. Bu durum örneğin telefonunu değiştiren birinin mesajlarında, o kişinin telefonu mesajları yeniden gönderene kadar yaşanır. Artık bu mesajlar WhatsApp'taki gibi "Bu mesaj bekleniyor. Bu biraz zaman alabilir." olarak görünür ve metin geldiği anda, ya da birisi mesajı alıntılayarak yanıt verdiğinde daha da önce, yerini metne bırakır.
 
 - Bir grubun okunmamış mesaj sayacı, hâlâ okunmamış mesajlar olmasına rağmen birisi bir mesaja tepki verdiğinde kaybolabiliyordu; sistem bildirimleri olan gruplarda ise her dakika kendiliğinden azalıyordu. Artık sayaç gerçekten okunmamış mesajları gösteriyor.

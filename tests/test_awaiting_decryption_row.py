@@ -63,3 +63,20 @@ def test_once_filled_the_same_record_renders_the_real_message():
     record["messageType"] = "conversation"
 
     assert _Stub()._get_message_content(record) == "não chega nem a 1mb"
+
+
+def test_text_recovered_from_a_reply_says_so_on_the_row():
+    """Review: the quote is the replier's claim, not the author's -- a
+    modified client can make one up. The row says where the text came from."""
+    record = _placeholder()
+    record.update(messageType="conversation", message={"conversation": "não chega nem a 1mb"},
+                  _recovered_from_quote=True)
+
+    assert _Stub()._get_message_content(record) == (
+        "não chega nem a 1mb [message_recovered_from_quote_suffix]")
+
+
+def test_the_real_message_carries_no_such_mark():
+    record = _placeholder()
+    record.update(messageType="conversation", message={"conversation": "não chega nem a 1mb"})
+    assert _Stub()._get_message_content(record) == "não chega nem a 1mb"

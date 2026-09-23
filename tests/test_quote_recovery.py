@@ -392,3 +392,38 @@ async def test_the_database_finds_a_message_by_id(in_memory_db):
     assert await in_memory_db.get_message_by_id(GROUP, "OTHER") is None
     assert await in_memory_db.get_message_by_id("other@g.us", ORIGINAL_ID) is None
     assert await in_memory_db.get_message_by_id(GROUP, "") is None
+
+
+
+class TestReviewRound:
+    def test_a_real_copy_landing_meanwhile_is_never_overwritten(self, _call_after_inline):
+        """The lookup and the write are separate calls on a 4-worker executor;
+        the decrypted copy can be stored between them."""
+        placeholder = _placeholder()
+        real = _placeholder()
+        real.update(messageType="conversation", message={"conversation": "o texto real"})
+        window = _Window()
+        reads = iter([placeholder, real])
+        window.db.get_message_by_id = lambda jid, mid: next(reads)
+        reply = _reply({"conversation": "oi"})
+
+        window._recover_quoted_placeholder(GROUP, [reply], reply)
+
+        assert window.db.inserted == []
+
+    def test_the_startup_pass_reads_records_safely_and_cannot_escape(self):
+        """A stored chat can hold "messages": None; the chained .get() raised
+        out of __init__ (this pass had already stopped WinZapp starting once)."""
+        src = inspect.getsource(MainWindow.prepare_sync)
+        loop = src[src.index("for jid, chat in list(self.chats.items()):") - 200:]
+        assert "records = _chat_message_records(chat)" in loop
+        assert loop.index("try:") < loop.index("for jid, chat in list(self.chats.items()):")
+        assert 'logging.exception("[quote-recovery] startup pass failed")' in loop
+
+    def test_a_fresh_decrypted_copy_rebuilds_the_open_list(self):
+        """Review: the open list still shows the placeholder's row under the
+        same id, so on_incoming_message()'s dedup refused the real message and
+        the row kept reading "Aguardando mensagem"."""
+        src = inspect.getsource(MainWindow.on_new_message)
+        fresh = src[src.index("del records[index]"):src.index("del records[index]") + 600]
+        assert "wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)" in fresh
