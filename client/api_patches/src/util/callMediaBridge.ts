@@ -1406,10 +1406,11 @@ registerProcessor('winzapp-call-mic', WinzappCallMicProcessor);
     try { state.micNode?.port?.postMessage({ type: 'clear' }); } catch (_) {}
     // And the watchdog is stood down rather than left looping: with the
     // bridge disabled no frames are pushed, so it would take its re-arm
-    // branch every 1.5 s for the life of the page between calls -- and,
-    // worse, the stale consumedAtArm it kept re-arming with would be so far
-    // behind by the next call that it could never fire again, silently
-    // retiring the protection for every call after the first.
+    // branch every 1.5 s for the life of the page between calls. That was
+    // wasteful, not broken -- the re-arm recaptures both baselines, so the
+    // last one before the next call held current totals and would have
+    // fired correctly. Standing it down here and re-arming in enable()
+    // replaces a permanent timer with two explicit edges.
     if (state.micWorkletWatchdog) {
       win.clearTimeout(state.micWorkletWatchdog);
       state.micWorkletWatchdog = 0;

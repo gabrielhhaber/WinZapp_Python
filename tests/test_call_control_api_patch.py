@@ -231,10 +231,40 @@ def test_microphone_tap_prefers_an_audio_worklet_and_can_swap_back():
     swap_body = swap_body[: swap_body.index("\n  };")]
     assert "try {" in swap_body and "state.micDestination = null" in swap_body
 
+    # The verdict must be READ, not just written. Without both gates the flag
+    # is write-only: the watchdog condemns an unscheduled worklet, and then
+    # the next track rebuild (call 2, a device change) constructs the very
+    # same one again because audioWorkletStatus still says 'ready' — the peer
+    # loses the first 1.5 s of every later call while the watchdog swaps it
+    # out again.
+    ensure_mic = bridge[bridge.index("const ensureMicTrack"):]
+    ensure_mic = ensure_mic[: ensure_mic.index("\n  };")]
+    assert ensure_mic.count("!state.micWorkletUnscheduled") == 2, (
+        "both the ready branch and the upgrade branch must respect the "
+        "microphone's own verdict on the worklet"
+    )
+
     # The upgrade-in-place guard, both halves: the wrong destination means a
     # newer track owns the page, and an existing node means two producers on
     # one destination — the peer would hear doubled audio.
     assert "state.micDestination !== destination || state.micNode" in bridge
+
+    # The node is recorded BEFORE it is connected: a throw from connect()
+    # would otherwise leave an orphan disconnectMicProducer() cannot find.
+    assert start_worklet.index("state.micNode = node") < start_worklet.index(
+        "node.connect("
+    ), "record the node before connecting it — #281 learned this one"
+
+    # Two explicit edges instead of a timer looping for the life of the page:
+    # stood down when the call ends, re-armed when the next one starts. The
+    # destination survives between calls, so without the re-arm the second
+    # and later calls of a session would run unwatched.
+    reset_body = bridge[bridge.index("state.reset = () => {"):]
+    reset_body = reset_body[: reset_body.index("\n  };")]
+    assert "clearTimeout(state.micWorkletWatchdog)" in reset_body
+    enable = bridge[bridge.index("state.enable = () => {"):]
+    enable = enable[: enable.index("\n  };")]
+    assert "armMicWorkletWatchdog()" in enable
 
     # Counters are ADDED on this side too, not assigned.
     assert "state.micSamplesConsumed += data.consumed" in bridge
