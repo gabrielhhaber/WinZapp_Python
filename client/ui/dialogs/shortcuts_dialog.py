@@ -188,6 +188,7 @@ class ShortcutsDialog(wx.Dialog):
             "",
             section("shortcuts_sync_section"),
             i18n.t("shortcut_f5_label"),
+            i18n.t("shortcut_shift_f5_label"),
             i18n.t("shortcut_ctrl_shift_alt_b_label"),
             i18n.t("shortcut_ctrl_alt_shift_o_label"),
         ]

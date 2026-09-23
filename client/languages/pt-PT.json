@@ -597,6 +597,7 @@
     "shortcut_search_shift_enter_label": "Shift+Enter: resultado anterior da procura",
     "shortcuts_sync_section": "Sincronização",
     "shortcut_f5_label": "F5: ressincronizar todas as conversas",
+    "shortcut_shift_f5_label": "Shift+F5: ressincronizar a conversa aberta",
     "shortcut_ctrl_shift_alt_b_label": "Ctrl+Shift+Alt+B: transferir multimédia",
     "shortcut_ctrl_alt_shift_o_label": "Ctrl+Alt+Shift+O: ativar/desativar o modo offline",
     "quick_tip_title": "Dica rápida",

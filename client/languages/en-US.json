@@ -597,6 +597,7 @@
     "shortcut_search_shift_enter_label": "Shift+Enter: previous search result",
     "shortcuts_sync_section": "Sync",
     "shortcut_f5_label": "F5: resync all chats",
+    "shortcut_shift_f5_label": "Shift+F5: resync the open chat",
     "shortcut_ctrl_shift_alt_b_label": "Ctrl+Shift+Alt+B: download media",
     "shortcut_ctrl_alt_shift_o_label": "Ctrl+Alt+Shift+O: toggle offline mode",
     "quick_tip_title": "Quick tip",

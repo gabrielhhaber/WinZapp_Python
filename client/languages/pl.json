@@ -597,6 +597,7 @@
     "shortcut_search_shift_enter_label": "Shift+Enter: poprzedni wynik wyszukiwania",
     "shortcuts_sync_section": "Synchronizacja",
     "shortcut_f5_label": "F5: zsynchronizuj ponownie wszystkie czaty",
+    "shortcut_shift_f5_label": "Shift+F5: zsynchronizuj ponownie otwarty czat",
     "shortcut_ctrl_shift_alt_b_label": "Ctrl+Shift+Alt+B: pobierz multimedia",
     "shortcut_ctrl_alt_shift_o_label": "Ctrl+Alt+Shift+O: przełącz tryb offline",
     "quick_tip_title": "Szybka wskazówka",

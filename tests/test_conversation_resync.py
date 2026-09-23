@@ -459,3 +459,10 @@ def test_both_confirmations_are_on_by_default():
     ui = DEFAULT_SETTINGS["user_interface"]
     assert ui["confirm_resync_all"] is True
     assert ui["confirm_resync_conversation"] is True
+
+
+def test_shift_f5_is_listed_right_after_f5_in_the_shortcuts_dialog():
+    from ui.dialogs import shortcuts_dialog
+    src = inspect.getsource(shortcuts_dialog)
+    assert src.index('i18n.t("shortcut_f5_label")') < src.index(
+        'i18n.t("shortcut_shift_f5_label")')
