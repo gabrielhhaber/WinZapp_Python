@@ -516,6 +516,21 @@ class SettingsDialog(wx.Dialog):
             self._confirm_mark_all_read_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        # Same arrangement for F5 and Shift+F5: each mirrors the key its
+        # confirmation's "don't show again" box clears.
+        self._confirm_resync_all_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_confirm_resync_all")
+        )
+        ui_sizer.Add(
+            self._confirm_resync_all_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+        self._confirm_resync_conversation_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_confirm_resync_conversation")
+        )
+        ui_sizer.Add(
+            self._confirm_resync_conversation_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         self._space_selects_cb = wx.CheckBox(
             self._ui_page, label=i18n.t("ui_space_selects_in_selection_mode")
         )
@@ -1453,6 +1468,16 @@ class SettingsDialog(wx.Dialog):
             "confirm_mark_all_read", True
         )
         self._confirm_mark_all_read_cb.SetValue(bool(confirm_mark_all_read))
+
+        confirm_resync_all = self.main_window.settings.get("user_interface", {}).get(
+            "confirm_resync_all", True
+        )
+        self._confirm_resync_all_cb.SetValue(bool(confirm_resync_all))
+
+        confirm_resync_conversation = self.main_window.settings.get("user_interface", {}).get(
+            "confirm_resync_conversation", True
+        )
+        self._confirm_resync_conversation_cb.SetValue(bool(confirm_resync_conversation))
 
         space_selects = self.main_window.settings.get("user_interface", {}).get(
             "space_selects_in_selection_mode", True
@@ -2630,6 +2655,12 @@ class SettingsDialog(wx.Dialog):
             "confirm_mark_all_read"
         ] = self._confirm_mark_all_read_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
+            "confirm_resync_all"
+        ] = self._confirm_resync_all_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
+            "confirm_resync_conversation"
+        ] = self._confirm_resync_conversation_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
             "space_selects_in_selection_mode"
         ] = self._space_selects_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
@@ -3114,6 +3145,8 @@ class SettingsDialog(wx.Dialog):
         self._preserve_typed_caption_cb.SetLabel(i18n.t("ui_preserve_typed_text_as_caption"))
         self._bulk_action_shortcuts_cb.SetLabel(i18n.t("ui_bulk_action_shortcuts"))
         self._confirm_mark_all_read_cb.SetLabel(i18n.t("ui_confirm_mark_all_read"))
+        self._confirm_resync_all_cb.SetLabel(i18n.t("ui_confirm_resync_all"))
+        self._confirm_resync_conversation_cb.SetLabel(i18n.t("ui_confirm_resync_conversation"))
         self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
         self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
         self._auto_focus_next_audio_cb.SetLabel(i18n.t("ui_auto_focus_next_audio"))

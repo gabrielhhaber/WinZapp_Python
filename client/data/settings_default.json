@@ -61,6 +61,8 @@
         "preserve_typed_text_as_attachment_caption": true,
         "bulk_action_shortcuts": true,
         "confirm_mark_all_read": true,
+        "confirm_resync_all": true,
+        "confirm_resync_conversation": true,
         "space_selects_in_selection_mode": true,
         "escape_clears_selection": true,
         "auto_focus_next_audio": true,

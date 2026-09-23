@@ -949,6 +949,10 @@ DEFAULT_SETTINGS = {
         "preserve_typed_text_as_attachment_caption": True,
         "bulk_action_shortcuts": True,
         "confirm_mark_all_read": True,
+        # Ask before F5 / Shift+F5 (MainWindow._confirm_resync()); the
+        # confirmations' own "don't show again" boxes clear these.
+        "confirm_resync_all": True,
+        "confirm_resync_conversation": True,
         # Once a selection exists, plain Space keeps selecting instead of
         # playing/pausing the focused message ("selection mode"), and Esc
         # clears the message selection before it closes the conversation.

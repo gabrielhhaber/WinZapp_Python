@@ -5269,8 +5269,40 @@ class MainWindow(wx.Frame):
             )
             return
 
+        if not self._confirm_resync("confirm_resync_all", "resync_all_confirm",
+                                    "menu_resync_all"):
+            return
+
         self.output(self.i18n.t("resyncing_all_announcement"), interrupt=True)
         threading.Thread(target=self._resync_all_worker, daemon=True).start()
+
+    def _confirm_resync(self, setting_key: str, message_key: str, title_key: str) -> bool:
+        """Ask before F5 / Shift+F5, unless the user turned that off.
+
+        Same contract as the mark-all-read confirmation: the default button is
+        No, so a stray keystroke cannot start a resync; "don't show again"
+        only counts together with Yes; and user_interface.<setting_key>
+        (Settings > Interface) is both what it clears and the way back.
+        """
+        if not self.settings.get("user_interface", {}).get(setting_key, True):
+            return True
+        t = self.i18n.t
+        confirmed, dont_ask_again = confirm_with_checkbox(
+            self,
+            t(message_key),
+            t(title_key).replace("&", ""),
+            t("mark_all_read_dont_show_again"),
+            yes_label=t("yes_button"),
+            no_label=t("no_button"),
+            checked=False,
+            default_yes=False,
+        )
+        if not confirmed:
+            return False
+        if dont_ask_again:
+            self.settings.setdefault("user_interface", {})[setting_key] = False
+            self.save_settings()
+        return True
 
     def _on_menu_resync_conversation(self, event=None):
         """Sincronização menu / Shift+F5: F5 for the open conversation only.
@@ -5300,6 +5332,10 @@ class MainWindow(wx.Frame):
                 wx.OK | wx.ICON_WARNING,
                 self
             )
+            return
+        if not self._confirm_resync("confirm_resync_conversation",
+                                    "resync_conversation_confirm",
+                                    "menu_resync_conversation"):
             return
         resyncing.add(remote_jid)
         self.output(self.i18n.t("resyncing_conversation_announcement"), interrupt=True)
