@@ -92,6 +92,7 @@
     "hours": "hours",
     "and": "and",
     "unsupported_message": "Incompatible message",
+    "message_awaiting_decryption": "Waiting for this message. This may take a while.",
     "unexpected_error_message": "{app_name} encountered an unexpected error and could not complete the operation.",
     "error_details": "Error details:",
     "copy_error_text": "&Copy error text to clipboard",

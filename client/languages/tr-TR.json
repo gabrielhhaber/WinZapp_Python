@@ -92,6 +92,7 @@
   "hours": "saat",
   "and": "ve",
   "unsupported_message": "Uyumsuz mesaj",
+  "message_awaiting_decryption": "Bu mesaj bekleniyor. Bu biraz zaman alabilir.",
   "unexpected_error_message": "{app_name} beklenmeyen bir hatayla karşılaştı ve işlemi tamamlayamadı.",
   "error_details": "Hata ayrıntıları:",
   "copy_error_text": "Hata metnini panoya &kopyala",

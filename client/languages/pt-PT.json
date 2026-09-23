@@ -92,6 +92,7 @@
     "hours": "horas",
     "and": "e",
     "unsupported_message": "Mensagem incompatível",
+    "message_awaiting_decryption": "A aguardar mensagem. Isto pode demorar algum tempo.",
     "unexpected_error_message": "O {app_name} encontrou um erro inesperado e não conseguiu concluir a operação.",
     "error_details": "Detalhes do erro:",
     "copy_error_text": "&Copiar o texto do erro para a área de transferência",

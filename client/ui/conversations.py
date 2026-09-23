@@ -9525,6 +9525,11 @@ class ConversationsPanel(wx.Panel):
                 app_name=self.main_window.app_name
             )
 
+        # Received but not decrypted by WhatsApp Web yet; the real copy
+        # replaces this record when it arrives (MainWindow._fill_stored_placeholder).
+        if msg_type == "ciphertext":
+            return i18n.t("message_awaiting_decryption")
+
         # ── Text ────────────────────────────────────────────────────────────
         if msg_type == "conversation":
             text = msg_obj.get("conversation", "")
@@ -9893,6 +9898,13 @@ class ConversationsPanel(wx.Panel):
             "listResponseMessage",
             "protocolMessage",
             "groupNotification",
+            # WhatsApp Web's "Aguardando mensagem": a message it received but
+            # has not decrypted. The live funnel drops the brief ones; what a
+            # sync stores is the lasting kind, and hiding it made a reply that
+            # quotes it look like WinZapp had lost the original. Never
+            # countable nor a chat preview (is_countable_message(),
+            # MainWindow._PREVIEW_MESSAGE_TYPES).
+            "ciphertext",
         )
 
         if msg_type not in allowed_types:
