@@ -6389,7 +6389,8 @@ class MainWindow(wx.Frame):
             logging.exception("[call_audio] failed to stop ringing monitor")
 
     def _start_voice_call_audio(self, identity: str, details: dict | None = None,
-                                *, keep_active_call: bool = False):
+                                *, keep_active_call: bool = False,
+                                microphone_muted: bool = False):
         """Open Python's call audio and record the call it belongs to.
 
         ``keep_active_call`` is for a device switch inside the same call: the
@@ -6397,6 +6398,11 @@ class MainWindow(wx.Frame):
         opened concurrently compares that object by identity to tell "same
         call" from "another call", so replacing it here would make it discard
         a perfectly good capture.
+
+        ``microphone_muted`` carries the mute of the session a device switch
+        replaced. It is applied before the microphone opens: a fresh session
+        starts unmuted, so a user who had muted and then changed device was
+        heard again with nothing spoken to say so.
         """
         logging.info("[call_audio] starting session identity=%s", identity)
         if getattr(self, "_call_audio_session", None) is not None:
@@ -6409,6 +6415,8 @@ class MainWindow(wx.Frame):
             ws = getattr(self, "ws", None)
             session_name = str(getattr(ws, "instance_name", "") or self.token).split(":", 1)[0]
 
+        if microphone_muted:
+            audio.set_microphone_muted(True)
         try:
             audio.start()
         except Exception:
@@ -6454,12 +6462,15 @@ class MainWindow(wx.Frame):
         """Stop Python's call audio; by default the call's whole local state.
 
         ``keep_call`` stops the audio streams ONLY -- the camera, the active
-        call record and the announced state are left alone. It exists for
-        _restart_active_voice_call_audio(): switching the microphone in the
-        middle of a video call used to go through the end-of-call path, which
-        stopped the camera, and the capture reopened afterwards was discarded
-        as belonging to "another call", so the other person saw black for the
-        rest of the call with nothing spoken.
+        call record, the announced state and the page bridge are left alone.
+        It exists for _restart_active_voice_call_audio(): switching the
+        microphone in the middle of a video call used to go through the
+        end-of-call path, which stopped the camera, and the capture reopened
+        afterwards was discarded as belonging to "another call", so the other
+        person saw black for the rest of the call with nothing spoken. The
+        bridge is not told either: ``call:audio:stop`` disables it and nothing
+        in a device switch enables it again, so the other person stopped
+        hearing the user (see CallAudioSession.stop).
         """
         session = getattr(self, "_call_audio_session", None)
         if session is None:
@@ -6493,13 +6504,14 @@ class MainWindow(wx.Frame):
             self._voice_call_last_announced_state = ""
         if session is not None:
             try:
-                session.stop()
+                session.stop(notify_bridge=not keep_call)
             except Exception:
                 logging.exception("[call] failed to stop Python call audio")
-        ws = getattr(self, "ws", None)
-        stop = getattr(ws, "stop_call_audio_stream", None)
-        if stop is not None:
-            stop()
+        if not keep_call:
+            ws = getattr(self, "ws", None)
+            stop = getattr(ws, "stop_call_audio_stream", None)
+            if stop is not None:
+                stop()
         if hasattr(self, "voice_call_window"):
             wx.CallAfter(self._sync_voice_call_bar)
 
@@ -6513,6 +6525,7 @@ class MainWindow(wx.Frame):
         ):
             return
         self._call_audio_restart_pending = True
+        muted = bool(getattr(self._call_audio_session, "microphone_muted", False))
 
         def _worker():
             with self._call_action_lock:
@@ -6529,6 +6542,7 @@ class MainWindow(wx.Frame):
                                 str(active.get("identity") or active.get("call_id") or "call"),
                                 active,
                                 keep_active_call=True,
+                                microphone_muted=muted,
                             ):
                                 logging.info("[call_audio] active call devices switched")
                             last_error = None
