@@ -13,6 +13,7 @@ import queue
 import sys
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass
 from typing import Optional
 
@@ -31,6 +32,25 @@ CALL_FRAME_SAMPLES = CALL_SAMPLE_RATE * CALL_FRAME_MS // 1000
 CALL_MIC_QUEUE_LIMIT = 12
 CALL_MIC_TARGET_BACKLOG_FRAMES = 2
 CALL_OUTPUT_QUEUE_LIMIT = 40
+# Playback reservoir, in milliseconds of audio at the output device's rate.
+# Remote PCM is tapped in the page by a createScriptProcessor(1024) — a
+# deprecated, main-thread node that delivers ~21.3 ms chunks in bursts — and
+# then crosses Socket.IO and a Python socket thread, so a few milliseconds of
+# arrival jitter is normal. Three packets of slack absorb that; the hard cap
+# is what keeps the slack from growing into latency (see _OutputJitterBuffer).
+# Note the prebuffer is one-way latency the listener pays on every call.
+CALL_OUTPUT_PREBUFFER_MS = 60
+CALL_OUTPUT_MAX_BUFFER_MS = 200
+# Refilling after an underrun waits for far less than the cold-start target.
+# Requiring the full 60 ms again would turn a network that is jittery but
+# adequate into roughly a 50% duty cycle -- speech chopped in half, which for
+# a blind user on a call is worse than the clicks this whole buffer exists to
+# remove. One packet is enough to get going again.
+CALL_OUTPUT_RESUME_MS = CALL_FRAME_MS
+# A discontinuity clicks even when the samples on either side are silence, so
+# starvation and resumption are ramped rather than cut.
+CALL_OUTPUT_FADE_MS = 5
+CALL_OUTPUT_UNDERRUN_LOG_EVERY = 50
 
 
 @dataclass(frozen=True)
@@ -78,6 +98,153 @@ def _pcm16_float32(pcm: bytes) -> np.ndarray:
     return np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
 
 
+class _OutputJitterBuffer:
+    """Bounded reservoir of float32 mono samples between network and device.
+
+    Module level, and with no sounddevice in sight, so the whole reservoir is
+    testable without a device or a wx.App: the player thread pushes, the
+    PortAudio callback fills.
+
+    A reservoir in front of the output is the component the 2026-09-20
+    bisection isolated as the cause of choppy call audio, and it is back here
+    deliberately — so read _play_remote_loop's docstring before trusting it.
+    What differs is not the reservoir's own bookkeeping (the reverted one was
+    hard capped and dropped oldest too) but what drains it: there is no
+    blocking stream.write() and no wall-clock pacing left anywhere, only
+    PortAudio asking for one device period at a time.
+    """
+
+    def __init__(self, rate: int):
+        self._lock = threading.Lock()
+        self._chunks: "deque[np.ndarray]" = deque()
+        self._size = 0
+        # Cumulative for the life of the session and deliberately NOT cleared
+        # by reset()/configure(): they exist so the player thread can report
+        # how the call went, and an exclusive reopen mid-call must not make
+        # the first half of that call disappear from the log. Plain ints read
+        # without the lock — an approximate count logged a fraction of a
+        # second late beats taking the realtime thread's lock to report it.
+        self.underruns = 0
+        self.dropped_samples = 0
+        self.configure(rate)
+
+    def configure(self, rate: int) -> None:
+        """Re-scale the reservoir to *rate* and drop whatever it held.
+
+        Under the lock, because the audio callback reads every one of these
+        under it: a stream whose close() failed (logged and swallowed) can
+        still be draining this reservoir while its replacement is opened, and
+        a ramp half-resized against a block sized by the old rate is a shape
+        mismatch swallowed into silence. Not on the realtime path, so the cost
+        is irrelevant.
+        """
+        rate = max(1, int(rate or CALL_SAMPLE_RATE))
+        with self._lock:
+            self._prebuffer_samples = max(1, rate * CALL_OUTPUT_PREBUFFER_MS // 1000)
+            self._resume_samples = max(1, rate * CALL_OUTPUT_RESUME_MS // 1000)
+            self._max_samples = max(
+                self._prebuffer_samples, rate * CALL_OUTPUT_MAX_BUFFER_MS // 1000
+            )
+            self._fade_samples = max(1, rate * CALL_OUTPUT_FADE_MS // 1000)
+            # Precomputed so a fade costs no allocation in the common case;
+            # the callback runs on PortAudio's realtime thread.
+            self._fade_in_ramp = np.linspace(0.0, 1.0, self._fade_samples, dtype=np.float32)
+            self._fade_out_ramp = self._fade_in_ramp[::-1].copy()
+        self.reset()
+
+    def reset(self) -> None:
+        with self._lock:
+            self._chunks.clear()
+            self._size = 0
+            # Playback starts only once the prebuffer is there, and the first
+            # samples after any silence are faded in.
+            self._priming = True
+            self._priming_target = self._prebuffer_samples
+            self._fade_in_pending = True
+
+    @property
+    def buffered_samples(self) -> int:
+        """Approximate fill level — for logs and tests, never for a decision.
+
+        Read without the lock, so it can be a callback out of date.
+        """
+        return self._size
+
+    def push(self, samples: np.ndarray) -> None:
+        samples = np.asarray(samples, dtype=np.float32).reshape(-1)
+        if not samples.size:
+            return
+        with self._lock:
+            self._chunks.append(samples)
+            self._size += samples.size
+            while self._size > self._max_samples and self._chunks:
+                overflow = self._size - self._max_samples
+                oldest = self._chunks[0]
+                if oldest.size <= overflow:
+                    self._chunks.popleft()
+                    self._size -= oldest.size
+                    self.dropped_samples += oldest.size
+                else:
+                    self._chunks[0] = oldest[overflow:]
+                    self._size -= overflow
+                    self.dropped_samples += overflow
+
+    def fill(self, out: np.ndarray) -> None:
+        """Write one device period into *out* (a writable 1-D float view).
+
+        Never raises, never blocks and never logs: this is called from
+        PortAudio's realtime thread, where any of the three is an audible
+        glitch at best. A starved buffer is silence plus a counter.
+        """
+        frames = out.shape[0]
+        with self._lock:
+            if self._priming:
+                if self._size < self._priming_target:
+                    out[:] = 0.0
+                    return
+                self._priming = False
+
+            written = 0
+            while written < frames and self._chunks:
+                chunk = self._chunks[0]
+                take = min(frames - written, chunk.size)
+                out[written:written + take] = chunk[:take]
+                written += take
+                self._size -= take
+                if take == chunk.size:
+                    self._chunks.popleft()
+                else:
+                    self._chunks[0] = chunk[take:]
+
+            if self._fade_in_pending and written:
+                self._apply_ramp(out, 0, min(self._fade_samples, written), fade_in=True)
+                self._fade_in_pending = False
+
+            if written < frames:
+                if written:
+                    length = min(self._fade_samples, written)
+                    self._apply_ramp(out, written - length, length, fade_in=False)
+                out[written:] = 0.0
+                self.underruns += 1
+                # Refill before speaking again, or every callback from here
+                # on starves by the same handful of samples and clicks -- but
+                # only up to CALL_OUTPUT_RESUME_MS, never the cold-start
+                # target, which on a merely jittery line would chop the
+                # speech roughly in half.
+                self._priming = True
+                self._priming_target = self._resume_samples
+                self._fade_in_pending = True
+
+    def _apply_ramp(self, out: np.ndarray, start: int, length: int, *, fade_in: bool) -> None:
+        if length == self._fade_samples:
+            ramp = self._fade_in_ramp if fade_in else self._fade_out_ramp
+        elif fade_in:
+            ramp = np.linspace(0.0, 1.0, length, dtype=np.float32)
+        else:
+            ramp = np.linspace(1.0, 0.0, length, dtype=np.float32)
+        out[start:start + length] *= ramp
+
+
 class CallAudioSession:
     """Own the Python side of one low-latency voice-call audio pipeline."""
 
@@ -93,6 +260,9 @@ class CallAudioSession:
         self._output_queue: "queue.Queue[tuple[bytes, int]]" = queue.Queue(
             maxsize=CALL_OUTPUT_QUEUE_LIMIT
         )
+        # The reservoir the output callback drains; the player thread fills it.
+        self._output_buffer = _OutputJitterBuffer(self._output_rate)
+        self._output_underruns_logged = 0
         self._stop_event = threading.Event()
         # Held around every write to the output stream and around replacing
         # it, so the player never writes to a stream being closed.
@@ -146,6 +316,9 @@ class CallAudioSession:
         self._output_exclusive_deferred = bool(
             self._config.exclusive_output and not allow_exclusive
         )
+        # Before start(): the callback begins pulling the moment the stream
+        # runs, and it must find an empty, correctly scaled reservoir.
+        self._output_buffer.configure(self._output_rate)
         try:
             self._output_stream.start()
         except Exception:
@@ -214,6 +387,9 @@ class CallAudioSession:
             self._output_stream = None
             self._close_stream(old)
             stream, rate = self._open_output_stream()
+            # The ring's audio is gone with its stream; the new device may
+            # even run at a different rate.
+            self._output_buffer.configure(rate)
             try:
                 stream.start()
             except Exception:
@@ -233,6 +409,7 @@ class CallAudioSession:
             self._output_stream = None
         self._drain_queue(self._mic_queue)
         self._drain_queue(self._output_queue)
+        self._output_buffer.reset()
 
     def enqueue_remote_audio(self, pcm: bytes, sample_rate: int) -> None:
         if self._stop_event.is_set() or not pcm:
@@ -531,6 +708,9 @@ class CallAudioSession:
                         return stream, rate
                     except Exception as exc:
                         last_error = exc
+                        self._log_candidate_failure(
+                            "input", device, rate, exclusive, exc
+                        )
         raise CallAudioUnavailable(f"No microphone could be opened for the call: {last_error}")
 
     def _open_output_stream(self, *, allow_exclusive: bool = True):
@@ -561,12 +741,20 @@ class CallAudioSession:
                             continue
                         stream = self._sd.OutputStream(
                             samplerate=rate,
-                            blocksize=max(1, int(rate * CALL_FRAME_MS / 1000)),
+                            # blocksize=0 lets PortAudio use the device's own
+                            # period, which on WASAPI is the only size it can
+                            # serve without an extra conversion buffer. A
+                            # fixed 20 ms block here made every device pretend
+                            # to a period it did not have. Pacing comes from
+                            # the reservoir the callback drains, not from the
+                            # block size.
+                            blocksize=0,
                             device=device,
                             channels=1,
                             dtype="float32",
                             latency="low",
                             extra_settings=extra_settings,
+                            callback=self._on_output_frames,
                         )
                         if attempt_index > 0:
                             logging.info(
@@ -585,7 +773,32 @@ class CallAudioSession:
                         return stream, rate
                     except Exception as exc:
                         last_error = exc
+                        self._log_candidate_failure(
+                            "output", device, rate, exclusive, exc
+                        )
         raise CallAudioUnavailable(f"No speaker could be opened for the call: {last_error}")
+
+    def _log_candidate_failure(self, direction, device, rate, exclusive, exc) -> None:
+        """Say WHY a candidate lost, instead of swallowing it into last_error.
+
+        Measured 2026-09-22: on one machine the same headset opened on WASAPI
+        (device 14, 40 ms) for one call and on MME (device 6, 100 ms) for the
+        next, with no setting changed in between. _wasapi_twin() picks the
+        WASAPI entry first, so the WASAPI open must have failed — and nothing
+        anywhere said so, because only a total failure of the whole matrix was
+        ever reported. This only fires on a failure, so it cannot spam, and it
+        names device INDEXES and host APIs, never the device name (PII rule:
+        a device name can carry the owner's own name).
+        """
+        logging.info(
+            "[call_audio] %s candidate failed device=%r hostapi=%s rate=%s exclusive=%s error=%s",
+            direction,
+            device,
+            self._hostapi_name(device) if device is not None else "default",
+            rate,
+            exclusive,
+            exc,
+        )
 
     def _on_microphone_frame(self, source_rate: int):
         def _callback(indata, _frames, _time_info, status):
@@ -655,40 +868,96 @@ class CallAudioSession:
                 logging.exception("[call_audio] failed to send microphone audio")
                 time.sleep(0.05)
 
-    def _play_remote_loop(self) -> None:
-        """Write each remote packet to the device as soon as it arrives.
+    def _on_output_frames(self, outdata, _frames, _time_info, _status) -> None:
+        """PortAudio's realtime thread asking for one device period.
 
-        Diagnostic bisection (2026-09-20): a prebuffer/reservoir rewrite of
-        this loop, plus every other change made to this file for video
-        calls, was suspected of causing severe choppy/high-latency call
-        audio on a real Bluetooth headset. Reverting this whole file to
-        main's original version (this exact loop included) while keeping
-        every other file from the branch fixed it; reintroducing sample-rate
-        priority, "low" latency, exclusive mode and a wall-clock write-pacing
-        layer on top of the reservoir version individually did not. That
-        isolates the defect to the reservoir/prebuffer mechanism itself, not
-        yet root-caused further — so this loop stays exactly as simple as it
-        was before any of that, one packet in, one write out, relying on the
-        network's own arrival rate to pace playback the same way it always
-        did for voice calls before this file changed.
+        Everything expensive or fallible happens in the player thread; this
+        only copies out of the reservoir. It must not raise (PortAudio aborts
+        the stream), must not block, and must not log — all three are audible.
+        """
+        try:
+            view = outdata[:, 0] if getattr(outdata, "ndim", 1) > 1 else outdata
+            self._output_buffer.fill(view)
+        except Exception:
+            # Silence is the only safe answer left; the underrun counter and
+            # the player thread's summary are what make it visible.
+            try:
+                outdata[:] = 0
+            except Exception:
+                pass
+
+    def _play_remote_loop(self) -> None:
+        """Resample each remote packet into the playback reservoir.
+
+        Playback itself is the OutputStream's own callback
+        (_on_output_frames), draining _OutputJitterBuffer. Before this, the
+        loop wrote each arriving packet straight into a blocking stream whose
+        device buffer held barely two 20 ms periods: a few milliseconds of
+        arrival jitter — routine, since the page taps the remote track with a
+        deprecated main-thread createScriptProcessor and the packets cross
+        Socket.IO — underflowed the device, and every underflow is a click.
+        Hardware with a deep driver buffer hid it; a low-latency USB headset
+        (CORSAIR HS80, reported 2026-09-22) popped continuously.
+
+        **A reservoir in front of the output is the exact component the
+        2026-09-20 bisection blamed, and it is back on purpose. Watch for it.**
+        Be accurate about what that bisection established: swapping this file
+        for main's version fixed severely choppy audio where three targeted
+        fixes had not, which isolated the defect to the reservoir rewrite as a
+        whole, and c78fe4c7 says in as many words that the root cause was
+        never pinned down further. So this is a deliberate re-test of the
+        suspect component with the part it could never be separated from taken
+        away. The reverted version (0f11af9c) was hard capped at
+        CALL_OUTPUT_MAX_BUFFER_MS and dropped its oldest samples too — those
+        are not what is new here. What is new is that nothing blocks and
+        nothing paces: it drained its reservoir through blocking
+        stream.write() calls, and when the device's own buffer turned out to
+        be five frames deep those writes did not block, so frames landed in
+        bursts (3d507ce1 then paced them by wall clock, and that did not fix
+        it either). Here there is no write call at all — PortAudio asks for
+        one device period whenever it needs one, and that request rate is the
+        only clock in the path. If choppiness returns, this docstring is the
+        first place to look, and the next step is data (underrun counts,
+        device period, reported latency), not another guess.
         """
         while not self._stop_event.is_set():
             try:
                 pcm, source_rate = self._output_queue.get(timeout=0.1)
             except queue.Empty:
+                self._log_output_underruns()
                 continue
             try:
                 samples = _pcm16_float32(pcm)
+                # The lock still guards the stream/rate pair against a swap to
+                # the exclusive stream mid-packet; the reservoir has its own.
                 with self._output_lock:
-                    stream = self._output_stream
-                    if stream is None:
+                    if self._output_stream is None:
                         continue
-                    samples = _resample_mono(samples, source_rate, self._output_rate)
-                    if samples.size:
-                        stream.write(samples.reshape(-1, 1))
+                    target_rate = self._output_rate
+                samples = _resample_mono(samples, source_rate, target_rate)
+                if samples.size:
+                    self._output_buffer.push(samples)
             except Exception:
                 logging.exception("[call_audio] failed to play remote call audio")
                 time.sleep(0.05)
+            self._log_output_underruns()
+
+    def _log_output_underruns(self) -> None:
+        """Report starvation from OUTSIDE the callback, rate limited."""
+        underruns = self._output_buffer.underruns
+        if not underruns:
+            return
+        if self._output_underruns_logged and (
+            underruns - self._output_underruns_logged < CALL_OUTPUT_UNDERRUN_LOG_EVERY
+        ):
+            return
+        self._output_underruns_logged = underruns
+        logging.info(
+            "[call_audio] remote audio starved underruns=%s dropped_samples=%s buffered=%s",
+            underruns,
+            self._output_buffer.dropped_samples,
+            self._output_buffer.buffered_samples,
+        )
 
     def _emit_start(self) -> None:
         try:
@@ -713,7 +982,12 @@ class CallAudioSession:
         try:
             stream.close()
         except Exception:
-            logging.debug("[call_audio] failed to close stream", exc_info=True)
+            # WARNING, not DEBUG: a stream that failed to close is still
+            # running its callback against the reservoir its replacement is
+            # about to reconfigure, and it still holds the device -- under
+            # exclusive_output, that is the screen reader silenced for the
+            # rest of the session with nothing in the log to say why.
+            logging.warning("[call_audio] failed to close stream", exc_info=True)
 
     @staticmethod
     def _drain_queue(items: queue.Queue) -> None:
