@@ -7979,7 +7979,7 @@ class MainWindow(wx.Frame):
                     self.db.insert_message(remote_jid, record)
                 except Exception as e:
                     logging.error(f"[quote-recovery] Failed to persist message: {e}")
-        self._msg_bg_executor.submit(_bg_persist)
+        self._run_quote_recovery_write(_bg_persist)
         if hasattr(self, "conversations_panel"):
             wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)
         return len(filled)
@@ -8011,7 +8011,26 @@ class MainWindow(wx.Frame):
                                  "from a reply quote", remote_jid, str(quoted_id)[:22])
             except Exception:
                 logging.exception("[quote-recovery] %s: database lookup failed", remote_jid)
-        self._msg_bg_executor.submit(_from_database)
+        self._run_quote_recovery_write(_from_database)
+
+    def _run_quote_recovery_write(self, work) -> None:
+        """Run a quote-recovery database write off the main thread when possible.
+
+        The startup pass runs from prepare_sync(), which __init__ calls BEFORE
+        it creates _msg_bg_executor: submitting there raised AttributeError
+        out of __init__ and WinZapp could not start at all (measured
+        2026-09-23, on the first launch with pairs to recover). The database is
+        already open at that point, so without the executor the write simply
+        runs now. Never raises -- neither caller may be taken down by it.
+        """
+        try:
+            executor = getattr(self, "_msg_bg_executor", None)
+            if executor is None:
+                work()
+            else:
+                executor.submit(work)
+        except Exception:
+            logging.exception("[quote-recovery] could not run the database write")
 
     def _fill_stored_placeholder(self, existing: dict, incoming: dict, remote_jid: str) -> None:
         """Replace a stored placeholder with its decrypted copy, in place.

@@ -231,6 +231,7 @@ class _Panel:
 class _Window:
     _recover_placeholders_from_replies = MainWindow._recover_placeholders_from_replies
     _recover_quoted_placeholder = MainWindow._recover_quoted_placeholder
+    _run_quote_recovery_write = MainWindow._run_quote_recovery_write
     _fill_stored_placeholder = MainWindow._fill_stored_placeholder
 
     def __init__(self, stored=None):
@@ -305,6 +306,52 @@ class TestTheLiveReply:
         reply = _reply({"conversation": "oi"})
 
         window._recover_quoted_placeholder(GROUP, [reply], reply)
+
+
+class TestTheStartupPass:
+    """Regression, 2026-09-23: WinZapp would not start. prepare_sync() runs
+    from __init__ BEFORE _msg_bg_executor exists, and the first launch with
+    pairs to recover submitted its database write to it: AttributeError out of
+    __init__, "O WinZapp encontrou um erro crítico ao iniciar"."""
+
+    def test_the_executor_really_is_created_after_prepare_sync(self):
+        """The precondition that made it crash. If this ever flips, the inline
+        write below becomes unreachable at startup, not wrong."""
+        src = inspect.getsource(MainWindow.__init__)
+        assert src.index("self.prepare_sync()") < src.index("self._msg_bg_executor =")
+
+    def test_without_the_executor_the_write_runs_now(self, _call_after_inline):
+        window = _Window()
+        del window._msg_bg_executor
+        del window.conversations_panel  # the UI does not exist yet either
+        placeholder = _placeholder()
+        records = [placeholder, _reply({"conversation": "não chega nem a 1mb"})]
+
+        assert window._recover_placeholders_from_replies(GROUP, records) == 1
+
+        assert placeholder["message"] == {"conversation": "não chega nem a 1mb"}
+        assert window.db.inserted == [(GROUP, ORIGINAL_ID)]
+
+    def test_a_failure_to_schedule_the_write_never_escapes(self, _call_after_inline):
+        window = _Window()
+
+        class _Broken:
+            def submit(self, fn):
+                raise RuntimeError("cannot schedule new futures after shutdown")
+        window._msg_bg_executor = _Broken()
+        records = [_placeholder(), _reply({"conversation": "oi"})]
+
+        window._recover_placeholders_from_replies(GROUP, records)  # must not raise
+
+    def test_the_database_lookup_path_works_without_the_executor(self, _call_after_inline):
+        stored = _placeholder()
+        window = _Window(stored={ORIGINAL_ID: stored})
+        del window._msg_bg_executor
+        reply = _reply({"conversation": "oi"})
+
+        window._recover_quoted_placeholder(GROUP, [reply], reply)
+
+        assert window.db.inserted == [(GROUP, ORIGINAL_ID)]
 
 
 class TestEveryPathIsWired:
