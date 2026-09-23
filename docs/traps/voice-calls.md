@@ -239,6 +239,37 @@ the status code is what a user can act on, while the API's body — up to 500
 characters of JSON wrapping a minified browser stack trace, which used to be
 read aloud in full — stays in `log.log`.
 
+**`_call_action_lock` serialises state transitions, never a blocking POST —
+and the outgoing offer was the last place that broke the rule.** The camera
+work was moved out of the lock because holding it across a device enumeration
+made Ctrl+Shift+Q (hang up) sit there with nothing spoken; the offer POST kept
+doing exactly that with a 75-second timeout, so a stalled offer left "end
+call" dead for over a minute (issue #275). It now runs outside the lock, which
+buys the race the lock was hiding: the user can hang up while the offer is in
+flight, that `end` POST names a call WhatsApp has not created yet, and the
+offer then lands and rings the peer for a call WinZapp thinks is over.
+`_start_individual_call()` therefore keeps a per-attempt token
+(`_outgoing_call_attempt`, a plain dict) that `end_active_call()` marks
+`cancelled` **on the UI thread, before its worker starts**; an offer that
+lands cancelled ends the call it just created and never starts the camera.
+The token lives on the window and not on the call record because
+`_start_voice_call_audio()` replaces `_active_voice_call` wholesale, so a flag
+written onto the record could land on a dict nobody reads again.
+
+**An offer that never goes live clears its own state, in a `finally`, guarded
+by identity.** The failure path used to leave `_active_voice_call` set; the
+stand-down bound above is what stopped that from being unbounded, so the cost
+was up to two hours of paused background work plus a call window that stayed
+up and a `voice_call_already_active` refusal of every later call — the safety
+net worked, and the defect was still worth fixing. `_abandon_outgoing_call()`
+is the one place that teardown lives, and it compares `_active_voice_call` by
+identity the way `_start_call_camera()` does: a terminal `callstate` event or
+an incoming call answered while the offer was in flight leaves a *different*
+record in place, and tearing that one down would hang up a call the user is
+in. For the same reason the cancel path's `end` POST is sent only on an
+explicit cancel — it carries no call id, so it would end whichever call the
+page holds now.
+
 Call devices are their own pair (`settings["call_audio_devices"]`), separate
 from Settings > Dispositivos de áudio on purpose: a headset chosen for calls
 must not silently become the microphone that records voice messages.
