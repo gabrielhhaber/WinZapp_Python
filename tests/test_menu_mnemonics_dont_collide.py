@@ -114,6 +114,19 @@ class TestMessageFieldMnemonicDoesNotCollideWithAltT:
                     "with a globally reserved shortcut"
                 )
 
+    def test_no_attachment_panel_button_is_mnemonic_ed_on_a_reserved_letter(self):
+        # The staged-attachment panel sits in the same conversation panel,
+        # so its buttons lose to the window's Alt+T as well: ro.json's
+        # "&Trimite" announced presence instead of sending the files.
+        for locale in LOCALES:
+            translations = _load(locale)
+            for key in ("send_attachment", "add_more_files"):
+                label = translations.get(key, "")
+                assert _mnemonic(label) not in _GLOBALLY_RESERVED_ALT_LETTERS, (
+                    f"{locale}: {key!r} ({label!r}) collides with a globally "
+                    "reserved shortcut"
+                )
+
     def test_type_message_and_its_variants_share_one_letter_per_locale(self):
         for locale in LOCALES:
             translations = _load(locale)
