@@ -22,6 +22,12 @@ YENİLİKLER
 
 - Esc tuşu kapatmadan önce seçimi kaldırır. Mesajlar seçiliyken basılan ilk Esc tuşu yalnızca tüm seçimleri kaldırır; ikinci kez basıldığında sohbeti kapatır. Bu davranış da Ayarlar > Kullanıcı Arayüzü sekmesinden kapatılabilir.
 
+- Stereo sesli mesajlar. Gerçekten stereo kayıt yapan bir mikrofonla sesli mesaj iki taraftaki sesi koruyabilir. Ayarlar'daki Ses Cihazları sekmesinde "Sesli mesajları varsayılan olarak stereo kaydet" seçeneğini işaretleyin ya da yalnızca bir mesajı diğer modda kaydetmek için "Sesli mesaj kaydet" düğmesinin altındaki yeni düğmeyi (Ctrl+Shift+G) kullanın: varsayılan mono ise stereo, stereo ise mono. iPhone kullananlar stereo sesli mesajları dinleyemez; bu nedenle WinZapp önce "Tekrar gösterme" seçeneğiyle bir uyarı gösterir. Uyarının yeniden gösterilmesi için Kullanıcı Arayüzü sekmesindeki ilgili seçeneği kullanın. Mikrofon iki kanal sağlamazsa mesaj mono olarak kaydedilir ve WinZapp bunu bildirir.
+
+- Shift+F5 ile yalnızca açık sohbeti yeniden eşitleme; Eşitle menüsünde de bulunur. Tüm sohbetleri silip yeniden indiren F5'in aksine Shift+F5, açık sohbetin mesajlarını WhatsApp'tan yeniden alır, eksik olanları doğru yere yerleştirir ve artık orada bulunmayanları kaldırır; eski geçmişe dokunmaz. F5 ve Shift+F5 artık onay istiyor; varsayılan yanıt Hayır'dır ve "Tekrar gösterme" seçeneği vardır. Tekrar sorulmasını isterseniz Ayarlar'daki Kullanıcı Arayüzü sekmesinde bulunan ilgili seçenekleri kullanın.
+
+- WinZapp'i sistem tepsisinden geri getiren genel kısayol tuşu artık onu tepsiye de gönderiyor: WinZapp ön plandayken aynı kısayol onu tepsiye gizler. Diğer tüm durumlarda pencereyi öne getirmeye devam eder.
+
 DÜZELTMELER
 
 - Sesli mesaj kayıt anonsları susturulduğunda, kayıt başlatılırken ekran okuyucunun kesilmeden önce “Gönder” demeye başlaması sorunu giderildi. WinZapp artık kırpılmış anonstan kaynaklanan otomatik odak hareketini önlerken Ctrl+R, Ctrl+Shift+P ve Ctrl+Shift+D kısayollarını kullanılabilir durumda tutar.
@@ -46,6 +52,14 @@ DÜZELTMELER
 
 - Mesaj metni penceresinin bir bölümünü kopyalamak (Alt+C), pencerenin daha kolay okunması için uzun satırları böldüğü yerlerde mesajda bulunmayan satır sonlarını da getiriyordu. Kopyalama işlemi artık mesajı tam olarak yazıldığı gibi, yalnızca kendi satır sonlarıyla verir.
 
+
+- WhatsApp'ın henüz yükleyemediği mesajlar sohbetten kayboluyordu ve bunlardan birine verilen yanıt, hiçbir yerde görünmeyen bir mesajı alıntılıyordu. Bu durum örneğin telefonunu değiştiren birinin mesajlarında, o kişinin telefonu mesajları yeniden gönderene kadar yaşanır. Artık bu mesajlar WhatsApp'taki gibi "Bu mesaj bekleniyor. Bu biraz zaman alabilir." olarak görünür ve metin geldiği anda, ya da birisi mesajı alıntılayarak yanıt verdiğinde daha da önce, yerini metne bırakır.
+
+- Bir grubun okunmamış mesaj sayacı, hâlâ okunmamış mesajlar olmasına rağmen birisi bir mesaja tepki verdiğinde kaybolabiliyordu; sistem bildirimleri olan gruplarda ise her dakika kendiliğinden azalıyordu. Artık sayaç gerçekten okunmamış mesajları gösteriyor.
+
+- Bir mesaj kopyalanırken (Ctrl+C), metni açılırken (Alt+C) veya birkaç mesaj birlikte kopyalanırken, bahsedilen kişiler mesaj listesinde görünen adları yerine telefon numarası ya da anlamsız bir rakam dizisi olarak çıkıyordu. Artık adlarıyla çıkıyor.
+
+- Dosya seçilmemiş özel bir bildirim sesi varken, bir sohbetin bilgilerinde veya Ayarlar'daki Uyarı Tonları sekmesinde, önizlemeyi dinleme düğmesi kullanılabilir kalıyor ve hata gösteriyordu. Artık yalnızca yazılan yol var olan bir dosyaya çıktığında görünüyor.
 
 V1.1.1.0
 

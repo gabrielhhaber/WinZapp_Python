@@ -22,6 +22,12 @@ NOWOŚCI
 
 - Esc odznacza przed zamknięciem. Gdy wiadomości są zaznaczone, pierwszy Esc tylko odznacza wszystkie, a dopiero drugi zamyka czat. To także można wyłączyć w Ustawieniach, Interfejs użytkownika.
 
+- Wiadomości głosowe w stereo. Z mikrofonem, który naprawdę nagrywa w stereo, wiadomość głosowa może zachować dźwięk z obu stron. Zaznacz „Domyślnie nagrywaj wiadomości głosowe w stereo” na karcie Urządzenia audio w Ustawieniach albo użyj nowego przycisku pod „Nagraj wiadomość głosową” (Ctrl+Shift+G), aby nagrać tylko jedną wiadomość w drugim trybie: w stereo, gdy domyślny jest mono, i w mono, gdy domyślny jest stereo. Osoby korzystające z iPhone'a nie mogą odsłuchać wiadomości głosowych w stereo, dlatego WinZapp najpierw ostrzega, z opcją „Nie pokazuj ponownie”; aby ostrzeżenie wróciło, użyj odpowiedniej opcji na karcie Interfejs użytkownika. Jeśli mikrofon nie udostępnia dwóch kanałów, wiadomość zostaje nagrana w mono, a WinZapp o tym informuje.
+
+- Ponowna synchronizacja tylko otwartego czatu za pomocą Shift+F5, również w menu Synchronizacja. W przeciwieństwie do F5, który usuwa i ponownie pobiera wszystkie czaty, Shift+F5 ponownie pobiera z WhatsApp wiadomości otwartego czatu, wstawia brakujące we właściwe miejsce i usuwa te, których już tam nie ma, bez naruszania starszej historii. F5 i Shift+F5 pytają teraz o potwierdzenie, z Nie jako domyślną odpowiedzią i opcją „Nie pokazuj ponownie”; aby pytanie wróciło, użyj odpowiednich opcji na karcie Interfejs użytkownika w Ustawieniach.
+
+- Globalny skrót, który przywraca WinZapp z zasobnika systemowego, teraz również go tam chowa: gdy WinZapp jest na pierwszym planie, ten sam skrót ukrywa go w zasobniku. W każdej innej sytuacji nadal przywołuje okno na wierzch.
+
 POPRAWKI
 
 - Po rozpoczęciu nagrywania wiadomości głosowej przy wyciszonych komunikatach czytnik ekranu nie zaczyna już wypowiadać „Wyślij”, zanim zostanie przerwany. WinZapp nie wykonuje teraz automatycznego przeniesienia fokusu, które powodowało ten urwany komunikat, a skróty Ctrl+R, Ctrl+Shift+P i Ctrl+Shift+D nadal działają.
@@ -45,6 +51,14 @@ POPRAWKI
 - Po odzyskaniu profilu przeglądarki przez WinZapp czaty z nieprzeczytanymi wiadomościami nie są już pokazywane jako przeczytane.
 
 - Kopiowanie fragmentu okienka z tekstem wiadomości (Alt+C) dodawało podziały wierszy, których wiadomość nie miała, w miejscach, gdzie okienko dzieli długie wiersze dla łatwiejszego czytania. Teraz kopia zawiera wiadomość dokładnie tak, jak została napisana, tylko z jej własnymi podziałami wierszy.
+
+- Wiadomości, których WhatsApp nie zdążył jeszcze wczytać, znikały z czatu, a odpowiedź na jedną z nich cytowała wiadomość, której nigdzie nie było widać. Dzieje się tak na przykład z wiadomościami od osoby, która zmieniła telefon, dopóki jej telefon nie wyśle ich ponownie. Teraz pojawiają się jako „Oczekiwanie na tę wiadomość. Może to chwilę potrwać.”, tak jak w WhatsApp, i ustępują miejsca treści, gdy tylko ona dotrze, albo wcześniej, gdy ktoś odpowie, cytując wiadomość.
+
+- Licznik nieprzeczytanych wiadomości grupy mógł zniknąć, gdy ktoś zareagował na wiadomość, mimo że nadal były nieprzeczytane wiadomości, a w grupach z komunikatami systemowymi co minutę sam się zmniejszał. Teraz licznik pokazuje wiadomości, które naprawdę nie zostały przeczytane.
+
+- Przy kopiowaniu wiadomości (Ctrl+C), otwieraniu jej tekstu (Alt+C) lub kopiowaniu kilku naraz wspomniane osoby pojawiały się jako numer telefonu albo jako bezsensowny ciąg cyfr zamiast nazwy widocznej na liście wiadomości. Teraz pojawiają się z nazwą.
+
+- Przy własnym dźwięku powiadomienia bez wybranego pliku, w danych czatu lub na karcie Dźwięki powiadomień w Ustawieniach, przycisk odsłuchu podglądu pozostawał dostępny i pokazywał błąd. Teraz pojawia się tylko wtedy, gdy wpisana ścieżka prowadzi do istniejącego pliku.
 
 V1.1.1.0
 

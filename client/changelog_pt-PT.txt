@@ -22,6 +22,12 @@ NOVIDADES
 
 - O Esc desmarca antes de fechar. Com mensagens marcadas, o primeiro Esc apenas desmarca todas e só o segundo fecha a conversa. Também pode ser desativado nas Definições, Interface do utilizador.
 
+- Mensagens de voz em estéreo. Com um microfone que grava em estéreo de verdade, a mensagem de voz pode manter o som dos dois lados. Marque "Gravar mensagens de voz em estéreo por predefinição" no separador Dispositivos de áudio das Definições, ou utilize o novo botão abaixo de "Gravar mensagem de voz" (Ctrl+Shift+G) para gravar apenas uma mensagem no outro modo: em estéreo quando a predefinição for mono, e em mono quando for estéreo. Quem utiliza iPhone não consegue ouvir mensagens de voz em estéreo, por isso o WinZapp avisa antes, com a opção "Não mostrar novamente"; para voltar a ser avisado, use a opção correspondente no separador Interface do utilizador. Se o microfone não disponibilizar dois canais, a mensagem é gravada em mono e o WinZapp avisa.
+
+- Ressincronizar apenas a conversa aberta com Shift+F5, também no menu Sincronização. Ao contrário do F5, que apaga e descarrega de novo todas as conversas, o Shift+F5 volta a obter do WhatsApp as mensagens da conversa aberta, coloca no sítio certo as que faltavam e remove as que já não existem lá, sem mexer no histórico mais antigo. O F5 e o Shift+F5 passam a pedir confirmação, com Não como predefinição e a opção "Não mostrar novamente"; para voltar a ser perguntado, use as opções correspondentes no separador Interface do utilizador das Definições.
+
+- O atalho global que traz o WinZapp da área de notificação passa também a levá-lo de volta: com o WinZapp em primeiro plano, o mesmo atalho oculta-o na área de notificação. Em qualquer outra situação, continua a trazer a janela para a frente.
+
 CORREÇÕES
 
 - Ao iniciar uma mensagem de voz com os anúncios da gravação silenciados, o leitor de ecrã já não começa a dizer “Enviar” antes de ser interrompido. O WinZapp evita agora a mudança automática de foco que causava esse fragmento, mantendo Ctrl+R, Ctrl+Shift+P e Ctrl+Shift+D disponíveis.
@@ -45,6 +51,14 @@ CORREÇÕES
 - Depois de o WinZapp recuperar o perfil do navegador, as conversas com mensagens não lidas já não aparecem como lidas.
 
 - Ao copiar um excerto da janela de texto da mensagem (Alt+C), o texto vinha com quebras de linha que a mensagem não tinha, nos pontos em que a janela divide as linhas longas para facilitar a leitura. Agora a cópia traz a mensagem tal como foi escrita, apenas com as quebras de linha dela.
+
+- As mensagens que o WhatsApp ainda não tinha conseguido carregar desapareciam da conversa, e uma resposta a uma delas citava uma mensagem que não aparecia em lado nenhum. Isto acontece, por exemplo, com as mensagens de quem mudou de telemóvel, até o telemóvel dessa pessoa as reenviar. Agora aparecem como "A aguardar mensagem. Isto pode demorar algum tempo.", como no WhatsApp, e dão lugar ao texto assim que ele chega, ou antes disso, quando alguém responde citando a mensagem.
+
+- O contador de mensagens não lidas de um grupo podia desaparecer quando alguém reagia a uma mensagem, mesmo com mensagens ainda por ler, e em grupos com avisos do sistema diminuía sozinho a cada minuto. Agora o contador mostra as mensagens que de facto não foram lidas.
+
+- Ao copiar uma mensagem (Ctrl+C), abrir o texto dela (Alt+C) ou copiar várias de uma vez, as pessoas mencionadas surgiam como número de telefone, ou como uma sequência de números sem sentido, em vez do nome que aparece na lista de mensagens. Agora surgem com o nome.
+
+- Com um som de notificação personalizado sem ficheiro escolhido, nos dados de uma conversa ou no separador Toques de Alerta das Definições, o botão de ouvir a pré-visualização continuava disponível e mostrava um erro. Agora só aparece quando o caminho escrito leva a um ficheiro que existe.
 
 V1.1.1.0
 
