@@ -163,6 +163,10 @@ class _Executor:
 
 class _HistoricalStub:
     on_historical_message = MainWindow.on_historical_message
+    # Real methods, not invented answers: a message that is not a reply
+    # (and not a placeholder) returns from them before touching anything.
+    _recover_quoted_placeholder = MainWindow._recover_quoted_placeholder
+    _recover_placeholders_from_replies = MainWindow._recover_placeholders_from_replies
     _drop_protocol_edit = MainWindow._drop_protocol_edit
     _redirect_self_chat_artifact = MainWindow._redirect_self_chat_artifact
     _phone_digits_equivalent = staticmethod(MainWindow._phone_digits_equivalent)

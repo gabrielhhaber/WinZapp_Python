@@ -114,6 +114,10 @@ class _StubMainWindow:
     """Minimal stub of MainWindow for testing on_new_message and _maybe_notify_reaction."""
 
     on_new_message = MainWindow.on_new_message
+    # Real methods, not invented answers: a message that is not a reply
+    # (and not a placeholder) returns from them before touching anything.
+    _recover_quoted_placeholder = MainWindow._recover_quoted_placeholder
+    _recover_placeholders_from_replies = MainWindow._recover_placeholders_from_replies
     _drop_protocol_edit = MainWindow._drop_protocol_edit
     _maybe_notify_reaction = MainWindow._maybe_notify_reaction
     _normalize_jid = staticmethod(MainWindow._normalize_jid)

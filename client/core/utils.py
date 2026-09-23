@@ -1214,6 +1214,27 @@ def _extract_mentioned_jids(quoted):
     return []
 
 
+#: How much of a quoted message's text a stored reply keeps. A quote whose
+#: text is exactly this long may have been cut here (core/quote_recovery.py).
+QUOTED_TEXT_CAP = 300
+
+
+def quoted_message_text(quoted) -> str:
+    """The full text of a quoted message, in any of the shapes it arrives in."""
+    if not isinstance(quoted, dict):
+        return ""
+    text = (
+        quoted.get("conversation")
+        or quoted.get("caption")
+        or quoted.get("body")
+        or (quoted.get("extendedTextMessage") or {}).get("text")
+        or ""
+    )
+    if not isinstance(text, str) or looks_like_binary_blob(text):
+        return ""
+    return text
+
+
 def _slim_quoted_message(quoted):
     """Reduce a quoted-message dict to only what the reply preview needs.
 
@@ -1232,16 +1253,8 @@ def _slim_quoted_message(quoted):
     """
     if not isinstance(quoted, dict):
         return quoted
-    text = (
-        quoted.get("conversation")
-        or quoted.get("caption")
-        or quoted.get("body")
-        or (quoted.get("extendedTextMessage") or {}).get("text")
-        or ""
-    )
-    if not isinstance(text, str) or looks_like_binary_blob(text):
-        text = ""
-    text = text[:300]  # a long pasted message must not be duplicated into replies
+    # a long pasted message must not be duplicated into replies
+    text = quoted_message_text(quoted)[:QUOTED_TEXT_CAP]
 
     qtype = quoted.get("type")
     slim: dict = {}

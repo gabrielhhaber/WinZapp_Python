@@ -285,6 +285,9 @@ class DatabaseBridge:
     def get_chat_jids(self) -> list[str]:
         return self._call(self._db.get_chat_jids())
 
+    def get_message_by_id(self, remote_jid: str, message_id: str) -> dict | None:
+        return self._call(self._db.get_message_by_id(remote_jid, message_id))
+
     def get_message_count(self, remote_jid: str) -> int:
         return self._call(self._db.get_message_count(remote_jid))
 

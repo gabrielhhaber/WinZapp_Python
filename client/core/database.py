@@ -689,6 +689,22 @@ class DatabaseManager:
                 result.append(msg)
         return result
 
+    async def get_message_by_id(self, remote_jid: str, message_id: str) -> dict | None:
+        """Return one stored message of a chat by its id, or None."""
+        if not message_id:
+            return None
+        conn = await self._ensure_conn()
+        jids = self._jid_variants(remote_jid)
+        placeholders = ",".join("?" for _ in jids)
+        cursor = await conn.execute(
+            f"""SELECT message_json FROM messages
+               WHERE message_id = ? AND remote_jid IN ({placeholders})
+               LIMIT 1""",
+            (message_id, *jids),
+        )
+        row = await cursor.fetchone()
+        return (self._decrypt_json(row["message_json"]) or None) if row else None
+
     async def get_message_count(self, remote_jid: str) -> int:
         """Return total message count for a chat."""
         conn = await self._ensure_conn()

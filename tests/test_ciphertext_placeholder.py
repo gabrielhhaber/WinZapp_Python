@@ -156,8 +156,10 @@ class TestTheDecryptedCopyOfAStoredPlaceholder:
     def test_the_dedup_checks_for_a_placeholder_before_treating_it_as_an_edit(self):
         import inspect
         src = inspect.getsource(MainWindow.on_new_message)
-        assert "_is_undecrypted_placeholder(existing)" in src
-        assert src.index("_is_undecrypted_placeholder(existing)") < src.index(
+        # awaits_real_copy() is the placeholder test widened to a record filled
+        # from a reply's quote (core/quote_recovery.py).
+        assert "awaits_real_copy(existing)" in src
+        assert src.index("awaits_real_copy(existing)") < src.index(
             "self._apply_possible_edit(existing")
         assert "_fill_stored_placeholder(existing" in src
 

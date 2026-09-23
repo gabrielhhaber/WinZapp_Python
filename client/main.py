@@ -54,6 +54,14 @@ from core.audio_devices import (
 )
 from core.bulk_read_state import run_bulk_read_state
 from core.call_matching import call_event_matches_active
+from core.quote_recovery import (
+    RECOVERED_FROM_QUOTE,
+    UNDECRYPTED_PLACEHOLDER_TYPES,
+    awaits_real_copy,
+    carry_over_recovered_quotes,
+    fill_placeholders_from_replies,
+    reply_context,
+)
 from core.message_edit import (
     apply_caption_edit,
     carry_over_edited_marker,
@@ -7766,7 +7774,7 @@ class MainWindow(wx.Frame):
 
     #: WhatsApp Web's "arrived, not decrypted yet" placeholder. It is followed
     #: by the real message under the same key.id.
-    _UNDECRYPTED_PLACEHOLDER_TYPES = frozenset({"ciphertext"})
+    _UNDECRYPTED_PLACEHOLDER_TYPES = UNDECRYPTED_PLACEHOLDER_TYPES
 
     @staticmethod
     def _is_undecrypted_placeholder(msg: dict) -> bool:
@@ -7798,6 +7806,66 @@ class MainWindow(wx.Frame):
         except (TypeError, ValueError):
             return False
 
+    def _recover_placeholders_from_replies(self, remote_jid: str, records: list,
+                                           replies=None) -> int:
+        """Fill placeholders in *records* from the quotes of *replies*; persist them.
+
+        *replies* defaults to *records* itself. The database is written per
+        message rather than through the debounced chat save, so the text
+        survives closing and reopening the conversation. Never raises: it runs
+        inside the live funnel and at startup.
+        """
+        try:
+            filled = fill_placeholders_from_replies(
+                records, self._chat_jids_equivalent, replies)
+        except Exception:
+            logging.exception("[quote-recovery] %s: failed", remote_jid)
+            return 0
+        if not filled:
+            return 0
+        logging.info("[quote-recovery] %s: %d message(s) recovered from reply quotes",
+                     remote_jid, len(filled))
+
+        def _bg_persist():
+            for record in filled:
+                try:
+                    self.db.insert_message(remote_jid, record)
+                except Exception as e:
+                    logging.error(f"[quote-recovery] Failed to persist message: {e}")
+        self._msg_bg_executor.submit(_bg_persist)
+        if hasattr(self, "conversations_panel"):
+            wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)
+        return len(filled)
+
+    def _recover_quoted_placeholder(self, remote_jid: str, records: list, reply: dict) -> None:
+        """Let a live reply fill the placeholder it quotes, in memory or on disk.
+
+        Only the newest messages of a chat are resident, so a reply to an older
+        "Aguardando mensagem" finds it through the database, by id, off the
+        main thread; reopening the conversation then reads the filled row.
+        """
+        ctx = reply_context(reply)
+        if ctx is None:
+            return
+        quoted_id = ctx.get("stanzaId")
+        if any((r.get("key") or {}).get("id") == quoted_id for r in records):
+            self._recover_placeholders_from_replies(remote_jid, records, [reply])
+            return
+
+        def _from_database():
+            try:
+                stored = self.db.get_message_by_id(remote_jid, quoted_id)
+                if not stored:
+                    return
+                if fill_placeholders_from_replies(
+                        [stored], self._chat_jids_equivalent, [reply]):
+                    self.db.insert_message(remote_jid, stored)
+                    logging.info("[quote-recovery] %s: stored message %s recovered "
+                                 "from a reply quote", remote_jid, str(quoted_id)[:22])
+            except Exception:
+                logging.exception("[quote-recovery] %s: database lookup failed", remote_jid)
+        self._msg_bg_executor.submit(_from_database)
+
     def _fill_stored_placeholder(self, existing: dict, incoming: dict, remote_jid: str) -> None:
         """Replace a stored placeholder with its decrypted copy, in place.
 
@@ -7811,6 +7879,8 @@ class MainWindow(wx.Frame):
         prune_message_record(incoming)
         for field, value in incoming.items():
             existing[field] = value
+        # The real copy supersedes text recovered from a reply's quote.
+        existing.pop(RECOVERED_FROM_QUOTE, None)
         logging.info("[on_new_message] %s: decrypted copy of stored placeholder %s "
                      "filled in (%s).", remote_jid,
                      ((existing.get("key") or {}).get("id") or "")[:22],
@@ -8496,7 +8566,10 @@ class MainWindow(wx.Frame):
         if msg_id:
             for index, existing in enumerate(records):
                 if existing.get("key", {}).get("id") == msg_id:
-                    if not MainWindow._is_undecrypted_placeholder(existing):
+                    # A text recovered from a reply's quote is the replier's
+                    # claim, so the real copy replaces it like a placeholder
+                    # rather than being compared as an edit (core/quote_recovery.py).
+                    if not awaits_real_copy(existing):
                         self._apply_possible_edit(existing, msg, remote_jid)
                         return  # already stored (edited in place if content changed)
                     # A sync stored WhatsApp Web's placeholder for this id and
@@ -8544,6 +8617,10 @@ class MainWindow(wx.Frame):
             # queries again, which is exactly how a first message from a
             # contact could vanish on opening the conversation.
             self._pending_lid_inserts[remote_jid] = _insert_fut
+
+        # A reply carries the text it quotes: an "Aguardando mensagem" it
+        # answers can show that text now (core/quote_recovery.py).
+        self._recover_quoted_placeholder(remote_jid, records, msg)
 
         # ── Update unread count (only for messages we received) ───────────────
         # System events never count as unread — see is_countable_message().
@@ -9053,6 +9130,14 @@ class MainWindow(wx.Frame):
             except Exception as e:
                 logging.error(f"[on_historical_message] Failed to insert message to DB: {e}")
         self._msg_bg_executor.submit(_bg_insert_msg)
+
+        # History arrives in any order: a reply may quote an "Aguardando
+        # mensagem" already stored, or a placeholder may land after a reply
+        # that quotes it (core/quote_recovery.py).
+        if MainWindow._is_undecrypted_placeholder(msg):
+            self._recover_placeholders_from_replies(remote_jid, records)
+        else:
+            self._recover_quoted_placeholder(remote_jid, records, msg)
 
         # Debounced UI update
         self._schedule_save(dirty_jid=remote_jid)
@@ -14354,6 +14439,13 @@ class MainWindow(wx.Frame):
         if prune_chats_messages(self.chats):
             logging.info("[startup] pruned bloated quoted-message data")
             self._schedule_save()
+        # Replies already on disk that quote an "Aguardando mensagem" stored
+        # before quote recovery existed.
+        for jid, chat in list(self.chats.items()):
+            records = (chat.get("messages", {}).get("messages", {}).get("records")
+                       if isinstance(chat, dict) else None)
+            if records:
+                self._recover_placeholders_from_replies(jid, records)
         self.scan_all_cached_messages_for_mentions()
         # NOTE: the "connected" sound is deliberately NOT played here. Reaching
         # this point only proves the *local* WPPConnect API answered — with no
@@ -24919,6 +25011,12 @@ class MainWindow(wx.Frame):
             if carried_edits:
                 logging.info("[sync_chat_messages] %s: kept %d edited marker(s)",
                              remote_jid, carried_edits)
+            # And for text recovered from a reply's quote, which the server
+            # copy -- still a ciphertext -- would otherwise wipe.
+            carried_quotes = carry_over_recovered_quotes(all_messages, local_records)
+            if carried_quotes:
+                logging.info("[sync_chat_messages] %s: kept %d recovered quote(s)",
+                             remote_jid, carried_quotes)
             api_ids = {r.get("key", {}).get("id") for r in all_messages}
             # A copy an edit event was once stored as is local-only by
             # construction — keeping it is the duplicate (core/message_edit.py).
@@ -24987,6 +25085,18 @@ class MainWindow(wx.Frame):
                         m.get("messageTimestamp") or m.get("timestamp") or m.get("t") or 0
                     )
                 )
+
+        # A reply fetched here -- or one already stored -- may quote an
+        # "Aguardando mensagem" in this chat; the batch write below persists
+        # what it fills. Guarded: this is not an I/O fault and must never be
+        # able to report the fetch as a failed one (docs/traps/sync-completion.md).
+        try:
+            recovered = fill_placeholders_from_replies(all_messages, self._chat_jids_equivalent)
+            if recovered:
+                logging.info("[sync_chat_messages] %s: recovered %d message(s) from "
+                             "reply quotes", remote_jid, len(recovered))
+        except Exception:
+            logging.exception("[sync_chat_messages] %s: quote recovery failed", remote_jid)
 
         # Update records: accept API data only when it actually returned some
         # messages, or fall back to preserving whatever we have in memory.
