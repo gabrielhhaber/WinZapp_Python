@@ -34,6 +34,7 @@ from core.locale_format import get_datetime_format
 # function, so this direction of the pair is not a cycle.
 from ui.conversations import local_media_cache_paths
 from app_paths import data_path
+from core.alert_tones import alert_tone_previewable
 from core.sound_system import (
     discover_alert_tone_choices, resolve_alert_tone_path, AlertPreviewController,
 )
@@ -221,6 +222,9 @@ class ConversationDataDialog(wx.Dialog):
         # the dialog's own destruction means nobody is looking any more.
         if event.GetEventObject() is self:
             self._closed.set()
+            pending = getattr(self, "_sound_path_check", None)
+            if pending is not None:
+                pending.Stop()
         event.Skip()
 
     def _on_back_button(self, event):
@@ -396,7 +400,32 @@ class ConversationDataDialog(wx.Dialog):
         is_custom = self._sound_combo.GetSelection() == len(self._sound_choice_keys) - 1
         self._sound_custom_label.Show(is_custom)
         self._sound_custom_field.Show(is_custom)
+        self._update_sound_preview_visibility()
         self._sound_custom_label.GetParent().Layout()
+
+    #: Typing pause after which the custom path is checked on disk. Checking
+    #: on every keystroke would stat a half-typed path each time, and a
+    #: half-typed UNC path (\\server\share\...) can block the UI for seconds.
+    _SOUND_PATH_CHECK_DELAY_MS = 400
+
+    def _update_sound_preview_visibility(self):
+        """Show the preview button only when there is a sound to play.
+
+        With "Personalizado" and no existing file in the path field, the
+        button used to stay and answer a press with an error box.
+        """
+        if not self._sound_preview_btn:
+            return  # the dialog closed while a delayed check was pending
+        idx = self._sound_combo.GetSelection()
+        choice = (self._sound_choice_keys[idx]
+                  if 0 <= idx < len(self._sound_choice_keys) else "default")
+        show = alert_tone_previewable(choice, self._sound_custom_field.GetValue())
+        if show == self._sound_preview_btn.IsShown():
+            return
+        if not show:
+            self._sound_preview.stop()
+        self._sound_preview_btn.Show(show)
+        self._sound_preview_btn.GetParent().Layout()
 
     def _save_conv_sound(self):
         """Persist the per-conversation sound override immediately.
@@ -424,6 +453,13 @@ class ConversationDataDialog(wx.Dialog):
 
     def _on_conv_sound_custom_path_changed(self, event):
         self._save_conv_sound()
+        # Re-armed on each keystroke, so the check runs once typing pauses.
+        pending = getattr(self, "_sound_path_check", None)
+        if pending is not None and pending.IsRunning():
+            pending.Restart(self._SOUND_PATH_CHECK_DELAY_MS)
+        else:
+            self._sound_path_check = wx.CallLater(
+                self._SOUND_PATH_CHECK_DELAY_MS, self._update_sound_preview_visibility)
         self._mw._schedule_save_settings()
 
     def _build_group_ui(self, panel, outer):

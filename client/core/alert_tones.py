@@ -77,6 +77,18 @@ def discover_alert_tone_choices(active_pack, default_pack) -> list[tuple[str, st
     return choices + [(key, label) for key, label in defaults if key not in seen_keys]
 
 
+def alert_tone_previewable(choice: str, custom_path: str = "") -> bool:
+    """Whether a "preview" button has something to play for this choice.
+
+    Only "custom" can point at nothing: an empty or mistyped path used to
+    leave the button showing, and pressing it opened an error box.
+    """
+    if choice != "custom":
+        return True
+    path = (custom_path or "").strip()
+    return bool(path) and os.path.isfile(path)
+
+
 def resolve_alert_tone_path(active_pack, default_pack, choice: str, custom_path: str = "") -> str:
     """Resolve a saved alert choice through the active/default pack chain."""
     if choice == "custom":
