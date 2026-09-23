@@ -23,7 +23,11 @@ import time
 import pytest
 import wx
 
-from core.notification_manager import NotificationManager
+from core.notification_manager import (
+    NotificationManager,
+    packaged_process_aumid,
+    toaster_aumid_candidates,
+)
 
 
 class _FakeToaster:
@@ -300,6 +304,13 @@ class TestSetupToasterAumid:
         def _register_aumid_registry(self):
             pass  # touches the real Windows registry — irrelevant here
 
+    @pytest.fixture(autouse=True)
+    def _unpackaged(self, monkeypatch):
+        """These tests describe an unpackaged interpreter. Running them under
+        Python from the Microsoft Store would otherwise put that package's
+        AUMID first (see TestPackagedInterpreter)."""
+        monkeypatch.setattr("core.notification_manager.packaged_process_aumid", lambda: "")
+
     def test_dev_mode_tries_the_registered_app_id_first(self, monkeypatch):
         monkeypatch.setattr("core.notification_manager._is_frozen", lambda: False)
         attempts = []
@@ -354,6 +365,76 @@ class TestSetupToasterAumid:
         stub._setup_toaster()
 
         assert attempts == ["WinZapp"]
+
+
+class TestPackagedInterpreter:
+    """Python from the Microsoft Store is an MSIX package, and so is every venv
+    made from it. Reported 2026-09-23 running from source: sound, no banner,
+    no error. "WinZapp" became "<package>!WinZapp", an app the package does not
+    declare, so Windows accepted every toast and displayed none. Creating that
+    notifier does not fail, so the candidate list cannot count on falling
+    through: the package's own AUMID has to come first."""
+
+    PACKAGED = "PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0!Python"
+
+    def test_a_packaged_process_starts_with_its_own_aumid(self):
+        assert toaster_aumid_candidates("WinZapp", "python.exe", self.PACKAGED) == [
+            self.PACKAGED, "WinZapp", "python.exe"]
+
+    def test_an_unpackaged_process_keeps_the_registered_id_first(self):
+        assert toaster_aumid_candidates("WinZapp", "python.exe", "") == [
+            "WinZapp", "python.exe"]
+
+    def test_no_candidate_is_tried_twice(self):
+        assert toaster_aumid_candidates("WinZapp", "WinZapp", "") == ["WinZapp"]
+
+    def test_setup_builds_the_toaster_on_the_package_aumid(self, monkeypatch):
+        monkeypatch.setattr("core.notification_manager._is_frozen", lambda: False)
+        monkeypatch.setattr("core.notification_manager.packaged_process_aumid",
+                            lambda: self.PACKAGED)
+        attempts = []
+
+        class FakeInteractable:
+            def __init__(self, app_id, notifierAUMID=None):
+                attempts.append(notifierAUMID)
+
+        monkeypatch.setattr("windows_toasts.InteractableWindowsToaster", FakeInteractable)
+        stub = TestSetupToasterAumid._ToasterStub()
+
+        stub._setup_toaster()
+
+        assert attempts == [self.PACKAGED]
+
+    def test_an_unpackaged_process_reports_no_package_aumid(self):
+        """kernel32 answers APPMODEL_ERROR_NO_APPLICATION outside a package."""
+
+        class _Kernel32:
+            def GetCurrentApplicationUserModelId(self, length, buffer):
+                return 15703
+
+        assert packaged_process_aumid(_Kernel32()) == ""
+
+    def test_a_packaged_process_reports_its_aumid(self):
+        aumid = self.PACKAGED
+
+        class _Kernel32:
+            def GetCurrentApplicationUserModelId(self, length, buffer):
+                if buffer is None:
+                    length._obj.value = len(aumid) + 1
+                    return 122  # ERROR_INSUFFICIENT_BUFFER: here is the size
+                buffer.value = aumid
+                return 0
+
+        assert packaged_process_aumid(_Kernel32()) == aumid
+
+    def test_a_missing_api_is_not_an_error(self):
+        assert packaged_process_aumid(object()) == ""
+
+    def test_the_real_call_answers_a_string(self):
+        """Whatever interpreter runs the suite: "" or "<family>!<app>"."""
+        aumid = packaged_process_aumid()
+        assert isinstance(aumid, str)
+        assert aumid == "" or "!" in aumid
 
 
 class TestDispatchLatency:
