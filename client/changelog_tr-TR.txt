@@ -1,0 +1,226 @@
+V1.1.2.0
+
+Bu sürüm; WinZapp'in gerekmediği halde yeniden eşleme istemesine neden olan durumları düzeltir, aynı anda birden fazla ögeyi daha hızlı seçmenin bir yolunu sunar ve sohbeti temizleme ile tüm sohbetleri okundu olarak işaretleme onay pencerelerine yeni seçenekler ekler.
+
+YENİLİKLER
+
+- Farklı Kaydet ile kaydedilen bir dosyayı klasöründe gösterme. Kullanıcı tarafından seçilen bu kopya oluşturulduktan sonra; Dosya Gezgini'ni ilgili dosya seçili halde açmak için Ctrl+Enter kısayolunu, içerik menüsündeki "Klasörde göster" ögesini veya Aç ve Farklı Kaydet'in yanındaki Tab ile ulaşılabilen butonu kullanabilirsiniz. Yalnızca dahili indirmeler bu eylemi sunmaz.
+
+- Sohbet temizlenirken yıldızlı mesajların saklanıp saklanmayacağını seçme. Sohbeti temizleme onayı artık WhatsApp Web'de olduğu gibi varsayılan olarak işaretli bir "Yıldızlı mesajları sakla" seçeneği içerir. İşaret kaldırıldığında, telefonunuzda da olduğu gibi yıldızlı mesajlar diğer her şeyle birlikte silinir. Tek bir sohbeti, seçilen birden çok sohbeti veya arşivlenmiş bir sohbeti temizlerken geçerlidir.
+
+- Tüm sohbetleri okundu olarak işaretlemeden önce onay isteme. Bu komut artık varsayılanı Hayır olan bir onay sorusu sorar; böylece yanlışlıkla basılan bir Alt tuşunun ardından gelen Enter artık telefonunuz dahil her şeyi okundu yapmaz. Soruda bir "Bunu bir daha sorma" seçeneği bulunur: İşaretlenip Evet ile onaylandığında sonraki istekler her şeyi doğrudan okundu yapar. Tekrar sorulmasını isterseniz Ayarlar'daki Kullanıcı Arayüzü sekmesinde bulunan "Tüm sohbetleri okundu olarak işaretlemeden önce onay iste" seçeneğini kullanabilirsiniz.
+
+- Ayarlar'da Profil yedekleme sekmesi. Yeni Profil yedekleme sekmesi; WinZapp'in bağlantıyı kurtarmak için kullandığı tarayıcı profili kopyasını kapanırken ne sıklıkla yenileyeceğini ayarlar (varsayılan: her 24 saatte bir). Yedekleme WinZapp açıkken de belirlediğiniz aralıklarla alınabilir: İşlem birkaç dakika sürebilir ve çalışırken WhatsApp bağlantısı kesilir; WinZapp her işlemden önce sorabilir. Yeni bir yedek, ancak WhatsApp bu yedekle tekrar başarılı bir şekilde bağlandığında bir öncekinin yerini alır.
+
+- Ayarlarınızı dışa ve içe aktarma. Dosya menüsünde “Ayarları dışa aktar” tercihlerinizi bir dosyaya yazar; “Ayarları içe aktar” ise her şeyi başka bir bilgisayara veya hesaba taşımak için bu dosyayı yeniden başlatmaya gerek kalmadan anında uygular. WhatsApp bağlantınız ve temizlenen sohbetler veya sohbete özel sesler gibi tek bir hesaba ait veriler dosyanın dışında tutulur. Kendi API'nizi kullanıyorsanız adresi, portu ve anahtarı dosyayla birlikte aktarılır.
+
+- Boşluk tuşu odaklanılan ses veya videoyu oynatır ve duraklatır. Bu tuş daha önce mesaj listesinde hiçbir işlem yapmıyordu. Enter'dan daha dar kapsamlı kalır: asla bir bağlantıyı, belgeyi, medya görüntüleyiciyi veya bir kişinin sohbetini açmaz.
+
+- Seçim modu. Ctrl+Boşluk ile ilk ögeyi seçtikten sonra, her biri için Ctrl tuşunu basılı tutmaya gerek kalmadan yalnızca Boşluk tuşuna basarak sonraki ögeleri seçebilir ve seçimi kaldırabilirsiniz (sohbet listesinde, mesaj listesinde ve iletme penceresinde). Ekran okuyucu modun ne zaman açıldığını ve ne zaman kapandığını duyurur; hiçbir şey seçili kalmadığında mod kendiliğinden kapanır. Boşluk tuşunun her zaman medya oynatmasını tercih ederseniz Ayarlar > Kullanıcı Arayüzü sekmesindeki "Zaten bir seçim varken seçmek/seçimi kaldırmak için Boşluk tuşunu kullan" seçeneğinin işaretini kaldırabilirsiniz.
+
+- Esc tuşu kapatmadan önce seçimi kaldırır. Mesajlar seçiliyken basılan ilk Esc tuşu yalnızca tüm seçimleri kaldırır; ikinci kez basıldığında sohbeti kapatır. Bu davranış da Ayarlar > Kullanıcı Arayüzü sekmesinden kapatılabilir.
+
+DÜZELTMELER
+
+- Sesli mesaj kayıt anonsları susturulduğunda, kayıt başlatılırken ekran okuyucunun kesilmeden önce “Gönder” demeye başlaması sorunu giderildi. WinZapp artık kırpılmış anonstan kaynaklanan otomatik odak hareketini önlerken Ctrl+R, Ctrl+Shift+P ve Ctrl+Shift+D kısayollarını kullanılabilir durumda tutar.
+
+- Cevaplanan gelen aramalar iki dakika sonra artık “cevaplanmadı” olarak işaretlenmez. WinZapp artık bir arama cevaplandığında, reddedildiğinde veya sonlandırıldığında gelen arama zamanlayıcısını durdurur; kısa süreli WhatsApp Web arama durumu geçişleri artık aktif bir aramayı yanlışlıkla sonlandırmaz.
+
+- Bir sohbette seçtiğiniz mesajlar, sohbeti kapattıktan sonra seçili kalıyor ve tekrar açtığınızda seçili olarak geri geliyordu. Seçim artık sohbetle birlikte sonlanır.
+
+- WhatsApp uygulaması açılır açılmaz bağlantıyı reddettiğinde, tarayıcı profilinin yedek kopyası hiçbir zaman geri yüklenmiyordu: İlk birkaç saniyede eşleme kodları gelmeye başlarsa, WinZapp iyi bir kopya kayıtlı olsa bile oturumu kapatıp sizi tekrar eşlemeye yönlendiriyordu. Artık ilk kod göründüğü anda kopyayı geri yükler ve yalnızca geri yükleme işe yaramadığında eşleme ister.
+
+- Telefon numarasıyla grup üyesi ekleme işlemi hiçbir şey yapmıyordu: "Numara ekle" butonu kimseyi eklemiyor ve hata göstermiyordu. Artık numarayı hemen ekler, çalışıp çalışmadığını bildirir ve geçersiz bir numara girildiğinde hata verir. Aynı diyalogda arama alanı artık "Kişi ara" olarak seslendirilir.
+
+- Bir sohbet açıkken, mesaj listesi her dakika yapılandırılan sınıra doğru daralıyor ve eski mesajlar (kayıtlı geçmiş dahil) kayboluyordu. WinZapp, WhatsApp üzerinde denetlediği aralığın dışındaki mesajları telefonda silinmiş mesajlarla karıştırıyordu. Bir mesaj artık yalnızca WhatsApp gerçekten mevcut olmadığını gösterdiğinde kaldırılır (asla bulunamadığı için değil ve asla bir profil kurtarma geri sarma dönemi içinde değil) ve siz okurken liste artık küçülmez.
+
+- Çok sayıda katılımcısı olan gruplarda, grup bilgisi dakikalarca "Yükleniyor..." durumunda kalabiliyordu; Genel Bakış ve Katılımcılar listesi ancak WinZapp henüz numarasını bilmediği her üyenin numarasını tek tek aradıktan sonra görünüyordu. Donmuş gibi görünüyordu ve yalnızca diyaloğu kapatıp tekrar açmak geri getiriyordu. Bilgiler artık grup yanıt verir vermez görüntülenir; eksik adlar ve numaralar bulunduğunuz satırdan sizi ayırmadan daha sonra listeye doldurulur.
+
+- Ayarlar'da dili değiştirip Uygula'ya basmak artık tüm seçenekleri çevirir. "Bir sohbet açarken en fazla bu kadar mesaj göster" ve "Page Up / Page Down tuşlarına basıldığında atlanacak mesaj sayısı" gibi bazı seçenekler Ayarlar kapatılıp tekrar açılana kadar önceki dilde kalıyordu.
+
+- Varsayılan ses çalma hızı artık kendi kendine 1x seviyesine düşmez. Ayarlar açıldığında, hangi hız kaydedilmiş olursa olsun Ses çalma sekmesindeki alan boş görünüyordu ve Uygula'nın ardından Tamam'a basıldığında üzerine 1x kaydediliyordu. Kaydedilen hız artık seçili olarak gösterilir ve korunur.
+
+- WinZapp tarayıcı profilini kurtardıktan sonra, okunmamış mesajları olan sohbetler artık okundu olarak görünmez.
+
+- Mesaj metni penceresinin bir bölümünü kopyalamak (Alt+C), pencerenin daha kolay okunması için uzun satırları böldüğü yerlerde mesajda bulunmayan satır sonlarını da getiriyordu. Kopyalama işlemi artık mesajı tam olarak yazıldığı gibi, yalnızca kendi satır sonlarıyla verir.
+
+
+V1.1.1.0
+
+Bu sürüm, hesabınızın bağlı kalmasını sağlamaya odaklanmaktadır. WinZapp artık WhatsApp bağlantınızın gerçekte tutulduğu tarayıcı profilinin bir yedeğini saklar; profil kabul edilmediğinde durumu bildirerek profili otomatik olarak geri yükler. Bunun yanında oturumun kopmasına ve uygulamanın yeniden eşleme istemesine yol açan durumlar için düzeltmeler içerir: bilgisayarı kapatma, askıya alma ve sürdürme ile uygulamanın bağlantıyı kendi kendine yeniden başlatması. Ayrıca mesaj alanında yazım denetimi ve bağlantı eylemleri de eklendi.
+
+YENİLİKLER
+
+- Otomatik tarayıcı profili kurtarma. WhatsApp bağlantınız, WinZapp'in arka planda kullandığı tarayıcı profilinde saklanır ve bu profil artık kabul edilmediğinde tek çözüm yeniden eşleme yapmaktı. WinZapp artık profilin bir yedek kopyasını ve önceki kopyayı saklar; bağlantının reddedildiğini tespit ettiğinde profili geri yüklediğini ve yeniden bağlandığını sesli olarak bildirerek otomatik olarak geri yükler. WhatsApp tarafından daha önce reddedilmiş bir kopyayı asla tekrar denemez; kullanılabilir bir kopya bulunmadığında ise sizi açıklamasız bir şekilde çevrimdışı bırakmak yerine durumu açıkça belirtir.
+
+- Mesaj alanında yazım denetimi. Ayarlar'dan Windows'un kendi yazım denetimi ayarını izleme (varsayılan), her zaman açık veya her zaman kapalı seçenekleri arasında tercih yapabilirsiniz. Ayrıca diğer seslerle birlikte yapılandırılabilen özel bir yazım hatası sesi de eklendi.
+
+- Mesajlardaki bağlantılar üzerinde eylemler. Bir mesaj bağlantı içerdiğinde, içerik menüsü artık üzerinde bulunduğunuz bağlantı için Bağlantıyı aç ve Bağlantıyı kopyala seçeneklerini sunar; Ctrl+C tuşu ise tüm mesaj yerine doğrudan o bağlantıyı kopyalar.
+
+- Dahili tarayıcı eksik olduğunda uyarı. WinZapp'in WhatsApp'a bağlanmak için kullandığı dahili tarayıcı başlatılamadığında (çoğunlukla antivirüs yazılımlarının tarayıcının bir parçasını silmesi nedeniyle), uygulama durumu bir WhatsApp sorunu gibi göstermek yerine anlaşılır bir dille açıklar ve ne yapılması gerektiğini belirtir.
+
+- Doğrulanmamış gönderimler için uyarı. WhatsApp mesajı kabul ettiği halde teslimi doğrulamadığında, WinZapp aynı mesajın iki kez iletilmesi riskini önlemek için yeniden göndermek yerine sohbeti kontrol etmenizi bildirir.
+
+İYİLEŞTİRMELER
+
+- Windows ile birlikte başlama artık çok daha hızlı bağlanır. Uygulama eskiden bağlantıyı ancak kullanmaya çalıştıktan sonra beklerdi ve gereksiz yere uzun süre "WhatsApp bağlantısı kesildi" uyarısı verirdi. Artık sistem tepsisinde görünmeden önce her şeyin hazır olmasını bekler.
+
+- Mesaj listesi artık her dakika baştan sona yeniden oluşturulmaz. Yalnızca gerçekten değişen satırlar yeniden yazılır; böylece ekran okuyucu üzerinde bulunduğunuz mesajı tekrar tekrar okumayı bırakır ve seçim sesi kendi kendine çalmaz.
+
+- Telefonunuzda daha az eşitleme bildirimi. WinZapp yalnızca açtığınız sohbetler için ve her seferinde tek bir istek göndererek telefondan eski geçmişi talep eder; sohbet başka mesaj kalmadığını bildirdiğinde ise istek göndermeyi tamamen durdurur.
+
+- Eşitlemenin takibi bıraktığı sohbetler, F5 ile yenilemenize gerek kalmadan kendi kendine yeniden kontrol edilir.
+
+- Aynı anda birden fazla hesap açıkken, WinZapp güncellemesi hesap başına ayrı ayrı değil, tek bir pencere açar.
+
+- Ses: WinZapp sabit örnekleme hızlarını denemeden önce mikrofona kendi örnekleme hızını sorar; varsayılan ses aygıtı değiştiğinde veya çıkarıldığında ses çıkışı kendi kendine toparlanır.
+
+- Sohbet kapalıyken gelen tepkiler, artık sohbeti açtığınızda görüntülenir.
+
+- Mesaj kutusundaki satır sonları artık ekran okuyucu tarafından normal şekilde gezilebilir.
+
+- Güncellenmiş WhatsApp bağlantısı (WPPConnect 2.10.21), güvenlik düzeltmelerini içerir ve WinZapp artık bu bağlantının güncelliğini yitirip yeniden yüklenmesi gerektiğini kendi kendine fark eder.
+
+DÜZELTMELER
+
+- Bilgisayarı kapatmak artık oturumu koparmaz. WinZapp, WhatsApp bağlantısını Windows kapanış sürecinde çok geç kapatıyordu; bağlantıyı tutan işlem çoktan sonlandırılmış oluyordu ve profil bir sonraki açılışta kullanılamaz hale gelip yeniden eşleme istiyordu. Artık her şeyi Windows henüz kapanıp kapanamayacağını sorarken düzgünce kapatır.
+
+- Bilgisayarı askıya almak artık oturumu bozmaz. Bilgisayar uykudan uyandığında, WinZapp tarayıcının elindeki verileri diske yazmasını beklemeden bağlantıyı yeniden başlatıyordu; bu durum tek başına eşlemenin kaybolmasına yetiyordu. Artık yazma işleminin bitmesini bekler.
+
+- Durumlara yanıt verme yeniden çalışıyor. Yanıt gönderilemedi hatası vererek başarısız oluyordu.
+
+- Belirsiz gönderim hataları artık çift mesaj oluşturmaz: WhatsApp'ın mesajı alıp almadığı doğrulanamadığında WinZapp mesajı kendi kendine yeniden göndermez.
+
+- Büyük belgelerin indirilmesi yeniden mümkün. Birkaç yüz megabaytlık dosyalar "indiriliyor" diyor ancak hiçbir dosya üretmiyordu.
+
+- Yükleme ve indirme ilerleme göstergesi artık gerçekten gerçekleşen aktarımı bildirir; tamamlanmış bir mesajda dönmeye devam etmez veya yanlış satırda görünmez.
+
+- Eşleme ekranını iptal etmek veya kapatmak artık sohbetlerinizi silmez; açılış sırasındaki anlık bir kimlik doğrulama hatası da silinmeye yol açmaz. Geçmiş yalnızca farklı bir telefon numarası gerçekten bağlandığında temizlenir ve WinZapp bu gerçekleştiğinde size haber verir.
+
+- QR kodu yalnızca ekranda gerçekten belirdiğinde duyurulur. WinZapp eskiden henüz hiçbir kod gösterilmeden "QR kodu güncellendi" derdi; bu da kodun ancak ikinci denemede göründüğü izlenimini verirdi. Eşleme ekranı artık kodun oluşturulduğunu bildirir, ekranda belirdiğinde duyurur; oluşturulamadığında veya eşleme kodunun süresi dolduğunda ise sessiz kalmak ya da gerçekleşmemiş bir güncellemeyi duyurmak yerine durumu net olarak söyler.
+
+- Okunmamış sayaçları: Sohbetler yeni bir mesaj gelmediği sürece artık okunmamış olarak geri gelmez.
+
+- NVDA çalışırken başka bir programdan geri dönüldüğünde mesaj alanında beliren hayalet karakter sorunu giderildi.
+
+- Sesli mesajı kopyalama artık çalışıyor.
+
+- İsim yerine numara gösteren sohbetler artık çözümleniyor.
+
+- Hesaplar arasında geçiş yapmak artık önceki hesaba ait medyaları düzgün şekilde temizler; aksi takdirde dosyalar bilgisayarda gereksiz yer kaplayabiliyordu.
+
+V1.1.0.0
+
+Bu sürüm; Medya sekmesini, kendi penceresinde açılan bir medya oynatıcısını, bağlantı önizlemelerini, toplu eylemleri ve ayarlara Erişilebilirlik sekmesini ekler. Sohbet eşitlemesi artık çok daha hızlıdır ve sohbet listesi her mesajda yeniden oluşturulmaz; bu da ekran okuyucunun gereksiz tekrarlarını büyük ölçüde azaltır.
+
+YENİLİKLER
+
+- Sohbetlerde ve gruplarda Medya sekmesi. Fotoğrafları, videoları, ses dosyalarını, sesli mesajları, belgeleri ve bağlantıları listeler; türe göre, indirilmiş ya da indirilmemiş durumuna göre filtreleme, tam geçmiş yükleme ve her mesaj üzerinde açma, kaydetme ve silme eylemlerini sunar. Ses dosyaları ve sesli mesajlar iki ayrı filtredir: yalnızca birini veya diğerini gösterebilir, otomatik indirmenin hangisini alacağını seçebilirsiniz.
+
+- Ayrı bir pencerede medya oynatıcı. Oynatma, duraklatma, 10 saniye ileri ve geri sarma, konum, ses düzeyi ve hız kontrollerini içerir. Sohbet videolarının ve durumların bu oynatıcıda açılıp açılmayacağını ayarlardan seçebilirsiniz.
+
+- Mesajlarda bağlantı önizlemeleri. Bir mesaj iki veya daha fazla bağlantı içerdiğinde, bunlar gezinebileceğiniz bir liste haline gelir. Giden mesajlarınız da artık önizleme taşır.
+
+- Mesajlar ve sohbetler üzerinde toplu eylemler: Mesajları kopyalama, yıldızlama, sabitleme, iletme, kaydetme ve silme; sohbetleri okundu veya okunmadı olarak işaretleme, arşivleme ve temizleme. Her eylemin kendi kısayolu vardır ve Ctrl+C seçimi kopyalar.
+
+- Ayarlarda Erişilebilirlik sekmesi. Gelişmiş ekran okuyucu uyumluluğu ve ekran okuyucu çalışmadığında SAPI sesini kullanma seçeneğini sunar.
+
+- Dosyalar ve kaydetme sekmesi. Farklı kaydet iletişim kutularının en son kullanılan klasörde mi, İndirilenler klasöründe mi yoksa seçeceğiniz özel bir klasörde mi açılacağını belirlemenizi sağlar.
+
+- Tepkiler: Artık hangi tepkinin size ait olduğunu görebilir ve üzerine tekrar tıklayarak tepkinizi kaldırabilirsiniz.
+
+- Alınan bir kişi mesajını Enter veya Boşluk tuşuyla doğrudan kişi olarak kaydetme.
+
+- Ses kaydı duraklatıldığında, kaydedilen kısmı Ctrl+P ile dinleme.
+
+- Eşleme iletişim kutusunda baştan oluşturulmuş ülke seçici: Windows'ta yapılandırılmış ülke ve dili kullanır, alfabetik olarak sıralanmıştır, çok harfli hızlı arama kabul eder ve ülke kodunu yanlışlıkla düzenlenmeye karşı korur.
+
+- Yeni ayarlar: Tarih yerine "dün" gösterme, gönderenden önce "İletildi" anonsu yapma, her şeyi ses olarak okumak yerine sesli mesajları ses dosyalarından ayırt etme (artık varsayılandır), indirilir indirilmez videonun süresini tespit etme, varsayılan olarak hangi medya türlerinin gösterileceğini seçme ve sesleri oynatıldı olarak işaretlemeyi durdurma.
+
+- Kişi listelerinde arama ("Kişi paylaş" ve "Üye ekle"): Liste açılır açılmaz alana odaklanılır, yazdıkça ada (soyadı dahil) ve numaraya göre filtreleme yapar; arama temizlendiğinde tüm kişileri yeniden gösterir.
+
+- Alınan kişi kartı: Adı ve numarayı görüntüleme, Ctrl+C ile numarayı kopyalama ve sohbet başlatma seçeneklerini içeren bir içerik menüsü. Kart birden fazla numara taşıdığında, WinZapp hangisinin kullanılacağını sorar.
+
+İYİLEŞTİRMELER
+
+- Belgeler artık WhatsApp'ın gerçek sınırı olan 2 GB'a kadar desteklenir. WinZapp eskiden bunları gereksiz yere 1 GB'ta sınırlandırıyordu. Fotoğraflar, videolar ve sesler ise WhatsApp'ın kendi sınırı olan 1 GB'ta kalır.
+
+- Kademeli sohbet eşitlemesi. Uygulamanın başlatılması ve yenilenmesi çok daha hızlıdır; WinZapp güncellemenin ne zaman başladığını ve ne zaman bittiğini duyurur.
+
+- Sohbet listesi çok daha hızlı. Yeni bir mesaj veya teslim bilgisi tüm listeyi yeniden oluşturmak yerine yalnızca ilgili satırı günceller. Pratikte ekran okuyucu çok daha az tekrar okuma yapar.
+
+- Bir mesaj üzerindeki eylemler de yalnızca o mesajın satırını günceller; mesaj düzenleme artık arayüzü dondurmaz.
+
+- Bildirimler Windows Odak Yardımı (Focus Assist) ayarlarına saygı duyar.
+
+- Gruplar: Yalnızca yöneticilerin mesaj gönderebileceğine dair uyarı ve mesaj alanının salt okunur olması. Üye ekleme iletişim kutusu numaralar yerine isimleri gösterir ve kimlerin eklenemediğini bildirir.
+
+- Kişi ekleme: Listede yinelenen kayıtlar bulunmaz, sıralıdır ve artık çözümlenmemiş girdileri göstermez.
+
+- Ses: Uygulamanın çözemediği OGG dosyaları artık otomatik olarak dönüştürülür ve WAV dosyası gönderme çalışır.
+
+DÜZELTMELER
+
+- WhatsApp tarafından oturumun sonlandırılması: WinZapp artık durumu anında bildirir ve QR kodunun güncellendiğini tekrarlayarak sizi sohbet listesinde bırakmak yerine doğrudan eşleme ekranını açar. Eşleme ekranında kimse yokken oturum, WhatsApp'tan sonsuza dek yeni kod istemek yerine kapatılır (çünkü sonsuz istek hesabı engellenme riskine sokabilir) ve WinZapp oturumu kapattığını ve yeniden bağlanmanız gerektiğini sesli olarak duyurur.
+
+- Okunmamış sayaçları: Zaten okunmuş mesajlar yeni olarak geri gelmez, telefonunuzda okunan bir sohbet dikkate alınır ve açık sohbet sayacını kaybetmez.
+
+- Okunmamış ayırıcı ve okuma konumunuz siz okurken artık kaybolmaz. Açık sohbet eskiden periyodik olarak yeniden oluşturuluyordu; bu da ekran okuyucuyu cümlenin ortasında kesiyordu.
+
+- Oturum: WinZapp'i kapatıp yeniden açmak artık tekrar eşleme istemez. Kapanış işlemi artık kapanmadan önce oturum verilerinin yazılmasını bekler.
+
+- Eşleme: WhatsApp kodu reddettiğinde gerçek neden gösterilir ve sunucu güncellemesi devam eden eşlemeyi kesintiye uğratmaz.
+
+- Uygulama aksanlı veya özel karakterler içeren bir klasöre yüklendiğinde otomatik güncellemeler yeniden çalışır.
+
+- Gizlilik: Uygulama artık günlük (log) dosyasına mesaj içeriği veya kimlik bilgileri yazmaz.
+
+- Gönderme: Zaten gönderilmiş bir mesajın iptal edilmesi artık açıkça açıklanır ve büyük boyutlu yüklemeler yolda kaybolmaz.
+
+- Bildirilen süresi olmayan videolar artık "0 saniye" olarak görünmez.
+
+- Bir kişiden gelen ilk mesaj, sohbet açıldığında artık kaybolmaz.
+
+- Erişilebilirlik: Emoji kısayolu artık ekran okuyucuya bildirilir, sohbet içinde Alt+T yeniden çalışır ve konuşma her teslim bilgisiyle kesilmez.
+
+- Eşitleme artık tekrar tekrar baştan başlamaz. WhatsApp'ın tanımadığı ve hiçbir zaman gerçek bir sohbet olmamış tek bir kayıt bile WinZapp'in eşitlemenin hiç bitmediğini sanmasına yetiyordu: Her birkaç dakikada bir kendini duyurarak her şey zaten yüklenmiş olsa bile baştan başlıyordu.
+
+- Hızlı sohbet yenileme artık yeni mesaj alan sohbetleri atlamaz. F5 tuşuna basıp her şeyi eşitleyene kadar eski içeriklerinde kalıyorlardı; bu da hızlı yenilemenin amacını boşa çıkarıyordu.
+
+- WinZapp artık kullandığı WhatsApp Web sürümünün sona erme tarihini bilir. Süresi dolduğunda, artık kabul edilmeyen bir sürümde ısrar etmek yerine WhatsApp'ın o sırada sunduğu sürümü alır. Eşitlemeyi durduran, sohbet listesini boş bırakan ve WhatsApp'ın bilgisayarı bağlı cihazlarınızdan çıkarmasıyla sonuçlanan sorun buydu.
+
+- Bağlantı koptuktan sonraki ilk eşleme kodu artık hata vermez. WinZapp arka planda WhatsApp çok fazla istek nedeniyle reddedene kadar kendi kendine kod istiyordu; artık istekler arasında bekler ve WhatsApp reddettiğinde dahili hata göstermek yerine nedenini açıklar.
+
+- "İndirilmemiş" medya filtresi, uygulama içinde dinledikleriniz de dahil olmak üzere bilgisayarda zaten bulunan sesli mesajları listeliyordu.
+
+- Gönderdiğiniz bir belge, tıpkı alınanlarda olduğu gibi mesaj listesinde görünür görünmez dosya boyutunu gösterir.
+
+- WinZapp artık her ikisi de mevcut olduğunda alfa WhatsApp Web yapısı yerine kararlı olanı tercih eder (alfa kullanmak cihazın eşlemeden birkaç saat sonra düşmesine neden oluyordu). İlk eşleme de bağlantının koptuğuna karar vermeden önce yavaşlığa karşı daha toleranslıdır.
+
+- "Kendime mesajlar" sohbeti artık teslim ve okundu bilgilerini ya da "dinlendi" ses işaretini göstermez; kendinizle olan bir sohbette bunların anlamı yoktur.
+
+- "Kendime mesajlar" sohbetinde "Herkesten sil" artık gerçekten çalışır. Mesaj eskiden yalnızca yerel olarak kayboluyor ve bir sonraki eşitlemede geri geliyordu.
+
+- Sohbet açık değilken Alt+2, Alt+3 ve Ctrl+W tuşlarına basıldığında artık hiçbir şey yapmamak yerine "Açık sohbet yok" der.
+
+- Boş bir sohbette Alt+2 sessiz kalmak yerine "Bu sohbet boş" der.
+
+- Sohbet listesi her zaman daha önce açık olan sohbete değil, odağın gerçekten üzerinde olduğu satıra döner.
+
+- Sohbet açıkken uygulama sistem tepsisine küçültüldüğünde okunmamış ayırıcı artık kaybolmaz veya yanlış sayı göstermez.
+
+- Uygulama ön plandayken yeni bir mesaj geldiğinde arşivlenmiş bir sohbet artık sesli olarak duyurulmaz.
+
+- Sesli mesajları peş peşe dinlemek, artık önceki satırın tamamını yeni mesajın üzerine seslendirmez.
+
+- Ses kaydı sırasında ekran okuyucuyu susturma seçeneği, duyuruyu başladıktan sonra iptal etmeye çalışmak yerine artık kaynağında durdurur.
+
+- WinZapp üzerinden yeni bir kişi eklemek, WhatsApp bu numarayı farklı bir biçimde tanıdığında (örneğin 9. hane ile veya olmadan) sohbeti yineleyebiliyor ve ilk mesajını kalıcı olarak "doğrulanmadı" durumunda bırakabiliyordu.
+
+- WhatsApp'ta değiştirilen bir grup adı, F5 yeniden eşitlemesi dahil olmak üzere artık WinZapp tarafından algılanır. Önceden eski isim asla değişmiyordu.
+
+- Bir ses çalarken Ayarlar'da ses çıkış aygıtını değiştirmek, başka bir sesi çalmaya yönelik ilk girişimin sessizce başarısız olmasına neden olabiliyordu; artık ilk denemede çalar.
+
+- Dosya > Bağlantıyı Kes seçeneğiyle bağlantıyı kesmek artık "bağlandı"/"eşitleme başladı" seslerini tekrar çalmaz veya kendi kendine yeniden bağlanmaya çalışmaz; hesap düzgün şekilde bağlantısı kesilmiş olarak kalır.
+
+- Güncelleme yükleyicisinin günlüğü artık program klasöründe dağınık durmak yerine hesabın kendi günlükler klasöründe (log.log ve shutdown_audit.log yanında) bulunur.
