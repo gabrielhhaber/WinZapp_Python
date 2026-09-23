@@ -54,6 +54,7 @@ from core.audio_devices import (
 )
 from core.bulk_read_state import run_bulk_read_state
 from core.call_matching import call_event_matches_active
+from core.conversation_resync import stale_ids_in_fetched_window
 from core.quote_recovery import (
     RECOVERED_FROM_QUOTE,
     UNDECRYPTED_PLACEHOLDER_TYPES,
@@ -3083,6 +3084,7 @@ class MainWindow(wx.Frame):
         self._ID_DISCONNECT    = wx.NewIdRef()
         self._ID_EXIT          = wx.NewIdRef()
         self._ID_RESYNC_ALL    = wx.NewIdRef()
+        self._ID_RESYNC_CONVERSATION = wx.NewIdRef()
         self._ID_SYNC_MEDIA    = wx.NewIdRef()
         self._ID_OFFLINE_MENU  = wx.NewIdRef()
         self._ID_SHORTCUTS     = wx.NewIdRef()
@@ -3127,6 +3129,10 @@ class MainWindow(wx.Frame):
         sync_menu.Append(
             self._ID_RESYNC_ALL,
             f"{self.i18n.t('menu_resync_all')}\tF5",
+        )
+        sync_menu.Append(
+            self._ID_RESYNC_CONVERSATION,
+            f"{self.i18n.t('menu_resync_conversation')}\tShift+F5",
         )
         sync_menu.Append(
             self._ID_SYNC_MEDIA,
@@ -3241,6 +3247,8 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_menu_disconnect, id=self._ID_DISCONNECT)
         self.Bind(wx.EVT_MENU, lambda e: self.quit_all_accounts(), id=self._ID_EXIT)
         self.Bind(wx.EVT_MENU, self._on_menu_resync_all, id=self._ID_RESYNC_ALL)
+        self.Bind(wx.EVT_MENU, self._on_menu_resync_conversation,
+                  id=self._ID_RESYNC_CONVERSATION)
         self.Bind(wx.EVT_MENU, self._on_menu_sync_media, id=self._ID_SYNC_MEDIA)
         self.Bind(wx.EVT_MENU, self._on_menu_toggle_offline, id=self._ID_OFFLINE_MENU)
         self.Bind(wx.EVT_MENU, self.on_f1,             id=self._ID_SHORTCUTS)
@@ -3743,6 +3751,9 @@ class MainWindow(wx.Frame):
         mb.SetMenuLabel(1, self.i18n.t("menu_sync"))
         mb.GetMenu(1).FindItemById(self._ID_RESYNC_ALL).SetItemLabel(
             f"{self.i18n.t('menu_resync_all')}\tF5"
+        )
+        mb.GetMenu(1).FindItemById(self._ID_RESYNC_CONVERSATION).SetItemLabel(
+            f"{self.i18n.t('menu_resync_conversation')}\tShift+F5"
         )
         mb.GetMenu(1).FindItemById(self._ID_SYNC_MEDIA).SetItemLabel(
             f"{self.i18n.t('menu_sync_media')}\tCtrl+Shift+Alt+B"
@@ -5260,6 +5271,80 @@ class MainWindow(wx.Frame):
 
         self.output(self.i18n.t("resyncing_all_announcement"), interrupt=True)
         threading.Thread(target=self._resync_all_worker, daemon=True).start()
+
+    def _on_menu_resync_conversation(self, event=None):
+        """Sincronização menu / Shift+F5: F5 for the open conversation only.
+
+        See core/conversation_resync.py for why this fetches first and then
+        removes only what the server contradicts, instead of wiping the
+        conversation the way F5 wipes everything.
+        """
+        cp = getattr(self, "conversations_panel", None)
+        conversation = getattr(cp, "conversation", None) if cp is not None else None
+        if not conversation:
+            self.output(self.i18n.t("resync_conversation_none_open"), interrupt=True)
+            return
+        remote_jid = self._normalize_jid(conversation.get("remoteJid", ""))
+        resyncing = getattr(self, "_resyncing_conversations", None)
+        if resyncing is None:
+            resyncing = self._resyncing_conversations = set()
+        if getattr(self, "_initial_sync_running", False) or remote_jid in resyncing:
+            self.output(self.i18n.t("resync_conversation_busy"), interrupt=True)
+            return
+        self.check_wa_connection_http()
+        if not getattr(self, "_wa_connected", False):
+            self.error_sound.play()
+            wx.MessageBox(
+                self.i18n.t("resync_failed_offline"),
+                self.i18n.t("app_name"),
+                wx.OK | wx.ICON_WARNING,
+                self
+            )
+            return
+        resyncing.add(remote_jid)
+        self.output(self.i18n.t("resyncing_conversation_announcement"), interrupt=True)
+        threading.Thread(target=self._resync_conversation_worker, args=(remote_jid,),
+                         daemon=True, name="resync-conversation").start()
+
+    def _resync_conversation_worker(self, remote_jid: str):
+        """Background worker for _on_menu_resync_conversation()."""
+        try:
+            chat = self.chats.get(remote_jid)
+            fetched_ids = set()
+            ok = bool(chat) and bool(self.sync_chat_messages(
+                chat, sync_mode="full", fetched_ids_out=fetched_ids))
+            if not ok or not fetched_ids:
+                logging.info("[resync-conversation] %s: nothing fetched (ok=%s)",
+                             remote_jid, ok)
+                wx.CallAfter(self.output, self.i18n.t("resync_conversation_failed"), True)
+                return
+            chat = self.chats.get(remote_jid) or chat
+            records = _chat_message_records(chat)
+            if getattr(self, "_remote_deletions_untrusted", False):
+                # A profile restore rolled WhatsApp Web's store back behind our
+                # database: its silence about a message proves nothing.
+                stale = []
+            else:
+                stale = stale_ids_in_fetched_window(records, fetched_ids)
+            if stale:
+                stale_set = set(stale)
+                records[:] = [r for r in records
+                              if ((r.get("key") or {}).get("id") or "") not in stale_set]
+                inner = chat.get("messages", {}).get("messages", {})
+                if isinstance(inner, dict) and "total" in inner:
+                    inner["total"] = len(records)
+                for message_id in stale:
+                    self.db.delete_message(remote_jid, message_id)
+            logging.info("[resync-conversation] %s: %d fetched, %d stale removed",
+                         remote_jid, len(fetched_ids), len(stale))
+            self._refresh_open_conversation_after_sync(remote_jid, chat)
+            self._schedule_set_chats()
+            wx.CallAfter(self.output, self.i18n.t("resync_conversation_done"), True)
+        except Exception:
+            logging.exception("[resync-conversation] %s: failed", remote_jid)
+            wx.CallAfter(self.output, self.i18n.t("resync_conversation_failed"), True)
+        finally:
+            self._resyncing_conversations.discard(remote_jid)
 
     def _teardown_conversation_ui(self):
         """Empty the conversation panels before the data under them is wiped.
@@ -24553,7 +24638,12 @@ class MainWindow(wx.Frame):
         payload = body.get("response") if isinstance(body, dict) else None
         return payload if isinstance(payload, dict) else None
 
-    def sync_chat_messages(self, chat, expected_run_id=None, sync_mode="full"):
+    def sync_chat_messages(self, chat, expected_run_id=None, sync_mode="full",
+                           fetched_ids_out=None):
+        # fetched_ids_out: an optional set that receives the ids get-messages
+        # actually returned for this chat, before they are merged with local
+        # records -- the only way a caller can tell the server's answer apart
+        # from what was already stored (Shift+F5, core/conversation_resync.py).
         # Deliberately NOT gated on an active voice call. sync_remote_chats()
         # counts only a False return as a failure, so bailing out here reported
         # every skipped chat as a *successful* fetch: message_sync_ok stayed
@@ -24996,6 +25086,11 @@ class MainWindow(wx.Frame):
                 key["remoteJid"] = remote_jid
                 matching_messages.append(message)
             all_messages = matching_messages
+
+        if fetched_ids_out is not None and api_ok:
+            fetched_ids_out.update(
+                (m.get("key") or {}).get("id") for m in all_messages
+                if (m.get("key") or {}).get("id"))
 
         # After fetching, update chat messages
         for msg in all_messages:
