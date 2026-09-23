@@ -986,8 +986,19 @@ def _discount_non_countable_unread(records: list, unread_count: int) -> int:
     Both halves of the predicate matter and neither can be dropped: a chat
     whose tail is [groupNotification, our own reply] has no unread message at
     all, and either rule alone still reports one.
+
+    Reactions are left out of the tail before it is cut, not discounted in it.
+    WinZapp stores each one as a record of its own (`_rxn_...`) to decorate the
+    message it points at, but WhatsApp never counted it as unread -- so it
+    cannot take the place of a message that was. Measured 2026-09-23: a group
+    with 1 unread text received four reactions; the tail of 1 was a reaction,
+    was discounted, and the badge went to 0 with the text still unread.
     """
     if unread_count <= 0 or not records:
+        return unread_count
+    records = [m for m in records
+               if not (isinstance(m, dict) and m.get("messageType") == "reactionMessage")]
+    if not records:
         return unread_count
     tail = records[-unread_count:] if unread_count <= len(records) else records
     discount = sum(
