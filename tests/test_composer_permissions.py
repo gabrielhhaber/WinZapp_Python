@@ -96,6 +96,7 @@ class _Panel:
         self.message_field = _FakeTextField()
         self.send_message_btn = _FakeButton()
         self.record_voice_message_btn = _FakeButton()
+        self._record_voice_alt_btn = _FakeButton()
         self._add_attachment_btn = _FakeButton()
         self._emoji_btn = _FakeButton()
         self.message_label = _FakeLabel()

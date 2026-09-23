@@ -14,6 +14,8 @@ name is resolved back to the current index each time it's needed.
 import ctypes
 import logging
 
+from core.voice_stereo import recording_configs_preferring
+
 try:
     import pyaudio
 except ImportError:
@@ -306,7 +308,7 @@ def fallback_input_device_indices(pa: "pyaudio.PyAudio | None" = None, exclude=(
 RECORDING_SAMPLE_CONFIGS = [(48000, 1), (48000, 2), (44100, 1), (44100, 2)]
 
 
-def recording_configs_for(device_index, pa=None) -> list:
+def recording_configs_for(device_index, pa=None, prefer_stereo: bool = False) -> list:
     """RECORDING_SAMPLE_CONFIGS with `device_index`'s own native rate first.
 
     The fixed list above was written for WASAPI devices, whose native rate is
@@ -338,7 +340,16 @@ def recording_configs_for(device_index, pa=None) -> list:
 
     Never raises, and never returns an empty list: a device whose info cannot
     be read falls back to exactly the previous behaviour.
+
+    ``prefer_stereo`` moves every two-channel combination ahead of the mono
+    ones, for a stereo voice message (core/voice_stereo.py); the mono ones stay
+    as the tail, so a microphone without two channels still records.
     """
+    return recording_configs_preferring(
+        _recording_configs_for(device_index, pa), prefer_stereo)
+
+
+def _recording_configs_for(device_index, pa=None) -> list:
     if pyaudio is None:
         return list(RECORDING_SAMPLE_CONFIGS)
     owns_pa = pa is None

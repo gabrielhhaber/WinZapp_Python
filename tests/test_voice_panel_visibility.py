@@ -70,6 +70,7 @@ class _Stub:
         self.message_field          = _FakeTextCtrl(message_field_value)
         self.send_message_btn       = _FakeWidget()
         self.record_voice_message_btn = _FakeWidget()
+        self._record_voice_alt_btn  = _FakeWidget()
         self._add_attachment_btn    = _FakeWidget()
         self.conversation_panel     = _FakeWidget()
         self.conversation_panel.Layout = lambda: None

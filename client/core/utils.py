@@ -888,6 +888,9 @@ DEFAULT_SETTINGS = {
         # client/updater.py's select_release().
         "alpha_updates_enabled": False,
         "noise_reduction_enabled": False,
+        # Stereo voice messages (issue #82, core/voice_stereo.py). Off: iPhone
+        # cannot play a stereo voice message.
+        "voice_message_stereo": False,
         # Windows spell checking in the message field (core/spell_checker.py).
         # One of SPELL_CHECK_MODES: "windows" (default — follow Windows' own
         # Settings > Time & language > Typing > Spelling), or "on"/"off" to
@@ -953,6 +956,8 @@ DEFAULT_SETTINGS = {
         # confirmations' own "don't show again" boxes clear these.
         "confirm_resync_all": True,
         "confirm_resync_conversation": True,
+        # Warn before a stereo voice message (ui/dialogs/stereo_voice_warning.py).
+        "warn_stereo_voice_iphone": True,
         # Once a selection exists, plain Space keeps selecting instead of
         # playing/pausing the focused message ("selection mode"), and Esc
         # clears the message selection before it closes the conversation.

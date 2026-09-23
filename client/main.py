@@ -55,6 +55,7 @@ from core.audio_devices import (
 from core.bulk_read_state import run_bulk_read_state
 from core.call_matching import call_event_matches_active
 from core.conversation_resync import stale_ids_in_fetched_window
+from core.voice_stereo import opus_encode_args
 from core.quote_recovery import (
     RECOVERED_FROM_QUOTE,
     UNDECRYPTED_PLACEHOLDER_TYPES,
@@ -26849,10 +26850,15 @@ class MainWindow(wx.Frame):
             return system_ffmpeg
         return None
 
-    def _convert_wav_to_ogg(self, wav_path: str) -> str | None:
+    def _convert_wav_to_ogg(self, wav_path: str, stereo: bool = False) -> str | None:
         """
         Convert a WAV file to OGG/Opus using the bundled ffmpeg binary.
         Returns the path to the new .ogg file, or None on failure.
+
+        ``stereo`` keeps two channels (issue #82, core/voice_stereo.py); by
+        default every recording is downmixed to mono, as before. Decided by
+        the caller, never read off the WAV: a mono message recorded on a
+        microphone that only opens with two channels has a stereo WAV.
         """
         ffmpeg = self._find_api_ffmpeg()
         if not ffmpeg or not os.path.isfile(ffmpeg):
@@ -26867,8 +26873,7 @@ class MainWindow(wx.Frame):
 
             result = subprocess.run(
                 [ffmpeg, "-y", "-i", wav_path,
-                 "-ac", "1",
-                 "-c:a", "libopus", "-b:a", "64k",
+                 *opus_encode_args(stereo),
                  "-vbr", "on", "-compression_level", "10",
                  ogg_path],
                 capture_output=True,
@@ -26886,7 +26891,7 @@ class MainWindow(wx.Frame):
         return None
 
     def send_audio_message(self, remote_jid: str, wav_path: str, quoted=None,
-                           ogg_bytes: bytes = None) -> bool:
+                           ogg_bytes: bytes = None, stereo: bool = False) -> bool:
         """
         Encode a recorded WAV file to OGG Opus via FFmpeg (or pre-encoded ogg_bytes)
         and send it as a PTT voice message using /send-voice-base64.
@@ -26908,7 +26913,7 @@ class MainWindow(wx.Frame):
             # Fallback path: convert WAV to OGG using ffmpeg and read the bytes
             _t_fallback = _time.perf_counter()
             logging.info("[VOICE_TIMING] ogg_bytes is None — running ffmpeg AGAIN as fallback (this should NOT happen!)")
-            ogg_path = self._convert_wav_to_ogg(wav_path)
+            ogg_path = self._convert_wav_to_ogg(wav_path, stereo=stereo)
             if ogg_path and os.path.isfile(ogg_path):
                 try:
                     with open(ogg_path, "rb") as fh:

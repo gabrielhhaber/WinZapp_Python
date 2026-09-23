@@ -51,6 +51,7 @@ class _Stub:
         self.conversation = None
         self.send_message_btn = wx.Panel(frame)
         self.record_voice_message_btn = wx.Panel(frame)
+        self._record_voice_alt_btn = wx.Panel(frame)
         self._on_text_changed_mention_check_calls = 0
 
     def _on_text_changed_mention_check(self):
