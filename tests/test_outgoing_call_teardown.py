@@ -31,6 +31,11 @@ import pytest
 
 from main import MainWindow
 
+# Captured at import, before _inline_threads() replaces threading.Thread --
+# that fixture patches the attribute on the threading module itself (main
+# imports the module, not the class), so it is global while it is in place.
+_REAL_THREAD = threading.Thread
+
 
 class _I18n:
     def t(self, key):
@@ -197,7 +202,7 @@ def test_a_failed_offer_clears_the_active_call_and_resyncs_the_bar():
     assert stub.camera_starts == 0
     # The call window is told to hide, and the background work stands back up
     # instead of waiting out the two-hour bound.
-    assert stub.sync_bar_calls >= 2
+    assert stub.sync_bar_calls == 2
     assert stub._voice_call_in_progress() is False
     assert stub._outgoing_call_attempt is None
     assert "Falha ao iniciar a ligação: HTTP 500" in stub.announcements
@@ -215,26 +220,37 @@ def test_a_failed_offer_does_not_block_the_next_call():
     assert stub._active_voice_call is not None
 
 
+def _hang_up_off_thread(stub, timeout=5.0):
+    """Press "end call" from another thread while the offer is in flight.
+
+    Off the worker's own thread, and joined with a timeout, so that putting
+    the offer POST back inside _call_action_lock fails these tests RED: run
+    inline, the hang-up would block on the lock the worker is holding and the
+    whole pytest session would hang instead (there is no pytest-timeout here).
+    Returns whether the hang-up completed.
+    """
+    presser = _REAL_THREAD(target=stub.end_active_call, daemon=True)
+    presser.start()
+    presser.join(timeout)
+    return not presser.is_alive()
+
+
 def test_the_call_action_lock_is_free_while_the_offer_is_in_flight():
     """Defect 1: 'end call' was dead for the offer's whole 75 s timeout."""
     ended = []
 
-    def _hang_up(stub):
-        # Exactly what the button does. It must not block on the lock, and
-        # with the lock narrowed it reaches WhatsApp straight away.
-        stub.end_active_call()
-        ended.append(True)
-
-    stub = _MainStub(offer=_hang_up)
+    stub = _MainStub(offer=lambda s: ended.append(_hang_up_off_thread(s)))
 
     stub._start_individual_call(PEER, "Fulano", is_video=False)
 
+    # Both halves matter: the probe inside the POST proves the lock is
+    # available, and the hang-up proves a real caller gets through it.
     assert stub.lock_free_during_offer is True
     assert ended == [True]
 
 
 def test_a_cancel_during_a_successful_offer_ends_the_call_and_skips_the_camera():
-    stub = _MainStub(offer=lambda s: s.end_active_call())
+    stub = _MainStub(offer=_hang_up_off_thread)
 
     stub._start_individual_call(PEER, "Fulano", is_video=True)
 
@@ -246,6 +262,52 @@ def test_a_cancel_during_a_successful_offer_ends_the_call_and_skips_the_camera()
     assert stub._active_voice_call is None
     assert stub._voice_call_in_progress() is False
     assert stub._outgoing_call_attempt is None
+
+
+def test_a_cancelled_offer_never_ends_the_call_that_replaced_it():
+    """The `end` action is unscoped on the Node side, so this is a live call.
+
+    callController.ts's 'end' branch uses the requested callId only to set
+    userEndedCall; the action itself is voipStack.endCall(2, true) /
+    WPP.call.end() on whatever call the page holds. So a stalled offer that
+    posts `end` on "I was cancelled" alone hangs up the call the user started
+    (or answered) in the meantime -- the hang-up's own grace period leaves
+    1.25 s, and a 75-second offer leaves far more than that.
+    """
+    other = {"identity": "other", "call_id": "other", "is_video": False}
+
+    def _hang_up_then_redial(stub):
+        assert _hang_up_off_thread(stub)
+        stub._active_voice_call = other
+
+    stub = _MainStub(offer=_hang_up_then_redial)
+
+    stub._start_individual_call(PEER, "Fulano", is_video=False)
+
+    # Only the user's own end. The second call is left alone...
+    assert stub.posted == ["offer", "end"]
+    assert stub._active_voice_call is other
+    assert stub.camera_starts == 0
+
+
+def test_a_cancelled_offer_never_ends_a_call_a_newer_attempt_owns():
+    """Same protection from the other side: no active record yet, but the
+    page belongs to a newer outgoing attempt whose own offer is in flight."""
+    newer = {"cancelled": False}
+
+    def _hang_up_then_dial_again(stub):
+        assert _hang_up_off_thread(stub)
+        stub._active_voice_call = None
+        stub._outgoing_call_attempt = newer
+
+    stub = _MainStub(offer=_hang_up_then_dial_again)
+
+    stub._start_individual_call(PEER, "Fulano", is_video=False)
+
+    assert stub.posted == ["offer", "end"]
+    # ...and the stale attempt must not clear the newer attempt's token
+    # either, or the newer call could no longer be cancelled.
+    assert stub._outgoing_call_attempt is newer
 
 
 def test_a_call_that_replaced_this_one_is_not_torn_down_by_the_failure():
