@@ -62,7 +62,8 @@ from ui.accessible import (
     AccessibleReadMoreButton,
     CompatListBoxMessagesCtrl,
 )
-from ui.dialogs.emoji_picker import choose_and_insert_emoji
+from ui.dialogs.emoji_picker import choose_and_insert_emoji, choose_reaction_emoji
+from core.reaction_shortcuts import quick_reactions, remember_reaction
 from ui.dialogs.clear_chat_confirm import confirm_clear_chat
 from core.save_location import resolve_save_dialog_folder
 from core.save_dialog_selection import schedule_deselect_extension
@@ -14421,32 +14422,20 @@ class ConversationsPanel(wx.Panel):
         if self._reject_system_event_action(msg):
             return
         i18n = self.main_window.i18n
-        EMOJIS = [
-            ("❤️", "❤️"),
-            ("👍", "👍"),
-            ("👎", "👎"),
-            ("😂", "😂"),
-            ("😮", "😮"),
-            ("😢", "😢"),
-            ("🙏", "🙏"),
-            ("🔥", "🔥"),
-            ("🎉", "🎉"),
-            ("💯", "💯"),
-            ("😎", "😎"),
-            ("🥰", "🥰"),
-        ]
-
         msg_id = msg.get("key", {}).get("id", "")
         # issue #67: show which reaction (if any) I already sent to this
         # message, and let activating it again remove it — there was
         # previously no way to remove a reaction from the UI at all.
         current_emoji = (self._reaction_map.get(msg_id) or {}).get(self._SELF_REACTOR_KEY, "")
+        emojis = quick_reactions(
+            self.main_window.settings.get("reaction_recent_emojis"), current_emoji,
+        )
 
         dlg = wx.Dialog(
             self.main_window,
             title=i18n.t("react_dialog_title"),
             style=wx.DEFAULT_DIALOG_STYLE,
-            size=(300, 380),
+            size=(300, 420),
         )
         panel = wx.Panel(dlg)
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -14461,11 +14450,16 @@ class ConversationsPanel(wx.Panel):
         emoji_list.InsertColumn(0, i18n.t("react_dialog_title"), width=240)
         emoji_list.EnableCheckBoxes(True)
         current_idx = -1
-        for idx, (emoji, display) in enumerate(EMOJIS):
-            emoji_list.Append((display,))
-            if emoji == current_emoji:
-                emoji_list.CheckItem(idx, True)
-                current_idx = idx
+        emoji_list.Freeze()
+        try:
+            for idx, emoji in enumerate(emojis):
+                emoji_list.Append((emoji,))
+                if emoji == current_emoji:
+                    emoji_list.CheckItem(idx, True)
+                    current_idx = idx
+            emoji_list.Append((i18n.t("react_dialog_more"),))
+        finally:
+            emoji_list.Thaw()
         sizer.Add(emoji_list, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
 
         cancel_btn = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("cancel"))
@@ -14480,11 +14474,13 @@ class ConversationsPanel(wx.Panel):
 
         def _on_emoji_activated(event):
             idx = event.GetIndex()
-            if 0 <= idx < len(EMOJIS):
+            if idx == len(emojis):
+                dlg.EndModal(wx.ID_MORE)
+            elif 0 <= idx < len(emojis):
                 # Activating the reaction already checked (i.e. the one I
                 # already sent) removes it instead of resending the same
                 # emoji — the only way to clear a reaction previously.
-                selected_emoji[0] = "" if idx == current_idx else EMOJIS[idx][0]
+                selected_emoji[0] = "" if idx == current_idx else emojis[idx]
                 dlg.EndModal(wx.ID_OK)
 
         def _on_emoji_selected(event):
@@ -14507,6 +14503,12 @@ class ConversationsPanel(wx.Panel):
         dlg.CentreOnParent()
         result = dlg.ShowModal()
         dlg.Destroy()
+
+        if result == wx.ID_MORE:
+            choice = choose_reaction_emoji(self, i18n)
+            if choice is not None:
+                selected_emoji[0] = "" if choice == current_emoji else choice
+                result = wx.ID_OK
 
         if result == wx.ID_OK and selected_emoji[0] is not None:
             emoji = selected_emoji[0]
@@ -15035,6 +15037,12 @@ class ConversationsPanel(wx.Panel):
             self.main_window._track_last_reaction(jid, reaction_record)
 
         self.main_window._schedule_set_chats()
+        if emoji and isinstance(getattr(self.main_window, "settings", None), dict):
+            settings = self.main_window.settings
+            settings["reaction_recent_emojis"] = remember_reaction(
+                settings.get("reaction_recent_emojis"), emoji,
+            )
+            self.main_window._schedule_save_settings()
 
     # ── Attachment handling ──────────────────────────────────────────────────
 

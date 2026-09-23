@@ -4,6 +4,8 @@ Esta versão corrige situações em que o WinZapp pedia para parear de novo sem 
 
 NOVIDADES
 
+- Reagir com qualquer emoji. No fim das 12 reações rápidas, "Adicionar mais reações" abre a seleção completa; as reações usadas com frequência passam gradualmente a aparecer entre as 12 opções rápidas.
+
 - Mostrar na pasta um arquivo salvo com Salvar como. Quando essa cópia escolhida pelo usuário existir, use Ctrl+Enter, o item "Mostrar na pasta" do menu de contexto ou o botão acessível com Tab ao lado de Abrir e Salvar como; apenas o download interno do WinZapp não exibe a ação.
 
 - Escolher se as mensagens favoritas ficam ao limpar uma conversa. A confirmação de limpar agora traz a opção "Manter mensagens favoritas", marcada por padrão, como no WhatsApp Web. Desmarcada, as favoritas são apagadas junto com o resto, também no celular. Vale para limpar uma conversa, várias selecionadas ou uma arquivada.

@@ -4,6 +4,8 @@ Ta wersja poprawia sytuacje, w których WinZapp niepotrzebnie prosił o ponowne 
 
 NOWOŚCI
 
+- Reakcje dowolnym emoji. „Dodaj więcej reakcji” na końcu 12 szybkich opcji otwiera pełny wybór emoji; często używane reakcje stopniowo zajmują miejsce wśród tych opcji.
+
 - Pokazywanie w folderze pliku zapisanego za pomocą opcji Zapisz jako. Gdy istnieje kopia wybrana przez użytkownika, użyj Ctrl+Enter, pozycji „Pokaż w folderze” w menu kontekstowym albo przycisku dostępnego klawiszem Tab obok Otwórz i Zapisz jako; sam wewnętrzny plik pobrany przez WinZapp nie udostępnia tej akcji.
 
 - Wybór, czy wiadomości oznaczone gwiazdką zostają po wyczyszczeniu czatu. Potwierdzenie czyszczenia ma teraz opcję „Zachowaj wiadomości oznaczone gwiazdką", domyślnie zaznaczoną, tak jak w WhatsApp Web. Po jej odznaczeniu te wiadomości są usuwane razem z resztą, także na telefonie. Dotyczy czyszczenia jednego czatu, kilku zaznaczonych lub zarchiwizowanego.
