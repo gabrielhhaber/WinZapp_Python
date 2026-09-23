@@ -420,10 +420,3 @@ class TestReviewRound:
         assert loop.index("try:") < loop.index("for jid, chat in list(self.chats.items()):")
         assert 'logging.exception("[quote-recovery] startup pass failed")' in loop
 
-    def test_a_fresh_decrypted_copy_rebuilds_the_open_list(self):
-        """Review: the open list still shows the placeholder's row under the
-        same id, so on_incoming_message()'s dedup refused the real message and
-        the row kept reading "Aguardando mensagem"."""
-        src = inspect.getsource(MainWindow.on_new_message)
-        fresh = src[src.index("del records[index]"):src.index("del records[index]") + 600]
-        assert "wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)" in fresh

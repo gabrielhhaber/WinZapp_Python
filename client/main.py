@@ -8070,6 +8070,21 @@ class MainWindow(wx.Frame):
         except Exception:
             logging.exception("[quote-recovery] could not run the database write")
 
+    @staticmethod
+    def _adopt_decrypted_copy(existing: dict, incoming: dict) -> dict:
+        """Turn the stored placeholder record itself into its decrypted copy.
+
+        In place, and returned: the open conversation's rows are these same
+        dict objects, so replacing the record with a new dict left the list
+        rendering the old one -- a review caught the row still reading
+        "Aguardando mensagem" after a rebuild. Local-only (`_`) fields are kept;
+        a text recovered from a reply's quote is superseded.
+        """
+        for field, value in incoming.items():
+            existing[field] = value
+        existing.pop(RECOVERED_FROM_QUOTE, None)
+        return existing
+
     def _fill_stored_placeholder(self, existing: dict, incoming: dict, remote_jid: str) -> None:
         """Replace a stored placeholder with its decrypted copy, in place.
 
@@ -8081,10 +8096,7 @@ class MainWindow(wx.Frame):
         Local-only fields (`_`-prefixed) on the record are kept.
         """
         prune_message_record(incoming)
-        for field, value in incoming.items():
-            existing[field] = value
-        # The real copy supersedes text recovered from a reply's quote.
-        existing.pop(RECOVERED_FROM_QUOTE, None)
+        MainWindow._adopt_decrypted_copy(existing, incoming)
         logging.info("[on_new_message] %s: decrypted copy of stored placeholder %s "
                      "filled in (%s).", remote_jid,
                      ((existing.get("key") or {}).get("id") or "")[:22],
@@ -8784,13 +8796,13 @@ class MainWindow(wx.Frame):
                             records, index, msg, connected_at):
                         self._fill_stored_placeholder(existing, msg, remote_jid)
                         return
-                    # Fresh: drop the placeholder and let the copy continue as
-                    # the new message it is; its DB insert replaces the row.
+                    # Fresh: the copy continues as the new message it is (badge,
+                    # sound, announcement), but AS the placeholder's own record:
+                    # the open list's row is that same object, and its dedup
+                    # refuses a second record under this id. Taken out here and
+                    # appended again below; its DB insert replaces the row.
+                    msg = MainWindow._adopt_decrypted_copy(existing, msg)
                     del records[index]
-                    # The open list still shows the placeholder's row under
-                    # this same id (a ciphertext is displayable), so
-                    # on_incoming_message()'s own dedup refuses the real one:
-                    # rebuild once the record below is in place.
                     if hasattr(self, "conversations_panel"):
                         wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)
                     break

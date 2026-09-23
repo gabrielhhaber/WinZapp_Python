@@ -9657,10 +9657,12 @@ class ConversationsPanel(wx.Panel):
         # Text taken from a reply's quote (core/quote_recovery.py) is the
         # replier's word, not the author's: said so on the row, so a quote a
         # modified client made up is never read as the author's own message.
+        # First, not last: a classic list row is cut at 511 characters, and a
+        # long quote would push a trailing mark out of it.
         if msg.get(RECOVERED_FROM_QUOTE):
             unmarked = {k: v for k, v in msg.items() if k != RECOVERED_FROM_QUOTE}
-            return (f"{self._get_message_content(unmarked)} "
-                    f"{i18n.t('message_recovered_from_quote_suffix')}")
+            return (f"{i18n.t('message_recovered_from_quote_label')} "
+                    f"{self._get_message_content(unmarked)}")
 
         # ── Text ────────────────────────────────────────────────────────────
         if msg_type == "conversation":
@@ -14473,6 +14475,10 @@ class ConversationsPanel(wx.Panel):
             text = self._get_message_caption(msg)
         if not text:
             return
+        if msg.get(RECOVERED_FROM_QUOTE):
+            # Same mark as the row (see _get_message_content): this is where a
+            # long recovered text is read in full.
+            text = f"{self.main_window.i18n.t('message_recovered_from_quote_label')}\n{text}"
 
         i18n = self.main_window.i18n
 

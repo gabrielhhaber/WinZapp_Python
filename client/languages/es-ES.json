@@ -100,7 +100,7 @@
     "and": "y",
     "unsupported_message": "Mensaje incompatible",
     "message_awaiting_decryption": "Esperando este mensaje. Esto puede tardar un poco.",
-    "message_recovered_from_quote_suffix": "(recuperado de una respuesta)",
+    "message_recovered_from_quote_label": "(recuperado de una respuesta)",
     "unexpected_error_message": "{app_name} encontró un error inesperado y no pudo completar la operación.",
     "error_details": "Detalles del error:",
     "copy_error_text": "&Copiar texto del error al portapapeles",

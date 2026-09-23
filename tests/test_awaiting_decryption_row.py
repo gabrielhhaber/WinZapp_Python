@@ -72,11 +72,19 @@ def test_text_recovered_from_a_reply_says_so_on_the_row():
     record.update(messageType="conversation", message={"conversation": "não chega nem a 1mb"},
                   _recovered_from_quote=True)
 
+    # First, not last: a classic list row is cut at 511 characters.
     assert _Stub()._get_message_content(record) == (
-        "não chega nem a 1mb [message_recovered_from_quote_suffix]")
+        "[message_recovered_from_quote_label] não chega nem a 1mb")
 
 
 def test_the_real_message_carries_no_such_mark():
     record = _placeholder()
     record.update(messageType="conversation", message={"conversation": "não chega nem a 1mb"})
     assert _Stub()._get_message_content(record) == "não chega nem a 1mb"
+
+
+def test_alt_c_shows_the_same_mark():
+    import inspect
+    src = inspect.getsource(ConversationsPanel._show_message_text_popup)
+    assert "if msg.get(RECOVERED_FROM_QUOTE):" in src
+    assert "message_recovered_from_quote_label" in src

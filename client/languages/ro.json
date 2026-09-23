@@ -100,7 +100,7 @@
     "and": "și",
     "unsupported_message": "Mesaj incompatibil",
     "message_awaiting_decryption": "Se așteaptă acest mesaj. Acest lucru poate dura ceva timp.",
-    "message_recovered_from_quote_suffix": "(recuperat dintr-un răspuns)",
+    "message_recovered_from_quote_label": "(recuperat dintr-un răspuns)",
     "unexpected_error_message": "{app_name} a întâmpinat o eroare neașteptată și nu a putut finaliza operațiunea.",
     "error_details": "Detalii despre eroare:",
     "copy_error_text": "&Copiați textul de eroare în clipboard",

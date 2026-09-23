@@ -100,7 +100,7 @@
     "and": "i",
     "unsupported_message": "Nieobsługiwana wiadomość",
     "message_awaiting_decryption": "Oczekiwanie na tę wiadomość. Może to chwilę potrwać.",
-    "message_recovered_from_quote_suffix": "(odzyskano z odpowiedzi)",
+    "message_recovered_from_quote_label": "(odzyskano z odpowiedzi)",
     "unexpected_error_message": "{app_name} napotkał nieoczekiwany błąd i nie mógł ukończyć operacji.",
     "error_details": "Szczegóły błędu:",
     "copy_error_text": "&Kopiuj tekst błędu do schowka",

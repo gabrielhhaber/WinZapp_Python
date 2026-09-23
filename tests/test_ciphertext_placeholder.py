@@ -200,3 +200,48 @@ class _FillStub:
 
     def _schedule_set_chats(self):
         self.set_chats += 1
+
+
+
+class TestTheFreshCopyInTheOpenConversation:
+    """Review, second round: the fresh path used to drop the placeholder's
+    record and append the decrypted copy as a NEW dict. The open list's rows
+    are the records themselves, so the list kept the old dict: a rebuild
+    repainted it as "Aguardando mensagem" and the real message was never shown.
+    Run through the real on_new_message() on the stub tests/
+    test_archived_chat_sound_tts.py already uses for exactly that."""
+
+    def test_the_row_the_list_holds_becomes_the_real_message(self, monkeypatch):
+        import time as _time
+        from tests.test_archived_chat_sound_tts import _StubMainWindow
+
+        monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **k: None)
+
+        class _Window(_StubMainWindow):
+            _fill_stored_placeholder = MainWindow._fill_stored_placeholder
+            _adopt_decrypted_copy = staticmethod(MainWindow._adopt_decrypted_copy)
+
+        jid = "5511911112222@s.whatsapp.net"
+        now = int(_time.time())
+        window = _Window(open_jid=jid)
+        window.conversations_panel.refresh_messages_if_changed = lambda: None
+        placeholder = {"key": {"remoteJid": jid, "fromMe": False, "id": "FRESH1"},
+                       "message": {}, "messageType": "ciphertext", "messageTimestamp": now}
+        older = {"key": {"remoteJid": jid, "fromMe": False, "id": "OLD1"},
+                 "message": {"conversation": "antes"}, "messageType": "conversation",
+                 "messageTimestamp": now - 60}
+        records = [older, placeholder]
+        window.chats[jid] = {"remoteJid": jid, "unreadCount": 0,
+                             "messages": {"messages": {"records": records}}}
+        panel_row = placeholder  # the open list holds this very object
+
+        window.on_new_message({"key": {"remoteJid": jid, "fromMe": False, "id": "FRESH1"},
+                               "message": {"conversation": "chegou"},
+                               "messageType": "conversation", "messageTimestamp": now,
+                               "pushName": "Ana"})
+
+        assert panel_row["messageType"] == "conversation"
+        assert panel_row["message"] == {"conversation": "chegou"}
+        stored = window.chats[jid]["messages"]["messages"]["records"]
+        assert [r["key"]["id"] for r in stored].count("FRESH1") == 1
+        assert any(r is panel_row for r in stored)
