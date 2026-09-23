@@ -33,6 +33,11 @@ def quick_reactions(history, current: str = "") -> list[str]:
     start with three virtual uses, so a new emoji does not displace one after
     a single exploratory pick. Always include the current reaction so its
     checked row remains available for removal, even if it is not in the top 12.
+
+    Ranking only decides *which* twelve appear, never their order: a default
+    that survives keeps its row and a newcomer takes the row of the default it
+    displaced. Screen-reader users pick a reaction by counting arrow presses,
+    so a reordering would silently send the wrong emoji to someone.
     """
     recent = _valid_history(history)
     counts = Counter(recent)
@@ -45,6 +50,10 @@ def quick_reactions(history, current: str = "") -> list[str]:
         defaults.get(emoji, len(defaults)),
         -last_used.get(emoji, -1),
     ))[:len(DEFAULT_QUICK_REACTIONS)]
+    members = set(ranked)
+    entrants = [emoji for emoji in ranked if emoji not in defaults]
+    ranked = [emoji if emoji in members else entrants.pop(0)
+              for emoji in DEFAULT_QUICK_REACTIONS]
     if current and current not in ranked:
         ranked[-1] = current
     return ranked

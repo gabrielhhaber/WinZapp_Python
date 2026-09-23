@@ -28,8 +28,27 @@ def test_repeated_custom_reaction_gradually_enters_the_twelve():
     history = remember_reaction(history, "🐶")
     picks = quick_reactions(history)
     assert len(picks) == 12
-    assert picks[0] == "🐶"
     assert "🥰" not in picks
+    # The newcomer takes the displaced default's row; every other row stays.
+    assert picks == list(DEFAULT_QUICK_REACTIONS[:11]) + ["🐶"]
+
+
+def test_one_exploratory_reaction_does_not_reorder_the_twelve():
+    # Blind users pick a quick reaction by counting arrow presses: after a
+    # single pick of something new, Down twice must still land on 👎.
+    assert quick_reactions(["🥰"]) == list(DEFAULT_QUICK_REACTIONS)
+    assert quick_reactions(["🐶"]) == list(DEFAULT_QUICK_REACTIONS)
+
+
+def test_heavily_used_default_keeps_its_row():
+    assert quick_reactions(["😂"] * 20) == list(DEFAULT_QUICK_REACTIONS)
+
+
+def test_several_newcomers_fill_the_last_default_rows_by_rank():
+    history = ["🐱"] * 5 + ["🐶"] * 10
+    picks = quick_reactions(history)
+    assert picks[:10] == list(DEFAULT_QUICK_REACTIONS[:10])
+    assert picks[10:] == ["🐶", "🐱"]
 
 
 def test_current_reaction_is_checked_slot_even_when_not_frequent():
@@ -43,12 +62,12 @@ def test_history_is_bounded_and_recent_preferences_can_replace_old_ones():
     history = remember_reaction(history, "🐱")
     assert len(history) == REACTION_HISTORY_LIMIT
     assert "🐶" not in quick_reactions(history)
-    assert quick_reactions(history)[0] == "🐱"
+    assert quick_reactions(history)[-1] == "🐱"
 
 
 def test_invalid_saved_history_is_ignored():
     assert quick_reactions("🐶🐶🐶🐶") == list(DEFAULT_QUICK_REACTIONS)
-    assert quick_reactions([None, "", "bad value", "🐶"] * 4)[0] == "🐶"
+    assert quick_reactions([None, "", "bad value", "🐶"] * 4)[-1] == "🐶"
 
 
 def test_reaction_picker_never_returns_a_queued_emoji_sequence():
@@ -171,6 +190,7 @@ def test_more_reactions_row_opens_picker_and_sends_its_choice(
             super().__init__()
             self.rows = []
             self.checked = []
+            self.unchecked = []
             _List.instance = self
 
         def InsertColumn(self, *args, **kwargs):
@@ -189,7 +209,7 @@ def test_more_reactions_row_opens_picker_and_sends_its_choice(
             self.rows.append(row[0])
 
         def CheckItem(self, index, value):
-            self.checked.append(index)
+            (self.checked if value else self.unchecked).append(index)
 
         def GetItemCount(self):
             return len(self.rows)
@@ -242,3 +262,51 @@ def test_more_reactions_row_opens_picker_and_sends_its_choice(
     assert _List.instance.checked == ([11] if current else [])
     assert len(picked) == picker_calls
     assert sends == ([] if expected is None else [({"id": "m1"}, expected)])
+
+    # Space on "Add more reactions" must not leave it announced as checked;
+    # checking a real reaction row is left alone.
+    on_checked = _List.instance.handlers[wx.EVT_LIST_ITEM_CHECKED]
+    on_checked(type("Event", (), {"GetIndex": lambda self: 12})())
+    on_checked(type("Event", (), {"GetIndex": lambda self: 3})())
+    assert _List.instance.unchecked == [12]
+
+
+class _KeyEvent:
+    def __init__(self, keycode, ctrl):
+        self._keycode, self._ctrl = keycode, ctrl
+        self.skipped = False
+
+    def GetKeyCode(self):
+        return self._keycode
+
+    def ControlDown(self):
+        return self._ctrl
+
+    def Skip(self, *args):
+        self.skipped = True
+
+
+def _picker_stub(reaction_mode):
+    calls = []
+
+    class _Stub:
+        _reaction_mode = reaction_mode
+        _list = type("List", (), {"HasFocus": lambda self: True})()
+
+        def _on_ok(self, event):
+            calls.append("ok")
+
+        def _queue_current_emoji(self):
+            calls.append("queue")
+
+    return _Stub(), calls
+
+
+@pytest.mark.parametrize("keycode", [wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER])
+@pytest.mark.parametrize("reaction_mode, expected", [(True, ["ok"]), (False, ["queue"])])
+def test_ctrl_enter_sends_one_reaction_but_queues_in_the_composer(
+    keycode, reaction_mode, expected,
+):
+    stub, calls = _picker_stub(reaction_mode)
+    EmojiPickerDialog._on_char_hook(stub, _KeyEvent(keycode, ctrl=True))
+    assert calls == expected

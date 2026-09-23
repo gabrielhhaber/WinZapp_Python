@@ -4,7 +4,7 @@ Esta versão corrige situações em que o WinZapp pedia para emparelhar de novo 
 
 NOVIDADES
 
-- Reagir com qualquer emoji. No fim das 12 reações rápidas, "Adicionar mais reações" abre a seleção completa; as reações mais utilizadas passam gradualmente a aparecer entre as 12 opções rápidas.
+- Reagir com qualquer emoji. No fim das 12 reações rápidas, "Adicionar mais reações" abre o painel completo de emojis; as reações mais utilizadas passam gradualmente a aparecer entre as 12 opções rápidas.
 
 - Mostrar na pasta um ficheiro guardado com Guardar como. Quando essa cópia escolhida pelo utilizador existir, use Ctrl+Enter, o item "Mostrar na pasta" do menu de contexto ou o botão acessível com Tab junto a Abrir e Guardar como; apenas a transferência interna do WinZapp não apresenta a ação.
 

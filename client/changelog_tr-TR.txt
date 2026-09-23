@@ -4,7 +4,7 @@ Bu sürüm; WinZapp'in gerekmediği halde yeniden eşleme istemesine neden olan 
 
 YENİLİKLER
 
-- Herhangi bir emojiyle tepki verme. 12 hızlı seçeneğin sonundaki "Daha fazla tepki ekle" tam emoji panelini açar; sık kullandığınız emojiler zamanla hızlı seçenekler arasında yer alır.
+- Herhangi bir emojiyle tepki verme. 12 hızlı seçeneğin sonundaki "Daha fazla tepki ekle" tam emoji seçicisini açar; sık kullandığınız emojiler zamanla hızlı seçenekler arasında yer alır.
 
 - Farklı Kaydet ile kaydedilen bir dosyayı klasöründe gösterme. Kullanıcı tarafından seçilen bu kopya oluşturulduktan sonra; Dosya Gezgini'ni ilgili dosya seçili halde açmak için Ctrl+Enter kısayolunu, içerik menüsündeki "Klasörde göster" ögesini veya Aç ve Farklı Kaydet'in yanındaki Tab ile ulaşılabilen butonu kullanabilirsiniz. Yalnızca dahili indirmeler bu eylemi sunmaz.
 

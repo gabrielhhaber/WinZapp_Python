@@ -14487,7 +14487,14 @@ class ConversationsPanel(wx.Panel):
             # Single click: just move selection, don't send yet
             pass
 
+        def _on_emoji_checked(event):
+            # "Add more reactions" is an action, not a choice: Space would
+            # otherwise leave it announced as "checked" with nothing chosen.
+            if event.GetIndex() == len(emojis):
+                emoji_list.CheckItem(len(emojis), False)
+
         emoji_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, _on_emoji_activated)
+        emoji_list.Bind(wx.EVT_LIST_ITEM_CHECKED, _on_emoji_checked)
         cancel_btn.Bind(wx.EVT_BUTTON, lambda e: dlg.EndModal(wx.ID_CANCEL))
         dlg.Bind(wx.EVT_CHAR_HOOK, lambda e: dlg.EndModal(wx.ID_CANCEL) if e.GetKeyCode() == wx.WXK_ESCAPE else e.Skip())
 
