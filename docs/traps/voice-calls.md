@@ -124,6 +124,64 @@ changes, because it is a sample count. Discarding it on the answer reopen would
 hand the first minute of the conversation back to the chopping the ringing
 phase had just learned its way out of.
 
+**The microphone tap has the same defect and is now a worklet too — and the
+judgement that it could wait was wrong in practice.** Measured the same way
+(`micProcessor.onaudioprocess` wrapped over CDP, 2026-09-23): it missed 0.37%
+of its callbacks against the remote tap's 1.01%, consuming 47,817 samples/s
+against the 48,096 Python pushes, with the surplus discarded by the latency
+drop policy. That was judged tolerable — a tenth of the remote tap's incident
+rate, no downstream amplifier, and the peer's own jitter buffer concealing
+what little escapes. Then Gabriel switched from a separate microphone to his
+headset's own and the people on the other end heard the chop. **The peer is
+the only one who can hear this side**, so the evidence for a mic fault never
+arrives from the user running the build; weight it accordingly next time.
+
+Its worklet (`winzapp-call-mic`) is deliberately NOT a mirror of the remote
+one. It has zero inputs and exists to *produce*, so what had to leave the main
+thread is the **pull**: the frame queue and the drop policy now live inside
+the worklet, fed by `postMessage` from `pushMicrophone()`, and `process()`
+drains them without asking the main thread for anything. A queue left on the
+main thread would have put main-thread scheduling straight back on the audio
+path. Both processors are registered by one `addModule()` — the only thing
+that can refuse them, a CSP refusing `blob:`, refuses both or neither.
+
+Two mechanisms are worth knowing before touching this. **Both producers feed
+the same `MediaStreamDestination`**: WhatsApp cloned that track once at
+`getUserMedia` time and never asks for another, so swapping the worklet for
+the ScriptProcessor underneath it needs no renegotiation — which is what makes
+an *upgrade in place* possible when the module finishes registering after the
+track was already handed out. And the worklet is on a **watchdog**
+(`MIC_WORKLET_WATCHDOG_MS`), not on trust: if frames were handed over and none
+were consumed when it fires, the ScriptProcessor takes the destination back.
+The watchdog re-arms rather than firing while nothing has been pushed yet —
+before the call is answered there is no microphone audio to consume and
+silence proves nothing. `micTapMode` in `/call/diagnostics` and the `mic-tap`
+log line say which producer is live.
+
+Three details that are easy to get wrong when touching this. The watchdog's
+verdict is `micWorkletUnscheduled`, **not** `audioWorkletStatus`: that flag
+answers only "did `addModule()` register the module", the remote tap branches
+on it, and a microphone starved for a second and a half by a suspended
+context would otherwise put every remote track for the life of the page back
+on the ScriptProcessor — the audio the user actually hears, degraded as a side
+effect of a microphone heuristic. The terminal fallback is **wrapped**, and
+drops `micDestination` if even the ScriptProcessor will not start: with both
+producers null on a track that still reads `live`, `ensureMicTrack()` early
+returns it forever and the microphone is dead for the session. And the drop
+policy moved into the worklet is the same arithmetic but not quite the same
+behaviour: `offset > 0` is now sampled against a 128-sample quantum instead of
+a 1024-sample block, against 20 ms frames, so the head is partially consumed
+in 7 quanta out of 8 and the effective cap is `targetFrames + 1` nearly
+always, where on the main thread it was usually `targetFrames`. That is ~20 ms
+more steady-state microphone backlog than before — accepted, not overlooked.
+
+The worklet reports its counters every `PAGE_MIC_REPORT_QUANTA` (~128 ms), so
+a swap or a `reset()` discards up to one report's worth of `consumed` and
+`dropped`. `micSamplesConsumed` therefore under-reports by up to ~128 ms per
+swap; it never jumps or goes backwards, which is the invariant the deltas
+exist for, but do not read it over a window of a few hundred milliseconds and
+conclude anything.
+
 **A reservoir in front of the output is the exact thing the 2026-09-20
 bisection blamed, and it is back on purpose — so be accurate about what that
 bisection established.** It showed that swapping this file for main's version

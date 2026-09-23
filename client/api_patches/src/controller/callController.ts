@@ -524,6 +524,10 @@ export async function callDiagnostics(req: Request, res: Response) {
             // back has to be recognisable from the outside rather than
             // looking fixed.
             remoteTapMode: bridge.remoteTapMode || '',
+            // The mic tap has its own mode: only the PEER can hear this side
+            // chop, so a silent fallback here is otherwise found by someone
+            // else's ears rather than by a diagnostic.
+            micTapMode: bridge.micTapMode || '',
             audioWorkletStatus: bridge.audioWorkletStatus || 'unknown',
             enabled: !!bridge.enabled,
             micFramesPushed: bridge.micFramesPushed || 0,

@@ -70,8 +70,17 @@ def test_call_media_bridge_advertises_virtual_camera_on_headless_hosts():
     assert "cameraTrackRequests" in bridge
     assert "cameraFramesReceived" in bridge
     assert "call camera frames received from desktop=" in bridge
-    assert "version === 8" in bridge
-    assert "version: 8" in bridge
+    # The re-install guard and the state literal must name the SAME version,
+    # or a page that already carries an older bridge is never replaced (the
+    # guard returns early) or is replaced on every call (it never matches).
+    # Asserted as a pair rather than as a number, so a deliberate bump does
+    # not have to be re-typed here — only a mismatch fails.
+    guard = re.search(r"__winzappCallMediaBridge\?\.version === (\d+)", bridge)
+    literal = re.search(r"^\s*version: (\d+),", bridge, re.M)
+    assert guard and literal, "the bridge must carry a version at both sites"
+    assert guard.group(1) == literal.group(1), (
+        f"guard says v{guard.group(1)}, state literal says v{literal.group(1)}"
+    )
 
 
 def test_remote_audio_tap_prefers_an_audio_worklet_and_still_has_a_fallback():
@@ -131,6 +140,154 @@ def test_remote_audio_tap_prefers_an_audio_worklet_and_still_has_a_fallback():
     # creates its own devices, may assume 48000.
     assert "callback(base64, context.sampleRate)" in bridge
     assert "REMOTE_TAP_MAX_FRAME_BYTES" in bridge
+
+
+def test_microphone_tap_prefers_an_audio_worklet_and_can_swap_back():
+    """The peer hears this side chop for the mirror-image reason.
+
+    Measured the same way as the remote tap: the mic ScriptProcessor missed
+    0.37% of its callbacks against the remote tap's 1.01%. That was judged
+    tolerable when the microphone was a separate device; with the headset's
+    own microphone the people on the other end reported the chop, so the
+    producer moves to the audio render thread too.
+
+    It is NOT a mirror of the remote tap: zero inputs, and what has to leave
+    the main thread is the PULL, so the frame queue moves INTO the worklet.
+    Assert on the shape — the queue's home, both producers reachable, one at
+    a time, on one destination — never on reason wording.
+    """
+    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+
+    assert "registerProcessor('winzapp-call-mic'" in bridge
+    assert "new win.AudioWorkletNode(context, 'winzapp-call-mic'" in bridge
+    # Zero inputs: a mirror of the remote tap's `numberOfInputs: 1` would make
+    # the node wait for a source that does not exist.
+    mic_node = bridge[bridge.index("'winzapp-call-mic', {"):]
+    mic_node = mic_node[: mic_node.index("});")]
+    assert "numberOfInputs: 0" in mic_node
+
+    # The queue lives in the worklet, and so does the drop policy: a queue
+    # left on the main thread would put main-thread scheduling straight back
+    # on the audio path, which is the whole defect being fixed.
+    worklet = bridge[bridge.index("class WinzappCallMicProcessor"):]
+    worklet = worklet[: worklet.index("registerProcessor('winzapp-call-mic'")]
+    assert "this.queue.push(data)" in worklet
+    assert "this.queue.shift()" in worklet
+    assert "this.dropped" in worklet, "the latency drop policy moved in here too"
+    # Counters cross as DELTAS, so a mid-call swap cannot make the totals jump
+    # or go backwards.
+    assert "consumed: this.consumed" in worklet and "this.consumed = 0" in worklet
+
+    # Both producers exist, exactly one is connected, and both feed the same
+    # destination — WhatsApp cloned that track once and never asks again.
+    assert "createScriptProcessor(1024, 0, 1)" in bridge
+    # Exact, not a lower bound: a lower bound against N real call sites lets
+    # any one of them be deleted with the test still green. Every terminal
+    # fallback goes through swapMicProducerToScriptProcessor (watchdog, node
+    # constructor throwing, upgrade-in-place throwing); the ScriptProcessor
+    # itself is started from that wrapper and from the not-yet-ready branch.
+    assert bridge.count("startMicScriptProcessorTap(") == 2
+    assert bridge.count("swapMicProducerToScriptProcessor(") == 3
+    teardown = bridge[bridge.index("const disconnectMicProducer"):]
+    teardown = teardown[: teardown.index("\n  };")]
+    assert "state.micNode = null" in teardown and "state.micProcessor = null" in teardown
+    assert "state.micNode?.disconnect()" in teardown
+    assert re.search(
+        r"catch \(error[^)]*\) \{.{0,400}?swapMicProducerToScriptProcessor\(", bridge, re.S
+    ), "a mic worklet node that throws must fall back, not leave the call mute"
+
+    # A silent microphone is discovered by the PEER, so the worklet gets a
+    # deadline rather than trust, and the swap goes back to the same
+    # destination.
+    assert "MIC_WORKLET_WATCHDOG_MS" in bridge
+    # The watchdog has to be ARMED where the worklet starts — asserting the
+    # name alone is satisfied by its own definition, so deleting the call
+    # would leave an unwatched worklet and a green test.
+    start_worklet = bridge[bridge.index("const startMicWorkletTap"):]
+    start_worklet = start_worklet[: start_worklet.index("\n  };")]
+    assert "armMicWorkletWatchdog();" in start_worklet
+    watchdog = bridge[bridge.index("const armMicWorkletWatchdog"):]
+    watchdog = watchdog[: watchdog.index("\n  };")]
+    assert "state.micFramesPushed === pushedAtArm" in watchdog, (
+        "silence proves nothing until frames have actually been handed over"
+    )
+    assert "state.micSamplesConsumed > consumedAtArm" in watchdog, (
+        "a worklet that IS consuming must not be swapped out"
+    )
+    assert "swapMicProducerToScriptProcessor(" in watchdog, (
+        "firing without handing the destination back leaves the call mute"
+    )
+    # The watchdog is a MICROPHONE verdict. Writing audioWorkletStatus here
+    # would condemn the remote tap, which branches on that same flag, and put
+    # the blind user's own audio back on the ScriptProcessor #281 replaced.
+    # The ASSIGNMENT, not the word: the comment in there explains at length
+    # why this flag must not be touched, and prose must not satisfy the test.
+    assert "state.audioWorkletStatus =" not in watchdog
+    assert "state.micWorkletUnscheduled = true" in watchdog
+    # The terminal fallback is wrapped: if it throws, both producers are null
+    # on a track that still reads 'live', so ensureMicTrack() would early
+    # return it forever and the microphone would be dead for the session.
+    swap_body = bridge[bridge.index("const swapMicProducerToScriptProcessor"):]
+    swap_body = swap_body[: swap_body.index("\n  };")]
+    assert "try {" in swap_body and "state.micDestination = null" in swap_body
+
+    # The verdict must be READ, not just written. Without both gates the flag
+    # is write-only: the watchdog condemns an unscheduled worklet, and then
+    # the next track rebuild (call 2, a device change) constructs the very
+    # same one again because audioWorkletStatus still says 'ready' — the peer
+    # loses the first 1.5 s of every later call while the watchdog swaps it
+    # out again.
+    ensure_mic = bridge[bridge.index("const ensureMicTrack"):]
+    ensure_mic = ensure_mic[: ensure_mic.index("\n  };")]
+    assert ensure_mic.count("!state.micWorkletUnscheduled") == 2, (
+        "both the ready branch and the upgrade branch must respect the "
+        "microphone's own verdict on the worklet"
+    )
+
+    # The upgrade-in-place guard, both halves: the wrong destination means a
+    # newer track owns the page, and an existing node means two producers on
+    # one destination — the peer would hear doubled audio.
+    assert "state.micDestination !== destination || state.micNode" in bridge
+
+    # The node is recorded BEFORE it is connected: a throw from connect()
+    # would otherwise leave an orphan disconnectMicProducer() cannot find.
+    assert start_worklet.index("state.micNode = node") < start_worklet.index(
+        "node.connect("
+    ), "record the node before connecting it — #281 learned this one"
+
+    # Two explicit edges instead of a timer looping for the life of the page:
+    # stood down when the call ends, re-armed when the next one starts. The
+    # destination survives between calls, so without the re-arm the second
+    # and later calls of a session would run unwatched.
+    reset_body = bridge[bridge.index("state.reset = () => {"):]
+    reset_body = reset_body[: reset_body.index("\n  };")]
+    assert "clearTimeout(state.micWorkletWatchdog)" in reset_body
+    enable = bridge[bridge.index("state.enable = () => {"):]
+    enable = enable[: enable.index("\n  };")]
+    assert "armMicWorkletWatchdog()" in enable
+
+    # Counters are ADDED on this side too, not assigned.
+    assert "state.micSamplesConsumed += data.consumed" in bridge
+    # The partially-consumed head frame is kept while older complete frames
+    # are dropped; dropping the head instead cuts a frame mid-sample.
+    assert worklet.count("const dropIndex = this.offset > 0 ? 1 : 0;") == 2
+
+    # pushMicrophone hands frames to the worklet when it is live, and the
+    # queue below it is the fallback's, not a second copy.
+    assert "state.micNode.port.postMessage(samples)" in bridge
+    # reset() has to reach the queue that now lives on the audio thread.
+    reset = bridge[bridge.index("state.reset = () => {"):]
+    reset = reset[: reset.index("\n  };")]
+    assert "postMessage({ type: 'clear' })" in reset
+
+    # Which producer is live is visible from outside, same reason as the
+    # remote tap — and here the user cannot hear the failure himself.
+    assert "micTapMode" in bridge
+    assert "micTapMode" in _source("client/api_patches/src/controller/callController.ts")
+    # The synthetic track is still registered as local, or the bridge loops
+    # our own microphone back into the speaker pipeline.
+    assert "state.localTrackIds.add(track.id)" in bridge
+
 
 def test_chromium_does_not_disable_voice_input_for_python_call_bridge():
     start_js = _source("client/api_patches/start.js")

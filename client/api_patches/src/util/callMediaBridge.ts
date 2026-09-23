@@ -190,7 +190,7 @@ function ensureLinuxCallAudio(
 
 function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const win = window as any;
-  if (win.__winzappCallMediaBridge?.version === 8) return true;
+  if (win.__winzappCallMediaBridge?.version === 9) return true;
   if (!navigator.mediaDevices?.getUserMedia || !win.RTCPeerConnection) return false;
 
   const AudioContextCtor = win.AudioContext || win.webkitAudioContext;
@@ -209,13 +209,32 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   // serialised into the page and cannot close over module constants). Node
   // drops anything larger, so a frame over it would be silently lost.
   const REMOTE_TAP_MAX_FRAME_BYTES = 64 * 1024;
+  // How often the microphone worklet reports its counters back to the main
+  // thread: 48 quanta of 128 samples is ~128 ms at 48 kHz, cheap enough to be
+  // invisible and fresh enough for the watchdog below and for diagnostics.
+  const PAGE_MIC_REPORT_QUANTA = 48;
+  // How long the microphone worklet gets to consume its first sample before
+  // it is declared unscheduled and swapped for the ScriptProcessor.
+  const MIC_WORKLET_WATCHDOG_MS = 1500;
 
   const state: any = {
-    version: 8,
+    version: 9,
     enabled: false,
     context: null,
     micDestination: null,
+    // The producer feeding micDestination: exactly one of these is live. Both
+    // feed the SAME MediaStreamDestination, so swapping between them never
+    // changes the track WhatsApp already holds and never renegotiates.
+    micNode: null,
     micProcessor: null,
+    micSchedulerSink: null,
+    micWorkletWatchdog: 0,
+    // The MICROPHONE's own verdict on the worklet, kept apart from
+    // audioWorkletStatus on purpose: that one answers "did addModule()
+    // register the module" and the remote tap reads it. See the watchdog.
+    micWorkletUnscheduled: false,
+    // Only the ScriptProcessor fallback reads these: when the worklet is live
+    // the queue lives inside it, on the audio thread. See ensureMicTrack.
     micQueue: [] as Float32Array[],
     micOffset: 0,
     remotePipelines: new Map<string, any>(),
@@ -267,6 +286,10 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     // would not be, which costs another live call with a blind user to find.
     audioWorkletStatus: 'unknown',
     remoteTapMode: '',
+    // Which producer is feeding the synthetic microphone track. Same reason
+    // as remoteTapMode: the peer is the only one who can hear this side chop,
+    // so a silent fallback here is discovered by someone else's ears.
+    micTapMode: '',
   };
 
   const report = (event: string, details = '') => {
@@ -877,7 +900,14 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   // It is deliberately a no-op on its outputs: the node is still connected
   // through the muted gain to the destination, the same way the
   // ScriptProcessor was, because that is what keeps the graph pulling.
-  const REMOTE_TAP_WORKLET_SOURCE = `
+  //
+  // The MICROPHONE tap lives in the same module, registered by the same single
+  // addModule() call, because the one thing that can refuse it -- the page's
+  // CSP refusing a blob: script -- refuses both or neither, and one verdict is
+  // easier to read in diagnostics than two that can never disagree. The two
+  // processors are otherwise unrelated: this one consumes an input, the mic
+  // one has no input at all and produces.
+  const CALL_TAP_WORKLET_SOURCE = `
 class WinzappCallTapProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super();
@@ -917,17 +947,108 @@ class WinzappCallTapProcessor extends AudioWorkletProcessor {
   }
 }
 registerProcessor('winzapp-call-tap', WinzappCallTapProcessor);
+
+// The microphone tap. It is NOT a mirror of the one above: it has zero inputs
+// and its whole job is to produce, so what has to leave the main thread is the
+// PULL, not a delivery. The frame QUEUE therefore lives here, on the audio
+// render thread, fed by postMessage from pushMicrophone(); process() drains it
+// without asking the main thread for anything. A queue left on the main thread
+// would have put main-thread scheduling straight back on the audio path, which
+// is the defect being fixed. The main thread still decodes base64 -> Float32
+// and posts, but a stall there now costs only the frames it failed to hand
+// over, not the frames already in hand.
+//
+// It has no view of state.enabled and does not need one: pushMicrophone()
+// refuses to hand over a frame while the bridge is disabled, and reset()
+// posts {type:'clear'}, so a disabled bridge simply starves this queue and
+// process() writes the silence it writes whenever the queue is empty.
+class WinzappCallMicProcessor extends AudioWorkletProcessor {
+  constructor(options) {
+    super();
+    const opts = (options && options.processorOptions) || {};
+    this.queue = [];
+    this.offset = 0;
+    this.maxFrames = opts.maxFrames || 4;
+    this.targetFrames = opts.targetFrames || 2;
+    this.reportQuanta = opts.reportQuanta || 48;
+    this.consumed = 0;
+    this.dropped = 0;
+    this.quanta = 0;
+    this.port.onmessage = (event) => {
+      const data = event.data;
+      if (!data) return;
+      if (data.type === 'clear') {
+        this.queue.length = 0;
+        this.offset = 0;
+        return;
+      }
+      if (!data.length) return;
+      this.queue.push(data);
+      // The same latency policy pushMicrophone() used to apply on the main
+      // thread, moved to where the queue now is: keep a partially consumed
+      // head frame, then drop the oldest complete frames until only ~40 ms of
+      // microphone audio is queued.
+      while (this.queue.length > this.maxFrames) {
+        const dropIndex = this.offset > 0 ? 1 : 0;
+        if (dropIndex >= this.queue.length) break;
+        this.queue.splice(dropIndex, 1);
+        this.dropped += 1;
+      }
+      while (this.queue.length > this.targetFrames + (this.offset > 0 ? 1 : 0)) {
+        const dropIndex = this.offset > 0 ? 1 : 0;
+        if (dropIndex >= this.queue.length) break;
+        this.queue.splice(dropIndex, 1);
+        this.dropped += 1;
+      }
+    };
+  }
+  process(inputs, outputs) {
+    const output = outputs[0] && outputs[0][0];
+    if (!output) return true;
+    output.fill(0);
+    let written = 0;
+    while (written < output.length && this.queue.length) {
+      const head = this.queue[0];
+      const available = head.length - this.offset;
+      const take = Math.min(output.length - written, available);
+      output.set(head.subarray(this.offset, this.offset + take), written);
+      written += take;
+      this.offset += take;
+      if (this.offset >= head.length) {
+        this.queue.shift();
+        this.offset = 0;
+      }
+    }
+    this.consumed += written;
+    this.quanta += 1;
+    if (this.quanta >= this.reportQuanta) {
+      this.quanta = 0;
+      // DELTAS, never totals: the main thread adds them to the very counters
+      // the ScriptProcessor fallback increments, so a mid-call swap from one
+      // producer to the other cannot make micSamplesConsumed jump or go back.
+      this.port.postMessage({ type: 'counters', consumed: this.consumed, dropped: this.dropped });
+      this.consumed = 0;
+      this.dropped = 0;
+    }
+    // A node with no inputs has no active source, so returning false would let
+    // it be collected -- and the microphone would go silent for the rest of
+    // the call with nothing to show for it.
+    return true;
+  }
+}
+registerProcessor('winzapp-call-mic', WinzappCallMicProcessor);
 `;
 
-  // Resolves true once 'winzapp-call-tap' is registered on this context.
+  // Resolves true once 'winzapp-call-tap' and 'winzapp-call-mic' are
+  // registered on this context.
   // addModule() needs a URL and a Blob URL is the usual way to ship an inline
   // worklet, but WhatsApp Web's CSP is entitled to refuse blob: scripts -- and
   // a refusal must fall back to the old ScriptProcessor rather than leave the
   // call with no remote audio at all. The promise is cached on the context
   // because a worklet module is registered per AudioContext and ensureContext
   // builds a new one whenever the old was closed.
-  const ensureRemoteTapWorklet = (context: any): Promise<boolean> => {
-    if (context.__winzappRemoteTapWorklet) return context.__winzappRemoteTapWorklet;
+  const ensureCallTapWorklet = (context: any): Promise<boolean> => {
+    if (context.__winzappCallTapWorklet) return context.__winzappCallTapWorklet;
     let pending: Promise<boolean>;
     // Declared out here so the catch below can revoke it: a context with no
     // audioWorklet at all throws between creating the URL and reaching the
@@ -935,19 +1056,19 @@ registerProcessor('winzapp-call-tap', WinzappCallTapProcessor);
     let url = '';
     try {
       url = URL.createObjectURL(
-        new Blob([REMOTE_TAP_WORKLET_SOURCE], { type: 'application/javascript' })
+        new Blob([CALL_TAP_WORKLET_SOURCE], { type: 'application/javascript' })
       );
       pending = context.audioWorklet
         .addModule(url)
         .then(() => {
           state.audioWorkletStatus = 'ready';
-          report('remote-tap-worklet', 'audio worklet module registered');
+          report('call-tap-worklet', 'audio worklet module registered');
           return true;
         })
         .catch((error: any) => {
           state.audioWorkletStatus = 'unavailable';
           report(
-            'remote-tap-worklet',
+            'call-tap-worklet',
             `addModule refused: ${String(error?.message || error)}`
           );
           return false;
@@ -961,23 +1082,35 @@ registerProcessor('winzapp-call-tap', WinzappCallTapProcessor);
       }
       state.audioWorkletStatus = 'unavailable';
       report(
-        'remote-tap-worklet',
+        'call-tap-worklet',
         `unavailable: ${String(error?.message || error)}`
       );
       pending = Promise.resolve(false);
     }
-    context.__winzappRemoteTapWorklet = pending;
+    context.__winzappCallTapWorklet = pending;
     return pending;
   };
 
-  const ensureMicTrack = () => {
-    const context = ensureContext();
-    if (state.micDestination?.stream?.getAudioTracks?.()[0]?.readyState === 'live') {
-      return state.micDestination.stream.getAudioTracks()[0];
-    }
+  // The microphone producer, and the swap between its two shapes.
+  //
+  // Exactly one of state.micNode (AudioWorklet) and state.micProcessor
+  // (ScriptProcessor) is ever connected, and both write into the SAME
+  // MediaStreamDestination. That matters: WhatsApp cloned the destination's
+  // track at getUserMedia time and never asks for another one, so swapping
+  // producers underneath it costs no renegotiation and the peer hears
+  // nothing beyond the audio still queued in the producer being dropped.
+  const disconnectMicProducer = () => {
+    try { state.micNode?.port?.postMessage({ type: 'clear' }); } catch (_) {}
+    try { state.micNode?.port?.close?.(); } catch (_) {}
+    try { state.micNode?.disconnect(); } catch (_) {}
+    state.micNode = null;
+    if (state.micProcessor) state.micProcessor.onaudioprocess = null;
+    try { state.micProcessor?.disconnect(); } catch (_) {}
+    state.micProcessor = null;
+  };
 
+  const startMicScriptProcessorTap = (context: any, destination: any, reason: string) => {
     const processor = context.createScriptProcessor(1024, 0, 1);
-    const destination = context.createMediaStreamDestination();
     processor.onaudioprocess = (event: AudioProcessingEvent) => {
       const output = event.outputBuffer.getChannelData(0);
       output.fill(0);
@@ -1002,12 +1135,173 @@ registerProcessor('winzapp-call-tap', WinzappCallTapProcessor);
     // A zero-input ScriptProcessor is not scheduled reliably by Chromium
     // unless it also has an audible graph sink. Keep that sink muted; the
     // MediaStreamDestination remains the only call track source.
+    processor.connect(state.micSchedulerSink);
+    state.micProcessor = processor;
+    state.micTapMode = 'script-processor';
+    report('mic-tap', `tap=script-processor reason=${reason}`);
+  };
+
+  const startMicWorkletTap = (context: any, destination: any) => {
+    const node = new win.AudioWorkletNode(context, 'winzapp-call-mic', {
+      numberOfInputs: 0,
+      numberOfOutputs: 1,
+      outputChannelCount: [1],
+      processorOptions: {
+        maxFrames: PAGE_MIC_QUEUE_FRAMES,
+        targetFrames: PAGE_MIC_TARGET_BACKLOG_FRAMES,
+        reportQuanta: PAGE_MIC_REPORT_QUANTA,
+      },
+    });
+    // Recorded before either connect(), so that a throw from connect() leaves
+    // a node disconnectMicProducer() can still find -- the remote tap learned
+    // this one in review on #281.
+    state.micNode = node;
+    node.port.onmessage = (event: MessageEvent) => {
+      const data: any = event.data;
+      if (!data || data.type !== 'counters') return;
+      // Deltas, added to the same counters the ScriptProcessor increments, so
+      // a mid-call swap cannot make micSamplesConsumed jump or go backwards.
+      state.micSamplesConsumed += data.consumed || 0;
+      state.micFramesDroppedForLatency += data.dropped || 0;
+    };
+    node.connect(destination);
+    node.connect(state.micSchedulerSink);
+    state.micTapMode = 'audio-worklet';
+    report('mic-tap', 'tap=audio-worklet');
+    armMicWorkletWatchdog();
+  };
+
+  // The terminal fallback: hand the destination back to the ScriptProcessor
+  // and make sure SOMETHING is producing when this returns.
+  //
+  // The restart is wrapped because both callers are terminal -- there is no
+  // further fallback behind them -- and it can genuinely throw: a context
+  // closed between arming and firing, or a micSchedulerSink belonging to a
+  // context ensureContext() has since replaced. Unwrapped, the throw escapes
+  // into a setTimeout callback or an unhandled rejection, leaves micNode and
+  // micProcessor both null, and ensureMicTrack() will NOT rebuild, because
+  // the destination's track is still 'live' and it early-returns on that.
+  // The microphone would then be silent for the rest of the session -- the
+  // exact failure the watchdog exists to prevent. Dropping the destination
+  // makes the next ensureMicTrack() build a fresh one instead.
+  const swapMicProducerToScriptProcessor = (
+    context: any, destination: any, reason: string
+  ) => {
+    disconnectMicProducer();
+    try {
+      startMicScriptProcessorTap(context, destination, reason);
+    } catch (error: any) {
+      state.micDestination = null;
+      state.micTapMode = '';
+      report('mic-tap', `no producer: ${String(error?.message || error)}`);
+    }
+  };
+
+  // A silent microphone is discovered by the PEER, never by the user -- he
+  // cannot hear his own side, and the only symptom is other people saying
+  // "you cut out". So the worklet gets a deadline instead of trust: if frames
+  // were handed over and none were consumed by the time it expires, the
+  // ScriptProcessor takes the same destination back. Re-armed, not cancelled,
+  // while nothing has been pushed yet: before the call is answered there is
+  // no microphone audio to consume and silence proves nothing.
+  const armMicWorkletWatchdog = () => {
+    if (state.micWorkletWatchdog) win.clearTimeout(state.micWorkletWatchdog);
+    const pushedAtArm = state.micFramesPushed;
+    const consumedAtArm = state.micSamplesConsumed;
+    state.micWorkletWatchdog = win.setTimeout(() => {
+      state.micWorkletWatchdog = 0;
+      if (!state.micNode) return;
+      if (state.micFramesPushed === pushedAtArm) {
+        armMicWorkletWatchdog();
+        return;
+      }
+      if (state.micSamplesConsumed > consumedAtArm) return;
+      const context = state.context;
+      const destination = state.micDestination;
+      if (!context || !destination) return;
+      // NOT audioWorkletStatus: that one means "addModule() registered the
+      // module", and the REMOTE tap branches on it. A microphone starved for
+      // 1.5 s by a suspended context or a late render thread would otherwise
+      // condemn every remote track for the life of the page to the
+      // ScriptProcessor -- reintroducing, in the ear of the blind user, the
+      // 1% callback loss #281 exists to fix -- as a side effect of a
+      // microphone heuristic, with /call/diagnostics then reporting
+      // audioWorkletStatus=unavailable next to remoteTapMode=audio-worklet.
+      state.micWorkletUnscheduled = true;
+      swapMicProducerToScriptProcessor(
+        context, destination, 'worklet consumed nothing while frames were arriving'
+      );
+    }, MIC_WORKLET_WATCHDOG_MS);
+  };
+
+  const ensureMicTrack = () => {
+    const context = ensureContext();
+    if (state.micDestination?.stream?.getAudioTracks?.()[0]?.readyState === 'live') {
+      return state.micDestination.stream.getAudioTracks()[0];
+    }
+
+    const destination = context.createMediaStreamDestination();
+    // The previous sink is dropped here, not left wired to context.destination:
+    // it is silent, so an abandoned one is inaudible rather than harmless, and
+    // the graph would grow by one node per rebuild for the life of the page.
+    try { state.micSchedulerSink?.disconnect(); } catch (_) {}
     const schedulerSink = context.createGain();
     schedulerSink.gain.value = 0;
-    processor.connect(schedulerSink);
     schedulerSink.connect(context.destination);
-    state.micProcessor = processor;
+    state.micSchedulerSink = schedulerSink;
     state.micDestination = destination;
+    disconnectMicProducer();
+
+    // bridgedGetUserMedia needs a track back in this same turn, so the
+    // producer is built now from what is already known: the worklet when the
+    // module is registered (enable() warms it before any call arrives), the
+    // ScriptProcessor otherwise, upgraded in place when the module resolves.
+    if (state.audioWorkletStatus === 'ready' && !state.micWorkletUnscheduled) {
+      try {
+        startMicWorkletTap(context, destination);
+      } catch (error: any) {
+        // A node that will not construct is a microphone-side verdict, like
+        // the watchdog's: the module itself registered fine and the remote
+        // tap must keep using it.
+        state.micWorkletUnscheduled = true;
+        swapMicProducerToScriptProcessor(
+          context, destination, `worklet node failed: ${String(error?.message || error)}`
+        );
+      }
+    } else {
+      startMicScriptProcessorTap(
+        context,
+        destination,
+        state.micWorkletUnscheduled
+          ? 'worklet swapped out for this microphone'
+          : state.audioWorkletStatus === 'unavailable'
+            ? 'worklet unavailable'
+            : 'worklet still registering'
+      );
+      if (state.audioWorkletStatus !== 'unavailable' && !state.micWorkletUnscheduled) {
+        ensureCallTapWorklet(context).then((ready: boolean) => {
+          // Not "is there still a destination": it has to be THIS one. A
+          // second call built its own while the module was registering, and
+          // upgrading that one from here would swap a producer out from under
+          // a track nobody here owns any more.
+          if (!ready || state.micDestination !== destination || state.micNode) return;
+          try {
+            disconnectMicProducer();
+            // The handful of frames queued on the main thread (~40 ms, capped
+            // by the drop policy) go with the producer that held them.
+            state.micQueue.length = 0;
+            state.micOffset = 0;
+            startMicWorkletTap(context, destination);
+          } catch (error: any) {
+            state.micWorkletUnscheduled = true;
+            swapMicProducerToScriptProcessor(
+              context, destination, `worklet node failed: ${String(error?.message || error)}`
+            );
+          }
+        });
+      }
+    }
+
     const track = destination.stream.getAudioTracks()[0];
     if (track?.id) state.localTrackIds.add(track.id);
     return track;
@@ -1016,12 +1310,18 @@ registerProcessor('winzapp-call-tap', WinzappCallTapProcessor);
   state.enable = () => {
     state.enabled = true;
     ensureMicTrack();
+    // The destination (and with it the worklet) survives between calls, so
+    // the watchdog is re-armed here rather than only where the producer is
+    // built: reset() stood it down at the end of the previous call, and
+    // without this the second and later calls of a session would run with no
+    // protection at all against a worklet that stopped being scheduled.
+    if (state.micNode) armMicWorkletWatchdog();
     const context = ensureContext();
     context.resume().catch(() => undefined);
     // Registering the worklet module is asynchronous, so warm it up here
     // rather than when the remote track arrives: by then the answer is
     // cached and the tap is built in the same turn the track appears.
-    ensureRemoteTapWorklet(context);
+    ensureCallTapWorklet(context);
     return true;
   };
 
@@ -1030,9 +1330,26 @@ registerProcessor('winzapp-call-tap', WinzappCallTapProcessor);
     ensureContext();
     const samples = decodePcm16(base64);
     if (!samples.length) return;
-    state.micQueue.push(samples);
     state.micFramesPushed += 1;
     state.micBytesPushed += Math.floor(base64.length * 3 / 4);
+
+    // With the worklet live the queue and the drop policy below live INSIDE
+    // it, on the audio render thread, and this side only hands frames over.
+    // Posted without a transfer list on purpose: a structured clone of 20 ms
+    // of mono audio is under 4 KB, while a transfer would neuter `samples`
+    // and, if postMessage then threw, leave an empty frame to fall through
+    // to the queue below.
+    if (state.micNode) {
+      try {
+        state.micNode.port.postMessage(samples);
+        return;
+      } catch (_) {
+        // A closed port is the one way this fails; keep the frame rather
+        // than drop it, and let the watchdog swap the producer.
+      }
+    }
+
+    state.micQueue.push(samples);
 
     // Keep the page-side WebAudio queue close to real time. If Chromium was
     // briefly busy, retain a partially-consumed head frame but skip old
@@ -1083,6 +1400,21 @@ registerProcessor('winzapp-call-tap', WinzappCallTapProcessor);
     state.enabled = false;
     state.micQueue.length = 0;
     state.micOffset = 0;
+    // The worklet holds its own queue on the audio thread, so clearing the
+    // main-thread one is no longer enough to stop stale microphone audio
+    // being played out after a reset.
+    try { state.micNode?.port?.postMessage({ type: 'clear' }); } catch (_) {}
+    // And the watchdog is stood down rather than left looping: with the
+    // bridge disabled no frames are pushed, so it would take its re-arm
+    // branch every 1.5 s for the life of the page between calls. That was
+    // wasteful, not broken -- the re-arm recaptures both baselines, so the
+    // last one before the next call held current totals and would have
+    // fired correctly. Standing it down here and re-arming in enable()
+    // replaces a permanent timer with two explicit edges.
+    if (state.micWorkletWatchdog) {
+      win.clearTimeout(state.micWorkletWatchdog);
+      state.micWorkletWatchdog = 0;
+    }
     for (const pipeline of state.remotePipelines.values()) {
       disconnectRemotePipeline(pipeline);
     }
@@ -1209,7 +1541,7 @@ registerProcessor('winzapp-call-tap', WinzappCallTapProcessor);
     } else if (state.audioWorkletStatus === 'unavailable') {
       startTap(false);
     } else {
-      ensureRemoteTapWorklet(context).then((ready: boolean) => {
+      ensureCallTapWorklet(context).then((ready: boolean) => {
         if (state.remotePipelines.get(id) !== pipeline) return;
         startTap(ready);
       });
