@@ -11,6 +11,12 @@ from core.audio_devices import (
     enumerate_output_devices, enumerate_input_devices, test_input_device,
 )
 from core.spell_checker import SPELL_CHECK_MODES, spell_check_mode
+from core.reaction_shortcuts import (
+    DEFAULT_QUICK_REACTIONS,
+    assign_quick_reaction,
+    fixed_quick_reactions,
+)
+from ui.dialogs.emoji_picker import choose_reaction_emoji
 
 # Win32 modifier constants for RegisterHotKey
 _MOD_ALT     = 0x0001
@@ -1186,6 +1192,58 @@ class SettingsDialog(wx.Dialog):
         self._notebook.AddPage(self._profile_backup_page, i18n.t("tab_profile_backup"))
         self._live_snapshot_check.Bind(wx.EVT_CHECKBOX, self._on_live_snapshot_toggle)
 
+        # ── Reactions tab ────────────────────────────────────────────────────
+        # The twelve quick choices of "React to message" (core/reaction_shortcuts.py).
+        # Appended last, like Profile backup, so no hardcoded SetSelection() /
+        # SetPageText() index of an earlier tab moves.
+        self._reactions_page = wx.Panel(self._notebook)
+        reactions_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self._fixed_quick_reactions_cb = wx.CheckBox(
+            self._reactions_page, label=i18n.t("reactions_fixed_label")
+        )
+        reactions_sizer.Add(self._fixed_quick_reactions_cb, 0, wx.ALL, 8)
+
+        # The label right before the list is the list's accessible name, so
+        # it carries the instruction: NVDA reads it on arriving by Tab, which
+        # is how the user learns that Enter opens the emoji picker.
+        self._quick_reaction_slots_label = wx.StaticText(
+            self._reactions_page, label=i18n.t("reactions_slots_label")
+        )
+        reactions_sizer.Add(
+            self._quick_reaction_slots_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8
+        )
+        self._quick_reaction_slots_list = wx.ListCtrl(
+            self._reactions_page, style=wx.LC_REPORT | wx.LC_SINGLE_SEL, size=(-1, 230)
+        )
+        self._quick_reaction_slots_list.InsertColumn(
+            0, i18n.t("reactions_slots_column").replace("&", ""), width=360
+        )
+        self._quick_reaction_slots = list(DEFAULT_QUICK_REACTIONS)
+        self._fill_quick_reaction_slots()
+        # Same "never open on nothing selected" convention as the group media
+        # list; Focus/Select only, the keyboard caret stays where it is.
+        self._quick_reaction_slots_list.Focus(0)
+        self._quick_reaction_slots_list.Select(0)
+        self._quick_reaction_slots_list.Bind(
+            wx.EVT_LIST_ITEM_ACTIVATED, self._on_quick_reaction_slot_activated
+        )
+        reactions_sizer.Add(
+            self._quick_reaction_slots_list, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._reset_quick_reactions_btn = wx.Button(
+            self._reactions_page, label=i18n.t("reactions_reset_button")
+        )
+        self._reset_quick_reactions_btn.Bind(wx.EVT_BUTTON, self._on_reset_quick_reactions)
+        reactions_sizer.Add(self._reset_quick_reactions_btn, 0, wx.ALL, 8)
+
+        self._reactions_page.SetSizer(reactions_sizer)
+        self._notebook.AddPage(self._reactions_page, i18n.t("tab_reactions"))
+        self._fixed_quick_reactions_cb.Bind(
+            wx.EVT_CHECKBOX, self._on_fixed_quick_reactions_toggle
+        )
+
         # ── Button row ───────────────────────────────────────────────────────
         btn_sizer = wx.StdDialogButtonSizer()
         self._ok_btn = wx.Button(self, wx.ID_OK, label=i18n.t("ok"))
@@ -1261,6 +1319,13 @@ class SettingsDialog(wx.Dialog):
             DEFAULT_LIVE_HOURS, LIVE_HOURS_MINIMUM)))
         self._live_snapshot_confirm_check.SetValue(profile_backup.get("live_snapshot_confirm", True))
         self._update_live_snapshot_fields()
+
+        reactions = self.main_window.settings.get("reactions", {})
+        self._fixed_quick_reactions_cb.SetValue(
+            bool(reactions.get("fixed_quick_reactions", False))
+        )
+        self._set_quick_reaction_slots(reactions.get("quick_reaction_slots"))
+        self._update_quick_reaction_fields()
 
         files_settings = self.main_window.settings.get(save_location.SECTION, {})
         self._save_folder_radio.SetSelection(
@@ -2023,6 +2088,74 @@ class SettingsDialog(wx.Dialog):
         self._update_live_snapshot_fields()
         event.Skip()
 
+    def _quick_reaction_slot_text(self, position: int, emoji: str) -> str:
+        return self.main_window.i18n.t("reactions_slot_row").format(
+            position=position + 1, emoji=emoji
+        )
+
+    def _fill_quick_reaction_slots(self):
+        """Write the twelve rows in place (SetItem, not a rebuild), so the
+        focused row keeps its position after a choice or a language change."""
+        slots_list = self._quick_reaction_slots_list
+        slots_list.Freeze()
+        try:
+            for position, emoji in enumerate(self._quick_reaction_slots):
+                text = self._quick_reaction_slot_text(position, emoji)
+                if position < slots_list.GetItemCount():
+                    slots_list.SetItem(position, 0, text)
+                else:
+                    slots_list.Append((text,))
+        finally:
+            slots_list.Thaw()
+
+    def _set_quick_reaction_slots(self, slots):
+        self._quick_reaction_slots = fixed_quick_reactions(slots)
+        self._fill_quick_reaction_slots()
+
+    def _on_fixed_quick_reactions_toggle(self, event):
+        self._update_quick_reaction_fields()
+        event.Skip()
+
+    def _update_quick_reaction_fields(self):
+        """The rows only mean something while fixed quick reactions are on.
+        Hidden rather than disabled, like the live backup options, so Tab and
+        the screen reader do not walk through options that do nothing."""
+        show = self._fixed_quick_reactions_cb.GetValue()
+        for control in (self._quick_reaction_slots_label,
+                        self._quick_reaction_slots_list,
+                        self._reset_quick_reactions_btn):
+            control.Show(show)
+        self._reactions_page.Layout()
+
+    def _on_quick_reaction_slot_activated(self, event):
+        """Enter on a row opens the full emoji picker for that row."""
+        position = event.GetIndex()
+        if not 0 <= position < len(self._quick_reaction_slots):
+            return
+        i18n = self.main_window.i18n
+        emoji = choose_reaction_emoji(
+            self, i18n,
+            title=i18n.t("reactions_pick_title").format(position=position + 1),
+            hint_text=i18n.t("reactions_pick_hint"),
+            ok_label=i18n.t("reactions_pick_ok"),
+        )
+        if emoji:
+            self._set_quick_reaction_slots(
+                assign_quick_reaction(self._quick_reaction_slots, position, emoji)
+            )
+            self._mark_dirty()
+        self._quick_reaction_slots_list.Focus(position)
+        self._quick_reaction_slots_list.Select(position)
+
+    def _on_reset_quick_reactions(self, event):
+        self._set_quick_reaction_slots(list(DEFAULT_QUICK_REACTIONS))
+        self._mark_dirty()
+        # Focus stays on the button, so nothing else would tell the user the
+        # twelve rows just changed.
+        self.main_window.output(
+            self.main_window.i18n.t("reactions_reset_done"), interrupt=True
+        )
+
     def _update_live_snapshot_fields(self):
         """The interval and the confirmation only mean something while the
         backup with WinZapp open is on. Hidden rather than disabled, so Tab
@@ -2476,6 +2609,12 @@ class SettingsDialog(wx.Dialog):
         self.main_window.settings.setdefault("user_interface", {})[
             "forwarded_prefix_enabled"
         ] = self._forwarded_prefix_cb.GetValue()
+        self.main_window.settings.setdefault("reactions", {})[
+            "fixed_quick_reactions"
+        ] = self._fixed_quick_reactions_cb.GetValue()
+        self.main_window.settings.setdefault("reactions", {})[
+            "quick_reaction_slots"
+        ] = list(self._quick_reaction_slots)
         self.main_window.settings.setdefault("user_interface", {})[
             "conversation_video_media_viewer_dialog"
         ] = self._conversation_video_media_viewer_dialog_cb.GetValue()
@@ -2819,6 +2958,14 @@ class SettingsDialog(wx.Dialog):
         self._notebook.SetPageText(10, i18n.t("tab_audio_playback"))
         self._notebook.SetPageText(11, i18n.t("tab_calls"))
         self._notebook.SetPageText(12, i18n.t("tab_profile_backup"))
+        self._notebook.SetPageText(13, i18n.t("tab_reactions"))
+        self._fixed_quick_reactions_cb.SetLabel(i18n.t("reactions_fixed_label"))
+        self._quick_reaction_slots_label.SetLabel(i18n.t("reactions_slots_label"))
+        self._set_list_column_label(
+            self._quick_reaction_slots_list, i18n.t("reactions_slots_column")
+        )
+        self._fill_quick_reaction_slots()
+        self._reset_quick_reactions_btn.SetLabel(i18n.t("reactions_reset_button"))
         self._close_snapshot_hours_label.SetLabel(i18n.t("profile_backup_close_hours_label"))
         self._live_snapshot_check.SetLabel(i18n.t("profile_backup_live_label"))
         self._live_snapshot_hours_label.SetLabel(i18n.t("profile_backup_live_hours_label"))

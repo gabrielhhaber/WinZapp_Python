@@ -4,6 +4,8 @@ Bu sürüm; WinZapp'in gerekmediği halde yeniden eşleme istemesine neden olan 
 
 YENİLİKLER
 
+- Herhangi bir emojiyle tepki verme. 12 hızlı seçeneğin sonundaki "Daha fazla tepki ekle" tam emoji seçicisini açar; sık kullandığınız emojiler zamanla hızlı seçenekler arasında yer alır ve en çok kullanılanlar en üstte görünür. Her tepkiyi hep aynı konumda bulmayı tercih ederseniz Ayarlar > Tepkiler sekmesini kullanın: "Sabit hızlı tepkiler kullan" işaretliyken 12 konum kullanıma göre değişmez ve bir konumda Enter'a basmak, oraya hangi tepkinin geleceğini seçmek için emoji seçicisini açar.
+
 - Farklı Kaydet ile kaydedilen bir dosyayı klasöründe gösterme. Kullanıcı tarafından seçilen bu kopya oluşturulduktan sonra; Dosya Gezgini'ni ilgili dosya seçili halde açmak için Ctrl+Enter kısayolunu, içerik menüsündeki "Klasörde göster" ögesini veya Aç ve Farklı Kaydet'in yanındaki Tab ile ulaşılabilen butonu kullanabilirsiniz. Yalnızca dahili indirmeler bu eylemi sunmaz.
 
 - Sohbet temizlenirken yıldızlı mesajların saklanıp saklanmayacağını seçme. Sohbeti temizleme onayı artık WhatsApp Web'de olduğu gibi varsayılan olarak işaretli bir "Yıldızlı mesajları sakla" seçeneği içerir. İşaret kaldırıldığında, telefonunuzda da olduğu gibi yıldızlı mesajlar diğer her şeyle birlikte silinir. Tek bir sohbeti, seçilen birden çok sohbeti veya arşivlenmiş bir sohbeti temizlerken geçerlidir.

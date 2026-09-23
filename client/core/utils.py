@@ -7,6 +7,7 @@ import base64
 import unicodedata
 import requests
 from cryptography.fernet import Fernet
+from core.reaction_shortcuts import DEFAULT_QUICK_REACTIONS
 
 
 # How much Unicode folding searching applies, in the order the Settings radio
@@ -926,6 +927,13 @@ DEFAULT_SETTINGS = {
         "live_snapshot_enabled": False,
         "live_snapshot_interval_hours": 24,
         "live_snapshot_confirm": True
+    },
+    # Settings > Reactions. Off: the twelve quick reactions are listed
+    # most-used first. On: exactly these rows, in this order, for users who
+    # pick a reaction by counting arrow presses (core/reaction_shortcuts.py).
+    "reactions": {
+        "fixed_quick_reactions": False,
+        "quick_reaction_slots": list(DEFAULT_QUICK_REACTIONS),
     },
     "user_interface": {
         "messages_page_size": 200,

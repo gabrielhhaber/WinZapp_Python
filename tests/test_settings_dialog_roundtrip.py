@@ -20,6 +20,10 @@ import pytest
 from core import save_location
 from core.spell_checker import SPELL_CHECK_MODES
 from core.utils import GROUP_MEDIA_TYPES, AUTO_DOWNLOAD_MEDIA_TYPES
+from core.reaction_shortcuts import DEFAULT_QUICK_REACTIONS, assign_quick_reaction
+
+# Row 1 set to 🐶 the way Enter + the picker does it, minus the modal picker.
+_QUICK_REACTION_SLOTS = ["🐶", *DEFAULT_QUICK_REACTIONS[1:]]
 
 # Creates a REAL top-level wx dialog - see the wxgui marker in pytest.ini.
 pytestmark = pytest.mark.wxgui
@@ -105,6 +109,18 @@ SCENARIOS = {
         saves={("user_interface", "group_media_default_types"): list(GROUP_MEDIA_TYPES[1:])},
         set=lambda d, t: d._group_media_types_list.CheckItem(0, False),
         shows=lambda d, t: d._selected_group_media_types() == list(GROUP_MEDIA_TYPES[1:]),
+    ),
+    "quick_reaction_slots": dict(
+        saves={("reactions", "quick_reaction_slots"): _QUICK_REACTION_SLOTS},
+        set=lambda d, t: d._set_quick_reaction_slots(
+            assign_quick_reaction(d._quick_reaction_slots, 0, "🐶")
+        ),
+        shows=lambda d, t: (
+            d._quick_reaction_slots == _QUICK_REACTION_SLOTS
+            and d._quick_reaction_slots_list.GetItemText(0)
+            == d._quick_reaction_slot_text(0, "🐶")
+            and d._quick_reaction_slots_list.GetItemCount() == 12
+        ),
     ),
     "connection_fields": dict(
         saves={("connection", "wpp_server"): "http://10.0.0.5",
@@ -325,6 +341,48 @@ def test_the_live_backup_options_follow_their_checkbox(make_dialog):
 
     reopened = make_dialog({"profile_backup": {"live_snapshot_enabled": True}})
     assert all(c.IsShown() for c in _live_backup_options(reopened))
+
+
+def _quick_reaction_rows(dialog):
+    return (dialog._quick_reaction_slots_label, dialog._quick_reaction_slots_list,
+            dialog._reset_quick_reactions_btn)
+
+
+def test_the_quick_reaction_rows_follow_their_checkbox(make_dialog):
+    """The twelve rows and the restore button appear only while fixed quick
+    reactions are ticked, same as the live backup options above."""
+    import wx
+
+    dialog = make_dialog({})
+    assert not any(c.IsShown() for c in _quick_reaction_rows(dialog))
+
+    check = dialog._fixed_quick_reactions_cb
+    check.SetValue(True)
+    event = wx.CommandEvent(wx.wxEVT_CHECKBOX, check.GetId())
+    event.SetEventObject(check)
+    event.SetInt(1)
+    check.GetEventHandler().ProcessEvent(event)
+    assert all(c.IsShown() for c in _quick_reaction_rows(dialog))
+
+    check.SetValue(False)
+    event.SetInt(0)
+    check.GetEventHandler().ProcessEvent(event)
+    assert not any(c.IsShown() for c in _quick_reaction_rows(dialog))
+
+    reopened = make_dialog({"reactions": {"fixed_quick_reactions": True}})
+    assert all(c.IsShown() for c in _quick_reaction_rows(reopened))
+
+
+def test_the_quick_reaction_list_is_named_by_its_instruction(make_dialog):
+    """NVDA names the list after the label right before it, which is where
+    "press Enter to choose the emoji" lives; the list opens on row 1."""
+    dialog = make_dialog({"reactions": {"fixed_quick_reactions": True}})
+    i18n = dialog.main_window.i18n
+    assert dialog._quick_reaction_slots_label.GetLabel() == i18n.t("reactions_slots_label")
+    children = list(dialog._reactions_page.GetChildren())
+    label_at = children.index(dialog._quick_reaction_slots_label)
+    assert children[label_at + 1] is dialog._quick_reaction_slots_list
+    assert dialog._quick_reaction_slots_list.GetFirstSelected() == 0
 
 
 @pytest.fixture

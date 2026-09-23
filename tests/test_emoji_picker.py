@@ -142,6 +142,46 @@ def test_ctrl_enter_queues_multiple_emojis_without_changing_single_insert(wx_app
         dialog.Destroy()
 
 
+def _static_labels(dialog):
+    import wx
+
+    found = []
+
+    def walk(window):
+        for child in window.GetChildren():
+            if isinstance(child, wx.StaticText):
+                found.append(child.GetLabel())
+            walk(child)
+
+    walk(dialog)
+    return found
+
+
+@pytest.mark.parametrize("texts, title, hint, ok", [
+    ({}, "react_dialog_title", "emoji_picker_reaction_hint", "react_to_message"),
+    # Settings > Reactions opens the same single-emoji picker for one row.
+    ({"title": "Emoji da posição 3", "hint_text": "Enter escolhe e fecha.",
+      "ok_label": "&Escolher"},
+     "Emoji da posição 3", "Enter escolhe e fecha.", "&Escolher"),
+])
+def test_single_emoji_picker_wording_follows_its_caller(wx_app, texts, title, hint, ok):
+    import wx
+
+    dialog = EmojiPickerDialog(None, _I18n(), reaction_mode=True, **texts)
+    try:
+        assert dialog.GetTitle() == title
+        assert hint in _static_labels(dialog)
+        # FindWindow searches this dialog's children only; FindWindowById is
+        # static and could return an earlier test's still-queued picker.
+        assert dialog.FindWindow(wx.ID_OK).GetLabel() == ok
+        dialog._list.Select(0, False)
+        dialog._queued_emojis[:] = ["😀"]
+        dialog._selected_emoji = "🐶"
+        assert dialog._final_selection() == "🐶"
+    finally:
+        dialog.Destroy()
+
+
 def test_empty_search_keeps_the_selected_category_only():
     labels = [key for key, _ in EMOJI_CATEGORIES]
     selected = 3
