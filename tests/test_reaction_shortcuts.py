@@ -28,27 +28,43 @@ def test_repeated_custom_reaction_gradually_enters_the_twelve():
     history = remember_reaction(history, "🐶")
     picks = quick_reactions(history)
     assert len(picks) == 12
+    assert picks[0] == "🐶"
     assert "🥰" not in picks
-    # The newcomer takes the displaced default's row; every other row stays.
+
+
+def test_by_default_the_most_used_reaction_comes_first():
+    assert quick_reactions(["🥰"])[0] == "🥰"
+    assert quick_reactions(["😂"] * 20)[0] == "😂"
+
+
+# Settings > User interface > "keep each quick reaction in the same position":
+# blind users pick a quick reaction by counting arrow presses, so with the
+# option on a reordering would silently send the wrong emoji.
+
+def test_stable_order_one_exploratory_reaction_does_not_reorder_the_twelve():
+    assert quick_reactions(["🥰"], stable_order=True) == list(DEFAULT_QUICK_REACTIONS)
+    assert quick_reactions(["🐶"], stable_order=True) == list(DEFAULT_QUICK_REACTIONS)
+
+
+def test_stable_order_heavily_used_default_keeps_its_row():
+    assert quick_reactions(["😂"] * 20, stable_order=True) == list(DEFAULT_QUICK_REACTIONS)
+
+
+def test_stable_order_newcomer_takes_the_displaced_default_row():
+    picks = quick_reactions(["🐶"] * 4, stable_order=True)
     assert picks == list(DEFAULT_QUICK_REACTIONS[:11]) + ["🐶"]
 
 
-def test_one_exploratory_reaction_does_not_reorder_the_twelve():
-    # Blind users pick a quick reaction by counting arrow presses: after a
-    # single pick of something new, Down twice must still land on 👎.
-    assert quick_reactions(["🥰"]) == list(DEFAULT_QUICK_REACTIONS)
-    assert quick_reactions(["🐶"]) == list(DEFAULT_QUICK_REACTIONS)
-
-
-def test_heavily_used_default_keeps_its_row():
-    assert quick_reactions(["😂"] * 20) == list(DEFAULT_QUICK_REACTIONS)
-
-
-def test_several_newcomers_fill_the_last_default_rows_by_rank():
-    history = ["🐱"] * 5 + ["🐶"] * 10
-    picks = quick_reactions(history)
+def test_stable_order_several_newcomers_fill_the_last_default_rows_by_rank():
+    picks = quick_reactions(["🐱"] * 5 + ["🐶"] * 10, stable_order=True)
     assert picks[:10] == list(DEFAULT_QUICK_REACTIONS[:10])
     assert picks[10:] == ["🐶", "🐱"]
+
+
+def test_stable_order_still_offers_the_current_reaction_for_removal():
+    picks = quick_reactions(["🐶"] * 4, current="🐸", stable_order=True)
+    assert picks[:11] == list(DEFAULT_QUICK_REACTIONS[:11])
+    assert picks[-1] == "🐸"
 
 
 def test_current_reaction_is_checked_slot_even_when_not_frequent():
@@ -62,12 +78,12 @@ def test_history_is_bounded_and_recent_preferences_can_replace_old_ones():
     history = remember_reaction(history, "🐱")
     assert len(history) == REACTION_HISTORY_LIMIT
     assert "🐶" not in quick_reactions(history)
-    assert quick_reactions(history)[-1] == "🐱"
+    assert quick_reactions(history)[0] == "🐱"
 
 
 def test_invalid_saved_history_is_ignored():
     assert quick_reactions("🐶🐶🐶🐶") == list(DEFAULT_QUICK_REACTIONS)
-    assert quick_reactions([None, "", "bad value", "🐶"] * 4)[-1] == "🐶"
+    assert quick_reactions([None, "", "bad value", "🐶"] * 4)[0] == "🐶"
 
 
 def test_reaction_picker_never_returns_a_queued_emoji_sequence():
@@ -141,8 +157,10 @@ def test_full_picker_returns_one_emoji_or_none_without_a_real_dialog(monkeypatch
         ("", 12, None, None, 1),
     ],
 )
+@pytest.mark.parametrize("stable_setting", [None, False, True])
 def test_more_reactions_row_opens_picker_and_sends_its_choice(
     monkeypatch, current, activate_index, picker_choice, expected, picker_calls,
+    stable_setting,
 ):
     class _Control:
         def __init__(self, *args, **kwargs):
@@ -234,7 +252,9 @@ def test_more_reactions_row_opens_picker_and_sends_its_choice(
             pass
 
     class _MainWindow:
-        settings = {}
+        # None: an install from before the option existed has no such key.
+        settings = ({} if stable_setting is None else
+                    {"user_interface": {"stable_quick_reactions_order": stable_setting}})
         i18n = type("I18n", (), {"t": lambda self, key: "Daha fazla tepki ekle" if key == "react_dialog_more" else key})()
 
     class _Panel:
@@ -254,7 +274,15 @@ def test_more_reactions_row_opens_picker_and_sends_its_choice(
         return picker_choice
     monkeypatch.setattr(conversations, "choose_reaction_emoji", _pick)
     monkeypatch.setattr(conversations.threading, "Thread", _Thread)
+    ranking_calls = []
+    real_quick_reactions = conversations.quick_reactions
+    def _quick_reactions(*args, **kwargs):
+        ranking_calls.append(kwargs)
+        return real_quick_reactions(*args, **kwargs)
+    monkeypatch.setattr(conversations, "quick_reactions", _quick_reactions)
     ConversationsPanel._on_menu_react(_Panel(), {"key": {"id": "m1"}})
+
+    assert ranking_calls == [{"stable_order": bool(stable_setting)}]
 
     assert _List.instance.checkboxes_enabled is True
     assert len(_List.instance.rows) == 13

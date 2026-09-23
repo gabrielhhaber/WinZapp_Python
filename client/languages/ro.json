@@ -714,6 +714,7 @@
     "ui_show_yesterday_label": "Afișați mesajele de ieri cu data omisă (ieri)",
     "ui_show_link_previews_label": "Afișează previzualizările linkurilor în lista de mesaje",
     "ui_forwarded_prefix_label": "Anunțați „Redirecționat” la începutul mesajului, înaintea expeditorului",
+    "ui_stable_quick_reactions_label": "Păstrați fiecare dintre cele 12 reacții rapide mereu în aceeași poziție, în loc să le ordonați după cele mai utilizate",
     "ui_conversation_video_media_viewer_dialog_label": "Afișați videoclipuri de conversație într-un player separat (deschide o nouă casetă de dialog)",
     "ui_status_media_viewer_dialog_label": "Afișați stările într-un player separat (deschide o nouă casetă de dialog)",
     "ui_voice_message_mode_label": "Citirea mesajelor vocale în conversații și stare:",

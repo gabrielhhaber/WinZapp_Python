@@ -14427,8 +14427,12 @@ class ConversationsPanel(wx.Panel):
         # message, and let activating it again remove it — there was
         # previously no way to remove a reaction from the UI at all.
         current_emoji = (self._reaction_map.get(msg_id) or {}).get(self._SELF_REACTOR_KEY, "")
+        settings = self.main_window.settings
         emojis = quick_reactions(
-            self.main_window.settings.get("reaction_recent_emojis"), current_emoji,
+            settings.get("reaction_recent_emojis"), current_emoji,
+            stable_order=bool(settings.get("user_interface", {}).get(
+                "stable_quick_reactions_order", False
+            )),
         )
 
         dlg = wx.Dialog(

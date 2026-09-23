@@ -953,6 +953,9 @@ DEFAULT_SETTINGS = {
         "show_yesterday_label": True,
         "show_link_previews": True,
         "forwarded_prefix_enabled": False,
+        # Off: the twelve quick reactions are listed most-used first. On:
+        # each keeps its row, for users who count arrow presses.
+        "stable_quick_reactions_order": False,
         "conversation_video_media_viewer_dialog": True,
         "status_media_viewer_dialog": True,
         "voice_message_mode": "voice_message",

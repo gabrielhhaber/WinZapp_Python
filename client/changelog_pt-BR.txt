@@ -4,7 +4,7 @@ Esta versão corrige situações em que o WinZapp pedia para parear de novo sem 
 
 NOVIDADES
 
-- Reagir com qualquer emoji. No fim das 12 reações rápidas, "Adicionar mais reações" abre a seleção completa; as reações usadas com frequência passam gradualmente a aparecer entre as 12 opções rápidas.
+- Reagir com qualquer emoji. No fim das 12 reações rápidas, "Adicionar mais reações" abre a seleção completa; as reações usadas com frequência passam gradualmente a aparecer entre as 12 opções rápidas, com as mais usadas no topo. Quem prefere encontrar cada reação sempre na mesma posição pode marcar a opção correspondente na aba Interface do usuário das Configurações.
 
 - Mostrar na pasta um arquivo salvo com Salvar como. Quando essa cópia escolhida pelo usuário existir, use Ctrl+Enter, o item "Mostrar na pasta" do menu de contexto ou o botão acessível com Tab ao lado de Abrir e Salvar como; apenas o download interno do WinZapp não exibe a ação.
 

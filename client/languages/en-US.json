@@ -714,6 +714,7 @@
     "ui_show_yesterday_label": "Show yesterday's messages with the date omitted (yesterday)",
     "ui_show_link_previews_label": "Show link previews in the message list",
     "ui_forwarded_prefix_label": "Announce \"Forwarded\" at the start of the message, before the sender",
+    "ui_stable_quick_reactions_label": "Keep each of the 12 quick reactions in the same position instead of sorting by most used",
     "ui_conversation_video_media_viewer_dialog_label": "Show conversation videos in a separate player (opens a new dialog)",
     "ui_status_media_viewer_dialog_label": "Show statuses in a separate player (opens a new dialog)",
     "ui_voice_message_mode_label": "Reading voice messages in conversations and status:",

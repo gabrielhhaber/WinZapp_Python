@@ -714,6 +714,7 @@
     "ui_show_yesterday_label": "Mostrar los mensajes de ayer con la fecha omitida (ayer)",
     "ui_show_link_previews_label": "Mostrar vistas previas de enlaces en la lista de mensajes",
     "ui_forwarded_prefix_label": "Anunciar \"Reenviada\" al inicio del mensaje, antes del remitente",
+    "ui_stable_quick_reactions_label": "Mantener cada una de las 12 reacciones rápidas siempre en la misma posición, en lugar de ordenarlas por las más usadas",
     "ui_conversation_video_media_viewer_dialog_label": "Mostrar los vídeos de las conversaciones en un reproductor separado (abre un nuevo diálogo)",
     "ui_status_media_viewer_dialog_label": "Mostrar los estados en un reproductor separado (abre un nuevo diálogo)",
     "ui_voice_message_mode_label": "Lectura de mensajes de voz en conversaciones y estados:",

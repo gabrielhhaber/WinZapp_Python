@@ -572,6 +572,13 @@ class SettingsDialog(wx.Dialog):
             self._forwarded_prefix_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        self._stable_quick_reactions_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_stable_quick_reactions_label")
+        )
+        ui_sizer.Add(
+            self._stable_quick_reactions_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         self._conversation_video_media_viewer_dialog_cb = wx.CheckBox(
             self._ui_page, label=i18n.t("ui_conversation_video_media_viewer_dialog_label")
         )
@@ -1423,6 +1430,11 @@ class SettingsDialog(wx.Dialog):
             "forwarded_prefix_enabled", False
         )
         self._forwarded_prefix_cb.SetValue(bool(forwarded_prefix_enabled))
+
+        stable_quick_reactions_order = self.main_window.settings.get(
+            "user_interface", {}
+        ).get("stable_quick_reactions_order", False)
+        self._stable_quick_reactions_cb.SetValue(bool(stable_quick_reactions_order))
 
         conversation_video_media_viewer_dialog = self.main_window.settings.get(
             "user_interface", {}
@@ -2477,6 +2489,9 @@ class SettingsDialog(wx.Dialog):
             "forwarded_prefix_enabled"
         ] = self._forwarded_prefix_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
+            "stable_quick_reactions_order"
+        ] = self._stable_quick_reactions_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
             "conversation_video_media_viewer_dialog"
         ] = self._conversation_video_media_viewer_dialog_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
@@ -2893,6 +2908,7 @@ class SettingsDialog(wx.Dialog):
         self._show_link_previews_cb.SetLabel(i18n.t("ui_show_link_previews_label"))
         self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
         self._forwarded_prefix_cb.SetLabel(i18n.t("ui_forwarded_prefix_label"))
+        self._stable_quick_reactions_cb.SetLabel(i18n.t("ui_stable_quick_reactions_label"))
         self._conversation_video_media_viewer_dialog_cb.SetLabel(
             i18n.t("ui_conversation_video_media_viewer_dialog_label")
         )

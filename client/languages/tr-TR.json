@@ -714,6 +714,7 @@
   "ui_show_yesterday_label": "Dünkü mesajları tarihi atlayarak göster (dün)",
   "ui_show_link_previews_label": "Mesaj listesinde bağlantı önizlemelerini göster",
   "ui_forwarded_prefix_label": "Mesajın başında, göndericiden önce \"İletildi\" duyur",
+  "ui_stable_quick_reactions_label": "12 hızlı tepkiyi en çok kullanılana göre sıralamak yerine her birini hep aynı konumda tut",
   "ui_conversation_video_media_viewer_dialog_label": "Sohbet videolarını ayrı bir oynatıcıda göster (yeni bir iletişim kutusu açar)",
   "ui_status_media_viewer_dialog_label": "Durumları ayrı bir oynatıcıda göster (yeni bir iletişim kutusu açar)",
   "ui_voice_message_mode_label": "Sohbetlerde ve durumlarda sesli mesajların okunması:",
