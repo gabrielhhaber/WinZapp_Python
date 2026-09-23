@@ -158,6 +158,30 @@ before the call is answered there is no microphone audio to consume and
 silence proves nothing. `micTapMode` in `/call/diagnostics` and the `mic-tap`
 log line say which producer is live.
 
+Three details that are easy to get wrong when touching this. The watchdog's
+verdict is `micWorkletUnscheduled`, **not** `audioWorkletStatus`: that flag
+answers only "did `addModule()` register the module", the remote tap branches
+on it, and a microphone starved for a second and a half by a suspended
+context would otherwise put every remote track for the life of the page back
+on the ScriptProcessor — the audio the user actually hears, degraded as a side
+effect of a microphone heuristic. The terminal fallback is **wrapped**, and
+drops `micDestination` if even the ScriptProcessor will not start: with both
+producers null on a track that still reads `live`, `ensureMicTrack()` early
+returns it forever and the microphone is dead for the session. And the drop
+policy moved into the worklet is the same arithmetic but not quite the same
+behaviour: `offset > 0` is now sampled against a 128-sample quantum instead of
+a 1024-sample block, against 20 ms frames, so the head is partially consumed
+in 7 quanta out of 8 and the effective cap is `targetFrames + 1` nearly
+always, where on the main thread it was usually `targetFrames`. That is ~20 ms
+more steady-state microphone backlog than before — accepted, not overlooked.
+
+The worklet reports its counters every `PAGE_MIC_REPORT_QUANTA` (~128 ms), so
+a swap or a `reset()` discards up to one report's worth of `consumed` and
+`dropped`. `micSamplesConsumed` therefore under-reports by up to ~128 ms per
+swap; it never jumps or goes backwards, which is the invariant the deltas
+exist for, but do not read it over a window of a few hundred milliseconds and
+conclude anything.
+
 **A reservoir in front of the output is the exact thing the 2026-09-20
 bisection blamed, and it is back on purpose — so be accurate about what that
 bisection established.** It showed that swapping this file for main's version

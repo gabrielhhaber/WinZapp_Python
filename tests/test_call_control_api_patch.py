@@ -141,6 +141,7 @@ def test_remote_audio_tap_prefers_an_audio_worklet_and_still_has_a_fallback():
     assert "callback(base64, context.sampleRate)" in bridge
     assert "REMOTE_TAP_MAX_FRAME_BYTES" in bridge
 
+
 def test_microphone_tap_prefers_an_audio_worklet_and_can_swap_back():
     """The peer hears this side chop for the mirror-image reason.
 
@@ -180,23 +181,66 @@ def test_microphone_tap_prefers_an_audio_worklet_and_can_swap_back():
     # Both producers exist, exactly one is connected, and both feed the same
     # destination — WhatsApp cloned that track once and never asks again.
     assert "createScriptProcessor(1024, 0, 1)" in bridge
-    assert bridge.count("startMicScriptProcessorTap(") >= 3
+    # Exact, not a lower bound: a lower bound against N real call sites lets
+    # any one of them be deleted with the test still green. Every terminal
+    # fallback goes through swapMicProducerToScriptProcessor (watchdog, node
+    # constructor throwing, upgrade-in-place throwing); the ScriptProcessor
+    # itself is started from that wrapper and from the not-yet-ready branch.
+    assert bridge.count("startMicScriptProcessorTap(") == 2
+    assert bridge.count("swapMicProducerToScriptProcessor(") == 3
     teardown = bridge[bridge.index("const disconnectMicProducer"):]
     teardown = teardown[: teardown.index("\n  };")]
     assert "state.micNode = null" in teardown and "state.micProcessor = null" in teardown
     assert "state.micNode?.disconnect()" in teardown
     assert re.search(
-        r"catch \(error[^)]*\) \{.{0,400}?startMicScriptProcessorTap\(", bridge, re.S
+        r"catch \(error[^)]*\) \{.{0,400}?swapMicProducerToScriptProcessor\(", bridge, re.S
     ), "a mic worklet node that throws must fall back, not leave the call mute"
 
     # A silent microphone is discovered by the PEER, so the worklet gets a
     # deadline rather than trust, and the swap goes back to the same
     # destination.
     assert "MIC_WORKLET_WATCHDOG_MS" in bridge
-    assert "armMicWorkletWatchdog" in bridge
-    assert "state.micFramesPushed === pushedAtArm" in bridge, (
+    # The watchdog has to be ARMED where the worklet starts — asserting the
+    # name alone is satisfied by its own definition, so deleting the call
+    # would leave an unwatched worklet and a green test.
+    start_worklet = bridge[bridge.index("const startMicWorkletTap"):]
+    start_worklet = start_worklet[: start_worklet.index("\n  };")]
+    assert "armMicWorkletWatchdog();" in start_worklet
+    watchdog = bridge[bridge.index("const armMicWorkletWatchdog"):]
+    watchdog = watchdog[: watchdog.index("\n  };")]
+    assert "state.micFramesPushed === pushedAtArm" in watchdog, (
         "silence proves nothing until frames have actually been handed over"
     )
+    assert "state.micSamplesConsumed > consumedAtArm" in watchdog, (
+        "a worklet that IS consuming must not be swapped out"
+    )
+    assert "swapMicProducerToScriptProcessor(" in watchdog, (
+        "firing without handing the destination back leaves the call mute"
+    )
+    # The watchdog is a MICROPHONE verdict. Writing audioWorkletStatus here
+    # would condemn the remote tap, which branches on that same flag, and put
+    # the blind user's own audio back on the ScriptProcessor #281 replaced.
+    # The ASSIGNMENT, not the word: the comment in there explains at length
+    # why this flag must not be touched, and prose must not satisfy the test.
+    assert "state.audioWorkletStatus =" not in watchdog
+    assert "state.micWorkletUnscheduled = true" in watchdog
+    # The terminal fallback is wrapped: if it throws, both producers are null
+    # on a track that still reads 'live', so ensureMicTrack() would early
+    # return it forever and the microphone would be dead for the session.
+    swap_body = bridge[bridge.index("const swapMicProducerToScriptProcessor"):]
+    swap_body = swap_body[: swap_body.index("\n  };")]
+    assert "try {" in swap_body and "state.micDestination = null" in swap_body
+
+    # The upgrade-in-place guard, both halves: the wrong destination means a
+    # newer track owns the page, and an existing node means two producers on
+    # one destination — the peer would hear doubled audio.
+    assert "state.micDestination !== destination || state.micNode" in bridge
+
+    # Counters are ADDED on this side too, not assigned.
+    assert "state.micSamplesConsumed += data.consumed" in bridge
+    # The partially-consumed head frame is kept while older complete frames
+    # are dropped; dropping the head instead cuts a frame mid-sample.
+    assert worklet.count("const dropIndex = this.offset > 0 ? 1 : 0;") == 2
 
     # pushMicrophone hands frames to the worklet when it is live, and the
     # queue below it is the fallback's, not a second copy.
