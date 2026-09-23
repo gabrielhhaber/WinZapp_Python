@@ -3,6 +3,7 @@ import os
 import wx
 from core.i18n import LANGUAGE_NAMES
 from core.combo_search import bind_incremental_search
+from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
 from core.sound_system import (
     SOUND_EVENTS, discover_alert_tone_choices, resolve_alert_tone_path,
     DEFAULT_PACK_ID, import_soundpack, AlertPreviewController,
@@ -989,6 +990,8 @@ class SettingsDialog(wx.Dialog):
 
         self._alert_private_combo.Bind(wx.EVT_COMBOBOX, self._on_alert_choice_changed)
         self._alert_group_combo.Bind(wx.EVT_COMBOBOX, self._on_alert_choice_changed)
+        self._alert_private_custom_field.Bind(wx.EVT_TEXT, self._on_alert_custom_path_changed)
+        self._alert_group_custom_field.Bind(wx.EVT_TEXT, self._on_alert_custom_path_changed)
 
         # Preview buttons — sharing a group so starting one stops the other.
         _alert_preview_group = []
@@ -1990,7 +1993,45 @@ class SettingsDialog(wx.Dialog):
         self._alert_group_custom_label.Show(is_custom_group)
         self._alert_group_custom_field.Show(is_custom_group)
 
+        self._update_alert_preview_visibility()
         self._alert_page.Layout()
+
+    def _update_alert_preview_visibility(self):
+        """Show each preview button only when there is a sound to play.
+
+        With "Personalizado" and no existing file in its path field, the
+        button used to stay and answer a press with an error box.
+        """
+        if not self._alert_private_preview_btn:
+            return  # the dialog closed while a delayed check was pending
+        changed = False
+        for combo, field, button, preview in (
+            (self._alert_private_combo, self._alert_private_custom_field,
+             self._alert_private_preview_btn, self._alert_private_preview),
+            (self._alert_group_combo, self._alert_group_custom_field,
+             self._alert_group_preview_btn, self._alert_group_preview),
+        ):
+            show = alert_tone_previewable(self._selected_alert_key(combo), field.GetValue())
+            if show == button.IsShown():
+                continue
+            if not show:
+                preview.stop()
+            button.Show(show)
+            changed = True
+        if changed:
+            self._alert_page.Layout()
+
+    def _on_alert_custom_path_changed(self, event):
+        # Skip first: the dialog-level EVT_TEXT binding is what marks the
+        # settings dirty, and it only runs if this handler lets it through.
+        event.Skip()
+        # Re-armed on each keystroke, so the check runs once typing pauses.
+        pending = getattr(self, "_alert_path_check", None)
+        if pending is not None and pending.IsRunning():
+            pending.Restart(CUSTOM_PATH_CHECK_DELAY_MS)
+        else:
+            self._alert_path_check = wx.CallLater(
+                CUSTOM_PATH_CHECK_DELAY_MS, self._update_alert_preview_visibility)
 
     def _on_alert_choice_changed(self, event):
         self._update_alert_custom_field_state()
@@ -3164,6 +3205,9 @@ class SettingsDialog(wx.Dialog):
     def _stop_alert_previews(self):
         self._alert_private_preview.stop()
         self._alert_group_preview.stop()
+        pending = getattr(self, "_alert_path_check", None)
+        if pending is not None:
+            pending.Stop()
 
     def _on_ok(self, event):
         if self._apply_values():

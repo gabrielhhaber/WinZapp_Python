@@ -34,7 +34,7 @@ from core.locale_format import get_datetime_format
 # function, so this direction of the pair is not a cycle.
 from ui.conversations import local_media_cache_paths
 from app_paths import data_path
-from core.alert_tones import alert_tone_previewable
+from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
 from core.sound_system import (
     discover_alert_tone_choices, resolve_alert_tone_path, AlertPreviewController,
 )
@@ -403,11 +403,6 @@ class ConversationDataDialog(wx.Dialog):
         self._update_sound_preview_visibility()
         self._sound_custom_label.GetParent().Layout()
 
-    #: Typing pause after which the custom path is checked on disk. Checking
-    #: on every keystroke would stat a half-typed path each time, and a
-    #: half-typed UNC path (\\server\share\...) can block the UI for seconds.
-    _SOUND_PATH_CHECK_DELAY_MS = 400
-
     def _update_sound_preview_visibility(self):
         """Show the preview button only when there is a sound to play.
 
@@ -456,10 +451,10 @@ class ConversationDataDialog(wx.Dialog):
         # Re-armed on each keystroke, so the check runs once typing pauses.
         pending = getattr(self, "_sound_path_check", None)
         if pending is not None and pending.IsRunning():
-            pending.Restart(self._SOUND_PATH_CHECK_DELAY_MS)
+            pending.Restart(CUSTOM_PATH_CHECK_DELAY_MS)
         else:
             self._sound_path_check = wx.CallLater(
-                self._SOUND_PATH_CHECK_DELAY_MS, self._update_sound_preview_visibility)
+                CUSTOM_PATH_CHECK_DELAY_MS, self._update_sound_preview_visibility)
         self._mw._schedule_save_settings()
 
     def _build_group_ui(self, panel, outer):
