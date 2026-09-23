@@ -215,7 +215,8 @@ class TestTheFreshCopyInTheOpenConversation:
         import time as _time
         from tests.test_archived_chat_sound_tts import _StubMainWindow
 
-        monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **k: None)
+        queued = []
+        monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **k: queued.append(fn))
 
         class _Window(_StubMainWindow):
             _fill_stored_placeholder = MainWindow._fill_stored_placeholder
@@ -224,7 +225,8 @@ class TestTheFreshCopyInTheOpenConversation:
         jid = "5511911112222@s.whatsapp.net"
         now = int(_time.time())
         window = _Window(open_jid=jid)
-        window.conversations_panel.refresh_messages_if_changed = lambda: None
+        refresh = lambda: None
+        window.conversations_panel.refresh_messages_if_changed = refresh
         placeholder = {"key": {"remoteJid": jid, "fromMe": False, "id": "FRESH1"},
                        "message": {}, "messageType": "ciphertext", "messageTimestamp": now}
         older = {"key": {"remoteJid": jid, "fromMe": False, "id": "OLD1"},
@@ -245,3 +247,21 @@ class TestTheFreshCopyInTheOpenConversation:
         stored = window.chats[jid]["messages"]["messages"]["records"]
         assert [r["key"]["id"] for r in stored].count("FRESH1") == 1
         assert any(r is panel_row for r in stored)
+        # and the list is told to repaint that row
+        assert refresh in queued
+
+
+def test_adopting_the_copy_replaces_rather_than_merges():
+    existing = {"key": {"id": "X"}, "messageType": "ciphertext", "message": {},
+                "MessageUpdate": {"stale": True}, "_local_flag": True,
+                "_recovered_from_quote": True}
+    incoming = {"key": {"id": "X"}, "messageType": "conversation",
+                "message": {"conversation": "oi"}}
+
+    adopted = MainWindow._adopt_decrypted_copy(existing, incoming)
+
+    assert adopted is existing
+    assert "MessageUpdate" not in existing       # the placeholder's own field is gone
+    assert existing["_local_flag"] is True       # local-only fields survive
+    assert "_recovered_from_quote" not in existing
+    assert existing["message"] == {"conversation": "oi"}

@@ -8077,9 +8077,13 @@ class MainWindow(wx.Frame):
         In place, and returned: the open conversation's rows are these same
         dict objects, so replacing the record with a new dict left the list
         rendering the old one -- a review caught the row still reading
-        "Aguardando mensagem" after a rebuild. Local-only (`_`) fields are kept;
-        a text recovered from a reply's quote is superseded.
+        "Aguardando mensagem" after a rebuild. Replaced, not merged: nothing the
+        placeholder carried outlives it except local-only (`_`) fields, and a
+        text recovered from a reply's quote is superseded.
         """
+        for field in [f for f in existing if not str(f).startswith("_")]:
+            if field not in incoming:
+                del existing[field]
         for field, value in incoming.items():
             existing[field] = value
         existing.pop(RECOVERED_FROM_QUOTE, None)
