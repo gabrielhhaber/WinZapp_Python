@@ -517,6 +517,14 @@ export async function callDiagnostics(req: Request, res: Response) {
         callMediaBridge: (() => {
           const bridge = win.__winzappCallMediaBridge;
           return bridge ? {
+            version: bridge.version || 0,
+            // Which remote tap actually ran. The worklet is the fix for the
+            // ~1% of buffers the ScriptProcessor dropped, and its Blob-URL
+            // module can be refused by the page's CSP, so a build that fell
+            // back has to be recognisable from the outside rather than
+            // looking fixed.
+            remoteTapMode: bridge.remoteTapMode || '',
+            audioWorkletStatus: bridge.audioWorkletStatus || 'unknown',
             enabled: !!bridge.enabled,
             micFramesPushed: bridge.micFramesPushed || 0,
             micBytesPushed: bridge.micBytesPushed || 0,

@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,8 +70,67 @@ def test_call_media_bridge_advertises_virtual_camera_on_headless_hosts():
     assert "cameraTrackRequests" in bridge
     assert "cameraFramesReceived" in bridge
     assert "call camera frames received from desktop=" in bridge
-    assert "version === 7" in bridge
-    assert "version: 7" in bridge
+    assert "version === 8" in bridge
+    assert "version: 8" in bridge
+
+
+def test_remote_audio_tap_prefers_an_audio_worklet_and_still_has_a_fallback():
+    """Measured 2026-09-23 on a live call: the ScriptProcessor tap dropped ~1%
+    of its own buffers (464 callbacks where 468.8 were due, longTaskCount 0),
+    delivering 47,507 samples/s against the 48,000 it declares — which drains
+    the Python jitter buffer forever. A worklet runs on the audio render
+    thread and cannot be starved by the main thread.
+
+    The fallback is not optional: addModule() needs a URL and WhatsApp Web's
+    CSP may refuse a blob: script, and a call with no remote audio at all is
+    far worse than a popping one. Assert on the shape of the guard — both taps
+    reachable, and which one ran reported — not on the wording.
+    """
+    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+
+    assert "registerProcessor('winzapp-call-tap'" in bridge
+    assert "audioWorklet" in bridge and "addModule" in bridge
+    assert "new win.AudioWorkletNode(context, 'winzapp-call-tap'" in bridge
+    # The fallback path survives, and is chosen only when the module is not.
+    assert "startScriptProcessorTap" in bridge
+    assert "createScriptProcessor(1024, 1, 1)" in bridge
+    # The shape of the fallback, not its wording: the ScriptProcessor tap is
+    # reachable from the module being refused AND from the node constructor
+    # throwing. A track left with no tap at all is silence on the call, which
+    # is worse than the popping this replaces.
+    assert bridge.count("startScriptProcessorTap(") >= 2  # two reachable call sites
+    assert re.search(
+        r"catch \(error[^)]*\) \{.{0,600}?startScriptProcessorTap\(", bridge, re.S
+    ), "a worklet node that throws must fall back, not leave the track untapped"
+    assert re.search(
+        r"if \(ready\)[^}]*startWorkletTap\(\)", bridge, re.S
+    ), "the worklet tap is used only when the module actually registered"
+
+    # Two guards that are the difference between a working call and a silent
+    # or double-tapped one, and neither is visible in the happy path.
+    assert "state.remotePipelines.get(id) !== pipeline" in bridge, (
+        "a track that ended while addModule() was in flight must not be revived"
+    )
+    teardown = bridge[bridge.index("const disconnectRemotePipeline"):]
+    teardown = teardown[: teardown.index("\n  };")]
+    assert "pipeline.node?.disconnect()" in teardown, (
+        "a worklet node outliving the call goes on sending frames to Python"
+    )
+    assert "pipeline.processor?.disconnect()" in teardown
+    # Which tap ran has to be visible from outside: a silent fallback looks
+    # fixed and is not, and finding that out costs another live call.
+    assert "audioWorkletStatus" in bridge
+    assert "tap=audio-worklet" in bridge
+    assert "tap=script-processor" in bridge
+    assert "remoteTapMode" in _source("client/api_patches/src/controller/callController.ts")
+    # Batching happens in the worklet (128-sample quanta -> ~1024), never on
+    # the main thread, which is the thread being taken off the audio path.
+    assert "REMOTE_TAP_BATCH_SAMPLES = 1024" in bridge
+    assert "batchSamples: REMOTE_TAP_BATCH_SAMPLES" in bridge
+    # The real context rate goes with the frames; only the Linux relay, which
+    # creates its own devices, may assume 48000.
+    assert "callback(base64, context.sampleRate)" in bridge
+    assert "REMOTE_TAP_MAX_FRAME_BYTES" in bridge
 
 def test_chromium_does_not_disable_voice_input_for_python_call_bridge():
     start_js = _source("client/api_patches/start.js")

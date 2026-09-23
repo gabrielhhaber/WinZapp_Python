@@ -54,11 +54,75 @@ exclusive settings and after the WASAPI device-selection work) does not. The
 output stream is now opened with `blocksize=0` (PortAudio serves the device's
 own period, which is the only size WASAPI can serve without another conversion
 buffer) and a `callback=` that drains `_OutputJitterBuffer`: ~60 ms of
-prebuffer on cold start, only ~20 ms to resume after an underrun (requiring the
-full target again would chop a jittery-but-adequate line into a ~50% duty
-cycle, which is worse than the clicks), a ~200 ms hard cap that drops the
+prebuffer on cold start, originally only ~20 ms to resume after an underrun
+(requiring the full target again would chop a jittery-but-adequate line into a
+~50% duty cycle, which is worse than the clicks — that threshold is adaptive
+now, see the next paragraph), a ~200 ms hard cap that drops the
 **oldest** samples, and ~5 ms fades on starvation and resumption because the
 discontinuity clicks even between two stretches of silence.
+
+**The reservoir was never the fault — the SOURCE runs slow, and that was
+measured, so do not re-derive it.** The paragraph above implies the remaining
+popping was a tuning problem in the buffer. It was not. Over CDP against a
+live, popping call (2026-09-23, CORSAIR HS80, WASAPI device 14, page bridge
+version 7):
+
+- The page's audio clock is exact — `ctx.currentTime` advanced 10.0000 s over
+  10.0014 s of wall clock (ratio 0.99986). **Not clock drift.**
+- The `createScriptProcessor(1024, 1, 1)` remote tap fired **464 callbacks
+  where the context clock says 468.8 were due** (ratio 0.98987). It drops ~1%
+  of its buffers outright — 1024 samples, 21.3 ms of audio, gone, ~0.5 times a
+  second — with `longTaskCount` 0. Not a long-task stall: the deprecated
+  main-thread node simply misses its deadline under ordinary scheduling.
+- Net delivery to Python was **47,507 samples/s against the 48,000 it
+  declares**. Arrival gaps were unremarkable (p50 20.08 ms, p90 29.76 ms, max
+  32.43 ms).
+- Python's side of the same call: `remote audio starved underruns=` grew by 50
+  every ~18 s from the first seconds — **~2.8 underruns per second, steady,
+  for 35 minutes** (6101 underruns, 26144 dropped samples).
+
+A source delivering under real time drains **any fixed reservoir forever**, and
+the 20 ms resume threshold then re-starved within a packet or two, so the
+buffer lived permanently at the edge and every underrun was a fade-out/fade-in
+chop. The choppy WhatsApp ringback fits: it arrives through the same relay.
+
+Two fixes, and the first is the real one. The remote tap is now an
+**AudioWorklet** (`winzapp-call-tap`, registered from a Blob URL, batching
+128-sample quanta to ~1024 inside the worklet) which runs on the audio render
+thread and cannot be starved by main-thread scheduling. `addModule()` needs a
+URL and the page's CSP is entitled to refuse a `blob:` script, so the
+ScriptProcessor path is kept as a fallback and **which one ran is reported** —
+`call media remote-tap: ... tap=audio-worklet|tap=script-processor` in
+`wppconnect.log`, plus `remoteTapMode`/`audioWorkletStatus` in
+`/api/:session/call/diagnostics`. A silent fallback would look fixed and cost
+another live call with a blind user to discover. Second, the Python resume
+threshold is no longer fixed: `_OutputJitterBuffer` keeps an **adaptive
+target** that starts at `CALL_OUTPUT_PREBUFFER_MS`, grows a step per recurring
+underrun up to `CALL_OUTPUT_TARGET_MAX_MS` (120 ms, well under the 200 ms hard
+cap, so drop-oldest still bounds latency) and decays back while playback stays
+clean. Simulated against a 1%-slow source over 90 s: 44 underruns with the
+fixed 20 ms threshold, 8 with the adaptive target (15 → 2 in the last 30 s).
+
+**That floor at `CALL_OUTPUT_PREBUFFER_MS` is a deliberate reversal of PR
+#278's review decision, and here is the condition to revisit it.** That review
+chose 20 ms precisely so a jittery-but-adequate line would not be chopped into
+a ~50% duty cycle; the target now never resumes on less than the full 60 ms.
+The reversal is right for the failure that was actually measured — a permanent
+20 ms of slack is what left the buffer sitting at the edge, and fewer underruns
+from a deeper reservoir serves the jittery line better than a shallower resume
+does. But it is a trade, not a free win: once the worklet lands and the source
+is no longer slow, the underruns that remain ARE the jitter case, and each now
+costs 60 ms of silence where it used to cost 20 ms. So if the logs then still
+show `remote audio starved` recurring on a call whose tap reports
+`tap=audio-worklet`, reconsider letting the target START at `CALL_FRAME_MS` and
+grow from there, using the cold-start value only for the very first prime.
+Growing is what makes that safe now and was not available before.
+
+The adaptive target also survives `_reopen_output_exclusive()` — the same
+device at the same rate on answer — and is dropped only when the rate actually
+changes, because it is a sample count. Discarding it on the answer reopen would
+hand the first minute of the conversation back to the chopping the ringing
+phase had just learned its way out of.
 
 **A reservoir in front of the output is the exact thing the 2026-09-20
 bisection blamed, and it is back on purpose — so be accurate about what that
