@@ -6234,6 +6234,15 @@ class MainWindow(wx.Frame):
             self.restore_window()
         if not hasattr(self, "conversations_panel"):
             return
+        # The stored JID, not the one passed in: group participants arrive as
+        # @c.us, device-suffixed or in the other Brazilian digit form, and
+        # both the archived lookup and navigate_to_jid() compare raw strings
+        # (an archived chat reached that way opened in the main list's layout).
+        if jid.endswith(("@s.whatsapp.net", "@c.us", "@lid")):
+            from ui.dialogs.new_conversation import NewConversationDialog
+            _, existing = NewConversationDialog._find_existing_chat(self, jid)
+            if existing is not None:
+                jid = existing.get("remoteJid") or jid
         # Same bug on_alt_1() fixed for its own hotkey, reached from a
         # different entry point: a toast click (or the participant-list
         # dialog) can call this while Status or the Archived list is the
@@ -6278,12 +6287,8 @@ class MainWindow(wx.Frame):
         # talked to (or whose chat lives under an equivalent JID) used to
         # leave them in the group with nothing happening.
         chat = self._chat_for_private_conversation(jid, name)
-        if chat is None:
-            return
-        if chat.get("remoteJid") != jid and self.conversations_panel.navigate_to_jid(
-                chat.get("remoteJid", "")):
-            return
-        self.conversations_panel.navigate_to_conversation(chat)
+        if chat is not None:
+            self.conversations_panel.navigate_to_conversation(chat)
 
     def _chat_for_private_conversation(self, jid: str, name: str = ""):
         """The chat to open for a one-to-one conversation with *jid*.
@@ -6303,9 +6308,12 @@ class MainWindow(wx.Frame):
             return existing
         if not norm_jid.endswith("@s.whatsapp.net"):
             return None
-        chat = {"remoteJid": norm_jid}
-        if name and not self._is_bad_contact_name(name):
-            chat["pushName"] = name
+        # A number-only participant still needs a name, or _compute_chat_lists()
+        # drops the empty chat from the list and Escape leaves no row to come
+        # back to; "Nova conversa" falls back to the formatted number too.
+        if not name or self._is_bad_contact_name(name):
+            name = format_number(norm_jid)
+        chat = {"remoteJid": norm_jid, "pushName": name}
         self.chats[norm_jid] = chat
         self._schedule_set_chats()
         return chat
