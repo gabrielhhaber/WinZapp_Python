@@ -6,7 +6,6 @@ main_window.contacts so it appears in future searches, then returns the
 WhatsApp JID via result_jid / result_name so the caller can navigate there.
 """
 
-import logging
 import re
 import wx
 
@@ -130,13 +129,9 @@ class NewContactDialog(wx.Dialog):
             "pushName":   full_name,
             "isSaved":    True,
         }
-        self._mw.contacts[jid] = entry
-
-        # Persist to SQLite so the contact survives restarts
-        try:
-            self._mw.db.upsert_contact(jid, entry)
-        except Exception:
-            logging.exception("[new_contact] Failed to persist contact")
+        # Stored, persisted, mirrored onto the person's @lid record and shown
+        # everywhere at once (MainWindow.save_local_contact()).
+        self._mw.save_local_contact(jid, entry)
 
         self.result_jid  = jid
         self.result_name = full_name

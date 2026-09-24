@@ -20882,6 +20882,89 @@ class MainWindow(wx.Frame):
             wx.MessageBox(f"{self.i18n.t('contact_load_failed')} {format_exc()}", self.i18n.t("error").format(app_name=self.app_name), wx.OK | wx.ICON_ERROR)
             return {}
 
+    def save_local_contact(self, jid: str, entry: dict) -> str:
+        """Store a local (WinZapp-only) contact and make every view use it now.
+
+        The name used to land only under the phone JID, while the chat and
+        its messages are often keyed by the person's @lid, whose parallel
+        contact record still carried the WhatsApp name: the message list kept
+        showing the old name, even after reopening the conversation, until a
+        restart rebuilt the @lid record from the phone one
+        (register_jid_mapping()). So the @lid record gets the same entry,
+        both are persisted, and the chat list and the open conversation are
+        redrawn. Returns the normalized phone JID.
+        """
+        jid = self._normalize_jid(jid)
+        self.contacts[jid] = entry
+        changed = {jid: entry}
+        lid = self._lid_for_local_contact(jid)
+        if lid:
+            mirrored = {**(self.contacts.get(lid) or {}), **entry,
+                        "id": lid, "remoteJid": lid}
+            self.contacts[lid] = mirrored
+            changed[lid] = mirrored
+        try:
+            self.db.upsert_contacts_batch(changed)
+        except Exception:
+            logging.exception("[save_local_contact] Failed to persist contact")
+        self._refresh_views_after_contact_change(jid, lid)
+        return jid
+
+    def remove_local_contact(self, jid: str) -> None:
+        """Delete a local contact and the @lid copy save_local_contact() made.
+
+        The @lid record is removed only while it still carries the local
+        contact's name: if WhatsApp has since written its own name there, that
+        name is WhatsApp's, not ours to delete.
+        """
+        jid = self._normalize_jid(jid)
+        removed = self.contacts.pop(jid, None) or {}
+        jids = [jid]
+        lid = self._lid_for_local_contact(jid)
+        name = (removed.get("name") or "").strip()
+        lid_record = self.contacts.get(lid) if lid else None
+        if lid_record is not None and name and (lid_record.get("name") or "").strip() == name:
+            self.contacts.pop(lid, None)
+            jids.append(lid)
+        elif lid_record is not None and lid_record.pop("isSaved", None) is not None:
+            # WhatsApp's name is back on it; it only stops counting as saved.
+            try:
+                self.db.upsert_contacts_batch({lid: lid_record})
+            except Exception:
+                logging.exception("[remove_local_contact] Failed to persist contact")
+        for contact_jid in jids:
+            try:
+                self.db.delete_contact(contact_jid)
+            except Exception:
+                logging.exception("[remove_local_contact] Failed to delete contact")
+        self._refresh_views_after_contact_change(jid, lid)
+
+    def _lid_for_local_contact(self, jid: str) -> str:
+        """The @lid of the person a typed phone JID names, or "".
+
+        The number is whatever the user typed, and a Brazilian number may carry
+        the 9th digit the lid mapping was learned without (or the reverse), so
+        an exact lookup is tried first and the digit-equivalent one after it.
+        """
+        phone_to_lid = getattr(self, "_phone_to_lid", {}) or {}
+        lid = phone_to_lid.get(jid, "")
+        if lid:
+            return lid
+        digits = jid.split("@", 1)[0]
+        for phone, candidate in list(phone_to_lid.items()):
+            if (phone.endswith("@s.whatsapp.net")
+                    and self._phone_digits_equivalent(digits, phone.split("@", 1)[0])):
+                return candidate
+        return ""
+
+    def _refresh_views_after_contact_change(self, jid: str, lid: str = "") -> None:
+        """Redraw what shows this person's name: the chat list, and the open
+        conversation's rows that touch them — through
+        _schedule_refresh_active_messages(), which repaints only those rows,
+        inside Freeze()/Thaw(), debounced, and never rebuilds the list."""
+        self._schedule_set_chats()
+        wx.CallAfter(self._schedule_refresh_active_messages, {j for j in (jid, lid) if j})
+
     @staticmethod
     def _is_bad_contact_name(name: str) -> bool:
         if not name or not isinstance(name, str):

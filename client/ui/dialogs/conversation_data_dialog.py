@@ -1720,12 +1720,7 @@ class ConversationDataDialog(wx.Dialog):
             self,
         ) != wx.YES:
             return
-        jid = self._resolve_contact_phone_jid()
-        self._mw.contacts.pop(jid, None)
-        try:
-            self._mw.db.delete_contact(jid)
-        except Exception:
-            logging.exception("[conversation_data] Failed to delete local contact")
+        self._mw.remove_local_contact(self._resolve_contact_phone_jid())
         self._populate_contact_action_buttons()
         threading.Thread(target=self._fetch_data, daemon=True).start()
 
