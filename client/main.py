@@ -123,6 +123,14 @@ from core.call_logic import (
 )
 from core import browser_payload
 from core.database_bridge import DatabaseBridge
+from core.chat_lock_vault import (
+    ChatLockVault,
+    PinAttemptLimiter,
+    VaultStateError,
+    jid_fingerprint,
+    validate_pin,
+    validate_reveal_code,
+)
 from core import token_vault
 from app_paths import resource_path, data_path, accounts_root
 from core.message_queue import MessageQueue, PendingMessage, MessageCancelled
@@ -135,6 +143,15 @@ from ui.dialogs.connect import Connect
 from ui.navigation import NavigationPanel
 from ui.conversations import (
     ConversationsPanel, ArchivedConversationsPanel, probe_media_duration,
+)
+from ui.chat_lock import (
+    ID_FORGOT_PIN,
+    ChatLockRecoveryDialog,
+    ChatLockRevealDialog,
+    ChatLockSetupDialog,
+    ChatLockUnlockDialog,
+    LockedConversationsPanel,
+    RecoveryKeyDialog,
 )
 from status_panel import StatusPanel
 from ui.accessible import (
@@ -2880,6 +2897,10 @@ class MainWindow(wx.Frame):
             self, self.content_panel
         )
         self.archived_conversations_panel.Hide()
+        self.locked_conversations_panel = LockedConversationsPanel(
+            self, self.content_panel
+        )
+        self.locked_conversations_panel.Hide()
         self.status_panel = StatusPanel(self, self.content_panel)
         self.status_panel.Hide()
 
@@ -2887,6 +2908,7 @@ class MainWindow(wx.Frame):
         content_sizer = wx.BoxSizer(wx.VERTICAL)
         content_sizer.Add(self.conversations_panel, 1, wx.EXPAND)
         content_sizer.Add(self.archived_conversations_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.locked_conversations_panel, 1, wx.EXPAND)
         content_sizer.Add(self.status_panel, 1, wx.EXPAND)
         self.content_panel.SetSizer(content_sizer)
 
@@ -2938,6 +2960,7 @@ class MainWindow(wx.Frame):
 
         # Intercept window-close: hide to tray instead of quitting (when tray active)
         self.Bind(wx.EVT_CLOSE, self._on_close)
+        self.Bind(wx.EVT_ICONIZE, self._on_iconize)
 
         # Windows shutdown/restart/logoff. Without these, Windows simply
         # terminates the process, and node.exe + its Chrome child die with it —
@@ -4089,6 +4112,7 @@ class MainWindow(wx.Frame):
                 1 for jid, chat in list(self.chats.items())
                 if jid not in deleted
                 and not self.is_chat_archived(jid)
+                and not self.is_chat_locked(jid)
                 and effective_unread_count(chat) > 0
             )
         # Base title carries the account name (multi-account) + unread count,
@@ -5868,6 +5892,7 @@ class MainWindow(wx.Frame):
         out of sync (e.g. after another process showed the window via Win32
         without going through wx's Show() path).
         """
+        self.lock_chat_vault(silent=True, show_conversations=False)
         if self.tray_icon is not None:
             try:
                 import ctypes
@@ -5881,6 +5906,11 @@ class MainWindow(wx.Frame):
         else:
             self.real_exit()
 
+    def _on_iconize(self, event):
+        if event.IsIconized():
+            self.lock_chat_vault(silent=True, show_conversations=False)
+        event.Skip()
+
     def hide_to_tray(self):
         """Hide this window to the tray WITHOUT quitting (the process keeps
         running so it still receives this account's messages/notifications).
@@ -5892,6 +5922,7 @@ class MainWindow(wx.Frame):
         """
         if getattr(self, "tray_icon", None) is None:
             return
+        self.lock_chat_vault(silent=True, show_conversations=False)
         try:
             import ctypes
             ctypes.windll.user32.ShowWindow(self.GetHandle(), 0)  # SW_HIDE
@@ -6243,6 +6274,25 @@ class MainWindow(wx.Frame):
             _, existing = NewConversationDialog._find_existing_chat(self, jid)
             if existing is not None:
                 jid = existing.get("remoteJid") or jid
+
+        if getattr(self, "is_chat_locked", lambda _jid: False)(jid):
+            if not self._chat_lock_unlocked:
+                if not self.unlock_chat_lock_vault(show_panel=False):
+                    return
+            wanted = self._chat_lock_candidates(jid)
+            chat = next((
+                candidate for candidate in self.chats.values()
+                if isinstance(candidate, dict)
+                and (
+                    candidate.get("remoteJid", "") in wanted
+                    or bool(self._chat_lock_candidates(
+                        candidate.get("remoteJid", "")
+                    ) & wanted)
+                )
+            ), None)
+            if chat is not None:
+                self.open_locked_conversation(chat)
+            return
         # Same bug on_alt_1() fixed for its own hotkey, reached from a
         # different entry point: a toast click (or the participant-list
         # dialog) can call this while Status or the Archived list is the
@@ -6275,6 +6325,8 @@ class MainWindow(wx.Frame):
             # non-archived path below as a defensive fallback.
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Hide()
+        if hasattr(self, "locked_conversations_panel"):
+            self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
         self.conversations_panel.conversations_label.Show()
@@ -9033,7 +9085,11 @@ class MainWindow(wx.Frame):
         # while that exact chat is the one currently open and the window is
         # focused (setting off) — see the two mute checks below.
         muted = self.is_chat_muted(remote_jid)
-        archived = self.is_chat_archived(remote_jid)
+        locked = self.is_chat_locked(remote_jid)
+        # A locked chat may also retain WhatsApp's archive flag, but the vault
+        # has its own privacy-preserving notification policy and takes
+        # precedence over archived-chat silence.
+        archived = self.is_chat_archived(remote_jid) and not locked
         priority = muted and self._is_reply_or_mention_of_me(msg, remote_jid)
         if muted and not priority and self.settings.get("general", {}).get(
             "keep_muted_chats_silent_when_open", True
@@ -9042,7 +9098,7 @@ class MainWindow(wx.Frame):
 
         from core.notification_manager import (
             format_notification_title, format_notification_body,
-            format_foreground_sender,
+            format_foreground_sender, format_locked_notification,
         )
 
         body  = format_notification_body(msg, self, self.i18n)
@@ -9081,6 +9137,15 @@ class MainWindow(wx.Frame):
             # window active (archived chats only play sound / speak when the
             # user currently has that exact conversation open and focused).
             if archived and not is_current_conv:
+                return
+
+            if locked and not is_current_conv:
+                self.message_foreground_sound.play()
+                if speech.get("speak_other_conv_messages", True):
+                    private_title, private_body = format_locked_notification(
+                        effective_unread_count(chat), self.i18n, self.app_name
+                    )
+                    self.output(f"{private_title}: {private_body}")
                 return
 
             if is_current_conv:
@@ -9133,7 +9198,12 @@ class MainWindow(wx.Frame):
         # user turned it off.
         if not self.settings.get("general", {}).get("notifications_enabled", True):
             return
-        title = format_notification_title(msg, self, self.i18n)
+        if locked:
+            title, body = format_locked_notification(
+                effective_unread_count(chat), self.i18n, self.app_name
+            )
+        else:
+            title = format_notification_title(msg, self, self.i18n)
 
         # The toast is the ONLY announcement a backgrounded message gets.
         # Speaking it through AO2 here as well used to make every background
@@ -9605,7 +9675,10 @@ class MainWindow(wx.Frame):
                     pass
 
             muted = self.is_chat_muted(remote_jid)
-            archived = self.is_chat_archived(remote_jid)
+            locked = bool(
+                getattr(self, "is_chat_locked", lambda _jid: False)(remote_jid)
+            )
+            archived = self.is_chat_archived(remote_jid) and not locked
 
             if muted and self.settings.get("general", {}).get(
                 "keep_muted_chats_silent_when_open", True
@@ -9643,6 +9716,13 @@ class MainWindow(wx.Frame):
                     return
                 if archived and not is_current_conv:
                     return
+                # Reactions do not increment the unread-message count. A
+                # count-only locked-chat notification would therefore be
+                # misleading, while speaking the normal title/body would leak
+                # the sender and reacted text. Only announce it when that
+                # locked conversation is already open after PIN entry.
+                if locked and not is_current_conv:
+                    return
                 if is_current_conv:
                     self.message_current_sound.play()
                 else:
@@ -9650,7 +9730,7 @@ class MainWindow(wx.Frame):
                 self.output(f"{title}: {body}")
                 return
 
-            if muted or archived:
+            if muted or archived or locked:
                 return
             # general.notifications_enabled only ever gates the background
             # toast below — see the matching comment in on_new_message().
@@ -12747,6 +12827,8 @@ class MainWindow(wx.Frame):
             return
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Hide()
+        if hasattr(self, "locked_conversations_panel"):
+            self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
         # Deliberately does NOT touch conversations_label/conversations_list
@@ -12781,6 +12863,7 @@ class MainWindow(wx.Frame):
         self.open_settings()
 
     def open_settings(self):
+        self.lock_chat_vault(silent=True, show_conversations=False)
         from ui.dialogs.settings_dialog import SettingsDialog
         dlg = SettingsDialog(self)
         dlg.ShowModal()
@@ -12843,6 +12926,8 @@ class MainWindow(wx.Frame):
         self.conversations_panel.refresh_labels()
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.refresh_labels()
+        if hasattr(self, "locked_conversations_panel"):
+            self.locked_conversations_panel.refresh_labels()
         if hasattr(self, "status_panel"):
             self.status_panel.refresh_labels()
 
@@ -12869,8 +12954,11 @@ class MainWindow(wx.Frame):
         self._refresh_menubar()
 
     def on_alt_1(self, event):
+        self.lock_chat_vault(silent=True, show_conversations=False)
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Hide()
+        if hasattr(self, "locked_conversations_panel"):
+            self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
         # ArchivedConversationsPanel.on_conversation_selected() hides
@@ -12895,7 +12983,10 @@ class MainWindow(wx.Frame):
         self.conversations_panel._restore_conversation_selection()
 
     def on_alt_4(self, event):
+        self.lock_chat_vault(silent=True, show_conversations=False)
         self.conversations_panel.Hide()
+        if hasattr(self, "locked_conversations_panel"):
+            self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
         if hasattr(self, "archived_conversations_panel"):
@@ -12904,6 +12995,7 @@ class MainWindow(wx.Frame):
             self.archived_conversations_panel.restore_selection()
 
     def on_alt_5(self, event):
+        self.lock_chat_vault(silent=True, show_conversations=False)
         # A conversation left open (archived or not) while switching to
         # Status kept sending typing/recording presence updates for it in
         # the background — the user has no way to see or act on that once
@@ -14510,6 +14602,400 @@ class MainWindow(wx.Frame):
         except Exception:
             return True  # unknown/other error: Node likely up, keep trying others
 
+    _CHAT_LOCK_VAULT_KEY = "chat_lock_vault_v1"
+    _CHAT_LOCK_INDEX_KEY = "chat_lock_index_v1"
+
+    def _load_chat_lock_vault(self):
+        """Restore the per-account vault before any chat list is built.
+
+        A keyed JID fingerprint index is deliberately stored beside the
+        encrypted state.  If that state is damaged, the index still lets the
+        list fail closed and keep previously locked chats hidden without
+        writing phone-number-bearing JIDs to plaintext metadata.
+        """
+        raw_index = self.db.get_metadata_json(self._CHAT_LOCK_INDEX_KEY, [])
+        self._chat_lock_fingerprints = {
+            value for value in raw_index
+            if isinstance(value, str) and len(value) == 64
+        } if isinstance(raw_index, list) else set()
+        token = self.db.get_metadata(self._CHAT_LOCK_VAULT_KEY)
+        self._chat_lock_state_error = False
+        try:
+            self._chat_lock_vault = ChatLockVault.load(self.key, token)
+        except VaultStateError:
+            # Never log the encrypted token or its JIDs. The keyed index keeps
+            # the affected chats hidden until the user explicitly resets the
+            # local account rather than silently exposing them.
+            logging.exception("[chat-lock] local vault state is unreadable")
+            self._chat_lock_vault = None
+            self._chat_lock_state_error = True
+        self._chat_lock_unlocked = False
+        self._chat_lock_limiter = PinAttemptLimiter()
+        self._locked_chat_rows = ([], [])
+
+    def _chat_lock_candidates(self, jid: str) -> set[str]:
+        if not jid:
+            return set()
+        candidates = {jid}
+        try:
+            normalized = self._normalize_jid(jid)
+        except Exception:
+            normalized = jid
+        if normalized:
+            candidates.add(normalized)
+        lid_to_phone = getattr(self, "_lid_to_phone", {})
+        phone_to_lid = getattr(self, "_phone_to_lid", {})
+        for candidate in tuple(candidates):
+            mapped = lid_to_phone.get(candidate) or phone_to_lid.get(candidate)
+            if mapped:
+                candidates.add(mapped)
+        chat = getattr(self, "chats", {}).get(jid)
+        if isinstance(chat, dict) and chat.get("remoteJid"):
+            candidates.add(chat["remoteJid"])
+        return {candidate for candidate in candidates if candidate}
+
+    def _chat_lock_canonical_jid(self, jid: str) -> str:
+        candidates = self._chat_lock_candidates(jid)
+        phone = next((value for value in candidates if value.endswith("@s.whatsapp.net")), "")
+        if phone:
+            return phone
+        normalized = self._normalize_jid(jid) if jid else ""
+        return normalized or jid
+
+    def _persist_chat_lock_vault(self):
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None:
+            raise VaultStateError("locked-conversation state is unavailable")
+        fingerprints = sorted(
+            jid_fingerprint(self.key, jid) for jid in vault.locked_jids
+        )
+        # Write the fail-closed index first. is_chat_locked() consults both
+        # sources, so an interrupted write can hide one chat too many but can
+        # never expose a newly locked chat.
+        self.db.set_metadata_json(self._CHAT_LOCK_INDEX_KEY, fingerprints)
+        self.db.set_metadata(self._CHAT_LOCK_VAULT_KEY, vault.encrypted_token())
+        self._chat_lock_fingerprints = set(fingerprints)
+
+    def is_chat_locked(self, jid: str) -> bool:
+        candidates = self._chat_lock_candidates(jid)
+        vault = getattr(self, "_chat_lock_vault", None)
+        fingerprints = getattr(self, "_chat_lock_fingerprints", set())
+        return (
+            vault is not None
+            and any(vault.is_locked(candidate) for candidate in candidates)
+        ) or any(
+            jid_fingerprint(self.key, candidate) in fingerprints
+            for candidate in candidates
+        )
+
+    def chat_lock_navigation_visible(self) -> bool:
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None:
+            return False
+        # The privacy option is literal: unlocking through the secret search
+        # code must not make a previously hidden navigation row suddenly
+        # disclose that the vault exists. The open panel already provides its
+        # own close/settings controls for the current session.
+        return vault.configured and not vault.hide_navigation
+
+    def _refresh_chat_lock_navigation(self):
+        panel = getattr(self, "navigation_panel", None)
+        if panel is not None:
+            panel.rebuild_items()
+
+    def _chat_lock_error(self, message_key: str, **values):
+        message = self.i18n.t(message_key).format(**values)
+        wx.MessageBox(message, self.app_name, wx.OK | wx.ICON_WARNING, self)
+
+    def _show_recovery_key(self, recovery_code: str) -> bool:
+        dialog = RecoveryKeyDialog(self, self.i18n, recovery_code)
+        try:
+            return dialog.ShowModal() == wx.ID_OK
+        finally:
+            dialog.Destroy()
+
+    def _configure_chat_lock_vault(self) -> bool:
+        dialog = ChatLockSetupDialog(self, self.i18n)
+        try:
+            while dialog.ShowModal() == wx.ID_OK:
+                pin = dialog.pin.GetValue()
+                confirm = dialog.confirm.GetValue()
+                reveal = dialog.reveal.GetValue()
+                if not validate_pin(pin):
+                    self._chat_lock_error("chat_lock_pin_invalid")
+                    dialog.pin.SetFocus()
+                    continue
+                if pin != confirm:
+                    self._chat_lock_error("chat_lock_pin_mismatch")
+                    dialog.confirm.SetFocus()
+                    continue
+                if not validate_reveal_code(reveal):
+                    self._chat_lock_error("chat_lock_reveal_invalid")
+                    dialog.reveal.SetFocus()
+                    continue
+                candidate = ChatLockVault(self.key)
+                recovery_code = candidate.configure(pin, reveal)
+                if not self._show_recovery_key(recovery_code):
+                    return False
+                self._chat_lock_vault = candidate
+                self._chat_lock_state_error = False
+                self._persist_chat_lock_vault()
+                self.output(self.i18n.t("chat_lock_configured"), interrupt=True)
+                return True
+            return False
+        finally:
+            dialog.Destroy()
+
+    def _recover_chat_lock_pin(self) -> bool:
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None:
+            self._chat_lock_error("chat_lock_state_unavailable")
+            return False
+        dialog = ChatLockRecoveryDialog(self, self.i18n)
+        try:
+            while dialog.ShowModal() == wx.ID_OK:
+                recovery = dialog.recovery.GetValue()
+                pin = dialog.pin.GetValue()
+                confirm = dialog.confirm.GetValue()
+                if not vault.verify_recovery_code(recovery):
+                    self._chat_lock_error("chat_lock_recovery_invalid")
+                    dialog.recovery.SetFocus()
+                    continue
+                if not validate_pin(pin):
+                    self._chat_lock_error("chat_lock_pin_invalid")
+                    dialog.pin.SetFocus()
+                    continue
+                if pin != confirm:
+                    self._chat_lock_error("chat_lock_pin_mismatch")
+                    dialog.confirm.SetFocus()
+                    continue
+                previous_token = vault.encrypted_token()
+                new_recovery = vault.reset_pin(recovery, pin)
+                if not self._show_recovery_key(new_recovery):
+                    # Reset mutated the in-memory vault. Restore the exact
+                    # encrypted pre-reset state so cancelling the code display
+                    # leaves the old PIN and recovery code fully usable.
+                    self._chat_lock_vault = ChatLockVault.load(
+                        self.key, previous_token
+                    )
+                    return False
+                self._persist_chat_lock_vault()
+                self._chat_lock_limiter.record_success()
+                return True
+            return False
+        finally:
+            dialog.Destroy()
+
+    def unlock_chat_lock_vault(self, *, show_panel=True) -> bool:
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None:
+            self._chat_lock_error("chat_lock_state_unavailable")
+            return False
+        if not vault.configured:
+            return False
+        if self._chat_lock_unlocked:
+            if show_panel:
+                self.show_locked_chats_panel()
+            return True
+
+        dialog = ChatLockUnlockDialog(self, self.i18n)
+        try:
+            while True:
+                result = dialog.ShowModal()
+                if result == int(ID_FORGOT_PIN):
+                    if self._recover_chat_lock_pin():
+                        self._chat_lock_unlocked = True
+                        break
+                    # Recovery may have rotated and then rolled back the vault
+                    # object when the new recovery-key display was cancelled.
+                    # Keep this dialog's verifier on the restored object.
+                    vault = self._chat_lock_vault
+                    dialog.pin.SetFocus()
+                    continue
+                if result != wx.ID_OK:
+                    return False
+                remaining = self._chat_lock_limiter.remaining_seconds()
+                if remaining:
+                    self._chat_lock_error("chat_lock_wait", seconds=remaining)
+                    dialog.pin.SetFocus()
+                    continue
+                if not vault.verify_pin(dialog.pin.GetValue()):
+                    remaining = self._chat_lock_limiter.record_failure()
+                    key = "chat_lock_wait" if remaining else "chat_lock_wrong_pin"
+                    self._chat_lock_error(key, seconds=remaining)
+                    dialog.pin.SetValue("")
+                    dialog.pin.SetFocus()
+                    continue
+                self._chat_lock_limiter.record_success()
+                self._chat_lock_unlocked = True
+                break
+        finally:
+            dialog.Destroy()
+
+        self._refresh_chat_lock_navigation()
+        if show_panel:
+            self.show_locked_chats_panel()
+        return True
+
+    def try_reveal_locked_chats(self, value: str) -> bool:
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None or not vault.configured or not vault.hide_navigation:
+            return False
+        if not vault.authorizes_reveal(value):
+            return False
+        self.conversations_panel.search_field.ChangeValue("")
+        self.add_chats_to_ui()
+        self.unlock_chat_lock_vault(show_panel=True)
+        return True
+
+    def lock_chat(self, jid: str):
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None and self._chat_lock_state_error:
+            self._chat_lock_error("chat_lock_state_unavailable")
+            return
+        if vault is None or not vault.configured:
+            if not self._configure_chat_lock_vault():
+                return
+            vault = self._chat_lock_vault
+        elif not self._chat_lock_unlocked:
+            if not self.unlock_chat_lock_vault(show_panel=False):
+                return
+
+        canonical = self._chat_lock_canonical_jid(jid)
+        vault.lock_chat(canonical)
+        self._persist_chat_lock_vault()
+        cp = getattr(self, "conversations_panel", None)
+        if cp is not None and cp.conversation is not None:
+            if self.is_chat_locked(cp.conversation.get("remoteJid", "")):
+                cp.close_conversation_for_panel_switch()
+        self._chat_lock_unlocked = False
+        self._refresh_chat_lock_navigation()
+        self._schedule_set_chats()
+        self.output(self.i18n.t("chat_lock_chat_locked"), interrupt=True)
+
+    def unlock_chat(self, jid: str):
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None or not self._chat_lock_unlocked:
+            return
+        for candidate in self._chat_lock_candidates(jid):
+            vault.unlock_chat(candidate)
+        self._persist_chat_lock_vault()
+        self._schedule_set_chats()
+        self.output(self.i18n.t("chat_lock_chat_unlocked"), interrupt=True)
+
+    def _forget_chat_lock(self, jid: str):
+        """Remove every local vault identity for a conversation being deleted.
+
+        This is deliberately not gated by the unlocked UI state: once the user
+        confirms deletion, retaining an invisible stale entry would make a
+        later conversation with the same JID unexpectedly reappear locked.
+        """
+        candidates = self._chat_lock_candidates(jid)
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is not None:
+            before = vault.locked_jids
+            for candidate in candidates:
+                vault.unlock_chat(candidate)
+            if vault.locked_jids != before:
+                self._persist_chat_lock_vault()
+            return
+
+        fingerprints = getattr(self, "_chat_lock_fingerprints", set())
+        removed = {
+            jid_fingerprint(self.key, candidate) for candidate in candidates
+        }
+        remaining = fingerprints - removed
+        if remaining != fingerprints:
+            self.db.set_metadata_json(
+                self._CHAT_LOCK_INDEX_KEY, sorted(remaining)
+            )
+            self._chat_lock_fingerprints = remaining
+
+    def set_chat_lock_navigation_hidden(self, hide: bool):
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None or not self._chat_lock_unlocked:
+            return
+        vault.set_hide_navigation(hide)
+        self._persist_chat_lock_vault()
+        self._refresh_chat_lock_navigation()
+
+    def change_chat_lock_reveal_code(self):
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None or not self._chat_lock_unlocked:
+            return
+        dialog = ChatLockRevealDialog(self, self.i18n)
+        try:
+            while dialog.ShowModal() == wx.ID_OK:
+                if not vault.verify_pin(dialog.pin.GetValue()):
+                    self._chat_lock_error("chat_lock_wrong_pin")
+                    dialog.pin.SetFocus()
+                    continue
+                if not validate_reveal_code(dialog.reveal.GetValue()):
+                    self._chat_lock_error("chat_lock_reveal_invalid")
+                    dialog.reveal.SetFocus()
+                    continue
+                vault.change_reveal_code(
+                    dialog.pin.GetValue(), dialog.reveal.GetValue()
+                )
+                self._persist_chat_lock_vault()
+                self.output(self.i18n.t("chat_lock_reveal_changed"), interrupt=True)
+                return
+        finally:
+            dialog.Destroy()
+
+    def show_locked_chats_panel(self):
+        if not getattr(self, "_chat_lock_unlocked", False):
+            if not self.unlock_chat_lock_vault(show_panel=False):
+                return
+        self.conversations_panel.Hide()
+        if hasattr(self, "archived_conversations_panel"):
+            self.archived_conversations_panel.Hide()
+        if hasattr(self, "status_panel"):
+            self.status_panel.Hide()
+        panel = self.locked_conversations_panel
+        chats, names = getattr(self, "_locked_chat_rows", ([], []))
+        panel.set_all_chats(chats, names)
+        panel.hide_navigation.SetValue(self._chat_lock_vault.hide_navigation)
+        panel.Show()
+        self.content_panel.Layout()
+        panel.restore_selection()
+
+    def lock_chat_vault(self, *, silent=False, show_conversations=True):
+        self._chat_lock_unlocked = False
+        cp = getattr(self, "conversations_panel", None)
+        if cp is not None and cp.conversation is not None:
+            if self.is_chat_locked(cp.conversation.get("remoteJid", "")):
+                cp.close_conversation_for_panel_switch()
+        panel = getattr(self, "locked_conversations_panel", None)
+        if panel is not None:
+            panel.set_all_chats([], [])
+            panel.Hide()
+        self._refresh_chat_lock_navigation()
+        if show_conversations and hasattr(self, "conversations_panel"):
+            self.conversations_panel.conversations_label.Show()
+            self.conversations_panel.conversations_list.Show()
+            self.conversations_panel.Show()
+            self.content_panel.Layout()
+            self.conversations_panel._restore_conversation_selection()
+        if not silent:
+            self.output(self.i18n.t("chat_lock_closed"), interrupt=True)
+
+    def open_locked_conversation(self, chat: dict):
+        jid = chat.get("remoteJid", "")
+        if not self._chat_lock_unlocked or not self.is_chat_locked(jid):
+            return
+        if hasattr(self, "archived_conversations_panel"):
+            self.archived_conversations_panel.Hide()
+        if hasattr(self, "locked_conversations_panel"):
+            self.locked_conversations_panel.Hide()
+        if hasattr(self, "status_panel"):
+            self.status_panel.Hide()
+        self.conversations_panel.conversations_label.Hide()
+        self.conversations_panel.conversations_list.Hide()
+        self.conversations_panel.Show()
+        self.content_panel.Layout()
+        self.conversations_panel.navigate_to_conversation(chat)
+
     def prepare_sync(self):
         # Diagnostic breadcrumbs: prepare_sync() runs synchronously on the
         # main thread before init_UI()/self.Show()/app.MainLoop() — a hang
@@ -14535,6 +15021,7 @@ class MainWindow(wx.Frame):
         # Initialise DatabaseBridge (async→sync bridge)
         self.db = DatabaseBridge(data_path("messages.db"), self.key)
         logging.info("[prepare_sync] DatabaseBridge open — loading metadata")
+        self._load_chat_lock_vault()
         # Load persistent metadata from database with fallback/bootstrap from settings.json
         settings_dirty = False
         
@@ -21466,6 +21953,7 @@ class MainWindow(wx.Frame):
 
         main_chats, main_names = [], []
         arch_chats, arch_names = [], []
+        locked_chats, locked_names = [], []
 
         # Every row the UI renders is identified by ``chat["remoteJid"]``, not by
         # the ``self.chats`` key it was stored under — and the two are NOT always
@@ -21631,6 +22119,11 @@ class MainWindow(wx.Frame):
                 )
             if my_jid and not jid.endswith("@g.us") and self._is_self_jid(jid):
                 name = self.i18n.t("self_chat_name")
+            if self.is_chat_locked(render_jid) or self.is_chat_locked(jid):
+                locked_chats.append(chat)
+                locked_names.append(name)
+                continue
+
             # Same parse is_chat_archived() uses — the two must answer this
             # identically, or a chat sits under Arquivadas while the
             # notification path believes it is a normal conversation and
@@ -21670,9 +22163,20 @@ class MainWindow(wx.Frame):
         arch_chats = [c for c, _ in arch_pairs]
         arch_names = [n for _, n in arch_pairs]
 
-        return main_chats, main_names, arch_chats, arch_names
+        locked_pairs = sorted(zip(locked_chats, locked_names), key=_sort_key)
+        locked_chats = [c for c, _ in locked_pairs]
+        locked_names = [n for _, n in locked_pairs]
 
-    def _apply_chat_lists(self, main_chats, main_names, arch_chats, arch_names):
+        return (
+            main_chats, main_names,
+            arch_chats, arch_names,
+            locked_chats, locked_names,
+        )
+
+    def _apply_chat_lists(
+        self, main_chats, main_names, arch_chats, arch_names,
+        locked_chats, locked_names,
+    ):
         """Apply sorted chat lists to panels and refresh UI. Must run on main thread."""
         if not hasattr(self, "conversations_panel"):
             return  # UI not yet initialized; skip silently
@@ -21697,6 +22201,8 @@ class MainWindow(wx.Frame):
                 if 0 <= _afi < len(_ap.chats_list) else None
             )
 
+        self._locked_chat_rows = (list(locked_chats), list(locked_names))
+
         # _all_chats_list / _all_chat_names always hold the full sorted list.
         # add_chats_to_ui() reads these to apply search / filter, then writes
         # back to chats_list / chat_names so indices stay consistent.
@@ -21710,6 +22216,14 @@ class MainWindow(wx.Frame):
             self.archived_conversations_panel._all_chat_names = arch_names
             self.archived_conversations_panel.chats_list = arch_chats
             self.archived_conversations_panel.chat_names = arch_names
+
+        if hasattr(self, "locked_conversations_panel"):
+            if getattr(self, "_chat_lock_unlocked", False):
+                self.locked_conversations_panel.set_all_chats(
+                    locked_chats, locked_names
+                )
+            else:
+                self.locked_conversations_panel.set_all_chats([], [])
 
         if self.IsShown():
             self.add_chats_to_ui()
@@ -30990,6 +31504,7 @@ class MainWindow(wx.Frame):
             1 for jid, chat in list(self.chats.items())
             if jid not in deleted
             and self.is_chat_archived(jid)
+            and not getattr(self, "is_chat_locked", lambda _jid: False)(jid)
             and effective_unread_count(chat) > 0
         )
 
@@ -31183,6 +31698,7 @@ class MainWindow(wx.Frame):
         return jid in self._deleted_chats
 
     def delete_chat_local(self, jid: str):
+        self._forget_chat_lock(jid)
         if jid not in self._deleted_chats:
             self._deleted_chats.add(jid)
         if jid.endswith("@s.whatsapp.net"):

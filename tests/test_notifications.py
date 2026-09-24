@@ -25,6 +25,7 @@ import wx
 
 from core.notification_manager import (
     NotificationManager,
+    format_locked_notification,
     packaged_process_aumid,
     toaster_aumid_candidates,
 )
@@ -58,6 +59,8 @@ class _FakeI18n:
     def t(self, key):
         if key == "unread_sep_plural":
             return "{count} [unread_sep_plural]"
+        if key == "chat_lock_notification_plural":
+            return "{count} [chat_lock_notification_plural]"
         return f"[{key}]"
 
 
@@ -70,9 +73,14 @@ class _FakeMessageQueue:
 
 
 class _FakeMainWindow:
-    def __init__(self, chats=None):
+    def __init__(self, chats=None, locked_jids=None):
         self.chats = chats if chats is not None else {}
         self.message_queue = _FakeMessageQueue()
+        self.locked_jids = set(locked_jids or ())
+        self.app_name = "WinZapp"
+
+    def is_chat_locked(self, jid):
+        return jid in self.locked_jids
 
 
 def _chat(unread=0, records=1):
@@ -103,14 +111,20 @@ class _Stub:
     def _play_sound(self, remote_jid=""):
         pass
 
-    def __init__(self, toaster=None, interactable=False, chats=None):
+    def __init__(self, toaster=None, interactable=False, chats=None, locked_jids=None):
         self._queue = queue.Queue()
         self._toaster = toaster
         self._last_toast = None
         self._last_shown_at = None
         self._interactable = interactable
         self.i18n = _FakeI18n()
-        self.main_window = _FakeMainWindow(chats)
+        self.main_window = _FakeMainWindow(chats, locked_jids)
+
+
+def test_locked_notification_format_contains_only_app_and_count():
+    title, body = format_locked_notification(7, _FakeI18n(), "WinZapp")
+    assert title == "WinZapp"
+    assert body == "7 [chat_lock_notification_plural]"
 
 
 class TestCoalescePending:
@@ -590,6 +604,36 @@ class TestUnreadSuffix:
         mgr._dispatch("title", "body", "j@g.us")
 
         assert "230" in self._suffix_of(toaster)
+
+    def test_locked_chat_refreshes_private_count_and_has_no_quick_actions(self, monkeypatch):
+        monkeypatch.setattr(wx, "CallAfter", lambda fn, *a, **kw: None)
+        toaster = _FakeToaster()
+        mgr = _Stub(
+            toaster, interactable=True,
+            chats={"j@g.us": _chat(unread=7, records=20)},
+            locked_jids={"j@g.us"},
+        )
+
+        mgr._dispatch("Contact name", "private message body", "j@g.us", {"id": "M1"})
+
+        toast = toaster.shown_toasts[0]
+        assert toast.text_fields == ["WinZapp", "7 [chat_lock_notification_plural]"]
+        assert toast.inputs == []
+        assert toast.actions == []
+
+    def test_locked_chat_count_uses_mapped_jid_chat(self, monkeypatch):
+        monkeypatch.setattr(wx, "CallAfter", lambda fn, *a, **kw: None)
+        toaster = _FakeToaster()
+        lid = "1234567890@lid"
+        phone_chat = _chat(unread=9, records=20)
+        mgr = _Stub(toaster, chats={"1234567890@s.whatsapp.net": phone_chat})
+        mgr.main_window.is_chat_locked = lambda jid: jid == lid
+        mgr.main_window.get_chat = lambda jid: phone_chat if jid == lid else None
+
+        mgr._dispatch("Contact name", "private message body", lid, {"id": "M1"})
+
+        toast = toaster.shown_toasts[0]
+        assert toast.text_fields == ["WinZapp", "9 [chat_lock_notification_plural]"]
 
 
 class TestInteractableAccessibility:

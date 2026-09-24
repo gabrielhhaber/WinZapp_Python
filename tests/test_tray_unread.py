@@ -16,14 +16,18 @@ from core.tray_manager import TrayIcon
 
 
 class _MainWindowStub:
-    def __init__(self, chats, archived_jids=()):
+    def __init__(self, chats, archived_jids=(), locked_jids=()):
         self.chats = chats
         self._sync_completed = True
         self._deleted_chats = set()
         self._archived_jids = set(archived_jids)
+        self._locked_jids = set(locked_jids)
 
     def is_chat_archived(self, jid):
         return jid in self._archived_jids
+
+    def is_chat_locked(self, jid):
+        return jid in self._locked_jids
 
     def _resolve_contact_name(self, chat):
         return ""
@@ -85,3 +89,19 @@ def test_no_archived_chats_counts_everything_as_before():
     total, names = tray._get_unread_info()
     assert total == 3
     assert len(names) == 2
+
+
+def test_locked_chat_is_excluded_from_tray_total_and_name_list():
+    mw = _MainWindowStub(
+        chats={
+            "visible@s.whatsapp.net": _chat(2),
+            "private@s.whatsapp.net": _chat(7),
+        },
+        locked_jids={"private@s.whatsapp.net"},
+    )
+    tray = _TrayStub(mw)
+
+    total, names = tray._get_unread_info()
+
+    assert total == 2
+    assert names == ["visible"]
