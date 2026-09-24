@@ -1061,6 +1061,23 @@ function patchWppconnectVersionPinning() {
         );
       }
     }
+    // The call media hooks must exist before WhatsApp's modules evaluate, and
+    // this is the one moment before the first load: register them now instead
+    // of reloading later (see registerCallMediaBridgeBeforeLoad in
+    // src/util/callMediaBridge.ts for the reload that wedged the page).
+    try {
+      const { registerCallMediaBridgeBeforeLoad } = require(
+        path.join(distPath, 'util', 'callMediaBridge')
+      );
+      if (await registerCallMediaBridgeBeforeLoad(page)) {
+        console.log('[WinZapp] call media bridge registered before WhatsApp Web loads.');
+      }
+    } catch (e) {
+      console.warn(
+        '[WinZapp] Could not register the call media bridge before load ' +
+        `(${e && e.message}); it will be installed into the running page instead.`
+      );
+    }
     return original.call(this, page, token, clear, version, proxy, log);
   };
 }
