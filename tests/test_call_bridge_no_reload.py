@@ -106,3 +106,9 @@ def test_ensure_reads_the_flag_from_the_page_the_early_registration_set():
     assert "if (!page.__winzappCallMediaNewDocumentInstalled) {" in body
     assert "await registerCallMediaBridgeBeforeLoad(page);" in body
     assert "__winzappCallMediaPrimed" not in body
+
+
+def test_the_dom_observer_survives_a_document_start_install():
+    """At document start documentElement can be null; observe() would throw
+    inside its try and the DOM-change scan would never attach."""
+    assert ".observe(document.documentElement || document, {" in SOURCE

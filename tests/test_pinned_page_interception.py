@@ -222,6 +222,16 @@ class TestTheSourceItself:
             "it with a local of the same name"
         )
 
+    def test_the_call_media_bridge_is_registered_before_the_first_load(self):
+        """Runs without client/api (unlike the harness test above, which CI skips):
+        the registration has to sit before `return original.call(`, i.e. before
+        WPPConnect's first goto(), or the hooks miss WhatsApp's first load and the
+        only way back is the reload that wedged the page on 2026-09-24."""
+        src = (PATCHES / "start.js").read_text(encoding="utf-8")
+        wrapper = src[src.index("browserController.initWhatsapp = async function"):]
+        wrapper = wrapper[: wrapper.index("return original.call(")]
+        assert "registerCallMediaBridgeBeforeLoad(page)" in wrapper
+
     def test_the_wrapper_consumes_the_version(self):
         """`version = undefined` right after installing our interception is the
         line that keeps WPPConnect from adding its own."""

@@ -1790,7 +1790,10 @@ registerProcessor('winzapp-call-mic', WinzappCallMicProcessor);
       mediaProto.__winzappCallMediaSrcObjectWrapped = true;
     }
     scanMediaElements();
-    new MutationObserver(scanMediaElements).observe(document.documentElement, {
+    // Installed at document start now (registerCallMediaBridgeBeforeLoad), where
+    // documentElement can still be null; observing the document itself with
+    // subtree sees the same insertions.
+    new MutationObserver(scanMediaElements).observe(document.documentElement || document, {
       childList: true,
       subtree: true,
     });
