@@ -265,3 +265,46 @@ def test_adopting_the_copy_replaces_rather_than_merges():
     assert existing["_local_flag"] is True       # local-only fields survive
     assert "_recovered_from_quote" not in existing
     assert existing["message"] == {"conversation": "oi"}
+
+
+class TestTheHistoryFunnelFillsAStoredPlaceholder:
+    """on_historical_message() returned on any id already stored, so the
+    decrypted copy delivered through history was thrown away while the
+    "Aguardando mensagem" row stayed, exactly what the live funnel was fixed
+    for. History never announces, so it always fills in place."""
+
+    JID = "120363409931936700@g.us"
+
+    def _stub(self, stored):
+        from tests.test_historical_self_chat_guard import _HistoricalStub
+
+        class _Stub(_HistoricalStub):
+            _is_undecrypted_placeholder = staticmethod(MainWindow._is_undecrypted_placeholder)
+
+            def _fill_stored_placeholder(self, existing, incoming, remote_jid):
+                self.filled.append((existing["key"]["id"], incoming["messageType"], remote_jid))
+
+        stub = _Stub()
+        stub.filled = []
+        stub.chats = {self.JID: {"remoteJid": self.JID,
+                                 "messages": {"messages": {"records": [stored]}}}}
+        return stub
+
+    def test_the_decrypted_copy_fills_the_placeholder(self):
+        stub = self._stub(_msg("ciphertext", mid="ID0"))
+        stub.on_historical_message(
+            _msg("conversation", {"conversation": "oi"}, mid="ID0"))
+        assert stub.filled == [("ID0", "conversation", self.JID)]
+
+    def test_another_placeholder_under_the_same_id_changes_nothing(self):
+        stub = self._stub(_msg("ciphertext", mid="ID0"))
+        stub.on_historical_message(_msg("ciphertext", mid="ID0"))
+        assert stub.filled == []
+
+    def test_a_real_message_already_stored_is_still_a_plain_duplicate(self):
+        stub = self._stub(_msg("conversation", {"conversation": "oi"}, mid="ID0"))
+        stub.on_historical_message(
+            _msg("conversation", {"conversation": "oi"}, mid="ID0"))
+        assert stub.filled == []
+        records = stub.chats[self.JID]["messages"]["messages"]["records"]
+        assert len(records) == 1

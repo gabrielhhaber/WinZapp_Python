@@ -27,6 +27,7 @@ from main import (
     _UNREAD_UNDISCOUNTED,
     _discount_non_countable_unread,
     apply_history_sync_unread_correction,
+    records_cover_snapshot,
 )
 
 from tests.test_get_remote_chats_persistence import _chat, _make, post  # noqa: F401
@@ -143,10 +144,11 @@ class TestTheReportedSeeSaw:
 
 
 class TestTheChatListMerge:
-    def test_a_count_merged_against_records_is_final(self, post):
+    def test_a_count_merged_against_current_records_is_final(self, post):
         existing = {GROUP: _group_chat(60)}
         stub = _make(existing)
-        post["payload"] = [_chat(GROUP, unreadCount=72, t=1700000500)]
+        # The newest stored record (1700000099) is what the snapshot counted to.
+        post["payload"] = [_chat(GROUP, unreadCount=72, t=1700000099)]
 
         stub.get_remote_chats(existing, persist_full=False, notify_errors=False)
 
@@ -154,6 +156,44 @@ class TestTheChatListMerge:
         assert _UNREAD_UNDISCOUNTED not in existing[GROUP]
         assert not apply_history_sync_unread_correction(GROUP, existing[GROUP])
         assert existing[GROUP]["unreadCount"] == 67
+
+    def test_a_count_merged_against_a_stale_tail_stays_raw(self, post):
+        """Warm start: the records are what the database had at launch, and the
+        snapshot counts a message that arrived while WinZapp was closed -- here
+        an own voice note sent from the phone. Discounting against the stale
+        tail finds nothing to discount; marked final, the post-fetch correction
+        that sees the real tail never ran and "1 unread" stayed on the badge."""
+        existing = {GROUP: _group_chat(0, records=[_incoming(i) for i in range(10)])}
+        stub = _make(existing)
+        post["payload"] = [_chat(GROUP, unreadCount=1, t=1700000500)]
+
+        stub.get_remote_chats(existing, persist_full=False, notify_errors=False)
+
+        assert existing[GROUP]["unreadCount"] == 1
+        assert existing[GROUP][_UNREAD_UNDISCOUNTED] is True
+        own_voice_note = {"key": {"id": "own", "fromMe": True},
+                          "messageType": "audioMessage", "message": {},
+                          "timestamp": 1700000500}
+        existing[GROUP]["messages"]["messages"]["records"].append(own_voice_note)
+        assert apply_history_sync_unread_correction(GROUP, existing[GROUP])
+        assert existing[GROUP]["unreadCount"] == 0
+
+
+class TestRecordsCoverSnapshot:
+    def test_a_tail_reaching_the_snapshot_covers_it(self):
+        assert records_cover_snapshot([_incoming(5)], 1700000005)
+
+    def test_a_tail_older_than_the_snapshot_does_not(self):
+        assert not records_cover_snapshot([_incoming(5)], 1700000006)
+
+    def test_no_records_cover_nothing(self):
+        assert not records_cover_snapshot([], 1700000006)
+
+    def test_a_snapshot_without_a_time_cannot_say_otherwise(self):
+        assert records_cover_snapshot([_incoming(5)], 0)
+
+    def test_millisecond_timestamps_are_compared_in_seconds(self):
+        assert records_cover_snapshot([_incoming(5)], 1700000005000)
 
     def test_a_count_merged_without_records_is_marked_raw(self, post):
         existing = {GROUP: _group_chat(0, records=[])}

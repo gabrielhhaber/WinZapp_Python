@@ -551,3 +551,33 @@ def test_f5_refuses_while_a_shift_f5_is_running(_inline_threads):
 
     assert handler.started == []
     assert handler.spoken == ["resync_conversation_busy"]
+
+
+class TestOneAnswerCannotEraseHistory:
+    """The window is min..max of whatever came back, so one stray old message
+    in the answer stretches it over history the page never covered. The
+    periodic mirror caps immediate deletions for exactly this
+    (core/remote_reconcile.py, MAX_MIRRORED_DELETIONS); Shift+F5 caps the same."""
+
+    def test_an_outlier_in_the_answer_would_make_everything_between_look_stale(self):
+        records = ([_msg("STRAY", 10)] + [_msg(f"L{i}", 100 + i) for i in range(50)]
+                   + [_msg("A", 500), _msg("B", 600)])
+        assert len(stale_ids_in_fetched_window(records, {"STRAY", "A", "B"})) == 50
+
+    def test_so_a_batch_over_the_cap_deletes_nothing(self):
+        from core.conversation_resync import deletions_to_apply
+        from core.remote_reconcile import MAX_MIRRORED_DELETIONS
+        stale = [f"L{i}" for i in range(MAX_MIRRORED_DELETIONS + 1)]
+        assert deletions_to_apply(stale) == []
+
+    def test_a_batch_within_the_cap_is_applied_whole(self):
+        from core.conversation_resync import deletions_to_apply
+        from core.remote_reconcile import MAX_MIRRORED_DELETIONS
+        stale = [f"L{i}" for i in range(MAX_MIRRORED_DELETIONS)]
+        assert deletions_to_apply(stale) == stale
+        assert deletions_to_apply([]) == []
+
+    def test_the_worker_applies_the_cap(self):
+        src = inspect.getsource(MainWindow._resync_conversation_worker)
+        assert src.index("stale_ids_in_fetched_window(") < src.index("deletions_to_apply(stale)")
+        assert src.index("deletions_to_apply(stale)") < src.index("if stale:")

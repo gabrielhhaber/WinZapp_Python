@@ -18,11 +18,18 @@ comparable_local_records()), reused rather than restated:
 - only strictly newer than the oldest message returned: another message
   sharing that second is not proof of anything;
 - never newer than the newest one returned (it arrived while the request was
-  in flight), and never a local-only record (sending, failed, cancelled).
+  in flight), and never a local-only record (sending, failed, cancelled);
+- at most MAX_MIRRORED_DELETIONS at once (deletions_to_apply()): the window is
+  min..max of whatever came back, so one stray old message in the answer
+  stretches it over history the page never covered, and everything in between
+  would look deleted. The periodic mirror caps the same way
+  (core/remote_reconcile.py, split_deletions()); a single keypress is not a
+  second read that could confirm a bigger batch, so it is left alone.
 """
 
 from core.incremental_sync import timestamp_seconds
 from core.remote_deletions import comparable_local_records
+from core.remote_reconcile import MAX_MIRRORED_DELETIONS
 
 #: Flags that mark a record WinZapp created and the server cannot know about.
 _LOCAL_ONLY_FLAGS = ("_local_pending", "_send_failed", "_cancelled_awaiting_id")
@@ -60,3 +67,14 @@ def stale_ids_in_fetched_window(records, fetched_ids, is_content=lambda r: True)
         and _record_ts(r) <= newest
         and not any(r.get(flag) for flag in _LOCAL_ONLY_FLAGS)
     ]
+
+
+def deletions_to_apply(stale) -> list:
+    """The part of *stale* one Shift+F5 may delete: all of it, or nothing.
+
+    More than MAX_MIRRORED_DELETIONS apparent deletions from one answer is far
+    likelier to be a window stretched by an outlier than a real clean-up on the
+    phone, and a local copy deleted by mistake is gone for good.
+    """
+    stale = list(stale or ())
+    return stale if len(stale) <= MAX_MIRRORED_DELETIONS else []

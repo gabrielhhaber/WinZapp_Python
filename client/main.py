@@ -54,7 +54,7 @@ from core.audio_devices import (
 )
 from core.bulk_read_state import run_bulk_read_state
 from core.call_matching import call_event_matches_active
-from core.conversation_resync import stale_ids_in_fetched_window
+from core.conversation_resync import deletions_to_apply, stale_ids_in_fetched_window
 from core.voice_stereo import opus_encode_args
 from core.quote_recovery import (
     RECOVERED_FROM_QUOTE,
@@ -83,6 +83,7 @@ from core.remote_reconcile import (
     observe_deletions as _observe_deletions,
     older_than_window as _older_than_window,
     oldest_anchor as _oldest_anchor,
+    MAX_MIRRORED_DELETIONS,
     split_deletions as _split_deletions,
     add_rollback_gap as _add_rollback_gap,
     normalize_rollback_gaps as _normalize_rollback_gaps,
@@ -1305,6 +1306,28 @@ def note_unread_discount_state(chat: dict, discounted: bool) -> None:
         chat.pop(_UNREAD_UNDISCOUNTED, None)
     else:
         chat[_UNREAD_UNDISCOUNTED] = True
+
+
+def records_cover_snapshot(records, snapshot_t) -> bool:
+    """True when *records* reach the chat-list snapshot's last activity.
+
+    The list-chats merge discounts a server count against the chat's stored
+    tail, and that is only the right tail when it holds what the server
+    counted. On a warm start the records are what the database had at launch:
+    a message that arrived while WinZapp was closed (an own voice note sent
+    from the phone, a group promote) is in the server's count and not in the
+    tail, so discounting there subtracts the wrong messages and, marked final,
+    skipped the post-fetch correction that would have found the right ones.
+    A tail is current when its newest record is at least as new as the
+    snapshot's `t`; a snapshot without a usable `t` cannot say otherwise.
+    """
+    if not records:
+        return False
+    snapshot = _timestamp_seconds(snapshot_t or 0)
+    if not snapshot:
+        return True
+    newest = max((message_timestamp_seconds(r) for r in records), default=0)
+    return newest >= snapshot
 
 
 def apply_history_sync_unread_correction(remote_jid: str, chat: dict) -> bool:
@@ -5382,6 +5405,13 @@ class MainWindow(wx.Frame):
                 # periods a profile restore left a hole in (core/conversation_resync.py).
                 judged = _outside_rollback_gaps(records, self._rollback_gaps())
                 stale = stale_ids_in_fetched_window(judged, fetched_ids, is_countable_message)
+                apparent = len(stale)
+                stale = deletions_to_apply(stale)
+                if apparent and not stale:
+                    logging.warning(
+                        "[resync-conversation] %s: %d apparent deletions exceed the "
+                        "cap of %d; none removed", remote_jid, apparent,
+                        MAX_MIRRORED_DELETIONS)
             if stale:
                 stale_set = set(stale)
                 cp = getattr(self, "conversations_panel", None)
@@ -9306,7 +9336,13 @@ class MainWindow(wx.Frame):
             records = inner_wrapper["records"] = []
 
         # Check if already present in memory records
-        if any(r.get("key", {}).get("id") == msg_id for r in records):
+        existing = next((r for r in records if r.get("key", {}).get("id") == msg_id), None)
+        if existing is not None:
+            # A stored placeholder (or a text recovered from a quote) is
+            # replaced by its decrypted copy, as on_new_message() does; history
+            # never announces, so it is always filled in silently.
+            if awaits_real_copy(existing) and not self._is_undecrypted_placeholder(msg):
+                self._fill_stored_placeholder(existing, msg, remote_jid)
             return
 
         # Ignore stale re-deliveries of cleared messages
@@ -19417,6 +19453,12 @@ class MainWindow(wx.Frame):
                                     .get("messages", {})
                                     .get("records", [])
                                 )
+                                # A tail older than the snapshot is not what the
+                                # server counted: leave the count raw and let the
+                                # post-fetch correction discount it, once.
+                                if not records_cover_snapshot(_discount_records,
+                                                              chat.get("t", 0)):
+                                    _discount_records = []
                                 server_val = _discount_non_countable_unread(
                                     _discount_records, server_val,
                                 )

@@ -106,7 +106,8 @@ version is named once, in `client/node_download_config.py`. `client/api/` and
 2. `MainWindow.on_new_message()` (live) and `on_historical_message()`
    (history) are the two funnels; both gated by `_live_events_ready()`.
    `is_countable_message()` keeps system events out of badges/sort/notify;
-   `_is_undecrypted_placeholder()` drops `ciphertext` before storage. An edit
+   `_is_undecrypted_placeholder()` drops a live `ciphertext`; one a sync stored is
+   shown and later replaced by its decrypted copy (`message-pipeline.md`). An edit
    arrives under the *original* `key.id` and goes to `_apply_possible_edit()`.
 3. Sends: `client/ui/conversations.py` shows a virtual pending message
    (`_local_pending`, `_local_id`), `client/core/message_queue.py` calls
