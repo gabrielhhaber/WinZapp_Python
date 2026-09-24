@@ -63,6 +63,7 @@ const out = {
   fetchEnableSent: false,
   fetchPatterns: [],
   versionPassedOnward: 'INIT_WHATSAPP_NEVER_CALLED',
+  bridgeRegistered: 'NEVER',
   error: null,
 };
 
@@ -72,10 +73,24 @@ const out = {
 // binary — is asserted in test_headless_shell.py.)
 const distConfig = path.join(apiDir, 'dist', 'config');
 const distIndex = path.join(apiDir, 'dist', 'index');
+const distBridge = path.join(apiDir, 'dist', 'util', 'callMediaBridge');
 const origLoad = Module._load;
 Module._load = function (request) {
   if (request === distConfig) return { default: { createOptions: {}, webhook: {}, log: {} } };
   if (request === distIndex) return { initServer: () => {} };
+  // Records WHEN the call media bridge is registered relative to WhatsApp's
+  // first navigation (initWhatsapp below): it must be before, with no reload.
+  if (request === distBridge) {
+    return {
+      registerCallMediaBridgeBeforeLoad: async (p) => {
+        out.bridgeRegistered =
+          out.versionPassedOnward === 'INIT_WHATSAPP_NEVER_CALLED' && p === page
+            ? 'BEFORE_FIRST_LOAD'
+            : 'AFTER_OR_WRONG_PAGE';
+        return true;
+      },
+    };
+  }
   return origLoad.apply(this, arguments);
 };
 
@@ -174,6 +189,19 @@ class TestTheNarrowInterceptionIsActuallyInstalled:
         )
 
 
+class TestTheCallMediaBridgeIsRegisteredBeforeTheFirstLoad:
+    """The call media hooks must exist before WhatsApp's modules evaluate. They
+    used to be registered after WhatsApp loaded and followed by page.reload(),
+    which wedged the page on 2026-09-24 (see callMediaBridge.ts,
+    registerCallMediaBridgeBeforeLoad). start.js now registers them in its
+    initWhatsapp wrapper, before WPPConnect's first goto()."""
+
+    def test_the_bridge_is_registered_before_initwhatsapp_navigates(self, tmp_path):
+        result = _run_harness(tmp_path)
+        assert result["error"] is None, result["error"]
+        assert result["bridgeRegistered"] == "BEFORE_FIRST_LOAD", result["bridgeRegistered"]
+
+
 class TestTheSourceItself:
     """Cheap checks that need neither node nor node_modules, so they still run
     on a bare checkout and in CI before setup_api.py."""
@@ -193,6 +221,16 @@ class TestTheSourceItself:
             "resolveWhatsappVersion() must use the module-scope binding, not shadow "
             "it with a local of the same name"
         )
+
+    def test_the_call_media_bridge_is_registered_before_the_first_load(self):
+        """Runs without client/api (unlike the harness test above, which CI skips):
+        the registration has to sit before `return original.call(`, i.e. before
+        WPPConnect's first goto(), or the hooks miss WhatsApp's first load and the
+        only way back is the reload that wedged the page on 2026-09-24."""
+        src = (PATCHES / "start.js").read_text(encoding="utf-8")
+        wrapper = src[src.index("browserController.initWhatsapp = async function"):]
+        wrapper = wrapper[: wrapper.index("return original.call(")]
+        assert "registerCallMediaBridgeBeforeLoad(page)" in wrapper
 
     def test_the_wrapper_consumes_the_version(self):
         """`version = undefined` right after installing our interception is the

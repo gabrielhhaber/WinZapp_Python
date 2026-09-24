@@ -1790,7 +1790,10 @@ registerProcessor('winzapp-call-mic', WinzappCallMicProcessor);
       mediaProto.__winzappCallMediaSrcObjectWrapped = true;
     }
     scanMediaElements();
-    new MutationObserver(scanMediaElements).observe(document.documentElement, {
+    // Installed at document start now (registerCallMediaBridgeBeforeLoad), where
+    // documentElement can still be null; observing the document itself with
+    // subtree sees the same insertions.
+    new MutationObserver(scanMediaElements).observe(document.documentElement || document, {
       childList: true,
       subtree: true,
     });
@@ -2056,8 +2059,39 @@ function toBuffer(value: any): Buffer | null {
   return null;
 }
 
+function linuxAudioRelayActive(): boolean {
+  return process.platform === 'linux' && process.env.PULSE_SERVER === LINUX_PULSE_SERVER;
+}
+
+/**
+ * Register the bridge as a new-document script BEFORE WhatsApp Web first loads.
+ *
+ * WhatsApp's VoIP bundle may cache getUserMedia and RTCPeerConnection when its
+ * modules evaluate, so the media hooks have to exist before that. This used to
+ * be done by registering the script once WPPConnect handed the page over (after
+ * WhatsApp had loaded) and then calling page.reload(). That reload wedged the
+ * page for good: measured 2026-09-24 on two consecutive starts, WhatsApp Web
+ * reloaded itself right after its first load, the priming reload landed on top
+ * of it, and the renderer stopped answering anything - not even a CDP
+ * Runtime.evaluate or the trace start - while idle, with no dialog, no freeze
+ * and no pending navigation to blame. The session stayed INITIALIZING forever
+ * and WinZapp went offline; skipping the reload alone brought it straight back.
+ *
+ * start.js calls this from its initWhatsapp wrapper, before the first goto(),
+ * so the hooks are in place without any reload. The flag lives on the page:
+ * no client object exists yet at that point, and the page is the same object
+ * WPPConnect later exposes as client.page.
+ */
+export async function registerCallMediaBridgeBeforeLoad(page: any): Promise<boolean> {
+  if (!page || typeof page.evaluateOnNewDocument !== 'function') return false;
+  if (page.__winzappCallMediaNewDocumentInstalled) return true;
+  await page.evaluateOnNewDocument(installCallMediaBridgeInPage, linuxAudioRelayActive());
+  page.__winzappCallMediaNewDocumentInstalled = true;
+  return true;
+}
+
 export async function ensureCallMediaBridge(client: any, io: any, logger: any): Promise<boolean> {
-  const linuxAudio = process.platform === 'linux' && process.env.PULSE_SERVER === LINUX_PULSE_SERVER;
+  const linuxAudio = linuxAudioRelayActive();
   const page = client?.waPage || client?.page;
   if (!page) return false;
 
@@ -2101,22 +2135,19 @@ export async function ensureCallMediaBridge(client: any, io: any, logger: any): 
   }
 
   try {
-    if (!(client as any).__winzappCallMediaNewDocumentInstalled) {
-      await page.evaluateOnNewDocument(installCallMediaBridgeInPage, linuxAudio);
-      (client as any).__winzappCallMediaNewDocumentInstalled = true;
-
-      // WPPConnect hands the page to us only after WhatsApp Web has loaded.
-      // Installing the bridge in that already-running document is too late:
-      // WhatsApp's VoIP bundle may already have cached getUserMedia and
-      // RTCPeerConnection. Reload exactly once after registering the
-      // new-document script, so the media hooks exist before any WhatsApp
-      // module evaluates. The authenticated profile lives in userDataDir, so
-      // this is a normal WhatsApp Web reload and does not re-pair the account.
-      if (!(client as any).__winzappCallMediaPrimed) {
-        (client as any).__winzappCallMediaPrimed = true;
-        logger?.info?.(`[${client.session}] priming call media bridge before WhatsApp load`);
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: 120000 });
-      }
+    if (!page.__winzappCallMediaNewDocumentInstalled) {
+      // start.js registers the bridge before WhatsApp's first load. Reaching
+      // here without that means its initWhatsapp wrapper did not run: register
+      // for future documents and install into the running one below, but
+      // NEVER reload to make up for it - that reload is what wedged the page
+      // (see registerCallMediaBridgeBeforeLoad). Calls may lack audio until
+      // WhatsApp next loads a document; that is recoverable, a dead session
+      // is not.
+      await registerCallMediaBridgeBeforeLoad(page);
+      logger?.warn?.(
+        `[${client.session}] call media bridge registered after WhatsApp loaded ` +
+          '(not before the first load); installing into the running page without a reload'
+      );
     }
     const installed = await page.evaluate(installCallMediaBridgeInPage, linuxAudio);
     if (installed) logger?.info?.(`[${client.session}] WinZapp call media bridge ready`);

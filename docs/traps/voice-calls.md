@@ -535,3 +535,10 @@ least one real call to learn, so read before touching the video path.
   never read). `getShortStatisticString()` and `getCallInfo()` on the VoIP
   interface answer "is media arriving at all" in one call; `getCallInfo()`
   carries account identifiers, so filter it before printing.
+
+**The call media bridge must never reload WhatsApp Web to install itself.** Its hooks (synthetic `getUserMedia`, the `RTCPeerConnection` tap) have to exist before WhatsApp's VoIP modules evaluate. They used to be registered with `evaluateOnNewDocument` only once WPPConnect handed over an already-loaded page, followed by a "priming" `page.reload()`. On 2026-09-24, right after an alpha update, that reload wedged the page on two consecutive starts. WhatsApp Web had reloaded itself right after its first load (history entry `transitionType: reload`, not served by the pin), and the priming reload landed on top of it.
+- **What the renderer did:** it stopped answering everything, including CDP `Runtime.evaluate`, `Debugger.enable`, `Page.getFrameTree`, and even the trace-start task. It was idle, not suspended, with no JS dialog, not frozen (`Page.setWebLifecycleState active` changed nothing), and `Page.stopLoading` changed nothing either.
+- **What the user saw:** the session sat in `INITIALIZING` until `Navigation timeout of 120000 ms exceeded`, and never recovered, so WinZapp went offline.
+- **The proof:** removing the reload alone connected on the next start.
+
+`start.js` now calls `registerCallMediaBridgeBeforeLoad(page)` from its `initWhatsapp` wrapper, before WPPConnect's first `goto()`. `ensureCallMediaBridge()` only installs into the running page, and if the early registration is missing it logs a warning instead of reloading. The page script looks the `__winzappOnCall*` bindings up at use time, so running before `exposeFunction` is safe. If a session is ever stuck in `INITIALIZING` with an unresponsive page, the first thing to check is whether anything reloads it during startup.
