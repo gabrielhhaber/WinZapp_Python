@@ -112,7 +112,8 @@ class TestBuiltOnTheSharedAllowlist:
         could silently drift from it again."""
         for message_type in MainWindow._PREVIEW_MESSAGE_TYPES:
             msg = _msg(message_type)
-            if message_type in ("protocolMessage", "groupNotification"):
+            if message_type in ("protocolMessage", "groupNotification",
+                                "callLogMessage", "call_log"):
                 assert is_countable_message(msg) is False
             else:
                 assert is_countable_message(msg) is True, message_type

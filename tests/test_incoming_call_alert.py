@@ -114,6 +114,9 @@ class _MainStub:
     _chat_jids_equivalent = MainWindow._chat_jids_equivalent
     _jid_address_forms = MainWindow._jid_address_forms
 
+    def _watch_ended_call_log(self, call_id, peer_jid, outgoing):
+        self.watched_call_logs.append((call_id, peer_jid, outgoing))
+
     def __init__(self):
         self._active_incoming_calls = {}
         self._incoming_call_details = {}
@@ -128,6 +131,7 @@ class _MainStub:
         self.settings = {"calls": {"alerts_enabled": True, "popup_enabled": True}}
         self.i18n = _I18n()
         self.announcements = []
+        self.watched_call_logs = []
         self.armed_watchdogs = []
         self.cancelled_watchdogs = []
         self.chats = {}
@@ -767,3 +771,36 @@ class TestIncomingCallPopupDoesNotPinItselfOnTop:
         notopmost = self.SOURCE.index("wintypes.HWND(-2)")
         assert topmost < notopmost
         assert self.SOURCE.count("wintypes.HWND(-1)") == 1
+
+
+def test_an_offer_that_stops_ringing_has_its_call_record_looked_up():
+    """A missed or declined call shows in the conversation through the record
+    WhatsApp writes for it (core/call_log.py); the lookup starts here."""
+    stub = _MainStub()
+    stub.on_incoming_call_event(_offer(call_id="ABC"))
+    assert stub.watched_call_logs == []
+
+    stub.on_incoming_call_event({"event": "state", "state": "HANDLED_REMOTELY",
+                                 "id": "ABC", "peerJid": "5511999999999@s.whatsapp.net"})
+
+    assert stub.watched_call_logs == [("ABC", "5511999999999@s.whatsapp.net", False)]
+
+
+def test_an_ended_outgoing_call_has_its_call_record_looked_up():
+    stub = _MainStub()
+    stub._active_voice_call = {
+        "identity": "outgoing:5511999999999@s.whatsapp.net",
+        "call_id": "WA-CALL",
+        "peer_jid": "5511999999999@s.whatsapp.net",
+        "name": "Fulano",
+        "outgoing": True,
+    }
+    stub._stop_voice_call_audio = lambda grace_seconds=0: None
+    stub._sync_voice_call_bar = lambda: None
+
+    stub.on_voice_call_state_event({
+        "event": "state", "state": "ENDED", "id": "WA-CALL",
+        "peerJid": "5511999999999@s.whatsapp.net",
+    })
+
+    assert stub.watched_call_logs == [("WA-CALL", "5511999999999@s.whatsapp.net", True)]
