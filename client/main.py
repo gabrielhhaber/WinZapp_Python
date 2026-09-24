@@ -20882,6 +20882,88 @@ class MainWindow(wx.Frame):
             wx.MessageBox(f"{self.i18n.t('contact_load_failed')} {format_exc()}", self.i18n.t("error").format(app_name=self.app_name), wx.OK | wx.ICON_ERROR)
             return {}
 
+    def save_local_contact(self, jid: str, entry: dict) -> str:
+        """Store a local (WinZapp-only) contact and make every view use it now.
+
+        The name used to land only under the phone JID, while the chat and
+        its messages are often keyed by the person's @lid, whose parallel
+        contact record still carried the WhatsApp name: the message list kept
+        showing the old name, even after reopening the conversation, until a
+        restart rebuilt the @lid record from the phone one
+        (register_jid_mapping()). So the @lid record gets the same entry,
+        both are persisted, and the chat list and the open conversation are
+        redrawn. Returns the normalized phone JID.
+        """
+        jid = self._normalize_jid(jid)
+        self.contacts[jid] = entry
+        changed = {jid: entry}
+        lid = self._lid_for_local_contact(jid)
+        if lid:
+            mirrored = dict(entry, id=lid, remoteJid=lid)
+            self.contacts[lid] = mirrored
+            changed[lid] = mirrored
+        try:
+            self.db.upsert_contacts_batch(changed)
+        except Exception:
+            logging.exception("[save_local_contact] Failed to persist contact")
+        self._refresh_views_after_contact_change()
+        return jid
+
+    def remove_local_contact(self, jid: str) -> None:
+        """Delete a local contact and the @lid copy save_local_contact() made.
+
+        The @lid record is removed only while it still carries the local
+        contact's name: if WhatsApp has since written its own name there, that
+        name is WhatsApp's, not ours to delete.
+        """
+        jid = self._normalize_jid(jid)
+        removed = self.contacts.pop(jid, None) or {}
+        jids = [jid]
+        lid = self._lid_for_local_contact(jid)
+        name = (removed.get("name") or "").strip()
+        if lid and name and (self.contacts.get(lid) or {}).get("name", "").strip() == name:
+            self.contacts.pop(lid, None)
+            jids.append(lid)
+        for contact_jid in jids:
+            try:
+                self.db.delete_contact(contact_jid)
+            except Exception:
+                logging.exception("[remove_local_contact] Failed to delete contact")
+        self._refresh_views_after_contact_change()
+
+    def _lid_for_local_contact(self, jid: str) -> str:
+        """The @lid of the person a typed phone JID names, or "".
+
+        The number is whatever the user typed, and a Brazilian number may carry
+        the 9th digit the lid mapping was learned without (or the reverse), so
+        an exact lookup is tried first and the digit-equivalent one after it.
+        """
+        phone_to_lid = getattr(self, "_phone_to_lid", {}) or {}
+        lid = phone_to_lid.get(jid, "")
+        if lid:
+            return lid
+        digits = jid.split("@", 1)[0]
+        for phone, candidate in list(phone_to_lid.items()):
+            if (phone.endswith("@s.whatsapp.net")
+                    and self._phone_digits_equivalent(digits, phone.split("@", 1)[0])):
+                return candidate
+        return ""
+
+    def _refresh_views_after_contact_change(self) -> None:
+        """Redraw what shows contact names: the chat list and the open
+        conversation's rows (in place; a full rebuild only if the list is out
+        of step, see ConversationsPanel._repaint_or_repopulate())."""
+        self._schedule_set_chats()
+        panel = getattr(self, "conversations_panel", None)
+        if panel is None or getattr(panel, "conversation", None) is None:
+            return
+        ids = [((m.get("key") or {}).get("id") or "")
+               for m in getattr(panel, "_sorted_messages", None) or []
+               if isinstance(m, dict) and not panel._is_separator(m)]
+        ids = [i for i in ids if i]
+        if ids:
+            wx.CallAfter(panel._repaint_or_repopulate, ids)
+
     @staticmethod
     def _is_bad_contact_name(name: str) -> bool:
         if not name or not isinstance(name, str):

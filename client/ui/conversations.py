@@ -10266,9 +10266,13 @@ class ConversationsPanel(wx.Panel):
             if lj_clean.endswith("@lid"):
                 phone = lid_to_phone.get(lj_clean, "")
                 if phone:
-                    candidates.append(phone)
-                    # contacts may be indexed under @c.us legacy format
-                    candidates.append(phone.rsplit("@", 1)[0] + "@c.us")
+                    # Phone first: it is the address-book entry, and the
+                    # parallel @lid record can keep an older WhatsApp name —
+                    # a local contact added for this person showed the old
+                    # name on every row until restart. Same order as
+                    # MainWindow._resolve_contact_name(). contacts may also be
+                    # indexed under the @c.us legacy format.
+                    candidates[:0] = [phone, phone.rsplit("@", 1)[0] + "@c.us"]
             elif lj_clean.endswith("@s.whatsapp.net"):
                 # Also try @c.us — contacts dict may still hold the legacy format
                 candidates.append(lj_clean.rsplit("@", 1)[0] + "@c.us")
@@ -11777,8 +11781,10 @@ class ConversationsPanel(wx.Panel):
         if participant_jid.endswith("@lid"):
             phone = lid_to_phone.get(participant_jid, "")
             if phone:
-                candidates.append(phone)
-                candidates.append(phone.rsplit("@", 1)[0] + "@c.us")
+                # The phone record is the address-book entry; the parallel
+                # @lid record can keep an older WhatsApp name and hid a local
+                # contact until restart (same order as _resolve_contact_name).
+                candidates[:0] = [phone, phone.rsplit("@", 1)[0] + "@c.us"]
         elif participant_jid.endswith("@s.whatsapp.net"):
             candidates.append(local + "@c.us")
             lid = getattr(mw, "_phone_to_lid", {}).get(participant_jid, "")
