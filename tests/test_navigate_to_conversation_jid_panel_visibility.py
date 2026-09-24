@@ -93,3 +93,80 @@ def test_window_hidden_restores_before_anything_else():
 
     stub.restore_window.assert_called_once()
     stub.conversations_panel.navigate_to_jid.assert_called_once()
+
+
+# ── A person with no conversation yet (Enter on a group participant) ─────────
+#
+# Reported 2026-09-23: Enter on a group participant who was not a saved
+# contact (or was only a phone number) closed the dialog and left the user in
+# the group. navigate_to_jid() only opens a row that already exists under the
+# exact JID, and returned without a word when there was none.
+
+
+class _ChatStub(_Stub):
+    _chat_for_private_conversation = MainWindow._chat_for_private_conversation
+    _is_bad_contact_name = staticmethod(MainWindow._is_bad_contact_name)
+    _normalize_jid = staticmethod(MainWindow._normalize_jid)
+    get_chat = MainWindow.get_chat
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.chats = {}
+        self._lid_to_phone = {}
+        self._phone_to_lid = {}
+        self._schedule_set_chats = Mock()
+        self.conversations_panel.navigate_to_jid = Mock(return_value=False)
+
+
+def test_a_participant_never_talked_to_gets_a_new_conversation():
+    jid = "5511912345678@s.whatsapp.net"
+    stub = _ChatStub()
+
+    stub.navigate_to_conversation_jid(jid, "Maria")
+
+    chat = stub.chats[jid]
+    assert chat == {"remoteJid": jid, "pushName": "Maria"}
+    stub._schedule_set_chats.assert_called_once()
+    stub.conversations_panel.navigate_to_conversation.assert_called_once_with(chat)
+
+
+def test_a_number_as_the_name_is_not_stored_as_one():
+    jid = "5511912345678@s.whatsapp.net"
+    stub = _ChatStub()
+
+    stub.navigate_to_conversation_jid(jid, "+55 11 91234-5678")
+
+    assert stub.chats[jid] == {"remoteJid": jid}
+
+
+def test_a_chat_under_an_equivalent_jid_is_reused_not_duplicated():
+    """The chat exists under the 8-digit form; the participant carries 9."""
+    existing_jid = "551112345678@s.whatsapp.net"
+    existing = {"remoteJid": existing_jid, "name": "Maria"}
+    stub = _ChatStub()
+    stub.chats = {existing_jid: existing}
+    stub.conversations_panel.navigate_to_jid = Mock(side_effect=[False, True])
+
+    stub.navigate_to_conversation_jid("5511912345678@s.whatsapp.net", "Maria")
+
+    assert list(stub.chats) == [existing_jid]
+    assert stub.conversations_panel.navigate_to_jid.call_args_list[-1].args == (existing_jid,)
+    stub._schedule_set_chats.assert_not_called()
+
+
+def test_an_unbridged_lid_creates_nothing():
+    stub = _ChatStub()
+
+    stub.navigate_to_conversation_jid("123456789012345@lid", "Maria")
+
+    assert stub.chats == {}
+    stub.conversations_panel.navigate_to_conversation.assert_not_called()
+
+
+def test_a_group_jid_creates_nothing():
+    stub = _ChatStub()
+
+    stub.navigate_to_conversation_jid("120363000000000000@g.us")
+
+    assert stub.chats == {}
+    stub.conversations_panel.navigate_to_conversation.assert_not_called()

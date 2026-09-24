@@ -16000,8 +16000,11 @@ class ConversationsPanel(wx.Panel):
                 if last >= 0:
                     self.messages_list.EnsureVisible(last)
 
-    def navigate_to_jid(self, jid: str):
-        """Select and open the conversation matching jid, clearing any search."""
+    def navigate_to_jid(self, jid: str) -> bool:
+        """Select and open the conversation matching jid, clearing any search.
+
+        Returns whether a row for *jid* was found; the caller decides what to
+        do about a person with no conversation yet."""
         # Clear search so all chats are visible
         if self.search_field.GetValue():
             self.search_field.SetValue("")
@@ -16014,7 +16017,8 @@ class ConversationsPanel(wx.Panel):
                 self.conversations_list.Select(i)
                 self.conversations_list.EnsureVisible(i)
                 self.navigate_to_conversation(chat)
-                break
+                return True
+        return False
 
     # ── Populate ─────────────────────────────────────────────────────────────
 

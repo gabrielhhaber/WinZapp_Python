@@ -6221,7 +6221,7 @@ class MainWindow(wx.Frame):
 
     # ── Navigate to conversation by JID ──────────────────────────────────────
 
-    def navigate_to_conversation_jid(self, jid: str):
+    def navigate_to_conversation_jid(self, jid: str, name: str = ""):
         """Bring the window to front and open the conversation matching jid.
 
         Only calls restore_window() when the window is actually hidden; if it
@@ -6272,7 +6272,43 @@ class MainWindow(wx.Frame):
         self.conversations_panel.conversations_list.Show()
         self.conversations_panel.Show()
         self.content_panel.Layout()
-        self.conversations_panel.navigate_to_jid(jid)
+        if self.conversations_panel.navigate_to_jid(jid):
+            return
+        # No row under this exact JID: a group participant the user never
+        # talked to (or whose chat lives under an equivalent JID) used to
+        # leave them in the group with nothing happening.
+        chat = self._chat_for_private_conversation(jid, name)
+        if chat is None:
+            return
+        if chat.get("remoteJid") != jid and self.conversations_panel.navigate_to_jid(
+                chat.get("remoteJid", "")):
+            return
+        self.conversations_panel.navigate_to_conversation(chat)
+
+    def _chat_for_private_conversation(self, jid: str, name: str = ""):
+        """The chat to open for a one-to-one conversation with *jid*.
+
+        An existing chat under any equivalent JID (@c.us, the bridged @lid,
+        the Brazilian 9th-digit variant) is reused, exactly as "Nova conversa"
+        does. Otherwise a phone JID gets a new chat, registered the way "Nova
+        conversa" registers a number nobody has talked to yet. An @lid with no
+        chat and anything that is not a person get None: chats are keyed by
+        the phone JID, and an unbridged @lid is not one.
+        """
+        from ui.dialogs.new_conversation import NewConversationDialog
+        if not jid or not jid.endswith(("@s.whatsapp.net", "@c.us", "@lid")):
+            return None
+        norm_jid, existing = NewConversationDialog._find_existing_chat(self, jid)
+        if existing is not None:
+            return existing
+        if not norm_jid.endswith("@s.whatsapp.net"):
+            return None
+        chat = {"remoteJid": norm_jid}
+        if name and not self._is_bad_contact_name(name):
+            chat["pushName"] = name
+        self.chats[norm_jid] = chat
+        self._schedule_set_chats()
+        return chat
 
     # ── Incoming real-time messages ───────────────────────────────────────────
 
