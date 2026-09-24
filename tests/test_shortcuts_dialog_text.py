@@ -76,6 +76,51 @@ class TestMultiAccountShortcutVisibility:
         assert "shortcut_ctrl_alt_num_label" in text
 
 
+class _FakeVault:
+    def __init__(self, configured):
+        self.configured = configured
+
+
+class _FakeMainWindowNoVault:
+    account_id = None
+    registry = None
+
+
+class _FakeMainWindowUnconfiguredVault:
+    account_id = None
+    registry = None
+    _chat_lock_vault = _FakeVault(configured=False)
+
+
+class _FakeMainWindowConfiguredVault:
+    account_id = None
+    registry = None
+    _chat_lock_vault = _FakeVault(configured=True)
+
+
+class TestChatLockShortcutVisibility:
+    """Alt+7 opens the locked-chats vault. Listing it unconditionally would
+    itself tell anyone reading this help text that a vault exists — exactly
+    what the vault's own hidden-navigation option is meant to prevent — so
+    it must only appear once a vault has actually been configured."""
+
+    def test_hidden_without_a_main_window(self):
+        text = ShortcutsDialog._build_text(_FakeI18n())
+        assert "shortcut_alt7_label" not in text
+
+    def test_hidden_when_no_vault_was_ever_loaded(self):
+        text = ShortcutsDialog._build_text(_FakeI18n(), _FakeMainWindowNoVault())
+        assert "shortcut_alt7_label" not in text
+
+    def test_hidden_when_the_vault_was_never_configured(self):
+        text = ShortcutsDialog._build_text(_FakeI18n(), _FakeMainWindowUnconfiguredVault())
+        assert "shortcut_alt7_label" not in text
+
+    def test_shown_once_the_vault_is_configured(self):
+        text = ShortcutsDialog._build_text(_FakeI18n(), _FakeMainWindowConfiguredVault())
+        assert "shortcut_alt7_label" in text
+
+
 class TestNewAppLevelShortcutsAreDocumented:
     def test_disconnect_and_exit_are_present(self):
         text = ShortcutsDialog._build_text(_FakeI18n())

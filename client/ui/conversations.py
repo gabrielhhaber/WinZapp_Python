@@ -2110,6 +2110,9 @@ class ConversationsPanel(wx.Panel):
 
     def _on_search_field_key_down(self, event):
         """Down arrow in the search field moves focus to the first conversation."""
+        if event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            if self.main_window.try_reveal_locked_chats(self.search_field.GetValue()):
+                return
         if event.GetKeyCode() == wx.WXK_DOWN:
             lst = self.conversations_list
             if lst.GetItemCount() > 0:
@@ -4375,7 +4378,12 @@ class ConversationsPanel(wx.Panel):
         # archived list (ArchivedConversationsPanel), which stays hidden behind
         # this panel while the conversation is open — so Esc must send focus
         # back there instead of the regular conversations list.
-        if (closed_jid and mw.is_chat_archived(closed_jid)
+        if (closed_jid
+                and getattr(mw, "is_chat_locked", lambda _jid: False)(closed_jid)
+                and getattr(mw, "_chat_lock_unlocked", False)
+                and hasattr(mw, "locked_conversations_panel")):
+            wx.CallAfter(self._restore_to_locked_list, closed_jid)
+        elif (closed_jid and mw.is_chat_archived(closed_jid)
                 and hasattr(mw, "archived_conversations_panel")):
             wx.CallAfter(self._restore_to_archived_list, closed_jid)
         else:
@@ -4445,6 +4453,27 @@ class ConversationsPanel(wx.Panel):
             lst.Select(target)
             lst.EnsureVisible(target)
         lst.SetFocus()
+
+    def _restore_to_locked_list(self, jid: str):
+        """Switch back to the unlocked vault list and re-select ``jid``."""
+        mw = self.main_window
+        self.conversations_label.Show()
+        self.conversations_list.Show()
+        self.Hide()
+        panel = mw.locked_conversations_panel
+        chats, names = getattr(mw, "_locked_chat_rows", ([], []))
+        panel.set_all_chats(chats, names)
+        panel.Show()
+        mw.content_panel.Layout()
+        target = next((
+            index for index, chat in enumerate(panel.chats_list)
+            if chat.get("remoteJid", "") == jid
+        ), 0)
+        if panel.chats_list:
+            panel.conversations_list.Focus(target)
+            panel.conversations_list.Select(target)
+            panel.conversations_list.EnsureVisible(target)
+        panel.conversations_list.SetFocus()
 
     # ── Conversations context menu ──────────────────────────────────────────
 
@@ -4561,6 +4590,9 @@ class ConversationsPanel(wx.Panel):
         else:
             pin_item = menu.Append(wx.ID_ANY, f"{i18n.t('pin_chat')}\tCtrl+P")
             self.Bind(wx.EVT_MENU, lambda e, j=jid: self._on_menu_pin(j), pin_item)
+
+        lock_item = menu.Append(wx.ID_ANY, i18n.t("lock_chat"))
+        self.Bind(wx.EVT_MENU, lambda e, j=jid: mw.lock_chat(j), lock_item)
 
         menu.AppendSeparator()
 
@@ -17939,6 +17971,9 @@ class ArchivedConversationsPanel(wx.Panel):
         else:
             pin_item = menu.Append(wx.ID_ANY, f"{i18n.t('pin_chat')}\tCtrl+P")
             self.Bind(wx.EVT_MENU, lambda e, j=jid: self._on_pin(j), pin_item)
+
+        lock_item = menu.Append(wx.ID_ANY, i18n.t("lock_chat"))
+        self.Bind(wx.EVT_MENU, lambda e, j=jid: mw.lock_chat(j), lock_item)
 
         menu.AppendSeparator()
 

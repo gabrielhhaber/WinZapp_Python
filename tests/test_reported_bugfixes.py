@@ -117,6 +117,14 @@ class TestArchivedChatsExcludedFromMainCount:
         }
         assert mw.get_archived_unread_count() == 2
 
+    def test_locked_archived_chat_is_not_exposed_by_archived_counter(self):
+        jid = "private@s.whatsapp.net"
+        mw = _MainWindowStub()
+        mw.chats = {jid: _chat(jid, unread=4, archived=True)}
+        mw.is_chat_locked = lambda candidate: candidate == jid
+
+        assert mw.get_archived_unread_count() == 0
+
 
 class TestOfficialWhatsAppAccountName:
     def test_local_part_zero_resolves_to_whatsapp(self):

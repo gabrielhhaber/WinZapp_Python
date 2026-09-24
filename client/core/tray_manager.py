@@ -111,7 +111,11 @@ class TrayIcon(wx.adv.TaskBarIcon):
                 # window title (_update_title()), so the tray tooltip/icon
                 # doesn't announce unread messages for chats the user can't
                 # see anywhere in the main conversation list.
-                if jid in deleted or mw.is_chat_archived(jid):
+                if (
+                    jid in deleted
+                    or mw.is_chat_archived(jid)
+                    or getattr(mw, "is_chat_locked", lambda _jid: False)(jid)
+                ):
                     continue
                 unread = effective_unread_count(chat)
                 if unread > 0:

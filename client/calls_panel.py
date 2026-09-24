@@ -1,10 +1,14 @@
-"""The Calls tab (Alt+6): every call of every conversation in one list.
+"""The Calls tab (Alt+6): every call of every conversation not locked away.
 
 WhatsApp keeps each call as a message in its chat (core/call_log.py); this tab
 lists those records across all chats, newest first, the way WhatsApp's own
 Calls tab does. The rows use the same label as the conversation row ("Ligação
 de voz perdida", "…atendida, duração: …"), prefixed with the other party's
-name, since "Eu:" says nothing in a list that spans every conversation.
+name, since "Eu:" says nothing in a list that spans every conversation. A
+call filed under a locked chat is excluded the same way the main/archived
+lists exclude it (docs/traps -- chat_lock_vault): its name and history stay
+out of this tab, and returning it (Ctrl+Shift+R / the button) is refused,
+regardless of whether the vault happens to be unlocked right now.
 
 A wx.Notebook holds the filters -- Todas (selected by default), Perdidas,
 Recusadas, Atendidas -- each page with its own "&Ligações" list, so Ctrl+Tab
@@ -30,6 +34,7 @@ from core.call_log import (
     call_log_label,
     call_row_text,
     collect_call_logs,
+    exclude_locked_calls,
     is_returnable_missed_call,
     list_update_plan,
 )
@@ -180,6 +185,9 @@ class CallsPanel(wx.Panel):
             except Exception:
                 logging.exception("[calls_tab] reading call records failed")
         entries = collect_call_logs(stored, getattr(mw, "chats", {}))
+        is_locked = getattr(mw, "is_chat_locked", None)
+        if is_locked is not None:
+            entries = exclude_locked_calls(entries, is_locked)
         wx.CallAfter(self._apply_entries, entries)
 
     def _apply_entries(self, entries):
@@ -270,7 +278,11 @@ class CallsPanel(wx.Panel):
 
     def _update_return_call_button(self):
         entry = self.focused_entry()
-        show = entry is not None and is_returnable_missed_call(entry["msg"], entry["jid"])
+        mw = self.main_window
+        locked = entry is not None and getattr(
+            mw, "is_chat_locked", lambda _jid: False)(entry["jid"])
+        show = (entry is not None and not locked
+                and is_returnable_missed_call(entry["msg"], entry["jid"]))
         self._return_call_btn.Show(show)
         self.Layout()
 
@@ -281,12 +293,17 @@ class CallsPanel(wx.Panel):
 
     def _on_return_call(self, _event=None):
         entry = self.focused_entry()
-        if entry is None or not is_returnable_missed_call(entry["msg"], entry["jid"]):
-            # Ctrl+Shift+R on anything else: say so rather than do nothing.
-            self.main_window.output(
-                self.main_window.i18n.t("return_call_unavailable"), interrupt=True)
-            return
         mw = self.main_window
+        locked = entry is not None and getattr(
+            mw, "is_chat_locked", lambda _jid: False)(entry["jid"])
+        if (entry is None or locked
+                or not is_returnable_missed_call(entry["msg"], entry["jid"])):
+            # Ctrl+Shift+R on anything else: say so rather than do nothing.
+            # A row for a chat that got locked after this tab last loaded
+            # (schedule_refresh() runs on a delay) falls in here too --
+            # never place a call to a locked contact without the PIN.
+            mw.output(mw.i18n.t("return_call_unavailable"), interrupt=True)
+            return
         name = mw.chat_display_name(entry["jid"])
         if call_log_is_video(entry["msg"]):
             mw.start_video_call(entry["jid"], name)
