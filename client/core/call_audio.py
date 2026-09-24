@@ -957,6 +957,17 @@ class CallAudioSession:
                         self._mic_queue.qsize(),
                     )
 
+            # Before the mute check, so the canceller keeps consuming audio (and
+            # its reference) while muted and stays continuous on unmute. Whole
+            # blocks only: an empty result means the chunk is still buffered.
+            if self._echo_canceller is not None:
+                try:
+                    pcm = self._cancel_echo(pcm)
+                except Exception:
+                    logging.exception("[call_audio] echo cancellation failed")
+                if not pcm:
+                    continue
+
             try:
                 if self._microphone_muted:
                     pcm = b"\x00" * len(pcm)
