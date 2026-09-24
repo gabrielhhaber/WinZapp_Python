@@ -542,6 +542,8 @@
     "return_call_unavailable": "Only a missed call can be returned.",
     "shortcut_alt6_label": "Alt+6: go to calls",
     "shortcut_alt7_label": "Alt+7: open locked chats",
+    "chat_lock_none": "No locked chats.",
+    "shortcut_ctrl_shift_t_list_label": "Ctrl+Shift+T: lock the selected conversation in the list",
     "shortcuts_calls_section": "Calls panel",
     "shortcut_calls_alt_l_label": "Alt+L: go to the calls list",
     "shortcut_calls_ctrl_tab_label": "Ctrl+Tab and Ctrl+Shift+Tab: switch between the all, missed, declined and answered tabs",

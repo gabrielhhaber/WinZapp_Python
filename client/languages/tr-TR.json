@@ -542,6 +542,8 @@
   "return_call_unavailable": "Yalnızca cevapsız bir arama geri aranabilir.",
   "shortcut_alt6_label": "Alt+6: aramalara git",
   "shortcut_alt7_label": "Alt+7: kilitli sohbetleri aç",
+  "chat_lock_none": "Kilitli sohbet yok.",
+  "shortcut_ctrl_shift_t_list_label": "Ctrl+Shift+T: listede seçili sohbeti kilitle",
   "shortcuts_calls_section": "Aramalar paneli",
   "shortcut_calls_alt_l_label": "Alt+L: arama listesine git",
   "shortcut_calls_ctrl_tab_label": "Ctrl+Tab ve Ctrl+Shift+Tab: tümü, cevapsız, reddedilen ve cevaplanan sekmeleri arasında geçiş yap",

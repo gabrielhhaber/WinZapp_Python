@@ -542,6 +542,8 @@
     "return_call_unavailable": "Oddzwonić można tylko na nieodebrane połączenie.",
     "shortcut_alt6_label": "Alt+6: przejdź do połączeń",
     "shortcut_alt7_label": "Alt+7: otwórz zablokowane czaty",
+    "chat_lock_none": "Brak zablokowanych czatów.",
+    "shortcut_ctrl_shift_t_list_label": "Ctrl+Shift+T: zablokuj zaznaczony czat na liście",
     "shortcuts_calls_section": "Panel połączeń",
     "shortcut_calls_alt_l_label": "Alt+L: przejdź do listy połączeń",
     "shortcut_calls_ctrl_tab_label": "Ctrl+Tab i Ctrl+Shift+Tab: przełączaj karty wszystkie, nieodebrane, odrzucone i odebrane",
