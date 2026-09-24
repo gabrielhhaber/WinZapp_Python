@@ -10,21 +10,28 @@ usually keyed by the person's @lid, whose parallel contact record still held
 the WhatsApp name, and the message list's name lookups (_sender_label for
 one-to-one rows, _get_participant_name for group rows) tried the @lid record
 first. MainWindow._resolve_contact_name() already put the phone record first
-for exactly this reason; the panel's lookups did not. At startup,
-register_jid_mapping() rebuilt the @lid record from the phone one, which is
-why a restart hid the bug.
+for exactly this reason; the panel's lookups did not.
 
-Two fixes, each sufficient for the reported case: the panel's lookups now try
-the phone record first, and save_local_contact() mirrors the entry onto the
-@lid record (persisted), then redraws the chat list and the open rows.
+Two fixes: the panel's lookups read every contact record (phone first,
+8/9-digit tolerant) before any chat name, as _resolve_contact_name() does; and
+save_local_contact() merges the entry onto the @lid record (persisted), then
+redraws the chat list and the rows touching this person.
 """
 
+import pytest
+
+import main
 from main import MainWindow
 from ui.conversations import ConversationsPanel
 
 PHONE = "5511999999999@s.whatsapp.net"
 PHONE_8 = "551199999999@s.whatsapp.net"
 LID = "123456789012345@lid"
+
+
+@pytest.fixture(autouse=True)
+def _inline_call_after(monkeypatch):
+    monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
 
 
 class _Mw:
@@ -34,6 +41,7 @@ class _Mw:
     remove_local_contact = MainWindow.remove_local_contact
     _lid_for_local_contact = MainWindow._lid_for_local_contact
     _refresh_views_after_contact_change = MainWindow._refresh_views_after_contact_change
+    _get_contact_tolerant = MainWindow._get_contact_tolerant
     _phone_digits_equivalent = staticmethod(MainWindow._phone_digits_equivalent)
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
 
@@ -46,6 +54,7 @@ class _Mw:
         self._presence_pushname_map = {}
         self.db = _Db()
         self.set_chats = 0
+        self.refreshed = []
         self.conversations_panel = None
 
     def _is_self_jid(self, jid):
@@ -56,6 +65,9 @@ class _Mw:
 
     def _schedule_set_chats(self):
         self.set_chats += 1
+
+    def _schedule_refresh_active_messages(self, jids=None):
+        self.refreshed.append(set(jids or ()))
 
 
 class _Db:
@@ -73,17 +85,12 @@ class _Db:
 class _Panel:
     _sender_label = ConversationsPanel._sender_label
     _get_participant_name = ConversationsPanel._get_participant_name
-    _is_separator = ConversationsPanel._is_separator
 
     def __init__(self, mw, conversation=None, rows=()):
         self.main_window = mw
         self.conversation = conversation
         self._sorted_messages = list(rows)
         self._group_participants_cache = []
-        self.repainted = []
-
-    def _repaint_or_repopulate(self, ids):
-        self.repainted.append(list(ids))
 
 
 def _incoming(remote, participant=None, mid="M1"):
@@ -113,6 +120,16 @@ class TestTheLookupsPreferThePhoneRecord:
     def test_without_a_phone_record_the_lid_record_still_answers(self):
         panel = _Panel(_Mw(), {"remoteJid": PHONE})
         assert panel._sender_label(_incoming(LID)) == "Original"
+
+    def test_a_contact_record_beats_a_stale_chat_name(self):
+        """Every contact record is read before any chat name: get_chat(phone)
+        falls back to the @lid chat, which must not answer first."""
+        mw = _Mw()
+        mw.chats = {LID: {"remoteJid": LID, "name": "Chat Name Stale"}}
+        mw.contacts[LID]["name"] = "Fresh Lid Name"
+        panel = _Panel(mw, {"remoteJid": LID})
+        assert panel._sender_label(_incoming(LID)) == "Fresh Lid Name"
+        assert panel._get_participant_name(LID, resolve_missing=False) == "Fresh Lid Name"
 
 
 class TestSaveLocalContact:
@@ -144,16 +161,22 @@ class TestSaveLocalContact:
         assert set(mw.db.upserted) == {PHONE}
         assert mw.contacts[LID]["name"] == "Original"
 
-    def test_the_chat_list_and_the_open_rows_are_redrawn(self, monkeypatch):
-        import main
-        monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
+    def test_the_chat_list_and_this_persons_rows_are_redrawn(self):
+        """Through the scoped, frozen, debounced refresh that only repaints
+        rows touching these JIDs -- never every row, never a rebuild."""
         mw = _Mw()
-        rows = [_incoming(LID, mid="A"), {"_type": "unread_separator"},
-                _incoming(LID, mid="B")]
-        mw.conversations_panel = _Panel(mw, {"remoteJid": PHONE}, rows)
         mw.save_local_contact(PHONE, self._entry())
         assert mw.set_chats == 1
-        assert mw.conversations_panel.repainted == [["A", "B"]]
+        assert mw.refreshed == [{PHONE, LID}]
+
+    def test_the_ninth_digit_variant_row_reads_the_new_name(self):
+        """The mapping knows the 8-digit phone, the contact was typed with 9:
+        the row must still read the local name, not the stale @lid one."""
+        mw = _Mw(phone=PHONE_8)
+        mw.contacts[PHONE] = self._entry()  # only the phone record, no mirror
+        panel = _Panel(mw, {"remoteJid": PHONE_8})
+        assert panel._sender_label(_incoming(LID)) == "Novo Nome"
+        assert panel._get_participant_name(LID, resolve_missing=False) == "Novo Nome"
 
     def test_after_saving_the_open_row_reads_the_new_name(self):
         mw = _Mw()
@@ -170,10 +193,20 @@ class TestRemoveLocalContact:
         assert PHONE not in mw.contacts and LID not in mw.contacts
         assert set(mw.db.deleted) == {PHONE, LID}
 
-    def test_a_lid_record_whatsapp_renamed_since_is_kept(self):
+    def test_a_lid_record_whatsapp_renamed_since_is_kept_but_not_saved(self):
         mw = _Mw()
         mw.save_local_contact(PHONE, {"remoteJid": PHONE, "name": "Novo Nome", "isSaved": True})
         mw.contacts[LID]["name"] = "Nome do WhatsApp"
         mw.remove_local_contact(PHONE)
         assert mw.contacts[LID]["name"] == "Nome do WhatsApp"
+        assert "isSaved" not in mw.contacts[LID]
         assert mw.db.deleted == [PHONE]
+        assert "isSaved" not in mw.db.upserted[LID]
+
+
+def test_the_lid_copy_keeps_whatsapps_other_fields():
+    mw = _Mw()
+    mw.contacts[LID]["profilePicUrl"] = "https://example.invalid/p.jpg"
+    mw.save_local_contact(PHONE, {"remoteJid": PHONE, "name": "Novo Nome", "isSaved": True})
+    assert mw.contacts[LID]["profilePicUrl"] == "https://example.invalid/p.jpg"
+    assert mw.contacts[LID]["name"] == "Novo Nome"

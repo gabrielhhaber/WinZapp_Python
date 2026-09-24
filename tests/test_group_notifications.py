@@ -70,8 +70,10 @@ class _FakeMainWindow:
     def self_reference_label(self):
         return "Você"
 
-    def _get_contact_tolerant(self, jid):
-        return None
+    # The real tolerant lookup (it only reads self.contacts): the panel's
+    # name lookups go through it, so a stub answering None would hide every
+    # saved contact.
+    _get_contact_tolerant = MainWindow._get_contact_tolerant
 
     def _normalize_jid(self, jid):
         return jid

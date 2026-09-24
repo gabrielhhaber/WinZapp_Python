@@ -10289,12 +10289,18 @@ class ConversationsPanel(wx.Panel):
             # (substring match) — a real, demonstrated way two "is this name
             # any good" checks in this codebase silently disagreed.
             ppm = getattr(mw, "_presence_pushname_map", {})
+            # Every contact record before any chat name, as
+            # _resolve_contact_name() does: get_chat(phone) falls back through
+            # _phone_to_lid, so interleaving them let a stale chat name answer
+            # before the @lid contact record was ever read.
+            contact_lookup = getattr(mw, "_get_contact_tolerant", None) or mw.contacts.get
             for cjid in candidates:
-                c = mw.contacts.get(cjid)
+                c = contact_lookup(cjid)
                 if c:
                     n = (c.get("name") or c.get("pushName") or "").strip()
                     if n and not mw._is_bad_contact_name(n):
                         return n
+            for cjid in candidates:
                 chat_obj = mw.get_chat(cjid)
                 if chat_obj:
                     cn = (chat_obj.get("name") or "").strip()
@@ -11802,12 +11808,16 @@ class ConversationsPanel(wx.Panel):
         # contact["name"] in some code paths, which would otherwise get
         # returned here as if they were a real saved name instead of
         # falling through to the phone-number fallback below).
+        # Contact records first, then chat names, and the 8/9-digit tolerant
+        # lookup: see _sender_label()'s _contact_name().
+        contact_lookup = getattr(mw, "_get_contact_tolerant", None) or mw.contacts.get
         for cjid in candidates:
-            contact = mw.contacts.get(cjid)
+            contact = contact_lookup(cjid)
             if contact:
                 name = (contact.get("name") or contact.get("pushName") or "").strip()
                 if name and not mw._is_bad_contact_name(name):
                     return name
+        for cjid in candidates:
             chat_obj = mw.get_chat(cjid)
             if chat_obj:
                 cn = (chat_obj.get("name") or "").strip()

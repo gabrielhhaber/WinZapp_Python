@@ -20899,14 +20899,15 @@ class MainWindow(wx.Frame):
         changed = {jid: entry}
         lid = self._lid_for_local_contact(jid)
         if lid:
-            mirrored = dict(entry, id=lid, remoteJid=lid)
+            mirrored = {**(self.contacts.get(lid) or {}), **entry,
+                        "id": lid, "remoteJid": lid}
             self.contacts[lid] = mirrored
             changed[lid] = mirrored
         try:
             self.db.upsert_contacts_batch(changed)
         except Exception:
             logging.exception("[save_local_contact] Failed to persist contact")
-        self._refresh_views_after_contact_change()
+        self._refresh_views_after_contact_change(jid, lid)
         return jid
 
     def remove_local_contact(self, jid: str) -> None:
@@ -20921,15 +20922,22 @@ class MainWindow(wx.Frame):
         jids = [jid]
         lid = self._lid_for_local_contact(jid)
         name = (removed.get("name") or "").strip()
-        if lid and name and (self.contacts.get(lid) or {}).get("name", "").strip() == name:
+        lid_record = self.contacts.get(lid) if lid else None
+        if lid_record is not None and name and (lid_record.get("name") or "").strip() == name:
             self.contacts.pop(lid, None)
             jids.append(lid)
+        elif lid_record is not None and lid_record.pop("isSaved", None) is not None:
+            # WhatsApp's name is back on it; it only stops counting as saved.
+            try:
+                self.db.upsert_contacts_batch({lid: lid_record})
+            except Exception:
+                logging.exception("[remove_local_contact] Failed to persist contact")
         for contact_jid in jids:
             try:
                 self.db.delete_contact(contact_jid)
             except Exception:
                 logging.exception("[remove_local_contact] Failed to delete contact")
-        self._refresh_views_after_contact_change()
+        self._refresh_views_after_contact_change(jid, lid)
 
     def _lid_for_local_contact(self, jid: str) -> str:
         """The @lid of the person a typed phone JID names, or "".
@@ -20949,20 +20957,13 @@ class MainWindow(wx.Frame):
                 return candidate
         return ""
 
-    def _refresh_views_after_contact_change(self) -> None:
-        """Redraw what shows contact names: the chat list and the open
-        conversation's rows (in place; a full rebuild only if the list is out
-        of step, see ConversationsPanel._repaint_or_repopulate())."""
+    def _refresh_views_after_contact_change(self, jid: str, lid: str = "") -> None:
+        """Redraw what shows this person's name: the chat list, and the open
+        conversation's rows that touch them — through
+        _schedule_refresh_active_messages(), which repaints only those rows,
+        inside Freeze()/Thaw(), debounced, and never rebuilds the list."""
         self._schedule_set_chats()
-        panel = getattr(self, "conversations_panel", None)
-        if panel is None or getattr(panel, "conversation", None) is None:
-            return
-        ids = [((m.get("key") or {}).get("id") or "")
-               for m in getattr(panel, "_sorted_messages", None) or []
-               if isinstance(m, dict) and not panel._is_separator(m)]
-        ids = [i for i in ids if i]
-        if ids:
-            wx.CallAfter(panel._repaint_or_repopulate, ids)
+        wx.CallAfter(self._schedule_refresh_active_messages, {j for j in (jid, lid) if j})
 
     @staticmethod
     def _is_bad_contact_name(name: str) -> bool:
