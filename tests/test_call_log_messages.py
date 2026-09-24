@@ -154,9 +154,80 @@ class TestConversationRow:
         text = _Panel()._get_message_content(_normalized(outcome="Completed", duration=1859))
         assert text == "[call_log_answered_voice], [duration]: 30 [minutes] [and] 59 [seconds]"
 
-    def test_it_takes_no_sender_prefix(self):
-        """A system event: the sentence says what happened, no "Maria: ..."."""
+    def test_it_is_a_system_event_for_the_actions(self):
         assert _Panel._is_system_event(_normalized()) is True
+
+
+class _RowStub:
+    """_render_message_line() with its collaborators fixed, as in
+    test_forwarded_prefix_setting.py."""
+    _render_message_line = ConversationsPanel._render_message_line
+    _is_message_forwarded = ConversationsPanel._is_message_forwarded
+    _is_system_event = staticmethod(ConversationsPanel._is_system_event)
+
+    def __init__(self):
+        self.main_window = type("MW", (), {
+            "settings": {"user_interface": {}}, "i18n": _I18n()})()
+        self._message_list_mode = "classic"
+        self._media_upload_progress = {}
+        self._upload_stages_seen = {}
+        self.selected_messages = set()
+
+    def _is_separator(self, msg):
+        return False
+
+    def _extract_timestamp(self, msg):
+        return 1
+
+    def _format_date(self, ts):
+        return "01:03"
+
+    def _get_message_content(self, msg):
+        return "BODY"
+
+    def _sender_label(self, msg):
+        return "Eu" if msg["key"].get("fromMe") else "Maria"
+
+    def _map_status(self, msg):
+        return ""
+
+    def _get_context_info(self, msg):
+        return None
+
+    def _get_quoted_sender(self, ctx, msg):
+        return ""
+
+    def _reaction_counts(self, msg_id):
+        return {}
+
+
+class TestRowSaysWhoCalled:
+    """Reported on the test build: "Ligação de voz efetuada" alone did not say
+    whether the user or the contact had called."""
+
+    def test_my_call_reads_with_my_name(self):
+        line = _RowStub()._render_message_line(_normalized(outcome="Completed", from_me=True))
+        assert line.startswith("Eu: BODY")
+
+    def test_their_call_reads_with_their_name(self):
+        assert _RowStub()._render_message_line(_normalized()).startswith("Maria: BODY")
+
+    def test_a_group_notice_still_has_no_prefix(self):
+        notice = {"key": {"id": "G"}, "messageType": "groupNotification",
+                  "message": {"groupNotification": {}}}
+        assert _RowStub()._render_message_line(notice).startswith("BODY")
+
+    def test_a_group_call_names_its_caller(self):
+        """A group call record has no author nor sender (measured): the caller
+        comes from callCreator, device suffix stripped."""
+        raw = _raw_call()
+        raw["id"] = "false_120363406131440471@g.us_ABC_" + PEER_LID
+        raw["chatId"] = {"_serialized": "120363406131440471@g.us"}
+        raw["from"] = PEER_LID
+        raw["callCreator"] = {"_serialized": "68904344899801:3@lid"}
+        result = _Normalizer()._normalize_wpp_message(raw)
+        assert result["key"]["remoteJid"] == "120363406131440471@g.us"
+        assert result["key"]["participant"] == PEER_LID
 
 
 class TestChatList:
@@ -165,7 +236,7 @@ class TestChatList:
         assert MainWindow._counts_as_last_message(msg) is True
         assert is_countable_message(msg) is False
 
-    def test_the_preview_reads_the_row_sentence_without_a_self_prefix(self):
+    def test_the_preview_says_who_called(self):
         class _MWStub:
             _counts_as_last_message = classmethod(MainWindow._counts_as_last_message.__func__)
             _last_msg_preview = MainWindow._last_msg_preview
@@ -183,8 +254,7 @@ class TestChatList:
         chat = {"remoteJid": "5511@s.whatsapp.net",
                 "messages": {"messages": {"records": [msg]}}}
         preview = _MWStub()._last_msg_preview(chat)
-        assert preview.startswith("[call_log_unanswered_voice]")
-        assert "Eu:" not in preview
+        assert preview.startswith("Eu: [call_log_unanswered_voice]")
 
 
 class TestReturnCall:

@@ -240,3 +240,18 @@ class TestRefile:
         msg = {"key": {"remoteJid": "9@lid", "id": "X"}}
         refile_call_log(msg, "")
         assert msg["key"] == {"remoteJid": "9@lid", "id": "X"}
+
+
+class TestCreator:
+    def test_the_device_suffix_is_dropped(self):
+        from core.call_log import call_log_creator
+        assert call_log_creator({"callCreator": {"_serialized": "242:1@lid"}}) == "242@lid"
+
+    def test_a_phone_creator_in_the_app_spelling(self):
+        from core.call_log import call_log_creator
+        assert call_log_creator({"callCreator": "5511:2@c.us"}) == "5511@s.whatsapp.net"
+
+    def test_none_is_empty(self):
+        from core.call_log import call_log_creator
+        assert call_log_creator({}) == ""
+        assert call_log_creator({"callCreator": "garbage"}) == ""

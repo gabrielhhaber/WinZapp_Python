@@ -33244,10 +33244,7 @@ class MainWindow(wx.Frame):
         # For group chats add sender name before content (e.g. "João: vídeo 0:30")
         jid      = chat.get("remoteJid", "")
         is_group = jid.endswith("@g.us")
-        if is_call_log(last):
-            # "Eu: Ligação de voz efetuada" -- the sentence already says who.
-            sender_prefix = ""
-        elif from_me:
+        if from_me:
             sender_prefix = self.self_reference_label() + ": "
         elif is_group:
             p_key      = last.get("key", {})

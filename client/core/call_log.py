@@ -108,6 +108,22 @@ def call_log_payload(wpp_msg: dict) -> dict:
     }
 
 
+def call_log_creator(wpp_msg: dict) -> str:
+    """Who started the call, as a plain JID with no device suffix, or "".
+
+    A group call record carries no ``author`` nor ``sender`` (measured), so
+    this is the only way to name the caller on its row.
+    """
+    creator = (wpp_msg or {}).get("callCreator") if isinstance(wpp_msg, dict) else None
+    if isinstance(creator, dict):
+        creator = creator.get("_serialized") or ""
+    creator = str(creator or "")
+    if "@" not in creator:
+        return ""
+    local, domain = creator.rsplit("@", 1)
+    return f"{local.split(':')[0]}@{domain}".replace("@c.us", "@s.whatsapp.net")
+
+
 def is_call_log(msg) -> bool:
     return isinstance(msg, dict) and msg.get("messageType") in (
         CALL_LOG_MESSAGE_TYPE, LEGACY_CALL_LOG_TYPE)

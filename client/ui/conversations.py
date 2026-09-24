@@ -10912,7 +10912,9 @@ class ConversationsPanel(wx.Panel):
         if not isinstance(msg, dict):
             return False
         # A call record is WhatsApp's too: it cannot be replied to, reacted
-        # to, forwarded, starred or pinned, and its sentence needs no sender.
+        # to, forwarded, starred or pinned. Unlike a group notice its sentence
+        # does not say who called, so it keeps its sender prefix (see
+        # _render_message_line()).
         return msg.get("messageType") == "groupNotification" or is_call_log(msg)
 
     def _reject_system_event_action(self, msg) -> bool:
@@ -10981,7 +10983,10 @@ class ConversationsPanel(wx.Panel):
         ctx           = self._get_context_info(msg)
         quoted_sender = self._get_quoted_sender(ctx, msg) if ctx else ""
 
-        if self._is_system_event(msg):
+        # A call record is the exception: "Ligação de voz efetuada" alone left
+        # the user unsure who had called whom (reported on the test build), so
+        # it reads "Eu: Ligação de voz efetuada" like any other message.
+        if self._is_system_event(msg) and not is_call_log(msg):
             # System events ("Carlos saiu do grupo", "Ana alterou o nome do
             # grupo") already name whoever acted, inside the sentence. Prefixing
             # them with the sender produced "Carlos: Carlos saiu do grupo",
@@ -14474,7 +14479,7 @@ class ConversationsPanel(wx.Panel):
         the quote is sometimes the only copy of those words in the list.
         """
         parts = []
-        if not self._is_system_event(msg):
+        if not self._is_system_event(msg) or is_call_log(msg):
             parts.append(self._sender_label(msg))
         parts.append(self._get_message_content(msg) or "")
         ctx = self._get_context_info(msg)

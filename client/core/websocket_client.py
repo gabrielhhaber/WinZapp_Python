@@ -6,7 +6,7 @@ import socketio
 import wx
 import requests
 from core.api_client import api_get, api_post
-from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_payload
+from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_creator, call_log_payload
 from core.i18n import I18n
 from core.message_edit import MESSAGE_EDIT, clean_message_id, server_marks_edited
 from core.sync_contracts import observe_payload
@@ -3056,6 +3056,13 @@ class WebSocketClient:
         )
         if participant:
             normalized["key"]["participant"] = self._clean_jid(participant)
+
+        # A group call record names no author; its row reads "<caller>: Ligação
+        # de voz perdida" only if the caller becomes the participant.
+        if msg_type == "call_log" and not participant and remote_jid.endswith("@g.us"):
+            creator = call_log_creator(wpp_msg)
+            if creator:
+                normalized["key"]["participant"] = creator
 
         quoted_msg = wpp_msg.get("quotedMsg")
         quoted_msg_obj = wpp_msg.get("quotedMsgObj")
