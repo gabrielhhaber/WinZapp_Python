@@ -13230,11 +13230,14 @@ class MainWindow(wx.Frame):
 
     def on_alt_6(self, event):
         """Alt+6: the Calls tab (calls_panel.py), same switch as Alt+5."""
+        self.lock_chat_vault(silent=True, show_conversations=False)
         if self.conversations_panel.conversation is not None:
             self.conversations_panel.close_conversation_for_panel_switch()
         self.conversations_panel.Hide()
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Hide()
+        if hasattr(self, "locked_conversations_panel"):
+            self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
         if hasattr(self, "calls_panel"):
@@ -15181,6 +15184,8 @@ class MainWindow(wx.Frame):
             self.archived_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         panel = self.locked_conversations_panel
         chats, names = getattr(self, "_locked_chat_rows", ([], []))
         panel.set_all_chats(chats, names)
@@ -15219,6 +15224,8 @@ class MainWindow(wx.Frame):
             self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         self.conversations_panel.conversations_label.Hide()
         self.conversations_panel.conversations_list.Hide()
         self.conversations_panel.Show()
