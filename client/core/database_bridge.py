@@ -288,6 +288,9 @@ class DatabaseBridge:
     def get_message_by_id(self, remote_jid: str, message_id: str) -> dict | None:
         return self._call(self._db.get_message_by_id(remote_jid, message_id))
 
+    def get_call_logs(self, limit: int = 1000) -> list[tuple[str, dict]]:
+        return self._call(self._db.get_call_logs(limit))
+
     def get_message_count(self, remote_jid: str) -> int:
         return self._call(self._db.get_message_count(remote_jid))
 

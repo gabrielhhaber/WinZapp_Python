@@ -705,6 +705,30 @@ class DatabaseManager:
         row = await cursor.fetchone()
         return (self._decrypt_json(row["message_json"]) or None) if row else None
 
+    async def get_call_logs(self, limit: int = 1000) -> list[tuple[str, dict]]:
+        """Every stored call record of every chat, newest first, as
+        ``(remote_jid, msg)`` -- what the Calls tab lists (core/call_log.py).
+
+        ``message_type`` is stored in clear, so only the matching rows are
+        decrypted. Both spellings: builds before the call-log branch stored the
+        raw WhatsApp type.
+        """
+        conn = await self._ensure_conn()
+        cursor = await conn.execute(
+            """SELECT remote_jid, message_json FROM messages
+               WHERE message_type IN ('callLogMessage', 'call_log')
+               ORDER BY timestamp DESC
+               LIMIT ?""",
+            (int(limit),),
+        )
+        rows = await cursor.fetchall()
+        result = []
+        for row in rows:
+            msg = self._decrypt_json(row["message_json"])
+            if msg:
+                result.append((row["remote_jid"], msg))
+        return result
+
     async def get_message_count(self, remote_jid: str) -> int:
         """Return total message count for a chat."""
         conn = await self._ensure_conn()

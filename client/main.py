@@ -148,6 +148,7 @@ from ui.conversations import (
     ConversationsPanel, ArchivedConversationsPanel, probe_media_duration,
 )
 from status_panel import StatusPanel
+from calls_panel import CallsPanel
 from ui.accessible import (
     AccessibleCallEndButton,
     AccessibleCallMuteButton,
@@ -2898,12 +2899,15 @@ class MainWindow(wx.Frame):
         self.archived_conversations_panel.Hide()
         self.status_panel = StatusPanel(self, self.content_panel)
         self.status_panel.Hide()
+        self.calls_panel = CallsPanel(self, self.content_panel)
+        self.calls_panel.Hide()
 
         # Content panel: all panels fill it; only one is shown at a time
         content_sizer = wx.BoxSizer(wx.VERTICAL)
         content_sizer.Add(self.conversations_panel, 1, wx.EXPAND)
         content_sizer.Add(self.archived_conversations_panel, 1, wx.EXPAND)
         content_sizer.Add(self.status_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.calls_panel, 1, wx.EXPAND)
         self.content_panel.SetSizer(content_sizer)
 
         # Main panel: nav sidebar on left, content on right
@@ -6039,6 +6043,11 @@ class MainWindow(wx.Frame):
             if status_lst is not None and status_lst.IsShownOnScreen():
                 status_lst.SetFocus()
                 return
+            calls = getattr(self, "calls_panel", None)
+            calls_lst = calls.current_list() if calls else None
+            if calls_lst is not None and calls_lst.IsShownOnScreen():
+                calls_lst.SetFocus()
+                return
             # Last resort, and only when none of the lists above is on screen:
             # an ARCHIVED conversation open. ArchivedConversationsPanel shows
             # conversations_panel but hides its conversations_list, and hides
@@ -6281,6 +6290,8 @@ class MainWindow(wx.Frame):
                 self.archived_conversations_panel.Hide()
                 if hasattr(self, "status_panel"):
                     self.status_panel.Hide()
+                if hasattr(self, "calls_panel"):
+                    self.calls_panel.Hide()
                 self.conversations_panel.conversations_label.Hide()
                 self.conversations_panel.conversations_list.Hide()
                 self.conversations_panel.Show()
@@ -6293,6 +6304,8 @@ class MainWindow(wx.Frame):
             self.archived_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         self.conversations_panel.conversations_label.Show()
         self.conversations_panel.conversations_list.Show()
         self.conversations_panel.Show()
@@ -7739,6 +7752,12 @@ class MainWindow(wx.Frame):
     _CALL_LOG_AFTER_END_WATCH_SECONDS = 10 * 60
     _CALL_LOG_PENDING_WATCH_SECONDS = 3 * 3600
 
+    def _refresh_calls_tab(self):
+        """Reload the Calls tab (debounced) when it is on screen."""
+        calls = getattr(self, "calls_panel", None)
+        if calls is not None:
+            calls.schedule_refresh()
+
     def _watch_ended_call_log(self, call_id: str, peer_jid: str, outgoing: bool):
         """Re-read the call record of a call that just ended.
 
@@ -9030,6 +9049,7 @@ class MainWindow(wx.Frame):
                         self._fill_stored_placeholder(existing, msg, remote_jid,
                                                       what="newer state of call record")
                         self._watch_pending_call_log(remote_jid, existing)
+                        self._refresh_calls_tab()
                         return
                     # A text recovered from a reply's quote is the replier's
                     # claim, so the real copy replaces it like a placeholder
@@ -9094,6 +9114,7 @@ class MainWindow(wx.Frame):
         self._recover_quoted_placeholder(remote_jid, records, msg)
         if is_call_log(msg):
             self._watch_pending_call_log(remote_jid, msg)
+            self._refresh_calls_tab()
 
         # ── Update unread count (only for messages we received) ───────────────
         # System events never count as unread — see is_countable_message().
@@ -9564,6 +9585,7 @@ class MainWindow(wx.Frame):
                 self._fill_stored_placeholder(existing, msg, remote_jid,
                                               what="newer state of call record")
                 self._watch_pending_call_log(remote_jid, existing)
+                self._refresh_calls_tab()
             return
 
         # Ignore stale re-deliveries of cleared messages
@@ -9623,6 +9645,7 @@ class MainWindow(wx.Frame):
             self._recover_quoted_placeholder(remote_jid, records, msg)
         if is_call_log(msg):
             self._watch_pending_call_log(remote_jid, msg)
+            self._refresh_calls_tab()
 
         # Debounced UI update
         self._schedule_save(dirty_jid=remote_jid)
@@ -12859,6 +12882,7 @@ class MainWindow(wx.Frame):
         self.ID_ALT_3      = wx.NewIdRef()
         self.ID_ALT_4      = wx.NewIdRef()
         self.ID_ALT_5      = wx.NewIdRef()
+        self.ID_ALT_6      = wx.NewIdRef()
         self.ID_ALT_NAV    = wx.NewIdRef()
         self.ID_CTRL_COMMA = wx.NewIdRef()
         self.ID_F1         = wx.NewIdRef()
@@ -12886,6 +12910,7 @@ class MainWindow(wx.Frame):
             (wx.ACCEL_ALT,    ord('3'),    self.ID_ALT_3),
             (wx.ACCEL_ALT,    ord('4'),    self.ID_ALT_4),
             (wx.ACCEL_ALT,    ord('5'),    self.ID_ALT_5),
+            (wx.ACCEL_ALT,    ord('6'),    self.ID_ALT_6),
             (wx.ACCEL_ALT,    ord(nav_letter), self.ID_ALT_NAV),
             (wx.ACCEL_CTRL,   ord(','),    self.ID_CTRL_COMMA),
             (wx.ACCEL_NORMAL, wx.WXK_F1,  self.ID_F1),
@@ -12898,6 +12923,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_global_alt3, id=self.ID_ALT_3)
         self.Bind(wx.EVT_MENU, self.on_alt_4,       id=self.ID_ALT_4)
         self.Bind(wx.EVT_MENU, self.on_alt_5,       id=self.ID_ALT_5)
+        self.Bind(wx.EVT_MENU, self.on_alt_6,       id=self.ID_ALT_6)
         self.Bind(wx.EVT_MENU, self._on_alt_nav,    id=self.ID_ALT_NAV)
         self.Bind(wx.EVT_MENU, self.on_ctrl_comma,  id=self.ID_CTRL_COMMA)
         self.Bind(wx.EVT_MENU, self.on_f1,          id=self.ID_F1)
@@ -12928,6 +12954,8 @@ class MainWindow(wx.Frame):
             self.archived_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         # Deliberately does NOT touch conversations_label/conversations_list
         # visibility (unlike on_alt_1(), which always returns to the LIST
         # view) — a conversation being open here means the detail pane, not
@@ -13024,6 +13052,8 @@ class MainWindow(wx.Frame):
             self.archived_conversations_panel.refresh_labels()
         if hasattr(self, "status_panel"):
             self.status_panel.refresh_labels()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.refresh_labels()
 
         self._refresh_call_language_surfaces()
 
@@ -13052,6 +13082,8 @@ class MainWindow(wx.Frame):
             self.archived_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         # ArchivedConversationsPanel.on_conversation_selected() hides
         # conversations_panel's own conversations_label/conversations_list
         # (leaving only the conversation detail pane visible) when an
@@ -13077,6 +13109,8 @@ class MainWindow(wx.Frame):
         self.conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Show()
             self.content_panel.Layout()
@@ -13094,11 +13128,27 @@ class MainWindow(wx.Frame):
         self.conversations_panel.Hide()
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Show()
             self.content_panel.Layout()
             self.status_panel._add_status_btn.SetFocus()
             self.status_panel.on_show()
+
+    def on_alt_6(self, event):
+        """Alt+6: the Calls tab (calls_panel.py), same switch as Alt+5."""
+        if self.conversations_panel.conversation is not None:
+            self.conversations_panel.close_conversation_for_panel_switch()
+        self.conversations_panel.Hide()
+        if hasattr(self, "archived_conversations_panel"):
+            self.archived_conversations_panel.Hide()
+        if hasattr(self, "status_panel"):
+            self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Show()
+            self.content_panel.Layout()
+            self.calls_panel.on_show()
 
     def output(self, text, interrupt=False):
         self.speak_output.output(text, interrupt=interrupt)
@@ -19192,6 +19242,26 @@ class MainWindow(wx.Frame):
         if alt_jid:
             return self.chats.get(alt_jid)
         return None
+
+    def chat_display_name(self, chat_or_jid) -> str:
+        """The name a conversation is shown under: its title when opened, and
+        who a call was with on the Calls tab. Never a raw JID."""
+        if isinstance(chat_or_jid, dict):
+            chat = chat_or_jid
+        else:
+            jid = str(chat_or_jid or "")
+            chat = self.get_chat(jid) or {"remoteJid": jid}
+        jid = chat.get("remoteJid", "")
+        is_group = jid.endswith("@g.us")
+        return (
+            self._resolve_contact_name(chat)
+            or self.find_name_through_messages(chat)
+            or chat.get("name", "")
+            or ("" if is_group else chat.get("pushName", ""))
+            or self.find_jid_through_messages(chat)
+            or self._format_jid_for_display(jid)
+            or (self.i18n.t("unknown_group") if is_group else self.i18n.t("unknown_contact"))
+        )
 
     def get_chats(self, limit: int = 200):
         try:

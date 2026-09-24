@@ -25,10 +25,12 @@ class NavigationPanel(wx.Panel):
         self.nav_list.InsertColumn(0, self.main_window.i18n.t("main_nav"), width=180)
 
         i18n = self.main_window.i18n
-        # Index 0: Conversations   Index 1: Archived   Index 2: Status   Index 3: Settings
+        # Index 0: Conversations   Index 1: Archived   Index 2: Status
+        # Index 3: Calls   Index 4: Settings
         self.nav_list.Append((f"{i18n.t('conversations')} alt+1",))
         self.nav_list.Append((i18n.t("archived_chats_nav"),))
         self.nav_list.Append((i18n.t("status_nav"),))
+        self.nav_list.Append((i18n.t("calls_nav"),))
         self.nav_list.Append((f"{i18n.t('settings')} {i18n.t('settings_shortcut')}",))
 
         self.nav_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_nav_item_selected)
@@ -48,7 +50,8 @@ class NavigationPanel(wx.Panel):
         self.nav_list.SetColumn(0, col)
         self.nav_list.SetItemText(0, f"{i18n.t('conversations')} alt+1")
         self.nav_list.SetItemText(2, i18n.t("status_nav"))
-        self.nav_list.SetItemText(3, f"{i18n.t('settings')} {i18n.t('settings_shortcut')}")
+        self.nav_list.SetItemText(3, i18n.t("calls_nav"))
+        self.nav_list.SetItemText(4, f"{i18n.t('settings')} {i18n.t('settings_shortcut')}")
         self.refresh_archived_label()
 
     def refresh_archived_label(self):
@@ -86,7 +89,7 @@ class NavigationPanel(wx.Panel):
         index = event.GetIndex()
         mw = self.main_window
 
-        if index == 3:
+        if index == 4:
             mw.open_settings()
             return
 
@@ -96,6 +99,8 @@ class NavigationPanel(wx.Panel):
             mw.status_panel.Hide()
         if hasattr(mw, "archived_conversations_panel"):
             mw.archived_conversations_panel.Hide()
+        if hasattr(mw, "calls_panel"):
+            mw.calls_panel.Hide()
 
         if index == 0:
             mw.conversations_panel.Show()
@@ -124,3 +129,7 @@ class NavigationPanel(wx.Panel):
             mw.content_panel.Layout()
             mw.status_panel._add_status_btn.SetFocus()
             mw.status_panel.on_show()
+        elif index == 3 and hasattr(mw, "calls_panel"):
+            mw.calls_panel.Show()
+            mw.content_panel.Layout()
+            mw.calls_panel.on_show()

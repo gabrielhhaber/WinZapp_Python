@@ -288,3 +288,91 @@ def call_log_supersedes(existing, incoming) -> bool:
             and str(old.get("outcome") or "") not in PENDING_OUTCOMES):
         return False
     return new != old
+
+
+# ── The Calls tab ────────────────────────────────────────────────────────────
+# Tabs, in the order the notebook shows them. "Todas" first and selected.
+TAB_ALL = "all"
+TAB_MISSED = "missed"
+TAB_DECLINED = "declined"
+TAB_ANSWERED = "answered"
+CALL_TABS = (TAB_ALL, TAB_MISSED, TAB_DECLINED, TAB_ANSWERED)
+
+_TAB_STATUSES = {
+    TAB_MISSED: frozenset({STATUS_MISSED}),
+    TAB_DECLINED: frozenset({STATUS_DECLINED, STATUS_DECLINED_BY_PEER}),
+    TAB_ANSWERED: frozenset({STATUS_ANSWERED, STATUS_MADE, STATUS_ANSWERED_ELSEWHERE}),
+}
+
+
+def call_log_in_tab(msg, tab: str) -> bool:
+    """Whether a call record belongs on a Calls tab.
+
+    "Perdidas" is the calls the user missed (not the ones the other side did
+    not answer), "Recusadas" either side's refusal, "Atendidas" every call
+    that connected, wherever it was answered. A legacy record with no call
+    data is only on "Todas".
+    """
+    if not is_call_log(msg):
+        return False
+    if tab == TAB_ALL:
+        return True
+    statuses = _TAB_STATUSES.get(tab)
+    return bool(statuses) and bool(call_log_data(msg)) and call_log_status(msg) in statuses
+
+
+def _timestamp(msg) -> int:
+    try:
+        ts = int((msg or {}).get("messageTimestamp") or 0)
+    except (TypeError, ValueError):
+        return 0
+    return ts // 1000 if ts > 1_000_000_000_000 else ts
+
+
+def collect_call_logs(stored_rows, chats) -> list:
+    """Every call record of every conversation, newest first.
+
+    *stored_rows* are ``(remote_jid, msg)`` pairs from the database (which
+    holds more history than memory does); *chats* is ``MainWindow.chats``,
+    whose records win for the same call, since they may be a newer state not
+    persisted yet. A call is one record whatever JID it was filed under: the
+    id is the call id, so an @lid copy and a phone copy of the same call are
+    one row. Returns ``[{"jid": ..., "msg": ...}]``.
+    """
+    by_id = {}
+    for jid, msg in stored_rows or ():
+        if not is_call_log(msg):
+            continue
+        mid = str((msg.get("key") or {}).get("id") or "")
+        if mid:
+            by_id[mid] = {"jid": str(jid or (msg.get("key") or {}).get("remoteJid") or ""),
+                          "msg": msg}
+    for chat_jid, chat in list((chats or {}).items()):
+        if not isinstance(chat, dict):
+            continue
+        wrapper = chat.get("messages") or {}
+        inner = wrapper.get("messages") if isinstance(wrapper, dict) else None
+        records = inner.get("records") if isinstance(inner, dict) else None
+        for msg in list(records or ()):
+            if not is_call_log(msg):
+                continue
+            mid = str((msg.get("key") or {}).get("id") or "")
+            if not mid:
+                continue
+            previous = by_id.get(mid)
+            # Memory wins, but never with a record that knows less.
+            if previous is not None and call_log_data(previous["msg"]) and not call_log_data(msg):
+                continue
+            by_id[mid] = {"jid": str(chat.get("remoteJid") or chat_jid), "msg": msg}
+    return sorted(by_id.values(), key=lambda e: _timestamp(e["msg"]), reverse=True)
+
+
+def call_row_text(entry: dict, name: str, label: str, when: str) -> str:
+    """One row of the Calls list: who the call was with, what happened, when.
+
+    Always the other party's (or the group's) name: in one list across every
+    conversation, "Eu:" would not say who was called. The label already says
+    the direction ("efetuada", "perdida").
+    """
+    text = f"{name}: {label}" if name else label
+    return f"{text}, {when}" if when else text

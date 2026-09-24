@@ -486,6 +486,7 @@ class _HistoricalStub:
         self.chats = {}
         self._msg_bg_executor = _Executor()
         self.watched = []
+        self.calls_tab_refreshes = 0
 
     def _normalize_jid(self, jid):
         return MainWindow._normalize_jid(jid)
@@ -517,6 +518,9 @@ class _HistoricalStub:
     def _watch_pending_call_log(self, remote_jid, msg):
         self.watched.append(remote_jid)
 
+    def _refresh_calls_tab(self):
+        self.calls_tab_refreshes += 1
+
 
 class TestSettledRecordReplacesTheStoredOne:
     def _stub_with_ongoing_record(self):
@@ -541,6 +545,8 @@ class TestSettledRecordReplacesTheStoredOne:
         (record,) = stub.chats[PHONE]["messages"]["messages"]["records"]
         assert record["message"]["callLogMessage"]["outcome"] == "Completed"
         assert record["message"]["callLogMessage"]["durationSeconds"] == 42
+        # The Calls tab follows the record (once stored, once settled).
+        assert stub.calls_tab_refreshes == 2
 
     def test_an_identical_copy_changes_nothing(self):
         from core.call_log import refile_call_log

@@ -1965,15 +1965,7 @@ class ConversationsPanel(wx.Panel):
 
         _conv_jid = conversation.get("remoteJid", "")
         self._last_open_jid = _conv_jid
-        self.conversation_name = (
-            self.main_window._resolve_contact_name(conversation)
-            or self.main_window.find_name_through_messages(conversation)
-            or conversation.get("name", "")
-            or ("" if _conv_jid.endswith("@g.us") else conversation.get("pushName", ""))
-            or self.main_window.find_jid_through_messages(conversation)
-            or self.main_window._format_jid_for_display(_conv_jid)
-            or (self.main_window.i18n.t("unknown_group") if _conv_jid.endswith("@g.us") else self.main_window.i18n.t("unknown_contact"))
-        )
+        self.conversation_name = self.main_window.chat_display_name(conversation)
         jid      = conversation.get("remoteJid", "")
         is_group = jid.endswith("@g.us")
         i18n     = self.main_window.i18n
