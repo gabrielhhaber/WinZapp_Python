@@ -605,12 +605,25 @@ async function restoreMsgKeySerialized(
 }
 
 /**
- * Adapt WA-JS's status sender to WhatsApp Web's current object argument.
+ * Adapt WhatsApp Web's status sender to WA-JS's positional call.
  *
- * WA-JS still calls encryptAndSendStatusMsg(msg, proto, reporters), while the
- * current WhatsApp module expects { sendMsgRecord, msgProtobuf,
- * metricsReporter }. The old call throws inside the page, WA-JS swallows it,
- * and the API only sees messageSendResult=ERROR_UNKNOWN.
+ * WA-JS 4.6.0 wraps WAWebSendMsgJob.encryptAndSendMsg and, for a
+ * status@broadcast record, calls encryptAndSendStatusMsg(msg, proto, reporter)
+ * positionally, inside a try/catch that turns ANY error into `return null`.
+ * Current WhatsApp takes one object, { sendMsgRecord, msgProtobuf,
+ * metricsReporter }, so the positional call throws, WA-JS swallows it and the
+ * API only ever sees messageSendResult=ERROR_UNKNOWN - for text, image, video
+ * and audio statuses alike.
+ *
+ * The first version of this shim wrapped encryptAndSendMsg itself, which only
+ * works while it is the OUTERMOST wrapper. Measured over CDP on 2026-09-23
+ * (WhatsApp Web 2.3000.1048298845): WA-JS's wrapper had ended up outside ours,
+ * a fake status record reached encryptAndSendStatusMsg with 3 positional
+ * arguments, and every post failed again. So the adapter now sits on
+ * encryptAndSendStatusMsg: WA-JS reads that export live (the same probe saw a
+ * replacement take effect), so both call shapes are served whatever order the
+ * wrappers were installed in. An object call - WhatsApp's own - passes
+ * through untouched.
  */
 async function restoreStatusSender(page: any, logger: any, session: string) {
   if (!page) return;
@@ -619,61 +632,30 @@ async function restoreStatusSender(page: any, logger: any, session: string) {
       const install = () => {
         const wpp = (window as any).WPP;
         if (!wpp?.loader?.moduleRequire) return false;
-        if ((window as any).__winzappStatusSenderInstalled) return true;
 
         try {
-          const sendModule = wpp.loader.moduleRequire('WAWebSendMsgJob');
           const statusModule = wpp.loader.moduleRequire(
             'WAWebEncryptAndSendStatusMsg'
           );
-          const protoModule = wpp.loader.moduleRequire(
-            'WAWebE2EProtoGenerator'
-          );
-          const original = sendModule?.encryptAndSendMsg;
           const sendStatus = statusModule?.encryptAndSendStatusMsg;
+          if (typeof sendStatus !== 'function') return false;
+          if (sendStatus.__winzappPositionalAdapter) return true;
+          // A build whose sender still takes positional arguments needs none.
+          if (sendStatus.length !== 1) return true;
 
-          // The legacy function accepts positional arguments and needs no shim.
-          if (
-            typeof original !== 'function' ||
-            typeof sendStatus !== 'function' ||
-            typeof protoModule?.createMsgProtobuf !== 'function' ||
-            sendStatus.length !== 1
-          ) {
-            return false;
-          }
-
-          sendModule.encryptAndSendMsg = async function (
-            sendMsgRecord: any,
-            metricsReporter: any,
-            ...additionalArgs: any[]
-          ) {
-            if (
-              sendMsgRecord?.data?.to?.toString?.() !== 'status@broadcast'
-            ) {
-              return original.apply(this, [
-                sendMsgRecord,
-                metricsReporter,
-                ...additionalArgs,
-              ]);
+          const adapted = function (this: any, first: any, ...rest: any[]) {
+            if (first && typeof first === 'object' && 'sendMsgRecord' in first) {
+              return sendStatus.call(this, first, ...rest);
             }
-
-            await sendStatus({
-              sendMsgRecord,
-              msgProtobuf: protoModule.createMsgProtobuf(sendMsgRecord.data),
+            const [msgProtobuf, metricsReporter] = rest;
+            return sendStatus.call(this, {
+              sendMsgRecord: first,
+              msgProtobuf,
               metricsReporter,
             });
-
-            return {
-              t: sendMsgRecord.data.t,
-              sync: null,
-              phash: null,
-              addressingMode: null,
-              count: null,
-              error: null,
-            };
           };
-
-          (window as any).__winzappStatusSenderInstalled = true;
+          (adapted as any).__winzappPositionalAdapter = true;
+          statusModule.encryptAndSendStatusMsg = adapted;
           return true;
         } catch (e) {
           return false;
