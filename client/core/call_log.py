@@ -367,6 +367,19 @@ def collect_call_logs(stored_rows, chats) -> list:
     return sorted(by_id.values(), key=lambda e: _timestamp(e["msg"]), reverse=True)
 
 
+def exclude_locked_calls(entries, is_locked) -> list:
+    """Drop any call entry filed under a chat the lock vault has hidden.
+
+    A locked chat's name and call history must not surface in the Calls tab,
+    the same unconditional exclusion MainWindow.get_sorted_chat_lists()
+    already applies to the main/archived lists -- a locked chat's calls live
+    only in its own vault panel, even while the vault happens to be
+    unlocked right now. *is_locked* is MainWindow.is_chat_locked (or an
+    equivalent predicate), already resolving @lid/@phone identities.
+    """
+    return [entry for entry in entries if not is_locked(entry["jid"])]
+
+
 def call_row_text(entry: dict, name: str, label: str, when: str) -> str:
     """One row of the Calls list: who the call was with, what happened, when.
 

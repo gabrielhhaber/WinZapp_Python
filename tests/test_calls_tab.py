@@ -15,6 +15,7 @@ from core.call_log import (
     call_log_in_tab,
     call_row_text,
     collect_call_logs,
+    exclude_locked_calls,
 )
 from calls_panel import CallsPanel
 from main import MainWindow
@@ -103,6 +104,23 @@ class TestCollect:
         assert collect_call_logs(None, None) == []
 
 
+# ── A locked chat's calls stay out of this tab ──────────────────────────────
+
+class TestExcludeLockedCalls:
+    def test_a_locked_jids_calls_are_dropped(self):
+        entries = [{"jid": PHONE, "msg": _call(call_id="A")},
+                   {"jid": "1@g.us", "msg": _call(call_id="B", jid="1@g.us")}]
+        result = exclude_locked_calls(entries, lambda jid: jid == PHONE)
+        assert [e["msg"]["key"]["id"] for e in result] == ["B"]
+
+    def test_nothing_locked_keeps_everything(self):
+        entries = [{"jid": PHONE, "msg": _call(call_id="A")}]
+        assert exclude_locked_calls(entries, lambda jid: False) == entries
+
+    def test_empty_input(self):
+        assert exclude_locked_calls([], lambda jid: True) == []
+
+
 class TestRowText:
     def test_the_other_party_then_what_then_when(self):
         assert call_row_text({}, "Maria", "Ligação de voz perdida", "01:03") == (
@@ -162,9 +180,13 @@ class _MW:
         self.calls = []
         self.opened = []
         self.spoken = []
+        self._locked_jids = set()
 
     def chat_display_name(self, jid):
         return {"5511999999999@s.whatsapp.net": "Maria"}.get(jid, "Grupo")
+
+    def is_chat_locked(self, jid):
+        return jid in self._locked_jids
 
     def start_voice_call(self, jid, name=""):
         self.calls.append(("voice", jid, name))
@@ -242,6 +264,22 @@ class TestPanel:
         panel._on_return_call()
         assert panel.main_window.opened == [] and panel.main_window.calls == []
         assert panel.main_window.spoken == ["[return_call_unavailable]"]
+
+    def test_a_locked_chats_row_never_calls_back(self):
+        """A row for a chat locked after this tab last loaded (the refresh
+        runs on a delay) must never let Ctrl+Shift+R place a call without
+        the PIN."""
+        panel = _Panel([_entry(_call("Missed"))])
+        panel.main_window._locked_jids = {PHONE}
+        panel._on_return_call()
+        assert panel.main_window.calls == []
+        assert panel.main_window.spoken == ["[return_call_unavailable]"]
+
+    def test_the_return_button_hides_for_a_locked_chat(self):
+        panel = _Panel([_entry(_call("Missed"))])
+        panel.main_window._locked_jids = {PHONE}
+        panel._update_return_call_button()
+        assert panel._return_call_btn.shown is False
 
 
 class TestRowTextFromThePanel:
