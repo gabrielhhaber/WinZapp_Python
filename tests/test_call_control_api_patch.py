@@ -392,6 +392,25 @@ def test_outgoing_call_prefers_new_active_call_over_stale_collection_model():
     assert "!preexistingIds.has(modelId)" in controller
 
 
+def test_offer_starts_the_call_as_a_user_gesture():
+    """WhatsApp Web 2.3000.1048x asks "Start a WhatsApp call with <name>?" for
+    any call started without an entry trust, and wa-js 4.6.0's
+    WPP.call.offer() passes none. In the hidden page nobody answers the popup,
+    so every offer hung until the 75 s abort (two popups found over CDP,
+    2026-09-24). The offer must pass entryTrust "user_gesture" itself, and
+    fall back to WPP.call.offer() only where the function is not exposed."""
+    controller = _source("client/api_patches/src/controller/callController.ts")
+    offer = controller[controller.index("const startOutgoingCall"):]
+    offer = offer[: offer.index("throw new Error(`Unsupported call action")]
+
+    assert "win.WPP?.whatsapp?.functions?.startWAWebVoipCall" in offer
+    assert "await start(peer, isVideo, 8, 5, null, { entryTrust: 'user_gesture' })" in offer
+    assert "return win.WPP.call.offer(to, { isVideo })" in offer
+    assert "peer?.isUser?.()" in offer
+    assert "await startOutgoingCall(String(payload.to), !!payload.isVideo)" in offer
+    assert "await win.WPP.call.offer(payload.to" not in offer
+
+
 
 
 def test_active_call_poll_tolerates_transient_active_call_gaps():

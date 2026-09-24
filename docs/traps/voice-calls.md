@@ -287,6 +287,22 @@ until someone opens WinZapp in the foreground. When a tester reports calls not
 working, the `Pinning WhatsApp Web to ...` line at the top of `wppconnect.log`
 is the first thing to compare against a working install.
 
+**A call placed without an entry trust waits for a popup nobody can answer.**
+From WhatsApp Web 2.3000.1048x, `startWAWebVoipCall(peer, isVideo, fromUi,
+?, callId, options)` first awaits
+`WAWebVoipOutgoingCallConsent.hasOutgoingCallConsent(entryTrustOf(options))`,
+and a missing `options.entryTrust` means `"deep_link"`: a confirmation popup,
+"Start a WhatsApp call with <name>?". wa-js 4.6.0's `WPP.call.offer()` passes
+only four arguments, so in the hidden page every offer hung: `page.evaluate`
+never returned, the HTTP request was aborted at 75 s, `Runtime.callFunctionOn`
+timed out minutes later, and each attempt left one more popup open (two
+found over CDP on 2026-09-24, on build 1048298845, with an up-to-date
+catalogue and server 2.10.27, so reinstalling could not help). The controller
+now calls `startWAWebVoipCall` itself with `{ entryTrust: 'user_gesture' }`,
+which is what a keystroke in WinZapp is, and keeps `WPP.call.offer()` only as
+the fallback where the function is not exposed. If offers hang again, look
+for `[role="dialog"]` in the page over CDP before anything else.
+
 **A call event names the peer in whichever address form its source happened to
 hold, and the two sources disagree.** The offer arrives through
 `call.incoming_call` carrying whatever WhatsApp signalled with; the page's own
