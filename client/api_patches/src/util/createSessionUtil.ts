@@ -629,19 +629,27 @@ async function restoreStatusSender(page: any, logger: any, session: string) {
   if (!page) return;
   try {
     const result = await page.evaluate(() => {
-      const install = () => {
+      // Returns what it did as a string, or '' when WhatsApp is not ready yet:
+      // the log line is the first thing read when statuses fail again, so it
+      // must say "skipped" when it skipped, and which length it saw.
+      const install = (): string => {
         const wpp = (window as any).WPP;
-        if (!wpp?.loader?.moduleRequire) return false;
+        if (!wpp?.loader?.moduleRequire) return '';
 
         try {
           const statusModule = wpp.loader.moduleRequire(
             'WAWebEncryptAndSendStatusMsg'
           );
           const sendStatus = statusModule?.encryptAndSendStatusMsg;
-          if (typeof sendStatus !== 'function') return false;
-          if (sendStatus.__winzappPositionalAdapter) return true;
-          // A build whose sender still takes positional arguments needs none.
-          if (sendStatus.length !== 1) return true;
+          if (typeof sendStatus !== 'function') return '';
+          if (sendStatus.__winzappPositionalAdapter) return 'already installed';
+          // Current WhatsApp takes one object (length 1); a wrapper around it
+          // - WA-JS's own wrapFunction shape, (...r) => t(e, ...r) - reports 0.
+          // Only a sender declaring 2+ parameters still takes the positional
+          // call WA-JS makes, and needs no adapter.
+          if (sendStatus.length > 1) {
+            return `skipped: sender takes ${sendStatus.length} positional args`;
+          }
 
           const adapted = function (this: any, first: any, ...rest: any[]) {
             if (first && typeof first === 'object' && 'sendMsgRecord' in first) {
@@ -656,16 +664,26 @@ async function restoreStatusSender(page: any, logger: any, session: string) {
           };
           (adapted as any).__winzappPositionalAdapter = true;
           statusModule.encryptAndSendStatusMsg = adapted;
-          return true;
+          return `installed (sender length ${sendStatus.length})`;
         } catch (e) {
-          return false;
+          return '';
         }
       };
 
-      if (install()) return 'installed';
+      const now = install();
+      if (now) return now;
       let tries = 0;
       const timer = setInterval(() => {
-        if (install() || ++tries > 60) clearInterval(timer);
+        const outcome = install();
+        if (outcome || ++tries > 60) {
+          clearInterval(timer);
+          // Reaches wppconnect.log through the page console forwarder.
+          console.log(
+            `[browser-evaluate] status sender shim: ${
+              outcome || 'gave up (WhatsApp modules never became ready)'
+            }`
+          );
+        }
       }, 500);
       return 'scheduled (WhatsApp modules not ready yet)';
     });
