@@ -318,6 +318,30 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
         return result;
       }
 
+      // WPP.call.offer() (wa-js 4.6.0) calls startWAWebVoipCall(peer, isVideo,
+      // 8, 5) and stops there. Since WhatsApp Web 2.3000.1048x the sixth
+      // argument carries the call's entry trust, and when it is missing the
+      // trust defaults to "deep_link": WhatsApp asks "Start a WhatsApp call
+      // with <name>?" in a confirmation popup and waits for it. Nobody can
+      // answer that popup in the hidden page, so the offer never resolved,
+      // Node's page.evaluate hung until the 75 s HTTP abort, and every attempt
+      // left one more popup open (two were found over CDP, 2026-09-23). The
+      // call is started by the user's own keystroke in WinZapp, which is
+      // exactly what "user_gesture" means. The fallback only surfaces
+      // wa-js' own error: WPP.call.offer needs the same function.
+      const startOutgoingCall = async (to: string, isVideo: boolean): Promise<any> => {
+        const start = win.WPP?.whatsapp?.functions?.startWAWebVoipCall;
+        if (typeof start !== 'function') {
+          return win.WPP.call.offer(to, { isVideo });
+        }
+        const exists = await win.WPP.contact.queryExists(to);
+        if (!exists) throw new Error(`The contact ${to} does not exist on WhatsApp`);
+        const peer = exists.lid || exists.wid;
+        if (!peer?.isUser?.()) throw new Error(`The ${to} is not a user to call`);
+        await start(peer, isVideo, 8, 5, undefined, { entryTrust: 'user_gesture' });
+        return null;
+      };
+
       if (action === 'offer') {
         let call: any = null;
         const storeBeforeOffer = getCallStore();
@@ -328,7 +352,7 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
 
         for (let attempt = 0; attempt < 3 && !call; attempt += 1) {
           await ensureVoipRuntimeReady();
-          const offered = await win.WPP.call.offer(payload.to, { isVideo: !!payload.isVideo });
+          const offered = await startOutgoingCall(String(payload.to), !!payload.isVideo);
 
           // Current WhatsApp Web promotes the real ongoing call through
           // CallStore.activeCall.  The value returned by the legacy collection
