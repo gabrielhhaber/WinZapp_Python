@@ -9,8 +9,8 @@ is bound onto a stub and wx.MessageBox is replaced, so no window is opened.
 import pytest
 import wx
 
-from ui.dialogs import settings_dialog
-from ui.dialogs.settings_dialog import SettingsDialog
+from ui import call_audio_options
+from ui.call_audio_options import confirm_exclusive_output
 
 
 class _I18n:
@@ -43,11 +43,14 @@ class _Event:
 
 
 class _Dialog:
-    _on_call_exclusive_output_toggle = SettingsDialog._on_call_exclusive_output_toggle
-
     def __init__(self, checked):
         self.main_window = _MainWindow()
         self._call_exclusive_output_check = _Check(checked)
+
+    def _on_call_exclusive_output_toggle(self, event):
+        confirm_exclusive_output(
+            self, self.main_window.i18n, event, self._call_exclusive_output_check
+        )
 
 
 @pytest.fixture
@@ -58,7 +61,7 @@ def boxes(monkeypatch):
         def fake_box(message, caption, style, parent):
             shown.append((message, style))
             return answer
-        monkeypatch.setattr(settings_dialog.wx, "MessageBox", fake_box)
+        monkeypatch.setattr(call_audio_options.wx, "MessageBox", fake_box)
         return shown
 
     return install

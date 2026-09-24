@@ -939,6 +939,7 @@
     "calls_exclusive_input_label": "Używaj trybu wyłącznego dla mikrofonu podczas połączenia",
     "calls_exclusive_output_label": "Używaj trybu wyłącznego dla głośnika podczas połączenia",
     "calls_exclusive_output_warning": "Uwaga: w trybie wyłącznym głośnik jest zarezerwowany dla połączenia. Żaden inny program nie może odtwarzać dźwięku na tym urządzeniu przez czas trwania połączenia, w tym czytnik ekranu. Czy mimo to włączyć?",
+    "calls_echo_cancellation_label": "Włącz eliminację echa (zmniejsza sprzężenie zwrotne dźwięku z mikrofonu)",
     "tab_profile_backup": "Kopia zapasowa",
     "tab_reactions": "Reakcje",
     "reactions_fixed_label": "Używaj stałych szybkich reakcji: wybierz emoji dla każdej z 12 pozycji zamiast sortować je według najczęściej używanych",

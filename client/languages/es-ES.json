@@ -939,6 +939,7 @@
     "calls_exclusive_input_label": "Usar modo exclusivo en el micrófono durante la llamada",
     "calls_exclusive_output_label": "Usar modo exclusivo en el altavoz durante la llamada",
     "calls_exclusive_output_warning": "Atención: en modo exclusivo el altavoz queda reservado para la llamada. Ningún otro programa puede reproducir sonido en ese dispositivo mientras dure la llamada, incluido tu lector de pantalla. ¿Quieres activarlo de todos modos?",
+    "calls_echo_cancellation_label": "Activar cancelación de eco (reduce el retorno de audio del micrófono)",
     "tab_profile_backup": "Copia de seguridad",
     "tab_reactions": "Reacciones",
     "reactions_fixed_label": "Usar reacciones rápidas fijas: elegir el emoji de cada una de las 12 posiciones, en lugar de ordenarlas por las más usadas",

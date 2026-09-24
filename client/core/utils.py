@@ -1002,7 +1002,9 @@ DEFAULT_SETTINGS = {
         # exclusive speaker silences every other application on it -- the
         # screen reader included, for the whole call. Both default off.
         "exclusive_input": False,
-        "exclusive_output": False
+        "exclusive_output": False,
+        # Adaptive echo cancellation on the outgoing microphone; off by default.
+        "echo_cancellation": False
     },
     # Camera choice for video calls, deliberately its own section for the
     # same reason as call_audio_devices above: swap devices per-call without

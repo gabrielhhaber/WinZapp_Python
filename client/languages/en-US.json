@@ -939,6 +939,7 @@
     "calls_exclusive_input_label": "Use exclusive mode for the microphone during the call",
     "calls_exclusive_output_label": "Use exclusive mode for the speaker during the call",
     "calls_exclusive_output_warning": "Warning: in exclusive mode the speaker is reserved for the call. No other program can play sound on that device for as long as the call lasts, including your screen reader. Turn it on anyway?",
+    "calls_echo_cancellation_label": "Enable echo cancellation (reduces audio feedback from the microphone)",
     "tab_profile_backup": "Profile backup",
     "tab_reactions": "Reactions",
     "reactions_fixed_label": "Use fixed quick reactions: choose the emoji for each of the 12 positions instead of sorting by most used",
