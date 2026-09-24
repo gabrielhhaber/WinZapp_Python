@@ -900,6 +900,7 @@
     "calls_exclusive_input_label": "Folosiți modul exclusiv pentru microfon în timpul apelului",
     "calls_exclusive_output_label": "Folosiți modul exclusiv pentru difuzor în timpul apelului",
     "calls_exclusive_output_warning": "Atenție: în modul exclusiv, difuzorul este rezervat apelului. Niciun alt program, inclusiv cititorul de ecran, nu poate reda sunete pe acel dispozitiv pe toată durata apelului. Îl activați totuși?",
+    "calls_echo_cancellation_label": "Activează anularea ecoului (reduce reluarea sunetului de la microfon)",
     "tab_profile_backup": "Copie de siguranță a profilului",
     "tab_reactions": "Reacții",
     "reactions_fixed_label": "Folosiți reacții rapide fixe: alegeți emoji-ul pentru fiecare dintre cele 12 poziții, în loc să le ordonați după cele mai utilizate",

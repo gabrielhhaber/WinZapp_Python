@@ -20,6 +20,7 @@ from typing import Optional
 import numpy as np
 
 from core.audio_devices import repair_device_name
+from core.echo_canceller import EchoCanceller
 
 try:
     import sounddevice as sd
@@ -86,6 +87,10 @@ class CallAudioConfig:
     # off, and only the output one carries a spoken warning in the UI.
     exclusive_input: bool = False
     exclusive_output: bool = False
+    # Adaptive echo cancellation on the outgoing microphone, fed by what the
+    # output callback actually played. Off by default: it costs CPU and can
+    # slightly colour the voice, and a headset user has no echo to remove.
+    echo_cancellation: bool = False
 
 
 class CallAudioUnavailable(RuntimeError):
@@ -363,6 +368,13 @@ class CallAudioSession:
         self._mic_bytes_sent = 0
         self._mic_frames_dropped_for_latency = 0
         self._microphone_muted = False
+        self._echo_canceller: Optional[EchoCanceller] = (
+            EchoCanceller() if config.echo_cancellation else None
+        )
+        # (samples, rate) chunks copied out of the output callback; the sender
+        # thread resamples them into the canceller, so the realtime callback
+        # only pays for a copy. Bounded: nobody drains it while ringing.
+        self._echo_reference_tap: "deque[tuple[np.ndarray, int]]" = deque(maxlen=64)
 
     @property
     def microphone_muted(self) -> bool:
@@ -507,6 +519,9 @@ class CallAudioSession:
         self._drain_queue(self._mic_queue)
         self._drain_queue(self._output_queue)
         self._output_buffer.reset()
+        self._echo_reference_tap.clear()
+        if self._echo_canceller is not None:
+            self._echo_canceller.reset()
 
     def enqueue_remote_audio(self, pcm: bytes, sample_rate: int) -> None:
         if self._stop_event.is_set() or not pcm:
@@ -965,6 +980,20 @@ class CallAudioSession:
                 logging.exception("[call_audio] failed to send microphone audio")
                 time.sleep(0.05)
 
+    def _cancel_echo(self, pcm: bytes) -> bytes:
+        """Run one microphone chunk through the canceller.
+
+        May return fewer bytes than it was given (whole blocks only) or none.
+        """
+        canceller = self._echo_canceller
+        while True:
+            try:
+                chunk, rate = self._echo_reference_tap.popleft()
+            except IndexError:
+                break
+            canceller.push_reference(_resample_mono(chunk, rate, CALL_SAMPLE_RATE))
+        return _pcm16_bytes(canceller.process(_pcm16_float32(pcm)))
+
     def _on_output_frames(self, outdata, _frames, _time_info, _status) -> None:
         """PortAudio's realtime thread asking for one device period.
 
@@ -975,6 +1004,8 @@ class CallAudioSession:
         try:
             view = outdata[:, 0] if getattr(outdata, "ndim", 1) > 1 else outdata
             self._output_buffer.fill(view)
+            if self._echo_canceller is not None:
+                self._echo_reference_tap.append((view.copy(), self._output_rate))
         except Exception:
             # Silence is the only safe answer left; the underrun counter and
             # the player thread's summary are what make it visible.

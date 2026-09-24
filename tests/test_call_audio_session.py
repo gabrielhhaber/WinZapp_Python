@@ -1317,3 +1317,28 @@ def test_starvation_is_reported_from_outside_the_callback(caplog):
         session._log_output_underruns()
         assert len(_starved_lines()) == 2
         assert f"underruns={1 + CALL_OUTPUT_UNDERRUN_LOG_EVERY}" in _starved_lines()[1]
+
+
+def test_echo_cancellation_is_off_unless_configured():
+    from core.call_audio import CallAudioConfig, CallAudioSession
+
+    assert CallAudioSession(_Socket(), CallAudioConfig(session="s"))._echo_canceller is None
+    enabled = CallAudioSession(_Socket(), CallAudioConfig(session="s", echo_cancellation=True))
+    assert enabled._echo_canceller is not None
+
+
+def test_cancel_echo_uses_what_the_speaker_played():
+    import numpy as np
+    from core.call_audio import CALL_SAMPLE_RATE, CallAudioConfig, CallAudioSession, _pcm16_bytes
+
+    session = CallAudioSession(_Socket(), CallAudioConfig(session="s", echo_cancellation=True))
+    rng = np.random.default_rng(5)
+    far = (rng.standard_normal(CALL_SAMPLE_RATE * 6) * 0.1).astype(np.float32)
+    mic = np.zeros_like(far)
+    mic[1200:] = far[:-1200] * 0.5
+    last = b""
+    for i in range(0, len(far), 960):
+        session._echo_reference_tap.append((far[i:i + 960], CALL_SAMPLE_RATE))
+        last = session._cancel_echo(_pcm16_bytes(mic[i:i + 960])) or last
+    residual = np.frombuffer(last, dtype="<i2").astype(np.float32) / 32768.0
+    assert np.sqrt(np.mean(residual ** 2)) < 0.1 * np.sqrt(np.mean(mic[-960:] ** 2))
