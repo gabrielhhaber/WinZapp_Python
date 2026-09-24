@@ -325,9 +325,10 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
       // with <name>?" in a confirmation popup and waits for it. Nobody can
       // answer that popup in the hidden page, so the offer never resolved,
       // Node's page.evaluate hung until the 75 s HTTP abort, and every attempt
-      // left one more popup open (two were found over CDP, 2026-09-24). The
+      // left one more popup open (two were found over CDP, 2026-09-23). The
       // call is started by the user's own keystroke in WinZapp, which is
-      // exactly what "user_gesture" means; older builds ignore the argument.
+      // exactly what "user_gesture" means. The fallback only surfaces
+      // wa-js' own error: WPP.call.offer needs the same function.
       const startOutgoingCall = async (to: string, isVideo: boolean): Promise<any> => {
         const start = win.WPP?.whatsapp?.functions?.startWAWebVoipCall;
         if (typeof start !== 'function') {
@@ -337,7 +338,7 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
         if (!exists) throw new Error(`The contact ${to} does not exist on WhatsApp`);
         const peer = exists.lid || exists.wid;
         if (!peer?.isUser?.()) throw new Error(`The ${to} is not a user to call`);
-        await start(peer, isVideo, 8, 5, null, { entryTrust: 'user_gesture' });
+        await start(peer, isVideo, 8, 5, undefined, { entryTrust: 'user_gesture' });
         return null;
       };
 

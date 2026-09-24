@@ -397,14 +397,14 @@ def test_offer_starts_the_call_as_a_user_gesture():
     any call started without an entry trust, and wa-js 4.6.0's
     WPP.call.offer() passes none. In the hidden page nobody answers the popup,
     so every offer hung until the 75 s abort (two popups found over CDP,
-    2026-09-24). The offer must pass entryTrust "user_gesture" itself, and
+    2026-09-23). The offer must pass entryTrust "user_gesture" itself, and
     fall back to WPP.call.offer() only where the function is not exposed."""
     controller = _source("client/api_patches/src/controller/callController.ts")
     offer = controller[controller.index("const startOutgoingCall"):]
     offer = offer[: offer.index("throw new Error(`Unsupported call action")]
 
     assert "win.WPP?.whatsapp?.functions?.startWAWebVoipCall" in offer
-    assert "await start(peer, isVideo, 8, 5, null, { entryTrust: 'user_gesture' })" in offer
+    assert "await start(peer, isVideo, 8, 5, undefined, { entryTrust: 'user_gesture' })" in offer
     assert "return win.WPP.call.offer(to, { isVideo })" in offer
     assert "peer?.isUser?.()" in offer
     assert "await startOutgoingCall(String(payload.to), !!payload.isVideo)" in offer
