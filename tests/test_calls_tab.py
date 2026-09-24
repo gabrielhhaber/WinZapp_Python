@@ -326,13 +326,18 @@ class _NavWindow:
         self.conversations_panel = _Shown()
         self.conversations_panel.conversation = None
         self.archived_conversations_panel = _Shown()
+        self.locked_conversations_panel = _Shown()
         self.status_panel = _Shown()
         self.calls_panel = _Shown()
         self.content_panel = _Layout()
         self.settings_opened = 0
+        self.lock_chat_vault_calls = 0
 
     def open_settings(self):
         self.settings_opened += 1
+
+    def lock_chat_vault(self, *, silent=False, show_conversations=True):
+        self.lock_chat_vault_calls += 1
 
 
 class _Event:
@@ -351,6 +356,10 @@ def _nav(mw):
 
         def __init__(self):
             self.main_window = mw
+            # Same order rebuild_items() builds when the vault's optional
+            # nav row is hidden (mw here has no chat_lock_navigation_visible,
+            # so the "locked" row is absent, same as the real default).
+            self._nav_keys = ["conversations", "archived", "status", "calls", "settings"]
 
     return _Nav()
 
@@ -378,9 +387,14 @@ class TestNavigation:
     def test_alt_6(self):
         mw = _NavWindow()
         mw.status_panel.shown = True
+        mw.locked_conversations_panel.shown = True
         mw.on_alt_6(None)
         assert mw.calls_panel.shown and mw.calls_panel.on_show_calls == 1
         assert not mw.status_panel.shown
+        # Switching to Calls locks the vault, like every other panel switch,
+        # and hides the locked-chats panel if it was open underneath.
+        assert mw.lock_chat_vault_calls == 1
+        assert not mw.locked_conversations_panel.shown
 
 
 # ── The database read the tab starts from ──────────────────────────────────

@@ -12963,6 +12963,7 @@ class MainWindow(wx.Frame):
         self.ID_ALT_4      = wx.NewIdRef()
         self.ID_ALT_5      = wx.NewIdRef()
         self.ID_ALT_6      = wx.NewIdRef()
+        self.ID_ALT_7      = wx.NewIdRef()
         self.ID_ALT_NAV    = wx.NewIdRef()
         self.ID_CTRL_COMMA = wx.NewIdRef()
         self.ID_F1         = wx.NewIdRef()
@@ -12991,6 +12992,7 @@ class MainWindow(wx.Frame):
             (wx.ACCEL_ALT,    ord('4'),    self.ID_ALT_4),
             (wx.ACCEL_ALT,    ord('5'),    self.ID_ALT_5),
             (wx.ACCEL_ALT,    ord('6'),    self.ID_ALT_6),
+            (wx.ACCEL_ALT,    ord('7'),    self.ID_ALT_7),
             (wx.ACCEL_ALT,    ord(nav_letter), self.ID_ALT_NAV),
             (wx.ACCEL_CTRL,   ord(','),    self.ID_CTRL_COMMA),
             (wx.ACCEL_NORMAL, wx.WXK_F1,  self.ID_F1),
@@ -13004,6 +13006,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_alt_4,       id=self.ID_ALT_4)
         self.Bind(wx.EVT_MENU, self.on_alt_5,       id=self.ID_ALT_5)
         self.Bind(wx.EVT_MENU, self.on_alt_6,       id=self.ID_ALT_6)
+        self.Bind(wx.EVT_MENU, self.on_alt_7,       id=self.ID_ALT_7)
         self.Bind(wx.EVT_MENU, self._on_alt_nav,    id=self.ID_ALT_NAV)
         self.Bind(wx.EVT_MENU, self.on_ctrl_comma,  id=self.ID_CTRL_COMMA)
         self.Bind(wx.EVT_MENU, self.on_f1,          id=self.ID_F1)
@@ -13244,6 +13247,14 @@ class MainWindow(wx.Frame):
             self.calls_panel.Show()
             self.content_panel.Layout()
             self.calls_panel.on_show()
+
+    def on_alt_7(self, event):
+        """Alt+7: open the locked-chats vault, the same entry point as the
+        optional "Conversas trancadas" nav row (prompts for the PIN). A
+        vault that was never set up (vault.configured is False) does
+        nothing, silently -- this shortcut cannot itself reveal that a
+        vault exists to someone who doesn't already know the PIN."""
+        self.show_locked_chats_panel()
 
     def output(self, text, interrupt=False):
         self.speak_output.output(text, interrupt=interrupt)

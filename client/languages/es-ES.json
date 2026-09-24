@@ -541,6 +541,7 @@
     "calls_open_conversation": "Abrir chat",
     "return_call_unavailable": "Solo se puede devolver una llamada perdida.",
     "shortcut_alt6_label": "Alt+6: ir a llamadas",
+    "shortcut_alt7_label": "Alt+7: abrir chats bloqueados",
     "shortcuts_calls_section": "Panel de llamadas",
     "shortcut_calls_alt_l_label": "Alt+L: ir a la lista de llamadas",
     "shortcut_calls_ctrl_tab_label": "Ctrl+Tab y Ctrl+Shift+Tab: cambiar entre las pestañas todas, perdidas, rechazadas y atendidas",

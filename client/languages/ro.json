@@ -502,6 +502,7 @@
     "calls_open_conversation": "Deschide conversația",
     "return_call_unavailable": "Doar un apel pierdut poate fi returnat.",
     "shortcut_alt6_label": "Alt+6: mergi la apeluri",
+    "shortcut_alt7_label": "Alt+7: deschide conversațiile blocate",
     "shortcuts_calls_section": "Panoul de apeluri",
     "shortcut_calls_alt_l_label": "Alt+L: mergi la lista de apeluri",
     "shortcut_calls_ctrl_tab_label": "Ctrl+Tab și Ctrl+Shift+Tab: comută între filele toate, pierdute, respinse și preluate",

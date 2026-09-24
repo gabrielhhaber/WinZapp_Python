@@ -114,3 +114,89 @@ def test_forgetting_deleted_chat_cleans_corruption_fallback_index():
     assert mw.db.json_writes == [
         (mw._CHAT_LOCK_INDEX_KEY, [jid_fingerprint(key, other)])
     ]
+
+
+# ── Alt+7 / show_locked_chats_panel and the Calls tab ───────────────────────
+#
+# The Calls tab (Alt+6, PR #292) landed after this vault branch, so nothing
+# in it knew the vault existed. show_locked_chats_panel() (and therefore
+# Alt+7, its keyboard shortcut) must hide calls_panel like it already hides
+# every other top-level panel, or the Calls tab stays visible underneath.
+
+class _Shown:
+    def __init__(self):
+        self.shown = False
+
+    def Show(self):
+        self.shown = True
+
+    def Hide(self):
+        self.shown = False
+
+
+class _LockedPanel(_Shown):
+    def __init__(self):
+        super().__init__()
+        self.hide_navigation = type("_CB", (), {"SetValue": lambda self, v: None})()
+
+    def set_all_chats(self, chats, names):
+        pass
+
+    def restore_selection(self):
+        pass
+
+
+class _PanelStub(_MainWindowStub):
+    show_locked_chats_panel = MainWindow.show_locked_chats_panel
+    on_alt_7 = MainWindow.on_alt_7
+    unlock_chat_lock_vault = MainWindow.unlock_chat_lock_vault
+
+    def __init__(self, key, vault):
+        super().__init__(key, vault)
+        self._chat_lock_unlocked = True
+        self._locked_chat_rows = ([], [])
+        self.conversations_panel = _Shown()
+        self.archived_conversations_panel = _Shown()
+        self.status_panel = _Shown()
+        self.calls_panel = _Shown()
+        self.locked_conversations_panel = _LockedPanel()
+        self.content_panel = type("_L", (), {"Layout": lambda self: None})()
+
+
+def test_showing_the_locked_chats_panel_hides_the_calls_tab():
+    key = Fernet.generate_key()
+    vault = ChatLockVault(key)
+    vault.configure("246810", "gizli-kod")
+    mw = _PanelStub(key, vault)
+    mw.calls_panel.shown = True
+
+    mw.show_locked_chats_panel()
+
+    assert mw.locked_conversations_panel.shown
+    assert not mw.calls_panel.shown
+
+
+def test_alt_7_opens_the_vault_and_hides_the_calls_tab():
+    key = Fernet.generate_key()
+    vault = ChatLockVault(key)
+    vault.configure("246810", "gizli-kod")
+    mw = _PanelStub(key, vault)
+    mw.calls_panel.shown = True
+
+    mw.on_alt_7(None)
+
+    assert mw.locked_conversations_panel.shown
+    assert not mw.calls_panel.shown
+
+
+def test_alt_7_does_nothing_when_the_vault_was_never_configured():
+    key = Fernet.generate_key()
+    vault = ChatLockVault(key)
+    mw = _PanelStub(key, vault)
+    mw._chat_lock_unlocked = False
+    mw.calls_panel.shown = True
+
+    mw.on_alt_7(None)
+
+    assert not mw.locked_conversations_panel.shown
+    assert mw.calls_panel.shown

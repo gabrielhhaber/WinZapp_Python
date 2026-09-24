@@ -541,6 +541,7 @@
     "calls_open_conversation": "Abrir conversa",
     "return_call_unavailable": "Só é possível retornar uma ligação perdida.",
     "shortcut_alt6_label": "Alt+6: ir para ligações",
+    "shortcut_alt7_label": "Alt+7: abrir conversas trancadas",
     "shortcuts_calls_section": "Painel de ligações",
     "shortcut_calls_alt_l_label": "Alt+L: ir para a lista de ligações",
     "shortcut_calls_ctrl_tab_label": "Ctrl+Tab e Ctrl+Shift+Tab: alternar entre as abas todas, perdidas, recusadas e atendidas",
