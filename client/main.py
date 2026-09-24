@@ -14939,7 +14939,9 @@ class MainWindow(wx.Frame):
         # code must not make a previously hidden navigation row suddenly
         # disclose that the vault exists. The open panel already provides its
         # own close/settings controls for the current session.
-        return vault.configured and not vault.hide_navigation
+        # A vault nobody set up yet has nothing to hide: keep the row (and
+        # Alt+7) visible so the feature can be found; it opens an empty list.
+        return not vault.configured or not vault.hide_navigation
 
     def _refresh_chat_lock_navigation(self):
         panel = getattr(self, "navigation_panel", None)
@@ -15187,7 +15189,9 @@ class MainWindow(wx.Frame):
             dialog.Destroy()
 
     def show_locked_chats_panel(self):
-        if not getattr(self, "_chat_lock_unlocked", False):
+        vault = getattr(self, "_chat_lock_vault", None)
+        never_set_up = vault is not None and not vault.configured
+        if not never_set_up and not getattr(self, "_chat_lock_unlocked", False):
             if not self.unlock_chat_lock_vault(show_panel=False):
                 return
         self.conversations_panel.Hide()
@@ -15201,6 +15205,9 @@ class MainWindow(wx.Frame):
         chats, names = getattr(self, "_locked_chat_rows", ([], []))
         panel.set_all_chats(chats, names)
         panel.hide_navigation.SetValue(self._chat_lock_vault.hide_navigation)
+        # Nothing to configure until the first chat is locked (no PIN yet).
+        panel.hide_navigation.Enable(not never_set_up)
+        panel.settings_button.Enable(not never_set_up)
         panel.Show()
         self.content_panel.Layout()
         panel.restore_selection()

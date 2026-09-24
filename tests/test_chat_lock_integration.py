@@ -134,10 +134,21 @@ class _Shown:
         self.shown = False
 
 
+class _Control:
+    enabled = True
+
+    def SetValue(self, value):
+        pass
+
+    def Enable(self, enabled=True):
+        self.enabled = enabled
+
+
 class _LockedPanel(_Shown):
     def __init__(self):
         super().__init__()
-        self.hide_navigation = type("_CB", (), {"SetValue": lambda self, v: None})()
+        self.hide_navigation = _Control()
+        self.settings_button = _Control()
 
     def set_all_chats(self, chats, names):
         pass
@@ -189,7 +200,7 @@ def test_alt_7_opens_the_vault_and_hides_the_calls_tab():
     assert not mw.calls_panel.shown
 
 
-def test_alt_7_does_nothing_when_the_vault_was_never_configured():
+def test_a_never_configured_vault_still_opens_an_empty_panel_without_a_pin():
     key = Fernet.generate_key()
     vault = ChatLockVault(key)
     mw = _PanelStub(key, vault)
@@ -198,5 +209,152 @@ def test_alt_7_does_nothing_when_the_vault_was_never_configured():
 
     mw.on_alt_7(None)
 
-    assert not mw.locked_conversations_panel.shown
-    assert mw.calls_panel.shown
+    assert mw.locked_conversations_panel.shown
+    assert not mw.calls_panel.shown
+    assert mw._chat_lock_unlocked is False
+    # No PIN exists yet, so there is nothing to configure in the panel.
+    assert not mw.locked_conversations_panel.settings_button.enabled
+    assert not mw.locked_conversations_panel.hide_navigation.enabled
+
+
+def test_a_configured_vault_keeps_its_panel_controls_enabled():
+    key = Fernet.generate_key()
+    vault = ChatLockVault(key)
+    vault.configure("246810", "gizli-kod")
+    mw = _PanelStub(key, vault)
+
+    mw.show_locked_chats_panel()
+
+    assert mw.locked_conversations_panel.settings_button.enabled
+
+
+def test_navigation_row_is_visible_while_the_vault_was_never_set_up():
+    key = Fernet.generate_key()
+    mw = _MainWindowStub(key, ChatLockVault(key))
+
+    assert mw.chat_lock_navigation_visible()
+
+
+# ── Ctrl+Shift+T: lock the focused conversation from either list ────────────
+
+from ui.chat_lock import LockedConversationsPanel
+from ui.conversations import ArchivedConversationsPanel, ConversationsPanel
+
+
+class _LockCaller:
+    def __init__(self):
+        self.locked = []
+
+    def lock_chat(self, jid):
+        self.locked.append(jid)
+
+
+class _ListPanelStub:
+    _on_accel_lock_list = ConversationsPanel._on_accel_lock_list
+    _on_accel_lock = ArchivedConversationsPanel._on_accel_lock
+
+    def __init__(self, chat):
+        self.main_window = _LockCaller()
+        self._chat = chat
+
+    def _selected_chat_from_list(self):
+        return self._chat
+
+
+def test_ctrl_shift_t_locks_the_focused_conversation():
+    panel = _ListPanelStub({"remoteJid": "1234567890@s.whatsapp.net"})
+    panel._on_accel_lock_list(None)
+    assert panel.main_window.locked == ["1234567890@s.whatsapp.net"]
+
+
+def test_ctrl_shift_t_locks_the_focused_archived_conversation():
+    panel = _ListPanelStub({"remoteJid": "another@g.us"})
+    panel._on_accel_lock(None)
+    assert panel.main_window.locked == ["another@g.us"]
+
+
+def test_ctrl_shift_t_with_nothing_focused_does_nothing():
+    panel = _ListPanelStub(None)
+    panel._on_accel_lock_list(None)
+    panel._on_accel_lock(None)
+    assert panel.main_window.locked == []
+
+
+# ── The empty locked-chats list says so ─────────────────────────────────────
+
+class _Field:
+    def GetValue(self):
+        return ""
+
+
+class _ListCtrl:
+    def __init__(self):
+        self.rows = []
+        self.focused = -1
+
+    def GetFocusedItem(self):
+        return self.focused
+
+    def Freeze(self):
+        pass
+
+    def Thaw(self):
+        pass
+
+    def DeleteAllItems(self):
+        self.rows = []
+
+    def Append(self, row):
+        self.rows.append(row[0])
+
+    def Focus(self, index):
+        self.focused = index
+
+    def Select(self, index):
+        pass
+
+
+class _EmptyListMainWindow:
+    class i18n:
+        @staticmethod
+        def t(key):
+            return f"[{key}]"
+
+    def _search_normalization_mode(self):
+        return False
+
+    def _last_msg_preview(self, chat):
+        return ""
+
+
+class _LockedPanelListStub:
+    refresh = LockedConversationsPanel.refresh
+
+    def __init__(self, chats=()):
+        self.main_window = _EmptyListMainWindow()
+        self.search_field = _Field()
+        self.conversations_list = _ListCtrl()
+        self._all_chats_list = list(chats)
+        self._all_chat_names = ["Maria" for _ in chats]
+        self.chats_list = []
+        self.chat_names = []
+
+
+def test_an_empty_locked_list_shows_the_no_locked_chats_notice():
+    panel = _LockedPanelListStub()
+
+    panel.refresh()
+
+    assert panel.conversations_list.rows == ["[chat_lock_none]"]
+    assert panel.conversations_list.focused == 0
+    # The notice is not a chat: activating it must open nothing.
+    assert panel.chats_list == []
+
+
+def test_a_locked_chat_replaces_the_notice():
+    panel = _LockedPanelListStub([{"remoteJid": "1@s.whatsapp.net"}])
+
+    panel.refresh()
+
+    assert "[chat_lock_none]" not in panel.conversations_list.rows
+    assert len(panel.conversations_list.rows) == 1

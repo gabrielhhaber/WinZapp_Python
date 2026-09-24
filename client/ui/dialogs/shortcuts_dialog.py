@@ -86,12 +86,13 @@ class ShortcutsDialog(wx.Dialog):
             i18n.t("shortcut_alt5_label"),
             i18n.t("shortcut_alt6_label"),
         ]
-        # Alt+7 opens the locked-chats vault -- listing it unconditionally
-        # would itself tell anyone reading this dialog that a vault exists,
-        # which is exactly what the vault's own hidden-navigation option is
-        # for; only show it once a vault has actually been configured.
+        # Alt+7 opens the locked-chats vault. Once the user chose to hide the
+        # vault (hide_navigation) this dialog must not advertise it; a vault
+        # never set up is visible in the navigation list too, so it is listed.
         vault = getattr(main_window, "_chat_lock_vault", None)
-        if vault is not None and getattr(vault, "configured", False):
+        if vault is not None and not (
+                getattr(vault, "configured", False)
+                and getattr(vault, "hide_navigation", False)):
             lines.append(i18n.t("shortcut_alt7_label"))
         lines += [
             i18n.t("shortcut_alt_nav_label").format(letter=nav_letter),
@@ -99,6 +100,7 @@ class ShortcutsDialog(wx.Dialog):
             i18n.t("shortcut_f1_label"),
             i18n.t("shortcut_ctrl_n_label"),
             i18n.t("shortcut_ctrl_shift_q_list_label"),
+            i18n.t("shortcut_ctrl_shift_t_list_label"),
             i18n.t("shortcut_ctrl_shift_alt_m_label"),
             i18n.t("shortcut_ctrl_alt_shift_d_label"),
             i18n.t("shortcut_ctrl_alt_shift_q_label"),

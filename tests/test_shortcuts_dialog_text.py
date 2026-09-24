@@ -77,8 +77,9 @@ class TestMultiAccountShortcutVisibility:
 
 
 class _FakeVault:
-    def __init__(self, configured):
+    def __init__(self, configured, hide=True):
         self.configured = configured
+        self.hide_navigation = hide
 
 
 class _FakeMainWindowNoVault:
@@ -112,12 +113,19 @@ class TestChatLockShortcutVisibility:
         text = ShortcutsDialog._build_text(_FakeI18n(), _FakeMainWindowNoVault())
         assert "shortcut_alt7_label" not in text
 
-    def test_hidden_when_the_vault_was_never_configured(self):
+    def test_shown_while_the_vault_was_never_configured(self):
+        """Its navigation row is visible then, so nothing is being hidden."""
         text = ShortcutsDialog._build_text(_FakeI18n(), _FakeMainWindowUnconfiguredVault())
+        assert "shortcut_alt7_label" in text
+
+    def test_hidden_once_the_user_hid_the_vault(self):
+        text = ShortcutsDialog._build_text(_FakeI18n(), _FakeMainWindowConfiguredVault())
         assert "shortcut_alt7_label" not in text
 
-    def test_shown_once_the_vault_is_configured(self):
-        text = ShortcutsDialog._build_text(_FakeI18n(), _FakeMainWindowConfiguredVault())
+    def test_shown_when_the_configured_vault_is_not_hidden(self):
+        window = _FakeMainWindowConfiguredVault()
+        window._chat_lock_vault = _FakeVault(configured=True, hide=False)
+        text = ShortcutsDialog._build_text(_FakeI18n(), window)
         assert "shortcut_alt7_label" in text
 
 

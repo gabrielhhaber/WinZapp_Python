@@ -257,10 +257,19 @@ class LockedConversationsPanel(wx.Panel):
             self.conversations_list.DeleteAllItems()
             for row in rows:
                 self.conversations_list.Append((row,))
+            if not rows:
+                # Same idea as the message list's empty notice: a bare empty
+                # list tells a screen-reader user nothing. chats_list stays
+                # empty, so activating this row opens nothing.
+                self.conversations_list.Append(
+                    (self.main_window.i18n.t("chat_lock_none"),))
         finally:
             self.conversations_list.Thaw()
         self.chats_list = chats
         self.chat_names = names
+        if not rows:
+            self.conversations_list.Focus(0)
+            self.conversations_list.Select(0)
         if chats:
             target = next((
                 index for index, chat in enumerate(chats)
@@ -270,7 +279,7 @@ class LockedConversationsPanel(wx.Panel):
             self.conversations_list.Select(target)
 
     def restore_selection(self):
-        if self.chats_list:
+        if self.conversations_list.GetItemCount():
             self.conversations_list.Focus(0)
             self.conversations_list.Select(0)
             self.conversations_list.EnsureVisible(0)

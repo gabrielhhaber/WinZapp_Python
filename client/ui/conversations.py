@@ -1392,6 +1392,7 @@ class ConversationsPanel(wx.Panel):
         self.ID_BLOCK_LIST          = wx.NewIdRef()
         self.ID_CLEAR_LIST          = wx.NewIdRef()
         self.ID_ARCHIVE_LIST        = wx.NewIdRef()
+        self.ID_LOCK_LIST           = wx.NewIdRef()
         self.ID_PIN_LIST            = wx.NewIdRef()
         self.ID_CLOSE_CONV_LIST     = wx.NewIdRef()
         # Alt+2 / Alt+3 exist on conversation_panel's own table, and that panel
@@ -1444,6 +1445,7 @@ class ConversationsPanel(wx.Panel):
             # right next to other single-Ctrl combos a user can easily
             # fat-finger while just trying to navigate the list.
             (CS,              ord("Q"),         self.ID_ARCHIVE_LIST),
+            (CS,              ord("T"),         self.ID_LOCK_LIST),
             (wx.ACCEL_CTRL,   ord("P"),         self.ID_PIN_LIST),
             (wx.ACCEL_CTRL,   ord("W"),         self.ID_CLOSE_CONV_LIST),
             (wx.ACCEL_ALT,    ord("2"),         self.ID_ALT_2_LIST),
@@ -1465,6 +1467,7 @@ class ConversationsPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self._on_accel_block_list,          id=self.ID_BLOCK_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_clear_list,          id=self.ID_CLEAR_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_archive_list,        id=self.ID_ARCHIVE_LIST)
+        self.Bind(wx.EVT_MENU, self._on_accel_lock_list,           id=self.ID_LOCK_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_pin_list,            id=self.ID_PIN_LIST)
         self.Bind(wx.EVT_MENU, self.on_context_menu_close,         id=self.ID_CLOSE_CONV_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_jump_last,           id=self.ID_ALT_2_LIST)
@@ -4591,7 +4594,7 @@ class ConversationsPanel(wx.Panel):
             pin_item = menu.Append(wx.ID_ANY, f"{i18n.t('pin_chat')}\tCtrl+P")
             self.Bind(wx.EVT_MENU, lambda e, j=jid: self._on_menu_pin(j), pin_item)
 
-        lock_item = menu.Append(wx.ID_ANY, i18n.t("lock_chat"))
+        lock_item = menu.Append(wx.ID_ANY, f"{i18n.t('lock_chat')}	Ctrl+Shift+T")
         self.Bind(wx.EVT_MENU, lambda e, j=jid: mw.lock_chat(j), lock_item)
 
         menu.AppendSeparator()
@@ -13861,6 +13864,14 @@ class ConversationsPanel(wx.Panel):
         else:
             self._on_menu_archive(jid)
 
+    def _on_accel_lock_list(self, event):
+        """Ctrl+Shift+T: lock the focused conversation (the context menu's
+        "Lock chat"; sets the vault up first if it was never configured)."""
+        chat = self._selected_chat_from_list()
+        jid = chat.get("remoteJid", "") if chat else ""
+        if jid:
+            self.main_window.lock_chat(jid)
+
     def _on_accel_pin_list(self, event):
         """Play/stop the recorded-audio preview while the voice recording is
         paused; otherwise pin/unpin the focused conversation. Both share
@@ -17698,6 +17709,7 @@ class ArchivedConversationsPanel(wx.Panel):
         self.ID_BLOCK_LIST       = wx.NewIdRef()
         self.ID_CLEAR_LIST       = wx.NewIdRef()
         self.ID_UNARCHIVE_LIST   = wx.NewIdRef()
+        self.ID_LOCK_LIST        = wx.NewIdRef()
         self.ID_PIN_LIST         = wx.NewIdRef()
         CS = wx.ACCEL_CTRL | wx.ACCEL_SHIFT
         AS = wx.ACCEL_ALT | wx.ACCEL_SHIFT
@@ -17711,6 +17723,7 @@ class ArchivedConversationsPanel(wx.Panel):
             (CS,              ord("B"),      self.ID_BLOCK_LIST),
             (CS,              ord("L"),      self.ID_CLEAR_LIST),
             (CS,              ord("Q"),      self.ID_UNARCHIVE_LIST),
+            (CS,              ord("T"),      self.ID_LOCK_LIST),
             (wx.ACCEL_CTRL,   ord("P"),      self.ID_PIN_LIST),
         ])
         self.SetAcceleratorTable(accel_tbl)
@@ -17723,6 +17736,7 @@ class ArchivedConversationsPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self._on_accel_block,              id=self.ID_BLOCK_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_clear,              id=self.ID_CLEAR_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_unarchive,          id=self.ID_UNARCHIVE_LIST)
+        self.Bind(wx.EVT_MENU, self._on_accel_lock,               id=self.ID_LOCK_LIST)
         self.Bind(wx.EVT_MENU, self._on_accel_pin,                id=self.ID_PIN_LIST)
 
     def _selected_chat_from_list(self):
@@ -17733,6 +17747,13 @@ class ArchivedConversationsPanel(wx.Panel):
         if 0 <= selected < len(self.chats_list):
             return self.chats_list[selected]
         return None
+
+    def _on_accel_lock(self, event):
+        """Ctrl+Shift+T: lock the focused archived conversation."""
+        chat = self._selected_chat_from_list()
+        jid = chat.get("remoteJid", "") if chat else ""
+        if jid:
+            self.main_window.lock_chat(jid)
 
     def _on_accel_delete(self, event):
         chat = self._selected_chat_from_list()
@@ -17972,7 +17993,7 @@ class ArchivedConversationsPanel(wx.Panel):
             pin_item = menu.Append(wx.ID_ANY, f"{i18n.t('pin_chat')}\tCtrl+P")
             self.Bind(wx.EVT_MENU, lambda e, j=jid: self._on_pin(j), pin_item)
 
-        lock_item = menu.Append(wx.ID_ANY, i18n.t("lock_chat"))
+        lock_item = menu.Append(wx.ID_ANY, f"{i18n.t('lock_chat')}	Ctrl+Shift+T")
         self.Bind(wx.EVT_MENU, lambda e, j=jid: mw.lock_chat(j), lock_item)
 
         menu.AppendSeparator()
