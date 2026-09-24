@@ -698,6 +698,7 @@ class _RenderPanel(_PanelStub):
     _get_quoted_sender = ConversationsPanel._get_quoted_sender
     _get_quoted_preview = ConversationsPanel._get_quoted_preview
     _resolve_mentions_in_text = ConversationsPanel._resolve_mentions_in_text
+    _message_mentioned_jids = staticmethod(ConversationsPanel._message_mentioned_jids)
     _get_participant_name = ConversationsPanel._get_participant_name
     _is_system_event = staticmethod(ConversationsPanel._is_system_event)
     _is_message_forwarded = ConversationsPanel._is_message_forwarded

@@ -888,6 +888,9 @@ DEFAULT_SETTINGS = {
         # client/updater.py's select_release().
         "alpha_updates_enabled": False,
         "noise_reduction_enabled": False,
+        # Stereo voice messages (issue #82, core/voice_stereo.py). Off: iPhone
+        # cannot play a stereo voice message.
+        "voice_message_stereo": False,
         # Windows spell checking in the message field (core/spell_checker.py).
         # One of SPELL_CHECK_MODES: "windows" (default — follow Windows' own
         # Settings > Time & language > Typing > Spelling), or "on"/"off" to
@@ -949,6 +952,12 @@ DEFAULT_SETTINGS = {
         "preserve_typed_text_as_attachment_caption": True,
         "bulk_action_shortcuts": True,
         "confirm_mark_all_read": True,
+        # Ask before F5 / Shift+F5 (MainWindow._confirm_resync()); the
+        # confirmations' own "don't show again" boxes clear these.
+        "confirm_resync_all": True,
+        "confirm_resync_conversation": True,
+        # Warn before a stereo voice message (ui/dialogs/stereo_voice_warning.py).
+        "warn_stereo_voice_iphone": True,
         # Once a selection exists, plain Space keeps selecting instead of
         # playing/pausing the focused message ("selection mode"), and Esc
         # clears the message selection before it closes the conversation.
@@ -1214,6 +1223,27 @@ def _extract_mentioned_jids(quoted):
     return []
 
 
+#: How much of a quoted message's text a stored reply keeps. A quote whose
+#: text is exactly this long may have been cut here (core/quote_recovery.py).
+QUOTED_TEXT_CAP = 300
+
+
+def quoted_message_text(quoted) -> str:
+    """The full text of a quoted message, in any of the shapes it arrives in."""
+    if not isinstance(quoted, dict):
+        return ""
+    text = (
+        quoted.get("conversation")
+        or quoted.get("caption")
+        or quoted.get("body")
+        or (quoted.get("extendedTextMessage") or {}).get("text")
+        or ""
+    )
+    if not isinstance(text, str) or looks_like_binary_blob(text):
+        return ""
+    return text
+
+
 def _slim_quoted_message(quoted):
     """Reduce a quoted-message dict to only what the reply preview needs.
 
@@ -1232,16 +1262,8 @@ def _slim_quoted_message(quoted):
     """
     if not isinstance(quoted, dict):
         return quoted
-    text = (
-        quoted.get("conversation")
-        or quoted.get("caption")
-        or quoted.get("body")
-        or (quoted.get("extendedTextMessage") or {}).get("text")
-        or ""
-    )
-    if not isinstance(text, str) or looks_like_binary_blob(text):
-        text = ""
-    text = text[:300]  # a long pasted message must not be duplicated into replies
+    # a long pasted message must not be duplicated into replies
+    text = quoted_message_text(quoted)[:QUOTED_TEXT_CAP]
 
     qtype = quoted.get("type")
     slim: dict = {}

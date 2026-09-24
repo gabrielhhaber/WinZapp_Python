@@ -37,7 +37,8 @@ class PendingMessage:
                  contact_info: dict = None,
                  quoted: dict = None,
                  mentioned_jids: list = None,
-                 link_preview: dict = None):
+                 link_preview: dict = None,
+                 stereo: bool = False):
         # local_id matches the "_local_id" field in the virtual message dict
         # that was already added to the UI.
         self.local_id      = local_id
@@ -45,6 +46,9 @@ class PendingMessage:
         self.text          = text           # plain-text body
         self.audio_path    = audio_path     # path to recorded WAV
         self.ogg_bytes     = ogg_bytes      # pre-encoded OGG Opus (skips encoding on send)
+        # A stereo voice message (core/voice_stereo.py): a retry that has to
+        # encode audio_path again must keep the channels the first try had.
+        self.stereo        = bool(stereo)
         self.media_path    = media_path     # path to attached file (image/video/doc/audio)
         self.media_type    = media_type     # "image"|"video"|"audio"|"document"
         self.caption       = caption or ""  # optional caption for media
@@ -387,6 +391,7 @@ class MessageQueue:
                         real_id = self.main_window.send_audio_message(
                             msg.jid, msg.audio_path, quoted=msg.quoted,
                             ogg_bytes=msg.ogg_bytes,
+                            stereo=getattr(msg, "stereo", False),
                         )
                     elif msg.media_path:
                         def _media_progress(progress, pending=msg):

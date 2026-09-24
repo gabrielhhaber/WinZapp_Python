@@ -53,9 +53,12 @@ class TestTheBadgeIsRediscountedOnceMessagesArrive:
 
     @staticmethod
     def _chat(records, unread):
+        # Marked raw, as get_remote_chats() leaves a count it merged before
+        # the chat had any records — the only count this correction may touch.
         return {
             "unreadCount": unread,
             "messages": {"messages": {"records": records}},
+            "_unread_undiscounted": True,
         }
 
     def test_our_own_send_stops_counting_as_unread(self):

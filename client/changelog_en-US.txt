@@ -22,6 +22,12 @@ WHAT'S NEW
 
 - Esc deselects before closing. With messages selected, the first Esc only deselects them all and just the second one closes the conversation. It can be turned off in Settings, User Interface too.
 
+- Stereo voice messages. With a microphone that really records in stereo, a voice message can keep the sound of both sides. Tick "Record voice messages in stereo by default" in the Audio Devices tab of Settings, or use the new button below "Record voice message" (Ctrl+Shift+G) to record just one message in the other mode: stereo when the default is mono, mono when it is stereo. People using an iPhone can't play stereo voice messages, so WinZapp warns you first, with a "Don't show again" option; to be warned again, use the matching option in the User Interface tab. If the microphone doesn't provide two channels, the message is recorded in mono and WinZapp tells you.
+
+- Resync only the open chat with Shift+F5, also in the Sync menu. Unlike F5, which deletes and downloads every chat again, Shift+F5 fetches the open chat's messages from WhatsApp again, puts any missing ones in the right place and removes the ones that no longer exist there, without touching older history. F5 and Shift+F5 now ask for confirmation, with No as the default and a "Don't show again" option; to be asked again, use the matching options in the User Interface tab of Settings.
+
+- The global hotkey that brings WinZapp back from the system tray now also sends it there: with WinZapp in the foreground, the same hotkey hides it to the tray. In every other situation it still brings the window to the front.
+
 FIXES
 
 - Starting a voice message with recording announcements silenced no longer lets the screen reader begin saying “Send” before being cut off. WinZapp now avoids the automatic focus move that caused the clipped announcement while keeping Ctrl+R, Ctrl+Shift+P and Ctrl+Shift+D available.
@@ -45,6 +51,14 @@ FIXES
 - After WinZapp recovers the browser profile, chats with unread messages no longer show up as read.
 
 - Copying part of the message text window (Alt+C) brought along line breaks the message did not have, wherever the window splits long lines to make them easier to read. Copying now gives you the message as it was written, with only its own line breaks.
+
+- Messages WhatsApp had not managed to load yet disappeared from the chat, and a reply to one of them quoted a message that appeared nowhere. This happens, for example, with messages from someone who changed phones, until that person's phone sends them again. They now show as "Waiting for this message. This may take a while.", as in WhatsApp, and are replaced by the text as soon as it arrives, or earlier, when someone replies quoting the message.
+
+- A group's unread counter could disappear when someone reacted to a message, even with messages still unread, and in groups with system notices it went down on its own every minute. The counter now shows the messages that really are unread.
+
+- When copying a message (Ctrl+C), opening its text (Alt+C) or copying several at once, the people it mentioned came out as phone numbers, or as a meaningless string of digits, instead of the name shown in the message list. They now come out as names.
+
+- With a custom notification sound and no file chosen, in a chat's data or in the Alert Tones tab of Settings, the preview button stayed available and showed an error. It now only appears when the typed path leads to a file that exists.
 
 V1.1.1.0
 

@@ -37,7 +37,17 @@ exclusive only on answer, so the ring tone and the announcement of who is
 calling are still heard. A device switch mid-call
 (`_restart_active_voice_call_audio`) restarts the audio only — the camera and
 the `_active_voice_call` object stay, because `_start_call_camera()` compares
-that object by identity.
+that object by identity. It also must **not** emit `call:audio:stop`: that
+event makes the page bridge `reset()`, which sets `enabled = false`, and only
+`/call/audio/enable` turns it back on (the new session's `call:audio:start`
+touches the Linux path alone). Every switch used to emit it twice
+(`CallAudioSession.stop()` and `stop_call_audio_stream()`), so Python kept
+sending microphone frames that `pushMicrophone()` dropped and the other person
+stopped hearing the user for the rest of the call, voice and video alike.
+`stop(notify_bridge=False)` is the switch's path; the end of a call, and a
+switch that cannot open any device, still reset the bridge. The switch carries
+the microphone mute into the new session before it opens, since a fresh
+session starts unmuted.
 
 **Playback is callback driven, behind a bounded jitter buffer, and the two
 halves of that sentence are both load-bearing.** `_play_remote_loop()` used to

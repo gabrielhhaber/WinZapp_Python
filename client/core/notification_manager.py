@@ -31,6 +31,7 @@ Design decisions:
     toaster is created in one thread and show_toast() called in another.
 """
 
+import ctypes
 import logging
 import os
 import queue
@@ -612,6 +613,51 @@ def announce_background_message(main_window, i18n, title: str, body: str) -> Non
         print(f"[NotificationManager] fallback announcement failed: {e}")
 
 
+_ERROR_INSUFFICIENT_BUFFER = 122
+
+
+def packaged_process_aumid(kernel32=None) -> str:
+    """The AUMID Windows gave this process when it runs inside a package, or "".
+
+    Python from the Microsoft Store is an MSIX package, and so is every venv
+    created from it: the process carries the package's identity. A toast
+    notifier created for "WinZapp" there becomes "<package>!WinZapp", an app
+    the package's manifest does not declare -- Windows accepts every toast
+    and shows none. Measured 2026-09-23 running from source: the sound played,
+    show_toast() returned in ~15 ms with no error, no banner ever appeared, and
+    the notification settings held a "PythonSoftwareFoundation.Python.3.13_
+    qbz5n2kfra8p0!WinZapp" entry. The process's own AUMID ("...!Python") is a
+    declared app, so its toasts are shown.
+    """
+    try:
+        from ctypes import wintypes
+        get_aumid = (kernel32 or ctypes.WinDLL("kernel32")).GetCurrentApplicationUserModelId
+        length = wintypes.UINT(0)
+        # Unpackaged processes answer APPMODEL_ERROR_NO_APPLICATION (15703).
+        if get_aumid(ctypes.byref(length), None) != _ERROR_INSUFFICIENT_BUFFER:
+            return ""
+        buffer = ctypes.create_unicode_buffer(length.value)
+        if get_aumid(ctypes.byref(length), buffer) != 0:
+            return ""
+        return buffer.value
+    except Exception:
+        return ""
+
+
+def toaster_aumid_candidates(app_id: str, fallback: str, packaged_aumid: str = "") -> list:
+    """AUMIDs to build the toaster with, in order of preference.
+
+    Creating a notifier for an AUMID Windows will never display succeeds just
+    the same, so the list cannot rely on failures to fall through: a packaged
+    process has to START with its own AUMID (see packaged_process_aumid()).
+    """
+    candidates = [packaged_aumid] if packaged_aumid else []
+    for aumid in (app_id, fallback):
+        if aumid and aumid not in candidates:
+            candidates.append(aumid)
+    return candidates
+
+
 class NotificationManager:
     """Manages Windows 11 toast notifications for incoming WinZapp messages."""
 
@@ -799,7 +845,11 @@ class NotificationManager:
             fallback = self._outer_exe_path()
         else:
             fallback = sys.executable
-        candidates = [self.APP_ID, fallback]
+        packaged = packaged_process_aumid()
+        if packaged:
+            logging.info("[NotificationManager] running inside a package; toasts "
+                         "use its AUMID %s", packaged)
+        candidates = toaster_aumid_candidates(self.APP_ID, fallback, packaged)
 
         for app_id in candidates:
             # Try interactable first (supports inline reply text box).

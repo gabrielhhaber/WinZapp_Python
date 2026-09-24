@@ -484,9 +484,19 @@ class CallAudioSession:
                 raise
             self._output_stream, self._output_rate = stream, rate
 
-    def stop(self) -> None:
+    def stop(self, *, notify_bridge: bool = True) -> None:
+        """Close the local streams; by default also tell the page bridge.
+
+        ``notify_bridge=False`` is for a device switch inside the same call.
+        ``call:audio:stop`` makes the page bridge reset(), which disables it,
+        and only ``/call/audio/enable`` turns it back on -- the new session's
+        ``call:audio:start`` does not. So a switch that emitted it kept sending
+        microphone frames that the page dropped, and the other person heard
+        silence for the rest of the call.
+        """
         self._stop_event.set()
-        self._emit_stop()
+        if notify_bridge:
+            self._emit_stop()
         self._close_stream(self._input_stream)
         self._input_stream = None
         # Under the same lock as the player's writes, so a write in flight

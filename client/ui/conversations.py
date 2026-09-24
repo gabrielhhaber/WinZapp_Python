@@ -27,6 +27,12 @@ from core.audio_devices import (
     find_input_device_index, fallback_input_device_indices,
     recording_configs_for,
 )
+from core.voice_stereo import (
+    alternate_mode_is_stereo, alternate_record_label_key, encode_as_stereo,
+    fell_back_to_mono,
+)
+from ui.dialogs.stereo_voice_warning import ask_stereo_voice, stereo_warning_enabled
+from core.quote_recovery import RECOVERED_FROM_QUOTE
 from core.audio_transcode import transcode_audio_to_wav
 from core.attachment_types import classify_attachment_media_type
 from core.message_edit import (
@@ -528,6 +534,9 @@ class ConversationsPanel(wx.Panel):
         # Actual rate/channels are resolved at open time (stereo → mono fallback).
         self._recording_actual_rate: int = 48000
         self._recording_actual_ch:   int = 1
+        # Whether THIS recording was asked for in stereo (issue #82): the
+        # Settings default, or the other mode through the second button.
+        self._recording_stereo: bool = False
         # Playback of what's been recorded so far, offered only while paused
         # (see _toggle_play_recorded_audio / _stop_recorded_audio_preview).
         self._recorded_audio_sound      = None
@@ -1153,6 +1162,18 @@ class ConversationsPanel(wx.Panel):
         self.record_voice_message_btn.Bind(wx.EVT_BUTTON, self.on_record_voice_message)
         conv_sizer.Add(self.record_voice_message_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
+        # The other recording mode, for one message (issue #82): "em estéreo"
+        # when Settings records in mono, "em mono" when it records in stereo.
+        # Follows the first button everywhere it is shown, hidden or disabled.
+        self._record_voice_alt_btn = wx.Button(
+            self.conversation_panel, label=i18n.t(self._alternate_record_label_key())
+        )
+        self._record_voice_alt_btn.SetAccessible(
+            AccessibleRecordVoiceMessage("Ctrl+Shift+G")
+        )
+        self._record_voice_alt_btn.Bind(wx.EVT_BUTTON, self._on_record_alternate_mode)
+        conv_sizer.Add(self._record_voice_alt_btn, 0, wx.LEFT | wx.BOTTOM, 5)
+
         # ── Attachment staging panel (hidden until files are chosen) ─────────
         self._attachment_panel = wx.Panel(self.conversation_panel)
         attach_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1434,6 +1455,7 @@ class ConversationsPanel(wx.Panel):
     def create_accel_conversation(self):
         # ── Navigation / recording ──────────────────────────────────────────
         self.ID_CTRL_R          = wx.NewIdRef()  # record voice            (Ctrl+R)
+        self.ID_CTRL_SHIFT_G    = wx.NewIdRef()  # record, other mode      (Ctrl+Shift+G)
         self.ID_ALT_2           = wx.NewIdRef()  # jump to last message    (Alt+2)
         self.ID_ESC             = wx.NewIdRef()  # close conversation      (Esc)
         self.CTRL_W             = wx.NewIdRef()  # close conversation      (Ctrl+W)
@@ -1555,6 +1577,10 @@ class ConversationsPanel(wx.Panel):
             (CS,               ord("E"),          self.ID_CTRL_SHIFT_E),
             (CS,               ord("P"),          self.ID_CTRL_SHIFT_P),
             (CS,               ord("R"),          self.ID_CTRL_SHIFT_R),
+            # G for "gravar": Ctrl+R records in the default mode, this one in
+            # the other (stereo / mono). Not Ctrl+Alt+R: that is AltGr+R, which
+            # types "®" on US-International and would be taken from the editor.
+            (CS,               ord("G"),          self.ID_CTRL_SHIFT_G),
             (wx.ACCEL_NORMAL,  wx.WXK_DELETE,     self.ID_DELETE_MSG),
             (wx.ACCEL_CTRL,    ord("C"),          self.ID_CTRL_C),
             (CS,               ord("C"),          self.ID_CTRL_SHIFT_C),
@@ -1609,6 +1635,7 @@ class ConversationsPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self._on_accel_focus_field,          id=self.ID_ALT_FOCUS_FIELD)
         self.Bind(wx.EVT_MENU, self._on_accel_focus_list,           id=self.ID_ALT_FOCUS_LIST)
         self.Bind(wx.EVT_MENU, self.on_record_voice_message,       id=self.ID_CTRL_R)
+        self.Bind(wx.EVT_MENU, self._on_record_alternate_mode,     id=self.ID_CTRL_SHIFT_G)
         self.Bind(wx.EVT_MENU, self._on_accel_jump_last,           id=self.ID_ALT_2)
         self.Bind(wx.EVT_MENU, self._on_escape_conversation,        id=self.ID_ESC)
         self.Bind(wx.EVT_MENU, self.close_conversation,            id=self.CTRL_W)
@@ -1743,6 +1770,7 @@ class ConversationsPanel(wx.Panel):
             self.message_field.Disable()
             self.send_message_btn.Disable()
             self.record_voice_message_btn.Disable()
+            self._record_voice_alt_btn.Disable()
             self._add_attachment_btn.Disable()
             self._emoji_btn.Disable()
         elif admins_only_group:
@@ -1758,6 +1786,7 @@ class ConversationsPanel(wx.Panel):
             self.message_field.SetEditable(False)
             self.send_message_btn.Disable()
             self.record_voice_message_btn.Disable()
+            self._record_voice_alt_btn.Disable()
             self._add_attachment_btn.Disable()
             self._emoji_btn.Disable()
         else:
@@ -1765,6 +1794,7 @@ class ConversationsPanel(wx.Panel):
             self.message_field.SetEditable(True)
             self.send_message_btn.Enable()
             self.record_voice_message_btn.Enable()
+            self._record_voice_alt_btn.Enable()
             self._add_attachment_btn.Enable()
             self._emoji_btn.Enable()
 
@@ -2118,9 +2148,11 @@ class ConversationsPanel(wx.Panel):
         if msg.strip():
             self.send_message_btn.Show()
             self.record_voice_message_btn.Hide()
+            self._record_voice_alt_btn.Hide()
         else:
             self.send_message_btn.Hide()
             self.record_voice_message_btn.Show()
+            self._record_voice_alt_btn.Show()
         # Sync typing status with WPPConnect (only on state transitions)
         if self.conversation is not None:
             jid = self.conversation.get("remoteJid", "")
@@ -2348,6 +2380,7 @@ class ConversationsPanel(wx.Panel):
         if hasattr(self, "_remove_quote_btn"):
             self._remove_quote_btn.SetLabel(i18n.t("remove_quote"))
         self.record_voice_message_btn.SetLabel(i18n.t("record_voice_message"))
+        self.refresh_alternate_record_button()
         self._add_attachment_btn.SetLabel(i18n.t("add_attachment"))
         self._add_more_btn.SetLabel(i18n.t("add_more_files"))
         self._caption_label.SetLabel(i18n.t("attachment_caption_hint"))
@@ -2371,6 +2404,41 @@ class ConversationsPanel(wx.Panel):
                 i18n.t("group_data") if jid.endswith("@g.us")
                 else i18n.t("conversation_data")
             )
+
+    def _default_recording_stereo(self) -> bool:
+        return bool(self.main_window.settings.get("general", {}).get(
+            "voice_message_stereo", False))
+
+    def _alternate_record_label_key(self) -> str:
+        return alternate_record_label_key(self._default_recording_stereo())
+
+    def refresh_alternate_record_button(self):
+        """Relabel the second record button after the default mode changed."""
+        button = getattr(self, "_record_voice_alt_btn", None)
+        if button:
+            button.SetLabel(self.main_window.i18n.t(self._alternate_record_label_key()))
+
+    def _on_record_alternate_mode(self, event):
+        """The second record button: one message in the mode Settings did not
+        pick. Recording in stereo warns first that iPhone cannot play it."""
+        if self._is_recording or self._recording_starting:
+            return
+        # Ctrl+Shift+G reaches here even when the button is disabled -- a
+        # channel, or a group only admins can post in -- where it must not
+        # record either.
+        button = getattr(self, "_record_voice_alt_btn", None)
+        if button is not None and not button.IsEnabled():
+            return
+        stereo = alternate_mode_is_stereo(self._default_recording_stereo())
+        if stereo and stereo_warning_enabled(self.main_window.settings):
+            confirmed, dont_ask_again = ask_stereo_voice(self, self.main_window.i18n)
+            if not confirmed:
+                return
+            if dont_ask_again:
+                self.main_window.settings.setdefault("user_interface", {})[
+                    "warn_stereo_voice_iphone"] = False
+                self.main_window.save_settings()
+        self._start_voice_recording(stereo=stereo)
 
     def on_record_voice_message(self, event):
         """
@@ -3502,7 +3570,7 @@ class ConversationsPanel(wx.Panel):
         for delay_ms in (40, 90, 160, 260, 400):
             wx.CallLater(delay_ms, _silence_now)
 
-    def _start_voice_recording(self):
+    def _start_voice_recording(self, stereo=None):
         """
         Start capturing audio from the default input device.
 
@@ -3527,6 +3595,9 @@ class ConversationsPanel(wx.Panel):
 
         self._recording_frames = []
         self._recording_paused = False
+        # None: the Settings default. The second record button passes the other.
+        want_stereo = self._default_recording_stereo() if stereo is None else bool(stereo)
+        self._recording_stereo = want_stereo
 
         # Define callback once, outside the loop; captures self for pause check.
         def _callback(in_data, frame_count, time_info, status):
@@ -3574,10 +3645,12 @@ class ConversationsPanel(wx.Panel):
                         self.conversation_panel,
                         self.send_message_btn,
                         self.record_voice_message_btn,
+                        self._record_voice_alt_btn,
                         self._add_attachment_btn,
                     )
                 self.send_message_btn.Hide()
                 self.record_voice_message_btn.Hide()
+                self._record_voice_alt_btn.Hide()
                 self._add_attachment_btn.Hide()
                 self._pause_resume_btn.SetLabel(self.main_window.i18n.t("pause_recording"))
                 self._voice_panel.Show()
@@ -3605,7 +3678,8 @@ class ConversationsPanel(wx.Panel):
             # over HFP offers only its own 8/16 kHz mono link and refuses every
             # fixed combination. See recording_configs_for(), which keeps the
             # fixed list as the tail so nothing that worked before changes.
-            for rate, ch in recording_configs_for(device_index, pa):
+            for rate, ch in recording_configs_for(device_index, pa,
+                                                  prefer_stereo=want_stereo):
                 try:
                     s = pa.open(
                         rate=rate,
@@ -3752,6 +3826,12 @@ class ConversationsPanel(wx.Panel):
             self._recording_stream      = stream
             self._recording_actual_rate = rate
             self._recording_actual_ch   = ch
+            if fell_back_to_mono(want_stereo, ch):
+                # Never fake it: one channel copied into two is not stereo.
+                logging.info("[audio] Stereo was asked for but the microphone "
+                             "opened with %s channel(s) — recording in mono.", ch)
+                self.main_window.output(
+                    self.main_window.i18n.t("voice_stereo_unavailable"))
 
             self._is_recording = True
 
@@ -3781,6 +3861,7 @@ class ConversationsPanel(wx.Panel):
                 recording_controls_to_hide = [
                     self.send_message_btn,
                     self.record_voice_message_btn,
+                    self._record_voice_alt_btn,
                     self._add_attachment_btn,
                 ]
                 if hasattr(self, "_emoji_btn"):
@@ -3794,6 +3875,7 @@ class ConversationsPanel(wx.Panel):
                 self._emoji_btn.Hide()
             self.send_message_btn.Hide()
             self.record_voice_message_btn.Hide()
+            self._record_voice_alt_btn.Hide()
             self._add_attachment_btn.Hide()
             self._pause_resume_btn.SetLabel(
                 self.main_window.i18n.t("pause_recording")
@@ -3852,6 +3934,7 @@ class ConversationsPanel(wx.Panel):
             self.send_message_btn.Show()
         else:
             self.record_voice_message_btn.Show()
+            self._record_voice_alt_btn.Show()
         self._add_attachment_btn.Show()
         self.conversation_panel.Layout()
 
@@ -4007,6 +4090,7 @@ class ConversationsPanel(wx.Panel):
         actual_ch       = self._recording_actual_ch
         bytes_per_frame = 2 * actual_ch
         quoted_msg      = self._quoted_message
+        stereo_out      = encode_as_stereo(self._recording_stereo, actual_ch)
 
         # Duration from frame byte counts — no allocation, no join on UI thread.
         total_bytes  = sum(len(f) for f in frames)
@@ -4109,7 +4193,7 @@ class ConversationsPanel(wx.Panel):
             ogg_bytes = None
             _t_enc = _time.perf_counter()
             try:
-                ogg_path = mw._convert_wav_to_ogg(wav_path)
+                ogg_path = mw._convert_wav_to_ogg(wav_path, stereo=stereo_out)
                 if ogg_path and os.path.isfile(ogg_path):
                     with open(ogg_path, "rb") as f_in:
                         ogg_bytes = f_in.read()
@@ -4143,7 +4227,8 @@ class ConversationsPanel(wx.Panel):
                          _time.perf_counter() - _t0,
                          "yes" if ogg_bytes else "NO — will fallback to WAV")
             pm = PendingMessage(local_id, remote_jid, audio_path=wav_path,
-                                ogg_bytes=ogg_bytes, quoted=quoted_msg)
+                                ogg_bytes=ogg_bytes, quoted=quoted_msg,
+                                stereo=stereo_out)
             mw.message_queue.enqueue(pm)
             mw.mark_conversation_as_read(remote_jid)
 
@@ -4180,6 +4265,7 @@ class ConversationsPanel(wx.Panel):
             self.main_window.send_recording_status(_rec_jid, False, _rec_jid.endswith("@g.us"))
         self._voice_panel.Hide()
         self.record_voice_message_btn.Show()
+        self._record_voice_alt_btn.Show()
 
     def _close_conversation_core(self) -> "tuple[bool, str]":
         """Stop typing/recording indicators and clear the open-conversation
@@ -9470,6 +9556,44 @@ class ConversationsPanel(wx.Panel):
         else:
             return f"{size / 1024 ** 3:.2f}".replace(".", sep) + " gb"
 
+    @staticmethod
+    def _message_mentioned_jids(msg: dict) -> list:
+        """The JIDs a text message @mentions.
+
+        mentionedJid may live at the top-level contextInfo (the WPPConnect API
+        normalises it there), in message.contextInfo, or inside
+        extendedTextMessage.contextInfo.
+        """
+        msg_obj = msg.get("message") or {}
+        ext = msg_obj.get("extendedTextMessage") or {}
+        ctx_top = msg.get("contextInfo") or {}
+        ctx_msg = msg_obj.get("contextInfo") or {}
+        ctx_ext = (ext.get("contextInfo") or {}) if isinstance(ext, dict) else {}
+        return (
+            ctx_top.get("mentionedJid") or ctx_top.get("mentionedJidList")
+            or ctx_msg.get("mentionedJid") or ctx_msg.get("mentionedJidList")
+            or ctx_ext.get("mentionedJid") or ctx_ext.get("mentionedJidList")
+            or []
+        )
+
+    def _message_text_with_names(self, msg: dict) -> str:
+        """A text message's body as the list row shows it: @mentions as names.
+
+        What Ctrl+C, Alt+C and the bulk copy hand over. They used to read the
+        raw body, so a mention the row read as "@Maria" was copied and shown
+        as "@5511999999999" -- or as the @lid digits, which are not even a
+        phone number. "" for anything that is not a text message.
+        """
+        msg_obj = msg.get("message") or {}
+        msg_type = msg.get("messageType", "")
+        if msg_type == "conversation":
+            return msg_obj.get("conversation", "") or ""
+        if msg_type == "extendedTextMessage":
+            text = (msg_obj.get("extendedTextMessage") or {}).get("text", "") or ""
+            mentioned = self._message_mentioned_jids(msg)
+            return self._resolve_mentions_in_text(text, mentioned) if mentioned else text
+        return ""
+
     def _resolve_mentions_in_text(self, text: str, mentioned: list) -> str:
         """Replace @{number}/@{lid} placeholders in *text* with display names.
 
@@ -9525,6 +9649,21 @@ class ConversationsPanel(wx.Panel):
                 app_name=self.main_window.app_name
             )
 
+        # Received but not decrypted by WhatsApp Web yet; the real copy
+        # replaces this record when it arrives (MainWindow._fill_stored_placeholder).
+        if msg_type == "ciphertext":
+            return i18n.t("message_awaiting_decryption")
+
+        # Text taken from a reply's quote (core/quote_recovery.py) is the
+        # replier's word, not the author's: said so on the row, so a quote a
+        # modified client made up is never read as the author's own message.
+        # First, not last: a classic list row is cut at 511 characters, and a
+        # long quote would push a trailing mark out of it.
+        if msg.get(RECOVERED_FROM_QUOTE):
+            unmarked = {k: v for k, v in msg.items() if k != RECOVERED_FROM_QUOTE}
+            return (f"{i18n.t('message_recovered_from_quote_label')} "
+                    f"{self._get_message_content(unmarked)}")
+
         # ── Text ────────────────────────────────────────────────────────────
         if msg_type == "conversation":
             text = msg_obj.get("conversation", "")
@@ -9547,18 +9686,7 @@ class ConversationsPanel(wx.Panel):
                     app_name=self.main_window.app_name
                 )
             # Resolve @mentions: replace @{number} with @{display_name}.
-            # mentionedJid may live at the top-level contextInfo (WPPConnect API
-            # normalises it there) or inside extendedTextMessage.contextInfo.
-            ctx_top = msg.get("contextInfo") or {}
-            ctx_msg = msg_obj.get("contextInfo") or {}
-            ctx_ext = ext.get("contextInfo") or {}
-            mentioned = (
-                ctx_top.get("mentionedJid") or ctx_top.get("mentionedJidList")
-                or ctx_msg.get("mentionedJid") or ctx_msg.get("mentionedJidList")
-                or ctx_ext.get("mentionedJid") or ctx_ext.get("mentionedJidList")
-                or []
-            )
-            text = self._resolve_mentions_in_text(text, mentioned)
+            text = self._resolve_mentions_in_text(text, self._message_mentioned_jids(msg))
 
             # Link preview (title/description WhatsApp itself generated for
             # the URL — see websocket_client.py's _has_link_preview). Shared
@@ -9893,6 +10021,13 @@ class ConversationsPanel(wx.Panel):
             "listResponseMessage",
             "protocolMessage",
             "groupNotification",
+            # WhatsApp Web's "Aguardando mensagem": a message it received but
+            # has not decrypted. The live funnel drops the brief ones; what a
+            # sync stores is the lasting kind, and hiding it made a reply that
+            # quotes it look like WinZapp had lost the original. Never
+            # countable nor a chat preview (is_countable_message(),
+            # MainWindow._PREVIEW_MESSAGE_TYPES).
+            "ciphertext",
         )
 
         if msg_type not in allowed_types:
@@ -11487,13 +11622,7 @@ class ConversationsPanel(wx.Panel):
         return (inner.get("caption") or "").strip()
 
     def _on_menu_copy_message(self, msg: dict):
-        msg_obj  = msg.get("message") or {}
-        msg_type = msg.get("messageType", "")
-        text = ""
-        if msg_type == "conversation":
-            text = msg_obj.get("conversation", "")
-        elif msg_type == "extendedTextMessage":
-            text = (msg_obj.get("extendedTextMessage") or {}).get("text", "")
+        text = self._message_text_with_names(msg)
         if text:
             try:
                 pyperclip.copy(text)
@@ -14340,16 +14469,16 @@ class ConversationsPanel(wx.Panel):
         """Open a read-only dialog showing the full message text (or, for a
         photo/video/document message, its caption)."""
         msg_type = msg.get("messageType", "")
-        msg_obj  = msg.get("message") or {}
-        text = ""
-        if msg_type == "conversation":
-            text = msg_obj.get("conversation", "")
-        elif msg_type == "extendedTextMessage":
-            text = (msg_obj.get("extendedTextMessage") or {}).get("text", "")
+        if msg_type in ("conversation", "extendedTextMessage"):
+            text = self._message_text_with_names(msg)
         else:
             text = self._get_message_caption(msg)
         if not text:
             return
+        if msg.get(RECOVERED_FROM_QUOTE):
+            # Same mark as the row (see _get_message_content): this is where a
+            # long recovered text is read in full.
+            text = f"{self.main_window.i18n.t('message_recovered_from_quote_label')}\n{text}"
 
         i18n = self.main_window.i18n
 
@@ -15219,6 +15348,7 @@ class ConversationsPanel(wx.Panel):
             self._emoji_btn.Hide()
         self.send_message_btn.Hide()
         self.record_voice_message_btn.Hide()
+        self._record_voice_alt_btn.Hide()
         self._add_attachment_btn.Hide()
         self._attachment_panel.Show()
         self.conversation_panel.Layout()
@@ -15295,6 +15425,7 @@ class ConversationsPanel(wx.Panel):
                 self.send_message_btn.Show()
             else:
                 self.record_voice_message_btn.Show()
+                self._record_voice_alt_btn.Show()
             self._add_attachment_btn.Show()
         if hasattr(self, "conversation_panel") and self.conversation_panel.IsShown():
             self.conversation_panel.Layout()
@@ -16801,11 +16932,7 @@ class ConversationsPanel(wx.Panel):
             msg_type = m.get("messageType", "")
             if msg_type not in _TEXT_TYPES:
                 continue
-            msg_obj = m.get("message") or {}
-            text = (
-                msg_obj.get("conversation", "") if msg_type == "conversation"
-                else (msg_obj.get("extendedTextMessage") or {}).get("text", "")
-            )
+            text = self._message_text_with_names(m)
             if not text:
                 continue
             sender = self._sender_label(m)

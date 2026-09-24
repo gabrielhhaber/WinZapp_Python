@@ -195,6 +195,24 @@ def test_call_audio_session_sends_python_microphone_pcm_to_socket():
     assert sio.events[-1] == ("call:audio:stop", {"session": "winzapp"})
 
 
+def test_stop_without_notifying_the_bridge_emits_no_call_audio_stop():
+    """A device switch closes only the local streams; call:audio:stop would
+    disable the page bridge and the other person would stop hearing the user."""
+    sio = _Socket()
+    session = CallAudioSession(
+        sio,
+        CallAudioConfig(session="winzapp", input_device_name="Mic", output_device_name="Speaker"),
+        sounddevice_module=_SoundDevice(),
+    )
+    session.start()
+
+    session.stop(notify_bridge=False)
+
+    assert ("call:audio:stop", {"session": "winzapp"}) not in sio.events
+    assert not session.running
+    assert not session.output_running
+
+
 def test_call_audio_session_plays_remote_pcm_on_python_output_device():
     sio = _Socket()
     sounddevice = _SoundDevice()

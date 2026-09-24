@@ -24,14 +24,22 @@ class _Audio:
         self.fail = fail
         self.started = 0
         self.stopped = 0
+        self.bridge_notified = []
+        self.microphone_muted = False
+        self.muted_when_started = None
 
     def start(self):
         self.started += 1
+        self.muted_when_started = self.microphone_muted
         if self.fail:
             raise OSError("device refused")
 
-    def stop(self):
+    def stop(self, *, notify_bridge=True):
         self.stopped += 1
+        self.bridge_notified.append(notify_bridge)
+
+    def set_microphone_muted(self, muted):
+        self.microphone_muted = bool(muted)
 
 
 class _Ws:
@@ -136,6 +144,59 @@ def test_a_switch_that_cannot_open_any_device_still_tears_the_call_down():
     assert window.spoken == ["voice_call_device_switch_failed"]
 
 
+def test_switching_devices_does_not_disable_the_page_bridge():
+    """call:audio:stop makes the page bridge reset() and disable itself, and
+    nothing in a switch enables it again: the new session kept sending the
+    microphone, the page dropped every frame, and the other person stopped
+    hearing the user for the rest of the call (voice and video alike)."""
+    window = _CallWindow()
+    old_audio = window._call_audio_session
+
+    window._restart_active_voice_call_audio()
+
+    assert old_audio.bridge_notified == [False]
+    assert window.ws.audio_stream_stops == 0
+    assert window._call_audio_session.started == 1
+
+
+def test_a_switch_keeps_the_microphone_muted():
+    window = _CallWindow()
+    window._call_audio_session.set_microphone_muted(True)
+
+    window._restart_active_voice_call_audio()
+
+    new_audio = window._call_audio_session
+    assert new_audio.microphone_muted is True
+    # muted before the new microphone opened, not after its first frames
+    assert new_audio.muted_when_started is True
+
+
+def test_a_switch_keeps_an_unmuted_microphone_unmuted():
+    window = _CallWindow()
+
+    window._restart_active_voice_call_audio()
+
+    assert window._call_audio_session.microphone_muted is False
+
+
+def test_a_switch_that_cannot_open_any_device_resets_the_page_bridge():
+    window = _CallWindow(fail_new_devices=True)
+
+    window._restart_active_voice_call_audio()
+
+    assert window.ws.audio_stream_stops == 1
+
+
+def test_ending_a_call_still_resets_the_page_bridge():
+    window = _CallWindow()
+    audio = window._call_audio_session
+
+    window._stop_voice_call_audio()
+
+    assert audio.bridge_notified == [True]
+    assert window.ws.audio_stream_stops == 1
+
+
 def test_ending_a_call_still_stops_the_camera():
     window = _CallWindow()
 
@@ -177,3 +238,27 @@ def test_the_call_settings_camera_reopen_uses_the_guarded_path():
     assert 'not getattr(self, "_call_camera_resuming", False)' in source
     assert "target=self._resume_call_camera" in source
     assert "target=self._start_call_camera" not in source
+
+
+
+def test_a_mute_toggled_while_the_switch_waits_is_carried_over(monkeypatch):
+    """Review: the mute used to be read when the switch was asked for, so a
+    toggle before the worker ran went to the old session and was lost."""
+    pending = []
+
+    class _Deferred:
+        def __init__(self, target=None, args=(), daemon=None, **_kw):
+            self._target, self._args = target, args
+
+        def start(self):
+            pending.append(self)
+
+    monkeypatch.setattr(main.threading, "Thread", _Deferred)
+    window = _CallWindow()
+    old = window._call_audio_session
+
+    window._restart_active_voice_call_audio()
+    old.set_microphone_muted(True)  # toggled before the worker gets to run
+    pending[0]._target(*pending[0]._args)
+
+    assert window._call_audio_session.muted_when_started is True

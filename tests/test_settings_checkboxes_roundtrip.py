@@ -33,6 +33,14 @@ from ui.dialogs.settings_dialog import SettingsDialog
 # Creates a REAL top-level wx dialog - see the wxgui marker in pytest.ini.
 pytestmark = pytest.mark.wxgui
 
+
+@pytest.fixture(autouse=True)
+def _no_stereo_warning_dialog(monkeypatch):
+    """Turning stereo voice messages on asks first (a real modal dialog), and
+    these tests flip boxes and Apply: it must never be able to block CI."""
+    monkeypatch.setattr("ui.dialogs.settings_dialog.ask_stereo_voice",
+                        lambda parent, i18n: (True, False))
+
 CHECKBOXES = checkbox_keys()
 IDS = [attr for attr, _, _ in CHECKBOXES]
 

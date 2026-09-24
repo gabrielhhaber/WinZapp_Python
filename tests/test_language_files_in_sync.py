@@ -22,6 +22,7 @@ by.
 
 import json
 import re
+from pathlib import Path
 
 import pytest
 
@@ -66,6 +67,23 @@ def test_the_default_locale_is_registered():
 @pytest.mark.parametrize("locale", LOCALES)
 def test_every_registered_locale_has_a_language_file(locale):
     assert _load(locale), f"{locale}.json is missing or empty"
+
+
+def test_every_language_file_is_registered():
+    # The converse of the test above. Every check in this module iterates the
+    # map, so a `<code>.json` dropped into languages/ without its map entry is
+    # invisible to all of them: it can miss any number of keys and the suite
+    # stays green — and the language picker never offers it either, so the
+    # translation ships as dead weight. PR #276 (Romanian) arrived exactly
+    # like that.
+    languages_dir = Path(resource_path("languages"))
+    on_disk = {p.stem for p in languages_dir.glob("*.json")} - {"language_map"}
+    unregistered = sorted(on_disk - set(_language_map()))
+    assert not unregistered, (
+        f"language file(s) {unregistered} exist in {languages_dir} but are not "
+        f"registered in language_map.json — add a {{code: display name}} entry "
+        f"for each, or no test checks them and the app never offers them."
+    )
 
 
 @pytest.mark.parametrize("locale", LOCALES)

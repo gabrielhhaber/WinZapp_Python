@@ -197,6 +197,9 @@ class _Panel:
     _confirm_local_only_delete = ConversationsPanel._confirm_local_only_delete
     _delete_target_jid = ConversationsPanel._delete_target_jid
     _on_mass_copy_messages = ConversationsPanel._on_mass_copy_messages
+    _message_text_with_names = ConversationsPanel._message_text_with_names
+    _message_mentioned_jids = staticmethod(ConversationsPanel._message_mentioned_jids)
+    _resolve_mentions_in_text = ConversationsPanel._resolve_mentions_in_text
     _on_mass_star_messages = ConversationsPanel._on_mass_star_messages
     _on_mass_pin_messages = ConversationsPanel._on_mass_pin_messages
     _on_mass_pin_failed = ConversationsPanel._on_mass_pin_failed

@@ -54,6 +54,16 @@ from core.audio_devices import (
 )
 from core.bulk_read_state import run_bulk_read_state
 from core.call_matching import call_event_matches_active
+from core.conversation_resync import deletions_to_apply, stale_ids_in_fetched_window
+from core.voice_stereo import opus_encode_args
+from core.quote_recovery import (
+    RECOVERED_FROM_QUOTE,
+    UNDECRYPTED_PLACEHOLDER_TYPES,
+    awaits_real_copy,
+    carry_over_recovered_quotes,
+    fill_placeholders_from_replies,
+    reply_context,
+)
 from core.message_edit import (
     apply_caption_edit,
     carry_over_edited_marker,
@@ -73,6 +83,7 @@ from core.remote_reconcile import (
     observe_deletions as _observe_deletions,
     older_than_window as _older_than_window,
     oldest_anchor as _oldest_anchor,
+    MAX_MIRRORED_DELETIONS,
     split_deletions as _split_deletions,
     add_rollback_gap as _add_rollback_gap,
     normalize_rollback_gaps as _normalize_rollback_gaps,
@@ -977,8 +988,19 @@ def _discount_non_countable_unread(records: list, unread_count: int) -> int:
     Both halves of the predicate matter and neither can be dropped: a chat
     whose tail is [groupNotification, our own reply] has no unread message at
     all, and either rule alone still reports one.
+
+    Reactions are left out of the tail before it is cut, not discounted in it.
+    WinZapp stores each one as a record of its own (`_rxn_...`) to decorate the
+    message it points at, but WhatsApp never counted it as unread -- so it
+    cannot take the place of a message that was. Measured 2026-09-23: a group
+    with 1 unread text received four reactions; the tail of 1 was a reaction,
+    was discounted, and the badge went to 0 with the text still unread.
     """
     if unread_count <= 0 or not records:
+        return unread_count
+    records = [m for m in records
+               if not (isinstance(m, dict) and m.get("messageType") == "reactionMessage")]
+    if not records:
         return unread_count
     tail = records[-unread_count:] if unread_count <= len(records) else records
     discount = sum(
@@ -1265,6 +1287,49 @@ def describe_history_sync_health(status) -> str:
     )
 
 
+#: Set on a chat whose unreadCount is the server's raw number, stored while the
+#: chat held no messages to discount it against. Absent means the stored count
+#: has already been through _discount_non_countable_unread() (or was counted
+#: locally, which only ever counts countable messages).
+_UNREAD_UNDISCOUNTED = "_unread_undiscounted"
+
+
+def note_unread_discount_state(chat: dict, discounted: bool) -> None:
+    """Record whether the unreadCount just stored on *chat* was discounted.
+
+    Whoever stores a server count calls this. *discounted* is False when the
+    chat held no records for _discount_non_countable_unread() to look at: the
+    count is raw and apply_history_sync_unread_correction() owes it exactly one
+    discount later. True makes it final.
+    """
+    if discounted:
+        chat.pop(_UNREAD_UNDISCOUNTED, None)
+    else:
+        chat[_UNREAD_UNDISCOUNTED] = True
+
+
+def records_cover_snapshot(records, snapshot_t) -> bool:
+    """True when *records* reach the chat-list snapshot's last activity.
+
+    The list-chats merge discounts a server count against the chat's stored
+    tail, and that is only the right tail when it holds what the server
+    counted. On a warm start the records are what the database had at launch:
+    a message that arrived while WinZapp was closed (an own voice note sent
+    from the phone, a group promote) is in the server's count and not in the
+    tail, so discounting there subtracts the wrong messages and, marked final,
+    skipped the post-fetch correction that would have found the right ones.
+    A tail is current when its newest record is at least as new as the
+    snapshot's `t`; a snapshot without a usable `t` cannot say otherwise.
+    """
+    if not records:
+        return False
+    snapshot = _timestamp_seconds(snapshot_t or 0)
+    if not snapshot:
+        return True
+    newest = max((message_timestamp_seconds(r) for r in records), default=0)
+    return newest >= snapshot
+
+
 def apply_history_sync_unread_correction(remote_jid: str, chat: dict) -> bool:
     """Re-discount a chat's badge now that its messages have been fetched.
 
@@ -1287,12 +1352,28 @@ def apply_history_sync_unread_correction(remote_jid: str, chat: dict) -> bool:
     on_new_message() would never have counted itself, so a genuinely unread
     conversation keeps its badge untouched.
 
+    It runs only on a count marked raw (see note_unread_discount_state()), and
+    consumes the mark. The discount is not idempotent: it inspects the last N
+    records, and on an already-discounted N the shorter window still holds the
+    same system events, so it subtracts them again. This used to run on every
+    sync of every chat, on top of the discount the list-chats merge and the
+    live chats-update had already applied. Diagnosed from a real log.log, a
+    group the user watched fall from 68 to 62 with nothing read:
+
+        chats-update in: <group> unread=72 previous=71
+        [unread] <group>: 61 -> 67 (previous=71, open=False, read_ack=None).
+        [unread] <group>: 67 -> 62 after history sync (...)
+
+    once a minute, the badge see-sawing between the two numbers.
+
     Returns True when the badge changed.
     """
     records = (chat.get("messages", {})
                .get("messages", {})
                .get("records", []))
     if not records:
+        return False
+    if not chat.pop(_UNREAD_UNDISCOUNTED, False):
         return False
     before = int(chat.get("unreadCount") or 0)
     corrected = _discount_non_countable_unread(records, before)
@@ -3038,6 +3119,7 @@ class MainWindow(wx.Frame):
         self._ID_DISCONNECT    = wx.NewIdRef()
         self._ID_EXIT          = wx.NewIdRef()
         self._ID_RESYNC_ALL    = wx.NewIdRef()
+        self._ID_RESYNC_CONVERSATION = wx.NewIdRef()
         self._ID_SYNC_MEDIA    = wx.NewIdRef()
         self._ID_OFFLINE_MENU  = wx.NewIdRef()
         self._ID_SHORTCUTS     = wx.NewIdRef()
@@ -3082,6 +3164,10 @@ class MainWindow(wx.Frame):
         sync_menu.Append(
             self._ID_RESYNC_ALL,
             f"{self.i18n.t('menu_resync_all')}\tF5",
+        )
+        sync_menu.Append(
+            self._ID_RESYNC_CONVERSATION,
+            f"{self.i18n.t('menu_resync_conversation')}\tShift+F5",
         )
         sync_menu.Append(
             self._ID_SYNC_MEDIA,
@@ -3196,6 +3282,8 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_menu_disconnect, id=self._ID_DISCONNECT)
         self.Bind(wx.EVT_MENU, lambda e: self.quit_all_accounts(), id=self._ID_EXIT)
         self.Bind(wx.EVT_MENU, self._on_menu_resync_all, id=self._ID_RESYNC_ALL)
+        self.Bind(wx.EVT_MENU, self._on_menu_resync_conversation,
+                  id=self._ID_RESYNC_CONVERSATION)
         self.Bind(wx.EVT_MENU, self._on_menu_sync_media, id=self._ID_SYNC_MEDIA)
         self.Bind(wx.EVT_MENU, self._on_menu_toggle_offline, id=self._ID_OFFLINE_MENU)
         self.Bind(wx.EVT_MENU, self.on_f1,             id=self._ID_SHORTCUTS)
@@ -3699,6 +3787,9 @@ class MainWindow(wx.Frame):
         mb.GetMenu(1).FindItemById(self._ID_RESYNC_ALL).SetItemLabel(
             f"{self.i18n.t('menu_resync_all')}\tF5"
         )
+        mb.GetMenu(1).FindItemById(self._ID_RESYNC_CONVERSATION).SetItemLabel(
+            f"{self.i18n.t('menu_resync_conversation')}\tShift+F5"
+        )
         mb.GetMenu(1).FindItemById(self._ID_SYNC_MEDIA).SetItemLabel(
             f"{self.i18n.t('menu_sync_media')}\tCtrl+Shift+Alt+B"
         )
@@ -3946,7 +4037,7 @@ class MainWindow(wx.Frame):
         vk  = hk.get("vk", 0)
         mod = hk.get("mod", 0)
         if vk:
-            self._hotkey_manager = _HotkeyManager(vk, mod, self.restore_window)
+            self._hotkey_manager = _HotkeyManager(vk, mod, self.toggle_window_from_hotkey)
 
     def set_global_hotkey(self, vk: int, mod: int):
         """Save and apply a new global hotkey (vk=0 removes it)."""
@@ -5201,6 +5292,11 @@ class MainWindow(wx.Frame):
             # Avoid corrupting state with two syncs writing to self.chats/db
             # at the same time.
             return
+        if getattr(self, "_resyncing_conversations", None):
+            # A Shift+F5 still running would write its chat back after the
+            # wipe; Shift+F5 refuses while F5 runs for the same reason.
+            self.output(self.i18n.t("resync_conversation_busy"), interrupt=True)
+            return
         # Ensure we are connected before wiping local data
         self.check_wa_connection_http()
         if not getattr(self, "_wa_connected", False):
@@ -5213,8 +5309,137 @@ class MainWindow(wx.Frame):
             )
             return
 
+        if not self._confirm_resync("confirm_resync_all", "resync_all_confirm",
+                                    "menu_resync_all"):
+            return
+
         self.output(self.i18n.t("resyncing_all_announcement"), interrupt=True)
         threading.Thread(target=self._resync_all_worker, daemon=True).start()
+
+    def _confirm_resync(self, setting_key: str, message_key: str, title_key: str) -> bool:
+        """Ask before F5 / Shift+F5, unless the user turned that off.
+
+        Same contract as the mark-all-read confirmation: the default button is
+        No, so a stray keystroke cannot start a resync; "don't show again"
+        only counts together with Yes; and user_interface.<setting_key>
+        (Settings > Interface) is both what it clears and the way back.
+        """
+        if not self.settings.get("user_interface", {}).get(setting_key, True):
+            return True
+        t = self.i18n.t
+        confirmed, dont_ask_again = confirm_with_checkbox(
+            self,
+            t(message_key),
+            t(title_key).replace("&", ""),
+            t("mark_all_read_dont_show_again"),
+            yes_label=t("yes_button"),
+            no_label=t("no_button"),
+            checked=False,
+            default_yes=False,
+        )
+        if not confirmed:
+            return False
+        if dont_ask_again:
+            self.settings.setdefault("user_interface", {})[setting_key] = False
+            self.save_settings()
+        return True
+
+    def _on_menu_resync_conversation(self, event=None):
+        """Sincronização menu / Shift+F5: F5 for the open conversation only.
+
+        See core/conversation_resync.py for why this fetches first and then
+        removes only what the server contradicts, instead of wiping the
+        conversation the way F5 wipes everything.
+        """
+        cp = getattr(self, "conversations_panel", None)
+        conversation = getattr(cp, "conversation", None) if cp is not None else None
+        if not conversation:
+            self.output(self.i18n.t("resync_conversation_none_open"), interrupt=True)
+            return
+        remote_jid = self._normalize_jid(conversation.get("remoteJid", ""))
+        resyncing = getattr(self, "_resyncing_conversations", None)
+        if resyncing is None:
+            resyncing = self._resyncing_conversations = set()
+        if getattr(self, "_initial_sync_running", False) or remote_jid in resyncing:
+            self.output(self.i18n.t("resync_conversation_busy"), interrupt=True)
+            return
+        self.check_wa_connection_http()
+        if not getattr(self, "_wa_connected", False):
+            self.error_sound.play()
+            wx.MessageBox(
+                self.i18n.t("resync_failed_offline"),
+                self.i18n.t("app_name"),
+                wx.OK | wx.ICON_WARNING,
+                self
+            )
+            return
+        if not self._confirm_resync("confirm_resync_conversation",
+                                    "resync_conversation_confirm",
+                                    "menu_resync_conversation"):
+            return
+        resyncing.add(remote_jid)
+        self.output(self.i18n.t("resyncing_conversation_announcement"), interrupt=True)
+        threading.Thread(target=self._resync_conversation_worker, args=(remote_jid,),
+                         daemon=True, name="resync-conversation").start()
+
+    def _resync_conversation_worker(self, remote_jid: str):
+        """Background worker for _on_menu_resync_conversation()."""
+        try:
+            chat = self.chats.get(remote_jid)
+            fetched_ids = set()
+            ok = bool(chat) and bool(self.sync_chat_messages(
+                chat, sync_mode="full", fetched_ids_out=fetched_ids))
+            if not ok or not fetched_ids:
+                logging.info("[resync-conversation] %s: nothing fetched (ok=%s)",
+                             remote_jid, ok)
+                wx.CallAfter(self.output, self.i18n.t("resync_conversation_failed"), True)
+                return
+            chat = self.chats.get(remote_jid) or chat
+            records = _chat_message_records(chat)
+            if getattr(self, "_remote_deletions_untrusted", False):
+                # A profile restore rolled WhatsApp Web's store back behind our
+                # database: its silence about a message proves nothing.
+                stale = []
+            else:
+                # Same rules as the open-chat deletion mirror, including the
+                # periods a profile restore left a hole in (core/conversation_resync.py).
+                judged = _outside_rollback_gaps(records, self._rollback_gaps())
+                stale = stale_ids_in_fetched_window(judged, fetched_ids, is_countable_message)
+                apparent = len(stale)
+                stale = deletions_to_apply(stale)
+                if apparent and not stale:
+                    logging.warning(
+                        "[resync-conversation] %s: %d apparent deletions exceed the "
+                        "cap of %d; none removed", remote_jid, apparent,
+                        MAX_MIRRORED_DELETIONS)
+            if stale:
+                stale_set = set(stale)
+                cp = getattr(self, "conversations_panel", None)
+                open_jid = (self._normalize_jid(cp.conversation.get("remoteJid", ""))
+                            if cp is not None and cp.conversation is not None else "")
+                if open_jid == remote_jid:
+                    # Through the panel, like a deletion made on the phone: it
+                    # also stops a removed audio and drops removed ids from the
+                    # selection, which a bare record filter would leave behind.
+                    wx.CallAfter(self._mirror_remote_deletions, remote_jid, stale_set)
+                else:
+                    records[:] = [r for r in records
+                                  if ((r.get("key") or {}).get("id") or "") not in stale_set]
+                    inner = (chat.get("messages") or {}).get("messages") or {}
+                    if isinstance(inner, dict) and "total" in inner:
+                        inner["total"] = len(records)
+                    for message_id in stale:
+                        self.db.delete_message(remote_jid, message_id)
+            logging.info("[resync-conversation] %s: %d fetched, %d stale removed",
+                         remote_jid, len(fetched_ids), len(stale))
+            self._refresh_open_conversation_after_sync(remote_jid, chat)
+            self._schedule_set_chats()
+            wx.CallAfter(self.output, self.i18n.t("resync_conversation_done"), True)
+        except Exception:
+            logging.exception("[resync-conversation] %s: failed", remote_jid)
+            wx.CallAfter(self.output, self.i18n.t("resync_conversation_failed"), True)
+        finally:
+            self._resyncing_conversations.discard(remote_jid)
 
     def _teardown_conversation_ui(self):
         """Empty the conversation panels before the data under them is wiped.
@@ -5677,6 +5902,32 @@ class MainWindow(wx.Frame):
             self.tray_icon.update_tooltip()
         except Exception:
             pass
+
+    @staticmethod
+    def _hotkey_hides_window(has_tray: bool, window_hwnd, foreground_hwnd) -> bool:
+        """Whether the global hotkey should send the window to the tray.
+
+        Only when this very window is the one in front (issue #258): a window
+        that is hidden, minimised or merely behind another program is brought
+        forward, as the hotkey always did. A WinZapp dialog in front does not
+        count -- hiding the frame under it would strand the dialog. Without a
+        tray icon nothing could bring the window back but the hotkey itself,
+        so it is never hidden then (hide_to_tray() refuses for that reason).
+        """
+        return bool(has_tray and window_hwnd and foreground_hwnd == window_hwnd)
+
+    def toggle_window_from_hotkey(self):
+        """Global hotkey: open WinZapp, or hide it to the tray when it is in front."""
+        try:
+            foreground = ctypes.windll.user32.GetForegroundWindow()
+        except Exception:
+            foreground = None
+        if MainWindow._hotkey_hides_window(
+                getattr(self, "tray_icon", None) is not None, self.GetHandle(), foreground):
+            logging.info("[hotkey] window in front — hiding to the tray")
+            self.hide_to_tray()
+            return
+        self.restore_window()
 
     def restore_window(self):
         """Bring the WinZapp window to the foreground.
@@ -6352,7 +6603,8 @@ class MainWindow(wx.Frame):
             logging.exception("[call_audio] failed to stop ringing monitor")
 
     def _start_voice_call_audio(self, identity: str, details: dict | None = None,
-                                *, keep_active_call: bool = False):
+                                *, keep_active_call: bool = False,
+                                microphone_muted: bool = False):
         """Open Python's call audio and record the call it belongs to.
 
         ``keep_active_call`` is for a device switch inside the same call: the
@@ -6360,6 +6612,11 @@ class MainWindow(wx.Frame):
         opened concurrently compares that object by identity to tell "same
         call" from "another call", so replacing it here would make it discard
         a perfectly good capture.
+
+        ``microphone_muted`` carries the mute of the session a device switch
+        replaced. It is applied before the microphone opens: a fresh session
+        starts unmuted, so a user who had muted and then changed device was
+        heard again with nothing spoken to say so.
         """
         logging.info("[call_audio] starting session identity=%s", identity)
         if getattr(self, "_call_audio_session", None) is not None:
@@ -6372,6 +6629,8 @@ class MainWindow(wx.Frame):
             ws = getattr(self, "ws", None)
             session_name = str(getattr(ws, "instance_name", "") or self.token).split(":", 1)[0]
 
+        if microphone_muted:
+            audio.set_microphone_muted(True)
         try:
             audio.start()
         except Exception:
@@ -6417,12 +6676,15 @@ class MainWindow(wx.Frame):
         """Stop Python's call audio; by default the call's whole local state.
 
         ``keep_call`` stops the audio streams ONLY -- the camera, the active
-        call record and the announced state are left alone. It exists for
-        _restart_active_voice_call_audio(): switching the microphone in the
-        middle of a video call used to go through the end-of-call path, which
-        stopped the camera, and the capture reopened afterwards was discarded
-        as belonging to "another call", so the other person saw black for the
-        rest of the call with nothing spoken.
+        call record, the announced state and the page bridge are left alone.
+        It exists for _restart_active_voice_call_audio(): switching the
+        microphone in the middle of a video call used to go through the
+        end-of-call path, which stopped the camera, and the capture reopened
+        afterwards was discarded as belonging to "another call", so the other
+        person saw black for the rest of the call with nothing spoken. The
+        bridge is not told either: ``call:audio:stop`` disables it and nothing
+        in a device switch enables it again, so the other person stopped
+        hearing the user (see CallAudioSession.stop).
         """
         session = getattr(self, "_call_audio_session", None)
         if session is None:
@@ -6456,13 +6718,14 @@ class MainWindow(wx.Frame):
             self._voice_call_last_announced_state = ""
         if session is not None:
             try:
-                session.stop()
+                session.stop(notify_bridge=not keep_call)
             except Exception:
                 logging.exception("[call] failed to stop Python call audio")
-        ws = getattr(self, "ws", None)
-        stop = getattr(ws, "stop_call_audio_stream", None)
-        if stop is not None:
-            stop()
+        if not keep_call:
+            ws = getattr(self, "ws", None)
+            stop = getattr(ws, "stop_call_audio_stream", None)
+            if stop is not None:
+                stop()
         if hasattr(self, "voice_call_window"):
             wx.CallAfter(self._sync_voice_call_bar)
 
@@ -6480,6 +6743,10 @@ class MainWindow(wx.Frame):
         def _worker():
             with self._call_action_lock:
                 try:
+                    # Read at the moment the old session stops, not when the
+                    # switch was asked for: a mute toggled in between belongs
+                    # to the session being replaced and must carry over too.
+                    muted = bool(getattr(self._call_audio_session, "microphone_muted", False))
                     self._stop_voice_call_audio(keep_call=True)
                     last_error = None
                     for attempt in range(3):
@@ -6492,6 +6759,7 @@ class MainWindow(wx.Frame):
                                 str(active.get("identity") or active.get("call_id") or "call"),
                                 active,
                                 keep_active_call=True,
+                                microphone_muted=muted,
                             ):
                                 logging.info("[call_audio] active call devices switched")
                             last_error = None
@@ -7715,13 +7983,171 @@ class MainWindow(wx.Frame):
 
     #: WhatsApp Web's "arrived, not decrypted yet" placeholder. It is followed
     #: by the real message under the same key.id.
-    _UNDECRYPTED_PLACEHOLDER_TYPES = frozenset({"ciphertext"})
+    _UNDECRYPTED_PLACEHOLDER_TYPES = UNDECRYPTED_PLACEHOLDER_TYPES
 
     @staticmethod
     def _is_undecrypted_placeholder(msg: dict) -> bool:
         """Whether this event is a placeholder rather than a message."""
         return (((msg or {}).get("messageType") or "")
                 in MainWindow._UNDECRYPTED_PLACEHOLDER_TYPES)
+
+    @staticmethod
+    def _resolved_placeholder_is_fresh(records: list, index: int, incoming: dict,
+                                       connected_at: float) -> bool:
+        """Whether the decrypted copy of a STORED placeholder is a new arrival.
+
+        The live funnel never stores a placeholder, but a get-messages sync
+        does: it stores whatever WhatsApp Web's store holds, and a message that
+        device could not decrypt yet ("Aguardando mensagem") is held as a
+        `ciphertext`. When the real copy arrives later it is either
+        - still the newest message, and recent: a sync raced the 2-4 s the
+          decryption normally takes, and the copy must get the full new-message
+          path (badge, sound, announcement), or
+        - an older one, decrypted minutes or hours later (the sender's phone
+          answering WhatsApp's retry): it is filled in where it already sits,
+          silently, since appending it would put it after newer messages.
+        Same 60 s cutoff the notification path uses.
+        """
+        if index != len(records) - 1:
+            return False
+        try:
+            return int(incoming.get("messageTimestamp") or 0) >= connected_at - 60
+        except (TypeError, ValueError):
+            return False
+
+    def _recover_placeholders_from_replies(self, remote_jid: str, records: list,
+                                           replies=None) -> int:
+        """Fill placeholders in *records* from the quotes of *replies*; persist them.
+
+        *replies* defaults to *records* itself. The database is written per
+        message rather than through the debounced chat save, so the text
+        survives closing and reopening the conversation. Never raises: it runs
+        inside the live funnel and at startup.
+        """
+        try:
+            filled = fill_placeholders_from_replies(
+                records, self._chat_jids_equivalent, replies)
+        except Exception:
+            logging.exception("[quote-recovery] %s: failed", remote_jid)
+            return 0
+        if not filled:
+            return 0
+        logging.info("[quote-recovery] %s: %d message(s) recovered from reply quotes",
+                     remote_jid, len(filled))
+
+        def _bg_persist():
+            for record in filled:
+                try:
+                    self.db.insert_message(remote_jid, record)
+                except Exception as e:
+                    logging.error(f"[quote-recovery] Failed to persist message: {e}")
+        self._run_quote_recovery_write(_bg_persist)
+        if hasattr(self, "conversations_panel"):
+            wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)
+        return len(filled)
+
+    def _recover_quoted_placeholder(self, remote_jid: str, records: list, reply: dict) -> None:
+        """Let a live reply fill the placeholder it quotes, in memory or on disk.
+
+        Only the newest messages of a chat are resident, so a reply to an older
+        "Aguardando mensagem" finds it through the database, by id, off the
+        main thread; reopening the conversation then reads the filled row.
+        """
+        ctx = reply_context(reply)
+        if ctx is None:
+            return
+        quoted_id = ctx.get("stanzaId")
+        if any((r.get("key") or {}).get("id") == quoted_id for r in records):
+            self._recover_placeholders_from_replies(remote_jid, records, [reply])
+            return
+
+        def _from_database():
+            try:
+                stored = self.db.get_message_by_id(remote_jid, quoted_id)
+                if not stored:
+                    return
+                if fill_placeholders_from_replies(
+                        [stored], self._chat_jids_equivalent, [reply]):
+                    # The decrypted copy may have landed since the read above
+                    # (the executor runs several writes at once): never write
+                    # a reply's quote over the real message.
+                    current = self.db.get_message_by_id(remote_jid, quoted_id)
+                    if current and not awaits_real_copy(current):
+                        return
+                    self.db.insert_message(remote_jid, stored)
+                    logging.info("[quote-recovery] %s: stored message %s recovered "
+                                 "from a reply quote", remote_jid, str(quoted_id)[:22])
+            except Exception:
+                logging.exception("[quote-recovery] %s: database lookup failed", remote_jid)
+        self._run_quote_recovery_write(_from_database)
+
+    def _run_quote_recovery_write(self, work) -> None:
+        """Run a quote-recovery database write off the main thread when possible.
+
+        The startup pass runs from prepare_sync(), which __init__ calls BEFORE
+        it creates _msg_bg_executor: submitting there raised AttributeError
+        out of __init__ and WinZapp could not start at all (measured
+        2026-09-23, on the first launch with pairs to recover). The database is
+        already open at that point, so without the executor the write simply
+        runs now. Never raises -- neither caller may be taken down by it.
+        """
+        try:
+            executor = getattr(self, "_msg_bg_executor", None)
+            if executor is None:
+                work()
+            else:
+                executor.submit(work)
+        except Exception:
+            logging.exception("[quote-recovery] could not run the database write")
+
+    @staticmethod
+    def _adopt_decrypted_copy(existing: dict, incoming: dict) -> dict:
+        """Turn the stored placeholder record itself into its decrypted copy.
+
+        In place, and returned: the open conversation's rows are these same
+        dict objects, so replacing the record with a new dict left the list
+        rendering the old one -- a review caught the row still reading
+        "Aguardando mensagem" after a rebuild. Replaced, not merged: nothing the
+        placeholder carried outlives it except local-only (`_`) fields, and a
+        text recovered from a reply's quote is superseded.
+        """
+        for field in [f for f in existing if not str(f).startswith("_")]:
+            if field not in incoming:
+                del existing[field]
+        for field, value in incoming.items():
+            existing[field] = value
+        existing.pop(RECOVERED_FROM_QUOTE, None)
+        return existing
+
+    def _fill_stored_placeholder(self, existing: dict, incoming: dict, remote_jid: str) -> None:
+        """Replace a stored placeholder with its decrypted copy, in place.
+
+        _apply_possible_edit() cannot do it: a placeholder has no text, so it
+        is never "an edit" there, and the decrypted copy was discarded as a
+        duplicate. The row stayed hidden for good (a ciphertext is not a
+        displayable type) and a reply quoting it pointed at nothing — measured
+        2026-09-23: 165 such rows on one install, 20 of them from that morning.
+        Local-only fields (`_`-prefixed) on the record are kept.
+        """
+        prune_message_record(incoming)
+        MainWindow._adopt_decrypted_copy(existing, incoming)
+        logging.info("[on_new_message] %s: decrypted copy of stored placeholder %s "
+                     "filled in (%s).", remote_jid,
+                     ((existing.get("key") or {}).get("id") or "")[:22],
+                     existing.get("messageType"))
+
+        def _bg_persist():
+            try:
+                self.db.insert_message(remote_jid, existing)
+            except Exception as e:
+                logging.error(f"[_fill_stored_placeholder] Failed to persist message: {e}")
+        self._msg_bg_executor.submit(_bg_persist)
+        # The row changes from "Aguardando mensagem" to the real message;
+        # refresh_messages_if_changed() repaints or rebuilds while keeping focus.
+        if hasattr(self, "conversations_panel"):
+            wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)
+        self._schedule_save(dirty_jid=remote_jid)
+        self._schedule_set_chats()
 
     def _drop_protocol_edit(self, remote_jid: str, msg: dict) -> bool:
         """True when *msg* is an edit protocol message, which is then dropped.
@@ -8388,10 +8814,32 @@ class MainWindow(wx.Frame):
                 return
 
         if msg_id:
-            for existing in records:
+            for index, existing in enumerate(records):
                 if existing.get("key", {}).get("id") == msg_id:
-                    self._apply_possible_edit(existing, msg, remote_jid)
-                    return  # already stored (edited in place if content changed)
+                    # A text recovered from a reply's quote is the replier's
+                    # claim, so the real copy replaces it like a placeholder
+                    # rather than being compared as an edit (core/quote_recovery.py).
+                    if not awaits_real_copy(existing):
+                        self._apply_possible_edit(existing, msg, remote_jid)
+                        return  # already stored (edited in place if content changed)
+                    # A sync stored WhatsApp Web's placeholder for this id and
+                    # this is its decrypted copy (see _resolved_placeholder_is_fresh).
+                    ws = getattr(self, "ws", None)
+                    connected_at = getattr(ws, "_connect_time", None) or time.time()
+                    if not MainWindow._resolved_placeholder_is_fresh(
+                            records, index, msg, connected_at):
+                        self._fill_stored_placeholder(existing, msg, remote_jid)
+                        return
+                    # Fresh: the copy continues as the new message it is (badge,
+                    # sound, announcement), but AS the placeholder's own record:
+                    # the open list's row is that same object, and its dedup
+                    # refuses a second record under this id. Taken out here and
+                    # appended again below; its DB insert replaces the row.
+                    msg = MainWindow._adopt_decrypted_copy(existing, msg)
+                    del records[index]
+                    if hasattr(self, "conversations_panel"):
+                        wx.CallAfter(self.conversations_panel.refresh_messages_if_changed)
+                    break
 
 
 
@@ -8425,6 +8873,10 @@ class MainWindow(wx.Frame):
             # queries again, which is exactly how a first message from a
             # contact could vanish on opening the conversation.
             self._pending_lid_inserts[remote_jid] = _insert_fut
+
+        # A reply carries the text it quotes: an "Aguardando mensagem" it
+        # answers can show that text now (core/quote_recovery.py).
+        self._recover_quoted_placeholder(remote_jid, records, msg)
 
         # ── Update unread count (only for messages we received) ───────────────
         # System events never count as unread — see is_countable_message().
@@ -8884,7 +9336,13 @@ class MainWindow(wx.Frame):
             records = inner_wrapper["records"] = []
 
         # Check if already present in memory records
-        if any(r.get("key", {}).get("id") == msg_id for r in records):
+        existing = next((r for r in records if r.get("key", {}).get("id") == msg_id), None)
+        if existing is not None:
+            # A stored placeholder (or a text recovered from a quote) is
+            # replaced by its decrypted copy, as on_new_message() does; history
+            # never announces, so it is always filled in silently.
+            if awaits_real_copy(existing) and not self._is_undecrypted_placeholder(msg):
+                self._fill_stored_placeholder(existing, msg, remote_jid)
             return
 
         # Ignore stale re-deliveries of cleared messages
@@ -8934,6 +9392,14 @@ class MainWindow(wx.Frame):
             except Exception as e:
                 logging.error(f"[on_historical_message] Failed to insert message to DB: {e}")
         self._msg_bg_executor.submit(_bg_insert_msg)
+
+        # History arrives in any order: a reply may quote an "Aguardando
+        # mensagem" already stored, or a placeholder may land after a reply
+        # that quotes it (core/quote_recovery.py).
+        if MainWindow._is_undecrypted_placeholder(msg):
+            self._recover_placeholders_from_replies(remote_jid, records)
+        else:
+            self._recover_quoted_placeholder(remote_jid, records, msg)
 
         # Debounced UI update
         self._schedule_save(dirty_jid=remote_jid)
@@ -14235,6 +14701,19 @@ class MainWindow(wx.Frame):
         if prune_chats_messages(self.chats):
             logging.info("[startup] pruned bloated quoted-message data")
             self._schedule_save()
+        # Replies already on disk that quote an "Aguardando mensagem" stored
+        # before quote recovery existed.
+        # Guarded as a whole: this runs inside __init__, where anything that
+        # escapes stops WinZapp from starting at all -- this pass already did
+        # that once. A stored chat can hold "messages": None, which the
+        # chained .get() read raised on.
+        try:
+            for jid, chat in list(self.chats.items()):
+                records = _chat_message_records(chat)
+                if records:
+                    self._recover_placeholders_from_replies(jid, records)
+        except Exception:
+            logging.exception("[quote-recovery] startup pass failed")
         self.scan_all_cached_messages_for_mentions()
         # NOTE: the "connected" sound is deliberately NOT played here. Reaching
         # this point only proves the *local* WPPConnect API answered — with no
@@ -18904,6 +19383,12 @@ class MainWindow(wx.Frame):
                                 chat.get("t", 0), self.chats[jid].get("t", 0),
                                 chat["unreadCount"],
                             )
+                        # list-chats carries no messages, so this count is raw.
+                        note_unread_discount_state(
+                            chat,
+                            bool(((chat.get("messages") or {}).get("messages") or {})
+                                 .get("records")),
+                        )
                         chats[jid] = chat
                     else:
                         local_activity_t = int(chats[jid].get("t", 0) or 0)
@@ -18963,11 +19448,19 @@ class MainWindow(wx.Frame):
                                 # "1 unread" for a chat whose only new record is a
                                 # group promote doesn't mint a phantom badge here
                                 # either. Same correction as on_chat_unread_update().
-                                server_val = _discount_non_countable_unread(
+                                _discount_records = (
                                     (chats[jid].get("messages") or {})
                                     .get("messages", {})
-                                    .get("records", []),
-                                    server_val,
+                                    .get("records", [])
+                                )
+                                # A tail older than the snapshot is not what the
+                                # server counted: leave the count raw and let the
+                                # post-fetch correction discount it, once.
+                                if not records_cover_snapshot(_discount_records,
+                                                              chat.get("t", 0)):
+                                    _discount_records = []
+                                server_val = _discount_non_countable_unread(
+                                    _discount_records, server_val,
                                 )
                                 # An open conversation is reconciled, not zeroed.
                                 # This used to be a bare `v = 0` under a comment
@@ -19105,6 +19598,7 @@ class MainWindow(wx.Frame):
                                 # above resolved it — the notification code can
                                 # trust the number again.
                                 chats[jid].pop("_unread_count_unsynced", None)
+                                note_unread_discount_state(chats[jid], bool(_discount_records))
                             chats[jid][k] = v
                         # The incoming chat dict may carry the group's real
                         # name only under groupMetadata.subject (see
@@ -24307,7 +24801,12 @@ class MainWindow(wx.Frame):
         payload = body.get("response") if isinstance(body, dict) else None
         return payload if isinstance(payload, dict) else None
 
-    def sync_chat_messages(self, chat, expected_run_id=None, sync_mode="full"):
+    def sync_chat_messages(self, chat, expected_run_id=None, sync_mode="full",
+                           fetched_ids_out=None):
+        # fetched_ids_out: an optional set that receives the ids get-messages
+        # actually returned for this chat, before they are merged with local
+        # records -- the only way a caller can tell the server's answer apart
+        # from what was already stored (Shift+F5, core/conversation_resync.py).
         # Deliberately NOT gated on an active voice call. sync_remote_chats()
         # counts only a False return as a failure, so bailing out here reported
         # every skipped chat as a *successful* fetch: message_sync_ok stayed
@@ -24751,6 +25250,11 @@ class MainWindow(wx.Frame):
                 matching_messages.append(message)
             all_messages = matching_messages
 
+        if fetched_ids_out is not None and api_ok:
+            fetched_ids_out.update(
+                (m.get("key") or {}).get("id") for m in all_messages
+                if (m.get("key") or {}).get("id"))
+
         # After fetching, update chat messages
         for msg in all_messages:
             self._extract_lid_mapping(msg)
@@ -24791,6 +25295,12 @@ class MainWindow(wx.Frame):
             if carried_edits:
                 logging.info("[sync_chat_messages] %s: kept %d edited marker(s)",
                              remote_jid, carried_edits)
+            # And for text recovered from a reply's quote, which the server
+            # copy -- still a ciphertext -- would otherwise wipe.
+            carried_quotes = carry_over_recovered_quotes(all_messages, local_records)
+            if carried_quotes:
+                logging.info("[sync_chat_messages] %s: kept %d recovered quote(s)",
+                             remote_jid, carried_quotes)
             api_ids = {r.get("key", {}).get("id") for r in all_messages}
             # A copy an edit event was once stored as is local-only by
             # construction — keeping it is the duplicate (core/message_edit.py).
@@ -24859,6 +25369,18 @@ class MainWindow(wx.Frame):
                         m.get("messageTimestamp") or m.get("timestamp") or m.get("t") or 0
                     )
                 )
+
+        # A reply fetched here -- or one already stored -- may quote an
+        # "Aguardando mensagem" in this chat; the batch write below persists
+        # what it fills. Guarded: this is not an I/O fault and must never be
+        # able to report the fetch as a failed one (docs/traps/sync-completion.md).
+        try:
+            recovered = fill_placeholders_from_replies(all_messages, self._chat_jids_equivalent)
+            if recovered:
+                logging.info("[sync_chat_messages] %s: recovered %d message(s) from "
+                             "reply quotes", remote_jid, len(recovered))
+        except Exception:
+            logging.exception("[sync_chat_messages] %s: quote recovery failed", remote_jid)
 
         # Update records: accept API data only when it actually returned some
         # messages, or fall back to preserving whatever we have in memory.
@@ -26424,10 +26946,15 @@ class MainWindow(wx.Frame):
             return system_ffmpeg
         return None
 
-    def _convert_wav_to_ogg(self, wav_path: str) -> str | None:
+    def _convert_wav_to_ogg(self, wav_path: str, stereo: bool = False) -> str | None:
         """
         Convert a WAV file to OGG/Opus using the bundled ffmpeg binary.
         Returns the path to the new .ogg file, or None on failure.
+
+        ``stereo`` keeps two channels (issue #82, core/voice_stereo.py); by
+        default every recording is downmixed to mono, as before. Decided by
+        the caller, never read off the WAV: a mono message recorded on a
+        microphone that only opens with two channels has a stereo WAV.
         """
         ffmpeg = self._find_api_ffmpeg()
         if not ffmpeg or not os.path.isfile(ffmpeg):
@@ -26442,8 +26969,7 @@ class MainWindow(wx.Frame):
 
             result = subprocess.run(
                 [ffmpeg, "-y", "-i", wav_path,
-                 "-ac", "1",
-                 "-c:a", "libopus", "-b:a", "64k",
+                 *opus_encode_args(stereo),
                  "-vbr", "on", "-compression_level", "10",
                  ogg_path],
                 capture_output=True,
@@ -26461,7 +26987,7 @@ class MainWindow(wx.Frame):
         return None
 
     def send_audio_message(self, remote_jid: str, wav_path: str, quoted=None,
-                           ogg_bytes: bytes = None) -> bool:
+                           ogg_bytes: bytes = None, stereo: bool = False) -> bool:
         """
         Encode a recorded WAV file to OGG Opus via FFmpeg (or pre-encoded ogg_bytes)
         and send it as a PTT voice message using /send-voice-base64.
@@ -26483,7 +27009,7 @@ class MainWindow(wx.Frame):
             # Fallback path: convert WAV to OGG using ffmpeg and read the bytes
             _t_fallback = _time.perf_counter()
             logging.info("[VOICE_TIMING] ogg_bytes is None — running ffmpeg AGAIN as fallback (this should NOT happen!)")
-            ogg_path = self._convert_wav_to_ogg(wav_path)
+            ogg_path = self._convert_wav_to_ogg(wav_path, stereo=stereo)
             if ogg_path and os.path.isfile(ogg_path):
                 try:
                     with open(ogg_path, "rb") as fh:
@@ -27746,14 +28272,15 @@ class MainWindow(wx.Frame):
         # The server sometimes counts own (fromMe) messages — and system events
         # (group promotes, joins/leaves, revokes) — as unread. Correct for both
         # by inspecting the tail of the locally-stored message list.
-        if unread_count > 0:
-            records = (
-                (chat.get("messages") or {})
-                .get("messages", {})
-                .get("records", [])
-            )
-            if records:
-                unread_count = _discount_non_countable_unread(records, unread_count)
+        records = (
+            (chat.get("messages") or {})
+            .get("messages", {})
+            .get("records", [])
+        )
+        if unread_count > 0 and records:
+            unread_count = _discount_non_countable_unread(records, unread_count)
+        # A zero has nothing to discount, so it counts as final either way.
+        discounted = bool(records) or unread_count == 0
         old_count = int(chat.get("unreadCount") or 0)
         if old_count == unread_count:
             logging.info(
@@ -27904,6 +28431,7 @@ class MainWindow(wx.Frame):
                 normalized, old_count, unread_count, previous_unread, _open_now, read_at_t,
             )
             chat["unreadCount"] = unread_count
+            note_unread_discount_state(chat, discounted)
             self._schedule_save(dirty_jid=normalized)
             self._schedule_set_chats()
             return
@@ -27959,6 +28487,7 @@ class MainWindow(wx.Frame):
             normalized, old_count, unread_count, previous_unread, _open_now, read_at_t,
         )
         chat["unreadCount"] = unread_count
+        note_unread_discount_state(chat, discounted)
         self._schedule_save(dirty_jid=normalized)
         self._schedule_set_chats()
 

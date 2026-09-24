@@ -111,6 +111,7 @@ class ShortcutsDialog(wx.Dialog):
             i18n.t("shortcut_alt_shift_num_label"),
             i18n.t("shortcut_ctrl_alt_shift_num_label"),
             i18n.t("shortcut_ctrl_r_label"),
+            i18n.t("shortcut_ctrl_shift_g_label"),
             # Also listed under "ações em massa" below, the way
             # shortcut_shift_home_label/shortcut_shift_end_label already are:
             # Space's primary meaning is playing the focused audio or video,
@@ -187,6 +188,7 @@ class ShortcutsDialog(wx.Dialog):
             "",
             section("shortcuts_sync_section"),
             i18n.t("shortcut_f5_label"),
+            i18n.t("shortcut_shift_f5_label"),
             i18n.t("shortcut_ctrl_shift_alt_b_label"),
             i18n.t("shortcut_ctrl_alt_shift_o_label"),
         ]
