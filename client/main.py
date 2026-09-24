@@ -121,6 +121,17 @@ from core.call_logic import (
     active_call_label_key,
     incoming_call_can_answer,
 )
+from core.call_log import (
+    CALL_LOG_MESSAGE_TYPE,
+    LEGACY_CALL_LOG_TYPE,
+    call_log_candidate_ids,
+    call_log_label,
+    call_log_refresh_delays,
+    call_log_supersedes,
+    is_call_log,
+    is_call_log_pending,
+    refile_call_log,
+)
 from core import browser_payload
 from core.database_bridge import DatabaseBridge
 from core.chat_lock_vault import (
@@ -154,6 +165,7 @@ from ui.chat_lock import (
     RecoveryKeyDialog,
 )
 from status_panel import StatusPanel
+from calls_panel import CallsPanel
 from ui.accessible import (
     AccessibleCallEndButton,
     AccessibleCallMuteButton,
@@ -560,7 +572,12 @@ BOOKMARK_ZERO_HOTKEY_ID = 0xB000
 # timestamp, inflate the unread badge, or fire a notification, purely
 # because a group's metadata changed or someone's own revoke arrived weeks
 # after everyone stopped talking in that chat.
-_PREVIEW_ONLY_MESSAGE_TYPES = frozenset({"protocolMessage", "groupNotification"})
+# A call record (core/call_log.py) is on the list too: it decides the chat's
+# preview and position like WhatsApp's own list, but never mints an unread badge
+# or a "new message" toast -- the incoming-call alert already told the user.
+_PREVIEW_ONLY_MESSAGE_TYPES = frozenset({
+    "protocolMessage", "groupNotification", CALL_LOG_MESSAGE_TYPE, LEGACY_CALL_LOG_TYPE,
+})
 
 
 # Marker file dropped in the new, persistent api/ root once the one-time move
@@ -2903,6 +2920,8 @@ class MainWindow(wx.Frame):
         self.locked_conversations_panel.Hide()
         self.status_panel = StatusPanel(self, self.content_panel)
         self.status_panel.Hide()
+        self.calls_panel = CallsPanel(self, self.content_panel)
+        self.calls_panel.Hide()
 
         # Content panel: all panels fill it; only one is shown at a time
         content_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -2910,6 +2929,7 @@ class MainWindow(wx.Frame):
         content_sizer.Add(self.archived_conversations_panel, 1, wx.EXPAND)
         content_sizer.Add(self.locked_conversations_panel, 1, wx.EXPAND)
         content_sizer.Add(self.status_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.calls_panel, 1, wx.EXPAND)
         self.content_panel.SetSizer(content_sizer)
 
         # Main panel: nav sidebar on left, content on right
@@ -6054,6 +6074,11 @@ class MainWindow(wx.Frame):
             if status_lst is not None and status_lst.IsShownOnScreen():
                 status_lst.SetFocus()
                 return
+            calls = getattr(self, "calls_panel", None)
+            calls_lst = calls.current_list() if calls else None
+            if calls_lst is not None and calls_lst.IsShownOnScreen():
+                calls_lst.SetFocus()
+                return
             # Last resort, and only when none of the lists above is on screen:
             # an ARCHIVED conversation open. ArchivedConversationsPanel shows
             # conversations_panel but hides its conversations_list, and hides
@@ -6315,6 +6340,8 @@ class MainWindow(wx.Frame):
                 self.archived_conversations_panel.Hide()
                 if hasattr(self, "status_panel"):
                     self.status_panel.Hide()
+                if hasattr(self, "calls_panel"):
+                    self.calls_panel.Hide()
                 self.conversations_panel.conversations_label.Hide()
                 self.conversations_panel.conversations_list.Hide()
                 self.conversations_panel.Show()
@@ -6329,6 +6356,8 @@ class MainWindow(wx.Frame):
             self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         self.conversations_panel.conversations_label.Show()
         self.conversations_panel.conversations_list.Show()
         self.conversations_panel.Show()
@@ -7732,6 +7761,8 @@ class MainWindow(wx.Frame):
         if state in terminal_states or event.get("event") in {"ended", "timeout"}:
             self._stop_voice_call_audio(grace_seconds=1.25)
             self.output(self.i18n.t("voice_call_ended"), interrupt=True)
+            self._watch_ended_call_log(
+                call_id, active.get("peer_jid") or peer_jid, bool(active.get("outgoing")))
             return
         if state == "REJOINING":
             if self._voice_call_last_announced_state != "REJOINING":
@@ -7767,6 +7798,151 @@ class MainWindow(wx.Frame):
                 )
             except Exception:
                 logging.exception("[call_audio] failed to attach to browser call")
+
+    # How long a call record is re-read after the call it describes ended, and
+    # how long a record still stored as Ongoing is followed (calls run long).
+    _CALL_LOG_AFTER_END_WATCH_SECONDS = 10 * 60
+    _CALL_LOG_PENDING_WATCH_SECONDS = 3 * 3600
+
+    def _refresh_calls_tab(self):
+        """Reload the Calls tab (debounced) when it is on screen."""
+        calls = getattr(self, "calls_panel", None)
+        if calls is not None:
+            calls.schedule_refresh()
+
+    def _watch_ended_call_log(self, call_id: str, peer_jid: str, outgoing: bool):
+        """Re-read the call record of a call that just ended.
+
+        WhatsApp keeps a call as a message whose id is the call id, and writes
+        its outcome when the call ends -- either as a new record or as an
+        update of the Ongoing one, which WPPConnect never forwards
+        (core/call_log.py). One-to-one calls only: a group call's record is
+        keyed on a participant too.
+        """
+        peer_jid = str(peer_jid or "")
+        if not call_id or not peer_jid or peer_jid.endswith(("@g.us", "@broadcast")):
+            return
+        if str(call_id).startswith("outgoing:"):
+            return  # WinZapp's own placeholder, never WhatsApp's call id
+        # Call events name the peer in either form (core/call_matching.py),
+        # and WhatsApp may have filed the record under the other one.
+        peer_jid = self._normalize_jid(peer_jid)
+        if peer_jid.endswith("@lid"):
+            lid = peer_jid
+            phone = getattr(self, "_lid_to_phone", {}).get(lid, "")
+        else:
+            phone = peer_jid
+            lid = getattr(self, "_phone_to_lid", {}).get(phone, "")
+        self._start_call_log_watch(
+            call_log_candidate_ids(call_id, outgoing, [lid, phone]),
+            self._CALL_LOG_AFTER_END_WATCH_SECONDS,
+            chat_jid=phone or lid,
+        )
+
+    def _watch_pending_call_log(self, remote_jid: str, msg: dict):
+        """Follow a stored call record whose outcome is not settled yet.
+
+        Only a recent one: a record left Ongoing by a call long over (a group
+        call nobody closed) is refreshed by the next sync of its chat, not
+        polled for hours after every restart.
+        """
+        if not is_call_log_pending(msg):
+            return
+        try:
+            ts = int(msg.get("messageTimestamp") or 0)
+        except (TypeError, ValueError):
+            ts = 0
+        if ts <= 0 or time.time() - ts > self._CALL_LOG_PENDING_WATCH_SECONDS:
+            return
+        serialized = self._serialize_msg_id(remote_jid, msg.get("key") or {}, msg)
+        if serialized:
+            self._start_call_log_watch([serialized], self._CALL_LOG_PENDING_WATCH_SECONDS,
+                                       chat_jid=remote_jid)
+
+    def _start_call_log_watch(self, candidates: list, window_seconds: int, chat_jid: str = ""):
+        """Poll message-by-id for a call record until its outcome is settled.
+
+        A local read of WhatsApp Web's own store, bounded by *window_seconds*;
+        every copy found goes through on_historical_message(), which inserts it
+        or replaces the stored older state (call_log_supersedes()).
+
+        Every copy is filed under *chat_jid*, the chat the record belongs in.
+        WhatsApp keys it by whichever form it chose (usually the @lid), and
+        on_historical_message() -- unlike on_new_message() -- does not bridge
+        an @lid to its phone chat: it would open a second, nameless chat with
+        the settled record while the real one kept "em andamento".
+        """
+        candidates = [c for c in (candidates or []) if c]
+        if not candidates:
+            return
+        watched = self.__dict__.setdefault("_watched_call_logs", {})
+        watch_key = candidates[0]
+        state = watched.get(watch_key)
+        if state is not None:
+            # Already followed -- e.g. since the offer stopped ringing, and the
+            # call has only now ended. Start its schedule over from here, or a
+            # call longer than the first window would end unwatched.
+            state["window"] = window_seconds
+            state["restart"] = True
+            return
+        state = watched[watch_key] = {"window": window_seconds, "restart": False}
+
+        def _worker():
+            try:
+                while True:
+                    state["restart"] = False
+                    for delay in call_log_refresh_delays(state["window"]):
+                        time.sleep(delay)
+                        if getattr(self, "_shutting_down", False):
+                            return
+                        if state["restart"]:
+                            break
+                        raw = self._fetch_call_log_record(candidates)
+                        if raw is None:
+                            continue
+                        ws = getattr(self, "ws", None)
+                        if ws is None:
+                            return
+                        normalized = ws._normalize_wpp_message(raw)
+                        if not is_call_log(normalized):
+                            return
+                        refile_call_log(normalized, chat_jid)
+                        wx.CallAfter(self.on_historical_message, normalized)
+                        if not is_call_log_pending(normalized):
+                            return
+                    else:
+                        if not state["restart"]:
+                            return
+            except Exception:
+                logging.exception("[call_log] watch failed")
+            finally:
+                watched.pop(watch_key, None)
+
+        threading.Thread(target=_worker, daemon=True, name="call-log-watch").start()
+
+    def _fetch_call_log_record(self, candidates: list):
+        """The raw WPPConnect message for the first id WhatsApp knows, or None.
+
+        Ids are never logged: they carry the peer's JID (docs/traps/log-pii.md).
+        """
+        for serialized in candidates:
+            url = (f"{self.wpp_server}:{self.wpp_port}/api/{self.token}"
+                   f"/message-by-id/{_url_quote(serialized, safe='@_.:')}")
+            try:
+                response = api_get(url, token=self.token, timeout=10)
+            except Exception as e:
+                logging.info("[call_log] message-by-id unavailable: %s", type(e).__name__)
+                return None
+            if response.status_code >= 400:
+                continue
+            try:
+                body = response.json()
+            except ValueError:
+                continue
+            data = ((body or {}).get("response") or {}).get("data") if isinstance(body, dict) else None
+            if isinstance(data, dict) and data.get("type") == "call_log":
+                return data
+        return None
 
     def on_incoming_call_event(self, event: dict):
         """Announce an incoming call and keep its tone playing until it ends.
@@ -7816,6 +7992,9 @@ class MainWindow(wx.Frame):
         # State changes away from INCOMING_RING mean the call was answered on
         # another device, rejected, missed, failed, or otherwise ended.
         if not is_ringing:
+            # The record WhatsApp writes for it is what shows the call in the
+            # conversation ("Ligação de voz perdida").
+            self._watch_ended_call_log(call_id, peer_jid, False)
             if call_id:
                 self._active_incoming_calls.pop(call_id, None)
                 getattr(self, "_incoming_call_details", {}).pop(call_id, None)
@@ -8215,8 +8394,12 @@ class MainWindow(wx.Frame):
         existing.pop(RECOVERED_FROM_QUOTE, None)
         return existing
 
-    def _fill_stored_placeholder(self, existing: dict, incoming: dict, remote_jid: str) -> None:
+    def _fill_stored_placeholder(self, existing: dict, incoming: dict, remote_jid: str,
+                                 what: str = "decrypted copy of stored placeholder") -> None:
         """Replace a stored placeholder with its decrypted copy, in place.
+
+        Also how a call record's newer state replaces the stored one (*what*
+        names which, for the log; core/call_log.py), from either funnel.
 
         _apply_possible_edit() cannot do it: a placeholder has no text, so it
         is never "an edit" there, and the decrypted copy was discarded as a
@@ -8227,8 +8410,7 @@ class MainWindow(wx.Frame):
         """
         prune_message_record(incoming)
         MainWindow._adopt_decrypted_copy(existing, incoming)
-        logging.info("[on_new_message] %s: decrypted copy of stored placeholder %s "
-                     "filled in (%s).", remote_jid,
+        logging.info("[stored record] %s: %s %s filled in (%s).", remote_jid, what,
                      ((existing.get("key") or {}).get("id") or "")[:22],
                      existing.get("messageType"))
 
@@ -8912,6 +9094,15 @@ class MainWindow(wx.Frame):
         if msg_id:
             for index, existing in enumerate(records):
                 if existing.get("key", {}).get("id") == msg_id:
+                    # A call record is rewritten when the call ends (Ongoing ->
+                    # its outcome and duration, core/call_log.py); the newer
+                    # state replaces the stored one in place, silently.
+                    if call_log_supersedes(existing, msg):
+                        self._fill_stored_placeholder(existing, msg, remote_jid,
+                                                      what="newer state of call record")
+                        self._watch_pending_call_log(remote_jid, existing)
+                        self._refresh_calls_tab()
+                        return
                     # A text recovered from a reply's quote is the replier's
                     # claim, so the real copy replaces it like a placeholder
                     # rather than being compared as an edit (core/quote_recovery.py).
@@ -8973,6 +9164,9 @@ class MainWindow(wx.Frame):
         # A reply carries the text it quotes: an "Aguardando mensagem" it
         # answers can show that text now (core/quote_recovery.py).
         self._recover_quoted_placeholder(remote_jid, records, msg)
+        if is_call_log(msg):
+            self._watch_pending_call_log(remote_jid, msg)
+            self._refresh_calls_tab()
 
         # ── Update unread count (only for messages we received) ───────────────
         # System events never count as unread — see is_countable_message().
@@ -9457,6 +9651,11 @@ class MainWindow(wx.Frame):
             # never announces, so it is always filled in silently.
             if awaits_real_copy(existing) and not self._is_undecrypted_placeholder(msg):
                 self._fill_stored_placeholder(existing, msg, remote_jid)
+            elif call_log_supersedes(existing, msg):
+                self._fill_stored_placeholder(existing, msg, remote_jid,
+                                              what="newer state of call record")
+                self._watch_pending_call_log(remote_jid, existing)
+                self._refresh_calls_tab()
             return
 
         # Ignore stale re-deliveries of cleared messages
@@ -9514,6 +9713,9 @@ class MainWindow(wx.Frame):
             self._recover_placeholders_from_replies(remote_jid, records)
         else:
             self._recover_quoted_placeholder(remote_jid, records, msg)
+        if is_call_log(msg):
+            self._watch_pending_call_log(remote_jid, msg)
+            self._refresh_calls_tab()
 
         # Debounced UI update
         self._schedule_save(dirty_jid=remote_jid)
@@ -12760,6 +12962,7 @@ class MainWindow(wx.Frame):
         self.ID_ALT_3      = wx.NewIdRef()
         self.ID_ALT_4      = wx.NewIdRef()
         self.ID_ALT_5      = wx.NewIdRef()
+        self.ID_ALT_6      = wx.NewIdRef()
         self.ID_ALT_NAV    = wx.NewIdRef()
         self.ID_CTRL_COMMA = wx.NewIdRef()
         self.ID_F1         = wx.NewIdRef()
@@ -12787,6 +12990,7 @@ class MainWindow(wx.Frame):
             (wx.ACCEL_ALT,    ord('3'),    self.ID_ALT_3),
             (wx.ACCEL_ALT,    ord('4'),    self.ID_ALT_4),
             (wx.ACCEL_ALT,    ord('5'),    self.ID_ALT_5),
+            (wx.ACCEL_ALT,    ord('6'),    self.ID_ALT_6),
             (wx.ACCEL_ALT,    ord(nav_letter), self.ID_ALT_NAV),
             (wx.ACCEL_CTRL,   ord(','),    self.ID_CTRL_COMMA),
             (wx.ACCEL_NORMAL, wx.WXK_F1,  self.ID_F1),
@@ -12799,6 +13003,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_global_alt3, id=self.ID_ALT_3)
         self.Bind(wx.EVT_MENU, self.on_alt_4,       id=self.ID_ALT_4)
         self.Bind(wx.EVT_MENU, self.on_alt_5,       id=self.ID_ALT_5)
+        self.Bind(wx.EVT_MENU, self.on_alt_6,       id=self.ID_ALT_6)
         self.Bind(wx.EVT_MENU, self._on_alt_nav,    id=self.ID_ALT_NAV)
         self.Bind(wx.EVT_MENU, self.on_ctrl_comma,  id=self.ID_CTRL_COMMA)
         self.Bind(wx.EVT_MENU, self.on_f1,          id=self.ID_F1)
@@ -12831,6 +13036,8 @@ class MainWindow(wx.Frame):
             self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         # Deliberately does NOT touch conversations_label/conversations_list
         # visibility (unlike on_alt_1(), which always returns to the LIST
         # view) — a conversation being open here means the detail pane, not
@@ -12930,6 +13137,8 @@ class MainWindow(wx.Frame):
             self.locked_conversations_panel.refresh_labels()
         if hasattr(self, "status_panel"):
             self.status_panel.refresh_labels()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.refresh_labels()
 
         self._refresh_call_language_surfaces()
 
@@ -12961,6 +13170,8 @@ class MainWindow(wx.Frame):
             self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         # ArchivedConversationsPanel.on_conversation_selected() hides
         # conversations_panel's own conversations_label/conversations_list
         # (leaving only the conversation detail pane visible) when an
@@ -12989,6 +13200,8 @@ class MainWindow(wx.Frame):
             self.locked_conversations_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Show()
             self.content_panel.Layout()
@@ -13007,11 +13220,27 @@ class MainWindow(wx.Frame):
         self.conversations_panel.Hide()
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Hide()
         if hasattr(self, "status_panel"):
             self.status_panel.Show()
             self.content_panel.Layout()
             self.status_panel._add_status_btn.SetFocus()
             self.status_panel.on_show()
+
+    def on_alt_6(self, event):
+        """Alt+6: the Calls tab (calls_panel.py), same switch as Alt+5."""
+        if self.conversations_panel.conversation is not None:
+            self.conversations_panel.close_conversation_for_panel_switch()
+        self.conversations_panel.Hide()
+        if hasattr(self, "archived_conversations_panel"):
+            self.archived_conversations_panel.Hide()
+        if hasattr(self, "status_panel"):
+            self.status_panel.Hide()
+        if hasattr(self, "calls_panel"):
+            self.calls_panel.Show()
+            self.content_panel.Layout()
+            self.calls_panel.on_show()
 
     def output(self, text, interrupt=False):
         self.speak_output.output(text, interrupt=interrupt)
@@ -19500,6 +19729,26 @@ class MainWindow(wx.Frame):
         if alt_jid:
             return self.chats.get(alt_jid)
         return None
+
+    def chat_display_name(self, chat_or_jid) -> str:
+        """The name a conversation is shown under: its title when opened, and
+        who a call was with on the Calls tab. Never a raw JID."""
+        if isinstance(chat_or_jid, dict):
+            chat = chat_or_jid
+        else:
+            jid = str(chat_or_jid or "")
+            chat = self.get_chat(jid) or {"remoteJid": jid}
+        jid = chat.get("remoteJid", "")
+        is_group = jid.endswith("@g.us")
+        return (
+            self._resolve_contact_name(chat)
+            or self.find_name_through_messages(chat)
+            or chat.get("name", "")
+            or ("" if is_group else chat.get("pushName", ""))
+            or self.find_jid_through_messages(chat)
+            or self._format_jid_for_display(jid)
+            or (self.i18n.t("unknown_group") if is_group else self.i18n.t("unknown_contact"))
+        )
 
     def get_chats(self, limit: int = 200):
         try:
@@ -33177,6 +33426,7 @@ class MainWindow(wx.Frame):
         "pollUpdateMessage",
         "buttonsMessage", "listMessage", "templateMessage", "interactiveMessage",
         "buttonsResponseMessage", "listResponseMessage", "protocolMessage",
+        CALL_LOG_MESSAGE_TYPE, LEGACY_CALL_LOG_TYPE,
     })
 
     @classmethod
@@ -33409,7 +33659,13 @@ class MainWindow(wx.Frame):
             h, m, sec = s // 3600, (s % 3600) // 60, s % 60
             return f"{h}:{m:02d}:{sec:02d}" if h > 0 else f"{m}:{sec:02d}"
 
-        if msg_type == "conversation":
+        if is_call_log(last):
+            # Same sentence the conversation row reads (core/call_log.py).
+            panel = getattr(self, "conversations_panel", None)
+            content = call_log_label(
+                last, i18n,
+                panel._format_duration if panel is not None else (lambda _s: ""))
+        elif msg_type == "conversation":
             content = msg_obj.get("conversation") or ""
             if looks_like_binary_blob(content):
                 # Some senders — the official WhatsApp updates account

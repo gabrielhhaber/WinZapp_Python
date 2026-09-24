@@ -178,6 +178,8 @@ phone, so they are strictly bounded. Full reasoning: `docs/traps/sync-completion
 ### Other places
 
 `client/status_panel.py` (Alt+5, `docs/reference/status-tab.md`);
+`client/calls_panel.py` (Alt+6, every call record of every chat; logic in
+`client/core/call_log.py`, `docs/reference/message-pipeline.md` 3a);
 `client/updater.py` (`docs/traps/updater-channels.md`);
 `client/core/release_signature.py` (`docs/traps/release-integrity.md`);
 `build.py` + `installer/` (PyInstaller via CLI args, no spec file; onedir

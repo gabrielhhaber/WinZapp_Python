@@ -56,13 +56,14 @@ class NavigationPanel(wx.Panel):
             self.main_window, "chat_lock_navigation_visible", lambda: False
         )():
             keys.append("locked")
-        keys.extend(["status", "settings"])
+        keys.extend(["status", "calls", "settings"])
         i18n = self.main_window.i18n
         labels = {
             "conversations": f"{i18n.t('conversations')} alt+1",
             "archived": i18n.t("archived_chats_nav"),
             "locked": i18n.t("locked_chats_nav"),
             "status": i18n.t("status_nav"),
+            "calls": i18n.t("calls_nav"),
             "settings": f"{i18n.t('settings')} {i18n.t('settings_shortcut')}",
         }
         self.nav_list.Freeze()
@@ -137,6 +138,8 @@ class NavigationPanel(wx.Panel):
             mw.archived_conversations_panel.Hide()
         if hasattr(mw, "locked_conversations_panel"):
             mw.locked_conversations_panel.Hide()
+        if hasattr(mw, "calls_panel"):
+            mw.calls_panel.Hide()
 
         if key == "conversations":
             mw.conversations_panel.Show()
@@ -165,3 +168,7 @@ class NavigationPanel(wx.Panel):
             mw.content_panel.Layout()
             mw.status_panel._add_status_btn.SetFocus()
             mw.status_panel.on_show()
+        elif key == "calls" and hasattr(mw, "calls_panel"):
+            mw.calls_panel.Show()
+            mw.content_panel.Layout()
+            mw.calls_panel.on_show()

@@ -102,6 +102,17 @@ class AccessibleReadMoreButton(wx.Accessible):
         return (wx.ACC_OK, "Alt+L")
 
 
+class AccessibleReturnCallButton(wx.Accessible):
+    """Reports Ctrl+Shift+R as the shortcut for the Return-call button.
+
+    Shared with "react to message": the button only exists while a missed
+    call is focused, and a call record cannot be reacted to, so the two
+    never compete for the same row."""
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, "Ctrl+Shift+R")
+
+
 class AccessibleConversationDataButton(wx.Accessible):
     """Reports Ctrl+Shift+D as the keyboard shortcut for the conversation-data button."""
 
