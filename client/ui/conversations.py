@@ -66,7 +66,16 @@ from ui.accessible import (
     AccessibleNewConversationButton,
     AccessibleMessagesListControl,
     AccessibleReadMoreButton,
+    AccessibleReturnCallButton,
     CompatListBoxMessagesCtrl,
+)
+from core.call_log import (
+    CALL_LOG_MESSAGE_TYPE,
+    LEGACY_CALL_LOG_TYPE,
+    call_log_is_video,
+    call_log_label,
+    is_call_log,
+    is_returnable_missed_call,
 )
 from ui.dialogs.emoji_picker import choose_and_insert_emoji, choose_reaction_emoji
 from core.reaction_shortcuts import quick_reactions, remember_reaction
@@ -885,12 +894,26 @@ class ConversationsPanel(wx.Panel):
             conv_sizer.Add(control, 1, wx.EXPAND | wx.ALL, 5)
             control.Show(mode == message_list_mode)
 
+        # ── "Retornar ligação" (focused missed call only) ───────────────────
+        # Created first after the list so it is the first Tab stop from a
+        # focused missed call; _update_return_call_button() shows it only
+        # while such a row is focused. Ctrl+Shift+R reaches the same action.
+        self._return_call_btn = wx.Button(
+            self.conversation_panel, label=i18n.t("return_call_button")
+        )
+        self._return_call_btn.SetAccessible(AccessibleReturnCallButton())
+        self._return_call_btn.Bind(wx.EVT_BUTTON, self._on_return_call)
+        conv_sizer.Add(self._return_call_btn, 0, wx.LEFT | wx.BOTTOM, 5)
+        self._return_call_btn.Hide()
+        self._return_call_msg = None
+
         # ── "Ler mais" button (classic ListCtrl only) ─────────────────────────
         # SysListView32 truncates each row's accessible text to ~512 characters,
         # so a screen reader can't read the tail of a long text message just by
         # focusing it. This button is the first focusable control after the
-        # list (created here, before any other conversation_panel child) and is
-        # only shown when the focused row is a truncated text message.
+        # list whenever it shows (only "Retornar ligação" precedes it, and that
+        # one never shows for a text row) and is only shown when the focused
+        # row is a truncated text message.
         self._read_more_btn = wx.Button(
             self.conversation_panel, label=i18n.t("read_more_button")
         )
@@ -2387,6 +2410,7 @@ class ConversationsPanel(wx.Panel):
         self._send_attachment_btn.SetLabel(i18n.t("send_attachment"))
         self._contact_converse_btn.SetLabel(i18n.t("converse"))
         self._contact_save_btn.SetLabel(i18n.t("save_contact"))
+        self._return_call_btn.SetLabel(i18n.t("return_call_button"))
         self._discard_voice_btn.SetLabel(i18n.t("discard_voice_message"))
         self._send_voice_btn.SetLabel(i18n.t("send_voice_message"))
         if self._is_recording and self._recording_paused:
@@ -4876,8 +4900,19 @@ class ConversationsPanel(wx.Panel):
         msg_type = msg.get("messageType", "")
         msg_id   = msg.get("key", {}).get("id", "")
         i18n     = self.main_window.i18n
+        # A call record takes none of the per-message actions WhatsApp refuses
+        # for it (reply, react, forward, star, pin); the handlers refuse them
+        # too (_reject_system_event_action), so the accelerators stay safe.
+        is_call = is_call_log(msg)
 
         menu = wx.Menu()
+
+        if is_call and is_returnable_missed_call(
+                msg, str((self.conversation or {}).get("remoteJid") or "")):
+            return_item = menu.Append(
+                wx.ID_ANY, f"{i18n.t('return_call_button')}\tCtrl+Shift+R")
+            self.Bind(wx.EVT_MENU, lambda e, m=msg: self._return_call(m), return_item)
+            menu.AppendSeparator()
 
         if getattr(self, "selected_messages", None):
             mass_menu = wx.Menu()
@@ -4929,7 +4964,7 @@ class ConversationsPanel(wx.Panel):
             menu.AppendSeparator()
 
         # ── Most-used reactions submenu (if this conversation has reactions) ──
-        if self._reaction_map:
+        if self._reaction_map and not is_call:
             all_emojis: dict = {}
             for msg_reactions in self._reaction_map.values():
                 for em in msg_reactions.values():
@@ -5038,18 +5073,19 @@ class ConversationsPanel(wx.Panel):
             )
 
         # Reply (Alt+R)
-        reply_item = menu.Append(wx.ID_ANY, f"{i18n.t('reply_message')}\tAlt+R")
-        self.Bind(
-            wx.EVT_MENU,
-            lambda e, m=msg: self._on_menu_reply(m),
-            reply_item,
-        )
+        if not is_call:
+            reply_item = menu.Append(wx.ID_ANY, f"{i18n.t('reply_message')}\tAlt+R")
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_menu_reply(m),
+                reply_item,
+            )
 
         # ── Group-only: Reply privately / Converse with participant ────────────
         _conv_jid    = self.conversation.get("remoteJid", "") if self.conversation else ""
         _is_group    = _conv_jid.endswith("@g.us")
         _is_from_me  = msg.get("key", {}).get("fromMe", False)
-        if _is_group and not _is_from_me:
+        if _is_group and not _is_from_me and not is_call:
             _participant_jid = (
                 msg.get("key", {}).get("participant", "")
                 or msg.get("participant", "")
@@ -5075,54 +5111,55 @@ class ConversationsPanel(wx.Panel):
                     converse_item,
                 )
 
-        # React (opens emoji picker) — Ctrl+Shift+R
-        react_item = menu.Append(wx.ID_ANY, f"{i18n.t('react_to_message')}\tCtrl+Shift+R")
-        self.Bind(
-            wx.EVT_MENU,
-            lambda e, m=msg: self._on_menu_react(m),
-            react_item,
-        )
-
-        # Show text popup (text messages, or a photo/video/document that has a caption)
-        if msg_type in _TEXT_TYPES or _has_caption:
-            show_text_item = menu.Append(wx.ID_ANY, f"{i18n.t('show_msg_text')}\tAlt+C")
+        if not is_call:
+            # React (opens emoji picker) — Ctrl+Shift+R
+            react_item = menu.Append(wx.ID_ANY, f"{i18n.t('react_to_message')}\tCtrl+Shift+R")
             self.Bind(
                 wx.EVT_MENU,
-                lambda e, m=msg: self._show_message_text_popup(m),
-                show_text_item,
+                lambda e, m=msg: self._on_menu_react(m),
+                react_item,
             )
 
-        # Forward (Ctrl+Shift+E)
-        fwd_item = menu.Append(wx.ID_ANY, f"{i18n.t('forward_message')}\tCtrl+Shift+E")
-        self.Bind(
-            wx.EVT_MENU,
-            lambda e, m=msg: self._on_menu_forward(m),
-            fwd_item,
-        )
+            # Show text popup (text messages, or a photo/video/document that has a caption)
+            if msg_type in _TEXT_TYPES or _has_caption:
+                show_text_item = menu.Append(wx.ID_ANY, f"{i18n.t('show_msg_text')}\tAlt+C")
+                self.Bind(
+                    wx.EVT_MENU,
+                    lambda e, m=msg: self._show_message_text_popup(m),
+                    show_text_item,
+                )
 
-        # Star / Unstar (Ctrl+Shift+O)
-        is_starred = bool(msg.get("starred"))
-        star_label = i18n.t("unstar_message") if is_starred else i18n.t("star_message")
-        star_item = menu.Append(wx.ID_ANY, f"{star_label}\tCtrl+Shift+O")
-        self.Bind(
-            wx.EVT_MENU,
-            lambda e, m=msg: self._on_menu_star(m),
-            star_item,
-        )
+            # Forward (Ctrl+Shift+E)
+            fwd_item = menu.Append(wx.ID_ANY, f"{i18n.t('forward_message')}\tCtrl+Shift+E")
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_menu_forward(m),
+                fwd_item,
+            )
 
-        # Pin / Unpin in chat (Ctrl+Shift+P) — the real WhatsApp message-pin
-        # feature, visible to every participant, unlike the local-only star
-        # above. Shares its accelerator with the recording pause/resume
-        # shortcut (_on_ctrl_shift_p): only one is ever applicable at a time
-        # (pause/resume only does anything while actively recording audio).
-        is_pinned = bool(msg.get("pinInChat"))
-        pin_msg_label = i18n.t("unpin_message") if is_pinned else i18n.t("pin_message")
-        pin_msg_item = menu.Append(wx.ID_ANY, f"{pin_msg_label}\tCtrl+Shift+P")
-        self.Bind(
-            wx.EVT_MENU,
-            lambda e, m=msg: self._on_menu_pin_message(m),
-            pin_msg_item,
-        )
+            # Star / Unstar (Ctrl+Shift+O)
+            is_starred = bool(msg.get("starred"))
+            star_label = i18n.t("unstar_message") if is_starred else i18n.t("star_message")
+            star_item = menu.Append(wx.ID_ANY, f"{star_label}\tCtrl+Shift+O")
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_menu_star(m),
+                star_item,
+            )
+
+            # Pin / Unpin in chat (Ctrl+Shift+P) — the real WhatsApp message-pin
+            # feature, visible to every participant, unlike the local-only star
+            # above. Shares its accelerator with the recording pause/resume
+            # shortcut (_on_ctrl_shift_p): only one is ever applicable at a time
+            # (pause/resume only does anything while actively recording audio).
+            is_pinned = bool(msg.get("pinInChat"))
+            pin_msg_label = i18n.t("unpin_message") if is_pinned else i18n.t("pin_message")
+            pin_msg_item = menu.Append(wx.ID_ANY, f"{pin_msg_label}\tCtrl+Shift+P")
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_menu_pin_message(m),
+                pin_msg_item,
+            )
 
         # Save As (media only, only when the file is already cached locally).
         # Audio is excluded here because it has its own branch below (separate
@@ -6352,9 +6389,43 @@ class ConversationsPanel(wx.Panel):
             else:
                 self._load_older_messages()
 
+        self._update_return_call_button(idx)
         self._update_read_more_button(idx)
         self._update_reactions_button(idx)
         event.Skip()
+
+    def _update_return_call_button(self, idx: int):
+        """Show "Retornar ligação" only while a returnable missed call is focused."""
+        msg = None
+        if 0 <= idx < len(self._sorted_messages):
+            candidate = self._sorted_messages[idx]
+            chat_jid = str((self.conversation or {}).get("remoteJid") or "")
+            if (not self._is_separator(candidate)
+                    and is_returnable_missed_call(candidate, chat_jid)):
+                msg = candidate
+        self._return_call_msg = msg
+        self._return_call_btn.Show(msg is not None)
+        self.conversation_panel.Layout()
+
+    def _return_call(self, msg) -> bool:
+        """Call back the caller of the missed call *msg*, voice or video like
+        the call it returns. False when *msg* is not a returnable missed call."""
+        if not self.conversation:
+            return False
+        jid = str(self.conversation.get("remoteJid") or "")
+        if not is_returnable_missed_call(msg, jid):
+            return False
+        name = self.conversation_name or self.conversation.get("name") or ""
+        if call_log_is_video(msg):
+            self.main_window.start_video_call(jid, name)
+        else:
+            self.main_window.start_voice_call(jid, name)
+        return True
+
+    def _on_return_call(self, _event=None):
+        msg = getattr(self, "_return_call_msg", None)
+        if msg is not None:
+            self._return_call(msg)
 
     def _update_reactions_button(self, idx: int):
         """Show/hide the reactions-list button for the focused message row.
@@ -9654,6 +9725,10 @@ class ConversationsPanel(wx.Panel):
         if msg_type == "ciphertext":
             return i18n.t("message_awaiting_decryption")
 
+        # ── Call ─────────────────────────────────────────────────────────────
+        if is_call_log(msg):
+            return call_log_label(msg, i18n, self._format_duration)
+
         # Text taken from a reply's quote (core/quote_recovery.py) is the
         # replier's word, not the author's: said so on the row, so a quote a
         # modified client made up is never read as the author's own message.
@@ -10028,6 +10103,10 @@ class ConversationsPanel(wx.Panel):
             # countable nor a chat preview (is_countable_message(),
             # MainWindow._PREVIEW_MESSAGE_TYPES).
             "ciphertext",
+            # A voice/video call (core/call_log.py); the legacy type is what
+            # builds before it stored, with no call data.
+            CALL_LOG_MESSAGE_TYPE,
+            LEGACY_CALL_LOG_TYPE,
         )
 
         if msg_type not in allowed_types:
@@ -10832,7 +10911,9 @@ class ConversationsPanel(wx.Panel):
         """
         if not isinstance(msg, dict):
             return False
-        return msg.get("messageType") == "groupNotification"
+        # A call record is WhatsApp's too: it cannot be replied to, reacted
+        # to, forwarded, starred or pinned, and its sentence needs no sender.
+        return msg.get("messageType") == "groupNotification" or is_call_log(msg)
 
     def _reject_system_event_action(self, msg) -> bool:
         """Announce and refuse a message action that cannot apply to a system event.
@@ -10855,9 +10936,9 @@ class ConversationsPanel(wx.Panel):
         """
         if not self._is_system_event(msg):
             return False
-        self.main_window.output(
-            self.main_window.i18n.t("system_event_action_unavailable")
-        )
+        key = ("call_log_action_unavailable" if is_call_log(msg)
+               else "system_event_action_unavailable")
+        self.main_window.output(self.main_window.i18n.t(key))
         return True
 
     def _render_message_line(self, msg, index: int | None = None, total: int | None = None,
@@ -11740,6 +11821,9 @@ class ConversationsPanel(wx.Panel):
 
     def _on_menu_reply(self, msg: dict):
         """Enter reply mode: change field label, store quoted message, focus field."""
+        if is_call_log(msg):
+            self._reject_system_event_action(msg)
+            return
         if self._is_system_event(msg):
             # System events ("Fulano tornou Sicrano administrador do grupo",
             # joins/leaves, revokes) carry no quotable content — WhatsApp
@@ -12112,6 +12196,9 @@ class ConversationsPanel(wx.Panel):
 
     def _on_menu_reply_private(self, msg: dict, participant_jid: str):
         """Open a private conversation with the group participant and cite their message."""
+        if is_call_log(msg):
+            self._reject_system_event_action(msg)
+            return
         if self._is_system_event(msg):
             # Same guard as _on_menu_reply: a system event has no quotable
             # content, and navigating away from the group to a private chat
@@ -13630,13 +13717,18 @@ class ConversationsPanel(wx.Panel):
             self._on_menu_clear_chat(jid)
 
     def _on_accel_react(self, event):
-        """Ctrl+Shift+R: open the reaction picker for the focused message."""
+        """Ctrl+Shift+R: open the reaction picker for the focused message, or
+        return the call when that message is a missed call (a call record
+        cannot be reacted to, so the shortcut is free for it there)."""
         index = self.messages_list.GetFirstSelected()
         if index < 0 or index >= len(self._sorted_messages):
             return
         msg = self._sorted_messages[index]
-        if not self._is_separator(msg):
-            self._on_menu_react(msg)
+        if self._is_separator(msg):
+            return
+        if self._return_call(msg):
+            return
+        self._on_menu_react(msg)
 
     def _on_accel_star(self, event):
         """Ctrl+Shift+I: star/favourite the focused message."""
@@ -16844,6 +16936,13 @@ class ConversationsPanel(wx.Panel):
                 self._messages_signature_cache = self._messages_signature()
             except Exception:
                 self._messages_signature_cache = None
+            # The focused row may now be another message (another conversation
+            # opened, or a call record whose outcome just settled) without a
+            # focus event of its own, so "Retornar ligação" is re-decided here.
+            try:
+                self._update_return_call_button(self.messages_list.GetFocusedItem())
+            except Exception:
+                logging.exception("[populate_messages] failed to update the return-call button")
             _rebuild_ms = (time.monotonic() - _rebuild_started) * 1000.0
             # Acima do limiar sobe para WARNING. Em INFO o número só aparece
             # para quem já foi procurar por ele, e este é o laço que a janela
@@ -17210,7 +17309,9 @@ class ConversationsPanel(wx.Panel):
         msgs_to_delete = []
         for msg_id in self.selected_messages:
             msg = next((m for m in self._sorted_messages if not self._is_separator(m) and m.get("key", {}).get("id") == msg_id), None)
-            if msg: msgs_to_delete.append(msg)
+            # A selected call record takes no part in a mass action; it can
+            # still be deleted on its own from its context menu.
+            if msg and not is_call_log(msg): msgs_to_delete.append(msg)
         if not msgs_to_delete:
             self.selected_messages.clear()
             return

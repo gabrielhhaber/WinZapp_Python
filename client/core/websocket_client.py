@@ -6,6 +6,7 @@ import socketio
 import wx
 import requests
 from core.api_client import api_get, api_post
+from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_payload
 from core.i18n import I18n
 from core.message_edit import MESSAGE_EDIT, clean_message_id, server_marks_edited
 from core.sync_contracts import observe_payload
@@ -2934,6 +2935,11 @@ class WebSocketClient:
                 }
             }
             _is_edit_event = True
+        elif msg_type == "call_log":
+            # A voice/video call, which WhatsApp keeps as a message of its own
+            # in the chat (core/call_log.py). With no branch here it reached
+            # the list as an unhandled type with every call field dropped.
+            message_content = {CALL_LOG_MESSAGE_TYPE: call_log_payload(wpp_msg)}
         elif msg_type == "gp2":
             # Group membership/settings notifications (join, leave, removed,
             # promoted, subject/description/picture change, …). WPPConnect
@@ -3000,6 +3006,7 @@ class WebSocketClient:
             "gp2": "groupNotification",
             "location": "locationMessage",
             "liveLocation": "liveLocationMessage",
+            "call_log": CALL_LOG_MESSAGE_TYPE,
         }
         mapped_type = type_mapping.get(msg_type, msg_type)
         if _promoted_to_extended_text:
