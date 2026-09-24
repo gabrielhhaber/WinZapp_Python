@@ -1741,8 +1741,11 @@ class ConversationDataDialog(wx.Dialog):
         if not jid or jid.endswith("@g.us") or jid.endswith("@lid"):
             return
         # Schedule navigation after the dialog closes so the main window is
-        # the active window when navigate_to_conversation_jid runs.
-        wx.CallAfter(self._mw.navigate_to_conversation_jid, jid)
+        # the active window when navigate_to_conversation_jid runs. The name
+        # labels a conversation it has to create for someone never talked to.
+        names = getattr(self, "_participant_names", None) or []
+        name = names[idx] if idx < len(names) else ""
+        wx.CallAfter(self._mw.navigate_to_conversation_jid, jid, name)
         self.EndModal(wx.ID_CANCEL)
 
     def _on_part_list_key_down(self, event):
