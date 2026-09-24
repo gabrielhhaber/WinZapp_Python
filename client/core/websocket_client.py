@@ -3058,8 +3058,12 @@ class WebSocketClient:
             normalized["key"]["participant"] = self._clean_jid(participant)
 
         # A group call record names no author; its row reads "<caller>: Ligação
-        # de voz perdida" only if the caller becomes the participant.
-        if msg_type == "call_log" and not participant and remote_jid.endswith("@g.us"):
+        # de voz perdida" only if the caller becomes the participant. Never on
+        # our own record: on_new_message() learns my_lid from a fromMe
+        # message's participant, and a call we joined was created by someone
+        # else -- their @lid would become ours. Our row reads "Eu:" anyway.
+        if (msg_type == "call_log" and not participant and not from_me
+                and remote_jid.endswith("@g.us")):
             creator = call_log_creator(wpp_msg)
             if creator:
                 normalized["key"]["participant"] = creator

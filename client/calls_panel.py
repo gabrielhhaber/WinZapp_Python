@@ -31,6 +31,7 @@ from core.call_log import (
     call_row_text,
     collect_call_logs,
     is_returnable_missed_call,
+    list_update_plan,
 )
 from ui.accessible import AccessibleReturnCallButton
 
@@ -53,6 +54,9 @@ class CallsPanel(wx.Panel):
         self._entries = []
         # Per tab, the entries its list shows, row for row.
         self._rows = {tab: [] for tab in CALL_TABS}
+        # Per tab, what its list shows right now: [(call id or "", text)].
+        # _apply_rows() diffs against it so a reload writes only what changed.
+        self._shown = {tab: [] for tab in CALL_TABS}
         self._lists = {}
         self._list_labels = {}
         self._loaded = False
@@ -201,37 +205,49 @@ class CallsPanel(wx.Panel):
 
     def _show_placeholder(self, text):
         for tab in CALL_TABS:
-            lst = self._lists[tab]
-            lst.Freeze()
-            try:
-                lst.DeleteAllItems()
-                lst.Append((text,))
-            finally:
-                lst.Thaw()
             self._rows[tab] = []
+            self._apply_rows(tab, [("", text)])
         self._update_return_call_button()
 
     def _populate_all(self):
         empty = self.main_window.i18n.t("calls_empty")
         for tab in CALL_TABS:
-            lst = self._lists[tab]
-            keep = self._focused_id(tab)
             rows = [e for e in self._entries if call_log_in_tab(e["msg"], tab)]
+            keep = self._focused_id(tab)
             self._rows[tab] = rows
-            lst.Freeze()
-            try:
-                lst.DeleteAllItems()
-                if not rows:
-                    lst.Append((empty,))
-                for entry in rows:
-                    lst.Append((self._row_text(entry),))
-                target = next((i for i, e in enumerate(rows) if self._entry_id(e) == keep), 0)
-                if lst.GetItemCount():
-                    lst.Focus(target)
-                    lst.Select(target)
-            finally:
-                lst.Thaw()
+            shown = ([(self._entry_id(e), self._row_text(e)) for e in rows]
+                     or [("", empty)])
+            self._apply_rows(tab, shown, keep)
         self._update_return_call_button()
+
+    def _apply_rows(self, tab, shown, keep_id=""):
+        """Bring one list to *shown* ((id, text) rows), touching as little as
+        possible: the calls tab reloads whenever a call record is stored in
+        any chat, and a rebuilt row is read out again by the screen reader
+        (docs/traps/screen-reader-speech.md) -- so an unchanged list is not
+        written at all, and a call whose outcome settled rewrites its row only.
+        """
+        lst = self._lists[tab]
+        action, changes = list_update_plan(self._shown[tab], shown)
+        self._shown[tab] = list(shown)
+        if action == "none":
+            return
+        lst.Freeze()
+        try:
+            if action == "set":
+                for index, text in changes:
+                    lst.SetItemText(index, text)
+                return
+            lst.DeleteAllItems()
+            for _id, text in shown:
+                lst.Append((text,))
+            target = next((i for i, (row_id, _t) in enumerate(shown)
+                           if keep_id and row_id == keep_id), 0)
+            if lst.GetItemCount():
+                lst.Focus(target)
+                lst.Select(target)
+        finally:
+            lst.Thaw()
 
     @staticmethod
     def _entry_id(entry) -> str:
@@ -265,9 +281,7 @@ class CallsPanel(wx.Panel):
 
     def _on_return_call(self, _event=None):
         entry = self.focused_entry()
-        if entry is None:
-            return
-        if not is_returnable_missed_call(entry["msg"], entry["jid"]):
+        if entry is None or not is_returnable_missed_call(entry["msg"], entry["jid"]):
             # Ctrl+Shift+R on anything else: say so rather than do nothing.
             self.main_window.output(
                 self.main_window.i18n.t("return_call_unavailable"), interrupt=True)

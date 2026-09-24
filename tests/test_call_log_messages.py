@@ -229,6 +229,16 @@ class TestRowSaysWhoCalled:
         assert result["key"]["remoteJid"] == "120363406131440471@g.us"
         assert result["key"]["participant"] == PEER_LID
 
+    def test_never_on_our_own_group_call_record(self):
+        """Review: on_new_message() learns my_lid from a fromMe message's
+        participant; a call we joined was created by someone else."""
+        raw = _raw_call(from_me=True)
+        raw["id"] = "true_120363406131440471@g.us_ABC"
+        raw["chatId"] = {"_serialized": "120363406131440471@g.us"}
+        raw["callCreator"] = {"_serialized": "68904344899801:3@lid"}
+        result = _Normalizer()._normalize_wpp_message(raw)
+        assert "participant" not in result["key"]
+
 
 class TestChatList:
     def test_it_can_be_the_chat_preview_but_never_counts(self):

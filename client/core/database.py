@@ -62,6 +62,9 @@ CREATE TABLE IF NOT EXISTS messages (
     status          INTEGER DEFAULT 0,
     PRIMARY KEY (message_id, remote_jid)
 );
+-- The Calls tab reads every call record of every chat (get_call_logs()).
+CREATE INDEX IF NOT EXISTS idx_msgs_type_ts
+    ON messages(message_type, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_msgs_jid_ts
     ON messages(remote_jid, timestamp DESC);
 

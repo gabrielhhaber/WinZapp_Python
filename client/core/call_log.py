@@ -376,3 +376,22 @@ def call_row_text(entry: dict, name: str, label: str, when: str) -> str:
     """
     text = f"{name}: {label}" if name else label
     return f"{text}, {when}" if when else text
+
+
+def list_update_plan(old_rows, new_rows):
+    """How to bring a list showing *old_rows* to *new_rows* (``(id, text)``).
+
+    A rebuilt ListView row is read out again by the screen reader
+    (docs/traps/screen-reader-speech.md), and the Calls tab reloads whenever a
+    call record is stored anywhere, so it must write only what changed:
+    ``("none", [])`` when nothing did, ``("set", [(index, text), ...])`` when
+    the same calls are listed and only some texts changed, ``("rebuild", [])``
+    when the calls themselves differ.
+    """
+    old_rows = list(old_rows or ())
+    new_rows = list(new_rows or ())
+    if [i for i, _ in old_rows] != [i for i, _ in new_rows]:
+        return ("rebuild", [])
+    changed = [(index, new[1]) for index, (old, new) in enumerate(zip(old_rows, new_rows))
+               if old[1] != new[1]]
+    return ("set", changed) if changed else ("none", [])

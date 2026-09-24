@@ -235,12 +235,13 @@ class TestPanel:
         panel._on_item_activated(None)
         assert panel.main_window.opened == ["1@g.us"]
 
-    def test_the_placeholder_row_does_nothing(self):
+    def test_the_placeholder_row_opens_nothing_and_says_why(self):
         panel = _Panel([])
         panel._lists[TAB_ALL].items = [None]  # "Nenhuma ligação."
         panel._on_item_activated(None)
         panel._on_return_call()
         assert panel.main_window.opened == [] and panel.main_window.calls == []
+        assert panel.main_window.spoken == ["[return_call_unavailable]"]
 
 
 class TestRowTextFromThePanel:
@@ -403,3 +404,89 @@ class TestStoredCallLogs:
             await in_memory_db.insert_message(PHONE, _call(call_id=f"C{i}", ts=i))
         rows = await in_memory_db.get_call_logs(limit=2)
         assert [m["key"]["id"] for _, m in rows] == ["C4", "C3"]
+
+
+
+# ── A reload writes only what changed (screen-reader-speech.md) ─────────────
+
+from core.call_log import list_update_plan
+
+
+class TestListUpdatePlan:
+    def test_nothing_changed_writes_nothing(self):
+        rows = [("A", "Maria: perdida"), ("B", "João: atendida")]
+        assert list_update_plan(rows, list(rows)) == ("none", [])
+
+    def test_a_settled_call_rewrites_its_own_row(self):
+        old = [("A", "Maria: em andamento"), ("B", "João: atendida")]
+        new = [("A", "Maria: efetuada, duração: 9s"), ("B", "João: atendida")]
+        assert list_update_plan(old, new) == ("set", [(0, "Maria: efetuada, duração: 9s")])
+
+    def test_a_new_call_rebuilds(self):
+        assert list_update_plan([("A", "x")], [("N", "y"), ("A", "x")]) == ("rebuild", [])
+
+    def test_the_placeholder_to_rows_rebuilds(self):
+        assert list_update_plan([("", "Carregando...")], [("A", "x")]) == ("rebuild", [])
+
+
+class _CountingList(_List):
+    def __init__(self):
+        super().__init__(focused=-1)
+        self.deletes = 0
+        self.appends = []
+        self.set_texts = []
+
+    def Freeze(self):
+        pass
+
+    def Thaw(self):
+        pass
+
+    def DeleteAllItems(self):
+        self.deletes += 1
+        self.items = []
+
+    def Append(self, row):
+        self.appends.append(row[0])
+        self.items.append(row[0])
+
+    def SetItemText(self, index, text):
+        self.set_texts.append((index, text))
+        self.items[index] = text
+
+
+class _ApplyPanel:
+    _apply_rows = CallsPanel._apply_rows
+
+    def __init__(self):
+        self._lists = {TAB_ALL: _CountingList()}
+        self._shown = {TAB_ALL: []}
+
+
+class TestApplyRows:
+    def test_loading_the_same_calls_twice_writes_nothing_the_second_time(self):
+        panel = _ApplyPanel()
+        rows = [("A", "Maria: perdida"), ("B", "João: atendida")]
+        panel._apply_rows(TAB_ALL, rows)
+        lst = panel._lists[TAB_ALL]
+        assert lst.deletes == 1 and lst.appends == ["Maria: perdida", "João: atendida"]
+
+        panel._apply_rows(TAB_ALL, list(rows))
+
+        assert lst.deletes == 1 and len(lst.appends) == 2 and lst.set_texts == []
+
+    def test_one_settled_call_rewrites_only_its_row(self):
+        panel = _ApplyPanel()
+        panel._apply_rows(TAB_ALL, [("A", "Maria: em andamento"), ("B", "João: atendida")])
+        lst = panel._lists[TAB_ALL]
+
+        panel._apply_rows(TAB_ALL, [("A", "Maria: efetuada"), ("B", "João: atendida")])
+
+        assert lst.deletes == 1
+        assert lst.set_texts == [(0, "Maria: efetuada")]
+
+    def test_a_rebuild_keeps_focus_on_the_same_call(self):
+        panel = _ApplyPanel()
+        panel._apply_rows(TAB_ALL, [("A", "a"), ("B", "b")])
+        panel._apply_rows(TAB_ALL, [("N", "n"), ("A", "a"), ("B", "b")], keep_id="B")
+        assert panel._lists[TAB_ALL].focused == 2
