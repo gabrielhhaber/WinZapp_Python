@@ -214,6 +214,26 @@ def call_log_candidate_ids(call_id: str, outgoing: bool, peer_jids) -> list:
     return out
 
 
+def refile_call_log(msg: dict, chat_jid: str) -> dict:
+    """File a fetched call record under *chat_jid*, in place.
+
+    The record's key names whichever JID WhatsApp filed it under (usually the
+    peer's @lid). That form moves to ``remoteJidAlt`` -- which also teaches the
+    app the @lid <-> phone pair -- so the record lands in the chat that already
+    holds its older state.
+    """
+    key = msg.get("key") if isinstance(msg, dict) else None
+    if not isinstance(key, dict) or not chat_jid:
+        return msg
+    original = str(key.get("remoteJid") or "")
+    # Only a genuine @lid/phone pair is worth teaching; two spellings of the
+    # same phone JID are not a mapping.
+    if original.endswith("@lid") and not chat_jid.endswith("@lid"):
+        key["remoteJidAlt"] = original
+    key["remoteJid"] = chat_jid
+    return msg
+
+
 # Seconds between re-reads of a call record: soon after the call ends, when
 # WhatsApp writes the outcome, then settling into one read every five minutes.
 _REFRESH_STEPS = (3, 10, 30, 90)

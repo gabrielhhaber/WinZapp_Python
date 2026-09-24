@@ -219,3 +219,24 @@ def test_is_call_log():
     assert is_call_log(_record()) and is_call_log(_legacy())
     assert not is_call_log({"messageType": "conversation"})
     assert not is_call_log(None)
+
+
+class TestRefile:
+    def test_a_record_named_by_the_lid_moves_to_the_phone_chat(self):
+        from core.call_log import refile_call_log
+        msg = {"key": {"remoteJid": "9@lid", "id": "X"}}
+        refile_call_log(msg, "5511@s.whatsapp.net")
+        assert msg["key"] == {"remoteJid": "5511@s.whatsapp.net", "remoteJidAlt": "9@lid",
+                              "id": "X"}
+
+    def test_two_spellings_of_one_phone_are_not_a_mapping(self):
+        from core.call_log import refile_call_log
+        msg = {"key": {"remoteJid": "5511@s.whatsapp.net", "id": "X"}}
+        refile_call_log(msg, "5511@s.whatsapp.net")
+        assert "remoteJidAlt" not in msg["key"]
+
+    def test_no_chat_leaves_it_alone(self):
+        from core.call_log import refile_call_log
+        msg = {"key": {"remoteJid": "9@lid", "id": "X"}}
+        refile_call_log(msg, "")
+        assert msg["key"] == {"remoteJid": "9@lid", "id": "X"}

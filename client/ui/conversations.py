@@ -17307,13 +17307,21 @@ class ConversationsPanel(wx.Panel):
         if not self.selected_messages: return
 
         msgs_to_delete = []
+        skipped_calls = 0
         for msg_id in self.selected_messages:
             msg = next((m for m in self._sorted_messages if not self._is_separator(m) and m.get("key", {}).get("id") == msg_id), None)
-            # A selected call record takes no part in a mass action; it can
-            # still be deleted on its own from its context menu.
-            if msg and not is_call_log(msg): msgs_to_delete.append(msg)
+            # A selected call record takes no part in a mass action (it can
+            # still be deleted on its own from its context menu); the delete
+            # dialog below counts only what it will actually remove.
+            if msg and is_call_log(msg):
+                skipped_calls += 1
+            elif msg:
+                msgs_to_delete.append(msg)
         if not msgs_to_delete:
             self.selected_messages.clear()
+            if skipped_calls:
+                # Never a silent no-op for a screen-reader user.
+                self.main_window.output(i18n.t("call_log_action_unavailable"), interrupt=True)
             return
 
         conv_jid = self.conversation.get("remoteJid", "") if self.conversation else ""

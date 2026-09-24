@@ -125,10 +125,12 @@ from core.call_log import (
     CALL_LOG_MESSAGE_TYPE,
     LEGACY_CALL_LOG_TYPE,
     call_log_candidate_ids,
+    call_log_label,
     call_log_refresh_delays,
     call_log_supersedes,
     is_call_log,
     is_call_log_pending,
+    refile_call_log,
 )
 from core import browser_payload
 from core.database_bridge import DatabaseBridge
@@ -7751,13 +7753,19 @@ class MainWindow(wx.Frame):
             return
         if str(call_id).startswith("outgoing:"):
             return  # WinZapp's own placeholder, never WhatsApp's call id
-        alternates = [self._normalize_jid(peer_jid)]
-        lid = getattr(self, "_phone_to_lid", {}).get(alternates[0], "")
-        if lid:
-            alternates.insert(0, lid)
+        # Call events name the peer in either form (core/call_matching.py),
+        # and WhatsApp may have filed the record under the other one.
+        peer_jid = self._normalize_jid(peer_jid)
+        if peer_jid.endswith("@lid"):
+            lid = peer_jid
+            phone = getattr(self, "_lid_to_phone", {}).get(lid, "")
+        else:
+            phone = peer_jid
+            lid = getattr(self, "_phone_to_lid", {}).get(phone, "")
         self._start_call_log_watch(
-            call_log_candidate_ids(call_id, outgoing, alternates),
+            call_log_candidate_ids(call_id, outgoing, [lid, phone]),
             self._CALL_LOG_AFTER_END_WATCH_SECONDS,
+            chat_jid=phone or lid,
         )
 
     def _watch_pending_call_log(self, remote_jid: str, msg: dict):
@@ -7777,14 +7785,21 @@ class MainWindow(wx.Frame):
             return
         serialized = self._serialize_msg_id(remote_jid, msg.get("key") or {}, msg)
         if serialized:
-            self._start_call_log_watch([serialized], self._CALL_LOG_PENDING_WATCH_SECONDS)
+            self._start_call_log_watch([serialized], self._CALL_LOG_PENDING_WATCH_SECONDS,
+                                       chat_jid=remote_jid)
 
-    def _start_call_log_watch(self, candidates: list, window_seconds: int):
+    def _start_call_log_watch(self, candidates: list, window_seconds: int, chat_jid: str = ""):
         """Poll message-by-id for a call record until its outcome is settled.
 
         A local read of WhatsApp Web's own store, bounded by *window_seconds*;
         every copy found goes through on_historical_message(), which inserts it
         or replaces the stored older state (call_log_supersedes()).
+
+        Every copy is filed under *chat_jid*, the chat the record belongs in.
+        WhatsApp keys it by whichever form it chose (usually the @lid), and
+        on_historical_message() -- unlike on_new_message() -- does not bridge
+        an @lid to its phone chat: it would open a second, nameless chat with
+        the settled record while the real one kept "em andamento".
         """
         candidates = [c for c in (candidates or []) if c]
         if not candidates:
@@ -7820,11 +7835,13 @@ class MainWindow(wx.Frame):
                         normalized = ws._normalize_wpp_message(raw)
                         if not is_call_log(normalized):
                             return
+                        refile_call_log(normalized, chat_jid)
                         wx.CallAfter(self.on_historical_message, normalized)
                         if not is_call_log_pending(normalized):
                             return
                     else:
-                        return
+                        if not state["restart"]:
+                            return
             except Exception:
                 logging.exception("[call_log] watch failed")
             finally:
@@ -8310,6 +8327,9 @@ class MainWindow(wx.Frame):
                                  what: str = "decrypted copy of stored placeholder") -> None:
         """Replace a stored placeholder with its decrypted copy, in place.
 
+        Also how a call record's newer state replaces the stored one (*what*
+        names which, for the log; core/call_log.py), from either funnel.
+
         _apply_possible_edit() cannot do it: a placeholder has no text, so it
         is never "an edit" there, and the decrypted copy was discarded as a
         duplicate. The row stayed hidden for good (a ciphertext is not a
@@ -8319,7 +8339,7 @@ class MainWindow(wx.Frame):
         """
         prune_message_record(incoming)
         MainWindow._adopt_decrypted_copy(existing, incoming)
-        logging.info("[on_new_message] %s: %s %s filled in (%s).", remote_jid, what,
+        logging.info("[stored record] %s: %s %s filled in (%s).", remote_jid, what,
                      ((existing.get("key") or {}).get("id") or "")[:22],
                      existing.get("messageType"))
 
@@ -33056,8 +33076,9 @@ class MainWindow(wx.Frame):
         if is_call_log(last):
             # Same sentence the conversation row reads (core/call_log.py).
             panel = getattr(self, "conversations_panel", None)
-            content = (panel._get_message_content(last) if panel is not None
-                       else i18n.t("call_log_generic"))
+            content = call_log_label(
+                last, i18n,
+                panel._format_duration if panel is not None else (lambda _s: ""))
         elif msg_type == "conversation":
             content = msg_obj.get("conversation") or ""
             if looks_like_binary_blob(content):

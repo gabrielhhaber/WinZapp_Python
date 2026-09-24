@@ -17,6 +17,7 @@ from main import MainWindow, is_countable_message
 from ui.conversations import ConversationsPanel
 
 PEER_LID = "68904344899801@lid"
+PHONE = "5511999999999@s.whatsapp.net"
 ME_LID = "242558294872167@lid"
 
 
@@ -242,6 +243,7 @@ class _Watcher:
     def __init__(self):
         self.started = []
         self._phone_to_lid = {"5511@s.whatsapp.net": "9@lid"}
+        self._lid_to_phone = {"9@lid": "5511@s.whatsapp.net"}
 
     def _normalize_jid(self, jid):
         return jid.replace("@c.us", "@s.whatsapp.net")
@@ -249,15 +251,28 @@ class _Watcher:
     def _serialize_msg_id(self, remote_jid, key, full_msg=None):
         return f"{'true' if key.get('fromMe') else 'false'}_{remote_jid}_{key.get('id')}"
 
-    def _start_call_log_watch(self, candidates, window):
-        self.started.append((candidates, window))
+    def _start_call_log_watch(self, candidates, window, chat_jid=""):
+        self.started.append((candidates, window, chat_jid))
 
 
 class TestWatch:
     def test_an_ended_call_is_looked_up_under_every_form_of_the_peer(self):
         w = _Watcher()
         w._watch_ended_call_log("CALLID", "5511@c.us", True)
-        assert w.started == [(["true_9@lid_CALLID", "true_5511@c.us_CALLID"], 600)]
+        assert w.started == [(["true_9@lid_CALLID", "true_5511@c.us_CALLID"], 600,
+                              "5511@s.whatsapp.net")]
+
+    def test_a_peer_named_by_its_lid_is_also_looked_up_by_phone(self):
+        """Review: incoming-call events often carry the @lid."""
+        w = _Watcher()
+        w._watch_ended_call_log("CALLID", "9@lid", False)
+        assert w.started == [(["false_9@lid_CALLID", "false_5511@c.us_CALLID"], 600,
+                              "5511@s.whatsapp.net")]
+
+    def test_an_unmapped_lid_stays_the_chat(self):
+        w = _Watcher()
+        w._watch_ended_call_log("CALLID", "7@lid", False)
+        assert w.started == [(["false_7@lid_CALLID"], 600, "7@lid")]
 
     def test_not_for_a_group_or_without_a_real_call_id(self):
         w = _Watcher()
@@ -271,7 +286,8 @@ class TestWatch:
         msg = _normalized(outcome="Ongoing")
         msg["messageTimestamp"] = int(time.time()) - 60
         w._watch_pending_call_log(PEER_LID, msg)
-        assert w.started == [([f"false_{PEER_LID}_00350D7FFB27065CBC5DF80E49E6B7CF"], 10800)]
+        assert w.started == [([f"false_{PEER_LID}_00350D7FFB27065CBC5DF80E49E6B7CF"], 10800,
+                              PEER_LID)]
 
     def test_an_old_or_settled_record_is_not(self):
         w = _Watcher()
@@ -350,7 +366,7 @@ class TestWatchLoop:
         monkeypatch.setattr(main_module.time, "sleep", lambda s: None)
         monkeypatch.setattr(main_module.wx, "CallAfter",
                             lambda fn, msg: delivered.append(msg))
-        stub._start_call_log_watch(["false_9@lid_X"], window)
+        stub._start_call_log_watch(["false_9@lid_X"], window, chat_jid=PHONE)
         return delivered
 
     def test_stops_once_the_outcome_is_settled(self, monkeypatch):
@@ -361,7 +377,107 @@ class TestWatchLoop:
         assert stub.fetches == 3
         assert stub._watched_call_logs == {}
 
+    def test_every_copy_is_filed_under_the_chat_it_belongs_in(self, monkeypatch):
+        stub = self._Stub([_raw_call(outcome="Missed")])
+        (delivered,) = self._run(monkeypatch, stub)
+        assert delivered["key"]["remoteJid"] == PHONE
+        assert delivered["key"]["remoteJidAlt"] == PEER_LID
+
     def test_gives_up_at_the_end_of_its_window(self, monkeypatch):
         stub = self._Stub([])
         assert self._run(monkeypatch, stub, window=50) == []
         assert stub.fetches == 3  # 3 + 10 + 30 s fit in 50 s, the 90 s wait does not
+
+
+# ── The settled record replaces the stored one, in the phone chat ──────────
+
+class _Executor:
+    def submit(self, fn):
+        return None
+
+
+class _HistoricalStub:
+    """on_historical_message() for real, as in test_historical_self_chat_guard."""
+    on_historical_message = MainWindow.on_historical_message
+    _fill_stored_placeholder = MainWindow._fill_stored_placeholder
+    _adopt_decrypted_copy = staticmethod(MainWindow._adopt_decrypted_copy)
+    _is_undecrypted_placeholder = staticmethod(MainWindow._is_undecrypted_placeholder)
+    _recover_quoted_placeholder = MainWindow._recover_quoted_placeholder
+    _recover_placeholders_from_replies = MainWindow._recover_placeholders_from_replies
+    _drop_protocol_edit = MainWindow._drop_protocol_edit
+    _redirect_self_chat_artifact = MainWindow._redirect_self_chat_artifact
+    _phone_digits_equivalent = staticmethod(MainWindow._phone_digits_equivalent)
+    _is_self_jid = MainWindow._is_self_jid
+
+    def __init__(self):
+        self.my_jid = "5500000000000@s.whatsapp.net"
+        self.my_lid = ME_LID
+        self._lid_to_phone = {}
+        self.chats = {}
+        self._msg_bg_executor = _Executor()
+        self.watched = []
+
+    def _normalize_jid(self, jid):
+        return MainWindow._normalize_jid(jid)
+
+    def _live_events_ready(self):
+        return True
+
+    def _extract_lid_mapping(self, msg):
+        pass
+
+    def _learn_sender_name(self, msg):
+        return False
+
+    def _apply_group_subject_change(self, remote_jid, chat, msg):
+        pass
+
+    def _fill_group_name(self, remote_jid):
+        return ""
+
+    def _is_cleared_message(self, remote_jid, msg):
+        return False
+
+    def _schedule_save(self, dirty_jid=None):
+        pass
+
+    def _schedule_set_chats(self):
+        pass
+
+    def _watch_pending_call_log(self, remote_jid, msg):
+        self.watched.append(remote_jid)
+
+
+class TestSettledRecordReplacesTheStoredOne:
+    def _stub_with_ongoing_record(self):
+        from core.call_log import refile_call_log
+        stub = _HistoricalStub()
+        ongoing = refile_call_log(_normalized(outcome="Ongoing", from_me=True), PHONE)
+        stub.on_historical_message(ongoing)
+        assert list(stub.chats) == [PHONE]
+        return stub
+
+    def test_no_second_chat_and_the_row_settles(self):
+        """Review: the copy fetched by id names the @lid; filed as-is it opened
+        a nameless @lid chat while the phone chat kept "em andamento"."""
+        from core.call_log import refile_call_log
+        stub = self._stub_with_ongoing_record()
+
+        settled = refile_call_log(
+            _normalized(outcome="Completed", from_me=True, duration=42), PHONE)
+        stub.on_historical_message(settled)
+
+        assert list(stub.chats) == [PHONE]
+        (record,) = stub.chats[PHONE]["messages"]["messages"]["records"]
+        assert record["message"]["callLogMessage"]["outcome"] == "Completed"
+        assert record["message"]["callLogMessage"]["durationSeconds"] == 42
+
+    def test_an_identical_copy_changes_nothing(self):
+        from core.call_log import refile_call_log
+        stub = self._stub_with_ongoing_record()
+        before = dict(stub.chats[PHONE]["messages"]["messages"]["records"][0])
+
+        stub.on_historical_message(
+            refile_call_log(_normalized(outcome="Ongoing", from_me=True), PHONE))
+
+        assert stub.chats[PHONE]["messages"]["messages"]["records"] == [before]
