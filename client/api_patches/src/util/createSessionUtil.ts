@@ -605,85 +605,85 @@ async function restoreMsgKeySerialized(
 }
 
 /**
- * Adapt WA-JS's status sender to WhatsApp Web's current object argument.
+ * Adapt WhatsApp Web's status sender to WA-JS's positional call.
  *
- * WA-JS still calls encryptAndSendStatusMsg(msg, proto, reporters), while the
- * current WhatsApp module expects { sendMsgRecord, msgProtobuf,
- * metricsReporter }. The old call throws inside the page, WA-JS swallows it,
- * and the API only sees messageSendResult=ERROR_UNKNOWN.
+ * WA-JS 4.6.0 wraps WAWebSendMsgJob.encryptAndSendMsg and, for a
+ * status@broadcast record, calls encryptAndSendStatusMsg(msg, proto, reporter)
+ * positionally, inside a try/catch that turns ANY error into `return null`.
+ * Current WhatsApp takes one object, { sendMsgRecord, msgProtobuf,
+ * metricsReporter }, so the positional call throws, WA-JS swallows it and the
+ * API only ever sees messageSendResult=ERROR_UNKNOWN - for text, image, video
+ * and audio statuses alike.
+ *
+ * The first version of this shim wrapped encryptAndSendMsg itself, which only
+ * works while it is the OUTERMOST wrapper. Measured over CDP on 2026-09-23
+ * (WhatsApp Web 2.3000.1048298845): WA-JS's wrapper had ended up outside ours,
+ * a fake status record reached encryptAndSendStatusMsg with 3 positional
+ * arguments, and every post failed again. So the adapter now sits on
+ * encryptAndSendStatusMsg: WA-JS reads that export live (the same probe saw a
+ * replacement take effect), so both call shapes are served whatever order the
+ * wrappers were installed in. An object call - WhatsApp's own - passes
+ * through untouched.
  */
 async function restoreStatusSender(page: any, logger: any, session: string) {
   if (!page) return;
   try {
     const result = await page.evaluate(() => {
-      const install = () => {
+      // Returns what it did as a string, or '' when WhatsApp is not ready yet:
+      // the log line is the first thing read when statuses fail again, so it
+      // must say "skipped" when it skipped, and which length it saw.
+      const install = (): string => {
         const wpp = (window as any).WPP;
-        if (!wpp?.loader?.moduleRequire) return false;
-        if ((window as any).__winzappStatusSenderInstalled) return true;
+        if (!wpp?.loader?.moduleRequire) return '';
 
         try {
-          const sendModule = wpp.loader.moduleRequire('WAWebSendMsgJob');
           const statusModule = wpp.loader.moduleRequire(
             'WAWebEncryptAndSendStatusMsg'
           );
-          const protoModule = wpp.loader.moduleRequire(
-            'WAWebE2EProtoGenerator'
-          );
-          const original = sendModule?.encryptAndSendMsg;
           const sendStatus = statusModule?.encryptAndSendStatusMsg;
-
-          // The legacy function accepts positional arguments and needs no shim.
-          if (
-            typeof original !== 'function' ||
-            typeof sendStatus !== 'function' ||
-            typeof protoModule?.createMsgProtobuf !== 'function' ||
-            sendStatus.length !== 1
-          ) {
-            return false;
+          if (typeof sendStatus !== 'function') return '';
+          if (sendStatus.__winzappPositionalAdapter) return 'already installed';
+          // Current WhatsApp takes one object (length 1); a wrapper around it
+          // - WA-JS's own wrapFunction shape, (...r) => t(e, ...r) - reports 0.
+          // Only a sender declaring 2+ parameters still takes the positional
+          // call WA-JS makes, and needs no adapter.
+          if (sendStatus.length > 1) {
+            return `skipped: sender takes ${sendStatus.length} positional args`;
           }
 
-          sendModule.encryptAndSendMsg = async function (
-            sendMsgRecord: any,
-            metricsReporter: any,
-            ...additionalArgs: any[]
-          ) {
-            if (
-              sendMsgRecord?.data?.to?.toString?.() !== 'status@broadcast'
-            ) {
-              return original.apply(this, [
-                sendMsgRecord,
-                metricsReporter,
-                ...additionalArgs,
-              ]);
+          const adapted = function (this: any, first: any, ...rest: any[]) {
+            if (first && typeof first === 'object' && 'sendMsgRecord' in first) {
+              return sendStatus.call(this, first, ...rest);
             }
-
-            await sendStatus({
-              sendMsgRecord,
-              msgProtobuf: protoModule.createMsgProtobuf(sendMsgRecord.data),
+            const [msgProtobuf, metricsReporter] = rest;
+            return sendStatus.call(this, {
+              sendMsgRecord: first,
+              msgProtobuf,
               metricsReporter,
             });
-
-            return {
-              t: sendMsgRecord.data.t,
-              sync: null,
-              phash: null,
-              addressingMode: null,
-              count: null,
-              error: null,
-            };
           };
-
-          (window as any).__winzappStatusSenderInstalled = true;
-          return true;
+          (adapted as any).__winzappPositionalAdapter = true;
+          statusModule.encryptAndSendStatusMsg = adapted;
+          return `installed (sender length ${sendStatus.length})`;
         } catch (e) {
-          return false;
+          return '';
         }
       };
 
-      if (install()) return 'installed';
+      const now = install();
+      if (now) return now;
       let tries = 0;
       const timer = setInterval(() => {
-        if (install() || ++tries > 60) clearInterval(timer);
+        const outcome = install();
+        if (outcome || ++tries > 60) {
+          clearInterval(timer);
+          // Reaches wppconnect.log through the page console forwarder.
+          console.log(
+            `[browser-evaluate] status sender shim: ${
+              outcome || 'gave up (WhatsApp modules never became ready)'
+            }`
+          );
+        }
       }, 500);
       return 'scheduled (WhatsApp modules not ready yet)';
     });
