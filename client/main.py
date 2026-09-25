@@ -103,6 +103,12 @@ from core.websocket_client import WebSocketClient
 from core.api_client import api_get, api_post, redact_credentials
 from core.pii_redaction import redact_phone
 from core.send_contract import accepted_message_id, send_failure_is_ambiguous
+from core.meta_ai import (
+    STATE_ACCEPTED,
+    STATE_NOT_ACCEPTED,
+    is_meta_ai_jid,
+    terms_state,
+)
 from core.wpp_runtime import (
     read_homologated_wpp_version, wppconnect_library_drift, WPPCONNECT_PACKAGE,
 )
@@ -8594,6 +8600,19 @@ class MainWindow(wx.Frame):
                 return (mo.get("extendedTextMessage") or {}).get("text") or ""
             return None  # not a text message — never treat as an edit
 
+        # Meta AI streams its answer: a reply stored before its words arrived
+        # is an empty "rich_response" (websocket_client.py normalizes only one
+        # that already has text), and the filled copy comes back under the same
+        # id. That is the message finishing, not an edit -- take it whole and
+        # do not mark it "edited".
+        if (existing.get("messageType") == "rich_response"
+                and not (existing.get("message") or {})
+                and _text_of(incoming)):
+            existing["message"] = incoming.get("message")
+            existing["messageType"] = incoming.get("messageType", "conversation")
+            self._persist_and_repaint_edit(existing, remote_jid)
+            return
+
         old_text = _text_of(existing)
         new_text = _text_of(incoming)
         if old_text is not None and old_text == new_text:
@@ -11263,6 +11282,69 @@ class MainWindow(wx.Frame):
     # is whether one incompatibility warning is spoken, so it must never turn
     # into a background poller of a route that runs page.evaluate work.
     _SEND_CAPABILITIES_RETRY_DELAYS = (30.0, 120.0)
+
+    def meta_ai_terms_state(self) -> str:
+        """Whether this account accepted Meta AI's terms: accepted / not_accepted
+        / unknown. Unknown (probe failed, session detached) never blocks a send."""
+        try:
+            url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/meta-ai-terms"
+            return terms_state(api_get(url, token=self.token, timeout=8).json())
+        except Exception:
+            logging.warning("[meta_ai] terms state probe failed", exc_info=True)
+            return "unknown"
+
+    def accept_meta_ai_terms(self) -> bool:
+        """Record the user's acceptance with WhatsApp. True only when it stuck."""
+        try:
+            url = (f"{self.wpp_server}:{self.wpp_port}/api/{self.token}"
+                   "/meta-ai-terms/accept")
+            response = api_post(url, token=self.token, json={}, timeout=20)
+            return response.status_code == 200 and (
+                terms_state(response.json()) == STATE_ACCEPTED)
+        except Exception:
+            logging.warning("[meta_ai] accepting the terms failed", exc_info=True)
+            return False
+
+    def ensure_meta_ai_terms(self, remote_jid: str) -> bool:
+        """Before a message to Meta AI: True when it may be sent.
+
+        WhatsApp refuses every message to Meta AI until its terms are accepted
+        (core/meta_ai.py). If they are not, the user is asked, with the terms a
+        link away and a checkbox that must be ticked; nothing is accepted for
+        them otherwise. Declining keeps the text in the composer.
+        """
+        if not is_meta_ai_jid(remote_jid):
+            return True
+        if getattr(self, "_meta_ai_terms_accepted", False):
+            return True
+        # A probe that could not answer costs up to 8 s on the UI thread; do
+        # not repeat it on every message while the session is wedged.
+        if time.monotonic() < getattr(self, "_meta_ai_probe_retry_at", 0.0):
+            return True
+        state = self.meta_ai_terms_state()
+        if state != STATE_NOT_ACCEPTED:
+            if state == STATE_ACCEPTED:
+                self._meta_ai_terms_accepted = True
+            else:
+                self._meta_ai_probe_retry_at = time.monotonic() + 60.0
+            return True
+        from ui.dialogs.meta_ai_terms import MetaAiTermsDialog
+        dialog = MetaAiTermsDialog(self, self.i18n)
+        try:
+            agreed = dialog.ShowModal() == wx.ID_OK
+        finally:
+            dialog.Destroy()
+        if not agreed:
+            return False
+        if not self.accept_meta_ai_terms():
+            wx.MessageBox(
+                self.i18n.t("meta_ai_terms_failed"),
+                self.i18n.t("meta_ai_terms_title"),
+                wx.OK | wx.ICON_ERROR,
+            )
+            return False
+        self._meta_ai_terms_accepted = True
+        return True
 
     def _check_send_capabilities(self):
         """Warn once when an update changed a send API WinZapp depends on.
@@ -27966,6 +28048,16 @@ class MainWindow(wx.Frame):
                 # ends up in msg.last_error and, for media, in a MessageBox.
                 # The log gets the detail, the user gets a translated reason.
                 logging.error("[send_text_message] invalid success response: %s", exc)
+                # A refusal (negative ACK) from Meta AI's chat means its terms
+                # were not accepted (core/meta_ai.py) -- say so, rather than
+                # sending the user off to check a conversation for a message
+                # that never left.
+                if getattr(exc, "reason", "") == "rejected" and is_meta_ai_jid(remote_jid):
+                    return {
+                        "ok": False,
+                        "error": self.i18n.t("meta_ai_send_rejected_error"),
+                        "retry": False,
+                    }
                 return {
                     "ok": False,
                     "error": self.i18n.t("send_not_confirmed_error"),

@@ -1656,6 +1656,63 @@ export async function reactMessage(req: Request, res: Response) {
   }
 }
 
+// Meta AI refuses every message (ack -1, ackErrorCode 488) until the account
+// has accepted its terms of service. WhatsApp Web keeps that as a user notice
+// in TosManager; the master-bot notice id is asked of WAWebBotGating so a
+// renumbered notice is followed, with the id seen in production as fallback.
+// Measured 2026-09-25: getState('20250502') was NOT_ACCEPTED on the account
+// that got the 488, and WhatsApp Web's own sendTextMsgToChat failed the same.
+const META_AI_NOTICE_ID_FALLBACK = '20250502';
+
+export async function getMetaAiTerms(req: Request, res: Response) {
+  try {
+    const result = await req.client.page.evaluate((fallbackId: string) => {
+      const WPP = (window as any).WPP;
+      const gating = WPP?.loader?.moduleRequire?.('WAWebBotGating');
+      const tos = WPP?.loader?.moduleRequire?.('WAWebTos')?.TosManager;
+      const id = String(gating?.getMasterBotNoticeId?.() ?? fallbackId);
+      return { noticeId: id, state: tos ? tos.getState(id) : 'UNKNOWN' };
+    }, META_AI_NOTICE_ID_FALLBACK);
+    res.status(200).json({ status: 'success', response: result });
+  } catch (error: any) {
+    req.logger.error(`[meta-ai-terms] read failed: ${error?.message || error}`);
+    res.status(500).json({ status: 'error', message: error?.message || String(error) });
+  }
+}
+
+/** Record the user's acceptance of Meta AI's terms. Only called after the
+ * user ticked the checkbox in WinZapp's own dialog. */
+export async function acceptMetaAiTerms(req: Request, res: Response) {
+  try {
+    const result = await req.client.page.evaluate(async (fallbackId: string) => {
+      const WPP = (window as any).WPP;
+      const gating = WPP?.loader?.moduleRequire?.('WAWebBotGating');
+      const tos = WPP?.loader?.moduleRequire?.('WAWebTos')?.TosManager;
+      if (!tos) return { noticeId: fallbackId, state: 'UNKNOWN', error: 'tos-manager-missing' };
+      const id = String(gating?.getMasterBotNoticeId?.() ?? fallbackId);
+      tos.setState(id, 'ACCEPTED');
+      // Tell WhatsApp's server, the same call WhatsApp Web makes after its
+      // own accept button; the local state alone would not lift the refusal.
+      let serverError: string | undefined;
+      try {
+        await tos.maybeUpdateServer(id);
+      } catch (e: any) {
+        serverError = String(e?.message || e);
+      }
+      return { noticeId: id, state: tos.getState(id), serverError };
+    }, META_AI_NOTICE_ID_FALLBACK);
+    req.logger.info(`[meta-ai-terms] accept -> ${JSON.stringify(result)}`);
+    const accepted = result.state === 'ACCEPTED' && !result.serverError;
+    res.status(accepted ? 200 : 409).json({
+      status: accepted ? 'success' : 'error',
+      response: result,
+    });
+  } catch (error: any) {
+    req.logger.error(`[meta-ai-terms] accept failed: ${error?.message || error}`);
+    res.status(500).json({ status: 'error', message: error?.message || String(error) });
+  }
+}
+
 /** Read-only compatibility probe for every send primitive WinZapp uses. */
 export async function getSendCapabilities(req: Request, res: Response) {
   try {

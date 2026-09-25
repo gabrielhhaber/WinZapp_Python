@@ -2571,6 +2571,11 @@ class ConversationsPanel(wx.Panel):
             return
 
         # ── Normal send ──────────────────────────────────────────────────────
+        # WhatsApp refuses Meta AI until its terms are accepted: ask first,
+        # and keep the typed text if the user declines.
+        if not self.main_window.ensure_meta_ai_terms(remote_jid):
+            self._last_sent_signature = None
+            return
         self._send_new_text_message(text, remote_jid)
 
     def _apply_message_edit(self, text: str, remote_jid: str):
