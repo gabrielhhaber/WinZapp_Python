@@ -30,6 +30,8 @@ PIN_MIN_LENGTH = 6
 PIN_MAX_LENGTH = 12
 REVEAL_CODE_MIN_LENGTH = 4
 REVEAL_CODE_MAX_LENGTH = 64
+AUTO_LOCK_DEFAULT_MINUTES = 5
+AUTO_LOCK_MINUTE_OPTIONS = (5, 15, 30, 60, 0)
 
 _SCRYPT_N = 1 << 14
 _SCRYPT_R = 8
@@ -119,6 +121,9 @@ class ChatLockVault:
             "version": VAULT_VERSION,
             "configured": False,
             "hide_navigation": True,
+            "auto_lock_minutes": AUTO_LOCK_DEFAULT_MINUTES,
+            "pin_failures": 0,
+            "pin_locked_until": 0.0,
             "locked_jids": [],
             "pin": None,
             "recovery": None,
@@ -149,6 +154,27 @@ class ChatLockVault:
         self._state["locked_jids"] = list(dict.fromkeys(jid for jid in locked if jid))
         self._state["configured"] = bool(self._state.get("configured"))
         self._state["hide_navigation"] = bool(self._state.get("hide_navigation", True))
+        try:
+            auto_lock_minutes = int(self._state.get(
+                "auto_lock_minutes", AUTO_LOCK_DEFAULT_MINUTES
+            ))
+        except (TypeError, ValueError):
+            auto_lock_minutes = AUTO_LOCK_DEFAULT_MINUTES
+        if auto_lock_minutes not in AUTO_LOCK_MINUTE_OPTIONS:
+            auto_lock_minutes = AUTO_LOCK_DEFAULT_MINUTES
+        self._state["auto_lock_minutes"] = auto_lock_minutes
+        try:
+            pin_failures = max(0, int(self._state.get("pin_failures", 0)))
+        except (TypeError, ValueError):
+            pin_failures = 0
+        try:
+            pin_locked_until = max(
+                0.0, float(self._state.get("pin_locked_until", 0.0))
+            )
+        except (TypeError, ValueError):
+            pin_locked_until = 0.0
+        self._state["pin_failures"] = pin_failures
+        self._state["pin_locked_until"] = pin_locked_until
         if self.configured and not all(
             isinstance(self._state.get(name), dict)
             for name in ("pin", "recovery", "reveal")
@@ -166,6 +192,12 @@ class ChatLockVault:
     @property
     def locked_jids(self) -> frozenset[str]:
         return frozenset(self._state.get("locked_jids", ()))
+
+    @property
+    def auto_lock_minutes(self) -> int:
+        return int(self._state.get(
+            "auto_lock_minutes", AUTO_LOCK_DEFAULT_MINUTES
+        ))
 
     def configure(self, pin: str, reveal_code: str) -> str:
         if self.configured:
@@ -217,6 +249,20 @@ class ChatLockVault:
         self._state["recovery"] = _secret_record(
             normalize_recovery_code(new_recovery)
         )
+        self.clear_pin_failures()
+        return new_recovery
+
+    def change_pin(self, current_pin: str, new_pin: str) -> str:
+        if not self.verify_pin(current_pin):
+            raise ValueError("current PIN is invalid")
+        if not validate_pin(new_pin):
+            raise ValueError("PIN must contain 6 to 12 ASCII digits")
+        new_recovery = generate_recovery_code()
+        self._state["pin"] = _secret_record(new_pin)
+        self._state["recovery"] = _secret_record(
+            normalize_recovery_code(new_recovery)
+        )
+        self.clear_pin_failures()
         return new_recovery
 
     def change_reveal_code(self, pin: str, reveal_code: str) -> None:
@@ -228,6 +274,49 @@ class ChatLockVault:
 
     def set_hide_navigation(self, hide: bool) -> None:
         self._state["hide_navigation"] = bool(hide)
+
+    def set_auto_lock_minutes(self, minutes: int) -> None:
+        try:
+            value = int(minutes)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("unsupported vault auto-lock timeout") from exc
+        if value not in AUTO_LOCK_MINUTE_OPTIONS:
+            raise ValueError("unsupported vault auto-lock timeout")
+        self._state["auto_lock_minutes"] = value
+
+    def remaining_pin_lockout_seconds(
+        self, clock: Callable[[], float] = time.time,
+    ) -> int:
+        remaining = float(self._state.get("pin_locked_until", 0.0)) - clock()
+        return max(0, int(remaining + 0.999))
+
+    def record_pin_failure(
+        self,
+        *,
+        clock: Callable[[], float] = time.time,
+        max_attempts: int = 3,
+        lockout_seconds: float = 30.0,
+    ) -> int:
+        remaining = self.remaining_pin_lockout_seconds(clock)
+        if remaining:
+            return remaining
+        failures = int(self._state.get("pin_failures", 0)) + 1
+        if failures >= max_attempts:
+            self._state["pin_failures"] = 0
+            self._state["pin_locked_until"] = clock() + lockout_seconds
+        else:
+            self._state["pin_failures"] = failures
+            self._state["pin_locked_until"] = 0.0
+        return self.remaining_pin_lockout_seconds(clock)
+
+    def clear_pin_failures(self) -> bool:
+        changed = bool(
+            self._state.get("pin_failures", 0)
+            or self._state.get("pin_locked_until", 0.0)
+        )
+        self._state["pin_failures"] = 0
+        self._state["pin_locked_until"] = 0.0
+        return changed
 
     def lock_chat(self, jid: str) -> None:
         if not self.configured:

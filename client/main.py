@@ -136,7 +136,6 @@ from core import browser_payload
 from core.database_bridge import DatabaseBridge
 from core.chat_lock_vault import (
     ChatLockVault,
-    PinAttemptLimiter,
     VaultStateError,
     jid_fingerprint,
     validate_pin,
@@ -157,6 +156,7 @@ from ui.conversations import (
 )
 from ui.chat_lock import (
     ID_FORGOT_PIN,
+    ChatLockChangePinDialog,
     ChatLockRecoveryDialog,
     ChatLockRevealDialog,
     ChatLockSetupDialog,
@@ -2957,6 +2957,7 @@ class MainWindow(wx.Frame):
         self._presence_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER,    self._on_presence_timer,   self._presence_timer)
         self.Bind(wx.EVT_ACTIVATE, self._on_window_activate)
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_chat_lock_char_hook)
         self._presence_debounce_timer = None
 
         # ── System tray icon ──────────────────────────────────────────────────
@@ -13108,6 +13109,12 @@ class MainWindow(wx.Frame):
         dlg = SettingsDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
+        # Settings opened with the vault locked (above), so it can only be
+        # unlocked now if its "Locked chats" tab authenticated -- close it
+        # again. Only then: locking rebuilds the navigation list, which a
+        # screen reader re-announces, so an untouched vault is left alone.
+        if getattr(self, "_chat_lock_unlocked", False):
+            self.lock_chat_vault(silent=True, show_conversations=False)
 
     def _refresh_call_language_surfaces(self):
         """Re-translate call UI that can stay alive while Settings is open."""
@@ -14903,7 +14910,7 @@ class MainWindow(wx.Frame):
             self._chat_lock_vault = None
             self._chat_lock_state_error = True
         self._chat_lock_unlocked = False
-        self._chat_lock_limiter = PinAttemptLimiter()
+        self._chat_lock_timeout_timer = None
         self._locked_chat_rows = ([], [])
 
     def _chat_lock_candidates(self, jid: str) -> set[str]:
@@ -14989,6 +14996,22 @@ class MainWindow(wx.Frame):
         finally:
             dialog.Destroy()
 
+    def _verify_chat_lock_pin(self, vault: ChatLockVault, pin: str) -> bool:
+        """Verify a PIN and persist the restart-resistant attempt state."""
+        remaining = vault.remaining_pin_lockout_seconds()
+        if remaining:
+            self._chat_lock_error("chat_lock_wait", seconds=remaining)
+            return False
+        if vault.verify_pin(pin):
+            if vault.clear_pin_failures():
+                self._persist_chat_lock_vault()
+            return True
+        remaining = vault.record_pin_failure()
+        self._persist_chat_lock_vault()
+        key = "chat_lock_wait" if remaining else "chat_lock_wrong_pin"
+        self._chat_lock_error(key, seconds=remaining)
+        return False
+
     def _configure_chat_lock_vault(self) -> bool:
         dialog = ChatLockSetupDialog(self, self.i18n)
         try:
@@ -15055,7 +15078,6 @@ class MainWindow(wx.Frame):
                     )
                     return False
                 self._persist_chat_lock_vault()
-                self._chat_lock_limiter.record_success()
                 return True
             return False
         finally:
@@ -15089,28 +15111,35 @@ class MainWindow(wx.Frame):
                     continue
                 if result != wx.ID_OK:
                     return False
-                remaining = self._chat_lock_limiter.remaining_seconds()
-                if remaining:
-                    self._chat_lock_error("chat_lock_wait", seconds=remaining)
-                    dialog.pin.SetFocus()
-                    continue
-                if not vault.verify_pin(dialog.pin.GetValue()):
-                    remaining = self._chat_lock_limiter.record_failure()
-                    key = "chat_lock_wait" if remaining else "chat_lock_wrong_pin"
-                    self._chat_lock_error(key, seconds=remaining)
+                if not self._verify_chat_lock_pin(vault, dialog.pin.GetValue()):
                     dialog.pin.SetValue("")
                     dialog.pin.SetFocus()
                     continue
-                self._chat_lock_limiter.record_success()
                 self._chat_lock_unlocked = True
                 break
         finally:
             dialog.Destroy()
 
         self._refresh_chat_lock_navigation()
+        self._arm_chat_lock_timeout()
         if show_panel:
             self.show_locked_chats_panel()
         return True
+
+    def unlock_chat_lock_settings(self) -> bool:
+        """Authenticate or set up the vault without opening its chat list."""
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None:
+            self._chat_lock_error("chat_lock_state_unavailable")
+            return False
+        if not vault.configured:
+            if not self._configure_chat_lock_vault():
+                return False
+            self._chat_lock_unlocked = True
+            self._refresh_chat_lock_navigation()
+            self._arm_chat_lock_timeout()
+            return True
+        return self.unlock_chat_lock_vault(show_panel=False)
 
     def try_reveal_locked_chats(self, value: str) -> bool:
         vault = getattr(self, "_chat_lock_vault", None)
@@ -15144,6 +15173,7 @@ class MainWindow(wx.Frame):
             if self.is_chat_locked(cp.conversation.get("remoteJid", "")):
                 cp.close_conversation_for_panel_switch()
         self._chat_lock_unlocked = False
+        self._cancel_chat_lock_timeout()
         self._refresh_chat_lock_navigation()
         self._schedule_set_chats()
         self.output(self.i18n.t("chat_lock_chat_locked"), interrupt=True)
@@ -15156,6 +15186,7 @@ class MainWindow(wx.Frame):
             vault.unlock_chat(candidate)
         self._persist_chat_lock_vault()
         self._schedule_set_chats()
+        self.touch_chat_lock_timeout()
         self.output(self.i18n.t("chat_lock_chat_unlocked"), interrupt=True)
 
     def _forget_chat_lock(self, jid: str):
@@ -15193,16 +15224,123 @@ class MainWindow(wx.Frame):
         vault.set_hide_navigation(hide)
         self._persist_chat_lock_vault()
         self._refresh_chat_lock_navigation()
+        self.touch_chat_lock_timeout()
+
+    def _cancel_chat_lock_timeout(self):
+        timer = getattr(self, "_chat_lock_timeout_timer", None)
+        if timer is not None:
+            try:
+                timer.Stop()
+            except Exception:
+                logging.exception("[chat-lock] could not stop auto-lock timer")
+        self._chat_lock_timeout_timer = None
+
+    def _arm_chat_lock_timeout(self):
+        vault = getattr(self, "_chat_lock_vault", None)
+        if (
+            vault is None
+            or not vault.configured
+            or not getattr(self, "_chat_lock_unlocked", False)
+            or vault.auto_lock_minutes <= 0
+        ):
+            self._cancel_chat_lock_timeout()
+            return
+        delay_ms = vault.auto_lock_minutes * 60 * 1000
+        timer = getattr(self, "_chat_lock_timeout_timer", None)
+        if timer is not None:
+            try:
+                timer.Restart(delay_ms)
+                return
+            except Exception:
+                logging.exception("[chat-lock] could not restart auto-lock timer")
+                self._cancel_chat_lock_timeout()
+        self._chat_lock_timeout_timer = wx.CallLater(
+            delay_ms,
+            self._on_chat_lock_timeout,
+        )
+
+    def touch_chat_lock_timeout(self):
+        """Restart the inactivity timeout after input in an open vault."""
+        if getattr(self, "_chat_lock_unlocked", False):
+            self._arm_chat_lock_timeout()
+
+    def _on_chat_lock_char_hook(self, event):
+        """Track keyboard activity and provide a global emergency close key."""
+        try:
+            modifiers = event.GetModifiers()
+            if (
+                modifiers == (wx.MOD_CONTROL | wx.MOD_SHIFT)
+                and event.GetKeyCode() == ord("K")
+                and getattr(self, "_chat_lock_unlocked", False)
+            ):
+                self.lock_chat_vault()
+                return
+            self.touch_chat_lock_timeout()
+        except Exception:
+            logging.exception("[chat-lock] activity hotkey handler failed")
+        event.Skip()
+
+    def _on_chat_lock_timeout(self):
+        self._chat_lock_timeout_timer = None
+        if not getattr(self, "_chat_lock_unlocked", False):
+            return
+        self.lock_chat_vault(silent=True)
+        self.output(self.i18n.t("chat_lock_timed_out"), interrupt=True)
+
+    def set_chat_lock_timeout_minutes(self, minutes: int):
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None or not self._chat_lock_unlocked:
+            return
+        vault.set_auto_lock_minutes(minutes)
+        self._persist_chat_lock_vault()
+        self._arm_chat_lock_timeout()
+
+    def change_chat_lock_pin(self):
+        vault = getattr(self, "_chat_lock_vault", None)
+        if vault is None or not self._chat_lock_unlocked:
+            return
+        self._cancel_chat_lock_timeout()
+        dialog = ChatLockChangePinDialog(self, self.i18n)
+        try:
+            while dialog.ShowModal() == wx.ID_OK:
+                if not self._verify_chat_lock_pin(vault, dialog.current.GetValue()):
+                    dialog.current.SetValue("")
+                    dialog.current.SetFocus()
+                    continue
+                pin = dialog.pin.GetValue()
+                if not validate_pin(pin):
+                    self._chat_lock_error("chat_lock_pin_invalid")
+                    dialog.pin.SetFocus()
+                    continue
+                if pin != dialog.confirm.GetValue():
+                    self._chat_lock_error("chat_lock_pin_mismatch")
+                    dialog.confirm.SetFocus()
+                    continue
+                previous_token = vault.encrypted_token()
+                recovery_code = vault.change_pin(dialog.current.GetValue(), pin)
+                if not self._show_recovery_key(recovery_code):
+                    self._chat_lock_vault = ChatLockVault.load(
+                        self.key, previous_token
+                    )
+                    return
+                self._persist_chat_lock_vault()
+                self.output(self.i18n.t("chat_lock_pin_changed"), interrupt=True)
+                return
+        finally:
+            dialog.Destroy()
+            if self._chat_lock_unlocked:
+                self._arm_chat_lock_timeout()
 
     def change_chat_lock_reveal_code(self):
         vault = getattr(self, "_chat_lock_vault", None)
         if vault is None or not self._chat_lock_unlocked:
             return
+        self._cancel_chat_lock_timeout()
         dialog = ChatLockRevealDialog(self, self.i18n)
         try:
             while dialog.ShowModal() == wx.ID_OK:
-                if not vault.verify_pin(dialog.pin.GetValue()):
-                    self._chat_lock_error("chat_lock_wrong_pin")
+                if not self._verify_chat_lock_pin(vault, dialog.pin.GetValue()):
+                    dialog.pin.SetValue("")
                     dialog.pin.SetFocus()
                     continue
                 if not validate_reveal_code(dialog.reveal.GetValue()):
@@ -15217,6 +15355,8 @@ class MainWindow(wx.Frame):
                 return
         finally:
             dialog.Destroy()
+            if self._chat_lock_unlocked:
+                self._arm_chat_lock_timeout()
 
     def show_locked_chats_panel(self):
         vault = getattr(self, "_chat_lock_vault", None)
@@ -15234,15 +15374,13 @@ class MainWindow(wx.Frame):
         panel = self.locked_conversations_panel
         chats, names = getattr(self, "_locked_chat_rows", ([], []))
         panel.set_all_chats(chats, names)
-        panel.hide_navigation.SetValue(self._chat_lock_vault.hide_navigation)
-        # Nothing to configure until the first chat is locked (no PIN yet).
-        panel.hide_navigation.Enable(not never_set_up)
-        panel.settings_button.Enable(not never_set_up)
         panel.Show()
         self.content_panel.Layout()
         panel.restore_selection()
+        self.touch_chat_lock_timeout()
 
     def lock_chat_vault(self, *, silent=False, show_conversations=True):
+        self._cancel_chat_lock_timeout()
         self._chat_lock_unlocked = False
         cp = getattr(self, "conversations_panel", None)
         if cp is not None and cp.conversation is not None:
@@ -15266,6 +15404,7 @@ class MainWindow(wx.Frame):
         jid = chat.get("remoteJid", "")
         if not self._chat_lock_unlocked or not self.is_chat_locked(jid):
             return
+        self.touch_chat_lock_timeout()
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Hide()
         if hasattr(self, "locked_conversations_panel"):
