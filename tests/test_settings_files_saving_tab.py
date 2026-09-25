@@ -12,6 +12,8 @@ docstring for why this dialog cannot be exercised against a stub.
 """
 
 import wx
+from cryptography.fernet import Fernet
+from core.chat_lock_vault import ChatLockVault
 import pytest
 
 from core import save_location
@@ -38,8 +40,13 @@ class _FakeSoundSystem:
         return True
 
 
-def _make_frame(settings):
+def _make_frame(settings, vault=None):
     frame = hidden_frame()
+    # SettingsDialog only adds the "Locked chats" tab when a vault object
+    # exists and is not hidden (chat_lock_tab_visible); a never-set-up vault
+    # keeps it visible, which is what these index assertions rely on.
+    frame._chat_lock_vault = vault if vault is not None else ChatLockVault(Fernet.generate_key())
+    frame._chat_lock_unlocked = False
     frame.settings = settings
     frame.app_name = "WinZapp"
     frame.i18n = I18n(frame)
@@ -61,8 +68,8 @@ def _make_frame(settings):
 def make_dialog(wx_app):
     created = []
 
-    def _make(settings=None):
-        dlg = SettingsDialog(_make_frame(settings if settings is not None else {}))
+    def _make(settings=None, vault=None):
+        dlg = SettingsDialog(_make_frame(settings if settings is not None else {}, vault))
         created.append(dlg)
         return dlg
 
@@ -102,6 +109,15 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         dialog = make_dialog()
         assert dialog._notebook.FindPage(dialog._chat_lock_page) == 14
         assert dialog._notebook.GetPageCount() == 15
+
+    def test_a_hidden_vault_leaves_the_locked_chats_tab_out(self, make_dialog):
+        """A vault the user chose to hide must not be advertised by Settings."""
+        vault = ChatLockVault(Fernet.generate_key())
+        vault.configure("246810", "gizli-kod")
+        vault.set_hide_navigation(True)
+        dialog = make_dialog(vault=vault)
+        assert dialog._notebook.FindPage(dialog._chat_lock_page) == -1
+        assert dialog._notebook.GetPageCount() == 14
 
     def test_the_tabs_that_are_opened_by_number_did_not_move(self, make_dialog):
         """main.py's custom-API first-run flow does SetSelection(4), and this
