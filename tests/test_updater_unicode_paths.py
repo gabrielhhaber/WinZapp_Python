@@ -172,6 +172,57 @@ class TestInstallerScript:
                   if line.strip().startswith("xcopy ")]
         assert len(copies) == 2 and copies[0] == copies[1]
 
+    def test_an_identical_portable_node_is_not_reopened_for_writing(self):
+        """Measured live: shutdown killed Node successfully, but Windows (or
+        an on-access scanner) retained node.exe's image handle long enough for
+        both xcopy passes to report Access denied.  The release and installed
+        node.exe were byte-identical, so trying to replace it was unnecessary.
+
+        Only a binary-identical payload may be hidden from xcopy.  A changed
+        or corrupted target makes fc /B return non-zero and follows the normal
+        replacement/failure path.
+        """
+        s = _script()
+        compare = (
+            'fc /B "C:\\tmp\\ext\\node\\node.exe" '
+            '"C:\\WinZapp\\node\\node.exe"'
+        )
+        hold = (
+            'move /Y "C:\\tmp\\ext\\node\\node.exe" '
+            '"C:\\tmp\\ext.node.exe.winzapp-unchanged"'
+        )
+        restore = (
+            'move /Y "C:\\tmp\\ext.node.exe.winzapp-unchanged" '
+            '"C:\\tmp\\ext\\node\\node.exe"'
+        )
+        first_copy = s.index("xcopy /E /Y /I /H")
+        second_copy = s.index("xcopy /E /Y /I /H", first_copy + 1)
+
+        assert s.index(compare) < s.index(hold) < first_copy
+        assert s.index(restore) > second_copy
+        assert "if not errorlevel 1" in s[s.index(compare):first_copy]
+        assert "node.exe unchanged - skipping locked replacement" in s
+
+    def test_the_held_node_is_outside_xcopys_source_tree(self):
+        """Hiding the payload under ``source_dir`` still makes xcopy copy it,
+        only under a different name.  The temporary sibling path must sit
+        outside the recursive ``source_dir\\*`` input.
+        """
+        s = _script()
+
+        assert r'"C:\tmp\ext.node.exe.winzapp-unchanged"' in s
+        assert r'"C:\tmp\ext\node\node.exe.winzapp-unchanged"' not in s
+
+    def test_restoring_the_staged_node_cannot_mask_xcopys_result(self):
+        s = _script()
+        second_copy = s.index("xcopy /E /Y /I /H", s.index("xcopy /E /Y /I /H") + 1)
+        save = s.index("set XCOPY_RESULT=!ERRORLEVEL!", second_copy)
+        restore = s.index("node.exe.winzapp-unchanged", save)
+        reinstate = s.index("cmd /c exit !XCOPY_RESULT!", restore)
+        verdict = s.index("if errorlevel 4", reinstate)
+
+        assert second_copy < save < restore < reinstate < verdict
+
     def test_a_failed_copy_marks_it_and_keeps_the_evidence(self):
         s = _script()
         assert r'echo update failed > "C:\WinZapp\update_failed.marker"' in s

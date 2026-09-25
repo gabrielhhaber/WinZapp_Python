@@ -479,6 +479,12 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         ")\n"
         for i, p in enumerate(extra_pids, start=1)
     )
+    source_node = os.path.join(source_dir, "node", "node.exe")
+    target_node = os.path.join(install_dir, "node", "node.exe")
+    # Keep the held payload outside source_dir: xcopy recursively copies that
+    # entire tree, so renaming beside node.exe would copy the large payload to
+    # the install as an unwanted ``node.exe.winzapp-unchanged`` file.
+    held_node = source_dir.rstrip("\\/") + ".node.exe.winzapp-unchanged"
     return (
         "@echo off\n"
         "setlocal EnableDelayedExpansion\n"
@@ -511,6 +517,26 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         f"for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :{api_port} ^| findstr LISTENING') do taskkill /F /PID %%a >NUL 2>&1\n"
         "for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :5433 ^| findstr LISTENING') do taskkill /F /PID %%a >NUL 2>&1\n"
         "timeout /t 1 /nobreak >NUL\n"
+        # node.exe is the largest executable in every release and normally
+        # does not change between two WinZapp builds.  xcopy nevertheless
+        # opens the installed copy for replacement on every update.  Windows
+        # (or an on-access scanner) can retain that executable handle briefly
+        # after taskkill has returned; the measured result was two "Access
+        # denied" failures even though source and target were byte-identical.
+        # Compare read-only with fc /B and temporarily hide only an identical
+        # source payload from xcopy.  A genuinely changed/corrupt target never
+        # matches and is therefore still replaced normally.
+        "set NODE_PAYLOAD_HELD=0\n"
+        f'if exist "{source_node}" if exist "{target_node}" (\n'
+        f'    fc /B "{source_node}" "{target_node}" >NUL 2>&1\n'
+        "    if not errorlevel 1 (\n"
+        f'        move /Y "{source_node}" "{held_node}" >NUL 2>&1\n'
+        "        if not errorlevel 1 (\n"
+        "            set NODE_PAYLOAD_HELD=1\n"
+        f'            >> "{log_path}" echo node.exe unchanged - skipping locked replacement\n'
+        "        )\n"
+        "    )\n"
+        ")\n"
         # xcopy's exit code was previously never checked, so a failed copy
         # (locked file, disk full, permissions) silently relaunched whatever
         # was already in install_dir — the user saw the app come back and
@@ -539,6 +565,13 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         "    timeout /t 5 /nobreak >NUL\n"
         f'    xcopy /E /Y /I /H "{source_dir}\\*" "{install_dir}\\" >> "{log_path}" 2>&1\n'
         ")\n"
+        # Restoring the staged payload is diagnostic hygiene on a failed run,
+        # but move changes ERRORLEVEL.  Save and reinstate xcopy's verdict so
+        # a successful restore can never turn a failed copy into a success (or
+        # vice versa).
+        "set XCOPY_RESULT=!ERRORLEVEL!\n"
+        f'if "!NODE_PAYLOAD_HELD!"=="1" move /Y "{held_node}" "{source_node}" >NUL 2>&1\n'
+        "cmd /c exit !XCOPY_RESULT!\n"
         "if errorlevel 4 (\n"
         f'    >> "{log_path}" echo xcopy FAILED\n'
         f'    echo update failed > "{marker_path}"\n'
