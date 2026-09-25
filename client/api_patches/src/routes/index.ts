@@ -611,6 +611,18 @@ routes.post(
   DeviceController.reactMessage
 );
 routes.get(
+  '/api/:session/meta-ai-terms',
+  verifyToken,
+  statusConnection,
+  DeviceController.getMetaAiTerms
+);
+routes.post(
+  '/api/:session/meta-ai-terms/accept',
+  verifyToken,
+  statusConnection,
+  DeviceController.acceptMetaAiTerms
+);
+routes.get(
   '/api/:session/send-capabilities',
   verifyToken,
   statusConnection,

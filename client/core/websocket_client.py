@@ -9,6 +9,7 @@ from core.api_client import api_get, api_post
 from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_creator, call_log_payload
 from core.i18n import I18n
 from core.message_edit import MESSAGE_EDIT, clean_message_id, server_marks_edited
+from core.meta_ai import rich_response_text
 from core.sync_contracts import observe_payload
 from core.utils import looks_like_binary_blob, looks_like_jid, _slim_quoted_message, parse_bool_flag as _parse_bool_flag
 
@@ -2697,6 +2698,14 @@ class WebSocketClient:
 
         msg_type = wpp_msg.get("type", "chat")
         conversation = wpp_msg.get("body", "") or wpp_msg.get("text", "")
+        # Meta AI's replies are "rich_response" messages with no body: the
+        # words are in richResponse/unifiedResponse (core/meta_ai.py). Without
+        # this the reply rendered as a row holding only the sender and time.
+        if msg_type == "rich_response":
+            rich_text = rich_response_text(wpp_msg)
+            if rich_text:
+                conversation = rich_text
+                msg_type = "chat"
 
         # WPPConnect's own message model flattens WhatsApp's OG link-preview
         # metadata (title/description/canonicalUrl — same proto fields
