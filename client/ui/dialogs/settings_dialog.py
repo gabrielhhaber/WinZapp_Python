@@ -162,6 +162,24 @@ def ensure_default_settings_file():
     return False
 
 
+def chat_lock_tab_visible(main_window) -> bool:
+    """Whether Settings may show the "Locked chats" tab at all.
+
+    A vault the user chose to hide (hide_navigation) must not be advertised
+    by an always-visible tab whose button unlocks with the PIN alone -- that
+    would skip the secret search code and give away that a vault exists. It
+    stays reachable while the vault is already unlocked (the user got in via
+    the secret code) and while none was ever set up. Mirrors
+    MainWindow.chat_lock_navigation_visible(): no vault object -> hidden.
+    """
+    vault = getattr(main_window, "_chat_lock_vault", None)
+    if vault is None:
+        return False
+    if not vault.configured or not vault.hide_navigation:
+        return True
+    return bool(getattr(main_window, "_chat_lock_unlocked", False))
+
+
 class SettingsDialog(wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
 
@@ -1336,7 +1354,11 @@ class SettingsDialog(wx.Dialog):
         chat_lock_sizer.Add(self._chat_lock_change_reveal_btn, 0, wx.ALL, 8)
 
         self._chat_lock_page.SetSizer(chat_lock_sizer)
-        self._notebook.AddPage(self._chat_lock_page, i18n.t("locked_chats"))
+        self._chat_lock_tab_shown = chat_lock_tab_visible(self.main_window)
+        if self._chat_lock_tab_shown:
+            self._notebook.AddPage(self._chat_lock_page, i18n.t("locked_chats"))
+        else:
+            self._chat_lock_page.Hide()
 
         # ── Button row ───────────────────────────────────────────────────────
         btn_sizer = wx.StdDialogButtonSizer()
@@ -3212,7 +3234,8 @@ class SettingsDialog(wx.Dialog):
         self._notebook.SetPageText(11, i18n.t("tab_calls"))
         self._notebook.SetPageText(12, i18n.t("tab_profile_backup"))
         self._notebook.SetPageText(13, i18n.t("tab_reactions"))
-        self._notebook.SetPageText(14, i18n.t("locked_chats"))
+        if self._chat_lock_tab_shown:
+            self._notebook.SetPageText(14, i18n.t("locked_chats"))
         self._chat_lock_intro.SetLabel(i18n.t("chat_lock_settings_intro"))
         self._chat_lock_unlock_btn.SetLabel(
             i18n.t("chat_lock_settings_unlock")

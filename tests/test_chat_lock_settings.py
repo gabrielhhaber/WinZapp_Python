@@ -135,3 +135,43 @@ def test_locked_chats_panel_contains_content_actions_not_rare_settings():
     assert "chat_lock_change_pin" not in source
     assert "chat_lock_settings" not in source
     assert "chat_lock_show_navigation" not in source
+
+
+# ── The tab must not advertise a hidden vault ───────────────────────────────
+
+from ui.dialogs.settings_dialog import chat_lock_tab_visible
+
+
+def _vault(*, configure=True, hide=True):
+    vault = ChatLockVault(Fernet.generate_key())
+    if configure:
+        vault.configure("246810", "gizli-kod")
+        vault.set_hide_navigation(hide)
+    return vault
+
+
+def test_tab_is_visible_while_no_vault_was_set_up():
+    assert chat_lock_tab_visible(_MainWindow(_vault(configure=False), unlocked=False))
+
+
+def test_tab_is_visible_when_the_vault_is_not_hidden():
+    assert chat_lock_tab_visible(_MainWindow(_vault(hide=False), unlocked=False))
+
+
+def test_tab_is_absent_for_a_hidden_locked_vault():
+    assert not chat_lock_tab_visible(_MainWindow(_vault(hide=True), unlocked=False))
+
+
+def test_tab_stays_reachable_once_a_hidden_vault_was_revealed():
+    assert chat_lock_tab_visible(_MainWindow(_vault(hide=True), unlocked=True))
+
+
+def test_tab_is_absent_when_the_vault_state_is_unreadable():
+    assert not chat_lock_tab_visible(_MainWindow(None, unlocked=False))
+
+
+def test_open_settings_relocks_the_vault_when_it_closes():
+    import inspect
+    from main import MainWindow
+    source = inspect.getsource(MainWindow.open_settings)
+    assert source.index("dlg.Destroy()") < source.rindex("lock_chat_vault(")

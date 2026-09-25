@@ -13109,6 +13109,9 @@ class MainWindow(wx.Frame):
         dlg = SettingsDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
+        # Anything unlocked while Settings was open (its "Locked chats" tab
+        # authenticates with the PIN) must not stay open once it closes.
+        self.lock_chat_vault(silent=True, show_conversations=False)
 
     def _refresh_call_language_surfaces(self):
         """Re-translate call UI that can stay alive while Settings is open."""
