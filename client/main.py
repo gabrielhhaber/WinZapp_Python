@@ -6682,6 +6682,7 @@ class MainWindow(wx.Frame):
         output_name = audio_settings.get("output_device_name", "")
         exclusive_input = bool(audio_settings.get("exclusive_input", False))
         exclusive_output = bool(audio_settings.get("exclusive_output", False))
+        echo_cancellation = bool(audio_settings.get("echo_cancellation", False))
         session_name = str(getattr(ws, "instance_name", "") or self.token).split(":", 1)[0]
         audio = CallAudioSession(
             sio,
@@ -6691,6 +6692,7 @@ class MainWindow(wx.Frame):
                 output_device_name=output_name,
                 exclusive_input=exclusive_input,
                 exclusive_output=exclusive_output,
+                echo_cancellation=echo_cancellation,
             ),
         )
         return audio, session_name
@@ -7345,11 +7347,15 @@ class MainWindow(wx.Frame):
         """
         import sounddevice as sd
         from core.call_video import list_camera_devices
+        from ui.call_audio_options import confirm_exclusive_output
         if parent is None:
             call_window = getattr(self, "voice_call_window", None)
             parent = call_window if (call_window is not None and call_window.IsShown()) else self
         title_key = "voice_call_video_settings_title" if (include_camera and not include_audio) else "voice_call_settings_title"
-        dialog = wx.Dialog(parent, title=self.i18n.t(title_key), size=(560, 390))
+        dialog = wx.Dialog(
+            parent, title=self.i18n.t(title_key),
+            size=(560, 520 if include_audio else 390),
+        )
         root = wx.BoxSizer(wx.VERTICAL)
         default_name = self.i18n.t("audio_device_default")
 
@@ -7375,6 +7381,27 @@ class MainWindow(wx.Frame):
                                     input_names, audio_cfg.get("input_device_name", ""))
             output_combo = add_combo("voice_call_playback_devices",
                                      output_names, audio_cfg.get("output_device_name", ""))
+            # Native checkboxes, one per option, so each is announced by its
+            # own label. Two exclusive boxes, not one: holding the MICROPHONE
+            # exclusively takes a device nothing else is using mid-call, while
+            # holding the SPEAKER exclusively silences every other application
+            # on it -- the screen reader included. Only the output one warns.
+            exclusive_input_check = wx.CheckBox(
+                dialog, label=self.i18n.t("calls_exclusive_input_label"))
+            exclusive_input_check.SetValue(bool(audio_cfg.get("exclusive_input", False)))
+            exclusive_output_check = wx.CheckBox(
+                dialog, label=self.i18n.t("calls_exclusive_output_label"))
+            exclusive_output_check.SetValue(bool(audio_cfg.get("exclusive_output", False)))
+            echo_check = wx.CheckBox(
+                dialog, label=self.i18n.t("calls_echo_cancellation_label"))
+            echo_check.SetValue(bool(audio_cfg.get("echo_cancellation", False)))
+            for check in (exclusive_input_check, exclusive_output_check, echo_check):
+                root.Add(check, 0, wx.ALL, 8)
+            exclusive_output_check.Bind(
+                wx.EVT_CHECKBOX,
+                lambda evt: confirm_exclusive_output(
+                    dialog, self.i18n, evt, exclusive_output_check),
+            )
 
         camera_combo = None
         if include_camera:
@@ -7395,6 +7422,9 @@ class MainWindow(wx.Frame):
             if include_audio:
                 audio_cfg["input_device_name"] = "" if input_combo.GetStringSelection() == default_name else input_combo.GetStringSelection()
                 audio_cfg["output_device_name"] = "" if output_combo.GetStringSelection() == default_name else output_combo.GetStringSelection()
+                audio_cfg["exclusive_input"] = exclusive_input_check.GetValue()
+                audio_cfg["exclusive_output"] = exclusive_output_check.GetValue()
+                audio_cfg["echo_cancellation"] = echo_check.GetValue()
             if include_camera:
                 video_cfg["camera_name"] = "" if camera_combo.GetStringSelection() == default_name else camera_combo.GetStringSelection()
             self.save_settings()
@@ -14939,7 +14969,9 @@ class MainWindow(wx.Frame):
         # code must not make a previously hidden navigation row suddenly
         # disclose that the vault exists. The open panel already provides its
         # own close/settings controls for the current session.
-        return vault.configured and not vault.hide_navigation
+        # A vault nobody set up yet has nothing to hide: keep the row (and
+        # Alt+7) visible so the feature can be found; it opens an empty list.
+        return not vault.configured or not vault.hide_navigation
 
     def _refresh_chat_lock_navigation(self):
         panel = getattr(self, "navigation_panel", None)
@@ -15187,7 +15219,9 @@ class MainWindow(wx.Frame):
             dialog.Destroy()
 
     def show_locked_chats_panel(self):
-        if not getattr(self, "_chat_lock_unlocked", False):
+        vault = getattr(self, "_chat_lock_vault", None)
+        never_set_up = vault is not None and not vault.configured
+        if not never_set_up and not getattr(self, "_chat_lock_unlocked", False):
             if not self.unlock_chat_lock_vault(show_panel=False):
                 return
         self.conversations_panel.Hide()
@@ -15201,6 +15235,9 @@ class MainWindow(wx.Frame):
         chats, names = getattr(self, "_locked_chat_rows", ([], []))
         panel.set_all_chats(chats, names)
         panel.hide_navigation.SetValue(self._chat_lock_vault.hide_navigation)
+        # Nothing to configure until the first chat is locked (no PIN yet).
+        panel.hide_navigation.Enable(not never_set_up)
+        panel.settings_button.Enable(not never_set_up)
         panel.Show()
         self.content_panel.Layout()
         panel.restore_selection()

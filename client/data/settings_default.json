@@ -90,7 +90,8 @@
         "output_device_name": "",
         "input_device_name": "",
         "exclusive_input": false,
-        "exclusive_output": false
+        "exclusive_output": false,
+        "echo_cancellation": false
     },
     "call_video_devices": {
         "camera_name": ""
