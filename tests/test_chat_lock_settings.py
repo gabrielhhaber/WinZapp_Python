@@ -170,8 +170,48 @@ def test_tab_is_absent_when_the_vault_state_is_unreadable():
     assert not chat_lock_tab_visible(_MainWindow(None, unlocked=False))
 
 
-def test_open_settings_relocks_the_vault_when_it_closes():
-    import inspect
+class _OpenSettingsStub:
+    open_settings = None  # bound below
+
+    def __init__(self, unlock_in_settings):
+        self._chat_lock_unlocked = False
+        self.lock_calls = []
+        self._unlock_in_settings = unlock_in_settings
+
+    def lock_chat_vault(self, *, silent=False, show_conversations=True):
+        self.lock_calls.append((silent, show_conversations))
+        self._chat_lock_unlocked = False
+
+
+def _run_open_settings(monkeypatch, unlock_in_settings):
+    import ui.dialogs.settings_dialog as settings_module
     from main import MainWindow
-    source = inspect.getsource(MainWindow.open_settings)
-    assert source.index("dlg.Destroy()") < source.rindex("lock_chat_vault(")
+
+    mw = _OpenSettingsStub(unlock_in_settings)
+
+    class _Dialog:
+        def __init__(self, main_window):
+            pass
+
+        def ShowModal(self):
+            if unlock_in_settings:
+                mw._chat_lock_unlocked = True
+
+        def Destroy(self):
+            pass
+
+    monkeypatch.setattr(settings_module, "SettingsDialog", _Dialog)
+    MainWindow.open_settings(mw)
+    return mw
+
+
+def test_open_settings_relocks_a_vault_unlocked_inside_settings(monkeypatch):
+    mw = _run_open_settings(monkeypatch, unlock_in_settings=True)
+    # once when opening, once when closing
+    assert mw.lock_calls == [(True, False), (True, False)]
+    assert mw._chat_lock_unlocked is False
+
+
+def test_open_settings_does_not_touch_an_untouched_vault_on_close(monkeypatch):
+    mw = _run_open_settings(monkeypatch, unlock_in_settings=False)
+    assert mw.lock_calls == [(True, False)]  # only the lock on opening
