@@ -760,8 +760,15 @@ class ConversationsPanel(wx.Panel):
         self.search_label = wx.StaticText(self, label=i18n.t("search_conversations"))
         outer_sizer.Add(self.search_label, 0, wx.LEFT | wx.TOP, 5)
 
-        self.search_field = wx.TextCtrl(self, style=wx.TE_DONTWRAP)
+        # TE_PROCESS_ENTER is required for a TextCtrl to deliver a reliable
+        # text-enter event on Windows.  EVT_KEY_DOWN alone is not enough:
+        # without this style, Enter may be consumed by the control's default
+        # processing before the locked-chats reveal path sees it.
+        self.search_field = wx.TextCtrl(
+            self, style=wx.TE_DONTWRAP | wx.TE_PROCESS_ENTER
+        )
         self.search_field.Bind(wx.EVT_TEXT, self.on_search_query_changed)
+        self.search_field.Bind(wx.EVT_TEXT_ENTER, self._on_search_field_enter)
         self.search_field.Bind(wx.EVT_KEY_DOWN, self._on_search_field_key_down)
         self.search_field.SetAccessible(AccessibleSearchConversations("Ctrl+F"))
         outer_sizer.Add(self.search_field, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
@@ -2113,9 +2120,6 @@ class ConversationsPanel(wx.Panel):
 
     def _on_search_field_key_down(self, event):
         """Down arrow in the search field moves focus to the first conversation."""
-        if event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
-            if self.main_window.try_reveal_locked_chats(self.search_field.GetValue()):
-                return
         if event.GetKeyCode() == wx.WXK_DOWN:
             lst = self.conversations_list
             if lst.GetItemCount() > 0:
@@ -2123,6 +2127,14 @@ class ConversationsPanel(wx.Panel):
                 lst.Focus(0)
                 lst.Select(0)
             return
+        event.Skip()
+
+    def _on_search_field_enter(self, event):
+        """Reveal the hidden locked-chats entry when its search code matches."""
+        if self.main_window.try_reveal_locked_chats(self.search_field.GetValue()):
+            return
+        # Preserve the TextCtrl's ordinary Enter behaviour for every normal
+        # conversation search; only a matching secret code is consumed.
         event.Skip()
 
     def _spell_check_enabled(self) -> bool:

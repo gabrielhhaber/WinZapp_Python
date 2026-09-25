@@ -1,6 +1,7 @@
 import ctypes
 import os
 import wx
+from core.chat_lock_vault import AUTO_LOCK_MINUTE_OPTIONS
 from core.i18n import LANGUAGE_NAMES
 from core.combo_search import bind_incremental_search
 from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
@@ -184,7 +185,7 @@ class SettingsDialog(wx.Dialog):
         self._load_values()
         self._loading_values = False
         self._apply_btn.Hide()
-        # Catches every checkbox/radio/combo/text change anywhere in the
+        # Catches every checkbox/radio/combo/choice/text change anywhere in the
         # dialog via wx's normal command-event propagation (a control-level
         # handler that doesn't call event.Skip() would otherwise swallow it —
         # see _mark_dirty()'s docstring for the handlers that needed one
@@ -194,6 +195,7 @@ class SettingsDialog(wx.Dialog):
         self.Bind(wx.EVT_CHECKBOX, self._mark_dirty)
         self.Bind(wx.EVT_RADIOBUTTON, self._mark_dirty)
         self.Bind(wx.EVT_COMBOBOX, self._mark_dirty)
+        self.Bind(wx.EVT_CHOICE, self._mark_dirty)
         self.Bind(wx.EVT_TEXT, self._mark_dirty)
         self.Fit()
         self.SetMinSize((360, -1))
@@ -1260,6 +1262,82 @@ class SettingsDialog(wx.Dialog):
             wx.EVT_CHECKBOX, self._on_fixed_quick_reactions_toggle
         )
 
+        # ── Locked chats tab ────────────────────────────────────────────────
+        # Persistent vault policy belongs in Settings, not beside the chat
+        # list the user visits repeatedly. The controls stay unavailable until
+        # the vault is authenticated (or configured for the first time), so
+        # opening Settings alone never exposes its current private state.
+        self._chat_lock_page = wx.Panel(self._notebook)
+        chat_lock_sizer = wx.BoxSizer(wx.VERTICAL)
+        self._chat_lock_intro = wx.StaticText(
+            self._chat_lock_page,
+            label=i18n.t("chat_lock_settings_intro"),
+        )
+        chat_lock_sizer.Add(
+            self._chat_lock_intro, 0, wx.EXPAND | wx.ALL, 8
+        )
+        self._chat_lock_unlock_btn = wx.Button(
+            self._chat_lock_page,
+            label=i18n.t("chat_lock_settings_unlock"),
+        )
+        self._chat_lock_unlock_btn.Bind(
+            wx.EVT_BUTTON, self._on_chat_lock_settings_unlock
+        )
+        chat_lock_sizer.Add(self._chat_lock_unlock_btn, 0, wx.ALL, 8)
+
+        self._chat_lock_show_navigation_check = wx.CheckBox(
+            self._chat_lock_page,
+            label=i18n.t("chat_lock_show_navigation"),
+        )
+        self._chat_lock_show_navigation_check.Bind(
+            wx.EVT_CHECKBOX, self._on_chat_lock_policy_changed
+        )
+        chat_lock_sizer.Add(
+            self._chat_lock_show_navigation_check, 0, wx.ALL, 8
+        )
+
+        self._chat_lock_timeout_label = wx.StaticText(
+            self._chat_lock_page,
+            label=i18n.t("chat_lock_timeout_label"),
+        )
+        chat_lock_sizer.Add(
+            self._chat_lock_timeout_label,
+            0, wx.LEFT | wx.TOP | wx.RIGHT, 8,
+        )
+        self._chat_lock_timeout_choice = wx.Choice(
+            self._chat_lock_page,
+            choices=self._chat_lock_timeout_labels(),
+        )
+        self._chat_lock_timeout_choice.SetName(
+            i18n.t("chat_lock_timeout_label")
+        )
+        self._chat_lock_timeout_choice.Bind(
+            wx.EVT_CHOICE, self._on_chat_lock_policy_changed
+        )
+        chat_lock_sizer.Add(
+            self._chat_lock_timeout_choice,
+            0, wx.EXPAND | wx.ALL, 8,
+        )
+
+        self._chat_lock_change_pin_btn = wx.Button(
+            self._chat_lock_page, label=i18n.t("chat_lock_change_pin")
+        )
+        self._chat_lock_change_pin_btn.Bind(
+            wx.EVT_BUTTON, self._on_chat_lock_change_pin
+        )
+        chat_lock_sizer.Add(self._chat_lock_change_pin_btn, 0, wx.ALL, 8)
+
+        self._chat_lock_change_reveal_btn = wx.Button(
+            self._chat_lock_page, label=i18n.t("chat_lock_settings")
+        )
+        self._chat_lock_change_reveal_btn.Bind(
+            wx.EVT_BUTTON, self._on_chat_lock_change_reveal
+        )
+        chat_lock_sizer.Add(self._chat_lock_change_reveal_btn, 0, wx.ALL, 8)
+
+        self._chat_lock_page.SetSizer(chat_lock_sizer)
+        self._notebook.AddPage(self._chat_lock_page, i18n.t("locked_chats"))
+
         # ── Button row ───────────────────────────────────────────────────────
         btn_sizer = wx.StdDialogButtonSizer()
         self._ok_btn = wx.Button(self, wx.ID_OK, label=i18n.t("ok"))
@@ -1647,6 +1725,75 @@ class SettingsDialog(wx.Dialog):
         except (ValueError, TypeError):
             speed_idx = 0
         self._audio_speed_combo.SetSelection(speed_idx)
+        self._load_chat_lock_values()
+
+    def _chat_lock_timeout_labels(self):
+        i18n = self.main_window.i18n
+        return [
+            i18n.t("chat_lock_timeout_never")
+            if minutes == 0 else
+            i18n.t("chat_lock_timeout_minutes").format(minutes=minutes)
+            for minutes in AUTO_LOCK_MINUTE_OPTIONS
+        ]
+
+    def _selected_chat_lock_timeout_minutes(self) -> int:
+        selection = self._chat_lock_timeout_choice.GetSelection()
+        if 0 <= selection < len(AUTO_LOCK_MINUTE_OPTIONS):
+            return AUTO_LOCK_MINUTE_OPTIONS[selection]
+        return AUTO_LOCK_MINUTE_OPTIONS[0]
+
+    def _set_chat_lock_timeout_minutes(self, minutes: int):
+        try:
+            selection = AUTO_LOCK_MINUTE_OPTIONS.index(int(minutes))
+        except (TypeError, ValueError):
+            selection = 0
+        self._chat_lock_timeout_choice.SetSelection(selection)
+
+    def _load_chat_lock_values(self):
+        vault = getattr(self.main_window, "_chat_lock_vault", None)
+        editable = bool(
+            vault is not None
+            and vault.configured
+            and getattr(self.main_window, "_chat_lock_unlocked", False)
+        )
+        if editable:
+            self._chat_lock_show_navigation_check.SetValue(
+                not vault.hide_navigation
+            )
+            self._set_chat_lock_timeout_minutes(vault.auto_lock_minutes)
+        else:
+            # Do not display persisted privacy choices before authentication.
+            self._chat_lock_show_navigation_check.SetValue(False)
+            self._set_chat_lock_timeout_minutes(AUTO_LOCK_MINUTE_OPTIONS[0])
+        for control in (
+            self._chat_lock_show_navigation_check,
+            self._chat_lock_timeout_choice,
+            self._chat_lock_change_pin_btn,
+            self._chat_lock_change_reveal_btn,
+        ):
+            control.Enable(editable)
+        self._chat_lock_unlock_btn.SetLabel(self.main_window.i18n.t(
+            "chat_lock_settings_ready"
+            if editable else "chat_lock_settings_unlock"
+        ))
+        self._chat_lock_unlock_btn.Enable(not editable)
+
+    def _apply_chat_lock_values(self):
+        vault = getattr(self.main_window, "_chat_lock_vault", None)
+        if not (
+            vault is not None
+            and vault.configured
+            and getattr(self.main_window, "_chat_lock_unlocked", False)
+        ):
+            return
+        show_navigation = self._chat_lock_show_navigation_check.GetValue()
+        if show_navigation == vault.hide_navigation:
+            self.main_window.set_chat_lock_navigation_hidden(
+                not show_navigation
+            )
+        timeout = self._selected_chat_lock_timeout_minutes()
+        if timeout != vault.auto_lock_minutes:
+            self.main_window.set_chat_lock_timeout_minutes(timeout)
 
     def _set_alert_combo(self, combo, choice_key: str):
         try:
@@ -1961,11 +2108,46 @@ class SettingsDialog(wx.Dialog):
     # ── Sound events tab ─────────────────────────────────────────────────────
 
     def _on_dialog_char_hook(self, event):
+        touch_timeout = getattr(
+            self.main_window, "touch_chat_lock_timeout", None
+        )
+        if callable(touch_timeout):
+            touch_timeout()
         if (event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
                 and wx.Window.FindFocus() is getattr(self, "_sound_events_list", None)):
             self._toggle_current_sound_event()
             return  # swallow — do NOT Skip, so it doesn't also fire the OK button
         event.Skip()
+
+    def _on_chat_lock_settings_unlock(self, event):
+        unlock = getattr(self.main_window, "unlock_chat_lock_settings", None)
+        if callable(unlock) and unlock():
+            self._load_chat_lock_values()
+            self._chat_lock_page.Layout()
+            self.Layout()
+
+    def _on_chat_lock_policy_changed(self, event):
+        touch_timeout = getattr(
+            self.main_window, "touch_chat_lock_timeout", None
+        )
+        if callable(touch_timeout):
+            touch_timeout()
+        # Let the dialog-level dirty tracker see the command event too.
+        event.Skip()
+
+    def _on_chat_lock_change_pin(self, event):
+        change = getattr(self.main_window, "change_chat_lock_pin", None)
+        if callable(change):
+            change()
+            self._load_chat_lock_values()
+
+    def _on_chat_lock_change_reveal(self, event):
+        change = getattr(
+            self.main_window, "change_chat_lock_reveal_code", None
+        )
+        if callable(change):
+            change()
+            self._load_chat_lock_values()
 
     def _on_sound_event_selected(self, event):
         self._update_sound_event_path_display()
@@ -2947,6 +3129,11 @@ class SettingsDialog(wx.Dialog):
             "mark_audio_played_in_list"
         ] = self._mark_audio_played_check.GetValue()
 
+        # Vault policy is persisted inside the encrypted vault token rather
+        # than settings.json. Apply it alongside the ordinary settings so
+        # Cancel still discards checkbox/timeout edits.
+        self._apply_chat_lock_values()
+
         # Persist and propagate
         self.main_window.save_settings()
         # Reload sound objects so per-event enabled/path changes (and the new
@@ -3025,6 +3212,33 @@ class SettingsDialog(wx.Dialog):
         self._notebook.SetPageText(11, i18n.t("tab_calls"))
         self._notebook.SetPageText(12, i18n.t("tab_profile_backup"))
         self._notebook.SetPageText(13, i18n.t("tab_reactions"))
+        self._notebook.SetPageText(14, i18n.t("locked_chats"))
+        self._chat_lock_intro.SetLabel(i18n.t("chat_lock_settings_intro"))
+        self._chat_lock_unlock_btn.SetLabel(
+            i18n.t("chat_lock_settings_unlock")
+        )
+        self._chat_lock_show_navigation_check.SetLabel(
+            i18n.t("chat_lock_show_navigation")
+        )
+        selected_timeout = self._selected_chat_lock_timeout_minutes()
+        self._chat_lock_timeout_label.SetLabel(
+            i18n.t("chat_lock_timeout_label")
+        )
+        self._chat_lock_timeout_choice.SetName(
+            i18n.t("chat_lock_timeout_label")
+        )
+        self._chat_lock_timeout_choice.Clear()
+        self._chat_lock_timeout_choice.AppendItems(
+            self._chat_lock_timeout_labels()
+        )
+        self._set_chat_lock_timeout_minutes(selected_timeout)
+        self._chat_lock_change_pin_btn.SetLabel(
+            i18n.t("chat_lock_change_pin")
+        )
+        self._chat_lock_change_reveal_btn.SetLabel(
+            i18n.t("chat_lock_settings")
+        )
+        self._load_chat_lock_values()
         self._fixed_quick_reactions_cb.SetLabel(i18n.t("reactions_fixed_label"))
         self._quick_reaction_slots_label.SetLabel(i18n.t("reactions_slots_label"))
         self._set_list_column_label(
@@ -3270,7 +3484,7 @@ class SettingsDialog(wx.Dialog):
         confusing since it never went away even with nothing to apply.
 
         Bound once at the dialog level (see __init__) so it catches every
-        checkbox/radio/combo/text control anywhere in the dialog via wx's
+        checkbox/radio/combo/choice/text control anywhere in the dialog via wx's
         normal command-event propagation, rather than wiring a per-control
         handler. A handful of controls already had their own dedicated
         handler (_on_self_reference_toggle, _on_custom_api_toggle,
