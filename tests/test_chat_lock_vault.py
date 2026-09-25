@@ -2,6 +2,7 @@ from cryptography.fernet import Fernet
 import pytest
 
 from core.chat_lock_vault import (
+    AUTO_LOCK_DEFAULT_MINUTES,
     ChatLockVault,
     PinAttemptLimiter,
     VaultStateError,
@@ -62,6 +63,20 @@ def test_recovery_resets_pin_and_rotates_recovery_code():
     assert replacement != recovery
 
 
+def test_changing_pin_requires_the_current_pin_and_rotates_recovery():
+    vault, recovery = _configured()
+
+    with pytest.raises(ValueError):
+        vault.change_pin("000000", "135790")
+
+    replacement = vault.change_pin("246810", "135790")
+
+    assert not vault.verify_pin("246810")
+    assert vault.verify_pin("135790")
+    assert not vault.verify_recovery_code(recovery)
+    assert vault.verify_recovery_code(replacement)
+
+
 def test_recovery_key_can_reveal_pin_dialog_but_does_not_verify_as_pin():
     vault, recovery = _configured()
 
@@ -94,6 +109,27 @@ def test_locked_jids_are_unique_and_can_be_removed():
     assert vault.locked_jids == {"a@s.whatsapp.net", "b@g.us"}
     vault.unlock_chat("a@s.whatsapp.net")
     assert vault.locked_jids == {"b@g.us"}
+
+
+def test_auto_lock_timeout_defaults_to_five_minutes_and_round_trips():
+    key = Fernet.generate_key()
+    vault = ChatLockVault(key)
+
+    assert vault.auto_lock_minutes == AUTO_LOCK_DEFAULT_MINUTES
+
+    vault.set_auto_lock_minutes(30)
+    restored = ChatLockVault.load(key, vault.encrypted_token())
+    assert restored.auto_lock_minutes == 30
+
+    restored.set_auto_lock_minutes(0)
+    assert restored.auto_lock_minutes == 0
+
+
+def test_auto_lock_timeout_rejects_unsupported_values():
+    vault = ChatLockVault(Fernet.generate_key())
+
+    with pytest.raises(ValueError):
+        vault.set_auto_lock_minutes(7)
 
 
 def test_wrong_key_or_corrupt_state_fails_closed():
@@ -137,3 +173,21 @@ def test_pin_attempt_limiter_locks_after_three_failures_and_resets():
     limiter.record_failure()
     limiter.record_success()
     assert limiter.failures == 0
+
+
+def test_pin_lockout_survives_an_encrypted_vault_reload():
+    now = [100.0]
+    key = Fernet.generate_key()
+    vault = ChatLockVault(key)
+    vault.configure("246810", "gizli-kod")
+
+    assert vault.record_pin_failure(clock=lambda: now[0], lockout_seconds=10) == 0
+    assert vault.record_pin_failure(clock=lambda: now[0], lockout_seconds=10) == 0
+    assert vault.record_pin_failure(clock=lambda: now[0], lockout_seconds=10) == 10
+
+    restored = ChatLockVault.load(key, vault.encrypted_token())
+    now[0] = 105.1
+    assert restored.remaining_pin_lockout_seconds(lambda: now[0]) == 5
+
+    assert restored.clear_pin_failures()
+    assert restored.remaining_pin_lockout_seconds(lambda: now[0]) == 0

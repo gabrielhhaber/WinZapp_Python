@@ -94,6 +94,8 @@ class ShortcutsDialog(wx.Dialog):
                 getattr(vault, "configured", False)
                 and getattr(vault, "hide_navigation", False)):
             lines.append(i18n.t("shortcut_alt7_label"))
+            if getattr(vault, "configured", False):
+                lines.append(i18n.t("shortcut_ctrl_shift_k_vault_label"))
         lines += [
             i18n.t("shortcut_alt_nav_label").format(letter=nav_letter),
             i18n.t("shortcut_ctrl_comma_label"),

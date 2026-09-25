@@ -134,21 +134,9 @@ class _Shown:
         self.shown = False
 
 
-class _Control:
-    enabled = True
-
-    def SetValue(self, value):
-        pass
-
-    def Enable(self, enabled=True):
-        self.enabled = enabled
-
-
 class _LockedPanel(_Shown):
     def __init__(self):
         super().__init__()
-        self.hide_navigation = _Control()
-        self.settings_button = _Control()
 
     def set_all_chats(self, chats, names):
         pass
@@ -161,6 +149,9 @@ class _PanelStub(_MainWindowStub):
     show_locked_chats_panel = MainWindow.show_locked_chats_panel
     on_alt_7 = MainWindow.on_alt_7
     unlock_chat_lock_vault = MainWindow.unlock_chat_lock_vault
+
+    def touch_chat_lock_timeout(self):
+        pass
 
     def __init__(self, key, vault):
         super().__init__(key, vault)
@@ -212,20 +203,6 @@ def test_a_never_configured_vault_still_opens_an_empty_panel_without_a_pin():
     assert mw.locked_conversations_panel.shown
     assert not mw.calls_panel.shown
     assert mw._chat_lock_unlocked is False
-    # No PIN exists yet, so there is nothing to configure in the panel.
-    assert not mw.locked_conversations_panel.settings_button.enabled
-    assert not mw.locked_conversations_panel.hide_navigation.enabled
-
-
-def test_a_configured_vault_keeps_its_panel_controls_enabled():
-    key = Fernet.generate_key()
-    vault = ChatLockVault(key)
-    vault.configure("246810", "gizli-kod")
-    mw = _PanelStub(key, vault)
-
-    mw.show_locked_chats_panel()
-
-    assert mw.locked_conversations_panel.settings_button.enabled
 
 
 def test_navigation_row_is_visible_while_the_vault_was_never_set_up():
@@ -233,6 +210,60 @@ def test_navigation_row_is_visible_while_the_vault_was_never_set_up():
     mw = _MainWindowStub(key, ChatLockVault(key))
 
     assert mw.chat_lock_navigation_visible()
+
+
+class _SettingsUnlockStub:
+    unlock_chat_lock_settings = MainWindow.unlock_chat_lock_settings
+
+    def __init__(self, vault):
+        self._chat_lock_vault = vault
+        self._chat_lock_unlocked = False
+        self.configure_result = True
+        self.configured = 0
+        self.unlock_calls = []
+        self.refreshed = 0
+        self.armed = 0
+
+    def _chat_lock_error(self, key):
+        raise AssertionError(key)
+
+    def _configure_chat_lock_vault(self):
+        self.configured += 1
+        if self.configure_result:
+            self._chat_lock_vault.configure("246810", "gizli-kod")
+        return self.configure_result
+
+    def unlock_chat_lock_vault(self, *, show_panel=True):
+        self.unlock_calls.append(show_panel)
+        return True
+
+    def _refresh_chat_lock_navigation(self):
+        self.refreshed += 1
+
+    def _arm_chat_lock_timeout(self):
+        self.armed += 1
+
+
+def test_settings_can_configure_the_vault_without_opening_the_chat_list():
+    stub = _SettingsUnlockStub(ChatLockVault(Fernet.generate_key()))
+
+    assert stub.unlock_chat_lock_settings()
+
+    assert stub.configured == 1
+    assert stub._chat_lock_unlocked
+    assert stub.refreshed == 1
+    assert stub.armed == 1
+    assert stub.unlock_calls == []
+
+
+def test_settings_authentication_does_not_open_the_chat_list():
+    vault = ChatLockVault(Fernet.generate_key())
+    vault.configure("246810", "gizli-kod")
+    stub = _SettingsUnlockStub(vault)
+
+    assert stub.unlock_chat_lock_settings()
+
+    assert stub.unlock_calls == [False]
 
 
 # ── Ctrl+Shift+T: lock the focused conversation from either list ────────────

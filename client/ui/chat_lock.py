@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pyperclip
 import wx
 
 from core.utils import effective_unread_count, normalize_for_search
@@ -52,6 +53,8 @@ class ChatLockSetupDialog(wx.Dialog):
 class RecoveryKeyDialog(wx.Dialog):
     def __init__(self, parent, i18n, recovery_code: str):
         super().__init__(parent, title=i18n.t("chat_lock_recovery_title"))
+        self._i18n = i18n
+        self._recovery_code = recovery_code
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(
             wx.StaticText(self, label=i18n.t("chat_lock_recovery_explanation")),
@@ -61,6 +64,18 @@ class RecoveryKeyDialog(wx.Dialog):
             self, sizer, i18n.t("chat_lock_recovery_label"), readonly=True
         )
         self.code.SetValue(recovery_code)
+        key_actions = wx.BoxSizer(wx.HORIZONTAL)
+        self.read_button = wx.Button(
+            self, label=i18n.t("chat_lock_recovery_read")
+        )
+        self.copy_button = wx.Button(
+            self, label=i18n.t("chat_lock_recovery_copy")
+        )
+        self.read_button.Bind(wx.EVT_BUTTON, self._on_read)
+        self.copy_button.Bind(wx.EVT_BUTTON, self._on_copy)
+        key_actions.Add(self.read_button, 0, wx.ALL, 5)
+        key_actions.Add(self.copy_button, 0, wx.ALL, 5)
+        sizer.Add(key_actions, 0, wx.ALIGN_LEFT | wx.LEFT | wx.RIGHT, 5)
         self.saved = wx.CheckBox(self, label=i18n.t("chat_lock_recovery_saved"))
         sizer.Add(self.saved, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
         buttons = self.CreateSeparatedButtonSizer(wx.OK)
@@ -72,7 +87,30 @@ class RecoveryKeyDialog(wx.Dialog):
         ok_button = self.FindWindow(wx.ID_OK)
         if ok_button:
             ok_button.SetDefault()
-        self.code.SetFocus()
+        # A read-only TextCtrl does not reliably announce its value in NVDA
+        # when focus arrives by Tab/Shift+Tab. Put focus on an explicit action
+        # that speaks the key on demand; the field remains available for
+        # selection and ordinary Ctrl+C.
+        self.read_button.SetFocus()
+
+    def _announce(self, text: str):
+        output = getattr(self.GetParent(), "output", None)
+        if callable(output):
+            output(text, interrupt=True)
+
+    def _on_read(self, event):
+        spoken_code = ". ".join(self._recovery_code.split("-"))
+        self._announce(
+            f'{self._i18n.t("chat_lock_recovery_label")}: {spoken_code}'
+        )
+
+    def _on_copy(self, event):
+        try:
+            pyperclip.copy(self._recovery_code)
+        except Exception:
+            self._announce(self._i18n.t("chat_lock_recovery_copy_failed"))
+            return
+        self._announce(self._i18n.t("chat_lock_recovery_copied"))
 
     def _on_ok(self, event):
         if not self.saved.GetValue():
@@ -134,6 +172,30 @@ class ChatLockRecoveryDialog(wx.Dialog):
         self.recovery.SetFocus()
 
 
+class ChatLockChangePinDialog(wx.Dialog):
+    def __init__(self, parent, i18n):
+        super().__init__(parent, title=i18n.t("chat_lock_change_pin_title"))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.current = _labelled_text(
+            self, sizer, i18n.t("chat_lock_current_pin_label"), password=True
+        )
+        self.pin = _labelled_text(
+            self, sizer, i18n.t("chat_lock_new_pin_label"), password=True
+        )
+        self.confirm = _labelled_text(
+            self, sizer, i18n.t("chat_lock_new_pin_confirm_label"), password=True
+        )
+        buttons = self.CreateSeparatedButtonSizer(wx.OK | wx.CANCEL)
+        if buttons:
+            sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 10)
+        self.SetSizerAndFit(sizer)
+        self.SetMinSize((500, -1))
+        ok_button = self.FindWindow(wx.ID_OK)
+        if ok_button:
+            ok_button.SetDefault()
+        self.current.SetFocus()
+
+
 class ChatLockRevealDialog(wx.Dialog):
     def __init__(self, parent, i18n):
         super().__init__(parent, title=i18n.t("chat_lock_change_reveal_title"))
@@ -192,18 +254,9 @@ class LockedConversationsPanel(wx.Panel):
         self.conversations_list.Bind(wx.EVT_KEY_DOWN, self._on_list_key)
         sizer.Add(self.conversations_list, 1, wx.EXPAND | wx.ALL, 5)
 
-        self.hide_navigation = wx.CheckBox(
-            self, label=i18n.t("chat_lock_hide_navigation")
-        )
-        self.hide_navigation.Bind(wx.EVT_CHECKBOX, self._on_hide_navigation)
-        sizer.Add(self.hide_navigation, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-
         actions = wx.BoxSizer(wx.HORIZONTAL)
-        self.settings_button = wx.Button(self, label=i18n.t("chat_lock_settings"))
-        self.settings_button.Bind(wx.EVT_BUTTON, self._on_settings)
         self.close_button = wx.Button(self, label=i18n.t("chat_lock_close"))
         self.close_button.Bind(wx.EVT_BUTTON, self._on_close)
-        actions.Add(self.settings_button, 0, wx.ALL, 5)
         actions.Add(self.close_button, 0, wx.ALL, 5)
         sizer.Add(actions, 0, wx.ALIGN_RIGHT)
         self.SetSizer(sizer)
@@ -213,8 +266,6 @@ class LockedConversationsPanel(wx.Panel):
         self.heading.SetLabel(i18n.t("locked_chats"))
         self.search_label.SetLabel(i18n.t("search_locked_chats"))
         self.search_field.SetName(i18n.t("search_locked_chats"))
-        self.hide_navigation.SetLabel(i18n.t("chat_lock_hide_navigation"))
-        self.settings_button.SetLabel(i18n.t("chat_lock_settings"))
         self.close_button.SetLabel(i18n.t("chat_lock_close"))
         column = wx.ListItem()
         column.SetText(i18n.t("locked_chats"))
@@ -325,12 +376,6 @@ class LockedConversationsPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, lambda evt, j=jid: self.main_window.unlock_chat(j), unlock_item)
         self.PopupMenu(menu)
         menu.Destroy()
-
-    def _on_hide_navigation(self, event):
-        self.main_window.set_chat_lock_navigation_hidden(self.hide_navigation.GetValue())
-
-    def _on_settings(self, event):
-        self.main_window.change_chat_lock_reveal_code()
 
     def _on_close(self, event):
         self.main_window.lock_chat_vault()

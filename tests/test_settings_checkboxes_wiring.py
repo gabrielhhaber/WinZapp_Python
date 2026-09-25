@@ -49,6 +49,11 @@ NOT_BACKED_BY_SETTINGS = {
         "and is applied through MainWindow._apply_autostart(), which rolls the "
         "box back if Windows refuses"
     ),
+    "_chat_lock_show_navigation_check": (
+        "shows the authenticated encrypted-vault policy rather than a "
+        "settings.json value, and is applied through "
+        "MainWindow.set_chat_lock_navigation_hidden()"
+    ),
 }
 
 
@@ -263,6 +268,7 @@ def test_the_parse_finds_the_checkboxes_on_every_tab():
         "_general_page", "_ui_page", "_accessibility_page", "_speech_page",
         "_conn_page", "_audio_devices_page", "_storage_page", "_audio_page",
         "_calls_page", "_profile_backup_page", "_reactions_page",
+        "_chat_lock_page",
     ):
         assert page in pages, f"no checkbox found on {page}"
     assert len(checkbox_keys()) == len(WIRED)

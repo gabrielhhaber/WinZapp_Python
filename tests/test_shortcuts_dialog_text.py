@@ -127,6 +127,13 @@ class TestChatLockShortcutVisibility:
         window._chat_lock_vault = _FakeVault(configured=True, hide=False)
         text = ShortcutsDialog._build_text(_FakeI18n(), window)
         assert "shortcut_alt7_label" in text
+        assert "shortcut_ctrl_shift_k_vault_label" in text
+
+    def test_emergency_close_shortcut_does_not_reveal_a_hidden_vault(self):
+        text = ShortcutsDialog._build_text(
+            _FakeI18n(), _FakeMainWindowConfiguredVault()
+        )
+        assert "shortcut_ctrl_shift_k_vault_label" not in text
 
 
 class TestNewAppLevelShortcutsAreDocumented:
