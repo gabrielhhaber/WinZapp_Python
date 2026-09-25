@@ -267,3 +267,63 @@ class TestNormalizedReply:
         result = _Normalizer()._normalize_wpp_message(raw)
         assert result["message"] == {}
         assert result["messageType"] == "rich_response"
+
+
+# ── A reply stored before its words arrived is completed, not "edited" ──────
+
+class _Editor:
+    _apply_possible_edit = MainWindow._apply_possible_edit
+
+    def __init__(self):
+        self.persisted = []
+        self.db = type("DB", (), {"insert_message": lambda *a, **k: None})()
+        self._msg_bg_executor = type("Ex", (), {"submit": lambda self, fn: fn()})()
+
+    def _schedule_set_chats(self):
+        pass
+
+    def _apply_remote_revoke(self, existing, incoming, remote_jid):
+        return False
+
+    def _persist_and_repaint_edit(self, existing, remote_jid):
+        self.persisted.append((existing["key"]["id"], remote_jid))
+
+
+def _stored(message_type, message):
+    return {"key": {"id": "B0C0", "remoteJid": META_AI, "fromMe": False},
+            "messageType": message_type, "message": message}
+
+
+def _arrived(text):
+    return {"key": {"id": "B0C0", "remoteJid": META_AI, "fromMe": False},
+            "messageType": "conversation", "message": {"conversation": text}}
+
+
+class TestStreamedReplyCompletes:
+    def test_an_empty_stored_reply_takes_the_filled_copy(self):
+        editor, existing = _Editor(), _stored("rich_response", {})
+        editor._apply_possible_edit(existing, _arrived(REPLY), META_AI)
+        assert existing["message"] == {"conversation": REPLY}
+        assert existing["messageType"] == "conversation"
+        assert "_edited" not in existing
+        assert editor.persisted == [("B0C0", META_AI)]
+
+    def test_a_reply_that_still_has_no_text_changes_nothing(self):
+        editor, existing = _Editor(), _stored("rich_response", {})
+        editor._apply_possible_edit(existing, _stored("rich_response", {}), META_AI)
+        assert existing["message"] == {} and editor.persisted == []
+
+    def test_an_ordinary_message_is_still_an_edit(self):
+        editor = _Editor()
+        existing = _stored("conversation", {"conversation": "antes"})
+        editor._apply_possible_edit(existing, _arrived("depois"), META_AI)
+        assert existing["message"] == {"conversation": "depois"}
+        assert existing["_edited"] is True
+
+
+class TestUnknownStateIsNotReprobedEveryMessage:
+    def test_a_failed_probe_is_not_repeated_within_a_minute(self, dialog):
+        window = _Window(STATE_UNKNOWN)
+        assert window.ensure_meta_ai_terms(META_AI)
+        assert window.ensure_meta_ai_terms(META_AI)
+        assert window.probes == 1

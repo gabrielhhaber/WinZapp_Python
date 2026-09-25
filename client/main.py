@@ -8599,6 +8599,19 @@ class MainWindow(wx.Frame):
                 return (mo.get("extendedTextMessage") or {}).get("text") or ""
             return None  # not a text message — never treat as an edit
 
+        # Meta AI streams its answer: a reply stored before its words arrived
+        # is an empty "rich_response" (websocket_client.py normalizes only one
+        # that already has text), and the filled copy comes back under the same
+        # id. That is the message finishing, not an edit -- take it whole and
+        # do not mark it "edited".
+        if (existing.get("messageType") == "rich_response"
+                and not (existing.get("message") or {})
+                and _text_of(incoming)):
+            existing["message"] = incoming.get("message")
+            existing["messageType"] = incoming.get("messageType", "conversation")
+            self._persist_and_repaint_edit(existing, remote_jid)
+            return
+
         old_text = _text_of(existing)
         new_text = _text_of(incoming)
         if old_text is not None and old_text == new_text:
@@ -11303,10 +11316,16 @@ class MainWindow(wx.Frame):
             return True
         if getattr(self, "_meta_ai_terms_accepted", False):
             return True
+        # A probe that could not answer costs up to 8 s on the UI thread; do
+        # not repeat it on every message while the session is wedged.
+        if time.monotonic() < getattr(self, "_meta_ai_probe_retry_at", 0.0):
+            return True
         state = self.meta_ai_terms_state()
         if state != STATE_NOT_ACCEPTED:
             if state == STATE_ACCEPTED:
                 self._meta_ai_terms_accepted = True
+            else:
+                self._meta_ai_probe_retry_at = time.monotonic() + 60.0
             return True
         from ui.dialogs.meta_ai_terms import MetaAiTermsDialog
         dialog = MetaAiTermsDialog(self, self.i18n)

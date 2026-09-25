@@ -51,6 +51,8 @@ class MetaAiTermsDialog(wx.Dialog):
         self.checkbox.SetFocus()
 
     def _on_checkbox(self, event):
-        self.accept_button.Enable(self.checkbox.GetValue())
-        self.accept_button.SetDefault() if self.checkbox.GetValue() else None
+        ticked = self.checkbox.GetValue()
+        self.accept_button.Enable(ticked)
+        if ticked:
+            self.accept_button.SetDefault()
         event.Skip()

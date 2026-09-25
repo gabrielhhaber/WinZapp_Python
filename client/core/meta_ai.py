@@ -25,7 +25,8 @@ _META_AI_USER = re.compile(r"^1313555000\d$")
 
 
 def is_meta_ai_jid(jid) -> bool:
-    """Whether *jid* is a chat with WhatsApp's Meta AI assistant."""
+    """Whether *jid* is a chat with WhatsApp's Meta AI assistant (or another
+    WhatsApp bot, which shares its terms: any @bot address counts)."""
     if not isinstance(jid, str) or "@" not in jid:
         return False
     user, server = jid.split("@", 1)
