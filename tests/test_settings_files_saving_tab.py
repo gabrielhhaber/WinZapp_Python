@@ -96,7 +96,12 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         """Appended for the same reason; SetPageText(13) relies on it."""
         dialog = make_dialog()
         assert dialog._notebook.FindPage(dialog._reactions_page) == 13
-        assert dialog._notebook.GetPageCount() == 14
+
+    def test_the_locked_chats_tab_is_appended_after_reactions(self, make_dialog):
+        """Rare vault policy stays last; SetPageText(14) relies on it."""
+        dialog = make_dialog()
+        assert dialog._notebook.FindPage(dialog._chat_lock_page) == 14
+        assert dialog._notebook.GetPageCount() == 15
 
     def test_the_tabs_that_are_opened_by_number_did_not_move(self, make_dialog):
         """main.py's custom-API first-run flow does SetSelection(4), and this
@@ -116,6 +121,7 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         assert dialog._notebook.GetPageText(11) == i18n.t("tab_calls")
         assert dialog._notebook.GetPageText(12) == i18n.t("tab_profile_backup")
         assert dialog._notebook.GetPageText(13) == i18n.t("tab_reactions")
+        assert dialog._notebook.GetPageText(14) == i18n.t("locked_chats")
 
 
 class TestLoadingTheCurrentSetting:

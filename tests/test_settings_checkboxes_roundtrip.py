@@ -13,9 +13,11 @@ wiring actually carries the value through wx, which a source reading cannot
 see (a load that runs before the control exists, a later write in
 _apply_values() overwriting the key, a side effect that resets a box).
 
-Start with Windows is not toggled: it is not a settings.json value (see
-NOT_BACKED_BY_SETTINGS there) and applying it would write the real Windows
-registry of whoever runs the suite.
+Start with Windows and the locked-chat navigation policy are not toggled: they
+are not settings.json values (see NOT_BACKED_BY_SETTINGS in the static wiring
+test). Applying the first would write the runner's real Windows registry; the
+second belongs to the authenticated encrypted vault and has its own focused
+tests.
 
 Needs a real wx.App — see tests/test_settings_dialog_apply_button.py's
 docstring for why this dialog cannot be exercised against a stub.
