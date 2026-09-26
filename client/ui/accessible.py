@@ -3,6 +3,47 @@ import sys
 import wx
 
 
+def split_mnemonic(label):
+    """Split a locale label such as "&Answer" into ("Answer", "A").
+
+    The returned label has no `&`, so Windows creates no mnemonic for it: a
+    mnemonic also fires on the BARE letter while a button has focus (Win32's
+    IsDialogMessage), which is how a letter typed into the composer answered
+    or rejected a ringing call. The letter is handed back so the caller can
+    register it as an Alt+<letter> accelerator instead. `&&` is a literal `&`.
+    """
+    plain = []
+    letter = None
+    i = 0
+    while i < len(label):
+        char = label[i]
+        if char == "&" and i + 1 < len(label):
+            following = label[i + 1]
+            if following == "&":
+                plain.append("&")
+            else:
+                plain.append(following)
+                if letter is None:
+                    letter = following.upper()
+            i += 2
+            continue
+        plain.append(char)
+        i += 1
+    return "".join(plain), letter
+
+
+class AccessibleAltShortcutButton(wx.Accessible):
+    """Reports Alt+<letter> as the keyboard shortcut of a button whose
+    shortcut is an accelerator-table entry rather than a `&` mnemonic."""
+
+    def __init__(self, letter):
+        super().__init__()
+        self._letter = letter
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, f"Alt+{self._letter}")
+
+
 class AccessibleSearchInConversation(wx.Accessible):
     """Reports Ctrl+Shift+F as the keyboard shortcut for the search-in-conversation button."""
 
