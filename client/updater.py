@@ -467,6 +467,11 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
     to quit over IPC by the time this runs; waiting here covers the seconds
     between their ACK and the process actually being gone.
     """
+    source_node = os.path.join(source_dir, "node", "node.exe")
+    target_node = os.path.join(install_dir, "node", "node.exe")
+    # Keep the held payload beside, not inside, source_dir.  xcopy walks the
+    # source tree recursively, so an in-tree staging name would still be copied.
+    held_node = source_dir.rstrip("\\/") + ".node.exe.winzapp-unchanged"
     wait_blocks = "".join(
         f"set /a WAIT{i}_SECONDS=0\n"
         f":WAIT{i}\n"
@@ -518,6 +523,17 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         # (as opposed to 0/1, which just mean "nothing to copy"/"success");
         # leave a marker file WinZapp checks on next startup so the user is
         # told instead of silently running a stale/partial install.
+        "set NODE_PAYLOAD_HELD=0\n"
+        f'if exist "{source_node}" if exist "{target_node}" (\n'
+        f'    fc /B "{source_node}" "{target_node}" >NUL 2>&1\n'
+        "    if not errorlevel 1 (\n"
+        f'        move /Y "{source_node}" "{held_node}" >NUL 2>&1\n'
+        "        if not errorlevel 1 (\n"
+        "            set NODE_PAYLOAD_HELD=1\n"
+        f'            >> "{log_path}" echo node.exe unchanged - skipping locked replacement\n'
+        "        )\n"
+        "    )\n"
+        ")\n"
         f'xcopy /E /Y /I /H "{source_dir}\\*" "{install_dir}\\" >> "{log_path}" 2>&1\n'
         # One retry, because the failure this converts is transient and
         # common. Reported live: an update that copied hundreds of files
@@ -539,6 +555,11 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         "    timeout /t 5 /nobreak >NUL\n"
         f'    xcopy /E /Y /I /H "{source_dir}\\*" "{install_dir}\\" >> "{log_path}" 2>&1\n'
         ")\n"
+        # Restoring the held source changes ERRORLEVEL. Save xcopy's result
+        # first and put it back so the existing verdict still sees the copy.
+        "set XCOPY_RESULT=!ERRORLEVEL!\n"
+        f'if "!NODE_PAYLOAD_HELD!"=="1" move /Y "{held_node}" "{source_node}" >NUL 2>&1\n'
+        "cmd /c exit !XCOPY_RESULT!\n"
         "if errorlevel 4 (\n"
         f'    >> "{log_path}" echo xcopy FAILED\n'
         f'    echo update failed > "{marker_path}"\n'
