@@ -13456,16 +13456,20 @@ class MainWindow(wx.Frame):
         self.open_settings()
 
     def open_settings(self):
-        self.lock_chat_vault(silent=True, show_conversations=False)
+        # A hidden vault can only expose its Settings tab while its secret-code
+        # session is still unlocked. Preserve that existing session; only start
+        # Settings from a locked state when the vault was not already open.
+        was_unlocked = bool(getattr(self, "_chat_lock_unlocked", False))
+        if not was_unlocked:
+            self.lock_chat_vault(silent=True, show_conversations=False)
         from ui.dialogs.settings_dialog import SettingsDialog
         dlg = SettingsDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
-        # Settings opened with the vault locked (above), so it can only be
-        # unlocked now if its "Locked chats" tab authenticated -- close it
-        # again. Only then: locking rebuilds the navigation list, which a
-        # screen reader re-announces, so an untouched vault is left alone.
-        if getattr(self, "_chat_lock_unlocked", False):
+        # If Settings itself authenticated a previously locked vault, close
+        # that temporary session again. An already-open session belongs to the
+        # caller and must remain open.
+        if not was_unlocked and getattr(self, "_chat_lock_unlocked", False):
             self.lock_chat_vault(silent=True, show_conversations=False)
 
     def _refresh_call_language_surfaces(self):

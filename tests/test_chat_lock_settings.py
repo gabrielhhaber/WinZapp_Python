@@ -173,8 +173,8 @@ def test_tab_is_absent_when_the_vault_state_is_unreadable():
 class _OpenSettingsStub:
     open_settings = None  # bound below
 
-    def __init__(self, unlock_in_settings):
-        self._chat_lock_unlocked = False
+    def __init__(self, unlock_in_settings, initially_unlocked=False):
+        self._chat_lock_unlocked = initially_unlocked
         self.lock_calls = []
         self._unlock_in_settings = unlock_in_settings
 
@@ -183,11 +183,14 @@ class _OpenSettingsStub:
         self._chat_lock_unlocked = False
 
 
-def _run_open_settings(monkeypatch, unlock_in_settings):
+def _run_open_settings(monkeypatch, unlock_in_settings, initially_unlocked=False):
     import ui.dialogs.settings_dialog as settings_module
     from main import MainWindow
 
-    mw = _OpenSettingsStub(unlock_in_settings)
+    mw = _OpenSettingsStub(
+        unlock_in_settings,
+        initially_unlocked=initially_unlocked,
+    )
 
     class _Dialog:
         def __init__(self, main_window):
@@ -215,3 +218,13 @@ def test_open_settings_relocks_a_vault_unlocked_inside_settings(monkeypatch):
 def test_open_settings_does_not_touch_an_untouched_vault_on_close(monkeypatch):
     mw = _run_open_settings(monkeypatch, unlock_in_settings=False)
     assert mw.lock_calls == [(True, False)]  # only the lock on opening
+
+
+def test_open_settings_preserves_an_already_unlocked_vault(monkeypatch):
+    mw = _run_open_settings(
+        monkeypatch,
+        unlock_in_settings=False,
+        initially_unlocked=True,
+    )
+    assert mw.lock_calls == []
+    assert mw._chat_lock_unlocked is True
