@@ -6,7 +6,16 @@ from ctypes import wintypes
 
 import wx
 
-from ui.accessible import AccessibleAltShortcutButton, split_mnemonic
+from ui.accessible import (
+    AccessibleAltShortcutButton,
+    accelerator_keycode,
+    split_mnemonic,
+)
+
+
+def _plain(i18n, key):
+    """The locale string without its `&` (see IncomingCallDialog._apply_labels)."""
+    return split_mnemonic(i18n.t(key))[0]
 
 
 class IncomingCallDialog(wx.Dialog):
@@ -73,21 +82,21 @@ class IncomingCallDialog(wx.Dialog):
             if is_video
             else "incoming_call_answer_button"
         )
-        self._answer_button = wx.Button(panel, wx.ID_OK, label=i18n.t(answer_key))
+        self._answer_button = wx.Button(panel, wx.ID_OK, label=_plain(i18n, answer_key))
         if is_video:
             self._answer_without_video_button = wx.Button(
                 panel,
                 wx.ID_ANY,
-                label=i18n.t("incoming_call_answer_without_video_button"),
+                label=_plain(i18n, "incoming_call_answer_without_video_button"),
             )
         self._reject_button = wx.Button(
-            panel, wx.ID_ANY, label=i18n.t("incoming_call_reject_button")
+            panel, wx.ID_ANY, label=_plain(i18n, "incoming_call_reject_button")
         )
         self._silence_button = wx.Button(
-            panel, wx.ID_ANY, label=i18n.t("incoming_call_silence_button")
+            panel, wx.ID_ANY, label=_plain(i18n, "incoming_call_silence_button")
         )
         self._close_button = wx.Button(
-            panel, wx.ID_CANCEL, label=i18n.t("incoming_call_close_button")
+            panel, wx.ID_CANCEL, label=_plain(i18n, "incoming_call_close_button")
         )
         button_order = [self._answer_button]
         if is_video:
@@ -155,16 +164,25 @@ class IncomingCallDialog(wx.Dialog):
         """
         entries = []
         self._accel_ids = {}
+        # Held so wx cannot hand these ids to a later wx.ID_ANY control.
+        self._accel_refs = []
         for button, key, handler in self._label_specs():
             label, letter = split_mnemonic(self._i18n.t(key))
             button.SetLabel(label)
-            if letter is None:
+            keycode = accelerator_keycode(letter)
+            if keycode is None:
+                # No letter, or one this keyboard layout cannot type: report
+                # no shortcut rather than one that would never fire (this also
+                # clears an accessible left over from the previous language).
+                button.SetAccessible(None)
                 continue
             button.SetAccessible(AccessibleAltShortcutButton(letter))
-            # Enter/Esc already own the stock ids; use a private one for all.
-            accel_id = wx.NewIdRef().GetId()
-            self._accel_ids[accel_id] = (button, handler)
-            entries.append(wx.AcceleratorEntry(wx.ACCEL_ALT, ord(letter), accel_id))
+            # Enter/Esc already own the stock ids of the OK/Cancel buttons, so
+            # every accelerator gets a private command id instead.
+            ref = wx.NewIdRef()
+            self._accel_refs.append(ref)
+            self._accel_ids[ref.GetId()] = (button, handler)
+            entries.append(wx.AcceleratorEntry(wx.ACCEL_ALT, keycode, ref.GetId()))
         self.SetAcceleratorTable(wx.AcceleratorTable(entries))
 
     def _on_accelerator(self, event):

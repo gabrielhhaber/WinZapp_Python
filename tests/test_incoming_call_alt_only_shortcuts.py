@@ -62,3 +62,71 @@ def test_dialog_never_hands_an_ampersand_label_to_a_button():
     assert "split_mnemonic" in source
     for match in re.finditer(r"\.SetLabel\((.*)\)", source):
         assert match.group(1) in ("label", "message"), match.group(0)
+
+
+def test_accelerator_keycode_ascii_and_unmappable():
+    from ui.accessible import accelerator_keycode
+
+    assert accelerator_keycode("A") == ord("A")
+    assert accelerator_keycode("a") == ord("A")
+    assert accelerator_keycode("7") == ord("7")
+    assert accelerator_keycode(None) is None
+    assert accelerator_keycode("") is None
+    assert accelerator_keycode("SS") is None
+
+
+def test_split_mnemonic_keeps_letters_whose_uppercase_is_longer():
+    assert split_mnemonic("&ßeta") == ("ßeta", "ß")
+
+
+class _Button:
+    def __init__(self, enabled):
+        self._enabled = enabled
+
+    def IsEnabled(self):
+        return self._enabled
+
+
+class _Event:
+    def __init__(self, event_id):
+        self._id = event_id
+        self.skipped = False
+
+    def GetId(self):
+        return self._id
+
+    def Skip(self):
+        self.skipped = True
+
+
+def _dialog_stub(accel_ids):
+    from ui.dialogs.incoming_call import IncomingCallDialog
+
+    class Stub:
+        _on_accelerator = IncomingCallDialog._on_accelerator
+
+    stub = Stub()
+    stub._accel_ids = accel_ids
+    return stub
+
+
+def test_accelerator_runs_the_handler_of_an_enabled_button():
+    calls = []
+    stub = _dialog_stub({7: (_Button(True), calls.append)})
+    event = _Event(7)
+    stub._on_accelerator(event)
+    assert calls == [event]
+
+
+def test_accelerator_ignores_a_disabled_button():
+    calls = []
+    stub = _dialog_stub({7: (_Button(False), calls.append)})
+    stub._on_accelerator(_Event(7))
+    assert calls == []
+
+
+def test_accelerator_skips_an_unknown_id():
+    stub = _dialog_stub({})
+    event = _Event(99)
+    stub._on_accelerator(event)
+    assert event.skipped

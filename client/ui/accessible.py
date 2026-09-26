@@ -24,12 +24,37 @@ def split_mnemonic(label):
             else:
                 plain.append(following)
                 if letter is None:
-                    letter = following.upper()
+                    upper = following.upper()
+                    letter = upper if len(upper) == 1 else following
             i += 2
             continue
         plain.append(char)
         i += 1
     return "".join(plain), letter
+
+
+def accelerator_keycode(letter):
+    """The key code to register for Alt+<letter>, or None if it cannot fire.
+
+    An accelerator entry on Windows takes a virtual-key code, which equals the
+    character only for ASCII letters and digits. Any other letter (Romanian
+    "Î") is resolved through the active keyboard layout; None when the layout
+    has no plain key for it.
+    """
+    if not letter or len(letter) != 1:
+        return None
+    if letter.isascii() and letter.isalnum():
+        return ord(letter.upper())
+    if sys.platform != "win32":
+        return None
+    import ctypes
+
+    scan = ctypes.windll.user32.VkKeyScanW
+    scan.restype = ctypes.c_short
+    result = scan(ord(letter))
+    if result == -1 or (result >> 8) & 0xFF:  # unmapped, or needs Shift/Ctrl/Alt
+        return None
+    return result & 0xFF
 
 
 class AccessibleAltShortcutButton(wx.Accessible):
