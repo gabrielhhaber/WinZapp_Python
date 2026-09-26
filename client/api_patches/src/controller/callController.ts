@@ -359,7 +359,13 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
       // call" or "ending" (getCallInfo(): '' once no call is ongoing).
       if (action === 'status') {
         const callId = String(payload.callId || '');
-        const call = getCallStore()?.activeCall;
+        // findCall(), not activeCall alone: WhatsApp briefly swaps activeCall
+        // during internal transitions (the poll keeps a 5 s grace and a
+        // findCall() fallback for exactly that), and an A/V switch is a
+        // plausible one. Reading activeCall alone would answer "gone" in that
+        // window and turn a spurious terminal event into a real hang-up.
+        const found = callId ? findCall(callId) : null;
+        const call = sameCallId(found, callId) ? found : null;
         const state = call ? callStateOf(call) : '';
         let engine = 'unknown';
         try {
@@ -396,7 +402,14 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
           return { handled: false, stillLive: false };
         }
         const summary = summarizeCall(call);
+        let ended = false;
         await runNativeVoipAction(async (voipStack: any) => {
+          // endCall() hangs up whatever the page holds, so the id is checked
+          // again right before it: the runtime warm-up above can take
+          // seconds, and a new call may have replaced this one meanwhile.
+          const current = getCallStore()?.activeCall;
+          if (!sameCallId(current, callId)) return;
+          ended = true;
           call.userEndedCall = true;
           if (typeof voipStack?.endCall === 'function') {
             await voipStack.endCall(2, true);
@@ -404,7 +417,7 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
             await win.WPP.call.end();
           }
         });
-        return { handled: true, stillLive: true, call: summary };
+        return { handled: ended, stillLive: ended, call: summary };
       }
 
       // WPP.call.offer() (wa-js 4.6.0) calls startWAWebVoipCall(peer, isVideo,

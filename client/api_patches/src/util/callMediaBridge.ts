@@ -440,7 +440,12 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
 
   const restorePageAudio = (el: HTMLMediaElement) => {
     try {
-      if (isLiveStreamElement(el)) return;
+      if (isLiveStreamElement(el)) {
+        // Stays muted; only dropped from the set, so the call's stream is
+        // not referenced for the life of the page.
+        mutedPageElements.delete(el);
+        return;
+      }
       const original = pageAudioState.get(el);
       if (!original) return;
       el.muted = original.muted;
@@ -508,6 +513,14 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     // The ringtone is always suppressed, even if a previous call just ended
     // and the short terminal-chime exception window is still open.
     if (isPageRingtone(el)) {
+      silencePageAudio(el);
+      return true;
+    }
+
+    // Before the chime window, not inside it: a stream element that starts
+    // playing during those 2.5 s would otherwise be left audible, and one
+    // outside the DOM is only ever looked at again on its next play().
+    if (isLiveStreamElement(el)) {
       silencePageAudio(el);
       return true;
     }

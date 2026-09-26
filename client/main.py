@@ -7275,12 +7275,10 @@ class MainWindow(wx.Frame):
                     # to the peer while proving the camera works, so
                     # _stop_call_camera() below is cleanup rather than a race
                     # against an in-flight frame.
-                    self._start_call_camera(
-                        announce_failure=start_camera_enabled,
-                        transmit=start_camera_enabled,
-                    )
-                    if not start_camera_enabled:
-                        self._stop_call_camera()
+                    if start_camera_enabled:
+                        self._start_call_camera()
+                    else:
+                        self._probe_call_camera()
                 except Exception:
                     # The call is already accepted; a camera problem must not
                     # be reported as "answer failed" nor tear the audio down.
@@ -7393,22 +7391,41 @@ class MainWindow(wx.Frame):
 
         threading.Thread(target=_worker, daemon=True, name="call-ensure-ended").start()
 
+    def _probe_call_camera(self):
+        """Prove the camera works without it ever sending a frame.
+
+        Sets ``_call_camera_available`` so the "turn video on" button appears.
+        Only a capture this probe actually started is stopped: when
+        _start_call_camera() returns False the call changed while the camera
+        was opening, and stopping would hit the NEW call's capture.
+        """
+        if self._start_call_camera(announce_failure=False, transmit=False):
+            self._stop_call_camera()
+
     def _on_call_upgraded_to_video(self):
         """The ongoing voice call became a video call without ending.
 
-        The call window is re-opened as the video call window -- hidden and
-        shown again, so the screen reader announces the new title and focus
-        lands on its controls exactly as when a video call starts -- and the
-        camera is probed so "turn video on" appears. The camera is NOT turned
-        on: when the other person upgrades, WhatsApp leaves this side's camera
-        off until the user turns it on. An upgrade the user asked for
-        (promote_call_to_video) starts its own camera.
+        The call window turns into the video call window in place: its title,
+        the video area and the video buttons follow is_video through
+        _sync_voice_call_bar(). It is deliberately NOT hidden and re-shown:
+        that raised it and took focus while the user was reading a
+        conversation mid-call, and the focus change cut this announcement off
+        (docs/traps/voice-calls.md: focus goes to the window once, when it
+        appears). Only when focus was on the promote button, which is now
+        hidden, does it move -- to the mute button, as when a call starts.
+
+        The camera is only probed: when the other person upgrades, WhatsApp
+        leaves this side's camera off until the user turns it on. An upgrade
+        the user asked for (promote_call_to_video) starts its own camera.
         """
         self.output(self.i18n.t("voice_call_upgraded_to_video"), interrupt=True)
-        window = getattr(self, "voice_call_window", None)
-        if window is not None:
-            window.Hide()
-            self._sync_voice_call_bar()
+        promote_button = getattr(self, "voice_call_window_promote_button", None)
+        promote_had_focus = promote_button is not None and promote_button.HasFocus()
+        self._sync_voice_call_bar()
+        if promote_had_focus:
+            mute_button = getattr(self, "voice_call_window_mute_button", None)
+            if mute_button is not None:
+                mute_button.SetFocus()
         if getattr(self, "_call_camera_capture", None) is not None:
             return  # promote_call_to_video() already has the camera running
         if getattr(self, "_call_upgrade_pending", False):
@@ -7416,8 +7433,7 @@ class MainWindow(wx.Frame):
 
         def _probe_camera():
             try:
-                self._start_call_camera(announce_failure=False, transmit=False)
-                self._stop_call_camera()
+                self._probe_call_camera()
             except Exception:
                 logging.exception("[call_video] camera probe after upgrade failed")
 
@@ -7436,6 +7452,8 @@ class MainWindow(wx.Frame):
         active = getattr(self, "_active_voice_call", None)
         if not active or active.get("is_video"):
             return
+        if getattr(self, "_voice_call_last_announced_state", "") != "ACTIVE":
+            return  # still ringing: there is no connected call to switch yet
         if getattr(self, "_call_upgrade_pending", False):
             return
         self._call_upgrade_pending = True
@@ -7443,23 +7461,32 @@ class MainWindow(wx.Frame):
 
         def _worker():
             try:
+                # OUTSIDE _call_action_lock, like the offer POST and for the
+                # same reason (#275): the lock serialises state transitions,
+                # never a blocking POST -- held across this one's 20 s timeout,
+                # Ctrl+Shift+Q right after Ctrl+P sat there with nothing
+                # spoken. It changes no WinZapp state; the identity check
+                # below is what the lock would otherwise have protected.
+                try:
+                    self._raise_for_call_response(
+                        self._post_call_control("upgrade-video", {}, timeout=20),
+                        "upgrade-video",
+                    )
+                except Exception as exc:
+                    logging.exception("[call] upgrade to video failed")
+                    wx.CallAfter(
+                        self.output,
+                        self.i18n.t("voice_call_upgrade_failed").format(
+                            error=self._call_error_text(exc)
+                        ),
+                        True,
+                    )
+                    return
                 with self._call_action_lock:
-                    try:
-                        self._raise_for_call_response(
-                            self._post_call_control("upgrade-video", {}, timeout=20),
-                            "upgrade-video",
-                        )
-                    except Exception as exc:
-                        logging.exception("[call] upgrade to video failed")
-                        wx.CallAfter(
-                            self.output,
-                            self.i18n.t("voice_call_upgrade_failed").format(
-                                error=self._call_error_text(exc)
-                            ),
-                            True,
-                        )
-                        return
-                if getattr(self, "_active_voice_call", None) is not expected_call:
+                    still_this_call = (
+                        getattr(self, "_active_voice_call", None) is expected_call
+                    )
+                if not still_this_call:
                     return  # the call ended while WhatsApp was switching it
                 # Switch the window now rather than waiting for the page's
                 # isVideo event; when that arrives the call is already video
@@ -7832,7 +7859,10 @@ class MainWindow(wx.Frame):
         promote_button = getattr(self, "voice_call_window_promote_button", None)
         if promote_button is not None:
             promote_button.SetLabel(self.i18n.t("voice_call_promote_video_button"))
-            promote_button.Show(not is_video)
+            promote_button.Show(
+                not is_video
+                and getattr(self, "_voice_call_last_announced_state", "") == "ACTIVE"
+            )
 
         # Local-camera controls are independent from remote video reception.
         # Until camera probing succeeds the button stays hidden; on a PC with
@@ -7945,7 +7975,8 @@ class MainWindow(wx.Frame):
             "HANDLED_REMOTELY", "REMOTE_CALL_IN_PROGRESS",
         }
         if state in terminal_states or event.get("event") in {"ended", "timeout"}:
-            self._confirm_call_ended(active, call_id, peer_jid)
+            self._confirm_call_ended(
+                active, call_id, peer_jid, upgraded_to_video=upgraded_to_video)
             return
         if upgraded_to_video:
             self._on_call_upgraded_to_video()
@@ -7956,6 +7987,7 @@ class MainWindow(wx.Frame):
             return
         if state == "ACTIVE" and self._voice_call_last_announced_state != "ACTIVE":
             self._voice_call_last_announced_state = "ACTIVE"
+            self._sync_voice_call_bar()  # the promote button needs a connected call
             if getattr(self, "_call_audio_session", None) is None:
                 details = dict(active)
                 threading.Thread(
@@ -7965,7 +7997,8 @@ class MainWindow(wx.Frame):
                 ).start()
             self.output(self.i18n.t("voice_call_connected"), interrupt=True)
 
-    def _confirm_call_ended(self, active: dict, call_id: str, peer_jid: str):
+    def _confirm_call_ended(self, active: dict, call_id: str, peer_jid: str,
+                            *, upgraded_to_video: bool = False):
         """Ask the page whether the call is really over before saying so.
 
         A terminal event is not proof on its own: when the other person
@@ -7978,16 +8011,23 @@ class MainWindow(wx.Frame):
         live call wrongly declared over cannot.
         """
         call_id = str(call_id or active.get("call_id") or "")
-        pending = self.__dict__.setdefault("_call_end_checks", set())
-        if call_id in pending:
+        checks = self.__dict__.setdefault("_call_end_checks", {})
+        check = checks.get(call_id)
+        if check is not None:
+            # A terminal event while this call is already being checked. The
+            # Node side emits each terminal event only once, so dropping this
+            # one could keep a call that has really ended: if the check in
+            # flight answers "live", it is asked again.
+            check["recheck"] = True
+            check["upgraded"] = check["upgraded"] or upgraded_to_video
             return
-        pending.add(call_id)
+        checks[call_id] = {"recheck": False, "upgraded": bool(upgraded_to_video)}
 
         def _worker():
             status = None
             try:
                 if call_id and not call_id.startswith("outgoing:"):
-                    response = self._post_call_control("status", {"callId": call_id}, timeout=5)
+                    response = self._post_call_control("status", {"callId": call_id}, timeout=8)
                     if response.status_code < 400:
                         status = (response.json() or {}).get("response") or None
             except Exception:
@@ -7997,17 +8037,28 @@ class MainWindow(wx.Frame):
         threading.Thread(target=_worker, daemon=True, name="call-end-confirm").start()
 
     def _apply_confirmed_call_end(self, active: dict, call_id: str, peer_jid: str, status):
-        getattr(self, "_call_end_checks", set()).discard(call_id)
+        check = getattr(self, "_call_end_checks", {}).pop(call_id, None) or {}
         if getattr(self, "_active_voice_call", None) is not active:
             return  # already ended (the user hung up) or replaced meanwhile
         if isinstance(status, dict) and status.get("live") is True:
+            if check.get("recheck"):
+                # Another terminal event arrived while this answer was on its
+                # way; it may be the real end. Ask once more.
+                self._confirm_call_ended(
+                    active, call_id, peer_jid, upgraded_to_video=bool(check.get("upgraded")))
+                return
             logging.warning(
                 "[call] ignored a terminal event: the page still holds this call "
                 "live (state=%s engine=%s video=%s)",
                 status.get("state"), status.get("engine"), bool(status.get("isVideo")),
             )
+            # The event handler already set is_video from the event itself, so
+            # the upgrade is carried here explicitly rather than re-derived.
+            upgraded = bool(check.get("upgraded"))
             if status.get("isVideo") and not active.get("is_video"):
                 active["is_video"] = True
+                upgraded = True
+            if upgraded:
                 self._sync_voice_call_bar()
                 self._on_call_upgraded_to_video()
             return

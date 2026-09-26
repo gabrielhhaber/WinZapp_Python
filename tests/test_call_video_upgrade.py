@@ -310,7 +310,9 @@ def test_promote_button_reports_ctrl_p_and_is_bound():
     video = MAIN_SRC.index("controls.Add(self.voice_call_window_video_button")
     assert mute < promote < video
     # Shown only while the call is voice.
-    assert "promote_button.Show(not is_video)" in MAIN_SRC
+    shown = MAIN_SRC[MAIN_SRC.index("promote_button.Show("):]
+    shown = shown[: shown.index(")\n") + 1]
+    assert "not is_video" in shown and '== "ACTIVE"' in shown
 
 
 def test_node_side_exposes_upgrade_and_scoped_ensure_ended():
@@ -319,12 +321,15 @@ def test_node_side_exposes_upgrade_and_scoped_ensure_ended():
     assert "'/api/:session/call/status'" in ROUTES_SRC
     assert "voipStack.requestVideoUpgrade()" in CONTROLLER_SRC
     ensure = CONTROLLER_SRC[CONTROLLER_SRC.index("action === 'ensure-ended'"):]
-    ensure = ensure[: ensure.index("return { handled: true, stillLive: true")]
+    ensure = ensure[: ensure.index("return { handled: ended, stillLive: ended")]
+    before_end = ensure[: ensure.index("voipStack.endCall(2, true)")]
+    assert before_end.count("sameCallId(") >= 2  # before AND inside the callback
     # Scoped to the exact call id: 'end' hangs up whatever the page holds.
     assert "sameCallId(call, callId)" in ensure
     status = CONTROLLER_SRC[CONTROLLER_SRC.index("action === 'status'"):]
     status = status[: status.index("return { live, state, engine")]
     # "Live" needs the same id, a connected state AND no veto from the engine.
+    assert "findCall(callId)" in status  # the poll's fallback across a brief swap
     assert "sameCallId(call, callId) && isConnectedCall(call)" in status
     assert "engine !== 'none' && engine !== 'ending'" in status
 
@@ -338,5 +343,208 @@ def test_call_state_poll_reports_an_isvideo_flip():
 def test_call_end_chime_never_unmutes_the_live_call_stream():
     restore = BRIDGE_SRC[BRIDGE_SRC.index("const restorePageAudio = "):]
     restore = restore[: restore.index("};")]
-    assert "if (isLiveStreamElement(el)) return;" in restore
+    assert "if (isLiveStreamElement(el)) {" in restore
+    assert "mutedPageElements.delete(el);" in restore
+    policy = BRIDGE_SRC[BRIDGE_SRC.index("const applyPageAudioPolicy = "):]
+    policy = policy[: policy.index("silencePageAudio(el);\n    return true;\n  };")]
+    assert policy.index("isLiveStreamElement(el)") < policy.index("allowCallEndChimeUntil")
     assert re.search(r"isLiveStreamElement = \(el: HTMLMediaElement\): boolean =>[\s\S]{0,80}srcObject instanceof MediaStream", BRIDGE_SRC)
+
+
+# ── Review of PR #300 ─────────────────────────────────────────────────────
+
+
+def test_terminal_event_that_already_says_video_still_counts_as_the_upgrade(monkeypatch):
+    """Finding 1: the handler set is_video from the terminal event itself
+    before asking the page, so the "live" answer found nothing to upgrade --
+    no announcement, and no camera probe (Ctrl+V said "no camera")."""
+    stub = _Stub(_voice_call())
+    posts = []
+
+    def post(endpoint, payload, **_kw):
+        posts.append(endpoint)
+        return _Response({"response": {"live": True, "state": "ACTIVE",
+                                       "engine": "ongoing", "isVideo": True}})
+
+    class _Inline:
+        def __init__(self, target=None, **_kw):
+            self._target = target
+
+        def start(self):
+            self._target()
+
+    stub._post_call_control = post
+    monkeypatch.setattr(threading, "Thread", _Inline)
+    monkeypatch.setattr(wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
+
+    stub.on_voice_call_state_event(_event(state="ENDED", event="ended", is_video=True))
+
+    assert "voice_call_ended" not in stub.announcements
+    assert stub.upgrades == 1
+
+
+def test_a_second_terminal_event_during_the_check_is_asked_again(monkeypatch):
+    """Finding 3: each terminal event is emitted once. One arriving while
+    the first check is in flight used to be dropped, and a "live" answer to
+    the first then kept a call that had really ended."""
+    stub = _Stub(_voice_call())
+    held = []
+    answers = iter([
+        {"live": True, "state": "ACTIVE", "engine": "ongoing"},
+        {"live": False, "state": "ENDED", "engine": "none"},
+    ])
+
+    class _Held:
+        def __init__(self, target=None, **_kw):
+            self._target = target
+
+        def start(self):
+            held.append(self._target)
+
+    stub._post_call_control = lambda *_a, **_k: _Response({"response": next(answers)})
+    stub._ensure_page_call_ended = lambda _cid: None
+    monkeypatch.setattr(threading, "Thread", _Held)
+    monkeypatch.setattr(wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
+
+    stub.on_voice_call_state_event(_event(state="ENDED", event="ended", is_video=False))
+    stub.on_voice_call_state_event(_event(state="ENDED", event="state", is_video=False))
+    assert len(held) == 1          # one check in flight, the second is folded in
+    held.pop(0)()                  # first answer: live -> asked again
+    assert "voice_call_ended" not in stub.announcements
+    assert len(held) == 1
+    held.pop(0)()                  # second answer: gone
+    assert stub.announcements.count("voice_call_ended") == 1
+
+
+class _CameraStub:
+    _on_call_upgraded_to_video = MainWindow._on_call_upgraded_to_video
+    _probe_call_camera = MainWindow._probe_call_camera
+
+    def __init__(self, start_result=True):
+        self.i18n = _I18n()
+        self.announcements = []
+        self.starts = []
+        self.stops = 0
+        self.page_camera_starts = 0
+        self.start_result = start_result
+        self._call_camera_capture = None
+        self.ws = SimpleNamespace(send_call_camera_start=self._page_start)
+
+    def _page_start(self):
+        self.page_camera_starts += 1
+
+    def output(self, text, interrupt=False):
+        self.announcements.append(text)
+
+    def _sync_voice_call_bar(self):
+        pass
+
+    def _start_call_camera(self, **kwargs):
+        self.starts.append(kwargs)
+        return self.start_result
+
+    def _stop_call_camera(self, **_kw):
+        self.stops += 1
+
+
+def _inline_threads(monkeypatch):
+    class _Inline:
+        def __init__(self, target=None, **_kw):
+            self._target = target
+
+        def start(self):
+            self._target()
+
+    monkeypatch.setattr(threading, "Thread", _Inline)
+
+
+def test_an_upgrade_by_the_other_person_never_transmits_the_users_camera(monkeypatch):
+    """The privacy line: the camera is proved to work (so "turn video on"
+    appears) but never sends a frame, and WhatsApp is never told to resume."""
+    _inline_threads(monkeypatch)
+    stub = _CameraStub()
+
+    stub._on_call_upgraded_to_video()
+
+    assert stub.starts == [{"announce_failure": False, "transmit": False}]
+    assert stub.stops == 1
+    assert stub.page_camera_starts == 0
+    assert stub.announcements == ["voice_call_upgraded_to_video"]
+
+
+def test_a_probe_stops_only_a_capture_it_started():
+    """Tier 2: a False start means the call changed while the camera opened;
+    stopping would have blanked the NEW call's capture."""
+    stub = _CameraStub(start_result=False)
+
+    stub._probe_call_camera()
+
+    assert stub.stops == 0
+
+
+class _PromoteStub(_CameraStub):
+    promote_call_to_video = MainWindow.promote_call_to_video
+
+    def __init__(self, response=None, error=None):
+        super().__init__()
+        self._call_action_lock = threading.Lock()
+        self._voice_call_last_announced_state = "ACTIVE"
+        self._active_voice_call = _voice_call()
+        self._call_upgrade_pending = False
+        self.response, self.error = response, error
+        self.lock_held_during_post = None
+        self.marked = []
+
+    def _post_call_control(self, endpoint, payload, **_kw):
+        self.lock_held_during_post = self._call_action_lock.locked()
+        if self.error:
+            raise self.error
+        return self.response
+
+    _raise_for_call_response = MainWindow._raise_for_call_response
+
+    def _call_error_text(self, exc):
+        return str(exc)
+
+    def _mark_call_upgraded_to_video(self, expected_call):
+        self.marked.append(expected_call)
+
+
+def test_promote_posts_outside_the_lock_then_starts_the_camera(monkeypatch):
+    """Finding 2: holding _call_action_lock across the 20 s POST blocked
+    hang-up in silence (#275 again)."""
+    _inline_threads(monkeypatch)
+    monkeypatch.setattr(wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
+    stub = _PromoteStub(response=_Response({"response": {"handled": True}}))
+
+    stub.promote_call_to_video()
+
+    assert stub.lock_held_during_post is False
+    assert stub.marked == [stub._active_voice_call]
+    assert stub.starts == [{}]            # the user asked: camera on, transmitting
+    assert stub.page_camera_starts == 1
+    assert stub._call_upgrade_pending is False
+
+
+def test_a_failed_promote_never_touches_the_camera(monkeypatch):
+    _inline_threads(monkeypatch)
+    monkeypatch.setattr(wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
+    stub = _PromoteStub(response=_Response({}, status_code=500))
+
+    stub.promote_call_to_video()
+
+    assert stub.starts == [] and stub.page_camera_starts == 0
+    assert stub.marked == []
+    assert stub.announcements == ["voice_call_upgrade_failed"]
+    assert stub._call_upgrade_pending is False
+
+
+def test_promote_waits_for_a_connected_call(monkeypatch):
+    started = []
+    monkeypatch.setattr(threading, "Thread", lambda *a, **k: started.append(k) or SimpleNamespace(start=lambda: None))
+    stub = _PromoteStub()
+    stub._voice_call_last_announced_state = ""  # still ringing
+
+    stub.promote_call_to_video()
+
+    assert started == []

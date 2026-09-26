@@ -54,6 +54,7 @@ class _MainStub:
     _call_control_payload = MainWindow._call_control_payload
     _close_incoming_call_dialog = MainWindow._close_incoming_call_dialog
     _stop_call_camera = MainWindow._stop_call_camera
+    _probe_call_camera = MainWindow._probe_call_camera
 
     def __init__(self):
         self._active_incoming_calls = {}
@@ -90,6 +91,7 @@ class _MainStub:
         self._call_camera_available = True
         self._call_camera_capture = object()
         self._call_camera_enabled = True
+        return True  # like the real one once the capture is running
 
     def _start_voice_call_audio(self, identity, details):
         self.audio_starts.append(identity)

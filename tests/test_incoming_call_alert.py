@@ -119,7 +119,7 @@ class _MainStub:
     def _watch_ended_call_log(self, call_id, peer_jid, outgoing):
         self.watched_call_logs.append((call_id, peer_jid, outgoing))
 
-    def _confirm_call_ended(self, active, call_id, peer_jid):
+    def _confirm_call_ended(self, active, call_id, peer_jid, *, upgraded_to_video=False):
         # The page is asked first in production (tests/test_call_video_upgrade.py);
         # here it has already answered "gone".
         self._end_active_call_locally(active, call_id, peer_jid)
