@@ -526,7 +526,9 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         "set NODE_PAYLOAD_HELD=0\n"
         f'if exist "{source_node}" if exist "{target_node}" (\n'
         f'    fc /B "{source_node}" "{target_node}" >NUL 2>&1\n'
-        "    if not errorlevel 1 (\n"
+        # fc: 0 identical, 1 different, 2 missing, -1 bad syntax. "if not
+        # errorlevel 1" would count -1 as identical and keep the old Node.
+        '    if "!ERRORLEVEL!"=="0" (\n'
         f'        move /Y "{source_node}" "{held_node}" >NUL 2>&1\n'
         "        if not errorlevel 1 (\n"
         "            set NODE_PAYLOAD_HELD=1\n"
@@ -558,7 +560,10 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         # Restoring the held source changes ERRORLEVEL. Save xcopy's result
         # first and put it back so the existing verdict still sees the copy.
         "set XCOPY_RESULT=!ERRORLEVEL!\n"
-        f'if "!NODE_PAYLOAD_HELD!"=="1" move /Y "{held_node}" "{source_node}" >NUL 2>&1\n'
+        'if "!NODE_PAYLOAD_HELD!"=="1" (\n'
+        f'    move /Y "{held_node}" "{source_node}" >NUL 2>&1\n'
+        f'    if errorlevel 1 >> "{log_path}" echo could not restore the held node.exe\n'
+        ")\n"
         "cmd /c exit !XCOPY_RESULT!\n"
         "if errorlevel 4 (\n"
         f'    >> "{log_path}" echo xcopy FAILED\n'

@@ -194,6 +194,21 @@ class TestInstallerScript:
         assert "if not errorlevel 1" in s[s.index(compare):first_copy]
         assert "node.exe unchanged - skipping locked replacement" in s
 
+    def test_only_an_fc_result_of_exactly_zero_counts_as_identical(self):
+        # fc prints -1 on a syntax error; "if not errorlevel 1" is true for it.
+        s = _script()
+        compare = s.index(r'fc /B "C:\tmp\ext\node\node.exe"')
+        hold = s.index("move /Y", compare)
+        assert 'if "!ERRORLEVEL!"=="0" (' in s[compare:hold]
+
+    def test_a_failed_restore_of_the_held_node_is_logged(self):
+        s = _script()
+        restore = s.index(
+            r'move /Y "C:\tmp\ext.node.exe.winzapp-unchanged" '
+            r'"C:\tmp\ext\node\node.exe"'
+        )
+        assert "could not restore the held node.exe" in s[restore:restore + 250]
+
     def test_the_held_node_is_outside_xcopys_source_tree(self):
         s = _script()
         assert r'"C:\tmp\ext.node.exe.winzapp-unchanged"' in s
