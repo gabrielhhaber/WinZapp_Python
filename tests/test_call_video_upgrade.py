@@ -310,9 +310,11 @@ def test_promote_button_reports_ctrl_p_and_is_bound():
     video = MAIN_SRC.index("controls.Add(self.voice_call_window_video_button")
     assert mute < promote < video
     # Shown only while the call is voice.
-    shown = MAIN_SRC[MAIN_SRC.index("promote_button.Show("):]
-    shown = shown[: shown.index(")\n") + 1]
+    shown = MAIN_SRC[MAIN_SRC.index("show_promote = ("):]
+    shown = shown[: shown.index("promote_button.Show(show_promote)")]
     assert "not is_video" in shown and '== "ACTIVE"' in shown
+    # Focus leaves the button BEFORE it is hidden, not after.
+    assert shown.index("HasFocus()") < shown.index("SetFocus()")
 
 
 def test_node_side_exposes_upgrade_and_scoped_ensure_ended():
@@ -548,3 +550,29 @@ def test_promote_waits_for_a_connected_call(monkeypatch):
     stub.promote_call_to_video()
 
     assert started == []
+
+
+def test_a_hang_up_during_the_switch_cancels_its_follow_up(monkeypatch):
+    """Re-review: Ctrl+Shift+Q while the upgrade POST was in flight used to be
+    followed by "the call is now a video call" and a camera start."""
+    held = []
+
+    class _Held:
+        def __init__(self, target=None, **_kw):
+            self._target = target
+
+        def start(self):
+            held.append(self._target)
+
+    monkeypatch.setattr(threading, "Thread", _Held)
+    monkeypatch.setattr(wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
+    stub = _PromoteStub(response=_Response({"response": {"handled": True}}))
+
+    stub.promote_call_to_video()
+    stub._promote_attempt["cancelled"] = True   # what end_active_call() does
+    held.pop(0)()
+
+    assert stub.marked == [] and stub.starts == []
+    body = MAIN_SRC[MAIN_SRC.index("    def end_active_call(self"):]
+    body = body[: body.index("def _worker")]
+    assert 'promote["cancelled"] = True' in body

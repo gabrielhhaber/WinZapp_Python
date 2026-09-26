@@ -7327,6 +7327,9 @@ class MainWindow(wx.Frame):
         attempt = getattr(self, "_outgoing_call_attempt", None)
         if attempt is not None:
             attempt["cancelled"] = True
+        promote = getattr(self, "_promote_attempt", None)
+        if promote is not None:
+            promote["cancelled"] = True
 
         # Read now, on the UI thread: by the time the worker runs, the grace
         # teardown or a terminal event may already have cleared the record.
@@ -7412,20 +7415,15 @@ class MainWindow(wx.Frame):
         conversation mid-call, and the focus change cut this announcement off
         (docs/traps/voice-calls.md: focus goes to the window once, when it
         appears). Only when focus was on the promote button, which is now
-        hidden, does it move -- to the mute button, as when a call starts.
+        hidden, does it move -- to the mute button (_sync_voice_call_bar()).
 
         The camera is only probed: when the other person upgrades, WhatsApp
         leaves this side's camera off until the user turns it on. An upgrade
         the user asked for (promote_call_to_video) starts its own camera.
         """
         self.output(self.i18n.t("voice_call_upgraded_to_video"), interrupt=True)
-        promote_button = getattr(self, "voice_call_window_promote_button", None)
-        promote_had_focus = promote_button is not None and promote_button.HasFocus()
+        # Hides the promote button, moving focus off it first if it had it.
         self._sync_voice_call_bar()
-        if promote_had_focus:
-            mute_button = getattr(self, "voice_call_window_mute_button", None)
-            if mute_button is not None:
-                mute_button.SetFocus()
         if getattr(self, "_call_camera_capture", None) is not None:
             return  # promote_call_to_video() already has the camera running
         if getattr(self, "_call_upgrade_pending", False):
@@ -7458,6 +7456,12 @@ class MainWindow(wx.Frame):
             return
         self._call_upgrade_pending = True
         expected_call = active
+        # Marked cancelled by end_active_call() on the UI thread, the same
+        # shape as _outgoing_call_attempt: a hang-up while this POST is in
+        # flight must not be followed by "the call is now a video call" and
+        # a camera start inside the hang-up's grace period.
+        attempt = {"cancelled": False}
+        self._promote_attempt = attempt
 
         def _worker():
             try:
@@ -7485,6 +7489,7 @@ class MainWindow(wx.Frame):
                 with self._call_action_lock:
                     still_this_call = (
                         getattr(self, "_active_voice_call", None) is expected_call
+                        and not attempt["cancelled"]
                     )
                 if not still_this_call:
                     return  # the call ended while WhatsApp was switching it
@@ -7859,10 +7864,18 @@ class MainWindow(wx.Frame):
         promote_button = getattr(self, "voice_call_window_promote_button", None)
         if promote_button is not None:
             promote_button.SetLabel(self.i18n.t("voice_call_promote_video_button"))
-            promote_button.Show(
+            show_promote = (
                 not is_video
                 and getattr(self, "_voice_call_last_announced_state", "") == "ACTIVE"
             )
+            if not show_promote and promote_button.IsShown() and promote_button.HasFocus():
+                # Moved BEFORE the button is hidden: a hidden control's focus
+                # is not something to rely on. The mute button is where focus
+                # goes when a call window appears.
+                mute_focus = getattr(self, "voice_call_window_mute_button", None)
+                if mute_focus is not None:
+                    mute_focus.SetFocus()
+            promote_button.Show(show_promote)
 
         # Local-camera controls are independent from remote video reception.
         # Until camera probing succeeds the button stays hidden; on a PC with
