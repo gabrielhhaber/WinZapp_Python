@@ -16,6 +16,7 @@ carrying only what it touches, in the style CLAUDE.md prescribes.
 
 import main as main_module
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _Response:
@@ -43,14 +44,14 @@ class _Stub:
 class TestNeverCallsOutWithNothingToAsk:
     def test_empty_msg_id_short_circuits(self, monkeypatch):
         calls = []
-        monkeypatch.setattr(main_module, "api_get", lambda *a, **kw: calls.append(1))
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: calls.append(1))
 
         assert _Stub().fetch_message_reactions("") is None
         assert calls == []
 
     def test_not_connected_short_circuits(self, monkeypatch):
         calls = []
-        monkeypatch.setattr(main_module, "api_get", lambda *a, **kw: calls.append(1))
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: calls.append(1))
 
         assert _Stub(wa_connected=False).fetch_message_reactions("msg1") is None
         assert calls == []
@@ -59,8 +60,7 @@ class TestNeverCallsOutWithNothingToAsk:
 class TestSuccessfulResponse:
     def test_returns_the_response_payload(self, monkeypatch):
         payload = {"reactionByMe": None, "reactions": [{"aggregateEmoji": "👍"}]}
-        monkeypatch.setattr(
-            main_module, "api_get",
+        patch_main_global(monkeypatch, "api_get",
             lambda *a, **kw: _Response(200, {"status": "success", "response": payload}),
         )
 
@@ -73,7 +73,7 @@ class TestSuccessfulResponse:
             seen["url"] = url
             return _Response(200, {"status": "success", "response": {}})
 
-        monkeypatch.setattr(main_module, "api_get", _fake_api_get)
+        patch_main_global(monkeypatch, "api_get", _fake_api_get)
 
         _Stub().fetch_message_reactions("true_123@s.whatsapp.net_ABC")
 
@@ -84,21 +84,19 @@ class TestSuccessfulResponse:
 
 class TestFailureModesAllReturnNoneRatherThanRaise:
     def test_non_200_status(self, monkeypatch):
-        monkeypatch.setattr(main_module, "api_get", lambda *a, **kw: _Response(404))
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: _Response(404))
 
         assert _Stub().fetch_message_reactions("msg1") is None
 
     def test_malformed_json_body(self, monkeypatch):
-        monkeypatch.setattr(
-            main_module, "api_get",
+        patch_main_global(monkeypatch, "api_get",
             lambda *a, **kw: _Response(200, raise_on_json=True),
         )
 
         assert _Stub().fetch_message_reactions("msg1") is None
 
     def test_response_field_is_not_a_dict(self, monkeypatch):
-        monkeypatch.setattr(
-            main_module, "api_get",
+        patch_main_global(monkeypatch, "api_get",
             lambda *a, **kw: _Response(200, {"status": "success", "response": "nope"}),
         )
 
@@ -107,6 +105,6 @@ class TestFailureModesAllReturnNoneRatherThanRaise:
     def test_request_raises(self, monkeypatch):
         def _boom(*a, **kw):
             raise ConnectionError("offline")
-        monkeypatch.setattr(main_module, "api_get", _boom)
+        patch_main_global(monkeypatch, "api_get", _boom)
 
         assert _Stub().fetch_message_reactions("msg1") is None

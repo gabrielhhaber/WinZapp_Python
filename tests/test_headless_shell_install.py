@@ -34,6 +34,7 @@ from pathlib import Path
 import pytest
 
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 SHELL = "chrome-headless-shell.exe"
 
@@ -66,7 +67,7 @@ def api_tree(tmp_path, monkeypatch):
     def fake_resource_path(*parts):
         return str(tmp_path.joinpath(*parts))
 
-    monkeypatch.setattr(main, "resource_path", fake_resource_path)
+    patch_main_global(monkeypatch, "resource_path", fake_resource_path)
     return api
 
 
@@ -113,7 +114,7 @@ class TestFindingTheShell:
 
     def test_a_missing_cache_directory_is_not_an_error(self, tmp_path, monkeypatch):
         import main
-        monkeypatch.setattr(main, "resource_path", lambda *p: str(tmp_path.joinpath(*p)))
+        patch_main_global(monkeypatch, "resource_path", lambda *p: str(tmp_path.joinpath(*p)))
         assert _Stub().find_headless_shell() is None
 
 
@@ -202,7 +203,7 @@ class TestInstallingTheShell:
 
     def test_no_api_directory_yet_is_skipped_quietly(self, tmp_path, monkeypatch):
         import main
-        monkeypatch.setattr(main, "resource_path", lambda *p: str(tmp_path.joinpath(*p)))
+        patch_main_global(monkeypatch, "resource_path", lambda *p: str(tmp_path.joinpath(*p)))
         monkeypatch.setattr(
             main.subprocess, "Popen",
             lambda *a, **k: (_ for _ in ()).throw(AssertionError("nothing to install into")),

@@ -30,6 +30,7 @@ import pytest
 
 import app_paths
 from app_paths import data_path, resource_path
+from tests.god_modules import main_window_source
 
 
 ACCOUNT = "d5a019ff6d4545cb9b7bf05991e3fd62"
@@ -106,9 +107,7 @@ class TestBothCallSitesWereFixed:
     fail here rather than in a user's cleanup log."""
 
     def test_no_two_dot_walk_to_userdatadir_remains(self):
-        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        with open(os.path.join(repo_root, "client", "main.py"), encoding="utf-8") as fh:
-            source = fh.read()
+        source = main_window_source()
 
         # Strip comments so the explanatory notes describing the old bug do
         # not themselves trip the guard.
@@ -123,8 +122,6 @@ class TestBothCallSitesWereFixed:
             )
 
     def test_both_sites_use_resource_path(self):
-        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        with open(os.path.join(repo_root, "client", "main.py"), encoding="utf-8") as fh:
-            source = fh.read()
+        source = main_window_source()
 
         assert source.count('resource_path("api", "userDataDir"') >= 2

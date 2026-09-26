@@ -120,7 +120,7 @@ class _HotkeyCapture(wx.TextCtrl):
 
         self._vk  = vk
         self._mod = mod
-        from main import _vk_mod_to_str
+        from main_window.win32_helpers import _vk_mod_to_str
         self.SetValue(_vk_mod_to_str(vk, mod))
 
 
@@ -1482,7 +1482,7 @@ class SettingsDialog(wx.Dialog):
 
         hk = self.main_window.settings.get("general", {}).get("global_hotkey")
         if hk and isinstance(hk, dict) and hk.get("vk"):
-            from main import _vk_mod_to_str
+            from main_window.win32_helpers import _vk_mod_to_str
             self._hotkey_field.SetValue(_vk_mod_to_str(hk["vk"], hk.get("mod", 0)))
             self._hotkey_field._vk  = hk["vk"]
             self._hotkey_field._mod = hk.get("mod", 0)

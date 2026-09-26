@@ -29,6 +29,7 @@ import pytest
 import wx
 
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 TAG = "v2.10.10"
@@ -136,7 +137,7 @@ def threads(monkeypatch):
 
     captured = _Threads()
     # Only main's own binding is replaced, never the threading module itself.
-    monkeypatch.setattr(main_module, "threading", captured)
+    patch_main_global(monkeypatch, "threading", captured)
     monkeypatch.setattr(main_module.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
     monkeypatch.setattr(main_module.wx, "MessageBox", lambda *a, **k: wx.ID_OK)
     monkeypatch.setattr(api_setup, "ApiSetupDialog", _Dialog)

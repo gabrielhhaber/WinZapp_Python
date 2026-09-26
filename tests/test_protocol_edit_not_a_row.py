@@ -33,6 +33,7 @@ from core.message_edit import (
 from core.websocket_client import WebSocketClient
 from main import MainWindow
 from ui.conversations import ConversationsPanel
+from tests.god_modules import patch_main_global
 
 ORIGINAL = "3EB037EC32C70B38BF05EB"
 EDIT_ID = "3EB0BC2F9AA9CFAFBB5098"
@@ -298,7 +299,7 @@ class TestPurge:
 
 class TestFetchedPages:
     def test_get_messages_never_returns_the_edit_as_a_row(self, monkeypatch, call_after):
-        monkeypatch.setattr("main.prune_message_record", lambda m: m)
+        patch_main_global(monkeypatch, "prune_message_record", lambda m: m)
         stub = _Stub(records=[_row(ORIGINAL), _row(EDIT_ID)])
 
         out = stub._normalize_fetched_messages([_raw_reply(), _raw_edit()], GROUP)

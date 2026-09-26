@@ -28,6 +28,7 @@ import time
 
 from core.websocket_client import WebSocketClient
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class TestNothingStartsASessionUnderARestore:
@@ -122,7 +123,7 @@ class _WorthTryingStub:
 
 class TestNoEarlyRestoreWhileAnotherRestartOwnsTheSession:
     def _stub(self, monkeypatch):
-        monkeypatch.setattr("main.pick_restore_generation",
+        patch_main_global(monkeypatch, "pick_restore_generation",
                             lambda *a, **kw: (False, "ok", False))
         return _WorthTryingStub()
 
@@ -245,7 +246,7 @@ class TestBothRestartPathsCheckAgainRightBeforeStarting:
             posts.append(url.rsplit("/", 1)[-1])
             return _Resp()
 
-        monkeypatch.setattr("main.api_post", fake_post)
+        patch_main_global(monkeypatch, "api_post", fake_post)
         monkeypatch.setattr("main.requests.post", fake_post)
         monkeypatch.setattr("main.time.sleep", lambda *_: None)
         return posts

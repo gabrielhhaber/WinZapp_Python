@@ -24,6 +24,7 @@ import pytest
 
 import main
 from main import MainWindow
+from tests.god_modules import main_window_method_source, patch_main_global, main_window_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -116,7 +117,7 @@ def test_the_bootloader_budgets_fit_inside_the_callers_timeouts():
     side without the other fails here."""
     import re
     source = DEVICE.read_text(encoding="utf-8")
-    main_py = (ROOT / "client" / "main.py").read_text(encoding="utf-8")
+    main_py = main_window_source()
 
     react_call = main_py[main_py.index('/react-message"'):]
     react_timeout = int(re.search(r"timeout=(\d+)", react_call).group(1))
@@ -202,8 +203,7 @@ def stub(monkeypatch):
 
 
 def _answer(monkeypatch, status_code, body):
-    monkeypatch.setattr(
-        main, "api_get", lambda *a, **k: _Response(status_code, body)
+    patch_main_global(monkeypatch, "api_get", lambda *a, **k: _Response(status_code, body)
     )
 
 
@@ -227,7 +227,7 @@ class TestAnUnavailableProbeSaysNothing:
         def _boom(*args, **kwargs):
             raise OSError("connection refused")
 
-        monkeypatch.setattr(main, "api_get", _boom)
+        patch_main_global(monkeypatch, "api_get", _boom)
 
         stub._check_send_capabilities()
 
@@ -259,7 +259,7 @@ class TestAnUnansweredProbeIsAskedAgain:
         def _boom(*args, **kwargs):
             raise OSError("timed out")
 
-        monkeypatch.setattr(main, "api_get", _boom)
+        patch_main_global(monkeypatch, "api_get", _boom)
 
         stub._check_send_capabilities()
 
@@ -321,7 +321,7 @@ class TestTheRetryInsideOneConnection:
             calls.append(kwargs)
             return queue.pop(0) if len(queue) > 1 else queue[0]
 
-        monkeypatch.setattr(main, "api_get", _fake_get)
+        patch_main_global(monkeypatch, "api_get", _fake_get)
         return calls
 
     def test_an_unanswered_probe_is_asked_again_without_a_reconnection(
@@ -480,10 +480,9 @@ class TestOnlyARealVerdictIsAnnounced:
 def test_the_probe_runs_from_the_first_confirmed_connection():
     """Not from _check_wpp_version_pin(): ensure_wpp_running() calls that from
     MainWindow.__init__, before init_UI and before the session is paired."""
-    source = (ROOT / "client/main.py").read_text(encoding="utf-8")
+    source = main_window_source()
 
-    pin = source[source.index("    def _check_wpp_version_pin(") :]
-    pin = pin[: pin.index("\n    def _check_send_capabilities(")]
+    pin = main_window_method_source("_check_wpp_version_pin")
     assert "_check_send_capabilities" not in pin
 
     connect = source[

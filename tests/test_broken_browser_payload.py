@@ -43,6 +43,7 @@ import pytest
 
 from core import browser_payload
 from main import MainWindow
+from tests.god_modules import main_window_source, patch_main_global
 
 
 def _make_browser(root, version="win64-148.0.7778.97", icu_bytes=b"x" * 32,
@@ -164,7 +165,7 @@ def window(tmp_path, monkeypatch):
             return str(cache)
         return str(tmp_path.joinpath(*parts))
 
-    monkeypatch.setattr(winzapp_main, "resource_path", fake_resource_path)
+    patch_main_global(monkeypatch, "resource_path", fake_resource_path)
 
     stub = _StubWindow(cache)
     stub.find_headless_shell = winzapp_main.MainWindow.find_headless_shell.__get__(stub)
@@ -251,9 +252,7 @@ def recovery_source():
     body closes over wx and the live API, so what is pinned here is its
     ordering — the way tests/test_stale_browser_lock_recovery.py pins the Node
     side's."""
-    source = (
-        Path(__file__).resolve().parents[1] / "client" / "main.py"
-    ).read_text(encoding="utf-8")
+    source = main_window_source()
     start = source.index("    def _recover_suspect_profile(")
     return source[start : source.index("\n    def ", start + 10)]
 

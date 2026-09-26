@@ -18,6 +18,7 @@ import pytest
 
 from core.send_contract import SendContractError, accepted_message_id
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 def test_accepts_a_queued_message_with_an_id():
@@ -195,8 +196,7 @@ class TestSendTextMessageNeverAsksForARetry:
     def test_a_contract_violation_is_permanent(self, monkeypatch, body):
         import main
 
-        monkeypatch.setattr(
-            main, "api_post", lambda *a, **k: _Response(201, body)
+        patch_main_global(monkeypatch, "api_post", lambda *a, **k: _Response(201, body)
         )
         stub = _SendStub()
 
@@ -210,9 +210,7 @@ class TestSendTextMessageNeverAsksForARetry:
         """It reaches msg.last_error and, for media, a wx.MessageBox."""
         import main
 
-        monkeypatch.setattr(
-            main,
-            "api_post",
+        patch_main_global(monkeypatch, "api_post",
             lambda *a, **k: _Response(201, {"status": "success", "response": [{"ack": 0}]}),
         )
         stub = _SendStub()
@@ -224,9 +222,7 @@ class TestSendTextMessageNeverAsksForARetry:
     def test_a_confirmed_send_still_returns_the_clean_id(self, monkeypatch):
         import main
 
-        monkeypatch.setattr(
-            main,
-            "api_post",
+        patch_main_global(monkeypatch, "api_post",
             lambda *a, **k: _Response(
                 201,
                 {

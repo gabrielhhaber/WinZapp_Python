@@ -23,6 +23,7 @@ itself is the real, already pure-tested implementation (tests/test_node_ports.py
 """
 
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 _ensure_wpp_port_still_free = MainWindow._ensure_wpp_port_still_free
 
@@ -250,7 +251,7 @@ class TestTheDialogIsHandedTheReResolvedPort:
         fake_mod.ApiStartupDialog = _FakeDialog
         monkeypatch.setitem(sys.modules, "ui.dialogs.api_startup", fake_mod)
         monkeypatch.setattr(main.os.path, "isfile", lambda *_a, **_k: True)
-        monkeypatch.setattr(main, "resource_path", lambda *parts: str(tmp_path / "x"))
+        patch_main_global(monkeypatch, "resource_path", lambda *parts: str(tmp_path / "x"))
         monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **k: None)
 
         class _RunStub:

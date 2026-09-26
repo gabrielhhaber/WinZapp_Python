@@ -25,6 +25,7 @@ import pytest
 
 from core.profile_recovery import ProfileHealthTracker
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _MetadataDB:
@@ -439,7 +440,7 @@ class TestASuccessfulRestoreGivesBackTheQrFloodAllowance:
         """Everything between the trigger and the reset, made synchronous.
         Returns a setter for the one outcome the two tests differ on."""
         monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a, **kw: True)
-        monkeypatch.setattr("main.api_post", lambda *a, **kw: None)
+        patch_main_global(monkeypatch, "api_post", lambda *a, **kw: None)
         monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
         monkeypatch.setattr("main.threading.Thread", _InlineThread)
 

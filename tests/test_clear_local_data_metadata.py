@@ -39,13 +39,14 @@ import pytest
 from core.database_bridge import DatabaseBridgeClosed, DatabaseBridgeTimeout
 import main as main_module
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 @pytest.fixture(autouse=True)
 def _media_dirs_elsewhere(tmp_path, monkeypatch):
     """data_path() refuses to answer without an active account, and the tail
     of clear_local_data() deletes media/ and voice_messages/ file by file."""
-    monkeypatch.setattr(main_module, "data_path",
+    patch_main_global(monkeypatch, "data_path",
                         lambda *parts: str(tmp_path.joinpath(*parts)))
 
 

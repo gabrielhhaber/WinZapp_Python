@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from tests.god_modules import main_window_source
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -372,7 +373,7 @@ def test_setup_api_copies_call_patch_files_into_runtime_api():
 
 
 def test_outgoing_call_allows_native_voip_more_than_generic_http_timeout():
-    main_py = _source("client/main.py")
+    main_py = main_window_source()
 
     offer = main_py[main_py.index("def _start_individual_call"):]
     offer = offer[: offer.index("threading.Thread(target=_worker")]

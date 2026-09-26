@@ -15,6 +15,7 @@ MainWindow is a wx.Frame and cannot be instantiated without a running wx.App,
 so the methods under test are bound to plain stubs, as elsewhere in this suite.
 """
 
+import inspect
 import threading
 import types
 
@@ -89,8 +90,8 @@ class _Stub:
 
     _UNRESOLVABLE_MAX_AGE_SECONDS = MainWindow._UNRESOLVABLE_MAX_AGE_SECONDS
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
-    _load_local_lid_cache = MainWindow.__dict__["_load_local_lid_cache"]
-    _learn_sender_name = MainWindow.__dict__["_learn_sender_name"]
+    _load_local_lid_cache = inspect.getattr_static(MainWindow, "_load_local_lid_cache")
+    _learn_sender_name = inspect.getattr_static(MainWindow, "_learn_sender_name")
 
     def _is_self_jid(self, jid):
         return False
@@ -162,7 +163,7 @@ class TestMappingLearned:
         def _make(**kwargs):
             s = _Stub(**kwargs)
             s.register_jid_mapping = types.MethodType(
-                MainWindow.__dict__["register_jid_mapping"], s)
+                inspect.getattr_static(MainWindow, "register_jid_mapping"), s)
             return s
 
         return _make

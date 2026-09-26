@@ -6,6 +6,7 @@ tests/test_wpp_homologated_runtime_pin.py, which replaced it.)
 """
 
 from pathlib import Path
+from tests.god_modules import main_window_source
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,7 +31,7 @@ def test_websocket_normalizes_calls_before_dispatching_to_ui():
 
 
 def test_ui_has_native_alert_lifecycle_and_user_stop_controls():
-    main = _source("client/main.py")
+    main = main_window_source()
     dialog = _source("client/ui/dialogs/incoming_call.py")
     assert "_arm_incoming_call_watchdog" in main
     assert "stop_all_incoming_call_alerts" in main

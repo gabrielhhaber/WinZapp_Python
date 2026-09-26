@@ -49,6 +49,7 @@ import pytest
 
 import main
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 _extract_lid_mapping = MainWindow._extract_lid_mapping
 
@@ -280,7 +281,7 @@ class TestTheRacesThatWereObserved:
         running used to raise "dictionary changed size during iteration",
         which the method's own `except Exception` swallowed — so the user's
         own mapping was never registered."""
-        monkeypatch.setattr(main, "api_get", lambda *a, **kw: _FakeResponse())
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: _FakeResponse())
         caplog.set_level("ERROR")
 
         for round_no in range(self.ROUNDS):
@@ -342,7 +343,7 @@ class TestTheRacesThatWereObserved:
 
         stub = _Stub()
         stub._build_lid_to_phone_cache = types.MethodType(
-            MainWindow.__dict__["_build_lid_to_phone_cache"], stub)
+            inspect.getattr_static(MainWindow, "_build_lid_to_phone_cache"), stub)
         stub.chats = {"a@s.whatsapp.net": _ChatThatIsInterruptedMidScan(stub)}
 
         stub._build_lid_to_phone_cache()

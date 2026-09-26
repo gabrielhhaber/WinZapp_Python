@@ -25,6 +25,7 @@ import types
 
 from main import MainWindow
 from tests.conftest import warm_cached_chat as _chat
+from tests.god_modules import patch_main_global, main_window_source
 
 
 LID = "111222333@lid"
@@ -291,7 +292,7 @@ class TestF5LatchesTheFullRebuild:
         monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
         # data_path() resolves to the real installation's data folder on a dev
         # machine, and this method deletes a file inside it.
-        monkeypatch.setattr(main, "data_path", lambda *parts: str(tmp_path.joinpath(*parts)))
+        patch_main_global(monkeypatch, "data_path", lambda *parts: str(tmp_path.joinpath(*parts)))
         return stub
 
     def test_the_full_sync_latch_is_set_and_recorded(self, monkeypatch, tmp_path):
@@ -327,8 +328,7 @@ def test_prepare_sync_reads_the_same_metadata_keys_the_round_writes():
     failing to come back after a restart, so it is worth pinning by name even
     from the outside. Nothing about formatting or code shape is asserted.
     """
-    source = (pathlib.Path(__file__).parents[1] / "client" / "main.py").read_text(
-        encoding="utf-8")
+    source = main_window_source()
     for key in ("backfill_pending_v1", "message_retry_jids_v1",
                 "history_gap_jids_v1", "sync_state_v1"):
         assert f'set_metadata_json("{key}"' in source, f"nothing writes {key}"

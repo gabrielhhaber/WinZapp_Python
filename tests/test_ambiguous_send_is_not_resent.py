@@ -42,6 +42,7 @@ import pytest
 import main
 from main import MainWindow
 from core.send_contract import send_failure_is_ambiguous
+from tests.god_modules import patch_main_global
 
 
 JID = "5511999999999@s.whatsapp.net"
@@ -112,7 +113,7 @@ def _answer(monkeypatch, *responses):
         calls.append(url)
         return queue.pop(0) if len(queue) > 1 else queue[0]
 
-    monkeypatch.setattr(main, "api_post", _fake_api_post)
+    patch_main_global(monkeypatch, "api_post", _fake_api_post)
     return calls
 
 

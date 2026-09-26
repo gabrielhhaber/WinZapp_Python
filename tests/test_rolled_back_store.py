@@ -29,6 +29,7 @@ from core.remote_reconcile import (
 )
 from main import MainWindow
 from tests.test_get_remote_chats_persistence import _chat, _make, post  # noqa: F401 (fixture)
+from tests.god_modules import patch_main_global
 
 GROUP = "120363409931936700@g.us"
 
@@ -505,7 +506,7 @@ class TestGetRemoteMessages:
             return _Response(200, {"response": [
                 {"id": {"_serialized": "false_5511@c.us_A"}, "t": 100}, {"bad": True}]})
 
-        monkeypatch.setattr(main_module, "api_get", fake_get)
+        patch_main_global(monkeypatch, "api_get", fake_get)
         pairs, raw_count, oldest = _GetStub()._get_remote_messages(
             "5511@s.whatsapp.net", "&direction=before&id=x")
 
@@ -517,7 +518,7 @@ class TestGetRemoteMessages:
         assert oldest == 100
 
     def test_an_error_status_is_a_failure(self, monkeypatch):
-        monkeypatch.setattr(main_module, "api_get", lambda url, **kw: _Response(500, {}))
+        patch_main_global(monkeypatch, "api_get", lambda url, **kw: _Response(500, {}))
         assert _GetStub()._get_remote_messages("5511@s.whatsapp.net") is None
 
 

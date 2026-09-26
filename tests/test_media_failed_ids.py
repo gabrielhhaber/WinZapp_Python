@@ -21,6 +21,7 @@ import pytest
 
 import main as main_module
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _Stub:
@@ -42,7 +43,7 @@ def fake_data_path(tmp_path, monkeypatch):
     def _data_path(*parts):
         return str(tmp_path.joinpath(*parts)) if parts else str(tmp_path)
 
-    monkeypatch.setattr(main_module, "data_path", _data_path)
+    patch_main_global(monkeypatch, "data_path", _data_path)
     return path
 
 

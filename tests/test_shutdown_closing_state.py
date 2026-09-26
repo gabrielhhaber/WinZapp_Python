@@ -39,6 +39,7 @@ import pytest
 import connection_state as cs
 import main
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 PATCHED_CONTROLLER = (
@@ -209,7 +210,7 @@ class TestTheFlushPollWaitsOutClosing:
         null placeholder produced."""
         stub = _Stub()
         statuses = iter(["CLOSING", "CLOSING", "CLOSED"])
-        monkeypatch.setattr(main, "api_get", lambda *a, **kw: _Response(next(statuses)))
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: _Response(next(statuses)))
 
         assert stub._wait_for_session_flushed("tok") is True
         polls = [line for line in stub.audit if line.startswith("flush poll")]
@@ -219,7 +220,7 @@ class TestTheFlushPollWaitsOutClosing:
     def test_a_session_stuck_closing_still_gives_up(self, monkeypatch):
         """Bounded: a close that never completes must not hang the shutdown."""
         stub = _Stub()
-        monkeypatch.setattr(main, "api_get", lambda *a, **kw: _Response("CLOSING"))
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: _Response("CLOSING"))
 
         assert stub._wait_for_session_flushed("tok", timeout=0.05) is False
         assert any("flush TIMEOUT" in line for line in stub.audit)
@@ -228,7 +229,7 @@ class TestTheFlushPollWaitsOutClosing:
         """The audit line is the only record that survives to the next launch,
         so it has to name the budget actually used, not the class default."""
         stub = _Stub()
-        monkeypatch.setattr(main, "api_get", lambda *a, **kw: _Response("CLOSING"))
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: _Response("CLOSING"))
 
         stub._wait_for_session_flushed("tok", timeout=0.05)
         timeout_line = next(l for l in stub.audit if "flush TIMEOUT" in l)

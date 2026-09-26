@@ -62,6 +62,7 @@ import subprocess
 import sys
 
 import pytest
+from tests.god_modules import main_window_source
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 API = ROOT / "client" / "api"
@@ -238,7 +239,8 @@ class TestTheSelectionIsPlatformAware:
         client/api/.cache. An installer writing into .cache/puppeteer instead
         downloads a browser into a tree the server is not the one looking in."""
         for rel in ("client/ui/dialogs/api_setup.py", "client/main.py"):
-            src = (ROOT / rel).read_text(encoding="utf-8")
+            src = (main_window_source() if rel == "client/main.py"
+                   else (ROOT / rel).read_text(encoding="utf-8"))
             offenders = [
                 line.strip() for line in src.splitlines()
                 if 'resource_path("api", ".cache", "puppeteer")' in line

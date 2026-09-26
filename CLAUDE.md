@@ -92,11 +92,15 @@ version is named once, in `client/node_download_config.py`. `client/api/` and
   `api_patches/package.json`; every send endpoint passes through
   `auditSendResult()` and Python through `core/send_contract.py` — a 201
   without a real message id is a failure. `docs/traps/send-contract.md`.
-- **The god objects**: `client/main.py` (`MainWindow`, ~32,700 lines) holds
-  WebSocket/HTTP calls, JID normalization, chat state, sync, sounds, menus,
-  updates; `client/ui/conversations.py` (`ConversationsPanel`, ~17,500 lines)
-  holds the message list and composer. **grep them first** — the method you
-  need very likely exists. Extraction is a skill (`extract-from-god-file`).
+- **MainWindow is split into mixins**: `client/main.py` (~1,900 lines) keeps
+  only `__init__`, `init_UI` and startup; every other method lives in one
+  module per responsibility under `client/main_window/` (sync, connection,
+  sending, calls, identity, chat list, …; the map is that package's
+  `__init__.py`). `client/ui/conversations.py` (`ConversationsPanel`, ~17,500
+  lines) holds the message list and composer. **grep `client/main_window/` and
+  them first** — the method you need very likely exists. New code goes into
+  the module that owns the responsibility, or a new module — never back into
+  `main.py` (see "Keep files small" below).
 
 ### Message pipeline (short form — `docs/reference/message-pipeline.md`)
 

@@ -24,6 +24,7 @@ from core.remote_deletions import (
     oldest_timestamp,
 )
 from main import MainWindow, is_countable_message
+from tests.god_modules import patch_main_global
 
 JID = "120363427511142886@g.us"
 OLD = int(time.time()) - 3600
@@ -236,7 +237,7 @@ class _FetchStub:
 
 class TestFetchRemoteMessageWindow:
     def _fetch(self, monkeypatch, entries):
-        monkeypatch.setattr("main.api_get", lambda *a, **kw: _Response(entries))
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: _Response(entries))
         return _FetchStub()._fetch_remote_message_window(JID)
 
     def test_an_unmappable_entry_still_bounds_the_window(self, monkeypatch):

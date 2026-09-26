@@ -33,6 +33,7 @@ import pytest
 import connection_state as cs
 from app_paths import resource_path
 from main import MainWindow
+from tests.god_modules import patch_main_global, main_window_source
 
 
 class _Recorder:
@@ -206,7 +207,7 @@ class TestTheStatusStringCallSiteTakesTheLock:
             def json():
                 return {"status": "notLogged"}
 
-        monkeypatch.setattr("main.api_get", lambda *a, **kw: _Resp())
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: _Resp())
         # Every reading must count, or the 20s strike interval collapses all
         # 25 concurrent readings into one and nothing ever overlaps inside
         # the decision — the region under test would go unexercised.
@@ -251,7 +252,7 @@ class TestTheStatusStringCallSiteTakesTheLock:
             def json():
                 return {"status": "INITIALIZING"}
 
-        monkeypatch.setattr("main.api_get", lambda *a, **kw: _Connected())
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: _Connected())
         _run_concurrently(stub.check_wa_connection_http, n=25)
 
         assert stub._logout_strikes == 0
@@ -315,8 +316,7 @@ def test_the_tally_is_written_only_under_the_lock(function_name):
     import ast
     import pathlib
 
-    source = (pathlib.Path(__file__).resolve().parents[1]
-              / "client" / "main.py").read_text(encoding="utf-8")
+    source = main_window_source()
     function = next(
         node for node in ast.walk(ast.parse(source))
         if isinstance(node, ast.FunctionDef)

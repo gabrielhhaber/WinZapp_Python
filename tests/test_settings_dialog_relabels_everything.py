@@ -24,6 +24,7 @@ import inspect
 from pathlib import Path
 
 from core.sound_system import AlertPreviewController
+from tests.god_modules import main_window_source
 
 SETTINGS_DIALOG = (
     Path(__file__).resolve().parent.parent / "client" / "ui" / "dialogs" / "settings_dialog.py"
@@ -168,9 +169,7 @@ def test_every_built_label_is_reapplied_to_its_own_control():
 
 
 def test_main_language_change_repaints_dynamic_content_and_calls():
-    main_source = (
-        Path(__file__).resolve().parent.parent / "client" / "main.py"
-    ).read_text(encoding="utf-8")
+    main_source = main_window_source()
     start = main_source.index("    def apply_language_changes(self):")
     end = main_source.index("\n    def on_alt_1", start)
     body = main_source[start:end]

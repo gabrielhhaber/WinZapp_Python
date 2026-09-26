@@ -56,6 +56,7 @@ import pytest
 import main
 from core.utils import MEASURED_SECONDS_KEY
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _FakeDB:
@@ -127,7 +128,7 @@ def probed(monkeypatch):
         calls.append(path)
         return answer[0]
 
-    monkeypatch.setattr(main, "probe_media_duration", _probe)
+    patch_main_global(monkeypatch, "probe_media_duration", _probe)
     monkeypatch.setattr(main.threading, "Thread", _SyncThread)
     monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
     return calls
@@ -182,7 +183,7 @@ class TestWhatIsWorthProbing:
         assert probed == []
 
     def test_a_probe_that_answers_nothing_leaves_the_record_alone(self, monkeypatch):
-        monkeypatch.setattr(main, "probe_media_duration", lambda path: None)
+        patch_main_global(monkeypatch, "probe_media_duration", lambda path: None)
         monkeypatch.setattr(main.threading, "Thread", _SyncThread)
         monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
         stub = _Stub(enabled=True)

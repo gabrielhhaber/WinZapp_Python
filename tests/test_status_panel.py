@@ -31,6 +31,7 @@ import wx
 import main as main_module
 from main import MainWindow
 from status_panel import StatusPanel, _status_content_label, _status_media_save_info
+from tests.god_modules import patch_main_global
 
 
 class _FakeI18n:
@@ -1780,7 +1781,7 @@ class TestFailedStatusReplyNeverDegradesToPlainMessage:
             calls.append((url, kwargs["json"]))
             return self._Response()
 
-        monkeypatch.setattr(main_module, "api_post", _post)
+        patch_main_global(monkeypatch, "api_post", _post)
         stub = self._MainStub()
 
         result = stub.send_text_message(

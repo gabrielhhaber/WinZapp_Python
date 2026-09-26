@@ -6,10 +6,10 @@ status author.
 """
 
 from pathlib import Path
+from tests.god_modules import main_window_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MAIN = ROOT / "client" / "main.py"
 CONTROLLER = (
     ROOT
     / "client"
@@ -46,7 +46,7 @@ def test_status_like_uses_targeted_status_reaction_transport():
 
 
 def test_status_reaction_opts_in_to_idempotent_stale_socket_retry():
-    source = MAIN.read_text(encoding="utf-8")
+    source = main_window_source()
     send_reaction = source[source.index("    def send_reaction(") :]
     send_reaction = send_reaction[: send_reaction.index("\n    def ", 1)]
 

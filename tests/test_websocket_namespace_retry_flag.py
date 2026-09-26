@@ -31,14 +31,14 @@ that gets added.
 
 import ast
 import pathlib
+from tests.god_modules import main_window_source
 
-MAIN = pathlib.Path(__file__).resolve().parents[1] / "client" / "main.py"
 
 FLAG = "saw_invalid_namespace"
 
 
 def _post_ui_init():
-    for node in ast.walk(ast.parse(MAIN.read_text(encoding="utf-8"))):
+    for node in ast.walk(ast.parse(main_window_source())):
         if isinstance(node, ast.FunctionDef) and node.name == "_post_ui_init":
             return node
     raise AssertionError("main.py no longer defines _post_ui_init")

@@ -33,6 +33,7 @@ import pytest
 import main as main_module
 from main import MainWindow
 from ui.dialogs.connect import Connect
+from tests.god_modules import patch_main_global
 
 
 TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:$2b$10$abcdef"
@@ -97,7 +98,7 @@ def posts(monkeypatch):
         calls.append((url, kwargs))
         return _FakeResponse()
 
-    monkeypatch.setattr(main_module, "api_post", _fake_post)
+    patch_main_global(monkeypatch, "api_post", _fake_post)
     monkeypatch.setattr("main.threading.Thread", _ImmediateThread)
     return calls
 

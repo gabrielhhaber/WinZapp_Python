@@ -20,6 +20,7 @@ MainWindow is a wx.Frame and cannot be instantiated without a running wx.App,
 so the method is bound to a plain stub, as elsewhere in this suite.
 """
 
+import inspect
 import threading
 import types
 
@@ -95,7 +96,7 @@ class _Stub:
 def _make(chats):
     stub = _Stub(chats)
     stub.scan_all_cached_messages_for_mentions = types.MethodType(
-        MainWindow.__dict__["scan_all_cached_messages_for_mentions"], stub)
+        inspect.getattr_static(MainWindow, "scan_all_cached_messages_for_mentions"), stub)
     return stub
 
 

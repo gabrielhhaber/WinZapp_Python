@@ -22,6 +22,7 @@ import pytest
 
 import connection_state as cs
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _Stub:
@@ -56,7 +57,7 @@ class _Resp:
 
 def _probe(monkeypatch, responder):
     """Run the real probe against *responder*, which stands in for api_get."""
-    monkeypatch.setattr("main.api_get", responder)
+    patch_main_global(monkeypatch, "api_get", responder)
     return _Stub()._still_linked_on_server()
 
 

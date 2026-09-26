@@ -15,6 +15,7 @@ import main as main_module
 from core.websocket_client import WebSocketClient
 from main import MainWindow, is_countable_message
 from ui.conversations import ConversationsPanel
+from tests.god_modules import patch_main_global
 
 PEER_LID = "68904344899801@lid"
 PHONE = "5511999999999@s.whatsapp.net"
@@ -403,13 +404,13 @@ class TestFetch:
                 return _Response(500, {"status": "error"})
             return _Response(201, {"response": {"data": _raw_call()}})
 
-        monkeypatch.setattr(main_module, "api_get", fake_get)
+        patch_main_global(monkeypatch, "api_get", fake_get)
         raw = self._Stub()._fetch_call_log_record(["false_9@lid_X", "false_5511@c.us_X"])
         assert raw["type"] == "call_log"
         assert asked[1].endswith("/api/sess/message-by-id/false_5511@c.us_X")
 
     def test_a_record_that_is_not_a_call_is_ignored(self, monkeypatch):
-        monkeypatch.setattr(main_module, "api_get", lambda url, **kw: _Response(
+        patch_main_global(monkeypatch, "api_get", lambda url, **kw: _Response(
             201, {"response": {"data": {"type": "chat"}}}))
         assert self._Stub()._fetch_call_log_record(["false_9@lid_X"]) is None
 

@@ -32,6 +32,7 @@ import requests
 
 from core.api_client import redact_token
 from ui.dialogs.connect import Connect
+from tests.god_modules import patch_main_global
 
 close_active_session = Connect._close_active_session
 cleanup_pairing_session = Connect.cleanup_pairing_session
@@ -262,7 +263,7 @@ class TestTheHostDeviceProbeMasksItsTransportError:
                 f"HTTPConnectionPool(host='127.0.0.1', port=6300): Max retries "
                 f"exceeded with url: /api/{TOKEN}/host-device")
 
-        monkeypatch.setattr(main, "api_get", _raise)
+        patch_main_global(monkeypatch, "api_get", _raise)
 
     def test_the_probe_masks_the_transport_error(self, caplog, failing_api_get):
         import connection_state as cs

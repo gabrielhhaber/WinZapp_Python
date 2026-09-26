@@ -8,6 +8,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "client"))
 
 from core import wppconnect_sender_layer_patch as sender_patch
+from tests.god_modules import main_window_source
 
 
 def test_sender_patch_migrates_vanilla_and_legacy_sources():
@@ -178,7 +179,7 @@ def test_document_limits_match_whatsapps_2gb_document_ceiling():
     conversations = (ROOT / "client" / "ui" / "conversations.py").read_text(
         encoding="utf-8"
     )
-    main = (ROOT / "client" / "main.py").read_text(encoding="utf-8")
+    main = main_window_source()
 
     assert "_MAX_DOCUMENT_BYTES = 2 * 1024 * 1024 * 1024" in conversations
     assert "_MAX_DOCUMENT_MB    = 2048" in conversations
@@ -207,7 +208,7 @@ def test_every_gate_a_large_document_passes_agrees_on_2gb():
     conversations = (ROOT / "client" / "ui" / "conversations.py").read_text(
         encoding="utf-8"
     )
-    main = (ROOT / "client" / "main.py").read_text(encoding="utf-8")
+    main = main_window_source()
     websocket_client = (ROOT / "client" / "core" / "websocket_client.py").read_text(
         encoding="utf-8"
     )

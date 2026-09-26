@@ -16,6 +16,7 @@ MainWindow is a wx.Frame and cannot be instantiated without a running wx.App,
 so the method is bound to a plain stub, as elsewhere in this suite.
 """
 
+import inspect
 import threading
 import types
 
@@ -68,7 +69,7 @@ def stub(monkeypatch):
     monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
     s = _Stub()
     s.register_jid_mapping = types.MethodType(
-        MainWindow.__dict__["register_jid_mapping"], s)
+        inspect.getattr_static(MainWindow, "register_jid_mapping"), s)
     return s
 
 

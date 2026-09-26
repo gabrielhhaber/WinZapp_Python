@@ -24,6 +24,7 @@ import wx
 
 from core.bulk_read_state import run_bulk_read_state
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 def _no_sleep(_seconds):
@@ -240,7 +241,7 @@ def inline(monkeypatch):
     monkeypatch.setattr("main.wx.CallAfter", lambda fn, *args: fn(*args))
     # Replace main's *name* for the module, not threading.Thread itself: the
     # pool inside run_bulk_read_state() needs real threads.
-    monkeypatch.setattr("main.threading", SimpleNamespace(Thread=_InlineThread))
+    patch_main_global(monkeypatch, "threading", SimpleNamespace(Thread=_InlineThread))
     # sleep/clock are bound as default arguments, so patching time.sleep in
     # the module would not reach them: hand the runner a fake clock that
     # sleep advances, or an unconfirmed chat waits out the real 120 s budget.
@@ -249,8 +250,7 @@ def inline(monkeypatch):
     def fake_sleep(seconds):
         now[0] += seconds
 
-    monkeypatch.setattr(
-        "main.run_bulk_read_state",
+    patch_main_global(monkeypatch, "run_bulk_read_state",
         partial(run_bulk_read_state, sleep=fake_sleep, clock=lambda: now[0]),
     )
 
@@ -269,7 +269,7 @@ def _answer(monkeypatch, confirmed, dont_ask_again=False, seen=None):
             seen.update(message=message, title=title, checkbox_label=checkbox_label, **kw)
         return confirmed, dont_ask_again
 
-    monkeypatch.setattr("main.confirm_with_checkbox", _confirm)
+    patch_main_global(monkeypatch, "confirm_with_checkbox", _confirm)
 
 
 class TestMarkAllReadConfirmation:
@@ -308,8 +308,7 @@ class TestMarkAllReadConfirmation:
         assert stub.settings_saves == 0
 
     def test_nothing_unread_says_so_without_a_dialog(self, inline, monkeypatch):
-        monkeypatch.setattr(
-            "main.confirm_with_checkbox", lambda *a, **k: pytest.fail("asked")
+        patch_main_global(monkeypatch, "confirm_with_checkbox", lambda *a, **k: pytest.fail("asked")
         )
         chats = _chats()
         for chat in chats.values():
@@ -347,8 +346,7 @@ class TestDontShowAgain:
         assert stub.sent == []
 
     def test_once_turned_off_it_marks_without_asking(self, inline, monkeypatch):
-        monkeypatch.setattr(
-            "main.confirm_with_checkbox", lambda *a, **k: pytest.fail("asked")
+        patch_main_global(monkeypatch, "confirm_with_checkbox", lambda *a, **k: pytest.fail("asked")
         )
         stub = _Stub(_chats(), settings={"user_interface": {"confirm_mark_all_read": False}})
 
@@ -454,20 +452,20 @@ class TestSendReadStateBlocking:
     def test_single_attempt_never_sleeps(self, monkeypatch):
         """The bulk path retries through rounds; a per-chat sleep would stall
         a pool worker for nothing."""
-        monkeypatch.setattr("main.api_post", lambda *a, **k: _Resp(False))
+        patch_main_global(monkeypatch, "api_post", lambda *a, **k: _Resp(False))
         monkeypatch.setattr("main.time.sleep", lambda s: pytest.fail("slept"))
         assert _SenderStub()._send_read_state_blocking(
             "a@s.whatsapp.net", False, attempts=1
         ) is False
 
     def test_confirmed_only_when_every_result_is_true(self, monkeypatch):
-        monkeypatch.setattr("main.api_post", lambda *a, **k: _Resp(True, [True]))
+        patch_main_global(monkeypatch, "api_post", lambda *a, **k: _Resp(True, [True]))
         assert _SenderStub()._send_read_state_blocking(
             "a@s.whatsapp.net", False, attempts=1
         ) is True
 
     def test_background_sync_reports_failure(self, monkeypatch):
-        monkeypatch.setattr("main.threading", SimpleNamespace(Thread=_InlineThread))
+        patch_main_global(monkeypatch, "threading", SimpleNamespace(Thread=_InlineThread))
         stub = _SenderStub()
         stub._send_read_state_blocking = lambda jid, unread: False
         failures = []
@@ -477,7 +475,7 @@ class TestSendReadStateBlocking:
         assert failures == [1]
 
     def test_background_sync_reports_failure_when_the_sender_raises(self, monkeypatch):
-        monkeypatch.setattr("main.threading", SimpleNamespace(Thread=_InlineThread))
+        patch_main_global(monkeypatch, "threading", SimpleNamespace(Thread=_InlineThread))
         stub = _SenderStub()
 
         def boom(jid, unread):

@@ -17,6 +17,7 @@ what was ever useful for debugging either path.
 import inspect
 
 from main import MainWindow
+from tests.god_modules import main_window_source
 
 
 def _contacts_source():
@@ -61,7 +62,7 @@ class TestLidResolutionRejectedNameLogsShapeNotContent:
         the test to."""
         import main
 
-        source = inspect.getsource(main)
+        source = main_window_source()
         marker = "Profile name not resolved/accepted for"
         assert marker in source
         line = next(

@@ -19,6 +19,7 @@ import pytest
 
 import main
 from main import MainWindow, pick_restore_generation
+from tests.god_modules import patch_main_global
 
 GD, SESSION = "/g", "sess123"
 
@@ -101,7 +102,7 @@ def verdict(monkeypatch):
             asked["args"] = (global_dir, session_name)
             return False, value, False
 
-        monkeypatch.setattr(main, "pick_restore_generation", fake)
+        patch_main_global(monkeypatch, "pick_restore_generation", fake)
         return asked
 
     return use
@@ -155,5 +156,5 @@ class TestProfileRestoreWorthTrying:
         def broken(*a, **kw):
             raise OSError("snapshot directory unreadable")
 
-        monkeypatch.setattr(main, "pick_restore_generation", broken)
+        patch_main_global(monkeypatch, "pick_restore_generation", broken)
         assert _Stub()._profile_restore_worth_trying() is False

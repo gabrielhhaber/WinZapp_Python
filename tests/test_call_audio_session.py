@@ -21,6 +21,7 @@ from core.call_audio import (
     CallAudioSession,
     _OutputJitterBuffer,
 )
+from tests.god_modules import main_window_source
 
 
 class _Socket:
@@ -935,7 +936,7 @@ def test_ringing_without_exclusive_output_keeps_its_stream_on_answer():
 
 
 def test_the_ringing_monitor_asks_for_a_shared_output():
-    src = (Path(__file__).parents[1] / "client" / "main.py").read_text(encoding="utf-8")
+    src = main_window_source()
     start = src.index("    def _start_incoming_call_audio_monitor(self")
     body = src[start:src.index("\n    def ", start + 10)]
     assert "audio.start_output_only(allow_exclusive=False)" in body

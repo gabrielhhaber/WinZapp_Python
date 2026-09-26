@@ -17,6 +17,7 @@ so the method is bound to a plain object — the same pattern the other main.py
 tests use.
 """
 
+import inspect
 import threading
 import time
 import types
@@ -201,7 +202,7 @@ def _make(counts, wa_web, local_chats=0, high_water=0):
                  "_server_claims_content",
                  "_capture_chat_sync_baseline", "_baseline_marker_for_jid",
                  "_plan_message_sync"):
-        raw = MainWindow.__dict__[name]
+        raw = inspect.getattr_static(MainWindow, name)
         if isinstance(raw, (staticmethod, classmethod)):
             setattr(stub, name, getattr(MainWindow, name))
         else:

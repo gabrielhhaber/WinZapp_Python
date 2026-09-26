@@ -20,6 +20,7 @@ import pytest
 import main
 from core.conversation_resync import stale_ids_in_fetched_window
 from main import MainWindow
+from tests.god_modules import patch_main_global, main_window_source
 
 JID = "5511999999999@s.whatsapp.net"
 
@@ -302,7 +303,7 @@ class TestTheHandler:
 
 class TestTheWiring:
     def test_shift_f5_is_the_menu_accelerator_on_build_and_relabel(self):
-        src = inspect.getsource(main)
+        src = main_window_source()
         assert src.count("{self.i18n.t('menu_resync_conversation')}\\tShift+F5") == 2
         assert ("self.Bind(wx.EVT_MENU, self._on_menu_resync_conversation,\n"
                 "                  id=self._ID_RESYNC_CONVERSATION)") in src
@@ -351,7 +352,7 @@ class _Titles:
 class TestTheConfirmation:
     def test_it_asks_with_no_as_the_default_button(self, monkeypatch):
         asker = _Asker(True)
-        monkeypatch.setattr("main.confirm_with_checkbox", asker)
+        patch_main_global(monkeypatch, "confirm_with_checkbox", asker)
         window = _Confirming()
 
         assert window._confirm_resync("confirm_resync_all", "resync_all_confirm",
@@ -364,7 +365,7 @@ class TestTheConfirmation:
     def test_the_title_does_not_carry_the_menu_mnemonic(self, monkeypatch):
         """A stray & in a window title is read out by the screen reader."""
         asker = _Asker(True)
-        monkeypatch.setattr("main.confirm_with_checkbox", asker)
+        patch_main_global(monkeypatch, "confirm_with_checkbox", asker)
 
         _Confirming()._confirm_resync("confirm_resync_all", "resync_all_confirm",
                                       "menu_resync_all")
@@ -372,12 +373,12 @@ class TestTheConfirmation:
         assert asker.calls[0]["title"] == "Ressincronizar todas as conversas"
 
     def test_no_stops_it(self, monkeypatch):
-        monkeypatch.setattr("main.confirm_with_checkbox", _Asker(False))
+        patch_main_global(monkeypatch, "confirm_with_checkbox", _Asker(False))
         assert _Confirming()._confirm_resync(
             "confirm_resync_all", "resync_all_confirm", "menu_resync_all") is False
 
     def test_dont_ask_again_with_yes_turns_the_setting_off(self, monkeypatch):
-        monkeypatch.setattr("main.confirm_with_checkbox", _Asker(True, True))
+        patch_main_global(monkeypatch, "confirm_with_checkbox", _Asker(True, True))
         window = _Confirming()
 
         window._confirm_resync("confirm_resync_conversation",
@@ -388,7 +389,7 @@ class TestTheConfirmation:
 
     def test_dont_ask_again_with_no_changes_nothing(self, monkeypatch):
         """No with the box ticked must not make every later press unconfirmed."""
-        monkeypatch.setattr("main.confirm_with_checkbox", _Asker(False, True))
+        patch_main_global(monkeypatch, "confirm_with_checkbox", _Asker(False, True))
         window = _Confirming()
 
         window._confirm_resync("confirm_resync_all", "resync_all_confirm", "menu_resync_all")
@@ -397,7 +398,7 @@ class TestTheConfirmation:
         assert window.saves == 0
 
     def test_turned_off_it_does_not_ask(self, monkeypatch):
-        monkeypatch.setattr("main.confirm_with_checkbox",
+        patch_main_global(monkeypatch, "confirm_with_checkbox",
                             lambda *a, **k: pytest.fail("asked"))
         window = _Confirming(confirm_resync_all=False)
 
@@ -406,7 +407,7 @@ class TestTheConfirmation:
 
     def test_each_shortcut_has_its_own_setting(self, monkeypatch):
         asker = _Asker(True)
-        monkeypatch.setattr("main.confirm_with_checkbox", asker)
+        patch_main_global(monkeypatch, "confirm_with_checkbox", asker)
         window = _Confirming(confirm_resync_all=False)
 
         window._confirm_resync("confirm_resync_conversation",
@@ -417,7 +418,7 @@ class TestTheConfirmation:
 
 class TestTheShortcutsAsk:
     def test_shift_f5_declined_starts_nothing(self, _inline_threads, monkeypatch):
-        monkeypatch.setattr("main.confirm_with_checkbox", _Asker(False))
+        patch_main_global(monkeypatch, "confirm_with_checkbox", _Asker(False))
         handler = _Handler({"remoteJid": JID})
         handler.settings = {"user_interface": {}}
 
@@ -428,7 +429,7 @@ class TestTheShortcutsAsk:
         assert JID not in handler._resyncing_conversations
 
     def test_shift_f5_confirmed_starts_the_worker(self, _inline_threads, monkeypatch):
-        monkeypatch.setattr("main.confirm_with_checkbox", _Asker(True))
+        patch_main_global(monkeypatch, "confirm_with_checkbox", _Asker(True))
         handler = _Handler({"remoteJid": JID})
         handler.settings = {"user_interface": {}}
 
@@ -437,7 +438,7 @@ class TestTheShortcutsAsk:
         assert handler.started == [JID]
 
     def test_f5_declined_wipes_nothing(self, _inline_threads, monkeypatch):
-        monkeypatch.setattr("main.confirm_with_checkbox", _Asker(False))
+        patch_main_global(monkeypatch, "confirm_with_checkbox", _Asker(False))
 
         class _F5(_Handler):
             _on_menu_resync_all = MainWindow._on_menu_resync_all
@@ -454,7 +455,7 @@ class TestTheShortcutsAsk:
         assert handler.spoken == []
 
     def test_f5_confirmed_wipes_and_resyncs(self, _inline_threads, monkeypatch):
-        monkeypatch.setattr("main.confirm_with_checkbox", _Asker(True))
+        patch_main_global(monkeypatch, "confirm_with_checkbox", _Asker(True))
 
         class _F5(_Handler):
             _on_menu_resync_all = MainWindow._on_menu_resync_all

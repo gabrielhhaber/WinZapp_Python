@@ -51,6 +51,7 @@ import connection_state as cs
 import main as main_module
 from main import MainWindow, linked_number_differs, linked_phone_digits
 from ui.dialogs.connect import Connect
+from tests.god_modules import patch_main_global
 
 
 class _List:
@@ -478,7 +479,7 @@ class TestWipeOnlyOnProvenDivergence:
         def _boom(*a, **kw):
             raise RuntimeError("comparison blew up")
 
-        monkeypatch.setattr(main_module, "linked_number_differs", _boom)
+        patch_main_global(monkeypatch, "linked_number_differs", _boom)
         stub = _Stub(probe=(cs.LINK_PROBE_LINKED, "5521988887777@c.us"))
 
         stub._wipe_local_data_if_another_number_linked()
@@ -565,7 +566,7 @@ class TestHostDeviceProbeReportsThePhoneItSaw:
         _still_linked_on_server = MainWindow._still_linked_on_server
 
     def _stub_api(self, monkeypatch, resp):
-        monkeypatch.setattr(main_module, "api_get", lambda *a, **kw: resp)
+        patch_main_global(monkeypatch, "api_get", lambda *a, **kw: resp)
         return self._ProbeStub()
 
     def test_a_linked_session_reports_its_phone(self, monkeypatch):

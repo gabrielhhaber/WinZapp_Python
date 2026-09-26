@@ -33,6 +33,7 @@ The stub harness is tests/test_run_sync_broken_store.py's, imported rather than
 copied for the reason that module's own docstring gives.
 """
 
+import inspect
 import time
 import types
 
@@ -359,7 +360,7 @@ class TestSkippingTheUnblockCostsTheRoundNothing:
         stub = _warm_stub()
         stub._history_still_landing = landing
         stub._note_backfill_state = types.MethodType(
-            MainWindow.__dict__["_note_backfill_state"], stub)
+            inspect.getattr_static(MainWindow, "_note_backfill_state"), stub)
         stub._server_claims_content = MainWindow._server_claims_content
         stub.history_page_target = lambda: 200
         return stub
@@ -561,7 +562,7 @@ class TestARestoredShortChatIsNotRetiredEarly:
         stub._chats_awaiting_messages = {_JIDS[1]}
         stub._partial_history_counts = {_JIDS[1]: 15}
         stub._note_backfill_state = types.MethodType(
-            MainWindow.__dict__["_note_backfill_state"], stub)
+            inspect.getattr_static(MainWindow, "_note_backfill_state"), stub)
         stub._server_claims_content = MainWindow._server_claims_content
         stub.history_page_target = lambda: 200
 

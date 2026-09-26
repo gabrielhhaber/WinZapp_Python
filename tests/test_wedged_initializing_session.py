@@ -42,6 +42,7 @@ import pytest
 
 import connection_state as cs
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 PATCHED_UTIL = (
@@ -214,7 +215,7 @@ def stub(monkeypatch):
     s = _Stub()
     monkeypatch.setattr("main.threading.Thread", _SyncThread)
     monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
-    monkeypatch.setattr("main.api_post", lambda *a, **kw: None)
+    patch_main_global(monkeypatch, "api_post", lambda *a, **kw: None)
     monkeypatch.setattr("core.profile_recovery.has_snapshot", lambda *a, **kw: True)
     return s
 

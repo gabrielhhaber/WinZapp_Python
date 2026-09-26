@@ -14,6 +14,7 @@ import pytest
 
 from core.call_matching import call_event_matches_active, is_placeholder_call_id
 from main import MainWindow
+from tests.god_modules import main_window_method_source, main_window_source
 
 
 PHONE = "5511999999999@s.whatsapp.net"
@@ -149,12 +150,10 @@ class TestSyncIsNeverGatedOnACall:
 
     @staticmethod
     def _body(name, end_marker):
-        import pathlib
-        source = (pathlib.Path(__file__).parents[1] / "client" / "main.py").read_text(
-            encoding="utf-8"
-        )
-        start = source.index(f"def {name}(")
-        return source[start: source.index(end_marker, start)]
+        # end_marker names the method that used to follow *name* in main.py;
+        # after the split into main_window/ it can live in another module,
+        # so the method's own source is taken instead of slicing up to it.
+        return main_window_method_source(name)
 
     def test_neither_sync_entry_point_bails_out_on_a_call(self):
         for name, end in (
@@ -204,9 +203,7 @@ class TestCallWindowDoesNotFightMainWindowForFocus:
     @staticmethod
     def _main_py_source():
         import pathlib
-        return (pathlib.Path(__file__).parents[1] / "client" / "main.py").read_text(
-            encoding="utf-8"
-        )
+        return main_window_source()
 
     def test_the_call_window_is_not_owned_by_main_window(self):
         source = self._main_py_source()

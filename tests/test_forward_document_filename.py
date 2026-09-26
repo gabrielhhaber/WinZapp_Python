@@ -59,6 +59,7 @@ except ImportError:
     sys.modules["sound_lib.effects"].Tempo = object
 
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 def test_resend_media_message_preserves_document_filename(tmp_path, monkeypatch):
@@ -74,7 +75,7 @@ def test_resend_media_message_preserves_document_filename(tmp_path, monkeypatch)
     temp_media = tmp_path / "3EB0F5F2800B0C540313D1.wzmedia"
     temp_media.write_bytes(b"encrypted_content")
 
-    monkeypatch.setattr("main.data_path", lambda folder, fname: str(tmp_path / fname))
+    patch_main_global(monkeypatch, "data_path", lambda folder, fname: str(tmp_path / fname))
     monkeypatch.setattr("core.utils.decrypt_bytes", lambda data, key: b"decrypted_file_bytes")
 
     sent_calls = []

@@ -31,19 +31,19 @@ duplicate in the picker).
 
 import ast
 from pathlib import Path
+from tests.god_modules import main_window_source
 
 
-MAIN = Path(__file__).resolve().parents[1] / "client" / "main.py"
 
 
 def _run_sync_source():
-    source = MAIN.read_text(encoding="utf-8")
+    source = main_window_source()
     tree = ast.parse(source)
     lines = source.splitlines()
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef) and node.name == "_run_sync":
             return "\n".join(lines[node.lineno - 1:node.end_lineno])
-    raise AssertionError("_run_sync() not found in main.py")
+    raise AssertionError("_run_sync() not found in MainWindow's source")
 
 
 def _uncommented(text):
@@ -76,7 +76,7 @@ def test_the_queue_still_waits_for_the_sync_to_finish():
     """The other half of the same promise, pinned here because this change is
     what starts relying on it: if the drain loop stopped deferring, the sync
     would now be the thing paying for these lookups."""
-    source = MAIN.read_text(encoding="utf-8")
+    source = main_window_source()
     start = source.index("def _queue_lid_resolutions")
     body = source[start:start + 3000]
     assert "_initial_sync_running" in body
@@ -86,7 +86,7 @@ def test_the_queue_still_waits_for_the_sync_to_finish():
 def test_the_queue_is_a_set_so_requeuing_is_free():
     """_run_sync() runs again on every full round and will re-offer whatever
     is still unbridged, so the producer side has to tolerate repeats."""
-    source = MAIN.read_text(encoding="utf-8")
+    source = main_window_source()
     start = source.index("def _queue_lid_resolutions")
     body = source[start:start + 3000]
     assert "= set()" in body

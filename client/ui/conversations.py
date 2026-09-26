@@ -10532,7 +10532,7 @@ class ConversationsPanel(wx.Panel):
         enterrado mudo aqui, daí o log.
         """
         try:
-            from main import is_countable_message
+            from main_window.message_rules import is_countable_message
         except Exception:
             logging.exception(
                 "[_counts_toward_unread_separator] import de is_countable_message falhou"

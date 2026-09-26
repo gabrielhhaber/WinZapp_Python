@@ -14,6 +14,7 @@ import time
 
 from core.utils import clear_chat_applied, clear_chat_keep_starred_echo
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _FakeDB:
@@ -326,7 +327,7 @@ class TestClearChatForwardsTheChoiceToTheServer:
             def start(self):
                 self._target()
 
-        monkeypatch.setattr("main.api_post", _fake_post)
+        patch_main_global(monkeypatch, "api_post", _fake_post)
         monkeypatch.setattr("main.threading.Thread", _SyncThread)
         monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
         stub = self._ApiStub(_chat_with([_msg("a", 100), _msg("b", 200, starred=True)]))

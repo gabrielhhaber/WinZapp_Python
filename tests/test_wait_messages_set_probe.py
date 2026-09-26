@@ -30,6 +30,7 @@ import wx
 
 import main
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _Response:
@@ -100,7 +101,7 @@ def _answer(monkeypatch, response=None, exc=None):
             raise exc
         return response
 
-    monkeypatch.setattr(main, "api_post", _fake_api_post)
+    patch_main_global(monkeypatch, "api_post", _fake_api_post)
     return calls
 
 

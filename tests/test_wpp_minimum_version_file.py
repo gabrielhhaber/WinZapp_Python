@@ -18,6 +18,7 @@ wx.App, so its thin wrapper is bound onto a plain stub.
 
 from core.wpp_runtime import homologated_wpp_tag, read_homologated_wpp_version
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 #: Not valid UTF-8, which is what a truncated or half-written file looks like.
@@ -32,8 +33,7 @@ class TestReadWppMinimumVersion:
     def test_reads_the_bundled_file(self, tmp_path, monkeypatch):
         version_file = tmp_path / "wpp_minimum_version.txt"
         version_file.write_text("2.10.16\n", encoding="utf-8")
-        monkeypatch.setattr(
-            "main.resource_path",
+        patch_main_global(monkeypatch, "resource_path",
             lambda *parts: str(tmp_path.joinpath(*parts)),
         )
 
@@ -42,8 +42,7 @@ class TestReadWppMinimumVersion:
     def test_returns_empty_string_when_the_file_is_absent(self, tmp_path, monkeypatch):
         """The normal case for any local/dev build — only build-windows.yml
         ever writes this file."""
-        monkeypatch.setattr(
-            "main.resource_path",
+        patch_main_global(monkeypatch, "resource_path",
             lambda *parts: str(tmp_path.joinpath(*parts)),
         )
 
@@ -52,8 +51,7 @@ class TestReadWppMinimumVersion:
     def test_strips_surrounding_whitespace(self, tmp_path, monkeypatch):
         version_file = tmp_path / "wpp_minimum_version.txt"
         version_file.write_text("  2.10.16  \r\n", encoding="utf-8")
-        monkeypatch.setattr(
-            "main.resource_path",
+        patch_main_global(monkeypatch, "resource_path",
             lambda *parts: str(tmp_path.joinpath(*parts)),
         )
 

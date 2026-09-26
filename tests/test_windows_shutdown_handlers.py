@@ -48,6 +48,7 @@ import wx
 
 from main import MainWindow
 from tests.conftest import hidden_frame
+from tests.god_modules import main_window_source
 
 
 MAIN_PY = Path(__file__).resolve().parents[1] / "client" / "main.py"
@@ -141,7 +142,7 @@ class TestWinZappBindsAndAnswersTheRightWay:
     construction, which needs the whole app to stand up."""
 
     def test_the_handlers_are_bound_on_the_app(self):
-        source = MAIN_PY.read_text(encoding="utf-8")
+        source = main_window_source()
         for evt in ("EVT_QUERY_END_SESSION", "EVT_END_SESSION"):
             assert re.search(
                 r"_app\.Bind\(wx\.%s," % evt, source), (

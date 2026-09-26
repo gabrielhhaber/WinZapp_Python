@@ -37,6 +37,7 @@ import pytest
 import main
 from main import MainWindow
 from tests.test_run_sync_broken_store import _fast, _make  # noqa: F401  (_fast is an autouse fixture)
+from tests.god_modules import patch_main_global
 
 # Captured at import, before any fixture has replaced it.
 _REAL_THREAD = threading.Thread
@@ -509,7 +510,7 @@ class TestAMessageTaskDiscardsWhatItFetchedForASupersededRound:
 
     def test_a_bump_during_the_gap_widening_writes_nothing(self, monkeypatch):
         stub = self._stub(monkeypatch, bump_on_fetch=False)
-        monkeypatch.setattr(main, "history_gap_detected", lambda *a, **kw: True)
+        patch_main_global(monkeypatch, "history_gap_detected", lambda *a, **kw: True)
 
         def _widen(*a, **kw):
             stub._sync_run_id = 2
@@ -525,7 +526,7 @@ class TestAMessageTaskDiscardsWhatItFetchedForASupersededRound:
     def test_the_same_task_not_superseded_writes_as_before(self, monkeypatch):
         """Control for both: no bump, so the chat and its messages land."""
         stub = self._stub(monkeypatch, bump_on_fetch=False)
-        monkeypatch.setattr(main, "history_gap_detected", lambda *a, **kw: True)
+        patch_main_global(monkeypatch, "history_gap_detected", lambda *a, **kw: True)
 
         result = MainWindow.sync_chat_messages(stub, {"remoteJid": self.JID, "t": 500},
                                                expected_run_id=1)

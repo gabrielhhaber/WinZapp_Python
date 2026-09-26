@@ -30,6 +30,7 @@ import logging
 import pytest
 
 from main import MainWindow
+from tests.god_modules import main_window_source
 
 
 class _Response:
@@ -750,7 +751,7 @@ class TestRoutesArePatched:
         import pathlib
 
         root = pathlib.Path(__file__).resolve().parents[1]
-        main = (root / "client" / "main.py").read_text(encoding="utf-8")
+        main = main_window_source()
         retry = main.index("An unchanged short page is not proof")
         request = main.index("self.request_older_messages(jid)", retry)
         keep = main.index("self._keep_backfill_pending(jid, now)", retry)

@@ -21,6 +21,7 @@ MainWindow is a wx.Frame, so the methods are bound to a stub carrying only
 what they touch — the pattern the rest of this suite uses.
 """
 
+import inspect
 import types
 
 import pytest
@@ -118,7 +119,7 @@ def _make(pages, oldest=None, advances=True):
                  "_chats_needing_deep_history", "history_page_target",
                  "_persist_exhausted_chats", "_anchor_identity",
                  "_voice_call_in_progress"):
-        raw = MainWindow.__dict__[name]
+        raw = inspect.getattr_static(MainWindow, name)
         if isinstance(raw, (staticmethod, classmethod)):
             setattr(stub, name, getattr(MainWindow, name))
         else:
@@ -350,7 +351,7 @@ def _loop(deep_pending, pending=(), names=()):
                  # elapses, which is how one guard turned this file into a
                  # multi-hour CI run.
                  "_voice_call_in_progress"):
-        setattr(stub, name, types.MethodType(MainWindow.__dict__[name], stub))
+        setattr(stub, name, types.MethodType(inspect.getattr_static(MainWindow, name), stub))
     for name in ("_initial_backfill_delay", "_background_backfill_work_allowed",
                  "_backfill_short_queue_delays"):
         setattr(stub, name, getattr(MainWindow, name))
@@ -441,7 +442,7 @@ def _fetch_stub(monkeypatch, returned):
     stub = _FetchStub(returned)
     stub.db = _FetchStub._DB2(stub)
     stub.fetch_older_messages = types.MethodType(
-        MainWindow.__dict__["fetch_older_messages"], stub)
+        inspect.getattr_static(MainWindow, "fetch_older_messages"), stub)
 
     class _Resp:
         status_code = 200

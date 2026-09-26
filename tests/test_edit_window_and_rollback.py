@@ -26,6 +26,7 @@ from core.message_edit import (
     snapshot_edit_state,
 )
 from ui.conversations import ConversationsPanel
+from tests.god_modules import patch_main_global
 
 NOW = 1_789_360_000
 
@@ -336,7 +337,7 @@ class TestEditMessageReportsTheOutcome:
     ])
     def test_http_status(self, monkeypatch, code, body, expected):
         from main import MainWindow
-        monkeypatch.setattr("main.api_post", lambda *a, **k: self._Resp(code, body))
+        patch_main_global(monkeypatch, "api_post", lambda *a, **k: self._Resp(code, body))
         assert MainWindow.edit_message(self._Stub(), "g@g.us", "m1", "x") is expected
 
     def test_a_read_timeout_is_unknown_not_a_refusal(self, monkeypatch):
@@ -347,7 +348,7 @@ class TestEditMessageReportsTheOutcome:
         def slow(*a, **k):
             raise ReadTimeout("slow")
 
-        monkeypatch.setattr("main.api_post", slow)
+        patch_main_global(monkeypatch, "api_post", slow)
         assert MainWindow.edit_message(self._Stub(), "g@g.us", "m1", "x") is None
 
     def test_an_offline_session_is_a_refusal(self, monkeypatch):
@@ -355,7 +356,7 @@ class TestEditMessageReportsTheOutcome:
         sent, so the optimistic edit must come back off the row."""
         from main import MainWindow
         body = '{"status":"Disconnected","message":"A sessão do WhatsApp não está ativa."}'
-        monkeypatch.setattr("main.api_post", lambda *a, **k: self._Resp(404, body))
+        patch_main_global(monkeypatch, "api_post", lambda *a, **k: self._Resp(404, body))
         assert MainWindow.edit_message(self._Stub(), "g@g.us", "m1", "x") is False
 
     def test_a_refused_connection_is_a_failure(self, monkeypatch):
@@ -368,7 +369,7 @@ class TestEditMessageReportsTheOutcome:
             raise ReqConnectionError(MaxRetryError(
                 None, "/api/edit-message", reason=NewConnectionError(None, "refused")))
 
-        monkeypatch.setattr("main.api_post", down)
+        patch_main_global(monkeypatch, "api_post", down)
         assert MainWindow.edit_message(self._Stub(), "g@g.us", "m1", "x") is False
 
     def test_a_connect_timeout_is_a_failure(self, monkeypatch):
@@ -379,7 +380,7 @@ class TestEditMessageReportsTheOutcome:
         def slow_connect(*a, **k):
             raise ConnectTimeout("no socket")
 
-        monkeypatch.setattr("main.api_post", slow_connect)
+        patch_main_global(monkeypatch, "api_post", slow_connect)
         assert MainWindow.edit_message(self._Stub(), "g@g.us", "m1", "x") is False
 
     def test_a_connection_dropped_after_sending_is_unknown(self, monkeypatch):
@@ -396,5 +397,5 @@ class TestEditMessageReportsTheOutcome:
             raise ReqConnectionError(ProtocolError(
                 "Connection aborted.", RemoteDisconnected("closed")))
 
-        monkeypatch.setattr("main.api_post", dropped)
+        patch_main_global(monkeypatch, "api_post", dropped)
         assert MainWindow.edit_message(self._Stub(), "g@g.us", "m1", "x") is None

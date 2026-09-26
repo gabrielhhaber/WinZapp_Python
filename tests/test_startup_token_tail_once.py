@@ -22,6 +22,7 @@ import pytest
 
 import main
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _FakeStore:
@@ -159,7 +160,7 @@ class TestGenerateTokenMigration:
             posts.append(url)
             return _Resp()
 
-        monkeypatch.setattr(main, "api_post", _fake_post)
+        patch_main_global(monkeypatch, "api_post", _fake_post)
         mw = _Stub(token="sess-abc")
 
         mw.retrieve_token()

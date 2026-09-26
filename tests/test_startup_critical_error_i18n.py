@@ -14,6 +14,7 @@ init_UI() that issue #104 hit), and this function reads it.
 """
 
 import main
+from tests.god_modules import patch_main_global
 
 
 class _FakeI18n:
@@ -33,7 +34,7 @@ class _BrokenI18n:
 
 def test_uses_the_partial_frames_language_when_available(monkeypatch):
     frame = type("F", (), {"i18n": _FakeI18n()})()
-    monkeypatch.setattr(main, "_last_partial_frame", frame)
+    patch_main_global(monkeypatch, "_last_partial_frame", frame)
 
     title, message = main._startup_critical_error_text("C:\\crash.log", "traceback text")
 
@@ -42,7 +43,7 @@ def test_uses_the_partial_frames_language_when_available(monkeypatch):
 
 
 def test_falls_back_to_hardcoded_portuguese_when_no_partial_frame(monkeypatch):
-    monkeypatch.setattr(main, "_last_partial_frame", None)
+    patch_main_global(monkeypatch, "_last_partial_frame", None)
 
     title, message = main._startup_critical_error_text("C:\\crash.log", "traceback text")
 
@@ -53,7 +54,7 @@ def test_falls_back_to_hardcoded_portuguese_when_no_partial_frame(monkeypatch):
 
 def test_falls_back_when_the_partial_frame_has_no_i18n_yet(monkeypatch):
     frame = type("F", (), {})()  # crashed before self.i18n was ever set
-    monkeypatch.setattr(main, "_last_partial_frame", frame)
+    patch_main_global(monkeypatch, "_last_partial_frame", frame)
 
     title, message = main._startup_critical_error_text("C:\\crash.log", "tb")
 
@@ -63,7 +64,7 @@ def test_falls_back_when_the_partial_frame_has_no_i18n_yet(monkeypatch):
 def test_falls_back_when_translation_itself_raises(monkeypatch):
     """The crash dialog must never itself crash trying to be helpful."""
     frame = type("F", (), {"i18n": _BrokenI18n()})()
-    monkeypatch.setattr(main, "_last_partial_frame", frame)
+    patch_main_global(monkeypatch, "_last_partial_frame", frame)
 
     title, message = main._startup_critical_error_text("C:\\crash.log", "tb")
 
@@ -73,7 +74,7 @@ def test_falls_back_when_translation_itself_raises(monkeypatch):
 
 def test_crash_path_and_traceback_are_both_embedded(monkeypatch):
     frame = type("F", (), {"i18n": _FakeI18n()})()
-    monkeypatch.setattr(main, "_last_partial_frame", frame)
+    patch_main_global(monkeypatch, "_last_partial_frame", frame)
 
     long_tb = "x" * 2000
     _title, message = main._startup_critical_error_text("C:\\crash.log", long_tb)

@@ -34,15 +34,14 @@ from ui.accessible import (
     AccessibleCallSettingsButton,
     AccessibleCallVideoToggleButton,
 )
+from tests.god_modules import main_window_source
 
 
 _CONVERSATIONS_SRC = (
     Path(__file__).parents[1] / "client" / "ui" / "conversations.py"
 ).read_text(encoding="utf-8")
 
-_MAIN_SRC = (
-    Path(__file__).parents[1] / "client" / "main.py"
-).read_text(encoding="utf-8")
+_MAIN_SRC = main_window_source()
 
 
 def test_accessible_call_button_classes_report_expected_shortcuts():

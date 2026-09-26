@@ -32,6 +32,7 @@ import pytest
 
 import connection_state as cs
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _Resp:
@@ -78,8 +79,7 @@ def _fake_clock(monkeypatch, start=1000.0):
     the widened during-sync budget can be crossed without the test waiting
     SYNC_TOLERANCE_MAX_SECONDS. Returns the dict to advance."""
     state = {"now": start}
-    monkeypatch.setattr(
-        "main.time",
+    patch_main_global(monkeypatch, "time",
         types.SimpleNamespace(
             time=lambda: state["now"],
             sleep=time.sleep,

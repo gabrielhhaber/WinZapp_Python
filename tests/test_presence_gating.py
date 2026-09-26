@@ -35,6 +35,7 @@ import os
 import pytest
 
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 class _Stub:
@@ -68,7 +69,7 @@ def posts(monkeypatch):
 
     import main as main_module
 
-    monkeypatch.setattr(main_module, "api_post", _fake_post)
+    patch_main_global(monkeypatch, "api_post", _fake_post)
     return calls
 
 
@@ -137,7 +138,7 @@ class TestTheResponseIsNoLongerDiscarded:
         def _boom(url, **kwargs):
             raise OSError("connection refused")
 
-        monkeypatch.setattr(main_module, "api_post", _boom)
+        patch_main_global(monkeypatch, "api_post", _boom)
 
         _Stub(connected=True)._send_presence("available")  # must not raise
 

@@ -25,6 +25,7 @@ MainWindow is a wx.Frame and cannot be instantiated without a running wx.App,
 so the method is bound to a plain stub, as elsewhere in this suite.
 """
 
+import inspect
 import types
 
 import pytest
@@ -87,7 +88,7 @@ def _make(ask_succeeds=True):
     for name in ("fetch_older_messages", "_persist_exhausted_chats",
                  "_persist_older_requested", "_forget_history_exhaustion",
                  "_normalize_jid"):
-        raw = MainWindow.__dict__[name]
+        raw = inspect.getattr_static(MainWindow, name)
         if isinstance(raw, (staticmethod, classmethod)):
             setattr(stub, name, getattr(MainWindow, name))
         else:

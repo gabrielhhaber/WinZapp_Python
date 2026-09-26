@@ -32,6 +32,7 @@ from core.wpp_runtime import (
     required_wppconnect_version,
     wppconnect_library_drift,
 )
+from tests.god_modules import patch_main_global
 
 
 def _api_dir(tmp_path, installed=None, pinned=None, pkg_extra=None):
@@ -212,15 +213,15 @@ class TestTheLibraryCheckNeverBlocksStartup:
         behind it."""
         def _boom(_api_dir):
             raise RuntimeError("unreadable")
-        monkeypatch.setattr(main, "wppconnect_library_drift", _boom)
-        monkeypatch.setattr(main, "resource_path", lambda *p: "/nope")
+        patch_main_global(monkeypatch, "wppconnect_library_drift", _boom)
+        patch_main_global(monkeypatch, "resource_path", lambda *p: "/nope")
 
         assert _Gate()._wppconnect_library_drift() is None
 
     def test_a_drift_is_passed_through(self, monkeypatch):
-        monkeypatch.setattr(main, "wppconnect_library_drift",
+        patch_main_global(monkeypatch, "wppconnect_library_drift",
                             lambda _api_dir: ("2.3.1", "2.3.3"))
-        monkeypatch.setattr(main, "resource_path", lambda *p: "/api")
+        patch_main_global(monkeypatch, "resource_path", lambda *p: "/api")
 
         assert _Gate()._wppconnect_library_drift() == ("2.3.1", "2.3.3")
 

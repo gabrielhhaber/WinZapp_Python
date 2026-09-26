@@ -19,6 +19,7 @@ function against a stub carrying only what it touches.
 import pytest
 
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 
 TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:$2b$10$abcdef"
@@ -217,7 +218,7 @@ def captured_post(monkeypatch):
 
     import main as main_module
 
-    monkeypatch.setattr(main_module, "api_post", _fake_post)
+    patch_main_global(monkeypatch, "api_post", _fake_post)
     return calls
 
 
@@ -301,7 +302,7 @@ class TestLogoutCircuitBreaker:
         def _refuse(url, **kwargs):
             raise requests.exceptions.ConnectionError("refused")
 
-        monkeypatch.setattr(main_module, "api_post", _refuse)
+        patch_main_global(monkeypatch, "api_post", _refuse)
 
         assert _LogoutStub()._logout_abandoned_session("s", token="t") is False
 
@@ -311,7 +312,7 @@ class TestLogoutCircuitBreaker:
         def _boom(url, **kwargs):
             raise ValueError("something else")
 
-        monkeypatch.setattr(main_module, "api_post", _boom)
+        patch_main_global(monkeypatch, "api_post", _boom)
 
         assert _LogoutStub()._logout_abandoned_session("s", token="t") is True
 

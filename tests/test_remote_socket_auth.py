@@ -1,6 +1,7 @@
 """Structural guards for authenticated remote Socket.IO access."""
 
 from pathlib import Path
+from tests.god_modules import main_window_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +34,7 @@ def test_authenticated_socket_is_bound_to_one_session_before_call_audio():
 
 
 def test_python_client_sends_socket_auth_payload_and_legacy_header():
-    main = _source("client/main.py")
+    main = main_window_source()
 
     assert 'headers={"apikey": self.token}' in main
     assert '"token": self.token' in main

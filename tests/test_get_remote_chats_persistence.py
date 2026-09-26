@@ -16,6 +16,7 @@ MainWindow is a wx.Frame, so the method is bound to a stub carrying only the
 attributes it reads — the same pattern the other main.py tests use.
 """
 
+import inspect
 import json
 import types
 
@@ -103,7 +104,7 @@ def _make(chats=None):
         # staticmethod)` is always False there and every one of them would be
         # re-bound as an instance method and receive `self` as its first
         # argument.
-        raw = MainWindow.__dict__[name]
+        raw = inspect.getattr_static(MainWindow, name)
         if isinstance(raw, staticmethod):
             setattr(stub, name, raw.__func__)
         else:

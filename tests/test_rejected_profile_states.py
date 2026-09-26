@@ -24,6 +24,7 @@ import pytest
 
 from core import profile_recovery
 from main import MainWindow
+from tests.god_modules import patch_main_global
 
 LOGIN_STORE = os.path.join(
     "Default", "IndexedDB", "https_web.whatsapp.com_0.indexeddb.leveldb")
@@ -240,7 +241,7 @@ class _InlineThread:
 def recovery(monkeypatch):
     monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
     monkeypatch.setattr("main.threading.Thread", _InlineThread)
-    monkeypatch.setattr("main.api_post", lambda *a, **kw: None)
+    patch_main_global(monkeypatch, "api_post", lambda *a, **kw: None)
 
     def _restore(global_dir, session_name, prefer_previous=False):
         _restore.calls.append(prefer_previous)

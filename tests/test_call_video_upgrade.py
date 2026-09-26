@@ -26,9 +26,10 @@ import wx
 
 from main import MainWindow
 from ui.accessible import AccessibleCallPromoteVideoButton
+from tests.god_modules import main_window_source
 
 ROOT = Path(__file__).resolve().parents[1]
-MAIN_SRC = (ROOT / "client" / "main.py").read_text(encoding="utf-8")
+MAIN_SRC = main_window_source()
 CONTROLLER_SRC = (
     ROOT / "client" / "api_patches" / "src" / "controller" / "callController.ts"
 ).read_text(encoding="utf-8")

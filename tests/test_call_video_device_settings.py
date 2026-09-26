@@ -28,6 +28,7 @@ import wx
 
 from main import MainWindow
 from tests.conftest import hidden_frame
+from tests.god_modules import patch_main_global
 
 
 class _I18n:
@@ -95,7 +96,7 @@ def _click_apply_and_close(dialog):
 
 @pytest.fixture(autouse=True)
 def _stub_device_enumeration(monkeypatch):
-    monkeypatch.setattr("main.enumerate_input_devices", lambda: [(0, "Mic A")])
+    patch_main_global(monkeypatch, "enumerate_input_devices", lambda: [(0, "Mic A")])
     monkeypatch.setattr(
         "sounddevice.query_devices",
         lambda: [{"name": "Speaker A", "max_output_channels": 2}],
