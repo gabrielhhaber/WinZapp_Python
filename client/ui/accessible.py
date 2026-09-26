@@ -51,7 +51,9 @@ def accelerator_keycode(letter):
 
     scan = ctypes.windll.user32.VkKeyScanW
     scan.restype = ctypes.c_short
-    result = scan(ord(letter))
+    # Scan the lowercase form: an uppercase letter reports Shift in the high
+    # byte, which would wrongly read as "needs a modifier".
+    result = scan(ord(letter.lower()))
     if result == -1 or (result >> 8) & 0xFF:  # unmapped, or needs Shift/Ctrl/Alt
         return None
     return result & 0xFF

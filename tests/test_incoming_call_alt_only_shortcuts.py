@@ -130,3 +130,27 @@ def test_accelerator_skips_an_unknown_id():
     event = _Event(99)
     stub._on_accelerator(event)
     assert event.skipped
+
+
+def test_accelerator_keycode_scans_the_lowercase_form(monkeypatch):
+    """An uppercase letter reports Shift in VkKeyScanW's high byte, so "Î"
+    was rejected as needing a modifier on every layout."""
+    import ctypes
+    import sys
+    from types import SimpleNamespace
+
+    from ui import accessible
+
+    scanned = []
+
+    def fake_scan(codepoint):
+        scanned.append(codepoint)
+        return 0x00CE if chr(codepoint) == "î" else 0x01CE
+
+    fake_scan.restype = None
+    fake = SimpleNamespace(user32=SimpleNamespace(VkKeyScanW=fake_scan))
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(ctypes, "windll", fake, raising=False)
+
+    assert accessible.accelerator_keycode("Î") == 0xCE
+    assert scanned == [ord("î")]
