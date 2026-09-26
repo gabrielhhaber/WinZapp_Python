@@ -187,5 +187,8 @@ def test_incoming_call_popup_has_live_language_refresh_hook():
         / "client" / "ui" / "dialogs" / "incoming_call.py"
     ).read_text(encoding="utf-8")
     assert "def refresh_labels(self, message: str | None = None):" in source
-    assert 'self._answer_button.SetLabel(i18n.t("incoming_call_answer_button"))' in source
-    assert 'self._close_button.SetLabel(i18n.t("incoming_call_close_button"))' in source
+    assert "self._apply_labels()" in source
+    assert (
+        "(self._answer_button, answer_key, self._on_answer)" in source
+        and '"incoming_call_close_button", self._on_close' in source
+    )
