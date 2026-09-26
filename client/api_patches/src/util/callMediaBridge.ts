@@ -190,7 +190,7 @@ function ensureLinuxCallAudio(
 
 function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const win = window as any;
-  if (win.__winzappCallMediaBridge?.version === 9) return true;
+  if (win.__winzappCallMediaBridge?.version === 10) return true;
   if (!navigator.mediaDevices?.getUserMedia || !win.RTCPeerConnection) return false;
 
   const AudioContextCtor = win.AudioContext || win.webkitAudioContext;
@@ -218,7 +218,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const MIC_WORKLET_WATCHDOG_MS = 1500;
 
   const state: any = {
-    version: 9,
+    version: 10,
     enabled: false,
     context: null,
     micDestination: null,
@@ -421,8 +421,31 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const lastCallWasAnswered = (): boolean =>
     answeredPageCallKey !== null && answeredPageCallKey === lastPageCallKey;
 
+  // An element playing a MediaStream is the call itself (WhatsApp's native
+  // playback of the other person), never the call-ended chime, which is an
+  // ordinary audio file. It must stay silent no matter what: the chime window
+  // below used to unmute it too, and WhatsApp keeps these elements OUT of the
+  // DOM, where the 250 ms scan never reaches them again. So a terminal event
+  // for a call the page had not actually ended -- a voice call the other
+  // person upgraded to video -- left the other person playing straight out of
+  // the user's default speaker for the rest of the call, with WinZapp saying
+  // the call was over and no window left to hang up from.
+  const isLiveStreamElement = (el: HTMLMediaElement): boolean => {
+    try {
+      return el.srcObject instanceof MediaStream;
+    } catch (_) {
+      return false;
+    }
+  };
+
   const restorePageAudio = (el: HTMLMediaElement) => {
     try {
+      if (isLiveStreamElement(el)) {
+        // Stays muted; only dropped from the set, so the call's stream is
+        // not referenced for the life of the page.
+        mutedPageElements.delete(el);
+        return;
+      }
       const original = pageAudioState.get(el);
       if (!original) return;
       el.muted = original.muted;
@@ -490,6 +513,14 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
     // The ringtone is always suppressed, even if a previous call just ended
     // and the short terminal-chime exception window is still open.
     if (isPageRingtone(el)) {
+      silencePageAudio(el);
+      return true;
+    }
+
+    // Before the chime window, not inside it: a stream element that starts
+    // playing during those 2.5 s would otherwise be left audible, and one
+    // outside the DOM is only ever looked at again on its next play().
+    if (isLiveStreamElement(el)) {
       silencePageAudio(el);
       return true;
     }

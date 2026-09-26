@@ -66,6 +66,11 @@ class _MainStub:
     _voice_call_in_progress = MainWindow._voice_call_in_progress
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
 
+    def _ensure_page_call_ended(self, call_id, *, delay=1.5):
+        # end_active_call() follows up with a scoped ensure-ended; it is a
+        # separate POST and covered in tests/test_call_video_upgrade.py.
+        pass
+
     def __init__(self, *, offer=None):
         self._call_action_lock = threading.Lock()
         self._active_voice_call = None

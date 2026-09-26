@@ -119,6 +119,14 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
         );
       };
 
+      // Connected or reconnecting -- not ringing, not over. Unlike
+      // isOutgoingOrLiveCall(), an outgoing call that has ENDED is not live.
+      const CONNECTED_CALL_STATES = [
+        'ACCEPT_SENT', 'ACCEPT_RECEIVED', 'ACTIVE', 'REJOINING', 'CONNECTED_LONELY',
+      ];
+      const isConnectedCall = (call: any): boolean =>
+        !!call && CONNECTED_CALL_STATES.includes(callStateOf(call));
+
       const getModels = (store: any): any[] => {
         try {
           const models = store?.getModelsArray?.();
@@ -318,6 +326,100 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
         return result;
       }
 
+      // Turn the ongoing voice call into a video call, exactly as WhatsApp's
+      // own camera button does in an audio call ("A/V switch":
+      // requestVideoUpgrade(), arity 0, resolves 0 on success). The call
+      // keeps its CallModel and its id; only isVideo flips once the engine
+      // reports the media change.
+      if (action === 'upgrade-video') {
+        const call = getCallStore()?.activeCall;
+        if (!isConnectedCall(call)) {
+          throw new Error('There is no ongoing call to upgrade to video');
+        }
+        if (call.isVideo === true) {
+          return { handled: true, alreadyVideo: true, call: summarizeCall(call) };
+        }
+        return runNativeVoipAction(async (voipStack: any) => {
+          if (typeof voipStack?.requestVideoUpgrade !== 'function') {
+            throw new Error('Native VoIP requestVideoUpgrade is not available');
+          }
+          const status = Number(await voipStack.requestVideoUpgrade());
+          if (status !== 0) {
+            throw new Error(`requestVideoUpgrade failed with status ${status}`);
+          }
+          return { handled: true, via: 'native-voip', call: summarizeCall(call) };
+        });
+      }
+
+      // Is this exact call still going on? Asked before WinZapp announces an
+      // end: a voice call upgraded to video keeps its id and stays ACTIVE,
+      // yet WinZapp received a terminal event for it and hung the user out
+      // of a call that was still running. Live means the page's activeCall
+      // is that id in a connected state AND the engine does not say "no
+      // call" or "ending" (getCallInfo(): '' once no call is ongoing).
+      if (action === 'status') {
+        const callId = String(payload.callId || '');
+        // findCall(), not activeCall alone: WhatsApp briefly swaps activeCall
+        // during internal transitions (the poll keeps a 5 s grace and a
+        // findCall() fallback for exactly that), and an A/V switch is a
+        // plausible one. Reading activeCall alone would answer "gone" in that
+        // window and turn a spurious terminal event into a real hang-up.
+        const found = callId ? findCall(callId) : null;
+        const call = sameCallId(found, callId) ? found : null;
+        const state = call ? callStateOf(call) : '';
+        let engine = 'unknown';
+        try {
+          const stack = await getNativeVoipStack();
+          const raw = await stack?.getCallInfo?.();
+          if (raw === '' || raw === null) {
+            engine = 'none';
+          } else if (raw !== undefined) {
+            let info: any = raw;
+            if (typeof raw === 'string') {
+              try { info = JSON.parse(raw); } catch (_) { info = null; }
+            }
+            engine = info?.call_ending === true ? 'ending' : 'ongoing';
+          }
+        } catch (_) {}
+        const live =
+          !!callId && sameCallId(call, callId) && isConnectedCall(call) &&
+          engine !== 'none' && engine !== 'ending';
+        return { live, state, engine, isVideo: !!call?.isVideo };
+      }
+
+      // WinZapp has told the user a call is over. If the page still holds
+      // THAT call live, the user would be left inside it, the remote side
+      // audible and nothing on screen to hang up with -- so end it for real.
+      // Scoped to the id WinZapp ended, unlike 'end' (which hangs up whatever
+      // the page holds): a late request must never kill a newer call.
+      if (action === 'ensure-ended') {
+        const callId = String(payload.callId || '');
+        const call = getCallStore()?.activeCall;
+        const stillLive =
+          isConnectedCall(call) ||
+          ['CALLING', 'PRE_CALLING', 'CALL_B_STARTING'].includes(callStateOf(call));
+        if (!sameCallId(call, callId) || !stillLive) {
+          return { handled: false, stillLive: false };
+        }
+        const summary = summarizeCall(call);
+        let ended = false;
+        await runNativeVoipAction(async (voipStack: any) => {
+          // endCall() hangs up whatever the page holds, so the id is checked
+          // again right before it: the runtime warm-up above can take
+          // seconds, and a new call may have replaced this one meanwhile.
+          const current = getCallStore()?.activeCall;
+          if (!sameCallId(current, callId)) return;
+          ended = true;
+          call.userEndedCall = true;
+          if (typeof voipStack?.endCall === 'function') {
+            await voipStack.endCall(2, true);
+          } else {
+            await win.WPP.call.end();
+          }
+        });
+        return { handled: ended, stillLive: ended, call: summary };
+      }
+
       // WPP.call.offer() (wa-js 4.6.0) calls startWAWebVoipCall(peer, isVideo,
       // 8, 5) and stops there. Since WhatsApp Web 2.3000.1048x the sixth
       // argument carries the call's entry trust, and when it is missing the
@@ -467,6 +569,36 @@ export async function endCall(req: Request, res: Response) {
     ok(res, await evaluateWppCall(req, 'end', req.body || {}));
   } catch (error) {
     fail(req, res, 'endCall', error);
+  }
+}
+
+export async function ensureCallEnded(req: Request, res: Response) {
+  try {
+    await installAudioBridge(req);
+    const result = await evaluateWppCall(req, 'ensure-ended', req.body || {});
+    // Only when it was THAT call: this runs seconds after the end, and by
+    // then the user may be in a new call whose bridge must stay enabled.
+    // WinZapp already stood the bridge down when it declared the end.
+    if (result?.stillLive) await stopAudioBridge(req);
+    ok(res, result);
+  } catch (error) {
+    fail(req, res, 'ensureCallEnded', error);
+  }
+}
+
+export async function callStatus(req: Request, res: Response) {
+  try {
+    ok(res, await evaluateWppCall(req, 'status', req.body || {}));
+  } catch (error) {
+    fail(req, res, 'callStatus', error);
+  }
+}
+
+export async function upgradeCallToVideo(req: Request, res: Response) {
+  try {
+    ok(res, await evaluateWppCall(req, 'upgrade-video', req.body || {}));
+  } catch (error) {
+    fail(req, res, 'upgradeCallToVideo', error);
   }
 }
 

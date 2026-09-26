@@ -114,8 +114,18 @@ class _MainStub:
     _chat_jids_equivalent = MainWindow._chat_jids_equivalent
     _jid_address_forms = MainWindow._jid_address_forms
 
+    _end_active_call_locally = MainWindow._end_active_call_locally
+
     def _watch_ended_call_log(self, call_id, peer_jid, outgoing):
         self.watched_call_logs.append((call_id, peer_jid, outgoing))
+
+    def _confirm_call_ended(self, active, call_id, peer_jid, *, upgraded_to_video=False):
+        # The page is asked first in production (tests/test_call_video_upgrade.py);
+        # here it has already answered "gone".
+        self._end_active_call_locally(active, call_id, peer_jid)
+
+    def _ensure_page_call_ended(self, call_id):
+        self.ensured_ended = getattr(self, "ensured_ended", []) + [call_id]
 
     def __init__(self):
         self._active_incoming_calls = {}

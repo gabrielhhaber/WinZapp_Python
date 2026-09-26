@@ -738,6 +738,24 @@ routes.post(
   CallController.endCall
 );
 routes.post(
+  '/api/:session/call/ensure-ended',
+  verifyToken,
+  statusConnection,
+  CallController.ensureCallEnded
+);
+routes.post(
+  '/api/:session/call/status',
+  verifyToken,
+  statusConnection,
+  CallController.callStatus
+);
+routes.post(
+  '/api/:session/call/upgrade-video',
+  verifyToken,
+  statusConnection,
+  CallController.upgradeCallToVideo
+);
+routes.post(
   '/api/:session/call/offer',
   verifyToken,
   statusConnection,

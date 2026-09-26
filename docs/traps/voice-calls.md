@@ -434,7 +434,10 @@ file is issued under the lock (`_attach_audio_to_browser_call()` takes it
 too). **The offer POST is the one exception, deliberately** — holding the
 lock across its 75-second timeout is the whole of #275, and the paragraph
 above is why. Moving it back under the lock to make this sentence uniform
-would reintroduce that bug.
+would reintroduce that bug. Two later POSTs are outside it for the same
+reason: `upgrade-video` (Ctrl+P, 20 s timeout; the call record is re-checked
+under the lock afterwards) and the read-only `status` asked before an end is
+announced (see "Voice → video upgrade" below).
 
 Call devices are their own pair (`settings["call_audio_devices"]`), separate
 from Settings > Dispositivos de áudio on purpose: a headset chosen for calls
@@ -535,6 +538,64 @@ least one real call to learn, so read before touching the video path.
   never read). `getShortStatisticString()` and `getCallInfo()` on the VoIP
   interface answer "is media arriving at all" in one call; `getCallInfo()`
   carries account identifiers, so filter it before printing.
+
+## Voice → video upgrade, and "ended" must mean ended (2026-09-26)
+
+- **An upgrade is not a new call.** Read from WhatsApp Web's bundle over CDP:
+  the A/V switch keeps the same `CallModel` and call id, and
+  `WAWebVoipBridgeCallStateHandlers.handleVideoStateChange` only sets
+  `isVideo = hasActiveVideo()` on it when the engine reports
+  `callMediaStateChanged`. The `activeCall` poll's signature did not include
+  `isVideo`, so the upgrade never reached Python; it does now, and
+  `on_voice_call_state_event()` treats the flip as an upgrade (one way:
+  `isVideo` drops back to false when both cameras are off, which is still a
+  video call to the user). The call window turns into the video window in
+  place -- NOT hidden and re-shown, which raised it and took focus while the
+  user was reading a conversation and cut the announcement off (the
+  focus-once rule above); focus moves only off the promote button it hides.
+  The camera is only *probed* (`_probe_call_camera()`, transmit off, and it
+  stops only a capture it started): when the other person upgrades, this
+  side's camera stays off until the user turns it on, as in WhatsApp.
+- **Upgrading from WinZapp** (Ctrl+P, the button after the microphone) is
+  `getVoipStackInterface().requestVideoUpgrade()` — arity 0, resolves 0 on
+  success — which is exactly what WhatsApp's own camera button does in an
+  audio call. `acceptPeerVideo({jid})` exists for the unknown-contact banner.
+  That POST runs OUTSIDE `_call_action_lock`, like the offer: held across
+  its 20 s timeout, Ctrl+Shift+Q right after Ctrl+P blocked in silence
+  (#275 again). The button appears only once the call is ACTIVE.
+- **The chime window used to unmute the live call.** `reset()` →
+  `allowCallEndChime()` restored every muted page element, the `<audio>`
+  playing the call's `MediaStream` included, and WhatsApp keeps those
+  elements out of the DOM, where the 250 ms scan never reaches them again. A
+  terminal event for a call the page had NOT ended therefore put the other
+  person straight onto the default speaker for the rest of the call.
+  `restorePageAudio()` now refuses any `srcObject` MediaStream element, and
+  `applyPageAudioPolicy()` silences one BEFORE the chime window (one starting
+  to play inside those 2.5 s was otherwise left audible): the chime is an
+  audio file, never a stream.
+- **A terminal event is confirmed before it is announced.** The source of the
+  terminal event WinZapp received during the upgrade was never measured (no
+  test partner was available on 2026-09-26), so the fix does not depend on
+  it: `_confirm_call_ended()` asks `/call/status` about that call id first
+  (via `findCall()`, the same fallback the poll uses across a brief
+  `activeCall` swap; read-only, so outside the lock). A second terminal
+  event for a call already being checked is not dropped -- each is emitted
+  once -- it makes a "live" answer be asked again.
+  Only "the page's `activeCall` is that id, connected, and `getCallInfo()`
+  does not say none/ending" keeps the call (logged as `ignored a terminal
+  event: the page still holds this call live`); any other answer, including
+  none at all, ends it — a call wrongly kept up can still be hung up from the
+  window, a live call wrongly declared over cannot. If that log line shows up,
+  capture the call over CDP (wrap `__winzappOnCallState` and record
+  `new Error().stack`) to find which path emits it.
+- **A declared end is enforced.** After "Ligação encerrada" is spoken (and 2.5 s
+  after the user hangs up), `_ensure_page_call_ended()` posts
+  `/call/ensure-ended` with the call id. Unlike `end`, it is scoped: it ends
+  the page's call only if `activeCall` is that exact id and still connected
+  or dialling -- checked again inside the native callback right before the
+  unscoped `endCall()` -- so it can never kill a newer call. `page still held a call
+  WinZapp had ended` in `log.log` is the defect's signature — if it appears,
+  some terminal event was spurious and its source is worth finding.
 
 **The call media bridge must never reload WhatsApp Web to install itself.** Its hooks (synthetic `getUserMedia`, the `RTCPeerConnection` tap) have to exist before WhatsApp's VoIP modules evaluate. They used to be registered with `evaluateOnNewDocument` only once WPPConnect handed over an already-loaded page, followed by a "priming" `page.reload()`. On 2026-09-24, right after an alpha update, that reload wedged the page on two consecutive starts. WhatsApp Web had reloaded itself right after its first load (history entry `transitionType: reload`, not served by the pin), and the priming reload landed on top of it.
 - **What the renderer did:** it stopped answering everything, including CDP `Runtime.evaluate`, `Debugger.enable`, `Page.getFrameTree`, and even the trace-start task. It was idle, not suspended, with no JS dialog, not frozen (`Page.setWebLifecycleState active` changed nothing), and `Page.stopLoading` changed nothing either.
