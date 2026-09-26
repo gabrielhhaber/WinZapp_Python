@@ -1298,7 +1298,7 @@
     "chat_lock_wrong_pin": "Codul PIN este incorect.",
     "lock_chat": "Blocați conversația",
     "locked_chats": "Conversații blocate",
-    "locked_chats_nav": "Conversații blocate",
+    "locked_chats_nav": "Conversații blocate alt+7",
     "search_locked_chats": "Căutați conversații blocate",
     "unlock_chat": "Deblocați conversația"
 }
