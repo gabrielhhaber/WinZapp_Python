@@ -430,6 +430,22 @@ class AccessibleMessagesListControl(wx.Accessible):
         return (wx.ACC_NOT_IMPLEMENTED, 0)
 
 
+class AccessibleRecordingVolumeSlider(wx.Accessible):
+    """Name the trackbar explicitly; leave native role/value/state unchanged.
+
+    wx.SetName alone may not replace the native trackbar's inferred numeric
+    label. Read the current name so language and capture-mode changes survive.
+    """
+    def __init__(self, slider):
+        super().__init__()
+        self._slider = slider
+
+    def GetName(self, childId):
+        if childId == 0:
+            return (wx.ACC_OK, self._slider.GetName())
+        return (wx.ACC_NOT_IMPLEMENTED, "")
+
+
 class AccessibleAudioSlider(wx.Accessible):
     def __init__(self, conversations_panel):
         super().__init__()

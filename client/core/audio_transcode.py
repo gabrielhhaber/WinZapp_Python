@@ -57,6 +57,46 @@ def transcode_audio_to_wav(ffmpeg: str, source_path: str) -> str | None:
     return None
 
 
+def encode_system_audio_to_m4a(ffmpeg: str, source_wav: str) -> str | None:
+    """Encode mixed capture as stereo 48 kHz AAC-LC, independently of voice PTT.
+
+    The caller owns the returned temporary M4A until delivery/cancellation.
+    Never fall back to the mono Opus attachment/voice conversion on failure.
+    """
+    if not ffmpeg or not os.path.isfile(ffmpeg):
+        return None
+    output_path = None
+    try:
+        output_fd, output_path = tempfile.mkstemp(prefix="winzapp-mixed-", suffix=".m4a")
+        os.close(output_fd)
+        creationflags = 0
+        if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW"):
+            creationflags = subprocess.CREATE_NO_WINDOW
+        timeout = max(120, min(1800, os.path.getsize(source_wav) // (512 * 1024)))
+        result = subprocess.run(
+            [ffmpeg, "-y", "-i", source_wav, "-vn", "-ac", "2", "-ar", "48000",
+             "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "192k",
+             "-movflags", "+faststart", output_path],
+            capture_output=True, timeout=timeout, creationflags=creationflags,
+        )
+        if (result.returncode == 0 and os.path.isfile(output_path)
+                and os.path.getsize(output_path) > 0):
+            return output_path
+        logging.error(
+            "[mixed_audio] AAC conversion failed (rc=%s): %s",
+            result.returncode,
+            (result.stderr or b"").decode("utf-8", errors="replace")[-800:],
+        )
+    except Exception:
+        logging.exception("[mixed_audio] AAC conversion failed")
+    if output_path:
+        try:
+            os.unlink(output_path)
+        except OSError:
+            pass
+    return None
+
+
 def prepare_audio_for_whatsapp(ffmpeg: str, source_path: str) -> tuple[str, str] | None:
     """Return a WhatsApp-compatible audio path and MIME type.
 
@@ -69,6 +109,10 @@ def prepare_audio_for_whatsapp(ffmpeg: str, source_path: str) -> tuple[str, str]
     """
     mime = mimetypes.guess_type(source_path)[0] or "application/octet-stream"
     extension = os.path.splitext(source_path)[1].lower()
+    if extension == ".m4a":
+        # Windows registry associations may call this audio/x-m4a. WhatsApp's
+        # ordinary-audio upload contract uses audio/mp4; keep the AAC untouched.
+        return source_path, "audio/mp4"
     if extension not in {".ogg", ".wav", ".wave"}:
         return source_path, mime
 

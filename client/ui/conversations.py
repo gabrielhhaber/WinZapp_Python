@@ -32,6 +32,10 @@ from core.voice_stereo import (
     fell_back_to_mono,
 )
 from ui.dialogs.stereo_voice_warning import ask_stereo_voice, stereo_warning_enabled
+from core.system_audio_capture import SystemAudioRecorder
+from ui.dialogs.system_audio_warning import (
+    ask_system_audio, system_audio_warning_enabled, remember_system_audio_consent,
+)
 from core.quote_recovery import RECOVERED_FROM_QUOTE
 from core.audio_transcode import transcode_audio_to_wav
 from core.attachment_types import classify_attachment_media_type
@@ -49,6 +53,7 @@ from ui.accessible import (
     AccessibleSearchConversations,
     AccessibleRecordVoiceMessage,
     AccessibleAudioSlider,
+    AccessibleRecordingVolumeSlider,
     AccessibleSaveAs,
     AccessibleShowInFolder,
     AccessibleConversationDataButton,
@@ -557,6 +562,9 @@ class ConversationsPanel(wx.Panel):
         # switch/close that happens mid-open discard the stream once it opens.
         self._recording_starting    = False
         self._recording_open_token  = 0
+        self._system_audio_session = None
+        self._recording_system_audio = False
+        self._system_audio_interrupted = False
 
         # ── Attachment staging ──────────────────────────────────────────────
         # list of {"path": str, "media_type": str}
@@ -1204,6 +1212,15 @@ class ConversationsPanel(wx.Panel):
         self._record_voice_alt_btn.Bind(wx.EVT_BUTTON, self._on_record_alternate_mode)
         conv_sizer.Add(self._record_voice_alt_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
+        self._record_voice_system_btn = wx.Button(
+            self.conversation_panel, label=i18n.t("record_voice_message_system_audio")
+        )
+        self._record_voice_system_btn.SetAccessible(
+            AccessibleRecordVoiceMessage("Ctrl+Shift+H")
+        )
+        self._record_voice_system_btn.Bind(wx.EVT_BUTTON, self._on_record_system_audio)
+        conv_sizer.Add(self._record_voice_system_btn, 0, wx.LEFT | wx.BOTTOM, 5)
+
         # ── Attachment staging panel (hidden until files are chosen) ─────────
         self._attachment_panel = wx.Panel(self.conversation_panel)
         attach_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1290,6 +1307,8 @@ class ConversationsPanel(wx.Panel):
         )
         self._send_voice_btn.Bind(wx.EVT_BUTTON, self._send_voice_message)
         voice_sizer.Add(self._send_voice_btn, 0, wx.LEFT | wx.BOTTOM, 5)
+        self._create_system_audio_volume_controls(voice_sizer)
+        self._create_nvda_volume_controls(voice_sizer)
 
         self._voice_panel.SetSizer(voice_sizer)
         self._voice_panel.Hide()
@@ -1489,6 +1508,7 @@ class ConversationsPanel(wx.Panel):
         # ── Navigation / recording ──────────────────────────────────────────
         self.ID_CTRL_R          = wx.NewIdRef()  # record voice            (Ctrl+R)
         self.ID_CTRL_SHIFT_G    = wx.NewIdRef()  # record, other mode      (Ctrl+Shift+G)
+        self.ID_CTRL_SHIFT_H    = wx.NewIdRef()  # microphone + system     (Ctrl+Shift+H)
         self.ID_ALT_2           = wx.NewIdRef()  # jump to last message    (Alt+2)
         self.ID_ESC             = wx.NewIdRef()  # close conversation      (Esc)
         self.CTRL_W             = wx.NewIdRef()  # close conversation      (Ctrl+W)
@@ -1614,6 +1634,7 @@ class ConversationsPanel(wx.Panel):
             # the other (stereo / mono). Not Ctrl+Alt+R: that is AltGr+R, which
             # types "®" on US-International and would be taken from the editor.
             (CS,               ord("G"),          self.ID_CTRL_SHIFT_G),
+            (CS,               ord("H"),          self.ID_CTRL_SHIFT_H),
             (wx.ACCEL_NORMAL,  wx.WXK_DELETE,     self.ID_DELETE_MSG),
             (wx.ACCEL_CTRL,    ord("C"),          self.ID_CTRL_C),
             (CS,               ord("C"),          self.ID_CTRL_SHIFT_C),
@@ -1669,6 +1690,7 @@ class ConversationsPanel(wx.Panel):
         self.Bind(wx.EVT_MENU, self._on_accel_focus_list,           id=self.ID_ALT_FOCUS_LIST)
         self.Bind(wx.EVT_MENU, self.on_record_voice_message,       id=self.ID_CTRL_R)
         self.Bind(wx.EVT_MENU, self._on_record_alternate_mode,     id=self.ID_CTRL_SHIFT_G)
+        self.Bind(wx.EVT_MENU, self._on_record_system_audio,       id=self.ID_CTRL_SHIFT_H)
         self.Bind(wx.EVT_MENU, self._on_accel_jump_last,           id=self.ID_ALT_2)
         self.Bind(wx.EVT_MENU, self._on_escape_conversation,        id=self.ID_ESC)
         self.Bind(wx.EVT_MENU, self.close_conversation,            id=self.CTRL_W)
@@ -1804,6 +1826,8 @@ class ConversationsPanel(wx.Panel):
             self.send_message_btn.Disable()
             self.record_voice_message_btn.Disable()
             self._record_voice_alt_btn.Disable()
+            if hasattr(self, "_record_voice_system_btn"):
+                self._record_voice_system_btn.Disable()
             self._add_attachment_btn.Disable()
             self._emoji_btn.Disable()
         elif admins_only_group:
@@ -1820,6 +1844,8 @@ class ConversationsPanel(wx.Panel):
             self.send_message_btn.Disable()
             self.record_voice_message_btn.Disable()
             self._record_voice_alt_btn.Disable()
+            if hasattr(self, "_record_voice_system_btn"):
+                self._record_voice_system_btn.Disable()
             self._add_attachment_btn.Disable()
             self._emoji_btn.Disable()
         else:
@@ -1828,6 +1854,8 @@ class ConversationsPanel(wx.Panel):
             self.send_message_btn.Enable()
             self.record_voice_message_btn.Enable()
             self._record_voice_alt_btn.Enable()
+            if hasattr(self, "_record_voice_system_btn"):
+                self._record_voice_system_btn.Enable()
             self._add_attachment_btn.Enable()
             self._emoji_btn.Enable()
 
@@ -2182,10 +2210,14 @@ class ConversationsPanel(wx.Panel):
             self.send_message_btn.Show()
             self.record_voice_message_btn.Hide()
             self._record_voice_alt_btn.Hide()
+            if hasattr(self, "_record_voice_system_btn"):
+                self._record_voice_system_btn.Hide()
         else:
             self.send_message_btn.Hide()
             self.record_voice_message_btn.Show()
             self._record_voice_alt_btn.Show()
+            if hasattr(self, "_record_voice_system_btn"):
+                self._record_voice_system_btn.Show()
         # Sync typing status with WPPConnect (only on state transitions)
         if self.conversation is not None:
             jid = self.conversation.get("remoteJid", "")
@@ -2414,6 +2446,8 @@ class ConversationsPanel(wx.Panel):
             self._remove_quote_btn.SetLabel(i18n.t("remove_quote"))
         self.record_voice_message_btn.SetLabel(i18n.t("record_voice_message"))
         self.refresh_alternate_record_button()
+        if hasattr(self, "_record_voice_system_btn"):
+            self._record_voice_system_btn.SetLabel(i18n.t("record_voice_message_system_audio"))
         self._add_attachment_btn.SetLabel(i18n.t("add_attachment"))
         self._add_more_btn.SetLabel(i18n.t("add_more_files"))
         self._caption_label.SetLabel(i18n.t("attachment_caption_hint"))
@@ -2423,6 +2457,7 @@ class ConversationsPanel(wx.Panel):
         self._return_call_btn.SetLabel(i18n.t("return_call_button"))
         self._discard_voice_btn.SetLabel(i18n.t("discard_voice_message"))
         self._send_voice_btn.SetLabel(i18n.t("send_voice_message"))
+        self._relabel_system_audio_volume_controls()
         if self._is_recording and self._recording_paused:
             self._pause_resume_btn.SetLabel(i18n.t("resume_recording"))
         else:
@@ -2473,6 +2508,21 @@ class ConversationsPanel(wx.Panel):
                     "warn_stereo_voice_iphone"] = False
                 self.main_window.save_settings()
         self._start_voice_recording(stereo=stereo)
+
+    def _on_record_system_audio(self, event):
+        """Record both sources for one message; never turn this shortcut into Send."""
+        if self._is_recording or self._recording_starting or self.conversation is None:
+            return
+        button = getattr(self, "_record_voice_system_btn", None)
+        if button is not None and not button.IsEnabled():
+            return
+        if system_audio_warning_enabled(self.main_window.settings):
+            confirmed, dont_ask_again = ask_system_audio(self, self.main_window.i18n)
+            if not confirmed:
+                return
+            remember_system_audio_consent(self.main_window.settings, dont_ask_again)
+            self.main_window.save_settings()
+        self._start_system_audio_recording()
 
     def on_record_voice_message(self, event):
         """
@@ -3526,6 +3576,8 @@ class ConversationsPanel(wx.Panel):
 
     def _voice_recording_silence_enabled(self):
         """Whether all WinZapp spoken content is muted during recording."""
+        if getattr(self, "_recording_system_audio", False):
+            return False
         settings = getattr(self.main_window, "settings", None) or {}
         return bool(
             settings.get("speech_content", {}).get("silence_while_recording", False)
@@ -3584,6 +3636,8 @@ class ConversationsPanel(wx.Panel):
         as possible. Each call is idempotent, so the
         repeats are harmless.
         """
+        if getattr(self, "_recording_system_audio", False):
+            return
         if not self._voice_recording_focus_suppression_enabled():
             return
         speak_output = getattr(self.main_window, "speak_output", None)
@@ -3600,6 +3654,10 @@ class ConversationsPanel(wx.Panel):
         )
 
         def _silence_now():
+            # A previous mic-only recording may have queued this burst before
+            # the user discarded it and started mixed capture.
+            if getattr(self, "_recording_system_audio", False):
+                return
             silence_focus()
             if callable(silence_all):
                 silence_all()
@@ -3608,6 +3666,401 @@ class ConversationsPanel(wx.Panel):
         wx.CallAfter(_silence_now)
         for delay_ms in (40, 90, 160, 260, 400):
             wx.CallLater(delay_ms, _silence_now)
+
+    def _create_system_audio_volume_controls(self, voice_sizer):
+        """Native keyboard-accessible slider, immediately after Send in Tab order."""
+        label = self.main_window.i18n.t("system_audio_recording_volume")
+        self._system_audio_volume_label = wx.StaticText(self._voice_panel, label=label)
+        voice_sizer.Add(self._system_audio_volume_label, 0, wx.LEFT | wx.BOTTOM, 5)
+        value = self.main_window.settings.get("general", {}).get("system_audio_recording_volume", 100)
+        if type(value) is not int or not 0 <= value <= 100:
+            value = 100
+        self._system_audio_volume_slider = wx.Slider(
+            self._voice_panel, value=value, minValue=0, maxValue=100,
+            style=wx.SL_HORIZONTAL | wx.SL_LABELS, size=(260, -1))
+        self._system_audio_volume_slider.SetName(label)
+        self._system_audio_volume_accessible = AccessibleRecordingVolumeSlider(self._system_audio_volume_slider)
+        self._system_audio_volume_slider.SetAccessible(self._system_audio_volume_accessible)
+        self._system_audio_volume_slider.SetLineSize(1)
+        self._system_audio_volume_slider.SetPageSize(10)
+        self._system_audio_volume_slider.MoveAfterInTabOrder(self._send_voice_btn)
+        self._system_audio_volume_slider.Bind(wx.EVT_SLIDER, self._on_system_audio_volume)
+        self._system_audio_volume_slider.Bind(wx.EVT_KEY_DOWN, self._on_system_audio_volume_key)
+        voice_sizer.Add(self._system_audio_volume_slider, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        self._system_audio_volume_label.Hide()
+        self._system_audio_volume_slider.Hide()
+
+    def _create_nvda_volume_controls(self, voice_sizer):
+        """Native NVDA gain, after the other computer audio in visual/Tab order."""
+        label = self.main_window.i18n.t("system_audio_recording_nvda_volume")
+        self._nvda_volume_label = wx.StaticText(self._voice_panel, label=label)
+        voice_sizer.Add(self._nvda_volume_label, 0, wx.LEFT | wx.BOTTOM, 5)
+        value = self.main_window.settings.get("general", {}).get("system_audio_recording_nvda_volume", 100)
+        if type(value) is not int or not 0 <= value <= 100:
+            value = 100
+        self._nvda_volume_slider = wx.Slider(
+            self._voice_panel, value=value, minValue=0, maxValue=100,
+            style=wx.SL_HORIZONTAL | wx.SL_LABELS, size=(260, -1))
+        self._nvda_volume_slider.SetName(label)
+        self._nvda_volume_accessible = AccessibleRecordingVolumeSlider(self._nvda_volume_slider)
+        self._nvda_volume_slider.SetAccessible(self._nvda_volume_accessible)
+        self._nvda_volume_slider.SetLineSize(1)
+        self._nvda_volume_slider.SetPageSize(10)
+        self._nvda_volume_slider.MoveAfterInTabOrder(self._system_audio_volume_slider)
+        self._nvda_volume_slider.Bind(wx.EVT_SLIDER, self._on_nvda_volume)
+        self._nvda_volume_slider.Bind(wx.EVT_KEY_DOWN, self._on_nvda_volume_key)
+        voice_sizer.Add(self._nvda_volume_slider, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+        self._nvda_volume_label.Hide()
+        self._nvda_volume_slider.Hide()
+
+    def _update_system_audio_volume_controls(self):
+        """Only mixed capture exposes gain; paused takes can set the next level."""
+        mixed = bool(getattr(self, "_recording_system_audio", False))
+        session = getattr(self, "_system_audio_session", None)
+        self._system_audio_volume_label.Show(mixed)
+        self._system_audio_volume_slider.Show(mixed)
+        enabled = (mixed and session is not None and session.get("recorder") is not None
+                   and not self._recording_starting and not self._system_audio_interrupted
+                   and not session.get("transition") and not session.get("stopped")
+                   and not session["cancelled"].is_set())
+        self._system_audio_volume_slider.Enable(bool(enabled))
+        self._nvda_volume_label.Show(mixed)
+        self._nvda_volume_slider.Show(mixed)
+        available = (mixed and session is not None and session.get("recorder") is not None
+                     and not self._recording_starting
+                     and session["recorder"].nvda_volume_available)
+        self._nvda_volume_slider.Enable(bool(enabled and available))
+        self._relabel_system_audio_volume_controls()
+
+    def _relabel_system_audio_volume_controls(self):
+        session = self._system_audio_session
+        split = (self._recording_system_audio and not self._recording_starting
+                 and session is not None and session.get("recorder") is not None
+                 and session["recorder"].nvda_volume_available)
+        t = self.main_window.i18n.t
+        label = t("system_audio_recording_other_volume" if split else "system_audio_recording_volume")
+        self._system_audio_volume_label.SetLabel(label)
+        self._system_audio_volume_slider.SetName(label)
+        label = t("system_audio_recording_nvda_volume")
+        self._nvda_volume_label.SetLabel(label)
+        self._nvda_volume_slider.SetName(label)
+
+    def _on_nvda_volume(self, event):
+        session = self._system_audio_session
+        if (not self._recording_system_audio or session is None
+                or session.get("recorder") is None or session["cancelled"].is_set()
+                or session.get("transition") or session.get("stopped")
+                or self._recording_starting or self._system_audio_interrupted
+                or not session["recorder"].nvda_volume_available):
+            return
+        value = self._nvda_volume_slider.GetValue()
+        session["recorder"].set_nvda_volume(value)
+        self.main_window.settings.setdefault("general", {})["system_audio_recording_nvda_volume"] = value
+        self.main_window._schedule_save_settings(delay=0.5)
+
+    def _on_system_audio_volume_key(self, event):
+        self._on_recording_volume_key(event, self._system_audio_volume_slider,
+                                      self._on_system_audio_volume)
+
+    def _on_nvda_volume_key(self, event):
+        self._on_recording_volume_key(event, self._nvda_volume_slider, self._on_nvda_volume)
+
+    def _on_recording_volume_key(self, event, slider, on_change):
+        """Use volume directions for vertical/page keys on either native slider."""
+        key = event.GetKeyCode()
+        if (event.GetModifiers() != wx.MOD_NONE or not slider.IsEnabled()
+                or key not in (wx.WXK_UP, wx.WXK_DOWN, wx.WXK_PAGEUP, wx.WXK_PAGEDOWN)):
+            event.Skip()  # Tab, left/right, Home/End and shortcuts remain native.
+            return
+        step = slider.GetPageSize() if key in (wx.WXK_PAGEUP, wx.WXK_PAGEDOWN) else slider.GetLineSize()
+        if key in (wx.WXK_DOWN, wx.WXK_PAGEDOWN):
+            step = -step
+        old = slider.GetValue()
+        value = max(slider.GetMin(), min(slider.GetMax(), old + step))
+        if value != old:
+            slider.SetValue(value)
+            # SetValue does not emit EVT_SLIDER. Update capture exactly once,
+            # then expose the new native value without a second speech channel.
+            on_change(None)
+            wx.Accessible.NotifyEvent(wx.ACC_EVENT_OBJECT_VALUECHANGE, slider,
+                                      wx.OBJID_CLIENT, wx.ACC_SELF)
+        # Consume even at the limits: native handling would move the other way.
+
+    def _on_system_audio_volume(self, event):
+        # No system-volume calls, no rescaling of already recorded frames.
+        session = getattr(self, "_system_audio_session", None)
+        if (not getattr(self, "_recording_system_audio", False) or session is None
+                or session.get("recorder") is None or session["cancelled"].is_set()
+                or session.get("transition") or session.get("stopped")
+                or self._recording_starting or self._system_audio_interrupted):
+            return
+        value = self._system_audio_volume_slider.GetValue()
+        session["recorder"].set_system_audio_volume(value)
+        self.main_window.settings.setdefault("general", {})["system_audio_recording_volume"] = value
+        self.main_window._schedule_save_settings(delay=0.5)
+
+    def _start_system_audio_recording(self):
+        """Open BOTH capture sources off-thread, with a session-local frame buffer.
+
+        Callbacks never dereference the panel's current buffer: a cancelled or
+        late worker therefore cannot write into a later recording. The lock
+        also freezes the old buffer before Send hands it to the encoder.
+        """
+        if self.conversation is None or self._is_recording or self._recording_starting:
+            return
+        self._recording_open_token += 1
+        session = {
+            "token": self._recording_open_token,
+            "frames": [], "lock": threading.Lock(),
+            "cancelled": threading.Event(), "accepting": True,
+            "recorder": None, "error": None,
+        }
+        self._system_audio_session = session
+        self._recording_frames = session["frames"]
+        self._recording_starting = True
+        self._recording_paused = False
+        self._recording_system_audio = True
+        self._system_audio_interrupted = False
+        # Mixed capture has its own music-quality contract; the microphone-only
+        # voice preference must not downmix desktop audio.
+        self._recording_stereo = True
+        channels = 2
+        microphone_name = getattr(self.main_window, "effective_input_device_name", "") or ""
+        self._show_system_audio_recording_controls(starting=True)
+        # Read wx only on its owning thread, before the asynchronous opener.
+        system_audio_volume = self._system_audio_volume_slider.GetValue()
+        nvda_volume = self._nvda_volume_slider.GetValue()
+
+        def on_frames(data):
+            with session["lock"]:
+                if session["accepting"] and not session["cancelled"].is_set():
+                    session["frames"].append(data)
+
+        def on_error(error):
+            with session["lock"]:
+                if session["cancelled"].is_set() or session["error"] is not None:
+                    return
+                session["error"] = error
+                session["accepting"] = False
+            wx.CallAfter(self._on_system_audio_error, session)
+
+        def open_sources():
+            recorder = None
+            error = None
+            try:
+                recorder = SystemAudioRecorder(
+                    on_frames, on_error, microphone_name=microphone_name,
+                    channels=channels, rate=48000, system_audio_volume=system_audio_volume,
+                    separate_nvda=True, nvda_volume=nvda_volume,
+                )
+                session["recorder"] = recorder
+                if not session["cancelled"].is_set():
+                    recorder.start()
+            except Exception as exc:
+                error = exc
+            if error is not None or session["cancelled"].is_set():
+                if recorder is not None:
+                    try:
+                        recorder.close()
+                    except Exception:
+                        # The original startup failure still has to reach wx;
+                        # a driver's shutdown timeout cannot strand the UI.
+                        pass
+            wx.CallAfter(self._on_system_audio_opened, session, error)
+
+        threading.Thread(target=open_sources, daemon=True).start()
+
+    def _show_system_audio_recording_controls(self, starting=False):
+        """Use the existing voice composer, including Discard during opening."""
+        if not self._voice_recording_focus_suppression_enabled():
+            self.message_field.Hide()
+        if hasattr(self, "_emoji_btn"):
+            self._emoji_btn.Hide()
+        self.send_message_btn.Hide()
+        self.record_voice_message_btn.Hide()
+        self._record_voice_alt_btn.Hide()
+        if hasattr(self, "_record_voice_system_btn"):
+            self._record_voice_system_btn.Hide()
+        self._add_attachment_btn.Hide()
+        self._pause_resume_btn.SetLabel(self.main_window.i18n.t("pause_recording"))
+        self._pause_resume_btn.Enable(not starting)
+        self._send_voice_btn.Enable(not starting)
+        self._update_system_audio_volume_controls()
+        self._play_recorded_btn.Hide()
+        self._voice_panel.Show()
+        self.conversation_panel.Layout()
+        if not starting:
+            focus = self.main_window.settings.get("user_interface", {}).get("voice_record_focus", "send")
+            button = self._discard_voice_btn if focus == "discard" else self._send_voice_btn
+            self._focus_recording_button_silently(button)
+
+    def _on_system_audio_opened(self, session, error):
+        """UI-thread completion; cancelled generations never touch UI state."""
+        if (session is not self._system_audio_session
+                or session["token"] != self._recording_open_token):
+            # Cancellation detached this session and arranged cleanup. If it
+            # raced construction, open_sources closes it after start returns.
+            return
+        self._recording_starting = False
+        if error is not None:
+            self._stop_system_audio_recording()
+            self._recording_frames = []
+            self._hide_voice_panel()
+            self.main_window.output(self.main_window.i18n.t("system_audio_recording_failed"))
+            return
+        recorder = session["recorder"]
+        self._recording_actual_rate = recorder.rate
+        self._recording_actual_ch = recorder.channels
+        self._is_recording = True
+        self._show_system_audio_recording_controls()
+        if session["error"] is not None:
+            self._on_system_audio_error(session)
+            return
+        self.main_window.voicemsg_startrecording_sound.play()
+        jid = self.conversation.get("remoteJid", "") if self.conversation else ""
+        if jid and not jid.endswith("@newsletter"):
+            self.main_window.send_recording_status(jid, True, jid.endswith("@g.us"))
+
+    def _on_system_audio_error(self, session):
+        """Keep partial audio for preview/send/discard, but never restart silently."""
+        if (session is not self._system_audio_session
+                or session["token"] != self._recording_open_token
+                or self._recording_starting or self._system_audio_interrupted):
+            return
+        session["failed_during_send"] = bool(session.get("sending"))
+        self._system_audio_interrupted = True
+        self._update_system_audio_volume_controls()
+        self._recording_paused = True
+        self._pause_resume_btn.Disable()
+        self._play_recorded_btn.Show()
+        self.conversation_panel.Layout()
+        jid = self.conversation.get("remoteJid", "") if self.conversation else ""
+        if jid and not jid.endswith("@newsletter"):
+            self.main_window.send_recording_status(jid, False, jid.endswith("@g.us"))
+        self.main_window.output(self.main_window.i18n.t("system_audio_recording_interrupted"))
+
+    def _stop_system_audio_recording(self):
+        """Detach synchronously; close this exact recorder off-thread (never the next)."""
+        session = getattr(self, "_system_audio_session", None)
+        if session is None:
+            return
+        self._system_audio_session = None
+        self._recording_open_token += 1
+        self._recording_starting = False
+        with session["lock"]:
+            session["accepting"] = False
+            session["cancelled"].set()
+        recorder = session["recorder"]
+        if recorder is not None:
+            def close_discarded():
+                try:
+                    recorder.close()
+                except Exception:
+                    # Cancellation already invalidated all callbacks; a
+                    # shutdown timeout must not resurrect or send this audio.
+                    pass
+            threading.Thread(target=close_discarded, daemon=True).start()
+
+    def _finish_system_audio_for_send(self, event):
+        """Flush both sources off-thread before the existing encoder gets the buffer."""
+        session = self._system_audio_session
+        if session is None or session.get("transition"):
+            return
+        session["transition"] = True
+        session["sending"] = True
+        self._update_system_audio_volume_controls()
+        self._send_voice_btn.Disable()
+        self._pause_resume_btn.Disable()
+        self._stop_recorded_audio_preview()
+        self._play_recorded_btn.Hide()
+
+        def finish():
+            error = None
+            try:
+                session["recorder"].close()
+            except Exception as exc:
+                error = exc
+            # close() joins the mixer and emits its final PCM before returning.
+            with session["lock"]:
+                session["accepting"] = False
+            wx.CallAfter(self._on_system_audio_ready_to_send, session, error)
+
+        threading.Thread(target=finish, daemon=True).start()
+
+    def _on_system_audio_ready_to_send(self, session, error):
+        if (session is not self._system_audio_session
+                or session["token"] != self._recording_open_token):
+            return
+        session["transition"] = False
+        session["stopped"] = True
+        self._send_voice_btn.Enable()
+        if error is not None or (session["error"] is not None and not self._system_audio_interrupted):
+            with session["lock"]:
+                session["error"] = session["error"] or error
+            self._on_system_audio_error(session)
+            return
+        # A loss reported while close was in progress must not auto-send.
+        if session.get("failed_during_send"):
+            self._play_recorded_btn.Show()
+            self.conversation_panel.Layout()
+            return
+        self._send_voice_message(None)
+
+    def _toggle_system_audio_pause(self):
+        """Pause acknowledgement is a barrier; never run it on wx's thread."""
+        session = self._system_audio_session
+        if session is None or session.get("transition") or self._system_audio_interrupted:
+            return
+        paused = not self._recording_paused
+        session["transition"] = True
+        self._update_system_audio_volume_controls()
+        # Keep the focused button enabled, as in microphone-only recording.
+        # The transition guard above already ignores repeat activations.
+        self._send_voice_btn.Disable()
+        if not paused:
+            # Stop preview BEFORE the backend can begin capture again.
+            self._stop_recorded_audio_preview()
+            self._play_recorded_btn.Hide()
+
+        def change_pause():
+            error = None
+            try:
+                if not paused:
+                    with session["lock"]:
+                        session["accepting"] = session["error"] is None
+                session["recorder"].set_paused(paused)
+            except Exception as exc:
+                error = exc
+            with session["lock"]:
+                session["accepting"] = not paused and session["error"] is None and error is None
+            wx.CallAfter(self._on_system_audio_paused, session, paused, error)
+
+        threading.Thread(target=change_pause, daemon=True).start()
+
+    def _on_system_audio_paused(self, session, paused, error):
+        if (session is not self._system_audio_session
+                or session["token"] != self._recording_open_token):
+            return
+        session["transition"] = False
+        self._send_voice_btn.Enable()
+        if error is not None:
+            with session["lock"]:
+                session["error"] = session["error"] or error
+            self._on_system_audio_error(session)
+            return
+        if self._system_audio_interrupted or session["error"] is not None:
+            self._on_system_audio_error(session)
+            return
+        self._recording_paused = paused
+        self._update_system_audio_volume_controls()
+        self._pause_resume_btn.Enable()
+        self._pause_resume_btn.SetLabel(self.main_window.i18n.t(
+            "resume_recording" if paused else "pause_recording"))
+        self._play_recorded_btn.Show(paused)
+        self.conversation_panel.Layout()
+        # Confirm only an acknowledged transition; failed or stale callbacks
+        # must not sound like a successful pause/resume.
+        self.main_window.voicemsg_pauserecording_sound.play()
 
     def _start_voice_recording(self, stereo=None):
         """
@@ -3633,6 +4086,9 @@ class ConversationsPanel(wx.Panel):
             return
 
         self._recording_frames = []
+        # An old mic callback may finish after discard and mixed capture
+        # starts. Keep it bound to its own list, never the next session's.
+        recording_frames = self._recording_frames
         self._recording_paused = False
         # None: the Settings default. The second record button passes the other.
         want_stereo = self._default_recording_stereo() if stereo is None else bool(stereo)
@@ -3648,7 +4104,7 @@ class ConversationsPanel(wx.Panel):
                 # diagnosable; the larger frames_per_buffer below minimises it.
                 logging.debug("[audio] input stream status flag: %s", status)
             if not self._recording_paused:
-                self._recording_frames.append(in_data)
+                recording_frames.append(in_data)
             pa_cont = getattr(pyaudio, "paContinue", 0) if pyaudio is not None else 0
             return (None, pa_cont)
 
@@ -3669,7 +4125,7 @@ class ConversationsPanel(wx.Panel):
                 import sounddevice as sd
                 def _sd_callback(indata, frames, time_info, status):
                     if not self._recording_paused:
-                        self._recording_frames.append(indata.tobytes())
+                        recording_frames.append(indata.tobytes())
                 self._recording_actual_rate = 48000
                 self._recording_actual_ch = 1
                 self._is_recording = True
@@ -3690,6 +4146,8 @@ class ConversationsPanel(wx.Panel):
                 self.send_message_btn.Hide()
                 self.record_voice_message_btn.Hide()
                 self._record_voice_alt_btn.Hide()
+                if hasattr(self, "_record_voice_system_btn"):
+                    self._record_voice_system_btn.Hide()
                 self._add_attachment_btn.Hide()
                 self._pause_resume_btn.SetLabel(self.main_window.i18n.t("pause_recording"))
                 self._voice_panel.Show()
@@ -3915,6 +4373,8 @@ class ConversationsPanel(wx.Panel):
             self.send_message_btn.Hide()
             self.record_voice_message_btn.Hide()
             self._record_voice_alt_btn.Hide()
+            if hasattr(self, "_record_voice_system_btn"):
+                self._record_voice_system_btn.Hide()
             self._add_attachment_btn.Hide()
             self._pause_resume_btn.SetLabel(
                 self.main_window.i18n.t("pause_recording")
@@ -3949,7 +4409,15 @@ class ConversationsPanel(wx.Panel):
             self._recording_stream = None
 
     def _on_destroy(self, event):
-        """Clean up PyAudio resources when the panel is destroyed."""
+        """Clean up capture resources when the panel itself is destroyed."""
+        if event.GetEventObject() is not self:
+            event.Skip()
+            return
+        if getattr(self, "_recording_system_audio", False):
+            self._stop_system_audio_recording()
+            self._recording_system_audio = False
+            self._is_recording = False
+            self._recording_frames = []
         if self._recording_pa is not None:
             try:
                 self._recording_pa.terminate()
@@ -3963,6 +4431,12 @@ class ConversationsPanel(wx.Panel):
     def _hide_voice_panel(self):
         """Hide the voice panel and restore the message field / record /
         send button visibility (sent or discarded — both call this)."""
+        if getattr(self, "_recording_system_audio", False):
+            self._pause_resume_btn.Enable()
+            self._send_voice_btn.Enable()
+            self._recording_system_audio = False
+            self._system_audio_interrupted = False
+        self._update_system_audio_volume_controls()
         self._stop_recorded_audio_preview()
         self._play_recorded_btn.Hide()
         self._voice_panel.Hide()
@@ -3974,15 +4448,21 @@ class ConversationsPanel(wx.Panel):
         else:
             self.record_voice_message_btn.Show()
             self._record_voice_alt_btn.Show()
+            if hasattr(self, "_record_voice_system_btn"):
+                self._record_voice_system_btn.Show()
         self._add_attachment_btn.Show()
         self.conversation_panel.Layout()
 
     def _discard_voice_message(self, event):
         """Discard the current recording without sending."""
-        if not self._is_recording:
+        mixed = getattr(self, "_recording_system_audio", False)
+        if not self._is_recording and not (mixed and self._recording_starting):
             return
+        if mixed:
+            self._stop_system_audio_recording()
         self.main_window.voicemsg_discard_sound.play()
-        threading.Thread(target=self._stop_recording_stream, daemon=True).start()
+        if not mixed:
+            threading.Thread(target=self._stop_recording_stream, daemon=True).start()
         self._is_recording     = False
         self._recording_paused = False
         self._recording_frames = []
@@ -3995,7 +4475,10 @@ class ConversationsPanel(wx.Panel):
 
     def _toggle_pause_recording(self, event):
         """Pause or resume the ongoing recording."""
-        if not self._is_recording:
+        if not self._is_recording or getattr(self, "_system_audio_interrupted", False):
+            return
+        if getattr(self, "_recording_system_audio", False):
+            self._toggle_system_audio_pause()
             return
         self.main_window.voicemsg_pauserecording_sound.play()
         self._recording_paused = not self._recording_paused
@@ -4019,6 +4502,9 @@ class ConversationsPanel(wx.Panel):
         stable only while paused (the PyAudio callback skips appending while
         self._recording_paused, see on_record_voice_message's _callback)."""
         if not self._is_recording or not self._recording_paused:
+            return
+        session = getattr(self, "_system_audio_session", None)
+        if session is not None and session.get("transition"):
             return
         if self._recorded_audio_sound is not None:
             self._stop_recorded_audio_preview()
@@ -4096,14 +4582,27 @@ class ConversationsPanel(wx.Panel):
         """Stop recording and enqueue the audio for delivery."""
         if not self._is_recording:
             return
+        session = getattr(self, "_system_audio_session", None)
+        if session is not None:
+            if session.get("transition"):
+                return
+            if not session.get("stopped"):
+                self._finish_system_audio_for_send(event)
+                return
 
         import time as _time
         _t0 = _time.perf_counter()
         logging.info("[VOICE_TIMING] T+0.000s — user clicked send, stopping recording stream")
 
+        # Snapshot the mode before stop/hide clears it; the worker belongs to
+        # this recording even when another conversation/recording is opened.
+        mixed_audio = bool(getattr(self, "_recording_system_audio", False))
         # Stop the recording stream in background FIRST so the audio device is fully released
         # without blocking the UI thread before BASS plays the send sound.
-        threading.Thread(target=self._stop_recording_stream, daemon=True).start()
+        if mixed_audio:
+            self._stop_system_audio_recording()
+        else:
+            threading.Thread(target=self._stop_recording_stream, daemon=True).start()
         self._is_recording     = False
         self._recording_paused = False
 
@@ -4154,7 +4653,9 @@ class ConversationsPanel(wx.Panel):
             "message": {
                 "audioMessage": {
                     "seconds": duration_sec,
-                    "ptt":     True,
+                    "ptt":     not mixed_audio,
+                    **({"mimetype": "audio/mp4", "fileName": f"{local_id}.m4a"}
+                       if mixed_audio else {}),
                 }
             },
             "messageTimestamp": int(time.time()),
@@ -4203,7 +4704,7 @@ class ConversationsPanel(wx.Panel):
                          _time.perf_counter() - _t0, len(audio_data), len(frames))
 
             # Apply microphone noise reduction if enabled in settings
-            if mw.settings.get("general", {}).get("noise_reduction_enabled", False):
+            if not mixed_audio and mw.settings.get("general", {}).get("noise_reduction_enabled", False):
                 try:
                     logging.info("[VOICE_TIMING] Applying microphone noise reduction...")
                     from core.audio_processing import apply_noise_gate
@@ -4213,6 +4714,7 @@ class ConversationsPanel(wx.Panel):
                     logging.error("[VOICE_TIMING] Failed to apply noise reduction: %s", ex)
 
             # 2. Write WAV temp file (used for ffmpeg conversion, backup, and retry fallback).
+            tmp = None
             try:
                 tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
                 tmp.close()
@@ -4226,6 +4728,20 @@ class ConversationsPanel(wx.Panel):
                              _time.perf_counter() - _t0, wav_path)
             except Exception as exc:
                 logging.error("[_send_voice_message] failed to write WAV: %s", exc)
+                if mixed_audio:
+                    if tmp is not None:
+                        try:
+                            os.unlink(tmp.name)
+                        except OSError:
+                            pass
+                    wx.CallAfter(mw._on_message_failed, local_id,
+                                 mw.i18n.t("media_audio_convert_failed"), True)
+                return
+
+            if mixed_audio:
+                self._enqueue_system_audio_file(
+                    wav_path, local_id, remote_jid, quoted_msg, enc_key, virtual_msg,
+                )
                 return
 
             # 3. Encode OGG Opus via ffmpeg conversion.
@@ -4273,6 +4789,57 @@ class ConversationsPanel(wx.Panel):
 
         threading.Thread(target=_write_and_enqueue, daemon=True).start()
 
+    def _enqueue_system_audio_file(self, wav_path, local_id, remote_jid, quoted_msg, enc_key, virtual_msg):
+        """Worker-side mixed encoder; ordinary voice never enters this path."""
+        from core.audio_transcode import encode_system_audio_to_m4a
+        mw = self.main_window
+        m4a_path = cache_path = None
+        try:
+            m4a_path = encode_system_audio_to_m4a(mw._find_api_ffmpeg(), wav_path)
+            if not m4a_path:
+                raise RuntimeError("Mixed recording AAC encoding failed")
+            voice_dir = data_path("voice_messages")
+            os.makedirs(voice_dir, exist_ok=True)
+            cache_path = os.path.join(voice_dir, f"{local_id}.msv")
+            with open(m4a_path, "rb") as source:
+                encrypted = encrypt(source.read(), enc_key)
+            with open(cache_path, "wb") as cache:
+                cache.write(encrypted)
+            pm = PendingMessage(local_id, remote_jid, media_path=m4a_path,
+                                media_type="audio", quoted=quoted_msg, owns_media_path=True)
+        except Exception:
+            logging.exception("[mixed_audio] could not prepare recorded attachment")
+            for path in (m4a_path, cache_path):
+                if path:
+                    try:
+                        os.unlink(path)
+                    except OSError:
+                        pass
+            wx.CallAfter(mw._on_message_failed, local_id,
+                         mw.i18n.t("media_audio_convert_failed"), True)
+            return
+        finally:
+            try:
+                os.unlink(wav_path)
+            except OSError:
+                pass
+
+        def enqueue_ready():
+            # Queue ownership starts only now. A delete while ffmpeg/cache was
+            # running must not resurrect the row or transmit the recording.
+            if virtual_msg.get("_cancelled_awaiting_id") or self._is_cancelled_pending(local_id):
+                for path in (m4a_path, cache_path):
+                    try:
+                        os.unlink(path)
+                    except OSError:
+                        pass
+                mw._on_cancelled_message_dropped(local_id)
+                return
+            mw.message_queue.enqueue(pm)
+            mw.mark_conversation_as_read(remote_jid)
+
+        wx.CallAfter(enqueue_ready)
+
     def _cancel_active_recording(self):
         """Stop and discard an in-progress voice recording, if any.
 
@@ -4293,18 +4860,26 @@ class ConversationsPanel(wx.Panel):
         # finishes.
         self._recording_open_token += 1
         self._recording_starting = False
-        if not self._is_recording:
+        mixed = getattr(self, "_recording_system_audio", False)
+        if mixed:
+            self._stop_system_audio_recording()
+        if not self._is_recording and not mixed:
             return
-        self._stop_recording_stream()
+        if not mixed:
+            self._stop_recording_stream()
         self._is_recording     = False
         self._recording_paused = False
         self._recording_frames = []
         _rec_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
         if _rec_jid and not _rec_jid.endswith("@newsletter"):
             self.main_window.send_recording_status(_rec_jid, False, _rec_jid.endswith("@g.us"))
+        if mixed:
+            self._hide_voice_panel()
         self._voice_panel.Hide()
         self.record_voice_message_btn.Show()
         self._record_voice_alt_btn.Show()
+        if hasattr(self, "_record_voice_system_btn"):
+            self._record_voice_system_btn.Show()
 
     def _close_conversation_core(self) -> "tuple[bool, str]":
         """Stop typing/recording indicators and clear the open-conversation
@@ -15514,6 +16089,8 @@ class ConversationsPanel(wx.Panel):
         self.send_message_btn.Hide()
         self.record_voice_message_btn.Hide()
         self._record_voice_alt_btn.Hide()
+        if hasattr(self, "_record_voice_system_btn"):
+            self._record_voice_system_btn.Hide()
         self._add_attachment_btn.Hide()
         self._attachment_panel.Show()
         self.conversation_panel.Layout()
@@ -15591,6 +16168,8 @@ class ConversationsPanel(wx.Panel):
             else:
                 self.record_voice_message_btn.Show()
                 self._record_voice_alt_btn.Show()
+                if hasattr(self, "_record_voice_system_btn"):
+                    self._record_voice_system_btn.Show()
             self._add_attachment_btn.Show()
         if hasattr(self, "conversation_panel") and self.conversation_panel.IsShown():
             self.conversation_panel.Layout()

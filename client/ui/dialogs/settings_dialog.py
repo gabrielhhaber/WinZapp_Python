@@ -560,6 +560,13 @@ class SettingsDialog(wx.Dialog):
             self._warn_stereo_voice_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        self._warn_system_audio_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_warn_system_audio_recording")
+        )
+        ui_sizer.Add(
+            self._warn_system_audio_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         self._space_selects_cb = wx.CheckBox(
             self._ui_page, label=i18n.t("ui_space_selects_in_selection_mode")
         )
@@ -1574,6 +1581,9 @@ class SettingsDialog(wx.Dialog):
             "warn_stereo_voice_iphone", True
         )
         self._warn_stereo_voice_cb.SetValue(bool(warn_stereo_voice))
+        self._warn_system_audio_cb.SetValue(bool(
+            self.main_window.settings.get("user_interface", {}).get(
+                "warn_system_audio_recording", True)))
 
         space_selects = self.main_window.settings.get("user_interface", {}).get(
             "space_selects_in_selection_mode", True
@@ -2852,6 +2862,9 @@ class SettingsDialog(wx.Dialog):
             "warn_stereo_voice_iphone"
         ] = self._warn_stereo_voice_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
+            "warn_system_audio_recording"
+        ] = self._warn_system_audio_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
             "space_selects_in_selection_mode"
         ] = self._space_selects_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
@@ -3378,6 +3391,7 @@ class SettingsDialog(wx.Dialog):
         self._confirm_resync_all_cb.SetLabel(i18n.t("ui_confirm_resync_all"))
         self._confirm_resync_conversation_cb.SetLabel(i18n.t("ui_confirm_resync_conversation"))
         self._warn_stereo_voice_cb.SetLabel(i18n.t("ui_warn_stereo_voice_iphone"))
+        self._warn_system_audio_cb.SetLabel(i18n.t("ui_warn_system_audio_recording"))
         self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
         self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
         self._auto_focus_next_audio_cb.SetLabel(i18n.t("ui_auto_focus_next_audio"))

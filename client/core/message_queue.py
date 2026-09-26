@@ -14,6 +14,7 @@ Behaviour
 """
 
 import logging
+import os
 import threading
 import time
 import wx
@@ -38,7 +39,8 @@ class PendingMessage:
                  quoted: dict = None,
                  mentioned_jids: list = None,
                  link_preview: dict = None,
-                 stereo: bool = False):
+                 stereo: bool = False,
+                 owns_media_path: bool = False):
         # local_id matches the "_local_id" field in the virtual message dict
         # that was already added to the UI.
         self.local_id      = local_id
@@ -51,6 +53,10 @@ class PendingMessage:
         self.stereo        = bool(stereo)
         self.media_path    = media_path     # path to attached file (image/video/doc/audio)
         self.media_type    = media_type     # "image"|"video"|"audio"|"document"
+        # Only internally-created recordings opt in. Never remove a file the
+        # user picked as an attachment. This does not select the PTT sender.
+        self.owns_media_path = bool(owns_media_path)
+        self.recording_path = audio_path or (media_path if owns_media_path else None)
         self.caption       = caption or ""  # optional caption for media
         self.progress_callback = progress_callback
         self.contact_info  = contact_info   # dict for contact attachment
@@ -305,7 +311,7 @@ class MessageQueue:
             msg.local_id,
             real_id if isinstance(real_id, str) else None,
             msg.jid,
-            msg.audio_path,
+            msg.recording_path,
             quote_lost,
             # Passed on rather than folded into "no ID": the UI restores an
             # unknown outcome differently from a confirmed one.
@@ -323,7 +329,7 @@ class MessageQueue:
         wx.CallAfter(
             self.main_window._on_cancelled_message_dropped,
             msg.local_id,
-            msg.audio_path,
+            msg.recording_path,
         )
 
     def _run(self, media_only: bool):
@@ -503,7 +509,7 @@ class MessageQueue:
                         wx.CallAfter(
                             self.main_window._on_message_sent,
                             msg.local_id,
-                            msg.audio_path,
+                            msg.recording_path,
                             real_id if isinstance(real_id, str) else None,
                             msg.jid,
                             quote_lost,
@@ -590,6 +596,19 @@ class MessageQueue:
                             and msg.local_id not in self._pending
                             and not reported
                         )
+                        release_owned_media = (
+                            msg.owns_media_path and not real_id
+                            and msg.local_id not in self._pending
+                        )
+                    # No retry is possible after a terminal failure/unknown
+                    # outcome. The encrypted .msv remains for offline playback;
+                    # only our generated plaintext upload is disposable here.
+                    # Success/cancel callbacks own the recording on delivery.
+                    if release_owned_media and msg.media_path:
+                        try:
+                            os.unlink(msg.media_path)
+                        except OSError:
+                            pass
                     if orphaned:
                         # Outside the try/except above, so it needs its own:
                         # an exception raised here is on the worker thread with

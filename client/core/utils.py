@@ -891,6 +891,8 @@ DEFAULT_SETTINGS = {
         # Stereo voice messages (issue #82, core/voice_stereo.py). Off: iPhone
         # cannot play a stereo voice message.
         "voice_message_stereo": False,
+        "system_audio_recording_volume": 100,
+        "system_audio_recording_nvda_volume": 100,
         # Windows spell checking in the message field (core/spell_checker.py).
         # One of SPELL_CHECK_MODES: "windows" (default — follow Windows' own
         # Settings > Time & language > Typing > Spelling), or "on"/"off" to
@@ -958,6 +960,8 @@ DEFAULT_SETTINGS = {
         "confirm_resync_conversation": True,
         # Warn before a stereo voice message (ui/dialogs/stereo_voice_warning.py).
         "warn_stereo_voice_iphone": True,
+        "warn_system_audio_recording": True,
+        "system_audio_consent_revision": 0,
         # Once a selection exists, plain Space keeps selecting instead of
         # playing/pausing the focused message ("selection mode"), and Esc
         # clears the message selection before it closes the conversation.

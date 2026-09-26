@@ -13668,7 +13668,10 @@ class MainWindow(wx.Frame):
         if not self.settings.get("speech_content", {}).get("silence_while_recording", False):
             return False
         cp = getattr(self, "conversations_panel", None)
-        return bool(cp is not None and getattr(cp, "_is_recording", False))
+        # Mixed capture intentionally includes screen-reader speech and must
+        # also announce device failures while the partial take stays open.
+        return bool(cp is not None and getattr(cp, "_is_recording", False)
+                    and not getattr(cp, "_recording_system_audio", False))
 
     # ── Language selection ────────────────────────────────────────────────────
 
@@ -14220,8 +14223,8 @@ class MainWindow(wx.Frame):
         # change (plan Zad 2.3b). Best-effort; never blocks the save.
         self._persist_global_settings()
 
-    def _schedule_save_settings(self):
-        """Debounce save_settings: coalesce rapid calls into one write after 2 s.
+    def _schedule_save_settings(self, delay=2.0):
+        """Debounce save_settings; recording sliders request 0.5 s, others 2 s.
 
         Used when background events (e.g. presence.update bursts) update settings
         frequently — avoids hammering the disk on every event.
@@ -14229,6 +14232,9 @@ class MainWindow(wx.Frame):
         with self._save_timer_lock:
             existing = getattr(self, "_settings_save_timer", None)
             if existing is not None:
+                # Background changes must not postpone a slider's short save.
+                if existing.interval < delay:
+                    return
                 existing.cancel()
             def _fire():
                 # Clear the handle FIRST: left dangling after the timer
@@ -14236,11 +14242,12 @@ class MainWindow(wx.Frame):
                 # still-pending write and re-saves settings.json on every
                 # single shutdown from the first settings change onwards.
                 with self._save_timer_lock:
-                    if self._settings_save_timer is t:
-                        self._settings_save_timer = None
+                    if self._settings_save_timer is not t:
+                        return  # superseded or already flushed during shutdown
+                    self._settings_save_timer = None
                 self.save_settings()
 
-            t = threading.Timer(2.0, _fire)
+            t = threading.Timer(delay, _fire)
             t.daemon = True
             self._settings_save_timer = t
             t.start()
