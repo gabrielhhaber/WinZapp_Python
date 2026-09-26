@@ -174,6 +174,7 @@ from status_panel import StatusPanel
 from calls_panel import CallsPanel
 from ui.accessible import (
     AccessibleCallEndButton,
+    AccessibleCallPromoteVideoButton,
     AccessibleCallMuteButton,
     AccessibleCallSettingsButton,
     AccessibleCallVideoToggleButton,
@@ -2862,15 +2863,21 @@ class MainWindow(wx.Frame):
         self.voice_call_window_end_button = wx.Button(call_panel, label=self.i18n.t("voice_call_end_button"))
         self.voice_call_window_settings_button = wx.Button(call_panel, label=self.i18n.t("voice_call_settings_button"))
         self.voice_call_window_mute_button = wx.Button(call_panel, label=self.i18n.t("voice_call_mute_button"))
+        # Only while the call is voice: it turns this call into a video call
+        # without hanging up (WhatsApp's own "switch to video").
+        self.voice_call_window_promote_button = wx.Button(
+            call_panel, label=self.i18n.t("voice_call_promote_video_button"))
         self.voice_call_window_video_button = wx.Button(call_panel, label=self.i18n.t("voice_call_video_off_button"))
         self.voice_call_window_video_button.Hide()
         self.voice_call_window_end_button.SetAccessible(AccessibleCallEndButton())
         self.voice_call_window_settings_button.SetAccessible(AccessibleCallSettingsButton())
         self.voice_call_window_mute_button.SetAccessible(AccessibleCallMuteButton())
+        self.voice_call_window_promote_button.SetAccessible(AccessibleCallPromoteVideoButton())
         self.voice_call_window_video_button.SetAccessible(AccessibleCallVideoToggleButton())
         self.voice_call_window_end_button.Bind(wx.EVT_BUTTON, self.end_active_call)
         self.voice_call_window_settings_button.Bind(wx.EVT_BUTTON, self._open_active_call_settings)
         self.voice_call_window_mute_button.Bind(wx.EVT_BUTTON, self.toggle_call_microphone)
+        self.voice_call_window_promote_button.Bind(wx.EVT_BUTTON, self.promote_call_to_video)
         self.voice_call_window_video_button.Bind(wx.EVT_BUTTON, self.toggle_call_video)
         # The label gets a row of its own. Sharing one fixed-width row with four
         # buttons, "Video call: <name>." pushed the last button -- "turn video
@@ -2883,6 +2890,7 @@ class MainWindow(wx.Frame):
         controls.Add(self.voice_call_window_end_button, 0, wx.ALL, 8)
         controls.Add(self.voice_call_window_settings_button, 0, wx.ALL, 8)
         controls.Add(self.voice_call_window_mute_button, 0, wx.ALL, 8)
+        controls.Add(self.voice_call_window_promote_button, 0, wx.ALL, 8)
         controls.Add(self.voice_call_window_video_button, 0, wx.ALL, 8)
         call_sizer.Add(controls, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
         call_panel.SetSizer(call_sizer)
@@ -2898,17 +2906,20 @@ class MainWindow(wx.Frame):
         self.ID_CALL_MUTE     = wx.NewIdRef()  # mute/unmute mic     (Ctrl+M)
         self.ID_CALL_SETTINGS = wx.NewIdRef()  # call settings       (Ctrl+C)
         self.ID_CALL_VIDEO    = wx.NewIdRef()  # toggle video        (Ctrl+V)
+        self.ID_CALL_PROMOTE  = wx.NewIdRef()  # voice -> video      (Ctrl+P)
         call_accel_tbl = wx.AcceleratorTable([
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("Q"), self.ID_CALL_END),
             (wx.ACCEL_CTRL,                  ord("M"), self.ID_CALL_MUTE),
             (wx.ACCEL_CTRL,                  ord("C"), self.ID_CALL_SETTINGS),
             (wx.ACCEL_CTRL,                  ord("V"), self.ID_CALL_VIDEO),
+            (wx.ACCEL_CTRL,                  ord("P"), self.ID_CALL_PROMOTE),
         ])
         self.voice_call_window.SetAcceleratorTable(call_accel_tbl)
         self.voice_call_window.Bind(wx.EVT_MENU, self.end_active_call,          id=self.ID_CALL_END)
         self.voice_call_window.Bind(wx.EVT_MENU, self.toggle_call_microphone,   id=self.ID_CALL_MUTE)
         self.voice_call_window.Bind(wx.EVT_MENU, self._open_active_call_settings, id=self.ID_CALL_SETTINGS)
         self.voice_call_window.Bind(wx.EVT_MENU, self.toggle_call_video,        id=self.ID_CALL_VIDEO)
+        self.voice_call_window.Bind(wx.EVT_MENU, self.promote_call_to_video,    id=self.ID_CALL_PROMOTE)
         self.voice_call_window.Hide()
 
         self.main_panel = wx.Panel(self)
@@ -7319,6 +7330,10 @@ class MainWindow(wx.Frame):
         if attempt is not None:
             attempt["cancelled"] = True
 
+        # Read now, on the UI thread: by the time the worker runs, the grace
+        # teardown or a terminal event may already have cleared the record.
+        ended_call_id = str((getattr(self, "_active_voice_call", None) or {}).get("call_id") or "")
+
         def _worker():
             with self._call_action_lock:
                 try:
@@ -7336,6 +7351,131 @@ class MainWindow(wx.Frame):
                     )
                 finally:
                     self._stop_voice_call_audio(grace_seconds=1.25)
+            # A failed or ignored `end` must not leave the page holding the call
+            # the user was just told is over.
+            self._ensure_page_call_ended(ended_call_id, delay=2.5)
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _ensure_page_call_ended(self, call_id: str, *, delay: float = 1.5):
+        """End *call_id* on the page if WinZapp declared it over and it is not.
+
+        WinZapp announcing "call ended" while WhatsApp Web still holds the call
+        is the worst failure a blind user can meet: the other person keeps
+        talking out of the speaker, and the call window -- the only way to hang
+        up -- is gone. Scoped on the Node side to this exact call id and to a
+        call that is still connected or dialling, so it can never end a newer
+        call. The delay lets an ordinary hang-up finish on its own first.
+        """
+        call_id = str(call_id or "")
+        if not call_id or call_id.startswith("outgoing:"):
+            return  # WinZapp's own placeholder, never WhatsApp's call id
+
+        def _worker():
+            time.sleep(delay)
+            if getattr(self, "_shutting_down", False):
+                return
+            with self._call_action_lock:
+                try:
+                    response = self._raise_for_call_response(
+                        self._post_call_control("ensure-ended", {"callId": call_id}),
+                        "ensure-ended",
+                    )
+                    body = response.json() if response is not None else {}
+                    result = (body or {}).get("response") or {}
+                    if result.get("stillLive"):
+                        # Never quietly: this is the defect's signature.
+                        logging.warning(
+                            "[call] page still held a call WinZapp had ended; ended it now"
+                        )
+                except Exception:
+                    logging.exception("[call] ensure-ended failed")
+
+        threading.Thread(target=_worker, daemon=True, name="call-ensure-ended").start()
+
+    def _on_call_upgraded_to_video(self):
+        """The ongoing voice call became a video call without ending.
+
+        The call window is re-opened as the video call window -- hidden and
+        shown again, so the screen reader announces the new title and focus
+        lands on its controls exactly as when a video call starts -- and the
+        camera is probed so "turn video on" appears. The camera is NOT turned
+        on: when the other person upgrades, WhatsApp leaves this side's camera
+        off until the user turns it on. An upgrade the user asked for
+        (promote_call_to_video) starts its own camera.
+        """
+        self.output(self.i18n.t("voice_call_upgraded_to_video"), interrupt=True)
+        window = getattr(self, "voice_call_window", None)
+        if window is not None:
+            window.Hide()
+            self._sync_voice_call_bar()
+        if getattr(self, "_call_camera_capture", None) is not None:
+            return  # promote_call_to_video() already has the camera running
+        if getattr(self, "_call_upgrade_pending", False):
+            return  # ... or is opening it right now
+
+        def _probe_camera():
+            try:
+                self._start_call_camera(announce_failure=False, transmit=False)
+                self._stop_call_camera()
+            except Exception:
+                logging.exception("[call_video] camera probe after upgrade failed")
+
+        threading.Thread(target=_probe_camera, daemon=True).start()
+
+    def _mark_call_upgraded_to_video(self, expected_call):
+        active = getattr(self, "_active_voice_call", None)
+        if active is None or active is not expected_call or active.get("is_video"):
+            return
+        active["is_video"] = True
+        self._sync_voice_call_bar()
+        self._on_call_upgraded_to_video()
+
+    def promote_call_to_video(self, _event=None):
+        """Ctrl+P: turn the ongoing voice call into a video call."""
+        active = getattr(self, "_active_voice_call", None)
+        if not active or active.get("is_video"):
+            return
+        if getattr(self, "_call_upgrade_pending", False):
+            return
+        self._call_upgrade_pending = True
+        expected_call = active
+
+        def _worker():
+            try:
+                with self._call_action_lock:
+                    try:
+                        self._raise_for_call_response(
+                            self._post_call_control("upgrade-video", {}, timeout=20),
+                            "upgrade-video",
+                        )
+                    except Exception as exc:
+                        logging.exception("[call] upgrade to video failed")
+                        wx.CallAfter(
+                            self.output,
+                            self.i18n.t("voice_call_upgrade_failed").format(
+                                error=self._call_error_text(exc)
+                            ),
+                            True,
+                        )
+                        return
+                if getattr(self, "_active_voice_call", None) is not expected_call:
+                    return  # the call ended while WhatsApp was switching it
+                # Switch the window now rather than waiting for the page's
+                # isVideo event; when that arrives the call is already video
+                # and nothing is announced twice.
+                wx.CallAfter(self._mark_call_upgraded_to_video, expected_call)
+                # Outside the lock, like every camera start (it blocks for
+                # seconds and hang-up takes the same lock).
+                if self._start_call_camera():
+                    resume = getattr(getattr(self, "ws", None), "send_call_camera_start", None)
+                    if resume is not None:
+                        try:
+                            resume()
+                        except Exception:
+                            logging.exception("[call_video] failed to resume page-side camera")
+            finally:
+                self._call_upgrade_pending = False
 
         threading.Thread(target=_worker, daemon=True).start()
 
@@ -7689,6 +7829,10 @@ class MainWindow(wx.Frame):
         active_text = self.i18n.t(active_call_label_key(active)).format(name=name)
         is_video = bool(active.get("is_video"))
         self.call_video_image.Show(is_video)
+        promote_button = getattr(self, "voice_call_window_promote_button", None)
+        if promote_button is not None:
+            promote_button.SetLabel(self.i18n.t("voice_call_promote_video_button"))
+            promote_button.Show(not is_video)
 
         # Local-camera controls are independent from remote video reception.
         # Until camera probing succeeds the button stays hidden; on a PC with
@@ -7783,6 +7927,11 @@ class MainWindow(wx.Frame):
             return
         if call_id:
             active["call_id"] = call_id
+        # A voice call the other person (or this user, Ctrl+P) upgraded to
+        # video: WhatsApp keeps the same call and id and only flips isVideo.
+        # Deliberately one-way -- isVideo also drops back to false when both
+        # cameras are off, and that is still a video call to the user.
+        upgraded_to_video = bool(event.get("isVideo")) and not active.get("is_video")
         if event.get("isVideo"):
             active["is_video"] = True
         if peer_jid:
@@ -7796,11 +7945,10 @@ class MainWindow(wx.Frame):
             "HANDLED_REMOTELY", "REMOTE_CALL_IN_PROGRESS",
         }
         if state in terminal_states or event.get("event") in {"ended", "timeout"}:
-            self._stop_voice_call_audio(grace_seconds=1.25)
-            self.output(self.i18n.t("voice_call_ended"), interrupt=True)
-            self._watch_ended_call_log(
-                call_id, active.get("peer_jid") or peer_jid, bool(active.get("outgoing")))
+            self._confirm_call_ended(active, call_id, peer_jid)
             return
+        if upgraded_to_video:
+            self._on_call_upgraded_to_video()
         if state == "REJOINING":
             if self._voice_call_last_announced_state != "REJOINING":
                 self._voice_call_last_announced_state = "REJOINING"
@@ -7816,6 +7964,64 @@ class MainWindow(wx.Frame):
                     daemon=True,
                 ).start()
             self.output(self.i18n.t("voice_call_connected"), interrupt=True)
+
+    def _confirm_call_ended(self, active: dict, call_id: str, peer_jid: str):
+        """Ask the page whether the call is really over before saying so.
+
+        A terminal event is not proof on its own: when the other person
+        switched a voice call to video, WinZapp received one while the call
+        went on (same id, still ACTIVE on the page), announced "call ended",
+        closed the window and left the user inside a live call. So the page is
+        asked about THAT call id first. Only a clear "still connected, and
+        the engine agrees" keeps the call; no answer at all ends it, because
+        a call wrongly kept up can still be hung up from the window, while a
+        live call wrongly declared over cannot.
+        """
+        call_id = str(call_id or active.get("call_id") or "")
+        pending = self.__dict__.setdefault("_call_end_checks", set())
+        if call_id in pending:
+            return
+        pending.add(call_id)
+
+        def _worker():
+            status = None
+            try:
+                if call_id and not call_id.startswith("outgoing:"):
+                    response = self._post_call_control("status", {"callId": call_id}, timeout=5)
+                    if response.status_code < 400:
+                        status = (response.json() or {}).get("response") or None
+            except Exception:
+                logging.info("[call] could not confirm the end with the page", exc_info=True)
+            wx.CallAfter(self._apply_confirmed_call_end, active, call_id, peer_jid, status)
+
+        threading.Thread(target=_worker, daemon=True, name="call-end-confirm").start()
+
+    def _apply_confirmed_call_end(self, active: dict, call_id: str, peer_jid: str, status):
+        getattr(self, "_call_end_checks", set()).discard(call_id)
+        if getattr(self, "_active_voice_call", None) is not active:
+            return  # already ended (the user hung up) or replaced meanwhile
+        if isinstance(status, dict) and status.get("live") is True:
+            logging.warning(
+                "[call] ignored a terminal event: the page still holds this call "
+                "live (state=%s engine=%s video=%s)",
+                status.get("state"), status.get("engine"), bool(status.get("isVideo")),
+            )
+            if status.get("isVideo") and not active.get("is_video"):
+                active["is_video"] = True
+                self._sync_voice_call_bar()
+                self._on_call_upgraded_to_video()
+            return
+        self._end_active_call_locally(active, call_id, peer_jid)
+
+    def _end_active_call_locally(self, active: dict, call_id: str, peer_jid: str):
+        self._stop_voice_call_audio(grace_seconds=1.25)
+        self.output(self.i18n.t("voice_call_ended"), interrupt=True)
+        self._watch_ended_call_log(
+            call_id, active.get("peer_jid") or peer_jid, bool(active.get("outgoing")))
+        # The user has just been told the call is over. If the page still
+        # holds it live, end it there too -- otherwise they are left in a call
+        # with nothing on screen to hang up with.
+        self._ensure_page_call_ended(call_id or active.get("call_id") or "")
 
     def _attach_audio_to_browser_call(self, details: dict):
         """Attach Python-owned audio/video when the page handled the answer."""

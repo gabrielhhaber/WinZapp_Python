@@ -190,7 +190,7 @@ function ensureLinuxCallAudio(
 
 function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const win = window as any;
-  if (win.__winzappCallMediaBridge?.version === 9) return true;
+  if (win.__winzappCallMediaBridge?.version === 10) return true;
   if (!navigator.mediaDevices?.getUserMedia || !win.RTCPeerConnection) return false;
 
   const AudioContextCtor = win.AudioContext || win.webkitAudioContext;
@@ -218,7 +218,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const MIC_WORKLET_WATCHDOG_MS = 1500;
 
   const state: any = {
-    version: 9,
+    version: 10,
     enabled: false,
     context: null,
     micDestination: null,
@@ -421,8 +421,26 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const lastCallWasAnswered = (): boolean =>
     answeredPageCallKey !== null && answeredPageCallKey === lastPageCallKey;
 
+  // An element playing a MediaStream is the call itself (WhatsApp's native
+  // playback of the other person), never the call-ended chime, which is an
+  // ordinary audio file. It must stay silent no matter what: the chime window
+  // below used to unmute it too, and WhatsApp keeps these elements OUT of the
+  // DOM, where the 250 ms scan never reaches them again. So a terminal event
+  // for a call the page had not actually ended -- a voice call the other
+  // person upgraded to video -- left the other person playing straight out of
+  // the user's default speaker for the rest of the call, with WinZapp saying
+  // the call was over and no window left to hang up from.
+  const isLiveStreamElement = (el: HTMLMediaElement): boolean => {
+    try {
+      return el.srcObject instanceof MediaStream;
+    } catch (_) {
+      return false;
+    }
+  };
+
   const restorePageAudio = (el: HTMLMediaElement) => {
     try {
+      if (isLiveStreamElement(el)) return;
       const original = pageAudioState.get(el);
       if (!original) return;
       el.muted = original.muted;

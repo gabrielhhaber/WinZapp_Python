@@ -2437,11 +2437,17 @@ export default class CreateSessionUtil {
               activeCallMissingSince = 0;
               if (engineEndProbe !== 'idle') resetEngineEndProbe();
               const state = callStateOf(activeCall);
+              // isVideo is part of the signature: a voice call upgraded to
+              // video keeps its CallModel, its id and its ACTIVE state --
+              // WhatsApp's handleVideoStateChange only flips isVideo on the
+              // same model (read from the bundle, 2026-09-26). Without it the
+              // upgrade never reached Python at all.
               const signature = [
                 callIdOf(activeCall),
                 state,
                 peerJidOf(activeCall),
                 activeCall?.outgoing ? '1' : '0',
+                activeCall?.isVideo || activeCall?.isVideoCall ? 'v' : 'a',
               ].join('|');
               if (signature !== lastActiveSignature) {
                 const activeId = callIdOf(activeCall);

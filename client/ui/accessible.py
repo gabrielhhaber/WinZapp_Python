@@ -220,6 +220,14 @@ class AccessibleCallMuteButton(wx.Accessible):
         return (wx.ACC_OK, "Ctrl+M")
 
 
+class AccessibleCallPromoteVideoButton(wx.Accessible):
+    """Reports Ctrl+P as the keyboard shortcut for the active-call window's
+    "switch to video" button, shown only while the call is voice."""
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, "Ctrl+P")
+
+
 class AccessibleCallSettingsButton(wx.Accessible):
     """Reports Ctrl+C as the keyboard shortcut for the active-call window's
     settings button."""
