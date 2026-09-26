@@ -13463,6 +13463,11 @@ class MainWindow(wx.Frame):
         if not was_unlocked:
             self.lock_chat_vault(silent=True, show_conversations=False)
         from ui.dialogs.settings_dialog import SettingsDialog
+        if was_unlocked:
+            # The frame's key hook never sees input while this modal is up, so
+            # the inactivity timer would lock the vault under the open tab and
+            # Apply would drop the vault edits without a word. Pause it here.
+            self._cancel_chat_lock_timeout()
         dlg = SettingsDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
@@ -13471,6 +13476,8 @@ class MainWindow(wx.Frame):
         # caller and must remain open.
         if not was_unlocked and getattr(self, "_chat_lock_unlocked", False):
             self.lock_chat_vault(silent=True, show_conversations=False)
+        elif was_unlocked:
+            self.touch_chat_lock_timeout()
 
     def _refresh_call_language_surfaces(self):
         """Re-translate call UI that can stay alive while Settings is open."""

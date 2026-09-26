@@ -176,7 +176,14 @@ class _OpenSettingsStub:
     def __init__(self, unlock_in_settings, initially_unlocked=False):
         self._chat_lock_unlocked = initially_unlocked
         self.lock_calls = []
+        self.timer_events = []
         self._unlock_in_settings = unlock_in_settings
+
+    def _cancel_chat_lock_timeout(self):
+        self.timer_events.append("cancel")
+
+    def touch_chat_lock_timeout(self):
+        self.timer_events.append("touch")
 
     def lock_chat_vault(self, *, silent=False, show_conversations=True):
         self.lock_calls.append((silent, show_conversations))
@@ -228,3 +235,18 @@ def test_open_settings_preserves_an_already_unlocked_vault(monkeypatch):
     )
     assert mw.lock_calls == []
     assert mw._chat_lock_unlocked is True
+
+
+def test_open_settings_pauses_the_timer_while_an_open_vault_is_in_settings(monkeypatch):
+    mw = _run_open_settings(
+        monkeypatch,
+        unlock_in_settings=False,
+        initially_unlocked=True,
+    )
+    # paused before the modal, re-armed once it closes
+    assert mw.timer_events == ["cancel", "touch"]
+
+
+def test_open_settings_leaves_the_timer_alone_for_a_locked_vault(monkeypatch):
+    mw = _run_open_settings(monkeypatch, unlock_in_settings=False)
+    assert mw.timer_events == []
