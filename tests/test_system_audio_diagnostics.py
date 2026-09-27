@@ -399,19 +399,23 @@ class TimeoutDiagnosticsTests(unittest.TestCase):
                 def factory():
                     if mode == 'startup':
                         entered.set()
-                        gate.wait(2)
+                        gate.wait()  # released by finally, never by elapsed time
                     return backend
                 original_read = backend.mic.read_packets
                 def read():
                     entered.set()
-                    gate.wait(2)
+                    gate.wait()  # released by finally, never by elapsed time
                     return original_read()
                 if mode != 'startup':
                     backend.mic.read_packets = read
                 diagnostic = CaptureDiagnostics(rate=8000, channels=1, path=path)
                 recorder = SystemAudioRecorder(lambda pcm: None, lambda exc: None,
                     rate=8000, backend_factory=factory, diagnostics=diagnostic,
-                    startup_timeout=.03, shutdown_timeout=.03)
+                    # Only the startup case tests a short opening deadline.
+                    # Opening includes diagnostic file I/O, which can take
+                    # longer than 30 ms on a loaded Windows CI runner.
+                    startup_timeout=.03 if mode == 'startup' else 5.,
+                    shutdown_timeout=.03)
                 try:
                     if mode == 'startup':
                         with self.assertRaises(TimeoutError):
@@ -438,6 +442,9 @@ class TimeoutDiagnosticsTests(unittest.TestCase):
                     self.assertFalse(diagnostic._closed)
                 finally:
                     gate.set()
+                    # Cleanup is not the timeout under test: allow the worker
+                    # to close its log before TemporaryDirectory removes it.
+                    recorder._shutdown_timeout = 5.
                     recorder.stop()
                 self.assertTrue(diagnostic._closed)
 

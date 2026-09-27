@@ -19,6 +19,14 @@ class _FakeWidget:
     def __init__(self):
         self.shown = False
         self.label = None
+        self.enabled = True
+        self.name = None
+
+    def Enable(self, enable=True):
+        self.enabled = bool(enable)
+
+    def SetName(self, name):
+        self.name = name
 
     def Show(self, show=True):
         self.shown = bool(show)
@@ -62,10 +70,20 @@ class _FakeMainWindow:
 
 class _Stub:
     _hide_voice_panel = ConversationsPanel._hide_voice_panel
+    _update_system_audio_volume_controls = ConversationsPanel._update_system_audio_volume_controls
+    _relabel_system_audio_volume_controls = ConversationsPanel._relabel_system_audio_volume_controls
     _stop_recorded_audio_preview = ConversationsPanel._stop_recorded_audio_preview
     _cleanup_recorded_audio_temp_file = ConversationsPanel._cleanup_recorded_audio_temp_file
 
     def __init__(self, message_field_value=""):
+        self._recording_system_audio = False
+        self._system_audio_session = None
+        self._system_audio_volume_label = _FakeWidget()
+        self._system_audio_volume_slider = _FakeWidget()
+        self._nvda_volume_label = _FakeWidget()
+        self._nvda_volume_slider = _FakeWidget()
+        self._pause_resume_btn = _FakeWidget()
+        self._send_voice_btn = _FakeWidget()
         self._voice_panel           = _FakeWidget()
         self.message_field          = _FakeTextCtrl(message_field_value)
         self.send_message_btn       = _FakeWidget()
@@ -82,6 +100,21 @@ class _Stub:
 
 
 class TestHideVoicePanelRestoresMessageField:
+    def test_mixed_recording_volume_controls_are_hidden_and_disabled(self):
+        stub = _Stub()
+        stub._recording_system_audio = True
+        controls = (stub._system_audio_volume_label, stub._system_audio_volume_slider,
+                    stub._nvda_volume_label, stub._nvda_volume_slider)
+        for control in controls:
+            control.Show()
+
+        stub._hide_voice_panel()
+
+        assert all(not control.shown for control in controls)
+        assert stub._system_audio_volume_slider.enabled is False
+        assert stub._nvda_volume_slider.enabled is False
+        assert stub._recording_system_audio is False
+
     def test_message_field_is_shown_again(self):
         stub = _Stub()
         stub.message_field.Hide()
