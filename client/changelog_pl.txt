@@ -70,6 +70,8 @@ ULEPSZENIA
 
 - Gdy nie można rozpocząć połączenia, bo używana wersja WhatsApp Web nie obsługuje połączeń, WinZapp teraz o tym informuje i podpowiada, co zrobić (uruchomić WinZappa ponownie albo wybrać "Wymuś ponowną instalację WPPConnect" w menu Pomoc), zamiast odczytywać kod błędu.
 
+- Instalator jest teraz znacznie mniejszy do pobrania: pliki WinZapp w jego wnętrzu są skompresowane, tak jak wcześniej w przenośnym pliku ZIP, a podczas instalacji instalator sprawdza każdy plik.
+
 POPRAWKI
 
 - Program odinstalowujący używa teraz języka wyświetlania systemu Windows, tak jak instalator, zamiast zawsze pojawiać się po portugalsku. Obsługuje portugalski i hiszpański, a w każdym innym języku pokazuje angielski.

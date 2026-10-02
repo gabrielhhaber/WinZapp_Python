@@ -70,6 +70,8 @@ MELHORIAS
 
 - Quando uma chamada não pode ser iniciada porque a versão do WhatsApp Web em uso não suporta chamadas, o WinZapp passa a dizê-lo e o que tentar (reiniciar o WinZapp ou escolher "Forçar reinstalação da WPPConnect" no menu Ajuda), em vez de ler um código de erro.
 
+- O instalador é agora muito mais pequeno para descarregar: os ficheiros do WinZapp que leva dentro estão comprimidos, como já estavam no ZIP portátil, e o instalador verifica cada ficheiro durante a instalação.
+
 CORREÇÕES
 
 - O desinstalador passa a seguir o idioma de apresentação do Windows, como o instalador, em vez de aparecer sempre em português. Fala português e espanhol, e mostra inglês em qualquer outro idioma.

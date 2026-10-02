@@ -70,6 +70,8 @@ IMPROVEMENTS
 
 - When a call cannot start because the WhatsApp Web version in use does not support calls, WinZapp now says so and what to try (restart WinZapp, or choose "Force reinstall WPPConnect" in the Help menu) instead of reading out an error code.
 
+- The installer is now much smaller to download: WinZapp's files inside it are compressed, as they already were in the portable ZIP, and the installer checks each file while installing.
+
 FIXES
 
 - The uninstaller now follows the Windows display language like the installer does, instead of always appearing in Portuguese. It speaks Portuguese and Spanish, and shows English for any other language.

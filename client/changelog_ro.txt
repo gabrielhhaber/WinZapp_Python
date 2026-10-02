@@ -70,6 +70,8 @@ NOUTĂȚI
 
 - Când un apel nu poate începe pentru că versiunea WhatsApp Web folosită nu acceptă apeluri, WinZapp spune acum acest lucru și ce se poate încerca (repornirea WinZapp sau alegerea opțiunii „Forțați reinstalarea WPPConnect” din meniul Ajutor), în loc să citească un cod de eroare.
 
+- Programul de instalare se descarcă acum mult mai ușor: fișierele WinZapp din interiorul lui sunt comprimate, ca până acum în ZIP-ul portabil, iar programul de instalare verifică fiecare fișier în timpul instalării.
+
 CORECTĂRI
 
 - Programul de dezinstalare urmează acum limba de afișare a Windows, la fel ca programul de instalare, în loc să apară mereu în portugheză. Folosește portugheza și spaniola, iar în orice altă limbă afișează engleza.

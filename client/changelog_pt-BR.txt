@@ -70,6 +70,8 @@ MELHORIAS
 
 - Quando uma ligação não pode ser iniciada porque a versão do WhatsApp Web em uso não oferece suporte a ligações, o WinZapp agora diz isso e o que tentar (reiniciar o WinZapp ou escolher "Forçar reinstalação da WPPConnect" no menu Ajuda), em vez de ler um código de erro.
 
+- O instalador agora é muito menor para baixar: os arquivos do WinZapp que ele carrega estão compactados, como já estavam no ZIP portátil, e o instalador confere cada arquivo durante a instalação.
+
 CORREÇÕES
 
 - O desinstalador agora segue o idioma de exibição do Windows, como o instalador, em vez de aparecer sempre em português. Ele fala português e espanhol, e mostra inglês em qualquer outro idioma.

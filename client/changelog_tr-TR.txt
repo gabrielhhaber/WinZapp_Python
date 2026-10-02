@@ -70,6 +70,8 @@ YENİLİKLER
 
 - Kullanılan WhatsApp Web sürümü aramaları desteklemediği için bir arama başlatılamadığında WinZapp artık bunu ve ne denenebileceğini (WinZapp'ı yeniden başlatmak ya da Yardım menüsünden "WPPConnect'i yeniden yüklemeye zorla" seçeneğini seçmek) söylüyor; bir hata kodu okumuyor.
 
+- Kurulum programı artık indirmesi çok daha küçük: içindeki WinZapp dosyaları, taşınabilir ZIP'te olduğu gibi sıkıştırılmıştır ve kurulum programı kurulum sırasında her dosyayı denetler.
+
 DÜZELTMELER
 
 - Kaldırma programı artık her zaman Portekizce görünmek yerine, kurulum programı gibi Windows görüntüleme dilini izliyor. Portekizce ve İspanyolca konuşuyor, diğer tüm dillerde İngilizce gösteriyor.

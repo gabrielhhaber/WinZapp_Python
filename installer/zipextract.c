@@ -139,8 +139,14 @@ static BOOL find_zip_info(ZipxArchive *za, char *err, size_t cap)
     uint64_t cd_size = rd32(e + 12);
     uint64_t cd_off  = rd32(e + 16);
 
-    BOOL needs_zip64 = (entries == 0xFFFF) || (cd_off == 0xFFFFFFFFUL) ||
-                       (cd_size == 0xFFFFFFFFUL);
+    /* A locator right before the EOCD means a ZIP64 record sits between the
+     * central directory and the EOCD even when the classic fields hold real
+     * values: trusting those would put the end of the directory 76 bytes too
+     * late and shift every offset derived from it. */
+    BOOL has_locator = eocd_i >= ZIP64_LOC_SIZE &&
+                       rd32(buf + eocd_i - ZIP64_LOC_SIZE) == ZIP64_EOCD_LOC_SIG;
+    BOOL needs_zip64 = has_locator || (entries == 0xFFFF) ||
+                       (cd_off == 0xFFFFFFFFUL) || (cd_size == 0xFFFFFFFFUL);
     uint64_t end_of_cd_abs = eocd_abs;   /* where the CD must end */
 
     if (needs_zip64) {
@@ -381,7 +387,7 @@ int zipx_name_is_safe(const wchar_t *name)
     const wchar_t *seg = name;
     for (const wchar_t *p = name;; p++) {
         wchar_t c = *p;
-        if (c < 0x20 || c == L':' || c == L'*' || c == L'?' || c == L'"' ||
+        if ((c != L'\0' && c < 0x20) || c == L':' || c == L'*' || c == L'?' || c == L'"' ||
             c == L'<' || c == L'>' || c == L'|')
             return 0;
         if (c == L'\\' || c == L'\0') {
