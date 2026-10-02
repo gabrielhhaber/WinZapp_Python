@@ -72,7 +72,7 @@ YENİLİKLER
 
 - Kurulum programının indirme boyutu artık çok daha küçük: içindeki WinZapp dosyaları, taşınabilir ZIP'te olduğu gibi sıkıştırılmıştır ve kurulum programı kurulum sırasında her dosyayı denetler.
 
-- Kurulum programı ve kaldırma programı artık WinZapp'in sunulduğu tüm dillerde görünüyor: Brezilya Portekizcesi, Portekiz Portekizcesi, İspanyolca, Lehçe, Rumence, Türkçe ve İngilizce. Windows görüntüleme dilini izliyor, diğer tüm dillerde İngilizce gösteriyor.
+- Kurulum programı ve kaldırma programı artık WinZapp'in sunulduğu tüm dillerde görünüyor: Brezilya Portekizcesi, Avrupa Portekizcesi, İspanyolca, Lehçe, Rumence, Türkçe ve İngilizce. Windows görüntüleme dilini izliyor, diğer tüm dillerde İngilizce gösteriyor.
 
 DÜZELTMELER
 
