@@ -9,7 +9,7 @@ CAPTION "Uninstall WinZapp"
 FONT 9, "Segoe UI"
 BEGIN
     LTEXT           "Are you sure you want to uninstall WinZapp?",
-                    IDC_UNINSTALL_PROMPT, 7, 10, 216, 18
-    DEFPUSHBUTTON   "Uninstall", IDC_INSTALL, 114, 58, 55, 14
-    PUSHBUTTON      "Cancel",    IDC_CANCEL,  170, 58, 55, 14
+                    IDC_UNINSTALL_PROMPT, 7, 10, 216, 26
+    DEFPUSHBUTTON   "Uninstall", IDC_INSTALL, 88, 58, 66, 14
+    PUSHBUTTON      "Cancel",    IDC_CANCEL,  158, 58, 66, 14
 END

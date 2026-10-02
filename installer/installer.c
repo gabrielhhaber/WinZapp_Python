@@ -14,8 +14,10 @@
 #include "zipextract.h"
 
 /* ── Localised UI strings ─────────────────────────────────────────────────
-   The installer language follows the Windows display language:
-   Portuguese → pt-BR, Spanish → es-ES, anything else → en-US.            */
+   The installer language follows the Windows display language, through the
+   one rule in lang.h: the app's seven languages, en-US for anything else.
+   Every table has the same 14 fields in the same order, and every "%s" sits
+   in the same field in all of them.                                       */
 
 typedef struct {
     const wchar_t *title;          /* dialog caption                  */
@@ -34,7 +36,7 @@ typedef struct {
     const wchar_t *err_title;      /* error message-box title         */
 } UiStrings;
 
-static const UiStrings STR_PT = {
+static const UiStrings STR_PT_BR = {
     L"Instalador do WinZapp",
     L"Pasta de instalação:",
     L"Procurar...",
@@ -49,6 +51,74 @@ static const UiStrings STR_PT = {
     L"Instalação concluída",
     L"Ocorreu um erro durante a instalação:\n%s",
     L"Erro de instalação",
+};
+
+static const UiStrings STR_PT_PT = {
+    L"Instalador do WinZapp",
+    L"Pasta de instalação:",
+    L"Procurar...",
+    L"Criar atalho no ambiente de trabalho",
+    L"Criar atalho no menu Iniciar",
+    L"Instalar",
+    L"Cancelar",
+    L"Selecione a pasta de instalação",
+    L"Por favor, selecione uma pasta de instalação.",
+    L"A extração falhou.",
+    L"O WinZapp foi instalado com sucesso!",
+    L"Instalação concluída",
+    L"Ocorreu um erro durante a instalação:\n%s",
+    L"Erro de instalação",
+};
+
+static const UiStrings STR_PL = {
+    L"Instalator WinZapp",
+    L"Folder instalacji:",
+    L"Przeglądaj...",
+    L"Utwórz skrót na pulpicie",
+    L"Utwórz skrót w menu Start",
+    L"Zainstaluj",
+    L"Anuluj",
+    L"Wybierz folder instalacji",
+    L"Wybierz folder instalacji.",
+    L"Rozpakowywanie nie powiodło się.",
+    L"WinZapp został pomyślnie zainstalowany!",
+    L"Instalacja ukończona",
+    L"Podczas instalacji wystąpił błąd:\n%s",
+    L"Błąd instalacji",
+};
+
+static const UiStrings STR_RO = {
+    L"Program de instalare WinZapp",
+    L"Folderul de instalare:",
+    L"Răsfoiește...",
+    L"Creați o comandă rapidă pe desktop",
+    L"Creați o comandă rapidă în meniul Start",
+    L"Instalează",
+    L"Anulează",
+    L"Selectați folderul de instalare",
+    L"Selectați un folder de instalare.",
+    L"Extragerea a eșuat.",
+    L"WinZapp a fost instalat cu succes!",
+    L"Instalare finalizată",
+    L"A apărut o eroare în timpul instalării:\n%s",
+    L"Eroare de instalare",
+};
+
+static const UiStrings STR_TR = {
+    L"WinZapp Kurulum Programı",
+    L"Kurulum klasörü:",
+    L"Gözat...",
+    L"Masaüstü kısayolu oluştur",
+    L"Başlat menüsü kısayolu oluştur",
+    L"Kur",
+    L"İptal",
+    L"Kurulum klasörünü seçin",
+    L"Lütfen bir kurulum klasörü seçin.",
+    L"Dosyalar ayıklanamadı.",
+    L"WinZapp başarıyla kuruldu!",
+    L"Kurulum tamamlandı",
+    L"Kurulum sırasında bir hata oluştu:\n%s",
+    L"Kurulum hatası",
 };
 
 static const UiStrings STR_ES = {
@@ -90,9 +160,13 @@ static const UiStrings *g_str = &STR_EN;
 static void select_language(void)
 {
     switch (winzapp_ui_lang()) {
-    case WINZAPP_LANG_PT: g_str = &STR_PT; break;
-    case WINZAPP_LANG_ES: g_str = &STR_ES; break;
-    default:              g_str = &STR_EN; break;
+    case WINZAPP_LANG_PT_BR: g_str = &STR_PT_BR; break;
+    case WINZAPP_LANG_PT_PT: g_str = &STR_PT_PT; break;
+    case WINZAPP_LANG_ES:    g_str = &STR_ES;    break;
+    case WINZAPP_LANG_PL:    g_str = &STR_PL;    break;
+    case WINZAPP_LANG_RO:    g_str = &STR_RO;    break;
+    case WINZAPP_LANG_TR:    g_str = &STR_TR;    break;
+    default:                 g_str = &STR_EN;    break;
     }
 }
 

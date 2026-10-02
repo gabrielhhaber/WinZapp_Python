@@ -5,19 +5,19 @@ CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "installer.manifest"
 
 IDD_INSTALL DIALOGEX 0, 0, 310, 145
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Instalador do WinZapp"
+CAPTION "WinZapp Installer"
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "Pasta de instalação:", IDC_PATH_LABEL, 7, 7, 120, 9
+    LTEXT           "Installation folder:", IDC_PATH_LABEL, 7, 7, 120, 9
     EDITTEXT        IDC_INSTALL_PATH, 7, 18, 220, 13, ES_AUTOHSCROLL
-    PUSHBUTTON      "Procurar...", IDC_BROWSE, 233, 17, 70, 14
-    AUTOCHECKBOX    "Criar atalho na área de trabalho", IDC_DESKTOP_SC,
-                    7, 40, 200, 10, WS_TABSTOP
-    AUTOCHECKBOX    "Criar atalho no menu Iniciar", IDC_STARTMENU_SC,
-                    7, 55, 200, 10, WS_TABSTOP
+    PUSHBUTTON      "Browse...", IDC_BROWSE, 233, 17, 70, 14
+    AUTOCHECKBOX    "Create desktop shortcut", IDC_DESKTOP_SC,
+                    7, 40, 296, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Create Start menu shortcut", IDC_STARTMENU_SC,
+                    7, 55, 296, 10, WS_TABSTOP
     LTEXT           "", IDC_STATUS, 7, 75, 296, 9
     CONTROL         "", IDC_PROGRESS, "msctls_progress32", PBS_SMOOTH,
                     7, 88, 296, 13
-    DEFPUSHBUTTON   "Instalar", IDC_INSTALL, 193, 110, 55, 14
-    PUSHBUTTON      "Cancelar", IDC_CANCEL,  254, 110, 55, 14
+    DEFPUSHBUTTON   "Install", IDC_INSTALL, 193, 110, 55, 14
+    PUSHBUTTON      "Cancel", IDC_CANCEL,  254, 110, 55, 14
 END

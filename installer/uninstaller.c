@@ -14,9 +14,9 @@
     L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\WinZapp"
 
 /* ── Localised UI strings ─────────────────────────────────────────────────
-   Same language rule as the installer (lang.h): Portuguese → pt-BR,
-   Spanish → es-ES, anything else → en-US. Wide strings only — nothing
-   localised ever reaches the temporary .bat, see schedule_self_delete().  */
+   Same language rule as the installer (lang.h): the app's seven languages,
+   en-US for anything else. Wide strings only — nothing localised ever
+   reaches the temporary .bat, see schedule_self_delete().                 */
 
 typedef struct {
     const wchar_t *title;          /* dialog caption                  */
@@ -28,7 +28,7 @@ typedef struct {
     const wchar_t *done_title;     /* success message-box title       */
 } UninstallStrings;
 
-static const UninstallStrings STR_PT = {
+static const UninstallStrings STR_PT_BR = {
     L"Desinstalar WinZapp",
     L"Tem certeza que deseja desinstalar o WinZapp?",
     L"Desinstalar",
@@ -37,6 +37,50 @@ static const UninstallStrings STR_PT = {
     L"O programa pode já ter sido desinstalado.",
     L"WinZapp foi desinstalado com sucesso.",
     L"Desinstalação concluída",
+};
+
+static const UninstallStrings STR_PT_PT = {
+    L"Desinstalar o WinZapp",
+    L"Tem a certeza de que pretende desinstalar o WinZapp?",
+    L"Desinstalar",
+    L"Cancelar",
+    L"Não foi possível encontrar a pasta de instalação do WinZapp.\n"
+    L"O programa pode já ter sido desinstalado.",
+    L"O WinZapp foi desinstalado com sucesso.",
+    L"Desinstalação concluída",
+};
+
+static const UninstallStrings STR_PL = {
+    L"Odinstaluj WinZapp",
+    L"Czy na pewno chcesz odinstalować WinZapp?",
+    L"Odinstaluj",
+    L"Anuluj",
+    L"Nie można znaleźć folderu instalacji WinZapp.\n"
+    L"Program mógł zostać już odinstalowany.",
+    L"WinZapp został pomyślnie odinstalowany.",
+    L"Odinstalowywanie ukończone",
+};
+
+static const UninstallStrings STR_RO = {
+    L"Dezinstalare WinZapp",
+    L"Sigur doriți să dezinstalați WinZapp?",
+    L"Dezinstalează",
+    L"Anulează",
+    L"Folderul de instalare WinZapp nu a fost găsit.\n"
+    L"Este posibil ca programul să fi fost deja dezinstalat.",
+    L"WinZapp a fost dezinstalat cu succes.",
+    L"Dezinstalare finalizată",
+};
+
+static const UninstallStrings STR_TR = {
+    L"WinZapp'i Kaldır",
+    L"WinZapp'i kaldırmak istediğinizden emin misiniz?",
+    L"Kaldır",
+    L"İptal",
+    L"WinZapp kurulum klasörü bulunamadı.\n"
+    L"Program zaten kaldırılmış olabilir.",
+    L"WinZapp başarıyla kaldırıldı.",
+    L"Kaldırma tamamlandı",
 };
 
 static const UninstallStrings STR_ES = {
@@ -66,9 +110,13 @@ static const UninstallStrings *g_str = &STR_EN;
 static void select_language(void)
 {
     switch (winzapp_ui_lang()) {
-    case WINZAPP_LANG_PT: g_str = &STR_PT; break;
-    case WINZAPP_LANG_ES: g_str = &STR_ES; break;
-    default:              g_str = &STR_EN; break;
+    case WINZAPP_LANG_PT_BR: g_str = &STR_PT_BR; break;
+    case WINZAPP_LANG_PT_PT: g_str = &STR_PT_PT; break;
+    case WINZAPP_LANG_ES:    g_str = &STR_ES;    break;
+    case WINZAPP_LANG_PL:    g_str = &STR_PL;    break;
+    case WINZAPP_LANG_RO:    g_str = &STR_RO;    break;
+    case WINZAPP_LANG_TR:    g_str = &STR_TR;    break;
+    default:                 g_str = &STR_EN;    break;
     }
 }
 

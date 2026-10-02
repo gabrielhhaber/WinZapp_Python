@@ -72,9 +72,11 @@ IMPROVEMENTS
 
 - The installer is now much smaller to download: WinZapp's files inside it are compressed, as they already were in the portable ZIP, and the installer checks each file while installing.
 
+- The installer and the uninstaller now appear in every language WinZapp is available in: Brazilian Portuguese, European Portuguese, Spanish, Polish, Romanian, Turkish and English. They follow the Windows display language and show English for any other.
+
 FIXES
 
-- The uninstaller now follows the Windows display language like the installer does, instead of always appearing in Portuguese. It speaks Portuguese and Spanish, and shows English for any other language.
+- The uninstaller now follows the Windows display language like the installer does, instead of always appearing in Portuguese.
 
 - Forwarding messages no longer fails on recent WhatsApp Web versions, where every forward was refused with the error “forwardMessages function is not available”.
 

@@ -72,9 +72,11 @@ ULEPSZENIA
 
 - Instalator jest teraz znacznie mniejszy do pobrania: pliki WinZapp w jego wnętrzu są skompresowane, tak jak wcześniej w przenośnym pliku ZIP, a podczas instalacji instalator sprawdza każdy plik.
 
+- Instalator i program odinstalowujący pojawiają się teraz we wszystkich językach, w których dostępny jest WinZapp: portugalskim brazylijskim, portugalskim europejskim, hiszpańskim, polskim, rumuńskim, tureckim i angielskim. Używają języka wyświetlania systemu Windows, a w każdym innym języku pokazują angielski.
+
 POPRAWKI
 
-- Program odinstalowujący używa teraz języka wyświetlania systemu Windows, tak jak instalator, zamiast zawsze pojawiać się po portugalsku. Obsługuje portugalski i hiszpański, a w każdym innym języku pokazuje angielski.
+- Program odinstalowujący używa teraz języka wyświetlania systemu Windows, tak jak instalator, zamiast zawsze pojawiać się po portugalsku.
 
 - Przekazywanie wiadomości nie kończy się już błędem w najnowszych wersjach WhatsApp Web, w których każde przekazanie było odrzucane z komunikatem “forwardMessages function is not available”.
 

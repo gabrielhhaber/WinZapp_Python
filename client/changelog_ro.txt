@@ -72,9 +72,11 @@ NOUTĂȚI
 
 - Programul de instalare se descarcă acum mult mai ușor: fișierele WinZapp din interiorul lui sunt comprimate, ca până acum în ZIP-ul portabil, iar programul de instalare verifică fiecare fișier în timpul instalării.
 
+- Programul de instalare și programul de dezinstalare apar acum în toate limbile în care este disponibil WinZapp: portugheza (Brazilia), portugheza (Portugalia), spaniola, poloneza, româna, turca și engleza. Urmează limba de afișare a Windows, iar în orice altă limbă afișează engleza.
+
 CORECTĂRI
 
-- Programul de dezinstalare urmează acum limba de afișare a Windows, la fel ca programul de instalare, în loc să apară mereu în portugheză. Folosește portugheza și spaniola, iar în orice altă limbă afișează engleza.
+- Programul de dezinstalare urmează acum limba de afișare a Windows, la fel ca programul de instalare, în loc să apară mereu în portugheză.
 
 - Redirecționarea mesajelor nu mai eșuează pe versiunile recente de WhatsApp Web, unde orice redirecționare era refuzată cu eroarea “forwardMessages function is not available”.
 
