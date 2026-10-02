@@ -72,6 +72,8 @@ ULEPSZENIA
 
 POPRAWKI
 
+- Program odinstalowujący używa teraz języka wyświetlania systemu Windows, tak jak instalator, zamiast zawsze pojawiać się po portugalsku. Obsługuje portugalski i hiszpański, a w każdym innym języku pokazuje angielski.
+
 - Przekazywanie wiadomości nie kończy się już błędem w najnowszych wersjach WhatsApp Web, w których każde przekazanie było odrzucane z komunikatem “forwardMessages function is not available”.
 
 - Po rozpoczęciu nagrywania wiadomości głosowej przy wyciszonych komunikatach czytnik ekranu nie zaczyna już wypowiadać „Wyślij”, zanim zostanie przerwany. WinZapp nie wykonuje teraz automatycznego przeniesienia fokusu, które powodowało ten urwany komunikat, a skróty Ctrl+R, Ctrl+Shift+P i Ctrl+Shift+D nadal działają.

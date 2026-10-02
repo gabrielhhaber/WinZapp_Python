@@ -72,6 +72,8 @@ YENİLİKLER
 
 DÜZELTMELER
 
+- Kaldırma programı artık her zaman Portekizce görünmek yerine, kurulum programı gibi Windows görüntüleme dilini izliyor. Portekizce ve İspanyolca konuşuyor, diğer tüm dillerde İngilizce gösteriyor.
+
 - Mesajları iletme, her iletimin “forwardMessages function is not available” hatasıyla reddedildiği son WhatsApp Web sürümlerinde artık başarısız olmuyor.
 
 - Sesli mesaj kayıt anonsları susturulduğunda, kayıt başlatılırken ekran okuyucunun sözü kesilmeden önce "Gönder" düğmesini seslendirmesi sorunu giderildi. WinZapp artık anonsun yarıda kesilmesine (kırpılmasına) yol açan otomatik odak hareketini önlerken Ctrl+R, Ctrl+Shift+P ve Ctrl+Shift+D kısayollarını kullanılabilir durumda tutar.

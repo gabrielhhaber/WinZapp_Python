@@ -72,6 +72,8 @@ IMPROVEMENTS
 
 FIXES
 
+- The uninstaller now follows the Windows display language like the installer does, instead of always appearing in Portuguese. It speaks Portuguese and Spanish, and shows English for any other language.
+
 - Forwarding messages no longer fails on recent WhatsApp Web versions, where every forward was refused with the error “forwardMessages function is not available”.
 
 - Starting a voice message with recording announcements silenced no longer lets the screen reader begin saying “Send” before being cut off. WinZapp now avoids the automatic focus move that caused the clipped announcement while keeping Ctrl+R, Ctrl+Shift+P and Ctrl+Shift+D available.

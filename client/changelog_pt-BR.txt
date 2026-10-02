@@ -72,6 +72,8 @@ MELHORIAS
 
 CORREÇÕES
 
+- O desinstalador agora segue o idioma de exibição do Windows, como o instalador, em vez de aparecer sempre em português. Ele fala português e espanhol, e mostra inglês em qualquer outro idioma.
+
 - Encaminhar mensagens não falha mais nas versões recentes do WhatsApp Web, em que todo encaminhamento era recusado com o erro “forwardMessages function is not available”.
 
 - Ao iniciar uma mensagem de voz com os anúncios da gravação silenciados, o leitor de tela não começa mais a dizer “Enviar” antes de ser interrompido. O WinZapp agora evita a mudança automática de foco que causava esse fragmento, mantendo Ctrl+R, Ctrl+Shift+P e Ctrl+Shift+D disponíveis.

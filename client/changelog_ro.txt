@@ -72,6 +72,8 @@ NOUTĂȚI
 
 CORECTĂRI
 
+- Programul de dezinstalare urmează acum limba de afișare a Windows, la fel ca programul de instalare, în loc să apară mereu în portugheză. Folosește portugheza și spaniola, iar în orice altă limbă afișează engleza.
+
 - Redirecționarea mesajelor nu mai eșuează pe versiunile recente de WhatsApp Web, unde orice redirecționare era refuzată cu eroarea “forwardMessages function is not available”.
 
 - Când porneați un mesaj vocal cu anunțurile înregistrării dezactivate, cititorul de ecran nu mai începe să spună „Trimiteți” înainte de a fi întrerupt. WinZapp evită acum mutarea automată a focalizării care provoca acest fragment, păstrând disponibile Ctrl+R, Ctrl+Shift+P și Ctrl+Shift+D.
