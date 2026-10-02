@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "resource.h"
+#include "lang.h"
 
 /* ── ZIP structures (no compression — ZIP_STORED only) ───────────────── */
 
@@ -187,9 +188,9 @@ static const UiStrings *g_str = &STR_EN;
 
 static void select_language(void)
 {
-    switch (PRIMARYLANGID(GetUserDefaultUILanguage())) {
-    case LANG_PORTUGUESE: g_str = &STR_PT; break;
-    case LANG_SPANISH:    g_str = &STR_ES; break;
+    switch (winzapp_ui_lang()) {
+    case WINZAPP_LANG_PT: g_str = &STR_PT; break;
+    case WINZAPP_LANG_ES: g_str = &STR_ES; break;
     default:              g_str = &STR_EN; break;
     }
 }
