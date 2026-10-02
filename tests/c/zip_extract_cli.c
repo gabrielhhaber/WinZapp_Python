@@ -1,7 +1,9 @@
 /* Console harness around installer/zipextract.c, built and run by
  * tests/test_installer_zip_extract.py. Never creates a window.
  *
- *   zip_extract_cli <archive> <dest_dir> [--cancel-after BYTES]
+ *   zip_extract_cli <archive> <dest_dir> [--cancel-after BYTES] [--skip-space-check]
+ *   zip_extract_cli --normalize <path>        prints NORMALIZED <path>
+ *   zip_extract_cli --space-ok <free> <need>  prints SPACE_OK or ERROR <reason>
  *
  * stdout (one line each): OPEN entries=N total=T, FILE <path> per extracted
  * file, then exactly one of DONE bytes=B peak_kb=K / CANCELLED bytes=B /
@@ -34,9 +36,29 @@ static void on_file(void *user, const wchar_t *path)
 
 int wmain(int argc, wchar_t **argv)
 {
+    if (argc >= 3 && wcscmp(argv[1], L"--normalize") == 0) {
+        wchar_t out[1024];
+        zipx_normalize_dir(argv[2], out, 1024);
+        wprintf(L"NORMALIZED %ls\n", out);
+        return 0;
+    }
+    if (argc >= 4 && wcscmp(argv[1], L"--space-ok") == 0) {
+        char e[256] = "";
+        if (zipx_space_ok((uint64_t)_wtoi64(argv[2]), (uint64_t)_wtoi64(argv[3]), e, sizeof(e))) {
+            printf("SPACE_OK\n");
+            return 0;
+        }
+        printf("ERROR %s\n", e);
+        return 2;
+    }
     if (argc < 3) { fprintf(stderr, "usage: zip_extract_cli archive dest\n"); return 1; }
-    if (argc >= 5 && wcscmp(argv[3], L"--cancel-after") == 0)
-        g_cancel_after = (uint64_t)_wtoi64(argv[4]);
+    unsigned flags = 0;
+    for (int i = 3; i < argc; i++) {
+        if (wcscmp(argv[i], L"--cancel-after") == 0 && i + 1 < argc)
+            g_cancel_after = (uint64_t)_wtoi64(argv[++i]);
+        else if (wcscmp(argv[i], L"--skip-space-check") == 0)
+            flags |= ZIPX_SKIP_SPACE_CHECK;
+    }
 
     char err[256] = "";
     ZipxArchive *za = zipx_open(argv[1], err, sizeof(err));
@@ -46,7 +68,7 @@ int wmain(int argc, wchar_t **argv)
            (unsigned long long)zipx_total_bytes(za));
 
     int rc = zipx_extract_all(za, argv[2], on_progress, on_file, NULL, &g_cancel,
-                              err, sizeof(err));
+                              flags, err, sizeof(err));
     zipx_close(za);
 
     PROCESS_MEMORY_COUNTERS pmc = {0};

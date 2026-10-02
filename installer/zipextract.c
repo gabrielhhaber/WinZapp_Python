@@ -96,6 +96,72 @@ static BOOL read_at(HANDLE hf, uint64_t offset, void *buf, DWORD len)
     return ReadFile(hf, buf, len, &did, NULL) && did == len;
 }
 
+/* Tries the EOCD candidate at buf[eocd_i] (classic, or the ZIP64 record its
+ * locator points back to). A candidate is only accepted when the central
+ * directory it describes really starts where the record says: a stray
+ * "PK\5\6" in trailing data (an appended signature blob) describes nothing
+ * and the search goes on to the previous one. */
+static BOOL try_eocd(ZipxArchive *za, const uint8_t *buf, uint64_t scan_start,
+                     int64_t eocd_i)
+{
+    uint64_t eocd_abs = scan_start + (uint64_t)eocd_i;
+    const uint8_t *e = buf + eocd_i;
+    uint64_t entries = rd16(e + 10);
+    uint64_t cd_size = rd32(e + 12);
+    uint64_t cd_off  = rd32(e + 16);
+
+    /* A locator right before the EOCD means a ZIP64 record sits between the
+     * central directory and the EOCD even when the classic fields hold real
+     * values: trusting those would put the end of the directory 76 bytes too
+     * late and shift every offset derived from it. */
+    BOOL has_locator = eocd_i >= ZIP64_LOC_SIZE &&
+                       rd32(buf + eocd_i - ZIP64_LOC_SIZE) == ZIP64_EOCD_LOC_SIG;
+    BOOL needs_zip64 = has_locator || (entries == 0xFFFF) ||
+                       (cd_off == 0xFFFFFFFFUL) || (cd_size == 0xFFFFFFFFUL);
+    uint64_t end_of_cd_abs = eocd_abs;   /* where the CD must end */
+
+    if (needs_zip64) {
+        /* ZIP64 end of central directory locator: a fixed 20 bytes, always
+         * immediately before the classic EOCD record — a spec-mandated
+         * position, not something to search for. */
+        int64_t locator_i = eocd_i - ZIP64_LOC_SIZE;
+        if (locator_i < 0 || rd32(buf + locator_i) != ZIP64_EOCD_LOC_SIG)
+            return FALSE;
+        /* The ZIP64 record itself precedes the locator. Its declared size
+         * can vary (an optional extensible data sector may follow the fixed
+         * fields), so its start is found by scanning for the signature
+         * rather than assuming the fixed 56-byte minimum. */
+        int64_t z64_i = -1;
+        int64_t earliest = locator_i - ZIP64_EOCD_SIZE - 65536;
+        if (earliest < 0) earliest = 0;
+        for (int64_t i = locator_i - ZIP64_EOCD_SIZE; i >= earliest; i--) {
+            if (rd32(buf + i) == ZIP64_EOCD_SIG) { z64_i = i; break; }
+        }
+        if (z64_i < 0) return FALSE;
+        const uint8_t *z = buf + z64_i;
+        entries = rd64(z + 32);
+        cd_size = rd64(z + 40);
+        cd_off  = rd64(z + 48);
+        end_of_cd_abs = scan_start + (uint64_t)z64_i;
+    }
+
+    if (entries == 0 || entries > ZIPX_MAX_ENTRIES || cd_size > ZIPX_MAX_CD_BYTES)
+        return FALSE;
+    if (cd_size > end_of_cd_abs || cd_off > end_of_cd_abs - cd_size)
+        return FALSE;
+    uint64_t zip_start = end_of_cd_abs - cd_size - cd_off;
+
+    uint8_t sig[4];
+    if (!read_at(za->hf, zip_start + cd_off, sig, 4) || rd32(sig) != ZIP_CD_SIG)
+        return FALSE;
+
+    za->zip_start = zip_start;
+    za->cd_off    = cd_off;
+    za->entries   = entries;
+    za->cd_len    = (size_t)cd_size;
+    return TRUE;
+}
+
 /* Locates the central directory from the classic EOCD or its ZIP64
  * counterpart. */
 static BOOL find_zip_info(ZipxArchive *za, char *err, size_t cap)
@@ -120,82 +186,16 @@ static BOOL find_zip_info(ZipxArchive *za, char *err, size_t cap)
     /* The payload may be followed by data the installer did not write (an
      * Authenticode signature appended after signing), so the EOCD is searched
      * for backwards instead of being expected at the very end. */
-    int64_t eocd_i = -1;
-    for (int64_t i = (int64_t)(scan_size - ZIP_EOCD_SIZE); i >= 0; i--) {
+    BOOL found = FALSE;
+    for (int64_t i = (int64_t)(scan_size - ZIP_EOCD_SIZE); i >= 0 && !found; i--) {
         if (rd32(buf + i) == ZIP_EOCD_SIG &&
-            (uint64_t)i + ZIP_EOCD_SIZE + rd16(buf + i + 20) <= scan_size) {
-            eocd_i = i;
-            break;
-        }
-    }
-    if (eocd_i < 0) {
-        free(buf);
-        set_err(err, cap, "end of central directory not found (truncated payload)");
-        return FALSE;
-    }
-    uint64_t eocd_abs = scan_start + (uint64_t)eocd_i;
-    const uint8_t *e = buf + eocd_i;
-    uint64_t entries = rd16(e + 10);
-    uint64_t cd_size = rd32(e + 12);
-    uint64_t cd_off  = rd32(e + 16);
-
-    /* A locator right before the EOCD means a ZIP64 record sits between the
-     * central directory and the EOCD even when the classic fields hold real
-     * values: trusting those would put the end of the directory 76 bytes too
-     * late and shift every offset derived from it. */
-    BOOL has_locator = eocd_i >= ZIP64_LOC_SIZE &&
-                       rd32(buf + eocd_i - ZIP64_LOC_SIZE) == ZIP64_EOCD_LOC_SIG;
-    BOOL needs_zip64 = has_locator || (entries == 0xFFFF) ||
-                       (cd_off == 0xFFFFFFFFUL) || (cd_size == 0xFFFFFFFFUL);
-    uint64_t end_of_cd_abs = eocd_abs;   /* where the CD must end */
-
-    if (needs_zip64) {
-        /* ZIP64 end of central directory locator: a fixed 20 bytes, always
-         * immediately before the classic EOCD record — a spec-mandated
-         * position, not something to search for. */
-        int64_t locator_i = eocd_i - ZIP64_LOC_SIZE;
-        if (locator_i < 0 || rd32(buf + locator_i) != ZIP64_EOCD_LOC_SIG) {
-            free(buf);
-            set_err(err, cap, "zip64 end of central directory locator missing");
-            return FALSE;
-        }
-        /* The ZIP64 record itself precedes the locator. Its declared size
-         * can vary (an optional extensible data sector may follow the fixed
-         * fields), so its start is found by scanning for the signature
-         * rather than assuming the fixed 56-byte minimum. */
-        int64_t z64_i = -1;
-        int64_t earliest = locator_i - ZIP64_EOCD_SIZE - 65536;
-        if (earliest < 0) earliest = 0;
-        for (int64_t i = locator_i - ZIP64_EOCD_SIZE; i >= earliest; i--) {
-            if (rd32(buf + i) == ZIP64_EOCD_SIG) { z64_i = i; break; }
-        }
-        if (z64_i < 0) {
-            free(buf);
-            set_err(err, cap, "zip64 end of central directory record not found");
-            return FALSE;
-        }
-        const uint8_t *z = buf + z64_i;
-        entries = rd64(z + 32);
-        cd_size = rd64(z + 40);
-        cd_off  = rd64(z + 48);
-        end_of_cd_abs = scan_start + (uint64_t)z64_i;
+            (uint64_t)i + ZIP_EOCD_SIZE + rd16(buf + i + 20) <= scan_size)
+            found = try_eocd(za, buf, scan_start, i);
     }
     free(buf);
-
-    if (cd_size + cd_off > end_of_cd_abs) {
-        set_err(err, cap, "central directory does not fit the file (truncated payload)");
-        return FALSE;
-    }
-    if (entries > ZIPX_MAX_ENTRIES || cd_size > ZIPX_MAX_CD_BYTES) {
-        set_err(err, cap, "implausible central directory (%llu entries, %llu bytes)",
-                (unsigned long long)entries, (unsigned long long)cd_size);
-        return FALSE;
-    }
-    za->zip_start = end_of_cd_abs - cd_size - cd_off;
-    za->cd_off    = cd_off;
-    za->entries   = entries;
-    za->cd_len    = (size_t)cd_size;
-    return TRUE;
+    if (!found)
+        set_err(err, cap, "no valid end of central directory record (truncated or corrupt payload)");
+    return found;
 }
 
 /* One central-directory entry, already resolved to 64-bit sizes. */
@@ -317,6 +317,14 @@ ZipxArchive *zipx_open(const wchar_t *path, char *err, size_t err_cap)
         }
         if (!name_is_dir(&ent)) za->total_bytes += ent.uncomp_size;
     }
+    /* The declared count and the directory must agree: an EOCD claiming 1 of
+     * 2 entries would otherwise extract half the payload and report success. */
+    if (pos != za->cd_len) {
+        set_err(err, err_cap, "central directory holds more entries than the %llu declared",
+                (unsigned long long)za->entries);
+        zipx_close(za);
+        return NULL;
+    }
     return za;
 }
 
@@ -373,6 +381,25 @@ static void ensure_dirs(const wchar_t *path)
     }
 }
 
+/* DOS device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9), with or without an
+ * extension, in any case: creating "nul.txt" would not make a file. */
+static BOOL is_reserved_device(const wchar_t *seg, size_t n)
+{
+    wchar_t base[8];
+    size_t len = 0;
+    while (len < n && seg[len] != L'.') len++;
+    while (len > 0 && seg[len - 1] == L' ') len--;
+    if (len != 3 && len != 4) return FALSE;
+    for (size_t i = 0; i < len; i++)
+        base[i] = (seg[i] >= L'a' && seg[i] <= L'z') ? (wchar_t)(seg[i] - 32) : seg[i];
+    base[len] = L'\0';
+    if (len == 3)
+        return !wcscmp(base, L"CON") || !wcscmp(base, L"PRN") ||
+               !wcscmp(base, L"AUX") || !wcscmp(base, L"NUL");
+    return (!wcsncmp(base, L"COM", 3) || !wcsncmp(base, L"LPT", 3)) &&
+           base[3] >= L'1' && base[3] <= L'9';
+}
+
 /* Reject an entry name that could resolve outside dest_dir once joined to
  * it. Mirrors updater.py's _safe_extract_zip(), which guards the same thing
  * on the self-update path. Defence in depth: build.py (the only source this
@@ -393,7 +420,11 @@ int zipx_name_is_safe(const wchar_t *name)
         if (c == L'\\' || c == L'\0') {
             size_t n = (size_t)(p - seg);
             if (n == 0) return 0;                                  /* "a\\b" */
-            if (n == 2 && seg[0] == L'.' && seg[1] == L'.') return 0;
+            if (n == 1 && seg[0] == L'.') return 0;
+            /* Win32 strips a trailing dot or space, so "x." and "x " name
+             * "x", and ".." / ". " would walk or alias. */
+            if (seg[n - 1] == L'.' || seg[n - 1] == L' ') return 0;
+            if (is_reserved_device(seg, n)) return 0;
             if (c == L'\0') break;
             seg = p + 1;
         }
@@ -415,6 +446,70 @@ typedef struct {
 } Ctx;
 
 static BOOL cancelled(const Ctx *c) { return c->cancel && *c->cancel; }
+
+void zipx_normalize_dir(const wchar_t *in, wchar_t *out, size_t out_cap)
+{
+    size_t n = 0;
+    for (; in[n] && n + 1 < out_cap; n++)
+        out[n] = in[n] == L'/' ? L'\\' : in[n];
+    out[n] = L'\0';
+    while (n > 0 && out[n - 1] == L'\\') {
+        if (n == 3 && out[1] == L':') break;      /* keep the root "C:\" */
+        out[--n] = L'\0';
+    }
+}
+
+#define SPACE_MARGIN ((uint64_t)16 * 1024 * 1024)
+
+int zipx_space_ok(uint64_t free_bytes, uint64_t needed_bytes,
+                  char *err, size_t err_cap)
+{
+    uint64_t need = needed_bytes + SPACE_MARGIN;
+    if (free_bytes >= need) return 1;
+    set_err(err, err_cap, "not enough free disk space: need %llu MB (%llu MB free)",
+            (unsigned long long)((need + 1048575) >> 20),
+            (unsigned long long)(free_bytes >> 20));
+    return 0;
+}
+
+/* Fails when an existing component of path, from name_start on, is a
+ * junction or symlink (the final one included when check_final): writing
+ * through it would land outside the destination. The installer runs elevated
+ * into a folder an unprivileged process may have prepared. Components that do
+ * not exist yet are ours to create, so the walk stops at the first one.
+ * `verified` caches the last directory proven clean so a run of files in one
+ * folder costs no attribute calls. */
+static BOOL path_has_no_links(Ctx *c, wchar_t *path, size_t name_start,
+                              BOOL check_final, wchar_t *verified, wchar_t *scratch)
+{
+    size_t len = wcslen(path);
+    for (size_t p = name_start; p <= len; p++) {
+        if (path[p] != L'\\' && path[p] != L'\0') continue;
+        BOOL is_final = path[p] == L'\0';
+        if (is_final && !check_final) break;
+        wchar_t saved = path[p];
+        path[p] = L'\0';
+        BOOL cached = !is_final && wcsncmp(path, verified, p) == 0 &&
+                      (verified[p] == L'\\' || verified[p] == L'\0');
+        BOOL stop = FALSE, bad = FALSE;
+        if (!cached) {
+            to_extended_path(scratch, WZ_MAX_PATH, path);
+            DWORD a = GetFileAttributesW(scratch);
+            if (a == INVALID_FILE_ATTRIBUTES) stop = TRUE;
+            else if (a & FILE_ATTRIBUTE_REPARSE_POINT) bad = TRUE;
+        }
+        if (bad) {
+            char shown[128];
+            ascii_name(shown, sizeof(shown), path + name_start);
+            set_err(c->err, c->err_cap,
+                    "refusing to write through a link (reparse point): %s", shown);
+        }
+        path[p] = saved;
+        if (bad) return FALSE;
+        if (stop) break;
+    }
+    return TRUE;
+}
 
 /* Extracts one file entry into hout; returns ZIPX_OK / ZIPX_CANCELLED /
  * ZIPX_ERROR. The caller deletes the partial file on anything but OK. */
@@ -550,7 +645,8 @@ static int extract_data(Ctx *c, const CdEntry *ent, const wchar_t *name,
 
 int zipx_extract_all(ZipxArchive *za, const wchar_t *dest_dir,
                      ZipxProgressFn progress, ZipxFileFn on_file, void *user,
-                     volatile const int *cancel, char *err, size_t err_cap)
+                     volatile const int *cancel, unsigned flags,
+                     char *err, size_t err_cap)
 {
     Ctx c;
     memset(&c, 0, sizeof(c));
@@ -561,10 +657,27 @@ int zipx_extract_all(ZipxArchive *za, const wchar_t *dest_dir,
     wchar_t *name_w = (wchar_t *)malloc(WZ_MAX_PATH * sizeof(wchar_t));
     wchar_t *dest_path = (wchar_t *)malloc(WZ_MAX_PATH * sizeof(wchar_t));
     wchar_t *dest_ext = (wchar_t *)malloc(WZ_MAX_PATH * sizeof(wchar_t));
+    wchar_t *dest_norm = (wchar_t *)malloc(WZ_MAX_PATH * sizeof(wchar_t));
+    wchar_t *scratch = (wchar_t *)malloc(WZ_MAX_PATH * sizeof(wchar_t));
+    wchar_t *verified = (wchar_t *)calloc(WZ_MAX_PATH, sizeof(wchar_t));
     int result = ZIPX_ERROR;
-    if (!c.inbuf || !c.outbuf || !name_w || !dest_path || !dest_ext) {
+    if (!c.inbuf || !c.outbuf || !name_w || !dest_path || !dest_ext ||
+        !dest_norm || !scratch || !verified) {
         set_err(err, err_cap, "out of memory");
         goto done;
+    }
+    zipx_normalize_dir(dest_dir, dest_norm, WZ_MAX_PATH);
+    dest_dir = dest_norm;
+    size_t dest_len = wcslen(dest_dir);
+    const wchar_t *sep = (dest_len && dest_dir[dest_len - 1] == L'\\') ? L"" : L"\\";
+    size_t name_start = dest_len + wcslen(sep);
+
+    if (!(flags & ZIPX_SKIP_SPACE_CHECK)) {
+        ULARGE_INTEGER avail;
+        /* A volume that cannot be queried is not a reason to refuse. */
+        if (GetDiskFreeSpaceExW(dest_dir, &avail, NULL, NULL) &&
+            !zipx_space_ok(avail.QuadPart, za->total_bytes, err, err_cap))
+            goto done;
     }
 
     size_t pos = 0;
@@ -590,35 +703,68 @@ int zipx_extract_all(ZipxArchive *za, const wchar_t *dest_dir,
             goto done;
         }
         name_w[n] = L'\0';
+        /* An embedded NUL would cut the name short and pass the checks below
+         * for a different, shorter name. */
+        BOOL has_nul = wmemchr(name_w, L'\0', (size_t)n) != NULL;
         for (wchar_t *pw = name_w; *pw; pw++)
             if (*pw == L'/') *pw = L'\\';
         if (is_dir) name_w[n - 1] = L'\0';   /* trailing separator */
 
-        if (!zipx_name_is_safe(name_w)) {
+        if (has_nul || !zipx_name_is_safe(name_w)) {
             char shown[128];
             ascii_name(shown, sizeof(shown), name_w);
             set_err(err, err_cap, "unsafe entry name rejected: %s", shown);
             goto done;
         }
-        if (wcslen(dest_dir) + 1 + (size_t)n + 2 >= WZ_MAX_PATH) {
+        if (dest_len + 1 + (size_t)n + 2 >= WZ_MAX_PATH) {
             set_err(err, err_cap, "destination path too long");
             goto done;
         }
-        _snwprintf(dest_path, WZ_MAX_PATH, L"%ls\\%ls", dest_dir, name_w);
+        _snwprintf(dest_path, WZ_MAX_PATH, L"%ls%ls%ls", dest_dir, sep, name_w);
         dest_path[WZ_MAX_PATH - 1] = L'\0';
+
+        if (!path_has_no_links(&c, dest_path, name_start, TRUE, verified, scratch))
+            goto done;
 
         if (is_dir) {
             wcscat(dest_path, L"\\");
             ensure_dirs(dest_path);
+            dest_path[wcslen(dest_path) - 1] = L'\0';
+            wcscpy(verified, dest_path);
             continue;
         }
 
         ensure_dirs(dest_path);
+        wcscpy(verified, dest_path);
+        *wcsrchr(verified, L'\\') = L'\0';
         to_extended_path(dest_ext, WZ_MAX_PATH, dest_path);
         if (progress) progress(user, name_w, 1, c.done, za->total_bytes);
 
-        HANDLE hout = CreateFileW(dest_ext, GENERIC_WRITE, 0, NULL,
-                                  CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        /* A new file is created with CREATE_NEW so a link planted after the
+         * check above cannot redirect the write; an existing real file (an
+         * upgrade) is opened without following a reparse point, inspected
+         * through the handle, then truncated in place. */
+        HANDLE hout;
+        if (GetFileAttributesW(dest_ext) == INVALID_FILE_ATTRIBUTES) {
+            hout = CreateFileW(dest_ext, GENERIC_WRITE, 0, NULL, CREATE_NEW,
+                               FILE_ATTRIBUTE_NORMAL, NULL);
+        } else {
+            hout = CreateFileW(dest_ext, GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
+                               FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
+            if (hout != INVALID_HANDLE_VALUE) {
+                BY_HANDLE_FILE_INFORMATION bi;
+                if (!GetFileInformationByHandle(hout, &bi) ||
+                    (bi.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY))) {
+                    char shown[128];
+                    CloseHandle(hout);
+                    ascii_name(shown, sizeof(shown), name_w);
+                    set_err(err, err_cap,
+                            "refusing to write through a link (reparse point): %s", shown);
+                    goto done;
+                }
+                SetEndOfFile(hout);   /* position is 0: truncate the old copy */
+            }
+        }
         if (hout == INVALID_HANDLE_VALUE) {
             char shown[128];
             ascii_name(shown, sizeof(shown), name_w);
@@ -645,5 +791,6 @@ int zipx_extract_all(ZipxArchive *za, const wchar_t *dest_dir,
 done:
     free(c.inbuf); free(c.outbuf);
     free(name_w); free(dest_path); free(dest_ext);
+    free(dest_norm); free(scratch); free(verified);
     return result;
 }

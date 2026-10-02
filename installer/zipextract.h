@@ -41,13 +41,31 @@ ZipxArchive *zipx_open(const wchar_t *path, char *err, size_t err_cap);
 uint64_t zipx_entry_count(const ZipxArchive *za);
 uint64_t zipx_total_bytes(const ZipxArchive *za);   /* uncompressed, files only */
 
-/* Extracts every entry under dest_dir (absolute path, created by the caller).
- * Stops at the first problem: ZIPX_ERROR (err filled; the entry being written
- * is deleted), or ZIPX_CANCELLED when *cancel becomes nonzero (cancel may be
- * NULL). progress and on_file may be NULL. */
+#define ZIPX_SKIP_SPACE_CHECK  0x1
+
+/* Extracts every entry under dest_dir (absolute path, created by the caller;
+ * '/' separators and trailing backslashes are tolerated). Stops at the first
+ * problem: ZIPX_ERROR (err filled; the entry being written is deleted), or
+ * ZIPX_CANCELLED when *cancel becomes nonzero (cancel may be NULL). progress
+ * and on_file may be NULL.
+ *
+ * Nothing is written through a junction or symlink found below dest_dir: an
+ * existing reparse point on an entry's path is an error, not followed. The
+ * free space of dest_dir's volume is checked against the uncompressed total
+ * first unless flags has ZIPX_SKIP_SPACE_CHECK. */
 int zipx_extract_all(ZipxArchive *za, const wchar_t *dest_dir,
                      ZipxProgressFn progress, ZipxFileFn on_file, void *user,
-                     volatile const int *cancel, char *err, size_t err_cap);
+                     volatile const int *cancel, unsigned flags,
+                     char *err, size_t err_cap);
+
+/* Backslash-separated, no trailing backslash (except a drive root "C:\").
+ * out may be the same buffer as in. */
+void zipx_normalize_dir(const wchar_t *in, wchar_t *out, size_t out_cap);
+
+/* Nonzero when free_bytes covers needed_bytes plus a small margin; otherwise
+ * fills err ("not enough free disk space: need N MB ..."). */
+int zipx_space_ok(uint64_t free_bytes, uint64_t needed_bytes,
+                  char *err, size_t err_cap);
 
 void zipx_close(ZipxArchive *za);
 

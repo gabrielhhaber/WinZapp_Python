@@ -106,6 +106,7 @@ static void select_language(void)
 
 static HWND  g_hDlg      = NULL;
 static volatile BOOL g_cancelled = FALSE;
+static HANDLE g_hThread  = NULL;   /* the install worker, while it runs */
 
 typedef struct {
     wchar_t  install_dir[MAX_PATH];
@@ -178,7 +179,7 @@ static BOOL extract_all(HWND hDlg, const wchar_t *dest_dir,
     }
 
     int rc = zipx_extract_all(za, dest_dir, on_extract_progress, on_extracted_file,
-                              &ui, &g_cancelled, err, err_cap);
+                              &ui, &g_cancelled, 0, err, err_cap);
     zipx_close(za);
 
     *out_files = ui.files;
@@ -294,6 +295,10 @@ static DWORD WINAPI install_thread(LPVOID param)
 {
     InstallParams *p = (InstallParams *)param;
 
+    /* A trailing backslash or forward slashes make SHCreateDirectoryEx fail
+     * (errors 123/3), and every path built from install_dir below would
+     * inherit the slip. */
+    zipx_normalize_dir(p->install_dir, p->install_dir, MAX_PATH);
     SHCreateDirectoryExW(NULL, p->install_dir, NULL);
 
     wchar_t **files    = NULL;
@@ -353,6 +358,28 @@ static DWORD WINAPI install_thread(LPVOID param)
 
     SendMessage(g_hDlg, WM_INSTALL_DONE, 0, 0);
     return 0;
+}
+
+/* Cancels the install and waits until the worker has stopped, so closing the
+ * window cannot end the process with a half-written file still open (the
+ * worker deletes it on cancel). The worker talks to this window with
+ * SendMessage, which blocks until the window's thread takes the message, so
+ * the wait has to keep serving sent messages or both sides would hang. */
+static void stop_worker(void)
+{
+    g_cancelled = TRUE;
+    if (!g_hThread) return;
+    DWORD deadline = GetTickCount() + 20000;
+    for (;;) {
+        DWORD left = deadline - GetTickCount();
+        if ((int)left <= 0) break;
+        DWORD r = MsgWaitForMultipleObjects(1, &g_hThread, FALSE, left, QS_SENDMESSAGE);
+        if (r != WAIT_OBJECT_0 + 1) break;   /* thread ended, or timeout */
+        MSG msg;
+        PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE | PM_QS_SENDMESSAGE);
+    }
+    CloseHandle(g_hThread);
+    g_hThread = NULL;
 }
 
 /* ── Dialog procedure ─────────────────────────────────────────────────── */
@@ -422,13 +449,12 @@ static INT_PTR CALLBACK DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPara
             params->desktop_sc   = IsDlgButtonChecked(hDlg, IDC_DESKTOP_SC)   == BST_CHECKED;
             params->startmenu_sc = IsDlgButtonChecked(hDlg, IDC_STARTMENU_SC) == BST_CHECKED;
 
-            HANDLE hThread = CreateThread(NULL, 0, install_thread, params, 0, NULL);
-            if (hThread) CloseHandle(hThread);
+            g_hThread = CreateThread(NULL, 0, install_thread, params, 0, NULL);
             return TRUE;
         }
 
         case IDC_CANCEL:
-            g_cancelled = TRUE;
+            stop_worker();
             EndDialog(hDlg, IDCANCEL);
             return TRUE;
         }
@@ -461,7 +487,7 @@ static INT_PTR CALLBACK DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPara
     }
 
     case WM_CLOSE:
-        g_cancelled = TRUE;
+        stop_worker();
         EndDialog(hDlg, IDCANCEL);
         return TRUE;
     }
