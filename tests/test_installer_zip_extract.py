@@ -413,6 +413,7 @@ def test_extractor_supports_deflate_with_zlib_and_checks_crc():
 
 def test_build_compresses_the_payload_and_links_zlib_statically():
     src = _read(ROOT / "build.py")
+    compile(src, "build.py", "exec")   # an edit that breaks the file fails here
     body = src[src.index("def create_payload_zip"):src.index("def compile_installer_stub")]
     assert "ZIP_DEFLATED" in body and "ZIP_STORED" not in body
     assert "ZIP_STORED" not in src

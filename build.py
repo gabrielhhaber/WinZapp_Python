@@ -569,12 +569,9 @@ def find_static_zlib(gcc=GCC_CMD):
 def check_static_zlib():
     if find_static_zlib() is None:
         print(
-            "
-[ERROR] libz.a (static zlib) was not found by gcc. The installer "
-            "inflates its compressed payload with it. In MSYS2 UCRT64 run:
-"
-            "    pacman -S mingw-w64-ucrt-x86_64-zlib
-"
+            "\n[ERROR] libz.a (static zlib) was not found by gcc. The installer "
+            "inflates its compressed payload with it. In MSYS2 UCRT64 run:\n"
+            "    pacman -S mingw-w64-ucrt-x86_64-zlib\n"
             "(it normally comes with mingw-w64-ucrt-x86_64-gcc), or use --onefile "
             "to build without the installer."
         )
