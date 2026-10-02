@@ -58,6 +58,11 @@ class MessageMenuMixin:
 
         menu = wx.Menu()
 
+        from core.image_description.config import eligible_photo
+        if eligible_photo(msg):
+            describe = menu.Append(wx.ID_ANY, f"{i18n.t('ai_describe_photo')}\tCtrl+Shift+Y")
+            self.Bind(wx.EVT_MENU, lambda e, m=msg: self._on_describe_photo(message=m), describe)
+
         if is_call and is_returnable_missed_call(
                 msg, str((self.conversation or {}).get("remoteJid") or "")):
             return_item = menu.Append(

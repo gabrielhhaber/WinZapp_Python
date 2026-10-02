@@ -1,3 +1,7 @@
+ÎNCĂ NEPUBLICAT
+
+- Descriere opțională a fotografiilor cu propria cheie API OpenAI sau Google Gemini. În lista de mesaje, Descrie fotografia sau Ctrl+Shift+Y deschide o fereastră accesibilă din tastatură pentru descriere și întrebări. Un sunet de așteptare configurabil se oprește înaintea citirii automate, care poate fi dezactivată. Întrebările și răspunsurile următoare au etichete clare. Cererile necesită acord și pot costa. Cheile sunt criptate local; istoricul rămâne în memorie și este eliminat la închiderea sesiunii. Fotografiile din conversații blocate necesită acord nou de fiecare dată. În Setări, Obține modelele preia o listă filtrată de modele compatibile fără a trimite o fotografie; alegerea este explicită, iar introducerea manuală avansată rămâne disponibilă. Descrierile urmează limba selectată a aplicației.
+
 V2.0.0.0
 
 Marea noutate a acestei versiuni sunt apelurile: acum puteți iniția, prelua și respinge apeluri vocale și video direct din WinZapp, fără să luați telefonul, cu o fereastră de apel accesibilă, comenzi rapide de la tastatură, setări audio proprii și istoricul în noua filă, Apeluri. Alte noutăți apărute: conversațiile blocate, căutarea în conversațiile arhivate, limbile turcă și română și mai multe îmbunătățiri de utilizare, precum și corecții pentru situațiile în care WinZapp cerea o nouă asociere fără să fie nevoie. În spate, codul programului a trecut printr-o reorganizare amplă: nu schimbă nimic în utilizare, dar face WinZapp mai ușor de întreținut și de corectat de acum înainte.

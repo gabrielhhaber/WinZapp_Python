@@ -1,3 +1,7 @@
+AINDA NÃO PUBLICADO
+
+- Descrição opcional de fotografias com a sua própria chave de API da OpenAI ou do Google Gemini. Na lista de mensagens, Descrever fotografia ou Ctrl+Shift+Y abre uma janela acessível pelo teclado para descrição e perguntas. Um som de espera configurável para antes da leitura automática, que pode ser desativada. As perguntas e respostas seguintes têm etiquetas claras. Os pedidos exigem consentimento e podem ter custos. As chaves são cifradas localmente; o histórico das respostas fica na memória e é descartado ao fechar a sessão. Fotografias de conversas trancadas exigem novo consentimento a cada vez. Nas Definições, Obter modelos obtém uma lista filtrada de modelos compatíveis sem enviar uma fotografia; a escolha é explícita e a introdução manual avançada continua disponível. As descrições seguem o idioma selecionado da aplicação.
+
 V2.0.0.0
 
 A grande novidade desta versão são as chamadas: agora é possível fazer, atender e recusar chamadas de voz e de vídeo no próprio WinZapp, sem pegar no telemóvel, com uma janela de chamada acessível, atalhos de teclado, definições de áudio próprias e o histórico no novo separador Chamadas. Chegaram também as conversas trancadas, a pesquisa nas conversas arquivadas, os idiomas turco e romeno e várias melhorias de utilização, além de correções em situações em que o WinZapp pedia para emparelhar de novo sem necessidade. Por baixo, o código do programa passou por uma grande reorganização: não muda nada na utilização, mas torna o WinZapp mais fácil de manter e de corrigir daqui para a frente.

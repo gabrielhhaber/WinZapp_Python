@@ -1409,6 +1409,12 @@ class SettingsDialog(wx.Dialog):
         else:
             self._chat_lock_page.Hide()
 
+        # Append: Connection's established index (4) and all other pages stay
+        # stable whether the optional hidden-vault page is present or not.
+        from ui.dialogs.image_description_settings import ImageDescriptionSettingsPage
+        self._image_description_page = ImageDescriptionSettingsPage(self._notebook, self.main_window)
+        self._notebook.AddPage(self._image_description_page, i18n.t("ai_title"))
+
         # ── Button row ───────────────────────────────────────────────────────
         btn_sizer = wx.StdDialogButtonSizer()
         self._ok_btn = wx.Button(self, wx.ID_OK, label=i18n.t("ok"))
@@ -2879,6 +2885,10 @@ class SettingsDialog(wx.Dialog):
         if not self._validate():
             return False
 
+        if not self._image_description_page.apply():
+            self._notebook.SetSelection(self._notebook.FindPage(self._image_description_page))
+            return False
+
         # Language
         old_lang = self.main_window.i18n.language
         sel = self._lang_combo.GetSelection()
@@ -3338,6 +3348,9 @@ class SettingsDialog(wx.Dialog):
 
     def _refresh_dialog_labels(self):
         """Update this dialog's own title and notebook tab captions after a language change."""
+        self._image_description_page.refresh_labels()
+        self._notebook.SetPageText(self._notebook.FindPage(self._image_description_page),
+                                   self.main_window.i18n.t("ai_title"))
         i18n = self.main_window.i18n
         self.SetTitle(i18n.t("settings_title"))
         self._notebook.SetPageText(0, i18n.t("tab_general"))

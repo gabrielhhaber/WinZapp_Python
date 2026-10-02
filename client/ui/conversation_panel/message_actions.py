@@ -540,6 +540,8 @@ class MessageActionsMixin:
         """
         if not msg_ids:
             return
+        if hasattr(self, "close_image_description"):
+            self.close_image_description(message_ids=msg_ids)
         # Stop playback before touching the list — a currently-playing audio
         # message may not even be in _sorted_messages any more (pagination
         # can scroll it out while it keeps playing in the background), so

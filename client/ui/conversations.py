@@ -138,6 +138,7 @@ from ui.conversation_panel.chat_menu import ChatMenuMixin
 from ui.conversation_panel.message_list import MessageListMixin
 from ui.conversation_panel.message_menu import MessageMenuMixin
 from ui.conversation_panel.media_files import MediaFilesMixin
+from ui.conversation_panel.image_description import ImageDescriptionMixin
 from ui.conversation_panel.links import LinksMixin
 from ui.conversation_panel.mentions import MentionsMixin
 from ui.conversation_panel.unread_separator import UnreadSeparatorMixin
@@ -173,6 +174,7 @@ class ConversationsPanel(
     MessageListMixin,
     MessageMenuMixin,
     MediaFilesMixin,
+    ImageDescriptionMixin,
     LinksMixin,
     MentionsMixin,
     UnreadSeparatorMixin,

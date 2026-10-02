@@ -1,3 +1,7 @@
+UNRELEASED
+
+- Optional photo description with your own OpenAI or Google Gemini API key. In the message list, Describe photo or Ctrl+Shift+Y opens a keyboard-accessible description and question window. A configurable waiting sound stops before automatic reading begins; automatic reading can be turned off. Follow-up questions and answers have clear labels. Requests need consent and may cost money. Keys are encrypted locally; answer history stays in memory and closes with the session. Locked-chat photos require fresh consent each time. In Settings, Get models retrieves a filtered list of compatible models without sending a photo; choosing a model is explicit, and advanced manual entry remains available. Descriptions follow the selected application language.
+
 V2.0.0.0
 
 The big news in this release is calls: you can now place, answer and reject voice and video calls from WinZapp itself, without picking up your phone, with an accessible call window, keyboard shortcuts, dedicated audio settings and your call history in the new Calls tab. Locked chats, search in archived chats, Turkish and Romanian and several usability improvements arrived too, along with fixes for situations where WinZapp asked you to pair again when it did not need to. Under the hood, the program's code went through a major reorganization: it changes nothing in how you use WinZapp, but it makes it easier to maintain and to fix from here on.

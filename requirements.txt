@@ -53,6 +53,7 @@ python-socketio==5.15.1
 pywin32==311
 pywin32-ctypes==0.2.3
 requests==2.32.5
+pillow==12.3.0
 setuptools==80.9.0
 simple-websocket==1.1.0
 sound-lib==0.83

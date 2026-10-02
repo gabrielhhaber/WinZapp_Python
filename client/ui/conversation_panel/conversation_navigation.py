@@ -241,6 +241,8 @@ class ConversationNavigationMixin:
         except Exception:
             logging.exception("[conversations] could not record the open (non-fatal)")
         self._stop_typing_for_current_conversation()
+        if hasattr(self, "close_image_description"):
+            self.close_image_description()
         self._cancel_active_recording()
         # Leaving the conversation invalidates any pending auto-chain timers —
         # they captured a target_msg from THIS conversation's list and would
@@ -510,6 +512,8 @@ class ConversationNavigationMixin:
             self._hide_mention_suggestions()
             self.message_field.SetFocus()
             return False, ""
+        if hasattr(self, "close_image_description"):
+            self.close_image_description()
         self._stop_typing_for_current_conversation()
         self._cancel_active_recording()
         self._hide_audio_controls()

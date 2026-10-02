@@ -1,3 +1,7 @@
+JESZCZE NIE WYDANO
+
+- Opcjonalne opisy zdjęć z własnym kluczem API OpenAI lub Google Gemini. Na liście wiadomości Opisz zdjęcie lub Ctrl+Shift+Y otwiera dostępne z klawiatury okno opisu i pytań. Konfigurowalny dźwięk oczekiwania kończy się przed automatycznym odczytem, który można wyłączyć. Kolejne pytania i odpowiedzi mają wyraźne etykiety. Żądania wymagają zgody i mogą być płatne. Klucze są szyfrowane lokalnie; historia odpowiedzi pozostaje w pamięci i jest usuwana po zamknięciu sesji. Zdjęcia z zablokowanych czatów wymagają każdorazowo nowej zgody. W ustawieniach Pobierz modele pobiera przefiltrowaną listę zgodnych modeli bez wysyłania zdjęcia; wybór jest jawny, a zaawansowane ręczne wpisywanie pozostaje dostępne. Opisy są tworzone w wybranym języku aplikacji.
+
 V2.0.0.0
 
 Najważniejszą nowością tej wersji są połączenia: połączenia głosowe i wideo można teraz nawiązywać, odbierać i odrzucać bezpośrednio w WinZapp, bez sięgania po telefon — z dostępnym oknem połączenia, skrótami klawiszowymi, własnymi ustawieniami dźwięku i historią w nowej karcie Połączenia. Doszły też zablokowane czaty, wyszukiwanie w zarchiwizowanych czatach, języki turecki i rumuński oraz kilka usprawnień w obsłudze, a także poprawki sytuacji, w których WinZapp niepotrzebnie prosił o ponowne parowanie. Pod spodem kod programu przeszedł dużą reorganizację: niczego nie zmienia w codziennym używaniu, ale sprawia, że WinZapp będzie łatwiej utrzymywać i naprawiać.

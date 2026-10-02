@@ -526,6 +526,8 @@ class ChatLockMixin:
         self._chat_lock_unlocked = False
         cp = getattr(self, "conversations_panel", None)
         panel = getattr(self, "locked_conversations_panel", None)
+        if cp is not None and hasattr(cp, "close_image_description"):
+            cp.close_image_description(locked_only=True)
         # Only a vault that closes under the user's eyes (the locked list on
         # screen, or a locked chat open in view) sends them to the main list;
         # a timeout firing in Status, Calls or the main list changes nothing.

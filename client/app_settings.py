@@ -32,6 +32,8 @@ _FILE = "app.json"
 # connection block is namespaced with its original keys.
 _DEFAULTS: dict[str, Any] = {
     "language": "",
+    # Only preferences and consent; credentials have a separate encrypted store.
+    "image_description": {},
     "updates_enabled": True,
     # Opt-in to the alpha channel (one build per commit landed on main, see
     # .github/workflows/alpha-release.yml). Global rather than per-account for
@@ -110,6 +112,15 @@ class AppSettings:
         with app_settings_lock(self.global_dir):
             data = self._read_unlocked()
             data[key] = value
+            self._write(data)
+
+    def update(self, key: str, transform) -> None:
+        """Atomic update for nested install-wide preferences across accounts."""
+        if key not in _DEFAULTS:
+            raise KeyError(f"{key!r} is not a global setting")
+        with app_settings_lock(self.global_dir):
+            data = self._read_unlocked()
+            data[key] = transform(data.get(key, _DEFAULTS[key]))
             self._write(data)
 
     def all(self) -> dict:

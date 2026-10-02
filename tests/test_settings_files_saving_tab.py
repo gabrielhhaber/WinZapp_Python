@@ -96,7 +96,7 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         assert dialog._notebook.FindPage(dialog._audio_page) == 10
         assert dialog._notebook.FindPage(dialog._calls_page) == 11
 
-    def test_the_profile_backup_tab_is_appended_last(self, make_dialog):
+    def test_the_profile_backup_tab_is_appended_after_calls(self, make_dialog):
         """Added after Calls so no earlier index moved; SetPageText(12) in
         _refresh_dialog_labels() relies on it being the thirteenth page."""
         dialog = make_dialog()
@@ -108,10 +108,11 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         assert dialog._notebook.FindPage(dialog._reactions_page) == 13
 
     def test_the_locked_chats_tab_is_appended_after_reactions(self, make_dialog):
-        """Rare vault policy stays last; SetPageText(14) relies on it."""
+        """Vault keeps index 14; photo settings append without moving it."""
         dialog = make_dialog()
         assert dialog._notebook.FindPage(dialog._chat_lock_page) == 14
-        assert dialog._notebook.GetPageCount() == 15
+        assert dialog._notebook.FindPage(dialog._image_description_page) == 15
+        assert dialog._notebook.GetPageCount() == 16
 
     def test_a_hidden_vault_leaves_the_locked_chats_tab_out(self, make_dialog):
         """A vault the user chose to hide must not be advertised by Settings."""
@@ -120,7 +121,9 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         vault.set_hide_navigation(True)
         dialog = make_dialog(vault=vault)
         assert dialog._notebook.FindPage(dialog._chat_lock_page) == -1
-        assert dialog._notebook.GetPageCount() == 14
+        assert dialog._notebook.FindPage(dialog._image_description_page) == 14
+        assert dialog._notebook.GetPageText(14) == dialog.main_window.i18n.t("ai_title")
+        assert dialog._notebook.GetPageCount() == 15
 
     def test_the_tabs_that_are_opened_by_number_did_not_move(self, make_dialog):
         """main.py's custom-API first-run flow does SetSelection(4), and this
@@ -141,6 +144,7 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         assert dialog._notebook.GetPageText(12) == i18n.t("tab_profile_backup")
         assert dialog._notebook.GetPageText(13) == i18n.t("tab_reactions")
         assert dialog._notebook.GetPageText(14) == i18n.t("locked_chats")
+        assert dialog._notebook.GetPageText(15) == i18n.t("ai_title")
 
 
 class TestLoadingTheCurrentSetting:

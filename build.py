@@ -709,6 +709,7 @@ def pyinstaller_compile():
         "libloader",
         "wx",
         "cryptography",
+        "PIL",
         "requests",
         "socketio",
         "engineio",

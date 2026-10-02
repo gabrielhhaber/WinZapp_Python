@@ -122,6 +122,7 @@ class AcceleratorsMixin:
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_unread_chats,   id=self.ID_BULK_UNREAD_CHATS)
 
     def create_accel_conversation(self):
+        self.ID_DESCRIBE_PHOTO = wx.NewIdRef()
         # ── Navigation / recording ──────────────────────────────────────────
         self.ID_CTRL_R          = wx.NewIdRef()  # record voice            (Ctrl+R)
         self.ID_CTRL_SHIFT_G    = wx.NewIdRef()  # record, other mode      (Ctrl+Shift+G)
@@ -228,6 +229,7 @@ class AcceleratorsMixin:
             self.main_window.i18n.t("messages"), "M")
 
         accel_tbl = wx.AcceleratorTable([
+            (CS,               ord("Y"),          self.ID_DESCRIBE_PHOTO),
             (wx.ACCEL_ALT,     ord(focus_field_letter), self.ID_ALT_FOCUS_FIELD),
             (wx.ACCEL_ALT,     ord(focus_list_letter),  self.ID_ALT_FOCUS_LIST),
             (wx.ACCEL_CTRL,    ord("R"),         self.ID_CTRL_R),
@@ -310,6 +312,7 @@ class AcceleratorsMixin:
         self.Bind(wx.EVT_MENU, self.on_add_attachment,             id=self.ID_CTRL_SHIFT_A)
         self.Bind(wx.EVT_MENU, self._on_action_save_as,            id=self.ID_CTRL_SHIFT_S)
         self.Bind(wx.EVT_MENU, self._on_accel_reply,               id=self.ID_ALT_R)
+        self.Bind(wx.EVT_MENU, self._on_describe_photo,            id=self.ID_DESCRIBE_PHOTO)
         self.Bind(wx.EVT_MENU, self._on_accel_message_data,        id=self.ID_ALT_SHIFT_D)
         self.Bind(wx.EVT_MENU, self._on_accel_forward,             id=self.ID_CTRL_SHIFT_E)
         self.Bind(wx.EVT_MENU, self._on_ctrl_shift_p,              id=self.ID_CTRL_SHIFT_P)

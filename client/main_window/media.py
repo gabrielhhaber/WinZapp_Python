@@ -302,7 +302,7 @@ class MediaMixin:
             pass
         return False
 
-    def handle_media_message(self, msg, progress_callback=None, timeout=60):
+    def handle_media_message(self, msg, progress_callback=None, timeout=60, *, max_bytes=None, cancel_check=None):
         """Download and encrypt a document/image/sticker/video to data/media/.
 
         Returns True only when this call actually wrote a new file — every
@@ -337,6 +337,7 @@ class MediaMixin:
         content = self.fetch_media_bytes(
             msg, progress_callback=progress_callback,
             timeout=media_fetch_timeout(msg, timeout),
+            **({"max_bytes": max_bytes, "cancel_check": cancel_check} if max_bytes is not None else {}),
         )
         if not content:
             return False
@@ -444,7 +445,7 @@ class MediaMixin:
         audio_content = base64.b64decode(base64_audio)
         return self.save_audio_locally(msg, audio_content)
 
-    def fetch_media_bytes(self, media, progress_callback=None, timeout=60):
+    def fetch_media_bytes(self, media, progress_callback=None, timeout=60, *, max_bytes=None, cancel_check=None):
         """The media file itself, as bytes — never as base64.
 
         Preferred over get_base64_from_media() by anything that just wants to
@@ -460,10 +461,11 @@ class MediaMixin:
         return self.get_base64_from_media(
             media, progress_callback=progress_callback, timeout=timeout,
             _binary=True,
+            **({"max_bytes": max_bytes, "cancel_check": cancel_check} if max_bytes is not None else {}),
         ) or b""
 
     def get_base64_from_media(self, media, progress_callback=None, timeout=60,
-                              _binary=False):
+                              _binary=False, max_bytes=None, cancel_check=None):
         """
         Fetch encrypted media from WPPConnect and return its base64 string.
 
@@ -559,6 +561,14 @@ class MediaMixin:
         # through @lid/@c.us rewriting on both sides, so matching on it would
         # mean re-deriving the same guess in two places.
         body_data["progressId"] = _key.get("id", "") or msg_id
+
+        if max_bytes is not None and _binary:
+            # Opt-in bounded path shares all the existing message/key/JID
+            # preparation, but never buffers an unlimited body or retries a
+            # cancelled photo operation. Ordinary media behaviour is unchanged.
+            from core.image_description.media_input import fetch_bounded_media
+            return fetch_bounded_media(url, headers, body_data, max_bytes, cancel_check,
+                                       timeout=min(timeout, 15), post=api_post)
 
         has_media_key = bool(body_data.get("mediaKey"))
         has_client_url = bool(body_data.get("clientUrl"))
