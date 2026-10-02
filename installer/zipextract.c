@@ -472,6 +472,65 @@ int zipx_space_ok(uint64_t free_bytes, uint64_t needed_bytes,
     return 0;
 }
 
+/* Which reparse points mean "this path leads somewhere else". Junctions and
+ * symlinks are refused. Cloud placeholders (OneDrive Files On-Demand and the
+ * other IO_REPARSE_TAG_CLOUD_* tags, 0x9000x01A), Windows Overlay Filter
+ * files (Compact OS, WOF) and dedup files carry the attribute too but are
+ * ordinary files that Windows reads and writes transparently, so an upgrade
+ * into a synced folder must not abort on them. App-execution aliases
+ * (APPEXECLINK, 0x8000001B) are link-like stubs, and any tag not listed is
+ * unknown: both are refused, failing closed. */
+int zipx_reparse_tag_is_refused(uint32_t tag)
+{
+    if (tag == 0xA0000003UL || tag == 0xA000000CUL) return 1;   /* mount point, symlink */
+    if ((tag & 0xFFFF0FFFUL) == 0x9000001AUL) return 0;         /* cloud files */
+    if (tag == 0x80000017UL) return 0;                          /* WOF */
+    if (tag == 0x80000013UL) return 0;                          /* dedup */
+    return 1;
+}
+
+static void set_link_err(Ctx *c, uint32_t tag, const wchar_t *name)
+{
+    char shown[128];
+    ascii_name(shown, sizeof(shown), name);
+    set_err(c->err, c->err_cap,
+            "refusing to write through a link (reparse point 0x%08lX): %s",
+            (unsigned long)tag, shown);
+}
+
+/* 1: exists and is fine, 0: does not exist, -1: refused or not inspectable
+ * (c->err set). Anything but "not found" is an error: treating an
+ * access-denied or odd failure as "absent" would let the walk skip a link. */
+static int inspect_component(Ctx *c, const wchar_t *ext, const wchar_t *shown)
+{
+    DWORD a = GetFileAttributesW(ext);
+    if (a == INVALID_FILE_ATTRIBUTES) {
+        DWORD e = GetLastError();
+        if (e == ERROR_FILE_NOT_FOUND || e == ERROR_PATH_NOT_FOUND) return 0;
+        char name[128];
+        ascii_name(name, sizeof(name), shown);
+        set_err(c->err, c->err_cap, "cannot inspect path (error %lu): %s", e, name);
+        return -1;
+    }
+    if (a & FILE_ATTRIBUTE_REPARSE_POINT) {
+        WIN32_FIND_DATAW fd;
+        HANDLE h = FindFirstFileW(ext, &fd);
+        if (h == INVALID_HANDLE_VALUE) {
+            char name[128];
+            ascii_name(name, sizeof(name), shown);
+            set_err(c->err, c->err_cap, "cannot read reparse tag (error %lu): %s",
+                    GetLastError(), name);
+            return -1;
+        }
+        FindClose(h);
+        if (zipx_reparse_tag_is_refused(fd.dwReserved0)) {
+            set_link_err(c, fd.dwReserved0, shown);
+            return -1;
+        }
+    }
+    return 1;
+}
+
 /* Fails when an existing component of path, from name_start on, is a
  * junction or symlink (the final one included when check_final): writing
  * through it would land outside the destination. The installer runs elevated
@@ -491,24 +550,48 @@ static BOOL path_has_no_links(Ctx *c, wchar_t *path, size_t name_start,
         path[p] = L'\0';
         BOOL cached = !is_final && wcsncmp(path, verified, p) == 0 &&
                       (verified[p] == L'\\' || verified[p] == L'\0');
-        BOOL stop = FALSE, bad = FALSE;
+        int state = 1;
         if (!cached) {
             to_extended_path(scratch, WZ_MAX_PATH, path);
-            DWORD a = GetFileAttributesW(scratch);
-            if (a == INVALID_FILE_ATTRIBUTES) stop = TRUE;
-            else if (a & FILE_ATTRIBUTE_REPARSE_POINT) bad = TRUE;
-        }
-        if (bad) {
-            char shown[128];
-            ascii_name(shown, sizeof(shown), path + name_start);
-            set_err(c->err, c->err_cap,
-                    "refusing to write through a link (reparse point): %s", shown);
+            state = inspect_component(c, scratch, path + name_start);
         }
         path[p] = saved;
-        if (bad) return FALSE;
-        if (stop) break;
+        if (state < 0) return FALSE;
+        if (state == 0) break;
     }
     return TRUE;
+}
+
+static int g_free_override_set = 0;
+static uint64_t g_free_override = 0;
+
+void zipx_set_free_space_override(int enable, uint64_t bytes)
+{
+    g_free_override_set = enable;
+    g_free_override = bytes;
+}
+
+int zipx_query_free_space(const wchar_t *dir, uint64_t *out)
+{
+    if (g_free_override_set) { *out = g_free_override; return 1; }
+    wchar_t buf[WZ_MAX_PATH];
+    wcsncpy(buf, dir, WZ_MAX_PATH - 1);
+    buf[WZ_MAX_PATH - 1] = L'\0';
+    for (;;) {
+        ULARGE_INTEGER avail;
+        if (GetDiskFreeSpaceExW(buf, &avail, NULL, NULL)) {
+            *out = avail.QuadPart;
+            return 1;
+        }
+        DWORD e = GetLastError();
+        if (e != ERROR_PATH_NOT_FOUND && e != ERROR_FILE_NOT_FOUND) return 0;
+        /* The folder is not there yet: ask about the nearest one that is. */
+        if (wcslen(buf) == 3 && buf[1] == L':') return 0;
+        wchar_t *s = wcsrchr(buf, L'\\');
+        if (!s || s == buf) return 0;
+        *s = L'\0';
+        if (wcslen(buf) == 2 && buf[1] == L':') { buf[2] = L'\\'; buf[3] = L'\0'; }
+    }
 }
 
 /* Extracts one file entry into hout; returns ZIPX_OK / ZIPX_CANCELLED /
@@ -673,10 +756,10 @@ int zipx_extract_all(ZipxArchive *za, const wchar_t *dest_dir,
     size_t name_start = dest_len + wcslen(sep);
 
     if (!(flags & ZIPX_SKIP_SPACE_CHECK)) {
-        ULARGE_INTEGER avail;
-        /* A volume that cannot be queried is not a reason to refuse. */
-        if (GetDiskFreeSpaceExW(dest_dir, &avail, NULL, NULL) &&
-            !zipx_space_ok(avail.QuadPart, za->total_bytes, err, err_cap))
+        uint64_t avail;
+        /* A volume the OS cannot answer for is not a reason to refuse. */
+        if (zipx_query_free_space(dest_dir, &avail) &&
+            !zipx_space_ok(avail, za->total_bytes, err, err_cap))
             goto done;
     }
 
@@ -745,24 +828,48 @@ int zipx_extract_all(ZipxArchive *za, const wchar_t *dest_dir,
          * upgrade) is opened without following a reparse point, inspected
          * through the handle, then truncated in place. */
         HANDLE hout;
-        if (GetFileAttributesW(dest_ext) == INVALID_FILE_ATTRIBUTES) {
+        DWORD fa = GetFileAttributesW(dest_ext);
+        if (fa == INVALID_FILE_ATTRIBUTES) {
+            DWORD e = GetLastError();
+            if (e != ERROR_FILE_NOT_FOUND && e != ERROR_PATH_NOT_FOUND) {
+                char shown[128];
+                ascii_name(shown, sizeof(shown), name_w);
+                set_err(err, err_cap, "cannot inspect path (error %lu): %s", e, shown);
+                goto done;
+            }
             hout = CreateFileW(dest_ext, GENERIC_WRITE, 0, NULL, CREATE_NEW,
                                FILE_ATTRIBUTE_NORMAL, NULL);
         } else {
             hout = CreateFileW(dest_ext, GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
                                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
             if (hout != INVALID_HANDLE_VALUE) {
-                BY_HANDLE_FILE_INFORMATION bi;
-                if (!GetFileInformationByHandle(hout, &bi) ||
-                    (bi.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY))) {
+                FILE_ATTRIBUTE_TAG_INFO ti = {0};
+                if (!GetFileInformationByHandleEx(hout, FileAttributeTagInfo, &ti, sizeof(ti)) ||
+                    (ti.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ||
+                    ((ti.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) &&
+                     zipx_reparse_tag_is_refused(ti.ReparseTag))) {
+                    CloseHandle(hout);
+                    set_link_err(&c, ti.ReparseTag, name_w);
+                    goto done;
+                }
+                if (ti.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+                    /* A cloud placeholder or WOF file: reopen following it so
+                     * Windows hydrates and writes it like any file. */
+                    CloseHandle(hout);
+                    hout = CreateFileW(dest_ext, GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
+                                       FILE_ATTRIBUTE_NORMAL, NULL);
+                }
+                /* Position is 0: truncate the old copy. A failure would leave
+                 * its old tail after the new data, so it is an error. */
+                if (hout != INVALID_HANDLE_VALUE && !SetEndOfFile(hout)) {
+                    DWORD e = GetLastError();
                     char shown[128];
                     CloseHandle(hout);
                     ascii_name(shown, sizeof(shown), name_w);
-                    set_err(err, err_cap,
-                            "refusing to write through a link (reparse point): %s", shown);
+                    set_err(err, err_cap, "cannot truncate existing file (error %lu): %s",
+                            e, shown);
                     goto done;
                 }
-                SetEndOfFile(hout);   /* position is 0: truncate the old copy */
             }
         }
         if (hout == INVALID_HANDLE_VALUE) {

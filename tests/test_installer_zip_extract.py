@@ -709,6 +709,76 @@ def test_extractor_refuses_links_and_creates_new_files_exclusively():
     assert "CREATE_ALWAYS" not in src.replace("/* CREATE_ALWAYS", "")
 
 
+@pytest.mark.parametrize("tag,verdict", [
+    (0xA0000003, "REFUSED"),    # junction (mount point)
+    (0xA000000C, "REFUSED"),    # symlink
+    (0x8000001B, "REFUSED"),    # APPEXECLINK: a link-like stub
+    (0x12345678, "REFUSED"),    # unknown: fail closed
+    (0x00000000, "REFUSED"),
+    (0x90000019, "REFUSED"),    # just outside the cloud family
+    (0x9000001B, "REFUSED"),
+    (0x9000001A, "ALLOWED"),    # OneDrive / cloud files placeholder
+    (0x9000701A, "ALLOWED"),
+    (0x9000F01A, "ALLOWED"),
+    (0x80000017, "ALLOWED"),    # WOF (Compact OS)
+    (0x80000013, "ALLOWED"),    # dedup
+])
+def test_reparse_tag_classification(cli, tag, verdict):
+    out = subprocess.run([str(cli), "--reparse-tag", f"{tag:x}"],
+                         capture_output=True, timeout=60).stdout.decode().strip()
+    assert out == verdict
+
+
+def test_fake_eocd_with_plausible_fields_is_skipped(cli, tmp_path):
+    # Entries > 0 and sizes that fit the file, but the "directory" it points
+    # at is garbage: only the PK\1\2 check on the candidate rejects it.
+    import struct
+    fake = b"PK\x05\x06" + struct.pack("<HHHHIIH", 0, 0, 5, 5, 100, 50, 0)
+    entries = _sample_entries()
+    plain = tmp_path / "p.zip"
+    _write_zip(plain, entries, "mixed")
+    archive = tmp_path / "signed.exe"
+    archive.write_bytes(os.urandom(2000) + plain.read_bytes() + b"\0" * 300 + fake)
+    info = _run(cli, archive, tmp_path / "out")
+    assert info["rc"] == 0, info["out"]
+    assert _tree(tmp_path / "out")[0] == _expected(entries)[0]
+
+
+def test_extract_all_refuses_when_the_disk_is_too_full(cli, tmp_path):
+    archive = tmp_path / "p.zip"
+    _write_zip(archive, {"a.bin": b"x" * 100_000})
+    dest = tmp_path / "out"
+    info = _run(cli, archive, dest, "--fake-free", "1000")
+    assert info["rc"] == 2
+    assert "not enough free disk space" in info["error"]
+    assert not any(dest.iterdir())
+    # The flag bypasses the check, and plenty of space passes it.
+    assert _run(cli, archive, tmp_path / "o2", "--fake-free", "1000",
+                "--skip-space-check")["rc"] == 0
+    assert _run(cli, archive, tmp_path / "o3", "--fake-free",
+                str(10 * 1024 ** 3))["rc"] == 0
+
+
+def _free_space(cli, path):
+    return subprocess.run([str(cli), "--free-space", str(path)], capture_output=True,
+                          timeout=60).stdout.decode().strip()
+
+
+def test_free_space_asks_the_nearest_existing_parent(cli, tmp_path):
+    assert re.fullmatch(r"FREE_SPACE \d+", _free_space(cli, tmp_path))
+    assert re.fullmatch(r"FREE_SPACE \d+", _free_space(cli, tmp_path / "not" / "yet"))
+
+
+@pytest.mark.skipif(os.path.exists("Z:\\"), reason="drive Z: exists here")
+def test_free_space_unknown_is_reported_not_silent(cli):
+    assert _free_space(cli, "Z:\\no\\such\\dir") == "FREE_SPACE_UNKNOWN"
+
+
+# The reviewer's mutant that drops the handle-level reparse check (the one
+# after CreateFileW(..., FILE_FLAG_OPEN_REPARSE_POINT)) survives these tests
+# on purpose: it only matters when a link is planted between the path walk
+# and the open, a race a deterministic test cannot stage. The path walk and
+# CREATE_NEW are what the junction tests above pin down.
 def test_link_as_the_final_component_of_a_file_entry_is_refused(cli, tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()

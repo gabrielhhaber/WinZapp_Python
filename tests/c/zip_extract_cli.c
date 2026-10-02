@@ -2,7 +2,10 @@
  * tests/test_installer_zip_extract.py. Never creates a window.
  *
  *   zip_extract_cli <archive> <dest_dir> [--cancel-after BYTES] [--skip-space-check]
- *   zip_extract_cli --normalize <path>        prints NORMALIZED <path>
+ *       [--fake-free BYTES]   pretend the volume has that much free space
+ *   zip_extract_cli --reparse-tag <hex>       prints REFUSED or ALLOWED
+ *   zip_extract_cli --free-space <dir>        prints FREE_SPACE <n> / FREE_SPACE_UNKNOWN
+ *   zip_extract_cli --normalize <path>       prints NORMALIZED <path>
  *   zip_extract_cli --space-ok <free> <need>  prints SPACE_OK or ERROR <reason>
  *
  * stdout (one line each): OPEN entries=N total=T, FILE <path> per extracted
@@ -51,11 +54,24 @@ int wmain(int argc, wchar_t **argv)
         printf("ERROR %s\n", e);
         return 2;
     }
+    if (argc >= 3 && wcscmp(argv[1], L"--reparse-tag") == 0) {
+        printf(zipx_reparse_tag_is_refused((uint32_t)wcstoul(argv[2], NULL, 16))
+               ? "REFUSED\n" : "ALLOWED\n");
+        return 0;
+    }
+    if (argc >= 3 && wcscmp(argv[1], L"--free-space") == 0) {
+        uint64_t f = 0;
+        if (zipx_query_free_space(argv[2], &f)) printf("FREE_SPACE %llu\n", (unsigned long long)f);
+        else printf("FREE_SPACE_UNKNOWN\n");
+        return 0;
+    }
     if (argc < 3) { fprintf(stderr, "usage: zip_extract_cli archive dest\n"); return 1; }
     unsigned flags = 0;
     for (int i = 3; i < argc; i++) {
         if (wcscmp(argv[i], L"--cancel-after") == 0 && i + 1 < argc)
             g_cancel_after = (uint64_t)_wtoi64(argv[++i]);
+        else if (wcscmp(argv[i], L"--fake-free") == 0 && i + 1 < argc)
+            zipx_set_free_space_override(1, (uint64_t)_wtoi64(argv[++i]));
         else if (wcscmp(argv[i], L"--skip-space-check") == 0)
             flags |= ZIPX_SKIP_SPACE_CHECK;
     }

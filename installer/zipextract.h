@@ -62,6 +62,19 @@ int zipx_extract_all(ZipxArchive *za, const wchar_t *dest_dir,
  * out may be the same buffer as in. */
 void zipx_normalize_dir(const wchar_t *in, wchar_t *out, size_t out_cap);
 
+/* Nonzero when a reparse point with this tag must not be written through:
+ * junctions, symlinks, app-execution aliases and any unknown tag. Cloud
+ * placeholders (OneDrive), WOF and dedup files are allowed. */
+int zipx_reparse_tag_is_refused(uint32_t tag);
+
+/* Free bytes for the volume of dir, asking the nearest existing parent when
+ * dir is not created yet. Returns 0 when the OS cannot answer (the extractor
+ * then skips the space check). */
+int zipx_query_free_space(const wchar_t *dir, uint64_t *out_free_bytes);
+
+/* Tests only: make zipx_query_free_space report a fixed value. */
+void zipx_set_free_space_override(int enable, uint64_t bytes);
+
 /* Nonzero when free_bytes covers needed_bytes plus a small margin; otherwise
  * fills err ("not enough free disk space: need N MB ..."). */
 int zipx_space_ok(uint64_t free_bytes, uint64_t needed_bytes,

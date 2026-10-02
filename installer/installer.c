@@ -364,7 +364,10 @@ static DWORD WINAPI install_thread(LPVOID param)
  * window cannot end the process with a half-written file still open (the
  * worker deletes it on cancel). The worker talks to this window with
  * SendMessage, which blocks until the window's thread takes the message, so
- * the wait has to keep serving sent messages or both sides would hang. */
+ * the wait has to keep serving sent messages or both sides would hang.
+ * PM_QS_SENDMESSAGE needs Windows 8 or later (WinZapp targets 10/11). The
+ * worker only notices the flag between chunks, so a long WriteFile can make
+ * the window look "not responding" for a few seconds before it closes. */
 static void stop_worker(void)
 {
     g_cancelled = TRUE;
