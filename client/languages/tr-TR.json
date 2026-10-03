@@ -414,6 +414,8 @@
   "update_available_msg": "WinZapp'in yeni bir sürümü mevcut (v{new_version}). Şimdi indirip yüklemek ister misiniz?",
   "update_yes": "&Evet",
   "update_no": "&Hayır",
+  "button_yes": "&Evet",
+  "button_no": "&Hayır",
   "whats_new_btn": "&Yenilikler neler?",
   "whats_new_title": "WinZapp'teki Yenilikler",
   "whats_new_close": "&Kapat",

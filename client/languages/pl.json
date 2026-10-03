@@ -414,6 +414,8 @@
     "update_available_msg": "Dostępna jest nowa wersja WinZapp (v{new_version}). Czy chcesz ją teraz pobrać i zainstalować?",
     "update_yes": "&Tak",
     "update_no": "&Nie",
+    "button_yes": "&Tak",
+    "button_no": "&Nie",
     "whats_new_btn": "&Co nowego?",
     "whats_new_title": "Co nowego w WinZapp",
     "whats_new_close": "&Zamknij",

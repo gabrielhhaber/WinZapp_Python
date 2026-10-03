@@ -696,11 +696,16 @@ _busy = None
 _hook_lock = threading.Lock()
 
 
-def other_accounts_node_alive(global_dir, account_id) -> bool:
+def other_accounts_node_alive(global_dir, account_id, ignore_corrupt: bool = False) -> bool:
     """True when another account of this install holds a live node-lease.
 
     Fails closed: a lease that cannot be read, or a lookup that raises, counts
     as alive. Without a global dir or account id there is nobody to ask.
+
+    ``ignore_corrupt`` is for a caller that only asks "may I prompt?" (the
+    WPPConnect update): an unreadable lease file is logged, once per call, and
+    skipped, because treating it as alive would silence that prompt for good.
+    A lookup that raises still counts as alive.
     """
     if not global_dir or not account_id:
         return False
@@ -710,6 +715,13 @@ def other_accounts_node_alive(global_dir, account_id) -> bool:
         leases = node_coord.live_node_leases(global_dir, is_alive=update_coord.lease_alive)
     except Exception:
         return True
+    if ignore_corrupt:
+        corrupt = [lease for lease in leases if lease.get("_corrupt")]
+        if corrupt:
+            logging.warning("[wa_version_refresh] ignoring %d unreadable node lease(s) "
+                            "for this check", len(corrupt))
+        leases = [lease for lease in leases if not lease.get("_corrupt")]
+        return any(lease.get("account_id") != account_id for lease in leases)
     return any(lease.get("_corrupt") or lease.get("account_id") != account_id
                for lease in leases)
 

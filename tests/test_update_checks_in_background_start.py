@@ -275,3 +275,25 @@ def test_message_box_is_a_plain_message_box_while_the_window_is_visible(monkeypa
     mw = type("W", (), {})()
     assert front.message_box(mw, "m", "t", 5) == 7
     assert calls == [("m", "t", 5, mw)]
+
+
+# ── hidden-window message box: labels and length ─────────────────────────────
+
+def test_a_short_message_is_shown_whole():
+    assert front.cap_message("short") == ("short", False)
+
+
+def test_a_very_long_message_is_cut_for_display():
+    shown, cut = front.cap_message("x" * (front.MAX_MESSAGE_CHARS + 500))
+    assert cut and len(shown) <= front.MAX_MESSAGE_CHARS + 1
+
+
+def test_every_button_label_is_a_locale_key_in_every_locale():
+    import json
+    root = pathlib.Path(__file__).resolve().parents[1] / "client" / "languages"
+    for path in root.glob("*.json"):
+        if path.name == "language_map.json":
+            continue
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+        for key in front._LABEL_KEY.values():
+            assert data.get(key), (path.name, key)

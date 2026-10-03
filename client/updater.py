@@ -1828,6 +1828,12 @@ class WppUpdateChecker:
             self._schedule_retry()
             return
 
+        if self._other_account_busy():
+            logging.info("[WppUpdateChecker] another account's WPPConnect Server is "
+                         "running - not offering %s from this account.", tag)
+            self._schedule_retry()
+            return
+
         logging.info(
             "[WppUpdateChecker] wppconnect-server %s available: %s -> %s",
             "update required" if required else "update recommended",
@@ -1849,50 +1855,79 @@ class WppUpdateChecker:
             )
             self._schedule_retry(self._PAIRING_RETRY_INTERVAL)
             return
+        if self._other_account_busy():
+            # Nothing to ask: the update would be refused after a Yes, and the
+            # same prompt would come back. Stay silent until the next check.
+            logging.info("[WppUpdateChecker] another account's WPPConnect Server is "
+                         "running - not prompting for %s.", remote_version)
+            self._schedule_retry()
+            return
         if not self._claim_prompt(remote_version):
             logging.info("[WppUpdateChecker] another account is already asking about "
                          "the %s update - checking again soon.", remote_version)
             self._schedule_retry(self._PAIRING_RETRY_INTERVAL)
             return
 
-        i18n = self._mw.i18n
-        # Below the minimum this build was validated against the mandatory
-        # gate's wording (ensure_wpp_version, which a background start skips);
-        # at or above it the update is only recommended.
-        if required:
-            title = i18n.t("api_update_outdated_title")
-            message = i18n.t("api_update_outdated_message").format(
-                current=installed, required=remote_version)
-        else:
-            title = i18n.t("wpp_update_available_title")
-            message = i18n.t("wpp_update_available_msg").format(
-                current=installed, new=remote_version)
-        # wx.NO_DEFAULT: this can pop up while the user is typing a message,
-        # and Space is how NVDA/JAWS/Narrator users activate the focused
-        # button — defaulting to Yes risked reinstalling the API session
-        # from an accidental keystroke instead of a deliberate choice.
-        if message_box(
-            self._mw, message, title,
-            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_INFORMATION,
-            announce=lambda: self._mw.output(f"{title}. {message}", interrupt=True),
-        ) == wx.YES:
-            # The claim stays held while the update runs, so no other account
-            # opens its own prompt over a server being rewritten; the update
-            # hands it back through on_finished.
-            started = self._mw._update_wpp_server(tag, on_finished=self._update_finished)
-            if started is False:
+        # Held from here: any exception below must hand the claim back, or no
+        # account would be asked again until this process exits. Only a started
+        # update keeps it, and releases it itself when it ends.
+        handed_over = False
+        try:
+            i18n = self._mw.i18n
+            # Below the minimum this build was validated against the mandatory
+            # gate's wording (ensure_wpp_version, which a background start skips);
+            # at or above it the update is only recommended.
+            if required:
+                title = i18n.t("api_update_outdated_title")
+                message = i18n.t("api_update_outdated_message").format(
+                    current=installed, required=remote_version)
+            else:
+                title = i18n.t("wpp_update_available_title")
+                message = i18n.t("wpp_update_available_msg").format(
+                    current=installed, new=remote_version)
+            # wx.NO_DEFAULT: this can pop up while the user is typing a message,
+            # and Space is how NVDA/JAWS/Narrator users activate the focused
+            # button — defaulting to Yes risked reinstalling the API session
+            # from an accidental keystroke instead of a deliberate choice.
+            if message_box(
+                self._mw, message, title,
+                wx.YES_NO | wx.NO_DEFAULT | wx.ICON_INFORMATION,
+                announce=lambda: self._mw.output(f"{title}. {message}", interrupt=True),
+            ) == wx.YES:
+                started = self._mw._update_wpp_server(
+                    tag, on_finished=lambda ok: self._update_finished(tag, ok))
+                if started is False:
+                    # Refused after a Yes (another account's Node came up, or an
+                    # update is mid-flight): do not ask again for this release
+                    # this session, the refusal already explained itself.
+                    if not required:
+                        self._declined_tag = tag
+                    self._schedule_retry()
+                else:
+                    handed_over = True
+            else:
+                if not required:
+                    self._declined_tag = tag
+                self._schedule_retry()
+        finally:
+            if not handed_over:
                 self._release_prompt()
-                self._schedule_retry(self._PAIRING_RETRY_INTERVAL)
-        else:
-            if not required:
-                self._declined_tag = tag
-            self._release_prompt()
-            self._schedule_retry()
 
-    def _update_finished(self) -> None:
-        """The accepted update ended, successfully or not."""
+    def _update_finished(self, tag: str, ok: bool) -> None:
+        """The accepted update ended. The claim is handed back either way; a
+        failed one is remembered for the session so a release that does not
+        install is not re-offered and re-attempted every 12 hours (a newer
+        release, or a required update, still prompts). Session-only: persisting
+        it per install would need a settings key and an expiry rule."""
+        if not ok:
+            self._declined_tag = tag
         self._release_prompt()
         self._schedule_retry()
+
+    def _other_account_busy(self) -> bool:
+        from core.wa_version_refresh import other_accounts_node_alive
+        return other_accounts_node_alive(
+            self._global_dir(), getattr(self._mw, "account_id", None), ignore_corrupt=True)
 
     def _force_reinstall_worker(self):
         logging.info("[WppUpdateChecker] Force-reinstall requested — fetching latest release tag...")

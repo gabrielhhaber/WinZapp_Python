@@ -124,6 +124,22 @@ def message_box_buttons(style: int):
 #: What wx.MessageBox answers, which callers compare against.
 _ANSWER = {wx.ID_YES: wx.YES, wx.ID_NO: wx.NO, wx.ID_OK: wx.OK}
 
+#: Locale key of each button's label. wx's stock labels come from a catalogue
+#: that is English here (the client never creates a wx.Locale), so the app's
+#: own i18n names them.
+_LABEL_KEY = {wx.ID_YES: "button_yes", wx.ID_NO: "button_no", wx.ID_OK: "ok"}
+
+#: Longest message shown in full; a longer one (an npm error dump) would make a
+#: dialog taller than the screen, with the buttons out of reach.
+MAX_MESSAGE_CHARS = 1200
+
+
+def cap_message(message: str, limit: int = MAX_MESSAGE_CHARS):
+    """(text to show, whether it was cut). The caller logs the full text."""
+    if len(message) <= limit:
+        return message, False
+    return message[:limit].rstrip() + "…", True
+
 
 class _HiddenParentMessage(wx.Dialog):
     """Plain message with stock buttons: the same labels, default and Escape
@@ -132,18 +148,23 @@ class _HiddenParentMessage(wx.Dialog):
     def __init__(self, parent, message, title, style):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE)
         ids, default, escape = message_box_buttons(style)
+        shown, cut = cap_message(message)
+        if cut:
+            logging.info("[dialog_foreground] message cut for display; full text: %s", message)
+        margin = self.FromDIP(12)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        label = wx.StaticText(self, label=message)
-        label.Wrap(420)
-        sizer.Add(label, 0, wx.ALL, 12)
+        label = wx.StaticText(self, label=shown)
+        label.Wrap(self.FromDIP(420))
+        sizer.Add(label, 0, wx.ALL, margin)
         row = wx.BoxSizer(wx.HORIZONTAL)
         buttons = {}
+        i18n = getattr(parent, "i18n", None)
         for ident in ids:
-            btn = wx.Button(self, ident)
+            btn = wx.Button(self, ident, label=i18n.t(_LABEL_KEY[ident]) if i18n else "")
             btn.Bind(wx.EVT_BUTTON, lambda event, i=ident: self.EndModal(i))
-            row.Add(btn, 0, wx.RIGHT, 4)
+            row.Add(btn, 0, wx.RIGHT, self.FromDIP(4))
             buttons[ident] = btn
-        sizer.Add(row, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+        sizer.Add(row, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT | wx.BOTTOM, margin)
         self.SetSizerAndFit(sizer)
         self.SetEscapeId(escape)
         buttons[default].SetDefault()

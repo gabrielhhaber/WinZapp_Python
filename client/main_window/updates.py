@@ -147,7 +147,8 @@ class UpdatesMixin:
         Returns False when it refused to start (an update is already running,
         or another account's Node is still running from the shared api/ that
         the reinstall wipes), True once started. *on_finished* is called, on
-        the wx thread, when a started update ends either way.
+        the wx thread, when a started update ends, with True when it installed
+        and False when it failed or was cancelled.
         """
         if getattr(self, "_wpp_updating", False):
             logging.info("[wpp_update] An update is already running — ignoring "
@@ -156,7 +157,8 @@ class UpdatesMixin:
 
         from core.wa_version_refresh import other_accounts_node_alive
         if other_accounts_node_alive(getattr(self, "global_dir", None),
-                                     getattr(self, "account_id", None)):
+                                     getattr(self, "account_id", None),
+                                     ignore_corrupt=True):
             # The reinstall deletes the api/ folder in place; another account
             # whose Node runs from it would lose its server mid-session.
             logging.warning("[wpp_update] Refusing to update to %s: another "
@@ -201,7 +203,7 @@ class UpdatesMixin:
                                       "on the wx main thread")
                     self._wpp_updating = False
                     if on_finished is not None:
-                        on_finished()
+                        on_finished(False)
 
         def _run_install(tag):
             from ui.dialogs.api_setup import ApiSetupDialog
@@ -215,23 +217,32 @@ class UpdatesMixin:
             # the progress dialog pulled forward again.
             bring_to_front_if_hidden(self, dlg)
             result = dlg.ShowModal()
+            # ApiSetupDialog ends with ID_CANCEL both for a failure (after it
+            # showed its own error box) and for the user's Cancel; only the
+            # latter sets _cancelled.
+            user_cancelled = bool(getattr(dlg, "_cancelled", False))
             dlg.Destroy()
-            return result
+            return result, user_cancelled
 
         def _after_stop():
+            succeeded = False
             try:
-                result = _run_install(target_tag)
+                result, user_cancelled = _run_install(target_tag)
 
                 if result != wx.ID_OK:
-                    logging.warning("[wpp_update] Update to %s was cancelled or failed.", target_tag)
-                    self.error_sound.play()
-                    message_box(
-                        self,
-                        self.i18n.t("wpp_update_failed_msg"),
-                        self.i18n.t("update_error_title"),
-                        wx.OK | wx.ICON_ERROR,
-                        announce=lambda: self.output(self.i18n.t("wpp_update_failed_msg"), interrupt=True),
-                    )
+                    logging.warning("[wpp_update] Update to %s was %s.", target_tag,
+                                    "cancelled by the user" if user_cancelled else "not completed")
+                    if not user_cancelled:
+                        # A cancel needs no "could not update" box; the user just
+                        # asked for it. A failure does.
+                        self.error_sound.play()
+                        message_box(
+                            self,
+                            self.i18n.t("wpp_update_failed_msg"),
+                            self.i18n.t("update_error_title"),
+                            wx.OK | wx.ICON_ERROR,
+                            announce=lambda: self.output(self.i18n.t("wpp_update_failed_msg"), interrupt=True),
+                        )
                     # The install wipes api/ before it builds, so a failed
                     # build (a newer release that no longer compiles against
                     # WinZapp's replaced source files) leaves no server at all.
@@ -243,7 +254,7 @@ class UpdatesMixin:
                                       "update to %s - reinstalling the bundled "
                                       "minimum %s.", target_tag, minimum)
                         self.output(self.i18n.t("wpp_update_in_progress"), interrupt=True)
-                        if _run_install(minimum) == wx.ID_OK:
+                        if _run_install(minimum)[0] == wx.ID_OK:
                             logging.info("[wpp_update] Restored WPPConnect Server %s.", minimum)
                         else:
                             logging.error("[wpp_update] Restoring %s failed too; the "
@@ -252,6 +263,7 @@ class UpdatesMixin:
                     return
 
                 logging.info("[wpp_update] WPPConnect Server updated to %s — restarting...", target_tag)
+                succeeded = True
                 self.ensure_wpp_running()
 
                 def _recover_after_update():
@@ -270,7 +282,7 @@ class UpdatesMixin:
             finally:
                 self._wpp_updating = False
                 if on_finished is not None:
-                    on_finished()
+                    on_finished(succeeded)
 
         threading.Thread(target=_stop_phase, daemon=True,
                          name="winzapp-wpp-update-stop").start()

@@ -136,7 +136,7 @@ def test_yes_keeps_the_claim_until_the_update_ends(gd, answer):
     assert _holder(gd) is not None
     assert [t for t, _ in mw.started] == [TAG]
 
-    mw.started[0][1]()          # on_finished
+    mw.started[0][1](True)      # on_finished
     assert _holder(gd) is None
     assert checker.retries == [None]
 
@@ -147,7 +147,7 @@ def test_an_update_that_refuses_to_start_releases_the_claim(gd, answer):
     checker = _checker(mw)
     checker._prompt_update("2.10.16", "2.10.20", TAG)
     assert _holder(gd) is None
-    assert checker.retries == [updater.WppUpdateChecker._PAIRING_RETRY_INTERVAL]
+    assert checker.retries == [None]      # the long interval: not a 5-minute loop
 
 
 def test_stopping_the_checker_releases_the_claim(gd, answer):
@@ -269,30 +269,36 @@ def env(monkeypatch):
     monkeypatch.setattr(updates.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
     boxes = []
     monkeypatch.setattr(updates, "message_box", lambda *a, **k: boxes.append(a[2]) or 0)
-    monkeypatch.setattr("core.wa_version_refresh.other_accounts_node_alive", lambda g, a: False)
+    monkeypatch.setattr("core.wa_version_refresh.other_accounts_node_alive",
+                        lambda g, a, ignore_corrupt=False: False)
     monkeypatch.setattr(updates, "homologated_wpp_tag", lambda _p: MINIMUM)
     monkeypatch.setattr(updates, "_server_is_built", lambda: False)
-    tags, results = [], []
+    tags, results, cancelled = [], [], [False]
 
     class _Dialog:
         def __init__(self, parent, title_override=None, forced_tag=None):
             tags.append(forced_tag)
 
         def ShowModal(self):
-            return results.pop(0)
+            result = results.pop(0)
+            if result != updates.wx.ID_OK:
+                self._cancelled = cancelled[0]
+            return result
 
         def Destroy(self):
             pass
 
     monkeypatch.setattr(api_setup, "ApiSetupDialog", _Dialog)
-    return type("Env", (), {"boxes": boxes, "tags": tags, "results": results})
+    return type("Env", (), {"boxes": boxes, "tags": tags, "results": results,
+                            "cancelled": cancelled})
 
 
 def test_it_refuses_while_another_accounts_node_is_alive(env, monkeypatch):
-    monkeypatch.setattr("core.wa_version_refresh.other_accounts_node_alive", lambda g, a: True)
+    monkeypatch.setattr("core.wa_version_refresh.other_accounts_node_alive",
+                        lambda g, a, ignore_corrupt=False: True)
     finished = []
     window = _Window()
-    assert window._update_wpp_server(TAG, on_finished=lambda: finished.append(1)) is False
+    assert window._update_wpp_server(TAG, on_finished=lambda ok: finished.append(1)) is False
     assert _Threads.started == [] and finished == []
     assert env.boxes == ["update_error_title"]
     assert getattr(window, "_wpp_updating", False) is False
@@ -302,7 +308,7 @@ def test_it_starts_and_reports_the_end(env):
     env.results.append(updates.wx.ID_OK)
     finished = []
     window = _Window()
-    assert window._update_wpp_server(TAG, on_finished=lambda: finished.append(1)) is True
+    assert window._update_wpp_server(TAG, on_finished=lambda ok: finished.append(1)) is True
     assert finished == []
     _Threads.started.pop(0)()                    # the stop phase, which resumes inline
     assert env.tags == [TAG] and finished == [1]
@@ -347,3 +353,131 @@ def test_no_rollback_when_a_server_is_still_there(env, monkeypatch):
 ])
 def test_should_roll_back(built, target, minimum, expected):
     assert should_roll_back(built, target, minimum) is expected
+
+
+# ── second review round ──────────────────────────────────────────────────────
+
+def _busy(monkeypatch, value=True):
+    monkeypatch.setattr("core.wa_version_refresh.other_accounts_node_alive",
+                        lambda g, a, ignore_corrupt=False: value)
+
+
+def test_another_accounts_node_means_no_prompt_and_the_long_retry(gd, answer, monkeypatch):
+    _busy(monkeypatch)
+    checker = _checker(_MW(gd))
+    checker._prompt_update("2.10.16", "2.10.20", TAG)
+    assert answer["shown"] == 0 and _holder(gd) is None
+    assert checker.retries == [None]          # the 12 h interval, not 5 minutes
+
+
+def test_the_check_itself_stays_silent_while_another_accounts_node_runs(monkeypatch):
+    _busy(monkeypatch)
+    prompts = []
+    monkeypatch.setattr(updater.wx, "CallAfter", lambda fn, *a: prompts.append(a))
+    monkeypatch.setattr(updater, "homologated_wpp_tag", lambda _p: MINIMUM)
+    monkeypatch.setattr("ui.dialogs.api_setup.fetch_latest_wpp_tag", lambda: TAG)
+    mw = _MW(None)
+    mw._get_installed_wpp_version = lambda: "2.10.16"
+    checker = _checker(mw)
+    checker._check_once()
+    assert prompts == [] and checker.retries == [None]
+
+
+def test_a_refusal_after_yes_is_not_asked_again_this_session(gd, answer):
+    mw = _MW(gd)
+    mw.start_result = False
+    checker = _checker(mw)
+    checker._prompt_update("2.10.16", "2.10.20", TAG)
+    assert checker._declined_tag == TAG and _holder(gd) is None
+    assert checker.retries == [None]
+
+
+def test_a_failed_update_is_remembered_and_a_successful_one_is_not(gd):
+    checker = _checker(_MW(gd))
+    checker._update_finished(TAG, False)
+    assert checker._declined_tag == TAG
+    checker._declined_tag = None
+    checker._update_finished(TAG, True)
+    assert checker._declined_tag is None
+    assert checker.retries == [None, None]
+
+
+def test_an_exception_in_the_prompt_hands_the_claim_back(gd, monkeypatch):
+    def _boom(*a, **k):
+        raise RuntimeError("dialog failed")
+
+    monkeypatch.setattr(updater, "message_box", _boom)
+    checker = _checker(_MW(gd))
+    with pytest.raises(RuntimeError):
+        checker._prompt_update("2.10.16", "2.10.20", TAG)
+    assert _holder(gd) is None
+
+
+class TestCorruptLeases:
+    @staticmethod
+    def _leases(monkeypatch, value):
+        import node_coord
+
+        def _live(global_dir, is_alive=None):
+            if isinstance(value, Exception):
+                raise value
+            return value
+
+        monkeypatch.setattr(node_coord, "live_node_leases", _live)
+
+    def test_corrupt_counts_as_alive_by_default(self, monkeypatch):
+        from core.wa_version_refresh import other_accounts_node_alive
+        self._leases(monkeypatch, [{"_corrupt": True, "account_id": "x"}])
+        assert other_accounts_node_alive("gd", "me") is True
+
+    def test_corrupt_is_logged_and_ignored_for_the_update_check(self, monkeypatch, caplog):
+        from core.wa_version_refresh import other_accounts_node_alive
+        self._leases(monkeypatch, [{"_corrupt": True, "account_id": "x"}])
+        with caplog.at_level(logging.WARNING):
+            assert other_accounts_node_alive("gd", "me", ignore_corrupt=True) is False
+        assert "unreadable node lease" in caplog.text
+
+    def test_a_real_other_account_still_counts(self, monkeypatch):
+        from core.wa_version_refresh import other_accounts_node_alive
+        self._leases(monkeypatch, [{"_corrupt": True}, {"account_id": "other"}])
+        assert other_accounts_node_alive("gd", "me", ignore_corrupt=True) is True
+
+    def test_our_own_lease_does_not(self, monkeypatch):
+        from core.wa_version_refresh import other_accounts_node_alive
+        self._leases(monkeypatch, [{"account_id": "me"}])
+        assert other_accounts_node_alive("gd", "me", ignore_corrupt=True) is False
+
+    def test_a_failing_lookup_stays_fail_closed(self, monkeypatch):
+        from core.wa_version_refresh import other_accounts_node_alive
+        self._leases(monkeypatch, OSError("disk"))
+        assert other_accounts_node_alive("gd", "me", ignore_corrupt=True) is True
+
+
+# ── cancel vs failure, and what on_finished is told ──────────────────────────
+
+def test_a_failed_install_tells_on_finished_false_and_shows_the_error(env):
+    env.results.extend([updates.wx.ID_CANCEL, updates.wx.ID_OK])
+    done = []
+    _Window()._update_wpp_server(TAG, on_finished=done.append)
+    _Threads.started.pop(0)()
+    assert done == [False]
+    assert "update_error_title" in env.boxes
+
+
+def test_a_successful_install_tells_on_finished_true(env):
+    env.results.append(updates.wx.ID_OK)
+    done = []
+    _Window()._update_wpp_server(TAG, on_finished=done.append)
+    _Threads.started.pop(0)()
+    assert done == [True]
+
+
+def test_a_user_cancel_shows_no_error_box_but_still_restores_a_missing_server(env):
+    env.cancelled[0] = True
+    env.results.extend([updates.wx.ID_CANCEL, updates.wx.ID_OK])
+    done = []
+    _Window()._update_wpp_server(TAG, on_finished=done.append)
+    _Threads.started.pop(0)()
+    assert env.boxes == []
+    assert env.tags == [TAG, MINIMUM]
+    assert done == [False]
