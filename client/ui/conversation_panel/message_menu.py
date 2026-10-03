@@ -353,6 +353,16 @@ class MessageMenuMixin:
                 wx.EVT_MENU, self._on_action_show_in_folder, show_in_folder_item
             )
 
+        # AI transcription / description (ui/conversation_panel/ai_actions.py).
+        # Offered only while the feature is on and at least one provider has a
+        # key, and only for the kinds of media it handles.
+        ai_label = self._ai_menu_label_for_type(msg_type, i18n)
+        if ai_label:
+            ai_item = menu.Append(wx.ID_ANY, ai_label)
+            self.Bind(
+                wx.EVT_MENU, lambda e, m=msg: self._on_menu_ai_process(m), ai_item
+            )
+
         # Edit (own text messages within WhatsApp's edit window — see
         # core.message_edit.EDIT_UI_WINDOW_SECONDS for how it was measured)
         _is_own      = msg.get("key", {}).get("fromMe", False)

@@ -69,6 +69,14 @@ EXCLUDED_KEYS = frozenset({
     ("files", "save_dialog_custom_folder"),
     ("alert_tones", "private_custom_path"),
     ("alert_tones", "group_custom_path"),
+    # API keys of the AI providers: credentials of the person, billed to them.
+    # Exporting is meant for sharing a setup (and the file is often sent to
+    # someone), so a key must never travel in it.
+    ("ai_accessibility", "gemini_api_key"),
+    ("ai_accessibility", "openai_api_key"),
+    ("ai_accessibility", "claude_api_key"),
+    ("ai_accessibility", "groq_api_key"),
+    ("ai_accessibility", "openrouter_api_key"),
 })
 
 #: RegisterHotKey modifier bits, as settings_dialog._HotkeyCapture records them.

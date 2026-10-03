@@ -1178,6 +1178,21 @@ DEFAULT_SETTINGS = {
         "media_max_days": 30,
         "media_max_mb": 100,
         "probe_video_duration_on_download": False
+    },
+    # AI transcription / description (core/ai_providers.py). Off until the
+    # person turns it on AND confirms what it sends to third parties.
+    # The "<provider>_api_key" entries are deliberately NOT declared here: a
+    # key that is not in DEFAULT_SETTINGS is neither exported nor imported
+    # (core/settings_transfer.py), and they are listed in its EXCLUDED_KEYS as
+    # well so declaring one later cannot start exporting it.
+    "ai_accessibility": {
+        "enabled": False,
+        "provider_order": ["gemini", "openai", "claude", "groq", "openrouter"],
+        "transcribe_audio": True,
+        "describe_images": True,
+        "describe_videos": True,
+        "transcribe_stickers": True,
+        "pdf_to_accessible_text": True
     }
 }
 

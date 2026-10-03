@@ -21,6 +21,7 @@ from core.reaction_shortcuts import (
     fixed_quick_reactions,
 )
 from ui.dialogs.emoji_picker import choose_reaction_emoji
+from ui.dialogs.ai_settings_page import AISettingsPage
 
 # Win32 modifier constants for RegisterHotKey
 _MOD_ALT     = 0x0001
@@ -1329,6 +1330,16 @@ class SettingsDialog(wx.Dialog):
             wx.EVT_CHECKBOX, self._on_fixed_quick_reactions_toggle
         )
 
+        # ── Transcriptions and descriptions tab (AI) ─────────────────────────
+        # All of it lives in ui/dialogs/ai_settings_page.py. Appended after
+        # Reactions so no earlier index moved; SetPageText(14) relies on it.
+        # The optional locked-chats tab below stays last, as the file's own
+        # tests require.
+        self._ai_page = AISettingsPage(
+            self._notebook, i18n, on_change=self._mark_dirty
+        )
+        self._notebook.AddPage(self._ai_page, i18n.t("tab_ai_accessibility"))
+
         # ── Locked chats tab ────────────────────────────────────────────────
         # Persistent vault policy belongs in Settings, not beside the chat
         # list the user visits repeatedly. The controls stay unavailable until
@@ -1777,6 +1788,8 @@ class SettingsDialog(wx.Dialog):
             "voice_message_stereo", False
         )
         self._voice_stereo_check.SetValue(bool(voice_stereo))
+
+        self._ai_page.load(self.main_window.settings.get("ai_accessibility", {}))
 
         # Sound events / packs
         self.main_window.refresh_sound_packs()
@@ -2988,6 +3001,9 @@ class SettingsDialog(wx.Dialog):
         self.main_window.settings.setdefault("reactions", {})[
             "quick_reaction_slots"
         ] = list(self._quick_reaction_slots)
+        self.main_window.settings.setdefault(
+            "ai_accessibility", {}
+        ).update(self._ai_page.collect())
         self.main_window.settings.setdefault("user_interface", {})[
             "conversation_video_media_viewer_dialog"
         ] = self._conversation_video_media_viewer_dialog_cb.GetValue()
@@ -3354,8 +3370,10 @@ class SettingsDialog(wx.Dialog):
         self._notebook.SetPageText(11, i18n.t("tab_calls"))
         self._notebook.SetPageText(12, i18n.t("tab_profile_backup"))
         self._notebook.SetPageText(13, i18n.t("tab_reactions"))
+        self._notebook.SetPageText(14, i18n.t("tab_ai_accessibility"))
+        self._ai_page.refresh_labels(i18n)
         if self._chat_lock_tab_shown:
-            self._notebook.SetPageText(14, i18n.t("locked_chats"))
+            self._notebook.SetPageText(15, i18n.t("locked_chats"))
         self._chat_lock_intro.SetLabel(i18n.t("chat_lock_settings_intro"))
         self._chat_lock_unlock_btn.SetLabel(
             i18n.t("chat_lock_settings_unlock")

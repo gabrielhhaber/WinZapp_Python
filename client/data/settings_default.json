@@ -146,5 +146,14 @@
         "media_max_days": 30,
         "media_max_mb": 100,
         "probe_video_duration_on_download": false
+    },
+    "ai_accessibility": {
+        "enabled": false,
+        "provider_order": ["gemini", "openai", "claude", "groq", "openrouter"],
+        "transcribe_audio": true,
+        "describe_images": true,
+        "describe_videos": true,
+        "transcribe_stickers": true,
+        "pdf_to_accessible_text": true
     }
 }

@@ -140,35 +140,40 @@ def _windows_lock_closure() -> dict:
 
     entries = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8")).get("package", [])
     packages = {canonicalize_name(pkg["name"]): pkg for pkg in entries}
-    # The walk below keys packages by name and never follows extras. Neither
-    # happens in today's lock; if either appears, say so instead of quietly
-    # comparing against the wrong version or an incomplete set.
+    # The walk below keys packages by name. If the lock ever records one
+    # package at several versions, say so instead of quietly comparing against
+    # the wrong one. Extras ARE followed (google-genai asks for
+    # google-auth[requests]): an edge with an "extra" also walks that extra's
+    # optional-dependencies of the package it points to.
     assert len(packages) == len(entries), (
         "uv.lock now records one package at several versions; teach "
         "_windows_lock_closure() to pick by resolution marker"
     )
-    assert not any("optional-dependencies" in pkg for pkg in entries) and not any(
-        "extra" in dep for pkg in entries for dep in pkg.get("dependencies", [])
-    ), "uv.lock now uses extras; teach _windows_lock_closure() to follow them"
     root = next(p for p in packages.values() if p.get("source", {}).get("editable") == ".")
 
-    def edges(pkg):
+    def edges(pkg, extras=()):
         yield from pkg.get("dependencies", [])
         for group in pkg.get("dev-dependencies", {}).values():
             yield from group
+        for extra in extras:
+            yield from pkg.get("optional-dependencies", {}).get(extra, [])
 
     seen = {}
-    pending = [root]
+    visited = set()
+    pending = [(root, ())]
     while pending:
-        for dep in edges(pending.pop()):
+        pkg, extras = pending.pop()
+        for dep in edges(pkg, extras):
             marker = dep.get("marker")
             if marker and not Marker(marker).evaluate(_WINDOWS_CPYTHON_313):
                 continue
             key = canonicalize_name(dep["name"])
-            if key in seen:
-                continue
+            dep_extras = tuple(sorted(dep.get("extra", [])))
             seen[key] = str(Version(packages[key]["version"]))
-            pending.append(packages[key])
+            if (key, dep_extras) in visited:
+                continue
+            visited.add((key, dep_extras))
+            pending.append((packages[key], dep_extras))
     return seen
 
 
