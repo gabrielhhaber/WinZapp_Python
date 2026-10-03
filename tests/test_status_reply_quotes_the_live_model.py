@@ -59,13 +59,13 @@ def reply_block(source: str) -> str:
 
 class TestTheLiveModelIsTheFirstChoice:
     def test_the_model_is_quoted_directly(self, reply_block):
-        assert "quotedMsg: quoted" in reply_block, (
+        assert "quotedMsg: quoted.isStatusV3 ? quoted : asStatusModel(quoted)" in reply_block, (
             "the reply is quoting a rebuilt copy again — every field the "
             "rehydration drops becomes a getter that throws"
         )
 
     def test_it_is_tried_before_the_payload(self, reply_block):
-        live = reply_block.index("quotedMsg: quoted")
+        live = reply_block.index("quotedMsg: quoted.isStatusV3")
         payload = reply_block.index("quotedMsgPayload: quotedPayload")
         assert live < payload, (
             "the payload path skips wa-js's canReplyMsg() gate, so trying it "
@@ -78,6 +78,29 @@ class TestTheLiveModelIsTheFirstChoice:
             "the payload rung is not strictly weaker — it is the only route "
             "for a status whose model fails canReplyMsg()"
         )
+
+
+class TestAStatusModelWithoutTheFlagStillPassesWajsGuard:
+    """Measured 2026-10-03 on the live page: on the current WhatsApp Web
+    build every StatusV3Store message has ``isStatusV3 === undefined``, so
+    wa-js's ``!quotedMsg.isStatusV3 && !canReplyMsg(quotedMsg)`` guard ran
+    canReplyMsg, which reads the status's (nonexistent) chat and throws
+    "Getter was called with undefined data." — the live-model rung died there
+    even though msgContextInfo() on the same model worked."""
+
+    def test_the_model_is_presented_as_a_status_through_a_proxy(
+            self, reply_block):
+        assert "asStatusModel" in reply_block
+        assert "new Proxy(model" in reply_block
+        assert "prop === 'isStatusV3'" in reply_block
+
+    def test_the_stores_model_is_not_written_to(self, reply_block):
+        assert "quoted.isStatusV3 =" not in reply_block
+
+    def test_methods_run_against_the_real_model(self, reply_block):
+        """A Proxy is not the model: a method called with the proxy as `this`
+        can trip a brand check, so functions are bound to the target."""
+        assert "value.bind(target)" in reply_block
 
 
 class TestAFailedRungDoesNotEndTheReply:
