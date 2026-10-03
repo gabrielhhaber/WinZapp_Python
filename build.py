@@ -709,7 +709,7 @@ def _write_version_file(work_dir):
          StringStruct('FileDescription', 'WinZapp - accessible WhatsApp client'),
          StringStruct('FileVersion', '{display}'),
          StringStruct('InternalName', 'WinZapp'),
-         StringStruct('LegalCopyright', '© 2026 WinZapp - LGPLv3'),
+         StringStruct('LegalCopyright', '© 2026 WinZapp - GPLv3'),
          StringStruct('OriginalFilename', 'WinZapp.exe'),
          StringStruct('ProductName', 'WinZapp'),
          StringStruct('ProductVersion', '{display}')])

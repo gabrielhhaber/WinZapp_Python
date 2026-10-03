@@ -1225,7 +1225,7 @@
     "about_community_thanks": "Fabiano Ferreira, Tadeu Junior, Wagner Soares da Silva, Eduardo Ferreira, Elias Junior e toda a comunidade que ajudou, seja a testar, a implementar melhorias ou a dar sugestões / relatórios de erros.",
     "about_translation_thanks_pl": "Michał Dziwisz: pela tradução do programa para polaco, suporte a múltiplas contas e outras contribuições.",
     "about_current_version": "Versão atual: {version}.",
-    "about_license": "Licenciado sob a licença GNU Lesser General Public License V3 (GPLV3).",
+    "about_license": "Licenciado sob a licença GNU General Public License V3 (GPLv3).",
     "status_photos_videos_audio": "Multimédia (fotos, vídeos e áudios)",
     "status_audio": "Áudio (gravar)",
     "status_recent_updates": "Recentes",

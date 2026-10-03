@@ -1225,7 +1225,7 @@
   "about_community_thanks": "Fabiano Ferreira, Tadeu Junior, Wagner Soares da Silva, Eduardo Ferreira, Elias Junior ve toplulukta test ederek, geliştirmeleri uygulayarak veya öneri/hata raporları sağlayarak yardımcı olan herkese.",
   "about_translation_thanks_pl": "Michał Dziwisz: Lehçe çeviri, çoklu hesap desteği ve diğer katkılar için.",
   "about_current_version": "Mevcut sürüm: {version}.",
-  "about_license": "GNU Kısıtlı Genel Kamu Lisansı V3 (LGPLv3) kapsamında lisanslanmıştır.",
+  "about_license": "GNU Genel Kamu Lisansı V3 (GPLv3) kapsamında lisanslanmıştır.",
   "status_photos_videos_audio": "Medya (fotoğraflar, videolar ve ses)",
   "status_audio": "Ses (kayıt)",
   "status_recent_updates": "Son",

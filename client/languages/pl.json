@@ -1225,7 +1225,7 @@
     "about_community_thanks": "Fabiano Ferreira, Tadeu Junior, Wagner Soares da Silva, Eduardo Ferreira, Elias Junior oraz wszyscy ze społeczności, którzy pomogli — testując, wprowadzając ulepszenia lub zgłaszając sugestie i błędy.",
     "about_translation_thanks_pl": "Michał Dziwisz: za tłumaczenie na język polski, obsługę wielu kont i inne wkłady.",
     "about_current_version": "Obecna wersja: {version}.",
-    "about_license": "Udostępniany na licencji GNU Lesser General Public License V3 (LGPLv3).",
+    "about_license": "Udostępniany na licencji GNU General Public License V3 (GPLv3).",
     "status_photos_videos_audio": "Multimedia (zdjęcia, wideo i audio)",
     "status_audio": "Audio (nagraj)",
     "status_recent_updates": "Ostatnie",

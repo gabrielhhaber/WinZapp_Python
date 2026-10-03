@@ -1169,7 +1169,7 @@
     "about_community_thanks": "Fabiano Ferreira, Tadeu Junior, Wagner Soares da Silva, Eduardo Ferreira, Elias Junior și toți cei din comunitate care au ajutat, fie testând, implementând îmbunătățiri sau furnizând sugestii/rapoarte de erori.",
     "about_translation_thanks_pl": "Michał Dziwisz: pentru traducerea în poloneză, asistență pentru mai multe conturi și alte contribuții.",
     "about_current_version": "Versiunea curentă: {version}.",
-    "about_license": "Licențiat conform GNU Lesser General Public License V3 (LGPLv3).",
+    "about_license": "Licențiat conform GNU General Public License V3 (GPLv3).",
     "status_photos_videos_audio": "Media (fotografii, videoclipuri și audio)",
     "status_audio": "Audio (înregistrare)",
     "status_recent_updates": "Recente",
