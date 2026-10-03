@@ -156,6 +156,8 @@ DÜZELTMELER
 
 - Bir iletiye yanıt verirken yanıtta birinden bahsedildiğinde, WinZapp onu yanıt olarak gösterse de alıcılara alıntısız yeni bir ileti olarak ulaşıyordu. Alıntı artık bahsetmeyle birlikte gönderilir.
 
+- Güncelleme bildirimleri artık WinZapp Windows ile başladığında da görünüyor: bu durumda ne WinZapp'in kendi güncellemesi ne de WPPConnect Server güncellemesi sunuluyordu. WPPConnect Server bildirimi ayrıca artık WinZapp ile test edilenden daha yeni bir sürümü, reddedebileceğiniz önerilen bir güncelleme olarak sunuyor; önceden yalnızca WinZapp gereken sürümü yükselttiğinde sunuluyordu.
+
 V1.1.1.0
 
 Bu sürüm, hesabınızın bağlı kalmasını sağlamaya odaklanmaktadır. WinZapp artık WhatsApp bağlantınızın gerçekte tutulduğu tarayıcı profilinin bir yedeğini saklar; profil kabul edilmediğinde durumu bildirerek profili otomatik olarak geri yükler. Bunun yanında oturumun kopmasına ve uygulamanın yeniden eşleme istemesine yol açan durumlar için düzeltmeler içerir: bilgisayarı kapatma, askıya alma ve sürdürme ile uygulamanın bağlantıyı kendi kendine yeniden başlatması. Ayrıca mesaj alanında yazım denetimi ve bağlantı eylemleri de eklendi.

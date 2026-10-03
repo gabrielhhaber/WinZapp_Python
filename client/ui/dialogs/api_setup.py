@@ -1284,6 +1284,9 @@ class ApiSetupDialog(wx.Dialog):
             return
         self._finished = True
         self._timer.Stop()
+        # Only shown to the user until now; npm's output is the evidence when an
+        # update to a newer server release fails to build.
+        logging.error("[api_setup] Setup failed: %s", details or "(no details)")
         msg = self._i18n.t("api_setup_error_generic")
         if details:
             msg = f"{msg}\n\n{details}"

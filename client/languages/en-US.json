@@ -486,7 +486,7 @@
     "force_reinstall_confirm_title": "Force reinstall",
     "force_reinstall_confirm_msg": "This will download and reinstall the latest version (v{version}) directly from the release's ZIP file, even if it's already the installed version. WinZapp will close during the reinstall. Continue?",
     "wpp_update_available_title": "WPPConnect update available",
-    "wpp_update_available_msg": "A newer version of WPPConnect Server is available (current: {current}, new: {new}). Update now? WinZapp will stop the API, install the new version, and restart it automatically.",
+    "wpp_update_available_msg": "A recommended update for WPPConnect Server is available (current: {current}, new: {new}). It is not mandatory. Update now? WinZapp will stop the API, install the new version, and restart it automatically.",
     "wpp_update_in_progress": "Updating WPPConnect. Please wait.",
     "wpp_update_complete": "WPPConnect updated and restarted successfully.",
     "wpp_update_failed_msg": "Could not update WPPConnect. The previous installation will be kept, if possible.",

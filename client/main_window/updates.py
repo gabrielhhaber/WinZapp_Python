@@ -9,6 +9,8 @@ import logging
 import threading
 import wx
 
+from core.dialog_foreground import bring_to_front_if_hidden, message_box
+
 
 class UpdatesMixin:
     """App and WPPConnect Server update checks triggered from the menu or the
@@ -86,8 +88,6 @@ class UpdatesMixin:
         return not getattr(self, "_pairing_in_progress", False)
 
     def _start_wpp_update_checker(self, force: bool = False):
-        if self.background_mode:
-            return
         updates_enabled = self.settings.get("general", {}).get("updates_enabled", True)
         if not updates_enabled and not force:
             return
@@ -132,8 +132,9 @@ class UpdatesMixin:
             return
 
         logging.info("[wpp_update] Stopping WPPConnect Server before update to %s...", target_tag)
-        if not self.background_mode:
-            self.output(self.i18n.t("wpp_update_in_progress"), interrupt=True)
+        # Spoken in a background start too: the user just accepted the prompt,
+        # so they are listening for what happens next.
+        self.output(self.i18n.t("wpp_update_in_progress"), interrupt=True)
         # Set before stopping the server and only cleared in `finally` below —
         # the health checker (running on its own thread every 30s) would
         # otherwise catch the server mid-stop/reinstall/restart, fail its
@@ -171,17 +172,22 @@ class UpdatesMixin:
                     title_override=self.i18n.t("api_update_dialog_title"),
                     forced_tag=target_tag,
                 )
+                # The prompt that led here has closed, which hands the
+                # foreground to some other window; a hidden main window needs
+                # the progress dialog pulled forward again.
+                bring_to_front_if_hidden(self, dlg)
                 result = dlg.ShowModal()
                 dlg.Destroy()
 
                 if result != wx.ID_OK:
                     logging.warning("[wpp_update] Update to %s was cancelled or failed.", target_tag)
                     self.error_sound.play()
-                    wx.MessageBox(
+                    message_box(
+                        self,
                         self.i18n.t("wpp_update_failed_msg"),
                         self.i18n.t("update_error_title"),
                         wx.OK | wx.ICON_ERROR,
-                        self,
+                        announce=lambda: self.output(self.i18n.t("wpp_update_failed_msg"), interrupt=True),
                     )
                     self.ensure_wpp_running()
                     return
@@ -201,8 +207,7 @@ class UpdatesMixin:
                 if getattr(self, "_window_hidden", False) and not self.background_mode:
                     wx.CallAfter(self.restore_window)
 
-                if not self.background_mode:
-                    self.output(self.i18n.t("wpp_update_complete"), interrupt=True)
+                self.output(self.i18n.t("wpp_update_complete"), interrupt=True)
             finally:
                 self._wpp_updating = False
 

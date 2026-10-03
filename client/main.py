@@ -521,21 +521,25 @@ class MainWindow(
         # ── Auto-updater ──────────────────────────────────────────────────────
         # Schedule the update checker on the event loop early (but after i18n
         # is initialized) so it can run even if modal dialogs block __init__.
+        # Scheduled in --background (autostart) too: gating the checkers on a
+        # visible window meant they never ran for anyone who starts WinZapp
+        # with Windows (docs/traps/updater-channels.md). Their dialogs bring
+        # themselves to the front while the window is hidden.
+        wx.CallLater(15000, self._start_update_checker)
+        # Separate, independent check for the WPPConnect Server itself —
+        # it breaks between WinZapp releases too, and until now the only
+        # fix was a user manually wiping client/api/ and node_modules.
+        # Given a much longer delay: unlike the WinZapp checker (which
+        # only shows a dialog), accepting this one stops and restarts the
+        # live API session, so it must never fire while pairing/the
+        # initial sync is still settling in.
+        wx.CallLater(90000, self._start_wpp_update_checker)
         if not self.background_mode:
-            wx.CallLater(15000, self._start_update_checker)
             if getattr(self, "_previous_update_failed", False):
                 # Same delay as the checker: past the startup sound and the
                 # first sync announcements, before the checker offers the
                 # very same release again.
                 wx.CallLater(15000, self._announce_previous_update_failure)
-            # Separate, independent check for the WPPConnect Server itself —
-            # it breaks between WinZapp releases too, and until now the only
-            # fix was a user manually wiping client/api/ and node_modules.
-            # Given a much longer delay: unlike the WinZapp checker (which
-            # only shows a dialog), accepting this one stops and restarts the
-            # live API session, so it must never fire while pairing/the
-            # initial sync is still settling in.
-            wx.CallLater(90000, self._start_wpp_update_checker)
             # One-time WPPConnect reinstall recommendation for accounts that
             # predate 2.0 (migrate_wpp_reinstall_notice(), core/utils.py).
             # 20s: past the two 15s callbacks above and the startup sound /

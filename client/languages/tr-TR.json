@@ -486,7 +486,7 @@
   "force_reinstall_confirm_title": "Yeniden yüklemeye zorla",
   "force_reinstall_confirm_msg": "Bu işlem, zaten yüklü olan sürüm olsa bile, en son sürümü (v{version}) doğrudan sürümün ZIP dosyasından indirip yeniden yükleyecektir. Yeniden yükleme sırasında WinZapp kapanacaktır. Devam edilsin mi?",
   "wpp_update_available_title": "WPPConnect güncellemesi mevcut",
-  "wpp_update_available_msg": "WPPConnect Server'ın daha yeni bir sürümü mevcut (mevcut: {current}, yeni: {new}). Şimdi güncellensin mi? WinZapp API'yi durduracak, yeni sürümü yükleyecek ve otomatik olarak yeniden başlatacaktır.",
+  "wpp_update_available_msg": "WPPConnect Server için önerilen bir güncelleme mevcut (mevcut: {current}, yeni: {new}). Zorunlu değildir. Şimdi güncellensin mi? WinZapp API'yi durduracak, yeni sürümü yükleyecek ve otomatik olarak yeniden başlatacaktır.",
   "wpp_update_in_progress": "WPPConnect güncelleniyor. Lütfen bekleyin.",
   "wpp_update_complete": "WPPConnect güncellendi ve başarıyla yeniden başlatıldı.",
   "wpp_update_failed_msg": "WPPConnect güncellenemedi. Mümkünse önceki kurulum korunacaktır.",
