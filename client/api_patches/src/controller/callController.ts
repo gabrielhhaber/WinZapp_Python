@@ -431,6 +431,15 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
       // call is started by the user's own keystroke in WinZapp, which is
       // exactly what "user_gesture" means. The fallback only surfaces
       // wa-js' own error: WPP.call.offer needs the same function.
+      //
+      // wa-js 4.6.1 makes the same call natively (startWAWebVoipCall(peer,
+      // isVideo, 8, 5, null, { entryTrust: 'user_gesture' }), then polls
+      // CallStore for the call and returns it), so on 4.6.1 the fallback above
+      // works too. This direct path stays the primary one regardless: it is
+      // the one measured on a real account, it behaves the same on 4.6.0 and
+      // 4.6.1 (an install that declined the reinstall prompt keeps the old
+      // library under this code), and the offer loop below already does its
+      // own CallStore tracking.
       const startOutgoingCall = async (to: string, isVideo: boolean): Promise<any> => {
         const start = win.WPP?.whatsapp?.functions?.startWAWebVoipCall;
         if (typeof start !== 'function') {

@@ -1523,7 +1523,9 @@ export async function reactMessage(req: Request, res: Response) {
             // would... but only for a module id listed in WA-JS's own private
             // LAZY_MODULES table, which (confirmed by reading wa-js 4.6.0's
             // compiled loader) has exactly two entries, both WA-JS's own
-            // forward-message feature. WAWebSendStatusReactionAction is
+            // forward-message feature (4.6.1 grew it to ten: group, community,
+            // privacy, profile and event modules, none of them ours).
+            // WAWebSendStatusReactionAction is
             // WinZapp's own reverse-engineered id, absent from that table, so
             // this call is a guaranteed no-op for it on every WhatsApp Web
             // build — kept only because it is free and harmless if WA-JS ever

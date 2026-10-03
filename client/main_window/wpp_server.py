@@ -23,9 +23,9 @@ from main_window.runtime_setup import (
     shorten_windows_path,
 )
 from core.wpp_runtime import (
-    WPPCONNECT_PACKAGE,
+    describe_library_drifts,
+    library_drifts,
     read_homologated_wpp_version,
-    wppconnect_library_drift,
 )
 from main_window.win32_helpers import _get_short_path_name
 from core.api_client import (
@@ -639,7 +639,7 @@ class WppServerMixin:
         they agree by construction afterwards. This catches an install that
         has NOT been updated (a server left behind by an older WinZapp, a
         hand-built api/), never a drift the update itself introduced. That
-        second case is _wppconnect_library_drift()'s, and it is the one that
+        second case is _library_drifts()'s, and it is the one that
         was going unnoticed.
         """
         minimum = self._read_wpp_minimum_version()
@@ -648,19 +648,20 @@ class WppServerMixin:
             return None  # Nothing pinned, or unreadable — skip silently
         return (installed, minimum) if self._version_is_below(installed, minimum) else None
 
-    def _wppconnect_library_drift(self):
-        """(installed, pinned) when node_modules holds a wppconnect other than
-        the one api/package.json pins, else None.
+    def _library_drifts(self):
+        """(package, installed, pinned) for every homologated library —
+        wppconnect and wa-js — whose node_modules copy differs from the one
+        api/package.json pins; [] when none does.
 
-        The whole reasoning lives in core/wpp_runtime.wppconnect_library_drift()
-        — this only supplies the api/ path and never lets a failure here stop
-        the server from starting.
+        The whole reasoning lives in core/wpp_runtime.library_drifts() — this
+        only supplies the api/ path and never lets a failure here stop the
+        server from starting.
         """
         try:
-            return wppconnect_library_drift(resource_path("api"))
+            return library_drifts(resource_path("api"))
         except Exception:
             logging.exception("[ensure_wpp_version] library drift check failed")
-            return None
+            return []
 
     @staticmethod
     def _version_is_below(installed: str, minimum: str) -> bool:
@@ -684,9 +685,9 @@ class WppServerMixin:
 
         * the WPPConnect Server itself older than this build's minimum
           (_server_version_below_minimum());
-        * node_modules holding a wppconnect other than the one
-          api/package.json pins (_wppconnect_library_drift()) — the drift an
-          update introduces on its own, because the release ZIP ships
+        * node_modules holding a wppconnect or wa-js other than the one
+          api/package.json pins (_library_drifts()) — the drift an update
+          introduces on its own, because the release ZIP ships
           dist/server.js and package.json but NOT node_modules, and which
           silently un-patches the pairing-code path.
 
@@ -720,7 +721,7 @@ class WppServerMixin:
             return  # API not installed yet — setup dialog will handle it
 
         outdated = self._server_version_below_minimum()
-        drifted = self._wppconnect_library_drift()
+        drifted = self._library_drifts()
 
         if outdated:
             installed, minimum = outdated
@@ -729,12 +730,12 @@ class WppServerMixin:
             # on. Same prompt, same repair — the reinstall runs npm install,
             # which brings node_modules to the pinned version, and re-applies
             # the node_modules patches against source they will now match.
-            installed, minimum = drifted
+            installed, minimum = describe_library_drifts(drifted)
             logging.warning(
-                "[ensure_wpp_version] node_modules holds %s %s but "
+                "[ensure_wpp_version] node_modules holds %s but "
                 "api/package.json pins %s — the compiled-output patches are "
                 "matched against the pinned version's source, so offering the "
-                "reinstall.", WPPCONNECT_PACKAGE, installed, minimum,
+                "reinstall.", installed, minimum,
             )
         else:
             return  # Server and library both as expected — nothing to do
@@ -775,8 +776,8 @@ class WppServerMixin:
         if not minimum_tag and outdated:
             # Only the server branch may fall back to `minimum` here: it IS a
             # server version. The library branch's is a wppconnect version
-            # ("2.3.3"), and there is no wppconnect-server release tagged
-            # v2.3.3 — passing it would build a 404 archive URL, the same
+            # ("2.3.4"), and there is no wppconnect-server release tagged
+            # v2.3.4 — passing it would build a 404 archive URL, the same
             # failure the comment above describes. With no tag at all,
             # ApiSetupDialog resolves the latest release itself, which is the
             # right answer when we cannot name a better one.

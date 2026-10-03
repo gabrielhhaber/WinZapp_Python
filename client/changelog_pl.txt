@@ -74,6 +74,8 @@ ULEPSZENIA
 
 - Instalator i program odinstalowujący pojawiają się teraz we wszystkich językach, w których dostępny jest WinZapp: portugalskim brazylijskim, portugalskim europejskim, hiszpańskim, polskim, rumuńskim, tureckim i angielskim. Używają języka wyświetlania systemu Windows, a w każdym innym języku pokazują angielski.
 
+- Zaktualizowano bibliotekę WhatsApp, z której korzysta WinZapp. W informacjach od jej twórców znajdują się poprawki dotyczące tworzenia grup, pobierania i resetowania linków zaproszenia do grupy, edycji opisu grupy, zmiany nazwy profilu oraz wysyłania mediów w nowszych wersjach WhatsApp Web. Jeśli WinZapp po uruchomieniu zaproponuje aktualizację WPPConnect, zaakceptuj ją, aby zainstalować nową bibliotekę.
+
 POPRAWKI
 
 - Program odinstalowujący używa teraz języka wyświetlania systemu Windows, tak jak instalator, zamiast zawsze pojawiać się po portugalsku.

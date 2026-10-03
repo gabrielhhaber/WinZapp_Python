@@ -74,6 +74,8 @@ IMPROVEMENTS
 
 - The installer and the uninstaller now appear in every language WinZapp is available in: Brazilian Portuguese, European Portuguese, Spanish, Polish, Romanian, Turkish and English. They follow the Windows display language and show English for any other.
 
+- The WhatsApp library WinZapp uses was updated. Its developers' notes list fixes for creating groups, getting and resetting group invite links, editing group descriptions, changing your profile name and uploading media on recent WhatsApp Web versions. If WinZapp offers to update WPPConnect when it starts, accept it so the new library is installed.
+
 FIXES
 
 - The uninstaller now follows the Windows display language like the installer does, instead of always appearing in Portuguese.

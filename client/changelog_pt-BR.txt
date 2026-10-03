@@ -74,6 +74,8 @@ MELHORIAS
 
 - O instalador e o desinstalador agora aparecem em todos os idiomas em que o WinZapp está disponível: português do Brasil, português de Portugal, espanhol, polonês, romeno, turco e inglês. Eles seguem o idioma de exibição do Windows e mostram inglês em qualquer outro.
 
+- A biblioteca do WhatsApp que o WinZapp usa foi atualizada. As notas dos desenvolvedores dela listam correções para criar grupos, obter e redefinir links de convite de grupo, editar a descrição do grupo, mudar seu nome de perfil e enviar mídia em versões recentes do WhatsApp Web. Se o WinZapp oferecer a atualização do WPPConnect ao iniciar, aceite para instalar a nova biblioteca.
+
 CORREÇÕES
 
 - O desinstalador agora segue o idioma de exibição do Windows, como o instalador, em vez de aparecer sempre em português.

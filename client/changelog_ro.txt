@@ -74,6 +74,8 @@ NOUTĂȚI
 
 - Programul de instalare și programul de dezinstalare apar acum în toate limbile în care este disponibil WinZapp: portugheza (Brazilia), portugheza (Portugalia), spaniola, poloneza, româna, turca și engleza. Urmează limba de afișare a Windows, iar în orice altă limbă afișează engleza.
 
+- Biblioteca WhatsApp folosită de WinZapp a fost actualizată. Notele dezvoltatorilor ei enumeră corecții pentru crearea grupurilor, obținerea și resetarea linkurilor de invitație la grup, editarea descrierii grupului, schimbarea numelui de profil și trimiterea fișierelor media în versiunile recente ale WhatsApp Web. Dacă WinZapp vă propune actualizarea WPPConnect la pornire, acceptați-o pentru a instala noua bibliotecă.
+
 CORECTĂRI
 
 - Programul de dezinstalare urmează acum limba de afișare a Windows, la fel ca programul de instalare, în loc să apară mereu în portugheză.

@@ -74,6 +74,8 @@ YENİLİKLER
 
 - Kurulum programı ve kaldırma programı artık WinZapp'in sunulduğu tüm dillerde görünüyor: Brezilya Portekizcesi, Avrupa Portekizcesi, İspanyolca, Lehçe, Rumence, Türkçe ve İngilizce. Windows görüntüleme dilini izliyor, diğer tüm dillerde İngilizce gösteriyor.
 
+- WinZapp'ın kullandığı WhatsApp kitaplığı güncellendi. Geliştiricilerinin notları, WhatsApp Web'in son sürümlerinde grup oluşturma, grup davet bağlantısını alma ve sıfırlama, grup açıklamasını düzenleme, profil adını değiştirme ve medya gönderme için düzeltmeler listeliyor. WinZapp başlangıçta WPPConnect'i güncellemeyi önerirse kabul edin; yeni kitaplık böylece kurulur.
+
 DÜZELTMELER
 
 - Kaldırma programı artık her zaman Portekizce görünmek yerine, kurulum programı gibi Windows görüntüleme dilini izliyor.

@@ -130,6 +130,21 @@ def test_the_installed_runtime_is_the_one_that_was_pinned():
     )
 
 
+def test_the_installed_wa_js_is_the_one_that_was_pinned():
+    """The pair's other half. wppconnect 2.3.4 changed no compiled file and
+    moved only its wa-js range, so an install can sit on the pinned wppconnect
+    with the previous wa-js underneath it and every wppconnect check passing."""
+    live = ROOT / "client" / "api" / "node_modules" / "@wppconnect" / "wa-js" / "package.json"
+    if not live.exists():
+        pytest.skip("client/api/node_modules not present")
+    installed = json.loads(live.read_text(encoding="utf-8"))["version"]
+    expected = _patch_package_json()["dependencies"]["@wppconnect/wa-js"]
+    assert installed == expected, (
+        f"client/api/node_modules holds @wppconnect/wa-js {installed}, but the "
+        f"homologated pin is {expected}. Re-run setup_api.py."
+    )
+
+
 def _npm_range_allows(pinned: str, npm_range: str) -> bool:
     """Whether an exact version satisfies a single npm range operator.
 
