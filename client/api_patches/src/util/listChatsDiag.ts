@@ -87,16 +87,19 @@ function countOr(value: any, words: string[], fallback: string): string {
   return words.includes(value) ? value : fallback;
 }
 
-/** A short ASCII code from an error text: no digits runs, no ids, no symbols. */
+/**
+ * A closed classification of an error text, never any of its words: an error
+ * message can carry a name or an id (docs/traps/log-pii.md).
+ */
 function errorCode(value: any): string {
   if (typeof value !== 'string' || !value) return 'none';
-  const code = value
-    .replace(/[^A-Za-z0-9_. ]/g, '')
-    .replace(/\d+/g, '#')
-    .trim()
-    .replace(/ +/g, '_')
-    .slice(0, 40);
-  return code || 'other';
+  if (value.includes('returned a non-array')) return 'non_array';
+  if (value.includes('_serializeChatObj is unavailable'))
+    return 'serializer_unavailable';
+  if (/Cannot read|is not a function|is not defined|undefined/i.test(value))
+    return 'js_type_error';
+  if (/time(d)? ?out/i.test(value)) return 'timeout';
+  return 'other';
 }
 
 /** The one-line form of a diagnostic; never throws, never spans two lines. */

@@ -91,6 +91,12 @@ class TestControllerWiring:
         assert "counts.visible === 0 && claimIdbCount(state, now)" in body
         assert "diagStateFor(session)" in body
 
+    def test_the_idb_count_has_its_own_catch_and_never_throws(self, controller):
+        body = _function(controller, "async function countIdbChats(")
+        outer = body[body.index("  try {\n    const evaluation"):]
+        assert "  } catch (_error) {\n    return 'unavailable';\n  } finally {" in outer
+        assert "clearTimeout(timer)" in outer
+
     def test_the_logging_never_throws_into_the_caller(self, controller):
         body = _function(controller, "async function logListChatsDiag(")
         assert body.rstrip().endswith("}")
@@ -137,7 +143,19 @@ const hostile = [
   { idbChats: 'timeout' }, { idbChats: 'evil\nvalue' }, { firstError: 'é中文' },
   { get raw() { throw new Error('boom'); } },
 ];
-out.push({ hostile: hostile.map((h) => mod.formatDiagLine(h)) });
+const errors = [
+  'Joao Silva said "hi" 5511999998888@s.whatsapp.net',
+  "Cannot read properties of undefined (reading Joo)",
+  "x is not a function for 120363012345678901@g.us",
+  "WPP.chat.list returned a non-array value",
+  "WAPI._serializeChatObj is unavailable",
+  "Navigation timed out after 30000 ms",
+  42, "", undefined,
+].map((e) => {
+  const m = /firstError=(\S*)/.exec(mod.formatDiagLine({ firstError: e }));
+  return m[1];
+});
+out.push({ hostile: hostile.map((h) => mod.formatDiagLine(h)), errors });
 const state = mod.diagStateFor('s1');
 const c = (visible, raw = visible) => ({ raw, visible, groups: 0, users: 0, lids: 0, droppedShells: raw - visible });
 const rate = [];
@@ -174,6 +192,10 @@ def _node_can_strip_types() -> bool:
 needs_node = pytest.mark.skipif(
     not _node_can_strip_types(), reason="node with type stripping is not available"
 )
+
+
+ERROR_WORDS = {"none", "non_array", "serializer_unavailable", "js_type_error",
+               "timeout", "other"}
 
 
 def _jid(kind, n):
@@ -268,7 +290,7 @@ class TestDiagnosticsRunUnderNode:
         _assert_safe(line)
         assert "rawFirst=0 rawSecond=7" in line
         assert "recovered=true" in line
-        assert "firstError=WPP.chat.list_returned_a_nonarray_value" in line
+        assert "firstError=non_array " in line
         assert "storeReady=true storeChats=7 idbChats=41 ms=183" in line
 
     def test_undefined_fields_and_odd_ids(self, results):
@@ -293,8 +315,17 @@ class TestDiagnosticsRunUnderNode:
     def test_an_error_text_becomes_a_short_code(self, results):
         line = results[5]["hostile"][7]
         match = re.search(r"firstError=(\S*) ", line)
-        assert match and len(match.group(1)) <= 40
+        assert match and match.group(1) in ERROR_WORDS
         assert results[5]["hostile"][-1] == "[listChats] diag unavailable"
+
+    def test_a_hostile_error_text_maps_to_one_of_the_six_words(self, results):
+        words = results[5]["errors"]
+        assert [w for w in words] == [
+            "other", "js_type_error", "js_type_error", "non_array",
+            "serializer_unavailable", "timeout", "none", "none", "none",
+        ]
+        for word in words:
+            assert word in ERROR_WORDS
 
     def test_idb_words_are_whitelisted(self, results):
         assert "idbChats=timeout" in results[5]["hostile"][8]
