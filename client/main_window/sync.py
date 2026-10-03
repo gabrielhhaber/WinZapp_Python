@@ -1388,7 +1388,8 @@ class SyncMixin:
                     "cached locally — treating the server store as not loaded, so this sync stays "
                     "incomplete and the health checker will retry it. (If every conversation was "
                     "genuinely deleted from another device this retries until the cache is "
-                    "rebuilt — see _settle_deadline_decision.)",
+                    "rebuilt — see _settle_deadline_decision.) What the server saw is in "
+                    "wppconnect.log, the '[listChats] diag' lines.",
                     local_chat_count,
                 )
                 break

@@ -29,6 +29,13 @@ import {
 } from '../dto/sync';
 import { contactToArray, unlinkAsync } from '../util/functions';
 import { buildForwardRuntimeExpression } from '../util/forwardRuntime';
+import {
+  buildDiag,
+  claimIdbCount,
+  diagStateFor,
+  formatDiagLine,
+  shouldLogDiag,
+} from '../util/listChatsDiag';
 import { clientsArray } from '../util/sessionUtil';
 
 function returnSucess(res: any, session: any, phone: any, data: any) {
@@ -179,14 +186,33 @@ export async function getAllChats(req: Request, res: Response) {
  * the page so Python's retry loop cannot start several 900-chat recoveries at
  * once. The healthy path still performs one ordinary WPP.chat.list() call.
  */
-async function listChatsWithStoreRecovery(
+async function listChatsWithDiag(
   req: Request,
   options: Record<string, any>
-): Promise<any[]> {
+): Promise<{ chats: any[]; diag: Record<string, any> }> {
+  const startedAt = Date.now();
   const result: any = await observeEvaluate('list-chats', () =>
     req.client.page.evaluate(
     async ({ listOptions }) => {
       const root = globalThis as any;
+
+      // Diagnostics only (util/listChatsDiag.ts): read, never throw, change nothing.
+      const readStoreState = () => {
+        try {
+          const store = root.WPP?.whatsapp?.ChatStore;
+          const ready =
+            Boolean(root.WPP?.isReady) &&
+            Boolean(root.WPP?.conn?.isMainReady?.()) &&
+            Boolean(store);
+          const size = Number(store?.length);
+          return {
+            storeReady: ready,
+            storeChats: Number.isFinite(size) ? size : undefined,
+          };
+        } catch (_error) {
+          return { storeReady: false, storeChats: undefined };
+        }
+      };
 
       const serialise = async () => {
         try {
@@ -206,7 +232,11 @@ async function listChatsWithStoreRecovery(
 
       const first = await serialise();
       if (first.chats.length > 0) {
-        return { ...first, recovered: false };
+        return {
+          ...first,
+          recovered: false,
+          diag: { rawFirst: first.chats.length, ...readStoreState() },
+        };
       }
 
       // Every concurrent list-chats request awaits the same recovery, and a
@@ -321,6 +351,11 @@ async function listChatsWithStoreRecovery(
         recovered: true,
         firstError: first.error,
         recovery,
+        diag: {
+          rawFirst: first.chats.length,
+          rawSecond: second.chats.length,
+          ...readStoreState(),
+        },
       };
     },
     { listOptions: options }
@@ -340,7 +375,112 @@ async function listChatsWithStoreRecovery(
   if (result?.error && !result?.chats?.length) {
     req.logger.warn(`[listChats] ${result.error}`);
   }
-  return Array.isArray(result?.chats) ? result.chats : [];
+  return {
+    chats: Array.isArray(result?.chats) ? result.chats : [],
+    diag: {
+      ...(result?.diag || {}),
+      recovered: Boolean(result?.recovered),
+      firstError: result?.firstError,
+      ms: Date.now() - startedAt,
+    },
+  };
+}
+
+async function listChatsWithStoreRecovery(
+  req: Request,
+  options: Record<string, any>
+): Promise<any[]> {
+  return (await listChatsWithDiag(req, options)).chats;
+}
+
+/**
+ * Number of records in the `chat` store of the `model-storage` IndexedDB, via
+ * a read-only count(). Bounded twice (3 s in the page, 5 s here) because a
+ * hung IndexedDB must not hold anything up; it answers a word instead of
+ * throwing. Never creates the database: an upgrade is aborted.
+ */
+async function countIdbChats(req: Request): Promise<number | string> {
+  let timer: any;
+  try {
+    const evaluation = observeEvaluate('list-chats-idb-count', () =>
+      req.client.page.evaluate(
+        () =>
+          new Promise<number | string>((resolve) => {
+            const pageTimer = setTimeout(() => resolve('timeout'), 3000);
+            const done = (value: number | string) => {
+              clearTimeout(pageTimer);
+              resolve(value);
+            };
+            try {
+              const open = indexedDB.open('model-storage');
+              open.onupgradeneeded = () => open.transaction?.abort();
+              open.onerror = () => done('unavailable');
+              open.onsuccess = () => {
+                const db = open.result;
+                try {
+                  const counting = db
+                    .transaction('chat', 'readonly')
+                    .objectStore('chat')
+                    .count();
+                  counting.onsuccess = () => {
+                    db.close();
+                    done(counting.result);
+                  };
+                  counting.onerror = () => {
+                    db.close();
+                    done('unavailable');
+                  };
+                } catch (_error) {
+                  db.close();
+                  done('unavailable');
+                }
+              };
+            } catch (_error) {
+              done('unavailable');
+            }
+          })
+      )
+    );
+    // The race can be lost by the evaluate; its late rejection is not news.
+    evaluation.catch(() => undefined);
+    return await Promise.race([
+      evaluation,
+      new Promise<string>((resolve) => {
+        timer = setTimeout(() => resolve('timeout'), 5000);
+      }),
+    ]);
+  } catch (_error) {
+    return 'unavailable';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * One counts-only line saying what the server saw (util/listChatsDiag.ts).
+ * Runs after the response is sent and swallows every error, so it can change
+ * neither the answer nor its timing.
+ */
+async function logListChatsDiag(
+  req: Request,
+  rawChats: any[],
+  visibleChats: any[],
+  pageDiag: Record<string, any>
+): Promise<void> {
+  try {
+    const counts = buildDiag(rawChats, visibleChats);
+    const now = Date.now();
+    const session = String(req.params?.session || req.session || '').split(':')[0];
+    const state = diagStateFor(session);
+    if (!shouldLogDiag(state, counts, now)) return;
+    const idbChats =
+      counts.visible === 0 && claimIdbCount(state, now)
+        ? await countIdbChats(req)
+        : 'skipped';
+    req.logger.info(formatDiagLine({ ...pageDiag, ...counts, idbChats }));
+  } catch (_error) {
+    // Diagnostics must never surface.
+  }
 }
 
 export async function listChats(req: Request, res: Response) {
@@ -441,7 +581,7 @@ export async function listChats(req: Request, res: Response) {
     if (ignoreGroupMetadata !== undefined)
       options.ignoreGroupMetadata = ignoreGroupMetadata;
 
-    const chats = await listChatsWithStoreRecovery(req, options);
+    const { chats, diag } = await listChatsWithDiag(req, options);
 
     // WhatsApp Web creates one-to-one ChatStore entries for group participants
     // when it receives only an encryption-key notification from them. These are
@@ -465,6 +605,7 @@ export async function listChats(req: Request, res: Response) {
         endpoint: 'list-chats',
       })
     );
+    void logListChatsDiag(req, chats, visibleChats, diag);
   } catch (e) {
     req.logger.error(e);
     res
