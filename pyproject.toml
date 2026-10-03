@@ -3,6 +3,8 @@ name = "winzapp"
 version = "0.0.0"
 description = "Accessible, self-hosted Windows WhatsApp desktop client"
 readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "accessible-output2==0.17",
