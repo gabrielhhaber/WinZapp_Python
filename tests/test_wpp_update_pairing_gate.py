@@ -95,8 +95,9 @@ class _PromptMainWindowStub:
     def wpp_update_may_run_now(self):
         return self._may_run
 
-    def _update_wpp_server(self, tag):
+    def _update_wpp_server(self, tag, on_finished=None):
         self.updated_to = tag
+        return True
 
 
 @pytest.fixture
@@ -105,6 +106,8 @@ def checker_factory(monkeypatch):
         checker = WppUpdateChecker.__new__(WppUpdateChecker)
         checker._mw = _PromptMainWindowStub(may_run)
         checker._retry_timer = None
+        checker._declined_tag = None
+        checker._prompt_token = None
         checker.scheduled = []
         checker._schedule_retry = lambda interval=None: checker.scheduled.append(interval)
         return checker

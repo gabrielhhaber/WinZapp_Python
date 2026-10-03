@@ -573,11 +573,16 @@ def is_update_in_progress(global_dir: str,
 _PROMPT_FILE = "update_prompt.json"
 
 
-def _prompt_path(global_dir: str) -> str:
-    return os.path.join(global_dir, _PROMPT_FILE)
+#: The WPPConnect Server prompt has its own claim: it asks about a different
+#: thing than the WinZapp prompt, and the two must not suppress each other.
+WPP_PROMPT_FILE = "wpp_update_prompt.json"
 
 
-def _read_prompt(global_dir: str):
+def _prompt_path(global_dir: str, name: str = _PROMPT_FILE) -> str:
+    return os.path.join(global_dir, name)
+
+
+def _read_prompt(global_dir: str, name: str = _PROMPT_FILE):
     """Return the claim dict, or _CORRUPT if the file exists but is unreadable
     or fails validation.
 
@@ -588,7 +593,7 @@ def _read_prompt(global_dir: str):
     dialog — while treating it as held would silently suppress update prompts
     on every account, forever, with nothing to show the user why.
     """
-    path = _prompt_path(global_dir)
+    path = _prompt_path(global_dir, name)
     if not os.path.lexists(path):
         return None
     if not os.path.isfile(path):
@@ -609,16 +614,17 @@ def _read_prompt(global_dir: str):
 
 
 def _prompt_holder_locked(global_dir: str,
-                          is_alive: Callable[[int, float], bool]) -> "dict | None":
+                          is_alive: Callable[[int, float], bool],
+                          name: str = _PROMPT_FILE) -> "dict | None":
     """Caller holds updater_lock. Returns the live holder, or None. A dead or
     corrupt claim is cleared on the way past, so it blocks nobody twice."""
-    claim = _read_prompt(global_dir)
+    claim = _read_prompt(global_dir, name)
     if claim is None:
         return None
     if claim is _CORRUPT or not is_alive(int(claim["owner_pid"]),
                                          float(claim["owner_create_time"])):
         try:
-            os.remove(_prompt_path(global_dir))
+            os.remove(_prompt_path(global_dir, name))
         except OSError:
             pass
         return None
@@ -628,7 +634,8 @@ def _prompt_holder_locked(global_dir: str,
 def try_claim_update_prompt(global_dir: str, version: str,
                             pid: Optional[int] = None,
                             create_time: Optional[float] = None,
-                            is_alive: Callable[[int, float], bool] = prompt_owner_alive):
+                            is_alive: Callable[[int, float], bool] = prompt_owner_alive,
+                            name: str = _PROMPT_FILE):
     """Claim the right to ask the user about an update. Returns an owner-token
     dict, or None when another live process is already asking.
 
@@ -640,30 +647,30 @@ def try_claim_update_prompt(global_dir: str, version: str,
     """
     pid, create_time = _resolve_identity(pid, create_time)
     with updater_lock(global_dir):
-        holder = _prompt_holder_locked(global_dir, is_alive)
+        holder = _prompt_holder_locked(global_dir, is_alive, name)
         if holder is not None and int(holder["owner_pid"]) != pid:
             return None
         token = {"owner_pid": pid, "owner_create_time": create_time,
                  "owner_token": uuid.uuid4().hex}
-        _atomic_write(_prompt_path(global_dir),
+        _atomic_write(_prompt_path(global_dir, name),
                       {"version": str(version), "claimed_at": int(time.time()), **token})
         return token
 
 
-def release_update_prompt(global_dir: str, token: dict) -> bool:
+def release_update_prompt(global_dir: str, token: dict, name: str = _PROMPT_FILE) -> bool:
     """Release a claim from try_claim_update_prompt. Only the matching
     owner_token may release, so a checker that claims again after a decline
     cannot be cleared by its own earlier dialog closing late."""
     if not isinstance(token, dict) or not token.get("owner_token"):
         return False
     with updater_lock(global_dir):
-        claim = _read_prompt(global_dir)
+        claim = _read_prompt(global_dir, name)
         if claim is _CORRUPT or claim is None:
             return False
         if claim.get("owner_token") != token["owner_token"]:
             return False
         try:
-            os.remove(_prompt_path(global_dir))
+            os.remove(_prompt_path(global_dir, name))
         except OSError:
             return False
         return True

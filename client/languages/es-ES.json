@@ -488,6 +488,7 @@
     "wpp_update_available_title": "Actualización de WPPConnect disponible",
     "wpp_update_available_msg": "Hay una actualización recomendada de WPPConnect Server disponible (actual: {current}, nueva: {new}). No es obligatoria. ¿Deseas actualizar ahora? WinZapp detendrá la API, instalará la nueva versión y la reiniciará automáticamente.",
     "wpp_update_in_progress": "Actualizando WPPConnect. Espera un momento.",
+    "wpp_update_other_account_msg": "Otra cuenta de WinZapp todavía está usando WPPConnect Server. Cierra las demás cuentas e inténtalo de nuevo.",
     "wpp_update_complete": "WPPConnect actualizada y reiniciada con éxito.",
     "wpp_update_failed_msg": "No se pudo actualizar WPPConnect. Se mantendrá la instalación anterior, si es posible.",
     "wpp_update_fetch_failed_msg": "No se pudo comprobar la versión más reciente de WPPConnect. Verifica tu conexión a internet e inténtalo de nuevo.",

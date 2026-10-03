@@ -488,6 +488,7 @@
   "wpp_update_available_title": "WPPConnect güncellemesi mevcut",
   "wpp_update_available_msg": "WPPConnect Server için önerilen bir güncelleme mevcut (mevcut: {current}, yeni: {new}). Zorunlu değildir. Şimdi güncellensin mi? WinZapp API'yi durduracak, yeni sürümü yükleyecek ve otomatik olarak yeniden başlatacaktır.",
   "wpp_update_in_progress": "WPPConnect güncelleniyor. Lütfen bekleyin.",
+  "wpp_update_other_account_msg": "Başka bir WinZapp hesabı hâlâ WPPConnect Server'ı kullanıyor. Diğer hesapları kapatıp tekrar deneyin.",
   "wpp_update_complete": "WPPConnect güncellendi ve başarıyla yeniden başlatıldı.",
   "wpp_update_failed_msg": "WPPConnect güncellenemedi. Mümkünse önceki kurulum korunacaktır.",
   "wpp_update_fetch_failed_msg": "En son WPPConnect sürümü denetlenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.",

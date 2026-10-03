@@ -113,6 +113,7 @@ class _FetchStub:
     def __init__(self, fail=True):
         self._mw = type("MW", (), {})()
         self._fail = fail
+        self._fetch_failures = 0
         self.retries = []
         self._force = False
 
@@ -191,20 +192,81 @@ def test_a_hidden_parent_gets_the_dialog_raised_and_focused(monkeypatch):
     spoken = []
     dlg = _Dlg()
     _arm(monkeypatch, True, dlg, lambda: spoken.append("x"))
-    assert dlg.raised and spoken == []
+    assert dlg.raised and spoken == ["x"]
 
 
-def test_when_windows_refuses_the_foreground_the_dialog_is_spoken(monkeypatch):
+def test_the_prompt_is_spoken_before_the_raise_is_even_attempted(monkeypatch):
+    order = []
+    timers = []
+    monkeypatch.setattr(front.wx, "CallLater", lambda ms, fn: timers.append(fn))
+    monkeypatch.setattr(front, "force_foreground", lambda hwnd: order.append("raise") or True)
+    front.bring_to_front_if_hidden(type("W", (), {"_window_hidden": True})(), _Dlg(),
+                                   lambda: order.append("speak"))
+    assert order == ["speak"]       # before the timer has fired at all
+    timers[0]()
+    assert order == ["speak", "raise"]
+
+
+def test_a_dialog_that_never_reports_shown_was_still_announced(monkeypatch):
+    """A native message box reports IsShown() False and has no wx handle: the
+    announcement must not depend on either."""
     spoken = []
-    _arm(monkeypatch, False, _Dlg(), lambda: spoken.append("x"))
+    dlg = _Dlg(shown=False)
+    _arm(monkeypatch, False, dlg, lambda: spoken.append("x"))
+    assert not dlg.raised and spoken == ["x"]
+
+
+def test_a_raise_that_throws_leaves_the_announcement_standing(monkeypatch):
+    spoken = []
+
+    class _Broken(_Dlg):
+        def GetHandle(self):
+            raise OSError("no handle")
+
+    _arm(monkeypatch, True, _Broken(), lambda: spoken.append("x"))
     assert spoken == ["x"]
+
+
+def test_a_null_handle_is_never_forced():
+    assert front.force_foreground(0) is False
+
+
+@pytest.mark.parametrize("style, ids, default, escape", [
+    (front.wx.YES_NO | front.wx.NO_DEFAULT, [front.wx.ID_YES, front.wx.ID_NO], front.wx.ID_NO, front.wx.ID_NO),
+    (front.wx.YES_NO, [front.wx.ID_YES, front.wx.ID_NO], front.wx.ID_YES, front.wx.ID_NO),
+    (front.wx.OK | front.wx.ICON_ERROR, [front.wx.ID_OK], front.wx.ID_OK, front.wx.ID_OK),
+])
+def test_the_hidden_message_has_the_buttons_and_default_of_the_native_box(style, ids, default, escape):
+    assert front.message_box_buttons(style) == (ids, default, escape)
+
+
+def test_a_hidden_window_gets_the_real_dialog_and_wx_answers(monkeypatch):
+    built, destroyed = [], []
+
+    class _Message:
+        def __init__(self, parent, message, title, style):
+            built.append((message, title, style))
+
+        def ShowModal(self):
+            return front.wx.ID_YES
+
+        def Destroy(self):
+            destroyed.append(True)
+
+    monkeypatch.setattr(front, "_HiddenParentMessage", _Message)
+    monkeypatch.setattr(front.wx, "CallLater", lambda *a: None)
+    spoken = []
+    mw = type("W", (), {"_window_hidden": True})()
+    answer = front.message_box(mw, "m", "t", front.wx.YES_NO, lambda: spoken.append("x"))
+    assert answer == front.wx.YES and built == [("m", "t", front.wx.YES_NO)]
+    assert destroyed == [True] and spoken == ["x"]
 
 
 def test_a_dialog_already_closed_is_left_alone(monkeypatch):
     spoken = []
     dlg = _Dlg(shown=False)
-    _arm(monkeypatch, False, dlg, lambda: spoken.append("x"))
-    assert not dlg.raised and spoken == []
+    _arm(monkeypatch, False, dlg, None)
+    assert not dlg.raised
 
 
 def test_message_box_is_a_plain_message_box_while_the_window_is_visible(monkeypatch):

@@ -18,6 +18,8 @@ from updater import WppUpdateChecker, wpp_update_target
     ("2.10.18", "v2.10.16", "v2.10.20", ("v2.10.20", False)),
     # installed < minimum: required, and the target is at least the minimum
     ("2.10.10", "v2.10.16", "v2.10.20", ("v2.10.20", True)),
+    ("2.10.10", "v2.10.16", "garbage", ("v2.10.16", True)),    # unparseable == unreachable
+    ("2.10.16", "v2.10.16", "garbage", None),
     ("2.10.10", "v2.10.16", "", ("v2.10.16", True)),          # GitHub unreachable
     ("2.10.10", "v2.10.16", "v2.10.12", ("v2.10.16", True)),  # latest < minimum
     # nothing to offer
@@ -64,6 +66,8 @@ def _checker(monkeypatch, installed, minimum, latest):
     checker = WppUpdateChecker.__new__(WppUpdateChecker)
     checker._mw = _MW(installed)
     checker._retry_timer = None
+    checker._declined_tag = None
+    checker._prompt_token = None
     checker._schedule_retry = lambda interval=None: retries.append(interval)
     return checker, prompts, retries
 
@@ -128,10 +132,12 @@ def _prompt(monkeypatch, required, answer):
         " {current} {required}" if key.startswith("api_") else " {current} {new}")})()
     mw.wpp_update_may_run_now = lambda: True
     mw.updated = []
-    mw._update_wpp_server = mw.updated.append
+    mw._update_wpp_server = lambda tag, on_finished=None: mw.updated.append(tag) or True
     checker = WppUpdateChecker.__new__(WppUpdateChecker)
     checker._mw = mw
     checker._retry_timer = None
+    checker._declined_tag = None
+    checker._prompt_token = None
     checker._schedule_retry = lambda interval=None: None
     checker._prompt_update("2.10.10", "2.10.16", "v2.10.16", required)
     return checker, shown, mw
