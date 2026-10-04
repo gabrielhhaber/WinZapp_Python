@@ -363,6 +363,7 @@ class _NavWindow:
     def __init__(self):
         self.conversations_panel = _Shown()
         self.conversations_panel.conversation = None
+        self.conversations_panel._detail_on_screen = lambda: False
         self.archived_conversations_panel = _Shown()
         self.locked_conversations_panel = _Shown()
         self.status_panel = _Shown()
