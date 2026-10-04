@@ -79,17 +79,17 @@ class AccessibleSearchInConversation(wx.Accessible):
 
 
 class AccessibleSearchNextResult(wx.Accessible):
-    """Reports Enter as the keyboard shortcut for the next-result button."""
+    """Reports F3 as the keyboard shortcut for the next-result button."""
 
     def GetKeyboardShortcut(self, childId):
-        return (wx.ACC_OK, "Enter")
+        return (wx.ACC_OK, "F3")
 
 
 class AccessibleSearchPrevResult(wx.Accessible):
-    """Reports Shift+Enter as the keyboard shortcut for the previous-result button."""
+    """Reports Shift+F3 as the keyboard shortcut for the previous-result button."""
 
     def GetKeyboardShortcut(self, childId):
-        return (wx.ACC_OK, "Shift+Enter")
+        return (wx.ACC_OK, "Shift+F3")
 
 
 class AccessibleStatusPrev(wx.Accessible):

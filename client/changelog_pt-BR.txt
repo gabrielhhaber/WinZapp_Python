@@ -78,6 +78,8 @@ MELHORIAS
 
 - A biblioteca do WhatsApp que o WinZapp usa foi atualizada. As notas dos desenvolvedores dela listam correções para criar grupos, obter e redefinir links de convite de grupo, editar a descrição do grupo, mudar seu nome de perfil e enviar mídia em versões recentes do WhatsApp Web. Se o WinZapp oferecer a atualização do WPPConnect ao iniciar, aceite para instalar a nova biblioteca.
 
+- Pesquisa na conversa com F3 e Shift+F3. Agora dá para ir ao próximo resultado com F3 e ao anterior com Shift+F3 de qualquer lugar da conversa aberta, inclusive da lista de mensagens, sem precisar voltar ao campo de pesquisa; o foco acompanha o resultado e o leitor de tela anuncia a posição. Enter e Shift+Enter continuam funcionando como alternativa, mas só dentro do campo de pesquisa, porque na lista de mensagens eles já têm outras funções. Os botões "Resultado anterior" e "Próximo resultado" passam a anunciar Shift+F3 e F3, e a ajuda de atalhos foi atualizada.
+
 CORREÇÕES
 
 - O desinstalador agora segue o idioma de exibição do Windows, como o instalador, em vez de aparecer sempre em português.
