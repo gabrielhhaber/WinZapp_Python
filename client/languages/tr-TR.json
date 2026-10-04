@@ -1258,6 +1258,8 @@
   "selected": "Seçildi",
   "selected_suffix": "seçildi",
   "forward_failed_multiple": "Mesaj şu kişilere iletilemedi: {names}",
+  "forward_done": "Mesaj iletildi.",
+  "forward_done_multiple": "{count} mesaj iletildi.",
   "mass_actions": "Toplu işlemler",
   "clear_selected_chats": "Seçili sohbetleri temizle",
   "delete_selected_chats": "Seçili sohbetleri sil",

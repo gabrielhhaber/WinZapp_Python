@@ -1202,6 +1202,8 @@
     "selected": "Selectat",
     "selected_suffix": "selectat",
     "forward_failed_multiple": "Nu s-a putut redirecționa mesajul către: {names}",
+    "forward_done": "Mesajul a fost redirecționat.",
+    "forward_done_multiple": "Mesaje redirecționate: {count}.",
     "mass_actions": "Acțiuni în bloc",
     "clear_selected_chats": "Goliți conversațiile selectate",
     "delete_selected_chats": "Ștergeți conversațiile selectate",

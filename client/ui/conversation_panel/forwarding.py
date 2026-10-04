@@ -17,6 +17,28 @@ from ui.conversation_panel.selection_rules import (
 )
 
 
+def forward_outcome(i18n, forwarded: int, failed_names, target_count: int):
+    """What to tell the user once a forward is over: (kind, text).
+
+    "failed" names what did not go through and is spoken with the error
+    sound, as before. "done" is the confirmation, shown in a message box:
+    the forward happens in the background and its copy lands in another
+    chat, so without it nothing at all told the user it had worked. None
+    when nothing was attempted (every message was skipped).
+    """
+    failed_names = sorted(failed_names or ())
+    if failed_names:
+        if target_count == 1:
+            return "failed", i18n.t("forward_failed")
+        return "failed", i18n.t("forward_failed_multiple").format(
+            names=", ".join(failed_names))
+    if forwarded <= 0:
+        return None, ""
+    if forwarded == 1:
+        return "done", i18n.t("forward_done")
+    return "done", i18n.t("forward_done_multiple").format(count=forwarded)
+
+
 class ForwardingMixin:
     """Forwarding messages to other chats.
     """
@@ -408,41 +430,53 @@ class ForwardingMixin:
         targets = list(zip(target_jids, target_names))
         keep_captions = chk_keep_caption.GetValue() if chk_keep_caption else False
 
-        def _do_forward():
-            failed_names = set()
-            for i, m in enumerate(msgs_to_forward):
-                # A short gap between messages when forwarding several at
-                # once: back-to-back forwardMessagesV2 calls with no pause
-                # are the trigger for the transient failure forward_message()
-                # retries against (see its own comment) — spacing them out
-                # here means most of the time the retry never has to fire.
-                if i > 0:
-                    time.sleep(0.4)
-                msg_key = m.get("key", {}) or {}
-                source_jid = msg_key.get("remoteJid") or (self.conversation.get("remoteJid", "") if self.conversation else "")
-                if not source_jid or not msg_key.get("id"):
-                    continue
-                # Decided per message, never once for the batch: the
-                # caption-preserving path is a media resend, so handing it a
-                # plain text message (which a mass forward mixes in freely)
-                # would push that message through the media call.
-                keep = keep_captions and bool(message_caption(m))
-                f_names = self._forward_message_to_targets(
-                    m, targets, keep_caption=keep, source_jid_override=source_jid
-                )
-                failed_names.update(f_names)
+        threading.Thread(
+            target=self._forward_batch,
+            args=(msgs_to_forward, targets, keep_captions),
+            daemon=True,
+        ).start()
 
-            if failed_names:
-                wx.CallAfter(mw.error_sound.play)
-                if len(targets) == 1:
-                    wx.CallAfter(mw.output, i18n.t("forward_failed"))
-                else:
-                    wx.CallAfter(
-                        mw.output,
-                        i18n.t("forward_failed_multiple").format(names=", ".join(failed_names)),
-                    )
+    #: Pause between two messages of one batch — see _forward_batch().
+    _FORWARD_GAP_SECONDS = 0.4
 
-        threading.Thread(target=_do_forward, daemon=True).start()
+    def _forward_batch(self, msgs_to_forward: list, targets: list, keep_captions: bool):
+        """Worker thread: forward every message to every target, then say how
+        it went (forward_outcome())."""
+        mw = self.main_window
+        failed_names = set()
+        forwarded = 0
+        for i, m in enumerate(msgs_to_forward):
+            # A short gap between messages when forwarding several at
+            # once: back-to-back forwardMessagesV2 calls with no pause
+            # are the trigger for the transient failure forward_message()
+            # retries against (see its own comment) — spacing them out
+            # here means most of the time the retry never has to fire.
+            if i > 0:
+                time.sleep(self._FORWARD_GAP_SECONDS)
+            msg_key = m.get("key", {}) or {}
+            source_jid = msg_key.get("remoteJid") or (self.conversation.get("remoteJid", "") if self.conversation else "")
+            if not source_jid or not msg_key.get("id"):
+                continue
+            # Decided per message, never once for the batch: the
+            # caption-preserving path is a media resend, so handing it a
+            # plain text message (which a mass forward mixes in freely)
+            # would push that message through the media call.
+            keep = keep_captions and bool(message_caption(m))
+            f_names = self._forward_message_to_targets(
+                m, targets, keep_caption=keep, source_jid_override=source_jid
+            )
+            failed_names.update(f_names)
+            forwarded += 1
+
+        kind, text = forward_outcome(mw.i18n, forwarded, failed_names, len(targets))
+        if kind == "failed":
+            wx.CallAfter(mw.error_sound.play)
+            wx.CallAfter(mw.output, text)
+        elif kind == "done":
+            wx.CallAfter(
+                wx.MessageBox, text, mw.i18n.t("forward_message"),
+                wx.OK | wx.ICON_INFORMATION, mw,
+            )
 
     def _forward_message_to_targets(self, msg: dict, targets: list, keep_caption: bool = False, source_jid_override: str = "") -> list:
         """Forward one message to each (jid, name) pair in *targets*, one at

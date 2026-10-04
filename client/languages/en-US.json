@@ -1258,6 +1258,8 @@
     "selected": "Selected",
     "selected_suffix": "selected",
     "forward_failed_multiple": "Could not forward the message to: {names}",
+    "forward_done": "Message forwarded.",
+    "forward_done_multiple": "{count} messages forwarded.",
     "mass_actions": "Bulk actions",
     "clear_selected_chats": "Clear selected chats",
     "delete_selected_chats": "Delete selected chats",

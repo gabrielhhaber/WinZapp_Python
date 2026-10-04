@@ -1258,6 +1258,8 @@
     "selected": "Seleccionado",
     "selected_suffix": "seleccionado",
     "forward_failed_multiple": "No se pudo reenviar el mensaje a: {names}",
+    "forward_done": "Mensaje reenviado.",
+    "forward_done_multiple": "{count} mensajes reenviados.",
     "mass_actions": "Acciones en masa",
     "clear_selected_chats": "Vaciar conversaciones seleccionadas",
     "delete_selected_chats": "Eliminar conversaciones seleccionadas",
