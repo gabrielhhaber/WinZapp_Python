@@ -56,6 +56,8 @@ YENİLİKLER
 
 - Sesli mesajları sesli mesaj olarak iletme. WhatsApp iletilen her sesli mesajı sıradan bir ses dosyasına çevirir; bu da onu hedef sohbetteki sesli mesajların art arda oynatılmasının dışında bırakır. Ayarlar > Kullanıcı Arayüzü sekmesinde "Sesli mesajları ses dosyası yerine sesli mesaj olarak ilet" seçeneği işaretlendiğinde kopya sesli mesaj olarak ulaşır ve yine iletildi olarak işaretlenir. Seçenek varsayılan olarak kapalıdır.
 
+- Güncellemeleri arka planda indirme. Ayarlar > Genel sekmesinde "Güncellemeleri ilerleme penceresi olmadan arka planda indir" seçeneği işaretlendiğinde, kabul ettiğiniz bir WinZapp veya WPPConnect güncellemesi ilerleme penceresi olmadan indirilir ve siz programı bağlı durumda, normal şekilde kullanmaya devam edersiniz. WinZapp ancak güncelleme hazır olduğunda yükleyeceğini bildirir: WinZapp güncellemesinde kapanıp yeniden açılır; WPPConnect güncellemesinde ise tüm indirme ve kurulum boyunca değil, yalnızca sürümü değiştirip yeniden başlatmak için gereken kısa süre boyunca çevrimdışı olur. Bir arama sürüyorsa bildirim aramanın bitmesini bekler. Seçenek tüm hesaplar için geçerlidir ve varsayılan olarak kapalıdır.
+
 İYİLEŞTİRMELER
 
 - Yazım denetimi: hata sesi artık yalnızca boşluk değil, yanlış yazılmış bir sözcüğün hemen ardından noktalama işareti (virgül, nokta, soru işareti vb.) yazıldığında ve imleç ok tuşları, Ctrl+ok tuşları, Home, End veya fareyle yanlış yazılmış bir sözcüğe geldiğinde de çalıyor.

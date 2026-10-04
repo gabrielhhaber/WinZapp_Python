@@ -14,6 +14,7 @@
         "keep_muted_chats_silent_when_open": true,
         "updates_enabled": true,
         "alpha_updates_enabled": false,
+        "background_update_downloads": false,
         "noise_reduction_enabled": false,
         "voice_message_stereo": false,
         "system_audio_recording_volume": 100,

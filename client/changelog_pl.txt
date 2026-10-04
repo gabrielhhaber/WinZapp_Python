@@ -56,6 +56,8 @@ NOWOŚCI
 
 - Przekazywanie wiadomości głosowych dalej jako wiadomości głosowych. WhatsApp zamienia każdą przekazaną dalej wiadomość głosową w zwykłe audio, przez co wypada ona z odtwarzania wiadomości głosowych po kolei w czacie docelowym. Po zaznaczeniu „Przekazuj dalej wiadomości głosowe jako wiadomości głosowe, a nie jako audio” na karcie Interfejs użytkownika w Ustawieniach kopia dociera jako wiadomość głosowa i nadal jest oznaczona jako przekazana dalej. Opcja jest domyślnie wyłączona.
 
+- Pobieranie aktualizacji w tle. Po zaznaczeniu „Pobieraj aktualizacje w tle, bez okna postępu” na karcie Ogólne w Ustawieniach zaakceptowana aktualizacja, WinZapp lub WPPConnect, jest pobierana bez okna postępu, a Ty nadal normalnie korzystasz z programu, będąc połączonym. Dopiero gdy jest gotowa, WinZapp informuje, że zaraz ją zainstaluje: przy aktualizacji samego WinZapp zamyka się i uruchamia ponownie; przy aktualizacji WPPConnect przechodzi w tryb offline tylko na chwilę potrzebną do podmiany wersji i jej ponownego uruchomienia, a nie na cały czas pobierania i instalacji. Jeśli trwa połączenie, powiadomienie czeka na jego zakończenie. Opcja dotyczy wszystkich kont i jest domyślnie wyłączona.
+
 ULEPSZENIA
 
 - Sprawdzanie pisowni: dźwięk błędu odtwarzany jest teraz także po wpisaniu znaku interpunkcyjnego (przecinka, kropki, znaku zapytania itd.) tuż po błędnie napisanym słowie, a nie tylko spacji, oraz gdy kursor trafia na błędnie napisane słowo za pomocą strzałek, Ctrl+strzałek, Home, End lub myszy.

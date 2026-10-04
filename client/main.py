@@ -267,6 +267,7 @@ from main_window.window_chrome import WindowChromeMixin
 from main_window.connection import ConnectionMixin
 from main_window.sync import SyncMixin
 from main_window.updates import UpdatesMixin
+from main_window.wpp_background_update import WppBackgroundUpdateMixin
 from main_window.window_lifecycle import WindowLifecycleMixin
 from main_window.chat_list import ChatListMixin
 from main_window.calls import CallsMixin
@@ -310,6 +311,7 @@ class MainWindow(
     ConnectionMixin,
     SyncMixin,
     UpdatesMixin,
+    WppBackgroundUpdateMixin,
     WindowLifecycleMixin,
     ChatListMixin,
     CallsMixin,

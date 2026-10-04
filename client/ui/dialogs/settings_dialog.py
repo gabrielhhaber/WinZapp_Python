@@ -371,6 +371,14 @@ class SettingsDialog(wx.Dialog):
         self._alpha_updates_check.SetToolTip(i18n.t("alpha_updates_tooltip"))
         gen_sizer.Add(self._alpha_updates_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        # Off by default: an accepted update (WinZapp's or the WPPConnect
+        # Server's) downloads with no progress window, and the app is only
+        # interrupted once it is ready to install (update_background.py).
+        self._background_updates_check = wx.CheckBox(
+            self._general_page, label=i18n.t("background_updates_label")
+        )
+        gen_sizer.Add(self._background_updates_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         self._hotkey_label = wx.StaticText(self._general_page, label=i18n.t("global_hotkey_label"))
         gen_sizer.Add(
             self._hotkey_label,
@@ -1564,6 +1572,11 @@ class SettingsDialog(wx.Dialog):
             "alpha_updates_enabled", False
         )
         self._alpha_updates_check.SetValue(alpha_updates)
+
+        background_updates = self.main_window.settings.get("general", {}).get(
+            "background_update_downloads", False
+        )
+        self._background_updates_check.SetValue(background_updates)
 
         hk = self.main_window.settings.get("general", {}).get("global_hotkey")
         if hk and isinstance(hk, dict) and hk.get("vk"):
@@ -3213,6 +3226,9 @@ class SettingsDialog(wx.Dialog):
         self.main_window.settings.setdefault("general", {})["alpha_updates_enabled"] = (
             self._alpha_updates_check.GetValue()
         )
+        self.main_window.settings.setdefault("general", {})["background_update_downloads"] = (
+            self._background_updates_check.GetValue()
+        )
 
         # Account switch behavior
         new_switch_behavior = (
@@ -3470,6 +3486,7 @@ class SettingsDialog(wx.Dialog):
         self._tray_icon_check.SetLabel(i18n.t("tray_show_icon"))
         self._updates_check.SetLabel(i18n.t("updates_label"))
         self._alpha_updates_check.SetLabel(i18n.t("alpha_updates_label"))
+        self._background_updates_check.SetLabel(i18n.t("background_updates_label"))
         self._alpha_updates_check.SetToolTip(i18n.t("alpha_updates_tooltip"))
         self._language_label.SetLabel(i18n.t("language_label"))
         self._switch_behavior_box.SetLabel(i18n.t("acc_switch_behavior_label"))

@@ -30,6 +30,12 @@ from core.release_signature import SIGNATURE_ASSET_NAME, check_release_manifest
 from core.dialog_foreground import bring_to_front_if_hidden, message_box, parent_is_hidden
 from core.wpp_runtime import homologated_wpp_tag
 from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
+from update_background import (
+    BackgroundDownloadMixin,
+    background_downloads_enabled,
+    discard_package,
+)
+from update_package import download_update_package
 from version import __version__
 
 
@@ -836,7 +842,7 @@ class UpdateProgressDialog(wx.Dialog):
     """
 
     def __init__(self, parent, new_version: str, main_window, zip_url: str, sha256sums_url: str = "",
-                 signature_url: str = "", is_alpha: bool = False):
+                 signature_url: str = "", is_alpha: bool = False, extracted_dir: str = ""):
         i18n = main_window.i18n
         super().__init__(
             parent,
@@ -849,6 +855,9 @@ class UpdateProgressDialog(wx.Dialog):
         self._sha256sums_url = sha256sums_url
         self._signature_url  = signature_url
         self._is_alpha       = is_alpha
+        # A package a background download already fetched, verified and
+        # extracted (update_background.py): only the install phase is left.
+        self._extracted_dir  = extracted_dir
         self._cancelled      = False
         self._install_ok     = False
         self._error_msg      = ""
@@ -887,73 +896,28 @@ class UpdateProgressDialog(wx.Dialog):
         update_token = None
         installer_handed_off = False
         try:
-            # ── Download ──────────────────────────────────────────────────────
-            zip_fd, zip_path = tempfile.mkstemp(suffix=".zip", prefix="winzapp_upd_")
-            os.close(zip_fd)
-
-            logging.info("Auto-updater: Downloading ZIP from %s to %s", self._zip_url, zip_path)
-            resp = requests.get(self._zip_url, stream=True, timeout=60)
-            resp.raise_for_status()
-
-            total = int(resp.headers.get("content-length", 0))
-            downloaded = 0
-            with open(zip_path, "wb") as f:
-                for chunk in resp.iter_content(chunk_size=65536):
-                    if self._cancelled:
-                        logging.info("Auto-updater: Download cancelled by user.")
-                        return
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if total:
-                        pct = min(int(downloaded * 100 / total), 99)
-                        wx.CallAfter(self._gauge.SetValue, pct)
-
-            if self._cancelled:
-                logging.info("Auto-updater: Download cancelled by user.")
-                return
-
-            logging.info("Auto-updater: Download completed successfully.")
-
-            # ── Verify integrity ─────────────────────────────────────────────────
-            # Before this ZIP is trusted with elevated write access to the
-            # install directory (below), confirm it's byte-for-byte what CI
-            # actually built — not a MITM'd download or a tampered/hijacked
-            # release edit. See _verify_sha256sums()'s docstring for the
-            # fail-open/fail-closed policy.
-            filename = os.path.basename(self._zip_url.split("?")[0])
-            ok, detail = _verify_sha256sums(
-                zip_path, filename, self._sha256sums_url,
-                signature_url=self._signature_url,
-                expected_version=self._new_version,
-                is_alpha=self._is_alpha,
-            )
-            if not ok:
-                logging.error("Auto-updater: Checksum verification failed for %s: %s", filename, detail)
-                try:
-                    os.remove(zip_path)
-                except OSError:
-                    pass
-                self._error_msg = self._main_window.i18n.t("update_checksum_mismatch").format(detail=detail)
-                wx.CallAfter(self.EndModal, wx.ID_ABORT)
-                return
-
-            # ── Extract ───────────────────────────────────────────────────────
-            extract_dir = tempfile.mkdtemp(prefix="winzapp_ext_")
-            logging.info("Auto-updater: Extracting update to %s", extract_dir)
-            with zipfile.ZipFile(zip_path, "r") as zf:
-                _safe_extract_zip(zf, extract_dir)
-            os.remove(zip_path)
-
-            # If the ZIP placed all files inside a single top-level folder,
-            # point extract_dir at that folder so xcopy copies the contents.
-            _entries = [e for e in os.listdir(extract_dir) if not e.startswith(".")]
-            if len(_entries) == 1 and os.path.isdir(
-                os.path.join(extract_dir, _entries[0])
-            ):
-                extract_dir = os.path.join(extract_dir, _entries[0])
+            # ── Download, verify, extract ─────────────────────────────────────
+            # Skipped when a background download already did it. The steps
+            # themselves are update_package.download_update_package(), shared
+            # with that path so both install exactly the same verified bytes.
+            extract_dir = getattr(self, "_extracted_dir", "")
+            if not extract_dir:
+                package = download_update_package(
+                    self._zip_url, self._sha256sums_url, self._signature_url,
+                    self._new_version, self._is_alpha, self._main_window.i18n,
+                    on_progress=lambda pct: wx.CallAfter(self._gauge.SetValue, pct),
+                    is_cancelled=lambda: self._cancelled,
+                )
+                if package.cancelled:
+                    return
+                if package.error:
+                    self._error_msg = package.error
+                    wx.CallAfter(self.EndModal, wx.ID_ABORT)
+                    return
+                extract_dir = package.extract_dir
 
             if self._cancelled:
-                logging.info("Auto-updater: Extraction cancelled by user.")
+                logging.info("Auto-updater: Cancelled by user before installing.")
                 return
 
             # ── Install ───────────────────────────────────────────────────────
@@ -1170,7 +1134,7 @@ class UpdateDialog(wx.Dialog):
 
 # ── UpdateChecker ─────────────────────────────────────────────────────────────
 
-class UpdateChecker:
+class UpdateChecker(BackgroundDownloadMixin):
     """
     Runs version checks in a background thread.
     Shows UpdateDialog on the main thread when a newer version is found.
@@ -1589,11 +1553,21 @@ class UpdateChecker:
         return may_run is None or bool(may_run())
 
     def _do_install(self, new_version: str, zip_url: str, sha256sums_url: str = "",
-                    signature_url: str = "", is_alpha: bool = False):
+                    signature_url: str = "", is_alpha: bool = False, extracted_dir: str = ""):
+        """Download and install, or — given *extracted_dir*, a package a
+        background download already prepared — only install."""
+        if not extracted_dir and background_downloads_enabled(
+                getattr(self._mw, "settings", None)):
+            # Settings > General: no progress window during the download. It
+            # comes back here, with the package, once it is ready to install.
+            self._download_in_background(new_version, zip_url, sha256sums_url,
+                                         signature_url, is_alpha)
+            return
         while True:
             prog = UpdateProgressDialog(
                 self._mw, new_version, self._mw, zip_url, sha256sums_url,
                 signature_url=signature_url, is_alpha=is_alpha,
+                extracted_dir=extracted_dir,
             )
             bring_to_front_if_hidden(self._mw, prog)
             result = prog.run()
@@ -1614,6 +1588,7 @@ class UpdateChecker:
                         "Auto-updater: nothing was installed and no installer is "
                         "waiting — staying open instead of exiting."
                     )
+                    discard_package(extracted_dir)
                     self._release_prompt()
                     return
                 # Install launched — quit the app so the batch script can run
@@ -1622,6 +1597,7 @@ class UpdateChecker:
 
             if result == wx.ID_CANCEL:
                 # User cancelled
+                discard_package(extracted_dir)
                 self._release_prompt()
                 self._schedule_retry()
                 return
@@ -1638,10 +1614,12 @@ class UpdateChecker:
                     i18n.t("update_error_msg").format(error=error_msg), interrupt=True),
             )
             if retry != wx.YES:
+                discard_package(extracted_dir)
                 self._release_prompt()
                 self._schedule_retry()
                 return
-            # else: loop and retry the download
+            # else: loop and retry (the download, or only the install when the
+            # package came from a background download)
 
     def _schedule_retry(self, interval: float = None):
         if interval is None:
@@ -1844,8 +1822,10 @@ class WppUpdateChecker:
     def _prompt_update(self, installed: str, remote_version: str, tag: str, required: bool = False):
         if getattr(self._mw, "_shutting_down", False):
             return   # quitting: no dialog on a dying app (UpdateChecker does the same)
-        if getattr(self._mw, "_wpp_updating", False):
-            # An update (this one's retry, or a forced reinstall) is mid-flight.
+        if (getattr(self._mw, "_wpp_updating", False)
+                or getattr(self._mw, "_wpp_staging", None)):
+            # An update (this one's retry, a forced reinstall, or one being
+            # built in the background) is mid-flight.
             self._schedule_retry(self._PAIRING_RETRY_INTERVAL)
             return
         if not self._mw.wpp_update_may_run_now():

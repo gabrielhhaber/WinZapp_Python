@@ -12,6 +12,7 @@ import wx
 from app_paths import resource_path
 from core.dialog_foreground import bring_to_front_if_hidden, message_box
 from core.wpp_runtime import homologated_wpp_tag
+from update_background import background_downloads_enabled
 
 
 def should_roll_back(server_built: bool, target_tag: str, minimum_tag: str) -> bool:
@@ -140,7 +141,7 @@ class UpdatesMixin:
             self._wpp_update_checker = WppUpdateChecker(self)
         self._wpp_update_checker.force_reinstall()
 
-    def _update_wpp_server(self, target_tag: str, on_finished=None):
+    def _update_wpp_server(self, target_tag: str, on_finished=None, staged_dir=None):
         """
         Stop the running WPPConnect Server, reinstall it at *target_tag* and
 
@@ -149,8 +150,14 @@ class UpdatesMixin:
         the reinstall wipes), True once started. *on_finished* is called, on
         the wx thread, when a started update ends, with True when it installed
         and False when it failed or was cancelled.
+
+        With Settings > General > "download updates in the background" on, the
+        new server is first built next to the running one and nothing is
+        stopped yet (main_window/wpp_background_update.py); that path calls
+        back here with *staged_dir*, and the install step below is then a swap
+        of two directories instead of a rebuild behind a progress window.
         """
-        if getattr(self, "_wpp_updating", False):
+        if getattr(self, "_wpp_updating", False) or getattr(self, "_wpp_staging", None):
             logging.info("[wpp_update] An update is already running — ignoring "
                          "the request to update to %s.", target_tag)
             return False
@@ -169,6 +176,14 @@ class UpdatesMixin:
                         wx.OK | wx.ICON_INFORMATION,
                         announce=lambda: self.output(message, interrupt=True))
             return False
+
+        stage = getattr(self, "_stage_wpp_update_in_background", None)
+        if (staged_dir is None and stage is not None
+                and background_downloads_enabled(getattr(self, "settings", None))):
+            started = stage(target_tag, on_finished)
+            if started is not None:
+                return started
+            # None: it cannot be staged (no room on the disk). Update in place.
 
         logging.info("[wpp_update] Stopping WPPConnect Server before update to %s...", target_tag)
         # Spoken in a background start too: the user just accepted the prompt,
@@ -206,6 +221,10 @@ class UpdatesMixin:
                         on_finished(False)
 
         def _run_install(tag):
+            if staged_dir and tag == target_tag:
+                # Already built in the background, next to the server that was
+                # running: with it stopped, two renames put it in place.
+                return self._install_staged_wpp(staged_dir), False
             from ui.dialogs.api_setup import ApiSetupDialog
             dlg = ApiSetupDialog(
                 self,

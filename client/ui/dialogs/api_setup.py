@@ -238,6 +238,12 @@ _CUSTOM_SRC_FILES = [
 ]
 
 
+def _runs_in_background(dialog) -> bool:
+    """Whether this setup was started with on_done: never shown, never modal
+    (see ApiSetupDialog's docstring)."""
+    return getattr(dialog, "_on_done", None) is not None
+
+
 class ApiSetupDialog(wx.Dialog):
     """Progress dialog for the WPPConnect Server download + build setup.
 
@@ -251,6 +257,15 @@ class ApiSetupDialog(wx.Dialog):
         When provided, this tag is used for the GitHub download instead
         of reading WPPCONNECT_TAG_VERSION from the .env file.  Used by
         the update flow to pin the exact minimum-version tag.
+    api_dir       : str | None
+        Build into this directory instead of client/api/. Used by the
+        background update, which builds the new server next to the running
+        one and swaps it in afterwards (core/api_staging.py).
+    on_done       : callable | None
+        Background mode. The dialog is never shown and never modal: when the
+        setup ends, on_done(ok, details, cancelled) is called on the wx
+        thread and the dialog destroys itself, with no message box. Every
+        other step is the same code the visible dialog runs.
     """
 
     _PULSE_MS = 80
@@ -281,7 +296,8 @@ class ApiSetupDialog(wx.Dialog):
         "db_generate": (80, 99),
     }
 
-    def __init__(self, parent, title_override=None, forced_tag=None):
+    def __init__(self, parent, title_override=None, forced_tag=None,
+                 api_dir=None, on_done=None):
         self._i18n = parent.i18n
         title = title_override or self._i18n.t("api_setup_dialog_title")
         style = wx.DEFAULT_DIALOG_STYLE & ~wx.CLOSE_BOX
@@ -291,6 +307,8 @@ class ApiSetupDialog(wx.Dialog):
         self._cancelled   = False
         self._finished    = False  # exactly one of success/error/cancel may win
         self._forced_tag  = forced_tag   # overrides .env WPPCONNECT_TAG_VERSION
+        self._api_dir     = api_dir      # build here instead of client/api/
+        self._on_done     = on_done      # background mode: see the class docstring
 
         # Progress-bar state — see _STAGES_FULL/_STAGES_MODULES_ONLY and
         # _set_stage()/_on_pulse().
@@ -894,12 +912,16 @@ class ApiSetupDialog(wx.Dialog):
             node_dir = os.path.dirname(node_exe) if os.path.isabs(node_exe) else ""
             path_env = (node_dir + os.pathsep + os.environ.get("PATH", "")) if node_dir else os.environ.get("PATH", "")
 
-        api_dir  = resource_path("api")
+        # A background update builds in a staging directory that is renamed to
+        # client/api/ afterwards, so everything below is relative to api_dir.
+        staging_dir = getattr(self, "_api_dir", None)
+        api_dir  = staging_dir or resource_path("api")
         # Must be the directory start.js searches and exports as
         # PUPPETEER_CACHE_DIR (client/api/.cache), not the .cache/puppeteer
         # subfolder — otherwise the browser this installer downloads and the
         # browser the server looks for are two different trees.
-        puppeteer_cache = resource_path("api", ".cache")
+        puppeteer_cache = (os.path.join(staging_dir, ".cache") if staging_dir
+                           else resource_path("api", ".cache"))
         npm_env  = {
             **os.environ,
             "PATH": path_env,
@@ -982,9 +1004,12 @@ class ApiSetupDialog(wx.Dialog):
                     # reinstall would preserve the breakage forever, with no way
                     # for a newer WinZapp release's improved patches to ever
                     # reach an existing install.
+                    # A staging directory is empty: the fallback copies come
+                    # from the server that is installed now.
+                    stash_dir = resource_path("api") if staging_dir else api_dir
                     custom_contents = {}
                     for rel_path in _CUSTOM_SRC_FILES:
-                        full_path = os.path.join(api_dir, rel_path.replace("/", os.sep))
+                        full_path = os.path.join(stash_dir, rel_path.replace("/", os.sep))
                         if os.path.isfile(full_path):
                             try:
                                 with open(full_path, "rb") as fh:
@@ -1255,6 +1280,17 @@ class ApiSetupDialog(wx.Dialog):
             )
             return False
 
+    def _finish_in_background(self, ok: bool, details: str = "") -> None:
+        """End a background setup: no modal loop to leave and no message box,
+        the caller is told and decides what the user hears."""
+        self._finished = True
+        self._timer.Stop()
+        self._trickling = False
+        try:
+            self._on_done(ok, details, self._cancelled)
+        finally:
+            self.Destroy()
+
     def _on_cancel(self, _event=None):
         if self._cancelled or self._finished:
             return
@@ -1262,11 +1298,17 @@ class ApiSetupDialog(wx.Dialog):
         self._finished = True
         self._timer.Stop()
         self._kill_proc_tree()
+        if _runs_in_background(self):
+            self._finish_in_background(False)
+            return
         self._end_modal_safely(wx.ID_CANCEL)
 
     def _finish_success(self):
         if self._cancelled or self._finished:
             logging.info("[api_setup] ignoring late/duplicate success callback")
+            return
+        if _runs_in_background(self):
+            self._finish_in_background(True)
             return
         if not self._is_modal_active():
             logging.info("[api_setup] ignoring success callback after modal loop ended")
@@ -1287,6 +1329,10 @@ class ApiSetupDialog(wx.Dialog):
     def _finish_error(self, details: str = ""):
         if self._cancelled or self._finished:
             logging.info("[api_setup] ignoring late/duplicate error callback")
+            return
+        if _runs_in_background(self):
+            logging.error("[api_setup] Background setup failed: %s", details or "(no details)")
+            self._finish_in_background(False, details)
             return
         if not self._is_modal_active():
             logging.info("[api_setup] ignoring error callback after modal loop ended")

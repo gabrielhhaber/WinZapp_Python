@@ -56,6 +56,8 @@ NOUTĂȚI
 
 - Redirecționarea mesajelor vocale ca mesaje vocale. WhatsApp transformă orice mesaj vocal redirecționat într-un fișier audio obișnuit, ceea ce îl scoate din redarea pe rând a mesajelor vocale din conversația de destinație. Cu „Redirecționați mesajele vocale ca mesaje vocale, nu ca audio” bifat în fila Interfață utilizator a Setărilor, copia ajunge ca mesaj vocal și rămâne marcată ca redirecționată. Opțiunea este debifată în mod implicit.
 
+- Descărcarea actualizărilor în fundal. Cu „Descărcați actualizările în fundal, fără fereastra de progres” bifat în fila Generale a Setărilor, o actualizare pe care ați acceptat-o, a WinZapp sau a WPPConnect, se descarcă fără fereastra de progres, iar dumneavoastră folosiți în continuare programul normal, conectat. Abia când este gata WinZapp anunță că urmează să o instaleze: pentru o actualizare a WinZapp, se închide și se redeschide; pentru una a WPPConnect, rămâne offline doar pentru momentele necesare schimbării versiunii și repornirii acesteia, nu pe toată durata descărcării și a instalării. Dacă sunteți într-un apel, anunțul așteaptă încheierea lui. Opțiunea se aplică tuturor conturilor și este debifată în mod implicit.
+
 ÎMBUNĂTĂȚIRI
 
 - Verificare ortografică: sunetul de eroare se aude acum și când tastați un semn de punctuație (virgulă, punct, semn de întrebare etc.) imediat după un cuvânt greșit, nu doar spațiul, și când cursorul ajunge la un cuvânt greșit cu săgețile, Ctrl+săgețile, Home, End sau mouse-ul.

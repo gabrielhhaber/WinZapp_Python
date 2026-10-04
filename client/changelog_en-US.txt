@@ -56,6 +56,8 @@ WHAT'S NEW
 
 - Forward voice messages as voice messages. WhatsApp turns every forwarded voice message into a plain audio, which takes it out of the sequential playback of voice messages in the destination chat. With "Forward voice messages as voice messages instead of audio" ticked in the User Interface tab of Settings, the copy arrives as a voice message and is still marked as forwarded. The option is off by default.
 
+- Download updates in the background. With "Download updates in the background, without the progress window" ticked in the General tab of Settings, an update you accepted, of WinZapp or of WPPConnect, downloads without the progress window, and you keep using the app normally, connected. Only when it is ready does WinZapp tell you it is about to install: for an update of WinZapp itself it closes and opens again; for one of WPPConnect it goes offline only for the moment it takes to switch versions and restart it, instead of for the whole download and install. If you are on a call, the notice waits for it to end. The option applies to every account and is off by default.
+
 IMPROVEMENTS
 
 - Spell checking: the error sound now also plays when you type punctuation (comma, full stop, question mark and so on) right after a misspelled word, not only a space, and when the cursor arrives at a misspelled word with the arrow keys, Ctrl+arrows, Home, End or the mouse.

@@ -2,6 +2,10 @@
 paths:
   - "client/updater.py"
   - "client/update_coord.py"
+  - "client/update_background.py"
+  - "client/update_package.py"
+  - "client/core/api_staging.py"
+  - "client/main_window/wpp_background_update.py"
   - "client/version.py"
   - ".github/workflows/*.yml"
   - ".github/scripts/*.py"

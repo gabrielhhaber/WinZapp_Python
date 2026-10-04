@@ -20,6 +20,7 @@ Where to look (and where new code goes):
     session_lifecycle   Windows end-session teardown, profile recovery/snapshots
     wpp_server          local WPPConnect Server: install, version, ports, start/stop
     updates             app and WPPConnect Server update checks
+    wpp_background_update  WPPConnect Server update built in the background, then swapped in
     sync                prepare_sync, _run_sync, per-chat sync planning
     backfill            background history backfill, history-sync status
     history             on-demand older history (fetch_older_messages)

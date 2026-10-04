@@ -993,6 +993,10 @@ DEFAULT_SETTINGS = {
         # Alpha channel (one build per commit on main) - opt-in, see
         # client/updater.py's select_release().
         "alpha_updates_enabled": False,
+        # Updates are downloaded with no progress window and the app is only
+        # interrupted to install them. Off: the long-standing behaviour, so no
+        # migration.
+        "background_update_downloads": False,
         "noise_reduction_enabled": False,
         # Stereo voice messages (issue #82, core/voice_stereo.py). Off: a
         # stereo recording goes out as an audio message, not a voice message.

@@ -56,6 +56,8 @@ NOVIDADES
 
 - Encaminhar mensagens de voz como mensagens de voz. O WhatsApp transforma em áudio comum toda mensagem de voz encaminhada, o que a tira da reprodução em sequência das mensagens de voz na conversa de destino. Marcando "Encaminhar mensagens de voz como mensagens de voz, em vez de áudio" na aba Interface do usuário das Configurações, a cópia chega como mensagem de voz e continua marcada como encaminhada. A opção vem desmarcada.
 
+- Baixar atualizações em segundo plano. Marcando "Baixar atualizações em segundo plano, sem a janela de progresso" na aba Geral das Configurações, uma atualização que você aceitou, do WinZapp ou da WPPConnect, é baixada sem a janela de progresso, e você continua usando o programa normalmente, conectado. Só quando ela está pronta o WinZapp avisa que vai instalar: para uma atualização do próprio WinZapp, ele fecha e abre de novo; para uma da WPPConnect, fica offline apenas pelos instantes de trocar a versão e reiniciá-la, em vez de durante todo o download e a instalação. Se você estiver numa ligação, o aviso espera ela terminar. A opção vale para todas as contas e vem desmarcada.
+
 MELHORIAS
 
 - Verificação ortográfica: o som de erro agora também toca quando você digita um sinal de pontuação (vírgula, ponto, interrogação etc.) logo depois de uma palavra errada, e não só o espaço, e quando o cursor chega a uma palavra errada com as setas, Ctrl+setas, Home, End ou o mouse.
