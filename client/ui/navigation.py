@@ -131,6 +131,10 @@ class NavigationPanel(wx.Panel):
         if lock_vault is not None:
             lock_vault(silent=True, show_conversations=False)
 
+        # Read before the panels are hidden: choosing the chat panel that is
+        # already on screen switches nothing, so its open conversation stays.
+        staying = mw.conversations_panel._detail_on_screen()
+
         # Hide all content panels, show the right one
         mw.conversations_panel.Hide()
         if hasattr(mw, "status_panel"):
@@ -145,7 +149,7 @@ class NavigationPanel(wx.Panel):
         if key == "conversations":
             # Brings the chat list back (an archived chat's detail pane hid
             # it) and hides any conversation that belongs to another panel.
-            mw.conversations_panel.show_chat_panel(MAIN, focus=False)
+            mw.conversations_panel.show_chat_panel(MAIN, focus=False, keep=staying)
             mw.conversations_panel.conversations_list.SetFocus()
             if (mw.conversations_panel.conversations_list.GetFocusedItem() != -1
                     and mw.conversations_panel.conversations_list.GetItemCount() > 0):
@@ -156,7 +160,7 @@ class NavigationPanel(wx.Panel):
                     interrupt=True,
                 )
         elif key == "archived" and hasattr(mw, "archived_conversations_panel"):
-            mw.conversations_panel.show_chat_panel(ARCHIVED)
+            mw.conversations_panel.show_chat_panel(ARCHIVED, keep=staying)
         elif key == "status" and hasattr(mw, "status_panel"):
             mw.status_panel.Show()
             mw.content_panel.Layout()
