@@ -18,7 +18,7 @@ against what WinZapp overrides:
    trap: a changed dependency we do NOT override is good news, and upstream
    moving a caret we DO override is not by itself a reason to move our pin.
 3. **Whether the homologated pair moved.** `@wppconnect-team/wppconnect` and
-   `@wppconnect/wa-js` are pinned exact against the four `node_modules` patch
+   `@wppconnect/wa-js` are pinned exact against the five `node_modules` patch
    modules. Upstream moving its own declaration does not move ours, but it is
    the one dependency change worth a human's eyes.
 4. **Whether `engines.node` still matches the Node WinZapp ships.** Upstream
@@ -294,7 +294,7 @@ def audit(changed_paths, old_pkg: dict, new_pkg: dict) -> dict:
             "The homologated runtime pair moved upstream: "
             + ", ".join(f"{name} {was} -> {now}" for (_b, name), (was, now) in sorted(pair.items()))
             + ". WinZapp's exact pin still wins, so nothing changes by itself, but "
-            "re-homologating means running all four node_modules patches against "
+            "re-homologating means running all five node_modules patches against "
             "the candidate first (see the wppconnect-patch skill)."
         )
     engines = engines_node_mismatch(new_pkg)
@@ -346,7 +346,7 @@ def main() -> int:
           "homologated pair is untouched, and engines.node still matches the "
           "Node WinZapp ships.")
     print("Still do both: bump client/wpp_minimum_version.txt, then re-run "
-          "setup_api.py and confirm all four node_modules patches report "
+          "setup_api.py and confirm all five node_modules patches report "
           "applied. A plain npm install can resolve differently even when "
           "nothing upstream moved.")
     return 0

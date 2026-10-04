@@ -569,6 +569,16 @@ class ApiSetupDialog(wx.Dialog):
         except Exception as exc:
             logging.warning("[api_setup] Failed to patch welcome.js: %s", exc)
 
+        # wppconnect-wa.js — a message to Meta AI failed before it was sent
+        # whenever the bot profile had not loaded (issue #365). The bundle is
+        # wa-js's, not wppconnect's, so the patch takes the outer api_dir.
+        try:
+            from core.wppconnect_wa_js_patch import patch_wa_js_bundle
+            ok, note = patch_wa_js_bundle(api_dir)
+            logging.log(logging.INFO if ok else logging.WARNING, "[api_setup] %s", note)
+        except Exception as exc:
+            logging.warning("[api_setup] Failed to patch wppconnect-wa.js: %s", exc)
+
     @staticmethod
     def _patch_wppconnect_status_layer(wppconnect_api_dir: str) -> bool:
         """Patch @wppconnect-team/wppconnect's compiled status.layer.js so
