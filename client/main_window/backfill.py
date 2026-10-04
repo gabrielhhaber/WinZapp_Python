@@ -1389,6 +1389,16 @@ class BackfillMixin:
                     "%s (primary_has_more=%s).", jid, payload.get("primaryHasMore"),
                 )
                 return True
+            if isinstance(payload, dict) and payload.get("phoneOnlyHistory") is True:
+                # endOfHistoryTransferType 4: the phone has more, but WhatsApp
+                # Web itself offers no way to fetch it (issue #220). Terminal,
+                # like "the phone has nothing older" below — and never sent.
+                logging.info(
+                    "[history-sync] Older history for %s is only available on "
+                    "the phone — not asking, and retiring it from the backfill "
+                    "queue.", jid,
+                )
+                return False
             if isinstance(payload, dict) and payload.get("primaryHasMore") is False:
                 # Not a failure, and the commonest answer there is: WhatsApp
                 # Web checked and the phone has nothing older for this chat, so

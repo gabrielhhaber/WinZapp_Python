@@ -922,6 +922,23 @@ class TestAPhoneWithNothingOlderIsNotAsked:
         assert any("no older messages" in r.message for r in caplog.records)
         assert not any("did not go out" in r.message for r in caplog.records)
 
+    def test_phone_only_history_is_terminal_and_logged_as_such(self, monkeypatch, caplog):
+        """State 4 reports primaryHasMore=true, yet Web cannot fetch more."""
+        stub = _Stub()
+        monkeypatch.setattr(
+            "main.requests.post",
+            lambda *a, **k: _Response(500, {"status": "error", "response": {
+                "primaryHasMore": True,
+                "endOfHistoryTransferType": 4,
+                "phoneOnlyHistory": True,
+                "error": "older messages are only available on the phone for this chat",
+            }}),
+        )
+        with caplog.at_level("INFO"):
+            assert stub.request_older_messages("5535999999999@s.whatsapp.net") is False
+        assert any("only available on the phone" in r.message for r in caplog.records)
+        assert not any("did not go out" in r.message for r in caplog.records)
+
     def test_an_unknown_answer_is_not_read_as_nothing_older(self, monkeypatch):
         """null means the lookup failed, not that the phone is empty. Treating
         it as terminal would silently write off chats that do have history."""
@@ -984,6 +1001,14 @@ class TestTheNodeSideRefusesBeforeSending:
             "the primaryHasMore check must come before the send, or the phone "
             "is notified anyway and only the bookkeeping changes"
         )
+
+    def test_state_4_is_refused_before_the_send(self):
+        source = self._source()
+        source = source[source.index("export async function requestOlderMessages("):]
+        refusal = source.index("out.phoneOnlyHistory = true")
+        send = source.index("await sender.sendPeerDataOperationRequest(")
+        assert "if (out.endOfHistoryTransferType === 4) {" in source
+        assert refusal < send
 
     def test_only_an_explicit_false_refuses(self):
         """`null` is "the lookup failed". Refusing on it would silently stop

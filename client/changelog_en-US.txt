@@ -82,6 +82,8 @@ IMPROVEMENTS
 
 FIXES
 
+- History: for chats where WhatsApp Web itself says older messages can only be viewed on the phone, WinZapp no longer asks the phone for more history. The request was accepted but nothing ever arrived, and it only caused sync notifications on the phone. The history already downloaded is kept.
+
 - When you messaged someone who isn't in your contacts and has no name on their WhatsApp profile, the conversation started showing your own name instead of their phone number. It now keeps showing the phone number until their real name is found.
 
 - The uninstaller now follows the Windows display language like the installer does, instead of always appearing in Portuguese.

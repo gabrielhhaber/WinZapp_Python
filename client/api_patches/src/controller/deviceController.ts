@@ -3143,6 +3143,19 @@ export async function requestOlderMessages(req: Request, res: Response) {
           return out;
         }
 
+        // State 4 (COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY) is
+        // the boundary where WhatsApp Web itself stops offering history and
+        // shows "Older messages can be viewed in WhatsApp on your phone".
+        // primaryHasMore is true there — the phone does have more — but Web may
+        // not fetch it: the request is accepted (HTTP 200) and nothing ever
+        // arrives (issue #220). Refuse before sending, so the phone is not
+        // notified for nothing, and say why so Python retires the chat.
+        if (out.endOfHistoryTransferType === 4) {
+          out.phoneOnlyHistory = true;
+          out.error = 'older messages are only available on the phone for this chat';
+          return out;
+        }
+
         let wid;
         try {
           wid = (window as any).WPP.whatsapp.WidFactory.createWid(chatId);

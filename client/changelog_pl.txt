@@ -82,6 +82,8 @@ ULEPSZENIA
 
 POPRAWKI
 
+- Historia: w czatach, w których sam WhatsApp Web informuje, że starsze wiadomości można zobaczyć tylko na telefonie, WinZapp nie prosi już telefonu o kolejną historię. Prośba była przyjmowana, ale nic nie przychodziło, a powodowała tylko powiadomienia o synchronizacji na telefonie. Pobrana już historia zostaje.
+
 - Po wysłaniu wiadomości do osoby, której nie ma w Twoich kontaktach i która nie ma nazwy w profilu WhatsApp, rozmowa zaczynała pokazywać Twoje własne imię zamiast numeru telefonu tej osoby. Teraz nadal pokazuje numer telefonu, dopóki nie uda się znaleźć jej prawdziwego imienia.
 
 - Program odinstalowujący używa teraz języka wyświetlania systemu Windows, tak jak instalator, zamiast zawsze pojawiać się po portugalsku.
