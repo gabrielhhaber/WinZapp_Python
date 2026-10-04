@@ -777,7 +777,9 @@ class MessageEventsMixin:
 
         # ── Ensure the chat record exists ─────────────────────────────────────
         if remote_jid not in self.chats:
-            push_name = "" if remote_jid.endswith("@g.us") else msg.get("pushName", "")
+            # An outgoing message carries our own pushName, not the peer's.
+            own_message = bool((msg.get("key") or {}).get("fromMe"))
+            push_name = "" if remote_jid.endswith("@g.us") or own_message else msg.get("pushName", "")
             self.chats[remote_jid] = {
                 "remoteJid":   remote_jid,
                 "unreadCount": 0,
