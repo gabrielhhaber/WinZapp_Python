@@ -166,7 +166,7 @@ NOUTĂȚI
 
 - Recuperarea automată a profilului browserului. Conexiunea cu WhatsApp este stocată în profilul browserului pe care WinZapp îl folosește în fundal, iar când acest profil nu mai era acceptat, singura soluție era o nouă asociere. WinZapp păstrează acum o copie de siguranță a acestuia, păstrează și copia anterioară și o restaurează singur când observă că conexiunea a fost refuzată, anunțând cu voce tare că a restaurat-o și că se reconectează. Nu oferă niciodată înapoi o copie pe care WhatsApp a refuzat-o deja, iar când nu există nicio copie utilizabilă, spune acest lucru clar, în loc să vă lase deconectat fără nicio explicație.
 
-- Verificare ortografică în câmpul de mesaj. În Setări puteți alege între a urma setarea de ortografie din Windows (implicit), activată mereu sau dezactivată mereu. Există și un sunet dedicat pentru erorile de ortografie, configurabil împreună cu celelalte sunete.
+- Verificare ortografică în câmpul de mesaj. În Setări puteți alege între a urma setarea de ortografie din Windows (implicit), activată mereu sau dezactivată mereu. Există și un sunet dedicat pentru erorile de ortografie, configurabil împreună cu celelalte sunete. Sunetul de eroare se aude când tastați un spațiu sau un semn de punctuație după un cuvânt greșit și când cursorul ajunge la unul cu săgețile, Ctrl+săgețile sau mouse-ul.
 
 - Acțiuni pentru linkuri în mesaje. Când un mesaj conține linkuri, meniul contextual oferă acum „Deschideți linkul” și „Copiați linkul” pentru linkul pe care vă aflați, iar Ctrl+C copiază acel link în locul întregului mesaj.
 

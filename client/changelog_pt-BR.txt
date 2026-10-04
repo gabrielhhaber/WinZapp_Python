@@ -166,7 +166,7 @@ NOVIDADES
 
 - Recuperação automática do perfil do navegador. A sua conexão com o WhatsApp fica guardada no perfil do navegador que o WinZapp usa por baixo, e quando esse perfil deixava de ser aceito só restava parear de novo. Agora o WinZapp guarda uma cópia de segurança dele, mantém também a cópia anterior, e restaura sozinho quando percebe que a conexão foi recusada — dizendo em voz alta que restaurou e que está reconectando. Ele nunca oferece de volta uma cópia que o WhatsApp já recusou, e quando não há nenhuma cópia aproveitável ele avisa claramente, em vez de deixar você offline sem explicação.
 
-- Verificação ortográfica no campo de mensagem. Em Configurações você escolhe entre seguir a configuração de ortografia do próprio Windows (padrão), sempre ativada ou sempre desativada. Há também um som próprio para erro de ortografia, que pode ser configurado junto com os demais sons.
+- Verificação ortográfica no campo de mensagem. Em Configurações você escolhe entre seguir a configuração de ortografia do próprio Windows (padrão), sempre ativada ou sempre desativada. Há também um som próprio para erro de ortografia, que pode ser configurado junto com os demais sons. O som de erro toca ao digitar um espaço ou sinal de pontuação depois de uma palavra errada, e quando o cursor chega a uma delas com as setas, Ctrl+setas ou o mouse.
 
 - Ações sobre links nas mensagens. Quando a mensagem tem links, o menu de contexto passa a oferecer Abrir link e Copiar link para o link que está em foco, e Ctrl+C copia esse link em vez da mensagem inteira.
 

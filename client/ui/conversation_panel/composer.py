@@ -21,6 +21,7 @@ from core.utils import (
 )
 from core.spell_checker import (
     spell_check_active,
+    value_index,
     windows_spellcheck_enabled,
 )
 
@@ -55,6 +56,25 @@ class ComposerMixin:
     def _play_spelling_error_sound(self):
         """Play the currently configured spelling-error Sound Event."""
         self.main_window.spelling_error_sound.play()
+
+    _CARET_KEYS = frozenset((
+        wx.WXK_LEFT, wx.WXK_RIGHT, wx.WXK_UP, wx.WXK_DOWN, wx.WXK_HOME,
+        wx.WXK_END, wx.WXK_PAGEUP, wx.WXK_PAGEDOWN,
+    ))
+
+    def _cue_spelling_at_caret(self, *_):
+        """Play the error sound if the caret just arrived at a misspelled word."""
+        spell_checker = getattr(self, "_spell_checker", None)
+        if spell_checker is None or not self._spell_check_enabled():
+            return
+        text = self.message_field.GetValue()
+        position = self.message_field.GetInsertionPoint()
+        width = 2 if os.name == "nt" and "\r\n" not in text else 1
+        spell_checker.caret_moved(text, value_index(text, position, width))
+
+    def _cue_spelling_at_caret_on_click(self, event):
+        event.Skip()
+        wx.CallAfter(self._cue_spelling_at_caret)
 
     def on_change_message_field(self, event):
         # Don't touch button visibility while recording or staging attachments.
@@ -332,6 +352,9 @@ class ComposerMixin:
             self.message_field.WriteText("\n")
             self.on_change_message_field(None)
             return  # consume — don't send and don't double-insert
+        if kc in self._CARET_KEYS:
+            # The caret has not moved yet; check once the control has.
+            wx.CallAfter(self._cue_spelling_at_caret)
         event.Skip()
 
     @staticmethod
