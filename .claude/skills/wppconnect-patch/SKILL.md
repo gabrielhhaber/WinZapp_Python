@@ -74,7 +74,7 @@ wppconnect_wa_js_patch.py           wppconnect-wa.js  Meta AI send without a loa
 Its bundle is minified, and the minifier renames temporaries between builds,
 so it matches the expression by structure (a regex with a back-reference for
 the temporary) instead of by one literal per build, and owns the file
-handling too: call sites pass the outer `client/api` directory to
+handling too: call sites pass the outer `client/api/` directory to
 `patch_wa_js_bundle()`.
 
 **The call sites must stay in sync**; a patch in only one ships broken:
