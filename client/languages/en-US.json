@@ -884,6 +884,7 @@
     "ui_confirm_resync_conversation": "Ask for confirmation before resyncing the open chat (Shift+F5)",
     "ui_space_selects_in_selection_mode": "Use Space to select/deselect whenever a selection already exists",
     "ui_escape_clears_selection": "Esc deselects the selected messages before closing the chat",
+    "ui_keep_search_after_open": "Keep the chat search when opening a chat, so Esc returns to the results instead of the full list",
     "ui_auto_focus_next_audio": "Automatically move focus to the next audio when playing audios in sequence",
     "ui_selected_announce_position_label": "Position to announce selected items:",
     "ui_selected_announce_position_start": "Announce \"selected\" at the start of the message or chat",

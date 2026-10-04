@@ -884,6 +884,7 @@
   "ui_confirm_resync_conversation": "Açık sohbeti yeniden eşitlemeden önce onay iste (Shift+F5)",
   "ui_space_selects_in_selection_mode": "Zaten bir seçim varken seçmek/seçimi kaldırmak için Boşluk tuşunu kullan",
   "ui_escape_clears_selection": "Esc sohbeti kapatmadan önce seçili mesajların seçimini kaldırır",
+  "ui_keep_search_after_open": "Bir sohbet açıldığında sohbet aramasını koru; böylece Esc tam liste yerine sonuçlara döner",
   "ui_auto_focus_next_audio": "Sesler sırayla çalınırken odağı otomatik olarak sonraki sese taşı",
   "ui_selected_announce_position_label": "Seçili öğelerin duyurulacağı konum:",
   "ui_selected_announce_position_start": "Mesajın veya sohbetin başında \"seçildi\" duyur",

@@ -884,6 +884,7 @@
     "ui_confirm_resync_conversation": "Pedir confirmação ao ressincronizar a conversa aberta (Shift+F5)",
     "ui_space_selects_in_selection_mode": "Usar Espaço para marcar/desmarcar enquanto houver algo marcado",
     "ui_escape_clears_selection": "Esc desmarca as mensagens marcadas antes de fechar a conversa",
+    "ui_keep_search_after_open": "Manter a pesquisa de conversas ao abrir uma conversa, para o Esc voltar aos resultados em vez da lista completa",
     "ui_auto_focus_next_audio": "Mover o foco automaticamente para o próximo áudio ao reproduzir áudios em sequência",
     "ui_selected_announce_position_label": "Posição para anunciar itens selecionados:",
     "ui_selected_announce_position_start": "Anunciar \"selecionado\" no início da mensagem ou conversa",

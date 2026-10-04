@@ -828,6 +828,7 @@
     "ui_confirm_resync_conversation": "Cereți confirmare înainte de a resincroniza conversația deschisă (Shift+F5)",
     "ui_space_selects_in_selection_mode": "Folosiți Spațiu pentru a selecta/deselecta când există deja o selecție",
     "ui_escape_clears_selection": "Esc deselectează mesajele selectate înainte de a închide conversația",
+    "ui_keep_search_after_open": "Păstrați căutarea conversațiilor la deschiderea unei conversații, pentru ca Esc să revină la rezultate, nu la lista completă",
     "ui_auto_focus_next_audio": "Mutați automat focalizarea la următorul sunet atunci când redați audio în secvență",
     "ui_selected_announce_position_label": "Poziția pentru a anunța articolele selectate:",
     "ui_selected_announce_position_start": "Anunțați „selectat” la începutul mesajului sau al conversației",

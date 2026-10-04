@@ -600,6 +600,13 @@ class SettingsDialog(wx.Dialog):
             self._escape_clears_selection_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        self._keep_search_after_open_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_keep_search_after_open")
+        )
+        ui_sizer.Add(
+            self._keep_search_after_open_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         self._auto_focus_next_audio_cb = wx.CheckBox(
             self._ui_page, label=i18n.t("ui_auto_focus_next_audio")
         )
@@ -1654,6 +1661,11 @@ class SettingsDialog(wx.Dialog):
             "escape_clears_selection", True
         )
         self._escape_clears_selection_cb.SetValue(bool(escape_clears_selection))
+
+        keep_search_after_open = self.main_window.settings.get("user_interface", {}).get(
+            "keep_search_after_open", False
+        )
+        self._keep_search_after_open_cb.SetValue(bool(keep_search_after_open))
 
         auto_focus_next_audio = self.main_window.settings.get("user_interface", {}).get(
             "auto_focus_next_audio", True
@@ -2968,6 +2980,9 @@ class SettingsDialog(wx.Dialog):
             "escape_clears_selection"
         ] = self._escape_clears_selection_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
+            "keep_search_after_open"
+        ] = self._keep_search_after_open_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
             "auto_focus_next_audio"
         ] = self._auto_focus_next_audio_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
@@ -3507,6 +3522,7 @@ class SettingsDialog(wx.Dialog):
         self._warn_system_audio_cb.SetLabel(i18n.t("ui_warn_system_audio_recording"))
         self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
         self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
+        self._keep_search_after_open_cb.SetLabel(i18n.t("ui_keep_search_after_open"))
         self._auto_focus_next_audio_cb.SetLabel(i18n.t("ui_auto_focus_next_audio"))
         self._selected_announce_box.SetLabel(i18n.t("ui_selected_announce_position_label"))
         self._selected_announce_start_rb.SetLabel(i18n.t("ui_selected_announce_position_start"))

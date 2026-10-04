@@ -884,6 +884,7 @@
     "ui_confirm_resync_conversation": "Pytaj o potwierdzenie przed ponowną synchronizacją otwartego czatu (Shift+F5)",
     "ui_space_selects_in_selection_mode": "Używaj Spacji do zaznaczania/odznaczania, gdy coś jest już zaznaczone",
     "ui_escape_clears_selection": "Esc odznacza zaznaczone wiadomości przed zamknięciem czatu",
+    "ui_keep_search_after_open": "Zachowaj wyszukiwanie czatów po otwarciu czatu, aby Esc wracał do wyników zamiast do pełnej listy",
     "ui_auto_focus_next_audio": "Automatycznie przenoś fokus na następne audio podczas odtwarzania audio po kolei",
     "ui_selected_announce_position_label": "Pozycja ogłaszania zaznaczonych elementów:",
     "ui_selected_announce_position_start": "Ogłaszaj \"zaznaczone\" na początku wiadomości lub czatu",

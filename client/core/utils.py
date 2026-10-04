@@ -1083,6 +1083,9 @@ DEFAULT_SETTINGS = {
         # users who already learned the previous behaviour.
         "space_selects_in_selection_mode": True,
         "escape_clears_selection": True,
+        # Opening a conversation keeps the chat search, so Esc returns to the
+        # results. Off: the long-standing behaviour, so no migration.
+        "keep_search_after_open": False,
         "auto_focus_next_audio": True,
         "selected_announcement_position": "end",
         "show_yesterday_label": True,

@@ -75,6 +75,7 @@
         "system_audio_consent_revision": 0,
         "space_selects_in_selection_mode": true,
         "escape_clears_selection": true,
+        "keep_search_after_open": false,
         "auto_focus_next_audio": true,
         "selected_announcement_position": "end",
         "show_yesterday_label": true,
