@@ -17,14 +17,20 @@ def _panel(chats, names):
     return type("Panel", (), {"chats_list": chats, "chat_names": names})()
 
 
+def _mw(**panels):
+    # contacts/chats: _forward_target_chats also folds in saved contacts
+    # via build_own_contact_rows(), which reads both attributes directly.
+    return type("MW", (), {"contacts": {}, "chats": {}, **panels})()
+
+
 class TestForwardTargetChats:
     def test_includes_archived_chats_alongside_regular_ones(self):
         regular = {"remoteJid": "a@s.whatsapp.net"}
         archived_group = {"remoteJid": "g@g.us"}
-        mw = type("MW", (), {
-            "conversations_panel": _panel([regular], ["Alice"]),
-            "archived_conversations_panel": _panel([archived_group], ["Archived Group"]),
-        })()
+        mw = _mw(
+            conversations_panel=_panel([regular], ["Alice"]),
+            archived_conversations_panel=_panel([archived_group], ["Archived Group"]),
+        )
 
         chats, names = _forward_target_chats(mw)
 
@@ -33,9 +39,9 @@ class TestForwardTargetChats:
 
     def test_no_archived_panel_falls_back_to_regular_chats_only(self):
         regular = {"remoteJid": "a@s.whatsapp.net"}
-        mw = type("MW", (), {
-            "conversations_panel": _panel([regular], ["Alice"]),
-        })()
+        mw = _mw(
+            conversations_panel=_panel([regular], ["Alice"]),
+        )
 
         chats, names = _forward_target_chats(mw)
 
@@ -44,10 +50,10 @@ class TestForwardTargetChats:
 
     def test_a_chat_present_in_both_lists_is_not_duplicated(self):
         shared = {"remoteJid": "a@s.whatsapp.net"}
-        mw = type("MW", (), {
-            "conversations_panel": _panel([shared], ["Alice"]),
-            "archived_conversations_panel": _panel([dict(shared)], ["Alice (archived copy)"]),
-        })()
+        mw = _mw(
+            conversations_panel=_panel([shared], ["Alice"]),
+            archived_conversations_panel=_panel([dict(shared)], ["Alice (archived copy)"]),
+        )
 
         chats, names = _forward_target_chats(mw)
 
@@ -56,10 +62,10 @@ class TestForwardTargetChats:
 
     def test_empty_archived_panel_is_a_no_op(self):
         regular = {"remoteJid": "a@s.whatsapp.net"}
-        mw = type("MW", (), {
-            "conversations_panel": _panel([regular], ["Alice"]),
-            "archived_conversations_panel": _panel([], []),
-        })()
+        mw = _mw(
+            conversations_panel=_panel([regular], ["Alice"]),
+            archived_conversations_panel=_panel([], []),
+        )
 
         chats, names = _forward_target_chats(mw)
 

@@ -8,7 +8,8 @@ ConversationsPanel.__init__/init_UI is available here.
 import threading
 import time
 import wx
-from core.utils import append_selected_marker
+from core.utils import append_selected_marker, contact_dedup_key
+from ui.dialogs.contact_list_picker import build_own_contact_rows
 from ui.conversation_panel.text_helpers import message_caption
 from ui.conversation_panel.selection_rules import (
     toggle_jid_selection,
@@ -25,9 +26,12 @@ class ForwardingMixin:
         """All chats offerable as a forward target: the main (non-archived)
         conversations_panel's own chats_list/chat_names, plus every archived
         chat from the separate ArchivedConversationsPanel that isn't already
-        in that list. conversations_panel.chats_list alone only ever holds
+        in that list, plus every saved contact no chat in either list
+        covers. conversations_panel.chats_list alone only ever holds
         non-archived chats, so forwarding used to silently exclude every
-        archived chat (not just groups) as a target."""
+        archived chat (not just groups) as a target — and a contact the
+        user never opened a chat with was unreachable from this dialog
+        entirely, even though the "Nova conversa" picker knows them."""
         panel     = mw.conversations_panel
         all_chats = list(panel.chats_list)
         all_names = list(panel.chat_names)
@@ -40,7 +44,44 @@ class ForwardingMixin:
                     seen_jids.add(jid)
                     all_chats.append(chat)
                     all_names.append(name)
+        ForwardingMixin._append_chatless_contacts(mw, all_chats, all_names)
         return all_chats, all_names
+
+    @staticmethod
+    def _append_chatless_contacts(mw, all_chats, all_names):
+        """Append one forward target per saved contact that no chat in
+        *all_chats* already covers, in place.
+
+        Rows come from the shared build_own_contact_rows() — the same
+        legitimacy rules as every other contact picker (saved contacts
+        only, no group-presence junk, no unbridged @lids, one row per
+        person via contact_dedup_key() across @lid/@c.us/@s.whatsapp.net
+        and the Brazilian 8/9-digit mobile variant), so "what is a
+        pickable contact" cannot drift between dialogs. A contact whose
+        chat exists under any JID variant is skipped: the chat is already
+        a target, and forward_message() resolves the JID for sending.
+
+        Locked chats stay out of the forward dialog — that is the vault's
+        promise — so a contact whose only chat is locked is skipped too
+        rather than reappearing here by name.
+        """
+        seen_keys = {
+            contact_dedup_key(mw, c.get("remoteJid", ""))
+            for c in all_chats if c.get("remoteJid")
+        }
+        locked_rows = getattr(mw, "_locked_chat_rows", None) or ([], [])
+        for locked in locked_rows[0]:
+            jid = locked.get("remoteJid", "")
+            if jid:
+                seen_keys.add(contact_dedup_key(mw, jid))
+        for name, _phone, entry in build_own_contact_rows(mw):
+            jid = entry.get("remoteJid", "")
+            key = contact_dedup_key(mw, jid) if jid else ""
+            if not key or key in seen_keys:
+                continue
+            seen_keys.add(key)
+            all_chats.append(entry)
+            all_names.append(name)
 
     def _on_menu_forward(self, msg: dict, msgs_list: list = None):
         """Open a conversation-picker dialog and forward to the chosen chats.
