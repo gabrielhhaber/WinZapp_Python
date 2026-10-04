@@ -166,6 +166,8 @@ CORREÇÕES
 
 - Os avisos de atualização passam a aparecer também quando o WinZapp arranca com o Windows: nem a atualização do próprio WinZapp nem a do WPPConnect Server eram oferecidas nesse caso. O aviso do WPPConnect Server passa também a oferecer uma versão mais recente do que a testada com o WinZapp, como atualização recomendada que pode recusar, e não apenas quando o próprio WinZapp aumentava a versão exigida.
 
+- Numa conversa cujas mensagens mais antigas só existem no telemóvel, o WinZapp continuava a pedir essas mensagens ao telemóvel ao chegar à primeira mensagem: nada chegava, o telemóvel podia mostrar um aviso de sincronização de cada vez e a lista ficava ocupada durante minutos. Agora o WinZapp deteta este caso, não pede nada e anuncia "Use o WhatsApp no telemóvel para ver as mensagens mais antigas."
+
 V1.1.1.0
 
 Esta versão é sobre manter a sua conta ligada. O WinZapp passou a guardar uma cópia de segurança do perfil do navegador — que é onde a sua ligação ao WhatsApp fica realmente guardada — e a restaurá-la sozinho quando ela deixa de ser aceite, avisando o que aconteceu. Com ela vieram as correções das situações que quebravam a sessão e faziam o programa pedir para emparelhar de novo: desligar o computador, suspender e retomar, e o próprio programa a reiniciar a ligação. Chegaram também a verificação ortográfica no campo de mensagem e as ações sobre ligações.

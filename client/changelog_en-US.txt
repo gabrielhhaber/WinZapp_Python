@@ -166,6 +166,8 @@ FIXES
 
 - Update notices now also appear when WinZapp starts with Windows: neither WinZapp's own update nor the WPPConnect Server one was ever offered in that case. The WPPConnect Server notice also now offers a newer release than the one WinZapp was tested with, as a recommended update you can decline, instead of only when WinZapp itself raised the required version.
 
+- In a chat whose older messages are only on your phone, WinZapp kept asking the phone for them when you reached the first message: nothing arrived, the phone could show a sync notification each time, and the list stayed busy for minutes. WinZapp now detects this case, asks nothing and announces "Use WhatsApp on your phone to see older messages."
+
 V1.1.1.0
 
 This release is about keeping your account connected. WinZapp now keeps a backup copy of the browser profile — which is where your WhatsApp connection actually lives — and restores it on its own when it stops being accepted, telling you what happened. Alongside it come fixes for the situations that broke the session and left the app asking you to pair again: shutting the computer down, suspending and resuming, and the app restarting the connection by itself. Spell checking in the message field and link actions arrived too.

@@ -166,6 +166,8 @@ POPRAWKI
 
 - Powiadomienia o aktualizacjach pojawiają się teraz także wtedy, gdy WinZapp uruchamia się razem z Windows: w takim przypadku nie była oferowana ani aktualizacja samego WinZapp, ani WPPConnect Server. Powiadomienie o WPPConnect Server oferuje też teraz nowszą wersję niż ta testowana z WinZapp, jako zalecaną aktualizację, którą można odrzucić, a nie tylko wtedy, gdy sam WinZapp podnosił wymaganą wersję.
 
+- W czacie, którego starsze wiadomości są tylko na telefonie, WinZapp po dojściu do pierwszej wiadomości wciąż prosił o nie telefon: nic nie przychodziło, telefon mógł za każdym razem pokazać powiadomienie o synchronizacji, a lista przez kilka minut była zajęta. Teraz WinZapp wykrywa ten przypadek, o nic nie prosi i ogłasza „Starsze wiadomości zobaczysz w aplikacji WhatsApp na telefonie.”
+
 V1.1.1.0
 
 Ta wersja dotyczy utrzymania połączenia z Twoim kontem. WinZapp zapisuje teraz kopię zapasową profilu przeglądarki — to w nim faktycznie przechowywane jest Twoje połączenie z WhatsApp — i sam ją przywraca, gdy przestaje być akceptowana, informując o tym, co się stało. Razem z nią pojawiają się poprawki sytuacji, które przerywały sesję i zmuszały do ponownego parowania: wyłączenie komputera, wstrzymanie i wznowienie oraz samo ponowne uruchamianie połączenia przez program. Doszły również sprawdzanie pisowni w polu wiadomości i akcje na odnośnikach.

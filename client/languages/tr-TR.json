@@ -179,6 +179,7 @@
   "network_install_location_title": "WinZapp bu klasörden çalışamaz",
   "network_install_location_message": "WinZapp bir ağ klasöründe bulunuyor ve buradan çalışamaz:\n\n{path}\n\nBu durum, örneğin Mac üzerindeki Parallels gibi sanal makinelerde, İndirilenler klasörü aslında diğer bilgisayardaki bir klasör olduğunda yaşanır. WinZapp'i WinZappInstaller ile yükleyin ya da WinZapp klasörünü bu bilgisayardaki bir sürücüye, örneğin C:\\WinZapp konumuna taşıyıp oradan açın.\n\nWinZapp şimdi kapanacak.",
   "view_once_message": "Bir kez görüntülenebilen mesaj. Görmek için telefonunuzda açın.",
+  "older_messages_on_phone": "Daha eski mesajları görmek için telefonunuzdaki WhatsApp'ı kullanın.",
   "show_in_folder_missing": "Kaydedilen dosya artık kullanılamıyor",
   "show_in_folder_failed": "Dosyanın klasörü açılamadı",
   "save_as_nothing_to_save": "Bu mesajda kaydedilecek bir dosya yok",

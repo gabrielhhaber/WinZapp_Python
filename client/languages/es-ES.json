@@ -179,6 +179,7 @@
     "network_install_location_title": "WinZapp no puede funcionar desde esta carpeta",
     "network_install_location_message": "WinZapp está en una carpeta de red y no puede funcionar desde ella:\n\n{path}\n\nEsto ocurre, por ejemplo, en máquinas virtuales como Parallels en un Mac, donde la carpeta Descargas es en realidad una carpeta del otro ordenador. Instala WinZapp con WinZappInstaller, o mueve la carpeta de WinZapp a un disco de este ordenador, como C:\\WinZapp, y ábrelo desde allí.\n\nWinZapp se cerrará ahora.",
     "view_once_message": "Mensaje de visualización única. Ábrelo en el teléfono para verlo.",
+    "older_messages_on_phone": "Usa WhatsApp en tu teléfono para ver los mensajes más antiguos.",
     "show_in_folder_missing": "El archivo guardado ya no está disponible",
     "show_in_folder_failed": "No se pudo abrir la carpeta del archivo",
     "save_as_nothing_to_save": "Este mensaje no tiene ningún archivo que guardar",

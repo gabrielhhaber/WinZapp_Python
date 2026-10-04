@@ -179,6 +179,7 @@
     "network_install_location_title": "WinZapp can't run from this folder",
     "network_install_location_message": "WinZapp is in a network folder and can't run from it:\n\n{path}\n\nThis happens, for example, in virtual machines such as Parallels on a Mac, where the Downloads folder is actually a folder on the other computer. Install WinZapp with WinZappInstaller, or move the WinZapp folder to a drive on this computer, such as C:\\WinZapp, and open it from there.\n\nWinZapp will close now.",
     "view_once_message": "View once message. Open it on your phone to see it.",
+    "older_messages_on_phone": "Use WhatsApp on your phone to see older messages.",
     "show_in_folder_missing": "The saved file is no longer available",
     "show_in_folder_failed": "Could not open the file's folder",
     "save_as_nothing_to_save": "This message has no file to save",

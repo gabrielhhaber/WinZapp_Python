@@ -3006,7 +3006,11 @@ export async function getMessages(req: Request, res: Response) {
  * took WhatsApp Web's message store from 1,526 to 6,014 rows in 40 seconds.
  * /unblock-history-sync below clears a queue that is already in that state.
  */
-export async function requestOlderMessages(req: Request, res: Response) {
+export async function requestOlderMessages(
+  req: Request,
+  res: Response,
+  probeOnly?: unknown
+) {
   /**
      #swagger.tags = ["Messages"]
      #swagger.autoBody=false
@@ -3021,9 +3025,11 @@ export async function requestOlderMessages(req: Request, res: Response) {
      }
    */
   const { phone } = req.params;
+  // Compared to `true` because Express hands a route handler `next` here.
+  const probe = probeOnly === true;
   try {
     const result = await req.client.page.evaluate(
-      async ({ chatId }) => {
+      async ({ chatId, probe }) => {
         const out: any = { chatId };
         const req_ = (window as any).require;
         if (typeof req_ !== 'function') {
@@ -3143,16 +3149,39 @@ export async function requestOlderMessages(req: Request, res: Response) {
           return out;
         }
 
-        // State 4 (COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY) is
-        // the boundary where WhatsApp Web itself stops offering history and
-        // shows "Older messages can be viewed in WhatsApp on your phone".
-        // primaryHasMore is true there — the phone does have more — but Web may
-        // not fetch it: the request is accepted (HTTP 200) and nothing ever
-        // arrives (issue #220). Refuse before sending, so the phone is not
-        // notified for nothing, and say why so Python retires the chat.
-        if (out.endOfHistoryTransferType === 4) {
-          out.phoneOnlyHistory = true;
-          out.error = 'older messages are only available on the phone for this chat';
+        // primaryHasMore answers "does the phone hold older messages", not
+        // "may this device ask for them", and for one state the two differ:
+        // COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY (4) is what a
+        // chat becomes once an on-demand sync has delivered all a linked
+        // device is given. WhatsApp Web's own banner
+        // (WAWebConversationLoadMoreMessagesHistorySync) offers no request
+        // there, only "Use WhatsApp on your phone to see older messages." The
+        // phone answers one with silence and tells its owner "Sync paused"
+        // (issue #220; measured on 2026-10-04, 5 of 569 chats sat in it).
+        //
+        // Read by name so a renumbering does not move the gate. The other
+        // states are left as they were: the verdict for those still comes
+        // from the outcome (see _retire_chat_without_older_history).
+        let phoneOnlyState = 4;
+        try {
+          const v =
+            req_('WAWebChatConstants')?.ConversationEndOfHistoryTransferModelPropType
+              ?.COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY;
+          if (typeof v === 'number') phoneOnlyState = v;
+        } catch (e) {
+          /* keep the literal */
+        }
+        out.phoneOnly = out.endOfHistoryTransferType === phoneOnlyState;
+        if (out.phoneOnly) {
+          out.error = 'older messages for this chat are only on the phone';
+          return out;
+        }
+
+        // A probe (olderHistoryState below) reads the verdicts above and
+        // stops: Python asks it for a chat it has already requested once,
+        // where sending again would be a second notification on the phone.
+        if (probe) {
+          out.probe = true;
           return out;
         }
 
@@ -3216,7 +3245,7 @@ export async function requestOlderMessages(req: Request, res: Response) {
         }
         return out;
       },
-      { chatId: phone }
+      { chatId: phone, probe }
     );
 
     req.logger.info(
@@ -3238,6 +3267,29 @@ export async function requestOlderMessages(req: Request, res: Response) {
       error: { message: e?.message || String(e) },
     });
   }
+}
+
+/**
+ * The verdicts requestOlderMessages reaches before sending, without the send:
+ * whether this chat's older history is only on the phone. A route of its own
+ * rather than a flag on the POST, so an API built before it existed answers
+ * 404 instead of sending a real request to the phone.
+ */
+export async function olderHistoryState(req: Request, res: Response) {
+  /**
+     #swagger.tags = ["Messages"]
+     #swagger.autoBody=false
+     #swagger.security = [{
+            "bearerAuth": []
+     }]
+     #swagger.parameters["session"] = {
+      schema: 'NERDWHATS_AMERICA'
+     }
+     #swagger.parameters["phone"] = {
+      schema: '5521999999999@c.us'
+     }
+   */
+  return requestOlderMessages(req, res, true);
 }
 
 /**

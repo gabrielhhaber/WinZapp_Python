@@ -179,6 +179,7 @@
     "network_install_location_title": "WinZapp nie może działać z tego folderu",
     "network_install_location_message": "WinZapp znajduje się w folderze sieciowym i nie może z niego działać:\n\n{path}\n\nZdarza się to na przykład w maszynach wirtualnych, takich jak Parallels na Macu, gdzie folder Pobrane jest w rzeczywistości folderem na drugim komputerze. Zainstaluj WinZapp za pomocą WinZappInstaller albo przenieś folder WinZapp na dysk tego komputera, na przykład C:\\WinZapp, i uruchom go stamtąd.\n\nWinZapp zostanie teraz zamknięty.",
     "view_once_message": "Wiadomość do jednorazowego wyświetlenia. Otwórz ją na telefonie, aby ją zobaczyć.",
+    "older_messages_on_phone": "Starsze wiadomości zobaczysz w aplikacji WhatsApp na telefonie.",
     "show_in_folder_missing": "Zapisany plik nie jest już dostępny",
     "show_in_folder_failed": "Nie udało się otworzyć folderu pliku",
     "save_as_nothing_to_save": "Ta wiadomość nie ma pliku do zapisania",

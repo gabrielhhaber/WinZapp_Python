@@ -10,6 +10,7 @@ import time
 import wx
 from core.api_client import api_get
 from core.message_edit import is_edit_event
+from main_window import history_boundary
 
 
 class HistoryMixin:
@@ -453,6 +454,7 @@ class HistoryMixin:
                     asked_at = self._older_requested_chats.get(remote_jid)
                     asked_now = asked_at is None
                     requested = False
+                    phone_only = False
                     if not allow_phone_request:
                         history_pending = True
                     if asked_now and not allow_phone_request:
@@ -475,8 +477,26 @@ class HistoryMixin:
                             self._older_requested_chats.pop(remote_jid, None)
                             self._persist_older_requested()
                             history_pending = True
+                        phone_only = history_boundary.is_only_on_phone(self, remote_jid)
+                    elif allow_phone_request:
+                        # Asked before, so nothing may be sent again — but a
+                        # chat becomes phone-only exactly when that earlier
+                        # request has delivered all it will (issue #220).
+                        phone_only = history_boundary.probe(self, remote_jid)
                     waited = max(0.0, time.time() - (asked_at or time.time()))
-                    if requested:
+                    if phone_only:
+                        # WhatsApp's own answer, so there is no reply to wait
+                        # for: the grace below exists for a request that went
+                        # out, and this one never did. Durable like any other
+                        # exhausted chat; the user scrolling up asks again.
+                        history_pending = False
+                        self._exhausted_chats.add(remote_jid)
+                        self._persist_exhausted_chats()
+                        logging.info(
+                            "[fetch_older_messages] Older messages for %s are "
+                            "only on the phone; this is the start of what a "
+                            "linked device can show.", remote_jid)
+                    elif requested:
                         history_pending = True
                         logging.info(
                             "[fetch_older_messages] No local history left for %s — "
