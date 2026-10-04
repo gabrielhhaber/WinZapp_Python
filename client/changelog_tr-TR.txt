@@ -78,6 +78,8 @@ YENİLİKLER
 
 - WinZapp'ın kullandığı WhatsApp kitaplığı güncellendi. Geliştiricilerinin notları, WhatsApp Web'in son sürümlerinde grup oluşturma, grup davet bağlantısını alma ve sıfırlama, grup açıklamasını düzenleme, profil adını değiştirme ve medya gönderme için düzeltmeler listeliyor. WinZapp başlangıçta WPPConnect'i güncellemeyi önerirse kabul edin; yeni kitaplık böylece kurulur.
 
+- F3 ve Shift+F3 ile sohbet içinde arama. Artık açık sohbetin herhangi bir yerinden, mesaj listesi dahil, arama alanına dönmeden F3 ile sonraki sonuca, Shift+F3 ile önceki sonuca geçebilirsiniz; odak sonucu izler ve ekran okuyucu konumu duyurur. Enter ve Shift+Enter alternatif olarak çalışmaya devam eder, ancak mesaj listesinde zaten başka işlevleri olduğu için yalnızca arama alanında çalışır. "Önceki sonuç" ve "Sonraki sonuç" düğmeleri artık Shift+F3 ve F3 olarak duyurulur ve kısayol yardımı güncellendi.
+
 DÜZELTMELER
 
 - Kişilerinde kayıtlı olmayan ve WhatsApp profilinde adı bulunmayan birine mesaj yazdığında, sohbet kişinin telefon numarası yerine senin kendi adını göstermeye başlıyordu. Artık gerçek adı bulunana kadar telefon numarasını göstermeye devam ediyor.

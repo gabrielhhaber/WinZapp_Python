@@ -78,6 +78,8 @@ IMPROVEMENTS
 
 - The WhatsApp library WinZapp uses was updated. Its developers' notes list fixes for creating groups, getting and resetting group invite links, editing group descriptions, changing your profile name and uploading media on recent WhatsApp Web versions. If WinZapp offers to update WPPConnect when it starts, accept it so the new library is installed.
 
+- Conversation search with F3 and Shift+F3. You can now jump to the next result with F3 and the previous one with Shift+F3 from anywhere in the open conversation, including the messages list, without going back to the search field; focus follows the result and the screen reader announces its position. Enter and Shift+Enter still work as an alternative, but only inside the search field, because in the messages list they already do other things. The "Previous result" and "Next result" buttons now announce Shift+F3 and F3, and the shortcuts help was updated.
+
 FIXES
 
 - When you messaged someone who isn't in your contacts and has no name on their WhatsApp profile, the conversation started showing your own name instead of their phone number. It now keeps showing the phone number until their real name is found.

@@ -78,6 +78,8 @@ MEJORAS
 
 - Se actualizó la biblioteca de WhatsApp que usa WinZapp. Las notas de sus desarrolladores enumeran correcciones para crear grupos, obtener y restablecer enlaces de invitación de grupo, editar la descripción del grupo, cambiar tu nombre de perfil y enviar multimedia en versiones recientes de WhatsApp Web. Si WinZapp te ofrece actualizar WPPConnect al iniciar, acepta para instalar la nueva biblioteca.
 
+- Búsqueda en la conversación con F3 y Shift+F3. Ahora puede ir al siguiente resultado con F3 y al anterior con Shift+F3 desde cualquier lugar de la conversación abierta, incluida la lista de mensajes, sin volver al campo de búsqueda; el foco sigue al resultado y el lector de pantalla anuncia su posición. Enter y Shift+Enter siguen funcionando como alternativa, pero solo dentro del campo de búsqueda, porque en la lista de mensajes ya tienen otras funciones. Los botones "Resultado anterior" y "Resultado siguiente" ahora anuncian Shift+F3 y F3, y la ayuda de atajos se ha actualizado.
+
 CORRECCIONES
 
 - Al escribir a alguien que no está en tus contactos y no tiene nombre en su perfil de WhatsApp, la conversación pasaba a mostrar tu propio nombre en lugar del teléfono de la persona. Ahora sigue mostrando el teléfono hasta que se encuentre su nombre real.
