@@ -52,6 +52,10 @@ YENİLİKLER
 
 - Arka plan bildirimlerinin ne söyleyeceğini seçme. Ayarlar'ın Genel sekmesindeki "Arka plan bildirimlerinin içeriği" üç düzey sunar: eskisi gibi ses, sohbet veya grup adı ve mesaj metni; metin olmadan ses ve sohbet veya grup adı; ya da ekranda bildirim göstermeden ve hiçbir şey okunmadan yalnızca ses. Kilitli sohbetlerin bildirimleri yine ad veya içerik göstermez.
 
+- Bir sohbeti kapatınca arama sonuçlarına dönme. Ayarlar > Kullanıcı Arayüzü sekmesinde "Bir sohbet açıldığında sohbet aramasını koru" seçeneği işaretlendiğinde, aramayla bulduğunuz bir sohbeti açtığınızda sohbet araması etkin kalır ve Esc, tam liste yerine sonuçlar arasındaki o sohbete odaklanır. Seçenek varsayılan olarak kapalıdır.
+
+- Sesli mesajları sesli mesaj olarak iletme. WhatsApp iletilen her sesli mesajı sıradan bir ses dosyasına çevirir; bu da onu hedef sohbetteki sesli mesajların art arda oynatılmasının dışında bırakır. Ayarlar > Kullanıcı Arayüzü sekmesinde "Sesli mesajları ses dosyası yerine sesli mesaj olarak ilet" seçeneği işaretlendiğinde kopya sesli mesaj olarak ulaşır ve yine iletildi olarak işaretlenir. Seçenek varsayılan olarak kapalıdır.
+
 İYİLEŞTİRMELER
 
 - Yazım denetimi: hata sesi artık yalnızca boşluk değil, yanlış yazılmış bir sözcüğün hemen ardından noktalama işareti (virgül, nokta, soru işareti vb.) yazıldığında ve imleç ok tuşları, Ctrl+ok tuşları, Home, End veya fareyle yanlış yazılmış bir sözcüğe geldiğinde de çalıyor.
@@ -79,6 +83,8 @@ YENİLİKLER
 - WinZapp'ın kullandığı WhatsApp kitaplığı güncellendi. Geliştiricilerinin notları, WhatsApp Web'in son sürümlerinde grup oluşturma, grup davet bağlantısını alma ve sıfırlama, grup açıklamasını düzenleme, profil adını değiştirme ve medya gönderme için düzeltmeler listeliyor. WinZapp başlangıçta WPPConnect'i güncellemeyi önerirse kabul edin; yeni kitaplık böylece kurulur.
 
 - F3 ve Shift+F3 ile sohbet içinde arama. Artık açık sohbetin herhangi bir yerinden, mesaj listesi dahil, arama alanına dönmeden F3 ile sonraki sonuca, Shift+F3 ile önceki sonuca geçebilirsiniz; odak sonucu izler ve ekran okuyucu konumu duyurur. Enter ve Shift+Enter alternatif olarak çalışmaya devam eder, ancak mesaj listesinde zaten başka işlevleri olduğu için yalnızca arama alanında çalışır. "Önceki sonuç" ve "Sonraki sonuç" düğmeleri artık Shift+F3 ve F3 olarak duyurulur ve kısayol yardımı güncellendi.
+
+- İletme artık başarılı olduğunda bunu bildiriyor. Önceden yalnızca hata duyuruluyordu; artık işlem bitince "Mesaj iletildi." diyen ya da kaç mesajın iletildiğini söyleyen bir kutu çıkıyor.
 
 DÜZELTMELER
 

@@ -52,6 +52,10 @@ NOUTĂȚI
 
 - Alegerea a ceea ce spun notificările de fundal. În fila Generale din Setări, „Conținutul notificărilor de fundal” oferă trei niveluri: sunet, numele conversației sau al grupului și textul mesajului, ca până acum; sunet și numele conversației sau al grupului, fără text; sau doar sunet, fără notificare pe ecran și fără să fie citit ceva. Notificările conversațiilor blocate continuă să nu afișeze nici numele, nici conținutul.
 
+- Revenirea la rezultatele căutării la închiderea unei conversații. Cu „Păstrați căutarea conversațiilor la deschiderea unei conversații” bifat în fila Interfață utilizator a Setărilor, căutarea conversațiilor rămâne activă când deschideți o conversație găsită cu ea, iar Esc readuce focalizarea pe acea conversație între rezultate, nu pe lista completă. Opțiunea este debifată în mod implicit.
+
+- Redirecționarea mesajelor vocale ca mesaje vocale. WhatsApp transformă orice mesaj vocal redirecționat într-un fișier audio obișnuit, ceea ce îl scoate din redarea pe rând a mesajelor vocale din conversația de destinație. Cu „Redirecționați mesajele vocale ca mesaje vocale, nu ca audio” bifat în fila Interfață utilizator a Setărilor, copia ajunge ca mesaj vocal și rămâne marcată ca redirecționată. Opțiunea este debifată în mod implicit.
+
 ÎMBUNĂTĂȚIRI
 
 - Verificare ortografică: sunetul de eroare se aude acum și când tastați un semn de punctuație (virgulă, punct, semn de întrebare etc.) imediat după un cuvânt greșit, nu doar spațiul, și când cursorul ajunge la un cuvânt greșit cu săgețile, Ctrl+săgețile, Home, End sau mouse-ul.
@@ -79,6 +83,8 @@ NOUTĂȚI
 - Biblioteca WhatsApp folosită de WinZapp a fost actualizată. Notele dezvoltatorilor ei enumeră corecții pentru crearea grupurilor, obținerea și resetarea linkurilor de invitație la grup, editarea descrierii grupului, schimbarea numelui de profil și trimiterea fișierelor media în versiunile recente ale WhatsApp Web. Dacă WinZapp vă propune actualizarea WPPConnect la pornire, acceptați-o pentru a instala noua bibliotecă.
 
 - Căutarea în conversație cu F3 și Shift+F3. Acum puteți trece la următorul rezultat cu F3 și la cel anterior cu Shift+F3 de oriunde din conversația deschisă, inclusiv din lista de mesaje, fără să vă întoarceți la câmpul de căutare; focusul urmează rezultatul, iar cititorul de ecran anunță poziția. Enter și Shift+Enter funcționează în continuare ca alternativă, dar numai în câmpul de căutare, pentru că în lista de mesaje au deja alte funcții. Butoanele „Rezultat anterior” și „Următorul rezultat” anunță acum Shift+F3 și F3, iar ajutorul pentru comenzi rapide a fost actualizat.
+
+- Redirecționarea confirmă acum când a reușit. Înainte era anunțat doar eșecul; acum, la final, apare o casetă care spune „Mesajul a fost redirecționat.” sau câte mesaje au fost redirecționate.
 
 CORECTĂRI
 

@@ -52,6 +52,10 @@ WHAT'S NEW
 
 - Choose what background notifications say. In the General tab of Settings, "Background notification content" offers three levels: sound, chat or group name and message text, as before; sound and chat or group name, without the text; or sound only, with no notification on screen and nothing read out. Notifications for locked chats still show neither name nor content.
 
+- Return to the search results when closing a chat. With "Keep the chat search when opening a chat" ticked in the User Interface tab of Settings, the chat search stays active when you open a chat it found, and Esc puts the focus back on that chat among the results instead of on the full list. The option is off by default.
+
+- Forward voice messages as voice messages. WhatsApp turns every forwarded voice message into a plain audio, which takes it out of the sequential playback of voice messages in the destination chat. With "Forward voice messages as voice messages instead of audio" ticked in the User Interface tab of Settings, the copy arrives as a voice message and is still marked as forwarded. The option is off by default.
+
 IMPROVEMENTS
 
 - Spell checking: the error sound now also plays when you type punctuation (comma, full stop, question mark and so on) right after a misspelled word, not only a space, and when the cursor arrives at a misspelled word with the arrow keys, Ctrl+arrows, Home, End or the mouse.
@@ -79,6 +83,8 @@ IMPROVEMENTS
 - The WhatsApp library WinZapp uses was updated. Its developers' notes list fixes for creating groups, getting and resetting group invite links, editing group descriptions, changing your profile name and uploading media on recent WhatsApp Web versions. If WinZapp offers to update WPPConnect when it starts, accept it so the new library is installed.
 
 - Conversation search with F3 and Shift+F3. You can now jump to the next result with F3 and the previous one with Shift+F3 from anywhere in the open conversation, including the messages list, without going back to the search field; focus follows the result and the screen reader announces its position. Enter and Shift+Enter still work as an alternative, but only inside the search field, because in the messages list they already do other things. The "Previous result" and "Next result" buttons now announce Shift+F3 and F3, and the shortcuts help was updated.
+
+- Forwarding now confirms when it worked. Before, only a failure was announced; now a box appears at the end saying "Message forwarded." or how many messages were forwarded.
 
 FIXES
 

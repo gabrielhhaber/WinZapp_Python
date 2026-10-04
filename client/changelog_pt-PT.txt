@@ -52,6 +52,10 @@ NOVIDADES
 
 - Escolher o que as notificações em segundo plano dizem. No separador Geral das Definições, "Conteúdo das notificações em segundo plano" oferece três níveis: som, nome da conversa ou grupo e texto da mensagem, como antes; som e nome da conversa ou grupo, sem o texto; ou apenas som, sem notificação no ecrã e sem nada lido. As notificações das conversas trancadas continuam sem nome nem conteúdo.
 
+- Voltar aos resultados da pesquisa ao fechar uma conversa. Marcando "Manter a pesquisa de conversas ao abrir uma conversa" no separador Interface do utilizador das Definições, a pesquisa de conversas continua ativa quando abre uma conversa encontrada por ela, e o Esc devolve o foco a essa conversa nos resultados, em vez de voltar à lista completa. A opção vem desmarcada.
+
+- Reencaminhar mensagens de voz como mensagens de voz. O WhatsApp transforma em áudio comum todas as mensagens de voz reencaminhadas, o que as retira da reprodução em sequência das mensagens de voz na conversa de destino. Marcando "Reencaminhar mensagens de voz como mensagens de voz, em vez de áudio" no separador Interface do utilizador das Definições, a cópia chega como mensagem de voz e continua marcada como reencaminhada. A opção vem desmarcada.
+
 MELHORIAS
 
 - Verificação ortográfica: o som de erro passa também a ser reproduzido quando escreve um sinal de pontuação (vírgula, ponto, ponto de interrogação, etc.) logo a seguir a uma palavra errada, e não apenas o espaço, e quando o cursor chega a uma palavra errada com as setas, Ctrl+setas, Início, Fim ou o rato.
@@ -79,6 +83,8 @@ MELHORIAS
 - A biblioteca do WhatsApp que o WinZapp usa foi atualizada. As notas dos programadores listam correções para criar grupos, obter e repor links de convite de grupo, editar a descrição do grupo, alterar o seu nome de perfil e enviar multimédia em versões recentes do WhatsApp Web. Se o WinZapp oferecer a atualização do WPPConnect ao iniciar, aceite para instalar a nova biblioteca.
 
 - Procura na conversa com F3 e Shift+F3. Agora pode ir ao resultado seguinte com F3 e ao anterior com Shift+F3 a partir de qualquer ponto da conversa aberta, incluindo a lista de mensagens, sem voltar ao campo de procura; o foco acompanha o resultado e o leitor de ecrã anuncia a posição. Enter e Shift+Enter continuam a funcionar como alternativa, mas só dentro do campo de procura, porque na lista de mensagens já têm outras funções. Os botões "Resultado anterior" e "Resultado seguinte" passam a anunciar Shift+F3 e F3, e a ajuda de atalhos foi atualizada.
+
+- Reencaminhar passa a confirmar quando correu bem. Antes só a falha era avisada; agora, no fim, aparece uma caixa a dizer "Mensagem reencaminhada." ou quantas mensagens foram reencaminhadas.
 
 CORREÇÕES
 

@@ -52,6 +52,10 @@ NOVEDADES
 
 - Elegir qué dicen las notificaciones en segundo plano. En la pestaña General de Configuración, "Contenido de las notificaciones en segundo plano" ofrece tres niveles: sonido, nombre de la conversación o grupo y texto del mensaje, como antes; sonido y nombre de la conversación o grupo, sin el texto; o solo sonido, sin notificación en pantalla y sin que se lea nada. Las notificaciones de los chats bloqueados siguen sin mostrar nombre ni contenido.
 
+- Volver a los resultados de la búsqueda al cerrar una conversación. Marcando "Mantener la búsqueda de conversaciones al abrir una conversación" en la pestaña Interfaz de usuario de Configuración, la búsqueda de conversaciones sigue activa cuando abres una conversación encontrada con ella, y Esc devuelve el foco a esa conversación en los resultados, en lugar de volver a la lista completa. La opción viene desmarcada.
+
+- Reenviar los mensajes de voz como mensajes de voz. WhatsApp convierte en audio normal todo mensaje de voz reenviado, lo que lo saca de la reproducción en secuencia de los mensajes de voz en la conversación de destino. Marcando "Reenviar los mensajes de voz como mensajes de voz, en lugar de audio" en la pestaña Interfaz de usuario de Configuración, la copia llega como mensaje de voz y sigue marcada como reenviada. La opción viene desmarcada.
+
 MEJORAS
 
 - Corrección ortográfica: el sonido de error ahora también se reproduce al escribir un signo de puntuación (coma, punto, interrogación, etc.) justo después de una palabra mal escrita, no solo un espacio, y cuando el cursor llega a una palabra mal escrita con las flechas, Ctrl+flechas, Inicio, Fin o el ratón.
@@ -79,6 +83,8 @@ MEJORAS
 - Se actualizó la biblioteca de WhatsApp que usa WinZapp. Las notas de sus desarrolladores enumeran correcciones para crear grupos, obtener y restablecer enlaces de invitación de grupo, editar la descripción del grupo, cambiar tu nombre de perfil y enviar multimedia en versiones recientes de WhatsApp Web. Si WinZapp te ofrece actualizar WPPConnect al iniciar, acepta para instalar la nueva biblioteca.
 
 - Búsqueda en la conversación con F3 y Shift+F3. Ahora puede ir al siguiente resultado con F3 y al anterior con Shift+F3 desde cualquier lugar de la conversación abierta, incluida la lista de mensajes, sin volver al campo de búsqueda; el foco sigue al resultado y el lector de pantalla anuncia su posición. Enter y Shift+Enter siguen funcionando como alternativa, pero solo dentro del campo de búsqueda, porque en la lista de mensajes ya tienen otras funciones. Los botones "Resultado anterior" y "Resultado siguiente" ahora anuncian Shift+F3 y F3, y la ayuda de atajos se ha actualizado.
+
+- Reenviar ahora confirma cuando ha salido bien. Antes solo se avisaba del fallo; ahora, al terminar, aparece un cuadro que dice "Mensaje reenviado." o cuántos mensajes se han reenviado.
 
 CORRECCIONES
 

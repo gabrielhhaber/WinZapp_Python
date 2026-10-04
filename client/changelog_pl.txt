@@ -52,6 +52,10 @@ NOWOŚCI
 
 - Wybór tego, co mówią powiadomienia w tle. Na karcie Ogólne w Ustawieniach „Treść powiadomień w tle” oferuje trzy poziomy: dźwięk, nazwa czatu lub grupy i treść wiadomości, jak dotąd; dźwięk i nazwa czatu lub grupy, bez treści; albo tylko dźwięk, bez powiadomienia na ekranie i bez odczytywania czegokolwiek. Powiadomienia zablokowanych czatów nadal nie pokazują ani nazwy, ani treści.
 
+- Powrót do wyników wyszukiwania po zamknięciu czatu. Po zaznaczeniu „Zachowaj wyszukiwanie czatów po otwarciu czatu” na karcie Interfejs użytkownika w Ustawieniach wyszukiwanie czatów pozostaje aktywne, gdy otwierasz znaleziony nim czat, a Esc przywraca fokus na ten czat wśród wyników zamiast na pełną listę. Opcja jest domyślnie wyłączona.
+
+- Przekazywanie wiadomości głosowych dalej jako wiadomości głosowych. WhatsApp zamienia każdą przekazaną dalej wiadomość głosową w zwykłe audio, przez co wypada ona z odtwarzania wiadomości głosowych po kolei w czacie docelowym. Po zaznaczeniu „Przekazuj dalej wiadomości głosowe jako wiadomości głosowe, a nie jako audio” na karcie Interfejs użytkownika w Ustawieniach kopia dociera jako wiadomość głosowa i nadal jest oznaczona jako przekazana dalej. Opcja jest domyślnie wyłączona.
+
 ULEPSZENIA
 
 - Sprawdzanie pisowni: dźwięk błędu odtwarzany jest teraz także po wpisaniu znaku interpunkcyjnego (przecinka, kropki, znaku zapytania itd.) tuż po błędnie napisanym słowie, a nie tylko spacji, oraz gdy kursor trafia na błędnie napisane słowo za pomocą strzałek, Ctrl+strzałek, Home, End lub myszy.
@@ -79,6 +83,8 @@ ULEPSZENIA
 - Zaktualizowano bibliotekę WhatsApp, z której korzysta WinZapp. W informacjach od jej twórców znajdują się poprawki dotyczące tworzenia grup, pobierania i resetowania linków zaproszenia do grupy, edycji opisu grupy, zmiany nazwy profilu oraz wysyłania mediów w nowszych wersjach WhatsApp Web. Jeśli WinZapp po uruchomieniu zaproponuje aktualizację WPPConnect, zaakceptuj ją, aby zainstalować nową bibliotekę.
 
 - Wyszukiwanie w czacie za pomocą F3 i Shift+F3. Do następnego wyniku można teraz przejść klawiszem F3, a do poprzedniego klawiszami Shift+F3, z dowolnego miejsca otwartego czatu, także z listy wiadomości, bez wracania do pola wyszukiwania; fokus podąża za wynikiem, a czytnik ekranu ogłasza jego pozycję. Enter i Shift+Enter nadal działają jako alternatywa, ale tylko w polu wyszukiwania, ponieważ na liście wiadomości mają już inne funkcje. Przyciski „Poprzedni wynik” i „Następny wynik” ogłaszają teraz Shift+F3 i F3, a pomoc skrótów została zaktualizowana.
+
+- Przekazywanie dalej potwierdza teraz, że się udało. Wcześniej ogłaszany był tylko błąd; teraz na koniec pojawia się okno z komunikatem „Wiadomość przekazana dalej.” albo z liczbą przekazanych wiadomości.
 
 POPRAWKI
 
