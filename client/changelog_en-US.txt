@@ -54,6 +54,8 @@ WHAT'S NEW
 
 IMPROVEMENTS
 
+- Spell checking: the error sound now also plays when you type punctuation (comma, full stop, question mark and so on) right after a misspelled word, not only a space, and when the cursor arrives at a misspelled word with the arrow keys, Ctrl+arrows, Home, End or the mouse.
+
 - A major reorganization of the code. WinZapp's two largest files, which on their own added up to more than 50,000 lines and held almost everything the program does, were split into dozens of smaller parts, each taking care of one thing: sync, connection, sending messages, calls, the chat list and so on. Nothing changes for you as a user. For developers it becomes much easier to find, understand and fix each part, and much harder for a fix to break something else unnoticed — which is what keeps WinZapp healthy in the long run.
 
 - WinZapp's logs and the local server's (log.log and wppconnect.log) no longer contain phone numbers, WhatsApp identifiers or contact names: they appear masked. You can now send your logs when reporting a problem without exposing your contacts.
@@ -168,7 +170,7 @@ WHAT'S NEW
 
 - Automatic browser profile recovery. Your WhatsApp connection is stored in the browser profile WinZapp uses underneath, and when that profile stopped being accepted the only way out was to pair again. WinZapp now keeps a backup copy of it, keeps the previous copy as well, and restores it on its own when it sees the connection was refused — saying out loud that it restored and is reconnecting. It never offers back a copy WhatsApp has already refused, and when no usable copy exists it says so plainly instead of leaving you offline with no explanation.
 
-- Spell checking in the message field. In Settings you choose between following Windows' own spelling setting (the default), always on, or always off. There is also a dedicated spelling-error sound, configurable alongside the other sounds. The error sound plays when you type a space or punctuation after a misspelled word, and when the cursor arrives at one with the arrow keys, Ctrl+arrows or the mouse.
+- Spell checking in the message field. In Settings you choose between following Windows' own spelling setting (the default), always on, or always off. There is also a dedicated spelling-error sound, configurable alongside the other sounds.
 
 - Link actions on messages. When a message contains links, the context menu now offers Open link and Copy link for the link you are on, and Ctrl+C copies that link instead of the whole message.
 

@@ -54,6 +54,8 @@ YENİLİKLER
 
 İYİLEŞTİRMELER
 
+- Yazım denetimi: hata sesi artık yalnızca boşluk değil, yanlış yazılmış bir sözcüğün hemen ardından noktalama işareti (virgül, nokta, soru işareti vb.) yazıldığında ve imleç ok tuşları, Ctrl+ok tuşları, Home, End veya fareyle yanlış yazılmış bir sözcüğe geldiğinde de çalıyor.
+
 - Kodun büyük ölçüde yeniden düzenlenmesi (Refactoring). WinZapp'in yalnızca ikisi toplamda 50 binden fazla satıra ulaşan ve programın yaptığı neredeyse her şeyi barındıran en büyük iki dosyası, her biri tek bir işten sorumlu onlarca küçük parçaya bölündü: Eşitleme, bağlantı, mesaj gönderme, aramalar, sohbet listesi ve benzeri modüller ayrıştırıldı. Bu mimari dönüşüm kullanıcı deneyiminde hiçbir şeyi değiştirmez. Geliştiriciler için her parçayı bulmak, anlamak ve geliştirmek çok daha kolay hale gelirken, bir düzeltmenin fark edilmeden başka bir yeri bozma riski en aza iner. WinZapp'i uzun vadede sağlıklı ve kararlı tutan da bu modüler yapıdır.
 
 - WinZapp'in ve yerel sunucunun günlükleri (log.log ve wppconnect.log) artık telefon numaralarını, WhatsApp tanımlayıcılarını ve kişi adlarını içermez. Bu hassas veriler günlüklere maskelenmiş olarak kaydedilir. Böylece bir sorunu geliştiricilere bildirirken kişisel gizliliğinizi koruyarak günlük dosyalarını güvenle gönderebilirsiniz.

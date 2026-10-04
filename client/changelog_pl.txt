@@ -54,6 +54,8 @@ NOWOŚCI
 
 ULEPSZENIA
 
+- Sprawdzanie pisowni: dźwięk błędu odtwarzany jest teraz także po wpisaniu znaku interpunkcyjnego (przecinka, kropki, znaku zapytania itd.) tuż po błędnie napisanym słowie, a nie tylko spacji, oraz gdy kursor trafia na błędnie napisane słowo za pomocą strzałek, Ctrl+strzałek, Home, End lub myszy.
+
 - Duża reorganizacja kodu. Dwa największe pliki WinZapp, które same liczyły ponad 50 tysięcy wierszy i zawierały prawie wszystko, co robi program, zostały podzielone na dziesiątki mniejszych części, z których każda odpowiada za jedną rzecz: synchronizację, połączenie, wysyłanie wiadomości, połączenia głosowe, listę czatów i tak dalej. Dla użytkownika nic się nie zmienia. Dla programistów znacznie łatwiej jest znaleźć, zrozumieć i naprawić każdą część, a dużo trudniej, żeby poprawka niepostrzeżenie zepsuła coś innego — to właśnie utrzymuje WinZapp w dobrej kondycji na dłuższą metę.
 
 - Dzienniki WinZapp i lokalnego serwera (log.log i wppconnect.log) nie zawierają już numerów telefonów, identyfikatorów WhatsAppa ani nazw kontaktów: są one maskowane. Dzięki temu można wysłać dzienniki przy zgłaszaniu problemu bez ujawniania swoich kontaktów.

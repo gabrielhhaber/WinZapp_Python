@@ -54,6 +54,8 @@ NOVEDADES
 
 MEJORAS
 
+- Corrección ortográfica: el sonido de error ahora también se reproduce al escribir un signo de puntuación (coma, punto, interrogación, etc.) justo después de una palabra mal escrita, no solo un espacio, y cuando el cursor llega a una palabra mal escrita con las flechas, Ctrl+flechas, Inicio, Fin o el ratón.
+
 - Gran reorganización del código. Los dos archivos más grandes de WinZapp, que por sí solos sumaban más de 50.000 líneas y concentraban casi todo lo que hace el programa, se han dividido en decenas de partes más pequeñas, cada una encargada de una cosa: sincronización, conexión, envío de mensajes, llamadas, lista de chats, etc. Para quien lo usa, no cambia nada. Para quien lo desarrolla, resulta mucho más fácil encontrar, entender y corregir cada parte, y mucho más difícil que una corrección rompa otra cosa sin que nadie se dé cuenta — que es lo que mantiene WinZapp sano a largo plazo.
 
 - Los registros de WinZapp y del servidor local (log.log y wppconnect.log) ya no contienen números de teléfono, identificadores de WhatsApp ni nombres de contactos: aparecen enmascarados. Así se pueden enviar los registros al informar de un problema sin exponer a sus contactos.
@@ -168,7 +170,7 @@ NOVEDADES
 
 - Recuperación automática del perfil del navegador. Tu conexión con WhatsApp se guarda en el perfil del navegador que WinZapp usa por debajo, y cuando ese perfil dejaba de ser aceptado solo quedaba vincular de nuevo. Ahora WinZapp guarda una copia de seguridad, conserva también la copia anterior, y la restaura por su cuenta cuando detecta que la conexión fue rechazada — diciendo en voz alta que la restauró y que está reconectando. Nunca vuelve a ofrecer una copia que WhatsApp ya rechazó, y cuando no hay ninguna copia aprovechable lo dice claramente, en lugar de dejarte sin conexión y sin explicación.
 
-- Corrección ortográfica en el campo de mensaje. En Configuración eliges entre seguir la configuración de ortografía del propio Windows (predeterminado), siempre activada o siempre desactivada. También hay un sonido propio para el error de ortografía, configurable junto con los demás sonidos. El sonido de error se reproduce al escribir un espacio o un signo de puntuación tras una palabra mal escrita, y cuando el cursor llega a una con las flechas, Ctrl+flechas o el ratón.
+- Corrección ortográfica en el campo de mensaje. En Configuración eliges entre seguir la configuración de ortografía del propio Windows (predeterminado), siempre activada o siempre desactivada. También hay un sonido propio para el error de ortografía, configurable junto con los demás sonidos.
 
 - Acciones sobre enlaces en los mensajes. Cuando el mensaje contiene enlaces, el menú contextual ofrece Abrir enlace y Copiar enlace para el enlace en el que estás, y Ctrl+C copia ese enlace en lugar del mensaje entero.
 

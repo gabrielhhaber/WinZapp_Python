@@ -54,6 +54,8 @@ NOVIDADES
 
 MELHORIAS
 
+- Verificação ortográfica: o som de erro passa também a ser reproduzido quando escreve um sinal de pontuação (vírgula, ponto, ponto de interrogação, etc.) logo a seguir a uma palavra errada, e não apenas o espaço, e quando o cursor chega a uma palavra errada com as setas, Ctrl+setas, Início, Fim ou o rato.
+
 - Grande reorganização do código. Os dois maiores ficheiros do WinZapp, que sozinhos somavam mais de 50 mil linhas e concentravam quase tudo o que o programa faz, foram divididos em dezenas de partes mais pequenas, cada uma responsável por uma coisa: sincronização, ligação, envio de mensagens, chamadas, lista de conversas e assim por diante. Para quem utiliza, nada muda. Para quem desenvolve, torna-se muito mais fácil encontrar, compreender e corrigir cada parte, e muito mais difícil que uma correção estrague outra coisa sem ninguém reparar — é isso que mantém o WinZapp saudável a longo prazo.
 
 - Os registos do WinZapp e do servidor local (log.log e wppconnect.log) já não incluem números de telefone, identificadores do WhatsApp nem nomes de contactos: aparecem mascarados. Assim, é possível enviar os registos ao relatar um problema sem expor os seus contactos.
@@ -168,7 +170,7 @@ NOVIDADES
 
 - Recuperação automática do perfil do navegador. A sua ligação ao WhatsApp fica guardada no perfil do navegador que o WinZapp usa por baixo, e quando esse perfil deixava de ser aceite só restava emparelhar de novo. Agora o WinZapp guarda uma cópia de segurança dele, mantém também a cópia anterior, e restaura sozinho quando percebe que a ligação foi recusada — dizendo em voz alta que restaurou e que está a religar. Nunca oferece de volta uma cópia que o WhatsApp já recusou, e quando não há nenhuma cópia aproveitável avisa claramente, em vez de o deixar sem ligação e sem explicação.
 
-- Verificação ortográfica no campo de mensagem. Nas Definições escolhe entre seguir a definição de ortografia do próprio Windows (predefinição), sempre ativada ou sempre desativada. Existe também um som próprio para erro de ortografia, que pode ser configurado juntamente com os restantes sons. O som de erro é reproduzido ao escrever um espaço ou sinal de pontuação depois de uma palavra errada, e quando o cursor chega a uma delas com as setas, Ctrl+setas ou o rato.
+- Verificação ortográfica no campo de mensagem. Nas Definições escolhe entre seguir a definição de ortografia do próprio Windows (predefinição), sempre ativada ou sempre desativada. Existe também um som próprio para erro de ortografia, que pode ser configurado juntamente com os restantes sons.
 
 - Ações sobre ligações nas mensagens. Quando a mensagem tem ligações, o menu de contexto passa a oferecer Abrir ligação e Copiar ligação para a ligação que está em foco, e Ctrl+C copia essa ligação em vez da mensagem inteira.
 

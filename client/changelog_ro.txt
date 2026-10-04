@@ -54,6 +54,8 @@ NOUTĂȚI
 
 ÎMBUNĂTĂȚIRI
 
+- Verificare ortografică: sunetul de eroare se aude acum și când tastați un semn de punctuație (virgulă, punct, semn de întrebare etc.) imediat după un cuvânt greșit, nu doar spațiul, și când cursorul ajunge la un cuvânt greșit cu săgețile, Ctrl+săgețile, Home, End sau mouse-ul.
+
 - Reorganizare amplă a codului. Cele mai mari două fișiere ale WinZapp, care singure însumau peste 50.000 de linii și cuprindeau aproape tot ce face programul, au fost împărțite în zeci de părți mai mici, fiecare ocupându-se de un singur lucru: sincronizare, conexiune, trimiterea mesajelor, apeluri, lista de conversații și așa mai departe. Pentru utilizator nu se schimbă nimic. Pentru dezvoltatori devine mult mai ușor să găsească, să înțeleagă și să corecteze fiecare parte și mult mai greu ca o corecție să strice altceva fără să observe nimeni — asta menține WinZapp sănătos pe termen lung.
 
 - Jurnalele WinZapp și ale serverului local (log.log și wppconnect.log) nu mai conțin numere de telefon, identificatori WhatsApp sau nume de contacte: acestea apar mascate. Astfel, puteți trimite jurnalele când raportați o problemă fără a vă expune contactele.
@@ -168,7 +170,7 @@ NOUTĂȚI
 
 - Recuperarea automată a profilului browserului. Conexiunea cu WhatsApp este stocată în profilul browserului pe care WinZapp îl folosește în fundal, iar când acest profil nu mai era acceptat, singura soluție era o nouă asociere. WinZapp păstrează acum o copie de siguranță a acestuia, păstrează și copia anterioară și o restaurează singur când observă că conexiunea a fost refuzată, anunțând cu voce tare că a restaurat-o și că se reconectează. Nu oferă niciodată înapoi o copie pe care WhatsApp a refuzat-o deja, iar când nu există nicio copie utilizabilă, spune acest lucru clar, în loc să vă lase deconectat fără nicio explicație.
 
-- Verificare ortografică în câmpul de mesaj. În Setări puteți alege între a urma setarea de ortografie din Windows (implicit), activată mereu sau dezactivată mereu. Există și un sunet dedicat pentru erorile de ortografie, configurabil împreună cu celelalte sunete. Sunetul de eroare se aude când tastați un spațiu sau un semn de punctuație după un cuvânt greșit și când cursorul ajunge la unul cu săgețile, Ctrl+săgețile sau mouse-ul.
+- Verificare ortografică în câmpul de mesaj. În Setări puteți alege între a urma setarea de ortografie din Windows (implicit), activată mereu sau dezactivată mereu. Există și un sunet dedicat pentru erorile de ortografie, configurabil împreună cu celelalte sunete.
 
 - Acțiuni pentru linkuri în mesaje. Când un mesaj conține linkuri, meniul contextual oferă acum „Deschideți linkul” și „Copiați linkul” pentru linkul pe care vă aflați, iar Ctrl+C copiază acel link în locul întregului mesaj.
 
