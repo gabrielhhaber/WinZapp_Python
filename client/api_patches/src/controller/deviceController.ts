@@ -2130,6 +2130,7 @@ export async function forwardMessages(req: Request, res: Response) {
               phone: { type: "string" },
               isGroup: { type: "boolean" },
               messageId: { type: "string" },
+              keepVoice: { type: "boolean" },
             }
           },
           examples: {
@@ -2145,7 +2146,7 @@ export async function forwardMessages(req: Request, res: Response) {
       }
      }
    */
-  const { phone, messageId } = req.body;
+  const { phone, messageId, keepVoice } = req.body;
 
   try {
     // wa-js's forwardMessages is unusable on builds whose forward module has
@@ -2156,10 +2157,21 @@ export async function forwardMessages(req: Request, res: Response) {
       buildForwardRuntimeExpression({
         chatId: `${phone[0]}`,
         messageIds: Array.isArray(messageId) ? messageId : [messageId],
+        // WinZapp patch: a forwarded voice message stays a voice message
+        // (util/forwardRuntime.ts). Only an explicit true asks for it.
+        keepVoice: keepVoice === true,
       })
     );
     if (!outcome || outcome.ok !== true) {
       throw new Error(outcome?.detail || 'forwardMessages returned no outcome');
+    }
+    if (outcome.voice && outcome.voice.kept < outcome.voice.asked) {
+      // Sent, but as audio: WhatsApp Web no longer converts where the guard
+      // sits. Worth a line, since nothing else would ever say so.
+      req.logger.warn(
+        `[forward-messages] voice kept for ${outcome.voice.kept} of ` +
+          `${outcome.voice.asked} voice message(s); the rest went out as audio`
+      );
     }
     const response = outcome.response;
 

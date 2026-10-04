@@ -892,6 +892,7 @@
     "ui_show_yesterday_label": "Mostrar mensagens do dia anterior com data omitida (ontem)",
     "ui_show_link_previews_label": "Mostrar pré-visualizações de links na lista de mensagens",
     "ui_forwarded_prefix_label": "Anunciar \"Reencaminhada\" no início da mensagem, antes do remetente",
+    "ui_forward_voice_as_voice": "Reencaminhar mensagens de voz como mensagens de voz, em vez de áudio (continuam marcadas como reencaminhadas)",
     "ui_conversation_video_media_viewer_dialog_label": "Mostrar os vídeos das conversas num leitor separado (abre novo diálogo)",
     "ui_status_media_viewer_dialog_label": "Mostrar os estados num leitor separado (abre novo diálogo)",
     "ui_voice_message_mode_label": "Leitura de mensagens de voz nas conversas e estado:",

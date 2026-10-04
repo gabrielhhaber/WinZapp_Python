@@ -81,6 +81,7 @@
         "show_yesterday_label": true,
         "show_link_previews": true,
         "forwarded_prefix_enabled": false,
+        "forward_voice_as_voice": false,
         "conversation_video_media_viewer_dialog": true,
         "status_media_viewer_dialog": true,
         "voice_message_mode": "voice_message",

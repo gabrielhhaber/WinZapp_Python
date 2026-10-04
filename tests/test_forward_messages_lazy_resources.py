@@ -106,14 +106,42 @@ const fs = require('fs');
 const [, , tsPath, scenario] = process.argv;
 const ts = fs.readFileSync(tsPath, 'utf8');
 const src = /String\.raw`([\s\S]*?)`;/.exec(ts)[1];
-const calls = { forward: [], lib: [], scripts: [] };
+const calls = { forward: [], lib: [], scripts: [], sentTypes: [] };
 const world = JSON.parse(process.env.WORLD);
 let loadedScripts = 0;
 const modAvailable = () => loadedScripts >= world.scriptsNeeded;
+// Voice messages are real models: one instance per id, with mediaData.toJSON
+// on the prototype (or own, world.ownToJSON), as in WhatsApp Web.
+class MediaData { toJSON() { return { type: 'ptt', filehash: 'h' }; } }
+const ownToJSON = function () { return { type: 'ptt', filehash: 'h' }; };
+const voiceModels = {};
+for (const id of world.voiceIds || []) {
+  const mediaData = new MediaData();
+  if (world.ownToJSON) mediaData.toJSON = ownToJSON;
+  voiceModels[id] = { msgId: id, type: 'ptt', mediaData };
+}
+// An audio FILE: a media message too, but not a voice message.
+for (const id of world.audioIds || []) {
+  voiceModels[id] = { msgId: id, type: 'audio',
+                      mediaData: { toJSON: ownToJSON, isAudioFile: true } };
+}
+// What WAWebMediaForwardMediaMsg.forwardMediaMsg does to a voice message.
+const whatsappConverts = (msgs) => {
+  for (const m of msgs) {
+    if (!m || !m.mediaData) continue;
+    const q = m.mediaData.toJSON();
+    if (q.type === 'ptt' && !world.noConversion) q.type = 'audio';
+    calls.sentTypes.push(Object.assign({}, q).type);
+  }
+};
+const guardsLeft = () => Object.values(voiceModels).filter((m) => world.ownToJSON || m.mediaData.isAudioFile
+  ? m.mediaData.toJSON !== ownToJSON
+  : Object.prototype.hasOwnProperty.call(m.mediaData, 'toJSON')).length;
 const mod = {
   forwardMessages: async (a) => {
     calls.forward.push(a);
     if (world.forwardDelayMs) await new Promise((r) => setTimeout(r, world.forwardDelayMs));
+    whatsappConverts(a.msgs);
     if (world.rejectForward || (world.rejectFirstOnly && calls.forward.length === 1)) {
       throw new Error('rejected by whatsapp');
     }
@@ -138,8 +166,14 @@ global.window = {
     whatsapp: { functions: world.bound ? { forwardMessages: () => 1 } : {} },
     chat: {
       find: async (id) => ({ chatId: id }),
-      getMessageById: async (id) => ({ msgId: id }),
-      forwardMessages: async (c, ids) => { calls.lib.push([c, ids]); return ['lib']; },
+      getMessageById: async (id) => voiceModels[id] || { msgId: id },
+      forwardMessages: async (c, ids) => {
+        calls.lib.push([c, ids]);
+        // By id the library builds its own model of the message.
+        whatsappConverts(ids.map((x) => (typeof x === 'string' && voiceModels[x]
+          ? { mediaData: new MediaData() } : x)));
+        return ['lib'];
+      },
     },
   },
 };
@@ -168,7 +202,8 @@ const args = { chatId: 'chat@c.us', messageIds: ['a', 'b'] };
   const first = batches[0];
   const out = first.filter((r) => 'value' in r).map((r) => r.value);
   const failed = first.find((r) => 'err' in r);
-  console.log(JSON.stringify({ out, err: failed ? failed.err : null, batches, calls }));
+  console.log(JSON.stringify({ out, err: failed ? failed.err : null, batches, calls,
+                               guardsLeft: guardsLeft() }));
 })();
 """
 
@@ -305,3 +340,100 @@ class TestRunInFakePage:
         r = _run(tmp_path, alwaysWorks=True, bound=True)
         assert r["calls"]["forward"] == [] and r["calls"]["scripts"] == []
         assert r["calls"]["lib"] == [["chat@c.us", ["a", "b"]]]
+
+
+def _voice(**extra):
+    return dict({"chatId": "chat@c.us", "messageIds": ["v"], "keepVoice": True}, **extra)
+
+
+@needs_node
+class TestAForwardedVoiceMessageStaysOne:
+    """WhatsApp Web turns a forwarded voice message into a plain audio, which
+    ends the sequential playback of voice messages at the destination.
+    keepVoice makes that one write a no-op for the message being forwarded; the
+    fake page converts exactly as WAWebMediaForwardMediaMsg does."""
+
+    def test_without_the_option_it_goes_out_as_audio(self, tmp_path):
+        plain = {"chatId": "chat@c.us", "messageIds": ["v"]}
+        r = _run(tmp_path, voiceIds=["v"], batches=[[plain]])
+        assert r["calls"]["sentTypes"] == ["audio"]
+        assert r["out"] == [{"ok": True, "response": ["sent"]}]
+
+    def test_with_it_the_type_survives_and_the_outcome_says_so(self, tmp_path):
+        r = _run(tmp_path, voiceIds=["v"], batches=[[_voice()]])
+        assert r["calls"]["sentTypes"] == ["ptt"]
+        assert r["out"][0]["voice"] == {"asked": 1, "kept": 1}
+        assert r["guardsLeft"] == 0
+
+    def test_only_the_voice_messages_of_a_batch_are_guarded(self, tmp_path):
+        r = _run(tmp_path, voiceIds=["v"],
+                 batches=[[_voice(messageIds=["a", "v", "b"])]])
+        assert r["calls"]["sentTypes"] == ["ptt"]
+        assert r["out"][0]["voice"] == {"asked": 1, "kept": 1}
+
+    def test_an_audio_file_is_not_a_voice_message(self, tmp_path):
+        """Guarding it would report it as a voice message that was not kept."""
+        r = _run(tmp_path, audioIds=["f"], batches=[[_voice(messageIds=["f"])]])
+        assert r["out"][0]["voice"] == {"asked": 0, "kept": 0}
+        assert r["guardsLeft"] == 0
+
+    def test_a_batch_without_a_voice_message_is_untouched(self, tmp_path):
+        r = _run(tmp_path, batches=[[_voice(messageIds=["a", "b"])]])
+        assert r["out"][0] == {"ok": True, "response": ["sent"],
+                               "voice": {"asked": 0, "kept": 0}}
+        assert r["calls"]["forward"][0]["msgs"] == [{"msgId": "a"}, {"msgId": "b"}]
+
+    @pytest.mark.parametrize("own", [False, True])
+    def test_the_message_is_left_as_it_was(self, tmp_path, own):
+        """toJSON on the prototype (the real case) or as an own property."""
+        r = _run(tmp_path, voiceIds=["v"], ownToJSON=own, batches=[[_voice()]])
+        assert r["calls"]["sentTypes"] == ["ptt"] and r["guardsLeft"] == 0
+
+    def test_a_rejected_forward_still_takes_the_guard_off(self, tmp_path):
+        r = _run(tmp_path, voiceIds=["v"], rejectForward=True, batches=[[_voice()]])
+        assert r["err"] == "rejected by whatsapp"
+        assert r["guardsLeft"] == 0
+
+    def test_the_same_message_to_two_chats_at_once(self, tmp_path):
+        """Both forwards share one guard. Independent wrappers would restore
+        each other's function and leave one behind for good."""
+        r = _run(tmp_path, voiceIds=["v"], forwardDelayMs=30,
+                 batches=[[_voice(), _voice(chatId="other@c.us")]])
+        assert r["calls"]["sentTypes"] == ["ptt", "ptt"]
+        assert [x["value"]["voice"] for x in r["batches"][0]] == [{"asked": 1, "kept": 1}] * 2
+        assert r["guardsLeft"] == 0
+
+    def test_an_audio_forward_right_after_is_an_audio_again(self, tmp_path):
+        plain = {"chatId": "chat@c.us", "messageIds": ["v"]}
+        r = _run(tmp_path, voiceIds=["v"], batches=[[_voice()], [plain]])
+        assert r["calls"]["sentTypes"] == ["ptt", "audio"]
+
+    def test_whatsapp_no_longer_converting_there_is_reported_not_fatal(self, tmp_path):
+        """The guard never fires: the message is sent as WhatsApp sends it and
+        the outcome says the type was not kept by us."""
+        r = _run(tmp_path, voiceIds=["v"], noConversion=True, batches=[[_voice()]])
+        assert r["err"] is None
+        assert r["out"][0]["voice"] == {"asked": 1, "kept": 0}
+
+    def test_a_working_build_hands_the_guarded_models_to_the_library(self, tmp_path):
+        r = _run(tmp_path, voiceIds=["v"], alwaysWorks=True, bound=True,
+                 batches=[[_voice()]])
+        assert r["calls"]["forward"] == []
+        assert r["calls"]["sentTypes"] == ["ptt"]
+        assert r["out"][0]["voice"] == {"asked": 1, "kept": 1}
+        assert r["guardsLeft"] == 0
+
+    def test_a_keep_and_a_plain_forward_of_the_same_message_are_two_sends(self, tmp_path):
+        """The overlap guard is for a retry of the SAME request."""
+        plain = {"chatId": "chat@c.us", "messageIds": ["v"]}
+        r = _run(tmp_path, voiceIds=["v"], forwardDelayMs=20, batches=[[_voice(), plain]])
+        assert len(r["calls"]["forward"]) == 2
+
+
+class TestKeepVoiceWiring:
+    def test_only_an_explicit_true_asks_for_it(self, handler):
+        assert "keepVoice: keepVoice === true" in handler
+
+    def test_a_voice_message_that_went_out_as_audio_is_logged(self, handler):
+        assert "outcome.voice.kept < outcome.voice.asked" in handler
+        assert "req.logger.warn(" in handler

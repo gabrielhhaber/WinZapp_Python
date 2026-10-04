@@ -892,6 +892,7 @@
     "ui_show_yesterday_label": "Show yesterday's messages with the date omitted (yesterday)",
     "ui_show_link_previews_label": "Show link previews in the message list",
     "ui_forwarded_prefix_label": "Announce \"Forwarded\" at the start of the message, before the sender",
+    "ui_forward_voice_as_voice": "Forward voice messages as voice messages instead of audio (they are still marked as forwarded)",
     "ui_conversation_video_media_viewer_dialog_label": "Show chat videos in a separate player (opens a new dialog)",
     "ui_status_media_viewer_dialog_label": "Show statuses in a separate player (opens a new dialog)",
     "ui_voice_message_mode_label": "Reading voice messages in chats and status:",

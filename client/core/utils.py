@@ -1091,6 +1091,10 @@ DEFAULT_SETTINGS = {
         "show_yesterday_label": True,
         "show_link_previews": True,
         "forwarded_prefix_enabled": False,
+        # A forwarded voice message stays a voice message instead of becoming
+        # a plain audio, as WhatsApp makes it. Off: WhatsApp's own behaviour,
+        # so no migration.
+        "forward_voice_as_voice": False,
         "conversation_video_media_viewer_dialog": True,
         "status_media_viewer_dialog": True,
         "voice_message_mode": "voice_message",
