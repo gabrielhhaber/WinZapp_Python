@@ -26,6 +26,14 @@ from core.spell_checker import (
 )
 
 
+# Keys that move the caret in the message field; each may land on a
+# misspelled word.
+_CARET_KEYS = frozenset((
+    wx.WXK_LEFT, wx.WXK_RIGHT, wx.WXK_UP, wx.WXK_DOWN, wx.WXK_HOME,
+    wx.WXK_END, wx.WXK_PAGEUP, wx.WXK_PAGEDOWN,
+))
+
+
 class ComposerMixin:
     """The message composer: spell check, link preview, emoji picker,
     key/char/paste handling and the call buttons next to it.
@@ -56,11 +64,6 @@ class ComposerMixin:
     def _play_spelling_error_sound(self):
         """Play the currently configured spelling-error Sound Event."""
         self.main_window.spelling_error_sound.play()
-
-    _CARET_KEYS = frozenset((
-        wx.WXK_LEFT, wx.WXK_RIGHT, wx.WXK_UP, wx.WXK_DOWN, wx.WXK_HOME,
-        wx.WXK_END, wx.WXK_PAGEUP, wx.WXK_PAGEDOWN,
-    ))
 
     def _cue_spelling_at_caret(self, *_):
         """Play the error sound if the caret just arrived at a misspelled word."""
@@ -352,7 +355,7 @@ class ComposerMixin:
             self.message_field.WriteText("\n")
             self.on_change_message_field(None)
             return  # consume — don't send and don't double-insert
-        if kc in self._CARET_KEYS:
+        if kc in _CARET_KEYS:
             # The caret has not moved yet; check once the control has.
             wx.CallAfter(self._cue_spelling_at_caret)
         event.Skip()
