@@ -464,11 +464,10 @@ class SettingsMixin:
                 msg   = self.i18n.t("settings_load_failed")
                 title = self.i18n.t("error").format(app_name=self.app_name)
             else:
-                from core.i18n import _load_translations
-                _pt   = _load_translations("pt-BR")
-                msg   = _pt.get("settings_load_failed",
-                                "Erro ao carregar o arquivo de configuração:")
-                title = _pt.get("error", "{app_name} Erro").format(app_name=self.app_name)
+                from startup_i18n import startup_i18n
+                _i18n = startup_i18n()
+                msg   = _i18n.t("settings_load_failed")
+                title = _i18n.t("error").format(app_name=self.app_name)
             if hasattr(self, "error_sound"):
                 self.error_sound.play()
             if not self.background_mode:
