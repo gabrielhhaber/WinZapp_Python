@@ -2,7 +2,12 @@
 recipient's name (the conversation then showed our own name instead of the
 unsaved contact's phone number)."""
 
-from tests.test_lid_mapping_thread_safety import _Stub
+from tests.test_lid_mapping_thread_safety import _Stub as _BaseStub
+
+
+class _Stub(_BaseStub):
+    def _needs_sender_resolution(self, jid):
+        return False
 
 
 def _msg(from_me, push="Meu Nome"):
