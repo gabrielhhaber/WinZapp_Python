@@ -4,7 +4,7 @@ Marea noutate a acestei versiuni sunt apelurile: acum puteți iniția, prelua ș
 
 NOUTĂȚI
 
-- Marcajele cu stea ale mesajelor se sincronizează acum cu WhatsApp. Fiecare schimbare este verificată pe dispozitivul asociat; refuzurile și rezultatele neverificate sunt anunțate separat. Marcajele locale vechi sunt păstrate până când alegeți "Sincronizează marcajele locale vechi cu WhatsApp" din meniul conversației și confirmați. Puteți opri un lot după cererea curentă.
+- Marcajele cu stea ale mesajelor se sincronizează acum cu WhatsApp. Fiecare schimbare este verificată pe dispozitivul asociat; refuzurile și rezultatele neverificate sunt anunțate separat. Marcajele cu stea locale vechi sunt păstrate până când alegeți "Sincronizează marcajele cu stea locale vechi cu WhatsApp" din meniul conversației și confirmați. Puteți opri un lot după cererea curentă.
 
 - Apeluri vocale și video. Într-o conversație individuală, butoanele „Apel vocal” (Ctrl+Shift+V) și „Apel video” (Ctrl+Alt+Shift+V) inițiază apelul direct din WinZapp. Apelul deschide o fereastră cu butoane accesibile cu Tab și comenzi rapide proprii: Ctrl+M dezactivează sau reactivează microfonul, Ctrl+V pornește sau oprește camera într-un apel video, Ctrl+P transformă un apel vocal în apel video, Ctrl+C deschide setările apelului, iar Ctrl+Shift+Q închide apelul. Cititorul de ecran anunță când apelul se conectează, când se reconectează și când se încheie.
 

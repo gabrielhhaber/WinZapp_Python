@@ -53,6 +53,14 @@ An old `starred=True` without remote metadata is treated as a local legacy
 star. Remote False does not remove it. Explicitly confirmed star/unstar consumes
 the local marker; later remote False can remove a server-managed star.
 
+Unstarring an old local star stays possible when WhatsApp cannot confirm it,
+for example for a message the linked device no longer holds after a re-link:
+`local_unstar_state` clears only the local marker and the user hears that the
+local star was removed. It claims nothing about WhatsApp; if the message is
+starred there, the next read with `star: true` stars it again. A star
+WhatsApp is known to hold (`_star_remote` true) is only removed by a confirmed
+unstar.
+
 The normalizer retains `star`. Same-id redeliveries merge the flag independently
 of edits. Remote star-only changes use an atomic flag update and repaint only
 the corresponding open chat row. An unchanged observation advances ordering
@@ -84,10 +92,13 @@ automatic migration, account-wide sweep or automatic history request.
 Only one star job runs per window, across its conversation panels. Operations
 are sequential, off the UI thread. Only verified changes update the UI and
 database, and the changed rows are repainted together. A single message (the
-Ctrl+Shift+O toggle) speaks one short outcome: starred, unstarred, refused or
-unverified. A batch says "please wait" first and ends with the chat's display
+Ctrl+Shift+O toggle) speaks one short outcome: starred, unstarred, local star
+removed, not sent yet, refused or unverified. A batch says "please wait" first and ends with the chat's display
 name (`chat_display_name`, so a group is named too) and the
-confirmed/refused/unverified/unprocessed counts. Normal bulk starring
+confirmed/refused/unverified/unprocessed counts. Each flag is written to the
+database as it is confirmed and once more after memory holds it, since a
+`save_data()` full rewrite during the batch would put the old flag back.
+Normal bulk starring
 skips already-starred messages; legacy migration is its separate explicit
 operation.
 

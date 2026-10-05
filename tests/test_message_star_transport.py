@@ -12,7 +12,6 @@ class MW(transport.MessageStarsMixin):
     _serialize_msg_id = SendingMixin._serialize_msg_id
     _phone_to_lid = {"test@s.whatsapp.net": "device@lid"}
     wpp_server, wpp_port, token = "http://synthetic.invalid", 6300, "test"
-    _get_wa_token = lambda self: "fake"
 
 
 def response(star=False, status=200, mid="false_device@lid_M", body=None):
@@ -105,3 +104,9 @@ def test_message_without_star_field_confirms_only_an_unstar(calls, monkeypatch, 
 def test_requests_use_the_session_token_like_other_actions(calls):
     MW().star_message("test@s.whatsapp.net", {"id": "M"}, True)
     assert calls[0][0][1]["headers"] == calls[1][0][1]["headers"] == {"Authorization": "Bearer test"}
+
+
+def test_chat_without_a_cached_lid_is_read_back_under_its_phone_jid(calls, monkeypatch):
+    monkeypatch.setattr(transport, "api_get", lambda *a, **kw: response(True, mid="false_555@c.us_M"))
+    assert MW().star_message("555@s.whatsapp.net", {"id": "M"}, True) == "confirmed"
+    assert not MW()._star_chat_aliases("555@s.whatsapp.net") - {"555@s.whatsapp.net", None}

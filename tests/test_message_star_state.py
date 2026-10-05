@@ -1,6 +1,6 @@
 """Missing metadata is unknown; legacy local stars require explicit migration."""
 import pytest
-from core.message_stars import apply_remote_star, apply_star_fields, carry_over_stars, is_same_message, read_star_matches, confirmed_star_state, is_local_star, merge_star_state, remote_star_state, stamp_star_snapshot
+from core.message_stars import apply_remote_star, apply_star_fields, local_unstar_state, carry_over_stars, is_same_message, read_star_matches, confirmed_star_state, is_local_star, merge_star_state, remote_star_state, stamp_star_snapshot
 from core.websocket_client import WebSocketClient
 
 
@@ -102,3 +102,20 @@ def test_other_chat_direction_or_id_is_not_our_message(raw_id):
     ({}, False, True), ({}, True, False), ({"star": None}, False, False), ({"star": True}, False, False)])
 def test_missing_star_in_the_verification_read_satisfies_only_an_unstar(raw, star, ok):
     assert read_star_matches(raw, star) is ok
+
+
+@pytest.mark.parametrize("legacy", [{"starred": True},
+    {"starred": True, "_star_remote": False, "_star_local": True, "_star_observed_at": 5}])
+def test_removed_old_local_star_does_not_come_back_without_whatsapp(legacy):
+    state = local_unstar_state(legacy)
+    cleared = merge_star_state({**legacy, **state}, legacy)
+    assert cleared["starred"] is False and not is_local_star(cleared)
+    assert merge_star_state({"key": {"id": "M"}}, cleared).get("starred") is not True
+    assert merge_star_state(remote_star_state({"star": True}, 10), cleared)["starred"] is True
+
+
+@pytest.mark.parametrize("message", [{"starred": False}, {},
+    {"starred": True, "_star_remote": True, "_star_local": False, "_star_observed_at": 5},
+    {"starred": True, "_star_remote": True, "_star_local": True, "_star_observed_at": 5}])
+def test_star_whatsapp_holds_or_no_local_star_is_not_removed_locally(message):
+    assert local_unstar_state(message) == {}

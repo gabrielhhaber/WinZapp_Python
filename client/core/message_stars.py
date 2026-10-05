@@ -25,6 +25,9 @@ def is_local_star(message):
 def merge_star_state(incoming, stored):
     """Merge only star metadata; leave the incoming content/identity intact."""
     result = dict(incoming)
+    if ("_star_remote" not in incoming and "_star_remote" not in stored
+            and incoming.get("_star_local") is False):
+        return result  # an old local star removed by the user (local_unstar_state)
     local = incoming.get("_star_local", is_local_star(stored))
     source = incoming
     if ("_star_remote" not in incoming or
@@ -47,6 +50,18 @@ def carry_over_stars(messages, stored):
         if previous:
             merged = merge_star_state(message, previous)
             message.update({k: merged[k] for k in STAR_FIELDS if k in merged})
+
+
+def local_unstar_state(message):
+    """Remove an old local star that WhatsApp could not confirm either way.
+
+    It claims nothing about WhatsApp: if the message is starred there, the
+    next read with star=true stars it again. A star WhatsApp is known to hold
+    is only removed by a confirmed unstar.
+    """
+    if message.get("_star_remote") is True or not is_local_star(message):
+        return {}
+    return {"_star_local": False, "starred": False}
 
 
 def confirmed_star_state(star):

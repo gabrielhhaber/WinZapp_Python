@@ -27,7 +27,7 @@ class Panel(actions.StarActionsMixin):
 
     def __init__(self, messages, outcomes=("confirmed",)):
         self.conversation = {"remoteJid": "test@s.whatsapp.net"}
-        self.repainted, self.outputs, self.writes, self.calls = [], [], [], []
+        self.repainted, self.outputs, self.writes, self.calls, self.rewrites = [], [], [], [], []
         self._sorted_messages = messages
         self.selected_messages = set()
         self.outcomes = iter(outcomes)
@@ -36,7 +36,8 @@ class Panel(actions.StarActionsMixin):
             chats={"test@s.whatsapp.net": chat}, i18n=I18n(),
             db=SimpleNamespace(update_message_star_state=lambda *a: self.writes.append(a)),
             output=lambda text, **kw: self.outputs.append(text), star_message=self.star_message,
-            chat_display_name=lambda jid: "Synthetic chat")
+            chat_display_name=lambda jid: "Synthetic chat",
+            _msg_bg_executor=SimpleNamespace(submit=lambda fn, *a: self.rewrites.append(a)))
 
     def star_message(self, *args):
         self.calls.append(args)
@@ -85,13 +86,30 @@ def test_toggle_waits_for_verification_and_persists_only_flags(queue, old):
 
 
 @pytest.mark.parametrize("outcome", ["refused", "unknown"])
-def test_failed_or_unverified_action_keeps_old_local_flag(queue, outcome):
-    msg = message(starred=True)
+@pytest.mark.parametrize("old", [
+    message(starred=False),
+    message(starred=True, _star_remote=True, _star_local=False, _star_observed_at=1),
+])
+def test_failed_or_unverified_action_keeps_a_whatsapp_flag(queue, outcome, old):
+    msg = dict(old)
     panel = Panel([msg], [outcome])
     panel._on_menu_star(msg)
     drain(queue)
-    assert msg["starred"] is True and not panel.writes and not panel.repainted
-    assert ("star_sync_unknown" in panel.outputs[-1]) is (outcome == "unknown")
+    assert msg == old and not panel.writes and not panel.repainted and not panel.rewrites
+    assert panel.outputs == ["star_unverified" if outcome == "unknown" else "star_refused"]
+
+
+@pytest.mark.parametrize("outcome", ["refused", "unknown"])
+@pytest.mark.parametrize("extra", [{}, {"_star_remote": False, "_star_local": True, "_star_observed_at": 1}])
+def test_old_local_star_stays_removable_when_whatsapp_cannot_confirm(queue, outcome, extra):
+    # e.g. a message from before a re-link, which the linked device no longer holds
+    msg = message(starred=True, **extra)
+    panel = Panel([msg], [outcome])
+    panel._on_menu_star(msg)
+    drain(queue)
+    assert msg["starred"] is False and msg["_star_local"] is False
+    assert panel.writes == [("test@s.whatsapp.net", "MSG1", {"_star_local": False, "starred": False})]
+    assert panel.repainted == [["MSG1"]] and panel.outputs == ["star_local_removed"]
 
 
 def test_system_event_never_reaches_worker(queue):
@@ -158,7 +176,7 @@ def test_pending_message_never_calls_api(queue):
     panel._on_menu_star(panel._sorted_messages[0])
     drain(queue)
     assert not panel.calls and not panel.writes
-    assert panel.outputs == ["star_refused"]
+    assert panel.outputs == ["star_not_sent"]
 
 
 def test_cancel_keeps_current_confirmed_result_and_skips_remaining_messages(queue):
@@ -272,3 +290,28 @@ def test_worker_failure_outside_a_request_still_releases_the_job(queue, monkeypa
     with pytest.raises(RuntimeError):
         queue[1].pop(0)()
     assert panel.main_window._star_sync_job is None and not panel.calls
+
+
+def test_flags_are_written_again_once_memory_holds_them(queue):
+    msgs = [message("1"), message("2")]
+    panel = Panel(msgs, ["confirmed", "refused"])
+    panel._sync_message_stars("test@s.whatsapp.net", msgs, True)
+    drain(queue)
+    # A save_data() full rewrite during the batch wrote memory's old flags back.
+    jid, states = panel.rewrites[0]
+    assert jid == "test@s.whatsapp.net" and states == [("1", panel.writes[0][2])]
+
+
+def test_rewrite_failure_is_logged_not_raised():
+    panel = Panel([])
+    panel.main_window.db.update_message_star_state = lambda *a: (_ for _ in ()).throw(OSError("synthetic"))
+    panel._rewrite_star_states("test@s.whatsapp.net", [("1", {"starred": True})])
+
+
+@pytest.mark.parametrize("outcome,state,expected", [
+    ("confirmed", {"starred": True}, "star_added"), ("unknown", {}, "star_unverified"),
+    ("refused", {}, "star_refused"), ("not_sent", {}, "star_not_sent"),
+    ("unknown", {"_star_local": False}, "star_local_removed")])
+def test_single_outcome_is_one_short_line(outcome, state, expected):
+    assert actions.star_outcome_text(I18n(), [({}, "M", outcome, state)], True) == expected
+    assert actions.star_outcome_text(I18n(), [], True) == ""

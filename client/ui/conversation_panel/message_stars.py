@@ -5,17 +5,21 @@ import threading
 import wx
 
 from core.dialog_foreground import message_box
-from core.message_stars import STAR_FIELDS, confirmed_star_state, is_local_star, merge_star_state
+from core.message_stars import (
+    STAR_FIELDS, confirmed_star_state, is_local_star, local_unstar_state, merge_star_state,
+)
 
 
 def star_outcome_text(i18n, results, star):
     """One short line for a single star toggle; nothing if it was cancelled."""
     if not results:
         return ""
-    outcome = results[0][2]
+    _message, _mid, outcome, state = results[0]
     if outcome == "confirmed":
         return i18n.t("star_added" if star else "star_removed")
-    return i18n.t("star_refused" if outcome == "refused" else "star_sync_unknown")
+    if state:
+        return i18n.t("star_local_removed")
+    return i18n.t({"not_sent": "star_not_sent", "refused": "star_refused"}.get(outcome, "star_unverified"))
 
 
 class StarActionsMixin:
@@ -53,10 +57,14 @@ class StarActionsMixin:
                     break
                 try:
                     if message.get("_local_pending") or message.get("_send_unconfirmed") or not key.get("id"):
-                        outcome = "refused"
+                        outcome = "not_sent"
                     else:
                         outcome = mw.star_message(jid, key, star)
-                    state = confirmed_star_state(star) if outcome == "confirmed" else {}
+                    if outcome == "confirmed":
+                        state = confirmed_star_state(star)
+                    else:
+                        # An old local star must stay removable when WhatsApp cannot answer.
+                        state = {} if star else local_unstar_state(message)
                     if state and self._star_job_valid(jid, job, allow_cancelled=True):
                         # Only flags change, even if an edit or sync replaced this row.
                         mw.db.update_message_star_state(jid, key["id"], state)
@@ -84,13 +92,18 @@ class StarActionsMixin:
         by_id = {(m.get("key") or {}).get("id"): m for m in records}
         changed = []
         for original, mid, outcome, state in results:
-            if outcome != "confirmed":
+            if not state:
                 continue
             for message in (original, by_id.get(mid)):
                 if message is not None:
                     merged = merge_star_state({**message, **state}, message)
                     message.update({k: merged[k] for k in STAR_FIELDS if k in merged})
             changed.append(mid)
+        if changed:
+            # Memory carries the new flags only from here; a save_data() full
+            # rewrite during the batch may have put the old ones back on disk.
+            states = [(mid, state) for _m, mid, _o, state in results if state]
+            mw._msg_bg_executor.submit(self._rewrite_star_states, jid, states)
         if (self.conversation or {}).get("remoteJid") == jid and changed:
             self._repaint_or_repopulate(changed)
         if total == 1:
@@ -100,11 +113,19 @@ class StarActionsMixin:
             return
         counts = {kind: sum(r[2] == kind for r in results)
                   for kind in ("confirmed", "refused", "unknown")}
+        counts["refused"] += sum(r[2] == "not_sent" for r in results)
         text = mw.i18n.t("star_sync_result").format(
             **counts, skipped=total - len(results), chat=mw.chat_display_name(jid))
         if counts["unknown"]:
             text += " " + mw.i18n.t("star_sync_unknown")
         mw.output(text, interrupt=True)
+
+    def _rewrite_star_states(self, jid, states):
+        for mid, state in states:
+            try:
+                self.main_window.db.update_message_star_state(jid, mid, state)
+            except Exception:
+                logging.exception("[star] could not rewrite a star flag")
 
     def _on_sync_local_stars(self, jid):
         """Read local history in pages; the only write is after confirmation."""

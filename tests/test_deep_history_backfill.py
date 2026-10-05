@@ -456,7 +456,7 @@ def _fetch_stub(monkeypatch, returned):
     return stub
 
 
-class TestStoreOnlyKeepsNothingResident:
+class TestHistoryPageKeepsStoredStars:
     def test_old_local_star_survives_history_page_before_it_enters_memory(self, monkeypatch):
         from core.message_stars import merge_star_state, remote_star_state
         incoming = {**_msg(1), **remote_star_state({"star": False}, 10)}
@@ -466,6 +466,8 @@ class TestStoreOnlyKeepsNothingResident:
         assert got[0]["starred"] is True
         assert stub.chats["chat@g.us"]["messages"]["messages"]["records"][0]["starred"] is True
 
+
+class TestStoreOnlyKeepsNothingResident:
     """The branch that makes the deep walk affordable. Without it, paging a
     935-chat account back to its beginning appends every message to
     self.chats — millions of dicts held for nothing, since the open

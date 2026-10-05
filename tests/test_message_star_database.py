@@ -1,5 +1,5 @@
 """Encrypted rows retain local stars across refreshes and concurrent edits."""
-from core.message_stars import confirmed_star_state, remote_star_state
+from core.message_stars import confirmed_star_state, is_local_star, local_unstar_state, remote_star_state
 JID = "synthetic@s.whatsapp.net"
 
 
@@ -57,3 +57,15 @@ async def test_stale_duplicate_in_same_batch_does_not_undo_newer_star(in_memory_
         message(**remote_star_state({"star": False}, 10)),
     ])
     assert (await in_memory_db.get_message_by_id(JID, "M"))["starred"] is True
+
+
+async def test_removed_old_local_star_stays_removed_across_refreshes(in_memory_db):
+    db = in_memory_db
+    await db.insert_message(JID, message(starred=True))
+    await db.update_message_star_state(JID, "M", local_unstar_state({"starred": True}))
+    await db.insert_messages_batch(JID, [message()])
+    await db.insert_message(JID, message())
+    saved = await db.get_message_by_id(JID, "M")
+    assert not saved.get("starred") and not is_local_star(saved)
+    await db.insert_message(JID, message(**remote_star_state({"star": True}, 10)))
+    assert (await db.get_message_by_id(JID, "M"))["starred"] is True
