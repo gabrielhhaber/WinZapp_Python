@@ -92,6 +92,8 @@ MELHORIAS
 
 CORREÇÕES
 
+- Chamadas: corrigido o erro "cannot load module more than once per process" que podia aparecer ao iniciar uma chamada de voz ou de vídeo. O motor de chamadas do WhatsApp passa a ser iniciado uma única vez e partilhado, em vez de ser iniciado de novo a cada ação de chamada.
+
 - Ao enviar mensagem a alguém que não está nos seus contactos e não tem nome no perfil do WhatsApp, a conversa passava a aparecer com o seu próprio nome em vez do número da pessoa. Agora continua a mostrar o número até o nome verdadeiro ser encontrado.
 
 - O desinstalador passa a seguir o idioma de apresentação do Windows, como o instalador, em vez de aparecer sempre em português.

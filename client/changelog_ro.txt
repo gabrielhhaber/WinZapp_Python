@@ -92,6 +92,8 @@ NOUTĂȚI
 
 CORECTĂRI
 
+- Apeluri: am corectat eroarea "cannot load module more than once per process", care putea apărea la începerea unui apel vocal sau video. Motorul de apeluri WhatsApp este acum pornit o singură dată și partajat, în loc să fie pornit din nou la fiecare acțiune de apel.
+
 - Când trimiteai un mesaj unei persoane care nu e în contactele tale și nu are nume în profilul WhatsApp, conversația începea să afișeze propriul tău nume în loc de numărul de telefon al persoanei. Acum continuă să afișeze numărul de telefon până când se găsește numele real.
 
 - Programul de dezinstalare urmează acum limba de afișare a Windows, la fel ca programul de instalare, în loc să apară mereu în portugheză.
