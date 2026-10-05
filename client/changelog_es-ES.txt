@@ -94,6 +94,8 @@ MEJORAS
 
 CORRECCIONES
 
+- Llamadas: corregido el error "cannot load module more than once per process" que podía aparecer al iniciar una llamada de voz o de vídeo. El motor de llamadas de WhatsApp ahora se inicia una sola vez y se comparte, en lugar de iniciarse de nuevo con cada acción de llamada.
+
 - Contenido con IA: restablecer todas las claves también borra los consentimientos de envío recordados, incluso al introducir una nueva clave antes de aplicar. Las transcripciones y los textos de PDF largos ahora indican un error de límite de texto en vez de perder el final sin avisar; no se prueba otro proveedor automáticamente por este límite.
 
 - Al escribir a alguien que no está en tus contactos y no tiene nombre en su perfil de WhatsApp, la conversación pasaba a mostrar tu propio nombre en lugar del teléfono de la persona. Ahora sigue mostrando el teléfono hasta que se encuentre su nombre real.

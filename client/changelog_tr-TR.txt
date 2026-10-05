@@ -94,6 +94,8 @@ YENİLİKLER
 
 DÜZELTMELER
 
+- Aramalar: sesli veya görüntülü arama başlatılırken görünebilen "cannot load module more than once per process" hatası düzeltildi. WhatsApp'ın arama motoru artık her arama eyleminde yeniden başlatılmak yerine yalnızca bir kez başlatılıp paylaşılıyor.
+
 - Yapay zekâ işlemleri: tüm anahtarlar sıfırlandığında, kaydetmeden önce yeni bir anahtar girilse de hatırlanmış gönderim onayları temizlenir. Uzun ses dökümleri ve PDF metinleri artık sonları sessizce kesilmek yerine metin sınırı hatası verir; bu sınır için başka bir sağlayıcı otomatik olarak denenmez.
 
 - Kişilerinde kayıtlı olmayan ve WhatsApp profilinde adı bulunmayan birine mesaj yazdığında, sohbet kişinin telefon numarası yerine senin kendi adını göstermeye başlıyordu. Artık gerçek adı bulunana kadar telefon numarasını göstermeye devam ediyor.

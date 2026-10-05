@@ -94,6 +94,8 @@ IMPROVEMENTS
 
 FIXES
 
+- Calls: fixed the "cannot load module more than once per process" error that could appear when starting a voice or video call. WhatsApp's call engine is now started only once and shared, instead of being started again by each call action.
+
 - AI media: resetting all keys also clears remembered sending consent, even when a new key is entered before applying. Long transcripts and PDF text now report a text-limit error instead of silently losing their endings; another provider is not tried automatically for this limit.
 
 - When you messaged someone who isn't in your contacts and has no name on their WhatsApp profile, the conversation started showing your own name instead of their phone number. It now keeps showing the phone number until their real name is found.

@@ -94,6 +94,8 @@ MELHORIAS
 
 CORREÇÕES
 
+- Ligações: corrigido o erro "cannot load module more than once per process" que podia aparecer ao iniciar uma ligação de voz ou de vídeo. O motor de ligações do WhatsApp agora é iniciado uma única vez e compartilhado, em vez de ser iniciado de novo a cada ação de ligação.
+
 - Mídia com IA: redefinir todas as chaves também limpa as autorizações de envio lembradas, mesmo ao inserir uma nova chave antes de aplicar. Transcrições e textos de PDF longos agora informam um erro de limite de texto, em vez de perder o final silenciosamente; outro provedor não é tentado automaticamente por esse limite.
 
 - Ao mandar mensagem para alguém que não está nos seus contatos e não tem nome no perfil do WhatsApp, a conversa passava a aparecer com o seu próprio nome em vez do telefone da pessoa. Agora ela continua mostrando o telefone até o nome verdadeiro ser encontrado.

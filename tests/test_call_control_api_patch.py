@@ -660,3 +660,19 @@ def test_notices_raised_while_placing_a_call_are_answered():
     # The watcher stops after a minute and when the offer settles.
     assert "60_000" in watcher
     assert "clearTimeout(limit)" in watcher
+
+
+def test_voip_backend_is_initialised_once_per_page():
+    """WhatsApp's VoIP wasm loads once per page: a second init fails with
+    "cannot load module more than once per process"."""
+    controller = _source("client/api_patches/src/controller/callController.ts")
+    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+
+    for source in (controller, bridge):
+        # Never re-init when ready; one in-flight init shared by warm-up and
+        # call actions; the "more than once" error stops further init attempts.
+        assert "emitter?.getIsVoipInited?.() !== true && !win.__winzappVoipLoadedOnce" in source
+        assert "win.__winzappVoipInitFlight = (async () =>" in source
+        assert "await win.__winzappVoipInitFlight" in source
+        assert "/more than once/i" in source
+        assert "win.__winzappVoipLoadedOnce = true" in source

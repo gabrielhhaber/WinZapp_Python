@@ -94,6 +94,8 @@ NOUTĂȚI
 
 CORECTĂRI
 
+- Apeluri: am corectat eroarea "cannot load module more than once per process", care putea apărea la începerea unui apel vocal sau video. Motorul de apeluri WhatsApp este acum pornit o singură dată și partajat, în loc să fie pornit din nou la fiecare acțiune de apel.
+
 - Conținut AI: resetarea tuturor cheilor șterge și acordurile de trimitere memorate, chiar dacă introduci o cheie nouă înainte de aplicare. Transcrierile și textele PDF lungi afișează acum o eroare de limită de text în loc să piardă finalul fără avertizare; nu se încearcă automat alt furnizor pentru această limită.
 
 - Când trimiteai un mesaj unei persoane care nu e în contactele tale și nu are nume în profilul WhatsApp, conversația începea să afișeze propriul tău nume în loc de numărul de telefon al persoanei. Acum continuă să afișeze numărul de telefon până când se găsește numele real.

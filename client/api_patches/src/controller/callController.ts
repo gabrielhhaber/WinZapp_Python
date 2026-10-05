@@ -207,6 +207,13 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
           functions.requireVoipJsBackend ||
           win.WPP?.whatsapp?.requireVoipJsBackend;
 
+        // WhatsApp's VoIP WebAssembly module can be instantiated once per page.
+        // Asking the backend to initialise again while it is already up, or
+        // while a first initialisation is still in flight (the session
+        // warm-up, a second call action), makes it fail with "cannot load
+        // module more than once per process". So: skip init when it is ready,
+        // share one in-flight init per page, and once that error is seen stop
+        // initialising and only wait for the first load to finish.
         let lastError: any = null;
         for (let attempt = 0; attempt < 8; attempt += 1) {
           try {
@@ -217,14 +224,31 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
                 backend?.initWAWebVoip;
               if (typeof init === 'function') {
                 const initModule = backend?.WAWebVoipInit || backend;
-                await init.call(initModule, 'winzapp_call_action');
                 const emitter = initModule?.VoipInitEventEmitter;
-                if (
-                  emitter?.getIsVoipInited?.() !== true &&
-                  emitter?.getDidVoipInitError?.() === true &&
-                  typeof initModule?.retryWAWebVoipInitAfterFailure === 'function'
-                ) {
-                  await initModule.retryWAWebVoipInitAfterFailure();
+                if (emitter?.getIsVoipInited?.() !== true && !win.__winzappVoipLoadedOnce) {
+                  if (!win.__winzappVoipInitFlight) {
+                    win.__winzappVoipInitFlight = (async () => {
+                      try {
+                        await init.call(initModule, 'winzapp_call_action');
+                        if (
+                          emitter?.getIsVoipInited?.() !== true &&
+                          emitter?.getDidVoipInitError?.() === true &&
+                          typeof initModule?.retryWAWebVoipInitAfterFailure === 'function'
+                        ) {
+                          await initModule.retryWAWebVoipInitAfterFailure();
+                        }
+                      } catch (initError: any) {
+                        if (/more than once/i.test(String(initError?.message || initError))) {
+                          win.__winzappVoipLoadedOnce = true;
+                        } else {
+                          throw initError;
+                        }
+                      } finally {
+                        delete win.__winzappVoipInitFlight;
+                      }
+                    })();
+                  }
+                  await win.__winzappVoipInitFlight;
                 }
                 if (emitter?.getIsVoipInited?.() === false) {
                   throw new Error('WhatsApp VoIP initializer completed without becoming ready');
