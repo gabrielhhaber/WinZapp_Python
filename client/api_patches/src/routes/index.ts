@@ -546,6 +546,13 @@ routes.post(
   statusConnection,
   DeviceController.requestOlderMessages
 );
+// Read-only: the same verdicts, with nothing sent to the phone.
+routes.get(
+  '/api/:session/older-history-state/:phone',
+  verifyToken,
+  statusConnection,
+  DeviceController.olderHistoryState
+);
 // Read-only diagnostic: is WhatsApp Web's history-sync pipeline alive at all?
 routes.get(
   '/api/:session/history-sync-status',

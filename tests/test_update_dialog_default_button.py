@@ -60,6 +60,8 @@ class TestWppUpdatePromptDefaultButton:
             },
         )()
         checker._retry_timer = None
+        checker._declined_tag = None
+        checker._prompt_token = None
         checker._schedule_retry = lambda *a: calls.append("scheduled_retry")
 
         checker._prompt_update("2.10.1", "2.10.4", "v2.10.4")

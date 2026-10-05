@@ -29,6 +29,13 @@ import {
 } from '../dto/sync';
 import { contactToArray, unlinkAsync } from '../util/functions';
 import { buildForwardRuntimeExpression } from '../util/forwardRuntime';
+import {
+  buildDiag,
+  claimIdbCount,
+  diagStateFor,
+  formatDiagLine,
+  shouldLogDiag,
+} from '../util/listChatsDiag';
 import { clientsArray } from '../util/sessionUtil';
 
 function returnSucess(res: any, session: any, phone: any, data: any) {
@@ -179,14 +186,33 @@ export async function getAllChats(req: Request, res: Response) {
  * the page so Python's retry loop cannot start several 900-chat recoveries at
  * once. The healthy path still performs one ordinary WPP.chat.list() call.
  */
-async function listChatsWithStoreRecovery(
+async function listChatsWithDiag(
   req: Request,
   options: Record<string, any>
-): Promise<any[]> {
+): Promise<{ chats: any[]; diag: Record<string, any> }> {
+  const startedAt = Date.now();
   const result: any = await observeEvaluate('list-chats', () =>
     req.client.page.evaluate(
     async ({ listOptions }) => {
       const root = globalThis as any;
+
+      // Diagnostics only (util/listChatsDiag.ts): read, never throw, change nothing.
+      const readStoreState = () => {
+        try {
+          const store = root.WPP?.whatsapp?.ChatStore;
+          const ready =
+            Boolean(root.WPP?.isReady) &&
+            Boolean(root.WPP?.conn?.isMainReady?.()) &&
+            Boolean(store);
+          const size = Number(store?.length);
+          return {
+            storeReady: ready,
+            storeChats: Number.isFinite(size) ? size : undefined,
+          };
+        } catch (_error) {
+          return { storeReady: false, storeChats: undefined };
+        }
+      };
 
       const serialise = async () => {
         try {
@@ -206,7 +232,11 @@ async function listChatsWithStoreRecovery(
 
       const first = await serialise();
       if (first.chats.length > 0) {
-        return { ...first, recovered: false };
+        return {
+          ...first,
+          recovered: false,
+          diag: { rawFirst: first.chats.length, ...readStoreState() },
+        };
       }
 
       // Every concurrent list-chats request awaits the same recovery, and a
@@ -321,6 +351,11 @@ async function listChatsWithStoreRecovery(
         recovered: true,
         firstError: first.error,
         recovery,
+        diag: {
+          rawFirst: first.chats.length,
+          rawSecond: second.chats.length,
+          ...readStoreState(),
+        },
       };
     },
     { listOptions: options }
@@ -340,7 +375,112 @@ async function listChatsWithStoreRecovery(
   if (result?.error && !result?.chats?.length) {
     req.logger.warn(`[listChats] ${result.error}`);
   }
-  return Array.isArray(result?.chats) ? result.chats : [];
+  return {
+    chats: Array.isArray(result?.chats) ? result.chats : [],
+    diag: {
+      ...(result?.diag || {}),
+      recovered: Boolean(result?.recovered),
+      firstError: result?.firstError,
+      ms: Date.now() - startedAt,
+    },
+  };
+}
+
+async function listChatsWithStoreRecovery(
+  req: Request,
+  options: Record<string, any>
+): Promise<any[]> {
+  return (await listChatsWithDiag(req, options)).chats;
+}
+
+/**
+ * Number of records in the `chat` store of the `model-storage` IndexedDB, via
+ * a read-only count(). Bounded twice (3 s in the page, 5 s here) because a
+ * hung IndexedDB must not hold anything up; it answers a word instead of
+ * throwing. Never creates the database: an upgrade is aborted.
+ */
+async function countIdbChats(req: Request): Promise<number | string> {
+  let timer: any;
+  try {
+    const evaluation = observeEvaluate('list-chats-idb-count', () =>
+      req.client.page.evaluate(
+        () =>
+          new Promise<number | string>((resolve) => {
+            const pageTimer = setTimeout(() => resolve('timeout'), 3000);
+            const done = (value: number | string) => {
+              clearTimeout(pageTimer);
+              resolve(value);
+            };
+            try {
+              const open = indexedDB.open('model-storage');
+              open.onupgradeneeded = () => open.transaction?.abort();
+              open.onerror = () => done('unavailable');
+              open.onsuccess = () => {
+                const db = open.result;
+                try {
+                  const counting = db
+                    .transaction('chat', 'readonly')
+                    .objectStore('chat')
+                    .count();
+                  counting.onsuccess = () => {
+                    db.close();
+                    done(counting.result);
+                  };
+                  counting.onerror = () => {
+                    db.close();
+                    done('unavailable');
+                  };
+                } catch (_error) {
+                  db.close();
+                  done('unavailable');
+                }
+              };
+            } catch (_error) {
+              done('unavailable');
+            }
+          })
+      )
+    );
+    // The race can be lost by the evaluate; its late rejection is not news.
+    evaluation.catch(() => undefined);
+    return await Promise.race([
+      evaluation,
+      new Promise<string>((resolve) => {
+        timer = setTimeout(() => resolve('timeout'), 5000);
+      }),
+    ]);
+  } catch (_error) {
+    return 'unavailable';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * One counts-only line saying what the server saw (util/listChatsDiag.ts).
+ * Runs after the response is sent and swallows every error, so it can change
+ * neither the answer nor its timing.
+ */
+async function logListChatsDiag(
+  req: Request,
+  rawChats: any[],
+  visibleChats: any[],
+  pageDiag: Record<string, any>
+): Promise<void> {
+  try {
+    const counts = buildDiag(rawChats, visibleChats);
+    const now = Date.now();
+    const session = String(req.params?.session || req.session || '').split(':')[0];
+    const state = diagStateFor(session);
+    if (!shouldLogDiag(state, counts, now)) return;
+    const idbChats =
+      counts.visible === 0 && claimIdbCount(state, now)
+        ? await countIdbChats(req)
+        : 'skipped';
+    req.logger.info(formatDiagLine({ ...pageDiag, ...counts, idbChats }));
+  } catch (_error) {
+    // Diagnostics must never surface.
+  }
 }
 
 export async function listChats(req: Request, res: Response) {
@@ -441,7 +581,7 @@ export async function listChats(req: Request, res: Response) {
     if (ignoreGroupMetadata !== undefined)
       options.ignoreGroupMetadata = ignoreGroupMetadata;
 
-    const chats = await listChatsWithStoreRecovery(req, options);
+    const { chats, diag } = await listChatsWithDiag(req, options);
 
     // WhatsApp Web creates one-to-one ChatStore entries for group participants
     // when it receives only an encryption-key notification from them. These are
@@ -465,6 +605,7 @@ export async function listChats(req: Request, res: Response) {
         endpoint: 'list-chats',
       })
     );
+    void logListChatsDiag(req, chats, visibleChats, diag);
   } catch (e) {
     req.logger.error(e);
     res
@@ -1382,7 +1523,9 @@ export async function reactMessage(req: Request, res: Response) {
             // would... but only for a module id listed in WA-JS's own private
             // LAZY_MODULES table, which (confirmed by reading wa-js 4.6.0's
             // compiled loader) has exactly two entries, both WA-JS's own
-            // forward-message feature. WAWebSendStatusReactionAction is
+            // forward-message feature (4.6.1 grew it to ten: group, community,
+            // privacy, profile and event modules, none of them ours).
+            // WAWebSendStatusReactionAction is
             // WinZapp's own reverse-engineered id, absent from that table, so
             // this call is a guaranteed no-op for it on every WhatsApp Web
             // build — kept only because it is free and harmless if WA-JS ever
@@ -1987,6 +2130,7 @@ export async function forwardMessages(req: Request, res: Response) {
               phone: { type: "string" },
               isGroup: { type: "boolean" },
               messageId: { type: "string" },
+              keepVoice: { type: "boolean" },
             }
           },
           examples: {
@@ -2002,7 +2146,7 @@ export async function forwardMessages(req: Request, res: Response) {
       }
      }
    */
-  const { phone, messageId } = req.body;
+  const { phone, messageId, keepVoice } = req.body;
 
   try {
     // wa-js's forwardMessages is unusable on builds whose forward module has
@@ -2013,10 +2157,21 @@ export async function forwardMessages(req: Request, res: Response) {
       buildForwardRuntimeExpression({
         chatId: `${phone[0]}`,
         messageIds: Array.isArray(messageId) ? messageId : [messageId],
+        // WinZapp patch: a forwarded voice message stays a voice message
+        // (util/forwardRuntime.ts). Only an explicit true asks for it.
+        keepVoice: keepVoice === true,
       })
     );
     if (!outcome || outcome.ok !== true) {
       throw new Error(outcome?.detail || 'forwardMessages returned no outcome');
+    }
+    if (outcome.voice && outcome.voice.kept < outcome.voice.asked) {
+      // Sent, but as audio: WhatsApp Web no longer converts where the guard
+      // sits. Worth a line, since nothing else would ever say so.
+      req.logger.warn(
+        `[forward-messages] voice kept for ${outcome.voice.kept} of ` +
+          `${outcome.voice.asked} voice message(s); the rest went out as audio`
+      );
     }
     const response = outcome.response;
 
@@ -2863,7 +3018,11 @@ export async function getMessages(req: Request, res: Response) {
  * took WhatsApp Web's message store from 1,526 to 6,014 rows in 40 seconds.
  * /unblock-history-sync below clears a queue that is already in that state.
  */
-export async function requestOlderMessages(req: Request, res: Response) {
+export async function requestOlderMessages(
+  req: Request,
+  res: Response,
+  probeOnly?: unknown
+) {
   /**
      #swagger.tags = ["Messages"]
      #swagger.autoBody=false
@@ -2878,9 +3037,11 @@ export async function requestOlderMessages(req: Request, res: Response) {
      }
    */
   const { phone } = req.params;
+  // Compared to `true` because Express hands a route handler `next` here.
+  const probe = probeOnly === true;
   try {
     const result = await req.client.page.evaluate(
-      async ({ chatId }) => {
+      async ({ chatId, probe }) => {
         const out: any = { chatId };
         const req_ = (window as any).require;
         if (typeof req_ !== 'function') {
@@ -3000,6 +3161,42 @@ export async function requestOlderMessages(req: Request, res: Response) {
           return out;
         }
 
+        // primaryHasMore answers "does the phone hold older messages", not
+        // "may this device ask for them", and for one state the two differ:
+        // COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY (4) is what a
+        // chat becomes once an on-demand sync has delivered all a linked
+        // device is given. WhatsApp Web's own banner
+        // (WAWebConversationLoadMoreMessagesHistorySync) offers no request
+        // there, only "Use WhatsApp on your phone to see older messages." The
+        // phone answers one with silence and tells its owner "Sync paused"
+        // (issue #220; measured on 2026-10-04, 5 of 569 chats sat in it).
+        //
+        // Read by name so a renumbering does not move the gate. The other
+        // states are left as they were: the verdict for those still comes
+        // from the outcome (see _retire_chat_without_older_history).
+        let phoneOnlyState = 4;
+        try {
+          const v =
+            req_('WAWebChatConstants')?.ConversationEndOfHistoryTransferModelPropType
+              ?.COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY;
+          if (typeof v === 'number') phoneOnlyState = v;
+        } catch (e) {
+          /* keep the literal */
+        }
+        out.phoneOnly = out.endOfHistoryTransferType === phoneOnlyState;
+        if (out.phoneOnly) {
+          out.error = 'older messages for this chat are only on the phone';
+          return out;
+        }
+
+        // A probe (olderHistoryState below) reads the verdicts above and
+        // stops: Python asks it for a chat it has already requested once,
+        // where sending again would be a second notification on the phone.
+        if (probe) {
+          out.probe = true;
+          return out;
+        }
+
         let wid;
         try {
           wid = (window as any).WPP.whatsapp.WidFactory.createWid(chatId);
@@ -3060,7 +3257,7 @@ export async function requestOlderMessages(req: Request, res: Response) {
         }
         return out;
       },
-      { chatId: phone }
+      { chatId: phone, probe }
     );
 
     req.logger.info(
@@ -3082,6 +3279,29 @@ export async function requestOlderMessages(req: Request, res: Response) {
       error: { message: e?.message || String(e) },
     });
   }
+}
+
+/**
+ * The verdicts requestOlderMessages reaches before sending, without the send:
+ * whether this chat's older history is only on the phone. A route of its own
+ * rather than a flag on the POST, so an API built before it existed answers
+ * 404 instead of sending a real request to the phone.
+ */
+export async function olderHistoryState(req: Request, res: Response) {
+  /**
+     #swagger.tags = ["Messages"]
+     #swagger.autoBody=false
+     #swagger.security = [{
+            "bearerAuth": []
+     }]
+     #swagger.parameters["session"] = {
+      schema: 'NERDWHATS_AMERICA'
+     }
+     #swagger.parameters["phone"] = {
+      schema: '5521999999999@c.us'
+     }
+   */
+  return requestOlderMessages(req, res, true);
 }
 
 /**

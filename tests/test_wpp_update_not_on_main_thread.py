@@ -85,9 +85,11 @@ class _Stub:
     _update_wpp_server = MainWindow._update_wpp_server
 
     def __init__(self, dialog_result=wx.ID_OK, stop_raises=False):
-        # background_mode keeps output()/restore_window out of the picture;
-        # these tests are about what runs where, not about the announcements.
-        self.background_mode = True
+        # A visible window keeps restore_window and the bring-to-front timers
+        # out of the picture; these tests are about what runs where, not about
+        # the announcements (recorded on self.spoken, never voiced).
+        self.background_mode = False
+        self.spoken = []
         self.i18n = _I18n()
         self.error_sound = _Sound()
         self.dialog_result = dialog_result
@@ -97,6 +99,9 @@ class _Stub:
         self.dialogs = []
         self.events = []
         self.flag_during_stop = None
+
+    def output(self, text, interrupt=False):
+        self.spoken.append(text)
 
     def _stop_wpp_server(self):
         self.flag_during_stop = self._wpp_updating

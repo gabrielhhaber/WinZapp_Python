@@ -40,7 +40,9 @@ def test_list_chats_route_uses_the_recovering_reader():
     route_start = source.index("export async function listChats")
     route_end = source.index("export async function getAllChatsWithMessages", route_start)
     route = source[route_start:route_end]
-    assert "await listChatsWithStoreRecovery(req, options)" in route
+    # listChatsWithDiag is the recovering reader itself; listChatsWithStoreRecovery
+    # is its array-only wrapper for the callers that do not log diagnostics.
+    assert "await listChatsWithDiag(req, options)" in route
 
 
 def test_contacts_never_maps_a_non_array_chat_result():

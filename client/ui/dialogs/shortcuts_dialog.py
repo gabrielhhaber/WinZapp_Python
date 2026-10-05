@@ -216,6 +216,8 @@ class ShortcutsDialog(wx.Dialog):
             i18n.t("shortcut_call_ctrl_c_label"),
             "",
             section("shortcuts_search_section"),
+            i18n.t("shortcut_search_f3_label"),
+            i18n.t("shortcut_search_shift_f3_label"),
             i18n.t("shortcut_search_enter_label"),
             i18n.t("shortcut_search_shift_enter_label"),
             "",

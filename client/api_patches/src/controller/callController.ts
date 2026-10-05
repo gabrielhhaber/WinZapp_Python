@@ -207,6 +207,14 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
           functions.requireVoipJsBackend ||
           win.WPP?.whatsapp?.requireVoipJsBackend;
 
+        // WhatsApp's VoIP WebAssembly module can be instantiated once per page.
+        // Asking the backend to initialise again while it is already up, or
+        // while a first initialisation is still in flight (the session
+        // warm-up, a second call action), makes it fail with "cannot load
+        // module more than once per process". So: skip init when it is ready,
+        // share one in-flight init per page, and once that error is seen stop
+        // initialising; the loop below then keeps polling until the first load
+        // reports ready.
         let lastError: any = null;
         for (let attempt = 0; attempt < 8; attempt += 1) {
           try {
@@ -217,14 +225,31 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
                 backend?.initWAWebVoip;
               if (typeof init === 'function') {
                 const initModule = backend?.WAWebVoipInit || backend;
-                await init.call(initModule, 'winzapp_call_action');
                 const emitter = initModule?.VoipInitEventEmitter;
-                if (
-                  emitter?.getIsVoipInited?.() !== true &&
-                  emitter?.getDidVoipInitError?.() === true &&
-                  typeof initModule?.retryWAWebVoipInitAfterFailure === 'function'
-                ) {
-                  await initModule.retryWAWebVoipInitAfterFailure();
+                if (emitter?.getIsVoipInited?.() !== true && !win.__winzappVoipLoadedOnce) {
+                  if (!win.__winzappVoipInitFlight) {
+                    win.__winzappVoipInitFlight = (async () => {
+                      try {
+                        await init.call(initModule, 'winzapp_call_action');
+                        if (
+                          emitter?.getIsVoipInited?.() !== true &&
+                          emitter?.getDidVoipInitError?.() === true &&
+                          typeof initModule?.retryWAWebVoipInitAfterFailure === 'function'
+                        ) {
+                          await initModule.retryWAWebVoipInitAfterFailure();
+                        }
+                      } catch (initError: any) {
+                        if (/more than once/i.test(String(initError?.message || initError))) {
+                          win.__winzappVoipLoadedOnce = true;
+                        } else {
+                          throw initError;
+                        }
+                      } finally {
+                        delete win.__winzappVoipInitFlight;
+                      }
+                    })();
+                  }
+                  await win.__winzappVoipInitFlight;
                 }
                 if (emitter?.getIsVoipInited?.() === false) {
                   throw new Error('WhatsApp VoIP initializer completed without becoming ready');
@@ -431,6 +456,15 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
       // call is started by the user's own keystroke in WinZapp, which is
       // exactly what "user_gesture" means. The fallback only surfaces
       // wa-js' own error: WPP.call.offer needs the same function.
+      //
+      // wa-js 4.6.1 makes the same call natively (startWAWebVoipCall(peer,
+      // isVideo, 8, 5, null, { entryTrust: 'user_gesture' }), then polls
+      // CallStore for the call and returns it), so on 4.6.1 the fallback above
+      // works too. This direct path stays the primary one regardless: it is
+      // the one measured on a real account, it behaves the same on 4.6.0 and
+      // 4.6.1 (an install that declined the reinstall prompt keeps the old
+      // library under this code), and the offer loop below already does its
+      // own CallStore tracking.
       const startOutgoingCall = async (to: string, isVideo: boolean): Promise<any> => {
         const start = win.WPP?.whatsapp?.functions?.startWAWebVoipCall;
         if (typeof start !== 'function') {

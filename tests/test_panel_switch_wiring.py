@@ -326,6 +326,13 @@ ENTRIES = [(MAIN, "alt1"), (MAIN, "nav"), (ARCHIVED, "alt4"),
 
 class TestPanelLayoutRule:
     @pytest.mark.parametrize("origin,target", list(itertools.product(ORIGINS, TARGETS)))
+    def test_staying_keeps_the_detail_only_in_the_panel_it_belongs_to(self, origin, target):
+        layout = panel_layout(origin, target, True, keep=True)
+        assert layout["detail"] == (origin == target)
+        assert layout == panel_layout(origin, target, True, reveal=True) or origin != target
+        assert not panel_layout(origin, target, False, keep=True)["detail"]
+
+    @pytest.mark.parametrize("origin,target", list(itertools.product(ORIGINS, TARGETS)))
     def test_a_plain_switch_never_shows_the_detail(self, origin, target):
         layout = panel_layout(origin, target, True)
         assert layout["detail"] is False
@@ -347,24 +354,30 @@ class TestPanelLayoutRule:
 class TestEveryEntryPointByOriginAndTarget:
     @pytest.mark.parametrize("origin", ORIGINS)
     @pytest.mark.parametrize("target,label", ENTRIES)
-    def test_with_an_open_conversation_it_stays_hidden(self, world, origin, target, label):
+    def test_a_real_switch_hides_the_conversation_and_staying_keeps_it(self, world, origin, target, label):
         panel = world.conversations_panel
         _open(world, A, origin or MAIN)
         panel._conversation_origin = origin   # None: opened some other way
         world.log.clear()
+        staying = origin == target            # already in the panel being asked for
 
         dict(_enter(world, target))[label]()
 
-        assert not panel.conversation_panel.shown, (label, origin, target)
-        assert panel.conversation is not None  # hidden, never closed
-        assert not conversation_in_view(panel)
-        if target == MAIN:
-            assert panel.panel_shown and panel.conversations_list.shown
-            assert not world.archived_conversations_panel.shown
-        else:
-            assert not panel.panel_shown, "a conversation pane stayed on screen"
+        assert panel.conversation is not None  # hidden or kept, never closed
         list_panel = {ARCHIVED: world.archived_conversations_panel,
                       LOCKED: world.locked_conversations_panel}.get(target)
+        if staying:
+            assert panel.conversation_panel.shown, (label, origin, target)
+            assert conversation_in_view(panel)
+            assert panel.panel_shown
+        else:
+            assert not panel.conversation_panel.shown, (label, origin, target)
+            assert not conversation_in_view(panel)
+            if target == MAIN:
+                assert panel.panel_shown and panel.conversations_list.shown
+                assert not world.archived_conversations_panel.shown
+            else:
+                assert not panel.panel_shown, "a conversation pane stayed on screen"
         if list_panel is not None:
             assert list_panel.shown
         focused = _focus_calls(world)
@@ -539,3 +552,64 @@ class TestADisplacedConversation:
         panel = world.conversations_panel
         assert panel._conversation_origin == ARCHIVED
         assert panel.conversation_panel.shown
+
+
+class TestPressingTheShortcutOfThePanelYouAreIn:
+    """Alt+1 inside a main conversation, Alt+4 inside an archived one: the focus
+    goes to the chat list and the conversation stays; only a change of panel
+    hides it."""
+
+    @pytest.mark.parametrize("origin,press", [(MAIN, "on_alt_1"), (ARCHIVED, "on_alt_4")])
+    def test_the_conversation_stays_and_the_chat_list_gets_focus(self, world, origin, press):
+        panel = world.conversations_panel
+        _open(world, A, origin)
+        before = _work(world)
+        world.log.clear()
+
+        getattr(world, press)(None)
+
+        assert panel.conversation_panel.shown and conversation_in_view(panel)
+        assert _focus_calls(world)[-1] == CHAT_LIST_FOCUS[origin]
+        assert "messages_list" not in _focus_calls(world)
+        assert _work(world) == before   # Show/Hide and focus, nothing else
+
+    @pytest.mark.parametrize("origin,press", [(MAIN, "on_alt_1"), (ARCHIVED, "on_alt_4")])
+    def test_pressing_it_again_changes_nothing(self, world, origin, press):
+        _open(world, A, origin)
+        for _ in range(3):
+            getattr(world, press)(None)
+            assert world.conversations_panel.conversation_panel.shown
+
+    @pytest.mark.parametrize("origin,press", [(MAIN, "on_alt_4"), (ARCHIVED, "on_alt_1"),
+                                              (LOCKED, "on_alt_1"), (LOCKED, "on_alt_4")])
+    def test_the_other_panels_shortcut_is_a_switch_and_hides_it(self, world, origin, press):
+        _open(world, A, origin)
+
+        getattr(world, press)(None)
+
+        assert not world.conversations_panel.conversation_panel.shown
+        assert world.conversations_panel.conversation is not None
+
+    @pytest.mark.parametrize("origin,press", [(MAIN, "on_alt_1"), (ARCHIVED, "on_alt_4")])
+    def test_coming_back_from_status_is_a_switch_even_to_the_same_panel(self, world, origin, press):
+        _open(world, A, origin)
+        _go_to(world, "status")
+
+        getattr(world, press)(None)
+
+        assert not world.conversations_panel.conversation_panel.shown
+
+    @pytest.mark.parametrize("origin,target,label", [(MAIN, MAIN, "nav"), (ARCHIVED, ARCHIVED, "nav")])
+    def test_choosing_the_panel_you_are_in_from_the_navigation_list_keeps_it(self, world, origin, target, label):
+        _open(world, A, origin)
+
+        dict(_enter(world, target))[label]()
+
+        assert world.conversations_panel.conversation_panel.shown
+
+    def test_a_switch_then_the_same_shortcut_again_still_hides_it(self, world):
+        _open(world, A, MAIN)
+        world.on_alt_4(None)
+        world.on_alt_1(None)
+        world.on_alt_1(None)
+        assert not world.conversations_panel.conversation_panel.shown

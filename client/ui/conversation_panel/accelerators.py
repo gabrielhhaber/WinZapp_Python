@@ -155,6 +155,8 @@ class AcceleratorsMixin:
         self.ID_CTRL_SHIFT_L    = wx.NewIdRef()  # clear conversation      (Ctrl+Shift+L)
         # ── Search / unread jump ─────────────────────────────────────────────
         self.ID_CTRL_SHIFT_F    = wx.NewIdRef()  # open search panel       (Ctrl+Shift+F)
+        self.ID_F3              = wx.NewIdRef()  # next search result      (F3)
+        self.ID_SHIFT_F3        = wx.NewIdRef()  # previous search result  (Shift+F3)
         self.ID_ALT_3           = wx.NewIdRef()  # jump to unread sep      (Alt+3)
         self.ID_ALT_U           = wx.NewIdRef()  # jump to unread sep      (Alt+U)
         # ── Message bookmarks ────────────────────────────────────────────────
@@ -259,6 +261,11 @@ class AcceleratorsMixin:
             (CS,               ord("M"),          self.ID_CTRL_SHIFT_M),
             (CS,               ord("L"),          self.ID_CTRL_SHIFT_L),
             (CS,               ord("F"),          self.ID_CTRL_SHIFT_F),
+            # F3 / Shift+F3 step through search results from anywhere in the
+            # open conversation, the messages list included, where Enter and
+            # Shift+Enter already mean something else.
+            (wx.ACCEL_NORMAL,  wx.WXK_F3,         self.ID_F3),
+            (wx.ACCEL_SHIFT,   wx.WXK_F3,         self.ID_SHIFT_F3),
             (wx.ACCEL_ALT,     ord("3"),          self.ID_ALT_3),
             (wx.ACCEL_ALT,     ord("U"),          self.ID_ALT_U),
             (wx.ACCEL_ALT,     ord("u"),          self.ID_ALT_U),
@@ -326,6 +333,8 @@ class AcceleratorsMixin:
         self.Bind(wx.EVT_MENU, self._on_accel_toggle_read,         id=self.ID_CTRL_SHIFT_M)
         self.Bind(wx.EVT_MENU, self._on_accel_clear,               id=self.ID_CTRL_SHIFT_L)
         self.Bind(wx.EVT_MENU, self._on_accel_open_search,         id=self.ID_CTRL_SHIFT_F)
+        self.Bind(wx.EVT_MENU, self._on_search_next,               id=self.ID_F3)
+        self.Bind(wx.EVT_MENU, self._on_search_prev,               id=self.ID_SHIFT_F3)
         self.Bind(wx.EVT_MENU, self._on_accel_jump_unread,         id=self.ID_ALT_3)
         self.Bind(wx.EVT_MENU, self._on_accel_jump_unread,         id=self.ID_ALT_U)
         self.Bind(wx.EVT_MENU, self._on_accel_reply_private,       id=self.ID_ALT_SHIFT_R)

@@ -4,6 +4,8 @@ Bu sürümün en büyük yeniliği aramalardır: Telefona ihtiyaç duymadan doğ
 
 YENİLİKLER
 
+- Mesaj yıldızları artık WhatsApp ile eşitlenir. Her değişiklik bağlı cihazdan okunarak doğrulanır; reddedilen ve doğrulanamayan işlemler ayrı bildirilir. Eski yerel yıldızlar korunur. Sohbetin bağlam menüsündeki "Eski yerel yıldızları WhatsApp ile eşitle" seçeneğiyle onay vererek topluca aktarabilir, devam eden isteğin ardından işlemi durdurabilirsiniz.
+
 - Sesli ve görüntülü aramalar. Bireysel bir sohbette "Sesli ara" (Ctrl+Shift+V) ve "Görüntülü ara" (Ctrl+Alt+Shift+V) düğmeleri aramayı doğrudan WinZapp üzerinden başlatır. Arama başladığında, Tab tuşuyla dolaşılabilen düğmelere ve bağımsız kısayollara sahip erişilebilir bir arama penceresi açılır: Ctrl+M mikrofonun sesini kapatır veya açar, Ctrl+V görüntülü aramada kamerayı açıp kapatır, Ctrl+P sesli aramayı görüntülü aramaya dönüştürür, Ctrl+C arama ayarlarını açar ve Ctrl+Shift+Q aramayı sonlandırır. Ekran okuyucu; arama bağlandığında, yeniden bağlanırken ve çağrı sona erdiğinde durumu sesli olarak duyurur.
 
 - WinZapp'te aramaları yanıtlama ve reddetme. Gelen arama penceresinde artık "Cevapla", "Reddet" ve "Sessize al" düğmeleri; görüntülü aramalarda ise "Görüntülü cevapla" veya kameranızı açmadan yalnızca sesle yanıtlamayı sağlayan "Görüntüsüz cevapla" seçenekleri yer alır. Bu penceredeki kısayollar, tek bir tuşa yanlışlıkla basılarak aramanın açılmasını veya reddedilmesini önlemek amacıyla doğrudan harf tuşlarıyla değil, ilgili düğmenin erişim tuşuyla (Alt tuşu kombinasyonuyla) çalışır.
@@ -52,7 +54,15 @@ YENİLİKLER
 
 - Arka plan bildirimlerinin ne söyleyeceğini seçme. Ayarlar'ın Genel sekmesindeki "Arka plan bildirimlerinin içeriği" üç düzey sunar: eskisi gibi ses, sohbet veya grup adı ve mesaj metni; metin olmadan ses ve sohbet veya grup adı; ya da ekranda bildirim göstermeden ve hiçbir şey okunmadan yalnızca ses. Kilitli sohbetlerin bildirimleri yine ad veya içerik göstermez.
 
+- Bir sohbeti kapatınca arama sonuçlarına dönme. Ayarlar > Kullanıcı Arayüzü sekmesinde "Bir sohbet açıldığında sohbet aramasını koru" seçeneği işaretlendiğinde, aramayla bulduğunuz bir sohbeti açtığınızda sohbet araması etkin kalır ve Esc, tam liste yerine sonuçlar arasındaki o sohbete odaklanır. Seçenek varsayılan olarak kapalıdır.
+
+- Sesli mesajları sesli mesaj olarak iletme. WhatsApp iletilen her sesli mesajı sıradan bir ses dosyasına çevirir; bu da onu hedef sohbetteki sesli mesajların art arda oynatılmasının dışında bırakır. Ayarlar > Kullanıcı Arayüzü sekmesinde "Sesli mesajları ses dosyası yerine sesli mesaj olarak ilet" seçeneği işaretlendiğinde kopya sesli mesaj olarak ulaşır ve yine iletildi olarak işaretlenir. Seçenek varsayılan olarak kapalıdır.
+
+- Güncellemeleri arka planda indirme. Ayarlar > Genel sekmesinde "Güncellemeleri ilerleme penceresi olmadan arka planda indir" seçeneği işaretlendiğinde, kabul ettiğiniz bir WinZapp veya WPPConnect güncellemesi ilerleme penceresi olmadan indirilir ve siz programı bağlı durumda, normal şekilde kullanmaya devam edersiniz. WinZapp ancak güncelleme hazır olduğunda yükleyeceğini bildirir: WinZapp güncellemesinde kapanıp yeniden açılır; WPPConnect güncellemesinde ise tüm indirme ve kurulum boyunca değil, yalnızca sürümü değiştirip yeniden başlatmak için gereken kısa süre boyunca çevrimdışı olur. Bir arama sürüyorsa bildirim aramanın bitmesini bekler. Seçenek tüm hesaplar için geçerlidir ve varsayılan olarak kapalıdır.
+
 İYİLEŞTİRMELER
+
+- Yazım denetimi: hata sesi artık yalnızca boşluk değil, yanlış yazılmış bir sözcüğün hemen ardından noktalama işareti (virgül, nokta, soru işareti vb.) yazıldığında ve imleç ok tuşları, Ctrl+ok tuşları, Home, End veya fareyle yanlış yazılmış bir sözcüğe geldiğinde de çalıyor.
 
 - Kodun büyük ölçüde yeniden düzenlenmesi (Refactoring). WinZapp'in yalnızca ikisi toplamda 50 binden fazla satıra ulaşan ve programın yaptığı neredeyse her şeyi barındıran en büyük iki dosyası, her biri tek bir işten sorumlu onlarca küçük parçaya bölündü: Eşitleme, bağlantı, mesaj gönderme, aramalar, sohbet listesi ve benzeri modüller ayrıştırıldı. Bu mimari dönüşüm kullanıcı deneyiminde hiçbir şeyi değiştirmez. Geliştiriciler için her parçayı bulmak, anlamak ve geliştirmek çok daha kolay hale gelirken, bir düzeltmenin fark edilmeden başka bir yeri bozma riski en aza iner. WinZapp'i uzun vadede sağlıklı ve kararlı tutan da bu modüler yapıdır.
 
@@ -70,7 +80,23 @@ YENİLİKLER
 
 - Kullanılan WhatsApp Web sürümü aramaları desteklemediği için bir arama başlatılamadığında WinZapp artık bunu ve ne denenebileceğini (WinZapp'ı yeniden başlatmak ya da Yardım menüsünden "WPPConnect'i yeniden yüklemeye zorla" seçeneğini seçmek) söylüyor; bir hata kodu okumuyor.
 
+- Kurulum programının indirme boyutu artık çok daha küçük: içindeki WinZapp dosyaları, taşınabilir ZIP'te olduğu gibi sıkıştırılmıştır ve kurulum programı kurulum sırasında her dosyayı denetler.
+
+- Kurulum programı ve kaldırma programı artık WinZapp'in sunulduğu tüm dillerde görünüyor: Brezilya Portekizcesi, Avrupa Portekizcesi, İspanyolca, Lehçe, Rumence, Türkçe ve İngilizce. Windows görüntüleme dilini izliyor, diğer tüm dillerde İngilizce gösteriyor.
+
+- WinZapp'ın kullandığı WhatsApp kitaplığı güncellendi. Geliştiricilerinin notları, WhatsApp Web'in son sürümlerinde grup oluşturma, grup davet bağlantısını alma ve sıfırlama, grup açıklamasını düzenleme, profil adını değiştirme ve medya gönderme için düzeltmeler listeliyor. WinZapp başlangıçta WPPConnect'i güncellemeyi önerirse kabul edin; yeni kitaplık böylece kurulur.
+
+- F3 ve Shift+F3 ile sohbet içinde arama. Artık açık sohbetin herhangi bir yerinden, mesaj listesi dahil, arama alanına dönmeden F3 ile sonraki sonuca, Shift+F3 ile önceki sonuca geçebilirsiniz; odak sonucu izler ve ekran okuyucu konumu duyurur. Enter ve Shift+Enter alternatif olarak çalışmaya devam eder, ancak mesaj listesinde zaten başka işlevleri olduğu için yalnızca arama alanında çalışır. "Önceki sonuç" ve "Sonraki sonuç" düğmeleri artık Shift+F3 ve F3 olarak duyurulur ve kısayol yardımı güncellendi.
+
+- İletme artık başarılı olduğunda bunu bildiriyor. Önceden yalnızca hata duyuruluyordu; artık işlem bitince "Mesaj iletildi." diyen ya da kaç mesajın iletildiğini söyleyen bir kutu çıkıyor.
+
 DÜZELTMELER
+
+- Aramalar: sesli veya görüntülü arama başlatılırken görünebilen "cannot load module more than once per process" hatası düzeltildi. WhatsApp'ın arama motoru artık her arama eyleminde yeniden başlatılmak yerine yalnızca bir kez başlatılıp paylaşılıyor.
+
+- Kişilerinde kayıtlı olmayan ve WhatsApp profilinde adı bulunmayan birine mesaj yazdığında, sohbet kişinin telefon numarası yerine senin kendi adını göstermeye başlıyordu. Artık gerçek adı bulunana kadar telefon numarasını göstermeye devam ediyor.
+
+- Kaldırma programı artık her zaman Portekizce görünmek yerine, kurulum programı gibi Windows görüntüleme dilini izliyor.
 
 - Mesajları iletme, her iletimin “forwardMessages function is not available” hatasıyla reddedildiği son WhatsApp Web sürümlerinde artık başarısız olmuyor.
 
@@ -147,6 +173,10 @@ DÜZELTMELER
 - Listeden zaten açık olan bir sohbeti seçmek artık "Bir sohbet açıldığında odaklanılacak yer" ayarına uyuyor (mesaj alanı veya okunmamışlar ayırıcısı / son mesaj); önceden odak her zaman mesaj alanına gidiyordu.
 
 - Bir iletiye yanıt verirken yanıtta birinden bahsedildiğinde, WinZapp onu yanıt olarak gösterse de alıcılara alıntısız yeni bir ileti olarak ulaşıyordu. Alıntı artık bahsetmeyle birlikte gönderilir.
+
+- Güncelleme bildirimleri artık WinZapp Windows ile başladığında da görünüyor: bu durumda ne WinZapp'in kendi güncellemesi ne de WPPConnect Server güncellemesi sunuluyordu. WPPConnect Server bildirimi ayrıca artık WinZapp ile test edilenden daha yeni bir sürümü, reddedebileceğiniz önerilen bir güncelleme olarak sunuyor; önceden yalnızca WinZapp gereken sürümü yükselttiğinde sunuluyordu.
+
+- Daha eski mesajları yalnızca telefonda bulunan bir sohbette WinZapp, ilk mesaja gelindiğinde bunları telefondan istemeyi sürdürüyordu: hiçbir şey gelmiyor, telefon her seferinde bir eşitleme bildirimi gösterebiliyor ve liste dakikalarca meşgul kalıyordu. WinZapp artık bu durumu algılıyor, hiçbir şey istemiyor ve "Daha eski mesajları görmek için telefonunuzdaki WhatsApp'ı kullanın." duyurusunu yapıyor.
 
 V1.1.1.0
 

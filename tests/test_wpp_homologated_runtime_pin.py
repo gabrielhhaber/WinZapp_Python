@@ -130,6 +130,21 @@ def test_the_installed_runtime_is_the_one_that_was_pinned():
     )
 
 
+def test_the_installed_wa_js_is_the_one_that_was_pinned():
+    """The pair's other half. wppconnect 2.3.4 changed no compiled file and
+    moved only its wa-js range, so an install can sit on the pinned wppconnect
+    with the previous wa-js underneath it and every wppconnect check passing."""
+    live = ROOT / "client" / "api" / "node_modules" / "@wppconnect" / "wa-js" / "package.json"
+    if not live.exists():
+        pytest.skip("client/api/node_modules not present")
+    installed = json.loads(live.read_text(encoding="utf-8"))["version"]
+    expected = _patch_package_json()["dependencies"]["@wppconnect/wa-js"]
+    assert installed == expected, (
+        f"client/api/node_modules holds @wppconnect/wa-js {installed}, but the "
+        f"homologated pin is {expected}. Re-run setup_api.py."
+    )
+
+
 def _npm_range_allows(pinned: str, npm_range: str) -> bool:
     """Whether an exact version satisfies a single npm range operator.
 
@@ -236,7 +251,7 @@ def test_the_pin_still_satisfies_the_servers_own_declared_range():
 
 
 def test_every_node_modules_patch_still_matches_the_pinned_runtime():
-    """The four node_modules patches are idempotent search-and-replace, so a
+    """The node_modules patches are idempotent search-and-replace, so a
     runtime whose source moved is reported as a warning and skipped, never as
     an error. Assert the return value nothing else looks at.
 
@@ -263,3 +278,12 @@ def test_every_node_modules_patch_still_matches_the_pinned_runtime():
         assert setup_api._patch_wppconnect_status_layer(tmp)
         assert setup_api._patch_wppconnect_sender_layer(tmp)
         assert setup_api._patch_wppconnect_welcome_layer(tmp)
+
+        # The fifth patch is in the other half of the pair: wa-js's bundle.
+        from core.wppconnect_wa_js_patch import WA_JS_BUNDLE_PARTS
+        bundle = ROOT.joinpath("client", "api", *WA_JS_BUNDLE_PARTS)
+        if bundle.exists():
+            bundle_copy = Path(tmp).joinpath(*WA_JS_BUNDLE_PARTS)
+            bundle_copy.parent.mkdir(parents=True)
+            shutil.copy2(bundle, bundle_copy)
+            assert setup_api._patch_wa_js_bundle(tmp)

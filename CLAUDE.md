@@ -81,7 +81,9 @@ uv run build-onefile                   # single-file WinZapp.exe
   `@wppconnect-team/wppconnect` — `client/core/wppconnect_host_layer_patch.py`,
   `client/core/wppconnect_status_layer_patch.py`,
   `client/core/wppconnect_sender_layer_patch.py`,
-  `client/core/wppconnect_welcome_layer_patch.py`.
+  `client/core/wppconnect_welcome_layer_patch.py`. A fifth,
+  `client/core/wppconnect_wa_js_patch.py`, patches `@wppconnect/wa-js`'s
+  bundle, the script injected into the WhatsApp Web page.
 - **The big classes are split into mixins.**
   `client/main.py` (~1,900 lines) keeps `MainWindow.__init__`, `init_UI` and
   startup; its methods live under `client/main_window/`.

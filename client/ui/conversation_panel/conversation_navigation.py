@@ -377,8 +377,7 @@ class ConversationNavigationMixin:
                 args=(jid,),
                 daemon=True,
             ).start()
-        if self.search_field.GetValue().strip():
-            self.search_field.Clear()
+        self._clear_chat_search_on_open()
         self.populate_messages()
         self._sync_pending_document_gauge()
         self._backfill_reactions_for_open_conversation()
@@ -444,6 +443,23 @@ class ConversationNavigationMixin:
                 daemon=True,
             ).start()
         wx.CallAfter(_start_mark_as_read)
+
+    def _clear_chat_search_on_open(self):
+        """Opening a conversation ends the chat search, unless the user asked
+        to keep it (Settings > User Interface, off by default).
+
+        Kept, the list stays filtered behind the open conversation, so Esc
+        lands back on the results — _restore_conversation_selection() finds
+        the chat in whatever the list holds — instead of on the full list,
+        where someone working through several results had to type the search
+        again for each one. The archived list has always kept its search.
+        """
+        if not self.search_field.GetValue().strip():
+            return
+        if self.main_window.settings.get("user_interface", {}).get(
+                "keep_search_after_open", False):
+            return
+        self.search_field.Clear()
 
     def on_search_query_changed(self, event):
         # Route through add_chats_to_ui so the active filter and proper sort

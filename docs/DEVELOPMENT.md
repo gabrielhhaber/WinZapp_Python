@@ -99,7 +99,7 @@ Releases are signed so that the auto-updater only installs builds the maintainer
 
 ### Local build (fallback)
 
-The build downloads the checksum-verified portable Node.js into `client/node/` when it is missing or is not exactly the version in `client/node_download_config.py`, and runs `setup_api.py` on its own when the API has not been built. The default onedir build additionally requires MSYS2 with GCC/windres in `PATH`, used to compile the C installer/uninstaller stubs.
+The build downloads the checksum-verified portable Node.js into `client/node/` when it is missing or is not exactly the version in `client/node_download_config.py`, and runs `setup_api.py` on its own when the API has not been built. The default onedir build additionally requires MSYS2 with GCC/windres in `PATH`, used to compile the C installer/uninstaller stubs (including static zlib, `mingw-w64-ucrt-x86_64-zlib`, which comes with gcc).
 
 ```powershell
 # With uv (and GCC/windres in PATH for the onedir build):

@@ -18,6 +18,7 @@ from core.api_client import (
     api_post,
 )
 from core.utils import auto_download_enabled
+from main_window import history_boundary
 from main_window.message_rules import describe_history_sync_health
 from main_window.history import HistoryMixin
 
@@ -1357,18 +1358,7 @@ class BackfillMixin:
         if not getattr(self, "_wa_connected", False):
             return False
         jid = self._normalize_jid(remote_jid)
-        # Same @lid-preferred addressing sync_chat_messages() uses, so a chat
-        # the store only knows under its @lid still resolves.
-        lid = getattr(self, "_phone_to_lid", {}).get(jid, "")
-        if lid:
-            phone = lid
-        elif jid.endswith("@s.whatsapp.net"):
-            phone = jid.split("@")[0] + "@c.us"
-        else:
-            phone = jid
-
-        url = (f"{self.wpp_server}:{self.wpp_port}"
-               f"/api/{self.token}/request-older-messages/{phone}")
+        url = history_boundary.older_history_url(self, jid, "request-older-messages")
         try:
             response = api_post(
                 url,
@@ -1382,6 +1372,7 @@ class BackfillMixin:
             except Exception:
                 pass
             payload = body.get("response") if isinstance(body, dict) else None
+            phone_only = history_boundary.note_verdict(self, jid, payload)
             if response.status_code in (200, 201) and isinstance(payload, dict) \
                     and payload.get("requested"):
                 logging.info(
@@ -1389,6 +1380,16 @@ class BackfillMixin:
                     "%s (primary_has_more=%s).", jid, payload.get("primaryHasMore"),
                 )
                 return True
+            if phone_only:
+                # The phone still holds older messages, but WhatsApp gives a
+                # linked device no further batch of them (issue #220). Refused
+                # before the send, so nothing reached the phone; False is the
+                # same terminal verdict as "nothing older" below.
+                logging.info(
+                    "[history-sync] Older messages for %s are only on the "
+                    "phone — not asking.", jid,
+                )
+                return False
             if isinstance(payload, dict) and payload.get("primaryHasMore") is False:
                 # Not a failure, and the commonest answer there is: WhatsApp
                 # Web checked and the phone has nothing older for this chat, so

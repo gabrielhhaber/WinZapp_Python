@@ -68,14 +68,15 @@ class TestForceReinstallGoesToTheNewestRelease:
         monkeypatch.setattr("ui.dialogs.api_setup.fetch_latest_wpp_tag", lambda: "")
         assert updater.WppUpdateChecker._newest_available_tag() == "v2.10.16"
 
-    def test_the_periodic_check_still_compares_against_the_homologated_release(self):
-        """Deliberately unchanged. Prompting every user onto every
-        wppconnect-server release the day it appears is how a patch set that no
-        longer matches reaches people — which is what 2.3.2 did. Raising
-        wpp_minimum_version.txt stays the deliberate act."""
+    def test_the_periodic_check_looks_at_the_latest_release_too(self):
+        """It used to compare only against the bundled minimum, so a user was
+        never told about a newer server until a WinZapp release raised the
+        minimum. The minimum is the floor of the offer now, not its ceiling
+        (see tests/test_wpp_update_target.py)."""
         source = inspect.getsource(updater.WppUpdateChecker._check_once)
-        assert "_homologated_or_latest_tag()" in source
-        assert "_newest_available_tag()" not in source
+        assert "fetch_latest_wpp_tag()" in source
+        assert "wpp_update_target(" in source
+        assert not hasattr(updater.WppUpdateChecker, "_homologated_or_latest_tag")
 
 
 class TestVersionComparisonForTheFloor:

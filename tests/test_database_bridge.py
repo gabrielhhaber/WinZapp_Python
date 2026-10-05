@@ -37,6 +37,18 @@ def bridge(tmp_path):
 
 
 class TestNormalOperation:
+    def test_star_flags_round_trip_without_overwriting_body(self, bridge):
+        from core.message_stars import confirmed_star_state, remote_star_state
+        jid = "synthetic@s.whatsapp.net"
+        record = {"key": {"id": "M"}, "messageTimestamp": 1,
+                  "message": {"conversation": "keep"}, "starred": True}
+        bridge.insert_message(jid, record)
+        merged = bridge.merge_message_star_states(jid, [{**record, **remote_star_state({"star": False}, 10)}])
+        assert merged[0]["starred"] is True
+        bridge.update_message_star_state(jid, "M", confirmed_star_state(False))
+        saved = bridge.get_message_by_id(jid, "M")
+        assert saved["starred"] is False and saved["message"] == record["message"]
+
     def test_basic_call_round_trips(self, bridge):
         bridge.upsert_chat("jid@w", {"remoteJid": "jid@w", "pushName": "Foo"})
         chats = bridge.get_chats()

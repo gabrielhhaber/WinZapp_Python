@@ -7,5 +7,6 @@
 #define IDC_INSTALL        1007
 #define IDC_CANCEL         1008
 #define IDC_PATH_LABEL     1009
+#define IDC_UNINSTALL_PROMPT 1010
 #define IDD_INSTALL        101
 #define IDD_UNINSTALL      102

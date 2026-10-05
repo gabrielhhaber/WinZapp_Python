@@ -8,12 +8,36 @@ ConversationsPanel.__init__/init_UI is available here.
 import threading
 import time
 import wx
-from core.utils import append_selected_marker
+from core.dialog_foreground import message_box
+from core.utils import append_selected_marker, contact_dedup_key
+from ui.dialogs.contact_list_picker import build_own_contact_rows
 from ui.conversation_panel.text_helpers import message_caption
 from ui.conversation_panel.selection_rules import (
     toggle_jid_selection,
     visible_jid_selected,
 )
+
+
+def forward_outcome(i18n, forwarded: int, failed_names, target_count: int):
+    """What to tell the user once a forward is over: (kind, text).
+
+    "failed" names what did not go through and is spoken with the error
+    sound, as before. "done" is the confirmation, shown in a message box:
+    the forward happens in the background and its copy lands in another
+    chat, so without it nothing at all told the user it had worked. None
+    when nothing was attempted (every message was skipped).
+    """
+    failed_names = sorted(failed_names or ())
+    if failed_names:
+        if target_count == 1:
+            return "failed", i18n.t("forward_failed")
+        return "failed", i18n.t("forward_failed_multiple").format(
+            names=", ".join(failed_names))
+    if forwarded <= 0:
+        return None, ""
+    if forwarded == 1:
+        return "done", i18n.t("forward_done")
+    return "done", i18n.t("forward_done_multiple").format(count=forwarded)
 
 
 class ForwardingMixin:
@@ -25,9 +49,12 @@ class ForwardingMixin:
         """All chats offerable as a forward target: the main (non-archived)
         conversations_panel's own chats_list/chat_names, plus every archived
         chat from the separate ArchivedConversationsPanel that isn't already
-        in that list. conversations_panel.chats_list alone only ever holds
+        in that list, plus every saved contact no chat in either list
+        covers. conversations_panel.chats_list alone only ever holds
         non-archived chats, so forwarding used to silently exclude every
-        archived chat (not just groups) as a target."""
+        archived chat (not just groups) as a target — and a contact the
+        user never opened a chat with was unreachable from this dialog
+        entirely, even though the "Nova conversa" picker knows them."""
         panel     = mw.conversations_panel
         all_chats = list(panel.chats_list)
         all_names = list(panel.chat_names)
@@ -40,7 +67,44 @@ class ForwardingMixin:
                     seen_jids.add(jid)
                     all_chats.append(chat)
                     all_names.append(name)
+        ForwardingMixin._append_chatless_contacts(mw, all_chats, all_names)
         return all_chats, all_names
+
+    @staticmethod
+    def _append_chatless_contacts(mw, all_chats, all_names):
+        """Append one forward target per saved contact that no chat in
+        *all_chats* already covers, in place.
+
+        Rows come from the shared build_own_contact_rows() — the same
+        legitimacy rules as every other contact picker (saved contacts
+        only, no group-presence junk, no unbridged @lids, one row per
+        person via contact_dedup_key() across @lid/@c.us/@s.whatsapp.net
+        and the Brazilian 8/9-digit mobile variant), so "what is a
+        pickable contact" cannot drift between dialogs. A contact whose
+        chat exists under any JID variant is skipped: the chat is already
+        a target, and forward_message() resolves the JID for sending.
+
+        Locked chats stay out of the forward dialog — that is the vault's
+        promise — so a contact whose only chat is locked is skipped too
+        rather than reappearing here by name.
+        """
+        seen_keys = {
+            contact_dedup_key(mw, c.get("remoteJid", ""))
+            for c in all_chats if c.get("remoteJid")
+        }
+        locked_rows = getattr(mw, "_locked_chat_rows", None) or ([], [])
+        for locked in locked_rows[0]:
+            jid = locked.get("remoteJid", "")
+            if jid:
+                seen_keys.add(contact_dedup_key(mw, jid))
+        for name, _phone, entry in build_own_contact_rows(mw):
+            jid = entry.get("remoteJid", "")
+            key = contact_dedup_key(mw, jid) if jid else ""
+            if not key or key in seen_keys:
+                continue
+            seen_keys.add(key)
+            all_chats.append(entry)
+            all_names.append(name)
 
     def _on_menu_forward(self, msg: dict, msgs_list: list = None):
         """Open a conversation-picker dialog and forward to the chosen chats.
@@ -367,41 +431,57 @@ class ForwardingMixin:
         targets = list(zip(target_jids, target_names))
         keep_captions = chk_keep_caption.GetValue() if chk_keep_caption else False
 
-        def _do_forward():
-            failed_names = set()
-            for i, m in enumerate(msgs_to_forward):
-                # A short gap between messages when forwarding several at
-                # once: back-to-back forwardMessagesV2 calls with no pause
-                # are the trigger for the transient failure forward_message()
-                # retries against (see its own comment) — spacing them out
-                # here means most of the time the retry never has to fire.
-                if i > 0:
-                    time.sleep(0.4)
-                msg_key = m.get("key", {}) or {}
-                source_jid = msg_key.get("remoteJid") or (self.conversation.get("remoteJid", "") if self.conversation else "")
-                if not source_jid or not msg_key.get("id"):
-                    continue
-                # Decided per message, never once for the batch: the
-                # caption-preserving path is a media resend, so handing it a
-                # plain text message (which a mass forward mixes in freely)
-                # would push that message through the media call.
-                keep = keep_captions and bool(message_caption(m))
-                f_names = self._forward_message_to_targets(
-                    m, targets, keep_caption=keep, source_jid_override=source_jid
-                )
-                failed_names.update(f_names)
+        threading.Thread(
+            target=self._forward_batch,
+            args=(msgs_to_forward, targets, keep_captions),
+            daemon=True,
+        ).start()
 
-            if failed_names:
-                wx.CallAfter(mw.error_sound.play)
-                if len(targets) == 1:
-                    wx.CallAfter(mw.output, i18n.t("forward_failed"))
-                else:
-                    wx.CallAfter(
-                        mw.output,
-                        i18n.t("forward_failed_multiple").format(names=", ".join(failed_names)),
-                    )
+    #: Pause between two messages of one batch — see _forward_batch().
+    _FORWARD_GAP_SECONDS = 0.4
 
-        threading.Thread(target=_do_forward, daemon=True).start()
+    def _forward_batch(self, msgs_to_forward: list, targets: list, keep_captions: bool):
+        """Worker thread: forward every message to every target, then say how
+        it went (forward_outcome())."""
+        mw = self.main_window
+        failed_names = set()
+        forwarded = 0
+        for i, m in enumerate(msgs_to_forward):
+            # A short gap between messages when forwarding several at
+            # once: back-to-back forwardMessagesV2 calls with no pause
+            # are the trigger for the transient failure forward_message()
+            # retries against (see its own comment) — spacing them out
+            # here means most of the time the retry never has to fire.
+            if i > 0:
+                time.sleep(self._FORWARD_GAP_SECONDS)
+            msg_key = m.get("key", {}) or {}
+            source_jid = msg_key.get("remoteJid") or (self.conversation.get("remoteJid", "") if self.conversation else "")
+            if not source_jid or not msg_key.get("id"):
+                continue
+            # Decided per message, never once for the batch: the
+            # caption-preserving path is a media resend, so handing it a
+            # plain text message (which a mass forward mixes in freely)
+            # would push that message through the media call.
+            keep = keep_captions and bool(message_caption(m))
+            f_names = self._forward_message_to_targets(
+                m, targets, keep_caption=keep, source_jid_override=source_jid
+            )
+            failed_names.update(f_names)
+            forwarded += 1
+
+        kind, text = forward_outcome(mw.i18n, forwarded, failed_names, len(targets))
+        if kind == "failed":
+            wx.CallAfter(mw.error_sound.play)
+            wx.CallAfter(mw.output, text)
+        elif kind == "done":
+            # message_box, not wx.MessageBox: a batch can end after the user
+            # sent WinZapp to the tray, and a box owned by a hidden window
+            # opens unfocused and unannounced (core/dialog_foreground.py).
+            wx.CallAfter(
+                message_box, mw, text, mw.i18n.t("forward_message"),
+                wx.OK | wx.ICON_INFORMATION,
+                announce=lambda: mw.output(text, interrupt=True),
+            )
 
     def _forward_message_to_targets(self, msg: dict, targets: list, keep_caption: bool = False, source_jid_override: str = "") -> list:
         """Forward one message to each (jid, name) pair in *targets*, one at

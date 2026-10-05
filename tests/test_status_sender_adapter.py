@@ -84,6 +84,30 @@ BLOCK
   out.legacy = install();
   out.legacyAdapted = !!mod.encryptAndSendStatusMsg.__winzappPositionalAdapter;
 
+  // WA-JS 4.6.1's own call site (module 71459): the export's .length picks
+  // the shape, and it reads the export live, like this getter.
+  const wajs461 = async (r, proto, rep) =>
+    1 === p.encryptAndSendStatusMsg.length
+      ? await (0, p.encryptAndSendStatusMsg)({ metricsReporter: rep, msgProtobuf: proto, sendMsgRecord: r })
+      : await (0, p.encryptAndSendStatusMsg)(r, proto, rep);
+  const seen = () => ({ n: calls.length, argc: calls[0].argc,
+    rec: calls[0].o.sendMsgRecord === rec, proto: calls[0].o.msgProtobuf,
+    rep: calls[0].o.metricsReporter });
+  calls.length = 0;
+  mod = { encryptAndSendStatusMsg: real };
+  install();
+  await wajs461(rec, 'PROTO', 'REP');
+  out.v461WithAdapter = seen();
+  calls.length = 0;
+  mod = { encryptAndSendStatusMsg: (...r) => real(...r) };
+  install();
+  await wajs461(rec, 'PROTO', 'REP');
+  out.v461WrappedWithAdapter = seen();
+  calls.length = 0;
+  mod = { encryptAndSendStatusMsg: real };
+  await wajs461(rec, 'PROTO', 'REP');
+  out.v461NoAdapter = seen();
+
   mod = undefined;
   out.notReady = install();
   console.log(JSON.stringify(out));
@@ -131,6 +155,17 @@ def test_a_wrapped_sender_of_length_zero_is_still_adapted(result):
 def test_a_positional_sender_is_skipped_and_says_so(result):
     assert result["legacy"] == "skipped: sender takes 3 positional args"
     assert result["legacyAdapted"] is False
+
+
+@pytest.mark.parametrize("case", ["v461WithAdapter", "v461WrappedWithAdapter",
+                                  "v461NoAdapter"])
+def test_wa_js_4_6_1s_own_object_call_reaches_the_sender_once_as_an_object(result, case):
+    """4.6.1 picks the call shape from the export's .length. The adapter has
+    length 1, so on 4.6.1 it receives the object call and passes it through:
+    one send, one argument, nothing double-wrapped. The same code keeps
+    serving 4.6.0's positional call (the tests above)."""
+    assert result[case] == {"n": 1, "argc": 1, "rec": True,
+                            "proto": "PROTO", "rep": "REP"}
 
 
 def test_not_ready_yet_keeps_the_retry_going(result):

@@ -36,7 +36,7 @@ carry that list; a test holds them equal.
   homologated pair, pinned exact.** Mechanism 3 rewrites their compiled code
   by literal search-and-replace, so a moved version silently disables a
   patch. To move the pair: bump both keys and
-  `client/wpp_minimum_version.txt` in one commit, after running all four
+  `client/wpp_minimum_version.txt` in one commit, after running all five
   `node_modules` patches against the candidate.
 - When a new runtime restructures patched code, add a **second patch set
   selected by matching the file** (as `host.layer.js` has for ≤ 2.3.1 and
@@ -63,11 +63,26 @@ applied by idempotent search-and-replace (re-running must be a no-op). A
 shipped `_V<n>` constant is never edited — add a version and a migration
 (`docs/traps/large-media.md`).
 
-**Two call sites must stay in sync**; a patch in only one ships broken:
+A fifth module patches the other half of the pair, `@wppconnect/wa-js`'s
+bundle — the script injected into the WhatsApp Web page, so a bug in
+`WPP.*` itself is fixed there:
+
+```
+wppconnect_wa_js_patch.py           wppconnect-wa.js  Meta AI send without a loaded bot profile
+```
+
+Its bundle is minified, and the minifier renames temporaries between builds,
+so it matches the expression by structure (a regex with a back-reference for
+the temporary) instead of by one literal per build, and owns the file
+handling too: call sites pass the outer `client/api/` directory to
+`patch_wa_js_bundle()`.
+
+**The call sites must stay in sync**; a patch in only one ships broken:
 
 1. `setup_api.py` — dev and CI.
 2. `ApiSetupDialog._apply_node_modules_patches()` in
-   `client/ui/dialogs/api_setup.py` — the end-user install.
+   `client/ui/dialogs/api_setup.py` — the end-user install, and every launch.
+3. `build_api.py`'s `_apply_node_modules_patches()` — the patcher tuple.
 
 ## After any change
 
@@ -81,7 +96,7 @@ the build regenerates it from the patched `.ts` sources.
 ## Verify
 
 ```
-uv run pytest tests/test_api_patches_in_sync.py tests/test_reapply_node_modules_patches.py tests/test_pairing_code_patch.py tests/test_status_layer_patch.py tests/test_welcome_layer_patch.py tests/test_large_file_patch.py
+uv run pytest tests/test_api_patches_in_sync.py tests/test_reapply_node_modules_patches.py tests/test_pairing_code_patch.py tests/test_status_layer_patch.py tests/test_welcome_layer_patch.py tests/test_wa_js_patch.py tests/test_large_file_patch.py
 ```
 
 `test_the_two_copies_of_each_patch_are_identical` fails locally after pulling

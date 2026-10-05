@@ -26,6 +26,8 @@
  * Contract: resolves { ok: true, response } or { ok: false, detail }. ok:false
  * is ONLY "the module could not be made available" and nothing was sent. A
  * rejected forward throws and is never retried: the caller must not send twice.
+ * With args.keepVoice the success also carries voice: { asked, kept }, the
+ * voice messages in the batch and how many of them stayed voice messages.
  */
 
 export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
@@ -191,6 +193,79 @@ export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
     }
   };
 
+  // args.keepVoice: a forwarded voice message stays a voice message.
+  //
+  // WhatsApp Web itself turns it into a plain audio. forwardMediaMsg(), in
+  // WAWebMediaForwardMediaMsg, reads q = msg.mediaData.toJSON() and then sets
+  // q.type = 'audio' unless the message came from a channel - so a forwarded
+  // 'ptt' is something WhatsApp does send and its apps do show. Measured over
+  // CDP on 2026-10-04: the copy arrived as type ptt, isForwarded true,
+  // forwardingScore 1, duration and waveform intact.
+  //
+  // For the length of ONE forward, toJSON() of that one message hands out
+  // data whose type refuses that single write. Everything else is still
+  // WhatsApp's own forward. If WhatsApp stops converting this way the guard
+  // simply never fires and the message goes out as audio, as it always did:
+  // the guard cannot fail a send, and voice.kept says whether it worked.
+  const keepVoice = Boolean(args && args.keepVoice);
+  const guards = (win.__winzappVoiceGuards = win.__winzappVoiceGuards || new WeakMap());
+  const guardVoiceType = (msg, voice) => {
+    const media = msg && msg.type === 'ptt' ? msg.mediaData : null;
+    if (!media || typeof media.toJSON !== 'function') return null;
+    let guard = guards.get(media);
+    if (!guard) {
+      // One guard per message, shared by overlapping forwards of it and
+      // removed by the last one out: two independent wrappers would each
+      // restore the other's function, one of them for good.
+      guard = {
+        users: 0,
+        refused: 0,
+        own: Object.prototype.hasOwnProperty.call(media, 'toJSON'),
+        original: media.toJSON,
+      };
+      guards.set(media, guard);
+      const active = guard;
+      media.toJSON = function () {
+        const data = active.original.apply(this, arguments);
+        if (data && data.type === 'ptt') {
+          let type = 'ptt';
+          try {
+            Object.defineProperty(data, 'type', {
+              enumerable: true,
+              configurable: true,
+              get: function () {
+                return type;
+              },
+              set: function (value) {
+                if (value === 'audio') {
+                  active.refused += 1;
+                  return;
+                }
+                type = value;
+              },
+            });
+          } catch (_) {
+            // Data that cannot be redefined (sealed, frozen): hand it out as
+            // WhatsApp made it. The message goes as audio; nothing fails.
+          }
+        }
+        return data;
+      };
+    }
+    const held = guard;
+    const refusedBefore = held.refused;
+    held.users += 1;
+    voice.asked += 1;
+    return function () {
+      if (held.refused > refusedBefore) voice.kept += 1;
+      held.users -= 1;
+      if (held.users > 0) return;
+      if (held.own) media.toJSON = held.original;
+      else delete media.toJSON;
+      guards.delete(media);
+    };
+  };
+
   const run = async () => {
     const WPP = win.WPP;
     let mod = forwardModule();
@@ -198,10 +273,52 @@ export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
       WPP && WPP.whatsapp && WPP.whatsapp.functions &&
         typeof WPP.whatsapp.functions.forwardMessages === 'function'
     );
+    const voice = { asked: 0, kept: 0 };
+    const releases = [];
+    const models = async () => {
+      const found = [];
+      for (const id of messageIds) found.push(await WPP.chat.getMessageById(id));
+      if (keepVoice) {
+        for (const msg of found) {
+          const release = guardVoiceType(msg, voice);
+          if (release) releases.push(release);
+        }
+      }
+      return found;
+    };
+    const releaseAll = () => {
+      // Runs after the send. A throw from here would turn a forward that
+      // WENT OUT into a 500, and Python posts the same forward again.
+      while (releases.length) {
+        const release = releases.pop();
+        try {
+          release();
+        } catch (_) {
+          // a guard that could not be taken off changes nothing about the send
+        }
+      }
+    };
+    const sent = (response) => {
+      const outcome = { ok: true, response: serializable(response) };
+      if (keepVoice) outcome.voice = voice;
+      return outcome;
+    };
     if (mod && bound) {
-      // A build that works: exactly what the library call does.
-      const libResponse = await WPP.chat.forwardMessages(chatId, messageIds);
-      return { ok: true, response: serializable(libResponse) };
+      // A build that works: exactly what the library call does. With a voice
+      // message to keep, the library is handed the guarded models themselves:
+      // by id it may build a second model of a message that is not in the
+      // store, and that one would carry no guard.
+      const guarded = keepVoice ? await models() : null;
+      let libResponse;
+      try {
+        libResponse = await WPP.chat.forwardMessages(
+          chatId,
+          releases.length ? guarded : messageIds
+        );
+      } finally {
+        releaseAll();
+      }
+      return sent(libResponse);
     }
     if (!mod) {
       await heal();
@@ -217,17 +334,22 @@ export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
       };
     }
     const chat = await WPP.chat.find(chatId);
-    const msgs = [];
-    for (const id of messageIds) msgs.push(await WPP.chat.getMessageById(id));
-    // The single send. Whatever it throws propagates: no retry, no second path.
-    const response = await mod.forwardMessages({
-      chat: chat,
-      msgs: msgs,
-      multicast: false,
-      includeCaption: false,
-      appendedText: false,
-    });
-    return { ok: true, response: serializable(response) };
+    const msgs = await models();
+    // The single send. Whatever it throws propagates: no retry, no second
+    // path. The finally only takes the voice guards back off.
+    let response;
+    try {
+      response = await mod.forwardMessages({
+        chat: chat,
+        msgs: msgs,
+        multicast: false,
+        includeCaption: false,
+        appendedText: false,
+      });
+    } finally {
+      releaseAll();
+    }
+    return sent(response);
   };
 
   // Python gives up on its POST after 20 s and posts the same forward again
@@ -235,7 +357,7 @@ export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
   // the first one's result, never send. The key is released on any outcome so
   // a later, deliberate forward of the same messages is not blocked.
   const inflight = (win.__winzappForwardInflight = win.__winzappForwardInflight || {});
-  const key = String(chatId) + '|' + messageIds.join(',');
+  const key = String(chatId) + '|' + messageIds.join(',') + (keepVoice ? '|voice' : '');
   if (inflight[key]) return await inflight[key];
   const pending = run();
   inflight[key] = pending;
@@ -249,6 +371,7 @@ export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
 export function buildForwardRuntimeExpression(args: {
   chatId: string;
   messageIds: string[];
+  keepVoice?: boolean;
 }): string {
   return `(${FORWARD_RUNTIME_SOURCE})(${JSON.stringify(args)})`;
 }

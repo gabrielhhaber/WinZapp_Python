@@ -53,6 +53,18 @@ def homologated_wpp_tag(path: str) -> str:
 #: version's source text.
 WPPCONNECT_PACKAGE = "@wppconnect-team/wppconnect"
 
+#: The other half of the homologated pair: the bundle wppconnect injects into
+#: WhatsApp Web. No patch rewrites it, but WinZapp's own Node code drives its
+#: private loader and wraps its functions (deviceController.ts, start.js,
+#: createSessionUtil.ts), so a wa-js that moved under an unchanged app is the
+#: same silent-breakage class as a moved wppconnect. wppconnect declares it as
+#: a caret range, so a wa-js-only bump leaves wppconnect's version, and with it
+#: every check above, unchanged.
+WA_JS_PACKAGE = "@wppconnect/wa-js"
+
+#: Both, in the order the reinstall prompt names them.
+HOMOLOGATED_LIBRARIES = (WPPCONNECT_PACKAGE, WA_JS_PACKAGE)
+
 
 def _read_json(path: str) -> dict:
     """Parse a JSON file, or {} when it cannot be read at all.
@@ -71,6 +83,26 @@ def _read_json(path: str) -> dict:
         return {}
 
 
+def _installed_version(api_dir: str, package: str) -> str:
+    """The version of *package* present in node_modules, or ""."""
+    path = _join(api_dir, "node_modules", *package.split("/"), "package.json")
+    version = _read_json(path).get("version")
+    return version.strip() if isinstance(version, str) else ""
+
+
+def _pinned_version(api_dir: str, package: str) -> str:
+    """The exact version api/package.json pins *package* to, or ""."""
+    deps = _read_json(_join(api_dir, "package.json")).get("dependencies")
+    pin = deps.get(package) if isinstance(deps, dict) else None
+    if not isinstance(pin, str):
+        return ""
+    pin = pin.strip()
+    # An exact pin is digits and dots, optionally with a pre-release suffix.
+    if not pin or not pin[0].isdigit():
+        return ""
+    return pin
+
+
 def installed_wppconnect_version(api_dir: str) -> str:
     """The wppconnect library version actually present in node_modules, or "".
 
@@ -78,10 +110,7 @@ def installed_wppconnect_version(api_dir: str) -> str:
     WPPConnect *Server* version — a different number, and one that ships
     inside the release ZIP, so an update always rewrites it.
     """
-    path = _join(api_dir, "node_modules", *WPPCONNECT_PACKAGE.split("/"),
-                 "package.json")
-    version = _read_json(path).get("version")
-    return version.strip() if isinstance(version, str) else ""
+    return _installed_version(api_dir, WPPCONNECT_PACKAGE)
 
 
 def required_wppconnect_version(api_dir: str) -> str:
@@ -95,15 +124,15 @@ def required_wppconnect_version(api_dir: str) -> str:
     WinZapp pins exactly; anything else is somebody's local edit, and the
     honest answer to it is "I cannot tell".
     """
-    deps = _read_json(_join(api_dir, "package.json")).get("dependencies")
-    pin = deps.get(WPPCONNECT_PACKAGE) if isinstance(deps, dict) else None
-    if not isinstance(pin, str):
-        return ""
-    pin = pin.strip()
-    # An exact pin is digits and dots, optionally with a pre-release suffix.
-    if not pin or not pin[0].isdigit():
-        return ""
-    return pin
+    return _pinned_version(api_dir, WPPCONNECT_PACKAGE)
+
+
+def _library_drift(api_dir: str, package: str):
+    installed = _installed_version(api_dir, package)
+    required = _pinned_version(api_dir, package)
+    if not installed or not required or installed == required:
+        return None
+    return (installed, required)
 
 
 def wppconnect_library_drift(api_dir: str):
@@ -134,11 +163,48 @@ def wppconnect_library_drift(api_dir: str):
     response to drift is a full re-download and rebuild of the server, which
     is far too expensive to trigger on a file this could not parse.
     """
-    installed = installed_wppconnect_version(api_dir)
-    required = required_wppconnect_version(api_dir)
-    if not installed or not required or installed == required:
-        return None
-    return (installed, required)
+    return _library_drift(api_dir, WPPCONNECT_PACKAGE)
+
+
+def wa_js_library_drift(api_dir: str):
+    """wppconnect_library_drift() for @wppconnect/wa-js: (installed, required),
+    or None when they agree or either is unreadable.
+
+    wppconnect 2.3.3 -> 2.3.4 changed no compiled file and moved only its
+    wa-js range (^4.6.0 -> ^4.6.1); the bundle that runs in the page is what
+    differs. Nothing but this comparison notices when that is the only thing
+    that moved.
+    """
+    return _library_drift(api_dir, WA_JS_PACKAGE)
+
+
+def library_drifts(api_dir: str) -> list:
+    """Every homologated library that differs from its pin, as
+    ``(package, installed, required)`` triples; [] when none does.
+
+    Same contract as wppconnect_library_drift() for each package: only an
+    exact pin is compared, and an unreadable file is "no drift claim".
+    """
+    drifts = []
+    for package in HOMOLOGATED_LIBRARIES:
+        drift = _library_drift(api_dir, package)
+        if drift:
+            drifts.append((package, *drift))
+    return drifts
+
+
+def describe_library_drifts(drifts) -> tuple:
+    """(installed, required) display strings for the reinstall prompt.
+
+    The prompt has two slots, "Current version" and "New version", so each
+    names its library: "@wppconnect/wa-js 4.6.0" is unambiguous where a bare
+    "4.6.0" would read as a WPPConnect Server version. Several drifts are
+    joined with commas, in HOMOLOGATED_LIBRARIES order.
+    """
+    return (
+        ", ".join(f"{package} {installed}" for package, installed, _ in drifts),
+        ", ".join(f"{package} {required}" for package, _, required in drifts),
+    )
 
 
 def _join(*parts: str) -> str:

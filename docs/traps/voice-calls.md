@@ -337,7 +337,10 @@ found over CDP on 2026-09-23, on build 1048298845, with an up-to-date
 catalogue and server 2.10.27, so reinstalling could not help). The controller
 now calls `startWAWebVoipCall` itself with `{ entryTrust: 'user_gesture' }`,
 which is what a keystroke in WinZapp is, and keeps `WPP.call.offer()` only as
-the fallback where the function is not exposed. If offers hang again, look
+the fallback where the function is not exposed. wa-js 4.6.1's
+`WPP.call.offer()` makes the same call natively (same arguments, then polls
+`CallStore`), so the fallback works there too; the direct path stays primary
+because it behaves identically on 4.6.0 and 4.6.1. If offers hang again, look
 for `[role="dialog"]` in the page over CDP before anything else.
 
 **Other notices can still stop an offer the same way.** Calling a WhatsApp

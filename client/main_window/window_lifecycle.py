@@ -493,6 +493,11 @@ class WindowLifecycleMixin:
                 self._update_checker.stop()
             if getattr(self, "_wpp_update_checker", None) is not None:
                 self._wpp_update_checker.stop()
+            # A WPPConnect update being built in the background runs npm and
+            # Node of its own; they must not outlive the app.
+            cancel_wpp_build = getattr(self, "cancel_wpp_background_update", None)
+            if cancel_wpp_build is not None:
+                cancel_wpp_build()
             self._stop_wpp_server()
             self._flush_pending_debounced_saves()
             if hasattr(self, "db") and self.db is not None:

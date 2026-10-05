@@ -371,6 +371,14 @@ class SettingsDialog(wx.Dialog):
         self._alpha_updates_check.SetToolTip(i18n.t("alpha_updates_tooltip"))
         gen_sizer.Add(self._alpha_updates_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        # Off by default: an accepted update (WinZapp's or the WPPConnect
+        # Server's) downloads with no progress window, and the app is only
+        # interrupted once it is ready to install (update_background.py).
+        self._background_updates_check = wx.CheckBox(
+            self._general_page, label=i18n.t("background_updates_label")
+        )
+        gen_sizer.Add(self._background_updates_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         self._hotkey_label = wx.StaticText(self._general_page, label=i18n.t("global_hotkey_label"))
         gen_sizer.Add(
             self._hotkey_label,
@@ -600,6 +608,13 @@ class SettingsDialog(wx.Dialog):
             self._escape_clears_selection_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        self._keep_search_after_open_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_keep_search_after_open")
+        )
+        ui_sizer.Add(
+            self._keep_search_after_open_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         self._auto_focus_next_audio_cb = wx.CheckBox(
             self._ui_page, label=i18n.t("ui_auto_focus_next_audio")
         )
@@ -647,6 +662,13 @@ class SettingsDialog(wx.Dialog):
         )
         ui_sizer.Add(
             self._forwarded_prefix_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._forward_voice_as_voice_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_forward_voice_as_voice")
+        )
+        ui_sizer.Add(
+            self._forward_voice_as_voice_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
         self._conversation_video_media_viewer_dialog_cb = wx.CheckBox(
@@ -1551,6 +1573,11 @@ class SettingsDialog(wx.Dialog):
         )
         self._alpha_updates_check.SetValue(alpha_updates)
 
+        background_updates = self.main_window.settings.get("general", {}).get(
+            "background_update_downloads", False
+        )
+        self._background_updates_check.SetValue(background_updates)
+
         hk = self.main_window.settings.get("general", {}).get("global_hotkey")
         if hk and isinstance(hk, dict) and hk.get("vk"):
             from main_window.win32_helpers import _vk_mod_to_str
@@ -1655,6 +1682,11 @@ class SettingsDialog(wx.Dialog):
         )
         self._escape_clears_selection_cb.SetValue(bool(escape_clears_selection))
 
+        keep_search_after_open = self.main_window.settings.get("user_interface", {}).get(
+            "keep_search_after_open", False
+        )
+        self._keep_search_after_open_cb.SetValue(bool(keep_search_after_open))
+
         auto_focus_next_audio = self.main_window.settings.get("user_interface", {}).get(
             "auto_focus_next_audio", True
         )
@@ -1682,6 +1714,11 @@ class SettingsDialog(wx.Dialog):
             "forwarded_prefix_enabled", False
         )
         self._forwarded_prefix_cb.SetValue(bool(forwarded_prefix_enabled))
+
+        forward_voice_as_voice = self.main_window.settings.get("user_interface", {}).get(
+            "forward_voice_as_voice", False
+        )
+        self._forward_voice_as_voice_cb.SetValue(bool(forward_voice_as_voice))
 
         conversation_video_media_viewer_dialog = self.main_window.settings.get(
             "user_interface", {}
@@ -2968,6 +3005,9 @@ class SettingsDialog(wx.Dialog):
             "escape_clears_selection"
         ] = self._escape_clears_selection_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
+            "keep_search_after_open"
+        ] = self._keep_search_after_open_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
             "auto_focus_next_audio"
         ] = self._auto_focus_next_audio_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
@@ -2982,6 +3022,9 @@ class SettingsDialog(wx.Dialog):
         self.main_window.settings.setdefault("user_interface", {})[
             "forwarded_prefix_enabled"
         ] = self._forwarded_prefix_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
+            "forward_voice_as_voice"
+        ] = self._forward_voice_as_voice_cb.GetValue()
         self.main_window.settings.setdefault("reactions", {})[
             "fixed_quick_reactions"
         ] = self._fixed_quick_reactions_cb.GetValue()
@@ -3182,6 +3225,9 @@ class SettingsDialog(wx.Dialog):
         )
         self.main_window.settings.setdefault("general", {})["alpha_updates_enabled"] = (
             self._alpha_updates_check.GetValue()
+        )
+        self.main_window.settings.setdefault("general", {})["background_update_downloads"] = (
+            self._background_updates_check.GetValue()
         )
 
         # Account switch behavior
@@ -3440,6 +3486,7 @@ class SettingsDialog(wx.Dialog):
         self._tray_icon_check.SetLabel(i18n.t("tray_show_icon"))
         self._updates_check.SetLabel(i18n.t("updates_label"))
         self._alpha_updates_check.SetLabel(i18n.t("alpha_updates_label"))
+        self._background_updates_check.SetLabel(i18n.t("background_updates_label"))
         self._alpha_updates_check.SetToolTip(i18n.t("alpha_updates_tooltip"))
         self._language_label.SetLabel(i18n.t("language_label"))
         self._switch_behavior_box.SetLabel(i18n.t("acc_switch_behavior_label"))
@@ -3469,6 +3516,7 @@ class SettingsDialog(wx.Dialog):
         self._show_link_previews_cb.SetLabel(i18n.t("ui_show_link_previews_label"))
         self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
         self._forwarded_prefix_cb.SetLabel(i18n.t("ui_forwarded_prefix_label"))
+        self._forward_voice_as_voice_cb.SetLabel(i18n.t("ui_forward_voice_as_voice"))
         self._conversation_video_media_viewer_dialog_cb.SetLabel(
             i18n.t("ui_conversation_video_media_viewer_dialog_label")
         )
@@ -3507,6 +3555,7 @@ class SettingsDialog(wx.Dialog):
         self._warn_system_audio_cb.SetLabel(i18n.t("ui_warn_system_audio_recording"))
         self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
         self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
+        self._keep_search_after_open_cb.SetLabel(i18n.t("ui_keep_search_after_open"))
         self._auto_focus_next_audio_cb.SetLabel(i18n.t("ui_auto_focus_next_audio"))
         self._selected_announce_box.SetLabel(i18n.t("ui_selected_announce_position_label"))
         self._selected_announce_start_rb.SetLabel(i18n.t("ui_selected_announce_position_start"))

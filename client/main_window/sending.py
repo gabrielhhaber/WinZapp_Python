@@ -1351,11 +1351,12 @@ class SendingMixin:
         )
         if file_size > MAX_FILE_SIZE:
             limit_gb = MAX_FILE_SIZE // (1024 ** 3)
-            err_msg = (
-                f"File size ({file_size / (1024*1024):.1f} MB) exceeds the "
-                f"{limit_gb} GB WhatsApp attachment limit for {media_type}."
+            logging.error(
+                "[send_media] File size (%.1f MB) exceeds the %s GB WhatsApp attachment limit for %s.",
+                file_size / (1024 * 1024), limit_gb, media_type,
             )
-            logging.error("[send_media] %s", err_msg)
+            err_msg = self.i18n.t("media_exceeds_whatsapp_limit").format(
+                size_mb=f"{file_size / (1024 * 1024):.1f}", limit_gb=limit_gb)
             return {"ok": False, "error": err_msg, "retry": False}
         mime = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
         filename = custom_filename or os.path.basename(file_path)
@@ -1385,7 +1386,7 @@ class SendingMixin:
             if prepared is None:
                 return {
                     "ok": False,
-                    "error": "Não foi possível converter o vídeo para um formato aceito pelo WhatsApp.",
+                    "error": self.i18n.t("media_video_convert_failed"),
                     "retry": False,
                 }
             upload_path, mime = prepared
@@ -1422,8 +1423,13 @@ class SendingMixin:
         # large payloads into Chromium in bounded chunks instead of one
         # oversized CDP argument, for document/image/video/audio alike.
         if file_size > MAX_FILE_SIZE:
-            err_msg = f"File size ({file_size / (1024*1024):.1f} MB) exceeds the 1 GB WhatsApp attachment limit."
-            logging.error("[send_media] %s", err_msg)
+            limit_gb = MAX_FILE_SIZE // (1024 ** 3)
+            logging.error(
+                "[send_media] File size (%.1f MB) exceeds the %s GB WhatsApp attachment limit.",
+                file_size / (1024 * 1024), limit_gb,
+            )
+            err_msg = self.i18n.t("media_exceeds_whatsapp_limit").format(
+                size_mb=f"{file_size / (1024 * 1024):.1f}", limit_gb=limit_gb)
             for converted_path in (converted_audio_path, converted_video_path):
                 if converted_path:
                     try:

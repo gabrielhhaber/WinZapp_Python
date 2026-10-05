@@ -49,7 +49,8 @@ def resolve_startup(argv, registry) -> dict:
     if explicit is not None:
         acc = registry.get(explicit)
         if acc is None or acc["state"] in ("archived", "deleting"):
-            return {"mode": "error", "reason": f"account {explicit} not runnable"}
+            return {"mode": "error", "reason": f"account {explicit} not runnable",
+                    "account_id": explicit}
         return {"mode": "account", "account_id": explicit,
                 "resume_pending": acc["state"] == "pending"}
 

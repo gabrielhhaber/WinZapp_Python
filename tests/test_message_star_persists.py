@@ -1,140 +1,324 @@
-"""Regression test: starring/unstarring a message (Ctrl+Shift+O / the
-"Favoritar"/"Desfavoritar" context-menu item) must survive leaving and
-reopening the conversation, not just the current in-memory session.
-
-Root cause of the reported bug ("a opção continua dizendo 'Favoritar' depois
-de favoritar uma mensagem"): _on_menu_star() only called
-MainWindow._schedule_save(), which persists CHAT metadata via
-db.upsert_chat() — it never touches the per-message row in the "messages"
-table. navigate_to_conversation() unconditionally reloads a conversation's
-messages fresh from the database (db.get_messages()) every time it's opened,
-so the in-memory-only "starred" flag was silently dropped the next time the
-conversation was reopened, and the context menu offered "Favoritar" again
-even though the message was still starred in the currently-open view.
-
-ConversationsPanel is a wx.Panel and cannot be instantiated without a running
-wx.App, so the methods under test are exercised as plain functions against a
-small stub carrying just the attributes they touch — same approach as
-tests/test_message_bookmarks.py.
-"""
-
-import threading
-
+"""Verified star actions on plain stubs; no wx.App, windows or real API."""
+from types import SimpleNamespace
 import pytest
-
+import wx
 from ui.conversations import ConversationsPanel
+from ui.conversation_panel import message_stars as actions
 
 
-class _FakeDB:
-    def __init__(self):
-        self.inserted = []
-        self._event = threading.Event()
-
-    def insert_message(self, jid, msg):
-        self.inserted.append((jid, msg))
-        self._event.set()
-
-    def wait(self, timeout=2.0):
-        """Block until the background persistence thread has run."""
-        assert self._event.wait(timeout), "insert_message was never called"
+def message(mid="MSG1", starred=False, **extra):
+    return {"key": {"id": mid, "fromMe": False}, "starred": starred,
+            "messageType": "conversation", "message": {"conversation": "hello"}, **extra}
 
 
-class _FakeI18n:
+class I18n:
     def t(self, key):
-        return key
+        return {"star_sync_result": "{chat}: {confirmed}/{refused}/{unknown}/{skipped}",
+                "star_sync_confirm": "{chat}: Sync {count}?"}.get(key, key)
 
 
-class _FakeMainWindow:
-    def __init__(self):
-        self.i18n = _FakeI18n()
-        self.db = _FakeDB()
-        self.save_calls = 0
-        self.outputs = []
-
-    def _schedule_save(self, *a, **kw):
-        self.save_calls += 1
-
-    def output(self, text, interrupt=False):
-        self.outputs.append(text)
-
-
-class _Stub:
-    """Minimal stand-in for ConversationsPanel."""
-
+class Panel(actions.StarActionsMixin):
     _on_menu_star = ConversationsPanel._on_menu_star
-    _persist_message_local_flag = ConversationsPanel._persist_message_local_flag
-    # _persist_message_local_flag delegates to the bulk form so both share
-    # one code path (see its docstring) — the stub needs it bound too.
-    _persist_message_local_flags = ConversationsPanel._persist_message_local_flags
+    _on_mass_star_messages = ConversationsPanel._on_mass_star_messages
+    _mass_message_targets = ConversationsPanel._mass_message_targets
     _reject_system_event_action = ConversationsPanel._reject_system_event_action
     _is_system_event = staticmethod(ConversationsPanel._is_system_event)
+    _is_separator = staticmethod(lambda m: False)
 
-    def __init__(self, conversation_jid="a@s.whatsapp.net"):
-        self.main_window = _FakeMainWindow()
-        self.conversation = {"remoteJid": conversation_jid}
-        self.populate_calls = []
-        self.repainted = []
+    def __init__(self, messages, outcomes=("confirmed",)):
+        self.conversation = {"remoteJid": "test@s.whatsapp.net"}
+        self.repainted, self.outputs, self.writes, self.calls, self.rewrites = [], [], [], [], []
+        self._sorted_messages = messages
+        self.selected_messages = set()
+        self.outcomes = iter(outcomes)
+        chat = {"messages": {"messages": {"records": messages}}}
+        self.main_window = SimpleNamespace(
+            chats={"test@s.whatsapp.net": chat}, i18n=I18n(),
+            db=SimpleNamespace(update_message_star_state=lambda *a: self.writes.append(a)),
+            output=lambda text, **kw: self.outputs.append(text), star_message=self.star_message,
+            chat_display_name=lambda jid: "Synthetic chat",
+            _msg_bg_executor=SimpleNamespace(submit=lambda fn, *a: self.rewrites.append(a)))
 
-    def populate_messages(self, preserve_focus=False):
-        self.populate_calls.append(preserve_focus)
+    def star_message(self, *args):
+        self.calls.append(args)
+        return next(self.outcomes)
 
-    def _repaint_or_repopulate(self, msg_ids):
-        # The real one repaints the affected rows and only rebuilds the list
-        # when it can't — see ConversationsPanel._repaint_message_rows().
-        self.repainted.append(sorted(i for i in msg_ids if i))
-
-
-def _msg(msg_id="MSG1", starred=False, message_type="conversation"):
-    return {
-        "key": {"id": msg_id, "fromMe": False},
-        "message": {"conversation": "oi"},
-        "messageType": message_type,
-        "starred": starred,
-    }
+    def _repaint_or_repopulate(self, ids):
+        self.repainted.append(sorted(ids))
+    _refresh_message_rows_by_ids = _repaint_or_repopulate
 
 
-class TestStarPersistsToDatabase:
-    def test_starring_writes_the_message_row(self):
-        panel = _Stub()
-        msg = _msg(starred=False)
+@pytest.fixture
+def queue(monkeypatch):
+    workers, callbacks = [], []
+    class Thread:
+        def __init__(self, target, args=(), **kw):
+            self.target, self.args = target, args
+        def start(self):
+            workers.append(lambda: self.target(*self.args))
+    monkeypatch.setattr(actions.threading, "Thread", Thread)
+    monkeypatch.setattr(actions.wx, "CallAfter", lambda fn, *a: callbacks.append(lambda: fn(*a)))
+    return workers, callbacks
 
-        panel._on_menu_star(msg)
 
-        assert msg["starred"] is True
-        panel.main_window.db.wait()
-        [(jid, saved)] = panel.main_window.db.inserted
-        assert jid == "a@s.whatsapp.net"
-        assert saved["starred"] is True
-        assert saved["key"]["id"] == "MSG1"
+def drain(queue):
+    workers, callbacks = queue
+    while workers or callbacks:
+        while workers:
+            workers.pop(0)()
+        while callbacks:
+            callbacks.pop(0)()
 
-    def test_unstarring_persists_false_too(self):
-        panel = _Stub()
-        msg = _msg(starred=True)
 
-        panel._on_menu_star(msg)
+@pytest.mark.parametrize("old", [False, True])
+def test_toggle_waits_for_verification_and_persists_only_flags(queue, old):
+    msg = message(starred=old)
+    panel = Panel([msg])
+    panel._on_menu_star(msg)
+    assert msg["starred"] is old and panel.calls == panel.writes == []
+    drain(queue)
+    assert msg["starred"] is not old
+    assert panel.writes[0][:2] == ("test@s.whatsapp.net", "MSG1")
+    assert set(panel.writes[0][2]) == {"starred", "_star_remote", "_star_local", "_star_observed_at"}
+    assert panel.repainted == [["MSG1"]]
+    # One short line, not "please wait" plus a count summary.
+    assert panel.outputs == ["star_removed" if old else "star_added"]
 
-        assert msg["starred"] is False
-        panel.main_window.db.wait()
-        [(jid, saved)] = panel.main_window.db.inserted
-        assert saved["starred"] is False
 
-    def test_toggle_refreshes_only_the_message_row(self):
-        panel = _Stub()
-        msg = _msg(starred=False)
+@pytest.mark.parametrize("outcome", ["refused", "unknown"])
+@pytest.mark.parametrize("old", [
+    message(starred=False),
+    message(starred=True, _star_remote=True, _star_local=False, _star_observed_at=1),
+])
+def test_failed_or_unverified_action_keeps_a_whatsapp_flag(queue, outcome, old):
+    msg = dict(old)
+    panel = Panel([msg], [outcome])
+    panel._on_menu_star(msg)
+    drain(queue)
+    assert msg == old and not panel.writes and not panel.repainted and not panel.rewrites
+    assert panel.outputs == ["star_unverified" if outcome == "unknown" else "star_refused"]
 
-        panel._on_menu_star(msg)
 
-        assert panel.repainted == [["MSG1"]]
-        assert panel.populate_calls == [], "starring one message must not rebuild the whole list"
-        assert panel.main_window.save_calls == 1
+@pytest.mark.parametrize("outcome", ["refused", "unknown"])
+@pytest.mark.parametrize("extra", [{}, {"_star_remote": False, "_star_local": True, "_star_observed_at": 1}])
+def test_old_local_star_stays_removable_when_whatsapp_cannot_confirm(queue, outcome, extra):
+    # e.g. a message from before a re-link, which the linked device no longer holds
+    msg = message(starred=True, **extra)
+    panel = Panel([msg], [outcome])
+    panel._on_menu_star(msg)
+    drain(queue)
+    assert msg["starred"] is False and msg["_star_local"] is False
+    assert panel.writes == [("test@s.whatsapp.net", "MSG1", {"_star_local": False, "starred": False})]
+    assert panel.repainted == [["MSG1"]] and panel.outputs == ["star_local_removed"]
 
-    def test_system_event_is_not_starred_or_persisted(self):
-        panel = _Stub()
-        msg = _msg(starred=False, message_type="groupNotification")
 
-        panel._on_menu_star(msg)
+def test_system_event_never_reaches_worker(queue):
+    msg = message(messageType="groupNotification")
+    panel = Panel([msg])
+    panel._on_menu_star(msg)
+    assert not queue[0] and not panel.calls
 
-        assert msg["starred"] is False
-        assert panel.main_window.db.inserted == []
-        assert panel.populate_calls == []
-        assert panel.repainted == []
+
+def test_changed_chat_and_replaced_record_keep_new_text(queue):
+    msg = message()
+    panel = Panel([msg])
+    panel._on_menu_star(msg)
+    replacement = message(message={"conversation": "edited meanwhile"})
+    panel.main_window.chats["test@s.whatsapp.net"]["messages"]["messages"]["records"] = [replacement]
+    panel.conversation = {"remoteJid": "other@s.whatsapp.net"}
+    drain(queue)
+    assert replacement["starred"] is True
+    assert replacement["message"]["conversation"] == "edited meanwhile"
+    assert not panel.repainted
+
+
+def test_partial_bulk_is_sequential_and_reports_counts(queue):
+    msgs = [message(str(i)) for i in range(3)]
+    panel = Panel(msgs, ["confirmed", "refused", "unknown"])
+    panel.selected_messages = {"0", "1", "2"}
+    panel._on_mass_star_messages(None)
+    assert len(queue[0]) == 1 and not any(m["starred"] for m in msgs)
+    drain(queue)
+    assert [m["starred"] for m in msgs] == [True, False, False]
+    assert [c[1]["id"] for c in panel.calls] == ["0", "1", "2"]
+    assert len(panel.writes) == 1
+    assert panel.repainted == [["0", "1", "2"], ["0"]]
+    assert panel.outputs[-1] == "Synthetic chat: 1/1/1/0 star_sync_unknown"
+
+
+def test_busy_job_rejects_new_action_without_clearing_selection(queue):
+    panel = Panel([message()])
+    panel.main_window._star_sync_job = object()
+    panel.selected_messages = {"MSG1"}
+    panel._on_mass_star_messages(None)
+    assert panel.selected_messages == {"MSG1"} and not queue[0]
+
+
+def test_vault_lock_during_request_stops_remaining_items_and_discards_callbacks(queue):
+    msgs = [message("1"), message("2")]
+    panel = Panel(msgs)
+    panel.main_window.is_chat_locked = lambda j: True
+    panel.main_window._chat_lock_unlocked = True
+    def star(*args):
+        panel.calls.append(args)
+        panel.main_window._chat_lock_unlocked = False
+        return "confirmed"
+    panel.main_window.star_message = star
+    panel._sync_message_stars("test@s.whatsapp.net", msgs, True)
+    drain(queue)
+    assert len(panel.calls) == 1 and not panel.writes and not panel.repainted
+    assert not any(m["starred"] for m in msgs)
+    assert panel.main_window._star_sync_job is None
+
+
+def test_pending_message_never_calls_api(queue):
+    panel = Panel([message(_local_pending=True)])
+    panel._on_menu_star(panel._sorted_messages[0])
+    drain(queue)
+    assert not panel.calls and not panel.writes
+    assert panel.outputs == ["star_not_sent"]
+
+
+def test_cancel_keeps_current_confirmed_result_and_skips_remaining_messages(queue):
+    msgs = [message("1"), message("2")]
+    panel = Panel(msgs)
+    def star(*args):
+        panel.calls.append(args)
+        panel._on_cancel_star_sync()
+        return "confirmed"
+    panel.main_window.star_message = star
+    panel._sync_message_stars("test@s.whatsapp.net", msgs, True)
+    drain(queue)
+    assert len(panel.calls) == len(panel.writes) == 1
+    assert msgs[0]["starred"] is True and msgs[1]["starred"] is False
+    assert panel.outputs[-1] == "Synthetic chat: 1/0/0/1"
+
+
+def test_lock_then_unlock_during_request_does_not_resume_old_job(queue):
+    from main_window.message_stars import MessageStarsMixin
+    msgs = [message("1"), message("2")]
+    panel = Panel(msgs)
+    panel.main_window.is_chat_locked = lambda jid: True
+    panel.main_window._chat_lock_unlocked = True
+    def star(*args):
+        panel.calls.append(args)
+        panel.main_window._chat_lock_unlocked = False
+        MessageStarsMixin._invalidate_star_sync_for_lock(panel.main_window)
+        panel.main_window._chat_lock_unlocked = True
+        return "confirmed"
+    panel.main_window.star_message = star
+    panel._sync_message_stars("test@s.whatsapp.net", msgs, True)
+    drain(queue)
+    assert len(panel.calls) == 1 and not panel.writes and not panel.repainted
+
+
+def test_cancelling_old_star_scan_never_opens_confirmation(queue, monkeypatch):
+    panel = Panel([])
+    panel.main_window.db.get_messages = lambda *a, **kw: [message(starred=True)]
+    prompts = []
+    monkeypatch.setattr(actions, "message_box", lambda *a, **kw: prompts.append(a) or wx.YES)
+    panel._on_sync_local_stars("test@s.whatsapp.net")
+    panel._on_cancel_star_sync()
+    drain(queue)
+    assert not prompts and not panel.calls
+    assert panel.main_window._star_sync_job is None
+
+
+@pytest.mark.parametrize("answer", [wx.YES, wx.NO])
+def test_old_stars_are_scanned_in_pages_and_require_confirmation(queue, monkeypatch, answer):
+    old = message("old", starred=True)
+    remote = message("remote", starred=True, _star_remote=True, _star_local=False)
+    page = [message(str(i)) for i in range(497)] + [old, remote, message("sys", starred=True, messageType="groupNotification")]
+    panel = Panel([])
+    reads, prompts = [], []
+    def get_messages(jid, limit, offset):
+        reads.append((limit, offset))
+        return page if offset == 0 else [old, message("second", starred=True)]
+    panel.main_window.db.get_messages = get_messages
+    panel.outcomes = iter(["confirmed", "confirmed"])
+    monkeypatch.setattr(actions, "message_box", lambda *a, **kw: prompts.append(a) or answer)
+    panel._on_sync_local_stars("test@s.whatsapp.net")
+    assert not panel.calls
+    queue[0].pop(0)()
+    assert not panel.calls and not prompts
+    queue[1].pop(0)()
+    assert prompts[0][1] == "Synthetic chat: Sync 2?" and prompts[0][3] & wx.NO_DEFAULT
+    drain(queue)
+    assert reads == [(500, 0), (500, 500)]
+    assert len(panel.calls) == (2 if answer == wx.YES else 0)
+    assert panel.main_window._star_sync_job is None
+
+
+def test_local_scan_failure_sends_nothing_and_clears_busy_job(queue):
+    panel = Panel([])
+    panel.main_window.db.get_messages = lambda *a, **kw: (_ for _ in ()).throw(OSError("synthetic"))
+    panel._on_sync_local_stars("test@s.whatsapp.net")
+    drain(queue)
+    assert not panel.calls and not panel.writes
+    assert panel.outputs[-1] == "star_sync_scan_failed" and panel.main_window._star_sync_job is None
+
+
+
+def test_bulk_result_and_confirmation_name_a_group_by_its_display_name(queue, monkeypatch):
+    msgs = [message("1", starred=True), message("2", starred=True)]
+    panel = Panel(msgs, ["confirmed", "confirmed"])
+    names = []
+    panel.main_window.chat_display_name = lambda jid: names.append(jid) or "Family"
+    panel.main_window.db.get_messages = lambda *a, **kw: msgs
+    prompts = []
+    monkeypatch.setattr(actions, "message_box", lambda *a, **kw: prompts.append(a) or wx.YES)
+    panel._on_sync_local_stars("family@g.us")
+    drain(queue)
+    assert prompts[0][1] == "Family: Sync 2?"
+    assert panel.outputs[-1] == "Family: 2/0/0/0" and names == ["family@g.us"] * 2
+
+
+def test_no_old_stars_says_so_for_the_chat(queue):
+    panel = Panel([])
+    panel.main_window.db.get_messages = lambda *a, **kw: [message("1")]
+    panel._on_sync_local_stars("test@s.whatsapp.net")
+    drain(queue)
+    assert panel.outputs[-1] == "star_sync_none" and panel.main_window._star_sync_job is None
+
+
+def test_worker_failure_outside_a_request_still_releases_the_job(queue, monkeypatch):
+    msgs = [message("1"), message("2")]
+    panel = Panel(msgs)
+    panel._sync_message_stars("test@s.whatsapp.net", msgs, True)
+    monkeypatch.setattr(Panel, "_star_job_valid", lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("synthetic")))
+    queue[0].pop(0)()
+    with pytest.raises(RuntimeError):
+        queue[1].pop(0)()
+    assert panel.main_window._star_sync_job is None and not panel.calls
+
+
+def test_flags_are_written_again_once_memory_holds_them(queue):
+    msgs = [message("1"), message("2")]
+    panel = Panel(msgs, ["confirmed", "refused"])
+    panel._sync_message_stars("test@s.whatsapp.net", msgs, True)
+    drain(queue)
+    # A save_data() full rewrite during the batch wrote memory's old flags back.
+    jid, states = panel.rewrites[0]
+    assert jid == "test@s.whatsapp.net" and states == [("1", panel.writes[0][2])]
+
+
+def test_rewrite_failure_is_logged_not_raised():
+    panel = Panel([])
+    panel.main_window.db.update_message_star_state = lambda *a: (_ for _ in ()).throw(OSError("synthetic"))
+    panel._rewrite_star_states("test@s.whatsapp.net", [("1", {"starred": True})])
+
+
+@pytest.mark.parametrize("outcome,state,expected", [
+    ("confirmed", {"starred": True}, "star_added"), ("unknown", {}, "star_unverified"),
+    ("refused", {}, "star_refused"), ("not_sent", {}, "star_not_sent"),
+    ("unknown", {"_star_local": False}, "star_local_removed")])
+def test_single_outcome_is_one_short_line(outcome, state, expected):
+    assert actions.star_outcome_text(I18n(), [({}, "M", outcome, state)], True) == expected
+    assert actions.star_outcome_text(I18n(), [], True) == ""
+
+
+def test_rewrite_writes_each_flag_again():
+    panel = Panel([])
+    panel._rewrite_star_states("test@s.whatsapp.net", [("1", {"starred": True}), ("2", {"starred": False})])
+    assert panel.writes == [("test@s.whatsapp.net", "1", {"starred": True}),
+                            ("test@s.whatsapp.net", "2", {"starred": False})]

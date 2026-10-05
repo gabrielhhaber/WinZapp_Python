@@ -1312,8 +1312,34 @@ async function replyToStatusMessage(
         const quotedPayload = JSON.stringify(
           typeof quoted.toJSON === 'function' ? quoted.toJSON() : quoted
         );
+        // wa-js guards `canReplyMsg(quotedMsg)` with `quotedMsg.isStatusV3`
+        // because canReplyMsg reads the message's chat, and a status has
+        // none: getChat() is undefined, getIsBroadcast() throws "Getter was
+        // called with undefined data." Measured 2026-10-03 on the live page
+        // (wa-js 4.6.1, identical code path in 4.6.0): every StatusV3Store
+        // message has `isStatusV3 === undefined` on the current WhatsApp Web
+        // build, so wa-js took the canReplyMsg branch and the live-model rung
+        // died there, while msgContextInfo() on the same model worked and
+        // canReplyMsg() on ordinary messages returned true. The model is a
+        // status by definition (we found it in the status store), so say so
+        // through a read-through proxy rather than writing into the store's
+        // model: it still passes `instanceof MsgModel` and every other
+        // property and method is the live model's own.
+        const asStatusModel = (model: any) =>
+          new Proxy(model, {
+            get(target, prop) {
+              if (prop === 'isStatusV3') return true;
+              const value = Reflect.get(target, prop, target);
+              return typeof value === 'function' ? value.bind(target) : value;
+            },
+          });
         const strategies: { via: string; options: any }[] = [
-          { via: 'live-model', options: { quotedMsg: quoted } },
+          {
+            via: 'live-model',
+            options: {
+              quotedMsg: quoted.isStatusV3 ? quoted : asStatusModel(quoted),
+            },
+          },
           { via: 'payload', options: { quotedMsgPayload: quotedPayload } },
         ];
         let sendResult: any = null;

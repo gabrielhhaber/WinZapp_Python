@@ -109,9 +109,7 @@ from core.meta_ai import (
     is_meta_ai_jid,
     terms_state,
 )
-from core.wpp_runtime import (
-    read_homologated_wpp_version, wppconnect_library_drift, WPPCONNECT_PACKAGE,
-)
+from core.wpp_runtime import read_homologated_wpp_version
 from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default, migrate_spell_check_mode, migrate_call_exclusive_mode_split
 from core.utils import clear_chat_applied, clear_chat_keep_starred_echo
 from ui.dialogs.checkbox_confirm import confirm_with_checkbox
@@ -269,6 +267,7 @@ from main_window.window_chrome import WindowChromeMixin
 from main_window.connection import ConnectionMixin
 from main_window.sync import SyncMixin
 from main_window.updates import UpdatesMixin
+from main_window.wpp_background_update import WppBackgroundUpdateMixin
 from main_window.window_lifecycle import WindowLifecycleMixin
 from main_window.chat_list import ChatListMixin
 from main_window.calls import CallsMixin
@@ -293,6 +292,7 @@ from main_window.history import HistoryMixin
 from main_window.read_state import ReadStateMixin
 from main_window.chat_actions import ChatActionsMixin
 from main_window.message_actions import MessageActionsMixin
+from main_window.message_stars import MessageStarsMixin
 from main_window.quick_audio_devices import QuickAudioDevicesMixin
 
 
@@ -312,6 +312,7 @@ class MainWindow(
     ConnectionMixin,
     SyncMixin,
     UpdatesMixin,
+    WppBackgroundUpdateMixin,
     WindowLifecycleMixin,
     ChatListMixin,
     CallsMixin,
@@ -336,6 +337,7 @@ class MainWindow(
     ReadStateMixin,
     ChatActionsMixin,
     MessageActionsMixin,
+    MessageStarsMixin,
     QuickAudioDevicesMixin,
     wx.Frame,
 ):
@@ -523,21 +525,25 @@ class MainWindow(
         # ── Auto-updater ──────────────────────────────────────────────────────
         # Schedule the update checker on the event loop early (but after i18n
         # is initialized) so it can run even if modal dialogs block __init__.
+        # Scheduled in --background (autostart) too: gating the checkers on a
+        # visible window meant they never ran for anyone who starts WinZapp
+        # with Windows (docs/traps/updater-channels.md). Their dialogs bring
+        # themselves to the front while the window is hidden.
+        wx.CallLater(15000, self._start_update_checker)
+        # Separate, independent check for the WPPConnect Server itself —
+        # it breaks between WinZapp releases too, and until now the only
+        # fix was a user manually wiping client/api/ and node_modules.
+        # Given a much longer delay: unlike the WinZapp checker (which
+        # only shows a dialog), accepting this one stops and restarts the
+        # live API session, so it must never fire while pairing/the
+        # initial sync is still settling in.
+        wx.CallLater(90000, self._start_wpp_update_checker)
         if not self.background_mode:
-            wx.CallLater(15000, self._start_update_checker)
             if getattr(self, "_previous_update_failed", False):
                 # Same delay as the checker: past the startup sound and the
                 # first sync announcements, before the checker offers the
                 # very same release again.
                 wx.CallLater(15000, self._announce_previous_update_failure)
-            # Separate, independent check for the WPPConnect Server itself —
-            # it breaks between WinZapp releases too, and until now the only
-            # fix was a user manually wiping client/api/ and node_modules.
-            # Given a much longer delay: unlike the WinZapp checker (which
-            # only shows a dialog), accepting this one stops and restarts the
-            # live API session, so it must never fire while pairing/the
-            # initial sync is still settling in.
-            wx.CallLater(90000, self._start_wpp_update_checker)
             # One-time WPPConnect reinstall recommendation for accounts that
             # predate 2.0 (migrate_wpp_reinstall_notice(), core/utils.py).
             # 20s: past the two 15s callbacks above and the startup sound /
@@ -1630,27 +1636,38 @@ def _startup_critical_error_text(crash_path: str, tb: str) -> tuple[str, str]:
     top-level except-block catches an error during startup — translated
     into the user's selected language when possible.
 
-    Falls back to the original hardcoded Portuguese only when no usable
-    i18n is available at all (a crash before MainWindow even constructs
-    self.i18n, or i18n.t() itself raising) — this dialog is the one thing
+    A crash before MainWindow even constructs self.i18n (or i18n.t() itself
+    raising) falls back to the install-wide language (startup_i18n), and only
+    when that fails too to hardcoded English — this dialog is the one thing
     standing between the user and a silent exit, so it must never crash
     trying to be helpful.
     """
     frame = _last_partial_frame
+    candidates = []
     if frame is not None and getattr(frame, "i18n", None) is not None:
+        candidates.append(lambda: frame.i18n)
+    candidates.append(_startup_i18n)
+    for get_i18n in candidates:
         try:
-            title = frame.i18n.t("startup_critical_title")
-            message = frame.i18n.t("startup_critical_message").format(
+            i18n = get_i18n()
+            title = i18n.t("startup_critical_title")
+            message = i18n.t("startup_critical_message").format(
                 path=crash_path, details=tb[:800]
             )
             return title, message
         except Exception:
             pass
     return (
-        "WinZapp — Erro de inicialização",
-        f"O WinZapp encontrou um erro crítico ao iniciar e não pôde continuar.\n\n"
-        f"Detalhes foram salvos em:\n{crash_path}\n\n{tb[:800]}",
+        "WinZapp — Startup error",
+        f"WinZapp encountered a critical error during startup and could not continue.\n\n"
+        f"Details were saved to:\n{crash_path}\n\n{tb[:800]}",
     )
+
+
+def _startup_i18n():
+    """I18n in the global UI language, for messages shown before MainWindow."""
+    from startup_i18n import startup_i18n
+    return startup_i18n()
 
 
 def _write_crash_log(tb: str) -> str:
@@ -1816,14 +1833,15 @@ if __name__ == "__main__":
         _mode = _startup["mode"]
         if _mode == "error":
             ctypes.windll.user32.MessageBoxW(
-                0, f"WinZapp: {_startup.get('reason', 'nieprawidłowe konto')}",
+                0, _startup_i18n().t("startup_invalid_account").format(
+                    account=_startup.get("account_id", "")),
                 "WinZapp", 0x10)
             sys.exit(2)
         elif _mode == "manager":
             # Global manager mode: no account/data_path, no Node (plan sekcja F).
             # TODO(Zad 4.5/4.6): show the account manager. For now, inform+exit.
             ctypes.windll.user32.MessageBoxW(
-                0, "WinZapp: brak kont do uruchomienia (menedżer kont w budowie).",
+                0, _startup_i18n().t("startup_account_manager_unavailable"),
                 "WinZapp", 0x40)
             sys.exit(0)
         elif _mode == "first_run":

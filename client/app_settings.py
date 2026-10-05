@@ -39,6 +39,10 @@ _DEFAULTS: dict[str, Any] = {
     # can't be on a different build of WinZapp than its siblings. Off by
     # default; alpha builds are untested by definition.
     "alpha_updates_enabled": False,
+    # Download WinZapp and WPPConnect Server updates with no progress window
+    # and only interrupt the app to install (update_background.py). Global for
+    # the same reason as the two above: the install and its api/ are shared.
+    "background_update_downloads": False,
     "show_tray_icon": True,
     "autostart": False,
     # install-wide one-time setup prompts (asked once per install, NOT per
@@ -59,6 +63,7 @@ _DEFAULTS: dict[str, Any] = {
 
 # Which legacy general.* keys are global (the rest stay per-account).
 _GENERAL_GLOBAL = ("language", "updates_enabled", "alpha_updates_enabled",
+                   "background_update_downloads",
                    "show_tray_icon", "autostart",
                    "first_run", "hotkey_first_run_asked", "api_type_first_run_asked",
                    "switch_behavior")

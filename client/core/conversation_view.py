@@ -43,19 +43,22 @@ def conversation_visible_in(origin, shown_panel) -> bool:
     return origin is not None and origin == shown_panel
 
 
-def panel_layout(origin, shown_panel, has_conversation, reveal=False) -> dict:
+def panel_layout(origin, shown_panel, has_conversation, reveal=False, keep=False) -> dict:
     """What is on screen when `shown_panel` (MAIN, ARCHIVED or LOCKED) is the
     chat list being shown. One answer for every way of getting there.
 
-    detail      the open conversation's pane: never on a plain switch; on an
-                explicit reveal, only in the panel it belongs to
+    detail      the open conversation's pane: never shown by a switch from
+                another panel; shown on an explicit reveal, and kept (`keep`:
+                it is on screen right now) when Alt+1/Alt+4 is pressed inside
+                the very panel the conversation belongs to, where nothing was
+                switched; in every case only in the panel it belongs to
     own_list    ConversationsPanel's own chat list: it is the MAIN list, so it
                 is hidden whenever the conversation sits under another list
     panel       ConversationsPanel itself (the main list and/or the detail)
     list_panel  the archived or locked list: always shown for its own panel,
                 the conversation (if any) sitting beneath it
     """
-    detail = (reveal and has_conversation
+    detail = ((reveal or keep) and has_conversation
               and conversation_visible_in(origin, shown_panel))
     return {
         "detail": detail,

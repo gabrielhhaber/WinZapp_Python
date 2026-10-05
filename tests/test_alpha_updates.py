@@ -455,9 +455,10 @@ def test_end_to_end_network_failure_just_retries(monkeypatch):
     checker = updater.UpdateChecker(mw)
     retried = []
     monkeypatch.setattr(checker, "_fetch_releases", lambda: (_ for _ in ()).throw(RuntimeError("no net")))
-    monkeypatch.setattr(checker, "_schedule_retry", lambda: retried.append(True))
+    monkeypatch.setattr(checker, "_schedule_retry", lambda interval=None: retried.append(interval))
     checker._check_once()
-    assert retried == [True]
+    # A failed fetch retries soon first (see UpdateChecker._FETCH_RETRY_DELAYS).
+    assert retried == [updater.UpdateChecker._FETCH_RETRY_DELAYS[0]]
 
 
 # ── Global (cross-account) setting ────────────────────────────────────────────

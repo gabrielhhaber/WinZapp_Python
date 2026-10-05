@@ -4,6 +4,8 @@ La gran novedad de esta versión son las llamadas: ahora se pueden hacer, contes
 
 NOVEDADES
 
+- Los mensajes destacados ahora se sincronizan con WhatsApp. Cada cambio se verifica en el dispositivo vinculado; los rechazos y los resultados sin verificar se informan por separado. Los destacados locales antiguos se conservan hasta que elijas "Sincronizar destacados locales antiguos con WhatsApp" en el menú del chat y confirmes. Puedes detener un lote después de la solicitud actual.
+
 - Llamadas de voz y videollamadas. En un chat individual, los botones "Llamada de voz" (Ctrl+Shift+V) y "Videollamada" (Ctrl+Alt+Shift+V) hacen la llamada desde el propio WinZapp. La llamada abre una ventana con botones accesibles con Tab y atajos propios: Ctrl+M silencia o reactiva el micrófono, Ctrl+V enciende o apaga la cámara en una videollamada, Ctrl+P convierte una llamada de voz en videollamada, Ctrl+C abre la configuración de la llamada y Ctrl+Shift+Q cuelga. El lector de pantalla avisa cuando la llamada se conecta, cuando se está reconectando y cuando termina.
 
 - Contestar y rechazar llamadas en WinZapp. La ventana de llamada entrante tiene ahora los botones "Contestar", "Rechazar" y "Silenciar alerta"; en una videollamada, "Contestar con vídeo" y "Contestar sin vídeo". Los atajos de esa ventana solo funcionan con Alt y la letra subrayada, para que una tecla pulsada por error no conteste ni rechace la llamada.
@@ -52,7 +54,15 @@ NOVEDADES
 
 - Elegir qué dicen las notificaciones en segundo plano. En la pestaña General de Configuración, "Contenido de las notificaciones en segundo plano" ofrece tres niveles: sonido, nombre de la conversación o grupo y texto del mensaje, como antes; sonido y nombre de la conversación o grupo, sin el texto; o solo sonido, sin notificación en pantalla y sin que se lea nada. Las notificaciones de los chats bloqueados siguen sin mostrar nombre ni contenido.
 
+- Volver a los resultados de la búsqueda al cerrar una conversación. Marcando "Mantener la búsqueda de conversaciones al abrir una conversación" en la pestaña Interfaz de usuario de Configuración, la búsqueda de conversaciones sigue activa cuando abres una conversación encontrada con ella, y Esc devuelve el foco a esa conversación en los resultados, en lugar de volver a la lista completa. La opción viene desmarcada.
+
+- Reenviar los mensajes de voz como mensajes de voz. WhatsApp convierte en audio normal todo mensaje de voz reenviado, lo que lo saca de la reproducción en secuencia de los mensajes de voz en la conversación de destino. Marcando "Reenviar los mensajes de voz como mensajes de voz, en lugar de audio" en la pestaña Interfaz de usuario de Configuración, la copia llega como mensaje de voz y sigue marcada como reenviada. La opción viene desmarcada.
+
+- Descargar las actualizaciones en segundo plano. Marcando "Descargar las actualizaciones en segundo plano, sin la ventana de progreso" en la pestaña General de Configuración, una actualización que hayas aceptado, de WinZapp o de WPPConnect, se descarga sin la ventana de progreso, y sigues usando el programa con normalidad, conectado. Solo cuando está lista WinZapp avisa de que va a instalar: en una actualización del propio WinZapp, se cierra y vuelve a abrirse; en una de WPPConnect, queda sin conexión solo los instantes de cambiar la versión y reiniciarla, en lugar de durante toda la descarga y la instalación. Si estás en una llamada, el aviso espera a que termine. La opción vale para todas las cuentas y viene desmarcada.
+
 MEJORAS
+
+- Corrección ortográfica: el sonido de error ahora también se reproduce al escribir un signo de puntuación (coma, punto, interrogación, etc.) justo después de una palabra mal escrita, no solo un espacio, y cuando el cursor llega a una palabra mal escrita con las flechas, Ctrl+flechas, Inicio, Fin o el ratón.
 
 - Gran reorganización del código. Los dos archivos más grandes de WinZapp, que por sí solos sumaban más de 50.000 líneas y concentraban casi todo lo que hace el programa, se han dividido en decenas de partes más pequeñas, cada una encargada de una cosa: sincronización, conexión, envío de mensajes, llamadas, lista de chats, etc. Para quien lo usa, no cambia nada. Para quien lo desarrolla, resulta mucho más fácil encontrar, entender y corregir cada parte, y mucho más difícil que una corrección rompa otra cosa sin que nadie se dé cuenta — que es lo que mantiene WinZapp sano a largo plazo.
 
@@ -70,7 +80,23 @@ MEJORAS
 
 - Cuando una llamada no puede iniciarse porque la versión de WhatsApp Web en uso no admite llamadas, WinZapp ahora lo dice y explica qué probar (reiniciar WinZapp o elegir "Forzar reinstalación de WPPConnect" en el menú Ayuda), en lugar de leer un código de error.
 
+- El instalador ahora es mucho más pequeño de descargar: los archivos de WinZapp que lleva dentro están comprimidos, como ya lo estaban en el ZIP portátil, y el instalador comprueba cada archivo mientras instala.
+
+- El instalador y el desinstalador ahora aparecen en todos los idiomas en los que WinZapp está disponible: portugués de Brasil, portugués de Portugal, español, polaco, rumano, turco e inglés. Siguen el idioma de visualización de Windows y muestran inglés en cualquier otro.
+
+- Se actualizó la biblioteca de WhatsApp que usa WinZapp. Las notas de sus desarrolladores enumeran correcciones para crear grupos, obtener y restablecer enlaces de invitación de grupo, editar la descripción del grupo, cambiar tu nombre de perfil y enviar multimedia en versiones recientes de WhatsApp Web. Si WinZapp te ofrece actualizar WPPConnect al iniciar, acepta para instalar la nueva biblioteca.
+
+- Búsqueda en la conversación con F3 y Shift+F3. Ahora puede ir al siguiente resultado con F3 y al anterior con Shift+F3 desde cualquier lugar de la conversación abierta, incluida la lista de mensajes, sin volver al campo de búsqueda; el foco sigue al resultado y el lector de pantalla anuncia su posición. Enter y Shift+Enter siguen funcionando como alternativa, pero solo dentro del campo de búsqueda, porque en la lista de mensajes ya tienen otras funciones. Los botones "Resultado anterior" y "Resultado siguiente" ahora anuncian Shift+F3 y F3, y la ayuda de atajos se ha actualizado.
+
+- Reenviar ahora confirma cuando ha salido bien. Antes solo se avisaba del fallo; ahora, al terminar, aparece un cuadro que dice "Mensaje reenviado." o cuántos mensajes se han reenviado.
+
 CORRECCIONES
+
+- Llamadas: corregido el error "cannot load module more than once per process" que podía aparecer al iniciar una llamada de voz o de vídeo. El motor de llamadas de WhatsApp ahora se inicia una sola vez y se comparte, en lugar de iniciarse de nuevo con cada acción de llamada.
+
+- Al escribir a alguien que no está en tus contactos y no tiene nombre en su perfil de WhatsApp, la conversación pasaba a mostrar tu propio nombre en lugar del teléfono de la persona. Ahora sigue mostrando el teléfono hasta que se encuentre su nombre real.
+
+- El desinstalador ahora sigue el idioma de visualización de Windows, igual que el instalador, en lugar de aparecer siempre en portugués.
 
 - Reenviar mensajes ya no falla en las versiones recientes de WhatsApp Web, donde todos los reenvíos se rechazaban con el error “forwardMessages function is not available”.
 
@@ -147,6 +173,10 @@ CORRECCIONES
 - Al elegir en la lista una conversación que ya estaba abierta, el foco ahora respeta el ajuste "Al abrir una conversación, enfocar" (campo de mensaje, o separador de no leídos / último mensaje); antes iba siempre al campo de mensaje.
 
 - Al responder a un mensaje mencionando a alguien en la respuesta, esta llegaba a los destinatarios como un mensaje nuevo, sin la cita, aunque WinZapp la mostraba como respuesta. Ahora la cita va junto con la mención.
+
+- Los avisos de actualización ahora también aparecen cuando WinZapp se inicia con Windows: en ese caso no se ofrecía ni la actualización del propio WinZapp ni la de WPPConnect Server. El aviso de WPPConnect Server también ofrece ahora una versión más reciente que la probada con WinZapp, como actualización recomendada que puedes rechazar, y no solo cuando el propio WinZapp subía la versión exigida.
+
+- En una conversación cuyos mensajes más antiguos solo están en el teléfono, WinZapp seguía pidiéndoselos al teléfono al llegar al primer mensaje: no llegaba nada, el teléfono podía mostrar cada vez un aviso de sincronización y la lista quedaba ocupada durante minutos. Ahora WinZapp detecta este caso, no pide nada y anuncia "Usa WhatsApp en tu teléfono para ver los mensajes más antiguos."
 
 V1.1.1.0
 

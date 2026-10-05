@@ -624,6 +624,15 @@ async function restoreMsgKeySerialized(
  * replacement take effect), so both call shapes are served whatever order the
  * wrappers were installed in. An object call - WhatsApp's own - passes
  * through untouched.
+ *
+ * WA-JS 4.6.1 learned the object form itself (its wrapper calls
+ * encryptAndSendStatusMsg({ metricsReporter, msgProtobuf, sendMsgRecord })
+ * when the export's .length is 1, positionally otherwise). It reads the export
+ * live too, so the two do not double-wrap: this adapter has length 1, WA-JS
+ * then makes the object call, and the adapter passes it through. On 4.6.0, or
+ * when something wrapping the sender reports length 0, the positional call is
+ * what arrives and the adapter converts it. Both libraries are served by the
+ * same code.
  */
 async function restoreStatusSender(page: any, logger: any, session: string) {
   if (!page) return;

@@ -131,4 +131,4 @@ Instructions for running WinZapp from source, running the tests and building the
 
 ## License and Disclaimer
 
-WinZapp is licensed under the GNU General Public License v3.0 (see [LICENSE](LICENSE)). It works by automating the WhatsApp Web interface and is not built on any official WhatsApp/Meta API. Use of this software is at your own risk. This project is not affiliated with, maintained by, or endorsed by Meta Platforms, Inc.
+WinZapp is licensed under the GNU General Public License, version 3 or, at your option, any later version (GPL-3.0-or-later; see [LICENSE](LICENSE)). It works by automating the WhatsApp Web interface and is not built on any official WhatsApp/Meta API. Use of this software is at your own risk. This project is not affiliated with, maintained by, or endorsed by Meta Platforms, Inc.

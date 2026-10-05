@@ -26,6 +26,7 @@ Where to look (and where new code goes):
     history_loading          loading older history into the open conversation
     message_menu             message context menu and read-only actions
     message_actions          star, pin, delete, cancel, edit, resend
+    message_stars            sequential star jobs, explicit old-star migration
     message_accels           accelerator handlers for messages
     bulk_messages            bulk actions on selected messages
     forwarding               forwarding messages

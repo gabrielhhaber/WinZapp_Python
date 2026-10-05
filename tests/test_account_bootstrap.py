@@ -48,6 +48,8 @@ def test_explicit_account_unknown_is_error():
     reg = FakeRegistry([_acc(A)])
     r = boot.resolve_startup(["--account", B], reg)
     assert r["mode"] == "error"
+    # main.py names the account in the (translated) startup_invalid_account box.
+    assert r["account_id"] == B
 
 
 def test_explicit_account_archived_is_error():

@@ -247,8 +247,9 @@ class IdentityMixin:
             if remote and hasattr(self, "_chats_without_alt_jid"):
                 self._chats_without_alt_jid.discard(remote)
 
-            # Cache pushName if present in the message
-            push_name = msg.get("pushName")
+            # Cache pushName if present in the message. On an outgoing message
+            # the pushName is OUR OWN profile name, never the recipient's.
+            push_name = None if key.get("fromMe") else msg.get("pushName")
             if push_name and remote and not remote.endswith("@g.us") and not is_phone_like(push_name):
                 if not hasattr(self, "_message_pushname_cache"):
                     self._message_pushname_cache = {}

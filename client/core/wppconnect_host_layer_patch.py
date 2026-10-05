@@ -1687,7 +1687,7 @@ def _patch_managed_link_flow(content: str, notes: list) -> str:
         # DID NOT MATCH, which is the alarm meaning a pairing fix stopped
         # being applied.
         notes.append(
-            "checkQrCode: no patch needed — wppconnect 2.3.3 carries the "
+            "checkQrCode: no patch needed — wppconnect 2.3.3 and later carry the "
             "auth-probe fix upstream."
         )
     elif MANAGED_ORIGINAL_CHECK_QR_CODE in content:
@@ -1872,7 +1872,7 @@ def _patch_qr_reads(content: str, notes: list) -> str:
             V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN, PATCHED_WAIT_FOR_QR_CODE_SCAN, 1
         )
         notes.append(
-            "waitForQrCodeScan: patched — 2.3.3 stopped reading a failed auth "
+            "waitForQrCodeScan: patched — 2.3.3 and later stopped reading a failed auth "
             "probe as a login, but retries it forever and silently; this bounds "
             "the wait at 30s and logs why pairing stalled."
         )

@@ -16,8 +16,9 @@ Steps (onedir default):
   3. Assemble staging dir -> WinZapp.exe + _internal/ + lib/ + sounds/ + languages/
                             + data/ + node/ + api/
   4. Compile uninstaller -> build/uninstall.exe
-  5. Create payload ZIP (ZIP_STORED) from staging/
+  5. Create payload ZIP (ZIP_DEFLATED) from staging/
   6. Compile installer stub -> build/installer_stub.exe
+                            (links zlib statically to inflate the payload)
   7. Append payload ZIP to stub -> dist/WinZappInstaller.exe
   8. Create portable dist/WinZapp.zip
 
@@ -121,6 +122,12 @@ PYTHON_CMD      = sys.executable
 PYINSTALLER_CMD = [PYTHON_CMD, "-m", "PyInstaller"]
 GCC_CMD         = "gcc"
 WINDRES_CMD     = "windres"
+
+# DEFLATE level of the installer payload. Measured on a 1.3 GB tree of
+# _internal + node + api: level 6 -> 417.3 MB in 45 s, level 9 -> 414.6 MB in
+# 79 s (0.65% smaller for 75% more CI time), so 6 — the same level the
+# portable zip uses.
+PAYLOAD_COMPRESSLEVEL = 6
 
 # PyInstaller output directories
 PYINST_OUTDIR   = os.path.join(BUILD_DIR, "pyinstaller_out")
@@ -350,6 +357,7 @@ API_CUSTOM_SRC_FILES = [
     "src/config.ts",
     "src/util/callMediaBridge.ts",
     "src/util/forwardRuntime.ts",
+    "src/util/listChatsDiag.ts",
     "src/util/createSessionUtil.ts",
     "src/util/functions.ts",
     "src/util/logger.ts",
@@ -527,6 +535,7 @@ def ensure_build_assets():
                 "without them."
             )
             sys.exit(1)
+        check_static_zlib()
     installed = portable_node_version(os.path.join(NODE_DIR, "node.exe"))
     if portable_node_needs_replacing(installed, NODE_VERSION):
         if installed:
@@ -541,6 +550,34 @@ def ensure_build_assets():
 
 
 # -- Step 1: Check tools and pre-built assets --------------------------------
+
+def find_static_zlib(gcc=GCC_CMD):
+    """Path of libz.a as gcc would link it, or None when it is not installed.
+
+    The installer stub inflates the payload with zlib linked statically
+    (-l:libz.a), so the finished installer has no DLL beside it. MSYS2's gcc
+    package depends on mingw-w64-ucrt-x86_64-zlib, so it is normally there;
+    `gcc -print-file-name` echoes the bare name back when it is not.
+    """
+    try:
+        out = subprocess.run([gcc, "-print-file-name=libz.a"], capture_output=True,
+                             text=True, timeout=60).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out if out and os.path.isfile(out) else None
+
+
+def check_static_zlib():
+    if find_static_zlib() is None:
+        print(
+            "\n[ERROR] libz.a (static zlib) was not found by gcc. The installer "
+            "inflates its compressed payload with it. In MSYS2 UCRT64 run:\n"
+            "    pacman -S mingw-w64-ucrt-x86_64-zlib\n"
+            "(it normally comes with mingw-w64-ucrt-x86_64-gcc), or use --onefile "
+            "to build without the installer."
+        )
+        sys.exit(1)
+
 
 def check_tools():
     step("1/8  Checking required tools and pre-built assets")
@@ -672,7 +709,7 @@ def _write_version_file(work_dir):
          StringStruct('FileDescription', 'WinZapp - accessible WhatsApp client'),
          StringStruct('FileVersion', '{display}'),
          StringStruct('InternalName', 'WinZapp'),
-         StringStruct('LegalCopyright', '© 2026 WinZapp - LGPLv3'),
+         StringStruct('LegalCopyright', '© 2026 WinZapp - GPLv3'),
          StringStruct('OriginalFilename', 'WinZapp.exe'),
          StringStruct('ProductName', 'WinZapp'),
          StringStruct('ProductVersion', '{display}')])
@@ -968,9 +1005,13 @@ def compile_uninstaller():
     print(f"  -> {UNINSTALLER_EXE}")
 
 def create_payload_zip():
-    step("5/8  Creating payload ZIP (ZIP_STORED)")
+    step("5/8  Creating payload ZIP (ZIP_DEFLATED)")
     count = 0
-    with zipfile.ZipFile(PAYLOAD_ZIP, "w", compression=zipfile.ZIP_STORED) as zf:
+    # Not shared with the portable zip: that one nests everything under
+    # "WinZapp/" and has no uninstall.exe, and zipfile cannot rename an entry
+    # without recompressing it. Compressing twice costs ~15 s on the real tree.
+    with zipfile.ZipFile(PAYLOAD_ZIP, "w", compression=zipfile.ZIP_DEFLATED,
+                         compresslevel=PAYLOAD_COMPRESSLEVEL) as zf:
         for abs_path, rel_path in walk_dir(STAGING_DIR):
             zf.write(abs_path, rel_path)
             count += 1
@@ -990,8 +1031,10 @@ def compile_installer_stub():
     run([
         GCC_CMD, "-finput-charset=UTF-8", "-fwide-exec-charset=UTF-16LE",
         os.path.join(INSTALLER_DIR, "installer.c"),
+        os.path.join(INSTALLER_DIR, "zipextract.c"),
         INSTALLER_RES, "-o", INSTALLER_STUB, "-mwindows",
         "-I", INSTALLER_DIR,
+        "-l:libz.a",   # static: no zlib DLL to ship beside the installer
         "-lole32", "-lshell32", "-lcomctl32", "-lshlwapi", "-ladvapi32", "-luuid",
     ])
     print(f"  -> {INSTALLER_STUB}")

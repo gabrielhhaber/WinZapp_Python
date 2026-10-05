@@ -771,7 +771,9 @@ class MediaViewerDialog(wx.Dialog):
         try:
             shutil.copyfile(path, target)
         except Exception as exc:
-            wx.MessageBox(str(exc), self.main_window.app_name, wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(
+                self.i18n.t("media_viewer_save_failed").format(error=exc),
+                self.main_window.app_name, wx.OK | wx.ICON_ERROR)
 
     def _on_char_hook(self, event):
         key = event.GetKeyCode()
