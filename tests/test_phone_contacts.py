@@ -167,11 +167,28 @@ class TestRecords:
         entry = pc.local_entry(PHONE, "Ana")
         assert entry["isSaved"] is True and pc.SYNCED_KEY not in entry
 
-    def test_a_save_without_a_confirmed_sync_is_not_marked_either(self):
-        entry = pc.saved_entry(PHONE, "Ana", synced=False)
-        assert entry["isSaved"] is True and entry["isMyContact"] is True
-        assert pc.is_phone_synced(entry) is False
-        assert pc.is_phone_synced(pc.saved_entry(PHONE, "Ana", synced=True)) is True
+    def test_a_save_whose_sync_was_not_confirmed_yet_is_marked_all_the_same(self):
+        """It was asked for with the sync and accepted, and it is in WhatsApp
+        either way: handled as a local contact, deleting it would remove it
+        from WinZapp only. The next contact list corrects the mark if needed."""
+        entry = pc.synced_entry(PHONE, "Ana", confirmed=False)
+        assert entry["syncToAddressbook"] is False and entry["isMyContact"] is True
+        assert pc.is_phone_synced(entry) is True
+
+    def test_and_the_next_list_takes_the_mark_away_when_it_really_did_not_sync(self):
+        contacts = {PHONE: pc.synced_entry(PHONE, "Ana", confirmed=False)}
+        later = pc.now() + 60
+        assert pc.clear_stale_marks(contacts, [_server(PHONE, True, False)], later) == [PHONE]
+        assert pc.is_phone_synced(contacts[PHONE]) is False
+
+    def test_unmark_takes_the_flags_with_the_mark(self):
+        record = pc.synced_entry(PHONE, "Ana")
+        pc.unmark(record, True, False)
+        assert pc.is_phone_synced(record) is False and record["isMyContact"] is True
+
+    def test_the_http_client_is_not_loaded_just_to_read_a_mark(self):
+        """core/database.py imports this module for SYNCED_KEY alone."""
+        assert "api_post" not in vars(pc)
 
     def test_is_phone_synced(self):
         assert pc.is_phone_synced(pc.synced_entry("j", "n")) is True
@@ -267,17 +284,33 @@ class TestWhatsAppsListIsTheTruth:
         assert pc.clear_stale_marks(contacts, [], pc.now()) == []
         assert pc.clear_stale_marks(contacts, None, pc.now()) == []
 
-    def test_the_lid_copy_loses_the_mark_with_the_phone_record(self):
-        """Through the real MainWindow methods."""
+    def test_a_number_absent_from_the_list_keeps_its_mark(self):
+        """On purpose: while WhatsApp Web is still loading its store everyone
+        is absent, and reading that as "removed" would unmark them all."""
+        contacts = {PHONE: {pc.SYNCED_KEY: True}}
+        other = _server("5511888888888@s.whatsapp.net", True, True)
+        assert pc.clear_stale_marks(contacts, [other], pc.now()) == []
+        assert contacts[PHONE][pc.SYNCED_KEY] is True
+
+    def test_the_lid_copy_stops_reading_as_synced_with_the_phone_record(self, monkeypatch):
+        """Through the real MainWindow methods, on the records save_local_contact()
+        really makes: the copy carries the two WhatsApp flags as well as the
+        mark, and either would bring "synced" back."""
+        monkeypatch.setattr(main.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
 
         class _Window(_Mw):
             _clear_stale_phone_sync_marks = ContactsMixin._clear_stale_phone_sync_marks
 
         mw = _Window()
-        mw.contacts = {PHONE: {pc.SYNCED_KEY: True}, LID: {pc.SYNCED_KEY: True}}
+        entry = pc.synced_entry(PHONE, "Ana")
+        entry[pc.SYNCED_AT_KEY] = 0             # saved long before this list
+        mw.save_local_contact(PHONE, entry)
+        assert pc.is_phone_synced(mw.contacts[LID])
+
         mw._clear_stale_phone_sync_marks([_server(PHONE, False, False)], pc.now())
-        assert mw.contacts[PHONE][pc.SYNCED_KEY] is False
-        assert mw.contacts[LID][pc.SYNCED_KEY] is False
+
+        assert pc.is_phone_synced(mw.contacts[PHONE]) is False
+        assert pc.is_phone_synced(mw.contacts[LID]) is False
 
 
 class TestASyncedContactReplacesTheLocalOne:
@@ -341,7 +374,10 @@ class TestTheContactSyncAppliesIt:
 
         def __init__(self):
             super().__init__()
-            self.chats = {}             # no open chat keeps the number listed
+            # The server lists saved contacts and numbers with an open chat;
+            # _Mw has a chat with PHONE, which is why a number that is no
+            # longer a contact is still in the answer.
+            assert PHONE in self.chats
             self.saved = []
 
         def _schedule_save(self, **kwargs):

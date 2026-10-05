@@ -10,6 +10,12 @@ Collects name, surname and phone number in one of two tabs:
 Either way it is stored in main_window.contacts so it appears in future
 searches, and the WhatsApp JID is returned via result_jid / result_name so the
 caller can navigate there.
+
+Opened for a conversation known only by its @lid (no phone number learned
+yet), it asks for no phone at all and saves under that @lid: the digits of an
+@lid are not a phone number, and typed into a phone field they named either
+nobody ("this number is not on WhatsApp", about someone the user is talking
+to) or a stranger.
 """
 
 import wx
@@ -18,6 +24,12 @@ from core import phone_contacts
 
 MODE_LOCAL = "local"
 MODE_PHONE = "phone"
+
+
+def fixed_jid_of(contact_jid: str) -> str:
+    """The JID the dialog saves under instead of a typed phone number: the
+    conversation's @lid, when that is all WinZapp knows of the person."""
+    return contact_jid if (contact_jid or "").endswith("@lid") else ""
 
 
 def resolve_initial_mode(modes: tuple, initial: str) -> str:
@@ -32,15 +44,17 @@ class NewContactDialog(wx.Dialog):
     def __init__(self, main_window, parent=None, prefill_phone: str = "",
                  prefill_name: str = "", prefill_surname: str = "",
                  initial_mode: str = MODE_PHONE,
-                 modes: tuple = (MODE_LOCAL, MODE_PHONE)):
+                 modes: tuple = (MODE_LOCAL, MODE_PHONE),
+                 contact_jid: str = ""):
         self._mw = main_window
-        self._prefill_phone   = prefill_phone
+        self._fixed_jid = fixed_jid_of(contact_jid)
+        self._prefill_phone   = "" if self._fixed_jid else prefill_phone
         self._prefill_name    = prefill_name
         self._prefill_surname = prefill_surname
         # A number that is already a synced contact has only the synced tab.
+        known_jid = self._fixed_jid or self._jid_of(prefill_phone)
         self._modes = phone_contacts.available_modes(
-            phone_contacts.existing_contact(
-                main_window, self._jid_of(prefill_phone)) if prefill_phone else None,
+            phone_contacts.existing_contact(main_window, known_jid) if known_jid else None,
             tuple(modes), MODE_PHONE)
         self._initial_mode = resolve_initial_mode(self._modes, initial_mode)
         self._busy = False
@@ -65,7 +79,8 @@ class NewContactDialog(wx.Dialog):
     # ── UI ────────────────────────────────────────────────────────────────────
 
     def _build_page(self, notebook, i18n, mode):
-        """One tab: what it does, then name, surname and phone."""
+        """One tab: what it does, then name, surname and phone (no phone for
+        a conversation known only by its @lid: see the module docstring)."""
         page = wx.Panel(notebook)
         sizer = wx.BoxSizer(wx.VERTICAL)
         hint = wx.StaticText(page, label=i18n.t(
@@ -73,8 +88,10 @@ class NewContactDialog(wx.Dialog):
         hint.Wrap(380)
         sizer.Add(hint, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
         fields = {}
-        for key, label in (("name", "contact_name"), ("surname", "contact_surname"),
-                           ("phone", "phone_label")):
+        asked = [("name", "contact_name"), ("surname", "contact_surname")]
+        if not self._fixed_jid:
+            asked.append(("phone", "phone_label"))
+        for key, label in asked:
             sizer.Add(wx.StaticText(page, label=i18n.t(label)), 0, wx.LEFT | wx.TOP, 10)
             fields[key] = wx.TextCtrl(page, style=wx.TE_DONTWRAP)
             sizer.Add(fields[key], 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
@@ -82,7 +99,8 @@ class NewContactDialog(wx.Dialog):
         page.SetSizer(sizer)
         fields["name"].SetValue(self._prefill_name)
         fields["surname"].SetValue(self._prefill_surname)
-        fields["phone"].SetValue(self._prefill_phone)
+        if "phone" in fields:
+            fields["phone"].SetValue(self._prefill_phone)
         return page, fields
 
     def _build_ui(self, i18n):
@@ -159,7 +177,8 @@ class NewContactDialog(wx.Dialog):
 
         first   = fields["name"].GetValue().strip()
         surname = fields["surname"].GetValue().strip()
-        phone   = phone_contacts.digits_of(fields["phone"].GetValue())
+        fixed   = self._fixed_jid
+        phone   = "" if fixed else phone_contacts.digits_of(fields["phone"].GetValue())
 
         if not first:
             wx.MessageBox(
@@ -171,7 +190,7 @@ class NewContactDialog(wx.Dialog):
             fields["name"].SetFocus()
             return
 
-        if not phone or len(phone) < phone_contacts.MIN_DIGITS:
+        if not fixed and (not phone or len(phone) < phone_contacts.MIN_DIGITS):
             wx.MessageBox(
                 i18n.t("create_contact_error"),
                 i18n.t("app_name"),
@@ -182,7 +201,7 @@ class NewContactDialog(wx.Dialog):
             return
 
         full_name = f"{first} {surname}".strip()
-        jid       = phone + "@s.whatsapp.net"
+        jid       = fixed or phone + "@s.whatsapp.net"
 
         if mode == MODE_PHONE:
             self._save_synced(jid, first, surname, full_name)
@@ -228,8 +247,8 @@ class NewContactDialog(wx.Dialog):
                 previous_key = phone_contacts.key_of(mw, previous, "") if previous else ""
                 if previous_key and previous_key != saved_jid:
                     mw.remove_local_contact(previous_key)
-                mw.save_local_contact(saved_jid, phone_contacts.saved_entry(
-                    saved_jid, full_name, result.synced))
+                mw.save_local_contact(saved_jid, phone_contacts.synced_entry(
+                    saved_jid, full_name, confirmed=result.synced))
                 mw.output(i18n.t("new_contact_phone_saved" if result.synced
                                  else "new_contact_phone_saved_unconfirmed"))
             # Closed while the request was running: gone, or no longer modal
@@ -246,6 +265,7 @@ class NewContactDialog(wx.Dialog):
             self._set_busy(False, text)
             mw.output(text)
             wx.MessageBox(text, i18n.t("app_name"), wx.OK | wx.ICON_WARNING, self)
-            self._fields[MODE_PHONE]["phone"].SetFocus()
+            fields = self._fields[MODE_PHONE]
+            fields.get("phone", fields["name"]).SetFocus()
 
         mw.save_phone_synced_contact(jid, first, surname, _done)

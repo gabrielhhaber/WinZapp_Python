@@ -40,6 +40,7 @@ class _Stub:
     _on_delete_contact = ConversationDataDialog._on_delete_contact
     _finish_delete_contact = ConversationDataDialog._finish_delete_contact
     _on_edit_contact = ConversationDataDialog._on_edit_contact
+    _on_add_contact = ConversationDataDialog._on_add_contact
 
     def __init__(self, entry):
         self._jid, self._name = JID, "Ana Silva"
@@ -239,3 +240,44 @@ class TestTheRecordFiledUnderTheOtherDigitForm:
         stub._mw.on_done(True)
         assert stub._mw.contacts == {} and stub._contact_entry() is None
 
+
+LID_CHAT = "123456789012345@lid"
+
+
+class TestAChatKnownOnlyByItsLid:
+    """Add and Edit hand the conversation's JID to the dialog, which then
+    saves under the @lid instead of asking for a phone number."""
+
+    @staticmethod
+    def _open(monkeypatch, method, jid, entry=None):
+        seen = {}
+
+        class _Fake:
+            def __init__(self, *args, **kwargs):
+                seen.update(kwargs)
+
+            def SetTitle(self, title): pass
+            def ShowModal(self): return wx.ID_CANCEL
+            def Destroy(self): pass
+
+        monkeypatch.setattr(new_contact, "NewContactDialog", _Fake)
+        stub = _Stub(entry or {})
+        stub._jid = jid
+        stub._mw.contacts = {jid: entry} if entry else {}
+        getattr(stub, method)(None)
+        return seen
+
+    def test_add_passes_the_lid(self, monkeypatch):
+        seen = self._open(monkeypatch, "_on_add_contact", LID_CHAT)
+        assert seen["contact_jid"] == LID_CHAT
+
+    def test_edit_passes_the_lid(self, monkeypatch):
+        entry = phone_contacts.local_entry(LID_CHAT, "Ana Silva")
+        seen = self._open(monkeypatch, "_on_edit_contact", LID_CHAT, entry)
+        assert seen["contact_jid"] == LID_CHAT
+
+    def test_a_chat_with_a_known_phone_passes_the_phone_jid(self, monkeypatch):
+        """Which the dialog ignores: only an @lid fixes the JID."""
+        seen = self._open(monkeypatch, "_on_add_contact", JID)
+        assert seen["contact_jid"] == JID
+        assert new_contact.fixed_jid_of(seen["contact_jid"]) == ""

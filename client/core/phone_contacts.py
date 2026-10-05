@@ -7,14 +7,14 @@ Web's own "add contact" runs, and ends up in the phone's address book.
 
 Plain functions over an injectable ``post``, no wx and no network of their
 own, so the request shapes, the error mapping and the record rules are tested
-directly.
+directly. The HTTP client is imported only when a request is made: the
+database reads SYNCED_KEY and is_phone_synced() from here and has no use for
+it.
 """
 
 import re
 import time
 from collections import namedtuple
-
-from core.api_client import api_post
 
 #: Set on the record of a contact that lives in the phone's address book.
 #: Persisted as contacts.synced_to_phone (core/database.py).
@@ -47,6 +47,11 @@ SaveResult = namedtuple("SaveResult", "ok error_key jid synced")
 
 def now() -> float:
     return time.time()
+
+
+def _api_post(url, **kwargs):
+    from core.api_client import api_post
+    return api_post(url, **kwargs)
 
 
 def digits_of(phone: str) -> str:
@@ -108,7 +113,8 @@ def key_of(main_window, record, default: str) -> str:
     JID it was asked for; whoever then deletes "the contact" has to delete
     that key, or the record stays behind with its buttons and its name.
     """
-    for jid, candidate in (getattr(main_window, "contacts", None) or {}).items():
+    # A copy: the contact sync adds keys to this dict from its own thread.
+    for jid, candidate in list((getattr(main_window, "contacts", None) or {}).items()):
         if candidate is record:
             return jid
     return default
@@ -125,19 +131,25 @@ def local_entry(jid: str, full_name: str) -> dict:
     return {"remoteJid": jid, "name": full_name, "pushName": full_name, "isSaved": True}
 
 
-def synced_entry(jid: str, full_name: str) -> dict:
-    """The contact record a successful, confirmed save leaves in WinZapp."""
+def synced_entry(jid: str, full_name: str, confirmed: bool = True) -> dict:
+    """The contact record a successful save to the phone leaves in WinZapp.
+
+    It is marked as synced whether or not WhatsApp's answer already showed the
+    sync (*confirmed*): the save was asked for with the sync and accepted, and
+    the contact is in WhatsApp either way, so it must be edited and deleted
+    through WhatsApp. If the sync really did not happen, the next contact list
+    says so and clear_stale_marks() takes the mark away.
+    """
     return {**local_entry(jid, full_name), "isMyContact": True,
-            "syncToAddressbook": True, SYNCED_KEY: True, SYNCED_AT_KEY: now()}
+            "syncToAddressbook": bool(confirmed), SYNCED_KEY: True, SYNCED_AT_KEY: now()}
 
 
-def saved_entry(jid: str, full_name: str, synced: bool) -> dict:
-    """The record for what WhatsApp answered: synced with the phone, or saved
-    in WhatsApp without the sync being confirmed (then not marked as synced,
-    so saving it again from the synced tab is offered instead of assumed)."""
-    if synced:
-        return synced_entry(jid, full_name)
-    return {**local_entry(jid, full_name), "isMyContact": True, "syncToAddressbook": False}
+def unmark(record: dict, is_my_contact: bool, sync_to_addressbook: bool) -> None:
+    """Take the "in the phone's address book" mark off *record*, with the two
+    WhatsApp flags that would otherwise still read as it (is_phone_synced())."""
+    record[SYNCED_KEY] = False
+    record["isMyContact"] = bool(is_my_contact)
+    record["syncToAddressbook"] = bool(sync_to_addressbook)
 
 
 def clear_stale_marks(contacts: dict, server_contacts, requested_at: float) -> list:
@@ -149,6 +161,14 @@ def clear_stale_marks(contacts: dict, server_contacts, requested_at: float) -> l
     two flags. Records saved to the phone at or after *requested_at* are left
     alone: that list was asked for before WhatsApp knew about them. Entries
     that carry no answer (neither flag present) change nothing.
+
+    A number that is simply ABSENT from the list keeps its mark, on purpose.
+    The server lists saved contacts and numbers with an open chat, so a
+    contact removed on the phone with no chat left does drop out of it; but so
+    does everyone while WhatsApp Web is still loading its store, and reading
+    absence as "removed" would then unmark the whole address book. The mark
+    that stays behind costs little: deleting such a contact still works (the
+    server answers that it is not one, which counts as removed).
 
     Returns the JIDs whose mark was cleared.
     """
@@ -165,9 +185,7 @@ def clear_stale_marks(contacts: dict, server_contacts, requested_at: float) -> l
             continue
         if record.get(SYNCED_AT_KEY, 0) >= requested_at:
             continue
-        record[SYNCED_KEY] = False
-        record["isMyContact"] = bool(server.get("isMyContact"))
-        record["syncToAddressbook"] = bool(server.get("syncToAddressbook"))
+        unmark(record, server.get("isMyContact"), server.get("syncToAddressbook"))
         cleared.append(server["remoteJid"])
     return cleared
 
@@ -200,7 +218,7 @@ def _error_of(resp) -> str:
 
 
 def save_contact(base: str, token: str, jid: str, first: str, last: str = "",
-                 post=api_post) -> SaveResult:
+                 post=_api_post) -> SaveResult:
     """Save the contact in WhatsApp, synced to the phone.
 
     Blocks for the length of the request: call it off the main thread.
@@ -222,7 +240,7 @@ def save_contact(base: str, token: str, jid: str, first: str, last: str = "",
                       bool(answer.get("syncToAddressbook")))
 
 
-def remove_contact(base: str, token: str, jid: str, post=api_post) -> bool:
+def remove_contact(base: str, token: str, jid: str, post=_api_post) -> bool:
     """Remove the contact from WhatsApp and the phone. True when it is gone,
     including when it was already not a contact."""
     target = wire_id(jid)
