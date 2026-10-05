@@ -213,7 +213,8 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
         // warm-up, a second call action), makes it fail with "cannot load
         // module more than once per process". So: skip init when it is ready,
         // share one in-flight init per page, and once that error is seen stop
-        // initialising and only wait for the first load to finish.
+        // initialising; the loop below then keeps polling until the first load
+        // reports ready.
         let lastError: any = null;
         for (let attempt = 0; attempt < 8; attempt += 1) {
           try {
