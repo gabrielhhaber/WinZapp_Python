@@ -60,6 +60,54 @@ def stamp_star_snapshot(messages, started):
             message["_star_observed_at"] = min(message["_star_observed_at"], started)
 
 
+def apply_star_fields(messages, merged):
+    """Copy merged star fields onto the same dicts, keeping their identity.
+
+    Pending local sends are shared with _outgoing_virtual_messages and the
+    panel rows; replacing them with copies would let an echo stamp the wrong
+    copy.
+    """
+    for message, result in zip(messages, merged):
+        message.update({k: result[k] for k in STAR_FIELDS if k in result})
+    return messages
+
+
+def _canonical_jid(jid):
+    jid = str(jid or "").strip()
+    return jid[:-len("@c.us")] + "@s.whatsapp.net" if jid.endswith("@c.us") else jid
+
+
+def _id_parts(raw_id):
+    if isinstance(raw_id, dict):
+        remote = raw_id.get("remote")
+        if isinstance(remote, dict):
+            remote = remote.get("_serialized")
+        return str(raw_id.get("fromMe")).lower(), _canonical_jid(remote), raw_id.get("id")
+    parts = str(raw_id or "").split("_")
+    if len(parts) < 3:
+        return None
+    return parts[0].lower(), _canonical_jid(parts[1]), parts[2]
+
+
+def is_same_message(raw_id, expected, chat_aliases):
+    """The read returned our message: same id and direction, same chat.
+
+    The chat may come back as its @lid or its phone form; any other chat or
+    direction is a different message.
+    """
+    got, want = _id_parts(raw_id), _id_parts(expected)
+    if not got or not want or not got[2] or got[0] != want[0] or got[2] != want[2]:
+        return False
+    return got[1] in {_canonical_jid(j) for j in chat_aliases if j}
+
+
+def read_star_matches(raw, star):
+    """A missing `star` means never starred, which satisfies an unstar only."""
+    if "star" not in raw:
+        return not star
+    return isinstance(raw["star"], bool) and raw["star"] is bool(star)
+
+
 def apply_remote_star(existing, incoming):
     if "_star_remote" not in incoming:
         return False

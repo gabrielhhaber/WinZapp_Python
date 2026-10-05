@@ -121,13 +121,16 @@ class ChatMenuMixin:
 
         menu.AppendSeparator()
 
-        # ── Clear / Delete / Leave ────────────────────────────────────────
+        # ── Stars ─────────────────────────────────────────────────────────
         sync_stars_item = menu.Append(wx.ID_ANY, i18n.t("star_sync_local"))
         self.Bind(wx.EVT_MENU, lambda e, j=jid: self._on_sync_local_stars(j), sync_stars_item)
         if getattr(mw, "_star_sync_job", None) is not None:
             stop_stars_item = menu.Append(wx.ID_ANY, i18n.t("star_sync_stop"))
             self.Bind(wx.EVT_MENU, lambda e: self._on_cancel_star_sync(), stop_stars_item)
 
+        menu.AppendSeparator()
+
+        # ── Clear / Delete / Leave ────────────────────────────────────────
         clear_item = menu.Append(wx.ID_ANY, f"{i18n.t('clear_chat')}\tCtrl+Shift+L")
         self.Bind(wx.EVT_MENU, lambda e, j=jid: self._on_menu_clear_chat(j), clear_item)
 

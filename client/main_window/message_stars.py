@@ -7,10 +7,18 @@ import wx
 
 from core.api_client import api_get, api_post
 from core.message_edit import connection_refused, response_not_sent
-from core.message_stars import STAR_FIELDS, apply_remote_star
+from core.message_stars import STAR_FIELDS, apply_remote_star, is_same_message, read_star_matches
 
 
 class MessageStarsMixin:
+    def _star_chat_aliases(self, *jids):
+        """Both forms a chat can come back as: its phone JID and its @lid."""
+        aliases = set(jids)
+        for jid in jids:
+            aliases.add(getattr(self, "_phone_to_lid", {}).get(jid))
+            aliases.add(getattr(self, "_lid_to_phone", {}).get(jid))
+        return aliases
+
     def _invalidate_star_sync_for_lock(self):
         job = getattr(self, "_star_sync_job", None)
         if isinstance(job, dict) and self.is_chat_locked(job.get("jid", "")):
@@ -56,13 +64,14 @@ class MessageStarsMixin:
         WA-JS 4.6.1 builds StarMessageReturn before sendStarMsgs, so its `star`
         is the PREVIOUS value. Read the message again instead of trusting it.
         This reads the linked device's store; it does not request phone history.
+        The read may name the chat by its @lid or its phone JID; both are ours.
         """
         target = getattr(self, "_phone_to_lid", {}).get(jid) or jid
         message_id = self._serialize_msg_id(target, key)
         if not key.get("id") or not message_id:
             return "refused"
         base = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}"
-        headers = {"Authorization": f"Bearer {self._get_wa_token()}"}
+        headers = {"Authorization": f"Bearer {self.token}"}
         try:
             response = api_post(base + "/star-message", json={
                 "messageId": message_id, "star": bool(star)}, headers=headers, timeout=15)
@@ -84,11 +93,11 @@ class MessageStarsMixin:
             if isinstance(raw, dict) and isinstance(raw.get("data"), dict):
                 raw = raw["data"]
             raw_id = raw.get("id") if isinstance(raw, dict) else None
-            if isinstance(raw_id, dict):
-                raw_id = raw_id.get("_serialized")
+            if isinstance(raw_id, dict) and isinstance(raw_id.get("_serialized"), str):
+                raw_id = raw_id["_serialized"]
             if (isinstance(body, dict) and str(body.get("status", "")).lower() == "success"
-                    and isinstance(raw_id, str) and raw_id == message_id
-                    and isinstance(raw.get("star"), bool) and raw["star"] is bool(star)):
+                    and is_same_message(raw_id, message_id, self._star_chat_aliases(jid, target))
+                    and read_star_matches(raw, star)):
                 return "confirmed"
         except Exception:
             logging.warning("[star] could not verify the linked-device star state")

@@ -88,3 +88,20 @@ def test_group_participant_and_unstar_are_preserved(calls, monkeypatch):
     monkeypatch.setattr(transport, "api_get", lambda *a, **kw: response(False, mid="false_group@g.us_M_sender@lid"))
     assert MW().star_message("group@g.us", {"id": "M", "participant": "sender@lid"}, False) == "confirmed"
     assert calls[0][0][1]["json"] == {"messageId": "false_group@g.us_M_sender@lid", "star": False}
+
+
+def test_read_naming_the_chat_by_its_phone_jid_confirms(calls, monkeypatch):
+    monkeypatch.setattr(transport, "api_get", lambda *a, **kw: response(True, mid="false_test@c.us_M"))
+    assert MW().star_message("test@s.whatsapp.net", {"id": "M"}, True) == "confirmed"
+
+
+@pytest.mark.parametrize("star,expected", [(False, "confirmed"), (True, "unknown")])
+def test_message_without_star_field_confirms_only_an_unstar(calls, monkeypatch, star, expected):
+    body = {"status": "Success", "response": {"data": {"id": {"_serialized": "false_device@lid_M"}}}}
+    monkeypatch.setattr(transport, "api_get", lambda *a, **kw: response(body=body))
+    assert MW().star_message("test@s.whatsapp.net", {"id": "M"}, star) == expected
+
+
+def test_requests_use_the_session_token_like_other_actions(calls):
+    MW().star_message("test@s.whatsapp.net", {"id": "M"}, True)
+    assert calls[0][0][1]["headers"] == calls[1][0][1]["headers"] == {"Authorization": "Bearer test"}

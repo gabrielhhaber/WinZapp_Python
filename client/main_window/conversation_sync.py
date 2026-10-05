@@ -10,7 +10,7 @@ import os
 import threading
 import time
 import wx
-from core.message_stars import carry_over_stars, stamp_star_snapshot
+from core.message_stars import apply_star_fields, carry_over_stars, stamp_star_snapshot
 from main_window.message_rules import (
     _MAX_ABSENT_CHAT_RETRIES,
     _MAX_EMPTY_DELTA_RETRIES,
@@ -763,10 +763,11 @@ class ConversationSyncMixin:
             )
         )
 
-        # Preserve stars on older rows outside the currently loaded UI page.
+        # Preserve stars on older rows outside the currently loaded UI page,
+        # in place: pending local sends must stay the objects echoes stamp.
         merge_stars = getattr(self.db, "merge_message_star_states", None)
         if merge_stars is not None:
-            all_messages = merge_stars(remote_jid, all_messages)
+            apply_star_fields(all_messages, merge_stars(remote_jid, all_messages))
 
         # ── Late-arriving race-condition fix ─────────────────────────────────
         # on_historical_message() and on_new_message() run on the wx main thread

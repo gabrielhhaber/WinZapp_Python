@@ -1,6 +1,6 @@
 """Missing metadata is unknown; legacy local stars require explicit migration."""
 import pytest
-from core.message_stars import apply_remote_star, carry_over_stars, confirmed_star_state, is_local_star, merge_star_state, remote_star_state, stamp_star_snapshot
+from core.message_stars import apply_remote_star, apply_star_fields, carry_over_stars, is_same_message, read_star_matches, confirmed_star_state, is_local_star, merge_star_state, remote_star_state, stamp_star_snapshot
 from core.websocket_client import WebSocketClient
 
 
@@ -74,3 +74,31 @@ def test_normalizer_retains_whatsapp_star_metadata(star):
         assert "_star_remote" not in normalized
     else:
         assert normalized["starred"] is star and normalized["_star_remote"] is star
+
+
+def test_star_fields_are_applied_to_the_same_objects():
+    pending = {"key": {"id": "uuid"}, "_local_pending": True}
+    stored = {"key": {"id": "old"}, "starred": False}
+    merged = [{**pending}, {**stored, "starred": True, "_star_local": True}]
+    assert apply_star_fields([pending, stored], merged) == [pending, stored]
+    assert stored["starred"] is True and stored["_star_local"] is True
+    assert pending == {"key": {"id": "uuid"}, "_local_pending": True}
+
+
+@pytest.mark.parametrize("raw_id", ["false_device@lid_M", "false_123@c.us_M", "false_123@s.whatsapp.net_M",
+    {"fromMe": False, "remote": {"_serialized": "123@c.us"}, "id": "M"}])
+def test_read_naming_our_chat_by_lid_or_phone_is_the_same_message(raw_id):
+    aliases = {"123@s.whatsapp.net", "device@lid"}
+    assert is_same_message(raw_id, "false_device@lid_M", aliases)
+
+
+@pytest.mark.parametrize("raw_id", ["false_other@lid_M", "true_device@lid_M", "false_device@lid_OTHER",
+    "", None, "device@lid", {"fromMe": False, "remote": "device@lid"}])
+def test_other_chat_direction_or_id_is_not_our_message(raw_id):
+    assert not is_same_message(raw_id, "false_device@lid_M", {"device@lid", "123@s.whatsapp.net"})
+
+
+@pytest.mark.parametrize("raw,star,ok", [({"star": True}, True, True), ({"star": False}, False, True),
+    ({}, False, True), ({}, True, False), ({"star": None}, False, False), ({"star": True}, False, False)])
+def test_missing_star_in_the_verification_read_satisfies_only_an_unstar(raw, star, ok):
+    assert read_star_matches(raw, star) is ok

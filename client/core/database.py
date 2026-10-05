@@ -26,12 +26,12 @@ import asyncio
 import json
 import logging
 import time
-from core.star_storage import preserve_stars, update_star_state
 from typing import Any
 
 import aiosqlite
 from cryptography.fernet import Fernet
 
+from core.star_storage import preserve_stars, update_star_state
 from core.utils import MEASURED_SECONDS_KEY
 
 log = logging.getLogger(__name__)

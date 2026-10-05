@@ -36,7 +36,7 @@ class Panel(actions.StarActionsMixin):
             chats={"test@s.whatsapp.net": chat}, i18n=I18n(),
             db=SimpleNamespace(update_message_star_state=lambda *a: self.writes.append(a)),
             output=lambda text, **kw: self.outputs.append(text), star_message=self.star_message,
-            _resolve_contact_name=lambda chat: "Synthetic chat")
+            chat_display_name=lambda jid: "Synthetic chat")
 
     def star_message(self, *args):
         self.calls.append(args)
@@ -79,7 +79,9 @@ def test_toggle_waits_for_verification_and_persists_only_flags(queue, old):
     assert msg["starred"] is not old
     assert panel.writes[0][:2] == ("test@s.whatsapp.net", "MSG1")
     assert set(panel.writes[0][2]) == {"starred", "_star_remote", "_star_local", "_star_observed_at"}
-    assert panel.repainted == [["MSG1"]] and panel.outputs[-1] == "Synthetic chat: 1/0/0/0"
+    assert panel.repainted == [["MSG1"]]
+    # One short line, not "please wait" plus a count summary.
+    assert panel.outputs == ["star_removed" if old else "star_added"]
 
 
 @pytest.mark.parametrize("outcome", ["refused", "unknown"])
@@ -156,7 +158,7 @@ def test_pending_message_never_calls_api(queue):
     panel._on_menu_star(panel._sorted_messages[0])
     drain(queue)
     assert not panel.calls and not panel.writes
-    assert panel.outputs[-1] == "Synthetic chat: 0/1/0/0"
+    assert panel.outputs == ["star_refused"]
 
 
 def test_cancel_keeps_current_confirmed_result_and_skips_remaining_messages(queue):
@@ -236,3 +238,37 @@ def test_local_scan_failure_sends_nothing_and_clears_busy_job(queue):
     drain(queue)
     assert not panel.calls and not panel.writes
     assert panel.outputs[-1] == "star_sync_scan_failed" and panel.main_window._star_sync_job is None
+
+
+
+def test_bulk_result_and_confirmation_name_a_group_by_its_display_name(queue, monkeypatch):
+    msgs = [message("1", starred=True), message("2", starred=True)]
+    panel = Panel(msgs, ["confirmed", "confirmed"])
+    names = []
+    panel.main_window.chat_display_name = lambda jid: names.append(jid) or "Family"
+    panel.main_window.db.get_messages = lambda *a, **kw: msgs
+    prompts = []
+    monkeypatch.setattr(actions, "message_box", lambda *a, **kw: prompts.append(a) or wx.YES)
+    panel._on_sync_local_stars("family@g.us")
+    drain(queue)
+    assert prompts[0][1] == "Family: Sync 2?"
+    assert panel.outputs[-1] == "Family: 2/0/0/0" and names == ["family@g.us"] * 2
+
+
+def test_no_old_stars_says_so_for_the_chat(queue):
+    panel = Panel([])
+    panel.main_window.db.get_messages = lambda *a, **kw: [message("1")]
+    panel._on_sync_local_stars("test@s.whatsapp.net")
+    drain(queue)
+    assert panel.outputs[-1] == "star_sync_none" and panel.main_window._star_sync_job is None
+
+
+def test_worker_failure_outside_a_request_still_releases_the_job(queue, monkeypatch):
+    msgs = [message("1"), message("2")]
+    panel = Panel(msgs)
+    panel._sync_message_stars("test@s.whatsapp.net", msgs, True)
+    monkeypatch.setattr(Panel, "_star_job_valid", lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("synthetic")))
+    queue[0].pop(0)()
+    with pytest.raises(RuntimeError):
+        queue[1].pop(0)()
+    assert panel.main_window._star_sync_job is None and not panel.calls

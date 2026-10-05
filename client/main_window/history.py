@@ -565,7 +565,8 @@ class HistoryMixin:
                 if fetched_messages:
                     stamp_star_snapshot(fetched_messages, star_snapshot_started)
                     merge_stars = getattr(self.db, "merge_message_star_states", None)
-                    if merge_stars is not None:
+                    # store_only: insert_messages_batch already preserves stars.
+                    if merge_stars is not None and not store_only:
                         fetched_messages = merge_stars(remote_jid, fetched_messages)
                     if store_only:
                         # Straight to disk, nothing kept resident. Deliberately
