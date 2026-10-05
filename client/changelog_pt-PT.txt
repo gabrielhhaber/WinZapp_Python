@@ -4,6 +4,8 @@ A grande novidade desta versão são as chamadas: agora é possível fazer, aten
 
 NOVIDADES
 
+- As estrelas das mensagens passam a ser sincronizadas com o WhatsApp. Cada alteração é verificada no dispositivo associado; recusas e resultados não verificados são comunicados separadamente. As estrelas locais antigas são preservadas até escolher "Sincronizar estrelas locais antigas com o WhatsApp" no menu da conversa e confirmar. Pode parar um lote após o pedido atual.
+
 - Chamadas de voz e de vídeo. Numa conversa individual, os botões "Ligação de voz" (Ctrl+Shift+V) e "Chamada de vídeo" (Ctrl+Alt+Shift+V) fazem a chamada no próprio WinZapp. A chamada abre uma janela com botões acessíveis com Tab e atalhos próprios: Ctrl+M silencia ou reativa o microfone, Ctrl+V liga ou desliga a câmara numa chamada de vídeo, Ctrl+P transforma uma chamada de voz em chamada de vídeo, Ctrl+C abre as definições da chamada e Ctrl+Shift+Q desliga. O leitor de ecrã avisa quando a chamada liga, quando está a restabelecer a ligação e quando termina.
 
 - Atender e recusar chamadas no WinZapp. A janela de chamada recebida tem agora os botões "Atender", "Recusar" e "Silenciar alerta"; numa chamada de vídeo, "Atender com vídeo" e "Atender sem vídeo". Os atalhos desta janela só funcionam com Alt e a letra sublinhada, para que uma tecla premida por engano não atenda nem recuse a chamada.

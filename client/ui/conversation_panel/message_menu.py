@@ -299,7 +299,7 @@ class MessageMenuMixin:
             )
 
             # Pin / Unpin in chat (Ctrl+Shift+P) — the real WhatsApp message-pin
-            # feature, visible to every participant, unlike the local-only star
+            # feature, visible to every participant, unlike the private star
             # above. Shares its accelerator with the recording pause/resume
             # shortcut (_on_ctrl_shift_p): only one is ever applicable at a time
             # (pause/resume only does anything while actively recording audio).

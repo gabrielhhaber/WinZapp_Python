@@ -26,6 +26,7 @@ import asyncio
 import json
 import logging
 import time
+from core.star_storage import preserve_stars, update_star_state
 from typing import Any
 
 import aiosqlite
@@ -692,6 +693,13 @@ class DatabaseManager:
                 result.append(msg)
         return result
 
+    async def update_message_star_state(self, remote_jid: str, message_id: str, state: dict) -> None:
+        await update_star_state(self, remote_jid, message_id, state)
+
+    async def merge_message_star_states(self, remote_jid: str, messages: list[dict]) -> list[dict]:
+        async with self._write_lock:
+            return await preserve_stars(self, await self._ensure_conn(), remote_jid, messages)
+
     async def get_message_by_id(self, remote_jid: str, message_id: str) -> dict | None:
         """Return one stored message of a chat by its id, or None."""
         if not message_id:
@@ -826,6 +834,7 @@ class DatabaseManager:
         """
         async with self._write_lock:
             conn = await self._ensure_conn()
+            msg = (await preserve_stars(self, conn, remote_jid, [msg]))[0]
             msg = await self._with_known_video_duration(conn, remote_jid, msg)
             values = self._build_message_values(remote_jid, msg)
             if values is None:
@@ -855,6 +864,7 @@ class DatabaseManager:
             conn = await self._ensure_conn()
             try:
                 await conn.execute("BEGIN")
+                msgs = await preserve_stars(self, conn, remote_jid, msgs)
                 for msg in msgs:
                     msg = await self._with_known_video_duration(conn, remote_jid, msg)
                     values = self._build_message_values(remote_jid, msg)

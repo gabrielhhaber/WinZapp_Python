@@ -4,6 +4,8 @@ The big news in this release is calls: you can now place, answer and reject voic
 
 WHAT'S NEW
 
+- Starred messages now use WhatsApp's own stars. Each change is checked on the linked device; failures and unverified results are reported separately. Old local stars remain until you choose "Sync old local stars with WhatsApp" in the chat's context menu and confirm. You can stop a batch after the current request.
+
 - Voice and video calls. In a one-to-one chat, the "Voice call" (Ctrl+Shift+V) and "Video call" (Ctrl+Alt+Shift+V) buttons place the call from WinZapp itself. The call opens a window with Tab-reachable buttons and its own shortcuts: Ctrl+M mutes or unmutes the microphone, Ctrl+V turns the camera on or off in a video call, Ctrl+P turns a voice call into a video call, Ctrl+C opens the call settings and Ctrl+Shift+Q hangs up. The screen reader tells you when the call connects, when it is reconnecting and when it ends.
 
 - Answer and reject calls in WinZapp. The incoming call window now has "Answer", "Reject" and "Silence alert" buttons; for a video call, "Answer with video" and "Answer without video". That window's shortcuts only work with Alt and the underlined letter, so a key pressed by mistake does not answer or reject the call.

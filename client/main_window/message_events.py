@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 import wx
+from core.message_stars import apply_remote_star, merge_star_state
 from core.conversation_view import (
     archived_chat_stays_silent, archived_panel_is_shown, conversation_in_view,
 )
@@ -215,6 +216,7 @@ class MessageEventsMixin:
         placeholder carried outlives it except local-only (`_`) fields, and a
         text recovered from a reply's quote is superseded.
         """
+        incoming = merge_star_state(incoming, existing)
         for field in [f for f in existing if not str(f).startswith("_")]:
             if field not in incoming:
                 del existing[field]
@@ -372,6 +374,8 @@ class MessageEventsMixin:
         which acts only on a copy WhatsApp itself marks as edited and changes
         nothing but the caption.
         """
+        if apply_remote_star(existing, incoming):
+            self._persist_and_repaint_star(existing, remote_jid)
         if self._apply_remote_revoke(existing, incoming, remote_jid):
             return
 
@@ -991,7 +995,10 @@ class MessageEventsMixin:
 
         def _bg_insert_msg():
             try:
-                self.db.insert_message(remote_jid, msg)
+                if "_star_remote" in msg:
+                    self._insert_message_preserving_stars(remote_jid, msg)
+                else:
+                    self.db.insert_message(remote_jid, msg)
             except Exception as e:
                 logging.error(f"[on_new_message] Failed to insert message to DB: {e}")
         _insert_fut = self._msg_bg_executor.submit(_bg_insert_msg)
@@ -1507,6 +1514,8 @@ class MessageEventsMixin:
         # Check if already present in memory records
         existing = next((r for r in records if r.get("key", {}).get("id") == msg_id), None)
         if existing is not None:
+            if apply_remote_star(existing, msg):
+                self._persist_and_repaint_star(existing, remote_jid)
             # A stored placeholder (or a text recovered from a quote) is
             # replaced by its decrypted copy, as on_new_message() does; history
             # never announces, so it is always filled in silently.
@@ -1562,7 +1571,10 @@ class MessageEventsMixin:
         # Insert message to DB in background
         def _bg_insert_msg():
             try:
-                self.db.insert_message(remote_jid, msg)
+                if "_star_remote" in msg:
+                    self._insert_message_preserving_stars(remote_jid, msg)
+                else:
+                    self.db.insert_message(remote_jid, msg)
             except Exception as e:
                 logging.error(f"[on_historical_message] Failed to insert message to DB: {e}")
         self._msg_bg_executor.submit(_bg_insert_msg)

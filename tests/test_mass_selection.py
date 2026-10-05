@@ -271,6 +271,10 @@ class _Panel:
         self.repainted = []
         self.repaint_ok = True
         self.persisted = []
+        self.star_jobs = []
+
+    def _sync_message_stars(self, jid, messages, star):
+        self.star_jobs.append((jid, [m["key"]["id"] for m in messages], star))
 
     # Plain Space only reaches these for an audio/video row; every message
     # this file builds is a text one, so they just record.
@@ -1435,10 +1439,11 @@ class TestMassStarAndPinMessages:
         panel = _Panel(messages=msgs)
         panel.selected_messages = {"m1", "m2"}
         panel._on_mass_star_messages(None)
-        assert msgs[0]["starred"] is True
-        assert panel.persisted == [("grupo@g.us", ["m1"])]  # m2 skipped, already starred
+        assert not msgs[0].get("starred")  # verification worker owns the update
+        assert panel.star_jobs == [("grupo@g.us", ["m1"], True)]
+        assert panel.persisted == []
         assert panel.selected_messages == set()
-        assert panel.main_window.announced == ["success_star_bulk"]
+        assert panel.main_window.announced == []  # no premature success
 
     def test_pins_every_selected_message_not_already_pinned(self, run_threads):
         msgs = [_msg("m1"), _msg("m2")]
@@ -1468,11 +1473,12 @@ class TestMassStarAndPinAreBatched:
         panel = _Panel(messages=msgs)
         panel.selected_messages = {"m1", "m2", "m3"}
         panel._on_mass_star_messages(None)
-        assert all(m["starred"] for m in msgs)
+        assert not any(m.get("starred") for m in msgs)
         assert panel.repainted == [["m1", "m2", "m3"]]
         assert panel.populate_calls == 0, "the affected rows are repainted, not the whole list"
-        assert panel.persisted == [("grupo@g.us", ["m1", "m2", "m3"])]
-        assert panel.main_window.saves == 1
+        assert panel.star_jobs == [("grupo@g.us", ["m1", "m2", "m3"], True)]
+        assert panel.persisted == []
+        assert panel.main_window.saves == 0
 
     def test_starring_repaints_the_whole_selection_not_just_the_changed_rows(self):
         """Clearing selected_messages drops the " selecionado" marker from

@@ -4,6 +4,8 @@ Bu sürümün en büyük yeniliği aramalardır: Telefona ihtiyaç duymadan doğ
 
 YENİLİKLER
 
+- Mesaj yıldızları artık WhatsApp ile eşitlenir. Her değişiklik bağlı cihazdan okunarak doğrulanır; reddedilen ve doğrulanamayan işlemler ayrı bildirilir. Eski yerel yıldızlar korunur. Sohbetin bağlam menüsündeki "Eski yerel yıldızları WhatsApp ile eşitle" seçeneğiyle onay vererek topluca aktarabilir, devam eden isteğin ardından işlemi durdurabilirsiniz.
+
 - Sesli ve görüntülü aramalar. Bireysel bir sohbette "Sesli ara" (Ctrl+Shift+V) ve "Görüntülü ara" (Ctrl+Alt+Shift+V) düğmeleri aramayı doğrudan WinZapp üzerinden başlatır. Arama başladığında, Tab tuşuyla dolaşılabilen düğmelere ve bağımsız kısayollara sahip erişilebilir bir arama penceresi açılır: Ctrl+M mikrofonun sesini kapatır veya açar, Ctrl+V görüntülü aramada kamerayı açıp kapatır, Ctrl+P sesli aramayı görüntülü aramaya dönüştürür, Ctrl+C arama ayarlarını açar ve Ctrl+Shift+Q aramayı sonlandırır. Ekran okuyucu; arama bağlandığında, yeniden bağlanırken ve çağrı sona erdiğinde durumu sesli olarak duyurur.
 
 - WinZapp'te aramaları yanıtlama ve reddetme. Gelen arama penceresinde artık "Cevapla", "Reddet" ve "Sessize al" düğmeleri; görüntülü aramalarda ise "Görüntülü cevapla" veya kameranızı açmadan yalnızca sesle yanıtlamayı sağlayan "Görüntüsüz cevapla" seçenekleri yer alır. Bu penceredeki kısayollar, tek bir tuşa yanlışlıkla basılarak aramanın açılmasını veya reddedilmesini önlemek amacıyla doğrudan harf tuşlarıyla değil, ilgili düğmenin erişim tuşuyla (Alt tuşu kombinasyonuyla) çalışır.

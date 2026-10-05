@@ -10,6 +10,7 @@ import time
 import wx
 from core.api_client import api_get
 from core.message_edit import is_edit_event
+from core.message_stars import stamp_star_snapshot
 from main_window import history_boundary
 
 
@@ -338,6 +339,7 @@ class HistoryMixin:
         resident, and navigate_to_conversation() reloads the page it renders
         from the database anyway (see conversations.py).
         """
+        star_snapshot_started = time.time_ns()
         remote_jid = self._normalize_jid(remote_jid)
 
         # Check if history is already marked as exhausted in-memory
@@ -561,6 +563,10 @@ class HistoryMixin:
                     wx.CallAfter(self._purge_materialized_edit_rows, remote_jid, edit_event_ids)
                 
                 if fetched_messages:
+                    stamp_star_snapshot(fetched_messages, star_snapshot_started)
+                    merge_stars = getattr(self.db, "merge_message_star_states", None)
+                    if merge_stars is not None:
+                        fetched_messages = merge_stars(remote_jid, fetched_messages)
                     if store_only:
                         # Straight to disk, nothing kept resident. Deliberately
                         # not routed through the branch below even for the

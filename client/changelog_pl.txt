@@ -4,6 +4,8 @@ Najważniejszą nowością tej wersji są połączenia: połączenia głosowe i 
 
 NOWOŚCI
 
+- Gwiazdki wiadomości są teraz synchronizowane z WhatsApp. Każda zmiana jest sprawdzana na połączonym urządzeniu; odmowy i niezweryfikowane wyniki są zgłaszane osobno. Stare lokalne gwiazdki pozostają zachowane, dopóki nie wybierzesz "Synchronizuj stare lokalne gwiazdki z WhatsApp" w menu czatu i nie potwierdzisz. Możesz zatrzymać partię po bieżącym żądaniu.
+
 - Połączenia głosowe i wideo. W czacie indywidualnym przyciski „Połączenie głosowe” (Ctrl+Shift+V) i „Połączenie wideo” (Ctrl+Alt+Shift+V) nawiązują połączenie bezpośrednio z WinZapp. Połączenie otwiera okno z przyciskami dostępnymi klawiszem Tab i własnymi skrótami: Ctrl+M wycisza lub włącza mikrofon, Ctrl+V włącza lub wyłącza kamerę w połączeniu wideo, Ctrl+P zamienia połączenie głosowe w połączenie wideo, Ctrl+C otwiera ustawienia połączenia, a Ctrl+Shift+Q je kończy. Czytnik ekranu informuje, kiedy połączenie zostaje nawiązane, kiedy trwa ponowne łączenie i kiedy się kończy.
 
 - Odbieranie i odrzucanie połączeń w WinZapp. Okno połączenia przychodzącego ma teraz przyciski „Odbierz”, „Odrzuć” i „Wycisz alert”, a przy połączeniu wideo „Odbierz z wideo” i „Odbierz bez wideo”. Skróty w tym oknie działają tylko z klawiszem Alt i podkreśloną literą, żeby przypadkowo naciśnięty klawisz nie odebrał ani nie odrzucił połączenia.

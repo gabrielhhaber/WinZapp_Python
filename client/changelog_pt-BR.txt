@@ -4,6 +4,8 @@ A grande novidade desta versão são as ligações: agora dá para ligar, atende
 
 NOVIDADES
 
+- Os favoritos das mensagens agora são sincronizados com o WhatsApp. Cada alteração é verificada no dispositivo conectado; recusas e resultados não verificados são informados separadamente. Os favoritos locais antigos são preservados até você escolher "Sincronizar favoritos locais antigos com o WhatsApp" no menu da conversa e confirmar. É possível parar um lote após a solicitação atual.
+
 - Ligações de voz e de vídeo. Numa conversa individual, os botões "Ligação de voz" (Ctrl+Shift+V) e "Ligação de vídeo" (Ctrl+Alt+Shift+V) fazem a ligação pelo próprio WinZapp. A ligação abre uma janela com botões acessíveis com Tab e atalhos próprios: Ctrl+M silencia ou reativa o microfone, Ctrl+V liga ou desliga a câmera numa ligação de vídeo, Ctrl+P transforma uma ligação de voz em ligação de vídeo, Ctrl+C abre as configurações da ligação e Ctrl+Shift+Q desliga. O leitor de tela avisa quando a ligação conecta, quando está reconectando e quando termina.
 
 - Atender e recusar ligações no WinZapp. A janela de ligação recebida agora tem os botões "Atender", "Recusar" e "Silenciar alerta"; numa ligação de vídeo, "Atender com vídeo" e "Atender sem vídeo". Os atalhos dessa janela só funcionam com Alt e a letra sublinhada, para que uma tecla apertada por engano não atenda nem recuse a ligação.

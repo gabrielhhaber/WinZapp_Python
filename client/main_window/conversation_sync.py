@@ -10,6 +10,7 @@ import os
 import threading
 import time
 import wx
+from core.message_stars import carry_over_stars, stamp_star_snapshot
 from main_window.message_rules import (
     _MAX_ABSENT_CHAT_RETRIES,
     _MAX_EMPTY_DELTA_RETRIES,
@@ -213,6 +214,7 @@ class ConversationSyncMixin:
 
     def sync_chat_messages(self, chat, expected_run_id=None, sync_mode="full",
                            fetched_ids_out=None, outcome_out=None):
+        star_snapshot_started = time.time_ns()
         # fetched_ids_out: an optional set that receives the ids get-messages
         # actually returned for this chat, before they are merged with local
         # records -- the only way a caller can tell the server's answer apart
@@ -678,6 +680,9 @@ class ConversationSyncMixin:
         # arriving live afterwards ever got a name.
         if self._learn_sender_names_bulk(all_messages):
             self._schedule_save(contacts_dirty=True)
+        # A read already in flight must not undo a later confirmed star action.
+        if api_ok:
+            stamp_star_snapshot(all_messages, star_snapshot_started)
         # Preserve any messages received via WebSocket during this sync that
         # the API hasn't indexed yet (they arrived after the API snapshot).
         local_chat    = self.chats.get(remote_jid, {})
@@ -693,6 +698,7 @@ class ConversationSyncMixin:
             )
 
         if local_records:
+            carry_over_stars(all_messages, local_records)
             # A duration WinZapp measured from the file itself is not
             # something the server knows, so the API copy of that same video
             # arrives stating none — carry it across before the API copy
@@ -757,6 +763,11 @@ class ConversationSyncMixin:
             )
         )
 
+        # Preserve stars on older rows outside the currently loaded UI page.
+        merge_stars = getattr(self.db, "merge_message_star_states", None)
+        if merge_stars is not None:
+            all_messages = merge_stars(remote_jid, all_messages)
+
         # ── Late-arriving race-condition fix ─────────────────────────────────
         # on_historical_message() and on_new_message() run on the wx main thread
         # and may have inserted messages into self.chats[remote_jid] AFTER we
@@ -768,6 +779,7 @@ class ConversationSyncMixin:
                         .get("messages", {})
                         .get("records", []))
         if live_records:
+            carry_over_stars(all_messages, live_records)
             current_ids = {r.get("key", {}).get("id") for r in all_messages}
             dropped_edit_ids = getattr(self, "_dropped_edit_event_ids", set())
             late_extra  = [r for r in live_records
