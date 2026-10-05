@@ -92,6 +92,8 @@ IMPROVEMENTS
 
 FIXES
 
+- WPPConnect updates downloaded in the background no longer fail to install when an old server folder from an earlier update is left on disk. WinZapp now removes it (or sets it aside if Windows refuses) and the update goes through.
+
 - Calls: fixed the "cannot load module more than once per process" error that could appear when starting a voice or video call. WhatsApp's call engine is now started only once and shared, instead of being started again by each call action.
 
 - When you messaged someone who isn't in your contacts and has no name on their WhatsApp profile, the conversation started showing your own name instead of their phone number. It now keeps showing the phone number until their real name is found.

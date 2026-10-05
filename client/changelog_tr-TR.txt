@@ -92,6 +92,8 @@ YENİLİKLER
 
 DÜZELTMELER
 
+- Arka planda indirilen WPPConnect güncellemeleri, diskte önceki bir güncellemeden kalan eski bir sunucu klasörü olduğunda artık kurulumda başarısız olmuyor. WinZapp bu klasörü artık siliyor (Windows izin vermezse kenara alıyor) ve güncelleme devam ediyor.
+
 - Aramalar: sesli veya görüntülü arama başlatılırken görünebilen "cannot load module more than once per process" hatası düzeltildi. WhatsApp'ın arama motoru artık her arama eyleminde yeniden başlatılmak yerine yalnızca bir kez başlatılıp paylaşılıyor.
 
 - Kişilerinde kayıtlı olmayan ve WhatsApp profilinde adı bulunmayan birine mesaj yazdığında, sohbet kişinin telefon numarası yerine senin kendi adını göstermeye başlıyordu. Artık gerçek adı bulunana kadar telefon numarasını göstermeye devam ediyor.

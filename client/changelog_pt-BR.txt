@@ -92,6 +92,8 @@ MELHORIAS
 
 CORREÇÕES
 
+- As atualizações da WPPConnect baixadas em segundo plano não falham mais na instalação quando sobra no disco uma pasta de servidor antiga de uma atualização anterior. O WinZapp agora a remove (ou a põe de lado, se o Windows recusar) e a atualização segue.
+
 - Ligações: corrigido o erro "cannot load module more than once per process" que podia aparecer ao iniciar uma ligação de voz ou de vídeo. O motor de ligações do WhatsApp agora é iniciado uma única vez e compartilhado, em vez de ser iniciado de novo a cada ação de ligação.
 
 - Ao mandar mensagem para alguém que não está nos seus contatos e não tem nome no perfil do WhatsApp, a conversa passava a aparecer com o seu próprio nome em vez do telefone da pessoa. Agora ela continua mostrando o telefone até o nome verdadeiro ser encontrado.
