@@ -1291,6 +1291,27 @@ class ApiSetupDialog(wx.Dialog):
         finally:
             self.Destroy()
 
+    def cancel_background(self) -> None:
+        """Stop a background setup. Safe from ANY thread: quitting runs on the
+        shutdown thread, not the wx one.
+
+        Killing npm is the part that must happen and needs no window, so it is
+        done right here; everything that touches wx (the timer, the report to
+        the caller, Destroy) is handed to the main thread. On a real exit that
+        hand-over may never run, which is fine: the process is going away. On a
+        shutdown Windows cancelled it does run, and the caller hears the build
+        was cancelled.
+        """
+        if self._cancelled or self._finished:
+            return
+        self._cancelled = True
+        self._kill_proc_tree()
+        wx.CallAfter(self._after_background_cancel)
+
+    def _after_background_cancel(self) -> None:
+        if not self._finished:
+            self._finish_in_background(False)
+
     def _on_cancel(self, _event=None):
         if self._cancelled or self._finished:
             return

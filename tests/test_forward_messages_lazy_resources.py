@@ -112,12 +112,32 @@ let loadedScripts = 0;
 const modAvailable = () => loadedScripts >= world.scriptsNeeded;
 // Voice messages are real models: one instance per id, with mediaData.toJSON
 // on the prototype (or own, world.ownToJSON), as in WhatsApp Web.
-class MediaData { toJSON() { return { type: 'ptt', filehash: 'h' }; } }
+class MediaData {
+  toJSON() {
+    const data = { type: 'ptt', filehash: 'h' };
+    // sealedData: writable, but its properties cannot be redefined.
+    return world.sealedData ? Object.seal(data) : data;
+  }
+}
 const ownToJSON = function () { return { type: 'ptt', filehash: 'h' }; };
 const voiceModels = {};
 for (const id of world.voiceIds || []) {
   const mediaData = new MediaData();
   if (world.ownToJSON) mediaData.toJSON = ownToJSON;
+  if (world.restoreThrows) {
+    // An own toJSON that accepts the guard and refuses to be put back.
+    let current = ownToJSON;
+    let writes = 0;
+    Object.defineProperty(mediaData, 'toJSON', {
+      configurable: true,
+      get: () => current,
+      set: (fn) => {
+        writes += 1;
+        if (writes > 1) throw new Error('cannot restore');
+        current = fn;
+      },
+    });
+  }
   voiceModels[id] = { msgId: id, type: 'ptt', mediaData };
 }
 // An audio FILE: a media message too, but not a voice message.
@@ -414,6 +434,21 @@ class TestAForwardedVoiceMessageStaysOne:
         r = _run(tmp_path, voiceIds=["v"], noConversion=True, batches=[[_voice()]])
         assert r["err"] is None
         assert r["out"][0]["voice"] == {"asked": 1, "kept": 0}
+
+    def test_data_that_cannot_be_guarded_goes_out_as_audio_not_as_an_error(self, tmp_path):
+        """The guard cannot fail a send (docs/traps/send-contract.md)."""
+        r = _run(tmp_path, voiceIds=["v"], sealedData=True, batches=[[_voice()]])
+        assert r["err"] is None
+        assert r["calls"]["sentTypes"] == ["audio"]
+        assert r["out"][0]["voice"] == {"asked": 1, "kept": 0}
+
+    def test_a_guard_that_cannot_be_taken_off_does_not_fail_a_forward_that_went_out(self, tmp_path):
+        """A throw after the send would be a 500, and Python posts again: the
+        same voice message forwarded twice."""
+        r = _run(tmp_path, voiceIds=["v"], restoreThrows=True, batches=[[_voice()]])
+        assert r["err"] is None
+        assert r["calls"]["sentTypes"] == ["ptt"] and len(r["calls"]["forward"]) == 1
+        assert r["out"][0]["ok"] is True
 
     def test_a_working_build_hands_the_guarded_models_to_the_library(self, tmp_path):
         r = _run(tmp_path, voiceIds=["v"], alwaysWorks=True, bound=True,

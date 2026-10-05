@@ -27,6 +27,12 @@ from ui.dialogs import api_setup
 TAG = "v2.9.0"
 
 
+def _busy(window) -> bool:
+    """An update is installing, or one is being built in the background."""
+    return bool(getattr(window, "_wpp_updating", False)
+                or getattr(window, "_wpp_staging", None))
+
+
 class _Window(WppBackgroundUpdateMixin):
     _update_wpp_server = UpdatesMixin._update_wpp_server
 
@@ -66,8 +72,9 @@ class _Window(WppBackgroundUpdateMixin):
 @pytest.fixture
 def env(monkeypatch, tmp_path):
     state = types.SimpleNamespace(
-        builds=[], boxes=[], later=[], discarded=[], swaps=[], pending=[],
-        room=True, swap_error=None, busy=False, modal=[], api=str(tmp_path / "api"))
+        builds=[], boxes=[], later=[], discarded=[], swaps=[], pending=[], order=[],
+        room=True, swap_error=None, busy=False, modal=[], api=str(tmp_path / "api"),
+        build_raises=None)
 
     class _Thread:
         """Worker threads are queued, so a test decides when each one runs."""
@@ -83,6 +90,8 @@ def env(monkeypatch, tmp_path):
 
         def __init__(self, parent, title_override=None, forced_tag=None,
                      api_dir=None, on_done=None):
+            if on_done is not None and state.build_raises:
+                raise state.build_raises
             self.forced_tag, self.api_dir, self.on_done = forced_tag, api_dir, on_done
             self.cancelled = 0
             if on_done is None:
@@ -96,7 +105,7 @@ def env(monkeypatch, tmp_path):
         def Destroy(self):
             pass
 
-        def _on_cancel(self):
+        def cancel_background(self):
             self.cancelled += 1
             self.on_done(False, "", True)
 
@@ -124,9 +133,17 @@ def env(monkeypatch, tmp_path):
     monkeypatch.setattr("core.wa_version_refresh.other_accounts_node_alive",
                         lambda g, a, ignore_corrupt=False: state.busy)
     monkeypatch.setattr(api_setup, "ApiSetupDialog", _Build)
-    monkeypatch.setattr(api_staging, "has_room_for_staging", lambda api_dir: state.room)
+    def _has_room(api_dir):
+        state.order.append("measure")
+        return state.room
+
+    def _discard(path):
+        state.order.append("discard")
+        state.discarded.append(path)
+
+    monkeypatch.setattr(api_staging, "has_room_for_staging", _has_room)
     monkeypatch.setattr(api_staging, "swap_in_staged_api", _swap)
-    monkeypatch.setattr(api_staging, "discard", state.discarded.append)
+    monkeypatch.setattr(api_staging, "discard", _discard)
 
     def _run_threads():
         while state.pending:
@@ -167,12 +184,14 @@ class TestTheBuildHappensBehindARunningServer:
         _started(env, _Window())
         assert env.discarded[:2] == [env.api + "_staging", env.api + "_old"]
 
-    def test_a_second_update_is_refused_meanwhile(self, env):
+    def test_a_second_update_is_refused_meanwhile_and_says_why(self, env):
+        """A reinstall asked from the menu must not vanish in silence."""
         window = _Window()
         _started(env, window)
 
         assert window._update_wpp_server(TAG) is False
         assert len(env.builds) == 1
+        assert window.spoken[-1] == "wpp_update_background_running"
 
     def test_with_the_option_off_it_updates_in_place_as_before(self, env):
         window = _Window(background=False)
@@ -184,12 +203,39 @@ class TestTheBuildHappensBehindARunningServer:
 
     def test_without_room_for_a_second_server_it_updates_in_place(self, env):
         env.room = False
+        finished = []
         window = _Window()
 
-        assert _started(env, window) is True
+        assert _started(env, window, finished) is True
 
         assert env.builds == [] and env.modal == [TAG]
         assert "wpp_update_background_started" not in window.spoken
+        assert window.events[0] == "stop" and finished == [True]
+        assert _busy(window) is False
+
+    def test_the_room_is_measured_after_the_leftovers_are_gone(self, env):
+        """An interrupted build's 1.3 GB would otherwise count against the
+        very update that is about to remove it."""
+        _started(env, _Window())
+        assert env.order[:3] == ["discard", "discard", "measure"]
+
+    def test_an_update_in_place_sweeps_the_leftovers_too(self, env):
+        """With the option off nothing else would ever remove them."""
+        window = _Window(background=False)
+
+        _started(env, window)
+
+        assert env.api + "_staging" in env.discarded and env.api + "_old" in env.discarded
+
+    def test_a_build_that_cannot_even_start_does_not_stay_running(self, env):
+        env.build_raises = RuntimeError("no window")
+        finished = []
+        window = _Window()
+
+        _started(env, window, finished)
+
+        assert finished == [False] and _busy(window) is False
+        assert env.boxes == ["wpp_update_failed_msg"] and "stop" not in window.events
 
 
 class TestOnlyThenItInstalls:
@@ -239,7 +285,7 @@ class TestOnlyThenItInstalls:
         env.builds[0].on_done(True, "", False)
         env.run_threads()
 
-        assert window._wpp_update_busy() is False
+        assert _busy(window) is False
 
 
 class TestWhenItDoesNotGoWell:
@@ -254,7 +300,7 @@ class TestWhenItDoesNotGoWell:
         assert "stop" not in window.events and env.swaps == []
         assert env.boxes == ["wpp_update_failed_msg"]
         assert env.api + "_staging" in env.discarded
-        assert finished == [False] and window._wpp_update_busy() is False
+        assert finished == [False] and _busy(window) is False
 
     def test_a_swap_that_fails_brings_the_old_server_back_up(self, env):
         env.swap_error = "in use"
@@ -327,6 +373,8 @@ class _Timer:
 
 class _BackgroundSetup:
     _on_cancel = api_setup.ApiSetupDialog._on_cancel
+    cancel_background = api_setup.ApiSetupDialog.cancel_background
+    _after_background_cancel = api_setup.ApiSetupDialog._after_background_cancel
     _finish_success = api_setup.ApiSetupDialog._finish_success
     _finish_error = api_setup.ApiSetupDialog._finish_error
     _finish_in_background = api_setup.ApiSetupDialog._finish_in_background
@@ -378,6 +426,27 @@ class TestTheSetupReportsInsteadOfShowing:
         setup._finish_success()                       # the worker finishing late
 
         assert setup.killed == 1 and setup.done == [(False, "", True)]
+
+    def test_quitting_kills_npm_at_once_and_leaves_wx_to_the_main_thread(self, no_boxes,
+                                                                          monkeypatch):
+        """cancel_background() runs on the shutdown thread. Killing npm is what
+        must happen there; the timer, the report and Destroy are wx and wait
+        for the main thread."""
+        queued = []
+        monkeypatch.setattr(api_setup.wx, "CallAfter", lambda fn, *a: queued.append((fn, a)))
+        setup = _BackgroundSetup()
+
+        setup.cancel_background()
+
+        assert setup.killed == 1 and setup._cancelled is True
+        assert setup._timer.stopped == 0 and setup.destroyed == 0 and setup.done == []
+
+        (fn, args), = queued
+        fn(*args)                                     # the main thread, if it ever runs
+        assert setup.done == [(False, "", True)] and setup.destroyed == 1
+
+        setup.cancel_background()                     # a second quit path
+        assert setup.killed == 1 and len(queued) == 1
 
     def test_the_dialog_goes_away_even_if_the_listener_raises(self, no_boxes):
         setup = _BackgroundSetup()

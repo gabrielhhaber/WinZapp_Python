@@ -15,6 +15,7 @@ handed elevated write access to the install directory right after
 
 import logging
 import os
+import shutil
 import tempfile
 import zipfile
 from dataclasses import dataclass
@@ -22,6 +23,8 @@ from dataclasses import dataclass
 import requests
 
 _CHUNK = 65536
+#: Prefix of the temporary directory an update is extracted into.
+EXTRACT_PREFIX = "winzapp_ext_"
 
 
 @dataclass
@@ -57,19 +60,24 @@ def download_update_package(zip_url: str, sha256sums_url: str, signature_url: st
     os.close(zip_fd)
 
     logging.info("Auto-updater: Downloading ZIP from %s to %s", zip_url, zip_path)
-    resp = requests.get(zip_url, stream=True, timeout=60)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(zip_url, stream=True, timeout=60)
+        resp.raise_for_status()
 
-    total = int(resp.headers.get("content-length", 0))
-    downloaded = 0
-    with open(zip_path, "wb") as f:
-        for chunk in resp.iter_content(chunk_size=_CHUNK):
-            if cancelled():
-                break
-            f.write(chunk)
-            downloaded += len(chunk)
-            if total and on_progress is not None:
-                on_progress(min(int(downloaded * 100 / total), 99))
+        total = int(resp.headers.get("content-length", 0))
+        downloaded = 0
+        with open(zip_path, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=_CHUNK):
+                if cancelled():
+                    break
+                f.write(chunk)
+                downloaded += len(chunk)
+                if total and on_progress is not None:
+                    on_progress(min(int(downloaded * 100 / total), 99))
+    except BaseException:
+        # A connection that dropped half-way: the partial ZIP is of no use.
+        _remove(zip_path)
+        raise
 
     if cancelled():
         logging.info("Auto-updater: Download cancelled.")
@@ -96,11 +104,16 @@ def download_update_package(zip_url: str, sha256sums_url: str, signature_url: st
         return UpdatePackage(error=i18n.t("update_checksum_mismatch").format(detail=detail))
 
     # ── Extract ───────────────────────────────────────────────────────────
-    extract_dir = tempfile.mkdtemp(prefix="winzapp_ext_")
+    extract_dir = extract_root = tempfile.mkdtemp(prefix=EXTRACT_PREFIX)
     logging.info("Auto-updater: Extracting update to %s", extract_dir)
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        updater._safe_extract_zip(zf, extract_dir)
-    os.remove(zip_path)
+    try:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            updater._safe_extract_zip(zf, extract_dir)
+    except BaseException:
+        shutil.rmtree(extract_root, ignore_errors=True)
+        raise
+    finally:
+        _remove(zip_path)
 
     # If the ZIP placed all files inside a single top-level folder, point
     # extract_dir at that folder so xcopy copies the contents.
@@ -110,5 +123,18 @@ def download_update_package(zip_url: str, sha256sums_url: str, signature_url: st
 
     if cancelled():
         logging.info("Auto-updater: Extraction cancelled.")
+        shutil.rmtree(extract_root, ignore_errors=True)
         return UpdatePackage(cancelled=True)
     return UpdatePackage(extract_dir=extract_dir)
+
+
+def discard_package(extract_dir: str) -> None:
+    """Drop a fetched update that will not be installed after all: the whole
+    temporary directory, also when extract_dir is the single folder inside."""
+    if not extract_dir:
+        return
+    target = os.path.normpath(extract_dir)
+    parent = os.path.dirname(target)
+    if os.path.basename(parent).startswith(EXTRACT_PREFIX):
+        target = parent
+    shutil.rmtree(target, ignore_errors=True)

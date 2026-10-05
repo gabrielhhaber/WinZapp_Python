@@ -16,7 +16,7 @@ import pytest
 
 import update_package
 import updater
-from update_package import download_update_package
+from update_package import discard_package, download_update_package
 
 
 class _I18n:
@@ -142,3 +142,55 @@ class TestStoppingIt:
 
         with pytest.raises(ConnectionError):
             _fetch()
+        assert os.listdir(temp_files) == []
+
+    def test_a_connection_that_drops_half_way_leaves_no_partial_zip(self, release, temp_files,
+                                                                    monkeypatch):
+        class _Dropping(_Response):
+            def iter_content(self, chunk_size):
+                yield self._payload[:10]
+                raise ConnectionError("reset by peer")
+
+        monkeypatch.setattr(update_package.requests, "get",
+                            lambda url, **kw: _Dropping(release["payload"]))
+
+        with pytest.raises(ConnectionError):
+            _fetch()
+        assert os.listdir(temp_files) == []
+
+    def test_a_cancel_after_the_extraction_removes_what_was_extracted(self, release, temp_files):
+        """Quitting right at the end: ~200 MB must not stay in the temp folder."""
+        def _extracted():
+            return any(name.startswith("winzapp_ext_") for name in os.listdir(temp_files))
+
+        package = _fetch(is_cancelled=_extracted)
+
+        assert package.cancelled is True
+        assert os.listdir(temp_files) == []
+
+
+class TestDiscardingAPackage:
+    def test_the_whole_temporary_directory_goes(self, release, temp_files):
+        package = _fetch()
+        discard_package(package.extract_dir)
+        assert os.listdir(temp_files) == []
+
+    def test_also_when_the_package_is_the_single_folder_inside(self, release, temp_files,
+                                                               tmp_path):
+        release["payload"] = _archive(tmp_path, {"WinZapp/WinZapp.exe": "nested"})
+        package = _fetch()
+        assert os.path.basename(package.extract_dir) == "WinZapp"
+
+        discard_package(package.extract_dir)
+
+        assert os.listdir(temp_files) == []
+
+    def test_a_directory_that_is_not_ours_only_loses_itself(self, tmp_path):
+        outer = tmp_path / "somewhere"
+        (outer / "pkg").mkdir(parents=True)
+        (outer / "other.txt").write_text("keep", encoding="utf-8")
+
+        discard_package(str(outer / "pkg"))
+        discard_package("")
+
+        assert os.listdir(outer) == ["other.txt"]

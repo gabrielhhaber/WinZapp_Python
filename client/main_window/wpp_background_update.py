@@ -32,18 +32,16 @@ class WppBackgroundUpdateMixin:
     #: How often a finished build asks whether it may install yet.
     _WPP_READY_RETRY_MS = 5000
 
-    def _wpp_update_busy(self) -> bool:
-        """An update is stopping/installing, or one is being built in the
-        background. Either way a second one must not start."""
-        return bool(getattr(self, "_wpp_updating", False)
-                    or getattr(self, "_wpp_staging", None))
-
     def _discard_async(self, path: str) -> None:
         """Delete a staging or replaced server off the main thread: it is
         around a gigabyte of small files."""
         if path:
             threading.Thread(target=api_staging.discard, args=(path,), daemon=True,
                              name="winzapp-wpp-staging-discard").start()
+
+    def _discard_wpp_staging_leftovers_async(self) -> None:
+        threading.Thread(target=self._discard_wpp_staging_leftovers, daemon=True,
+                         name="winzapp-wpp-staging-sweep").start()
 
     def _discard_wpp_staging_leftovers(self) -> None:
         """Drop what an interrupted background build or swap left on disk.
@@ -54,44 +52,60 @@ class WppBackgroundUpdateMixin:
                      api_staging.replaced_dir_for(api_dir)):
             api_staging.discard(path)
 
-    def _stage_wpp_update_in_background(self, target_tag: str, on_finished=None):
-        """Start building *target_tag* next to the running server.
-
-        Returns True once started, or None when it cannot be staged (no room
-        for a second server on the disk) and the caller should update in
-        place. Nothing is stopped here.
+    def _stage_wpp_update_in_background(self, target_tag: str, on_finished=None) -> bool:
+        """Start building *target_tag* next to the running server. Nothing is
+        stopped here. Returns True: from now on the update is this method's,
+        including the fall back to an in-place update when the disk has no
+        room for a second server.
         """
         api_dir = resource_path("api")
-        if not api_staging.has_room_for_staging(api_dir):
-            logging.warning("[wpp_update] Not enough free space to build %s next to "
-                            "the running server - updating in place.", target_tag)
-            return None
         staged = api_staging.staging_dir_for(api_dir)
-        logging.info("[wpp_update] Building %s in the background in %s.", target_tag, staged)
         self._wpp_staging = {"tag": target_tag, "dialog": None}
-        # The user just accepted the prompt and is listening for what is next.
-        self.output(self.i18n.t("wpp_update_background_started"), interrupt=True)
 
-        def _start():
+        def _give_up():
+            self._wpp_staging = None
+            if on_finished is not None:
+                on_finished(False)
+
+        def _start(has_room: bool):
             if getattr(self, "_shutting_down", False) or not getattr(self, "_wpp_staging", None):
+                _give_up()
+                return
+            if not has_room:
+                logging.warning("[wpp_update] Not enough free space to build %s next to "
+                                "the running server - updating in place.", target_tag)
                 self._wpp_staging = None
-                if on_finished is not None:
+                if self._update_wpp_server(target_tag, on_finished=on_finished,
+                                           in_place=True) is False and on_finished is not None:
                     on_finished(False)
                 return
-            from ui.dialogs.api_setup import ApiSetupDialog
-            # Never shown: on_done makes it run with no window (see its
-            # docstring). It is a dialog only because the setup steps live there.
-            self._wpp_staging["dialog"] = ApiSetupDialog(
-                self, forced_tag=target_tag, api_dir=staged,
-                on_done=lambda ok, details, cancelled: self._wpp_staging_done(
-                    target_tag, staged, on_finished, ok, cancelled),
-            )
+            logging.info("[wpp_update] Building %s in the background in %s.", target_tag, staged)
+            # The user accepted the prompt and is listening for what is next.
+            self.output(self.i18n.t("wpp_update_background_started"), interrupt=True)
+            try:
+                from ui.dialogs.api_setup import ApiSetupDialog
+                # Never shown: on_done makes it run with no window (see its
+                # docstring). It is a dialog only because the setup steps live there.
+                self._wpp_staging["dialog"] = ApiSetupDialog(
+                    self, forced_tag=target_tag, api_dir=staged,
+                    on_done=lambda ok, details, cancelled: self._wpp_staging_done(
+                        target_tag, staged, on_finished, ok, cancelled),
+                )
+            except Exception:
+                # Without this the build would count as running for the rest of
+                # the session and no WPPConnect update could start again.
+                logging.exception("[wpp_update] Could not start the background build")
+                self._wpp_staging_done(target_tag, staged, on_finished, False, False)
 
         def _prepare():
+            # What an interrupted build left counts against the free space, so
+            # it goes first; both are slow enough to stay off the main thread.
+            has_room = False
             try:
                 self._discard_wpp_staging_leftovers()
+                has_room = api_staging.has_room_for_staging(api_dir)
             finally:
-                wx.CallAfter(_start)
+                wx.CallAfter(_start, has_room)
 
         threading.Thread(target=_prepare, daemon=True,
                          name="winzapp-wpp-staging-prepare").start()
@@ -165,12 +179,14 @@ class WppBackgroundUpdateMixin:
     def cancel_wpp_background_update(self) -> None:
         """Quitting: stop a background build, which would otherwise leave npm
         and Node running after WinZapp is gone. What it wrote is removed by
-        the next update."""
+        the next update. Called on the shutdown thread, so only through
+        cancel_background(), which kills npm here and leaves wx to the main
+        thread."""
         staging = getattr(self, "_wpp_staging", None)
         dialog = staging.get("dialog") if staging else None
         if dialog is None:
             return
         try:
-            dialog._on_cancel()
+            dialog.cancel_background()
         except Exception:
             logging.exception("[wpp_update] Could not cancel the background build")

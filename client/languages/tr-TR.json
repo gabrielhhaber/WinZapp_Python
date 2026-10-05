@@ -511,6 +511,8 @@
   "update_background_ready_msg": "WinZapp {version} güncellemesi indirildi. WinZapp şimdi güncellemeyi yüklemek için kapanacak ve hemen ardından yeniden açılacak.",
   "wpp_update_background_started": "WPPConnect güncellemesi arka planda indiriliyor. Yüklenmeye hazır olduğunda size haber verilecek.",
   "wpp_update_background_ready_msg": "WPPConnect {version} güncellemesi indirildi. WinZapp, güncellemeyi yükleyip WPPConnect'i yeniden başlatmak için kısa bir süre çevrimdışı olacak.",
+  "update_background_running": "WinZapp {version} güncellemesi zaten arka planda indiriliyor. Yüklenmeye hazır olduğunda size haber verilecek.",
+  "wpp_update_background_running": "Bir WPPConnect güncellemesi zaten arka planda indiriliyor. Yüklenmeye hazır olduğunda size haber verilecek.",
   "fg_new_msg": "{name} kişisinden yeni mesaj",
   "conv_preview_you": "siz:",
   "add_member": "Üye ekle",

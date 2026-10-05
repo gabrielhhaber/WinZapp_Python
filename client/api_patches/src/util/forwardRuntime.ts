@@ -229,20 +229,25 @@ export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
         const data = active.original.apply(this, arguments);
         if (data && data.type === 'ptt') {
           let type = 'ptt';
-          Object.defineProperty(data, 'type', {
-            enumerable: true,
-            configurable: true,
-            get: function () {
-              return type;
-            },
-            set: function (value) {
-              if (value === 'audio') {
-                active.refused += 1;
-                return;
-              }
-              type = value;
-            },
-          });
+          try {
+            Object.defineProperty(data, 'type', {
+              enumerable: true,
+              configurable: true,
+              get: function () {
+                return type;
+              },
+              set: function (value) {
+                if (value === 'audio') {
+                  active.refused += 1;
+                  return;
+                }
+                type = value;
+              },
+            });
+          } catch (_) {
+            // Data that cannot be redefined (sealed, frozen): hand it out as
+            // WhatsApp made it. The message goes as audio; nothing fails.
+          }
         }
         return data;
       };
@@ -282,7 +287,16 @@ export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
       return found;
     };
     const releaseAll = () => {
-      while (releases.length) releases.pop()();
+      // Runs after the send. A throw from here would turn a forward that
+      // WENT OUT into a 500, and Python posts the same forward again.
+      while (releases.length) {
+        const release = releases.pop();
+        try {
+          release();
+        } catch (_) {
+          // a guard that could not be taken off changes nothing about the send
+        }
+      }
     };
     const sent = (response) => {
       const outcome = { ok: true, response: serializable(response) };

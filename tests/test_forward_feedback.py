@@ -92,9 +92,14 @@ TARGETS = [("a@s.whatsapp.net", "Alice"), ("b@s.whatsapp.net", "Bob")]
 class TestTheBatch:
     def _run(self, monkeypatch, panel, msgs, targets=TARGETS, keep_captions=False):
         boxes = []
+
+        def _box(main_window, text, title, style, announce=None):
+            boxes.append((text, title, style, main_window))
+            self.announce = announce
+            return wx.OK
+
         monkeypatch.setattr(forwarding.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
-        monkeypatch.setattr(forwarding.wx, "MessageBox",
-                            lambda *a, **kw: boxes.append(a) or wx.OK)
+        monkeypatch.setattr(forwarding, "message_box", _box)
         panel._forward_batch(msgs, targets, keep_captions)
         return boxes
 
@@ -109,6 +114,17 @@ class TestTheBatch:
         assert style & wx.ICON_INFORMATION
         assert parent is panel.main_window
         assert panel.main_window.spoken == [] and panel.main_window.error_sound.played == 0
+
+    def test_with_winzapp_in_the_tray_the_box_can_still_speak(self, monkeypatch):
+        """The box goes through message_box(), which brings it forward and
+        speaks it when the main window is hidden; a bare wx.MessageBox there
+        opens with no focus and says nothing."""
+        panel = _Panel()
+
+        self._run(monkeypatch, panel, [_msg("A")])
+        self.announce()
+
+        assert panel.main_window.spoken == ["forward_done"]
 
     def test_a_failure_is_spoken_and_shows_no_box(self, monkeypatch):
         panel = _Panel(failing={"b@s.whatsapp.net"})

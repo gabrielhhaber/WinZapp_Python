@@ -76,6 +76,24 @@ class TestWhenTheInstallMayStart:
         """The restart would cut it, at a moment the user did not choose."""
         assert may_interrupt_now(self._window(in_call=True)) is False
 
+    def test_not_while_a_call_is_ringing(self):
+        window = self._window()
+        window._incoming_call_dialogs = {"caller": object()}
+        assert may_interrupt_now(window) is False
+
+    def test_not_while_the_server_is_being_reinstalled_in_place(self):
+        """Quitting then would leave api/ half-built with npm still running."""
+        window = self._window()
+        window._wpp_updating = True
+        assert may_interrupt_now(window) is False
+
+    @pytest.mark.parametrize("flag", ["_is_recording", "_recording_starting"])
+    def test_not_over_a_voice_message_being_recorded(self, flag):
+        """The notice has one button; pressing it would throw the recording away."""
+        window = self._window()
+        window.conversations_panel = types.SimpleNamespace(**{flag: True})
+        assert may_interrupt_now(window) is False
+
     def test_a_window_without_those_notions_is_not_held_back(self):
         assert may_interrupt_now(types.SimpleNamespace()) is True
 
@@ -98,10 +116,12 @@ class _MainWindow:
 
 class _Checker(BackgroundDownloadMixin):
     _do_install = UpdateChecker._do_install
+    _check_once = UpdateChecker._check_once
 
     def __init__(self, background=True):
         self._mw = _MainWindow(background)
         self.released = self.retries = 0
+        self._force = False
 
     def _release_prompt(self):
         self.released += 1
@@ -115,14 +135,18 @@ def world(monkeypatch):
     """Threads and CallAfter run inline; dialogs and boxes are recorded."""
     state = types.SimpleNamespace(dialogs=[], boxes=[], answer=wx.OK, later=[], discarded=[],
                                   package=UpdatePackage(extract_dir="X:/pkg"), download_raises=None,
-                                  dialog_result=wx.ID_OK, install_ok=True, downloads=[])
+                                  dialog_result=wx.ID_OK, install_ok=True, downloads=[],
+                                  hold=False, held=[])
 
     class _Thread:
         def __init__(self, target=None, args=(), **_kw):
             self._target, self._args = target, args
 
         def start(self):
-            self._target(*self._args)
+            if state.hold:                            # the download is "still running"
+                state.held.append(lambda: self._target(*self._args))
+            else:
+                self._target(*self._args)
 
     class _Dialog:
         _error_msg = "boom"
@@ -257,12 +281,11 @@ class TestWhenItDoesNotGoWell:
         assert world.boxes[0][0] == "update_error_msg no route"
         assert (checker.released, checker.retries) == (1, 1)
 
-    def test_yes_downloads_again_in_the_background(self, world):
+    def test_yes_downloads_again_in_the_background(self, world, monkeypatch):
         world.package = UpdatePackage(error="bad signature")
         answers = [wx.YES, wx.NO]
         checker = _Checker()
-        import update_background as module
-        module.message_box = lambda *a, **kw: answers.pop(0)
+        monkeypatch.setattr(update_background, "message_box", lambda *a, **kw: answers.pop(0))
 
         checker._do_install(*ARGS)
 
@@ -275,6 +298,19 @@ class TestWhenItDoesNotGoWell:
         checker._do_install(*ARGS)
 
         assert world.boxes == [] and checker.released == 1 and checker._mw.exits == 0
+
+    def test_a_shutdown_windows_cancelled_does_not_lose_the_update(self, world):
+        """_shutting_down goes back to False when another program cancels the
+        shutdown and WinZapp lives on. The download was cancelled meanwhile;
+        without a retry nothing would offer the update again until the next
+        launch — and a WinZapp started with Windows is rarely relaunched."""
+        world.package = UpdatePackage(cancelled=True)
+        checker = _Checker()
+
+        checker._do_install(*ARGS)
+
+        assert checker.retries == 1
+        assert checker._background_update_version() == ""
 
     def test_quitting_before_the_notice_drops_the_package(self, world):
         checker = _Checker()
@@ -289,6 +325,7 @@ class TestWhenItDoesNotGoWell:
 
         assert world.boxes == [] and world.dialogs == []
         assert world.discarded == ["X:/pkg"] and checker.released == 1
+        assert checker.retries == 1
 
     def test_an_install_that_is_cancelled_drops_the_package(self, world):
         world.dialog_result = wx.ID_CANCEL
@@ -299,19 +336,75 @@ class TestWhenItDoesNotGoWell:
         assert world.discarded == ["X:/pkg"]
         assert checker._mw.exits == 0 and (checker.released, checker.retries) == (1, 1)
 
-    def test_a_failed_install_retried_does_not_download_again(self, world):
+    def test_a_failed_install_retried_does_not_download_again(self, world, monkeypatch):
         """UAC declined, say: Yes runs the install again from the same package."""
         world.dialog_result = wx.ID_ABORT
         answers = [wx.OK, wx.YES, wx.NO]              # the notice, retry, give up
-        import update_background as module
-        module.message_box = lambda *a, **kw: answers.pop(0)
-        updater.message_box = lambda *a, **kw: answers.pop(0)
+        monkeypatch.setattr(update_background, "message_box", lambda *a, **kw: answers.pop(0))
+        monkeypatch.setattr(updater, "message_box", lambda *a, **kw: answers.pop(0))
         checker = _Checker()
 
         checker._do_install(*ARGS)
 
         assert world.dialogs == ["X:/pkg", "X:/pkg"] and len(world.downloads) == 1
         assert world.discarded == ["X:/pkg"]
+
+
+class TestOnlyOneAtATime:
+    """With the option on the main window is free during the download, so
+    "check for updates" and "reinstall" stay within reach the whole time."""
+
+    def _downloading(self, world):
+        world.hold = True
+        checker = _Checker()
+        checker._do_install(*ARGS)
+        assert checker._background_update_version() == "2.0.0.1"
+        return checker
+
+    def test_asking_to_install_again_starts_no_second_download(self, world):
+        checker = self._downloading(world)
+
+        checker._do_install(*ARGS)
+
+        assert len(world.held) == 1
+        assert checker._mw.spoken[-1] == "update_background_running"
+        assert checker.released == 0                  # the first one still owns the prompt
+
+    def test_a_forced_check_says_it_is_already_downloading(self, world, monkeypatch):
+        monkeypatch.setattr(updater.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
+        checker = self._downloading(world)
+        checker._force = True
+
+        checker._check_once()
+
+        assert checker._mw.spoken[-1] == "update_background_running"
+        assert checker._force is False and world.boxes == [] and checker.retries == 1
+
+    def test_an_automatic_check_stays_silent(self, world):
+        checker = self._downloading(world)
+        spoken = list(checker._mw.spoken)
+
+        checker._check_once()
+
+        assert checker._mw.spoken == spoken and checker.retries == 1
+
+    def test_it_ends_when_the_download_does(self, world):
+        world.dialog_result = wx.ID_CANCEL            # the install phase is cancelled
+        checker = self._downloading(world)
+
+        world.held.pop()()
+
+        assert checker._background_update_version() == ""
+
+    def test_giving_up_after_a_failure_ends_it_too(self, world):
+        world.package = UpdatePackage(error="bad signature")
+        world.answer = wx.NO
+        checker = self._downloading(world)
+
+        world.held.pop()()
+
+        assert checker._background_update_version() == ""
+        assert (checker.released, checker.retries) == (1, 1)
 
 
 class TestTheDialogSkipsWhatIsAlreadyDone:

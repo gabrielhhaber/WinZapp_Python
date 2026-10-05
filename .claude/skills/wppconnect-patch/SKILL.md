@@ -36,7 +36,7 @@ carry that list; a test holds them equal.
   homologated pair, pinned exact.** Mechanism 3 rewrites their compiled code
   by literal search-and-replace, so a moved version silently disables a
   patch. To move the pair: bump both keys and
-  `client/wpp_minimum_version.txt` in one commit, after running all four
+  `client/wpp_minimum_version.txt` in one commit, after running all five
   `node_modules` patches against the candidate.
 - When a new runtime restructures patched code, add a **second patch set
   selected by matching the file** (as `host.layer.js` has for ≤ 2.3.1 and

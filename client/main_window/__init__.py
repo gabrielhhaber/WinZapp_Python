@@ -44,7 +44,7 @@ Where to look (and where new code goes):
   Plain functions (import and test them directly — no wx, no stub)
     message_rules       unread/history-gap/countable-message rules
     history_boundary    older history that is only on the phone (API verdict, probe)
-    identity_rules     linked phone number, group participant identity
+    identity_rules      linked phone number, group participant identity
     runtime_setup       legacy API state, npm health marker, restore choice
     win32_helpers       elevation, hotkeys, de-elevated spawn
     log_files           early log-file plumbing

@@ -104,3 +104,20 @@ class TestCompletionEventIsSetEvenOnException:
             s._perform_shutdown()
 
         assert s._teardown_complete_event.is_set()
+
+
+class TestABackgroundServerBuildIsStopped:
+    """A WPPConnect update being built in the background runs npm and Node of
+    its own (main_window/wpp_background_update.py); quitting must stop them
+    before the server itself is stopped, or they outlive WinZapp."""
+
+    def test_the_build_is_cancelled_before_the_server_is_stopped(self):
+        order = []
+        s = _Stub()
+        s.cancel_wpp_background_update = lambda: order.append("cancel build")
+        stop = s._stop_wpp_server
+        s._stop_wpp_server = lambda: (order.append("stop server"), stop())[1]
+
+        assert s._perform_shutdown() is True
+
+        assert order == ["cancel build", "stop server"]

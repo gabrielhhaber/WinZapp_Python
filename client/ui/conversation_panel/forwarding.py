@@ -8,6 +8,7 @@ ConversationsPanel.__init__/init_UI is available here.
 import threading
 import time
 import wx
+from core.dialog_foreground import message_box
 from core.utils import append_selected_marker, contact_dedup_key
 from ui.dialogs.contact_list_picker import build_own_contact_rows
 from ui.conversation_panel.text_helpers import message_caption
@@ -473,9 +474,13 @@ class ForwardingMixin:
             wx.CallAfter(mw.error_sound.play)
             wx.CallAfter(mw.output, text)
         elif kind == "done":
+            # message_box, not wx.MessageBox: a batch can end after the user
+            # sent WinZapp to the tray, and a box owned by a hidden window
+            # opens unfocused and unannounced (core/dialog_foreground.py).
             wx.CallAfter(
-                wx.MessageBox, text, mw.i18n.t("forward_message"),
-                wx.OK | wx.ICON_INFORMATION, mw,
+                message_box, mw, text, mw.i18n.t("forward_message"),
+                wx.OK | wx.ICON_INFORMATION,
+                announce=lambda: mw.output(text, interrupt=True),
             )
 
     def _forward_message_to_targets(self, msg: dict, targets: list, keep_caption: bool = False, source_jid_override: str = "") -> list:

@@ -511,6 +511,8 @@
     "update_background_ready_msg": "Se ha descargado la actualización {version} de WinZapp. WinZapp se cerrará ahora para instalarla y volverá a abrirse a continuación.",
     "wpp_update_background_started": "Descargando la actualización de WPPConnect en segundo plano. Se te avisará cuando esté lista para instalar.",
     "wpp_update_background_ready_msg": "Se ha descargado la actualización {version} de WPPConnect. WinZapp quedará sin conexión unos instantes para instalarla y reiniciar WPPConnect.",
+    "update_background_running": "La actualización {version} de WinZapp ya se está descargando en segundo plano. Se te avisará cuando esté lista para instalar.",
+    "wpp_update_background_running": "Ya se está descargando una actualización de WPPConnect en segundo plano. Se te avisará cuando esté lista para instalar.",
     "fg_new_msg": "Nuevo mensaje de {name}",
     "conv_preview_you": "tú:",
     "add_member": "Agregar miembro",

@@ -455,6 +455,8 @@
     "update_background_ready_msg": "Actualizarea WinZapp {version} a fost descărcată. WinZapp se va închide acum pentru a o instala și se va redeschide imediat după aceea.",
     "wpp_update_background_started": "Se descarcă actualizarea WPPConnect în fundal. Veți fi anunțat când este gata de instalare.",
     "wpp_update_background_ready_msg": "Actualizarea WPPConnect {version} a fost descărcată. WinZapp va fi offline câteva momente pentru a o instala și a reporni WPPConnect.",
+    "update_background_running": "Actualizarea WinZapp {version} se descarcă deja în fundal. Veți fi anunțat când este gata de instalare.",
+    "wpp_update_background_running": "O actualizare WPPConnect se descarcă deja în fundal. Veți fi anunțat când este gata de instalare.",
     "fg_new_msg": "Mesaj nou de la {name}",
     "conv_preview_you": "dvs.:",
     "add_member": "Adăugați membru",

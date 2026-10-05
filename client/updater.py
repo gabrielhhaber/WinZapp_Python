@@ -30,12 +30,8 @@ from core.release_signature import SIGNATURE_ASSET_NAME, check_release_manifest
 from core.dialog_foreground import bring_to_front_if_hidden, message_box, parent_is_hidden
 from core.wpp_runtime import homologated_wpp_tag
 from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
-from update_background import (
-    BackgroundDownloadMixin,
-    background_downloads_enabled,
-    discard_package,
-)
-from update_package import download_update_package
+from update_background import BackgroundDownloadMixin, background_downloads_enabled
+from update_package import discard_package, download_update_package
 from version import __version__
 
 
@@ -869,7 +865,9 @@ class UpdateProgressDialog(wx.Dialog):
     def _build(self, i18n):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self._status_label = wx.StaticText(self, label=i18n.t("update_downloading"))
+        # A package fetched in the background has nothing left to download.
+        self._status_label = wx.StaticText(self, label=i18n.t(
+            "update_installing" if self._extracted_dir else "update_downloading"))
         sizer.Add(self._status_label, 0, wx.ALL, 12)
 
         self._gauge = wx.Gauge(self, range=100, style=wx.GA_HORIZONTAL | wx.GA_SMOOTH)
@@ -1323,6 +1321,14 @@ class UpdateChecker(BackgroundDownloadMixin):
     # ── Internal ──────────────────────────────────────────────────────────────
 
     def _check_once(self):
+        if getattr(self, "_background_version", ""):
+            # Already accepted and downloading in the background: asking again
+            # would open a second prompt, and a Yes a second download.
+            forced, self._force = self._force, False
+            if forced:
+                wx.CallAfter(self._say_background_update_running)
+            self._schedule_retry()
+            return
         include_alpha = self._alpha_enabled()
         logging.info(
             "Auto-updater: Checking GitHub Releases for updates (alpha channel: %s)...",
@@ -1556,6 +1562,11 @@ class UpdateChecker(BackgroundDownloadMixin):
                     signature_url: str = "", is_alpha: bool = False, extracted_dir: str = ""):
         """Download and install, or — given *extracted_dir*, a package a
         background download already prepared — only install."""
+        if not extracted_dir and getattr(self, "_background_version", ""):
+            # A background download is under way (or waiting to install): a
+            # forced reinstall must not start a second one beside it.
+            self._say_background_update_running()
+            return
         if not extracted_dir and background_downloads_enabled(
                 getattr(self._mw, "settings", None)):
             # Settings > General: no progress window during the download. It

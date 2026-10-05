@@ -141,7 +141,8 @@ class UpdatesMixin:
             self._wpp_update_checker = WppUpdateChecker(self)
         self._wpp_update_checker.force_reinstall()
 
-    def _update_wpp_server(self, target_tag: str, on_finished=None, staged_dir=None):
+    def _update_wpp_server(self, target_tag: str, on_finished=None, staged_dir=None,
+                           in_place: bool = False):
         """
         Stop the running WPPConnect Server, reinstall it at *target_tag* and
 
@@ -155,9 +156,18 @@ class UpdatesMixin:
         new server is first built next to the running one and nothing is
         stopped yet (main_window/wpp_background_update.py); that path calls
         back here with *staged_dir*, and the install step below is then a swap
-        of two directories instead of a rebuild behind a progress window.
+        of two directories instead of a rebuild behind a progress window. It
+        passes *in_place* instead when the disk has no room for a second
+        server.
         """
-        if getattr(self, "_wpp_updating", False) or getattr(self, "_wpp_staging", None):
+        if getattr(self, "_wpp_staging", None):
+            # Being built in the background: say so, the user may have asked
+            # for a reinstall from the menu and would otherwise hear nothing.
+            logging.info("[wpp_update] An update is being built in the background — "
+                         "ignoring the request to update to %s.", target_tag)
+            self.output(self.i18n.t("wpp_update_background_running"), interrupt=True)
+            return False
+        if getattr(self, "_wpp_updating", False):
             logging.info("[wpp_update] An update is already running — ignoring "
                          "the request to update to %s.", target_tag)
             return False
@@ -178,12 +188,15 @@ class UpdatesMixin:
             return False
 
         stage = getattr(self, "_stage_wpp_update_in_background", None)
-        if (staged_dir is None and stage is not None
+        if (staged_dir is None and not in_place and stage is not None
                 and background_downloads_enabled(getattr(self, "settings", None))):
-            started = stage(target_tag, on_finished)
-            if started is not None:
-                return started
-            # None: it cannot be staged (no room on the disk). Update in place.
+            return stage(target_tag, on_finished)
+        if staged_dir is None:
+            # Rebuilding in place: what an interrupted background build left
+            # next to api/ (over a gigabyte) is of no use to anyone now.
+            sweep = getattr(self, "_discard_wpp_staging_leftovers_async", None)
+            if sweep is not None:
+                sweep()
 
         logging.info("[wpp_update] Stopping WPPConnect Server before update to %s...", target_tag)
         # Spoken in a background start too: the user just accepted the prompt,

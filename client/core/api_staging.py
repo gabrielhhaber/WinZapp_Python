@@ -89,9 +89,12 @@ def swap_in_staged_api(api_dir: str, staged_dir: str, attempts: int = 5,
     """Put *staged_dir* in place of *api_dir*; returns the directory holding
     the old server, for the caller to delete.
 
-    The server must be stopped. On any failure api/ is the old server again
-    and SwapError is raised: the worst outcome is "not updated", never "no
-    server". The staged directory is left for the caller to discard.
+    The server must be stopped. On a failure api/ is the old server again
+    and SwapError is raised: the outcome is "not updated", not "no server".
+    The one exception is a double failure — the new tree could not move in
+    AND the old one could not be moved back — which is logged with where the
+    old server is (api_old); the caller's rollback is the net for that. The
+    staged directory is left for the caller to discard.
     """
     api_dir = os.path.normpath(api_dir)
     if not staged_server_is_built(staged_dir):
