@@ -823,6 +823,7 @@
     "new_contact_phone_saved_unconfirmed": "Kontakt zapisany w WhatsAppie, ale nie udało się potwierdzić synchronizacji z telefonem.",
     "new_contact_phone_failed": "Nie udało się zapisać kontaktu w WhatsAppie. Sprawdź połączenie i spróbuj ponownie.",
     "new_contact_phone_not_on_whatsapp": "Tego numeru nie ma w WhatsAppie, więc nie można go zsynchronizować z telefonem. Użyj karty kontaktu lokalnego lub sprawdź numer.",
+    "new_contact_phone_lid_unknown": "WhatsApp nie udostępnił jeszcze numeru telefonu tej osoby, więc na razie nie można zsynchronizować kontaktu z telefonem. Użyj karty kontaktu lokalnego lub spróbuj ponownie później.",
     "new_contact_local_blocked": "Ten numer jest już kontaktem zsynchronizowanym z telefonem. Zapisz zmiany na karcie kontaktu zsynchronizowanego.",
     "delete_contact_phone_confirm_msg": "Czy na pewno chcesz usunąć kontakt {name}? Zostanie on też usunięty z WhatsAppa i z książki adresowej telefonu.",
     "delete_contact_phone_failed": "Nie udało się usunąć kontaktu z WhatsAppa. Kontakt nie został usunięty.",

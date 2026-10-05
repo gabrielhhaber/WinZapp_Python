@@ -17,6 +17,7 @@ const KNOWN_CODES = [
   'contact_not_available',
   'contact_invalid',
   'contact_name_required',
+  'contact_lid_without_phone',
   'contact_not_found',
   'number_is_not_your_contact',
 ];
@@ -81,6 +82,19 @@ export async function saveContact(req: Request, res: Response) {
       const WPP = (window as any).WPP;
       if (!WPP?.contact?.save) return { code: 'contact_not_available' };
       try {
+        if (cmd.id.endsWith('@lid')) {
+          // WPP.contact.save reads the phone side of an @lid without a guard
+          // and throws a TypeError when WhatsApp Web does not know it yet.
+          // That would surface as "operation failed, try again", which never
+          // works: say what it is, so the client can point to the local tab.
+          let entry: any = null;
+          try {
+            entry = await WPP.contact.getPnLidEntry(cmd.id);
+          } catch (error) {
+            entry = null;
+          }
+          if (!entry?.phoneNumber) return { code: 'contact_lid_without_phone' };
+        }
         const contact = await WPP.contact.save(cmd.id, cmd.name, {
           lastName: cmd.lastName,
           syncAddressBook: cmd.syncAddressBook,

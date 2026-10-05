@@ -20,7 +20,8 @@ from tests.mnemonics import load_strings, mnemonic
 from tests.test_local_contact_sync import _Mw as _RealContactsWindow
 from ui.dialogs import new_contact
 from ui.dialogs.new_contact import (
-    MODE_LOCAL, MODE_PHONE, NewContactDialog, fixed_jid_of, resolve_initial_mode)
+    MODE_LOCAL, MODE_PHONE, NewContactDialog, asked_fields, fixed_jid_of, known_jid,
+    resolve_initial_mode)
 
 JID = "5511999999999@s.whatsapp.net"
 JID_8 = "551199999999@s.whatsapp.net"      # the same number without the 9th digit
@@ -75,17 +76,15 @@ class _Dialog:
     _set_busy = NewContactDialog._set_busy
     _on_add = NewContactDialog._on_add
     _save_synced = NewContactDialog._save_synced
-    _jid_of = staticmethod(NewContactDialog._jid_of)
 
     def __init__(self, mode=MODE_PHONE, mw=None, fixed_jid=""):
         self._mw = mw or _MW()
         self._modes = (MODE_LOCAL, MODE_PHONE)
         self._notebook = _Notebook(self._modes.index(mode))
         self._fixed_jid = fixed_jid
-        # As _build_page() does: no phone field for a conversation known only
-        # by its @lid.
-        keys = ("name", "surname") if fixed_jid else ("name", "surname", "phone")
-        self._fields = {m: {key: _Field() for key in keys} for m in self._modes}
+        # The fields _build_page() creates: the same asked_fields() decides.
+        self._fields = {m: {key: _Field() for key, _label in asked_fields(fixed_jid)}
+                        for m in self._modes}
         self._ok_btn, self._cancel_btn, self._status = _Control(), _Control(), _Control()
         self._busy = False
         self.result_jid = self.result_name = ""
@@ -302,9 +301,11 @@ class TestANumberAlreadyInThePhoneBook:
         d._on_add(None)
         assert len(d._mw.local_saved) == 1 and d.ended == [wx.ID_OK]
 
-    def test_the_jid_a_typed_number_names(self):
-        assert NewContactDialog._jid_of("+55 (11) 99999-9999") == JID
-        assert NewContactDialog._jid_of("") == ""
+    def test_the_jid_a_prefilled_number_names(self):
+        """What the dialog looks up when it opens, to offer only the synced
+        tab for a number already in the phone's address book."""
+        assert known_jid("", "+55 (11) 99999-9999") == JID
+        assert known_jid("", "") == ""
 
 
 class TestMnemonics:
@@ -345,6 +346,17 @@ class TestAConversationKnownOnlyByItsLid:
 
     def test_the_dialog_takes_the_conversations_jid(self):
         assert "contact_jid" in inspect.signature(NewContactDialog).parameters
+
+    def test_no_phone_is_asked_for(self):
+        """The decision _build_page() builds its fields from."""
+        assert [key for key, _label in asked_fields(LID)] == ["name", "surname"]
+        assert [key for key, _label in asked_fields("")] == ["name", "surname", "phone"]
+        assert dict(asked_fields(""))["phone"] == "phone_label"
+
+    def test_the_lid_is_what_the_dialog_looks_up_whatever_was_prefilled(self):
+        """The @lid's digits are not a phone number to look anything up by."""
+        assert known_jid(LID, "123456789012345") == LID
+        assert known_jid(LID, "") == LID
 
     def test_the_synced_tab_saves_under_the_lid_without_asking_for_a_number(self, boxes):
         d = _Dialog(MODE_PHONE, fixed_jid=LID).saving()

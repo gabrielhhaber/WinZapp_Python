@@ -1690,7 +1690,7 @@ class ConversationDataDialog(wx.Dialog):
         jid = self._resolve_contact_phone_jid()
         dlg = NewContactDialog(
             self._mw, self,
-            prefill_phone=format_number(jid),
+            prefill_phone="" if jid.endswith("@lid") else format_number(jid),
             prefill_name=p_name,
             prefill_surname=p_sur,
             # Still an @lid when no phone number is known for this chat: the
@@ -1720,7 +1720,7 @@ class ConversationDataDialog(wx.Dialog):
         synced = phone_contacts.is_phone_synced(contact)
         dlg = NewContactDialog(
             self._mw, self,
-            prefill_phone=format_number(jid),
+            prefill_phone="" if jid.endswith("@lid") else format_number(jid),
             prefill_name=p_name,
             prefill_surname=p_sur,
             initial_mode=MODE_PHONE if synced else MODE_LOCAL,

@@ -823,6 +823,7 @@
     "new_contact_phone_saved_unconfirmed": "Contacto guardado en WhatsApp, pero no se pudo confirmar la sincronización con el teléfono.",
     "new_contact_phone_failed": "No se pudo guardar el contacto en WhatsApp. Verifica la conexión e inténtalo de nuevo.",
     "new_contact_phone_not_on_whatsapp": "Este número no está en WhatsApp, por lo que no se puede sincronizar con el teléfono. Usa la pestaña de contacto local o verifica el número.",
+    "new_contact_phone_lid_unknown": "WhatsApp aún no ha compartido el número de teléfono de esta persona, así que por ahora no se puede sincronizar el contacto con el teléfono. Usa la pestaña de contacto local o inténtalo más tarde.",
     "new_contact_local_blocked": "Este número ya es un contacto sincronizado con el teléfono. Guarda los cambios en la pestaña de contacto sincronizado.",
     "delete_contact_phone_confirm_msg": "¿Seguro que quieres eliminar el contacto {name}? También se eliminará de WhatsApp y de la agenda del teléfono.",
     "delete_contact_phone_failed": "No se pudo eliminar el contacto de WhatsApp. No se ha eliminado.",

@@ -823,6 +823,7 @@
   "new_contact_phone_saved_unconfirmed": "Kişi WhatsApp'a kaydedildi, ancak telefonla eşitleme doğrulanamadı.",
   "new_contact_phone_failed": "Kişi WhatsApp'a kaydedilemedi. Bağlantıyı kontrol edip yeniden deneyin.",
   "new_contact_phone_not_on_whatsapp": "Bu numara WhatsApp'ta yok, bu yüzden telefonla eşitlenemez. Yerel kişi sekmesini kullanın veya numarayı kontrol edin.",
+  "new_contact_phone_lid_unknown": "WhatsApp bu kişinin telefon numarasını henüz paylaşmadı, bu yüzden kişi şimdilik telefonla eşitlenemiyor. Yerel kişi sekmesini kullanın veya daha sonra yeniden deneyin.",
   "new_contact_local_blocked": "Bu numara zaten telefonla eşitlenen bir kişi. Değişiklikleri eşitlenen kişi sekmesine kaydedin.",
   "delete_contact_phone_confirm_msg": "{name} kişisini silmek istediğinizden emin misiniz? WhatsApp'tan ve telefonun rehberinden de kaldırılacaktır.",
   "delete_contact_phone_failed": "Kişi WhatsApp'tan kaldırılamadı. Silinmedi.",

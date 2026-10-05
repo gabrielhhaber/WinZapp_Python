@@ -17,6 +17,24 @@ function mockRes() {
   return res;
 }
 
+/**
+ * A page that really runs the in-page function, against a fake WPP put on a
+ * global `window`. What WPP.contact.* does is the test's to decide.
+ */
+function pageRunning(contact: any) {
+  return {
+    isClosed: () => false,
+    evaluate: async (fn: any, arg: unknown) => {
+      (globalThis as any).window = { WPP: { contact } };
+      try {
+        return await fn(arg);
+      } finally {
+        delete (globalThis as any).window;
+      }
+    },
+  };
+}
+
 /** A page whose evaluate() answers what the in-page function would. */
 function mockPage(answer: any, closed = false) {
   const calls: any[] = [];
@@ -146,6 +164,51 @@ describe('saveContact', () => {
       res
     );
     expect(res.body.code).toBe('contact_operation_failed');
+  });
+});
+
+describe('saveContact for an @lid', () => {
+  const body = { phone: '123456789012345@lid', name: 'Ana' };
+
+  it('saves when WhatsApp Web knows the phone behind it', async () => {
+    const saved: any[] = [];
+    const page = pageRunning({
+      getPnLidEntry: async () => ({ phoneNumber: { _serialized: '5531999999999@c.us' } }),
+      save: async (id: string, name: string) => {
+        saved.push([id, name]);
+        return { isMyContact: true, syncToAddressbook: true };
+      },
+    });
+    const res = mockRes();
+    await saveContact(mockReq(body, page), res);
+    expect(saved).toEqual([['123456789012345@lid', 'Ana']]);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.response.id).toBe('123456789012345@lid');
+  });
+
+  it.each([
+    ['no phone in the entry', async () => ({ lid: {} })],
+    ['no entry at all', async () => null],
+    ['a lookup that throws', async () => { throw new Error('x'); }],
+  ])('says so instead of failing inside save: %s', async (_case, getPnLidEntry) => {
+    const save = jest.fn();
+    const res = mockRes();
+    await saveContact(mockReq(body, pageRunning({ getPnLidEntry, save })), res);
+    expect(save).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ status: 'error', code: 'contact_lid_without_phone' });
+  });
+
+  it('does not look a phone number up', async () => {
+    const getPnLidEntry = jest.fn();
+    const page = pageRunning({
+      getPnLidEntry,
+      save: async () => ({ isMyContact: true, syncToAddressbook: true }),
+    });
+    const res = mockRes();
+    await saveContact(mockReq({ phone: ['5531999999999@c.us'], name: 'Ana' }, page), res);
+    expect(getPnLidEntry).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
   });
 });
 

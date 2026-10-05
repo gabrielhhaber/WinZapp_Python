@@ -10,6 +10,7 @@ import requests
 import threading
 import time
 import wx
+from core import phone_contacts
 from core.api_client import (
     api_get,
     api_post,
@@ -1161,6 +1162,7 @@ class IdentityMixin:
         # for the lock.
         changed = False
         was_unresolvable = False
+        followed = None
         with self._lid_mapping_lock:
             if not hasattr(self, "_lid_to_phone"):
                 self._lid_to_phone = {}
@@ -1179,12 +1181,34 @@ class IdentityMixin:
                     self._unresolvable_lids.discard(lid_jid)
                     was_unresolvable = True
 
+                # A contact the user saved while only the @lid was known
+                # (NewContactDialog for a chat with no phone number yet)
+                # follows the person to the phone JID: that is where every
+                # lookup goes once the bridge exists, and left under the @lid
+                # alone it could no longer be edited or deleted. A record the
+                # user saved under the phone JID itself is never overwritten.
+                lid_record = self.contacts.get(lid_jid)
+                if (phone_contacts.user_saved(lid_record)
+                        and not phone_contacts.user_saved(self.contacts.get(phone_jid))):
+                    followed = {**(self.contacts.get(phone_jid) or {}), **lid_record,
+                                "id": phone_jid, "remoteJid": phone_jid}
+                    self.contacts[phone_jid] = followed
+
                 # Update the contact name display mappings in contacts if possible
                 if phone_jid in self.contacts and self.contacts[phone_jid]:
                     if lid_jid not in self.contacts or self.contacts[lid_jid].get("name") in (None, "", "Contato sem nome"):
                         self.contacts[lid_jid] = self.contacts[phone_jid].copy()
                         self.contacts[lid_jid]["id"] = lid_jid
                         self.contacts[lid_jid]["remoteJid"] = lid_jid
+
+        if followed is not None:
+            # Whatever `save` says: the batch callers pass save=False and
+            # persist only what they themselves changed, which is not this.
+            try:
+                self.db.upsert_contacts_batch({phone_jid: followed})
+            except Exception as exc:
+                logging.warning("[LID Mapping] Failed to persist the saved contact "
+                                "under its phone JID: %s", exc)
 
         if changed:
             if was_unresolvable:
@@ -1215,6 +1239,17 @@ class IdentityMixin:
                 # `changed` once, so the second pass schedules nothing.
                 wx.CallAfter(self._schedule_refresh_active_messages,
                              {lid_jid, phone_jid})
+
+    def _store_resolved_name(self, jid, name, updated_contacts):
+        """File the name the @lid resolution learned for *jid* — except over a
+        record the user saved: the name they gave is theirs, and a pushname
+        ("aninha") must not replace it ("Ana Silva")."""
+        record = self.contacts.setdefault(jid, {})
+        if phone_contacts.user_saved(record):
+            return
+        record["name"] = name
+        record["pushName"] = name
+        updated_contacts[jid] = record
 
     def resolve_lid_jids_via_api(self, jids):
         """Resolve a list of @lid JIDs to phone JIDs using WPPConnect contact endpoint."""
@@ -1308,22 +1343,14 @@ class IdentityMixin:
                         contact_obj = res_data.get("contact") or {}
                         res_name = contact_obj.get("name") or contact_obj.get("pushname") or contact_obj.get("pushName") or contact_obj.get("displayName")
                         if res_name and res_name != "Contato sem nome" and not is_phone_like(res_name):
-                            if lid_jid not in self.contacts:
-                                self.contacts[lid_jid] = {}
-                            self.contacts[lid_jid]["name"] = res_name
-                            self.contacts[lid_jid]["pushName"] = res_name
-                            updated_contacts[lid_jid] = self.contacts[lid_jid]
+                            self._store_resolved_name(lid_jid, res_name, updated_contacts)
                             
                             if not hasattr(self, "_presence_pushname_map"):
                                 self._presence_pushname_map = {}
                             self._presence_pushname_map[lid_jid] = res_name
                             
                             if canonical_jid:
-                                if canonical_jid not in self.contacts:
-                                    self.contacts[canonical_jid] = {}
-                                self.contacts[canonical_jid]["name"] = res_name
-                                self.contacts[canonical_jid]["pushName"] = res_name
-                                updated_contacts[canonical_jid] = self.contacts[canonical_jid]
+                                self._store_resolved_name(canonical_jid, res_name, updated_contacts)
                                 self._presence_pushname_map[canonical_jid] = res_name
                             
                             # Resolved the name successfully, no need to query profile
@@ -1380,11 +1407,7 @@ class IdentityMixin:
 
                         name = res_data.get("name") or res_data.get("pushname") or res_data.get("pushName") or res_data.get("displayName")
                         if name and name != "Contato sem nome" and not is_phone_like(name):
-                            if lid_jid not in self.contacts:
-                                self.contacts[lid_jid] = {}
-                            self.contacts[lid_jid]["name"] = name
-                            self.contacts[lid_jid]["pushName"] = name
-                            updated_contacts[lid_jid] = self.contacts[lid_jid]
+                            self._store_resolved_name(lid_jid, name, updated_contacts)
                             
                             # Also save to presence pushname map to ensure UI functions find it
                             if not hasattr(self, "_presence_pushname_map"):
@@ -1393,11 +1416,7 @@ class IdentityMixin:
                             
                             # Also copy to phone contact cache if mapped
                             if canonical_jid:
-                                if canonical_jid not in self.contacts:
-                                    self.contacts[canonical_jid] = {}
-                                self.contacts[canonical_jid]["name"] = name
-                                self.contacts[canonical_jid]["pushName"] = name
-                                updated_contacts[canonical_jid] = self.contacts[canonical_jid]
+                                self._store_resolved_name(canonical_jid, name, updated_contacts)
                                 self._presence_pushname_map[canonical_jid] = name
                         else:
                             # Not the name, and not the raw response (which

@@ -32,6 +32,22 @@ def fixed_jid_of(contact_jid: str) -> str:
     return contact_jid if (contact_jid or "").endswith("@lid") else ""
 
 
+def asked_fields(fixed_jid: str) -> tuple:
+    """(field key, label key) of what each tab asks for. No phone when the JID
+    is fixed: there is none to ask for, and the @lid's digits are not one."""
+    fields = (("name", "contact_name"), ("surname", "contact_surname"))
+    return fields if fixed_jid else fields + (("phone", "phone_label"),)
+
+
+def known_jid(fixed_jid: str, prefill_phone: str) -> str:
+    """The JID the dialog already knows it is about when it opens, or "":
+    what the "already in the phone's address book" check looks up."""
+    if fixed_jid:
+        return fixed_jid
+    digits = phone_contacts.digits_of(prefill_phone)
+    return digits + "@s.whatsapp.net" if digits else ""
+
+
 def resolve_initial_mode(modes: tuple, initial: str) -> str:
     """The tab the dialog opens on: *initial* when it exists, else the last
     one (the phone-synced tab, which is also the default)."""
@@ -52,9 +68,9 @@ class NewContactDialog(wx.Dialog):
         self._prefill_name    = prefill_name
         self._prefill_surname = prefill_surname
         # A number that is already a synced contact has only the synced tab.
-        known_jid = self._fixed_jid or self._jid_of(prefill_phone)
+        known = known_jid(self._fixed_jid, prefill_phone)
         self._modes = phone_contacts.available_modes(
-            phone_contacts.existing_contact(main_window, known_jid) if known_jid else None,
+            phone_contacts.existing_contact(main_window, known) if known else None,
             tuple(modes), MODE_PHONE)
         self._initial_mode = resolve_initial_mode(self._modes, initial_mode)
         self._busy = False
@@ -71,11 +87,6 @@ class NewContactDialog(wx.Dialog):
         self.Fit()
         self.CentreOnParent()
 
-    @staticmethod
-    def _jid_of(phone: str) -> str:
-        digits = phone_contacts.digits_of(phone)
-        return digits + "@s.whatsapp.net" if digits else ""
-
     # ── UI ────────────────────────────────────────────────────────────────────
 
     def _build_page(self, notebook, i18n, mode):
@@ -88,10 +99,7 @@ class NewContactDialog(wx.Dialog):
         hint.Wrap(380)
         sizer.Add(hint, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
         fields = {}
-        asked = [("name", "contact_name"), ("surname", "contact_surname")]
-        if not self._fixed_jid:
-            asked.append(("phone", "phone_label"))
-        for key, label in asked:
+        for key, label in asked_fields(self._fixed_jid):
             sizer.Add(wx.StaticText(page, label=i18n.t(label)), 0, wx.LEFT | wx.TOP, 10)
             fields[key] = wx.TextCtrl(page, style=wx.TE_DONTWRAP)
             sizer.Add(fields[key], 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)

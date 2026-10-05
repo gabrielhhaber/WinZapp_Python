@@ -179,6 +179,10 @@ class ContactsMixin:
         the 9th digit the lid mapping was learned without (or the reverse), so
         an exact lookup is tried first and the digit-equivalent one after it.
         """
+        if not jid.endswith("@s.whatsapp.net"):
+            # Called with an @lid too (a contact saved for a chat with no
+            # known phone): its digits are not a phone number to compare.
+            return ""
         phone_to_lid = getattr(self, "_phone_to_lid", {}) or {}
         lid = phone_to_lid.get(jid, "")
         if lid:

@@ -31,6 +31,7 @@ MIN_DIGITS = 7
 #: i18n keys for each way saving can fail.
 ERR_INVALID = "create_contact_error"
 ERR_NOT_ON_WHATSAPP = "new_contact_phone_not_on_whatsapp"
+ERR_LID_WITHOUT_PHONE = "new_contact_phone_lid_unknown"
 ERR_FAILED = "new_contact_phone_failed"
 
 # Answers that mean the contact is already not in the address book: removing
@@ -95,6 +96,15 @@ def is_phone_synced(contact) -> bool:
         return False
     return bool(contact.get(SYNCED_KEY)) or (
         bool(contact.get("isMyContact")) and bool(contact.get("syncToAddressbook")))
+
+
+def user_saved(contact) -> bool:
+    """Whether the USER made this record, on either tab of the new-contact
+    dialog (isSaved, or the mark of a save to the phone restored from the
+    database). Such a record keeps the name the user gave it, and follows the
+    person from an @lid to their phone JID once that is learned. A contact
+    WhatsApp merely reports as saved is not one: its record is WhatsApp's."""
+    return bool(contact) and bool(contact.get("isSaved") or contact.get(SYNCED_KEY))
 
 
 def existing_contact(main_window, jid: str):
@@ -168,7 +178,8 @@ def clear_stale_marks(contacts: dict, server_contacts, requested_at: float) -> l
     does everyone while WhatsApp Web is still loading its store, and reading
     absence as "removed" would then unmark the whole address book. The mark
     that stays behind costs little: deleting such a contact still works (the
-    server answers that it is not one, which counts as removed).
+    server answers that it is not one, which counts as removed), and editing
+    it offers only the synced tab, which saves it to the phone again.
 
     Returns the JIDs whose mark was cleared.
     """
@@ -211,6 +222,10 @@ def _error_of(resp) -> str:
     code = _body(resp).get("code", "")
     if code == "contact_invalid":
         return ERR_INVALID
+    if code == "contact_lid_without_phone":
+        # An @lid whose phone number WhatsApp Web does not know yet: nothing
+        # to retry now, the local tab is the way.
+        return ERR_LID_WITHOUT_PHONE
     if resp.status_code == 400 and not code:
         # The server's contact validation: "the number does not exist".
         return ERR_NOT_ON_WHATSAPP

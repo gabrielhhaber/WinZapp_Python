@@ -109,6 +109,12 @@ class TestSaveContact:
         post = _Post(_resp(400, {"status": "error", "code": "contact_invalid"}))
         assert pc.save_contact("b", "t", PHONE, "Ana", post=post).error_key == pc.ERR_INVALID
 
+    def test_an_lid_whose_phone_whatsapp_does_not_know_yet(self):
+        """Not "try again": nothing to retry now, the local tab is the way."""
+        post = _Post(_resp(400, {"status": "error", "code": "contact_lid_without_phone"}))
+        result = pc.save_contact("b", "t", "123456789012345@lid", "Ana", post=post)
+        assert (result.ok, result.error_key) == (False, pc.ERR_LID_WITHOUT_PHONE)
+
     def test_any_other_failure_is_the_generic_message(self):
         for response in (_resp(502, {"code": "contact_operation_failed"}),
                          _resp(404, {"status": "Disconnected"}),
@@ -124,7 +130,8 @@ class TestSaveContact:
     def test_the_error_keys_are_the_ones_the_locales_define(self):
         with open(resource_path("languages", "pt-BR.json"), encoding="utf-8") as f:
             strings = json.load(f)
-        assert {pc.ERR_INVALID, pc.ERR_NOT_ON_WHATSAPP, pc.ERR_FAILED} <= set(strings)
+        assert {pc.ERR_INVALID, pc.ERR_NOT_ON_WHATSAPP, pc.ERR_LID_WITHOUT_PHONE,
+                pc.ERR_FAILED} <= set(strings)
 
 
 class TestRemoveContact:
@@ -187,8 +194,24 @@ class TestRecords:
         assert pc.is_phone_synced(record) is False and record["isMyContact"] is True
 
     def test_the_http_client_is_not_loaded_just_to_read_a_mark(self):
-        """core/database.py imports this module for SYNCED_KEY alone."""
-        assert "api_post" not in vars(pc)
+        """core/database.py imports this module for SYNCED_KEY alone. Checked
+        in a fresh interpreter: in this one something else has loaded it."""
+        import subprocess
+        import sys
+        code = ("import sys; import core.phone_contacts; "
+                "print('core.api_client' in sys.modules, 'requests' in sys.modules)")
+        out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
+                             cwd=resource_path(), timeout=60)
+        assert out.stdout.split() == ["False", "False"], out.stderr
+
+    def test_who_made_the_record(self):
+        """The user's own records keep their name and follow the person."""
+        assert pc.user_saved(pc.local_entry(PHONE, "Ana")) is True
+        assert pc.user_saved(pc.synced_entry(PHONE, "Ana")) is True
+        assert pc.user_saved({pc.SYNCED_KEY: True}) is True       # restored from the database
+        assert pc.user_saved({"isMyContact": True, "syncToAddressbook": True}) is False
+        assert pc.user_saved({"name": "aninha"}) is False
+        assert pc.user_saved(None) is False
 
     def test_is_phone_synced(self):
         assert pc.is_phone_synced(pc.synced_entry("j", "n")) is True
@@ -214,6 +237,14 @@ class TestWhichContactsAreInThePhoneBook:
         mw.contacts = {PHONE_8: entry}
         assert pc.existing_contact(mw, PHONE) is entry
         assert pc.key_of(mw, entry, PHONE) == PHONE_8
+
+    def test_an_lid_has_no_lid_of_its_own(self):
+        """_lid_for_local_contact() is also called with the @lid a contact was
+        saved under; its digits must not be compared with phone numbers."""
+        mw = _Mw()
+        mw._phone_to_lid = {"123456789012345@s.whatsapp.net": "999@lid"}
+        assert mw._lid_for_local_contact("123456789012345@lid") == ""
+        assert mw._lid_for_local_contact("123456789012345@s.whatsapp.net") == "999@lid"
 
     def test_the_key_of_a_record_that_is_not_stored_is_the_default(self):
         mw = _Mw()

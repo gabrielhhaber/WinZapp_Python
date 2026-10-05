@@ -767,6 +767,7 @@
     "new_contact_phone_saved_unconfirmed": "Contact salvat în WhatsApp, dar sincronizarea cu telefonul nu a putut fi confirmată.",
     "new_contact_phone_failed": "Nu s-a putut salva contactul în WhatsApp. Verificați conexiunea și încercați din nou.",
     "new_contact_phone_not_on_whatsapp": "Acest număr nu este pe WhatsApp, deci nu poate fi sincronizat cu telefonul. Folosiți fila de contact local sau verificați numărul.",
+    "new_contact_phone_lid_unknown": "WhatsApp nu a comunicat încă numărul de telefon al acestei persoane, așa că deocamdată contactul nu poate fi sincronizat cu telefonul. Folosiți fila de contact local sau încercați din nou mai târziu.",
     "new_contact_local_blocked": "Acest număr este deja un contact sincronizat cu telefonul. Salvați modificările în fila de contact sincronizat.",
     "delete_contact_phone_confirm_msg": "Sigur doriți să ștergeți contactul {name}? Va fi eliminat și din WhatsApp și din agenda telefonului.",
     "delete_contact_phone_failed": "Nu s-a putut elimina contactul din WhatsApp. Nu a fost șters.",
