@@ -64,21 +64,25 @@ def has_room_for_staging(api_dir: str, minimum: int = STAGING_MIN_FREE_BYTES,
         return False
 
 
-def leftovers_for(api_dir: str) -> list:
-    """Every directory an interrupted build or swap can leave next to api/:
-    the staging tree, the replaced server and any replaced server that had to
-    be moved aside because it could not be deleted (see _clear_replaced)."""
+def stale_dirs_for(api_dir: str) -> list:
+    """Replaced servers that could not be deleted and were moved aside (see
+    _clear_replaced). Unlike api_old, no swap in progress ever uses them, so
+    they are safe to delete at any time."""
     api_dir = os.path.normpath(api_dir)
-    found = [staging_dir_for(api_dir), replaced_dir_for(api_dir)]
     parent, name = os.path.split(api_dir)
     try:
         entries = sorted(os.listdir(parent or "."))
     except OSError:
-        entries = []
-    prefix = name + _OLD_SUFFIX
-    found.extend(os.path.join(parent, entry) for entry in entries
-                 if entry.startswith(prefix + _ASIDE_MARK))
-    return found
+        return []
+    prefix = name + _OLD_SUFFIX + _ASIDE_MARK
+    return [os.path.join(parent, entry) for entry in entries if entry.startswith(prefix)]
+
+
+def leftovers_for(api_dir: str) -> list:
+    """Every directory an interrupted build or swap can leave next to api/:
+    the staging tree, the replaced server and the ones moved aside."""
+    api_dir = os.path.normpath(api_dir)
+    return [staging_dir_for(api_dir), replaced_dir_for(api_dir), *stale_dirs_for(api_dir)]
 
 
 def _long_path(path: str) -> str:

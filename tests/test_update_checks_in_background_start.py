@@ -54,6 +54,10 @@ class _Window:
         self.background_mode = True
         self.settings = {"general": {"updates_enabled": updates_enabled}}
         self._may_run = may_run
+        self.swept = []
+
+    def _discard_stale_wpp_servers_async(self):
+        self.swept.append("stale")
 
     def wpp_update_may_run_now(self):
         return self._may_run
@@ -82,6 +86,18 @@ def test_the_wpp_check_starts_in_background_mode(wpp_checker):
     started, _ = wpp_checker
     _Window()._start_wpp_update_checker()
     assert started == ["start"]
+
+
+def test_the_startup_check_deletes_servers_a_swap_moved_aside(wpp_checker):
+    window = _Window()
+    window._start_wpp_update_checker()
+    assert window.swept == ["stale"]
+
+
+def test_a_forced_check_does_not_sweep(wpp_checker):
+    window = _Window()
+    window._start_wpp_update_checker(force=True)
+    assert window.swept == []
 
 
 def test_the_wpp_check_still_respects_the_updates_setting(wpp_checker):
