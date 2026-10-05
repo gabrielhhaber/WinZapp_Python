@@ -92,8 +92,6 @@ YENİLİKLER
 
 DÜZELTMELER
 
-- Geçmiş: WhatsApp Web'in kendisinin daha eski mesajların yalnızca telefonda görülebildiğini söylediği sohbetlerde WinZapp artık telefondan daha fazla geçmiş istemiyor. İstek kabul ediliyordu ama hiçbir şey gelmiyordu ve yalnızca telefonda eşitleme bildirimlerine yol açıyordu. Önceden indirilmiş geçmiş korunur.
-
 - Kişilerinde kayıtlı olmayan ve WhatsApp profilinde adı bulunmayan birine mesaj yazdığında, sohbet kişinin telefon numarası yerine senin kendi adını göstermeye başlıyordu. Artık gerçek adı bulunana kadar telefon numarasını göstermeye devam ediyor.
 
 - Kaldırma programı artık her zaman Portekizce görünmek yerine, kurulum programı gibi Windows görüntüleme dilini izliyor.

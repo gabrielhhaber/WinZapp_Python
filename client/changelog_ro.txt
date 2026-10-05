@@ -92,8 +92,6 @@ NOUTĂȚI
 
 CORECTĂRI
 
-- Istoric: în conversațiile în care WhatsApp Web însuși spune că mesajele mai vechi pot fi văzute doar pe telefon, WinZapp nu mai cere telefonului mai mult istoric. Cererea era acceptată, dar nu sosea nimic, iar ea doar provoca notificări de sincronizare pe telefon. Istoricul deja descărcat este păstrat.
-
 - Când trimiteai un mesaj unei persoane care nu e în contactele tale și nu are nume în profilul WhatsApp, conversația începea să afișeze propriul tău nume în loc de numărul de telefon al persoanei. Acum continuă să afișeze numărul de telefon până când se găsește numele real.
 
 - Programul de dezinstalare urmează acum limba de afișare a Windows, la fel ca programul de instalare, în loc să apară mereu în portugheză.

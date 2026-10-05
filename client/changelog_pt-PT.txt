@@ -92,8 +92,6 @@ MELHORIAS
 
 CORREÇÕES
 
-- Histórico: nas conversas em que o próprio WhatsApp Web indica que as mensagens mais antigas só podem ser vistas no telemóvel, o WinZapp deixa de pedir mais histórico ao telemóvel. O pedido era aceite, mas nada chegava, e só causava notificações de sincronização no telemóvel. O histórico já descarregado é mantido.
-
 - Ao enviar mensagem a alguém que não está nos seus contactos e não tem nome no perfil do WhatsApp, a conversa passava a aparecer com o seu próprio nome em vez do número da pessoa. Agora continua a mostrar o número até o nome verdadeiro ser encontrado.
 
 - O desinstalador passa a seguir o idioma de apresentação do Windows, como o instalador, em vez de aparecer sempre em português.
