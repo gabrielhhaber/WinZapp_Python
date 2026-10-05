@@ -43,6 +43,16 @@ class WppBackgroundUpdateMixin:
         threading.Thread(target=self._discard_wpp_staging_leftovers, daemon=True,
                          name="winzapp-wpp-staging-sweep").start()
 
+    def _discard_replaced_wpp_servers_async(self) -> None:
+        """At startup: finish deleting the old servers a swap left behind when
+        the app quit during its clean-up. Not the staging tree: another
+        account may be building into it right now."""
+        api_dir = resource_path("api")
+        staging = api_staging.staging_dir_for(api_dir)
+        for path in api_staging.leftovers_for(api_dir):
+            if path != staging:
+                self._discard_async(path)
+
     def _discard_wpp_staging_leftovers(self) -> None:
         """Drop what an interrupted background build or swap left on disk.
         Called when an update starts, which is when this process holds the

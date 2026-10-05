@@ -227,6 +227,17 @@ class TestTheBuildHappensBehindARunningServer:
 
         assert env.api + "_staging" in env.discarded and env.api + "_old" in env.discarded
 
+    def test_startup_finishes_deleting_old_servers_but_not_the_staging_tree(self, env):
+        """The app may have quit while the replaced server was being deleted;
+        another account may be building into api_staging right now."""
+        window = _Window()
+
+        window._discard_replaced_wpp_servers_async()
+        env.run_threads()
+
+        assert env.api + "_old" in env.discarded
+        assert env.api + "_staging" not in env.discarded
+
     def test_a_build_that_cannot_even_start_does_not_stay_running(self, env):
         env.build_raises = RuntimeError("no window")
         finished = []
