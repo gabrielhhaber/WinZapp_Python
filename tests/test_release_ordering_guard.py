@@ -184,6 +184,9 @@ def test_lagging_stable_is_recognised_by_major_minor_patch(guard):
     # Ahead of main is not lagging either.
     assert guard.stable_lags_main("v2.2.0.0", "2.1.0.0") is False
     assert guard.stable_lags_main("v2.0.0.0", "not a version") is False
+    # A suffix or a leading "v" on main's version changes nothing.
+    assert guard.stable_lags_main("v0.24.0.0beta", "0.25.0.0beta") is True
+    assert guard.stable_lags_main("v2.0.0.0", "v2.1.0.0") is True
 
 
 def test_main_allows_a_stable_below_alphas_of_a_newer_main_line(guard, monkeypatch, capsys):
