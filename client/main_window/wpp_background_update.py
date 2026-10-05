@@ -48,8 +48,7 @@ class WppBackgroundUpdateMixin:
         Called when an update starts, which is when this process holds the
         machine's WPPConnect update, so no other account can be building."""
         api_dir = resource_path("api")
-        for path in (api_staging.staging_dir_for(api_dir),
-                     api_staging.replaced_dir_for(api_dir)):
+        for path in api_staging.leftovers_for(api_dir):
             api_staging.discard(path)
 
     def _stage_wpp_update_in_background(self, target_tag: str, on_finished=None) -> bool:
