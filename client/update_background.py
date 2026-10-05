@@ -60,7 +60,10 @@ def may_interrupt_now(main_window) -> bool:
     in_call = getattr(main_window, "_voice_call_in_progress", None)
     if callable(in_call) and in_call():
         return False
-    if getattr(main_window, "_incoming_call_dialogs", None):
+    # Ringing: the popup may have been dismissed while the call still rings
+    # in the call bar, so the calls themselves are asked, not only the dialogs.
+    if (getattr(main_window, "_active_incoming_calls", None)
+            or getattr(main_window, "_incoming_call_dialogs", None)):
         return False
     if getattr(main_window, "_wpp_updating", False):
         return False
@@ -89,16 +92,14 @@ class BackgroundDownloadMixin:
         mw.output(mw.i18n.t("update_background_running").format(
             version=self._background_update_version()), interrupt=True)
 
-    def _end_background_update(self, retry: bool = True) -> None:
+    def _end_background_update(self) -> None:
         """The background update is over without an install: forget it, hand
-        the per-machine prompt back and, unless the app is going away for
-        good, look again later. A shutdown Windows cancelled leaves the app
-        running, and without the retry nothing would ever offer the update
-        again until the next launch."""
+        the per-machine prompt back and look again later. Always: a shutdown
+        Windows cancelled leaves the app running, and without the retry
+        nothing would offer the update again until the next launch."""
         self._background_version = ""
         self._release_prompt()
-        if retry:
-            self._schedule_retry()
+        self._schedule_retry()
 
     def _download_in_background(self, new_version: str, zip_url: str, sha256sums_url: str = "",
                                 signature_url: str = "", is_alpha: bool = False):

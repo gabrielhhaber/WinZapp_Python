@@ -81,6 +81,12 @@ class TestWhenTheInstallMayStart:
         window._incoming_call_dialogs = {"caller": object()}
         assert may_interrupt_now(window) is False
 
+    def test_a_call_still_ringing_after_its_popup_was_dismissed_counts_too(self):
+        window = self._window()
+        window._incoming_call_dialogs = {}
+        window._active_incoming_calls = {"caller"}
+        assert may_interrupt_now(window) is False
+
     def test_not_while_the_server_is_being_reinstalled_in_place(self):
         """Quitting then would leave api/ half-built with npm still running."""
         window = self._window()
