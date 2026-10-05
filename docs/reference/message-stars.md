@@ -16,12 +16,19 @@ a reset, read timeout or server error.
 The setter's HTTP success is insufficient. In the pinned
 [WA-JS 4.6.1 implementation](https://github.com/wppconnect-team/wa-js/blob/v4.6.1/src/chat/functions/starMessage.ts),
 `StarMessageReturn` is built **before** `sendStarMsgs`/`sendUnstarMsgs`; its
-`star` can describe the previous state. Verification instead reads the exact
-message key and a strict boolean `star` matching the requested state. The
-server's `deviceController.getMessageById` returns HTTP 201 with
+`star` can describe the previous state. Verification instead reads the
+message back and requires the same message id and fromMe, in the same chat,
+with a boolean `star` matching the requested state
+(`core/message_stars.py`: `is_same_message`, `read_star_matches`). The chat
+may come back under its @lid or its phone JID (`@c.us`/`@s.whatsapp.net`);
+both are ours. The group participant is not compared, since it can come back
+in either form too and the id is already unique within the chat and
+direction. A message without a `star` field has never been starred, so it
+confirms an unstar and never a star. The server's
+`deviceController.getMessageById` returns HTTP 201 with
 `Success.response.data`; the direct `success.response` envelope is also
-accepted. Error envelopes, another chat/fromMe/participant key, missing `star`
-and the opposite state cannot confirm success.
+accepted. Error envelopes, another chat, direction or id, a non-boolean
+`star` and the opposite state cannot confirm success.
 
 Results are `confirmed` (observed on the linked device), `refused` (a definite
 pre-controller/connection refusal) or `unknown`. Ambiguous writes are checked
@@ -76,8 +83,11 @@ automatic migration, account-wide sweep or automatic history request.
 
 Only one star job runs per window, across its conversation panels. Operations
 are sequential, off the UI thread. Only verified changes update the UI and
-database; the final speech reports confirmed/refused/unverified/unprocessed
-counts and the changed rows are repainted together. Normal bulk starring
+database, and the changed rows are repainted together. A single message (the
+Ctrl+Shift+O toggle) speaks one short outcome: starred, unstarred, refused or
+unverified. A batch says "please wait" first and ends with the chat's display
+name (`chat_display_name`, so a group is named too) and the
+confirmed/refused/unverified/unprocessed counts. Normal bulk starring
 skips already-starred messages; legacy migration is its separate explicit
 operation.
 
