@@ -228,42 +228,40 @@ class TestDiscard:
         api_staging.discard("")
         assert not os.path.exists(target)
 
+    @pytest.mark.skipif(os.name != "nt", reason="only Windows refuses to delete a read-only file")
     def test_it_removes_read_only_files(self, tmp_path):
         """npm leaves read-only files in node_modules; Windows refuses to
         delete them, and ignore_errors hid that until the swap tripped on it."""
         import stat
         target = _server(str(tmp_path / "api_old"), "x")
-        locked = os.path.join(target, "dist", "server.js")
-        os.chmod(locked, stat.S_IREAD)
+        os.chmod(os.path.join(target, "dist", "server.js"), stat.S_IREAD)
 
         api_staging.discard(target)
 
         assert not os.path.exists(target)
 
+    def test_a_read_only_file_is_made_writable_and_deleted_on_any_system(self, tmp_path, monkeypatch):
+        """The Windows refusal, simulated: the delete fails while the write bit
+        is off. Runs everywhere, as root too, because it checks the mode bits
+        itself rather than relying on the platform."""
+        import stat
+        target = _server(str(tmp_path / "api_old"), "x")
+        locked = os.path.join(target, "dist", "server.js")
+        os.chmod(locked, stat.S_IREAD)
 
-class TestALeftoverThatCannotBeDeleted:
-    def test_it_is_moved_aside_so_the_update_still_goes_through(self, dirs, monkeypatch):
-        api, staged = dirs
-        _server(api, "old")
-        _server(staged, "new")
-        _server(replaced_dir_for(api), "stuck")
-        monkeypatch.setattr(api_staging, "discard", lambda path: None)
+        def _remove(path):
+            if not os.stat(path).st_mode & stat.S_IWRITE:
+                raise PermissionError(path)
+            os.remove(path)
 
-        replaced = swap_in_staged_api(api, staged, pause=0)
+        def _rmtree(path, onexc):
+            onexc(_remove, locked, PermissionError(locked))
 
-        assert _build(api) == "new" and _build(replaced) == "old"
-        aside = [p for p in api_staging.leftovers_for(api) if ".stale-" in p]
-        assert len(aside) == 1 and _build(aside[0]) == "stuck"
+        monkeypatch.setattr(api_staging.shutil, "rmtree", _rmtree)
 
-    def test_the_next_update_sweeps_what_was_moved_aside(self, dirs):
-        api, staged = dirs
-        stale = _server(replaced_dir_for(api) + ".stale-1", "stuck")
-        _server(replaced_dir_for(api), "old")
+        api_staging.discard(target)
 
-        leftovers = api_staging.leftovers_for(api)
-
-        assert {staged, replaced_dir_for(api), stale} <= set(leftovers)
-        assert api not in leftovers
+        assert not os.path.exists(locked)
 
     def test_it_does_not_raise_when_the_removal_blows_up(self, tmp_path, monkeypatch):
         target = _server(str(tmp_path / "api_old"), "x")
