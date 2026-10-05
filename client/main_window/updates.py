@@ -122,6 +122,9 @@ class UpdatesMixin:
         if force:
             self._wpp_update_checker.force_check()
         else:
+            sweep = getattr(self, "_discard_stale_wpp_servers_async", None)
+            if sweep is not None:
+                sweep()
             self._wpp_update_checker.start()
 
 

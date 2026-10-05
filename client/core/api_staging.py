@@ -19,7 +19,9 @@ temporary directories.
 import logging
 import os
 import shutil
+import stat
 import time
+import uuid
 
 #: Per-install state that lives inside api/ and has to follow it. The same
 #: names ApiSetupDialog keeps through an in-place reinstall (_KEEP_RUNTIME),
@@ -32,6 +34,7 @@ STAGING_MIN_FREE_BYTES = 3 * 1024 ** 3
 
 _STAGING_SUFFIX = "_staging"
 _OLD_SUFFIX = "_old"
+_ASIDE_MARK = ".stale-"
 
 
 class SwapError(Exception):
@@ -61,10 +64,77 @@ def has_room_for_staging(api_dir: str, minimum: int = STAGING_MIN_FREE_BYTES,
         return False
 
 
+def stale_dirs_for(api_dir: str) -> list:
+    """Replaced servers that could not be deleted and were moved aside (see
+    _clear_replaced). Unlike api_old, no swap in progress ever uses them, so
+    they are safe to delete at any time."""
+    api_dir = os.path.normpath(api_dir)
+    parent, name = os.path.split(api_dir)
+    try:
+        entries = sorted(os.listdir(parent or "."))
+    except OSError:
+        return []
+    prefix = name + _OLD_SUFFIX + _ASIDE_MARK
+    return [os.path.join(parent, entry) for entry in entries if entry.startswith(prefix)]
+
+
+def leftovers_for(api_dir: str) -> list:
+    """Every directory an interrupted build or swap can leave next to api/:
+    the staging tree, the replaced server and the ones moved aside."""
+    api_dir = os.path.normpath(api_dir)
+    return [staging_dir_for(api_dir), replaced_dir_for(api_dir), *stale_dirs_for(api_dir)]
+
+
+def _long_path(path: str) -> str:
+    """The extended-length form on Windows: node_modules nests deeper than the
+    260 characters a plain path may have, and rmtree stops at the first one."""
+    path = os.path.abspath(path)
+    if os.name != "nt" or path.startswith("\\\\?\\"):
+        return path
+    if path.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + path[2:]
+    return "\\\\?\\" + path
+
+
+def _unlock_and_retry(func, path, exc) -> None:
+    """rmtree's onexc: Windows refuses to delete a read-only file, and npm
+    leaves some in node_modules. Make it writable and try once more."""
+    try:
+        os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+        func(path)
+    except OSError:
+        pass    # counted by discard() when the directory is still there
+
+
 def discard(path: str) -> None:
-    """Remove a staging or replaced directory. Never raises."""
-    if path and os.path.exists(path):
-        shutil.rmtree(path, ignore_errors=True)
+    """Remove a staging or replaced directory. Never raises, but says when
+    something stayed: a silent failure here is what made the swap find an old
+    server it could not clear."""
+    if not path or not os.path.exists(path):
+        return
+    try:
+        shutil.rmtree(_long_path(path), onexc=_unlock_and_retry)
+    except Exception as exc:
+        logging.warning("[api-staging] could not delete %s: %s", path, exc)
+    if os.path.exists(path):
+        logging.warning("[api-staging] could not fully delete %s", path)
+
+
+def _clear_replaced(old_dir: str) -> None:
+    """Free the name the old server is about to be moved to. A leftover that
+    cannot be deleted (permissions, a path too deep) is moved out of the way
+    instead: the update then goes through and the leftover is swept by the
+    next one, rather than the update failing every time. A directory with a
+    file held open cannot be renamed either; that still raises SwapError."""
+    discard(old_dir)
+    if not os.path.exists(old_dir):
+        return
+    aside = f"{old_dir}{_ASIDE_MARK}{int(time.time())}-{uuid.uuid4().hex[:6]}"
+    try:
+        os.replace(old_dir, aside)
+    except OSError as exc:
+        raise SwapError(f"could not clear {old_dir}: {exc}") from exc
+    logging.warning("[api-staging] %s could not be deleted; moved to %s", old_dir, aside)
 
 
 def staged_server_is_built(staged_dir: str) -> bool:
@@ -100,9 +170,7 @@ def swap_in_staged_api(api_dir: str, staged_dir: str, attempts: int = 5,
     if not staged_server_is_built(staged_dir):
         raise SwapError(f"no built server in {staged_dir}")
     old_dir = replaced_dir_for(api_dir)
-    discard(old_dir)        # left by a swap whose clean-up never ran
-    if os.path.exists(old_dir):
-        raise SwapError(f"could not clear {old_dir}")
+    _clear_replaced(old_dir)        # left by a swap whose clean-up never ran
 
     had_old = os.path.isdir(api_dir)
     if had_old:

@@ -227,3 +227,79 @@ class TestDiscard:
         api_staging.discard(target)
         api_staging.discard("")
         assert not os.path.exists(target)
+
+    @pytest.mark.skipif(os.name != "nt", reason="only Windows refuses to delete a read-only file")
+    def test_it_removes_read_only_files(self, tmp_path):
+        """npm leaves read-only files in node_modules; Windows refuses to
+        delete them, and ignore_errors hid that until the swap tripped on it."""
+        import stat
+        target = _server(str(tmp_path / "api_old"), "x")
+        os.chmod(os.path.join(target, "dist", "server.js"), stat.S_IREAD)
+
+        api_staging.discard(target)
+
+        assert not os.path.exists(target)
+
+    def test_a_read_only_file_is_made_writable_and_deleted_on_any_system(self, tmp_path, monkeypatch):
+        """The Windows refusal, simulated: the delete fails while the write bit
+        is off. Runs everywhere, as root too, because it checks the mode bits
+        itself rather than relying on the platform."""
+        import stat
+        target = _server(str(tmp_path / "api_old"), "x")
+        locked = os.path.join(target, "dist", "server.js")
+        os.chmod(locked, stat.S_IREAD)
+
+        def _remove(path):
+            if not os.stat(path).st_mode & stat.S_IWRITE:
+                raise PermissionError(path)
+            os.remove(path)
+
+        def _rmtree(path, onexc):
+            onexc(_remove, locked, PermissionError(locked))
+
+        monkeypatch.setattr(api_staging.shutil, "rmtree", _rmtree)
+
+        api_staging.discard(target)
+
+        assert not os.path.exists(locked)
+
+    def test_it_does_not_raise_when_the_removal_blows_up(self, tmp_path, monkeypatch):
+        target = _server(str(tmp_path / "api_old"), "x")
+
+        def _boom(*args, **kwargs):
+            raise ValueError("odd")
+
+        monkeypatch.setattr(api_staging.shutil, "rmtree", _boom)
+        api_staging.discard(target)
+
+
+class TestLongPath:
+    def test_a_plain_windows_path_gets_the_extended_prefix(self, monkeypatch):
+        bs = chr(92)
+        monkeypatch.setattr(api_staging.os, "name", "nt")
+        monkeypatch.setattr(api_staging.os.path, "abspath", lambda p: p)
+        plain = bs.join(["D:", "WinzApp", "api_old"])
+        prefix = bs * 2 + "?" + bs
+        assert api_staging._long_path(plain) == prefix + plain
+        assert api_staging._long_path(prefix + plain) == prefix + plain
+        unc = bs * 2 + bs.join(["srv", "share", "x"])
+        assert api_staging._long_path(unc) == prefix + "UNC" + bs + unc[2:]
+
+
+class TestAsideFailure:
+    def test_when_it_cannot_be_moved_aside_either_the_swap_is_refused(self, dirs, monkeypatch):
+        api, staged = dirs
+        _server(api, "old")
+        _server(staged, "new")
+        _server(replaced_dir_for(api), "stuck")
+        monkeypatch.setattr(api_staging, "discard", lambda path: None)
+
+        def _locked(source, target):
+            raise PermissionError("in use")
+
+        monkeypatch.setattr(api_staging.os, "replace", _locked)
+
+        with pytest.raises(SwapError):
+            swap_in_staged_api(api, staged, attempts=1, pause=0)
+
+        assert _build(api) == "old"
