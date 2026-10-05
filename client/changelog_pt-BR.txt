@@ -16,6 +16,8 @@ CORREÇÕES
 
 - Menções: uma pessoa mencionada pelo nome junto com @todos mantém seu link nas menções da mensagem, e uma menção a você, na notificação e na prévia da lista de conversas, usa a palavra escolhida em "Como se referir a mim?" em vez de uma palavra fixa
 
+- Configurações, aba "Interface do usuário": a aba agora rola, e os grupos de opções no fim dela voltam a ser lidos no lugar certo. Em telas menores, o leitor de tela anunciava "Posição para anunciar itens selecionados" na caixa de seleção seguinte, e não nos botões de opção do grupo
+
 - Mídia com IA: redefinir todas as chaves também limpa as autorizações de envio lembradas, mesmo ao inserir uma nova chave antes de aplicar. Transcrições e textos de PDF longos agora informam um erro de limite de texto, em vez de perder o final silenciosamente; outro provedor não é tentado automaticamente por esse limite.
 
 - Botão "Descrever" nas mensagens com mídia. Numa foto, figurinha ou vídeo (e também em áudios e PDFs, quando os recursos de IA estão ligados), aparece um botão logo depois de "Salvar como...", alcançável com Tab, que faz o mesmo que o atalho Ctrl+Shift+I; no menu de contexto, o item fica junto das ações de mídia, também mostrando Ctrl+Shift+I. O botão e o item só aparecem nas mensagens que podem ser descritas.

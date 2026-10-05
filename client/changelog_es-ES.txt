@@ -16,6 +16,8 @@ CORRECCIONES
 
 - Menciones: una persona mencionada por su nombre junto a @todos conserva su enlace en las menciones del mensaje, y una mención tuya, en la notificación y en la vista previa de la lista de conversaciones, usa la palabra elegida en "¿Cómo debo referirme a mí?" en lugar de una palabra fija
 
+- Configuración, pestaña "Interfaz de usuario": la pestaña ahora se desplaza, y los grupos de opciones del final vuelven a leerse en su sitio. En pantallas más pequeñas el lector de pantalla anunciaba "Posición para anunciar elementos seleccionados" en la casilla siguiente, y no en los botones de opción del grupo
+
 - Contenido con IA: restablecer todas las claves también borra los consentimientos de envío recordados, incluso al introducir una nueva clave antes de aplicar. Las transcripciones y los textos de PDF largos ahora indican un error de límite de texto en vez de perder el final sin avisar; no se prueba otro proveedor automáticamente por este límite.
 
 - Botón "Describir" en los mensajes con contenido multimedia. En una foto, un sticker o un vídeo (y también en audios y PDF, cuando las funciones de IA están activadas), aparece un botón justo después de "Guardar como", accesible con Tab, que hace lo mismo que el atajo Ctrl+Shift+I; en el menú contextual, el elemento queda junto a las demás acciones multimedia y también muestra Ctrl+Shift+I. El botón y el elemento solo aparecen en los mensajes que se pueden describir.

@@ -16,6 +16,8 @@ CORECTĂRI
 
 - Mențiuni: o persoană menționată pe nume alături de @toți își păstrează linkul în mențiunile mesajului, iar o mențiune a dumneavoastră, în notificare și în previzualizarea din lista de conversații, folosește cuvântul ales în "Cum să se facă referire la mine?" în locul unui cuvânt fix
 
+- Setări, fila "Interfață utilizator": fila se derulează acum, iar grupurile de opțiuni de la sfârșitul ei sunt citite din nou la locul potrivit. Pe ecrane mai mici, cititorul de ecran anunța "Poziția pentru a anunța articolele selectate" la caseta de selectare următoare, nu la butoanele de opțiune ale grupului
+
 - Conținut AI: resetarea tuturor cheilor șterge și acordurile de trimitere memorate, chiar dacă introduci o cheie nouă înainte de aplicare. Transcrierile și textele PDF lungi afișează acum o eroare de limită de text în loc să piardă finalul fără avertizare; nu se încearcă automat alt furnizor pentru această limită.
 
 - Buton „Descrieți” la mesajele cu conținut media. La o fotografie, un autocolant sau un videoclip (și la audio și PDF, când funcțiile AI sunt pornite) apare un buton chiar după „Salvați ca”, accesibil cu Tab, care face același lucru ca scurtătura Ctrl+Shift+I; în meniul contextual, elementul stă acum lângă celelalte acțiuni media și arată tot Ctrl+Shift+I. Butonul și elementul apar doar la mesajele care pot fi descrise.

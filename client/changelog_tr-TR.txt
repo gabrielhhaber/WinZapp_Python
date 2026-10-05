@@ -16,6 +16,8 @@ DÜZELTMELER
 
 - Bahsetmeler: @tümü ile birlikte adıyla anılan kişi mesajın bahsetmelerinde bağlantısını korur ve sizden bahsedilmesi, bildirimde ve sohbet listesi önizlemesinde, sabit bir sözcük yerine "Kendimden nasıl bahsedilsin?" ayarında seçilen sözcüğü kullanır
 
+- Ayarlar, "Kullanıcı Arayüzü" sekmesi: sekme artık kaydırılabiliyor ve sonundaki seçenek grupları yeniden doğru yerde okunuyor. Küçük ekranlarda ekran okuyucu "Seçili öğelerin duyurulacağı konum" grup adını grubun kendi seçenek düğmelerinde değil, ondan sonraki onay kutusunda duyuruyordu
+
 - Yapay zekâ işlemleri: tüm anahtarlar sıfırlandığında, kaydetmeden önce yeni bir anahtar girilse de hatırlanmış gönderim onayları temizlenir. Uzun ses dökümleri ve PDF metinleri artık sonları sessizce kesilmek yerine metin sınırı hatası verir; bu sınır için başka bir sağlayıcı otomatik olarak denenmez.
 
 - Medya mesajlarında "Betimle" düğmesi. Bir fotoğrafta, çıkartmada veya videoda (yapay zekâ özellikleri açıkken ses ve PDF'lerde de) "Farklı kaydet"in hemen ardından Tab ile ulaşılabilen ve Ctrl+Shift+I kısayoluyla aynı işi yapan bir düğme görünür; bağlam menüsünde öğe artık diğer medya eylemleriyle birlikte durur ve Ctrl+Shift+I kısayolunu gösterir. Düğme ve öğe yalnızca betimlenebilen mesajlarda görünür.

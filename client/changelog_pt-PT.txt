@@ -16,6 +16,8 @@ CORREÇÕES
 
 - Menções: uma pessoa mencionada pelo nome juntamente com @todos mantém a sua ligação nas menções da mensagem, e uma menção a si, na notificação e na pré-visualização da lista de conversas, usa a palavra escolhida em "Como se referir a mim?" em vez de uma palavra fixa
 
+- Definições, separador "Interface do utilizador": o separador passa a ter deslocamento, e os grupos de opções no fim voltam a ser lidos no sítio certo. Em ecrãs mais pequenos, o leitor de ecrã anunciava "Posição para anunciar itens selecionados" na caixa de verificação seguinte, e não nos botões de opção do grupo
+
 - Conteúdo com IA: repor todas as chaves também limpa as autorizações de envio memorizadas, mesmo ao introduzir uma nova chave antes de aplicar. Transcrições e textos de PDF longos apresentam agora um erro de limite de texto, em vez de perderem o final silenciosamente; não é tentado outro fornecedor automaticamente por este limite.
 
 - Botão "Descrever" nas mensagens com multimédia. Numa foto, autocolante ou vídeo (e também em áudios e PDFs, quando as funcionalidades de IA estão ativas), aparece um botão logo a seguir a "Guardar como", acessível com Tab, que faz o mesmo que o atalho Ctrl+Shift+I; no menu de contexto, o item fica junto das ações de multimédia, também a mostrar Ctrl+Shift+I. O botão e o item só aparecem nas mensagens que podem ser descritas.
