@@ -286,7 +286,39 @@ class TestLongPath:
         assert api_staging._long_path(unc) == prefix + "UNC" + bs + unc[2:]
 
 
-class TestAsideFailure:
+class TestALeftoverThatCannotBeDeleted:
+    def test_it_is_moved_aside_so_the_update_still_goes_through(self, dirs, monkeypatch):
+        api, staged = dirs
+        _server(api, "old")
+        _server(staged, "new")
+        _server(replaced_dir_for(api), "stuck")
+        monkeypatch.setattr(api_staging, "discard", lambda path: None)
+
+        replaced = swap_in_staged_api(api, staged, pause=0)
+
+        assert _build(api) == "new" and _build(replaced) == "old"
+        aside = api_staging.stale_dirs_for(api)
+        assert len(aside) == 1 and _build(aside[0]) == "stuck"
+
+    def test_the_next_update_sweeps_what_was_moved_aside(self, dirs):
+        api, staged = dirs
+        stale = _server(replaced_dir_for(api) + ".stale-1", "stuck")
+        _server(replaced_dir_for(api), "old")
+
+        leftovers = api_staging.leftovers_for(api)
+
+        assert {staged, replaced_dir_for(api), stale} <= set(leftovers)
+        assert api not in leftovers
+
+    def test_only_what_was_moved_aside_is_safe_to_delete_at_startup(self, dirs):
+        """api_old and api_staging may belong to an update in progress."""
+        api, staged = dirs
+        stale = _server(replaced_dir_for(api) + ".stale-1", "stuck")
+        _server(replaced_dir_for(api), "old")
+        _server(staged, "new")
+
+        assert api_staging.stale_dirs_for(api) == [stale]
+
     def test_when_it_cannot_be_moved_aside_either_the_swap_is_refused(self, dirs, monkeypatch):
         api, staged = dirs
         _server(api, "old")
