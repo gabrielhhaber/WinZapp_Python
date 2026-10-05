@@ -4,7 +4,7 @@ La gran novedad de esta versión son las llamadas: ahora se pueden hacer, contes
 
 NOVEDADES
 
-- Los mensajes destacados ahora se sincronizan con WhatsApp. Cada cambio se verifica en el dispositivo vinculado; los rechazos y los resultados sin verificar se informan por separado. Los destacados locales antiguos se conservan hasta que elija "Sincronizar destacados locales antiguos con WhatsApp" en el menú del chat y confirme. Puede detener un lote después de la solicitud actual.
+- Los mensajes destacados ahora se sincronizan con WhatsApp. Cada cambio se verifica en el dispositivo vinculado; los rechazos y los resultados sin verificar se informan por separado. Los destacados locales antiguos se conservan hasta que elijas "Sincronizar destacados locales antiguos con WhatsApp" en el menú del chat y confirmes. Puedes detener un lote después de la solicitud actual.
 
 - Llamadas de voz y videollamadas. En un chat individual, los botones "Llamada de voz" (Ctrl+Shift+V) y "Videollamada" (Ctrl+Alt+Shift+V) hacen la llamada desde el propio WinZapp. La llamada abre una ventana con botones accesibles con Tab y atajos propios: Ctrl+M silencia o reactiva el micrófono, Ctrl+V enciende o apaga la cámara en una videollamada, Ctrl+P convierte una llamada de voz en videollamada, Ctrl+C abre la configuración de la llamada y Ctrl+Shift+Q cuelga. El lector de pantalla avisa cuando la llamada se conecta, cuando se está reconectando y cuando termina.
 

@@ -315,3 +315,10 @@ def test_rewrite_failure_is_logged_not_raised():
 def test_single_outcome_is_one_short_line(outcome, state, expected):
     assert actions.star_outcome_text(I18n(), [({}, "M", outcome, state)], True) == expected
     assert actions.star_outcome_text(I18n(), [], True) == ""
+
+
+def test_rewrite_writes_each_flag_again():
+    panel = Panel([])
+    panel._rewrite_star_states("test@s.whatsapp.net", [("1", {"starred": True}), ("2", {"starred": False})])
+    assert panel.writes == [("test@s.whatsapp.net", "1", {"starred": True}),
+                            ("test@s.whatsapp.net", "2", {"starred": False})]

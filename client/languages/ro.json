@@ -284,7 +284,7 @@
     "star_removed": "Marcajul cu stea a fost eliminat de pe mesaj.",
     "star_refused": "WhatsApp nu a acceptat această modificare a marcajului cu stea.",
     "star_sync_none": "Această conversație nu are marcaje cu stea locale vechi de sincronizat.",
-    "star_local_removed": "Marcajul cu stea local a fost eliminat. WhatsApp nu a confirmat acest mesaj; dacă este marcat cu stea acolo, marcajul va reveni.",
+    "star_local_removed": "Marcajul cu stea local a fost eliminat. WhatsApp nu a confirmat acest mesaj; dacă este marcat cu stea acolo, marcajul cu stea va reveni.",
     "star_unverified": "Această modificare a marcajului cu stea nu a putut fi verificată. Actualizați conversația deschisă cu Shift+F5 înainte de a reîncerca; este posibil să fi fost deja aplicată.",
     "star_not_sent": "Acest mesaj nu a fost încă trimis, deci marcajul cu stea nu poate fi modificat.",
     "pin_message": "&Fixează mesajul",
