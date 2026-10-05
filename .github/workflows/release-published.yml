@@ -47,7 +47,33 @@ jobs:
           ref: main
           token: ${{ secrets.RELEASE_BUMP_TOKEN }}
 
+      # A maintenance release of a line main has already left (2.0.0.0 cut
+      # from release/v2.0.0.0 while main is on 2.1.0.0) must not drag main's
+      # version.py back: alphas would restart from the old base and sort below
+      # the alphas users already run, so none of them would ever be offered
+      # another one. The tag is compared to main's version on major.minor.patch,
+      # the same rule check_stable_release_ordering.py uses.
+      - name: Skip the bump for a release older than main's line
+        id: lag
+        shell: bash
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          def nums(v):
+              m = re.match(r"^[vV]?(\d+)\.(\d+)\.(\d+)\.(\d+)", v.strip())
+              return tuple(int(x) for x in m.groups()[:3]) if m else None
+          main = re.search(r'__version__\s*=\s*"([^"]+)"', open("client/version.py").read())
+          tag, cur = nums(os.environ["TAG"]), nums(main.group(1)) if main else None
+          lagging = bool(tag and cur and cur > tag)
+          print(f"[INFO] tag {tag}, main {cur}, lagging={lagging}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"skip={'true' if lagging else 'false'}\n")
+          PY
+
       - name: Set version.py from release tag
+        if: steps.lag.outputs.skip != 'true'
         shell: bash
         env:
           TAG: ${{ github.event.release.tag_name }}
@@ -59,6 +85,7 @@ jobs:
 
       - name: Commit version.py bump back to the repository
         id: commit_version
+        if: steps.lag.outputs.skip != 'true'
         uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         continue-on-error: true
         with:

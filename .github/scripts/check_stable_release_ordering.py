@@ -67,6 +67,42 @@ def suggest_tag(stable_tag: str, blockers: "list[str]") -> str:
     return f"{major}.{minor}.{patch + 1}.0{suffix}"
 
 
+def stable_lags_main(stable_tag: str, main_version: str) -> bool:
+    """True when *stable_tag* is a maintenance release of a line main has left.
+
+    Stable releases are cut from release/x.y.z.w branches while main moves on
+    to the next line (its client/version.py already says 2.1.0.0 while 2.0.0.0
+    is being cut). The alphas published from that main outrank the older
+    stable on purpose: an alpha user must never be pulled onto a stable that
+    lacks features their alpha already has, so "alphas outrank it" is the
+    wanted outcome there, not the stranding this guard exists to catch.
+
+    Only major.minor.patch is compared: a stable on the same line main is
+    still on (0.25.0.1beta against main 0.25.0.0beta) is the original hazard
+    and stays blocked.
+    """
+    stable = parse_version(stable_tag.lstrip("vV"))
+    main = parse_version(main_version.strip().lstrip("vV"))
+    if stable is None or main is None:
+        return False
+    return tuple(main[0][:3]) > tuple(stable[0][:3])
+
+
+def _main_version() -> "str | None":
+    """client/version.py of origin/main, or None when it cannot be read."""
+    try:
+        out = subprocess.run(
+            ["git", "show", "origin/main:client/version.py"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    for line in out.splitlines():
+        if line.startswith("__version__"):
+            return line.split("=", 1)[1].strip().strip("\"'")
+    return None
+
+
 def _git_tags() -> "list[str]":
     out = subprocess.run(
         ["git", "tag", "--list"], capture_output=True, text=True, check=True
@@ -87,6 +123,13 @@ def main() -> int:
     tags = _git_tags()
     blockers = find_blocking_alphas(stable_tag, tags)
     if blockers:
+        main_version = _main_version()
+        if main_version and stable_lags_main(stable_tag, main_version):
+            print(f"[INFO] {version} sorts below alpha builds ({', '.join(blockers[-3:])}"
+                  f"{', ...' if len(blockers) > 3 else ''}) on purpose: main is already "
+                  f"on {main_version}, so this is a maintenance release of an older "
+                  f"line. Alpha users stay on their alphas and are not offered it.")
+            return 0
         print(f"::error::Stable release {version} does not sort above already "
               f"published alpha builds: {', '.join(blockers)}. Users on those "
               f"alphas would never be offered it. Alpha builds consume the "
