@@ -34,6 +34,8 @@ CORREÇÕES
 
 - Ficheiros de áudio enviados como anexo: um ficheiro WAV ou OGG Vorbis em estéreo ou surround (5.1, 7.1) chega agora com todos os canais, como áudio normal, e mantém a taxa de amostragem até 48 kHz (uma taxa superior é enviada a 48 kHz). Antes chegava em mono, a parecer uma mensagem de voz. Um ficheiro com mais de 8 canais, que o AAC não suporta, é enviado sem alterações como documento.
 
+- Atualizar o WinZapp já não desfaz uma atualização da WPPConnect. Depois de atualizar a WPPConnect para uma versão mais recente do que a que vem com o WinZapp (pelo aviso de atualização ou por "Forçar reinstalação da WPPConnect" no menu Ajuda), a atualização seguinte do WinZapp voltava a pô-la na versão antiga, e a mesma atualização da WPPConnect voltava a ser oferecida
+
 V2.0.0.0
 
 A grande novidade desta versão são as chamadas: agora é possível fazer, atender e recusar chamadas de voz e de vídeo no próprio WinZapp, sem pegar no telemóvel, com uma janela de chamada acessível, atalhos de teclado, definições de áudio próprias e o histórico no novo separador Chamadas. Chegaram também as conversas trancadas, a pesquisa nas conversas arquivadas, os idiomas turco e romeno e várias melhorias de utilização, além de correções em situações em que o WinZapp pedia para emparelhar de novo sem necessidade. Por baixo, o código do programa passou por uma grande reorganização: não muda nada na utilização, mas torna o WinZapp mais fácil de manter e de corrigir daqui para a frente.

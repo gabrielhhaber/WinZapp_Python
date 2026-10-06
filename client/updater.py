@@ -678,6 +678,19 @@ def _needs_admin() -> bool:
         return True
 
 
+def _keep_newer_installed_server(source_dir: str, install_dir: str) -> None:
+    """The xcopy below must not put back an older WPPConnect Server than the
+    one installed (core/update_keeps_server.py). Never fails the update."""
+    try:
+        from core.update_keeps_server import keep_newer_installed_server
+        from ui.dialogs.api_setup import _PATCHED_DEPENDENCY_KEYS
+        keep_newer_installed_server(os.path.join(source_dir, "api"),
+                                    os.path.join(install_dir, "api"),
+                                    _PATCHED_DEPENDENCY_KEYS)
+    except Exception:
+        logging.exception("Auto-updater: could not check the installed WPPConnect Server")
+
+
 def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pid: int, api_port: int = 6300,
                          extra_pids: "list[int] | tuple" = ()) -> bool:
     """
@@ -698,6 +711,7 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
     winzapp_sub = os.path.join(extracted_dir, "WinZapp")
     if os.path.isdir(winzapp_sub):
         source_dir = winzapp_sub
+    _keep_newer_installed_server(source_dir, install_dir)
 
     bat_fd, bat_path = tempfile.mkstemp(suffix=".bat", prefix="winzapp_upd_")
     os.close(bat_fd)

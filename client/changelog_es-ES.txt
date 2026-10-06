@@ -34,6 +34,8 @@ CORRECCIONES
 
 - Archivos de audio enviados como archivo adjunto: un archivo WAV u OGG Vorbis en estéreo o envolvente (5.1, 7.1) ahora llega con todos sus canales, como audio normal, y conserva su frecuencia de muestreo hasta 48 kHz (una más alta se envía a 48 kHz). Antes llegaba en mono, con aspecto de mensaje de voz. Un archivo con más de 8 canales, que AAC no admite, se envía sin cambios como documento.
 
+- Actualizar WinZapp ya no deshace una actualización de WPPConnect. Después de actualizar WPPConnect a una versión más reciente que la que trae WinZapp (desde el aviso de actualización o con "Forzar reinstalación de WPPConnect" en el menú Ayuda), la siguiente actualización de WinZapp la devolvía a la versión anterior, y se volvía a ofrecer la misma actualización de WPPConnect
+
 V2.0.0.0
 
 La gran novedad de esta versión son las llamadas: ahora se pueden hacer, contestar y rechazar llamadas de voz y videollamadas desde el propio WinZapp, sin coger el móvil, con una ventana de llamada accesible, atajos de teclado, configuración de audio propia y el historial en la nueva pestaña Llamadas. También llegan los chats bloqueados, la búsqueda en las conversaciones archivadas, los idiomas turco y rumano y varias mejoras de uso, además de correcciones en situaciones en las que WinZapp pedía vincular de nuevo sin necesidad. Por dentro, el código del programa ha pasado por una gran reorganización: no cambia nada en el uso, pero hace que WinZapp sea más fácil de mantener y de corregir a partir de ahora.

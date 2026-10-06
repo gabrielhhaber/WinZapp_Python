@@ -34,6 +34,8 @@ DÜZELTMELER
 
 - Ek olarak gönderilen ses dosyaları: stereo veya surround (5.1, 7.1) bir WAV ya da OGG Vorbis dosyası artık tüm kanallarıyla, normal ses olarak ulaşıyor ve örnekleme hızı 48 kHz'e kadar korunuyor (daha yüksek bir hız 48 kHz olarak gönderilir). Önceden mono olarak ulaşıyor ve sesli mesaj gibi görünüyordu. AAC'nin taşıyamadığı 8'den fazla kanala sahip bir dosya ise değiştirilmeden belge olarak gönderilir.
 
+- WinZapp'ı güncellemek artık bir WPPConnect güncellemesini geri almıyor. WPPConnect, WinZapp ile gelenden daha yeni bir sürüme güncellendikten sonra (güncelleme bildiriminden ya da Yardım menüsündeki "WPPConnect'i yeniden yüklemeye zorla" ile), bir sonraki WinZapp güncellemesi onu eski sürüme geri döndürüyor ve aynı WPPConnect güncellemesi yeniden sunuluyordu
+
 V2.0.0.0
 
 Bu sürümün en büyük yeniliği aramalardır: Telefona ihtiyaç duymadan doğrudan WinZapp üzerinden sesli ve görüntülü arama başlatabilir, gelen aramaları yanıtlayabilir veya reddedebilirsiniz. Bu yenilik; tam erişilebilir bir arama penceresi, pratik klavye kısayolları, aramalara özel ses ayarları ve yeni Aramalar sekmesindeki kapsamlı arama geçmişiyle birlikte sunulmaktadır. Ayrıca PIN korumalı kilitli sohbetler, arşivlenmiş sohbetlerde arama, resmi Türkçe ve Rumence dil destekleri ile çeşitli kullanım iyileştirmeleri eklendi; WinZapp'in gereksiz yere yeniden eşleştirme istediği durumlar da düzeltildi. Arka planda programın kod tabanı büyük bir yeniden yapılandırmadan (refactoring) geçti: Bu durum WinZapp'i kullanım şeklinizde hiçbir şeyi değiştirmez; ancak programın uzun vadeli kararlılığını, bakımını ve hata düzeltme süreçlerini önemli ölçüde kolaylaştırır.
