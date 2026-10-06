@@ -65,6 +65,15 @@ def fake_fernet(monkeypatch):
 
 
 class TestSetWaToken:
+    def test_invalidates_account_list_cache_before_replacing_or_clearing_token(self, fake_fernet):
+        mw = _Stub({"WA_token": "old-fake"})
+        seen = []
+        mw._invalidate_wa_lists = lambda: seen.append(dict(mw.settings["privateinfo"]))
+        mw._set_wa_token("new-fake")
+        mw._set_wa_token("")
+        assert seen[0] == {"WA_token": "old-fake"}
+        assert seen[1]["WA_token_protected"].startswith("PROTECTED(new-fake)")
+
     def test_stores_protected_form_and_no_plaintext(self, fake_fernet):
         mw = _Stub()
         mw._set_wa_token("secret-token:hash")

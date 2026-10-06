@@ -93,6 +93,7 @@ class _Stub:
         self._media_bitmap         = _FakeWidget()
         self._action_open_btn      = _FakeWidget()
         self._action_save_as_btn   = _FakeWidget()
+        self._action_describe_btn  = _FakeWidget()
         self._action_download_btn  = _FakeWidget()
         self._buttons_container    = _FakeWidget()
         self._contact_converse_btn = _FakeWidget()

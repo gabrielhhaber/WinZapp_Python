@@ -141,9 +141,10 @@ def test_suggestion_is_based_on_the_highest_blocker(guard):
 
 # ── main(): exit codes and messages ───────────────────────────────────────────
 
-def _run_main(guard, monkeypatch, tag, tags, capsys):
+def _run_main(guard, monkeypatch, tag, tags, capsys, main_version=None):
     monkeypatch.setenv("RELEASE_TAG", tag)
     monkeypatch.setattr(guard, "_git_tags", lambda: tags)
+    monkeypatch.setattr(guard, "_main_version", lambda: main_version)
     code = guard.main()
     return code, capsys.readouterr().out
 
@@ -170,3 +171,40 @@ def test_main_rejects_a_tag_alphas_outrank_and_says_which(guard, monkeypatch, ca
     assert "v0.25.0.2155alpha" in out
     # The message has to say what to do about it, not just that it failed.
     assert "0.25.1.0" in out
+
+
+# ── A maintenance release of a line main has already left ────────────────────
+
+def test_lagging_stable_is_recognised_by_major_minor_patch(guard):
+    assert guard.stable_lags_main("v2.0.0.0", "2.1.0.0") is True
+    assert guard.stable_lags_main("v2.0.1.0", "2.1.0.0") is True
+    # Same line: the original stranding hazard, still not a lagging release.
+    assert guard.stable_lags_main("v2.1.0.1", "2.1.0.0") is False
+    assert guard.stable_lags_main("v2.1.0.0", "2.1.0.0") is False
+    # Ahead of main is not lagging either.
+    assert guard.stable_lags_main("v2.2.0.0", "2.1.0.0") is False
+    assert guard.stable_lags_main("v2.0.0.0", "not a version") is False
+    # A suffix or a leading "v" on main's version changes nothing.
+    assert guard.stable_lags_main("v0.24.0.0beta", "0.25.0.0beta") is True
+    assert guard.stable_lags_main("v2.0.0.0", "v2.1.0.0") is True
+
+
+def test_main_allows_a_stable_below_alphas_of_a_newer_main_line(guard, monkeypatch, capsys):
+    tags = ["v2.0.0.4025alpha", "v2.1.0.17alpha"]
+    code, out = _run_main(guard, monkeypatch, "v2.0.0.0", tags, capsys, main_version="2.1.0.0")
+    assert code == 0
+    assert "on purpose" in out
+    assert "::error::" not in out
+
+
+def test_main_still_blocks_a_stable_on_the_line_main_is_on(guard, monkeypatch, capsys):
+    tags = ["v2.1.0.17alpha"]
+    code, out = _run_main(guard, monkeypatch, "v2.1.0.1", tags, capsys, main_version="2.1.0.0")
+    assert code == 1
+    assert "::error::" in out
+
+
+def test_main_still_blocks_when_main_version_is_unreadable(guard, monkeypatch, capsys):
+    tags = ["v2.0.0.4025alpha"]
+    code, _ = _run_main(guard, monkeypatch, "v2.0.0.0", tags, capsys, main_version=None)
+    assert code == 1

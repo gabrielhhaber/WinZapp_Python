@@ -73,17 +73,14 @@ class MessageActionsMixin:
     def _on_menu_star(self, msg: dict):
         if self._reject_system_event_action(msg):
             return
-        msg["starred"] = not msg.get("starred")
         jid = self.conversation.get("remoteJid", "")
         if jid:
-            self.main_window._schedule_save()
-            self._persist_message_local_flag(jid, msg)
-            self._repaint_or_repopulate([msg.get("key", {}).get("id", "")])
+            self._sync_message_stars(jid, [msg], not bool(msg.get("starred")))
 
     def _on_menu_pin_message(self, msg: dict):
         """Pin/unpin a message via WhatsApp's own message-pin feature.
 
-        Unlike _on_menu_star (a local-only flag), this is visible to every
+        Unlike a private star, this is visible to every
         other participant in the chat, so it goes through the WPPConnect API
         — applied optimistically like conversation pin/unpin
         (_sync_pin_to_server), and rolled back if the server rejects it.

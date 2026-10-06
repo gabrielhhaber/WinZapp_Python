@@ -16,6 +16,7 @@ from core.message_edit import (
     connection_refused,
     response_not_sent,
 )
+from core.utils import is_voice_message
 from app_paths import data_path
 
 
@@ -311,6 +312,22 @@ class MessageActionsMixin:
             store.pop((jid, kind), None)
         return True
 
+    def _keep_voice_on_forward(self, source_msg) -> bool:
+        """Whether this forward should ask for the voice message to stay one
+        (Settings > User Interface, off by default).
+
+        WhatsApp turns a forwarded voice message into a plain audio, which
+        takes it out of the sequential playback of voice messages at the
+        destination. With the option on, the server is asked to keep the type
+        (client/api_patches/src/util/forwardRuntime.ts); the copy is still
+        marked as forwarded. Only for a voice message: anything else is
+        forwarded exactly as before.
+        """
+        settings = getattr(self, "settings", None) or {}
+        if settings.get("user_interface", {}).get("forward_voice_as_voice", False) is not True:
+            return False
+        return is_voice_message(source_msg)
+
     def forward_message(self, source_jid: str, msg_key: dict, target_jid: str,
                         source_msg: dict = None) -> bool:
         """Forward a message of any type (text, media, document, …) via
@@ -338,6 +355,8 @@ class MessageActionsMixin:
             "isGroup":   target_phone.endswith("@g.us"),
             "messageId": [full_id],
         }
+        if self._keep_voice_on_forward(source_msg):
+            payload["keepVoice"] = True
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"

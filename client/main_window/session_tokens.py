@@ -75,6 +75,9 @@ class SessionTokensMixin:
         protected and legacy fields.
         """
         pi = self.settings.setdefault("privateinfo", {})
+        invalidate = getattr(self, "_invalidate_wa_lists", None)
+        if invalidate is not None:
+            invalidate()
         if not token:
             pi.pop("WA_token_protected", None)
             pi["WA_token"] = ""

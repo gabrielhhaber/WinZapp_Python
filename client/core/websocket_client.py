@@ -9,6 +9,7 @@ from core.api_client import api_get, api_post
 from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_creator, call_log_payload
 from core.i18n import I18n
 from core.message_edit import MESSAGE_EDIT, clean_message_id, server_marks_edited
+from core.message_stars import remote_star_state
 from core.meta_ai import rich_response_text
 from core.sync_contracts import observe_payload
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE, is_view_once_unavailable
@@ -3059,6 +3060,7 @@ class WebSocketClient:
         # (core/message_edit.server_marks_edited()).
         if not _is_edit_event and server_marks_edited(wpp_msg):
             normalized["_edited"] = True
+        normalized.update(remote_star_state(wpp_msg))
 
         # Status messages: include the real sender as participant
         if status_participant:

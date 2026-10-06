@@ -6,6 +6,7 @@ ConversationsPanel.__init__/init_UI is available here.
 """
 
 import logging
+import re
 import threading
 import time
 import wx
@@ -49,6 +50,47 @@ class MentionsMixin:
             jid = getattr(mw, "_lid_to_phone", {}).get(jid, jid)
         return jid.rsplit("@", 1)[0].split(":")[0]
 
+    @staticmethod
+    def _mention_text(msg: dict) -> str:
+        """The text a mention is written in: the body, or a media caption."""
+        msg_obj = msg.get("message") or {}
+        if not isinstance(msg_obj, dict):
+            return ""
+        ext = msg_obj.get("extendedTextMessage") or {}
+        candidates = [msg_obj.get("conversation"), ext.get("text") if isinstance(ext, dict) else None]
+        for value in msg_obj.values():
+            if isinstance(value, dict):
+                candidates.append(value.get("caption"))
+        return next((c for c in candidates if isinstance(c, str) and c), "")
+
+    def _individually_named_mentions(self, msg: dict, mentioned: list) -> list:
+        """(display_name, jid) of the people the text names with their own
+        ``@<number>``, out of a mention list that covers the whole group.
+
+        An @todos expands to every participant in ``mentionedJid`` and leaves
+        no marker, so a person also mentioned by name is in that list either
+        way. What tells them apart is the text: a send swaps ``@Name`` for
+        ``@<phone>`` (_build_mention_payload), while @todos stays a word.
+        """
+        tokens = set(re.findall(r"@(\d+)", self._mention_text(msg)))
+        if not tokens:
+            return []
+        mw = self.main_window
+        lid_to_phone = getattr(mw, "_lid_to_phone", {})
+        phone_to_lid = getattr(mw, "_phone_to_lid", {})
+        out, seen = [], set()
+        for jid in mentioned:
+            if not jid or jid in seen:
+                continue
+            norm = mw._normalize_jid(jid)
+            forms = {jid, norm, lid_to_phone.get(norm, ""), phone_to_lid.get(norm, "")}
+            digits = {self._mention_identity(form) for form in forms if form}
+            digits |= {form.rsplit("@", 1)[0].split(":")[0] for form in forms if form}
+            if digits & tokens:
+                seen.add(jid)
+                out.append((self._get_participant_name(jid), jid))
+        return out
+
     def _extract_mentions(self, msg: dict) -> list:
         """Return list of (display_name, jid) for @mentioned JIDs in msg.
 
@@ -59,7 +101,8 @@ class MentionsMixin:
         hyperlink per participant (routinely dozens in a large group) is
         just UI noise for something that always means "everyone", not
         something a per-person link helps with. Individual mentions of
-        specific people still show their links as before.
+        specific people still show their links as before, and so do people
+        named on their own next to an @todos.
         """
         mentioned = self._raw_mentioned_jids(msg)
         if not mentioned:
@@ -105,7 +148,10 @@ class MentionsMixin:
                     and len(mentioned_norm) >= threshold
                 )
                 if intersect_size >= threshold or count_match:
-                    return []
+                    # An @todos, which says nothing about WHO: but anyone also
+                    # named on their own in the text ("@todos ... @Ana ...")
+                    # still gets a link; only the "everyone" part is dropped.
+                    return self._individually_named_mentions(msg, mentioned)
 
         out = []
         seen = set()

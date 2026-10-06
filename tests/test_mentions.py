@@ -62,6 +62,8 @@ class _Stub:
     _mention_identity = ConversationsPanel._mention_identity
     _raw_mentioned_jids = staticmethod(ConversationsPanel._raw_mentioned_jids)
     _extract_mentions = ConversationsPanel._extract_mentions
+    _mention_text = staticmethod(ConversationsPanel._mention_text)
+    _individually_named_mentions = ConversationsPanel._individually_named_mentions
     _build_mention_payload = ConversationsPanel._build_mention_payload
 
     def __init__(self, main_window, participants=None):
@@ -88,11 +90,11 @@ LID_TO_PHONE = {
 }
 
 
-def _text_msg(mentioned):
+def _text_msg(mentioned, text="@todos bom dia"):
     return {
         "key": {"id": "X", "fromMe": True},
         "messageType": "extendedTextMessage",
-        "message": {"extendedTextMessage": {"text": "@todos bom dia"}},
+        "message": {"extendedTextMessage": {"text": text}},
         "contextInfo": {"mentionedJid": list(mentioned)},
     }
 
@@ -158,6 +160,43 @@ class TestExtractMentionsCollapsesMentionAll:
         s = _Stub(_FakeMainWindow(LID_TO_PHONE), PARTICIPANTS[:2])
         out = s._extract_mentions(_text_msg(["5511111111111@s.whatsapp.net"]))
         assert len(out) == 1
+
+
+class TestMentionAllNextToAnIndividualMention:
+    """"@todos ... @Ana ...": the list covers the whole group either way, so
+    only the text says Ana was also named. She keeps her link; "everyone" does
+    not get one per participant."""
+
+    def test_the_person_named_in_the_text_keeps_a_link(self):
+        s = _Stub(_FakeMainWindow(LID_TO_PHONE), PARTICIPANTS)
+        msg = _text_msg(LID_TO_PHONE.values(), "@todos, o @5522222222222 já sabe")
+        assert [jid for _, jid in s._extract_mentions(msg)] == ["5522222222222@s.whatsapp.net"]
+
+    def test_several_people_named_keep_their_links_in_list_order(self):
+        s = _Stub(_FakeMainWindow(LID_TO_PHONE), PARTICIPANTS)
+        msg = _text_msg(LID_TO_PHONE.values(), "@5533333333333 e @5511111111111 e @todos")
+        assert [jid for _, jid in s._extract_mentions(msg)] == [
+            "5511111111111@s.whatsapp.net", "5533333333333@s.whatsapp.net"]
+
+    def test_a_person_received_as_lid_is_matched_by_phone_digits(self):
+        s = _Stub(_FakeMainWindow(LID_TO_PHONE), PARTICIPANTS)
+        msg = _text_msg(LID_TO_PHONE.keys(), "@todos @5511111111111")
+        assert [jid for _, jid in s._extract_mentions(msg)] == ["111@lid"]
+
+    def test_only_at_todos_still_shows_no_links(self):
+        s = _Stub(_FakeMainWindow(LID_TO_PHONE), PARTICIPANTS)
+        assert s._extract_mentions(_text_msg(LID_TO_PHONE.values(), "@todos bom dia")) == []
+
+    def test_a_number_that_is_not_a_participant_is_ignored(self):
+        s = _Stub(_FakeMainWindow(LID_TO_PHONE), PARTICIPANTS)
+        msg = _text_msg(LID_TO_PHONE.values(), "@todos ligue para @5599999999999")
+        assert s._extract_mentions(msg) == []
+
+    def test_a_media_caption_counts_as_the_text(self):
+        s = _Stub(_FakeMainWindow(LID_TO_PHONE), PARTICIPANTS)
+        msg = {"key": {"id": "X"}, "contextInfo": {"mentionedJid": list(LID_TO_PHONE.values())},
+               "message": {"imageMessage": {"caption": "@todos vejam @5511111111111"}}}
+        assert [jid for _, jid in s._extract_mentions(msg)] == ["5511111111111@s.whatsapp.net"]
 
 
 class TestRawMentionedJids:

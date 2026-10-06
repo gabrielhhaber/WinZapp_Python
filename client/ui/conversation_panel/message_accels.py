@@ -8,6 +8,29 @@ ConversationsPanel.__init__/init_UI is available here.
 import pyperclip
 import wx
 from core.utils import format_number
+from main_window.message_rules import quote_is_of_my_message
+
+
+def jump_to_older_message(panel, indices, found_key):
+    """Focus the closest of *indices* above the focused row (an older message,
+    going backwards), wrapping to the newest after the oldest, and announce
+    *found_key*. Shared by the "previous mention" and "previous reply" keys."""
+    curr_idx = panel.messages_list.GetFocusedItem()
+    target_idx = -1
+
+    for idx in reversed(indices):
+        if curr_idx < 0 or idx < curr_idx:
+            target_idx = idx
+            break
+
+    # If we reached the oldest one, or started below the newest, wrap around to newest
+    if target_idx == -1:
+        target_idx = indices[-1]
+
+    panel.messages_list.Focus(target_idx)
+    panel.messages_list.Select(target_idx, True)
+    panel.messages_list.EnsureVisible(target_idx)
+    panel.main_window.output(panel.main_window.i18n.t(found_key), interrupt=True)
 
 
 class MessageAccelsMixin:
@@ -434,20 +457,43 @@ class MessageAccelsMixin:
             self.main_window.output(self.main_window.i18n.t("no_mentions_found"), interrupt=True)
             return
 
-        # Jump to the next mention (older message, going backwards)
-        curr_idx = self.messages_list.GetFocusedItem()
-        target_idx = -1
+        jump_to_older_message(self, mentions, "jumped_to_mention")
 
-        for idx in reversed(mentions):
-            if curr_idx < 0 or idx < curr_idx:
-                target_idx = idx
-                break
+    def _is_reply_to_me(self, msg) -> bool:
+        """Whether *msg*, written by someone else, quotes one of MY messages.
 
-        # If we reached the oldest mention, or started below the newest, wrap around to newest
-        if target_idx == -1:
-            target_idx = mentions[-1]
+        The rule is message_rules.quote_is_of_my_message(), shared with the
+        notification side. Where it cannot tell (no participant on the quote
+        and the quoted message not loaded) this reads it as the message list
+        does (_get_quoted_sender()): a 1:1 reply from the other party is to
+        me, while a group reply carries no such guarantee and does not count.
+        """
+        if not isinstance(msg, dict) or (msg.get("key") or {}).get("fromMe"):
+            return False
+        ctx = self._get_context_info(msg)
+        if not ctx:
+            return False
 
-        self.messages_list.Focus(target_idx)
-        self.messages_list.Select(target_idx, True)
-        self.messages_list.EnsureVisible(target_idx)
-        self.main_window.output(self.main_window.i18n.t("jumped_to_mention"), interrupt=True)
+        def _quoted_from_me(stanza_id):
+            for other in self._sorted_messages:
+                if isinstance(other, dict) and (other.get("key") or {}).get("id") == stanza_id:
+                    return bool(other["key"].get("fromMe"))
+            return None
+
+        answer = quote_is_of_my_message(ctx, self.main_window._is_self_jid, _quoted_from_me)
+        if answer is None:
+            return not (self.conversation or {}).get("remoteJid", "").endswith("@g.us")
+        return answer
+
+    def _on_accel_replies(self, event):
+        """Alt+Shift+P: jump to the previous message that replies to me."""
+        if not self.conversation:
+            return
+        replies = [
+            i for i, msg in enumerate(self._sorted_messages)
+            if not self._is_separator(msg) and self._is_reply_to_me(msg)
+        ]
+        if not replies:
+            self.main_window.output(self.main_window.i18n.t("no_replies_found"), interrupt=True)
+            return
+        jump_to_older_message(self, replies, "jumped_to_reply")

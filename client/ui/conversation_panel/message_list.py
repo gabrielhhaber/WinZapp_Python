@@ -126,6 +126,8 @@ class MessageListMixin:
                 self._action_open_btn.Show()
                 self.conversation_panel.Layout()
 
+        self._update_ai_describe_button(msg)
+
         if self._saved_media_path(msg):
             self._action_show_in_folder_btn.Show()
 

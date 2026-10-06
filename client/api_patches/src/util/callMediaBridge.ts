@@ -2223,14 +2223,35 @@ export async function warmCallVoipRuntime(client: any, logger: any): Promise<boo
               const init = backend?.WAWebVoipInit?.initWAWebVoip || backend?.initWAWebVoip;
               if (typeof init === 'function') {
                 const initModule = backend?.WAWebVoipInit || backend;
-                await init.call(initModule, 'winzapp_session_warmup');
                 const emitter = initModule?.VoipInitEventEmitter;
-                if (
-                  emitter?.getIsVoipInited?.() !== true &&
-                  emitter?.getDidVoipInitError?.() === true &&
-                  typeof initModule?.retryWAWebVoipInitAfterFailure === 'function'
-                ) {
-                  await initModule.retryWAWebVoipInitAfterFailure();
+                // The VoIP WebAssembly module loads once per page: never
+                // initialise again when it is ready or already in flight (a
+                // call action shares the same promise), or WhatsApp fails
+                // with "cannot load module more than once per process".
+                if (emitter?.getIsVoipInited?.() !== true && !win.__winzappVoipLoadedOnce) {
+                  if (!win.__winzappVoipInitFlight) {
+                    win.__winzappVoipInitFlight = (async () => {
+                      try {
+                        await init.call(initModule, 'winzapp_session_warmup');
+                        if (
+                          emitter?.getIsVoipInited?.() !== true &&
+                          emitter?.getDidVoipInitError?.() === true &&
+                          typeof initModule?.retryWAWebVoipInitAfterFailure === 'function'
+                        ) {
+                          await initModule.retryWAWebVoipInitAfterFailure();
+                        }
+                      } catch (initError: any) {
+                        if (/more than once/i.test(String(initError?.message || initError))) {
+                          win.__winzappVoipLoadedOnce = true;
+                        } else {
+                          throw initError;
+                        }
+                      } finally {
+                        delete win.__winzappVoipInitFlight;
+                      }
+                    })();
+                  }
+                  await win.__winzappVoipInitFlight;
                 }
                 if (emitter?.getIsVoipInited?.() === false) {
                   lastError = 'WhatsApp VoIP initializer did not become ready';

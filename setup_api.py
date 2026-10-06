@@ -117,6 +117,7 @@ CUSTOM_SRC_FILES = [
     "src/config.ts",
     "src/index.ts",
     "src/util/callMediaBridge.ts",
+    "src/util/chatListsRuntime.ts",
     "src/util/forwardRuntime.ts",
     "src/util/listChatsDiag.ts",
     "src/util/createSessionUtil.ts",
@@ -137,7 +138,10 @@ CUSTOM_SRC_FILES = [
     "src/tests/util/logger.test.ts",
     "src/tests/dto/sync.test.ts",
     "src/tests/middleware/errorHandler.test.ts",
+    "src/tests/controller/contactSaveController.test.ts",
     "src/controller/callController.ts",
+    "src/controller/chatListsController.ts",
+    "src/controller/contactSaveController.ts",
     "src/controller/deviceController.ts",
     "src/controller/messageController.ts",
     "src/controller/sessionController.ts",
@@ -440,6 +444,7 @@ from core.wppconnect_welcome_layer_patch import ALL_PATCHES as _WELCOME_LAYER_PA
 from core.wppconnect_welcome_layer_patch import (
     latest_version_dependency_is_gone as _welcome_latest_version_dependency_is_gone,
 )
+from core.wppconnect_wa_js_patch import patch_wa_js_bundle as _patch_wa_js_bundle_file
 from core.wpp_runtime import homologated_wpp_tag
 
 
@@ -666,6 +671,19 @@ def _patch_wppconnect_welcome_layer(client_api_dir: str = None) -> bool:
             "@wppconnect-team/wppconnect version may have changed this file)."
         )
     return missing == 0
+
+
+def _patch_wa_js_bundle(client_api_dir: str = None) -> bool:
+    """Patch @wppconnect/wa-js's compiled bundle so a message to Meta AI is
+    sent without a persona id, the way WhatsApp Web sends it, instead of
+    failing with a TypeError when the bot profile has not loaded (WinZapp
+    issue #365) — see client/core/wppconnect_wa_js_patch.py's module
+    docstring. The search-and-replace and the file handling both live there,
+    so this and ApiSetupDialog's call can't drift apart.
+    """
+    ok, note = _patch_wa_js_bundle_file(client_api_dir or CLIENT_API_DIR)
+    print(f"[{'OK' if ok else 'WARNING'}] {note}")
+    return ok
 
 
 def _merge_package_json_dependencies():
@@ -1102,6 +1120,14 @@ def main():
             _patch_wppconnect_welcome_layer()
         except Exception as e:
             print(f"[WARNING] Failed to patch welcome.js latest-version ESM require: {e}")
+
+        # A message to Meta AI failed before it was sent whenever the bot
+        # profile had not loaded (issue #365) — see _patch_wa_js_bundle()'s
+        # docstring.
+        try:
+            _patch_wa_js_bundle()
+        except Exception as e:
+            print(f"[WARNING] Failed to patch wppconnect-wa.js Meta AI persona id: {e}")
 
         # Download Chromium (Puppeteer postinstall)
         print("[INFO] Downloading Chromium (Puppeteer)...")

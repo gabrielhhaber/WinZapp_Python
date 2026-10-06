@@ -150,6 +150,11 @@ def parse_answer(provider, body, kind):
             raise DescriptionError("request")
         if not isinstance(text, str) or not text.strip():
             raise DescriptionError("response")
-        return text.strip()[:limit]
+        text = text.strip()
+        if kind in ("audio", "pdf") and len(text) > limit:
+            # A transcript or converted PDF must not lose its ending while
+            # being presented as complete. This local limit ends the action.
+            raise DescriptionError("output_limit")
+        return text[:limit]
     except (KeyError, IndexError, TypeError, AttributeError):
         raise DescriptionError("response") from None

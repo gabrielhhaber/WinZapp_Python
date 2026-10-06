@@ -181,6 +181,33 @@ def test_long_documents_are_not_cut_like_descriptions():
     assert len(parse_answer("groq", body, "audio")) == 20_000
 
 
+def _text_response(provider, kind, text):
+    if kind == "audio" and provider in ("openai", "groq"):
+        return {"text": text}
+    if provider == "openai":
+        return {"status": "completed", "output": [{"type": "message", "content": [
+            {"type": "output_text", "text": text}]}]}
+    if provider == "gemini":
+        return {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": text}]}}]}
+    if provider == "claude":
+        return {"stop_reason": "end_turn", "content": [{"type": "text", "text": text}]}
+    return {"choices": [{"finish_reason": "stop", "message": {"content": text}}]}
+
+
+@pytest.mark.parametrize("provider,kind", [
+    ("openai", "audio"), ("groq", "audio"), ("gemini", "audio"),
+    ("openai", "pdf"), ("gemini", "pdf"), ("claude", "pdf"), ("openrouter", "pdf")])
+@pytest.mark.parametrize("offset", [-1, 0, 1])
+def test_transcript_and_pdf_text_limits_never_return_silent_partial_success(provider, kind, offset):
+    text = "x" * (config.MAX_OUTPUT_CHARS[kind] + offset)
+    body = _text_response(provider, kind, "\n " + text + " \n")
+    if offset > 0:
+        with pytest.raises(DescriptionError, match="ai_error_output_limit"):
+            parse_answer(provider, body, kind)
+    else:
+        assert parse_answer(provider, body, kind) == text
+
+
 # ── media validation ─────────────────────────────────────────────────────
 
 def test_pdf_must_look_like_a_pdf_and_is_sent_untouched():
@@ -349,4 +376,76 @@ def test_bad_media_is_not_retried_on_another_provider():
     http = BadMedia({})
     with pytest.raises(DescriptionError, match="ai_error_media_format"):
         chain(http, ["openai", "gemini"])
+    assert len(http.calls) == 1
+
+
+@pytest.mark.parametrize("kind,media", [("audio", AUDIO), ("pdf", PDF)])
+def test_output_limit_does_not_send_media_to_another_provider(kind, media):
+    text = "x" * (config.MAX_OUTPUT_CHARS[kind] + 1)
+    http = RoutedHTTP({
+        "openai.com": (200, json.dumps(_text_response("openai", kind, text)).encode()),
+        "googleapis": (200, json.dumps(_text_response("gemini", kind, "short answer")).encode()),
+    })
+    with pytest.raises(DescriptionError, match="ai_error_output_limit"):
+        chain(http, ["openai", "gemini"], kind=kind, media=media)
+    assert len(http.calls) == 1
+
+
+@pytest.mark.parametrize("kind,media", [("audio", AUDIO), ("pdf", PDF)])
+@pytest.mark.parametrize("failure", [401, 403, 429, 500, 400, "network", "timeout"])
+def test_provider_failures_still_use_the_next_configured_provider(kind, media, failure):
+    import requests
+    outcome = (failure, b"") if isinstance(failure, int) else {
+        "network": requests.ConnectionError("synthetic network failure"),
+        "timeout": requests.ReadTimeout("synthetic attempt timeout"),
+    }[failure]
+    http = RoutedHTTP({
+        "openai.com": outcome,
+        "googleapis": (200, json.dumps(_text_response("gemini", kind, "complete text")).encode()),
+    })
+    assert chain(http, ["openai", "gemini"], kind=kind, media=media) == ("complete text", "gemini")
+    assert [url.split("/")[2] for url, _ in http.calls] == [
+        "api.openai.com", "generativelanguage.googleapis.com"]
+
+
+@pytest.mark.parametrize("provider,kind,body", [
+    ("openai", "pdf", {"status": "incomplete", "output": []}),
+    ("gemini", "audio", {"candidates": [{"finishReason": "MAX_TOKENS",
+        "content": {"parts": [{"text": "partial"}]}}]}),
+    ("gemini", "pdf", {"candidates": [{"finishReason": "MAX_TOKENS",
+        "content": {"parts": [{"text": "partial"}]}}]}),
+    ("claude", "pdf", {"stop_reason": "max_tokens", "content": [{"type": "text", "text": "partial"}]}),
+    ("openrouter", "pdf", {"choices": [{"finish_reason": "length",
+        "message": {"content": "partial"}}]}),
+])
+def test_provider_output_cutoff_can_fall_back_without_publishing_partial_text(provider, kind, body):
+    backup = "gemini" if provider != "gemini" else "openai"
+    first_host = build(provider, AUDIO if kind == "audio" else PDF).url.split("/")[2]
+    next_host = build(backup, AUDIO if kind == "audio" else PDF).url.split("/")[2]
+    http = RoutedHTTP({
+        first_host: (200, json.dumps(body).encode()),
+        next_host: (200, json.dumps(_text_response(backup, kind, "complete text")).encode()),
+    })
+    assert chain(http, [provider, backup], kind=kind, media=AUDIO if kind == "audio" else PDF) == (
+        "complete text", backup)
+    assert [url.split("/")[2] for url, _ in http.calls] == [first_host, next_host]
+
+
+@pytest.mark.parametrize("kind,media", [("audio", AUDIO), ("pdf", PDF)])
+def test_overall_timeout_during_attempt_prevents_another_provider(kind, media):
+    now = [0.0]
+    operation = service.Operation(kind, clock=lambda: now[0])
+
+    class DeadlineHTTP(RoutedHTTP):
+        def post(self, url, **kwargs):
+            response = super().post(url, **kwargs)
+            now[0] = operation.deadline + 1
+            return response
+
+    http = DeadlineHTTP({
+        "openai.com": (503, b""),
+        "googleapis": (200, json.dumps(_text_response("gemini", kind, "complete text")).encode()),
+    })
+    with pytest.raises(DescriptionError, match="ai_error_timeout"):
+        chain(http, ["openai", "gemini"], kind=kind, media=media, operation=operation)
     assert len(http.calls) == 1

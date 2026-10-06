@@ -993,6 +993,10 @@ DEFAULT_SETTINGS = {
         # Alpha channel (one build per commit on main) - opt-in, see
         # client/updater.py's select_release().
         "alpha_updates_enabled": False,
+        # Updates are downloaded with no progress window and the app is only
+        # interrupted to install them. Off: the long-standing behaviour, so no
+        # migration.
+        "background_update_downloads": False,
         "noise_reduction_enabled": False,
         # Stereo voice messages (issue #82, core/voice_stereo.py). Off: a
         # stereo recording goes out as an audio message, not a voice message.
@@ -1083,11 +1087,18 @@ DEFAULT_SETTINGS = {
         # users who already learned the previous behaviour.
         "space_selects_in_selection_mode": True,
         "escape_clears_selection": True,
+        # Opening a conversation keeps the chat search, so Esc returns to the
+        # results. Off: the long-standing behaviour, so no migration.
+        "keep_search_after_open": False,
         "auto_focus_next_audio": True,
         "selected_announcement_position": "end",
         "show_yesterday_label": True,
         "show_link_previews": True,
         "forwarded_prefix_enabled": False,
+        # A forwarded voice message stays a voice message instead of becoming
+        # a plain audio, as WhatsApp makes it. Off: WhatsApp's own behaviour,
+        # so no migration.
+        "forward_voice_as_voice": False,
         "conversation_video_media_viewer_dialog": True,
         "status_media_viewer_dialog": True,
         "voice_message_mode": "voice_message",

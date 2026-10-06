@@ -10,6 +10,7 @@ import requests
 import threading
 import time
 import wx
+from core import phone_contacts
 from core.api_client import (
     api_get,
     api_post,
@@ -179,8 +180,18 @@ class IdentityMixin:
         with self._lid_mapping_lock:
             if not hasattr(self, "_lid_to_phone"):
                 self._lid_to_phone = {}
+            # What this scan teaches: the pairs the bridge did not have, or
+            # had differently.
+            learned = [(lid, phone) for lid, phone in cache.items()
+                       if self._lid_to_phone.get(lid) != phone]
             self._lid_to_phone.update(cache)
             self._phone_to_lid  = {v: k for k, v in self._lid_to_phone.items()}
+        # Like every writer of the bridge: a contact the user saved under an
+        # @lid follows the person to the phone JID just learned. Only those
+        # pairs; the bridge as a whole is gone over once, at startup
+        # (_follow_contacts_saved_under_lids_at_startup()).
+        if learned:
+            self._follow_saved_contacts(learned)
 
     def _extract_lid_mapping(self, msg):
         """Extract JID mapping from a message object and update cache & persist if new."""
@@ -247,8 +258,9 @@ class IdentityMixin:
             if remote and hasattr(self, "_chats_without_alt_jid"):
                 self._chats_without_alt_jid.discard(remote)
 
-            # Cache pushName if present in the message
-            push_name = msg.get("pushName")
+            # Cache pushName if present in the message. On an outgoing message
+            # the pushName is OUR OWN profile name, never the recipient's.
+            push_name = None if key.get("fromMe") else msg.get("pushName")
             if push_name and remote and not remote.endswith("@g.us") and not is_phone_like(push_name):
                 if not hasattr(self, "_message_pushname_cache"):
                     self._message_pushname_cache = {}
@@ -294,6 +306,16 @@ class IdentityMixin:
                         logging.info(f"[LID Mapping] Extracted mapping from 1:1 chat key (reversed): {participant} <-> {remote}")
 
             if updated:
+                # A contact the user saved under one of these @lids follows
+                # the person to the phone JID (phone_contacts.followed_contact()).
+                # In memory here, in the critical section this method already
+                # holds; contacts_to_update is persisted below, outside it.
+                for lid, phone in updated_pairs:
+                    followed = phone_contacts.followed_contact(self.contacts, lid, phone)
+                    if followed is not None:
+                        self.contacts[phone] = followed
+                        contacts_to_update[phone] = followed
+
                 # Propagate contact details from phone contact to LID contact
                 # to make it immediately available — still under the lock
                 # since this iterates _lid_to_phone itself.
@@ -1160,6 +1182,7 @@ class IdentityMixin:
         # for the lock.
         changed = False
         was_unresolvable = False
+        followed = None
         with self._lid_mapping_lock:
             if not hasattr(self, "_lid_to_phone"):
                 self._lid_to_phone = {}
@@ -1178,12 +1201,29 @@ class IdentityMixin:
                     self._unresolvable_lids.discard(lid_jid)
                     was_unresolvable = True
 
+                # A contact the user saved while only the @lid was known
+                # follows the person to the phone JID (the rule is
+                # phone_contacts.followed_contact()). In memory here, under
+                # the lock; persisted below, outside it.
+                followed = phone_contacts.followed_contact(self.contacts, lid_jid, phone_jid)
+                if followed is not None:
+                    self.contacts[phone_jid] = followed
+
                 # Update the contact name display mappings in contacts if possible
                 if phone_jid in self.contacts and self.contacts[phone_jid]:
                     if lid_jid not in self.contacts or self.contacts[lid_jid].get("name") in (None, "", "Contato sem nome"):
                         self.contacts[lid_jid] = self.contacts[phone_jid].copy()
                         self.contacts[lid_jid]["id"] = lid_jid
                         self.contacts[lid_jid]["remoteJid"] = lid_jid
+
+        if followed is not None:
+            # Whatever `save` says: the batch callers pass save=False and
+            # persist only what they themselves changed, which is not this.
+            try:
+                self.db.upsert_contacts_batch({phone_jid: followed})
+            except Exception as exc:
+                logging.warning("[LID Mapping] Failed to persist the saved contact "
+                                "under its phone JID: %s", exc)
 
         if changed:
             if was_unresolvable:
@@ -1214,6 +1254,110 @@ class IdentityMixin:
                 # `changed` once, so the second pass schedules nothing.
                 wx.CallAfter(self._schedule_refresh_active_messages,
                              {lid_jid, phone_jid})
+
+    def _follow_saved_contacts(self, pairs=None):
+        """Bring the contacts the user saved under an @lid to the phone JID of
+        each (lid, phone) pair, and persist them; every known pair when
+        *pairs* is None.
+
+        register_jid_mapping() does this for the pair it registers, but it is
+        not the only writer of the bridge: a live message (_extract_lid_mapping),
+        the chat list (get_remote_chats), a profile query (get_contact_profile)
+        and the scan of stored messages (_build_lid_to_phone_cache) all learn
+        pairs too, and through any of them the saved contact used to stay
+        behind under the @lid, out of reach of Edit and Delete. Idempotent: a
+        contact that has followed is the user's record under the phone JID,
+        which stops a second copy.
+
+        With no pairs it goes over the whole bridge, which only
+        _follow_contacts_saved_under_lids_at_startup() may ask for: see there.
+        """
+        followed = {}
+        with self._lid_mapping_lock:
+            if pairs is None:
+                pairs = list((getattr(self, "_lid_to_phone", None) or {}).items())
+            for lid_jid, phone_jid in pairs:
+                record = phone_contacts.followed_contact(self.contacts, lid_jid, phone_jid)
+                if record is not None:
+                    self.contacts[phone_jid] = record
+                    followed[phone_jid] = record
+        if not followed:
+            return
+        # The DB write blocks until the coroutine returns: never under the lock.
+        try:
+            self.db.upsert_contacts_batch(followed)
+        except Exception as exc:
+            logging.warning("[LID Mapping] Failed to persist %d saved contact(s) "
+                            "under their phone JID: %s", len(followed), exc)
+
+    #: Metadata key: the leftovers of deleted local contacts were cleared.
+    _ORPHANED_LID_COPIES_CLEARED = "orphaned_lid_contact_copies_cleared"
+
+    def _clear_orphaned_saved_lid_copies_once(self) -> bool:
+        """Take "saved by the user" off the @lid copies that deleted local
+        contacts left behind (phone_contacts.orphaned_saved_lid_copies()), once
+        per database. Returns whether it is known to have been done: only then
+        is it safe to let saved @lid records follow the whole bridge.
+        """
+        try:
+            if self.db.get_metadata(self._ORPHANED_LID_COPIES_CLEARED) is not None:
+                return True
+            # Asked of the database itself, this once, and not of self.contacts
+            # or of the bridge in memory: both are EMPTIED, not raised, when
+            # their load fails at startup, and "no leftovers" read off an empty
+            # dict would be recorded as done for good. Here a failed read
+            # raises, and nothing is recorded.
+            stored = self.db.get_contacts()
+            bridge = dict(self.db.get_lid_mappings())
+            with self._lid_mapping_lock:
+                # Plus what the scan of stored messages has put in memory.
+                bridge.update(getattr(self, "_lid_to_phone", None) or {})
+                cleared = {}
+                for lid_jid in phone_contacts.orphaned_saved_lid_copies(stored, bridge):
+                    record = self.contacts.get(lid_jid)
+                    if record is None:
+                        record = stored[lid_jid]
+                    record["isSaved"] = False
+                    cleared[lid_jid] = record
+            if cleared:
+                self.db.upsert_contacts_batch(cleared)
+                logging.info("[contacts] %d leftover cop%s of deleted local contacts "
+                             "no longer marked as saved.", len(cleared),
+                             "y" if len(cleared) == 1 else "ies")
+            self.db.set_metadata(self._ORPHANED_LID_COPIES_CLEARED, "1")
+            return True
+        except Exception as exc:
+            # Not done, or not known to be: say so, and nothing follows the
+            # whole bridge this run. It is tried again at the next start.
+            logging.warning("[contacts] Could not clear the leftover @lid copies "
+                            "of deleted local contacts: %s", exc)
+            return False
+
+    def _follow_contacts_saved_under_lids_at_startup(self) -> None:
+        """Once contacts and the bridge are loaded: a contact saved under an
+        @lid whose phone is already known goes to the phone JID.
+
+        Every writer of the bridge does this for the pairs it learns, so what
+        is left for here is a contact whose move never reached the database
+        (the write failed, or the app closed first). It must come after the
+        one-time clearing of the leftovers older versions left under @lids,
+        and not at all when that clearing could not be confirmed: those
+        leftovers look exactly like a contact saved under an @lid, and would
+        bring deleted contacts back.
+        """
+        if self._clear_orphaned_saved_lid_copies_once():
+            self._follow_saved_contacts()
+
+    def _store_resolved_name(self, jid, name, updated_contacts):
+        """File the name the @lid resolution learned for *jid* — except over a
+        record the user saved: the name they gave is theirs, and a pushname
+        ("aninha") must not replace it ("Ana Silva")."""
+        record = self.contacts.setdefault(jid, {})
+        if phone_contacts.user_saved(record):
+            return
+        record["name"] = name
+        record["pushName"] = name
+        updated_contacts[jid] = record
 
     def resolve_lid_jids_via_api(self, jids):
         """Resolve a list of @lid JIDs to phone JIDs using WPPConnect contact endpoint."""
@@ -1307,22 +1451,14 @@ class IdentityMixin:
                         contact_obj = res_data.get("contact") or {}
                         res_name = contact_obj.get("name") or contact_obj.get("pushname") or contact_obj.get("pushName") or contact_obj.get("displayName")
                         if res_name and res_name != "Contato sem nome" and not is_phone_like(res_name):
-                            if lid_jid not in self.contacts:
-                                self.contacts[lid_jid] = {}
-                            self.contacts[lid_jid]["name"] = res_name
-                            self.contacts[lid_jid]["pushName"] = res_name
-                            updated_contacts[lid_jid] = self.contacts[lid_jid]
+                            self._store_resolved_name(lid_jid, res_name, updated_contacts)
                             
                             if not hasattr(self, "_presence_pushname_map"):
                                 self._presence_pushname_map = {}
                             self._presence_pushname_map[lid_jid] = res_name
                             
                             if canonical_jid:
-                                if canonical_jid not in self.contacts:
-                                    self.contacts[canonical_jid] = {}
-                                self.contacts[canonical_jid]["name"] = res_name
-                                self.contacts[canonical_jid]["pushName"] = res_name
-                                updated_contacts[canonical_jid] = self.contacts[canonical_jid]
+                                self._store_resolved_name(canonical_jid, res_name, updated_contacts)
                                 self._presence_pushname_map[canonical_jid] = res_name
                             
                             # Resolved the name successfully, no need to query profile
@@ -1379,11 +1515,7 @@ class IdentityMixin:
 
                         name = res_data.get("name") or res_data.get("pushname") or res_data.get("pushName") or res_data.get("displayName")
                         if name and name != "Contato sem nome" and not is_phone_like(name):
-                            if lid_jid not in self.contacts:
-                                self.contacts[lid_jid] = {}
-                            self.contacts[lid_jid]["name"] = name
-                            self.contacts[lid_jid]["pushName"] = name
-                            updated_contacts[lid_jid] = self.contacts[lid_jid]
+                            self._store_resolved_name(lid_jid, name, updated_contacts)
                             
                             # Also save to presence pushname map to ensure UI functions find it
                             if not hasattr(self, "_presence_pushname_map"):
@@ -1392,11 +1524,7 @@ class IdentityMixin:
                             
                             # Also copy to phone contact cache if mapped
                             if canonical_jid:
-                                if canonical_jid not in self.contacts:
-                                    self.contacts[canonical_jid] = {}
-                                self.contacts[canonical_jid]["name"] = name
-                                self.contacts[canonical_jid]["pushName"] = name
-                                updated_contacts[canonical_jid] = self.contacts[canonical_jid]
+                                self._store_resolved_name(canonical_jid, name, updated_contacts)
                                 self._presence_pushname_map[canonical_jid] = name
                         else:
                             # Not the name, and not the raw response (which
@@ -1533,6 +1661,7 @@ class IdentityMixin:
                             self._lid_to_phone[original_jid] = canonical_jid
                             self._phone_to_lid[canonical_jid] = original_jid
 
+                        self._follow_saved_contacts([(original_jid, canonical_jid)])
                         # Trigger UI refresh and save mapped JIDs
                         wx.CallAfter(self._schedule_set_chats)
                         try:

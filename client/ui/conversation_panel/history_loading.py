@@ -9,6 +9,7 @@ import logging
 import threading
 import wx
 from core.utils import history_window
+from main_window import history_boundary
 
 
 class HistoryLoadingMixin:
@@ -383,6 +384,11 @@ class HistoryLoadingMixin:
             return
         self._reached_server_start[requested_jid] = True
         self._is_loading_more = False
+        # WhatsApp Web shows a banner at this point; without it the top of a
+        # long conversation is indistinguishable from its real beginning.
+        if history_boundary.is_only_on_phone(self.main_window, requested_jid):
+            self.main_window.speak_output.output(
+                self.main_window.i18n.t("older_messages_on_phone"))
 
     def _clear_loading_more(self, requested_jid):
         if not self.conversation or self.conversation.get("remoteJid") != requested_jid:

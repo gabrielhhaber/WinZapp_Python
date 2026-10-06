@@ -26,6 +26,7 @@ class _FakeI18n:
 class _Stub:
     _resolve_contact_phone_jid = ConversationDataDialog._resolve_contact_phone_jid
     _local_contact_entry = ConversationDataDialog._local_contact_entry
+    _contact_entry = ConversationDataDialog._contact_entry
     _populate_contact_action_buttons = ConversationDataDialog._populate_contact_action_buttons
     _on_add_contact = ConversationDataDialog._on_add_contact
     _on_edit_contact = ConversationDataDialog._on_edit_contact

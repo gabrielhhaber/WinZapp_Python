@@ -20,8 +20,10 @@ import swaggerUi from 'swagger-ui-express';
 import uploadConfig from '../config/upload';
 import * as CallController from '../controller/callController';
 import * as CatalogController from '../controller/catalogController';
+import * as ChatListsController from '../controller/chatListsController';
 import * as CommunityController from '../controller/communityController';
 import ContactController from '../controller/contactController';
+import * as ContactSaveController from '../controller/contactSaveController';
 import * as DeviceController from '../controller/deviceController';
 import { encryptSession } from '../controller/encryptController';
 import * as GroupController from '../controller/groupController';
@@ -40,6 +42,9 @@ import swaggerDocument from '../swagger.json';
 
 const upload = multer(uploadConfig as any) as any;
 const routes: Router = Router();
+
+routes.get('/api/:session/custom-lists', verifyToken, statusConnection, ChatListsController.readLists);
+routes.post('/api/:session/custom-lists', verifyToken, statusConnection, ChatListsController.changeList);
 
 // ── WinZapp multi-account: Node instance identity (plan Zad 3.0) ─────────────
 // Public, unauthenticated, read-only. Lets a WinZapp client verify that THIS
@@ -546,6 +551,13 @@ routes.post(
   statusConnection,
   DeviceController.requestOlderMessages
 );
+// Read-only: the same verdicts, with nothing sent to the phone.
+routes.get(
+  '/api/:session/older-history-state/:phone',
+  verifyToken,
+  statusConnection,
+  DeviceController.olderHistoryState
+);
 // Read-only diagnostic: is WhatsApp Web's history-sync pipeline alive at all?
 routes.get(
   '/api/:session/history-sync-status',
@@ -982,6 +994,26 @@ routes.post(
   verifyToken,
   statusConnection,
   DeviceController.unblockContact
+);
+
+// Contacts that WhatsApp syncs to the phone's address book (WPP.contact.save
+// / .remove, which neither wppconnect nor this server exposed).
+routes.post(
+  '/api/:session/save-contact',
+  verifyToken,
+  statusConnection,
+  ContactSaveController.saveContact
+);
+// Deliberately WITHOUT statusConnection, like subscribe-presence above: its
+// contact-validation pass answers 400 "O número X não existe." whenever
+// checkNumberStatus() fails or errors, and a contact whose number has left
+// WhatsApp is exactly one the user needs to be able to remove. The controller
+// answers a missing or closed page itself (503 contact_not_available), and
+// WPP.contact.remove says so when the number is not a contact.
+routes.post(
+  '/api/:session/remove-contact',
+  verifyToken,
+  ContactSaveController.removeContact
 );
 
 // Device

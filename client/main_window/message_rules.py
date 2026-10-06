@@ -736,3 +736,25 @@ def history_gap_closed(fetched: list, local_records: list, hole_top_ts: int) -> 
         return False
     got = {m.get("key", {}).get("id") for m in fetched if isinstance(m, dict)}
     return bool(below & got)
+
+
+def quote_is_of_my_message(ctx: dict, is_self_jid, quoted_from_me):
+    """Whether the quote in *ctx* (a contextInfo carrying one) is of a message
+    of MINE: True, False, or None when it cannot be told.
+
+    A participant on the quote names who wrote the quoted message, and settles
+    it. Baileys leaves it empty for 1:1 replies, and then only the quoted
+    message itself can say: *quoted_from_me(stanza_id)* answers True/False for
+    a message that is loaded and None for one that is not. What "cannot be
+    told" means is the caller's call — a notification must not break through a
+    mute on a guess, while the "previous reply to me" key can afford the same
+    reading the message list already shows.
+    """
+    participant = ctx.get("participant") or ""
+    if participant:
+        return bool(is_self_jid(participant))
+    stanza_id = ctx.get("stanzaId") or ""
+    if not stanza_id:
+        return None
+    return quoted_from_me(stanza_id)
+

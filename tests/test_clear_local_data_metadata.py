@@ -202,6 +202,13 @@ _METADATA = ("_deleted_chats", "_archived_chats", "_pinned_chats",
 
 
 class TestAnAccountSwitchClearsTheMetadataInMemoryToo:
+    @pytest.mark.parametrize("wipe_metadata", [False, True])
+    def test_list_cache_is_invalidated_before_f5_or_account_wipe(self, wipe_metadata):
+        stub, seen = _Stub(), []
+        stub._invalidate_wa_lists = lambda: seen.append(bool(stub.chats))
+        stub.clear_local_data(wipe_metadata=wipe_metadata)
+        assert seen == [True]
+
     def test_every_metadata_collection_is_emptied(self):
         stub = _Stub()
 

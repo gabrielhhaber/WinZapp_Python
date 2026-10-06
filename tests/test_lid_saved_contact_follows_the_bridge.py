@@ -1,0 +1,585 @@
+"""A contact saved for a chat known only by its @lid survives learning its phone.
+
+The new-contact dialog saves such a contact under the @lid (there is no phone
+number to save it under). Two things then went wrong once the @lid resolution
+ran, both measured on the real methods before the fix:
+
+* the bridge @lid -> phone was learned, every lookup moved to the phone JID,
+  and the record stayed under the @lid alone: the contact data dialog showed
+  "Add contact" again, with the saved one out of reach of Edit and Delete;
+* the resolution wrote the person's pushname over the name the user had given
+  ("Ana Silva" became "aninha"), with the record still marked as saved.
+
+The real MainWindow methods run on a stub: no window, and api_get is replaced.
+"""
+
+import threading
+from types import SimpleNamespace
+
+import pytest
+
+from core import phone_contacts as pc
+from main import MainWindow
+from main_window import contacts as contacts_module
+from main_window import identity as identity_module
+from ui.dialogs.conversation_data_dialog import ConversationDataDialog
+
+LID = "123456789012345@lid"
+PHONE = "5511999999999@s.whatsapp.net"
+PN = {"id": "5511999999999", "server": "c.us", "_serialized": "5511999999999@c.us"}
+
+
+class _Db:
+    """Answers get_contacts()/get_lid_mappings() with what the window holds,
+    as a database in step with memory would, unless a test stores something
+    else in `stored_contacts` / `stored_bridge`."""
+
+    def __init__(self, owner):
+        self._owner = owner
+        self.upserted = {}
+        self.metadata = {}
+        self.stored_contacts = None
+        self.stored_bridge = None
+
+    def get_contacts(self):
+        source = self._owner.contacts if self.stored_contacts is None else self.stored_contacts
+        return {jid: dict(record) for jid, record in source.items()}
+
+    def get_lid_mappings(self):
+        return dict(self._owner._lid_to_phone if self.stored_bridge is None
+                    else self.stored_bridge)
+
+    def upsert_contacts_batch(self, contacts):
+        self.upserted.update(contacts)
+
+    def get_metadata(self, key, default=None):
+        return self.metadata.get(key, default)
+
+    def set_metadata(self, key, value):
+        self.metadata[key] = value
+
+    def __getattr__(self, name):
+        return lambda *args, **kwargs: None
+
+
+class _Window:
+    save_local_contact = MainWindow.save_local_contact
+    _lid_for_local_contact = MainWindow._lid_for_local_contact
+    _refresh_views_after_contact_change = MainWindow._refresh_views_after_contact_change
+    _get_contact_tolerant = MainWindow._get_contact_tolerant
+    _phone_digits_equivalent = staticmethod(MainWindow._phone_digits_equivalent)
+    _is_bad_contact_name = staticmethod(MainWindow._is_bad_contact_name)
+    _normalize_jid = staticmethod(MainWindow._normalize_jid)
+    register_jid_mapping = MainWindow.register_jid_mapping
+    resolve_lid_jids_via_api = MainWindow.resolve_lid_jids_via_api
+    _follow_saved_contacts = MainWindow._follow_saved_contacts
+    _clear_orphaned_saved_lid_copies_once = MainWindow._clear_orphaned_saved_lid_copies_once
+    _follow_contacts_saved_under_lids_at_startup = (
+        MainWindow._follow_contacts_saved_under_lids_at_startup)
+    _ORPHANED_LID_COPIES_CLEARED = MainWindow._ORPHANED_LID_COPIES_CLEARED
+    _extract_lid_mapping = MainWindow._extract_lid_mapping
+    _build_lid_to_phone_cache = MainWindow._build_lid_to_phone_cache
+    get_contact_profile = MainWindow.get_contact_profile
+    _store_resolved_name = MainWindow._store_resolved_name
+    _resolve_contact_name = MainWindow._resolve_contact_name
+    wpp_server, wpp_port, token = "http://127.0.0.1", 6300, "tok"
+    my_lid = my_jid = ""
+
+    def __init__(self):
+        self.contacts = {LID: {"id": LID, "remoteJid": LID, "name": "", "pushName": ""}}
+        self.chats = {LID: {"remoteJid": LID}}
+        self._lid_to_phone, self._phone_to_lid = {}, {}
+        self._lid_mapping_lock = threading.Lock()
+        self._unresolvable_lids, self._unresolvable_names = set(), set()
+        self._presence_pushname_map = {}
+        self._wa_connected = True
+        self.db = _Db(self)
+        # What the live-message path reads besides the bridge.
+        self._ui_ready_event = threading.Event()
+        self._ui_ready_event.set()
+        self._chats_without_alt_jid = set()
+        self._message_pushname_cache = {}
+
+    def _is_self_jid(self, jid): return False
+    def _needs_sender_resolution(self, jid): return False
+    def _find_alt_jid_from_messages(self, chat): return None
+    def _schedule_set_chats(self): pass
+    def _schedule_refresh_active_messages(self, jids=None): pass
+    def save_data(self, *args, **kwargs): pass
+
+
+class _Dialog:
+    _resolve_contact_phone_jid = ConversationDataDialog._resolve_contact_phone_jid
+    _local_contact_entry = ConversationDataDialog._local_contact_entry
+    _contact_entry = ConversationDataDialog._contact_entry
+
+    def __init__(self, mw):
+        self._mw, self._jid = mw, LID
+
+
+@pytest.fixture(autouse=True)
+def _no_wx_no_sleep(monkeypatch):
+    monkeypatch.setattr(identity_module.wx, "CallAfter", lambda *a, **k: None)
+    monkeypatch.setattr(contacts_module.wx, "CallAfter", lambda *a, **k: None)
+    monkeypatch.setattr(identity_module.time, "sleep", lambda seconds: None)
+
+
+def _saved(entry):
+    mw = _Window()
+    mw.save_local_contact(LID, entry)
+    return mw
+
+
+def _resolution_answers(monkeypatch, body):
+    monkeypatch.setattr(identity_module, "api_get", lambda url, **kwargs: SimpleNamespace(
+        status_code=200, text="", json=lambda: body))
+
+
+class TestWhileOnlyTheLidIsKnown:
+    def test_a_local_contact_is_filed_under_the_lid_and_found(self):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        assert mw._lid_for_local_contact(LID) == ""        # an @lid has no @lid of its own
+        assert mw.contacts[LID]["name"] == "Ana Silva"
+        assert _Dialog(mw)._contact_entry() is mw.contacts[LID]
+        assert mw._resolve_contact_name(mw.chats[LID]) == "Ana Silva"
+
+
+class TestOnceTheBridgeIsLearned:
+    def test_the_contact_follows_the_person_to_the_phone_jid(self):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+
+        mw.register_jid_mapping(LID, PHONE)
+
+        dialog = _Dialog(mw)
+        assert dialog._resolve_contact_phone_jid() == PHONE
+        entry = dialog._contact_entry()
+        assert entry is not None and entry["name"] == "Ana Silva" and entry["isSaved"] is True
+        assert entry["remoteJid"] == PHONE
+        assert mw.db.upserted[PHONE]["name"] == "Ana Silva"      # and it is persisted
+
+    def test_it_is_persisted_even_by_the_batch_callers(self):
+        """resolve_lid_jids_via_api() registers with save=False and persists
+        only what it changed itself."""
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw.db.upserted.clear()
+        mw.register_jid_mapping(LID, PHONE, save=False, defer_ui=True)
+        assert mw.db.upserted[PHONE]["isSaved"] is True
+
+    def test_a_contact_saved_to_the_phone_keeps_its_mark_there(self):
+        mw = _saved(pc.synced_entry(LID, "Ana Silva"))
+        mw.register_jid_mapping(LID, PHONE)
+        assert pc.is_phone_synced(mw.contacts[PHONE])
+        assert pc.is_phone_synced(_Dialog(mw)._contact_entry())
+
+    def test_what_whatsapp_already_knew_of_the_phone_jid_is_kept(self):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "aninha",
+                              "profilePicUrl": "pic"}
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "Ana Silva"
+        assert mw.contacts[PHONE]["profilePicUrl"] == "pic"
+
+    def test_a_contact_the_user_saved_under_the_phone_jid_is_not_overwritten(self):
+        mw = _saved(pc.local_entry(LID, "Ana (lid)"))
+        mw.contacts[PHONE] = pc.local_entry(PHONE, "Ana (phone)")
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "Ana (phone)"
+
+    def test_an_lid_record_the_user_did_not_save_goes_nowhere(self):
+        """Only a contact the user made follows; a pushname cache entry or a
+        contact WhatsApp reports does not create a record under the phone."""
+        mw = _Window()
+        mw.contacts[LID] = {"id": LID, "remoteJid": LID, "name": "aninha",
+                            "isMyContact": True, "syncToAddressbook": True}
+        mw.register_jid_mapping(LID, PHONE)
+        assert PHONE not in mw.contacts
+
+
+PHONE_8 = "551199999999@s.whatsapp.net"     # PHONE without the 9th digit
+
+
+def _from_the_phone_book(name):
+    """An @lid record as get_contacts() restores it for a contact the user
+    added on the PHONE: never saved through WinZapp, marked as synced."""
+    return {"id": LID, "remoteJid": LID, "name": name, "pushName": name,
+            "profilePicUrl": "", "type": "contact", "isSaved": False, pc.SYNCED_KEY: True}
+
+
+class TestWhatsAppsOwnContactsAreNotTheUsers:
+    """After a restart every contact of the phone's address book carries the
+    synced mark (the database restores it). They are WhatsApp's records: the
+    mark must not make them follow the bridge or shield them from a name."""
+
+    def test_a_restored_address_book_record_does_not_follow(self):
+        mw = _Window()
+        mw.contacts[LID] = _from_the_phone_book("Ana Agenda")
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "Ana Telefone"}
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "Ana Telefone"
+        assert PHONE not in mw.db.upserted
+
+    def test_a_nameless_one_does_not_blank_the_phone_records_name(self):
+        mw = _Window()
+        mw.contacts[LID] = _from_the_phone_book("")
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "Ana Telefone"}
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "Ana Telefone"
+
+    def test_it_creates_no_record_under_the_phone_jid(self):
+        mw = _Window()
+        mw.contacts[LID] = _from_the_phone_book("Ana Agenda")
+        mw.register_jid_mapping(LID, PHONE)
+        assert PHONE not in mw.contacts
+
+    def test_the_resolution_still_names_a_nameless_one(self, monkeypatch):
+        mw = _Window()
+        mw.contacts[LID] = _from_the_phone_book("")
+        _resolution_answers(monkeypatch, {"lid": {"_serialized": LID},
+                                          "contact": {"pushname": "aninha"}})
+        mw.resolve_lid_jids_via_api([LID])
+        assert mw.contacts[LID]["name"] == "aninha"
+
+
+class TestTheOtherDigitFormOfThePhone:
+    def test_the_users_record_there_wins_even_next_to_one_of_whatsapps_here(self):
+        """The exact form holds a record of WhatsApp's, the other form the
+        user's: the tolerant lookup stops at the first and would miss it."""
+        mw = _saved(pc.local_entry(LID, "Ana (lid)"))
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "aninha"}
+        mw.contacts[PHONE_8] = pc.local_entry(PHONE_8, "Ana (phone)")
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "aninha"
+        assert not pc.user_saved(mw.contacts[PHONE])
+
+    def test_a_contact_saved_under_it_is_not_doubled(self):
+        """Saved under the number without the 9th digit; the bridge is learned
+        with it. The user's record for that number stands, and no second saved
+        record appears next to it."""
+        mw = _saved(pc.local_entry(LID, "Ana (lid)"))
+        mw.contacts[PHONE_8] = pc.local_entry(PHONE_8, "Ana (phone)")
+        mw.register_jid_mapping(LID, PHONE)
+        assert PHONE not in mw.contacts
+        assert mw.contacts[PHONE_8]["name"] == "Ana (phone)"
+
+
+class TestTheResolutionDoesNotRenameIt:
+    def test_a_pushname_does_not_replace_the_name_the_user_gave(self, monkeypatch):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        _resolution_answers(monkeypatch, {"lid": {"_serialized": LID},
+                                          "contact": {"pushname": "aninha"}})
+
+        mw.resolve_lid_jids_via_api([LID])
+
+        assert mw.contacts[LID]["name"] == "Ana Silva"
+        assert mw._resolve_contact_name(mw.chats[LID]) == "Ana Silva"
+
+    def test_nor_when_the_phone_is_learned_in_the_same_answer(self, monkeypatch):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        _resolution_answers(monkeypatch, {"lid": {"_serialized": LID}, "phoneNumber": PN,
+                                          "contact": {"pushname": "aninha"}})
+
+        mw.resolve_lid_jids_via_api([LID])
+
+        assert mw._lid_to_phone == {LID: PHONE}
+        assert mw.contacts[LID]["name"] == "Ana Silva"
+        assert mw.contacts[PHONE]["name"] == "Ana Silva"
+        assert _Dialog(mw)._contact_entry()["name"] == "Ana Silva"
+
+    def test_a_record_the_user_did_not_save_still_gets_the_name(self, monkeypatch):
+        """What the resolution is for."""
+        mw = _Window()
+        _resolution_answers(monkeypatch, {"lid": {"_serialized": LID}, "phoneNumber": PN,
+                                          "contact": {"pushname": "aninha"}})
+        mw.resolve_lid_jids_via_api([LID])
+        assert mw.contacts[LID]["name"] == "aninha"
+        assert mw.contacts[PHONE]["name"] == "aninha"
+
+
+class TestStoreResolvedName:
+    def test_it_creates_the_record_when_there_is_none(self):
+        mw, updated = _Window(), {}
+        mw._store_resolved_name(PHONE, "aninha", updated)
+        assert mw.contacts[PHONE] == {"name": "aninha", "pushName": "aninha"}
+        assert updated == {PHONE: mw.contacts[PHONE]}
+
+    def test_it_leaves_a_saved_record_and_reports_no_change(self):
+        mw, updated = _Window(), {}
+        mw.contacts[PHONE] = pc.synced_entry(PHONE, "Ana Silva")
+        mw._store_resolved_name(PHONE, "aninha", updated)
+        assert mw.contacts[PHONE]["name"] == "Ana Silva" and updated == {}
+
+
+class TestEveryWriterOfTheBridge:
+    """register_jid_mapping() is one of five places that learn an @lid's phone.
+    Through each of the others the saved contact used to stay behind under the
+    @lid: the contact data dialog then showed "Add contact" again, and nothing
+    healed it, not even a restart."""
+
+    @staticmethod
+    def _followed(mw):
+        entry = _Dialog(mw)._contact_entry()
+        return (entry is not None and entry["name"] == "Ana Silva"
+                and entry["remoteJid"] == PHONE and mw.db.upserted.get(PHONE) is entry)
+
+    def test_a_live_message_carrying_the_phone(self):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw._extract_lid_mapping({"key": {"remoteJid": LID, "fromMe": False,
+                                         "remoteJidAlt": "5511999999999@s.whatsapp.net"}})
+        assert mw._lid_to_phone == {LID: PHONE}
+        assert self._followed(mw)
+
+    def test_the_scan_of_stored_messages(self):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw.chats = {LID: {"remoteJid": LID, "messages": {"messages": {"records": [
+            {"key": {"remoteJid": LID, "remoteJidAlt": "5511999999999@c.us"}}]}}}}
+        mw._build_lid_to_phone_cache()
+        assert mw._lid_to_phone == {LID: PHONE}
+        assert self._followed(mw)
+
+    def test_a_pair_that_was_already_known_when_winzapp_started(self):
+        """Read from the database by _load_local_lid_cache(), so no writer
+        sees it change. The startup step is what brings over a contact whose
+        move never reached the database (in a database where the leftovers of
+        older versions are known to be cleared: see below)."""
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw._lid_to_phone, mw._phone_to_lid = {LID: PHONE}, {PHONE: LID}
+        mw.db.metadata[mw._ORPHANED_LID_COPIES_CLEARED] = "1"
+        mw._follow_contacts_saved_under_lids_at_startup()
+        assert self._followed(mw)
+
+    def test_the_scan_follows_what_it_learns_and_nothing_else(self):
+        """A pair the bridge already had is not the scan's news."""
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw._lid_to_phone, mw._phone_to_lid = {LID: PHONE}, {PHONE: LID}
+        mw._build_lid_to_phone_cache()
+        assert PHONE not in mw.contacts
+
+    def test_a_profile_query(self, monkeypatch):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw._unresolvable_lids = {LID}              # so the query goes out by @lid
+        _resolution_answers(monkeypatch, {"response": {"id": {
+            "_serialized": "5511999999999@c.us"}}})
+        mw.get_contact_profile(LID)
+        assert mw._lid_to_phone == {LID: PHONE}
+        assert self._followed(mw)
+
+    def test_the_chat_list(self, monkeypatch):
+        import main
+        from tests.test_get_remote_chats_persistence import _Response, _chat, _make
+        payload = [_chat("5511999999999@c.us", lastMessage={"key": {
+            "remoteJid": LID, "remoteJidAlt": PHONE}})]
+        monkeypatch.setattr(main.requests, "post", lambda *a, **k: _Response(payload))
+        stub = _make()
+        stub._lid_mapping_lock = threading.RLock()
+        stub._follow_saved_contacts = MainWindow._follow_saved_contacts.__get__(stub)
+        stub.db.upsert_contacts_batch = lambda contacts: saved.update(contacts)
+        saved = {}
+        stub.contacts = {LID: pc.local_entry(LID, "Ana Silva")}
+
+        stub.get_remote_chats({}, persist_full=False, notify_errors=False)
+
+        assert stub._lid_to_phone == {LID: PHONE}
+        assert stub.contacts[PHONE]["name"] == "Ana Silva" and stub.contacts[PHONE]["isSaved"]
+        assert saved[PHONE] is stub.contacts[PHONE]
+
+    def test_it_happens_once(self):
+        """Following is idempotent: the record under the phone JID is then the
+        user's, which stops any later pass."""
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw._lid_to_phone, mw._phone_to_lid = {LID: PHONE}, {PHONE: LID}
+        mw._follow_saved_contacts()
+        mw.contacts[PHONE]["name"] = "Ana, renamed under the phone"
+        mw.db.upserted.clear()
+        mw._follow_saved_contacts()
+        assert mw.contacts[PHONE]["name"] == "Ana, renamed under the phone"
+        assert mw.db.upserted == {}
+
+    def test_a_database_that_fails_does_not_break_the_caller(self):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+
+        def _down(contacts):
+            raise OSError("locked")
+
+        mw.db.upsert_contacts_batch = _down
+        mw._follow_saved_contacts([(LID, PHONE)])
+        assert mw.contacts[PHONE]["name"] == "Ana Silva"      # in memory all the same
+
+
+class TestTheMergedRecordIsStillInThePhoneBook:
+    """Right after a restart, before the first contact list: the @lid record
+    is the user's local contact (mark explicitly off) and the phone record is
+    an address-book contact restored from the database (the mark, and none of
+    WhatsApp's flags yet). The merge must not take the mark off, or the
+    contact would read as a local one and deleting it would remove it from
+    WinZapp only."""
+
+    def test_the_mark_of_the_phone_record_survives(self):
+        mw = _Window()
+        mw.contacts[LID] = {**pc.local_entry(LID, "Ana Silva"), pc.SYNCED_KEY: False}
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "Ana Agenda",
+                              "isSaved": False, pc.SYNCED_KEY: True}
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "Ana Silva"
+        assert pc.is_phone_synced(mw.contacts[PHONE])
+        assert pc.is_phone_synced(mw.db.upserted[PHONE])
+
+    def test_two_local_records_do_not_invent_one(self):
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "aninha"}
+        mw.register_jid_mapping(LID, PHONE)
+        assert pc.is_phone_synced(mw.contacts[PHONE]) is False
+
+
+class TestTheLeftoversOfDeletedLocalContacts:
+    """Up to 1.1.1.x, deleting a local contact removed the record under the
+    phone JID and left its copy under the @lid still marked as saved. Nothing
+    read the mark there. Now a saved @lid record follows the person to the
+    phone JID, and those leftovers would too: the contact the user deleted
+    would come back, old name and all, at the first start after updating.
+
+    They are cleared once per database, before anything goes over the whole
+    bridge. Only once: afterwards a saved @lid record with a known phone and
+    no contact under it is a contact saved under the @lid on purpose whose
+    move was not persisted, the very thing the startup step is for."""
+
+    @staticmethod
+    def _with_a_leftover():
+        mw = _Window()
+        mw.contacts[LID] = {"id": LID, "remoteJid": LID, "name": "Apagado", "isSaved": True}
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "aninha"}
+        mw._lid_to_phone, mw._phone_to_lid = {LID: PHONE}, {PHONE: LID}
+        return mw
+
+    def test_a_deleted_contact_does_not_come_back(self):
+        mw = self._with_a_leftover()
+
+        mw._follow_contacts_saved_under_lids_at_startup()
+
+        assert mw.contacts[PHONE]["name"] == "aninha"
+        assert not pc.user_saved(mw.contacts[PHONE])
+        assert mw.contacts[LID]["isSaved"] is False
+        assert mw.db.upserted == {LID: mw.contacts[LID]}       # persisted, and only that
+        assert _Dialog(mw)._contact_entry() is None           # "Add contact", as before
+
+    def test_it_would_have_without_the_clearing(self):
+        """What this guards against, on the very same data."""
+        mw = self._with_a_leftover()
+        mw._follow_saved_contacts()
+        assert mw.contacts[PHONE]["name"] == "Apagado"
+
+    def test_nor_when_the_pair_is_learned_again_later(self):
+        """Every writer of the bridge follows what it learns; after the
+        clearing the leftover is no longer the user's record."""
+        mw = self._with_a_leftover()
+        mw._follow_contacts_saved_under_lids_at_startup()
+        mw._lid_to_phone, mw._phone_to_lid = {}, {}
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "aninha"
+
+    def test_a_contact_the_user_still_has_keeps_its_copy(self):
+        """The copy save_local_contact() makes next to a saved phone record."""
+        mw = self._with_a_leftover()
+        mw.contacts[PHONE] = pc.local_entry(PHONE, "Ana Silva")
+        mw.contacts[LID]["name"] = "Ana Silva"
+        mw._follow_contacts_saved_under_lids_at_startup()
+        assert mw.contacts[LID]["isSaved"] is True and mw.db.upserted == {}
+
+    def test_nor_one_saved_under_the_other_digit_form(self):
+        mw = self._with_a_leftover()
+        mw.contacts[PHONE_8] = pc.local_entry(PHONE_8, "Ana Silva")
+        mw._follow_contacts_saved_under_lids_at_startup()
+        assert mw.contacts[LID]["isSaved"] is True
+
+    def test_it_is_done_once_per_database(self):
+        mw = self._with_a_leftover()
+        mw._follow_contacts_saved_under_lids_at_startup()
+        assert mw.db.metadata[mw._ORPHANED_LID_COPIES_CLEARED] == "1"
+
+        # From now on this shape is a contact saved under the @lid on purpose
+        # whose move to the phone JID was never persisted.
+        mw.contacts[LID] = pc.local_entry(LID, "Ana Silva")
+        mw.db.upserted.clear()
+        mw._follow_contacts_saved_under_lids_at_startup()
+
+        assert mw.contacts[LID]["isSaved"] is True
+        assert mw.contacts[PHONE]["name"] == "Ana Silva" and pc.user_saved(mw.contacts[PHONE])
+        assert set(mw.db.upserted) == {PHONE}
+
+    def test_a_database_with_no_leftovers_is_marked_all_the_same(self):
+        mw = _Window()
+        assert mw._clear_orphaned_saved_lid_copies_once() is True
+        assert mw.db.metadata[mw._ORPHANED_LID_COPIES_CLEARED] == "1"
+        assert mw.db.upserted == {}
+
+    def test_when_the_clearing_cannot_be_confirmed_nothing_follows(self):
+        """A database that fails must not be read as "nothing to clear"."""
+        mw = self._with_a_leftover()
+
+        def _down(key, default=None):
+            raise OSError("locked")
+
+        mw.db.get_metadata = _down
+        mw._follow_contacts_saved_under_lids_at_startup()
+
+        assert mw.contacts[PHONE]["name"] == "aninha"
+        assert mw.contacts[LID]["isSaved"] is True            # untouched, tried again next start
+        assert mw.db.metadata == {}
+
+    def test_contacts_that_failed_to_load_do_not_read_as_nothing_to_clear(self):
+        """get_contacts() answers {} when its read fails at startup, and the
+        bridge is emptied the same way. The clearing asks the database itself:
+        marked as done off an empty dict, the leftovers would follow at the
+        next start."""
+        mw = self._with_a_leftover()
+        mw.db.stored_contacts = {jid: dict(record) for jid, record in mw.contacts.items()}
+        mw.db.stored_bridge = dict(mw._lid_to_phone)
+        mw.contacts, mw._lid_to_phone, mw._phone_to_lid = {}, {}, {}     # the failed loads
+
+        assert mw._clear_orphaned_saved_lid_copies_once() is True
+
+        assert mw.db.upserted[LID]["isSaved"] is False
+        assert mw.db.upserted[LID]["name"] == "Apagado"       # the stored record, mark off
+
+    def test_a_database_that_cannot_be_read_is_not_marked_as_done(self):
+        mw = self._with_a_leftover()
+
+        def _down():
+            raise OSError("locked")
+
+        for reader in ("get_contacts", "get_lid_mappings"):
+            setattr(mw.db, reader, _down)
+            assert mw._clear_orphaned_saved_lid_copies_once() is False
+            assert mw.db.metadata == {} and mw.db.upserted == {}
+            delattr(mw.db, reader)
+
+    def test_a_flag_that_could_not_be_written_means_not_done(self):
+        mw = self._with_a_leftover()
+
+        def _down(key, value):
+            raise OSError("locked")
+
+        mw.db.set_metadata = _down
+        assert mw._clear_orphaned_saved_lid_copies_once() is False
+
+    def test_a_failed_write_leaves_it_to_be_tried_again(self):
+        mw = self._with_a_leftover()
+
+        def _down(contacts):
+            raise OSError("locked")
+
+        mw.db.upsert_contacts_batch = _down
+        assert mw._clear_orphaned_saved_lid_copies_once() is False
+        assert mw.db.metadata == {}
+
+
+def test_startup_runs_it_once_contacts_and_bridge_are_both_loaded():
+    """prepare_sync() is far too large to run on a stub. Its order is the
+    point: the scan of stored messages runs while self.contacts is still
+    empty, so the step has to come after the contacts are read, and after the
+    bridge is loaded and scanned."""
+    import inspect
+    source = inspect.getsource(MainWindow.prepare_sync)
+    step = source.index("self._follow_contacts_saved_under_lids_at_startup()")
+    assert source.index("self._load_local_lid_cache()") < step
+    assert source.index("self._build_lid_to_phone_cache()") < step
+    assert source.index("self.contacts = self.get_contacts()") < step

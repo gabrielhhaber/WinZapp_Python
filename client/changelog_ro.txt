@@ -1,8 +1,36 @@
+V2.1.0.0
+
+Această versiune aduce transcrierea și descrierea cu AI a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.
+
+NOUTĂȚI
+
+- Transcrieți și descrieți conținut cu AI. Noul tab „Transcrieri și descrieri” din Setări activează funcțiile AI (pornesc dezactivate) și primește cheia API a unuia sau mai multor furnizori — Gemini, OpenAI, Claude, Groq și OpenRouter — care sunt încercați în ordinea stabilită de dumneavoastră; astfel, când unul eșuează sau rămâne fără cotă, răspunde următorul. În meniul contextual al unui mesaj, sau cu Ctrl+Shift+I, „Transcrieți” transformă un mesaj vocal în text, „Descrieți” descrie o fotografie sau un videoclip, „Descrieți autocolantul” descrie un autocolant, iar „Convertiți în text accesibil” transformă un PDF în text simplu și lizibil. Rezultatul se deschide într-o fereastră cu textul și, pentru fotografii și videoclipuri, puteți pune în ea întrebări suplimentare. WinZapp întreabă înainte de a trimite conținut unui furnizor și întreabă din nou de fiecare dată pentru conversațiile blocate; cheile sunt criptate pe computerul dumneavoastră și sunt trimise doar furnizorului căruia îi aparțin. Cât lucrează furnizorul se aude un sunet de așteptare, iar răspunsurile pot fi citite automat cu voce tare. Textul respectă limba aplicației.
+
+- Liste WhatsApp personalizate: reîmprospătare și filtrare după liste, creare sau redenumire și adăugare ori eliminare a conversațiilor selectate. Editarea depinde de suportul contului WhatsApp. Conversațiile blocate în seif sau indisponibile local sunt excluse din selecție; ceilalți membri sunt păstrați. Modificările neconfirmate sunt raportate fără repetare automată.
+
+- Contacte sincronizate cu telefonul: la adăugarea unui contact (în "Informații despre conversație", în "Conversație nouă" sau dintr-un mesaj cu un contact) există acum două file, "Contact local WinZapp" (doar în WinZapp) și "Contact sincronizat cu telefonul", care salvează numele în WhatsApp și în agenda telefonului. Fila sincronizată se deschide implicit, un număr care este deja în agenda telefonului arată doar acea filă, iar ștergerea unui contact sincronizat îl elimină și din WhatsApp și de pe telefon
+
+- Comandă rapidă nouă Alt+Shift+P în lista de mesaje: accesați mesajul anterior care vă răspunde, ca Alt+Shift+M pentru mențiuni. Apăsările repetate merg înapoi prin ele și revin la cel mai recent. Apare și în "Comenzi rapide de la tastatură" (F1)
+
+CORECTĂRI
+
+- Mențiuni: o persoană menționată pe nume alături de @toți își păstrează linkul în mențiunile mesajului, iar o mențiune a dumneavoastră, în notificare și în previzualizarea din lista de conversații, folosește cuvântul ales în "Cum să se facă referire la mine?" în locul unui cuvânt fix
+
+- Setări, fila "Interfață utilizator": fila se derulează acum, iar grupurile de opțiuni de la sfârșitul ei sunt citite din nou la locul potrivit. Pe ecrane mai mici, cititorul de ecran anunța "Poziția pentru a anunța articolele selectate" la caseta de selectare următoare, nu la butoanele de opțiune ale grupului
+
+- Conținut AI: resetarea tuturor cheilor șterge și acordurile de trimitere memorate, chiar dacă introduci o cheie nouă înainte de aplicare. Transcrierile și textele PDF lungi afișează acum o eroare de limită de text în loc să piardă finalul fără avertizare; nu se încearcă automat alt furnizor pentru această limită.
+
+- Buton „Descrieți” la mesajele cu conținut media. La o fotografie, un autocolant sau un videoclip (și la audio și PDF, când funcțiile AI sunt pornite) apare un buton chiar după „Salvați ca”, accesibil cu Tab, care face același lucru ca scurtătura Ctrl+Shift+I; în meniul contextual, elementul stă acum lângă celelalte acțiuni media și arată tot Ctrl+Shift+I. Butonul și elementul apar doar la mesajele care pot fi descrise.
+
+- Modelul „Automat (recomandat)” în fereastra fiecărui furnizor AI (Transcrieri și descrieri). Bifată implicit la furnizorii la care nu ați ales încă un model, caseta face ca WinZapp să folosească mereu modelul pe care îl recomandă, care urmează actualizările; debifați-o pentru a alege sau a scrie un model fix.
+
 V2.0.0.0
 
 Marea noutate a acestei versiuni sunt apelurile: acum puteți iniția, prelua și respinge apeluri vocale și video direct din WinZapp, fără să luați telefonul, cu o fereastră de apel accesibilă, comenzi rapide de la tastatură, setări audio proprii și istoricul în noua filă, Apeluri. Alte noutăți apărute: conversațiile blocate, căutarea în conversațiile arhivate, limbile turcă și română și mai multe îmbunătățiri de utilizare, precum și corecții pentru situațiile în care WinZapp cerea o nouă asociere fără să fie nevoie. În spate, codul programului a trecut printr-o reorganizare amplă: nu schimbă nimic în utilizare, dar face WinZapp mai ușor de întreținut și de corectat de acum înainte.
 
 NOUTĂȚI
+
+- Marcajele cu stea ale mesajelor se sincronizează acum cu WhatsApp. Fiecare schimbare este verificată pe dispozitivul asociat; refuzurile și rezultatele neverificate sunt anunțate separat. Marcajele cu stea locale vechi sunt păstrate până când alegeți "Sincronizează marcajele cu stea locale vechi cu WhatsApp" din meniul conversației și confirmați. Puteți opri un lot după cererea curentă.
 
 - Apeluri vocale și video. Într-o conversație individuală, butoanele „Apel vocal” (Ctrl+Shift+V) și „Apel video” (Ctrl+Alt+Shift+V) inițiază apelul direct din WinZapp. Apelul deschide o fereastră cu butoane accesibile cu Tab și comenzi rapide proprii: Ctrl+M dezactivează sau reactivează microfonul, Ctrl+V pornește sau oprește camera într-un apel video, Ctrl+P transformă un apel vocal în apel video, Ctrl+C deschide setările apelului, iar Ctrl+Shift+Q închide apelul. Cititorul de ecran anunță când apelul se conectează, când se reconectează și când se încheie.
 
@@ -52,9 +80,15 @@ NOUTĂȚI
 
 - Alegerea a ceea ce spun notificările de fundal. În fila Generale din Setări, „Conținutul notificărilor de fundal” oferă trei niveluri: sunet, numele conversației sau al grupului și textul mesajului, ca până acum; sunet și numele conversației sau al grupului, fără text; sau doar sunet, fără notificare pe ecran și fără să fie citit ceva. Notificările conversațiilor blocate continuă să nu afișeze nici numele, nici conținutul.
 
-- Transcrieți și descrieți conținut cu AI. Noul tab „Transcrieri și descrieri” din Setări activează funcțiile AI (pornesc dezactivate) și primește cheia API a unuia sau mai multor furnizori — Gemini, OpenAI, Claude, Groq și OpenRouter — care sunt încercați în ordinea stabilită de dumneavoastră; astfel, când unul eșuează sau rămâne fără cotă, răspunde următorul. În meniul contextual al unui mesaj, sau cu Ctrl+Shift+I, „Transcrieți” transformă un mesaj vocal în text, „Descrieți” descrie o fotografie sau un videoclip, „Descrieți autocolantul” descrie un autocolant, iar „Convertiți în text accesibil” transformă un PDF în text simplu și lizibil. Rezultatul se deschide într-o fereastră cu textul și, pentru fotografii și videoclipuri, puteți pune în ea întrebări suplimentare. WinZapp întreabă înainte de a trimite conținut unui furnizor și întreabă din nou de fiecare dată pentru conversațiile blocate; cheile sunt criptate pe computerul dumneavoastră și sunt trimise doar furnizorului căruia îi aparțin. Cât lucrează furnizorul se aude un sunet de așteptare, iar răspunsurile pot fi citite automat cu voce tare. Textul respectă limba aplicației.
+- Revenirea la rezultatele căutării la închiderea unei conversații. Cu „Păstrați căutarea conversațiilor la deschiderea unei conversații” bifat în fila Interfață utilizator a Setărilor, căutarea conversațiilor rămâne activă când deschideți o conversație găsită cu ea, iar Esc readuce focalizarea pe acea conversație între rezultate, nu pe lista completă. Opțiunea este debifată în mod implicit.
+
+- Redirecționarea mesajelor vocale ca mesaje vocale. WhatsApp transformă orice mesaj vocal redirecționat într-un fișier audio obișnuit, ceea ce îl scoate din redarea pe rând a mesajelor vocale din conversația de destinație. Cu „Redirecționați mesajele vocale ca mesaje vocale, nu ca audio” bifat în fila Interfață utilizator a Setărilor, copia ajunge ca mesaj vocal și rămâne marcată ca redirecționată. Opțiunea este debifată în mod implicit.
+
+- Descărcarea actualizărilor în fundal. Cu „Descărcați actualizările în fundal, fără fereastra de progres” bifat în fila Generale a Setărilor, o actualizare pe care ați acceptat-o, a WinZapp sau a WPPConnect, se descarcă fără fereastra de progres, iar dumneavoastră folosiți în continuare programul normal, conectat. Abia când este gata WinZapp anunță că urmează să o instaleze: pentru o actualizare a WinZapp, se închide și se redeschide; pentru una a WPPConnect, rămâne offline doar pentru momentele necesare schimbării versiunii și repornirii acesteia, nu pe toată durata descărcării și a instalării. Dacă sunteți într-un apel, anunțul așteaptă încheierea lui. Opțiunea se aplică tuturor conturilor și este debifată în mod implicit.
 
 ÎMBUNĂTĂȚIRI
+
+- Verificare ortografică: sunetul de eroare se aude acum și când tastați un semn de punctuație (virgulă, punct, semn de întrebare etc.) imediat după un cuvânt greșit, nu doar spațiul, și când cursorul ajunge la un cuvânt greșit cu săgețile, Ctrl+săgețile, Home, End sau mouse-ul.
 
 - Reorganizare amplă a codului. Cele mai mari două fișiere ale WinZapp, care singure însumau peste 50.000 de linii și cuprindeau aproape tot ce face programul, au fost împărțite în zeci de părți mai mici, fiecare ocupându-se de un singur lucru: sincronizare, conexiune, trimiterea mesajelor, apeluri, lista de conversații și așa mai departe. Pentru utilizator nu se schimbă nimic. Pentru dezvoltatori devine mult mai ușor să găsească, să înțeleagă și să corecteze fiecare parte și mult mai greu ca o corecție să strice altceva fără să observe nimeni — asta menține WinZapp sănătos pe termen lung.
 
@@ -78,9 +112,17 @@ NOUTĂȚI
 
 - Biblioteca WhatsApp folosită de WinZapp a fost actualizată. Notele dezvoltatorilor ei enumeră corecții pentru crearea grupurilor, obținerea și resetarea linkurilor de invitație la grup, editarea descrierii grupului, schimbarea numelui de profil și trimiterea fișierelor media în versiunile recente ale WhatsApp Web. Dacă WinZapp vă propune actualizarea WPPConnect la pornire, acceptați-o pentru a instala noua bibliotecă.
 
+- Căutarea în conversație cu F3 și Shift+F3. Acum puteți trece la următorul rezultat cu F3 și la cel anterior cu Shift+F3 de oriunde din conversația deschisă, inclusiv din lista de mesaje, fără să vă întoarceți la câmpul de căutare; focusul urmează rezultatul, iar cititorul de ecran anunță poziția. Enter și Shift+Enter funcționează în continuare ca alternativă, dar numai în câmpul de căutare, pentru că în lista de mesaje au deja alte funcții. Butoanele „Rezultat anterior” și „Următorul rezultat” anunță acum Shift+F3 și F3, iar ajutorul pentru comenzi rapide a fost actualizat.
+
+- Redirecționarea confirmă acum când a reușit. Înainte era anunțat doar eșecul; acum, la final, apare o casetă care spune „Mesajul a fost redirecționat.” sau câte mesaje au fost redirecționate.
+
 CORECTĂRI
 
 - Apelurile nu mai eșuează cu eroarea "NumPy was built with baseline optimizations", urmată de "cannot load module more than once per process", pe calculatoarele cu un procesor mai vechi sau limitat de o mașină virtuală. WinZapp include acum o versiune de NumPy care funcționează pe orice procesor pe 64 de biți.
+
+- Apeluri: am corectat eroarea "cannot load module more than once per process", care putea apărea la începerea unui apel vocal sau video. Motorul de apeluri WhatsApp este acum pornit o singură dată și partajat, în loc să fie pornit din nou la fiecare acțiune de apel.
+
+- Când trimiteai un mesaj unei persoane care nu e în contactele tale și nu are nume în profilul WhatsApp, conversația începea să afișeze propriul tău nume în loc de numărul de telefon al persoanei. Acum continuă să afișeze numărul de telefon până când se găsește numele real.
 
 - Programul de dezinstalare urmează acum limba de afișare a Windows, la fel ca programul de instalare, în loc să apară mereu în portugheză.
 
@@ -161,6 +203,8 @@ CORECTĂRI
 - Un răspuns la un mesaj în care menționai pe cineva ajungea la destinatari ca mesaj nou, fără citat, deși WinZapp îl arăta ca răspuns. Acum citatul pleacă împreună cu mențiunea.
 
 - Notificările de actualizare apar acum și când WinZapp pornește odată cu Windows: în acest caz nu se oferea nici actualizarea WinZapp, nici cea a WPPConnect Server. Notificarea WPPConnect Server oferă acum și o versiune mai nouă decât cea testată cu WinZapp, ca actualizare recomandată pe care o puteți refuza, nu doar atunci când WinZapp ridica versiunea necesară.
+
+- Într-o conversație ale cărei mesaje mai vechi sunt doar pe telefon, WinZapp continua să le ceară telefonului când ajungeați la primul mesaj: nu sosea nimic, telefonul putea afișa de fiecare dată o notificare de sincronizare, iar lista rămânea ocupată minute în șir. Acum WinZapp detectează acest caz, nu mai cere nimic și anunță „Folosiți WhatsApp pe telefon pentru a vedea mesajele mai vechi.”
 
 V1.1.1.0
 

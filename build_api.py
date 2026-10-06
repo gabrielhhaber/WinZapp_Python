@@ -94,6 +94,7 @@ def _apply_node_modules_patches(api_dir: str) -> None:
         canonical_setup._patch_wppconnect_status_layer,
         canonical_setup._patch_wppconnect_sender_layer,
         canonical_setup._patch_wppconnect_welcome_layer,
+        canonical_setup._patch_wa_js_bundle,
     ):
         try:
             patcher(api_dir)

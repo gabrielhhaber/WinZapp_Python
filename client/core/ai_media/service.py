@@ -252,8 +252,10 @@ class Operation:
         return token
 
 
-#: Categories that mean "this provider failed", so the next one is tried. The
-#: others (bad media, a cancel, the overall deadline) would fail identically.
+#: Categories that mean "this provider failed", so the next one is tried.
+#: A local output limit also ends the action: do not spend another provider's
+#: quota automatically after receiving a result that cannot be shown in full.
+#: The other terminal errors include bad media, a cancel and the overall deadline.
 _NEXT_PROVIDER = frozenset({"authentication", "quota", "server", "request", "refusal",
                             "response", "network", "timeout"})
 

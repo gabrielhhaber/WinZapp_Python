@@ -50,6 +50,7 @@ from ui.accessible import (
     AccessibleAudioSlider,
     AccessibleSaveAs,
     AccessibleShowInFolder,
+    AccessibleDescribeButton,
     AccessibleConversationDataButton,
     AccessibleVoiceCallButton,
     AccessibleVideoCallButton,
@@ -129,6 +130,7 @@ from ui.conversation_panel.transfer_gauge import (  # noqa: F401
 )
 from ui.conversation_panel.accelerators import AcceleratorsMixin
 from ui.conversation_panel.conversation_navigation import ConversationNavigationMixin
+from ui.conversation_panel.chat_lists import WhatsAppListFilterMixin
 from ui.conversation_panel.composer import ComposerMixin
 from ui.conversation_panel.voice_recording import VoiceRecordingMixin
 from ui.conversation_panel.system_audio_recording import SystemAudioRecordingMixin
@@ -150,6 +152,7 @@ from ui.conversation_panel.message_rendering import MessageRenderingMixin
 from ui.conversation_panel.conversation_info import ConversationInfoMixin
 from ui.conversation_panel.forwarding import ForwardingMixin
 from ui.conversation_panel.message_actions import MessageActionsMixin
+from ui.conversation_panel.message_stars import StarActionsMixin
 from ui.conversation_panel.message_accels import MessageAccelsMixin
 from ui.conversation_panel.bookmarks import BookmarksMixin
 from ui.conversation_panel.message_search import MessageSearchMixin
@@ -164,6 +167,7 @@ from ui.conversation_panel.ai_actions import AIActionsMixin
 class ConversationsPanel(
     AcceleratorsMixin,
     ConversationNavigationMixin,
+    WhatsAppListFilterMixin,
     ConversationPanelVisibilityMixin,
     ComposerMixin,
     VoiceRecordingMixin,
@@ -186,6 +190,7 @@ class ConversationsPanel(
     ConversationInfoMixin,
     ForwardingMixin,
     MessageActionsMixin,
+    StarActionsMixin,
     MessageAccelsMixin,
     BookmarksMixin,
     MessageSearchMixin,
@@ -556,6 +561,8 @@ class ConversationsPanel(
         self._filter_radio.Bind(wx.EVT_RADIOBOX, self._on_filter_changed)
         outer_sizer.Add(self._filter_radio, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
 
+        self._build_wa_list_controls(outer_sizer)
+
         # ── Conversations list ──────────────────────────────────────────────
         self.conversations_label = wx.StaticText(self, label=i18n.t("conversations"))
         outer_sizer.Add(self.conversations_label, 0, wx.LEFT, 5)
@@ -767,6 +774,16 @@ class ConversationsPanel(
         self._media_action_sizer.Add(self._action_save_as_btn, 0, wx.TOP, 2)
         self._action_save_as_btn.Hide()
 
+        # Describe / transcribe (Ctrl+Shift+I) sits right after Save as in the
+        # Tab order; ai_actions.py decides when it is shown and what it says.
+        self._action_describe_btn = wx.Button(
+            self._media_action_slot, label=i18n.t("ai_describe_image_menu")
+        )
+        self._action_describe_btn.SetAccessible(AccessibleDescribeButton())
+        self._action_describe_btn.Bind(wx.EVT_BUTTON, self._on_ai_describe_button)
+        self._media_action_sizer.Add(self._action_describe_btn, 0, wx.TOP, 2)
+        self._action_describe_btn.Hide()
+
         self._action_show_in_folder_btn = wx.Button(
             self._media_action_slot, label=i18n.t("show_in_folder")
         )
@@ -875,6 +892,7 @@ class ConversationsPanel(
         self.message_field.Bind(wx.EVT_TEXT,       self.on_change_message_field)
         self.message_field.Bind(wx.EVT_TEXT_ENTER, self.on_send_message)
         self.message_field.Bind(wx.EVT_KEY_DOWN,   self._on_message_field_key_down)
+        self.message_field.Bind(wx.EVT_LEFT_UP,    self._cue_spelling_at_caret_on_click)
         self.message_field.Bind(wx.EVT_CHAR,       self._on_message_field_char)
         self.message_field.Bind(wx.EVT_TEXT_PASTE, self._on_text_field_paste)
         conv_sizer.Add(self.message_field, 0, wx.EXPAND | wx.ALL, 5)
@@ -1158,6 +1176,7 @@ class ConversationsPanel(
 
     def refresh_labels(self):
         """Update all translatable labels and column headers after a language change."""
+        self._refresh_wa_list_labels()
         i18n = self.main_window.i18n
         self._spell_checker.set_language(
             self.main_window.settings.get("general", {}).get("language")

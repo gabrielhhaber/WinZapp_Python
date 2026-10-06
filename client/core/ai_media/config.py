@@ -132,6 +132,8 @@ def preferences(app_settings):
         "order": order,
         "disabled": sorted(off),
         "models": chosen,
+        # Providers following WinZapp's recommended model (nothing valid saved).
+        "auto_models": sorted(p for p in PROVIDERS if not valid_model(models.get(p))),
         "kinds": {k: _flag(kinds.get(k), True) for k in KINDS},
         "profile": profile if profile in PROFILES else "balanced",
         "read_answers": _flag(raw.get("read_answers"), True),

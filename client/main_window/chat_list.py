@@ -1156,7 +1156,9 @@ class ChatListMixin:
                     if not isinstance(jid, str):
                         continue
                     if self._is_self_jid(jid):
-                        name = "eu"
+                        # "Como se referir a mim?", as the message list and
+                        # the notification say it; not a fixed "eu".
+                        name = self.self_reference_label()
                     else:
                         if hasattr(self, "conversations_panel"):
                             name = self.conversations_panel._get_participant_name(
@@ -1573,6 +1575,8 @@ class ChatListMixin:
                 return False
         except Exception:
             return False
+        if getattr(panel, "_wa_list_id", None):
+            return False
         if getattr(panel, "_conv_filter", "all") != "all":
             logging.info("[move_chat_row_to_top] %s: filter %r active — full path",
                          chat_jid, getattr(panel, "_conv_filter", "all"))
@@ -1877,15 +1881,19 @@ class ChatListMixin:
             self.conversations_panel.search_field.GetValue().strip(), _fold
         )
         conv_filter  = getattr(self.conversations_panel, '_conv_filter', 'all')
+        from core.chat_lists import list_identity
+        wa_list_id = getattr(self.conversations_panel, '_wa_list_id', None)
+        wa_members = self._wa_list_filter_identities() if wa_list_id else None
+        wa_mapping = dict(getattr(self, '_lid_to_phone', {}))
 
         # Used below to tell "the same filtered view just lost an item" (where
         # reusing the old row position to keep focus nearby makes sense) apart
         # from "the active filter/search changed" (where the old row position
         # belongs to a different, unrelated list and must not be reused).
         _filter_or_search_changed = (
-            getattr(self, "_last_conv_filter_key", None) != (conv_filter, search)
+            getattr(self, "_last_conv_filter_key", None) != (conv_filter, search, wa_list_id)
         )
-        self._last_conv_filter_key = (conv_filter, search)
+        self._last_conv_filter_key = (conv_filter, search, wa_list_id)
 
         # Always start from the full sorted lists saved by set_chats() so
         # that restoring the window or clearing a search shows all chats.
@@ -1945,6 +1953,10 @@ class ChatListMixin:
         for i, chat in enumerate(full_chats):
             name     = full_names[i]
             chat_jid = chat.get("remoteJid", "")
+            if getattr(self, "is_chat_locked", lambda _jid: False)(chat_jid):
+                continue
+            if wa_members is not None and list_identity(chat_jid, wa_mapping) not in wa_members:
+                continue
             if conv_filter == 'unread' and effective_unread_count(chat) == 0:
                 continue
             if conv_filter == 'groups' and not chat_jid.endswith("@g.us"):

@@ -20,6 +20,7 @@ Where to look (and where new code goes):
     session_lifecycle   Windows end-session teardown, profile recovery/snapshots
     wpp_server          local WPPConnect Server: install, version, ports, start/stop
     updates             app and WPPConnect Server update checks
+    wpp_background_update  WPPConnect Server update built in the background, then swapped in
     sync                prepare_sync, _run_sync, per-chat sync planning
     backfill            background history backfill, history-sync status
     history             on-demand older history (fetch_older_messages)
@@ -28,10 +29,12 @@ Where to look (and where new code goes):
     chat_events         acks, presence, unread counters, archive/pin events
     sending             text/audio/media/contact/reaction sends, queue callbacks
     message_actions     edit, delete, forward, resend, mark played
+    message_stars       verified WhatsApp star writes, remote star persistence
     media               media download, failed ids, base64 fetch, durations
     read_state          mark read/unread, local-read anchor
     chat_actions        block, mute, archive, delete, clear, typing, pin
     chat_list           computing and rendering the chat list and previews
+    chat_lists          WhatsApp custom lists, membership and account-scoped jobs
     chats_store         local chat storage, remote chats, dedup, saving
     contacts            local/remote contacts, self reference
     identity            JID normalization, @lid <-> phone, name resolution
@@ -42,6 +45,7 @@ Where to look (and where new code goes):
 
   Plain functions (import and test them directly — no wx, no stub)
     message_rules       unread/history-gap/countable-message rules
+    history_boundary    older history that is only on the phone (API verdict, probe)
     identity_rules      linked phone number, group participant identity
     runtime_setup       legacy API state, npm health marker, restore choice
     win32_helpers       elevation, hotkeys, de-elevated spawn

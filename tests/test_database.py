@@ -1032,3 +1032,92 @@ class TestMaintenance:
         async with DatabaseManager(db_path, fernet_key) as db2:
             lids, _ = await db2.get_unresolvable_lids()
             assert lids == {"bad@lid"}
+
+
+class TestContactsSyncedToPhone:
+    """contacts.synced_to_phone: a contact that lives in the phone's address
+    book keeps that across a restart. Without the column the mark was lost,
+    and until the next contact sync such a contact was handled as a local one:
+    deleting it removed it from WinZapp only."""
+
+    async def test_the_mark_survives_a_reopen(self, tmp_path, fernet_key):
+        from core.database import DatabaseManager
+        from core.phone_contacts import is_phone_synced, synced_entry
+
+        db_path = str(tmp_path / "contacts.db")
+        async with DatabaseManager(db_path, fernet_key) as db:
+            await db.upsert_contacts_batch({"a@w": synced_entry("a@w", "Ana")})
+
+        async with DatabaseManager(db_path, fernet_key) as db:
+            contact = (await db.get_contacts())["a@w"]
+            assert is_phone_synced(contact) is True
+            assert contact["isSaved"] is True and contact["name"] == "Ana"
+
+    async def test_a_contact_whatsapp_reports_as_synced_is_kept_as_one(self, in_memory_db):
+        """Added on the phone: WinZapp wrote no marker, WhatsApp's flags say it."""
+        from core.phone_contacts import is_phone_synced
+
+        await in_memory_db.upsert_contact("a@w", {
+            "remoteJid": "a@w", "isMyContact": True, "syncToAddressbook": True})
+        assert is_phone_synced((await in_memory_db.get_contacts())["a@w"]) is True
+
+    async def test_a_local_contact_is_not_marked(self, in_memory_db):
+        from core.phone_contacts import is_phone_synced, local_entry
+
+        await in_memory_db.upsert_contacts_batch({
+            "a@w": local_entry("a@w", "Ana"),
+            "b@w": {"remoteJid": "b@w", "isMyContact": True, "syncToAddressbook": False},
+        })
+        contacts = await in_memory_db.get_contacts()
+        assert is_phone_synced(contacts["a@w"]) is False
+        assert is_phone_synced(contacts["b@w"]) is False
+
+    async def test_clearing_the_mark_is_persisted(self, in_memory_db):
+        from core.phone_contacts import SYNCED_KEY, synced_entry
+
+        entry = synced_entry("a@w", "Ana")
+        await in_memory_db.upsert_contact("a@w", entry)
+        entry.update({SYNCED_KEY: False, "isMyContact": False, "syncToAddressbook": False})
+        await in_memory_db.upsert_contact("a@w", entry)
+        assert (await in_memory_db.get_contacts())["a@w"][SYNCED_KEY] is False
+
+    async def test_the_bulk_import_keeps_it_too(self, in_memory_db):
+        from core.phone_contacts import is_phone_synced, synced_entry
+
+        await in_memory_db.import_from_dict({"contacts": {"a@w": synced_entry("a@w", "Ana")}})
+        assert is_phone_synced((await in_memory_db.get_contacts())["a@w"]) is True
+
+    async def test_a_database_from_before_the_column_is_upgraded(self, tmp_path, fernet_key):
+        """The table as every existing install has it. Opening it must add the
+        column, keep the rows, and start them unmarked."""
+        import aiosqlite
+
+        from core.database import DatabaseManager
+        from core.phone_contacts import SYNCED_KEY, synced_entry
+
+        db_path = str(tmp_path / "old.db")
+        async with aiosqlite.connect(db_path) as raw:
+            await raw.execute(
+                "CREATE TABLE contacts ("
+                "jid TEXT PRIMARY KEY, remote_jid TEXT NOT NULL, name TEXT DEFAULT '', "
+                "push_name TEXT DEFAULT '', profile_pic_url TEXT DEFAULT '', "
+                "is_saved INTEGER DEFAULT 0, updated_at TEXT DEFAULT (datetime('now')))"
+            )
+            await raw.execute(
+                "INSERT INTO contacts (jid, remote_jid, name, is_saved) "
+                "VALUES ('old@w', 'old@w', 'Antigo', 1)"
+            )
+            await raw.commit()
+
+        async with DatabaseManager(db_path, fernet_key) as db:
+            contacts = await db.get_contacts()
+            assert contacts["old@w"]["name"] == "Antigo"
+            assert contacts["old@w"]["isSaved"] is True
+            assert contacts["old@w"][SYNCED_KEY] is False
+            await db.upsert_contact("new@w", synced_entry("new@w", "Novo"))
+
+        # A second open finds the column and must not try to add it again.
+        async with DatabaseManager(db_path, fernet_key) as db:
+            contacts = await db.get_contacts()
+            assert contacts["new@w"][SYNCED_KEY] is True
+            assert set(contacts) == {"old@w", "new@w"}

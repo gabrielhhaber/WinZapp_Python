@@ -190,7 +190,9 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
         )
         for jid in mentioned:
             if main_window and main_window._is_self_jid(jid):
-                name = "eu"
+                # "Como se referir a mim?": the same word the message list
+                # shows, not a fixed "eu" that ignored the setting.
+                name = main_window.self_reference_label()
             else:
                 name = _resolve_participant_name(jid, "", main_window)
             

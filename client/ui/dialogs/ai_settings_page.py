@@ -79,10 +79,14 @@ class AIProviderDialog(ModelSelectionMixin, wx.Dialog):
         self._button(body, "ai_delete_key", self._delete_key)
         self._button(body, "ai_get_key", lambda e: wx.LaunchDefaultBrowser(spec.key_url))
         self.get_models = self._button(body, "ai_get_models", self._fetch_models)
+        self.automatic = wx.CheckBox(body, label=self._t("ai_model_automatic"))
+        self.automatic.SetValue(not state["model"])
+        self.sizer.Add(self.automatic, 0, wx.ALL, 8)
         self.model_choice = self._choice(body, "ai_model_choice", [])
         self.model_choice.Enable(False)
         self.model = self._text(body, "ai_model")
-        self.model.ChangeValue(state["model"])
+        self.model.ChangeValue(state["model"] or spec.model)
+        self._apply_automatic()
         self._button(body, "ai_test_connection", self._test)
         self._button(body, "ai_billing", lambda e: wx.LaunchDefaultBrowser(spec.billing_url))
         self._button(body, "ai_privacy_link", lambda e: wx.LaunchDefaultBrowser(spec.privacy_url))
@@ -94,6 +98,7 @@ class AIProviderDialog(ModelSelectionMixin, wx.Dialog):
         body.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
         self._body = body
         self.key.Bind(wx.EVT_TEXT, self._key_changed)
+        self.automatic.Bind(wx.EVT_CHECKBOX, self._automatic_changed)
         self.model_choice.Bind(wx.EVT_CHOICE, self._select_model)
         self.model.Bind(wx.EVT_TEXT, self._manual_model_changed)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._destroyed)
@@ -142,6 +147,22 @@ class AIProviderDialog(ModelSelectionMixin, wx.Dialog):
         button.Bind(wx.EVT_BUTTON, handler)
         self.sizer.Add(button, 0, wx.ALL, 8)
         return button
+
+    def _apply_automatic(self):
+        """Automatic follows the model WinZapp recommends: a pinned model is
+        edited only while it is off."""
+        pinned = self._model_pinned()
+        if not pinned:
+            self.model.ChangeValue(PROVIDERS[self._provider].model)
+        self.model.Enable(pinned)
+        self.get_models.Enable(pinned)
+        self.model_choice.Enable(pinned and bool(self._model_options))
+
+    def _automatic_changed(self, event):
+        self._cancel_model_list(clear=True)
+        self._cancel_probe()
+        self._apply_automatic()
+        event.Skip()
 
     def _current_key(self):
         typed = self.key.GetValue().strip()
@@ -230,7 +251,8 @@ class AIProviderDialog(ModelSelectionMixin, wx.Dialog):
         """The draft as entered: a typed key (blank keeps the saved one), whether
         the saved one is to be removed, the model and the on/off switch."""
         return {"key": self.key.GetValue().strip(), "deleted": self._deleted,
-                "model": self.model.GetValue().strip(), "enabled": self.enabled.GetValue()}
+                "model": "" if self.automatic.GetValue() else self.model.GetValue().strip(),
+                "enabled": self.enabled.GetValue()}
 
     def _destroyed(self, event):
         if event.GetEventObject() is self:
@@ -253,6 +275,7 @@ class AISettingsPage(ScrolledPanel):
         self._order = list(config["order"])
         self._disabled = set(config["disabled"])
         self._models = dict(config["models"])
+        self._auto = set(config["auto_models"])
         self._drafts = {}      # provider -> key typed in its window, applied with the dialog
         self._deleted = set()  # providers whose saved key is to be removed
         self._reset = False
@@ -373,7 +396,8 @@ class AISettingsPage(ScrolledPanel):
         if provider is None:
             return
         state = {"key": self._drafts.get(provider, ""), "deleted": provider in self._deleted,
-                 "model": self._models[provider], "enabled": provider not in self._disabled}
+                 "model": "" if provider in self._auto else self._models[provider],
+                 "enabled": provider not in self._disabled}
         dialog = AIProviderDialog(self.GetTopLevelParent(), self.main_window, provider, state,
                                   self.store, self._reset)
         try:
@@ -388,7 +412,12 @@ class AISettingsPage(ScrolledPanel):
         elif draft["key"]:
             self._deleted.discard(provider)
             self._drafts[provider] = draft["key"]
-        self._models[provider] = draft["model"]
+        if draft["model"]:
+            self._auto.discard(provider)
+            self._models[provider] = draft["model"]
+        else:
+            self._auto.add(provider)
+            self._models[provider] = PROVIDERS[provider].model
         (self._disabled.discard if draft["enabled"] else self._disabled.add)(provider)
         self._refresh_list(index)
         self._on_change()
@@ -436,13 +465,17 @@ class AISettingsPage(ScrolledPanel):
             changes.update(self._drafts)
             if changes or self._reset:
                 self.store.apply(changes, reset=self._reset)
-            removed = set(self._deleted)
+            # Re-entering a key removes it from _deleted, but must not undo
+            # the consent revocation requested by an install-wide reset.
+            removed = set(PROVIDERS) if self._reset else set(self._deleted)
 
             def merge(old):
                 value = dict(old) if isinstance(old, dict) else {}
                 value.update(
                     enabled=self.enabled.GetValue(), order=list(self._order),
-                    disabled=sorted(self._disabled), models=dict(self._models),
+                    disabled=sorted(self._disabled),
+                    models={name: "" if name in self._auto else model
+                            for name, model in self._models.items()},
                     kinds={kind: check.GetValue() for kind, check in self.toggles.items()},
                     profile=PROFILES[self.profile.GetSelection()],
                     read_answers=self.read_answers.GetValue())

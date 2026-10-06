@@ -124,6 +124,7 @@ def test_global_preferences_are_opt_in_and_defaults_are_complete(tmp_path):
     assert p["order"] == list(config.PROVIDERS) and p["disabled"] == []
     assert p["consented"] == [] and all(p["kinds"].values())
     assert p["models"] == {name: spec.model for name, spec in config.PROVIDERS.items()}
+    assert p["auto_models"] == sorted(config.PROVIDERS)  # no model saved: all automatic
 
 
 def test_order_disabled_and_consent_are_validated_and_persisted(tmp_path):
@@ -139,6 +140,7 @@ def test_order_disabled_and_consent_are_validated_and_persisted(tmp_path):
     assert p["kinds"]["audio"] is False and p["kinds"]["video"] is True
     assert p["models"]["openai"] == "gpt-4o"
     assert p["models"]["groq"] == config.PROVIDERS["groq"].model
+    assert "openai" not in p["auto_models"] and "groq" in p["auto_models"]
     app.update("ai_media", lambda old: {**old, "consented": ["openai", "gemini"]})
     assert config.preferences(AppSettings(str(tmp_path)))["consented"] == ["gemini", "openai"]
 

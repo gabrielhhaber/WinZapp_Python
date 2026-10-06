@@ -100,6 +100,9 @@ class _FakeDB:
 
 class _Stub:
     _extract_lid_mapping = MainWindow._extract_lid_mapping
+    # _build_lid_to_phone_cache() ends by bringing saved contacts over to the
+    # phone JIDs it learned; the real one, under the same lock.
+    _follow_saved_contacts = MainWindow._follow_saved_contacts
 
     def __init__(self):
         self._ui_ready_event = threading.Event()
@@ -366,6 +369,12 @@ _MAPPING_WRITERS = [
     "get_remote_chats",
     "_load_local_lid_cache",
     "clear_local_data",
+    # Not writers of the bridge, but they take the same lock to change
+    # self.contacts and then write to the database: the write must stay
+    # outside, and nothing else would notice it sliding in (the lock is
+    # reentrant, so it would still work).
+    "_follow_saved_contacts",
+    "_clear_orphaned_saved_lid_copies_once",
 ]
 
 

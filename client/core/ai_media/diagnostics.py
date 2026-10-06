@@ -13,7 +13,7 @@ _STAGES = frozenset({
 _CATEGORIES = frozenset({
     "authentication", "quota", "server", "request", "media_size", "media_format",
     "refusal", "response", "network", "timeout", "cancelled", "busy", "question",
-    "limit", "media", "credentials", "providers",
+    "limit", "output_limit", "media", "credentials", "providers",
 })
 _EXCEPTION_TYPES = frozenset({
     "TypeError", "ValueError", "AttributeError", "RuntimeError", "OSError",

@@ -1,8 +1,36 @@
+V2.1.0.0
+
+This release brings AI transcription and description of voice messages, images, videos, stickers and PDFs.
+
+WHAT'S NEW
+
+- Transcribe and describe media with AI. The new "Transcriptions and Descriptions" tab in Settings turns the AI features on (they start off) and takes the API key of one or more providers — Gemini, OpenAI, Claude, Groq and OpenRouter — which are tried in the order you set, so when one fails or runs out of quota the next one answers. In a message's context menu, or with Ctrl+Shift+I, "Transcribe" turns a voice message into text, "Describe" describes a photo or a video, "Describe sticker" describes a sticker and "Convert to accessible text" turns a PDF into plain, readable text. The result opens in a window with the text, and for photos and videos you can ask follow-up questions in it. WinZapp asks before sending media to a provider and asks again every time for locked chats; your keys are encrypted on your computer and are sent only to the provider they belong to. A waiting sound plays while the provider works, and answers can be read aloud automatically. The text follows the language of the app.
+
+- WhatsApp custom lists: refresh and filter by your lists, create or rename a list, and add or remove selected chats. List editing depends on WhatsApp account support. Locked and locally unavailable chats are excluded from selection; other memberships remain unchanged. Unverified changes are reported without automatic retries.
+
+- Contacts synced with the phone: when you add a contact (in "Chat info", in "New chat" or from a contact message) there are now two tabs, "WinZapp local contact" (only in WinZapp) and "Contact synced with the phone", which saves the name in WhatsApp and in the phone's address book. The synced tab opens by default, a number that is already in the phone's address book shows only that tab, and deleting a synced contact also removes it from WhatsApp and the phone
+
+- New shortcut Alt+Shift+P in the messages list: jump to the previous message that replies to you, like Alt+Shift+M does for mentions. Repeated presses go back through them and wrap to the newest. It is also listed in "Keyboard shortcuts" (F1)
+
+FIXES
+
+- Mentions: a person mentioned by name next to @all keeps their link in the message's mentions, and a mention of you, in the notification and in the chat list preview, uses the word chosen in "How should I be referred to?" instead of a fixed word
+
+- Settings, "User Interface" tab: the tab now scrolls, and the option groups near its end are read in the right place again. On smaller screens the screen reader announced "Position to announce selected items" on the checkbox after it, and not on the group's own radio buttons
+
+- AI media: resetting all keys also clears remembered sending consent, even when a new key is entered before applying. Long transcripts and PDF text now report a text-limit error instead of silently losing their endings; another provider is not tried automatically for this limit.
+
+- "Describe" button on media messages. On a photo, sticker or video (and on audio and PDFs too, when the AI features are on), a button appears right after "Save as", reachable with Tab, that does the same as the Ctrl+Shift+I shortcut; in the context menu the item now sits with the other media actions, also showing Ctrl+Shift+I. The button and the item only appear on messages that can be described.
+
+- "Automatic (recommended)" model in each AI provider window (Transcriptions and Descriptions). Checked by default for providers where you had not picked a model, the box makes WinZapp always use the model it recommends, which follows updates; uncheck it to pick or type a fixed model.
+
 V2.0.0.0
 
 The big news in this release is calls: you can now place, answer and reject voice and video calls from WinZapp itself, without picking up your phone, with an accessible call window, keyboard shortcuts, dedicated audio settings and your call history in the new Calls tab. Locked chats, search in archived chats, Turkish and Romanian and several usability improvements arrived too, along with fixes for situations where WinZapp asked you to pair again when it did not need to. Under the hood, the program's code went through a major reorganization: it changes nothing in how you use WinZapp, but it makes it easier to maintain and to fix from here on.
 
 WHAT'S NEW
+
+- Starred messages now use WhatsApp's own stars. Each change is checked on the linked device; failures and unverified results are reported separately. Old local stars remain until you choose "Sync old local stars with WhatsApp" in the chat's context menu and confirm. You can stop a batch after the current request.
 
 - Voice and video calls. In a one-to-one chat, the "Voice call" (Ctrl+Shift+V) and "Video call" (Ctrl+Alt+Shift+V) buttons place the call from WinZapp itself. The call opens a window with Tab-reachable buttons and its own shortcuts: Ctrl+M mutes or unmutes the microphone, Ctrl+V turns the camera on or off in a video call, Ctrl+P turns a voice call into a video call, Ctrl+C opens the call settings and Ctrl+Shift+Q hangs up. The screen reader tells you when the call connects, when it is reconnecting and when it ends.
 
@@ -52,9 +80,15 @@ WHAT'S NEW
 
 - Choose what background notifications say. In the General tab of Settings, "Background notification content" offers three levels: sound, chat or group name and message text, as before; sound and chat or group name, without the text; or sound only, with no notification on screen and nothing read out. Notifications for locked chats still show neither name nor content.
 
-- Transcribe and describe media with AI. The new "Transcriptions and Descriptions" tab in Settings turns the AI features on (they start off) and takes the API key of one or more providers — Gemini, OpenAI, Claude, Groq and OpenRouter — which are tried in the order you set, so when one fails or runs out of quota the next one answers. In a message's context menu, or with Ctrl+Shift+I, "Transcribe" turns a voice message into text, "Describe" describes a photo or a video, "Describe sticker" describes a sticker and "Convert to accessible text" turns a PDF into plain, readable text. The result opens in a window with the text, and for photos and videos you can ask follow-up questions in it. WinZapp asks before sending media to a provider and asks again every time for locked chats; your keys are encrypted on your computer and are sent only to the provider they belong to. A waiting sound plays while the provider works, and answers can be read aloud automatically. The text follows the language of the app.
+- Return to the search results when closing a chat. With "Keep the chat search when opening a chat" ticked in the User Interface tab of Settings, the chat search stays active when you open a chat it found, and Esc puts the focus back on that chat among the results instead of on the full list. The option is off by default.
+
+- Forward voice messages as voice messages. WhatsApp turns every forwarded voice message into a plain audio, which takes it out of the sequential playback of voice messages in the destination chat. With "Forward voice messages as voice messages instead of audio" ticked in the User Interface tab of Settings, the copy arrives as a voice message and is still marked as forwarded. The option is off by default.
+
+- Download updates in the background. With "Download updates in the background, without the progress window" ticked in the General tab of Settings, an update you accepted, of WinZapp or of WPPConnect, downloads without the progress window, and you keep using the app normally, connected. Only when it is ready does WinZapp tell you it is about to install: for an update of WinZapp itself it closes and opens again; for one of WPPConnect it goes offline only for the moment it takes to switch versions and restart it, instead of for the whole download and install. If you are on a call, the notice waits for it to end. The option applies to every account and is off by default.
 
 IMPROVEMENTS
+
+- Spell checking: the error sound now also plays when you type punctuation (comma, full stop, question mark and so on) right after a misspelled word, not only a space, and when the cursor arrives at a misspelled word with the arrow keys, Ctrl+arrows, Home, End or the mouse.
 
 - A major reorganization of the code. WinZapp's two largest files, which on their own added up to more than 50,000 lines and held almost everything the program does, were split into dozens of smaller parts, each taking care of one thing: sync, connection, sending messages, calls, the chat list and so on. Nothing changes for you as a user. For developers it becomes much easier to find, understand and fix each part, and much harder for a fix to break something else unnoticed — which is what keeps WinZapp healthy in the long run.
 
@@ -78,9 +112,17 @@ IMPROVEMENTS
 
 - The WhatsApp library WinZapp uses was updated. Its developers' notes list fixes for creating groups, getting and resetting group invite links, editing group descriptions, changing your profile name and uploading media on recent WhatsApp Web versions. If WinZapp offers to update WPPConnect when it starts, accept it so the new library is installed.
 
+- Conversation search with F3 and Shift+F3. You can now jump to the next result with F3 and the previous one with Shift+F3 from anywhere in the open conversation, including the messages list, without going back to the search field; focus follows the result and the screen reader announces its position. Enter and Shift+Enter still work as an alternative, but only inside the search field, because in the messages list they already do other things. The "Previous result" and "Next result" buttons now announce Shift+F3 and F3, and the shortcuts help was updated.
+
+- Forwarding now confirms when it worked. Before, only a failure was announced; now a box appears at the end saying "Message forwarded." or how many messages were forwarded.
+
 FIXES
 
 - Calls no longer fail with a "NumPy was built with baseline optimizations" error, followed by "cannot load module more than once per process", on computers whose processor is older or limited by a virtual machine. WinZapp now ships a NumPy build that runs on any 64-bit processor.
+
+- Calls: fixed the "cannot load module more than once per process" error that could appear when starting a voice or video call. WhatsApp's call engine is now started only once and shared, instead of being started again by each call action.
+
+- When you messaged someone who isn't in your contacts and has no name on their WhatsApp profile, the conversation started showing your own name instead of their phone number. It now keeps showing the phone number until their real name is found.
 
 - The uninstaller now follows the Windows display language like the installer does, instead of always appearing in Portuguese.
 
@@ -161,6 +203,8 @@ FIXES
 - Replying to a message while mentioning someone in the reply sent it to the recipients as a new message, without the quote, although WinZapp showed it as a reply. The quote now goes along with the mention.
 
 - Update notices now also appear when WinZapp starts with Windows: neither WinZapp's own update nor the WPPConnect Server one was ever offered in that case. The WPPConnect Server notice also now offers a newer release than the one WinZapp was tested with, as a recommended update you can decline, instead of only when WinZapp itself raised the required version.
+
+- In a chat whose older messages are only on your phone, WinZapp kept asking the phone for them when you reached the first message: nothing arrived, the phone could show a sync notification each time, and the list stayed busy for minutes. WinZapp now detects this case, asks nothing and announces "Use WhatsApp on your phone to see older messages."
 
 V1.1.1.0
 

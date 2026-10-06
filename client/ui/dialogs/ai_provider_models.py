@@ -8,6 +8,11 @@ from core.ai_media.service import RequestToken, submit
 
 
 class ModelSelectionMixin:
+    def _model_pinned(self):
+        """False while "Automatic" is on: the model fields then stay locked."""
+        automatic = getattr(self, "automatic", None)
+        return automatic is None or not automatic.GetValue()
+
     def _init_model_catalog(self):
         self._model_list_generation = 0
         self._model_list_token = None
@@ -21,7 +26,7 @@ class ModelSelectionMixin:
             current = self.model.GetValue().strip()
             index = next((i for i, option in enumerate(self._model_options) if option.id == current), wx.NOT_FOUND)
             self.model_choice.SetSelection(index)
-            self.model_choice.Enable(bool(self._model_options))
+            self.model_choice.Enable(bool(self._model_options) and self._model_pinned())
         finally:
             self.model_choice.Thaw()
 
@@ -34,7 +39,7 @@ class ModelSelectionMixin:
             self._model_list_timer.Stop()
         self._model_list_timer = None
         if self._alive:
-            self.get_models.Enable(True)
+            self.get_models.Enable(self._model_pinned())
         if clear and self._alive:
             self._model_options = ()
             self._refresh_model_choices()

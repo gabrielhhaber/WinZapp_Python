@@ -267,8 +267,10 @@ from main_window.window_chrome import WindowChromeMixin
 from main_window.connection import ConnectionMixin
 from main_window.sync import SyncMixin
 from main_window.updates import UpdatesMixin
+from main_window.wpp_background_update import WppBackgroundUpdateMixin
 from main_window.window_lifecycle import WindowLifecycleMixin
 from main_window.chat_list import ChatListMixin
+from main_window.chat_lists import WhatsAppListsMixin
 from main_window.calls import CallsMixin
 from main_window.identity import IdentityMixin
 from main_window.message_events import MessageEventsMixin
@@ -291,6 +293,7 @@ from main_window.history import HistoryMixin
 from main_window.read_state import ReadStateMixin
 from main_window.chat_actions import ChatActionsMixin
 from main_window.message_actions import MessageActionsMixin
+from main_window.message_stars import MessageStarsMixin
 from main_window.quick_audio_devices import QuickAudioDevicesMixin
 
 
@@ -310,8 +313,10 @@ class MainWindow(
     ConnectionMixin,
     SyncMixin,
     UpdatesMixin,
+    WppBackgroundUpdateMixin,
     WindowLifecycleMixin,
     ChatListMixin,
+    WhatsAppListsMixin,
     CallsMixin,
     IdentityMixin,
     MessageEventsMixin,
@@ -334,6 +339,7 @@ class MainWindow(
     ReadStateMixin,
     ChatActionsMixin,
     MessageActionsMixin,
+    MessageStarsMixin,
     QuickAudioDevicesMixin,
     wx.Frame,
 ):

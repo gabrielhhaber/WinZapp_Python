@@ -70,6 +70,7 @@ class MediaFilesMixin:
         self._media_bitmap.Hide()
         self._action_open_btn.Hide()
         self._action_save_as_btn.Hide()
+        self._action_describe_btn.Hide()
         button = getattr(self, "_action_show_in_folder_btn", None)
         if button is not None:
             button.Hide()
@@ -1103,6 +1104,7 @@ class MediaFilesMixin:
             getattr(self, "_media_transfer_gauge", None),
             getattr(self, "_action_open_btn", None),
             getattr(self, "_action_save_as_btn", None),
+            getattr(self, "_action_describe_btn", None),
             getattr(self, "_action_show_in_folder_btn", None),
             getattr(self, "_action_download_btn", None),
         )

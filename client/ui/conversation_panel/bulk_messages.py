@@ -85,22 +85,12 @@ class BulkMessagesMixin:
         return targets, list(self.selected_messages)
 
     def _on_mass_star_messages(self, event):
-        """Star every selected message (the local-only flag _on_menu_star
-        toggles) — always stars, never toggles off, so a selection mixing
-        already-starred and unstarred messages doesn't end up partially
-        undone.
-
-        Applies the flag to the whole batch and repaints ONCE, rather than
-        calling _on_menu_star() per message: that handler runs a full
-        populate_messages() of its own every time, so a selection of N
-        messages repainted the entire list N times on the UI thread and gave
-        screen readers N floods of accessibility events (the exact thing
-        CLAUDE.md's Freeze()/Thaw() note warns about). Same aggregate shape
-        the older mass actions (_on_mass_forward_messages,
-        _on_mass_delete_messages) already use.
-        """
+        """Star selected unstarred messages in one sequential, verified job."""
         if not self.selected_messages: return
         i18n = self.main_window.i18n
+        if getattr(self.main_window, "_star_sync_job", None) is not None:
+            self.main_window.output(i18n.t("star_sync_running"), interrupt=True)
+            return
         to_star, ids = self._mass_message_targets("starred")
         self.selected_messages.clear()
         if not to_star:
@@ -111,23 +101,18 @@ class BulkMessagesMixin:
             self.main_window.output(i18n.t("mass_nothing_to_do"), interrupt=True)
             return
 
-        for m in to_star:
-            m["starred"] = True
         jid = self.conversation.get("remoteJid", "") if self.conversation else ""
-        if jid:
-            self._persist_message_local_flags(jid, to_star)
-        self.main_window._schedule_save()
         # The whole selection, not just to_star: clearing selected_messages
         # above dropped the " selecionado" marker from every row in it.
         self._repaint_or_repopulate(ids)
-        self.main_window.output(i18n.t("success_star_bulk"), interrupt=True)
+        self._sync_message_stars(jid, to_star, True)
 
     def _on_mass_pin_messages(self, event):
         """Pin every not-yet-pinned selected message via WhatsApp's own
         message-pin feature (visible to everyone in the chat, unlike star).
 
-        Like _on_mass_star_messages, applies the optimistic update to the
-        whole batch and repaints once. The server calls additionally run on
+        Applies the optimistic update to the whole batch and repaints once.
+        The server calls additionally run on
         ONE background thread, sequentially, and their failures are collected
         into a single rollback + a single dialog reporting the count —
         _on_menu_pin_message() starts a thread per message and pops its own

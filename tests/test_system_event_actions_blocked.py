@@ -6,8 +6,8 @@ _on_menu_reply started refusing them up front. The same class of problem
 applies to every other action offered on a focused message — measured
 against a live WPPConnect Store, a system event's serialized id resolves
 only sometimes, so forwarding/pinning/reacting either fails outright or
-acts on nothing. The local-only ones (star) merely announce a state change
-no other client will ever show.
+acts on nothing. Starring now delegates to a verified WhatsApp operation,
+which a system event must never reach either.
 
 The guard therefore lives in the _on_menu_* handlers, NOT in the context
 menu: the accelerators (Ctrl+Shift+E/R/O/P) call those handlers directly
@@ -66,16 +66,16 @@ class _Stub:
     _is_system_event = staticmethod(ConversationsPanel._is_system_event)
     _reject_system_event_action = ConversationsPanel._reject_system_event_action
     _on_menu_star = ConversationsPanel._on_menu_star
-    _persist_message_local_flag = ConversationsPanel._persist_message_local_flag
-    # _persist_message_local_flag delegates to the bulk form so both share
-    # one code path (see its docstring) — the stub needs it bound too.
-    _persist_message_local_flags = ConversationsPanel._persist_message_local_flags
 
     def __init__(self):
         self.main_window = _FakeMainWindow()
         self.conversation = {"remoteJid": "group@g.us"}
         self.populated = 0
         self.repainted = []
+        self.star_requests = []
+
+    def _sync_message_stars(self, jid, messages, desired):
+        self.star_requests.append((jid, messages, desired))
 
     def _repaint_or_repopulate(self, msg_ids):
         self.repainted.append(sorted(i for i in msg_ids if i))
@@ -105,8 +105,7 @@ class TestRejectHelper:
 
 
 class TestStarIsGuarded:
-    """Star is local-only, but must still refuse — it's the one action whose
-    real method is cheap enough to drive end-to-end on a stub."""
+    """The guard runs before handing a normal message to remote verification."""
 
     def test_system_event_is_not_starred(self):
         stub = _Stub()
@@ -118,17 +117,21 @@ class TestStarIsGuarded:
         assert stub.main_window.saves == 0
         assert stub.populated == 0
         assert stub.repainted == []
+        assert stub.star_requests == []
         assert stub.main_window.announced == ["system_event_action_unavailable"]
 
-    def test_normal_message_is_still_starred(self):
+    @pytest.mark.parametrize("old_star", [False, True])
+    def test_normal_message_delegates_without_optimistic_mutation(self, old_star):
         stub = _Stub()
         msg = dict(NORMAL_MESSAGE)
+        msg["starred"] = old_star
 
         stub._on_menu_star(msg)
 
-        assert msg["starred"] is True
-        assert stub.main_window.saves == 1
-        assert stub.repainted == [[NORMAL_MESSAGE["key"]["id"]]]
+        assert stub.star_requests == [("group@g.us", [msg], not old_star)]
+        assert msg["starred"] is old_star
+        assert stub.main_window.saves == 0
+        assert stub.repainted == []
         assert stub.main_window.announced == []
 
 
