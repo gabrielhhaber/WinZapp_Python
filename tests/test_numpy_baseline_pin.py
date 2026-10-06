@@ -35,5 +35,5 @@ def test_pyproject_numpy_stays_below_2_4():
 
 def test_requirements_numpy_stays_below_2_4():
     lines = (ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines()
-    lines = [l for l in lines if l.strip() and not l.startswith(("#", "-"))]
+    lines = [ln for ln in lines if ln.strip() and not ln.startswith(("#", "-"))]
     assert not _allows_2_4(_numpy_requirement(lines))
