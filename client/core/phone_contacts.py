@@ -111,6 +111,47 @@ def user_saved(contact) -> bool:
     return bool(contact) and bool(contact.get("isSaved"))
 
 
+def other_digit_form(jid: str) -> str:
+    """The same Brazilian mobile number with or without its 9th digit
+    (5511999999999 <-> 551199999999), as a phone JID; "" when *jid* has no
+    such twin. A contact can sit under either, depending on how it was added."""
+    local, at, domain = (jid or "").partition("@")
+    if not at or domain != "s.whatsapp.net" or not local.startswith("55"):
+        return ""
+    if len(local) == 13 and local[4] == "9":
+        return f"{local[:4]}{local[5:]}@{domain}"
+    if len(local) == 12:
+        return f"{local[:4]}9{local[4:]}@{domain}"
+    return ""
+
+
+def followed_contact(contacts: dict, lid_jid: str, phone_jid: str):
+    """The record to put under *phone_jid* so that a contact the user saved
+    under *lid_jid* follows the person there, or None when nothing is to move.
+
+    The user saves a contact under an @lid when that is all WinZapp knows of
+    the person (the new-contact dialog, for a chat with no phone number yet).
+    Once the phone is learned every lookup goes to the phone JID, and left
+    under the @lid alone the contact could no longer be edited or deleted.
+
+    Nothing moves when the @lid record is not the user's (a pushname cache
+    entry, a contact WhatsApp reports), nor over a record the user saved for
+    the phone number itself, under either of its 8/9-digit forms. What
+    WhatsApp already knew of the phone JID is kept underneath, and so is the
+    "in the phone's address book" mark of either record: the merged one is
+    that contact, whatever name the user gave it.
+    """
+    lid_record = contacts.get(lid_jid)
+    if not user_saved(lid_record):
+        return None
+    for jid in (phone_jid, other_digit_form(phone_jid)):
+        if jid and user_saved(contacts.get(jid)):
+            return None
+    phone_record = contacts.get(phone_jid) or {}
+    return {**phone_record, **lid_record, "id": phone_jid, "remoteJid": phone_jid,
+            SYNCED_KEY: is_phone_synced(lid_record) or is_phone_synced(phone_record)}
+
+
 def existing_contact(main_window, jid: str):
     """The record main_window.contacts holds for this phone JID, tolerant of the
     Brazilian 8/9-digit forms; None when there is none."""

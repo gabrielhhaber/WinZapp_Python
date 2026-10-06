@@ -100,6 +100,9 @@ class _FakeDB:
 
 class _Stub:
     _extract_lid_mapping = MainWindow._extract_lid_mapping
+    # _build_lid_to_phone_cache() ends by bringing saved contacts over to the
+    # phone JIDs it learned; the real one, under the same lock.
+    _follow_saved_contacts = MainWindow._follow_saved_contacts
 
     def __init__(self):
         self._ui_ready_event = threading.Event()

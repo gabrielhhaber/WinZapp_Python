@@ -182,6 +182,10 @@ class IdentityMixin:
                 self._lid_to_phone = {}
             self._lid_to_phone.update(cache)
             self._phone_to_lid  = {v: k for k, v in self._lid_to_phone.items()}
+        # Every pair known by now, including the ones _load_local_lid_cache()
+        # read from the database: this is also what heals a contact left
+        # behind under its @lid by an earlier run.
+        self._follow_saved_contacts()
 
     def _extract_lid_mapping(self, msg):
         """Extract JID mapping from a message object and update cache & persist if new."""
@@ -296,6 +300,16 @@ class IdentityMixin:
                         logging.info(f"[LID Mapping] Extracted mapping from 1:1 chat key (reversed): {participant} <-> {remote}")
 
             if updated:
+                # A contact the user saved under one of these @lids follows
+                # the person to the phone JID (phone_contacts.followed_contact()).
+                # In memory here, in the critical section this method already
+                # holds; contacts_to_update is persisted below, outside it.
+                for lid, phone in updated_pairs:
+                    followed = phone_contacts.followed_contact(self.contacts, lid, phone)
+                    if followed is not None:
+                        self.contacts[phone] = followed
+                        contacts_to_update[phone] = followed
+
                 # Propagate contact details from phone contact to LID contact
                 # to make it immediately available — still under the lock
                 # since this iterates _lid_to_phone itself.
@@ -1182,18 +1196,11 @@ class IdentityMixin:
                     was_unresolvable = True
 
                 # A contact the user saved while only the @lid was known
-                # (NewContactDialog for a chat with no phone number yet)
-                # follows the person to the phone JID: that is where every
-                # lookup goes once the bridge exists, and left under the @lid
-                # alone it could no longer be edited or deleted. A record the
-                # user saved for the phone number itself is never overwritten,
-                # under either of its 8/9-digit forms.
-                lid_record = self.contacts.get(lid_jid)
-                if (phone_contacts.user_saved(lid_record)
-                        and not phone_contacts.user_saved(
-                            phone_contacts.existing_contact(self, phone_jid))):
-                    followed = {**(self.contacts.get(phone_jid) or {}), **lid_record,
-                                "id": phone_jid, "remoteJid": phone_jid}
+                # follows the person to the phone JID (the rule is
+                # phone_contacts.followed_contact()). In memory here, under
+                # the lock; persisted below, outside it.
+                followed = phone_contacts.followed_contact(self.contacts, lid_jid, phone_jid)
+                if followed is not None:
                     self.contacts[phone_jid] = followed
 
                 # Update the contact name display mappings in contacts if possible
@@ -1241,6 +1248,38 @@ class IdentityMixin:
                 # `changed` once, so the second pass schedules nothing.
                 wx.CallAfter(self._schedule_refresh_active_messages,
                              {lid_jid, phone_jid})
+
+    def _follow_saved_contacts(self, pairs=None):
+        """Bring the contacts the user saved under an @lid to the phone JID of
+        each (lid, phone) pair, and persist them; every known pair when
+        *pairs* is None.
+
+        register_jid_mapping() does this for the pair it registers, but it is
+        not the only writer of the bridge: a live message (_extract_lid_mapping),
+        the chat list (get_remote_chats), a profile query (get_contact_profile)
+        and the scans that rebuild the cache at startup all learn pairs too,
+        and through any of them the saved contact used to stay behind under the
+        @lid, out of reach of Edit and Delete. Idempotent: a contact that has
+        followed is the user's record under the phone JID, which stops a
+        second copy.
+        """
+        followed = {}
+        with self._lid_mapping_lock:
+            if pairs is None:
+                pairs = list((getattr(self, "_lid_to_phone", None) or {}).items())
+            for lid_jid, phone_jid in pairs:
+                record = phone_contacts.followed_contact(self.contacts, lid_jid, phone_jid)
+                if record is not None:
+                    self.contacts[phone_jid] = record
+                    followed[phone_jid] = record
+        if not followed:
+            return
+        # The DB write blocks until the coroutine returns: never under the lock.
+        try:
+            self.db.upsert_contacts_batch(followed)
+        except Exception as exc:
+            logging.warning("[LID Mapping] Failed to persist %d saved contact(s) "
+                            "under their phone JID: %s", len(followed), exc)
 
     def _store_resolved_name(self, jid, name, updated_contacts):
         """File the name the @lid resolution learned for *jid* — except over a
@@ -1555,6 +1594,7 @@ class IdentityMixin:
                             self._lid_to_phone[original_jid] = canonical_jid
                             self._phone_to_lid[canonical_jid] = original_jid
 
+                        self._follow_saved_contacts([(original_jid, canonical_jid)])
                         # Trigger UI refresh and save mapped JIDs
                         wx.CallAfter(self._schedule_set_chats)
                         try:

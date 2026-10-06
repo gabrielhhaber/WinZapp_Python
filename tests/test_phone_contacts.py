@@ -204,6 +204,18 @@ class TestRecords:
                              cwd=resource_path(), timeout=60)
         assert out.stdout.split() == ["False", "False"], out.stderr
 
+    @pytest.mark.parametrize("jid, twin", [
+        ("5511999999999@s.whatsapp.net", "551199999999@s.whatsapp.net"),
+        ("551199999999@s.whatsapp.net", "5511999999999@s.whatsapp.net"),
+        ("5511899999999@s.whatsapp.net", ""),      # 13 digits, the 5th is not a 9
+        ("4915112345678@s.whatsapp.net", ""),      # not Brazilian
+        ("123456789012345@lid", ""),
+        ("5511999999999@c.us", ""),                # contacts are keyed by @s.whatsapp.net
+        ("", ""), (None, ""),
+    ])
+    def test_the_other_form_of_a_brazilian_mobile_number(self, jid, twin):
+        assert pc.other_digit_form(jid) == twin
+
     def test_who_made_the_record(self):
         """The user's own records keep their name and follow the person."""
         assert pc.user_saved(pc.local_entry(PHONE, "Ana")) is True

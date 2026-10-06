@@ -755,6 +755,7 @@ class ChatsStoreMixin:
                                 # _extract_lid_mapping() writes the same two
                                 # dicts from the Socket.IO one — same
                                 # check-then-set, same lock.
+                                learned_pair = None
                                 with self._lid_mapping_lock:
                                     if not hasattr(self, "_lid_to_phone"):
                                         self._lid_to_phone = {}
@@ -764,12 +765,18 @@ class ChatsStoreMixin:
                                         if self._lid_to_phone.get(remote) != alt:
                                             self._lid_to_phone[remote] = alt
                                             self._phone_to_lid[alt] = remote
+                                            learned_pair = (remote, alt)
                                             logging.info(f"[LID Mapping] Extracted mapping from lastMessage in get_remote_chats: {remote} <-> {alt}")
                                     elif alt.endswith("@lid") and remote.endswith("@s.whatsapp.net"):
                                         if self._lid_to_phone.get(alt) != remote:
                                             self._lid_to_phone[alt] = remote
                                             self._phone_to_lid[remote] = alt
+                                            learned_pair = (alt, remote)
                                             logging.info(f"[LID Mapping] Extracted mapping from lastMessage in get_remote_chats (alt): {alt} <-> {remote}")
+                                if learned_pair:
+                                    # A contact the user saved under this @lid
+                                    # follows the person to the phone JID.
+                                    self._follow_saved_contacts([learned_pair])
 
                     # Skip status@broadcast — statuses are shown in the Status tab
                     if not jid or jid.endswith("@broadcast"):
