@@ -94,6 +94,8 @@ POPRAWKI
 
 - Aktualizacje WPPConnect pobierane w tle nie kończą się już błędem instalacji, gdy na dysku został stary folder serwera po poprzedniej aktualizacji. WinZapp usuwa go teraz (albo odkłada na bok, gdy Windows na to nie pozwala) i aktualizacja przebiega dalej.
 
+- Połączenia nie kończą się już błędem "NumPy was built with baseline optimizations", a potem "cannot load module more than once per process", na komputerach ze starszym procesorem lub ograniczonym przez maszynę wirtualną. WinZapp zawiera teraz wersję NumPy działającą na każdym 64-bitowym procesorze.
+
 - Połączenia: naprawiono błąd "cannot load module more than once per process", który mógł się pojawić przy rozpoczynaniu połączenia głosowego lub wideo. Silnik połączeń WhatsApp jest teraz uruchamiany tylko raz i współdzielony, zamiast być uruchamiany ponownie przy każdej akcji połączenia.
 
 - Po wysłaniu wiadomości do osoby, której nie ma w Twoich kontaktach i która nie ma nazwy w profilu WhatsApp, rozmowa zaczynała pokazywać Twoje własne imię zamiast numeru telefonu tej osoby. Teraz nadal pokazuje numer telefonu, dopóki nie uda się znaleźć jej prawdziwego imienia.
