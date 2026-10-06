@@ -180,6 +180,8 @@ DÜZELTMELER
 
 - Daha eski mesajları yalnızca telefonda bulunan bir sohbette WinZapp, ilk mesaja gelindiğinde bunları telefondan istemeyi sürdürüyordu: hiçbir şey gelmiyor, telefon her seferinde bir eşitleme bildirimi gösterebiliyor ve liste dakikalarca meşgul kalıyordu. WinZapp artık bu durumu algılıyor, hiçbir şey istemiyor ve "Daha eski mesajları görmek için telefonunuzdaki WhatsApp'ı kullanın." duyurusunu yapıyor.
 
+- Ayarlar, "Kullanıcı Arayüzü" sekmesi: sekme artık kaydırılabiliyor ve sonundaki seçenek grupları yeniden doğru yerde okunuyor. Küçük ekranlarda ekran okuyucu "Seçili öğelerin duyurulacağı konum" grup adını grubun kendi seçenek düğmelerinde değil, ondan sonraki onay kutusunda duyuruyordu
+
 V1.1.1.0
 
 Bu sürüm, hesabınızın bağlı kalmasını sağlamaya odaklanmaktadır. WinZapp artık WhatsApp bağlantınızın gerçekte tutulduğu tarayıcı profilinin bir yedeğini saklar; profil kabul edilmediğinde durumu bildirerek profili otomatik olarak geri yükler. Bunun yanında oturumun kopmasına ve uygulamanın yeniden eşleme istemesine yol açan durumlar için düzeltmeler içerir: bilgisayarı kapatma, askıya alma ve sürdürme ile uygulamanın bağlantıyı kendi kendine yeniden başlatması. Ayrıca mesaj alanında yazım denetimi ve bağlantı eylemleri de eklendi.
