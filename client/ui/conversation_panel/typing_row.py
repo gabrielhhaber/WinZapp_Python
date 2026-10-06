@@ -25,8 +25,8 @@ Inserting at an index (_sync_message_rows(), the unread separator) needs
 nothing: every such index is at most ``len(self._sorted_messages)``, which is
 above this row.
 
-It can be turned off in Settings > User Interface
-(``user_interface.show_typing_row``, on by default; typing_row_enabled()).
+It is turned on in Settings > User Interface
+(``user_interface.show_typing_row``, off by default; typing_row_enabled()).
 Off, nothing here adds a row and a row already showing is removed.
 
 It never speaks. Typing/recording is already announced by
@@ -72,13 +72,13 @@ def typing_row_text(entries, t) -> str:
 
 
 def typing_row_enabled(settings) -> bool:
-    """Settings > User Interface, ``user_interface.show_typing_row``: on unless
-    explicitly turned off. A missing or malformed settings dict counts as on,
+    """Settings > User Interface, ``user_interface.show_typing_row``: off unless
+    explicitly turned on. A missing or malformed settings dict counts as off,
     like the shipped default."""
     ui = settings.get("user_interface") if isinstance(settings, dict) else None
     if not isinstance(ui, dict):
-        return True
-    return ui.get("show_typing_row", True) is not False
+        return False
+    return ui.get("show_typing_row", False) is True
 
 
 def typing_row_shown(panel) -> bool:

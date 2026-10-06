@@ -118,6 +118,8 @@ class _MainWindow:
         self._phone_to_lid = {}
         self.i18n = _I18n()
         self.spoken = []
+        # The row ships off; these tests are about the row, so it is on.
+        self.settings = {"user_interface": {"show_typing_row": True}}
 
     def _resolve_jid_name(self, jid, chat_jid="", *, resolve_missing=True):
         assert resolve_missing is False  # never a network lookup from a repaint
@@ -551,14 +553,15 @@ def test_message_appended_by_the_sync_tail_path_also_dismisses():
 
 
 @pytest.mark.parametrize("settings, expected", [
-    (None, True),                                            # no settings at all
-    ({}, True),                                              # install without the key
-    ({"user_interface": {}}, True),
-    ({"user_interface": "junk"}, True),
+    (None, False),                                           # no settings at all
+    ({}, False),                                             # install without the key
+    ({"user_interface": {}}, False),
+    ({"user_interface": "junk"}, False),
+    ({"user_interface": {"show_typing_row": "yes"}}, False),
     ({"user_interface": {"show_typing_row": True}}, True),
     ({"user_interface": {"show_typing_row": False}}, False),
 ])
-def test_the_setting_is_on_unless_turned_off(settings, expected):
+def test_the_setting_is_off_unless_turned_on(settings, expected):
     assert typing_row_enabled(settings) is expected
 
 

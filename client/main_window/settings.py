@@ -27,6 +27,7 @@ from core.utils import (
     backfill_missing_defaults,
     migrate_call_exclusive_mode_split,
     migrate_spell_check_mode,
+    migrate_typing_row_default,
     migrate_voice_message_mode_default,
     migrate_voice_messages_media_types,
     migrate_wpp_reinstall_notice,
@@ -597,6 +598,11 @@ class SettingsMixin:
         # default only reaches anyone through a conversion. One shot, with
         # its own flag — see migrate_voice_message_mode_default().
         if migrate_voice_message_mode_default(self.settings):
+            changed = True
+        # show_typing_row default True -> False: the 2.1.0.0 alphas wrote the
+        # old default into every settings.json, so only a conversion reaches
+        # them. One shot, with its own flag — see migrate_typing_row_default().
+        if migrate_typing_row_default(self.settings):
             changed = True
         # spell_check_enabled (bool) -> spell_check_mode (three-valued).
         # core/spell_checker.py's own read-time fallback cannot reach a real

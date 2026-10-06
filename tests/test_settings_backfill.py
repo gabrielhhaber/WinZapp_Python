@@ -15,7 +15,13 @@ reverts to defaults — and the same backfill then writes that to disk.
 
 import inspect
 
-from core.utils import backfill_missing_defaults, migrate_call_exclusive_mode_split
+from core.utils import (
+    DEFAULT_SETTINGS,
+    TYPING_ROW_DEFAULT_MIGRATION_FLAG,
+    backfill_missing_defaults,
+    migrate_call_exclusive_mode_split,
+    migrate_typing_row_default,
+)
 from main import MainWindow
 
 
@@ -150,3 +156,49 @@ def test_the_migration_runs_before_the_backfill_that_would_invent_the_value():
     assert loader.index("self._migrate_settings()") < loader.index(
         "backfill_missing_defaults("
     )
+
+
+# ── show_typing_row default: on -> off ───────────────────────────────────────
+# The 2.1.0.0 alphas shipped the "is typing..." row on, and the backfill wrote
+# that True into every alpha settings.json, so the new default reaches them
+# only through migrate_typing_row_default().
+
+
+def test_the_typing_row_ships_off():
+    assert DEFAULT_SETTINGS["user_interface"]["show_typing_row"] is False
+
+
+def test_an_alpha_install_with_the_old_default_is_switched_off_once():
+    settings = {"user_interface": {"show_typing_row": True}}
+
+    assert migrate_typing_row_default(settings) is True
+    assert settings["user_interface"]["show_typing_row"] is False
+    assert settings["general"][TYPING_ROW_DEFAULT_MIGRATION_FLAG] is True
+
+    # The user turns it back on: the next launch must not undo that.
+    settings["user_interface"]["show_typing_row"] = True
+    assert migrate_typing_row_default(settings) is False
+    assert settings["user_interface"]["show_typing_row"] is True
+
+
+def test_an_install_without_the_key_is_left_to_the_backfill():
+    settings = {"user_interface": {"page_up_down_step": 15}}
+
+    assert migrate_typing_row_default(settings) is True
+    assert "show_typing_row" not in settings["user_interface"]
+
+    backfill_missing_defaults(settings, DEFAULT_SETTINGS)
+    assert settings["user_interface"]["show_typing_row"] is False
+
+
+def test_an_install_already_off_only_gains_the_flag():
+    settings = {"user_interface": {"show_typing_row": False}, "general": {}}
+
+    assert migrate_typing_row_default(settings) is True
+    assert settings["user_interface"]["show_typing_row"] is False
+    assert settings["general"][TYPING_ROW_DEFAULT_MIGRATION_FLAG] is True
+
+
+def test_the_typing_row_migration_runs_before_the_backfill():
+    source = inspect.getsource(MainWindow._migrate_settings)
+    assert "migrate_typing_row_default(self.settings)" in source

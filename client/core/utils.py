@@ -725,6 +725,43 @@ def migrate_call_exclusive_mode_split(settings) -> bool:
     return True
 
 
+# Marks that the one-shot show_typing_row True -> False default change has
+# run. Its own flag, like the ones above, for the same reason.
+TYPING_ROW_DEFAULT_MIGRATION_FLAG = "show_typing_row_default_migrated"
+
+
+def migrate_typing_row_default(settings) -> bool:
+    """Move an existing install onto the new show_typing_row default (off).
+
+    The "is typing..." last row of the message list shipped on by default in
+    the 2.1.0.0 alphas, and backfill_missing_defaults() wrote that True into
+    every alpha install's settings.json, so changing the default alone would
+    reach only new installs. Stable 2.0 installs never had the key and get the
+    new default from the backfill; this is for the alpha ones. A user who
+    turned it on deliberately cannot be told apart from one who never opened
+    the setting, so both are switched off once and the first ticks the box
+    again in Configuracoes > Interface do usuario.
+
+    Only an exact True is converted; a missing value is left for the backfill.
+    The flag keeps this one-shot: without it, the user who turns the row back
+    on would find it off again on the next launch. Returns True whenever
+    *settings* changed, the flag included.
+    """
+    if not isinstance(settings, dict):
+        return False
+    general = settings.get("general")
+    if not isinstance(general, dict):
+        general = {}
+        settings["general"] = general
+    if general.get(TYPING_ROW_DEFAULT_MIGRATION_FLAG):
+        return False
+    section = settings.get("user_interface")
+    if isinstance(section, dict) and section.get("show_typing_row") is True:
+        section["show_typing_row"] = False
+    general[TYPING_ROW_DEFAULT_MIGRATION_FLAG] = True
+    return True
+
+
 def auto_download_allows(settings, msg) -> bool:
     """Whether the background auto-download may fetch *msg*'s media.
 
@@ -1072,7 +1109,7 @@ DEFAULT_SETTINGS = {
         "voice_record_focus": "send",
         "message_list_mode": "classic",
         "show_listbox_item_count": False,
-        "show_typing_row": True,
+        "show_typing_row": False,
         "page_up_down_step": 15,
         "self_reference_mode": "eu",
         "self_reference_custom_word": "",

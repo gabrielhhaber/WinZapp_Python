@@ -64,7 +64,7 @@
         "voice_record_focus": "send",
         "message_list_mode": "classic",
         "show_listbox_item_count": false,
-        "show_typing_row": true,
+        "show_typing_row": false,
         "page_up_down_step": 15,
         "self_reference_mode": "eu",
         "self_reference_custom_word": "",

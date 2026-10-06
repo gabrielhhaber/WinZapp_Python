@@ -197,9 +197,9 @@ def test_fixed_quick_reactions_box_sits_on_the_reactions_tab_and_reaches_the_rea
 
 def test_show_typing_row_box_sits_on_the_ui_tab_and_apply_refreshes_the_open_chat(make_dialog):
     """Pinned by name as well as by the parse above: the key
-    ui/conversation_panel/typing_row.py reads on every presence update (on by
-    default). Apply must also refresh the open conversation, so a row already
-    showing goes away at once instead of at the next presence event."""
+    ui/conversation_panel/typing_row.py reads on every presence update (off by
+    default). Apply must also refresh the open conversation, so the row shows
+    or goes away at once instead of at the next presence event."""
     assert ("_show_typing_row_cb", "user_interface", "show_typing_row") in CHECKBOXES
 
     class _ConversationsPanel:
@@ -214,14 +214,14 @@ def test_show_typing_row_box_sits_on_the_ui_tab_and_apply_refreshes_the_open_cha
     dialog.main_window.conversations_panel = panel
     box = dialog._show_typing_row_cb
     assert box.GetParent() is dialog._ui_page
-    assert box.GetValue() is True
+    assert box.GetValue() is False
 
-    box.SetValue(False)
+    box.SetValue(True)
     assert dialog._apply_values() is True
-    assert dialog.main_window.settings["user_interface"]["show_typing_row"] is False
+    assert dialog.main_window.settings["user_interface"]["show_typing_row"] is True
     assert panel.refreshed == 1
 
-    assert make_dialog(dialog.main_window.settings)._show_typing_row_cb.GetValue() is False
+    assert make_dialog(dialog.main_window.settings)._show_typing_row_cb.GetValue() is True
 
 
 class TestTheUserInterfacePageScrolls:

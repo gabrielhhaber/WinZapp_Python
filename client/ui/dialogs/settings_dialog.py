@@ -1681,7 +1681,7 @@ class SettingsDialog(wx.Dialog):
         self._sync_listbox_count_visibility()
 
         show_typing_row = self.main_window.settings.get("user_interface", {}).get(
-            "show_typing_row", True
+            "show_typing_row", False
         )
         self._show_typing_row_cb.SetValue(bool(show_typing_row))
 
