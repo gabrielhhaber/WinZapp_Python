@@ -180,6 +180,8 @@ CORECTĂRI
 
 - Într-o conversație ale cărei mesaje mai vechi sunt doar pe telefon, WinZapp continua să le ceară telefonului când ajungeați la primul mesaj: nu sosea nimic, telefonul putea afișa de fiecare dată o notificare de sincronizare, iar lista rămânea ocupată minute în șir. Acum WinZapp detectează acest caz, nu mai cere nimic și anunță „Folosiți WhatsApp pe telefon pentru a vedea mesajele mai vechi.”
 
+- Setări, fila "Interfață utilizator": fila se derulează acum, iar grupurile de opțiuni de la sfârșitul ei sunt citite din nou la locul potrivit. Pe ecrane mai mici, cititorul de ecran anunța "Poziția pentru a anunța articolele selectate" la caseta de selectare următoare, nu la butoanele de opțiune ale grupului
+
 V1.1.1.0
 
 Această versiune se concentrează pe menținerea contului conectat. WinZapp păstrează acum o copie de siguranță a profilului browserului — locul în care se află de fapt conexiunea cu WhatsApp — și o restaurează singur atunci când nu mai este acceptată, spunându-vă ce s-a întâmplat. Împreună cu aceasta vin corecții pentru situațiile care stricau sesiunea și lăsau aplicația să ceară o nouă asociere: închiderea computerului, suspendarea și reluarea și repornirea conexiunii de către aplicație. Au sosit și verificarea ortografică în câmpul de mesaj și acțiunile pentru linkuri.

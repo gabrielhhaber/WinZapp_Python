@@ -180,6 +180,8 @@ CORRECCIONES
 
 - En una conversación cuyos mensajes más antiguos solo están en el teléfono, WinZapp seguía pidiéndoselos al teléfono al llegar al primer mensaje: no llegaba nada, el teléfono podía mostrar cada vez un aviso de sincronización y la lista quedaba ocupada durante minutos. Ahora WinZapp detecta este caso, no pide nada y anuncia "Usa WhatsApp en tu teléfono para ver los mensajes más antiguos."
 
+- Configuración, pestaña "Interfaz de usuario": la pestaña ahora se desplaza, y los grupos de opciones del final vuelven a leerse en su sitio. En pantallas más pequeñas el lector de pantalla anunciaba "Posición para anunciar elementos seleccionados" en la casilla siguiente, y no en los botones de opción del grupo
+
 V1.1.1.0
 
 Esta versión trata de mantener tu cuenta conectada. WinZapp ahora guarda una copia de seguridad del perfil del navegador — que es donde vive realmente tu conexión con WhatsApp — y la restaura por su cuenta cuando deja de ser aceptada, avisando de lo ocurrido. Junto a ella llegan las correcciones de las situaciones que rompían la sesión y hacían que el programa pidiera vincular de nuevo: apagar el ordenador, suspender y reanudar, y el propio programa reiniciando la conexión. También llegan la corrección ortográfica en el campo de mensaje y las acciones sobre enlaces.

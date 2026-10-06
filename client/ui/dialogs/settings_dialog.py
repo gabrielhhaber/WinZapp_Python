@@ -1,6 +1,7 @@
 import ctypes
 import os
 import wx
+from wx.lib.scrolledpanel import ScrolledPanel
 from core.chat_lock_vault import AUTO_LOCK_MINUTE_OPTIONS
 from core.i18n import LANGUAGE_NAMES
 from core.combo_search import bind_incremental_search
@@ -415,7 +416,14 @@ class SettingsDialog(wx.Dialog):
         self._notebook.AddPage(self._general_page, i18n.t("tab_general"))
 
         # ── User Interface tab ───────────────────────────────────────────────
-        self._ui_page = wx.Panel(self._notebook)
+        # Scrollable, like the AI page: this tab holds more options than a
+        # screen is tall. On a plain panel the sizer then squeezes whatever is
+        # past the bottom edge down to a height of zero, and NVDA, which
+        # decides by geometry which group box a control sits in, no longer
+        # finds the radio buttons inside their box and finds the NEXT control
+        # inside it instead: "Posição para anunciar itens selecionados" was
+        # read on the checkbox after the group and not on its radio buttons.
+        self._ui_page = ScrolledPanel(self._notebook)
         ui_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Both labels are kept on self: they name the edit fields below them
@@ -751,6 +759,8 @@ class SettingsDialog(wx.Dialog):
         )
 
         self._ui_page.SetSizer(ui_sizer)
+        # scrollIntoView: Tab brings the focused option on screen.
+        self._ui_page.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
         self._notebook.AddPage(self._ui_page, i18n.t("tab_ui"))
 
         # ── Accessibility tab ────────────────────────────────────────────────
@@ -3636,6 +3646,8 @@ class SettingsDialog(wx.Dialog):
         show = self._msg_list_mode_listbox_rb.GetValue()
         self._show_listbox_count_cb.Show(show)
         self._ui_page.Layout()
+        # The page scrolls: what it scrolls over just changed height.
+        self._ui_page.FitInside()
         self.Layout()
 
     def _on_message_list_mode_toggle(self, event):

@@ -180,6 +180,8 @@ CORREÇÕES
 
 - Numa conversa cujas mensagens mais antigas só existem no telemóvel, o WinZapp continuava a pedir essas mensagens ao telemóvel ao chegar à primeira mensagem: nada chegava, o telemóvel podia mostrar um aviso de sincronização de cada vez e a lista ficava ocupada durante minutos. Agora o WinZapp deteta este caso, não pede nada e anuncia "Use o WhatsApp no telemóvel para ver as mensagens mais antigas."
 
+- Definições, separador "Interface do utilizador": o separador passa a ter deslocamento, e os grupos de opções no fim voltam a ser lidos no sítio certo. Em ecrãs mais pequenos, o leitor de ecrã anunciava "Posição para anunciar itens selecionados" na caixa de verificação seguinte, e não nos botões de opção do grupo
+
 V1.1.1.0
 
 Esta versão é sobre manter a sua conta ligada. O WinZapp passou a guardar uma cópia de segurança do perfil do navegador — que é onde a sua ligação ao WhatsApp fica realmente guardada — e a restaurá-la sozinho quando ela deixa de ser aceite, avisando o que aconteceu. Com ela vieram as correções das situações que quebravam a sessão e faziam o programa pedir para emparelhar de novo: desligar o computador, suspender e retomar, e o próprio programa a reiniciar a ligação. Chegaram também a verificação ortográfica no campo de mensagem e as ações sobre ligações.
