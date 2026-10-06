@@ -199,6 +199,20 @@ def test_an_install_already_off_only_gains_the_flag():
     assert settings["general"][TYPING_ROW_DEFAULT_MIGRATION_FLAG] is True
 
 
-def test_the_typing_row_migration_runs_before_the_backfill():
-    source = inspect.getsource(MainWindow._migrate_settings)
-    assert "migrate_typing_row_default(self.settings)" in source
+def test_migrate_settings_switches_the_typing_row_off():
+    """_migrate_settings() itself runs the migration (and load_settings()
+    runs it before the backfill: see the ordering test above)."""
+    saved = []
+
+    class _Stub:
+        settings = {"user_interface": {"show_typing_row": True}}
+
+        def save_settings(self):
+            saved.append(True)
+
+    stub = _Stub()
+    MainWindow._migrate_settings(stub)
+
+    assert stub.settings["user_interface"]["show_typing_row"] is False
+    assert stub.settings["general"][TYPING_ROW_DEFAULT_MIGRATION_FLAG] is True
+    assert saved
