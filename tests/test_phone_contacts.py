@@ -208,8 +208,11 @@ class TestRecords:
         """The user's own records keep their name and follow the person."""
         assert pc.user_saved(pc.local_entry(PHONE, "Ana")) is True
         assert pc.user_saved(pc.synced_entry(PHONE, "Ana")) is True
-        assert pc.user_saved({pc.SYNCED_KEY: True}) is True       # restored from the database
         assert pc.user_saved({"isMyContact": True, "syncToAddressbook": True}) is False
+        # What the database gives back for a contact added on the phone: the
+        # mark is restored for the whole address book, so it cannot be what
+        # says "the user made this".
+        assert pc.user_saved({"isSaved": False, pc.SYNCED_KEY: True}) is False
         assert pc.user_saved({"name": "aninha"}) is False
         assert pc.user_saved(None) is False
 

@@ -1186,10 +1186,12 @@ class IdentityMixin:
                 # follows the person to the phone JID: that is where every
                 # lookup goes once the bridge exists, and left under the @lid
                 # alone it could no longer be edited or deleted. A record the
-                # user saved under the phone JID itself is never overwritten.
+                # user saved for the phone number itself is never overwritten,
+                # under either of its 8/9-digit forms.
                 lid_record = self.contacts.get(lid_jid)
                 if (phone_contacts.user_saved(lid_record)
-                        and not phone_contacts.user_saved(self.contacts.get(phone_jid))):
+                        and not phone_contacts.user_saved(
+                            phone_contacts.existing_contact(self, phone_jid))):
                     followed = {**(self.contacts.get(phone_jid) or {}), **lid_record,
                                 "id": phone_jid, "remoteJid": phone_jid}
                     self.contacts[phone_jid] = followed

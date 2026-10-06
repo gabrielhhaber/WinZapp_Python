@@ -100,11 +100,15 @@ def is_phone_synced(contact) -> bool:
 
 def user_saved(contact) -> bool:
     """Whether the USER made this record, on either tab of the new-contact
-    dialog (isSaved, or the mark of a save to the phone restored from the
-    database). Such a record keeps the name the user gave it, and follows the
-    person from an @lid to their phone JID once that is learned. A contact
-    WhatsApp merely reports as saved is not one: its record is WhatsApp's."""
-    return bool(contact) and bool(contact.get("isSaved") or contact.get(SYNCED_KEY))
+    dialog. Such a record keeps the name the user gave it, and follows the
+    person from an @lid to their phone JID once that is learned.
+
+    isSaved alone says so: both tabs set it and the database keeps it. The
+    synced mark does NOT: the database restores it for every contact in the
+    phone's address book (is_phone_synced() counts WhatsApp's own flags when
+    it is written), and those records are WhatsApp's, not the user's.
+    """
+    return bool(contact) and bool(contact.get("isSaved"))
 
 
 def existing_contact(main_window, jid: str):

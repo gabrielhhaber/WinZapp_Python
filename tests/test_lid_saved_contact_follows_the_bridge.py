@@ -159,6 +159,63 @@ class TestOnceTheBridgeIsLearned:
         assert PHONE not in mw.contacts
 
 
+PHONE_8 = "551199999999@s.whatsapp.net"     # PHONE without the 9th digit
+
+
+def _from_the_phone_book(name):
+    """An @lid record as get_contacts() restores it for a contact the user
+    added on the PHONE: never saved through WinZapp, marked as synced."""
+    return {"id": LID, "remoteJid": LID, "name": name, "pushName": name,
+            "profilePicUrl": "", "type": "contact", "isSaved": False, pc.SYNCED_KEY: True}
+
+
+class TestWhatsAppsOwnContactsAreNotTheUsers:
+    """After a restart every contact of the phone's address book carries the
+    synced mark (the database restores it). They are WhatsApp's records: the
+    mark must not make them follow the bridge or shield them from a name."""
+
+    def test_a_restored_address_book_record_does_not_follow(self):
+        mw = _Window()
+        mw.contacts[LID] = _from_the_phone_book("Ana Agenda")
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "Ana Telefone"}
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "Ana Telefone"
+        assert PHONE not in mw.db.upserted
+
+    def test_a_nameless_one_does_not_blank_the_phone_records_name(self):
+        mw = _Window()
+        mw.contacts[LID] = _from_the_phone_book("")
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "Ana Telefone"}
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "Ana Telefone"
+
+    def test_it_creates_no_record_under_the_phone_jid(self):
+        mw = _Window()
+        mw.contacts[LID] = _from_the_phone_book("Ana Agenda")
+        mw.register_jid_mapping(LID, PHONE)
+        assert PHONE not in mw.contacts
+
+    def test_the_resolution_still_names_a_nameless_one(self, monkeypatch):
+        mw = _Window()
+        mw.contacts[LID] = _from_the_phone_book("")
+        _resolution_answers(monkeypatch, {"lid": {"_serialized": LID},
+                                          "contact": {"pushname": "aninha"}})
+        mw.resolve_lid_jids_via_api([LID])
+        assert mw.contacts[LID]["name"] == "aninha"
+
+
+class TestTheOtherDigitFormOfThePhone:
+    def test_a_contact_saved_under_it_is_not_doubled(self):
+        """Saved under the number without the 9th digit; the bridge is learned
+        with it. The user's record for that number stands, and no second saved
+        record appears next to it."""
+        mw = _saved(pc.local_entry(LID, "Ana (lid)"))
+        mw.contacts[PHONE_8] = pc.local_entry(PHONE_8, "Ana (phone)")
+        mw.register_jid_mapping(LID, PHONE)
+        assert PHONE not in mw.contacts
+        assert mw.contacts[PHONE_8]["name"] == "Ana (phone)"
+
+
 class TestTheResolutionDoesNotRenameIt:
     def test_a_pushname_does_not_replace_the_name_the_user_gave(self, monkeypatch):
         mw = _saved(pc.local_entry(LID, "Ana Silva"))
