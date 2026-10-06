@@ -94,6 +94,8 @@ CORECTĂRI
 
 - Actualizările WPPConnect descărcate în fundal nu mai eșuează la instalare atunci când pe disc a rămas un folder de server vechi de la o actualizare anterioară. WinZapp îl șterge acum (sau îl pune deoparte dacă Windows refuză) și actualizarea continuă.
 
+- Apelurile nu mai eșuează cu eroarea "NumPy was built with baseline optimizations", urmată de "cannot load module more than once per process", pe calculatoarele cu un procesor mai vechi sau limitat de o mașină virtuală. WinZapp include acum o versiune de NumPy care funcționează pe orice procesor pe 64 de biți.
+
 - Apeluri: am corectat eroarea "cannot load module more than once per process", care putea apărea la începerea unui apel vocal sau video. Motorul de apeluri WhatsApp este acum pornit o singură dată și partajat, în loc să fie pornit din nou la fiecare acțiune de apel.
 
 - Când trimiteai un mesaj unei persoane care nu e în contactele tale și nu are nume în profilul WhatsApp, conversația începea să afișeze propriul tău nume în loc de numărul de telefon al persoanei. Acum continuă să afișeze numărul de telefon până când se găsește numele real.

@@ -27,7 +27,7 @@ dependencies = [
     "idna==3.11",
     "iniconfig==2.3.0",
     "libloader==1.4.2",
-    "numpy==2.4.6",
+    "numpy==2.3.5",
     "packaging==25.0",
     "pefile==2024.8.26",
     "platform-utils==1.6.0",
