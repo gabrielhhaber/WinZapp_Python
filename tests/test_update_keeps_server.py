@@ -83,6 +83,16 @@ class TestMergedPackage:
         merged = merged_package(INSTALLED, SHIPPED, PINS)
         assert merged["dependencies"]["zod"] == "^3.25.0"
 
+    def test_a_dependency_only_the_release_declares_is_added(self):
+        # The running build's key list is older than the release: a runtime
+        # dependency the release adds is required by its dist/ and must reach
+        # npm install, or the server does not start.
+        shipped = {**SHIPPED, "dependencies": {**SHIPPED["dependencies"], "newdep": "1.0.0"}}
+        merged = merged_package(INSTALLED, shipped, PINS)
+        assert merged["dependencies"]["newdep"] == "1.0.0"
+        # ...without replacing what the installed tree resolved.
+        assert merged["dependencies"]["axios"] == "^1.20.0"
+
     def test_does_not_mutate_its_inputs(self):
         installed = json.loads(json.dumps(INSTALLED))
         merged_package(installed, SHIPPED, PINS)
@@ -129,6 +139,16 @@ class TestKeepNewerInstalledServer:
         assert keep_newer_installed_server(payload, installed, PINS) == ""
         assert _read_pkg(payload) == SHIPPED
 
+    def test_a_hand_edited_installed_package_leaves_no_temp_file(self, tmp_path):
+        payload, installed = str(tmp_path / "payload" / "api"), str(tmp_path / "install" / "api")
+        _write_pkg(payload, **SHIPPED)
+        _write_pkg(installed, **{**INSTALLED, "dependencies": ["not", "a", "dict"]})
+
+        assert keep_newer_installed_server(payload, installed, PINS) == ""
+        assert _read_pkg(payload) == SHIPPED
+        # xcopy would copy a stray temp file into the user's api/.
+        assert os.listdir(payload) == ["package.json"]
+
     def test_a_release_without_api_is_left_alone(self, tmp_path):
         installed = str(tmp_path / "install" / "api")
         _write_pkg(installed, **INSTALLED)
@@ -150,6 +170,8 @@ class TestTheInstallerKeepsTheNewerServer:
         monkeypatch.setattr(updater, "_needs_admin", lambda: False)
         monkeypatch.setattr(updater.sys, "platform", "win32")
         monkeypatch.setattr(updater.subprocess, "Popen", lambda *a, **kw: None)
+        # The script file itself is created before the fake write.
+        monkeypatch.setattr(updater.tempfile, "tempdir", str(tmp_path))
         seen = {}
 
         def _fake_write(bat_path, script):

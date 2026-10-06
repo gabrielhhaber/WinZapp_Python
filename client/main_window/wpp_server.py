@@ -640,10 +640,9 @@ class WppServerMixin:
         newer than the bundled one keeps its package.json
         (core/update_keeps_server.py), which is never below the minimum either.
         This catches an install that has NOT been updated (a server left
-        behind by an older WinZapp, a
-        hand-built api/), never a drift the update itself introduced. That
-        second case is _library_drifts()'s, and it is the one that
-        was going unnoticed.
+        behind by an older WinZapp, a hand-built api/), never a drift the
+        update itself introduced. That second case is _library_drifts()'s,
+        and it is the one that was going unnoticed.
         """
         minimum = self._read_wpp_minimum_version()
         installed = self._get_installed_wpp_version() if minimum else ""

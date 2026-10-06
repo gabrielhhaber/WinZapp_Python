@@ -15,10 +15,15 @@ controllers (api_patches/src/) reach an install, and the WinZapp being
 installed may call routes only its own dist/ serves, so it still comes from
 the release. What package.json keeps is what describes the installed tree: its
 version, which is what every version check reads, and its dependency ranges,
-which match the node_modules xcopy never touches. The pins WinZapp homologates
-(_PATCHED_DEPENDENCY_KEYS) are taken from the release instead, so a build that
-moves one still trips the library drift gate (core/wpp_runtime.library_drifts)
-and offers the reinstall.
+which match the node_modules xcopy never touches. From the release it takes
+the pins WinZapp homologates (_PATCHED_DEPENDENCY_KEYS), so a build that moves
+one still trips the library drift gate (core/wpp_runtime.library_drifts), and
+every dependency the installed file lacks, which the release's dist/ may
+require (see merged_package()).
+
+Not covered: the reinstall that drift gate offers rebuilds at the bundled tag,
+so accepting it still moves a newer server back to the bundled version, and
+the periodic check then offers the newer one again.
 
 What that leaves: upstream source that changed between the bundled tag and
 the installed one runs as the bundled tag's until the next server update. Every
@@ -57,10 +62,18 @@ def is_newer_server(installed: str, shipped: str) -> bool:
 
 
 def merged_package(installed: dict, shipped: dict, pinned_keys) -> dict:
-    """The installed package.json with the release's homologated pins."""
+    """The installed package.json with the release's homologated pins, and
+    with every dependency the release declares that the installed file does
+    not. *pinned_keys* comes from the running build, which is older than the
+    release: a runtime dependency the release adds (prom-client, zod, qrcode
+    and ffmpeg each arrived that way) is required by its dist/ and installed
+    by the startup marker check from this file, so dropping it would leave a
+    server that does not start. An extra one from an older tag is harmless."""
     merged = dict(installed)
     deps = dict(merged.get("dependencies") or {})
     shipped_deps = shipped.get("dependencies") or {}
+    for key, spec in shipped_deps.items():
+        deps.setdefault(key, spec)
     for key in pinned_keys:
         if key in shipped_deps:
             deps[key] = shipped_deps[key]
@@ -87,11 +100,14 @@ def keep_newer_installed_server(payload_api_dir: str, installed_api_dir: str,
         return ""
     tmp = payload_pkg + ".winzapp-tmp"
     try:
+        # Built before the file is opened: a hand-edited package.json can
+        # make it raise, and an empty temp file must not be left in the
+        # payload for xcopy to copy into api/.
+        text = json.dumps(merged_package(installed, shipped, pinned_keys), indent=2) + "\n"
         with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(merged_package(installed, shipped, pinned_keys), fh, indent=2)
-            fh.write("\n")
+            fh.write(text)
         os.replace(tmp, payload_pkg)
-    except OSError as exc:
+    except Exception as exc:
         logging.warning("[update] Could not keep WPPConnect Server %s over the %s "
                         "this release ships: %s", installed_version, shipped_version, exc)
         try:
