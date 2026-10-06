@@ -1545,6 +1545,7 @@
   "wa_lists_delete": "&Excluir lista",
   "wa_lists_add": "A&dicionar conversas",
   "wa_lists_remove": "Re&mover conversas",
+  "wa_lists_close": "&Fechar",
   "wa_lists_loading": "Carregando listas do WhatsApp…",
   "wa_lists_read_only": "Não é possível editar listas nesta conta. Você ainda pode ver as listas existentes.",
   "wa_lists_account_disabled": "O WhatsApp não habilitou a edição de listas para esta conta em dispositivos conectados. Você ainda pode ver as listas.",

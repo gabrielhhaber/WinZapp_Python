@@ -1545,6 +1545,7 @@
   "wa_lists_delete": "Ș&terge lista",
   "wa_lists_add": "Ada&ugă conversații",
   "wa_lists_remove": "Eli&mină conversații",
+  "wa_lists_close": "&Închide",
   "wa_lists_loading": "Se încarcă listele WhatsApp…",
   "wa_lists_read_only": "Listele nu pot fi editate pentru acest cont. Poți vedea în continuare listele existente.",
   "wa_lists_account_disabled": "WhatsApp nu a activat editarea listelor pentru acest cont pe dispozitivele asociate. Poți vedea în continuare listele.",

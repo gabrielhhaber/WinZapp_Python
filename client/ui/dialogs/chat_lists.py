@@ -52,7 +52,15 @@ class WhatsAppListsDialog(wx.Dialog):
             button.Bind(wx.EVT_BUTTON, handler)
             self._buttons[action] = button
             sizer.Add(button, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(self.CreateStdDialogButtonSizer(wx.CANCEL), 0, wx.EXPAND | wx.ALL, 8)
+        # Every action above applies at once, so there is nothing to cancel:
+        # the window is closed. CreateStdDialogButtonSizer(wx.CANCEL) gave
+        # wx's stock "Cancel", in English whatever the locale and with no
+        # mnemonic. ID_CANCEL keeps Escape closing it.
+        buttons = wx.StdDialogButtonSizer()
+        self._close_button = wx.Button(self, wx.ID_CANCEL, i18n.t("wa_lists_close"))
+        buttons.AddButton(self._close_button)
+        buttons.Realize()
+        sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 8)
         self.SetSizer(sizer)
 
     def close_list_manager(self):

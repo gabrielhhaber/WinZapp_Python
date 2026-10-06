@@ -1545,6 +1545,7 @@
   "wa_lists_delete": "U&suń listę",
   "wa_lists_add": "&Dodaj czaty",
   "wa_lists_remove": "Usuń cz&aty z listy",
+  "wa_lists_close": "&Zamknij",
   "wa_lists_loading": "Wczytywanie list WhatsApp…",
   "wa_lists_read_only": "Na tym koncie nie można edytować list. Nadal możesz przeglądać istniejące listy.",
   "wa_lists_account_disabled": "WhatsApp nie włączył edycji list dla tego konta na połączonych urządzeniach. Nadal możesz przeglądać listy.",

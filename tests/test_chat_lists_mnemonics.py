@@ -21,7 +21,8 @@ from ui.dialogs.chat_lists import _manage_title
 MAIN_KEYS = ("wa_lists_reload", "wa_lists_manage")
 #: Buttons of WhatsAppListsDialog. "manage" is its title, not a button.
 DIALOG_KEYS = ("wa_lists_reload", "wa_lists_create", "wa_lists_rename",
-               "wa_lists_delete", "wa_lists_add", "wa_lists_remove")
+               "wa_lists_delete", "wa_lists_add", "wa_lists_remove",
+               "wa_lists_close")
 #: What the main window's menu bar opens with Alt.
 MENU_KEYS = ("menu_file", "menu_sync", "menu_help")
 #: Labels of the chat screen whose mnemonic moves the focus.

@@ -1545,6 +1545,7 @@
   "wa_lists_delete": "&Delete list",
   "wa_lists_add": "&Add chats",
   "wa_lists_remove": "Re&move chats",
+  "wa_lists_close": "&Close",
   "wa_lists_loading": "Loading WhatsApp lists…",
   "wa_lists_read_only": "Lists cannot be edited for this account. You can still view existing lists.",
   "wa_lists_account_disabled": "WhatsApp has not enabled list editing for this account on linked devices. You can still view lists.",

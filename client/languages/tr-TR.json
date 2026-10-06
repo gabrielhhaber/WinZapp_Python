@@ -1545,6 +1545,7 @@
   "wa_lists_delete": "Listeyi &sil",
   "wa_lists_add": "Sohbet e&kle",
   "wa_lists_remove": "Sohbet &çıkar",
+  "wa_lists_close": "Ka&pat",
   "wa_lists_loading": "WhatsApp listeleri yükleniyor…",
   "wa_lists_read_only": "Bu hesapta listeler düzenlenemiyor. Mevcut listeleri görüntüleyebilirsiniz.",
   "wa_lists_account_disabled": "WhatsApp bu hesap için bağlı cihazlarda liste düzenlemeyi etkinleştirmemiş. Listeleri görüntüleyebilirsiniz.",
