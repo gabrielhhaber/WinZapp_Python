@@ -135,7 +135,7 @@ The `mattpocock-skills` plugin provides `/grill-with-docs` → `/to-spec` →
 - Tests: the files for what changed, never `--run-wx-gui`.
 - Commit only when the user asks, whatever `/implement` says.
 - **Open every PR as a draft** and keep it a draft until the reviewer
-  (`winzapp-reviewer` / the PR review check) has finished and approved. Only
+  (the `winzapp-reviewer` agent) has finished and approved. Only
   then mark it ready for review or merge it. This applies to every developer
   and every Claude session, so nobody merges a PR while its review is still
   running.
