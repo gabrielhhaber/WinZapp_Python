@@ -80,6 +80,8 @@ YENİLİKLER
 
 DÜZELTMELER
 
+- Aramalar, işlemcisi eski olan veya sanal makineyle sınırlanan bilgisayarlarda artık "NumPy was built with baseline optimizations" ve ardından "cannot load module more than once per process" hatasıyla başarısız olmuyor. WinZapp artık her 64 bit işlemcide çalışan bir NumPy sürümü içeriyor.
+
 - Kaldırma programı artık her zaman Portekizce görünmek yerine, kurulum programı gibi Windows görüntüleme dilini izliyor.
 
 - Mesajları iletme, her iletimin “forwardMessages function is not available” hatasıyla reddedildiği son WhatsApp Web sürümlerinde artık başarısız olmuyor.

@@ -80,6 +80,8 @@ MELHORIAS
 
 CORREÇÕES
 
+- As chamadas deixam de falhar com o erro "NumPy was built with baseline optimizations", seguido de "cannot load module more than once per process", em computadores com um processador mais antigo ou limitado por uma máquina virtual. O WinZapp passa a incluir uma versão do NumPy que funciona em qualquer processador de 64 bits.
+
 - O desinstalador passa a seguir o idioma de apresentação do Windows, como o instalador, em vez de aparecer sempre em português.
 
 - Reencaminhar mensagens já não falha nas versões recentes do WhatsApp Web, em que todo o reencaminhamento era recusado com o erro “forwardMessages function is not available”.
