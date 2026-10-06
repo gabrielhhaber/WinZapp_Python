@@ -137,10 +137,11 @@ def orphaned_saved_lid_copies(contacts: dict, lid_to_phone: dict) -> list:
     has no saved contact for the phone number behind them.
 
     Up to 1.1.1.x, deleting a local contact removed the record under the phone
-    JID and left its copy under the @lid, isSaved and all. Nothing read that
-    flag there, so it was harmless — until a contact saved under an @lid began
-    to follow the person to their phone JID (followed_contact()): those
-    leftovers would follow too, and bring back contacts the user had deleted.
+    JID and left its copy under the @lid, isSaved and all. That only made the
+    leftover count as a contact of the user's in the contact pickers — until a
+    contact saved under an @lid began to follow the person to their phone JID
+    (followed_contact()): those leftovers would follow too, and bring back
+    contacts the user had deleted.
 
     Meant to be asked ONCE, before any contact can have been saved under an
     @lid on purpose (the first start of the version that allows it): from then

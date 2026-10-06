@@ -30,9 +30,24 @@ PN = {"id": "5511999999999", "server": "c.us", "_serialized": "5511999999999@c.u
 
 
 class _Db:
-    def __init__(self):
+    """Answers get_contacts()/get_lid_mappings() with what the window holds,
+    as a database in step with memory would, unless a test stores something
+    else in `stored_contacts` / `stored_bridge`."""
+
+    def __init__(self, owner):
+        self._owner = owner
         self.upserted = {}
         self.metadata = {}
+        self.stored_contacts = None
+        self.stored_bridge = None
+
+    def get_contacts(self):
+        source = self._owner.contacts if self.stored_contacts is None else self.stored_contacts
+        return {jid: dict(record) for jid, record in source.items()}
+
+    def get_lid_mappings(self):
+        return dict(self._owner._lid_to_phone if self.stored_bridge is None
+                    else self.stored_bridge)
 
     def upsert_contacts_batch(self, contacts):
         self.upserted.update(contacts)
@@ -78,7 +93,7 @@ class _Window:
         self._unresolvable_lids, self._unresolvable_names = set(), set()
         self._presence_pushname_map = {}
         self._wa_connected = True
-        self.db = _Db()
+        self.db = _Db(self)
         # What the live-message path reads besides the bridge.
         self._ui_ready_event = threading.Event()
         self._ui_ready_event.set()
@@ -509,6 +524,42 @@ class TestTheLeftoversOfDeletedLocalContacts:
         assert mw.contacts[PHONE]["name"] == "aninha"
         assert mw.contacts[LID]["isSaved"] is True            # untouched, tried again next start
         assert mw.db.metadata == {}
+
+    def test_contacts_that_failed_to_load_do_not_read_as_nothing_to_clear(self):
+        """get_contacts() answers {} when its read fails at startup, and the
+        bridge is emptied the same way. The clearing asks the database itself:
+        marked as done off an empty dict, the leftovers would follow at the
+        next start."""
+        mw = self._with_a_leftover()
+        mw.db.stored_contacts = {jid: dict(record) for jid, record in mw.contacts.items()}
+        mw.db.stored_bridge = dict(mw._lid_to_phone)
+        mw.contacts, mw._lid_to_phone, mw._phone_to_lid = {}, {}, {}     # the failed loads
+
+        assert mw._clear_orphaned_saved_lid_copies_once() is True
+
+        assert mw.db.upserted[LID]["isSaved"] is False
+        assert mw.db.upserted[LID]["name"] == "Apagado"       # the stored record, mark off
+
+    def test_a_database_that_cannot_be_read_is_not_marked_as_done(self):
+        mw = self._with_a_leftover()
+
+        def _down():
+            raise OSError("locked")
+
+        for reader in ("get_contacts", "get_lid_mappings"):
+            setattr(mw.db, reader, _down)
+            assert mw._clear_orphaned_saved_lid_copies_once() is False
+            assert mw.db.metadata == {} and mw.db.upserted == {}
+            delattr(mw.db, reader)
+
+    def test_a_flag_that_could_not_be_written_means_not_done(self):
+        mw = self._with_a_leftover()
+
+        def _down(key, value):
+            raise OSError("locked")
+
+        mw.db.set_metadata = _down
+        assert mw._clear_orphaned_saved_lid_copies_once() is False
 
     def test_a_failed_write_leaves_it_to_be_tried_again(self):
         mw = self._with_a_leftover()

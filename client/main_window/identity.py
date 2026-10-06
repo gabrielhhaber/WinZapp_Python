@@ -1302,13 +1302,23 @@ class IdentityMixin:
         try:
             if self.db.get_metadata(self._ORPHANED_LID_COPIES_CLEARED) is not None:
                 return True
+            # Asked of the database itself, this once, and not of self.contacts
+            # or of the bridge in memory: both are EMPTIED, not raised, when
+            # their load fails at startup, and "no leftovers" read off an empty
+            # dict would be recorded as done for good. Here a failed read
+            # raises, and nothing is recorded.
+            stored = self.db.get_contacts()
+            bridge = dict(self.db.get_lid_mappings())
             with self._lid_mapping_lock:
-                orphans = phone_contacts.orphaned_saved_lid_copies(
-                    self.contacts, getattr(self, "_lid_to_phone", None) or {})
+                # Plus what the scan of stored messages has put in memory.
+                bridge.update(getattr(self, "_lid_to_phone", None) or {})
                 cleared = {}
-                for lid_jid in orphans:
-                    self.contacts[lid_jid]["isSaved"] = False
-                    cleared[lid_jid] = self.contacts[lid_jid]
+                for lid_jid in phone_contacts.orphaned_saved_lid_copies(stored, bridge):
+                    record = self.contacts.get(lid_jid)
+                    if record is None:
+                        record = stored[lid_jid]
+                    record["isSaved"] = False
+                    cleared[lid_jid] = record
             if cleared:
                 self.db.upsert_contacts_batch(cleared)
                 logging.info("[contacts] %d leftover cop%s of deleted local contacts "
