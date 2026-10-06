@@ -571,6 +571,10 @@ class SyncMixin:
         self.chats = self.normalize_chats(self.chats)
         self.contacts = self.get_contacts()
         self._clean_contacts_cached()
+        # Needs the contacts AND the bridge (_load_local_lid_cache() and
+        # _build_lid_to_phone_cache() above): the scan a few lines up ran
+        # while self.contacts was still empty and could move nothing.
+        self._follow_contacts_saved_under_lids_at_startup()
         # One-time cleanup: slim bloated quoted-message payloads left behind by
         # older versions (full thumbnails / mediaKeys / URLs), which made
         # conversations with many replies slow to open. Runs now that chats,

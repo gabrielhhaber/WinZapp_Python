@@ -125,6 +125,32 @@ def other_digit_form(jid: str) -> str:
     return ""
 
 
+def _user_saved_for_phone(contacts: dict, phone_jid: str) -> bool:
+    """Whether the user saved a contact for this phone number, under either of
+    its 8/9-digit forms."""
+    return any(user_saved(contacts.get(jid))
+               for jid in (phone_jid, other_digit_form(phone_jid)) if jid)
+
+
+def orphaned_saved_lid_copies(contacts: dict, lid_to_phone: dict) -> list:
+    """The @lids whose record still says "saved by the user" although the user
+    has no saved contact for the phone number behind them.
+
+    Up to 1.1.1.x, deleting a local contact removed the record under the phone
+    JID and left its copy under the @lid, isSaved and all. Nothing read that
+    flag there, so it was harmless — until a contact saved under an @lid began
+    to follow the person to their phone JID (followed_contact()): those
+    leftovers would follow too, and bring back contacts the user had deleted.
+
+    Meant to be asked ONCE, before any contact can have been saved under an
+    @lid on purpose (the first start of the version that allows it): from then
+    on such a record is exactly what the user wants to keep.
+    """
+    return [lid_jid for lid_jid, phone_jid in list(lid_to_phone.items())
+            if user_saved(contacts.get(lid_jid))
+            and not _user_saved_for_phone(contacts, phone_jid)]
+
+
 def followed_contact(contacts: dict, lid_jid: str, phone_jid: str):
     """The record to put under *phone_jid* so that a contact the user saved
     under *lid_jid* follows the person there, or None when nothing is to move.
@@ -142,11 +168,8 @@ def followed_contact(contacts: dict, lid_jid: str, phone_jid: str):
     that contact, whatever name the user gave it.
     """
     lid_record = contacts.get(lid_jid)
-    if not user_saved(lid_record):
+    if not user_saved(lid_record) or _user_saved_for_phone(contacts, phone_jid):
         return None
-    for jid in (phone_jid, other_digit_form(phone_jid)):
-        if jid and user_saved(contacts.get(jid)):
-            return None
     phone_record = contacts.get(phone_jid) or {}
     return {**phone_record, **lid_record, "id": phone_jid, "remoteJid": phone_jid,
             SYNCED_KEY: is_phone_synced(lid_record) or is_phone_synced(phone_record)}

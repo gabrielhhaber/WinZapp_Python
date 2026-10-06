@@ -369,6 +369,12 @@ _MAPPING_WRITERS = [
     "get_remote_chats",
     "_load_local_lid_cache",
     "clear_local_data",
+    # Not writers of the bridge, but they take the same lock to change
+    # self.contacts and then write to the database: the write must stay
+    # outside, and nothing else would notice it sliding in (the lock is
+    # reentrant, so it would still work).
+    "_follow_saved_contacts",
+    "_clear_orphaned_saved_lid_copies_once",
 ]
 
 

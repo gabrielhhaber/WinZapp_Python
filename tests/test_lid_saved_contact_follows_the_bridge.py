@@ -32,9 +32,16 @@ PN = {"id": "5511999999999", "server": "c.us", "_serialized": "5511999999999@c.u
 class _Db:
     def __init__(self):
         self.upserted = {}
+        self.metadata = {}
 
     def upsert_contacts_batch(self, contacts):
         self.upserted.update(contacts)
+
+    def get_metadata(self, key, default=None):
+        return self.metadata.get(key, default)
+
+    def set_metadata(self, key, value):
+        self.metadata[key] = value
 
     def __getattr__(self, name):
         return lambda *args, **kwargs: None
@@ -51,6 +58,10 @@ class _Window:
     register_jid_mapping = MainWindow.register_jid_mapping
     resolve_lid_jids_via_api = MainWindow.resolve_lid_jids_via_api
     _follow_saved_contacts = MainWindow._follow_saved_contacts
+    _clear_orphaned_saved_lid_copies_once = MainWindow._clear_orphaned_saved_lid_copies_once
+    _follow_contacts_saved_under_lids_at_startup = (
+        MainWindow._follow_contacts_saved_under_lids_at_startup)
+    _ORPHANED_LID_COPIES_CLEARED = MainWindow._ORPHANED_LID_COPIES_CLEARED
     _extract_lid_mapping = MainWindow._extract_lid_mapping
     _build_lid_to_phone_cache = MainWindow._build_lid_to_phone_cache
     get_contact_profile = MainWindow.get_contact_profile
@@ -312,12 +323,21 @@ class TestEveryWriterOfTheBridge:
 
     def test_a_pair_that_was_already_known_when_winzapp_started(self):
         """Read from the database by _load_local_lid_cache(), so no writer
-        sees it change: the pass at the end of the startup scan is what brings
-        over a contact an earlier run left behind."""
+        sees it change. The startup step is what brings over a contact whose
+        move never reached the database (in a database where the leftovers of
+        older versions are known to be cleared: see below)."""
+        mw = _saved(pc.local_entry(LID, "Ana Silva"))
+        mw._lid_to_phone, mw._phone_to_lid = {LID: PHONE}, {PHONE: LID}
+        mw.db.metadata[mw._ORPHANED_LID_COPIES_CLEARED] = "1"
+        mw._follow_contacts_saved_under_lids_at_startup()
+        assert self._followed(mw)
+
+    def test_the_scan_follows_what_it_learns_and_nothing_else(self):
+        """A pair the bridge already had is not the scan's news."""
         mw = _saved(pc.local_entry(LID, "Ana Silva"))
         mw._lid_to_phone, mw._phone_to_lid = {LID: PHONE}, {PHONE: LID}
         mw._build_lid_to_phone_cache()
-        assert self._followed(mw)
+        assert PHONE not in mw.contacts
 
     def test_a_profile_query(self, monkeypatch):
         mw = _saved(pc.local_entry(LID, "Ana Silva"))
@@ -393,3 +413,122 @@ class TestTheMergedRecordIsStillInThePhoneBook:
         mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "aninha"}
         mw.register_jid_mapping(LID, PHONE)
         assert pc.is_phone_synced(mw.contacts[PHONE]) is False
+
+
+class TestTheLeftoversOfDeletedLocalContacts:
+    """Up to 1.1.1.x, deleting a local contact removed the record under the
+    phone JID and left its copy under the @lid still marked as saved. Nothing
+    read the mark there. Now a saved @lid record follows the person to the
+    phone JID, and those leftovers would too: the contact the user deleted
+    would come back, old name and all, at the first start after updating.
+
+    They are cleared once per database, before anything goes over the whole
+    bridge. Only once: afterwards a saved @lid record with a known phone and
+    no contact under it is a contact saved under the @lid on purpose whose
+    move was not persisted, the very thing the startup step is for."""
+
+    @staticmethod
+    def _with_a_leftover():
+        mw = _Window()
+        mw.contacts[LID] = {"id": LID, "remoteJid": LID, "name": "Apagado", "isSaved": True}
+        mw.contacts[PHONE] = {"id": PHONE, "remoteJid": PHONE, "name": "aninha"}
+        mw._lid_to_phone, mw._phone_to_lid = {LID: PHONE}, {PHONE: LID}
+        return mw
+
+    def test_a_deleted_contact_does_not_come_back(self):
+        mw = self._with_a_leftover()
+
+        mw._follow_contacts_saved_under_lids_at_startup()
+
+        assert mw.contacts[PHONE]["name"] == "aninha"
+        assert not pc.user_saved(mw.contacts[PHONE])
+        assert mw.contacts[LID]["isSaved"] is False
+        assert mw.db.upserted == {LID: mw.contacts[LID]}       # persisted, and only that
+        assert _Dialog(mw)._contact_entry() is None           # "Add contact", as before
+
+    def test_it_would_have_without_the_clearing(self):
+        """What this guards against, on the very same data."""
+        mw = self._with_a_leftover()
+        mw._follow_saved_contacts()
+        assert mw.contacts[PHONE]["name"] == "Apagado"
+
+    def test_nor_when_the_pair_is_learned_again_later(self):
+        """Every writer of the bridge follows what it learns; after the
+        clearing the leftover is no longer the user's record."""
+        mw = self._with_a_leftover()
+        mw._follow_contacts_saved_under_lids_at_startup()
+        mw._lid_to_phone, mw._phone_to_lid = {}, {}
+        mw.register_jid_mapping(LID, PHONE)
+        assert mw.contacts[PHONE]["name"] == "aninha"
+
+    def test_a_contact_the_user_still_has_keeps_its_copy(self):
+        """The copy save_local_contact() makes next to a saved phone record."""
+        mw = self._with_a_leftover()
+        mw.contacts[PHONE] = pc.local_entry(PHONE, "Ana Silva")
+        mw.contacts[LID]["name"] = "Ana Silva"
+        mw._follow_contacts_saved_under_lids_at_startup()
+        assert mw.contacts[LID]["isSaved"] is True and mw.db.upserted == {}
+
+    def test_nor_one_saved_under_the_other_digit_form(self):
+        mw = self._with_a_leftover()
+        mw.contacts[PHONE_8] = pc.local_entry(PHONE_8, "Ana Silva")
+        mw._follow_contacts_saved_under_lids_at_startup()
+        assert mw.contacts[LID]["isSaved"] is True
+
+    def test_it_is_done_once_per_database(self):
+        mw = self._with_a_leftover()
+        mw._follow_contacts_saved_under_lids_at_startup()
+        assert mw.db.metadata[mw._ORPHANED_LID_COPIES_CLEARED] == "1"
+
+        # From now on this shape is a contact saved under the @lid on purpose
+        # whose move to the phone JID was never persisted.
+        mw.contacts[LID] = pc.local_entry(LID, "Ana Silva")
+        mw.db.upserted.clear()
+        mw._follow_contacts_saved_under_lids_at_startup()
+
+        assert mw.contacts[LID]["isSaved"] is True
+        assert mw.contacts[PHONE]["name"] == "Ana Silva" and pc.user_saved(mw.contacts[PHONE])
+        assert set(mw.db.upserted) == {PHONE}
+
+    def test_a_database_with_no_leftovers_is_marked_all_the_same(self):
+        mw = _Window()
+        assert mw._clear_orphaned_saved_lid_copies_once() is True
+        assert mw.db.metadata[mw._ORPHANED_LID_COPIES_CLEARED] == "1"
+        assert mw.db.upserted == {}
+
+    def test_when_the_clearing_cannot_be_confirmed_nothing_follows(self):
+        """A database that fails must not be read as "nothing to clear"."""
+        mw = self._with_a_leftover()
+
+        def _down(key, default=None):
+            raise OSError("locked")
+
+        mw.db.get_metadata = _down
+        mw._follow_contacts_saved_under_lids_at_startup()
+
+        assert mw.contacts[PHONE]["name"] == "aninha"
+        assert mw.contacts[LID]["isSaved"] is True            # untouched, tried again next start
+        assert mw.db.metadata == {}
+
+    def test_a_failed_write_leaves_it_to_be_tried_again(self):
+        mw = self._with_a_leftover()
+
+        def _down(contacts):
+            raise OSError("locked")
+
+        mw.db.upsert_contacts_batch = _down
+        assert mw._clear_orphaned_saved_lid_copies_once() is False
+        assert mw.db.metadata == {}
+
+
+def test_startup_runs_it_once_contacts_and_bridge_are_both_loaded():
+    """prepare_sync() is far too large to run on a stub. Its order is the
+    point: the scan of stored messages runs while self.contacts is still
+    empty, so the step has to come after the contacts are read, and after the
+    bridge is loaded and scanned."""
+    import inspect
+    source = inspect.getsource(MainWindow.prepare_sync)
+    step = source.index("self._follow_contacts_saved_under_lids_at_startup()")
+    assert source.index("self._load_local_lid_cache()") < step
+    assert source.index("self._build_lid_to_phone_cache()") < step
+    assert source.index("self.contacts = self.get_contacts()") < step

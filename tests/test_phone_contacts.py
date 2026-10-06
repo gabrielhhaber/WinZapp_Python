@@ -216,6 +216,27 @@ class TestRecords:
     def test_the_other_form_of_a_brazilian_mobile_number(self, jid, twin):
         assert pc.other_digit_form(jid) == twin
 
+    def test_the_leftovers_of_deleted_local_contacts(self):
+        """An @lid record still marked as saved, a known phone behind it, and
+        no saved contact for that phone under either digit form."""
+        lid_a, lid_b, lid_c, lid_d = "1@lid", "2@lid", "3@lid", "4@lid"
+        phone_c, phone_c8 = "5511999999999@s.whatsapp.net", "551199999999@s.whatsapp.net"
+        contacts = {
+            lid_a: {"name": "Apagado", "isSaved": True},            # the leftover
+            "a@s.whatsapp.net": {"name": "pushname"},
+            lid_b: {"name": "Ana", "isSaved": True},                # copy of a live contact
+            "b@s.whatsapp.net": pc.local_entry("b@s.whatsapp.net", "Ana"),
+            lid_c: {"name": "Bia", "isSaved": True},                # saved under the other form
+            phone_c8: pc.local_entry(phone_c8, "Bia"),
+            lid_d: {"name": "cache", "isSaved": False},             # never the user's
+            "5@lid": {"name": "No bridge", "isSaved": True},        # no known phone
+        }
+        bridge = {lid_a: "a@s.whatsapp.net", lid_b: "b@s.whatsapp.net",
+                  lid_c: phone_c, lid_d: "d@s.whatsapp.net"}
+        assert pc.orphaned_saved_lid_copies(contacts, bridge) == [lid_a]
+        assert pc.orphaned_saved_lid_copies({}, bridge) == []
+        assert pc.orphaned_saved_lid_copies(contacts, {}) == []
+
     def test_who_made_the_record(self):
         """The user's own records keep their name and follow the person."""
         assert pc.user_saved(pc.local_entry(PHONE, "Ana")) is True
