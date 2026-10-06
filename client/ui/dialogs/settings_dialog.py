@@ -416,7 +416,7 @@ class SettingsDialog(wx.Dialog):
         self._notebook.AddPage(self._general_page, i18n.t("tab_general"))
 
         # ── User Interface tab ───────────────────────────────────────────────
-        # Scrollable, like the AI page: this tab holds more options than a
+        # Scrollable: this tab holds more options than a
         # screen is tall. On a plain panel the sizer then squeezes whatever is
         # past the bottom edge down to a height of zero, and NVDA, which
         # decides by geometry which group box a control sits in, no longer
