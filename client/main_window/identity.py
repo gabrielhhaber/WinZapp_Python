@@ -1801,4 +1801,11 @@ class IdentityMixin:
                     if self._subscribed_presence_cache.get(target_jid) == now:
                         self._subscribed_presence_cache.pop(target_jid, None)
                     logging.error("[subscribe_presence] Error subscribing to %s: %s", phone, e)
-        threading.Thread(target=_api, daemon=True).start()
+        try:
+            threading.Thread(target=_api, daemon=True).start()
+        except Exception:
+            # No worker started to clear this attempt's tentative subscriptions.
+            for target_jid in targets:
+                if self._subscribed_presence_cache.get(target_jid) == now:
+                    self._subscribed_presence_cache.pop(target_jid, None)
+            raise
