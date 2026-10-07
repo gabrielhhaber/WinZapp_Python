@@ -3247,6 +3247,16 @@ class WebSocketClient:
                 context_info["stanzaId"] = clean_quoted_id
                 context_info["participant"] = participant_jid
                 context_info["quotedMessage"] = quoted_msg_payload
+                quoted_remote = wpp_msg.get("quotedRemoteJid") or (
+                    ctx_info.get("remoteJid") if isinstance(ctx_info, dict) else None
+                )
+                if not quoted_remote and any(
+                    "status@broadcast" in str(value or "")
+                    for value in (quoted_stanza_id, wpp_msg.get("quotedMsgId"))
+                ):
+                    quoted_remote = "status@broadcast"
+                if quoted_remote:
+                    context_info["remoteJid"] = self._clean_jid(quoted_remote)
             if mentioned_jids:
                 context_info["mentionedJid"] = mentioned_jids
             if is_forwarded:

@@ -10389,10 +10389,11 @@ msgstr "Reparați"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_unavailable_auto"
 msgid ""
-"None of the installed transcription models can be used on this computer."
+"No transcription model is ready to use. In the Local Transcription tab of "
+"the settings, download one before transcribing."
 msgstr ""
-"Niciunul dintre modelele de transcriere instalate nu poate fi folosit pe "
-"acest computer."
+"Niciun model de transcriere nu este pregătit de utilizare. În fila "
+"Transcriere locală din setări, descărcați unul înainte de a transcrie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_verify_btn"

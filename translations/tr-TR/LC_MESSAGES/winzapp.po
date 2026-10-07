@@ -10252,9 +10252,11 @@ msgstr "Onar"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_unavailable_auto"
 msgid ""
-"None of the installed transcription models can be used on this computer."
+"No transcription model is ready to use. In the Local Transcription tab of "
+"the settings, download one before transcribing."
 msgstr ""
-"Yüklü yazıya döküm modellerinden hiçbiri bu bilgisayarda kullanılamıyor."
+"Kullanıma hazır bir yazıya döküm modeli yok. Yazıya dökmeden önce "
+"Ayarlardaki Yerel yazıya döküm sekmesinden bir model indirin."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_verify_btn"

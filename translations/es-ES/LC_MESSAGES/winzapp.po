@@ -10388,10 +10388,11 @@ msgstr "Re&parar"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_unavailable_auto"
 msgid ""
-"None of the installed transcription models can be used on this computer."
+"No transcription model is ready to use. In the Local Transcription tab of "
+"the settings, download one before transcribing."
 msgstr ""
-"Ninguno de los modelos de transcripción instalados se puede usar en este "
-"equipo."
+"No hay ningún modelo de transcripción listo para usar. En la pestaña "
+"Transcripción local de la configuración, descarga uno antes de transcribir."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_verify_btn"

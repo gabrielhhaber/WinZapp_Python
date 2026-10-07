@@ -18,6 +18,8 @@ real MyStatusDialog/StatusPanel) are replaced with call-recording stubs
 so only the dispatch decision itself is under test here.
 """
 
+import pytest
+
 from ui.conversations import ConversationsPanel
 
 
@@ -118,6 +120,7 @@ class TestAgedOutRebuiltFromInlineQuotedContent:
     def test_own_status_rebuilt_and_opened_in_my_status_dialog(self):
         stub = _Stub(status_updates={}, self_jid="me@lid")
         ctx = {
+            "remoteJid": "status@broadcast",
             "participant": "me@lid",
             "quotedMessage": {"conversation": "texto antigo do status"},
         }
@@ -135,6 +138,7 @@ class TestAgedOutRebuiltFromInlineQuotedContent:
     def test_others_status_rebuilt_and_opened_in_status_panel(self):
         stub = _Stub(status_updates={})
         ctx = {
+            "remoteJid": "status@broadcast",
             "participant": "a@s.whatsapp.net",
             "quotedMessage": {"conversation": "texto antigo do status"},
         }
@@ -150,6 +154,23 @@ class TestAgedOutRebuiltFromInlineQuotedContent:
         found = stub._goto_quoted_status("s1", {"participant": "a@s.whatsapp.net"})
 
         assert found is False
+
+    @pytest.mark.parametrize("remote_jid", [None, "123@g.us", "123@s.whatsapp.net"])
+    def test_missing_chat_message_is_never_rebuilt_as_a_status(self, remote_jid):
+        stub = _Stub(status_updates={})
+        ctx = {
+            "participant": "a@s.whatsapp.net",
+            "quotedMessage": {"conversation": (
+                "https://github.com/gabrielhhaber/WinZapp_Python/releases/"
+                "download/v1.1.0.2592alpha/WinZapp.zip"
+            )},
+        }
+        if remote_jid:
+            ctx["remoteJid"] = remote_jid
+
+        assert stub._goto_quoted_status("old-group-message", ctx) is False
+        assert stub.my_status_calls == []
+        assert stub.status_panel_calls == []
 
     def test_unrecognized_quoted_message_shape_returns_false(self):
         stub = _Stub(status_updates={})
