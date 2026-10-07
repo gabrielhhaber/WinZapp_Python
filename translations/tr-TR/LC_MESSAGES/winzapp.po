@@ -5833,7 +5833,7 @@ msgstr "Çevrimiçi"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
 msgctxt "presence_unavailable"
 msgid "No presence information available"
-msgstr "Kullanılabilir durum bilgisi yok"
+msgstr "Şu anda durum bilgisi yok"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/sound_system.py
 msgctxt "preview_sound_error"
