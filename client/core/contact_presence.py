@@ -29,6 +29,16 @@ def aliases(owner, jid):
     return tuple(dict.fromkeys(x for x in (phone, jid, lid) if x))
 
 
+def is_subscribed(owner, jid):
+    """Whether a presence subscription for this contact (any alias) is live.
+
+    subscribe_presence() drops an entry when the request fails and the cache is
+    cleared on every new connection epoch, so a hit means "do not ask again".
+    """
+    subscribed = getattr(owner, "_subscribed_presence_cache", {})
+    return any(key in subscribed for key in (jid, *aliases(owner, jid)))
+
+
 def cached(owner, jid, *, now=None, fresh=True):
     cache = getattr(owner, "_presence_cache", {})
     entries = [cache[key] for key in aliases(owner, jid) if key in cache]

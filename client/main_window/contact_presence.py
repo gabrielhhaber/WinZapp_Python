@@ -5,7 +5,7 @@ from urllib.parse import quote
 
 import wx
 from core.api_client import api_get
-from core.contact_presence import aliases, cached, merge, response_snapshot
+from core.contact_presence import aliases, cached, is_subscribed, merge, response_snapshot
 from core.conversation_view import conversation_in_view
 
 
@@ -48,11 +48,14 @@ class ContactPresenceMixin:
             return
         self._contact_presence_attempts = attempts
         attempts[key] = now
-        self._contact_presence_inflight = True
         visit = getattr(panel, "_contact_presence_visit", 0)
         epoch = getattr(self, "_contact_presence_epoch", 0)
         revision = cached(self, jid, fresh=False) or None
-        self.subscribe_presence(jid)
+        # The subscription outlives the tick; only a failed one or a new
+        # connection epoch (cache cleared) needs asking again.
+        if not is_subscribed(self, jid):
+            self.subscribe_presence(jid)
+        self._contact_presence_inflight = True
 
         def worker():
             try:
@@ -77,7 +80,11 @@ class ContactPresenceMixin:
 
             wx.CallAfter(finish)
 
-        threading.Thread(target=worker, daemon=True).start()
+        try:
+            threading.Thread(target=worker, daemon=True).start()
+        except Exception:
+            self._contact_presence_inflight = False
+            raise
 
     def _refresh_open_contact_presence_note(self):
         if getattr(self, "_shutting_down", False):

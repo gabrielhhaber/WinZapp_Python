@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from core.contact_presence import aliases, cached, merge, response_snapshot, timestamp
+from core.contact_presence import aliases, cached, is_subscribed, merge, response_snapshot, timestamp
 from main_window.contact_presence import ContactPresenceMixin
 import main_window.contact_presence as coordinator
 from ui.conversation_panel.contact_presence import ContactPresencePanelMixin
@@ -210,6 +210,56 @@ def test_worker_exception_releases_single_flight(scheduled):
     owner._refresh_open_contact_presence()
     workers.pop()()
     callbacks.pop()()
+    assert owner._contact_presence_inflight is False
+
+
+def test_live_subscription_is_not_repeated_until_the_connection_epoch_changes(scheduled, monkeypatch):
+    owner, workers, callbacks = scheduled
+    owner._subscribed_presence_cache = {}
+    owner.subscribe_presence = lambda jid: (owner.subscriptions.append(jid),
+                                            owner._subscribed_presence_cache.update({jid: 1}))
+    for now in (100, 111, 122):
+        monkeypatch.setattr(coordinator.time, "monotonic", lambda now=now: now)
+        owner._refresh_open_contact_presence()
+        workers.pop()()
+        callbacks.pop()()
+    assert owner.subscriptions == [PN]
+    owner._invalidate_contact_presence()
+    monkeypatch.setattr(coordinator.time, "monotonic", lambda: 133)
+    owner._refresh_open_contact_presence()
+    assert owner.subscriptions == [PN, PN]
+
+
+def test_failed_subscription_is_asked_again_on_the_next_refresh(scheduled, monkeypatch):
+    owner, workers, callbacks = scheduled
+    owner._subscribed_presence_cache = {}
+    for now in (100, 111):
+        monkeypatch.setattr(coordinator.time, "monotonic", lambda now=now: now)
+        owner._refresh_open_contact_presence()
+        workers.pop()()
+        callbacks.pop()()
+    assert owner.subscriptions == [PN, PN]
+
+
+def test_subscription_of_the_paired_lid_counts_for_the_phone():
+    owner = Owner()
+    owner._lid_to_phone[LID] = PN
+    owner._phone_to_lid[PN] = LID
+    owner._subscribed_presence_cache = {LID: 1}
+    assert is_subscribed(owner, PN) and is_subscribed(owner, "123@c.us")
+    assert not is_subscribed(owner, "789@s.whatsapp.net")
+
+
+def test_thread_start_failure_releases_single_flight(scheduled, monkeypatch):
+    owner, _, _ = scheduled
+    class Broken:
+        def __init__(self, target, daemon):
+            pass
+        def start(self):
+            raise RuntimeError("synthetic")
+    monkeypatch.setattr(coordinator.threading, "Thread", Broken)
+    with pytest.raises(RuntimeError):
+        owner._refresh_open_contact_presence()
     assert owner._contact_presence_inflight is False
 
 
