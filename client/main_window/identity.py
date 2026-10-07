@@ -1692,39 +1692,38 @@ class IdentityMixin:
         return {}
 
     def get_last_seen(self, jid: str):
-        """Return a contact's last-seen Unix timestamp via /last-seen, or None.
+        """Profile-worker refresh; commit to the shared cache on the UI thread.
 
-        More reliable than waiting for a presence.update event, which only fires
-        if the contact changes state after we subscribe. Returns None when the
-        contact hides last-seen or it is unavailable.
+        Online snapshots render immediately. HTTP failure is unknown, whereas
+        a verified withheld timestamp clears the old value. Later live events
+        and connection epochs take precedence over this worker's result.
         """
-        if not jid or jid.endswith("@lid") or jid.endswith("@g.us"):
+        from core.contact_presence import aliases, cached, merge
+        fresh = cached(self, jid)
+        if fresh.get("lastKnownPresence") in ("available", "composing", "recording"):
             return None
-        phone = jid.split("@")[0]
-        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/last-seen/{phone}"
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
-        }
-        try:
-            r = api_get(url, headers=headers, timeout=10)
-            if r.status_code not in (200, 201):
-                return None
-            resp = (r.json() or {}).get("response")
-            if isinstance(resp, dict):
-                resp = resp.get("t") or resp.get("lastSeen")
-            if isinstance(resp, bool) or resp in (None, 0):
-                return None
-            try:
-                ts = int(resp)
-            except (TypeError, ValueError):
-                return None
-            # WhatsApp sometimes returns timestamps in ms.
-            if ts > 1_000_000_000_000:
-                ts //= 1000
-            return ts if ts > 0 else None
-        except Exception:
-            return None
+        previous = cached(self, jid, fresh=False)
+        revision = previous or None
+        epoch = getattr(self, "_contact_presence_epoch", 0)
+        panel = getattr(self, "conversations_panel", None)
+        conversation = getattr(panel, "conversation", None)
+        in_open_chat = (conversation is not None and aliases(self, jid)
+                        and aliases(self, conversation.get("remoteJid", ""))
+                        and aliases(self, jid)[0] == aliases(self, conversation.get("remoteJid", ""))[0])
+        visit = getattr(panel, "_contact_presence_visit", None) if in_open_chat else None
+        result = self._fetch_contact_presence(jid)
+        # Profile workers use the same cache contract as the active-chat worker.
+        # Apply on the UI thread; a live update or disconnect wins the race.
+        def apply():
+            if (result is not None and epoch == getattr(self, "_contact_presence_epoch", 0)
+                    and (visit is None or visit == getattr(panel, "_contact_presence_visit", None))
+                    and revision is (cached(self, jid, fresh=False) or None)):
+                merge(self, jid, result)
+                self._refresh_open_contact_presence_note()
+        wx.CallAfter(apply)
+        # UI consumers read the shared cache when their callback runs; keep the
+        # existing timestamp return contract for callers outside that UI path.
+        return result.get("lastSeen") if result is not None else fresh.get("lastSeen")
 
     def get_profile_about(self, jid: str) -> str:
         """Return a contact's WhatsApp About/bio text via /profile-status, or ''."""
@@ -1792,7 +1791,14 @@ class IdentityMixin:
                 logging.info("[subscribe_presence] Subscribing to: %s (isGroup=%s, isLid=%s)", phone, is_group, is_lid)
                 try:
                     resp = api_post(url, json={"phone": phone, "isGroup": is_group, "isLid": is_lid}, headers=headers, timeout=10)
-                    logging.info("[subscribe_presence] Response for %s: %s (body: %s)", phone, resp.status_code, resp.text[:200])
+                    confirmed = (resp.status_code in (200, 201)
+                                 and isinstance(resp.json(), dict)
+                                 and resp.json().get("status") == "success")
+                    if not confirmed and self._subscribed_presence_cache.get(target_jid) == now:
+                        self._subscribed_presence_cache.pop(target_jid, None)
+                    logging.info("[subscribe_presence] HTTP status: %s", resp.status_code)
                 except Exception as e:
+                    if self._subscribed_presence_cache.get(target_jid) == now:
+                        self._subscribed_presence_cache.pop(target_jid, None)
                     logging.error("[subscribe_presence] Error subscribing to %s: %s", phone, e)
         threading.Thread(target=_api, daemon=True).start()

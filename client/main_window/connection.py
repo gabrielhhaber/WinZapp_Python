@@ -849,6 +849,11 @@ class ConnectionMixin:
             return  # An old in-flight answer must not reopen sending during installation.
         was = bool(getattr(self, "_wa_connected", False))
         self._wa_connected = connected
+        if was != connected and hasattr(self, "_invalidate_contact_presence"):
+            if connected:
+                wx.CallAfter(self._refresh_open_contact_presence)
+            else:
+                wx.CallAfter(self._invalidate_contact_presence)
         if not connected and getattr(self, "_active_voice_call", None):
             # A call cannot outlive its signaling. No terminal `callstate` can
             # reach us over a dead socket, so without this the call window

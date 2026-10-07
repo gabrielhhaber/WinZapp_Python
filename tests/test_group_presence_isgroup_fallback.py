@@ -93,7 +93,7 @@ class TestIsGroupFallsBackToTheJidSuffix:
         (jid, presences), = stub.main_window.presence_calls
         assert jid == "120363427511142886@g.us"
         assert presences == {
-            "197813359124557@lid": {"lastKnownPresence": "composing", "lastSeen": 1787320530}
+            "197813359124557@lid": {"lastKnownPresence": "composing"}
         }
 
     def test_group_event_with_isgroup_missing_entirely(self):
@@ -157,7 +157,7 @@ class TestIsGroupFallsBackToTheJidSuffix:
         (jid, presences), = stub.main_window.presence_calls
         assert jid == "5511999999999@s.whatsapp.net"
         assert presences == {
-            "5511999999999@s.whatsapp.net": {"lastKnownPresence": "composing", "lastSeen": 1787320530}
+            "5511999999999@s.whatsapp.net": {"lastKnownPresence": "composing", "isOnline": None, "eventTimestamp": 1787320530}
         }
 
     def test_a_lid_1to1_chat_is_unaffected(self):
@@ -174,5 +174,5 @@ class TestIsGroupFallsBackToTheJidSuffix:
         (jid, presences), = stub.main_window.presence_calls
         assert jid == "131928795652121@lid"
         assert presences == {
-            "131928795652121@lid": {"lastKnownPresence": "available", "lastSeen": 1787320530}
+            "131928795652121@lid": {"lastKnownPresence": "available", "isOnline": None, "eventTimestamp": 1787320530}
         }

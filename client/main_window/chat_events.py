@@ -6,6 +6,7 @@ available here.
 """
 
 import logging
+from core.contact_presence import ONLINE, cached, merge
 import time
 import wx
 from core.conversation_view import conversation_in_view
@@ -227,9 +228,9 @@ class ChatEventsMixin:
         if is_group:
             return self.i18n.t("presence_unavailable")
 
-        presence = getattr(self, "_presence_cache", {}).get(chat_jid_norm, {})
+        presence = cached(self, chat_jid_norm)
         lkp = presence.get("lastKnownPresence", "")
-        if lkp == "available":
+        if lkp in ONLINE:
             return self.i18n.t("presence_online")
 
         last_seen = presence.get("lastSeen")
@@ -460,13 +461,14 @@ class ChatEventsMixin:
                             self._presence_pushname_map[lid] = push
                             _ppm_updated = True
 
-            old_lkp = self._presence_cache.get(canonical, {}).get("lastKnownPresence", "")
+            previous = cached(self, canonical, fresh=False)
+            old_lkp = previous.get("lastKnownPresence", "")
             new_lkp = data.get("lastKnownPresence", "unavailable")
 
-            self._presence_cache[canonical] = {
-                "lastKnownPresence": new_lkp,
-                "lastSeen": data.get("lastSeen"),
-            }
+            entry = merge(self, canonical, data)
+            if entry is previous:
+                continue  # An older event must not restart a typing timer/speech.
+            new_lkp = entry.get("lastKnownPresence", "")
 
             if new_lkp != old_lkp:
                 presence_changed = True
@@ -567,8 +569,15 @@ class ChatEventsMixin:
         # Refresh the data-button note for the open conversation
         if panel is None or conv is None:
             return
-        if conv_jid in self._presence_cache:
+        if cached(self, conv_jid, fresh=False):
             panel._refresh_presence_note(conv_jid)
+        # WPP pushes the state, but not chatstate.t. Ask for the current
+        # snapshot when this contact goes offline instead of waiting for a tick.
+        if (is_active_chat(chat_jid_norm, conv_jid)
+                and not conv_jid.endswith("@g.us")
+                and cached(self, conv_jid).get("lastKnownPresence") not in ONLINE
+                and hasattr(self, "_refresh_open_contact_presence")):
+            self._refresh_open_contact_presence()
 
     @staticmethod
     def _remote_read_confirmed(unread_count: int, previous_unread: int | None) -> bool:

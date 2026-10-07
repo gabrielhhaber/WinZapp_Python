@@ -62,6 +62,8 @@ class _Layout:
 
 
 class _Stub(PinnedMessagesMixin):
+    def _start_contact_presence(self):
+        pass  # Presence timers are tested separately without a native window.
     _load_pinned_messages = lambda self, **kwargs: None
     _open_focus_target = ConversationsPanel._open_focus_target
     _focus_already_open_conversation = ConversationsPanel._focus_already_open_conversation

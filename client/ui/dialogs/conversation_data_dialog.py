@@ -766,15 +766,14 @@ class ConversationDataDialog(wx.Dialog):
         if about:
             lines.append(f"{i18n.t('about_label')}: {about}")
 
-        # Online / last-seen: prefer the live presence cache (populated by
-        # presence.update events); fall back to the last-seen fetched directly
-        # from the API (data["lastSeenTs"]) since presence events may not have
-        # arrived yet.
+        # Read the shared snapshot after the profile worker's cache callback.
+        # Captured HTTP values must not override later live/withheld information.
         canonical = self._mw._normalize_jid(canonical)
-        presence  = getattr(self._mw, "_presence_cache", {}).get(canonical, {})
+        from core.contact_presence import cached
+        presence = cached(self._mw, canonical)
         lkp       = presence.get("lastKnownPresence", "")
-        last_seen = presence.get("lastSeen") or data.get("lastSeenTs")
-        from ui.conversations import _fmt_last_seen
+        last_seen = presence.get("lastSeen")
+        from ui.conversation_panel.text_helpers import _fmt_last_seen
         if lkp in ("available", "composing", "recording"):
             lines.append(i18n.t("online_status"))
         elif last_seen:

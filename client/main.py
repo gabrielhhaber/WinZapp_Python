@@ -292,6 +292,7 @@ from main_window.conversation_sync import ConversationSyncMixin
 from main_window.media import MediaMixin
 from main_window.transcription_store import TranscriptionStoreMixin
 from main_window.chat_events import ChatEventsMixin
+from main_window.contact_presence import ContactPresenceMixin
 from main_window.history import HistoryMixin
 from main_window.read_state import ReadStateMixin
 from main_window.chat_actions import ChatActionsMixin
@@ -341,6 +342,7 @@ class MainWindow(
     MediaMixin,
     TranscriptionStoreMixin,
     ChatEventsMixin,
+    ContactPresenceMixin,
     HistoryMixin,
     ReadStateMixin,
     ChatActionsMixin,

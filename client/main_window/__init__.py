@@ -27,6 +27,7 @@ Where to look (and where new code goes):
     conversation_sync   sync_chat_messages, remote windows, deletion reconcile
     message_events      on_new_message / on_historical_message, edits, revokes
     chat_events         acks, presence, unread counters, archive/pin events
+    contact_presence    bounded open-contact refresh and connection invalidation
     sending             text/audio/media/contact/reaction sends, queue callbacks
     message_actions     edit, delete, forward, resend, mark played
     message_stars       verified WhatsApp star writes, remote star persistence

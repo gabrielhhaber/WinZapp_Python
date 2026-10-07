@@ -422,6 +422,10 @@ class WebSocketClient:
         return jid_val.replace("@c.us", "@s.whatsapp.net")
 
     def on_connect(self):
+        self._presence_delivery_generation = getattr(self, "_presence_delivery_generation", 0) + 1
+        if hasattr(self.main_window, "_invalidate_contact_presence"):
+            wx.CallAfter(self.main_window._invalidate_contact_presence)
+            wx.CallAfter(self.main_window._refresh_open_contact_presence)
         logging.info("[WebSocketClient] WebSocket connected.")
         # Cancel any pending "confirm still disconnected" check from
         # on_disconnect() — we just reconnected, so that transient blip
@@ -471,6 +475,9 @@ class WebSocketClient:
             logging.exception("[WebSocketClient] _recheck_connection_after_connect error")
 
     def on_disconnect(self):
+        self._presence_delivery_generation = getattr(self, "_presence_delivery_generation", 0) + 1
+        if hasattr(self.main_window, "_invalidate_contact_presence"):
+            wx.CallAfter(self.main_window._invalidate_contact_presence)
         logging.info("[WebSocketClient] WebSocket disconnected.")
         # Debounced: python-socketio auto-reconnects on its own within a few
         # seconds for an ordinary transient blip (Wi-Fi/NAT power-save churn,
@@ -1743,7 +1750,11 @@ class WebSocketClient:
             presences = data.get("presences", {})
             if not jid or not isinstance(presences, dict):
                 return
-            wx.CallAfter(self.main_window.on_presence_update, jid, presences)
+            generation = getattr(self, "_presence_delivery_generation", 0)
+            def deliver():
+                if generation == getattr(self, "_presence_delivery_generation", 0):
+                    self.main_window.on_presence_update(jid, presences)
+            wx.CallAfter(deliver)
         except Exception:
             logging.exception("[WebSocketClient] on_presence_update error")
 
@@ -1809,10 +1820,11 @@ class WebSocketClient:
                     # Unknown/unexpected chat-state value — log it so a real-world
                     # mismatch (e.g. a different literal used for audio recording)
                     # can be diagnosed from the logs instead of failing silently.
-                    logging.warning(f"[WebSocketClient] Unrecognized presence state: {s!r} (raw info: {info})")
+                    logging.warning("[WebSocketClient] Unrecognized presence state")
                 return s
 
-            timestamp = info.get("t")
+            # WA-JS t is Date.now() when emitting, NOT chatstate.t (last seen).
+            timestamp = info.get("lastSeen")
 
             if is_group:
                 participants = info.get("participants", [])
@@ -1829,18 +1841,24 @@ class WebSocketClient:
                             p_state = map_state(p.get("state"))
                             presences[p_jid] = {
                                 "lastKnownPresence": p_state,
-                                "lastSeen": timestamp
                             }
             else:
                 state = map_state(info.get("state"))
                 presences[chat_jid] = {
                     "lastKnownPresence": state,
-                    "lastSeen": timestamp
+                    "isOnline": info.get("isOnline"),
+                    "eventTimestamp": info.get("t"),
                 }
+                if "lastSeen" in info:
+                    presences[chat_jid]["lastSeen"] = timestamp
 
             if presences:
                 logging.info(f"[WebSocketClient] on_wpp_presence_changed JID: {chat_jid}, presences: {presences}")
-                wx.CallAfter(self.main_window.on_presence_update, chat_jid, presences)
+                generation = getattr(self, "_presence_delivery_generation", 0)
+                def deliver():
+                    if generation == getattr(self, "_presence_delivery_generation", 0):
+                        self.main_window.on_presence_update(chat_jid, presences)
+                wx.CallAfter(deliver)
         except Exception:
             logging.exception("[WebSocketClient] on_wpp_presence_changed error")
 

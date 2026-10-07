@@ -16,6 +16,7 @@
 import { Chat } from '@wppconnect-team/wppconnect';
 import { Request, Response } from 'express';
 
+import { CONTACT_PRESENCE_SOURCE } from '../util/contactPresenceRuntime';
 import {
   countJidFallback,
   countStoreRecovery,
@@ -2492,9 +2493,23 @@ export async function getLastSeen(req: Request, res: Response) {
    */
   const { phone } = req.params;
   try {
-    const response = await req.client.getLastSeen(`${phone}@c.us`);
-
-    res.status(200).json({ status: 'success', response: response });
+    // This route is a private-contact query. Preserve LID and reject group,
+    // newsletter and arbitrary expressions before constructing an in-page call.
+    if (!/^\d+(?:@(?:c\.us|s\.whatsapp\.net|lid))?$/.test(phone)) {
+      res.status(400).json({ status: 'error', response: 'Invalid contact id' });
+      return;
+    }
+    const id = phone.includes('@') ? phone.replace('@s.whatsapp.net', '@c.us') : `${phone}@c.us`;
+    const page = (req.client as any).page;
+    const presence = page
+      ? await page.evaluate(`(${CONTACT_PRESENCE_SOURCE})(${JSON.stringify(id)})`)
+      : { status: 'unsupported' };
+    if (presence.status !== 'unsupported') {
+      res.status(200).json({ status: 'success', response: presence.lastSeen ?? false, presence });
+      return;
+    }
+    const response = await req.client.getLastSeen(id);
+    res.status(200).json({ status: 'success', response });
   } catch (error) {
     req.logger.error(error);
     res.status(500).json({

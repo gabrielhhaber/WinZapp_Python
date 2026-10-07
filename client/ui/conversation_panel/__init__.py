@@ -13,6 +13,7 @@ Where to look (and where new code goes):
   Mixins (methods of ConversationsPanel)
     accelerators             accelerator tables (list and open conversation)
     conversation_navigation  open/close/restore a conversation, chat-list filter
+    contact_presence         active-contact timer and visit cancellation
     chat_lists               native WhatsApp custom-list filter and manager entry
     panel_visibility         which panel an open conversation belongs to, and showing it only there
     composer                 message field: spell check, link preview, keys, paste

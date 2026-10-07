@@ -152,6 +152,7 @@ from ui.conversation_panel.audio_playback import AudioPlaybackMixin
 from ui.conversation_panel.formatting import FormattingMixin
 from ui.conversation_panel.message_rendering import MessageRenderingMixin
 from ui.conversation_panel.conversation_info import ConversationInfoMixin
+from ui.conversation_panel.contact_presence import ContactPresencePanelMixin
 from ui.conversation_panel.forwarding import ForwardingMixin
 from ui.conversation_panel.message_actions import MessageActionsMixin
 from ui.conversation_panel.message_stars import StarActionsMixin
@@ -193,6 +194,7 @@ class ConversationsPanel(
     FormattingMixin,
     MessageRenderingMixin,
     ConversationInfoMixin,
+    ContactPresencePanelMixin,
     ForwardingMixin,
     MessageActionsMixin,
     StarActionsMixin,

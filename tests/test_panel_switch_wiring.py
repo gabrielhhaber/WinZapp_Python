@@ -178,7 +178,7 @@ class _Panel(ConversationPanelVisibilityMixin, PinnedMessagesMixin):
     _conversation_note_text = ConversationNavigationMixin._conversation_note_text
     _message_label_text = ConversationNavigationMixin._message_label_text
     _apply_composer_permissions = lambda self, jid, conv: None
-    _fetch_and_update_profile = lambda self, conv: None
+    _fetch_and_update_profile = lambda self, conv, visit=None: None
     _fetch_group_participants = lambda self, jid: None
 
     def __init__(self, mw, log):

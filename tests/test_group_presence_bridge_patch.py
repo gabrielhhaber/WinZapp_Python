@@ -96,7 +96,7 @@ class TestTheClientAcceptsTheBridgedEvent:
             "id": GROUP, "isGroup": True, "state": "typing", "t": 1,
             "participants": [{"id": TYPER, "state": "typing", "shortName": ""}],
         })
-        assert delivered == [(GROUP, {TYPER: {"lastKnownPresence": "composing", "lastSeen": 1}})]
+        assert delivered == [(GROUP, {TYPER: {"lastKnownPresence": "composing"}})]
 
     def test_recording_audio_in_a_group_maps_to_recording(self):
         delivered = _handle({

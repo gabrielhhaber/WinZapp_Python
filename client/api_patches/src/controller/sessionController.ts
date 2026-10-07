@@ -1277,28 +1277,26 @@ export async function subscribePresence(req: Request, res: Response) {
       // WPP API is not available.
       const page = (req.client as any).page;
       if (page) {
-        try {
-          await page.evaluate((id: string) => {
-            const wpp = (window as any).WPP;
-            if (
-              wpp &&
-              wpp.contact &&
-              typeof wpp.contact.subscribePresence === 'function'
-            ) {
-              return wpp.contact.subscribePresence(id);
-            }
-            // Fallback to WPP.whatsapp.PresenceUtils if available
-            if (wpp && wpp.whatsapp && wpp.whatsapp.PresenceUtils) {
-              return wpp.whatsapp.PresenceUtils.subscribeToPresence(id);
-            }
-            throw new Error('WPP.contact.subscribePresence not available');
-          }, contato);
-          req.logger.info(`[subscribePresence] WPP subscribed: ${contato}`);
+        const result = await page.evaluate(async (id: string) => {
+          const wpp = (window as any).WPP;
+          if (
+            wpp &&
+            wpp.contact &&
+            typeof wpp.contact.subscribePresence === 'function'
+          ) {
+            const subscribed = await wpp.contact.subscribePresence(id);
+            return {
+              supported: true,
+              ok: Array.isArray(subscribed) && subscribed.length > 0,
+            };
+          }
+          // Only unsupported providers may use the legacy fallback.
+          return { supported: false, ok: false };
+        }, contato);
+        if (result.supported) {
+          if (!result.ok) throw new Error('Presence subscription unconfirmed');
+          req.logger.info('[subscribePresence] WPP subscription confirmed');
           return;
-        } catch (wppErr) {
-          req.logger.warn(
-            `[subscribePresence] WPP fallback for ${contato}: ${wppErr}`
-          );
         }
       }
       // Legacy fallback

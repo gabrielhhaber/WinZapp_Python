@@ -267,6 +267,7 @@ class ConversationNavigationMixin:
                 wx.CallAfter(self._focus_already_open_conversation)
             self._begin_pinned_messages_visit(reset_history=False)
             wx.CallAfter(self._load_pinned_messages, announce=take_focus)
+            self._start_contact_presence()
             return
         # Record that the user actually looked at this conversation. It is the
         # gate on asking the *phone* for its older history: every such request
@@ -388,11 +389,13 @@ class ConversationNavigationMixin:
         # wx.CallAfter queue as the focus change, scheduled further down,
         # guarantees FIFO order instead of leaving it to thread-timing luck.
         # Background: fetch profile/last-seen and update button note
-        threading.Thread(
-            target=self._fetch_and_update_profile,
-            args=(conversation,),
-            daemon=True,
-        ).start()
+        self._start_contact_presence()
+        if is_group:
+            threading.Thread(
+                target=self._fetch_and_update_profile,
+                args=(conversation, self._contact_presence_visit),
+                daemon=True,
+            ).start()
         # Subscribe to presence events for this contact so last-seen and typing
         # indicators arrive via onpresencechanged Socket.IO events.
         self.main_window.subscribe_presence(jid)
@@ -553,6 +556,7 @@ class ConversationNavigationMixin:
             self._hide_mention_suggestions()
             self.message_field.SetFocus()
             return False, ""
+        self._stop_contact_presence()
         if hasattr(self, "close_ai_media"):
             self.close_ai_media()
         self._stop_typing_for_current_conversation()

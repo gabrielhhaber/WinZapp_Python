@@ -5,8 +5,8 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
-import logging
 import wx
+from core.contact_presence import cached
 from ui.conversation_panel.text_helpers import _fmt_last_seen
 from core.utils import (
     format_number,
@@ -57,7 +57,7 @@ class ConversationInfoMixin:
         dlg.ShowModal()
         dlg.Destroy()
 
-    def _fetch_and_update_profile(self, conversation: dict):
+    def _fetch_and_update_profile(self, conversation: dict, visit=None):
         """
         Background: fetch contact profile / group info and update the
         conversation-data button note with a last-seen or group-size string.
@@ -71,8 +71,16 @@ class ConversationInfoMixin:
         mw       = self.main_window
         i18n     = mw.i18n
         
-        # Subscribe to presence updates for this conversation to receive typing/online events
-        mw.subscribe_presence(jid)
+        if visit is None:
+            visit = getattr(self, "_contact_presence_visit", 0)
+        if not jid.endswith("@g.us"):
+            # No captured note, blocking last-seen fetch, or mapping query.
+            # The active-contact worker owns those requests and renders live data.
+            def refresh():
+                if visit == getattr(self, "_contact_presence_visit", 0):
+                    mw._refresh_open_contact_presence_note()
+            wx.CallAfter(refresh)
+            return
 
         note = (
             mw._resolve_contact_name(conversation)
@@ -96,32 +104,12 @@ class ConversationInfoMixin:
                     or format_number(jid)
                 )
                 note = f"{group_name}, {i18n.t('group_size').format(count=size)}"
-            else:
-                # Private chat: resolve the canonical JID for cache lookup
-                canonical = mw._normalize_jid(jid)
-                if canonical.endswith("@lid"):
-                    mapped = getattr(mw, "_lid_to_phone", {}).get(canonical)
-                    if not mapped:
-                        logging.info(f"[_fetch_and_update_profile] On-demand JID mapping missing for {canonical}. Triggering background query.")
-                        # Fetch profile in background to resolve JID mapping
-                        mw.get_contact_profile(canonical)
-                    canonical = getattr(mw, "_lid_to_phone", {}).get(canonical, canonical)
-                presence = getattr(mw, "_presence_cache", {}).get(canonical, {})
-                lkp      = presence.get("lastKnownPresence", "")
-                # Fall back to a direct last-seen fetch when no presence event
-                # has arrived yet (so the note isn't left without it).
-                last_seen = presence.get("lastSeen") or mw.get_last_seen(canonical)
-                if lkp in ("available", "composing", "recording"):
-                    note = i18n.t("online_status")
-                elif last_seen:
-                    ls_str = _fmt_last_seen(last_seen, i18n)
-                    if ls_str:
-                        note = ls_str
         except Exception:
             pass
 
         def _update():
-            if (self.conversation is not None
+            if (visit == getattr(self, "_contact_presence_visit", 0)
+                    and self.conversation is not None
                     and self.conversation.get("remoteJid") == jid):
                 try:
                     display_note = note
@@ -144,11 +132,12 @@ class ConversationInfoMixin:
             return
         mw    = self.main_window
         i18n  = mw.i18n
-        presence  = getattr(mw, "_presence_cache", {}).get(canonical_jid, {})
-        lkp       = presence.get("lastKnownPresence", "")
-        last_seen  = presence.get("lastSeen")
-
         jid = self.conversation.get("remoteJid", "")
+        if jid.endswith("@g.us"):
+            return
+        presence = cached(mw, jid)
+        lkp = presence.get("lastKnownPresence", "")
+        last_seen = presence.get("lastSeen")
         # Default note stays as the contact name
         note = (
             mw._resolve_contact_name(self.conversation)
@@ -160,7 +149,7 @@ class ConversationInfoMixin:
 
         if lkp in ("available", "composing", "recording"):
             note = i18n.t("online_status")
-        elif lkp == "unavailable" and last_seen:
+        elif last_seen:
             ls_str = _fmt_last_seen(last_seen, i18n)
             if ls_str:
                 note = ls_str
@@ -169,7 +158,8 @@ class ConversationInfoMixin:
             display_note = note
             if not jid.endswith("@g.us") and is_phone_like(display_note):
                 display_note = f"{i18n.t('phone_label')}: {display_note}"
-            self._conv_data_btn.SetNote(display_note)
-            self.conversation_panel.Layout()
+            if self._conv_data_btn.GetNote() != display_note:
+                self._conv_data_btn.SetNote(display_note)
+                self.conversation_panel.Layout()
         except Exception:
             pass
