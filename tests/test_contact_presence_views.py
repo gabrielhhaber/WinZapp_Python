@@ -170,8 +170,10 @@ def test_successful_subscription_is_throttled(monkeypatch):
 
 
 @pytest.mark.parametrize("days,key", [(0, "last_seen_today"), (1, "last_seen_yesterday"), (2, "last_seen_date")])
-def test_last_seen_local_calendar_and_milliseconds(monkeypatch, days, key):
+@pytest.mark.parametrize("windows_time,expected", [(None, "15:30"), ("%H:%M", "15:30"), ("%I:%M %p", "03:30 PM")])
+def test_last_seen_local_calendar_and_milliseconds(monkeypatch, days, key, windows_time, expected):
     import datetime
+    from core import locale_format
     from ui.conversation_panel.text_helpers import _fmt_last_seen
     real = datetime.datetime
     frozen = real(2026, 10, 7, 15, 30)
@@ -180,6 +182,8 @@ def test_last_seen_local_calendar_and_milliseconds(monkeypatch, days, key):
         def now(cls, tz=None):
             return frozen
     monkeypatch.setattr(datetime, "datetime", Clock)
+    monkeypatch.setattr(locale_format, "_windows_date_strftime", lambda: None)
+    monkeypatch.setattr(locale_format, "_windows_time_strftime", lambda: windows_time)
     i18n = SimpleNamespace(t=lambda name: {"time_fmt": "%H:%M", "date_fmt": "%d/%m/%Y"}.get(name, name + " {time}"))
     ts = int((frozen - datetime.timedelta(days=days)).timestamp())
-    assert _fmt_last_seen(ts, i18n) == _fmt_last_seen(ts * 1000, i18n) == key + " 15:30"
+    assert _fmt_last_seen(ts, i18n) == _fmt_last_seen(ts * 1000, i18n) == key + " " + expected

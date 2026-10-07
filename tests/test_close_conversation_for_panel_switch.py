@@ -49,11 +49,20 @@ class _FakeMainWindow:
         return False
 
 
+class _FakeTimer:
+    def __init__(self):
+        self.stopped = False
+
+    def Stop(self):
+        self.stopped = True
+
+
 class _Stub:
     _close_conversation_core = ConversationsPanel._close_conversation_core
     close_conversation = ConversationsPanel.close_conversation
     close_conversation_for_panel_switch = ConversationsPanel.close_conversation_for_panel_switch
     _stop_typing_for_current_conversation = ConversationsPanel._stop_typing_for_current_conversation
+    _stop_contact_presence = ConversationsPanel._stop_contact_presence
     # Closing the conversation also drops the expanded history window, so the
     # next chat opens at the configured page size instead of inheriting this
     # one's thousands of rows.
@@ -65,6 +74,8 @@ class _Stub:
         self._last_open_jid = conversation.get("remoteJid", "") if conversation else ""
         self._is_typing = True
         self._is_recording = True
+        self._contact_presence_visit = 1
+        self._contact_presence_timer = _FakeTimer()
         self._editing_message_id = None
         self._quoted_message = None
         self._search_results = []
@@ -119,11 +130,15 @@ def _conv(jid="5511999999999@s.whatsapp.net"):
 class TestCloseConversationForPanelSwitch:
     def test_stops_typing_and_recording(self):
         stub = _Stub(_conv())
+        timer = stub._contact_presence_timer
 
         stub.close_conversation_for_panel_switch()
 
         assert stub.main_window.typing_calls == [("5511999999999@s.whatsapp.net", False)]
         assert stub.main_window.recording_calls == [("5511999999999@s.whatsapp.net", False)]
+        assert timer.stopped is True
+        assert stub._contact_presence_timer is None
+        assert stub._contact_presence_visit == 2
 
     def test_clears_and_hides_the_conversation(self):
         stub = _Stub(_conv())

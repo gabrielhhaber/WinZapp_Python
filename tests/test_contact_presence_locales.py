@@ -4,7 +4,7 @@ import json
 import polib
 import pytest
 
-from core import i18n, translation_catalog
+from core import i18n, locale_format, translation_catalog
 import core.contact_presence as presence
 from core.locale_format import get_date_format, get_datetime_format, get_time_format
 from main_window.chat_events import ChatEventsMixin
@@ -28,6 +28,17 @@ def clock(monkeypatch):
     monkeypatch.setattr(datetime, "datetime", Clock)
     monkeypatch.setattr(presence.time, "monotonic", lambda: 100)
     return frozen
+
+
+@pytest.fixture(params=("fallback", "24h", "12h"))
+def region(request, monkeypatch):
+    # Windows regional settings take precedence over the UI language. Never
+    # let the developer's or CI runner's own settings choose test expectations.
+    date, time = {"fallback": (None, None), "24h": ("%d/%m/%Y", "%H:%M"),
+                  "12h": ("%m/%d/%Y", "%I:%M %p")}[request.param]
+    monkeypatch.setattr(locale_format, "_windows_date_strftime", lambda: date)
+    monkeypatch.setattr(locale_format, "_windows_time_strftime", lambda: time)
+    return request.param
 
 
 @pytest.fixture(params=registered_locale_codes())
@@ -67,7 +78,7 @@ def runtime(request, catalog, tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("case", ("online", "today", "yesterday", "older", "withheld", "expired"))
-def test_real_localized_presence_in_button_shortcut_and_dialog(runtime, clock, case):
+def test_real_localized_presence_in_button_shortcut_and_dialog(runtime, clock, case, region):
     owner, panel, dialog, button, text, layouts = runtime
     days = {"today": 0, "yesterday": 1, "older": 7}.get(case, 0)
     seen = clock - datetime.timedelta(days=days)
@@ -92,7 +103,7 @@ def test_real_localized_presence_in_button_shortcut_and_dialog(runtime, clock, c
         assert expected_note in text.text.splitlines()
     else:
         key = {"today": "last_seen_today", "yesterday": "last_seen_yesterday", "older": "last_seen_date"}[case]
-        # Date formats belong to the locale too, not to this fixture.
+        # Use Windows formats when available, otherwise the catalog's formats.
         expected_note = owner.i18n.t(key).format(
             date=seen.strftime(get_date_format(owner.i18n.t("date_fmt"))),
             time=seen.strftime(get_time_format(owner.i18n.t("time_fmt"))))
@@ -107,14 +118,19 @@ def test_real_localized_presence_in_button_shortcut_and_dialog(runtime, clock, c
     assert button.writes == len(layouts) == 1 and button.focuses == 0
     if owner.settings["general"]["language"] == "tr-TR":
         # Check the words actually rendered, independently of the catalog
-        # lookup used above. Keep the existing Turkish date/time convention.
-        notes = {"online": "Çevrimiçi", "today": "Son görülme bugün 18:42",
-                 "yesterday": "Son görülme dün 18:42",
-                 "older": "Son görülme 30.09.2026 18:42",
+        # lookup used above, including region overrides of Turkish defaults.
+        time, old, yesterday = {
+            "fallback": ("18:42", "30.09.2026", "06.10.2026"),
+            "24h": ("18:42", "30/09/2026", "06/10/2026"),
+            "12h": ("06:42 PM", "09/30/2026", "10/06/2026"),
+        }[region]
+        notes = {"online": "Çevrimiçi", "today": f"Son görülme bugün {time}",
+                 "yesterday": f"Son görülme dün {time}",
+                 "older": f"Son görülme {old} {time}",
                  "withheld": "Contact", "expired": "Contact"}
-        announcements = {"online": "Çevrimiçi", "today": "Son görülme 18:42",
-                         "yesterday": "Son görülme 06.10.2026 18:42",
-                         "older": "Son görülme 30.09.2026 18:42",
+        announcements = {"online": "Çevrimiçi", "today": f"Son görülme {time}",
+                         "yesterday": f"Son görülme {yesterday} {time}",
+                         "older": f"Son görülme {old} {time}",
                          "withheld": "Şu anda durum bilgisi yok",
                          "expired": "Şu anda durum bilgisi yok"}
         assert button.text == notes[case]
