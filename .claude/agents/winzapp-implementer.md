@@ -83,7 +83,7 @@ uv run pytest tests/test_<what you touched>.py
 ```
 
 Run the test files for what you changed. CI runs the whole suite on every PR;
-run `uv run pytest -n auto` locally only for a cross-cutting change. Never pass
+run `uv run pytest` serially, at most once, locally only for a cross-cutting change. Never pass
 `--run-wx-gui`.
 
 Hand the diff to `winzapp-reviewer` before opening a PR. Report what you did,

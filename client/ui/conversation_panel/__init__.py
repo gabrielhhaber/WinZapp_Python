@@ -51,7 +51,7 @@ Where to look (and where new code goes):
     formatting               timestamps, dates, durations, file sizes
 
   Plain modules
-    archived_panel           ArchivedConversationsPanel (Alt+3)
+    archived_panel           ArchivedConversationsPanel (default Alt+4)
     media_paths              media cache/saved paths, reveal in folder, probing
     own_sender               the sender prefix of a row and the setting that hides it on my own messages
     text_helpers             small text helpers (_URL_RE, captions, last seen)

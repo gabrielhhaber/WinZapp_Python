@@ -317,12 +317,13 @@ window's own announcement.
 
 **The tab is found by `FindPage()`, never by index**, there and in
 `_refresh_dialog_labels()`. The optional "Locked chats" tab shifts it between
-two positions. It is still appended last, so that the hardcoded indexes of the
-older tabs do not move.
+two positions. It is appended after the AI page; the Shortcuts mixin then
+appends its own page after Transcription. The hardcoded indexes of older tabs
+do not move, and both later pages are located through `FindPage()`.
 
 ## In the conversation
 
-**The shortcut is `Alt+Shift+T`**, in the panel's table
+**The default shortcut is `Alt+Shift+T`**, in the panel's table
 (`client/ui/conversation_panel/accelerators.py`). `Alt+T` is already the
 conversation's presence announcement, and that one is registered in
 MainWindow's own table (`client/main_window/shortcuts.py`), so grepping

@@ -78,6 +78,19 @@ pytest tests/test_database.py::TestChats::test_upsert_chat_creates_record  # a s
 
 Tests cover the async SQLite storage layer and the pure-logic pieces of the client (name resolution, notification formatting, message classification, etc.) using small stand-in objects, since the wxPython UI classes cannot be instantiated without a running `wx.App`.
 
+Run one test process at a time, without xdist workers. A local full run is
+reserved for changes spanning shared helpers or several subsystems. Real
+dialog tests (`wxgui`) are skipped locally: `--run-wx-gui` and
+`WINZAPP_RUN_WX_GUI_TESTS=1` are CI-only. Synthetic `load` tests are skipped
+unless `--run-load` is passed or CI is set; remote-model `network` tests have
+their own explicit opt-in. A local green run therefore does not replace CI's
+native-dialog checks or manual screen-reader acceptance.
+
+The source and test ownership map is in
+[docs/reference/architecture-and-tests.md](reference/architecture-and-tests.md).
+The [2026-10-08 audit](reference/repository-audit-2026-10-08.md) records the
+shortcut CI failures, documentation corrections and local verification limits.
+
 Every release build is gated on the full test suite passing (see [.github/workflows/release.yml](../.github/workflows/release.yml)) — a failing test suite stops the build before any release is created.
 
 ---

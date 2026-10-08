@@ -45,8 +45,8 @@ def test_every_locale_gives_each_call_button_a_letter_and_a_clean_label():
         entries = load_strings(locale)
         for key in CALL_KEYS:
             label, letter = split_mnemonic(entries[key])
-            assert letter, (path.name, key)
-            assert "&" not in label, (path.name, key)
+            assert letter, (locale, key)
+            assert "&" not in label, (locale, key)
 
 
 def test_dialog_never_hands_an_ampersand_label_to_a_button():
