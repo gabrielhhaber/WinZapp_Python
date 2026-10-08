@@ -1,6 +1,9 @@
 """Accessible wx controls for the locked-conversation vault."""
 
 from __future__ import annotations
+from ui.shortcut_bindings import refresh_popup_shortcuts
+from ui.shortcut_bindings import command_key_event
+from ui.shortcut_bindings import make_shortcut_table
 
 import os
 
@@ -410,6 +413,7 @@ class LockedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         """The selection keys are ChatListSelectionMixin's (identical to the
         conversations list). Plain Space with nothing selected keeps its old
         job here: opening the focused locked chat."""
+        event = command_key_event(self, 'chat_selection', event)
         if self._handle_chat_selection_key(event):
             return
         if event.GetKeyCode() == wx.WXK_SPACE:
@@ -443,6 +447,7 @@ class LockedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         if self.main_window.can_unlock_chat_in_app(jid):
             unlock_item = menu.Append(wx.ID_ANY, self.main_window.i18n.t("unlock_chat"))
             self.Bind(wx.EVT_MENU, lambda evt, j=jid: self.main_window.unlock_chat(j), unlock_item)
+        refresh_popup_shortcuts(self, 'locked', menu)
         self.PopupMenu(menu)
         menu.Destroy()
 
@@ -461,7 +466,7 @@ class LockedConversationsPanel(ChatListSelectionMixin, wx.Panel):
             self.main_window.i18n.t("messages"), "M")
         self.Bind(wx.EVT_MENU, self.main_window._on_global_focus_messages,
                   id=self.ID_ALT_MESSAGES)
-        self.SetAcceleratorTable(wx.AcceleratorTable([
+        self.SetAcceleratorTable(make_shortcut_table(self, 'locked', [
             (wx.ACCEL_ALT, ord(messages_letter), self.ID_ALT_MESSAGES),
             (CAS, ord("T"), self.ID_BULK_UNLOCK_CHATS),
             (CAS, ord("R"), self.ID_BULK_READ_CHATS),

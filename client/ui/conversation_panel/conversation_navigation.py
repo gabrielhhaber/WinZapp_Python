@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import set_shortcut_label
 import logging
 import threading
 import wx
@@ -152,7 +153,7 @@ class ConversationNavigationMixin:
         # be called depends only on its JID kind, which cannot change while the
         # conversation stays open. The two places that DO open a conversation
         # sync it; a live permission refresh only has to touch the composer.
-        self.message_label.SetLabel(
+        set_shortcut_label(self, self.message_label, 'messages.ID_ALT_FOCUS_FIELD',
             self._message_label_text(jid, conversation, self.conversation_name)
         )
         self.conversation_panel.Layout()
@@ -175,7 +176,7 @@ class ConversationNavigationMixin:
         self.conversation_name = new_name
         is_group = jid.endswith("@g.us")
         self._conv_data_btn.SetNote(self._conversation_note_text(new_name, is_group))
-        self.message_label.SetLabel(
+        set_shortcut_label(self, self.message_label, 'messages.ID_ALT_FOCUS_FIELD',
             self._message_label_text(jid, self.main_window.chats.get(jid, {}), new_name)
         )
         self.conversation_panel.Layout()
@@ -368,7 +369,7 @@ class ConversationNavigationMixin:
 
         self._apply_composer_permissions(jid, conversation)
         self._sync_voice_call_button(jid)
-        self.message_label.SetLabel(
+        set_shortcut_label(self, self.message_label, 'messages.ID_ALT_FOCUS_FIELD',
             self._message_label_text(jid, conversation, self.conversation_name)
         )
             

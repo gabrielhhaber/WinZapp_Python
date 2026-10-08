@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import refresh_popup_shortcuts
 import pyperclip
 import threading
 import wx
@@ -163,6 +164,7 @@ class ChatMenuMixin:
             close_item = menu.Append(wx.ID_ANY, f"{i18n.t('close_conversation')}\tCtrl+W")
             self.Bind(wx.EVT_MENU, self.on_context_menu_close, close_item)
 
+        refresh_popup_shortcuts(self, 'chats', menu)
         self.PopupMenu(menu)
         menu.Destroy()
 
@@ -234,6 +236,7 @@ class ChatMenuMixin:
             )
         # Popped up on the control that has keyboard focus so the screen reader
         # follows it there instead of to an arbitrary screen position.
+        refresh_popup_shortcuts(self, 'chats', menu)
         (anchor or self).PopupMenu(menu)
         menu.Destroy()
 

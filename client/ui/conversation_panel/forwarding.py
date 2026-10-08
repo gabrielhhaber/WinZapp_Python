@@ -260,6 +260,8 @@ class ForwardingMixin:
             return True
 
         def _on_list_key_down(event):
+            from ui.shortcut_bindings import command_key_event
+            event = command_key_event(self, 'chat_selection', event)
             key   = event.GetKeyCode()
             ctrl  = event.ControlDown()
             shift = event.ShiftDown()

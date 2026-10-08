@@ -5,6 +5,9 @@ import sys
 from ctypes import wintypes
 
 import wx
+from core.keyboard_shortcuts import SECTION, binding_for
+from core.shortcut_catalog import SHORTCUTS
+from ui.shortcut_names import shortcut_name
 
 from ui.accessible import (
     AccessibleAltShortcutButton,
@@ -68,6 +71,7 @@ class IncomingCallDialog(wx.Dialog):
         self._is_video = is_video
         self._closing = False
         self._i18n = i18n
+        self.main_window = parent
 
         panel = wx.Panel(self)
         content = wx.BoxSizer(wx.VERTICAL)
@@ -170,19 +174,26 @@ class IncomingCallDialog(wx.Dialog):
             label, letter = split_mnemonic(self._i18n.t(key))
             button.SetLabel(label)
             keycode = accelerator_keycode(letter)
+            shortcut = next(s for s in SHORTCUTS if s.id == 'incoming.' + key)
+            overrides = self.main_window.settings.get(SECTION, {})
+            custom = binding_for(shortcut, overrides, self._i18n.t)
+            mod = wx.ACCEL_ALT
+            if shortcut.id in overrides:
+                mod, keycode = custom if custom is not None else (0, None)
             if keycode is None:
                 # No letter, or one this keyboard layout cannot type: report
                 # no shortcut rather than one that would never fire (this also
                 # clears an accessible left over from the previous language).
                 button.SetAccessible(None)
                 continue
-            button.SetAccessible(AccessibleAltShortcutButton(letter))
+            button.SetAccessible(AccessibleAltShortcutButton(letter,
+                shortcut_name((mod, keycode), self._i18n)))
             # Enter/Esc already own the stock ids of the OK/Cancel buttons, so
             # every accelerator gets a private command id instead.
             ref = wx.NewIdRef()
             self._accel_refs.append(ref)
             self._accel_ids[ref.GetId()] = (button, handler)
-            entries.append(wx.AcceleratorEntry(wx.ACCEL_ALT, keycode, ref.GetId()))
+            entries.append(wx.AcceleratorEntry(mod, keycode, ref.GetId()))
         self.SetAcceleratorTable(wx.AcceleratorTable(entries))
 
     def _on_accelerator(self, event):

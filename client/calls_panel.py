@@ -18,6 +18,8 @@ context menu and the "Retornar ligação" button call back, as in the
 conversation itself.
 """
 
+from ui.shortcut_bindings import refresh_popup_shortcuts
+from ui.shortcut_bindings import make_shortcut_table
 import logging
 import threading
 
@@ -86,6 +88,8 @@ class CallsPanel(wx.Panel):
             lst.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_item_activated)
             lst.Bind(wx.EVT_LIST_ITEM_FOCUSED, self._on_item_focused)
             lst.Bind(wx.EVT_CONTEXT_MENU, self._on_context_menu)
+            from ui.shortcut_bindings import handle_call_list_shortcut
+            lst.Bind(wx.EVT_KEY_DOWN, lambda e: handle_call_list_shortcut(self, e))
             page_sizer.Add(lst, 1, wx.EXPAND | wx.ALL, 5)
             page.SetSizer(page_sizer)
             self.notebook.AddPage(page, i18n.t(_TAB_LABEL_KEYS[tab]), select=(tab == TAB_ALL))
@@ -105,12 +109,16 @@ class CallsPanel(wx.Panel):
         self.SetSizer(sizer)
 
     def _create_accelerators(self):
+        from ui.shortcut_bindings import handle_calls_shortcut
+        if not getattr(self, '_custom_call_hook_bound', False):
+            self.Bind(wx.EVT_CHAR_HOOK, lambda e: handle_calls_shortcut(self, e))
+            self._custom_call_hook_bound = True
         self.ID_ALT_L = wx.NewIdRef()
         self.ID_CTRL_SHIFT_R = wx.NewIdRef()
         self.ID_F5 = wx.NewIdRef()
         # Explicit, like ConversationsPanel's Alt+M for "&Mensagens": a
         # StaticText mnemonic moving focus proved unreliable in this app.
-        self.SetAcceleratorTable(wx.AcceleratorTable([
+        self.SetAcceleratorTable(make_shortcut_table(self, 'calls', [
             (wx.ACCEL_ALT, ord("L"), self.ID_ALT_L),
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("R"), self.ID_CTRL_SHIFT_R),
             (wx.ACCEL_NORMAL, wx.WXK_F5, self.ID_F5),
@@ -322,5 +330,6 @@ class CallsPanel(wx.Panel):
             call_item = menu.Append(
                 wx.ID_ANY, f"{i18n.t('return_call_button')}\tCtrl+Shift+R")
             self.Bind(wx.EVT_MENU, self._on_return_call, call_item)
+        refresh_popup_shortcuts(self, 'calls', menu)
         self.PopupMenu(menu)
         menu.Destroy()

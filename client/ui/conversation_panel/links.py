@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import command_key_event
 import os
 import pyperclip
 import wx
@@ -221,6 +222,7 @@ class LinksMixin:
         _focused_link_url()). It is here so the behaviour does not depend on
         that ordering, and so removing the accelerator would not silently take
         the feature with it."""
+        event = command_key_event(self, 'links', event)
         kc = event.GetKeyCode()
         if kc in (wx.WXK_RETURN, wx.WXK_SPACE, wx.WXK_NUMPAD_ENTER):
             self._open_link(event.GetEventObject().GetURL())
@@ -240,6 +242,7 @@ class LinksMixin:
 
     def _on_links_list_key_down(self, event):
         """Space also opens the focused link; Ctrl+C copies just its URL."""
+        event = command_key_event(self, 'links', event)
         kc = event.GetKeyCode()
         if kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER, wx.WXK_SPACE):
             idx = self._links_list.GetFirstSelected()

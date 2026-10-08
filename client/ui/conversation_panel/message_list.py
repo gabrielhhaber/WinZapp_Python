@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import command_key_event
 import base64 as _b64
 import logging
 import os
@@ -688,6 +689,7 @@ class MessageListMixin:
         Activation stayed on Enter / double-click — see _do_activate_message.
         Page Up / Page Down jump by a configurable number of messages (page_up_down_step setting).
         Trigger loading older messages on Arrow Up / Page Up when at the top (index 0)."""
+        event = command_key_event(self, 'message_list', event)
         key = event.GetKeyCode()
         ctrl = event.ControlDown()
         shift = event.ShiftDown()

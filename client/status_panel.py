@@ -1,3 +1,4 @@
+from ui.shortcut_bindings import make_shortcut_table
 import base64
 import logging
 import mimetypes
@@ -214,6 +215,8 @@ class StatusPanel(
         viewer_sizer.Add(self._reply_label, 0, wx.LEFT | wx.TOP, 5)
         self._reply_field = wx.TextCtrl(self._viewer_panel, style=wx.TE_PROCESS_ENTER)
         self._reply_field.Bind(wx.EVT_TEXT_ENTER, self._on_send_status_reply)
+        from ui.shortcut_bindings import bind_enter_command
+        bind_enter_command(self, self._reply_field, 'status_reply.send', self._on_send_status_reply)
         self._reply_field.Bind(wx.EVT_TEXT, self._on_reply_field_text_changed)
         viewer_sizer.Add(self._reply_field, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         self._reply_send_btn = wx.Button(self._viewer_panel, label=i18n.t("status_reply_send"))
@@ -402,7 +405,7 @@ class StatusPanel(
         self.ID_CTRL_SHIFT_D  = wx.NewIdRef()
         self.ID_F5            = wx.NewIdRef()
         self.ID_CTRL_PERIOD   = wx.NewIdRef()
-        accel_tbl = wx.AcceleratorTable([
+        accel_tbl = make_shortcut_table(self, 'status', [
             (wx.ACCEL_CTRL,                    wx.WXK_LEFT,   self.ID_CTRL_LEFT),
             (wx.ACCEL_CTRL,                    wx.WXK_RIGHT,  self.ID_CTRL_RIGHT),
             (wx.ACCEL_NORMAL,                  wx.WXK_ESCAPE, self.ID_ESCAPE),

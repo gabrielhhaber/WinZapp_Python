@@ -1,3 +1,4 @@
+from ui.shortcut_bindings import make_shortcut_table
 import io
 import os
 import sys
@@ -1346,13 +1347,13 @@ class MainWindow(
         self.ID_CALL_SETTINGS = wx.NewIdRef()  # call settings       (Ctrl+C)
         self.ID_CALL_VIDEO    = wx.NewIdRef()  # toggle video        (Ctrl+V)
         self.ID_CALL_PROMOTE  = wx.NewIdRef()  # voice -> video      (Ctrl+P)
-        call_accel_tbl = wx.AcceleratorTable([
+        call_accel_tbl = make_shortcut_table(self, 'call', [
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("Q"), self.ID_CALL_END),
             (wx.ACCEL_CTRL,                  ord("M"), self.ID_CALL_MUTE),
             (wx.ACCEL_CTRL,                  ord("C"), self.ID_CALL_SETTINGS),
             (wx.ACCEL_CTRL,                  ord("V"), self.ID_CALL_VIDEO),
             (wx.ACCEL_CTRL,                  ord("P"), self.ID_CALL_PROMOTE),
-        ])
+        ], target=self.voice_call_window)
         self.voice_call_window.SetAcceleratorTable(call_accel_tbl)
         self.voice_call_window.Bind(wx.EVT_MENU, self.end_active_call,          id=self.ID_CALL_END)
         self.voice_call_window.Bind(wx.EVT_MENU, self.toggle_call_microphone,   id=self.ID_CALL_MUTE)

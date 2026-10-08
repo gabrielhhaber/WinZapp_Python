@@ -1,6 +1,7 @@
 """Native, screen-reader-friendly emoji picker shared by chat and Status."""
 
 from __future__ import annotations
+from ui.shortcut_bindings import command_key_event
 
 import unicodedata
 from difflib import SequenceMatcher
@@ -2690,6 +2691,7 @@ class EmojiPickerDialog(wx.Dialog):
         return True
 
     def _on_char_hook(self, event):
+        event = command_key_event(self, 'emoji', event)
         if (self._list.HasFocus()
                 and event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
                 and event.ControlDown()):

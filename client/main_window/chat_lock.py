@@ -450,11 +450,10 @@ class ChatLockMixin:
 
     def _on_chat_lock_char_hook(self, event):
         """Track keyboard activity and provide a global emergency close key."""
+        from ui.shortcut_bindings import matches
         try:
-            modifiers = event.GetModifiers()
             if (
-                modifiers == (wx.MOD_CONTROL | wx.MOD_SHIFT)
-                and event.GetKeyCode() == ord("K")
+                matches(self, event, 'main.lock_vault')
                 and getattr(self, "_chat_lock_unlocked", False)
             ):
                 self.lock_chat_vault()

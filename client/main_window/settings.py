@@ -1331,6 +1331,8 @@ class SettingsMixin:
             self.set_global_hotkey(hotkey.get("vk", 0), hotkey.get("mod", 0))
 
         _step("global hotkey", _apply_hotkey)
+        from ui.shortcut_bindings import refresh_shortcuts
+        _step("keyboard shortcuts", lambda: refresh_shortcuts(self))
 
         def _apply_calls():
             if not self.settings.get("calls", {}).get("alerts_enabled", True):

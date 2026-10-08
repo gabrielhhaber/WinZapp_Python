@@ -21,6 +21,7 @@ Space in selection mode, Shift+Up/Down/Home/End, Ctrl+Shift+Space), the
 and the three ``user_interface`` settings that steer them.
 """
 
+from ui.shortcut_bindings import command_key_event
 import wx
 from ui.dialogs.clear_chat_confirm import confirm_clear_chat
 
@@ -198,6 +199,7 @@ class ChatListSelectionMixin:
         move focus to the first/last row; Ctrl+Shift+Space selects every chat,
         or clears the selection if everything is already selected.
         """
+        event = command_key_event(self, 'chat_selection', event)
         key   = event.GetKeyCode()
         ctrl  = event.ControlDown()
         shift = event.ShiftDown()

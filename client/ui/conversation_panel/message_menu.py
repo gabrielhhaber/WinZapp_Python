@@ -5,6 +5,8 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import set_shortcut_label
+from ui.shortcut_bindings import refresh_popup_shortcuts
 import logging
 import os
 import pyperclip
@@ -463,6 +465,7 @@ class MessageMenuMixin:
             del_item,
         )
 
+        refresh_popup_shortcuts(self, 'messages', menu)
         self.PopupMenu(menu)
         menu.Destroy()
 
@@ -659,7 +662,7 @@ class MessageMenuMixin:
         else:
             label = i18n.t("reply_to").format(name=sender)
 
-        self.message_label.SetLabel(label)
+        set_shortcut_label(self, self.message_label, 'messages.ID_ALT_FOCUS_FIELD', label)
         self._remove_quote_btn.Show()
         self.conversation_panel.Layout()
         self.message_field.SetFocus()

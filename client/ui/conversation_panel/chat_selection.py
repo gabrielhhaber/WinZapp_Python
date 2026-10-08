@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import command_key_event
 import wx
 from ui.conversation_panel.chat_list_selection import ChatListSelectionMixin
 
@@ -20,6 +21,8 @@ class ChatSelectionMixin(ChatListSelectionMixin):
         Ctrl+Shift+Space) are ChatListSelectionMixin's, shared with the
         archived and locked lists. Opening a conversation stayed on Enter /
         double-click. Ctrl+P pins/unpins, Ctrl+Shift+Q archives/unarchives."""
+        event = command_key_event(self, 'chats', event)
+        event = command_key_event(self, 'chat_selection', event)
         key   = event.GetKeyCode()
         ctrl  = event.ControlDown()
         shift = event.ShiftDown()

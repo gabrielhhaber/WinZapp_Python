@@ -1,6 +1,8 @@
 """Accessible, unified media viewer for conversation media and statuses."""
 
 from __future__ import annotations
+from ui.shortcut_bindings import command_key_event
+from ui.shortcut_bindings import make_shortcut_table
 
 import os
 import shutil
@@ -298,6 +300,8 @@ class MediaViewerDialog(wx.Dialog):
         )
         self._reply_btn.Bind(wx.EVT_BUTTON, self._on_reply)
         self._reply_field.Bind(wx.EVT_TEXT_ENTER, self._on_reply)
+        from ui.shortcut_bindings import bind_enter_command
+        bind_enter_command(self, self._reply_field, 'status_reply.send', self._on_reply)
         status_sizer.Add(self._reply_btn, 0)
         self._status_actions.SetSizer(status_sizer)
         root.Add(self._status_actions, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -335,7 +339,7 @@ class MediaViewerDialog(wx.Dialog):
         self.ID_CTRL_SHIFT_S = wx.NewIdRef()
         self.ID_ALT_V = wx.NewIdRef()  # seek back 10s
         self.ID_ALT_A = wx.NewIdRef()  # seek forward 10s
-        accel_tbl = wx.AcceleratorTable([
+        accel_tbl = make_shortcut_table(self, 'media', [
             (wx.ACCEL_CTRL, wx.WXK_LEFT, self.ID_CTRL_LEFT),
             (wx.ACCEL_CTRL, wx.WXK_RIGHT, self.ID_CTRL_RIGHT),
             # Same combo StatusPanel/ConversationsPanel already use for
@@ -776,6 +780,7 @@ class MediaViewerDialog(wx.Dialog):
                 self.main_window.app_name, wx.OK | wx.ICON_ERROR)
 
     def _on_char_hook(self, event):
+        event = command_key_event(self, 'media', event)
         key = event.GetKeyCode()
         if key == wx.WXK_ESCAPE:
             self.EndModal(wx.ID_CANCEL)

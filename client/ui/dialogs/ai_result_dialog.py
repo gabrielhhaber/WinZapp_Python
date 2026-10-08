@@ -4,6 +4,7 @@ converted PDF, with follow-up questions for pictures and videos.
 Owned by the account's conversation panel (ui/conversation_panel/ai_actions.py),
 which builds it, runs it modally and tears it down.
 """
+from ui.shortcut_bindings import command_key_event
 import wx
 
 from app_paths import active_account_id, global_dir
@@ -214,6 +215,7 @@ class AIResultDialog(wx.Dialog):
         self.copy.Enable(bool(self._latest))
 
     def _key(self, event):
+        event = command_key_event(self, 'ai_result', event)
         if event.GetKeyCode() == wx.WXK_ESCAPE:
             self._close()
             return
