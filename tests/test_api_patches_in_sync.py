@@ -1,9 +1,9 @@
 """client/api_patches/ and client/api/ must never drift apart.
 
-client/api/ is almost entirely git-ignored, but .gitignore deliberately
-un-ignores exactly WinZapp's patched files, because a fresh checkout (including
-the CI release build) otherwise has nothing to restore and silently ships
-vanilla, unpatched WPPConnect Server.
+client/api/ is generated and git-ignored. The tracked source of WinZapp's
+customizations is client/api_patches/; setup and build paths restore it into
+the generated API tree. A fresh CI test checkout has no live API and skips
+the comparisons, while a developer checkout can expose stale generated files.
 
 That leaves two copies of every patch on disk, and setup_api.py restores
 client/api/ *from* client/api_patches/. So editing only the client/api/ copy
@@ -18,13 +18,8 @@ here instead of in a user's install.
 package.json is deliberately NOT compared: setup_api.py merges only
 _PATCHED_DEPENDENCY_KEYS into whatever the clone produced (so WPPConnect's own
 "version" field keeps reflecting the tag actually built) and re-serializes the
-file, so the two copies legitimately differ. Its one patched dependency
-(@ffmpeg-installer/ffmpeg) is checked instead — and, separately,
-@wppconnect-team/wppconnect is checked to confirm it is deliberately NOT
-patched: that pin used to be forced to an exact version ("2.2.4") that went
-stale within days, because this dependency releases multiple times a week —
-wppconnect-server's own package.json had already moved on to requiring a newer
-one than what WinZapp had frozen, silently running an incompatible pairing.
+file, so the two copies legitimately differ. Dependency tests separately
+check the ffmpeg dependency and the exact homologated wppconnect/wa-js pair.
 fluent-ffmpeg used to be patched too, and was never imported anywhere by
 anything — it is checked to confirm it stays gone from every file.
 """
@@ -128,12 +123,16 @@ def test_the_two_copies_of_each_patch_are_identical(rel_path):
     # api_patches/ edit is the only place this assertion is ever reachable.
     patch_bytes = patch.read_bytes().replace(b"\r\n", b"\n")
     live_bytes = live.read_bytes().replace(b"\r\n", b"\n")
-    assert patch_bytes == live_bytes, (
-        f"client/api/{rel_path} and client/api_patches/{rel_path} have drifted. "
-        f"api_patches/ is the source of truth setup_api.py restores from — edit "
-        f"that copy (and mirror it into client/api/), or the next setup_api.py "
-        f"run will silently revert this file."
-    )
+    if patch_bytes != live_bytes:
+        # Assertion rewriting diffs the complete byte strings through
+        # difflib. Large controllers with repeated lines can spend minutes
+        # formatting that failure; the file names identify the repair instead.
+        pytest.fail(
+            f"client/api/{rel_path} and client/api_patches/{rel_path} have drifted. "
+            "api_patches/ is the source of truth; regenerate the API through "
+            "the setup/build path when the installed runtime can be replaced.",
+            pytrace=False,
+        )
 
 
 def test_setup_api_patch_list_matches_this_one():
@@ -219,9 +218,10 @@ def test_wppconnect_runtime_is_pinned_by_both_installers():
     Upstream declares a caret range, so leaving it alone meant a plain
     `npm install` of the same server tag could change the browser-side send
     and status APIs underneath an unchanged WinZapp build — which is what it
-    did. Moving the pair is a deliberate act, made in one commit alongside
-    client/wpp_minimum_version.txt, never something a reinstall does on its
-    own. Both installers therefore have to carry the key, or the end-user
+    did. Moving the pair is a deliberate act, validated against the chosen
+    server tag, never something a reinstall does on its own. The server pin
+    changes only when that tag changes. Both installers must carry the key,
+    or the end-user
     install flow silently resolves a different pair than a dev build."""
     setup = (ROOT / "setup_api.py").read_text(encoding="utf-8")
     dialog = (ROOT / "client" / "ui" / "dialogs" / "api_setup.py").read_text(encoding="utf-8")

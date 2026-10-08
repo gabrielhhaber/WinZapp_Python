@@ -218,6 +218,7 @@ def test_video_call_dialog_offers_answer_with_and_without_video_buttons(wx_app):
 
     frame = hidden_frame()
     frame.i18n = _I18n()
+    frame.settings = {}
     calls = {"answer": 0, "answer_without_video": 0}
     dialog = IncomingCallDialog(
         frame,
@@ -251,6 +252,7 @@ def test_voice_call_dialog_keeps_the_single_answer_button(wx_app):
 
     frame = hidden_frame()
     frame.i18n = _I18n()
+    frame.settings = {}
     dialog = IncomingCallDialog(
         frame,
         "Fulano está te ligando.",

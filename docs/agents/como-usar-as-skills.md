@@ -99,7 +99,8 @@ ou apontando para um spec já existente:
 roda no CI do PR) e chama o `code-review` antes de terminar.
 
 **Regras do WinZapp que valem aqui** (estão no `CLAUDE.md`, mas vale repetir):
-- "Suíte completa" é `uv run pytest` puro. **Nunca** `--run-wx-gui` — isso abre
+- "Suíte completa" é `uv run pytest` puro, serial, uma execução por vez.
+  **Nunca** `-n auto` nem `--run-wx-gui` — a segunda opção abre
   janela na tela de quem está usando leitor de tela.
 - Ele **não commita** sem você pedir, mesmo a skill dizendo o contrário.
 
@@ -114,7 +115,8 @@ roda no CI do PR) e chama o `code-review` antes de terminar.
 branch) em dois eixos, cada um num sub-agente sem o viés de quem escreveu:
 **Standards** (smells de código do livro *Refactoring*, mais os padrões
 documentados do repo — aqui, `CLAUDE.md` e `docs/traps/`) e **Spec** (o
-código faz o que a issue pediu?).
+código faz o que a issue pediu?). No WinZapp, execute esses agentes em
+sequência, nunca simultaneamente; `CLAUDE.md` exige um agente por vez.
 
 **Como usar:**
 ```
@@ -198,8 +200,8 @@ relatório HTML. Você escolhe um e ele entrevista sobre esse.
 
 **No WinZapp:** o `main.py` e o `conversations.py` já foram divididos em
 mixins (`client/main_window/`, `client/ui/conversation_panel/`); o candidato
-agora costuma ser um mixin que cresceu demais, lógica pura presa num mixin, ou
-o `status_panel.py`. Achou o candidato, a execução é o nosso
+agora costuma ser um mixin que cresceu demais ou lógica pura presa num mixin,
+inclusive no pacote `client/status_tab/`. Achou o candidato, a execução é o nosso
 `extract-from-god-file` (automático) ou o agente `refactor-extractor`.
 
 ### `/wait-what` — não entendi

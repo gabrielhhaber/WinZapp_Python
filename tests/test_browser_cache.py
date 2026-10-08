@@ -95,11 +95,12 @@ def test_launcher_prefers_puppeteers_required_version_over_an_older_cache(tmp_pa
     source = (ROOT / "client" / "api_patches" / "start.js").read_text(encoding="utf-8")
     # Only the real selection functions, stopping before any installer/server.
     functions = source[:source.index("if (!findPreferredChrome())")]
+    # timedStartup() uses the real monotonic clock; this VM still owns its env.
     script = r"""
 const vm = require('vm');
 const input = JSON.parse(process.argv[1]);
 const context = { __dirname: input.dir, console,
-  process: { platform: 'win32', env: {} },
+  process: { platform: 'win32', env: {}, hrtime: process.hrtime },
   require: name => name === 'puppeteer'
     ? { executablePath: () => input.required } : require(name) };
 vm.runInNewContext(input.source + '\nresult = findPreferredChrome();', context);
@@ -110,4 +111,5 @@ console.log(JSON.stringify(context.result));
     })], capture_output=True, text=True, timeout=15,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == str(required)
+    # Startup timing emits diagnostic lines before the JSON result.
+    assert json.loads(result.stdout.splitlines()[-1]) == str(required)

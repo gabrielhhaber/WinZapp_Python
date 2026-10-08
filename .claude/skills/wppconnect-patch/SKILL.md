@@ -35,9 +35,10 @@ carry that list; a test holds them equal.
 - **`@wppconnect-team/wppconnect` and `@wppconnect/wa-js` are one
   homologated pair, pinned exact.** Mechanism 3 rewrites their compiled code
   by literal search-and-replace, so a moved version silently disables a
-  patch. To move the pair: bump both keys and
-  `client/wpp_minimum_version.txt` in one commit, after running all six
-  `node_modules` patches against the candidate.
+  patch. To move the pair: review both library pins and run all six
+  `node_modules` patches against the candidate. Change
+  `client/wpp_minimum_version.txt` only when the homologated server version
+  also changes; a library-only upgrade can retain the same server tag.
 - When a new runtime restructures patched code, add a **second patch set
   selected by matching the file** (as `host.layer.js` has for ≤ 2.3.1 and
   ≥ 2.3.2). Never edit a shipped one: both call sites re-run on every launch

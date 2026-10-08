@@ -20,8 +20,7 @@ This test keeps them that way.
 
 Dialog subclasses own their own construction and cannot be positioned from the
 outside, so the handful of modules that build one carry the `wxgui` marker
-instead — deselect them (`-m "not wxgui"`) when running this suite on a
-machine somebody is actually using.
+instead. The default run skips them; only CI enables `--run-wx-gui`.
 """
 
 import ast

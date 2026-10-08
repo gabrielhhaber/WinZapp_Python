@@ -95,8 +95,9 @@ próprio agente quando a tarefa se encaixa na descrição — não é preciso in
 | `write-test` | Teste novo ou estendido. `MainWindow` é `wx.Frame` e `ConversationsPanel` é `wx.Panel`: nenhum dos dois instanciável sem `wx.App`, então ou a lógica sai para nível de módulo, ou o método real é ligado a um stub. Também as fixtures do `conftest.py` e o `asyncio_mode=auto` (teste async é só `async def`, sem decorator). |
 | `wppconnect-patch` | Conserto do lado Node. São três mecanismos de patch diferentes, cada um com suas listas; escolher o errado é silencioso, e a mudança some no próximo `setup_api.py`. Nunca editar `client/api/` direto. |
 | `accessible-ui` | Qualquer mexida em `client/ui/`, `status_panel.py` ou no wx do `main.py`. Controles padrão do wx, toda fala por `speak_output`, `Freeze`/`Thaw` com `try/finally` em volta de mutação de lista, e o limite de 511 caracteres do SysListView32. |
+| `extract-from-god-file` | Extrair lógica testável ou dividir um módulo de mixin que excedeu o orçamento, sem mudar comportamento. Os índices dos pacotes mostram a responsabilidade de cada módulo. |
 
-As quatro estão escritas em inglês, para casar com o `CLAUDE.md` e o `AGENTS.md`
+As skills do projeto estão escritas em inglês, para casar com o `CLAUDE.md` e o `AGENTS.md`
 — são documentos do mesmo tipo, dirigidos ao agente.
 
 ### Escrevendo uma skill nova
@@ -229,5 +230,5 @@ Vale saber antes de alguém pedir "roda o code-review" e receber outra coisa:
 
 O `ci.yml` roda a suíte completa em todo PR para a `main`. Localmente rode só
 os arquivos de teste do que você mudou (`uv run pytest tests/test_x.py`); a
-suíte inteira (`uv run pytest -n auto`, ~1 min) fica para mudanças transversais. Os testes
+suíte inteira (`uv run pytest`, serial, no máximo uma execução local) fica para mudanças transversais. Os testes
 `load` só rodam no CI ou com `--run-load`. Nunca `--run-wx-gui`.

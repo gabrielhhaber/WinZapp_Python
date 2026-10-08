@@ -111,14 +111,15 @@ class TestTheTabIsWhereTheIndicesSayItIs:
 
     def test_the_locked_chats_tab_is_appended_after_reactions(self, make_dialog):
         """Rare vault policy stays after every fixed tab and keeps index 14;
-        SetPageText(14) relies on it. Only the AI page and Transcription come
-        after it, in that order, and both are retranslated through FindPage()
+        SetPageText(14) relies on it. AI, Transcription and Shortcuts come
+        after it, in that order, and are retranslated through FindPage()
         rather than by number."""
         dialog = make_dialog()
         assert dialog._notebook.FindPage(dialog._chat_lock_page) == 14
         assert dialog._notebook.FindPage(dialog._ai_page) == 15
         assert dialog._notebook.FindPage(dialog._transcription_page) == 16
-        assert dialog._notebook.GetPageCount() == 17
+        assert dialog._notebook.FindPage(dialog._shortcuts_page) == 17
+        assert dialog._notebook.GetPageCount() == 18
 
     def test_a_hidden_vault_leaves_the_locked_chats_tab_out(self, make_dialog):
         """A vault the user chose to hide must not be advertised by Settings."""
@@ -129,11 +130,12 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         assert dialog._notebook.FindPage(dialog._chat_lock_page) == -1
         assert dialog._notebook.FindPage(dialog._ai_page) == 14
         assert dialog._notebook.GetPageText(14) == dialog.main_window.i18n.t("tab_ai_accessibility")
-        assert dialog._notebook.GetPageCount() == 16
-        # Transcription is still the last page; it and the AI page just moved
-        # up to fill the gap.
+        assert dialog._notebook.GetPageCount() == 17
+        # AI, Transcription and Shortcuts move up to fill the gap.
         assert dialog._notebook.FindPage(dialog._transcription_page) == 15
         assert dialog._notebook.GetPageText(15) == dialog.main_window.i18n.t("tab_transcription")
+        assert dialog._notebook.FindPage(dialog._shortcuts_page) == 16
+        assert dialog._notebook.GetPageText(16) == dialog.main_window.i18n.t("tab_shortcuts")
 
     def test_the_tabs_that_are_opened_by_number_did_not_move(self, make_dialog):
         """main_window/settings.py's custom-API first-run flow does
@@ -143,7 +145,7 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         assert dialog._notebook.FindPage(dialog._conn_page) == 4
         assert dialog._notebook.FindPage(dialog._storage_page) == 8
 
-    def test_the_transcription_tab_is_the_last_one(self, make_dialog):
+    def test_shortcuts_are_appended_after_transcription(self, make_dialog):
         """Asserted against the real notebook rather than by reading the source
         for AddPage() calls, which is all a suite that may not construct this
         dialog can do (tests/test_transcription_settings_tab.py). Appending is
@@ -157,13 +159,13 @@ class TestTheTabIsWhereTheIndicesSayItIs:
         # grep cannot tell a Bind placed before _load_values() from one after;
         # the real notebook can.
         assert dialog._transcription_page_seen is False
-        # After the conditional "Locked chats" tab (shown here — see
-        # _make_frame) and the AI page, so the last of seventeen pages.
+        # Shortcuts append after Transcription without renumbering it.
         last = dialog._notebook.GetPageCount() - 1
-        assert last == 16
-        assert dialog._notebook.FindPage(dialog._transcription_page) == last
+        assert last == 17
+        assert dialog._notebook.FindPage(dialog._transcription_page) == last - 1
+        assert dialog._notebook.FindPage(dialog._shortcuts_page) == last
         assert dialog._notebook.GetPageText(last) == dialog.main_window.i18n.t(
-            "tab_transcription"
+            "tab_shortcuts"
         )
 
     def test_every_page_has_a_translated_title(self, make_dialog):

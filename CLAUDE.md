@@ -62,7 +62,7 @@ Socket.IO. One account per process, each with its own Node, port and window.
 uv sync; uv run setup-api              # fresh checkout; setup-api clones and builds client/api/
 uv run winzapp                         # run the app
 uv run pytest tests/test_database.py   # the test files for what you touched — the normal loop
-uv run pytest -n auto                  # whole suite in parallel (~1 min); CI itself runs it serially
+uv run pytest                         # serial full suite, only for cross-cutting changes
 uv run build-installer                 # WinZappInstaller.exe + WinZapp.zip
 uv run build-onefile                   # single-file WinZapp.exe
 uv run translations-update              # merge source messages into each PO

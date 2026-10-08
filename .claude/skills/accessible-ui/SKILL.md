@@ -56,13 +56,16 @@ Row-by-row mutation fires one accessibility event per row.
 focused = self.messages_list.GetFocusedItem()
 self.messages_list.Freeze()
 try:
-    ...  # inserts, deletes, DeleteAllItems + rebuild
+    ...  # apply changed rows through _sync_message_rows()
 finally:
     self.messages_list.Thaw()
 # restore focus, adjusting the index if rows before it moved
 ```
 
 `try/finally` is mandatory, and so is restoring the focused row.
+The messages list must never be cleared and rebuilt. Use
+`MessageRowsMixin._sync_message_rows()` and preserve its row identities;
+`DeleteAllItems()` re-announces the focused message even inside Freeze/Thaw.
 
 ## The 511-character limit
 
