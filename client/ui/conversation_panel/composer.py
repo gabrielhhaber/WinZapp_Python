@@ -9,6 +9,7 @@ import os
 import tempfile
 import threading
 import wx
+from ui.shortcut_bindings import command_key_event
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
 from core.attachment_types import DEFAULT_PASTED_AUDIO_AS, pasted_attachment_media_type
 from core.link_preview import (
@@ -329,6 +330,8 @@ class ComposerMixin:
         # they are handled here, before the accelerator table fires
         # close_conversation for Esc or any other panel-level binding.
         if hasattr(self, "_mention_panel") and self._mention_panel.IsShown():
+            event = command_key_event(self, 'autocomplete', event)
+            kc = event.GetKeyCode()
             if kc == wx.WXK_ESCAPE:
                 self._hide_mention_suggestions()
                 wx.CallAfter(self.message_field.SetFocus)
@@ -339,6 +342,9 @@ class ComposerMixin:
                     name, jid = self._mention_suggestions[idx]
                     self._insert_mention(name, jid)
                 return  # do NOT Skip
+            if kc == -1:
+                event.Skip()
+                return
         if not self._should_redirect_char_to_message(event):
             event.Skip()
             return
@@ -449,6 +455,8 @@ class ComposerMixin:
         makes plain Enter fire EVT_TEXT_ENTER (send) on this control, and
         wx's native multiline edit control only inserts a literal newline on
         Ctrl+Enter, with no Shift+Enter equivalent of its own (issue #16)."""
+        from ui.shortcut_bindings import matches
+        from core.keyboard_shortcuts import SECTION
         kc = event.GetKeyCode()
         if kc == wx.WXK_BACK:
             if self._undo_emoticon_conversion():
@@ -461,7 +469,11 @@ class ComposerMixin:
                 self._mention_list.SetFocus()
                 self._mention_list.SetSelection(0)
             return  # consume — don't let the field handle ↓
-        if kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER) and event.ShiftDown():
+        preferences = getattr(getattr(self, 'main_window', None), 'settings', {}).get(SECTION, {})
+        if 'composer.send' in preferences and matches(self, event, 'composer.send'):
+            self.on_send_message(event)
+            return
+        if matches(self, event, 'composer.newline'):
             # WriteText() inserts at the control's own insertion point (and
             # over any active selection) and lets the native control manage
             # the caret itself — necessary because on Windows a multiline
@@ -480,6 +492,15 @@ class ComposerMixin:
             self.message_field.WriteText("\n")
             self.on_change_message_field(None)
             return  # consume — don't send and don't double-insert
+        if (kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
+                and 'composer.send' in preferences):
+            # The old Enter gesture must not still reach EVT_TEXT_ENTER/send.
+            from ui.shortcut_bindings import pass_to_ancestor_command
+            if pass_to_ancestor_command(self, event):
+                return
+            self.message_field.WriteText('\n')
+            self.on_change_message_field(None)
+            return
         if kc in _CARET_KEYS:
             # The caret has not moved yet; check once the control has.
             wx.CallAfter(self._cue_spelling_at_caret)
@@ -659,6 +680,7 @@ class ComposerMixin:
 
     def _on_mention_list_key_down(self, event):
         """Keyboard navigation inside the mention suggestion list."""
+        event = command_key_event(self, 'autocomplete', event)
         kc = event.GetKeyCode()
 
         if kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):

@@ -7,6 +7,7 @@ system default included; Esc leaves everything as it was. The rows come from
 core.quick_audio_devices.quick_device_rows().
 """
 
+from ui.shortcut_bindings import command_key_event
 import wx
 
 from core.quick_audio_devices import slot_for_digit
@@ -46,6 +47,7 @@ class QuickAudioDeviceDialog(wx.Dialog):
         self.list.SetFocus()
 
     def _on_char_hook(self, event):
+        event = command_key_event(self, 'device', event)
         if not event.HasAnyModifiers():
             digit = typed_digit(event.GetKeyCode())
             slot = slot_for_digit(digit) if digit is not None else None

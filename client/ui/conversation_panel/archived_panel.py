@@ -3,6 +3,10 @@
 Moved verbatim out of ui/conversations.py, which re-exports it.
 """
 
+from ui.shortcut_bindings import refresh_popup_shortcuts
+from ui.shortcut_bindings import command_key_event
+from ui.shortcut_bindings import matches
+from ui.shortcut_bindings import make_shortcut_table
 import os
 import pyperclip
 import threading
@@ -128,7 +132,7 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook_alt1)
 
     def _on_char_hook_alt1(self, event):
-        if event.AltDown() and event.GetKeyCode() == ord('1'):
+        if matches(self, event, 'main.ID_ALT_1'):
             self.main_window.on_alt_1(event)
             return
         event.Skip()
@@ -180,7 +184,7 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         CS = wx.ACCEL_CTRL | wx.ACCEL_SHIFT
         AS = wx.ACCEL_ALT | wx.ACCEL_SHIFT
         CAS = wx.ACCEL_CTRL | wx.ACCEL_ALT | wx.ACCEL_SHIFT
-        accel_tbl = wx.AcceleratorTable([
+        accel_tbl = make_shortcut_table(self, 'archived', [
             (wx.ACCEL_CTRL,   ord("F"),        self.ID_CTRL_F),
             (wx.ACCEL_NORMAL, wx.WXK_DELETE, self.ID_DELETE_CONV),
             (AS,              ord("C"),      self.ID_ALT_SHIFT_C_LIST),
@@ -287,6 +291,7 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
             for key, secs in ChatMenuMixin.MUTE_PRESETS:
                 item = menu.Append(wx.ID_ANY, i18n.t(key))
                 self.Bind(wx.EVT_MENU, lambda e, j=jid, s=secs: self._on_mute(j, s), item)
+            refresh_popup_shortcuts(self, 'archived', menu)
             self.PopupMenu(menu)
             menu.Destroy()
 
@@ -382,6 +387,8 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         """The selection keys are ChatListSelectionMixin's (identical to the
         conversations list). Plain Space with nothing selected keeps its old
         job here: opening the focused archived chat."""
+        event = command_key_event(self, 'archived', event)
+        event = command_key_event(self, 'chat_selection', event)
         if self._handle_chat_selection_key(event):
             return
         if event.GetKeyCode() == wx.WXK_SPACE:
@@ -532,6 +539,7 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
                 add_member_item,
             )
 
+        refresh_popup_shortcuts(self, 'archived', menu)
         self.PopupMenu(menu)
         menu.Destroy()
 

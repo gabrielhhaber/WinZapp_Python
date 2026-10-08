@@ -268,6 +268,10 @@ def exportable_settings(settings) -> dict:
             continue
         if section == "sound_events":
             out[section], _ignored = _sound_events_without_paths(value)
+        elif section == "keyboard_shortcuts":
+            from core.keyboard_shortcuts import sanitize_overrides
+            from core.shortcut_catalog import SHORTCUTS
+            out[section] = sanitize_overrides(value, SHORTCUTS)
         elif isinstance(value, dict):
             kept = {k: copy.deepcopy(v) for k, v in value.items()
                     if not is_excluded(section, k, settings)}
@@ -432,6 +436,17 @@ def merge_settings(current, incoming, include_connection=True):
                 ignored.append(str(section))
             continue
         if _is_free_form(section):
+            if section == "keyboard_shortcuts":
+                from core.keyboard_shortcuts import sanitize_overrides
+                from core.shortcut_catalog import SHORTCUTS
+                clean = sanitize_overrides(value, SHORTCUTS)
+                merged[section] = clean
+                applied += 1
+                if isinstance(value, dict):
+                    ignored.extend(f'{section}.{key}' for key in value if key not in clean)
+                else:
+                    ignored.append(section)
+                continue
             # Free-form in its KEYS (a sound event name, a JID), never in its
             # values: a `sound_events` holding a number instead of a dict is
             # saved happily here and then crashes load_sounds() on the next

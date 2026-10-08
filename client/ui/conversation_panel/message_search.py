@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import command_key_event
 import wx
 from core.call_log import is_call_log
 from core.utils import normalize_for_search
@@ -89,6 +90,7 @@ class MessageSearchMixin:
         self._search_result_idx = -1
 
     def _on_search_key_down(self, event):
+        event = command_key_event(self, 'search', event)
         key   = event.GetKeyCode()
         shift = event.ShiftDown()
         if key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):

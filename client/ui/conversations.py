@@ -1,3 +1,4 @@
+from ui.shortcut_bindings import set_shortcut_label
 import base64 as _b64
 import copy
 import logging
@@ -1225,7 +1226,7 @@ class ConversationsPanel(
         self._search_prev_btn.SetLabel(i18n.t("search_prev_result"))
         self._search_next_btn.SetLabel(i18n.t("search_next_result"))
 
-        self.messages_label.SetLabel(i18n.t("messages"))
+        set_shortcut_label(self, self.messages_label, 'navigation.messages', i18n.t("messages"))
         col2 = wx.ListItem()
         col2.SetText(i18n.t("messages").replace("&", ""))
         for control in getattr(self, "_message_list_controls", {"active": self.messages_list}).values():
@@ -1240,13 +1241,13 @@ class ConversationsPanel(
 
         if self.conversation is not None and self.conversation_panel.IsShown():
             if self.conversation_name:
-                self.message_label.SetLabel(
+                set_shortcut_label(self, self.message_label, 'messages.ID_ALT_FOCUS_FIELD',
                     f"{i18n.t('type_message')} {self.conversation_name}"
                 )
             else:
-                self.message_label.SetLabel(i18n.t("type_message"))
+                set_shortcut_label(self, self.message_label, 'messages.ID_ALT_FOCUS_FIELD', i18n.t("type_message"))
         else:
-            self.message_label.SetLabel(i18n.t("type_message"))
+            set_shortcut_label(self, self.message_label, 'messages.ID_ALT_FOCUS_FIELD', i18n.t("type_message"))
 
         self.send_message_btn.SetLabel(i18n.t("send_message"))
         self._emoji_btn.SetLabel(i18n.t("emoji_button"))

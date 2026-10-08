@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import command_key_event
 import logging
 import re
 import threading
@@ -222,6 +223,7 @@ class MentionsMixin:
 
     def _on_mention_display_key_down(self, event):
         """Space/Enter on a mention HyperlinkCtrl activates it (like click)."""
+        event = command_key_event(self, 'mention', event)
         kc = event.GetKeyCode()
         if kc in (wx.WXK_RETURN, wx.WXK_SPACE, wx.WXK_NUMPAD_ENTER):
             ctrl = event.GetEventObject()

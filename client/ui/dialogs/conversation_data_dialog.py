@@ -15,6 +15,8 @@ Screen-reader accessibility is achieved through standard wxPython controls
 and proper label association — no visual-only information is presented.
 """
 
+from ui.shortcut_bindings import command_key_event
+from ui.shortcut_bindings import refresh_popup_shortcuts
 import logging
 import os
 import threading
@@ -1490,6 +1492,7 @@ class ConversationDataDialog(wx.Dialog):
         on the list rather than through a dialog-wide accelerator table so they
         cannot fire while the user is on the filter radio or a checkbox.
         """
+        event = command_key_event(self, 'messages', event)
         code = event.GetKeyCode()
         ctrl, shift, alt = event.ControlDown(), event.ShiftDown(), event.AltDown()
         msg = self._selected_media_message()
@@ -1612,6 +1615,7 @@ class ConversationDataDialog(wx.Dialog):
             )
             hint.Enable(False)
 
+        refresh_popup_shortcuts(self, 'messages', menu)
         self._media_list.PopupMenu(menu)
         menu.Destroy()
 
@@ -1849,6 +1853,7 @@ class ConversationDataDialog(wx.Dialog):
             promote_item = menu.Append(wx.ID_ANY, i18n.t("promote_to_admin"))
             self.Bind(wx.EVT_MENU, lambda e, j=jid, n=name: self._on_promote_member(j, n), promote_item)
 
+        refresh_popup_shortcuts(self, 'messages', menu)
         self.PopupMenu(menu)
         menu.Destroy()
 

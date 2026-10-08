@@ -28,6 +28,7 @@ from ui.dialogs.transcription_tab import TranscriptionTabMixin
 from ui.dialogs.transcription_external import ExternalModelsMixin
 from ui.dialogs.transcription_whisper_cpp import WhisperCppMixin
 from ui.dialogs.transcription_precision import TranscriptionPrecisionMixin
+from ui.dialogs.shortcuts_tab import ShortcutsTabMixin
 
 # Win32 modifier constants for RegisterHotKey
 _MOD_ALT     = 0x0001
@@ -198,7 +199,7 @@ def chat_lock_tab_visible(main_window) -> bool:
     return bool(getattr(main_window, "_chat_lock_unlocked", False))
 
 
-class SettingsDialog(TranscriptionTabMixin, ExternalModelsMixin, WhisperCppMixin,
+class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMixin, WhisperCppMixin,
                      TranscriptionPrecisionMixin, wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
 
@@ -220,6 +221,7 @@ class SettingsDialog(TranscriptionTabMixin, ExternalModelsMixin, WhisperCppMixin
         self._build_ui()
         self._loading_values = True
         self._load_values()
+        self._refresh_shortcut_rows()
         self._loading_values = False
         self._apply_btn.Hide()
         # Catches every checkbox/radio/combo/choice/text change anywhere in the
@@ -1507,6 +1509,7 @@ class SettingsDialog(TranscriptionTabMixin, ExternalModelsMixin, WhisperCppMixin
         # at index 14 or 15 and this one at 15 or 16.
         self._transcription_page = self._build_transcription_page(self._notebook)
         self._notebook.AddPage(self._transcription_page, i18n.t("tab_transcription"))
+        self._build_shortcuts_page()
 
         # ── Button row ───────────────────────────────────────────────────────
         btn_sizer = wx.StdDialogButtonSizer()
@@ -3234,6 +3237,8 @@ class SettingsDialog(TranscriptionTabMixin, ExternalModelsMixin, WhisperCppMixin
 
     def _apply_values(self) -> bool:
         """Validate, save, and apply all settings. Returns True on success."""
+        if not self._validate_shortcut_values():
+            return False
         if not self._validate():
             return False
 
@@ -3608,6 +3613,7 @@ class SettingsDialog(TranscriptionTabMixin, ExternalModelsMixin, WhisperCppMixin
         self._apply_chat_lock_values()
 
         # Persist and propagate
+        self._apply_shortcut_values()
         self.main_window.save_settings()
         from core.pinned_chat_order import refresh_after_order_setting_change
         refresh_after_order_setting_change(self.main_window, old_keep_pinned_order)
@@ -3681,6 +3687,7 @@ class SettingsDialog(TranscriptionTabMixin, ExternalModelsMixin, WhisperCppMixin
 
     def _refresh_dialog_labels(self):
         """Update this dialog's own title and notebook tab captions after a language change."""
+        self._refresh_shortcut_labels()
         i18n = self.main_window.i18n
         self.SetTitle(i18n.t("settings_title"))
         self._notebook.SetPageText(0, i18n.t("tab_general"))

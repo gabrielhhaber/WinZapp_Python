@@ -5,6 +5,7 @@ the StatusPanel instance, so every attribute set in StatusPanel.__init__/
 init_UI is available here.
 """
 
+from ui.shortcut_bindings import command_key_event
 import threading
 import wx
 from status_tab.status_rules import _status_content_label
@@ -178,6 +179,7 @@ class StatusListMixin:
         Plain arrow navigation only changes the selected contact. It never
         opens a status and therefore never marks anything as viewed.
         """
+        event = command_key_event(self, 'status_list', event)
         if event.GetKeyCode() != wx.WXK_SPACE:
             event.Skip()
             return

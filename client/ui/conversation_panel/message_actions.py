@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import set_shortcut_label
 import logging
 import threading
 import time
@@ -848,7 +849,7 @@ class MessageActionsMixin:
         )
         if self.conversation_name:
             label = f"{label} {self.conversation_name}"
-        self.message_label.SetLabel(label)
+        set_shortcut_label(self, self.message_label, 'messages.ID_ALT_FOCUS_FIELD', label)
         self._remove_quote_btn.Hide()
         self.conversation_panel.Layout()
         self.message_field.SetFocus()

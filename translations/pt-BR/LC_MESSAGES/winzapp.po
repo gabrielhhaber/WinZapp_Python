@@ -2201,7 +2201,8 @@ msgstr "Configurações de vídeo da chamada"
 #: client/ui/dialogs/attach_contact_dialog.py
 #: client/ui/dialogs/emoji_picker.py client/ui/dialogs/meta_ai_terms.py
 #: client/ui/dialogs/new_contact.py client/ui/dialogs/new_group.py
-#: client/ui/dialogs/settings_dialog.py client/updater.py
+#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
+#: client/updater.py
 msgctxt "cancel"
 msgid "&Cancel"
 msgstr "&Cancelar"
@@ -5613,7 +5614,7 @@ msgstr "Modo offline ativado. Algumas funções podem estar indisponíveis."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
-#: client/ui/dialogs/settings_dialog.py
+#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
 msgctxt "ok"
 msgid "&OK"
 msgstr "&OK"
@@ -6943,6 +6944,7 @@ msgid "An error occurred while saving the settings:"
 msgstr "Ocorreu um erro ao salvar as configurações:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
+#: client/ui/shortcut_bindings.py
 msgctxt "settings_shortcut"
 msgid "ctrl+comma"
 msgstr "ctrl+vírgula"
@@ -7269,6 +7271,62 @@ msgid "F5: refresh the calls list"
 msgstr "F5: atualizar a lista de ligações"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcut_capture.py
+msgctxt "shortcut_capture_hint"
+msgid ""
+"Tab and Shift+Tab move focus. Press Enter or Escape in this field to capture"
+" those keys. Tab to OK to confirm, or Cancel to discard."
+msgstr ""
+"Tab e Shift+Tab movem o foco. Pressione Enter ou Escape neste campo para "
+"capturar essas teclas. Use Tab até OK para confirmar, ou Cancelar para "
+"descartar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_capture_modifier_required"
+msgid "Use Control or Alt with a letter or digit."
+msgstr "Use Control ou Alt com uma letra ou dígito."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcut_capture.py
+msgctxt "shortcut_capture_prompt"
+msgid "Press the new key combination"
+msgstr "Pressione a nova combinação de teclas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_capture_reserved"
+msgid "This key combination is reserved by the operating system."
+msgstr "Esta combinação de teclas é reservada pelo sistema operacional."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_capture_wait"
+msgid "Press another key while holding the modifiers."
+msgstr "Pressione outra tecla mantendo os modificadores pressionados."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_change"
+msgid "Change"
+msgstr "Alterar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcut_capture.py client/ui/dialogs/shortcuts_tab.py
+msgctxt "shortcut_change_title"
+msgid "Change keyboard shortcut"
+msgstr "Alterar atalho de teclado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+#, python-brace-format
+msgctxt "shortcut_conflict"
+msgid ""
+"This shortcut is already used in an overlapping screen by:\n"
+"{actions}\n"
+"Remove or change that assignment first."
+msgstr ""
+"Este atalho já é usado em uma tela sobreposta por:\n"
+"{actions}\n"
+"Remova ou altere essa atribuição primeiro."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_ctrl_alt_num_label"
 msgid "Ctrl+Alt+1 to Ctrl+Alt+9: switch to the matching paired account"
@@ -7569,6 +7627,179 @@ msgid "F5: resync all chats"
 msgstr "F5: ressincronizar todas as conversas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_insert_mention"
+msgid "Insert the selected mention"
+msgstr "Inserir a menção selecionada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_alt"
+msgid "Alt"
+msgstr "Alt"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_backspace"
+msgid "Backspace"
+msgstr "Backspace"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_control"
+msgid "Ctrl"
+msgstr "Ctrl"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_delete"
+msgid "Delete"
+msgstr "Delete"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_down"
+msgid "Down"
+msgstr "Seta abaixo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_end"
+msgid "End"
+msgstr "End"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_enter"
+msgid "Enter"
+msgstr "Enter"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_escape"
+msgid "Escape"
+msgstr "Escape"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_home"
+msgid "Home"
+msgstr "Home"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_insert"
+msgid "Insert"
+msgstr "Insert"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_left"
+msgid "Left"
+msgstr "Seta esquerda"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_pagedown"
+msgid "Page Down"
+msgstr "Page Down"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_pageup"
+msgid "Page Up"
+msgstr "Page Up"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_right"
+msgid "Right"
+msgstr "Seta direita"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_shift"
+msgid "Shift"
+msgstr "Shift"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_space"
+msgid "Space"
+msgstr "Espaço"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_tab"
+msgid "Tab"
+msgstr "Tab"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_key_up"
+msgid "Up"
+msgstr "Seta acima"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_newline"
+msgid "Insert a new line"
+msgstr "Inserir uma nova linha"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_next_tone"
+msgid "Next emoji skin tone"
+msgstr "Próximo tom de pele do emoji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_open_status"
+msgid "Open or play the focused status"
+msgstr "Abrir ou reproduzir o status em foco"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_paste"
+msgid "Paste into the message editor from the message list"
+msgstr "Colar no campo de mensagem a partir da lista de mensagens"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_pick_device"
+msgid "Choose numbered audio device"
+msgstr "Escolher dispositivo de áudio numerado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_pick_selected_device"
+msgid "Choose the selected audio device"
+msgstr "Escolher dispositivo de áudio selecionado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_pin_preview"
+msgid ""
+"Pin or unpin the chat; play or stop the preview while recording is paused"
+msgstr ""
+"Fixar ou desafixar a conversa; reproduzir ou parar a prévia enquanto a "
+"gravação está pausada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_previous_filter"
+msgid "Previous call-list filter"
+msgstr "Filtro anterior da lista de chamadas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_previous_tone"
+msgid "Previous emoji skin tone"
+msgstr "Tom de pele anterior do emoji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_remove"
+msgid "Remove shortcut"
+msgstr "Remover atalho"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_reset"
+msgid "Restore default"
+msgstr "Restaurar padrão"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_reset_all"
+msgid "Restore all defaults"
+msgstr "Restaurar todos os padrões"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_scope_global"
+msgid "System-wide"
+msgstr "Todo o sistema"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_scope_links"
+msgid "Links"
+msgstr "Links"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_scope_mentions"
+msgid "Mentions"
+msgstr "Menções"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_search_enter_label"
 msgid ""
@@ -7598,6 +7829,45 @@ msgstr ""
 msgctxt "shortcut_search_shift_f3_label"
 msgid "Shift+F3: previous search result, in the whole open conversation"
 msgstr "Shift+F3: resultado anterior de pesquisa, em toda a conversa aberta"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_select_active"
+msgid "Toggle the focused row while selection mode is active"
+msgstr "Alternar a linha em foco com o modo de seleção ativo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_select_end"
+msgid "Extend selection to the last row"
+msgstr "Estender seleção à última linha"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_select_previous"
+msgid "Extend selection to the previous row"
+msgstr "Estender seleção à linha anterior"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_select_start"
+msgid "Extend selection to the first row"
+msgstr "Estender seleção à primeira linha"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+msgctxt "shortcut_settings_hint"
+msgid ""
+"Select a command, press Tab to Change, then press the new keys. Confirm with"
+" OK. Changes take effect when you apply or save Settings. The same key can "
+"serve different screens; a new conflicting assignment is refused."
+msgstr ""
+"Selecione um comando, pressione Tab até Alterar e pressione as novas teclas."
+" Confirme com OK. As alterações entram em vigor ao aplicar ou salvar as "
+"Configurações. A mesma tecla pode servir telas diferentes; uma nova "
+"atribuição conflitante é recusada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+msgctxt "shortcut_settings_list"
+msgid "Commands and keyboard shortcuts"
+msgstr "Comandos e atalhos de teclado"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -7668,6 +7938,11 @@ msgstr ""
 "Espaço: reproduzir/pausar o áudio ou vídeo focado. Quando já houver algo "
 "marcado, passa a marcar/desmarcar a conversa ou mensagem focada, se a opção "
 "estiver ativada em Configurações, Interface do usuário"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
+msgctxt "shortcut_unassigned"
+msgid "Not assigned"
+msgstr "Não atribuído"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_bulk_section"
@@ -8757,6 +9032,12 @@ msgstr "Cópia de segurança"
 msgctxt "tab_reactions"
 msgid "Reactions"
 msgstr "Reações"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+msgctxt "tab_shortcuts"
+msgid "Keyboard shortcuts"
+msgstr "Atalhos de teclado"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

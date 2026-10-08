@@ -1008,6 +1008,7 @@ def get_downloads_folder() -> str:
 # one copy avoids the two call sites drifting apart when a new settings key
 # is added to only one of them.
 DEFAULT_SETTINGS = {
+    "keyboard_shortcuts": {},
     "connection": {
         "wpp_server": "http://127.0.0.1",
         "wpp_port": 6300,

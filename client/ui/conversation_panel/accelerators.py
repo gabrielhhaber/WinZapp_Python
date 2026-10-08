@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from ui.shortcut_bindings import make_shortcut_table
 import wx
 from core.conversation_view import mnemonic_letter
 
@@ -71,7 +72,7 @@ class AcceleratorsMixin:
         AS = wx.ACCEL_ALT | wx.ACCEL_SHIFT
         CAS = wx.ACCEL_CTRL | wx.ACCEL_ALT | wx.ACCEL_SHIFT
         i18n = self.main_window.i18n
-        accel_tbl = wx.AcceleratorTable([
+        accel_tbl = make_shortcut_table(self, 'chats', [
             (wx.ACCEL_ALT,    ord(mnemonic_letter(i18n.t("messages"), "M")), self.ID_ALT_M_LIST),
             (wx.ACCEL_CTRL,   ord("F"),        self.ID_CTRL_F),
             (wx.ACCEL_CTRL,   ord("N"),        self.ID_CTRL_N),
@@ -235,7 +236,7 @@ class AcceleratorsMixin:
         focus_list_letter = mnemonic_letter(
             self.main_window.i18n.t("messages"), "M")
 
-        accel_tbl = wx.AcceleratorTable([
+        accel_tbl = make_shortcut_table(self, 'messages', [
             (CS,               ord("I"),          self.ID_AI_ACTION),
             (wx.ACCEL_ALT,     ord(focus_field_letter), self.ID_ALT_FOCUS_FIELD),
             (wx.ACCEL_ALT,     ord(focus_list_letter),  self.ID_ALT_FOCUS_LIST),
@@ -312,7 +313,7 @@ class AcceleratorsMixin:
             (AS,            ord(str(d)), self.ID_TEMP_BOOKMARK[d]) for d in range(10)
         ] + [
             (CAS,           ord(str(d)), self.ID_TEMP_BOOKMARK_REMOVE[d]) for d in range(10)
-        ])
+        ], target=self.conversation_panel)
         self.conversation_panel.SetAcceleratorTable(accel_tbl)
         self.Bind(wx.EVT_MENU, self._on_accel_focus_field,          id=self.ID_ALT_FOCUS_FIELD)
         self.Bind(wx.EVT_MENU, self._on_accel_focus_list,           id=self.ID_ALT_FOCUS_LIST)

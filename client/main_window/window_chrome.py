@@ -232,6 +232,8 @@ class WindowChromeMixin:
         menubar.Append(help_menu, self.i18n.t("menu_help"))
 
         self.SetMenuBar(menubar)
+        from ui.shortcut_bindings import refresh_menu_shortcuts
+        refresh_menu_shortcuts(self)
         self.Bind(wx.EVT_MENU, self._on_mark_all_read, id=self._ID_MARK_ALL_READ)
         self.Bind(wx.EVT_MENU, self.on_ctrl_comma,     id=self._ID_SETTINGS)
         self.Bind(wx.EVT_MENU, self._on_export_settings, id=self._ID_EXPORT_SETTINGS)
@@ -269,21 +271,13 @@ class WindowChromeMixin:
         through untouched with event.Skip().
         """
         try:
-            if (event.GetModifiers() == (wx.MOD_CONTROL | wx.MOD_ALT)):
-                code = event.GetKeyCode()
-                if ord("1") <= code <= ord("9"):
-                    slot = code - ord("0")
-                    target = getattr(self, "_account_hotkey_slots", {}).get(slot)
-                    if target:
-                        if target != getattr(self, "account_id", None):
-                            self._switch_to_account(target)
-                        return  # consume the combo (even a no-op self-switch)
-                    # No paired account at this slot (e.g. a single-account
-                    # install, or fewer than <slot> paired accounts) — there
-                    # is nothing to switch to, so this combo isn't actually
-                    # ours; fall through to event.Skip() below.
-            elif (event.GetModifiers() == wx.MOD_CONTROL
-                    and event.GetKeyCode() == wx.WXK_F4
+            from ui.shortcut_bindings import matches
+            for slot, target in getattr(self, '_account_hotkey_slots', {}).items():
+                if matches(self, event, f'main.account[{slot}]'):
+                    if target != getattr(self, 'account_id', None):
+                        self._switch_to_account(target)
+                    return
+            if (matches(self, event, 'main.close_account')
                     and getattr(self, "_accounts_menu_id_map", None)):
                 # Ctrl+F4 → Accounts > Close current account. Only while the
                 # Accounts menu exists, i.e. under the account system.
@@ -314,14 +308,13 @@ class WindowChromeMixin:
         bookmark set, is passed through untouched with event.Skip().
         """
         try:
-            if event.GetModifiers() == wx.MOD_CONTROL:
-                code = event.GetKeyCode()
-                if ord("0") <= code <= ord("9"):
-                    digit = code - ord("0")
-                    panel = getattr(self, "conversations_panel", None)
-                    if panel is not None and digit in getattr(panel, "_msg_bookmarks", {}):
-                        panel._on_bookmark_set_or_jump(digit)
-                        return  # consume — this was a jump to an existing bookmark
+            from ui.shortcut_bindings import matches
+            panel = getattr(self, 'conversations_panel', None)
+            for digit in range(10):
+                if (panel is not None and digit in getattr(panel, '_msg_bookmarks', {})
+                        and matches(self, event, f'messages.ID_BOOKMARK[{digit}]')):
+                    panel._on_bookmark_set_or_jump(digit)
+                    return
         except Exception:
             logging.exception("[bookmarks] hotkey char handler failed")
         event.Skip()
@@ -383,6 +376,12 @@ class WindowChromeMixin:
         """
         if not getattr(self, "_bookmark_zero_hotkey_bound", False):
             return
+        from core.keyboard_shortcuts import SECTION, binding_for
+        from core.shortcut_catalog import SHORTCUTS
+        shortcut = next(s for s in SHORTCUTS if s.id == 'messages.ID_BOOKMARK_REMOVE[0]')
+        settings = getattr(self, 'settings', {})
+        translate = self.i18n.t if hasattr(self, 'i18n') else lambda key: key
+        active = bool(active) and binding_for(shortcut, settings.get(SECTION, {}), translate) == (6, ord('0'))
         if bool(active) == getattr(self, "_bookmark_zero_hotkey_on", False):
             return
         try:

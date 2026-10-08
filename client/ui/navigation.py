@@ -1,3 +1,4 @@
+from ui.shortcut_bindings import set_shortcut_label
 import os
 import sys
 import wx
@@ -5,6 +6,7 @@ from core.conversation_view import ARCHIVED, MAIN
 from traceback import format_exc
 from core.sound_system import SoundSystem
 from ui.conversations import ConversationsPanel
+from ui.shortcut_bindings import command_key_event, navigation_shortcut_label
 
 
 class NavigationPanel(wx.Panel):
@@ -39,7 +41,7 @@ class NavigationPanel(wx.Panel):
     def refresh_labels(self):
         """Update all translatable labels after a language change."""
         i18n = self.main_window.i18n
-        self.nav_label.SetLabel(i18n.t("main_nav"))
+        set_shortcut_label(self, self.nav_label, 'main.ID_ALT_NAV', i18n.t("main_nav"))
         col = wx.ListItem()
         col.SetText(i18n.t("main_nav"))
         self.nav_list.SetColumn(0, col)
@@ -67,6 +69,8 @@ class NavigationPanel(wx.Panel):
             "calls": i18n.t("calls_nav"),
             "settings": f"{i18n.t('settings')} {i18n.t('settings_shortcut')}",
         }
+        labels = {key: navigation_shortcut_label(self.main_window, key, label)
+                  for key, label in labels.items()}
         self.nav_list.Freeze()
         try:
             self.nav_list.DeleteAllItems()
@@ -99,9 +103,11 @@ class NavigationPanel(wx.Panel):
             label = i18n.t("archived_chats_nav_unread_singular")
         else:
             label = i18n.t("archived_chats_nav_unread_plural").format(count=count)
+        label = navigation_shortcut_label(self.main_window, 'archived', label)
         self.nav_list.SetItemText(self._nav_keys.index("archived"), label)
 
     def _on_nav_key_down(self, event):
+        event = command_key_event(self, 'navigation', event)
         if event.GetKeyCode() == wx.WXK_SPACE:
             idx = self.nav_list.GetFocusedItem()
             if idx >= 0:

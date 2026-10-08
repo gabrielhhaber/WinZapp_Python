@@ -5,6 +5,7 @@ MainWindow instance, so every attribute set in MainWindow.__init__ is
 available here.
 """
 
+from ui.shortcut_bindings import make_shortcut_table
 import wx
 from core.conversation_view import ARCHIVED, MAIN
 
@@ -46,7 +47,7 @@ class ShortcutsMixin:
             nav_letter = _nav_label[_amp + 1].upper()
 
         #create accelerator table
-        accel_tbl = wx.AcceleratorTable([
+        accel_tbl = make_shortcut_table(self, 'main', [
             (wx.ACCEL_ALT,    ord('1'),    self.ID_ALT_1),
             (wx.ACCEL_ALT,    ord('2'),    self.ID_ALT_2),
             (wx.ACCEL_ALT,    ord('3'),    self.ID_ALT_3),
@@ -79,6 +80,8 @@ class ShortcutsMixin:
         self.Bind(wx.EVT_MENU, self._on_global_toggle_audio_playback, id=self.ID_CTRL_ALT_SHIFT_P)
         self.Bind(wx.EVT_MENU, self._on_quick_output_devices, id=self.ID_CTRL_ALT_SHIFT_H)
         self.Bind(wx.EVT_MENU, self._on_quick_input_devices, id=self.ID_CTRL_ALT_SHIFT_G)
+        from ui.shortcut_bindings import refresh_mnemonics
+        refresh_mnemonics(self)
 
     def _on_alt_nav(self, event):
         """Alt+N (or the localized equivalent): focus the main navigation list."""
@@ -248,6 +251,8 @@ class ShortcutsMixin:
             self._build_menubar()
         else:
             self._refresh_menubar()
+        from ui.shortcut_bindings import refresh_shortcuts
+        refresh_shortcuts(self)
 
     def on_alt_1(self, event):
         self.lock_chat_vault(silent=True, show_conversations=False)
