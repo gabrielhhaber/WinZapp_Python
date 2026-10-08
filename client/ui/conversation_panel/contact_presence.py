@@ -21,8 +21,14 @@ class ContactPresencePanelMixin:
             if (visit != self._contact_presence_visit or self.conversation is None
                     or getattr(self.main_window, "_shutting_down", False)):
                 return
-            self.main_window._refresh_open_contact_presence()
-            self._contact_presence_timer = wx.CallLater(30_000, tick)
+            try:
+                self.main_window._refresh_open_contact_presence()
+            finally:
+                # Worker-start faults must not end this one-shot timer chain.
+                # Refresh can also close/reopen the chat; never revive its old visit.
+                if (visit == self._contact_presence_visit and self.conversation is not None
+                        and not getattr(self.main_window, "_shutting_down", False)):
+                    self._contact_presence_timer = wx.CallLater(30_000, tick)
 
         # Navigation finishes showing the panel before the first request.
         wx.CallAfter(tick)
