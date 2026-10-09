@@ -88,8 +88,6 @@ native-dialog checks or manual screen-reader acceptance.
 
 The source and test ownership map is in
 [docs/reference/architecture-and-tests.md](reference/architecture-and-tests.md).
-The [2026-10-08 audit](reference/repository-audit-2026-10-08.md) records the
-shortcut CI failures, documentation corrections and local verification limits.
 
 Every release build is gated on the full test suite passing (see [.github/workflows/release.yml](../.github/workflows/release.yml)) — a failing test suite stops the build before any release is created.
 
