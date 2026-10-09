@@ -1,4 +1,3 @@
-from ui.shortcut_bindings import make_shortcut_table
 import io
 import os
 import sys
@@ -114,6 +113,7 @@ from core.wpp_runtime import read_homologated_wpp_version
 from core.utils import reaction_targets_status, encrypt, decrypt, encrypt_json, decrypt_json, generate_and_save_key, retrieve_key, format_number, is_phone_like, looks_like_binary_blob, prune_message_record, prune_chats_messages, effective_unread_count, mute_response_accepted, normalize_for_search, search_normalization_mode, parse_bool_flag as _parse_bool_flag, group_setting_notif_value, DEFAULT_SETTINGS, append_selected_marker, is_message_forwarded, plan_row_updates, display_page_fetch_limit, carry_over_video_durations, video_seconds, MEASURED_SECONDS_KEY, is_voice_message, backfill_missing_defaults, auto_download_allows, migrate_voice_messages_media_types, migrate_voice_message_mode_default, migrate_spell_check_mode, migrate_call_exclusive_mode_split
 from core.utils import clear_chat_applied, clear_chat_keep_starred_echo
 from ui.dialogs.checkbox_confirm import confirm_with_checkbox
+from ui.shortcut_bindings import make_shortcut_table
 from core.settings_transfer import connection_runtime as _connection_runtime
 from core.profile_backup import (
     close_snapshot_max_age as _close_snapshot_max_age,

@@ -4,6 +4,8 @@ Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră
 
 NOUTĂȚI
 
+- Comenzi rapide de tastatură personalizabile: noul tab Comenzi rapide din Setări listează toate comenzile rapide ale aplicației, inclusiv comanda globală de afișare a ferestrei. Selectează una, apasă Schimbă și introdu noua combinație sau dezactiveaz-o, restabilește valoarea implicită ori restabilește-le pe toate. Conflictele sunt semnalate înainte de aplicare, iar modificările au efect doar după Aplică sau OK.
+
 - Mesaje fixate: un buton în fiecare chat afișează mesajele fixate în WhatsApp, inclusiv mesajele mai vechi. Apăsați Enter pentru a merge la mesajul ales în istoric. La deschiderea chatului este anunțat numărul mesajelor fixate fără a muta focalizarea; fiecare mesaj fixat are și un marcaj text.
 
 - Submeniul contextual „Ortografie” al câmpului de mesaj oferă sugestii din dicționarul Windows. Editorul păstrează navigarea standard a cititorului de ecran și sunetul de eroare de ortografie WinZapp.

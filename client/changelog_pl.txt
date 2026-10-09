@@ -4,6 +4,8 @@ W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym 
 
 NOWOŚCI
 
+- Konfigurowalne skróty klawiszowe: nowa karta Skróty w Ustawieniach wyświetla wszystkie skróty aplikacji, w tym globalny skrót pokazywania okna. Zaznacz skrót, naciśnij Zmień i wpisz nową kombinację albo wyłącz go, przywróć domyślny lub przywróć wszystkie. Konflikty są zgłaszane przed zastosowaniem, a zmiany obowiązują dopiero po wybraniu Zastosuj lub OK.
+
 - Przypięte wiadomości: przycisk w każdym czacie wyświetla wiadomości przypięte w WhatsApp, również te starsze. Naciśnij Enter, aby przejść do wybranej wiadomości w historii. Po otwarciu czatu ogłaszana jest liczba przypiętych wiadomości bez zmiany fokusu; każda przypięta wiadomość ma też oznaczenie tekstowe.
 
 - Podmenu kontekstowe „Pisownia” w polu wiadomości oferuje sugestie ze słownika Windows. Edytor zachowuje standardową nawigację czytnika ekranu i dźwięk błędu pisowni WinZapp.

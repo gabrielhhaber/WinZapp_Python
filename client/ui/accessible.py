@@ -1,7 +1,8 @@
-from ui.shortcut_bindings import accessible_shortcut
 import os
 import sys
 import wx
+
+from ui.shortcut_bindings import accessible_shortcut
 
 
 def split_mnemonic(label):

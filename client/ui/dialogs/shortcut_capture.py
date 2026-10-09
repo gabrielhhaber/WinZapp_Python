@@ -23,7 +23,8 @@ def capture_error(mod, key, global_hotkey=False):
 
 class ShortcutCaptureDialog(wx.Dialog):
     def __init__(self, parent, action, binding, global_hotkey=False):
-        self.i18n = parent.main_window.i18n
+        self.main_window = parent.main_window
+        self.i18n = self.main_window.i18n
         self.binding = binding
         self.vk = 0
         self.global_hotkey = global_hotkey
@@ -63,15 +64,15 @@ class ShortcutCaptureDialog(wx.Dialog):
             return
         from ui.shortcut_bindings import event_chord
         mod, key = event_chord(event)
-        mod = (2 if event.ControlDown() else 0) | (1 if event.AltDown() else 0) | (4 if event.ShiftDown() else 0)
-        if key == wx.WXK_TAB and mod in (0, 4):
+        if (key == wx.WXK_TAB and mod in (0, 4)) or (key == wx.WXK_ESCAPE and not mod):
             event.Skip()
             return
         error = capture_error(mod, key, self.global_hotkey)
-        if event.MetaDown():
+        if mod & 8:  # event_chord marks Windows/Command gestures with 8
             error = 'shortcut_capture_reserved'
         if error:
             self.hint.SetLabel(self.i18n.t(error))
+            self.main_window.speak_output.output(self.i18n.t(error))
             self.ok.Enable(False)
             return
         self.binding = mod, key

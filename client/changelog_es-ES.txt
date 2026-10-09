@@ -4,6 +4,8 @@ Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, 
 
 NOVEDADES
 
+- Atajos de teclado personalizables: la nueva pestaña Atajos de Ajustes enumera todos los atajos de la aplicación, incluido el atajo global para mostrar la ventana. Selecciona uno, pulsa Cambiar y escribe la nueva combinación, o desactívalo, restaura su valor predeterminado o restaura todos. Los conflictos se avisan antes de aplicar y los cambios solo se aplican con Aplicar o Aceptar.
+
 - Mensajes fijados: un botón en cada conversación muestra los mensajes fijados en WhatsApp, incluidos los antiguos. Pulsa Intro para ir a uno de ellos en el historial. Al abrir la conversación se anuncia la cantidad de mensajes fijados sin mover el foco; cada mensaje fijado también tiene una indicación en texto.
 
 - El submenú contextual "Ortografía" del campo de mensaje ofrece sugerencias del diccionario de Windows. El editor mantiene la navegación estándar del lector de pantalla y el sonido de error ortográfico de WinZapp.

@@ -4,6 +4,8 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- Atalhos de teclado personalizáveis: o novo separador Atalhos das Definições lista todos os atalhos da aplicação, incluindo o atalho global para mostrar a janela. Seleccione um, prima Alterar e escreva a nova combinação, ou desactive-o, reponha a predefinição ou reponha todos. Os conflitos são avisados antes de aplicar, e as alterações só têm efeito com Aplicar ou OK.
+
 - Mensagens afixadas: um botão em cada conversa lista as mensagens afixadas no WhatsApp, incluindo mensagens antigas. Prima Enter para ir até uma delas no histórico. Ao abrir a conversa, a quantidade de afixadas é anunciada sem mudar o foco; cada mensagem afixada também tem uma indicação em texto.
 
 - O submenu de contexto "Ortografia" do campo de mensagem oferece sugestões do dicionário do Windows. O editor mantém a navegação padrão do leitor de ecrã e o som de erro ortográfico do WinZapp.

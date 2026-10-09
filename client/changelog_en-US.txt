@@ -4,6 +4,8 @@ This release brings transcription of voice messages on your own computer, with n
 
 WHAT'S NEW
 
+- Customizable keyboard shortcuts: the new Shortcuts tab in Settings lists every application shortcut, including the global show-window shortcut. Select one, press Change and type the new combination, or disable it, restore its default or restore them all. Conflicts are reported before you apply, and changes only take effect with Apply or OK.
+
 - Pinned messages: a button in each chat lists the messages pinned on WhatsApp, including older messages. Press Enter to go to one in the history. Opening a chat announces the number of pinned messages without moving focus; each pinned message also has a readable marker.
 
 - The message field's "Spelling" context submenu offers Windows dictionary suggestions. The editor keeps its standard screen-reader navigation and WinZapp's spelling-error sound.

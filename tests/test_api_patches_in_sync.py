@@ -218,10 +218,9 @@ def test_wppconnect_runtime_is_pinned_by_both_installers():
     Upstream declares a caret range, so leaving it alone meant a plain
     `npm install` of the same server tag could change the browser-side send
     and status APIs underneath an unchanged WinZapp build — which is what it
-    did. Moving the pair is a deliberate act, validated against the chosen
-    server tag, never something a reinstall does on its own. The server pin
-    changes only when that tag changes. Both installers must carry the key,
-    or the end-user
+    did. Moving the pair is a deliberate act, made in one commit alongside
+    client/wpp_minimum_version.txt, never something a reinstall does on its
+    own. Both installers therefore have to carry the key, or the end-user
     install flow silently resolves a different pair than a dev build."""
     setup = (ROOT / "setup_api.py").read_text(encoding="utf-8")
     dialog = (ROOT / "client" / "ui" / "dialogs" / "api_setup.py").read_text(encoding="utf-8")
