@@ -5,25 +5,26 @@ from urllib.parse import quote
 
 import wx
 from core.api_client import api_get
-from core.contact_presence import aliases, cached, is_subscribed, merge, response_snapshot
+from core.contact_presence import aliases, cached, is_subscribed, merge
+from core.contact_presence_query import query_targets, read_snapshot
 from core.conversation_view import conversation_in_view
 
 
 class ContactPresenceMixin:
     def _fetch_contact_presence(self, jid):
-        keys = aliases(self, jid)
-        target = keys[0] if keys else ""
-        if not target.endswith(("@s.whatsapp.net", "@c.us", "@lid")):
+        targets = query_targets(self._normalize_jid(jid),
+                                getattr(self, "_lid_to_phone", {}),
+                                getattr(self, "_phone_to_lid", {}))
+        if not targets:
             return None
-        phone = target if target.endswith("@lid") else target.split("@")[0]
-        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/last-seen/{quote(phone, safe='')}"
-        try:
-            response = api_get(url, headers={"Authorization": f"Bearer {self.token}"}, timeout=10)
-            if response.status_code in (200, 201):
-                return response_snapshot(response.json())
-        except Exception:
-            pass
-        return None
+        endpoint = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/last-seen/"
+        headers = {"Authorization": f"Bearer {self.token}"}
+
+        def request(target, timeout):
+            phone = target if target.endswith("@lid") else target.split("@")[0]
+            return api_get(endpoint + quote(phone, safe=''), headers=headers, timeout=timeout)
+
+        return read_snapshot(targets, request, time.monotonic)
 
     def _refresh_open_contact_presence(self):
         panel = getattr(self, "conversations_panel", None)
@@ -50,6 +51,10 @@ class ContactPresenceMixin:
         attempts[key] = now
         visit = getattr(panel, "_contact_presence_visit", 0)
         epoch = getattr(self, "_contact_presence_epoch", 0)
+        identity = aliases(self, jid)
+        query_identity = query_targets(self._normalize_jid(jid),
+                                       getattr(self, "_lid_to_phone", {}),
+                                       getattr(self, "_phone_to_lid", {}))
         revision = cached(self, jid, fresh=False) or None
         # The subscription outlives the tick; only a failed one or a new
         # connection epoch (cache cleared) needs asking again.
@@ -70,7 +75,13 @@ class ContactPresenceMixin:
                               and bool(panel.conversation.get("remoteJid"))
                               and aliases(self, panel.conversation.get("remoteJid", ""))[0] == aliases(self, jid)[0])
                 if (result is not None and same_visit
+                        and not getattr(self, "_shutting_down", False)
+                        and getattr(self, "_wa_connected", False)
                         and epoch == getattr(self, "_contact_presence_epoch", 0)
+                        and identity == aliases(self, jid)
+                        and query_identity == query_targets(self._normalize_jid(jid),
+                                                            getattr(self, "_lid_to_phone", {}),
+                                                            getattr(self, "_phone_to_lid", {}))
                         and revision is (cached(self, jid, fresh=False) or None)):
                     merge(self, jid, result)
                 # Read the current cache, including events received during HTTP.
