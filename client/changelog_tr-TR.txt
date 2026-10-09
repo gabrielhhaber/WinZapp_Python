@@ -36,6 +36,8 @@ YENİLİKLER
 
 - Sohbet filtreleri için kısayollar: Alt+Shift+F sohbet filtresi seçenek düğmelerine gider ve bu düğmeler artık kısayolu duyurur; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G ve Alt+Shift+I sohbet listesinden doğrudan Tümü, Okunmamış, Gruplar ve Bireysel filtrelerini seçer. WhatsApp listesi seçenekleri ve "WhatsApp listelerini yönet" artık sohbet filtrelerinden önce gelir. Hepsi kısayol yardımında (F1) yer alır.
 
+- WinZapp daha hızlı açılıyor. Hesabınız zaten bağlıysa ana pencere ve sohbetleriniz hemen görünür; WPPConnect arka planda başlatılır ve WhatsApp arka planda bağlanır. Artık "WPPConnect başlatılıyor, lütfen bekleyin..." penceresinin kapanması beklenmez. Bu sırada gönderdiğiniz mesajlar bekletilir ve WhatsApp bağlanır bağlanmaz gönderilir. İlk başlatma ve henüz eşlenmesi gereken bir hesap, bu pencereyi eskisi gibi gösterir.
+
 DÜZELTMELER
 
 - Bilgisayar uykudan uyandığında yeni iletiler güvenilir biçimde alınır: WhatsApp sohbet listesi değişmemiş görünse bile açık sohbet ve son sohbetler yeniden denetlenir, bağlı cihaz kimliğiyle bağlanan sohbetlerin güncellemeleri artık yok sayılmaz

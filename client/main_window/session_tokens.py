@@ -20,6 +20,7 @@ from app_paths import (
 from core.api_client import api_post
 from traceback import format_exc
 from core import token_vault
+from main_window.api_start_behind_window import wait_for_api_start
 
 
 class SessionTokensMixin:
@@ -441,6 +442,13 @@ class SessionTokensMixin:
         # sessions; never clean under custom API (plan Zad 3.2 + user config).
         if getattr(self, "wpp_custom_api", False):
             logging.info("[sessions] custom API active — skipping abandoned-session cleanup")
+            return
+        # A Node still starting behind the window (issue #407) refuses the
+        # logout below, and the circuit breaker then deletes every abandoned
+        # profile without deregistering it — a linked device left on the
+        # phone that nothing can remove any more. Wait for it; a start that
+        # failed is quitting, and the next launch cleans up.
+        if not wait_for_api_start(self):
             return
         try:
             import session_store

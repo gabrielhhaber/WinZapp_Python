@@ -104,6 +104,11 @@ class UpdatesMixin:
         ready = getattr(self, "_ui_ready_event", None)
         if ready is not None and not ready.is_set():
             return False  # still inside MainWindow.__init__: no window to ask from
+        api_start = getattr(self, "_api_start_settled", None)
+        if api_start is not None and not api_start.is_set():
+            # Node still starting behind the window (issue #407): the same
+            # moment this used to be still inside __init__'s startup dialog.
+            return False
         try:
             if self._is_pairing_dialog_active():
                 return False

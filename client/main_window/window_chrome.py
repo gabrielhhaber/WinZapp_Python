@@ -645,6 +645,51 @@ class WindowChromeMixin:
             logging.exception("[accounts] unpaired-start switch offer failed (non-fatal)")
             return False
 
+    def _pair_account_at_startup(self) -> str:
+        """Startup's pairing check: is this account paired, and if not, pair it.
+
+        Shared by MainWindow.__init__ (before init_UI(), on the main thread)
+        and by a launch whose window opened while WPPConnect was still
+        starting (main_window/api_start_behind_window.py, from post_ui_init's
+        thread, once Node can answer). How the process then ends is the
+        caller's: __init__ has no main loop yet, the other one has a window.
+
+        Returns "connected" (already paired), "paired" (just paired through
+        the dialog), "switching" (the user switched account or quit; real_exit
+        is already queued) or "unpaired" (the dialog was closed unpaired).
+        """
+        if self.connect.check_connection_status():
+            return "connected"
+        # This account is unpaired (session lost, or pairing never
+        # finished). If OTHER paired accounts exist, do NOT trap the
+        # user in this dead account's pairing dialog with no way to
+        # reach a working account or the menu (reported live: after an
+        # overnight session loss, launch showed only the connect dialog
+        # of the logged-out account — no way to switch to the healthy
+        # one). Offer connect-this / switch-to-other / quit first.
+        # run_on_main_thread() calls straight through on the main thread.
+        if self.run_on_main_thread(self._offer_switch_when_unpaired):
+            return "switching"  # switching away; this process is shutting down
+        logging.info("MainWindow: WhatsApp connection not paired. Showing connection dialog...")
+        self.connect.show_connection_dial()
+        if not self.connect.check_connection_status():
+            return "unpaired"
+        # Do NOT disconnect self.ws here — see the "Initialize
+        # websocket" block in MainWindow.__init__ for why this used to
+        # cause the pairing session to crash.
+        self._just_paired = True
+        # Multi-account: pairing succeeded → promote this account from
+        # pending to paired in the registry, so it appears in the
+        # switcher/autostart (plan Zad 3.2/GPT r7 #1). last_foreground is
+        # set later, only after the window is ready and for source=user.
+        if getattr(self, "account_id", None) and getattr(self, "registry", None):
+            try:
+                self.registry.set_state(self.account_id, "paired")
+                self.resume_pending = False
+            except Exception:
+                logging.exception("[accounts] pending→paired transition failed")
+        return "paired"
+
     def _start_ipc_listener(self):
         """Start the account-scoped IPC listener so other WinZapp processes can
         ask THIS one to foreground / quit (plan Zad 2.0/4.1). Callbacks marshal

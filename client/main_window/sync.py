@@ -37,6 +37,7 @@ from core.conversation_resync import (
     stale_ids_in_fetched_window,
 )
 from main_window.message_rules import is_countable_message
+from main_window.api_start_behind_window import wait_for_api_start
 from core.utils import auto_download_enabled, prune_chats_messages
 
 
@@ -2198,6 +2199,11 @@ class SyncMixin:
         # responds.  If the API never responds within the window, start sync
         # unconditionally so the program never stays stuck on "preparing to sync".
         def _fallback():
+            # A Node still starting behind the window answers nothing, and the
+            # 60 s budget below would run out on a slow machine before it does
+            # (issue #407). Over is over: a start that failed is quitting.
+            if not wait_for_api_start(self):
+                return
             # Probe immediately — when the server is already connected (no
             # session-logged event fires), this avoids an unnecessary 5-second wait.
             if self._probe_chats_and_start_sync():

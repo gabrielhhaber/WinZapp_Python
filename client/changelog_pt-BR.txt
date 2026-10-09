@@ -36,6 +36,8 @@ NOVIDADES
 
 - Atalhos para os filtros de conversas: Alt+Shift+F vai para os botões de opção dos filtros de conversas, que agora anunciam esse atalho, e Alt+Shift+A, Alt+Shift+U, Alt+Shift+G e Alt+Shift+I escolhem Tudo, Não lidas, Grupos e Individuais direto da lista de conversas. As opções de listas do WhatsApp e "Gerenciar listas do WhatsApp" agora vêm antes dos filtros de conversas. Todos estão na ajuda de atalhos (F1).
 
+- O WinZapp abre mais rápido. Quando a sua conta já está conectada, a janela principal e as suas conversas aparecem na hora, enquanto o WPPConnect é iniciado e o WhatsApp se conecta em segundo plano, em vez de só depois da janela "Iniciando o WPPConnect, por favor aguarde...". As mensagens enviadas nesse meio-tempo aguardam e são enviadas assim que o WhatsApp se conectar. A primeira inicialização, e uma conta que ainda precisa ser pareada, mostram essa janela como antes.
+
 CORREÇÕES
 
 - Depois que o computador volta da suspensão, as mensagens novas são buscadas de forma confiável: a conversa aberta e as conversas recentes são verificadas de novo mesmo quando a lista de conversas do WhatsApp parece inalterada, e as atualizações de conversas ligadas por um ID de dispositivo vinculado deixam de ser ignoradas
