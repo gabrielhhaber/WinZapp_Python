@@ -50,6 +50,8 @@ CORRECCIONES
 
 - Actualización de WPPConnect: la versión anterior se conserva hasta que la nueva arranca y responde, y se restaura si no lo hace. La actualización se rechaza antes de detener nada cuando no hay espacio en disco para las dos, y la reinstalación reutiliza el Chrome ya descargado.
 
+- La última conexión en un chat abierto ahora se mantiene actualizada. El botón de la conversación, Alt+T y los detalles del contacto muestran la misma información, y una respuesta antigua ya no puede sobrescribir una actualización más reciente de en línea o de última conexión.
+
 V2.0.0.0
 
 La gran novedad de esta versión son las llamadas: ahora se pueden hacer, contestar y rechazar llamadas de voz y videollamadas desde el propio WinZapp, sin coger el móvil, con una ventana de llamada accesible, atajos de teclado, configuración de audio propia y el historial en la nueva pestaña Llamadas. También llegan los chats bloqueados, la búsqueda en las conversaciones archivadas, los idiomas turco y rumano y varias mejoras de uso, además de correcciones en situaciones en las que WinZapp pedía vincular de nuevo sin necesidad. Por dentro, el código del programa ha pasado por una gran reorganización: no cambia nada en el uso, pero hace que WinZapp sea más fácil de mantener y de corregir a partir de ahora.
