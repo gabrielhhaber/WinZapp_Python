@@ -36,6 +36,8 @@ WHAT'S NEW
 
 - Chat filter shortcuts: Alt+Shift+F goes to the chat filter radio buttons, which now announce it, and Alt+Shift+A, Alt+Shift+U, Alt+Shift+G and Alt+Shift+I pick All, Unread, Groups and Individual straight from the chat list. The WhatsApp list options and "Manage WhatsApp lists" now come before the chat filters. All of them are in the F1 shortcuts help.
 
+- Chat info of a personal chat has a new "Groups in common" tab that lists the groups you and the contact are both in. Press Enter on a group to open it. If WhatsApp does not answer, the tab says so instead of staying empty.
+
 FIXES
 
 - After the computer wakes from sleep, new messages are fetched reliably: the open conversation and recent chats are checked again even when WhatsApp's chat list looks unchanged, and updates for chats linked by a linked-device ID are no longer ignored

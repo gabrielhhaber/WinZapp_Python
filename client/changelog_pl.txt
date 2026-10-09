@@ -36,6 +36,8 @@ NOWOŚCI
 
 - Skróty do filtrów czatów: Alt+Shift+F przechodzi do przycisków opcji filtrów czatów, które teraz zapowiadają ten skrót, a Alt+Shift+A, Alt+Shift+U, Alt+Shift+G i Alt+Shift+I wybierają Wszystkie, Nieprzeczytane, Grupy i Osobiste bezpośrednio z listy czatów. Opcje list WhatsApp i „Zarządzaj listami WhatsApp” są teraz przed filtrami czatów. Wszystkie skróty są w pomocy skrótów (F1).
 
+- Informacje o czacie prywatnym mają nową kartę „Wspólne grupy”, która wyświetla grupy, w których jesteście razem z kontaktem. Naciśnij Enter na grupie, aby ją otworzyć. Jeśli WhatsApp nie odpowie, karta poinformuje o tym zamiast pozostać pusta.
+
 POPRAWKI
 
 - Po wybudzeniu komputera z uśpienia nowe wiadomości są pobierane niezawodnie: otwarta rozmowa i ostatnie czaty są sprawdzane ponownie, nawet gdy lista czatów WhatsApp wygląda na niezmienioną, a aktualizacje czatów powiązanych przez identyfikator połączonego urządzenia nie są już pomijane

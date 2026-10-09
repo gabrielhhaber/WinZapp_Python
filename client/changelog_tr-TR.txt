@@ -36,6 +36,8 @@ YENİLİKLER
 
 - Sohbet filtreleri için kısayollar: Alt+Shift+F sohbet filtresi seçenek düğmelerine gider ve bu düğmeler artık kısayolu duyurur; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G ve Alt+Shift+I sohbet listesinden doğrudan Tümü, Okunmamış, Gruplar ve Bireysel filtrelerini seçer. WhatsApp listesi seçenekleri ve "WhatsApp listelerini yönet" artık sohbet filtrelerinden önce gelir. Hepsi kısayol yardımında (F1) yer alır.
 
+- Kişisel sohbet bilgilerinde artık kişiyle ortak olduğunuz grupları listeleyen "Ortak gruplar" sekmesi var. Bir grupta Enter tuşuna basarak onu açın. WhatsApp yanıt vermezse sekme boş kalmak yerine bunu bildirir.
+
 DÜZELTMELER
 
 - Bilgisayar uykudan uyandığında yeni iletiler güvenilir biçimde alınır: WhatsApp sohbet listesi değişmemiş görünse bile açık sohbet ve son sohbetler yeniden denetlenir, bağlı cihaz kimliğiyle bağlanan sohbetlerin güncellemeleri artık yok sayılmaz

@@ -36,6 +36,8 @@ NOVIDADES
 
 - Atalhos para os filtros de conversas: Alt+Shift+F vai para os botões de opção dos filtros de conversas, que agora anunciam esse atalho, e Alt+Shift+A, Alt+Shift+U, Alt+Shift+G e Alt+Shift+I escolhem Todas, Não lidas, Grupos e Individuais diretamente da lista de conversas. As opções de listas do WhatsApp e "Gerir listas do WhatsApp" passam a vir antes dos filtros de conversas. Todos estão na ajuda de atalhos (F1).
 
+- As informações da conversa pessoal ganharam o separador "Grupos em comum", que lista os grupos que partilha com o contacto. Prima Enter num grupo para o abrir. Se o WhatsApp não responder, o separador avisa em vez de ficar vazio.
+
 CORREÇÕES
 
 - Depois de o computador sair da suspensão, as mensagens novas são obtidas de forma fiável: a conversa aberta e as conversas recentes são verificadas de novo mesmo quando a lista de conversas do WhatsApp parece inalterada, e as atualizações de conversas ligadas por um ID de dispositivo associado deixam de ser ignoradas

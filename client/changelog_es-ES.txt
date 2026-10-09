@@ -36,6 +36,8 @@ NOVEDADES
 
 - Atajos para los filtros de conversaciones: Alt+Shift+F va a los botones de opción de los filtros de conversaciones, que ahora anuncian ese atajo, y Alt+Shift+A, Alt+Shift+U, Alt+Shift+G y Alt+Shift+I eligen Todo, Sin leer, Grupos e Individuales directamente desde la lista de conversaciones. Las opciones de listas de WhatsApp y "Gestionar listas de WhatsApp" ahora van antes de los filtros de conversaciones. Todos figuran en la ayuda de atajos (F1).
 
+- La información del chat personal tiene ahora la pestaña "Grupos en común", que lista los grupos que compartes con el contacto. Pulsa Intro en un grupo para abrirlo. Si WhatsApp no responde, la pestaña lo avisa en lugar de quedarse vacía.
+
 CORRECCIONES
 
 - Tras reactivar el equipo de la suspensión, los mensajes nuevos se reciben de forma fiable: la conversación abierta y los chats recientes se vuelven a comprobar aunque la lista de chats de WhatsApp parezca sin cambios, y las actualizaciones de chats vinculados por un ID de dispositivo vinculado ya no se ignoran
