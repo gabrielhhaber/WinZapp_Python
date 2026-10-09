@@ -12,7 +12,7 @@ from core.keyboard_shortcuts import (
 )
 from core.shortcut_catalog import SHORTCUTS
 from ui import shortcut_bindings as bindings
-from ui.dialogs.shortcut_capture import capture_error
+from ui.dialogs.shortcut_capture import capture_error, classify_chord
 
 
 def translate(key):
@@ -158,3 +158,20 @@ class TestCapture:
     def test_system_reserved_keys_are_refused(self):
         assert capture_error(1, wx.WXK_F4) == 'shortcut_capture_reserved'
         assert capture_error(1, wx.WXK_TAB) == 'shortcut_capture_reserved'
+
+
+class TestClassifyChord:
+    def test_tab_and_bare_escape_reach_the_dialog(self):
+        assert classify_chord(0, wx.WXK_TAB) == 'pass'
+        assert classify_chord(4, wx.WXK_TAB) == 'pass'
+        assert classify_chord(0, wx.WXK_ESCAPE) == 'pass'
+
+    def test_modified_escape_is_still_captured_or_reserved(self):
+        assert classify_chord(4, wx.WXK_ESCAPE) != 'pass'
+        assert classify_chord(2, wx.WXK_ESCAPE) == 'shortcut_capture_reserved'
+
+    def test_windows_key_chords_are_reserved(self):
+        assert classify_chord(2 | 8, ord('A')) == 'shortcut_capture_reserved'
+
+    def test_plain_valid_chord_is_accepted(self):
+        assert classify_chord(2, ord('A')) == ''

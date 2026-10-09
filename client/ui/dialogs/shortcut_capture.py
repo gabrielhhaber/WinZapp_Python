@@ -2,6 +2,7 @@
 import wx
 from ui.shortcut_names import shortcut_name
 from ui.accessible import AccessibleShortcutCapture
+from ui.shortcut_bindings import event_chord
 from core.keyboard_shortcuts import CTRL, ALT
 
 
@@ -19,6 +20,16 @@ def capture_error(mod, key, global_hotkey=False):
                      (CTRL | 4, wx.WXK_ESCAPE)):
         return 'shortcut_capture_reserved'
     return ''
+
+
+def classify_chord(mod, key, global_hotkey=False):
+    """What the capture field does with a chord: 'pass' (Tab navigation and a
+    bare Escape reach the dialog), a capture_error key, or '' to accept."""
+    if (key == wx.WXK_TAB and mod in (0, 4)) or (key == wx.WXK_ESCAPE and not mod):
+        return 'pass'
+    if mod & 8:  # event_chord marks Windows/Command gestures with 8
+        return 'shortcut_capture_reserved'
+    return capture_error(mod, key, global_hotkey)
 
 
 class ShortcutCaptureDialog(wx.Dialog):
@@ -62,14 +73,11 @@ class ShortcutCaptureDialog(wx.Dialog):
         if wx.Window.FindFocus() is not self.field:
             event.Skip()
             return
-        from ui.shortcut_bindings import event_chord
         mod, key = event_chord(event)
-        if (key == wx.WXK_TAB and mod in (0, 4)) or (key == wx.WXK_ESCAPE and not mod):
+        error = classify_chord(mod, key, self.global_hotkey)
+        if error == 'pass':
             event.Skip()
             return
-        error = capture_error(mod, key, self.global_hotkey)
-        if mod & 8:  # event_chord marks Windows/Command gestures with 8
-            error = 'shortcut_capture_reserved'
         if error:
             self.hint.SetLabel(self.i18n.t(error))
             self.main_window.speak_output.output(self.i18n.t(error))
