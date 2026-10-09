@@ -50,7 +50,7 @@ POPRAWKI
 
 - Aktualizacja WPPConnect: poprzednia wersja jest zachowywana, dopóki nowa nie uruchomi się i nie zacznie odpowiadać, a jeśli się to nie uda, zostaje przywrócona. Aktualizacja jest odrzucana przed zatrzymaniem czegokolwiek, gdy brakuje miejsca na dysku na obie wersje, a ponowna instalacja korzysta z już pobranej przeglądarki Chrome.
 
-- Informacja o ostatniej aktywności w otwartej rozmowie jest teraz stale aktualna. Przycisk rozmowy, Alt+T i szczegóły kontaktu pokazują te same informacje, a stara odpowiedź nie może już nadpisać nowszej aktualizacji statusu online lub ostatniej aktywności.
+- Informacja o ostatnim widzeniu w otwartym czacie jest teraz stale aktualna. Przycisk czatu, Alt+T i szczegóły kontaktu pokazują te same informacje, a stara odpowiedź nie może już nadpisać nowszej aktualizacji statusu online lub „widziano”.
 
 V2.0.0.0
 
