@@ -277,6 +277,17 @@ def refresh_menu_shortcuts(window):
             item.SetItemLabel(item.GetItemLabel().split('\t', 1)[0] + ('\t' + name if name else ''))
 
 
+def popup_label_chord(label):
+    """(modifiers, key) a popup item label advertises after its tab, or None
+    when wx cannot read it. FromString is an instance method returning a bool:
+    calling it on the class raised TypeError and stopped every context menu
+    from opening, including from the Applications key."""
+    entry = wx.AcceleratorEntry()
+    if not entry.FromString(label):
+        return None
+    return entry.GetFlags(), normalize_key(entry.GetKeyCode())
+
+
 def refresh_popup_shortcuts(owner, scope, menu):
     window = main_window_for(owner)
     if window is None:
@@ -289,10 +300,9 @@ def refresh_popup_shortcuts(owner, scope, menu):
         label = item.GetItemLabel()
         if '\t' not in label:
             continue
-        entry = wx.AcceleratorEntry.FromString(label)
-        if entry is None:
+        chord = popup_label_chord(label)
+        if chord is None:
             continue
-        chord = entry.GetFlags(), normalize_key(entry.GetKeyCode())
         shortcut = next((s for s in SHORTCUTS if s.scope == scope
                          and default_binding(s, window.i18n.t) == chord), None)
         if shortcut is not None:

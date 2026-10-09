@@ -12,6 +12,7 @@ from core.keyboard_shortcuts import (
 )
 from core.shortcut_catalog import SHORTCUTS
 from ui import shortcut_bindings as bindings
+from ui.shortcut_bindings import popup_label_chord, refresh_popup_shortcuts
 from ui.dialogs.shortcut_capture import capture_error, classify_chord
 
 
@@ -175,3 +176,55 @@ class TestClassifyChord:
 
     def test_plain_valid_chord_is_accepted(self):
         assert classify_chord(2, ord('A')) == ''
+
+
+class _Item:
+    def __init__(self, label, submenu=None):
+        self.label = label
+        self.submenu = submenu
+
+    def GetSubMenu(self):
+        return self.submenu
+
+    def GetItemLabel(self):
+        return self.label
+
+    def SetItemLabel(self, label):
+        self.label = label
+
+
+class _Menu:
+    def __init__(self, *items):
+        self.items = list(items)
+
+    def GetMenuItems(self):
+        return self.items
+
+
+class TestPopupLabels:
+    @pytest.mark.parametrize('label, chord', [
+        ('Mute\tAlt+Shift+S', (1 | 4, ord('S'))),
+        ('Delete\tDelete', (0, wx.WXK_DELETE)),
+        ('Pin\tCtrl+P', (2, ord('P'))),
+        ('Menu\tShift+F10', (4, wx.WXK_F10)),
+    ])
+    def test_label_chord_is_read_without_a_window(self, label, chord):
+        assert popup_label_chord(label) == chord
+
+    def test_unreadable_label_is_skipped_not_fatal(self):
+        assert popup_label_chord('Item\tNot a key+') is None
+
+    def test_refresh_relabels_nested_items_and_never_raises(self):
+        window = SimpleNamespace(
+            settings={'keyboard_shortcuts': {'chats.ID_DELETE_CONV': [2, ord('K')]}},
+            i18n=SimpleNamespace(t=translate))
+        owner = SimpleNamespace(main_window=window)
+        delete = _Item('Delete chat\tDelete')
+        plain = _Item('No accelerator')
+        broken = _Item('Odd\tNot a key+')
+        refresh_popup_shortcuts(owner, 'chats',
+                                _Menu(plain, broken, _Item('More', _Menu(delete))))
+        assert delete.label.startswith('Delete chat\t')
+        assert delete.label != 'Delete chat\tDelete'
+        assert plain.label == 'No accelerator'
+        assert broken.label == 'Odd\tNot a key+'
