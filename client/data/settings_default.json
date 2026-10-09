@@ -70,6 +70,7 @@
         "self_reference_mode": "eu",
         "self_reference_custom_word": "",
         "hide_own_sender_in_message_list": false,
+        "hide_unnamed_sender_numbers": false,
         "show_delivery_status_in_chat_list": true,
         "keep_pinned_chat_order": false,
         "preserve_typed_text_as_attachment_caption": true,

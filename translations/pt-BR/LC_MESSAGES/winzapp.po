@@ -11481,6 +11481,26 @@ msgstr "Ocultar o remetente nas minhas mensagens da lista de mensagens"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_hide_unnamed_sender_numbers"
+msgid "Hide phone numbers of unnamed senders in messages"
+msgstr "Ocultar números de telefone de remetentes sem nome nas mensagens"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_hide_unnamed_sender_numbers_help"
+msgid ""
+"In message rows and open-chat announcements, omit the sender prefix when no "
+"name is available. Applies to private and group chats, including reply "
+"prefixes. Names, message content, chat titles and other notifications stay "
+"unchanged. Off by default."
+msgstr ""
+"Nas linhas de mensagens e nos anúncios da conversa aberta, omite o prefixo "
+"do remetente quando não há nome disponível. Vale para conversas individuais "
+"e de grupo, incluindo prefixos de respostas. Nomes, conteúdo das mensagens, "
+"títulos de conversas e outras notificações não mudam. Desativado por padrão."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_keep_pinned_chat_order"
 msgid "Keep pinned chats in a fixed order"
 msgstr "Manter a ordem das conversas fixadas"
@@ -11778,8 +11798,8 @@ msgstr ""
 " instantes."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/main_window/identity.py
+#: client/core/message_sender_labels.py client/core/notification_manager.py
+#: client/main_window/chat_list.py client/main_window/identity.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "unnamed_participant"
 msgid "Unnamed participant"

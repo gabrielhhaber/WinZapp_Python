@@ -9440,6 +9440,26 @@ msgctxt "ui_hide_own_sender_in_message_list"
 msgid "Hide the sender on my own messages in the messages list"
 msgstr "Ukryj nadawcę przy moich wiadomościach na liście wiadomości"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_hide_unnamed_sender_numbers"
+msgid "Hide phone numbers of unnamed senders in messages"
+msgstr "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_hide_unnamed_sender_numbers_help"
+msgid ""
+"In message rows and open-chat announcements, omit the sender prefix when no "
+"name is available. Applies to private and group chats, including reply "
+"prefixes. Names, message content, chat titles and other notifications stay "
+"unchanged. Off by default."
+msgstr ""
+"Pomija prefiks nadawcy bez dostępnej nazwy w wierszach wiadomości i "
+"komunikatach otwartego czatu. Dotyczy czatów prywatnych i grupowych, w tym "
+"prefiksów odpowiedzi. Nazwy, treść wiadomości, tytuły czatów i inne "
+"powiadomienia pozostają bez zmian. Domyślnie wyłączone."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/settings_dialog.py
 msgctxt "ui_keep_pinned_chat_order"
 msgid "Keep pinned chats in a fixed order"
@@ -9668,7 +9688,10 @@ msgctxt "unmute_chat_failed"
 msgid "This chat's notifications could not be re-enabled. Please try again in a moment."
 msgstr "Nie udało się ponownie włączyć powiadomień tego czatu. Spróbuj ponownie za chwilę."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/notification_manager.py client/main_window/chat_list.py client/main_window/identity.py client/ui/conversation_panel/message_rendering.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/message_sender_labels.py client/core/notification_manager.py
+#: client/main_window/chat_list.py client/main_window/identity.py
+#: client/ui/conversation_panel/message_rendering.py
 msgctxt "unnamed_participant"
 msgid "Unnamed participant"
 msgstr "Uczestnik bez nazwy"

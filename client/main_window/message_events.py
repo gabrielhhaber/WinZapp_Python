@@ -1147,7 +1147,7 @@ class MessageEventsMixin:
 
         from core.notification_manager import (
             format_notification_title, format_notification_body,
-            format_foreground_sender, format_locked_notification,
+            format_foreground_message, format_locked_notification,
         )
 
         body  = format_notification_body(msg, self, self.i18n)
@@ -1207,8 +1207,7 @@ class MessageEventsMixin:
                 # notifications_enabled setting is meant to gate — see below.
                 self.message_current_sound.play()
                 if speech.get("speak_active_conv_messages", True):
-                    sender = format_foreground_sender(msg, self, self.i18n)
-                    self.output(f"{sender}: {body}")
+                    self.output(format_foreground_message(msg, self, self.i18n, body))
                 # Mark the active conversation as read immediately, but only if the
                 # window has been focused for at least 5 seconds (to prevent marking
                 # startup/offline messages as read automatically).

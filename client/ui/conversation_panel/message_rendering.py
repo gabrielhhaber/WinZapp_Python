@@ -15,6 +15,9 @@ from core.call_log import (
     is_call_log,
 )
 from core.quote_recovery import RECOVERED_FROM_QUOTE
+from core.message_sender_labels import (
+    hide_unnamed_sender_numbers_enabled, message_sender_label, quoted_sender_label,
+)
 from core.utils import (
     parse_bool_flag as _parse_bool_flag,
     append_selected_marker,
@@ -1171,13 +1174,17 @@ class MessageRenderingMixin:
         ts       = self._extract_timestamp(msg)
         time_str = self._format_date(ts) if ts else ""
         body     = (self._get_message_content(msg) or "")
-        sender   = self._sender_label(msg)
+        sender   = message_sender_label(
+            self._sender_label(msg), msg, self.main_window, self.main_window.i18n
+        )
         status   = self._map_status(msg)
         i18n     = self.main_window.i18n
 
         # Check for quoted/reply context
         ctx           = self._get_context_info(msg)
         quoted_sender = self._get_quoted_sender(ctx, msg) if ctx else ""
+        if ctx:
+            quoted_sender = quoted_sender_label(quoted_sender, ctx, msg, self)
 
         # A call record is the exception: "Ligação de voz efetuada" alone left
         # the user unsure who had called whom (reported on the test build), so
@@ -1191,7 +1198,9 @@ class MessageRenderingMixin:
         else:
             replying_to = i18n.t('replying_to').format(name=quoted_sender) if quoted_sender else ""
             pieces = [row_lead(sender, replying_to, body,
-                               should_hide_sender(msg, self.main_window.settings))]
+                               should_hide_sender(msg, self.main_window.settings)
+                               or (not sender and hide_unnamed_sender_numbers_enabled(
+                                   self.main_window.settings)))]
         is_forwarded = not self._is_system_event(msg) and self._is_message_forwarded(msg)
         if msg.get("starred"):
             pieces[0] = f"★ {pieces[0]}"

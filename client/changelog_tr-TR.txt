@@ -4,6 +4,8 @@ Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisa
 
 YENİLİKLER
 
+- Ayarlar > Kullanıcı Arayüzü altında isteğe bağlı "Mesajlarda isimsiz gönderenlerin telefon numaralarını gizle" seçeneği. Açıldığında adı olmayan kişilerin mesajları, mesaj listesinde ve açık sohbet duyurularında doğrudan içerikle başlar; yerine başka bir gönderen etiketi eklenmez. Adlar ve mesaj içeriğindeki numaralar korunur. Başlangıçta kapalıdır.
+
 - Özelleştirilebilir klavye kısayolları: Ayarlar'daki yeni Kısayollar sekmesi, pencereyi gösteren genel kısayol dahil uygulamanın tüm kısayollarını listeler. Birini seçip Değiştir'e basın ve yeni birleşimi yazın; ya da devre dışı bırakın, varsayılana döndürün veya tümünü sıfırlayın. Çakışmalar uygulamadan önce bildirilir ve değişiklikler yalnızca Uygula veya Tamam ile geçerli olur.
 
 - Sabitlenen mesajlar: her sohbetteki bir düğme, eski mesajlar dahil WhatsApp üzerinde sabitlenen mesajları listeler. Seçilen mesaja geçmişte gitmek için Enter tuşuna basın. Sohbet açıldığında odak değiştirilmeden sabitlenen mesajların sayısı duyurulur; her sabitlenen mesajda ayrıca bir metin işareti bulunur.

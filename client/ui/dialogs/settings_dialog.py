@@ -589,6 +589,13 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             self._ui_page, label=i18n.t("ui_hide_own_sender_in_message_list")
         )
         self_ref_sizer.Add(self._hide_own_sender_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        self._hide_unnamed_sender_numbers_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_hide_unnamed_sender_numbers")
+        )
+        self._hide_unnamed_sender_numbers_cb.SetHelpText(
+            i18n.t("ui_hide_unnamed_sender_numbers_help")
+        )
+        self_ref_sizer.Add(self._hide_unnamed_sender_numbers_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         for rb in (self._self_ref_eu_rb, self._self_ref_voce_rb, self._self_ref_other_rb):
             rb.Bind(wx.EVT_RADIOBUTTON, self._on_self_reference_toggle)
@@ -2100,6 +2107,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             "hide_own_sender_in_message_list", False
         )
         self._hide_own_sender_cb.SetValue(bool(hide_own_sender))
+        self._hide_unnamed_sender_numbers_cb.SetValue(
+            self.main_window.settings.get("user_interface", {}).get(
+                "hide_unnamed_sender_numbers", False
+            ) is True
+        )
 
         accessibility = self.main_window.settings.get("accessibility", {})
         self._extended_sr_compat_check.SetValue(accessibility.get("extended_sr_compat_enabled", True))
@@ -3392,6 +3404,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             self_reference_mode = "eu"
         self_reference_custom_word = self._self_ref_custom_field.GetValue().strip()
         old_ui_settings = self.main_window.settings.get("user_interface", {})
+        sender_numbers_changed = (
+            old_ui_settings.get("hide_unnamed_sender_numbers", False) is True
+        ) != self._hide_unnamed_sender_numbers_cb.GetValue()
         self_reference_changed = (
             old_ui_settings.get("self_reference_mode", "eu") != self_reference_mode
             or old_ui_settings.get("self_reference_custom_word", "") != self_reference_custom_word
@@ -3407,6 +3422,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self.main_window.settings.setdefault("user_interface", {})[
             "hide_own_sender_in_message_list"
         ] = self._hide_own_sender_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
+            "hide_unnamed_sender_numbers"
+        ] = self._hide_unnamed_sender_numbers_cb.GetValue()
 
         # Accessibility
         self.main_window.settings.setdefault("accessibility", {})[
@@ -3651,6 +3669,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # word for chats whose last message is our own), so a self-reference
         # change (e.g. "Eu" -> "Você") takes effect immediately instead of
         # only on the next restart.
+        if sender_numbers_changed and not (self_reference_changed or vm_mode_changed):
+            if cp is not None and getattr(cp, "conversation", None) is not None:
+                cp.populate_messages(preserve_focus=True)
         if self_reference_changed or vm_mode_changed:
             if cp is not None and getattr(cp, "conversation", None) is not None:
                 cp.populate_messages(preserve_focus=True)
@@ -3829,6 +3850,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._self_ref_other_rb.SetLabel(i18n.t("ui_self_reference_other"))
         self._self_ref_custom_label.SetLabel(i18n.t("ui_self_reference_custom_label"))
         self._hide_own_sender_cb.SetLabel(i18n.t("ui_hide_own_sender_in_message_list"))
+        self._hide_unnamed_sender_numbers_cb.SetLabel(i18n.t("ui_hide_unnamed_sender_numbers"))
+        self._hide_unnamed_sender_numbers_cb.SetHelpText(i18n.t("ui_hide_unnamed_sender_numbers_help"))
         self._show_delivery_status_cb.SetLabel(i18n.t("ui_show_delivery_status_in_chat_list"))
         self._keep_pinned_order_cb.SetLabel(i18n.t("ui_keep_pinned_chat_order"))
         self._show_link_previews_cb.SetLabel(i18n.t("ui_show_link_previews_label"))

@@ -4,6 +4,8 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- Opção "Ocultar números de telefone de remetentes sem nome nas mensagens" em Definições > Interface do utilizador. Quando ativada, as mensagens de pessoas sem nome começam diretamente pelo conteúdo, na lista de mensagens e nos anúncios da conversa aberta, sem uma etiqueta de remetente substituta. Os nomes e os números no conteúdo das mensagens são mantidos. Começa desativada.
+
 - Atalhos de teclado personalizáveis: o novo separador Atalhos das Definições lista todos os atalhos da aplicação, incluindo o atalho global para mostrar a janela. Seleccione um, prima Alterar e escreva a nova combinação, ou desactive-o, reponha a predefinição ou reponha todos. Os conflitos são avisados antes de aplicar, e as alterações só têm efeito com Aplicar ou OK.
 
 - Mensagens afixadas: um botão em cada conversa lista as mensagens afixadas no WhatsApp, incluindo mensagens antigas. Prima Enter para ir até uma delas no histórico. Ao abrir a conversa, a quantidade de afixadas é anunciada sem mudar o foco; cada mensagem afixada também tem uma indicação em texto.
