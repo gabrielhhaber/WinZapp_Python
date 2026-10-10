@@ -4,6 +4,8 @@ Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, 
 
 NOVEDADES
 
+- Respuestas a los anuncios de comunidades: abre el menú de un mensaje y elige "Respuestas al anuncio de la comunidad" para leer y enviar respuestas. La ventana permite actualizar las respuestas y conserva tu texto si el envío no se confirma. Los anuncios indican el número conocido de respuestas. Los autores usan nombres guardados o de perfil, y tus respuestas respetan la configuración de cómo referirse a ti.
+
 - Vaciar o eliminar chats puede dejar de pedir confirmación: los dos diálogos tienen ahora la casilla "No mostrar de nuevo", que solo surte efecto junto con Sí. Con la pregunta desactivada, vaciar conserva los mensajes destacados. En Configuración > Interfaz de usuario están las dos opciones correspondientes para volver a pedir confirmación.
 
 - Opción "Ocultar los números de teléfono de remitentes sin nombre en los mensajes" en Configuración > Interfaz de usuario. Al activarla, los mensajes de personas sin nombre empiezan directamente por su contenido, en la lista de mensajes y los anuncios de la conversación abierta, sin añadir una etiqueta de remitente alternativa. Se conservan los nombres y los números en el contenido de los mensajes. Empieza desactivada.

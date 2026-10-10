@@ -4,6 +4,8 @@ W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym 
 
 NOWOŚCI
 
+- Odpowiedzi na ogłoszenia społeczności: otwórz menu wiadomości i wybierz "Odpowiedzi na ogłoszenie społeczności", aby czytać i wysyłać odpowiedzi. Okno umożliwia odświeżanie odpowiedzi i zachowuje tekst, gdy wysłanie nie zostanie potwierdzone. Ogłoszenia podają znaną liczbę odpowiedzi. Autorzy mają zapisane nazwy lub nazwy profilu, a własne odpowiedzi uwzględniają ustawienie sposobu odnoszenia się do użytkownika.
+
 - Wyczyszczenie lub usunięcie czatów może przestać wymagać potwierdzenia: oba okna mają teraz pole wyboru "Nie pokazuj ponownie", które działa tylko razem z odpowiedzią Tak. Gdy pytanie jest wyłączone, czyszczenie zachowuje wiadomości z gwiazdką. W Ustawienia > Interfejs użytkownika są dwie odpowiadające opcje, które przywracają pytanie.
 
 - Opcja "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach" w Ustawienia > Interfejs użytkownika. Po włączeniu wiadomości od osób bez nazwy zaczynają się bezpośrednio od treści na liście wiadomości i w komunikatach otwartego czatu, bez zastępczej etykiety nadawcy. Nazwy i numery w treści wiadomości są zachowane. Domyślnie wyłączona.

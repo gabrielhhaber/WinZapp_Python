@@ -30,6 +30,7 @@ import * as GroupController from '../controller/groupController';
 import * as LabelsController from '../controller/labelsController';
 import * as MessageController from '../controller/messageController';
 import * as PinnedMessagesController from '../controller/pinnedMessagesController';
+import * as CommunityCommentsController from '../controller/communityCommentsController';
 import * as MiscController from '../controller/miscController';
 import * as NewsletterController from '../controller/newsletterController';
 import * as OrderController from '../controller/orderController';
@@ -185,6 +186,18 @@ routes.post(
   verifyToken,
   statusConnection,
   MessageController.pinMessage
+);
+routes.get(
+  '/api/:session/message-comments/:messageId',
+  verifyToken,
+  statusConnection,
+  CommunityCommentsController.getComments
+);
+routes.post(
+  '/api/:session/message-comments/:messageId',
+  verifyToken,
+  statusConnection,
+  CommunityCommentsController.sendCommentMessage
 );
 routes.post(
   '/api/:session/pinned-messages',

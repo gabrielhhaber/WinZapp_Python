@@ -4,6 +4,8 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- Respostas aos avisos de comunidades: abra o menu de uma mensagem e escolha "Respostas ao aviso da comunidade" para ler e enviar respostas. A janela permite atualizar as respostas e conserva o texto quando o envio não é confirmado. Os avisos anunciam a contagem conhecida de respostas. Os autores usam nomes guardados ou de perfil, e as suas respostas respeitam a configuração de como se referir a si.
+
 - Limpar ou eliminar conversas pode deixar de pedir confirmação: os dois diálogos passam a ter a caixa "Não mostrar novamente", que só vale em conjunto com Sim. Com a pergunta desligada, limpar mantém as mensagens com estrela. Em Definições > Interface do utilizador existem as duas opções correspondentes para voltar a pedir confirmação.
 
 - Opção "Ocultar números de telefone de remetentes sem nome nas mensagens" em Definições > Interface do utilizador. Quando ativada, as mensagens de pessoas sem nome começam diretamente pelo conteúdo, na lista de mensagens e nos anúncios da conversa aberta, sem uma etiqueta de remetente substituta. Os nomes e os números no conteúdo das mensagens são mantidos. Começa desativada.

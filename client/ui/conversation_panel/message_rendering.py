@@ -7,6 +7,7 @@ ConversationsPanel.__init__/init_UI is available here.
 
 import logging
 import threading
+from core.community_comments import comment_count
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
 from core.call_log import (
     CALL_LOG_MESSAGE_TYPE,
@@ -1219,6 +1220,9 @@ class MessageRenderingMixin:
         ):
             pieces[0] = f"{i18n.t('status_forwarded')}, {pieces[0]}"
             is_forwarded = False  # already announced; don't also append the suffix below
+        replies = comment_count(msg.get("replyCount"))
+        if replies:
+            pieces[0] += f", {i18n.t('community_comments_count').format(count=replies)}"
         if time_str:
             pieces.append(f", {time_str}")
         if status:

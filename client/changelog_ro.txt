@@ -4,6 +4,8 @@ Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră
 
 NOUTĂȚI
 
+- Răspunsuri la anunțurile comunităților: deschide meniul unui mesaj și alege "Răspunsuri la anunțul comunității" pentru a citi și trimite răspunsuri. Fereastra poate actualiza răspunsurile și păstrează textul când trimiterea nu este confirmată. Anunțurile indică numărul cunoscut de răspunsuri. Autorii folosesc numele salvate sau de profil, iar răspunsurile tale respectă setarea privind modul în care ți se face referire.
+
 - Ștergerea conținutului sau a conversațiilor poate înceta să mai ceară confirmare: ambele dialoguri au acum caseta "Nu mai afișa", care are efect doar împreună cu Da. Cu întrebarea oprită, golirea păstrează mesajele cu stea. În Setări > Interfața utilizator există cele două opțiuni corespunzătoare pentru a reactiva confirmarea.
 
 - Opțiunea "Ascunde numerele de telefon ale expeditorilor fără nume în mesaje" în Setări > Interfață utilizator. Când este activată, mesajele persoanelor fără nume încep direct cu conținutul lor, în lista de mesaje și în anunțurile conversației deschise, fără o etichetă înlocuitoare pentru expeditor. Numele și numerele din conținutul mesajelor se păstrează. Inițial dezactivată.

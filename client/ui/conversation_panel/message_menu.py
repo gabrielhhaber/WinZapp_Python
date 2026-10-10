@@ -229,6 +229,10 @@ class MessageMenuMixin:
                 copy_caption_item,
             )
 
+        if not is_call and self._can_open_announcement_comments(msg):
+            comments_item = menu.Append(wx.ID_ANY, i18n.t("community_comments_title"))
+            self.Bind(wx.EVT_MENU, lambda e, m=msg: self._show_announcement_comments(m), comments_item)
+
         # Reply (Alt+R)
         if not is_call:
             reply_item = menu.Append(wx.ID_ANY, f"{i18n.t('reply_message')}\tAlt+R")
