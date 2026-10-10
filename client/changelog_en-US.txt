@@ -80,6 +80,8 @@ FIXES
 
 - WinZapp now closes properly, instead of leaving a window that never connects, when the "Connect to WinZapp" window is closed without pairing after the main window has opened at startup, or when the session token is missing at that point. In that second case the "Failed to retrieve the user token." message is still shown first. The main window used to stay open, with no connection to WhatsApp and nothing saying so.
 
+- Updating WinZapp no longer breaks npm for people who also use it outside WinZapp. When WinZapp is in a folder that needs administrator permission to update, it no longer starts again as administrator after the update (unless it was already running as administrator), and WinZapp's npm keeps a cache of its own instead of sharing yours. The update also no longer closes other programs that use network ports close to WinZapp's, such as a PostgreSQL database.
+
 V2.0.0.0
 
 The big news in this release is calls: you can now place, answer and reject voice and video calls from WinZapp itself, without picking up your phone, with an accessible call window, keyboard shortcuts, dedicated audio settings and your call history in the new Calls tab. Locked chats, search in archived chats, Turkish and Romanian and several usability improvements arrived too, along with fixes for situations where WinZapp asked you to pair again when it did not need to. Under the hood, the program's code went through a major reorganization: it changes nothing in how you use WinZapp, but it makes it easier to maintain and to fix from here on.

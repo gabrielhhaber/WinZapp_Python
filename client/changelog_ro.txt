@@ -80,6 +80,8 @@ CORECTĂRI
 
 - WinZapp se închide acum corect, în loc să lase o fereastră care nu se mai conectează, când fereastra "Conectați-vă la WinZapp" este închisă fără asociere după deschiderea ferestrei principale la pornire sau când tokenul sesiunii lipsește în acel moment. În al doilea caz, mesajul "Tokenul utilizatorului nu a putut fi preluat." apare în continuare mai întâi. Fereastra principală rămânea deschisă, fără conexiune la WhatsApp și fără niciun avertisment.
 
+- Actualizarea WinZapp nu mai strică npm pentru cei care îl folosesc și în afara WinZapp. Când WinZapp se află într-un dosar care are nevoie de permisiunea de administrator pentru a fi actualizat, după actualizare nu mai pornește din nou ca administrator (decât dacă rula deja ca administrator), iar npm-ul WinZapp are acum propriul cache în loc să îl folosească în comun pe al dumneavoastră. De asemenea, actualizarea nu mai închide alte programe care folosesc porturi de rețea asemănătoare cu cele ale WinZapp, cum ar fi o bază de date PostgreSQL.
+
 V2.0.0.0
 
 Marea noutate a acestei versiuni sunt apelurile: acum puteți iniția, prelua și respinge apeluri vocale și video direct din WinZapp, fără să luați telefonul, cu o fereastră de apel accesibilă, comenzi rapide de la tastatură, setări audio proprii și istoricul în noua filă, Apeluri. Alte noutăți apărute: conversațiile blocate, căutarea în conversațiile arhivate, limbile turcă și română și mai multe îmbunătățiri de utilizare, precum și corecții pentru situațiile în care WinZapp cerea o nouă asociere fără să fie nevoie. În spate, codul programului a trecut printr-o reorganizare amplă: nu schimbă nimic în utilizare, dar face WinZapp mai ușor de întreținut și de corectat de acum înainte.

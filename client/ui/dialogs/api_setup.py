@@ -60,7 +60,8 @@ import zipfile
 import requests
 import wx
 
-from app_paths import resource_path
+from app_paths import global_dir, resource_path
+from core.npm_environment import npm_environment
 from core.wpp_runtime import homologated_wpp_tag
 
 # GitHub download URLs — no git required
@@ -947,7 +948,7 @@ class ApiSetupDialog(wx.Dialog):
         # browser the server looks for are two different trees.
         puppeteer_cache = (os.path.join(staging_dir, ".cache") if staging_dir
                            else resource_path("api", ".cache"))
-        npm_env  = {
+        npm_base_env = {
             **os.environ,
             "PATH": path_env,
             "npm_config_timing": "true",
@@ -1131,6 +1132,12 @@ class ApiSetupDialog(wx.Dialog):
 
             # ── Step 4: npm install ───────────────────────────────────────
             self._set_stage(self._i18n.t("api_setup_npm_install"), *stages["npm_install"])
+            # npm_environment(): WinZapp's own npm cache and config, never the
+            # user's (core/npm_environment.py). global_dir, not api_dir, so a
+            # staged build and the in-place one share one cache that no update
+            # replaces. Built only now, once the source (and its own .npmrc,
+            # which must keep outranking the user's settings) is in api_dir.
+            npm_env = npm_environment(npm_base_env, global_dir("npm"), api_dir)
             # puppeteer's own postinstall script (node_modules/puppeteer/install.mjs)
             # otherwise downloads Chrome silently as part of `npm install` — a
             # multi-hundred-MB download with zero progress feedback, hidden

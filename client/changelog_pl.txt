@@ -80,6 +80,8 @@ POPRAWKI
 
 - WinZapp teraz poprawnie się zamyka, zamiast zostawiać okno, które nigdy się nie połączy, gdy okno "Połącz z WinZapp" zostanie zamknięte bez sparowania po otwarciu okna głównego przy uruchamianiu albo gdy w tym momencie brakuje tokenu sesji. W drugim przypadku nadal najpierw pojawia się komunikat "Nie udało się pobrać tokenu użytkownika.". Okno główne pozostawało otwarte, bez połączenia z WhatsApp i bez żadnego komunikatu.
 
+- Aktualizacja WinZapp nie psuje już npm osobom, które używają go także poza WinZapp. Gdy WinZapp znajduje się w folderze, którego aktualizacja wymaga uprawnień administratora, po aktualizacji nie uruchamia się już ponownie jako administrator (chyba że już wcześniej działał jako administrator), a npm WinZapp ma teraz własną pamięć podręczną zamiast współdzielić Twoją. Aktualizacja nie zamyka też już innych programów korzystających z portów sieciowych podobnych do portów WinZapp, takich jak baza danych PostgreSQL.
+
 V2.0.0.0
 
 Najważniejszą nowością tej wersji są połączenia: połączenia głosowe i wideo można teraz nawiązywać, odbierać i odrzucać bezpośrednio w WinZapp, bez sięgania po telefon — z dostępnym oknem połączenia, skrótami klawiszowymi, własnymi ustawieniami dźwięku i historią w nowej karcie Połączenia. Doszły też zablokowane czaty, wyszukiwanie w zarchiwizowanych czatach, języki turecki i rumuński oraz kilka usprawnień w obsłudze, a także poprawki sytuacji, w których WinZapp niepotrzebnie prosił o ponowne parowanie. Pod spodem kod programu przeszedł dużą reorganizację: niczego nie zmienia w codziennym używaniu, ale sprawia, że WinZapp będzie łatwiej utrzymywać i naprawiać.

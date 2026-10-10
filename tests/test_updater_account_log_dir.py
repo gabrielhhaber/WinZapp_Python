@@ -31,6 +31,8 @@ class TestBatchInstallerLogGoesToTheAccountLogsFolder:
 
         monkeypatch.setattr(updater, "log_path", lambda *parts: os.path.join(str(account_logs), *parts))
         monkeypatch.setattr(updater, "_needs_admin", lambda: False)
+        # No real netstat from a test (update_node_kill.own_node_pids).
+        monkeypatch.setattr(updater, "own_node_pids", lambda port, paths: [])
         monkeypatch.setattr(updater.sys, "platform", "win32")
 
         captured = {}
@@ -70,6 +72,8 @@ class TestBatchInstallerLogGoesToTheAccountLogsFolder:
 
         monkeypatch.setattr(updater, "log_path", _raise)
         monkeypatch.setattr(updater, "_needs_admin", lambda: False)
+        # No real netstat from a test (update_node_kill.own_node_pids).
+        monkeypatch.setattr(updater, "own_node_pids", lambda port, paths: [])
         monkeypatch.setattr(updater.sys, "platform", "win32")
 
         captured = {}

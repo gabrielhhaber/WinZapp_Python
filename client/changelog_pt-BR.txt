@@ -80,6 +80,8 @@ CORREÇÕES
 
 - O WinZapp agora fecha corretamente, em vez de deixar uma janela que nunca se conecta, quando a janela "Conectar ao WinZapp" é fechada sem parear depois de a janela principal abrir na inicialização, ou quando o token da sessão está faltando nesse momento. No segundo caso, a mensagem "Falha ao recuperar o token do usuário." continua aparecendo antes. A janela principal ficava aberta, sem conexão com o WhatsApp e sem nenhum aviso.
 
+- Atualizar o WinZapp não estraga mais o npm de quem também o usa fora do WinZapp. Quando o WinZapp está em uma pasta que precisa de permissão de administrador para ser atualizada, depois da atualização ele não volta mais a abrir como administrador (a não ser que já estivesse rodando como administrador), e o npm do WinZapp passa a ter um cache próprio em vez de compartilhar o seu. A atualização também não fecha mais outros programas que usam portas de rede parecidas com as do WinZapp, como um banco de dados PostgreSQL.
+
 V2.0.0.0
 
 A grande novidade desta versão são as ligações: agora dá para ligar, atender e recusar ligações de voz e de vídeo pelo próprio WinZapp, sem pegar o celular, com uma janela de ligação acessível, atalhos de teclado, configurações de áudio próprias e o histórico na nova aba Ligações. Também chegaram as conversas trancadas, a pesquisa nas conversas arquivadas, os idiomas turco e romeno e várias melhorias de uso, além de correções em situações em que o WinZapp pedia para parear de novo sem necessidade. Por baixo, o código do programa passou por uma grande reorganização: ela não muda nada no uso, mas deixa o WinZapp mais fácil de manter e de corrigir daqui para a frente.

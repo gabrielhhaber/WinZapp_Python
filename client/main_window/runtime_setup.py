@@ -265,7 +265,7 @@ def pick_restore_generation(profile_recovery, global_dir, session_name,
     return prefer_previous, "ok", from_ladder
 
 
-def node_runtime_needs_download(node_exe, npm_cli, marker_path):
+def node_runtime_needs_download(node_exe, npm_cli, marker_path, npm_env=None):
     """Whether the portable Node.js runtime has to be replaced wholesale.
 
     Returns ``(needs_download, installed_version)``. Two separate faults are
@@ -281,6 +281,10 @@ def node_runtime_needs_download(node_exe, npm_cli, marker_path):
     blanket ``except Exception`` that then reported "unhealthy", so a
     perfectly good Node.js was thrown away and re-downloaded behind a dialog.
     The marker simply stays unwritten and the next launch asks again.
+
+    *npm_env* is the environment the npm probe runs with
+    (core/npm_environment.py): even a help page boots npm, which reads its
+    config and writes a log into its cache.
     """
     if not os.path.isfile(node_exe):
         return True, ""
@@ -322,6 +326,7 @@ def node_runtime_needs_download(node_exe, npm_cli, marker_path):
                 capture_output=True,
                 text=True,
                 timeout=10,
+                env=npm_env,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
         except (subprocess.TimeoutExpired, OSError) as exc:

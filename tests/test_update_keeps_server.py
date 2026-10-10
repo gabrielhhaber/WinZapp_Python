@@ -168,6 +168,8 @@ class TestTheInstallerKeepsTheNewerServer:
 
         monkeypatch.setattr(updater, "log_path", lambda *parts: str(tmp_path / "logs"))
         monkeypatch.setattr(updater, "_needs_admin", lambda: False)
+        # No real netstat from a test (update_node_kill.own_node_pids).
+        monkeypatch.setattr(updater, "own_node_pids", lambda port, paths: [])
         monkeypatch.setattr(updater.sys, "platform", "win32")
         monkeypatch.setattr(updater.subprocess, "Popen", lambda *a, **kw: None)
         # The script file itself is created before the fake write.
