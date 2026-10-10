@@ -4,6 +4,8 @@ Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, 
 
 NOVEDADES
 
+- Vaciar o eliminar chats puede dejar de pedir confirmación: los dos diálogos tienen ahora la casilla "No mostrar de nuevo", que solo surte efecto junto con Sí. Con la pregunta desactivada, vaciar conserva los mensajes destacados. En Configuración > Interfaz de usuario están las dos opciones correspondientes para volver a pedir confirmación.
+
 - Opción "Ocultar los números de teléfono de remitentes sin nombre en los mensajes" en Configuración > Interfaz de usuario. Al activarla, los mensajes de personas sin nombre empiezan directamente por su contenido, en la lista de mensajes y los anuncios de la conversación abierta, sin añadir una etiqueta de remitente alternativa. Se conservan los nombres y los números en el contenido de los mensajes. Empieza desactivada.
 
 - Atajos de teclado personalizables: la nueva pestaña Atajos de Ajustes enumera todos los atajos de la aplicación, incluido el atajo global para mostrar la ventana. Selecciona uno, pulsa Cambiar y escribe la nueva combinación, o desactívalo, restaura su valor predeterminado o restaura todos. Los conflictos se avisan antes de aplicar y los cambios solo se aplican con Aplicar o Aceptar.
@@ -30,6 +32,8 @@ NOVEDADES
 
 - Los emoticonos se convierten en emojis mientras escribes, como en WhatsApp Web: ":)" pasa a 🙂, ":D" a 😃, "<3" a ❤️, etc., al escribir un espacio o un signo de puntuación tras ellos, o al enviar el mensaje justo después de uno. Solo se convierte un emoticono aislado, nunca uno dentro de un enlace, de una palabra o de `código`. Pulsar Retroceso justo después de la conversión devuelve lo que escribiste. Se puede desactivar en Configuración, pestaña "General", "Convertir emoticonos como :D en emojis al escribir"
 
+- Progreso de la descarga en la lista de mensajes: mientras se descarga un documento, el mensaje muestra, por ejemplo, "35% (13,8 mb de 39,4 mb)" y vuelve al nombre y tamaño del archivo cuando termina la descarga.
+
 - "Datos del mensaje" muestra lo que el propio WhatsApp sabe. En un mensaje que enviaste, la ventana (Alt+Shift+D) ahora pregunta a WhatsApp cuándo se entregó, se leyó y se reprodujo, así que también aparecen los recibos que llegaron con WinZapp cerrado, cada uno con fecha y hora completas. En un grupo, lista quién lo recibió y quién lo leyó, por nombre, como "Leído (2/9): Ana, Bia".
 
 - La información del chat personal ahora también muestra el nombre de perfil que el contacto eligió, el nombre verificado de una empresa y si es una cuenta de empresa. Se omite un nombre que solo repite el ya mostrado.
@@ -38,7 +42,11 @@ NOVEDADES
 
 - La información del chat personal tiene ahora la pestaña "Grupos en común", que lista los grupos que compartes con el contacto. Pulsa Intro en un grupo para abrirlo. Si WhatsApp no responde, la pestaña lo avisa en lugar de quedarse vacía.
 
+- WinZapp se abre más rápido. Cuando tu cuenta ya está conectada, la ventana principal y tus conversaciones aparecen enseguida, mientras WPPConnect se inicia y WhatsApp se conecta en segundo plano, en lugar de después de la ventana "Iniciando WPPConnect, por favor espera...". Los mensajes que envíes mientras tanto esperan y se envían en cuanto WhatsApp esté conectado. El primer inicio, y una cuenta que todavía debe emparejarse, muestran esa ventana como antes. El título de la ventana indica "iniciando WPPConnect..." hasta que esté listo. Lo mismo ocurre al actualizar WPPConnect o forzar su reinstalación: ninguna ventana te estorba.
+
 CORRECCIONES
+
+- Al abrir o leer un chat dentro de WinZapp, la notificación de su mensaje nuevo se quita del área de notificaciones en lugar de quedarse allí.
 
 - Tras reactivar el equipo de la suspensión, los mensajes nuevos se reciben de forma fiable: la conversación abierta y los chats recientes se vuelven a comprobar aunque la lista de chats de WhatsApp parezca sin cambios, y las actualizaciones de chats vinculados por un ID de dispositivo vinculado ya no se ignoran
 
@@ -71,6 +79,8 @@ CORRECCIONES
 - La recuperación de la conexión y la sincronización de mensajes ya no confunden una sesión o ronda de sincronización antigua con la actual. Las respuestas tardías de la conexión, de la lista de chats o del historial de mensajes se descartan, una comprobación de conexión lenta ya no se confunde con el equipo saliendo de la suspensión, y una nueva sincronización ya no deja el historial pendiente sin un proceso que lo atienda. Así se evitan pasos innecesarios a "sin conexión" y historiales de mensajes incompletos.
 
 - Marcar un chat como leído vuelve a llegar al teléfono cuando el chat se conoce por su número de teléfono y por su ID de dispositivo vinculado, y una lectura que falla se reintenta la próxima vez que abres el chat, así que un chat ya no se queda sin leer en el teléfono después de leerlo en WinZapp.
+
+- WinZapp ahora se cierra correctamente, en lugar de dejar una ventana que nunca se conecta, cuando la ventana "Conectar a WinZapp" se cierra sin emparejar después de abrirse la ventana principal al iniciar, o cuando falta el token de la sesión en ese momento. En el segundo caso, el mensaje "Error al recuperar el token de usuario." sigue apareciendo antes. La ventana principal se quedaba abierta, sin conexión con WhatsApp y sin ningún aviso.
 
 V2.0.0.0
 

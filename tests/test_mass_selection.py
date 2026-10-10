@@ -652,6 +652,7 @@ def confirm_yes(monkeypatch):
     # Clearing asks through its own dialog (it carries the "keep starred
     # messages" checkbox); answer yes with the checkbox at its default.
     patch_conversations_global(monkeypatch, "confirm_clear_chat", lambda *a, **k: (True, True))
+    patch_conversations_global(monkeypatch, "confirm_delete_chat", lambda *a, **k: True)
 
 
 @pytest.fixture
@@ -672,6 +673,12 @@ def confirm_yes_capture(monkeypatch):
         return True, True
 
     patch_conversations_global(monkeypatch, "confirm_clear_chat", _fake_clear_confirm)
+
+    def _fake_delete_confirm(parent, main_window, message, title, *a, **kw):
+        calls.append((message, title))
+        return True
+
+    patch_conversations_global(monkeypatch, "confirm_delete_chat", _fake_delete_confirm)
     return calls
 
 
@@ -679,6 +686,7 @@ def confirm_yes_capture(monkeypatch):
 def confirm_no(monkeypatch):
     monkeypatch.setattr(wx, "MessageBox", lambda *a, **k: wx.NO)
     patch_conversations_global(monkeypatch, "confirm_clear_chat", lambda *a, **k: (False, True))
+    patch_conversations_global(monkeypatch, "confirm_delete_chat", lambda *a, **k: False)
 
 
 @pytest.fixture

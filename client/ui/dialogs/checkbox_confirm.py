@@ -20,7 +20,7 @@ import wx
 
 class CheckboxConfirmDialog(wx.Dialog):
     def __init__(self, parent, message, title, checkbox_label, yes_label, no_label,
-                 *, checked: bool, default_yes: bool):
+                 *, checked: bool, default_yes: bool, extra_label=None):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -31,6 +31,13 @@ class CheckboxConfirmDialog(wx.Dialog):
         self._checkbox = wx.CheckBox(self, label=checkbox_label)
         self._checkbox.SetValue(bool(checked))
         sizer.Add(self._checkbox, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        # Optional second option ("don't ask again"), after the first in the
+        # tab order and always unticked: it must be a deliberate choice.
+        self._extra_checkbox = None
+        if extra_label is not None:
+            self._extra_checkbox = wx.CheckBox(self, label=extra_label)
+            sizer.Add(self._extra_checkbox, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
         yes_btn = wx.Button(self, wx.ID_YES, label=yes_label)
@@ -57,6 +64,9 @@ class CheckboxConfirmDialog(wx.Dialog):
     def is_checked(self) -> bool:
         return bool(self._checkbox.GetValue())
 
+    def is_extra_checked(self) -> bool:
+        return self._extra_checkbox is not None and bool(self._extra_checkbox.GetValue())
+
 
 def confirm_with_checkbox(parent, message: str, title: str, checkbox_label: str, *,
                           yes_label: str, no_label: str, checked: bool, default_yes: bool):
@@ -75,3 +85,24 @@ def confirm_with_checkbox(parent, message: str, title: str, checkbox_label: str,
     finally:
         dlg.Destroy()
     return confirmed, is_checked
+
+
+def confirm_with_two_checkboxes(parent, message: str, title: str, checkbox_label: str,
+                                extra_label: str, *, yes_label: str, no_label: str,
+                                checked: bool, default_yes: bool):
+    """Like `confirm_with_checkbox`, plus an unticked second checkbox.
+
+    Returns `(confirmed, checkbox_checked, extra_checked)`; both states are
+    only meaningful when `confirmed` is True.
+    """
+    dlg = CheckboxConfirmDialog(
+        parent, message, title, checkbox_label, yes_label, no_label,
+        checked=checked, default_yes=default_yes, extra_label=extra_label,
+    )
+    try:
+        confirmed = dlg.ShowModal() == wx.ID_YES
+        is_checked = dlg.is_checked()
+        extra_checked = dlg.is_extra_checked()
+    finally:
+        dlg.Destroy()
+    return confirmed, is_checked, extra_checked

@@ -18,6 +18,7 @@ from main_window.identity_rules import (
     linked_phone_digits,
 )
 from core.connection_lifecycle import capture_connection_context, connection_context_is_owned
+from main_window.api_start_behind_window import wait_for_api_start
 
 
 class AccountLinkMixin:
@@ -48,6 +49,10 @@ class AccountLinkMixin:
         def _loop():
             # Wait a bit after startup before starting checks
             time.sleep(self._HEALTH_CHECK_INTERVAL)
+            # And for a Node still starting behind the window (issue #407):
+            # polls against its closed port would count as HTTP strikes.
+            if not wait_for_api_start(self):
+                return
             while True:
                 try:
                     # Only a *user-requested* offline pauses the checker.  When

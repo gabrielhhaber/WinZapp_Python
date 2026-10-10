@@ -3347,11 +3347,18 @@ msgid "downloading media"
 msgstr "descărcare media"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
+#: client/ui/conversation_panel/formatting.py
 #, python-brace-format
 msgctxt "downloading_progress"
 msgid "downloading, {pct}% done"
 msgstr "descărcare, {pct}% finalizat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/formatting.py
+#, python-brace-format
+msgctxt "downloading_progress_size"
+msgid "downloading, {pct}% ({done} of {total})"
+msgstr "descărcare, {pct}% ({done} din {total})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_log.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -4501,6 +4508,9 @@ msgstr ""
 " {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/archived_panel.py
+#: client/ui/conversation_panel/chat_list_selection.py
+#: client/ui/conversation_panel/chat_menu.py
 msgctxt "mark_all_read_dont_show_again"
 msgid "Don't show again"
 msgstr "Nu mai afișați"
@@ -11407,7 +11417,8 @@ msgctxt "transcription_whisper_cpp_verify_btn"
 msgid "Verify"
 msgstr "Verificați"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/api_start_behind_window.py
 #: client/main_window/connection.py
 msgctxt "tray_connecting"
 msgid "connecting..."
@@ -11439,6 +11450,13 @@ msgstr "Deschide"
 msgctxt "tray_show_icon"
 msgid "Show icon and unread message count in the system tray"
 msgstr "Afișează pictograma și numărul de mesaje necitite în bara de sistem"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/api_start_behind_window.py
+#: client/main_window/connection.py
+msgctxt "tray_starting_wppconnect"
+msgid "starting WPPConnect..."
+msgstr "se pornește WPPConnect..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/tray_manager.py
 #, python-brace-format
@@ -11500,6 +11518,18 @@ msgid "Replace shortcuts with bulk actions when selecting chats and messages"
 msgstr ""
 "Înlocuiți comenzile rapide cu acțiuni în bloc atunci când selectați "
 "conversații și mesaje"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_confirm_clear_chat"
+msgid "Ask for confirmation before clearing chats"
+msgstr "Cere confirmare înainte de a șterge conținutul conversațiilor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_confirm_delete_chat"
+msgid "Ask for confirmation before deleting chats"
+msgstr "Cere confirmare înainte de a șterge conversațiile"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

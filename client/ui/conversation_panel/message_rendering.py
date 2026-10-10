@@ -211,8 +211,8 @@ class MessageRenderingMixin:
             msg_id   = msg.get("key", {}).get("id", "")
             progress = self._download_progress.get(msg_id)
             if progress is not None and progress < 1.0:
-                pct      = int(progress * 100)
-                prog_str = i18n.t("downloading_progress").format(pct=pct)
+                prog_str = self._download_progress_text(
+                    progress, doc.get("fileLength"))
                 return f"{i18n.t('document')}, {filename}, {prog_str}"
             parts = [i18n.t("document"), filename]
             if size_str:

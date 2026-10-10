@@ -38,6 +38,28 @@ from app_paths import resource_path, global_dir
 from core.node_compile_cache import cache_environment
 
 
+def bundled_api_present() -> bool:
+    """True when node, start.js and dist/server.js — all three files the
+    bundled API needs to start — are on disk.
+
+    A plain function rather than a method so the startup decision in
+    main_window/api_start_behind_window.py can ask it too."""
+    if sys.platform == "win32":
+        node_exe = resource_path("node", "node.exe")
+    else:
+        local_node = resource_path("node", "node")
+        if os.path.isfile(local_node):
+            node_exe = local_node
+        else:
+            node_exe = shutil.which("node") or "node"
+
+    start_js  = resource_path("api",  "start.js")
+    dist_server = resource_path("api",  "dist", "server.js")
+    return (os.path.isfile(node_exe)
+            and os.path.isfile(start_js)
+            and os.path.isfile(dist_server))
+
+
 class WppServerMixin:
     """The local WPPConnect Server process: browser payload, npm modules, version
     pin, ports, background start, stop and ensure_wpp_running.
@@ -1625,28 +1647,11 @@ class WppServerMixin:
             self._register_node_lease()
             return  # Already up (e.g. left running from a previous session)
 
-        import sys
-        import shutil
-
-        if sys.platform == "win32":
-            node_exe = resource_path("node", "node.exe")
-        else:
-            local_node = resource_path("node", "node")
-            if os.path.isfile(local_node):
-                node_exe = local_node
-            else:
-                node_exe = shutil.which("node") or "node"
-
-        start_js  = resource_path("api",  "start.js")
-        dist_server = resource_path("api",  "dist", "server.js")
-
-        # All three files are required to start the bundled API.
-        # If any is missing (setup incomplete or not yet run), skip silently —
-        # ensure_api_modules_installed() already handled the missing node.exe
-        # case; dist/server.js absence means setup was cancelled or not done yet.
-        if not (os.path.isfile(node_exe)
-                and os.path.isfile(start_js)
-                and os.path.isfile(dist_server)):
+        # If any file is missing (setup incomplete or not yet run), skip
+        # silently — ensure_api_modules_installed() already handled the missing
+        # node.exe case; dist/server.js absence means setup was cancelled or
+        # not done yet.
+        if not bundled_api_present():
             return
 
         self._wpp_log_path = None
@@ -1692,6 +1697,12 @@ class WppServerMixin:
                 return False  # Let the updater restore its retained predecessor.
             sys.exit(1)
 
+        if self._main_window_is_up():
+            # An update, a forced reinstall or a rollback restarting Node under
+            # a window that is already on screen: the title says "starting
+            # WPPConnect..." instead of a modal taking focus (issue #407).
+            return self._start_api_under_open_window()
+
         # Settle the port BEFORE the dialog captures it. _start_wpp_background()
         # calls this too, but it runs from the wx.CallAfter below — i.e. after
         # ApiStartupDialog.__init__ has already stored self.wpp_port and started
@@ -1728,19 +1739,27 @@ class WppServerMixin:
         if result != wx.ID_OK:
             if getattr(self, "_wpp_updating", False):
                 return False
-            details = ""
-            log_path = getattr(self, "_wpp_log_path", None)
-            if log_path and os.path.isfile(log_path):
-                try:
-                    with open(log_path, "r", encoding="utf-8", errors="replace") as f:
-                        lines = f.readlines()
-                    details = "".join(lines[-40:]).strip()
-                except Exception:
-                    pass
-            msg = self.i18n.t("api_startup_warning")
-            if details:
-                msg = f"{msg}\n\n{details}"
-            self.run_on_main_thread(wx.MessageBox, msg, self.app_name, wx.OK | wx.ICON_ERROR)
+            self._show_api_startup_failure()
             sys.exit(1)
 
         self._check_wpp_version_pin()
+
+    def _show_api_startup_failure(self):
+        """The "API failed to start" error, with the tail of wppconnect.log.
+
+        Shared by the startup dialog's timeout and by a start that runs behind
+        the main window (main_window/api_start_behind_window.py), so a Node
+        that never comes up is reported the same way on both."""
+        details = ""
+        log_path = getattr(self, "_wpp_log_path", None)
+        if log_path and os.path.isfile(log_path):
+            try:
+                with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+                    lines = f.readlines()
+                details = "".join(lines[-40:]).strip()
+            except Exception:
+                pass
+        msg = self.i18n.t("api_startup_warning")
+        if details:
+            msg = f"{msg}\n\n{details}"
+        self.run_on_main_thread(wx.MessageBox, msg, self.app_name, wx.OK | wx.ICON_ERROR)

@@ -24,6 +24,7 @@ and the three ``user_interface`` settings that steer them.
 from ui.shortcut_bindings import command_key_event
 import wx
 from ui.dialogs.clear_chat_confirm import confirm_clear_chat
+from ui.dialogs.delete_chat_confirm import confirm_delete_chat
 
 
 class ChatListSelectionMixin:
@@ -382,6 +383,8 @@ class ChatListSelectionMixin:
             i18n.t("clear_chat_keep_starred"),
             yes_label=i18n.t("yes_button"),
             no_label=i18n.t("no_button"),
+            main_window=self.main_window,
+            dont_ask_label=i18n.t("mark_all_read_dont_show_again"),
         )
         if not confirmed:
             return
@@ -396,11 +399,14 @@ class ChatListSelectionMixin:
         i18n = self.main_window.i18n
         if not self.selected_chats: return
         count = len(self.selected_chats)
-        if wx.MessageBox(
+        if not confirm_delete_chat(
+            self, self.main_window,
             i18n.t("delete_confirm_msg_bulk").format(count=count),
             i18n.t("delete_chat_bulk_title"),
-            wx.YES_NO | wx.ICON_QUESTION, self,
-        ) != wx.YES:
+            i18n.t("mark_all_read_dont_show_again"),
+            yes_label=i18n.t("yes_button"),
+            no_label=i18n.t("no_button"),
+        ):
             return
         for jid in list(self.selected_chats):
             self.main_window.delete_chat(jid)

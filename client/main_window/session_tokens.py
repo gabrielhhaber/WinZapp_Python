@@ -20,6 +20,7 @@ from app_paths import (
 from core.api_client import api_post
 from traceback import format_exc
 from core import token_vault
+from main_window.api_start_behind_window import wait_for_api_start
 
 
 class SessionTokensMixin:
@@ -313,7 +314,19 @@ class SessionTokensMixin:
             logging.exception("[sessions] SessionStore init failed (non-fatal)")
             return None
 
-    def retrieve_token(self):
+    def retrieve_token(self) -> bool:
+        """Load (and if needed migrate) this account's WPPConnect token into
+        self.token.
+
+        Called from __init__ on the main thread, before the main loop, and
+        again from post_ui_init's STEP 2 on its worker thread. With no token
+        the main-thread call ends the process with sys.exit, as it always did.
+        On the worker that would only end the thread and leave the window up,
+        connected to nothing, so there the error box and real_exit() are
+        queued on the UI thread instead and this returns False: the caller
+        stops. self.token is left as it was, because the graceful teardown
+        still needs it to close the session. True otherwise.
+        """
         token = self._get_wa_token()
         if not token:
             # Migration: read from legacy token.tk if WA_token not yet present
@@ -339,11 +352,17 @@ class SessionTokensMixin:
             except Exception as e:
                 logging.error("[retrieve_token] Failed to migrate WPPConnect token: %s", e)
         if not token:
+            if not wx.IsMainThread():
+                logging.error("[retrieve_token] No token on post_ui_init's thread — quitting from the UI thread.")
+                if self.background_mode:
+                    wx.CallAfter(self.real_exit)
+                else:
+                    wx.CallAfter(self._report_token_retrieval_failure, format_exc())
+                return False
             if self.background_mode:
                 # No token means WhatsApp has never been paired — exit silently.
                 sys.exit(0)
-            self.error_sound.play()
-            wx.MessageBox(f"{self.i18n.t('token_retrieval_failed')} {format_exc()}", self.i18n.t("error").format(app_name=self.app_name), wx.OK | wx.ICON_ERROR)
+            self._show_token_retrieval_failure(format_exc())
             sys.exit()
         self.token = token.replace("/", "_").replace("+", "-")
         # Seed this account's SessionStore with the current (migrated/existing)
@@ -357,7 +376,7 @@ class SessionTokensMixin:
         if self._startup_token_tail_done:
             logging.info("[retrieve_token] Token refreshed; startup audit and "
                          "session cleanup already done this launch — skipping.")
-            return
+            return True
         self._startup_token_tail_done = True
 
         # Persistent audit: which session are we starting with, and what does the
@@ -391,6 +410,36 @@ class SessionTokensMixin:
         # (60-100 MB of Chrome profile each), so they piled up unbounded. Clean
         # them now, at startup, when they are provably not in use.
         self._cleanup_abandoned_sessions()
+        return True
+
+    def _show_token_retrieval_failure(self, details: str):
+        """retrieve_token()'s no-token error: the sound and the box. Shared by
+        its main-thread path and _report_token_retrieval_failure(), so both
+        say the same thing. Main thread only."""
+        self.error_sound.play()
+        wx.MessageBox(f"{self.i18n.t('token_retrieval_failed')} {details}", self.i18n.t("error").format(app_name=self.app_name), wx.OK | wx.ICON_ERROR)
+
+    def _report_token_retrieval_failure(self, details: str):
+        """UI thread: retrieve_token()'s no-token box for a call made off the
+        main thread, then a full quit. details is format_exc() as read on the
+        calling thread.
+
+        With a quit already under way the box is skipped, as
+        _start_api_behind_window() skips its own error report: nobody is
+        waiting on it, and it would hold this quit's real_exit() back behind a
+        modal. real_exit() still runs — an overlapping quit is a case it
+        handles (it waits for the owning teardown, then terminates) — because
+        the one quit that can be under way and then call itself off, Windows
+        cancelling a shutdown, would otherwise leave this window up with no
+        token, the state this method exists to end."""
+        if getattr(self, "_shutting_down", False):
+            logging.info("[retrieve_token] No token, but a quit is already under way — not showing the error.")
+        else:
+            try:
+                self._show_token_retrieval_failure(details)
+            except Exception:
+                logging.exception("[retrieve_token] could not show the token error")
+        self.real_exit()
 
     def _cleanup_abandoned_sessions(self):
         """Delete this account's superseded ('abandoned') WPPConnect sessions:
@@ -441,6 +490,13 @@ class SessionTokensMixin:
         # sessions; never clean under custom API (plan Zad 3.2 + user config).
         if getattr(self, "wpp_custom_api", False):
             logging.info("[sessions] custom API active — skipping abandoned-session cleanup")
+            return
+        # A Node still starting behind the window (issue #407) refuses the
+        # logout below, and the circuit breaker then deletes every abandoned
+        # profile without deregistering it — a linked device left on the
+        # phone that nothing can remove any more. Wait for it; a start that
+        # failed is quitting, and the next launch cleans up.
+        if not wait_for_api_start(self):
             return
         try:
             import session_store

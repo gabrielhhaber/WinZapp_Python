@@ -136,6 +136,7 @@ class _Stub:
     _TOAST_REACTIONS = NotificationManager._TOAST_REACTIONS
 
     _dispatch            = NotificationManager._dispatch
+    _chat_key            = NotificationManager._chat_key
     _announce_unshown    = NotificationManager._announce_unshown
     _clear_active_toasts = NotificationManager._clear_active_toasts
 
@@ -146,6 +147,7 @@ class _Stub:
         self._queue = queue.Queue()
         self._toaster = toaster
         self._last_toast = None
+        self._last_toast_jid = None
         self._last_shown_at = None
         self._interactable = False
         self.i18n = _FakeI18n()

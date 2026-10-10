@@ -3333,11 +3333,18 @@ msgid "downloading media"
 msgstr "medya indiriliyor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
+#: client/ui/conversation_panel/formatting.py
 #, python-brace-format
 msgctxt "downloading_progress"
 msgid "downloading, {pct}% done"
 msgstr "indiriliyor, {pct}% tamamlandı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/formatting.py
+#, python-brace-format
+msgctxt "downloading_progress_size"
+msgid "downloading, {pct}% ({done} of {total})"
+msgstr "indiriliyor, {pct}% ({done} / {total})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_log.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -4471,6 +4478,9 @@ msgstr ""
 "Okunmamış sohbet sayısı: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/archived_panel.py
+#: client/ui/conversation_panel/chat_list_selection.py
+#: client/ui/conversation_panel/chat_menu.py
 msgctxt "mark_all_read_dont_show_again"
 msgid "Don't show again"
 msgstr "Tekrar gösterme"
@@ -11267,7 +11277,8 @@ msgctxt "transcription_whisper_cpp_verify_btn"
 msgid "Verify"
 msgstr "Doğrula"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/api_start_behind_window.py
 #: client/main_window/connection.py
 msgctxt "tray_connecting"
 msgid "connecting..."
@@ -11299,6 +11310,13 @@ msgstr "Aç"
 msgctxt "tray_show_icon"
 msgid "Show icon and unread message count in the system tray"
 msgstr "Sistem tepsisinde simgeyi ve okunmamış mesaj sayısını göster"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/api_start_behind_window.py
+#: client/main_window/connection.py
+msgctxt "tray_starting_wppconnect"
+msgid "starting WPPConnect..."
+msgstr "WPPConnect başlatılıyor..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/tray_manager.py
 #, python-brace-format
@@ -11356,6 +11374,18 @@ msgstr "Sesler sırayla çalınırken odağı otomatik olarak sonraki sese taş�
 msgctxt "ui_bulk_action_shortcuts"
 msgid "Replace shortcuts with bulk actions when selecting chats and messages"
 msgstr "Sohbet ve mesaj seçerken kısayolları toplu işlemlerle değiştir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_confirm_clear_chat"
+msgid "Ask for confirmation before clearing chats"
+msgstr "Sohbetleri temizlemeden önce onay iste"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_confirm_delete_chat"
+msgid "Ask for confirmation before deleting chats"
+msgstr "Sohbetleri silmeden önce onay iste"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

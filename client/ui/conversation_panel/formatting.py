@@ -123,6 +123,27 @@ class FormattingMixin:
                 f" {i18n.t('and')} {s} {i18n.t('second') if s == 1 else i18n.t('seconds')}"
             )
 
+    def _download_progress_text(self, progress: float, total_bytes) -> str:
+        """Row text for a download in progress: percentage plus bytes so far.
+
+        Falls back to the percentage alone when the message carries no usable
+        size, since "13.8 mb of 0 b" would be wrong.
+        """
+        i18n = self.main_window.i18n
+        pct = int(progress * 100)
+        try:
+            total = int(total_bytes)
+        except (TypeError, ValueError):
+            total = 0
+        if total <= 0:
+            return i18n.t("downloading_progress").format(pct=pct)
+        done = min(total, int(progress * total))
+        return i18n.t("downloading_progress_size").format(
+            pct=pct,
+            done=self._format_filesize(done),
+            total=self._format_filesize(total),
+        )
+
     def _format_filesize(self, size_bytes) -> str:
         if size_bytes is None:
             return ""

@@ -1049,7 +1049,8 @@ class ConnectionMixin:
                 # wait_messages_set() no longer sets this status itself —
                 # this is the one place that does, in lockstep with the sound.
                 wx.CallAfter(self._set_preparing_status_if_idle)
-            elif self._tray_status in (self.i18n.t("tray_wa_disconnected"), self.i18n.t("tray_connecting")):
+            elif self._tray_status in (self.i18n.t("tray_wa_disconnected"), self.i18n.t("tray_connecting"),
+                                       self.i18n.t("tray_starting_wppconnect")):
                 # Reconnect (not the first-ever connect, handled above) —
                 # clear only the transient "connecting"/"disconnected" text; a
                 # sync running in parallel owns the status line otherwise

@@ -140,6 +140,9 @@ class ReadStateMixin:
         if chat is None:
             return
 
+        manager = getattr(self, "notification_manager", None)
+        if manager is not None:
+            manager.clear_for_chat(remote_jid)
         normalized = self._normalize_jid(remote_jid)
         read_timestamp = int(chat.get("t", 0) or 0)
         activity = read_state_activity(chat)

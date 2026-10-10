@@ -19,6 +19,7 @@ Where to look (and where new code goes):
     session_tokens      WA_token vault, session store, abandoned sessions
     session_lifecycle   Windows end-session teardown, profile recovery/snapshots
     wpp_server          local WPPConnect Server: install, version, ports, start/stop
+    api_start_behind_window  a paired launch: window first, Node started behind it (#407)
     updates             app and WPPConnect Server update checks
     wpp_background_update  WPPConnect Server update built in the background, then swapped in
     sync                prepare_sync, _run_sync, per-chat sync planning

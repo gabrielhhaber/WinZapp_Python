@@ -4,6 +4,8 @@ Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisa
 
 YENİLİKLER
 
+- Sohbetleri temizlemek veya silmek artık onay istemeyebilir: iki iletişim kutusunda da yalnızca Evet ile birlikte geçerli olan "Bir daha gösterme" kutusu bulunur. Soru kapalıyken temizleme yıldızlı iletileri korur. Ayarlar > Kullanıcı arayüzü içinde onayı yeniden açan iki ilgili seçenek vardır.
+
 - Ayarlar > Kullanıcı Arayüzü altında isteğe bağlı "Mesajlarda isimsiz gönderenlerin telefon numaralarını gizle" seçeneği. Açıldığında adı olmayan kişilerin mesajları, mesaj listesinde ve açık sohbet duyurularında doğrudan içerikle başlar; yerine başka bir gönderen etiketi eklenmez. Adlar ve mesaj içeriğindeki numaralar korunur. Başlangıçta kapalıdır.
 
 - Özelleştirilebilir klavye kısayolları: Ayarlar'daki yeni Kısayollar sekmesi, pencereyi gösteren genel kısayol dahil uygulamanın tüm kısayollarını listeler. Birini seçip Değiştir'e basın ve yeni birleşimi yazın; ya da devre dışı bırakın, varsayılana döndürün veya tümünü sıfırlayın. Çakışmalar uygulamadan önce bildirilir ve değişiklikler yalnızca Uygula veya Tamam ile geçerli olur.
@@ -30,6 +32,8 @@ YENİLİKLER
 
 - Metin ifadeleri, WhatsApp Web'deki gibi yazarken emojiye dönüşür: ":)" 🙂, ":D" 😃, "<3" ❤️ olur; ardından boşluk ya da noktalama işareti yazdığınızda veya mesajı hemen ardından gönderdiğinizde. Yalnızca tek başına duran bir ifade dönüştürülür; bir bağlantının, bir kelimenin ya da `kod`un içindeki asla. Dönüşümden hemen sonra Backspace tuşuna basmak yazdığınızı geri getirir. Ayarlar, "Genel" sekmesi, "Yazarken :D gibi metin ifadelerini emojiye dönüştür" ile kapatılabilir
 
+- Mesaj listesinde indirme ilerlemesi: bir belge indirilirken mesaj, örneğin "35% (13,8 mb / 39,4 mb)" gösterir ve indirme bitince dosya adı ve boyutuna döner.
+
 - "Mesaj bilgisi" WhatsApp'ın kendi bildiklerini gösterir. Gönderdiğiniz bir mesaj için pencere (Alt+Shift+D) artık WhatsApp'a ne zaman iletildiğini, okunduğunu ve oynatıldığını sorar; böylece WinZapp kapalıyken gelen makbuzlar da, her biri tam tarih ve saatle birlikte görünür. Bir grupta, mesajı kimlerin aldığını ve okuduğunu "Okundu (2/9): Ana, Bia" gibi isimleriyle listeler.
 
 - Kişisel sohbet bilgileri artık kişinin kendi seçtiği profil adını, bir işletmenin doğrulanmış adını ve hesabın işletme hesabı olup olmadığını da listeliyor. Zaten gösterilen adı yalnızca tekrarlayan bir ad atlanır.
@@ -38,7 +42,11 @@ YENİLİKLER
 
 - Kişisel sohbet bilgilerinde artık kişiyle ortak olduğunuz grupları listeleyen "Ortak gruplar" sekmesi var. Bir grupta Enter tuşuna basarak onu açın. WhatsApp yanıt vermezse sekme boş kalmak yerine bunu bildirir.
 
+- WinZapp daha hızlı açılıyor. Hesabınız zaten bağlıysa ana pencere ve sohbetleriniz hemen görünür; WPPConnect arka planda başlatılır ve WhatsApp arka planda bağlanır. Artık "WPPConnect başlatılıyor, lütfen bekleyin..." penceresinin kapanması beklenmez. Bu sırada gönderdiğiniz mesajlar bekletilir ve WhatsApp bağlanır bağlanmaz gönderilir. İlk başlatma ve henüz eşlenmesi gereken bir hesap, bu pencereyi eskisi gibi gösterir. Hazır olana kadar pencere başlığında "WPPConnect başlatılıyor..." yazar. WPPConnect güncellemeleri ve zorla yeniden kurulum için de aynısı geçerlidir: hiçbir pencere yolunuza çıkmaz.
+
 DÜZELTMELER
+
+- WinZapp içinde bir sohbeti açtığınızda veya okuduğunuzda, yeni iletisinin bildirimi bildirim alanında kalmak yerine kaldırılır.
 
 - Bilgisayar uykudan uyandığında yeni iletiler güvenilir biçimde alınır: WhatsApp sohbet listesi değişmemiş görünse bile açık sohbet ve son sohbetler yeniden denetlenir, bağlı cihaz kimliğiyle bağlanan sohbetlerin güncellemeleri artık yok sayılmaz
 
@@ -71,6 +79,8 @@ DÜZELTMELER
 - Bağlantı kurtarma ve mesaj eşitleme artık eski bir oturumu veya eşitleme turunu geçerli olanla karıştırmıyor. Bağlantıdan, sohbet listesinden veya mesaj geçmişinden gelen geç yanıtlar yok sayılır, yavaş bir bağlantı denetimi artık bilgisayarın uykudan uyanması sanılmaz ve yeni bir eşitleme bekleyen geçmişi onu işleyecek bir iş parçacığı olmadan bırakmaz. Bu, gereksiz çevrimdışı geçişlerini ve eksik mesaj geçmişini önler.
 
 - Bir sohbeti okundu olarak işaretlemek, sohbet hem telefon numarasıyla hem de bağlı cihaz kimliğiyle biliniyorsa yeniden telefona ulaşıyor; başarısız olan bir okuma, sohbeti bir sonraki açışınızda yeniden deneniyor, böylece WinZapp'ta okuduğunuz bir sohbet telefonda okunmamış kalmıyor.
+
+- Başlangıçta ana pencere açıldıktan sonra "WinZapp uygulamasına bağlan" penceresi eşleştirmeden kapatıldığında ya da o anda oturum belirteci eksik olduğunda WinZapp artık hiç bağlanmayan bir pencere bırakmak yerine düzgün şekilde kapanıyor. İkinci durumda önce yine "Kullanıcı belirteci alınamadı." mesajı gösterilir. Ana pencere, WhatsApp bağlantısı olmadan ve hiçbir uyarı göstermeden açık kalıyordu.
 
 V2.0.0.0
 

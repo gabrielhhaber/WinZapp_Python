@@ -4,6 +4,8 @@ W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym 
 
 NOWOŚCI
 
+- Wyczyszczenie lub usunięcie czatów może przestać wymagać potwierdzenia: oba okna mają teraz pole wyboru "Nie pokazuj ponownie", które działa tylko razem z odpowiedzią Tak. Gdy pytanie jest wyłączone, czyszczenie zachowuje wiadomości z gwiazdką. W Ustawienia > Interfejs użytkownika są dwie odpowiadające opcje, które przywracają pytanie.
+
 - Opcja "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach" w Ustawienia > Interfejs użytkownika. Po włączeniu wiadomości od osób bez nazwy zaczynają się bezpośrednio od treści na liście wiadomości i w komunikatach otwartego czatu, bez zastępczej etykiety nadawcy. Nazwy i numery w treści wiadomości są zachowane. Domyślnie wyłączona.
 
 - Konfigurowalne skróty klawiszowe: nowa karta Skróty w Ustawieniach wyświetla wszystkie skróty aplikacji, w tym globalny skrót pokazywania okna. Zaznacz skrót, naciśnij Zmień i wpisz nową kombinację albo wyłącz go, przywróć domyślny lub przywróć wszystkie. Konflikty są zgłaszane przed zastosowaniem, a zmiany obowiązują dopiero po wybraniu Zastosuj lub OK.
@@ -30,6 +32,8 @@ NOWOŚCI
 
 - Emotikony zamieniają się w emoji podczas pisania, jak w WhatsApp Web: ":)" w 🙂, ":D" w 😃, "<3" w ❤️ itd., gdy po nich wpiszesz spację lub znak interpunkcyjny albo wyślesz wiadomość zaraz po jednym z nich. Zamieniany jest tylko emotikon stojący osobno, nigdy w linku, w słowie ani w `kodzie`. Naciśnięcie Backspace zaraz po zamianie przywraca to, co wpisano. Można to wyłączyć w Ustawieniach, karta "Ogólne", "Zamieniaj emotikony, takie jak :D, na emoji podczas pisania"
 
+- Postęp pobierania na liście wiadomości: podczas pobierania dokumentu wiadomość pokazuje na przykład „35% (13,8 mb z 39,4 mb)”, a po zakończeniu pobierania wraca do nazwy i rozmiaru pliku.
+
 - „Informacje o wiadomości” pokazuje to, co wie sam WhatsApp. Dla wysłanej przez Ciebie wiadomości okno (Alt+Shift+D) pyta teraz WhatsApp, kiedy została dostarczona, odczytana i odtworzona, więc pojawiają się też potwierdzenia, które przyszły przy zamkniętym WinZapp, każde z pełną datą i godziną. W grupie wyświetla listę osób, które ją odebrały i odczytały, z nazwami, np. „Wyświetlono (2/9): Ana, Bia”.
 
 - Informacje o czacie prywatnym pokazują teraz także nazwę profilu wybraną przez kontakt, zweryfikowaną nazwę firmy i informację, czy to konto firmowe. Nazwa, która tylko powtarza już wyświetloną, jest pomijana.
@@ -38,7 +42,11 @@ NOWOŚCI
 
 - Informacje o czacie prywatnym mają nową kartę „Wspólne grupy”, która wyświetla grupy, w których jesteście razem z kontaktem. Naciśnij Enter na grupie, aby ją otworzyć. Jeśli WhatsApp nie odpowie, karta poinformuje o tym zamiast pozostać pusta.
 
+- WinZapp otwiera się szybciej. Gdy konto jest już połączone, okno główne i czaty pojawiają się od razu, a WPPConnect uruchamia się i WhatsApp łączy się w tle, zamiast dopiero po oknie "Uruchamianie WPPConnect, proszę czekać...". Wiadomości wysłane w tym czasie czekają i zostaną wysłane, gdy WhatsApp się połączy. Pierwsze uruchomienie oraz konto, które trzeba jeszcze sparować, pokazują to okno tak jak dotąd. Tytuł okna pokazuje „uruchamianie WPPConnect...” do czasu, aż będzie gotowy. To samo dotyczy aktualizacji WPPConnect i wymuszonej ponownej instalacji: żadne okno nie przeszkadza.
+
 POPRAWKI
+
+- Gdy otworzysz lub przeczytasz czat w WinZapp, powiadomienie o jego nowej wiadomości jest usuwane z obszaru powiadomień zamiast w nim pozostawać.
 
 - Po wybudzeniu komputera z uśpienia nowe wiadomości są pobierane niezawodnie: otwarta rozmowa i ostatnie czaty są sprawdzane ponownie, nawet gdy lista czatów WhatsApp wygląda na niezmienioną, a aktualizacje czatów powiązanych przez identyfikator połączonego urządzenia nie są już pomijane
 
@@ -71,6 +79,8 @@ POPRAWKI
 - Odzyskiwanie połączenia i synchronizacja wiadomości nie mylą już starej sesji ani starej rundy synchronizacji z bieżącą. Spóźnione odpowiedzi połączenia, listy czatów i historii wiadomości są odrzucane, wolne sprawdzanie połączenia nie jest już brane za wybudzenie komputera z uśpienia, a nowa synchronizacja nie zostawia już oczekującej historii bez procesu, który się nią zajmie. Dzięki temu unikamy niepotrzebnych przejść do trybu offline i niepełnej historii wiadomości.
 
 - Oznaczenie czatu jako przeczytanego ponownie dociera do telefonu, gdy czat jest znany zarówno po numerze telefonu, jak i po identyfikatorze połączonego urządzenia, a nieudane oznaczenie jest ponawiane przy następnym otwarciu czatu, więc czat nie pozostaje nieprzeczytany w telefonie po przeczytaniu go w WinZapp.
+
+- WinZapp teraz poprawnie się zamyka, zamiast zostawiać okno, które nigdy się nie połączy, gdy okno "Połącz z WinZapp" zostanie zamknięte bez sparowania po otwarciu okna głównego przy uruchamianiu albo gdy w tym momencie brakuje tokenu sesji. W drugim przypadku nadal najpierw pojawia się komunikat "Nie udało się pobrać tokenu użytkownika.". Okno główne pozostawało otwarte, bez połączenia z WhatsApp i bez żadnego komunikatu.
 
 V2.0.0.0
 

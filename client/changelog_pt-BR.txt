@@ -4,6 +4,8 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- Limpar ou apagar conversas pode deixar de pedir confirmação: os dois diálogos agora têm a caixa "Não mostrar novamente", que só vale junto com Sim. Com a pergunta desligada, limpar mantém as mensagens favoritas. Em Configurações > Interface do usuário há as duas opções correspondentes para voltar a pedir confirmação.
+
 - Opção "Ocultar números de telefone de remetentes sem nome nas mensagens" em Configurações > Interface do usuário. Quando ativada, as mensagens de pessoas sem nome começam diretamente pelo conteúdo, na lista de mensagens e nos anúncios da conversa aberta, sem um rótulo substituto de remetente. Nomes e números no conteúdo das mensagens são mantidos. Começa desativada.
 
 - Atalhos de teclado personalizáveis: a nova aba Atalhos das Configurações lista todos os atalhos do aplicativo, inclusive o atalho global para mostrar a janela. Selecione um, pressione Alterar e digite a nova combinação, ou desative-o, restaure o padrão ou restaure todos. Os conflitos são avisados antes de aplicar, e as alterações só valem com Aplicar ou OK.
@@ -30,6 +32,8 @@ NOVIDADES
 
 - Emoticons viram emojis enquanto você digita, como no WhatsApp Web: ":)" vira 🙂, ":D" vira 😃, "<3" vira ❤️ e assim por diante, ao digitar um espaço ou uma pontuação depois deles, ou ao enviar a mensagem logo após um. Só é convertido um emoticon isolado, nunca um dentro de um link, de uma palavra ou de `código`. Apertar Backspace logo após a conversão devolve o que você digitou. Dá para desligar em Configurações, aba "Geral", "Converter emoticons como :D em emojis ao digitar"
 
+- Progresso do download na lista de mensagens: enquanto um documento é baixado, a mensagem mostra, por exemplo, "35% (13,8 mb de 39,4 mb)" e volta ao nome e tamanho do arquivo quando o download termina.
+
 - "Dados da mensagem" mostra o que o próprio WhatsApp sabe. Numa mensagem que você enviou, a janela (Alt+Shift+D) agora pergunta ao WhatsApp quando ela foi entregue, lida e reproduzida, então os recibos que chegaram com o WinZapp fechado também aparecem, cada um com data e hora completas. Num grupo, lista quem recebeu e quem leu, pelo nome, como "Lida (2/9): Ana, Bia".
 
 - As informações do chat pessoal agora também mostram o nome de perfil que o contato escolheu, o nome verificado de uma empresa e se a conta é comercial. Um nome que só repete o já exibido é omitido.
@@ -38,7 +42,11 @@ NOVIDADES
 
 - As informações do chat pessoal ganharam a aba "Grupos em comum", que lista os grupos em que você e o contato estão. Pressione Enter em um grupo para abri-lo. Se o WhatsApp não responder, a aba avisa em vez de ficar vazia.
 
+- O WinZapp abre mais rápido. Quando a sua conta já está conectada, a janela principal e as suas conversas aparecem na hora, enquanto o WPPConnect é iniciado e o WhatsApp se conecta em segundo plano, em vez de só depois da janela "Iniciando o WPPConnect, por favor aguarde...". As mensagens enviadas nesse meio-tempo aguardam e são enviadas assim que o WhatsApp se conectar. A primeira inicialização, e uma conta que ainda precisa ser pareada, mostram essa janela como antes. O título da janela mostra "iniciando o WPPConnect..." até ele ficar pronto. O mesmo vale para atualizações do WPPConnect e reinstalações forçadas: nenhuma janela atrapalha.
+
 CORREÇÕES
+
+- Ao abrir ou ler uma conversa dentro do WinZapp, a notificação da mensagem nova dela é removida da área de notificações em vez de ficar lá.
 
 - Depois que o computador volta da suspensão, as mensagens novas são buscadas de forma confiável: a conversa aberta e as conversas recentes são verificadas de novo mesmo quando a lista de conversas do WhatsApp parece inalterada, e as atualizações de conversas ligadas por um ID de dispositivo vinculado deixam de ser ignoradas
 
@@ -71,6 +79,8 @@ CORREÇÕES
 - A recuperação da conexão e a sincronização de mensagens não confundem mais uma sessão ou rodada de sincronização antiga com a atual. Respostas atrasadas da conexão, da lista de conversas ou do histórico de mensagens são descartadas, uma verificação de conexão lenta não é mais confundida com o computador voltando de suspensão, e uma nova sincronização não deixa mais o histórico pendente sem um processo para tratá-lo. Isso evita passagens desnecessárias para "offline" e históricos de mensagens incompletos.
 
 - Marcar uma conversa como lida volta a chegar ao celular quando a conversa é conhecida pelo número de telefone e pelo ID de dispositivo vinculado, e uma leitura que falha é tentada de novo na próxima vez que você abrir a conversa; assim, a conversa não fica mais como não lida no celular depois de lida no WinZapp.
+
+- O WinZapp agora fecha corretamente, em vez de deixar uma janela que nunca se conecta, quando a janela "Conectar ao WinZapp" é fechada sem parear depois de a janela principal abrir na inicialização, ou quando o token da sessão está faltando nesse momento. No segundo caso, a mensagem "Falha ao recuperar o token do usuário." continua aparecendo antes. A janela principal ficava aberta, sem conexão com o WhatsApp e sem nenhum aviso.
 
 V2.0.0.0
 

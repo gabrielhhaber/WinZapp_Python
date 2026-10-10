@@ -4,6 +4,8 @@ This release brings transcription of voice messages on your own computer, with n
 
 WHAT'S NEW
 
+- Clearing or deleting chats can stop asking for confirmation: both dialogs now have a "Don't show again" checkbox, which only takes effect together with Yes. When the question is off, clearing keeps starred messages. Settings > User Interface has the two matching options to turn the confirmations back on.
+
 - Optional "Hide phone numbers of unnamed senders in messages" in Settings > User Interface. When enabled, messages from people without a name start directly with their content, in the messages list and open-chat announcements; no substitute sender label is added. Names and numbers inside message content are kept. It starts off.
 
 - Customizable keyboard shortcuts: the new Shortcuts tab in Settings lists every application shortcut, including the global show-window shortcut. Select one, press Change and type the new combination, or disable it, restore its default or restore them all. Conflicts are reported before you apply, and changes only take effect with Apply or OK.
@@ -30,6 +32,8 @@ WHAT'S NEW
 
 - Emoticons become emoji as you type, like in WhatsApp Web: ":)" turns into 🙂, ":D" into 😃, "<3" into ❤️ and so on, when you type a space or punctuation after them, or send the message right after one. Only an emoticon standing on its own is converted, never one inside a link, a word or `code`. Pressing Backspace right after a conversion puts back what you typed. It can be turned off in Settings, "General" tab, "Convert emoticons like :D to emoji while typing"
 
+- Download progress in the message list: while a document downloads, its message reads, for example, "35% (13.8 mb of 39.4 mb)", and goes back to the file name and size when the download finishes.
+
 - "Message info" shows what WhatsApp itself knows. For a message you sent, the window (Alt+Shift+D) now asks WhatsApp when it was delivered, read and played, so receipts that arrived while WinZapp was closed appear too, each with its full date and time. In a group it lists who received and who read it, by name, like "Read (2/9): Ana, Bia".
 
 - Chat info of a personal chat now also lists the profile name the contact chose for themselves, the verified name of a business and whether it is a business account. A name that only repeats the one already shown is skipped.
@@ -38,7 +42,11 @@ WHAT'S NEW
 
 - Chat info of a personal chat has a new "Groups in common" tab that lists the groups you and the contact are both in. Press Enter on a group to open it. If WhatsApp does not answer, the tab says so instead of staying empty.
 
+- WinZapp opens faster. When your account is already connected, the main window and your chats appear right away, while WPPConnect starts and WhatsApp connects in the background, instead of after the "Starting WPPConnect, please wait..." window. Messages you send in the meantime wait and go out once WhatsApp is connected. The first start, and an account that still has to be paired, show that window as before. The window title says "starting WPPConnect..." until it is ready. The same goes for WPPConnect updates and forced reinstalls: no window gets in your way.
+
 FIXES
+
+- When you open or read a chat inside WinZapp, the notification for its new message is removed from the notification area instead of lingering there.
 
 - After the computer wakes from sleep, new messages are fetched reliably: the open conversation and recent chats are checked again even when WhatsApp's chat list looks unchanged, and updates for chats linked by a linked-device ID are no longer ignored
 
@@ -71,6 +79,8 @@ FIXES
 - Connection recovery and message sync no longer mix up an old session or sync round with the current one. Late replies from the connection, the chat list or the message history are discarded, a slow connection check is no longer mistaken for the computer waking from sleep, and a new sync no longer leaves pending history without a worker. This avoids needless "offline" transitions and incomplete message history.
 
 - Marking a chat as read now reaches the phone again when the chat is known by both its phone number and its linked-device ID, and a read that fails is retried the next time you open the chat, so a chat no longer stays unread on the phone after you read it in WinZapp.
+
+- WinZapp now closes properly, instead of leaving a window that never connects, when the "Connect to WinZapp" window is closed without pairing after the main window has opened at startup, or when the session token is missing at that point. In that second case the "Failed to retrieve the user token." message is still shown first. The main window used to stay open, with no connection to WhatsApp and nothing saying so.
 
 V2.0.0.0
 

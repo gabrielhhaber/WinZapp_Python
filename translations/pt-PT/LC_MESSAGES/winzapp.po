@@ -3371,11 +3371,18 @@ msgid "downloading media"
 msgstr "a descarregar ficheiros multimédia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
+#: client/ui/conversation_panel/formatting.py
 #, python-brace-format
 msgctxt "downloading_progress"
 msgid "downloading, {pct}% done"
 msgstr "a descarregar, {pct}% concluído"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/formatting.py
+#, python-brace-format
+msgctxt "downloading_progress_size"
+msgid "downloading, {pct}% ({done} of {total})"
+msgstr "a descarregar, {pct}% ({done} de {total})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_log.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -4519,6 +4526,9 @@ msgstr ""
 "Conversas não lidas: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/archived_panel.py
+#: client/ui/conversation_panel/chat_list_selection.py
+#: client/ui/conversation_panel/chat_menu.py
 msgctxt "mark_all_read_dont_show_again"
 msgid "Don't show again"
 msgstr "Não mostrar novamente"
@@ -11418,7 +11428,8 @@ msgctxt "transcription_whisper_cpp_verify_btn"
 msgid "Verify"
 msgstr "Verificar"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/api_start_behind_window.py
 #: client/main_window/connection.py
 msgctxt "tray_connecting"
 msgid "connecting..."
@@ -11451,6 +11462,13 @@ msgctxt "tray_show_icon"
 msgid "Show icon and unread message count in the system tray"
 msgstr ""
 "Mostrar o ícone e o número de mensagens não lidas no tabuleiro do sistema"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/api_start_behind_window.py
+#: client/main_window/connection.py
+msgctxt "tray_starting_wppconnect"
+msgid "starting WPPConnect..."
+msgstr "a iniciar o WPPConnect..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/tray_manager.py
 #, python-brace-format
@@ -11511,6 +11529,18 @@ msgctxt "ui_bulk_action_shortcuts"
 msgid "Replace shortcuts with bulk actions when selecting chats and messages"
 msgstr ""
 "Substituir atalhos por ações em massa ao selecionar conversas e mensagens"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_confirm_clear_chat"
+msgid "Ask for confirmation before clearing chats"
+msgstr "Pedir confirmação antes de limpar conversas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_confirm_delete_chat"
+msgid "Ask for confirmation before deleting chats"
+msgstr "Pedir confirmação antes de eliminar conversas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

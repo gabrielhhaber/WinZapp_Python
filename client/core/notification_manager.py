@@ -736,6 +736,15 @@ def toaster_aumid_candidates(app_id: str, fallback: str, packaged_aumid: str = "
     return candidates
 
 
+class _ClearRequest:
+    """Queue item: remove the toast shown for ``jid`` (its chat was read)."""
+
+    __slots__ = ("jid",)
+
+    def __init__(self, jid: str):
+        self.jid = jid
+
+
 class NotificationManager:
     """Manages Windows 11 toast notifications for incoming WinZapp messages."""
 
@@ -773,6 +782,11 @@ class NotificationManager:
         # next one is shown (see _clear_active_toasts).  Touched only by the
         # worker thread.
         self._last_toast   = None
+        # Chat the toast above was shown for, so reading that chat in the app
+        # can take its banner out of the notification area (clear_for_chat).
+        self._last_toast_jid = None
+        # Chats read while their toast still waited in the queue (worker only).
+        self._skip_jids = set()
         # monotonic() timestamp of the last show_toast() call, or None.  Lets
         # _dispatch() skip _clear_active_toasts()'s blocking WinRT/COM
         # round-trip when the previous toast has almost certainly already
@@ -801,9 +815,16 @@ class NotificationManager:
             item = self._queue.get()
             if item is None:
                 break
+            if isinstance(item, _ClearRequest):
+                self._remove_toast_for_chat(item.jid)
+                continue
+            self._skip_jids = set()
             item, dropped = self._coalesce_pending(item)
             if item is None:
                 break
+            if self._chat_key(item[2]) in self._skip_jids:
+                # Its chat was read while it waited in the queue.
+                continue
             if dropped:
                 print(f"[NotificationManager] coalesced {dropped} queued toast(s)")
             title, body, remote_jid, msg_key, queued_at, *sound_events = item
@@ -847,7 +868,12 @@ class NotificationManager:
             if newer is None:
                 # Shutdown signal arrived mid-burst: honour it.
                 return None, dropped
+            if isinstance(newer, _ClearRequest):
+                self._note_clear(item, newer)
+                continue
             item = newer
+            # A toast queued after the read is a genuinely new message.
+            getattr(self, "_skip_jids", set()).discard(self._chat_key(item[2]))
             dropped += 1
 
         deadline = time.monotonic() + self._COALESCE_SETTLE_SECONDS
@@ -861,7 +887,12 @@ class NotificationManager:
                 return item, dropped
             if newer is None:
                 return None, dropped
+            if isinstance(newer, _ClearRequest):
+                self._note_clear(item, newer)
+                continue
             item = newer
+            # A toast queued after the read is a genuinely new message.
+            getattr(self, "_skip_jids", set()).discard(self._chat_key(item[2]))
             dropped += 1
 
     @staticmethod
@@ -953,6 +984,38 @@ class NotificationManager:
                 print(f"[NotificationManager] WindowsToaster({app_id!r}) failed: {e}")
 
         print("[NotificationManager] toast system unavailable — all candidates failed")
+
+    def _chat_key(self, jid) -> str:
+        normalize = getattr(self.main_window, "_normalize_jid", None)
+        try:
+            return normalize(jid) if normalize and jid else (jid or "")
+        except Exception:
+            return jid or ""
+
+    def _note_clear(self, held_item, request: "_ClearRequest"):
+        """A chat was read while ``held_item`` is still waiting to be shown:
+        remove what is on screen for it now and drop the held toast if it is
+        for that same chat (called from _coalesce_pending, worker thread)."""
+        self._remove_toast_for_chat(request.jid)
+        skip = getattr(self, "_skip_jids", None)
+        if skip is None:
+            skip = self._skip_jids = set()
+        key = self._chat_key(request.jid)
+        if self._chat_key(held_item[2]) == key:
+            skip.add(key)
+
+    def _remove_toast_for_chat(self, jid: str):
+        """Take the banner shown for ``jid`` out of the notification area.
+
+        Worker thread only. Does nothing when the last toast belongs to another
+        chat, so reading one chat never discards a different chat's alert.
+        """
+        last_jid = self._last_toast_jid
+        if last_jid is None or self._chat_key(last_jid) != self._chat_key(jid):
+            return
+        self._clear_active_toasts()
+        self._last_toast = None
+        self._last_toast_jid = None
 
     def _clear_active_toasts(self):
         """Remove any WinZapp toast currently displayed or pending.
@@ -1213,6 +1276,7 @@ class NotificationManager:
 
             self._toaster.show_toast(toast)
             self._last_toast    = toast
+            self._last_toast_jid = remote_jid
             self._last_shown_at = time.monotonic()
 
         except Exception as e:
@@ -1244,6 +1308,15 @@ class NotificationManager:
         if sound_event is not None:
             item += (sound_event,)
         self._queue.put(item)
+
+    def clear_for_chat(self, remote_jid: str):
+        """Remove this chat's toast from the notification area (non-blocking).
+
+        Called when the chat is read inside WinZapp, so a notification the user
+        no longer needs does not linger, as in the official WhatsApp.
+        """
+        if remote_jid:
+            self._queue.put(_ClearRequest(remote_jid))
 
     def send_sound_only(self, remote_jid: str, *, sound_event: str = None):
         """The "sound only" notification level: the background sound, and no

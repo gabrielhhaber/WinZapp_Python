@@ -10,6 +10,7 @@ import pyperclip
 import threading
 import wx
 from ui.dialogs.clear_chat_confirm import confirm_clear_chat
+from ui.dialogs.delete_chat_confirm import confirm_delete_chat
 from core.utils import format_number
 
 
@@ -332,6 +333,8 @@ class ChatMenuMixin:
             i18n.t("clear_chat_keep_starred"),
             yes_label=i18n.t("yes_button"),
             no_label=i18n.t("no_button"),
+            main_window=self.main_window,
+            dont_ask_label=i18n.t("mark_all_read_dont_show_again"),
         )
         if not confirmed:
             return
@@ -347,12 +350,14 @@ class ChatMenuMixin:
         # WhatsApp to delete a group chat makes it exit the group first). Say so
         # in the prompt, so the difference from "Sair do grupo" is explicit.
         confirm_key = "delete_group_confirm_msg" if jid.endswith("@g.us") else "delete_confirm_msg"
-        if wx.MessageBox(
+        if not confirm_delete_chat(
+            self, self.main_window,
             i18n.t(confirm_key),
             i18n.t("delete_chat"),
-            wx.YES_NO | wx.ICON_QUESTION,
-            self,
-        ) != wx.YES:
+            i18n.t("mark_all_read_dont_show_again"),
+            yes_label=i18n.t("yes_button"),
+            no_label=i18n.t("no_button"),
+        ):
             return
         if self.conversation and self.conversation.get("remoteJid") == jid:
             self.close_conversation()

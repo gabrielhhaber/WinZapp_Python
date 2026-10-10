@@ -4,6 +4,8 @@ Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră
 
 NOUTĂȚI
 
+- Ștergerea conținutului sau a conversațiilor poate înceta să mai ceară confirmare: ambele dialoguri au acum caseta "Nu mai afișa", care are efect doar împreună cu Da. Cu întrebarea oprită, golirea păstrează mesajele cu stea. În Setări > Interfața utilizator există cele două opțiuni corespunzătoare pentru a reactiva confirmarea.
+
 - Opțiunea "Ascunde numerele de telefon ale expeditorilor fără nume în mesaje" în Setări > Interfață utilizator. Când este activată, mesajele persoanelor fără nume încep direct cu conținutul lor, în lista de mesaje și în anunțurile conversației deschise, fără o etichetă înlocuitoare pentru expeditor. Numele și numerele din conținutul mesajelor se păstrează. Inițial dezactivată.
 
 - Comenzi rapide de tastatură personalizabile: noul tab Comenzi rapide din Setări listează toate comenzile rapide ale aplicației, inclusiv comanda globală de afișare a ferestrei. Selectează una, apasă Schimbă și introdu noua combinație sau dezactiveaz-o, restabilește valoarea implicită ori restabilește-le pe toate. Conflictele sunt semnalate înainte de aplicare, iar modificările au efect doar după Aplică sau OK.
@@ -30,6 +32,8 @@ NOUTĂȚI
 
 - Emoticoanele devin emoji în timp ce tastați, ca în WhatsApp Web: ":)" devine 🙂, ":D" devine 😃, "<3" devine ❤️ și așa mai departe, când tastați un spațiu sau un semn de punctuație după ele ori trimiteți mesajul imediat după unul. Se convertește doar un emoticon de sine stătător, niciodată unul dintr-un link, dintr-un cuvânt sau din `cod`. Apăsarea tastei Backspace imediat după conversie readuce ce ați tastat. Se poate dezactiva în Setări, fila "Generale", "Convertiți emoticoanele precum :D în emoji în timpul tastării"
 
+- Progresul descărcării în lista de mesaje: cât timp un document se descarcă, mesajul afișează, de exemplu, „35% (13,8 mb din 39,4 mb)”, iar la final revine la numele și dimensiunea fișierului.
+
 - „Informații despre mesaj” arată ce știe WhatsApp însuși. Pentru un mesaj trimis de dumneavoastră, fereastra (Alt+Shift+D) întreabă acum WhatsApp când a fost livrat, citit și redat, așa că apar și confirmările sosite cât WinZapp era închis, fiecare cu data și ora complete. Într-un grup, listează cine l-a primit și cine l-a citit, pe nume, ca „Citit (2/9): Ana, Bia”.
 
 - Informațiile despre conversația personală arată acum și numele de profil ales de contact, numele verificat al unei firme și dacă este cont business. Un nume care doar repetă pe cel deja afișat este omis.
@@ -38,7 +42,11 @@ NOUTĂȚI
 
 - Informațiile despre conversația personală au acum fila „Grupuri în comun”, care listează grupurile pe care le aveți în comun cu contactul. Apăsați Enter pe un grup pentru a-l deschide. Dacă WhatsApp nu răspunde, fila anunță acest lucru în loc să rămână goală.
 
+- WinZapp se deschide mai repede. Când contul este deja conectat, fereastra principală și conversațiile apar imediat, în timp ce WPPConnect pornește și WhatsApp se conectează în fundal, în loc să apară abia după fereastra "Se pornește WPPConnect, așteptați...". Mesajele trimise între timp așteaptă și pleacă de îndată ce WhatsApp este conectat. Prima pornire și un cont care încă trebuie asociat afișează fereastra respectivă ca înainte. Titlul ferestrei arată „se pornește WPPConnect...” până când este gata. Același lucru este valabil pentru actualizările WPPConnect și reinstalările forțate: nicio fereastră nu vă stă în cale.
+
 CORECTĂRI
+
+- Când deschizi sau citești o conversație în WinZapp, notificarea mesajului ei nou este eliminată din zona de notificări în loc să rămână acolo.
 
 - După ce computerul iese din repaus, mesajele noi sunt preluate în mod fiabil: conversația deschisă și conversațiile recente sunt verificate din nou chiar și când lista de conversații WhatsApp pare nemodificată, iar actualizările conversațiilor legate printr-un ID de dispozitiv conectat nu mai sunt ignorate
 
@@ -71,6 +79,8 @@ CORECTĂRI
 - Recuperarea conexiunii și sincronizarea mesajelor nu mai confundă o sesiune sau o rundă de sincronizare veche cu cea curentă. Răspunsurile întârziate ale conexiunii, ale listei de conversații sau ale istoricului de mesaje sunt ignorate, o verificare lentă a conexiunii nu mai este luată drept revenirea calculatorului din repaus, iar o sincronizare nouă nu mai lasă istoricul în așteptare fără un proces care să-l preia. Astfel se evită trecerile inutile în modul offline și istoricul incomplet al mesajelor.
 
 - Marcarea unei conversații ca citită ajunge din nou pe telefon atunci când conversația este cunoscută atât după numărul de telefon, cât și după ID-ul dispozitivului asociat, iar o citire eșuată este reîncercată data viitoare când deschideți conversația, astfel încât o conversație nu mai rămâne necitită pe telefon după ce a fost citită în WinZapp.
+
+- WinZapp se închide acum corect, în loc să lase o fereastră care nu se mai conectează, când fereastra "Conectați-vă la WinZapp" este închisă fără asociere după deschiderea ferestrei principale la pornire sau când tokenul sesiunii lipsește în acel moment. În al doilea caz, mesajul "Tokenul utilizatorului nu a putut fi preluat." apare în continuare mai întâi. Fereastra principală rămânea deschisă, fără conexiune la WhatsApp și fără niciun avertisment.
 
 V2.0.0.0
 
