@@ -202,6 +202,7 @@ class TestWorkerReleasesFailedInstallClaim:
             _claim_install_slot=lambda: token,
             _end_install_slot=lambda value: released.append(value),
             EndModal=lambda result: None,
+            IsModal=lambda: True,
         )
         dialog._worker = updater.UpdateProgressDialog._worker.__get__(dialog)
 

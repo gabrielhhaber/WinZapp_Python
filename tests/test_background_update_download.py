@@ -429,7 +429,7 @@ class TestTheDialogSkipsWhatIsAlreadyDone:
             _main_window=types.SimpleNamespace(i18n=types.SimpleNamespace(t=lambda k: k),
                                                wpp_port=6300),
             _quit_other_accounts=lambda: [], _claim_install_slot=lambda: {},
-            _end_install_slot=lambda token: None, EndModal=lambda result: None,
+            _end_install_slot=lambda token: None, EndModal=lambda result: None, IsModal=lambda: True,
         )
 
         updater.UpdateProgressDialog._worker(dialog)
