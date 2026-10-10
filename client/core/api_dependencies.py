@@ -16,6 +16,16 @@ BUILD_TOOLS = {
 _IMPORT = re.compile(r'''(?:require\s*\(\s*|from\s+|import\s+)["']([^"']+)["']''')
 
 
+def npm_cached_metadata_is_stale(stderr: str) -> bool:
+    """True when npm found no version a range asks for (ETARGET/notarget).
+
+    With --prefer-offline that usually means the cached registry metadata
+    predates a release upstream already depends on, so one online retry fixes it.
+    """
+    text = stderr or ""
+    return "ETARGET" in text or "notarget" in text
+
+
 def _babel_tools(root: Path, declared: dict) -> set[str] | None:
     """Only trim a JSON Babel configuration whose module names are explicit."""
     if any(root.glob("babel.config.*")) or any(root.glob(".babelrc.*")):

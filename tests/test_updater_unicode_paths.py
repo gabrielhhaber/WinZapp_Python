@@ -117,10 +117,16 @@ class TestInstallerScript:
         assert r'xcopy /E /Y /I /H "C:\tmp\ext\*" "C:\WinZapp\"' in s
 
     def test_it_waits_for_the_pid_and_frees_the_api_port(self):
-        s = _script()
+        s = updater._build_installer_script(
+            r"C:\tmp\ext", r"C:\WinZapp", r"C:\WinZapp\WinZapp.exe",
+            r"C:\WinZapp\update_install.log", r"C:\WinZapp\update_failed.marker",
+            pid=4242, api_port=6300, node_pids=[777],
+        )
         assert '"PID eq 4242"' in s
-        assert ":6300" in s
-        assert ":5433" in s
+        assert '":6300"' in s and "taskkill /F /PID 777" in s
+        # The PostgreSQL port is no longer touched: nothing of WinZapp's
+        # listens there (tests/test_update_node_kill.py).
+        assert ":5433" not in s
 
     def test_it_writes_a_log_next_to_the_install(self):
         """The original script recorded nothing anywhere, which is why a user

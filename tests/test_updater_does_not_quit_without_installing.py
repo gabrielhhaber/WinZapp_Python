@@ -10,7 +10,7 @@ The cause is a lie in the dialog's answer. `_install_ok` means "a batch
 installer is running and will relaunch this process", which is the caller's one
 licence to call real_exit(). The dev-mode branch set it True while launching
 nothing at all. The declined-UAC path used to tell the same lie and was fixed
-the same way — see the ShellExecuteW comment in updater.py.
+the same way — see the run_elevated() call in updater._run_batch_installer().
 
 UpdateProgressDialog is a wx.Dialog and UpdateChecker wants a real MainWindow,
 so _do_install() is exercised as a plain function against stubs, the same way

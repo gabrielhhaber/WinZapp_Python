@@ -40,6 +40,8 @@ WHAT'S NEW
 
 - Chat filter shortcuts: Alt+Shift+F goes to the chat filter radio buttons, which now announce it, and Alt+Shift+A, Alt+Shift+U, Alt+Shift+G and Alt+Shift+I pick All, Unread, Groups and Individual straight from the chat list. The WhatsApp list options and "Manage WhatsApp lists" now come before the chat filters. All of them are in the F1 shortcuts help.
 
+- Chat info of a personal chat has a new "Groups in common" tab that lists the groups you and the contact are both in. Press Enter on a group to open it. If WhatsApp does not answer, the tab says so instead of staying empty.
+
 - WinZapp opens faster. When your account is already connected, the main window and your chats appear right away, while WPPConnect starts and WhatsApp connects in the background, instead of after the "Starting WPPConnect, please wait..." window. Messages you send in the meantime wait and go out once WhatsApp is connected. The first start, and an account that still has to be paired, show that window as before. The window title says "starting WPPConnect..." until it is ready. The same goes for WPPConnect updates and forced reinstalls: no window gets in your way.
 
 FIXES
@@ -79,6 +81,10 @@ FIXES
 - Marking a chat as read now reaches the phone again when the chat is known by both its phone number and its linked-device ID, and a read that fails is retried the next time you open the chat, so a chat no longer stays unread on the phone after you read it in WinZapp.
 
 - WinZapp now closes properly, instead of leaving a window that never connects, when the "Connect to WinZapp" window is closed without pairing after the main window has opened at startup, or when the session token is missing at that point. In that second case the "Failed to retrieve the user token." message is still shown first. The main window used to stay open, with no connection to WhatsApp and nothing saying so.
+
+- Updating WinZapp no longer breaks npm for people who also use it outside WinZapp. When WinZapp is in a folder that needs administrator permission to update, it no longer starts again as administrator after the update (unless it was already running as administrator), and WinZapp's npm keeps a cache of its own instead of sharing yours. The update also no longer closes other programs that use network ports close to WinZapp's, such as a PostgreSQL database.
+
+- The WPPConnect Server update no longer fails with an npm "ETARGET" error when npm's saved package list is older than the versions the server needs. WinZapp now asks npm to check online and tries again.
 
 - When an update or the Node download was cancelled at the same moment it finished, WinZapp could show an "Attempt to exit a non-running event loop" error. Late completions are now ignored.
 

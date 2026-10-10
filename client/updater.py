@@ -24,6 +24,7 @@ import subprocess
 import wx
 
 from app_paths import _outer_exe_dir, _is_frozen, resource_path, log_path
+from main_window.win32_helpers import _is_elevated
 from core import release_keys
 from core import tls_trust
 from core.release_signature import SIGNATURE_ASSET_NAME, check_release_manifest
@@ -33,6 +34,9 @@ from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
 from update_background import BackgroundDownloadMixin, background_downloads_enabled
 from update_package import discard_package, download_update_package
 from ui.modal_utils import end_modal_if_running
+from update_node_kill import node_kill_lines, own_node_pids
+from update_relaunch import (relaunch_environment, relaunch_lines, run_elevated,
+                             start_relaunch_waiter)
 from version import __version__
 
 
@@ -503,7 +507,9 @@ def _console_safe_path(path: str) -> str:
 
 def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
                             log_path: str, marker_path: str, pid: int,
-                            api_port: int, extra_pids: "list[int] | tuple" = ()) -> str:
+                            api_port: int, extra_pids: "list[int] | tuple" = (),
+                            node_pids: "list[int] | tuple" = (),
+                            relaunch_handoff: str = "") -> str:
     """The batch script text. Pure — every path is already console-safe.
 
     Kept apart from _run_batch_installer() so what the script says can be
@@ -516,7 +522,16 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
     e não muda" loop with two accounts open). They have already been asked
     to quit over IPC by the time this runs; waiting here covers the seconds
     between their ACK and the process actually being gone.
+
+    ``node_pids`` are WinZapp's own Node processes on ``api_port``, found
+    by update_node_kill.own_node_pids() while WinZapp was still running;
+    nothing else listening anywhere is ever killed.
+
+    ``relaunch_handoff`` is set only for the elevated install: the marker
+    that says a non-elevated waiter will relaunch WinZapp
+    (update_relaunch.py). Without it every relaunch is the original line.
     """
+    relaunch = relaunch_lines(exe_path, log_path, relaunch_handoff)
     source_node = os.path.join(source_dir, "node", "node.exe")
     target_node = os.path.join(install_dir, "node", "node.exe")
     # Keep the held payload beside, not inside, source_dir.  xcopy walks the
@@ -563,8 +578,7 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         + wait_blocks +
         # Give child processes a moment to exit, then kill stragglers holding file locks.
         "timeout /t 2 /nobreak >NUL\n"
-        f"for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :{api_port} ^| findstr LISTENING') do taskkill /F /PID %%a >NUL 2>&1\n"
-        "for /f \"tokens=5\" %%a in ('netstat -aon ^| findstr :5433 ^| findstr LISTENING') do taskkill /F /PID %%a >NUL 2>&1\n"
+        + node_kill_lines(node_pids, api_port, log_path) +
         "timeout /t 1 /nobreak >NUL\n"
         # xcopy's exit code was previously never checked, so a failed copy
         # (locked file, disk full, permissions) silently relaunched whatever
@@ -618,21 +632,21 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         "if errorlevel 4 (\n"
         f'    >> "{log_path}" echo xcopy FAILED\n'
         f'    echo update failed > "{marker_path}"\n'
-        f'    if exist "{exe_path}" start "" "{exe_path}"\n'
+        + relaunch_lines(exe_path, log_path, relaunch_handoff, indent="    ") +
         # Deliberately not deleted on failure: the script and its log are the
         # only evidence of what went wrong, and erasing them is what made the
         # original report impossible to diagnose from the user's machine.
         "    exit /b 1\n"
         ")\n"
         f'>> "{log_path}" echo xcopy OK\n'
-        f'if exist "{exe_path}" start "" "{exe_path}"\n'
+        + relaunch +
         'del "%~f0"\n'
         + (
             "goto :EOF\n"
             ":OTHER_ACCOUNT_TIMEOUT\n"
             f'>> "{log_path}" echo timed out waiting for another WinZapp account to exit\n'
             f'echo update failed: another WinZapp account did not exit > "{marker_path}"\n'
-            f'if exist "{exe_path}" start "" "{exe_path}"\n'
+            + relaunch +
             "exit /b 1\n"
             if extra_pids else ""
         )
@@ -697,9 +711,11 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
     """
     Write a batch script that:
       1. Waits for PID (and every other account's PID in extra_pids) to exit.
-      2. Kills any leftover WPPConnect Server (api_port) and PostgreSQL (5433) processes.
+      2. Kills WinZapp's own Node if it is still listening on api_port
+         (update_node_kill.py).
       3. Copies all extracted files to install_dir.
-      4. Restarts the client executable.
+      4. Restarts the client executable — through a non-elevated waiter
+         when the script itself runs elevated (update_relaunch.py).
     Then launches it (elevated if the directory needs admin).
 
     Returns True if the script was actually launched. Callers must check
@@ -744,39 +760,67 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
         # MainWindow instance — but the update must not be blocked by it).
         safe_log_dir = safe_install
 
+    exe_path = os.path.join(safe_install, exe_name)
+    install_log = os.path.join(safe_log_dir, "update_install.log")
+    # Asked now, while this process and its Node are still running: only a
+    # process listening on exactly api_port whose executable is WinZapp's own
+    # node.exe may be killed by the script (update_node_kill.py). Both
+    # locations, because onefile runs Node from its extraction directory.
+    node_pids = own_node_pids(api_port, (resource_path("node", "node.exe"),
+                                         os.path.join(install_dir, "node", "node.exe")))
+    needs_admin = sys.platform == "win32" and _needs_admin()
+    if sys.platform == "win32" and not needs_admin and _is_elevated():
+        # Not de-elevated on purpose (update_relaunch.py): some people run
+        # WinZapp as administrator, and nothing tells that apart from a
+        # WinZapp an older build's installer relaunched elevated. Its npm
+        # still keeps out of the user's cache (core/npm_environment.py).
+        logging.info("Auto-updater: WinZapp is running elevated, so the update "
+                     "installs and relaunches it elevated, as before")
+    # Elevated only: the marker the waiter creates to say it owns the
+    # relaunch (update_relaunch.py). Unlike the script's own path (%~f0),
+    # this one is written INTO the script, so its directory — the user's
+    # %TEMP%, under a profile that may be "Paweł" — gets the same
+    # console-safe treatment as every other path (issue #83). If even that
+    # leaves it non-ASCII (no 8.3 names on the volume), there is no waiter
+    # and the script relaunches as it always did: the old script never
+    # carried this path, so it must not be what makes an update fail.
+    relaunch_handoff = ""
+    if needs_admin:
+        relaunch_handoff = os.path.join(_console_safe_path(os.path.dirname(bat_path)),
+                                        os.path.basename(bat_path) + ".relaunch")
+        if not relaunch_handoff.isascii():
+            logging.warning("Auto-updater: the temporary folder has no plain-ASCII "
+                            "path; the elevated installer relaunches WinZapp itself")
+            relaunch_handoff = ""
     script = _build_installer_script(
         safe_source,
         safe_install,
-        os.path.join(safe_install, exe_name),
-        os.path.join(safe_log_dir, "update_install.log"),
+        exe_path,
+        install_log,
         os.path.join(safe_install, "update_failed.marker"),
         pid,
         api_port,
         extra_pids=extra_pids,
+        node_pids=node_pids,
+        relaunch_handoff=relaunch_handoff,
     )
     if not _write_installer_script(bat_path, script):
         return False
 
     if sys.platform == "win32":
-        needs_admin = _needs_admin()
         if needs_admin:
-            # ShellExecuteW returns an HINSTANCE-shaped value that is > 32 on
-            # success and an SE_ERR_* code <= 32 on failure — notably
-            # ERROR_CANCELLED (1223) when the user clicks "No" on the UAC
-            # consent prompt. That return value used to be discarded, so a
-            # declined prompt still left the caller believing the update had
-            # been launched (self._install_ok = True), when in fact nothing
-            # ran and the app was about to close having done nothing.
-            result = ctypes.windll.shell32.ShellExecuteW(
-                None, "runas", "cmd.exe", f'/c "{bat_path}"', None, 0
-            )
-            if result <= 32:
-                logging.warning(
-                    "Auto-updater: ShellExecuteW('runas', ...) failed or was "
-                    "declined by the user (result=%s); batch installer was "
-                    "not launched.", result,
-                )
+            # A declined UAC prompt (ERROR_CANCELLED when the user clicks
+            # "No") must come back as False. That answer used to be
+            # discarded, so a declined prompt still left the caller
+            # believing the update had been launched (self._install_ok =
+            # True), when in fact nothing ran and the app was about to close
+            # having done nothing.
+            launched, installer_pid = run_elevated(bat_path)
+            if not launched:
                 return False
+            if relaunch_handoff:
+                start_relaunch_waiter(bat_path, installer_pid, exe_path, install_log,
+                                      relaunch_handoff, _write_installer_script)
         else:
             # DETACHED_PROCESS is deliberately NOT used here: it gives the child no
             # console at all, and a console-less cmd.exe decodes the batch
@@ -798,6 +842,9 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
             subprocess.Popen(
                 ["cmd.exe", "/c", bat_path],
                 creationflags=flags,
+                # What a fresh start would get, as the elevated path's
+                # waiter does (update_relaunch.relaunch_environment()).
+                env=relaunch_environment(os.environ),
             )
         return True
     else:
@@ -951,7 +998,7 @@ class UpdateProgressDialog(wx.Dialog):
                 # bring anything back. Reported live as a pairing that died
                 # mid-flow — the code arrived, the process was already gone.
                 # Same lie the declined-UAC path used to tell; see the
-                # ShellExecuteW comment above.
+                # run_elevated() call in _run_batch_installer().
                 self._install_ok = False
                 wx.CallAfter(end_modal_if_running, self, wx.ID_OK)
                 return

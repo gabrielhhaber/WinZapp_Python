@@ -40,6 +40,8 @@ NOVEDADES
 
 - Atajos para los filtros de conversaciones: Alt+Shift+F va a los botones de opción de los filtros de conversaciones, que ahora anuncian ese atajo, y Alt+Shift+A, Alt+Shift+U, Alt+Shift+G y Alt+Shift+I eligen Todo, Sin leer, Grupos e Individuales directamente desde la lista de conversaciones. Las opciones de listas de WhatsApp y "Gestionar listas de WhatsApp" ahora van antes de los filtros de conversaciones. Todos figuran en la ayuda de atajos (F1).
 
+- La información del chat personal tiene ahora la pestaña "Grupos en común", que lista los grupos que compartes con el contacto. Pulsa Intro en un grupo para abrirlo. Si WhatsApp no responde, la pestaña lo avisa en lugar de quedarse vacía.
+
 - WinZapp se abre más rápido. Cuando tu cuenta ya está conectada, la ventana principal y tus conversaciones aparecen enseguida, mientras WPPConnect se inicia y WhatsApp se conecta en segundo plano, en lugar de después de la ventana "Iniciando WPPConnect, por favor espera...". Los mensajes que envíes mientras tanto esperan y se envían en cuanto WhatsApp esté conectado. El primer inicio, y una cuenta que todavía debe emparejarse, muestran esa ventana como antes. El título de la ventana indica "iniciando WPPConnect..." hasta que esté listo. Lo mismo ocurre al actualizar WPPConnect o forzar su reinstalación: ninguna ventana te estorba.
 
 CORRECCIONES
@@ -79,6 +81,10 @@ CORRECCIONES
 - Marcar un chat como leído vuelve a llegar al teléfono cuando el chat se conoce por su número de teléfono y por su ID de dispositivo vinculado, y una lectura que falla se reintenta la próxima vez que abres el chat, así que un chat ya no se queda sin leer en el teléfono después de leerlo en WinZapp.
 
 - WinZapp ahora se cierra correctamente, en lugar de dejar una ventana que nunca se conecta, cuando la ventana "Conectar a WinZapp" se cierra sin emparejar después de abrirse la ventana principal al iniciar, o cuando falta el token de la sesión en ese momento. En el segundo caso, el mensaje "Error al recuperar el token de usuario." sigue apareciendo antes. La ventana principal se quedaba abierta, sin conexión con WhatsApp y sin ningún aviso.
+
+- Actualizar WinZapp ya no estropea npm a quien también lo usa fuera de WinZapp. Cuando WinZapp está en una carpeta que necesita permiso de administrador para actualizarse, después de la actualización ya no vuelve a abrirse como administrador (salvo que ya se estuviera ejecutando como administrador), y el npm de WinZapp tiene ahora su propia caché en lugar de compartir la tuya. La actualización tampoco cierra ya otros programas que usan puertos de red parecidos a los de WinZapp, como una base de datos PostgreSQL.
+
+- La actualización de WPPConnect Server ya no falla con el error "ETARGET" de npm cuando la lista de paquetes guardada por npm es más antigua que las versiones que necesita el servidor. WinZapp ahora pide a npm que consulte internet y lo intenta de nuevo.
 
 - Si se cancelaba una actualización o la descarga de Node justo cuando terminaban, WinZapp podía mostrar el error "Attempt to exit a non-running event loop". Ahora las finalizaciones tardías se ignoran.
 

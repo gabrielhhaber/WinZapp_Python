@@ -40,6 +40,8 @@ YENİLİKLER
 
 - Sohbet filtreleri için kısayollar: Alt+Shift+F sohbet filtresi seçenek düğmelerine gider ve bu düğmeler artık kısayolu duyurur; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G ve Alt+Shift+I sohbet listesinden doğrudan Tümü, Okunmamış, Gruplar ve Bireysel filtrelerini seçer. WhatsApp listesi seçenekleri ve "WhatsApp listelerini yönet" artık sohbet filtrelerinden önce gelir. Hepsi kısayol yardımında (F1) yer alır.
 
+- Kişisel sohbet bilgilerinde artık kişiyle ortak olduğunuz grupları listeleyen "Ortak gruplar" sekmesi var. Bir grupta Enter tuşuna basarak onu açın. WhatsApp yanıt vermezse sekme boş kalmak yerine bunu bildirir.
+
 - WinZapp daha hızlı açılıyor. Hesabınız zaten bağlıysa ana pencere ve sohbetleriniz hemen görünür; WPPConnect arka planda başlatılır ve WhatsApp arka planda bağlanır. Artık "WPPConnect başlatılıyor, lütfen bekleyin..." penceresinin kapanması beklenmez. Bu sırada gönderdiğiniz mesajlar bekletilir ve WhatsApp bağlanır bağlanmaz gönderilir. İlk başlatma ve henüz eşlenmesi gereken bir hesap, bu pencereyi eskisi gibi gösterir. Hazır olana kadar pencere başlığında "WPPConnect başlatılıyor..." yazar. WPPConnect güncellemeleri ve zorla yeniden kurulum için de aynısı geçerlidir: hiçbir pencere yolunuza çıkmaz.
 
 DÜZELTMELER
@@ -79,6 +81,10 @@ DÜZELTMELER
 - Bir sohbeti okundu olarak işaretlemek, sohbet hem telefon numarasıyla hem de bağlı cihaz kimliğiyle biliniyorsa yeniden telefona ulaşıyor; başarısız olan bir okuma, sohbeti bir sonraki açışınızda yeniden deneniyor, böylece WinZapp'ta okuduğunuz bir sohbet telefonda okunmamış kalmıyor.
 
 - Başlangıçta ana pencere açıldıktan sonra "WinZapp uygulamasına bağlan" penceresi eşleştirmeden kapatıldığında ya da o anda oturum belirteci eksik olduğunda WinZapp artık hiç bağlanmayan bir pencere bırakmak yerine düzgün şekilde kapanıyor. İkinci durumda önce yine "Kullanıcı belirteci alınamadı." mesajı gösterilir. Ana pencere, WhatsApp bağlantısı olmadan ve hiçbir uyarı göstermeden açık kalıyordu.
+
+- WinZapp'ı güncellemek, npm'i WinZapp dışında da kullananlar için artık npm'i bozmuyor. WinZapp, güncellenmesi için yönetici izni gereken bir klasördeyse, güncellemeden sonra artık yönetici olarak yeniden açılmıyor (zaten yönetici olarak çalışmıyorsa); WinZapp'ın npm'i de sizinkini paylaşmak yerine kendi önbelleğini kullanıyor. Güncelleme ayrıca PostgreSQL veritabanı gibi, WinZapp'ınkilere benzer ağ portlarını kullanan diğer programları artık kapatmıyor.
+
+- npm'in kaydettiği paket listesi sunucunun ihtiyaç duyduğu sürümlerden eskiyse WPPConnect Server güncellemesi artık npm "ETARGET" hatasıyla başarısız olmuyor. WinZapp şimdi npm'den çevrimiçi kontrol etmesini istiyor ve yeniden deniyor.
 
 - Bir güncelleme veya Node indirmesi tam bittiği anda iptal edildiğinde WinZapp "Attempt to exit a non-running event loop" hatasını gösterebiliyordu. Geç gelen tamamlanmalar artık yok sayılıyor.
 

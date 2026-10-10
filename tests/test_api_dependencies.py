@@ -92,3 +92,12 @@ def test_extra_babel_plugin_is_kept_and_unknown_config_falls_back(tmp_path):
     (tmp_path / "babel.config.js").write_text("module.exports = {};")
     prepare_api_dependencies(str(tmp_path), building=True)
     assert "jest" in json.loads(path.read_text())["devDependencies"]
+
+
+def test_etarget_from_stale_cache_is_recognised_for_an_online_retry():
+    from core.api_dependencies import npm_cached_metadata_is_stale
+
+    assert npm_cached_metadata_is_stale(
+        "npm error code ETARGET\nnpm error notarget No matching version found for @babel/runtime@^7.29.10.")
+    assert not npm_cached_metadata_is_stale("npm error code ENOTFOUND")
+    assert not npm_cached_metadata_is_stale("")

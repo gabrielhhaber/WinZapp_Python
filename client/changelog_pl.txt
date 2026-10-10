@@ -40,6 +40,8 @@ NOWOŚCI
 
 - Skróty do filtrów czatów: Alt+Shift+F przechodzi do przycisków opcji filtrów czatów, które teraz zapowiadają ten skrót, a Alt+Shift+A, Alt+Shift+U, Alt+Shift+G i Alt+Shift+I wybierają Wszystkie, Nieprzeczytane, Grupy i Osobiste bezpośrednio z listy czatów. Opcje list WhatsApp i „Zarządzaj listami WhatsApp” są teraz przed filtrami czatów. Wszystkie skróty są w pomocy skrótów (F1).
 
+- Informacje o czacie prywatnym mają nową kartę „Wspólne grupy”, która wyświetla grupy, w których jesteście razem z kontaktem. Naciśnij Enter na grupie, aby ją otworzyć. Jeśli WhatsApp nie odpowie, karta poinformuje o tym zamiast pozostać pusta.
+
 - WinZapp otwiera się szybciej. Gdy konto jest już połączone, okno główne i czaty pojawiają się od razu, a WPPConnect uruchamia się i WhatsApp łączy się w tle, zamiast dopiero po oknie "Uruchamianie WPPConnect, proszę czekać...". Wiadomości wysłane w tym czasie czekają i zostaną wysłane, gdy WhatsApp się połączy. Pierwsze uruchomienie oraz konto, które trzeba jeszcze sparować, pokazują to okno tak jak dotąd. Tytuł okna pokazuje „uruchamianie WPPConnect...” do czasu, aż będzie gotowy. To samo dotyczy aktualizacji WPPConnect i wymuszonej ponownej instalacji: żadne okno nie przeszkadza.
 
 POPRAWKI
@@ -79,6 +81,10 @@ POPRAWKI
 - Oznaczenie czatu jako przeczytanego ponownie dociera do telefonu, gdy czat jest znany zarówno po numerze telefonu, jak i po identyfikatorze połączonego urządzenia, a nieudane oznaczenie jest ponawiane przy następnym otwarciu czatu, więc czat nie pozostaje nieprzeczytany w telefonie po przeczytaniu go w WinZapp.
 
 - WinZapp teraz poprawnie się zamyka, zamiast zostawiać okno, które nigdy się nie połączy, gdy okno "Połącz z WinZapp" zostanie zamknięte bez sparowania po otwarciu okna głównego przy uruchamianiu albo gdy w tym momencie brakuje tokenu sesji. W drugim przypadku nadal najpierw pojawia się komunikat "Nie udało się pobrać tokenu użytkownika.". Okno główne pozostawało otwarte, bez połączenia z WhatsApp i bez żadnego komunikatu.
+
+- Aktualizacja WinZapp nie psuje już npm osobom, które używają go także poza WinZapp. Gdy WinZapp znajduje się w folderze, którego aktualizacja wymaga uprawnień administratora, po aktualizacji nie uruchamia się już ponownie jako administrator (chyba że już wcześniej działał jako administrator), a npm WinZapp ma teraz własną pamięć podręczną zamiast współdzielić Twoją. Aktualizacja nie zamyka też już innych programów korzystających z portów sieciowych podobnych do portów WinZapp, takich jak baza danych PostgreSQL.
+
+- Aktualizacja WPPConnect Server nie kończy się już błędem npm „ETARGET”, gdy zapisana przez npm lista pakietów jest starsza niż wersje potrzebne serwerowi. WinZapp prosi teraz npm o sprawdzenie w internecie i próbuje ponownie.
 
 - Gdy aktualizacja lub pobieranie Node zostały anulowane dokładnie w chwili zakończenia, WinZapp mógł pokazać błąd "Attempt to exit a non-running event loop". Spóźnione zakończenia są teraz ignorowane.
 

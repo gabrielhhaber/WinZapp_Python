@@ -510,7 +510,7 @@ class TestTheSetupReportsInsteadOfShowing:
 class TestTheSetupBuildsWhereItIsTold:
     """_run_setup() with every slow step replaced: where does it work?"""
 
-    def _run(self, monkeypatch, tmp_path, api_dir, forced_tag=TAG):
+    def _run(self, monkeypatch, tmp_path, api_dir, forced_tag=TAG, first_install_error=""):
         live = tmp_path / "live"
         (live / "api" / "src").mkdir(parents=True)
         (live / "api" / "dist").mkdir()
@@ -531,6 +531,8 @@ class TestTheSetupBuildsWhereItIsTold:
             seen.commands.append((cmd, env))
             seen.cwds.append(cwd)
             seen.caches.append((env or {}).get("PUPPETEER_CACHE_DIR"))
+            if first_install_error and len(seen.commands) == 1:
+                return False, first_install_error
             return True, ""
 
         setup = types.SimpleNamespace(
@@ -567,6 +569,21 @@ class TestTheSetupBuildsWhereItIsTold:
             if original.is_file():
                 copied = Path(staging) / ".cache" / original.relative_to(live_api / ".cache")
                 assert copied.read_bytes() == original.read_bytes()
+
+    def test_a_stale_npm_cache_is_retried_online(self, monkeypatch, tmp_path):
+        error = "npm error code ETARGET\nnpm error notarget No matching version found for @babel/runtime@^7.29.10."
+
+        seen, _ = self._run(monkeypatch, tmp_path, None, first_install_error=error)
+
+        assert seen.ended == ["ok"]
+        first, retry = seen.commands[0][0], seen.commands[1][0]
+        assert "--prefer-offline" in first
+        assert "--prefer-offline" not in retry and "--prefer-online" in retry and "--offline" not in retry
+
+    def test_another_npm_error_is_not_retried(self, monkeypatch, tmp_path):
+        seen, _ = self._run(monkeypatch, tmp_path, None, first_install_error="npm error code ENOTFOUND")
+
+        assert seen.ended[0].startswith("error") and len(seen.commands) == 1
 
     def test_without_one_it_rebuilds_in_place_as_before(self, monkeypatch, tmp_path):
         seen, live_api = self._run(monkeypatch, tmp_path, None)

@@ -36,6 +36,7 @@ from core import browser_payload
 from core.profile_recovery import profile_is_local
 from app_paths import resource_path, global_dir
 from core.node_compile_cache import cache_environment
+from core.npm_environment import npm_environment
 
 
 def bundled_api_present() -> bool:
@@ -290,11 +291,11 @@ class WppServerMixin:
             logging.info("[headless-shell] api/ not present yet — skipping.")
             return False
 
-        npm_env = {
+        npm_env = npm_environment({
             **os.environ,
             "PATH": path_env,
             "PUPPETEER_CACHE_DIR": resource_path("api", ".cache"),
-        }
+        }, global_dir("npm"), resource_path("api"))
         creation_flags = 0
         if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW"):
             creation_flags = subprocess.CREATE_NO_WINDOW
@@ -432,6 +433,7 @@ class WppServerMixin:
                 node_exe,
                 resource_path("node", "node_modules", "npm", "bin", "npm-cli.js"),
                 resource_path("node", NPM_HEALTH_MARKER_NAME),
+                npm_env=npm_environment(os.environ, global_dir("npm")),
             )
         else:
             node_needs_download = not os.path.isfile(node_exe)
@@ -525,7 +527,7 @@ class WppServerMixin:
                     node_dir = os.path.dirname(node_exe) if os.path.isabs(node_exe) else ""
                     path_env = (node_dir + os.pathsep + os.environ.get("PATH", "")) if node_dir else os.environ.get("PATH", "")
 
-                npm_env  = {
+                npm_env  = npm_environment({
                     **os.environ,
                     "PATH": path_env,
                     # client/api/.cache — the tree start.js searches for
@@ -534,7 +536,7 @@ class WppServerMixin:
                     # this installer download into one tree while the server
                     # looks in another.
                     "PUPPETEER_CACHE_DIR": resource_path("api", ".cache"),
-                }
+                }, global_dir("npm"), resource_path("api"))
                 api_dir  = resource_path("api")
                 creation_flags = 0
                 if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW"):
@@ -1181,7 +1183,11 @@ class WppServerMixin:
                 creationflags=creation_flags,
                 stdout=log_fh,
                 stderr=log_fh,
-                env=cache_environment(os.environ, global_dir("node-compile-cache")),
+                # npm_environment() too: start.js falls back to running npx
+                # itself when the browser is missing, and that npx inherits
+                # this environment.
+                env=npm_environment(cache_environment(os.environ, global_dir("node-compile-cache")),
+                                    global_dir("npm"), resource_path("api")),
             )
             # Release Python's file handle now that node.exe has inherited it.
             # This avoids a double-lock on wppconnect.log so an update extraction
@@ -1195,7 +1201,10 @@ class WppServerMixin:
             # this account is a live client of the shared Node (plan Zad 3.1b).
             self._register_node_lease()
         except Exception:
-            pass
+            # Still not raised (the callers poll the port and report a
+            # server that never answers), but never silent again: a bad
+            # environment value once kept Node from starting with no trace.
+            logging.exception("[startup] could not start the WPPConnect Server")
 
     def _start_wpp_background_after_catalogue(self):
         """Spawn Node once the WhatsApp Web catalogue refresh has had its say.
