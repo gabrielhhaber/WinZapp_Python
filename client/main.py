@@ -1095,25 +1095,24 @@ class MainWindow(
                     if not self._confirm_pairing_behind_window():
                         return
                 elif not self.background_mode:
-                    logging.info("[post_ui_init] STEP 1a — calling check_connection_status()...")
-                    _connected = self.connect.check_connection_status()
-                    logging.info("[post_ui_init] STEP 1a — check_connection_status() returned: %s", _connected)
-                    if not _connected:
-                        logging.info("[post_ui_init] STEP 1b — not paired, showing connection dialog...")
-                        self.connect.show_connection_dial()
-                        logging.info("[post_ui_init] STEP 1b — dialog closed. Re-checking connection...")
-                        if not self.connect.check_connection_status():
-                            logging.info("[post_ui_init] STEP 1b — still not paired after dialog. Exiting.")
-                            sys.exit()
-                        logging.info("[post_ui_init] STEP 1b — pairing completed via dialog.")
-                        self._just_paired = True
+                    if not self._recheck_pairing_after_ui():
+                        return  # real_exit() already queued
 
                 logging.info("[post_ui_init] STEP 2 — retrieving token...")
-                self.retrieve_token()
+                if not self.retrieve_token():
+                    return  # the error and real_exit() are already queued
                 logging.info("[post_ui_init] STEP 2 — token retrieved: %s", bool(self.token))
                 if not self.token:
-                    logging.error("[post_ui_init] STEP 2 — NO TOKEN. Exiting application.")
-                    sys.exit()
+                    # Only a race guard now: retrieve_token() has either set a
+                    # token or returned False above, but a logout handled on
+                    # the UI thread in between
+                    # (WebSocketClient._reset_credentials_and_show_pairing())
+                    # clears self.token — and opens the pairing dialog. That
+                    # re-pair flow owns what happens next, so this thread only
+                    # stops: quitting here would close WinZapp under the
+                    # dialog the user is about to pair with.
+                    logging.error("[post_ui_init] STEP 2 — NO TOKEN after a logout. Leaving it to the re-pairing flow.")
+                    return
 
                 logging.info("[post_ui_init] STEP 3 — initializing WebSocketClient (just_paired=%s)...", self._just_paired)
                 reuse_existing_ws = (

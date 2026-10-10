@@ -78,6 +78,8 @@ CORRECCIONES
 
 - Marcar un chat como leído vuelve a llegar al teléfono cuando el chat se conoce por su número de teléfono y por su ID de dispositivo vinculado, y una lectura que falla se reintenta la próxima vez que abres el chat, así que un chat ya no se queda sin leer en el teléfono después de leerlo en WinZapp.
 
+- WinZapp ahora se cierra correctamente, en lugar de dejar una ventana que nunca se conecta, cuando la ventana "Conectar a WinZapp" se cierra sin emparejar después de abrirse la ventana principal al iniciar, o cuando falta el token de la sesión en ese momento. En el segundo caso, el mensaje "Error al recuperar el token de usuario." sigue apareciendo antes. La ventana principal se quedaba abierta, sin conexión con WhatsApp y sin ningún aviso.
+
 V2.0.0.0
 
 La gran novedad de esta versión son las llamadas: ahora se pueden hacer, contestar y rechazar llamadas de voz y videollamadas desde el propio WinZapp, sin coger el móvil, con una ventana de llamada accesible, atajos de teclado, configuración de audio propia y el historial en la nueva pestaña Llamadas. También llegan los chats bloqueados, la búsqueda en las conversaciones archivadas, los idiomas turco y rumano y varias mejoras de uso, además de correcciones en situaciones en las que WinZapp pedía vincular de nuevo sin necesidad. Por dentro, el código del programa ha pasado por una gran reorganización: no cambia nada en el uso, pero hace que WinZapp sea más fácil de mantener y de corregir a partir de ahora.

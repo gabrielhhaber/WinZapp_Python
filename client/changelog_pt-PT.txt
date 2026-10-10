@@ -78,6 +78,8 @@ CORREÇÕES
 
 - Marcar uma conversa como lida volta a chegar ao telemóvel quando a conversa é conhecida pelo número de telefone e pelo ID de dispositivo associado, e uma leitura que falha é tentada de novo da próxima vez que abrir a conversa; assim, a conversa deixa de ficar por ler no telemóvel depois de lida no WinZapp.
 
+- O WinZapp passa a fechar corretamente, em vez de deixar uma janela que nunca se liga, quando a janela "Ligar ao WinZapp" é fechada sem emparelhar depois de a janela principal abrir no arranque, ou quando o token da sessão está em falta nesse momento. No segundo caso, a mensagem "Não foi possível recuperar o token do utilizador." continua a aparecer antes. A janela principal ficava aberta, sem ligação ao WhatsApp e sem qualquer aviso.
+
 V2.0.0.0
 
 A grande novidade desta versão são as chamadas: agora é possível fazer, atender e recusar chamadas de voz e de vídeo no próprio WinZapp, sem pegar no telemóvel, com uma janela de chamada acessível, atalhos de teclado, definições de áudio próprias e o histórico no novo separador Chamadas. Chegaram também as conversas trancadas, a pesquisa nas conversas arquivadas, os idiomas turco e romeno e várias melhorias de utilização, além de correções em situações em que o WinZapp pedia para emparelhar de novo sem necessidade. Por baixo, o código do programa passou por uma grande reorganização: não muda nada na utilização, mas torna o WinZapp mais fácil de manter e de corrigir daqui para a frente.

@@ -691,6 +691,35 @@ class WindowChromeMixin:
                 logging.exception("[accounts] pending→paired transition failed")
         return "paired"
 
+    def _recheck_pairing_after_ui(self) -> bool:
+        """post_ui_init's STEP 1 for a foreground launch that started Node
+        before the window (__init__ has already run _pair_account_at_startup()).
+
+        The session can still be gone by the time this thread asks, so an
+        unpaired answer reopens the pairing dialog. Returns False when the
+        dialog was closed without pairing: the caller stops, and real_exit()
+        is already queued. This used to end the process with sys.exit, which
+        on this worker thread only raised SystemExit in the thread — the
+        window stayed up connected to nothing, with nothing said. Same ending as
+        _confirm_pairing_behind_window(); unlike it, no switch-account offer
+        or registry promotion, which this step never had.
+        """
+        logging.info("[post_ui_init] STEP 1a — calling check_connection_status()...")
+        _connected = self.connect.check_connection_status()
+        logging.info("[post_ui_init] STEP 1a — check_connection_status() returned: %s", _connected)
+        if _connected:
+            return True
+        logging.info("[post_ui_init] STEP 1b — not paired, showing connection dialog...")
+        self.connect.show_connection_dial()
+        logging.info("[post_ui_init] STEP 1b — dialog closed. Re-checking connection...")
+        if not self.connect.check_connection_status():
+            logging.info("[post_ui_init] STEP 1b — still not paired after dialog. Exiting.")
+            wx.CallAfter(self.real_exit)
+            return False
+        logging.info("[post_ui_init] STEP 1b — pairing completed via dialog.")
+        self._just_paired = True
+        return True
+
     def _start_ipc_listener(self):
         """Start the account-scoped IPC listener so other WinZapp processes can
         ask THIS one to foreground / quit (plan Zad 2.0/4.1). Callbacks marshal

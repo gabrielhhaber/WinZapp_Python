@@ -78,6 +78,8 @@ DÜZELTMELER
 
 - Bir sohbeti okundu olarak işaretlemek, sohbet hem telefon numarasıyla hem de bağlı cihaz kimliğiyle biliniyorsa yeniden telefona ulaşıyor; başarısız olan bir okuma, sohbeti bir sonraki açışınızda yeniden deneniyor, böylece WinZapp'ta okuduğunuz bir sohbet telefonda okunmamış kalmıyor.
 
+- Başlangıçta ana pencere açıldıktan sonra "WinZapp uygulamasına bağlan" penceresi eşleştirmeden kapatıldığında ya da o anda oturum belirteci eksik olduğunda WinZapp artık hiç bağlanmayan bir pencere bırakmak yerine düzgün şekilde kapanıyor. İkinci durumda önce yine "Kullanıcı belirteci alınamadı." mesajı gösterilir. Ana pencere, WhatsApp bağlantısı olmadan ve hiçbir uyarı göstermeden açık kalıyordu.
+
 V2.0.0.0
 
 Bu sürümün en büyük yeniliği aramalardır: Telefona ihtiyaç duymadan doğrudan WinZapp üzerinden sesli ve görüntülü arama başlatabilir, gelen aramaları yanıtlayabilir veya reddedebilirsiniz. Bu yenilik; tam erişilebilir bir arama penceresi, pratik klavye kısayolları, aramalara özel ses ayarları ve yeni Aramalar sekmesindeki kapsamlı arama geçmişiyle birlikte sunulmaktadır. Ayrıca PIN korumalı kilitli sohbetler, arşivlenmiş sohbetlerde arama, resmi Türkçe ve Rumence dil destekleri ile çeşitli kullanım iyileştirmeleri eklendi; WinZapp'in gereksiz yere yeniden eşleştirme istediği durumlar da düzeltildi. Arka planda programın kod tabanı büyük bir yeniden yapılandırmadan (refactoring) geçti: Bu durum WinZapp'i kullanım şeklinizde hiçbir şeyi değiştirmez; ancak programın uzun vadeli kararlılığını, bakımını ve hata düzeltme süreçlerini önemli ölçüde kolaylaştırır.
