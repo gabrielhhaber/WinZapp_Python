@@ -31,6 +31,15 @@ def _home(tmp_path, npmrc=None):
 
 
 class TestWinZappsNpmIsItsOwn:
+    def test_inherited_log_directory_cannot_redirect_winzapps_logs(self, tmp_path):
+        parent = _home(tmp_path)
+        parent["NPM_CONFIG_LOGS_DIR"] = str(tmp_path / "other-project-logs")
+        npm_dir = tmp_path / "data" / "global" / "npm"
+        child = npm_environment(parent, str(npm_dir))
+        assert child["npm_config_logs_dir"] == str(npm_dir / "cache" / "_logs")
+        assert "NPM_CONFIG_LOGS_DIR" not in child
+        assert parent["NPM_CONFIG_LOGS_DIR"] == str(tmp_path / "other-project-logs")
+
     def test_cache_config_and_update_notice_are_winzapps(self, tmp_path):
         parent = _home(tmp_path)
         npm_dir = tmp_path / "data" / "global" / "npm"
@@ -111,7 +120,7 @@ class TestTheUsersNpmrcStillApplies:
         assert child["npm_config_cache"] == str(tmp_path / "npm" / "cache")
         assert child["npm_config_update_notifier"] == "false"
         assert child["npm_config_userconfig"] == str(tmp_path / "npm" / "npmrc")
-        assert "npm_config_logs_dir" not in child
+        assert child["npm_config_logs_dir"] == str(tmp_path / "npm" / "cache" / "_logs")
 
     def test_a_section_keeps_the_file(self, tmp_path):
         """A section becomes an object setting of that name in npm; only

@@ -3,6 +3,8 @@ so a newer wppconnect-server release that no longer compiles against
 WinZapp's overwritten source files left no trace in the log to diagnose."""
 
 import logging
+import sys
+from types import SimpleNamespace
 
 from ui.dialogs import api_setup
 
@@ -36,7 +38,7 @@ class _Dialog:
 
 def test_the_build_error_is_logged_and_shown(monkeypatch, caplog):
     boxes = []
-    monkeypatch.setattr(api_setup.wx, "MessageBox", lambda *a: boxes.append(a))
+    monkeypatch.setattr(api_setup, "show_error_details", lambda *a: boxes.append(a))
     dlg = _Dialog()
 
     with caplog.at_level(logging.ERROR):
@@ -44,4 +46,29 @@ def test_the_build_error_is_logged_and_shown(monkeypatch, caplog):
 
     assert "tsc: error TS2345" in caplog.text
     assert len(boxes) == 1
+    assert boxes[0][-1] == "tsc: error TS2345"
     assert dlg.ended == [api_setup.wx.ID_CANCEL]
+
+
+def test_staged_failure_preserves_details_without_a_duplicate_dialog(monkeypatch):
+    monkeypatch.setattr(api_setup, "show_error_details",
+                        lambda *a: (_ for _ in ()).throw(AssertionError("duplicate dialog")))
+    dlg = _Dialog()
+    dlg._api_dir = "api_staging"
+    dlg._finish_error("npm error ETARGET")
+    assert dlg._error_details == "npm error ETARGET"
+    assert dlg.ended == [api_setup.wx.ID_CANCEL]
+
+
+def test_failed_compiler_output_is_preserved_from_both_streams():
+    # TypeScript reports diagnostics on stdout, while npm reports on stderr.
+    # Call the worker on a plain stub; no dialog or desktop window is created.
+    worker = SimpleNamespace(_cancelled=False)
+    ok, details = api_setup.ApiSetupDialog._run_subprocess(worker, [
+        sys.executable, "-c",
+        "import sys; print('error TS2345', flush=True); "
+        "print('npm build failed', file=sys.stderr, flush=True); sys.exit(1)",
+    ])
+    assert not ok
+    assert "error TS2345" in details
+    assert "npm build failed" in details

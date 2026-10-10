@@ -24,6 +24,7 @@ from app_paths import resource_path
 from core import api_staging
 from core.dialog_foreground import message_box
 from update_background import may_interrupt_now
+from ui.dialogs.error_details import show_error_details
 
 
 class WppBackgroundUpdateMixin:
@@ -93,13 +94,13 @@ class WppBackgroundUpdateMixin:
                 self._wpp_staging["dialog"] = ApiSetupDialog(
                     self, forced_tag=target_tag, api_dir=staged,
                     on_done=lambda ok, details, cancelled: self._wpp_staging_done(
-                        target_tag, staged, on_finished, ok, cancelled),
+                        target_tag, staged, on_finished, ok, cancelled, details),
                 )
-            except Exception:
+            except Exception as exc:
                 # Without this the build would count as running for the rest of
                 # the session and no WPPConnect update could start again.
                 logging.exception("[wpp_update] Could not start the background build")
-                self._wpp_staging_done(target_tag, staged, on_finished, False, False)
+                self._wpp_staging_done(target_tag, staged, on_finished, False, False, str(exc))
 
         def _prepare():
             # What an interrupted build left counts against the free space, so
@@ -116,7 +117,7 @@ class WppBackgroundUpdateMixin:
         return True
 
     def _wpp_staging_done(self, target_tag: str, staged: str, on_finished, ok: bool,
-                          cancelled: bool) -> None:
+                          cancelled: bool, details: str = "") -> None:
         """wx thread: the background build ended."""
         if getattr(self, "_wpp_staging", None):
             self._wpp_staging["dialog"] = None
@@ -131,8 +132,7 @@ class WppBackgroundUpdateMixin:
         if not cancelled and not getattr(self, "_shutting_down", False):
             self.error_sound.play()
             text = self.i18n.t("wpp_update_failed_msg")
-            message_box(self, text, self.i18n.t("update_error_title"),
-                        wx.OK | wx.ICON_ERROR,
+            show_error_details(self, self.i18n, text, self.i18n.t("update_error_title"), details,
                         announce=lambda: self.output(text, interrupt=True))
         if on_finished is not None:
             on_finished(False)

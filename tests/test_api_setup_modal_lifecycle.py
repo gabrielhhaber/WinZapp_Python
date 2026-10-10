@@ -119,7 +119,7 @@ def test_completion_after_modal_loop_already_ended_is_a_noop(monkeypatch, callba
 
 def test_normal_error_closes_once_and_late_cancel_does_nothing(monkeypatch):
     boxes = []
-    monkeypatch.setattr(api_setup.wx, "MessageBox", lambda *args: boxes.append(args))
+    monkeypatch.setattr(api_setup, "show_error_details", lambda *args: boxes.append(args))
     dialog = _DialogStub()
 
     dialog._finish_error("npm failed")
@@ -127,5 +127,5 @@ def test_normal_error_closes_once_and_late_cancel_does_nothing(monkeypatch):
 
     assert dialog.end_results == [wx.ID_CANCEL]
     assert len(boxes) == 1
-    assert "npm failed" in boxes[0][0]
+    assert "npm failed" in boxes[0][-1]
     assert dialog.kill_calls == 0

@@ -74,7 +74,7 @@ class _Window(WppBackgroundUpdateMixin):
 @pytest.fixture
 def env(monkeypatch, tmp_path):
     state = types.SimpleNamespace(
-        builds=[], boxes=[], later=[], discarded=[], swaps=[], pending=[], order=[],
+        builds=[], boxes=[], errors=[], later=[], discarded=[], swaps=[], pending=[], order=[],
         room=True, swap_error=None, busy=False, modal=[], api=str(tmp_path / "api"),
         build_raises=None)
 
@@ -126,6 +126,10 @@ def env(monkeypatch, tmp_path):
         monkeypatch.setattr(module, "threading", types.SimpleNamespace(Thread=_Thread))
         monkeypatch.setattr(module.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
         monkeypatch.setattr(module, "message_box", _box)
+        def _error(window, i18n, text, title, details="", announce=None):
+            state.errors.append(details)
+            return _box(window, text, title, wx.OK, announce)
+        monkeypatch.setattr(module, "show_error_details", _error)
         monkeypatch.setattr(module, "resource_path", lambda *parts: os.path.join(state.api, *parts[1:]))
     monkeypatch.setattr(wpp_background_update.wx, "CallLater",
                         lambda ms, fn, *a: state.later.append((fn, a)))
@@ -348,6 +352,7 @@ class TestWhenItDoesNotGoWell:
 
         assert "stop" not in window.events and env.swaps == []
         assert env.boxes == ["wpp_update_failed_msg"]
+        assert env.errors == ["npm ERR!"]
         assert env.api + "_staging" in env.discarded
         assert finished == [False] and _busy(window) is False
 
@@ -364,6 +369,7 @@ class TestWhenItDoesNotGoWell:
         assert window.events[:2] == ["notice", "stop"] and window.events[-1] == "start"
         assert env.discarded == [env.api + "_staging"]   # the unused build does not stay on disk
         assert "wpp_update_failed_msg" in env.boxes
+        assert env.errors == ["in use"]
         assert env.modal == []                        # the built old server needs no rollback
         assert finished == [False]
 

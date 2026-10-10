@@ -4,6 +4,8 @@ Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisa
 
 YENİLİKLER
 
+- WPPConnect kurulum ve g?ncelleme hatalar? art?k ayr?nt?lar? okunabilen ve kopyalanabilen salt okunur bir metin alan?nda g?steriliyor. Ayr? olarak haz?rlanan g?ncellemelerde yinelenen bildirimler yerine tek bir hata raporu g?steriliyor.
+
 - Sohbetleri temizlemek veya silmek artık onay istemeyebilir: iki iletişim kutusunda da yalnızca Evet ile birlikte geçerli olan "Bir daha gösterme" kutusu bulunur. Soru kapalıyken temizleme yıldızlı iletileri korur. Ayarlar > Kullanıcı arayüzü içinde onayı yeniden açan iki ilgili seçenek vardır.
 
 - Ayarlar > Kullanıcı Arayüzü altında isteğe bağlı "Mesajlarda isimsiz gönderenlerin telefon numaralarını gizle" seçeneği. Açıldığında adı olmayan kişilerin mesajları, mesaj listesinde ve açık sohbet duyurularında doğrudan içerikle başlar; yerine başka bir gönderen etiketi eklenmez. Adlar ve mesaj içeriğindeki numaralar korunur. Başlangıçta kapalıdır.

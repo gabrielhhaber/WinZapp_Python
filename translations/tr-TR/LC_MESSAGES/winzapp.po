@@ -2641,8 +2641,8 @@ msgstr "Seçili sohbetleri temizle"
 #: client/status_tab/status_composer.py client/status_tab/status_dialogs.py
 #: client/ui/conversation_panel/message_data.py
 #: client/ui/conversation_panel/message_menu.py
-#: client/ui/dialogs/new_conversation.py client/ui/dialogs/reactions_dialog.py
-#: client/ui/dialogs/shortcuts_dialog.py
+#: client/ui/dialogs/error_details.py client/ui/dialogs/new_conversation.py
+#: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
 #: client/ui/dialogs/transcription_result.py client/ui/media_viewer.py
 msgctxt "close"
 msgid "&Close"
@@ -3563,6 +3563,12 @@ msgstr "Hata metni kopyalandı."
 msgctxt "error_details"
 msgid "Error details:"
 msgstr "Hata ayrıntıları:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/error_details.py
+msgctxt "error_details_label"
+msgid "Error details"
+msgstr "Hata ayr?nt?lar?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -12649,6 +12655,11 @@ msgstr ""
 "En son WPPConnect sürümü denetlenemedi. İnternet bağlantınızı kontrol edip "
 "tekrar deneyin."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wpp_update_health_failed"
+msgid "The updated API did not pass the health and process identity checks."
+msgstr "G?ncellenen API, ?al??ma ve i?lem kimli?i denetimlerini ge?emedi."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/updates.py
 msgctxt "wpp_update_in_progress"
 msgid "Updating WPPConnect. Please wait."
@@ -12672,6 +12683,16 @@ msgid ""
 msgstr ""
 "Başka bir WinZapp hesabı hâlâ WPPConnect Server'ı kullanıyor. Diğer "
 "hesapları kapatıp tekrar deneyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wpp_update_restore_failed"
+msgid "The previous API could not be restored or restarted."
+msgstr "?nceki API geri y?klenemedi veya yeniden ba?lat?lamad?."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wpp_update_start_failed"
+msgid "The updated API did not finish starting."
+msgstr "G?ncellenen API ba?lat?lamad?."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/wpp_server.py
 msgctxt "wpp_version_unpinned_warning"

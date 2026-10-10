@@ -59,6 +59,7 @@ import zipfile
 
 import requests
 import wx
+from ui.dialogs.error_details import show_error_details
 
 from app_paths import global_dir, resource_path
 from core.api_dependencies import npm_cached_metadata_is_stale
@@ -889,7 +890,7 @@ class ApiSetupDialog(wx.Dialog):
     def _run_subprocess(self, cmd, cwd=None, env=None):
         """
         Run a subprocess and wait for it to finish.
-        Returns (success: bool, stderr: str).
+        Returns (success: bool, combined_output: str).
         """
         import sys
         creation_flags = 0
@@ -899,18 +900,20 @@ class ApiSetupDialog(wx.Dialog):
             self._proc = subprocess.Popen(
                 cmd, cwd=cwd, env=env,
                 creationflags=creation_flags,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
+                # Compiler diagnostics (notably tsc) use stdout. Keep both
+                # streams so a failed build reports its actual cause.
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
             )
-            _, stderr_bytes = self._proc.communicate()
+            output_bytes, _ = self._proc.communicate()
         except FileNotFoundError as exc:
             return False, str(exc)
 
         if self._cancelled:
             return False, ""
         rc     = self._proc.returncode
-        stderr = (stderr_bytes or b"").decode("utf-8", errors="replace").strip()
-        return (rc == 0), stderr
+        output = (output_bytes or b"").decode("utf-8", errors="replace").strip()
+        return (rc == 0), output
 
     # ── Background setup thread ───────────────────────────────────────────────
 
@@ -1419,8 +1422,9 @@ class ApiSetupDialog(wx.Dialog):
         # Only shown to the user until now; npm's output is the evidence when an
         # update to a newer server release fails to build.
         logging.error("[api_setup] Setup failed: %s", details or "(no details)")
-        msg = self._i18n.t("api_setup_error_generic")
-        if details:
-            msg = f"{msg}\n\n{details}"
-        wx.MessageBox(msg, self._i18n.t("api_setup_error_title"), wx.OK | wx.ICON_ERROR, self)
+        self._error_details = details
+        # A staged update's caller shows one report after the progress closes.
+        if not getattr(self, "_api_dir", None):
+            show_error_details(self, self._i18n, self._i18n.t("api_setup_error_generic"),
+                               self._i18n.t("api_setup_error_title"), details)
         self._end_modal_safely(wx.ID_CANCEL)

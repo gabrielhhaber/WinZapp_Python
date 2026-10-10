@@ -32,6 +32,22 @@ Without space for both builds, refuse before stopping the installed API;
 the old destructive foreground fallback is gone. During an update, startup
 timeouts return failure instead of exiting WinZapp before rollback can run.
 
+An open-window restart queues the Node spawn and returns immediately. Wait
+for it on the validation worker with the normal 300-second startup budget,
+then capture the new PID and run the short HTTP health/identity check.
+Starting the 15-second HTTP deadline at the queued spawn caused successful
+builds to roll back while Node was still importing modules. Observed on
+2026-10-10: the corrected checkout loaded those modules in 16.47 seconds,
+validated server 2.10.45 and reconnected. Compiler output must also retain
+stdout alongside stderr: otherwise TypeScript failures lose their details.
+
+Installation/update failures use `ui/dialogs/error_details.py`: one resizable
+report with a native read-only multiline edit, initially focused, and a Close
+button (Escape). Keep the complete diagnostics selectable/copyable. Staged
+foreground setup retains `_error_details` for the update caller instead of
+opening a second report; background callbacks must forward their `details`.
+Startup/health/rollback failures retain their stage and exception details too.
+
 `core/api_dependencies.py` prepares end-user npm manifests. A precompiled
 API omits development dependencies, promoting Babel runtime helpers,
 declared storage peers and runtime imports before that omission. For the

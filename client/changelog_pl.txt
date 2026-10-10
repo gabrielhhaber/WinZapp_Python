@@ -4,6 +4,8 @@ W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym 
 
 NOWOŚCI
 
+- B??dy instalacji i aktualizacji WPPConnect s? teraz wy?wietlane w polu tekstowym tylko do odczytu, ze szczeg??ami do przeczytania i skopiowania. Aktualizacje przygotowane osobno wy?wietlaj? jeden raport b??du zamiast powielonych komunikat?w.
+
 - Wyczyszczenie lub usunięcie czatów może przestać wymagać potwierdzenia: oba okna mają teraz pole wyboru "Nie pokazuj ponownie", które działa tylko razem z odpowiedzią Tak. Gdy pytanie jest wyłączone, czyszczenie zachowuje wiadomości z gwiazdką. W Ustawienia > Interfejs użytkownika są dwie odpowiadające opcje, które przywracają pytanie.
 
 - Opcja "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach" w Ustawienia > Interfejs użytkownika. Po włączeniu wiadomości od osób bez nazwy zaczynają się bezpośrednio od treści na liście wiadomości i w komunikatach otwartego czatu, bez zastępczej etykiety nadawcy. Nazwy i numery w treści wiadomości są zachowane. Domyślnie wyłączona.

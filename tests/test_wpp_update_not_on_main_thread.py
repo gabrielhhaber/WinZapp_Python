@@ -155,6 +155,7 @@ def threads(monkeypatch):
     patch_main_global(monkeypatch, "threading", captured)
     monkeypatch.setattr(main_module.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
     monkeypatch.setattr(main_module.wx, "MessageBox", lambda *a, **k: wx.ID_OK)
+    monkeypatch.setattr(updates, "show_error_details", lambda *a, **k: None)
     monkeypatch.setattr(api_setup, "ApiSetupDialog", _Dialog)
     return captured
 

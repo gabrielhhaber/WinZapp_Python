@@ -27,6 +27,8 @@ So every call site builds its environment through npm_environment():
   to disk.
 * npm_config_update_notifier=false: the notice is useless in a hidden
   window, and checking it is one more write into the cache.
+* npm_config_logs_dir points to that cache's _logs directory, even when
+  the parent environment or a user's npmrc redirects npm logs elsewhere.
 
 The user's npmrc is not simply dropped: it is where someone behind a proxy
 or a registry mirror tells npm how to reach the internet, and npm hands
@@ -279,6 +281,7 @@ def npm_environment(environment, npm_dir: str, project_dir: str = "") -> dict:
     child = dict(environment)
     _set(child, "npm_config_update_notifier", "false")
     _set(child, "npm_config_cache", os.path.abspath(os.path.join(npm_dir, "cache")))
+    _set(child, "npm_config_logs_dir", os.path.abspath(os.path.join(npm_dir, "cache", "_logs")))
 
     # No npmrc is the common case. An unreadable or undecodable one is left
     # to npm, exactly as before.

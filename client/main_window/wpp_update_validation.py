@@ -17,17 +17,33 @@ def restart_api_after_update(window, api_dir: str, backup: str, on_done) -> None
     on_done receives True only for a working NEW API. A restored predecessor
     still reports False, so the update checker remembers the failed release.
     """
+    def failure(key, details=""):
+        window._wpp_update_error_key = key
+        window._wpp_update_error_details = details
+
     def start_and_probe(restoring=False):
         try:
             started = timed_call("api_startup", window.ensure_wpp_running) is not False
-        except (Exception, SystemExit):
+        except (Exception, SystemExit) as exc:
             logging.exception("[wpp_update] API restart failed")
+            if not restoring:
+                failure("wpp_update_start_failed", str(exc))
             started = False
 
         def probe():
             healthy = False
             cleanup_path = ""
             try:
+                # With the main window open, ensure_wpp_running() queues the
+                # spawn and returns before Node even exists. Give that start
+                # its normal 300-second budget before the short HTTP check,
+                # and capture the process identity only after the spawn.
+                listening = started
+                wait_until_listening = getattr(window, "_wait_until_api_listening", None)
+                if listening and wait_until_listening is not None:
+                    listening = timed_call("api_startup_wait", wait_until_listening) is True
+                if started and not listening:
+                    logging.warning("[wpp_update] API did not finish starting; validation skipped")
                 identity = {}
                 instance = getattr(window, "_node_instance_id", None)
                 pid = getattr(getattr(window, "wpp_process", None), "pid", None)
@@ -35,17 +51,21 @@ def restart_api_after_update(window, api_dir: str, backup: str, on_done) -> None
                     identity["instance_id"] = instance
                 if pid:
                     identity["pid"] = pid
-                healthy = started and timed_call("api_http_validation", wait_for_api,
+                healthy = listening and timed_call("api_http_validation", wait_for_api,
                     window.wpp_server, window.wpp_port, identity=identity,
                     cancelled=lambda: getattr(window, "_shutting_down", False))
+                if not healthy and not restoring and not getattr(window, "_wpp_update_error_key", ""):
+                    failure("wpp_update_health_failed" if listening else "wpp_update_start_failed")
                 if healthy and not restoring and backup:
                     try:
                         cleanup_path = timed_call("previous_api_detach", api_staging.detach_previous_api,
                                                   api_dir, backup)
                     except Exception:
                         logging.exception("[wpp_update] Previous API retained; cleanup deferred")
-            except Exception:
+            except Exception as exc:
                 logging.exception("[wpp_update] API validation failed")
+                if not restoring:
+                    failure("wpp_update_health_failed", str(exc))
             wx.CallAfter(probed, healthy, restoring, cleanup_path)
 
         threading.Thread(target=probe, daemon=True, name="wpp-update-validation").start()
@@ -81,8 +101,14 @@ def restart_api_after_update(window, api_dir: str, backup: str, on_done) -> None
                     raise TimeoutError("failed API or Chrome profile is still in use")
                 failed = timed_call("api_rollback", api_staging.restore_previous_api, api_dir, backup)
                 timed_call("failed_api_cleanup", api_staging.discard, failed)
-            except Exception:
+            except Exception as exc:
                 logging.exception("[wpp_update] Could not restore previous API; API trees retained")
+                previous_key = getattr(window, "_wpp_update_error_key", "")
+                previous_details = getattr(window, "_wpp_update_error_details", "")
+                i18n = getattr(window, "i18n", None)
+                previous = i18n.t(previous_key) if previous_key and i18n else ""
+                failure("wpp_update_restore_failed", "\n\n".join(
+                    part for part in (previous, previous_details, str(exc)) if part))
                 wx.CallAfter(on_done, False)
                 return
             wx.CallAfter(start_and_probe, True)

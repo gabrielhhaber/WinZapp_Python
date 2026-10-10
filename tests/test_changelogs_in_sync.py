@@ -73,3 +73,13 @@ def test_the_newest_section_has_the_same_items_everywhere():
         "the newest changelog section has a different number of items per heading "
         f"across locales (same items, same order, in every file): {shapes}"
     )
+
+
+@pytest.mark.parametrize("loc", LOCALES)
+def test_newest_section_starts_with_one_intro_and_then_the_news_list(loc):
+    blocks = [line for line in _newest_section(loc)[1] if line.strip()]
+    first_item = next(i for i, line in enumerate(blocks) if line.startswith("- "))
+    assert first_item == 2, (
+        f"{loc}: expected one introduction and the news heading before the first item; "
+        "new features belong in the list, not in extra introduction paragraphs"
+    )

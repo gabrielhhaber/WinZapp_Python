@@ -4,6 +4,8 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- Erros de instala??o e atualiza??o da WPPConnect agora aparecem em um campo de texto somente leitura, com detalhes para ler e copiar. Atualiza??es preparadas separadamente mostram um ?nico relat?rio de erro, sem avisos duplicados.
+
 - Limpar ou apagar conversas pode deixar de pedir confirmação: os dois diálogos agora têm a caixa "Não mostrar novamente", que só vale junto com Sim. Com a pergunta desligada, limpar mantém as mensagens favoritas. Em Configurações > Interface do usuário há as duas opções correspondentes para voltar a pedir confirmação.
 
 - Opção "Ocultar números de telefone de remetentes sem nome nas mensagens" em Configurações > Interface do usuário. Quando ativada, as mensagens de pessoas sem nome começam diretamente pelo conteúdo, na lista de mensagens e nos anúncios da conversa aberta, sem um rótulo substituto de remetente. Nomes e números no conteúdo das mensagens são mantidos. Começa desativada.

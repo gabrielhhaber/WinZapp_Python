@@ -63,6 +63,56 @@ def test_cleanup_rename_failure_keeps_working_new_api(phases, monkeypatch):
     assert "restore" not in p.events
 
 
+def test_async_restart_waits_for_cold_start_before_http_validation(phases, monkeypatch):
+    from main_window import api_start_behind_window as startup
+
+    p = phases
+    p.window.wpp_process = None
+    p.window._node_instance_id = None
+    elapsed = [0.0]
+
+    def is_running():
+        assert p.done == [] and "restore" not in p.events
+        # A fresh tree can take longer than the HTTP probe's 15-second limit.
+        if elapsed[0] < 45.0:
+            return False
+        p.window.wpp_process = SimpleNamespace(pid=456)
+        p.window._node_instance_id = "new-instance"
+        return True
+
+    def validate(*args, identity, **kwargs):
+        assert elapsed[0] == 45.0
+        assert identity == {"pid": 456, "instance_id": "new-instance"}
+        return True
+
+    monkeypatch.setattr(startup, "time", SimpleNamespace(
+        time=lambda: elapsed[0],
+        sleep=lambda seconds: elapsed.__setitem__(0, elapsed[0] + seconds)))
+    p.window._is_wpp_running = is_running
+    p.window._check_wpp_version_pin = lambda: None
+    p.window._wait_until_api_listening = lambda: startup.ApiStartBehindWindowMixin._wait_until_api_listening(p.window)
+    monkeypatch.setattr(validation, "wait_for_api", validate)
+    validation.restart_api_after_update(p.window, "api", "api_old", p.done.append)
+    assert elapsed[0] == 0.0  # Waiting must stay off the UI thread.
+    p.workers.pop(0)()
+    p.callbacks.pop(0)()
+    assert p.done == [True] and "restore" not in p.events
+
+
+@pytest.mark.parametrize("listening", [None, False])
+def test_async_start_timeout_or_shutdown_does_not_probe_or_discard_backup(phases, monkeypatch, listening):
+    p = phases
+    p.window._wait_until_api_listening = lambda: listening
+    monkeypatch.setattr(validation, "wait_for_api",
+                        lambda *a, **k: pytest.fail("HTTP validation ran before Node started"))
+    validation.restart_api_after_update(p.window, "api", "api_old", p.done.append)
+    p.workers.pop(0)()
+    assert "detach" not in p.events and p.done == []
+    p.callbacks.pop(0)()
+    assert p.done == []  # The retained predecessor still needs rollback.
+    assert len(p.workers) == 1
+
+
 def test_cleanup_waits_for_whatsapp_reconnection(phases, monkeypatch):
     p = phases
     def sleep(_seconds):
@@ -104,6 +154,7 @@ def test_failed_new_api_restores_and_checks_old_api_but_reports_failed_update(ph
     p.workers.pop(0)()
     p.callbacks.pop(0)()
     assert p.events.count("start") == 2 and p.done == [False]
+    assert p.window._wpp_update_error_key == "wpp_update_health_failed"
 
 
 def test_restart_exception_still_allows_rollback(phases):
@@ -116,6 +167,8 @@ def test_restart_exception_still_allows_rollback(phases):
     p.callbacks.pop(0)()
     p.workers.pop(0)()
     assert "restore" in p.events and ("discard", "api_old") not in p.events
+    assert p.window._wpp_update_error_key == "wpp_update_start_failed"
+    assert p.window._wpp_update_error_details == "1"
 
 
 def test_shutdown_retains_backup_without_starting_a_rollback(phases):
@@ -139,6 +192,8 @@ def test_a_profile_still_in_use_prevents_rollback_and_retains_backup(phases):
     p.callbacks.pop(0)()
     assert p.done == [False] and "restore" not in p.events
     assert ("discard", "api_old") not in p.events
+    assert p.window._wpp_update_error_key == "wpp_update_restore_failed"
+    assert "profile is still in use" in p.window._wpp_update_error_details
 
 
 @pytest.mark.parametrize("updating", [False, True])

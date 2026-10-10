@@ -271,7 +271,12 @@ def env(monkeypatch):
     monkeypatch.setattr(updates, "threading", _Threads)
     monkeypatch.setattr(updates.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
     boxes = []
+    errors = []
     monkeypatch.setattr(updates, "message_box", lambda *a, **k: boxes.append(a[2]) or 0)
+    def _error(parent, i18n, message, title, details="", **kwargs):
+        boxes.append(title)
+        errors.append(details)
+    monkeypatch.setattr(updates, "show_error_details", _error)
     monkeypatch.setattr("core.wa_version_refresh.other_accounts_node_alive",
                         lambda g, a, ignore_corrupt=False: False)
     monkeypatch.setattr(updates, "homologated_wpp_tag", lambda _p: MINIMUM)
@@ -291,13 +296,14 @@ def env(monkeypatch):
             result = results.pop(0)
             if result != updates.wx.ID_OK:
                 self._cancelled = cancelled[0]
+                self._error_details = "tsc: error TS2345"
             return result
 
         def Destroy(self):
             pass
 
     monkeypatch.setattr(api_setup, "ApiSetupDialog", _Dialog)
-    return type("Env", (), {"boxes": boxes, "tags": tags, "results": results,
+    return type("Env", (), {"boxes": boxes, "errors": errors, "tags": tags, "results": results,
                             "cancelled": cancelled})
 
 
@@ -470,6 +476,7 @@ def test_a_failed_install_tells_on_finished_false_and_shows_the_error(env):
     _Threads.started.pop(0)()
     assert done == [False]
     assert "update_error_title" in env.boxes
+    assert env.errors == ["tsc: error TS2345"]
 
 
 def test_a_successful_install_tells_on_finished_true(env):
