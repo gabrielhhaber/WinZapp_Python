@@ -18,6 +18,9 @@ from core.utils import (
 )
 from core.transcription import stored as stored_transcription
 
+# Order of the chat-filter radio buttons (conv_filter_* labels).
+CONVERSATION_FILTERS = ('all', 'unread', 'groups', 'individual')
+
 
 class ConversationNavigationMixin:
     """Opening, focusing, closing and restoring a conversation; composer
@@ -499,9 +502,8 @@ class ConversationNavigationMixin:
 
     def _on_filter_changed(self, event):
         """Update the active conversation filter and rebuild the list."""
-        _filter_map = ['all', 'unread', 'groups', 'individual']
         sel = self._filter_radio.GetSelection()
-        self._conv_filter = _filter_map[sel] if 0 <= sel < len(_filter_map) else 'all'
+        self._conv_filter = CONVERSATION_FILTERS[sel] if 0 <= sel < len(CONVERSATION_FILTERS) else 'all'
         self.main_window.add_chats_to_ui()
         # Selecting a filter option leaves keyboard focus on the radio box —
         # the list itself gets rebuilt but nothing ever moves focus/selection
@@ -515,6 +517,17 @@ class ConversationNavigationMixin:
             lst.Focus(0)
             lst.Select(0)
             lst.EnsureVisible(0)
+
+    def _on_accel_conversation_filter(self, filter_key):
+        """Alt+Shift+A/U/G/I: pick a chat filter without moving keyboard focus."""
+        index = CONVERSATION_FILTERS.index(filter_key)
+        self._filter_radio.SetSelection(index)
+        self._on_filter_changed(None)
+        self.main_window.speak_output.output(self._filter_radio.GetString(index))
+
+    def _on_accel_focus_conversation_filter(self, event):
+        """Alt+Shift+F: move focus to the chat filter radio buttons."""
+        self._filter_radio.SetFocus()
 
     def on_ctrl_f(self, event):
         self.search_field.SetFocus()

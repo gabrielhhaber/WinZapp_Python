@@ -4,6 +4,8 @@ Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră
 
 NOUTĂȚI
 
+- Opțiunea "Ascunde numerele de telefon ale expeditorilor fără nume în mesaje" în Setări > Interfață utilizator. Când este activată, mesajele persoanelor fără nume încep direct cu conținutul lor, în lista de mesaje și în anunțurile conversației deschise, fără o etichetă înlocuitoare pentru expeditor. Numele și numerele din conținutul mesajelor se păstrează. Inițial dezactivată.
+
 - Comenzi rapide de tastatură personalizabile: noul tab Comenzi rapide din Setări listează toate comenzile rapide ale aplicației, inclusiv comanda globală de afișare a ferestrei. Selectează una, apasă Schimbă și introdu noua combinație sau dezactiveaz-o, restabilește valoarea implicită ori restabilește-le pe toate. Conflictele sunt semnalate înainte de aplicare, iar modificările au efect doar după Aplică sau OK.
 
 - Mesaje fixate: un buton în fiecare chat afișează mesajele fixate în WhatsApp, inclusiv mesajele mai vechi. Apăsați Enter pentru a merge la mesajul ales în istoric. La deschiderea chatului este anunțat numărul mesajelor fixate fără a muta focalizarea; fiecare mesaj fixat are și un marcaj text.
@@ -30,7 +32,15 @@ NOUTĂȚI
 
 - „Informații despre mesaj” arată ce știe WhatsApp însuși. Pentru un mesaj trimis de dumneavoastră, fereastra (Alt+Shift+D) întreabă acum WhatsApp când a fost livrat, citit și redat, așa că apar și confirmările sosite cât WinZapp era închis, fiecare cu data și ora complete. Într-un grup, listează cine l-a primit și cine l-a citit, pe nume, ca „Citit (2/9): Ana, Bia”.
 
+- Informațiile despre conversația personală arată acum și numele de profil ales de contact, numele verificat al unei firme și dacă este cont business. Un nume care doar repetă pe cel deja afișat este omis.
+
+- Comenzi rapide pentru filtrele conversațiilor: Alt+Shift+F merge la butoanele de opțiune ale filtrelor conversațiilor, care anunță acum această comandă, iar Alt+Shift+A, Alt+Shift+U, Alt+Shift+G și Alt+Shift+I aleg Toate, Necitit, Grupuri și Individuale direct din lista de conversații. Opțiunile listelor WhatsApp și „Gestionați listele WhatsApp” apar acum înaintea filtrelor conversațiilor. Toate se găsesc în ajutorul pentru comenzi rapide (F1).
+
+- Informațiile despre conversația personală au acum fila „Grupuri în comun”, care listează grupurile pe care le aveți în comun cu contactul. Apăsați Enter pe un grup pentru a-l deschide. Dacă WhatsApp nu răspunde, fila anunță acest lucru în loc să rămână goală.
+
 CORECTĂRI
+
+- După ce computerul iese din repaus, mesajele noi sunt preluate în mod fiabil: conversația deschisă și conversațiile recente sunt verificate din nou chiar și când lista de conversații WhatsApp pare nemodificată, iar actualizările conversațiilor legate printr-un ID de dispozitiv conectat nu mai sunt ignorate
 
 - Mențiuni: o persoană menționată pe nume alături de @toți își păstrează linkul în mențiunile mesajului, iar o mențiune a dumneavoastră, în notificare și în previzualizarea din lista de conversații, folosește cuvântul ales în "Cum să se facă referire la mine?" în locul unui cuvânt fix
 
@@ -55,6 +65,12 @@ CORECTĂRI
 - Actualizarea WPPConnect: versiunea anterioară este păstrată până când cea nouă pornește și răspunde și este restaurată dacă nu o face. Actualizarea este refuzată înainte de a opri ceva atunci când nu există spațiu pe disc pentru ambele, iar reinstalarea refolosește Chrome deja descărcat.
 
 - Ultima accesare dintr-o conversație deschisă rămâne acum la zi. Butonul conversației, Alt+T și detaliile contactului afișează aceleași informații, iar un răspuns vechi nu mai poate suprascrie o actualizare mai nouă de online sau de ultima accesare.
+
+- Ultima accesare dintr-o conversație deschisă verifică acum și identificatorul alternativ cunoscut al contactului când primul răspuns este încă în așteptare, astfel încât Alt+T și butonul de stare nu mai raportează informații indisponibile când datele există sub celălalt identificator.
+
+- Recuperarea conexiunii și sincronizarea mesajelor nu mai confundă o sesiune sau o rundă de sincronizare veche cu cea curentă. Răspunsurile întârziate ale conexiunii, ale listei de conversații sau ale istoricului de mesaje sunt ignorate, o verificare lentă a conexiunii nu mai este luată drept revenirea calculatorului din repaus, iar o sincronizare nouă nu mai lasă istoricul în așteptare fără un proces care să-l preia. Astfel se evită trecerile inutile în modul offline și istoricul incomplet al mesajelor.
+
+- Marcarea unei conversații ca citită ajunge din nou pe telefon atunci când conversația este cunoscută atât după numărul de telefon, cât și după ID-ul dispozitivului asociat, iar o citire eșuată este reîncercată data viitoare când deschideți conversația, astfel încât o conversație nu mai rămâne necitită pe telefon după ce a fost citită în WinZapp.
 
 V2.0.0.0
 

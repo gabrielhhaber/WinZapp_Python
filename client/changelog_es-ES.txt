@@ -4,6 +4,8 @@ Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, 
 
 NOVEDADES
 
+- Opción "Ocultar los números de teléfono de remitentes sin nombre en los mensajes" en Configuración > Interfaz de usuario. Al activarla, los mensajes de personas sin nombre empiezan directamente por su contenido, en la lista de mensajes y los anuncios de la conversación abierta, sin añadir una etiqueta de remitente alternativa. Se conservan los nombres y los números en el contenido de los mensajes. Empieza desactivada.
+
 - Atajos de teclado personalizables: la nueva pestaña Atajos de Ajustes enumera todos los atajos de la aplicación, incluido el atajo global para mostrar la ventana. Selecciona uno, pulsa Cambiar y escribe la nueva combinación, o desactívalo, restaura su valor predeterminado o restaura todos. Los conflictos se avisan antes de aplicar y los cambios solo se aplican con Aplicar o Aceptar.
 
 - Mensajes fijados: un botón en cada conversación muestra los mensajes fijados en WhatsApp, incluidos los antiguos. Pulsa Intro para ir a uno de ellos en el historial. Al abrir la conversación se anuncia la cantidad de mensajes fijados sin mover el foco; cada mensaje fijado también tiene una indicación en texto.
@@ -30,7 +32,15 @@ NOVEDADES
 
 - "Datos del mensaje" muestra lo que el propio WhatsApp sabe. En un mensaje que enviaste, la ventana (Alt+Shift+D) ahora pregunta a WhatsApp cuándo se entregó, se leyó y se reprodujo, así que también aparecen los recibos que llegaron con WinZapp cerrado, cada uno con fecha y hora completas. En un grupo, lista quién lo recibió y quién lo leyó, por nombre, como "Leído (2/9): Ana, Bia".
 
+- La información del chat personal ahora también muestra el nombre de perfil que el contacto eligió, el nombre verificado de una empresa y si es una cuenta de empresa. Se omite un nombre que solo repite el ya mostrado.
+
+- Atajos para los filtros de conversaciones: Alt+Shift+F va a los botones de opción de los filtros de conversaciones, que ahora anuncian ese atajo, y Alt+Shift+A, Alt+Shift+U, Alt+Shift+G y Alt+Shift+I eligen Todo, Sin leer, Grupos e Individuales directamente desde la lista de conversaciones. Las opciones de listas de WhatsApp y "Gestionar listas de WhatsApp" ahora van antes de los filtros de conversaciones. Todos figuran en la ayuda de atajos (F1).
+
+- La información del chat personal tiene ahora la pestaña "Grupos en común", que lista los grupos que compartes con el contacto. Pulsa Intro en un grupo para abrirlo. Si WhatsApp no responde, la pestaña lo avisa en lugar de quedarse vacía.
+
 CORRECCIONES
+
+- Tras reactivar el equipo de la suspensión, los mensajes nuevos se reciben de forma fiable: la conversación abierta y los chats recientes se vuelven a comprobar aunque la lista de chats de WhatsApp parezca sin cambios, y las actualizaciones de chats vinculados por un ID de dispositivo vinculado ya no se ignoran
 
 - Menciones: una persona mencionada por su nombre junto a @todos conserva su enlace en las menciones del mensaje, y una mención tuya, en la notificación y en la vista previa de la lista de conversaciones, usa la palabra elegida en "¿Cómo debo referirme a mí?" en lugar de una palabra fija
 
@@ -55,6 +65,12 @@ CORRECCIONES
 - Actualización de WPPConnect: la versión anterior se conserva hasta que la nueva arranca y responde, y se restaura si no lo hace. La actualización se rechaza antes de detener nada cuando no hay espacio en disco para las dos, y la reinstalación reutiliza el Chrome ya descargado.
 
 - La última conexión en un chat abierto ahora se mantiene actualizada. El botón de la conversación, Alt+T y los detalles del contacto muestran la misma información, y una respuesta antigua ya no puede sobrescribir una actualización más reciente de en línea o de última conexión.
+
+- La última conexión en un chat abierto ahora también consulta el identificador alternativo conocido del contacto cuando la primera respuesta sigue pendiente, de modo que Alt+T y el botón de estado ya no indican información no disponible cuando los datos existen con el otro identificador.
+
+- La recuperación de la conexión y la sincronización de mensajes ya no confunden una sesión o ronda de sincronización antigua con la actual. Las respuestas tardías de la conexión, de la lista de chats o del historial de mensajes se descartan, una comprobación de conexión lenta ya no se confunde con el equipo saliendo de la suspensión, y una nueva sincronización ya no deja el historial pendiente sin un proceso que lo atienda. Así se evitan pasos innecesarios a "sin conexión" y historiales de mensajes incompletos.
+
+- Marcar un chat como leído vuelve a llegar al teléfono cuando el chat se conoce por su número de teléfono y por su ID de dispositivo vinculado, y una lectura que falla se reintenta la próxima vez que abres el chat, así que un chat ya no se queda sin leer en el teléfono después de leerlo en WinZapp.
 
 V2.0.0.0
 

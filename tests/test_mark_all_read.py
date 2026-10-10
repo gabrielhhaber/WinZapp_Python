@@ -185,6 +185,7 @@ class _Stub:
     mark_conversations_as_read = MainWindow.mark_conversations_as_read
     mark_conversation_as_read = MainWindow.mark_conversation_as_read
     _on_bulk_read_failed = MainWindow._on_bulk_read_failed
+    _finish_conversation_read_state = MainWindow._finish_conversation_read_state
     _restore_unread_after_send_seen_failure = (
         MainWindow._restore_unread_after_send_seen_failure
     )
@@ -421,7 +422,9 @@ class TestBulkReadFailure:
     def test_batched_single_mark_returns_the_job_without_sending(self, inline):
         stub = _Stub(_chats())
         job = stub.mark_conversation_as_read("a@s.whatsapp.net", batched=True)
-        assert job == ("a@s.whatsapp.net", 3, 100)
+        assert (job.remote_jid, job.previous_unread, job.read_timestamp) == (
+            "a@s.whatsapp.net", 3, 100
+        )
         assert stub.persists == 0
         assert stub.sent == []
 

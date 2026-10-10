@@ -42,3 +42,50 @@ Two rules hold the fix together. Only an explicit `false` refuses: `null` means 
 **Every signal the plan reads is chat-list metadata, so a chat whose metadata goes stale is skipped forever.** `t`, `unreadCount`, `lastReceivedKey`, `lastMessage` — none of them looks at stored content, and when they stop moving for one chat every signal honestly agrees nothing changed. Nothing in the plan can break out of it; `force_full` (F5) was the only escape, which is why issue #181 read as "only F5 fixes it": two chats sat at 200 messages ending 08:35 and 07:34, and F5 moved them to 17:12 and 17:11 by fetching 34 and 7 messages *newer* than anything stored. The history-repair queue could never have covered it — that asks the phone for messages *older* than what is held. So staleness is bounded by time instead: `select_stale_rechecks()` promotes the chats that have gone longest without a real get-messages, `_STALE_RECHECK_PER_ROUND` of them per plan, whatever the markers say, at a cost per round that stays fixed however large the account grows. The last-verified timestamp is persisted, because a chat last fetched before a restart is exactly as stale afterwards.
 
 One trap found wiring that up, worth repeating for anything added to this path: the new bookkeeping first sat inside `sync_chat_messages()`' persist `try`, whose `except` sets `persist_ok = False`. Raising there would report a perfectly good fetch as a **failed** one — and one failed chat holds the whole account in "not synced" (see the sync-completion trap above), so a diagnostic added to help with a resync loop could have caused one.
+
+## Resuming must query messages even when the chat list looks unchanged
+
+A 2026-10-07 report showed a private chat fetched at 09:47, suspension from
+09:58 to 11:00, and no automatic query for that chat during recovery. A manual
+conversation resync at 11:07 fetched 1,047 records and grew the visible list
+from 1,000 to 1,044 rows. Those rows are not proof that all were received
+during sleep, but the automatic planner had not checked the chat at all.
+
+`reset_state_for_resume()` now arms `_resume_message_sync_since`. The planner
+promotes warm chats not queried since that wake, even with unchanged metadata:
+the active conversation first, then recent chats, at most 20 extra per round.
+The existing retry and empty-delta mechanisms still own unsuccessful outcomes.
+This only reads linked-device messages; it never requests phone history or
+wipes the cache. The timestamp recorded in `_chat_verified_at` is the query's
+start, not its completion: a query frozen across suspension must not satisfy
+the recovery. Alias forms count as the same verified chat. Account-data reset
+clears the wake cutoff. `[message-refresh]` logs fetched and new-to-cache ID
+counts, while `[resume-message-sync]` explains promotions and deferred batches.
+
+The follow-up log from 16:27–16:33 that day contained a fresh launch, no wake
+event, and an automatic 50-message query for the affected chat. The diagnostic
+claimed `fetched=200`: it was counting the merged cache, not the response.
+Take the diagnostic snapshot before merging local/late-arriving records, and
+log `newer_than_cache` separately from new IDs: an older-history backfill can
+add hundreds of IDs without recovering any missing recent message. UTC ISO
+timestamps keep the latest returned/cached times readable through PII masking.
+A log truncated by relaunch cannot establish what happened at the prior wake.
+
+## A known LID is an update to the phone chat, not a duplicate to discard
+
+On 2026-10-07 a cached private conversation ended at 2026-10-06 21:26:33 UTC,
+while its linked-device chat held messages through 2026-10-07 23:00:48 UTC.
+The phone/LID mapping was correct. A read-only 200-message query returned
+200 IDs absent from the cache, all newer than its last message.
+
+`get_remote_chats()` saw the incoming `@lid` mapped to an existing phone chat,
+recorded only the server unread count, then continued. This dropped `t` and
+`lastReceivedKey` before the delta planner could see them, so normal startup
+and periodic rounds classified the stale conversation as unchanged. More wake
+rechecks did not repair that merge bug.
+
+Resolve that snapshot to the existing phone key after checking deletion under
+both aliases, then run the ordinary merge. Preserve cached records and the
+activity floor; keep the clear/read guards and the group-participant filter.
+Leave the raw snapshot's `remoteJid` intact for the later metadata passes.
+The same measured snapshot now selects an incremental activity refresh.

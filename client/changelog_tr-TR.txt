@@ -4,6 +4,8 @@ Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisa
 
 YENİLİKLER
 
+- Ayarlar > Kullanıcı Arayüzü altında isteğe bağlı "Mesajlarda isimsiz gönderenlerin telefon numaralarını gizle" seçeneği. Açıldığında adı olmayan kişilerin mesajları, mesaj listesinde ve açık sohbet duyurularında doğrudan içerikle başlar; yerine başka bir gönderen etiketi eklenmez. Adlar ve mesaj içeriğindeki numaralar korunur. Başlangıçta kapalıdır.
+
 - Özelleştirilebilir klavye kısayolları: Ayarlar'daki yeni Kısayollar sekmesi, pencereyi gösteren genel kısayol dahil uygulamanın tüm kısayollarını listeler. Birini seçip Değiştir'e basın ve yeni birleşimi yazın; ya da devre dışı bırakın, varsayılana döndürün veya tümünü sıfırlayın. Çakışmalar uygulamadan önce bildirilir ve değişiklikler yalnızca Uygula veya Tamam ile geçerli olur.
 
 - Sabitlenen mesajlar: her sohbetteki bir düğme, eski mesajlar dahil WhatsApp üzerinde sabitlenen mesajları listeler. Seçilen mesaja geçmişte gitmek için Enter tuşuna basın. Sohbet açıldığında odak değiştirilmeden sabitlenen mesajların sayısı duyurulur; her sabitlenen mesajda ayrıca bir metin işareti bulunur.
@@ -30,7 +32,15 @@ YENİLİKLER
 
 - "Mesaj bilgisi" WhatsApp'ın kendi bildiklerini gösterir. Gönderdiğiniz bir mesaj için pencere (Alt+Shift+D) artık WhatsApp'a ne zaman iletildiğini, okunduğunu ve oynatıldığını sorar; böylece WinZapp kapalıyken gelen makbuzlar da, her biri tam tarih ve saatle birlikte görünür. Bir grupta, mesajı kimlerin aldığını ve okuduğunu "Okundu (2/9): Ana, Bia" gibi isimleriyle listeler.
 
+- Kişisel sohbet bilgileri artık kişinin kendi seçtiği profil adını, bir işletmenin doğrulanmış adını ve hesabın işletme hesabı olup olmadığını da listeliyor. Zaten gösterilen adı yalnızca tekrarlayan bir ad atlanır.
+
+- Sohbet filtreleri için kısayollar: Alt+Shift+F sohbet filtresi seçenek düğmelerine gider ve bu düğmeler artık kısayolu duyurur; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G ve Alt+Shift+I sohbet listesinden doğrudan Tümü, Okunmamış, Gruplar ve Bireysel filtrelerini seçer. WhatsApp listesi seçenekleri ve "WhatsApp listelerini yönet" artık sohbet filtrelerinden önce gelir. Hepsi kısayol yardımında (F1) yer alır.
+
+- Kişisel sohbet bilgilerinde artık kişiyle ortak olduğunuz grupları listeleyen "Ortak gruplar" sekmesi var. Bir grupta Enter tuşuna basarak onu açın. WhatsApp yanıt vermezse sekme boş kalmak yerine bunu bildirir.
+
 DÜZELTMELER
+
+- Bilgisayar uykudan uyandığında yeni iletiler güvenilir biçimde alınır: WhatsApp sohbet listesi değişmemiş görünse bile açık sohbet ve son sohbetler yeniden denetlenir, bağlı cihaz kimliğiyle bağlanan sohbetlerin güncellemeleri artık yok sayılmaz
 
 - Bahsetmeler: @tümü ile birlikte adıyla anılan kişi mesajın bahsetmelerinde bağlantısını korur ve sizden bahsedilmesi, bildirimde ve sohbet listesi önizlemesinde, sabit bir sözcük yerine "Kendimden nasıl bahsedilsin?" ayarında seçilen sözcüğü kullanır
 
@@ -55,6 +65,12 @@ DÜZELTMELER
 - WPPConnect güncellemesi: önceki sürüm, yenisi başlayıp yanıt verene kadar korunur ve bunu yapmazsa geri yüklenir. İki sürüm için diskte yeterli yer yoksa güncelleme hiçbir şeyi durdurmadan önce reddedilir ve yeniden kurulum önceden indirilmiş Chrome'u yeniden kullanır.
 
 - Açık bir sohbetteki son görülme bilgisi artık güncel kalıyor. Sohbet düğmesi, Alt+T ve kişi ayrıntıları aynı bilgiyi gösteriyor; eski bir yanıt artık daha yeni bir çevrimiçi veya son görülme güncellemesinin üzerine yazamıyor.
+
+- Açık bir sohbetteki son görülme bilgisi, ilk yanıt hâlâ beklemedeyken kişinin bilinen alternatif kimliğini de sorgular; böylece veriler diğer kimlik altında mevcutken Alt+T ve durum düğmesi artık bilgi yok demez.
+
+- Bağlantı kurtarma ve mesaj eşitleme artık eski bir oturumu veya eşitleme turunu geçerli olanla karıştırmıyor. Bağlantıdan, sohbet listesinden veya mesaj geçmişinden gelen geç yanıtlar yok sayılır, yavaş bir bağlantı denetimi artık bilgisayarın uykudan uyanması sanılmaz ve yeni bir eşitleme bekleyen geçmişi onu işleyecek bir iş parçacığı olmadan bırakmaz. Bu, gereksiz çevrimdışı geçişlerini ve eksik mesaj geçmişini önler.
+
+- Bir sohbeti okundu olarak işaretlemek, sohbet hem telefon numarasıyla hem de bağlı cihaz kimliğiyle biliniyorsa yeniden telefona ulaşıyor; başarısız olan bir okuma, sohbeti bir sonraki açışınızda yeniden deneniyor, böylece WinZapp'ta okuduğunuz bir sohbet telefonda okunmamış kalmıyor.
 
 V2.0.0.0
 

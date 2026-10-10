@@ -433,6 +433,7 @@ def format_foreground_sender(msg: dict, main_window, i18n) -> str:
     Group message → participant name only (no group name).
     """
     from core.utils import format_number
+    from core.message_sender_labels import message_sender_label
     key        = msg.get("key", {})
     remote_jid = key.get("remoteJid", "")
     push_name  = msg.get("pushName", "")
@@ -441,14 +442,26 @@ def format_foreground_sender(msg: dict, main_window, i18n) -> str:
         p_jid = key.get("participant") or msg.get("participant") or ""
         if (not p_jid or p_jid.endswith("@g.us")) and push_name and push_name.isdigit():
             p_jid = f"{push_name}@s.whatsapp.net"
-        return _resolve_participant_name(p_jid, push_name, main_window) or i18n.t("unnamed_participant") or "Participante sem nome"
+        label = _resolve_participant_name(p_jid, push_name, main_window) or i18n.t("unnamed_participant") or "Participante sem nome"
+        return message_sender_label(label, msg, main_window, i18n)
 
     chat = main_window.chats.get(remote_jid) or {"remoteJid": remote_jid}
-    return (
+    label = (
         main_window._resolve_contact_name(chat)
         or _resolve_participant_name(remote_jid, push_name, main_window)
         or format_number(remote_jid)
     )
+    return message_sender_label(label, msg, main_window, i18n)
+
+
+def format_foreground_message(msg: dict, main_window, i18n, body: str) -> str:
+    """Open-chat announcement, without punctuation for a hidden sender."""
+    sender = format_foreground_sender(msg, main_window, i18n)
+    from core.message_sender_labels import hide_unnamed_sender_numbers_enabled
+    hidden = not sender and hide_unnamed_sender_numbers_enabled(
+        getattr(main_window, "settings", None)
+    )
+    return body if hidden else f"{sender}: {body}"
 
 
 def format_toast_unread_suffix(unread_count: int, i18n) -> str:

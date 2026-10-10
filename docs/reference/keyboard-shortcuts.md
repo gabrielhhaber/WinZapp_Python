@@ -1,6 +1,6 @@
 # WinZapp kısayol düzenleme envanteri
 
-Bu belge uygulamanın merkezi komut kataloğunu açıklar. Katalogda 247 ayrı düzenlenebilir yerel atama ve bunların 265 bağlam kaydı bulunur. Sistem genelinde WinZapp'ı gösterme ataması bunlara ek olarak listelenir. Aynı komutun ana pencere ve alt panellerdeki kayıtları tek ayarı paylaşır. Rakamlı ailelerin her rakamı ve alternatif tuş birleşimleri ayrı düzenlenebilir.
+Bu belge uygulamanın merkezi komut kataloğunu açıklar. Katalogda 252 ayrı düzenlenebilir yerel atama ve bunların 270 bağlam kaydı bulunur. Sistem genelinde WinZapp'ı gösterme ataması bunlara ek olarak listelenir. Aynı komutun ana pencere ve alt panellerdeki kayıtları tek ayarı paylaşır. Rakamlı ailelerin her rakamı ve alternatif tuş birleşimleri ayrı düzenlenebilir.
 
 ## Kullanım
 
@@ -66,6 +66,11 @@ Aşağıdaki değerler Türkçe arayüz içindir. Çevirinin mnemonik harfi değ
 | Sohbetler | Seçili sohbetleri arşivle | Kontrol+Alt+Shift+A | chats.ID_BULK_ARCHIVE_CHATS |
 | Sohbetler | seçili sohbetleri okundu olarak işaretle | Kontrol+Alt+Shift+R | chats.ID_BULK_READ_CHATS |
 | Sohbetler | seçili sohbetleri okunmadı olarak işaretle | Kontrol+Alt+Shift+U | chats.ID_BULK_UNREAD_CHATS |
+| Sohbetler | sohbet filtrelerine git | Alt+Shift+F | chats.ID_FILTER_FOCUS |
+| Sohbetler | tüm sohbetleri göster | Alt+Shift+A | chats.ID_FILTER_ALL |
+| Sohbetler | okunmamış sohbetleri göster | Alt+Shift+U | chats.ID_FILTER_UNREAD |
+| Sohbetler | grupları göster | Alt+Shift+G | chats.ID_FILTER_GROUPS |
+| Sohbetler | bireysel sohbetleri göster | Alt+Shift+I | chats.ID_FILTER_INDIVIDUAL |
 | Sohbet içi | odaktaki mesajın dosyasını çevrimiçi yapay zekâ ile yazıya dök, betimle veya dönüştür | Kontrol+Shift+I | messages.ID_AI_ACTION |
 | Sohbet içi | Mesaj yaz: | Alt+Z | messages.ID_ALT_FOCUS_FIELD |
 | Sohbet içi | sesli mesaj kaydet | Kontrol+R | messages.ID_CTRL_R |

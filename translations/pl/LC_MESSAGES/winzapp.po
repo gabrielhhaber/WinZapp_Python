@@ -2238,6 +2238,21 @@ msgctxt "close_conversation"
 msgid "&Close chat"
 msgstr "&Zamknij czat"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/common_groups_tab.py
+msgctxt "common_groups_none"
+msgid "No groups in common found"
+msgstr "Nie znaleziono wspólnych grup"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "common_groups_tab"
+msgid "Groups in common"
+msgstr "Wspólne grupy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/common_groups_tab.py
+msgctxt "common_groups_unavailable"
+msgid "Could not get the groups in common"
+msgstr "Nie udało się pobrać wspólnych grup"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "connect_dialog_cancel"
 msgid "Cance&l"
@@ -2305,6 +2320,11 @@ msgctxt "connection_ws_server_label"
 msgid "WebSocket Address (WS/WSS):"
 msgstr "Adres WebSocket (WS/WSS):"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
+msgctxt "contact_business_account"
+msgid "Business account"
+msgstr "Konto firmowe"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversation_panel/message_menu.py
 msgctxt "contact_copy_number"
 msgid "Copy phone number"
@@ -2351,6 +2371,11 @@ msgctxt "contact_pick_number"
 msgid "This contact has more than one number. Choose one:"
 msgstr "Ten kontakt ma więcej niż jeden numer. Wybierz jeden:"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
+msgctxt "contact_profile_name_label"
+msgid "Profile name"
+msgstr "Nazwa profilu"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
 msgctxt "contact_retrieval_failed"
 msgid "Failed to retrieve the contact list."
@@ -2360,6 +2385,11 @@ msgstr "Nie udało się pobrać listy kontaktów."
 msgctxt "contact_surname"
 msgid "&Surname"
 msgstr "&Nazwisko"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
+msgctxt "contact_verified_name_label"
+msgid "Verified name"
+msgstr "Zweryfikowana nazwa"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversation_panel/message_menu.py
 msgctxt "contact_view_details"
@@ -6093,6 +6123,31 @@ msgid "Ctrl+Left: previous status"
 msgstr "Ctrl+Lewo: poprzedni status"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_alt_shift_f_filter_label"
+msgid "Alt+Shift+F: go to the chat filters"
+msgstr "Alt+Shift+F: przejdź do filtrów czatów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_filter_all_label"
+msgid "Alt+Shift+A: show all chats"
+msgstr "Alt+Shift+A: pokaż wszystkie czaty"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_filter_unread_label"
+msgid "Alt+Shift+U: show unread chats"
+msgstr "Alt+Shift+U: pokaż nieprzeczytane czaty"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_filter_groups_label"
+msgid "Alt+Shift+G: show group chats"
+msgstr "Alt+Shift+G: pokaż grupy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_filter_individual_label"
+msgid "Alt+Shift+I: show individual chats"
+msgstr "Alt+Shift+I: pokaż czaty osobiste"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_ctrl_n_label"
 msgid "Ctrl+N: new chat"
 msgstr "Ctrl+N: nowy czat"
@@ -9440,6 +9495,26 @@ msgctxt "ui_hide_own_sender_in_message_list"
 msgid "Hide the sender on my own messages in the messages list"
 msgstr "Ukryj nadawcę przy moich wiadomościach na liście wiadomości"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_hide_unnamed_sender_numbers"
+msgid "Hide phone numbers of unnamed senders in messages"
+msgstr "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_hide_unnamed_sender_numbers_help"
+msgid ""
+"In message rows and open-chat announcements, omit the sender prefix when no "
+"name is available. Applies to private and group chats, including reply "
+"prefixes. Names, message content, chat titles and other notifications stay "
+"unchanged. Off by default."
+msgstr ""
+"Pomija prefiks nadawcy bez dostępnej nazwy w wierszach wiadomości i "
+"komunikatach otwartego czatu. Dotyczy czatów prywatnych i grupowych, w tym "
+"prefiksów odpowiedzi. Nazwy, treść wiadomości, tytuły czatów i inne "
+"powiadomienia pozostają bez zmian. Domyślnie wyłączone."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/settings_dialog.py
 msgctxt "ui_keep_pinned_chat_order"
 msgid "Keep pinned chats in a fixed order"
@@ -9643,7 +9718,7 @@ msgctxt "unknown_contact"
 msgid "Unnamed contact"
 msgstr "Kontakt bez nazwy"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/notification_manager.py client/main_window/calls.py client/main_window/chat_list.py client/main_window/chats_store.py client/ui/dialogs/conversation_data_dialog.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/notification_manager.py client/main_window/calls.py client/main_window/chat_list.py client/main_window/chats_store.py client/ui/dialogs/common_groups_tab.py client/ui/dialogs/conversation_data_dialog.py
 msgctxt "unknown_group"
 msgid "Unnamed group"
 msgstr "Grupa bez nazwy"
@@ -9668,7 +9743,10 @@ msgctxt "unmute_chat_failed"
 msgid "This chat's notifications could not be re-enabled. Please try again in a moment."
 msgstr "Nie udało się ponownie włączyć powiadomień tego czatu. Spróbuj ponownie za chwilę."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/notification_manager.py client/main_window/chat_list.py client/main_window/identity.py client/ui/conversation_panel/message_rendering.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/message_sender_labels.py client/core/notification_manager.py
+#: client/main_window/chat_list.py client/main_window/identity.py
+#: client/ui/conversation_panel/message_rendering.py
 msgctxt "unnamed_participant"
 msgid "Unnamed participant"
 msgstr "Uczestnik bez nazwy"

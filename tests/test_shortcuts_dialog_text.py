@@ -176,3 +176,16 @@ class TestBulkActionShortcutsAreDocumented:
         ):
             assert key in text
         assert "shortcut_bulk_override_note" in text
+
+
+class TestConversationFilterShortcutsAreDocumented:
+    def test_every_filter_shortcut_is_listed(self):
+        text = ShortcutsDialog._build_text(_FakeI18n())
+        for key in (
+            "shortcut_alt_shift_f_filter_label",
+            "shortcut_filter_all_label",
+            "shortcut_filter_unread_label",
+            "shortcut_filter_groups_label",
+            "shortcut_filter_individual_label",
+        ):
+            assert key in text

@@ -140,7 +140,7 @@ class _Reader:
     def _schedule_set_chats(self):
         pass
 
-    def _sync_conversation_read_state(self, remote_jid, unread, on_failure):
+    def _sync_conversation_read_state(self, remote_jid, unread, on_failure, on_success=None):
         self.sent.append(remote_jid)
 
 

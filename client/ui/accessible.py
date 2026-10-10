@@ -408,6 +408,13 @@ class AccessibleNewConversationButton(wx.Accessible):
         return (wx.ACC_OK, accessible_shortcut(self, "Ctrl+N", ('chats.ID_CTRL_N',)))
 
 
+class AccessibleConversationFilter(wx.Accessible):
+    """Reports Alt+Shift+F as the keyboard shortcut for the chat filter radio buttons."""
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, accessible_shortcut(self, "Alt+Shift+F", ('chats.ID_FILTER_FOCUS',)))
+
+
 class AccessibleMessagesList(wx.Accessible):
     """
     Custom accessible for the conversation messages ListCtrl.

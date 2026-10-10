@@ -4,6 +4,8 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- Opção "Ocultar números de telefone de remetentes sem nome nas mensagens" em Configurações > Interface do usuário. Quando ativada, as mensagens de pessoas sem nome começam diretamente pelo conteúdo, na lista de mensagens e nos anúncios da conversa aberta, sem um rótulo substituto de remetente. Nomes e números no conteúdo das mensagens são mantidos. Começa desativada.
+
 - Atalhos de teclado personalizáveis: a nova aba Atalhos das Configurações lista todos os atalhos do aplicativo, inclusive o atalho global para mostrar a janela. Selecione um, pressione Alterar e digite a nova combinação, ou desative-o, restaure o padrão ou restaure todos. Os conflitos são avisados antes de aplicar, e as alterações só valem com Aplicar ou OK.
 
 - Mensagens fixadas: um botão em cada conversa lista as mensagens fixadas no WhatsApp, incluindo mensagens antigas. Pressione Enter para ir até uma delas no histórico. Ao abrir a conversa, a quantidade de fixadas é anunciada sem mudar o foco; cada mensagem fixada também tem uma indicação em texto.
@@ -30,7 +32,15 @@ NOVIDADES
 
 - "Dados da mensagem" mostra o que o próprio WhatsApp sabe. Numa mensagem que você enviou, a janela (Alt+Shift+D) agora pergunta ao WhatsApp quando ela foi entregue, lida e reproduzida, então os recibos que chegaram com o WinZapp fechado também aparecem, cada um com data e hora completas. Num grupo, lista quem recebeu e quem leu, pelo nome, como "Lida (2/9): Ana, Bia".
 
+- As informações do chat pessoal agora também mostram o nome de perfil que o contato escolheu, o nome verificado de uma empresa e se a conta é comercial. Um nome que só repete o já exibido é omitido.
+
+- Atalhos para os filtros de conversas: Alt+Shift+F vai para os botões de opção dos filtros de conversas, que agora anunciam esse atalho, e Alt+Shift+A, Alt+Shift+U, Alt+Shift+G e Alt+Shift+I escolhem Tudo, Não lidas, Grupos e Individuais direto da lista de conversas. As opções de listas do WhatsApp e "Gerenciar listas do WhatsApp" agora vêm antes dos filtros de conversas. Todos estão na ajuda de atalhos (F1).
+
+- As informações do chat pessoal ganharam a aba "Grupos em comum", que lista os grupos em que você e o contato estão. Pressione Enter em um grupo para abri-lo. Se o WhatsApp não responder, a aba avisa em vez de ficar vazia.
+
 CORREÇÕES
+
+- Depois que o computador volta da suspensão, as mensagens novas são buscadas de forma confiável: a conversa aberta e as conversas recentes são verificadas de novo mesmo quando a lista de conversas do WhatsApp parece inalterada, e as atualizações de conversas ligadas por um ID de dispositivo vinculado deixam de ser ignoradas
 
 - Menções: uma pessoa mencionada pelo nome junto com @todos mantém seu link nas menções da mensagem, e uma menção a você, na notificação e na prévia da lista de conversas, usa a palavra escolhida em "Como se referir a mim?" em vez de uma palavra fixa
 
@@ -55,6 +65,12 @@ CORREÇÕES
 - Atualização da WPPConnect: a versão anterior é mantida até a nova iniciar e responder, e é restaurada se isso não acontecer. A atualização é recusada antes de parar qualquer coisa quando não há espaço em disco para as duas, e a reinstalação reaproveita o Chrome já baixado.
 
 - O visto por último em uma conversa aberta agora se mantém atualizado. O botão da conversa, o Alt+T e os detalhes do contato mostram as mesmas informações, e uma resposta antiga não pode mais sobrescrever uma atualização mais recente de online ou de visto por último.
+
+- O visto por último em uma conversa aberta agora também consulta o identificador alternativo conhecido do contato quando a primeira resposta ainda está pendente, então o Alt+T e o botão de status deixam de informar indisponibilidade quando os dados existem no outro identificador.
+
+- A recuperação da conexão e a sincronização de mensagens não confundem mais uma sessão ou rodada de sincronização antiga com a atual. Respostas atrasadas da conexão, da lista de conversas ou do histórico de mensagens são descartadas, uma verificação de conexão lenta não é mais confundida com o computador voltando de suspensão, e uma nova sincronização não deixa mais o histórico pendente sem um processo para tratá-lo. Isso evita passagens desnecessárias para "offline" e históricos de mensagens incompletos.
+
+- Marcar uma conversa como lida volta a chegar ao celular quando a conversa é conhecida pelo número de telefone e pelo ID de dispositivo vinculado, e uma leitura que falha é tentada de novo na próxima vez que você abrir a conversa; assim, a conversa não fica mais como não lida no celular depois de lida no WinZapp.
 
 V2.0.0.0
 

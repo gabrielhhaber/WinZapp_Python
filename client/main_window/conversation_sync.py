@@ -10,6 +10,7 @@ import os
 import threading
 import time
 import wx
+from core.message_sync_diagnostics import fetched_page_summary, newest_message_seconds
 from core.sync_lifecycle import (capture_sync_context, sync_context_is_current,
                                  message_response, chat_content_identity)
 from core.message_stars import apply_star_fields, carry_over_stars, stamp_star_snapshot
@@ -35,6 +36,7 @@ from core.remote_reconcile import (
 )
 from core.incremental_sync import (
     chat_message_records as _chat_message_records,
+    message_id as _message_id,
     messages_overlap as _messages_overlap,
     next_incremental_limit as _next_incremental_limit,
 )
@@ -225,6 +227,7 @@ class ConversationSyncMixin:
 
     def sync_chat_messages(self, chat, expected_run_id=None, sync_mode="full",
                            fetched_ids_out=None, outcome_out=None, expected_context=None):
+        fetch_started_at = time.time()
         star_snapshot_started = time.time_ns()
         context = expected_context if expected_context is not None else capture_sync_context(self)
         if not sync_context_is_current(self, context):
@@ -289,6 +292,8 @@ class ConversationSyncMixin:
             except Exception:
                 local_chat_before = None
         local_records_before = _chat_message_records(local_chat_before or {})
+        known_ids_before = {_message_id(msg) for msg in local_records_before}
+        newest_cached_before = newest_message_seconds(local_records_before)
         incremental = sync_mode == "incremental" and bool(local_records_before)
         incremental_window = max(1, int(getattr(self, "_INCREMENTAL_MESSAGE_WINDOW", 50)))
         limit = min(page_size, incremental_window) if incremental else page_size
@@ -699,6 +704,9 @@ class ConversationSyncMixin:
                 matching_messages.append(message)
             all_messages = matching_messages
 
+        # Snapshot the actual response before merging preserved/late cache rows.
+        refresh_summary = fetched_page_summary(
+            all_messages, known_ids_before, newest_cached_before) if api_ok else None
         if fetched_ids_out is not None and api_ok:
             fetched_ids_out.update(
                 (m.get("key") or {}).get("id") for m in all_messages
@@ -1107,10 +1115,15 @@ class ConversationSyncMixin:
         # starts causing the resync loop it was added to help diagnose.
         if message_fetch_satisfied:
             try:
-                self._note_chat_verified_now(remote_jid)
+                self._note_chat_verified_now(remote_jid, started_at=fetch_started_at)
             except Exception as exc:
                 logging.warning("[sync_chat_messages] could not record the "
                                 "verification time for %s: %s", remote_jid, exc)
+
+        if refresh_summary is not None:
+            logging.info("[message-refresh] %s: mode=%s fetched=%d new_to_cache=%d "
+                         "newer_than_cache=%d latest_fetched=%s latest_cached=%s persisted=%s",
+                         remote_jid, sync_mode, *refresh_summary, persist_ok)
 
         # Reports whether this chat's sync FAILED, which neither an empty delta
         # nor a chat_not_found did: the retry for those is carried by

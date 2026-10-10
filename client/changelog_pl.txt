@@ -4,6 +4,8 @@ W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym 
 
 NOWOŚCI
 
+- Opcja "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach" w Ustawienia > Interfejs użytkownika. Po włączeniu wiadomości od osób bez nazwy zaczynają się bezpośrednio od treści na liście wiadomości i w komunikatach otwartego czatu, bez zastępczej etykiety nadawcy. Nazwy i numery w treści wiadomości są zachowane. Domyślnie wyłączona.
+
 - Konfigurowalne skróty klawiszowe: nowa karta Skróty w Ustawieniach wyświetla wszystkie skróty aplikacji, w tym globalny skrót pokazywania okna. Zaznacz skrót, naciśnij Zmień i wpisz nową kombinację albo wyłącz go, przywróć domyślny lub przywróć wszystkie. Konflikty są zgłaszane przed zastosowaniem, a zmiany obowiązują dopiero po wybraniu Zastosuj lub OK.
 
 - Przypięte wiadomości: przycisk w każdym czacie wyświetla wiadomości przypięte w WhatsApp, również te starsze. Naciśnij Enter, aby przejść do wybranej wiadomości w historii. Po otwarciu czatu ogłaszana jest liczba przypiętych wiadomości bez zmiany fokusu; każda przypięta wiadomość ma też oznaczenie tekstowe.
@@ -30,7 +32,15 @@ NOWOŚCI
 
 - „Informacje o wiadomości” pokazuje to, co wie sam WhatsApp. Dla wysłanej przez Ciebie wiadomości okno (Alt+Shift+D) pyta teraz WhatsApp, kiedy została dostarczona, odczytana i odtworzona, więc pojawiają się też potwierdzenia, które przyszły przy zamkniętym WinZapp, każde z pełną datą i godziną. W grupie wyświetla listę osób, które ją odebrały i odczytały, z nazwami, np. „Wyświetlono (2/9): Ana, Bia”.
 
+- Informacje o czacie prywatnym pokazują teraz także nazwę profilu wybraną przez kontakt, zweryfikowaną nazwę firmy i informację, czy to konto firmowe. Nazwa, która tylko powtarza już wyświetloną, jest pomijana.
+
+- Skróty do filtrów czatów: Alt+Shift+F przechodzi do przycisków opcji filtrów czatów, które teraz zapowiadają ten skrót, a Alt+Shift+A, Alt+Shift+U, Alt+Shift+G i Alt+Shift+I wybierają Wszystkie, Nieprzeczytane, Grupy i Osobiste bezpośrednio z listy czatów. Opcje list WhatsApp i „Zarządzaj listami WhatsApp” są teraz przed filtrami czatów. Wszystkie skróty są w pomocy skrótów (F1).
+
+- Informacje o czacie prywatnym mają nową kartę „Wspólne grupy”, która wyświetla grupy, w których jesteście razem z kontaktem. Naciśnij Enter na grupie, aby ją otworzyć. Jeśli WhatsApp nie odpowie, karta poinformuje o tym zamiast pozostać pusta.
+
 POPRAWKI
+
+- Po wybudzeniu komputera z uśpienia nowe wiadomości są pobierane niezawodnie: otwarta rozmowa i ostatnie czaty są sprawdzane ponownie, nawet gdy lista czatów WhatsApp wygląda na niezmienioną, a aktualizacje czatów powiązanych przez identyfikator połączonego urządzenia nie są już pomijane
 
 - Wzmianki: osoba wspomniana z imienia obok @wszyscy zachowuje swój link we wzmiankach wiadomości, a wzmianka o Tobie, w powiadomieniu i w podglądzie na liście czatów, używa słowa wybranego w "Jak mam się do Ciebie zwracać?" zamiast stałego słowa
 
@@ -55,6 +65,12 @@ POPRAWKI
 - Aktualizacja WPPConnect: poprzednia wersja jest zachowywana, dopóki nowa nie uruchomi się i nie zacznie odpowiadać, a jeśli się to nie uda, zostaje przywrócona. Aktualizacja jest odrzucana przed zatrzymaniem czegokolwiek, gdy brakuje miejsca na dysku na obie wersje, a ponowna instalacja korzysta z już pobranej przeglądarki Chrome.
 
 - Informacja o ostatnim widzeniu w otwartym czacie jest teraz stale aktualna. Przycisk czatu, Alt+T i szczegóły kontaktu pokazują te same informacje, a stara odpowiedź nie może już nadpisać nowszej aktualizacji statusu online lub „widziano”.
+
+- Informacja o ostatnim widzeniu w otwartym czacie sprawdza teraz także znany alternatywny identyfikator kontaktu, gdy pierwsza odpowiedź jest nadal oczekująca, więc Alt+T i przycisk statusu nie zgłaszają już braku informacji, gdy dane istnieją pod innym identyfikatorem.
+
+- Odzyskiwanie połączenia i synchronizacja wiadomości nie mylą już starej sesji ani starej rundy synchronizacji z bieżącą. Spóźnione odpowiedzi połączenia, listy czatów i historii wiadomości są odrzucane, wolne sprawdzanie połączenia nie jest już brane za wybudzenie komputera z uśpienia, a nowa synchronizacja nie zostawia już oczekującej historii bez procesu, który się nią zajmie. Dzięki temu unikamy niepotrzebnych przejść do trybu offline i niepełnej historii wiadomości.
+
+- Oznaczenie czatu jako przeczytanego ponownie dociera do telefonu, gdy czat jest znany zarówno po numerze telefonu, jak i po identyfikatorze połączonego urządzenia, a nieudane oznaczenie jest ponawiane przy następnym otwarciu czatu, więc czat nie pozostaje nieprzeczytany w telefonie po przeczytaniu go w WinZapp.
 
 V2.0.0.0
 

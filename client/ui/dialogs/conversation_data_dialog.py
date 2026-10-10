@@ -24,6 +24,8 @@ from datetime import datetime
 import wx
 import wx.adv
 from core import phone_contacts
+from core.contact_identity import contact_identity_lines
+from ui.dialogs.common_groups_tab import CommonGroupsTabMixin
 from ui.accessible import AccessibleSaveAs
 from core.utils import (
     format_number, GROUP_MEDIA_TYPES, GROUP_MEDIA_FILTERS,
@@ -123,7 +125,7 @@ def _fmt_ts(ts, i18n):
         return str(ts)
 
 
-class ConversationDataDialog(wx.Dialog):
+class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
     """
     Shows conversation or group metadata in an accessible modal dialog.
 
@@ -332,6 +334,9 @@ class ConversationDataDialog(wx.Dialog):
         # ("Visão geral", "Mídia"), and a second key with the same text would
         # be one more thing for the locales to drift on.
         self._build_media_tab()
+
+        # Last, so Overview and Media keep the positions people already know.
+        self._build_common_groups_tab()
 
         outer.Add(self._notebook, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
@@ -711,12 +716,20 @@ class ConversationDataDialog(wx.Dialog):
                         pass
                 data = self._mw.get_contact_profile(self._jid)
                 wx.CallAfter(self._populate_personal, data)
+                # After the profile is posted, so a slow answer here never
+                # delays the Overview tab. Never raises (it posts its own
+                # "unavailable" row), so it cannot disturb the lines above.
+                self._load_common_groups()
         except Exception:
             logging.exception("[ConversationDataDialog] _fetch_data failed for %s", self._jid)
             if self._is_group:
                 wx.CallAfter(self._populate_group, {})
             else:
                 wx.CallAfter(self._populate_personal, {})
+                # The common-groups request is the last step of the try block,
+                # so an error anywhere above means it never ran: say so rather
+                # than leaving that tab on "loading".
+                wx.CallAfter(self._populate_common_groups, None)
 
     def _populate_personal(self, data: dict):
         """Fill the personal-chat TextCtrl (called on main thread)."""
@@ -760,6 +773,10 @@ class ConversationDataDialog(wx.Dialog):
         lines.append(f"{i18n.t('conversations')}: {name}")
         if phone:
             lines.append(f"{i18n.t('phone_label')}: {phone}")
+
+        # Fields the /contact/ reply already carries: the name the person chose
+        # for themselves, a business's verified name, and the account type.
+        lines.extend(contact_identity_lines(cdata, name, i18n))
 
         # About/bio text comes from the dedicated profile-status endpoint
         # (exposed as "aboutText"). Never use the top-level "status", which is

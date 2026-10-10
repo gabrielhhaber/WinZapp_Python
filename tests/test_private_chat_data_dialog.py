@@ -74,6 +74,9 @@ class _FakeMainWindow(wx.Frame):
     def resolve_lid_jids_via_api(self, jids):
         return None
 
+    def chat_display_name(self, jid):
+        return "Grupo Y"
+
 
 @pytest.fixture
 def make_dialog(wx_app, monkeypatch):
@@ -111,11 +114,15 @@ class TestThePrivateDialogIsANotebook:
         dialog = make_dialog(PRIVATE_JID)
         assert isinstance(dialog._notebook, wx.Notebook)
 
-    def test_overview_first_media_second(self, make_dialog):
+    def test_overview_first_media_second_common_groups_last(self, make_dialog):
+        """Overview and Media keep the positions people already know; the
+        Groups in common tab was added after them."""
         dialog = make_dialog(PRIVATE_JID)
         i18n = dialog._i18n
         assert _tab_labels(dialog) == [
-            i18n.t("group_overview_tab"), i18n.t("group_media_tab"),
+            i18n.t("group_overview_tab"),
+            i18n.t("group_media_tab"),
+            i18n.t("common_groups_tab"),
         ]
 
     def test_there_is_no_participants_tab(self, make_dialog):
@@ -123,6 +130,38 @@ class TestThePrivateDialogIsANotebook:
         dialog = make_dialog(PRIVATE_JID)
         assert dialog._i18n.t("group_participants_tab") not in _tab_labels(dialog)
         assert not hasattr(dialog, "_part_list")
+
+
+class TestTheCommonGroupsTab:
+    def test_the_list_lives_on_its_own_page(self, make_dialog):
+        dialog = make_dialog(PRIVATE_JID)
+        page = dialog._common_groups_list.GetParent()
+        assert dialog._notebook.FindPage(page) == 2
+
+    def test_it_opens_on_a_loading_row_that_does_nothing(self, make_dialog):
+        dialog = make_dialog(PRIVATE_JID)
+        assert dialog._common_groups_list.GetItemCount() == 1
+        assert dialog._common_groups_list.GetItemText(0) == dialog._i18n.t("loading")
+        assert dialog._common_group_jids == []
+
+    def test_an_answer_fills_the_list(self, make_dialog):
+        dialog = make_dialog(PRIVATE_JID)
+        dialog._populate_common_groups([GROUP_JID])
+        assert dialog._common_groups_list.GetItemCount() == 1
+        assert dialog._common_groups_list.GetItemText(0) == "Grupo Y"
+        assert dialog._common_group_jids == [GROUP_JID]
+
+    def test_no_answer_is_said_plainly(self, make_dialog):
+        dialog = make_dialog(PRIVATE_JID)
+        dialog._populate_common_groups(None)
+        assert dialog._common_groups_list.GetItemText(0) == dialog._i18n.t(
+            "common_groups_unavailable"
+        )
+
+    def test_a_group_dialog_has_no_such_tab(self, make_dialog):
+        dialog = make_dialog(GROUP_JID)
+        assert not hasattr(dialog, "_common_groups_list")
+        assert dialog._i18n.t("common_groups_tab") not in _tab_labels(dialog)
 
 
 class TestTheGroupDialogIsUnchanged:

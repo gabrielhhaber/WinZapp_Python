@@ -65,6 +65,7 @@ from ui.accessible import (
     AccessibleSearchNextResult,
     AccessibleSearchPrevResult,
     AccessibleNewConversationButton,
+    AccessibleConversationFilter,
     AccessibleMessagesListControl,
     AccessibleReadMoreButton,
     AccessibleReturnCallButton,
@@ -561,6 +562,8 @@ class ConversationsPanel(
         self._new_conv_btn.Bind(wx.EVT_BUTTON, self._on_new_conversation)
         outer_sizer.Add(self._new_conv_btn, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 5)
 
+        self._build_wa_list_controls(outer_sizer)
+
         # ── Conversation filter tabs ─────────────────────────────────────────
         # Tracks the active filter key: 'all' | 'unread' | 'groups' | 'individual'
         self._conv_filter = 'all'
@@ -577,9 +580,8 @@ class ConversationsPanel(
             style=wx.RA_SPECIFY_ROWS,
         )
         self._filter_radio.Bind(wx.EVT_RADIOBOX, self._on_filter_changed)
+        self._filter_radio.SetAccessible(AccessibleConversationFilter())
         outer_sizer.Add(self._filter_radio, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-
-        self._build_wa_list_controls(outer_sizer)
 
         # ── Conversations list ──────────────────────────────────────────────
         self.conversations_label = wx.StaticText(self, label=i18n.t("conversations"))

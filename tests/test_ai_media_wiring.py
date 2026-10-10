@@ -63,7 +63,8 @@ def test_the_menu_item_and_the_accelerator_end_in_the_same_handler():
     assert '\\tCtrl+Shift+I' in menu
     assert accelerators.count("self.ID_AI_ACTION") == 3
     # Ctrl+Shift+I: free before this feature (starring is Ctrl+Shift+O); keep it the only binding of "I".
-    assert accelerators.count('ord("I")') == 1 and 'ord("Y")' not in accelerators
+    # (The chat list's Alt+Shift+I "individual chats" filter is the other `ord("I")`.)
+    assert accelerators.count('(CS,               ord("I")') == 1 and 'ord("Y")' not in accelerators
     assert "self._on_ai_action" in accelerators
 
 

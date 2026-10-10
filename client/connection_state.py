@@ -267,6 +267,9 @@ def reset_state_for_resume(obj, now: float) -> None:
     for attr in _RESET_FALSE_ATTRS:
         setattr(obj, attr, False)
     obj._wa_startup_time = now
+    # Chat-list metadata can stay stale across sleep even after reconnection.
+    # Only a message query started after this wake verifies a warm chat.
+    obj._resume_message_sync_since = now
     obj._last_strike_ts = 0.0
     # When the current run of offline-probe strikes began, i.e. the clock
     # probe_strike_budget()'s ceiling is measured against. It has to be zeroed

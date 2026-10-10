@@ -27,6 +27,7 @@ from core.incremental_sync import (
     select_stale_rechecks as _select_stale_rechecks,
 )
 from core.api_client import api_post
+from core.resume_message_sync import promote_resume_rechecks
 from ui.dialogs.checkbox_confirm import confirm_with_checkbox
 from app_paths import data_path
 from core.conversation_resync import (
@@ -2301,7 +2302,7 @@ class SyncMixin:
     _STALE_RECHECK_AFTER = 60 * 60
     _STALE_RECHECK_PER_ROUND = 5
 
-    def _note_chat_verified_now(self, remote_jid: str) -> None:
+    def _note_chat_verified_now(self, remote_jid: str, started_at=None) -> None:
         """Record that get-messages actually ran for this chat, just now.
 
         Separate from _note_verified_activity(), which records *which activity
@@ -2317,7 +2318,9 @@ class SyncMixin:
         jid = self._normalize_jid(remote_jid or "")
         if not jid:
             return
-        seen[jid] = int(time.time())
+        # A request frozen across suspend must not satisfy the wake refresh.
+        checked = time.time() if started_at is None else started_at
+        seen[jid] = max(float(seen.get(jid, 0) or 0), checked)
         self._chat_verified_at_dirty = True
 
     def _persist_chat_verified_at(self) -> None:
@@ -2411,6 +2414,9 @@ class SyncMixin:
         # chat whose metadata stops moving is skipped on every round forever —
         # see _STALE_RECHECK_AFTER and issue #181. Never on a forced full
         # sync, where every chat is already a target.
+        if not force_full:
+            skipped_chats = promote_resume_rechecks(
+                self, skipped_chats, incremental_targets, reasons)
         skipped = len(skipped_chats)
         if not force_full and skipped_chats:
             verified_at = getattr(self, "_chat_verified_at", None)

@@ -11,6 +11,9 @@ import time
 import wx
 from core.api_client import api_post
 from core.bulk_read_state import run_bulk_read_state
+from core.read_state import (
+    ReadStateConfirmation, ReadStateRequest, read_state_activity, read_state_targets,
+)
 import requests
 
 
@@ -102,7 +105,13 @@ class ReadStateMixin:
             return
         if not hasattr(self, "_server_unread"):
             self._server_unread = {}
-        self._server_unread[self._normalize_jid(remote_jid)] = count
+        normalized = self._normalize_jid(remote_jid)
+        self._server_unread[normalized] = count
+        if not hasattr(self, "_server_unread_versions"):
+            self._server_unread_versions = {}
+        self._server_unread_versions[normalized] = (
+            self._server_unread_versions.get(normalized, 0) + 1
+        )
 
     def _pop_server_unread(self, remote_jid: str) -> int:
         """The server's last reported unread count for a chat, forgotten as the
@@ -120,20 +129,43 @@ class ReadStateMixin:
         ``batched=True`` is for mark_conversations_as_read(): the local part
         runs as usual, but the DB persist and the /send-seen are left to the
         caller, and the remote job is returned as
-        ``(remote_jid, previous_unread, read_timestamp)`` — None when nothing
-        needs sending.
+        an immutable ReadStateRequest — None when nothing needs sending.
         """
+        if not wx.IsMainThread():
+            # Several open/send entry points still call this from a worker.
+            # Own the optimistic state and its callbacks on the wx thread.
+            wx.CallAfter(self.mark_conversation_as_read, remote_jid, force, batched)
+            return None
         chat = self.chats.get(remote_jid)
         if chat is None:
             return
 
+        normalized = self._normalize_jid(remote_jid)
+        read_timestamp = int(chat.get("t", 0) or 0)
+        activity = read_state_activity(chat)
+        new_arrivals = getattr(self, "_new_since_read", {}).get(remote_jid, 0)
         unread = int(chat.get("unreadCount") or 0)
         # The local badge is not the only thing a read has to clear: WhatsApp
         # keeps its own count, and when the two disagree (a guard here held
         # the badge down, or it was zeroed locally for a reason the server
         # never heard of) a read gated on the local number alone never
         # reaches the phone, which then counts the chat unread for good.
+        has_server_report = normalized in getattr(self, "_server_unread", {})
+        server_version = getattr(self, "_server_unread_versions", {}).get(normalized, 0)
         server_unread = self._pop_server_unread(remote_jid)
+        if not hasattr(self, "_read_state_requests"):
+            self._read_state_requests = {}
+        previous = self._read_state_requests.get(normalized)
+        if previous is not None and previous.chat is chat:
+            # A second read can supersede an in-flight one before it has
+            # confirmed anything. Keep the first read's rollback evidence.
+            if (previous.read_timestamp == read_timestamp
+                    and previous.confirmation.activity == activity and not new_arrivals
+                    and not (has_server_report and server_unread > 0
+                             and previous.server_version != server_version)):
+                unread = max(unread, previous.previous_unread)
+            if not has_server_report and previous.server_version == server_version:
+                server_unread = previous.server_unread
         chat["unreadCount"] = 0
         # Remember this chat's last-activity timestamp as of the moment we
         # cleared it locally — see the periodic list-chats merge in
@@ -142,7 +174,7 @@ class ReadStateMixin:
         # simply not having caught up with this mark-as-read yet.
         if not hasattr(self, "_locally_read_at"):
             self._locally_read_at = {}
-        self._locally_read_at[remote_jid] = int(chat.get("t", 0) or 0)
+        self._locally_read_at[remote_jid] = read_timestamp
         # Persisted (not just in-memory): the stale server-side unread count
         # this guard exists to reject outlives the process, so the guard has
         # to as well — see prepare_sync()'s "8. locally_read_at" block.
@@ -165,25 +197,92 @@ class ReadStateMixin:
         wx.CallAfter(self._refresh_chat_row_in_list, self._normalize_jid(remote_jid))
         wx.CallAfter(self._schedule_set_chats)
 
-        if unread == 0 and not server_unread and not force:
+        if not hasattr(self, "_read_state_confirmations"):
+            self._read_state_confirmations = {}
+        confirmation = self._read_state_confirmations.get(normalized)
+        retry_needed = (confirmation is not None and confirmation.chat is chat
+                        and confirmation.retry_needed)
+        if unread == 0 and not server_unread and not force and not retry_needed:
             return None
-
+        if (confirmation is None or confirmation.chat is not chat
+                or confirmation.timestamp != read_timestamp or confirmation.confirmed
+                or confirmation.activity != activity
+                or new_arrivals > 0
+                or (server_unread > 0 and confirmation.server_version != server_version)):
+            confirmation = ReadStateConfirmation(chat, read_timestamp, activity, server_version)
+            self._read_state_confirmations[normalized] = confirmation
+        job = ReadStateRequest(
+            remote_jid, chat, unread, read_timestamp, server_unread,
+            server_version, confirmation,
+        )
+        self._read_state_requests[normalized] = job
         if batched:
-            # Taken now, not at failure time: this is the value the
-            # _locally_read_at marker above was set to, which is what the
-            # rollback compares against.
-            return (remote_jid, unread, int(chat.get("t", 0) or 0))
+            return job
 
         self._sync_conversation_read_state(
             remote_jid,
             unread=False,
             on_failure=lambda: wx.CallAfter(
-                self._restore_unread_after_send_seen_failure,
-                remote_jid,
-                unread,
-                int(chat.get("t", 0) or 0),
+                self._finish_conversation_read_state, job, True,
+            ),
+            on_success=lambda: wx.CallAfter(
+                self._finish_conversation_read_state, job, False,
             ),
         )
+
+    def _finish_conversation_read_state(self, job, failed, batched=False):
+        """Keep any same-activity confirmation; reject superseded failures."""
+        normalized = self._normalize_jid(job.remote_jid)
+        pending = getattr(self, "_read_state_requests", {})
+        confirmation = job.confirmation
+        if (self.chats.get(job.remote_jid) is not job.chat
+                or getattr(self, "_read_state_confirmations", {}).get(normalized) is not confirmation):
+            return False
+        if not failed:
+            confirmation.confirmed = True
+            confirmation.retry_needed = False
+            current = pending.get(normalized)
+            if current is not None and current.confirmation is confirmation:
+                pending.pop(normalized)
+            if getattr(self, "_server_unread_versions", {}).get(normalized, 0) == job.server_version:
+                getattr(self, "_server_unread", {}).pop(normalized, None)
+            rollback = confirmation.rollback
+            if (rollback is not None
+                    and read_state_activity(job.chat) == confirmation.activity
+                    and int(job.chat.get("t", 0) or 0) == job.read_timestamp
+                    and int(job.chat.get("unreadCount") or 0) == rollback.previous_unread
+                    and not getattr(self, "_new_since_read", {}).get(job.remote_jid, 0)):
+                # The other overlapping request failed first and rolled back.
+                # A positive answer still proves this exact activity was read.
+                job.chat["unreadCount"] = 0
+                self._locally_read_at[job.remote_jid] = job.read_timestamp
+                self._anchor_unread_to_local_read(job.remote_jid)
+                self._schedule_save(dirty_jid=job.remote_jid)
+                self._persist_locally_read_at()
+                self._refresh_chat_row_in_list(normalized)
+                self._schedule_set_chats()
+            confirmation.rollback = None
+            return False
+        if pending.get(normalized) is not job or confirmation.confirmed:
+            return False
+        pending.pop(normalized)
+        confirmation.retry_needed = True
+        if (job.server_unread
+                and getattr(self, "_server_unread_versions", {}).get(normalized, 0) == job.server_version):
+            if not hasattr(self, "_server_unread"):
+                self._server_unread = {}
+            # Retry evidence survives even if newer activity prevents a badge
+            # rollback. A newer report (including a consumed zero) wins.
+            self._server_unread.setdefault(normalized, job.server_unread)
+        if read_state_activity(job.chat) != confirmation.activity:
+            return False
+        restored = self._restore_unread_after_send_seen_failure(
+            job.remote_jid, job.previous_unread, job.read_timestamp,
+            batched=batched,
+        )
+        if restored:
+            confirmation.rollback = job
+        return restored
 
     def mark_conversations_as_read(self, remote_jids, force: bool = False) -> int:
         """Mark many conversations as read: locally at once, remotely paced.
@@ -200,7 +299,7 @@ class ReadStateMixin:
         for jid in remote_jids:
             job = self.mark_conversation_as_read(jid, force=force, batched=True)
             if job is not None:
-                jobs[job[0]] = job
+                jobs[job.remote_jid] = job
         self._persist_locally_read_at()
         if not jobs:
             return 0
@@ -215,8 +314,12 @@ class ReadStateMixin:
                 "[mark_read_bulk] Done: %d confirmed, %d failed.",
                 len(jobs) - len(failed), len(failed),
             )
-            if failed:
-                wx.CallAfter(self._on_bulk_read_failed, [jobs[jid] for jid in failed])
+            def _finish():
+                for jid in jobs.keys() - set(failed):
+                    self._finish_conversation_read_state(jobs[jid], False)
+                if failed:
+                    self._on_bulk_read_failed([jobs[jid] for jid in failed])
+            wx.CallAfter(_finish)
 
         threading.Thread(target=_worker, daemon=True).start()
         return len(jobs)
@@ -228,10 +331,18 @@ class ReadStateMixin:
         a failed run of hundreds froze the main thread and flooded the screen
         reader right as the failure was being announced.
         """
+        # Superseded jobs cannot undo state or announce a stale failure. A
+        # current failure still counts when only retry evidence is restored.
+        failed_jobs = [job for job in failed_jobs
+                       if getattr(self, "_read_state_requests", {}).get(
+                           self._normalize_jid(job.remote_jid)) is job
+                       and self.chats.get(job.remote_jid) is job.chat]
+        if not failed_jobs:
+            return
         restored = False
-        for remote_jid, previous_unread, read_timestamp in failed_jobs:
-            restored |= bool(self._restore_unread_after_send_seen_failure(
-                remote_jid, previous_unread, read_timestamp, batched=True
+        for job in failed_jobs:
+            restored |= bool(self._finish_conversation_read_state(
+                job, True, batched=True
             ))
         if restored:
             self._persist_locally_read_at()
@@ -243,7 +354,9 @@ class ReadStateMixin:
             interrupt=False,
         )
 
-    def _sync_conversation_read_state(self, remote_jid: str, unread: bool, on_failure):
+    def _sync_conversation_read_state(
+        self, remote_jid: str, unread: bool, on_failure, on_success=None
+    ):
         """Apply a read-state change remotely in the background."""
         def _do_api():
             # Guarded here, not only inside the sender: an exception escaping
@@ -256,23 +369,18 @@ class ReadStateMixin:
                 ok = False
             if not ok:
                 on_failure()
+            elif on_success is not None:
+                on_success()
         threading.Thread(target=_do_api, daemon=True).start()
 
     def _send_read_state_blocking(
         self, remote_jid: str, unread: bool, attempts: int = 3
     ) -> bool:
         """POST /send-seen, trying the known JID aliases; True once confirmed."""
-        # Prefer @lid JID for WPPConnect if mapped
-        target_phone = remote_jid
-        if not target_phone.endswith("@lid"):
-            alt_lid = getattr(self, "_phone_to_lid", {}).get(self._normalize_jid(remote_jid), "")
-            if alt_lid:
-                target_phone = alt_lid
-
-        if target_phone.endswith("@s.whatsapp.net"):
-            target_phone = target_phone.rsplit("@", 1)[0] + "@c.us"
-        
-        is_lid_target = target_phone.endswith("@lid")
+        targets = read_state_targets(
+            remote_jid, getattr(self, "_phone_to_lid", {}),
+            getattr(self, "_lid_to_phone", {}),
+        )
 
         def _send_seen(phone: str, is_lid: bool) -> "requests.Response | None":
             url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/send-seen"
@@ -287,22 +395,6 @@ class ReadStateMixin:
             return api_post(url, json=payload, headers=headers, timeout=10)
 
         try:
-            fallback_phone = remote_jid
-            if fallback_phone.endswith("@lid"):
-                fallback_phone = getattr(self, "_lid_to_phone", {}).get(
-                    fallback_phone, fallback_phone
-                )
-            else:
-                fallback_phone = getattr(self, "_phone_to_lid", {}).get(
-                    self._normalize_jid(fallback_phone), fallback_phone
-                )
-            if fallback_phone.endswith("@s.whatsapp.net"):
-                fallback_phone = fallback_phone.rsplit("@", 1)[0] + "@c.us"
-
-            targets = [(target_phone, is_lid_target)]
-            if fallback_phone != target_phone:
-                targets.append((fallback_phone, fallback_phone.endswith("@lid")))
-
             for attempt in range(attempts):
                 for phone, is_lid in targets:
                     try:
@@ -375,6 +467,8 @@ class ReadStateMixin:
     def mark_conversation_as_unread(self, remote_jid: str):
         chat = self.chats.get(remote_jid)
         if chat is not None:
+            getattr(self, "_read_state_requests", {}).pop(self._normalize_jid(remote_jid), None)
+            getattr(self, "_read_state_confirmations", {}).pop(self._normalize_jid(remote_jid), None)
             previous_unread = int(chat.get("unreadCount") or 0)
             timestamp = int(chat.get("t", 0) or 0)
             chat["unreadCount"] = 1
