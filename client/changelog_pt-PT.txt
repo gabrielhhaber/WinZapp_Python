@@ -80,6 +80,8 @@ CORREÇÕES
 
 - O WinZapp passa a fechar corretamente, em vez de deixar uma janela que nunca se liga, quando a janela "Ligar ao WinZapp" é fechada sem emparelhar depois de a janela principal abrir no arranque, ou quando o token da sessão está em falta nesse momento. No segundo caso, a mensagem "Não foi possível recuperar o token do utilizador." continua a aparecer antes. A janela principal ficava aberta, sem ligação ao WhatsApp e sem qualquer aviso.
 
+- Quando uma atualização ou a transferência do Node era cancelada no mesmo instante em que terminava, o WinZapp podia mostrar o erro "Attempt to exit a non-running event loop". Agora as conclusões tardias são ignoradas.
+
 V2.0.0.0
 
 A grande novidade desta versão são as chamadas: agora é possível fazer, atender e recusar chamadas de voz e de vídeo no próprio WinZapp, sem pegar no telemóvel, com uma janela de chamada acessível, atalhos de teclado, definições de áudio próprias e o histórico no novo separador Chamadas. Chegaram também as conversas trancadas, a pesquisa nas conversas arquivadas, os idiomas turco e romeno e várias melhorias de utilização, além de correções em situações em que o WinZapp pedia para emparelhar de novo sem necessidade. Por baixo, o código do programa passou por uma grande reorganização: não muda nada na utilização, mas torna o WinZapp mais fácil de manter e de corrigir daqui para a frente.

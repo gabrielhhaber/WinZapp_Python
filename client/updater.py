@@ -32,6 +32,7 @@ from core.wpp_runtime import homologated_wpp_tag
 from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
 from update_background import BackgroundDownloadMixin, background_downloads_enabled
 from update_package import discard_package, download_update_package
+from ui.modal_utils import end_modal_if_running
 from version import __version__
 
 
@@ -895,7 +896,7 @@ class UpdateProgressDialog(wx.Dialog):
 
     def _on_cancel(self, event):
         self._cancelled = True
-        self.EndModal(wx.ID_CANCEL)
+        end_modal_if_running(self, wx.ID_CANCEL)
 
     def run(self):
         """Start the download thread and show the dialog modally."""
@@ -924,7 +925,7 @@ class UpdateProgressDialog(wx.Dialog):
                     return
                 if package.error:
                     self._error_msg = package.error
-                    wx.CallAfter(self.EndModal, wx.ID_ABORT)
+                    wx.CallAfter(end_modal_if_running, self, wx.ID_ABORT)
                     return
                 extract_dir = package.extract_dir
 
@@ -952,7 +953,7 @@ class UpdateProgressDialog(wx.Dialog):
                 # Same lie the declined-UAC path used to tell; see the
                 # ShellExecuteW comment above.
                 self._install_ok = False
-                wx.CallAfter(self.EndModal, wx.ID_OK)
+                wx.CallAfter(end_modal_if_running, self, wx.ID_OK)
                 return
 
             install_dir = _outer_exe_dir()
@@ -970,7 +971,7 @@ class UpdateProgressDialog(wx.Dialog):
             update_token = self._claim_install_slot()
             if update_token is None:
                 self._error_msg = self._main_window.i18n.t("update_other_accounts_running")
-                wx.CallAfter(self.EndModal, wx.ID_ABORT)
+                wx.CallAfter(end_modal_if_running, self, wx.ID_ABORT)
                 return
 
             logging.info("Auto-updater: Launching batch installer from %s (PID %d, also waiting on %s)",
@@ -981,18 +982,18 @@ class UpdateProgressDialog(wx.Dialog):
             if not launched:
                 self._end_install_slot(update_token)
                 self._error_msg = self._main_window.i18n.t("update_uac_declined")
-                wx.CallAfter(self.EndModal, wx.ID_ABORT)
+                wx.CallAfter(end_modal_if_running, self, wx.ID_ABORT)
                 return
             self._install_ok = True
             installer_handed_off = True
-            wx.CallAfter(self.EndModal, wx.ID_OK)
+            wx.CallAfter(end_modal_if_running, self, wx.ID_OK)
 
         except Exception as exc:
             logging.exception("Auto-updater: Exception during update installation")
             if update_token and not installer_handed_off:
                 self._end_install_slot(update_token)
             self._error_msg = str(exc)
-            wx.CallAfter(self.EndModal, wx.ID_ABORT)
+            wx.CallAfter(end_modal_if_running, self, wx.ID_ABORT)
 
 
     # ── Multi-account coordination ───────────────────────────────────────────
