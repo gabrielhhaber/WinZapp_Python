@@ -152,6 +152,12 @@ The `mattpocock-skills` plugin provides `/grill-with-docs` → `/to-spec` →
   then mark it ready for review or merge it. This applies to every developer
   and every Claude session, so nobody merges a PR while its review is still
   running.
+- **Changelog entries missing from a PR you are merging: open a second PR.**
+  When a PR is otherwise approved but its changelog entry is absent or wrong
+  (outside the unreleased version's list, or not in every locale), recommend
+  merging it as is and adding the entry in a separate follow-up PR from
+  `main`, so a fork's branch is not edited. The entry goes in the unreleased
+  version, as an item of the list, in every `client/changelog_<locale>.txt`.
 - **Always check a PR's CI result; never wait on it blindly.** After every push read the check runs on the current head. If a PR has a merge conflict or no checks started, fix that now; if CI failed, read the logs and keep working until it is green. A PR event may never arrive (conflicts and drafts skip CI), so a thread that ends its turn "waiting for CI" must have confirmed first that checks are actually running.
 - **Clean up your own branches when the work ends.** A thread works on its
   own branch (`claude/...`, a worktree branch) and often opens the PR from a
