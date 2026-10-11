@@ -158,6 +158,16 @@ The `mattpocock-skills` plugin provides `/grill-with-docs` → `/to-spec` →
   merging it as is and adding the entry in a separate follow-up PR from
   `main`, so a fork's branch is not edited. The entry goes in the unreleased
   version, as an item of the list, in every `client/changelog_<locale>.txt`.
+- **A PR from a fork needs changes: never push to the author's fork.** The
+  session's git proxy only serves this repository, so a push to a fork is
+  refused and the thread stalls until the maintainer steps in. Instead:
+  create a branch in this repository with the same commits as the fork's PR,
+  make the corrections there, and open a new PR from it (a draft, like every
+  PR) that credits and thanks the original author and links the old PR. Run
+  the reviewer on the new PR and merge it once it is approved and CI is
+  green. Then close the old PR with a comment saying it was moved to the new
+  one, and thank the author again. Do this as soon as the corrections are
+  ready, without waiting to be asked or to be authorised for a push.
 - **Always check a PR's CI result; never wait on it blindly.** After every push read the check runs on the current head. If a PR has a merge conflict or no checks started, fix that now; if CI failed, read the logs and keep working until it is green. A PR event may never arrive (conflicts and drafts skip CI), so a thread that ends its turn "waiting for CI" must have confirmed first that checks are actually running.
 - **Clean up your own branches when the work ends.** A thread works on its
   own branch (`claude/...`, a worktree branch) and often opens the PR from a
