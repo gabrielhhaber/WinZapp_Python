@@ -14,7 +14,7 @@
       "Bash(git branch:*)",
       "mcp__github__merge_pull_request",
       "mcp__github__update_pull_request",
-      "Bash(git push https://github.com/*:*)"
+      "Bash(git push https://github.com/gabrielhhaber/WinZapp_Python*:*)"
     ]
   },
   "enabledPlugins": {
