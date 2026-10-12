@@ -11,6 +11,9 @@ source inspection rather than by driving live wx widgets.
 """
 
 import inspect
+from types import SimpleNamespace
+from unittest.mock import Mock
+import pytest
 
 from ui.dialogs.conversation_data_dialog import ConversationDataDialog
 
@@ -68,59 +71,53 @@ class TestParticipantContextMenu:
             ConversationDataDialog._on_remove_member,
             ConversationDataDialog._on_promote_member,
             ConversationDataDialog._on_demote_member,
-            ConversationDataDialog._on_edit_group_name,
-            ConversationDataDialog._on_edit_group_description,
         ):
             src = inspect.getsource(fn)
             assert "_user_is_admin" in src, f"{fn.__name__} does not check admin status"
             assert "group_action_no_permission" in src, f"{fn.__name__} has no permission-error path"
 
 
-class TestAddMembersButtonOnOverviewTabIsNotAdminGated:
-    """Reported live: the Overview tab's own "Add member" button was
-    disabled at construction and only re-enabled inside the
-    `if self._user_is_admin:` block, right alongside the genuinely
-    admin-only edit-name/edit-description buttons — making it unusable for
-    every non-admin member, even though adding members is a normal-member
-    action in WhatsApp by default (the server enforces the real
-    restriction if the group's own settings actually require admin)."""
+class TestGroupPermissionRefresh:
+    @pytest.mark.parametrize('identity,admin,restrict,mode,edit,add', [
+        ('111@c.us',False,False,'all_member_add',True,True),
+        ('111@c.us',False,True,'admin_add',False,False),
+        ('111@c.us',True,True,'admin_add',True,True),
+        ('',False,False,'all_member_add',False,False),
+    ])
+    def test_both_tabs_follow_permissions_and_unknown_identity_is_not_admin(self,identity,admin,restrict,mode,edit,add):
+        part=Mock(); part.GetItemCount.return_value=0
+        stub=SimpleNamespace(_i18n=SimpleNamespace(t=lambda key:key),_name='Group',
+            _overview_ctrl=Mock(),_part_list=part,_apply_subject_to_title=Mock(),
+            _participant_row=lambda jid,flag:('Member','','Member',jid),
+            _mw=SimpleNamespace(my_jid=identity,my_lid='',_phone_digits_equivalent=lambda a,b:a==b),
+            _invitation_btn=Mock(),_add_members_btn=Mock(),_add_members_btn_overview=Mock(),_edit_name_btn=Mock(),_edit_desc_btn=Mock())
+        # Refresh twice: the second response must revoke previously shown rights.
+        for flag,restriction,member_mode in [(True,False,'all_member_add'),(admin,restrict,mode)]:
+            ConversationDataDialog._populate_group_unsafe(stub,{'participants':[{'id':'111@c.us','isAdmin':flag}],
+                'restrict':restriction,'memberAddMode':member_mode})
+        assert stub._user_is_admin is (admin and bool(identity))
+        stub._invitation_btn.Enable.assert_called_with(True)
+        stub._add_members_btn.Enable.assert_called_with(add)
+        stub._add_members_btn_overview.Enable.assert_called_with(add)
+        stub._edit_name_btn.Show.assert_called_with(edit)
+        stub._edit_desc_btn.Show.assert_called_with(edit)
 
-    def test_overview_button_is_not_disabled_at_construction(self):
-        src = inspect.getsource(ConversationDataDialog._build_group_ui)
-        assert "self._add_members_btn_overview.Disable()" not in src
-
-    def test_overview_button_is_not_inside_the_admin_gate(self):
-        populate_src = inspect.getsource(ConversationDataDialog._populate_group_unsafe)
-        gate_start = populate_src.index("if self._user_is_admin:")
-        gate_end = populate_src.index("else:", gate_start)
-        gated_block = populate_src[gate_start:gate_end]
-        assert "_add_members_btn_overview" not in gated_block
-
-    def test_participants_tab_button_is_still_admin_gated(self):
-        """Sanity check the other Add button's existing admin gating was
-        left untouched by this fix."""
-        build_src = inspect.getsource(ConversationDataDialog._build_group_ui)
-        assert "self._add_members_btn.Disable()" in build_src
-
-        populate_src = inspect.getsource(ConversationDataDialog._populate_group_unsafe)
-        gate_start = populate_src.index("if self._user_is_admin:")
-        gate_end = populate_src.index("else:", gate_start)
-        gated_block = populate_src[gate_start:gate_end]
-        assert "self._add_members_btn.Enable()" in gated_block
+    @pytest.mark.parametrize('handler',[ConversationDataDialog._on_edit_group_name,
+                                       ConversationDataDialog._on_edit_group_description])
+    def test_edit_handler_uses_confirmed_edit_permission(self,handler):
+        stub=SimpleNamespace(_user_is_admin=True,_user_can_edit_group=False,
+            _show_group_action_error=Mock(),_i18n=SimpleNamespace(t=lambda key:key),_prompt_text_edit=Mock())
+        handler(stub,None)
+        stub._show_group_action_error.assert_called_once_with('group_action_no_permission')
+        stub._prompt_text_edit.assert_not_called()
 
 
-class TestAdminOnlyEditButtons:
-    def test_buttons_start_hidden_and_are_shown_only_for_admins(self):
+class TestPermissionAwareEditButtons:
+    def test_buttons_start_hidden_until_permissions_arrive(self):
         build_src = inspect.getsource(ConversationDataDialog._build_group_ui)
         assert "_edit_name_btn" in build_src and "_edit_desc_btn" in build_src
         assert "_edit_name_btn.Hide()" in build_src
         assert "_edit_desc_btn.Hide()" in build_src
-
-        populate_src = inspect.getsource(ConversationDataDialog._populate_group_unsafe)
-        assert "_edit_name_btn.Show()" in populate_src
-        assert "_edit_desc_btn.Show()" in populate_src
-        assert "_edit_name_btn.Hide()" in populate_src
-        assert "_edit_desc_btn.Hide()" in populate_src
 
     def test_edit_dialog_prefills_the_current_value(self):
         name_src = inspect.getsource(ConversationDataDialog._on_edit_group_name)

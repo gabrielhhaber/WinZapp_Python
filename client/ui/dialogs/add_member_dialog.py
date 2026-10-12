@@ -248,7 +248,7 @@ class AddMemberDialog(wx.Dialog):
         i18n = self._i18n
         if ok:
             wx.MessageBox(
-                i18n.t("add_member_success"),
+                err or i18n.t("add_member_success"),
                 i18n.t("add_member_title"),
                 wx.OK | wx.ICON_INFORMATION,
                 self,
@@ -367,7 +367,7 @@ class SelectGroupDialog(wx.Dialog):
         i18n = self._i18n
         if ok:
             wx.MessageBox(
-                i18n.t("add_member_success"),
+                err or i18n.t("add_member_success"),
                 i18n.t("select_group_title"),
                 wx.OK | wx.ICON_INFORMATION,
                 self,

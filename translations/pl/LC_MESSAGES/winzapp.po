@@ -409,7 +409,7 @@ msgctxt "add_member_contacts_list_label"
 msgid "Contact list"
 msgstr "Lista kontaktów"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/groups.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "add_member_could_not_add"
 msgid "{names} could not be added to the group."
@@ -451,7 +451,7 @@ msgctxt "add_member_phone_number_label"
 msgid "Type a phone number"
 msgstr "Wpisz numer telefonu"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/groups.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "add_member_privacy_invite_sent"
 msgid ""
@@ -3905,6 +3905,24 @@ msgctxt "group_contacts_label"
 msgid "&Participants"
 msgstr "&Członkowie"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_group.py
+msgctxt "group_create_members_unconfirmed"
+msgid ""
+"The group was created, but membership was not confirmed for every selected "
+"contact. Check the participant list."
+msgstr ""
+"Grupa została utworzona, ale nie potwierdzono członkostwa wszystkich "
+"wybranych kontaktów. Sprawdź listę uczestników."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/groups.py
+msgctxt "group_create_unconfirmed"
+msgid ""
+"Group creation was not confirmed. Check your group list before trying again "
+"to avoid creating a duplicate."
+msgstr ""
+"Nie potwierdzono utworzenia grupy. Przed ponowną próbą sprawdź listę grup, "
+"aby uniknąć duplikatu."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/archived_panel.py
 #: client/ui/conversation_panel/chat_menu.py
@@ -3923,6 +3941,101 @@ msgstr "Opis grupy"
 msgctxt "group_extra_number_label"
 msgid "E&xtra number (not in contacts):"
 msgstr "&Dodatkowy numer (spoza kontaktów):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_copied"
+msgid "Invitation link copied."
+msgstr "Skopiowano link zaproszenia."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_link"
+msgid "Invitation link"
+msgstr "Link zaproszenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_png"
+msgid "PNG images (*.png)|*.png"
+msgstr "Obrazy PNG (*.png)|*.png"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_qr"
+msgid "QR code for the invitation link"
+msgstr "Kod QR linku zaproszenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_ready"
+msgid ""
+"Invitation link and QR code are ready. Sharing them may let others join or "
+"request approval."
+msgstr ""
+"Link zaproszenia i kod QR są gotowe. Udostępnienie ich może umożliwić "
+"dołączenie lub wysłanie prośby o zatwierdzenie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_refresh"
+msgid "Refresh"
+msgstr "Odśwież"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_reset"
+msgid "Reset invitation link..."
+msgstr "Zresetuj link zaproszenia..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_reset_confirm"
+msgid ""
+"Reset the invitation link? All previously shared invitation links and QR "
+"codes for this group will stop working."
+msgstr ""
+"Zresetować link zaproszenia? Wszystkie wcześniej udostępnione linki "
+"zaproszeń i kody QR tej grupy przestaną działać."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_reset_unconfirmed"
+msgid ""
+"Reset was not confirmed. The old link and QR code may already be invalid. "
+"Refresh to retrieve the current invitation."
+msgstr ""
+"Nie potwierdzono resetowania. Poprzedni link i kod QR mogą już być nieważne."
+" Odśwież, aby pobrać aktualne zaproszenie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_save_failed"
+msgid "The QR code could not be saved."
+msgstr "Nie udało się zapisać kodu QR."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_save_qr"
+msgid "Save QR code..."
+msgstr "Zapisz kod QR..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_status"
+msgid "Invitation status"
+msgstr "Stan zaproszenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_title"
+msgid "Group invitation"
+msgstr "Zaproszenie do grupy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_unavailable"
+msgid ""
+"The invitation link and QR code could not be loaded. Check your connection "
+"and group permissions."
+msgstr ""
+"Nie udało się wczytać linku zaproszenia i kodu QR. Sprawdź połączenie i "
+"uprawnienia grupy."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/groups.py
+msgctxt "group_leave_unconfirmed"
+msgid ""
+"Leaving the group was not confirmed. The chat remains available. Check group"
+" membership before trying again."
+msgstr ""
+"Nie potwierdzono opuszczenia grupy. Czat pozostaje dostępny. Przed ponowną "
+"próbą sprawdź członkostwo w grupie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -4010,6 +4123,34 @@ msgstr "Wiadomości głosowe"
 msgctxt "group_media_types_label"
 msgid "Media types shown"
 msgstr "Wyświetlane typy multimediów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_members_invitable"
+msgid ""
+"Could not add {names} directly. An invitation code was returned, but "
+"invitation delivery was not confirmed."
+msgstr ""
+"Nie można bezpośrednio dodać: {names}. Otrzymano kod zaproszenia, ale nie "
+"potwierdzono jego wysłania."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_members_pending"
+msgid "Awaiting admin approval: {names}. They are not confirmed members yet."
+msgstr ""
+"Oczekują na zatwierdzenie przez administratora: {names}. Członkostwo nie "
+"jest jeszcze potwierdzone."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_members_unconfirmed"
+msgid ""
+"Could not confirm the result for {names}. Check the participant list before "
+"trying again."
+msgstr ""
+"Nie potwierdzono wyniku dla: {names}. Przed ponowną próbą sprawdź listę "
+"uczestników."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_group.py
 msgctxt "group_name"
@@ -4215,6 +4356,14 @@ msgstr "Członkowie"
 msgctxt "group_presence_indicator"
 msgid "{name}: {action}"
 msgstr "{name}: {action}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/groups.py
+msgctxt "group_result_unconfirmed"
+msgid ""
+"The result was not confirmed. Check the participant list before trying "
+"again."
+msgstr ""
+"Nie potwierdzono wyniku. Przed ponowną próbą sprawdź listę uczestników."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/contact_list_picker.py client/ui/dialogs/new_group.py
@@ -4557,7 +4706,7 @@ msgstr "Widziano wczoraj o {time}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/archived_panel.py
-#: client/ui/conversation_panel/chat_menu.py
+#: client/ui/conversation_panel/chat_menu.py client/ui/group_actions.py
 msgctxt "leave_group"
 msgid "Leave group"
 msgstr "Opuść grupę"
@@ -12416,8 +12565,8 @@ msgstr "{app_name} napotkał nieoczekiwany błąd i nie mógł ukończyć operac
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/core/polls.py
 #: client/main_window/calls.py client/main_window/chat_list.py
-#: client/main_window/chats_store.py client/main_window/shortcuts.py
-#: client/status_tab/status_rules.py
+#: client/main_window/chats_store.py client/main_window/groups.py
+#: client/main_window/shortcuts.py client/status_tab/status_rules.py
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py

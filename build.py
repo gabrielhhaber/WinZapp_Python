@@ -369,6 +369,8 @@ API_CUSTOM_SRC_FILES = [
     "src/middleware/socketAuth.ts",
     "src/controller/callController.ts",
     "src/controller/deviceController.ts",
+    "src/controller/groupOperationsController.ts",
+    "src/tests/controller/groupOperationsController.test.ts",
     "src/controller/messageController.ts",
     "src/controller/sessionController.ts",
     "src/controller/statusController.ts",

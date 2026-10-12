@@ -4,6 +4,8 @@ Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră
 
 NOUTĂȚI
 
+- Grupuri: linkurile de invitație și codurile QR pot fi afișate, copiate, salvate și resetate cu confirmare. Aprobarea în așteptare și rezultatele neconfirmate sunt raportate corect; au fost corectate crearea, părăsirea și permisiunile de editare.
+
 - Sondaje: alegeți Sondaj, ultimul element din meniul de atașare, pentru a trimite un sondaj cu întrebare, până la 12 opțiuni și posibilitatea de a permite mai multe răspunsuri. Sondajele primite nu mai apar ca mesaj neacceptat: rândul citește mai întâi întrebarea, apoi fiecare opțiune (cu voturile ei, când WinZapp le primește), iar Enter deschide o fereastră cu aceeași listă, casete de bifat pentru vot și o bară de progres pentru fiecare opțiune.
 
 - Voturile la sondaje: la un sondaj cu un singur răspuns, Tab de la mesaj duce la opțiuni, iar bifarea uneia votează imediat. Fiecare opțiune arată acum și procentul de voturi, iar fereastra sondajului are butonul Vezi voturile (Alt+V), care arată cine a votat ce.

@@ -22,8 +22,9 @@ class _I18n:
     — real key lookup would need a full main_window/settings chain this
     module has no other use for."""
     _TEMPLATES = {
-        "add_member_privacy_invite_sent":
-            "{names} could not be added directly; an invite was sent instead.",
+        "group_members_invitable": "Could not add {names} directly. Invitation delivery was not confirmed.",
+        "group_members_pending": "Awaiting admin approval: {names}.",
+        "group_members_unconfirmed": "Result unconfirmed for {names}.",
         "add_member_could_not_add": "Could not add {names}.",
     }
 
@@ -51,6 +52,10 @@ def _fake_post_ok(url, json=None, headers=None, timeout=None, **kw):
     class _Resp:
         status_code = 200
         text = ""
+        def json(self):
+            return {"status": "success", "response": {"result": [
+                {jid: {"code": 200} for jid in json.get("phone", [])}
+            ]}}
     _fake_post_ok.calls.append((url, json))
     return _Resp()
 _fake_post_ok.calls = []
@@ -287,17 +292,15 @@ class TestAddGroupMembersPerParticipantResult:
         assert "5511888888888" in err
         assert "5511999999999" not in err
 
-    def test_no_result_field_falls_back_to_plain_http_success(self, monkeypatch):
-        """A response that doesn't carry this field (older/other WPPConnect
-        builds) must not regress into reporting every add as a failure."""
+    def test_empty_result_is_unconfirmed_instead_of_plain_http_success(self, monkeypatch):
         post = _fake_post_json([])
         monkeypatch.setattr("main.requests.post", post)
         stub = _Stub()
 
         ok, err = stub.add_group_members("123-456@g.us", ["5511999999999"])
 
-        assert ok is True
-        assert err == ""
+        assert ok is False
+        assert "unconfirmed" in err
 
 
 class TestGroupSubjectAndDescription:

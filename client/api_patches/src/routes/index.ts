@@ -27,6 +27,7 @@ import * as ContactSaveController from '../controller/contactSaveController';
 import * as DeviceController from '../controller/deviceController';
 import { encryptSession } from '../controller/encryptController';
 import * as GroupController from '../controller/groupController';
+import * as GroupOperationsController from '../controller/groupOperationsController';
 import * as LabelsController from '../controller/labelsController';
 import * as MessageController from '../controller/messageController';
 import * as PinnedMessagesController from '../controller/pinnedMessagesController';
@@ -349,6 +350,10 @@ routes.post(
 );
 
 // Group
+routes.get('/api/:session/group-invitation/:groupId', verifyToken, statusConnection,
+  GroupOperationsController.readInvitation);
+routes.post('/api/:session/group-invitation/:groupId/reset', verifyToken, statusConnection,
+  GroupOperationsController.resetInvitation);
 routes.get(
   '/api/:session/all-broadcast-list',
   verifyToken,
@@ -383,7 +388,7 @@ routes.get(
   '/api/:session/group-info/:groupId',
   verifyToken,
   statusConnection,
-  GroupController.getGroupInfo
+  GroupOperationsController.getGroupInfo
 );
 routes.get(
   '/api/:session/group-invite-link/:groupId',
@@ -419,7 +424,7 @@ routes.post(
   '/api/:session/join-code',
   verifyToken,
   statusConnection,
-  GroupController.joinGroupByCode
+  GroupOperationsController.joinGroupByCode
 );
 routes.post(
   '/api/:session/add-participant-group',

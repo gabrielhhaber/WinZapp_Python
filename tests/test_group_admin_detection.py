@@ -82,5 +82,11 @@ class TestParticipantIsMe:
     def test_no_known_identity_never_matches(self):
         assert not _participant_is_me("5511999999999@s.whatsapp.net", "", "", _phone_digits_equivalent)
 
+    def test_lid_digits_are_never_matched_as_a_phone_number(self):
+        assert not _participant_is_me("5511999999999@lid", "5511999999999", "other", _phone_digits_equivalent)
+
+    def test_phone_digits_are_never_matched_as_a_lid(self):
+        assert not _participant_is_me("5511999999999@c.us", "other", "5511999999999", _phone_digits_equivalent)
+
     def test_empty_participant_jid_never_matches(self):
         assert not _participant_is_me("", "5511999999999", "", _phone_digits_equivalent)

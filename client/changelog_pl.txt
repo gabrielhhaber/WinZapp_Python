@@ -4,6 +4,8 @@ W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym 
 
 NOWOŚCI
 
+- Grupy: można wyświetlać, kopiować i zapisywać linki zaproszeń oraz kody QR, a także resetować je po potwierdzeniu. Rozróżniane są oczekujące zatwierdzenia i niepotwierdzone wyniki; poprawiono tworzenie, opuszczanie i uprawnienia edycji grup.
+
 - Ankiety: wybierz Ankieta, ostatnią pozycję menu załączników, aby wysłać ankietę z pytaniem, maksymalnie 12 opcjami i możliwością zezwolenia na kilka odpowiedzi. Otrzymane ankiety nie są już pokazywane jako nieobsługiwana wiadomość: wiersz czyta najpierw pytanie, a potem każdą opcję (z jej głosami, gdy WinZapp je otrzyma), a Enter otwiera okno z tą samą listą, polami wyboru do głosowania i paskiem postępu przy każdej opcji.
 
 - Głosy w ankietach: w ankiecie jednokrotnego wyboru Tab z wiadomości prowadzi do opcji, a zaznaczenie jednej od razu oddaje głos. Każda opcja pokazuje teraz także procent głosów, a okno ankiety ma przycisk Pokaż głosy (Alt+P), który wyświetla, kto na co głosował.

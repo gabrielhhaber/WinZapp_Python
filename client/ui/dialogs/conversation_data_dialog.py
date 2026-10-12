@@ -25,6 +25,7 @@ import wx
 import wx.adv
 from core import phone_contacts
 from core.contact_identity import contact_identity_lines
+from core.group_operations import group_permissions
 from ui.dialogs.common_groups_tab import CommonGroupsTabMixin
 from ui.accessible import AccessibleSaveAs
 from core.utils import (
@@ -82,10 +83,10 @@ def _participant_is_me(p_jid: str, my_phone_digits: str, my_lid_digits: str, pho
     p_digits = _participant_phone_part(p_jid)
     if not p_digits:
         return False
-    if my_phone_digits and phone_digits_equivalent(p_digits, my_phone_digits):
-        return True
-    if my_lid_digits and p_digits == my_lid_digits:
-        return True
+    if p_jid.endswith("@lid"):
+        return bool(my_lid_digits and p_digits == my_lid_digits)
+    if p_jid.endswith(("@s.whatsapp.net", "@c.us")):
+        return bool(my_phone_digits and phone_digits_equivalent(p_digits, my_phone_digits))
     return False
 
 
@@ -182,10 +183,11 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         # more and should stop spending API calls on this dialog's behalf.
         self._closed = threading.Event()
         # False until _populate_group() confirms the current user is a
-        # group admin — the context menu / edit buttons stay hidden/disabled
+        # group admin — the participant administration menu stays disabled
         # until then, so a click landing before the background fetch
         # finishes can't reach an action that isn't actually available.
         self._user_is_admin = False
+        self._user_can_edit_group = False
         self._group_subject     = name if is_group else ""
         self._group_description = ""
 
@@ -497,8 +499,9 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         )
         ov_sizer.Add(self._overview_ctrl, 1, wx.EXPAND | wx.ALL, 8)
         self._add_profile_picture_button(overview_page, ov_sizer)
-        # Admin-only group-editing buttons — hidden entirely (not just
-        # disabled) until we confirm the current user is a group admin.
+        from ui.dialogs.group_invitation_dialog import add_invitation_button
+        self._invitation_btn = add_invitation_button(self, overview_page, ov_sizer)
+        # Show editing only after confirmed membership and edit permission.
         self._edit_name_btn = wx.Button(overview_page, label=self._i18n.t("edit_group_name"))
         self._edit_name_btn.Hide()
         self._edit_name_btn.Bind(wx.EVT_BUTTON, self._on_edit_group_name)
@@ -510,15 +513,8 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         ov_sizer.Add(self._edit_desc_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._add_members_btn_overview = wx.Button(overview_page, label=self._i18n.t("add_member"))
-        # Unlike the Participants tab's own Add button (and the admin-only
-        # edit/remove/promote actions below), this one is NOT admin-gated:
-        # adding members is a normal-member action in WhatsApp by default,
-        # only actually admin-restricted when the group's own settings say
-        # so — which the API enforces on its own if it applies, same as the
-        # existing "can't determine my_jid" fallback below already does for
-        # everything else. Gating it here on _user_is_admin made it
-        # unusable for every non-admin member regardless of the group's
-        # real settings.
+        self._add_members_btn_overview.Disable()
+        # Both tabs use the same metadata; the provider checks again on add.
         self._add_members_btn_overview.Bind(wx.EVT_BUTTON, self._on_add_members)
         ov_sizer.Add(self._add_members_btn_overview, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         self._build_sound_picker(overview_page, ov_sizer)
@@ -539,7 +535,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         self._part_list.Bind(wx.EVT_CONTEXT_MENU, self._on_participant_context_menu)
         pt_sizer.Add(self._part_list, 1, wx.EXPAND | wx.ALL, 8)
         self._add_members_btn = wx.Button(part_page, label=self._i18n.t("add_member"))
-        self._add_members_btn.Disable()   # enabled after we confirm user is admin
+        self._add_members_btn.Disable()   # updated from group permissions
         self._add_members_btn.Bind(wx.EVT_BUTTON, self._on_add_members)
         pt_sizer.Add(self._add_members_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         part_page.SetSizer(pt_sizer)
@@ -1032,6 +1028,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         my_phone_digits = _participant_phone_part(getattr(self._mw, "my_jid", ""))
         my_lid_digits   = _participant_phone_part(getattr(self._mw, "my_lid", ""))
         user_is_admin = False
+        user_is_member = False
         for p in participants:
             if not isinstance(p, dict):
                 continue
@@ -1039,10 +1036,11 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
             # get_group_info()'s real participant shape is {"id", "isAdmin"}
             # — "admin" doesn't exist on it, so this always read False.
             is_admin_bool = bool(p.get("isAdmin") or p.get("admin"))
-            if is_admin_bool and _participant_is_me(
+            if _participant_is_me(
                 p_jid, my_phone_digits, my_lid_digits, self._mw._phone_digits_equivalent
             ):
-                user_is_admin = True
+                user_is_member = True
+                user_is_admin = user_is_admin or is_admin_bool
             row_label, p_phone, p_name, resolved_jid = self._participant_row(p_jid, is_admin_bool)
             idx = self._part_list.GetItemCount()
             self._part_list.InsertItem(idx, row_label)
@@ -1053,20 +1051,13 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
             self._participant_is_admin.append(is_admin_bool)
             self._participant_raw_jids.append(p_jid)
 
-        # Enable the Participants tab's "Add members" button, and show the
-        # admin-only group-editing buttons, only if the current user is a
-        # group admin. If we cannot determine my_jid, enable them anyway
-        # (the API will reject the request if the user turns out not to be
-        # an admin). The Overview tab's own Add button is intentionally
-        # NOT part of this gate — see its construction above.
-        self._user_is_admin = bool(user_is_admin or not (my_phone_digits or my_lid_digits))
-        if self._user_is_admin:
-            self._add_members_btn.Enable()
-            self._edit_name_btn.Show()
-            self._edit_desc_btn.Show()
-        else:
-            self._edit_name_btn.Hide()
-            self._edit_desc_btn.Hide()
+        self._user_is_admin = user_is_admin
+        self._invitation_btn.Enable(True)
+        self._user_can_edit_group, can_add = group_permissions(user_is_admin, user_is_member, data)
+        self._add_members_btn.Enable(can_add)
+        self._add_members_btn_overview.Enable(can_add)
+        self._edit_name_btn.Show(self._user_can_edit_group)
+        self._edit_desc_btn.Show(self._user_can_edit_group)
         self._edit_name_btn.GetParent().Layout()
 
         # A pre-populated list must never leave focus/selection pointing at
@@ -2017,7 +2008,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         wx.CallAfter(_done)
 
     def _on_edit_group_name(self, event):
-        if not self._user_is_admin:
+        if not getattr(self, "_user_can_edit_group", False):
             self._show_group_action_error(self._i18n.t("group_action_no_permission"))
             return
         new_name = self._prompt_text_edit(
@@ -2037,7 +2028,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         ).start()
 
     def _on_edit_group_description(self, event):
-        if not self._user_is_admin:
+        if not getattr(self, "_user_can_edit_group", False):
             self._show_group_action_error(self._i18n.t("group_action_no_permission"))
             return
         new_desc = self._prompt_text_edit(

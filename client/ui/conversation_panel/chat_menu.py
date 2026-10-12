@@ -374,13 +374,8 @@ class ChatMenuMixin:
             self,
         ) != wx.YES:
             return
-        if self.conversation and self.conversation.get("remoteJid") == jid:
-            self.close_conversation()
-        threading.Thread(
-            target=self.main_window.leave_group,
-            args=(jid,),
-            daemon=True,
-        ).start()
+        from ui.group_actions import leave_group_from_ui
+        leave_group_from_ui(self.main_window, jid)
 
     def _on_menu_add_member(self, group_jid: str):
         """Open the add-member dialog for a group."""

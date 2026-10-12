@@ -604,9 +604,8 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
             wx.YES_NO | wx.ICON_QUESTION, self,
         ) != wx.YES:
             return
-        threading.Thread(
-            target=self.main_window.leave_group, args=(jid,), daemon=True,
-        ).start()
+        from ui.group_actions import leave_group_from_ui
+        leave_group_from_ui(self.main_window, jid)
 
     def _on_unarchive(self, jid: str):
         self.main_window.unarchive_chat(jid)

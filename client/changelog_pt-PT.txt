@@ -4,6 +4,8 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- Grupos: ligações de convite e códigos QR podem ser visualizados, copiados, guardados e redefinidos com confirmação. A aprovação pendente e os resultados não confirmados são comunicados corretamente; a criação, saída e permissões de edição foram corrigidas.
+
 - Sondagens: escolha Sondagem, o último item do menu de anexo, para enviar uma sondagem com pergunta, até 12 opções e a escolha de permitir várias respostas. As sondagens recebidas deixam de aparecer como mensagem incompatível: a linha lê primeiro a pergunta e depois cada opção (com os seus votos quando o WinZapp os recebe), e Enter abre uma janela com a mesma lista, caixas de seleção para votar e uma barra de progresso por opção.
 
 - Votos nas sondagens: numa sondagem de resposta única, o Tab a partir da mensagem leva às opções e marcar uma vota logo. Cada opção passa a mostrar também a percentagem dos votos, e a janela da sondagem tem o botão Ver votos (Alt+V), que lista quem votou em quê.

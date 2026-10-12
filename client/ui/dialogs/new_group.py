@@ -257,13 +257,16 @@ class NewGroupDialog(wx.Dialog):
 
         threading.Thread(target=_run, daemon=True).start()
 
-    def _on_create_done(self, ok: bool, result: str):
+    def _on_create_done(self, ok: bool, result):
         i18n = self._mw.i18n
         if ok:
+            if not result.members_confirmed:
+                wx.MessageBox(i18n.t("group_create_members_unconfirmed"), i18n.t("new_group_title"),
+                              wx.OK | wx.ICON_INFORMATION, self)
             self.EndModal(wx.ID_OK)
-            if result and result.endswith("@g.us"):
+            if result.jid:
                 mw   = self._mw
-                chat = mw.chats.get(result) or {"remoteJid": result}
+                chat = mw.chats.get(result.jid) or {"remoteJid": result.jid}
                 wx.CallAfter(mw.conversations_panel.navigate_to_conversation, chat)
         else:
             wx.MessageBox(

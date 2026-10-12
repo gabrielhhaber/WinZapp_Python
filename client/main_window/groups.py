@@ -21,6 +21,7 @@ from core.api_client import (
     api_get,
     api_post,
 )
+from core.group_operations import created_group, member_outcomes
 from main_window.identity_rules import (
     group_send_permission_from_metadata,
     participant_digits,
@@ -515,24 +516,28 @@ class GroupsMixin:
 
     # ── Group ─────────────────────────────────────────────────────────────────
 
-    def leave_group(self, jid: str):
-        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/leave-group"
+    def leave_group(self, jid: str, connection=None):
+        """Return confirmation; UI changes belong to the caller on the UI thread."""
+        server, port, token = connection or (self.wpp_server, self.wpp_port, self.token)
+        url = f"{server}:{port}/api/{token}/leave-group"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
         try:
-            api_post(url, json={"groupId": jid}, headers=headers, timeout=10)
+            response = api_post(url, json={"groupId": jid}, headers=headers, timeout=10)
+            body = response.json()
+            if response.status_code in (200, 201) and isinstance(body, dict) and str(body.get("status", "")).lower() == "success":
+                return True, ""
         except Exception:
             pass
-        # Archive instead of delete so the message history is preserved locally.
-        self.archive_chat(jid)
+        return False, self.i18n.t("group_leave_unconfirmed")
 
     def create_group(self, name: str, participants: list) -> tuple:
         """
         Create a WhatsApp group with the given name and participant numbers.
         participants: list of phone number or JID strings (e.g. ["5511999999999@s.whatsapp.net", "63977983840477@lid"])
-        Returns (True, group_jid) on success, (False, error_message) on failure.
+        Returns (True, GroupCreation) on confirmed creation, otherwise (False, message).
         """
         # Normalize participant JIDs for WPPConnect
         normalized_participants = []
@@ -556,29 +561,20 @@ class GroupsMixin:
         try:
             r = api_post(url, json=payload, headers=headers, timeout=30)
             if r.status_code in (200, 201):
-                resp = r.json().get("response", {})
-                gid = resp.get("gid", {})
-                if isinstance(gid, dict):
-                    gid = gid.get("_serialized", "")
-                return True, gid or ""
-            return False, f"HTTP {r.status_code}: {r.text[:200]}"
-        except Exception as exc:
-            return False, str(exc)
+                result = created_group(r.json(), normalized_participants)
+                if result:
+                    return True, result
+        except Exception:
+            pass
+        return False, self.i18n.t("group_create_unconfirmed")
 
     def add_group_members(self, group_jid: str, participant_jids: list) -> tuple:
         """
         Add one or more participants to a group.
         Returns (True, "") on success, (False, error_message) on failure.
 
-        HTTP 201 alone is not proof anyone was actually added: WPPConnect's
-        addParticipant controller answers "success" unconditionally, and the
-        one signal that reflects what WhatsApp itself did is buried in
-        response.result — a dict per participant carrying a wa-js `code`
-        (200/409 = really in the group now, 403 = the target's privacy
-        settings blocked a direct add and WhatsApp sent an invite instead,
-        anything else = not added and no invite either). Reported live: a
-        403 case surfaced as an ordinary success dialog, and the "member" was
-        never in the group's participant list at all.
+        HTTP 201 alone is not proof of membership. A 421 result is pending
+        approval; an invite code alone is not proof an invitation was sent.
         """
         url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/add-participant-group"
         headers = {
@@ -593,51 +589,31 @@ class GroupsMixin:
         # failed with a 500 inside contactToArray(undefined).
         payload = {
             "groupId": group_jid,
-            "phone":   [j if "@" in j else f"{j}@c.us" for j in participant_jids],
+            "phone": [j.replace("@s.whatsapp.net", "@c.us") if "@" in j else f"{j}@c.us"
+                      for j in participant_jids],
         }
         try:
             r = api_post(url, json=payload, headers=headers, timeout=15)
             if r.status_code not in (200, 201):
                 return False, f"HTTP {r.status_code}: {r.text[:200]}"
-            try:
-                result_groups = r.json().get("response", {}).get("result", [])
-            except Exception:
-                result_groups = []
-            invited, failed = [], []
-            for group_result in result_groups:
-                if not isinstance(group_result, dict):
-                    continue
-                for jid, info in group_result.items():
-                    if not isinstance(info, dict):
-                        continue
-                    try:
-                        code = int(info.get("code"))
-                    except (TypeError, ValueError):
-                        code = None
-                    if code in (200, 409):
-                        continue  # genuinely in the group now (or already was)
-                    contact = getattr(self, "contacts", {}).get(jid, {})
-                    display = (
-                        contact.get("name")
-                        or contact.get("pushName")
-                        or jid.split("@")[0]
-                    )
-                    if code == 403 and info.get("invite_code"):
-                        invited.append(display)
-                    else:
-                        failed.append(display)
-            if not invited and not failed:
-                return True, ""
+            outcomes = member_outcomes(r.json(), payload["phone"])
             parts = []
-            if invited:
-                parts.append(self.i18n.t("add_member_privacy_invite_sent").format(
-                    names=", ".join(invited)))
-            if failed:
-                parts.append(self.i18n.t("add_member_could_not_add").format(
-                    names=", ".join(failed)))
-            return False, " ".join(parts)
-        except Exception as exc:
-            return False, str(exc)
+            for state, key in (("pending", "group_members_pending"), ("invitable", "group_members_invitable"),
+                               ("failed", "add_member_could_not_add"), ("unknown", "group_members_unconfirmed")):
+                names = []
+                for jid, outcome in outcomes:
+                    if outcome != state:
+                        continue
+                    contacts = getattr(self, "contacts", {})
+                    contact = contacts.get(jid) or contacts.get(jid.replace("@c.us", "@s.whatsapp.net")) or {}
+                    names.append(contact.get("name") or contact.get("pushName") or (
+                        self.i18n.t("unknown_contact") if jid.endswith("@lid") else jid.split("@")[0]))
+                if names:
+                    parts.append(self.i18n.t(key).format(names=", ".join(names)))
+            ok = bool(outcomes) and all(state in ("added", "pending") for _, state in outcomes)
+            return ok, " ".join(parts) or ("" if ok else self.i18n.t("group_result_unconfirmed"))
+        except Exception:
+            return False, self.i18n.t("group_result_unconfirmed")
 
     def _group_participant_action(self, endpoint: str, group_jid: str, participant_jids: list) -> tuple:
         """Shared POST for remove/promote/demote-participant-group — all

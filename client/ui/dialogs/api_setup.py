@@ -219,6 +219,8 @@ _CUSTOM_SRC_FILES = [
     "src/controller/communityCommentsController.ts",
     "src/tests/controller/communityCommentsController.test.ts",
     "src/controller/pinnedMessagesController.ts",
+    "src/controller/groupOperationsController.ts",
+    "src/tests/controller/groupOperationsController.test.ts",
     "src/tests/controller/pinnedMessagesController.test.ts",
     "src/util/forwardRuntime.ts",
     "src/util/statusReactionRuntime.ts",
