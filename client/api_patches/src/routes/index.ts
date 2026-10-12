@@ -454,7 +454,7 @@ routes.post(
   '/api/:session/group-info-from-invite-link',
   verifyToken,
   statusConnection,
-  GroupController.getGroupInfoFromInviteLink
+  GroupOperationsController.getGroupInfoFromInviteLink
 );
 routes.post(
   '/api/:session/group-description',

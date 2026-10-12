@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { getGroupInfo, readInvitation, resetInvitation, joinGroupByCode } from '../../controller/groupOperationsController';
+import { getGroupInfo, readInvitation, resetInvitation, joinGroupByCode, getGroupInfoFromInviteLink } from '../../controller/groupOperationsController';
 
 jest.mock('qrcode', () => ({ __esModule: true, default: { toDataURL: jest.fn() } }));
 const link = 'https://chat.whatsapp.com/AbCdEfGhIjKlMnOpQrStUv';
@@ -17,6 +17,7 @@ function request() {
     getGroupInviteLink: jest.fn().mockResolvedValue(link),
     revokeGroupInviteLink: jest.fn().mockResolvedValue(link),
     joinGroup: jest.fn().mockResolvedValue({ id:'123-456@g.us', pendingApproval:true }),
+    getGroupInfoFromInviteLink: jest.fn().mockResolvedValue({id:'123-456@g.us',subject:'Group',size:7,membershipApprovalMode:true}),
     page: { isClosed: () => false, evaluate: jest.fn().mockResolvedValue(true) },
   }} as any;
 }
@@ -93,4 +94,41 @@ test('unknown permission fields stay unknown, never default to unrestricted', as
   const req=request(), res=response(); req.client.getChatById.mockResolvedValue({groupMetadata:{}});
   await getGroupInfo(req,res); expect(res.body.response.restrict).toBeNull();
   expect(res.body.response.memberAddMode).toBeNull();
+});
+
+test('preview preserves provider metadata and never joins', async () => {
+  const req=request(), res=response(); req.body={invitecode:'AbCdEfGhIjKlMnOpQrStUv'};
+  await getGroupInfoFromInviteLink(req,res);
+  expect(res.statusCode).toBe(200);
+  expect(res.body.response).toMatchObject({id:'123-456@g.us',subject:'Group',size:7,membershipApprovalMode:true});
+  expect(req.client.getGroupInfoFromInviteLink).toHaveBeenCalledTimes(1);
+  expect(req.client.getGroupInfoFromInviteLink).toHaveBeenCalledWith(req.body.invitecode);
+  expect(req.client.joinGroup).not.toHaveBeenCalled();
+});
+test.each([undefined,'bad','https://example.com/private'])('invalid preview %p never reaches provider', async invitecode => {
+  const req=request(), res=response(); req.body={invitecode};
+  await getGroupInfoFromInviteLink(req,res);
+  expect(res.statusCode).toBe(400);
+  expect(req.client.getGroupInfoFromInviteLink).not.toHaveBeenCalled();
+});
+test('preview error does not log or expose the private code or native error', async () => {
+  const req=request(), res=response(); req.body={invitecode:'AbCdEfGhIjKlMnOpQrStUv'};
+  req.logger={error:jest.fn()};
+  req.client.getGroupInfoFromInviteLink.mockRejectedValue(new Error('private AbCdEfGhIjKlMnOpQrStUv'));
+  await getGroupInfoFromInviteLink(req,res);
+  expect(res.statusCode).toBe(503);
+  expect(JSON.stringify(res.body)).not.toMatch(/private|AbCdEfGhIjKlMnOpQrStUv/);
+  expect(req.logger.error).not.toHaveBeenCalled();
+  expect(req.client.joinGroup).not.toHaveBeenCalled();
+});
+
+test.each([link,link.replace('com/','com/invite/')])('preview and join retain full WhatsApp link support: %s', async invite => {
+  const req=request(), preview=response(), joined=response();
+  req.body={invitecode:invite,inviteCode:invite};
+  await getGroupInfoFromInviteLink(req,preview);
+  await joinGroupByCode(req,joined);
+  expect(preview.statusCode).toBe(200);
+  expect(joined.statusCode).toBe(201);
+  expect(req.client.getGroupInfoFromInviteLink).toHaveBeenCalledWith('AbCdEfGhIjKlMnOpQrStUv');
+  expect(req.client.joinGroup).toHaveBeenCalledWith('AbCdEfGhIjKlMnOpQrStUv');
 });

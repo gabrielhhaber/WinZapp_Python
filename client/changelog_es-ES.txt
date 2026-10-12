@@ -4,6 +4,8 @@ Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, 
 
 NOVEDADES
 
+- Invitaciones a grupos: Nueva conversación ahora ofrece Unirse al grupo mediante enlace, con vista previa antes de unirse y resultados separados para aprobación pendiente e incorporación no confirmada.
+
 - Grupos: los enlaces de invitación y códigos QR pueden verse, copiarse, guardarse y restablecerse con confirmación. Se distinguen la aprobación pendiente y los resultados sin confirmar; se corrigen la creación, salida y permisos de edición.
 
 - Encuestas: elige Encuesta, el último elemento del menú de adjuntos, para enviar una encuesta con pregunta, hasta 12 opciones y la posibilidad de permitir varias respuestas. Las encuestas recibidas ya no aparecen como mensaje no compatible: la fila lee primero la pregunta y después cada opción (con sus votos cuando WinZapp los recibe), y Intro abre una ventana con la misma lista, casillas para votar y una barra de progreso por opción.

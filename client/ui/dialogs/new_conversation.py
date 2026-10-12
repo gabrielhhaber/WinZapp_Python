@@ -65,6 +65,11 @@ class NewConversationDialog(wx.Dialog):
         self._new_group_btn.Bind(wx.EVT_BUTTON, self._on_new_group)
         btn_sizer.Add(self._new_group_btn, 0, wx.RIGHT, 8)
 
+        from ui.dialogs.group_join_dialog import open_join_dialog
+        self._join_group_btn = wx.Button(panel, label=i18n.t("group_join_title"))
+        self._join_group_btn.Bind(wx.EVT_BUTTON, lambda event: open_join_dialog(self, event))
+        sizer.Add(self._join_group_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
         self._new_contact_btn = wx.Button(panel, label=i18n.t("new_contact"))
         self._new_contact_btn.Bind(wx.EVT_BUTTON, self._on_new_contact)
         btn_sizer.Add(self._new_contact_btn, 0, wx.RIGHT, 8)

@@ -4,6 +4,8 @@ Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisa
 
 YENİLİKLER
 
+- Grup davetleri: Yeni sohbet ekranına Gruba bağlantıyla katıl eklendi. Katılmadan önce grup önizlenir; onay bekleyen ve doğrulanamayan sonuçlar ayrı gösterilir.
+
 - Gruplar: davet bağlantısı ve QR kodu görüntüleme, bağlantıyı kopyalama, QR kodunu kaydetme ve onaylı sıfırlama eklendi. Üye eklemede onay bekleme ile doğrulanamayan sonuçlar ayrılıyor; grup oluşturma, ayrılma ve düzenleme izinleri düzeltildi.
 
 - Anketler: bir soru, en fazla 12 seçenek ve birden çok yanıta izin verme seçeneğiyle anket göndermek için ek menüsünün son öğesi olan Anket'i seçin. Alınan anketler artık desteklenmeyen mesaj olarak gösterilmez: satır önce soruyu, ardından her seçeneği (WinZapp aldığında oylarıyla birlikte) okur; Enter aynı listeyi, oy vermek için işaret kutularını ve her seçenek için bir ilerleme çubuğunu içeren bir pencere açar.

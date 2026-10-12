@@ -4028,6 +4028,94 @@ msgstr ""
 "Nie udało się wczytać linku zaproszenia i kodu QR. Sprawdź połączenie i "
 "uprawnienia grupy."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_action"
+msgid "Join group or request approval"
+msgstr "Dołącz do grupy lub poproś o zatwierdzenie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_approval_not_required"
+msgid ""
+"This preview does not indicate approval is required. Requirements may change"
+" before joining."
+msgstr ""
+"Ten podgląd nie wskazuje, że wymagane jest zatwierdzenie. Wymagania mogą się"
+" zmienić przed dołączeniem."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_approval_required"
+msgid "Administrator approval is required. Joining will request approval."
+msgstr ""
+"Wymagane jest zatwierdzenie przez administratora. Dołączenie wyśle prośbę o "
+"zatwierdzenie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_approval_unknown"
+msgid ""
+"Approval requirements are unavailable. Your request may require "
+"administrator approval."
+msgstr ""
+"Wymagania dotyczące zatwierdzenia są niedostępne. Twoja prośba może wymagać "
+"zatwierdzenia przez administratora."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_invalid_link"
+msgid "Paste a valid HTTPS WhatsApp group invitation link."
+msgstr "Wklej prawidłowy link HTTPS z zaproszeniem do grupy WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_join_member_count"
+msgid "{count} members"
+msgstr "Liczba uczestników: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_pending"
+msgid ""
+"Your request is awaiting administrator approval. You have not joined yet."
+msgstr ""
+"Twoja prośba oczekuje na zatwierdzenie przez administratora. Nie należysz "
+"jeszcze do grupy."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_preview"
+msgid "Preview group"
+msgstr "Podgląd grupy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_preview_failed"
+msgid ""
+"The group preview could not be loaded. The link may be invalid or expired, "
+"or the connection unavailable."
+msgstr ""
+"Nie można wczytać podglądu grupy. Link może być nieprawidłowy lub wygasły "
+"albo połączenie jest niedostępne."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_preview_ready"
+msgid "Group preview is ready. Review the details before joining."
+msgstr "Podgląd grupy jest gotowy. Sprawdź szczegóły przed dołączeniem."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_success"
+msgid "You joined the group."
+msgstr "Dołączono do grupy."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_conversation.py
+msgctxt "group_join_title"
+msgid "Join group by link"
+msgstr "Dołącz do grupy przez link"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_join_unconfirmed"
+msgid ""
+"Joining was not confirmed. Check your group list or ask an administrator "
+"before trying again."
+msgstr ""
+"Dołączenie nie zostało potwierdzone. Przed ponowną próbą sprawdź listę grup "
+"lub zapytaj administratora."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/groups.py
 msgctxt "group_leave_unconfirmed"
 msgid ""
@@ -12579,6 +12667,7 @@ msgstr "Kontakt bez nazwy"
 #: client/main_window/chat_list.py client/main_window/chats_store.py
 #: client/ui/dialogs/common_groups_tab.py
 #: client/ui/dialogs/conversation_data_dialog.py
+#: client/ui/dialogs/group_join_dialog.py
 msgctxt "unknown_group"
 msgid "Unnamed group"
 msgstr "Grupa bez nazwy"

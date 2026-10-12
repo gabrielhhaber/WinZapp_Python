@@ -6,6 +6,12 @@ const validGroup = (value: unknown): value is string =>
 const validLink = (value: unknown): value is string =>
   typeof value === 'string' && /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,64}$/.test(value);
 
+function invitationCode(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  if (/^[A-Za-z0-9]{10,64}$/.test(value)) return value;
+  return /^https:\/\/chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{10,64})$/.exec(value)?.[1];
+}
+
 // Preserve the existing group-info contract, adding only known permission fields.
 export async function getGroupInfo(req: Request, res: Response) {
   const groupId = req.params.groupId;
@@ -75,9 +81,8 @@ export async function resetInvitation(req: Request, res: Response) {
 }
 
 export async function joinGroupByCode(req: Request, res: Response) {
-  const value = req.body?.inviteCode;
-  const code = typeof value === 'string' && validLink(value) ? value.split('/').pop() : value;
-  if (typeof code !== 'string' || !/^[A-Za-z0-9]{10,64}$/.test(code)) {
+  const code = invitationCode(req.body?.inviteCode);
+  if (!code) {
     return res.status(400).json({ status: 'error', code: 'invalid_invite' });
   }
   try {
@@ -90,5 +95,23 @@ export async function joinGroupByCode(req: Request, res: Response) {
     } });
   } catch (_) {
     return res.status(503).json({ status: 'error', code: 'join_unconfirmed' });
+  }
+}
+
+// Read-only lookup. Keep the existing request/response contract but never log
+// native errors, which can include the private invitation code.
+export async function getGroupInfoFromInviteLink(req: Request, res: Response) {
+  const code = invitationCode(req.body?.invitecode);
+  if (!code) {
+    return res.status(400).json({ status: 'error', code: 'invalid_invite' });
+  }
+  try {
+    const result = await req.client.getGroupInfoFromInviteLink(code);
+    if (!result || !validGroup(result.id) || typeof result.subject !== 'string' || !result.subject.trim()) {
+      throw new Error('preview_unavailable');
+    }
+    return res.status(200).json({ status: 'success', response: result });
+  } catch (_) {
+    return res.status(503).json({ status: 'error', code: 'preview_unavailable' });
   }
 }

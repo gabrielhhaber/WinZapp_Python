@@ -4,6 +4,8 @@ This release brings transcription of voice messages on your own computer, with n
 
 WHAT'S NEW
 
+- Group invitations: New chat now offers Join group by link, with a preview before joining and separate pending-approval and unconfirmed results.
+
 - Groups: invitation links and QR codes can now be viewed, copied, saved and reset with confirmation. Member approval and unconfirmed results are reported accurately; group creation, leaving and editing permissions are handled correctly.
 
 - Polls: choose Poll, the last item of the attachment menu, to send a poll with a question, up to 12 options and the choice of allowing several answers. Received polls are no longer shown as unsupported messages: the row reads the question first, then each option (with its votes when WinZapp receives them), and Enter opens a window with the same list, check boxes to vote and a progress bar per option.

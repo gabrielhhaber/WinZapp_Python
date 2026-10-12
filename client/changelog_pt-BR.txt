@@ -4,6 +4,8 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- Convites de grupo: Nova conversa agora oferece Entrar no grupo por link, com prévia antes de entrar e resultados separados para aprovação pendente e entrada não confirmada.
+
 - Grupos: links de convite e códigos QR podem ser visualizados, copiados, salvos e redefinidos com confirmação. A aprovação pendente e os resultados não confirmados são informados corretamente; a criação, saída e permissões de edição foram corrigidas.
 
 - Enquetes: escolha Enquete, o último item do menu de anexo, para enviar uma enquete com pergunta, até 12 opções e a escolha de permitir várias respostas. As enquetes recebidas deixam de aparecer como mensagem incompatível: a linha lê a pergunta primeiro e depois cada opção (com seus votos quando o WinZapp os recebe), e Enter abre uma janela com a mesma lista, caixas de seleção para votar e uma barra de progresso por opção.
