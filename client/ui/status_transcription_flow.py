@@ -32,13 +32,16 @@ class StatusTranscriptionFlow(MessageTranscriptionFlow):
         #: The private folder of this run's download, while `start()` runs.
         self._folder = ""
 
-    def start(self):
-        with _fileops.private_temp_dir(statuses.TEMP_PREFIX) as folder:
-            self._folder = folder
-            try:
-                super().start()
-            finally:
-                self._folder = ""
+    def _prepare(self):
+        # Entered here and left in _cleanup(): a run without the progress
+        # window outlives start(), and its download must live as long as it.
+        self._folder_context = _fileops.private_temp_dir(statuses.TEMP_PREFIX)
+        self._folder = self._folder_context.__enter__()
+
+    def _cleanup(self):
+        context, self._folder_context, self._folder = getattr(self, "_folder_context", None), None, ""
+        if context is not None:
+            context.__exit__(None, None, None)
 
     def _make_first_run(self, on_progress, on_finished):
         mw = self._main_window

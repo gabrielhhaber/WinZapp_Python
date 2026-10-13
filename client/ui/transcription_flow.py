@@ -485,6 +485,8 @@ class MessageTranscriptionFlow:
         self._dialog = None
         #: The run currently behind it — read by `_on_phase` for the device.
         self._run = None
+        #: True for a run with no progress window (`_start_in_background`).
+        self._background = False
 
     def start(self):
         """Transcribe the message, report, and put the focus back."""
@@ -499,11 +501,28 @@ class MessageTranscriptionFlow:
             self._main_window.output(self._i18n.t("transcription_no_audio"))
             return
 
-        handover = None
-        declined = False
+        if self._runs_without_dialog():
+            self._start_in_background()
+            return
+        self._prepare()
         try:
             run, result, error = self._run_behind_dialog(self._make_first_run)
-            handover = getattr(run, "prepared_handover", None)
+            self._finish(run, result, error)
+        finally:
+            self._cleanup()
+
+    def _prepare(self):
+        """Before the run is made; `_cleanup()` after it has been reported."""
+
+    def _cleanup(self):
+        pass
+
+    def _finish(self, run, result, error):
+        """From a finished run to its report: the offer to redo it on the
+        processor, then what the user is told."""
+        handover = getattr(run, "prepared_handover", None)
+        declined = False
+        try:
             if error is not None and handover is not None:
                 offer = narration.cpu_retry_note(error, run.device)
                 if offer is not None:
@@ -530,6 +549,65 @@ class MessageTranscriptionFlow:
             self._focus_message()
             return
         self._report(run, result, error)
+
+    # ── Without the progress window ──────────────────────────────────────────
+    # "Transcribe without the progress window" (transcription.run_without_dialog):
+    # the user stays where they are, and the result arrives when it is ready.
+    # One such run at a time, kept on the main window so the same shortcut can
+    # cancel it and quitting can stop it (MainWindow.stop_transcription_runs).
+
+    def _runs_without_dialog(self):
+        section = self._main_window.settings.get("transcription")
+        return isinstance(section, dict) and section.get("run_without_dialog") is True
+
+    def _start_in_background(self):
+        mw = self._main_window
+        i18n = self._i18n
+        active = getattr(mw, "_background_transcription", None)
+        if active is not None:
+            if active.targets(self):
+                # The same shortcut on the same message: that is Cancel.
+                active.cancel_background()
+                mw.output(i18n.t("transcription_background_cancelling"))
+            else:
+                mw.output(i18n.t("transcription_background_busy"))
+            return
+        self._background = True
+        self._prepare()
+        mw._background_transcription = self
+        mw.output(i18n.t("transcription_background_started"))
+        try:
+            self._make_first_run(lambda tick: None, self._background_done).start()
+        except Exception as exc:
+            # Nothing would ever report: say it failed rather than stay "busy".
+            logging.error("[transcription] a run without the progress window could not start: %s",
+                          errors.exception_report(exc))
+            self._background_finished(None, errors.TranscriptionError(
+                errors.BACKEND_ERROR, f"{type(exc).__name__}: {exc}"))
+
+    def targets(self, other):
+        """Whether `other` asks for the message (or status) this one is on."""
+        return type(other) is type(self) and other._msg_id == self._msg_id
+
+    def cancel_background(self):
+        """The run this flow has under way, to cancel it; None when none."""
+        run = self._run
+        if run is not None:
+            run.cancel()
+        return run
+
+    def _background_done(self, result, error):
+        # On the run's thread: see "Called on the run's threads" below.
+        wx.CallAfter(self._background_finished, result, error)
+
+    def _background_finished(self, result, error):
+        mw = self._main_window
+        if getattr(mw, "_background_transcription", None) is self:
+            mw._background_transcription = None
+        try:
+            self._finish(self._run, result, error)
+        finally:
+            self._cleanup()
 
     # ── Running ──────────────────────────────────────────────────────────────
 
@@ -1047,7 +1125,10 @@ class MessageTranscriptionFlow:
     def _say_after_focus(self, sentence, failed=False):
         if failed:
             self._play_error_sound()
-        self._focus_message()
+        if not self._background:
+            # A run without the progress window took the focus from nowhere:
+            # the user may be typing, or in another chat by now.
+            self._focus_message()
         # After the focus move, not before: see the module docstring.
         wx.CallAfter(self._main_window.output, sentence)
 

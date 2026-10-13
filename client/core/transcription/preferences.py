@@ -110,6 +110,9 @@ SETTING_CACHE_BY_MODEL = "cache_by_model"
 #: keep a status's result with it, on by default.
 SETTING_AUTO_TRANSCRIBE_STATUSES = "auto_transcribe_statuses"
 SETTING_STATUS_CACHE_ENABLED = "status_cache_enabled"
+#: Whether a transcription asked for by hand runs with no progress window: the
+#: user stays on the list and the result arrives when ready. Off by default.
+SETTING_RUN_WITHOUT_DIALOG = "run_without_dialog"
 
 #: The section as a fresh install gets it. `core/utils.py`'s DEFAULT_SETTINGS
 #: and `client/data/settings_default.json` both carry a copy — see the module
@@ -125,6 +128,7 @@ DEFAULTS = {
     SETTING_LANGUAGE: LANGUAGE_INTERFACE,
     SETTING_AUTO_DETECT_LANGUAGE: True,
     SETTING_KEEP_MODEL_LOADED: False,
+    SETTING_RUN_WITHOUT_DIALOG: False,
     SETTING_AUTO_TRANSCRIBE_RECEIVED: False,
     SETTING_CACHE_ENABLED: True,
     SETTING_CACHE_BY_MODEL: {},
@@ -611,7 +615,8 @@ def sanitize_section(settings, custom_model_ids=None) -> bool:
 
     for flag in (SETTING_AUTO_DETECT_LANGUAGE, SETTING_KEEP_MODEL_LOADED,
                  SETTING_AUTO_TRANSCRIBE_RECEIVED, SETTING_CACHE_ENABLED,
-                 SETTING_AUTO_TRANSCRIBE_STATUSES, SETTING_STATUS_CACHE_ENABLED):
+                 SETTING_AUTO_TRANSCRIBE_STATUSES, SETTING_STATUS_CACHE_ENABLED,
+                 SETTING_RUN_WITHOUT_DIALOG):
         if flag in section and not isinstance(section[flag], bool):
             section[flag] = DEFAULTS[flag]
             changed = True

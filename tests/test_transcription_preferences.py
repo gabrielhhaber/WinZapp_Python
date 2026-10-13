@@ -126,7 +126,10 @@ class TestTheDefaultsAreOneThing:
                                          # plain bools for the same reason the
                                          # conversation's two are.
                                          preferences.SETTING_AUTO_TRANSCRIBE_STATUSES,
-                                         preferences.SETTING_STATUS_CACHE_ENABLED}
+                                         preferences.SETTING_STATUS_CACHE_ENABLED,
+                                         # A checkbox: the progress window is
+                                         # shown or it is not.
+                                         preferences.SETTING_RUN_WITHOUT_DIALOG}
         ), "a third setting became an exception without saying why"
 
     def test_keeping_the_model_loaded_is_a_bool_and_starts_off(self):
@@ -527,7 +530,7 @@ class TestSanitizingWhatIsOnDisk:
                              auto_transcribe_received="yes",
                              cache_enabled="no", cache_by_model="junk",
                              auto_transcribe_statuses="yes",
-                             status_cache_enabled="no")
+                             status_cache_enabled="no", run_without_dialog="yes")
         assert preferences.sanitize_section(settings) is True
         assert settings[preferences.SECTION] == preferences.DEFAULTS
 

@@ -25,6 +25,10 @@ class TranscriptionOptionsMixin:
             page, label=i18n.t("transcription_keep_loaded_check")
         )
         sizer.Add(self._transcription_keep_loaded_check, 0, wx.ALL, 8)
+        self._transcription_no_dialog_check = wx.CheckBox(
+            page, label=i18n.t("transcription_no_dialog_check")
+        )
+        sizer.Add(self._transcription_no_dialog_check, 0, wx.ALL, 8)
         self._transcription_auto_check = wx.CheckBox(
             page, label=i18n.t("transcription_auto_transcribe_check")
         )
@@ -94,11 +98,15 @@ class TranscriptionOptionsMixin:
         self._transcription_auto_check.SetValue(
             bool(section.get("auto_transcribe_received", False))
         )
+        self._transcription_no_dialog_check.SetValue(
+            section.get("run_without_dialog") is True
+        )
 
     def _apply_transcription_options(self) -> None:
         section = self.main_window.settings.setdefault("transcription", {})
         section["keep_model_loaded"] = self._transcription_keep_loaded_check.GetValue()
         section["auto_transcribe_received"] = self._transcription_auto_check.GetValue()
+        section["run_without_dialog"] = self._transcription_no_dialog_check.GetValue()
         section["auto_transcribe_statuses"] = self._transcription_status_auto_check.GetValue()
         section["status_cache_enabled"] = self._transcription_status_cache_check.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
@@ -117,6 +125,9 @@ class TranscriptionOptionsMixin:
         )
         self._transcription_auto_check.SetLabel(
             i18n.t("transcription_auto_transcribe_check")
+        )
+        self._transcription_no_dialog_check.SetLabel(
+            i18n.t("transcription_no_dialog_check")
         )
         self._transcription_status_auto_check.SetLabel(
             i18n.t("transcription_status_auto_check")

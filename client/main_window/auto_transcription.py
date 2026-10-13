@@ -172,6 +172,12 @@ class AutoTranscriptionMixin:
             current = cancel_bulk()
             if current is not None:
                 running.append(current)
+        # A run started by hand with no progress window (ui/transcription_flow.py).
+        background = getattr(self, "_background_transcription", None)
+        if background is not None:
+            current = background.cancel_background()
+            if current is not None:
+                running.append(current)
         deadline = time.monotonic() + float(timeout)
         for run in running:
             try:

@@ -11241,17 +11241,32 @@ msgctxt "transcription_backend_whisper_cpp"
 msgid "whisper.cpp"
 msgstr "whisper.cpp"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
+msgctxt "transcription_background_busy"
+msgid ""
+"Another transcription is still running. Wait for it, or cancel it with the "
+"same shortcut on its message."
+msgstr ""
+"Outra transcrição ainda está em curso. Aguarde, ou cancele-a com o mesmo "
+"atalho na mensagem dela."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_background_cancel_btn"
 msgid "Ca&ncel download in the background"
 msgstr "Canc&elar transferência em segundo plano"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
+msgctxt "transcription_background_cancelling"
+msgid "Cancelling the transcription."
+msgstr "A cancelar a transcrição."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_background.py
+#: client/ui/transcription_flow.py
 msgctxt "transcription_background_started"
 msgid "It continues in the background. You will be told when it finishes."
-msgstr "Continua em segundo plano. Será avisado quando terminar."
+msgstr "A transcrever. O resultado chega quando estiver pronto."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
@@ -12917,6 +12932,16 @@ msgstr ""
 msgctxt "transcription_no_audio"
 msgid "This message has no audio to transcribe."
 msgstr "Esta mensagem não tem áudio para transcrever."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_no_dialog_check"
+msgid ""
+"Transcribe without the progress window: stay on the messages or statuses "
+"until the text is ready (the same shortcut cancels)"
+msgstr ""
+"Transcrever sem a janela de progresso: continuar nas mensagens ou nos "
+"estados até o texto ficar pronto (o mesmo atalho cancela)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/my_status_transcription.py

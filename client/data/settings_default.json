@@ -131,6 +131,7 @@
         "language": "interface",
         "auto_detect_language": true,
         "keep_model_loaded": false,
+        "run_without_dialog": false,
         "auto_transcribe_received": false,
         "cache_enabled": true,
         "cache_by_model": {},

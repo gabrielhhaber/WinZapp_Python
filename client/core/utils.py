@@ -1227,6 +1227,9 @@ DEFAULT_SETTINGS = {
         # Keep the loaded model in memory for good (off: released after a
         # few idle minutes). See core/transcription/residency.py.
         "keep_model_loaded": False,
+        # Transcribe with no progress window: stay on the list until the text
+        # is ready. See ui/transcription_flow.py (_start_in_background).
+        "run_without_dialog": False,
         # Transcribe received voice messages on arrival and put the text in
         # the message line. See core/transcription/auto_queue.py.
         "auto_transcribe_received": False,
