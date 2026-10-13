@@ -3082,8 +3082,12 @@ msgstr "&Rechazar pedido..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_order_decline_note"
-msgid "Message to the customer about the refusal (optional):"
-msgstr "Mensaje para el cliente sobre el rechazo (opcional):"
+msgid ""
+"Decline this order? You can include a note with the cancellation message "
+"(optional):"
+msgstr ""
+"¿Rechazar este pedido? Puedes incluir una nota con el mensaje de cancelación"
+" (opcional):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_order_declined"

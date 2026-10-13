@@ -2,12 +2,14 @@
 decide, without creating a wx window.
 
 What the fixtures carry was read from a real, non-business account over CDP
-(2026-10-13, WhatsApp Web 2.3000.1049387914): a business's catalog, and its
-cart after add / update / remove, with nothing sent to anyone. No order
-message existed on that account and the seller's side needs a business one,
-so an order's shape follows WhatsApp Web's own program text
-(WAWebParseOrderMessageProto, WAWebBizQueryOrderJob, WAWebOrderStatus), and
-the tests below hold the code to never claiming more than it read.
+(2026-10-13, WhatsApp Web 2.3000.1049387914): a business's catalog, its cart
+after add / update / remove, and then, with the owner's leave, one real order
+sent to a business, read back and deleted for everyone. The order message's
+fields below (itemCount, status, message, totalAmount1000, totalCurrencyCode)
+are the ones that order carried. The seller's side needs a business account,
+and no order update ever arrived on that account, so those follow WhatsApp
+Web's own program text (WAWebOrderStatus, WAWebOrderDetails), and the tests
+hold the code to never claiming more than it read.
 """
 
 import json

@@ -14,8 +14,11 @@ const collection = (items: any[]) => ({ getModelsArray: () => items, get length(
 // showed them: prices are strings of digits in thousandths, a cart's total is
 // a number, and the library's own cart functions change the cart in place.
 function fakePage(options: { smb?: boolean; cartEnabled?: boolean; catalog?: boolean; products?: any[];
-                             messages?: Record<string, any>; knownAs?: string; chats?: any[] } = {}) {
+                             messages?: Record<string, any>; knownAs?: string; chats?: any[];
+                             submit?: 'throws after sending' | 'throws without sending' } = {}) {
   const items: any[] = [];
+  const chatMessages: any[] = [];
+  const SENT = 'true_5511900000001@c.us_3EB0BBBBBBBBBBBBBBBB';
   const cart = { cartItemCollection: collection(items), get itemCount() { return items.reduce((n, i) => n + i.quantity, 0); },
                  get total() { return items.length ? items.reduce((n, i) => n + i.quantity * parseInt(i.priceAmount1000, 10), 0) : null; },
                  get currency() { return items.length ? 'BRL' : null; }, message: undefined };
@@ -42,12 +45,20 @@ function fakePage(options: { smb?: boolean; cartEnabled?: boolean; catalog?: boo
       }),
       remove: jest.fn(async (_chat: string, id: string) => { const at = items.findIndex((i) => i.id === id); if (at >= 0) items.splice(at, 1); }),
       clear: jest.fn(async () => { if (!items.length) throw new Error('cart_not_have_products'); items.length = 0; }),
-      submit: jest.fn(async () => { items.length = 0; return { id: { _serialized: 'true_5511900000001@c.us_3EB0BBBBBBBBBBBBBBBB' } }; }),
+      submit: jest.fn(async () => {
+        if (options.submit === 'throws without sending') throw new Error('offline');
+        chatMessages.push({ type: 'order', id: { fromMe: true, _serialized: SENT } });
+        items.length = 0;
+        // What the real library did after an order that went out.
+        if (options.submit === 'throws after sending') throw new Error(`Message ${SENT} not found`);
+        return { id: { _serialized: SENT } };
+      }),
     },
     order: { accept: jest.fn(async () => undefined), decline: jest.fn(async () => undefined), update: jest.fn(async () => undefined) },
     whatsapp: {
       WidFactory: { createWid: wid },
-      ChatStore: { get: (value: any) => (value.toString() === known ? { id: value } : undefined),
+      ChatStore: { get: (value: any) => (value.toString() === known
+                     ? { id: value, msgs: collection(chatMessages) } : undefined),
                    getModelsArray: () => options.chats ?? [] },
       CartStore: { findCart: () => cart },
       MsgStore: { get: (id: string) => options.messages?.[id] },
@@ -56,8 +67,12 @@ function fakePage(options: { smb?: boolean; cartEnabled?: boolean; catalog?: boo
         hasCatalog: options.catalog !== false, profileOptions: { cartEnabled: options.cartEnabled !== false } })) },
       functions: {
         getCurrentLid: () => wid('777@lid'), getPhoneNumber: () => wid(SELLER),
-        queryOrder: jest.fn(async () => ({ createdAt: 1790000000, currency: 'BRL', subtotal: 15000, tax: null, total: 15000,
-          products: [{ id: '100', name: 'Bread', price: 7500, currency: 'BRL', quantity: 2 }] })),
+        // WhatsApp Web's current form: one object, with the seller's id.
+        queryOrder: jest.fn(async (request: any) => {
+          if (!request || typeof request !== 'object' || !request.sellerJid) throw new Error('ServerStatusCodeError');
+          return { createdAt: 1790000000, currency: 'BRL', subtotal: 15000, tax: null, total: 15000,
+                   products: [{ id: '100', name: 'Bread', price: 7500, currency: 'BRL', quantity: 2 }] };
+        }),
       },
     },
   };
@@ -174,10 +189,26 @@ describe('the buyer: catalog and cart', () => {
     expect(page.WPP.cart.submit).toHaveBeenCalledTimes(1);
     expect(page.WPP.cart.submit).toHaveBeenCalledWith(SELLER, undefined);
   });
+
+  test('an order the library throws on after sending is still an order sent', async () => {
+    const page = fakePage({ submit: 'throws after sending' });
+    await inPage(page, { action: 'cartSet', chatId: SELLER, productId: '100', quantity: 1 });
+    const sent = await inPage(page, { action: 'cartSubmit', chatId: SELLER, message: 'hi' });
+    expect(sent).toMatchObject({ sent: true, id: 'true_5511900000001@c.us_3EB0BBBBBBBBBBBBBBBB' });
+    expect(page.WPP.cart.submit).toHaveBeenCalledTimes(1);  // never sent twice
+  });
+
+  test('a throw with no new order in the chat is unknown, not "sent" and not "not sent"', async () => {
+    const page = fakePage({ submit: 'throws without sending' });
+    await inPage(page, { action: 'cartSet', chatId: SELLER, productId: '100', quantity: 1 });
+    await expect(inPage(page, { action: 'cartSubmit', chatId: SELLER, message: '' })).rejects.toThrow('order_not_seen');
+    expect(page.WPP.cart.submit).toHaveBeenCalledTimes(1);
+  }, 15000);
 });
 
 describe('orders', () => {
-  const received = (status = 1) => ({ type: 'order', orderId: 'O1', token: 'T1', status, message: 'please', id: { fromMe: false } });
+  const received = (status = 1) => ({ type: 'order', orderId: 'O1', token: 'T1', sellerJid: '5511999999999@c.us',
+                                      status, message: 'please', id: { fromMe: false } });
 
   test('an order opens for both sides, with its products and totals', async () => {
     const page = fakePage({ messages: { [ORDER]: received() } });
@@ -185,7 +216,25 @@ describe('orders', () => {
     expect(order).toEqual({ mine: false, status: 1, note: 'please', subtotal: 15000, total: 15000, currency: 'BRL',
       createdAt: 1790000000, canAnswer: false, canUpdate: false,
       products: [{ id: '100', name: 'Bread', price: 7500, currency: 'BRL', quantity: 2 }] });
-    expect(page.WPP.whatsapp.functions.queryOrder).toHaveBeenCalledWith('O1', 80, 80, 'T1');
+    expect(page.WPP.whatsapp.functions.queryOrder).toHaveBeenCalledWith(
+      { orderId: 'O1', token: 'T1', sellerJid: '5511999999999@c.us', width: 80, height: 80 });
+  });
+
+  test('the library\'s own order functions get a query that speaks the current form, and get theirs back', async () => {
+    const page = fakePage({ smb: true, messages: { [ORDER]: received() } });
+    const functions = page.WPP.whatsapp.functions;
+    const original = functions.queryOrder;
+    // The library asks the old way, as the real one does.
+    page.WPP.order.accept = jest.fn(async () => { await functions.queryOrder('O1', 80, 80, 'T1'); });
+    await expect(functions.queryOrder('O1', 80, 80, 'T1')).rejects.toThrow();  // as it is: broken
+    expect(await inPage(page, { action: 'orderAccept', messageId: ORDER })).toMatchObject({ accepted: true });
+    expect(original).toHaveBeenLastCalledWith(
+      { orderId: 'O1', token: 'T1', sellerJid: '5511999999999@c.us', width: 80, height: 80 });
+    expect(functions.queryOrder).toBe(original);
+    // Put back even when the library fails.
+    page.WPP.order.decline = jest.fn(async () => { throw new Error('refused'); });
+    await expect(inPage(page, { action: 'orderDecline', messageId: ORDER, note: '' })).rejects.toThrow('refused');
+    expect(functions.queryOrder).toBe(original);
   });
 
   test('a message that is not an order, or lacks its token, is not one', async () => {

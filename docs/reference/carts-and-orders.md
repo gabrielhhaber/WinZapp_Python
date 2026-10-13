@@ -72,13 +72,55 @@ number; `WPP.cart.get()` returned by value carries no items; `WPP.cart.clear()`
 throws on an empty cart; `WPP.cart.add()` skips, without a word, a product the
 catalog no longer has (answered as `product_unavailable`).
 
-**Not run:**
+## One real order
 
-- sending a cart, which sends a real order to a real business;
-- the seller's side (it needs a WhatsApp Business account and a real order);
-- an order message or an order update as they arrive: the account had none.
-  Their fields come from `WAWebParseOrderMessageProto`, `WAWebOrderStatus`
-  and `WAWebBizQueryOrderJob`.
+With the account owner's leave, one order (a cart with one item) was then sent
+to a business of their choosing, read back and deleted for everyone. It
+arrived (ack 2) and its fields were the ones `order_payload()` reads:
+`itemCount`, `status` 1, `message`, `totalAmount1000` (a number),
+`totalCurrencyCode`. Two faults of the library showed, and the route works
+around both:
+
+- **`WPP.cart.submit()` throws after sending.** It looks the message up at
+  once (`getMessageById`), before the page has it, and throws `msg_not_found`
+  for an order that went out. The route no longer takes a throw for "not
+  sent": it reads the chat for a new order message of the account's own. A
+  throw with nothing new in the chat is answered as unavailable, which the
+  window says as "may or may not have been sent".
+- **The library cannot read an order on this WhatsApp Web.** It calls the
+  order query with positional arguments (`orderId, width, height, token`);
+  WhatsApp Web now takes one object and needs `sellerJid` in it. So
+  `WPP.order.get()`, `accept()`, `decline()` and `update()` all failed with
+  `ServerStatusCodeError` before doing anything. Reading an order calls the
+  query in its current form (run on the real order: one product, price and
+  quantity as numbers, subtotal and total). The three seller functions are run
+  with the library's own reference to the query swapped, for the length of
+  the call, for one that translates and adds the seller's id; with that swap
+  `WPP.order.get()` read the real order, and the reference was put back.
+
+## Cancelling, as WhatsApp Web does it
+
+Read from the order drawer's own program text
+(`WAWebCartOrderDetailDrawer.react`, `WAWebBizProductDetailsFlow.react`):
+
+- the **buyer** has no cancel. A sent cart opens read-only ("Your sent
+  cart"); taking it back is the ordinary "delete message", which is what the
+  test above used (`isRevoked: true`);
+- the **seller** cancels: "Decline order", which asks "Decline this order?
+  You can include a note with the cancellation message", and later the
+  status "Canceled" in "Update order status".
+
+WinZapp has the same and no more: no cancel button for the buyer; "Decline
+order" with its note and the status list for a business account.
+
+**Still not run:**
+
+- the seller's side past the order query (it needs a WhatsApp Business
+  account and an order received);
+- an order update (`interactive`, native flow) as it arrives: the account had
+  none. Its fields come from `WAWebOrderStatus` and `WAWebOrderDetails`;
+- the route's new handling of `WPP.cart.submit()` on a real send (the fault
+  was found by the one order sent; a second was not sent to try the fix).
 
 So the code claims no more than it can read back:
 

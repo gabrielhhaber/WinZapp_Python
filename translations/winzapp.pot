@@ -2843,7 +2843,9 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_order_decline_note"
-msgid "Message to the customer about the refusal (optional):"
+msgid ""
+"Decline this order? You can include a note with the cancellation message "
+"(optional):"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

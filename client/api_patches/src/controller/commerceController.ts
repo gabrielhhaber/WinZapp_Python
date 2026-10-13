@@ -41,10 +41,29 @@ export const PAYMENT_STATUSES = ['pending', 'captured', 'failed', 'canceled'];
 // showed and this relies on: a product's price is a string of digits in
 // thousandths; a cart item's price too, while the cart's total is a number;
 // WPP.cart.get() returned by value carries no items, so they are read here;
-// WPP.cart.clear() throws on an empty cart. The seller's side could not be
-// run (it needs a business account and a real order): it follows the
-// library's and WhatsApp Web's program text, and says so in its answers by
-// never claiming more than "not refused".
+// WPP.cart.clear() throws on an empty cart.
+//
+// Then one real order was sent to a business, with the account owner's leave,
+// read back and deleted for everyone. Two library faults showed, and both are
+// worked around here rather than passed on:
+//
+// - WPP.cart.submit() sends the order and then throws msg_not_found: it looks
+//   the message up at once, before the page has it. The order had arrived
+//   (ack 2). So a throw is not "not sent": the chat is read for a new order
+//   message of the account's own, and that decides.
+// - The library asks WhatsApp Web for an order with positional arguments
+//   (orderId, width, height, token); WhatsApp Web now takes one object and
+//   needs the seller's id in it, so WPP.order.get(), accept(), decline() and
+//   update() all failed with ServerStatusCodeError before doing anything.
+//   Reading an order calls the query in its current form. The three seller
+//   functions are run with the library's own reference to the query swapped,
+//   for the length of the call, for one that translates; with that swap
+//   WPP.order.get() read the real order, and the reference was restored.
+//
+// What still could not be run is the rest of the seller's side (it needs a
+// business account and an order received): past the query it follows the
+// library's and WhatsApp Web's program text, and its answer claims no more
+// than "not refused".
 //
 // Runs inside the page: self-contained, no closure over anything here.
 export async function commerceInPage(request: any): Promise<any> {
@@ -92,6 +111,27 @@ export async function commerceInPage(request: any): Promise<any> {
     return { items, itemCount: amount(cart?.itemCount) ?? 0, total: amount(cart?.total),
              currency: text(cart?.currency), message: text(cart?.message) };
   };
+  // WhatsApp Web's order query in its current form (see the note above).
+  const orderQuery = (message: any) => W.functions.queryOrder({
+    orderId: message.orderId, token: message.token, sellerJid: message.sellerJid, width: 80, height: 80 });
+  // Run a library function that still asks in the old form.
+  const withOrderQuery = async (message: any, run: () => Promise<unknown>) => {
+    const descriptor = Object.getOwnPropertyDescriptor(W.functions, 'queryOrder');
+    const current = W.functions.queryOrder;
+    const translating = (first: any, width: unknown, height: unknown, token: unknown) =>
+      first && typeof first === 'object' ? current(first)
+        : current({ orderId: first, token, sellerJid: message.sellerJid, width, height });
+    Object.defineProperty(W.functions, 'queryOrder', { configurable: true, enumerable: true, get: () => translating });
+    try {
+      return await run();
+    } finally {
+      if (descriptor) Object.defineProperty(W.functions, 'queryOrder', descriptor);
+    }
+  };
+  // The ids of the order messages this account sent in a chat.
+  const ordersSent = (wid: any): string[] => (W.ChatStore.get(wid)?.msgs?.getModelsArray?.() ?? [])
+    .filter((message: any) => message?.type === 'order' && message?.id?.fromMe === true)
+    .map((message: any) => text(message.id?._serialized)).filter(Boolean);
   const orderMessage = async (messageId: string) => {
     const message = W.MsgStore.get(messageId) ?? await WPP.chat.getMessageById(messageId).catch(() => null);
     return message && message.type === 'order' && message.orderId && message.token ? message : null;
@@ -163,13 +203,28 @@ export async function commerceInPage(request: any): Promise<any> {
       if (!(await sellerProfile(wid)).cartEnabled) return { error: 'cart_disabled' };
       const id = wid.toString();
       if (!(cartView(id) as any).items.length) return { error: 'cart_empty' };
-      const sent = await WPP.cart.submit(id, request.message || undefined);
-      return { sent: true, id: text(sent?.id?._serialized ?? sent?.id), cart: cartView(id) };
+      const before = new Set(ordersSent(wid));
+      let returned = '';
+      let threw = false;
+      try {
+        const sent = await WPP.cart.submit(id, request.message || undefined);
+        returned = text(sent?.id?._serialized ?? sent?.id);
+      } catch (_) {
+        threw = true;  // which the library does after an order that went out
+      }
+      let found = '';
+      for (let attempt = 0; attempt < 10 && !found; attempt++) {
+        found = ordersSent(wid).find((entry) => !before.has(entry)) ?? '';
+        if (!found) await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      // Threw and nothing new in the chat: unknown, and said as such.
+      if (!found && threw) throw new Error('order_not_seen');
+      return { sent: true, id: found || returned, cart: cartView(id) };
     }
     case 'order': {
       const message = await orderMessage(request.messageId);
       if (!message) return { error: 'not_an_order' };
-      const details = await W.functions.queryOrder(message.orderId, 80, 80, message.token);
+      const details = await orderQuery(message);
       const products: unknown[] = [];
       for (const product of details?.products ?? []) {
         products.push({ id: String(product?.id ?? ''), name: text(product?.name), price: amount(product?.price),
@@ -194,14 +249,15 @@ export async function commerceInPage(request: any): Promise<any> {
       const message = W.MsgStore.get(request.messageId);
       if (!message || message.type !== 'order') return { error: 'not_an_order' };
       if (message.id?.fromMe === true) return { error: 'own_order' };
-      if (request.action === 'orderAccept') await WPP.order.accept({ msgId: request.messageId });
-      else if (request.action === 'orderDecline') {
-        await WPP.order.decline({ msgId: request.messageId, declineNote: request.note || undefined });
-      } else {
-        await WPP.order.update({ msgId: request.messageId, orderStatus: request.status,
-                                 orderNote: request.note || undefined,
-                                 paymentStatus: request.paymentStatus || undefined });
-      }
+      await withOrderQuery(message, () => {
+        if (request.action === 'orderAccept') return WPP.order.accept({ msgId: request.messageId });
+        if (request.action === 'orderDecline') {
+          return WPP.order.decline({ msgId: request.messageId, declineNote: request.note || undefined });
+        }
+        return WPP.order.update({ msgId: request.messageId, orderStatus: request.status,
+                                  orderNote: request.note || undefined,
+                                  paymentStatus: request.paymentStatus || undefined });
+      });
       const after = W.MsgStore.get(request.messageId);
       return { accepted: true, status: [1, 2, 3].includes(after?.status) ? after.status : null };
     }
