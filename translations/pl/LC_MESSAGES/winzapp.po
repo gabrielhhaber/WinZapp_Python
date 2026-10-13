@@ -4897,6 +4897,120 @@ msgctxt "group_presence_indicator"
 msgid "{name}: {action}"
 msgstr "{name}: {action}"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_approve"
+msgid "&Approve"
+msgstr "Za&twierdź"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_approved"
+msgid "Request approved."
+msgstr "Prośba zatwierdzona."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_button"
+msgid "Pending &join requests..."
+msgstr "Proś&by o dołączenie..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+#, python-brace-format
+msgctxt "group_requests_count"
+msgid "Pending requests: {count}"
+msgstr "Oczekujące prośby: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_empty"
+msgid "There are no pending requests to join this group."
+msgstr "Nie ma oczekujących próśb o dołączenie do tej grupy."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_failed"
+msgid ""
+"The request could not be answered: WhatsApp refused or the connection "
+"failed."
+msgstr ""
+"Nie udało się odpowiedzieć na prośbę: WhatsApp odmówił albo połączenie "
+"zawiodło."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_list"
+msgid "&Pending requests"
+msgstr "&Oczekujące prośby"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+#, python-brace-format
+msgctxt "group_requests_method_added"
+msgid "added by {name}, awaiting approval"
+msgstr "dodane przez: {name}, oczekuje na zatwierdzenie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_method_community"
+msgid "asked to join through the community"
+msgstr "prośba o dołączenie przez społeczność"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_method_link"
+msgid "asked to join through the invitation link"
+msgstr "prośba o dołączenie przez link z zaproszeniem"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_method_unknown"
+msgid "asked to join"
+msgstr "prośba o dołączenie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_not_admin"
+msgid "Only admins of the group can see the requests to join."
+msgstr "Tylko administratorzy grupy mogą zobaczyć prośby o dołączenie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_refresh"
+msgid "Re&fresh"
+msgstr "Odś&wież"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_reject"
+msgid "&Reject"
+msgstr "O&drzuć"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_rejected"
+msgid "Request rejected."
+msgstr "Prośba odrzucona."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_stale"
+msgid "WhatsApp could not be asked, so this list may be out of date."
+msgstr "Nie udało się zapytać WhatsAppa, więc ta lista może być nieaktualna."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+#, python-brace-format
+msgctxt "group_requests_title"
+msgid "Requests to join - {name}"
+msgstr "Prośby o dołączenie - {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_unavailable"
+msgid "The requests could not be read. Check the connection and try again."
+msgstr "Nie udało się odczytać próśb. Sprawdź połączenie i spróbuj ponownie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_unconfirmed"
+msgid ""
+"The answer was sent, but WhatsApp still lists the request. Refresh in a "
+"moment to check."
+msgstr ""
+"Odpowiedź została wysłana, ale WhatsApp nadal pokazuje prośbę. Odśwież za "
+"chwilę, aby sprawdzić."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/groups.py
 msgctxt "group_result_unconfirmed"
 msgid ""
@@ -13703,6 +13817,7 @@ msgstr "Kontakt bez nazwy"
 #: client/ui/dialogs/community_admin.py
 #: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/dialogs/group_join_dialog.py
+#: client/ui/dialogs/group_membership_requests.py
 msgctxt "unknown_group"
 msgid "Unnamed group"
 msgstr "Grupa bez nazwy"
@@ -13735,9 +13850,10 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/community_comments.py
 #: client/core/message_sender_labels.py client/core/notification_manager.py
-#: client/main_window/chat_list.py client/main_window/identity.py
+#: client/core/participant_names.py client/main_window/chat_list.py
+#: client/main_window/identity.py
 #: client/ui/conversation_panel/message_rendering.py
-#: client/ui/dialogs/community_admin.py
+#: client/ui/dialogs/group_membership_requests.py
 msgctxt "unnamed_participant"
 msgid "Unnamed participant"
 msgstr "Członek bez nazwy"

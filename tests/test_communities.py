@@ -1,11 +1,14 @@
 """Communities: the reading and action contracts, and what the dialog decides,
 without creating a wx window.
 
-The admin actions are wppconnect-server's own routes over the library's
-WPP.community functions. They could not be exercised on a real account (the
-one probed over CDP is an admin of none of its 39 communities), so nothing
-here assumes what those routes answer: an action is believed only when a
-fresh reading shows its effect, and these tests pin that rule down.
+The admin actions were run on a real account against a throwaway community
+(2026-10-13, WhatsApp Web 2.3000.1049387914, wa-js 4.6.1). What they answered
+there is what the fixtures below carry; what went wrong there is why an
+action is believed only when a fresh reading shows its effect:
+
+- creating with no group answered an error after the community existed;
+- linking a group created a second earlier answered success and did nothing;
+- the library's promotion threw for every member who was not an admin yet.
 """
 
 from types import SimpleNamespace
@@ -18,7 +21,8 @@ from core.communities import Admin, Community, Subgroup
 from tests.locales import registered_locale_codes
 from tests.mnemonics import load_strings, mnemonic
 from ui.dialogs.communities import CommunitiesDialog, community_label, subgroup_label
-from ui.dialogs.community_admin import CommunityAdminActions, person_name
+from core.participant_names import person_name
+from ui.dialogs.community_admin import CommunityAdminActions
 
 CONNECTION = ("http://localhost", 6300, "synthetic-token")
 HEADERS = {"Authorization": "Bearer synthetic-token"}
@@ -98,8 +102,11 @@ def test_an_unavailable_listing_is_an_error_not_an_empty_list(monkeypatch):
      {"id": SCHOOL.jid, "groupsIds": ["444-0@g.us"]}),
     (lambda: api.unlink_groups(CONNECTION, SCHOOL.jid, [PLAIN.jid]), "remove-community-subgroup",
      {"id": SCHOOL.jid, "groupsIds": [PLAIN.jid]}),
-    (lambda: api.promote_admin(CONNECTION, SCHOOL.jid, "333@lid"), "promote-community-participant",
-     {"id": SCHOOL.jid, "participantsId": ["333@lid"]}),
+    # WinZapp's own route: the library's cannot promote a member.
+    (lambda: api.promote_admin(CONNECTION, SCHOOL.jid, "333@lid"), "community-admin/111-0@g.us/promote",
+     {"participant": "333@lid"}),
+    (lambda: api.promote_admin(CONNECTION, SCHOOL.jid, "5511900000003@s.whatsapp.net"),
+     "community-admin/111-0@g.us/promote", {"participant": "5511900000003@c.us"}),
     (lambda: api.demote_admin(CONNECTION, SCHOOL.jid, OTHER_ADMIN.jid), "demote-community-participant",
      {"id": SCHOOL.jid, "participantsId": [OTHER_ADMIN.jid]}),
 ])
@@ -117,6 +124,7 @@ def test_each_action_is_the_upstream_route_with_its_own_field_names(monkeypatch,
     lambda: api.deactivate_community(CONNECTION, "5511900000001@c.us"),
     lambda: api.link_groups(CONNECTION, SCHOOL.jid, ["nope"]),
     lambda: api.promote_admin(CONNECTION, SCHOOL.jid, "111-3@g.us"),
+    lambda: api.promote_admin(CONNECTION, SCHOOL.jid, "333:2@lid"),
     lambda: api.demote_admin(CONNECTION, SCHOOL.jid, None),
 ])
 def test_a_malformed_request_is_never_sent(monkeypatch, call):
@@ -129,7 +137,13 @@ def test_a_malformed_request_is_never_sent(monkeypatch, call):
 
 @pytest.mark.parametrize("response", [
     answer(None),  # a library function that returns nothing: 200 with no body
-    answer({"wid": "999-0@g.us", "subGroups": {}}), answer([]), answer("ok")])
+    # What the real routes answered: create, link, unlink, deactivate, demote.
+    answer({"wid": "999-0@g.us", "subGroups": {"linkedGroupJids": ["111-3@g.us"], "failedGroups": []}}),
+    answer({"linkedGroupJids": ["111-3@g.us"], "failedGroups": []}),
+    answer({"unlinkedGroupJids": ["111-3@g.us"], "failedGroups": []}),
+    answer({"parent_group_jid": "111-0@g.us"}),
+    answer({"participants": ["222@lid"], "success": True}),
+    answer({"status": "success", "response": {"promoted": True}}), answer([]), answer("ok")])
 def test_an_answer_of_any_shape_is_only_not_a_refusal(monkeypatch, response):
     monkeypatch.setattr(api, "api_post", Mock(return_value=response))
     assert api.deactivate_community(CONNECTION, SCHOOL.jid) is None
@@ -137,6 +151,7 @@ def test_an_answer_of_any_shape_is_only_not_a_refusal(monkeypatch, response):
 
 @pytest.mark.parametrize("response", [
     answer({"status": "error", "message": "Error on create community"}, 500),
+    answer({"status": "error", "code": "promotion_refused"}, 409),
     answer({"status": "error"}),
     # demote answers 200 with success: false when WhatsApp refuses.
     answer({"participants": ["222@lid"], "success": False, "error": {}})])
@@ -168,18 +183,20 @@ def test_accepted_but_not_visible_is_unconfirmed_not_done():
     assert outcome == ("unconfirmed", [SCHOOL]) and read.call_count == 3
 
 
-def test_a_refused_action_is_failed_after_one_reading():
+def test_a_refused_action_is_failed_only_after_every_reading():
     outcome, read, sleep = run(Mock(side_effect=ValueError()), [[SCHOOL]] * 3, api.gone(SCHOOL.jid))
     assert outcome == ("failed", [SCHOOL])
-    assert read.call_count == 1 and not sleep.called
+    assert read.call_count == 3 and sleep.call_count == 2
 
 
-def test_a_refusal_whose_effect_is_there_is_done():
-    """Creating sends two requests: the second can fail after the first made
-    the community. The reading decides, not the error."""
+def test_a_refusal_whose_effect_shows_up_a_moment_later_is_done():
+    """Seen on a real account: creating with no group answers an error (the
+    library links an empty list next, which WhatsApp refuses) after the
+    community exists, and the page shows it about half a second later. The
+    reading decides, not the error."""
     check = api.created(frozenset({SCHOOL.jid}), " Club ")
-    outcome, _read, _sleep = run(Mock(side_effect=ValueError()), [[SCHOOL, CLUB]], check)
-    assert outcome == ("done", [SCHOOL, CLUB])
+    outcome, read, _sleep = run(Mock(side_effect=ValueError()), [[SCHOOL], [SCHOOL, CLUB]], check)
+    assert outcome == ("done", [SCHOOL, CLUB]) and read.call_count == 2
 
 
 def test_readings_that_fail_leave_the_action_unconfirmed():

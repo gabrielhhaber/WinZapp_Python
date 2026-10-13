@@ -4847,6 +4847,118 @@ msgctxt "group_presence_indicator"
 msgid "{name}: {action}"
 msgstr "{name}: {action}"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_approve"
+msgid "&Approve"
+msgstr "&Onayla"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_approved"
+msgid "Request approved."
+msgstr "İstek onaylandı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_button"
+msgid "Pending &join requests..."
+msgstr "Bekleyen katılma &istekleri..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+#, python-brace-format
+msgctxt "group_requests_count"
+msgid "Pending requests: {count}"
+msgstr "Bekleyen istekler: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_empty"
+msgid "There are no pending requests to join this group."
+msgstr "Bu gruba katılmak için bekleyen istek yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_failed"
+msgid ""
+"The request could not be answered: WhatsApp refused or the connection "
+"failed."
+msgstr "İstek yanıtlanamadı: WhatsApp reddetti veya bağlantı başarısız oldu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_list"
+msgid "&Pending requests"
+msgstr "&Bekleyen istekler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+#, python-brace-format
+msgctxt "group_requests_method_added"
+msgid "added by {name}, awaiting approval"
+msgstr "{name} tarafından eklendi, onay bekliyor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_method_community"
+msgid "asked to join through the community"
+msgstr "topluluk üzerinden katılmak istedi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_method_link"
+msgid "asked to join through the invitation link"
+msgstr "davet bağlantısıyla katılmak istedi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_method_unknown"
+msgid "asked to join"
+msgstr "katılmak istedi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_not_admin"
+msgid "Only admins of the group can see the requests to join."
+msgstr "Katılma isteklerini yalnızca grup yöneticileri görebilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_refresh"
+msgid "Re&fresh"
+msgstr "Yeni&le"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_reject"
+msgid "&Reject"
+msgstr "&Reddet"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_rejected"
+msgid "Request rejected."
+msgstr "İstek reddedildi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_stale"
+msgid "WhatsApp could not be asked, so this list may be out of date."
+msgstr "WhatsApp'a sorulamadı; bu liste güncel olmayabilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+#, python-brace-format
+msgctxt "group_requests_title"
+msgid "Requests to join - {name}"
+msgstr "Katılma istekleri - {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/group_membership_requests.py
+msgctxt "group_requests_unavailable"
+msgid "The requests could not be read. Check the connection and try again."
+msgstr "İstekler okunamadı. Bağlantıyı denetleyip yeniden deneyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_requests_unconfirmed"
+msgid ""
+"The answer was sent, but WhatsApp still lists the request. Refresh in a "
+"moment to check."
+msgstr ""
+"Yanıt gönderildi, ancak WhatsApp isteği hâlâ listeliyor. Denetlemek için "
+"birazdan yenileyin."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/groups.py
 msgctxt "group_result_unconfirmed"
 msgid ""
@@ -13372,6 +13484,7 @@ msgstr "Adsız kişi"
 #: client/ui/dialogs/community_admin.py
 #: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/dialogs/group_join_dialog.py
+#: client/ui/dialogs/group_membership_requests.py
 msgctxt "unknown_group"
 msgid "Unnamed group"
 msgstr "Adsız grup"
@@ -13404,9 +13517,10 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/community_comments.py
 #: client/core/message_sender_labels.py client/core/notification_manager.py
-#: client/main_window/chat_list.py client/main_window/identity.py
+#: client/core/participant_names.py client/main_window/chat_list.py
+#: client/main_window/identity.py
 #: client/ui/conversation_panel/message_rendering.py
-#: client/ui/dialogs/community_admin.py
+#: client/ui/dialogs/group_membership_requests.py
 msgctxt "unnamed_participant"
 msgid "Unnamed participant"
 msgstr "Adsız katılımcı"

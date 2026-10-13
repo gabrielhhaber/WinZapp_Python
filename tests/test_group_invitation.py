@@ -35,6 +35,7 @@ def test_invitation_waits_for_metadata_before_snapshotting_admin_permission(monk
         _name='Group', _user_is_admin=False, _overview_ctrl=Mock(), _part_list=part,
         _apply_subject_to_title=Mock(), _participant_row=lambda jid,flag:('Member','','Member',jid),
         _mw=SimpleNamespace(my_jid='111@c.us',my_lid='',_phone_digits_equivalent=lambda a,b:a==b),
+        _requests_btn=Mock(),
         _add_members_btn=Mock(),_add_members_btn_overview=Mock(),_edit_name_btn=Mock(),_edit_desc_btn=Mock())
     owner._invitation_btn = add_invitation_button(owner, Mock(), Mock())
     click = button.Bind.call_args.args[1]

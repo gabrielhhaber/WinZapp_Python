@@ -5,12 +5,12 @@ and opens.
 """
 
 import logging
-import threading
 import wx
 from core.communities import list_communities
-from core.group_invitation import connection_identity
+from core.participant_names import person_name
 from ui.accessible import split_mnemonic
-from ui.dialogs.community_admin import CommunityAdminActions, person_name
+from ui.dialogs.background_work import BackgroundWork
+from ui.dialogs.community_admin import CommunityAdminActions
 from ui.dialogs.group_join_dialog import open_group_chat
 
 
@@ -47,13 +47,10 @@ def subgroup_label(group, i18n):
     return i18n.t("communities_group_general").format(name=name) if group.general else name
 
 
-class CommunitiesDialog(CommunityAdminActions, wx.Dialog):
+class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
     def __init__(self, parent, main_window):
-        self._mw = main_window
-        self._i18n = i18n = main_window.i18n
-        self._connection = connection_identity(main_window)
-        self._closed = threading.Event()
-        self._busy = False
+        self._init_background(main_window)
+        i18n = self._i18n
         self._loaded = False
         self._communities = []
         self.result = None
@@ -105,40 +102,6 @@ class CommunitiesDialog(CommunityAdminActions, wx.Dialog):
         self.CentreOnParent()
         wx.CallAfter(self._reload)
 
-    # ── lifetime ──────────────────────────────────────────────────────────
-
-    def _on_close(self, event):
-        self._closed.set()
-        self.EndModal(wx.ID_CANCEL)
-
-    def _on_destroy(self, event):
-        if event.GetEventObject() is self:
-            self._closed.set()
-        event.Skip()
-
-    def _current(self):
-        return (not self._closed.is_set() and not getattr(self._mw, "_shutting_down", False)
-                and connection_identity(self._mw) == self._connection)
-
-    def _run_async(self, work, done):
-        """*work* off the main thread, *done(result)* back on it; a dialog
-        closed meanwhile hears nothing."""
-        def run():
-            try:
-                result = work()
-            except Exception:
-                result = None
-            if not self._closed.is_set():
-                wx.CallAfter(self._deliver, done, result)
-        try:
-            threading.Thread(target=run, daemon=True).start()
-        except Exception:
-            self._deliver(done, None)
-
-    def _deliver(self, done, result):
-        if not self._closed.is_set():
-            done(result)
-
     # ── state ─────────────────────────────────────────────────────────────
 
     def _selected(self):
@@ -168,10 +131,6 @@ class CommunitiesDialog(CommunityAdminActions, wx.Dialog):
         self._promote.Enable(admin and community.announcement_group is not None)
         self._demote.Enable(admin)
         self._deactivate.Enable(admin)
-
-    def _announce(self, text):
-        self._status.SetLabel(text)
-        self._mw.speak_output.output(text)
 
     # ── reading ───────────────────────────────────────────────────────────
 

@@ -27,6 +27,7 @@ DATA_DIALOG_KEYS = (
     "back_btn",
     "profile_picture_btn",
     "group_invitation_title",
+    "group_requests_button",
     "edit_group_name",
     "edit_group_description",
     "group_data_add_member_btn",

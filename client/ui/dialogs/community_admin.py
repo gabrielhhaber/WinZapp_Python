@@ -10,24 +10,13 @@ import logging
 import re
 import wx
 from core import communities as api
+from core.participant_names import person_name
 from core.utils import contact_dedup_key
 from ui.dialogs.community_create import CommunityCreateDialog
 
 _PERSON = re.compile(r"\d+(?::\d+)?@(?:c\.us|lid|s\.whatsapp\.net)")
 _OUTCOMES = {"done": "communities_action_done", "unconfirmed": "communities_action_unconfirmed",
              "failed": "communities_action_failed"}
-
-
-def person_name(mw, jid):
-    """A name to read aloud for a participant: never a raw identifier."""
-    norm = mw._normalize_jid(jid)
-    if mw._is_self_jid(norm):
-        return mw.self_reference_label()
-    name = mw._resolve_jid_name(norm, resolve_missing=False)
-    if (not isinstance(name, str) or not name.strip()
-            or name.endswith(("@lid", "@c.us", "@s.whatsapp.net", "@g.us"))):
-        return mw.i18n.t("unnamed_participant")
-    return name.strip()
 
 
 class CommunityAdminActions:

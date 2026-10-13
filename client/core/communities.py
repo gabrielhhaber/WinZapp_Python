@@ -1,21 +1,22 @@
 """The account's communities and the actions on them.
 
-Reading is WinZapp's own route (GET communities). The actions are the
-upstream wppconnect-server routes, used as they are: they answer the
-library's raw result, which has no single shape (an object, a `success`
-flag, or no body at all for a function that returns nothing). So an answer
-only says whether the request was refused; an action is believed when a
-fresh reading shows its effect. See run_action().
+Reading is WinZapp's own route (GET communities), and so is promotion: the
+library's cannot promote anyone who is not an admin already. The other
+actions are the upstream wppconnect-server routes, used as they are: they
+answer the library's raw result, which has no single shape (an object, a
+`success` flag, or no body at all for a function that returns nothing). So an
+answer only says whether the request was refused; an action is believed when
+a fresh reading shows its effect. See run_action().
 
 Nothing here retries an action: creating a community twice is worse than
 saying "not confirmed".
 """
 
 import re
-import time
 from dataclasses import dataclass
 from core.api_client import api_get, api_post
 from core.group_operations import group_jid
+from core import read_back
 
 _PERSON = re.compile(r"\d+(?::\d+)?@(?:c\.us|lid|s\.whatsapp\.net)")
 _IDENTIFIER = re.compile(r"\d+(?:-\d+)?(?::\d+)?@(?:g\.us|lid|c\.us|s\.whatsapp\.net)\b")
@@ -148,47 +149,27 @@ def unlink_groups(connection, jid, group_jids):
     _act(connection, "remove-community-subgroup", {"id": _community(jid), "groupsIds": _groups(group_jids)})
 
 
-def _admin_change(connection, endpoint, jid, person):
-    if not isinstance(person, str) or not _PERSON.fullmatch(person):
-        raise ValueError("invalid_participant")
-    _act(connection, endpoint, {"id": _community(jid), "participantsId": [person]})
-
-
 def promote_admin(connection, jid, person):
-    _admin_change(connection, "promote-community-participant", jid, person)
+    # WinZapp's own route (communityAdminController.ts), which takes the
+    # person in WhatsApp Web's own forms only.
+    person = person.replace("@s.whatsapp.net", "@c.us") if isinstance(person, str) else ""
+    if not re.fullmatch(r"\d+@(?:c\.us|lid)", person):
+        raise ValueError("invalid_participant")
+    _act(connection, f"community-admin/{_community(jid)}/promote", {"participant": person})
 
 
 def demote_admin(connection, jid, person):
-    _admin_change(connection, "demote-community-participant", jid, person)
+    # The library's own route: an admin is in the list it looks the person up in.
+    if not isinstance(person, str) or not _PERSON.fullmatch(person):
+        raise ValueError("invalid_participant")
+    _act(connection, "demote-community-participant", {"id": _community(jid), "participantsId": [person]})
 
 
-def run_action(connection, action, achieved, attempts=3, pause=1.5,
-               read=list_communities, sleep=time.sleep):
-    """Run *action* once, then read the communities until *achieved* says its
-    effect is there. Returns (state, communities): "done" when it is,
-    "failed" when the request was refused and nothing changed, "unconfirmed"
-    when it was accepted but the effect is not visible yet. *communities* is
-    the last reading, None when none worked.
-
-    A refused request is still read back once: creating a community sends two
-    requests, and the second can fail after the first has created it.
-    """
-    refused = False
-    try:
-        action()
-    except Exception:
-        refused = True
-    communities = None
-    for attempt in range(1 if refused else attempts):
-        if attempt:
-            sleep(pause)
-        try:
-            communities = read(connection)
-        except Exception:
-            continue
-        if achieved(communities):
-            return "done", communities
-    return ("failed" if refused else "unconfirmed"), communities
+def run_action(connection, action, achieved, read=None, **options):
+    """Run *action* once and read the communities back until *achieved* says
+    its effect is there: (state, communities), as core.read_back.run_action()."""
+    read = read or list_communities
+    return read_back.run_action(action, lambda: read(connection), achieved, **options)
 
 
 def find(communities, jid):

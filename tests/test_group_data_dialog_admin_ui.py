@@ -90,13 +90,15 @@ class TestGroupPermissionRefresh:
             _overview_ctrl=Mock(),_part_list=part,_apply_subject_to_title=Mock(),
             _participant_row=lambda jid,flag:('Member','','Member',jid),
             _mw=SimpleNamespace(my_jid=identity,my_lid='',_phone_digits_equivalent=lambda a,b:a==b),
-            _invitation_btn=Mock(),_add_members_btn=Mock(),_add_members_btn_overview=Mock(),_edit_name_btn=Mock(),_edit_desc_btn=Mock())
+            _invitation_btn=Mock(),_requests_btn=Mock(),_add_members_btn=Mock(),_add_members_btn_overview=Mock(),_edit_name_btn=Mock(),_edit_desc_btn=Mock())
         # Refresh twice: the second response must revoke previously shown rights.
         for flag,restriction,member_mode in [(True,False,'all_member_add'),(admin,restrict,mode)]:
             ConversationDataDialog._populate_group_unsafe(stub,{'participants':[{'id':'111@c.us','isAdmin':flag}],
                 'restrict':restriction,'memberAddMode':member_mode})
         assert stub._user_is_admin is (admin and bool(identity))
         stub._invitation_btn.Enable.assert_called_with(True)
+        # Join requests are an admin's alone: the button follows admin status.
+        stub._requests_btn.Show.assert_called_with(admin and bool(identity))
         stub._add_members_btn.Enable.assert_called_with(add)
         stub._add_members_btn_overview.Enable.assert_called_with(add)
         stub._edit_name_btn.Show.assert_called_with(edit)

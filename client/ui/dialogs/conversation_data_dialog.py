@@ -507,6 +507,8 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         self._add_profile_picture_button(overview_page, ov_sizer)
         from ui.dialogs.group_invitation_dialog import add_invitation_button
         self._invitation_btn = add_invitation_button(self, overview_page, ov_sizer)
+        from ui.dialogs.group_membership_requests import add_membership_requests_button
+        self._requests_btn = add_membership_requests_button(self, overview_page, ov_sizer)
         # Show editing only after confirmed membership and edit permission.
         self._edit_name_btn = wx.Button(overview_page, label=self._i18n.t("edit_group_name"))
         self._edit_name_btn.Hide()
@@ -1063,6 +1065,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
 
         self._user_is_admin = user_is_admin
         self._invitation_btn.Enable(True)
+        self._requests_btn.Show(user_is_admin)
         self._user_can_edit_group, can_add = group_permissions(user_is_admin, user_is_member, data)
         self._add_members_btn.Enable(can_add)
         self._add_members_btn_overview.Enable(can_add)

@@ -34,6 +34,8 @@ import * as PinnedMessagesController from '../controller/pinnedMessagesControlle
 import * as PollController from '../controller/pollController';
 import * as CommunityCommentsController from '../controller/communityCommentsController';
 import * as CommunityOverviewController from '../controller/communityOverviewController';
+import * as CommunityAdminController from '../controller/communityAdminController';
+import * as GroupMembershipRequestsController from '../controller/groupMembershipRequestsController';
 import * as MiscController from '../controller/miscController';
 import * as NewsletterController from '../controller/newsletterController';
 import * as OrderController from '../controller/orderController';
@@ -355,6 +357,14 @@ routes.get('/api/:session/group-invitation/:groupId', verifyToken, statusConnect
   GroupOperationsController.readInvitation);
 routes.post('/api/:session/group-invitation/:groupId/reset', verifyToken, statusConnection,
   GroupOperationsController.resetInvitation);
+// Pending requests to join a group and the admin's answer (WinZapp's own:
+// wppconnect-server has no route for the library's functions).
+routes.get('/api/:session/group-membership-requests/:groupId', verifyToken, statusConnection,
+  GroupMembershipRequestsController.listRequests);
+routes.post('/api/:session/group-membership-requests/:groupId/approve', verifyToken, statusConnection,
+  GroupMembershipRequestsController.approveRequests);
+routes.post('/api/:session/group-membership-requests/:groupId/reject', verifyToken, statusConnection,
+  GroupMembershipRequestsController.rejectRequests);
 routes.get(
   '/api/:session/all-broadcast-list',
   verifyToken,
@@ -1148,12 +1158,19 @@ routes.post(
 //Communitys
 // The account's communities, their admins and joined groups (WinZapp's own:
 // see communityOverviewController.ts). The community actions below it are the
-// upstream routes, used as they are.
+// upstream routes, used as they are, except promotion: the library's cannot
+// promote anyone who is not an admin already (communityAdminController.ts).
 routes.get(
   '/api/:session/communities',
   verifyToken,
   statusConnection,
   CommunityOverviewController.listCommunities
+);
+routes.post(
+  '/api/:session/community-admin/:communityId/promote',
+  verifyToken,
+  statusConnection,
+  CommunityAdminController.promoteAdmin
 );
 routes.post(
   '/api/:session/create-community',
