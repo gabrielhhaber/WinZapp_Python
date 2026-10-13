@@ -386,6 +386,13 @@ class MessageListMixin:
         return m.get("key", {}).get("id", "")
 
     def _on_message_focused(self, event):
+        # A row a voice-note sequence parked only because it had focus is owed
+        # its repaint once focus is elsewhere (core/chain_repaint_guard.py).
+        # Ahead of the gate below on purpose: this is not a reaction to a
+        # human moving through the list, it is bookkeeping for any focus move.
+        guard = getattr(self, "_chain_repaint_guard", None)
+        if guard is not None and guard.parked:
+            self._recheck_parked_chain_repaints()
         # Set while another surface (the group data dialog's Media tab) drives
         # this list's selection purely to hand an index to a handler that reads
         # it. Everything below reacts to a HUMAN moving through the list -

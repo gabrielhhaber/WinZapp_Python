@@ -84,6 +84,8 @@ YENİLİKLER
 
 DÜZELTMELER
 
+- Sesli mesajlar art arda oynatılırken ya da oynatma duraklatılmışken gönderilen mesajlar, sıra bitene kadar listede hiçbir durum göstermiyordu ("Gönderildi", "Teslim edildi" ya da "Okundu" yoktu); oysa Mesaj bilgisi penceresi (Alt+Shift+D) doğru durumu zaten gösteriyordu. Artık art arda oynatma sırasında yalnızca odaktaki satır bekliyor; böylece ekran okuyucu onu sesin üstüne okumuyor. Diğer satırlar hemen güncelleniyor; bekleyen satır da odak ondan ayrıldığında, oynatma duraklatıldığında ya da sıra bittiğinde güncelleniyor.
+
 - İletme başarılı olduğunda artık bir kutu açmıyor. "Mesaj iletildi." (ya da kaç mesajın iletildiği) artık ekran okuyucu tarafından söyleniyor; kapatılacak bir pencere yok ve okunan şey kesilmiyor. WinZapp sistem tepsisindeyken de çalışır.
 
 - Sohbet geçmişinin eşitlenmesi ve tamamlanması artık WhatsApp Web'den en fazla altı yerine aynı anda en fazla iki sohbetin mesajlarını ister; bu, ilk eşitleme sırasında küçük bilgisayarlarda ve sunucularda işlemci ve bellek kullanımını düşük tutar ve eşitlemeyi belirgin biçimde yavaşlatmaz. Bir sohbeti açmak, yukarı kaydırmak ve bir görüşmeyi yeniden eşitlemek yavaşlamaz.

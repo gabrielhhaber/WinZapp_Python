@@ -25,6 +25,14 @@ control:
   with skip_panel_refresh=False and repaints the row without going near the
   chain, which can put the write *before* the focus move.
 
+Only the row with list focus is held, whichever message is playing, plus the
+row the chain has just moved focus off. Holding every row of the conversation
+for as long as a sequence was alive is what the first version did, and a
+sequence stays alive while its audio is paused: someone who paused a chained
+voice note to record a reply got no "sent", "delivered" or "read" on anything
+they sent meanwhile (reported 2026-10-12). The rule itself is
+core/chain_repaint_guard.py, tested alone in tests/test_chain_repaint_guard.py.
+
 These tests run the actual methods, with a real wx event loop, and assert on
 the observed order of Focus()/SetItemText() calls.
 """
@@ -36,6 +44,7 @@ import pytest
 
 import wx
 
+from core.chain_repaint_guard import ChainRepaintGuard
 from tests.conftest import hidden_frame
 from ui.conversations import ConversationsPanel
 from tests.god_modules import patch_conversations_global
@@ -73,6 +82,10 @@ class _ChainStub:
     _hold_status_repaints_until_chain_ends = (
         ConversationsPanel._hold_status_repaints_until_chain_ends
     )
+    _chain_moving_focus_off = ConversationsPanel._chain_moving_focus_off
+    _recheck_parked_chain_repaints = (
+        ConversationsPanel._recheck_parked_chain_repaints
+    )
     _auto_chain_next_audio = ConversationsPanel._auto_chain_next_audio
     _cancel_pending_chain_timers = ConversationsPanel._cancel_pending_chain_timers
     _next_message_is_chainable_audio = ConversationsPanel._next_message_is_chainable_audio
@@ -92,8 +105,7 @@ class _ChainStub:
         self._chain_start_timer = None
         self._chain_end_timer = None
         self._pending_played_refresh_id = None
-        self._hold_status_repaints_for_chain = False
-        self._chain_held_status_repaints = set()
+        self._chain_repaint_guard = ChainRepaintGuard()
         self.main_window = types.SimpleNamespace(
             settings={"user_interface": {"auto_focus_next_audio": True}},
             audio_transition_next_sound=None,
@@ -322,17 +334,110 @@ def test_release_is_idempotent(chain, wx_app):
     assert recorder.writes == after_first
 
 
-def test_holding_never_loses_a_repaint_for_an_unrelated_message(chain, wx_app):
-    """A delivery receipt for some other row arriving mid-sequence is held too
-    (any row could be the one NVDA has focus on), but it must still be written
-    when the sequence ends."""
+# ── Only the focused row, and the one the chain leaves, are held ─────────────
+
+
+def test_a_receipt_for_another_message_is_written_during_the_sequence(chain, wx_app):
+    """The reported bug: with a sequence alive (playing or paused), a receipt
+    for a message the user was not on stayed unwritten until the sequence
+    ended, so a message just sent showed no status at all."""
     stub, recorder, lst = chain
 
     stub.finish_audio("m0")
-    stub._played.add("m2")  # unrelated status change for a different row
-    stub.refresh_message_status("m2", "5")
-    _pump(wx_app, 400)
-    assert recorder.writes == []
+    _pump(wx_app, 400)  # focus is on m1 now, the sequence is still alive
+    stub._played.add("m2")  # a status change for some other message
+    stub.refresh_message_status("m2", "4")
+    _pump(wx_app, 300)
+
+    assert lst.GetItemText(2) == "m2 reproduzido"
+    assert lst.GetItemText(0) == "m0", "the row the chain left is still held"
+
+
+def test_the_focused_row_is_held_whichever_message_is_playing(chain, wx_app):
+    """The user left the voice notes playing and moved to another row. That
+    row is the one the screen reader would read over the audio, so a receipt
+    for it waits; it is not lost, the end of the sequence writes it."""
+    stub, recorder, lst = chain
+    lst.Focus(2)
+    recorder.events.clear()
+
+    stub.finish_audio("m0")
+    stub._played.add("m2")
+    stub.refresh_message_status("m2", "4")
+    _pump(wx_app, 500)
+    assert lst.GetItemText(2) == "m2", "focused: not written during the sequence"
 
     stub._release_chain_held_repaints()
     assert lst.GetItemText(2) == "m2 reproduzido"
+
+
+def test_a_row_held_for_having_focus_is_written_once_focus_leaves_it(chain, wx_app):
+    """Held only because the user was on it: when they move on, nothing is
+    left to protect and the row must not stay stale until the sequence ends
+    (the message list's focus handler asks for this second look)."""
+    stub, recorder, lst = chain
+    lst.Focus(2)
+    stub.finish_audio("m0")
+    stub._played.add("m2")
+    stub.refresh_message_status("m2", "4")
+    _pump(wx_app, 500)
+    assert lst.GetItemText(2) == "m2"
+    recorder.events.clear()
+
+    lst.Focus(1)  # the user arrows away
+    stub._recheck_parked_chain_repaints()  # what _on_message_focused() does
+    assert recorder.writes == [], "queued, not written on top of the focus move"
+    _pump(wx_app, 300)
+
+    assert recorder.writes == [("write", 2, "m2 reproduzido")]
+
+
+def test_a_finished_voice_note_without_focus_is_not_held(chain, wx_app):
+    """Focus is on another row, so the chain moves no focus and the finished
+    row is not the one the screen reader is on: its "played" mark appears at
+    once instead of waiting for the sequence to end."""
+    stub, recorder, lst = chain
+    lst.Focus(2)
+    recorder.events.clear()
+
+    stub.finish_audio("m0")
+    stub.refresh_message_status("m0", "5")  # the WhatsApp echo
+    _pump(wx_app, 500)
+
+    assert [e for e in recorder.events if e[0] == "focus"] == []
+    assert lst.GetItemText(0) == "m0 reproduzido"
+
+
+def test_with_the_focus_move_turned_off_the_focused_finished_row_is_held(chain, wx_app):
+    """Settings > Interface can stop the chain from moving focus. The user
+    then stays on the voice note that ended while the next one plays, and
+    rewriting that row would be read over it: the check is "does the row have
+    focus", not "did the chain move focus". Written when the sequence ends."""
+    stub, recorder, lst = chain
+    stub.main_window.settings["user_interface"]["auto_focus_next_audio"] = False
+
+    stub.finish_audio("m0")
+    stub.refresh_message_status("m0", "5")  # the WhatsApp echo
+    _pump(wx_app, 500)
+
+    assert [e for e in recorder.events if e[0] == "focus"] == []
+    assert recorder.writes == [], "m0 has focus and the sequence is playing"
+
+    stub._release_chain_held_repaints()
+    assert recorder.writes == [("write", 0, "m0 reproduzido")]
+
+
+def test_the_row_the_chain_left_is_not_freed_by_the_focus_move_itself(chain, wx_app):
+    """The chain's own Focus() call reaches the list's focus handler too. The
+    second look it triggers must park the finished row again: it no longer has
+    focus, but the screen reader may not know that yet."""
+    stub, recorder, lst = chain
+
+    stub.finish_audio("m0")
+    stub.refresh_message_status("m0", "5")  # parked while m0 still has focus
+    _pump(wx_app, 250)  # the chain has moved focus to m1 by now
+    assert ("focus", 1) in recorder.events
+    stub._recheck_parked_chain_repaints()  # what _on_message_focused() does
+    _pump(wx_app, 300)
+
+    assert recorder.writes == []

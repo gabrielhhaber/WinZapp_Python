@@ -53,6 +53,9 @@ class AudioPlaybackMixin:
                 return
             self._is_audio_playing = False
             self._audio_timer.Stop()
+            # Same as the pause in _toggle_playback(): a paused sequence moves
+            # no focus, so nothing it parked has a reason to stay unwritten.
+            self._release_chain_held_repaints()
         else:
             try:
                 _ctrl.play()
@@ -96,6 +99,11 @@ class AudioPlaybackMixin:
                     return
                 self._is_audio_playing = False
                 self._audio_timer.Stop()
+                # A paused sequence moves no focus and plays nothing a row
+                # read aloud could talk over: what it parked is written now
+                # instead of staying stale for as long as the pause lasts. The
+                # next voice note to end arms the hold again.
+                self._release_chain_held_repaints()
             else:
                 try:
                     _ctrl.play()
@@ -646,12 +654,19 @@ class AudioPlaybackMixin:
                 self._pending_played_refresh_id = None
                 self.refresh_message_status(pending, "5")
 
+        def _end_without_chaining():
+            # The sequence stops here with no focus move left to stay clear
+            # of. Releasing in these early exits too is what keeps the hold
+            # from outliving a sequence the user walked away from.
+            _flush_pending_played_refresh()
+            self._release_chain_held_repaints()
+
         # Don't chain if the user has navigated to a different conversation —
         # _sorted_messages belongs to the current conversation, not the one
         # where the audio was playing.
         current_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
         if current_jid != self._audio_conv_jid:
-            _flush_pending_played_refresh()
+            _end_without_chaining()
             return
 
         # Find the index of the just-finished message
@@ -663,14 +678,14 @@ class AudioPlaybackMixin:
                 finished_msg = msg
                 break
         if current_idx < 0 or finished_msg is None:
-            _flush_pending_played_refresh()
+            _end_without_chaining()
             return
 
         # Sequential playback and transition sounds ONLY apply to voice notes (PTT),
         # not to generic attached audio/music files.
         if not self._is_voice_message(finished_msg):
             self._is_in_audio_chain = False
-            _flush_pending_played_refresh()
+            _end_without_chaining()
             return
 
         # Walk forward, skipping separators, to find the next message
@@ -721,12 +736,17 @@ class AudioPlaybackMixin:
                     )
                     current_focus = self.messages_list.GetFocusedItem()
                     if auto_focus and current_focus == current_idx:
+                        # Told to the hold before the move, not after: the row
+                        # stops being "the focused one" the instant Focus()
+                        # returns, and must stay parked all the same.
+                        self._chain_moving_focus_off(finished_id)
                         self.messages_list.Focus(target_idx)
                         self.messages_list.Select(target_idx, True)
                         self.messages_list.EnsureVisible(target_idx)
                     # Queue the finished row's "played" refresh. It will not
-                    # be written now: the hold armed for this chain parks it
-                    # (and anything else queued during the sequence) until
+                    # be written now if the chain moved focus off it or it
+                    # still has focus: the hold armed for this chain parks it
+                    # (other rows are written as usual) until
                     # _release_chain_held_repaints() runs at the end. Trying to
                     # win the race by ordering the two events here is what used
                     # to be attempted, and it could not work — see that

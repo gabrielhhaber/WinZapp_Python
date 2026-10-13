@@ -17,6 +17,7 @@ start the next audio) resolves synchronously within one call.
 
 import pytest
 
+from core.chain_repaint_guard import ChainRepaintGuard
 from ui.conversations import ConversationsPanel
 from tests.god_modules import patch_conversations_global
 
@@ -66,6 +67,7 @@ class _Stub:
         ConversationsPanel._hold_status_repaints_until_chain_ends
     )
     _release_chain_held_repaints = ConversationsPanel._release_chain_held_repaints
+    _chain_moving_focus_off = ConversationsPanel._chain_moving_focus_off
     _flush_status_repaints = ConversationsPanel._flush_status_repaints
     _is_separator = ConversationsPanel._is_separator
     _is_voice_message = ConversationsPanel._is_voice_message
@@ -83,8 +85,7 @@ class _Stub:
         self._chain_start_timer = None
         self._chain_end_timer = None
         self._pending_played_refresh_id = None
-        self._hold_status_repaints_for_chain = False
-        self._chain_held_status_repaints = set()
+        self._chain_repaint_guard = ChainRepaintGuard()
         self._pending_status_repaints = set()
         self._status_repaint_timer = None
         self.toggle_calls = []

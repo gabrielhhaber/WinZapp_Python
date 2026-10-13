@@ -72,9 +72,13 @@ class _Stub:
         self.stop_audio_calls = 0
         self.recovery_calls = 0
         self._recovery_succeeds = recovery_succeeds
+        self.release_calls = 0
 
     def _stop_audio(self):
         self.stop_audio_calls += 1
+
+    def _release_chain_held_repaints(self):
+        self.release_calls += 1
 
     def _recover_audio_stream_after_device_switch(self):
         self.recovery_calls += 1
@@ -125,6 +129,9 @@ class TestSameItemToggleRecoversFromADeadDeviceSwitchChannel:
         assert stub._audio_stream.paused == 1
         assert stub._is_audio_playing is False
         assert stub._audio_timer.stopped == 1
+        # Pausing a voice-note sequence writes the rows it held back, instead
+        # of leaving them stale for as long as the pause lasts.
+        assert stub.release_calls == 1
 
     def test_ordinary_resume_still_works_without_touching_recovery(self):
         stub = _Stub(MSG_ID, is_playing=False, stream_raises=False)
@@ -134,3 +141,4 @@ class TestSameItemToggleRecoversFromADeadDeviceSwitchChannel:
         assert stub.recovery_calls == 0
         assert stub._audio_stream.played == 1
         assert stub._is_audio_playing is True
+        assert stub.release_calls == 0

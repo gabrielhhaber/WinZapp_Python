@@ -67,20 +67,13 @@ class ListRefreshMixin:
         if not pending:
             return
 
-        # While the audio chain is moving list focus from one voice note to the
-        # next, NO row text may be written at all — see
-        # _release_chain_held_repaints() for the whole reasoning. Everything
-        # queued in that window is held and written once the chain is over.
-        if getattr(self, "_hold_status_repaints_for_chain", False):
-            held = getattr(self, "_chain_held_status_repaints", None)
-            if held is None:
-                held = self._chain_held_status_repaints = set()
-            held.update(pending)
-            pending.clear()
-            return
-
         ids = set(pending)
         pending.clear()
+        # A row parked earlier gets another look on every pass: it may no
+        # longer be the one with focus.
+        guard = getattr(self, "_chain_repaint_guard", None)
+        if guard is not None:
+            ids |= guard.take_parked()
 
         rows = []
         for i, msg in enumerate(self._sorted_messages):
@@ -88,6 +81,22 @@ class ListRefreshMixin:
                 continue
             if msg.get("key", {}).get("id") in ids:
                 rows.append((i, msg))
+
+        # While a voice-note sequence runs, the row that has list focus must
+        # not be written, and neither must the one the sequence has just moved
+        # focus off — see _release_chain_held_repaints() for the whole
+        # reasoning. Only those are parked (core/chain_repaint_guard.py); every
+        # other row of the conversation is written as usual.
+        if guard is not None and guard.armed and rows:
+            focused = self.messages_list.GetFocusedItem()
+            writable = []
+            for i, msg in rows:
+                msg_id = msg.get("key", {}).get("id")
+                if guard.must_park(msg_id, has_focus=(i == focused)):
+                    guard.parked.add(msg_id)
+                else:
+                    writable.append((i, msg))
+            rows = writable
         if not rows:
             return
 
@@ -119,10 +128,38 @@ class ListRefreshMixin:
     def _hold_status_repaints_until_chain_ends(self):
         """Arm the hold. Called the moment we know the chain is about to move
         list focus off the row we are about to mark as played."""
-        self._hold_status_repaints_for_chain = True
+        guard = getattr(self, "_chain_repaint_guard", None)
+        if guard is not None:
+            guard.arm()
+
+    def _chain_moving_focus_off(self, msg_id: str):
+        """The chain is about to move list focus off this row: it stays parked
+        until the sequence is over, focused or not. Call it BEFORE the Focus()
+        call, so no repaint can slip in between the two."""
+        guard = getattr(self, "_chain_repaint_guard", None)
+        if guard is not None:
+            guard.focus_moved_off(msg_id)
+
+    def _recheck_parked_chain_repaints(self):
+        """List focus moved: a row parked only because it had focus is owed.
+
+        Queued behind the usual coalescing timer rather than written here, so
+        the write does not land on top of the focus move itself; a row that
+        still has focus, or that the chain moved focus off, is parked again by
+        that pass."""
+        guard = getattr(self, "_chain_repaint_guard", None)
+        if guard is None:
+            return
+        for msg_id in guard.take_parked():
+            self.refresh_message_status(msg_id, "")
 
     def _release_chain_held_repaints(self):
         """Write out every row repaint held back while the audio chain ran.
+
+        Only the row with list focus and the rows the chain moved focus off
+        are held (see core/chain_repaint_guard.py): a receipt for any other
+        message of the conversation is written when it arrives, sequence or
+        not.
 
         Why the hold exists at all — the rule comes straight from NVDA's own
         source. ``NVDAObject.event_nameChange`` is::
@@ -158,26 +195,31 @@ class ListRefreshMixin:
           reported symptom, and it is a hole the ordering approach cannot cover
           because the second write does not come through the chain at all.
 
-        Holding removes both: during the chain nothing is written, so there is
-        no event to lose a race with. At release time focus sits on the last
-        voice note of the sequence while every held row is an earlier one, so
-        each name change lands on a non-focused object and NVDA stays silent by
-        its own rule — no timing assumption anywhere.
+        Holding removes both: during the chain the row it leaves is not
+        written, so there is no event to lose a race with. At release time
+        focus sits on the last voice note of the sequence while every row the
+        chain left is an earlier one, so each name change lands on a
+        non-focused object and NVDA stays silent by its own rule — no timing
+        assumption anywhere. (A row parked because the user was on it is read
+        when it is written at release, if they still are: the sequence is over
+        or paused by then, so it is the ordinary feedback of a status change
+        on the focused row, not speech over the audio.)
 
-        Idempotent: the hold flag is cleared first, so the several places that
-        can end a sequence (the last voice note, the user stopping playback,
-        leaving the conversation) may all call this without writing the rows
-        twice. It does NOT check whether the chain is still running — call it
-        only once the sequence is genuinely over, which is why the call sites
-        sit next to where _is_in_audio_chain is cleared.
+        Idempotent: the guard is disarmed first, so the several places that
+        can end a sequence (the last voice note, the user stopping or pausing
+        playback, leaving the conversation) may all call this without writing
+        the rows twice. It does NOT check whether the chain is still running —
+        call it only where no focus move is coming: once the sequence is
+        genuinely over, which is why most call sites sit next to where
+        _is_in_audio_chain is cleared, or when playback is paused (the next
+        voice note to end arms the hold again).
         """
-        if not getattr(self, "_hold_status_repaints_for_chain", False):
+        guard = getattr(self, "_chain_repaint_guard", None)
+        if guard is None:
             return
-        self._hold_status_repaints_for_chain = False
-        held = getattr(self, "_chain_held_status_repaints", None)
+        held = guard.release()
         if not held:
             return
-        self._chain_held_status_repaints = set()
         pending = getattr(self, "_pending_status_repaints", None)
         if pending is None:
             pending = self._pending_status_repaints = set()

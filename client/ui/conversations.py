@@ -90,6 +90,7 @@ from core.message_copy_format import format_copied_message
 from core.wrapped_text import original_range, selection_offsets, word_wrap
 from core.video_player import VideoPlayer
 from core.focus_cloak import cloak_panel_focus_fallback
+from core.chain_repaint_guard import ChainRepaintGuard
 from core.spell_checker import (
     WindowsSpellChecker, spell_check_active, windows_spellcheck_enabled,
 )
@@ -293,11 +294,10 @@ class ConversationsPanel(
         self._chain_start_timer = None
         self._chain_end_timer = None
         self._pending_played_refresh_id = None
-        # Row repaints deferred while the audio chain is moving list focus —
-        # see _release_chain_held_repaints() for why they must not be written
-        # during the sequence at all.
-        self._hold_status_repaints_for_chain = False
-        self._chain_held_status_repaints = set()
+        # Repaints of the rows the audio chain is moving list focus off — see
+        # _release_chain_held_repaints() for why they must not be written
+        # during the sequence.
+        self._chain_repaint_guard = ChainRepaintGuard()
         self._audio_stream_duration = 0
         self._audio_temp_file = None
         self._audio_speed_steps = [1.0, 1.5, 2.0]

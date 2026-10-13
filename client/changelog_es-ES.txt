@@ -84,6 +84,8 @@ NOVEDADES
 
 CORRECCIONES
 
+- Los mensajes enviados mientras una secuencia de mensajes de voz estaba en reproducción o en pausa se quedaban sin estado en la lista (ni "Enviado", ni "Entregado", ni "Leído") hasta que la secuencia terminaba, aunque la ventana Datos del mensaje (Alt+Shift+D) ya mostraba el estado correcto. Ahora, durante una secuencia, solo la fila que tiene el foco espera, para que el lector de pantalla no la lea por encima del audio; las demás se actualizan al momento, y la que se quedó esperando se actualiza cuando el foco sale de ella, cuando se pausa la reproducción o cuando la secuencia termina.
+
 - Reenviar ya no abre un cuadro cuando sale bien. "Mensaje reenviado." (o cuántos mensajes se han reenviado) ahora lo dice el lector de pantalla, sin ventana que cerrar y sin interrumpir lo que se está leyendo; también funciona con WinZapp en la bandeja.
 
 - La sincronización y la carga del historial de los chats ahora piden a WhatsApp Web los mensajes de como máximo dos chats a la vez, en lugar de hasta seis, lo que mantiene bajo el uso de procesador y de memoria en ordenadores pequeños y servidores durante la primera sincronización, sin hacerla notablemente más lenta. Abrir un chat, desplazarse hacia arriba y resincronizar una conversación no se ralentizan.

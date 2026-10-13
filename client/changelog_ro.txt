@@ -84,6 +84,8 @@ NOUTĂȚI
 
 CORECTĂRI
 
+- Mesajele trimise în timp ce un șir de mesaje vocale era în redare sau pe pauză rămâneau fără stare în listă (nici „Trimis”, nici „Livrat”, nici „Citit”) până la sfârșitul șirului, deși fereastra Informații despre mesaj (Alt+Shift+D) arăta deja starea corectă. Acum, în timpul unui șir, așteaptă doar rândul care are focalizarea, pentru ca cititorul de ecran să nu îl citească peste sunet; celelalte sunt actualizate imediat, iar cel care a așteptat este actualizat când focalizarea pleacă de pe el, când redarea este pusă pe pauză sau când șirul se termină.
+
 - Redirecționarea nu mai deschide o casetă când a reușit. „Mesajul a fost redirecționat.” (sau câte mesaje au fost redirecționate) este acum rostit de cititorul de ecran, fără o fereastră de închis și fără a întrerupe ce se citește; funcționează și cu WinZapp în bara de sistem.
 
 - Sincronizarea și completarea istoricului conversațiilor cer acum de la WhatsApp Web mesajele a cel mult două conversații odată, în loc de până la șase, ceea ce menține scăzută utilizarea procesorului și a memoriei pe calculatoarele mici și pe servere în timpul primei sincronizări, fără a o încetini vizibil. Deschiderea unei conversații, derularea în sus și resincronizarea unei conversații nu sunt încetinite.

@@ -61,9 +61,13 @@ class _Stub:
         self.stop_audio_calls = 0
         self._recovery_succeeds = recovery_succeeds
         self.recovery_calls = 0
+        self.release_calls = 0
 
     def _stop_audio(self):
         self.stop_audio_calls += 1
+
+    def _release_chain_held_repaints(self):
+        self.release_calls += 1
 
     def _recover_audio_stream_after_device_switch(self):
         self.recovery_calls += 1
@@ -92,6 +96,16 @@ class TestPauseAndResume:
         assert stub._is_audio_playing is False
         assert stub._audio_timer.stopped == 1
 
+    def test_pausing_writes_the_rows_a_voice_note_sequence_held_back(self):
+        """A paused sequence moves no list focus, so the repaints it parked
+        must not stay unwritten for as long as the pause lasts (see
+        tests/test_audio_chain_played_repaint_hold.py)."""
+        stub = _Stub(current_audio_id="m1", is_playing=True)
+
+        stub.toggle_current_audio_playback()
+
+        assert stub.release_calls == 1
+
     def test_paused_gets_resumed(self):
         stub = _Stub(current_audio_id="m1", is_playing=False)
 
@@ -100,6 +114,7 @@ class TestPauseAndResume:
         assert stub._audio_stream.played == 1
         assert stub._is_audio_playing is True
         assert stub._audio_timer.started == [30]
+        assert stub.release_calls == 0
 
     def test_a_tempo_controller_is_preferred_over_the_raw_stream(self):
         """Same convention _toggle_playback() itself uses: whichever one is
