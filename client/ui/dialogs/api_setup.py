@@ -224,6 +224,8 @@ _CUSTOM_SRC_FILES = [
     "src/tests/controller/communityAdminController.test.ts",
     "src/controller/groupMembershipRequestsController.ts",
     "src/tests/controller/groupMembershipRequestsController.test.ts",
+    "src/controller/commerceController.ts",
+    "src/tests/controller/commerceController.test.ts",
     "src/controller/pinnedMessagesController.ts",
     "src/controller/groupOperationsController.ts",
     "src/tests/controller/groupOperationsController.test.ts",

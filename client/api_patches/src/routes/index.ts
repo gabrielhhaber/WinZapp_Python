@@ -35,6 +35,7 @@ import * as PollController from '../controller/pollController';
 import * as CommunityCommentsController from '../controller/communityCommentsController';
 import * as CommunityOverviewController from '../controller/communityOverviewController';
 import * as CommunityAdminController from '../controller/communityAdminController';
+import * as CommerceController from '../controller/commerceController';
 import * as GroupMembershipRequestsController from '../controller/groupMembershipRequestsController';
 import * as MiscController from '../controller/miscController';
 import * as NewsletterController from '../controller/newsletterController';
@@ -926,6 +927,27 @@ routes.post(
   statusConnection,
   CatalogController.setProductVisibility
 );
+// Carts and orders (WinZapp's own: commerceController.ts). The cart is the
+// buyer's; accepting, declining and updating an order are a business
+// account's. Creating an order for a customer (send-order-message) and the
+// business's own cart setting (set-cart-enabled) are the upstream routes.
+routes.get('/api/:session/commerce/account', verifyToken, statusConnection, CommerceController.account);
+routes.get('/api/:session/commerce/catalog/:chatId', verifyToken, statusConnection, CommerceController.catalog);
+routes.get('/api/:session/commerce/cart/:chatId', verifyToken, statusConnection, CommerceController.cart);
+routes.post('/api/:session/commerce/cart/:chatId/set', verifyToken, statusConnection, CommerceController.cartSet);
+routes.post('/api/:session/commerce/cart/:chatId/remove', verifyToken, statusConnection,
+  CommerceController.cartRemove);
+routes.post('/api/:session/commerce/cart/:chatId/clear', verifyToken, statusConnection,
+  CommerceController.cartClear);
+routes.post('/api/:session/commerce/cart/:chatId/submit', verifyToken, statusConnection,
+  CommerceController.cartSubmit);
+routes.get('/api/:session/commerce/order/:messageId', verifyToken, statusConnection, CommerceController.order);
+routes.post('/api/:session/commerce/order/:messageId/accept', verifyToken, statusConnection,
+  CommerceController.orderAccept);
+routes.post('/api/:session/commerce/order/:messageId/decline', verifyToken, statusConnection,
+  CommerceController.orderDecline);
+routes.post('/api/:session/commerce/order/:messageId/status', verifyToken, statusConnection,
+  CommerceController.orderUpdate);
 routes.post(
   '/api/:session/set-cart-enabled',
   verifyToken,
