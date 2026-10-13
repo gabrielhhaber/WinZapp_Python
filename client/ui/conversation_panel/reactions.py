@@ -9,9 +9,10 @@ import logging
 import threading
 import time
 import wx
-from ui.dialogs.emoji_picker import choose_reaction_emoji
+from ui.dialogs.emoji_picker import choose_reaction_emoji, skin_tone_step
 from core.reaction_shortcuts import (
     quick_reactions,
+    reaction_to_send,
     remember_reaction,
 )
 
@@ -38,11 +39,12 @@ class ReactionsMixin:
         current_emoji = (self._reaction_map.get(msg_id) or {}).get(self._SELF_REACTOR_KEY, "")
         settings = self.main_window.settings
         reactions = settings.get("reactions", {})
-        emojis = quick_reactions(
+        # A list of its own: Left/Right swap a row for another skin tone.
+        emojis = list(quick_reactions(
             settings.get("reaction_recent_emojis"), current_emoji,
             fixed_slots=(reactions.get("quick_reaction_slots", [])
                          if reactions.get("fixed_quick_reactions", False) else None),
-        )
+        ))
 
         dlg = wx.Dialog(
             self.main_window,
@@ -55,8 +57,10 @@ class ReactionsMixin:
 
         hint_label = wx.StaticText(
             panel,
-            label=i18n.t("react_dialog_hint_remove") if current_emoji else i18n.t("react_dialog_hint"),
+            label=(i18n.t("react_dialog_hint_remove") if current_emoji else i18n.t("react_dialog_hint"))
+            + " " + i18n.t("react_dialog_hint_tones"),
         )
+        hint_label.Wrap(270)
         sizer.Add(hint_label, 0, wx.ALL, 8)
 
         emoji_list = wx.ListCtrl(panel, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
@@ -93,8 +97,23 @@ class ReactionsMixin:
                 # Activating the reaction already checked (i.e. the one I
                 # already sent) removes it instead of resending the same
                 # emoji — the only way to clear a reaction previously.
-                selected_emoji[0] = "" if idx == current_idx else emojis[idx]
+                selected_emoji[0] = reaction_to_send(emojis[idx], current_emoji)
                 dlg.EndModal(wx.ID_OK)
+
+        def _on_list_key(event):
+            # As in the emoji picker: the horizontal arrows walk the skin
+            # tones of the highlighted emoji, when it has them.
+            if event.GetKeyCode() in (wx.WXK_LEFT, wx.WXK_RIGHT):
+                idx = emoji_list.GetFirstSelected()
+                if 0 <= idx < len(emojis):
+                    toned = skin_tone_step(emojis[idx], 1 if event.GetKeyCode() == wx.WXK_RIGHT else -1)
+                    if toned is not None:
+                        emojis[idx] = toned
+                        emoji_list.SetItem(idx, 0, toned)
+                        # The screen reader names the emoji, tone included.
+                        self.main_window.output(toned, interrupt=True)
+                        return
+            event.Skip()
 
         def _on_emoji_selected(event):
             # Single click: just move selection, don't send yet
@@ -107,6 +126,7 @@ class ReactionsMixin:
                 emoji_list.CheckItem(len(emojis), False)
 
         emoji_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, _on_emoji_activated)
+        emoji_list.Bind(wx.EVT_KEY_DOWN, _on_list_key)
         emoji_list.Bind(wx.EVT_LIST_ITEM_CHECKED, _on_emoji_checked)
         cancel_btn.Bind(wx.EVT_BUTTON, lambda e: dlg.EndModal(wx.ID_CANCEL))
         dlg.Bind(wx.EVT_CHAR_HOOK, lambda e: dlg.EndModal(wx.ID_CANCEL) if e.GetKeyCode() == wx.WXK_ESCAPE else e.Skip())

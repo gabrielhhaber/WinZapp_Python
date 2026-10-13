@@ -7988,6 +7988,13 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/reactions.py
+msgctxt "react_dialog_hint_tones"
+msgid "Left and Right arrows change the skin tone of an emoji that has one."
+msgstr ""
+"Strzałki w lewo i w prawo zmieniają odcień skóry emoji, które go mają."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/reactions.py
 msgctxt "react_dialog_more"
 msgid "Add more reactions"
 msgstr "Dodaj więcej reakcji"

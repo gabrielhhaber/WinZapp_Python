@@ -219,6 +219,10 @@ def test_more_reactions_row_opens_picker_and_sends_its_choice(
         def SetSizer(self, sizer):
             pass
 
+        def Wrap(self, width):
+            # The hint grew a sentence about skin tones and is wrapped.
+            pass
+
     class _Dialog(_Control):
         def EndModal(self, result):
             self.result = result

@@ -68,6 +68,13 @@ def _ranked_by_use(history) -> list[str]:
     ))[:len(DEFAULT_QUICK_REACTIONS)]
 
 
+def reaction_to_send(chosen: str, current: str) -> str:
+    """What activating a row sends: the emoji, or "" (remove my reaction) when
+    it is exactly the one already sent. Another skin tone of it is another
+    reaction, and replaces it."""
+    return "" if chosen == current else chosen
+
+
 def quick_reactions(history, current: str = "", *, fixed_slots=None) -> list[str]:
     """Rank recent choices; defaults yield a slot only after repeated use.
 
