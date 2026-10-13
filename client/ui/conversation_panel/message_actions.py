@@ -192,23 +192,30 @@ class MessageActionsMixin:
             wx.OK | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_QUESTION,
         )
         dlg.SetOKCancelLabels(i18n.t("delete_msg_confirm_yes"), i18n.t("cancel"))
-        dlg.ShowCheckBox(i18n.t("delete_media_from_phone"), True)
+        dlg.ShowCheckBox(i18n.t("delete_media_from_phone"), self._delete_media_default())
         result = dlg.ShowModal()
         delete_media = dlg.IsCheckBoxChecked()
         dlg.Destroy()
         return result == wx.ID_OK, delete_media
 
+    def _delete_media_default(self) -> bool:
+        """How the box starts: Settings > Interface, on unless turned off.
+
+        On is WhatsApp Web's own default and what WinZapp always did: until
+        the box existed the file was removed from the phone on every delete,
+        with no way to keep it."""
+        return bool(self.main_window.settings.get("user_interface", {}).get(
+            "delete_media_from_phone", True
+        ))
+
     def _add_delete_media_checkbox(self, panel, sizer, msgs: list):
         """The "also delete the media from your phone" box of a delete dialog,
-        or None when no message of *msgs* is a media message.
-
-        Checked by default, as in WhatsApp Web, and as WinZapp has always
-        behaved: until this box existed the file was removed from the phone
-        on every delete, with no way to keep it."""
+        or None when no message of *msgs* is a media message. It starts as
+        the setting says (_delete_media_default())."""
         if not any_phone_media(msgs):
             return None
         box = wx.CheckBox(panel, label=self.main_window.i18n.t("delete_media_from_phone"))
-        box.SetValue(True)
+        box.SetValue(self._delete_media_default())
         sizer.Add(box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         return box
 

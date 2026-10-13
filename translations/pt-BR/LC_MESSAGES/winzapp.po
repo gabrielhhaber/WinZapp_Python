@@ -12725,6 +12725,16 @@ msgstr "Mostrar vídeos nas conversas em player separado (abre novo diálogo)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_delete_media_default_label"
+msgid ""
+"When deleting a media message, start with \"Also delete the media from your "
+"phone\" checked"
+msgstr ""
+"Ao apagar uma mensagem de mídia, já deixar marcada a opção \"Apagar também a"
+" mídia do celular\""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_enter_transcribes_voice"
 msgid ""
 "Enter and Space on a voice message or video transcribe it into its line in "

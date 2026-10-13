@@ -119,12 +119,14 @@ class _Panel:
     _delete_message_for_everyone_keep_row = ConversationsPanel._delete_message_for_everyone_keep_row
     _confirm_local_delete = ConversationsPanel._confirm_local_delete
     _add_delete_media_checkbox = ConversationsPanel._add_delete_media_checkbox
+    _delete_media_default = ConversationsPanel._delete_media_default
     _delete_target_jid = ConversationsPanel._delete_target_jid
 
-    def __init__(self):
+    def __init__(self, settings=None):
         self.calls = []
         self.conversation = {"remoteJid": JID}
         self.main_window = SimpleNamespace(
+            settings=settings if settings is not None else {},
             i18n=SimpleNamespace(t=lambda key: key),
             _is_self_jid=lambda jid: False,
             delete_message_for_me=lambda j, k, delete_media=True: self.calls.append(
@@ -255,6 +257,57 @@ def test_the_scope_dialog_gets_the_box_only_for_media(monkeypatch):
     assert box is boxes[0]
     assert (box.label, box.value) == ("delete_media_from_phone", True)
     sizer.Add.assert_called_once()
+
+
+# ── how the box starts: Settings > Interface ─────────────────────────────────
+
+KEEP = {"user_interface": {"delete_media_from_phone": False}}
+
+
+def test_the_box_starts_checked_unless_the_setting_says_otherwise():
+    assert _Panel()._delete_media_default() is True
+    assert _Panel({"user_interface": {}})._delete_media_default() is True
+    assert _Panel(KEEP)._delete_media_default() is False
+
+
+def test_the_setting_decides_how_both_confirmations_start(monkeypatch):
+    made, boxes = [], []
+
+    def rich(parent, prompt, title, style):
+        dialog = _FakeRichDialog(wx.ID_OK, False)
+        made.append(dialog)
+        return dialog
+
+    class _Box:
+        def __init__(self, parent, label):
+            boxes.append(self)
+
+        def SetValue(self, value):
+            self.value = value
+
+    monkeypatch.setattr(wx, "RichMessageDialog", rich)
+    monkeypatch.setattr(wx, "CheckBox", _Box)
+    panel = _Panel(KEEP)
+
+    panel._confirm_local_delete([_msg("imageMessage")])
+    panel._add_delete_media_checkbox(object(), Mock(), [_msg("imageMessage")])
+
+    assert made[0].box == ("delete_media_from_phone", False)
+    assert boxes[0].value is False
+
+
+def test_the_setting_is_a_shipped_default_that_is_on():
+    """On is what WinZapp did before the box existed, so an existing
+    installation that never opens Settings keeps its behaviour."""
+    import json
+    from pathlib import Path
+
+    from core.utils import DEFAULT_SETTINGS
+
+    assert DEFAULT_SETTINGS["user_interface"]["delete_media_from_phone"] is True
+    shipped = json.loads((Path(__file__).resolve().parents[1] / "client" / "data"
+                          / "settings_default.json").read_text(encoding="utf-8"))
+    assert shipped["user_interface"]["delete_media_from_phone"] is True
 
 
 def test_both_scope_dialogs_read_the_box_and_pass_it_on():
