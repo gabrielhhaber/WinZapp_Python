@@ -59,22 +59,26 @@ class NewConversationDialog(wx.Dialog):
         sizer.Add(self._results_list, 1, wx.EXPAND | wx.ALL, 10)
 
         # Buttons row
-        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # Wraps: five buttons do not fit one row at the dialog's width.
+        btn_sizer = wx.WrapSizer(wx.HORIZONTAL)
 
         self._new_group_btn = wx.Button(panel, label=i18n.t("new_group"))
         self._new_group_btn.Bind(wx.EVT_BUTTON, self._on_new_group)
-        btn_sizer.Add(self._new_group_btn, 0, wx.RIGHT, 8)
+        btn_sizer.Add(self._new_group_btn, 0, wx.RIGHT | wx.BOTTOM, 8)
 
         self._new_contact_btn = wx.Button(panel, label=i18n.t("new_contact"))
         self._new_contact_btn.Bind(wx.EVT_BUTTON, self._on_new_contact)
-        btn_sizer.Add(self._new_contact_btn, 0, wx.RIGHT, 8)
+        btn_sizer.Add(self._new_contact_btn, 0, wx.RIGHT | wx.BOTTOM, 8)
 
         from ui.dialogs.group_join_dialog import open_join_dialog
         self._join_group_btn = wx.Button(panel, label=i18n.t("group_join_title"))
         self._join_group_btn.Bind(wx.EVT_BUTTON, lambda event: open_join_dialog(self, event))
-        btn_sizer.Add(self._join_group_btn, 0, wx.RIGHT, 8)
+        btn_sizer.Add(self._join_group_btn, 0, wx.RIGHT | wx.BOTTOM, 8)
 
-        btn_sizer.AddStretchSpacer()
+        from ui.dialogs.communities import open_communities
+        self._communities_btn = wx.Button(panel, label=i18n.t("communities_button"))
+        self._communities_btn.Bind(wx.EVT_BUTTON, lambda event: open_communities(self, event))
+        btn_sizer.Add(self._communities_btn, 0, wx.RIGHT | wx.BOTTOM, 8)
 
         close_btn = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("close"))
         btn_sizer.Add(close_btn, 0)

@@ -21,13 +21,19 @@ def join_group_by_link(mw, parent, link=""):
         preview = dialog.result
     finally:
         dialog.Destroy()
-    chat = mw.chats.get(preview.jid)
+    open_group_chat(mw, preview.jid, preview.name)
+    return True
+
+
+def open_group_chat(mw, jid, name):
+    """Go to a group the account is in, creating its chat when it has none
+    yet (a group just joined, or one with no message so far)."""
+    chat = mw.chats.get(jid)
     if chat is None:
-        chat = {"remoteJid": preview.jid, "name": preview.name or mw.i18n.t("unknown_group")}
-        mw.chats[preview.jid] = chat
+        chat = {"remoteJid": jid, "name": name or mw.i18n.t("unknown_group")}
+        mw.chats[jid] = chat
         mw._schedule_set_chats()
     wx.CallAfter(mw.conversations_panel.navigate_to_conversation, chat)
-    return True
 
 
 def open_join_dialog(owner, event=None):

@@ -2340,10 +2340,11 @@ msgstr "Configurações de vídeo da chamada"
 #: client/ui/dialogs/add_member_dialog.py
 #: client/ui/dialogs/ai_result_dialog.py
 #: client/ui/dialogs/attach_contact_dialog.py
-#: client/ui/dialogs/emoji_picker.py client/ui/dialogs/meta_ai_terms.py
-#: client/ui/dialogs/new_contact.py client/ui/dialogs/new_group.py
-#: client/ui/dialogs/new_poll_dialog.py client/ui/dialogs/settings_dialog.py
-#: client/ui/dialogs/shortcut_capture.py client/updater.py
+#: client/ui/dialogs/community_create.py client/ui/dialogs/emoji_picker.py
+#: client/ui/dialogs/meta_ai_terms.py client/ui/dialogs/new_contact.py
+#: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
+#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
+#: client/updater.py
 msgctxt "cancel"
 msgid "&Cancel"
 msgstr "&Cancelar"
@@ -2821,6 +2822,265 @@ msgstr "Grupos em comum"
 msgctxt "common_groups_unavailable"
 msgid "Could not get the groups in common"
 msgstr "Não foi possível obter os grupos em comum"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_action_done"
+msgid "Done. The list of communities was updated."
+msgstr "Feito. A lista de comunidades foi atualizada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_action_failed"
+msgid ""
+"The action could not be completed: WhatsApp refused the request or the "
+"connection failed. No change was found."
+msgstr ""
+"Não foi possível concluir a ação: o WhatsApp recusou o pedido ou a conexão "
+"falhou. Nenhuma alteração foi encontrada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_action_unconfirmed"
+msgid ""
+"The request was sent, but WhatsApp does not show the change yet. Refresh the"
+" list in a moment to check."
+msgstr ""
+"O pedido foi enviado, mas o WhatsApp ainda não mostra a alteração. Atualize "
+"a lista em instantes para conferir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_add_groups"
+msgid "&Add groups..."
+msgstr "A&dicionar grupos..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+#, python-brace-format
+msgctxt "communities_admins_line"
+msgid "Admins: {names}"
+msgstr "Administradores: {names}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_conversation.py
+msgctxt "communities_button"
+msgid "Co&mmunities"
+msgstr "Co&munidades"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "communities_confirm_deactivate"
+msgid ""
+"Deactivate the community '{name}'? Its groups stop being linked to it and "
+"the announcement group is closed. This cannot be undone."
+msgstr ""
+"Desativar a comunidade '{name}'? Os grupos deixam de estar vinculados a ela "
+"e o grupo de avisos é fechado. Isso não pode ser desfeito."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/community_admin.py
+#, python-brace-format
+msgctxt "communities_confirm_remove_group"
+msgid ""
+"Remove the group '{group}' from the community '{name}'? The group is not "
+"deleted; it only stops being part of the community."
+msgstr ""
+"Remover o grupo '{group}' da comunidade '{name}'? O grupo não é apagado; "
+"apenas deixa de fazer parte da comunidade."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "communities_count"
+msgid "Communities: {count}"
+msgstr "Comunidades: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/community_create.py
+msgctxt "communities_create_action"
+msgid "C&reate community"
+msgstr "C&riar comunidade"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "communities_create_choose_groups"
+msgid "Choose &groups to include ({count} chosen)..."
+msgstr "Escolher &grupos a incluir ({count} escolhidos)..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_create_description"
+msgid "&Description"
+msgstr "&Descrição"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_create_name"
+msgid "&Name"
+msgstr "&Nome"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_create_name_required"
+msgid "Type a name for the community."
+msgstr "Digite um nome para a comunidade."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_create_pick_groups"
+msgid ""
+"Choose the groups the community starts with. WhatsApp only accepts groups "
+"you are an admin of."
+msgstr ""
+"Escolha os grupos com que a comunidade começa. O WhatsApp só aceita grupos "
+"dos quais você é administrador."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/community_create.py
+msgctxt "communities_create_title"
+msgid "New community"
+msgstr "Nova comunidade"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_deactivate"
+msgid "Deac&tivate community"
+msgstr "Desa&tivar comunidade"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_demote"
+msgid "&Demote community admin..."
+msgstr "Re&baixar administrador da comunidade..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_details"
+msgid "D&escription and admins"
+msgstr "D&escrição e administradores"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_empty"
+msgid "You are not in any community."
+msgstr "Você não está em nenhuma comunidade."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+#, python-brace-format
+msgctxt "communities_group_announcements"
+msgid "{name}, announcement group"
+msgstr "{name}, grupo de avisos"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+#, python-brace-format
+msgctxt "communities_group_general"
+msgid "{name}, general group"
+msgstr "{name}, grupo geral"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_groups_list"
+msgid "&Groups of the community"
+msgstr "&Grupos da comunidade"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_list"
+msgid "Co&mmunities"
+msgstr "Co&munidades"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_new"
+msgid "&New community..."
+msgstr "&Nova comunidade..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/community_admin.py
+msgctxt "communities_no_candidates"
+msgid "There is nobody to choose."
+msgstr "Não há ninguém para escolher."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+msgctxt "communities_no_groups"
+msgid "You have not joined any group of this community."
+msgstr "Você não entrou em nenhum grupo desta comunidade."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/community_admin.py
+msgctxt "communities_no_linkable_groups"
+msgid ""
+"There is no group to add: every group you are in already belongs to a "
+"community."
+msgstr ""
+"Não há grupo para adicionar: todos os grupos em que você está já pertencem a"
+" uma comunidade."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_open_group"
+msgid "&Open group"
+msgstr "&Abrir grupo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/community_admin.py
+msgctxt "communities_participants_unavailable"
+msgid "The participants of the community could not be read."
+msgstr "Não foi possível ler os participantes da comunidade."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/community_admin.py
+#, python-brace-format
+msgctxt "communities_pick_demote"
+msgid "Who stops being an admin of '{name}'?"
+msgstr "Quem deixa de ser administrador de '{name}'?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/community_admin.py
+#, python-brace-format
+msgctxt "communities_pick_groups_add"
+msgid ""
+"Choose the groups to add to '{name}'. WhatsApp only accepts groups you are "
+"an admin of."
+msgstr ""
+"Escolha os grupos a adicionar a '{name}'. O WhatsApp só aceita grupos dos "
+"quais você é administrador."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/community_admin.py
+#, python-brace-format
+msgctxt "communities_pick_promote"
+msgid "Who becomes an admin of '{name}'?"
+msgstr "Quem passa a ser administrador de '{name}'?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_promote"
+msgid "&Promote to community admin..."
+msgstr "&Promover a administrador da comunidade..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_refresh"
+msgid "Re&fresh"
+msgstr "At&ualizar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_remove_group"
+msgid "&Remove group from the community"
+msgstr "&Remover grupo da comunidade"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+#, python-brace-format
+msgctxt "communities_row_admin"
+msgid "{name}, you are an admin"
+msgstr "{name}, você é administrador"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+msgctxt "communities_title"
+msgid "Communities"
+msgstr "Comunidades"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "communities_unavailable"
+msgid "The communities could not be read. Check the connection and try again."
+msgstr ""
+"Não foi possível ler as comunidades. Verifique a conexão e tente de novo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+msgctxt "communities_unnamed"
+msgid "Unnamed community"
+msgstr "Comunidade sem nome"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+msgctxt "communities_view_only"
+msgid ""
+"You are not an admin of this community, so the admin actions are "
+"unavailable."
+msgstr ""
+"Você não é administrador desta comunidade, por isso as ações de "
+"administrador ficam indisponíveis."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_rendering.py
@@ -13238,7 +13498,8 @@ msgstr "Contato sem nome"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/calls.py
 #: client/main_window/chat_list.py client/main_window/chats_store.py
-#: client/ui/dialogs/common_groups_tab.py
+#: client/ui/dialogs/common_groups_tab.py client/ui/dialogs/communities.py
+#: client/ui/dialogs/community_admin.py
 #: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/dialogs/group_join_dialog.py
 msgctxt "unknown_group"
@@ -13275,6 +13536,7 @@ msgstr ""
 #: client/core/message_sender_labels.py client/core/notification_manager.py
 #: client/main_window/chat_list.py client/main_window/identity.py
 #: client/ui/conversation_panel/message_rendering.py
+#: client/ui/dialogs/community_admin.py
 msgctxt "unnamed_participant"
 msgid "Unnamed participant"
 msgstr "Participante sem nome"
