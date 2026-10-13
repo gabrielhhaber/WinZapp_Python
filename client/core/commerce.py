@@ -27,6 +27,8 @@ ORDER_MESSAGE_TYPE = "orderMessage"
 # messages whose only button carries the data as JSON.
 ORDER_UPDATE_MESSAGE_TYPE = "orderUpdateMessage"
 ORDER_FLOWS = frozenset({"order_details", "order_status", "payment_info", "payment_status"})
+# One item of a business's catalog, sent as a message.
+PRODUCT_MESSAGE_TYPE = "productMessage"
 
 # WhatsApp's own lists (WAWebOrderStatus / the library's enums), in the order
 # an order goes through them.
@@ -374,6 +376,32 @@ def order_payload(wpp_msg):
     }
 
 
+def product_payload(wpp_msg):
+    """What is kept of a WhatsApp `product` message. Its `body` is the
+    picture's thumbnail, never text, and is not read."""
+    price = wpp_msg.get("salePriceAmount1000") or wpp_msg.get("priceAmount1000")
+    product_id = wpp_msg.get("productId")
+    return {
+        "title": _text(wpp_msg.get("title"))[:200],
+        "description": _text(wpp_msg.get("description"))[:1000],
+        "price": price if type(price) is int and price > 0 else None,
+        "currency": _text(wpp_msg.get("currencyCode")),
+        "productId": product_id if isinstance(product_id, str) and _PRODUCT.fullmatch(product_id) else "",
+    }
+
+
+def product_message_label(msg, i18n):
+    """ "Product: Bread, R$ 7,50. Fresh every morning" """
+    data = (msg.get("message") or {}).get(PRODUCT_MESSAGE_TYPE) or {}
+    parts = [_text(data.get("title")) or i18n.t("commerce_unnamed_product")]
+    money = format_money(data.get("price"), data.get("currency"), _decimal(i18n))
+    if money:
+        parts.append(money)
+    text = f"{i18n.t('commerce_product')}: {', '.join(parts)}"
+    description = _text(data.get("description"))
+    return f"{text}. {description}" if description else text
+
+
 def _scaled(node):
     """{"value": 1500, "offset": 100} is 15.00: thousandths, or None."""
     if not isinstance(node, dict):
@@ -466,6 +494,8 @@ def message_label(msg, i18n):
         return order_label(msg, i18n)
     if kind == ORDER_UPDATE_MESSAGE_TYPE:
         return order_update_label(msg, i18n)
+    if kind == PRODUCT_MESSAGE_TYPE:
+        return product_message_label(msg, i18n)
     return None
 
 

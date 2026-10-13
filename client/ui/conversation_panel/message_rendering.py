@@ -17,7 +17,8 @@ from core.call_log import (
     is_call_log,
 )
 from core.commerce import (
-    ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, message_label as commerce_message_label,
+    ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, PRODUCT_MESSAGE_TYPE,
+    message_label as commerce_message_label,
 )
 from core.quote_recovery import RECOVERED_FROM_QUOTE
 from core.message_sender_labels import (
@@ -560,6 +561,7 @@ class MessageRenderingMixin:
             # A cart sent to a business and the seller's follow-ups.
             ORDER_MESSAGE_TYPE,
             ORDER_UPDATE_MESSAGE_TYPE,
+            PRODUCT_MESSAGE_TYPE,
         )
 
         if msg_type not in allowed_types:

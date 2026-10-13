@@ -107,7 +107,7 @@ OTHER_KINDS = frozenset((
     "conversation", "extendedTextMessage", "imageMessage",
     "stickerMessage", "contactMessage", "locationMessage", "liveLocationMessage",
     "pollCreationMessage", "buttonsMessage", "listMessage", "templateMessage",
-    "groupNotification", "reactionMessage", "orderMessage", "orderUpdateMessage",
+    "groupNotification", "reactionMessage", "orderMessage", "orderUpdateMessage", "productMessage",
 ))
 
 

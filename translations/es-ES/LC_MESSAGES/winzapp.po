@@ -3230,6 +3230,11 @@ msgctxt "commerce_payment_pending"
 msgid "pending"
 msgstr "pendiente"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+msgctxt "commerce_product"
+msgid "Product"
+msgstr "Producto"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_product_unavailable"
 msgid "This product is no longer in the catalog."

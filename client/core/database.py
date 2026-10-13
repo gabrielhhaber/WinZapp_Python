@@ -222,7 +222,7 @@ _TYPES_WITHOUT_LOCAL_FIELDS = (
     "conversation", "extendedTextMessage", "imageMessage", "stickerMessage",
     "contactMessage", "pollCreationMessage", "buttonsMessage", "listMessage",
     "templateMessage", "protocolMessage", "chat", "image", "sticker",
-    "orderMessage", "orderUpdateMessage",
+    "orderMessage", "orderUpdateMessage", "productMessage",
 )
 
 

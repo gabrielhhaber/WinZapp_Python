@@ -49,8 +49,11 @@ Every amount is an integer in thousandths of the currency unit.
 message whose native flow is one of `order_details`, `order_status`,
 `payment_info`, `payment_status` **and** whose button carries a
 `reference_id` becomes `orderUpdateMessage`. Any other interactive message
-keeps the handling it had. Both are listed, previewed, notified and counted
-as unread. The token that opens an order is not stored: the order window asks
+keeps the handling it had. `product` (one item of a catalog) becomes
+`productMessage`: its title, description, price and currency, never its `body`,
+which is the picture's thumbnail (left to the text fallback it was a row of
+base64 or "unsupported message"). All three are listed, previewed, notified and
+counted as unread. The token that opens an order is not stored: the order window asks
 the server by message id.
 
 ## What was run, and what was not

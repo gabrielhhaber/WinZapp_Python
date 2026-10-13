@@ -20,7 +20,8 @@ import pytest
 
 from core import commerce
 from core.commerce import (
-    ACCEPTED, DECLINED, INQUIRY, ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, Account, Cart, CartItem,
+    ACCEPTED, DECLINED, INQUIRY, ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, PRODUCT_MESSAGE_TYPE, Account,
+    Cart, CartItem,
     Catalog, CommerceError, Order, Product,
 )
 from core.notification_manager import format_notification_body
@@ -304,6 +305,33 @@ def test_any_other_interactive_message_is_left_to_its_own_handling(raw):
     assert normalized(raw)["messageType"] not in (ORDER_UPDATE_MESSAGE_TYPE, ORDER_MESSAGE_TYPE)
 
 
+def raw_product(**fields):
+    """A `product` message with the fields WhatsApp Web's own parser fills
+    (WAWebParseProductMessageProto). `body` is the picture's thumbnail."""
+    message = {"id": f"false_{SELLER}_3EB0DDDDDDDDDDDDDDDD", "type": "product", "t": 1790000200, "from": SELLER,
+               "to": "999@lid", "fromMe": False, "body": "/9j/4AAQSkZJRgABAQAAAQABAAD" + "A" * 400,
+               "title": "Bread", "description": "Fresh every morning", "priceAmount1000": 7500,
+               "currencyCode": "BRL", "productId": "100", "businessOwnerJid": "5511900000001@s.whatsapp.net",
+               "productImageCount": 1, "url": "https://wa.me/p/100/5511900000001",
+               "chatId": {"server": "lid", "user": "777", "_serialized": SELLER}}
+    message.update(fields)
+    return message
+
+
+def test_a_product_of_a_catalog_is_a_row_with_its_name_and_price_never_its_thumbnail():
+    message = normalized(raw_product())
+    assert message["messageType"] == PRODUCT_MESSAGE_TYPE
+    assert message["message"] == {PRODUCT_MESSAGE_TYPE: {
+        "title": "Bread", "description": "Fresh every morning", "price": 7500, "currency": "BRL", "productId": "100"}}
+    assert "/9j/" not in json.dumps(message)
+    assert commerce.message_label(message, I18N) == "Product: Bread, R$ 7.50. Fresh every morning"
+    on_sale = normalized(raw_product(salePriceAmount1000=5000, description=""))
+    assert commerce.message_label(on_sale, I18N) == "Product: Bread, R$ 5.00"
+    bare = normalized(raw_product(title=None, priceAmount1000=None, description=7, productId="../x"))
+    assert bare["message"][PRODUCT_MESSAGE_TYPE]["productId"] == ""
+    assert commerce.message_label(bare, I18N) == "Product: Unnamed product"
+
+
 def test_unknown_statuses_are_not_repeated_to_the_user():
     payload = commerce.order_update_payload(raw_update(params={
         "reference_id": "R", "order": {"status": "<b>hacked</b>"}, "payment_status": "free",
@@ -339,7 +367,8 @@ class _Panel:
 
 
 @pytest.mark.parametrize("raw,start", [(raw_order(), "Order received: 3 items"),
-                                       (raw_update(), "Order update, reference REF1: Shipped")])
+                                       (raw_update(), "Order update, reference REF1: Shipped"),
+                                       (raw_product(), "Product: Bread, R$ 7.50")])
 def test_orders_reach_the_list_the_notification_and_the_unread_count(raw, start):
     message = normalized(raw)
     panel = _Panel()

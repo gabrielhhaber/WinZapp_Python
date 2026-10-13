@@ -10,7 +10,8 @@ from core.api_client import api_get, api_post
 from core.connection_lifecycle import socket_client_is_current
 from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_creator, call_log_payload
 from core.commerce import (
-    ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, order_payload, order_update_payload,
+    ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, PRODUCT_MESSAGE_TYPE, order_payload,
+    order_update_payload, product_payload,
 )
 from core.i18n import I18n
 from core.message_edit import MESSAGE_EDIT, clean_message_id, server_marks_edited
@@ -3012,6 +3013,11 @@ class WebSocketClient:
             # A cart sent to a business (core/commerce.py). With no branch
             # here it was an unmapped type and never reached the list.
             message_content = {ORDER_MESSAGE_TYPE: order_payload(wpp_msg)}
+        elif msg_type == "product":
+            # An item of a business's catalog. Its `body` is the picture's
+            # thumbnail: left to the text fallback below it became a row of
+            # base64, or "unsupported message".
+            message_content = {PRODUCT_MESSAGE_TYPE: product_payload(wpp_msg)}
         elif msg_type == "interactive" and order_update_payload(wpp_msg) is not None:
             # The seller's follow-up to an order. Any other interactive
             # message keeps going through the handling it always had.
@@ -3087,6 +3093,7 @@ class WebSocketClient:
             "call_log": CALL_LOG_MESSAGE_TYPE,
             "order": ORDER_MESSAGE_TYPE,
             "order_update": ORDER_UPDATE_MESSAGE_TYPE,
+            "product": PRODUCT_MESSAGE_TYPE,
         }
         mapped_type = type_mapping.get(msg_type, msg_type)
         if _promoted_to_extended_text:
