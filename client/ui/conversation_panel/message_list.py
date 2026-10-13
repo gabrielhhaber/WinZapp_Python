@@ -11,6 +11,7 @@ import logging
 import os
 import threading
 import wx
+from core.group_join import invitation_code
 from core.polls import POLL_MESSAGE_TYPES
 from ui.conversation_panel.media_paths import _SAVEABLE_MESSAGE_TYPES
 from core.call_log import (
@@ -259,6 +260,11 @@ class MessageListMixin:
             # _on_message_focused() for why GetItemText(index) is wrong here.
             links = self._message_own_links(msg)
             if links:
+                # A WhatsApp group invitation is answered in WinZapp, as it is
+                # from the link control itself (LinksMixin._activate_link()).
+                if invitation_code(links[0]):
+                    self._join_group_from_link(links[0])
+                    return
                 try:
                     os.startfile(links[0])
                 except Exception:

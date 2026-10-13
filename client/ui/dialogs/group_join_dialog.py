@@ -7,26 +7,38 @@ from core.group_join import invitation_code, preview_group, join_group
 from ui.accessible import split_mnemonic
 
 
-def open_join_dialog(owner, event=None):
-    dialog = GroupJoinDialog(owner, owner._mw)
+def join_group_by_link(mw, parent, link=""):
+    """Show the join dialog and open the group once membership is confirmed.
+
+    *link* fills the field and starts the preview, for a link the user
+    activated in a message or that Windows handed over. Nothing is joined
+    until the user presses the join button. True when the group was joined.
+    """
+    dialog = GroupJoinDialog(parent, mw, link)
     try:
         if dialog.ShowModal() != wx.ID_OK:
-            return
+            return False
         preview = dialog.result
     finally:
         dialog.Destroy()
-    mw = owner._mw
-    owner.EndModal(wx.ID_OK)
     chat = mw.chats.get(preview.jid)
     if chat is None:
         chat = {"remoteJid": preview.jid, "name": preview.name or mw.i18n.t("unknown_group")}
         mw.chats[preview.jid] = chat
         mw._schedule_set_chats()
     wx.CallAfter(mw.conversations_panel.navigate_to_conversation, chat)
+    return True
+
+
+def open_join_dialog(owner, event=None):
+    """New conversation's "Join group by link": that dialog closes once the
+    group is joined."""
+    if join_group_by_link(owner._mw, owner):
+        owner.EndModal(wx.ID_OK)
 
 
 class GroupJoinDialog(wx.Dialog):
-    def __init__(self, parent, main_window):
+    def __init__(self, parent, main_window, link=""):
         self._mw = main_window
         self._i18n = main_window.i18n
         self._connection = connection_identity(main_window)
@@ -64,6 +76,11 @@ class GroupJoinDialog(wx.Dialog):
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self._input.SetFocus()
         self.CentreOnParent()
+        if link:
+            # ChangeValue: the field is being filled for the user, not edited
+            # by them, so it must not clear the preview it is about to ask for.
+            self._input.ChangeValue(link)
+            wx.CallAfter(self._on_preview, None)
 
     def _on_close(self, event):
         self._closed.set()

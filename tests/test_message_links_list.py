@@ -83,6 +83,7 @@ class _FakeKeyEvent:
 class _Stub:
     _on_links_list_key_down  = ConversationsPanel._on_links_list_key_down
     _on_links_list_activated = ConversationsPanel._on_links_list_activated
+    _activate_link           = ConversationsPanel._activate_link
     # The Ctrl+C branch now routes through the shared pair that also
     # serves the accelerator and the context menu — see
     # tests/test_focused_link_actions.py.

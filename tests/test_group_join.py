@@ -20,8 +20,22 @@ def test_invitation_link_is_parsed_locally(link):
     assert invitation_code(link) == CODE
 
 
+@pytest.mark.parametrize('link', [
+    # What WhatsApp itself hands out today: seen on real messages through the
+    # page's own store, 2 of the 11 invitation links loaded carried "?mode=".
+    LINK + '?mode=ems_copy_t', LINK + '/', LINK + '#anchor', LINK + '?x=1&y=2',
+    # What the web page's "Join chat" button asks Windows to open.
+    'whatsapp://chat?code=' + CODE, 'whatsapp://chat/?code=' + CODE,
+    'whatsapp://chat?foo=1&code=' + CODE + '&bar=2'])
+def test_the_forms_whatsapp_really_uses_are_accepted(link):
+    assert invitation_code(link) == CODE
+
+
 @pytest.mark.parametrize('link', [None, CODE, 'http://chat.whatsapp.com/' + CODE,
-    LINK + '?x=1', LINK + '/extra', 'https://chat.whatsapp.com.evil/' + CODE, 'file:///private'])
+    LINK + '/extra', 'https://chat.whatsapp.com.evil/' + CODE, 'file:///private',
+    'https://evil.example/?next=' + LINK, 'whatsapp://send?phone=5511999999999',
+    'whatsapp://chat?code=short', 'whatsapp://chat?mycode=' + CODE,
+    LINK + ' and more text'])
 def test_other_urls_and_bare_codes_do_not_start_a_preview(link):
     assert invitation_code(link) == ''
 

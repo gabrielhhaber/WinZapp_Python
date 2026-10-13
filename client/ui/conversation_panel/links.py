@@ -10,6 +10,7 @@ import os
 import pyperclip
 import wx
 import wx.adv
+from core.group_join import invitation_code
 from ui.conversation_panel.text_helpers import _URL_RE
 
 
@@ -194,6 +195,12 @@ class LinksMixin:
             return
         i18n = self.main_window.i18n
         menu = wx.Menu()
+        if invitation_code(url):
+            # First, because it is what Enter does on this link; "open link"
+            # below still takes it to the browser.
+            join_item = menu.Append(wx.ID_ANY, i18n.t("group_join_title"))
+            self.Bind(wx.EVT_MENU, lambda e, u=url: self._join_group_from_link(u),
+                      join_item)
         open_item = menu.Append(wx.ID_ANY, i18n.t("open_link"))
         self.Bind(wx.EVT_MENU, lambda e, u=url: self._open_link(u), open_item)
         copy_item = menu.Append(wx.ID_ANY, f"{i18n.t('copy_link')}\tCtrl+C")
@@ -210,8 +217,25 @@ class LinksMixin:
         except Exception:
             wx.LaunchDefaultBrowser(url)
 
+    def _join_group_from_link(self, url: str):
+        """Preview the group a WhatsApp invitation link leads to; the user
+        decides there whether to join."""
+        from ui.dialogs.group_join_dialog import join_group_by_link
+        join_group_by_link(self.main_window, self.main_window, url)
+
+    def _activate_link(self, url: str):
+        """Enter, Space or a click on a link.
+
+        A WhatsApp group invitation is answered here, in WinZapp: the browser
+        would only show a page whose one button asks for a WhatsApp app. Every
+        other link goes to the system's default application."""
+        if invitation_code(url):
+            self._join_group_from_link(url)
+        else:
+            self._open_link(url)
+
     def _on_hyperlink_open(self, event):
-        self._open_link(event.GetURL())
+        self._activate_link(event.GetURL())
 
     def _on_link_key_down(self, event):
         """Ensure Space and Enter activate a focused HyperlinkCtrl, and that
@@ -225,7 +249,7 @@ class LinksMixin:
         event = command_key_event(self, 'links', event)
         kc = event.GetKeyCode()
         if kc in (wx.WXK_RETURN, wx.WXK_SPACE, wx.WXK_NUMPAD_ENTER):
-            self._open_link(event.GetEventObject().GetURL())
+            self._activate_link(event.GetEventObject().GetURL())
             return
         if event.ControlDown() and kc == ord("C"):
             url = self._link_url_for(event.GetEventObject())
@@ -238,7 +262,7 @@ class LinksMixin:
         """Enter (or a double-click) on a link row opens it."""
         idx = event.GetIndex()
         if 0 <= idx < len(self._current_links):
-            self._open_link(self._current_links[idx])
+            self._activate_link(self._current_links[idx])
 
     def _on_links_list_key_down(self, event):
         """Space also opens the focused link; Ctrl+C copies just its URL."""
@@ -247,7 +271,7 @@ class LinksMixin:
         if kc in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER, wx.WXK_SPACE):
             idx = self._links_list.GetFirstSelected()
             if 0 <= idx < len(self._current_links):
-                self._open_link(self._current_links[idx])
+                self._activate_link(self._current_links[idx])
             return
         if event.ControlDown() and kc == ord("C"):
             # Same fallback status as _on_link_key_down()'s: the accelerator
