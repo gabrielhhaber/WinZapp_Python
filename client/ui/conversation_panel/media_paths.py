@@ -24,6 +24,19 @@ _SAVEABLE_MESSAGE_TYPES = frozenset({
 })
 
 
+def any_phone_media(messages) -> bool:
+    """True when one of *messages* is a photo, video, audio or document.
+
+    Deleting such a message can also remove its file from the storage of the
+    phone, and WhatsApp Web shows its "Delete file from your phone" box for
+    exactly these: a media message that is not a sticker (read from the code
+    of its delete dialog, 2026-10)."""
+    return any(
+        isinstance(msg, dict) and msg.get("messageType", "") in _SAVEABLE_MESSAGE_TYPES
+        for msg in messages
+    )
+
+
 def local_media_cache_paths(voice_dir: str, media_dir: str, msg_id: str) -> list:
     """The locally pre-cached copies a sent message can own, by message id.
 

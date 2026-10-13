@@ -19,7 +19,7 @@ from core.message_edit import (
 from core.message_queue import PendingMessage
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 from app_paths import data_path
-from ui.conversation_panel.media_paths import discard_local_media_cache
+from ui.conversation_panel.media_paths import any_phone_media, discard_local_media_cache
 from core.utils import to_editor_line_endings
 
 
@@ -169,6 +169,49 @@ class MessageActionsMixin:
         dlg.Destroy()
         return result == wx.ID_OK
 
+    def _confirm_local_delete(self, msgs: list) -> tuple:
+        """(confirmed, delete_media) for a delete whose scope is "for me only".
+
+        The plain prompt of _confirm_local_only_delete(), plus the "also
+        delete the media from your phone" box when one of *msgs* is a media
+        message. Without one there is no file to keep or remove, so nothing is
+        asked and the answer is the default."""
+        if not any_phone_media(msgs):
+            return self._confirm_local_only_delete(len(msgs)), True
+        i18n = self.main_window.i18n
+        count = len(msgs)
+        title = i18n.t("delete_message") if count == 1 else i18n.t("delete_messages_bulk_title")
+        prompt = (
+            i18n.t("delete_msg_confirm") if count == 1
+            else i18n.t("delete_msg_confirm_bulk").format(count=count)
+        )
+        # Same buttons and default as _confirm_local_only_delete(), for the
+        # reasons given there; the rich variant is what carries a check box.
+        dlg = wx.RichMessageDialog(
+            self, prompt, title,
+            wx.OK | wx.CANCEL | wx.CANCEL_DEFAULT | wx.ICON_QUESTION,
+        )
+        dlg.SetOKCancelLabels(i18n.t("delete_msg_confirm_yes"), i18n.t("cancel"))
+        dlg.ShowCheckBox(i18n.t("delete_media_from_phone"), True)
+        result = dlg.ShowModal()
+        delete_media = dlg.IsCheckBoxChecked()
+        dlg.Destroy()
+        return result == wx.ID_OK, delete_media
+
+    def _add_delete_media_checkbox(self, panel, sizer, msgs: list):
+        """The "also delete the media from your phone" box of a delete dialog,
+        or None when no message of *msgs* is a media message.
+
+        Checked by default, as in WhatsApp Web, and as WinZapp has always
+        behaved: until this box existed the file was removed from the phone
+        on every delete, with no way to keep it."""
+        if not any_phone_media(msgs):
+            return None
+        box = wx.CheckBox(panel, label=self.main_window.i18n.t("delete_media_from_phone"))
+        box.SetValue(True)
+        sizer.Add(box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        return box
+
     def _on_menu_delete_message(self, index: int):
         """Show delete-scope dialog and delete locally or for everyone.
 
@@ -207,8 +250,9 @@ class MessageActionsMixin:
         # Cancel prompt replaces the for-me/for-everyone dialog below, which
         # would be misleading anyway (see the comment above).
         if is_self_chat and not is_system:
-            if self._confirm_local_only_delete(1):
-                self._delete_message_for_me_only(msg, msg_id, index)
+            confirmed, delete_media = self._confirm_local_delete([msg])
+            if confirmed:
+                self._delete_message_for_me_only(msg, msg_id, index, delete_media)
             return
 
         if not can_delete_for_all and not is_system and self.conversation:
@@ -253,6 +297,9 @@ class MessageActionsMixin:
             rb_all = wx.RadioButton(panel, label=i18n.t("delete_for_everyone"))
             sizer.Add(rb_all, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        # After the scope, before the buttons: the Tab order follows creation.
+        media_box = self._add_delete_media_checkbox(panel, sizer, [msg])
+
         btn_sizer = wx.StdDialogButtonSizer()
         ok_btn     = wx.Button(panel, wx.ID_OK,     label=i18n.t("delete_message"))
         cancel_btn = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("cancel"))
@@ -270,6 +317,7 @@ class MessageActionsMixin:
 
         result       = dlg.ShowModal()
         for_everyone = rb_all.GetValue() if rb_all else False
+        delete_media = media_box.GetValue() if media_box else True
         dlg.Destroy()
 
         if result != wx.ID_OK:
@@ -314,9 +362,9 @@ class MessageActionsMixin:
             # revoke with a protocolMessage tombstone under the same message id;
             # the live revoke path updates this record in place. Removing it
             # here caused a visible disappear/reappear cycle after sync.
-            self._delete_message_for_everyone_keep_row(msg, jid)
+            self._delete_message_for_everyone_keep_row(msg, jid, delete_media)
         else:
-            self._delete_message_for_me_only(msg, msg_id, index)
+            self._delete_message_for_me_only(msg, msg_id, index, delete_media)
 
     def _cancel_pending_message(self, msg: dict, pending_local_id: str,
                                 hold_for_echo: bool = True):
@@ -475,7 +523,8 @@ class MessageActionsMixin:
         }
         self.main_window._apply_remote_revoke(msg, incoming, jid)
 
-    def _delete_message_for_everyone_keep_row(self, msg: dict, jid: str):
+    def _delete_message_for_everyone_keep_row(self, msg: dict, jid: str,
+                                              delete_media: bool = True):
         """Revoke remotely and turn the existing row into "message deleted".
 
         Keep the row itself: a delete-for-everyone is represented by a
@@ -489,7 +538,8 @@ class MessageActionsMixin:
 
         def _revoke(record=msg, j=jid):
             k = dict(record.get("key") or {})
-            ok = self.main_window.delete_message_for_everyone(j, k)
+            ok = self.main_window.delete_message_for_everyone(
+                j, k, delete_media=delete_media)
             if ok:
                 wx.CallAfter(self._apply_confirmed_revoke, record, j)
             else:
@@ -502,7 +552,8 @@ class MessageActionsMixin:
 
         threading.Thread(target=_revoke, daemon=True).start()
 
-    def _delete_message_for_me_only(self, msg: dict, msg_id: str, index: int):
+    def _delete_message_for_me_only(self, msg: dict, msg_id: str, index: int,
+                                    delete_media: bool = True):
         """Delete a message for this account only (delete_message_for_me),
         then remove it locally — the plain "delete for me" path, shared by
         the dialog's own choice and the self-chat shortcut in
@@ -513,7 +564,7 @@ class MessageActionsMixin:
         jid = self._delete_target_jid(msg_key)
 
         def _delete_for_me(k=dict(msg_key), j=jid):
-            self.main_window.delete_message_for_me(j, k)
+            self.main_window.delete_message_for_me(j, k, delete_media=delete_media)
         threading.Thread(target=_delete_for_me, daemon=True).start()
 
         if msg_id:

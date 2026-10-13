@@ -3497,6 +3497,12 @@ msgstr ""
 "usa la opción Salir del grupo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_actions.py
+msgctxt "delete_media_from_phone"
+msgid "Also delete the &media from your phone"
+msgstr "Eliminar también el archivo &multimedia del teléfono"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py

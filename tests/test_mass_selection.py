@@ -124,10 +124,10 @@ class _FakeMainWindow:
     def mark_conversation_as_unread(self, jid):
         self.marked_unread.append(jid)
 
-    def delete_message_for_me(self, jid, key):
+    def delete_message_for_me(self, jid, key, delete_media=True):
         self.deleted_messages.append((jid, key))
 
-    def delete_message_for_everyone(self, jid, key):
+    def delete_message_for_everyone(self, jid, key, delete_media=True):
         self.deleted_for_everyone.append((jid, key))
         # Overridable so a test can exercise the partial/total-failure path:
         # a refused revoke leaves the row on screen, which is where the stale
@@ -201,6 +201,8 @@ class _Panel(PinnedMessagesMixin):
     _apply_confirmed_revoke = ConversationsPanel._apply_confirmed_revoke
     _on_bulk_delete_for_everyone_done = ConversationsPanel._on_bulk_delete_for_everyone_done
     _confirm_local_only_delete = ConversationsPanel._confirm_local_only_delete
+    _confirm_local_delete = ConversationsPanel._confirm_local_delete
+    _add_delete_media_checkbox = ConversationsPanel._add_delete_media_checkbox
     _delete_target_jid = ConversationsPanel._delete_target_jid
     _on_mass_copy_messages = ConversationsPanel._on_mass_copy_messages
     _message_text_with_names = ConversationsPanel._message_text_with_names

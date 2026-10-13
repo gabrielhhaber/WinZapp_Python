@@ -120,8 +120,14 @@ class MessageActionsMixin:
             logging.error("[edit_message] exception for %s (outcome unknown): %s", full_id, exc)
             return None
 
-    def delete_message_for_everyone(self, remote_jid: str, msg_key: dict) -> bool:
+    def delete_message_for_everyone(self, remote_jid: str, msg_key: dict,
+                                    delete_media: bool = True) -> bool:
         """Revoke a message for everyone via POST /api/session/delete-message.
+
+        *delete_media* is WhatsApp Web's "Delete file from your phone" box
+        (its clearMedia): False keeps the photo, video, audio or document in
+        the phone's own storage. It is always sent: left out, the library
+        underneath defaults it to true.
 
         Returns True only when the server confirms the revoke. WPP.chat.delete-
         Message resolves the target through getMessageById, which needs the FULL
@@ -149,6 +155,7 @@ class MessageActionsMixin:
             "isGroup":   chat_jid.endswith("@g.us"),
             "messageId": full_id,
             "onlyLocal": False,
+            "deleteMediaInDevice": bool(delete_media),
         }
         headers = {
             "Authorization": f"Bearer {self.token}",
@@ -165,10 +172,11 @@ class MessageActionsMixin:
             logging.error("[delete_for_everyone] exception for %s: %s", full_id, exc)
             return False
 
-    def delete_message_for_me(self, remote_jid: str, msg_key: dict) -> bool:
+    def delete_message_for_me(self, remote_jid: str, msg_key: dict,
+                              delete_media: bool = True) -> bool:
         """Delete a message for the current account only, via the same
         POST /api/session/delete-message endpoint delete_message_for_everyone()
-        uses, with onlyLocal=True.
+        uses, with onlyLocal=True. *delete_media*: see that method.
         """
         lid_jid = getattr(self, "_phone_to_lid", {}).get(remote_jid, "")
         if lid_jid:
@@ -185,6 +193,7 @@ class MessageActionsMixin:
             "isGroup":   chat_jid.endswith("@g.us"),
             "messageId": full_id,
             "onlyLocal": True,
+            "deleteMediaInDevice": bool(delete_media),
         }
         headers = {
             "Authorization": f"Bearer {self.token}",

@@ -47,11 +47,11 @@ class _FakeMainWindow:
     def _is_self_jid(self, jid):
         return self._is_self_chat
 
-    def delete_message_for_me(self, jid, key):
+    def delete_message_for_me(self, jid, key, delete_media=True):
         self.delete_for_me_calls.append((jid, key))
         return True
 
-    def delete_message_for_everyone(self, jid, key):
+    def delete_message_for_everyone(self, jid, key, delete_media=True):
         self.delete_for_everyone_calls.append((jid, key))
         return True
 
@@ -69,6 +69,8 @@ class _Stub:
     _apply_confirmed_revoke       = ConversationsPanel._apply_confirmed_revoke
     _on_bulk_delete_for_everyone_done = ConversationsPanel._on_bulk_delete_for_everyone_done
     _confirm_local_only_delete   = ConversationsPanel._confirm_local_only_delete
+    _confirm_local_delete = ConversationsPanel._confirm_local_delete
+    _add_delete_media_checkbox = ConversationsPanel._add_delete_media_checkbox
     _delete_target_jid           = ConversationsPanel._delete_target_jid
     _is_separator                = ConversationsPanel._is_separator
     _is_system_event             = lambda self, msg: False

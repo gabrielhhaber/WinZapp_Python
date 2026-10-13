@@ -323,7 +323,8 @@ class BulkMessagesMixin:
         # is skipped: the delete itself goes through the same worker and the
         # same local-removal tail as every other bulk delete.
         if is_self_chat:
-            if not self._confirm_local_only_delete(len(msgs_to_delete)):
+            confirmed, delete_media = self._confirm_local_delete(msgs_to_delete)
+            if not confirmed:
                 return
             for_everyone = False
         else:
@@ -346,6 +347,8 @@ class BulkMessagesMixin:
                 rb_all = wx.RadioButton(panel, label=i18n.t("delete_for_everyone"))
                 sizer.Add(rb_all, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+            media_box = self._add_delete_media_checkbox(panel, sizer, msgs_to_delete)
+
             btn_sizer  = wx.StdDialogButtonSizer()
             ok_btn     = wx.Button(panel, wx.ID_OK,     label=i18n.t("delete_messages_bulk_title"))
             cancel_btn = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("cancel"))
@@ -363,6 +366,7 @@ class BulkMessagesMixin:
 
             result       = dlg.ShowModal()
             for_everyone = rb_all.GetValue() if rb_all else False
+            delete_media = media_box.GetValue() if media_box else True
             dlg.Destroy()
 
             if result != wx.ID_OK:
@@ -389,13 +393,15 @@ class BulkMessagesMixin:
                 # can contain items that cannot be revoked for everyone. Those
                 # still use the local-only API and are the only rows removed.
                 if for_everyone and _can_delete_for_all(msg):
-                    ok = self.main_window.delete_message_for_everyone(jid, msg_key)
+                    ok = self.main_window.delete_message_for_everyone(
+                        jid, msg_key, delete_media=delete_media)
                     if ok:
                         wx.CallAfter(self._apply_confirmed_revoke, msg, jid)
                     else:
                         failed += 1
                 else:
-                    self.main_window.delete_message_for_me(jid, msg_key)
+                    self.main_window.delete_message_for_me(
+                        jid, msg_key, delete_media=delete_media)
             wx.CallAfter(self._on_bulk_delete_for_everyone_done, failed)
 
         threading.Thread(target=_delete_bg, daemon=True).start()

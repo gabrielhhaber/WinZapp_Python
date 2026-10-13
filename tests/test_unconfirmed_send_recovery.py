@@ -147,7 +147,7 @@ class _FakeMainWindow:
     def _is_self_jid(self, jid):
         return False
 
-    def delete_message_for_everyone(self, jid, key):
+    def delete_message_for_everyone(self, jid, key, delete_media=True):
         self.everyone_calls.append((jid, key))
         return True
 
@@ -155,7 +155,7 @@ class _FakeMainWindow:
         existing["messageType"] = incoming["messageType"]
         existing["message"] = incoming["message"]
 
-    def delete_message_for_me(self, jid, key):
+    def delete_message_for_me(self, jid, key, delete_media=True):
         self.for_me_calls.append((jid, key))
         return True
 
@@ -179,6 +179,8 @@ class _FakeMainWindow:
 
 class _DeleteStub:
     _on_menu_delete_message     = ConversationsPanel._on_menu_delete_message
+    _confirm_local_delete = ConversationsPanel._confirm_local_delete
+    _add_delete_media_checkbox = ConversationsPanel._add_delete_media_checkbox
     _delete_message_for_me_only = ConversationsPanel._delete_message_for_me_only
     _delete_message_for_everyone_keep_row = ConversationsPanel._delete_message_for_everyone_keep_row
     _apply_confirmed_revoke     = ConversationsPanel._apply_confirmed_revoke
