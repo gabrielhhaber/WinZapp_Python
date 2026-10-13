@@ -133,7 +133,11 @@ def parse_money(text):
     """Thousandths from what a person types ("12", "12,5", "1.234,56");
     None when it is not an amount."""
     text = text.strip().replace(" ", "") if isinstance(text, str) else ""
-    if not re.fullmatch(r"\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?", text):
+    # Groups of thousands share one separator, and the decimals use the other:
+    # "12,345,6" is not an amount anyone meant.
+    if not re.fullmatch(
+            r"\d{1,3}(?:(?P<group>[.,])\d{3}(?:(?P=group)\d{3})*)(?:(?!(?P=group))[.,]\d{1,2})?"
+            r"|\d+(?:[.,]\d{1,2})?", text):
         return None
     cut = max(text.rfind(","), text.rfind("."))
     # A last group of exactly three digits is thousands, not cents.

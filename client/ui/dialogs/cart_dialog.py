@@ -101,10 +101,15 @@ class CartDialog(BackgroundWork, wx.Dialog):
         self._busy = busy
         self._update_buttons()
 
+    def _carts(self):
+        """A cart is only offered to a business that takes carts, and not
+        after an order went out from this window."""
+        return bool(not self._busy and self._current() and self._catalog is not None
+                    and self._catalog.cart_enabled and not self._sent)
+
     def _update_buttons(self):
         free = not self._busy and self._current()
-        # A cart is only offered to a business that takes carts.
-        carts = free and self._catalog is not None and self._catalog.cart_enabled and not self._sent
+        carts = self._carts()
         product = self._product()
         self._refresh.Enable(free)
         self._add.Enable(bool(carts and product is not None and product.available))
@@ -200,31 +205,32 @@ class CartDialog(BackgroundWork, wx.Dialog):
 
     def _on_add(self, event):
         product = self._product()
-        if product is None or not product.available:
+        if not self._carts() or product is None or not product.available:
             return
         in_cart = next((item.quantity for item in self._cart.items if item.id == product.id), 0)
         self._set_quantity(product.id, product.name, min(in_cart + 1, commerce.QUANTITY_LIMIT))
 
     def _on_change(self, event):
         item = self._item()
-        if item is not None:
+        if self._carts() and item is not None:
             self._set_quantity(item.id, item.name, item.quantity)
 
     def _on_remove(self, event):
         item = self._item()
-        if item is None:
+        if not self._carts() or item is None:
             return
         connection, chat = self._connection, self._chat
         self._change_cart(lambda: commerce.remove_from_cart(connection, chat, item.id))
 
     def _on_clear(self, event):
-        if not self._cart.items or not self._confirm(self._i18n.t("commerce_cart_clear_confirm")):
+        if (not self._carts() or not self._cart.items
+                or not self._confirm(self._i18n.t("commerce_cart_clear_confirm"))):
             return
         connection, chat = self._connection, self._chat
         self._change_cart(lambda: commerce.clear_cart(connection, chat))
 
     def _on_send(self, event):
-        if self._busy or self._sent or not self._cart.items or not self._current():
+        if not self._carts() or not self._cart.items:
             return
         i18n = self._i18n
         if not self._confirm(i18n.t("commerce_cart_send_confirm").format(
