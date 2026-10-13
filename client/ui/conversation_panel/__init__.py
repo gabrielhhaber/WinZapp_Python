@@ -34,6 +34,7 @@ Where to look (and where new code goes):
     message_accels           accelerator handlers for messages
     bulk_messages            bulk actions on selected messages
     bulk_transcription       transcribing the selected messages in one go (#469)
+    transcription_delete     deleting saved transcriptions from the keyboard, one or selected
     forwarding               forwarding messages
     reactions                sending/applying/backfilling reactions
     attachments              attaching files and contacts

@@ -93,7 +93,10 @@ class StatusTranscriptionMixin:
         if not cached:
             # Shown from the API's answer and never cached: it becomes a
             # cached status like any other, pruned when it expires.
-            participant = statuses.participant_of(status)
+            # One of the account's own statuses names no poster: it is filed
+            # under the account, as _store_status_update() files it.
+            participant = statuses.participant_of(status) or (
+                (status.get("key") or {}).get("fromMe") and getattr(self, "my_jid", "")) or ""
             if not participant:
                 return stored_transcription.SAVE_MISSING
             if not hasattr(self, "_status_updates"):

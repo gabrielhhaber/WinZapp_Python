@@ -97,6 +97,7 @@ SHORTCUTS = (
     Shortcut('messages.ID_ALT_SHIFT_S', 'messages', 'ID_ALT_SHIFT_S', 'shortcut_alt_shift_s_label', 5, 83, 0),
     Shortcut('messages.ID_ALT_SHIFT_T', 'messages', 'ID_ALT_SHIFT_T', 'shortcut_alt_shift_t_label', 5, 84, 0),
     Shortcut('messages.ID_ALT_SHIFT_N', 'messages', 'ID_ALT_SHIFT_N', 'shortcut_alt_shift_n_label', 5, 78, 0),
+    Shortcut('messages.ID_ALT_SHIFT_DELETE', 'messages', 'ID_ALT_SHIFT_DELETE', 'shortcut_delete_transcription_label', 5, 127, 0),
     Shortcut('messages.ID_CTRL_SHIFT_O', 'messages', 'ID_CTRL_SHIFT_O', 'shortcut_ctrl_shift_o_label', 6, 79, 0),
     Shortcut('messages.ID_ALT_COMMA', 'messages', 'ID_ALT_COMMA', 'shortcut_alt_comma_label', 1, 44, 0),
     Shortcut('messages.ID_ALT_PERIOD', 'messages', 'ID_ALT_PERIOD', 'shortcut_alt_period_label', 1, 46, 0),
@@ -108,6 +109,7 @@ SHORTCUTS = (
     Shortcut('messages.ID_BULK_SAVE', 'messages', 'ID_BULK_SAVE', 'shortcut_bulk_save_label', 7, 83, 0),
     Shortcut('messages.ID_BULK_TRANSCRIBE', 'messages', 'ID_BULK_TRANSCRIBE', 'shortcut_bulk_transcribe_label', 7, 84, 0),
     Shortcut('messages.ID_BULK_TRANSCRIBE_INLINE', 'messages', 'ID_BULK_TRANSCRIBE_INLINE', 'shortcut_bulk_transcribe_inline_label', 7, 78, 0),
+    Shortcut('messages.ID_BULK_DELETE_TRANSCRIPTIONS', 'messages', 'ID_BULK_DELETE_TRANSCRIPTIONS', 'shortcut_bulk_delete_transcriptions_label', 7, 127, 0),
     Shortcut('messages.ID_BULK_DELETE', 'messages', 'ID_BULK_DELETE', 'shortcut_bulk_delete_chats_label', 6, 127, 0),
     # Review the Nth newest message (issue #462). No default key on purpose: Alt+1..Alt+9
     # belong to the main window, and the family is there for whoever frees them or
@@ -197,6 +199,7 @@ SHORTCUTS = (
     Shortcut('status.ID_CTRL_SHIFT_I', 'status', 'ID_CTRL_SHIFT_I', 'ai_describe_image_menu', 6, 73, 0),
     Shortcut('status.ID_ALT_SHIFT_T', 'status', 'ID_ALT_SHIFT_T', 'shortcut_status_transcribe_label', 5, 84, 0),
     Shortcut('status.ID_ALT_SHIFT_N', 'status', 'ID_ALT_SHIFT_N', 'shortcut_status_transcribe_inline_label', 5, 78, 0),
+    Shortcut('status.ID_ALT_SHIFT_DELETE', 'status', 'ID_ALT_SHIFT_DELETE', 'shortcut_status_delete_transcription_label', 5, 127, 0),
     Shortcut('calls.ID_ALT_L', 'calls', 'ID_ALT_L', 'shortcut_calls_alt_l_label', 1, 76, 0),
     Shortcut('calls.ID_CTRL_SHIFT_R', 'calls', 'ID_CTRL_SHIFT_R', 'shortcut_calls_ctrl_shift_r_label', 6, 82, 0),
     Shortcut('calls.ID_F5', 'calls', 'ID_F5', 'shortcut_calls_f5_label', 0, 344, 0),

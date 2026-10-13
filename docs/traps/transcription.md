@@ -822,7 +822,8 @@ keys and the row.
   the one the contact's row previews (the one navigated to with Ctrl+Left/Right
   for the open contact, the newest for any other). In the separate media
   viewer (`status_media_viewer_dialog`) the keys are those of the list behind
-  it, not of the dialog.
+  it, not of the dialog. The account's own statuses have them in the "my
+  status" window (see *Deleting saved transcriptions from the keyboard*).
 - **Enter and Space** follow `user_interface.enter_transcribes_statuses` (off):
   on, they transcribe into the line and Alt+Shift+N opens or plays, exactly the
   conversation's alternation. Only on a row showing audio or video; a photo, a
@@ -858,3 +859,36 @@ keys and the row.
   hands it to `_run_status_auto_transcription()`. Eligibility is
   `auto_queue.eligible()` unchanged (someone else's, audio or video, under five
   minutes old, at most ten minutes long, nothing decided yet).
+
+## Deleting saved transcriptions from the keyboard
+
+Until 2026-10 a saved transcription could only be deleted from the message's
+context menu. `ui/conversation_panel/transcription_delete.py`:
+
+- **Alt+Shift+Delete** (`messages.ID_ALT_SHIFT_DELETE`) deletes the focused
+  message's, through the menu item's own path (`delete_transcription()`: the
+  question, the tombstone, the row redrawn). With messages selected and
+  `user_interface.bulk_action_shortcuts` on, it acts on the selection, like
+  every single-message key. A message with nothing saved gets one sentence
+  (`transcription_none_to_delete`), never silence.
+- **Ctrl+Alt+Shift+Delete** (`messages.ID_BULK_DELETE_TRANSCRIPTIONS`) and the
+  "Ações em massa" item delete the saved transcriptions of the selection after
+  one question that counts them. Only messages that hold a result
+  (`stored.results_of()`) are counted or touched; a tombstone is a decision,
+  not a text. Each goes through `MainWindow.delete_message_transcription()`,
+  and the rows are redrawn once every answer is in, only if the user is still
+  in that conversation.
+- On the Status tab the key is `status.ID_ALT_SHIFT_DELETE`; the flow's
+  question is `transcription_status_delete_question` (the message's says "the
+  message and its audio stay in the conversation").
+- **The "my status" window has the three status keys too**
+  (`status_tab/my_status_transcription.py`, a base class of `MyStatusDialog`,
+  not a `StatusPanel` mixin). The list's keys never reached it: the "my
+  status" row is a summary that opens that window. Its table is built with
+  `make_shortcut_table(self, 'status', …)`, so it reads the same catalogue rows
+  and the same user preference as the tab. An own status names no poster, so
+  `store_status_transcription()` files it under the account (`my_jid`), as
+  `_store_status_update()` does.
+- Every key here is a catalogue row and so is listed on the Keyboard shortcuts
+  tab (`visible_shortcuts()`); `tests/test_transcription_delete_shortcuts.py`
+  holds the list.

@@ -825,6 +825,9 @@ class MessageTranscriptionFlow:
 
     #: Whether the result window offers "Insert into the message".
     _offers_insert = True
+    #: The question delete_saved() asks. It says what stays (the message and
+    #: its audio), which is not what stays when the thing is a status.
+    _delete_question_key = "transcription_delete_question"
 
     def _save(self, value, existing=False):
         """Storing's SAVE_* answer for `value`. `existing`: a text already
@@ -876,7 +879,7 @@ class MessageTranscriptionFlow:
         i18n = self._i18n
         dlg = wx.MessageDialog(
             self._main_window,
-            i18n.t("transcription_delete_question"),
+            i18n.t(self._delete_question_key),
             i18n.t("transcription_progress_title"),
             wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )

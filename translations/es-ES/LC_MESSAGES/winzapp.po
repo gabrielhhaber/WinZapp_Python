@@ -5706,6 +5706,7 @@ msgid "muted"
 msgstr "silenciado"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/my_status_transcription.py
 #: client/status_tab/status_dialogs.py client/status_tab/status_list.py
 msgctxt "my_status"
 msgid "My status"
@@ -8099,6 +8100,15 @@ msgid "Ctrl+Shift+Delete: delete the selected messages"
 msgstr "Ctrl+Shift+Delete: eliminar los mensajes seleccionados"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_bulk_delete_transcriptions_label"
+msgid ""
+"Ctrl+Alt+Shift+Delete: delete the saved local transcriptions of the selected"
+" messages"
+msgstr ""
+"Ctrl+Alt+Shift+Delete: eliminar las transcripciones locales guardadas de los"
+" mensajes seleccionados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_bulk_forward_label"
 msgid "Ctrl+Alt+Shift+E: forward the selected messages"
@@ -8566,6 +8576,16 @@ msgstr ""
 " hay una selección)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_delete_transcription_label"
+msgid ""
+"Alt+Shift+Delete: delete the saved local transcription of the message (or of"
+" every selected one, when shortcuts are replaced by bulk actions)"
+msgstr ""
+"Alt+Shift+Delete: eliminar la transcripción local guardada del mensaje (o de"
+" todos los seleccionados, cuando los atajos se sustituyen por acciones en "
+"masa)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_esc_ctrl_w_label"
 msgid ""
@@ -8937,6 +8957,11 @@ msgstr ""
 "Espacio: reproducir/pausar el audio o vídeo enfocado. Cuando ya haya algo "
 "marcado, pasa a marcar/desmarcar el chat o mensaje enfocado, si la opción "
 "está activada en Configuración, Interfaz de usuario"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_status_delete_transcription_label"
+msgid "Alt+Shift+Delete: delete the saved local transcription of the status"
+msgstr "Alt+Shift+Delete: eliminar la transcripción local guardada del estado"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_status_transcribe_inline_label"
@@ -10278,6 +10303,48 @@ msgid "It continues in the background. You will be told when it finishes."
 msgstr "Continúa en segundo plano. Se te avisará cuando termine."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "transcription_bulk_delete_menu"
+msgid "Delete the saved local transcriptions of the selected messages"
+msgstr ""
+"Eliminar las transcripciones locales guardadas de los mensajes seleccionados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/transcription_delete.py
+msgctxt "transcription_bulk_delete_none"
+msgid "None of the selected messages has a saved local transcription."
+msgstr ""
+"Ninguno de los mensajes seleccionados tiene una transcripción local "
+"guardada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/transcription_delete.py
+#, python-brace-format
+msgctxt "transcription_bulk_delete_partial"
+msgid "Local transcriptions deleted: {count}. Could not be deleted: {failed}."
+msgstr ""
+"Transcripciones locales eliminadas: {count}. No se pudieron eliminar: "
+"{failed}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/transcription_delete.py
+#, python-brace-format
+msgctxt "transcription_bulk_delete_question"
+msgid ""
+"Delete the saved local transcriptions of {count} selected messages? The "
+"messages and their audio stay in the conversation."
+msgstr ""
+"¿Eliminar las transcripciones locales guardadas de {count} mensajes "
+"seleccionados? Los mensajes y sus audios siguen en la conversación."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/transcription_delete.py
+#, python-brace-format
+msgctxt "transcription_bulk_deleted"
+msgid "Local transcriptions deleted: {count}."
+msgstr "Transcripciones locales eliminadas: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_cache.py
 msgctxt "transcription_cache_check"
 msgid "Save transcriptions with the messages so they are not redone (cache)"
@@ -10635,7 +10702,7 @@ msgctxt "transcription_delete_failed"
 msgid "The transcription could not be deleted."
 msgstr "No se pudo eliminar la transcripción."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_delete_question"
 msgid ""
 "Delete this message's transcription? The message and its audio stay in the "
@@ -11902,10 +11969,19 @@ msgstr ""
 "configuración pasa a usar."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/my_status_transcription.py
 #: client/status_tab/status_transcription.py
 msgctxt "transcription_no_audio"
 msgid "This message has no audio to transcribe."
 msgstr "Este mensaje no tiene audio para transcribir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/my_status_transcription.py
+#: client/status_tab/status_transcription.py
+#: client/ui/conversation_panel/transcription_delete.py
+msgctxt "transcription_none_to_delete"
+msgid "There is no saved local transcription to delete here."
+msgstr "No hay ninguna transcripción local guardada que eliminar aquí."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_not_saved_cache_off"
@@ -12180,6 +12256,7 @@ msgid "Installing the whisper.cpp program ({build}) again..."
 msgstr "Instalando de nuevo el programa whisper.cpp ({build})..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/transcription_delete.py
 #: client/ui/dialogs/transcription_progress.py
 #: client/ui/dialogs/transcription_result.py client/ui/transcription_flow.py
 msgctxt "transcription_progress_title"
@@ -12411,6 +12488,7 @@ msgstr ""
 "conservar la elección."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/my_status_transcription.py
 #: client/status_tab/status_transcription.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "transcription_row_label"
@@ -12547,6 +12625,15 @@ msgid ""
 msgstr ""
 "¿Borrar todas las transcripciones locales guardadas de todos los estados? "
 "Esto no se puede deshacer."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "transcription_status_delete_question"
+msgid ""
+"Delete the saved local transcription of this status? The status itself is "
+"not changed."
+msgstr ""
+"¿Eliminar la transcripción local guardada de este estado? El estado en sí no"
+" cambia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py

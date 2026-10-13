@@ -1286,9 +1286,10 @@ def _accelerator_bindings(path):
 class TestAltShiftTIsOurs:
     """Alt+Shift+T must mean one thing: transcribe locally what the list is
     on. Alt+T (presence) lives in MainWindow's table, which is why a scan of
-    the panel alone would not see a clash. The Status tab binds the same chord
-    to the same action on an audio or video status (its table is the one
-    active while that tab has the focus), and nothing else may take it."""
+    the panel alone would not see a clash. The Status tab and its "my status"
+    window bind the same chord to the same action on an audio or video status
+    (each table is the one active while that window has the focus), and
+    nothing else may take it."""
 
     # Every file MainWindow, ConversationsPanel and StatusPanel are built from
     # (their accelerator tables now sit in main_window/shortcuts.py,
@@ -1310,6 +1311,7 @@ class TestAltShiftTIsOurs:
                     owners.append((module, target))
         assert sorted(owners) == [
             ("client/status_panel.py", "self.ID_ALT_SHIFT_T"),
+            ("client/status_tab/my_status_transcription.py", "self.ID_ALT_SHIFT_T"),
             ("client/ui/conversation_panel/accelerators.py", "self.ID_ALT_SHIFT_T"),
         ]
 

@@ -24,6 +24,7 @@ class StatusTranscriptionFlow(MessageTranscriptionFlow):
     """One transcription of one status. Built on the wx thread, used once."""
 
     _offers_insert = False
+    _delete_question_key = "transcription_status_delete_question"
 
     def __init__(self, panel, status, inline=False):
         super().__init__(panel, status, inline)

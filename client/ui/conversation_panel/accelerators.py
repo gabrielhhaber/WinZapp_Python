@@ -232,6 +232,10 @@ class AcceleratorsMixin:
         self.ID_BULK_SAVE       = wx.NewIdRef()  # save selected           (Ctrl+Alt+Shift+S)
         self.ID_BULK_TRANSCRIBE = wx.NewIdRef()  # transcribe selected, window (Ctrl+Alt+Shift+T)
         self.ID_BULK_TRANSCRIBE_INLINE = wx.NewIdRef()  # ... into their lines (Ctrl+Alt+Shift+N)
+        # Delete saved transcriptions: the focused message's (Alt+Shift+Delete)
+        # and the selection's (Ctrl+Alt+Shift+Delete).
+        self.ID_ALT_SHIFT_DELETE = wx.NewIdRef()
+        self.ID_BULK_DELETE_TRANSCRIPTIONS = wx.NewIdRef()
         self.ID_BULK_DELETE     = wx.NewIdRef()  # delete selected         (Ctrl+Shift+Delete)
         # ── Audio speed ──────────────────────────────────────────────────────
         self.ID_ALT_COMMA       = wx.NewIdRef()  # decrease audio speed    (Alt+,)
@@ -321,6 +325,7 @@ class AcceleratorsMixin:
             (AS,               ord("S"),          self.ID_ALT_SHIFT_S),
             (AS,               ord("T"),          self.ID_ALT_SHIFT_T),
             (AS,               ord("N"),          self.ID_ALT_SHIFT_N),
+            (AS,               wx.WXK_DELETE,     self.ID_ALT_SHIFT_DELETE),
             (CS,               ord("O"),           self.ID_CTRL_SHIFT_O),
             (wx.ACCEL_ALT,     ord(","),           self.ID_ALT_COMMA),
             (wx.ACCEL_ALT,     ord("."),           self.ID_ALT_PERIOD),
@@ -332,6 +337,7 @@ class AcceleratorsMixin:
             (CAS,              ord("S"),           self.ID_BULK_SAVE),
             (CAS,              ord("T"),           self.ID_BULK_TRANSCRIBE),
             (CAS,              ord("N"),           self.ID_BULK_TRANSCRIBE_INLINE),
+            (CAS,              wx.WXK_DELETE,      self.ID_BULK_DELETE_TRANSCRIPTIONS),
             (CS,               wx.WXK_DELETE,      self.ID_BULK_DELETE),
         ] + [
             # No default key (mod 0, key 0): the entry only ties the command to
@@ -410,6 +416,9 @@ class AcceleratorsMixin:
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_save,            id=self.ID_BULK_SAVE)
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_transcribe,      id=self.ID_BULK_TRANSCRIBE)
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_transcribe_inline, id=self.ID_BULK_TRANSCRIBE_INLINE)
+        self.Bind(wx.EVT_MENU, self._on_accel_delete_transcription, id=self.ID_ALT_SHIFT_DELETE)
+        self.Bind(wx.EVT_MENU, self._on_accel_bulk_delete_transcriptions,
+                  id=self.ID_BULK_DELETE_TRANSCRIPTIONS)
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_delete,          id=self.ID_BULK_DELETE)
         for _d in range(10):
             self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_accel_review_message(d), id=self.ID_REVIEW[_d])

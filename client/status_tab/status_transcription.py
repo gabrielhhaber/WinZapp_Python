@@ -70,6 +70,17 @@ class StatusTranscriptionPanelMixin:
         if status is not None:
             status_transcription_flow.transcribe_status_inline(self, status)
 
+    def _on_delete_status_transcription(self, event=None):
+        """Alt+Shift+Delete: delete the saved transcription of the status the
+        focused row is showing, after asking."""
+        status = self._status_for_transcription()
+        if not statuses.holds_text(status):
+            # Never a silent no-op: the key was pressed and nothing changed.
+            self.main_window.output(
+                self.main_window.i18n.t("transcription_none_to_delete"), interrupt=True)
+            return
+        status_transcription_flow.delete_status_transcription(self, status)
+
     def _enter_transcribes_status_row(self, row: int) -> bool:
         """Enter or Space on this row: transcribe into the line instead of
         opening, when the setting is on and the row shows audio or video.

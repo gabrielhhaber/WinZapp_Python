@@ -18,6 +18,7 @@ from status_tab.status_rules import (
     _status_content_label,
 )
 from core.utils import format_number
+from status_tab.my_status_transcription import MyStatusTranscriptionKeys
 
 
 class StatusReactionsDialog(wx.Dialog):
@@ -99,7 +100,7 @@ class StatusReactionsDialog(wx.Dialog):
             self._list.Select(0)
 
 
-class MyStatusDialog(wx.Dialog):
+class MyStatusDialog(MyStatusTranscriptionKeys, wx.Dialog):
     """
     Modal dialog for viewing the user's own posted statuses and adding new ones.
 
@@ -199,6 +200,9 @@ class MyStatusDialog(wx.Dialog):
             self._video_local_path = None
             self._video_download_status_id = None
             self.Bind(wx.EVT_CLOSE, self._on_close)
+            # Alt+Shift+T / N / Delete: transcribing the status being shown
+            # (status_tab/my_status_transcription.py).
+            self._create_transcription_accelerators()
 
             self._update_content()
 
@@ -228,19 +232,27 @@ class MyStatusDialog(wx.Dialog):
 
     # ── Content display ───────────────────────────────────────────────────
 
+    def _content_label_text(self) -> str:
+        """"Status 1 of 3: Voice message, transcription: …" for the status
+        being shown; the transcription only when it was asked into the line."""
+        i18n   = self._mw.i18n
+        status = self._statuses[self._current]
+        msg_type = status.get("messageType", "")
+        msg_obj  = status.get("message") or {}
+        content  = _status_content_label(msg_type, msg_obj, i18n, getattr(self._mw, "settings", None))
+        content += self._own_status_inline_suffix(status, i18n)
+        nav_info = i18n.t("status_of").format(
+            current=self._current + 1, total=len(self._statuses))
+        return f"{nav_info}: {content}"
+
     def _update_content(self):
         if not self._statuses:
             return
         i18n   = self._mw.i18n
-        total  = len(self._statuses)
         status = self._statuses[self._current]
-
         msg_type = status.get("messageType", "")
-        msg_obj  = status.get("message") or {}
-        content  = _status_content_label(msg_type, msg_obj, i18n, getattr(self._mw, "settings", None))
 
-        nav_info = i18n.t("status_of").format(current=self._current + 1, total=total)
-        label    = f"{nav_info}: {content}"
+        label = self._content_label_text()
         self._content_lbl.SetLabel(label)
         self._mw.output(label, interrupt=True)
 
