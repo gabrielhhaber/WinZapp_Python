@@ -774,6 +774,7 @@ class TestEverySettingIsReadBackAndWritten:
             "language": "fr",
             "auto_detect_language": False,
             "keep_model_loaded": False,
+            "run_without_dialog": False,
             "auto_transcribe_received": False,
             "cache_enabled": True,
             "cache_by_model": {},
@@ -784,6 +785,15 @@ class TestEverySettingIsReadBackAndWritten:
         tab._load_transcription_values()
         tab._apply_transcription_values()
         assert tab.main_window.settings["transcription"] == stored
+
+    def test_transcribing_without_the_progress_window_starts_off_and_round_trips(self, tab):
+        tab._load_transcription_values()
+        assert tab._transcription_no_dialog_check.GetValue() is False
+        tab._transcription_no_dialog_check.SetValue(True)
+        tab._apply_transcription_values()
+        assert tab.main_window.settings["transcription"]["run_without_dialog"] is True
+        tab._load_transcription_values()
+        assert tab._transcription_no_dialog_check.GetValue() is True
 
     def test_keeping_the_model_loaded_starts_off_and_round_trips(self, tab):
         tab._load_transcription_values()

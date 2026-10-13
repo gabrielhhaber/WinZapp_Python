@@ -48,6 +48,7 @@ RELEASE_TAG = "b4938"
 _RELEASE_URL = "https://github.com/ggml-org/whisper.cpp/releases/download/{tag}/{name}"
 
 EXECUTABLE_NAME = "whisper-cli.exe"
+SERVER_NAME = "whisper-server.exe"
 
 # CUDA 12 has no Kepler (sm_3x) support; this release's CUDA builds have no
 # Blackwell (sm_120) kernels. See the module docstring.
@@ -72,6 +73,11 @@ class RuntimeBuild:
     uses_cuda: bool
     #: ((relative path, sha256), ...) of the files that run; () pins nothing.
     pinned_files: tuple = ()
+    #: sha256 of the zip's whisper-server.exe, the program that keeps the model
+    #: loaded (whisper_cpp_server); "" pins none, and the server is not used.
+    #: Apart from `pinned_files` on purpose: those are what every run needs,
+    #: and a folder without the server (a reused one may lack it) still runs.
+    server_sha256: str = ""
 
     @property
     def url(self) -> str:
@@ -174,6 +180,7 @@ BUILD_CPU = RuntimeBuild(
     archive_sha256="c2a4b60edb11f7e11a9191ffb50929535527d4d91c9903dbe3e554583bbbc63d",
     uses_cuda=False,
     pinned_files=_CPU_FILES,
+    server_sha256="9eb6ee297215f07ba77a6d588a6a2715f2235f665528529c377b775bbab3cd2d",
 )
 BUILD_CUDA = RuntimeBuild(
     id="cuda-12.4",
@@ -182,6 +189,8 @@ BUILD_CUDA = RuntimeBuild(
     archive_sha256="c1b17166e1e31a91cc8e9c1f910d3785e3ce757bb2958bf9dce13fdb4880005f",
     uses_cuda=True,
     pinned_files=_CUDA_FILES,
+    # Read off the pinned zip (its own sha256 and size checked first).
+    server_sha256="0b54514e66f5d2a445098857e346389816b58f9872f402fde76cf1c8163853af",
 )
 
 BUILDS = (BUILD_CPU, BUILD_CUDA)

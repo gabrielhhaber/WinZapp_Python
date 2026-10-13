@@ -11,12 +11,15 @@ What differs from faster_whisper_backend, and why it is shaped this way:
   starved of CPU stops speaking — for a blind user the whole machine has then
   stopped answering.
 
-* **Nothing stays loaded.** The program loads the model, transcribes and
-  exits, so there is no cache to keep warm and no VRAM to hand back —
-  `release()` has nothing to do — and the price is the load, paid inside every
-  run. `load_model()` therefore only checks that the model file and the
-  program are there, so a missing one is reported before the "transcribing"
-  phase rather than half way into it.
+* **Nothing stays loaded, unless the user asked.** The program loads the
+  model, transcribes and exits, so the price is the load, paid inside every
+  run. With "Keep the model loaded in memory" on (residency.py) the same
+  release's whisper-server.exe is asked instead (whisper_cpp_server): it
+  loads the model once and answers each recording. Anything that goes wrong
+  with it puts the run back on whisper-cli, so the server can make a
+  transcription faster and never fail one; `release()` stops it. `load_model()`
+  only checks that the model file and the program are there, so a missing one
+  is reported before the "transcribing" phase rather than half way into it.
 
 * **Nothing leaves the machine.** The program is handed a local model file
   and a local WAV — paths, never a URL or a model name it could go and fetch;
@@ -67,8 +70,10 @@ from core.transcription import (
     whisper_cpp_catalog,
     whisper_cpp_cli,
     whisper_cpp_runtime,
+    whisper_cpp_server,
     whisper_cpp_store,
 )
+from core.transcription import residency as residency_module
 from core.transcription.backend import (
     BACKEND_WHISPER_CPP,
     TranscriptionBackend,
@@ -145,7 +150,9 @@ class WhisperCppBackend(TranscriptionBackend):
         self._executable_for(request.device, request.compute_capability)
 
     def release(self) -> None:
-        """Nothing is held between runs: each one is a process that exits."""
+        """Stop the server that keeps the model loaded, when one is running.
+        whisper-cli holds nothing between runs."""
+        whisper_cpp_server.stop()
 
     def transcribe(self, request, progress=None, should_cancel=None):
         """Transcribe the prepared WAV; progress comes from the program's `-pp`.
@@ -183,9 +190,18 @@ class WhisperCppBackend(TranscriptionBackend):
 
         started = time.monotonic()
         try:
-            segments, language, probability = self._run(
-                executable, model_file, request, vad_model, forward, should_cancel
-            )
+            try:
+                segments, language, probability = self._run_on_server(
+                    model_file, request, vad_model, forward, should_cancel
+                )
+            except whisper_cpp_server.ServerUnavailable as exc:
+                if self._keeps_loaded():
+                    # Not an error: the note is transcribed the usual way. The
+                    # reason holds no text and no path (log_tail, basenames).
+                    logging.info("[transcription] whisper.cpp server not used: %s", exc)
+                segments, language, probability = self._run(
+                    executable, model_file, request, vad_model, forward, should_cancel
+                )
             vad_used = vad_model is not None
         except _VadFailure as exc:
             logging.warning(
@@ -277,10 +293,7 @@ class WhisperCppBackend(TranscriptionBackend):
 
     def _executable_for(self, device, compute_capability):
         """The installed build for `device`, or the code that says why not."""
-        build = (
-            whisper_cpp_builds.BUILD_CUDA if device == DEVICE_CUDA
-            else whisper_cpp_builds.BUILD_CPU
-        )
+        build = self._build_for(device)
         if build.uses_cuda and not whisper_cpp_builds.cuda_build_supported(
             compute_capability
         ):
@@ -305,6 +318,44 @@ class WhisperCppBackend(TranscriptionBackend):
         raise errors.TranscriptionError(
             errors.WHISPER_CPP_NOT_INSTALLED, "the CPU build of whisper.cpp is not installed"
         )
+
+    def _keeps_loaded(self) -> bool:
+        return residency_module.residency.keep_loaded
+
+    def _build_for(self, device):
+        return (whisper_cpp_builds.BUILD_CUDA if device == DEVICE_CUDA
+                else whisper_cpp_builds.BUILD_CPU)
+
+    def _run_on_server(self, model_file, request, vad_model, progress, should_cancel):
+        """(segments, language, probability) from the server that keeps the
+        model loaded. ServerUnavailable when the setting is off, the program
+        is not there, or anything about it goes wrong: the caller runs
+        whisper-cli. Called after `_executable_for()`, which verified the
+        build's files."""
+        if not self._keeps_loaded():
+            raise whisper_cpp_server.ServerUnavailable("not asked to keep the model loaded")
+        build = self._build_for(request.device)
+        executable = whisper_cpp_runtime.server_path(build, self._root_for(build))
+        if executable is None:
+            raise whisper_cpp_server.ServerUnavailable("the server program is not installed")
+        cpu_count = self._cpu_count if self._cpu_count is not None else os.cpu_count()
+        config = whisper_cpp_server.ServerConfig(
+            executable, model_file, request.device == DEVICE_CUDA, vad_model,
+            whisper_cpp_cli.default_thread_count(cpu_count),
+        )
+        raw, stderr_text = whisper_cpp_server.transcribe(
+            config, request.audio_path, request.language, progress, should_cancel
+        )
+        try:
+            segments = whisper_cpp_server.parse_response(raw)
+        except ValueError as exc:
+            raise whisper_cpp_server.ServerUnavailable(
+                f"unreadable answer ({type(exc).__name__})") from exc
+        asked = whisper_cpp_cli.language_argument(request.language)
+        detected, probability = whisper_cpp_cli.parse_detected_language(stderr_text)
+        if asked != whisper_cpp_cli.LANGUAGE_AUTO:
+            return segments, asked, None
+        return segments, detected, probability
 
     def _run(self, executable, model_file, request, vad_model, progress, should_cancel):
         """(segments, language, probability) for one run of the program."""

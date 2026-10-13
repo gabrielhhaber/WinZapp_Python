@@ -690,9 +690,51 @@ default) is on.
 - The flag is `residency.configure(...)`d at the end of `load_settings()` and on
   Apply (`TranscriptionOptionsMixin._apply_transcription_options`). Nothing else
   reads the setting — the job does not.
-- whisper.cpp runs one process per transcription, so there is nothing to keep:
-  the checkbox's label says "(faster-whisper)" and the setting does nothing for it.
+- whisper.cpp runs one whisper-cli process per transcription and keeps nothing,
+  **unless the setting is on**: then it asks the release's `whisper-server.exe`
+  instead (next section), and `release()` stops that server. For whisper.cpp the
+  setting is the switch itself: off, nothing of it stays in memory.
 - Never log anything but the fact that a model was released.
+
+## whisper.cpp with the model kept loaded (`whisper_cpp_server.py`)
+
+Reported from users' logs (2026-10): with "Keep the model loaded" on and a
+graphics card, every transcription still reloaded the model. Those logs were
+whisper.cpp (`backend=whisper_cpp ... device=cuda`), where the setting did
+nothing: 0.8 to 2.9 s of every run were whisper-cli starting, initialising CUDA
+and loading the model. The zip WinZapp already downloads and verifies ships
+`whisper-server.exe`, which loads once and answers one HTTP request per
+recording. With the setting on, `WhisperCppBackend.transcribe()` asks it.
+
+- **Any doubt goes back to whisper-cli.** Everything but a cancellation raises
+  `ServerUnavailable` (not installed, not the pinned file, busy, did not start,
+  bad answer, recording over 256 MB) and the note runs the old way, where
+  failures are classified. The server can make a run faster, never fail one.
+- **Pinned apart from `pinned_files`**: `RuntimeBuild.server_sha256`, read off
+  the pinned zips. `whisper_cpp_runtime.server_path()` returns the program only
+  when the manifest lists it with that digest; `verify_executable()` (always
+  called first) holds the file to the manifest. A reused folder without the
+  server still runs whisper-cli. Moving the release means reading both digests
+  again.
+- **127.0.0.1, a port the system picked, local files only.** stdout to the null
+  device; stderr to a file in a private `winzapp-whisper-` folder, read for
+  progress and the detected language. The text exists only in the HTTP answer.
+- **It never outlives WinZapp**: the process is put in a Windows job object with
+  kill-on-close, whose handle WinZapp holds. A server that cannot be put in the
+  job is killed and not used. `atexit` stops it too.
+- **Same decoding as whisper-cli**: `-bs 5 -bo 5` are passed, because the
+  server's own defaults differ (greedy, best of 2). `-l auto` is always given
+  and each request carries its language.
+- **The language code comes from stderr** (`auto-detected language: pt (p =
+  ...)`); the answer's own `language` is a name ("portuguese"), not a code.
+- **Cancel kills the server**: it is the only way to stop a transcription it has
+  begun. The next run starts it again.
+- One request at a time; a second transcription meanwhile is told "busy" and
+  runs on whisper-cli. A different model, device or filter restarts the server.
+- Run end to end on a verified CPU build (the backend as the job calls it):
+  same text and segment times as whisper-cli, cancel and restart, `release()`
+  leaving no process and no temporary folder. **Not run on a card**: the gain
+  there is the point, and it was not measured.
 
 ## CUDA libraries and whisper.cpp programs from another folder (`reused_runtimes.py`)
 

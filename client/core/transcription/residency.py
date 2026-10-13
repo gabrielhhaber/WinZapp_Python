@@ -15,9 +15,12 @@ This module is the other half of the setting "Keep the model loaded in memory"
 * **On** — it is never released by this module, and anyone transcribing all day
   does not wait for a load again after a pause.
 
-Only a backend that holds something between runs benefits. whisper.cpp's
-`release()` is a no-op (each run is a process that exits), so for it the
-setting changes nothing — and says nothing it could not keep.
+Only a backend that holds something between runs benefits. whisper.cpp runs
+one whisper-cli process per transcription and holds nothing — unless this
+setting is on, when it asks the release's whisper-server.exe instead
+(whisper_cpp_server), which keeps the model loaded and is what its
+`release()` stops. For whisper.cpp the setting is therefore also the switch:
+off, nothing of it stays in memory at all.
 
 Nothing here is wx, and nothing here logs a message, a chat or a model id.
 """

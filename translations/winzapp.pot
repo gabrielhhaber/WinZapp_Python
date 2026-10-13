@@ -11664,7 +11664,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
 msgctxt "transcription_keep_loaded_check"
-msgid "&Keep the model loaded in memory (faster-whisper)"
+msgid "&Keep the model loaded in memory (faster-whisper and whisper.cpp)"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

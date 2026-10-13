@@ -54,7 +54,7 @@ from dataclasses import dataclass
 from app_paths import global_dir
 from coord_locks import LockTimeout
 from core import tls_trust
-from core.transcription import errors, model_store
+from core.transcription import errors, model_store, whisper_cpp_builds
 from core.transcription._fileops import (
     check_cancel as _check_cancel,
     remove_empty_dir as _remove_empty_dir,
@@ -195,6 +195,30 @@ def executable_path(build, root=None):
         return None
     manifest = _read_manifest(build_dir(root, build))
     return os.path.join(build_dir(root, build), *manifest["executable"].split("/"))
+
+
+def server_path(build, root=None):
+    """whisper-server.exe of an installed `build`, beside whisper-cli.exe, when
+    the manifest lists it with the digest whisper_cpp_builds pins; else None.
+
+    Call verify_executable() first: that is what holds the file on disk to
+    the manifest's digest, and this is what holds the manifest's digest to the
+    pinned one. None for a build with no pin, a folder without the program, or
+    one whose copy is not the pinned file: the caller then runs whisper-cli.
+    """
+    if not build.server_sha256:
+        return None
+    root = _resolve(root)
+    directory = build_dir(root, build)
+    manifest = _read_manifest(directory)
+    if manifest is None:
+        return None
+    folder = manifest["executable"].rpartition("/")[0]
+    relative = f"{folder}/{whisper_cpp_builds.SERVER_NAME}" if folder else whisper_cpp_builds.SERVER_NAME
+    listed = {name: digest for name, _size, digest in manifest["files"]}
+    if listed.get(relative) != build.server_sha256:
+        return None
+    return os.path.join(directory, *relative.split("/"))
 
 
 #: What counts as code a launch could load: refused when the manifest omits it.
