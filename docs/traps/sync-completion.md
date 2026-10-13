@@ -90,6 +90,50 @@ activity floor; keep the clear/read guards and the group-participant filter.
 Leave the raw snapshot's `remoteJid` intact for the later metadata passes.
 The same measured snapshot now selects an incremental activity refresh.
 
+## History flags must survive normalization (2026-10-13)
+
+`on_messages_upsert()` distinguishes old `isMdHistoryMsg` replays from current
+messages, but the raw WPPConnect event first passes through
+`_normalize_wpp_message()`. Dropping the flag there bypasses the history
+handler entirely. Test the **raw received-message event**, not just a canonical
+dict passed directly to the dispatcher: the latter never crosses the broken
+boundary. Preserve the existing exception for fresh history-flagged messages
+in a known chat, so real arrivals still notify.
+
+"Known chat" includes a cached phone/LID alias. A fresh flagged LID event
+must not be silenced merely because the chat is stored under its phone JID.
+Historical ingestion also uses the live canonical-message merge before chat
+lookup and persistence, or enabling the flag just splits history into a new
+LID chat. An unresolved history replay does not launch new identity requests;
+its pending DB insert is still tracked so a later LID merge can wait for it.
+
+Unflagged deliveries can also arrive out of order. `on_new_message()` must
+sort such a resident insertion before trimming oldest rows; trimming arrival
+order can evict a newer message for an old replay. The disk insert still runs
+even when that old row falls outside the resident window. The panel's live
+append must independently reject a row older than its visible tail and use
+the existing debounced, focus-preserving refresh. Do not insert an unread
+separator or scroll to that old row. Genuine tail arrivals retain the cheap
+append and keep the separate pagination list aligned; check alignment before
+inserting the unread separator, which itself is not a database message.
+
+The 12 October report described older messages suddenly appearing at the tail
+and returning to their chronological positions after Shift+F5. These mechanisms
+were reproduced with synthetic messages; the incident's message log had been
+replaced by the next launch, so they are not proof of its exact live cause.
+
+## A missing alias cannot conceal an I/O failure (2026-10-13)
+
+When a primary LID lookup says `chat not found` but the known phone fallback
+times out or returns a session/server error, the chat's absence is **unknown**.
+Previously only the primary response decided `chat_absent`, so the failed
+fallback was classified as an answer and could eventually commit the activity
+marker. Require an explicit chat miss under every attempted address before
+entering the existing bounded absence path. A fallback fault remains an I/O
+failure on the durable retry list. Two explicit misses are still nonfatal,
+and a successful fallback still stores the messages; do not restore the old
+global sync loop for real phantom chats.
+
 ## get-messages is throttled to two at a time in the pools (issue #379)
 
 Every get-messages is evaluated in the single WhatsApp Web page Puppeteer drives

@@ -480,6 +480,7 @@ class _Executor:
 class _HistoricalStub:
     """on_historical_message() for real, as in test_historical_self_chat_guard."""
     on_historical_message = MainWindow.on_historical_message
+    _merge_lid_into_phone = MainWindow._merge_lid_into_phone
     _fill_stored_placeholder = MainWindow._fill_stored_placeholder
     _adopt_decrypted_copy = staticmethod(MainWindow._adopt_decrypted_copy)
     _is_undecrypted_placeholder = staticmethod(MainWindow._is_undecrypted_placeholder)

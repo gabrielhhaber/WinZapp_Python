@@ -100,6 +100,8 @@ CORREÇÕES
 
 - As mensagens enviadas enquanto uma sequência de mensagens de voz estava a decorrer ou em pausa ficavam sem estado na lista (nem "Enviada", nem "Entregue", nem "Lida") até a sequência terminar, embora a janela Detalhes da mensagem (Alt+Shift+D) já mostrasse o estado certo. Agora, durante uma sequência, só a linha que tem o foco espera, para o leitor de ecrã não a ler por cima do áudio; as restantes são atualizadas de imediato, e a que ficou à espera é atualizada quando o foco sai dela, quando a reprodução é posta em pausa ou quando a sequência termina.
 
+- Sincronização: mensagens antigas recebidas novamente mantêm a ordem cronológica, em vez de aparecerem como novas. Falhas temporárias ao consultar um endereço alternativo da conversa continuam na fila para nova tentativa.
+
 - Reencaminhar deixa de abrir uma caixa quando corre bem. "Mensagem reencaminhada." (ou quantas mensagens foram reencaminhadas) passa a ser dito pelo leitor de ecrã, sem janela para fechar e sem interromper o que está a ser lido; funciona também com o WinZapp na área de notificação.
 
 - A sincronização e o preenchimento do histórico das conversas passam a pedir ao WhatsApp Web as mensagens de no máximo duas conversas de cada vez, em vez de até seis, o que mantém baixa a utilização de processador e de memória em computadores pequenos e servidores durante a primeira sincronização, sem a tornar visivelmente mais lenta. Abrir uma conversa, deslocar para cima e voltar a sincronizar uma conversa não ficam mais lentos.

@@ -34,6 +34,7 @@ from core.call_log import (
     call_log_supersedes,
     is_call_log,
 )
+from core.remote_deletions import message_timestamp_seconds
 from core.utils import (
     effective_unread_count,
     is_message_forwarded,
@@ -569,6 +570,28 @@ class MessageEventsMixin:
 
         return remote_jid, from_me
 
+    def _resolve_message_chat_jid(self, remote_jid: str, key: dict,
+                                  resolve_unknown: bool = True) -> str:
+        """File live and historical messages under the same canonical chat."""
+        alt_jid = self._normalize_jid(key.get("remoteJidAlt", ""))
+        if remote_jid.endswith("@lid"):
+            phone_jid = (
+                alt_jid if alt_jid.endswith("@s.whatsapp.net")
+                else getattr(self, "_lid_to_phone", {}).get(remote_jid, "")
+            )
+            if phone_jid:
+                self._merge_lid_into_phone(remote_jid, phone_jid)
+                return phone_jid
+            if resolve_unknown:
+                self._queue_lid_resolutions([remote_jid])
+        elif alt_jid.endswith("@lid"):
+            self._merge_lid_into_phone(alt_jid, remote_jid)
+        elif remote_jid.endswith("@s.whatsapp.net"):
+            lid_jid = getattr(self, "_phone_to_lid", {}).get(remote_jid, "")
+            if lid_jid:
+                self._merge_lid_into_phone(lid_jid, remote_jid)
+        return remote_jid
+
     def on_new_message(self, msg: dict):
         """
         Called on the main thread (via wx.CallAfter) when a new message
@@ -750,27 +773,7 @@ class MessageEventsMixin:
         #   OLD format: remoteJid=@lid,  remoteJidAlt=@s.whatsapp.net
         #   NEW format: remoteJid=phone, remoteJidAlt=@lid
         #   Cache-only: no remoteJidAlt, but @lid known from prior messages
-        alt_jid = self._normalize_jid(key.get("remoteJidAlt", ""))
-
-        if remote_jid.endswith("@lid"):
-            # OLD format — redirect to canonical phone JID
-            phone_jid = (
-                alt_jid if alt_jid.endswith("@s.whatsapp.net")
-                else getattr(self, "_lid_to_phone", {}).get(remote_jid, "")
-            )
-            if phone_jid:
-                self._merge_lid_into_phone(remote_jid, phone_jid)
-                remote_jid = phone_jid
-            else:
-                self._queue_lid_resolutions([remote_jid])
-        elif alt_jid.endswith("@lid"):
-            # NEW format — merge the @lid side into the phone chat
-            self._merge_lid_into_phone(alt_jid, remote_jid)
-        elif remote_jid.endswith("@s.whatsapp.net"):
-            # No remoteJidAlt — consult cache for any @lid counterpart
-            lid_jid = getattr(self, "_phone_to_lid", {}).get(remote_jid, "")
-            if lid_jid:
-                self._merge_lid_into_phone(lid_jid, remote_jid)
+        remote_jid = MessageEventsMixin._resolve_message_chat_jid(self, remote_jid, key)
 
         # A conversation the user deleted comes back the moment it receives a
         # new message — that is what WhatsApp itself does.  Without lifting the
@@ -998,6 +1001,12 @@ class MessageEventsMixin:
         # Slim any bloated quoted-message payload before persisting.
         prune_message_record(msg)
         records.append(msg)
+        # An unflagged or delayed socket event may predate the cached tail.
+        # Restore chronology BEFORE evicting the oldest resident rows, or an
+        # old replay can evict newer messages and remain at the visible tail.
+        if (len(records) > 1 and message_timestamp_seconds(msg)
+                < message_timestamp_seconds(records[-2])):
+            records.sort(key=message_timestamp_seconds)
         if len(records) > _MAX_RESIDENT_MESSAGES_PER_CHAT:
             del records[:len(records) - _MAX_RESIDENT_MESSAGES_PER_CHAT]
 
@@ -1427,6 +1436,9 @@ class MessageEventsMixin:
         Saves them to local storage, sorts records, and updates the lastMessage/t
         of the chat if the incoming message is newer. Does not trigger notifications or sounds.
         """
+        # Raw received-message events carry live-notification timing even when
+        # the dispatcher correctly routes them to this silent history path.
+        msg.pop("_arrived_at", None)
         # See _live_events_ready() — same reasoning as on_new_message().
         # Nothing is lost by dropping it here: the sync that is either about
         # to start or already running re-fetches all history regardless.
@@ -1468,6 +1480,12 @@ class MessageEventsMixin:
         alt_jid = self._normalize_jid(key.get("remoteJidAlt", ""))
         if alt_jid:
             self._extract_lid_mapping(msg)
+
+        # A raw history event may use the LID of an already-open phone chat.
+        # Reuse the live merge, including its pending-insert protection, but
+        # do not spend new resolution requests on an old unresolved replay.
+        remote_jid = MessageEventsMixin._resolve_message_chat_jid(
+            self, remote_jid, key, resolve_unknown=False)
 
         # History messages carry the sender's pushName too — the only source of
         # a display name for group participants we cannot resolve otherwise.
@@ -1587,7 +1605,11 @@ class MessageEventsMixin:
                     self.db.insert_message(remote_jid, msg)
             except Exception as e:
                 logging.error(f"[on_historical_message] Failed to insert message to DB: {e}")
-        self._msg_bg_executor.submit(_bg_insert_msg)
+        insert_future = self._msg_bg_executor.submit(_bg_insert_msg)
+        if remote_jid.endswith("@lid"):
+            pending = getattr(self, "_pending_lid_inserts", None)
+            if isinstance(pending, dict):
+                pending[remote_jid] = insert_future
 
         # History arrives in any order: a reply may quote an "Aguardando
         # mensagem" already stored, or a placeholder may land after a reply

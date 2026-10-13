@@ -1553,7 +1553,16 @@ class WebSocketClient:
                     message_timestamp > 0
                     and message_timestamp < getattr(self, "_connect_time", 0) - 5
                 )
-                if predates_connection or remote_jid not in self.main_window.chats:
+                # The Store may name a known phone conversation by its LID
+                # (or vice versa). Fresh history-flagged arrivals still need
+                # live unread/notification handling for that existing chat.
+                aliases = {remote_jid}
+                for mapping_name in ("_lid_to_phone", "_phone_to_lid"):
+                    alternate = getattr(self.main_window, mapping_name, {}).get(remote_jid, "")
+                    if alternate:
+                        aliases.add(self.main_window._normalize_jid(alternate))
+                known_chat = any(jid in self.main_window.chats for jid in aliases)
+                if predates_connection or not known_chat:
                     wx.CallAfter(self.main_window.on_historical_message, msg)
                     return
                 # Chat already known/synced — fall through to live handling below.
@@ -3093,6 +3102,12 @@ class WebSocketClient:
             "messageType": mapped_type,
             "MessageUpdate": message_updates
         }
+
+        # The dispatcher distinguishes a history replay from a fresh message
+        # using this upstream flag. Dropping it here sent raw WPP history
+        # through on_new_message(), appending yesterday's rows as new arrivals.
+        if "isMdHistoryMsg" in wpp_msg:
+            normalized["isMdHistoryMsg"] = wpp_msg["isMdHistoryMsg"]
 
         # WhatsApp Web's own record that the message was edited — without it the
         # "Editada" marker only ever existed locally and every sync erased it

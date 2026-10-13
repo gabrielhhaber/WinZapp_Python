@@ -100,6 +100,8 @@ POPRAWKI
 
 - Wiadomości wysłane w czasie, gdy odtwarzanie wiadomości głosowych po kolei trwało albo było wstrzymane, nie pokazywały na liście żadnego stanu (ani „Wysłano”, ani „Dostarczono”, ani „Wyświetlono”), dopóki to odtwarzanie się nie skończyło, choć okno Informacje o wiadomości (Alt+Shift+D) pokazywało już właściwy stan. Teraz w trakcie takiego odtwarzania czeka tylko wiersz, na którym jest fokus, żeby czytnik ekranu nie czytał go w czasie dźwięku; pozostałe wiersze są aktualizowane od razu, a ten, który czekał, jest aktualizowany, gdy fokus z niego zejdzie, gdy odtwarzanie zostanie wstrzymane albo gdy się skończy.
 
+- Synchronizacja: ponownie otrzymane starsze wiadomości zachowują kolejność chronologiczną, zamiast pojawiać się jako nowe. Tymczasowe błędy sprawdzania alternatywnego adresu czatu pozostają w kolejce do ponowienia.
+
 - Przekazywanie dalej nie otwiera już okna, gdy się uda. „Wiadomość przekazana.” (albo liczbę przekazanych wiadomości) mówi teraz czytnik ekranu, bez okna do zamknięcia i bez przerywania tego, co jest czytane; działa też, gdy WinZapp jest w zasobniku.
 
 - Synchronizacja i uzupełnianie historii czatów proszą teraz WhatsApp Web o wiadomości z najwyżej dwóch czatów naraz zamiast z maksymalnie sześciu, co utrzymuje niskie zużycie procesora i pamięci na małych komputerach i serwerach podczas pierwszej synchronizacji, bez zauważalnego spowolnienia. Otwieranie czatu, przewijanie w górę i ponowna synchronizacja rozmowy nie są spowolnione.

@@ -15,6 +15,8 @@ copy of them. MainWindow is a wx.Frame and cannot be instantiated without a
 running app.
 """
 
+import pytest
+import requests
 import main as main_module
 from main import MainWindow
 from tests.test_incremental_delta_outcomes import (
@@ -190,3 +192,52 @@ class TestShiftF5CanTellTheTwoEmptyAnswersApart:
         assert MainWindow.sync_chat_messages(
             _AbsentStub(), {"remoteJid": ABSENT, "t": 100}, outcome_out=outcome) is True
         assert outcome == {"chat_absent": False}
+
+
+class TestAbsenceMustBeConfirmedUnderBothKnownAddresses:
+    @pytest.mark.parametrize("alternate", [
+        _Resp(500, {"error": "temporary failure"}),
+        _Resp(404, {"error": "Session not found"}),
+        requests.Timeout("synthetic timeout"),
+    ])
+    def test_missing_lid_does_not_hide_a_phone_lookup_fault(self, monkeypatch, alternate):
+        stub = _AbsentStub()
+        stub._lid_to_phone[ABSENT] = A
+        monkeypatch.setattr("main_window.conversation_sync.time.sleep", lambda *_: None)
+
+        def get(url, **kwargs):
+            if ABSENT in url:
+                return _Resp(404, _CHAT_NOT_FOUND)
+            if isinstance(alternate, Exception):
+                raise alternate
+            return alternate
+
+        monkeypatch.setattr("core.api_client.requests.get", get)
+        outcome = {}
+        assert MainWindow.sync_chat_messages(
+            stub, {"remoteJid": ABSENT, "t": 100}, outcome_out=outcome) is False
+        assert outcome == {"chat_absent": False}
+        assert stub._sync_failed_chats == {ABSENT}
+        assert stub._absent_chats == set()
+        assert stub.db.upserted == []
+
+    def test_two_explicit_misses_still_use_the_bounded_absence_path(self, monkeypatch):
+        stub = _AbsentStub()
+        stub._lid_to_phone[ABSENT] = A
+        _chat_not_found(monkeypatch)
+        assert _sync_absent(stub) is True
+        assert stub._absent_chats == {ABSENT}
+        assert stub._sync_failed_chats == set()
+
+    def test_a_successful_phone_fallback_still_stores_messages(self, monkeypatch):
+        message = {"key": {"remoteJid": ABSENT, "id": "synthetic", "fromMe": False},
+                   "messageType": "conversation", "messageTimestamp": 100,
+                   "message": {"conversation": "synthetic"}}
+        stub = _AbsentStub(normalized=[message])
+        stub._lid_to_phone[ABSENT] = A
+        monkeypatch.setattr("core.api_client.requests.get", lambda url, **kw:
+                            _Resp(404, _CHAT_NOT_FOUND) if ABSENT in url else
+                            _Resp(200, {"response": [{"id": "synthetic"}]}))
+        assert _sync_absent(stub) is True
+        assert stub._absent_chats == set()
+        assert stub.db.inserted[0][1] == [message]

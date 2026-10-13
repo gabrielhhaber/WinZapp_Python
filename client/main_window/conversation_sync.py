@@ -349,6 +349,7 @@ class ConversationSyncMixin:
 
                     # Alternate JID query fallback (resolves 401/TypeError or Chat not found errors)
                     both_jid_forms_failed = False
+                    lookup_absent = "chat not found" in response.text.lower()
                     if response.status_code not in (200, 201):
                         alternate_jid = ""
                         if remote_jid.endswith("@lid"):
@@ -395,9 +396,19 @@ class ConversationSyncMixin:
                                     logging.info("[sync_chat_messages] Fallback alternate JID query succeeded!")
                                 else:
                                     both_jid_forms_failed = True
+                                    # Absence must be explicit under EVERY
+                                    # known address. A primary LID miss says
+                                    # nothing about a phone lookup that failed
+                                    # with a session/server error instead.
+                                    lookup_absent = (
+                                        lookup_absent
+                                        and alt_response.status_code in (401, 404, 500)
+                                        and "chat not found" in alt_response.text.lower()
+                                    )
                             except Exception as alt_e:
                                 logging.warning(f"[sync_chat_messages] Fallback alternate JID query failed: {alt_e}")
                                 both_jid_forms_failed = True
+                                lookup_absent = False
 
                     if response.status_code in (200, 201):
                         body = response.json()
@@ -531,7 +542,7 @@ class ConversationSyncMixin:
                         # permanently-broken chats can each burn a worker slot
                         # for over a minute, making the whole sync feel stuck.
                         logging.warning(f"[sync_chat_messages] Retryable error {response.status_code} for {remote_jid} (attempt {attempt+1}/{max_retries}): {response.text[:120]}")
-                        hard_chat_miss = "chat not found" in response.text.lower()
+                        hard_chat_miss = lookup_absent
                         if hard_chat_miss:
                             chat_absent = True
                             logging.warning(

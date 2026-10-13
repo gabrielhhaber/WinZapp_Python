@@ -100,6 +100,8 @@ FIXES
 
 - Messages sent while a run of voice messages was playing or paused showed no status in the list (no "Sent", "Delivered" or "Read") until the run ended, even though Message info (Alt+Shift+D) already showed the right one. Now, during a run, only the row that has focus waits, so the screen reader does not read it over the audio; every other row is updated right away, and the one that waited is updated when focus leaves it, when playback is paused or when the run ends.
 
+- Synchronization: replayed history messages keep their chronological position instead of appearing as new arrivals. Temporary failures when checking an alternate chat address remain queued for retry.
+
 - Forwarding no longer opens a box when it worked. "Message forwarded." (or how many messages were forwarded) is now said by the screen reader, with no window to close and without cutting off what is being read; it works with WinZapp in the tray too.
 
 - Syncing and backfilling chat history now ask WhatsApp Web for at most two chats' messages at a time instead of up to six, which keeps the processor and memory use low on small computers and servers during the first sync, without making it noticeably slower. Opening a chat, scrolling up and resyncing a conversation are not slowed down.

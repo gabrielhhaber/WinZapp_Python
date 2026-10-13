@@ -430,9 +430,33 @@ class ListRefreshMixin:
                 if existing.get("key", {}).get("id", "") == msg_id:
                     return
 
+        # A delayed/replayed event is not necessarily a new tail row. The
+        # backend already stored it; let the existing debounced rebuild put it
+        # at its timestamp without adding a new-unread separator or scrolling
+        # to an old message. Bursts still cost one focus-preserving rebuild.
+        tail = next((m for m in reversed(self._sorted_messages)
+                     if not self._is_separator(m)), None)
+        # A row this client sent carries the PC clock's stamp, not the
+        # server's; with the clock ahead, a reply right after it would look
+        # late. Compare against the last server-stamped row instead.
+        stamped_tail = next((m for m in reversed(self._sorted_messages)
+                             if not self._is_separator(m)
+                             and not m.get("_local_id")), None)
+        if (stamped_tail is not None and (self._extract_timestamp(msg) or 0)
+                < (self._extract_timestamp(stamped_tail) or 0)):
+            self.main_window._schedule_refresh_messages()
+            return
+
         # Batch all list operations so the screen reader receives a single
         # accessibility event rather than one per insertion/update.
         from_me = bool(msg.get("key", {}).get("fromMe"))
+        # Capture alignment before the unread separator can become the last
+        # visible row. The pagination list holds messages, not separators.
+        all_sorted = getattr(self, "_all_sorted_messages", [])
+        pagination_in_step = bool(
+            all_sorted and all_sorted is not self._sorted_messages
+            and all_sorted[-1] is tail
+        )
         self.messages_list.Freeze()
         try:
             # Manage unread separator — never for our OWN messages. This
@@ -451,6 +475,11 @@ class ListRefreshMixin:
 
             # Append the real message (focus must NOT move)
             self._clear_empty_placeholder()
+            # The local pagination offset reads _all_sorted_messages. Keep its
+            # tail in step too, or scrolling up can hit an already-loaded DB
+            # page and ask the server before local history is exhausted.
+            if pagination_in_step:
+                all_sorted.append(msg)
             self._sorted_messages.append(msg)
             append_message_row(self, self._render_message_line(msg))
             # What the sender was typing is here now: take them off the
@@ -992,19 +1021,10 @@ class ListRefreshMixin:
             return False
 
         if newcomers:
-            # _all_sorted_messages só acompanha enquanto as duas listas
-            # terminarem no mesmo objeto. O append ao vivo de
-            # on_incoming_message() já as deixa fora de passo no fim (situação
-            # anterior a isto), e não é este método que vai inventar um
-            # alinhamento que ele não tem como verificar.
-            # A consequência do desalinhamento é maior do que parece e vale
-            # dizer por extenso: _load_older_messages() tira loaded_db_count
-            # de _all_sorted_messages, então com ela curta a consulta local
-            # devolve mensagens que já estão em memória, o dedup zera n_new e
-            # ele cai para o servidor ANTES de esgotar o histórico local. O
-            # usuário ainda recebe o histórico, só que pelo caminho caro. É
-            # pré-existente, não regressão deste método — mas é o que dá para
-            # perder aqui, não "algumas mensagens que o dedup descarta".
+            # Keep the pagination list in step only while both tails are the
+            # same object, as on_incoming_message() does. An unverified offset
+            # can fetch already-loaded DB rows and fall through to the server
+            # before exhausting local history.
             # O `is not` não é paranoia: _sorted_messages tem de ser um SUFIXO
             # de _all_sorted_messages, nunca o mesmo objeto de lista. Hoje todo
             # produtor fatia ou concatena, então são sempre listas distintas;
