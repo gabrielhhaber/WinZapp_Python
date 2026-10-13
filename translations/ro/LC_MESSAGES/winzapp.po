@@ -3822,7 +3822,8 @@ msgstr "&Introduceți numărul dvs. de telefon"
 #: client/core/sound_system.py client/core/websocket_client.py client/main.py
 #: client/main_window/account_link.py client/main_window/chat_actions.py
 #: client/main_window/chats_store.py client/main_window/contacts.py
-#: client/main_window/sending.py client/main_window/session_lifecycle.py
+#: client/main_window/group_invitation_links.py client/main_window/sending.py
+#: client/main_window/session_lifecycle.py
 #: client/main_window/session_tokens.py client/main_window/settings.py
 #: client/main_window/sync.py client/main_window/window_chrome.py
 #: client/main_window/wpp_server.py
@@ -4204,6 +4205,22 @@ msgid "Paste a valid HTTPS WhatsApp group invitation link."
 msgstr "Lipește un link HTTPS valid de invitație la un grup WhatsApp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/group_invitation_links.py
+msgctxt "group_join_link_not_connected"
+msgid ""
+"WhatsApp did not connect in time. Open the invitation link again once "
+"WinZapp is connected."
+msgstr ""
+"WhatsApp nu s-a conectat la timp. Deschideți din nou linkul de invitație "
+"după ce WinZapp este conectat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/group_invitation_links.py
+msgctxt "group_join_link_waiting"
+msgid "Group invitation received. Waiting for WhatsApp to connect."
+msgstr "Invitație în grup primită. Se așteaptă conectarea WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "group_join_member_count"
 msgid "{count} members"
@@ -4243,7 +4260,7 @@ msgid "You joined the group."
 msgstr "Te-ai alăturat grupului."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/new_conversation.py
+#: client/ui/conversation_panel/links.py client/ui/dialogs/new_conversation.py
 msgctxt "group_join_title"
 msgid "Join group by link"
 msgstr "Alăturare la grup prin link"
@@ -13927,6 +13944,36 @@ msgstr "Nicio veste"
 msgctxt "whats_new_title"
 msgid "What's new in WinZapp"
 msgstr "Ce este nou în WinZapp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/group_invitation_links.py
+msgctxt "whatsapp_links_enabled_message"
+msgid ""
+"WinZapp is now registered for WhatsApp links. When you use the join button "
+"on a group invitation page, Windows may ask which app to use the first time:"
+" choose WinZapp. If another WhatsApp app is installed, you can also choose "
+"WinZapp for the \"whatsapp\" link type in Windows Settings, under Apps, "
+"Default apps."
+msgstr ""
+"WinZapp este acum înregistrat pentru linkurile WhatsApp. Când folosiți "
+"butonul de alăturare de pe pagina unei invitații în grup, Windows poate "
+"întreba prima dată ce aplicație să folosească: alegeți WinZapp. Dacă este "
+"instalată altă aplicație WhatsApp, puteți alege WinZapp pentru tipul de link"
+" „whatsapp” și din Setările Windows, la Aplicații, Aplicații implicite."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/group_invitation_links.py
+msgctxt "whatsapp_links_error_message"
+msgid "Could not change the registration for WhatsApp links."
+msgstr "Nu s-a putut modifica înregistrarea pentru linkurile WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "whatsapp_links_label"
+msgid "Let Windows open WhatsApp group invitation links with WinZapp"
+msgstr ""
+"Permite ca Windows să deschidă linkurile de invitație în grupuri WhatsApp cu"
+" WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format

@@ -6,10 +6,16 @@ const validGroup = (value: unknown): value is string =>
 const validLink = (value: unknown): value is string =>
   typeof value === 'string' && /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,64}$/.test(value);
 
+// A bare code, or a link shaped like the ones WhatsApp hands out. Kept in step
+// with the client's own reading (client/core/group_invitation_link.py): the
+// web link often carries a query string ("?mode=..."), and whatsapp://chat?code=
+// is what the invitation page's own button opens. Nothing after the code is read.
 function invitationCode(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
+  if (typeof value !== 'string' || value.length > 512) return undefined;
   if (/^[A-Za-z0-9]{10,64}$/.test(value)) return value;
-  return /^https:\/\/chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{10,64})$/.exec(value)?.[1];
+  const web = /^https:\/\/chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]{10,64})\/?(?:[?#]\S*)?$/.exec(value);
+  if (web) return web[1];
+  return /^whatsapp:\/\/chat\/?\?(?:[^#\s]*&)?code=([A-Za-z0-9]{10,64})(?:[&#]\S*)?$/.exec(value)?.[1];
 }
 
 // Preserve the existing group-info contract, adding only known permission fields.

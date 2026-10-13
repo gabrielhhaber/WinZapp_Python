@@ -122,6 +122,41 @@ test('preview error does not log or expose the private code or native error', as
   expect(req.client.joinGroup).not.toHaveBeenCalled();
 });
 
+// The forms WhatsApp really uses: the web link with its "?mode=" query (seen on
+// real messages), a trailing slash or fragment, and the whatsapp: link the
+// invitation page's own button opens. Same list as the client's
+// tests/test_group_join.py, so the two readings cannot drift apart unnoticed.
+test.each([
+  link + '?mode=ems_copy_t', link + '/', link + '#anchor', link + '?x=1&y=2',
+  'whatsapp://chat?code=AbCdEfGhIjKlMnOpQrStUv', 'whatsapp://chat/?code=AbCdEfGhIjKlMnOpQrStUv',
+  'whatsapp://chat?foo=1&code=AbCdEfGhIjKlMnOpQrStUv&bar=2',
+])('preview and join read only the code out of %s', async invite => {
+  const req=request(), preview=response(), joined=response();
+  req.body={invitecode:invite,inviteCode:invite};
+  await getGroupInfoFromInviteLink(req,preview);
+  await joinGroupByCode(req,joined);
+  expect(preview.statusCode).toBe(200);
+  expect(joined.statusCode).toBe(201);
+  expect(req.client.getGroupInfoFromInviteLink).toHaveBeenCalledWith('AbCdEfGhIjKlMnOpQrStUv');
+  expect(req.client.joinGroup).toHaveBeenCalledWith('AbCdEfGhIjKlMnOpQrStUv');
+});
+test.each([
+  'http://chat.whatsapp.com/AbCdEfGhIjKlMnOpQrStUv', link + '/extra',
+  'https://chat.whatsapp.com.evil/AbCdEfGhIjKlMnOpQrStUv', 'https://evil.example/?next=' + link,
+  'whatsapp://send?phone=5511999999999', 'whatsapp://chat?code=short',
+  'whatsapp://chat?mycode=AbCdEfGhIjKlMnOpQrStUv', link + ' and more text',
+  link + '?' + 'a'.repeat(600), 42, null,
+])('anything else (%p) is refused by preview and join before provider access', async invite => {
+  const req=request(), preview=response(), joined=response();
+  req.body={invitecode:invite,inviteCode:invite};
+  await getGroupInfoFromInviteLink(req,preview);
+  await joinGroupByCode(req,joined);
+  expect(preview.statusCode).toBe(400);
+  expect(joined.statusCode).toBe(400);
+  expect(req.client.getGroupInfoFromInviteLink).not.toHaveBeenCalled();
+  expect(req.client.joinGroup).not.toHaveBeenCalled();
+});
+
 test.each([link,link.replace('com/','com/invite/')])('preview and join retain full WhatsApp link support: %s', async invite => {
   const req=request(), preview=response(), joined=response();
   req.body={invitecode:invite,inviteCode:invite};

@@ -11,7 +11,7 @@ import logging
 import os
 import threading
 import wx
-from core.group_join import invitation_code
+from core.group_invitation_link import invitation_code
 from core.polls import POLL_MESSAGE_TYPES
 from ui.conversation_panel.media_paths import _SAVEABLE_MESSAGE_TYPES
 from core.call_log import (

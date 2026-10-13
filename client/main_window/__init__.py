@@ -46,6 +46,7 @@ Where to look (and where new code goes):
     contacts            local/remote contacts, self reference
     identity            JID normalization, @lid <-> phone, name resolution
     groups              group metadata, permissions, group management
+    group_invitation_links  invitation links handed over by Windows, whatsapp: association
     calls               voice/video calls, call bar, call-log watcher
     chat_lock           locked-chats vault
     phone_chat_lock     chats locked with WhatsApp Chat Lock on the phone

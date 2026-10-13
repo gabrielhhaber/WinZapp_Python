@@ -10,7 +10,7 @@ import os
 import pyperclip
 import wx
 import wx.adv
-from core.group_join import invitation_code
+from core.group_invitation_link import invitation_code
 from ui.conversation_panel.text_helpers import _URL_RE
 
 

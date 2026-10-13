@@ -15,26 +15,8 @@ class GroupPreview:
     approval: bool | None
 
 
-_CODE = r"[A-Za-z0-9]{10,64}"
-# The link WhatsApp itself hands out. It often carries a query string
-# ("?mode=..."), seen on real messages; nothing after the code is read.
-_WEB_LINK = re.compile(r"https://chat\.whatsapp\.com/(?:invite/)?(%s)/?(?:[?#]\S*)?" % _CODE)
-# What the "Join chat" button of that web page asks Windows to open, and so
-# what WinZapp receives when it is registered for whatsapp: links
-# (core/whatsapp_link_association.py).
-_APP_LINK = re.compile(r"whatsapp://chat/?\?(?:[^#\s]*&)?code=(%s)(?:[&#]\S*)?" % _CODE)
-
-
-def invitation_code(value):
-    """The invitation code of a group link, or "" for anything else.
-
-    A bare code, another host, a longer path or another scheme is not an
-    invitation: the code is only ever taken from a link shaped like one."""
-    if not isinstance(value, str):
-        return ""
-    text = value.strip()
-    match = _WEB_LINK.fullmatch(text) or _APP_LINK.fullmatch(text)
-    return match[1] if match else ""
+# Re-exported: the callers of this module have always taken it from here.
+from core.group_invitation_link import invitation_code  # noqa: F401
 
 
 def _response(connection, endpoint, payload, accepted):

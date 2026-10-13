@@ -735,6 +735,8 @@ class WindowChromeMixin:
             self._ipc_listener = ipc.IpcListener(
                 gd, acc_id,
                 on_activate=lambda source: wx.CallAfter(self._ipc_activate, source),
+                on_open_link=lambda link: wx.CallAfter(
+                    self.open_group_invitation_link, link),
                 # NOT wx.CallAfter: _ipc_quit() runs the full graceful
                 # teardown (close-session + flush wait + Node stop + the
                 # loser path's bounded wait), tens of seconds' worth, and on

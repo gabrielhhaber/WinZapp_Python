@@ -80,6 +80,12 @@ NOT_BACKED_BY_SETTINGS = {
         "and is applied through MainWindow._apply_autostart(), which rolls the "
         "box back if Windows refuses"
     ),
+    "_whatsapp_links_check": (
+        "shows whether Windows has WinZapp registered for whatsapp: links "
+        "(core.whatsapp_link_association.is_registered()) and is applied "
+        "through MainWindow._apply_whatsapp_link_association(); the registry "
+        "is the setting, so nothing in settings.json can disagree with it"
+    ),
     "_chat_lock_show_navigation_check": (
         "shows the authenticated encrypted-vault policy rather than a "
         "settings.json value, and is applied through "

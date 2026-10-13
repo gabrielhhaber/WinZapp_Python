@@ -38,6 +38,7 @@ import time
 from typing import Callable, Optional
 
 from coord_locks import canonical_dir
+from core.group_invitation_link import invitation_code
 
 _IS_WINDOWS = sys.platform == "win32"
 
@@ -110,8 +111,12 @@ class IpcListener:
         released_predicate: Optional[Callable[[], bool]] = None,
         window_ready_predicate: Optional[Callable[[], bool]] = None,
         on_audio_device: Optional[Callable[[str, str], None]] = None,
+        on_open_link: Optional[Callable[[str], None]] = None,
     ):
         self.global_dir = global_dir
+        # A group invitation link Windows handed to a second launch (see
+        # core/whatsapp_link_association.py). Optional, like on_audio_device.
+        self.on_open_link = on_open_link
         # Quick audio-device switch passed on by another account (see
         # main_window/quick_audio_devices.py). Optional: a listener without it
         # just acknowledges nothing for that command.
@@ -126,6 +131,7 @@ class IpcListener:
         self._thread: Optional[threading.Thread] = None
         self._srv_sock: Optional[socket.socket] = None
         self._queue: list = []
+        self._link_queue: list = []
         self._queue_lock = threading.Lock()
 
     # ── lifecycle ────────────────────────────────────────────────────────
@@ -159,8 +165,18 @@ class IpcListener:
     def flush_queue(self) -> None:
         with self._queue_lock:
             pending, self._queue = self._queue, []
+            links, self._link_queue = self._link_queue, []
         for source in pending:
             self.on_activate(source)
+        for link in links:
+            self.on_open_link(link)
+
+    def _dispatch_open_link(self, link: str) -> None:
+        if self.window_ready_predicate():
+            self.on_open_link(link)
+        else:
+            with self._queue_lock:
+                self._link_queue.append(link)
 
     def _dispatch_activate(self, source: str) -> None:
         if self.window_ready_predicate():
@@ -420,6 +436,13 @@ class IpcListener:
         if cmd == "activate":
             replies.append(json.dumps({"request_id": rid, "ack": True}))
             self._dispatch_activate(req.get("source", "user"))
+        elif cmd == "open_link" and self.on_open_link is not None:
+            # Only a link shaped like a group invitation is passed on; what it
+            # opens is a dialog the user still has to confirm.
+            link = req.get("link")
+            if invitation_code(link):
+                replies.append(json.dumps({"request_id": rid, "ack": True}))
+                self._dispatch_open_link(link)
         elif cmd == "audio_device" and self.on_audio_device is not None:
             kind, name = req.get("kind"), req.get("name")
             if isinstance(kind, str) and isinstance(name, str):
@@ -531,6 +554,22 @@ def request_activate(global_dir: str, account_id: str, source: str = "user",
     Returns True if a listener acknowledged; False if none is running.
     """
     replies = _send(global_dir, account_id, _make_request("activate", source), timeout)
+    if not replies:
+        return False
+    return any(r.get("ack") for r in replies)
+
+
+def request_open_link(global_dir: str, account_id: str, link: str,
+                      timeout: float = 3.0) -> bool:
+    """Ask the process owning account_id to open a group invitation link
+    (it comes to the foreground and shows the join dialog).
+
+    Returns True if a listener acknowledged; False if none is running or the
+    link is not one.
+    """
+    req = _make_request("open_link")
+    req["link"] = link
+    replies = _send(global_dir, account_id, req, timeout)
     if not replies:
         return False
     return any(r.get("ack") for r in replies)

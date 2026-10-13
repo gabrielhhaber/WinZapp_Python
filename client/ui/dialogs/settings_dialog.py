@@ -1,5 +1,6 @@
 import ctypes
 import os
+import sys
 import wx
 from wx.lib.scrolledpanel import ScrolledPanel
 from core.chat_lock_vault import AUTO_LOCK_MINUTE_OPTIONS
@@ -387,6 +388,15 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             self._general_page, label=i18n.t("autostart_label")
         )
         gen_sizer.Add(self._autostart_check, 0, wx.ALL, 8)
+
+        # Registers WinZapp for whatsapp: links (group invitations opened from
+        # a browser or another program). Windows only: the association is a
+        # registry entry, see core/whatsapp_link_association.py.
+        self._whatsapp_links_check = wx.CheckBox(
+            self._general_page, label=i18n.t("whatsapp_links_label")
+        )
+        self._whatsapp_links_check.Show(sys.platform == "win32")
+        gen_sizer.Add(self._whatsapp_links_check, 0, wx.ALL, 8)
 
         self._tray_icon_check = wx.CheckBox(
             self._general_page, label=i18n.t("tray_show_icon")
@@ -1954,6 +1964,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         from autostart import is_autostart_enabled
         self._autostart_check.SetValue(is_autostart_enabled())
+        self._whatsapp_links_check.SetValue(self._whatsapp_links_registered())
 
         hk = self.main_window.settings.get("general", {}).get("global_hotkey")
         if hk and isinstance(hk, dict) and hk.get("vk"):
@@ -2522,6 +2533,19 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
                         self._save_folder_custom_field,
                         self._save_folder_browse_btn):
             control.Enable(is_custom)
+
+    @staticmethod
+    def _whatsapp_links_registered() -> bool:
+        """Whether Windows currently has WinZapp registered for whatsapp:
+        links. Read from the registry itself, so the box never claims an
+        association a reinstall or a moved folder has broken."""
+        if sys.platform != "win32":
+            return False
+        try:
+            from core import whatsapp_link_association
+            return whatsapp_link_association.is_registered()
+        except Exception:
+            return False
 
     def _on_save_folder_mode_changed(self, event):
         self._sync_save_folder_controls()
@@ -3624,6 +3648,13 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             # Resync the checkbox in case _apply_autostart failed and rolled back
             self._autostart_check.SetValue(is_autostart_enabled())
 
+        # whatsapp: link association. The registry is the setting: there is
+        # nothing to keep in settings.json that could disagree with it.
+        new_links = self._whatsapp_links_check.GetValue()
+        if new_links != self._whatsapp_links_registered():
+            self.main_window._apply_whatsapp_link_association(enable=new_links)
+            self._whatsapp_links_check.SetValue(self._whatsapp_links_registered())
+
         # Audio playback speed
         speed_sel = self._audio_speed_combo.GetSelection()
         if speed_sel != wx.NOT_FOUND:
@@ -3877,6 +3908,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._save_folder_custom_label.SetLabel(i18n.t("save_folder_custom_label"))
         self._save_folder_browse_btn.SetLabel(i18n.t("save_folder_browse_btn"))
         self._autostart_check.SetLabel(i18n.t("autostart_label"))
+        self._whatsapp_links_check.SetLabel(i18n.t("whatsapp_links_label"))
         self._tray_icon_check.SetLabel(i18n.t("tray_show_icon"))
         self._updates_check.SetLabel(i18n.t("updates_label"))
         self._alpha_updates_check.SetLabel(i18n.t("alpha_updates_label"))

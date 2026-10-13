@@ -290,6 +290,7 @@ from main_window.phone_chat_lock import PhoneChatLockMixin
 from main_window.account_link import AccountLinkMixin
 from main_window.chats_store import ChatsStoreMixin
 from main_window.groups import GroupsMixin
+from main_window.group_invitation_links import GroupInvitationLinksMixin
 from main_window.contacts import ContactsMixin
 from main_window.backfill import BackfillMixin
 from main_window.conversation_sync import ConversationSyncMixin
@@ -346,6 +347,7 @@ class MainWindow(
     AccountLinkMixin,
     ChatsStoreMixin,
     GroupsMixin,
+    GroupInvitationLinksMixin,
     ContactsMixin,
     BackfillMixin,
     ConversationSyncMixin,
@@ -1880,6 +1882,15 @@ if __name__ == "__main__":
 
         background = "--background" in sys.argv
         startup_source = parse_startup_source(sys.argv)
+        # A group invitation link Windows handed over (the optional whatsapp:
+        # association, core/whatsapp_link_association.py).
+        from core.group_invitation_link import invitation_link_argument
+        _invitation_link = invitation_link_argument(sys.argv)
+        if (_invitation_link and not getattr(sys, "frozen", False)
+                and not sys.argv[0].lower().endswith(".exe")):
+            # A source checkout keeps its data under the working directory,
+            # and Windows starts a link handler somewhere else entirely.
+            os.chdir(os.path.dirname(os.path.abspath(__file__)))
         gd = app_paths.global_dir()
 
         # 1) Updater coordination FIRST (before migration): if an install is in
@@ -1954,7 +1965,11 @@ if __name__ == "__main__":
             if not background:
                 try:
                     import ipc
-                    ipc.request_activate(gd, _account_id, source=startup_source)
+                    # The running process comes to the foreground either way;
+                    # with a link it also opens the join dialog.
+                    if not (_invitation_link and ipc.request_open_link(
+                            gd, _account_id, _invitation_link)):
+                        ipc.request_activate(gd, _account_id, source=startup_source)
                 except Exception:
                     pass
             sys.exit(0)
@@ -1975,6 +1990,8 @@ if __name__ == "__main__":
                            startup_source=startup_source, resume_pending=_resume_pending,
                            registry=_registry, global_dir=gd)
         _main_frame_ref.append(frame)
+        if _invitation_link:
+            wx.CallAfter(frame.open_group_invitation_link, _invitation_link)
     except SystemExit:
         raise
     except KeyboardInterrupt:
