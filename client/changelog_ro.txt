@@ -102,11 +102,19 @@ NOUTĂȚI
 
 - macOS: versiunile de lansare se actualizează acum prin ferestrele standard Sparkle 2, pe care VoiceOver le citește bine. „Verificați actualizările”, verificarea automată la fiecare 3 ore și „Verificați actualizările alfa” deschid Sparkle. Înainte de a oferi o versiune, când alegeți Instalează și încă o dată la „Gata de instalare”, WinZapp verifică dacă eticheta versiunii există în depozitul oficial, indică commitul declarat și este mai nouă decât versiunea utilizată; dacă oricare dintre acestea eșuează sau GitHub nu poate fi contactat, actualizarea este anulată și motivul este afișat. Când alegeți Instalează, celelalte conturi se închid și niciun cont nu poate porni până la sfârșitul actualizării; dacă actualizarea nu se instalează, ele se redeschid. O actualizare găsită în fundal este anunțată vocal și printr-o notificare, iar „Gata de instalare” este de asemenea anunțat. Blocările de cont rămase de la închideri anterioare nu mai împiedică actualizările și pornirea pe Mac.
 
+- Progres rostit pentru sincronizare și descărcarea media: în timpul unei sincronizări (a celei complete, la prima asociere sau la F5, dar și, la deschiderea WinZapp, a actualizării conversațiilor modificate) și al descărcării media care urmează, WinZapp afișează în titlul ferestrei și rostește, cam la fiecare 5 secunde, cât a făcut: „Se sincronizează conversațiile: 12 din 80” și „Descărcare media: 30 din 120 procesate (8 descărcate)”. Înainte nu se auzea nimic între anunțul de început și cel de sfârșit, iar o sincronizare lungă părea blocată. „Procesate” include și fișierele media care nu au trebuit descărcate (erau deja pe computer, de exemplu), iar totalul cuprinde doar ce mai permit setările de Stocare să fie descărcat, nu tot istoricul. Progresul respectă opțiunea „Anunțați sincronizarea, descărcări media și modul offline automat” din Setări > Generale și nu este rostit când WinZapp pornește în fundal sau în timpul unui apel vocal; verificarea automată care rulează în fiecare minut rămâne silențioasă. În Setări > Conținut vorbit, casetele „Anunțați la câteva secunde progresul sincronizării conversațiilor” și „Anunțați la câteva secunde progresul descărcării media”, bifate implicit, dezactivează separat fiecare dintre aceste anunțuri; titlul ferestrei continuă să afișeze numerele.
+
+- Fereastră nouă Fișier > Setări WhatsApp, cu fila Confidențialitate pentru confidențialitatea contului dvs. WhatsApp, aplicată direct în WhatsApp: văzut ultima dată, cine poate vedea când sunteți online, despre, fotografia de profil, confirmările de citire, cine vă poate adăuga în grupuri și cine vă poate vedea starea (contactele mele, contactele mele cu excepția... sau partajați doar cu...). Persoanele pentru stare se aleg dintre contactele sincronizate, într-o listă cu căutare în care fiecare se bifează cu Spațiu. Fereastra încarcă valorile actuale din WhatsApp, trimite doar ce ați modificat și apoi verifică, spunând ce setări nu a confirmat WhatsApp.
+
 CORECTĂRI
 
 - Ferestrele Informații despre grup, Informații despre conversație, Invitație în grup și Alăturare la grup prin link au acum o literă de acces (Alt+literă) pe fiecare buton și pe fiecare etichetă de câmp sau de listă. Înainte, butoanele din Informații despre grup, unele din Informații despre conversație și toate controalele invitației nu aveau niciuna. Butonul care închide fereastra invitației, care apărea în engleză, urmează acum limba din WinZapp.
 
 - Mesajele trimise în timp ce un șir de mesaje vocale era în redare sau pe pauză rămâneau fără stare în listă (nici „Trimis”, nici „Livrat”, nici „Citit”) până la sfârșitul șirului, deși fereastra Informații despre mesaj (Alt+Shift+D) arăta deja starea corectă. Acum, în timpul unui șir, așteaptă doar rândul care are focalizarea, pentru ca cititorul de ecran să nu îl citească peste sunet; celelalte sunt actualizate imediat, iar cel care a așteptat este actualizat când focalizarea pleacă de pe el, când redarea este pusă pe pauză sau când șirul se termină.
+
+- Actualizări: „Verificați actualizările” din meniul Ajutor vă anunță acum când WinZapp nu poate contacta serverul de actualizări, în loc să nu spună nimic.
+
+- Răspunsuri: dacă mesajul original nu este găsit înainte de trimitere, WinZapp anunță citatul lipsă și păstrează textul pentru editare din meniul mesajului. Nu trimite în tăcere fără citat și nu anunță pierderea conexiunii. Trimiterile cu rezultat incert nu sunt reîncercate automat.
 
 - Sincronizare: mesajele vechi primite din nou își păstrează ordinea cronologică, în loc să apară ca mesaje noi. Erorile temporare la verificarea unei adrese alternative a conversației rămân în coadă pentru o nouă încercare.
 
@@ -163,6 +171,10 @@ CORECTĂRI
 - Când o actualizare sau descărcarea Node era anulată exact în momentul în care se termina, WinZapp putea afișa eroarea "Attempt to exit a non-running event loop". Finalizările întârziate sunt acum ignorate.
 
 - Dialogul de redirecționare: săgeata în jos din câmpul de căutare merge acum la primul rezultat și mută focalizarea pe listă, ca în căutarea conversațiilor.
+
+- Lista de țări de la asocierea prin număr de telefon conține acum toate țările și teritoriile acceptate de WhatsApp (lipseau, de exemplu, Țările de Jos, Kenya, Belarus și Macedonia de Nord), iar numele țărilor apar în limba aleasă și pentru poloneză, turcă și română.
+
+- Conturile business WhatsApp verificate (bănci, aplicații de plată, furnizori de utilități) pe care nu le-ați salvat în contacte apăreau în lista de conversații doar cu numărul de telefon. Acum apar cu numele verificat al companiei, ca în WhatsApp. Un nume salvat în contacte are în continuare prioritate.
 
 V2.0.0.0
 

@@ -187,27 +187,20 @@ class MediaMixin:
         msg_jid = self._normalize_jid(key.get("remoteJid", ""))
         return msg_jid == self._normalize_jid(open_jid)
 
-    def sync_if_media(self, msg, timeout=60, explicit=False):
-        """Download media for a single message during the background sync phase.
+    def _media_sync_candidate(self, msg, explicit=False):
+        """The local half of sync_if_media(): the media type to download, or
+        None when this message would be skipped anyway.
 
-        Returns True only when a file was actually downloaded. Every skip
-        below — offline, auto-download switched off, not a media message, past
-        the CDN TTL, past the user's day/size caps, a known-expired id, already
-        on disk — returns False, so sync_media_for_all_chats() can count real
-        work rather than candidates.
-
-        ``explicit`` is the menu's "Baixar mídias": the user asked, so the
-        auto-download switch is not consulted. The category list and the caps
-        still are.
+        No network and no disk: the auto-download switch and categories, the
+        CDN TTL, the day and size caps, the known-expired ids. Split out so
+        sync_media_for_all_chats() can drop the messages that were never
+        going to be downloaded BEFORE counting them. Its spoken "X de Y"
+        otherwise counted every media message ever loaded, years of history
+        past the TTL and the caps included, and a slow honest count against
+        an inflated total sounds exactly like a stuck one.
         """
-        if not getattr(self, "_wa_connected", False) or getattr(self, "offline_mode", False):
-            return False
-        # Configuracoes > Armazenamento > "Baixar midias automaticamente": the
-        # master switch for everything fetched without being asked. Here, in
-        # the funnel, so a message arriving live obeys it exactly as the
-        # sweeps do.
         if not explicit and not auto_download_enabled(self.settings):
-            return False
+            return None
         message_type = msg.get("messageType", "")
         if not message_type and msg.get("type"):
             t = str(msg.get("type"))
@@ -224,7 +217,7 @@ class MediaMixin:
 
         _MEDIA_TYPES = {"documentMessage", "imageMessage", "stickerMessage", "videoMessage"}
         if message_type not in _MEDIA_TYPES and message_type != "audioMessage":
-            return False
+            return None
 
         # Configuracoes > Armazenamento > "Tipos de midia a serem baixados
         # automaticamente". Checked here rather than at the two call sites
@@ -233,27 +226,27 @@ class MediaMixin:
         # (sync_media_for_all_chats) both land here. Opening the media by hand
         # still downloads it: this is about what happens without being asked.
         if not auto_download_allows(self.settings, msg):
-            return False
+            return None
 
         # Skip messages older than the CDN TTL — URLs have certainly expired.
         ts = int(msg.get("messageTimestamp", 0) or 0)
         if ts and (time.time() - ts) > self._MEDIA_MAX_AGE_SECONDS:
-            return False
+            return None
 
         # User-configurable age cap (Settings > Armazenamento > "Baixar
         # mídias de até (dias)"). 0 means unlimited — falls back to whatever
         # the CDN-TTL check above already allows.
         max_days = self._media_max_download_days()
         if ts and max_days > 0 and (time.time() - ts) > max_days * 86400:
-            return False
+            return None
 
         msg_id = msg.get("key", {}).get("id", "")
         if not msg_id or "-" in msg_id or msg.get("_local_pending"):
-            return False
+            return None
 
         # Skip IDs that previously returned 403/410 (expired CDN URL).
         if msg_id and msg_id in self._media_failed_ids:
-            return False
+            return None
 
         # Skip oversized files during the automatic background sync — see
         # _media_max_download_bytes() (Settings > Armazenamento > "Baixar
@@ -277,7 +270,29 @@ class MediaMixin:
                     msg_id, message_type, file_length / (1024 * 1024),
                     max_bytes / (1024 * 1024),
                 )
-                return False
+                return None
+
+        return message_type
+
+    def sync_if_media(self, msg, timeout=60, explicit=False):
+        """Download media for a single message during the background sync phase.
+
+        Returns True only when a file was actually downloaded. Every skip
+        below — offline, auto-download switched off, not a media message, past
+        the CDN TTL, past the user's day/size caps, a known-expired id, already
+        on disk — returns False, so sync_media_for_all_chats() can count real
+        work rather than candidates.
+
+        ``explicit`` is the menu's "Baixar mídias": the user asked, so the
+        auto-download switch is not consulted. The category list and the caps
+        still are.
+        """
+        if not getattr(self, "_wa_connected", False) or getattr(self, "offline_mode", False):
+            return False
+        message_type = self._media_sync_candidate(msg, explicit=explicit)
+        if message_type is None:
+            return False
+        msg_id = msg.get("key", {}).get("id", "")
 
         try:
             if message_type == "audioMessage":

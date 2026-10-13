@@ -526,6 +526,15 @@ class ChatsStoreMixin:
         so lastMessage is empty for all of them) and no unread count was
         dropped from the conversation list entirely.
 
+        A verified WhatsApp Business account (banks, payment apps, utilities)
+        is a second gap in the same mechanism: it sets no personal `pushname`,
+        so name/shortName/pushname all came up empty and the chat was listed
+        as a bare phone number. WhatsApp's own client shows the business's
+        verified name, which WPPConnect serialises as `contact.verifiedName`;
+        it is the last fallback for `name`, after the address-book name and
+        shortName. Seen live on accounts such as "99 Pay" and "Verisure
+        Brasil".
+
         Never overwrites a value the chat already carries — the top-level keys
         win when both are present. Mutates `chat` in place.
         """
@@ -533,7 +542,15 @@ class ChatsStoreMixin:
         if not isinstance(contact_obj, dict):
             return
         if not (chat.get("name") or "").strip():
-            cname = (contact_obj.get("name") or contact_obj.get("shortName") or "").strip()
+            # The first non-blank one: a whitespace-only name must not hide
+            # the verified name behind it.
+            cname = next(
+                (value.strip()
+                 for value in (contact_obj.get(key)
+                               for key in ("name", "shortName", "verifiedName"))
+                 if isinstance(value, str) and value.strip()),
+                "",
+            )
             if cname:
                 chat["name"] = cname
         if not (chat.get("pushName") or "").strip():

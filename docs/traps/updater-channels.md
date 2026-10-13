@@ -1,5 +1,31 @@
 # Auto-updater: two channels, the alpha version scheme, one prompt per machine
 
+## Codec failures and explicit alpha consent (2026-10-13)
+
+An unavailable `utf_8_sig` codec raised `LookupError` outside readers that
+only caught `OSError` and `ValueError`. Version/package readers now use strict
+UTF-8 with a leading BOM removed, and retain their empty-result contracts on
+read/decode/lookup errors. Do not use replacement decoding: corrupt bytes
+would become a non-existent version/tag. Package JSON needs BOM removal too.
+This is defensive source coverage, not proof that a particular frozen package
+omitted the codec. PyInstaller collects encoding submodules by default.
+
+Unexpected periodic WPP worker errors log their traceback and retry through
+the existing offline interval. A forced reinstall check reports failure and
+does not silently retry a forced installation later. `stop()` prevents an
+in-flight WPP worker from starting a new timer after shutdown.
+
+Alpha opt-out remains effective even when the running build is alpha. A
+manual check that finds a newer excluded alpha asks for explicit one-time
+consent, defaulting to No. It preserves the install-wide setting, claims the
+existing per-machine prompt slot, waits for the startup/pairing gate and
+hands the exact consented release to the normal update/signature flow.
+Automatic checks do not ask this question. A newer eligible stable still uses
+the normal path. A failed alpha listing is not a complete alpha check even
+if the separate stable endpoint succeeded; opted-in checks retry rather than
+reporting an unsupported "up to date" result. Forced ZIP reinstall keeps its
+channel filter and explicitly warns, default No, before an older version.
+
 ## Progress cancellation and installer ownership (2026-10-12)
 
 A reported update cancelled as its download finished: the worker started a
@@ -145,7 +171,7 @@ upload branch in the patched functions.ts, leaving S3-enabled behavior intact.
 
 Only `major.minor.patch` is read off the base version, so **none of this changes when the stable line eventually drops the `beta` suffix** and ships plain `a.b.c.d`: base `1.0.0.0` + N → `1.0.0.<N>alpha`, still newer than `1.0.0.0`, still older than `1.1.0.0` (`parse_version()` treats the suffix as optional and compares the numeric components first). The one transition that does *not* work is declaring stability by deleting the suffix while keeping the numbers (`0.25.0.0beta` → `0.25.0.0`): that leaves the numbers unchanged, so alphas published since still outrank it and every alpha user is stranded. Advance the numbers instead (`0.26.0.0`, `1.0.0.0`) — the guard catches it either way. Same reason a hotfix that only bumps the fourth component (`1.0.0.1`) is refused while alphas are out.
 
-**Why the updater reads two endpoints.** `UpdateChecker._fetch_releases()` merges `/releases?per_page=100` *and* `/releases/latest`. The listing is the only place alphas appear but it is paged; alphas land far more often than stable releases, so given enough of them the newest stable falls off the first page and stable-channel users would silently stop being offered anything. `/releases/latest` is defined by GitHub as the newest non-draft non-prerelease, so it always resolves to the current stable no matter how many alphas exist — which is also why alphas are published with `prerelease: true`. Either request failing alone is survivable; only a total failure propagates.
+**Why the updater reads two endpoints.** `UpdateChecker._fetch_releases()` merges `/releases?per_page=100` *and* `/releases/latest`. The listing is the only place alphas appear but it is paged; alphas land far more often than stable releases, so given enough of them the newest stable falls off the first page and stable-channel users would silently stop being offered anything. `/releases/latest` is defined by GitHub as the newest non-draft non-prerelease, so it always resolves to the current stable no matter how many alphas exist — which is also why alphas are published with `prerelease: true`. Either request failing alone is survivable; only a total failure propagates — except that with the alpha channel on, a failed listing propagates too, since a stable-only result cannot prove an alpha user current (a manual check then shows the error instead of "no update").
 
 `alpha-release.yml` is a deliberate near-verbatim copy of `release.yml`'s build pipeline (**keep them in sync**; only the blocks marked ALPHA-SPECIFIC differ). It has no `bump-version` job — committing an alpha version into `main`'s `version.py` would both corrupt the stable version line and push to `main`, which is this workflow's own trigger. A new commit **cancels** an in-flight alpha build (`concurrency: cancel-in-progress`), since a build superseded before it finished is of no use; to keep a cancellation from leaving a half-uploaded release behind, the release is created as a **draft** and published only once every asset is up. That last step patches the release **by its numeric id** (`steps.draft_release.outputs.id`), never by tag: a draft has no tag yet — GitHub creates it on publish — so anything resolving a release by tag name (`gh release edit <tag>`, `GET /releases/tags/<tag>`) simply does not find a draft. Alpha build #1 failed exactly there, compiling and uploading fine and then stranding the release as an invisible draft. Because cancellation is routine, a sweep step deletes leftover alpha drafts before creating each run's own.
 

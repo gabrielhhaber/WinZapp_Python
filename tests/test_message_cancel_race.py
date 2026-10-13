@@ -1173,6 +1173,26 @@ class TestCompletingACancellationThatLost:
         assert main_window.records() == [msg]
         assert main_window.spoken == ["cancelled_message_still_sent"]
 
+    def test_a_restored_reply_is_stored_without_its_recovery_copy(self, monkeypatch, tmp_path):
+        """Delivered after all: the reply's draft copy is not saved to the DB."""
+        from core.reply_failure import REPLY_DRAFT_KEYS
+        patch_conversations_global(monkeypatch, "data_path", lambda name: str(tmp_path))
+        msg = _pending_text("loc-1", "oi")
+        msg.update({"_reply_draft_text": "oi", "_reply_draft_mentions": [],
+                    "_reply_draft_mention_names": {}})
+        main_window = _EchoMainWindow(records=[msg])
+        stored = []
+        main_window.db.insert_message = lambda jid, m: stored.append(dict(m))
+        main_window.message_queue = _FakeQueue(result=False)
+        panel = _make_panel(main_window, msg)
+        ConversationsPanel._cancel_pending_message(panel, msg, "loc-1")
+
+        ConversationsPanel._finish_cancelled_message_delivery(
+            panel, "loc-1", "REAL_A", False
+        )
+
+        assert stored and not any(key in stored[-1] for key in REPLY_DRAFT_KEYS)
+
     def test_a_restored_row_drops_a_quote_that_never_went_out(self, monkeypatch, tmp_path):
         patch_conversations_global(monkeypatch, "data_path", lambda name: str(tmp_path))
         msg = _pending_text("loc-1", "oi")

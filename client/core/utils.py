@@ -1258,6 +1258,8 @@ DEFAULT_SETTINGS = {
         "announce_recording": True,
         "announce_conversations_update_start": True,
         "announce_conversations_update_complete": True,
+        "announce_sync_progress": True,
+        "announce_media_progress": True,
         "speak_active_conv_messages": True,
         "speak_other_conv_messages": True,
         "silence_while_recording": False

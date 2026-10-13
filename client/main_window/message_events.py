@@ -30,6 +30,7 @@ from core.message_edit import (
     apply_caption_edit,
     is_edit_event,
 )
+from core.reply_failure import clear_reply_draft
 from core.call_log import (
     call_log_supersedes,
     is_call_log,
@@ -905,6 +906,7 @@ class MessageEventsMixin:
             if pending_msg:
                 # Found the corresponding pending message: update it and skip appending a duplicate
                 pending_msg["_local_pending"] = False
+                clear_reply_draft(pending_msg)  # delivered: before the DB write below
                 local_id = pending_msg.get("_local_id")
                 pending_msg["key"]["id"] = msg_id
                 pending_msg["messageTimestamp"] = msg.get("messageTimestamp", pending_msg["messageTimestamp"])

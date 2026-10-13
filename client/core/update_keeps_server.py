@@ -41,10 +41,10 @@ import os
 
 def _read_package(path: str) -> dict:
     try:
-        with open(path, encoding="utf-8-sig") as fh:
-            data = json.load(fh)
+        with open(path, encoding="utf-8") as fh:
+            data = json.loads(fh.read().removeprefix("\ufeff"))
         return data if isinstance(data, dict) else {}
-    except (OSError, ValueError):
+    except (OSError, ValueError, LookupError):
         return {}
 
 

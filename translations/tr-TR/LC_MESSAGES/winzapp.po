@@ -2330,7 +2330,7 @@ msgstr "Görüntülü arama ayarları"
 #: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/updater.py
+#: client/ui/dialogs/status_audience_dialog.py client/updater.py
 msgctxt "cancel"
 msgid "&Cancel"
 msgstr "İpta&l"
@@ -5527,6 +5527,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/contact_list_picker.py client/ui/dialogs/new_group.py
+#: client/ui/dialogs/status_audience_dialog.py
 msgctxt "group_search_label"
 msgid "&Search contact"
 msgstr "Kişi &ara"
@@ -6325,6 +6326,12 @@ msgstr "&Ayarlar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
+msgctxt "menu_settings_whatsapp"
+msgid "&WhatsApp settings"
+msgstr "&WhatsApp ayarları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
 msgctxt "menu_shortcuts"
 msgid "Keyboard shortcuts"
 msgstr "Klavye kısayolları"
@@ -6801,6 +6808,7 @@ msgstr "Hiçbir sohbet açık değil."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/contact_list_picker.py
+#: client/ui/dialogs/status_audience_dialog.py
 msgctxt "no_contacts"
 msgid "No contacts available."
 msgstr "Kullanılabilir kişi yok."
@@ -7180,6 +7188,8 @@ msgstr "Çevrimdışı mod etkinleştirildi. Bazı özellikler kullanılamayabil
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
+#: client/ui/dialogs/status_audience_dialog.py
+#: client/ui/dialogs/whatsapp_settings_dialog.py
 msgctxt "ok"
 msgid "&OK"
 msgstr "&Tamam"
@@ -8135,6 +8145,34 @@ msgstr ""
 "Özgün mesaj alıntılanamadı; bunun yerine normal bir mesaj olarak "
 "gönderiliyor."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
+msgctxt "reply_quote_missing_error"
+msgid ""
+"The quoted message was not found, so your reply was not sent. Your text is "
+"kept in the message list. Choose 'Edit unsent reply without its quote' in "
+"its menu to continue."
+msgstr ""
+"Alıntılanan mesaj bulunamadığından yanıtınız gönderilmedi. Metniniz mesaj "
+"listesinde korundu. Devam etmek için menüsünden 'Gönderilmemiş yanıtı "
+"alıntısız düzenle' seçeneğini seçin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
+msgctxt "reply_quote_save_failed"
+msgid ""
+"The reply could not be saved to disk. Its text is still in the message list;"
+" copy it before closing WinZapp."
+msgstr ""
+"Yanıt diske kaydedilemedi. Metni hâlâ mesaj listesinde; WinZapp’ı kapatmadan"
+" önce kopyalayın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/text_sending.py
+msgctxt "reply_restore_draft_busy"
+msgid "Finish or clear your current message before restoring this reply."
+msgstr ""
+"Bu yanıtı geri almadan önce yazmakta olduğunuz mesajı tamamlayın veya "
+"temizleyin."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 #, python-brace-format
@@ -8169,6 +8207,12 @@ msgid "Some changes will only take effect after restarting WinZapp."
 msgstr ""
 "Bazı değişiklikler yalnızca WinZapp yeniden başlatıldıktan sonra geçerli "
 "olacaktır."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "restore_unsent_reply"
+msgid "Edit unsent reply without its quote"
+msgstr "Gönderilmemiş yanıtı alıntısız düzenle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_tab/status_voice.py
 #: client/ui/conversations.py
@@ -10119,9 +10163,21 @@ msgstr "Sohbet güncellemesi başladığında duyur"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_media_progress_label"
+msgid "Announce media download progress every few seconds"
+msgstr "Medya indirme ilerlemesini birkaç saniyede bir duyur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_recording_label"
 msgid "Announce when a contact is recording an audio message in a chat"
 msgstr "Bir kişi bir sohbette sesli mesaj kaydederken duyur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_sync_progress_label"
+msgid "Announce chat sync progress every few seconds"
+msgstr "Sohbet eşitlemesinin ilerlemesini birkaç saniyede bir duyur"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -10738,6 +10794,12 @@ msgid "Chats unarchived."
 msgstr "Sohbetler arşivden çıkarıldı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
+#, python-brace-format
+msgctxt "sync_chats_progress"
+msgid "Syncing chats: {done} of {total}"
+msgstr "Sohbetler eşitleniyor: {done} / {total}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 msgctxt "sync_complete"
 msgid "Chats synced."
 msgstr "Sohbetler eşitlendi."
@@ -10757,6 +10819,13 @@ msgstr "Medya indirme işlemi tamamlandı."
 msgctxt "sync_media_failed"
 msgid "Failed to download media."
 msgstr "Medya indirilemedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/backfill.py
+#, python-brace-format
+msgctxt "sync_media_progress"
+msgid ""
+"Downloading media: {done} of {total} processed ({downloaded} downloaded)"
+msgstr "Medya indiriliyor: {done} / {total} işlendi ({downloaded} indirildi)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/backfill.py
 #: client/main_window/sync.py
@@ -14063,6 +14132,7 @@ msgstr ""
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py
+#: client/ui/dialogs/status_audience_dialog.py
 msgctxt "unknown_contact"
 msgid "Unnamed contact"
 msgstr "Adsız kişi"
@@ -14191,6 +14261,23 @@ msgstr "Yıldızı kaldır"
 msgctxt "unsupported_message"
 msgid "Incompatible message"
 msgstr "Uyumsuz mesaj"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_channel_choice.py
+#, python-brace-format
+msgctxt "update_alpha_choice_message"
+msgid ""
+"You are running {current}. A newer alpha version, {new}, is available, but "
+"alpha updates are disabled. Would you like to view this update once? "
+"Automatic alpha updates will remain disabled."
+msgstr ""
+"{current} sürümünü kullanıyorsunuz. Daha yeni bir alfa sürümü ({new}) var, "
+"ancak alfa güncellemeleri kapalı. Bu güncellemeyi bir kez görüntülemek ister"
+" misiniz? Otomatik alfa güncellemeleri kapalı kalacak."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_channel_choice.py
+msgctxt "update_alpha_choice_title"
+msgid "Alpha updates are disabled"
+msgstr "Alfa güncellemeleri kapalı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format
@@ -14356,6 +14443,16 @@ msgid ""
 msgstr ""
 "Başka bir WinZapp hesabında zaten bir güncelleme penceresi açık. Güncellemek"
 " için o pencereyi tamamlayın veya kapatın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+#, python-brace-format
+msgctxt "update_reinstall_downgrade_warning"
+msgid ""
+"Reinstalling will replace your current version {current} with the older "
+"version {new} from the selected update channel."
+msgstr ""
+"Yeniden kurulum, mevcut {current} sürümünüzü seçili güncelleme kanalındaki "
+"daha eski {new} sürümüyle değiştirecek."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_uac_declined"
@@ -14838,6 +14935,241 @@ msgid ""
 msgstr ""
 "Değişiklik kaydedilmiş olabilir, ancak sonucu kontrol edemedik. Yeniden "
 "denemeden önce listeleri yenileyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_about_label"
+msgid "About"
+msgstr "Hakkımda"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_apply_button"
+msgid "&Apply to WhatsApp"
+msgstr "WhatsApp'ta &uygula"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_apply_partial_error"
+msgid "Some settings could not be applied."
+msgstr "Bazı ayarlar uygulanamadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_apply_success"
+msgid "Privacy updated on WhatsApp."
+msgstr "Gizlilik WhatsApp'ta güncellendi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_applying"
+msgid "Applying privacy settings..."
+msgstr "Gizlilik ayarları uygulanıyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_group_add_label"
+msgid "Who can add me to groups"
+msgstr "Beni gruplara kimler ekleyebilir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_last_seen_label"
+msgid "Last seen"
+msgstr "Son görülme"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_load_failed"
+msgid "Could not load your WhatsApp privacy settings."
+msgstr "WhatsApp gizlilik ayarlarınız yüklenemedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_loaded"
+msgid "Privacy settings loaded."
+msgstr "Gizlilik ayarları yüklendi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_loading"
+msgid "Loading your privacy settings from WhatsApp..."
+msgstr "Gizlilik ayarlarınız WhatsApp'tan yükleniyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+#, python-brace-format
+msgctxt "wa_privacy_not_confirmed_msg"
+msgid "WhatsApp did not confirm the change to: {settings}."
+msgstr "WhatsApp şu değişikliği onaylamadı: {settings}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_nothing_changed"
+msgid "Nothing was changed."
+msgstr "Hiçbir şey değiştirilmedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_online_label"
+msgid "Who can see when I'm online"
+msgstr "Çevrimiçi olduğumu kimler görebilir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_all"
+msgid "Everyone"
+msgstr "Herkes"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_contacts"
+msgid "My contacts"
+msgstr "Kişilerim"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_match_last_seen"
+msgid "Same as last seen"
+msgstr "Son görülme ile aynı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_none"
+msgid "Nobody"
+msgstr "Hiç kimse"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_off"
+msgid "Off"
+msgstr "Kapalı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_on"
+msgid "On"
+msgstr "Açık"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_profile_pic_label"
+msgid "Profile photo"
+msgstr "Profil fotoğrafı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_read_receipts_label"
+msgid "Read receipts"
+msgstr "Okundu bilgisi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_section_label"
+msgid "Privacy of your WhatsApp account"
+msgstr "WhatsApp hesabınızın gizliliği"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_choose_button"
+msgid "C&hoose contacts..."
+msgstr "Kişileri &seç..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/status_audience_dialog.py
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+#, python-brace-format
+msgctxt "wa_privacy_status_count"
+msgid "Contacts selected: {count}."
+msgstr "Seçilen kişiler: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_label"
+msgid "Who can see my status"
+msgstr "Durumumu kimler görebilir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/status_audience_dialog.py
+msgctxt "wa_privacy_status_list_label"
+msgid "Contacts (Space checks or unchecks)"
+msgstr "Kişiler (Boşluk işaretler veya işareti kaldırır)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_list_unknown"
+msgid ""
+"The current contact list could not be read from WhatsApp. Choose the "
+"contacts to replace it."
+msgstr ""
+"Geçerli kişi listesi WhatsApp'tan okunamadı. Listeyi değiştirmek için "
+"kişileri seçin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_need_contacts"
+msgid "Choose at least one contact to share your status with."
+msgstr "Durumunuzu paylaşmak için en az bir kişi seçin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_status_opt_except"
+msgid "My contacts except..."
+msgstr "Kişilerim, şunlar hariç..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_status_opt_only"
+msgid "Only share with..."
+msgstr "Yalnızca şunlarla paylaş..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_status_title_except"
+msgid "Hide my status from"
+msgstr "Durumumu şunlardan gizle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_status_title_only"
+msgid "Share my status only with"
+msgstr "Durumumu yalnızca şunlarla paylaş"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_unavailable"
+msgid ""
+"Who can see your status could not be read from WhatsApp, so it cannot be "
+"changed here right now."
+msgstr ""
+"Durumunuzu kimlerin görebileceği WhatsApp'tan okunamadı; bu nedenle şu anda "
+"buradan değiştirilemez."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/status_audience_dialog.py
+#, python-brace-format
+msgctxt "wa_privacy_status_unknown_contact"
+msgid "Not in your contacts ({number})"
+msgstr "Kişilerinizde değil ({number})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_unreadable_msg"
+msgid ""
+"WhatsApp answered, but without any privacy setting this program can show. "
+"Try again later; if it keeps happening, WhatsApp Web may have changed and "
+"the server needs updating."
+msgstr ""
+"WhatsApp yanıt verdi ancak bu programın gösterebileceği bir gizlilik ayarı "
+"içermiyor. Daha sonra yeniden deneyin; sorun sürerse WhatsApp Web değişmiş "
+"ve sunucunun güncellenmesi gerekiyor olabilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+#, python-brace-format
+msgctxt "wa_privacy_unrecognized_fields"
+msgid ""
+"These settings hold a value this program cannot show and are left as they "
+"are: {settings}."
+msgstr ""
+"Bu ayarlar programın gösteremediği bir değere sahip ve olduğu gibi "
+"bırakılıyor: {settings}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_settings_dialog_title"
+msgid "WhatsApp settings"
+msgstr "WhatsApp ayarları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_settings_tab_privacy"
+msgid "Privacy"
+msgstr "Gizlilik"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py

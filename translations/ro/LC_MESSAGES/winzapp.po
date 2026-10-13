@@ -2340,7 +2340,7 @@ msgstr "Setări video pentru apeluri"
 #: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/updater.py
+#: client/ui/dialogs/status_audience_dialog.py client/updater.py
 msgctxt "cancel"
 msgid "&Cancel"
 msgstr "Anulea&ză"
@@ -5571,6 +5571,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/contact_list_picker.py client/ui/dialogs/new_group.py
+#: client/ui/dialogs/status_audience_dialog.py
 msgctxt "group_search_label"
 msgid "&Search contact"
 msgstr "&Căutați contact"
@@ -6382,6 +6383,12 @@ msgstr "&Setări"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
+msgctxt "menu_settings_whatsapp"
+msgid "&WhatsApp settings"
+msgstr "Setări &WhatsApp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
 msgctxt "menu_shortcuts"
 msgid "Keyboard shortcuts"
 msgstr "Comenzi rapide de la tastatură"
@@ -6865,6 +6872,7 @@ msgstr "Nicio conversație nu este deschisă."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/contact_list_picker.py
+#: client/ui/dialogs/status_audience_dialog.py
 msgctxt "no_contacts"
 msgid "No contacts available."
 msgstr "Nu există contacte disponibile."
@@ -7246,6 +7254,8 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
+#: client/ui/dialogs/status_audience_dialog.py
+#: client/ui/dialogs/whatsapp_settings_dialog.py
 msgctxt "ok"
 msgid "&OK"
 msgstr "&OK"
@@ -8219,6 +8229,33 @@ msgid ""
 msgstr ""
 "Mesajul original nu a putut fi citat; mesajul va fi trimis ca unul obișnuit."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
+msgctxt "reply_quote_missing_error"
+msgid ""
+"The quoted message was not found, so your reply was not sent. Your text is "
+"kept in the message list. Choose 'Edit unsent reply without its quote' in "
+"its menu to continue."
+msgstr ""
+"Mesajul citat nu a fost găsit, deci răspunsul nu a fost trimis. Textul a "
+"fost păstrat în lista de mesaje. Alegeți „Editați răspunsul netrimis fără "
+"citat” din meniul acestuia pentru a continua."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
+msgctxt "reply_quote_save_failed"
+msgid ""
+"The reply could not be saved to disk. Its text is still in the message list;"
+" copy it before closing WinZapp."
+msgstr ""
+"Răspunsul nu a putut fi salvat pe disc. Textul este încă în lista de mesaje;"
+" copiați-l înainte de a închide WinZapp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/text_sending.py
+msgctxt "reply_restore_draft_busy"
+msgid "Finish or clear your current message before restoring this reply."
+msgstr ""
+"Finalizați sau ștergeți mesajul curent înainte de a restaura acest răspuns."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 #, python-brace-format
@@ -8251,6 +8288,12 @@ msgstr "Retrimiteți"
 msgctxt "restart_required_message"
 msgid "Some changes will only take effect after restarting WinZapp."
 msgstr "Unele modificări vor intra în vigoare numai după repornirea WinZapp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "restore_unsent_reply"
+msgid "Edit unsent reply without its quote"
+msgstr "Editați răspunsul netrimis fără citat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_tab/status_voice.py
 #: client/ui/conversations.py
@@ -10230,10 +10273,22 @@ msgstr "Anunțați când începe actualizarea conversațiilor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_media_progress_label"
+msgid "Announce media download progress every few seconds"
+msgstr "Anunțați la câteva secunde progresul descărcării media"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_recording_label"
 msgid "Announce when a contact is recording an audio message in a chat"
 msgstr ""
 "Anunțați când un contact înregistrează un mesaj audio într-o conversație"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_sync_progress_label"
+msgid "Announce chat sync progress every few seconds"
+msgstr "Anunțați la câteva secunde progresul sincronizării conversațiilor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -10862,6 +10917,12 @@ msgid "Chats unarchived."
 msgstr "Conversații dezarhivate."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
+#, python-brace-format
+msgctxt "sync_chats_progress"
+msgid "Syncing chats: {done} of {total}"
+msgstr "Se sincronizează conversațiile: {done} din {total}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 msgctxt "sync_complete"
 msgid "Chats synced."
 msgstr "Conversații sincronizate."
@@ -10881,6 +10942,14 @@ msgstr "Descărcare media finalizată."
 msgctxt "sync_media_failed"
 msgid "Failed to download media."
 msgstr "Nu s-a putut descărca media."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/backfill.py
+#, python-brace-format
+msgctxt "sync_media_progress"
+msgid ""
+"Downloading media: {done} of {total} processed ({downloaded} downloaded)"
+msgstr ""
+"Descărcare media: {done} din {total} procesate ({downloaded} descărcate)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/backfill.py
 #: client/main_window/sync.py
@@ -14251,6 +14320,7 @@ msgstr ""
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py
+#: client/ui/dialogs/status_audience_dialog.py
 msgctxt "unknown_contact"
 msgid "Unnamed contact"
 msgstr "Contact fără nume"
@@ -14382,6 +14452,24 @@ msgstr "Elimină marcajul cu stea"
 msgctxt "unsupported_message"
 msgid "Incompatible message"
 msgstr "Mesaj incompatibil"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_channel_choice.py
+#, python-brace-format
+msgctxt "update_alpha_choice_message"
+msgid ""
+"You are running {current}. A newer alpha version, {new}, is available, but "
+"alpha updates are disabled. Would you like to view this update once? "
+"Automatic alpha updates will remain disabled."
+msgstr ""
+"Folosiți versiunea {current}. Este disponibilă o versiune alfa mai nouă, "
+"{new}, dar actualizările alfa sunt dezactivate. Doriți să vedeți această "
+"actualizare o singură dată? Actualizările alfa automate vor rămâne "
+"dezactivate."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_channel_choice.py
+msgctxt "update_alpha_choice_title"
+msgid "Alpha updates are disabled"
+msgstr "Actualizările alfa sunt dezactivate"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format
@@ -14550,6 +14638,16 @@ msgid ""
 msgstr ""
 "O fereastră de actualizare este deja deschisă într-un alt cont WinZapp. "
 "Finalizați operația sau închideți acea fereastră pentru a actualiza."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+#, python-brace-format
+msgctxt "update_reinstall_downgrade_warning"
+msgid ""
+"Reinstalling will replace your current version {current} with the older "
+"version {new} from the selected update channel."
+msgstr ""
+"Reinstalarea va înlocui versiunea curentă {current} cu versiunea mai veche "
+"{new} din canalul de actualizare selectat."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_uac_declined"
@@ -15043,6 +15141,242 @@ msgid ""
 msgstr ""
 "Modificarea nu a putut fi confirmată. Reîmprospătează listele înainte de a "
 "încerca din nou; este posibil să fi fost deja aplicată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_about_label"
+msgid "About"
+msgstr "Despre"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_apply_button"
+msgid "&Apply to WhatsApp"
+msgstr "&Aplicați în WhatsApp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_apply_partial_error"
+msgid "Some settings could not be applied."
+msgstr "Unele setări nu au putut fi aplicate."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_apply_success"
+msgid "Privacy updated on WhatsApp."
+msgstr "Confidențialitatea a fost actualizată în WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_applying"
+msgid "Applying privacy settings..."
+msgstr "Se aplică setările de confidențialitate..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_group_add_label"
+msgid "Who can add me to groups"
+msgstr "Cine mă poate adăuga în grupuri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_last_seen_label"
+msgid "Last seen"
+msgstr "Văzut ultima dată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_load_failed"
+msgid "Could not load your WhatsApp privacy settings."
+msgstr "Setările de confidențialitate WhatsApp nu au putut fi încărcate."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_loaded"
+msgid "Privacy settings loaded."
+msgstr "Setările de confidențialitate au fost încărcate."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_loading"
+msgid "Loading your privacy settings from WhatsApp..."
+msgstr "Se încarcă setările de confidențialitate din WhatsApp..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+#, python-brace-format
+msgctxt "wa_privacy_not_confirmed_msg"
+msgid "WhatsApp did not confirm the change to: {settings}."
+msgstr "WhatsApp nu a confirmat modificarea pentru: {settings}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_nothing_changed"
+msgid "Nothing was changed."
+msgstr "Nu a fost modificat nimic."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_online_label"
+msgid "Who can see when I'm online"
+msgstr "Cine poate vedea când sunt online"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_all"
+msgid "Everyone"
+msgstr "Toată lumea"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_contacts"
+msgid "My contacts"
+msgstr "Contactele mele"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_match_last_seen"
+msgid "Same as last seen"
+msgstr "La fel ca „Văzut ultima dată”"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_none"
+msgid "Nobody"
+msgstr "Nimeni"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_off"
+msgid "Off"
+msgstr "Dezactivate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_opt_on"
+msgid "On"
+msgstr "Activate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_profile_pic_label"
+msgid "Profile photo"
+msgstr "Fotografie de profil"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_read_receipts_label"
+msgid "Read receipts"
+msgstr "Confirmări de citire"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_section_label"
+msgid "Privacy of your WhatsApp account"
+msgstr "Confidențialitatea contului dvs. WhatsApp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_choose_button"
+msgid "C&hoose contacts..."
+msgstr "Ale&geți contactele..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/status_audience_dialog.py
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+#, python-brace-format
+msgctxt "wa_privacy_status_count"
+msgid "Contacts selected: {count}."
+msgstr "Contacte selectate: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_label"
+msgid "Who can see my status"
+msgstr "Cine îmi poate vedea starea"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/status_audience_dialog.py
+msgctxt "wa_privacy_status_list_label"
+msgid "Contacts (Space checks or unchecks)"
+msgstr "Contacte (Spațiu bifează sau debifează)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_list_unknown"
+msgid ""
+"The current contact list could not be read from WhatsApp. Choose the "
+"contacts to replace it."
+msgstr ""
+"Lista actuală de contacte nu a putut fi citită din WhatsApp. Alegeți "
+"contactele pentru a o înlocui."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_need_contacts"
+msgid "Choose at least one contact to share your status with."
+msgstr "Alegeți cel puțin un contact cu care să partajați starea."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_status_opt_except"
+msgid "My contacts except..."
+msgstr "Contactele mele, cu excepția..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_status_opt_only"
+msgid "Only share with..."
+msgstr "Partajați doar cu..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_status_title_except"
+msgid "Hide my status from"
+msgstr "Ascundeți starea mea de"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "wa_privacy_status_title_only"
+msgid "Share my status only with"
+msgstr "Partajați starea mea doar cu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_status_unavailable"
+msgid ""
+"Who can see your status could not be read from WhatsApp, so it cannot be "
+"changed here right now."
+msgstr ""
+"Nu s-a putut citi din WhatsApp cine vă poate vedea starea, așa că nu poate "
+"fi modificată aici acum."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/status_audience_dialog.py
+#, python-brace-format
+msgctxt "wa_privacy_status_unknown_contact"
+msgid "Not in your contacts ({number})"
+msgstr "În afara contactelor dvs. ({number})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_privacy_unreadable_msg"
+msgid ""
+"WhatsApp answered, but without any privacy setting this program can show. "
+"Try again later; if it keeps happening, WhatsApp Web may have changed and "
+"the server needs updating."
+msgstr ""
+"WhatsApp a răspuns, dar fără nicio setare de confidențialitate pe care acest"
+" program o poate afișa. Încercați din nou mai târziu; dacă problema "
+"persistă, este posibil ca WhatsApp Web să se fi schimbat și serverul să "
+"trebuiască actualizat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+#, python-brace-format
+msgctxt "wa_privacy_unrecognized_fields"
+msgid ""
+"These settings hold a value this program cannot show and are left as they "
+"are: {settings}."
+msgstr ""
+"Aceste setări au o valoare pe care programul nu o poate afișa și rămân "
+"neschimbate: {settings}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_settings_dialog_title"
+msgid "WhatsApp settings"
+msgstr "Setări WhatsApp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_settings_tab_privacy"
+msgid "Privacy"
+msgstr "Confidențialitate"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py

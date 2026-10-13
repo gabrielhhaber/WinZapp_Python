@@ -72,6 +72,7 @@ class WindowChromeMixin:
         """Create the menu bar with Arquivo, Sincronização and Ajuda menus."""
         self._ID_MARK_ALL_READ = wx.NewIdRef()
         self._ID_SETTINGS      = wx.NewIdRef()
+        self._ID_WA_SETTINGS   = wx.NewIdRef()
         self._ID_EXPORT_SETTINGS = wx.NewIdRef()
         self._ID_IMPORT_SETTINGS = wx.NewIdRef()
         self._ID_DISCONNECT    = wx.NewIdRef()
@@ -100,6 +101,9 @@ class WindowChromeMixin:
             self._ID_SETTINGS,
             f"{self.i18n.t('menu_settings')}\tCtrl+,",
         )
+        # The paired account's own settings, kept on WhatsApp rather than in
+        # WinZapp's: next to Configurações, no accelerator (a rare action).
+        file_menu.Append(self._ID_WA_SETTINGS, self.i18n.t("menu_settings_whatsapp"))
         # Carrying settings to another install. Next to Configurações because
         # that is what they are about, and with no accelerator: they are rare,
         # deliberate actions and every letter here is already spoken for.
@@ -237,6 +241,7 @@ class WindowChromeMixin:
         refresh_menu_shortcuts(self)
         self.Bind(wx.EVT_MENU, self._on_mark_all_read, id=self._ID_MARK_ALL_READ)
         self.Bind(wx.EVT_MENU, self.on_ctrl_comma,     id=self._ID_SETTINGS)
+        self.Bind(wx.EVT_MENU, self.open_whatsapp_settings, id=self._ID_WA_SETTINGS)
         self.Bind(wx.EVT_MENU, self._on_export_settings, id=self._ID_EXPORT_SETTINGS)
         self.Bind(wx.EVT_MENU, self._on_import_settings, id=self._ID_IMPORT_SETTINGS)
         self.Bind(wx.EVT_MENU, self._on_menu_disconnect, id=self._ID_DISCONNECT)
@@ -894,6 +899,9 @@ class WindowChromeMixin:
         file_menu.FindItemById(self._ID_SETTINGS).SetItemLabel(
             f"{self.i18n.t('menu_settings')}\tCtrl+,"
         )
+        file_menu.FindItemById(self._ID_WA_SETTINGS).SetItemLabel(
+            self.i18n.t("menu_settings_whatsapp")
+        )
         file_menu.FindItemById(self._ID_EXPORT_SETTINGS).SetItemLabel(
             self.i18n.t("menu_export_settings")
         )
@@ -1321,6 +1329,30 @@ class WindowChromeMixin:
         offline toggle's own feedback are unaffected).
         """
         return bool(self.settings.get("general", {}).get("announce_sync_events", True))
+
+    def _report_sync_progress(self, text: str, speech_key: str) -> None:
+        """Show a sweep's periodic "X of Y" line and speak it.
+
+        Runs on the main thread (the sweeps hand it over with wx.CallAfter;
+        see core/sync_progress.py for the cadence). The status text always
+        changes. Speech needs all three: not in background mode, Settings >
+        Geral > "Anunciar sincronização, download de mídias e modo offline
+        automático" (the master switch of every sync announcement), and the
+        sweep's own box in Settings > Conteúdo falado — ``speech_key`` is
+        "announce_sync_progress" or "announce_media_progress". Never
+        interrupts: the user may be reading a message. Nothing is spoken
+        during a WhatsApp voice call either: the chat sweep keeps running
+        through one on purpose (see sync_remote_chats()), and "X de Y" every
+        few seconds would talk over the call.
+        """
+        self._set_status(text)
+        if self.background_mode or not self._announce_sync_events_enabled():
+            return
+        if self._voice_call_in_progress():
+            return
+        if not self.settings.get("speech_content", {}).get(speech_key, True):
+            return
+        self.output(text)
 
     def _search_normalization_mode(self) -> str:
         """Settings > Geral > "Normalização Unicode nas pesquisas": one of

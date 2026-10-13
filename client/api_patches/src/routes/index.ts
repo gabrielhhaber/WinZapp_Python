@@ -31,6 +31,7 @@ import * as GroupOperationsController from '../controller/groupOperationsControl
 import * as LabelsController from '../controller/labelsController';
 import * as MessageController from '../controller/messageController';
 import * as PinnedMessagesController from '../controller/pinnedMessagesController';
+import * as PrivacyController from '../controller/privacyController';
 import * as PollController from '../controller/pollController';
 import * as CommunityCommentsController from '../controller/communityCommentsController';
 import * as CommunityOverviewController from '../controller/communityOverviewController';
@@ -671,6 +672,26 @@ routes.post(
   verifyToken,
   statusConnection,
   DeviceController.deleteMessage
+);
+// Account privacy and who can see the account's Status (WPP.privacy, not
+// wrapped by WPPConnect Server itself).
+routes.post(
+  '/api/:session/privacy',
+  verifyToken,
+  statusConnection,
+  PrivacyController.getPrivacySettings
+);
+routes.post(
+  '/api/:session/privacy/set',
+  verifyToken,
+  statusConnection,
+  PrivacyController.setPrivacySetting
+);
+routes.post(
+  '/api/:session/privacy/status',
+  verifyToken,
+  statusConnection,
+  PrivacyController.setStatusPrivacy
 );
 routes.post(
   '/api/:session/message-ack',

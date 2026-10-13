@@ -167,8 +167,7 @@ class TestPromptIsDeferredWhilePairing:
 
 class TestScheduleRetryInterval:
     def test_default_is_the_periodic_interval(self):
-        checker = WppUpdateChecker.__new__(WppUpdateChecker)
-        checker._retry_timer = None
+        checker = WppUpdateChecker(object())
         made = {}
 
         class _Timer:

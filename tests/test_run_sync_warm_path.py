@@ -55,6 +55,8 @@ def _instrumented(stub):
     stub.landing_contexts = []
     stub.landing_at_message_phase = None
     stub.message_rounds = []
+    stub.progress_counters = []
+    stub.quiet_calls = []
     stub.media_scopes = []
     stub.saves = 0
     stub.statuses = []
@@ -91,8 +93,11 @@ def _instrumented(stub):
         stub._history_still_landing = landing
         return landing
 
-    def _sync_remote(target_chats=None, incremental=False, expected_run_id=None):
+    def _sync_remote(target_chats=None, incremental=False, expected_run_id=None,
+                     progress=None, quiet=False):
         stub.message_sync_ran += 1
+        stub.progress_counters.append(progress)
+        stub.quiet_calls.append(quiet)
         # Captured here rather than after the run: refresh_history_still_landing()
         # re-reads the flag from the API later on, so the value the message
         # phase actually saw is only observable from inside it.
@@ -103,8 +108,9 @@ def _instrumented(stub):
         ))
         return set(stub.failing_jids)
 
-    def _media(jids=None, should_stop=None):
+    def _media(jids=None, should_stop=None, quiet=False):
         stub.media_sync_ran += 1
+        stub.quiet_calls.append(quiet)
         stub.media_scopes.append(None if jids is None else set(jids))
         return 0
 
@@ -400,6 +406,32 @@ class TestTheWarmRoundStillDoesItsWork:
         stub._run_sync()
         assert stub.message_rounds == [(True, [_JIDS[0]])]
 
+    def test_its_full_and_incremental_passes_share_one_progress_count(self):
+        """A warm round can hold both: a chat still owing history is a full
+        target, one whose activity moved an incremental one. Each pass used to
+        build its own "X de Y" count, so the spoken progress went backwards
+        mid-round ("2 de 3", then "4 de 120"). See tests/test_sync_progress.py."""
+        stub = _warm_stub()
+        stub._chats_awaiting_messages = {_JIDS[1]}
+        _server_bumps_activity(stub, _JIDS[0])
+        stub._run_sync()
+        assert stub.message_rounds == [(False, [_JIDS[1]]), (True, [_JIDS[0]])]
+        first, second = stub.progress_counters
+        assert first is second
+        assert first.total == 2
+
+    @pytest.mark.parametrize("make", [_warm_stub, _cold_stub], ids=["warm", "cold"])
+    def test_every_round_speaks_its_progress(self, make):
+        """Only the once-a-minute poll is quiet (tests/test_periodic_poll_delta.py).
+        A launch's update after days away can walk hundreds of chats, and
+        without the count it sounds as stuck as a first pairing did."""
+        stub = make()
+        stub.settings["storage"]["auto_download_media"] = True
+        _server_bumps_activity(stub, _JIDS[0])
+        stub._run_sync()
+        assert stub.message_sync_ran and stub.media_sync_ran
+        assert not any(stub.quiet_calls)
+
     def test_the_baseline_is_the_cache_as_it_was_before_list_chats_merged(self):
         """list-chats overwrites `t`/lastReceivedKey on the very dicts the plan
         compares against. Capturing the baseline after that merge is not a
@@ -568,8 +600,9 @@ class TestARestoredShortChatIsNotRetiredEarly:
 
         inner = stub.sync_remote_chats
 
-        def _sync_and_report(target_chats=None, incremental=False, expected_run_id=None):
-            failures = inner(target_chats, incremental, expected_run_id)
+        def _sync_and_report(target_chats=None, incremental=False, expected_run_id=None,
+                             progress=None):
+            failures = inner(target_chats, incremental, expected_run_id, progress)
             # What the real sync_chat_messages() does at the end of every chat:
             # hand the answer it got to the queue bookkeeping.
             for chat in target_chats or []:

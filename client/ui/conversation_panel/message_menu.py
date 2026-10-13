@@ -14,6 +14,7 @@ import tempfile
 import threading
 import wx
 from core.quote_recovery import RECOVERED_FROM_QUOTE
+from core.reply_failure import is_missing_quote_failure
 from ui.conversation_panel.media_paths import (
     _SAVEABLE_MESSAGE_TYPES,
     cached_media_path,
@@ -506,6 +507,14 @@ class MessageMenuMixin:
                 wx.EVT_MENU,
                 lambda e, m=msg: self._on_menu_resend_message(m),
                 resend_item,
+            )
+
+        if _is_text and is_missing_quote_failure(msg):
+            restore_item = menu.Append(wx.ID_ANY, f"{i18n.t('restore_unsent_reply')}\tAlt+E")
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_restore_unsent_reply(m),
+                restore_item,
             )
 
         menu.AppendSeparator()

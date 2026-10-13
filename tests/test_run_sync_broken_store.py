@@ -137,7 +137,7 @@ class _Stub:
         self.restarted = True
 
     def sync_remote_chats(self, target_chats=None, incremental=False,
-                          expected_run_id=None):
+                          expected_run_id=None, progress=None):
         self.message_sync_ran += 1
 
     def _chats_needing_deep_history(self):

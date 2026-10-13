@@ -47,6 +47,12 @@ class _Stub:
         self.seen = []
         self._saved = False
 
+    def _media_sync_candidate(self, msg, explicit=False):
+        # Every media message is a candidate here: these tests count what the
+        # sweep did with its queue. Which messages enter the queue is
+        # tests/test_sync_progress.py's TestTheSweepCountsOnlyCandidates.
+        return msg.get("messageType")
+
     def sync_if_media(self, msg, timeout=60):
         self.seen.append(msg.get("key", {}).get("id"))
         return self._downloads.get(msg.get("key", {}).get("id"), False)
@@ -122,6 +128,7 @@ class _SyncIfMediaStub:
 
     _MEDIA_MAX_AGE_SECONDS = MainWindow._MEDIA_MAX_AGE_SECONDS
     sync_if_media = MainWindow.sync_if_media
+    _media_sync_candidate = MainWindow._media_sync_candidate
 
     def __init__(self, connected=True, offline=False, allowed_types=None):
         self._wa_connected = connected

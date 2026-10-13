@@ -48,6 +48,7 @@ import time
 
 from urllib3.exceptions import NewConnectionError
 
+from core.reply_failure import is_missing_quote_failure
 from core.utils import is_message_forwarded
 
 #: How the normaliser tags an edit inside message.protocolMessage.type.
@@ -270,6 +271,8 @@ def edit_kind(msg):
     """
     if not isinstance(msg, dict) or not (msg.get("key") or {}).get("fromMe"):
         return None
+    if is_missing_quote_failure(msg):
+        return None  # A definite pre-send refusal has no WhatsApp ID to edit.
     mtype = msg.get("messageType")
     if mtype in _TEXT_TYPES:
         return "text"

@@ -28,6 +28,7 @@ from core.incremental_sync import (
     select_stale_rechecks as _select_stale_rechecks,
 )
 from core.api_client import api_post, sync_throttled
+from core.sync_progress import ProgressThrottle
 from core.resume_message_sync import promote_resume_rechecks
 from ui.dialogs.checkbox_confirm import confirm_with_checkbox
 from app_paths import data_path
@@ -1727,15 +1728,23 @@ class SyncMixin:
         # after it: phase 1 is where a round spends its minutes, and every
         # chat it finishes lands in self.chats. See sync_remote_chats() for
         # why a superseded phase reports no failures at all.
+        #
+        # One "X de Y" count for the whole phase: a warm round can hold full
+        # targets (new or emptied chats) and incremental ones, and two passes
+        # each counting from 1 against their own total made the spoken
+        # progress go backwards mid-round ("2 de 3", then "4 de 120").
+        round_progress = ProgressThrottle(full_target_count + incremental_target_count)
         if full_targets:
             message_failures.update(
                 self.sync_remote_chats(full_targets, incremental=False,
-                                       expected_run_id=my_run_id) or set()
+                                       expected_run_id=my_run_id,
+                                       progress=round_progress) or set()
             )
         if incremental_targets:
             message_failures.update(
                 self.sync_remote_chats(incremental_targets, incremental=True,
-                                       expected_run_id=my_run_id) or set()
+                                       expected_run_id=my_run_id,
+                                       progress=round_progress) or set()
             )
         message_sync_ok = not message_failures
         logging.info(
@@ -2511,7 +2520,14 @@ class SyncMixin:
             logging.warning("[sync] failed to persist chat_verified_at: %s", exc)
 
     def sync_remote_chats(self, target_chats=None, incremental: bool = False,
-                          expected_run_id=None, expected_context=None):
+                          expected_run_id=None, expected_context=None,
+                          quiet: bool = False, progress=None):
+        # Unless quiet, a long pass shows and speaks "Sincronizando conversas:
+        # X de Y" every few seconds (core/sync_progress.py). The once-a-minute
+        # safety poll passes quiet=True: it must never sound like a sync.
+        # ``progress`` is a ProgressThrottle the caller shares between the
+        # passes of one round, so the count runs on across them; without one
+        # this pass counts on its own.
         # Also deliberately NOT gated on an active voice call: this returns the
         # set of chats that FAILED, so an early empty set is read by the caller
         # as "every chat succeeded" — see the comment at the top of
@@ -2587,6 +2603,10 @@ class SyncMixin:
                     for chat in valid_chats
                 }
 
+            if quiet:
+                progress = None
+            elif progress is None:
+                progress = ProgressThrottle(len(valid_chats))
             for future in as_completed(futures):
                 chat = futures[future]
                 raw_jid = chat.get("remoteJid", "")
@@ -2600,6 +2620,13 @@ class SyncMixin:
                 except Exception as exc:
                     failed_jids.add(jid)
                     logging.warning("[sync_remote_chats] failed for %s: %s", jid, exc)
+                if progress is not None and progress.step() and not _superseded():
+                    wx.CallAfter(
+                        self._report_sync_progress,
+                        self.i18n.t("sync_chats_progress").format(
+                            done=progress.done, total=progress.total),
+                        "announce_sync_progress",
+                    )
 
         if _superseded():
             # Every chat skipped by the stale check above came back False, which

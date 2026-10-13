@@ -13,6 +13,7 @@ import wx
 from ui.conversation_panel.media_paths import _SAVEABLE_MESSAGE_TYPES
 from core.message_copy_format import format_copied_message
 from core.call_log import is_call_log
+from core.reply_failure import is_missing_quote_failure
 from core.save_location import resolve_save_dialog_folder
 
 
@@ -311,7 +312,7 @@ class BulkMessagesMixin:
         admin_override = self._group_admin_delete_override()
 
         def _can_delete_for_all(msg):
-            if self._is_system_event(msg):
+            if self._is_system_event(msg) or is_missing_quote_failure(msg):
                 return False
             return admin_override or msg.get("key", {}).get("fromMe", False)
 
@@ -385,6 +386,8 @@ class BulkMessagesMixin:
         def _delete_bg():
             failed = 0
             for msg in msgs_to_delete:
+                if is_missing_quote_failure(msg):
+                    continue  # Local UUID only: there is no WhatsApp message to delete.
                 msg_key = dict(msg.get("key", {}))
                 jid = self._delete_target_jid(msg_key)
                 if not jid:

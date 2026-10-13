@@ -102,11 +102,19 @@ NOVEDADES
 
 - macOS: las versiones de lanzamiento ahora se actualizan con las ventanas estándar de Sparkle 2, que VoiceOver lee bien. "Comprobar actualizaciones", la comprobación automática cada 3 horas y "Buscar actualizaciones alpha" abren Sparkle. Antes de ofrecer una versión, cuando eliges Instalar y una vez más en "Listo para instalar", WinZapp comprueba que la etiqueta de la versión existe en el repositorio oficial, apunta a su commit declarado y es más reciente que la versión en uso; si algo de eso falla, o no se puede acceder a GitHub, la actualización se cancela y se muestra el motivo. Al elegir Instalar, tus otras cuentas se cierran y ninguna cuenta puede iniciarse hasta que termine la actualización; si la actualización no se instala, se vuelven a abrir. Una actualización encontrada en segundo plano se anuncia por voz y con una notificación, y "Listo para instalar" también se anuncia. Los bloqueos de cuenta que dejaron cierres anteriores ya no impiden las actualizaciones ni el inicio en el Mac.
 
+- Progreso hablado de la sincronización y de la descarga de medios: en una sincronización (la completa de la primera vinculación o de F5, y también, al abrir WinZapp, la actualización de las conversaciones que cambiaron) y en la descarga de medios que viene después, WinZapp muestra en el título de la ventana y anuncia, más o menos cada 5 segundos, cuánto lleva hecho: "Sincronizando conversaciones: 12 de 80" y "Descargando medios: 30 de 120 procesados (8 descargados)". Antes no se oía nada entre el aviso de inicio y el de fin, y una sincronización larga parecía bloqueada. "Procesados" cuenta también los medios que no hacía falta descargar (ya estaban en el equipo, por ejemplo), y el total solo incluye los que tu configuración de Almacenamiento todavía permite descargar, no todo el historial. El progreso respeta la opción "Anunciar sincronización, descarga de medios y modo sin conexión automático" de Configuración > General y no se anuncia cuando WinZapp se inicia en segundo plano ni durante una llamada de voz; la comprobación automática que se ejecuta cada minuto sigue en silencio. En Configuración > Contenido hablado, las casillas "Anunciar cada pocos segundos el progreso de la sincronización de conversaciones" y "Anunciar cada pocos segundos el progreso de la descarga de medios", marcadas por defecto, desactivan cada uno de estos avisos por separado; el título de la ventana sigue mostrando los números.
+
+- Nueva ventana Archivo > Configuración de WhatsApp, con la pestaña Privacidad para la privacidad de tu cuenta de WhatsApp, aplicada directamente en WhatsApp: última vez, quién puede ver cuándo estás en línea, info, foto de perfil, confirmaciones de lectura, quién puede añadirte a grupos y quién puede ver tu estado (mis contactos, mis contactos excepto... o compartir solo con...). Las personas del estado se eligen entre tus contactos sincronizados, en una lista con búsqueda en la que cada una se marca con Espacio. La ventana carga los valores actuales de WhatsApp, envía solo lo que cambiaste y después lo comprueba, indicando qué ajustes no confirmó WhatsApp.
+
 CORRECCIONES
 
 - Las ventanas Datos del grupo, Datos de la conversación, Invitación al grupo y Unirse al grupo mediante enlace ahora tienen una letra de acceso (Alt+letra) en cada botón y en cada etiqueta de campo o lista. Antes, los botones de Datos del grupo, algunos de Datos de la conversación y todos los controles de la invitación no tenían ninguna. El botón que cierra la ventana de la invitación, que aparecía en inglés, ahora sigue el idioma de WinZapp.
 
 - Los mensajes enviados mientras una secuencia de mensajes de voz estaba en reproducción o en pausa se quedaban sin estado en la lista (ni "Enviado", ni "Entregado", ni "Leído") hasta que la secuencia terminaba, aunque la ventana Datos del mensaje (Alt+Shift+D) ya mostraba el estado correcto. Ahora, durante una secuencia, solo la fila que tiene el foco espera, para que el lector de pantalla no la lea por encima del audio; las demás se actualizan al momento, y la que se quedó esperando se actualiza cuando el foco sale de ella, cuando se pausa la reproducción o cuando la secuencia termina.
+
+- Actualizaciones: "Comprobar actualizaciones", en el menú Ayuda, ahora avisa cuando WinZapp no puede conectar con el servidor de actualizaciones, en lugar de no decir nada.
+
+- Respuestas: si no se encuentra el mensaje original antes de enviar, WinZapp informa de la cita ausente y conserva el texto para editarlo desde el menú del mensaje. No lo envía silenciosamente sin la cita ni anuncia una pérdida de conexión. Los envíos inciertos siguen sin reintentarse automáticamente.
 
 - Sincronización: los mensajes antiguos recibidos de nuevo mantienen su orden cronológico en lugar de aparecer como nuevos. Los fallos temporales al consultar una dirección alternativa del chat quedan pendientes para volver a intentarlo.
 
@@ -163,6 +171,10 @@ CORRECCIONES
 - Si se cancelaba una actualización o la descarga de Node justo cuando terminaban, WinZapp podía mostrar el error "Attempt to exit a non-running event loop". Ahora las finalizaciones tardías se ignoran.
 
 - Diálogo de reenviar: la flecha abajo en el campo de búsqueda ahora va al primer resultado y enfoca la lista, como en la búsqueda de conversaciones.
+
+- El selector de país del emparejamiento por número de teléfono ahora incluye todos los países y territorios que admite WhatsApp (faltaban, por ejemplo, los Países Bajos, Kenia, Bielorrusia y Macedonia del Norte), y los nombres de los países también se muestran en el idioma elegido para polaco, turco y rumano.
+
+- Las cuentas de empresa verificadas de WhatsApp (bancos, aplicaciones de pago, compañías de servicios) que no tienes guardadas en contactos aparecían en la lista de chats solo con el número de teléfono. Ahora aparecen con el nombre verificado de la empresa, como en WhatsApp. Un nombre guardado en tus contactos sigue teniendo prioridad.
 
 V2.0.0.0
 

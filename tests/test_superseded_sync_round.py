@@ -81,7 +81,8 @@ def _round(cold=False):
                 stub.after_wipe.append(_name)
         setattr(stub, name, _tracked)
 
-    def _sync_remote(target_chats=None, incremental=False, expected_run_id=None):
+    def _sync_remote(target_chats=None, incremental=False, expected_run_id=None,
+                     progress=None):
         stub.message_sync_ran += 1
         stub.run_ids_seen.append(expected_run_id)
         return set()
@@ -236,7 +237,8 @@ class TestASupersededRoundStopsWriting:
         and nothing after it may run: contacts, block list, group names."""
         stub = _round(cold=True)
 
-        def _sync_remote(target_chats=None, incremental=False, expected_run_id=None):
+        def _sync_remote(target_chats=None, incremental=False, expected_run_id=None,
+                         progress=None):
             stub.run_ids_seen.append(expected_run_id)
             _wipe(stub)
             return {c["remoteJid"] for c in target_chats or []}

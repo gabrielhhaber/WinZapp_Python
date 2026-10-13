@@ -290,9 +290,9 @@ def safe_extract(tar_bytes: bytes, dest: str) -> None:
 
 def _read_json(path: str):
     try:
-        with open(path, encoding="utf-8-sig") as fh:
-            return json.load(fh)
-    except (OSError, ValueError):
+        with open(path, encoding="utf-8") as fh:
+            return json.loads(fh.read().removeprefix("\ufeff"))
+    except (OSError, ValueError, LookupError):
         return None
 
 

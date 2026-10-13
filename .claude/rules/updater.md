@@ -2,6 +2,7 @@
 paths:
   - "client/updater.py"
   - "client/update_coord.py"
+  - "client/update_channel_choice.py"
   - "client/update_background.py"
   - "client/update_package.py"
   - "client/update_progress.py"

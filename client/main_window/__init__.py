@@ -54,6 +54,7 @@ Where to look (and where new code goes):
     phone_chat_lock     chats locked with WhatsApp Chat Lock on the phone
     quick_audio_devices Ctrl+Alt+Shift+H/G quick output/recording device switch
     message_ack         live delivered/read/played times of our own sent messages
+    whatsapp_privacy    the paired account's privacy and Status audience (File > WhatsApp settings)
 
   Plain functions (import and test them directly — no wx, no stub)
     message_rules       unread/history-gap/countable-message rules

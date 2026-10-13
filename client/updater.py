@@ -30,6 +30,7 @@ from core import tls_trust
 from core.release_signature import SIGNATURE_ASSET_NAME, check_release_manifest
 from core.dialog_foreground import bring_to_front_if_hidden, message_box, parent_is_hidden
 from core.wpp_runtime import homologated_wpp_tag
+from update_channel_choice import AlphaChannelChoiceMixin
 from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
 from update_background import BackgroundDownloadMixin, background_downloads_enabled
 from update_package import discard_package, download_update_package, extraction_root
@@ -259,8 +260,8 @@ def is_newer(remote: str, local: str) -> bool:
 # (cut by hand) and alpha builds, which .github/workflows/alpha-release.yml
 # publishes automatically for every commit that lands on main. The ONLY thing
 # separating them is the literal word "alpha" in the tag/name — which is why
-# that workflow bakes it into both. An alpha is offered exclusively to users
-# who ticked "check for alpha updates" in Settings > General.
+# that workflow bakes it into both. Automatic alpha offers require the
+# Settings opt-in. A manual check on an alpha may ask for one-time consent.
 
 
 def is_alpha_release(release: dict) -> bool:
@@ -332,6 +333,29 @@ def select_release(releases: list, include_alpha: bool) -> "dict | None":
         if best_key is None or key > best_key:
             best, best_key = release, key
     return best
+
+
+def newer_excluded_alpha(releases: list, local_version: str,
+                         include_alpha: bool) -> "dict | None":
+    """The alpha a disabled alpha channel is keeping from an alpha build, or None.
+
+    Only an alpha build is ever offered one (a stable build that never opted in
+    stays on the stable line), and only when nothing the user is eligible for
+    is newer: a newer stable is the normal update and wins.
+    """
+    if include_alpha:
+        return None
+    parsed = parse_version(local_version)
+    if parsed is None or parsed[1] != "alpha":
+        return None
+    eligible = select_release(releases, False)
+    if eligible is not None and is_newer(
+            (eligible.get("tag_name") or "").lstrip("vV"), local_version):
+        return None
+    alpha = select_release([r for r in releases if is_alpha_release(r)], True)
+    if alpha is None or not is_newer(alpha["tag_name"].lstrip("vV"), local_version):
+        return None
+    return alpha
 
 
 # ── Changelog parser ──────────────────────────────────────────────────────────
@@ -1264,7 +1288,7 @@ class UpdateDialog(wx.Dialog):
 
 # ── UpdateChecker ─────────────────────────────────────────────────────────────
 
-class UpdateChecker(BackgroundDownloadMixin):
+class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin):
     """
     Runs version checks in a background thread.
     Shows UpdateDialog on the main thread when a newer version is found.
@@ -1281,6 +1305,10 @@ class UpdateChecker(BackgroundDownloadMixin):
         self._fetch_failures = 0
         self._retry_timer  = None
         self._force        = False
+        self._channel_choice_lock = threading.Lock()
+        self._channel_choice_pending = False
+        self._channel_choice_cancelled = False
+        self._channel_choice_token = None
         # Owner-token from update_coord.try_claim_update_prompt() while this
         # process is the one asking the user about an update; None otherwise.
         self._prompt_token = None
@@ -1382,10 +1410,12 @@ class UpdateChecker(BackgroundDownloadMixin):
         Either request failing on its own is survivable (a rate-limited listing
         still leaves the stable release reachable; `/releases/latest` 404s on a
         repo that has only ever published prereleases), so only a total failure
-        propagates.
+        propagates — except that with the alpha channel on, a failed listing
+        propagates too: a stable-only result cannot prove an alpha user current.
         """
         releases: list = []
         first_error = None
+        listing_error = None
 
         try:
             data = self._get_json(GITHUB_API_LATEST_RELEASE, params={"per_page": 100})
@@ -1397,6 +1427,7 @@ class UpdateChecker(BackgroundDownloadMixin):
                 releases.extend(d for d in data if isinstance(d, dict))
         except Exception as exc:
             first_error = exc
+            listing_error = exc
             logging.warning("Auto-updater: Could not fetch the releases listing: %s", exc)
 
         try:
@@ -1408,6 +1439,10 @@ class UpdateChecker(BackgroundDownloadMixin):
             if first_error is None:
                 first_error = exc
 
+        if listing_error is not None and self._alpha_enabled():
+            # A stable-only fallback cannot establish that an alpha user is
+            # current. Keep the existing fetch retry instead of reporting so.
+            raise listing_error
         if not releases:
             raise first_error or RuntimeError("No releases could be fetched")
 
@@ -1429,6 +1464,7 @@ class UpdateChecker(BackgroundDownloadMixin):
 
     def force_check(self):
         """Called from the Help > Check for Updates menu item."""
+        self._channel_choice_cancelled = False
         self._force = True
         if self._retry_timer is not None:
             self._retry_timer.cancel()
@@ -1453,6 +1489,9 @@ class UpdateChecker(BackgroundDownloadMixin):
     # ── Internal ──────────────────────────────────────────────────────────────
 
     def _check_once(self):
+        if getattr(self, "_channel_choice_pending", False):
+            self._force = False
+            return  # The queued choice owns the prompt and its next retry.
         if getattr(self, "_install_pending", False):
             self._force = False
             self._schedule_retry()
@@ -1472,8 +1511,12 @@ class UpdateChecker(BackgroundDownloadMixin):
         )
         try:
             releases = self._fetch_releases()
-        except Exception:
+        except Exception as exc:
             logging.exception("Auto-updater: Exception checking for updates")
+            if self._force:
+                # A check the user asked for by hand gets an answer; the quick
+                # retries below run as automatic checks and stay silent.
+                wx.CallAfter(self._show_reinstall_error, str(exc))
             # At a Windows login the network is often not up yet when the first
             # check runs 15 s after launch; waiting the full retry interval
             # would put the next attempt hours away. A few quick retries first.
@@ -1487,6 +1530,17 @@ class UpdateChecker(BackgroundDownloadMixin):
         self._fetch_failures = 0
 
         data = select_release(releases, include_alpha)
+        alpha = newer_excluded_alpha(releases, __version__, include_alpha)
+        if alpha is not None:
+            logging.info("Auto-updater: Newer alpha %s is excluded by the disabled alpha channel.",
+                         alpha["tag_name"])
+            if self._force:
+                self._force = False
+                language = self._mw.i18n.language if hasattr(self._mw, "i18n") else "pt-BR"
+                changelog = resolve_changelog(__version__, alpha["tag_name"].lstrip("vV"),
+                                              language, alpha.get("body", ""))
+                self._queue_alpha_channel_choice(alpha, changelog)
+                return
         if data is None:
             logging.warning(
                 "Auto-updater: No eligible release found among %d listed "
@@ -1524,7 +1578,7 @@ class UpdateChecker(BackgroundDownloadMixin):
         logging.info("Auto-updater: Local version is %s", local_version)
 
         if not is_newer(remote_version, local_version):
-            logging.info("Auto-updater: WinZapp is already up-to-date.")
+            logging.info("Auto-updater: No newer release is available in the selected channel.")
             if self._force:
                 self._force = False
                 wx.CallAfter(self._show_no_update)
@@ -1575,6 +1629,8 @@ class UpdateChecker(BackgroundDownloadMixin):
         )
 
     def _fetch_latest_release_for_reinstall(self):
+        if getattr(self, "_channel_choice_pending", False) or getattr(self, "_install_pending", False):
+            return
         logging.info("Auto-updater: Fetching latest GitHub release for forced ZIP reinstall...")
         try:
             releases = self._fetch_releases()
@@ -1612,23 +1668,25 @@ class UpdateChecker(BackgroundDownloadMixin):
     def _confirm_and_reinstall(self, remote_version: str, zip_url: str, sha256sums_url: str = "",
                                signature_url: str = "", is_alpha: bool = False):
         i18n = self._mw.i18n
-        if wx.MessageBox(
-            i18n.t("force_reinstall_confirm_msg").format(version=remote_version),
-            i18n.t("force_reinstall_confirm_title"),
-            wx.YES_NO | wx.ICON_WARNING,
-            self._mw,
+        warning = ""
+        if is_newer(__version__, remote_version):
+            warning = i18n.t("update_reinstall_downgrade_warning").format(
+                current=__version__, new=remote_version) + "\n\n"
+        message = warning + i18n.t("force_reinstall_confirm_msg").format(version=remote_version)
+        title = i18n.t("force_reinstall_confirm_title")
+        if message_box(
+            self._mw, message, title, wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+            announce=lambda: self._mw.output(f"{title}. {message}", interrupt=True),
         ) != wx.YES:
             return
         self._do_install(remote_version, zip_url, sha256sums_url, signature_url, is_alpha)
 
     def _show_reinstall_error(self, error_msg: str):
         i18n = self._mw.i18n
-        wx.MessageBox(
-            i18n.t("update_error_msg").format(error=error_msg),
-            i18n.t("update_error_title"),
-            wx.OK | wx.ICON_ERROR,
-            self._mw,
-        )
+        message = i18n.t("update_error_msg").format(error=error_msg)
+        title = i18n.t("update_error_title")
+        message_box(self._mw, message, title, wx.OK | wx.ICON_ERROR,
+                    announce=lambda: self._mw.output(f"{title}. {message}", interrupt=True))
 
     def _show_prompt_open_elsewhere(self):
         """Only for a check the user asked for by hand (Help > Check for
@@ -1800,6 +1858,14 @@ class UpdateChecker(BackgroundDownloadMixin):
 
     def stop(self):
         """Cancel any pending retry timer."""
+        with self._channel_choice_lock:
+            self._channel_choice_cancelled = True
+            self._channel_choice_token = None
+            if self._channel_choice_pending:
+                self._channel_choice_pending = False
+                if not (getattr(self, "_install_pending", False)
+                        or getattr(self, "_background_version", "")):
+                    self._release_prompt()
         if self._retry_timer is not None:
             self._retry_timer.cancel()
             self._retry_timer = None
@@ -1835,6 +1901,8 @@ class WppUpdateChecker:
     def __init__(self, main_window):
         self._mw          = main_window
         self._retry_timer = None
+        self._stopped = False
+        self._timer_lock = threading.RLock()
         # A recommended release the user already said No to this session.
         self._declined_tag = None
         # Owner-token of the per-machine WPPConnect prompt claim, or None.
@@ -1878,6 +1946,7 @@ class WppUpdateChecker:
 
     def start(self):
         """Launch the first check in a background thread."""
+        self._stopped = False
         t = threading.Thread(target=self._check_once, daemon=True)
         t.start()
 
@@ -1886,6 +1955,7 @@ class WppUpdateChecker:
         if self._retry_timer is not None:
             self._retry_timer.cancel()
             self._retry_timer = None
+        self._stopped = False
         t = threading.Thread(target=self._check_once, daemon=True)
         t.start()
 
@@ -1900,6 +1970,7 @@ class WppUpdateChecker:
         if self._retry_timer is not None:
             self._retry_timer.cancel()
             self._retry_timer = None
+        self._stopped = False
         t = threading.Thread(target=self._force_reinstall_worker, daemon=True)
         t.start()
 
@@ -1941,47 +2012,53 @@ class WppUpdateChecker:
     _OFFLINE_RETRY_INTERVAL = 15 * 60
 
     def _check_once(self):
-        logging.info("[WppUpdateChecker] Checking for wppconnect-server updates...")
-        installed = self._mw._get_installed_wpp_version()
-        if not installed:
-            # Not installed yet (or version unreadable) — the normal
-            # first-run setup / version-gate flow owns that case, not this
-            # checker.
-            self._schedule_retry()
+        if getattr(self, "_stopped", False):
             return
+        try:
+            logging.info("[WppUpdateChecker] Checking for wppconnect-server updates...")
+            installed = self._mw._get_installed_wpp_version()
+            if not installed:
+                # Not installed yet (or version unreadable) — the normal
+                # first-run setup / version-gate flow owns that case, not this
+                # checker.
+                self._schedule_retry()
+                return
 
-        from ui.dialogs.api_setup import fetch_latest_wpp_tag
-        minimum = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
-        latest = fetch_latest_wpp_tag()
-        if _parse_wpp_version(latest) is None:
-            latest = ""   # an unusable answer is an unreachable GitHub
-        target = wpp_update_target(installed, minimum, latest)
-        if target is None:
-            logging.info("[WppUpdateChecker] wppconnect-server needs no update (%s).", installed)
-            self._schedule_retry(None if latest else self._OFFLINE_RETRY_INTERVAL)
-            return
-        tag, required = target
-        remote_version = tag.lstrip("vV")
+            from ui.dialogs.api_setup import fetch_latest_wpp_tag
+            minimum = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
+            latest = fetch_latest_wpp_tag()
+            if _parse_wpp_version(latest) is None:
+                latest = ""   # an unusable answer is an unreachable GitHub
+            target = wpp_update_target(installed, minimum, latest)
+            if target is None:
+                logging.info("[WppUpdateChecker] wppconnect-server needs no update (%s).", installed)
+                self._schedule_retry(None if latest else self._OFFLINE_RETRY_INTERVAL)
+                return
+            tag, required = target
+            remote_version = tag.lstrip("vV")
 
-        if not required and tag == self._declined_tag:
-            # Said No to this very release earlier in the session; the 12 h
-            # retry must not ask again. A required update is never silenced.
-            logging.info("[WppUpdateChecker] %s was declined this session — not asking again.", tag)
-            self._schedule_retry()
-            return
+            if not required and tag == self._declined_tag:
+                # Said No to this very release earlier in the session; the 12 h
+                # retry must not ask again. A required update is never silenced.
+                logging.info("[WppUpdateChecker] %s was declined this session — not asking again.", tag)
+                self._schedule_retry()
+                return
 
-        if self._other_account_busy():
-            logging.info("[WppUpdateChecker] another account's WPPConnect Server is "
-                         "running - not offering %s from this account.", tag)
-            self._schedule_retry()
-            return
+            if self._other_account_busy():
+                logging.info("[WppUpdateChecker] another account's WPPConnect Server is "
+                             "running - not offering %s from this account.", tag)
+                self._schedule_retry()
+                return
 
-        logging.info(
-            "[WppUpdateChecker] wppconnect-server %s available: %s -> %s",
-            "update required" if required else "update recommended",
-            installed, remote_version,
-        )
-        wx.CallAfter(self._prompt_update, installed, remote_version, tag, required)
+            logging.info(
+                "[WppUpdateChecker] wppconnect-server %s available: %s -> %s",
+                "update required" if required else "update recommended",
+                installed, remote_version,
+            )
+            wx.CallAfter(self._prompt_update, installed, remote_version, tag, required)
+        except Exception:
+            logging.exception("[WppUpdateChecker] Unexpected error during wppconnect-server update check")
+            self._schedule_retry(self._OFFLINE_RETRY_INTERVAL)
 
     def _prompt_update(self, installed: str, remote_version: str, tag: str, required: bool = False):
         if getattr(self._mw, "_shutting_down", False):
@@ -2074,19 +2151,29 @@ class WppUpdateChecker:
             self._global_dir(), getattr(self._mw, "account_id", None), ignore_corrupt=True)
 
     def _force_reinstall_worker(self):
-        logging.info("[WppUpdateChecker] Force-reinstall requested — fetching latest release tag...")
-        tag = self._newest_available_tag()
-        if not tag:
-            wx.CallAfter(
-                wx.MessageBox,
-                self._mw.i18n.t("wpp_update_fetch_failed_msg"),
-                self._mw.i18n.t("update_error_title"),
-                wx.OK | wx.ICON_ERROR,
-                self._mw,
-            )
+        if getattr(self, "_stopped", False):
             return
-        remote_version = tag.lstrip("vV")
-        wx.CallAfter(self._confirm_force_reinstall, remote_version, tag)
+        try:
+            logging.info("[WppUpdateChecker] Force-reinstall requested — fetching latest release tag...")
+            tag = self._newest_available_tag()
+            if not tag:
+                wx.CallAfter(self._show_force_reinstall_error)
+                return
+            remote_version = tag.lstrip("vV")
+            wx.CallAfter(self._confirm_force_reinstall, remote_version, tag)
+        except Exception:
+            logging.exception("[WppUpdateChecker] Unexpected error during forced reinstall check")
+            if not getattr(self, "_stopped", False):
+                wx.CallAfter(self._show_force_reinstall_error)
+
+    def _show_force_reinstall_error(self):
+        if getattr(self, "_stopped", False) or getattr(self._mw, "_shutting_down", False):
+            return
+        i18n = self._mw.i18n
+        title = i18n.t("update_error_title")
+        message = i18n.t("wpp_update_fetch_failed_msg")
+        message_box(self._mw, message, title, wx.OK | wx.ICON_ERROR,
+                    announce=lambda: self._mw.output(f"{title}. {message}", interrupt=True))
 
     def _confirm_force_reinstall(self, remote_version: str, tag: str):
         i18n = self._mw.i18n
@@ -2100,18 +2187,29 @@ class WppUpdateChecker:
         self._mw._update_wpp_server(tag)
 
     def _schedule_retry(self, interval: float = None):
-        if interval is None:
-            interval = self._RETRY_INTERVAL
-        if self._retry_timer is not None:
-            self._retry_timer.cancel()
-        self._retry_timer = threading.Timer(interval, self._check_once)
-        self._retry_timer.daemon = True
-        self._retry_timer.start()
+        with self._timer_lock:
+            if self._stopped:
+                return
+            if interval is None:
+                interval = self._RETRY_INTERVAL
+            if self._retry_timer is not None:
+                self._retry_timer.cancel()
+            timer = threading.Timer(interval, self._check_once)
+            # Also tolerate reentrant stop from a timer factory/hook before
+            # publication. A concurrent stop waits for this same lock.
+            if self._stopped:
+                timer.cancel()
+                return
+            self._retry_timer = timer
+            timer.daemon = True
+            timer.start()
 
     def stop(self):
         """Cancel any pending retry timer and hand the prompt claim back, so a
         quitting account does not hold the machine's WPPConnect prompt."""
+        with self._timer_lock:
+            self._stopped = True
+            if self._retry_timer is not None:
+                self._retry_timer.cancel()
+                self._retry_timer = None
         self._release_prompt()
-        if self._retry_timer is not None:
-            self._retry_timer.cancel()
-            self._retry_timer = None

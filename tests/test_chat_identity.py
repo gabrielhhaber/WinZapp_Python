@@ -46,6 +46,36 @@ class TestLiftContactIdentity:
         lift(chat)
         assert chat["pushName"] == "Zé"
 
+    def test_falls_back_to_the_verified_business_name(self):
+        """A verified WhatsApp Business account (a bank, a payment app, a
+        utility) sets no personal pushname: name, shortName and pushname all
+        arrive empty and only contact.verifiedName carries the name
+        WhatsApp's own client shows."""
+        chat = {"contact": {"verifiedName": "99 Pay", "isBusiness": True}}
+        lift(chat)
+        assert chat["name"] == "99 Pay"
+        assert "pushName" not in chat
+
+    def test_name_and_short_name_still_win_over_the_verified_name(self):
+        chat = {"contact": {"name": "Meu Apelido", "verifiedName": "99 Pay"}}
+        lift(chat)
+        assert chat["name"] == "Meu Apelido"
+        chat = {"contact": {"shortName": "Apelido", "verifiedName": "99 Pay"}}
+        lift(chat)
+        assert chat["name"] == "Apelido"
+
+    @pytest.mark.parametrize("blank", ["name", "shortName"])
+    def test_a_blank_address_book_name_does_not_hide_the_verified_name(self, blank):
+        chat = {"contact": {blank: "   ", "verifiedName": "99 Pay"}}
+        lift(chat)
+        assert chat["name"] == "99 Pay"
+
+    @pytest.mark.parametrize("bad", [None, 42, "   ", {"x": 1}])
+    def test_a_missing_or_malformed_verified_name_is_ignored(self, bad):
+        chat = {"contact": {"verifiedName": bad}}
+        lift(chat)
+        assert "name" not in chat
+
     def test_never_overwrites_an_existing_top_level_name(self):
         chat = {"name": "Apelido meu", "contact": {"name": "Nome do contato"}}
         lift(chat)
@@ -117,3 +147,53 @@ class TestKeepDecision:
 
     def test_group_name_still_counts(self):
         assert _keeps_chat(**self._base(group_name="Equipe WinZapp")) is True
+
+
+class _ResolverStub:
+    """Just what the real _resolve_contact_name() reads, for a chat whose
+    number is not in the address book."""
+
+    _resolve_contact_name = MainWindow._resolve_contact_name
+    _is_bad_contact_name = staticmethod(MainWindow._is_bad_contact_name)
+
+    def __init__(self, contacts=None):
+        self.contacts = contacts or {}
+        self._presence_pushname_map = {}
+        self._phone_to_lid = {}
+        self._lid_to_phone = {}
+
+    def _get_contact_tolerant(self, jid):
+        return self.contacts.get(jid)
+
+    def _find_alt_jid_from_messages(self, chat):
+        return ""
+
+
+class TestNotInTheAddressBook:
+    """The list shows a name instead of the phone number for a number that
+    was never saved: the verified name of a business, or the name a person
+    chose for their own WhatsApp profile. These pin the lift and the real
+    resolver together, so either regressing turns those rows back into
+    numbers."""
+
+    JID = "552123919910@s.whatsapp.net"
+
+    def test_a_verified_business_is_named_by_the_resolver(self):
+        chat = {"remoteJid": self.JID, "contact": {"verifiedName": "99 Pay"}}
+        lift(chat)
+        assert _ResolverStub()._resolve_contact_name(chat) == "99 Pay"
+
+    def test_an_address_book_name_still_wins_over_the_verified_name(self):
+        chat = {"remoteJid": self.JID, "contact": {"verifiedName": "99 Pay"}}
+        lift(chat)
+        stub = _ResolverStub({self.JID: {"name": "Carteira digital"}})
+        assert stub._resolve_contact_name(chat) == "Carteira digital"
+
+    def test_a_person_s_profile_name_is_lifted_for_the_list(self):
+        """Nothing in the address book; the chat list then uses
+        chat["pushName"], which the lift fills from the contact's own
+        WhatsApp profile name."""
+        chat = {"remoteJid": "5511999999999@s.whatsapp.net",
+                "contact": {"pushname": "Maria da Padaria"}}
+        lift(chat)
+        assert chat["pushName"] == "Maria da Padaria"

@@ -61,6 +61,7 @@ class _PollStub:
         # what the test inspects
         self.message_rounds = []
         self.media_scopes = []
+        self.quiet_calls = []
         self.saves = 0
         self.contact_fetches = 0
         self.save_data_calls = 0
@@ -112,14 +113,17 @@ class _PollStub:
         return merged
 
     def sync_remote_chats(self, target_chats=None, incremental=False,
-                          expected_run_id=None, expected_context=None):
+                          expected_run_id=None, expected_context=None,
+                          quiet=False):
+        self.quiet_calls.append(quiet)
         self.message_rounds.append((
             incremental,
             sorted(c.get("remoteJid") for c in (target_chats or [])),
         ))
         return set(self.failing_jids)
 
-    def sync_media_for_all_chats(self, jids=None, should_stop=None):
+    def sync_media_for_all_chats(self, jids=None, should_stop=None, quiet=False):
+        self.quiet_calls.append(quiet)
         self.media_scopes.append(None if jids is None else set(jids))
         return 0
 
@@ -185,6 +189,17 @@ class TestThePollFetchesADeltaAndNotTheAccount:
         stub.server_activity = {A: 500}
         _cycles(stub, monkeypatch)
         assert stub.media_scopes == [{A}]
+
+    def test_the_poll_never_speaks_progress(self, monkeypatch):
+        """Both sweeps it runs are quiet: a once-a-minute safety net must not
+        say "Sincronizando conversas: X de Y" over whatever the user is doing.
+        See tests/test_sync_progress.py."""
+        stub = _PollStub()
+        stub.server_activity = {A: 500}
+        stub.chats[B] = _chat(B, records=0)
+        stub.server_activity[B] = 500
+        _cycles(stub, monkeypatch)
+        assert stub.quiet_calls and all(stub.quiet_calls)
 
     def test_a_failed_delta_is_left_out_of_the_media_scope(self, monkeypatch):
         stub = _PollStub()

@@ -18,6 +18,10 @@ import { Request, Response } from 'express';
 
 import { unlinkAsync } from '../util/functions';
 import { writePinnedMessage } from '../util/pinnedMessagesRuntime';
+import {
+  missingReplyQuoteResponse,
+  replyQuoteIsMissing,
+} from '../util/quotedMessagePreflight';
 
 function returnError(req: Request, res: Response, error: any) {
   req.logger.error(error);
@@ -1546,6 +1550,14 @@ export async function replyMessage(req: Request, res: Response) {
   const { phone, message, messageId } = req.body;
 
   try {
+    if (
+      typeof messageId === 'string' &&
+      messageId &&
+      !messageId.includes('status@broadcast') &&
+      (await replyQuoteIsMissing(req.client, messageId))
+    ) {
+      return missingReplyQuoteResponse(res);
+    }
     const results: any = [];
     for (const contato of phone) {
       if (
@@ -1653,6 +1665,14 @@ export async function sendMentioned(req: Request, res: Response) {
   const { phone, message, mentioned, messageId } = req.body;
 
   try {
+    if (
+      typeof messageId === 'string' &&
+      messageId &&
+      !messageId.includes('status@broadcast') &&
+      (await replyQuoteIsMissing(req.client, messageId))
+    ) {
+      return missingReplyQuoteResponse(res);
+    }
     let response;
     for (const contato of phone) {
       response = auditSendResult(

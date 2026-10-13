@@ -14,7 +14,12 @@ or isn't one of our entries.
 """
 
 import core.locale_format as locale_format
-from countries import get_countries, get_default_country_index, COUNTRIES, _sort_key
+from countries import (
+    get_countries, get_default_country_index, COUNTRIES, _sort_key,
+    _COUNTRIES, _KEY_TO_ISO2,
+)
+
+LOCALES = ["pt-BR", "pt-PT", "en-US", "es-ES", "pl", "tr-TR", "ro"]
 
 
 class TestGetCountriesOrdering:
@@ -46,6 +51,36 @@ class TestGetCountriesOrdering:
 
     def test_backward_compat_countries_constant_still_exported(self):
         assert ("Brasil (+55)", "55") in COUNTRIES
+
+
+class TestCountryCoverage:
+    def test_every_country_has_a_name_in_every_ui_language(self):
+        for key, _, names in _COUNTRIES:
+            for lang in ("pt", "en", "es", "pl", "tr", "ro"):
+                assert names.get(lang), (key, lang)
+
+    def test_every_country_has_an_iso_code(self):
+        assert {key for key, _, _ in _COUNTRIES} == set(_KEY_TO_ISO2)
+
+    def test_previously_missing_countries_are_listed(self):
+        for lang in LOCALES:
+            codes = {c for _, c in get_countries(lang)}
+            assert {"31", "254", "375", "389", "992", "676"} <= codes
+
+    def test_netherlands_name_is_localized(self):
+        expected = {
+            "pt-BR": "Países Baixos (+31)", "en-US": "Netherlands (+31)",
+            "es-ES": "Países Bajos (+31)", "pl": "Holandia (+31)",
+            "tr-TR": "Hollanda (+31)", "ro": "Țările de Jos (+31)",
+        }
+        for lang, label in expected.items():
+            assert (label, "31") in get_countries(lang)
+
+    def test_names_are_not_the_portuguese_fallback(self):
+        pt = {n for n, _ in get_countries("pt-BR")}
+        for lang in ("pl", "tr-TR", "ro"):
+            assert "Alemanha (+49)" not in {n for n, _ in get_countries(lang)}
+        assert "Alemanha (+49)" in pt
 
 
 class TestGetDefaultCountryIndex:

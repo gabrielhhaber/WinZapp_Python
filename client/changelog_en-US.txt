@@ -102,11 +102,19 @@ WHAT'S NEW
 
 - macOS: release builds now update through Sparkle 2's standard windows, which VoiceOver reads well. "Check for updates", the automatic check every 3 hours and "Check for alpha updates" open Sparkle. Before a release is offered, when you choose Install and once more at "Ready to Install", WinZapp checks that the release's tag exists in the official repository, points at its declared commit and is newer than the version you are running; if any of that fails, or GitHub cannot be reached, the update is cancelled and the reason is shown. When you choose Install, your other accounts close and no account can start until the update ends; if the update does not install, they open again. An update found in the background is announced by speech and by a notification, and "Ready to Install" is announced too. Account locks left behind by past quits no longer block updates or start-up on the Mac.
 
+- Spoken progress for sync and media downloads: during a sync (the full one on first pairing or F5, and also the update of changed chats when WinZapp opens) and the media download that follows it, WinZapp shows in the window title and speaks, roughly every 5 seconds, how far it has got: "Syncing chats: 12 of 80" and "Downloading media: 30 of 120 processed (8 downloaded)". Before, nothing was heard between the start and finish announcements, and a long sync sounded stuck. "Processed" also counts media that did not need downloading (already on the computer, for example), and the total only includes media your Storage settings still allow downloading, not the whole history. The progress follows the "Announce sync, media downloads and automatic offline mode" option in Settings > General and is not spoken when WinZapp starts in the background or during a voice call; the automatic check that runs every minute stays silent. In Settings > Spoken content, the "Announce chat sync progress every few seconds" and "Announce media download progress every few seconds" boxes, checked by default, turn each of these announcements off separately; the window title still shows the numbers.
+
+- New File > WhatsApp settings window, with a Privacy tab for the privacy of your WhatsApp account, applied directly on WhatsApp: last seen, who can see when you're online, About, profile photo, read receipts, who can add you to groups and who can see your status (my contacts, my contacts except... or only share with...). The people for the status are picked from your synchronised contacts in a list you can search, ticking each one with Space. The window loads the current values from WhatsApp, sends only what you changed and then reads it back, saying which settings WhatsApp did not confirm.
+
 FIXES
 
 - The Group info, Chat info, Group invitation and Join group by link windows now have an access key (Alt+letter) on every button and on every label of a field or list. Before, the buttons of Group info, some of Chat info and every control of the invitation had none. The button that closes the invitation window, which was shown in English, now follows WinZapp's language.
 
 - Messages sent while a run of voice messages was playing or paused showed no status in the list (no "Sent", "Delivered" or "Read") until the run ended, even though Message info (Alt+Shift+D) already showed the right one. Now, during a run, only the row that has focus waits, so the screen reader does not read it over the audio; every other row is updated right away, and the one that waited is updated when focus leaves it, when playback is paused or when the run ends.
+
+- Updates: "Check for updates" in the Help menu now tells you when WinZapp could not reach the update server, instead of saying nothing.
+
+- Replies: when the original message cannot be found before sending, WinZapp reports the missing quote and keeps your text for editing from the message menu. It does not silently send without the quote or report a connection loss. Uncertain sends are still not retried automatically.
 
 - Synchronization: replayed history messages keep their chronological position instead of appearing as new arrivals. Temporary failures when checking an alternate chat address remain queued for retry.
 
@@ -163,6 +171,10 @@ FIXES
 - When an update or the Node download was cancelled at the same moment it finished, WinZapp could show an "Attempt to exit a non-running event loop" error. Late completions are now ignored.
 
 - Forward dialog: pressing Down arrow in the search field now moves to the first result and focuses the list, as in the conversations search.
+
+- The country selector for pairing by phone number now lists every country and territory WhatsApp supports (the Netherlands, Kenya, Belarus and North Macedonia, among others, were missing), and country names are now shown in your chosen language for Polish, Turkish and Romanian too.
+
+- Verified WhatsApp Business accounts (banks, payment apps, utilities) that you have not saved as contacts showed only their phone number in the chat list. They now show the business's verified name, as in WhatsApp. A name saved in your contacts still takes precedence.
 
 V2.0.0.0
 

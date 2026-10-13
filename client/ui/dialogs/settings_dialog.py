@@ -912,6 +912,16 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         speech_sizer.Add(self._announce_conversations_update_check, 0, wx.ALL, 8)
 
+        self._announce_sync_progress_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("speech_announce_sync_progress_label")
+        )
+        speech_sizer.Add(self._announce_sync_progress_check, 0, wx.ALL, 8)
+
+        self._announce_media_progress_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("speech_announce_media_progress_label")
+        )
+        speech_sizer.Add(self._announce_media_progress_check, 0, wx.ALL, 8)
+
         self._speak_active_conv_check = wx.CheckBox(
             self._speech_page, label=i18n.t("speech_speak_active_conv_label")
         )
@@ -2200,6 +2210,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._announce_conversations_update_check.SetValue(
             speech.get("announce_conversations_update_complete", True)
         )
+        self._announce_sync_progress_check.SetValue(speech.get("announce_sync_progress", True))
+        self._announce_media_progress_check.SetValue(speech.get("announce_media_progress", True))
         self._speak_active_conv_check.SetValue(speech.get("speak_active_conv_messages", True))
         self._speak_other_conv_check.SetValue(speech.get("speak_other_conv_messages", True))
         self._silence_while_recording_check.SetValue(speech.get("silence_while_recording", False))
@@ -3547,6 +3559,12 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             "announce_conversations_update_complete"
         ] = self._announce_conversations_update_check.GetValue()
         self.main_window.settings.setdefault("speech_content", {})[
+            "announce_sync_progress"
+        ] = self._announce_sync_progress_check.GetValue()
+        self.main_window.settings.setdefault("speech_content", {})[
+            "announce_media_progress"
+        ] = self._announce_media_progress_check.GetValue()
+        self.main_window.settings.setdefault("speech_content", {})[
             "speak_active_conv_messages"
         ] = self._speak_active_conv_check.GetValue()
         self.main_window.settings.setdefault("speech_content", {})[
@@ -4020,6 +4038,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._announce_conversations_update_check.SetLabel(
             i18n.t("speech_announce_conversations_update_label")
         )
+        self._announce_sync_progress_check.SetLabel(i18n.t("speech_announce_sync_progress_label"))
+        self._announce_media_progress_check.SetLabel(i18n.t("speech_announce_media_progress_label"))
         self._speak_active_conv_check.SetLabel(i18n.t("speech_speak_active_conv_label"))
         self._speak_other_conv_check.SetLabel(i18n.t("speech_speak_other_conv_label"))
         self._silence_while_recording_check.SetLabel(i18n.t("speech_silence_while_recording_label"))

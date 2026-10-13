@@ -118,6 +118,10 @@ class _SweepStub:
         self.fetched = []
         self._disable_after = disable_after
 
+    def _media_sync_candidate(self, msg, explicit=False):
+        # The real filter is _FunnelStub's; this queue is about stopping.
+        return msg.get("messageType")
+
     def sync_if_media(self, msg, timeout=60, explicit=False):
         self.explicit = explicit
         self.fetched.append(msg["key"]["id"])
@@ -162,6 +166,7 @@ class _FunnelStub:
 
     _MEDIA_MAX_AGE_SECONDS = MainWindow._MEDIA_MAX_AGE_SECONDS
     sync_if_media = MainWindow.sync_if_media
+    _media_sync_candidate = MainWindow._media_sync_candidate
     _wa_connected = True
     offline_mode = False
 

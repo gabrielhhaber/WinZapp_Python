@@ -20,6 +20,7 @@ from core.api_client import (
     sync_throttled,
 )
 from core.utils import auto_download_enabled
+from core.sync_progress import ProgressThrottle
 from main_window import history_boundary
 from main_window.message_rules import describe_history_sync_health
 from main_window.history import HistoryMixin
@@ -1479,7 +1480,7 @@ class BackfillMixin:
             target=_run, daemon=True, name="deferred-media-sync").start()
 
     def sync_media_for_all_chats(self, jids=None, should_stop=None,
-                                 explicit=False) -> int:
+                                 explicit=False, quiet=False) -> int:
         """Download not-yet-stored media, optionally limited to changed chats.
 
         Returns the number of files **actually downloaded**, not the number of
@@ -1499,6 +1500,12 @@ class BackfillMixin:
         unticking the setting ends a sweep already under way; the menu's
         "Baixar mídias" passes ``explicit`` instead and runs to the end with
         the setting off — see sync_if_media().
+
+        Unless ``quiet``, a long sweep shows and speaks "Baixando mídias: X de
+        Y processadas (Z baixadas)" every few seconds (core/sync_progress.py);
+        the once-a-minute safety poll passes quiet=True. The list is filtered
+        by _media_sync_candidate() before counting, so Y is what can still be
+        downloaded, not every media message in memory.
         """
         if self._voice_call_in_progress():
             logging.info("[sync_media_for_all_chats] paused during active voice call")
@@ -1514,6 +1521,7 @@ class BackfillMixin:
             if (allowed is None or self._normalize_jid(chat.get("remoteJid") or key) in allowed)
             for msg in chat.get("messages", {}).get("messages", {}).get("records", [])
             if (msg.get("messageType") in _MEDIA_TYPES or msg.get("type") in _MEDIA_TYPES)
+            and self._media_sync_candidate(msg, explicit=explicit) is not None
         ]
         if not tasks:
             return 0
@@ -1529,6 +1537,7 @@ class BackfillMixin:
                 return self.sync_if_media(msg, timeout, explicit=True)
             return self.sync_if_media(msg, timeout)
 
+        progress = None if quiet else ProgressThrottle(len(tasks))
         with ThreadPoolExecutor(max_workers=self._MEDIA_SYNC_WORKERS) as pool:
             futs = {pool.submit(_download, msg): msg for msg in tasks}
             for fut in as_completed(futs):
@@ -1537,6 +1546,20 @@ class BackfillMixin:
                         downloaded += 1
                 except Exception:
                     pass
+                # "Processed" (not "downloaded") is the X: most candidates
+                # still end up skipped (already on disk, CDN expired), and a
+                # count of downloads alone looks stuck while the sweep moves.
+                # Nothing is said once it has been superseded; a voice call is
+                # _report_sync_progress()'s to check.
+                if (progress is not None and progress.step()
+                        and not (should_stop is not None and should_stop())):
+                    wx.CallAfter(
+                        self._report_sync_progress,
+                        self.i18n.t("sync_media_progress").format(
+                            done=progress.done, total=progress.total,
+                            downloaded=downloaded),
+                        "announce_media_progress",
+                    )
 
         if should_stop is not None and should_stop():
             # Not saved: the run that superseded this one has emptied or

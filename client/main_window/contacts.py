@@ -443,13 +443,15 @@ class ContactsMixin:
                                 message_failures.update(
                                     self.sync_remote_chats(full_targets, incremental=False,
                                                           expected_run_id=context.run,
-                                                          expected_context=context) or set()
+                                                          expected_context=context,
+                                                          quiet=True) or set()
                                 )
                             if incremental_targets:
                                 message_failures.update(
                                     self.sync_remote_chats(incremental_targets, incremental=True,
                                                           expected_run_id=context.run,
-                                                          expected_context=context) or set()
+                                                          expected_context=context,
+                                                          quiet=True) or set()
                                 )
 
                             if not sync_context_is_current(self, context, require_online=True):
@@ -473,7 +475,8 @@ class ContactsMixin:
                                 self.sync_media_for_all_chats(
                                     changed_jids,
                                     should_stop=lambda: not sync_context_is_current(
-                                        self, context, require_online=True) or not auto_download_enabled(self.settings))
+                                        self, context, require_online=True) or not auto_download_enabled(self.settings),
+                                    quiet=True)
 
                         if not sync_context_is_current(self, context, require_online=True):
                             continue
