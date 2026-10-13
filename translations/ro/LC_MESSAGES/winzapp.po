@@ -1835,8 +1835,8 @@ msgstr "Succes"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "back_btn"
-msgid "Back"
-msgstr "Înapoi"
+msgid "&Back"
+msgstr "Îna&poi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -3008,6 +3008,11 @@ msgid "Copy phone number"
 msgstr "Copiați numărul de telefon"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contact_data_add_to_group_btn"
+msgid "Add &to a group"
+msgstr "Adăugați la &un grup"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/contact_messages.py
 msgctxt "contact_details_title"
 msgid "Contact"
@@ -3139,16 +3144,32 @@ msgid "Chat info"
 msgstr "Informații despre conversație"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "conversation_data_overview_label"
+msgid "Chat &info"
+msgstr "Inf&ormații despre conversație"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "conversation_sound_custom_path_label"
-msgid "Sound file path:"
-msgstr "Calea fișierului de sunet:"
+msgid "&Sound file path:"
+msgstr "Calea fișierului &de sunet:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "conversation_sound_label"
-msgid "Notification sound:"
-msgstr "Sunet de notificare:"
+msgid "&Notification sound:"
+msgstr "&Sunet de notificare:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_data_dialog.py
+msgctxt "conversation_sound_preview_play"
+msgid "&Play sound preview"
+msgstr "&Redați previzualizarea sunetului"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "conversation_sound_preview_stop"
+msgid "Stop sound &preview"
+msgstr "Op&riți previzualizarea sunetului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/add_member_dialog.py
@@ -3619,8 +3640,8 @@ msgstr "&Editați contactul"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_group_description"
-msgid "Edit group description"
-msgstr "Editați descrierea grupului"
+msgid "Edit gro&up description"
+msgstr "Editați descrierea &grupului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3630,8 +3651,8 @@ msgstr "Nu s-a putut modifica descrierea grupului: {error}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_group_name"
-msgid "Edit group name"
-msgstr "Editați numele grupului"
+msgid "Edit g&roup name"
+msgstr "Editați &numele grupului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -4042,6 +4063,11 @@ msgid "Group info"
 msgstr "Informații despre grup"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_data_add_member_btn"
+msgid "&Add member"
+msgstr "&Adăugați membru"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_description_label"
 msgid "Group description"
 msgstr "Descrierea grupului"
@@ -4057,9 +4083,14 @@ msgid "Invitation link copied."
 msgstr "Linkul de invitație a fost copiat."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_copy_link"
+msgid "Copy &link"
+msgstr "&Copiați linkul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_link"
-msgid "Invitation link"
-msgstr "Link de invitație"
+msgid "&Invitation link"
+msgstr "&Link de invitație"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_png"
@@ -4082,13 +4113,13 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_refresh"
-msgid "Refresh"
-msgstr "Reîmprospătează"
+msgid "&Refresh"
+msgstr "&Reîmprospătează"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_reset"
-msgid "Reset invitation link..."
-msgstr "Resetează linkul de invitație..."
+msgid "R&eset invitation link..."
+msgstr "Resetează linkul &de invitație..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_reset_confirm"
@@ -4115,8 +4146,8 @@ msgstr "Codul QR nu a putut fi salvat."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_save_qr"
-msgid "Save QR code..."
-msgstr "Salvează codul QR..."
+msgid "&Save QR code..."
+msgstr "&Salvează codul QR..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_status"
@@ -4125,8 +4156,8 @@ msgstr "Starea invitației"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_title"
-msgid "Group invitation"
-msgstr "Invitație în grup"
+msgid "&Group invitation"
+msgstr "&Invitație în grup"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_unavailable"
@@ -4139,8 +4170,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_action"
-msgid "Join group or request approval"
-msgstr "Alătură-te grupului sau solicită aprobarea"
+msgid "&Join group or request approval"
+msgstr "&Alătură-te grupului sau solicită aprobarea"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_approval_not_required"
@@ -4188,8 +4219,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_preview"
-msgid "Preview group"
-msgstr "Previzualizare grup"
+msgid "&Preview group"
+msgstr "&Previzualizare grup"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_preview_failed"
@@ -4264,8 +4295,8 @@ msgstr "Descărcat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_filter_label"
-msgid "Filter media"
-msgstr "Filtrează conținutul media"
+msgid "Filter &media"
+msgstr "Filtrează conținutul &media"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_filter_not_downloaded"
@@ -4274,13 +4305,23 @@ msgstr "Nedescărcat/linkuri"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_list_label"
-msgid "Media list"
-msgstr "Lista media"
+msgid "Media &list"
+msgstr "&Lista media"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_loading_history"
 msgid "Loading the group's history..."
 msgstr "Se încarcă istoricul grupului..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_media_open_btn"
+msgid "&Open"
+msgstr "Desc&hide"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_media_save_as_btn"
+msgid "Sa&ve as..."
+msgstr "Sal&vați ca..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_tab"
@@ -4319,8 +4360,8 @@ msgstr "Mesaje vocale"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_types_label"
-msgid "Media types shown"
-msgstr "Tipuri media afișate"
+msgid "Media t&ypes shown"
+msgstr "&Tipuri media afișate"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -6670,7 +6711,6 @@ msgstr ""
 "Nu s-a putut reda previzualizarea — fișier de sunet nevalid sau lipsă."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "preview_sound_play"
 msgid "Play sound preview"

@@ -84,6 +84,8 @@ NOVIDADES
 
 CORREÇÕES
 
+- As janelas Detalhes do grupo, Detalhes da conversa, Convite para o grupo e Entrar no grupo por ligação passam a ter uma letra de atalho (Alt+letra) em cada botão e em cada rótulo de campo ou lista. Antes, os botões de Detalhes do grupo, alguns de Detalhes da conversa e todos os controlos do convite não tinham nenhuma. O botão de fechar a janela do convite, que aparecia em inglês, passa a seguir o idioma do WinZapp.
+
 - As mensagens enviadas enquanto uma sequência de mensagens de voz estava a decorrer ou em pausa ficavam sem estado na lista (nem "Enviada", nem "Entregue", nem "Lida") até a sequência terminar, embora a janela Detalhes da mensagem (Alt+Shift+D) já mostrasse o estado certo. Agora, durante uma sequência, só a linha que tem o foco espera, para o leitor de ecrã não a ler por cima do áudio; as restantes são atualizadas de imediato, e a que ficou à espera é atualizada quando o foco sai dela, quando a reprodução é posta em pausa ou quando a sequência termina.
 
 - Reencaminhar deixa de abrir uma caixa quando corre bem. "Mensagem reencaminhada." (ou quantas mensagens foram reencaminhadas) passa a ser dito pelo leitor de ecrã, sem janela para fechar e sem interromper o que está a ser lido; funciona também com o WinZapp na área de notificação.

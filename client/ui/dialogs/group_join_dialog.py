@@ -4,6 +4,7 @@ import threading
 import wx
 from core.group_invitation import connection_identity
 from core.group_join import invitation_code, preview_group, join_group
+from ui.accessible import split_mnemonic
 
 
 def open_join_dialog(owner, event=None):
@@ -40,14 +41,14 @@ class GroupJoinDialog(wx.Dialog):
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(wx.StaticText(self, label=self._i18n.t("group_invitation_link")), 0, wx.ALL, 8)
         self._input = wx.TextCtrl(self)
-        self._input.SetName(self._i18n.t("group_invitation_link"))
+        self._input.SetName(split_mnemonic(self._i18n.t("group_invitation_link"))[0])
         self._input.Bind(wx.EVT_TEXT, self._on_change)
         sizer.Add(self._input, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
         self._read = wx.Button(self, label=self._i18n.t("group_join_preview"))
         self._read.Bind(wx.EVT_BUTTON, self._on_preview)
         sizer.Add(self._read, 0, wx.ALL, 8)
         self._details = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_MULTILINE)
-        self._details.SetName(self._i18n.t("group_join_preview"))
+        self._details.SetName(split_mnemonic(self._i18n.t("group_join_preview"))[0])
         sizer.Add(self._details, 1, wx.EXPAND | wx.ALL, 8)
         buttons = wx.WrapSizer(wx.HORIZONTAL)
         self._join = wx.Button(self, label=self._i18n.t("group_join_action"))

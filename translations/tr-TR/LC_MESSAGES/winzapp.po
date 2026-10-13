@@ -1827,8 +1827,8 @@ msgstr "Başarılı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "back_btn"
-msgid "Back"
-msgstr "Geri"
+msgid "&Back"
+msgstr "&Geri"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -2996,6 +2996,11 @@ msgid "Copy phone number"
 msgstr "Telefon numarasını kopyala"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contact_data_add_to_group_btn"
+msgid "Add &to a group"
+msgstr "Bir gr&uba ekle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/contact_messages.py
 msgctxt "contact_details_title"
 msgid "Contact"
@@ -3127,16 +3132,32 @@ msgid "Chat info"
 msgstr "Sohbet bilgisi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "conversation_data_overview_label"
+msgid "Chat &info"
+msgstr "So&hbet bilgisi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "conversation_sound_custom_path_label"
-msgid "Sound file path:"
-msgstr "Ses dosyası yolu:"
+msgid "&Sound file path:"
+msgstr "Ses d&osyası yolu:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "conversation_sound_label"
-msgid "Notification sound:"
-msgstr "Bildirim sesi:"
+msgid "&Notification sound:"
+msgstr "&Bildirim sesi:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_data_dialog.py
+msgctxt "conversation_sound_preview_play"
+msgid "&Play sound preview"
+msgstr "Ses öni&zlemesini çal"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "conversation_sound_preview_stop"
+msgid "Stop sound &preview"
+msgstr "Ses öni&zlemesini durdur"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/add_member_dialog.py
@@ -3603,8 +3624,8 @@ msgstr "Kişiyi &düzenle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_group_description"
-msgid "Edit group description"
-msgstr "Grup açıklamasını düzenle"
+msgid "Edit gro&up description"
+msgstr "Grup açıklaması&nı düzenle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3614,8 +3635,8 @@ msgstr "Grup açıklaması değiştirilemedi: {error}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_group_name"
-msgid "Edit group name"
-msgstr "Grup adını düzenle"
+msgid "Edit g&roup name"
+msgstr "Gru&p adını düzenle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -4022,6 +4043,11 @@ msgid "Group info"
 msgstr "Grup bilgisi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_data_add_member_btn"
+msgid "&Add member"
+msgstr "Ü&ye ekle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_description_label"
 msgid "Group description"
 msgstr "Grup açıklaması"
@@ -4037,9 +4063,14 @@ msgid "Invitation link copied."
 msgstr "Davet bağlantısı kopyalandı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_copy_link"
+msgid "Copy &link"
+msgstr "&Bağlantıyı kopyala"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_link"
-msgid "Invitation link"
-msgstr "Davet bağlantısı"
+msgid "&Invitation link"
+msgstr "&Davet bağlantısı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_png"
@@ -4062,13 +4093,13 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_refresh"
-msgid "Refresh"
-msgstr "Yenile"
+msgid "&Refresh"
+msgstr "&Yenile"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_reset"
-msgid "Reset invitation link..."
-msgstr "Davet bağlantısını sıfırla..."
+msgid "R&eset invitation link..."
+msgstr "Davet bağlantısını &sıfırla..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_reset_confirm"
@@ -4095,8 +4126,8 @@ msgstr "QR kodu kaydedilemedi."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_save_qr"
-msgid "Save QR code..."
-msgstr "QR kodunu kaydet..."
+msgid "&Save QR code..."
+msgstr "&QR kodunu kaydet..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_status"
@@ -4105,8 +4136,8 @@ msgstr "Davet durumu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_title"
-msgid "Group invitation"
-msgstr "Grup daveti"
+msgid "&Group invitation"
+msgstr "G&rup daveti"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_unavailable"
@@ -4119,8 +4150,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_action"
-msgid "Join group or request approval"
-msgstr "Gruba katıl veya onay iste"
+msgid "&Join group or request approval"
+msgstr "Gruba katıl &veya onay iste"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_approval_not_required"
@@ -4162,8 +4193,8 @@ msgstr "İsteğiniz yönetici onayı bekliyor. Henüz gruba katılmadınız."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_preview"
-msgid "Preview group"
-msgstr "Grubu önizle"
+msgid "&Preview group"
+msgstr "&Grubu önizle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_preview_failed"
@@ -4237,8 +4268,8 @@ msgstr "İndirilenler"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_filter_label"
-msgid "Filter media"
-msgstr "Medyayı filtrele"
+msgid "Filter &media"
+msgstr "&Medyayı filtrele"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_filter_not_downloaded"
@@ -4247,13 +4278,23 @@ msgstr "İndirilmeyenler / bağlantılar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_list_label"
-msgid "Media list"
-msgstr "Medya listesi"
+msgid "Media &list"
+msgstr "Medya &listesi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_loading_history"
 msgid "Loading the group's history..."
 msgstr "Grubun geçmişi yükleniyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_media_open_btn"
+msgid "&Open"
+msgstr "&Aç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_media_save_as_btn"
+msgid "Sa&ve as..."
+msgstr "Farklı &kaydet..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_tab"
@@ -4292,8 +4333,8 @@ msgstr "Sesli mesajlar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_types_label"
-msgid "Media types shown"
-msgstr "Gösterilen medya türleri"
+msgid "Media t&ypes shown"
+msgstr "Gösterilen medya &türleri"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -6611,7 +6652,6 @@ msgid "Could not play the preview — invalid or missing sound file."
 msgstr "Önizleme çalınamadı — geçersiz veya eksik ses dosyası."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "preview_sound_play"
 msgid "Play sound preview"

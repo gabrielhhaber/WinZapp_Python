@@ -84,6 +84,8 @@ NOVEDADES
 
 CORRECCIONES
 
+- Las ventanas Datos del grupo, Datos de la conversación, Invitación al grupo y Unirse al grupo mediante enlace ahora tienen una letra de acceso (Alt+letra) en cada botón y en cada etiqueta de campo o lista. Antes, los botones de Datos del grupo, algunos de Datos de la conversación y todos los controles de la invitación no tenían ninguna. El botón que cierra la ventana de la invitación, que aparecía en inglés, ahora sigue el idioma de WinZapp.
+
 - Los mensajes enviados mientras una secuencia de mensajes de voz estaba en reproducción o en pausa se quedaban sin estado en la lista (ni "Enviado", ni "Entregado", ni "Leído") hasta que la secuencia terminaba, aunque la ventana Datos del mensaje (Alt+Shift+D) ya mostraba el estado correcto. Ahora, durante una secuencia, solo la fila que tiene el foco espera, para que el lector de pantalla no la lea por encima del audio; las demás se actualizan al momento, y la que se quedó esperando se actualiza cuando el foco sale de ella, cuando se pausa la reproducción o cuando la secuencia termina.
 
 - Reenviar ya no abre un cuadro cuando sale bien. "Mensaje reenviado." (o cuántos mensajes se han reenviado) ahora lo dice el lector de pantalla, sin ventana que cerrar y sin interrumpir lo que se está leyendo; también funciona con WinZapp en la bandeja.

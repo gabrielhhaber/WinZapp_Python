@@ -4,6 +4,7 @@ import io
 import threading
 import wx
 from core.group_invitation import connection_identity, read_invitation
+from ui.accessible import split_mnemonic
 
 
 def add_invitation_button(owner, page, sizer):
@@ -34,7 +35,9 @@ class GroupInvitationDialog(wx.Dialog):
         self._link = ""
         self._png = b""
         self._is_admin = is_admin
-        super().__init__(parent, title=self._i18n.t("group_invitation_title"),
+        # The same words as the button that opens this dialog, whose label
+        # carries a mnemonic marker a title would show as a literal "&".
+        super().__init__(parent, title=split_mnemonic(self._i18n.t("group_invitation_title"))[0],
                          size=(520, 640), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         outer = wx.BoxSizer(wx.VERTICAL)
         self._status = wx.TextCtrl(self, style=wx.TE_READONLY | wx.TE_MULTILINE)
@@ -48,7 +51,7 @@ class GroupInvitationDialog(wx.Dialog):
         self._qr.SetName(self._i18n.t("group_invitation_qr"))
         outer.Add(self._qr, 1, wx.ALIGN_CENTER | wx.ALL, 8)
         buttons = wx.WrapSizer(wx.HORIZONTAL)
-        self._copy = wx.Button(self, label=self._i18n.t("copy_link"))
+        self._copy = wx.Button(self, label=self._i18n.t("group_invitation_copy_link"))
         self._save = wx.Button(self, label=self._i18n.t("group_invitation_save_qr"))
         self._refresh = wx.Button(self, label=self._i18n.t("group_invitation_refresh"))
         self._reset = wx.Button(self, label=self._i18n.t("group_invitation_reset"))
@@ -59,6 +62,10 @@ class GroupInvitationDialog(wx.Dialog):
             button.Bind(wx.EVT_BUTTON, handler)
         outer.Add(buttons, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
         outer.Add(self.CreateButtonSizer(wx.CLOSE), 0, wx.EXPAND | wx.ALL, 8)
+        # The stock button says "Close" in English whatever the app's language.
+        close = self.FindWindowById(wx.ID_CLOSE)
+        if close is not None:
+            close.SetLabel(self._i18n.t("close"))
         self.SetSizer(outer)
         self.Bind(wx.EVT_BUTTON, self._on_close, id=wx.ID_CLOSE)
         self.Bind(wx.EVT_CLOSE, self._on_close)
@@ -136,7 +143,7 @@ class GroupInvitationDialog(wx.Dialog):
         if self._busy_loading or not self._is_admin:
             return
         if wx.MessageBox(self._i18n.t("group_invitation_reset_confirm"),
-                         self._i18n.t("group_invitation_reset"),
+                         split_mnemonic(self._i18n.t("group_invitation_reset"))[0],
                          wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING, self) == wx.YES:
             self._load(reset=True)
 

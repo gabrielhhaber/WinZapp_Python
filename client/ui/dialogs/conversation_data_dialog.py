@@ -27,7 +27,7 @@ from core import phone_contacts
 from core.contact_identity import contact_identity_lines
 from core.group_operations import group_permissions
 from ui.dialogs.common_groups_tab import CommonGroupsTabMixin
-from ui.accessible import AccessibleSaveAs
+from ui.accessible import AccessibleSaveAs, split_mnemonic
 from core.utils import (
     format_number, GROUP_MEDIA_TYPES, GROUP_MEDIA_FILTERS,
     filter_group_media, filter_group_media_by_download, media_cache_id,
@@ -290,7 +290,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         ov_sizer = wx.BoxSizer(wx.VERTICAL)
 
         info_label = wx.StaticText(
-            overview_page, label=self._i18n.t("conversation_data")
+            overview_page, label=self._i18n.t("conversation_data_overview_label")
         )
         ov_sizer.Add(info_label, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 8)
 
@@ -321,7 +321,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
             self._populate_contact_action_buttons()
 
         add_to_group_btn = wx.Button(
-            overview_page, label=self._i18n.t("select_group")
+            overview_page, label=self._i18n.t("contact_data_add_to_group_btn")
         )
         add_to_group_btn.Bind(wx.EVT_BUTTON, self._on_add_to_group)
         ov_sizer.Add(add_to_group_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -379,10 +379,16 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         )
         sizer.Add(self._sound_combo, 0, wx.EXPAND | wx.ALL, 8)
 
-        self._sound_preview_btn = wx.Button(panel, label=i18n.t("preview_sound_play"))
+        # Own label keys, with a mnemonic: the generic preview_sound_* pair is
+        # shown twice on Settings > Alert Tones, where one letter cannot serve
+        # both buttons.
+        self._sound_preview_btn = wx.Button(
+            panel, label=i18n.t("conversation_sound_preview_play"))
         sizer.Add(self._sound_preview_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         self._sound_preview = AlertPreviewController(
             self._mw, self._sound_preview_btn, self._resolve_conv_sound_preview_path,
+            play_label_key="conversation_sound_preview_play",
+            stop_label_key="conversation_sound_preview_stop",
         )
 
         self._sound_custom_label = wx.StaticText(
@@ -512,7 +518,8 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         self._edit_desc_btn.Bind(wx.EVT_BUTTON, self._on_edit_group_description)
         ov_sizer.Add(self._edit_desc_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        self._add_members_btn_overview = wx.Button(overview_page, label=self._i18n.t("add_member"))
+        self._add_members_btn_overview = wx.Button(
+            overview_page, label=self._i18n.t("group_data_add_member_btn"))
         self._add_members_btn_overview.Disable()
         # Both tabs use the same metadata; the provider checks again on add.
         self._add_members_btn_overview.Bind(wx.EVT_BUTTON, self._on_add_members)
@@ -534,7 +541,8 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         self._part_list.Bind(wx.EVT_KEY_DOWN, self._on_part_list_key_down)
         self._part_list.Bind(wx.EVT_CONTEXT_MENU, self._on_participant_context_menu)
         pt_sizer.Add(self._part_list, 1, wx.EXPAND | wx.ALL, 8)
-        self._add_members_btn = wx.Button(part_page, label=self._i18n.t("add_member"))
+        self._add_members_btn = wx.Button(
+            part_page, label=self._i18n.t("group_data_add_member_btn"))
         self._add_members_btn.Disable()   # updated from group permissions
         self._add_members_btn.Bind(wx.EVT_BUTTON, self._on_add_members)
         pt_sizer.Add(self._add_members_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -610,11 +618,13 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         # alone is not equivalent: it needs a right-click or the menu key, and
         # it does not show up in the Tab order at all.
         media_btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self._media_open_btn = wx.Button(media_page, label=self._i18n.t("open"))
+        self._media_open_btn = wx.Button(
+            media_page, label=self._i18n.t("group_media_open_btn"))
         self._media_open_btn.Bind(wx.EVT_BUTTON, self._on_media_open_btn)
         media_btn_row.Add(self._media_open_btn, 0, wx.RIGHT, 6)
 
-        self._media_save_btn = wx.Button(media_page, label=self._i18n.t("save_as"))
+        self._media_save_btn = wx.Button(
+            media_page, label=self._i18n.t("group_media_save_as_btn"))
         # Reports Ctrl+Shift+S to the screen reader, exactly as the panel's own
         # Save-As button does — the shortcut works here too, so it has to be
         # announced here too.
@@ -2012,7 +2022,9 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
             self._show_group_action_error(self._i18n.t("group_action_no_permission"))
             return
         new_name = self._prompt_text_edit(
-            self._i18n.t("edit_group_name"),
+            # The button's label, minus its mnemonic marker: a title would
+            # show the "&" as text.
+            split_mnemonic(self._i18n.t("edit_group_name"))[0],
             self._i18n.t("group_name_label"),
             self._group_subject,
         )
@@ -2032,7 +2044,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
             self._show_group_action_error(self._i18n.t("group_action_no_permission"))
             return
         new_desc = self._prompt_text_edit(
-            self._i18n.t("edit_group_description"),
+            split_mnemonic(self._i18n.t("edit_group_description"))[0],
             self._i18n.t("group_description_label"),
             self._group_description,
             multiline=True,

@@ -84,6 +84,8 @@ YENİLİKLER
 
 DÜZELTMELER
 
+- Grup bilgisi, Sohbet bilgisi, Grup daveti ve Gruba bağlantıyla katıl pencerelerinde artık her düğmenin ve her alan ya da liste etiketinin bir kısayol harfi (Alt+harf) var. Önceden Grup bilgisi penceresinin düğmelerinde, Sohbet bilgisi penceresinin bazı düğmelerinde ve davet penceresinin hiçbir denetiminde kısayol harfi yoktu. Davet penceresini kapatan düğme İngilizce görünüyordu; artık WinZapp'in dilinde.
+
 - Sesli mesajlar art arda oynatılırken ya da oynatma duraklatılmışken gönderilen mesajlar, sıra bitene kadar listede hiçbir durum göstermiyordu ("Gönderildi", "Teslim edildi" ya da "Okundu" yoktu); oysa Mesaj bilgisi penceresi (Alt+Shift+D) doğru durumu zaten gösteriyordu. Artık art arda oynatma sırasında yalnızca odaktaki satır bekliyor; böylece ekran okuyucu onu sesin üstüne okumuyor. Diğer satırlar hemen güncelleniyor; bekleyen satır da odak ondan ayrıldığında, oynatma duraklatıldığında ya da sıra bittiğinde güncelleniyor.
 
 - İletme başarılı olduğunda artık bir kutu açmıyor. "Mesaj iletildi." (ya da kaç mesajın iletildiği) artık ekran okuyucu tarafından söyleniyor; kapatılacak bir pencere yok ve okunan şey kesilmiyor. WinZapp sistem tepsisindeyken de çalışır.

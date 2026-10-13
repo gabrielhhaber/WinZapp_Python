@@ -84,6 +84,8 @@ NOWOŚCI
 
 POPRAWKI
 
+- Okna Informacje o grupie, Informacje o czacie, Zaproszenie do grupy i Dołącz do grupy przez link mają teraz literę skrótu (Alt+litera) na każdym przycisku i na każdej etykiecie pola lub listy. Wcześniej przyciski okna Informacje o grupie, część przycisków okna Informacje o czacie i wszystkie kontrolki zaproszenia nie miały żadnej. Przycisk zamykający okno zaproszenia, który był po angielsku, jest teraz w języku WinZappa.
+
 - Wiadomości wysłane w czasie, gdy odtwarzanie wiadomości głosowych po kolei trwało albo było wstrzymane, nie pokazywały na liście żadnego stanu (ani „Wysłano”, ani „Dostarczono”, ani „Wyświetlono”), dopóki to odtwarzanie się nie skończyło, choć okno Informacje o wiadomości (Alt+Shift+D) pokazywało już właściwy stan. Teraz w trakcie takiego odtwarzania czeka tylko wiersz, na którym jest fokus, żeby czytnik ekranu nie czytał go w czasie dźwięku; pozostałe wiersze są aktualizowane od razu, a ten, który czekał, jest aktualizowany, gdy fokus z niego zejdzie, gdy odtwarzanie zostanie wstrzymane albo gdy się skończy.
 
 - Przekazywanie dalej nie otwiera już okna, gdy się uda. „Wiadomość przekazana.” (albo liczbę przekazanych wiadomości) mówi teraz czytnik ekranu, bez okna do zamknięcia i bez przerywania tego, co jest czytane; działa też, gdy WinZapp jest w zasobniku.

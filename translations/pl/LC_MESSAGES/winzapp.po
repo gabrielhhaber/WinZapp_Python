@@ -1860,8 +1860,8 @@ msgstr "Sukces"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "back_btn"
-msgid "Back"
-msgstr "Wstecz"
+msgid "&Back"
+msgstr "&Wstecz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -3032,6 +3032,11 @@ msgid "Copy phone number"
 msgstr "Kopiuj numer telefonu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contact_data_add_to_group_btn"
+msgid "Add &to a group"
+msgstr "&Dodaj do grupy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/contact_messages.py
 msgctxt "contact_details_title"
 msgid "Contact"
@@ -3163,16 +3168,32 @@ msgid "Chat info"
 msgstr "Informacje o czacie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "conversation_data_overview_label"
+msgid "Chat &info"
+msgstr "&Informacje o czacie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "conversation_sound_custom_path_label"
-msgid "Sound file path:"
-msgstr "Ścieżka pliku dźwiękowego:"
+msgid "&Sound file path:"
+msgstr "Ścieżk&a pliku dźwiękowego:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "conversation_sound_label"
-msgid "Notification sound:"
-msgstr "Dźwięk powiadomienia:"
+msgid "&Notification sound:"
+msgstr "Dźwięk &powiadomienia:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_data_dialog.py
+msgctxt "conversation_sound_preview_play"
+msgid "&Play sound preview"
+msgstr "&Odtwórz podgląd dźwięku"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "conversation_sound_preview_stop"
+msgid "Stop sound &preview"
+msgstr "Zatrzymaj p&odgląd dźwięku"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/add_member_dialog.py
@@ -3639,8 +3660,8 @@ msgstr "&Edytuj kontakt"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_group_description"
-msgid "Edit group description"
-msgstr "Edytuj opis grupy"
+msgid "Edit gro&up description"
+msgstr "Edytuj opis &grupy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3650,8 +3671,8 @@ msgstr "Nie udało się zmienić opisu grupy: {error}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_group_name"
-msgid "Edit group name"
-msgstr "Edytuj nazwę grupy"
+msgid "Edit g&roup name"
+msgstr "Edytuj &nazwę grupy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -4060,6 +4081,11 @@ msgid "Group info"
 msgstr "Informacje o grupie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_data_add_member_btn"
+msgid "&Add member"
+msgstr "Dodaj &członka"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_description_label"
 msgid "Group description"
 msgstr "Opis grupy"
@@ -4075,9 +4101,14 @@ msgid "Invitation link copied."
 msgstr "Skopiowano link zaproszenia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_invitation_copy_link"
+msgid "Copy &link"
+msgstr "&Kopiuj link"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_link"
-msgid "Invitation link"
-msgstr "Link zaproszenia"
+msgid "&Invitation link"
+msgstr "&Link zaproszenia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_png"
@@ -4100,13 +4131,13 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_refresh"
-msgid "Refresh"
-msgstr "Odśwież"
+msgid "&Refresh"
+msgstr "&Odśwież"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_reset"
-msgid "Reset invitation link..."
-msgstr "Zresetuj link zaproszenia..."
+msgid "R&eset invitation link..."
+msgstr "Z&resetuj link zaproszenia..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_reset_confirm"
@@ -4133,8 +4164,8 @@ msgstr "Nie udało się zapisać kodu QR."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_save_qr"
-msgid "Save QR code..."
-msgstr "Zapisz kod QR..."
+msgid "&Save QR code..."
+msgstr "Zapisz kod &QR..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_status"
@@ -4143,8 +4174,8 @@ msgstr "Stan zaproszenia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_title"
-msgid "Group invitation"
-msgstr "Zaproszenie do grupy"
+msgid "&Group invitation"
+msgstr "&Zaproszenie do grupy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_unavailable"
@@ -4157,8 +4188,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_action"
-msgid "Join group or request approval"
-msgstr "Dołącz do grupy lub poproś o zatwierdzenie"
+msgid "&Join group or request approval"
+msgstr "&Dołącz do grupy lub poproś o zatwierdzenie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_approval_not_required"
@@ -4206,8 +4237,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_preview"
-msgid "Preview group"
-msgstr "Podgląd grupy"
+msgid "&Preview group"
+msgstr "&Podgląd grupy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_preview_failed"
@@ -4281,8 +4312,8 @@ msgstr "Pobrane"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_filter_label"
-msgid "Filter media"
-msgstr "Filtruj multimedia"
+msgid "Filter &media"
+msgstr "Filtruj &multimedia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_filter_not_downloaded"
@@ -4291,13 +4322,23 @@ msgstr "Niepobrane / linki"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_list_label"
-msgid "Media list"
-msgstr "Lista multimediów"
+msgid "Media &list"
+msgstr "&Lista multimediów"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_loading_history"
 msgid "Loading the group's history..."
 msgstr "Wczytywanie historii grupy..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_media_open_btn"
+msgid "&Open"
+msgstr "Otwó&rz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_media_save_as_btn"
+msgid "Sa&ve as..."
+msgstr "Zapisz &jako..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_tab"
@@ -4336,8 +4377,8 @@ msgstr "Wiadomości głosowe"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_types_label"
-msgid "Media types shown"
-msgstr "Wyświetlane typy multimediów"
+msgid "Media t&ypes shown"
+msgstr "Wyświetlane &typy multimediów"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -6691,7 +6732,6 @@ msgstr ""
 "dźwiękowy."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "preview_sound_play"
 msgid "Play sound preview"
