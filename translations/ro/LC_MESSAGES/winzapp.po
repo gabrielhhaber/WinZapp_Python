@@ -7853,6 +7853,7 @@ msgstr "ctrl+virgulă"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py
 #: client/ui/dialogs/transcription_cache.py
+#: client/ui/dialogs/transcription_options.py
 #: client/ui/dialogs/transcription_reuse.py
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "settings_title"
@@ -8934,6 +8935,26 @@ msgstr ""
 "există deja o selecție, selectează/deselectează în schimb conversația sau "
 "mesajul focalizat, dacă opțiunea este activată în Setări, Interfață "
 "utilizator"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_status_transcribe_inline_label"
+msgid ""
+"Alt+Shift+N: on an audio or video status, do what Enter and Space do not: "
+"transcribe it locally with Whisper into its line in the list, or open or "
+"play it when Enter and Space are set to transcribe"
+msgstr ""
+"Alt+Shift+N: pe o stare audio sau video, face ce nu fac Enter și Spațiu: o "
+"transcrie local cu Whisper în rândul ei din listă sau o deschide ori o redă "
+"când Enter și Spațiu sunt setate să transcrie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_status_transcribe_label"
+msgid ""
+"Alt+Shift+T: transcribe the audio or video status locally with Whisper, or "
+"open the transcription already saved"
+msgstr ""
+"Alt+Shift+T: transcrie local starea audio sau video cu Whisper sau deschide "
+"transcrierea deja salvată"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
@@ -11881,6 +11902,7 @@ msgstr ""
 "de acum pe acesta."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/status_transcription.py
 msgctxt "transcription_no_audio"
 msgid "This message has no audio to transcribe."
 msgstr "Acest mesaj nu are nicio înregistrare audio de transcris."
@@ -12384,6 +12406,7 @@ msgstr ""
 "OK pentru a păstra alegerea."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/status_transcription.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "transcription_row_label"
 msgid "transcription"
@@ -12481,6 +12504,52 @@ msgstr "rapid"
 msgctxt "transcription_starting"
 msgid "Starting the transcription..."
 msgstr "Se pornește transcrierea..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_auto_check"
+msgid ""
+"Automatically transcribe received audio and video statuses locally and put "
+"the text in the status line"
+msgstr ""
+"Transcrie local și automat stările audio și video primite și pune textul în "
+"rândul stării"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_cache_check"
+msgid ""
+"Save local transcriptions of statuses with them so they are not redone "
+"(cache; deleted together with the status)"
+msgstr ""
+"Salvează transcrierile locale ale stărilor împreună cu ele ca să nu fie "
+"refăcute (cache; sunt șterse odată cu starea)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_clear_btn"
+msgid "Clear saved local transcriptions of statuses"
+msgstr "Șterge transcrierile locale salvate ale stărilor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_clear_confirm"
+msgid ""
+"Delete every saved local transcription of every status? This cannot be "
+"undone."
+msgstr ""
+"Ștergeți toate transcrierile locale salvate ale tuturor stărilor? Acțiunea "
+"nu poate fi anulată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_enter_check"
+msgid ""
+"Enter and Space transcribe audio and video statuses locally into the status "
+"line (Alt+Shift+N then opens or plays them)"
+msgstr ""
+"Enter și Spațiu transcriu local stările audio și video în rândul stării "
+"(Alt+Shift+N le deschide sau le redă atunci)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_store.py

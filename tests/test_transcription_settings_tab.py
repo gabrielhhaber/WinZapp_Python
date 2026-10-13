@@ -777,6 +777,8 @@ class TestEverySettingIsReadBackAndWritten:
             "auto_transcribe_received": False,
             "cache_enabled": True,
             "cache_by_model": {},
+            "auto_transcribe_statuses": False,
+            "status_cache_enabled": True,
         }
         tab.main_window.settings["transcription"] = dict(stored)
         tab._load_transcription_values()

@@ -7856,6 +7856,7 @@ msgstr "ctrl+coma"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py
 #: client/ui/dialogs/transcription_cache.py
+#: client/ui/dialogs/transcription_options.py
 #: client/ui/dialogs/transcription_reuse.py
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "settings_title"
@@ -8936,6 +8937,27 @@ msgstr ""
 "Espacio: reproducir/pausar el audio o vídeo enfocado. Cuando ya haya algo "
 "marcado, pasa a marcar/desmarcar el chat o mensaje enfocado, si la opción "
 "está activada en Configuración, Interfaz de usuario"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_status_transcribe_inline_label"
+msgid ""
+"Alt+Shift+N: on an audio or video status, do what Enter and Space do not: "
+"transcribe it locally with Whisper into its line in the list, or open or "
+"play it when Enter and Space are set to transcribe"
+msgstr ""
+"Alt+Shift+N: en un estado de audio o de vídeo, hace lo que Intro y Espacio "
+"no hacen: transcribirlo localmente con Whisper en su línea de la lista, o "
+"abrirlo o reproducirlo cuando Intro y Espacio están configurados para "
+"transcribir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_status_transcribe_label"
+msgid ""
+"Alt+Shift+T: transcribe the audio or video status locally with Whisper, or "
+"open the transcription already saved"
+msgstr ""
+"Alt+Shift+T: transcribir localmente el estado de audio o de vídeo con "
+"Whisper, o abrir la transcripción ya guardada"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
@@ -11880,6 +11902,7 @@ msgstr ""
 "configuración pasa a usar."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/status_transcription.py
 msgctxt "transcription_no_audio"
 msgid "This message has no audio to transcribe."
 msgstr "Este mensaje no tiene audio para transcribir."
@@ -12388,6 +12411,7 @@ msgstr ""
 "conservar la elección."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/status_transcription.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "transcription_row_label"
 msgid "transcription"
@@ -12487,6 +12511,52 @@ msgstr "rápido"
 msgctxt "transcription_starting"
 msgid "Starting the transcription..."
 msgstr "Iniciando la transcripción..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_auto_check"
+msgid ""
+"Automatically transcribe received audio and video statuses locally and put "
+"the text in the status line"
+msgstr ""
+"Transcribir localmente y automáticamente los estados de audio y de vídeo "
+"recibidos y poner el texto en la línea del estado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_cache_check"
+msgid ""
+"Save local transcriptions of statuses with them so they are not redone "
+"(cache; deleted together with the status)"
+msgstr ""
+"Guardar las transcripciones locales de los estados junto con ellos para no "
+"rehacerlas (caché; se eliminan junto con el estado)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_clear_btn"
+msgid "Clear saved local transcriptions of statuses"
+msgstr "Borrar las transcripciones locales guardadas de los estados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_clear_confirm"
+msgid ""
+"Delete every saved local transcription of every status? This cannot be "
+"undone."
+msgstr ""
+"¿Borrar todas las transcripciones locales guardadas de todos los estados? "
+"Esto no se puede deshacer."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_enter_check"
+msgid ""
+"Enter and Space transcribe audio and video statuses locally into the status "
+"line (Alt+Shift+N then opens or plays them)"
+msgstr ""
+"Intro y Espacio transcriben localmente los estados de audio y de vídeo en la"
+" línea del estado (Alt+Shift+N pasa a abrirlos o reproducirlos)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_store.py

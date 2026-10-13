@@ -34,7 +34,10 @@ class StatusListMixin:
         """Return a short human-readable preview of a single status item."""
         msg_type = status.get("messageType", "")
         msg_obj  = status.get("message") or {}
-        return _status_content_label(msg_type, msg_obj, i18n, getattr(self.main_window, "settings", None))
+        label = _status_content_label(msg_type, msg_obj, i18n, getattr(self.main_window, "settings", None))
+        # A transcription asked into the line (Alt+Shift+N, Enter set to
+        # transcribe, or the automatic one): "Voice message, transcription: …".
+        return label + self._status_inline_suffix(status, i18n)
 
     def _populate_list(self, my_statuses: list, contacts: list):
         i18n = self.main_window.i18n
@@ -186,6 +189,13 @@ class StatusListMixin:
         idx = self._status_list.GetFocusedItem()
         if idx < 0:
             return
+        if self._enter_transcribes_status_row(idx):
+            return
+        self._open_status_row(idx)
+
+    def _open_status_row(self, idx: int):
+        """Open (or play/pause) the status of a row: what Space does, and what
+        Alt+Shift+N does while Enter and Space are set to transcribe."""
         if idx == 0:
             if not self._use_status_media_viewer_dialog():
                 self._status_list.Select(idx)
@@ -279,6 +289,8 @@ class StatusListMixin:
 
     def _on_status_contact_activated(self, event):
         idx = event.GetIndex()
+        if self._enter_transcribes_status_row(idx):
+            return
         if idx == 0:
             self._open_my_status_dialog()
             return

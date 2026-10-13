@@ -1143,6 +1143,10 @@ DEFAULT_SETTINGS = {
         # list instead of playing it; Alt+Shift+N then plays it (and, with this
         # off, is what transcribes it). Off: Enter plays, as it always has.
         "enter_transcribes_voice_messages": False,
+        # The same choice on the Status tab: on, Enter and Space transcribe an
+        # audio or video status into its line and Alt+Shift+N opens or plays
+        # it. See core/transcription/statuses.py.
+        "enter_transcribes_statuses": False,
         "auto_focus_next_audio": True,
         "selected_announcement_position": "end",
         "show_yesterday_label": True,
@@ -1229,7 +1233,12 @@ DEFAULT_SETTINGS = {
         # Keep results with the message so they are not redone (on), and the
         # per-model overrides {model id: bool}. See stored.cache_enabled_for().
         "cache_enabled": True,
-        "cache_by_model": {}
+        "cache_by_model": {},
+        # The same two switches for status updates: transcribe on arrival
+        # (off) and keep the result with the status, which takes it along when
+        # it expires (on). See core/transcription/statuses.py.
+        "auto_transcribe_statuses": False,
+        "status_cache_enabled": True
     },
     # See core/save_location.py — which folder a Save As dialog opens on.
     # "last" is the default and is a deliberate change from the old

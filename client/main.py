@@ -291,6 +291,7 @@ from main_window.account_link import AccountLinkMixin
 from main_window.chats_store import ChatsStoreMixin
 from main_window.groups import GroupsMixin
 from main_window.group_invitation_links import GroupInvitationLinksMixin
+from main_window.status_transcription import StatusTranscriptionMixin
 from main_window.contacts import ContactsMixin
 from main_window.backfill import BackfillMixin
 from main_window.conversation_sync import ConversationSyncMixin
@@ -348,6 +349,7 @@ class MainWindow(
     ChatsStoreMixin,
     GroupsMixin,
     GroupInvitationLinksMixin,
+    StatusTranscriptionMixin,
     ContactsMixin,
     BackfillMixin,
     ConversationSyncMixin,

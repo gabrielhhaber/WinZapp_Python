@@ -817,7 +817,28 @@ class MessageTranscriptionFlow:
             # it when the window runs the transcription again.
             inline=self._inline or stored_transcription.is_inline(previous),
         ))
+        return self._save(value)
+
+    # Where the text is kept, who the result window names and whether it
+    # offers "insert into the message": the four things that differ for a
+    # status update (ui/status_transcription_flow.py overrides them).
+
+    #: Whether the result window offers "Insert into the message".
+    _offers_insert = True
+
+    def _save(self, value, existing=False):
+        """Storing's SAVE_* answer for `value`. `existing`: a text already
+        kept that is only being marked, which the cache switches let through."""
+        if existing:
+            return self._main_window.store_message_transcription(
+                self._jid, self._msg_id, value, existing=True)
         return self._main_window.store_message_transcription(self._jid, self._msg_id, value)
+
+    def _delete(self, on_done):
+        self._main_window.delete_message_transcription(self._jid, self._msg_id, on_done)
+
+    def _title_name(self):
+        return title_name(self._panel, self._msg)
 
     def show_saved(self):
         """Open the stored transcription — no model, no wait, same window."""
@@ -869,7 +890,7 @@ class MessageTranscriptionFlow:
         self._focus_message()
         if answer != wx.ID_YES:
             return
-        self._main_window.delete_message_transcription(self._jid, self._msg_id, self._after_delete)
+        self._delete(self._after_delete)
 
     def _after_delete(self, ok):
         """On the wx thread, once the database has answered."""
@@ -894,7 +915,7 @@ class MessageTranscriptionFlow:
             return
         i18n = self._i18n
         _spoken, shown = split_result_notes(announcement, notes)
-        name = title_name(self._panel, self._msg)
+        name = self._title_name()
         title = (i18n.t("transcription_result_title").format(name=name) if name
                  else i18n.t("transcription_progress_title"))
         dialog = TranscriptionResultDialog(
@@ -905,6 +926,9 @@ class MessageTranscriptionFlow:
             notes=[i18n.t(n.i18n_key).format(**n.values) for n in shown],
             spoken=result_speech(i18n, announcement, notes, window=True),
             default_file=default_file_name(i18n, name),
+            # Named only when it differs from the window's default, so the
+            # conversation's call stays exactly what it was.
+            **({} if self._offers_insert else {"can_insert": False}),
         )
         try:
             dialog.run()
@@ -982,9 +1006,7 @@ class MessageTranscriptionFlow:
             marked = stored_transcription.marked_inline(value, previous, time.time())
             # existing=True: a text already kept, only marked — the cache
             # switches are about keeping new ones.
-            if self._main_window.store_message_transcription(
-                    self._jid, self._msg_id, marked, existing=True
-            ) != stored_transcription.SAVE_STORED:
+            if self._save(marked, existing=True) != stored_transcription.SAVE_STORED:
                 # Nowhere to keep the mark: open the window, where the text can
                 # still be read.
                 self._inline = False

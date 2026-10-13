@@ -8,6 +8,7 @@ init_UI is available here.
 import logging
 import wx
 from core.api_client import api_get
+from core.transcription import statuses as transcription_statuses
 from core.utils import format_number
 
 
@@ -54,6 +55,12 @@ class StatusLoadingMixin:
             fb_my, fb_contacts = self._parse_statuses(records, i18n)
             my_statuses = self._merge_status_lists(my_statuses, fb_my)
             contacts = self._merge_status_contacts(contacts, fb_contacts)
+            # The API's copy of a status comes first in the merge and knows
+            # nothing of a transcription saved with the cached one.
+            shown = list(my_statuses)
+            for entry in contacts:
+                shown.extend(entry.get("statuses") or ())
+            transcription_statuses.carry_over(shown, records)
         wx.CallAfter(self._populate_list, my_statuses, contacts)
 
     def _reconcile_my_status_cache(

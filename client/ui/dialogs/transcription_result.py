@@ -125,7 +125,7 @@ class TranscriptionResultDialog(wx.Dialog):
     """
 
     def __init__(self, parent, main_window, title, text, notes=(),
-                 spoken="", default_file=""):
+                 spoken="", default_file="", can_insert=True):
         self._main_window = main_window
         self._i18n = main_window.i18n
         self._text = text
@@ -184,6 +184,9 @@ class TranscriptionResultDialog(wx.Dialog):
         self._insert_btn.Bind(wx.EVT_BUTTON, self._on_insert)
         for button in (self._copy_btn, self._save_btn, self._insert_btn, self._close_btn):
             buttons.Add(button, 0, wx.ALL, 4)
+        # A status has no message field to insert into (the status tab's
+        # result window): the button is not offered rather than left dead.
+        self._insert_btn.Show(bool(can_insert))
         sizer.Add(buttons, 0, wx.ALIGN_RIGHT | wx.ALL, 4)
 
         self.SetSizer(sizer)

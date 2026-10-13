@@ -76,6 +76,8 @@ class ChatsStoreMixin:
             except Exception as exc:
                 logging.warning("[_store_status_update] DB write failed: %s", exc)
         threading.Thread(target=_save_status, daemon=True).start()
+        # Transcribed on arrival when the setting asks for it (off by default).
+        self._maybe_auto_transcribe_status(msg)
         # Refresh the Status tab if it is currently visible
         try:
             if hasattr(self, "navigation_panel"):

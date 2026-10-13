@@ -32,6 +32,7 @@ from core.transcription import (
     external_models,
     message_run,
     preferences as transcription_preferences,
+    statuses,
     stored as stored_transcription,
 )
 from coord_locks import LockTimeout
@@ -84,6 +85,11 @@ class AutoTranscriptionMixin:
 
     def _run_auto_transcription(self, item) -> None:
         remote_jid, msg_id, msg = item
+        if remote_jid == statuses.STATUS_JID:
+            # A status update shares this queue (one transcription at a time)
+            # and nothing else: its own setting, media and store.
+            self._run_status_auto_transcription(msg)
+            return
         if not auto_queue.enabled(self.settings):
             return
         try:

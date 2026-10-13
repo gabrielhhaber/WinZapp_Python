@@ -228,6 +228,13 @@ class _Stub:
     _on_reply_field_text_changed = StatusPanel._on_reply_field_text_changed
     _resolve_name                = StatusPanel._resolve_name
     _status_preview              = StatusPanel._status_preview
+    # The row text and Enter/Space now pass through the transcription mixin
+    # (status_tab/status_transcription.py); with its setting off and nothing
+    # saved, as here, they change nothing.
+    _status_inline_suffix        = StatusPanel._status_inline_suffix
+    _status_shown_by_row         = StatusPanel._status_shown_by_row
+    _enter_transcribes_status_row = StatusPanel._enter_transcribes_status_row
+    _open_status_row             = StatusPanel._open_status_row
     _on_play_pause_video         = StatusPanel._on_play_pause_video
     _update_play_pause_label     = StatusPanel._update_play_pause_label
     _is_status_liked             = StatusPanel._is_status_liked

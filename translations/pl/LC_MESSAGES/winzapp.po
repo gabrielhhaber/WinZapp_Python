@@ -7867,6 +7867,7 @@ msgstr "ctrl+przecinek"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py
 #: client/ui/dialogs/transcription_cache.py
+#: client/ui/dialogs/transcription_options.py
 #: client/ui/dialogs/transcription_reuse.py
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "settings_title"
@@ -8945,6 +8946,26 @@ msgstr ""
 "Spacja: odtwórz/wstrzymaj aktywne audio lub wideo. Gdy coś jest już "
 "zaznaczone, zaznacza/odznacza aktywny czat lub wiadomość, jeśli opcja jest "
 "włączona w Ustawieniach, Interfejs użytkownika"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_status_transcribe_inline_label"
+msgid ""
+"Alt+Shift+N: on an audio or video status, do what Enter and Space do not: "
+"transcribe it locally with Whisper into its line in the list, or open or "
+"play it when Enter and Space are set to transcribe"
+msgstr ""
+"Alt+Shift+N: na statusie audio lub wideo robi to, czego nie robią Enter i "
+"spacja: transkrybuje go lokalnie za pomocą Whisper w jego wierszu na liście "
+"albo otwiera lub odtwarza, gdy Enter i spacja są ustawione na transkrypcję"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_status_transcribe_label"
+msgid ""
+"Alt+Shift+T: transcribe the audio or video status locally with Whisper, or "
+"open the transcription already saved"
+msgstr ""
+"Alt+Shift+T: transkrybuj lokalnie status audio lub wideo za pomocą Whisper "
+"albo otwórz zapisaną już transkrypcję"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
@@ -11971,6 +11992,7 @@ msgstr ""
 "ustawiony jako folder modeli."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/status_transcription.py
 #| msgctxt "save_as_nothing_to_save"
 #| msgid "This message has no file to save"
 msgctxt "transcription_no_audio"
@@ -12516,6 +12538,7 @@ msgstr ""
 "aby zachować wybór."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/status_transcription.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "transcription_row_label"
 msgid "transcription"
@@ -12627,6 +12650,52 @@ msgstr "szybki"
 msgctxt "transcription_starting"
 msgid "Starting the transcription..."
 msgstr "Rozpoczynanie transkrypcji..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_auto_check"
+msgid ""
+"Automatically transcribe received audio and video statuses locally and put "
+"the text in the status line"
+msgstr ""
+"Automatycznie transkrybuj lokalnie otrzymane statusy audio i wideo i "
+"umieszczaj tekst w wierszu statusu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_cache_check"
+msgid ""
+"Save local transcriptions of statuses with them so they are not redone "
+"(cache; deleted together with the status)"
+msgstr ""
+"Zapisuj lokalne transkrypcje statusów razem z nimi, aby nie robić ich "
+"ponownie (pamięć podręczna; są usuwane razem ze statusem)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_clear_btn"
+msgid "Clear saved local transcriptions of statuses"
+msgstr "Wyczyść zapisane lokalne transkrypcje statusów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_clear_confirm"
+msgid ""
+"Delete every saved local transcription of every status? This cannot be "
+"undone."
+msgstr ""
+"Usunąć wszystkie zapisane lokalne transkrypcje wszystkich statusów? Tego nie"
+" można cofnąć."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_enter_check"
+msgid ""
+"Enter and Space transcribe audio and video statuses locally into the status "
+"line (Alt+Shift+N then opens or plays them)"
+msgstr ""
+"Enter i spacja transkrybują lokalnie statusy audio i wideo w wierszu statusu"
+" (Alt+Shift+N wtedy je otwiera lub odtwarza)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_store.py

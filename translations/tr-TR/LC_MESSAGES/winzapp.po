@@ -7778,6 +7778,7 @@ msgstr "ctrl+virgül"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py
 #: client/ui/dialogs/transcription_cache.py
+#: client/ui/dialogs/transcription_options.py
 #: client/ui/dialogs/transcription_reuse.py
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "settings_title"
@@ -8844,6 +8845,26 @@ msgstr ""
 "Boşluk: odaklanılan ses veya videoyu oynat/duraklat. Ayarlar > Kullanıcı "
 "Arayüzü bölümünde seçenek etkinse, önceden bir seçim varsa bunun yerine "
 "odaklanılan sohbeti veya mesajı seçer/seçimini kaldırır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_status_transcribe_inline_label"
+msgid ""
+"Alt+Shift+N: on an audio or video status, do what Enter and Space do not: "
+"transcribe it locally with Whisper into its line in the list, or open or "
+"play it when Enter and Space are set to transcribe"
+msgstr ""
+"Alt+Shift+N: sesli ya da videolu bir durumda Enter ve Boşluk'un yapmadığını "
+"yapar: Whisper ile yerel olarak listedeki satırına yazıya döker ya da Enter "
+"ve Boşluk yazıya dökmeye ayarlıyken açar veya oynatır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_status_transcribe_label"
+msgid ""
+"Alt+Shift+T: transcribe the audio or video status locally with Whisper, or "
+"open the transcription already saved"
+msgstr ""
+"Alt+Shift+T: sesli ya da videolu durumu Whisper ile yerel olarak yazıya dök "
+"ya da kaydedilmiş dökümü aç"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
@@ -11730,6 +11751,7 @@ msgstr ""
 "Yine de tüm modeller yeni klasörde ve ayar artık bu klasörü kullanıyor."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/status_transcription.py
 msgctxt "transcription_no_audio"
 msgid "This message has no audio to transcribe."
 msgstr "Bu mesajda yazıya dökülecek ses yok."
@@ -12229,6 +12251,7 @@ msgstr ""
 "Uygula'ya veya Tamam'a basın."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/status_tab/status_transcription.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "transcription_row_label"
 msgid "transcription"
@@ -12326,6 +12349,52 @@ msgstr "hızlı"
 msgctxt "transcription_starting"
 msgid "Starting the transcription..."
 msgstr "Yazıya döküm başlatılıyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_auto_check"
+msgid ""
+"Automatically transcribe received audio and video statuses locally and put "
+"the text in the status line"
+msgstr ""
+"Alınan sesli ve videolu durumları yerel olarak otomatik yazıya dök ve metni "
+"durumun satırına koy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_cache_check"
+msgid ""
+"Save local transcriptions of statuses with them so they are not redone "
+"(cache; deleted together with the status)"
+msgstr ""
+"Durumların yerel dökümlerini yeniden yapılmamaları için durumlarla birlikte "
+"kaydet (önbellek; durumla birlikte silinir)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_clear_btn"
+msgid "Clear saved local transcriptions of statuses"
+msgstr "Durumların kaydedilmiş yerel dökümlerini temizle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_clear_confirm"
+msgid ""
+"Delete every saved local transcription of every status? This cannot be "
+"undone."
+msgstr ""
+"Tüm durumların kaydedilmiş bütün yerel dökümleri silinsin mi? Bu geri "
+"alınamaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_status_enter_check"
+msgid ""
+"Enter and Space transcribe audio and video statuses locally into the status "
+"line (Alt+Shift+N then opens or plays them)"
+msgstr ""
+"Enter ve Boşluk, sesli ve videolu durumları yerel olarak durumun satırına "
+"yazıya döksün (Alt+Shift+N o zaman onları açar ya da oynatır)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_store.py

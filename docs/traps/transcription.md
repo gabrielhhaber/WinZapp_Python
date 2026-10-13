@@ -805,3 +805,56 @@ Alt+Shift+N (only while it transcribes, i.e. Enter plays) run the bulk forms. Bo
 - **Quitting stops automatic and bulk runs** (`MainWindow.stop_transcription_runs`, from
   `_perform_shutdown`): the queue stops, the running transcription is cancelled (its ffmpeg or
   whisper-cli child killed, the decrypted audio deleted) and waited for up to 2 s.
+
+## Status updates (`statuses.py`)
+
+An audio or video status is transcribed through the same run as a voice message
+(`MessageTranscription`); `core/transcription/statuses.py` holds what differs,
+`main_window/status_transcription.py` the storage and the automatic runs,
+`ui/status_transcription_flow.py` the flow (a subclass of
+`MessageTranscriptionFlow` overriding four hooks: `_save`, `_delete`,
+`_title_name`, `_offers_insert`) and `status_tab/status_transcription.py` the
+keys and the row.
+
+- **Keys**: Alt+Shift+T and Alt+Shift+N on the Status tab, the conversation's
+  chords, in the catalogue under scope `status` (customisable). They act on the
+  status the focused row is showing: the one open in the inline viewer, else
+  the one the contact's row previews (the one navigated to with Ctrl+Left/Right
+  for the open contact, the newest for any other). In the separate media
+  viewer (`status_media_viewer_dialog`) the keys are those of the list behind
+  it, not of the dialog.
+- **Enter and Space** follow `user_interface.enter_transcribes_statuses` (off):
+  on, they transcribe into the line and Alt+Shift+N opens or plays, exactly the
+  conversation's alternation. Only on a row showing audio or video; a photo, a
+  text or the "my status" row opens as always.
+- **Where the text lives**: under `_transcription` in the status's own record,
+  i.e. in `status_updates.message_json`. **Nothing else deletes it**: the
+  periodic `_prune_expired_status_updates()` removes the row and the text goes
+  with it, so there is no second store to keep in step.
+- **Two kinds of copy.** `_status_updates` holds the cached records; the tab's
+  list is built from the API's answer first (`_merge_status_lists`: API copy
+  wins the dedup), so the dict on screen is often not the cached one. Storing
+  writes both, and `statuses.carry_over()` puts the text back on the list every
+  time `_load_statuses()` rebuilds it. A status shown from the API and never
+  cached is added to `_status_updates` when its transcription is stored.
+- **The media is never on disk.** The run gets a private folder
+  (`statuses.TEMP_PREFIX`, in `temp_sweep.PREFIXES`) into which
+  `MainWindow._fetch_status_media()` writes the download Fernet-encrypted, the
+  way the run reads every local media file; the folder lives as long as the
+  flow's `start()` (or the automatic run).
+- **No vault, no withdrawal, no "insert into the message"**: the flow answers
+  False for the first two without asking the vault (it would say "hidden" for a
+  jid it does not know), and the result window hides the insert button
+  (`can_insert=False`).
+- **Settings** (Settings > Local transcription, after the conversation's):
+  `transcription.auto_transcribe_statuses` (off), `transcription.
+  status_cache_enabled` (on) and the Enter switch above, plus "Clear saved
+  local transcriptions of statuses" (`MainWindow.clear_status_transcriptions`).
+  A model's own cache choice (`cache_by_model`) is shared with the conversation:
+  it is about the model. The statuses' general switch is its own.
+- **Automatic runs share the conversation's queue** (one transcription at a
+  time): `_store_status_update()` calls `_maybe_auto_transcribe_status()`, the
+  item is keyed `("status@broadcast", id)` and `_run_auto_transcription()`
+  hands it to `_run_status_auto_transcription()`. Eligibility is
+  `auto_queue.eligible()` unchanged (someone else's, audio or video, under five
+  minutes old, at most ten minutes long, nothing decided yet).

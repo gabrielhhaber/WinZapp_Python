@@ -105,6 +105,11 @@ SETTING_AUTO_TRANSCRIBE_RECEIVED = "auto_transcribe_received"
 #: See stored.cache_enabled_for().
 SETTING_CACHE_ENABLED = "cache_enabled"
 SETTING_CACHE_BY_MODEL = "cache_by_model"
+#: The same two switches for status updates (core/transcription/statuses.py):
+#: transcribe audio and video statuses as they arrive, off by default, and
+#: keep a status's result with it, on by default.
+SETTING_AUTO_TRANSCRIBE_STATUSES = "auto_transcribe_statuses"
+SETTING_STATUS_CACHE_ENABLED = "status_cache_enabled"
 
 #: The section as a fresh install gets it. `core/utils.py`'s DEFAULT_SETTINGS
 #: and `client/data/settings_default.json` both carry a copy — see the module
@@ -123,6 +128,8 @@ DEFAULTS = {
     SETTING_AUTO_TRANSCRIBE_RECEIVED: False,
     SETTING_CACHE_ENABLED: True,
     SETTING_CACHE_BY_MODEL: {},
+    SETTING_AUTO_TRANSCRIBE_STATUSES: False,
+    SETTING_STATUS_CACHE_ENABLED: True,
 }
 
 #: The install-wide key holding the models folder, in `app_settings.py`'s own
@@ -603,7 +610,8 @@ def sanitize_section(settings, custom_model_ids=None) -> bool:
         changed = True
 
     for flag in (SETTING_AUTO_DETECT_LANGUAGE, SETTING_KEEP_MODEL_LOADED,
-                 SETTING_AUTO_TRANSCRIBE_RECEIVED, SETTING_CACHE_ENABLED):
+                 SETTING_AUTO_TRANSCRIBE_RECEIVED, SETTING_CACHE_ENABLED,
+                 SETTING_AUTO_TRANSCRIBE_STATUSES, SETTING_STATUS_CACHE_ENABLED):
         if flag in section and not isinstance(section[flag], bool):
             section[flag] = DEFAULTS[flag]
             changed = True

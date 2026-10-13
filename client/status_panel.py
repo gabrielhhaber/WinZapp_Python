@@ -52,6 +52,7 @@ from status_tab.status_media import StatusMediaMixin
 from status_tab.status_composer import StatusComposerMixin
 from status_tab.status_voice import StatusVoiceMixin
 from status_tab.status_ai import StatusAIMixin
+from status_tab.status_transcription import StatusTranscriptionPanelMixin
 
 try:
     import pyaudio
@@ -76,6 +77,7 @@ class StatusPanel(
     StatusComposerMixin,
     StatusVoiceMixin,
     StatusAIMixin,
+    StatusTranscriptionPanelMixin,
     wx.Panel,
 ):
     def __init__(self, main_window, parent):
@@ -415,6 +417,8 @@ class StatusPanel(
         self.ID_F5            = wx.NewIdRef()
         self.ID_CTRL_PERIOD   = wx.NewIdRef()
         self.ID_CTRL_SHIFT_I  = wx.NewIdRef()
+        self.ID_ALT_SHIFT_T   = wx.NewIdRef()
+        self.ID_ALT_SHIFT_N   = wx.NewIdRef()
         accel_tbl = make_shortcut_table(self, 'status', [
             (wx.ACCEL_CTRL,                    wx.WXK_LEFT,   self.ID_CTRL_LEFT),
             (wx.ACCEL_CTRL,                    wx.WXK_RIGHT,  self.ID_CTRL_RIGHT),
@@ -431,6 +435,10 @@ class StatusPanel(
             # muscle memory across both places media can be saved from.
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT,   ord("S"),      self.ID_CTRL_SHIFT_S),
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT,   ord("I"),      self.ID_CTRL_SHIFT_I),
+            # The conversation's own two transcription keys, on an audio or
+            # video status (status_tab/status_transcription.py).
+            (wx.ACCEL_ALT | wx.ACCEL_SHIFT,    ord("T"),      self.ID_ALT_SHIFT_T),
+            (wx.ACCEL_ALT | wx.ACCEL_SHIFT,    ord("N"),      self.ID_ALT_SHIFT_N),
         ])
         self.SetAcceleratorTable(accel_tbl)
         self.Bind(wx.EVT_MENU, self._on_prev_status,          id=self.ID_CTRL_LEFT)
@@ -439,6 +447,8 @@ class StatusPanel(
         self.Bind(wx.EVT_MENU, self._on_copy_status_text,     id=self.ID_CTRL_C)
         self.Bind(wx.EVT_MENU, self._on_save_status_media,    id=self.ID_CTRL_SHIFT_S)
         self.Bind(wx.EVT_MENU, self._on_describe_status,      id=self.ID_CTRL_SHIFT_I)
+        self.Bind(wx.EVT_MENU, self._on_transcribe_status,    id=self.ID_ALT_SHIFT_T)
+        self.Bind(wx.EVT_MENU, self._on_transcribe_status_inline_key, id=self.ID_ALT_SHIFT_N)
         self.Bind(wx.EVT_MENU, self._on_ctrl_r_shortcut,      id=self.ID_CTRL_R)
         self.Bind(wx.EVT_MENU, self._on_ctrl_p_shortcut,      id=self.ID_CTRL_P)
         self.Bind(wx.EVT_MENU, self._on_ctrl_shift_p_shortcut,id=self.ID_CTRL_SHIFT_P)
