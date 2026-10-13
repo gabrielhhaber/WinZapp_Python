@@ -68,6 +68,8 @@ MIRRORED_FILES = [
     "src/util/communityCommentsRuntime.ts",
     "src/controller/communityCommentsController.ts",
     "src/tests/controller/communityCommentsController.test.ts",
+    "src/controller/communityOverviewController.ts",
+    "src/tests/controller/communityOverviewController.test.ts",
     "src/controller/pinnedMessagesController.ts",
     "src/controller/groupOperationsController.ts",
     "src/tests/controller/groupOperationsController.test.ts",

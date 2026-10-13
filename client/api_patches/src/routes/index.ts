@@ -33,6 +33,7 @@ import * as MessageController from '../controller/messageController';
 import * as PinnedMessagesController from '../controller/pinnedMessagesController';
 import * as PollController from '../controller/pollController';
 import * as CommunityCommentsController from '../controller/communityCommentsController';
+import * as CommunityOverviewController from '../controller/communityOverviewController';
 import * as MiscController from '../controller/miscController';
 import * as NewsletterController from '../controller/newsletterController';
 import * as OrderController from '../controller/orderController';
@@ -1145,6 +1146,15 @@ routes.post(
 );
 
 //Communitys
+// The account's communities, their admins and joined groups (WinZapp's own:
+// see communityOverviewController.ts). The community actions below it are the
+// upstream routes, used as they are.
+routes.get(
+  '/api/:session/communities',
+  verifyToken,
+  statusConnection,
+  CommunityOverviewController.listCommunities
+);
 routes.post(
   '/api/:session/create-community',
   verifyToken,
