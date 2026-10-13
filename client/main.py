@@ -307,6 +307,7 @@ from main_window.chat_actions import ChatActionsMixin
 from main_window.message_actions import MessageActionsMixin
 from main_window.message_stars import MessageStarsMixin
 from main_window.community_comments import CommunityCommentsMixin
+from main_window.commerce import CommerceMixin
 from main_window.message_pins import MessagePinsMixin
 from main_window.quick_audio_devices import QuickAudioDevicesMixin
 from main_window.message_ack import MessageAckMixin
@@ -365,6 +366,7 @@ class MainWindow(
     MessageActionsMixin,
     MessageStarsMixin,
     CommunityCommentsMixin,
+    CommerceMixin,
     MessagePinsMixin,
     QuickAudioDevicesMixin,
     MessageAckMixin,

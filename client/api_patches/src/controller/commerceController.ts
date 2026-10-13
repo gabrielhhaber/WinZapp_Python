@@ -109,7 +109,15 @@ export async function commerceInPage(request: any): Promise<any> {
           cartEnabled = null;
         }
       }
-      return { business, cartEnabled };
+      // The chats with a business: where the client offers the catalog. Local
+      // to the page, so one answer covers every chat.
+      const sellers: string[] = [];
+      for (const chat of W.ChatStore.getModelsArray?.() ?? []) {
+        if (chat?.isGroup === true || chat?.contact?.isBusiness !== true) continue;
+        const id = text(chat.id?._serialized ?? chat.id?.toString?.());
+        if (/^\d+@(c\.us|lid)$/.test(id)) sellers.push(id);
+      }
+      return { business, cartEnabled, sellers };
     }
     case 'catalog': {
       const wid = seller(request.chatId);

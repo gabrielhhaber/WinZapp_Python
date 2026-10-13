@@ -51,6 +51,7 @@ Where to look (and where new code goes):
     pinned_messages          pinned-message overview and history navigation
     message_search           search inside the conversation
     chat_menu                conversations-list context menu and chat actions
+    commerce                 a business's catalog and cart, an order's window, a business account's tools
     chat_list_selection      chat multi-selection shared by every chat list (main, archived, locked)
     chat_selection           the conversations list's keys and bulk chat actions
     conversation_info        conversation data, profile, presence note

@@ -163,6 +163,7 @@ from ui.conversation_panel.message_accels import MessageAccelsMixin
 from ui.conversation_panel.bookmarks import BookmarksMixin
 from ui.conversation_panel.message_search import MessageSearchMixin
 from ui.conversation_panel.community_comments import CommunityCommentsPanelMixin
+from ui.conversation_panel.commerce import CommercePanelMixin
 from ui.conversation_panel.pinned_messages import PinnedMessagesMixin
 from ui.conversation_panel.reactions import ReactionsMixin
 from ui.conversation_panel.attachments import AttachmentsMixin
@@ -211,6 +212,7 @@ class ConversationsPanel(
     BookmarksMixin,
     MessageSearchMixin,
     CommunityCommentsPanelMixin,
+    CommercePanelMixin,
     PinnedMessagesMixin,
     ReactionsMixin,
     AttachmentsMixin,

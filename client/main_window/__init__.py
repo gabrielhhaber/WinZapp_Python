@@ -34,6 +34,7 @@ Where to look (and where new code goes):
     message_actions     edit, delete, forward, resend, mark played
     message_stars       verified WhatsApp star writes, remote star persistence
     message_pins        read the linked device pinned-message overview
+    commerce            business account and business chats, read in the background; cart setting
     media               media download, failed ids, base64 fetch, durations
     transcription_store saved voice-message transcriptions: store, delete
     transcription_background  model, CUDA and whisper.cpp downloads without a window

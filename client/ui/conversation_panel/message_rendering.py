@@ -16,6 +16,9 @@ from core.call_log import (
     call_log_label,
     is_call_log,
 )
+from core.commerce import (
+    ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, message_label as commerce_message_label,
+)
 from core.quote_recovery import RECOVERED_FROM_QUOTE
 from core.message_sender_labels import (
     hide_unnamed_sender_numbers_enabled, message_sender_label, quoted_sender_label,
@@ -147,6 +150,11 @@ class MessageRenderingMixin:
         # ── Call ─────────────────────────────────────────────────────────────
         if is_call_log(msg):
             return call_log_label(msg, i18n, self._format_duration)
+
+        # ── Order, or a seller's follow-up to one (core/commerce.py) ─────────
+        commerce_text = commerce_message_label(msg, i18n)
+        if commerce_text is not None:
+            return commerce_text
 
         # Text taken from a reply's quote (core/quote_recovery.py) is the
         # replier's word, not the author's: said so on the row, so a quote a
@@ -549,6 +557,9 @@ class MessageRenderingMixin:
             # builds before it stored, with no call data.
             CALL_LOG_MESSAGE_TYPE,
             LEGACY_CALL_LOG_TYPE,
+            # A cart sent to a business and the seller's follow-ups.
+            ORDER_MESSAGE_TYPE,
+            ORDER_UPDATE_MESSAGE_TYPE,
         )
 
         if msg_type not in allowed_types:

@@ -44,6 +44,7 @@ import wx
 from app_paths import _is_frozen
 from core.i18n import I18n
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
+from core.commerce import message_label as commerce_message_label
 from core.message_queue import PendingMessage
 from core.utils import looks_like_binary_blob, link_preview_text, is_voice_message
 
@@ -171,6 +172,11 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
 
     if not isinstance(msg_obj, dict):
         return i18n.t("notif_unsupported")
+
+    # ── Order, or a seller's follow-up to one (core/commerce.py) ──────────────
+    commerce_text = commerce_message_label(msg, i18n)
+    if commerce_text is not None:
+        return commerce_text
 
     # ── Text ──────────────────────────────────────────────────────────────────
     if msg_type == "conversation":

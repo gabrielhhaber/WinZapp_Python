@@ -273,6 +273,12 @@ class MessageMenuMixin:
             comments_item = menu.Append(wx.ID_ANY, i18n.t("community_comments_title"))
             self.Bind(wx.EVT_MENU, lambda e, m=msg: self._show_announcement_comments(m), comments_item)
 
+        # An order: its items and, for a business account that received it,
+        # the answer (ui/conversation_panel/commerce.py).
+        if self._can_view_order(msg):
+            order_item = menu.Append(wx.ID_ANY, i18n.t("commerce_view_order"))
+            self.Bind(wx.EVT_MENU, lambda e, m=msg: self._show_order(m), order_item)
+
         # Reply (Alt+R)
         if not is_call:
             reply_item = menu.Append(wx.ID_ANY, f"{i18n.t('reply_message')}\tAlt+R")

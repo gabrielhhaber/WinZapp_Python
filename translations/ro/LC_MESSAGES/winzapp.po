@@ -2338,6 +2338,7 @@ msgstr "Setări video pentru apeluri"
 #: client/ui/dialogs/community_create.py client/ui/dialogs/emoji_picker.py
 #: client/ui/dialogs/meta_ai_terms.py client/ui/dialogs/new_contact.py
 #: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
+#: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
 #: client/updater.py
 msgctxt "cancel"
@@ -2801,6 +2802,556 @@ msgstr "&Închide"
 msgctxt "close_conversation"
 msgid "&Close chat"
 msgstr "&Închide conversația"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/commerce.py
+msgctxt "commerce_business_tools"
+msgid "Business tools"
+msgstr "Instrumente pentru firme"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_add"
+msgid "&Add to cart..."
+msgstr "&Adăugați în coș..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_change"
+msgid "Change &quantity..."
+msgstr "Schimbați canti&tatea..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_clear"
+msgid "&Empty cart"
+msgstr "&Goliți coșul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_clear_confirm"
+msgid "Remove every product from the cart?"
+msgstr "Eliminați toate produsele din coș?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/cart_dialog.py
+msgctxt "commerce_cart_disabled"
+msgid ""
+"This business does not take orders by cart; the catalog can only be looked "
+"at."
+msgstr ""
+"Această firmă nu acceptă comenzi prin coș; catalogul poate fi doar "
+"consultat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+msgctxt "commerce_cart_empty"
+msgid "The cart is empty."
+msgstr "Coșul este gol."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_list"
+msgid "Car&t"
+msgstr "&Coș"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_note"
+msgid "&Message to the business (optional)"
+msgstr "&Mesaj pentru firmă (opțional)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_remove"
+msgid "&Remove from cart"
+msgstr "&Eliminați din coș"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_send"
+msgid "&Send order"
+msgstr "T&rimiteți comanda"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/cart_dialog.py
+#, python-brace-format
+msgctxt "commerce_cart_send_confirm"
+msgid "Send this order to {name}? {summary}"
+msgstr "Trimiteți această comandă către {name}? {summary}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/commerce.py
+msgctxt "commerce_cart_setting_failed"
+msgid "The cart setting could not be changed."
+msgstr "Setarea coșului nu a putut fi modificată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/commerce.py
+msgctxt "commerce_cart_setting_menu"
+msgid "Accept carts in my catalog"
+msgstr "Acceptați coșuri în catalogul meu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_setting_off"
+msgid "Your catalog no longer accepts carts."
+msgstr "Catalogul dvs. nu mai acceptă coșuri."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_cart_setting_on"
+msgid "Your catalog now accepts carts."
+msgstr "Catalogul dvs. acceptă acum coșuri."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/commerce.py
+msgctxt "commerce_catalog_menu"
+msgid "Business catalog and cart..."
+msgstr "Catalogul și coșul firmei..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/cart_dialog.py
+#, python-brace-format
+msgctxt "commerce_catalog_title"
+msgid "Catalog and cart - {name}"
+msgstr "Catalog și coș - {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/commerce.py
+msgctxt "commerce_create_order_menu"
+msgid "Create an order for this contact..."
+msgstr "Creați o comandă pentru acest contact..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/order_create_dialog.py
+#, python-brace-format
+msgctxt "commerce_create_order_title"
+msgid "New order for {name}"
+msgstr "Comandă nouă pentru {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+#: client/ui/dialogs/order_create_dialog.py
+#, python-brace-format
+msgctxt "commerce_each"
+msgid "{amount} each"
+msgstr "{amount} bucata"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+#, python-brace-format
+msgctxt "commerce_estimated_total"
+msgid "estimated total {amount}"
+msgstr "total estimat {amount}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/order_create_dialog.py
+msgctxt "commerce_item_add"
+msgid "&Add item"
+msgstr "&Adăugați articolul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_item_name"
+msgid "&Name"
+msgstr "&Nume"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_item_name_required"
+msgid "Type the name of the item."
+msgstr "Scrieți numele articolului."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_item_price"
+msgid "Unit &price"
+msgstr "&Preț unitar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_item_price_invalid"
+msgid "Type a price greater than zero, such as 12.50."
+msgstr "Scrieți un preț mai mare decât zero, de exemplu 12,50."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_item_quantity"
+msgid "&Quantity"
+msgstr "&Cantitate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/order_create_dialog.py
+msgctxt "commerce_item_title"
+msgid "Item of the order"
+msgstr "Articol al comenzii"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+#, python-brace-format
+msgctxt "commerce_items_many"
+msgid "{count} items"
+msgstr "{count} articole"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+msgctxt "commerce_items_one"
+msgid "1 item"
+msgstr "1 articol"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_new_order_add"
+msgid "&Add item..."
+msgstr "A&dăugați un articol..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/order_create_dialog.py
+#, python-brace-format
+msgctxt "commerce_new_order_confirm"
+msgid "Send {name} an order with {count} items, total {amount}?"
+msgstr "Trimiteți către {name} o comandă cu {count} articole, total {amount}?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_new_order_empty"
+msgid "The order has no items yet."
+msgstr "Comanda nu are încă articole."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/order_create_dialog.py
+msgctxt "commerce_new_order_items"
+msgid "&Items of the new order"
+msgstr "&Articolele noii comenzi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_new_order_remove"
+msgid "&Remove item"
+msgstr "&Eliminați articolul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_new_order_send"
+msgid "&Send order"
+msgstr "T&rimiteți comanda"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_new_order_sent"
+msgid "Order sent."
+msgstr "Comandă trimisă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "commerce_new_order_summary"
+msgid "Items: {count}, total {amount}."
+msgstr "Articole: {count}, total {amount}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_new_order_unconfirmed"
+msgid ""
+"The order may or may not have been sent. Check the chat before writing it "
+"again."
+msgstr ""
+"Comanda poate să fi fost trimisă sau nu. Verificați conversația înainte de a"
+" o reface."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/cart_dialog.py
+msgctxt "commerce_no_catalog"
+msgid "This business has no catalog."
+msgstr "Această firmă nu are catalog."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_not_business"
+msgid "Only a WhatsApp Business account can answer an order it received."
+msgstr "Numai un cont WhatsApp Business poate răspunde la o comandă primită."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_accept"
+msgid "&Accept order"
+msgstr "A&cceptați comanda"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_accepted"
+msgid "Order accepted."
+msgstr "Comandă acceptată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/order_dialog.py
+msgctxt "commerce_order_answer_failed"
+msgid ""
+"The answer could not be sent: WhatsApp refused it or the connection failed."
+msgstr ""
+"Răspunsul nu a putut fi trimis: WhatsApp a refuzat sau conexiunea a eșuat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/order_dialog.py
+msgctxt "commerce_order_answer_unconfirmed"
+msgid ""
+"The answer was sent, but the order does not show it yet. Refresh in a moment"
+" to check."
+msgstr ""
+"Răspunsul a fost trimis, dar comanda nu îl arată încă. Actualizați peste "
+"câteva momente pentru a verifica."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_decline"
+msgid "D&ecline order..."
+msgstr "&Refuzați comanda..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_decline_note"
+msgid "Message to the customer about the refusal (optional):"
+msgstr "Mesaj pentru client despre refuz (opțional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_declined"
+msgid "Order declined."
+msgstr "Comandă refuzată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_details"
+msgid "&Details"
+msgstr "&Detalii"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_items"
+msgid "&Items of the order"
+msgstr "&Articolele comenzii"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/order_dialog.py
+#, python-brace-format
+msgctxt "commerce_order_note"
+msgid "Message: {note}"
+msgstr "Mesaj: {note}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_received"
+msgid "Order received"
+msgstr "Comandă primită"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+#, python-brace-format
+msgctxt "commerce_order_reference"
+msgid "reference {reference}"
+msgstr "referință {reference}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/cart_dialog.py
+msgctxt "commerce_order_send_unconfirmed"
+msgid ""
+"The order may or may not have been sent. Check the chat before trying again."
+msgstr ""
+"Comanda poate să fi fost trimisă sau nu. Verificați conversația înainte de a"
+" încerca din nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_sent"
+msgid "Cart sent"
+msgstr "Coș trimis"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/cart_dialog.py
+msgctxt "commerce_order_sent_done"
+msgid "Order sent."
+msgstr "Comandă trimisă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/order_dialog.py
+#, python-brace-format
+msgctxt "commerce_order_state"
+msgid "State: {state}"
+msgstr "Stare: {state}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_state_accepted"
+msgid "accepted"
+msgstr "acceptată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_state_declined"
+msgid "declined"
+msgstr "refuzată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_state_waiting"
+msgid "waiting for the business's answer"
+msgstr "în așteptarea răspunsului firmei"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/order_dialog.py
+msgctxt "commerce_order_status_note"
+msgid "Message to the customer about this status (optional):"
+msgstr "Mesaj pentru client despre această stare (opțional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/order_dialog.py
+msgctxt "commerce_order_status_prompt"
+msgid "New status of the order:"
+msgstr "Noua stare a comenzii:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_status_sent"
+msgid "WhatsApp accepted the status update for sending."
+msgstr "WhatsApp a acceptat actualizarea de stare pentru trimitere."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/order_dialog.py
+#, python-brace-format
+msgctxt "commerce_order_title"
+msgid "Order - {name}"
+msgstr "Comandă - {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_unavailable"
+msgid ""
+"This order could not be read. Open the chat at this message and try again."
+msgstr ""
+"Această comandă nu a putut fi citită. Deschideți conversația la acest mesaj "
+"și încercați din nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+msgctxt "commerce_order_update"
+msgid "Order update"
+msgstr "Actualizare de comandă"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_order_update_status"
+msgid "&Update status..."
+msgstr "Actualizați &starea..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+msgctxt "commerce_out_of_stock"
+msgid "out of stock"
+msgstr "indisponibil"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+#, python-brace-format
+msgctxt "commerce_payment"
+msgid "payment: {status}"
+msgstr "plată: {status}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_payment_canceled"
+msgid "canceled"
+msgstr "anulată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_payment_captured"
+msgid "received"
+msgstr "primită"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_payment_failed"
+msgid "failed"
+msgstr "eșuată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_payment_pending"
+msgid "pending"
+msgstr "în așteptare"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_product_unavailable"
+msgid "This product is no longer in the catalog."
+msgstr "Acest produs nu mai este în catalog."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/cart_dialog.py
+#, python-brace-format
+msgctxt "commerce_products_count"
+msgid "Products: {count}."
+msgstr "Produse: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_products_list"
+msgid "&Products in the catalog"
+msgstr "&Produsele din catalog"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_quantity_label"
+msgid "Quantity:"
+msgstr "Cantitate:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "commerce_quantity_prompt"
+msgid "How many of {name}?"
+msgstr "Câte bucăți din {name}?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_quantity_title"
+msgid "Quantity"
+msgstr "Cantitate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_refresh"
+msgid "Re&fresh"
+msgstr "Act&ualizați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_canceled"
+msgid "Canceled"
+msgstr "Anulată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_completed"
+msgid "Completed"
+msgstr "Finalizată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_confirmed"
+msgid "Confirmed"
+msgstr "Confirmată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_delayed"
+msgid "Delayed"
+msgstr "Întârziată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_delivered"
+msgid "Delivered"
+msgstr "Livrată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_failed"
+msgid "Failed"
+msgstr "Eșuată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_out_for_delivery"
+msgid "Out for delivery"
+msgstr "În curs de livrare"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_partially_shipped"
+msgid "Partially shipped"
+msgstr "Expediată parțial"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_payment_requested"
+msgid "Payment requested"
+msgstr "Plată solicitată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_pending"
+msgid "Pending"
+msgstr "În așteptare"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_preparing_to_ship"
+msgid "Preparing to ship"
+msgstr "Se pregătește pentru expediere"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_processing"
+msgid "Processing"
+msgstr "În procesare"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_refunded"
+msgid "Refunded"
+msgstr "Rambursată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "commerce_status_shipped"
+msgid "Shipped"
+msgstr "Expediată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "commerce_subtotal"
+msgid "subtotal {amount}"
+msgstr "subtotal {amount}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+#, python-brace-format
+msgctxt "commerce_total"
+msgid "total {amount}"
+msgstr "total {amount}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/cart_dialog.py
+msgctxt "commerce_unavailable"
+msgid "WhatsApp could not be asked. Check the connection and try again."
+msgstr ""
+"WhatsApp nu a putut fi interogat. Verificați conexiunea și încercați din "
+"nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+msgctxt "commerce_unnamed_product"
+msgid "Unnamed product"
+msgstr "Produs fără nume"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "commerce_view_order"
+msgid "View order..."
+msgstr "Vedeți comanda..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/common_groups_tab.py
@@ -3587,11 +4138,12 @@ msgctxt "deactivate_all_sounds"
 msgid "Disable all"
 msgstr "Dezactivează toate"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
 #: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/main_window/session_lifecycle.py
 #: client/ui/conversation_panel/audio_playback.py
 #: client/ui/conversation_panel/formatting.py
+#: client/ui/dialogs/order_create_dialog.py client/ui/dialogs/order_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/transcription_tab.py
 msgctxt "decimal_separator"
 msgid "."
@@ -5396,7 +5948,8 @@ msgid "list selection"
 msgstr "selectare din listă"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/calls_panel.py
-#: client/ui/dialogs/community_comments.py
+#: client/ui/dialogs/cart_dialog.py client/ui/dialogs/community_comments.py
+#: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 msgctxt "loading"
 msgid "Loading..."
@@ -13653,6 +14206,7 @@ msgstr ""
 #: client/main_window/calls.py client/main_window/chat_list.py
 #: client/main_window/chats_store.py client/main_window/groups.py
 #: client/main_window/shortcuts.py client/status_tab/status_rules.py
+#: client/ui/conversation_panel/commerce.py
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py

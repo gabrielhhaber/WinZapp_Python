@@ -404,6 +404,9 @@ class ConversationNavigationMixin:
         # Subscribe to presence events for this contact so last-seen and typing
         # indicators arrive via onpresencechanged Socket.IO events.
         self.main_window.subscribe_presence(jid)
+        # Which chats are with a business, and whether this account is one:
+        # read in the background, at most once in a while (main_window/commerce.py).
+        self.main_window.refresh_commerce_account()
         # Background: cache group participants for @mention suggestions
         if is_group:
             threading.Thread(

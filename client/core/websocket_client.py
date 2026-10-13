@@ -9,6 +9,9 @@ from core.community_comments import comment_count
 from core.api_client import api_get, api_post
 from core.connection_lifecycle import socket_client_is_current
 from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_creator, call_log_payload
+from core.commerce import (
+    ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, order_payload, order_update_payload,
+)
 from core.i18n import I18n
 from core.message_edit import MESSAGE_EDIT, clean_message_id, server_marks_edited
 from core.message_stars import remote_star_state
@@ -3005,6 +3008,15 @@ class WebSocketClient:
             # in the chat (core/call_log.py). With no branch here it reached
             # the list as an unhandled type with every call field dropped.
             message_content = {CALL_LOG_MESSAGE_TYPE: call_log_payload(wpp_msg)}
+        elif msg_type == "order":
+            # A cart sent to a business (core/commerce.py). With no branch
+            # here it was an unmapped type and never reached the list.
+            message_content = {ORDER_MESSAGE_TYPE: order_payload(wpp_msg)}
+        elif msg_type == "interactive" and order_update_payload(wpp_msg) is not None:
+            # The seller's follow-up to an order. Any other interactive
+            # message keeps going through the handling it always had.
+            message_content = {ORDER_UPDATE_MESSAGE_TYPE: order_update_payload(wpp_msg)}
+            msg_type = "order_update"
         elif msg_type == "gp2":
             # Group membership/settings notifications (join, leave, removed,
             # promoted, subject/description/picture change, …). WPPConnect
@@ -3073,6 +3085,8 @@ class WebSocketClient:
             "location": "locationMessage",
             "liveLocation": "liveLocationMessage",
             "call_log": CALL_LOG_MESSAGE_TYPE,
+            "order": ORDER_MESSAGE_TYPE,
+            "order_update": ORDER_UPDATE_MESSAGE_TYPE,
         }
         mapped_type = type_mapping.get(msg_type, msg_type)
         if _promoted_to_extended_text:

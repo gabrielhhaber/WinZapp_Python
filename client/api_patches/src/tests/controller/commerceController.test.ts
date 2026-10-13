@@ -14,7 +14,7 @@ const collection = (items: any[]) => ({ getModelsArray: () => items, get length(
 // showed them: prices are strings of digits in thousandths, a cart's total is
 // a number, and the library's own cart functions change the cart in place.
 function fakePage(options: { smb?: boolean; cartEnabled?: boolean; catalog?: boolean; products?: any[];
-                             messages?: Record<string, any>; knownAs?: string } = {}) {
+                             messages?: Record<string, any>; knownAs?: string; chats?: any[] } = {}) {
   const items: any[] = [];
   const cart = { cartItemCollection: collection(items), get itemCount() { return items.reduce((n, i) => n + i.quantity, 0); },
                  get total() { return items.length ? items.reduce((n, i) => n + i.quantity * parseInt(i.priceAmount1000, 10), 0) : null; },
@@ -47,7 +47,8 @@ function fakePage(options: { smb?: boolean; cartEnabled?: boolean; catalog?: boo
     order: { accept: jest.fn(async () => undefined), decline: jest.fn(async () => undefined), update: jest.fn(async () => undefined) },
     whatsapp: {
       WidFactory: { createWid: wid },
-      ChatStore: { get: (value: any) => (value.toString() === known ? { id: value } : undefined) },
+      ChatStore: { get: (value: any) => (value.toString() === known ? { id: value } : undefined),
+                   getModelsArray: () => options.chats ?? [] },
       CartStore: { findCart: () => cart },
       MsgStore: { get: (id: string) => options.messages?.[id] },
       UserPrefs: { getMaybeMePnUser: () => wid('5511999999999@c.us') },
@@ -78,13 +79,25 @@ async function inPage(page: ReturnType<typeof fakePage>, request: Record<string,
 describe('who the account is', () => {
   test('a consumer account is told so, and its own cart setting is not read', async () => {
     const page = fakePage();
-    expect(await inPage(page, { action: 'account' })).toEqual({ business: false, cartEnabled: null });
+    expect(await inPage(page, { action: 'account' })).toEqual({ business: false, cartEnabled: null, sellers: [] });
     expect(page.WPP.whatsapp.BusinessProfileStore.fetchBizProfile).not.toHaveBeenCalled();
   });
 
   test('a business account also learns whether its catalog takes carts', async () => {
     expect(await inPage(fakePage({ smb: true, cartEnabled: false }), { action: 'account' }))
-      .toEqual({ business: true, cartEnabled: false });
+      .toEqual({ business: true, cartEnabled: false, sellers: [] });
+  });
+
+  test('the chats with a business are listed by id, and nothing else is', async () => {
+    const chats = [
+      { id: { _serialized: SELLER }, contact: { isBusiness: true } },
+      { id: { _serialized: '777@lid' }, contact: { isBusiness: true } },
+      { id: { _serialized: '5511900000009@c.us' }, contact: { isBusiness: false } },
+      { id: { _serialized: '111-0@g.us' }, isGroup: true, contact: { isBusiness: true } },
+      { id: { _serialized: 'status@broadcast' }, contact: { isBusiness: true } },
+      { id: { _serialized: '5511900000008@c.us' } },
+    ];
+    expect((await inPage(fakePage({ chats }), { action: 'account' })).sellers).toEqual([SELLER, '777@lid']);
   });
 
   test('a WhatsApp Web without the platform module is not a business', async () => {

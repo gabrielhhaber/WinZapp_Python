@@ -99,6 +99,9 @@ class ChatMenuMixin:
                 lambda e, j=jid: self._on_menu_copy_number(j),
                 copy_num_item,
             )
+            if not is_self:
+                # A business's catalog and cart; a business account's own tools.
+                self._append_commerce_items(menu, chat)
 
         menu.AppendSeparator()
 
