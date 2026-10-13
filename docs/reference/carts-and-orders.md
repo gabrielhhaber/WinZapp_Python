@@ -101,6 +101,14 @@ around both:
   the call, for one that translates and adds the seller's id; with that swap
   `WPP.order.get()` read the real order, and the reference was put back.
 
+A second order was then sent, with the same leave, through the page function
+as it ships after those two changes: it answered `sent: true` with the id of
+the message that was in the chat (about a second after the call), and reading
+it back gave the order whole (own order, state 1, the note, the product with
+name, price and quantity, subtotal and total, `canAnswer` and `canUpdate`
+false). A seller's action on it answered `not_business`. It was deleted for
+everyone like the first.
+
 ## Cancelling, as WhatsApp Web does it
 
 Read from the order drawer's own program text
@@ -122,8 +130,6 @@ order" with its note and the status list for a business account.
   account and an order received);
 - an order update (`interactive`, native flow) as it arrives: the account had
   none. Its fields come from `WAWebOrderStatus` and `WAWebOrderDetails`;
-- the route's new handling of `WPP.cart.submit()` on a real send (the fault
-  was found by the one order sent; a second was not sent to try the fix).
 
 So the code claims no more than it can read back:
 
