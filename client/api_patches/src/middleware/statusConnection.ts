@@ -135,8 +135,10 @@ export default async function statusConnection(
             // A failed lookup is not proof that the number is missing: the
             // browser context can be destroyed mid-call. Reporting "não
             // existe" here sends callers looking for a typo that is not there.
+            // 408, not a 5xx: sending.py classes >= 500 as ambiguous and drops
+            // the message, but nothing was sent yet, so a retry is safe.
             req.logger.error(error);
-            return res.status(502).json({
+            return res.status(408).json({
               response: null,
               status: 'Connected',
               message: 'Não foi possível consultar o número.',

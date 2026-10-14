@@ -184,7 +184,7 @@ POPRAWKI
 
 - Zweryfikowane konta firmowe WhatsApp (banki, aplikacje płatnicze, dostawcy usług), których nie masz zapisanych w kontaktach, były widoczne na liście czatów tylko z numerem telefonu. Teraz pokazują zweryfikowaną nazwę firmy, tak jak w WhatsApp. Nazwa zapisana w kontaktach nadal ma pierwszeństwo.
 
-- Zaktualizowano WPPConnect Server do wersji 2.10.55. Oprócz poprawek biblioteki dotyczących żądań, na które odpowiadano dwukrotnie: gdy WhatsApp Web nie może sprawdzić numeru (na przykład podczas przeładowania strony), wysyłanie informuje teraz, że sprawdzenie się nie udało, zamiast błędnie twierdzić, że numer nie istnieje; jeśli zobaczysz ten komunikat, spróbuj ponownie za chwilę. Ten sam odbiorca w jednym żądaniu jest też sprawdzany tylko raz. Jeśli WinZapp zaproponuje aktualizację WPPConnect przy uruchomieniu, zaakceptuj ją, aby zainstalować nową wersję.
+- Zaktualizowano WPPConnect Server do wersji 2.10.55. Oprócz poprawek biblioteki dotyczących żądań, na które odpowiadano dwukrotnie: gdy WhatsApp Web nie może sprawdzić numeru (na przykład podczas przeładowania strony), wysyłanie jest teraz ponawiane, zamiast błędnie twierdzić, że numer nie istnieje. Ten sam odbiorca w jednym żądaniu jest też sprawdzany tylko raz. Jeśli WinZapp zaproponuje aktualizację WPPConnect przy uruchomieniu, zaakceptuj ją, aby zainstalować nową wersję.
 
 - Wylogowanie z sesji, która została niedokończona (na przykład konta, które nigdy nie zakończyło parowania), dostaje teraz odpowiedź zamiast kończyć się po cichu niepowodzeniem.
 

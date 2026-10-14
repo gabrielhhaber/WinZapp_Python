@@ -184,7 +184,7 @@ DÜZELTMELER
 
 - Kişilerinize kaydetmediğiniz doğrulanmış WhatsApp Business hesapları (bankalar, ödeme uygulamaları, hizmet şirketleri) sohbet listesinde yalnızca telefon numarasıyla görünüyordu. Artık WhatsApp'ta olduğu gibi işletmenin doğrulanmış adıyla görünür. Kişilerinizde kayıtlı bir ad yine önceliklidir.
 
-- WPPConnect Server 2.10.55 sürümüne güncellendi. İki kez yanıtlanan isteklere ilişkin kütüphane düzeltmelerine ek olarak, WhatsApp Web bir numarayı sorgulayamadığında (örneğin sayfa yeniden yüklenirken) gönderme artık numaranın yok olduğunu yanlış söylemek yerine sorgulamanın başarısız olduğunu söyler; bu iletiyi görürseniz birkaç saniye sonra yeniden deneyin. Tek bir istekteki aynı alıcı da yalnızca bir kez sorgulanır. WinZapp başlangıçta WPPConnect güncellemesini önerirse, yeni sürümü yüklemek için kabul edin.
+- WPPConnect Server 2.10.55 sürümüne güncellendi. İki kez yanıtlanan isteklere ilişkin kütüphane düzeltmelerine ek olarak, WhatsApp Web bir numarayı sorgulayamadığında (örneğin sayfa yeniden yüklenirken) gönderme artık numaranın yok olduğunu yanlış söylemek yerine yeniden denenir. Tek bir istekteki aynı alıcı da yalnızca bir kez sorgulanır. WinZapp başlangıçta WPPConnect güncellemesini önerirse, yeni sürümü yüklemek için kabul edin.
 
 - Yarım kalmış bir oturumdan (örneğin eşleştirmesi hiç tamamlanmamış bir hesap) çıkış yapmak artık sessizce başarısız olmak yerine bir yanıt alır.
 

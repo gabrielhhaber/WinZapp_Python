@@ -184,7 +184,7 @@ CORRECCIONES
 
 - Las cuentas de empresa verificadas de WhatsApp (bancos, aplicaciones de pago, compañías de servicios) que no tienes guardadas en contactos aparecían en la lista de chats solo con el número de teléfono. Ahora aparecen con el nombre verificado de la empresa, como en WhatsApp. Un nombre guardado en tus contactos sigue teniendo prioridad.
 
-- WPPConnect Server actualizado a la 2.10.55. Además de las correcciones de la biblioteca para peticiones respondidas dos veces, cuando WhatsApp Web no puede consultar un número (por ejemplo, mientras la página se recarga), el envío ahora dice que la consulta falló en lugar de decir, por error, que el número no existe; si ve ese aviso, inténtelo de nuevo en unos instantes. Un mismo destinatario en una sola petición también se consulta una sola vez. Si WinZapp ofrece la actualización de WPPConnect al iniciar, acéptela para instalar la nueva versión.
+- WPPConnect Server actualizado a la 2.10.55. Además de las correcciones de la biblioteca para peticiones respondidas dos veces, cuando WhatsApp Web no puede consultar un número (por ejemplo, mientras la página se recarga), el envío ahora se reintenta en lugar de decir, por error, que el número no existe. Un mismo destinatario en una sola petición también se consulta una sola vez. Si WinZapp ofrece la actualización de WPPConnect al iniciar, acéptela para instalar la nueva versión.
 
 - Cerrar una sesión que quedó a medias (por ejemplo, una cuenta que nunca terminó de vincularse) ahora recibe una respuesta, en lugar de fallar en silencio.
 

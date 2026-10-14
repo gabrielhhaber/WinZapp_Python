@@ -184,7 +184,7 @@ FIXES
 
 - Verified WhatsApp Business accounts (banks, payment apps, utilities) that you have not saved as contacts showed only their phone number in the chat list. They now show the business's verified name, as in WhatsApp. A name saved in your contacts still takes precedence.
 
-- WPPConnect Server updated to 2.10.55. Besides upstream fixes for requests that were answered twice, when WhatsApp Web could not look a number up (for example while the page was reloading), sending now says the lookup failed instead of wrongly saying the number does not exist; if you see that message, try again in a moment. The same recipient in one request is also looked up only once. If WinZapp offers the WPPConnect update at startup, accept it to install the new version.
+- WPPConnect Server updated to 2.10.55. Besides upstream fixes for requests that were answered twice, when WhatsApp Web could not look a number up (for example while the page was reloading), the send is now tried again instead of wrongly reporting that the number does not exist. The same recipient in one request is also looked up only once. If WinZapp offers the WPPConnect update at startup, accept it to install the new version.
 
 - Logging out of a session that was left unfinished (for example an account that never finished pairing) now gets an answer instead of failing silently.
 
