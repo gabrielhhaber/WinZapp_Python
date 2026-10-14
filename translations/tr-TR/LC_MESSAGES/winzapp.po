@@ -2926,6 +2926,12 @@ msgstr "Katalog ve sepet - {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/commerce.py
+msgctxt "commerce_catalog_unavailable"
+msgid "This chat is not with a business that has a catalog."
+msgstr "Bu sohbet kataloğu olan bir işletmeyle değil."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/commerce.py
 msgctxt "commerce_create_order_menu"
 msgid "Create an order for this contact..."
 msgstr "Bu kişi için sipariş oluştur..."
@@ -3087,6 +3093,16 @@ msgid ""
 msgstr ""
 "Yanıt gönderildi, ancak sipariş henüz bunu göstermiyor. Denetlemek için "
 "birazdan yenileyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/commerce.py
+msgctxt "commerce_order_create_unavailable"
+msgid ""
+"Orders are created from a WhatsApp Business account, in a chat with one "
+"contact."
+msgstr ""
+"Siparişler bir WhatsApp Business hesabından, tek bir kişiyle sohbette "
+"oluşturulur."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_order_decline"
@@ -8848,6 +8864,12 @@ msgstr "Alt+7: kilitli sohbetleri aç"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_alt8_communities_label"
+msgid "Alt+8: open communities"
+msgstr "Alt+8: toplulukları aç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_alt_c_label"
 msgid "Alt+C: show message text in popup"
 msgstr "Alt+C: mesaj metnini açılır pencerede göster"
@@ -8888,6 +8910,12 @@ msgstr "Alt+.: oynatma hızını artır"
 msgctxt "shortcut_alt_r_label"
 msgid "Alt+R: reply to message"
 msgstr "Alt+R: mesajı yanıtla"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_alt_shift_b_catalog_label"
+msgid "Alt+Shift+B: in a chat with a business, its catalog and cart"
+msgstr "Alt+Shift+B: bir işletmeyle sohbette, işletmenin kataloğu ve sepet"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -9434,6 +9462,16 @@ msgstr "Ctrl+Shift+L: sohbeti temizle"
 msgctxt "shortcut_ctrl_shift_m_label"
 msgid "Ctrl+Shift+M: mark as read/unread"
 msgstr "Ctrl+Shift+M: okundu/okunmadı olarak işaretle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_ctrl_shift_n_order_label"
+msgid ""
+"Ctrl+Shift+N: on a WhatsApp Business account, create an order for the "
+"contact of the chat"
+msgstr ""
+"Ctrl+Shift+N: WhatsApp Business hesabında, sohbetteki kişi için sipariş "
+"oluştur"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py

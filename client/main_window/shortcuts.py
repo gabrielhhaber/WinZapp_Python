@@ -31,6 +31,7 @@ class ShortcutsMixin:
         self.ID_CTRL_ALT_SHIFT_P = wx.NewIdRef()
         self.ID_CTRL_ALT_SHIFT_H = wx.NewIdRef()
         self.ID_CTRL_ALT_SHIFT_G = wx.NewIdRef()
+        self.ID_COMMUNITIES      = wx.NewIdRef()
 
         # navigation_panel's "&Navegação principal" label mnemonic is meant
         # to redirect Alt+N to nav_list, but that native StaticText-mnemonic
@@ -64,6 +65,9 @@ class ShortcutsMixin:
             # output, G for recording, the pair side by side on the keyboard.
             (wx.ACCEL_CTRL | wx.ACCEL_ALT | wx.ACCEL_SHIFT, ord('H'), self.ID_CTRL_ALT_SHIFT_H),
             (wx.ACCEL_CTRL | wx.ACCEL_ALT | wx.ACCEL_SHIFT, ord('G'), self.ID_CTRL_ALT_SHIFT_G),
+            # After the seven panels: the communities window (it is otherwise
+            # reached through New conversation).
+            (wx.ACCEL_ALT,    ord('8'),    self.ID_COMMUNITIES),
         ])
         self.SetAcceleratorTable(accel_tbl)
         self.Bind(wx.EVT_MENU, self.on_alt_1,       id=self.ID_ALT_1)
@@ -80,8 +84,15 @@ class ShortcutsMixin:
         self.Bind(wx.EVT_MENU, self._on_global_toggle_audio_playback, id=self.ID_CTRL_ALT_SHIFT_P)
         self.Bind(wx.EVT_MENU, self._on_quick_output_devices, id=self.ID_CTRL_ALT_SHIFT_H)
         self.Bind(wx.EVT_MENU, self._on_quick_input_devices, id=self.ID_CTRL_ALT_SHIFT_G)
+        self.Bind(wx.EVT_MENU, self._on_global_communities, id=self.ID_COMMUNITIES)
         from ui.shortcut_bindings import refresh_mnemonics
         refresh_mnemonics(self)
+
+    def _on_global_communities(self, event=None):
+        """Alt+8: the communities window, from anywhere in the window
+        (it is otherwise reached through New conversation)."""
+        from ui.dialogs.communities import show_communities
+        show_communities(self, self)
 
     def _on_alt_nav(self, event):
         """Alt+N (or the localized equivalent): focus the main navigation list."""

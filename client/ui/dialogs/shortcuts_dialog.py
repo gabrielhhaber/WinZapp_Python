@@ -100,6 +100,7 @@ class ShortcutsDialog(wx.Dialog):
             if getattr(vault, "configured", False):
                 lines.append(i18n.t("shortcut_ctrl_shift_k_vault_label"))
         lines += [
+            i18n.t("shortcut_alt8_communities_label"),
             i18n.t("shortcut_alt_nav_label").format(letter=nav_letter),
             i18n.t("shortcut_ctrl_comma_label"),
             i18n.t("shortcut_f1_label"),
@@ -138,6 +139,8 @@ class ShortcutsDialog(wx.Dialog):
             i18n.t("shortcut_ctrl_r_label"),
             i18n.t("shortcut_ctrl_shift_g_label"),
             i18n.t("shortcut_ctrl_shift_h_label"),
+            i18n.t("shortcut_alt_shift_b_catalog_label"),
+            i18n.t("shortcut_ctrl_shift_n_order_label"),
             # Also listed under "ações em massa" below, the way
             # shortcut_shift_home_label/shortcut_shift_end_label already are:
             # Space's primary meaning is playing the focused audio or video,

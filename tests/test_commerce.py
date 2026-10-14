@@ -542,7 +542,7 @@ def menu_of(panel, monkeypatch):
 
 def test_a_consumer_sees_the_catalog_only_in_a_chat_with_a_business(monkeypatch):
     consumer = Account(False, None, frozenset())
-    assert menu_of(_ChatPanel(consumer, seller=True), monkeypatch) == ["Business catalog and cart..."]
+    assert menu_of(_ChatPanel(consumer, seller=True), monkeypatch) == ["Business catalog and cart...	Alt+Shift+B"]
     assert menu_of(_ChatPanel(consumer, seller=False), monkeypatch) == []
     assert menu_of(_ChatPanel(None, seller=False), monkeypatch) == []  # no reading yet: nothing offered
 
@@ -550,13 +550,13 @@ def test_a_consumer_sees_the_catalog_only_in_a_chat_with_a_business(monkeypatch)
 def test_a_business_account_gets_its_own_tools_and_nobody_else_does(monkeypatch):
     items = menu_of(_ChatPanel(Account(True, True, frozenset())), monkeypatch)
     [(label, tools)] = items
-    assert label == "Business tools" and tools[0] == "Create an order for this contact..."
+    assert label == "Business tools" and tools[0] == "Create an order for this contact...	Ctrl+Shift+N"
     text, check = tools[1]
     assert text == "Accept carts in my catalog"
     check.Check.assert_called_once_with(True)
     # A business whose own setting could not be read is not shown a guess.
     [(_label, tools)] = menu_of(_ChatPanel(Account(True, None, frozenset())), monkeypatch)
-    assert tools == ["Create an order for this contact..."]
+    assert tools == ["Create an order for this contact...	Ctrl+Shift+N"]
 
 
 def test_an_order_opens_from_its_message_in_a_one_to_one_chat(monkeypatch):

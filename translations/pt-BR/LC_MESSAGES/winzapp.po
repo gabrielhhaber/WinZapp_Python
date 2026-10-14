@@ -2943,6 +2943,12 @@ msgstr "Catálogo e carrinho - {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/commerce.py
+msgctxt "commerce_catalog_unavailable"
+msgid "This chat is not with a business that has a catalog."
+msgstr "Esta conversa não é com uma empresa que tenha catálogo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/commerce.py
 msgctxt "commerce_create_order_menu"
 msgid "Create an order for this contact..."
 msgstr "Criar pedido para este contato..."
@@ -3104,6 +3110,16 @@ msgid ""
 msgstr ""
 "A resposta foi enviada, mas o pedido ainda não a mostra. Atualize em "
 "instantes para conferir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/commerce.py
+msgctxt "commerce_order_create_unavailable"
+msgid ""
+"Orders are created from a WhatsApp Business account, in a chat with one "
+"contact."
+msgstr ""
+"Pedidos são criados numa conta do WhatsApp Business, numa conversa com um "
+"contato."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_order_decline"
@@ -8915,6 +8931,12 @@ msgstr "Alt+7: abrir conversas trancadas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_alt8_communities_label"
+msgid "Alt+8: open communities"
+msgstr "Alt+8: abrir comunidades"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_alt_c_label"
 msgid "Alt+C: show message text in popup"
 msgstr "Alt+C: mostrar texto da mensagem em popup"
@@ -8955,6 +8977,13 @@ msgstr "Alt+.: aumentar velocidade de reprodução"
 msgctxt "shortcut_alt_r_label"
 msgid "Alt+R: reply to message"
 msgstr "Alt+R: responder à mensagem"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_alt_shift_b_catalog_label"
+msgid "Alt+Shift+B: in a chat with a business, its catalog and cart"
+msgstr ""
+"Alt+Shift+B: numa conversa com uma empresa, o catálogo e o carrinho dela"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -9504,6 +9533,16 @@ msgstr "Ctrl+Shift+L: limpar conversa"
 msgctxt "shortcut_ctrl_shift_m_label"
 msgid "Ctrl+Shift+M: mark as read/unread"
 msgstr "Ctrl+Shift+M: marcar como lida/não lida"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_ctrl_shift_n_order_label"
+msgid ""
+"Ctrl+Shift+N: on a WhatsApp Business account, create an order for the "
+"contact of the chat"
+msgstr ""
+"Ctrl+Shift+N: numa conta do WhatsApp Business, criar pedido para o contato "
+"da conversa"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py

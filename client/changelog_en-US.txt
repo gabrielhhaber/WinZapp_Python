@@ -4,6 +4,8 @@ This release brings transcription of voice messages on your own computer, with n
 
 WHAT'S NEW
 
+- New shortcuts, each one changeable on the Keyboard shortcuts tab of Settings: Alt+8 opens communities from anywhere in the window; Alt+Shift+B opens the catalog and cart of the business in the selected or open chat; and on a WhatsApp Business account, Ctrl+Shift+N creates an order for the contact of the chat. Where they do not apply, WinZapp says why. Enter on an order message opens the order.
+
 - Help > "What's New Since You Last Looked" says what changed in these release notes since anyone on this computer last opened it, in plain sentences: the new items of each section, the items that changed (as they now read) and the ones removed, and a whole version when it is new. It is the same for every account. And the update window's "What's new?" button now shows what the offered version changes in these notes instead of the notes of the version you have; for an alpha version it also lists, for each alpha since yours, the changes GitHub records (the title and number of each pull request).
 
 - Local transcription with whisper.cpp: the "Keep the model loaded in memory (faster-whisper and whisper.cpp)" option now applies to whisper.cpp too. With it on, the model is loaded once and stays in memory (or on the graphics card) between transcriptions instead of being loaded again for every message; until now the option only had an effect with faster-whisper. If the program that keeps the model loaded cannot be used, the transcription is done as it always was.

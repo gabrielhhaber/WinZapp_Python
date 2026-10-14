@@ -4,6 +4,8 @@ Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisa
 
 YENİLİKLER
 
+- Her biri Ayarlar'daki Kısayollar sekmesinden değiştirilebilen yeni kısayollar: Alt+8 pencerenin her yerinden toplulukları açar; Alt+Shift+B seçili veya açık sohbetteki işletmenin kataloğunu ve sepetini açar; WhatsApp Business hesabında Ctrl+Shift+N sohbetteki kişi için sipariş oluşturur. Uygulanamadıkları yerde WinZapp nedenini söyler. Bir sipariş mesajında Enter siparişi açar.
+
 - Yardım > "Son baktığınızdan beri yenilikler", bu bilgisayarda biri bu yenilikleri son açtığından beri nelerin değiştiğini basit cümlelerle söyler: her bölümün yeni maddeleri, değişen maddeler (şimdiki hâliyle) ve kaldırılanlar; yeni bir sürüm ise tamamen gösterilir. Tüm hesaplar için aynıdır. Güncelleme penceresindeki "Yenilikler neler?" düğmesi artık sahip olduğunuz sürümün yenilikleri yerine sunulan sürümün bu yeniliklerde neyi değiştirdiğini gösterir; alfa sürümlerinde, sizinkinden sonraki her alfa için GitHub'da kaydedilen değişiklikleri de (her pull request'in başlığı ve numarası) listeler.
 
 - whisper.cpp ile yerel döküm: "Modeli bellekte yüklü tut (faster-whisper ve whisper.cpp)" seçeneği artık whisper.cpp için de geçerli. Açıkken model bir kez yüklenir ve her mesajda yeniden yüklenmek yerine dökümler arasında bellekte (veya ekran kartında) kalır; şimdiye kadar seçenek yalnızca faster-whisper ile etkiliydi. Modeli yüklü tutan program kullanılamazsa döküm her zamanki gibi yapılır.

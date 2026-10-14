@@ -4,6 +4,8 @@ Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, 
 
 NOVEDADES
 
+- Nuevos atajos, cada uno modificable en la pestaña Atajos de teclado de la configuración: Alt+8 abre las comunidades desde cualquier lugar de la ventana; Alt+Shift+B abre el catálogo y el carrito de la empresa del chat seleccionado o abierto; y en una cuenta de WhatsApp Business, Ctrl+Shift+N crea un pedido para el contacto del chat. Donde no se aplican, WinZapp dice el motivo. Intro en un mensaje de pedido abre el pedido.
+
 - Ayuda > "Novedades desde la última vez que miraste" dice lo que ha cambiado en estas novedades desde la última vez que alguien en este ordenador las abrió, en frases sencillas: los elementos nuevos de cada sección, los modificados (tal como quedan) y los retirados, y una versión entera cuando es nueva. Es igual para todas las cuentas. Y el botón "¿Qué hay de nuevo?" de la ventana de actualización ahora muestra lo que la versión ofrecida cambia en estas novedades, en lugar de las novedades de la versión que ya tienes; en una versión alpha también enumera, para cada alpha desde la tuya, los cambios registrados en GitHub (el título y el número de cada pull request).
 
 - Transcripción local con whisper.cpp: la opción "Mantener el modelo cargado en memoria (faster-whisper y whisper.cpp)" ahora se aplica también a whisper.cpp. Con ella activada, el modelo se carga una vez y permanece en memoria (o en la tarjeta gráfica) entre transcripciones, en lugar de volver a cargarse con cada mensaje; hasta ahora la opción solo tenía efecto con faster-whisper. Si el programa que mantiene el modelo cargado no se puede usar, la transcripción se hace como siempre.

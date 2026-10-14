@@ -307,6 +307,11 @@ class MessageListMixin:
         elif msg_type in POLL_MESSAGE_TYPES:
             self._show_poll_dialog(msg)
 
+        elif self._can_view_order(msg):
+            # An order opens like a poll does: its items, and for a business
+            # account that received it, the answer (ui/conversation_panel/commerce.py).
+            self._show_order(msg)
+
         elif msg_type == "contactMessage":
             # Enter on a contact message → open a conversation with that
             # contact, same as clicking the "Conversar" button. Space

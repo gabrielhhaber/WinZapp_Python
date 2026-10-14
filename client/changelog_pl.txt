@@ -4,6 +4,8 @@ W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym 
 
 NOWOŚCI
 
+- Nowe skróty, każdy do zmiany na karcie Skróty klawiszowe w ustawieniach: Alt+8 otwiera społeczności z dowolnego miejsca okna; Alt+Shift+B otwiera katalog i koszyk firmy z zaznaczonego lub otwartego czatu; a na koncie WhatsApp Business Ctrl+Shift+N tworzy zamówienie dla kontaktu z czatu. Tam, gdzie nie mają zastosowania, WinZapp mówi dlaczego. Enter na wiadomości z zamówieniem otwiera zamówienie.
+
 - Pomoc > "Nowości od ostatniego przeglądania" mówi prostymi zdaniami, co zmieniło się w tych nowościach od ostatniego otwarcia na tym komputerze: nowe pozycje każdej sekcji, zmienione pozycje (w obecnym brzmieniu) i usunięte, a nową wersję pokazuje w całości. Działa tak samo dla wszystkich kont. Przycisk "Co nowego?" w oknie aktualizacji pokazuje teraz, co oferowana wersja zmienia w tych nowościach, zamiast nowości wersji, którą już masz; dla wersji alfa wymienia też, dla każdej wersji alfa od Twojej, zmiany zapisane w serwisie GitHub (tytuł i numer każdego pull requesta).
 
 - Lokalna transkrypcja z whisper.cpp: opcja „Utrzymuj model w pamięci (faster-whisper i whisper.cpp)” działa teraz także dla whisper.cpp. Gdy jest włączona, model jest ładowany raz i pozostaje w pamięci (lub na karcie graficznej) między transkrypcjami, zamiast być ładowany od nowa przy każdej wiadomości; dotąd opcja działała tylko z faster-whisper. Jeśli program utrzymujący model w pamięci nie może zostać użyty, transkrypcja przebiega tak jak zawsze.
