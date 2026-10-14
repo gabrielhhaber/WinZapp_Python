@@ -212,3 +212,15 @@ def test_a_group_with_no_row_yet_is_opened_once_the_panel_is_shown():
     mw = _window({"123-456@g.us": chat})
     group_join_dialog._go_to_group(mw, "123-456@g.us", "New")
     mw.conversations_panel.navigate_to_conversation.assert_called_once_with(chat)
+
+
+def test_nothing_is_opened_into_a_hidden_panel():
+    """When the main panel did not come up (a refused PIN, a panel left
+    hidden), opening the chat there would put focus on a control nobody
+    can reach."""
+    chat = {"remoteJid": "123-456@g.us", "name": "New"}
+    mw = _window({"123-456@g.us": chat})
+    mw.conversations_panel = _Panel(shown=False)
+    group_join_dialog._go_to_group(mw, "123-456@g.us", "New")
+    mw.navigate_to_conversation_jid.assert_called_once()
+    mw.conversations_panel.navigate_to_conversation.assert_not_called()
