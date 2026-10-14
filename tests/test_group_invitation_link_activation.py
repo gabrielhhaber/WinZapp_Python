@@ -165,8 +165,50 @@ def test_the_entry_point_passes_the_link_and_opens_only_a_joined_group(monkeypat
     dialog.Destroy.assert_called_once()
     assert joined is (modal == wx.ID_OK)
     if modal == wx.ID_OK:
-        after.assert_called_once_with(
-            mw.conversations_panel.navigate_to_conversation, mw.chats[preview.jid])
+        after.assert_called_once_with(group_join_dialog._go_to_group, mw, preview.jid, preview.name)
+        assert mw.chats[preview.jid]["remoteJid"] == preview.jid
     else:
         assert mw.chats == {}
         after.assert_not_called()
+
+
+class _Panel:
+    def __init__(self, shown=True):
+        self.conversation = None
+        self.navigate_to_conversation = Mock()
+        self.IsShown = lambda: shown
+
+
+def _window(chats, locked=()):
+    mw = SimpleNamespace(chats=chats, conversations_panel=_Panel(),
+                         is_chat_locked=lambda jid: jid in locked)
+    mw.navigate_to_conversation_jid = Mock()
+    return mw
+
+
+def test_a_group_opens_through_the_window_s_own_way_in():
+    """navigate_to_conversation_jid asks the PIN of a locked chat, opens an
+    archived one from its list and shows the main panel first."""
+    mw = _window({"123-456@g.us": {"remoteJid": "123-456@g.us"}})
+
+    def opened(jid, name):
+        mw.conversations_panel.conversation = {"remoteJid": jid}
+
+    mw.navigate_to_conversation_jid.side_effect = opened
+    group_join_dialog._go_to_group(mw, "123-456@g.us", "Test group")
+    mw.navigate_to_conversation_jid.assert_called_once_with("123-456@g.us", "Test group")
+    mw.conversations_panel.navigate_to_conversation.assert_not_called()
+
+
+def test_a_locked_group_is_never_opened_around_the_pin():
+    mw = _window({"123-456@g.us": {"remoteJid": "123-456@g.us"}}, locked={"123-456@g.us"})
+    group_join_dialog._go_to_group(mw, "123-456@g.us", "Test group")
+    mw.navigate_to_conversation_jid.assert_called_once()
+    mw.conversations_panel.navigate_to_conversation.assert_not_called()
+
+
+def test_a_group_with_no_row_yet_is_opened_once_the_panel_is_shown():
+    chat = {"remoteJid": "123-456@g.us", "name": "New"}
+    mw = _window({"123-456@g.us": chat})
+    group_join_dialog._go_to_group(mw, "123-456@g.us", "New")
+    mw.conversations_panel.navigate_to_conversation.assert_called_once_with(chat)

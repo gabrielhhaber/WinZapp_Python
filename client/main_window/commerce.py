@@ -6,9 +6,12 @@ import time
 
 import wx
 
-from core import commerce
+from core import commerce, read_back
 from core.group_invitation import connection_identity
 from core.utils import contact_dedup_key
+
+#: Between two readings of the cart setting after changing it.
+_CART_READ_PAUSE = 1.5
 
 _REFRESH_SECONDS = 300
 
@@ -81,12 +84,15 @@ class CommerceMixin:
         connection = connection_identity(self)
 
         def run():
-            now = None
-            try:
-                commerce.set_cart_enabled(connection, wanted)
-                now = commerce.read_account(connection)
-            except Exception:
-                logging.warning("[commerce] cart_setting_failed")
+            # Sent once, then read back: an answer lost after the change took
+            # effect must not be announced as a failure (core/read_back.py).
+            state, now = read_back.run_action(
+                lambda: commerce.set_cart_enabled(connection, wanted),
+                lambda: commerce.read_account(connection),
+                lambda reading: reading is not None and reading.cart_enabled is wanted,
+                pause=_CART_READ_PAUSE)
+            if state != "done":
+                logging.warning("[commerce] cart_setting_%s", state)
             wx.CallAfter(self._finish_cart_toggle, connection, wanted, now)
         threading.Thread(target=run, daemon=True).start()
 

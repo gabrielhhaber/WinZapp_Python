@@ -92,7 +92,7 @@ class CommunityAdminActions:
         if community is None:
             return
         i18n = self._i18n
-        rows = api.linkable_groups(self._mw.chats, self._communities)
+        rows = api.linkable_groups(self._mw.chats, self._communities, self._mw.is_chat_locked)
         if not rows:
             self._announce(i18n.t("communities_no_linkable_groups"))
             return
@@ -213,7 +213,8 @@ class CommunityAdminActions:
         # Only over a list that was read: "created" means "was not there".
         if self._busy or not self._loaded or not self._current():
             return
-        answer = self._ask_new_community(api.linkable_groups(self._mw.chats, self._communities))
+        answer = self._ask_new_community(
+            api.linkable_groups(self._mw.chats, self._communities, self._mw.is_chat_locked))
         if answer is None:
             return
         name, description, jids = answer

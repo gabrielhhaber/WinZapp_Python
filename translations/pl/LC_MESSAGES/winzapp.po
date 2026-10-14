@@ -3052,8 +3052,8 @@ msgstr "&Dodaj pozycję..."
 #: client/ui/dialogs/order_create_dialog.py
 #, python-brace-format
 msgctxt "commerce_new_order_confirm"
-msgid "Send {name} an order with {count} items, total {amount}?"
-msgstr "Wysłać do: {name} zamówienie, pozycje: {count}, suma {amount}?"
+msgid "Send {name} the order? Items: {count}. Total: {amount}."
+msgstr "Wysłać zamówienie do: {name}? Pozycje: {count}. Suma: {amount}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_new_order_empty"

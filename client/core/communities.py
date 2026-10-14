@@ -210,16 +210,17 @@ def admin(jid, person_key, key, present=True):
     return achieved
 
 
-def linkable_groups(chats, communities):
+def linkable_groups(chats, communities, is_locked=lambda jid: False):
     """(jid, name) of the groups that can be offered for linking, by name:
     the account's named groups that are not a community nor in one already.
-    Whether the account is an admin of each is WhatsApp's to decide."""
+    Whether the account is an admin of each is WhatsApp's to decide. A locked
+    group is never named (MainWindow.is_chat_locked), as in every other picker."""
     taken = {community.jid for community in communities}
     for community in communities:
         taken.update(group.jid for group in community.subgroups)
     rows = []
     for jid, chat in chats.items():
-        if not group_jid(jid) or jid in taken or not isinstance(chat, dict):
+        if not group_jid(jid) or jid in taken or not isinstance(chat, dict) or is_locked(jid):
             continue
         name = _name(chat.get("name"))
         if name:

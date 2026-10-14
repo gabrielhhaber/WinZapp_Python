@@ -2916,7 +2916,7 @@ msgstr "Kataloğunuz artık sepetleri kabul ediyor."
 #: client/ui/conversation_panel/commerce.py
 msgctxt "commerce_catalog_menu"
 msgid "Business catalog and cart..."
-msgstr "İşletmenin kataloğu ve sepet..."
+msgstr "İşletmenin kataloğu ve sepeti..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/cart_dialog.py
 #, python-brace-format
@@ -3013,10 +3013,10 @@ msgstr "Kalem &ekle..."
 #: client/ui/dialogs/order_create_dialog.py
 #, python-brace-format
 msgctxt "commerce_new_order_confirm"
-msgid "Send {name} an order with {count} items, total {amount}?"
+msgid "Send {name} the order? Items: {count}. Total: {amount}."
 msgstr ""
-"{name} kişisine {count} kalemli, toplamı {amount} olan sipariş gönderilsin "
-"mi?"
+"Sipariş {name} kişisine gönderilsin mi? Kalem sayısı: {count}. Toplam: "
+"{amount}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_new_order_empty"
@@ -8915,7 +8915,7 @@ msgstr "Alt+R: mesajı yanıtla"
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_alt_shift_b_catalog_label"
 msgid "Alt+Shift+B: in a chat with a business, its catalog and cart"
-msgstr "Alt+Shift+B: bir işletmeyle sohbette, işletmenin kataloğu ve sepet"
+msgstr "Alt+Shift+B: bir işletmeyle sohbette, işletmenin kataloğu ve sepeti"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py

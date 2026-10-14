@@ -87,13 +87,20 @@ class OrderDialog(BackgroundWork, wx.Dialog):
         free = not self._busy and self._current()
         order = self._order if free else None
         self._refresh.Enable(free)
+        lost_focus = False
         # Hidden, not greyed out, for anyone who can never use them.
         for control, shown in ((self._accept, bool(order and order.can_answer)),
                                (self._decline, bool(order and order.can_answer)),
                                (self._update, bool(order and order.can_update))):
-            control.Show(shown or (self._busy and control.IsShown()))
+            visible = shown or (self._busy and control.IsShown())
+            lost_focus = lost_focus or (not visible and control.IsShown() and control.HasFocus())
+            control.Show(visible)
             control.Enable(shown)
         self.Layout()
+        if lost_focus:
+            # An answered order hides Accept and Decline: the focus goes to
+            # what it now says, not to a button nobody can see.
+            self._details.SetFocus()
 
     def describe(self, order):
         i18n = self._i18n

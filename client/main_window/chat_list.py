@@ -1136,9 +1136,9 @@ class ChatListMixin:
             content = call_log_label(
                 last, i18n,
                 panel._format_duration if panel is not None else (lambda _s: ""))
-        elif commerce_message_label(last, i18n) is not None:
+        elif (commerce_text := commerce_message_label(last, i18n)) is not None:
             # Same sentence the conversation row reads (core/commerce.py).
-            content = commerce_message_label(last, i18n)
+            content = commerce_text
         elif msg_type == "conversation":
             content = msg_obj.get("conversation") or ""
             if looks_like_binary_blob(content):

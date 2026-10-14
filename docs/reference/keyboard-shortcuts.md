@@ -47,6 +47,7 @@ Aşağıdaki değerler Türkçe arayüz içindir. Çevirinin mnemonik harfi değ
 | Ana gezinti | herhangi bir panelden o anda çalmakta olan sesi duraklat/sürdür | Kontrol+Alt+Shift+P | main.ID_CTRL_ALT_SHIFT_P |
 | Ana gezinti | WinZapp kapanana kadar tüm açık hesaplarda oynatma cihazını değiştir (ardından 1 ile 0) | Kontrol+Alt+Shift+H | main.ID_CTRL_ALT_SHIFT_H |
 | Ana gezinti | WinZapp kapanana kadar tüm açık hesaplarda kayıt cihazını değiştir (ardından 1 ile 0) | Kontrol+Alt+Shift+G | main.ID_CTRL_ALT_SHIFT_G |
+| Ana gezinti | toplulukları aç | Alt+8 | main.ID_COMMUNITIES |
 | Sohbetler, Sohbet içi, Arşivlenmiş sohbetler, Kilitli sohbetler | Mesajlar | Alt+M | navigation.messages |
 | Sohbetler | Sohbetlerde ara | Kontrol+F | chats.ID_CTRL_F |
 | Sohbetler | yeni sohbet | Kontrol+N | chats.ID_CTRL_N |
@@ -61,6 +62,8 @@ Aşağıdaki değerler Türkçe arayüz içindir. Çevirinin mnemonik harfi değ
 | Sohbetler | Sohbeti kilitle | Kontrol+Shift+T | chats.ID_LOCK_LIST |
 | Sohbetler | Sohbeti sabitle veya sabitlemeyi kaldır; kayıt duraklatıldığında önizlemeyi oynat veya durdur | Kontrol+P | chats.ID_PIN_LIST |
 | Sohbetler | sohbeti kapat. Mesajlar seçiliyken, Ayarlar > Kullanıcı Arayüzü bölümünde seçenek etkinse ilk Esc yalnızca tüm seçimleri kaldırır ve yalnızca ikincisi sohbeti kapatır | Kontrol+W | chats.ID_CLOSE_CONV_LIST |
+| Sohbetler, Sohbet içi | bir işletmeyle sohbette, işletmenin kataloğu ve sepeti | Alt+Shift+B | chats.ID_CATALOG |
+| Sohbetler, Sohbet içi | WhatsApp Business hesabında, sohbetteki kişi için sipariş oluştur | Kontrol+Shift+N | chats.ID_ORDER_CREATE |
 | Sohbetler | Seçili sohbetleri temizle | Kontrol+Alt+Shift+L | chats.ID_BULK_CLEAR_CHATS |
 | Sohbetler | Seçili sohbetleri sil | Kontrol+Shift+Sil | chats.ID_BULK_DELETE_CHATS |
 | Sohbetler | Seçili sohbetleri arşivle | Kontrol+Alt+Shift+A | chats.ID_BULK_ARCHIVE_CHATS |

@@ -1,7 +1,7 @@
 # Communities
 
-The "Communities" button of the New chat dialog (`ui/dialogs/communities.py`)
-lists the account's communities, their admins and the groups of each that the
+Alt+8 from anywhere in the window, or the "Communities" button of the New
+chat dialog, opens `ui/dialogs/communities.py`, which lists the account's communities, their admins and the groups of each that the
 account has joined, opens a group, and offers the admin actions.
 
 ## What is reused and what is WinZapp's own

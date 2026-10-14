@@ -28,12 +28,26 @@ def join_group_by_link(mw, parent, link=""):
 def open_group_chat(mw, jid, name):
     """Go to a group the account is in, creating its chat when it has none
     yet (a group just joined, or one with no message so far)."""
-    chat = mw.chats.get(jid)
-    if chat is None:
-        chat = {"remoteJid": jid, "name": name or mw.i18n.t("unknown_group")}
-        mw.chats[jid] = chat
+    if mw.chats.get(jid) is None:
+        mw.chats[jid] = {"remoteJid": jid, "name": name or mw.i18n.t("unknown_group")}
         mw._schedule_set_chats()
-    wx.CallAfter(mw.conversations_panel.navigate_to_conversation, chat)
+    wx.CallAfter(_go_to_group, mw, jid, name)
+
+
+def _go_to_group(mw, jid, name):
+    """Through MainWindow.navigate_to_conversation_jid(), as a toast or a
+    participant list opens a chat: it asks the PIN of a locked chat, opens an
+    archived one from its own list, and shows the main panel before any focus
+    moves (Communities opens with Alt+8 from Status or Calls too). Only a
+    group whose row is not in the list yet (just joined or created) is opened
+    here, and never a locked one."""
+    mw.navigate_to_conversation_jid(jid, name)
+    panel = mw.conversations_panel
+    if (panel.conversation or {}).get("remoteJid") == jid or mw.is_chat_locked(jid):
+        return
+    chat = mw.chats.get(jid)
+    if chat is not None and panel.IsShown():
+        panel.navigate_to_conversation(chat)
 
 
 def open_join_dialog(owner, event=None):

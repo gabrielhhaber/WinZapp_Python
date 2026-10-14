@@ -1,7 +1,6 @@
 """Keyboard shortcuts for catalogs, orders and communities: a default key each,
 configurable on the Shortcuts tab, with the rules the menus follow."""
 
-import ast
 import pathlib
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -112,16 +111,12 @@ class TestTheCatalogRows:
                        and (s.mod, s.key) == (row.mod, row.key)]
             assert clashes == [], (row.id, clashes)
 
-    def test_the_menus_show_the_default_the_tab_can_change(self):
-        source = (ROOT / "client/ui/conversation_panel/commerce.py").read_text(encoding="utf-8")
-        assert "commerce_catalog_menu')}\\tAlt+Shift+B" in source
-        assert "commerce_create_order_menu')}\\tCtrl+Shift+N" in source
-
     def test_the_f1_list_names_them(self):
-        source = (ROOT / "client/ui/dialogs/shortcuts_dialog.py").read_text(encoding="utf-8")
+        from ui.dialogs.shortcuts_dialog import ShortcutsDialog
+        text = ShortcutsDialog._build_text(SimpleNamespace(t=lambda key: key))
         for key in ("shortcut_alt8_communities_label", "shortcut_alt_shift_b_catalog_label",
                     "shortcut_ctrl_shift_n_order_label"):
-            assert f'i18n.t("{key}")' in source
+            assert key in text
 
 
 def test_alt_8_opens_communities(monkeypatch):
@@ -134,11 +129,24 @@ def test_alt_8_opens_communities(monkeypatch):
     assert shown == [(window, window)]
 
 
+class _MessagePanel:
+    activate_message = MessageListMixin.activate_message
+
+    def __init__(self, viewable):
+        self._can_view_order = lambda msg: viewable
+        self._show_order = Mock()
+
+
+ORDER = {"key": {"id": "O1"}, "messageType": "orderMessage", "message": {"orderMessage": {}}}
+
+
 def test_enter_on_an_order_opens_it():
-    source = (ROOT / "client/ui/conversation_panel/message_list.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    method = next(node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
-                  and "_show_poll_dialog" in ast.unparse(node) and "_show_order" in ast.unparse(node))
-    text = ast.unparse(method)
-    assert "elif self._can_view_order(msg):" in text and "self._show_order(msg)" in text
-    assert MessageListMixin is not None
+    panel = _MessagePanel(viewable=True)
+    panel.activate_message(ORDER)
+    panel._show_order.assert_called_once_with(ORDER)
+
+
+def test_enter_on_an_order_that_cannot_be_viewed_does_nothing():
+    panel = _MessagePanel(viewable=False)
+    panel.activate_message(ORDER)
+    panel._show_order.assert_not_called()

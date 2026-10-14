@@ -3030,8 +3030,8 @@ msgstr "&Adicionar item..."
 #: client/ui/dialogs/order_create_dialog.py
 #, python-brace-format
 msgctxt "commerce_new_order_confirm"
-msgid "Send {name} an order with {count} items, total {amount}?"
-msgstr "Enviar para {name} um pedido com {count} itens, total {amount}?"
+msgid "Send {name} the order? Items: {count}. Total: {amount}."
+msgstr "Enviar o pedido para {name}? Itens: {count}. Total: {amount}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_new_order_empty"

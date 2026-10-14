@@ -277,6 +277,7 @@ class Dialog:
                  "444@lid": "444@lid"}
         self._mw = SimpleNamespace(
             i18n=self._i18n, chats={}, speak_output=SimpleNamespace(output=Mock()),
+            is_chat_locked=lambda jid: False,
             _normalize_jid=lambda jid: jid.replace("@c.us", "@s.whatsapp.net"),
             _is_self_jid=lambda jid: jid == "999@lid", self_reference_label=lambda: "Me",
             _resolve_jid_name=lambda jid, resolve_missing=True: names.get(jid, ""),
@@ -597,3 +598,9 @@ def test_every_control_has_a_letter_of_its_own(locale, keys):
         assert mnemonic(strings[key]) is not None, key
         letters.setdefault(mnemonic(strings[key]), []).append(key)
     assert not {letter: found for letter, found in letters.items() if len(found) > 1}
+
+
+def test_a_locked_group_is_never_offered_by_name():
+    chats = {"555-0@g.us": {"name": "Alpha"}, "666-0@g.us": {"name": "Secret"}}
+    rows = api.linkable_groups(chats, [], is_locked=lambda jid: jid == "666-0@g.us")
+    assert rows == [("555-0@g.us", "Alpha")]

@@ -437,6 +437,7 @@ class _MainWindow:
 @pytest.fixture
 def window(monkeypatch):
     monkeypatch.setattr("main_window.commerce.threading.Thread", _Now)
+    monkeypatch.setattr("main_window.commerce._CART_READ_PAUSE", 0)
     monkeypatch.setattr("main_window.commerce.wx.CallAfter", lambda fn, *args: fn(*args))
     return _MainWindow()
 
@@ -941,7 +942,7 @@ def test_a_new_order_is_sent_once(monkeypatch):
     assert not dialog.work
     dialog._confirm.return_value = True
     dialog._on_send(None)
-    assert dialog._confirm.call_args.args[0] == "Send Maria an order with 1 items, total 15.00?"
+    assert dialog._confirm.call_args.args[0] == "Send Maria the order? Items: 1. Total: 15.00."
     dialog._on_send(None)
     assert len(dialog.work) == 1
     dialog.run()
@@ -994,3 +995,16 @@ def test_every_status_whatsapp_can_send_has_a_name(locale):
         assert strings[f"commerce_status_{status}"].strip()
     for status in commerce.PAYMENT_STATUSES:
         assert strings[f"commerce_payment_{status}"].strip()
+
+
+def test_a_lost_answer_after_the_cart_setting_changed_is_not_a_failure(window, monkeypatch):
+    """Sent once and believed by reading back: the request timing out after
+    WhatsApp took the change still says it was done, and keeps the reading."""
+    setting = Mock(side_effect=TimeoutError())
+    monkeypatch.setattr(commerce, "set_cart_enabled", setting)
+    monkeypatch.setattr(commerce, "read_account", Mock(return_value=Account(True, True, frozenset())))
+    window._commerce_account = Account(True, False, frozenset())
+    window.toggle_cart_enabled()
+    setting.assert_called_once_with(CONNECTION, True)
+    assert window.speak_output.output.call_args.args[0] == "Your catalog now accepts carts."
+    assert window._commerce_account.cart_enabled is True

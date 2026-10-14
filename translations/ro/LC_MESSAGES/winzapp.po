@@ -3026,8 +3026,8 @@ msgstr "A&dăugați un articol..."
 #: client/ui/dialogs/order_create_dialog.py
 #, python-brace-format
 msgctxt "commerce_new_order_confirm"
-msgid "Send {name} an order with {count} items, total {amount}?"
-msgstr "Trimiteți către {name} o comandă cu {count} articole, total {amount}?"
+msgid "Send {name} the order? Items: {count}. Total: {amount}."
+msgstr "Trimiteți comanda către {name}? Articole: {count}. Total: {amount}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_new_order_empty"
@@ -3610,7 +3610,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_open_group"
 msgid "&Open group"
-msgstr "Deschide g&rupul"
+msgstr "Deschideți g&rupul"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/community_admin.py
