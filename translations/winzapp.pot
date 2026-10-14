@@ -7433,12 +7433,60 @@ msgid "Backing up the profile. WhatsApp is disconnected until it finishes."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_blank_note"
+msgid "Leave a field blank to keep it unchanged."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_choose_photo_button"
+msgid "Choose photo…"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/session_lifecycle.py
 msgctxt "profile_corrupted_repair_needed"
 msgid ""
 "The browser profile used to connect to WhatsApp is damaged and there is no "
 "saved copy to restore. You will need to disconnect the session and pair "
 "again."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_name_label"
+msgid "Display name:"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_no_photo_chosen"
+msgid "No photo chosen."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_nothing_to_save"
+msgid "Fill in at least one field or choose a photo."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_photo_label"
+msgid "Profile photo:"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_photo_unsupported"
+msgid "Choose a photo in JPG or PNG format."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_photo_wildcard"
+msgid "Images (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|All files (*.*)|*.*"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -7475,6 +7523,36 @@ msgctxt "profile_restored_from_snapshot"
 msgid ""
 "The browser profile was damaged and has been restored from the last saved "
 "copy. Reconnecting to WhatsApp."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_save_button"
+msgid "Save"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_save_partial_error"
+msgid "Some fields couldn't be saved:"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_save_success"
+msgid "Profile updated successfully."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_saving"
+msgid "Saving…"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_status_label"
+msgid "About:"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14363,6 +14441,12 @@ msgstr ""
 #: client/ui/dialogs/whatsapp_settings_dialog.py
 msgctxt "wa_settings_tab_privacy"
 msgid "Privacy"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_settings_tab_profile"
+msgid "Profile"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py

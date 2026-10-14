@@ -110,6 +110,8 @@ WHAT'S NEW
 
 - New File > WhatsApp settings window, with a Privacy tab for the privacy of your WhatsApp account, applied directly on WhatsApp: last seen, who can see when you're online, About, profile photo, read receipts, who can add you to groups and who can see your status (my contacts, my contacts except... or only share with...). The people for the status are picked from your synchronised contacts in a list you can search, ticking each one with Space. The window loads the current values from WhatsApp, sends only what you changed and then reads it back, saying which settings WhatsApp did not confirm.
 
+- The same File > WhatsApp settings window also has a Profile tab, to change the display name, the About text and the profile photo of your WhatsApp account without picking up the phone. A field left empty stays as it is on WhatsApp, each one is saved on its own (one that WhatsApp refuses does not stop the others, and the window lists which ones failed), and the photo is chosen from a JPG or PNG file.
+
 - The info of a personal chat now shows whether its notifications are muted (and until when) and, when WhatsApp reports it, the disappearing messages timer.
 
 FIXES

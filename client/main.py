@@ -312,6 +312,7 @@ from main_window.message_pins import MessagePinsMixin
 from main_window.quick_audio_devices import QuickAudioDevicesMixin
 from main_window.message_ack import MessageAckMixin
 from main_window.whatsapp_privacy import WhatsAppPrivacyMixin
+from main_window.whatsapp_profile import WhatsAppProfileMixin
 from main_window.whats_new_since import WhatsNewSinceMixin
 
 
@@ -373,6 +374,7 @@ class MainWindow(
     QuickAudioDevicesMixin,
     MessageAckMixin,
     WhatsAppPrivacyMixin,
+    WhatsAppProfileMixin,
     WhatsNewSinceMixin,
     wx.Frame,
 ):

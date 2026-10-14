@@ -110,6 +110,8 @@ NOVEDADES
 
 - Nueva ventana Archivo > Configuración de WhatsApp, con la pestaña Privacidad para la privacidad de tu cuenta de WhatsApp, aplicada directamente en WhatsApp: última vez, quién puede ver cuándo estás en línea, info, foto de perfil, confirmaciones de lectura, quién puede añadirte a grupos y quién puede ver tu estado (mis contactos, mis contactos excepto... o compartir solo con...). Las personas del estado se eligen entre tus contactos sincronizados, en una lista con búsqueda en la que cada una se marca con Espacio. La ventana carga los valores actuales de WhatsApp, envía solo lo que cambiaste y después lo comprueba, indicando qué ajustes no confirmó WhatsApp.
 
+- La misma ventana Archivo > Configuración de WhatsApp tiene también la pestaña Perfil, para cambiar el nombre mostrado, la info y la foto de perfil de tu cuenta de WhatsApp sin coger el teléfono. Un campo que dejes en blanco se queda como está en WhatsApp, cada uno se guarda por separado (uno que WhatsApp rechace no impide los demás, y la ventana indica cuáles fallaron), y la foto se elige de un archivo JPG o PNG.
+
 - La información del chat personal muestra si sus notificaciones están silenciadas (y hasta cuándo) y, cuando WhatsApp lo indica, el tiempo de los mensajes temporales.
 
 CORRECCIONES

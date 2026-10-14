@@ -7931,6 +7931,18 @@ msgstr ""
 " finalizare."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_blank_note"
+msgid "Leave a field blank to keep it unchanged."
+msgstr "Lăsați un câmp necompletat pentru a-l păstra neschimbat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_choose_photo_button"
+msgid "Choose photo…"
+msgstr "Alegeți fotografia…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/session_lifecycle.py
 msgctxt "profile_corrupted_repair_needed"
 msgid ""
@@ -7941,6 +7953,43 @@ msgstr ""
 "Profilul browserului folosit pentru conectarea la WhatsApp este deteriorat "
 "și nu există nicio copie salvată pentru restaurare. Va trebui să deconectați"
 " sesiunea și să efectuați din nou asocierea."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_name_label"
+msgid "Display name:"
+msgstr "Nume afișat:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_no_photo_chosen"
+msgid "No photo chosen."
+msgstr "Nu a fost aleasă nicio fotografie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_nothing_to_save"
+msgid "Fill in at least one field or choose a photo."
+msgstr "Completați cel puțin un câmp sau alegeți o fotografie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_photo_label"
+msgid "Profile photo:"
+msgstr "Fotografie de profil:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_photo_unsupported"
+msgid "Choose a photo in JPG or PNG format."
+msgstr "Alegeți o fotografie în format JPG sau PNG."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_photo_wildcard"
+msgid "Images (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|All files (*.*)|*.*"
+msgstr ""
+"Imagini (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|Toate fișierele (*.*)|*.*"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "profile_picture_btn"
@@ -7979,6 +8028,36 @@ msgid ""
 msgstr ""
 "Profilul browserului era deteriorat și a fost restaurat din ultima copie "
 "salvată. Se reconectează la WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_save_button"
+msgid "Save"
+msgstr "Salvați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_save_partial_error"
+msgid "Some fields couldn't be saved:"
+msgstr "Unele câmpuri nu au putut fi salvate:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_save_success"
+msgid "Profile updated successfully."
+msgstr "Profilul a fost actualizat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_saving"
+msgid "Saving…"
+msgstr "Se salvează…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_status_label"
+msgid "About:"
+msgstr "Despre:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -15503,6 +15582,12 @@ msgstr "Setări WhatsApp"
 msgctxt "wa_settings_tab_privacy"
 msgid "Privacy"
 msgstr "Confidențialitate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_settings_tab_profile"
+msgid "Profile"
+msgstr "Profil"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py

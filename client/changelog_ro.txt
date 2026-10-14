@@ -110,6 +110,8 @@ NOUTĂȚI
 
 - Fereastră nouă Fișier > Setări WhatsApp, cu fila Confidențialitate pentru confidențialitatea contului dvs. WhatsApp, aplicată direct în WhatsApp: văzut ultima dată, cine poate vedea când sunteți online, despre, fotografia de profil, confirmările de citire, cine vă poate adăuga în grupuri și cine vă poate vedea starea (contactele mele, contactele mele cu excepția... sau partajați doar cu...). Persoanele pentru stare se aleg dintre contactele sincronizate, într-o listă cu căutare în care fiecare se bifează cu Spațiu. Fereastra încarcă valorile actuale din WhatsApp, trimite doar ce ați modificat și apoi verifică, spunând ce setări nu a confirmat WhatsApp.
 
+- Aceeași fereastră Fișier > Setări WhatsApp are și fila Profil, pentru a schimba numele afișat, despre și fotografia de profil ale contului dvs. WhatsApp fără a lua telefonul în mână. Un câmp lăsat necompletat rămâne așa cum este în WhatsApp, fiecare se salvează separat (unul refuzat de WhatsApp nu le oprește pe celelalte, iar fereastra le enumeră pe cele care au eșuat), iar fotografia se alege dintr-un fișier JPG sau PNG.
+
 - Informațiile despre conversația personală arată acum dacă notificările sunt dezactivate (și până când) și, când WhatsApp le transmite, durata mesajelor care dispar.
 
 CORECTĂRI

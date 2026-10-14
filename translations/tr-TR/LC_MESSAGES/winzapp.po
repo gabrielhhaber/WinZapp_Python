@@ -7850,6 +7850,18 @@ msgid "Backing up the profile. WhatsApp is disconnected until it finishes."
 msgstr "Profil yedekleniyor. İşlem bitene kadar WhatsApp bağlantısı kesilir."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_blank_note"
+msgid "Leave a field blank to keep it unchanged."
+msgstr "Değiştirmek istemediğiniz alanı boş bırakın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_choose_photo_button"
+msgid "Choose photo…"
+msgstr "Fotoğraf seç…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/session_lifecycle.py
 msgctxt "profile_corrupted_repair_needed"
 msgid ""
@@ -7860,6 +7872,43 @@ msgstr ""
 "WhatsApp'a bağlanmak için kullanılan tarayıcı profili hasarlı ve geri "
 "yüklenebilecek kayıtlı bir kopya yok. Oturum bağlantısını kesip tekrar "
 "eşlemeniz gerekecektir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_name_label"
+msgid "Display name:"
+msgstr "Görünen ad:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_no_photo_chosen"
+msgid "No photo chosen."
+msgstr "Fotoğraf seçilmedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_nothing_to_save"
+msgid "Fill in at least one field or choose a photo."
+msgstr "En az bir alanı doldurun veya bir fotoğraf seçin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_photo_label"
+msgid "Profile photo:"
+msgstr "Profil fotoğrafı:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_photo_unsupported"
+msgid "Choose a photo in JPG or PNG format."
+msgstr "JPG veya PNG biçiminde bir fotoğraf seçin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_photo_wildcard"
+msgid "Images (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|All files (*.*)|*.*"
+msgstr ""
+"Görseller (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|Tüm dosyalar (*.*)|*.*"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "profile_picture_btn"
@@ -7898,6 +7947,36 @@ msgid ""
 msgstr ""
 "Tarayıcı profili hasar görmüştü ve son kaydedilen kopyadan geri yüklendi. "
 "WhatsApp'a yeniden bağlanılıyor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_save_button"
+msgid "Save"
+msgstr "Kaydet"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_save_partial_error"
+msgid "Some fields couldn't be saved:"
+msgstr "Bazı alanlar kaydedilemedi:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_save_success"
+msgid "Profile updated successfully."
+msgstr "Profil güncellendi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_saving"
+msgid "Saving…"
+msgstr "Kaydediliyor…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_profile_panel.py
+msgctxt "profile_status_label"
+msgid "About:"
+msgstr "Hakkımda:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -15295,6 +15374,12 @@ msgstr "WhatsApp ayarları"
 msgctxt "wa_settings_tab_privacy"
 msgid "Privacy"
 msgstr "Gizlilik"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_settings_dialog.py
+msgctxt "wa_settings_tab_profile"
+msgid "Profile"
+msgstr "Profil"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py

@@ -110,6 +110,8 @@ NOVIDADES
 
 - Nova janela Ficheiro > Definições do WhatsApp, com o separador Privacidade para a privacidade da sua conta do WhatsApp, aplicada diretamente no WhatsApp: visto pela última vez, quem pode ver quando está online, recado, foto de perfil, confirmação de leitura, quem o pode adicionar a grupos e quem pode ver o seu estado (os meus contactos, os meus contactos exceto... ou partilhar apenas com...). As pessoas do estado são escolhidas entre os seus contactos sincronizados, numa lista com pesquisa em que cada uma é marcada com Espaço. A janela carrega os valores atuais do WhatsApp, envia apenas o que alterou e depois confirma, indicando quais as definições que o WhatsApp não confirmou.
 
+- A mesma janela Ficheiro > Definições do WhatsApp tem também o separador Perfil, para mudar o nome apresentado, o recado e a foto de perfil da sua conta do WhatsApp sem pegar no telemóvel. Um campo deixado em branco fica como está no WhatsApp, cada um é guardado em separado (um que o WhatsApp recuse não impede os outros, e a janela indica os que falharam), e a foto é escolhida a partir de um ficheiro JPG ou PNG.
+
 - As informações da conversa pessoal mostram se as notificações estão silenciadas (e até quando) e, quando o WhatsApp o indica, o tempo das mensagens temporárias.
 
 CORREÇÕES

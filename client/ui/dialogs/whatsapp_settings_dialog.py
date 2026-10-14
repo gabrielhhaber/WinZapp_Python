@@ -3,7 +3,8 @@
 Not WinZapp's settings (that is SettingsDialog): these live on WhatsApp's
 servers, are reached through the local server (main_window/whatsapp_privacy.py)
 and are applied with their own button, so closing the dialog never discards
-anything. A notebook from the start, so other account pages can join Privacy.
+anything. A notebook from the start, so other account pages can join Privacy:
+Profile (name, About, photo) is its own panel, ui/dialogs/whatsapp_profile_panel.py.
 
 Every call to the server runs on a worker thread and reports back through
 ``wx.CallAfter``: a call can take several seconds, and a frozen window is
@@ -18,6 +19,7 @@ import threading
 import wx
 
 from core import whatsapp_privacy as privacy
+from ui.dialogs.whatsapp_profile_panel import WhatsAppProfilePanel
 
 
 class WhatsAppSettingsDialog(wx.Dialog):
@@ -39,6 +41,8 @@ class WhatsAppSettingsDialog(wx.Dialog):
         outer = wx.BoxSizer(wx.VERTICAL)
         self._notebook = wx.Notebook(panel)
         self._build_privacy_tab(i18n)
+        self._notebook.AddPage(
+            WhatsAppProfilePanel(self._notebook, main_window), i18n.t("wa_settings_tab_profile"))
         outer.Add(self._notebook, 1, wx.EXPAND | wx.ALL, 8)
 
         # OK, not Close: each page applies through its own button, so closing
