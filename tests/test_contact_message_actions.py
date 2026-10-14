@@ -54,6 +54,7 @@ class _Panel:
     _do_activate_message = ConversationsPanel._do_activate_message
     activate_message = ConversationsPanel.activate_message
     _bulk_shortcuts_enabled = ConversationsPanel._bulk_shortcuts_enabled
+    _can_view_order = lambda self, msg: False  # orders are not under test here
 
     def __init__(self, messages=(), focused=-1):
         self.main_window = _FakeMainWindow()

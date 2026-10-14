@@ -637,6 +637,7 @@ class _Cart(_Window):
     def __init__(self, catalog=Catalog(True, True, (BREAD, CAKE), EMPTY)):
         self._base()
         self._chat, self._seller, self._catalog, self._cart, self._sent = SELLER, "Bakery", None, EMPTY, False
+        self._unconfirmed = False
         self._products, self._items = _ListBox(), _ListBox()
         self._note = SimpleNamespace(Enable=Mock(), GetValue=lambda: "thanks")
         self.buttons("_add", "_change", "_remove", "_clear", "_send", "_refresh")
@@ -759,13 +760,31 @@ def test_an_order_is_sent_once_after_a_question_that_says_what_and_to_whom(monke
 
 def test_an_unconfirmed_send_is_never_offered_again_by_itself(monkeypatch):
     monkeypatch.setattr(commerce, "submit_cart", Mock(side_effect=CommerceError("unconfirmed")))
+    monkeypatch.setattr(commerce, "read_catalog", Mock(return_value=Catalog(True, True, (BREAD,), TWO_BREADS)))
     dialog = _Cart(Catalog(True, True, (BREAD,), TWO_BREADS))
     dialog._on_send(None)
     dialog.run()
+    dialog.run()  # the cart is read back once, and still holds the items
     assert dialog.said().startswith("The order may or may not have been sent")
     assert dialog._sent and not dialog.enabled("_send") and not dialog.EndModal.called
+    dialog._reload()  # a manual refresh must not reopen the send either
+    dialog.run()
+    assert dialog._sent and not dialog.enabled("_send")
     dialog._on_send(None)
     assert not dialog.work
+
+
+def test_an_unconfirmed_send_is_confirmed_when_the_cart_reads_back_empty(monkeypatch):
+    monkeypatch.setattr(commerce, "submit_cart", Mock(side_effect=CommerceError("unconfirmed")))
+    monkeypatch.setattr(commerce, "read_catalog", Mock(return_value=Catalog(True, True, (BREAD,), EMPTY)))
+    dialog = _Cart(Catalog(True, True, (BREAD,), TWO_BREADS))
+    dialog._on_send(None)
+    dialog.run()
+    dialog.run()
+    assert dialog.said() == "Order sent." and dialog.EndModal.called
+
+
+def test_a_refused_send_can_be_tried_again(monkeypatch):
     # A definite refusal sent nothing, so trying again is fine.
     monkeypatch.setattr(commerce, "submit_cart", Mock(side_effect=CommerceError("cart_disabled", TWO_BREADS)))
     again = _Cart(Catalog(True, True, (BREAD,), TWO_BREADS))

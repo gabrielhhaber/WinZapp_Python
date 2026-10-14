@@ -633,13 +633,13 @@ export async function downloadMediaByMessage(req: Request, res: Response) {
     }
 
     if (!message)
-      res.status(400).json({
+      return res.status(400).json({
         status: 'error',
         message: 'Message not found',
       });
 
     if (!(message['mimetype'] || message.isMedia || message.isMMS))
-      res.status(400).json({
+      return res.status(400).json({
         status: 'error',
         message: 'Message does not contain media',
       });

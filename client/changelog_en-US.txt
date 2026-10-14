@@ -184,6 +184,10 @@ FIXES
 
 - Verified WhatsApp Business accounts (banks, payment apps, utilities) that you have not saved as contacts showed only their phone number in the chat list. They now show the business's verified name, as in WhatsApp. A name saved in your contacts still takes precedence.
 
+- WPPConnect Server updated to 2.10.55. Besides upstream fixes for requests that were answered twice, when WhatsApp Web could not look a number up (for example while the page was reloading), the send is now tried again instead of wrongly reporting that the number does not exist. The same recipient in one request is also looked up only once. If WinZapp offers the WPPConnect update at startup, accept it to install the new version.
+
+- Logging out of a session that was left unfinished (for example an account that never finished pairing) now gets an answer instead of failing silently.
+
 V2.0.0.0
 
 The big news in this release is calls: you can now place, answer and reject voice and video calls from WinZapp itself, without picking up your phone, with an accessible call window, keyboard shortcuts, dedicated audio settings and your call history in the new Calls tab. Locked chats, search in archived chats, Turkish and Romanian and several usability improvements arrived too, along with fixes for situations where WinZapp asked you to pair again when it did not need to. Under the hood, the program's code went through a major reorganization: it changes nothing in how you use WinZapp, but it makes it easier to maintain and to fix from here on.
