@@ -2,7 +2,7 @@
 
 import wx
 from core.communities import DESCRIPTION_LIMIT, NAME_LIMIT
-from ui.accessible import split_mnemonic
+from ui.dialogs.labelled_control import add_labelled
 
 
 class CommunityCreateDialog(wx.Dialog):
@@ -18,16 +18,13 @@ class CommunityCreateDialog(wx.Dialog):
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        def field(key, control, proportion):
-            sizer.Add(wx.StaticText(self, label=i18n.t(key)), 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-            control.SetName(split_mnemonic(i18n.t(key))[0])
-            sizer.Add(control, proportion, wx.EXPAND | wx.ALL, 8)
-            return control
+        def field(key, make, proportion):
+            return add_labelled(self, sizer, i18n.t(key), make, proportion)
 
-        self._name = field("communities_create_name", wx.TextCtrl(self), 0)
+        self._name = field("communities_create_name", lambda: wx.TextCtrl(self), 0)
         self._name.SetMaxLength(NAME_LIMIT)
         self._description = field("communities_create_description",
-                                  wx.TextCtrl(self, style=wx.TE_MULTILINE), 1)
+                                  lambda: wx.TextCtrl(self, style=wx.TE_MULTILINE), 1)
         self._description.SetMaxLength(DESCRIPTION_LIMIT)
         self._choose = wx.Button(self, label=self._choose_label())
         self._choose.Bind(wx.EVT_BUTTON, self._on_choose)

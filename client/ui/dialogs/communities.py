@@ -8,7 +8,7 @@ import logging
 import wx
 from core.communities import list_communities
 from core.participant_names import person_name
-from ui.accessible import split_mnemonic
+from ui.dialogs.labelled_control import add_labelled
 from ui.dialogs.background_work import BackgroundWork
 from ui.dialogs.community_admin import CommunityAdminActions
 from ui.dialogs.group_join_dialog import open_group_chat
@@ -58,18 +58,15 @@ class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        def labelled(key, control, proportion):
-            sizer.Add(wx.StaticText(self, label=i18n.t(key)), 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-            control.SetName(split_mnemonic(i18n.t(key))[0])
-            sizer.Add(control, proportion, wx.EXPAND | wx.ALL, 8)
-            return control
+        def labelled(key, make, proportion):
+            return add_labelled(self, sizer, i18n.t(key), make, proportion)
 
-        self._list = labelled("communities_list", wx.ListBox(self, style=wx.LB_SINGLE), 2)
+        self._list = labelled("communities_list", lambda: wx.ListBox(self, style=wx.LB_SINGLE), 2)
         self._list.Bind(wx.EVT_LISTBOX, self._on_select)
-        self._groups = labelled("communities_groups_list", wx.ListBox(self, style=wx.LB_SINGLE), 2)
+        self._groups = labelled("communities_groups_list", lambda: wx.ListBox(self, style=wx.LB_SINGLE), 2)
         self._groups.Bind(wx.EVT_LISTBOX, lambda event: self._update_buttons())
         self._groups.Bind(wx.EVT_LISTBOX_DCLICK, self._on_open)
-        self._details = labelled("communities_details", wx.TextCtrl(
+        self._details = labelled("communities_details", lambda: wx.TextCtrl(
             self, style=wx.TE_READONLY | wx.TE_MULTILINE), 1)
         self._status = wx.StaticText(self, label="")
         sizer.Add(self._status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)

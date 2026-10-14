@@ -12,7 +12,7 @@ import logging
 import wx
 from core import commerce
 from core.commerce import ACCEPTED, DECLINED, CommerceError
-from ui.accessible import split_mnemonic
+from ui.dialogs.labelled_control import add_labelled
 from ui.dialogs.background_work import BackgroundWork
 
 _REFUSALS = {"not_business": "commerce_not_business", "own_order": "commerce_not_business",
@@ -29,14 +29,11 @@ class OrderDialog(BackgroundWork, wx.Dialog):
                          size=(560, 520), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        def labelled(key, control, proportion):
-            sizer.Add(wx.StaticText(self, label=i18n.t(key)), 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-            control.SetName(split_mnemonic(i18n.t(key))[0])
-            sizer.Add(control, proportion, wx.EXPAND | wx.ALL, 8)
-            return control
+        def labelled(key, make, proportion):
+            return add_labelled(self, sizer, i18n.t(key), make, proportion)
 
-        self._items = labelled("commerce_order_items", wx.ListBox(self, style=wx.LB_SINGLE), 2)
-        self._details = labelled("commerce_order_details", wx.TextCtrl(
+        self._items = labelled("commerce_order_items", lambda: wx.ListBox(self, style=wx.LB_SINGLE), 2)
+        self._details = labelled("commerce_order_details", lambda: wx.TextCtrl(
             self, style=wx.TE_READONLY | wx.TE_MULTILINE), 1)
         self._status = wx.StaticText(self, label="")
         sizer.Add(self._status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)

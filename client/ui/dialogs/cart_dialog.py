@@ -9,7 +9,7 @@ import logging
 import wx
 from core import commerce
 from core.commerce import CommerceError
-from ui.accessible import split_mnemonic
+from ui.dialogs.labelled_control import add_labelled
 from ui.dialogs.background_work import BackgroundWork
 
 _REFUSALS = {"cart_disabled": "commerce_cart_disabled", "product_unavailable": "commerce_product_unavailable",
@@ -29,17 +29,14 @@ class CartDialog(BackgroundWork, wx.Dialog):
                          size=(620, 620), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        def labelled(key, control, proportion):
-            sizer.Add(wx.StaticText(self, label=i18n.t(key)), 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-            control.SetName(split_mnemonic(i18n.t(key))[0])
-            sizer.Add(control, proportion, wx.EXPAND | wx.ALL, 8)
-            return control
+        def labelled(key, make, proportion):
+            return add_labelled(self, sizer, i18n.t(key), make, proportion)
 
-        self._products = labelled("commerce_products_list", wx.ListBox(self, style=wx.LB_SINGLE), 2)
+        self._products = labelled("commerce_products_list", lambda: wx.ListBox(self, style=wx.LB_SINGLE), 2)
         self._products.Bind(wx.EVT_LISTBOX, lambda event: self._update_buttons())
-        self._items = labelled("commerce_cart_list", wx.ListBox(self, style=wx.LB_SINGLE), 1)
+        self._items = labelled("commerce_cart_list", lambda: wx.ListBox(self, style=wx.LB_SINGLE), 1)
         self._items.Bind(wx.EVT_LISTBOX, lambda event: self._update_buttons())
-        self._note = labelled("commerce_cart_note", wx.TextCtrl(self), 0)
+        self._note = labelled("commerce_cart_note", lambda: wx.TextCtrl(self), 0)
         self._note.SetMaxLength(commerce.NOTE_LIMIT)
         self._status = wx.StaticText(self, label="")
         sizer.Add(self._status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)

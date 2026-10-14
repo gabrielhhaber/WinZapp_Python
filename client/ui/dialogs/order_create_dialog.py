@@ -5,6 +5,7 @@ import logging
 import wx
 from core import commerce
 from core.commerce import CommerceError
+from ui.dialogs.labelled_control import add_labelled
 from ui.accessible import split_mnemonic
 from ui.dialogs.background_work import BackgroundWork
 
@@ -25,16 +26,13 @@ class OrderItemDialog(wx.Dialog):
         super().__init__(parent, title=i18n.t("commerce_item_title"), style=wx.DEFAULT_DIALOG_STYLE)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        def field(key, control):
-            sizer.Add(wx.StaticText(self, label=i18n.t(key)), 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-            control.SetName(split_mnemonic(i18n.t(key))[0])
-            sizer.Add(control, 0, wx.EXPAND | wx.ALL, 8)
-            return control
+        def field(key, make):
+            return add_labelled(self, sizer, i18n.t(key), make)
 
-        self._name = field("commerce_item_name", wx.TextCtrl(self))
+        self._name = field("commerce_item_name", lambda: wx.TextCtrl(self))
         self._name.SetMaxLength(120)
-        self._price = field("commerce_item_price", wx.TextCtrl(self))
-        self._quantity = field("commerce_item_quantity", wx.SpinCtrl(
+        self._price = field("commerce_item_price", lambda: wx.TextCtrl(self))
+        self._quantity = field("commerce_item_quantity", lambda: wx.SpinCtrl(
             self, min=1, max=commerce.QUANTITY_LIMIT, initial=1))
         buttons = wx.StdDialogButtonSizer()
         ok = wx.Button(self, wx.ID_OK, label=i18n.t("commerce_item_add"))
