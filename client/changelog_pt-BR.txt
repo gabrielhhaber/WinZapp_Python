@@ -112,6 +112,8 @@ NOVIDADES
 
 - As informações do chat pessoal mostram se as notificações dele estão silenciadas (e até quando) e, quando o WhatsApp informa, o tempo das mensagens temporárias.
 
+- Comunidades agora é um item da lista de navegação, depois de Ligações, com o atalho Alt+8 no nome do item; dá para chegar nela descendo pela lista e não só com Alt+8.
+
 CORREÇÕES
 
 - Os botões de gravar no outro modo (estéreo ou mono) e de gravar com o áudio do computador informavam ao leitor de tela o atalho Ctrl+R. Agora cada um informa o seu, Ctrl+Shift+G e Ctrl+Shift+H, ou as teclas que você definiu para eles.

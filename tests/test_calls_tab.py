@@ -398,7 +398,7 @@ def _nav(mw):
             # Same order rebuild_items() builds when the vault's optional
             # nav row is hidden (mw here has no chat_lock_navigation_visible,
             # so the "locked" row is absent, same as the real default).
-            self._nav_keys = ["conversations", "archived", "status", "calls", "settings"]
+            self._nav_keys = ["conversations", "archived", "status", "calls", "communities", "settings"]
 
     return _Nav()
 
@@ -411,9 +411,9 @@ class TestNavigation:
         assert mw.calls_panel.shown and mw.calls_panel.on_show_calls == 1
         assert not mw.status_panel.shown and not mw.conversations_panel.shown
 
-    def test_item_4_is_settings_now(self):
+    def test_item_5_is_settings_now(self):
         mw = _NavWindow()
-        _nav(mw).on_nav_item_selected(_Event(4))
+        _nav(mw).on_nav_item_selected(_Event(5))
         assert mw.settings_opened == 1
 
     def test_status_hides_the_calls_tab(self):

@@ -59,7 +59,7 @@ class NavigationPanel(wx.Panel):
             self.main_window, "chat_lock_navigation_visible", lambda: False
         )():
             keys.append("locked")
-        keys.extend(["status", "calls", "settings"])
+        keys.extend(["status", "calls", "communities", "settings"])
         i18n = self.main_window.i18n
         labels = {
             "conversations": f"{i18n.t('conversations')} alt+1",
@@ -67,6 +67,7 @@ class NavigationPanel(wx.Panel):
             "locked": i18n.t("locked_chats_nav"),
             "status": i18n.t("status_nav"),
             "calls": i18n.t("calls_nav"),
+            "communities": i18n.t("communities_nav"),
             "settings": f"{i18n.t('settings')} {i18n.t('settings_shortcut')}",
         }
         labels = {key: navigation_shortcut_label(self.main_window, key, label)
@@ -131,6 +132,12 @@ class NavigationPanel(wx.Panel):
 
         if key == "locked":
             mw.show_locked_chats_panel()
+            return
+
+        if key == "communities":
+            # A window of its own, like Settings: no panel is switched.
+            from ui.dialogs.communities import show_communities
+            show_communities(mw, mw)
             return
 
         lock_vault = getattr(mw, "lock_chat_vault", None)

@@ -112,6 +112,8 @@ NOUTĂȚI
 
 - Informațiile despre conversația personală arată acum dacă notificările sunt dezactivate (și până când) și, când WhatsApp le transmite, durata mesajelor care dispar.
 
+- Comunitățile sunt acum un element al listei de navigare, după Apeluri, cu scurtătura Alt+8 în numele elementului; se poate ajunge la ele coborând prin listă, nu doar cu Alt+8.
+
 CORECTĂRI
 
 - Butoanele de înregistrare în celălalt mod (stereo sau mono) și de înregistrare cu sunetul computerului anunțau cititorului de ecran comanda rapidă Ctrl+R. Acum fiecare o anunță pe a sa, Ctrl+Shift+G și Ctrl+Shift+H, sau tastele pe care le-ați atribuit.

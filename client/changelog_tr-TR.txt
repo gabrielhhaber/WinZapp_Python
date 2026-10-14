@@ -112,6 +112,8 @@ YENİLİKLER
 
 - Kişisel sohbet bilgileri artık bildirimlerin sessize alınıp alınmadığını (ve ne zamana kadar) ve WhatsApp bildirdiğinde kaybolan mesajların süresini gösteriyor.
 
+- Topluluklar artık gezinme listesinde Aramalar'dan sonra gelen bir öğedir ve öğenin adında Alt+8 kısayolu yer alır; yalnızca Alt+8 ile değil, listede ilerleyerek de ulaşılabilir.
+
 DÜZELTMELER
 
 - Diğer modda (stereo veya mono) kayıt ve bilgisayar sesiyle kayıt düğmeleri ekran okuyucuya kısayol olarak Ctrl+R bildiriyordu. Artık her biri kendi kısayolunu, Ctrl+Shift+G ve Ctrl+Shift+H'yi ya da onlara atadığınız tuşları bildiriyor.

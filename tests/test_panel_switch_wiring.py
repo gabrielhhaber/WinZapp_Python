@@ -296,7 +296,7 @@ def _open(mw, jid, origin):
 def _enter(mw, target):
     """Every real way of making `target` the visible chat panel."""
     nav = type("_Nav", (), {"main_window": mw, "_nav_keys": [
-        "conversations", "archived", "locked", "status", "calls", "settings"]})()
+        "conversations", "archived", "locked", "status", "calls", "communities", "settings"]})()
     nav.on_nav_item_selected = lambda e: NavigationPanel.on_nav_item_selected(nav, e)
     idx = {MAIN: 0, ARCHIVED: 1, LOCKED: 2}[target]
     event = type("_E", (), {"GetIndex": lambda self: idx})()

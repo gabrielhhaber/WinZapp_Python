@@ -3383,6 +3383,11 @@ msgctxt "communities_list"
 msgid "Co&mmunities"
 msgstr ""
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
+msgctxt "communities_nav"
+msgid "Communities alt+8"
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_new"
 msgid "&New community..."

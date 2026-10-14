@@ -112,6 +112,8 @@ NOWOŚCI
 
 - Informacje o czacie prywatnym pokazują, czy jego powiadomienia są wyciszone (i do kiedy) oraz, gdy WhatsApp to podaje, czas znikających wiadomości.
 
+- Społeczności są teraz pozycją listy nawigacji, po Połączeniach, ze skrótem Alt+8 w nazwie pozycji; można do nich dojść strzałkami po liście, a nie tylko skrótem Alt+8.
+
 POPRAWKI
 
 - Przyciski nagrywania w drugim trybie (stereo lub mono) i nagrywania z dźwiękiem komputera podawały czytnikowi ekranu skrót Ctrl+R. Teraz każdy podaje swój, Ctrl+Shift+G i Ctrl+Shift+H, albo klawisze, które im przypisano.
