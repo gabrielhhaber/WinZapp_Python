@@ -212,10 +212,14 @@ export async function commerceInPage(request: any): Promise<any> {
       } catch (_) {
         threw = true;  // which the library does after an order that went out
       }
+      // About four seconds by default. The route never sets these two; a test
+      // does, so that it does not have to wait them out for real.
+      const attempts = Number.isInteger(request.readBackAttempts) ? request.readBackAttempts : 10;
+      const pause = Number.isInteger(request.readBackPause) ? request.readBackPause : 400;
       let found = '';
-      for (let attempt = 0; attempt < 10 && !found; attempt++) {
+      for (let attempt = 0; attempt < attempts && !found; attempt++) {
         found = ordersSent(wid).find((entry) => !before.has(entry)) ?? '';
-        if (!found) await new Promise((resolve) => setTimeout(resolve, 400));
+        if (!found && pause > 0) await new Promise((resolve) => setTimeout(resolve, pause));
       }
       // Threw and nothing new in the chat: unknown, and said as such.
       if (!found && threw) throw new Error('order_not_seen');

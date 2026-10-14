@@ -66,11 +66,18 @@ test('the route answers success only for code 200', async () => {
   expect(evaluate).toHaveBeenCalledWith(promoteInPage, COMMUNITY, PERSON);
 });
 
-test.each(['403', 'unknown', 'not_a_community'])('WhatsApp answering %s is a refusal', async (code) => {
+test.each(['403', 'unknown'])('WhatsApp answering %s is a refusal', async (code) => {
   const res = response();
   await promoteAdmin(request(jest.fn().mockResolvedValue(code)), res);
   expect(res.statusCode).toBe(409);
   expect(res.body).toEqual({ status: 'error', code: 'promotion_refused' });
+});
+
+test('a group the page does not hold as a community is not called a refusal', async () => {
+  const res = response();
+  await promoteAdmin(request(jest.fn().mockResolvedValue('not_a_community')), res);
+  expect(res.statusCode).toBe(404);
+  expect(res.body).toEqual({ status: 'error', code: 'not_a_community' });
 });
 
 test.each([

@@ -50,6 +50,8 @@ export async function promoteAdmin(req: Request, res: Response) {
     if (!page || page.isClosed?.()) throw new Error('promotion_unavailable');
     const code = await page.evaluate(promoteInPage, communityId, participant);
     if (code === '200') return res.status(200).json({ status: 'success', response: { promoted: true } });
+    // Not asked at all: the page holds no community by that id.
+    if (code === 'not_a_community') return res.status(404).json({ status: 'error', code: 'not_a_community' });
     // WhatsApp answered, and the answer was no: not a fault of the connection.
     return res.status(409).json({ status: 'error', code: 'promotion_refused' });
   } catch (_) {

@@ -201,9 +201,10 @@ describe('the buyer: catalog and cart', () => {
   test('a throw with no new order in the chat is unknown, not "sent" and not "not sent"', async () => {
     const page = fakePage({ submit: 'throws without sending' });
     await inPage(page, { action: 'cartSet', chatId: SELLER, productId: '100', quantity: 1 });
-    await expect(inPage(page, { action: 'cartSubmit', chatId: SELLER, message: '' })).rejects.toThrow('order_not_seen');
+    await expect(inPage(page, { action: 'cartSubmit', chatId: SELLER, message: '',
+                                readBackAttempts: 3, readBackPause: 0 })).rejects.toThrow('order_not_seen');
     expect(page.WPP.cart.submit).toHaveBeenCalledTimes(1);
-  }, 15000);
+  });
 });
 
 describe('orders', () => {
