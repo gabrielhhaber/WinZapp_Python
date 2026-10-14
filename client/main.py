@@ -312,6 +312,7 @@ from main_window.message_pins import MessagePinsMixin
 from main_window.quick_audio_devices import QuickAudioDevicesMixin
 from main_window.message_ack import MessageAckMixin
 from main_window.whatsapp_privacy import WhatsAppPrivacyMixin
+from main_window.whats_new_since import WhatsNewSinceMixin
 
 
 requests.get = _patched_get
@@ -372,6 +373,7 @@ class MainWindow(
     QuickAudioDevicesMixin,
     MessageAckMixin,
     WhatsAppPrivacyMixin,
+    WhatsNewSinceMixin,
     wx.Frame,
 ):
     def __init__(self, account_id=None, account_name=None, startup_source="user",

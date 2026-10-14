@@ -465,6 +465,45 @@ def resolve_changelog(local_version: str, remote_version: str, lang_code: str, r
     return (release_body or "").strip()
 
 
+def _version_order(version: str):
+    """A sort key that ranks versions the way is_newer() compares them."""
+    parsed = parse_version(version)
+    return (parsed[0], _PRE_ORDER.get(parsed[1], 0)) if parsed else ((0, 0, 0, 0), 0)
+
+
+def whats_new_text(local_version: str, release: dict, releases: list, lang_code: str,
+                   t, fetch) -> str:
+    """The "What's new?" text for an update to *release* (#488): the offered
+    tag's changelog compared with the installed one, and for an alpha the
+    GitHub notes of every alpha since the installed version
+    (core/release_notes.py). Falls back to resolve_changelog() when neither
+    part is available (offline, a fork without the file)."""
+    from config import GITHUB_REPO
+    from core import release_notes
+    tag = release.get("tag_name", "")
+    remote_version = tag.lstrip("vV")
+    changes = ""
+    fetched = release_notes.changelog_at(fetch, GITHUB_REPO, tag, lang_code) if tag else None
+    if fetched is not None:
+        locale, offered = fetched
+        changes = release_notes.changelog_changes(_read_changelog_file(locale), offered, t)
+    github = ""
+    if is_alpha_release(release):
+        github = release_notes.github_notes(
+            releases or [release], is_alpha_release,
+            lambda version: is_newer(version, local_version),
+            lambda version: not is_newer(version, remote_version), t, _version_order)
+    text = release_notes.compose(changes, github, t)
+    return text or resolve_changelog(local_version, remote_version, lang_code,
+                                     release.get("body", ""))
+
+
+def _fetch_text(url: str) -> str:
+    resp = tls_trust.get(url, headers={"User-Agent": f"WinZapp/{__version__}"}, timeout=15)
+    resp.raise_for_status()
+    return resp.text
+
+
 def _wrap_changelog_text(text: str, width: int = 100) -> str:
     """Word-wrap *text* to *width* columns per line for display in the
     What's New TextCtrl, never breaking a word mid-way. Blank lines
@@ -930,7 +969,7 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
 class WhatsNewDialog(wx.Dialog):
     """Shows the changelog entries between the current and new version."""
 
-    def __init__(self, parent, changelog: str):
+    def __init__(self, parent, changelog: str, title: str = ""):
         # parent is the UpdateDialog, which stores the real MainWindow as
         # _main_window (not main_window) and never kept its own .i18n
         # attribute — looking those up directly raised an AttributeError
@@ -939,7 +978,7 @@ class WhatsNewDialog(wx.Dialog):
         i18n = mw.i18n
         super().__init__(
             parent,
-            title=i18n.t("whats_new_title"),
+            title=title or i18n.t("whats_new_title"),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
         self._build(parent, changelog, i18n)
@@ -1380,6 +1419,10 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin):
         except Exception:
             return False
 
+    def _translate(self, key: str) -> str:
+        i18n = getattr(self._mw, "i18n", None)
+        return i18n.t(key) if i18n is not None else key
+
     def _get_json(self, url: str, params: "dict | None" = None):
         resp = tls_trust.get(
             url,
@@ -1537,8 +1580,8 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin):
             if self._force:
                 self._force = False
                 language = self._mw.i18n.language if hasattr(self._mw, "i18n") else "pt-BR"
-                changelog = resolve_changelog(__version__, alpha["tag_name"].lstrip("vV"),
-                                              language, alpha.get("body", ""))
+                changelog = whats_new_text(__version__, alpha, releases, language,
+                                           self._translate, _fetch_text)
                 self._queue_alpha_channel_choice(alpha, changelog)
                 return
         if data is None:
@@ -1597,7 +1640,8 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin):
         # core.i18n.I18n.get_language()), and re-reading it on the window's own
         # instance switched every string drawn from here on.
         lang_code = self._mw.i18n.language if hasattr(self._mw, "i18n") else "pt-BR"
-        changelog = resolve_changelog(local_version, remote_version, lang_code, data.get("body", ""))
+        changelog = whats_new_text(local_version, data, releases, lang_code,
+                                   self._translate, _fetch_text)
 
         if not self._claim_prompt(remote_version):
             # Another account is already asking. Do NOT install behind its back

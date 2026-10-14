@@ -276,3 +276,12 @@ because no single one is enough:
   left: folders and ZIPs older than two days (a package another account staged
   in the background is younger — `update_background.may_interrupt_now()` can
   make it wait for a quiet moment), scripts and markers older than a week.
+
+## "What's new?" describes the release on offer, not the installed one (#488)
+
+`resolve_changelog()` filtered the **installed** changelog between the two version numbers. That file is the version being replaced, and an alpha's number (2.1.0.4391) is past every `V2.1.0.0` heading in it, so nothing matched and the whole old file was shown; the GitHub release body (the only per-alpha notes) was reached only when no changelog shipped at all. `updater.whats_new_text()` now builds the text from `core/release_notes.py`:
+
+- the changelog of the user's language **at the offered tag**, fetched from `raw.githubusercontent.com` (no API quota), compared with the installed one by `core/changelog_diff.py`: new, changed (as it now reads) and removed items, a new version whole;
+- for an alpha, the body of every alpha past the installed version up to the offered one, newest first (`_version_order()`, the same ranking as `is_newer()`), as pull-request titles and numbers without links, `@` handles, Markdown or the "New Contributors" list.
+
+Offline, or on a fork without the file, it falls back to `resolve_changelog()`. Help > "What's new since you last looked" uses the same comparison against the snapshot in `global/changelog_seen.json` (`core/changelog_seen.py`): one per install, every shipped language kept, written atomically.

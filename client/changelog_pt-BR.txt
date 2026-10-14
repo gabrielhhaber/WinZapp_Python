@@ -4,6 +4,8 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- Ajuda > "Novidades desde a última vez que você viu" diz o que mudou nestas novidades desde a última vez em que alguém neste computador as abriu, em frases simples: os itens novos de cada seção, os itens alterados (como ficaram) e os retirados, e uma versão inteira quando ela é nova. Vale para todas as contas. E o botão "Quais as novidades?" da janela de atualização agora mostra o que a versão oferecida muda nestas novidades, em vez das novidades da versão que você já tem; numa versão alpha, ele também lista, para cada alpha desde a sua, as mudanças registradas no GitHub (o título e o número de cada pull request).
+
 - Transcrição local com whisper.cpp: a opção "Manter o modelo carregado na memória (faster-whisper e whisper.cpp)" agora vale também para o whisper.cpp. Com ela ligada, o modelo é carregado uma vez e fica na memória (ou na placa de vídeo) entre as transcrições, em vez de ser recarregado a cada mensagem; antes a opção só tinha efeito no faster-whisper. Se o programa que mantém o modelo carregado não puder ser usado, a transcrição é feita como sempre foi.
 
 - Em Configurações > Transcrição local, a nova opção "Transcrever sem a janela de progresso: continuar nas mensagens ou nos status até o texto ficar pronto (o mesmo atalho cancela)", desligada por padrão, faz Alt+Shift+T e Alt+Shift+N transcreverem sem abrir a janela de progresso: você continua na lista e o resultado aparece quando ficar pronto. O mesmo atalho na mesma mensagem cancela.

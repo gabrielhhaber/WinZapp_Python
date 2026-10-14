@@ -86,6 +86,7 @@ class WindowChromeMixin:
         self._ID_FORCE_REINSTALL_ZIP = wx.NewIdRef()
         self._ID_FORCE_REINSTALL_WPP = wx.NewIdRef()
         self._ID_WHATS_NEW     = wx.NewIdRef()
+        self._ID_WHATS_NEW_SINCE = wx.NewIdRef()
         self._ID_ABOUT         = wx.NewIdRef()
 
         menubar = wx.MenuBar()
@@ -233,6 +234,7 @@ class WindowChromeMixin:
         help_menu.Append(self._ID_FORCE_REINSTALL_WPP, self.i18n.t("menu_force_reinstall_wpp"))
         help_menu.AppendSeparator()
         help_menu.Append(self._ID_WHATS_NEW, self.i18n.t("menu_whats_new"))
+        help_menu.Append(self._ID_WHATS_NEW_SINCE, self.i18n.t("menu_whats_new_since"))
         help_menu.Append(self._ID_ABOUT, self.i18n.t("menu_about"))
         menubar.Append(help_menu, self.i18n.t("menu_help"))
 
@@ -256,6 +258,7 @@ class WindowChromeMixin:
         self.Bind(wx.EVT_MENU, self._on_force_reinstall_zip, id=self._ID_FORCE_REINSTALL_ZIP)
         self.Bind(wx.EVT_MENU, self._on_force_reinstall_wpp, id=self._ID_FORCE_REINSTALL_WPP)
         self.Bind(wx.EVT_MENU, self._on_whats_new,     id=self._ID_WHATS_NEW)
+        self.Bind(wx.EVT_MENU, self._on_whats_new_since, id=self._ID_WHATS_NEW_SINCE)
         self.Bind(wx.EVT_MENU, self._on_about,         id=self._ID_ABOUT)
 
     def _on_account_hotkey_char(self, event):
@@ -957,6 +960,9 @@ class WindowChromeMixin:
             )
             help_menu.FindItemById(self._ID_WHATS_NEW).SetItemLabel(
                 self.i18n.t("menu_whats_new")
+            )
+            help_menu.FindItemById(self._ID_WHATS_NEW_SINCE).SetItemLabel(
+                self.i18n.t("menu_whats_new_since")
             )
             help_menu.FindItemById(self._ID_ABOUT).SetItemLabel(
                 self.i18n.t("menu_about")

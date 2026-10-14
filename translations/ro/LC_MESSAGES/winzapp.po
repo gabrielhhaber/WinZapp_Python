@@ -2384,6 +2384,41 @@ msgstr ""
 "este din nou în conversație."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "changelog_diff_added"
+msgid "New in the section {section}:"
+msgstr "Nou în secțiunea {section}:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "changelog_diff_changed"
+msgid "Changed in the section {section}, as it now reads:"
+msgstr "Modificat în secțiunea {section}, în forma actuală:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "changelog_diff_new_version"
+msgid "New version {version}, in full:"
+msgstr "Versiune nouă {version}, completă:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "changelog_diff_removed"
+msgid "Removed from the section {section}:"
+msgstr "Eliminat din secțiunea {section}:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "changelog_diff_summary"
+msgid "Version summary"
+msgstr "Rezumatul versiunii"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "changelog_diff_version"
+msgid "Version {version}"
+msgstr "Versiunea {version}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/conversation_navigation.py
 msgctxt "channel_read_only"
 msgid "This channel is read-only"
@@ -4130,7 +4165,7 @@ msgid "%m/%d/%Y"
 msgstr "%d.%m.%Y"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
-#: client/main_window/chat_list.py
+#: client/main_window/chat_list.py client/main_window/whats_new_since.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
@@ -6410,6 +6445,12 @@ msgstr "&Descărcați media"
 msgctxt "menu_whats_new"
 msgid "&What's New"
 msgstr "&Ce este nou"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
+msgctxt "menu_whats_new_since"
+msgid "What's New Since You &Last Looked..."
+msgstr "Noutăți de la &ultima vizualizare..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_rendering.py
@@ -15395,23 +15436,71 @@ msgctxt "whats_new_btn"
 msgid "&What's new?"
 msgstr "&Ce este nou?"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "whats_new_changelog_heading"
+msgid "What changes in the release notes with this update:"
+msgstr "Ce se schimbă în noutăți cu această actualizare:"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "whats_new_close"
 msgid "&Close"
 msgstr "&Închidere"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/main_window/window_chrome.py
+msgctxt "whats_new_github_heading"
+msgid "Notes of each alpha version on GitHub:"
+msgstr "Notele fiecărei versiuni Alpha pe GitHub:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/whats_new_since.py client/main_window/window_chrome.py
 msgctxt "whats_new_none_message"
 msgid "No changelog is available for this version."
 msgstr ""
 "Niciun jurnal de modificări nu este disponibil pentru această versiune."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/main_window/window_chrome.py
+#: client/main_window/whats_new_since.py client/main_window/window_chrome.py
 msgctxt "whats_new_none_title"
 msgid "No news"
 msgstr "Nicio veste"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "whats_new_pull_request"
+msgid "{title} (pull request {number})"
+msgstr "{title} (pull request {number})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "whats_new_since_first"
+msgid ""
+"This is the first time the release notes are opened here, so there is "
+"nothing to compare them with yet. These are the notes of the version you are"
+" using, {version}:"
+msgstr ""
+"Este prima dată când noutățile sunt deschise aici, deci încă nu există cu ce"
+" să fie comparate. Acestea sunt notele versiunii pe care o folosiți, "
+"{version}:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "whats_new_since_header"
+msgid "What changed in the release notes since you last looked, on {date}:"
+msgstr "Ce s-a schimbat în noutăți de la ultima vizualizare, din {date}:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "whats_new_since_nothing"
+msgid ""
+"Nothing has changed in the release notes since you last looked, on {date}."
+msgstr ""
+"Nimic nu s-a schimbat în noutăți de la ultima vizualizare, din {date}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/whats_new_since.py
+msgctxt "whats_new_since_title"
+msgid "What's new since you last looked"
+msgstr "Noutăți de la ultima vizualizare"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "whats_new_title"
