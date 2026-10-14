@@ -108,6 +108,8 @@ NOVEDADES
 
 CORRECCIONES
 
+- Los botones de grabar en el otro modo (estéreo o mono) y de grabar con el audio del ordenador indicaban al lector de pantalla el atajo Ctrl+R. Ahora cada uno indica el suyo, Ctrl+Shift+G y Ctrl+Shift+H, o las teclas que les hayas asignado.
+
 - Las ventanas Datos del grupo, Datos de la conversación, Invitación al grupo y Unirse al grupo mediante enlace ahora tienen una letra de acceso (Alt+letra) en cada botón y en cada etiqueta de campo o lista. Antes, los botones de Datos del grupo, algunos de Datos de la conversación y todos los controles de la invitación no tenían ninguna. El botón que cierra la ventana de la invitación, que aparecía en inglés, ahora sigue el idioma de WinZapp.
 
 - Los mensajes enviados mientras una secuencia de mensajes de voz estaba en reproducción o en pausa se quedaban sin estado en la lista (ni "Enviado", ni "Entregado", ni "Leído") hasta que la secuencia terminaba, aunque la ventana Datos del mensaje (Alt+Shift+D) ya mostraba el estado correcto. Ahora, durante una secuencia, solo la fila que tiene el foco espera, para que el lector de pantalla no la lea por encima del audio; las demás se actualizan al momento, y la que se quedó esperando se actualiza cuando el foco sale de ella, cuando se pausa la reproducción o cuando la secuencia termina.

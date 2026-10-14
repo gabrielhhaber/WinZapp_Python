@@ -366,7 +366,8 @@ class TestTheShortcut:
     def test_the_screen_reader_announces_it_on_the_button(self):
         src = conversations_source()
         assert ('self._record_voice_alt_btn.SetAccessible(\n'
-                '            AccessibleRecordVoiceMessage("Ctrl+Shift+G")') in src.replace("\r\n", "\n")
+                '            AccessibleRecordVoiceMessage("Ctrl+Shift+G", ("messages.ID_CTRL_SHIFT_G",))'
+                ) in src.replace("\r\n", "\n")
 
     def test_it_is_listed_with_the_other_shortcuts(self):
         from ui.dialogs import shortcuts_dialog

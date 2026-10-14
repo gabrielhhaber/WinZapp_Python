@@ -1014,7 +1014,7 @@ class ConversationsPanel(
             self.conversation_panel, label=i18n.t(self._alternate_record_label_key())
         )
         self._record_voice_alt_btn.SetAccessible(
-            AccessibleRecordVoiceMessage("Ctrl+Shift+G")
+            AccessibleRecordVoiceMessage("Ctrl+Shift+G", ("messages.ID_CTRL_SHIFT_G",))
         )
         self._record_voice_alt_btn.Bind(wx.EVT_BUTTON, self._on_record_alternate_mode)
         conv_sizer.Add(self._record_voice_alt_btn, 0, wx.LEFT | wx.BOTTOM, 5)
@@ -1023,7 +1023,7 @@ class ConversationsPanel(
             self.conversation_panel, label=i18n.t("record_voice_message_system_audio")
         )
         self._record_voice_system_btn.SetAccessible(
-            AccessibleRecordVoiceMessage("Ctrl+Shift+H")
+            AccessibleRecordVoiceMessage("Ctrl+Shift+H", ("messages.ID_CTRL_SHIFT_H",))
         )
         self._record_voice_system_btn.Bind(wx.EVT_BUTTON, self._on_record_system_audio)
         conv_sizer.Add(self._record_voice_system_btn, 0, wx.LEFT | wx.BOTTOM, 5)

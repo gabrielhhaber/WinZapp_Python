@@ -108,6 +108,8 @@ WHAT'S NEW
 
 FIXES
 
+- The buttons for recording in the other mode (stereo or mono) and for recording with the computer's audio told the screen reader their shortcut was Ctrl+R. They now announce their own, Ctrl+Shift+G and Ctrl+Shift+H, or the keys you assigned to them.
+
 - The Group info, Chat info, Group invitation and Join group by link windows now have an access key (Alt+letter) on every button and on every label of a field or list. Before, the buttons of Group info, some of Chat info and every control of the invitation had none. The button that closes the invitation window, which was shown in English, now follows WinZapp's language.
 
 - Messages sent while a run of voice messages was playing or paused showed no status in the list (no "Sent", "Delivered" or "Read") until the run ended, even though Message info (Alt+Shift+D) already showed the right one. Now, during a run, only the row that has focus waits, so the screen reader does not read it over the audio; every other row is updated right away, and the one that waited is updated when focus leaves it, when playback is paused or when the run ends.

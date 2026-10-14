@@ -154,12 +154,19 @@ class AccessibleSearchConversations(wx.Accessible):
 
 
 class AccessibleRecordVoiceMessage(wx.Accessible):
-    def __init__(self, shortcut):
+    """A recording button. `candidates` are the ids of ITS shortcut: the one
+    the user configured is what is announced, and `shortcut` only when no
+    main window can say. The alternate-mode and computer-audio buttons each
+    pass their own; with the Ctrl+R ids for all three, every one of them
+    announced Ctrl+R while its real key went unsaid."""
+
+    def __init__(self, shortcut, candidates=('messages.ID_CTRL_R', 'status.ID_CTRL_R')):
         super().__init__()
         self.shortcut = shortcut
+        self.candidates = tuple(candidates)
 
     def GetKeyboardShortcut(self, childId):
-        return (wx.ACC_OK, accessible_shortcut(self, self.shortcut, ('messages.ID_CTRL_R', 'status.ID_CTRL_R')))
+        return (wx.ACC_OK, accessible_shortcut(self, self.shortcut, self.candidates))
 
 
 class AccessibleSaveAs(wx.Accessible):

@@ -108,6 +108,8 @@ NOUTĂȚI
 
 CORECTĂRI
 
+- Butoanele de înregistrare în celălalt mod (stereo sau mono) și de înregistrare cu sunetul computerului anunțau cititorului de ecran comanda rapidă Ctrl+R. Acum fiecare o anunță pe a sa, Ctrl+Shift+G și Ctrl+Shift+H, sau tastele pe care le-ați atribuit.
+
 - Ferestrele Informații despre grup, Informații despre conversație, Invitație în grup și Alăturare la grup prin link au acum o literă de acces (Alt+literă) pe fiecare buton și pe fiecare etichetă de câmp sau de listă. Înainte, butoanele din Informații despre grup, unele din Informații despre conversație și toate controalele invitației nu aveau niciuna. Butonul care închide fereastra invitației, care apărea în engleză, urmează acum limba din WinZapp.
 
 - Mesajele trimise în timp ce un șir de mesaje vocale era în redare sau pe pauză rămâneau fără stare în listă (nici „Trimis”, nici „Livrat”, nici „Citit”) până la sfârșitul șirului, deși fereastra Informații despre mesaj (Alt+Shift+D) arăta deja starea corectă. Acum, în timpul unui șir, așteaptă doar rândul care are focalizarea, pentru ca cititorul de ecran să nu îl citească peste sunet; celelalte sunt actualizate imediat, iar cel care a așteptat este actualizat când focalizarea pleacă de pe el, când redarea este pusă pe pauză sau când șirul se termină.

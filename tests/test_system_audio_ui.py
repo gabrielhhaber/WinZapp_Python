@@ -625,7 +625,8 @@ class TestUiWiring(unittest.TestCase):
         self.assertIn('label=i18n.t("record_voice_message_system_audio")', block)
         self.assertLess(block.index('conv_sizer.Add(self._record_voice_alt_btn'),
                         block.index('conv_sizer.Add(self._record_voice_system_btn'))
-        self.assertIn('AccessibleRecordVoiceMessage("Ctrl+Shift+H")', block)
+        self.assertIn(
+            'AccessibleRecordVoiceMessage("Ctrl+Shift+H", ("messages.ID_CTRL_SHIFT_H",))', block)
         self.assertIn('self._on_record_system_audio)', block)
         help_src = (ROOT / 'client/ui/dialogs/shortcuts_dialog.py').read_text(encoding='utf-8')
         self.assertIn('shortcut_ctrl_shift_h_label', help_src)
