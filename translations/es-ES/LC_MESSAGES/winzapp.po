@@ -2433,6 +2433,36 @@ msgctxt "channel_read_only"
 msgid "This channel is read-only"
 msgstr "Este canal es de solo lectura"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_24h"
+msgid "24 hours"
+msgstr "24 horas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_7d"
+msgid "7 days"
+msgstr "7 días"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_90d"
+msgid "90 days"
+msgstr "90 días"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_label"
+msgid "Disappearing messages"
+msgstr "Mensajes temporales"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_off"
+msgid "Off"
+msgstr "Desactivados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_on"
+msgid "On"
+msgstr "Activados"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_list.py
 msgctxt "chat_is_empty"
@@ -2763,6 +2793,27 @@ msgstr ""
 msgctxt "chat_lock_wrong_pin"
 msgid "The PIN is incorrect."
 msgstr "El PIN es incorrecto."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_notifications_label"
+msgid "Notifications"
+msgstr "Notificaciones"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_notifications_muted"
+msgid "Muted"
+msgstr "Silenciado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+#, python-brace-format
+msgctxt "chat_notifications_muted_until"
+msgid "Muted until {when}"
+msgstr "Silenciado hasta {when}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_notifications_not_muted"
+msgid "Not muted"
+msgstr "No silenciado"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chats_store.py
 #: client/main_window/sync.py

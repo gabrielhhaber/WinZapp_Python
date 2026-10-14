@@ -24,6 +24,7 @@ from datetime import datetime
 import wx
 import wx.adv
 from core import phone_contacts
+from core.chat_settings import chat_settings_lines
 from core.contact_identity import contact_identity_lines
 from core.group_operations import group_permissions
 from ui.dialogs.common_groups_tab import CommonGroupsTabMixin
@@ -823,6 +824,10 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
             ls_str = _fmt_last_seen(last_seen, i18n)
             if ls_str:
                 lines.append(ls_str)
+
+        # Mute and disappearing messages, from what the client already holds
+        # (its mute map and the chat-list snapshot); no line when it has none.
+        lines.extend(chat_settings_lines(self._mw, self._jid, i18n, _fmt_ts))
 
         self._info_ctrl.SetValue("\n".join(lines))
         self._info_ctrl.SetFocus()

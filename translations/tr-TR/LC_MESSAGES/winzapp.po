@@ -2413,6 +2413,36 @@ msgctxt "channel_read_only"
 msgid "This channel is read-only"
 msgstr "Bu kanal salt okunurdur"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_24h"
+msgid "24 hours"
+msgstr "24 saat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_7d"
+msgid "7 days"
+msgstr "7 gün"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_90d"
+msgid "90 days"
+msgstr "90 gün"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_label"
+msgid "Disappearing messages"
+msgstr "Kaybolan mesajlar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_off"
+msgid "Off"
+msgstr "Kapalı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_disappearing_on"
+msgid "On"
+msgstr "Açık"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_list.py
 msgctxt "chat_is_empty"
@@ -2743,6 +2773,27 @@ msgstr ""
 msgctxt "chat_lock_wrong_pin"
 msgid "The PIN is incorrect."
 msgstr "PIN yanlış."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_notifications_label"
+msgid "Notifications"
+msgstr "Bildirimler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_notifications_muted"
+msgid "Muted"
+msgstr "Sessize alındı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+#, python-brace-format
+msgctxt "chat_notifications_muted_until"
+msgid "Muted until {when}"
+msgstr "{when} tarihine kadar sessize alındı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+msgctxt "chat_notifications_not_muted"
+msgid "Not muted"
+msgstr "Sessize alınmadı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chats_store.py
 #: client/main_window/sync.py

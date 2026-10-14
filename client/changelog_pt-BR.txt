@@ -110,6 +110,8 @@ NOVIDADES
 
 - Nova janela Arquivo > Configurações do WhatsApp, com a aba Privacidade para a privacidade da sua conta do WhatsApp, aplicada direto no WhatsApp: visto por último, quem pode ver quando você está online, recado, foto do perfil, confirmação de leitura, quem pode adicionar você a grupos e quem pode ver o seu status (meus contatos, meus contatos exceto... ou compartilhar somente com...). As pessoas do status são escolhidas entre os seus contatos sincronizados, numa lista com pesquisa em que cada uma é marcada com Espaço. A janela carrega os valores atuais do WhatsApp, envia só o que você mudou e depois confere, dizendo quais configurações o WhatsApp não confirmou.
 
+- As informações do chat pessoal mostram se as notificações dele estão silenciadas (e até quando) e, quando o WhatsApp informa, o tempo das mensagens temporárias.
+
 CORREÇÕES
 
 - Os botões de gravar no outro modo (estéreo ou mono) e de gravar com o áudio do computador informavam ao leitor de tela o atalho Ctrl+R. Agora cada um informa o seu, Ctrl+Shift+G e Ctrl+Shift+H, ou as teclas que você definiu para eles.

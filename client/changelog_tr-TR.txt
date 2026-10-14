@@ -110,6 +110,8 @@ YENİLİKLER
 
 - Yeni Dosya > WhatsApp ayarları penceresi: Gizlilik sekmesinde WhatsApp hesabınızın gizliliği doğrudan WhatsApp'ta ayarlanır: son görülme, çevrimiçi olduğunuzu kimlerin görebileceği, hakkımda, profil fotoğrafı, okundu bilgisi, sizi gruplara kimlerin ekleyebileceği ve durumunuzu kimlerin görebileceği (kişilerim, kişilerim şunlar hariç... veya yalnızca şunlarla paylaş...). Durum için kişiler, eşitlenmiş kişileriniz arasından aranabilir bir listede Boşluk ile işaretlenerek seçilir. Pencere geçerli değerleri WhatsApp'tan yükler, yalnızca değiştirdiklerinizi gönderir, ardından kontrol eder ve WhatsApp'ın onaylamadığı ayarları bildirir.
 
+- Kişisel sohbet bilgileri artık bildirimlerin sessize alınıp alınmadığını (ve ne zamana kadar) ve WhatsApp bildirdiğinde kaybolan mesajların süresini gösteriyor.
+
 DÜZELTMELER
 
 - Diğer modda (stereo veya mono) kayıt ve bilgisayar sesiyle kayıt düğmeleri ekran okuyucuya kısayol olarak Ctrl+R bildiriyordu. Artık her biri kendi kısayolunu, Ctrl+Shift+G ve Ctrl+Shift+H'yi ya da onlara atadığınız tuşları bildiriyor.
