@@ -32,8 +32,12 @@ HANDLER_COMMAND = "Software\\Classes\\WinZapp.WhatsAppLink\\shell\\open\\command
 class FakeRegistry:
     """{(key path, value name): text} with the three operations the module uses."""
 
-    def __init__(self, values=None):
+    def __init__(self, values=None, machine=None):
         self.values = dict(values or {})
+        self.machine = machine  # a handler installed for every user (HKLM)
+
+    def merged_scheme_command(self):
+        return self.values.get((SCHEME_COMMAND, "")) or self.machine
 
     def get(self, path, name):
         return self.values.get((path, name))
@@ -121,6 +125,17 @@ def test_another_programs_handler_is_never_overwritten():
 
     association.unregister(registry)
     assert registry.get(SCHEME_COMMAND, "") == other, "not ours: left alone"
+
+
+def test_a_handler_installed_for_every_user_is_never_overridden():
+    """WhatsApp Desktop registers in HKLM; this user's key would hide it."""
+    registry = FakeRegistry(machine='"C:\\Program Files\\WhatsApp\\WhatsApp.exe" "%1"')
+
+    association.register(COMMAND, registry)
+
+    assert registry.get(SCHEME_COMMAND, "") is None
+    assert registry.get("Software\\Classes\\whatsapp", "WinZappOwned") is None
+    assert association.is_registered(COMMAND, registry) is True
 
 
 def test_unregistering_removes_exactly_what_registering_wrote():

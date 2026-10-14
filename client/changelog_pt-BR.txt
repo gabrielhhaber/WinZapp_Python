@@ -184,6 +184,10 @@ CORREÇÕES
 
 - Contas comerciais verificadas do WhatsApp (bancos, aplicativos de pagamento, concessionárias) que você não salvou nos contatos apareciam na lista de conversas só com o número de telefone. Agora aparecem com o nome verificado da empresa, como no WhatsApp. Um nome salvo nos seus contatos continua tendo preferência.
 
+- WPPConnect Server atualizado para a 2.10.55. Além das correções da biblioteca para pedidos respondidos duas vezes, quando o WhatsApp Web não consegue consultar um número (por exemplo, enquanto a página recarrega), o envio agora diz que a consulta falhou em vez de dizer, erradamente, que o número não existe; se vir esse aviso, tente de novo em instantes. O mesmo destinatário num único pedido também é consultado uma só vez. Se o WinZapp oferecer a atualização do WPPConnect ao iniciar, aceite para instalar a nova versão.
+
+- Sair de uma sessão que ficou pela metade (por exemplo, uma conta que nunca terminou de ser pareada) agora recebe uma resposta, em vez de falhar em silêncio.
+
 V2.0.0.0
 
 A grande novidade desta versão são as ligações: agora dá para ligar, atender e recusar ligações de voz e de vídeo pelo próprio WinZapp, sem pegar o celular, com uma janela de ligação acessível, atalhos de teclado, configurações de áudio próprias e o histórico na nova aba Ligações. Também chegaram as conversas trancadas, a pesquisa nas conversas arquivadas, os idiomas turco e romeno e várias melhorias de uso, além de correções em situações em que o WinZapp pedia para parear de novo sem necessidade. Por baixo, o código do programa passou por uma grande reorganização: ela não muda nada no uso, mas deixa o WinZapp mais fácil de manter e de corrigir daqui para a frente.

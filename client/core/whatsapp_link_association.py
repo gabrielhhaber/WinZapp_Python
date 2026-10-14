@@ -69,6 +69,17 @@ class _UserRegistry:
         except OSError:
             return None
 
+    def merged_scheme_command(self):
+        """The command the *merged* view (HKEY_CLASSES_ROOT: this user's keys
+        over the machine's) holds for ``whatsapp:``, so a handler installed for
+        every user, such as WhatsApp Desktop's, is seen too."""
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, SCHEME + _COMMAND, 0, winreg.KEY_READ) as key:
+                return winreg.QueryValueEx(key, "")[0]
+        except OSError:
+            return None
+
     def set(self, path, name, value):
         import winreg
         with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_SET_VALUE) as key:
@@ -129,7 +140,9 @@ def register(command=None, registry=None) -> None:
     registry.set(_URL_ASSOCIATIONS, SCHEME, PROG_ID)
     registry.set(_REGISTERED_APPS, APP_NAME, _CAPABILITIES)
     # The scheme itself, only when it is free or already WinZapp's.
-    existing = registry.get(_SCHEME + _COMMAND, "")
+    # Looked up in the merged view: this user's own key would otherwise hide a
+    # handler installed machine-wide, and writing ours would override it.
+    existing = registry.merged_scheme_command()
     if existing is None or registry.get(_SCHEME, _OWNER_VALUE) == "1":
         registry.set(_SCHEME, "", "URL:WhatsApp link")
         registry.set(_SCHEME, "URL Protocol", "")

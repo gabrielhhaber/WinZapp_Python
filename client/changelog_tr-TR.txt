@@ -184,6 +184,10 @@ DÜZELTMELER
 
 - Kişilerinize kaydetmediğiniz doğrulanmış WhatsApp Business hesapları (bankalar, ödeme uygulamaları, hizmet şirketleri) sohbet listesinde yalnızca telefon numarasıyla görünüyordu. Artık WhatsApp'ta olduğu gibi işletmenin doğrulanmış adıyla görünür. Kişilerinizde kayıtlı bir ad yine önceliklidir.
 
+- WPPConnect Server 2.10.55 sürümüne güncellendi. İki kez yanıtlanan isteklere ilişkin kütüphane düzeltmelerine ek olarak, WhatsApp Web bir numarayı sorgulayamadığında (örneğin sayfa yeniden yüklenirken) gönderme artık numaranın yok olduğunu yanlış söylemek yerine sorgulamanın başarısız olduğunu söyler; bu iletiyi görürseniz birkaç saniye sonra yeniden deneyin. Tek bir istekteki aynı alıcı da yalnızca bir kez sorgulanır. WinZapp başlangıçta WPPConnect güncellemesini önerirse, yeni sürümü yüklemek için kabul edin.
+
+- Yarım kalmış bir oturumdan (örneğin eşleştirmesi hiç tamamlanmamış bir hesap) çıkış yapmak artık sessizce başarısız olmak yerine bir yanıt alır.
+
 V2.0.0.0
 
 Bu sürümün en büyük yeniliği aramalardır: Telefona ihtiyaç duymadan doğrudan WinZapp üzerinden sesli ve görüntülü arama başlatabilir, gelen aramaları yanıtlayabilir veya reddedebilirsiniz. Bu yenilik; tam erişilebilir bir arama penceresi, pratik klavye kısayolları, aramalara özel ses ayarları ve yeni Aramalar sekmesindeki kapsamlı arama geçmişiyle birlikte sunulmaktadır. Ayrıca PIN korumalı kilitli sohbetler, arşivlenmiş sohbetlerde arama, resmi Türkçe ve Rumence dil destekleri ile çeşitli kullanım iyileştirmeleri eklendi; WinZapp'in gereksiz yere yeniden eşleştirme istediği durumlar da düzeltildi. Arka planda programın kod tabanı büyük bir yeniden yapılandırmadan (refactoring) geçti: Bu durum WinZapp'i kullanım şeklinizde hiçbir şeyi değiştirmez; ancak programın uzun vadeli kararlılığını, bakımını ve hata düzeltme süreçlerini önemli ölçüde kolaylaştırır.

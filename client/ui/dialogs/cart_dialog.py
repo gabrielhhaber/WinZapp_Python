@@ -25,6 +25,7 @@ class CartDialog(BackgroundWork, wx.Dialog):
         self._catalog = None
         self._cart = commerce.Cart((), None, "")
         self._sent = False
+        self._unconfirmed = False
         super().__init__(parent, title=i18n.t("commerce_catalog_title").format(name=seller_name),
                          size=(620, 620), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -154,9 +155,20 @@ class CartDialog(BackgroundWork, wx.Dialog):
         keep = next((position for position, entry in enumerate(catalog.products)
                      if product is not None and entry.id == product.id), -1)
         self._fill(self._products, [commerce.product_label(entry, i18n) for entry in catalog.products], keep)
-        self._sent = False
+        # An order whose sending was not confirmed stays blocked across a
+        # refresh: the server may have sent it, and a second one is worse than none.
+        self._sent = self._unconfirmed
         self._show_cart(catalog.cart)
-        if not catalog.has_catalog:
+        if self._unconfirmed and catalog.cart_enabled:
+            if not catalog.cart.items:
+                # A cart is emptied when its order goes out, so reading it back
+                # empty is the confirmation the first answer could not give.
+                self._mw.speak_output.output(i18n.t("commerce_order_sent_done"))
+                self._closed.set()
+                self.EndModal(wx.ID_OK)
+            else:
+                self._announce(i18n.t("commerce_order_send_unconfirmed"))
+        elif not catalog.has_catalog:
             self._announce(i18n.t("commerce_no_catalog"))
         elif not catalog.cart_enabled:
             self._announce(i18n.t("commerce_products_count").format(count=len(catalog.products))
@@ -265,4 +277,7 @@ class CartDialog(BackgroundWork, wx.Dialog):
             self._announce(i18n.t(_REFUSALS[code]))
         else:
             logging.warning("[commerce] order_send_unconfirmed")
+            self._unconfirmed = True
             self._announce(i18n.t("commerce_order_send_unconfirmed"))
+            # Look at the cart once: empty means the order did go out.
+            self._reload()
