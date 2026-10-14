@@ -203,4 +203,5 @@ def test_entry_point_only_inserts_and_opens_a_confirmed_group(monkeypatch,modal)
     else:
         display_stub=SimpleNamespace(_resolve_contact_name=lambda chat:'',find_name_through_messages=lambda chat:'')
         assert ChatsStoreMixin.chat_display_name(display_stub,mw.chats[PREVIEW.jid]) == PREVIEW.name
-        after.assert_called_once_with(mw.conversations_panel.navigate_to_conversation,mw.chats[PREVIEW.jid])
+        from ui.dialogs.group_join_dialog import _go_to_group
+        after.assert_called_once_with(_go_to_group,mw,PREVIEW.jid,PREVIEW.name)

@@ -168,7 +168,7 @@ def test_command_delete_outside_text_is_delete():
     assert _state(evt) == (False, False, False, False, False, wx.WXK_DELETE)
 
 
-def test_command_eight_is_not_a_bookmark_any_more():
+def test_command_eight_is_the_communities_section_not_a_bookmark():
     evt = _key(ord("8"), cmd=True)
     km.translate_key_event(evt)
-    assert evt.MetaDown()
+    assert _state(evt)[:2] == (False, True)
