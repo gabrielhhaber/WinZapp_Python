@@ -59,7 +59,16 @@ export default {
   customUserDataDir,
   webhook: {
     url: null,
+    // Upstream 2.10.51 reads these from WEBHOOK_* variables; this file reads
+    // none (see the top). WinZapp sets no webhook, so they are upstream's
+    // defaults and never take effect.
+    allowedUrls: [],
     autoDownload: true,
+    retryAttempts: 3,
+    retryDelay: 5000,
+    requestTimeout: 30000,
+    // Bytes; media larger than this is not inlined as base64 (0 = no limit).
+    autoDownloadMaxSize: 0,
     uploadS3: false,
     readMessage: true,
     allUnreadOnStart: false,

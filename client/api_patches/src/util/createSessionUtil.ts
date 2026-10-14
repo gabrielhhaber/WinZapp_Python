@@ -863,6 +863,11 @@ export default class CreateSessionUtil {
     // its own. `client` itself is declared inside the try and is out of scope
     // there, which is why the old catch had to re-resolve it through
     // getClient() — and why it could not tell a superseded attempt apart.
+    // Upstream 2.10.52: a name is a folder under customUserDataDir.
+    if (!/^[A-Za-z0-9_-]+$/.test(session)) {
+      req.logger.error(new Error('Invalid session name'));
+      return;
+    }
     let ownClient: any = null;
     try {
       let client = this.getClient(session) as any;
