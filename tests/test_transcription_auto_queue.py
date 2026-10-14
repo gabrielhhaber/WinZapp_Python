@@ -112,6 +112,48 @@ class TestWhichFailuresPauseTheQueue:
     def test_not_an_error_does_not(self):
         assert not auto_queue.pauses_the_queue(None)
 
+    def test_no_model_fitting_the_memory_free_right_now_does_not(self):
+        """"Automatic" found no model for the memory free at that moment: the
+        same code as "nothing installed", and about the moment only."""
+        error = errors.TranscriptionError(errors.MODEL_NOT_INSTALLED, "x")
+        full = _Resolution(None, preferences.MODEL_NONE_NOTHING_FITS)
+        assert auto_queue.nothing_fits_right_now(errors.MODEL_NOT_INSTALLED, full)
+        assert not auto_queue.pauses_the_queue(error, full)
+
+    def test_unmeasured_memory_with_nothing_installed_still_does(self):
+        error = errors.TranscriptionError(errors.MODEL_NOT_INSTALLED, "x")
+        unmeasured = _Resolution(None, preferences.MODEL_NONE_UNMEASURED)
+        assert auto_queue.pauses_the_queue(error, unmeasured)
+
+    def test_a_model_resolved_but_not_downloaded_still_does(self):
+        error = errors.TranscriptionError(errors.MODEL_NOT_INSTALLED, "x")
+        assert auto_queue.pauses_the_queue(error, _Resolution("small", None))
+
+    def test_the_memory_never_excuses_another_code(self):
+        error = errors.TranscriptionError(errors.WHISPER_CPP_NOT_INSTALLED, "x")
+        full = _Resolution(None, preferences.MODEL_NONE_NOTHING_FITS)
+        assert auto_queue.pauses_the_queue(error, full)
+
+
+class _Resolution:
+    def __init__(self, model_id, model_none_reason):
+        self.model_id = model_id
+        self.model_none_reason = model_none_reason
+
+
+class TestPauseNotices:
+    def test_each_fault_is_news_once(self):
+        notices = auto_queue.PauseNotices()
+        assert notices.first(errors.MODEL_NOT_INSTALLED) is True
+        assert notices.first(errors.MODEL_NOT_INSTALLED) is False
+        assert notices.first(errors.BACKEND_MISSING) is True
+
+    def test_forgetting_makes_it_news_again(self):
+        notices = auto_queue.PauseNotices()
+        notices.first(errors.MODEL_NOT_INSTALLED)
+        notices.forget()
+        assert notices.first(errors.MODEL_NOT_INSTALLED) is True
+
 
 class _Clock:
     def __init__(self):
@@ -177,6 +219,14 @@ class TestTheQueue:
         queue.drain()
         assert ran == []
         assert queue.pending == 0
+
+    def test_resume_ends_a_pause_at_once(self):
+        clock = _Clock()
+        queue = _queue(lambda item: None, clock=clock)
+        queue.pause(900)
+        queue.resume()
+        assert not queue.paused
+        assert queue.submit("k", "item") == auto_queue.ACCEPTED
 
     def test_a_pause_is_announced_once_and_ends(self):
         clock = _Clock()

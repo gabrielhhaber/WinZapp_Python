@@ -8,8 +8,10 @@ MainWindow: the arrival hook, building the run, and storing the result.
 
 * **Never a window, never a sound, never speech** for a message: the text shows
   up in the row (the open conversation repaints it) like an inline
-  transcription made by hand. The only sentence spoken is the one-off notice
-  that the queue was paused because local transcription is not set up.
+  transcription made by hand. The only sentence spoken is the notice that
+  the queue was paused because local transcription is not set up: once for
+  each fault, with the reason a run made by hand would give, and not again
+  until a run works or the settings are applied (auto_queue.PauseNotices).
 * **Locked chats are skipped** (vault or phone lock): a text nobody asked for
   must not be produced for a conversation the user keeps hidden.
 * The audio is fetched the way a manual run does (``handle_audio_message``);
@@ -37,6 +39,7 @@ from core.transcription import (
 )
 from coord_locks import LockTimeout
 from core.utils import auto_download_allows, auto_download_enabled
+from ui import transcription_flow
 
 #: How long a run waits for the download already under way before fetching itself.
 _DOWNLOAD_WAIT_SECONDS = 45.0
@@ -135,8 +138,9 @@ class AutoTranscriptionMixin:
         error = outcome.get("error")
         result = outcome.get("result")
         if error is not None:
-            self._auto_transcription_failed(error)
+            self._auto_transcription_failed(error, getattr(run, "resolution", None))
             return
+        self._auto_pause_notices_get().forget()
         if result is None or result.is_empty:
             return
         wx.CallAfter(self._store_auto_transcription, remote_jid, msg_id, result)
@@ -220,19 +224,49 @@ class AutoTranscriptionMixin:
                          type(exc).__name__)
         return os.path.isfile(media_path)
 
-    def _auto_transcription_failed(self, error) -> None:
-        """A run that did not produce text: log the code; pause on a setup fault."""
+    def _auto_transcription_failed(self, error, resolution=None) -> None:
+        """A run that did not produce text: log the code; pause on a setup
+        fault, and say so the first time that fault is met."""
         code = getattr(error, "code", "")
-        logging.info("[transcription] automatic transcription ended without text: %s", code)
-        if not auto_queue.pauses_the_queue(error):
+        none_reason = getattr(resolution, "model_none_reason", None)
+        logging.info("[transcription] automatic transcription ended without text: %s%s",
+                     code, f" ({none_reason})" if none_reason else "")
+        if not auto_queue.pauses_the_queue(error, resolution):
             return
-        if self._auto_transcription_queue_get().pause():
-            wx.CallAfter(self._say_auto_transcription_paused)
+        self._auto_transcription_queue_get().pause()
+        first = self._auto_pause_notices_get().first(code)
+        logging.info("[transcription] automatic transcription paused: %s, %s", code,
+                     "said" if first else "already said")
+        if first:
+            wx.CallAfter(self._say_auto_transcription_paused, code, resolution)
+
+    def _auto_pause_notices_get(self):
+        notices = getattr(self, "_auto_pause_notices", None)
+        if notices is None:
+            notices = self._auto_pause_notices = auto_queue.PauseNotices()
+        return notices
+
+    def transcription_settings_applied(self) -> None:
+        """Settings was applied: what paused the queue may have been fixed
+        there, so the next message tries again, and is told about if not."""
+        queue = getattr(self, "_auto_transcription_queue", None)
+        if queue is not None:
+            queue.resume()
+        self._auto_pause_notices_get().forget()
 
     # ── Back on the wx thread ────────────────────────────────────────────────
 
-    def _say_auto_transcription_paused(self) -> None:
-        self.output(self.i18n.t("transcription_auto_paused"))
+    def _say_auto_transcription_paused(self, code="", resolution=None) -> None:
+        self.output(self.i18n.t("transcription_auto_paused").format(
+            reason=self._auto_pause_reason(code, resolution)))
+
+    def _auto_pause_reason(self, code, resolution) -> str:
+        """What is wrong, in the sentence a run made by hand gives for it."""
+        if code in transcription_flow.SETTINGS_OFFER_CODES:
+            key = transcription_flow.model_problem_i18n_key(code, resolution, self.settings)
+        else:
+            key = transcription_errors.error_i18n_key(code)
+        return self.i18n.t(key).format(**transcription_errors.error_i18n_values(code))
 
     def _store_auto_transcription(self, remote_jid: str, msg_id: str, result) -> None:
         """Keep *result* as the inline transcription of the message and redraw its row."""

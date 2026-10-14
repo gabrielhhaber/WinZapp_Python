@@ -133,7 +133,7 @@ _MEDIA_STATUS_I18N_KEYS = {
 #: The failures whose answer lives on the Transcription tab — download a model,
 #: pick another, repair the one that is there — and which are therefore
 #: offered with a shortcut to it rather than only said.
-_SETTINGS_OFFER_CODES = (
+SETTINGS_OFFER_CODES = (
     errors.MODEL_NOT_INSTALLED,
     errors.MODEL_CORRUPTED,
     # The folder of a model the user pointed WinZapp at is gone or changed:
@@ -725,7 +725,7 @@ class MessageTranscriptionFlow:
             if code == errors.MEDIA_NOT_DOWNLOADED and media_status in _MEDIA_STATUS_I18N_KEYS:
                 self._say_after_focus(i18n.t(_MEDIA_STATUS_I18N_KEYS[media_status]), failed=True)
                 return
-            if code in _SETTINGS_OFFER_CODES:
+            if code in SETTINGS_OFFER_CODES:
                 key = model_problem_i18n_key(
                     code, getattr(run, "resolution", None), self._main_window.settings
                 )

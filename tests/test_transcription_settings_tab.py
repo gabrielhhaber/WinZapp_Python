@@ -225,6 +225,9 @@ class _MainWindow:
     def save_settings(self):
         self.saves += 1
 
+    def transcription_settings_applied(self):
+        self.transcription_applied = getattr(self, "transcription_applied", 0) + 1
+
     def transcription_background_running(self):
         return self.background_running
 
@@ -794,6 +797,13 @@ class TestEverySettingIsReadBackAndWritten:
         assert tab.main_window.settings["transcription"]["run_without_dialog"] is True
         tab._load_transcription_values()
         assert tab._transcription_no_dialog_check.GetValue() is True
+
+    def test_applying_tells_the_automatic_queue(self, tab):
+        """A queue paused for a missing model tries again once the tab where
+        the model is downloaded has been applied."""
+        tab._load_transcription_values()
+        tab._apply_transcription_values()
+        assert tab.main_window.transcription_applied == 1
 
     def test_keeping_the_model_loaded_starts_off_and_round_trips(self, tab):
         tab._load_transcription_values()

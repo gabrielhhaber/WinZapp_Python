@@ -236,8 +236,9 @@ class StatusTranscriptionMixin:
         error = outcome.get("error")
         result = outcome.get("result")
         if error is not None:
-            self._auto_transcription_failed(error)
+            self._auto_transcription_failed(error, getattr(run, "resolution", None))
             return
+        self._auto_pause_notices_get().forget()
         if result is None or result.is_empty:
             return
         wx.CallAfter(self._store_status_auto_transcription, status, result)

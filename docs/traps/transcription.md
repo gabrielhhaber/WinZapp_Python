@@ -772,8 +772,19 @@ as an **inline** transcription (same record as Alt+Shift+N, so the row shows it)
   **Locked chats are skipped** (vault or phone lock).
 - One run at a time (a serial queue of at most 10; the rest of a burst is dropped).
   A failure that means "not set up" (`SETUP_FAILURES`: no model, no program, corrupted…)
-  pauses the queue 15 min and speaks `transcription_auto_paused` **once**; any other
-  failure is silent and logged by code only.
+  pauses the queue 15 min and speaks `transcription_auto_paused` with the reason a
+  manual run gives (`_auto_pause_reason()`, through `transcription_flow.
+  model_problem_i18n_key()`); any other failure is silent and logged by code only.
+- **Once per fault, not once per pause** (`auto_queue.PauseNotices`). The pause ends
+  and the next message tries again; with the fault still there that was a new pause
+  and a new sentence every quarter of an hour, heard by a user who had asked for
+  nothing (reported 2026-10). The fault is news again only after a run worked
+  (any result, even empty) or Settings applied the Transcription tab
+  (`transcription_settings_applied()`, which also resumes the queue at once).
+- **"Automatic" with no model fitting the free memory is not a setup fault.** It
+  comes back as `MODEL_NOT_INSTALLED` with `resolution.model_none_reason ==
+  MODEL_NONE_NOTHING_FITS`; `pauses_the_queue(error, resolution)` lets it pass as a
+  fault of that moment. Unmeasured memory with nothing installed still pauses.
 - Never a window, sound or speech per message. The run waits up to 45 s for the
   download the auto-download is already doing before fetching the audio itself.
 - When the result arrives, the stored decision wins if the user acted meanwhile

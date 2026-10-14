@@ -99,7 +99,7 @@ class TranscriptionOptionsMixin:
             bool(section.get("auto_transcribe_received", False))
         )
         self._transcription_no_dialog_check.SetValue(
-            section.get("run_without_dialog") is True
+            bool(section.get("run_without_dialog", False))
         )
 
     def _apply_transcription_options(self) -> None:
@@ -117,6 +117,11 @@ class TranscriptionOptionsMixin:
         residency.residency.configure(residency.keep_loaded_from_settings(
             self.main_window.settings
         ))
+        # A paused automatic queue tries again: this tab is where what paused
+        # it is fixed (auto_transcription.transcription_settings_applied).
+        applied = getattr(self.main_window, "transcription_settings_applied", None)
+        if callable(applied):
+            applied()
 
     def _refresh_transcription_options_labels(self) -> None:
         i18n = self.main_window.i18n

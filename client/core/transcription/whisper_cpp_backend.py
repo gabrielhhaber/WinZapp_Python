@@ -197,8 +197,10 @@ class WhisperCppBackend(TranscriptionBackend):
             except whisper_cpp_server.ServerUnavailable as exc:
                 if self._keeps_loaded():
                     # Not an error: the note is transcribed the usual way. The
-                    # reason holds no text and no path (log_tail, basenames).
-                    logging.info("[transcription] whisper.cpp server not used: %s", exc)
+                    # reason holds no text and no path (log_tail, basenames),
+                    # and a media file's name is scrubbed all the same.
+                    logging.info("[transcription] whisper.cpp server not used: %s",
+                                 errors.scrub_media_names(str(exc)))
                 segments, language, probability = self._run(
                     executable, model_file, request, vad_model, forward, should_cancel
                 )

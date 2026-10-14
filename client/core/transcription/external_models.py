@@ -120,7 +120,7 @@ the work is `external_job.py`, what it says is `external_view.py`):
 * `accept_*()` raising the `LockTimeout` of `AppSettings.update()` is turned
   into MODELS_BUSY ("another window is busy, try again") by `ExternalModelJob`.
 * EXTERNAL_MODEL_MISSING and EXTERNAL_MODEL_CHANGED are in
-  `transcription_flow._SETTINGS_OFFER_CODES`: a failed run offers the tab.
+  `transcription_flow.SETTINGS_OFFER_CODES`: a failed run offers the tab.
 * `message_run._decide()` asks `model_directory()` for whatever is not among
   the usable catalogue ids, which is how a custom model is let through and how
   a missing folder is told apart from a model that was never downloaded;

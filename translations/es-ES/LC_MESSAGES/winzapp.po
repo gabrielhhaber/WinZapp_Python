@@ -11275,15 +11275,10 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/auto_transcription.py
+#, python-brace-format
 msgctxt "transcription_auto_paused"
-msgid ""
-"Automatic transcription of received voice messages was paused for a while "
-"because local transcription is not ready. Check Settings > Local "
-"transcription."
-msgstr ""
-"Se pausó un tiempo la transcripción automática de los mensajes de voz "
-"recibidos porque la transcripción local no está lista. Revisa Configuración "
-"> Transcripción local."
+msgid "Automatic transcription was paused for a while. {reason}"
+msgstr "Se pausó un tiempo la transcripción automática. {reason}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py

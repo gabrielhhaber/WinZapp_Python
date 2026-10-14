@@ -4,11 +4,13 @@ import time
 
 import pytest
 
-from core.transcription import auto_queue, errors, message_run
+from core.transcription import auto_queue, errors, message_run, preferences, statuses
 from core.transcription import stored as stored_transcription
 from core.transcription.backend import TranscriptionResult
 from main_window import auto_transcription
 from main_window.auto_transcription import AutoTranscriptionMixin
+from main_window import status_transcription
+from main_window.status_transcription import StatusTranscriptionMixin
 
 KEY = stored_transcription.TRANSCRIPTION_KEY
 JID = "5511999999999@s.whatsapp.net"
@@ -37,7 +39,11 @@ class _Queue:
     def __init__(self):
         self.submitted = []
         self.paused = []
+        self.resumed = 0
         self.stopped = False
+
+    def resume(self):
+        self.resumed += 1
 
     def stop(self):
         self.stopped = True
@@ -53,10 +59,11 @@ class _Queue:
 
 class _I18n:
     language = "pt-BR"
+    #: Keys whose text matters to a test; any other answers with its key.
+    texts = {}
 
-    @staticmethod
-    def t(key):
-        return key
+    def t(self, key):
+        return self.texts.get(key, key)
 
 
 class _Window(AutoTranscriptionMixin):
@@ -161,6 +168,7 @@ class _FakeRun:
 
     outcome = (None, None)
     built = []
+    resolution = None
 
     def __init__(self, msg, settings, key, voice_dir, media_dir, **kwargs):
         self.kwargs = kwargs
@@ -182,6 +190,7 @@ class _FakeRun:
 @pytest.fixture
 def fake_run(monkeypatch):
     _FakeRun.built = []
+    _FakeRun.resolution = None
     monkeypatch.setattr(message_run, "MessageTranscription", _FakeRun)
     monkeypatch.setattr(auto_transcription, "external_models",
                         type("E", (), {"read_references": staticmethod(lambda a: ((), True))}))
@@ -257,6 +266,149 @@ class TestTheRun:
         fake_run.outcome = (None, errors.TranscriptionError(errors.FFMPEG_FAILED, "x"))
         window._run_auto_transcription((JID, "M1", _msg()))
         assert window.spoken == [] and window.queue.paused == []
+
+
+class _EveryPauseIsNew(_Queue):
+    """A queue whose pause has always ended by the next failure: the quarter
+    of an hour that passes between two voice notes in real life."""
+
+    def pause(self):
+        self.paused.append(True)
+        return True
+
+
+def _fail(window, fake_run, code, msg_id="M1"):
+    fake_run.outcome = (None, errors.TranscriptionError(code, "x"))
+    window._run_auto_transcription((JID, msg_id, _msg(msg_id)))
+
+
+class TestTheNoticeIsNotRepeated:
+    """The report: "from time to time it says transcription was paused, with
+    no transcription running" — a new pause every 15 minutes, each one said."""
+
+    def test_the_same_fault_after_the_pause_ended_is_not_said_again(self, fake_run):
+        window = _Window()
+        window.queue = window._auto_transcription_queue = _EveryPauseIsNew()
+        for msg_id in ("M1", "M2", "M3"):
+            _fail(window, fake_run, errors.MODEL_NOT_INSTALLED, msg_id)
+        assert window.spoken == ["transcription_auto_paused"]
+        assert len(window.queue.paused) == 3
+
+    def test_another_fault_is_said_in_its_turn(self, fake_run):
+        window = _Window()
+        window.queue = window._auto_transcription_queue = _EveryPauseIsNew()
+        _fail(window, fake_run, errors.MODEL_NOT_INSTALLED, "M1")
+        _fail(window, fake_run, errors.WHISPER_CPP_NOT_INSTALLED, "M2")
+        assert window.spoken == ["transcription_auto_paused"] * 2
+
+    def test_a_run_that_worked_makes_the_fault_news_again(self, fake_run):
+        window = _Window()
+        window.queue = window._auto_transcription_queue = _EveryPauseIsNew()
+        _fail(window, fake_run, errors.MODEL_NOT_INSTALLED, "M1")
+        fake_run.outcome = (_result(""), None)
+        window._run_auto_transcription((JID, "M2", _msg("M2")))
+        _fail(window, fake_run, errors.MODEL_NOT_INSTALLED, "M3")
+        assert window.spoken == ["transcription_auto_paused"] * 2
+
+    def test_applying_the_settings_resumes_the_queue_and_makes_it_news_again(self, fake_run):
+        window = _Window()
+        window.queue = window._auto_transcription_queue = _EveryPauseIsNew()
+        _fail(window, fake_run, errors.MODEL_NOT_INSTALLED, "M1")
+        window.transcription_settings_applied()
+        assert window.queue.resumed == 1
+        _fail(window, fake_run, errors.MODEL_NOT_INSTALLED, "M2")
+        assert window.spoken == ["transcription_auto_paused"] * 2
+
+    def test_applying_the_settings_before_any_queue_is_fine(self):
+        window = _Window()
+        window._auto_transcription_queue = None
+        window.transcription_settings_applied()
+
+
+class TestAFullMemoryIsNotAWrongSetup:
+    def test_no_model_fitting_the_free_memory_neither_pauses_nor_speaks(self, fake_run):
+        window = _Window()
+        fake_run.resolution = type("R", (), {
+            "model_id": None, "model_none_reason": preferences.MODEL_NONE_NOTHING_FITS})()
+        _fail(window, fake_run, errors.MODEL_NOT_INSTALLED)
+        assert window.spoken == [] and window.queue.paused == []
+
+    def test_nothing_installed_and_unmeasured_still_pauses(self, fake_run):
+        window = _Window()
+        fake_run.resolution = type("R", (), {
+            "model_id": None, "model_none_reason": preferences.MODEL_NONE_UNMEASURED})()
+        _fail(window, fake_run, errors.MODEL_NOT_INSTALLED)
+        assert window.queue.paused == [True]
+
+
+class TestTheNoticeSaysWhy:
+    @pytest.fixture
+    def window(self, monkeypatch):
+        window = _Window()
+        window.i18n.texts = {"transcription_auto_paused": "Paused. {reason}"}
+        return window
+
+    def test_nothing_installed(self, window, fake_run):
+        _fail(window, fake_run, errors.MODEL_NOT_INSTALLED)
+        assert window.spoken == ["Paused. transcription_error_model_not_installed"]
+
+    def test_the_automatic_choice_could_not_measure_the_memory(self, window, fake_run):
+        fake_run.resolution = type("R", (), {
+            "model_id": None, "model_none_reason": preferences.MODEL_NONE_UNMEASURED,
+            "backend_id": None, "substitutions": ()})()
+        _fail(window, fake_run, errors.MODEL_NOT_INSTALLED)
+        assert window.spoken == ["Paused. transcription_model_none_unmeasured"]
+
+    def test_no_backend_at_all(self, window, fake_run):
+        _fail(window, fake_run, errors.BACKEND_MISSING)
+        assert window.spoken == [
+            "Paused. " + errors.error_i18n_key(errors.BACKEND_MISSING)]
+
+    def test_every_setup_fault_has_a_sentence_and_no_field_left(self, window):
+        """Each code through the real catalog: nothing read out as a key or
+        as a {field} — the notice is all the user gets."""
+        from core.i18n import I18n
+        window.i18n = I18n("en-US")
+        for code in sorted(auto_queue.SETUP_FAILURES):
+            sentence = window.i18n.t("transcription_auto_paused").format(
+                reason=window._auto_pause_reason(code, None))
+            assert "{" not in sentence and "transcription_" not in sentence, code
+
+
+class _StatusWindow(_Window):
+    for _name in ("_run_status_auto_transcription", "_fetch_status_media"):
+        locals()[_name] = getattr(StatusTranscriptionMixin, _name)
+    del _name
+
+    def __init__(self):
+        super().__init__()
+        self.settings["transcription"]["auto_transcribe_statuses"] = True
+
+
+class TestAStatusFollowsTheSameRule:
+    @pytest.fixture(autouse=True)
+    def _temp(self, monkeypatch, tmp_path):
+        import contextlib
+
+        @contextlib.contextmanager
+        def folder(prefix):
+            yield str(tmp_path)
+
+        monkeypatch.setattr(status_transcription._fileops, "private_temp_dir", folder)
+
+    def test_a_status_says_it_once_and_a_status_that_worked_rearms_it(self, fake_run):
+        window = _StatusWindow()
+        window.queue = window._auto_transcription_queue = _EveryPauseIsNew()
+        status = _msg("S1")
+        fake_run.outcome = (None, errors.TranscriptionError(errors.MODEL_NOT_INSTALLED, "x"))
+        window._run_auto_transcription((statuses.STATUS_JID, "S1", status))
+        window._run_auto_transcription((statuses.STATUS_JID, "S2", status))
+        assert window.spoken == ["transcription_auto_paused"]
+        fake_run.outcome = (_result(""), None)
+        window._run_auto_transcription((statuses.STATUS_JID, "S3", status))
+        fake_run.outcome = (None, errors.TranscriptionError(errors.MODEL_NOT_INSTALLED, "x"))
+        window._run_auto_transcription((statuses.STATUS_JID, "S4", status))
+        assert window.spoken == ["transcription_auto_paused"] * 2
 
 
 class TestRepainting:

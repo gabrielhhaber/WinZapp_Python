@@ -26,6 +26,15 @@ Rules, each one a way this could otherwise annoy or harm:
 * **Paused when the setup is wrong.** A run that fails because there is no
   usable model or program stops the queue for `PAUSE_SECONDS` instead of
   failing the same way for every message; the glue says so once.
+* **Once is once, not once per pause.** The pause ends and the next message
+  tries again; while the fault is still there that is a new pause every
+  quarter of an hour, and a sentence each time is a notice that keeps coming
+  back out of nowhere for a user who asked for nothing (`PauseNotices`). It is
+  said again only after a run worked or the settings were applied.
+* **A full memory is not a wrong setup.** "Automatic" finding no model that
+  fits the memory free at that moment comes back as MODEL_NOT_INSTALLED too;
+  it is about the moment, the next message may fit, and it neither pauses nor
+  speaks (`pauses_the_queue(error, resolution)`).
 """
 
 import logging
@@ -33,7 +42,7 @@ import queue
 import threading
 import time
 
-from core.transcription import errors, message_audio
+from core.transcription import errors, message_audio, preferences
 from core.transcription.stored import TRANSCRIPTION_KEY
 
 #: The key inside the settings.json "transcription" section.
@@ -103,9 +112,53 @@ def eligible(msg, now=None) -> bool:
     return True
 
 
-def pauses_the_queue(error) -> bool:
-    """Whether a failure means "not set up" rather than "this message"."""
-    return getattr(error, "code", None) in SETUP_FAILURES
+def pauses_the_queue(error, resolution=None) -> bool:
+    """Whether a failure means "not set up" rather than "this message".
+
+    `resolution` is the run's own (MessageTranscription.resolution), when the
+    caller has it: with it, "nothing fits the memory free right now" is told
+    apart from "nothing is installed", which carry the same code.
+    """
+    code = getattr(error, "code", None)
+    if code not in SETUP_FAILURES:
+        return False
+    return not nothing_fits_right_now(code, resolution)
+
+
+def nothing_fits_right_now(code, resolution) -> bool:
+    """Whether MODEL_NOT_INSTALLED is "automatic" finding no model for the
+    memory that was free when it looked (preferences.MODEL_NONE_NOTHING_FITS).
+    Unmeasured memory with nothing installed is not this: that one is fixed
+    by downloading a model."""
+    return (
+        code == errors.MODEL_NOT_INSTALLED
+        and resolution is not None
+        and getattr(resolution, "model_id", None) is None
+        and getattr(resolution, "model_none_reason", None)
+        == preferences.MODEL_NONE_NOTHING_FITS
+    )
+
+
+class PauseNotices:
+    """Which setup faults were already said, so that each is said once."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._said = set()
+
+    def first(self, code) -> bool:
+        """True the first time `code` is asked about since `forget()`."""
+        with self._lock:
+            if code in self._said:
+                return False
+            self._said.add(code)
+            return True
+
+    def forget(self) -> None:
+        """Something changed (a run worked, the settings were applied): the
+        next fault is news again."""
+        with self._lock:
+            self._said.clear()
 
 
 class AutoTranscriptionQueue:
@@ -158,6 +211,11 @@ class AutoTranscriptionQueue:
             already = now < self._paused_until
             self._paused_until = max(self._paused_until, now + float(seconds))
             return not already
+
+    def resume(self) -> None:
+        """End a pause now: what it was waiting for may have been fixed."""
+        with self._lock:
+            self._paused_until = 0.0
 
     @property
     def paused(self) -> bool:

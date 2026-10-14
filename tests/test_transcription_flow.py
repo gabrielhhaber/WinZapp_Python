@@ -1017,7 +1017,7 @@ class TestTheWhisperCppProgramIsMissingOrDamaged:
     @pytest.mark.parametrize("code", [errors.WHISPER_CPP_NOT_INSTALLED,
                                       errors.WHISPER_CPP_CORRUPTED])
     def test_it_is_offered_with_the_tab_that_fixes_it(self, code):
-        assert code in transcription_flow._SETTINGS_OFFER_CODES
+        assert code in transcription_flow.SETTINGS_OFFER_CODES
         for settings in ({}, {"transcription": {"model": "ggml-small"}}):
             assert transcription_flow.model_problem_i18n_key(
                 code, None, settings
@@ -1030,7 +1030,7 @@ class TestAPrecisionTheDeviceRefused:
 
     def test_it_is_offered_with_the_tab_that_fixes_it(self):
         code = errors.PRECISION_UNSUPPORTED
-        assert code in transcription_flow._SETTINGS_OFFER_CODES
+        assert code in transcription_flow.SETTINGS_OFFER_CODES
         resolution = preferences.Resolution(
             "faster_whisper", "small", device.PREFERENCE_AUTO, None)
         for settings in ({}, {"transcription": {"model": "small"}}):
@@ -1051,7 +1051,7 @@ class TestAModelInAnotherFolder:
     @pytest.mark.parametrize("code", [errors.EXTERNAL_MODEL_MISSING,
                                       errors.EXTERNAL_MODEL_CHANGED])
     def test_the_failures_are_offered_with_the_tab_that_fixes_them(self, code):
-        assert code in transcription_flow._SETTINGS_OFFER_CODES
+        assert code in transcription_flow.SETTINGS_OFFER_CODES
 
     @pytest.mark.parametrize("code", [errors.EXTERNAL_MODEL_MISSING,
                                       errors.EXTERNAL_MODEL_CHANGED])
