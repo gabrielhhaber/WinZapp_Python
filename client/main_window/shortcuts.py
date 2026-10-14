@@ -90,7 +90,8 @@ class ShortcutsMixin:
 
     def _on_global_communities(self, event=None):
         """Alt+8: the communities window, from anywhere in the window
-        (it is otherwise reached through New conversation)."""
+        (it is also a row of the navigation list, and a button of New
+        conversation)."""
         from ui.dialogs.communities import show_communities
         show_communities(self, self)
 
