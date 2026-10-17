@@ -132,6 +132,8 @@ YENİLİKLER
 
 - Ek dosyaların açıklama alanı artık WhatsApp Desktop gibi birden çok satır kabul ediyor: Enter eki açıklamasıyla göndermeye devam eder, Shift+Enter veya Ctrl+Enter ise mesaj alanındaki gibi yeni satır açar.
 
+- Bir hesabı kaldırmak artık ona ait her şeyi kaldırıyor: mesajlara ve ayarlara ek olarak WhatsApp oturumunu tutan tarayıcı profili ve bu profilin yedekleri de siliniyor, kaldırılamayan her şey WinZapp'ın bir sonraki başlatılışında tamamlanıyor. Hesap tek hesapsa artık Hesaplar > Yönet bölümünden kaldırılabilir: WinZapp onay ister, kapanır ve sonraki başlatma ilk çalıştırma olur.
+
 DÜZELTMELER
 
 - Kullanılmayan bir webhook ayarı nedeniyle gelen dosyanın mesaj bildiriminin içine indirilmesi önlendi. Gönderme ve indirme ilerlemesi güncellemeleri artık yalnızca bekleyen en son değeri tutarak hızlı aktarımlarda ekran güncellemelerinin birikmesini önlüyor.

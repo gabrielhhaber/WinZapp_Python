@@ -158,7 +158,7 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr "Varsayılan"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "acc_delete_confirm"
 msgid ""
@@ -167,6 +167,18 @@ msgid ""
 msgstr ""
 "\"{name}\" hesabını ve tüm verilerini kalıcı olarak silmek istiyor musunuz? "
 "Bu eylem geri alınamaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid ""
+"\"{name}\" is the only account. Permanently delete it with all its messages,"
+" media, preferences and profile backups, and close WinZapp? This cannot be "
+"undone."
+msgstr ""
+"\"{name}\" tek hesaptır. Tüm mesajları, medyası, tercihleri ve profil "
+"yedekleriyle birlikte kalıcı olarak silinsin ve WinZapp kapatılsın mı? Bu "
+"işlem geri alınamaz."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_err_archive_current"

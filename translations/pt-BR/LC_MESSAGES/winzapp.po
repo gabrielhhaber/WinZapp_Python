@@ -160,7 +160,7 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr "Padrão"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "acc_delete_confirm"
 msgid ""
@@ -169,6 +169,18 @@ msgid ""
 msgstr ""
 "Excluir permanentemente a conta \"{name}\" e todos os seus dados? Esta ação "
 "não pode ser desfeita."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid ""
+"\"{name}\" is the only account. Permanently delete it with all its messages,"
+" media, preferences and profile backups, and close WinZapp? This cannot be "
+"undone."
+msgstr ""
+"\"{name}\" é a única conta. Excluir permanentemente esta conta, com todas as"
+" mensagens, mídias, preferências e cópias de segurança do perfil, e fechar o"
+" WinZapp? Esta ação não pode ser desfeita."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_err_archive_current"

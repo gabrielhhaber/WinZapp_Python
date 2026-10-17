@@ -132,6 +132,8 @@ NOVIDADES
 
 - O campo de legenda dos anexos agora aceita várias linhas, como no WhatsApp Desktop: Enter continua enviando o anexo com a legenda, e Shift+Enter ou Ctrl+Enter criam uma nova linha, como no campo de mensagem.
 
+- Excluir uma conta agora remove tudo o que ela possui: além das mensagens e das configurações, o perfil do navegador que guarda o login do WhatsApp e as cópias de segurança desse perfil também são apagados, e o que não puder ser removido é concluído na próxima vez que o WinZapp iniciar. Quando a conta é a única, agora é possível excluí-la em Contas > Gerenciar: o WinZapp pede confirmação, fecha, e a próxima abertura é uma primeira execução.
+
 CORREÇÕES
 
 - Receber um arquivo deixa de baixá-lo dentro da notificação da mensagem por causa de uma configuração de webhook sem uso. As atualizações de progresso de envio e download passam a manter apenas o valor mais recente pendente, evitando o acúmulo de atualizações de tela nas transferências rápidas.

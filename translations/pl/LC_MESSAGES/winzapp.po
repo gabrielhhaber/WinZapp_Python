@@ -164,7 +164,7 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr "Domyślne"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "acc_delete_confirm"
 msgid ""
@@ -173,6 +173,18 @@ msgid ""
 msgstr ""
 "Trwale usunąć konto \"{name}\" i wszystkie jego dane? Tej operacji nie można"
 " cofnąć."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid ""
+"\"{name}\" is the only account. Permanently delete it with all its messages,"
+" media, preferences and profile backups, and close WinZapp? This cannot be "
+"undone."
+msgstr ""
+"„{name}” to jedyne konto. Trwale usunąć je razem ze wszystkimi "
+"wiadomościami, multimediami, preferencjami i kopiami zapasowymi profilu oraz"
+" zamknąć WinZapp? Tej operacji nie można cofnąć."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_err_archive_current"

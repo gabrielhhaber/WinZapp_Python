@@ -132,6 +132,8 @@ NOWOŚCI
 
 - Pole podpisu załączników przyjmuje teraz wiele wierszy, tak jak WhatsApp Desktop: Enter nadal wysyła załącznik z podpisem, a Shift+Enter lub Ctrl+Enter zaczynają nowy wiersz, tak jak w polu wiadomości.
 
+- Usunięcie konta usuwa teraz wszystko, co do niego należy: oprócz wiadomości i ustawień kasowany jest także profil przeglądarki z logowaniem do WhatsApp oraz kopie zapasowe tego profilu, a to, czego nie udało się usunąć, zostanie dokończone przy następnym uruchomieniu WinZapp. Gdy konto jest jedyne, można je teraz usunąć w menu Konta > Zarządzaj: WinZapp prosi o potwierdzenie, zamyka się, a następne uruchomienie jest pierwszym uruchomieniem.
+
 POPRAWKI
 
 - Otrzymanie pliku nie powoduje już pobierania go do powiadomienia o wiadomości z powodu nieużywanego ustawienia webhooka. Aktualizacje postępu wysyłania i pobierania zachowują tylko najnowszą oczekującą wartość, zapobiegając gromadzeniu aktualizacji ekranu podczas szybkich transferów.

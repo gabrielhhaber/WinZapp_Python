@@ -132,6 +132,8 @@ NOUTĂȚI
 
 - Câmpul de descriere al atașamentelor acceptă acum mai multe rânduri, ca în WhatsApp Desktop: Enter trimite în continuare atașamentul cu descrierea, iar Shift+Enter sau Ctrl+Enter încep un rând nou, ca în câmpul de mesaj.
 
+- Ștergerea unui cont elimină acum tot ce îi aparține: pe lângă mesaje și setări, sunt șterse și profilul browserului care păstrează autentificarea WhatsApp și copiile de siguranță ale acelui profil, iar ce nu a putut fi eliminat este finalizat la următoarea pornire a WinZapp. Când contul este singurul, îl poți șterge acum din Conturi > Gestionare: WinZapp cere confirmare, se închide, iar următoarea pornire este o primă rulare.
+
 CORECTĂRI
 
 - Primirea unui fișier nu îl mai descarcă în notificarea mesajului din cauza unei setări webhook neutilizate. Actualizările progresului de trimitere și descărcare păstrează doar cea mai recentă valoare în așteptare, evitând acumularea actualizărilor ecranului în timpul transferurilor rapide.

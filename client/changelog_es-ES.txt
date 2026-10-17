@@ -132,6 +132,8 @@ NOVEDADES
 
 - El campo de pie de foto de los archivos adjuntos ahora admite varias líneas, como WhatsApp Desktop: Intro sigue enviando el adjunto con su pie de foto, y Mayús+Intro o Ctrl+Intro crean una línea nueva, como en el campo de mensaje.
 
+- Eliminar una cuenta ahora elimina todo lo que le pertenece: además de los mensajes y los ajustes, también se borran el perfil del navegador que guarda el inicio de sesión de WhatsApp y las copias de seguridad de ese perfil, y lo que no se pueda eliminar se termina la próxima vez que se inicie WinZapp. Cuando la cuenta es la única, ahora se puede eliminar desde Cuentas > Administrar: WinZapp pide confirmación, se cierra y el siguiente inicio es una primera ejecución.
+
 CORRECCIONES
 
 - Recibir un archivo ya no lo descarga dentro de la notificación del mensaje debido a una configuración de webhook sin uso. Las actualizaciones de progreso de envío y descarga conservan solo el último valor pendiente, evitando que se acumulen actualizaciones de pantalla durante las transferencias rápidas.
