@@ -132,6 +132,8 @@ NOUTĂȚI
 
 CORECTĂRI
 
+- A fost corectată eroarea "chat not found" la trimiterea mesajelor sau a atașamentelor într-o conversație existentă pe care WhatsApp o încărcase deja.
+
 - Primirea unui fișier nu îl mai descarcă în notificarea mesajului din cauza unei setări webhook neutilizate. Actualizările progresului de trimitere și descărcare păstrează doar cea mai recentă valoare în așteptare, evitând acumularea actualizărilor ecranului în timpul transferurilor rapide.
 
 - S-a corectat sincronizarea repetată a conversațiilor când lista WhatsApp era disponibilă, dar nu putea fi transferată către serverul local. Conversațiile existente sunt păstrate, iar sincronizarea listei se poate încheia.

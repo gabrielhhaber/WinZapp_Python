@@ -18,6 +18,25 @@ Also note what an incremental re-run does *not* refresh: `npm install` over a pr
 
 The one live consequence: upstream's `src/config.test.ts`, added in the same commit, fails all three of its cases against WinZapp's `config.ts` by design. It is free only because nothing here runs jest — `setup_api.py` and `build.py` only ever run `npm run build`, which is `tsc` plus babel and executes no assertion. Note it sits at `src/config.test.ts`, *outside* `tsconfig.json`'s `src/tests*` exclude, so it is type-checked and compiled into `dist/` as dead code; that is upstream's own behaviour and harmless. The same test file guards the "nothing runs jest" half.
 
+## An export name can identify the wrong native module (2026-10-17)
+
+wa-js 4.7.1 discovers `findOrCreateLatestChat` by the presence of that export.
+Both `WAWebFindChat` and `WAWebFindChatAction` export it. On the measured runtime
+the discovery selected `WAWebFindChat`, whose default lookup reads IndexedDB;
+the action supplies `WAWebChatGetExistingBridge.getExisting`, which checks the
+non-stale ChatCollection cache and materializes database rows as ChatModels.
+With a cached chat absent from disk, the lower-level binding throws
+`findChat: new chat not found`; with a disk record it can return a raw row.
+An offline reproduction using the captured native factories confirmed both
+paths, before and after LID migration, without sending a message.
+
+`patch_chat_lookup_bundle()` in `core/wppconnect_wa_js_patch.py` selects the
+action by its native module name, matching wa-js's adjacent explicit bindings.
+It runs alongside the independent persona-id patch in setup, build, and every
+app startup. Test the selected function's behavior when duplicate export names
+exist, not just whether patching changed a string. This fixes the binding; it
+cannot recover cryptographic identity records lost when origin storage is reset.
+
 ## Moving the library pair — wppconnect 2.3.3 → 2.3.4 with wa-js 4.6.0 → 4.6.1 (2026-10-02), as a worked example
 
 The server tag (2.10.30) did not move; only the two pinned libraries did. The audit script above does not cover this, because it compares *server* tags. This is what was done instead, and the order matters.

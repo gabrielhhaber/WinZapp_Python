@@ -1,6 +1,13 @@
-"""Patch for @wppconnect/wa-js's compiled bundle (dist/wppconnect-wa.js, the
-script wppconnect injects into the WhatsApp Web page) — every message to Meta
-AI failing with HTTP 500 before it is sent (WinZapp issue #365):
+"""Patches for @wppconnect/wa-js's compiled bundle (dist/wppconnect-wa.js,
+the script wppconnect injects into the WhatsApp Web page).
+
+Chat lookup must bind WAWebFindChatAction by name: WAWebFindChat exports the
+same function but bypasses the cache-aware bridge. Selecting it can report
+"new chat not found" for an existing cached chat or return a raw database row.
+The independent chat patch leaves WhatsApp's action and call arguments intact.
+
+The persona-id patch fixes every message to Meta AI failing with HTTP 500
+before it is sent (WinZapp issue #365):
 
     TypeError: Cannot read properties of undefined (reading 'personaId')
         at prepareRawMessage (wppconnect-wa.js)
@@ -62,6 +69,56 @@ STATUS_APPLIED = "applied"
 STATUS_ALREADY = "already"
 STATUS_NO_MATCH = "no_match"
 STATUS_NO_FILE = "no_file"
+
+# WAWebFindChat and WAWebFindChatAction both export this name. Matching only
+# the function picks the lower-level database lookup on current WhatsApp Web,
+# bypassing the action's getExistingChat bridge (and its cached ChatModels).
+_CHAT_EXPORT_HEAD = (
+    r'(?P<head>\.exportModule\)\([\w$]+,'
+    r'\{findOrCreateLatestChat:"findOrCreateLatestChat"\},)'
+)
+_AMBIGUOUS_CHAT_LOOKUP = re.compile(
+    _CHAT_EXPORT_HEAD
+    + r'(?P<module>[\w$]+)=>(?P=module)\.findOrCreateLatestChat(?=\))'
+)
+_ACTION_CHAT_LOOKUP = re.compile(
+    _CHAT_EXPORT_HEAD
+    + r'\([\w$]+,(?P<name>[\w$]+)\)=>"WAWebFindChatAction"===(?P=name)(?=\))'
+)
+
+
+def patch_chat_lookup_source(content: str) -> tuple[str, str]:
+    """Bind the exported chat action by module name, as adjacent wa-js bindings do.
+
+    Only the export predicate changes: arguments, options, migration handling,
+    and creation of genuinely absent chats remain WhatsApp's responsibility.
+    """
+    patched, count = _AMBIGUOUS_CHAT_LOOKUP.subn(
+        lambda match: match.group("head") + '(module,name)=>"WAWebFindChatAction"===name',
+        content,
+    )
+    if count:
+        return patched, STATUS_APPLIED
+    if _ACTION_CHAT_LOOKUP.search(content):
+        return content, STATUS_ALREADY
+    return content, STATUS_NO_MATCH
+
+
+def patch_chat_lookup_bundle(api_dir: str) -> tuple[bool, str]:
+    """Apply the cache-aware chat binding to an installed wa-js bundle."""
+    path = os.path.join(api_dir, *WA_JS_BUNDLE_PARTS)
+    if not os.path.isfile(path):
+        return False, "wppconnect-wa.js not found — skipping the chat lookup patch."
+    with open(path, encoding="utf-8", newline="") as stream:
+        content = stream.read()
+    patched, status = patch_chat_lookup_source(content)
+    if status == STATUS_APPLIED:
+        with open(path, "w", encoding="utf-8", newline="") as stream:
+            stream.write(patched)
+        return True, "Patched wppconnect-wa.js — chat lookup uses WAWebFindChatAction and its chat cache."
+    if status == STATUS_ALREADY:
+        return True, "wppconnect-wa.js chat lookup patch already applied."
+    return False, "wppconnect-wa.js: the chat lookup binding did not match the expected upstream source — skipping."
 
 
 def patch_wa_js_source(content: str) -> tuple[str, str]:

@@ -632,6 +632,14 @@ class ApiSetupDialog(wx.Dialog):
         except Exception as exc:
             logging.warning("[api_setup] Failed to patch wppconnect-wa.js: %s", exc)
 
+        # Both the low-level lookup and cache-aware action export the same name.
+        try:
+            from core.wppconnect_wa_js_patch import patch_chat_lookup_bundle
+            ok, note = patch_chat_lookup_bundle(api_dir)
+            logging.log(logging.INFO if ok else logging.WARNING, "[api_setup] %s", note)
+        except Exception as exc:
+            logging.warning("[api_setup] Failed to patch wa-js chat lookup: %s", exc)
+
         # browser.js — a large account whose WhatsApp Web needs a little over
         # 30 s to be ready never connected (issue #414). Takes the outer
         # api_dir, like the wa-js patch.

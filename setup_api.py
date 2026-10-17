@@ -483,6 +483,7 @@ from core.wppconnect_welcome_layer_patch import (
     latest_version_dependency_is_gone as _welcome_latest_version_dependency_is_gone,
 )
 from core.wppconnect_wa_js_patch import patch_wa_js_bundle as _patch_wa_js_bundle_file
+from core.wppconnect_wa_js_patch import patch_chat_lookup_bundle as _patch_chat_lookup_bundle_file
 from core.wppconnect_browser_layer_patch import patch_browser_controller as _patch_browser_controller_file
 from core.wpp_runtime import homologated_wpp_tag
 
@@ -721,6 +722,13 @@ def _patch_wa_js_bundle(client_api_dir: str = None) -> bool:
     so this and ApiSetupDialog's call can't drift apart.
     """
     ok, note = _patch_wa_js_bundle_file(client_api_dir or CLIENT_API_DIR)
+    print(f"[{'OK' if ok else 'WARNING'}] {note}")
+    return ok
+
+
+def _patch_chat_lookup_bundle(client_api_dir: str = None) -> bool:
+    """Use WhatsApp's cache-aware action rather than its low-level DB lookup."""
+    ok, note = _patch_chat_lookup_bundle_file(client_api_dir or CLIENT_API_DIR)
     print(f"[{'OK' if ok else 'WARNING'}] {note}")
     return ok
 
@@ -1182,6 +1190,11 @@ def main():
             _patch_wa_js_bundle()
         except Exception as e:
             print(f"[WARNING] Failed to patch wppconnect-wa.js Meta AI persona id: {e}")
+
+        try:
+            _patch_chat_lookup_bundle()
+        except Exception as e:
+            print(f"[WARNING] Failed to patch wppconnect-wa.js chat lookup: {e}")
 
         # A large account whose WhatsApp Web takes a little over 30 s to be
         # ready never connected (issue #414) — see _patch_wppconnect_browser()'s

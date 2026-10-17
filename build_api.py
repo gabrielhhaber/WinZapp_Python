@@ -95,6 +95,7 @@ def _apply_node_modules_patches(api_dir: str) -> None:
         canonical_setup._patch_wppconnect_sender_layer,
         canonical_setup._patch_wppconnect_welcome_layer,
         canonical_setup._patch_wa_js_bundle,
+        canonical_setup._patch_chat_lookup_bundle,
         canonical_setup._patch_wppconnect_browser,
     ):
         try:

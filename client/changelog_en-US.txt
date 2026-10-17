@@ -132,6 +132,8 @@ WHAT'S NEW
 
 FIXES
 
+- Fixed a "chat not found" error when sending messages or attachments to an existing conversation already loaded by WhatsApp.
+
 - Receiving a file no longer downloads it into the message notification because of an unused webhook setting. Upload and download progress updates now keep only the latest pending value, avoiding a buildup of screen updates during fast transfers.
 
 - Fixed repeated conversation synchronization when WhatsApp's chat list was available but could not be transferred to the local server. Existing conversations are kept and the list can finish synchronizing.

@@ -132,6 +132,8 @@ YENİLİKLER
 
 DÜZELTMELER
 
+- WhatsApp'ın zaten yüklediği mevcut bir sohbete mesaj veya ek gönderirken oluşan "chat not found" hatası düzeltildi.
+
 - Kullanılmayan bir webhook ayarı nedeniyle gelen dosyanın mesaj bildiriminin içine indirilmesi önlendi. Gönderme ve indirme ilerlemesi güncellemeleri artık yalnızca bekleyen en son değeri tutarak hızlı aktarımlarda ekran güncellemelerinin birikmesini önlüyor.
 
 - WhatsApp sohbet listesi kullanılabilir olduğu hâlde yerel sunucuya aktarılamadığında konuşmaların tekrar tekrar eşitlenmesi düzeltildi. Mevcut konuşmalar korunur ve listenin eşitlenmesi tamamlanabilir.

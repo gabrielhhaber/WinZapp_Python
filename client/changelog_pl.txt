@@ -132,6 +132,8 @@ NOWOŚCI
 
 POPRAWKI
 
+- Naprawiono błąd "chat not found" podczas wysyłania wiadomości lub załączników do istniejącego czatu, który WhatsApp już załadował.
+
 - Otrzymanie pliku nie powoduje już pobierania go do powiadomienia o wiadomości z powodu nieużywanego ustawienia webhooka. Aktualizacje postępu wysyłania i pobierania zachowują tylko najnowszą oczekującą wartość, zapobiegając gromadzeniu aktualizacji ekranu podczas szybkich transferów.
 
 - Naprawiono powtarzającą się synchronizację rozmów, gdy lista czatów WhatsApp była dostępna, ale nie można jej było przekazać do lokalnego serwera. Istniejące rozmowy są zachowywane, a synchronizacja listy może się zakończyć.

@@ -132,6 +132,8 @@ NOVIDADES
 
 CORREÇÕES
 
+- Corrigido um erro de "chat not found" ao enviar mensagens ou anexos para uma conversa existente que o WhatsApp já tinha carregado.
+
 - Receber um arquivo deixa de baixá-lo dentro da notificação da mensagem por causa de uma configuração de webhook sem uso. As atualizações de progresso de envio e download passam a manter apenas o valor mais recente pendente, evitando o acúmulo de atualizações de tela nas transferências rápidas.
 
 - Corrigida a sincronização repetida de conversas quando a lista do WhatsApp estava disponível, mas não conseguia ser transferida para o servidor local. As conversas existentes são preservadas e a sincronização da lista pode ser concluída.
