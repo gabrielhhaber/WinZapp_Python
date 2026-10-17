@@ -374,6 +374,21 @@ class AISettingsPage(ScrolledPanel):
         self.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._destroyed)
         self.refresh_labels()
+        # With the AI features off the other options mean nothing: only the
+        # box that turns them on is left.
+        self.enabled.Bind(wx.EVT_CHECKBOX, self._on_enabled_toggle)
+        self._show_options(self.enabled.GetValue())
+
+    def _show_options(self, shown):
+        for child in self.GetChildren():
+            if child is not self.enabled:
+                child.Show(shown)
+        self.Layout()
+        self.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
+
+    def _on_enabled_toggle(self, event):
+        self._show_options(self.enabled.GetValue())
+        event.Skip()
 
     def DoGetBestSize(self):
         # The page has many occasional-use actions. Its virtual content may

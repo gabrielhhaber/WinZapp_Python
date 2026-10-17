@@ -37,6 +37,7 @@ from ui.dialogs.transcription_reuse import TranscriptionReuseMixin
 from ui.dialogs.transcription_result_field import TranscriptionResultFieldMixin
 from ui.dialogs.transcription_precision import TranscriptionPrecisionMixin
 from ui.dialogs.shortcuts_tab import ShortcutsTabMixin
+from ui.dialogs.settings_pages import ScrollingPage, SettingsPages, SubPageDialog
 
 # Win32 modifier constants for RegisterHotKey
 _MOD_ALT     = 0x0001
@@ -267,6 +268,10 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # intercept Enter (Space alone is caught fine by the list's own
         # EVT_KEY_DOWN handler, since Space has no such competing default).
         self.Bind(wx.EVT_CHAR_HOOK, self._on_dialog_char_hook)
+        # Opens on the search field; Tab goes to the categories, and only Tab
+        # from a category enters its options.
+        self._notebook.search_field.SetFocus()
+        wx.CallAfter(self._notebook.search_field.SetFocus)
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -280,7 +285,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
     def _build_ui(self):
         i18n = self.main_window.i18n
 
-        self._notebook = wx.Notebook(self)
+        self._notebook = SettingsPages(self)
 
         # ── General tab ──────────────────────────────────────────────────────
         self._general_page = wx.Panel(self._notebook)
@@ -304,37 +309,52 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         bind_incremental_search(self._lang_combo)
         gen_sizer.Add(self._lang_combo, 0, wx.EXPAND | wx.ALL, 8)
 
+        # Notifications: a button here opens their options in a window.
+        self._notifications_dialog = SubPageDialog(
+            self, i18n.t("general_notifications_button").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty)
+        self._notifications_page = wx.Panel(self._notifications_dialog)
+        notif_sizer = wx.BoxSizer(wx.VERTICAL)
+
         self._notifications_check = wx.CheckBox(
-            self._general_page, label=i18n.t("notifications_label")
+            self._notifications_page, label=i18n.t("notifications_label")
         )
-        gen_sizer.Add(self._notifications_check, 0, wx.ALL, 8)
+        notif_sizer.Add(self._notifications_check, 0, wx.ALL, 8)
 
         # How much a background notification says (issue #258). A radio
         # group, like the spell-check one below, so the screen reader reads
         # the question and the chosen answer together. Only meaningful while
         # notifications are on, so it follows that box's state.
         self._notification_content_radio = wx.RadioBox(
-            self._general_page,
+            self._notifications_page,
             label=i18n.t("notification_content_label"),
             choices=[i18n.t(key) for key in NOTIFICATION_CONTENT_LABEL_KEYS],
             majorDimension=1,
             style=wx.RA_SPECIFY_COLS,
         )
-        gen_sizer.Add(self._notification_content_radio, 0, wx.EXPAND | wx.ALL, 8)
+        notif_sizer.Add(self._notification_content_radio, 0, wx.EXPAND | wx.ALL, 8)
         self._notifications_check.Bind(
             wx.EVT_CHECKBOX,
             lambda e: (self._sync_notification_content_enabled(), e.Skip()),
         )
 
         self._keep_muted_silent_check = wx.CheckBox(
-            self._general_page, label=i18n.t("keep_muted_chats_silent_when_open_label")
+            self._notifications_page, label=i18n.t("keep_muted_chats_silent_when_open_label")
         )
-        gen_sizer.Add(self._keep_muted_silent_check, 0, wx.ALL, 8)
+        notif_sizer.Add(self._keep_muted_silent_check, 0, wx.ALL, 8)
 
-        self._announce_sync_check = wx.CheckBox(
-            self._general_page, label=i18n.t("announce_sync_events_label")
+        self._tray_icon_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("tray_show_icon")
         )
-        gen_sizer.Add(self._announce_sync_check, 0, wx.ALL, 8)
+        notif_sizer.Add(self._tray_icon_check, 0, wx.ALL, 8)
+
+        self._notifications_page.SetSizer(notif_sizer)
+        self._notifications_dialog.set_body(self._notifications_page)
+        self._notifications_btn = wx.Button(
+            self._general_page, label=i18n.t("general_notifications_button")
+        )
+        gen_sizer.Add(self._notifications_btn, 0, wx.ALL, 8)
+        self._notifications_btn.Bind(wx.EVT_BUTTON, lambda e: self._notifications_dialog.open())
 
         # Turns the checking itself off, not just its sound: set to off, the
         # message field never calls into the Windows spell-check COM service
@@ -398,11 +418,6 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._whatsapp_links_check.Show(sys.platform == "win32")
         gen_sizer.Add(self._whatsapp_links_check, 0, wx.ALL, 8)
 
-        self._tray_icon_check = wx.CheckBox(
-            self._general_page, label=i18n.t("tray_show_icon")
-        )
-        gen_sizer.Add(self._tray_icon_check, 0, wx.ALL, 8)
-
         self._updates_check = wx.CheckBox(
             self._general_page, label=i18n.t("updates_label")
         )
@@ -461,6 +476,10 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         self._general_page.SetSizer(gen_sizer)
         self._notebook.AddPage(self._general_page, i18n.t("tab_general"))
+        self._notebook.add_subpage(
+            0, i18n.t("general_notifications_button").replace("&", ""),
+            self._notifications_page,
+            lambda control=None: self._notifications_dialog.open(control))
 
         # ── User Interface tab ───────────────────────────────────────────────
         # Scrollable, like the AI page: this tab holds more options than a
@@ -472,404 +491,6 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # read on the checkbox after the group and not on its radio buttons.
         self._ui_page = ScrolledPanel(self._notebook)
         ui_sizer = wx.BoxSizer(wx.VERTICAL)
-
-        # Both labels are kept on self: they name the edit fields below them
-        # for the screen reader, and an inline StaticText stayed in the
-        # previous language after Apply (reported live, English -> pt-BR).
-        self._messages_page_size_label = wx.StaticText(
-            self._ui_page, label=i18n.t("ui_messages_page_size_label")
-        )
-        ui_sizer.Add(self._messages_page_size_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-        self._messages_page_size_field = wx.TextCtrl(self._ui_page, style=wx.TE_DONTWRAP)
-        ui_sizer.Add(self._messages_page_size_field, 0, wx.EXPAND | wx.ALL, 8)
-
-        self._page_jump_size_label = wx.StaticText(
-            self._ui_page, label=i18n.t("ui_page_jump_size_label")
-        )
-        ui_sizer.Add(self._page_jump_size_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-        self._page_jump_size_field = wx.TextCtrl(self._ui_page, style=wx.TE_DONTWRAP)
-        ui_sizer.Add(self._page_jump_size_field, 0, wx.EXPAND | wx.ALL, 8)
-
-        # Wrap radio buttons in a StaticBox so NVDA reads the group label when
-        # the user tabs into them.
-        self._focus_box = wx.StaticBox(self._ui_page, label=i18n.t("ui_focus_label"))
-        focus_sizer = wx.StaticBoxSizer(self._focus_box, wx.VERTICAL)
-
-        self._focus_message_field_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_focus_message_field"), style=wx.RB_GROUP
-        )
-        focus_sizer.Add(self._focus_message_field_rb, 0, wx.LEFT | wx.TOP, 5)
-
-        self._focus_unread_or_last_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_focus_unread_or_last")
-        )
-        focus_sizer.Add(self._focus_unread_or_last_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
-
-        ui_sizer.Add(focus_sizer, 0, wx.EXPAND | wx.ALL, 8)
-
-        self._voice_focus_box = wx.StaticBox(
-            self._ui_page, label=i18n.t("ui_voice_record_focus_label")
-        )
-        voice_focus_sizer = wx.StaticBoxSizer(self._voice_focus_box, wx.VERTICAL)
-
-        self._voice_focus_send_rb = wx.RadioButton(
-            self._ui_page,
-            label=i18n.t("ui_voice_record_focus_send"),
-            style=wx.RB_GROUP,
-        )
-        voice_focus_sizer.Add(self._voice_focus_send_rb, 0, wx.LEFT | wx.TOP, 5)
-
-        self._voice_focus_discard_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_voice_record_focus_discard")
-        )
-        voice_focus_sizer.Add(
-            self._voice_focus_discard_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5
-        )
-
-        ui_sizer.Add(voice_focus_sizer, 0, wx.EXPAND | wx.ALL, 8)
-
-        self._msg_list_mode_box = wx.StaticBox(
-            self._ui_page, label=i18n.t("ui_message_list_mode_label")
-        )
-        msg_list_mode_sizer = wx.StaticBoxSizer(self._msg_list_mode_box, wx.VERTICAL)
-
-        self._msg_list_mode_classic_rb = wx.RadioButton(
-            self._ui_page,
-            label=i18n.t("ui_message_list_mode_classic"),
-            style=wx.RB_GROUP,
-        )
-        msg_list_mode_sizer.Add(self._msg_list_mode_classic_rb, 0, wx.LEFT | wx.TOP, 5)
-
-        self._msg_list_mode_listbox_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_message_list_mode_listbox")
-        )
-        msg_list_mode_sizer.Add(
-            self._msg_list_mode_listbox_rb, 0, wx.LEFT | wx.TOP, 5
-        )
-
-        self._show_listbox_count_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_show_listbox_item_count")
-        )
-        msg_list_mode_sizer.Add(
-            self._show_listbox_count_cb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5
-        )
-        self._msg_list_mode_classic_rb.Bind(
-            wx.EVT_RADIOBUTTON, self._on_message_list_mode_toggle
-        )
-        self._msg_list_mode_listbox_rb.Bind(
-            wx.EVT_RADIOBUTTON, self._on_message_list_mode_toggle
-        )
-
-        ui_sizer.Add(msg_list_mode_sizer, 0, wx.EXPAND | wx.ALL, 8)
-
-        # The temporary "X is typing..." last row of the messages list
-        # (ui/conversation_panel/typing_row.py). Read on every presence
-        # update; Apply refreshes the open conversation at once.
-        self._show_typing_row_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_show_typing_row")
-        )
-        ui_sizer.Add(self._show_typing_row_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-
-
-        self._self_ref_box = wx.StaticBox(
-            self._ui_page, label=i18n.t("ui_self_reference_label")
-        )
-        self_ref_sizer = wx.StaticBoxSizer(self._self_ref_box, wx.VERTICAL)
-
-        self._self_ref_eu_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_self_reference_eu"), style=wx.RB_GROUP
-        )
-        self_ref_sizer.Add(self._self_ref_eu_rb, 0, wx.LEFT | wx.TOP, 5)
-
-        self._self_ref_voce_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_self_reference_voce")
-        )
-        self_ref_sizer.Add(self._self_ref_voce_rb, 0, wx.LEFT | wx.TOP, 5)
-
-        self._self_ref_other_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_self_reference_other")
-        )
-        self_ref_sizer.Add(self._self_ref_other_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
-
-        self._self_ref_custom_label = wx.StaticText(
-            self._ui_page, label=i18n.t("ui_self_reference_custom_label")
-        )
-        self_ref_sizer.Add(
-            self._self_ref_custom_label, 0, wx.LEFT | wx.RIGHT, 8
-        )
-        self._self_ref_custom_field = wx.TextCtrl(self._ui_page, style=wx.TE_DONTWRAP)
-        self_ref_sizer.Add(
-            self._self_ref_custom_field, 0, wx.EXPAND | wx.ALL, 8
-        )
-
-        # Drops only the sender prefix of my own message rows
-        # (ui/conversation_panel/own_sender.py); the word above stays in use
-        # for reactions, mentions and quoted replies.
-        self._hide_own_sender_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_hide_own_sender_in_message_list")
-        )
-        self_ref_sizer.Add(self._hide_own_sender_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        self._hide_unnamed_sender_numbers_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_hide_unnamed_sender_numbers")
-        )
-        self._hide_unnamed_sender_numbers_cb.SetHelpText(
-            i18n.t("ui_hide_unnamed_sender_numbers_help")
-        )
-        self_ref_sizer.Add(self._hide_unnamed_sender_numbers_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-
-        for rb in (self._self_ref_eu_rb, self._self_ref_voce_rb, self._self_ref_other_rb):
-            rb.Bind(wx.EVT_RADIOBUTTON, self._on_self_reference_toggle)
-
-        ui_sizer.Add(self_ref_sizer, 0, wx.EXPAND | wx.ALL, 8)
-
-        self._show_delivery_status_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_show_delivery_status_in_chat_list")
-        )
-        ui_sizer.Add(self._show_delivery_status_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-
-        self._mark_unsaved_contacts_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_mark_unsaved_contacts")
-        )
-        ui_sizer.Add(self._mark_unsaved_contacts_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-
-        self._keep_pinned_order_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_keep_pinned_chat_order")
-        )
-        ui_sizer.Add(self._keep_pinned_order_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-
-        self._preserve_typed_caption_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_preserve_typed_text_as_caption")
-        )
-        ui_sizer.Add(
-            self._preserve_typed_caption_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._bulk_action_shortcuts_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_bulk_action_shortcuts")
-        )
-        ui_sizer.Add(
-            self._bulk_action_shortcuts_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        # Mirrors user_interface.confirm_mark_all_read, the same key the
-        # "don't show again" checkbox of that confirmation clears — this is
-        # the way back after ticking it.
-        self._confirm_mark_all_read_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_confirm_mark_all_read")
-        )
-        ui_sizer.Add(
-            self._confirm_mark_all_read_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        # Same arrangement for clearing and deleting chats.
-        self._confirm_clear_chat_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_confirm_clear_chat")
-        )
-        ui_sizer.Add(
-            self._confirm_clear_chat_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-        self._confirm_delete_chat_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_confirm_delete_chat")
-        )
-        ui_sizer.Add(
-            self._confirm_delete_chat_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        # Same arrangement for F5 and Shift+F5: each mirrors the key its
-        # confirmation's "don't show again" box clears.
-        self._confirm_resync_all_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_confirm_resync_all")
-        )
-        ui_sizer.Add(
-            self._confirm_resync_all_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-        self._confirm_resync_conversation_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_confirm_resync_conversation")
-        )
-        ui_sizer.Add(
-            self._confirm_resync_conversation_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-        self._warn_system_audio_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_warn_system_audio_recording")
-        )
-        ui_sizer.Add(
-            self._warn_system_audio_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._space_selects_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_space_selects_in_selection_mode")
-        )
-        ui_sizer.Add(
-            self._space_selects_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._escape_clears_selection_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_escape_clears_selection")
-        )
-        ui_sizer.Add(
-            self._escape_clears_selection_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._keep_search_after_open_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_keep_search_after_open")
-        )
-        ui_sizer.Add(
-            self._keep_search_after_open_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._auto_focus_next_audio_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_auto_focus_next_audio")
-        )
-        ui_sizer.Add(
-            self._auto_focus_next_audio_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._selected_announce_box = wx.StaticBox(
-            self._ui_page, label=i18n.t("ui_selected_announce_position_label")
-        )
-        selected_announce_sizer = wx.StaticBoxSizer(self._selected_announce_box, wx.VERTICAL)
-
-        self._selected_announce_start_rb = wx.RadioButton(
-            self._ui_page,
-            label=i18n.t("ui_selected_announce_position_start"),
-            style=wx.RB_GROUP,
-        )
-        selected_announce_sizer.Add(self._selected_announce_start_rb, 0, wx.LEFT | wx.TOP, 5)
-
-        self._selected_announce_end_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_selected_announce_position_end")
-        )
-        selected_announce_sizer.Add(
-            self._selected_announce_end_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5
-        )
-
-        ui_sizer.Add(selected_announce_sizer, 0, wx.EXPAND | wx.ALL, 8)
-
-        self._show_yesterday_label_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_show_yesterday_label")
-        )
-        ui_sizer.Add(
-            self._show_yesterday_label_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._show_link_previews_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_show_link_previews_label")
-        )
-        ui_sizer.Add(
-            self._show_link_previews_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._forwarded_prefix_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_forwarded_prefix_label")
-        )
-        ui_sizer.Add(
-            self._forwarded_prefix_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        # How the box of the delete confirmations starts; the confirmation
-        # itself still lets each delete decide.
-        self._delete_media_default_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_delete_media_default_label")
-        )
-        ui_sizer.Add(
-            self._delete_media_default_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._forward_voice_as_voice_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_forward_voice_as_voice")
-        )
-        ui_sizer.Add(
-            self._forward_voice_as_voice_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._conversation_video_media_viewer_dialog_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_conversation_video_media_viewer_dialog_label")
-        )
-        ui_sizer.Add(
-            self._conversation_video_media_viewer_dialog_cb, 0,
-            wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._status_media_viewer_dialog_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_status_media_viewer_dialog_label")
-        )
-        ui_sizer.Add(
-            self._status_media_viewer_dialog_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._voice_msg_mode_box = wx.StaticBox(
-            self._ui_page, label=i18n.t("ui_voice_message_mode_label")
-        )
-        voice_msg_sizer = wx.StaticBoxSizer(self._voice_msg_mode_box, wx.VERTICAL)
-
-        self._voice_msg_mode_audio_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_voice_message_mode_audio"), style=wx.RB_GROUP
-        )
-        voice_msg_sizer.Add(self._voice_msg_mode_audio_rb, 0, wx.LEFT | wx.TOP, 5)
-
-        self._voice_msg_mode_voice_rb = wx.RadioButton(
-            self._ui_page, label=i18n.t("ui_voice_message_mode_voice_message")
-        )
-        voice_msg_sizer.Add(self._voice_msg_mode_voice_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
-
-        ui_sizer.Add(voice_msg_sizer, 0, wx.EXPAND | wx.ALL, 8)
-
-        # Off: Enter and Space play a voice message and Alt+Shift+N transcribes
-        # it into its line. On: the two swap. The label says both halves, since
-        # it is the only place the setting is explained.
-        self._enter_transcribes_voice_cb = wx.CheckBox(
-            self._ui_page, label=i18n.t("ui_enter_transcribes_voice")
-        )
-        ui_sizer.Add(
-            self._enter_transcribes_voice_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
-        )
-
-        self._group_media_types_label = wx.StaticText(
-            self._ui_page, label=i18n.t("ui_group_media_default_types_label")
-        )
-        ui_sizer.Add(self._group_media_types_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
-
-        # wx.ListCtrl + EnableCheckBoxes - the same widget the reaction picker
-        # uses, deliberately NOT wx.CheckListBox. NVDA does not reliably expose
-        # a CheckListBox item's checked state or checkbox role on Windows,
-        # which is why the sound-events list a few tabs over spells its state
-        # out in the item text instead (see _sound_event_label). A ListCtrl's
-        # own checkboxes do carry the role, so the state is readable without
-        # that workaround.
-        self._group_media_types_list = wx.ListCtrl(
-            self._ui_page, style=wx.LC_REPORT | wx.LC_SINGLE_SEL, size=(-1, 110)
-        )
-        self._group_media_types_list.InsertColumn(
-            0, i18n.t("ui_group_media_default_types_label").replace("&", ""), width=360
-        )
-        self._group_media_types_list.EnableCheckBoxes(True)
-        for _key in GROUP_MEDIA_TYPES:
-            self._group_media_types_list.Append((i18n.t(f"group_media_type_{_key}"),))
-        # Start on the first row. Select/Focus move the item cursor inside the
-        # control and nothing else — SetFocus() is deliberately NOT called, so
-        # opening this tab does not yank the keyboard caret out of wherever the
-        # user was. Without it the list sits with nothing selected: Enter and
-        # Space have no row to toggle, and a screen reader arriving by Tab
-        # announces an empty selection instead of the first media type. Same
-        # convention the conversation list and the group data dialog's own
-        # lists follow.
-        if self._group_media_types_list.GetItemCount() > 0:
-            self._group_media_types_list.Focus(0)
-            self._group_media_types_list.Select(0)
-        # Space is the ListCtrl's native toggle; Enter is bound as well because
-        # every other list in this app activates with Enter, and the user should
-        # not have to know which of the two a given list wants.
-        # Space does NOT toggle a wx.ListCtrl checkbox on wxMSW — the
-        # native control treats it as a selection key and swallows it, so
-        # the box only ever moved with Enter. Handled explicitly here.
-        self._group_media_types_list.Bind(wx.EVT_KEY_DOWN, self._on_media_type_key_down)
-        self._group_media_types_list.Bind(
-            wx.EVT_LIST_ITEM_ACTIVATED, self._on_group_media_type_activated
-        )
-        ui_sizer.Add(
-            self._group_media_types_list, 0,
-            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8,
-        )
 
         self._ui_page.SetSizer(ui_sizer)
         # scrollIntoView: Tab brings the focused option on screen.
@@ -893,8 +514,14 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._accessibility_page.SetSizer(accessibility_sizer)
         self._notebook.AddPage(self._accessibility_page, i18n.t("tab_accessibility"))
 
-        # ── Spoken content tab ───────────────────────────────────────────────
-        self._speech_page = wx.Panel(self._notebook)
+        # ── Spoken content: a button on the Accessibility page ───────────────
+        # Opens a window with these options; the button is available only
+        # while extended screen reader compatibility is on (see
+        # _sync_spoken_content_button()).
+        self._speech_dialog = SubPageDialog(
+            self, i18n.t("tab_speech_content").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty)
+        self._speech_page = wx.Panel(self._speech_dialog)
         speech_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._announce_typing_check = wx.CheckBox(
@@ -927,6 +554,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         speech_sizer.Add(self._announce_media_progress_check, 0, wx.ALL, 8)
 
+        self._announce_sync_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("announce_sync_events_label")
+        )
+        speech_sizer.Add(self._announce_sync_check, 0, wx.ALL, 8)
+
         self._speak_active_conv_check = wx.CheckBox(
             self._speech_page, label=i18n.t("speech_speak_active_conv_label")
         )
@@ -937,13 +569,22 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         speech_sizer.Add(self._speak_other_conv_check, 0, wx.ALL, 8)
 
-        self._silence_while_recording_check = wx.CheckBox(
-            self._speech_page, label=i18n.t("speech_silence_while_recording_label")
-        )
-        speech_sizer.Add(self._silence_while_recording_check, 0, wx.ALL, 8)
-
         self._speech_page.SetSizer(speech_sizer)
-        self._notebook.AddPage(self._speech_page, i18n.t("tab_speech_content"))
+        self._speech_dialog.set_body(self._speech_page)
+        self._spoken_content_btn = wx.Button(
+            self._accessibility_page, label=i18n.t("tab_speech_content")
+        )
+        # Right after the extended compatibility box it depends on, on screen
+        # and for Tab alike.
+        accessibility_sizer.Insert(1, self._spoken_content_btn, 0, wx.ALL, 8)
+        self._spoken_content_btn.MoveAfterInTabOrder(self._extended_sr_compat_check)
+        self._spoken_content_btn.Bind(
+            wx.EVT_BUTTON, lambda e: self._speech_dialog.open())
+        self._extended_sr_compat_check.Bind(
+            wx.EVT_CHECKBOX, self._on_extended_sr_compat_toggle)
+        self._notebook.add_subpage(
+            self._notebook.GetPageCount() - 1, i18n.t("tab_speech_content").replace("&", ""),
+            self._speech_page, lambda control=None: self._speech_dialog.open(control))
 
         # ── Connection tab ───────────────────────────────────────────────────
         self._conn_page = wx.Panel(self._notebook)
@@ -975,12 +616,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         conn_sizer.Add(self._api_key_field, 0, wx.EXPAND | wx.ALL, 8)
 
         self._conn_page.SetSizer(conn_sizer)
-        self._notebook.AddPage(self._conn_page, i18n.t("tab_connection"))
 
         self._custom_api_check.Bind(wx.EVT_CHECKBOX, self._on_custom_api_toggle)
 
         # ── Audio Devices tab ────────────────────────────────────────────────
-        self._audio_devices_page = wx.Panel(self._notebook)
+        self._audio_devices_page = ScrollingPage(self._notebook)
         adev_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._audio_input_label = wx.StaticText(
@@ -1016,11 +656,93 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         adev_sizer.Add(self._voice_stereo_check, 0, wx.ALL, 8)
 
+        # What an audio file pasted into the message field (Ctrl+V) is sent
+        # as, in the order of core.attachment_types.PASTED_AUDIO_MODES.
+        self._pasted_audio_radio = wx.RadioBox(
+            self._audio_devices_page,
+            label=i18n.t("pasted_audio_label"),
+            choices=[i18n.t("pasted_audio_as_audio"), i18n.t("pasted_audio_as_document")],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_COLS,
+        )
+        adev_sizer.Add(self._pasted_audio_radio, 0, wx.EXPAND | wx.ALL, 8)
+
+        # What is recorded and sent as voice, and how voice notes are opened,
+        # moved here from the interface page with the other audio options.
+        self._voice_focus_box = wx.StaticBox(
+            self._audio_devices_page, label=i18n.t("ui_voice_record_focus_label")
+        )
+        voice_focus_sizer = wx.StaticBoxSizer(self._voice_focus_box, wx.VERTICAL)
+
+        self._voice_focus_send_rb = wx.RadioButton(
+            self._audio_devices_page,
+            label=i18n.t("ui_voice_record_focus_send"),
+            style=wx.RB_GROUP,
+        )
+        voice_focus_sizer.Add(self._voice_focus_send_rb, 0, wx.LEFT | wx.TOP, 5)
+
+        self._voice_focus_discard_rb = wx.RadioButton(
+            self._audio_devices_page, label=i18n.t("ui_voice_record_focus_discard")
+        )
+        voice_focus_sizer.Add(
+            self._voice_focus_discard_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5
+        )
+
+        adev_sizer.Add(voice_focus_sizer, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._forward_voice_as_voice_cb = wx.CheckBox(
+            self._audio_devices_page, label=i18n.t("ui_forward_voice_as_voice")
+        )
+        adev_sizer.Add(
+            self._forward_voice_as_voice_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._voice_msg_mode_box = wx.StaticBox(
+            self._audio_devices_page, label=i18n.t("ui_voice_message_mode_label")
+        )
+        voice_msg_sizer = wx.StaticBoxSizer(self._voice_msg_mode_box, wx.VERTICAL)
+
+        self._voice_msg_mode_audio_rb = wx.RadioButton(
+            self._audio_devices_page, label=i18n.t("ui_voice_message_mode_audio"), style=wx.RB_GROUP
+        )
+        voice_msg_sizer.Add(self._voice_msg_mode_audio_rb, 0, wx.LEFT | wx.TOP, 5)
+
+        self._voice_msg_mode_voice_rb = wx.RadioButton(
+            self._audio_devices_page, label=i18n.t("ui_voice_message_mode_voice_message")
+        )
+        voice_msg_sizer.Add(self._voice_msg_mode_voice_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+
+        adev_sizer.Add(voice_msg_sizer, 0, wx.EXPAND | wx.ALL, 8)
+
+        # Off: Enter and Space play a voice message and Alt+Shift+N transcribes
+        # it into its line. On: the two swap. The label says both halves, since
+        # it is the only place the setting is explained.
+        self._enter_transcribes_voice_cb = wx.CheckBox(
+            self._audio_devices_page, label=i18n.t("ui_enter_transcribes_voice")
+        )
+        adev_sizer.Add(
+            self._enter_transcribes_voice_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        # Silence the screen reader while recording: it belongs with the audio
+        # options, not with what is spoken.
+        self._silence_while_recording_check = wx.CheckBox(
+            self._audio_devices_page, label=i18n.t("speech_silence_while_recording_label")
+        )
+        adev_sizer.Add(self._silence_while_recording_check, 0, wx.ALL, 8)
+
+        # Playback options open from a button, in a window of their own.
+        self._audio_playback_btn = wx.Button(
+            self._audio_devices_page, label=i18n.t("tab_audio_playback")
+        )
+        adev_sizer.Add(self._audio_playback_btn, 0, wx.ALL, 8)
+
         self._audio_devices_page.SetSizer(adev_sizer)
-        self._notebook.AddPage(self._audio_devices_page, i18n.t("tab_audio_devices"))
+        self._audio_devices_page.finish()
+        self._notebook.AddPage(self._audio_devices_page, i18n.t("tab_audio"))
 
         # ── Sound Events tab ─────────────────────────────────────────────────
-        self._sound_events_page = wx.Panel(self._notebook)
+        self._sound_events_page = ScrollingPage(self._notebook)
         se_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._sound_pack_label = wx.StaticText(
@@ -1072,8 +794,6 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         se_btn_row.Add(self._deactivate_all_btn, 0)
         se_sizer.Add(se_btn_row, 0, wx.ALL, 8)
 
-        self._sound_events_page.SetSizer(se_sizer)
-        self._notebook.AddPage(self._sound_events_page, i18n.t("tab_sound_events"))
 
         self._sound_pack_combo.Bind(wx.EVT_COMBOBOX, self._on_sound_pack_selected)
         self._import_folder_btn.Bind(wx.EVT_BUTTON, self._on_import_sound_pack_folder)
@@ -1084,9 +804,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._activate_all_btn.Bind(wx.EVT_BUTTON, lambda e: self._set_all_sound_events(True))
         self._deactivate_all_btn.Bind(wx.EVT_BUTTON, lambda e: self._set_all_sound_events(False))
 
-        # ── Alert Tones tab ──────────────────────────────────────────────────
-        self._alert_page = wx.Panel(self._notebook)
-        alert_sizer = wx.BoxSizer(wx.VERTICAL)
+        # ── Alert tones: the same page as the sound events ───────────────────
+        self._alert_page = self._sound_events_page
+        alert_sizer = se_sizer
 
         self._alert_choice_keys = ["default", "custom"]
         alert_choice_labels = [i18n.t("alert_tone_default"), i18n.t("alert_tone_custom")]
@@ -1133,11 +853,12 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._alert_group_custom_field = wx.TextCtrl(self._alert_page, style=wx.TE_DONTWRAP)
         alert_sizer.Add(self._alert_group_custom_field, 0, wx.EXPAND | wx.ALL, 8)
 
-        self._alert_page.SetSizer(alert_sizer)
-        self._notebook.AddPage(self._alert_page, i18n.t("tab_alert_tones"))
+        self._sound_events_page.SetSizer(se_sizer)
+        self._sound_events_page.finish()
+        self._notebook.AddPage(self._sound_events_page, i18n.t("tab_event_sounds"))
 
         # ── Storage tab ──────────────────────────────────────────────────────
-        self._storage_page = wx.Panel(self._notebook)
+        self._storage_page = ScrollingPage(self._notebook)
         storage_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._auto_download_media_check = wx.CheckBox(
@@ -1228,8 +949,13 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._media_cleanup_btn.Bind(wx.EVT_BUTTON, self._on_media_cleanup)
         storage_sizer.Add(self._media_cleanup_btn, 0, wx.ALL, 8)
 
-        self._storage_page.SetSizer(storage_sizer)
-        self._notebook.AddPage(self._storage_page, i18n.t("tab_storage"))
+        # The restore point of the WhatsApp login profile has its own window
+        # (built further down, where its options are).
+        self._profile_backup_btn = wx.Button(
+            self._storage_page, label=i18n.t("tab_profile_backup")
+        )
+        storage_sizer.Add(self._profile_backup_btn, 0, wx.ALL, 8)
+
 
         self._alert_private_combo.Bind(wx.EVT_COMBOBOX, self._on_alert_choice_changed)
         self._alert_group_combo.Bind(wx.EVT_COMBOBOX, self._on_alert_choice_changed)
@@ -1249,15 +975,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             group=_alert_preview_group,
         )
 
-        # ── Files and saving tab ────────────────────────────────────────────
-        # Placed right after Armazenamento, which is the neighbouring subject.
-        # Inserting here shifts the two tabs below it, so the SetPageText
-        # indices in _retranslate() move with it — but every hardcoded
-        # SetSelection() in this file and in main_window/settings.py targets a
-        # tab at index 8 or lower, so none of them needed touching. Adding a
-        # tab ABOVE index 8 would be a different job.
-        self._files_page = wx.Panel(self._notebook)
-        files_sizer = wx.BoxSizer(wx.VERTICAL)
+        # ── Files and saving: the same page as the storage options ───────────
+        # Where saved files go and how a pasted audio file is sent belong with
+        # the other storage options.
+        self._files_page = self._storage_page
+        files_sizer = storage_sizer
 
         # Radio group rather than a checkbox pair: the three answers are
         # mutually exclusive and none is "more of" another. This is only about
@@ -1303,22 +1025,15 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             wx.EVT_BUTTON, self._on_browse_save_folder
         )
 
-        # What an audio file pasted into the message field (Ctrl+V) is sent
-        # as, in the order of core.attachment_types.PASTED_AUDIO_MODES.
-        self._pasted_audio_radio = wx.RadioBox(
-            self._files_page,
-            label=i18n.t("pasted_audio_label"),
-            choices=[i18n.t("pasted_audio_as_audio"), i18n.t("pasted_audio_as_document")],
-            majorDimension=1,
-            style=wx.RA_SPECIFY_COLS,
-        )
-        files_sizer.Add(self._pasted_audio_radio, 0, wx.EXPAND | wx.ALL, 8)
+        self._storage_page.SetSizer(storage_sizer)
+        self._storage_page.finish()
+        self._notebook.AddPage(self._storage_page, i18n.t("tab_storage"))
 
-        self._files_page.SetSizer(files_sizer)
-        self._notebook.AddPage(self._files_page, i18n.t("tab_files_saving"))
-
-        # ── Audio playback tab ───────────────────────────────────────────────
-        self._audio_page = wx.Panel(self._notebook)
+        # ── Audio playback: a button on the Audio page ───────────────────────
+        self._audio_dialog = SubPageDialog(
+            self, i18n.t("tab_audio_playback").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty)
+        self._audio_page = wx.Panel(self._audio_dialog)
         audio_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._audio_speed_label = wx.StaticText(
@@ -1343,8 +1058,19 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         audio_sizer.Add(self._mark_audio_played_check, 0, wx.ALL, 8)
 
+        # Moving to the next voice note while several play in a row.
+        self._auto_focus_next_audio_cb = wx.CheckBox(
+            self._audio_page, label=i18n.t("ui_auto_focus_next_audio")
+        )
+        audio_sizer.Add(self._auto_focus_next_audio_cb, 0, wx.ALL, 8)
+
         self._audio_page.SetSizer(audio_sizer)
-        self._notebook.AddPage(self._audio_page, i18n.t("tab_audio_playback"))
+        self._audio_dialog.set_body(self._audio_page)
+        self._audio_playback_btn.Bind(wx.EVT_BUTTON, lambda e: self._audio_dialog.open())
+        self._notebook.add_subpage(
+            self._notebook.FindPage(self._audio_devices_page),
+            i18n.t("tab_audio_playback").replace("&", ""), self._audio_page,
+            lambda control=None: self._audio_dialog.open(control))
 
         # ── Calls tab ───────────────────────────────────────────────────────
         # Native checkboxes keep the complete feature reachable and clearly
@@ -1390,11 +1116,13 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             wx.EVT_BUTTON, self._on_call_video_settings
         )
 
-        # ── Profile backup tab ───────────────────────────────────────────────
+        # ── Profile backup: a button on the Storage page ─────────────────────
         # When the restore point of the Chrome profile that carries the
-        # WhatsApp login is refreshed (core/profile_backup.py). Appended last,
-        # so no hardcoded SetSelection() index of an earlier tab moves.
-        self._profile_backup_page = wx.Panel(self._notebook)
+        # WhatsApp login is refreshed (core/profile_backup.py).
+        self._backup_dialog = SubPageDialog(
+            self, i18n.t("tab_profile_backup").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty)
+        self._profile_backup_page = wx.Panel(self._backup_dialog)
         backup_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Off by default: no restore point at all, for someone who would rather
@@ -1436,15 +1164,22 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         backup_sizer.Add(self._live_snapshot_confirm_check, 0, wx.ALL, 8)
 
         self._profile_backup_page.SetSizer(backup_sizer)
-        self._notebook.AddPage(self._profile_backup_page, i18n.t("tab_profile_backup"))
+        self._backup_dialog.set_body(self._profile_backup_page)
+        self._profile_backup_btn.Bind(wx.EVT_BUTTON, lambda e: self._backup_dialog.open())
+        self._notebook.add_subpage(
+            self._notebook.FindPage(self._storage_page),
+            i18n.t("tab_profile_backup").replace("&", ""), self._profile_backup_page,
+            lambda control=None: self._backup_dialog.open(control))
         self._live_snapshot_check.Bind(wx.EVT_CHECKBOX, self._on_live_snapshot_toggle)
         self._no_profile_snapshots_check.Bind(wx.EVT_CHECKBOX, self._on_live_snapshot_toggle)
 
         # ── Reactions tab ────────────────────────────────────────────────────
         # The twelve quick choices of "React to message" (core/reaction_shortcuts.py).
-        # Appended last, like Profile backup, so no hardcoded SetSelection() /
-        # SetPageText() index of an earlier tab moves.
-        self._reactions_page = wx.Panel(self._notebook)
+        # A button on the Interface page opens these options in a window.
+        self._reactions_dialog = SubPageDialog(
+            self, i18n.t("tab_reactions").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty)
+        self._reactions_page = wx.Panel(self._reactions_dialog)
         reactions_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._fixed_quick_reactions_cb = wx.CheckBox(
@@ -1487,7 +1222,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         reactions_sizer.Add(self._reset_quick_reactions_btn, 0, wx.ALL, 8)
 
         self._reactions_page.SetSizer(reactions_sizer)
-        self._notebook.AddPage(self._reactions_page, i18n.t("tab_reactions"))
+        self._reactions_dialog.set_body(self._reactions_page)
         self._fixed_quick_reactions_cb.Bind(
             wx.EVT_CHECKBOX, self._on_fixed_quick_reactions_toggle
         )
@@ -1497,7 +1232,12 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # list the user visits repeatedly. The controls stay unavailable until
         # the vault is authenticated (or configured for the first time), so
         # opening Settings alone never exposes its current private state.
-        self._chat_lock_page = wx.Panel(self._notebook)
+        # No longer a category: a button inside the Conversations window of the
+        # Interface page opens it, and only when the vault is not hidden.
+        self._chat_lock_dialog = SubPageDialog(
+            self, i18n.t("locked_chats").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty)
+        self._chat_lock_page = wx.Panel(self._chat_lock_dialog)
         chat_lock_sizer = wx.BoxSizer(wx.VERTICAL)
         self._chat_lock_intro = wx.StaticText(
             self._chat_lock_page,
@@ -1566,11 +1306,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         chat_lock_sizer.Add(self._chat_lock_change_reveal_btn, 0, wx.ALL, 8)
 
         self._chat_lock_page.SetSizer(chat_lock_sizer)
+        self._chat_lock_dialog.set_body(self._chat_lock_page)
         self._chat_lock_tab_shown = chat_lock_tab_visible(self.main_window)
-        if self._chat_lock_tab_shown:
-            self._notebook.AddPage(self._chat_lock_page, i18n.t("locked_chats"))
-        else:
-            self._chat_lock_page.Hide()
 
         # Appended after every indexed page: Connection's established index (4)
         # and every other page stay stable whether the optional hidden-vault
@@ -1592,7 +1329,431 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # at index 14 or 15 and this one at 15 or 16.
         self._transcription_page = self._build_transcription_page(self._notebook)
         self._notebook.AddPage(self._transcription_page, i18n.t("tab_transcription"))
+        # Connection is the last category: rarely needed, so out of the way.
+        # Its controls are built above, where they were; only the page is added here.
+        self._notebook.AddPage(self._conn_page, i18n.t("tab_connection"))
+
+        # ── Buttons at the end of the Interface page ─────────────────────────
+        # Groups of options that open in a window of their own.
+        self._ui_sizer = ui_sizer
+
+        # Messages and Conversations: groups of options in windows of their
+        # own, opened from buttons here. Scrollable like the pages are, and
+        # for the same reason (see the note on the Interface page).
+        self._messages_dialog = SubPageDialog(
+            self, i18n.t("ui_messages_button").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty)
+        self._messages_page = ScrollingPage(self._messages_dialog)
+        messages_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Both labels are kept on self: they name the edit fields below them
+        # for the screen reader, and an inline StaticText stayed in the
+        # previous language after Apply (reported live, English -> pt-BR).
+        self._messages_page_size_label = wx.StaticText(
+            self._messages_page, label=i18n.t("ui_messages_page_size_label")
+        )
+        messages_sizer.Add(self._messages_page_size_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._messages_page_size_field = wx.TextCtrl(self._messages_page, style=wx.TE_DONTWRAP)
+        messages_sizer.Add(self._messages_page_size_field, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._page_jump_size_label = wx.StaticText(
+            self._messages_page, label=i18n.t("ui_page_jump_size_label")
+        )
+        messages_sizer.Add(self._page_jump_size_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._page_jump_size_field = wx.TextCtrl(self._messages_page, style=wx.TE_DONTWRAP)
+        messages_sizer.Add(self._page_jump_size_field, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._msg_list_mode_box = wx.StaticBox(
+            self._messages_page, label=i18n.t("ui_message_list_mode_label")
+        )
+        msg_list_mode_sizer = wx.StaticBoxSizer(self._msg_list_mode_box, wx.VERTICAL)
+
+        self._msg_list_mode_classic_rb = wx.RadioButton(
+            self._messages_page,
+            label=i18n.t("ui_message_list_mode_classic"),
+            style=wx.RB_GROUP,
+        )
+        msg_list_mode_sizer.Add(self._msg_list_mode_classic_rb, 0, wx.LEFT | wx.TOP, 5)
+
+        self._msg_list_mode_listbox_rb = wx.RadioButton(
+            self._messages_page, label=i18n.t("ui_message_list_mode_listbox")
+        )
+        msg_list_mode_sizer.Add(
+            self._msg_list_mode_listbox_rb, 0, wx.LEFT | wx.TOP, 5
+        )
+
+        self._show_listbox_count_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_show_listbox_item_count")
+        )
+        msg_list_mode_sizer.Add(
+            self._show_listbox_count_cb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5
+        )
+        self._msg_list_mode_classic_rb.Bind(
+            wx.EVT_RADIOBUTTON, self._on_message_list_mode_toggle
+        )
+        self._msg_list_mode_listbox_rb.Bind(
+            wx.EVT_RADIOBUTTON, self._on_message_list_mode_toggle
+        )
+
+        messages_sizer.Add(msg_list_mode_sizer, 0, wx.EXPAND | wx.ALL, 8)
+
+        # The temporary "X is typing..." last row of the messages list
+        # (ui/conversation_panel/typing_row.py). Read on every presence
+        # update; Apply refreshes the open conversation at once.
+        self._show_typing_row_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_show_typing_row")
+        )
+        messages_sizer.Add(self._show_typing_row_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+
+        self._self_ref_box = wx.StaticBox(
+            self._messages_page, label=i18n.t("ui_self_reference_label")
+        )
+        self_ref_sizer = wx.StaticBoxSizer(self._self_ref_box, wx.VERTICAL)
+
+        self._self_ref_eu_rb = wx.RadioButton(
+            self._messages_page, label=i18n.t("ui_self_reference_eu"), style=wx.RB_GROUP
+        )
+        self_ref_sizer.Add(self._self_ref_eu_rb, 0, wx.LEFT | wx.TOP, 5)
+
+        self._self_ref_voce_rb = wx.RadioButton(
+            self._messages_page, label=i18n.t("ui_self_reference_voce")
+        )
+        self_ref_sizer.Add(self._self_ref_voce_rb, 0, wx.LEFT | wx.TOP, 5)
+
+        self._self_ref_other_rb = wx.RadioButton(
+            self._messages_page, label=i18n.t("ui_self_reference_other")
+        )
+        self_ref_sizer.Add(self._self_ref_other_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+
+        self._self_ref_custom_label = wx.StaticText(
+            self._messages_page, label=i18n.t("ui_self_reference_custom_label")
+        )
+        self_ref_sizer.Add(
+            self._self_ref_custom_label, 0, wx.LEFT | wx.RIGHT, 8
+        )
+        self._self_ref_custom_field = wx.TextCtrl(self._messages_page, style=wx.TE_DONTWRAP)
+        self_ref_sizer.Add(
+            self._self_ref_custom_field, 0, wx.EXPAND | wx.ALL, 8
+        )
+
+        # Drops only the sender prefix of my own message rows
+        # (ui/conversation_panel/own_sender.py); the word above stays in use
+        # for reactions, mentions and quoted replies.
+        self._hide_own_sender_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_hide_own_sender_in_message_list")
+        )
+        self_ref_sizer.Add(self._hide_own_sender_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        self._hide_unnamed_sender_numbers_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_hide_unnamed_sender_numbers")
+        )
+        self._hide_unnamed_sender_numbers_cb.SetHelpText(
+            i18n.t("ui_hide_unnamed_sender_numbers_help")
+        )
+        self_ref_sizer.Add(self._hide_unnamed_sender_numbers_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        for rb in (self._self_ref_eu_rb, self._self_ref_voce_rb, self._self_ref_other_rb):
+            rb.Bind(wx.EVT_RADIOBUTTON, self._on_self_reference_toggle)
+
+        messages_sizer.Add(self_ref_sizer, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._preserve_typed_caption_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_preserve_typed_text_as_caption")
+        )
+        messages_sizer.Add(
+            self._preserve_typed_caption_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._show_yesterday_label_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_show_yesterday_label")
+        )
+        messages_sizer.Add(
+            self._show_yesterday_label_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._show_link_previews_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_show_link_previews_label")
+        )
+        messages_sizer.Add(
+            self._show_link_previews_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._forwarded_prefix_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_forwarded_prefix_label")
+        )
+        messages_sizer.Add(
+            self._forwarded_prefix_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        # How the box of the delete confirmations starts; the confirmation
+        # itself still lets each delete decide.
+        self._delete_media_default_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_delete_media_default_label")
+        )
+        messages_sizer.Add(
+            self._delete_media_default_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._conversation_video_media_viewer_dialog_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_conversation_video_media_viewer_dialog_label")
+        )
+        messages_sizer.Add(
+            self._conversation_video_media_viewer_dialog_cb, 0,
+            wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._status_media_viewer_dialog_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_status_media_viewer_dialog_label")
+        )
+        messages_sizer.Add(
+            self._status_media_viewer_dialog_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._group_media_types_label = wx.StaticText(
+            self._messages_page, label=i18n.t("ui_group_media_default_types_label")
+        )
+        messages_sizer.Add(self._group_media_types_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
+        # wx.ListCtrl + EnableCheckBoxes - the same widget the reaction picker
+        # uses, deliberately NOT wx.CheckListBox. NVDA does not reliably expose
+        # a CheckListBox item's checked state or checkbox role on Windows,
+        # which is why the sound-events list a few tabs over spells its state
+        # out in the item text instead (see _sound_event_label). A ListCtrl's
+        # own checkboxes do carry the role, so the state is readable without
+        # that workaround.
+        self._group_media_types_list = wx.ListCtrl(
+            self._messages_page, style=wx.LC_REPORT | wx.LC_SINGLE_SEL, size=(-1, 110)
+        )
+        self._group_media_types_list.InsertColumn(
+            0, i18n.t("ui_group_media_default_types_label").replace("&", ""), width=360
+        )
+        self._group_media_types_list.EnableCheckBoxes(True)
+        for _key in GROUP_MEDIA_TYPES:
+            self._group_media_types_list.Append((i18n.t(f"group_media_type_{_key}"),))
+        # Start on the first row. Select/Focus move the item cursor inside the
+        # control and nothing else — SetFocus() is deliberately NOT called, so
+        # opening this tab does not yank the keyboard caret out of wherever the
+        # user was. Without it the list sits with nothing selected: Enter and
+        # Space have no row to toggle, and a screen reader arriving by Tab
+        # announces an empty selection instead of the first media type. Same
+        # convention the conversation list and the group data dialog's own
+        # lists follow.
+        if self._group_media_types_list.GetItemCount() > 0:
+            self._group_media_types_list.Focus(0)
+            self._group_media_types_list.Select(0)
+        # Space is the ListCtrl's native toggle; Enter is bound as well because
+        # every other list in this app activates with Enter, and the user should
+        # not have to know which of the two a given list wants.
+        # Space does NOT toggle a wx.ListCtrl checkbox on wxMSW — the
+        # native control treats it as a selection key and swallows it, so
+        # the box only ever moved with Enter. Handled explicitly here.
+        self._group_media_types_list.Bind(wx.EVT_KEY_DOWN, self._on_media_type_key_down)
+        self._group_media_types_list.Bind(
+            wx.EVT_LIST_ITEM_ACTIVATED, self._on_group_media_type_activated
+        )
+        messages_sizer.Add(
+            self._group_media_types_list, 0,
+            wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8,
+        )
+
+        self._messages_page.SetSizer(messages_sizer)
+        self._messages_page.finish()
+        self._messages_dialog.set_body(self._messages_page)
+        self._messages_btn = wx.Button(self._ui_page, label=i18n.t("ui_messages_button"))
+        self._ui_sizer.Add(self._messages_btn, 0, wx.ALL, 8)
+        self._messages_btn.Bind(wx.EVT_BUTTON, lambda e: self._messages_dialog.open())
+        self._notebook.add_subpage(
+            self._notebook.FindPage(self._ui_page),
+            i18n.t("ui_messages_button").replace("&", ""), self._messages_page,
+            lambda control=None: self._messages_dialog.open(control))
+
+        # Between Messages and Conversations: reacting is about messages, but
+        # its twelve slots are a group of their own.
+        self._reactions_btn = wx.Button(self._ui_page, label=i18n.t("tab_reactions"))
+        self._ui_sizer.Add(self._reactions_btn, 0, wx.ALL, 8)
+        self._reactions_btn.Bind(wx.EVT_BUTTON, lambda e: self._reactions_dialog.open())
+        self._notebook.add_subpage(
+            self._notebook.FindPage(self._ui_page),
+            i18n.t("tab_reactions").replace("&", ""), self._reactions_page,
+            lambda control=None: self._reactions_dialog.open(control))
+
+        self._chats_dialog = SubPageDialog(
+            self, i18n.t("ui_chats_button").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty)
+        self._chats_page = ScrollingPage(self._chats_dialog)
+        chats_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Wrap radio buttons in a StaticBox so NVDA reads the group label when
+        # the user tabs into them.
+        self._focus_box = wx.StaticBox(self._chats_page, label=i18n.t("ui_focus_label"))
+        focus_sizer = wx.StaticBoxSizer(self._focus_box, wx.VERTICAL)
+
+        self._focus_message_field_rb = wx.RadioButton(
+            self._chats_page, label=i18n.t("ui_focus_message_field"), style=wx.RB_GROUP
+        )
+        focus_sizer.Add(self._focus_message_field_rb, 0, wx.LEFT | wx.TOP, 5)
+
+        self._focus_unread_or_last_rb = wx.RadioButton(
+            self._chats_page, label=i18n.t("ui_focus_unread_or_last")
+        )
+        focus_sizer.Add(self._focus_unread_or_last_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+
+        chats_sizer.Add(focus_sizer, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._show_delivery_status_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_show_delivery_status_in_chat_list")
+        )
+        chats_sizer.Add(self._show_delivery_status_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
+        self._mark_unsaved_contacts_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_mark_unsaved_contacts")
+        )
+        chats_sizer.Add(self._mark_unsaved_contacts_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
+        self._keep_pinned_order_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_keep_pinned_chat_order")
+        )
+        chats_sizer.Add(self._keep_pinned_order_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
+        self._bulk_action_shortcuts_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_bulk_action_shortcuts")
+        )
+        chats_sizer.Add(
+            self._bulk_action_shortcuts_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._space_selects_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_space_selects_in_selection_mode")
+        )
+        chats_sizer.Add(
+            self._space_selects_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._escape_clears_selection_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_escape_clears_selection")
+        )
+        chats_sizer.Add(
+            self._escape_clears_selection_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._keep_search_after_open_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_keep_search_after_open")
+        )
+        chats_sizer.Add(
+            self._keep_search_after_open_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._selected_announce_box = wx.StaticBox(
+            self._chats_page, label=i18n.t("ui_selected_announce_position_label")
+        )
+        selected_announce_sizer = wx.StaticBoxSizer(self._selected_announce_box, wx.VERTICAL)
+
+        self._selected_announce_start_rb = wx.RadioButton(
+            self._chats_page,
+            label=i18n.t("ui_selected_announce_position_start"),
+            style=wx.RB_GROUP,
+        )
+        selected_announce_sizer.Add(self._selected_announce_start_rb, 0, wx.LEFT | wx.TOP, 5)
+
+        self._selected_announce_end_rb = wx.RadioButton(
+            self._chats_page, label=i18n.t("ui_selected_announce_position_end")
+        )
+        selected_announce_sizer.Add(
+            self._selected_announce_end_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5
+        )
+
+        chats_sizer.Add(selected_announce_sizer, 0, wx.EXPAND | wx.ALL, 8)
+
+        # The vault's settings, one level down: a button in this window.
+        self._chat_lock_btn = wx.Button(self._chats_page, label=i18n.t("locked_chats"))
+        self._chat_lock_btn.Show(self._chat_lock_tab_shown)
+        chats_sizer.Add(self._chat_lock_btn, 0, wx.ALL, 8)
+        self._chat_lock_btn.Bind(wx.EVT_BUTTON, lambda e: self._chat_lock_dialog.open())
+        if self._chat_lock_tab_shown:
+            self._notebook.add_subpage(
+                self._notebook.FindPage(self._ui_page),
+                i18n.t("ui_chats_button").replace("&", "") + ": "
+                + i18n.t("locked_chats").replace("&", ""),
+                self._chat_lock_page,
+                lambda control=None: self._chat_lock_dialog.open(control))
+        self._chats_page.SetSizer(chats_sizer)
+        self._chats_page.finish()
+        self._chats_dialog.set_body(self._chats_page)
+        self._chats_btn = wx.Button(self._ui_page, label=i18n.t("ui_chats_button"))
+        self._ui_sizer.Add(self._chats_btn, 0, wx.ALL, 8)
+        self._chats_btn.Bind(wx.EVT_BUTTON, lambda e: self._chats_dialog.open())
+        self._notebook.add_subpage(
+            self._notebook.FindPage(self._ui_page),
+            i18n.t("ui_chats_button").replace("&", ""), self._chats_page,
+            lambda control=None: self._chats_dialog.open(control))
+
+        # Every option that turns a question (or warning) on or off, in a
+        # window opened from a button here.
+        self._confirmations_dialog = SubPageDialog(
+            self, i18n.t("customization_confirmations").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty)
+        self._confirmations_page = wx.Panel(self._confirmations_dialog)
+        confirm_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Mirrors user_interface.confirm_mark_all_read, the same key the
+        # "don't show again" checkbox of that confirmation clears — this is
+        # the way back after ticking it.
+        self._confirm_mark_all_read_cb = wx.CheckBox(
+            self._confirmations_page, label=i18n.t("ui_confirm_mark_all_read")
+        )
+        confirm_sizer.Add(
+            self._confirm_mark_all_read_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        # Same arrangement for clearing and deleting chats.
+        self._confirm_clear_chat_cb = wx.CheckBox(
+            self._confirmations_page, label=i18n.t("ui_confirm_clear_chat")
+        )
+        confirm_sizer.Add(
+            self._confirm_clear_chat_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+        self._confirm_delete_chat_cb = wx.CheckBox(
+            self._confirmations_page, label=i18n.t("ui_confirm_delete_chat")
+        )
+        confirm_sizer.Add(
+            self._confirm_delete_chat_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        # Same arrangement for F5 and Shift+F5: each mirrors the key its
+        # confirmation's "don't show again" box clears.
+        self._confirm_resync_all_cb = wx.CheckBox(
+            self._confirmations_page, label=i18n.t("ui_confirm_resync_all")
+        )
+        confirm_sizer.Add(
+            self._confirm_resync_all_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+        self._confirm_resync_conversation_cb = wx.CheckBox(
+            self._confirmations_page, label=i18n.t("ui_confirm_resync_conversation")
+        )
+        confirm_sizer.Add(
+            self._confirm_resync_conversation_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+        self._warn_system_audio_cb = wx.CheckBox(
+            self._confirmations_page, label=i18n.t("ui_warn_system_audio_recording")
+        )
+        confirm_sizer.Add(
+            self._warn_system_audio_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._confirmations_page.SetSizer(confirm_sizer)
+        self._confirmations_dialog.set_body(self._confirmations_page)
+        self._confirmations_btn = wx.Button(
+            self._ui_page, label=i18n.t("customization_confirmations")
+        )
+        self._ui_sizer.Add(self._confirmations_btn, 0, wx.ALL, 8)
+        self._confirmations_btn.Bind(wx.EVT_BUTTON, lambda e: self._confirmations_dialog.open())
+        self._notebook.add_subpage(
+            self._notebook.FindPage(self._ui_page),
+            i18n.t("customization_confirmations").replace("&", ""), self._confirmations_page,
+            lambda control=None: self._confirmations_dialog.open(control))
         self._build_shortcuts_page()
+        # The two buttons were added after the page was set up for scrolling.
+        self._ui_page.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
 
         # ── Button row ───────────────────────────────────────────────────────
         btn_sizer = wx.StdDialogButtonSizer()
@@ -1605,7 +1766,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         btn_sizer.Realize()
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.Add(self._notebook, 1, wx.EXPAND | wx.ALL, 5)
+        # Search field, list of categories and the chosen page: the book that
+        # used to be a row of tabs (see ui/dialogs/settings_pages.py).
+        main_sizer.Add(self._notebook.build_navigation(self), 1, wx.EXPAND | wx.ALL, 5)
+        self._notebook.ChangeSelection(0)
+        self._refresh_search_texts()
         main_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         self.SetSizer(main_sizer)
 
@@ -2219,6 +2384,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         accessibility = self.main_window.settings.get("accessibility", {})
         self._extended_sr_compat_check.SetValue(accessibility.get("extended_sr_compat_enabled", True))
         self._sapi_fallback_check.SetValue(accessibility.get("sapi_fallback_enabled", True))
+        self._sync_spoken_content_button()
 
         speech = self.main_window.settings.get("speech_content", {})
         self._announce_typing_check.SetValue(speech.get("announce_typing", True))
@@ -2944,7 +3110,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             return
         i18n = self.main_window.i18n
         emoji = choose_reaction_emoji(
-            self, i18n,
+            self._reactions_dialog, i18n,
             title=i18n.t("reactions_pick_title").format(position=position + 1),
             hint_text=i18n.t("reactions_pick_hint"),
             ok_label=i18n.t("reactions_pick_ok"),
@@ -3148,7 +3314,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # in its hidden field is still what Apply would save.
         if parse_hours_field(self._close_snapshot_hours_field.GetValue(),
                              CLOSE_HOURS_MINIMUM) is None:
-            self._notebook.SetSelection(self._notebook.FindPage(self._profile_backup_page))
+            self._show_page(self._profile_backup_page)
             # Hidden while "keep no copies" is ticked; it has to be seen to
             # be corrected.
             for control in (self._close_snapshot_hours_label, self._close_snapshot_hours_field):
@@ -3160,11 +3326,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
                 wx.OK | wx.ICON_ERROR,
                 self,
             )
-            self._close_snapshot_hours_field.SetFocus()
+            self._show_page(self._profile_backup_page, self._close_snapshot_hours_field)
             return False
         if parse_hours_field(self._live_snapshot_hours_field.GetValue(),
                              LIVE_HOURS_MINIMUM) is None:
-            self._notebook.SetSelection(self._notebook.FindPage(self._profile_backup_page))
+            self._show_page(self._profile_backup_page)
             # A hidden field cannot take focus or be corrected: show it.
             for control in (self._live_snapshot_hours_label, self._live_snapshot_hours_field):
                 control.Show()
@@ -3175,7 +3341,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
                 wx.OK | wx.ICON_ERROR,
                 self,
             )
-            self._live_snapshot_hours_field.SetFocus()
+            self._show_page(self._profile_backup_page, self._live_snapshot_hours_field)
             return False
 
         # Sound events: an ENABLED event's override path, if the user set one,
@@ -3870,27 +4036,75 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         column.SetText(text.replace("&", ""))
         list_ctrl.SetColumn(0, column)
 
+    def _show_page(self, page, control=None):
+        """Bring `page` into view, whether it is a category of its own or the
+        window of a button on one; with `control`, put the focus on it."""
+        notebook = self._notebook
+        index = notebook.FindPage(page)
+        if index != wx.NOT_FOUND:
+            notebook.SetSelection(index)
+            if control is not None:
+                control.SetFocus()
+            return
+        index, opener = notebook.subpage_of(page)
+        if index != wx.NOT_FOUND:
+            notebook.SetSelection(index)
+            if control is not None:
+                wx.CallAfter(opener, control)
+
+    def _sync_spoken_content_button(self):
+        """The spoken-content options only apply with extended screen reader
+        compatibility, so the button is available only while it is on."""
+        self._spoken_content_btn.Enable(self._extended_sr_compat_check.GetValue())
+
+    def _on_extended_sr_compat_toggle(self, event):
+        self._sync_spoken_content_button()
+        event.Skip()
+
+    def _refresh_search_texts(self):
+        """The search field's label, name and results, in the current language."""
+        i18n = self.main_window.i18n
+        label = i18n.t("settings_search_label")
+        self._notebook.set_search_texts(
+            label, label.replace("&", ""), i18n.t("settings_search_results_list"),
+            i18n.t("settings_search_none"), i18n.t("settings_search_results"))
+
     def _refresh_dialog_labels(self):
         """Update this dialog's own title and notebook tab captions after a language change."""
         self._refresh_shortcut_labels()
         i18n = self.main_window.i18n
         self.SetTitle(i18n.t("settings_title"))
+        self._refresh_search_texts()
         self._notebook.SetPageText(0, i18n.t("tab_general"))
         self._notebook.SetPageText(1, i18n.t("tab_ui"))
         self._notebook.SetPageText(2, i18n.t("tab_accessibility"))
-        self._notebook.SetPageText(3, i18n.t("tab_speech_content"))
-        self._notebook.SetPageText(4, i18n.t("tab_connection"))
-        self._notebook.SetPageText(5, i18n.t("tab_audio_devices"))
-        self._notebook.SetPageText(6, i18n.t("tab_sound_events"))
-        self._notebook.SetPageText(7, i18n.t("tab_alert_tones"))
-        self._notebook.SetPageText(8, i18n.t("tab_storage"))
-        self._notebook.SetPageText(9, i18n.t("tab_files_saving"))
-        self._notebook.SetPageText(10, i18n.t("tab_audio_playback"))
-        self._notebook.SetPageText(11, i18n.t("tab_calls"))
-        self._notebook.SetPageText(12, i18n.t("tab_profile_backup"))
-        self._notebook.SetPageText(13, i18n.t("tab_reactions"))
-        if self._chat_lock_tab_shown:
-            self._notebook.SetPageText(14, i18n.t("locked_chats"))
+        self._notebook.SetPageText(3, i18n.t("tab_audio"))
+        self._notebook.SetPageText(4, i18n.t("tab_event_sounds"))
+        self._notebook.SetPageText(5, i18n.t("tab_storage"))
+        self._notebook.SetPageText(6, i18n.t("tab_calls"))
+        self._chat_lock_btn.SetLabel(i18n.t("locked_chats"))
+        self._chat_lock_dialog.SetTitle(i18n.t("locked_chats").replace("&", ""))
+        self._notebook.SetPageText(
+            self._notebook.FindPage(self._conn_page), i18n.t("tab_connection"))
+        self._profile_backup_btn.SetLabel(i18n.t("tab_profile_backup"))
+        self._notifications_btn.SetLabel(i18n.t("general_notifications_button"))
+        self._notifications_dialog.SetTitle(
+            i18n.t("general_notifications_button").replace("&", ""))
+        self._messages_btn.SetLabel(i18n.t("ui_messages_button"))
+        self._messages_dialog.SetTitle(i18n.t("ui_messages_button").replace("&", ""))
+        self._reactions_btn.SetLabel(i18n.t("tab_reactions"))
+        self._reactions_dialog.SetTitle(i18n.t("tab_reactions").replace("&", ""))
+        self._chats_btn.SetLabel(i18n.t("ui_chats_button"))
+        self._chats_dialog.SetTitle(i18n.t("ui_chats_button").replace("&", ""))
+        self._confirmations_btn.SetLabel(i18n.t("customization_confirmations"))
+        self._confirmations_dialog.SetTitle(
+            i18n.t("customization_confirmations").replace("&", ""))
+        self._backup_dialog.SetTitle(i18n.t("tab_profile_backup").replace("&", ""))
+
+        self._spoken_content_btn.SetLabel(i18n.t("tab_speech_content"))
+        self._speech_dialog.SetTitle(i18n.t("tab_speech_content").replace("&", ""))
+        self._audio_playback_btn.SetLabel(i18n.t("tab_audio_playback"))
+        self._audio_dialog.SetTitle(i18n.t("tab_audio_playback").replace("&", ""))
         self._ai_page.refresh_labels()
         self._notebook.SetPageText(self._notebook.FindPage(self._ai_page), i18n.t("tab_ai_accessibility"))
         # Transcription is appended after the conditional "Locked chats" tab

@@ -111,10 +111,10 @@ class SettingsMixin:
             self.wpp_custom_api = True
             self.save_settings()
 
-            # Open settings dialog on the Connection tab (index 4)
+            # Open settings dialog on the Connection tab
             from ui.dialogs.settings_dialog import SettingsDialog
             dlg = SettingsDialog(self)
-            dlg._notebook.SetSelection(4)
+            dlg._notebook.SetSelection(dlg._notebook.FindPage(dlg._conn_page))
             settings_res = dlg.ShowModal()
             dlg.Destroy()
 

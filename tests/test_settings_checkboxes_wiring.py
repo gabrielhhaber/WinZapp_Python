@@ -349,7 +349,8 @@ def test_the_parse_finds_the_checkboxes_on_every_tab():
     assert len(constructed) == len(BOXES)
     pages = {info["page"] for info in BOXES.values()}
     for page in (
-        "_general_page", "_ui_page", "_accessibility_page", "_speech_page",
+        "_general_page", "_notifications_page", "_messages_page", "_chats_page", "_confirmations_page",
+        "_accessibility_page", "_speech_page",
         "_conn_page", "_audio_devices_page", "_storage_page", "_audio_page",
         "_calls_page", "_profile_backup_page", "_reactions_page",
         "_chat_lock_page",
