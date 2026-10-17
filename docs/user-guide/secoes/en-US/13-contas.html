@@ -2,18 +2,21 @@
 <h3>Multiple accounts</h3>
 <p>Each account has its own window and its own local server. The <strong>Accounts</strong> menu switches between them; so does Ctrl+Alt+1 to 9. "Close current account" (Ctrl+F4) ends only the account you are in, frees its memory and connection, and moves to another open account. To open it again, choose it in the Accounts menu of another account or use Ctrl+Alt with its number. If it is the only one open, WinZapp asks first, because closing it ends the program.</p>
 
+<h3>Managing and deleting accounts</h3>
+<p>The <strong>Accounts</strong> menu has "Manage accounts…", where you manage your accounts. "Delete" removes the account with everything that is its own: the messages, the media, the voice messages, the preferences and also the internal browser's profile, which holds the WhatsApp login, and that profile's backups. Archiving deletes nothing. The account in use cannot be deleted; switch to another one first. If it is the only account, WinZapp lets you delete it: after a question (with No as the default), it closes and removes everything as it shuts down. The next time it opens, WinZapp starts from scratch and asks you to pair.</p>
+
 <h3>Sync</h3>
 <ul>
   <li><strong>F5</strong> deletes and downloads all chats again (asks for confirmation, with No as the default and "Don't show again").</li>
   <li><strong>Shift+F5</strong> resyncs only the open chat: it fetches the messages again, puts back in place the ones that were missing and removes the ones that no longer exist, without touching older history. It says whether the chat is already up to date or whether WhatsApp has no messages for it. It also asks for confirmation.</li>
-  <li>Progress is spoken every few seconds and shown in the window title: "Syncing chats: 12 of 80" and "Downloading media: 30 of 120 processed (8 downloaded)". Each announcement can be turned off in Settings &gt; Spoken content; the option "Announce sync, media downloads and automatic offline mode" (General) controls the announcements, which are not spoken while WinZapp starts in the background or during a call.</li>
+  <li>Progress is spoken every few seconds and shown in the window title: "Syncing chats: 12 of 80" and "Downloading media: 30 of 120 processed (8 downloaded)". Each announcement can be turned off in Settings &gt; Accessibility &gt; Spoken content; the option "Announce sync, media downloads and automatic offline mode" controls the announcements, which are not spoken while WinZapp starts in the background or during a call.</li>
   <li><strong>Offline mode</strong> (Ctrl+Alt+Shift+O) puts WinZapp offline; it also goes in and out by itself depending on the connection. When the computer wakes from sleep, WinZapp reopens the connection and fetches the new messages.</li>
   <li>In a chat whose oldest messages exist only on the phone, WinZapp says "Use WhatsApp on your phone to see older messages."</li>
 </ul>
 
 <h3>Tray and notifications</h3>
-<p>In Settings &gt; General, "Background notification content" has three levels: sound, chat name and message text; sound and chat name, without the text; or sound only, with no on-screen notification and nothing read. Notifications respect Windows Focus Assist, and reading a chat inside WinZapp removes its notification from the notification area.</p>
+<p>In Settings &gt; General &gt; Notifications, "Background notification content" has three levels: sound, chat name and message text; sound and chat name, without the text; or sound only, with no on-screen notification and nothing read. Notifications respect Windows Focus Assist, and reading a chat inside WinZapp removes its notification from the notification area.</p>
 
 <h3>Connection and recovery</h3>
-<p>The connection to WhatsApp is stored in the internal browser's profile. WinZapp keeps backups of it (Profile backup tab) and restores them by itself when the connection is refused, saying aloud that it restored and is reconnecting; it only asks you to pair again when there is no usable backup. If the internal browser is incomplete (usually an antivirus removed part of it), WinZapp says so and explains what to do.</p>
+<p>The connection to WhatsApp is stored in the internal browser's profile. WinZapp keeps backups of it (Settings &gt; Storage &gt; Profile backup) and restores them by itself when the connection is refused, saying aloud that it restored and is reconnecting; it only asks you to pair again when there is no usable backup. If the internal browser is incomplete (usually an antivirus removed part of it), WinZapp says so and explains what to do.</p>
 <p>If WhatsApp disconnects the session, WinZapp tells you right away and opens pairing. In Settings &gt; Connection you can use a custom API (remote server); in that case, the browser profile and the backups are left to the server.</p>

@@ -106,12 +106,21 @@ def can_archive(account: dict, current_account_id: str) -> tuple[bool, str]:
     return True, ""
 
 
-def can_hard_delete(account: dict, current_account_id: str) -> tuple[bool, str]:
+def can_hard_delete(account: dict, current_account_id: str,
+                    only_account: bool = False) -> tuple[bool, str]:
     """(allowed, reason_key). Hard-delete is never the current process's account
-    (must switch away first — plan Zad 4.5)."""
-    if account.get("id") == current_account_id:
+    (must switch away first — plan Zad 4.5), unless it is the only account:
+    there is nothing to switch to, so removing it closes WinZapp."""
+    if account.get("id") == current_account_id and not only_account:
         return False, "acc_err_delete_current"
     return True, ""
+
+
+def is_only_account(accounts: list, account_id: str) -> bool:
+    """True when `account_id` is the one account the install has (accounts being
+    removed do not count)."""
+    live = [a for a in accounts if a.get("state") != "deleting"]
+    return len(live) == 1 and live[0].get("id") == account_id
 
 
 def can_pair(account: dict, current_account_id: str) -> tuple[bool, str]:
@@ -576,13 +585,19 @@ class AccountManagerDialog:
         acc = self._selected()
         if not acc:
             return
-        ok, reason = can_hard_delete(acc, self.current)
+        only = is_only_account(self.registry.list(), acc["id"])
+        ok, reason = can_hard_delete(acc, self.current, only_account=only)
         if not ok:
             self._error(reason)
             return
-        if wx.MessageBox(self.i18n.t("acc_delete_confirm").format(name=acc.get("name", "")),
+        in_use = acc["id"] == self.current
+        message_key = "acc_delete_last_confirm" if in_use else "acc_delete_confirm"
+        if wx.MessageBox(self.i18n.t(message_key).format(name=acc.get("name", "")),
                          self.i18n.t("acc_btn_delete").replace("&", ""),
-                         wx.YES_NO | wx.ICON_WARNING) != wx.YES:
+                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING) != wx.YES:
+            return
+        if in_use:
+            self._delete_account_in_use(acc)
             return
         try:
             _hard_delete_account(self.registry, self.global_dir, acc["id"])
@@ -590,6 +605,18 @@ class AccountManagerDialog:
             logging.exception("[account manager] hard delete failed")
             self._error("acc_err_delete_failed")
         self._reload()
+
+    def _delete_account_in_use(self, acc):
+        """The only account, and the one running: its files are open, so it is
+        marked 'deleting' and removed by the shutdown, after the browser and the
+        database are closed (an interrupted removal is finished at the next
+        start). WinZapp then closes - there is no account left to show."""
+        wx = _wx()
+        main_window = self.dlg.GetParent()
+        self.registry.set_state(acc["id"], "deleting")
+        main_window._purge_account_on_exit = acc["id"]
+        self.dlg.EndModal(wx.ID_CLOSE)
+        wx.CallAfter(main_window.real_exit)
 
     def _error(self, key):
         wx = _wx()
@@ -604,20 +631,12 @@ class AccountManagerDialog:
 
 
 def _hard_delete_account(registry, global_dir, account_id) -> None:
-    """Remove an account's data dir + registry entry, coordinating Node teardown
-    (plan Zad 4.5 / GPT r7 #3): the account's WPPConnect userDataDir must not be
-    deleted while the shared Node might be using it. We mark 'deleting' first
-    (blocks bootstrap), verify under node_lock that no live lease belongs to it,
-    then rmtree + remove from the registry.
+    """Remove everything an account owns - its data dir, the browser profile of
+    its sessions and that profile's restore points - then its registry entry
+    (client/account_removal.py). We mark 'deleting' first (blocks bootstrap) and
+    release its node lease; whatever cannot be removed now keeps the account
+    'deleting' and is finished at the next start.
     """
-    import shutil
-    import node_coord
+    import account_removal
 
-    registry.set_state(account_id, "deleting")
-    # Ensure this account holds no live node-lease.
-    node_coord.release_node_lease(global_dir, account_id)
-    data_dir = registry.data_dir_for(account_id)
-    try:
-        shutil.rmtree(data_dir, ignore_errors=True)
-    finally:
-        registry.remove(account_id)
+    account_removal.purge_account(registry, global_dir, account_id)

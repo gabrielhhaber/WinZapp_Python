@@ -153,7 +153,7 @@ class ShortcutsMixin:
     def on_ctrl_comma(self, event):
         self.open_settings()
 
-    def open_settings(self):
+    def open_settings(self, whatsapp=False):
         # A hidden vault can only expose its Settings tab while its secret-code
         # session is still unlocked. Preserve that existing session; only start
         # Settings from a locked state when the vault was not already open.
@@ -167,6 +167,8 @@ class ShortcutsMixin:
             # Apply would drop the vault edits without a word. Pause it here.
             self._cancel_chat_lock_timeout()
         dlg = SettingsDialog(self)
+        if whatsapp:
+            dlg.show_whatsapp_settings()
         dlg.ShowModal()
         dlg.Destroy()
         # If Settings itself authenticated a previously locked vault, close

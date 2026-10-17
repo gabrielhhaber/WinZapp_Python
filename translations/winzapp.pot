@@ -148,6 +148,12 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr ""
 
+#: client/account_ui.py
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid "\"{name}\" is the only account. Permanently delete it with all its messages, media, preferences and profile backups, and close WinZapp? This cannot be undone."
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #, python-brace-format
 msgctxt "acc_delete_confirm"
@@ -8837,6 +8843,31 @@ msgctxt "settings_save_failed"
 msgid "An error occurred while saving the settings:"
 msgstr ""
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_label"
+msgid "&Search settings"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_none"
+msgid "No setting found."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+#, python-brace-format
+msgctxt "settings_search_results"
+msgid "Search results: {count}"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_results_list"
+msgid "Results"
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 #: client/ui/shortcut_bindings.py
 msgctxt "settings_shortcut"
@@ -10938,6 +10969,36 @@ msgctxt "tab_alert_tones"
 msgid "Alert Tones"
 msgstr ""
 
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "tab_audio"
+msgid "Audio"
+msgstr ""
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_chats_button"
+msgid "Chats"
+msgstr ""
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_messages_button"
+msgid "Messages"
+msgstr ""
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "general_notifications_button"
+msgid "Notifications"
+msgstr ""
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "customization_confirmations"
+msgid "&Confirmations"
+msgstr ""
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "tab_event_sounds"
+msgid "Event sounds"
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_audio_devices"
@@ -11019,7 +11080,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_ui"
-msgid "User Interface"
+msgid "Interface"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

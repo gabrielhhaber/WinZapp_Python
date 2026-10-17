@@ -4,6 +4,12 @@ Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră
 
 NOUTĂȚI
 
+- Fereastra Setări are acum un câmp de căutare și o listă de categorii: săgețile schimbă categoria, Tab intră în opțiunile ei, iar în căutare săgeata în jos merge la rezultate, unde Enter sau Spațiu deschide opțiunea găsită, chiar dacă este în fereastra unui buton. Mai multe categorii au fost reunite: Audio (dispozitive, audio lipit cu Ctrl+V, mesaje vocale și amuțire la înregistrare), Sunete de evenimente (evenimente sonore și tonuri de alertă) și Stocare (cu dosarul de salvare). Conținut vorbit, Redare audio, Copie de siguranță a profilului, Comenzi rapide, Reacții, Notificări, Mesaje, Conversații, Conversații blocate și Confirmări au devenit butoane care deschid fereastra fiecărui subiect. „Interfață utilizator” se numește acum „Interfață”, iar Conexiune a trecut la sfârșitul listei.
+
+- Setări WhatsApp (meniul Fișier) deschide acum Setările direct la categoria Setări WhatsApp, cu butoanele Confidențialitate și Profil; fereastra separată a dispărut. WinZapp întreabă WhatsApp doar când deschizi fiecare buton, iar Ctrl+Shift+, deschide în continuare această categorie.
+
+- Ștergerea unui cont în Conturi > Gestionați conturile... șterge acum și profilul browserului intern, cu autentificarea WhatsApp, și copiile de siguranță ale acelui profil, nu doar mesajele, fișierele media și preferințele. Dacă este singurul cont, poate fi șters chiar și în uz: după o întrebare, WinZapp se închide și șterge totul la oprire, iar la următoarea deschidere pornește de la zero.
+
 - Starea dumneavoastră online corespunde acum stării actuale a ferestrei chiar și atunci când treceți rapid la alt program, ascundeți WinZapp în zona de notificare sau vă reconectați în fundal. O actualizare online întârziată nu mai poate ajunge după cea offline, iar o încercare nereușită de a seta starea offline este repetată.
 
 - Comenzi rapide noi, fiecare modificabilă în fila Comenzi rapide din setări: Alt+8 deschide comunitățile de oriunde din fereastră; Alt+Shift+B deschide catalogul și coșul firmei din conversația selectată sau deschisă; iar într-un cont WhatsApp Business, Ctrl+Shift+N creează o comandă pentru contactul din conversație. Acolo unde nu se aplică, WinZapp spune motivul. Enter pe un mesaj de comandă deschide comanda.

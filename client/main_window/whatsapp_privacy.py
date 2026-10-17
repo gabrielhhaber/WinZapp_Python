@@ -1,7 +1,7 @@
 """WhatsAppPrivacyMixin — part of MainWindow (see main_window/__init__.py).
 
 The paired account's own privacy settings, as File > WhatsApp settings
-(ui/dialogs/whatsapp_settings_dialog.py) shows them. They live on WhatsApp, not
+(ui/dialogs/whatsapp_privacy_panel.py) shows them. They live on WhatsApp, not
 in WinZapp's settings, and are reached through the ``/privacy`` routes that
 api_patches adds (privacyController.ts), since WPPConnect Server has none.
 
@@ -50,13 +50,7 @@ class WhatsAppPrivacyMixin:
 
     def open_whatsapp_settings(self, event=None):
         """File > WhatsApp settings."""
-        from ui.dialogs.whatsapp_settings_dialog import WhatsAppSettingsDialog
-
-        dialog = WhatsAppSettingsDialog(self, self)
-        try:
-            dialog.ShowModal()
-        finally:
-            dialog.Destroy()
+        self.open_settings(whatsapp=True)
 
     def fetch_privacy_settings(self) -> "dict | None":
         """``{"settings": {...six account settings...}, "status": {...} | None}``,

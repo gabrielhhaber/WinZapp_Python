@@ -4,6 +4,12 @@ Esta versão traz a transcrição de mensagens de voz no seu próprio computador
 
 NOVIDADES
 
+- A janela de Definições tem agora um campo de pesquisa e uma lista de categorias: as setas mudam de categoria, Tab entra nas opções dela e, na pesquisa, a seta para baixo vai aos resultados, onde Enter ou Espaço abre a opção encontrada, mesmo quando está na janela de um botão. Várias categorias foram reunidas: Áudio (dispositivos, áudios colados com Ctrl+V, mensagens de voz e silenciar ao gravar), Sons de eventos (eventos de som e toques de alerta) e Armazenamento (com a pasta de gravação). Conteúdo falado, Reprodução de áudio, Cópia de segurança, Atalhos de teclado, Reações, Notificações, Mensagens, Conversas, Conversas trancadas e Confirmações passaram a botões que abrem a janela de cada assunto. "Interface do utilizador" chama-se agora "Interface", e Ligação passou para o fim da lista.
+
+- Definições do WhatsApp (menu Ficheiro) abre agora as Definições já na categoria Definições do WhatsApp, com os botões Privacidade e Perfil; a janela separada deixou de existir. O WinZapp só consulta o WhatsApp quando abre cada botão, e Ctrl+Shift+, continua a abrir essa categoria.
+
+- Eliminar uma conta em Contas > Gerir contas apaga agora também o perfil do navegador interno, com o início de sessão do WhatsApp, e as cópias de segurança desse perfil, e não só as mensagens, os multimédia e as preferências. Se for a única conta, pode ser eliminada mesmo em utilização: depois de uma pergunta, o WinZapp fecha e apaga tudo ao terminar, e na próxima abertura começa do zero.
+
 - O seu estado online passa a acompanhar a janela atual mesmo ao mudar rapidamente para outro programa, ocultar o WinZapp na área de notificação ou voltar a ligar em segundo plano. Uma atualização atrasada de online já não passa à frente da de offline, e uma falha ao informar offline é tentada novamente.
 
 - Novos atalhos, cada um alterável no separador Atalhos de teclado das definições: Alt+8 abre as comunidades a partir de qualquer ponto da janela; Alt+Shift+B abre o catálogo e o carrinho da empresa da conversa selecionada ou aberta; e numa conta do WhatsApp Business, Ctrl+Shift+N cria uma encomenda para o contacto da conversa. Onde não se aplicam, o WinZapp diz o motivo. Enter numa mensagem de encomenda abre a encomenda.

@@ -89,7 +89,7 @@ def test_the_settings_page_is_appended_last_and_found_not_indexed():
     assert dialog.index("# ── Locked chats tab") < ai < dialog.index("# ── Button row")
     assert "FindPage(self._ai_page)" in dialog
     assert not re.search(r"SetPageText\(\d+, i18n\.t\(\"tab_ai_accessibility\"\)", dialog)
-    assert 'SetPageText(14, i18n.t("locked_chats"))' in dialog
+    assert "self._chat_lock_dialog = SubPageDialog(" in dialog
 
 
 def test_the_dialog_only_delegates_to_the_page():

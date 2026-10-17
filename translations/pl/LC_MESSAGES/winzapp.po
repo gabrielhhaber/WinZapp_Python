@@ -164,6 +164,12 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr "Domyślne"
 
+#: client/account_ui.py
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid "\"{name}\" is the only account. Permanently delete it with all its messages, media, preferences and profile backups, and close WinZapp? This cannot be undone."
+msgstr "„{name}” to jedyne konto. Trwale usunąć je razem ze wszystkimi wiadomościami, multimediami, preferencjami i kopiami zapasowymi profilu oraz zamknąć WinZapp? Tej operacji nie można cofnąć."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #, python-brace-format
 msgctxt "acc_delete_confirm"
@@ -9444,6 +9450,31 @@ msgctxt "settings_save_failed"
 msgid "An error occurred while saving the settings:"
 msgstr "Wystąpił błąd podczas zapisywania ustawień:"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_label"
+msgid "&Search settings"
+msgstr "&Szukaj w ustawieniach"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_none"
+msgid "No setting found."
+msgstr "Nie znaleziono żadnych ustawień."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+#, python-brace-format
+msgctxt "settings_search_results"
+msgid "Search results: {count}"
+msgstr "Wyniki wyszukiwania: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_results_list"
+msgid "Results"
+msgstr "Wyniki"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 #: client/ui/shortcut_bindings.py
 msgctxt "settings_shortcut"
@@ -11685,6 +11716,36 @@ msgctxt "tab_alert_tones"
 msgid "Alert Tones"
 msgstr "Dźwięki powiadomień"
 
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "tab_audio"
+msgid "Audio"
+msgstr "Dźwięk"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_chats_button"
+msgid "Chats"
+msgstr "Rozmowy"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_messages_button"
+msgid "Messages"
+msgstr "Wiadomości"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "general_notifications_button"
+msgid "Notifications"
+msgstr "Powiadomienia"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "customization_confirmations"
+msgid "&Confirmations"
+msgstr "&Potwierdzenia"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "tab_event_sounds"
+msgid "Event sounds"
+msgstr "Dźwięki zdarzeń"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_audio_devices"
@@ -11768,8 +11829,8 @@ msgstr "Transkrypcja lokalna"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_ui"
-msgid "User Interface"
-msgstr "Interfejs użytkownika"
+msgid "Interface"
+msgstr "Interfejs"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bookmarks.py

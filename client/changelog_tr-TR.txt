@@ -4,6 +4,12 @@ Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisa
 
 YENİLİKLER
 
+- Ayarlar penceresinde artık bir arama alanı ve bir kategori listesi var: oklar kategoriyi değiştirir, Tab seçeneklerine girer ve aramada aşağı ok sonuçlara götürür; orada Enter veya Boşluk, bir düğmenin penceresindeki seçenek olsa bile bulunan seçeneği açar. Birkaç kategori birleştirildi: Ses (cihazlar, Ctrl+V ile yapıştırılan sesler, sesli mesajlar ve kayıt sırasında susturma), Olay sesleri (ses olayları ve uyarı tonları) ve Depolama (kaydetme klasörüyle). Konuşulan içerik, Ses oynatma, Profil yedekleme, Kısayollar, Tepkiler, Bildirimler, Mesajlar, Sohbetler, Kilitli sohbetler ve Onaylar, her konunun penceresini açan düğmelere dönüştü. "Kullanıcı Arayüzü" artık "Arayüz" adını taşıyor ve Bağlantı listenin sonuna taşındı.
+
+- WhatsApp ayarları (Dosya menüsü) artık Ayarlar'ı doğrudan WhatsApp ayarları kategorisinde açar; Gizlilik ve Profil düğmeleri vardır ve ayrı pencere kaldırıldı. WinZapp, WhatsApp'a yalnızca her düğmeyi açtığınızda sorar ve Ctrl+Shift+, bu kategoriyi açmaya devam eder.
+
+- Hesaplar > Hesapları yönet... içinde bir hesabı silmek artık yalnızca iletileri, medyayı ve tercihleri değil, WhatsApp oturumunu taşıyan dahili tarayıcının profilini ve bu profilin yedeklerini de siler. Tek hesapsa, kullanımdayken bile silinebilir: bir sorudan sonra WinZapp kapanır ve kapanırken her şeyi siler; bir sonraki açılışta sıfırdan başlar.
+
 - Çevrimiçi durumunuz artık başka bir programa hızla geçtiğinizde, WinZapp'ı sistem tepsisine gizlediğinizde veya arka planda yeniden bağlandığınızda da pencerenin güncel durumunu izler. Gecikmiş bir çevrimiçi güncellemesi artık çevrimdışı güncellemesinden sonra uygulanmaz; çevrimdışı durumunu bildirme başarısız olursa yeniden denenir.
 
 - Her biri Ayarlar'daki Kısayollar sekmesinden değiştirilebilen yeni kısayollar: Alt+8 pencerenin her yerinden toplulukları açar; Alt+Shift+B seçili veya açık sohbetteki işletmenin kataloğunu ve sepetini açar; WhatsApp Business hesabında Ctrl+Shift+N sohbetteki kişi için sipariş oluşturur. Uygulanamadıkları yerde WinZapp nedenini söyler. Bir sipariş mesajında Enter siparişi açar.

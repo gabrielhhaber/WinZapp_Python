@@ -89,98 +89,138 @@ class TestTheTabIsWhereTheIndicesSayItIs:
     a page silently shifts every tab below it, so the position is worth
     asserting rather than trusting."""
 
-    def test_it_sits_right_after_storage(self, make_dialog):
+    def test_files_and_saving_live_in_the_storage_page(self, make_dialog):
         dialog = make_dialog()
-        assert dialog._notebook.FindPage(dialog._files_page) == 9
+        assert dialog._files_page is dialog._storage_page
+        assert dialog._notebook.FindPage(dialog._storage_page) == 5
 
-    def test_the_tabs_below_it_moved_with_it(self, make_dialog):
+    def test_alert_tones_live_in_the_event_sounds_page(self, make_dialog):
         dialog = make_dialog()
-        assert dialog._notebook.FindPage(dialog._audio_page) == 10
-        assert dialog._notebook.FindPage(dialog._calls_page) == 11
+        assert dialog._alert_page is dialog._sound_events_page
+        assert dialog._notebook.FindPage(dialog._sound_events_page) == 4
 
-    def test_the_profile_backup_tab_is_appended_last(self, make_dialog):
-        """Added after Calls so no earlier index moved; SetPageText(12) in
-        _refresh_dialog_labels() relies on it being the thirteenth page."""
+    def test_the_audio_page_holds_the_devices_and_silencing(self, make_dialog):
         dialog = make_dialog()
-        assert dialog._notebook.FindPage(dialog._profile_backup_page) == 12
+        assert dialog._notebook.FindPage(dialog._audio_devices_page) == 3
+        assert dialog._silence_while_recording_check.GetParent() is dialog._audio_devices_page
 
-    def test_the_reactions_tab_is_appended_after_profile_backup(self, make_dialog):
-        """Appended for the same reason; SetPageText(13) relies on it."""
+    def test_spoken_content_and_playback_are_not_pages(self, make_dialog):
         dialog = make_dialog()
-        assert dialog._notebook.FindPage(dialog._reactions_page) == 13
+        assert dialog._notebook.FindPage(dialog._speech_page) == -1
+        assert dialog._notebook.FindPage(dialog._audio_page) == -1
 
-    def test_the_locked_chats_tab_is_appended_after_reactions(self, make_dialog):
-        """Rare vault policy stays after every fixed tab and keeps index 14;
-        SetPageText(14) relies on it. AI, Transcription and Shortcuts come
-        after it, in that order, and are retranslated through FindPage()
-        rather than by number."""
+    def test_the_calls_tab_follows_storage(self, make_dialog):
         dialog = make_dialog()
-        assert dialog._notebook.FindPage(dialog._chat_lock_page) == 14
-        assert dialog._notebook.FindPage(dialog._ai_page) == 15
-        assert dialog._notebook.FindPage(dialog._transcription_page) == 16
-        assert dialog._notebook.FindPage(dialog._shortcuts_page) == 17
-        assert dialog._notebook.GetPageCount() == 18
+        assert dialog._notebook.FindPage(dialog._calls_page) == 6
 
-    def test_a_hidden_vault_leaves_the_locked_chats_tab_out(self, make_dialog):
+    def test_profile_backup_and_shortcuts_are_buttons_not_pages(self, make_dialog):
+        dialog = make_dialog()
+        assert dialog._notebook.FindPage(dialog._profile_backup_page) == -1
+        assert dialog._notebook.FindPage(dialog._shortcuts_page) == -1
+        assert dialog._profile_backup_btn.GetParent() is dialog._storage_page
+        assert dialog._shortcuts_btn.GetParent() is dialog._ui_page
+        assert dialog._confirmations_btn.GetParent() is dialog._ui_page
+
+    def test_the_audio_options_moved_to_the_audio_page(self, make_dialog):
+        dialog = make_dialog()
+        assert dialog._pasted_audio_radio.GetParent() is dialog._audio_devices_page
+        assert dialog._auto_focus_next_audio_cb.GetParent() is dialog._audio_page
+
+    def test_reactions_are_a_button_between_messages_and_chats(self, make_dialog):
+        dialog = make_dialog()
+        assert dialog._notebook.FindPage(dialog._reactions_page) == -1
+        assert dialog._reactions_btn.GetParent() is dialog._ui_page
+        order = [c for c in dialog._ui_page.GetChildren()
+                 if c in (dialog._messages_btn, dialog._reactions_btn, dialog._chats_btn)]
+        assert order == [dialog._messages_btn, dialog._reactions_btn, dialog._chats_btn]
+
+    def test_locked_chats_are_a_button_in_the_conversations_window(self, make_dialog):
+        dialog = make_dialog()
+        assert dialog._notebook.FindPage(dialog._chat_lock_page) == -1
+        assert dialog._chat_lock_btn.GetParent() is dialog._chats_page
+        assert dialog._chat_lock_btn.IsShown()
+        assert dialog._notebook.FindPage(dialog._ai_page) == 7
+        assert dialog._notebook.FindPage(dialog._transcription_page) == 8
+        assert dialog._notebook.GetPageCount() == 11
+
+    def test_a_hidden_vault_leaves_the_locked_chats_button_out(self, make_dialog):
         """A vault the user chose to hide must not be advertised by Settings."""
         vault = ChatLockVault(Fernet.generate_key())
         vault.configure("246810", "gizli-kod")
         vault.set_hide_navigation(True)
         dialog = make_dialog(vault=vault)
-        assert dialog._notebook.FindPage(dialog._chat_lock_page) == -1
-        assert dialog._notebook.FindPage(dialog._ai_page) == 14
-        assert dialog._notebook.GetPageText(14) == dialog.main_window.i18n.t("tab_ai_accessibility")
-        assert dialog._notebook.GetPageCount() == 17
-        # AI, Transcription and Shortcuts move up to fill the gap.
-        assert dialog._notebook.FindPage(dialog._transcription_page) == 15
-        assert dialog._notebook.GetPageText(15) == dialog.main_window.i18n.t("tab_transcription")
-        assert dialog._notebook.FindPage(dialog._shortcuts_page) == 16
-        assert dialog._notebook.GetPageText(16) == dialog.main_window.i18n.t("tab_shortcuts")
+        assert not dialog._chat_lock_btn.IsShown()
+        assert dialog._notebook.GetPageCount() == 11
 
-    def test_the_tabs_that_are_opened_by_number_did_not_move(self, make_dialog):
-        """main_window/settings.py's custom-API first-run flow does
-        SetSelection(4), and this file has SetSelection() calls up to 8. The
-        new tab is below all of them, which is the whole reason it went here."""
+    def test_connection_is_the_last_page(self, make_dialog):
         dialog = make_dialog()
-        assert dialog._notebook.FindPage(dialog._conn_page) == 4
-        assert dialog._notebook.FindPage(dialog._storage_page) == 8
-
-    def test_shortcuts_are_appended_after_transcription(self, make_dialog):
-        """Asserted against the real notebook rather than by reading the source
-        for AddPage() calls, which is all a suite that may not construct this
-        dialog can do (tests/test_transcription_settings_tab.py). Appending is
-        the one position that renumbers nothing — this is where that stops
-        being an argument and becomes a measurement."""
-        dialog = make_dialog()
-        # Constructing the dialog adds every page, and AddPage() fires
-        # EVT_NOTEBOOK_PAGE_CHANGED. The handler is bound after _load_values()
-        # precisely so that does not count as the user visiting the tab — which
-        # would speak and consume a substitution warning nobody heard. A source
-        # grep cannot tell a Bind placed before _load_values() from one after;
-        # the real notebook can.
         assert dialog._transcription_page_seen is False
-        # Shortcuts append after Transcription without renumbering it.
         last = dialog._notebook.GetPageCount() - 1
-        assert last == 17
-        assert dialog._notebook.FindPage(dialog._transcription_page) == last - 1
-        assert dialog._notebook.FindPage(dialog._shortcuts_page) == last
-        assert dialog._notebook.GetPageText(last) == dialog.main_window.i18n.t(
-            "tab_shortcuts"
-        )
+        assert last == 10
+        assert dialog._notebook.FindPage(dialog._conn_page) == last
+        assert dialog._notebook.FindPage(dialog._whatsapp_page) == last - 1
+        assert dialog._notebook.FindPage(dialog._transcription_page) == last - 2
+
+    def test_whatsapp_settings_are_two_buttons_in_one_category(self, make_dialog):
+        dialog = make_dialog()
+        assert dialog._whatsapp_privacy_btn.GetParent() is dialog._whatsapp_page
+        assert dialog._whatsapp_profile_btn.GetParent() is dialog._whatsapp_page
+        # nothing is read from WhatsApp until a window is opened
+        assert dialog._whatsapp_privacy_dialog._first_open is not None
+        assert dialog._whatsapp_profile_dialog._first_open is not None
 
     def test_every_page_has_a_translated_title(self, make_dialog):
         """SetPageText() is driven by index; an off-by-one shows up as a tab
         labelled with another tab's name, which nothing else would catch."""
         dialog = make_dialog()
         i18n = dialog.main_window.i18n
-        assert dialog._notebook.GetPageText(9) == i18n.t("tab_files_saving")
-        assert dialog._notebook.GetPageText(10) == i18n.t("tab_audio_playback")
-        assert dialog._notebook.GetPageText(11) == i18n.t("tab_calls")
-        assert dialog._notebook.GetPageText(12) == i18n.t("tab_profile_backup")
-        assert dialog._notebook.GetPageText(13) == i18n.t("tab_reactions")
-        assert dialog._notebook.GetPageText(14) == i18n.t("locked_chats")
-        assert dialog._notebook.GetPageText(15) == i18n.t("tab_ai_accessibility")
-        assert dialog._notebook.GetPageText(16) == i18n.t("tab_transcription")
+        titles = ["tab_general", "tab_ui", "tab_accessibility",
+                  "tab_audio", "tab_event_sounds", "tab_storage", "tab_calls",
+                  "tab_ai_accessibility",
+                  "tab_transcription", "wa_settings_dialog_title", "tab_connection"]
+        for index, key in enumerate(titles):
+            assert dialog._notebook.GetPageText(index) == i18n.t(key)
+        dialog._refresh_dialog_labels()
+        for index, key in enumerate(titles):
+            assert dialog._notebook.GetPageText(index) == i18n.t(key)
+
+
+class TestRegroupedSettings:
+    def test_the_interface_options_live_behind_buttons(self, make_dialog):
+        dialog = make_dialog()
+        for button in (dialog._messages_btn, dialog._chats_btn,
+                       dialog._confirmations_btn, dialog._shortcuts_btn):
+            assert button.GetParent() is dialog._ui_page
+        assert dialog._messages_page_size_field.GetParent() is dialog._messages_page
+        assert dialog._focus_message_field_rb.GetParent() is dialog._chats_page
+        assert dialog._bulk_action_shortcuts_cb.GetParent() is dialog._chats_page
+        assert dialog._forwarded_prefix_cb.GetParent() is dialog._messages_page
+
+    def test_spoken_content_needs_extended_compatibility(self, make_dialog):
+        dialog = make_dialog({"accessibility": {"extended_sr_compat_enabled": False}})
+        assert not dialog._spoken_content_btn.IsEnabled()
+        dialog._extended_sr_compat_check.SetValue(True)
+        dialog._on_extended_sr_compat_toggle(wx.CommandEvent(wx.EVT_CHECKBOX.typeId))
+        assert dialog._spoken_content_btn.IsEnabled()
+
+    def test_the_ai_options_hide_while_the_ai_is_off(self, make_dialog):
+        dialog = make_dialog()
+        page = dialog._ai_page
+        page.enabled.SetValue(False)
+        page._show_options(False)
+        others = [c for c in page.GetChildren() if c is not page.enabled]
+        assert others and not any(c.IsShown() for c in others)
+        page._show_options(True)
+        assert all(c.IsShown() for c in others)
+
+    def test_the_search_reaches_options_inside_the_buttons(self, make_dialog):
+        dialog = make_dialog()
+        nb = dialog._notebook
+        nb._rebuild_index()
+        labels = {(e.category, e.label) for e in nb._index}
+        assert any("tab_speech" not in c and e for c, e in labels)
+        assert any(c.startswith(nb.GetPageText(2) + ": ") for c, _ in labels)
+        assert any(c.startswith(nb.GetPageText(3) + ": ") for c, _ in labels)
 
 
 class TestLoadingTheCurrentSetting:

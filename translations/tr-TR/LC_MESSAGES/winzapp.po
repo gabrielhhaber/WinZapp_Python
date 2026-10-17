@@ -158,6 +158,12 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr "Varsayılan"
 
+#: client/account_ui.py
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid "\"{name}\" is the only account. Permanently delete it with all its messages, media, preferences and profile backups, and close WinZapp? This cannot be undone."
+msgstr "\"{name}\" tek hesaptır. Tüm mesajları, medyası, tercihleri ve profil yedekleriyle birlikte kalıcı olarak silinsin ve WinZapp kapatılsın mı? Bu işlem geri alınamaz."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #, python-brace-format
 msgctxt "acc_delete_confirm"
@@ -9347,6 +9353,31 @@ msgctxt "settings_save_failed"
 msgid "An error occurred while saving the settings:"
 msgstr "Ayarlar kaydedilirken bir hata oluştu:"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_label"
+msgid "&Search settings"
+msgstr "Ayarlarda &ara"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_none"
+msgid "No setting found."
+msgstr "Hiçbir ayar bulunamadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+#, python-brace-format
+msgctxt "settings_search_results"
+msgid "Search results: {count}"
+msgstr "Arama sonuçları: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_results_list"
+msgid "Results"
+msgstr "Sonuçlar"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 #: client/ui/shortcut_bindings.py
 msgctxt "settings_shortcut"
@@ -11553,6 +11584,36 @@ msgctxt "tab_alert_tones"
 msgid "Alert Tones"
 msgstr "Uyarı Tonları"
 
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "tab_audio"
+msgid "Audio"
+msgstr "Ses"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_chats_button"
+msgid "Chats"
+msgstr "Sohbetler"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_messages_button"
+msgid "Messages"
+msgstr "Mesajlar"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "general_notifications_button"
+msgid "Notifications"
+msgstr "Bildirimler"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "customization_confirmations"
+msgid "&Confirmations"
+msgstr "&Onaylar"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "tab_event_sounds"
+msgid "Event sounds"
+msgstr "Olay sesleri"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_audio_devices"
@@ -11634,8 +11695,8 @@ msgstr "Yerel yazıya döküm"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_ui"
-msgid "User Interface"
-msgstr "Kullanıcı Arayüzü"
+msgid "Interface"
+msgstr "Arayüz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bookmarks.py

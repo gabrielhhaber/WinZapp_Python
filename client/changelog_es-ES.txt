@@ -4,6 +4,12 @@ Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, 
 
 NOVEDADES
 
+- La ventana de Configuración ahora tiene un campo de búsqueda y una lista de categorías: las flechas cambian de categoría, Tab entra en sus opciones y, en la búsqueda, la flecha abajo va a los resultados, donde Enter o Espacio abre la opción encontrada, incluso cuando está en la ventana de un botón. Se reunieron varias categorías: Audio (dispositivos, audios pegados con Ctrl+V, mensajes de voz y silenciar al grabar), Sonidos de eventos (eventos de sonido y tonos de alerta) y Almacenamiento (con la carpeta de guardado). Contenido hablado, Reproducción de audio, Copia de seguridad, Atajos de teclado, Reacciones, Notificaciones, Mensajes, Conversaciones, Chats bloqueados y Confirmaciones pasaron a ser botones que abren la ventana de cada tema. "Interfaz de usuario" ahora se llama "Interfaz", y Conexión pasó al final de la lista.
+
+- Configuración de WhatsApp (menú Archivo) ahora abre la configuración ya en la categoría Configuración de WhatsApp, con los botones Privacidad y Perfil; la ventana separada ya no existe. WinZapp solo consulta a WhatsApp cuando abres cada botón, y Ctrl+Shift+, sigue abriendo esa categoría.
+
+- Eliminar una cuenta en Cuentas > Administrar cuentas ahora borra también el perfil del navegador interno, con el inicio de sesión de WhatsApp, y las copias de seguridad de ese perfil, y no solo los mensajes, los archivos multimedia y las preferencias. Si es la única cuenta, se puede eliminar incluso en uso: tras una pregunta, WinZapp se cierra y borra todo al terminar, y la próxima vez que se abra empieza de cero.
+
 - Tu estado en línea ahora sigue el estado actual de la ventana incluso al cambiar rápidamente a otro programa, ocultar WinZapp en la bandeja o reconectarse en segundo plano. Una actualización retrasada de «en línea» ya no se adelanta a la de «sin conexión», y si falla el envío del estado «sin conexión», se vuelve a intentar.
 
 - Nuevos atajos, cada uno modificable en la pestaña Atajos de teclado de la configuración: Alt+8 abre las comunidades desde cualquier lugar de la ventana; Alt+Shift+B abre el catálogo y el carrito de la empresa del chat seleccionado o abierto; y en una cuenta de WhatsApp Business, Ctrl+Shift+N crea un pedido para el contacto del chat. Donde no se aplican, WinZapp dice el motivo. Intro en un mensaje de pedido abre el pedido.

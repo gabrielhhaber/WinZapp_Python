@@ -4,6 +4,9 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "4c6f7722e289": "A janela de Configurações agora tem um campo de busca e uma lista de categorias:",
+    "97b3099fb6e0": "Configurações do WhatsApp (menu Arquivo) agora abre as Configurações já na categ",
+    "4bbf9da8a414": "Excluir uma conta em Contas > Gerenciar contas agora apaga também o perfil do na",
     "ccbecffbe1e9": "Seu estado online agora acompanha a janela atual mesmo ao alternar rapidamente p",
     "033d14e653c7": "Novos atalhos, cada um alterável na aba Atalhos de teclado das configurações: Al",
     "f7a52c055d6d": "Ajuda > \"Novidades desde a última vez que você viu\" diz o que mudou nestas novid",

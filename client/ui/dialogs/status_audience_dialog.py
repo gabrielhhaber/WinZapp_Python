@@ -1,6 +1,6 @@
 """Picking who a Status is hidden from, or shared only with.
 
-Opened from File > WhatsApp settings > Privacy (whatsapp_settings_dialog.py)
+Opened from File > WhatsApp settings > Privacy (whatsapp_privacy_panel.py)
 when "My contacts except..." or "Only share with..." is chosen. The people come
 from the contacts WinZapp already synchronised with WhatsApp, one row per person
 (ui.dialogs.contact_list_picker.build_own_contact_rows, the same rows as the
