@@ -1,10 +1,9 @@
-"""File > WhatsApp settings: settings kept on the paired WhatsApp account.
+"""WhatsApp settings > Privacy: the account's privacy choices kept on WhatsApp.
 
-Not WinZapp's settings (that is SettingsDialog): these live on WhatsApp's
-servers, are reached through the local server (main_window/whatsapp_privacy.py)
-and are applied with their own button, so closing the dialog never discards
-anything. A notebook from the start, so other account pages can join Privacy:
-Profile (name, About, photo) is its own panel, ui/dialogs/whatsapp_profile_panel.py.
+A window of the "WhatsApp settings" category of SettingsDialog. Not WinZapp's
+settings: these live on WhatsApp's servers, are reached through the local
+server (main_window/whatsapp_privacy.py) and are applied with their own button,
+so closing the window never discards anything.
 
 Every call to the server runs on a worker thread and reports back through
 ``wx.CallAfter``: a call can take several seconds, and a frozen window is
@@ -12,6 +11,8 @@ indistinguishable from a crashed program for a screen-reader user. Results are
 also spoken, because a changing static label is not announced on its own.
 
 What is shown and sent is decided in core/whatsapp_privacy.py (no wx, tested).
+The server is read the first time the window is opened (``load()``), not when
+Settings opens.
 """
 
 import threading
@@ -19,45 +20,20 @@ import threading
 import wx
 
 from core import whatsapp_privacy as privacy
-from ui.dialogs.whatsapp_profile_panel import WhatsAppProfilePanel
 
 
-class WhatsAppSettingsDialog(wx.Dialog):
+class WhatsAppPrivacyPanel(wx.ScrolledWindow):
     def __init__(self, parent, main_window):
+        super().__init__(parent)
         self.main_window = main_window
         i18n = main_window.i18n
-        super().__init__(
-            parent,
-            title=i18n.t("wa_settings_dialog_title"),
-            size=(480, 620),
-            style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
-        )
         self._i18n = i18n
         self._loaded = None         # the six settings, once WhatsApp reported them
         self._status_loaded = None  # privacy.StatusPrivacy, or None if unreadable
         self._status_people = None  # list chosen in the picker; None = untouched
-
-        panel = wx.Panel(self)
-        outer = wx.BoxSizer(wx.VERTICAL)
-        self._notebook = wx.Notebook(panel)
-        self._build_privacy_tab(i18n)
-        self._notebook.AddPage(
-            WhatsAppProfilePanel(self._notebook, main_window), i18n.t("wa_settings_tab_profile"))
-        outer.Add(self._notebook, 1, wx.EXPAND | wx.ALL, 8)
-
-        # OK, not Close: each page applies through its own button, so closing
-        # never discards anything.
-        ok_button = wx.Button(panel, wx.ID_OK, i18n.t("ok"))
-        ok_button.Bind(wx.EVT_BUTTON, lambda event: self.EndModal(wx.ID_OK))
-        outer.Add(ok_button, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
-        panel.SetSizer(outer)
-
-        frame = wx.BoxSizer(wx.VERTICAL)
-        frame.Add(panel, 1, wx.EXPAND)
-        self.SetSizer(frame)
-        self.Bind(wx.EVT_CLOSE, lambda event: self.EndModal(wx.ID_OK))
-
-        self._load_privacy()
+        self.SetScrollRate(0, 20)
+        self.SetMinSize((460, 420))
+        self._build(i18n)
 
     def _say(self, text):
         self.main_window.speak_output.output(text)
@@ -71,52 +47,50 @@ class WhatsAppSettingsDialog(wx.Dialog):
 
     # ── Building ──────────────────────────────────────────────────────────────
 
-    def _build_privacy_tab(self, i18n):
-        panel = wx.ScrolledWindow(self._notebook)
-        panel.SetScrollRate(0, 20)
+    def _build(self, i18n):
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(wx.StaticText(panel, label=i18n.t("wa_privacy_section_label")), 0, wx.ALL, 8)
+        sizer.Add(wx.StaticText(self, label=i18n.t("wa_privacy_section_label")), 0, wx.ALL, 8)
 
         # Each dropdown is preceded by its own StaticText: NVDA reads the text
         # right before a control as that control's name.
         self._choices = {}
         for field in privacy.PRIVACY_FIELDS:
-            sizer.Add(wx.StaticText(panel, label=i18n.t(field.label_key)), 0,
+            sizer.Add(wx.StaticText(self, label=i18n.t(field.label_key)), 0,
                       wx.LEFT | wx.TOP | wx.RIGHT, 8)
             choice = wx.Choice(
-                panel, choices=[i18n.t(label_key) for _value, label_key in field.options])
+                self, choices=[i18n.t(label_key) for _value, label_key in field.options])
             choice.Disable()  # until WhatsApp has told us the current values
             self._choices[field.setting] = choice
             sizer.Add(choice, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        sizer.Add(wx.StaticText(panel, label=i18n.t("wa_privacy_status_label")), 0,
+        sizer.Add(wx.StaticText(self, label=i18n.t("wa_privacy_status_label")), 0,
                   wx.LEFT | wx.TOP | wx.RIGHT, 8)
         self._status_choice = wx.Choice(
-            panel, choices=[i18n.t(label_key) for _value, label_key in privacy.STATUS_OPTIONS])
+            self, choices=[i18n.t(label_key) for _value, label_key in privacy.STATUS_OPTIONS])
         self._status_choice.Disable()
         self._status_choice.Bind(wx.EVT_CHOICE, lambda event: self._refresh_status_controls())
         sizer.Add(self._status_choice, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 8)
         self._status_people_button = wx.Button(
-            panel, label=i18n.t("wa_privacy_status_choose_button"))
+            self, label=i18n.t("wa_privacy_status_choose_button"))
         self._status_people_button.Disable()
         self._status_people_button.Bind(wx.EVT_BUTTON, self._on_choose_status_people)
         sizer.Add(self._status_people_button, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
-        self._status_summary = wx.StaticText(panel, label="")
+        self._status_summary = wx.StaticText(self, label="")
         sizer.Add(self._status_summary, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 8)
 
-        self._message = wx.StaticText(panel, label=i18n.t("wa_privacy_loading"))
+        self._message = wx.StaticText(self, label=i18n.t("wa_privacy_loading"))
         sizer.Add(self._message, 0, wx.ALL, 8)
-        self._apply_button = wx.Button(panel, label=i18n.t("wa_privacy_apply_button"))
+        self._apply_button = wx.Button(self, label=i18n.t("wa_privacy_apply_button"))
         self._apply_button.Disable()
         self._apply_button.Bind(wx.EVT_BUTTON, self._on_apply)
         sizer.Add(self._apply_button, 0, wx.ALL, 8)
 
-        panel.SetSizer(sizer)
-        self._notebook.AddPage(panel, i18n.t("wa_settings_tab_privacy"))
+        self.SetSizer(sizer)
 
     # ── Loading ───────────────────────────────────────────────────────────────
 
-    def _load_privacy(self):
+    def load(self):
+        """Read the account's privacy from WhatsApp (once, when first shown)."""
         def work():
             answer = self.main_window.fetch_privacy_settings()
             wx.CallAfter(self._on_loaded, answer)

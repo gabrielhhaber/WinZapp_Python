@@ -101,6 +101,7 @@ class _Stub:
         self._reset_quick_reactions_btn = _Control()
         self._fixed_quick_reactions_cb = _Control(fixed)
         self._reactions_page = _Page()
+        self._reactions_dialog = object()
         self._quick_reaction_slots = list(DEFAULT_QUICK_REACTIONS)
         self._fill_quick_reaction_slots()
         self.dirty = 0

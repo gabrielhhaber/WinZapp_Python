@@ -1,5 +1,5 @@
 """Rules behind File > WhatsApp settings > Privacy
-(ui/dialogs/whatsapp_settings_dialog.py).
+(ui/dialogs/whatsapp_privacy_panel.py).
 
 These settings live on the WhatsApp account, not in WinZapp: they are read and
 written through the local server (main_window/whatsapp_privacy.py, which calls

@@ -8,6 +8,7 @@ from core.keyboard_shortcuts import (
 from core.shortcut_catalog import SHORTCUTS
 from ui.shortcut_names import shortcut_name, hotkey_binding
 from ui.dialogs.shortcut_capture import ShortcutCaptureDialog
+from ui.dialogs.settings_pages import SubPageDialog
 from ui.shortcut_bindings import refresh_shortcuts
 
 GLOBAL = Shortcut('global.restore', 'global', 'restore', 'global_hotkey_label', 0, 0)
@@ -66,7 +67,12 @@ class ShortcutsTabMixin:
         i18n = self.main_window.i18n
         self._shortcut_overrides = sanitize_overrides(
             copy.deepcopy(self.main_window.settings.get(SECTION, {})), SHORTCUTS)
-        page = self._shortcuts_page = wx.Panel(self._notebook)
+        # A button on the Interface page opens these options in a window.
+        self._shortcuts_dialog = SubPageDialog(
+            self, i18n.t('tab_shortcuts').replace('&', ''), i18n.t('ok'),
+            on_change=self._mark_dirty)
+        self._shortcuts_dialog.SetMinSize((640, 460))
+        page = self._shortcuts_page = wx.Panel(self._shortcuts_dialog)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self._shortcuts_hint = wx.StaticText(page, label=i18n.t('shortcut_settings_hint'))
         self._shortcuts_hint.Wrap(580)
@@ -89,7 +95,14 @@ class ShortcutsTabMixin:
             self._shortcut_buttons.append((button, key))
         sizer.Add(buttons, 0, wx.ALL, 4)
         page.SetSizer(sizer)
-        self._notebook.AddPage(page, i18n.t('tab_shortcuts'))
+        self._shortcuts_dialog.set_body(page)
+        self._shortcuts_btn = wx.Button(self._ui_page, label=i18n.t('tab_shortcuts'))
+        self._ui_sizer.Add(self._shortcuts_btn, 0, wx.ALL, 8)
+        self._shortcuts_btn.Bind(wx.EVT_BUTTON, lambda e: self._shortcuts_dialog.open())
+        self._notebook.add_subpage(
+            self._notebook.FindPage(self._ui_page),
+            i18n.t('tab_shortcuts').replace('&', ''), page,
+            lambda control=None: self._shortcuts_dialog.open(control))
         self._hotkey_field.Bind(wx.EVT_TEXT, self._shortcut_hotkey_changed)
         self._refresh_shortcut_rows()
 
@@ -127,7 +140,7 @@ class ShortcutsTabMixin:
         if shortcut is None:
             return
         i18n = self.main_window.i18n
-        dialog = ShortcutCaptureDialog(self, action_text(shortcut, i18n.t),
+        dialog = ShortcutCaptureDialog(self._shortcuts_dialog, action_text(shortcut, i18n.t),
                                        self._shortcut_binding(shortcut), shortcut.id == GLOBAL.id)
         try:
             if dialog.ShowModal() != wx.ID_OK:
@@ -205,17 +218,18 @@ class ShortcutsTabMixin:
             if shortcut.id in self._shortcut_overrides:
                 candidate = binding_for(shortcut, self._shortcut_overrides, translate)
                 if not self._accept_shortcut(shortcut, candidate, translate):
-                    self._notebook.SetSelection(self._notebook.FindPage(self._shortcuts_page))
+                    self._show_page(self._shortcuts_page, self._shortcut_list)
                     return False
         global_binding = self._shortcut_binding(GLOBAL)
         if global_binding is not None and not self._accept_shortcut(GLOBAL, global_binding, translate):
-            self._notebook.SetSelection(self._notebook.FindPage(self._shortcuts_page))
+            self._show_page(self._shortcuts_page, self._shortcut_list)
             return False
         return True
 
     def _refresh_shortcut_labels(self):
         i18n = self.main_window.i18n
-        self._notebook.SetPageText(self._notebook.FindPage(self._shortcuts_page), i18n.t('tab_shortcuts'))
+        self._shortcuts_btn.SetLabel(i18n.t('tab_shortcuts'))
+        self._shortcuts_dialog.SetTitle(i18n.t('tab_shortcuts').replace('&', ''))
         self._shortcuts_hint.SetLabel(i18n.t('shortcut_settings_hint'))
         self._shortcut_list.SetName(i18n.t('shortcut_settings_list'))
         for button, key in self._shortcut_buttons:

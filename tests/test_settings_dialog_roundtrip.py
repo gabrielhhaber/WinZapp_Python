@@ -487,13 +487,14 @@ _STORED = {"profile_backup": {"close_snapshot_min_hours": 5, "live_snapshot_inte
 ])
 @pytest.mark.parametrize("bad", ["abc", "", "1.5", "-1"])
 def test_an_invalid_hour_value_refuses_to_save(make_dialog, error_boxes, field, message_key,
-                                               live_on, bad):
+                                               live_on, bad, monkeypatch):
     """OK and Apply both go through _apply_values(): an hour field that is not
     a whole number is an error, whether or not the live option is ticked, and
     nothing is written."""
     import copy
 
     dialog = make_dialog(copy.deepcopy(_STORED))
+    monkeypatch.setattr(dialog._backup_dialog, "open", lambda control=None: None)
     dialog._live_snapshot_check.SetValue(live_on)
     dialog._update_live_snapshot_fields()
     getattr(dialog, field).SetValue(bad)
@@ -501,7 +502,9 @@ def test_an_invalid_hour_value_refuses_to_save(make_dialog, error_boxes, field, 
     assert dialog._apply_values() is False
     assert error_boxes == [dialog.main_window.i18n.t(message_key)]
     assert dialog.main_window.settings["profile_backup"] == _STORED["profile_backup"]
-    assert dialog._notebook.GetSelection() == dialog._notebook.FindPage(dialog._profile_backup_page)
+    # The backup options live in a window opened from the Storage page: the
+    # error selects that page and asks for the window with the field focused.
+    assert dialog._notebook.GetSelection() == dialog._notebook.FindPage(dialog._storage_page)
     # A hidden field cannot be corrected: the error brings it back into view.
     assert getattr(dialog, field).IsShown()
 

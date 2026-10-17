@@ -9457,6 +9457,31 @@ msgctxt "settings_save_failed"
 msgid "An error occurred while saving the settings:"
 msgstr "Ocorreu um erro ao guardar as definições:"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_label"
+msgid "&Search settings"
+msgstr "&Pesquisar nas definições"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_none"
+msgid "No setting found."
+msgstr "Nenhuma definição encontrada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+#, python-brace-format
+msgctxt "settings_search_results"
+msgid "Search results: {count}"
+msgstr "Resultados da pesquisa: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_results_list"
+msgid "Results"
+msgstr "Resultados"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 #: client/ui/shortcut_bindings.py
 msgctxt "settings_shortcut"
@@ -11694,6 +11719,36 @@ msgctxt "tab_alert_tones"
 msgid "Alert Tones"
 msgstr "Toques de Alerta"
 
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "tab_audio"
+msgid "Audio"
+msgstr "Áudio"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_chats_button"
+msgid "Chats"
+msgstr "Conversas"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_messages_button"
+msgid "Messages"
+msgstr "Mensagens"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "general_notifications_button"
+msgid "Notifications"
+msgstr "Notificações"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "customization_confirmations"
+msgid "&Confirmations"
+msgstr "&Confirmações"
+
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "tab_event_sounds"
+msgid "Event sounds"
+msgstr "Sons de eventos"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_audio_devices"
@@ -11775,8 +11830,8 @@ msgstr "Transcrição local"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_ui"
-msgid "User Interface"
-msgstr "Interface do utilizador"
+msgid "Interface"
+msgstr "Interface"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bookmarks.py

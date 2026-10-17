@@ -185,7 +185,9 @@ def settings_stub(overrides=None, global_vk=0):
             self._lang_combo = SimpleNamespace(GetSelection=lambda: 0)
             self._lang_codes = ['en-US']
             self._shortcuts_page = object()
+            self._shortcut_list = object()
             self._notebook = SimpleNamespace(FindPage=lambda _: 1, SetSelection=lambda _: None)
+        def _show_page(self, page, control=None): pass
         def _shortcut_edit_finished(self): pass
     return Stub()
 

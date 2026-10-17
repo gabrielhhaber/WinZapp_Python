@@ -237,7 +237,7 @@ def test_show_typing_row_box_sits_on_the_ui_tab_and_apply_refreshes_the_open_cha
     panel = _ConversationsPanel()
     dialog.main_window.conversations_panel = panel
     box = dialog._show_typing_row_cb
-    assert box.GetParent() is dialog._ui_page
+    assert box.GetParent() is dialog._messages_page
     assert box.GetValue() is False
 
     box.SetValue(True)
@@ -249,50 +249,48 @@ def test_show_typing_row_box_sits_on_the_ui_tab_and_apply_refreshes_the_open_cha
 
 
 class TestTheUserInterfacePageScrolls:
-    """Settings > User interface holds more options than a screen is tall. On a
-    plain panel the sizer squeezed the bottom ones to a height of zero, and
-    NVDA, which finds a control's group box by geometry, read "Posição para
-    anunciar itens selecionados" on the checkbox after the group instead of on
-    its radio buttons. The mechanism is pinned without a dialog in
-    test_settings_ui_page_scrolls.py; this is the real page."""
+    """The Interface options are in the windows of the Messages and
+    Conversations buttons, which scroll: on a plain panel the sizer squeezed
+    the bottom ones to a height of zero, and NVDA, which finds a control's
+    group box by geometry, read "Posição para anunciar itens selecionados" on
+    the checkbox after the group instead of on its radio buttons. The mechanism
+    is pinned without a dialog in test_settings_ui_page_scrolls.py; these are
+    the real pages."""
 
     @staticmethod
-    def _small(dlg):
-        """The dialog far shorter than the page, with that page in front."""
-        notebook = dlg._notebook
-        for index in range(notebook.GetPageCount()):
-            if notebook.GetPage(index) is dlg._ui_page:
-                notebook.SetSelection(index)
-        dlg.SetSize((760, 420))
-        dlg.Layout()
-        dlg._ui_page.Layout()
-        dlg._ui_page.FitInside()
-        return dlg._ui_page
+    def _pages(dlg):
+        pages = (dlg._messages_page, dlg._chats_page)
+        for page in pages:
+            page.Layout()
+            page.FitInside()
+        return pages
 
-    def test_the_page_is_a_scrolled_panel(self, make_dialog):
+    def test_the_pages_are_scrolled_panels(self, make_dialog):
         from wx.lib.scrolledpanel import ScrolledPanel
-        assert isinstance(make_dialog()._ui_page, ScrolledPanel)
+        dlg = make_dialog()
+        for page in (dlg._ui_page, dlg._messages_page, dlg._chats_page):
+            assert isinstance(page, ScrolledPanel)
 
     def test_no_option_is_squeezed_out_of_existence(self, make_dialog):
-        page = self._small(make_dialog())
-        flat = [child for child in page.GetChildren()
-                if child.IsShown() and child.GetSize().height <= 0]
-        assert not flat, [child.GetLabel() for child in flat]
+        for page in self._pages(make_dialog()):
+            flat = [child for child in page.GetChildren()
+                    if child.IsShown() and child.GetSize().height <= 0]
+            assert not flat, [child.GetLabel() for child in flat]
 
     def test_every_radio_button_sits_inside_a_group_box(self, make_dialog):
         from tests.test_settings_ui_page_scrolls import group_box_of
-        page = self._small(make_dialog())
-        boxes = [child for child in page.GetChildren() if isinstance(child, wx.StaticBox)]
-        radios = [child for child in page.GetChildren() if isinstance(child, wx.RadioButton)]
-        assert boxes and radios
-        outside = [radio.GetLabel() for radio in radios if group_box_of(radio, boxes) is None]
-        assert not outside
+        for page in self._pages(make_dialog()):
+            boxes = [child for child in page.GetChildren() if isinstance(child, wx.StaticBox)]
+            radios = [child for child in page.GetChildren() if isinstance(child, wx.RadioButton)]
+            assert boxes and radios
+            outside = [radio.GetLabel() for radio in radios if group_box_of(radio, boxes) is None]
+            assert not outside
 
-    def test_the_reported_group_and_the_checkbox_after_it(self, make_dialog):
+    def test_the_reported_group_and_the_checkbox_before_it(self, make_dialog):
         from tests.test_settings_ui_page_scrolls import group_box_of
         dlg = make_dialog()
-        page = self._small(dlg)
+        page = self._pages(dlg)[1]
         boxes = [child for child in page.GetChildren() if isinstance(child, wx.StaticBox)]
         for radio in (dlg._selected_announce_start_rb, dlg._selected_announce_end_rb):
             assert group_box_of(radio, boxes) is dlg._selected_announce_box
-        assert group_box_of(dlg._show_yesterday_label_cb, boxes) is None
+        assert group_box_of(dlg._keep_search_after_open_cb, boxes) is None
