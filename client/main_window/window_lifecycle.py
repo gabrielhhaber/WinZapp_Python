@@ -502,9 +502,24 @@ class WindowLifecycleMixin:
                     self._teardown_complete_event.wait(
                         timeout=self._TEARDOWN_OWNED_ELSEWHERE_WAIT_SECONDS
                     )
+                self._purge_account_if_requested()
                 self._terminate_process()
 
         threading.Thread(target=_teardown, daemon=True, name="winzapp-shutdown").start()
+
+    def _purge_account_if_requested(self):
+        """Accounts > Manage > Delete on the only account, which is the one in
+        use: with the browser stopped and the database closed, its files can
+        finally be removed (account_removal.py). Anything left over is finished
+        at the next start."""
+        account_id = getattr(self, "_purge_account_on_exit", None)
+        if not account_id:
+            return
+        try:
+            import account_removal
+            account_removal.purge_account(self.registry, self.global_dir, account_id)
+        except Exception:
+            logging.exception("[shutdown] removing the account failed")
 
     def _perform_shutdown(self) -> bool:
         """Reversible shutdown: stop timers/threads, gracefully close the WPP

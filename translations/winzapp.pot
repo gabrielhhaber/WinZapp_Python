@@ -148,6 +148,12 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr ""
 
+#: client/account_ui.py
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid "\"{name}\" is the only account. Permanently delete it with all its messages, media, preferences and profile backups, and close WinZapp? This cannot be undone."
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #, python-brace-format
 msgctxt "acc_delete_confirm"

@@ -159,6 +159,12 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr "Implicită"
 
+#: client/account_ui.py
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid "\"{name}\" is the only account. Permanently delete it with all its messages, media, preferences and profile backups, and close WinZapp? This cannot be undone."
+msgstr "„{name}” este singurul cont. Îl ștergi definitiv, împreună cu toate mesajele, fișierele media, preferințele și copiile de siguranță ale profilului, și închizi WinZapp? Această acțiune nu poate fi anulată."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #, python-brace-format
 msgctxt "acc_delete_confirm"
