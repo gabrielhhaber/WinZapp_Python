@@ -248,6 +248,8 @@ WinZapp artık WPPConnect sunucusu güncellemelerini kendiliğinden önermiyor. 
 
 Güvenli WPPConnect sunucusu güncellemeleri artık yeni bir WinZapp sürümünü beklemeden geliyor. WinZapp ekibi sunucunun daha yeni bir sürümünün sizin WinZapp'ınızla çalıştığını doğruladığında (genellikle yalnızca sunucunun kullandığı kütüphanelerin güvenlik düzeltmelerini getiren bir güncelleme), WinZapp bunu önerilen güncelleme olarak sunar ve reddedebilirsiniz. Yardım > WPPConnect'i yeniden yüklemeye zorla da bu sürümlerin en yenisini kullanıyor.
 
+WinZapp'ı güncellemek artık WPPConnect sunucusunu zaten kurduğunuz sürümden daha eski bir sürüme (örneğin önerilen bir sürüme) geri döndürmüyor; böylece aynı sunucu güncellemesi size yeniden sunulmuyor.
+
 V2.0.1.0
 
 Bu, kararlı sürümün bakım sürümüdür. Yalnızca WinZapp'ın WhatsApp ile konuşmak için kullandığı WPPConnect kütüphanelerini günceller; WhatsApp Web'deki bir değişiklik sesli mesaj ve belge göndermeyi bozmuştu.

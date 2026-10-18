@@ -248,6 +248,8 @@ WinZapp nie proponuje już samoczynnie aktualizacji serwera WPPConnect. Wcześni
 
 Bezpieczne aktualizacje serwera WPPConnect docierają teraz bez czekania na nową wersję WinZappa. Gdy zespół WinZapp sprawdzi, że nowsza wersja serwera działa z Twoim WinZappem, zwykle aktualizacja, która przynosi jedynie poprawki bezpieczeństwa w bibliotekach używanych przez serwer, WinZapp proponuje ją jako zalecaną i możesz ją odrzucić. Pomoc > Wymuś ponowną instalację WPPConnect również używa najnowszej z tych wersji.
 
+Aktualizacja WinZappa nie cofa już serwera WPPConnect do wersji starszej niż ta, którą już zainstalowano, na przykład zalecanej, więc ta sama aktualizacja serwera nie jest proponowana ponownie.
+
 V2.0.1.0
 
 To wersja konserwacyjna wydania stabilnego. Aktualizuje tylko biblioteki WPPConnect, których WinZapp używa do komunikacji z WhatsApp, po zmianie w WhatsApp Web, która zepsuła wysyłanie wiadomości głosowych i dokumentów.

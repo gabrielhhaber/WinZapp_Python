@@ -248,6 +248,8 @@ WinZapp no longer suggests WPPConnect server updates on its own. It used to look
 
 Safe WPPConnect server updates now arrive without waiting for a new WinZapp version. When the WinZapp team checks that a newer server version works with your WinZapp, usually an update that only brings security fixes to the libraries the server uses, WinZapp offers it as a recommended update, and you can decline it. Help > Force reinstall WPPConnect also uses the newest of these versions.
 
+Updating WinZapp no longer puts the WPPConnect server back to a version older than the one you already installed, for example a recommended one, so the same server update is not offered to you again.
+
 V2.0.1.0
 
 This is a maintenance release for the stable version. It only updates the WPPConnect libraries WinZapp uses to talk to WhatsApp, after a WhatsApp Web change broke sending voice messages and documents.
