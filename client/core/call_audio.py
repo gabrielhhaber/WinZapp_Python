@@ -492,6 +492,7 @@ class CallAudioSession:
             self._reopen_output_exclusive()
         try:
             self._input_stream, self._input_rate = self._open_input_stream()
+            self._restart_echo_reference()
             self._input_stream.start()
         except Exception:
             self._close_stream(self._input_stream)
@@ -518,6 +519,23 @@ class CallAudioSession:
             daemon=True,
         )
         self._sender_thread.start()
+
+    def _restart_echo_reference(self) -> None:
+        """Pair the reference with the microphone from the moment it opens.
+
+        The speaker runs before the microphone does (a ringing incoming call
+        opens the receive side first), and the tap keeps the last ~0.6 s of it.
+        Left in, sample 0 of the reference is that old audio: the echo then
+        arrives hundreds of milliseconds *before* its paired reference, beyond
+        the 0.3 s the canceller looks ahead, and it never found the echo at all
+        (measured: 0 dB of reduction whenever the receive side had run for more
+        than ~0.4 s before the microphone opened, i.e. on every answered call).
+        """
+        if self._echo_canceller is None:
+            return
+        self._echo_reference_tap.clear()
+        self._reference_resampler.reset()
+        self._echo_canceller.reset()
 
     def _reopen_output_exclusive(self) -> None:
         """Swap the ring's shared output for the exclusive one on answer.

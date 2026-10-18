@@ -396,6 +396,12 @@ class TestBackendRegistry:
 
 
 class TestModelLoading:
+    @pytest.fixture(autouse=True)
+    def _cuda_runtime(self, monkeypatch):
+        # Model factories below replace the native engine, including its CUDA
+        # environment. Real preparation has its own loader regression tests.
+        monkeypatch.setattr(device, "prepare_cuda_libraries", lambda: (True, (), None))
+
     def test_the_model_is_loaded_from_the_directory_the_store_vouched_for(
         self, tmp_path, monkeypatch
     ):

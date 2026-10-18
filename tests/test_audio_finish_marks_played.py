@@ -108,6 +108,7 @@ class _FakeSlider:
 
 class _FakeMainWindow:
     def __init__(self):
+        self.settings = {}
         self.mark_played_calls = []
         self.skip_panel_refresh_calls = []
 
@@ -127,6 +128,7 @@ def _audio_msg(msg_id, from_me=False, ptt=False):
 class _Stub:
     on_audio_timer = ConversationsPanel.on_audio_timer
     _next_message_is_chainable_audio = ConversationsPanel._next_message_is_chainable_audio
+    _voice_sequence_enabled = ConversationsPanel._voice_sequence_enabled
     _is_separator = ConversationsPanel._is_separator
     _is_voice_message = ConversationsPanel._is_voice_message
 

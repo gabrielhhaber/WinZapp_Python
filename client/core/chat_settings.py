@@ -62,7 +62,22 @@ def disappearing_duration(chat):
     return int(value)
 
 
-def _owner_call(owner, name, *args):
+def disappearing_value(seconds, i18n) -> str:
+    """The words for a timer: "Off", one of WhatsApp's three durations, or a
+    plain "On" for any other positive value (never an invented duration)."""
+    if seconds == 0:
+        return i18n.t("chat_disappearing_off")
+    if seconds == _DAY:
+        return i18n.t("chat_disappearing_24h")
+    if seconds == _WEEK:
+        return i18n.t("chat_disappearing_7d")
+    if seconds == _QUARTER:
+        return i18n.t("chat_disappearing_90d")
+    return i18n.t("chat_disappearing_on")
+
+
+def owner_call(owner, name, *args):
+    """Call ``owner.name(*args)`` if the owner has it, else None."""
     method = getattr(owner, name, None)
     return method(*args) if callable(method) else None
 
@@ -78,7 +93,7 @@ def chat_settings_lines(owner, jid, i18n, fmt_ts, now=None) -> list:
 
     muted_chats = getattr(owner, "_muted_chats", None)
     if isinstance(muted_chats, dict):
-        jids = _owner_call(owner, "_mute_state_jids", jid) or {jid}
+        jids = owner_call(owner, "_mute_state_jids", jid) or {jid}
         state, expiry = mute_state(muted_chats, jids, now)
         label = i18n.t("chat_notifications_label")
         if state == "forever":
@@ -94,19 +109,9 @@ def chat_settings_lines(owner, jid, i18n, fmt_ts, now=None) -> list:
         else:
             lines.append(f"{label}: {i18n.t('chat_notifications_not_muted')}")
 
-    seconds = disappearing_duration(_owner_call(owner, "get_chat", jid))
+    seconds = disappearing_duration(owner_call(owner, "get_chat", jid))
     if seconds is not None:
         label = i18n.t("chat_disappearing_label")
-        if seconds == 0:
-            value = i18n.t("chat_disappearing_off")
-        elif seconds == _DAY:
-            value = i18n.t("chat_disappearing_24h")
-        elif seconds == _WEEK:
-            value = i18n.t("chat_disappearing_7d")
-        elif seconds == _QUARTER:
-            value = i18n.t("chat_disappearing_90d")
-        else:
-            value = i18n.t("chat_disappearing_on")
-        lines.append(f"{label}: {value}")
+        lines.append(f"{label}: {disappearing_value(seconds, i18n)}")
 
     return lines

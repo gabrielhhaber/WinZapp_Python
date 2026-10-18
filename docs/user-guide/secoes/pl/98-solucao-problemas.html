@@ -2,7 +2,11 @@
 <table class="field-table">
   <tr><th>Sytuacja</th><th>Co zrobić</th></tr>
   <tr><td>WinZapp prosi o ponowne sparowanie</td><td>Sparuj za pomocą numeru lub kodu QR. Twoje czaty są usuwane tylko wtedy, gdy połączysz inny numer. Jeśli stało się to bez powodu, zachowaj <code>log.log</code> i <code>shutdown_audit.log</code> przed ponownym otwarciem.</td></tr>
-  <tr><td>Wiadomości nie przychodzą lub lista wygląda na zawieszoną</td><td>Poczekaj na postęp synchronizacji; użyj Shift+F5 w czacie albo F5 dla wszystkich. Sprawdź też, czy tryb offline nie jest włączony.</td></tr>
+  <tr><td>Wiadomości nie przychodzą lub lista wygląda na zawieszoną</td><td>Poczekaj na postęp synchronizacji; użyj Shift+F5 w czacie albo F5 dla wszystkich. Sprawdź też, czy tryb offline nie jest włączony. Jeśli lista synchronizuje się w kółko, zaktualizuj WinZapp: poprawka pozwala zakończyć synchronizację listy czatów.</td></tr>
+  <tr><td>Lokalna transkrypcja na karcie graficznej NVIDIA kończy się błędem lub zawiesza</td><td>Zaktualizuj WinZapp: poprawka ładuje biblioteki CUDA w systemie Windows przed użyciem karty graficznej. Jeśli nie można ich załadować, WinZapp informuje o tym i proponuje transkrypcję na procesorze.</td></tr>
+  <tr><td>WinZapp zawiesza się przy wysyłaniu lub odbieraniu dużych plików</td><td>Zaktualizuj WinZapp: poprawka zapobiega pobieraniu odebranego pliku razem z powiadomieniem o wiadomości oraz gromadzeniu aktualizacji ekranu przez postęp wysyłania i pobierania.</td></tr>
+  <tr><td>Pojawia się błąd "chat not found" przy wysyłaniu do istniejącego czatu</td><td>Zaktualizuj WinZapp: poprawka sprawia, że wysyłanie wiadomości i załączników korzysta z czatu, który WhatsApp już załadował.</td></tr>
+  <tr><td>Moje konto nadal wygląda na online po opuszczeniu okna</td><td>Zaktualizuj WinZapp: status online odpowiada teraz oknu (fokus, zminimalizowane, ukryte w zasobniku, uruchomienie w tle), a nieudane ustawienie statusu offline jest ponawiane co 20 sekund.</td></tr>
   <tr><td>Połączenia się nie zaczynają</td><td>Uruchom WinZapp ponownie lub użyj Pomoc &gt; Wymuś ponowną instalację WPPConnect. WinZapp sam utrzymuje aktualną listę wersji WhatsApp Web.</td></tr>
   <tr><td>Wewnętrzna przeglądarka się nie otwiera</td><td>Zwykle antywirus usunął jej część. WinZapp ostrzega i wyjaśnia; użyj Wymuś ponowną instalację WPPConnect.</td></tr>
   <tr><td>Wiadomość została wysłana, ale WinZapp nie potwierdził</td><td>Sprawdź czat przed ponownym wysłaniem; WinZapp w takich przypadkach nie wysyła ponownie sam.</td></tr>

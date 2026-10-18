@@ -55,8 +55,8 @@ class WindowLifecycleMixin:
     def _on_window_activate(self, event):
         """
         Fired by wxPython when the main window gains or loses OS focus.
-        - Gained focus  → send "available" immediately, then every 20 s
-        - Lost focus    → stop the timer, send "unavailable" once
+        - Gained focus  → request "available"
+        - Lost focus    → request "unavailable"
 
         Debounced: internal modal dialogs (pairing, settings, etc.) can toggle
         the main frame's activation state several times within milliseconds
@@ -126,24 +126,34 @@ class WindowLifecycleMixin:
             # hotkey slot map, rebuilt inside _build_menubar) in sync with the
             # live registry — this is the moment the user returns to the window.
             self._refresh_accounts_menu_if_stale()
-            threading.Thread(
-                target=self._send_presence, args=("available",), daemon=True
-            ).start()
-            if not self._presence_timer.IsRunning():
-                self._presence_timer.Start(20_000)   # refresh every 20 s
-        else:
-            self._presence_timer.Stop()
-            threading.Thread(
-                target=self._send_presence, args=("unavailable",), daemon=True
-            ).start()
+        self._sync_online_presence()
 
     def _on_presence_timer(self, event):
-        """Periodic keep-alive: resend 'available' while window is focused."""
-        token = getattr(self, "token", None)
-        if token:
-            threading.Thread(
-                target=self._send_presence, args=("available",), daemon=True
-            ).start()
+        """Recheck the window, including while hidden, to retry failed writes."""
+        self._sync_online_presence()
+
+    def _sync_online_presence(self):
+        """Read wx state only on the UI thread; one worker orders the writes."""
+        if not hasattr(self, "_presence_timer"):
+            return  # A connection callback can precede init_UI().
+        if not hasattr(self, "_online_presence_sender"):
+            from core.online_presence import OnlinePresenceSender
+            self._online_presence_sender = OnlinePresenceSender(self._send_presence)
+        connected = (bool(getattr(self, "token", None))
+                     and getattr(self, "_wa_connected", False)
+                     and not getattr(self, "_shutting_down", False))
+        if not connected:
+            self._presence_timer.Stop()
+            self._online_presence_sender.submit(None)
+            return
+        online = (not getattr(self, "background_mode", False)
+                  and not getattr(self, "_window_hidden", False)
+                  and self.IsShown() and not self.IsIconized() and self.IsActive())
+        self._online_presence_sender.submit("available" if online else "unavailable")
+        # Offline writes need retries too, and a reconnect needs an initial
+        # write even if the window never gains/loses focus (background start).
+        if not self._presence_timer.IsRunning():
+            self._presence_timer.Start(20_000)
 
     def _send_presence(self, presence: str):
         """
@@ -155,7 +165,8 @@ class WindowLifecycleMixin:
         token = getattr(self, "token", None)
         if not token:
             return
-        if not getattr(self, "_wa_connected", False):
+        if (not getattr(self, "_wa_connected", False)
+                or getattr(self, "_shutting_down", False)):
             logging.debug(
                 "[presence] skipping '%s' — no live WhatsApp connection", presence
             )
@@ -237,6 +248,7 @@ class WindowLifecycleMixin:
             except Exception:
                 self.Hide()
             self._window_hidden = True
+            self._sync_online_presence()
             # One authoritative tray update now that the window is hidden.
             self.tray_icon.update_tooltip()
             event.Veto()
@@ -269,6 +281,7 @@ class WindowLifecycleMixin:
         except Exception:
             self.Hide()
         self._window_hidden = True
+        self._sync_online_presence()
         try:
             self.tray_icon.update_tooltip()
         except Exception:
@@ -351,6 +364,9 @@ class WindowLifecycleMixin:
         # is already visible to Win32 so SW_SHOW is a no-op at the OS level).
         if not self.IsShown():
             self.Show(True)
+        # Native activation can arrive before the hidden/background flags
+        # above are cleared; apply the restored state without waiting a tick.
+        wx.CallAfter(self._sync_online_presence)
         # A tray icon another account turned off while this window was hidden
         # was kept for exactly this moment (_sync_tray_icon_with_setting()).
         try:
@@ -486,9 +502,24 @@ class WindowLifecycleMixin:
                     self._teardown_complete_event.wait(
                         timeout=self._TEARDOWN_OWNED_ELSEWHERE_WAIT_SECONDS
                     )
+                self._purge_account_if_requested()
                 self._terminate_process()
 
         threading.Thread(target=_teardown, daemon=True, name="winzapp-shutdown").start()
+
+    def _purge_account_if_requested(self):
+        """Accounts > Manage > Delete on the only account, which is the one in
+        use: with the browser stopped and the database closed, its files can
+        finally be removed (account_removal.py). Anything left over is finished
+        at the next start."""
+        account_id = getattr(self, "_purge_account_on_exit", None)
+        if not account_id:
+            return
+        try:
+            import account_removal
+            account_removal.purge_account(self.registry, self.global_dir, account_id)
+        except Exception:
+            logging.exception("[shutdown] removing the account failed")
 
     def _perform_shutdown(self) -> bool:
         """Reversible shutdown: stop timers/threads, gracefully close the WPP
@@ -519,6 +550,8 @@ class WindowLifecycleMixin:
             # Stop the presence keep-alive timer before tearing down
             if hasattr(self, "_presence_timer") and self._presence_timer.IsRunning():
                 self._presence_timer.Stop()
+            if hasattr(self, "_online_presence_sender"):
+                self._online_presence_sender.submit(None)
             # Also cancel a pending debounced activate/deactivate — otherwise it
             # can fire mid-shutdown and spawn a presence POST + restart the timer
             # just stopped above.

@@ -1454,6 +1454,7 @@ class MainWindow(
         self._presence_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER,    self._on_presence_timer,   self._presence_timer)
         self.Bind(wx.EVT_ACTIVATE, self._on_window_activate)
+        wx.CallAfter(self._sync_online_presence)
         self.Bind(wx.EVT_CHAR_HOOK, self._on_chat_lock_char_hook)
         self._presence_debounce_timer = None
 
@@ -1919,6 +1920,13 @@ if __name__ == "__main__":
         # 2) One-time legacy flat-data migration, then resolve which account.
         migrate_if_needed(gd)
         _registry = AccountRegistry(gd)
+        # A removal that was interrupted (or the one-and-only account removed
+        # while in use) is finished before anything starts.
+        try:
+            from account_removal import finish_pending_deletions
+            finish_pending_deletions(_registry, gd)
+        except Exception:
+            logging.exception("[startup] finishing pending account removals failed")
         _startup = resolve_startup(sys.argv, _registry)
 
         _mode = _startup["mode"]

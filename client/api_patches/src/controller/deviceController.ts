@@ -230,7 +230,15 @@ async function listChatsWithDiag(
           if (typeof serializer !== 'function') {
             return { chats: [], error: 'WAPI._serializeChatObj is unavailable' };
           }
-          return { chats: models.map((chat: any) => serializer(chat)) };
+          // WAPI can leave native models with toJSON hooks inside this graph.
+          // CDP's returnByValue does not invoke those hooks: a complete list
+          // then arrives in Node as undefined and looks like an empty store.
+          // Materialise the same JSON the HTTP response would send, while
+          // still inside the page, before crossing the Puppeteer boundary.
+          const chats = JSON.parse(
+            JSON.stringify(models.map((chat: any) => serializer(chat)))
+          );
+          return { chats };
         } catch (error: any) {
           return { chats: [], error: error?.message || String(error) };
         }

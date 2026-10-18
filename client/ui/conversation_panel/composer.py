@@ -550,9 +550,8 @@ class ComposerMixin:
         # Multiline only: a screen reader needs CRLF to navigate the pasted
         # block line by line, and the send path collapses it back to a bare
         # newline before anything reaches WhatsApp. The caption field shares
-        # this handler and
-        # is single-line — it cannot navigate lines and would just hold the
-        # control characters. See to_editor_line_endings().
+        # this handler and is multiline too; a single-line control would just
+        # hold the control characters. See to_editor_line_endings().
         if normalized and getattr(target, "IsMultiLine", None) and target.IsMultiLine():
             normalized = to_editor_line_endings(normalized)
         if normalized != text and target is not None:

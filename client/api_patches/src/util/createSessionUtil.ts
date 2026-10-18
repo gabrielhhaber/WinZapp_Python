@@ -2701,10 +2701,11 @@ export default class CreateSessionUtil {
         download(message, client, req.logger);
       }
 
-      if (
-        req.serverOptions?.websocket?.autoDownload ||
-        (req.serverOptions?.webhook?.autoDownload && message.fromMe == false)
-      ) {
+      // The Socket.IO event has its own download policy. callWebHook already
+      // handles downloads for configured webhook destinations; its default
+      // autoDownload=true must not inline every received file into this event
+      // when no webhook exists (nor download twice when one does exist).
+      if (req.serverOptions?.websocket?.autoDownload) {
         await autoDownload(client, req, message);
       }
 

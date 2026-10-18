@@ -182,6 +182,13 @@ _cuda_library_answer = None
 # download lands in.
 _cuda_library_generation = 0
 
+# Prepared immediately before entering the native engine, not by the Settings
+# probe. Retain the successful mappings: AddDllDirectory alone does not make
+# CTranslate2's legacy LoadLibrary see our runtime, whereas an already-loaded
+# module is found by its bare name. Never unload code the engine may be using.
+_prepared_cuda_libraries = {}
+_cuda_preparation_lock = threading.Lock()
+
 # float16 needs Volta or newer to be worth anything; on Pascal and older the
 # half-precision path is emulated and slower than float32, when it works.
 _FLOAT16_MIN_CAPABILITY = (7, 0)
@@ -708,12 +715,11 @@ def register_cuda_library_directory(path) -> bool:
     """Make `path` a place the CUDA runtime libraries may be loaded from.
 
     Both halves of this matter and they are not the same thing.
-    `os.add_dll_directory()` is measured to be what makes a library in `path`
-    reachable to CTranslate2's own raw LoadLibrary — in a frozen build as well
-    as under python.exe, which is more than PATH alone manages there. Recording
-    the path is what lets `probe_cuda_libraries()` name an absolute file, so a
-    registered directory is checked whether or not the loader's own search
-    order happens to reach it.
+    `os.add_dll_directory()` makes absolute-path loads resolve dependencies in
+    registered folders. It does not by itself fix CTranslate2's legacy
+    LoadLibrary lookup. The probe checks these absolute paths; immediately
+    before a GPU load, prepare_cuda_libraries() retains the mappings so the
+    engine can find them by name too.
 
     Answers "was it registered", which is not yet "can the GPU be used now":
     that stays `probe_cuda_libraries()`'s answer, and registering here
@@ -932,7 +938,31 @@ def _measure_cuda_libraries(directories):
         return None, (), f"cuda libraries: {exc}"
 
 
-def _load_cuda_library(name, directories):
+def prepare_cuda_libraries():
+    """Load and retain CUDA DLLs before entering CTranslate2 on Windows.
+
+    The transient probe can succeed by absolute path while the engine's later
+    bare-name load fails. After that failure CTranslate2 4.8.2 can hang on the
+    next encode, even with a new model. Prepare first, verifying the legacy
+    lookup while our mapping is held, and reject CUDA before native work if
+    that fails. Failed preparations are retried after a runtime installation.
+    """
+    if not sys.platform.startswith("win"):
+        return None, (), None
+    with _cuda_preparation_lock:
+        directories = cuda_library_directories()
+        missing, failures = [], []
+        for name in _CUDA_RUNTIME_LIBRARIES:
+            if name in _prepared_cuda_libraries:
+                continue
+            failure = _load_cuda_library(name, directories, keep_loaded=True)
+            if failure:
+                missing.append(name)
+                failures.append(failure)
+        return not missing, tuple(missing), "; ".join(failures) or None
+
+
+def _load_cuda_library(name, directories, *, keep_loaded=False):
     """None if `name` can be loaded, or every reason it could not.
 
     **`winmode=0` on the bare name is the whole point of this function.**
@@ -955,10 +985,10 @@ def _load_cuda_library(name, directories):
     path there is a folder we put the libraries in ourselves, and those flags
     are what let a dependency like cuBLASLt resolve out of that same folder.
 
-    Erring permissive is the safe side of this asymmetry: a load that then
-    fails inside CTranslate2 is classified CUDA_UNAVAILABLE, which is in
-    CPU_RETRY_I18N_KEYS, so it becomes an offer to re-run on the CPU with the
-    audio already converted. A false refusal has no recovery at all.
+    With keep_loaded, retain the successful mapping and verify the bare-name
+    lookup before returning. This is the GPU backend's preparation step;
+    ordinary probes still release their temporary references so checking
+    Settings does not prevent repairing/removing the runtime.
 
     Every failure is kept for the same reason `_load_nvml()` keeps its own: the
     last one alone says nothing about why the first was not enough.
@@ -974,7 +1004,17 @@ def _load_cuda_library(name, directories):
         except Exception as exc:
             failures.append(f"{candidate}: {exc}")
             continue
-        _release_library(library)
+        if keep_loaded:
+            try:
+                legacy = ctypes.WinDLL(name, winmode=0)
+            except Exception as exc:
+                _release_library(library)
+                failures.append(f"{name}: {exc}")
+                continue
+            _release_library(legacy)
+            _prepared_cuda_libraries[name] = library
+        else:
+            _release_library(library)
         return None
     return "; ".join(failures)
 

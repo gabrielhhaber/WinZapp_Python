@@ -399,6 +399,7 @@
 
 <h3>Yeni sohbet, grup ve kişi</h3>
 <p>Ctrl+N "Yeni sohbet" penceresini açar. Orada bir kişi ararsınız (alan zaten odaktadır ve yazdıkça ada, soyadı dahil, ve numaraya göre filtreler), numaradan sohbet başlatır, grup oluşturur, kişi eklersiniz, bağlantıyla bir gruba katılır ve toplulukları açarsınız ("Topluluklar" düğmesi).</p>
+<p>Yeni veya boş bir kişisel sohbette, mesaj olmadığını bildiren satır ayrıca mesajların ve aramaların uçtan uca şifreli olduğunu ve sohbette kaybolan mesajlar varsa süresini de belirtir.</p>
 <h3>Kişiler: yerel veya telefonla eşitlenmiş</h3>
 <p>Bir kişi eklerken (Sohbet bilgisi içinde, Yeni sohbet içinde veya bir kişi mesajından) iki sekme vardır:</p>
 <ul>
@@ -497,6 +498,7 @@
 
 <h3>Bağlantılar</h3>
 <p>İki veya daha fazla bağlantı içeren bir mesaj gezilebilir bir liste olur. Bir bağlantıda Enter veya Boşluk onu açar; Ctrl+C bağlantıyı kopyalar; bağlam menüsünde "Bağlantıyı aç" ve "Bağlantıyı kopyala" vardır. Grup davet bağlantıları (<code>chat.whatsapp.com/...</code>) tarayıcı yerine WinZapp'ın "Gruba bağlantıyla katıl" penceresini, grup önizlemesiyle birlikte açar; bağlantı menüsü ayrıca "Gruba bağlantıyla katıl" sunar ve tarayıcıyı isteyenler için "Bağlantıyı aç"i korur. Gönderdiğiniz mesajlar da bir bağlantı önizlemesi taşır.</p>
+<p>Bir bağlantı önizlemesinde başlık ve açıklama, &amp;amp; veya &amp;eacute; gibi HTML kodları olmadan gerçek karakterlerle görünür; hem WinZapp'ın gönderdiği önizlemede hem de okuduğunuzda.</p>
 
 <h3>Kişiler, anketler ve kartlar</h3>
 <ul>
@@ -533,6 +535,7 @@
 <p>Ctrl+Shift+A ek menüsünü açar. Türler fotoğraf, video, ses, belge, kişi ve en sonda Anket'tir.</p>
 <ul>
   <li><strong>Boyut:</strong> belgeler 2 GB'a kadar; fotoğraf, video ve ses 1 GB'a kadar; bunlar WhatsApp'ın sınırlarıdır.</li>
+  <li><strong>Açıklama:</strong> açıklama alanı birden çok satır kabul eder. Enter eki açıklamasıyla gönderir; Shift+Enter veya Ctrl+Enter yeni satır açar.</li>
   <li><strong>Ses dosyaları:</strong> stereo ya da çevresel (5.1, 7.1) bir WAV veya OGG Vorbis tüm kanallarıyla, sıradan ses olarak ulaşır ve örnekleme hızını 48 kHz'e kadar korur. 8'den fazla kanallı bir dosya değiştirilmeden belge olarak gönderilir. Ctrl+V ile mesaj alanına yapıştırılan ses dosyaları ses ya da belge olarak gidebilir (Ayarlar &gt; Dosyalar ve kaydetme; varsayılan ses).</li>
   <li><strong>Kişi ekle:</strong> liste arama alanı odaktayken açılır, ada (soyadı dahil) ve numaraya göre filtreler ve yinelenen kayıt içermez.</li>
   <li><strong>Anket:</strong> Anket'i seçin ve soruyu, en fazla 12 seçeneği ve birden fazla yanıta izin verilip verilmediğini girin.</li>
@@ -582,7 +585,7 @@
   <li>Sesli mesajlarda ve seslerde <strong>Enter</strong> veya <strong>Boşluk</strong> oynatır ve duraklatır. Ayarlar &gt; Kullanıcı Arayüzü içinde sesli mesajları ses dosyalarından ayırabilirsiniz.</li>
   <li><strong>Hız:</strong> Alt+, yavaşlatır ve Alt+. hızlandırır. Varsayılan hız Ses oynatma sekmesinde belirlenir.</li>
   <li><strong>İleri ve geri:</strong> Shift+Sağ/Sol Ok 5 saniye kaydırır; Shift+Page Down/Up 1 dakika kaydırır; Shift+Home ve Shift+End çalanın başına ve sonuna gider.</li>
-  <li>Sonraki sesli mesajlar sırayla çalınır. Sıra sırasında odaktaki satır durumunu güncellemeyi bekler; böylece ekran okuyucu sesin üzerine konuşmaz.</li>
+  <li>Sonraki sesli mesajlar sırayla çalınır; "Sesli mesajları otomatik olarak sırayla çal" seçeneğinin işaretini Ayarlar &gt; Kullanıcı arayüzü bölümünde kaldırmadıkça. Sıra sırasında odaktaki satır durumunu güncellemeyi bekler; böylece ekran okuyucu sesin üzerine konuşmaz.</li>
   <li><strong>Ctrl+Alt+Shift+P</strong>, çalan sesi herhangi bir panelden duraklatır veya sürdürür.</li>
   <li>Çıkış cihazı değişirse (örneğin kulaklık çıkarılırsa), WinZapp varsayılan cihaza geçer ve mesajı ilk seferde oynatır.</li>
   <li>Ayarlarda sesi oynatıldı olarak işaretlememe seçeneği vardır.</li>
@@ -696,7 +699,7 @@
 <h3>Sohbet bilgisi ve grup bilgisi</h3>
 <p>Ctrl+Shift+D (veya bağlam menüsündeki "Sohbet bilgisi") sekmeli bir pencere açar. Tüm düğme ve alanların bir kısayol harfi vardır (Alt+harf).</p>
 <ul>
-  <li><strong>Kişi:</strong> ad, kişinin seçtiği profil adı, doğrulanmış ad ve hesabın işletme hesabı olup olmadığı, bildirimlerin sessize alınıp alınmadığı (ve ne zamana kadar) ile kaybolan mesajlar zamanlayıcısını içeren Genel bakış sekmesi. "Profil fotoğrafı" düğmesi (Alt+F) fotoğrafı gösterir, "Harici görüntüleyicide aç" (Alt+A) onu Windows'un varsayılan programında açar; fotoğraf yoksa ya da kişi görmenize izin vermiyorsa WinZapp bunu söyler. Ayrıca <strong>Ortak gruplar</strong> sekmesi (Enter grubu açar) ve Medya sekmesi vardır.</li>
+  <li><strong>Kişi:</strong> ad, kişinin seçtiği profil adı, doğrulanmış ad ve hesabın işletme hesabı olup olmadığı, bildirimlerin sessize alınıp alınmadığı (ve ne zamana kadar), kaybolan mesajlar zamanlayıcısı ve mesajların ve aramaların uçtan uca şifreli olduğu bilgisini içeren Genel bakış sekmesi. "Profil fotoğrafı" düğmesi (Alt+F) fotoğrafı gösterir, "Harici görüntüleyicide aç" (Alt+A) onu Windows'un varsayılan programında açar; fotoğraf yoksa ya da kişi görmenize izin vermiyorsa WinZapp bunu söyler. Ayrıca <strong>Ortak gruplar</strong> sekmesi (Enter grubu açar) ve Medya sekmesi vardır.</li>
   <li><strong>Grup:</strong> Genel bakış sekmesi (ad, açıklama, grup fotoğrafı, yalnızca yöneticilerin mesaj gönderip göndermediği), Katılımcılar sekmesi (bir katılımcıda Enter onunla özel sohbeti açar; "Üye ekle" kişileri ya da ek bir numarayı kabul eder) ve Medya sekmesi. Veriler grup yanıt verir vermez görünür, eksik adlar ve numaralar hemen ardından tamamlanır.</li>
   <li><strong>Uyarılar:</strong> yalnızca yöneticilerin mesaj gönderdiği gruplarda mesaj alanı salt okunurdur ve WinZapp bunu söyler.</li>
 </ul>
@@ -712,7 +715,7 @@
 <p>Topluluklar paneli (veya "Yeni sohbet" &gt; "Topluluklar") üyesi olduğunuz toplulukları listeler. Birini seçtiğinizde açıklamayı, yöneticileri ve topluluğun katıldığınız gruplarını görürsünüz; duyurular grubu ve genel grup belirtilmiştir; Enter veya "Grubu aç" gruba gider. Topluluğu yönetiyorsanız: "Grup ekle", "Grubu topluluktan çıkar", "Topluluk yöneticisi yap", "Topluluk yöneticiliğinden çıkar" ve "Topluluğu devre dışı bırak". "Yeni topluluk" bir ad, açıklama ve seçtiğiniz gruplarla yeni bir topluluk oluşturur. Her işlemden sonra WinZapp toplulukları yeniden okur ve yalnızca WhatsApp değişikliği gösterdiğinde bittiğini söyler; aksi halde isteğin gönderildiğini ama doğrulanmadığını ya da reddedildiğini söyler.</p>
 
 <h3>Anmalar ve yanıtlar</h3>
-<p>@all ile birlikte adıyla anılan bir kişi bağlantısını korur; sizin anılmanız, bildirimde ve önizlemede, "Kendimden nasıl bahsedilsin?" içinde seçilen sözcüğü kullanır. Ayarlar &gt; Kullanıcı Arayüzü içinde "Mesajlarda isimsiz gönderenlerin telefon numaralarını gizle" adı olmayan kişilerin mesajlarının doğrudan içerikle başlamasını sağlar.</p>
+<p>@all ile birlikte adıyla anılan bir kişi bağlantısını korur; sizin anılmanız, bildirimde ve önizlemede, "Kendimden nasıl bahsedilsin?" içinde seçilen sözcüğü kullanır. Ayarlar &gt; Kullanıcı Arayüzü içinde "Mesajlarda isimsiz gönderenlerin telefon numaralarını gizle" adı olmayan kişilerin mesajlarının doğrudan içerikle başlamasını sağlar. Ayarlar &gt; Kullanıcı Arayüzü içinde "Kaydedilmemiş kişilerin adlarının önüne sohbetlerde ve mesajlarda tilde (~) işareti koy" (varsayılan olarak açık) kaydetmediğiniz kişilerin adının önüne sohbetlerde ve mesajlarda bir tilde koyar.</p>
 
   </section>
 
@@ -749,6 +752,7 @@
     <h2 id="h-contas">👤 13. Hesaplar, tepsi ve eşitleme</h2>
 <h3>Birden fazla hesap</h3>
 <p>Her hesabın kendi penceresi ve kendi yerel sunucusu vardır. <strong>Hesaplar</strong> menüsü aralarında geçiş yapar; Ctrl+Alt+1 ile 9 da öyle. "Geçerli hesabı kapat" (Ctrl+F4) yalnızca içinde olduğunuz hesabı sonlandırır, belleğini ve bağlantısını serbest bırakır ve başka bir açık hesaba geçer. Yeniden açmak için onu başka bir hesabın Hesaplar menüsünden seçin ya da numarasıyla Ctrl+Alt kullanın. Açık tek hesap buysa WinZapp önce sorar, çünkü kapatmak programı sonlandırır.</p>
+<p>Bir hesabı silmek (Hesaplar &gt; Hesapları yönet, Sil düğmesi) ona ait her şeyi kaldırır: mesajlar, medya, ayarlar, WhatsApp oturumunu tutan tarayıcı profili ve bu profilin yedekleri. Hemen kaldırılamayan her şey WinZapp'ın bir sonraki başlatılışında tamamlanır. Hesap tek hesapsa o da silinebilir: WinZapp onay ister (varsayılan Hayır), kapanır ve sonraki başlatma ilk çalıştırma olur.</p>
 
 <h3>Eşitleme</h3>
 <ul>
@@ -775,7 +779,7 @@
 <table class="field-table">
   <tr><th>Sekme</th><th>Neler bulursunuz</th></tr>
   <tr><td class="field-name">Genel</td><td>Dil (Brezilya ve Avrupa Portekizcesi, İngilizce, İspanyolca, Lehçe, Türkçe, Rumence); arka plan bildirimleri ve içeriği; sessize alınmış sohbetleri açıkken bile sessiz tutma; eşitleme, medya indirme ve otomatik çevrimdışı modu duyurma; yazım denetimi (Windows'u izle, her zaman veya hiçbir zaman); gülen yüzleri emojiye dönüştürme; aramalarda Unicode normalleştirmesi (tam, aksanları yok say veya eşdeğer biçimler de); Windows'ta oturum açarken arka planda başlatma; grup davet bağlantılarını WinZapp ile açma; tepsi simgesi ve okunmamış sayısı; güncellemeleri ve alphaları otomatik denetleme; güncellemeleri ve döküm indirmelerini arka planda indirme; WinZapp'ı açmak veya tepsiye gizlemek için genel kısayol; hesap değiştirirken ne yapılacağı (geçerli hesabın penceresini gizle ya da tüm hesapların pencerelerini açık tut).</td></tr>
-  <tr><td class="field-name">Kullanıcı Arayüzü</td><td>Bir sohbet açılırken kaç mesaj gösterileceği; Page Up/Down ile kaç mesaj atlanacağı; bir sohbet açılırken ve ses kaydederken odağın nereye gideceği; mesaj listesi türü (klasik, 512 karakter sınırlı, ya da liste kutusu, tam mesajlarla); en alt satır olarak kimin yazdığını gösterme; "Kendimden nasıl bahsedilsin?"; kendi mesajlarınızda göndereni gizleme; adı olmayan gönderenlerin numaralarını gizleme; sohbet listesinde iletim durumu; sabitlenmiş sohbetleri sabit sırada tutma; yazılan mesajı başlık olarak koruma; kısayolları toplu işlemlerle değiştirme; onay soruları (tümünü okundu işaretle, temizle, sil, F5, Shift+F5, bilgisayar sesini kaydet) ve "Tekrar gösterme" sürümleri; bir seçim varken Boşluk ve Esc davranışı; açılışta sohbet aramasını koruma; odağı sırada sonraki sese taşıma; "seçildi" duyurusunun konumu; tarih yerine "dün"; bağlantı önizlemeleri; gönderenden önce "İletildi"; "Medyayı telefondan da sil" seçeneğinin başlangıç durumu; sesi ses olarak iletme; videolar ve durumlar ayrı bir oynatıcıda; sesli mesajı ses ya da sesli mesaj olarak okuma; Enter ve Boşluk ile yazıya dökme; varsayılan olarak gösterilen medya türleri.</td></tr>
+  <tr><td class="field-name">Kullanıcı Arayüzü</td><td>Bir sohbet açılırken kaç mesaj gösterileceği; Page Up/Down ile kaç mesaj atlanacağı; bir sohbet açılırken ve ses kaydederken odağın nereye gideceği; mesaj listesi türü (klasik, 512 karakter sınırlı, ya da liste kutusu, tam mesajlarla); en alt satır olarak kimin yazdığını gösterme; "Kendimden nasıl bahsedilsin?"; kendi mesajlarınızda göndereni gizleme; adı olmayan gönderenlerin numaralarını gizleme; sohbet listesinde iletim durumu; sabitlenmiş sohbetleri sabit sırada tutma; yazılan mesajı başlık olarak koruma; kısayolları toplu işlemlerle değiştirme; onay soruları (tümünü okundu işaretle, temizle, sil, F5, Shift+F5, bilgisayar sesini kaydet) ve "Tekrar gösterme" sürümleri; bir seçim varken Boşluk ve Esc davranışı; açılışta sohbet aramasını koruma; sesli mesajları otomatik olarak sırayla çalma; odağı sırada sonraki sese taşıma; "seçildi" duyurusunun konumu; tarih yerine "dün"; bağlantı önizlemeleri; gönderenden önce "İletildi"; "Medyayı telefondan da sil" seçeneğinin başlangıç durumu; sesi ses olarak iletme; videolar ve durumlar ayrı bir oynatıcıda; sesli mesajı ses ya da sesli mesaj olarak okuma; Enter ve Boşluk ile yazıya dökme; varsayılan olarak gösterilen medya türleri.</td></tr>
   <tr><td class="field-name">Erişilebilirlik</td><td>Genişletilmiş ekran okuyucu uyumluluğu (ek duyurular) ve etkin bir ekran okuyucu yokken SAPI sesinin kullanımı.</td></tr>
   <tr><td class="field-name">Konuşulan içerik</td><td>Bir kişinin yazdığını veya kaydettiğini duyurma; sohbet yenilemesinin başlangıcını ve sonunu duyurma; eşitleme ve medya indirmenin sesli ilerlemesi; etkin sohbette ve diğerlerinde mesajları otomatik seslendirme; kayıt sırasında duyuruları ve gönder düğmesini susturma.</td></tr>
   <tr><td class="field-name">Bağlantı</td><td>Özel API kullanma (uzak sunucu): sunucu adresi, WebSocket adresi, bağlantı noktası ve API anahtarı.</td></tr>
@@ -1195,7 +1199,11 @@
 <table class="field-table">
   <tr><th>Durum</th><th>Ne yapmalı</th></tr>
   <tr><td>WinZapp yeniden eşleştirmenizi istiyor</td><td>Numara veya QR koduyla eşleştirin. Sohbetleriniz yalnızca farklı bir numara bağlarsanız silinir. Sebepsiz yere olduysa, yeniden açmadan önce <code>log.log</code> ve <code>shutdown_audit.log</code> dosyalarını saklayın.</td></tr>
-  <tr><td>Mesajlar gelmiyor ya da liste takılmış gibi görünüyor</td><td>Eşitleme ilerlemesini bekleyin; sohbette Shift+F5, tümü için F5 kullanın. Çevrimdışı modun açık olmadığını da kontrol edin.</td></tr>
+  <tr><td>Mesajlar gelmiyor ya da liste takılmış gibi görünüyor</td><td>Eşitleme ilerlemesini bekleyin; sohbette Shift+F5, tümü için F5 kullanın. Çevrimdışı modun açık olmadığını da kontrol edin. Liste sürekli yeniden eşitleniyorsa WinZapp'i güncelleyin: bir düzeltme sohbet listesinin eşitlemesini tamamlamasını sağlar.</td></tr>
+  <tr><td>NVIDIA ekran kartında yerel yazıya dökme hata veriyor veya takılıyor</td><td>WinZapp'ı güncelleyin: bir düzeltme, ekran kartı kullanılmadan önce Windows'ta CUDA kitaplıklarını yükler. Yüklenemezlerse WinZapp bunu bildirir ve işlemci üzerinde yazıya dökmeyi önerir.</td></tr>
+  <tr><td>WinZapp büyük dosyalar gönderilirken veya alınırken donuyor</td><td>WinZapp'i güncelleyin: bir düzeltme, alınan dosyanın mesaj bildirimiyle birlikte indirilmesini ve gönderme ile indirme ilerlemesinin ekran güncellemelerini biriktirmesini önler.</td></tr>
+  <tr><td>Mevcut bir sohbete gönderirken "chat not found" hatası görünüyor</td><td>WinZapp'ı güncelleyin: bir düzeltme, mesaj ve ek gönderiminin WhatsApp'ın zaten yüklediği sohbeti kullanmasını sağlar.</td></tr>
+  <tr><td>Pencereden çıktıktan sonra hesabım hâlâ çevrimiçi görünüyor</td><td>WinZapp'ı güncelleyin: çevrimiçi durumu artık pencereyi izler (odak, simge durumu, tepsiye gizleme, arka planda başlatma) ve başarısız bir çevrimdışı güncellemesi her 20 saniyede yeniden denenir.</td></tr>
   <tr><td>Aramalar başlamıyor</td><td>WinZapp'ı yeniden başlatın ya da Yardım &gt; WPPConnect'i yeniden yüklemeye zorla kullanın. WinZapp, WhatsApp Web sürümleri listesini kendisi güncel tutar.</td></tr>
   <tr><td>Dahili tarayıcı açılmıyor</td><td>Genellikle bir antivirüs bir kısmını kaldırmıştır. WinZapp uyarır ve açıklar; WPPConnect'i yeniden yüklemeye zorla kullanın.</td></tr>
   <tr><td>Bir mesaj gönderildi ama WinZapp doğrulamadı</td><td>Yeniden göndermeden önce sohbeti kontrol edin; WinZapp bu durumlarda kendiliğinden yeniden göndermez.</td></tr>

@@ -14,6 +14,7 @@ import time
 import wx
 from core.sync_lifecycle import capture_sync_context, sync_context_is_current
 from core.conversation_view import conversation_in_view
+from core.unsaved_contact_marker import mark_unsaved_name
 from core.pinned_chat_order import keep_pinned_order, reset_pinned_order, sync_pinned_order
 from main_window.log_files import (
     _LazyLogFile,
@@ -499,7 +500,7 @@ class ChatsStoreMixin:
             chat = self.get_chat(jid) or {"remoteJid": jid}
         jid = chat.get("remoteJid", "")
         is_group = jid.endswith("@g.us")
-        return (
+        name = (
             self._resolve_contact_name(chat)
             or self.find_name_through_messages(chat)
             or chat.get("name", "")
@@ -508,6 +509,7 @@ class ChatsStoreMixin:
             or self._format_jid_for_display(jid)
             or (self.i18n.t("unknown_group") if is_group else self.i18n.t("unknown_contact"))
         )
+        return name if is_group else mark_unsaved_name(self, jid, name)
 
     def get_chats(self, limit: int = 200):
         try:

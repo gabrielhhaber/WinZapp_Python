@@ -24,6 +24,8 @@ class _Labels:
         "chat_disappearing_7d": "7 days",
         "chat_disappearing_90d": "90 days",
         "datetime_fmt": "%d/%m/%Y %H:%M",
+        "chat_encryption_label": "Encryption",
+        "chat_encryption_notice": "Messages and calls are end-to-end encrypted.",
     }
 
     def __init__(self, base):
@@ -68,3 +70,8 @@ def test_not_muted_and_timer_off():
 def test_without_the_data_the_dialog_claims_nothing():
     lines = _info_lines(Owner())
     assert not any(line.startswith(("Notifications", "Disappearing")) for line in lines)
+
+
+def test_a_personal_chat_states_that_it_is_end_to_end_encrypted():
+    lines = _info_lines(Owner())
+    assert "Encryption: Messages and calls are end-to-end encrypted." in lines

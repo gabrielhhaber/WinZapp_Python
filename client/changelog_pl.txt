@@ -4,6 +4,10 @@ W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym 
 
 NOWOŚCI
 
+- Lokalna transkrypcja z faster-whisper: naprawiono ładowanie bibliotek CUDA w systemie Windows, które mogło uniemożliwiać korzystanie z karty graficznej i powodować zawieszanie się kolejnych transkrypcji. Jeśli bibliotek nie można załadować, WinZapp informuje o problemie przed rozpoczęciem obliczeń na karcie graficznej.
+
+- Twój status online odpowiada teraz bieżącemu stanowi okna także po szybkim przełączeniu do innego programu, ukryciu WinZapp w zasobniku lub ponownym połączeniu w tle. Opóźniona aktualizacja statusu online nie wyprzedza już aktualizacji statusu offline, a nieudana próba ustawienia statusu offline jest ponawiana.
+
 - Nowe skróty, każdy do zmiany na karcie Skróty klawiszowe w ustawieniach: Alt+8 otwiera społeczności z dowolnego miejsca okna; Alt+Shift+B otwiera katalog i koszyk firmy z zaznaczonego lub otwartego czatu; a na koncie WhatsApp Business Ctrl+Shift+N tworzy zamówienie dla kontaktu z czatu. Tam, gdzie nie mają zastosowania, WinZapp mówi dlaczego. Enter na wiadomości z zamówieniem otwiera zamówienie.
 
 - Pomoc > "Nowości od ostatniego przeglądania" mówi prostymi zdaniami, co zmieniło się w tych nowościach od ostatniego otwarcia na tym komputerze: nowe pozycje każdej sekcji, zmienione pozycje (w obecnym brzmieniu) i usunięte, a nową wersję pokazuje w całości. Działa tak samo dla wszystkich kont. Przycisk "Co nowego?" w oknie aktualizacji pokazuje teraz, co oferowana wersja zmienia w tych nowościach, zamiast nowości wersji, którą już masz; dla wersji alfa wymienia też, dla każdej wersji alfa od Twojej, zmiany zapisane w serwisie GitHub (tytuł i numer każdego pull requesta).
@@ -122,11 +126,29 @@ NOWOŚCI
 
 - Transkrypcja i opis online w wierszu wiadomości, w trybie automatycznym: okno wyniku AI ma nowe polecenia "Umieść transkrypcję w wierszu wiadomości" (wiadomości głosowe) oraz "Umieść opis w wierszu wiadomości" (obrazy, naklejki i filmy). W Ustawienia > Transkrypcje i opisy dwie nowe opcje, domyślnie wyłączone, automatycznie transkrybują odebrane wiadomości głosowe i opisują odebrane obrazy, naklejki i filmy u dostawców online, bez okna i dźwięku przy każdej wiadomości; włączenie jednej prosi o zwykłą zgodę i wyłącza lokalną transkrypcję automatyczną, i odwrotnie. Okno danych każdej rozmowy ma pola "transkrybuj" i "opisuj" (dotyczą też lokalnej transkrypcji automatycznej) oraz wybór między "Wszystkie rozmowy oprócz tych, które wyłączę" a "Tylko rozmowy, które włączę". Aby chronić limit API, wybierasz, jak stara może być odebrana wiadomość, by została przetworzona (5 minut, 15, 30 lub 1 godzina), i ustawiasz dzienny limit automatycznych zapytań online (domyślnie 50, 0 oznacza brak limitu); gdy wszyscy dostawcy odmawiają z powtarzającego się powodu, takiego jak limit lub klucz, kolejka automatyczna zatrzymuje się na godzinę i informuje o tym jeden raz.
 
+- Rozmowy i wiadomości od kontaktów, których nie zapisano, pokazują teraz tyldę (~) przed nazwą, tak jak WhatsApp. Wyłączysz to w Ustawienia > Interfejs użytkownika, opcją "Poprzedzaj nazwy niezapisanych kontaktów znakiem tyldy (~) w czatach i wiadomościach".
+
+- Nowy lub pusty czat prywatny podaje teraz w wierszu o braku wiadomości, że wiadomości i połączenia są szyfrowane end-to-end oraz, jeśli włączono znikające wiadomości, ich czas. Informacje o czacie także wspominają o szyfrowaniu.
+
+- Pole podpisu załączników przyjmuje teraz wiele wierszy, tak jak WhatsApp Desktop: Enter nadal wysyła załącznik z podpisem, a Shift+Enter lub Ctrl+Enter zaczynają nowy wiersz, tak jak w polu wiadomości.
+
+- Usunięcie konta usuwa teraz wszystko, co do niego należy: oprócz wiadomości i ustawień kasowany jest także profil przeglądarki z logowaniem do WhatsApp oraz kopie zapasowe tego profilu, a to, czego nie udało się usunąć, zostanie dokończone przy następnym uruchomieniu WinZapp. Gdy konto jest jedyne, można je teraz usunąć w menu Konta > Zarządzaj kontami: WinZapp prosi o potwierdzenie, zamyka się, a następne uruchomienie jest pierwszym uruchomieniem.
+
+- W Ustawienia > Interfejs użytkownika nowa opcja "Automatycznie odtwarzaj wiadomości głosowe po kolei", domyślnie zaznaczona, określa, czy następna wiadomość głosowa zaczyna się sama po zakończeniu poprzedniej. Odznacz ją, aby każda wiadomość głosowa kończyła się samodzielnie. Opcja "Automatycznie przenoś fokus na następne audio podczas odtwarzania audio po kolei" nadal decyduje tylko o tym, czy fokus klawiatury podąża za dźwiękiem.
+
 POPRAWKI
+
+- Naprawiono błąd "chat not found" podczas wysyłania wiadomości lub załączników do istniejącego czatu, który WhatsApp już załadował.
+
+- Otrzymanie pliku nie powoduje już pobierania go do powiadomienia o wiadomości z powodu nieużywanego ustawienia webhooka. Aktualizacje postępu wysyłania i pobierania zachowują tylko najnowszą oczekującą wartość, zapobiegając gromadzeniu aktualizacji ekranu podczas szybkich transferów.
+
+- Naprawiono powtarzającą się synchronizację rozmów, gdy lista czatów WhatsApp była dostępna, ale nie można jej było przekazać do lokalnego serwera. Istniejące rozmowy są zachowywane, a synchronizacja listy może się zakończyć.
 
 - Wysyłanie wiadomości głosowych i dokumentów kończyło się błędem "Cannot read properties of undefined (reading 'prepRawMedia')" w wersji WhatsApp Web wydanej 15 października, która przeniosła tę funkcję. WinZapp zawiera teraz odpowiednią wersję swojej biblioteki WhatsApp Web (WA-JS 4.7.1). Jeśli wysyłanie nadal nie działa po aktualizacji, zainstaluj ponownie WPPConnect z okna aktualizacji.
 
 - macOS: na listach czatów i wiadomości VoiceOver nie gubi już swojego miejsca, gdy zmienia się wiersz, na przykład gdy zmienia się licznik nieprzeczytanych, ktoś zaczyna nagrywać audio albo przychodzi nowa wiadomość. Otwieranie czatu za pomocą VoiceOver działa teraz od razu i za każdym razem, zamiast czasem zawodzić albo działać dopiero po przerwie, a VoiceOver przechodzi potem do pola wiadomości; komunikaty takie jak ten o przypiętych wiadomościach są odczytywane po polu, zamiast mu przerywać.
+
+- macOS: skróty z Command działają teraz tak samo na każdym ekranie. Podkreślona litera przycisku przejmowała Command z tą literą: gdy widoczny był przycisk „Czytaj więcej”, Command-C naciskało go zamiast kopiować, a inne przyciski w ten sam sposób przejmowały inne skróty. Podkreśloną literę przycisku naciska się teraz przez Command-Option i literę, macową wersję Alt i litery z Windows, a skrót WinZapp na tych samych klawiszach nadal ma pierwszeństwo, jak w Windows.
 
 - Przyciski nagrywania w drugim trybie (stereo lub mono) i nagrywania z dźwiękiem komputera podawały czytnikowi ekranu skrót Ctrl+R. Teraz każdy podaje swój, Ctrl+Shift+G i Ctrl+Shift+H, albo klawisze, które im przypisano.
 
@@ -205,6 +227,10 @@ POPRAWKI
 - Pobrane pliki, których rozmiar jest wielokrotnością 16 bajtów (na przykład APK), nie kończą się już 16 dodatkowymi bajtami. Android odmawiał ich instalacji z komunikatem „problem podczas analizowania pakietu”; teraz zapisany plik jest identyczny z oryginałem.
 
 - macOS: instalacja aktualizacji i pierwsze uruchomienie po niej są znacznie szybsze. Aplikacja ma dużo mniej plików do rozpakowania (około 24 000 zamiast 61 000), jej serwer trafia na miejsce w ułamku sekundy zamiast w kilka sekund, poprzednia kopia jest usuwana w tle, a przeglądarka, w której działa WhatsApp (około 190 MB), jest zachowywana zamiast pobierania jej ponownie po każdej aktualizacji.
+
+- Podglądy linków nie pokazują już w opisie surowych kodów HTML, takich jak &amp; czy &eacute;. Gdy podgląd jest wysyłany z WinZapp i gdy jest odczytywany, te kody zamieniają się teraz w prawdziwe znaki.
+
+- Redukcja echa w rozmowach głosowych i wideo działa teraz w rozmowach, które odbierasz. Głośnik grał już od dzwonienia, więc redukcja porównywała mikrofon z dźwiękiem sprzed jego otwarcia i nigdy nie znajdowała echa: druga osoba nadal słyszała własny głos mimo włączonej opcji. Odniesienie zaczyna się teraz w chwili otwarcia mikrofonu.
 
 - Zaktualizowano WPPConnect Server do wersji 2.10.58. Biblioteka odmawia teraz uruchomienia sesji, gdy trwa kopia zapasowa lub przywracanie sesji, zapisuje plik tokenu każdej sesji atomowo, aby awaria nie zostawiła go w połowie zapisanego, i przez minutę ponownie wykorzystuje już sprawdzony token dostępu zamiast sprawdzać go przy każdym żądaniu. Jeśli WinZapp zaproponuje aktualizację WPPConnect przy uruchomieniu, zaakceptuj ją, aby zainstalować nową wersję.
 

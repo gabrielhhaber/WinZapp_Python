@@ -97,7 +97,7 @@ jobs:
     with:
       # Baked into version.py so the compiled app reports the right version,
       # and into SHA256SUMS.txt's version line, which the signature covers.
-      # release-published.yml commits the same value back to main.
+      # main's version.py is not changed by publishing; it is edited by hand.
       version: ${{ github.ref_name }}
       strip-version-prefix: true
       artifact-name: winzapp-release

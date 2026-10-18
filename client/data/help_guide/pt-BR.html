@@ -399,6 +399,7 @@
 
 <h3>Nova conversa, grupo e contato</h3>
 <p>Ctrl+N abre "Nova conversa". Ali você pesquisa um contato (o campo já vem com foco e filtra por nome, inclusive sobrenome, e por número enquanto você digita), inicia uma conversa por número, cria um grupo, adiciona um contato, entra num grupo por link e abre as comunidades (botão "Comunidades").</p>
+<p>Numa conversa pessoal nova ou vazia, a linha que avisa que não há mensagens também informa que as mensagens e ligações são protegidas com criptografia de ponta a ponta e, se a conversa tiver mensagens temporárias, o prazo delas.</p>
 <h3>Contatos: locais ou sincronizados com o celular</h3>
 <p>Ao adicionar um contato (em Dados da conversa, em Nova conversa ou a partir de uma mensagem de contato), há duas abas:</p>
 <ul>
@@ -497,6 +498,7 @@
 
 <h3>Links</h3>
 <p>Uma mensagem com dois ou mais links vira uma lista navegável. Enter ou Espaço num link o abre; Ctrl+C copia o link; o menu de contexto tem "Abrir link" e "Copiar link". Links de convite de grupo (<code>chat.whatsapp.com/...</code>) abrem a janela "Entrar no grupo por link" do WinZapp, com a prévia do grupo, em vez do navegador; o menu do link oferece também "Entrar no grupo por link" e mantém "Abrir link" para quem quiser o navegador. Suas mensagens enviadas também levam prévia do link.</p>
+<p>Na prévia de um link, o título e a descrição aparecem com os caracteres de verdade, sem códigos HTML como &amp;amp; ou &amp;eacute;, tanto na prévia que o WinZapp envia quanto na que você lê.</p>
 
 <h3>Contatos, enquetes e cartões</h3>
 <ul>
@@ -533,6 +535,7 @@
 <p>Ctrl+Shift+A abre o menu de anexo. Os tipos são fotos, vídeos, áudios, documentos, contato e, por último, Enquete.</p>
 <ul>
   <li><strong>Tamanho:</strong> documentos de até 2 GB; fotos, vídeos e áudios de até 1 GB, que são os limites do WhatsApp.</li>
+  <li><strong>Legenda:</strong> o campo de legenda aceita várias linhas. Enter envia o anexo com a legenda; Shift+Enter ou Ctrl+Enter começam uma nova linha.</li>
   <li><strong>Arquivos de áudio:</strong> um WAV ou OGG Vorbis em estéreo ou surround (5.1, 7.1) chega com todos os canais, como áudio comum, e mantém a taxa de amostragem até 48 kHz. Um arquivo com mais de 8 canais é enviado sem alteração como documento. Arquivos de áudio colados no campo de mensagem com Ctrl+V podem ir como áudio ou como documento (Configurações &gt; Arquivos e salvamento; o padrão é áudio).</li>
   <li><strong>Anexar contato:</strong> a lista abre com o campo de pesquisa em foco, filtra por nome (inclusive sobrenome) e número, e não traz duplicados.</li>
   <li><strong>Enquete:</strong> escolha Enquete e informe a pergunta, até 12 opções e se permite várias respostas.</li>
@@ -582,7 +585,7 @@
   <li>Em mensagens de voz e de áudio, <strong>Enter</strong> ou <strong>Espaço</strong> reproduzem e pausam. Em Configurações &gt; Interface do usuário você pode distinguir mensagem de voz de arquivo de áudio.</li>
   <li><strong>Velocidade:</strong> Alt+, diminui e Alt+. aumenta. A velocidade padrão é definida na aba Reprodução de áudio.</li>
   <li><strong>Avançar e voltar:</strong> Shift+Seta para a direita/esquerda anda 5 segundos; Shift+Page Down/Up anda 1 minuto; Shift+Home e Shift+End vão ao início e ao fim do que está tocando.</li>
-  <li>As mensagens de voz seguintes tocam em sequência. Durante a sequência, a linha em foco espera para atualizar o estado, para o leitor de tela não ler por cima do áudio.</li>
+  <li>As mensagens de voz seguintes tocam em sequência, a menos que você desmarque "Reproduzir mensagens de voz em sequência automaticamente" em Configurações &gt; Interface do usuário. Durante a sequência, a linha em foco espera para atualizar o estado, para o leitor de tela não ler por cima do áudio.</li>
   <li><strong>Ctrl+Alt+Shift+P</strong> pausa ou retoma o áudio que estiver tocando, de qualquer painel.</li>
   <li>Se o dispositivo de saída mudar (fone desconectado, por exemplo), o WinZapp passa para o dispositivo padrão e toca a mensagem na primeira vez.</li>
   <li>Em Configurações, há a opção de não marcar áudios como reproduzidos.</li>
@@ -696,7 +699,7 @@
 <h3>Dados da conversa e dos grupos</h3>
 <p>Ctrl+Shift+D (ou "Dados da conversa" no menu de contexto) abre uma janela com abas. Todos os botões e campos têm uma letra de atalho (Alt+letra).</p>
 <ul>
-  <li><strong>Contato:</strong> aba Visão geral com nome, nome de perfil que o contato escolheu, nome verificado e se a conta é comercial, se as notificações estão silenciadas (e até quando) e o tempo das mensagens temporárias. O botão "Foto do perfil" (Alt+F) mostra a foto, e "Abrir em visualizador externo" (Alt+A) abre no programa padrão do Windows; se não houver foto, ou a pessoa não permitir que você a veja, o WinZapp avisa. Também há a aba <strong>Grupos em comum</strong> (Enter abre o grupo) e a aba Mídia.</li>
+  <li><strong>Contato:</strong> aba Visão geral com nome, nome de perfil que o contato escolheu, nome verificado e se a conta é comercial, se as notificações estão silenciadas (e até quando), o tempo das mensagens temporárias e o aviso de que as mensagens e ligações são protegidas com criptografia de ponta a ponta. O botão "Foto do perfil" (Alt+F) mostra a foto, e "Abrir em visualizador externo" (Alt+A) abre no programa padrão do Windows; se não houver foto, ou a pessoa não permitir que você a veja, o WinZapp avisa. Também há a aba <strong>Grupos em comum</strong> (Enter abre o grupo) e a aba Mídia.</li>
   <li><strong>Grupo:</strong> abas Visão geral (nome, descrição, foto/imagem do grupo, se só administradores enviam mensagens), Participantes (Enter num participante abre a conversa particular com ele; "Adicionar membro" aceita contatos ou um número adicional) e Mídia. Os dados aparecem assim que o grupo responde e os nomes e números que faltam são preenchidos em seguida.</li>
   <li><strong>Avisos:</strong> em grupos onde só administradores enviam mensagens, o campo de mensagem fica somente leitura e o WinZapp avisa.</li>
 </ul>
@@ -712,7 +715,7 @@
 <p>O painel Comunidades (ou "Nova conversa" &gt; "Comunidades") lista as comunidades em que você está. Ao escolher uma, aparecem a descrição, os administradores e os grupos dela em que você entrou, com o grupo de avisos e o grupo geral identificados; Enter ou "Abrir grupo" vai ao grupo. Se você administra a comunidade: "Adicionar grupos", "Remover grupo da comunidade", "Promover a administrador da comunidade", "Rebaixar administrador da comunidade" e "Desativar comunidade". "Nova comunidade" cria uma com nome, descrição e os grupos escolhidos. Depois de cada ação o WinZapp lê as comunidades de novo e só diz que terminou quando o WhatsApp mostra a alteração; senão avisa que o pedido foi enviado mas não está confirmado, ou que foi recusado.</p>
 
 <h3>Menções e respostas</h3>
-<p>Uma pessoa mencionada pelo nome com @todos mantém o link; a menção a você, na notificação e na prévia, usa a palavra escolhida em "Como se referir a mim?". Em Configurações &gt; Interface do usuário, "Ocultar números de telefone de remetentes sem nome nas mensagens" faz mensagens de pessoas sem nome começarem direto pelo conteúdo.</p>
+<p>Uma pessoa mencionada pelo nome com @todos mantém o link; a menção a você, na notificação e na prévia, usa a palavra escolhida em "Como se referir a mim?". Em Configurações &gt; Interface do usuário, "Ocultar números de telefone de remetentes sem nome nas mensagens" faz mensagens de pessoas sem nome começarem direto pelo conteúdo. Em Configurações &gt; Interface do usuário, "Preceder nomes de contatos não salvos com um sinal de til (~) nas conversas e mensagens" (ligada por padrão) mostra um til antes do nome de quem você não salvou, nas conversas e nas mensagens.</p>
 
   </section>
 
@@ -749,6 +752,7 @@
     <h2 id="h-contas">👤 13. Contas, bandeja e sincronização</h2>
 <h3>Várias contas</h3>
 <p>Cada conta tem a sua própria janela e o seu próprio servidor local. O menu <strong>Contas</strong> troca entre elas; Ctrl+Alt+1 a 9 também. "Fechar conta atual" (Ctrl+F4) encerra só a conta em que você está, libera memória e conexão e passa para outra conta aberta. Para abri-la de novo, escolha-a no menu Contas de outra conta ou use Ctrl+Alt com o número dela. Se for a única aberta, o WinZapp pergunta antes, porque fechá-la encerra o programa.</p>
+<p>Excluir uma conta (Contas &gt; Gerenciar contas, botão Excluir) remove tudo o que ela possui: mensagens, mídias, configurações, o perfil do navegador que guarda o login do WhatsApp e as cópias de segurança desse perfil. O que não puder ser removido na hora é concluído na próxima vez que o WinZapp iniciar. Quando a conta é a única, ela também pode ser excluída: o WinZapp pede confirmação (com Não como padrão), fecha, e a próxima abertura é uma primeira execução.</p>
 
 <h3>Sincronização</h3>
 <ul>
@@ -775,7 +779,7 @@
 <table class="field-table">
   <tr><th>Aba</th><th>O que você encontra</th></tr>
   <tr><td class="field-name">Geral</td><td>Idioma (português do Brasil e de Portugal, inglês, espanhol, polonês, turco, romeno); notificações em segundo plano e o conteúdo delas; manter conversas silenciadas mesmo abertas; anunciar sincronização, download de mídias e modo offline automático; verificação ortográfica (seguir o Windows, sempre ou nunca); converter emoticons em emojis; normalização Unicode nas pesquisas (exata, ignorar acentos, ou também formas equivalentes); iniciar em segundo plano ao entrar no Windows; abrir links de convite de grupo com o WinZapp; ícone e contagem de não lidas na bandeja; verificar atualizações automaticamente e alphas; baixar atualizações e downloads da transcrição em segundo plano; atalho global para abrir o WinZapp ou ocultá-lo na bandeja; o que fazer ao trocar de conta (ocultar a janela da conta atual ou manter as janelas de todas abertas).</td></tr>
-  <tr><td class="field-name">Interface do usuário</td><td>Quantas mensagens mostrar ao abrir uma conversa; quantas pular com Page Up/Down; onde focar ao abrir uma conversa e ao gravar voz; tipo de lista de mensagens (clássica, com limite de 512 caracteres, ou caixa de lista, com mensagens completas); mostrar quem está digitando como última linha; "Como se referir a mim?"; ocultar o remetente nas suas mensagens; ocultar números de remetentes sem nome; status de entrega na lista de conversas; manter a ordem das conversas fixadas; preservar a mensagem digitada como legenda; substituir atalhos por ações em massa; as perguntas de confirmação (marcar tudo como lido, limpar, apagar, F5, Shift+F5, gravar áudio do computador) e suas versões "Não mostrar novamente"; comportamento de Espaço e Esc com seleção; manter a pesquisa de conversas ao abrir; mover o foco para o próximo áudio em sequência; posição do anúncio "selecionado"; "ontem" no lugar da data; prévias de links; "Encaminhada" antes do remetente; marca inicial de "Apagar também a mídia do celular"; encaminhar voz como voz; vídeos e status em player separado; ler mensagem de voz como áudio ou como mensagem de voz; Enter e Espaço transcreverem; tipos de mídia exibidos por padrão.</td></tr>
+  <tr><td class="field-name">Interface do usuário</td><td>Quantas mensagens mostrar ao abrir uma conversa; quantas pular com Page Up/Down; onde focar ao abrir uma conversa e ao gravar voz; tipo de lista de mensagens (clássica, com limite de 512 caracteres, ou caixa de lista, com mensagens completas); mostrar quem está digitando como última linha; "Como se referir a mim?"; ocultar o remetente nas suas mensagens; ocultar números de remetentes sem nome; status de entrega na lista de conversas; manter a ordem das conversas fixadas; preservar a mensagem digitada como legenda; substituir atalhos por ações em massa; as perguntas de confirmação (marcar tudo como lido, limpar, apagar, F5, Shift+F5, gravar áudio do computador) e suas versões "Não mostrar novamente"; comportamento de Espaço e Esc com seleção; manter a pesquisa de conversas ao abrir; reproduzir mensagens de voz em sequência automaticamente; mover o foco para o próximo áudio em sequência; posição do anúncio "selecionado"; "ontem" no lugar da data; prévias de links; "Encaminhada" antes do remetente; marca inicial de "Apagar também a mídia do celular"; encaminhar voz como voz; vídeos e status em player separado; ler mensagem de voz como áudio ou como mensagem de voz; Enter e Espaço transcreverem; tipos de mídia exibidos por padrão.</td></tr>
   <tr><td class="field-name">Acessibilidade</td><td>Compatibilidade estendida com o leitor de tela (anúncios adicionais) e uso da voz SAPI quando nenhum leitor estiver ativo.</td></tr>
   <tr><td class="field-name">Conteúdo falado</td><td>Anunciar contato digitando ou gravando; anunciar início e fim da atualização de conversas; progresso falado da sincronização e do download de mídias; falar mensagens automaticamente na conversa ativa e em outras; silenciar anúncios e o botão enviar enquanto grava.</td></tr>
   <tr><td class="field-name">Conexão</td><td>Usar API personalizada (servidor remoto): endereço do servidor, do WebSocket, porta e chave de API.</td></tr>
@@ -1195,7 +1199,11 @@
 <table class="field-table">
   <tr><th>Situação</th><th>O que fazer</th></tr>
   <tr><td>O WinZapp pede para parear de novo</td><td>Pareie com número ou QR Code. Suas conversas só são apagadas se você conectar um número diferente. Se aconteceu sem motivo, guarde o <code>log.log</code> e o <code>shutdown_audit.log</code> antes de abrir de novo.</td></tr>
-  <tr><td>Mensagens não chegam ou a lista parece parada</td><td>Espere o progresso da sincronização; use Shift+F5 na conversa ou F5 em todas. Verifique também se o modo offline não está ligado.</td></tr>
+  <tr><td>Mensagens não chegam ou a lista parece parada</td><td>Espere o progresso da sincronização; use Shift+F5 na conversa ou F5 em todas. Verifique também se o modo offline não está ligado. Se a lista sincroniza de novo sem parar, atualize o WinZapp: uma correção permite que a lista de conversas termine de sincronizar.</td></tr>
+  <tr><td>A transcrição local na placa de vídeo NVIDIA falha ou trava</td><td>Atualize o WinZapp: uma correção carrega as bibliotecas CUDA no Windows antes de usar a placa de vídeo. Se elas não puderem ser carregadas, o WinZapp avisa e oferece transcrever pelo processador.</td></tr>
+  <tr><td>O WinZapp trava ao enviar ou receber arquivos grandes</td><td>Atualize o WinZapp: uma correção evita que um arquivo recebido seja baixado junto com o aviso da mensagem e que o progresso de envio e download acumule atualizações de tela.</td></tr>
+  <tr><td>Aparece o erro "chat not found" ao enviar para uma conversa existente</td><td>Atualize o WinZapp: uma correção faz o envio de mensagens e anexos usar a conversa que o WhatsApp já carregou.</td></tr>
+  <tr><td>Minha conta continua aparecendo online depois que saio da janela</td><td>Atualize o WinZapp: o estado online agora acompanha a janela (foco, minimizada, oculta na bandeja, início em segundo plano), e uma falha ao informar offline é tentada de novo a cada 20 segundos.</td></tr>
   <tr><td>Ligações não iniciam</td><td>Reinicie o WinZapp ou use Ajuda &gt; Forçar reinstalação da WPPConnect. O WinZapp mantém a lista de versões do WhatsApp Web atualizada sozinho.</td></tr>
   <tr><td>O navegador interno não abre</td><td>Em geral um antivírus removeu parte dele. O WinZapp avisa e explica; use Forçar reinstalação da WPPConnect.</td></tr>
   <tr><td>Uma mensagem foi enviada mas o WinZapp não confirmou</td><td>Confira a conversa antes de reenviar; o WinZapp não reenvia sozinho nesses casos.</td></tr>

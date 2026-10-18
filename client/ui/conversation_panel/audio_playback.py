@@ -590,6 +590,15 @@ class AudioPlaybackMixin:
             self._pending_played_refresh_id = None
             self.refresh_message_status(pending, "5")
 
+    def _voice_sequence_enabled(self) -> bool:
+        """The "play voice messages in sequence" setting (Settings > Interface).
+        On by default; off, a voice note ends without starting the next one."""
+        return bool(
+            self.main_window.settings.get("user_interface", {}).get(
+                "auto_play_voice_in_sequence", True
+            )
+        )
+
     def _next_message_is_chainable_audio(self, finished_id: str) -> bool:
         """Read-only peek at what _auto_chain_next_audio(finished_id) is
         about to do: True if it will auto-play a next voice note and move
@@ -597,6 +606,8 @@ class AudioPlaybackMixin:
         without any side effect — used by on_audio_timer() to decide whether
         the "played" row refresh for finished_id needs to be delayed (see
         the call site's comment)."""
+        if not self._voice_sequence_enabled():
+            return False
         current_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
         if current_jid != self._audio_conv_jid:
             return False
@@ -684,6 +695,13 @@ class AudioPlaybackMixin:
         # Sequential playback and transition sounds ONLY apply to voice notes (PTT),
         # not to generic attached audio/music files.
         if not self._is_voice_message(finished_msg):
+            self._is_in_audio_chain = False
+            _end_without_chaining()
+            return
+
+        # The user turned sequential playback off (Settings > Interface): the
+        # sequence ends with the voice note that just finished.
+        if not self._voice_sequence_enabled():
             self._is_in_audio_chain = False
             _end_without_chaining()
             return

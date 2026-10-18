@@ -3,6 +3,7 @@
 Only identity labels pass here, never bodies, chat titles or toasts. Unnamed
 senders have no substitute label; real names and the user's own prefix stay.
 """
+from core.unsaved_contact_marker import mark_unsaved_name, unsaved_marker_enabled
 from core.utils import contact_dedup_key, is_phone_like
 
 
@@ -18,21 +19,28 @@ def message_sender_label(label, msg, main_window, i18n) -> str:
     A valid message pushName still wins when an older chat record returned a
     phone fallback before the resolver reached that name.
     """
-    if not hide_unnamed_sender_numbers_enabled(getattr(main_window, "settings", None)):
-        return label
     if (msg.get("key") or {}).get("fromMe"):
         return label
+    if not hide_unnamed_sender_numbers_enabled(getattr(main_window, "settings", None)):
+        return _mark_unsaved_sender(label, msg, main_window)
     missing = not label or label == i18n.t("unnamed_participant")
     if not missing and not is_phone_like(label) and not label.endswith(
         ("@s.whatsapp.net", "@c.us", "@lid", "@g.us")
     ):
-        return label
+        return _mark_unsaved_sender(label, msg, main_window)
     push = (msg.get("pushName") or "").strip()
     if push and not is_phone_like(push) and not getattr(
         main_window, "_is_bad_contact_name", lambda _name: False
     )(push):
-        return push
+        return _mark_unsaved_sender(push, msg, main_window)
     return ""
+
+
+def _mark_unsaved_sender(label, msg, main_window) -> str:
+    """The "~" for a sender who is not a saved contact (settings opt-out)."""
+    key = msg.get("key") or {}
+    jid = key.get("participant") or msg.get("participant") or key.get("remoteJid", "")
+    return mark_unsaved_name(main_window, jid, label)
 
 
 def _same_sender(left, right, main_window) -> bool:
@@ -60,7 +68,8 @@ def quoted_sender_label(label, ctx, msg, panel) -> str:
     Other uses of _get_quoted_sender (reply UI, message data) stay unchanged.
     """
     mw = panel.main_window
-    if not hide_unnamed_sender_numbers_enabled(getattr(mw, "settings", None)):
+    settings = getattr(mw, "settings", None)
+    if not (hide_unnamed_sender_numbers_enabled(settings) or unsaved_marker_enabled(settings)):
         return label
     conv = getattr(panel, "conversation", None) or {}
     remote = conv.get("remoteJid") or (msg.get("key") or {}).get("remoteJid", "")

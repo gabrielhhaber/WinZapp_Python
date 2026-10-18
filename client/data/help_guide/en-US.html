@@ -399,6 +399,7 @@
 
 <h3>New chat, group and contact</h3>
 <p>Ctrl+N opens "New chat". There you search for a contact (the field already has focus and filters by name, including surname, and by number as you type), start a chat by number, create a group, add a contact, join a group by link and open communities ("Communities" button).</p>
+<p>In a new or empty personal chat, the line that says there are no messages also tells you that messages and calls are end-to-end encrypted and, if the chat has disappearing messages, how long they last.</p>
 <h3>Contacts: local or synced with the phone</h3>
 <p>When you add a contact (in Chat info, in New chat or from a contact message), there are two tabs:</p>
 <ul>
@@ -497,6 +498,7 @@
 
 <h3>Links</h3>
 <p>A message with two or more links becomes a navigable list. Enter or Space on a link opens it; Ctrl+C copies the link; the context menu has "Open link" and "Copy link". Group invitation links (<code>chat.whatsapp.com/...</code>) open WinZapp's "Join group by link" window, with the group preview, instead of the browser; the link's menu also offers "Join group by link" and keeps "Open link" for those who want the browser. Messages you send also carry a link preview.</p>
+<p>In a link preview, the title and description appear with the real characters, without HTML codes such as &amp;amp; or &amp;eacute;, both in the preview WinZapp sends and in the one you read.</p>
 
 <h3>Contacts, polls and cards</h3>
 <ul>
@@ -533,6 +535,7 @@
 <p>Ctrl+Shift+A opens the attachment menu. The types are photos, videos, audio, documents, contact and, last, Poll.</p>
 <ul>
   <li><strong>Size:</strong> documents up to 2 GB; photos, videos and audio up to 1 GB, which are WhatsApp's limits.</li>
+  <li><strong>Caption:</strong> the caption field takes several lines. Enter sends the attachment with its caption; Shift+Enter or Ctrl+Enter start a new line.</li>
   <li><strong>Audio files:</strong> a stereo or surround (5.1, 7.1) WAV or OGG Vorbis arrives with all channels, as ordinary audio, and keeps the sample rate up to 48 kHz. A file with more than 8 channels is sent unchanged as a document. Audio files pasted into the message field with Ctrl+V can go as audio or as a document (Settings &gt; Files and saving; the default is audio).</li>
   <li><strong>Attach contact:</strong> the list opens with the search field focused, filters by name (including surname) and number, and has no duplicates.</li>
   <li><strong>Poll:</strong> choose Poll and enter the question, up to 12 options and whether multiple answers are allowed.</li>
@@ -582,7 +585,7 @@
   <li>On voice and audio messages, <strong>Enter</strong> or <strong>Space</strong> play and pause. In Settings &gt; User Interface you can tell voice messages apart from audio files.</li>
   <li><strong>Speed:</strong> Alt+, slows down and Alt+. speeds up. The default speed is set in the Audio playback tab.</li>
   <li><strong>Forward and back:</strong> Shift+Right/Left Arrow moves 5 seconds; Shift+Page Down/Up moves 1 minute; Shift+Home and Shift+End go to the start and the end of what is playing.</li>
-  <li>The following voice messages play in sequence. During the sequence, the focused row waits to update its state, so the screen reader does not read over the audio.</li>
+  <li>The following voice messages play in sequence, unless you clear "Automatically play voice messages in sequence" in Settings &gt; User interface. During the sequence, the focused row waits to update its state, so the screen reader does not read over the audio.</li>
   <li><strong>Ctrl+Alt+Shift+P</strong> pauses or resumes the audio that is playing, from any panel.</li>
   <li>If the output device changes (headphones unplugged, for example), WinZapp switches to the default device and plays the message the first time.</li>
   <li>In Settings, there is an option not to mark audio as played.</li>
@@ -696,7 +699,7 @@
 <h3>Chat info and group info</h3>
 <p>Ctrl+Shift+D (or "Chat info" in the context menu) opens a window with tabs. All buttons and fields have a shortcut letter (Alt+letter).</p>
 <ul>
-  <li><strong>Contact:</strong> Overview tab with name, the profile name the contact chose, verified name and whether the account is a business account, whether notifications are muted (and until when) and the disappearing messages timer. The "Profile picture" button (Alt+F) shows the picture, and "Open in external viewer" (Alt+A) opens it in the Windows default program; if there is no picture, or the person does not allow you to see it, WinZapp says so. There is also the <strong>Groups in common</strong> tab (Enter opens the group) and the Media tab.</li>
+  <li><strong>Contact:</strong> Overview tab with name, the profile name the contact chose, verified name and whether the account is a business account, whether notifications are muted (and until when), the disappearing messages timer and the notice that messages and calls are end-to-end encrypted. The "Profile picture" button (Alt+F) shows the picture, and "Open in external viewer" (Alt+A) opens it in the Windows default program; if there is no picture, or the person does not allow you to see it, WinZapp says so. There is also the <strong>Groups in common</strong> tab (Enter opens the group) and the Media tab.</li>
   <li><strong>Group:</strong> Overview tab (name, description, group picture, whether only admins send messages), Participants tab (Enter on a participant opens the private chat with them; "Add member" accepts contacts or an extra number) and Media tab. The data appears as soon as the group answers and missing names and numbers are filled in right after.</li>
   <li><strong>Notices:</strong> in groups where only admins send messages, the message field is read-only and WinZapp says so.</li>
 </ul>
@@ -712,7 +715,7 @@
 <p>The Communities panel (or "New chat" &gt; "Communities") lists the communities you are in. When you choose one, you see the description, the admins and the groups of it you joined, with the announcements group and the general group identified; Enter or "Open group" goes to the group. If you administer the community: "Add groups", "Remove group from the community", "Promote to community admin", "Demote community admin" and "Deactivate community". "New community" creates one with a name, description and the groups you choose. After each action WinZapp reads the communities again and only says it finished when WhatsApp shows the change; otherwise it tells you the request was sent but is not confirmed, or that it was refused.</p>
 
 <h3>Mentions and replies</h3>
-<p>A person mentioned by name together with @all keeps the link; the mention of you, in the notification and in the preview, uses the word chosen in "How should I be referred to?". In Settings &gt; User Interface, "Hide phone numbers of unnamed senders in messages" makes messages from people without a name start straight with the content.</p>
+<p>A person mentioned by name together with @all keeps the link; the mention of you, in the notification and in the preview, uses the word chosen in "How should I be referred to?". In Settings &gt; User Interface, "Hide phone numbers of unnamed senders in messages" makes messages from people without a name start straight with the content. In Settings &gt; User Interface, "Precede names of unsaved contacts with a tilde (~) in conversations and messages" (on by default) shows a tilde before the name of anyone you have not saved, in conversations and in messages.</p>
 
   </section>
 
@@ -749,6 +752,7 @@
     <h2 id="h-contas">👤 13. Accounts, tray and sync</h2>
 <h3>Multiple accounts</h3>
 <p>Each account has its own window and its own local server. The <strong>Accounts</strong> menu switches between them; so does Ctrl+Alt+1 to 9. "Close current account" (Ctrl+F4) ends only the account you are in, frees its memory and connection, and moves to another open account. To open it again, choose it in the Accounts menu of another account or use Ctrl+Alt with its number. If it is the only one open, WinZapp asks first, because closing it ends the program.</p>
+<p>Deleting an account (Accounts &gt; Manage accounts, Delete button) removes everything it owns: messages, media, settings, the browser profile that holds the WhatsApp login and that profile's backups. Anything that cannot be removed right away is finished the next time WinZapp starts. When the account is the only one, it can be deleted too: WinZapp asks for confirmation (No is the default), closes, and the next start is a first run.</p>
 
 <h3>Sync</h3>
 <ul>
@@ -775,7 +779,7 @@
 <table class="field-table">
   <tr><th>Tab</th><th>What you find</th></tr>
   <tr><td class="field-name">General</td><td>Language (Brazilian and European Portuguese, English, Spanish, Polish, Turkish, Romanian); background notifications and their content; keep muted chats muted even when open; announce sync, media downloads and automatic offline mode; spell check (follow Windows, always or never); convert emoticons to emojis; Unicode normalization in searches (exact, ignore accents, or also equivalent forms); start in the background when signing in to Windows; open group invitation links with WinZapp; tray icon and unread count; check for updates automatically and alphas; download updates and transcription downloads in the background; global shortcut to open WinZapp or hide it in the tray; what to do when switching accounts (hide the current account's window or keep the windows of all accounts open).</td></tr>
-  <tr><td class="field-name">User Interface</td><td>How many messages to show when opening a chat; how many to skip with Page Up/Down; where to focus when opening a chat and when recording voice; type of message list (classic, with a 512-character limit, or list box, with full messages); show who is typing as the last row; "How should I be referred to?"; hide the sender on your own messages; hide numbers of unnamed senders; delivery status in the chat list; keep pinned chats in a fixed order; preserve the typed message as a caption; replace shortcuts with bulk actions; the confirmation questions (mark all as read, clear, delete, F5, Shift+F5, record computer audio) and their "Don't show again" versions; Space and Esc behavior with a selection; keep chat search when opening; move focus to the next audio in sequence; position of the "selected" announcement; "yesterday" instead of the date; link previews; "Forwarded" before the sender; initial state of "Also delete the media from your phone"; forward voice as voice; videos and statuses in a separate player; read voice message as audio or as voice message; Enter and Space transcribing; media types shown by default.</td></tr>
+  <tr><td class="field-name">User Interface</td><td>How many messages to show when opening a chat; how many to skip with Page Up/Down; where to focus when opening a chat and when recording voice; type of message list (classic, with a 512-character limit, or list box, with full messages); show who is typing as the last row; "How should I be referred to?"; hide the sender on your own messages; hide numbers of unnamed senders; delivery status in the chat list; keep pinned chats in a fixed order; preserve the typed message as a caption; replace shortcuts with bulk actions; the confirmation questions (mark all as read, clear, delete, F5, Shift+F5, record computer audio) and their "Don't show again" versions; Space and Esc behavior with a selection; keep chat search when opening; play voice messages in sequence automatically; move focus to the next audio in sequence; position of the "selected" announcement; "yesterday" instead of the date; link previews; "Forwarded" before the sender; initial state of "Also delete the media from your phone"; forward voice as voice; videos and statuses in a separate player; read voice message as audio or as voice message; Enter and Space transcribing; media types shown by default.</td></tr>
   <tr><td class="field-name">Accessibility</td><td>Extended screen reader compatibility (additional announcements) and use of the SAPI voice when no screen reader is active.</td></tr>
   <tr><td class="field-name">Spoken content</td><td>Announce a contact typing or recording; announce the start and end of chat refresh; spoken progress of sync and media download; speak messages automatically in the active chat and in others; silence announcements and the send button while recording.</td></tr>
   <tr><td class="field-name">Connection</td><td>Use custom API (remote server): server address, WebSocket address, port and API key.</td></tr>
@@ -1195,7 +1199,11 @@
 <table class="field-table">
   <tr><th>Situation</th><th>What to do</th></tr>
   <tr><td>WinZapp asks you to pair again</td><td>Pair with number or QR code. Your chats are only deleted if you connect a different number. If it happened for no reason, keep <code>log.log</code> and <code>shutdown_audit.log</code> before opening it again.</td></tr>
-  <tr><td>Messages do not arrive or the list looks stuck</td><td>Wait for the sync progress; use Shift+F5 in the chat or F5 for all. Also check that offline mode is not on.</td></tr>
+  <tr><td>Messages do not arrive or the list looks stuck</td><td>Wait for the sync progress; use Shift+F5 in the chat or F5 for all. Also check that offline mode is not on. If the list keeps syncing again and again, update WinZapp: a fix lets the chat list finish syncing.</td></tr>
+  <tr><td>Local transcription on the NVIDIA graphics card fails or gets stuck</td><td>Update WinZapp: a fix loads the CUDA libraries on Windows before the graphics card is used. If they cannot be loaded, WinZapp says so and offers to transcribe on the processor instead.</td></tr>
+  <tr><td>WinZapp freezes when sending or receiving large files</td><td>Update WinZapp: a fix stops a received file from being downloaded along with the message notification and stops send and download progress from piling up screen updates.</td></tr>
+  <tr><td>The "chat not found" error appears when sending to an existing conversation</td><td>Update WinZapp: a fix makes sending messages and attachments use the conversation WhatsApp has already loaded.</td></tr>
+  <tr><td>My account still shows as online after I left the window</td><td>Update WinZapp: your online status now follows the window (focus, minimized, hidden in the tray, background start), and a failed offline update is retried every 20 seconds.</td></tr>
   <tr><td>Calls do not start</td><td>Restart WinZapp or use Help &gt; Force reinstall WPPConnect. WinZapp keeps the list of WhatsApp Web versions up to date by itself.</td></tr>
   <tr><td>The internal browser does not open</td><td>Usually an antivirus removed part of it. WinZapp warns and explains; use Force reinstall WPPConnect.</td></tr>
   <tr><td>A message was sent but WinZapp did not confirm</td><td>Check the chat before resending; WinZapp does not resend by itself in these cases.</td></tr>

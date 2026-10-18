@@ -4,6 +4,10 @@ Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, 
 
 NOVEDADES
 
+- Transcripción local con faster-whisper: corregida la carga de las bibliotecas CUDA en Windows, que podía impedir el uso de la tarjeta gráfica y bloquear las transcripciones posteriores. Si las bibliotecas no se pueden cargar, WinZapp informa del problema antes de iniciar la inferencia en la tarjeta gráfica.
+
+- Tu estado en línea ahora sigue el estado actual de la ventana incluso al cambiar rápidamente a otro programa, ocultar WinZapp en la bandeja o reconectarse en segundo plano. Una actualización retrasada de «en línea» ya no se adelanta a la de «sin conexión», y si falla el envío del estado «sin conexión», se vuelve a intentar.
+
 - Nuevos atajos, cada uno modificable en la pestaña Atajos de teclado de la configuración: Alt+8 abre las comunidades desde cualquier lugar de la ventana; Alt+Shift+B abre el catálogo y el carrito de la empresa del chat seleccionado o abierto; y en una cuenta de WhatsApp Business, Ctrl+Shift+N crea un pedido para el contacto del chat. Donde no se aplican, WinZapp dice el motivo. Intro en un mensaje de pedido abre el pedido.
 
 - Ayuda > "Novedades desde la última vez que miraste" dice lo que ha cambiado en estas novedades desde la última vez que alguien en este ordenador las abrió, en frases sencillas: los elementos nuevos de cada sección, los modificados (tal como quedan) y los retirados, y una versión entera cuando es nueva. Es igual para todas las cuentas. Y el botón "¿Qué hay de nuevo?" de la ventana de actualización ahora muestra lo que la versión ofrecida cambia en estas novedades, en lugar de las novedades de la versión que ya tienes; en una versión alpha también enumera, para cada alpha desde la tuya, los cambios registrados en GitHub (el título y el número de cada pull request).
@@ -122,11 +126,29 @@ NOVEDADES
 
 - Transcripción y descripción en línea en la línea del mensaje, de forma automática: la ventana de resultado de la IA incorpora "Poner la transcripción en la línea del mensaje" (mensajes de voz) y "Poner la descripción en la línea del mensaje" (imágenes, stickers y vídeos). En Ajustes > Transcripciones y Descripciones, dos opciones nuevas, desactivadas por defecto, transcriben automáticamente los mensajes de voz recibidos y describen las imágenes, stickers y vídeos recibidos con los proveedores en línea, sin ventana ni sonido por mensaje; activar una pide el consentimiento habitual y desactiva la transcripción automática local, y al revés. La ventana de datos de cada conversación tiene las casillas "transcribir" y "describir" (también valen para la transcripción automática local), con la opción de elegir entre "Todas las conversaciones, salvo las que yo desactive" y "Solo las conversaciones que yo active". Para proteger tu cuota de la API puedes elegir la antigüedad máxima de un mensaje recibido para procesarlo (5 minutos, 15, 30 o 1 hora) y fijar un límite diario de solicitudes automáticas en línea (50 por defecto, 0 para ninguno); cuando todos los proveedores rechazan por un motivo que se repite, como la cuota o la clave, la cola automática se pausa durante una hora y lo avisa una sola vez.
 
+- Las conversaciones y los mensajes de contactos que no has guardado ahora muestran una tilde (~) antes del nombre, como hace WhatsApp. Para desactivarlo, ve a Configuración > Interfaz de usuario > "Anteponer una tilde (~) a los nombres de contactos no guardados en las conversaciones y los mensajes".
+
+- Un chat personal nuevo o vacío indica ahora, en la línea de "no hay mensajes", que los mensajes y las llamadas están cifrados de extremo a extremo y, si hay mensajes temporales, su duración. La información del chat también menciona el cifrado.
+
+- El campo de pie de foto de los archivos adjuntos ahora admite varias líneas, como WhatsApp Desktop: Intro sigue enviando el adjunto con su pie de foto, y Mayús+Intro o Ctrl+Intro crean una línea nueva, como en el campo de mensaje.
+
+- Eliminar una cuenta ahora elimina todo lo que le pertenece: además de los mensajes y los ajustes, también se borran el perfil del navegador que guarda el inicio de sesión de WhatsApp y las copias de seguridad de ese perfil, y lo que no se pueda eliminar se termina la próxima vez que se inicie WinZapp. Cuando la cuenta es la única, ahora se puede eliminar desde Cuentas > Administrar cuentas: WinZapp pide confirmación, se cierra y el siguiente inicio es una primera ejecución.
+
+- En Configuración > Interfaz de usuario, la nueva opción "Reproducir mensajes de voz en secuencia automáticamente", marcada por defecto, define si el siguiente mensaje de voz empieza solo cuando termina uno. Desmárcala para que cada mensaje de voz termine por sí mismo. La opción "Mover automáticamente el foco al siguiente audio al reproducir audios en secuencia" sigue controlando solo si el foco del teclado acompaña al audio.
+
 CORRECCIONES
+
+- Corregido un error de "chat not found" al enviar mensajes o archivos adjuntos a una conversación existente que WhatsApp ya había cargado.
+
+- Recibir un archivo ya no lo descarga dentro de la notificación del mensaje debido a una configuración de webhook sin uso. Las actualizaciones de progreso de envío y descarga conservan solo el último valor pendiente, evitando que se acumulen actualizaciones de pantalla durante las transferencias rápidas.
+
+- Corregida la sincronización repetida de conversaciones cuando la lista de WhatsApp estaba disponible, pero no podía transferirse al servidor local. Se conservan las conversaciones existentes y la sincronización de la lista puede completarse.
 
 - El envío de mensajes de voz y de documentos fallaba con "Cannot read properties of undefined (reading 'prepRawMedia')" en una versión de WhatsApp Web publicada el 15 de octubre, que movió esa función. WinZapp ahora incluye la versión correspondiente de su biblioteca de WhatsApp Web (WA-JS 4.7.1). Si el envío sigue fallando tras actualizar, reinstala WPPConnect desde la ventana de actualización.
 
 - macOS: en las listas de chats y de mensajes, VoiceOver ya no pierde su sitio cuando cambia una fila, por ejemplo cuando cambia un contador de no leídos, alguien empieza a grabar audio o llega un mensaje nuevo. Abrir un chat con VoiceOver ahora funciona al instante y siempre, en lugar de fallar a veces o actuar solo tras una pausa, y VoiceOver pasa después al campo de mensaje; avisos como el de los mensajes fijados se leen después del campo en lugar de interrumpirlo.
+
+- macOS: los atajos con Comando ahora hacen lo mismo en todas las pantallas. La letra subrayada de un botón se quedaba con Comando y esa letra: mientras se mostraba "Leer más", Comando-L lo pulsaba, y otros botones se quedaban con otros atajos de la misma forma. La letra subrayada de un botón ahora se pulsa con Comando-Opción y la letra, la forma Mac de Alt y la letra en Windows, y un atajo de WinZapp con las mismas teclas sigue teniendo prioridad, como en Windows.
 
 - Los botones de grabar en el otro modo (estéreo o mono) y de grabar con el audio del ordenador indicaban al lector de pantalla el atajo Ctrl+R. Ahora cada uno indica el suyo, Ctrl+Shift+G y Ctrl+Shift+H, o las teclas que les hayas asignado.
 
@@ -205,6 +227,10 @@ CORRECCIONES
 - Los archivos descargados cuyo tamaño es múltiplo de 16 bytes (un APK, por ejemplo) ya no terminan con 16 bytes de más. Android se negaba a instalarlos con "problema al analizar el paquete"; ahora el archivo guardado es idéntico al original.
 
 - macOS: instalar una actualización, y la primera apertura después de ella, son mucho más rápidos. La app tiene muchos menos archivos que descomprimir (unos 24.000 en lugar de 61.000), su servidor se coloca en su sitio en una fracción de segundo en lugar de varios segundos, la copia anterior se borra en segundo plano, y el navegador en el que funciona WhatsApp (unos 190 MB) se conserva en lugar de descargarse de nuevo con cada actualización.
+
+- Las vistas previas de enlaces ya no muestran códigos HTML como &amp; o &eacute; en la descripción. Cuando WinZapp envía una vista previa, y cuando se lee una, esos códigos ahora se convierten en los caracteres reales.
+
+- La cancelación de eco en las llamadas de voz y vídeo ahora funciona en las llamadas que contestas. El altavoz ya sonaba desde que la llamada daba tono, así que el cancelador comparaba tu micrófono con audio anterior a su apertura y nunca encontraba el eco: la otra persona seguía oyendo su propia voz aunque la opción estuviera activada. Ahora la referencia empieza cuando se abre el micrófono.
 
 - WPPConnect Server actualizado a la 2.10.58. La biblioteca ahora se niega a iniciar una sesión mientras se hace una copia de seguridad o una restauración de las sesiones, guarda el archivo de token de cada sesión de forma atómica para que un fallo no lo deje a medias, y reutiliza durante un minuto un token de acceso ya comprobado en lugar de comprobarlo de nuevo en cada petición. Si WinZapp ofrece la actualización de WPPConnect al iniciar, acéptala para instalar la nueva versión.
 

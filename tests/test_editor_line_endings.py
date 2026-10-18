@@ -78,7 +78,7 @@ class TestTheRoundTripKeepsWhatsAppClean:
 
 class TestOnlyMultilineFieldsGetIt:
     """_on_text_field_paste is bound to two controls: the multiline message
-    field and the SINGLE-LINE attachment caption. A single-line wx.TextCtrl
+    field and the multiline attachment caption. A single-line wx.TextCtrl
     cannot navigate lines and does not translate line endings — it would just
     hold the control characters."""
 
@@ -87,14 +87,14 @@ class TestOnlyMultilineFieldsGetIt:
         assert "IsMultiLine()" in source
         assert "to_editor_line_endings(" in source
 
-    def test_the_caption_field_is_single_line(self):
-        """If this ever gains TE_MULTILINE the guard above starts converting it
-        too, which is correct — but the reasoning in the handler would be stale,
-        so fail loudly and make someone re-read it."""
+    def test_the_caption_field_is_multiline_and_binds_its_newline_keys(self):
+        """The caption takes several lines like the message field, so the
+        paste guard converts it to the editor form too."""
         source = conversations_source()
         caption = source[source.index("self._caption_field = wx.TextCtrl("):]
         caption = caption[:caption.index(")")]
-        assert "TE_MULTILINE" not in caption
+        assert "TE_MULTILINE" in caption
+        assert "self._caption_field.Bind(wx.EVT_KEY_DOWN, self._on_caption_field_key_down)" in source
 
     def test_the_message_field_is_multiline(self):
         source = conversations_source()

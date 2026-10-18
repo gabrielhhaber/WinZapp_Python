@@ -10,6 +10,7 @@ import threading
 import time
 import wx
 from core.conversation_view import ARCHIVED
+from core.unsaved_contact_marker import marked_chat_name
 from core.pinned_chat_order import canonical_pin_jid, keep_pinned_order, pinned_chat_ranks
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
 from core.commerce import (
@@ -1411,7 +1412,7 @@ class ChatListMixin:
                 if unread > 0 else ""
             )
             preview = self._last_msg_preview(chat)
-            item_text = name + unread_str
+            item_text = marked_chat_name(self, chat, name) + unread_str
             if item_text and preview:
                 item_text += f" {preview}"
             # Same "selecionado" marker, in the same configured position, as
@@ -1682,7 +1683,7 @@ class ChatListMixin:
             if unread > 0 else ""
         )
         preview = self._last_msg_preview(chat)
-        text = name + unread_str
+        text = marked_chat_name(self, chat, name) + unread_str
         if preview:
             text += f" {preview}"
         chat_jid_norm = self._normalize_jid(chat_jid) if chat_jid else ""

@@ -6,6 +6,37 @@
 
 ## Downloading large media — the mirror of the send-side chunking
 
+### The message event must not download a file for an absent webhook (2026-10-16)
+
+The raw HTTP download path is not the only way a file can reach Python.
+`listenMessages()` used the webhook's `autoDownload` flag for its Socket.IO
+`received-message` event too. The default is true even when the webhook URL
+is null, while `websocket.autoDownload` is false. Consequently a received
+document was fully downloaded/decrypted and converted to base64 before its
+metadata reached WinZapp, bypassing the client's download settings and limits.
+With an actual webhook, its own `callWebHook()` path downloaded again.
+
+Only the websocket's explicit download setting controls that event now;
+`callWebHook()` still owns downloads for configured webhook deliveries.
+`test_media_event_payload.py` runs the actual callbacks/utilities with
+synthetic storage and networking: no-destination reception used to download
+once, and a configured webhook twice. Both regressions are covered, alongside
+outgoing events and explicitly requested websocket downloads.
+
+HTTP progress also needs backpressure before `wx.CallAfter`, not just a
+monotonic value after it. A 24 MiB upload at 256 KiB per chunk reports 98
+values, each previously queuing a list-row repaint. Upload/download progress
+callbacks now retain only their latest pending value per transfer. This does
+not throttle the transport's cancellation checks or ordered stage events.
+
+A bounded diagnostic encrypting 20 MiB with Fernet measured 133.3 MiB of
+additional traced allocations, a 26.7 MiB token, 0.157 s elapsed and a 0.060 s
+maximum synthetic heartbeat gap on this machine. Whole-file caching remains
+a memory multiplier; that measurement alone does not establish the cause of
+a long freeze. No actual large-file send or recipient interaction was used
+to validate these changes. A fresh UI-watchdog stack and connection logs are
+still needed to attribute a particular freeze/reconnect episode.
+
 Sending files above ~100 MB started working once `wppconnect_sender_layer_patch.py` stopped handing one enormous argument across a boundary that could not take it. **Downloading never got the same treatment**, and a 200 MB document could not be fetched at all: it announced "baixando", produced nothing, filled RAM, and returned the button to Download.
 
 Two independent faults, either one fatal on its own:

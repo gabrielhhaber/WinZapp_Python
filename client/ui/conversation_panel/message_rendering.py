@@ -7,6 +7,7 @@ ConversationsPanel.__init__/init_UI is available here.
 
 import logging
 import threading
+from core.chat_notices import conversation_start_text
 from core.community_comments import comment_count
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
 from core.polls import POLL_MESSAGE_TYPES, poll_content, poll_row_text
@@ -1198,7 +1199,16 @@ class MessageRenderingMixin:
         Only link detection passes it — see _message_own_links().
         """
         if isinstance(msg, dict) and msg.get("_type") == "empty_placeholder":
-            return self.main_window.i18n.t("no_messages_in_conversation")
+            # A new or empty one-to-one chat also gets the notices WhatsApp
+            # shows at the top of one (encryption and, if running, the
+            # disappearing-messages timer). One row, text only: it adds no row
+            # to the list and so shifts no index.
+            return conversation_start_text(
+                self.main_window,
+                (getattr(self, "conversation", None) or {}).get("remoteJid", ""),
+                self.main_window.i18n,
+                self.main_window.i18n.t("no_messages_in_conversation"),
+            )
         # Unread separator sentinel
         if self._is_separator(msg):
             line = self._render_separator(msg.get("count", 1))

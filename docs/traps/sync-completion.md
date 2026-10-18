@@ -1,5 +1,22 @@
 # Sync completion, on-demand history and the incremental round
 
+## A missing CDP result is not an empty ChatStore (2026-10-16)
+
+On a live 715-chat account, the page reported `WPP.isReady=true`,
+`isMainReady()=true`, and 715 results from `WPP.chat.list()`. Returning the
+WAPI-serialized model graph through Puppeteer nevertheless produced
+`undefined`. Returning its JSON snapshot in the same session delivered all
+715 chats. The route had converted the missing result into `[]`; diagnostics
+also defaulted to `storeReady=false` and `rawFirst=na`, misleadingly suggesting
+a lost store. Python kept its cached chats but retried full synchronization.
+
+Materialize the HTTP JSON snapshot inside the page before crossing CDP:
+`returnByValue` does not apply native models' JSON hooks like `JSON.stringify`
+does. `tests/test_chat_store_serialization.py` runs the actual route/page
+callback with synthetic models, covering both its first read and recovery
+read without starting a browser. An absent `rawFirst` is missing diagnostic
+evidence, never proof that the page's own store was empty.
+
 > One chat in `message_failures` holds the whole account 'not synced'; every history request lights up the user's phone; the incremental plan only reads chat-list metadata.
 >
 > Moved verbatim out of `CLAUDE.md` so it is read when the area is touched, not on every session. Keep it here: this is measured history, not a summary.

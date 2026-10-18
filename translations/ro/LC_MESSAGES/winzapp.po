@@ -159,7 +159,7 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr "Implicită"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "acc_delete_confirm"
 msgid ""
@@ -168,6 +168,18 @@ msgid ""
 msgstr ""
 "Ștergeți definitiv contul „{name}” și toate datele acestuia? Acest lucru nu "
 "poate fi anulat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid ""
+"\"{name}\" is the only account. Permanently delete it with all its messages,"
+" media, preferences and profile backups, and close WinZapp? This cannot be "
+"undone."
+msgstr ""
+"„{name}” este singurul cont. Îl ștergeți definitiv, împreună cu toate "
+"mesajele, fișierele media, preferințele și copiile de siguranță ale "
+"profilului, și închideți WinZapp? Această acțiune nu poate fi anulată."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_err_archive_current"
@@ -2543,7 +2555,8 @@ msgctxt "chat_disappearing_90d"
 msgid "90 days"
 msgstr "90 de zile"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+#: client/core/chat_settings.py
 msgctxt "chat_disappearing_label"
 msgid "Disappearing messages"
 msgstr "Mesaje care dispar"
@@ -2557,6 +2570,25 @@ msgstr "Dezactivate"
 msgctxt "chat_disappearing_on"
 msgid "On"
 msgstr "Activate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+msgctxt "chat_encryption_label"
+msgid "Encryption"
+msgstr "Criptare"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+msgctxt "chat_encryption_notice"
+msgid ""
+"Messages and calls are end-to-end encrypted. Only people in this chat can "
+"read, listen to or share them."
+msgstr ""
+"Mesajele și apelurile sunt criptate end-to-end. Doar persoanele din această "
+"conversație le pot citi, asculta sau distribui."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+msgctxt "chat_encryption_notice_short"
+msgid "Messages and calls are end-to-end encrypted."
+msgstr "Mesajele și apelurile sunt criptate end-to-end."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_list.py
@@ -14535,6 +14567,12 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_auto_play_voice_in_sequence"
+msgid "Automatically play voice messages in sequence"
+msgstr "Redă automat mesajele vocale în secvență"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_bulk_action_shortcuts"
 msgid "Replace shortcuts with bulk actions when selecting chats and messages"
 msgstr ""
@@ -14692,6 +14730,16 @@ msgid ""
 msgstr ""
 "Păstrați căutarea conversațiilor la deschiderea unei conversații, pentru ca "
 "Esc să revină la rezultate, nu la lista completă"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_mark_unsaved_contacts"
+msgid ""
+"Precede names of unsaved contacts with a tilde (~) in conversations and "
+"messages"
+msgstr ""
+"Precedă numele contactelor nesalvate cu semnul tilde (~) în conversații și "
+"mesaje"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

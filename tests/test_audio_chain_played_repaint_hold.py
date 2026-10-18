@@ -87,6 +87,7 @@ class _ChainStub:
         ConversationsPanel._recheck_parked_chain_repaints
     )
     _auto_chain_next_audio = ConversationsPanel._auto_chain_next_audio
+    _voice_sequence_enabled = ConversationsPanel._voice_sequence_enabled
     _cancel_pending_chain_timers = ConversationsPanel._cancel_pending_chain_timers
     _next_message_is_chainable_audio = ConversationsPanel._next_message_is_chainable_audio
     _STATUS_REPAINT_COALESCE_MS = ConversationsPanel._STATUS_REPAINT_COALESCE_MS

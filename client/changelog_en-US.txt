@@ -4,6 +4,10 @@ This release brings transcription of voice messages on your own computer, with n
 
 WHAT'S NEW
 
+- Local transcription with faster-whisper: fixed CUDA library loading on Windows that could prevent graphics-card use and leave later transcriptions stuck. If the libraries cannot be loaded, WinZapp reports the problem before starting GPU inference.
+
+- Your online status now follows the current window even when you switch away quickly, hide WinZapp to the tray or reconnect in the background. A delayed online update can no longer overtake the offline update, and a failed offline update is retried.
+
 - New shortcuts, each one changeable on the Keyboard shortcuts tab of Settings: Alt+8 opens communities from anywhere in the window; Alt+Shift+B opens the catalog and cart of the business in the selected or open chat; and on a WhatsApp Business account, Ctrl+Shift+N creates an order for the contact of the chat. Where they do not apply, WinZapp says why. Enter on an order message opens the order.
 
 - Help > "What's New Since You Last Looked" says what changed in these release notes since anyone on this computer last opened it, in plain sentences: the new items of each section, the items that changed (as they now read) and the ones removed, and a whole version when it is new. It is the same for every account. And the update window's "What's new?" button now shows what the offered version changes in these notes instead of the notes of the version you have; for an alpha version it also lists, for each alpha since yours, the changes GitHub records (the title and number of each pull request).
@@ -122,11 +126,29 @@ WHAT'S NEW
 
 - Online transcription and description in the message line, automatic: the AI result window gets "Put transcription in the message line" (voice messages) and "Put description in the message line" (pictures, stickers and videos). In Settings > Transcriptions & Descriptions, two new options, both off by default, transcribe received voice messages and describe received pictures, stickers and videos automatically with the online providers, without a window or sound per message; turning one on asks for the usual consent and turns off the local automatic transcription, and the other way round. The conversation data window of each chat has "transcribe" and "describe" boxes (they also apply to the local automatic transcription), with a choice between "All conversations, except the ones I turn off" and "Only the conversations I turn on". To protect your API quota you can choose how old a received message may be and still be processed (5 minutes, 15, 30 or 1 hour) and set a daily ceiling on automatic online requests (50 by default, 0 for none); when every provider refuses for a reason that repeats, such as quota or key, the automatic queue pauses for an hour and says so once.
 
+- Conversations and messages from contacts you have not saved now show a tilde (~) before the name, as WhatsApp does. Turn it off in Settings > User interface, with "Precede names of unsaved contacts with a tilde (~) in conversations and messages".
+
+- A new or empty personal chat now extends the "no messages" line with a notice that messages and calls are end-to-end encrypted and, if the chat has a disappearing messages timer, its duration. The chat info also states the encryption.
+
+- The caption field of attachments now takes several lines, like WhatsApp Desktop: Enter still sends the attachment with its caption, and Shift+Enter or Ctrl+Enter start a new line, as in the message field.
+
+- Removing an account now removes everything it owns: besides its messages and settings, the browser profile that holds its WhatsApp login and that profile's backups are deleted too, and anything that could not be removed is finished the next time WinZapp starts. When the account is the only one, you can now remove it from Accounts > Manage accounts: WinZapp asks for confirmation, closes, and the next start is a first run.
+
+- Settings > User interface: the new "Automatically play voice messages in sequence" option, on by default, controls whether the next voice message starts on its own when one ends. Turn it off to have each voice message end by itself. The option "Automatically move focus to the next audio when playing audios in sequence" still only controls whether the keyboard focus follows the audio.
+
 FIXES
+
+- Fixed a "chat not found" error when sending messages or attachments to an existing conversation already loaded by WhatsApp.
+
+- Receiving a file no longer downloads it into the message notification because of an unused webhook setting. Upload and download progress updates now keep only the latest pending value, avoiding a buildup of screen updates during fast transfers.
+
+- Fixed repeated conversation synchronization when WhatsApp's chat list was available but could not be transferred to the local server. Existing conversations are kept and the list can finish synchronizing.
 
 - Sending voice messages and documents failed with "Cannot read properties of undefined (reading 'prepRawMedia')" on a WhatsApp Web build released on 15 October, which moved that function. WinZapp now ships the matching version of its WhatsApp Web library (WA-JS 4.7.1). If sending still fails after updating, reinstall WPPConnect from the update window.
 
 - macOS: in the chat and message lists, VoiceOver no longer loses its place when a row changes, for example when an unread count changes, someone starts recording audio or a new message arrives. Opening a chat with VoiceOver now works at once and every time, instead of sometimes failing or acting only after a pause, and VoiceOver then moves to the message field; notices such as the one about pinned messages are spoken after the field instead of cutting it off.
+
+- macOS: Command shortcuts now do the same thing on every screen. A button's underlined letter used to take over Command and that letter: while "Read more" was shown, Command-R pressed it instead of recording a voice message, and other buttons took other shortcuts the same way. A button's underlined letter is now pressed with Command-Option and the letter, the Mac form of Alt and the letter on Windows, and a WinZapp shortcut on the same keys still comes first, as on Windows.
 
 - The buttons for recording in the other mode (stereo or mono) and for recording with the computer's audio told the screen reader their shortcut was Ctrl+R. They now announce their own, Ctrl+Shift+G and Ctrl+Shift+H, or the keys you assigned to them.
 
@@ -205,6 +227,10 @@ FIXES
 - Downloaded files whose size is a multiple of 16 bytes (an APK, for example) no longer end with 16 extra bytes. Android refused to install them with "problem parsing the package"; now the saved file is identical to the original.
 
 - macOS: installing an update, and the first launch after it, are much faster. The app has far fewer files to unpack (about 24,000 instead of 61,000), its server is put in place in a fraction of a second instead of several seconds, the previous copy is deleted in the background, and the browser WhatsApp runs in (about 190 MB) is kept instead of being downloaded again after every update.
+
+- Link previews no longer show raw HTML codes such as &amp; or &eacute; in the description. When a preview is sent from WinZapp, and when one is read, those codes now become the real characters.
+
+- Echo cancellation in voice and video calls now works on calls you answer. The speaker had been playing since the call rang, so the canceller compared your microphone with audio from before it opened and never found the echo: the other person kept hearing their own voice even with the option on. The reference now starts when the microphone opens.
 
 - WPPConnect Server updated to 2.10.58. Upstream now refuses to start a session while sessions are being backed up or restored, saves each session's token file atomically so a crash can no longer leave it half-written, and reuses a checked access token for a minute instead of checking it again on every request. If WinZapp offers the WPPConnect update at startup, accept it to install the new version.
 

@@ -4,6 +4,10 @@ Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră
 
 NOUTĂȚI
 
+- Transcriere locală cu faster-whisper: s-a corectat încărcarea bibliotecilor CUDA în Windows, care putea împiedica utilizarea plăcii grafice și bloca transcrierile ulterioare. Dacă bibliotecile nu pot fi încărcate, WinZapp anunță problema înainte de a începe calculele pe placa grafică.
+
+- Starea dumneavoastră online corespunde acum stării actuale a ferestrei chiar și atunci când treceți rapid la alt program, ascundeți WinZapp în zona de notificare sau vă reconectați în fundal. O actualizare online întârziată nu mai poate ajunge după cea offline, iar o încercare nereușită de a seta starea offline este repetată.
+
 - Comenzi rapide noi, fiecare modificabilă în fila Comenzi rapide din setări: Alt+8 deschide comunitățile de oriunde din fereastră; Alt+Shift+B deschide catalogul și coșul firmei din conversația selectată sau deschisă; iar într-un cont WhatsApp Business, Ctrl+Shift+N creează o comandă pentru contactul din conversație. Acolo unde nu se aplică, WinZapp spune motivul. Enter pe un mesaj de comandă deschide comanda.
 
 - Ajutor > "Noutăți de la ultima vizualizare" spune, în propoziții simple, ce s-a schimbat în aceste noutăți de când cineva de pe acest computer le-a deschis ultima dată: elementele noi din fiecare secțiune, elementele modificate (în forma actuală) și cele eliminate, iar o versiune nouă este afișată în întregime. Este la fel pentru toate conturile. Iar butonul "Ce este nou?" din fereastra de actualizare arată acum ce schimbă versiunea oferită în aceste noutăți, în loc de noutățile versiunii pe care o aveți deja; pentru o versiune Alpha listează și, pentru fiecare Alpha de la a dumneavoastră încoace, modificările înregistrate pe GitHub (titlul și numărul fiecărui pull request).
@@ -122,11 +126,29 @@ NOUTĂȚI
 
 - Transcriere și descriere online în linia mesajului, în mod automat: fereastra de rezultat al AI are acum "Pune transcrierea în linia mesajului" (mesaje vocale) și "Pune descrierea în linia mesajului" (imagini, stickere și videoclipuri). În Setări > Transcrieri și Descrieri, două opțiuni noi, dezactivate implicit, transcriu automat mesajele vocale primite și descriu imaginile, stickerele și videoclipurile primite cu furnizorii online, fără fereastră sau sunet la fiecare mesaj; activarea uneia cere consimțământul obișnuit și dezactivează transcrierea automată locală, și invers. Fereastra de date a fiecărei conversații are casetele "transcrie" și "descrie" (se aplică și transcrierii automate locale), cu alegerea între "Toate conversațiile, cu excepția celor pe care le dezactivez" și "Numai conversațiile pe care le activez". Pentru a-ți proteja cota API, alegi cât de vechi poate fi un mesaj primit ca să fie procesat (5 minute, 15, 30 sau 1 oră) și stabilești o limită zilnică de cereri online automate (50 implicit, 0 pentru nicio limită); când toți furnizorii refuză dintr-un motiv care se repetă, cum ar fi cota sau cheia, coada automată se oprește o oră și anunță o singură dată.
 
+- Conversațiile și mesajele de la contactele nesalvate arată acum semnul tilde (~) înaintea numelui, ca în WhatsApp. Îl poți dezactiva în Setări > Interfața cu utilizatorul, cu opțiunea "Precedă numele contactelor nesalvate cu semnul tilde (~) în conversații și mesaje".
+
+- O conversație personală nouă sau goală indică acum, în rândul „nu există mesaje”, că mesajele și apelurile sunt criptate end-to-end și, dacă există mesaje care dispar, durata. Informațiile despre conversație menționează și criptarea.
+
+- Câmpul de descriere al atașamentelor acceptă acum mai multe rânduri, ca în WhatsApp Desktop: Enter trimite în continuare atașamentul cu descrierea, iar Shift+Enter sau Ctrl+Enter încep un rând nou, ca în câmpul de mesaj.
+
+- Ștergerea unui cont elimină acum tot ce îi aparține: pe lângă mesaje și setări, sunt șterse și profilul browserului care păstrează autentificarea WhatsApp și copiile de siguranță ale acelui profil, iar ce nu a putut fi eliminat este finalizat la următoarea pornire a WinZapp. Când contul este singurul, îl poți șterge acum din Conturi > Gestionați conturile: WinZapp cere confirmare, se închide, iar următoarea pornire este o primă rulare.
+
+- În Setări > Interfața utilizatorului, noua opțiune "Redă automat mesajele vocale în secvență", bifată implicit, stabilește dacă următorul mesaj vocal începe singur când se termină unul. Debifați-o ca fiecare mesaj vocal să se termine de la sine. Opțiunea "Mutați automat focalizarea la următorul sunet atunci când redați audio în secvență" continuă să controleze doar dacă focalizarea tastaturii urmărește audio.
+
 CORECTĂRI
+
+- A fost corectată eroarea "chat not found" la trimiterea mesajelor sau a atașamentelor într-o conversație existentă pe care WhatsApp o încărcase deja.
+
+- Primirea unui fișier nu îl mai descarcă în notificarea mesajului din cauza unei setări webhook neutilizate. Actualizările progresului de trimitere și descărcare păstrează doar cea mai recentă valoare în așteptare, evitând acumularea actualizărilor ecranului în timpul transferurilor rapide.
+
+- S-a corectat sincronizarea repetată a conversațiilor când lista WhatsApp era disponibilă, dar nu putea fi transferată către serverul local. Conversațiile existente sunt păstrate, iar sincronizarea listei se poate încheia.
 
 - Trimiterea mesajelor vocale și a documentelor eșua cu "Cannot read properties of undefined (reading 'prepRawMedia')" pe o versiune de WhatsApp Web lansată pe 15 octombrie, care a mutat acea funcție. WinZapp include acum versiunea corespunzătoare a bibliotecii sale WhatsApp Web (WA-JS 4.7.1). Dacă trimiterea tot eșuează după actualizare, reinstalează WPPConnect din fereastra de actualizare.
 
 - macOS: în listele de conversații și de mesaje, VoiceOver nu își mai pierde locul când un rând se schimbă, de exemplu când se schimbă numărul de mesaje necitite, cineva începe să înregistreze audio sau sosește un mesaj nou. Deschiderea unei conversații cu VoiceOver funcționează acum imediat și de fiecare dată, în loc să eșueze uneori sau să acționeze abia după o pauză, iar VoiceOver trece apoi la câmpul de mesaj; anunțuri precum cel despre mesajele fixate sunt rostite după câmp în loc să îl întrerupă.
+
+- macOS: comenzile rapide cu Command fac acum același lucru pe orice ecran. Litera subliniată a unui buton prelua Command cu acea literă: cât timp era afișat „Citiți mai multe”, Command-C îl apăsa în loc să copieze, iar alte butoane preluau în același fel alte comenzi rapide. Litera subliniată a unui buton se apasă acum cu Command-Option și litera, forma de Mac a lui Alt și litera din Windows, iar o comandă rapidă WinZapp pe aceleași taste are în continuare prioritate, ca în Windows.
 
 - Butoanele de înregistrare în celălalt mod (stereo sau mono) și de înregistrare cu sunetul computerului anunțau cititorului de ecran comanda rapidă Ctrl+R. Acum fiecare o anunță pe a sa, Ctrl+Shift+G și Ctrl+Shift+H, sau tastele pe care le-ați atribuit.
 
@@ -205,6 +227,10 @@ CORECTĂRI
 - Fișierele descărcate a căror dimensiune este multiplu de 16 octeți (un APK, de exemplu) nu mai se termină cu 16 octeți în plus. Android refuza să le instaleze cu „problemă la analizarea pachetului”; acum fișierul salvat este identic cu originalul.
 
 - macOS: instalarea unei actualizări și prima pornire după ea sunt mult mai rapide. Aplicația are mult mai puține fișiere de dezarhivat (aproximativ 24.000 în loc de 61.000), serverul ei este pus la locul lui într-o fracțiune de secundă în loc de câteva secunde, copia anterioară este ștearsă în fundal, iar browserul în care rulează WhatsApp (aproximativ 190 MB) este păstrat în loc să fie descărcat din nou după fiecare actualizare.
+
+- Previzualizările linkurilor nu mai arată în descriere coduri HTML brute precum &amp; sau &eacute;. Când o previzualizare este trimisă din WinZapp și când este citită, aceste coduri devin acum caracterele reale.
+
+- Anularea ecoului în apelurile vocale și video funcționează acum în apelurile pe care le preiei. Difuzorul cânta încă de când apelul suna, așa că anulatorul compara microfonul cu sunet dinaintea deschiderii lui și nu găsea niciodată ecoul: cealaltă persoană își auzea în continuare propria voce chiar cu opțiunea activată. Referința începe acum când se deschide microfonul.
 
 - WPPConnect Server a fost actualizat la 2.10.58. Biblioteca refuză acum pornirea unei sesiuni cât timp sesiunile sunt copiate sau restaurate, salvează atomic fișierul de token al fiecărei sesiuni, ca o eroare să nu-l lase scris pe jumătate, și reutilizează timp de un minut un token de acces deja verificat, în loc să-l verifice din nou la fiecare cerere. Dacă WinZapp oferă actualizarea WPPConnect la pornire, acceptați-o pentru a instala noua versiune.
 

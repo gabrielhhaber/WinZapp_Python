@@ -4,6 +4,8 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "d133959e5ffa": "Transcrição local com faster-whisper: corrigido o carregamento das bibliotecas C",
+    "ccbecffbe1e9": "Seu estado online agora acompanha a janela atual mesmo ao alternar rapidamente p",
     "033d14e653c7": "Novos atalhos, cada um alterável na aba Atalhos de teclado das configurações: Al",
     "f7a52c055d6d": "Ajuda > \"Novidades desde a última vez que você viu\" diz o que mudou nestas novid",
     "48d4666ce76e": "Transcrição local com whisper.cpp: a opção \"Manter o modelo carregado na memória",
@@ -63,8 +65,17 @@
     "ae7d1c67d93f": "Ajuda > \"Guia de uso\" abre, no navegador padrão, o guia completo de como usar o ",
     "286d59aff64d": "Limpeza de mídia: Configurações > Armazenamento > \"Limpeza de mídia\" libera espa",
     "3bc70a9cfeb2": "Transcrição e descrição online na linha da mensagem, de forma automática: a jane",
+    "489d9d400af5": "Conversas e mensagens de contatos que você não salvou agora mostram um sinal de ",
+    "08473eb4e590": "Um chat pessoal novo ou vazio agora informa, na linha de \"nenhuma mensagem\", que",
+    "8eabb77763b3": "O campo de legenda dos anexos agora aceita várias linhas, como no WhatsApp Deskt",
+    "0dc6ff8ad759": "Corrigido um erro de \"chat not found\" ao enviar mensagens ou anexos para uma con",
+    "27a8e1859b23": "Excluir uma conta agora remove tudo o que ela possui: além das mensagens e das c",
+    "673c1006631c": "Em Configurações > Interface do usuário, a nova opção \"Reproduzir mensagens de v",
+    "86e09a9d33c1": "Receber um arquivo deixa de baixá-lo dentro da notificação da mensagem por causa",
+    "5586071669a5": "Corrigida a sincronização repetida de conversas quando a lista do WhatsApp estav",
     "b5e98f0d03bb": "O envio de mensagens de voz e de documentos falhava com \"Cannot read properties ",
     "8250581883e9": "macOS: nas listas de conversas e de mensagens, o VoiceOver não perde mais o luga",
+    "68e3ea0243eb": "macOS: os atalhos com Command agora fazem a mesma coisa em todas as telas. A let",
     "483ea2476902": "Os botões de gravar no outro modo (estéreo ou mono) e de gravar com o áudio do c",
     "5f7d027b0203": "As janelas Dados do grupo, Dados da conversa, Convite para o grupo e Entrar no g",
     "a91609645a95": "Mensagens enviadas enquanto uma sequência de mensagens de voz estava em andament",
@@ -103,6 +114,8 @@
     "977a5ed9bc89": "WPPConnect Server atualizado para a 2.10.55. Além das correções da biblioteca pa",
     "5c4937c4b6b0": "Sair de uma sessão que ficou pela metade (por exemplo, uma conta que nunca termi",
     "0f6146dcd9a7": "Arquivos baixados cujo tamanho é múltiplo de 16 bytes (um APK, por exemplo) deix",
-    "6f9902356772": "macOS: instalar uma atualização, e a primeira abertura depois dela, ficaram muit"
+    "6f9902356772": "macOS: instalar uma atualização, e a primeira abertura depois dela, ficaram muit",
+    "57b84955fa7b": "As prévias de links não mostram mais códigos HTML como &amp; ou &eacute; na desc",
+    "329cb39b3860": "O cancelamento de eco nas chamadas de voz e vídeo agora funciona nas chamadas qu"
   }
 }

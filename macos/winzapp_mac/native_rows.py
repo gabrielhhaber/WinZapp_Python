@@ -212,6 +212,18 @@ class WZRowCell(NSTableCellView):
         ref = _owners.get(objc.pyobjc_id(self._wz_table)) if self._wz_table is not None else None
         return ref() if ref else None
 
+    def _row(self):
+        """The row this view shows NOW. _wz_row is only set when the view is
+        made; a single-row insert or delete (change()) shifts the views below
+        it without remaking them, so only the table knows the current row."""
+        table = self._wz_table
+        if table is None:
+            return -1
+        try:
+            return int(table.rowForView_(self))
+        except Exception:
+            return self._wz_row
+
     def isAccessibilityElement(self):
         # The table's own per-cell AX element already forwards label, press,
         # show-menu and custom actions to this view; also exposing the view
@@ -225,33 +237,33 @@ class WZRowCell(NSTableCellView):
         tf = self.textField()
         return tf.stringValue() if tf is not None else ""
 
-    def _select_me(self, ctrl):
-        if ctrl.GetFocusedItem() != self._wz_row:
-            ctrl.Focus(self._wz_row)
+    def _select_me(self, ctrl, row):
+        if ctrl.GetFocusedItem() != row:
+            ctrl.Focus(row)
 
     def accessibilityPerformPress(self):
-        ctrl = self._ctrl()
-        if ctrl is None or self._wz_row < 0:
+        ctrl, row = self._ctrl(), self._row()
+        if ctrl is None or row < 0:
             return False
-        self._select_me(ctrl)
-        wx.CallAfter(ctrl.activate_row, self._wz_row)
+        self._select_me(ctrl, row)
+        wx.CallAfter(ctrl.activate_row, row)
         return True
 
     def accessibilityPerformShowMenu(self):
-        ctrl = self._ctrl()
-        if ctrl is None or self._wz_row < 0:
+        ctrl, row = self._ctrl(), self._row()
+        if ctrl is None or row < 0:
             return False
-        self._select_me(ctrl)
+        self._select_me(ctrl, row)
         evt = wx.ContextMenuEvent(wx.wxEVT_CONTEXT_MENU, ctrl.GetId(), wx.DefaultPosition)
         evt.SetEventObject(ctrl)
         wx.CallAfter(ctrl.GetEventHandler().ProcessEvent, evt)
         return True
 
     def accessibilityCustomActions(self):
-        ctrl = self._ctrl()
+        ctrl, row = self._ctrl(), self._row()
         # Only the row the keyboard is on: WinZapp's menu handlers act on
         # the selected row, and VoiceOver's cursor follows it.
-        if ctrl is None or self._wz_row < 0 or ctrl.GetFocusedItem() != self._wz_row:
+        if ctrl is None or row < 0 or ctrl.GetFocusedItem() != row:
             return []
         # AppKit asks twice per lookup (the table's cell element forwards
         # to this view and also rolls up its descendants' actions); handing
@@ -259,7 +271,7 @@ class WZRowCell(NSTableCellView):
         # listing every action twice.
         import time
         cached = getattr(self, "_wz_actions", None)
-        if cached and cached[0] == self._wz_row and time.monotonic() - cached[1] < 1.0:
+        if cached and cached[0] == row and time.monotonic() - cached[1] < 1.0:
             return cached[2]
         try:
             labels = menu_actions(ctrl)
@@ -270,7 +282,7 @@ class WZRowCell(NSTableCellView):
                 label, self, b"wzPerformAction:")
             for label in labels
         ]
-        self._wz_actions = (self._wz_row, time.monotonic(), actions)
+        self._wz_actions = (row, time.monotonic(), actions)
         return actions
 
     @objc.typedSelector(b"Z@:@")

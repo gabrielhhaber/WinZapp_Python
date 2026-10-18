@@ -2,7 +2,11 @@
 <table class="field-table">
   <tr><th>Situation</th><th>What to do</th></tr>
   <tr><td>WinZapp asks you to pair again</td><td>Pair with number or QR code. Your chats are only deleted if you connect a different number. If it happened for no reason, keep <code>log.log</code> and <code>shutdown_audit.log</code> before opening it again.</td></tr>
-  <tr><td>Messages do not arrive or the list looks stuck</td><td>Wait for the sync progress; use Shift+F5 in the chat or F5 for all. Also check that offline mode is not on.</td></tr>
+  <tr><td>Messages do not arrive or the list looks stuck</td><td>Wait for the sync progress; use Shift+F5 in the chat or F5 for all. Also check that offline mode is not on. If the list keeps syncing again and again, update WinZapp: a fix lets the chat list finish syncing.</td></tr>
+  <tr><td>Local transcription on the NVIDIA graphics card fails or gets stuck</td><td>Update WinZapp: a fix loads the CUDA libraries on Windows before the graphics card is used. If they cannot be loaded, WinZapp says so and offers to transcribe on the processor instead.</td></tr>
+  <tr><td>WinZapp freezes when sending or receiving large files</td><td>Update WinZapp: a fix stops a received file from being downloaded along with the message notification and stops send and download progress from piling up screen updates.</td></tr>
+  <tr><td>The "chat not found" error appears when sending to an existing conversation</td><td>Update WinZapp: a fix makes sending messages and attachments use the conversation WhatsApp has already loaded.</td></tr>
+  <tr><td>My account still shows as online after I left the window</td><td>Update WinZapp: your online status now follows the window (focus, minimized, hidden in the tray, background start), and a failed offline update is retried every 20 seconds.</td></tr>
   <tr><td>Calls do not start</td><td>Restart WinZapp or use Help &gt; Force reinstall WPPConnect. WinZapp keeps the list of WhatsApp Web versions up to date by itself.</td></tr>
   <tr><td>The internal browser does not open</td><td>Usually an antivirus removed part of it. WinZapp warns and explains; use Force reinstall WPPConnect.</td></tr>
   <tr><td>A message was sent but WinZapp did not confirm</td><td>Check the chat before resending; WinZapp does not resend by itself in these cases.</td></tr>

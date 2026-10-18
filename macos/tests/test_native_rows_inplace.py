@@ -62,3 +62,71 @@ def test_change_marks_the_table_only_inside_the_block_even_when_it_raises():
 def test_a_control_that_was_never_adopted_marks_nothing():
     with nr.change(object(), nr.DELETE, 3):
         assert nr._pending == {}
+
+
+# ---- a row view acts on the row it shows now, not the one it was made for --
+
+import objc  # noqa: E402
+from Foundation import NSObject  # noqa: E402
+
+
+class _ShiftedTable(NSObject):
+    """Stands in for the wxNSTableView: rowForView_ is the table's answer for
+    where a view is now, after single-row inserts/deletes moved it."""
+
+    def rowForView_(self, view):
+        return self.now
+
+
+class _ListCtrl:
+    def __init__(self, focused):
+        self.focused = focused
+        self.focus_calls = []
+
+    def GetFocusedItem(self):
+        return self.focused
+
+    def Focus(self, row):
+        self.focus_calls.append(row)
+        self.focused = row
+
+
+def _cell_made_for_row(made_at, now_at):
+    table = _ShiftedTable.alloc().init()
+    table.now = now_at
+    cell = nr.WZRowCell.alloc().initWithFrame_(nr.NSMakeRect(0, 0, 200, 17))
+    cell._wz_row = made_at
+    cell._wz_table = table
+    return cell, table
+
+
+def test_a_view_reports_the_row_the_table_now_has_it_at():
+    # Made as row 3; a chat inserted at the top shifted it to row 4.
+    cell, _table = _cell_made_for_row(3, 4)
+    assert cell._row() == 4
+
+
+def test_a_view_no_longer_in_the_table_has_no_row():
+    cell, _table = _cell_made_for_row(3, -1)
+    assert cell._row() == -1
+
+
+def test_vo_space_opens_the_chat_the_row_shows_after_a_chat_moved_to_the_top(monkeypatch):
+    cell, table = _cell_made_for_row(3, 4)
+    ctrl = _ListCtrl(focused=0)
+    activated = []
+    monkeypatch.setitem(nr._owners, objc.pyobjc_id(table), lambda: ctrl)
+    monkeypatch.setattr(nr.wx, "CallAfter", lambda fn, *a: activated.append((fn, a)))
+    ctrl.activate_row = object()
+    assert cell.accessibilityPerformPress()
+    assert ctrl.focus_calls == [4]
+    assert activated == [(ctrl.activate_row, (4,))]
+
+
+def test_a_view_that_left_the_table_does_not_press_anything(monkeypatch):
+    cell, table = _cell_made_for_row(3, -1)
+    ctrl = _ListCtrl(focused=0)
+    monkeypatch.setitem(nr._owners, objc.pyobjc_id(table), lambda: ctrl)
+    monkeypatch.setattr(nr.wx, "CallAfter", lambda *a: (_ for _ in ()).throw(AssertionError))
+    assert not cell.accessibilityPerformPress()
+    assert ctrl.focus_calls == []

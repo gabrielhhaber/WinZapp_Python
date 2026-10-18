@@ -44,7 +44,8 @@ def test_attachment_http_progress_is_scoped_to_its_upload_id():
         "ConversationsPanel",
         "_on_send_attachment",
     )
-    assert "wx.CallAfter(self.update_media_upload_progress, local_id, progress)" in src
+    assert "CoalescedCallback(wx.CallAfter, self.update_media_upload_progress)" in src
+    assert "notify(local_id, progress)" in src
     assert "wx.CallAfter(self._update_media_transfer_gauge, progress)" not in src
 
 

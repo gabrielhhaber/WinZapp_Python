@@ -1400,10 +1400,9 @@ class TestTheLibraryAnswerIsRemembered:
 class TestCudaLibraryDirectories:
     """Part 4b's hook: it downloads the runtime, this is told where it landed.
 
-    Recording the path is only half of it. `os.add_dll_directory()` is what
-    lets CTranslate2's own LoadLibrary find the file, and without it this
-    module could confirm a library the run would then fail to open — the exact
-    lie the check exists to remove.
+    Recording the path lets the transient probe and preparation load by
+    absolute path. AddDllDirectory resolves their dependencies; preparation
+    must additionally keep the mapping alive for CTranslate2's legacy lookup.
     """
 
     def test_registering_a_real_directory_reports_it(self, tmp_path, monkeypatch):

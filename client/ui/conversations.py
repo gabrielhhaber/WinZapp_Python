@@ -1051,11 +1051,12 @@ class ConversationsPanel(
 
         self._caption_field = wx.TextCtrl(
             self._attachment_panel,
-            style=wx.TE_DONTWRAP | wx.TE_PROCESS_ENTER,
+            style=wx.TE_MULTILINE | wx.TE_DONTWRAP | wx.TE_PROCESS_ENTER,
         )
         self._caption_field.SetHint(i18n.t("attachment_caption_hint"))
         self._caption_field.Bind(wx.EVT_TEXT_PASTE, self._on_text_field_paste)
         self._caption_field.Bind(wx.EVT_TEXT_ENTER, self._on_send_attachment)
+        self._caption_field.Bind(wx.EVT_KEY_DOWN, self._on_caption_field_key_down)
         attach_sizer.Add(self._caption_field, 0, wx.EXPAND | wx.ALL, 5)
 
         self._send_attachment_btn = wx.Button(

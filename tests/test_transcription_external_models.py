@@ -583,6 +583,12 @@ class TestVerifyingTheWeights:
 
 
 class TestTheTrialLoad:
+    @pytest.fixture(autouse=True)
+    def _cuda_runtime(self, monkeypatch):
+        # These tests inject a model factory; no actual CUDA DLL is required.
+        monkeypatch.setattr(faster_whisper_backend.device, "prepare_cuda_libraries",
+                            lambda: (True, (), None))
+
     def test_the_backend_opens_it_offline_and_lets_it_go(self, catalogue, tmp_path):
         _model, contents = catalogue["alpha"]
         folder = _write(tmp_path / "custom", dict(contents, **{"model.bin": b"C" * 99}))

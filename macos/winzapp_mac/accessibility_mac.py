@@ -31,6 +31,7 @@ _orig_get_accessible = wx.Window.GetAccessible
 
 _accessibles = {}   # id(window) -> accessible
 KEY_FILTERS = []    # callables(wx.KeyEvent) run on every key event first
+KEY_HANDLERS = []   # callables(wx.KeyEvent) -> True to consume, after KEY_FILTERS
 TEXT_FILTERS = []   # callables(str) -> str applied to labels/help text
 
 
@@ -249,6 +250,9 @@ class _Filter:
         if et in (wx.wxEVT_CHAR_HOOK, wx.wxEVT_KEY_DOWN):
             for f in KEY_FILTERS:
                 f(evt)
+            for handler in KEY_HANDLERS:
+                if handler(evt):
+                    return 1  # wx.Event_Processed
         elif et == wx.wxEVT_SET_FOCUS:
             win = evt.GetEventObject()
             if isinstance(win, wx.Window):

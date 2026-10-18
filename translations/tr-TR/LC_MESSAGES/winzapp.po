@@ -158,7 +158,7 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr "Varsayılan"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "acc_delete_confirm"
 msgid ""
@@ -167,6 +167,18 @@ msgid ""
 msgstr ""
 "\"{name}\" hesabını ve tüm verilerini kalıcı olarak silmek istiyor musunuz? "
 "Bu eylem geri alınamaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid ""
+"\"{name}\" is the only account. Permanently delete it with all its messages,"
+" media, preferences and profile backups, and close WinZapp? This cannot be "
+"undone."
+msgstr ""
+"\"{name}\" tek hesaptır. Tüm mesajları, medyası, tercihleri ve profil "
+"yedekleriyle birlikte kalıcı olarak silinsin ve WinZapp kapatılsın mı? Bu "
+"işlem geri alınamaz."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_err_archive_current"
@@ -2533,7 +2545,8 @@ msgctxt "chat_disappearing_90d"
 msgid "90 days"
 msgstr "90 gün"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+#: client/core/chat_settings.py
 msgctxt "chat_disappearing_label"
 msgid "Disappearing messages"
 msgstr "Kaybolan mesajlar"
@@ -2547,6 +2560,25 @@ msgstr "Kapalı"
 msgctxt "chat_disappearing_on"
 msgid "On"
 msgstr "Açık"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+msgctxt "chat_encryption_label"
+msgid "Encryption"
+msgstr "Şifreleme"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+msgctxt "chat_encryption_notice"
+msgid ""
+"Messages and calls are end-to-end encrypted. Only people in this chat can "
+"read, listen to or share them."
+msgstr ""
+"Mesajlar ve aramalar uçtan uca şifrelidir. Yalnızca bu sohbetteki kişiler "
+"bunları okuyabilir, dinleyebilir veya paylaşabilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+msgctxt "chat_encryption_notice_short"
+msgid "Messages and calls are end-to-end encrypted."
+msgstr "Mesajlar ve aramalar uçtan uca şifrelidir."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_list.py
@@ -14358,6 +14390,12 @@ msgstr "Sesler sırayla çalınırken odağı otomatik olarak sonraki sese taş�
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_auto_play_voice_in_sequence"
+msgid "Automatically play voice messages in sequence"
+msgstr "Sesli mesajları otomatik olarak sırayla çal"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_bulk_action_shortcuts"
 msgid "Replace shortcuts with bulk actions when selecting chats and messages"
 msgstr "Sohbet ve mesaj seçerken kısayolları toplu işlemlerle değiştir"
@@ -14510,6 +14548,16 @@ msgid ""
 msgstr ""
 "Bir sohbet açıldığında sohbet aramasını koru; böylece Esc tam liste yerine "
 "sonuçlara döner"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_mark_unsaved_contacts"
+msgid ""
+"Precede names of unsaved contacts with a tilde (~) in conversations and "
+"messages"
+msgstr ""
+"Kaydedilmemiş kişilerin adlarının önüne sohbetlerde ve mesajlarda tilde (~) "
+"işareti koy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

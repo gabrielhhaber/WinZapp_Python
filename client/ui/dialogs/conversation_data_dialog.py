@@ -24,6 +24,7 @@ from datetime import datetime
 import wx
 import wx.adv
 from core import conversation_auto_ai, phone_contacts
+from core.chat_notices import encryption_lines
 from core.chat_settings import chat_settings_lines
 from core.contact_identity import contact_identity_lines
 from core.group_operations import group_permissions
@@ -863,6 +864,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         # Mute and disappearing messages, from what the client already holds
         # (its mute map and the chat-list snapshot); no line when it has none.
         lines.extend(chat_settings_lines(self._mw, self._jid, i18n, _fmt_ts))
+        lines.extend(encryption_lines(self._jid, i18n))
 
         self._info_ctrl.SetValue("\n".join(lines))
         self._info_ctrl.SetFocus()

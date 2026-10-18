@@ -891,6 +891,8 @@ class ConnectionMixin:
             return
         was = bool(getattr(self, "_wa_connected", False))
         self._wa_connected = connected
+        if was != connected and hasattr(self, "_sync_online_presence"):
+            wx.CallAfter(self._sync_online_presence)
         if was != connected and hasattr(self, "_invalidate_contact_presence"):
             if connected:
                 wx.CallAfter(self._refresh_open_contact_presence)

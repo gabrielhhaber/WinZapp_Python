@@ -30,6 +30,7 @@ from app_paths import data_path
 from datetime import datetime
 from core.save_location import resolve_save_dialog_folder
 from core.save_dialog_selection import schedule_deselect_extension
+from core.coalesced_callback import CoalescedCallback
 
 
 class MediaFilesMixin:
@@ -961,6 +962,7 @@ class MediaFilesMixin:
         self.conversation_panel.Layout()
 
         last_percent = -1
+        notify_progress = CoalescedCallback(wx.CallAfter, self.update_message_download_progress)
 
         def _update_download_progress(progress):
             nonlocal last_percent
@@ -968,7 +970,7 @@ class MediaFilesMixin:
             if percent == last_percent:
                 return
             last_percent = percent
-            wx.CallAfter(self.update_message_download_progress, msg_id, progress)
+            notify_progress(msg_id, progress)
 
         def _run():
             try:

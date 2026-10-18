@@ -7,6 +7,7 @@ import base64
 import unicodedata
 import requests
 from cryptography.fernet import Fernet
+from core.link_preview import decode_html_entities
 from core.reaction_shortcuts import DEFAULT_QUICK_REACTIONS
 
 
@@ -948,8 +949,8 @@ def link_preview_text(ext: dict, text: str, main_window=None) -> str:
     bits = [
         part
         for part in (
-            (ext.get("title") or "").strip(),
-            (ext.get("description") or "").strip(),
+            decode_html_entities(ext.get("title") or "").strip(),
+            decode_html_entities(ext.get("description") or "").strip(),
         )
         if part
     ]
@@ -1116,6 +1117,7 @@ DEFAULT_SETTINGS = {
         "self_reference_custom_word": "",
         "hide_own_sender_in_message_list": False,
         "hide_unnamed_sender_numbers": False,
+        "mark_unsaved_contacts": True,
         "show_delivery_status_in_chat_list": True,
         "keep_pinned_chat_order": False,
         "preserve_typed_text_as_attachment_caption": True,
@@ -1147,6 +1149,8 @@ DEFAULT_SETTINGS = {
         # audio or video status into its line and Alt+Shift+N opens or plays
         # it. See core/transcription/statuses.py.
         "enter_transcribes_statuses": False,
+        # Voice notes play one after the other. Off: each one ends on its own.
+        "auto_play_voice_in_sequence": True,
         "auto_focus_next_audio": True,
         "selected_announcement_position": "end",
         "show_yesterday_label": True,

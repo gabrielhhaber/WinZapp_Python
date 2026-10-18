@@ -23,16 +23,17 @@
 #     Settings > General. It is also a real, parseable WinZapp version
 #     (parse_version() in updater.py accepts a dev/alpha/beta suffix), so an
 #     alpha still compares correctly against stable versions.
-#   - No bump-version job: client/version.py in main must keep tracking the
-#     stable release line. Committing an alpha version back to main would
-#     also push to main, which is what triggers this workflow.
+#   - No bump-version job: client/version.py in main is changed by hand, only
+#     when the maintainers want main's version to move. Committing an alpha
+#     version back to main would also push to main, which is what triggers
+#     this workflow. Publishing a stable release never touches main.
 name: Alpha Build
 
 on:
   push:
     branches: [main]
-    # version.py-only commits come from release-published.yml's bump-version job (which
-    # already marks them [skip ci]); nothing in a docs/CI-only change alters
+    # A version.py-only commit changes nothing that gets compiled, and nothing
+    # in a docs/CI-only change alters
     # what gets compiled, so don't burn a ~15 minute build and a release on it.
     paths-ignore:
       - "client/version.py"
@@ -100,8 +101,8 @@ jobs:
   # two channels stop ordering against each other. updater.py compares
   # ((major, minor, patch, build), pre_order) with alpha < beta < final, so:
   #
-  #   base 0.25.0.0beta (client/version.py, kept current by
-  #   release-published.yml's bump-version job) + commit count N  ->  0.25.0.<N>alpha
+  #   base 0.25.0.0beta (client/version.py, changed by hand
+  #   when main's line moves) + commit count N  ->  0.25.0.<N>alpha
   #
   # The suffix on the base is irrelevant to all of this — only major.minor.
   # patch are read off it — so the scheme keeps working unchanged when the
@@ -264,8 +265,8 @@ jobs:
       # Uses the default GITHUB_TOKEN deliberately: GitHub does not re-trigger
       # workflows for events raised by GITHUB_TOKEN, so publishing this release
       # (and the tag GitHub creates for it) does NOT fire release.yml's tag
-      # push trigger or release-published.yml (both also skip alpha tags
-      # outright, as a second line of defence).
+      # push trigger (which also skips alpha tags outright, as a second
+      # line of defence).
       # A run cancelled partway through the upload below leaves its draft
       # behind, and cancellation is routine here (a newer commit supersedes an
       # in-flight build). Nothing ever collects those, so they'd pile up on the

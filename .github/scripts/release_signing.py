@@ -338,7 +338,7 @@ def cmd_sign_stable(args) -> int:
         return 0
     _gh(["--method", "PATCH", f"repos/{repo}/releases/{release['id']}",
          "-F", "draft=false", "-F", "prerelease=false", "-f", "make_latest=true"])
-    print(f"Published {tag}. release-published.yml now bumps client/version.py on main.")
+    print(f"Published {tag}. client/version.py on main is not touched; change it yourself when main's version should move.")
     return 0
 
 

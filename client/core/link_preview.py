@@ -20,6 +20,7 @@ network call entirely, only ``true`` triggers it).
 
 from __future__ import annotations
 
+import html
 import logging
 import re
 from html.parser import HTMLParser
@@ -49,6 +50,23 @@ _MAX_BYTES_READ = 3 * 1024 * 1024
 # condition exists to avoid.
 _HEAD_CLOSE = b"</head>"
 _CHUNK_SIZE = 16384
+
+
+def decode_html_entities(text: str) -> str:
+    """Turn HTML entities in *text* into the real characters.
+
+    Sites often double-escape their Open Graph text (``&amp;eacute;``), so the
+    one pass ``HTMLParser`` already did leaves ``&eacute;`` behind. Unescape
+    until nothing changes (bounded), so ``&amp;amp;`` and ``&amp;eacute;``
+    both end as the plain character.
+    """
+    text = text or ""
+    for _ in range(4):
+        decoded = html.unescape(text)
+        if decoded == text:
+            break
+        text = decoded
+    return text
 
 
 def find_first_url(text: str) -> str:
@@ -133,8 +151,8 @@ def fetch_link_preview(url: str, timeout: float = 6.0) -> dict | None:
         logging.info("[link_preview] HTML parse failed for %r: %s", url, exc)
         return None
 
-    title = (parser.og.get("og:title") or parser.title or "").strip()
-    description = (parser.og.get("og:description") or "").strip()
+    title = decode_html_entities(parser.og.get("og:title") or parser.title or "").strip()
+    description = decode_html_entities(parser.og.get("og:description") or "").strip()
     if not title and not description:
         return None
 

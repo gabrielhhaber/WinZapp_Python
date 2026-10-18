@@ -627,6 +627,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         ui_sizer.Add(self._show_delivery_status_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
 
+        self._mark_unsaved_contacts_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_mark_unsaved_contacts")
+        )
+        ui_sizer.Add(self._mark_unsaved_contacts_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
         self._keep_pinned_order_cb = wx.CheckBox(
             self._ui_page, label=i18n.t("ui_keep_pinned_chat_order")
         )
@@ -710,6 +715,13 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         ui_sizer.Add(
             self._keep_search_after_open_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._auto_play_voice_in_sequence_cb = wx.CheckBox(
+            self._ui_page, label=i18n.t("ui_auto_play_voice_in_sequence")
+        )
+        ui_sizer.Add(
+            self._auto_play_voice_in_sequence_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
         self._auto_focus_next_audio_cb = wx.CheckBox(
@@ -2111,6 +2123,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         self._keep_search_after_open_cb.SetValue(bool(keep_search_after_open))
 
+        auto_play_voice_in_sequence = self.main_window.settings.get("user_interface", {}).get(
+            "auto_play_voice_in_sequence", True
+        )
+        self._auto_play_voice_in_sequence_cb.SetValue(bool(auto_play_voice_in_sequence))
+
         auto_focus_next_audio = self.main_window.settings.get("user_interface", {}).get(
             "auto_focus_next_audio", True
         )
@@ -2204,6 +2221,12 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
                 "hide_unnamed_sender_numbers", False
             ) is True
         )
+
+        self._mark_unsaved_contacts_cb.SetValue(bool(
+            self.main_window.settings.get("user_interface", {}).get(
+                "mark_unsaved_contacts", True
+            )
+        ))
 
         accessibility = self.main_window.settings.get("accessibility", {})
         self._extended_sr_compat_check.SetValue(accessibility.get("extended_sr_compat_enabled", True))
@@ -3477,6 +3500,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             "keep_search_after_open"
         ] = self._keep_search_after_open_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
+            "auto_play_voice_in_sequence"
+        ] = self._auto_play_voice_in_sequence_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
             "auto_focus_next_audio"
         ] = self._auto_focus_next_audio_cb.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
@@ -3536,6 +3562,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         sender_numbers_changed = (
             old_ui_settings.get("hide_unnamed_sender_numbers", False) is True
         ) != self._hide_unnamed_sender_numbers_cb.GetValue()
+        unsaved_mark_changed = (
+            bool(old_ui_settings.get("mark_unsaved_contacts", True))
+        ) != self._mark_unsaved_contacts_cb.GetValue()
         self_reference_changed = (
             old_ui_settings.get("self_reference_mode", "eu") != self_reference_mode
             or old_ui_settings.get("self_reference_custom_word", "") != self_reference_custom_word
@@ -3554,6 +3583,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self.main_window.settings.setdefault("user_interface", {})[
             "hide_unnamed_sender_numbers"
         ] = self._hide_unnamed_sender_numbers_cb.GetValue()
+        self.main_window.settings.setdefault("user_interface", {})[
+            "mark_unsaved_contacts"
+        ] = self._mark_unsaved_contacts_cb.GetValue()
 
         # Accessibility
         self.main_window.settings.setdefault("accessibility", {})[
@@ -3811,7 +3843,12 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # word for chats whose last message is our own), so a self-reference
         # change (e.g. "Eu" -> "Você") takes effect immediately instead of
         # only on the next restart.
-        if sender_numbers_changed and not (self_reference_changed or vm_mode_changed):
+        if unsaved_mark_changed and not (self_reference_changed or vm_mode_changed):
+            if cp is not None and getattr(cp, "conversation", None) is not None:
+                cp.populate_messages(preserve_focus=True)
+            self.main_window._chats_ui_fp = None
+            self.main_window.add_chats_to_ui()
+        if sender_numbers_changed and not (self_reference_changed or vm_mode_changed or unsaved_mark_changed):
             if cp is not None and getattr(cp, "conversation", None) is not None:
                 cp.populate_messages(preserve_focus=True)
         if self_reference_changed or vm_mode_changed:
@@ -3994,6 +4031,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._self_ref_other_rb.SetLabel(i18n.t("ui_self_reference_other"))
         self._self_ref_custom_label.SetLabel(i18n.t("ui_self_reference_custom_label"))
         self._hide_own_sender_cb.SetLabel(i18n.t("ui_hide_own_sender_in_message_list"))
+        self._mark_unsaved_contacts_cb.SetLabel(i18n.t("ui_mark_unsaved_contacts"))
         self._hide_unnamed_sender_numbers_cb.SetLabel(i18n.t("ui_hide_unnamed_sender_numbers"))
         self._hide_unnamed_sender_numbers_cb.SetHelpText(i18n.t("ui_hide_unnamed_sender_numbers_help"))
         self._show_delivery_status_cb.SetLabel(i18n.t("ui_show_delivery_status_in_chat_list"))
@@ -4045,6 +4083,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
         self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
         self._keep_search_after_open_cb.SetLabel(i18n.t("ui_keep_search_after_open"))
+        self._auto_play_voice_in_sequence_cb.SetLabel(i18n.t("ui_auto_play_voice_in_sequence"))
         self._auto_focus_next_audio_cb.SetLabel(i18n.t("ui_auto_focus_next_audio"))
         self._selected_announce_box.SetLabel(i18n.t("ui_selected_announce_position_label"))
         self._selected_announce_start_rb.SetLabel(i18n.t("ui_selected_announce_position_start"))

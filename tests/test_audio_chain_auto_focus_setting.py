@@ -62,6 +62,7 @@ def _voice_msg(msg_id):
 
 class _Stub:
     _auto_chain_next_audio = ConversationsPanel._auto_chain_next_audio
+    _voice_sequence_enabled = ConversationsPanel._voice_sequence_enabled
     _cancel_pending_chain_timers = ConversationsPanel._cancel_pending_chain_timers
     _hold_status_repaints_until_chain_ends = (
         ConversationsPanel._hold_status_repaints_until_chain_ends

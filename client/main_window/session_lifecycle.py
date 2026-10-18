@@ -515,6 +515,11 @@ class SessionLifecycleMixin:
             except Exception:
                 logging.exception("[%s] Failed to restart WPPConnect after a "
                                   "cancelled shutdown", phase)
+            finally:
+                # Teardown can stop the heartbeat without changing
+                # _wa_connected. Restart it even if no connection edge follows.
+                if hasattr(self, "_sync_online_presence"):
+                    wx.CallAfter(self._sync_online_presence)
 
         try:
             t = threading.Timer(self._END_SESSION_UNSTICK_SECONDS, _unstick_if_still_running)

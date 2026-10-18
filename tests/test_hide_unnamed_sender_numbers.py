@@ -43,7 +43,8 @@ class _MW:
     _jid_address_forms = BackfillMixin._jid_address_forms
 
     def __init__(self, enabled=True):
-        self.settings = {"user_interface": {"hide_unnamed_sender_numbers": enabled}}
+        self.settings = {"user_interface": {"hide_unnamed_sender_numbers": enabled,
+                                            "mark_unsaved_contacts": False}}
         self.i18n = _I18n()
         self.contacts = {}
         self.chats = {}

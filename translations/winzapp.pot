@@ -148,11 +148,20 @@ msgctxt "acc_default_name"
 msgid "Default"
 msgstr ""
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "acc_delete_confirm"
 msgid ""
 "Permanently delete the account \"{name}\" and all its data? This cannot be "
+"undone."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "acc_delete_last_confirm"
+msgid ""
+"\"{name}\" is the only account. Permanently delete it with all its messages,"
+" media, preferences and profile backups, and close WinZapp? This cannot be "
 "undone."
 msgstr ""
 
@@ -2335,7 +2344,8 @@ msgctxt "chat_disappearing_90d"
 msgid "90 days"
 msgstr ""
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+#: client/core/chat_settings.py
 msgctxt "chat_disappearing_label"
 msgid "Disappearing messages"
 msgstr ""
@@ -2348,6 +2358,23 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
 msgctxt "chat_disappearing_on"
 msgid "On"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+msgctxt "chat_encryption_label"
+msgid "Encryption"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+msgctxt "chat_encryption_notice"
+msgid ""
+"Messages and calls are end-to-end encrypted. Only people in this chat can "
+"read, listen to or share them."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
+msgctxt "chat_encryption_notice_short"
+msgid "Messages and calls are end-to-end encrypted."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -13487,6 +13514,12 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_auto_play_voice_in_sequence"
+msgid "Automatically play voice messages in sequence"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_bulk_action_shortcuts"
 msgid "Replace shortcuts with bulk actions when selecting chats and messages"
 msgstr ""
@@ -13622,6 +13655,14 @@ msgctxt "ui_keep_search_after_open"
 msgid ""
 "Keep the chat search when opening a chat, so Esc returns to the results "
 "instead of the full list"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_mark_unsaved_contacts"
+msgid ""
+"Precede names of unsaved contacts with a tilde (~) in conversations and "
+"messages"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

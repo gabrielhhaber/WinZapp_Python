@@ -49,7 +49,7 @@ import os
 import threading
 import time
 
-from core.transcription import audio_prep, errors, external_models
+from core.transcription import audio_prep, device, errors, external_models
 from core.transcription._fileops import check_cancel as _check_cancel
 from core.transcription.backend import (
     BACKEND_FASTER_WHISPER,
@@ -250,6 +250,7 @@ class FasterWhisperBackend(TranscriptionBackend):
         # and release() is called from the UI thread, which must not be made to
         # wait for it. The cost of two loads racing is a wasted load, and the
         # cost of holding the lock is a frozen window.
+        _prepare_cuda(request.device)
         model_class = self._model_factory or _whisper_model_class()
         started = time.monotonic()
         try:
@@ -310,6 +311,7 @@ class FasterWhisperBackend(TranscriptionBackend):
             raise errors.TranscriptionError(
                 errors.MODEL_CORRUPTED, f"{directory}: {_TOKENIZER_FILE} is missing"
             )
+        _prepare_cuda(device)
         model_class = self._model_factory or _whisper_model_class()
         started = time.monotonic()
         try:
@@ -431,6 +433,13 @@ class FasterWhisperBackend(TranscriptionBackend):
             return segments, info, False
         except Exception as exc:
             raise classify_backend_error(exc, request.device) from exc
+
+
+def _prepare_cuda(device_name):
+    if device_name == device.DEVICE_CUDA:
+        ok, _missing, detail = device.prepare_cuda_libraries()
+        if ok is False:
+            raise errors.TranscriptionError(errors.CUDA_UNAVAILABLE, detail)
 
 
 def classify_backend_error(exc, device_name):

@@ -50,19 +50,6 @@ def test_stable_pipeline_starts_from_a_tag_and_only_ever_leaves_a_draft():
     assert "draft: false" not in text and "draft=false" not in text
 
 
-def test_stable_pipeline_never_touches_the_bump_token():
-    assert "RELEASE_BUMP_TOKEN" not in _read("release.yml")
-
-
-def test_bump_token_is_only_read_from_the_release_environment():
-    for path in WORKFLOWS.glob("*.yml"):
-        for job_name, job in _jobs(path.read_text(encoding="utf-8")).items():
-            if "RELEASE_BUMP_TOKEN" in job:
-                assert re.search(r"^    environment: release\s*$", job, re.MULTILINE), (
-                    f"{path.name}:{job_name} reads RELEASE_BUMP_TOKEN outside the release environment"
-                )
-
-
 def test_alpha_signing_key_is_only_read_from_its_environment():
     for path in WORKFLOWS.glob("*.yml"):
         for job_name, job in _jobs(path.read_text(encoding="utf-8")).items():
@@ -113,7 +100,12 @@ def test_manifest_declares_its_version_for_versioned_builds():
     assert "# winzapp-version: $($ver.ToLower())" in text
 
 
-def test_version_bump_runs_only_after_a_stable_release_is_published():
-    text = _read("release-published.yml")
-    assert re.search(r"^  release:\s*\n    types: \[published\]", text, re.MULTILINE)
-    assert "!contains(github.event.release.tag_name, 'alpha')" in text
+def test_publishing_a_release_never_commits_to_main():
+    """Publishing a stable release must not change main's version.py: main is
+    ahead of maintenance releases cut from release/* branches, and bumping it
+    would drag alphas back to an older base."""
+    assert not (WORKFLOWS / "release-published.yml").exists()
+    for path in WORKFLOWS.glob("*.yml"):
+        text = path.read_text(encoding="utf-8")
+        assert "RELEASE_BUMP_TOKEN" not in text, path.name
+        assert not re.search(r"^  release:\s*\n    types: \[published\]", text, re.MULTILINE), path.name

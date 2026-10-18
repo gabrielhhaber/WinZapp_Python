@@ -4,6 +4,10 @@ Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisa
 
 YENİLİKLER
 
+- faster-whisper ile yerel yazıya dökme: Windows'ta ekran kartının kullanılmasını engelleyebilen ve sonraki yazıya dökme işlemlerinin takılmasına neden olabilen CUDA kitaplıklarını yükleme sorunu düzeltildi. Kitaplıklar yüklenemezse WinZapp, ekran kartında hesaplamaya başlamadan önce sorunu bildirir.
+
+- Çevrimiçi durumunuz artık başka bir programa hızla geçtiğinizde, WinZapp'ı sistem tepsisine gizlediğinizde veya arka planda yeniden bağlandığınızda da pencerenin güncel durumunu izler. Gecikmiş bir çevrimiçi güncellemesi artık çevrimdışı güncellemesinden sonra uygulanmaz; çevrimdışı durumunu bildirme başarısız olursa yeniden denenir.
+
 - Her biri Ayarlar'daki Kısayollar sekmesinden değiştirilebilen yeni kısayollar: Alt+8 pencerenin her yerinden toplulukları açar; Alt+Shift+B seçili veya açık sohbetteki işletmenin kataloğunu ve sepetini açar; WhatsApp Business hesabında Ctrl+Shift+N sohbetteki kişi için sipariş oluşturur. Uygulanamadıkları yerde WinZapp nedenini söyler. Bir sipariş mesajında Enter siparişi açar.
 
 - Yardım > "Son baktığınızdan beri yenilikler", bu bilgisayarda biri bu yenilikleri son açtığından beri nelerin değiştiğini basit cümlelerle söyler: her bölümün yeni maddeleri, değişen maddeler (şimdiki hâliyle) ve kaldırılanlar; yeni bir sürüm ise tamamen gösterilir. Tüm hesaplar için aynıdır. Güncelleme penceresindeki "Yenilikler neler?" düğmesi artık sahip olduğunuz sürümün yenilikleri yerine sunulan sürümün bu yeniliklerde neyi değiştirdiğini gösterir; alfa sürümlerinde, sizinkinden sonraki her alfa için GitHub'da kaydedilen değişiklikleri de (her pull request'in başlığı ve numarası) listeler.
@@ -122,11 +126,29 @@ YENİLİKLER
 
 - Mesaj satırında çevrimiçi yazıya dökme ve betimleme, otomatik olarak: yapay zekâ sonuç penceresine "Yazıya dökmeyi mesaj satırına koy" (sesli mesajlar) ve "Betimlemeyi mesaj satırına koy" (resimler, çıkartmalar ve videolar) eklendi. Ayarlar > Yazıya Dökmeler ve Betimlemeler içinde, varsayılan olarak kapalı iki yeni seçenek, alınan sesli mesajları otomatik olarak yazıya döker ve alınan resim, çıkartma ve videoları çevrimiçi sağlayıcılarla betimler; her mesaj için pencere veya ses çıkmaz. Birini açmak olağan onayı ister ve yerel otomatik yazıya dökmeyi kapatır, tersi de geçerlidir. Her konuşmanın veri penceresinde "yazıya dök" ve "betimle" kutuları vardır (yerel otomatik yazıya dökme için de geçerlidir); "Kapattıklarım dışında tüm konuşmalar" ile "Yalnızca açtığım konuşmalar" arasında seçim yapılır. API kotanızı korumak için alınan bir mesajın işlenebilmesi için en fazla ne kadar eski olabileceğini (5 dakika, 15, 30 veya 1 saat) seçebilir ve otomatik çevrimiçi isteklere günlük bir üst sınır koyabilirsiniz (varsayılan 50, 0 sınır yok); tüm sağlayıcılar kota veya anahtar gibi yinelenen bir nedenle reddederse otomatik kuyruk bir saat duraklar ve bunu bir kez bildirir.
 
+- Kaydetmediğiniz kişilerin sohbetleri ve mesajları artık WhatsApp'ta olduğu gibi adın önünde bir tilde (~) gösterir. Ayarlar > Kullanıcı arayüzü bölümündeki "Kaydedilmemiş kişilerin adlarının önüne sohbetlerde ve mesajlarda tilde (~) işareti koy" seçeneğiyle kapatabilirsiniz.
+
+- Yeni veya boş bir kişisel sohbet artık "mesaj yok" satırında mesajların ve aramaların uçtan uca şifreli olduğunu ve kaybolan mesajlar açıksa süresini belirtiyor. Sohbet bilgileri de şifrelemeden söz ediyor.
+
+- Ek dosyaların açıklama alanı artık WhatsApp Desktop gibi birden çok satır kabul ediyor: Enter eki açıklamasıyla göndermeye devam eder, Shift+Enter veya Ctrl+Enter ise mesaj alanındaki gibi yeni satır açar.
+
+- Bir hesabı kaldırmak artık ona ait her şeyi kaldırıyor: mesajlara ve ayarlara ek olarak WhatsApp oturumunu tutan tarayıcı profili ve bu profilin yedekleri de siliniyor, kaldırılamayan her şey WinZapp'ın bir sonraki başlatılışında tamamlanıyor. Hesap tek hesapsa artık Hesaplar > Hesapları yönet bölümünden kaldırılabilir: WinZapp onay ister, kapanır ve sonraki başlatma ilk çalıştırma olur.
+
+- Ayarlar > Kullanıcı arayüzü bölümündeki yeni "Sesli mesajları otomatik olarak sırayla çal" seçeneği, varsayılan olarak işaretlidir ve bir sesli mesaj bitince sonrakinin kendiliğinden başlayıp başlamayacağını belirler. Her sesli mesajın kendi başına bitmesi için işareti kaldırın. "Sesler sırayla çalınırken odağı otomatik olarak sonraki sese taşı" seçeneği ise yalnızca klavye odağının sesi izleyip izlemeyeceğini belirlemeye devam eder.
+
 DÜZELTMELER
+
+- WhatsApp'ın zaten yüklediği mevcut bir sohbete mesaj veya ek gönderirken oluşan "chat not found" hatası düzeltildi.
+
+- Kullanılmayan bir webhook ayarı nedeniyle gelen dosyanın mesaj bildiriminin içine indirilmesi önlendi. Gönderme ve indirme ilerlemesi güncellemeleri artık yalnızca bekleyen en son değeri tutarak hızlı aktarımlarda ekran güncellemelerinin birikmesini önlüyor.
+
+- WhatsApp sohbet listesi kullanılabilir olduğu hâlde yerel sunucuya aktarılamadığında konuşmaların tekrar tekrar eşitlenmesi düzeltildi. Mevcut konuşmalar korunur ve listenin eşitlenmesi tamamlanabilir.
 
 - Sesli mesajların ve belgelerin gönderimi, 15 Ekim'de yayımlanan ve bu işlevi taşıyan bir WhatsApp Web sürümünde "Cannot read properties of undefined (reading 'prepRawMedia')" hatasıyla başarısız oluyordu. WinZapp artık WhatsApp Web kitaplığının uyumlu sürümünü (WA-JS 4.7.1) içeriyor. Güncellemeden sonra gönderim hâlâ başarısız olursa WPPConnect'i güncelleme penceresinden yeniden yükleyin.
 
 - macOS: sohbet ve mesaj listelerinde, bir satır değiştiğinde (örneğin okunmamış sayısı değiştiğinde, biri ses kaydetmeye başladığında veya yeni bir mesaj geldiğinde) VoiceOver artık yerini kaybetmiyor. VoiceOver ile bir sohbeti açmak artık bazen başarısız olmak veya ancak bir duraklamadan sonra çalışmak yerine hemen ve her seferinde çalışıyor ve VoiceOver ardından mesaj alanına geçiyor; sabitlenmiş mesajlarla ilgili olan gibi bildirimler alanı kesmek yerine alandan sonra okunuyor.
+
+- macOS: Command kısayolları artık her ekranda aynı işi yapıyor. Bir düğmenin altı çizili harfi, Command ve o harfi ele geçiriyordu: "Devamını oku" görünürken Command-O onu tetikliyordu ve diğer düğmeler de aynı şekilde başka kısayolları alıyordu. Bir düğmenin altı çizili harfi artık Command-Option ve harfle, Windows'taki Alt ve harfin Mac karşılığıyla, tetikleniyor ve aynı tuşlardaki bir WinZapp kısayolu, Windows'ta olduğu gibi, yine önce geliyor.
 
 - Diğer modda (stereo veya mono) kayıt ve bilgisayar sesiyle kayıt düğmeleri ekran okuyucuya kısayol olarak Ctrl+R bildiriyordu. Artık her biri kendi kısayolunu, Ctrl+Shift+G ve Ctrl+Shift+H'yi ya da onlara atadığınız tuşları bildiriyor.
 
@@ -205,6 +227,10 @@ DÜZELTMELER
 - Boyutu 16 baytın katı olan indirilen dosyalar (örneğin bir APK) artık sonunda fazladan 16 bayt taşımıyor. Android bunları "paket ayrıştırılırken sorun oluştu" hatasıyla yüklemiyordu; artık kaydedilen dosya aslıyla birebir aynı.
 
 - macOS: bir güncellemeyi yüklemek ve sonrasındaki ilk açılış çok daha hızlı. Uygulamada açılacak dosya sayısı çok daha az (61.000 yerine yaklaşık 24.000), sunucusu birkaç saniye yerine saniyenin küçük bir kesrinde yerine konur, önceki kopya arka planda silinir ve WhatsApp'ın çalıştığı tarayıcı (yaklaşık 190 MB) her güncellemeden sonra yeniden indirilmek yerine korunur.
+
+- Bağlantı önizlemelerinin açıklamasında artık &amp; veya &eacute; gibi ham HTML kodları görünmüyor. Bir önizleme WinZapp'tan gönderilirken ve okunurken bu kodlar artık gerçek karakterlere dönüşüyor.
+
+- Sesli ve görüntülü aramalarda yankı giderme artık yanıtladığınız aramalarda çalışıyor. Hoparlör arama çalmaya başladığından beri çalıyordu; bu yüzden yankı giderici mikrofonunuzu açılmadan önceki sesle karşılaştırıyor ve yankıyı hiç bulamıyordu: seçenek açıkken bile karşı taraf kendi sesini duymaya devam ediyordu. Referans artık mikrofon açıldığı anda başlıyor.
 
 - WPPConnect Server 2.10.58 sürümüne güncellendi. Kütüphane artık oturumlar yedeklenirken veya geri yüklenirken yeni bir oturum başlatmayı reddediyor, her oturumun belirteç dosyasını atomik olarak kaydediyor (bir çökme dosyayı yarım bırakamasın) ve doğrulanmış bir erişim belirtecini her istekte yeniden denetlemek yerine bir dakika boyunca yeniden kullanıyor. WinZapp açılışta WPPConnect güncellemesini sunarsa, yeni sürümü kurmak için kabul edin.
 

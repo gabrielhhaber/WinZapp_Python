@@ -1376,3 +1376,47 @@ def test_send_loop_runs_microphone_through_the_echo_canceller():
     cancelled, _ = run(True)
     assert np.sqrt(np.mean(plain ** 2)) > 0.9 * np.sqrt(np.mean(mic_tail ** 2))
     assert np.sqrt(np.mean(cancelled ** 2)) < 0.3 * np.sqrt(np.mean(plain ** 2))
+
+
+def test_answering_a_call_drops_the_reference_played_while_ringing():
+    # Echo that sits before its paired reference by more than the canceller
+    # looks ahead is never found, so opening the microphone must start the
+    # reference afresh. Without it a 3 s ring left 0 dB of reduction on every
+    # answered call.
+    from core.call_audio import CallAudioConfig, CallAudioSession
+    from core.echo_canceller import EchoCanceller
+
+    sounddevice = _SoundDevice()
+    session = CallAudioSession(
+        _Socket(),
+        CallAudioConfig(session="s", input_device_name="Mic", output_device_name="Speaker",
+                        echo_cancellation=True),
+        sounddevice_module=sounddevice,
+    )
+    session.start_output_only()
+    for _ in range(40):
+        session._echo_reference_tap.append((np.ones(480, dtype=np.float32), CALL_SAMPLE_RATE))
+    canceller = session._echo_canceller
+    assert isinstance(canceller, EchoCanceller)
+    canceller.push_reference(np.ones(4800, dtype=np.float32))
+
+    seen = {}
+    real_start = sounddevice.InputStream
+
+    def input_stream(**kwargs):
+        stream = real_start(**kwargs)
+        start = stream.start
+        def checked_start():
+            seen["tap"] = len(session._echo_reference_tap)
+            seen["reference"] = canceller._ref.size
+            start()
+        stream.start = checked_start
+        return stream
+
+    sounddevice.InputStream = input_stream
+    try:
+        session.start()
+    finally:
+        session.stop()
+
+    assert seen == {"tap": 0, "reference": 0}

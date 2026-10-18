@@ -233,6 +233,18 @@ nothing:
   `LoadLibrary` follows the process's search order, which a frozen build's
   PyInstaller bootloader sets through `SetDllDirectory`. With default flags, a
   real onedir build reported a cuBLAS reachable through `PATH` as missing.
+- **A successful probe is not preparation.** On an RTX 4090, the absolute
+  probe succeeded and unloaded cuBLAS, but CTranslate2's subsequent bare-name
+  load failed: `AddDllDirectory` alone does not affect that legacy lookup.
+  The first encode raised; the next hung, even after replacing the model.
+  `device.prepare_cuda_libraries()` now loads and retains the DLL before both
+  normal and trial GPU model loads, verifying a bare-name load while the
+  mapping is held. A failure becomes `CUDA_UNAVAILABLE` before entering the
+  engine. Prepared mappings live for the process; invalidating a probe or
+  releasing a model must never unload code the engine can still use. Ordinary
+  probes remain transient so opening Settings does not block a runtime repair.
+  `tests/test_transcription_cuda_loading.py` exercises the real Windows loader
+  with a renamed system DLL in a child process, without needing CUDA hardware.
 - **The answer is memoized per process.** Every change to the runtime on disk
   must invalidate it: `register_cuda_library_directory()` does so itself,
   and a removal (which a repair goes through) calls
