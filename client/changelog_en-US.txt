@@ -232,6 +232,8 @@ FIXES
 
 - Echo cancellation in voice and video calls now works on calls you answer. The speaker had been playing since the call rang, so the canceller compared your microphone with audio from before it opened and never found the echo: the other person kept hearing their own voice even with the option on. The reference now starts when the microphone opens.
 
+- WPPConnect Server updated to 2.10.58. Upstream now refuses to start a session while sessions are being backed up or restored, saves each session's token file atomically so a crash can no longer leave it half-written, and reuses a checked access token for a minute instead of checking it again on every request. If WinZapp offers the WPPConnect update at startup, accept it to install the new version.
+
 - WPPConnect Server updates are no longer suggested on their own. WinZapp used to look for a newer upstream release and offer it, but its fixes are ported to each release by hand, so an update could land on a version it does not support yet. The server now changes only to the version this WinZapp was tested with, and only when it is older than that (or its libraries no longer match). Help > Force reinstall WPPConnect and any new install also use that version instead of the newest one.
 
 V2.0.1.0

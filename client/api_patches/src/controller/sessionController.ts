@@ -36,9 +36,19 @@ import {
   probeIsConnected,
 } from '../util/functions';
 import getAllTokens from '../util/getAllTokens';
+import { isSessionMaintenanceActive } from '../util/sessionMaintenance';
 import { cleanupSession, clientsArray } from '../util/sessionUtil';
 
 const SessionUtil = new CreateSessionUtil();
+
+function rejectStartDuringMaintenance(res: Response): boolean {
+  if (!isSessionMaintenanceActive()) return false;
+  res.status(503).json({
+    status: false,
+    message: 'Session backup or restore is in progress. Try again later.',
+  });
+  return true;
+}
 
 async function downloadFileFunction(
   message: Message,
@@ -133,19 +143,21 @@ export async function startAllSessions(
   let tokenDecrypt = '';
 
   if (secretkey === undefined) {
-    tokenDecrypt = (token as any).split(' ')[0];
+    tokenDecrypt = token?.split(' ')[0] ?? '';
   } else {
     tokenDecrypt = secretkey;
   }
 
-  const allSessions = await getAllTokens(req);
-
   if (tokenDecrypt !== req.serverOptions.secretKey) {
-    res.status(400).json({
+    return res.status(400).json({
       response: 'error',
       message: 'The token is incorrect',
     });
   }
+
+  if (rejectStartDuringMaintenance(res)) return;
+  const allSessions = await getAllTokens(req);
+  if (rejectStartDuringMaintenance(res)) return;
 
   allSessions.map(async (session: string) => {
     const util = new CreateSessionUtil();
@@ -188,7 +200,7 @@ export async function showAllSessions(
   const arr: any = [];
 
   if (tokenDecrypt !== req.serverOptions.secretKey) {
-    res.status(400).json({
+    return res.status(400).json({
       response: false,
       message: 'The token is incorrect',
     });
@@ -247,6 +259,7 @@ export async function startSession(req: Request, res: Response): Promise<any> {
   const session = req.session;
   const { waitQrCode = false } = req.body;
 
+  if (rejectStartDuringMaintenance(res)) return;
   await getSessionState(req, res);
   await SessionUtil.opendata(req, session, waitQrCode ? res : null);
 }

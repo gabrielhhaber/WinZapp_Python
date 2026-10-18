@@ -232,6 +232,8 @@ CORECTĂRI
 
 - Anularea ecoului în apelurile vocale și video funcționează acum în apelurile pe care le preiei. Difuzorul cânta încă de când apelul suna, așa că anulatorul compara microfonul cu sunet dinaintea deschiderii lui și nu găsea niciodată ecoul: cealaltă persoană își auzea în continuare propria voce chiar cu opțiunea activată. Referința începe acum când se deschide microfonul.
 
+- WPPConnect Server a fost actualizat la 2.10.58. Biblioteca refuză acum pornirea unei sesiuni cât timp sesiunile sunt copiate sau restaurate, salvează atomic fișierul de token al fiecărei sesiuni, ca o eroare să nu-l lase scris pe jumătate, și reutilizează timp de un minut un token de acces deja verificat, în loc să-l verifice din nou la fiecare cerere. Dacă WinZapp oferă actualizarea WPPConnect la pornire, acceptați-o pentru a instala noua versiune.
+
 - Actualizările WPPConnect Server nu mai sunt sugerate de la sine. WinZapp căuta o versiune mai nouă a proiectului original și o oferea, dar corecturile lui sunt portate manual la fiecare versiune, așa că o actualizare putea ajunge la o versiune pe care încă nu o acceptă. Acum serverul se schimbă doar la versiunea cu care a fost testat acest WinZapp și doar atunci când este mai vechi decât ea (sau când bibliotecile nu se mai potrivesc). Ajutor > Forțați reinstalarea WPPConnect și orice instalare nouă folosesc și ele această versiune, nu pe cea mai recentă.
 
 V2.0.1.0

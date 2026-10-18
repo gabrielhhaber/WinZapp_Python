@@ -232,6 +232,8 @@ CORRECCIONES
 
 - La cancelación de eco en las llamadas de voz y vídeo ahora funciona en las llamadas que contestas. El altavoz ya sonaba desde que la llamada daba tono, así que el cancelador comparaba tu micrófono con audio anterior a su apertura y nunca encontraba el eco: la otra persona seguía oyendo su propia voz aunque la opción estuviera activada. Ahora la referencia empieza cuando se abre el micrófono.
 
+- WPPConnect Server actualizado a la 2.10.58. La biblioteca ahora se niega a iniciar una sesión mientras se hace una copia de seguridad o una restauración de las sesiones, guarda el archivo de token de cada sesión de forma atómica para que un fallo no lo deje a medias, y reutiliza durante un minuto un token de acceso ya comprobado en lugar de comprobarlo de nuevo en cada petición. Si WinZapp ofrece la actualización de WPPConnect al iniciar, acéptala para instalar la nueva versión.
+
 - Las actualizaciones de WPPConnect Server ya no se sugieren por sí solas. WinZapp buscaba una versión más reciente del proyecto original y la ofrecía, pero sus correcciones se portan a mano a cada versión, así que una actualización podía acabar en una versión que aún no admite. Ahora el servidor solo cambia a la versión con la que se probó este WinZapp, y únicamente cuando es más antiguo que ella (o cuando las bibliotecas ya no coinciden). Ayuda > Forzar reinstalación de WPPConnect y cualquier instalación nueva también usan esa versión en lugar de la más reciente.
 
 V2.0.1.0
