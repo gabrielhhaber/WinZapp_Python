@@ -68,9 +68,9 @@
     "489d9d400af5": "Conversas e mensagens de contatos que você não salvou agora mostram um sinal de ",
     "08473eb4e590": "Um chat pessoal novo ou vazio agora informa, na linha de \"nenhuma mensagem\", que",
     "8eabb77763b3": "O campo de legenda dos anexos agora aceita várias linhas, como no WhatsApp Deskt",
-    "0dc6ff8ad759": "Corrigido um erro de \"chat not found\" ao enviar mensagens ou anexos para uma con",
     "27a8e1859b23": "Excluir uma conta agora remove tudo o que ela possui: além das mensagens e das c",
     "673c1006631c": "Em Configurações > Interface do usuário, a nova opção \"Reproduzir mensagens de v",
+    "0dc6ff8ad759": "Corrigido um erro de \"chat not found\" ao enviar mensagens ou anexos para uma con",
     "86e09a9d33c1": "Receber um arquivo deixa de baixá-lo dentro da notificação da mensagem por causa",
     "5586071669a5": "Corrigida a sincronização repetida de conversas quando a lista do WhatsApp estav",
     "b5e98f0d03bb": "O envio de mensagens de voz e de documentos falhava com \"Cannot read properties ",
@@ -116,6 +116,7 @@
     "0f6146dcd9a7": "Arquivos baixados cujo tamanho é múltiplo de 16 bytes (um APK, por exemplo) deix",
     "6f9902356772": "macOS: instalar uma atualização, e a primeira abertura depois dela, ficaram muit",
     "57b84955fa7b": "As prévias de links não mostram mais códigos HTML como &amp; ou &eacute; na desc",
-    "329cb39b3860": "O cancelamento de eco nas chamadas de voz e vídeo agora funciona nas chamadas qu"
+    "329cb39b3860": "O cancelamento de eco nas chamadas de voz e vídeo agora funciona nas chamadas qu",
+    "37a18225b15e": "WPPConnect Server atualizado para a 2.10.58. A biblioteca agora recusa iniciar u"
   }
 }
