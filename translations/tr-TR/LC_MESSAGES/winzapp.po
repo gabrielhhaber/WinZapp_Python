@@ -16010,6 +16010,23 @@ msgctxt "wpp_reinstall_notice_title"
 msgid "WPPConnect update recommended"
 msgstr "WPPConnect güncellemesi öneriliyor"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+#, python-brace-format
+msgctxt "wpp_update_available_msg"
+msgid ""
+"A recommended update for WPPConnect Server is available (current: {current},"
+" new: {new}). It is not mandatory. Update now? WinZapp will stop the API, "
+"install the new version, and restart it automatically."
+msgstr ""
+"WPPConnect Server için önerilen bir güncelleme mevcut (mevcut: {current}, "
+"yeni: {new}). Zorunlu değildir. Şimdi güncellensin mi? WinZapp API'yi "
+"durduracak, yeni sürümü yükleyecek ve otomatik olarak yeniden başlatacaktır."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+msgctxt "wpp_update_available_title"
+msgid "WPPConnect update available"
+msgstr "WPPConnect güncellemesi mevcut"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/wpp_background_update.py
 #, python-brace-format

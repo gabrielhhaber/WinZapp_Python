@@ -273,3 +273,62 @@ class TestTheVerdictItself:
         result = audit.audit(CHANGED_2_10_18_TO_21, _pkg(), _pkg(engines_node="24.0.0"))
         for line in result["lines"] + result["problems"]:
             line.encode("cp850")
+
+
+class TestApproval:
+    """--approve: a release recorded in client/wpp_approved_versions.json is
+    offered to installs without a WinZapp release, so only a clean audit with
+    no compiled source change may write it."""
+
+    def test_a_dependency_only_release_can_be_approved(self, audit):
+        result = audit.audit(CHANGED_2_10_21_TO_24, _pkg(), _pkg())
+        assert audit.approval_blockers(result, CHANGED_2_10_21_TO_24) == []
+
+    def test_a_problem_blocks_the_approval(self, audit):
+        result = audit.audit(CHANGED_2_10_18_TO_21, _pkg(), _pkg())
+        blockers = audit.approval_blockers(result, CHANGED_2_10_18_TO_21)
+        assert any("src/config.ts" in b for b in blockers)
+
+    def test_source_that_flows_through_still_blocks_it(self, audit):
+        """A WinZapp update copies the pin's dist/ back, so a src/ change
+        WinZapp does not override would come and go with each release."""
+        changed = CHANGED_2_10_21_TO_24 + ["src/controller/labelsController.ts"]
+        result = audit.audit(changed, _pkg(), _pkg())
+        assert result["problems"] == []
+        blockers = audit.approval_blockers(result, changed)
+        assert len(blockers) == 1 and "labelsController.ts" in blockers[0]
+
+    @pytest.mark.parametrize("path", ["tsconfig.json", "babel.config.js", "decrypt.js"])
+    def test_root_build_files_block_it_too(self, audit, path):
+        assert audit.built_source_changes(CHANGED_2_10_21_TO_24 + [path]) == [path]
+
+    def test_non_source_files_do_not_block_it(self, audit):
+        changed = CHANGED_2_10_21_TO_24 + [
+            "README.md", ".github/workflows/docker.yml", "scripts/check-compose-config.cjs"]
+        result = audit.audit(changed, _pkg(), _pkg())
+        assert audit.approval_blockers(result, changed) == []
+
+    def test_an_entry_is_added_newest_first_keeping_the_others(self, audit):
+        manifest = {"schema": 1, "approved": [
+            {"version": "2.10.51", "min_pin": "2.10.50", "min_winzapp": "2.1.0.0"},
+        ]}
+        updated = audit.with_approval(manifest, "v2.10.59", "2.10.58")
+        assert updated["approved"] == [
+            {"version": "2.10.59", "min_pin": "2.10.58"},
+            {"version": "2.10.51", "min_pin": "2.10.50", "min_winzapp": "2.1.0.0"},
+        ]
+        assert manifest["approved"][0]["version"] == "2.10.51"   # input untouched
+
+    def test_re_approving_a_version_replaces_its_entry(self, audit):
+        manifest = {"schema": 1, "approved": [{"version": "2.10.59", "min_pin": "2.10.58"}]}
+        updated = audit.with_approval(manifest, "2.10.59", "2.10.55")
+        assert updated["approved"] == [{"version": "2.10.59", "min_pin": "2.10.55"}]
+
+    def test_the_written_file_is_what_installs_parse(self, audit, tmp_path):
+        from core.wpp_approved import parse_manifest
+        path = tmp_path / "wpp_approved_versions.json"
+        audit.write_approval("2.10.59", "2.10.58", str(path))
+        audit.write_approval("2.10.60", "2.10.58", str(path))
+        import json
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert [str(v) for v, _p, _w in parse_manifest(data)] == ["2.10.60", "2.10.59"]

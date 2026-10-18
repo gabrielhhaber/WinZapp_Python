@@ -15016,6 +15016,20 @@ msgctxt "wpp_reinstall_notice_title"
 msgid "WPPConnect update recommended"
 msgstr ""
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+#, python-brace-format
+msgctxt "wpp_update_available_msg"
+msgid ""
+"A recommended update for WPPConnect Server is available (current: {current},"
+" new: {new}). It is not mandatory. Update now? WinZapp will stop the API, "
+"install the new version, and restart it automatically."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+msgctxt "wpp_update_available_title"
+msgid "WPPConnect update available"
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/wpp_background_update.py
 #, python-brace-format

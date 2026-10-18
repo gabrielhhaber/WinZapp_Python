@@ -95,12 +95,13 @@ class UpdatesMixin:
             self._update_checker.start()
 
     # ── WPPConnect Server updater ───────────────────────────────────────────────
-    # Independent of WinZapp's own auto-updater above. It never looks at
-    # upstream releases: WinZapp's patches are ported to each server by hand,
-    # so the server only moves to the version wpp_minimum_version.txt pins
-    # (docs/traps/updater-channels.md, "only the pinned version"). What it
-    # still does is offer that pin when the installed server is older, which
-    # the startup gate cannot do in a --background start.
+    # Independent of WinZapp's own auto-updater above. It never looks at the
+    # newest upstream release: WinZapp's patches are ported to each server by
+    # hand, so the server moves only to the version wpp_minimum_version.txt
+    # pins or to one the maintainers approved for that pin
+    # (client/wpp_approved_versions.json, docs/traps/updater-channels.md,
+    # "approved releases"). It also offers the pin when the installed server
+    # is older, which the startup gate cannot do in a --background start.
 
     def wpp_update_may_run_now(self) -> bool:
         ready = getattr(self, "_ui_ready_event", None)
@@ -143,9 +144,10 @@ class UpdatesMixin:
 
     def _on_force_reinstall_wpp(self, event):
         """
-        Ajuda > Forçar reinstalação da WPPConnect: reinstalls the pinned
-        wppconnect-server release (wpp_minimum_version.txt) over the installed
-        one, whatever its version — the same stop → reinstall → restart flow
+        Ajuda > Forçar reinstalação da WPPConnect: reinstalls the newest
+        wppconnect-server release this build supports (an approved one, else
+        the pin in wpp_minimum_version.txt) over the installed one, whatever
+        its version — the same stop → reinstall → restart flow
         the periodic checker uses, just without the "is it older" comparison
         first. Meant to recover a broken/corrupted API install.
         """

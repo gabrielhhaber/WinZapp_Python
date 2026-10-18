@@ -33,9 +33,16 @@ audit cannot answer against a stale copy of the very thing it is checking.
 Reads GitHub through `gh`, which every maintainer running this already has.
 Exit 1 means "a human has to look", never "the bump is wrong".
 
+`--approve` also records the candidate in `client/wpp_approved_versions.json`
+(core/wpp_approved.py) when the audit is clean and upstream touched nothing
+it compiles (`src/`, root build files): every install whose pin is at or after the old tag is then
+offered it, without a WinZapp release. It refuses otherwise; that release
+needs porting and a pin bump instead.
+
 Usage:
     python .github/scripts/audit_wpp_upgrade.py 2.10.21 2.10.24
     python .github/scripts/audit_wpp_upgrade.py 2.10.24   # from the committed pin
+    python .github/scripts/audit_wpp_upgrade.py 2.10.24 --approve
 
 tests/test_wpp_upgrade_audit.py covers the pure functions.
 """
@@ -227,6 +234,72 @@ def _bare(tag: str) -> str:
     return tag.strip().lstrip("vV")
 
 
+APPROVED_PATH = os.path.join(ROOT_DIR, "client", "wpp_approved_versions.json")
+
+
+def _is_built(path: str) -> bool:
+    if path.startswith("src/"):
+        return True
+    if "/" in path:
+        return False   # scripts/, .github/, docs: not part of dist/
+    name = path.lower()
+    return (name.endswith((".js", ".cjs", ".mjs", ".ts"))
+            or name.startswith(("tsconfig", "babel", ".babelrc")))
+
+
+def built_source_changes(changed_paths) -> list:
+    """Upstream changes to what `npm run build` compiles: src/ and the
+    build configuration and scripts at the repository root.
+
+    They reach an install through a server update, but every WinZapp update
+    copies the release's dist/, built at the pin, back over it
+    (core/update_keeps_server.py), so they would come and go with each
+    WinZapp release. A release approved without a WinZapp release must have
+    none.
+    """
+    return sorted(p for p in set(changed_paths) if _is_built(p))
+
+
+def approval_blockers(result: dict, changed_paths) -> list:
+    """Why the candidate cannot be approved for builds pinned at the old tag."""
+    blockers = list(result["problems"])
+    source = built_source_changes(changed_paths)
+    if source:
+        blockers.append(
+            "Upstream changed compiled source (" + ", ".join(source) + "). "
+            "A WinZapp update puts the pin's dist/ back, so this release can "
+            "only ship with a WinZapp release that bumps the pin."
+        )
+    return blockers
+
+
+def with_approval(manifest: dict, version: str, min_pin: str) -> dict:
+    """*manifest* with {version, min_pin} recorded, newest first.
+
+    An existing entry for the same version is replaced (re-auditing from an
+    older pin widens who gets it); every other entry is kept untouched.
+    """
+    from packaging.version import Version
+
+    entries = [e for e in manifest.get("approved", [])
+               if _bare(str(e.get("version", ""))) != _bare(version)]
+    entries.append({"version": _bare(version), "min_pin": _bare(min_pin)})
+    entries.sort(key=lambda e: Version(_bare(str(e["version"]))), reverse=True)
+    return {**manifest, "schema": manifest.get("schema", 1), "approved": entries}
+
+
+def write_approval(version: str, min_pin: str, path: str = APPROVED_PATH) -> None:
+    try:
+        with open(path, encoding="utf-8") as fh:
+            manifest = json.load(fh)
+    except FileNotFoundError:
+        manifest = {"schema": 1, "approved": []}
+    updated = with_approval(manifest, version, min_pin)
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(updated, fh, indent=2)
+        fh.write("\n")
+
+
 def committed_pin() -> str:
     path = os.path.join(ROOT_DIR, "client", "wpp_minimum_version.txt")
     with open(path, encoding="utf-8") as fh:
@@ -312,6 +385,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("old_tag", nargs="?", help="current tag (default: the committed pin)")
     parser.add_argument("new_tag", help="candidate tag")
+    parser.add_argument("--approve", action="store_true",
+                        help="record the candidate in client/wpp_approved_versions.json "
+                             "for builds pinned at the old tag or later, if it is clean")
     args = parser.parse_args()
 
     old_tag = args.old_tag or committed_pin()
@@ -321,8 +397,9 @@ def main() -> int:
     print(f"=== WPPConnect Server {old_tag} -> {new_tag} ===\n")
 
     try:
+        changed_paths = fetch_changed_paths(old_tag, new_tag)
         result = audit(
-            fetch_changed_paths(old_tag, new_tag),
+            changed_paths,
             fetch_package_json(old_tag),
             fetch_package_json(new_tag),
         )
@@ -335,6 +412,9 @@ def main() -> int:
 
     for line in result["lines"]:
         print(line)
+
+    if args.approve:
+        return _approve(old_tag, new_tag, result, changed_paths)
 
     if result["problems"]:
         print("NEEDS A HUMAN:")
@@ -349,6 +429,23 @@ def main() -> int:
           "setup_api.py and confirm all five node_modules patches report "
           "applied. A plain npm install can resolve differently even when "
           "nothing upstream moved.")
+    return 0
+
+
+def _approve(old_tag: str, new_tag: str, result: dict, changed_paths) -> int:
+    blockers = approval_blockers(result, changed_paths)
+    if blockers:
+        print("NOT APPROVED:")
+        for blocker in blockers:
+            print(f"  - {blocker}")
+        return 1
+    write_approval(new_tag, old_tag)
+    print(f"Approved {_bare(new_tag)} for every build pinned at {_bare(old_tag)} or "
+          f"later, in client/wpp_approved_versions.json.")
+    print(f"Before merging it to main, build it once: set WPPCONNECT_TAG_VERSION=v"
+          f"{_bare(new_tag)}, run setup_api.py, confirm all five node_modules "
+          f"patches report applied, and send a message. Installs read the file "
+          f"from main, so the merge is the release.")
     return 0
 
 

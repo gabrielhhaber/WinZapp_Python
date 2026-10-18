@@ -234,7 +234,7 @@ DÜZELTMELER
 
 - WPPConnect Server 2.10.58 sürümüne güncellendi. Kütüphane artık oturumlar yedeklenirken veya geri yüklenirken yeni bir oturum başlatmayı reddediyor, her oturumun belirteç dosyasını atomik olarak kaydediyor (bir çökme dosyayı yarım bırakamasın) ve doğrulanmış bir erişim belirtecini her istekte yeniden denetlemek yerine bir dakika boyunca yeniden kullanıyor. WinZapp açılışta WPPConnect güncellemesini sunarsa, yeni sürümü kurmak için kabul edin.
 
-- WPPConnect Server güncellemeleri artık kendiliğinden önerilmiyor. WinZapp özgün projenin daha yeni bir sürümünü arayıp sunuyordu, ancak düzeltmeleri her sürüme elle uyarlanıyor; bu yüzden bir güncelleme henüz desteklemediği bir sürüme denk gelebiliyordu. Artık sunucu yalnızca bu WinZapp'ın test edildiği sürüme geçiyor ve bunu yalnızca ondan eskiyse (veya kütüphaneler artık uyuşmuyorsa) yapıyor. Yardım > WPPConnect'i yeniden yüklemeye zorla ve her yeni kurulum da en yeni sürüm yerine bu sürümü kullanır.
+- WPPConnect Server güncellemeleri artık kendiliğinden önerilmiyor. WinZapp özgün projenin daha yeni bir sürümünü arayıp sunuyordu, ancak düzeltmeleri her sürüme elle uyarlanıyor; bu yüzden bir güncelleme henüz desteklemediği bir sürüme denk gelebiliyordu. Artık WinZapp yalnızca test edildiği sürümü ya da WinZapp ekibinin sizin WinZapp sürümünüz için doğruladığı bir sürümü sunuyor; bu genellikle yalnızca sunucunun kullandığı kütüphanelere güvenlik düzeltmeleri getiren bir güncellemedir, önerilir ve reddedebilirsiniz. Sunucunun kendisini değiştiren bir güncelleme, onu destekleyen WinZapp sürümünü bekler. Yardım > WPPConnect'i yeniden yüklemeye zorla da bu sürümlerin en yenisini kullanır; yeni bir kurulum ise bu WinZapp'ın test edildiği sürümü kullanır.
 
 V2.0.1.0
 

@@ -288,6 +288,8 @@ Offline, or on a fork without the file, it falls back to `resolve_changelog()`. 
 
 ## WPPConnect Server: only the pinned version is installed or offered (2026-10-18)
 
+**Partly superseded the same day (next section): an approved release can move the server past the pin.**
+
 **Why.** WinZapp's patches (`client/api_patches/`, the `node_modules` patchers) are ported to each server release by hand, a day or more after upstream publishes it. Recommending "the latest release" (periodic check, Force Reinstall, a fresh install with no pin, `setup_api.py` with no pin) offered users a server the patches did not yet support, and it broke more installs than it fixed. Policy now: the server moves only when a WinZapp release raises `client/wpp_minimum_version.txt`.
 
 **What changed.**
@@ -297,3 +299,16 @@ Offline, or on a fork without the file, it falls back to `resolve_changelog()`. 
 - `setup_api.py` exits with an error when it has no tag instead of tracking the newest stable tag; `_latest_stable_tag` and the `"latest"` plan action are deleted. `WPPCONNECT_TAG_VERSION` still overrides the pin for a developer.
 - Mandatory repairs are untouched: the startup gate (installed below the pin, or `node_modules` holding a wppconnect/wa-js other than the one `package.json` pins).
 - The i18n entries `wpp_update_available_title` / `wpp_update_available_msg` (the recommended-update prompt) were deleted from every catalog.
+
+## WPPConnect Server: releases approved after a WinZapp shipped (2026-10-18)
+
+**Why.** The pin-only policy above made every upstream release wait for a WinZapp release, including the many that only move dependencies (security fixes in `node_modules`) and touch no file WinZapp overrides. Those run on the patches a build already has. Holding them back kept users on vulnerable dependencies for no gain.
+
+**How.** `client/wpp_approved_versions.json`, read live from `main` by every install (`core/wpp_approved.py`, raw.githubusercontent.com). Each entry is `{"version": "2.10.59", "min_pin": "2.10.58"}`: the release, and the oldest pin whose patches run it, in practice the last release that changed an overridden file. A build pinned at P is offered the newest V with `min_pin <= P < V`, so an old build never gets a release past a breaking one, and a new build is never offered something below its pin. Optional `min_winzapp` is for a requirement the pin cannot express (a release that needs the Node a later WinZapp ships).
+
+- **Approving** is `python .github/scripts/audit_wpp_upgrade.py <new> --approve` (old tag defaults to the committed pin; pass an older one to approve for older builds). It refuses unless the audit is clean **and** nothing compiled changed (`src/`, root build files): `core/update_keeps_server.py` keeps the installed `package.json` but every WinZapp update copies the pin's `dist/` back, so compiled changes would come and go with each WinZapp release. Build it once with `WPPCONNECT_TAG_VERSION` before merging; the merge to `main` is the release.
+- **The periodic check** offers an approved release with the recommended wording (`wpp_update_available_*`, restored), default No, declined or failed remembered for the session (`_declined_tag`). Below the pin it is still the required kind, and goes straight to the approved release when there is one. No offer reschedules at 12 h (the list can grow); an unreachable list at 15 min; a 404 (a fork without the file) is "nothing approved". No pin, no lookup.
+- **Force Reinstall** installs `_reinstall_tag()`: the approved release, else the pin. `ApiSetupDialog` (fresh install), `setup_api.py` and the startup gate still use the pin only.
+- **Blast radius of a bad entry**: versions must be plain `X.Y.Z`, the download URL is fixed to upstream, nothing below the pin is offered. A wrong entry can offer an unported upstream tag, nothing else; `tests/test_wpp_approved.py` validates the committed file.
+
+**Not done.** Withdrawing an approval stops new offers but does not move anyone back; a `revoked` list would need its own downgrade prompt. The drift-gate reinstall (`ensure_wpp_version`) still rebuilds at the pin, moving an approved server back until the next check offers it again.
