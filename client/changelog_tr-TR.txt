@@ -232,6 +232,8 @@ DÜZELTMELER
 
 - Sesli ve görüntülü aramalarda yankı giderme artık yanıtladığınız aramalarda çalışıyor. Hoparlör arama çalmaya başladığından beri çalıyordu; bu yüzden yankı giderici mikrofonunuzu açılmadan önceki sesle karşılaştırıyor ve yankıyı hiç bulamıyordu: seçenek açıkken bile karşı taraf kendi sesini duymaya devam ediyordu. Referans artık mikrofon açıldığı anda başlıyor.
 
+- WPPConnect Server güncellemeleri artık kendiliğinden önerilmiyor. WinZapp özgün projenin daha yeni bir sürümünü arayıp sunuyordu, ancak düzeltmeleri her sürüme elle uyarlanıyor; bu yüzden bir güncelleme henüz desteklemediği bir sürüme denk gelebiliyordu. Artık sunucu yalnızca bu WinZapp'ın test edildiği sürüme geçiyor ve bunu yalnızca ondan eskiyse (veya kütüphaneler artık uyuşmuyorsa) yapıyor. Yardım > WPPConnect'i yeniden yüklemeye zorla ve her yeni kurulum da en yeni sürüm yerine bu sürümü kullanır.
+
 V2.0.1.0
 
 Bu, kararlı sürümün bakım sürümüdür. Yalnızca WinZapp'ın WhatsApp ile konuşmak için kullandığı WPPConnect kütüphanelerini günceller; WhatsApp Web'deki bir değişiklik sesli mesaj ve belge göndermeyi bozmuştu.

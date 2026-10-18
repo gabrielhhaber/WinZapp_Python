@@ -36,7 +36,8 @@ a live PostgreSQL connection, which is only available at runtime.  The
 migrations are applied automatically by start.js every time the API starts.
 
 The WPPCONNECT_TAG_VERSION variable in the root .env optionally pins a specific
-tag.  When unset the latest main branch is downloaded.
+tag.  When unset, client/wpp_minimum_version.txt decides; the newest release is
+never fetched (WinZapp's patches follow the server by hand).
 
 Uses only the standard library (zipfile, io, tempfile) plus the already-present
 requests package for the HTTP download — no git installation required.
@@ -66,44 +67,13 @@ from core.api_dependencies import npm_cached_metadata_is_stale
 from core.npm_environment import npm_environment
 from core.wpp_runtime import homologated_wpp_tag
 
-# GitHub download URLs — no git required
-_REPO_ZIP_MAIN = (
-    "https://github.com/wppconnect-team/wppconnect-server"
-    "/archive/refs/heads/main.zip"
-)
+# GitHub download URL — no git required. Only ever a tag: WinZapp installs the
+# WPPConnect Server release it was validated against (wpp_minimum_version.txt),
+# never the newest one, because its patches follow the server by hand.
 _REPO_ZIP_TAG  = (
     "https://github.com/wppconnect-team/wppconnect-server"
     "/archive/refs/tags/{tag}.zip"
 )
-WPP_GITHUB_API_LATEST_RELEASE = (
-    "https://api.github.com/repos/wppconnect-team/wppconnect-server/releases/latest"
-)
-
-
-def fetch_latest_wpp_tag(timeout: float = 15) -> str:
-    """Return the tag name of the latest wppconnect-server GitHub release, or "".
-
-    Used so a fresh install (and the update flows) always land on whatever is
-    actually the newest tagged release instead of a version number baked into
-    WinZapp's own .env at build time — a WPPCONNECT_TAG_VERSION pin only ever
-    gets updated when WinZapp itself ships a new build, so a version fixed
-    that way is stale from the day it's set. Returns "" on any failure so
-    callers can fall back to the previous fixed-tag/main-branch behaviour
-    instead of failing setup outright over a GitHub API hiccup.
-    """
-    try:
-        resp = requests.get(
-            WPP_GITHUB_API_LATEST_RELEASE,
-            headers={"User-Agent": "WinZapp"},
-            timeout=timeout,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        tag = (data.get("tag_name") or "").strip()
-        return tag
-    except Exception as exc:
-        logging.warning("[api_setup] Failed to fetch latest wppconnect-server release tag: %s", exc)
-        return ""
 
 # Root-level files whose pre-included content always takes precedence.
 _PRESERVE = {"start.js", ".env", "config.json"}
@@ -1022,25 +992,17 @@ class ApiSetupDialog(wx.Dialog):
                             tag,
                         )
                 if not tag:
-                    # No explicit tag was requested and .env doesn't pin one — resolve
-                    # the actual latest GitHub release instead of defaulting straight
-                    # to the main branch head. A fixed WPPCONNECT_TAG_VERSION only
-                    # ever changes when WinZapp itself ships a new build, so it is
-                    # stale from the moment it's set; a brand-new install deserves
-                    # whatever is genuinely newest today, not a version already
-                    # behind by the time the user installs it. Falls through to the
-                    # main branch (the previous behaviour) if the API is unreachable.
-                    tag = fetch_latest_wpp_tag()
-                    if tag:
-                        logging.info("[api_setup] Using latest released wppconnect-server tag: %s", tag)
-                    else:
-                        logging.warning("[api_setup] Could not resolve latest release tag — falling back to main branch")
+                    # Nothing pinned: only a source checkout without the bundled
+                    # wpp_minimum_version.txt gets here. Installing "whatever is
+                    # newest" is exactly what this file exists to prevent, so
+                    # stop instead of guessing.
+                    logging.error("[api_setup] No WPPConnect Server tag is pinned "
+                                  "(wpp_minimum_version.txt is missing or unreadable).")
+                    wx.CallAfter(self._finish_error, self._i18n.t("api_setup_error_generic"))
+                    return
 
                 # ── Step 1: download source ZIP ───────────────────────────────
-                if tag:
-                    url = _REPO_ZIP_TAG.format(tag=tag)
-                else:
-                    url = _REPO_ZIP_MAIN
+                url = _REPO_ZIP_TAG.format(tag=tag)
 
                 tmp_zip = tempfile.mktemp(suffix=".zip", prefix="winzapp_api_")
                 try:

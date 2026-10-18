@@ -388,8 +388,7 @@ def test_the_check_itself_stays_silent_while_another_accounts_node_runs(monkeypa
     _busy(monkeypatch)
     prompts = []
     monkeypatch.setattr(updater.wx, "CallAfter", lambda fn, *a: prompts.append(a))
-    monkeypatch.setattr(updater, "homologated_wpp_tag", lambda _p: MINIMUM)
-    monkeypatch.setattr("ui.dialogs.api_setup.fetch_latest_wpp_tag", lambda: TAG)
+    monkeypatch.setattr(updater, "homologated_wpp_tag", lambda _p: TAG)
     mw = _MW(None)
     mw._get_installed_wpp_version = lambda: "2.10.16"
     checker = _checker(mw)
@@ -397,22 +396,19 @@ def test_the_check_itself_stays_silent_while_another_accounts_node_runs(monkeypa
     assert prompts == [] and checker.retries == [None]
 
 
-def test_a_refusal_after_yes_is_not_asked_again_this_session(gd, answer):
+def test_a_refusal_after_yes_hands_the_claim_back_and_retries_later(gd, answer):
     mw = _MW(gd)
     mw.start_result = False
     checker = _checker(mw)
     checker._prompt_update("2.10.16", "2.10.20", TAG)
-    assert checker._declined_tag == TAG and _holder(gd) is None
+    assert _holder(gd) is None
     assert checker.retries == [None]
 
 
-def test_a_failed_update_is_remembered_and_a_successful_one_is_not(gd):
+def test_a_finished_update_hands_the_claim_back_and_schedules_the_next_check(gd):
     checker = _checker(_MW(gd))
     checker._update_finished(TAG, False)
-    assert checker._declined_tag == TAG
-    checker._declined_tag = None
     checker._update_finished(TAG, True)
-    assert checker._declined_tag is None
     assert checker.retries == [None, None]
 
 

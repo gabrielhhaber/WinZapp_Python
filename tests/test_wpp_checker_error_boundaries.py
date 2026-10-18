@@ -15,11 +15,10 @@ def checker(monkeypatch):
     return obj, retries, callbacks
 
 
-@pytest.mark.parametrize("boundary", ["installed", "minimum", "latest", "dispatch"])
+@pytest.mark.parametrize("boundary", ["installed", "minimum", "dispatch"])
 def test_unexpected_worker_errors_retry_once(monkeypatch, boundary):
     obj, retries, callbacks = checker(monkeypatch)
-    monkeypatch.setattr(updater, "homologated_wpp_tag", lambda path: "v2.10.42")
-    monkeypatch.setattr("ui.dialogs.api_setup.fetch_latest_wpp_tag", lambda: "v2.10.48")
+    monkeypatch.setattr(updater, "homologated_wpp_tag", lambda path: "v2.10.48")
     monkeypatch.setattr(obj, "_other_account_busy", lambda: False)
 
     def fail(*a, **kw):
@@ -29,19 +28,16 @@ def test_unexpected_worker_errors_retry_once(monkeypatch, boundary):
         obj._mw._get_installed_wpp_version = fail
     elif boundary == "minimum":
         monkeypatch.setattr(updater, "homologated_wpp_tag", fail)
-    elif boundary == "latest":
-        monkeypatch.setattr("ui.dialogs.api_setup.fetch_latest_wpp_tag", fail)
     else:
         monkeypatch.setattr(updater.wx, "CallAfter", fail)
     obj._check_once()
-    assert retries == [obj._OFFLINE_RETRY_INTERVAL]
+    assert retries == [obj._ERROR_RETRY_INTERVAL]
     assert callbacks == []
 
 
 def test_success_hands_off_without_an_extra_retry(monkeypatch):
     obj, retries, callbacks = checker(monkeypatch)
-    monkeypatch.setattr(updater, "homologated_wpp_tag", lambda path: "v2.10.42")
-    monkeypatch.setattr("ui.dialogs.api_setup.fetch_latest_wpp_tag", lambda: "v2.10.48")
+    monkeypatch.setattr(updater, "homologated_wpp_tag", lambda path: "v2.10.48")
     monkeypatch.setattr(obj, "_other_account_busy", lambda: False)
     obj._check_once()
     assert callbacks == ["_prompt_update"]
@@ -52,7 +48,7 @@ def test_forced_failure_reports_error_without_automatic_reinstall(monkeypatch):
     obj, retries, callbacks = checker(monkeypatch)
     def fail():
         raise LookupError("synthetic unavailable codec")
-    monkeypatch.setattr(obj, "_newest_available_tag", fail)
+    monkeypatch.setattr(obj, "_pinned_tag", fail)
     obj._force_reinstall_worker()
     assert callbacks == ["_show_force_reinstall_error"]
     assert retries == []
@@ -72,7 +68,7 @@ def test_stop_prevents_inflight_worker_from_restarting_timer(monkeypatch):
 def test_stopped_checker_ignores_queued_forced_check(monkeypatch):
     obj, retries, callbacks = checker(monkeypatch)
     obj.stop()
-    monkeypatch.setattr(obj, "_newest_available_tag", lambda: pytest.fail("stopped worker"))
+    monkeypatch.setattr(obj, "_pinned_tag", lambda: pytest.fail("stopped worker"))
     obj._force_reinstall_worker()
     assert not callbacks and not retries
 

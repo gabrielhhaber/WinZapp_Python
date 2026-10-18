@@ -24,80 +24,45 @@ own "Update now" button passed the bare version ("2.10.18") as
 ApiSetupDialog's forced_tag, which goes straight into
 `.../archive/refs/tags/{tag}.zip`. The release is tagged "v2.10.18", so that
 URL is a 404. The button could never have worked.
+
+(Since 2026-10-18 Force Reinstall installs the *pinned* release, not the newest
+one: WinZapp's patches follow the server by hand. Promise 1 above is kept for
+its history; TestForceReinstallGoesToThePinnedRelease is the rule now.)
 """
 
 import inspect
 import re
-
-import pytest
 
 import main
 import updater
 from main import MainWindow
 
 
-class TestForceReinstallGoesToTheNewestRelease:
-    def test_it_asks_for_the_newest_available_tag(self):
+class TestForceReinstallGoesToThePinnedRelease:
+    """Originally Force Reinstall was meant to fetch the newest release. WinZapp
+    now installs only the release it was validated against, so the "same version
+    again" repair is the point: it rebuilds a broken install on the pin."""
+
+    def test_it_asks_for_the_pinned_tag(self):
         source = inspect.getsource(updater.WppUpdateChecker._force_reinstall_worker)
-        assert "_newest_available_tag()" in source, (
-            "force reinstall must resolve the newest release, not the "
-            "homologated one — reinstalling the same version is the bug"
-        )
+        assert "_pinned_tag()" in source
 
-    def test_the_newest_lookup_actually_reaches_github(self):
-        source = inspect.getsource(updater.WppUpdateChecker._newest_available_tag)
-        assert "fetch_latest_wpp_tag()" in source
+    def test_the_pin_is_read_from_the_bundled_minimum(self, monkeypatch):
+        seen = []
+        monkeypatch.setattr(updater, "homologated_wpp_tag",
+                            lambda path: seen.append(path) or "v2.10.18")
+        assert updater.WppUpdateChecker._pinned_tag() == "v2.10.18"
+        assert seen and seen[0].endswith("wpp_minimum_version.txt")
 
-    def test_it_never_downgrades_below_the_homologated_release(self, monkeypatch):
-        """It must be able to move a user forward, never backward — a GitHub
-        hiccup answering with something older must not silently downgrade an
-        install below what WinZapp was built against."""
-        monkeypatch.setattr(updater, "homologated_wpp_tag", lambda _p: "v2.10.18")
-        monkeypatch.setattr(
-            "ui.dialogs.api_setup.fetch_latest_wpp_tag", lambda: "v2.10.16")
-        assert updater.WppUpdateChecker._newest_available_tag() == "v2.10.18"
+    def test_nothing_in_the_updater_asks_github_for_a_wpp_release(self):
+        source = inspect.getsource(updater)
+        assert "fetch_latest_wpp_tag" not in source
+        assert "_newest_available_tag" not in source
 
-    def test_a_newer_release_wins(self, monkeypatch):
-        monkeypatch.setattr(updater, "homologated_wpp_tag", lambda _p: "v2.10.16")
-        monkeypatch.setattr(
-            "ui.dialogs.api_setup.fetch_latest_wpp_tag", lambda: "v2.10.18")
-        assert updater.WppUpdateChecker._newest_available_tag() == "v2.10.18"
-
-    def test_an_unreachable_github_falls_back_to_the_homologated_tag(self, monkeypatch):
-        monkeypatch.setattr(updater, "homologated_wpp_tag", lambda _p: "v2.10.16")
-        monkeypatch.setattr("ui.dialogs.api_setup.fetch_latest_wpp_tag", lambda: "")
-        assert updater.WppUpdateChecker._newest_available_tag() == "v2.10.16"
-
-    def test_the_periodic_check_looks_at_the_latest_release_too(self):
-        """It used to compare only against the bundled minimum, so a user was
-        never told about a newer server until a WinZapp release raised the
-        minimum. The minimum is the floor of the offer now, not its ceiling
-        (see tests/test_wpp_update_target.py)."""
+    def test_the_periodic_check_compares_only_against_the_pin(self):
         source = inspect.getsource(updater.WppUpdateChecker._check_once)
-        assert "fetch_latest_wpp_tag()" in source
-        assert "wpp_update_target(" in source
-        assert not hasattr(updater.WppUpdateChecker, "_homologated_or_latest_tag")
-
-
-class TestVersionComparisonForTheFloor:
-    @pytest.mark.parametrize("candidate, reference, expected", [
-        ("v2.10.16", "v2.10.18", True),
-        ("2.10.16", "v2.10.18", True),
-        ("v2.10.18", "v2.10.18", False),
-        ("v2.10.19", "v2.10.18", False),
-        ("v2.11.0", "v2.10.18", False),
-    ])
-    def test_ordering(self, candidate, reference, expected):
-        assert updater._version_is_older(candidate, reference) is expected
-
-    @pytest.mark.parametrize("candidate, reference", [
-        ("not-a-version", "v2.10.18"),
-        ("v2.10.18", ""),
-        ("", "v2.10.18"),
-    ])
-    def test_unparseable_input_never_means_downgrade(self, candidate, reference):
-        """"I cannot tell" must not become "go backwards"."""
-        assert updater._version_is_older(candidate, reference) is False
+        assert "wpp_update_target(installed, minimum)" in source
+        assert "fetch_latest" not in source
 
 
 class TestTheStartupGateCanActuallyRun:

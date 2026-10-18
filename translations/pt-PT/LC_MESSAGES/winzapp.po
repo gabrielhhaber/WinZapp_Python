@@ -16197,11 +16197,12 @@ msgstr ""
 msgctxt "wpp_force_reinstall_confirm_msg"
 msgid ""
 "This will temporarily interrupt WPPConnect and download and reinstall the "
-"latest version (v{version}), even if it is already installed. Continue?"
+"version this WinZapp supports (v{version}), even if it is already installed."
+" Continue?"
 msgstr ""
 "Isto vai interromper temporariamente a WPPConnect e transferir e reinstalar "
-"a versão mais recente (v{version}), mesmo que já esteja instalada. "
-"Continuar?"
+"a versão que este WinZapp suporta (v{version}), mesmo que já esteja "
+"instalada. Continuar?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "wpp_force_reinstall_confirm_title"
@@ -16232,7 +16233,7 @@ msgctxt "wpp_reinstall_notice_title"
 msgid "WPPConnect update recommended"
 msgstr "Atualização da WPPConnect recomendada"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "wpp_update_available_msg"
 msgid ""
@@ -16245,7 +16246,7 @@ msgstr ""
 "WinZapp vai parar a API, instalar a nova versão e reiniciá-la "
 "automaticamente."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "wpp_update_available_title"
 msgid "WPPConnect update available"
 msgstr "Atualização da WPPConnect disponível"

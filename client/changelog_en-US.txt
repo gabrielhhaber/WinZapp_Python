@@ -232,6 +232,8 @@ FIXES
 
 - Echo cancellation in voice and video calls now works on calls you answer. The speaker had been playing since the call rang, so the canceller compared your microphone with audio from before it opened and never found the echo: the other person kept hearing their own voice even with the option on. The reference now starts when the microphone opens.
 
+- WPPConnect Server updates are no longer suggested on their own. WinZapp used to look for a newer upstream release and offer it, but its fixes are ported to each release by hand, so an update could land on a version it does not support yet. The server now changes only to the version this WinZapp was tested with, and only when it is older than that (or its libraries no longer match). Help > Force reinstall WPPConnect and any new install also use that version instead of the newest one.
+
 V2.0.1.0
 
 This is a maintenance release for the stable version. It only updates the WPPConnect libraries WinZapp uses to talk to WhatsApp, after a WhatsApp Web change broke sending voice messages and documents.

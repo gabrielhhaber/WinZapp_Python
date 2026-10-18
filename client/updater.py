@@ -170,20 +170,6 @@ _PRE_ORDER = {"dev": 0, "alpha": 1, "beta": 2, "": 3}
 _VER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)\.(\d+)(dev|alpha|beta)?$", re.IGNORECASE)
 
 
-def _version_is_older(candidate: str, reference: str) -> bool:
-    """Is `candidate` strictly older than `reference`, as release tags?
-
-    Used only to stop force-reinstall going backwards. Unparseable input
-    answers False — "I cannot tell" must not become "downgrade", and the
-    caller's fallback is the homologated tag either way.
-    """
-    try:
-        from packaging.version import Version
-        return Version(candidate.lstrip("vV")) < Version(reference.lstrip("vV"))
-    except Exception:
-        return False
-
-
 def _parse_wpp_version(tag: str):
     """packaging Version of a wppconnect-server tag ("v2.10.16"), or None."""
     try:
@@ -193,41 +179,20 @@ def _parse_wpp_version(tag: str):
         return None
 
 
-def _floor_at_minimum(latest: str, minimum: str) -> str:
-    """The newest release to offer: *latest*, never older than *minimum*.
+def wpp_update_target(installed: str, minimum: str):
+    """(tag, True) when the installed server is below the bundled minimum, or None.
 
-    GitHub unreachable ("") or answering with something unparseable or older
-    than the bundled minimum yields the minimum, so a raised minimum is still offered offline
-    and a stale answer never moves anyone backwards. No minimum bundled (a dev
-    checkout) means *latest* as is.
-    """
-    if _parse_wpp_version(latest) is None:
-        return minimum   # unreachable or garbage: both mean "no usable answer"
-    if minimum and _version_is_older(latest, minimum):
-        return minimum
-    return latest
-
-
-def wpp_update_target(installed: str, minimum: str, latest: str):
-    """(tag, required) for the periodic WPPConnect check, or None.
-
-    *required* is True when the installed server is below the bundled minimum
-    (the mandatory kind, which ensure_wpp_version() offers at startup) and
-    False when it is merely behind a newer release (the optional kind). The
-    minimum is the floor, not the ceiling: an install at or above it is still
-    told about a newer release. Unparseable input never prompts.
+    Only the mandatory kind exists. WinZapp's patches follow the server by hand,
+    so a release newer than wpp_minimum_version.txt is one it was never
+    validated against and is never offered; the minimum moves only when a
+    WinZapp release raises it. Unparseable input, or no minimum bundled (a dev
+    checkout), never prompts.
     """
     have = _parse_wpp_version(installed)
-    if have is None:
-        return None
     floor = _parse_wpp_version(minimum)
-    if floor is None:
-        minimum = ""
-    target = _floor_at_minimum(latest, minimum)
-    wanted = _parse_wpp_version(target)
-    if wanted is None or wanted <= have:
+    if have is None or floor is None or have >= floor:
         return None
-    return target, bool(minimum) and have < floor
+    return minimum, True
 
 
 def parse_version(v: str):
@@ -1919,19 +1884,21 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin):
 
 class WppUpdateChecker:
     """
-    Periodically checks whether a newer wppconnect-server release exists than
-    the one currently installed in client/api/ — independent of WinZapp's own
-    release cycle. WPPConnect breaks upstream between WinZapp releases too,
-    and until this existed the only fix was a user manually deleting
-    client/api/ and node_modules so WinZapp would reinstall from scratch.
+    Offers the WPPConnect Server version this WinZapp build was validated
+    against (client/wpp_minimum_version.txt) when the installed server is older.
+
+    Nothing here asks GitHub: a newer upstream release is a version the
+    patches were never ported to, so it is never recommended. The server moves
+    only when a WinZapp release raises the pin, and this check (the one the
+    startup gate cannot make in --background mode) then offers it.
 
     Unlike UpdateChecker above, accepting the prompt here doesn't just
     download a new WinZapp build — it stops the *running* API session,
-    reinstalls it in place (reusing ApiSetupDialog's ZIP-download flow, no
-    git required, works in a compiled build), and restarts it. That's why the
-    retry interval is much longer and the first check is delayed well past
-    startup by the caller (see MainWindow._start_wpp_update_checker): this
-    must never fire while pairing or the initial sync is still settling.
+    reinstalls it (reusing ApiSetupDialog's ZIP-download flow, no git
+    required, works in a compiled build), and restarts it. That's why the
+    first check is delayed well past startup by the caller (see
+    MainWindow._start_wpp_update_checker): this must never fire while pairing
+    or the initial sync is still settling.
 
     Version comparison uses packaging.version.Version (plain semver), not
     parse_version()/is_newer() above — those are tailored to WinZapp's own
@@ -1941,14 +1908,14 @@ class WppUpdateChecker:
 
     _RETRY_INTERVAL = 12 * 60 * 60  # 12 hours
     _PAIRING_RETRY_INTERVAL = 5 * 60  # 5 minutes
+    #: Retry after an unexpected error in the check itself.
+    _ERROR_RETRY_INTERVAL = 15 * 60
 
     def __init__(self, main_window):
         self._mw          = main_window
         self._retry_timer = None
         self._stopped = False
         self._timer_lock = threading.RLock()
-        # A recommended release the user already said No to this session.
-        self._declined_tag = None
         # Owner-token of the per-machine WPPConnect prompt claim, or None.
         self._prompt_token = None
 
@@ -2021,39 +1988,15 @@ class WppUpdateChecker:
     # ── Internal ──────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _newest_available_tag() -> str:
-        """The tag FORCE-REINSTALL uses: genuinely the newest release.
+    def _pinned_tag() -> str:
+        """The tag Force Reinstall installs: the one WinZapp is pinned to.
 
-        Both this method's caller and the menu item that reaches it have always
-        documented "always fetches whatever is currently the latest release,
-        regardless of version". They called _fetch_latest_tag(), which returned
-        the homologated tag whenever one was bundled — so a user forcing a
-        reinstall to move off a stale server reinstalled the exact same version,
-        repeatedly, with the dialog cheerfully naming it. Reported live: three
-        forced reinstalls, each "successful", package.json unchanged at 2.10.16.
-
-        Floored at the bundled minimum rather than taken raw: this must be able
-        to move a user forward, never backward, and a GitHub hiccup answering
-        with something older must not silently downgrade an install below the
-        version WinZapp was built against. The periodic check shares the rule
-        through wpp_update_target().
+        Never the newest upstream release. A user forcing a reinstall to
+        repair a broken install must get the version the patches were written
+        for; "" when no pin is bundled (a dev checkout), which the caller
+        reports as an error instead of guessing.
         """
-        from ui.dialogs.api_setup import fetch_latest_wpp_tag
-        latest = fetch_latest_wpp_tag()
-        minimum = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
-        floored = _floor_at_minimum(latest, minimum)
-        if latest and floored != latest:
-            logging.warning(
-                "[WppUpdateChecker] The latest published release (%s) is older "
-                "than the minimum (%s) — reinstalling the minimum "
-                "tag instead of going backwards.", latest, minimum,
-            )
-        return floored
-
-    #: Retry after a check that could not reach GitHub and found nothing to
-    #: offer from the bundled minimum alone (the network is often not up yet at
-    #: a Windows login), instead of waiting the 12 h periodic interval.
-    _OFFLINE_RETRY_INTERVAL = 15 * 60
+        return homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
 
     def _check_once(self):
         if getattr(self, "_stopped", False):
@@ -2068,25 +2011,15 @@ class WppUpdateChecker:
                 self._schedule_retry()
                 return
 
-            from ui.dialogs.api_setup import fetch_latest_wpp_tag
             minimum = homologated_wpp_tag(resource_path("wpp_minimum_version.txt"))
-            latest = fetch_latest_wpp_tag()
-            if _parse_wpp_version(latest) is None:
-                latest = ""   # an unusable answer is an unreachable GitHub
-            target = wpp_update_target(installed, minimum, latest)
+            target = wpp_update_target(installed, minimum)
             if target is None:
+                # Nothing to offer, and nothing that could change while this
+                # process runs: the pin only moves with a WinZapp release.
                 logging.info("[WppUpdateChecker] wppconnect-server needs no update (%s).", installed)
-                self._schedule_retry(None if latest else self._OFFLINE_RETRY_INTERVAL)
                 return
-            tag, required = target
+            tag = target[0]
             remote_version = tag.lstrip("vV")
-
-            if not required and tag == self._declined_tag:
-                # Said No to this very release earlier in the session; the 12 h
-                # retry must not ask again. A required update is never silenced.
-                logging.info("[WppUpdateChecker] %s was declined this session — not asking again.", tag)
-                self._schedule_retry()
-                return
 
             if self._other_account_busy():
                 logging.info("[WppUpdateChecker] another account's WPPConnect Server is "
@@ -2095,16 +2028,15 @@ class WppUpdateChecker:
                 return
 
             logging.info(
-                "[WppUpdateChecker] wppconnect-server %s available: %s -> %s",
-                "update required" if required else "update recommended",
+                "[WppUpdateChecker] wppconnect-server update required: %s -> %s",
                 installed, remote_version,
             )
-            wx.CallAfter(self._prompt_update, installed, remote_version, tag, required)
+            wx.CallAfter(self._prompt_update, installed, remote_version, tag)
         except Exception:
             logging.exception("[WppUpdateChecker] Unexpected error during wppconnect-server update check")
-            self._schedule_retry(self._OFFLINE_RETRY_INTERVAL)
+            self._schedule_retry(self._ERROR_RETRY_INTERVAL)
 
-    def _prompt_update(self, installed: str, remote_version: str, tag: str, required: bool = False):
+    def _prompt_update(self, installed: str, remote_version: str, tag: str):
         if getattr(self._mw, "_shutting_down", False):
             return   # quitting: no dialog on a dying app (UpdateChecker does the same)
         if (getattr(self._mw, "_wpp_updating", False)
@@ -2139,17 +2071,11 @@ class WppUpdateChecker:
         handed_over = False
         try:
             i18n = self._mw.i18n
-            # Below the minimum this build was validated against the mandatory
-            # gate's wording (ensure_wpp_version, which a background start skips);
-            # at or above it the update is only recommended.
-            if required:
-                title = i18n.t("api_update_outdated_title")
-                message = i18n.t("api_update_outdated_message").format(
-                    current=installed, required=remote_version)
-            else:
-                title = i18n.t("wpp_update_available_title")
-                message = i18n.t("wpp_update_available_msg").format(
-                    current=installed, new=remote_version)
+            # Below the minimum this build was validated against: the mandatory
+            # gate's wording (ensure_wpp_version, which a background start skips).
+            title = i18n.t("api_update_outdated_title")
+            message = i18n.t("api_update_outdated_message").format(
+                current=installed, required=remote_version)
             # wx.NO_DEFAULT: this can pop up while the user is typing a message,
             # and Space is how NVDA/JAWS/Narrator users activate the focused
             # button — defaulting to Yes risked reinstalling the API session
@@ -2163,29 +2089,19 @@ class WppUpdateChecker:
                     tag, on_finished=lambda ok: self._update_finished(tag, ok))
                 if started is False:
                     # Refused after a Yes (another account's Node came up, or an
-                    # update is mid-flight): do not ask again for this release
-                    # this session, the refusal already explained itself.
-                    if not required:
-                        self._declined_tag = tag
+                    # update is mid-flight); the refusal already explained itself.
                     self._schedule_retry()
                 else:
                     handed_over = True
             else:
-                if not required:
-                    self._declined_tag = tag
                 self._schedule_retry()
         finally:
             if not handed_over:
                 self._release_prompt()
 
     def _update_finished(self, tag: str, ok: bool) -> None:
-        """The accepted update ended. The claim is handed back either way; a
-        failed one is remembered for the session so a release that does not
-        install is not re-offered and re-attempted every 12 hours (a newer
-        release, or a required update, still prompts). Session-only: persisting
-        it per install would need a settings key and an expiry rule."""
-        if not ok:
-            self._declined_tag = tag
+        """The accepted update ended. The claim is handed back either way, and
+        the mandatory update is asked about again at the next check."""
         self._release_prompt()
         self._schedule_retry()
 
@@ -2198,8 +2114,8 @@ class WppUpdateChecker:
         if getattr(self, "_stopped", False):
             return
         try:
-            logging.info("[WppUpdateChecker] Force-reinstall requested — fetching latest release tag...")
-            tag = self._newest_available_tag()
+            logging.info("[WppUpdateChecker] Force-reinstall requested — using the pinned tag.")
+            tag = self._pinned_tag()
             if not tag:
                 wx.CallAfter(self._show_force_reinstall_error)
                 return

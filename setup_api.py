@@ -7,12 +7,13 @@ out a specific tag. After cloning, follow the build instructions printed at
 the end to compile the API before running build.py.
 
 Configuration (via .env at the project root):
-  WPPCONNECT_TAG_VERSION  — git tag to pin to. Leave unset or empty to
-                            auto-track the latest stable (non-prerelease)
-                            release tag instead — this script fetches tags
-                            and updates client/api/ to it on every run, even
-                            when client/api/ already exists from a previous
-                            run.
+  WPPCONNECT_TAG_VERSION  — git tag to pin to, overriding the default. Leave
+                            unset or empty to use client/wpp_minimum_version.txt,
+                            which is what every release and CI build pins.
+                            This script never tracks the newest upstream
+                            release: WinZapp's patches follow the server by
+                            hand, so a newer one is a version it was not
+                            validated against.
 
 Usage:
   uv run setup-api
@@ -319,34 +320,6 @@ def _gate_system_node(node_bin: str) -> None:
         return
 
     print(f"[INFO] Using system Node.js v{installed} (homologated: v{NODE_VERSION}).")
-
-
-def _latest_stable_tag(cwd: str) -> str:
-    """Return the highest vX.Y.Z release tag reachable from origin, or "" if
-    none is found (e.g. offline, or no tags match the vX.Y.Z pattern —
-    pre-release tags like v2.10.4-rc.1 are deliberately excluded so this
-    never auto-updates a dev/CI setup onto an unstable release).
-    """
-    result = subprocess.run(
-        ["git", "fetch", "--tags", "--force"], cwd=cwd,
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        print(f"[WARNING] git fetch --tags failed — skipping auto-update check.\n{result.stderr}")
-        return ""
-    result = subprocess.run(
-        ["git", "tag", "--list", "v*"], cwd=cwd, capture_output=True, text=True
-    )
-    candidates = []
-    for line in result.stdout.splitlines():
-        tag = line.strip()
-        m = re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)", tag)
-        if m:
-            candidates.append((tuple(int(x) for x in m.groups()), tag))
-    if not candidates:
-        return ""
-    candidates.sort()
-    return candidates[-1][1]
 
 
 def _current_tag(cwd: str) -> str:
@@ -856,7 +829,6 @@ def plan_api_checkout(api_dir_exists, api_dir_nonempty,
 
     Returns {"clone": bool, "action": str}, where action is one of:
       "checkout"        — check the pinned tag out of a git clone we manage;
-      "latest"          — nothing pinned: track the newest stable release tag;
       "verify-snapshot" — an extracted/recovered client/api/ that is not a
                           clone we manage: either no .git at all (the common
                           case — a zip unpacked over the folder) or one too
@@ -878,7 +850,7 @@ def plan_api_checkout(api_dir_exists, api_dir_nonempty,
     # the homologated tag permanently unchecked-out.
     managed = bool(git_has_head_and_config) or not already_cloned
     if managed:
-        action = "checkout" if tag else "latest"
+        action = "checkout" if tag else "none"
     elif tag:
         action = "verify-snapshot"
     else:
@@ -894,6 +866,11 @@ def main():
         tag = homologated_wpp_tag(contract_path)
         if tag:
             print(f"[INFO] Using WinZapp homologated WPPConnect tag {tag}.")
+    if not tag:
+        # Installing "the newest release" is what this pin exists to prevent.
+        print("[ERROR] No WPPConnect Server tag to install: client/wpp_minimum_version.txt "
+              "is missing or unreadable and WPPCONNECT_TAG_VERSION is not set.")
+        sys.exit(1)
 
     git_dir = os.path.join(CLIENT_API_DIR, ".git")
     api_dir_exists = os.path.isdir(CLIENT_API_DIR)
@@ -976,20 +953,6 @@ def main():
             print(f"[INFO] WPPCONNECT_TAG_VERSION pinned — checking out {tag}.")
             _run(["git", "fetch", "--tags", "--force"], cwd=CLIENT_API_DIR)
             _run(["git", "checkout", "-f", tag], cwd=CLIENT_API_DIR)
-    elif plan["action"] == "latest":
-        latest = _latest_stable_tag(CLIENT_API_DIR)
-        if not latest:
-            print("[INFO] No stable release tag found (offline or no tags) — using default branch (main).")
-        else:
-            current = _current_tag(CLIENT_API_DIR)
-            if current == latest:
-                print(f"[INFO] Already at the latest stable release ({latest}).")
-            else:
-                if current:
-                    print(f"[INFO] Newer WPPConnect Server release found: {current} -> {latest}. Updating...")
-                else:
-                    print(f"[INFO] No WPPCONNECT_TAG_VERSION pinned — using latest stable release {latest}.")
-                _run(["git", "checkout", "-f", latest], cwd=CLIENT_API_DIR)
     elif plan["action"] == "verify-snapshot":
         # An extracted/recovered API carries no `.git` of its own, or only a
         # partial one. Running git from it walks upward into WinZapp's own

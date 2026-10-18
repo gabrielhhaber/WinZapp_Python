@@ -57,8 +57,8 @@ class TestAFreshCheckoutStillGetsThePin:
         """A cancelled extraction leaves the folder behind, not an install."""
         assert _plan(True, False, False) == {"clone": True, "action": "checkout"}
 
-    def test_a_fresh_checkout_with_nothing_pinned_tracks_the_latest_release(self):
-        assert _plan(False, False, False, tag="") == {"clone": True, "action": "latest"}
+    def test_a_fresh_checkout_with_nothing_pinned_never_tracks_the_latest_release(self):
+        assert _plan(False, False, False, tag="") == {"clone": True, "action": "none"}
 
 
 class TestTheGitBoundaryIsStillHeld:
