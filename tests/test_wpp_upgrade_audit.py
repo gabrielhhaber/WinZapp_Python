@@ -342,6 +342,21 @@ class TestApproval:
         updated = audit.with_approval(manifest, "2.10.59", "2.10.55")
         assert updated["approved"] == [{"version": "2.10.59", "min_pin": "2.10.55"}]
 
+    def test_re_approving_keeps_the_node_requirement_of_the_older_pin(self, audit):
+        manifest = {"schema": 1, "approved": [
+            {"version": "2.10.61", "min_pin": "2.10.58", "min_winzapp": "2.2.0.0"}]}
+        updated = audit.with_approval(manifest, "2.10.61", "2.10.60")
+        assert updated["approved"] == [
+            {"version": "2.10.61", "min_pin": "2.10.58", "min_winzapp": "2.2.0.0"}]
+
+    def test_re_approving_keeps_the_stricter_requirement(self, audit):
+        manifest = {"schema": 1, "approved": [
+            {"version": "2.10.61", "min_pin": "2.10.58", "min_winzapp": "2.2.0.0"}]}
+        assert audit.with_approval(manifest, "2.10.61", "2.10.58", "2.1.0.0")[
+            "approved"][0]["min_winzapp"] == "2.2.0.0"
+        assert audit.with_approval(manifest, "2.10.61", "2.10.58", "2.3.0.0")[
+            "approved"][0]["min_winzapp"] == "2.3.0.0"
+
     def test_re_approving_a_version_never_narrows_who_gets_it(self, audit):
         """The default old tag is the current pin, which moves."""
         manifest = {"schema": 1, "approved": [{"version": "2.10.61", "min_pin": "2.10.58"}]}

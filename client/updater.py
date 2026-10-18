@@ -1942,6 +1942,10 @@ class WppUpdateChecker:
         self._timer_lock = threading.RLock()
         # A recommended release the user already said No to this session.
         self._declined_tag = None
+        # force_reinstall() cancelled a pending periodic check, which its
+        # worker must put back. False when there was none: with updates
+        # turned off this checker exists only for Force Reinstall.
+        self._resume_periodic = False
         # Owner-token of the per-machine WPPConnect prompt claim, or None.
         self._prompt_token = None
 
@@ -2007,6 +2011,7 @@ class WppUpdateChecker:
         if self._retry_timer is not None:
             self._retry_timer.cancel()
             self._retry_timer = None
+            self._resume_periodic = True
         self._stopped = False
         t = threading.Thread(target=self._force_reinstall_worker, daemon=True)
         t.start()
@@ -2216,9 +2221,13 @@ class WppUpdateChecker:
             if not getattr(self, "_stopped", False):
                 wx.CallAfter(self._show_force_reinstall_error)
         finally:
-            # force_reinstall() cancelled the periodic timer, and it is how a
-            # release approved later in this session reaches the user.
-            self._schedule_retry()
+            # The periodic timer force_reinstall() cancelled is how a release
+            # approved later in this session reaches the user. Only that one
+            # comes back: a checker that had none (updates turned off, or the
+            # startup check not started yet) must not begin prompting.
+            if getattr(self, "_resume_periodic", False):
+                self._resume_periodic = False
+                self._schedule_retry()
 
     def _show_force_reinstall_error(self):
         if getattr(self, "_stopped", False) or getattr(self._mw, "_shutting_down", False):

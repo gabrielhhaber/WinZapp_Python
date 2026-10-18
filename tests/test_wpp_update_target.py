@@ -162,16 +162,31 @@ def test_a_failed_pin_is_still_asked_again(monkeypatch):
     assert prompts == [("2.10.10", "2.10.16", "v2.10.16", True)]
 
 
-def test_force_reinstall_keeps_the_periodic_check_alive(monkeypatch):
-    calls, retries = [], []
+def _force_reinstall(monkeypatch, pending_timer):
+    calls, retries, started = [], [], []
     monkeypatch.setattr(updater.wx, "CallAfter", lambda fn, *a: calls.append(a))
+    monkeypatch.setattr(updater.threading, "Thread",
+                        lambda target, daemon: type("T", (), {"start": lambda s: started.append(target)})())
     checker = WppUpdateChecker.__new__(WppUpdateChecker)
     checker._stopped = False
+    checker._resume_periodic = False
+    checker._retry_timer = type("Timer", (), {"cancel": lambda s: None})() if pending_timer else None
     checker._reinstall_tag = lambda: "v2.10.18"
     checker._schedule_retry = lambda interval=None: retries.append(interval)
-    checker._force_reinstall_worker()
+    checker.force_reinstall()
+    started[0]()   # the worker thread's body
     assert calls == [("2.10.18", "v2.10.18")]
-    assert retries == [None]
+    return retries
+
+
+def test_force_reinstall_puts_back_the_periodic_check_it_cancelled(monkeypatch):
+    assert _force_reinstall(monkeypatch, pending_timer=True) == [None]
+
+
+def test_force_reinstall_starts_no_periodic_check_of_its_own(monkeypatch):
+    """With updates turned off the checker exists only for Force Reinstall;
+    a 12 h timer would start prompting a user who disabled them."""
+    assert _force_reinstall(monkeypatch, pending_timer=False) == []
 
 
 def test_a_declined_approved_release_is_not_asked_again(monkeypatch):

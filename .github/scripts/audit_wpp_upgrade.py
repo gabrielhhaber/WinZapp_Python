@@ -317,12 +317,35 @@ def with_approval(manifest: dict, version: str, min_pin: str,
             pin = str(min(Version(pin), Version(_bare(str(previous.get("min_pin", ""))))))
         except Exception:
             pass   # an unreadable old entry is simply replaced
+    requirement = _later_winzapp(min_winzapp.strip(),
+                                 str((previous or {}).get("min_winzapp", "")).strip())
     entry = {"version": _bare(version), "min_pin": pin}
-    if min_winzapp:
-        entry["min_winzapp"] = min_winzapp.strip()
+    if requirement:
+        entry["min_winzapp"] = requirement
     entries.append(entry)
     entries.sort(key=lambda e: Version(_bare(str(e["version"]))), reverse=True)
     return {**manifest, "schema": manifest.get("schema", 1), "approved": entries}
+
+
+def _later_winzapp(a: str, b: str) -> str:
+    """The stricter of two min_winzapp requirements ("" = none).
+
+    Keeping the older min_pin on a re-approval must keep the requirement that
+    came with it, or builds pinned there with an older Node are offered the
+    release again. Unparseable values keep the one given now.
+    """
+    import re
+
+    def key(text):
+        m = re.match(r"^(\d+)\.(\d+)\.(\d+)\.(\d+)", text)
+        return tuple(int(g) for g in m.groups()) if m else None
+
+    if not a or not b:
+        return a or b
+    ka, kb = key(a), key(b)
+    if ka is None or kb is None:
+        return a
+    return a if ka >= kb else b
 
 
 def write_approval(version: str, min_pin: str, path: str = APPROVED_PATH,

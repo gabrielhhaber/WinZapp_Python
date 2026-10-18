@@ -51,9 +51,7 @@ def test_forced_failure_reports_error_without_automatic_reinstall(monkeypatch):
     monkeypatch.setattr(obj, "_pinned_tag", fail)
     obj._force_reinstall_worker()
     assert callbacks == ["_show_force_reinstall_error"]
-    # Only the periodic check comes back (default 12 h interval), which asks
-    # before installing anything; the forced reinstall itself is not retried.
-    assert retries == [None]
+    assert retries == []
 
 
 def test_stop_prevents_inflight_worker_from_restarting_timer(monkeypatch):
