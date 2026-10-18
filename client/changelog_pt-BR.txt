@@ -236,6 +236,18 @@ CORREÇÕES
 
 - As atualizações do WPPConnect Server não são mais sugeridas por conta própria. O WinZapp procurava uma versão mais nova do projeto original e a oferecia, mas as correções dele são portadas a cada versão manualmente, então uma atualização podia cair numa versão que ele ainda não suporta. Agora o WinZapp só oferece a versão com a qual foi testado, ou uma que a equipe do WinZapp verificou para a sua versão do WinZapp, em geral uma atualização que só traz correções de segurança nas bibliotecas usadas pelo servidor; essa é recomendada, e você pode recusá-la. Uma atualização que muda o próprio servidor espera pela versão do WinZapp que a suporta. Ajuda > Forçar reinstalação da WPPConnect também usa a mais nova dessas versões, e uma instalação nova usa a versão com a qual este WinZapp foi testado.
 
+V2.0.2.0
+
+Esta é mais uma versão de manutenção da estável. Ela só muda a forma como o WinZapp trabalha com o servidor WPPConnect, o programa que liga o WinZapp ao WhatsApp: suporta a versão mais recente do servidor e agora instala apenas versões que sabe que funcionam.
+
+CORREÇÕES
+
+O servidor WPPConnect 2.10.58 passa a ser suportado. O servidor agora recusa iniciar uma sessão enquanto as sessões estão sendo copiadas ou restauradas, grava o arquivo de token de cada sessão de uma vez só, para que uma falha não o deixe pela metade, e reaproveita por um minuto um token de acesso já verificado em vez de verificá-lo de novo a cada requisição. Se o WinZapp oferecer a atualização do WPPConnect ao iniciar, aceite-a para instalar a nova versão.
+
+O WinZapp não sugere mais, por conta própria, atualizações do servidor WPPConnect. Ele procurava a versão mais nova do projeto original e a oferecia, mas as correções dele são portadas a cada versão manualmente, então uma atualização podia cair numa versão que ele ainda não suporta. Agora o WinZapp só instala e oferece a versão com a qual foi testado. Uma instalação nova e Ajuda > Forçar reinstalação da WPPConnect também usam essa versão.
+
+As atualizações seguras do servidor WPPConnect agora chegam sem esperar por uma nova versão do WinZapp. Quando a equipe do WinZapp verifica que uma versão mais nova do servidor funciona com o seu WinZapp, em geral uma atualização que só traz correções de segurança nas bibliotecas usadas pelo servidor, o WinZapp a oferece como atualização recomendada, e você pode recusá-la. Ajuda > Forçar reinstalação da WPPConnect também usa a mais nova dessas versões.
+
 V2.0.1.0
 
 Esta é uma versão de manutenção da estável. Ela só atualiza as bibliotecas WPPConnect que o WinZapp usa para falar com o WhatsApp, depois de uma mudança no WhatsApp Web que quebrou o envio de mensagens de voz e de documentos.

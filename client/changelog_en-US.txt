@@ -236,6 +236,18 @@ FIXES
 
 - WPPConnect Server updates are no longer suggested on their own. WinZapp used to look for a newer upstream release and offer it, but its fixes are ported to each release by hand, so an update could land on a version it does not support yet. Now WinZapp only offers the version it was tested with, or one the WinZapp team has checked against your WinZapp version, usually an update that only brings security fixes to the libraries the server uses; that one is recommended and you can decline it. An update that changes the server itself waits for the WinZapp version that supports it. Help > Force reinstall WPPConnect also uses the newest of these versions, and a new install uses the one this WinZapp was tested with.
 
+V2.0.2.0
+
+This is another maintenance release for the stable version. It only changes how WinZapp works with the WPPConnect server, the program that connects WinZapp to WhatsApp: it supports the latest server version and now installs only versions it knows work.
+
+FIXES
+
+WPPConnect server 2.10.58 is supported. The server now refuses to start a session while sessions are being backed up or restored, saves each session's token file in one piece so a crash cannot leave it half-written, and reuses a checked access token for a minute instead of checking it again on every request. If WinZapp offers the WPPConnect update at startup, accept it to install the new version.
+
+WinZapp no longer suggests WPPConnect server updates on its own. It used to look for the newest version of the original project and offer it, but its fixes are ported to each version by hand, so an update could land on a version it does not support yet. Now WinZapp only installs and offers the version it was tested with. A new installation and Help > Force reinstall WPPConnect use that version too.
+
+Safe WPPConnect server updates now arrive without waiting for a new WinZapp version. When the WinZapp team checks that a newer server version works with your WinZapp, usually an update that only brings security fixes to the libraries the server uses, WinZapp offers it as a recommended update, and you can decline it. Help > Force reinstall WPPConnect also uses the newest of these versions.
+
 V2.0.1.0
 
 This is a maintenance release for the stable version. It only updates the WPPConnect libraries WinZapp uses to talk to WhatsApp, after a WhatsApp Web change broke sending voice messages and documents.
