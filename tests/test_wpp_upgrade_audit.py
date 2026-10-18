@@ -308,6 +308,24 @@ class TestApproval:
         result = audit.audit(changed, _pkg(), _pkg())
         assert audit.approval_blockers(result, changed) == []
 
+    def test_a_moved_node_requirement_blocks_it_without_min_winzapp(self, audit):
+        """Shipped builds bundle the old Node even when this checkout's
+        NODE_VERSION already matches the candidate."""
+        from client.node_download_config import NODE_VERSION
+        old, new = _pkg(engines_node="20.0.0"), _pkg(engines_node=NODE_VERSION)
+        result = audit.audit(CHANGED_2_10_21_TO_24, old, new)
+        assert result["problems"] == []
+        blockers = audit.approval_blockers(result, CHANGED_2_10_21_TO_24, old, new)
+        assert len(blockers) == 1 and "--min-winzapp" in blockers[0]
+        assert audit.approval_blockers(
+            result, CHANGED_2_10_21_TO_24, old, new, "2.2.0.0") == []
+
+    def test_min_winzapp_is_written_when_given(self, audit):
+        updated = audit.with_approval({"schema": 1, "approved": []},
+                                      "2.10.59", "2.10.58", "2.2.0.0")
+        assert updated["approved"] == [
+            {"version": "2.10.59", "min_pin": "2.10.58", "min_winzapp": "2.2.0.0"}]
+
     def test_an_entry_is_added_newest_first_keeping_the_others(self, audit):
         manifest = {"schema": 1, "approved": [
             {"version": "2.10.51", "min_pin": "2.10.50", "min_winzapp": "2.1.0.0"},
@@ -319,10 +337,16 @@ class TestApproval:
         ]
         assert manifest["approved"][0]["version"] == "2.10.51"   # input untouched
 
-    def test_re_approving_a_version_replaces_its_entry(self, audit):
+    def test_re_approving_a_version_can_widen_who_gets_it(self, audit):
         manifest = {"schema": 1, "approved": [{"version": "2.10.59", "min_pin": "2.10.58"}]}
         updated = audit.with_approval(manifest, "2.10.59", "2.10.55")
         assert updated["approved"] == [{"version": "2.10.59", "min_pin": "2.10.55"}]
+
+    def test_re_approving_a_version_never_narrows_who_gets_it(self, audit):
+        """The default old tag is the current pin, which moves."""
+        manifest = {"schema": 1, "approved": [{"version": "2.10.61", "min_pin": "2.10.58"}]}
+        updated = audit.with_approval(manifest, "2.10.61", "2.10.60")
+        assert updated["approved"] == [{"version": "2.10.61", "min_pin": "2.10.58"}]
 
     def test_the_written_file_is_what_installs_parse(self, audit, tmp_path):
         from core.wpp_approved import parse_manifest

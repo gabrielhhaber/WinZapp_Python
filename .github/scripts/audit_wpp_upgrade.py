@@ -260,9 +260,31 @@ def built_source_changes(changed_paths) -> list:
     return sorted(p for p in set(changed_paths) if _is_built(p))
 
 
-def approval_blockers(result: dict, changed_paths) -> list:
+def node_requirement_moved(old_pkg: dict, new_pkg: dict) -> tuple:
+    """(old, new) engines.node when upstream changed it between the tags, else ().
+
+    The audit's own engines check compares with the NODE_VERSION of this
+    checkout, but an approval reaches every shipped build pinned at the old
+    tag or later, each with the Node it bundled. Those builds only have the old
+    tag's Node for sure.
+    """
+    was = ((old_pkg.get("engines") or {}).get("node") or "").strip()
+    now = ((new_pkg.get("engines") or {}).get("node") or "").strip()
+    return (was, now) if was != now else ()
+
+
+def approval_blockers(result: dict, changed_paths, old_pkg: dict = None,
+                      new_pkg: dict = None, min_winzapp: str = "") -> list:
     """Why the candidate cannot be approved for builds pinned at the old tag."""
     blockers = list(result["problems"])
+    moved = node_requirement_moved(old_pkg or {}, new_pkg or {})
+    if moved and not min_winzapp:
+        blockers.append(
+            f"Upstream moved engines.node from {moved[0] or 'nothing'} to "
+            f"{moved[1] or 'nothing'}. Builds already shipped bundle the old "
+            f"Node: pass --min-winzapp with the first WinZapp version that "
+            f"ships a matching one."
+        )
     source = built_source_changes(changed_paths)
     if source:
         blockers.append(
@@ -273,28 +295,44 @@ def approval_blockers(result: dict, changed_paths) -> list:
     return blockers
 
 
-def with_approval(manifest: dict, version: str, min_pin: str) -> dict:
-    """*manifest* with {version, min_pin} recorded, newest first.
+def with_approval(manifest: dict, version: str, min_pin: str,
+                  min_winzapp: str = "") -> dict:
+    """*manifest* with {version, min_pin[, min_winzapp]} recorded, newest first.
 
-    An existing entry for the same version is replaced (re-auditing from an
-    older pin widens who gets it); every other entry is kept untouched.
+    Re-approving a version never narrows who gets it: the older of the two
+    min_pin values is kept (the default old tag is the current pin, which
+    moves). Every other entry is kept untouched.
     """
     from packaging.version import Version
 
-    entries = [e for e in manifest.get("approved", [])
-               if _bare(str(e.get("version", ""))) != _bare(version)]
-    entries.append({"version": _bare(version), "min_pin": _bare(min_pin)})
+    entries, previous = [], None
+    for entry in manifest.get("approved", []):
+        if _bare(str(entry.get("version", ""))) == _bare(version):
+            previous = entry
+        else:
+            entries.append(entry)
+    pin = _bare(min_pin)
+    if previous is not None:
+        try:
+            pin = str(min(Version(pin), Version(_bare(str(previous.get("min_pin", ""))))))
+        except Exception:
+            pass   # an unreadable old entry is simply replaced
+    entry = {"version": _bare(version), "min_pin": pin}
+    if min_winzapp:
+        entry["min_winzapp"] = min_winzapp.strip()
+    entries.append(entry)
     entries.sort(key=lambda e: Version(_bare(str(e["version"]))), reverse=True)
     return {**manifest, "schema": manifest.get("schema", 1), "approved": entries}
 
 
-def write_approval(version: str, min_pin: str, path: str = APPROVED_PATH) -> None:
+def write_approval(version: str, min_pin: str, path: str = APPROVED_PATH,
+                   min_winzapp: str = "") -> None:
     try:
         with open(path, encoding="utf-8") as fh:
             manifest = json.load(fh)
     except FileNotFoundError:
         manifest = {"schema": 1, "approved": []}
-    updated = with_approval(manifest, version, min_pin)
+    updated = with_approval(manifest, version, min_pin, min_winzapp)
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(updated, fh, indent=2)
         fh.write("\n")
@@ -388,6 +426,9 @@ def main() -> int:
     parser.add_argument("--approve", action="store_true",
                         help="record the candidate in client/wpp_approved_versions.json "
                              "for builds pinned at the old tag or later, if it is clean")
+    parser.add_argument("--min-winzapp", default="",
+                        help="with --approve: the first WinZapp version that can run "
+                             "the candidate (required when engines.node moved)")
     args = parser.parse_args()
 
     old_tag = args.old_tag or committed_pin()
@@ -398,11 +439,9 @@ def main() -> int:
 
     try:
         changed_paths = fetch_changed_paths(old_tag, new_tag)
-        result = audit(
-            changed_paths,
-            fetch_package_json(old_tag),
-            fetch_package_json(new_tag),
-        )
+        old_pkg = fetch_package_json(old_tag)
+        new_pkg = fetch_package_json(new_tag)
+        result = audit(changed_paths, old_pkg, new_pkg)
     except AuditUnavailable as exc:
         # Deliberately not 1: "the audit could not run" and "the audit found
         # something" are opposite situations, and a typo'd tag reading as a
@@ -414,7 +453,8 @@ def main() -> int:
         print(line)
 
     if args.approve:
-        return _approve(old_tag, new_tag, result, changed_paths)
+        return _approve(old_tag, new_tag, result, changed_paths,
+                        old_pkg, new_pkg, args.min_winzapp)
 
     if result["problems"]:
         print("NEEDS A HUMAN:")
@@ -432,14 +472,15 @@ def main() -> int:
     return 0
 
 
-def _approve(old_tag: str, new_tag: str, result: dict, changed_paths) -> int:
-    blockers = approval_blockers(result, changed_paths)
+def _approve(old_tag: str, new_tag: str, result: dict, changed_paths,
+             old_pkg: dict, new_pkg: dict, min_winzapp: str) -> int:
+    blockers = approval_blockers(result, changed_paths, old_pkg, new_pkg, min_winzapp)
     if blockers:
         print("NOT APPROVED:")
         for blocker in blockers:
             print(f"  - {blocker}")
         return 1
-    write_approval(new_tag, old_tag)
+    write_approval(new_tag, old_tag, min_winzapp=min_winzapp)
     print(f"Approved {_bare(new_tag)} for every build pinned at {_bare(old_tag)} or "
           f"later, in client/wpp_approved_versions.json.")
     print(f"Before merging it to main, build it once: set WPPCONNECT_TAG_VERSION=v"

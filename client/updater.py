@@ -2079,6 +2079,11 @@ class WppUpdateChecker:
                 self._schedule_retry(None if reachable else self._ERROR_RETRY_INTERVAL)
                 return
             tag, required = target
+            if required and tag == self._declined_tag and tag != minimum:
+                # The approved release this required update aimed at already
+                # failed here this session: offer the pin, which this build was
+                # tested with, instead of the same failing install every 12 h.
+                tag = minimum
             remote_version = tag.lstrip("vV")
 
             if not required and tag == self._declined_tag:
@@ -2210,6 +2215,10 @@ class WppUpdateChecker:
             logging.exception("[WppUpdateChecker] Unexpected error during forced reinstall check")
             if not getattr(self, "_stopped", False):
                 wx.CallAfter(self._show_force_reinstall_error)
+        finally:
+            # force_reinstall() cancelled the periodic timer, and it is how a
+            # release approved later in this session reaches the user.
+            self._schedule_retry()
 
     def _show_force_reinstall_error(self):
         if getattr(self, "_stopped", False) or getattr(self._mw, "_shutting_down", False):

@@ -148,6 +148,32 @@ def test_a_required_update_is_asked_again_after_a_no(monkeypatch):
     assert len(prompts) == 1
 
 
+def test_a_required_update_whose_approved_target_failed_offers_the_pin(monkeypatch):
+    checker, prompts, _ = _checker(monkeypatch, "2.10.10", "v2.10.16", ("v2.10.18", True))
+    checker._declined_tag = "v2.10.18"
+    checker._check_once()
+    assert prompts == [("2.10.10", "2.10.16", "v2.10.16", True)]
+
+
+def test_a_failed_pin_is_still_asked_again(monkeypatch):
+    checker, prompts, _ = _checker(monkeypatch, "2.10.10", "v2.10.16", ("", True))
+    checker._declined_tag = "v2.10.16"
+    checker._check_once()
+    assert prompts == [("2.10.10", "2.10.16", "v2.10.16", True)]
+
+
+def test_force_reinstall_keeps_the_periodic_check_alive(monkeypatch):
+    calls, retries = [], []
+    monkeypatch.setattr(updater.wx, "CallAfter", lambda fn, *a: calls.append(a))
+    checker = WppUpdateChecker.__new__(WppUpdateChecker)
+    checker._stopped = False
+    checker._reinstall_tag = lambda: "v2.10.18"
+    checker._schedule_retry = lambda interval=None: retries.append(interval)
+    checker._force_reinstall_worker()
+    assert calls == [("2.10.18", "v2.10.18")]
+    assert retries == [None]
+
+
 def test_a_declined_approved_release_is_not_asked_again(monkeypatch):
     checker, prompts, retries = _checker(monkeypatch, "2.10.16", "v2.10.16", ("v2.10.18", True))
     checker._declined_tag = "v2.10.18"

@@ -46,9 +46,15 @@ class TestForceReinstallGoesToThePinnedRelease:
     is the point: it rebuilds a broken install on the pin, or on a release the
     maintainers approved for that pin."""
 
-    def test_it_asks_for_the_supported_tag(self):
-        source = inspect.getsource(updater.WppUpdateChecker._force_reinstall_worker)
-        assert "_reinstall_tag()" in source
+    def test_it_asks_for_the_supported_tag(self, monkeypatch):
+        confirmed = []
+        monkeypatch.setattr(updater.wx, "CallAfter", lambda fn, *a: confirmed.append(a))
+        checker = updater.WppUpdateChecker.__new__(updater.WppUpdateChecker)
+        checker._stopped = False
+        checker._reinstall_tag = lambda: "v2.10.19"
+        checker._schedule_retry = lambda interval=None: None
+        checker._force_reinstall_worker()
+        assert confirmed == [("2.10.19", "v2.10.19")]
 
     def test_the_supported_tag_is_the_pin_when_nothing_is_approved(self, monkeypatch):
         monkeypatch.setattr(updater, "homologated_wpp_tag", lambda _p: "v2.10.18")
@@ -75,11 +81,6 @@ class TestForceReinstallGoesToThePinnedRelease:
         source = inspect.getsource(updater)
         assert "fetch_latest_wpp_tag" not in source
         assert "_newest_available_tag" not in source
-
-    def test_the_periodic_check_compares_against_the_pin_and_the_approved_list(self):
-        source = inspect.getsource(updater.WppUpdateChecker._check_once)
-        assert "wpp_update_target(installed, minimum, approved)" in source
-        assert "fetch_latest" not in source
 
 
 class TestTheStartupGateCanActuallyRun:

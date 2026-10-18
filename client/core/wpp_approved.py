@@ -16,7 +16,7 @@ already think in::
 
 "2.10.59 works with the patches of any build pinned at 2.10.58 or later"; in
 practice ``min_pin`` is the last release that changed a file WinZapp
-overrides. A build is eligible when ``min_pin <= its pin <= version``: an
+overrides. A build is offered it when ``min_pin <= its pin < version``: an
 older build (pinned before the last breaking release) never sees it, and a
 newer build already has it or something newer as its pin. An optional
 ``min_winzapp`` covers a requirement the pin cannot express (a release that
