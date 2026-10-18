@@ -807,8 +807,8 @@ class WppServerMixin:
             # ("2.3.4"), and there is no wppconnect-server release tagged
             # v2.3.4 — passing it would build a 404 archive URL, the same
             # failure the comment above describes. With no tag at all,
-            # ApiSetupDialog resolves the latest release itself, which is the
-            # right answer when we cannot name a better one.
+            # ApiSetupDialog fails with an error rather than guessing: it
+            # never installs the newest release (docs/traps/updater-channels.md).
             minimum_tag = f"v{minimum.lstrip('vV')}"
         def _show_update_dlg():
             update_dlg = ApiSetupDialog(

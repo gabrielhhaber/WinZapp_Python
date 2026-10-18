@@ -16234,24 +16234,6 @@ msgid "WPPConnect update recommended"
 msgstr "Atualização da WPPConnect recomendada"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#, python-brace-format
-msgctxt "wpp_update_available_msg"
-msgid ""
-"A recommended update for WPPConnect Server is available (current: {current},"
-" new: {new}). It is not mandatory. Update now? WinZapp will stop the API, "
-"install the new version, and restart it automatically."
-msgstr ""
-"Está disponível uma atualização recomendada do WPPConnect Server (atual: "
-"{current}, nova: {new}). Não é obrigatória. Pretende atualizar agora? O "
-"WinZapp vai parar a API, instalar a nova versão e reiniciá-la "
-"automaticamente."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "wpp_update_available_title"
-msgid "WPPConnect update available"
-msgstr "Atualização da WPPConnect disponível"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/wpp_background_update.py
 #, python-brace-format
 msgctxt "wpp_update_background_ready_msg"

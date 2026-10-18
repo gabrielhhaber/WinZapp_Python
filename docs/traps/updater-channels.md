@@ -296,4 +296,4 @@ Offline, or on a fork without the file, it falls back to `resolve_changelog()`. 
 - `ApiSetupDialog` has no latest-release or `main`-branch fallback: no pin and no `WPPCONNECT_TAG_VERSION` ends in an error. `fetch_latest_wpp_tag` and `_REPO_ZIP_MAIN` are deleted.
 - `setup_api.py` exits with an error when it has no tag instead of tracking the newest stable tag; `_latest_stable_tag` and the `"latest"` plan action are deleted. `WPPCONNECT_TAG_VERSION` still overrides the pin for a developer.
 - Mandatory repairs are untouched: the startup gate (installed below the pin, or `node_modules` holding a wppconnect/wa-js other than the one `package.json` pins).
-- The i18n entries `wpp_update_available_title` / `wpp_update_available_msg` are no longer used by any code; they were left in the catalogs.
+- The i18n entries `wpp_update_available_title` / `wpp_update_available_msg` (the recommended-update prompt) were deleted from every catalog.
