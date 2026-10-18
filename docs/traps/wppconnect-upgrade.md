@@ -76,6 +76,18 @@ Verified on a scratch checkout of 2.10.52 with the patches laid over it as `setu
 `update_keeps_server.py` still says the gap is nothing with the bundled tag: it is, again, because the overridden files above were ported.
 
 
+## 2.10.55 → 2.10.58 (2026-10-18)
+
+Dependencies: only `@aws-sdk/client-s3` and dev tooling moved; the homologated pair (wppconnect 2.3.5, wa-js 4.7.1) and `engines.node` did not. Source changed in 19 files; three of them are overridden by `api_patches/`, so the restore would have discarded upstream's change:
+
+- `middleware/auth.ts`: three-way merge conflicted. Upstream's verified-token cache (successful bcrypt checks kept 60 s, keyed by a SHA-256 digest of session, secret and token) sits **next to** our `timingSafeEqualStr()`; neither replaces the other.
+- `controller/sessionController.ts`: merged cleanly. Start-all/show-all now `return` after answering a wrong secret key, and starts are answered 503 while a backup or restore runs.
+- `util/createSessionUtil.ts`: conflicted three times, resolved by keeping our ownership design (`ownClient`) and **not** taking upstream's `initializeSession()` split. The `tryBeginSessionStart()` gate lives in `opendata()`, the only caller, released in a `finally`; `createSessionUtil()` keeps the shape `tests/test_wedged_initializing_session.py` slices. `myTokenStore.setToken` is awaited, as upstream now does (our "only rewrite when a token was read" guard is untouched).
+
+Flows through untouched: `manageSession.ts` (now serialises backup/restore through the new `sessionMaintenance.ts` and calls our `cleanupSession(session, cb)` — same signature), `FileTokenStore.ts` (atomic token writes; `fileTokenStory.ts`, ours, only wraps it), `redisTokenStory.ts`, `redis/db.ts`, `miscController.ts`.
+
+Verified on a scratch checkout of 2.10.58 with the patches laid over it: `tsc --noEmit` reports only missing-module errors from using our `package.json` as the install source (`socket.io-client`, `express-rate-limit`), none in a patched file. Jest: upstream's new `auth`, `sessionSecretKeyGuards`, `manageSession` and `sessionMaintenance` suites pass; `sessionLifecycle` fails the same two cases as on 2.10.52 (INITIALIZING placeholder close, close that rejects), the documented divergence from our `closeSession`.
+
 ## wa-js 4.6.1 -> 4.7.1 with wppconnect 2.3.4 -> 2.3.5 (2026-10-15)
 
 **Symptom.** Voice messages and documents failed to send: `send-voice-base64 failed: Cannot read properties of undefined (reading 'prepRawMedia')`, HTTP 201 from the server with the error in the body, so the client's "invalid success response" path. Texts, and a source tree installed hours earlier, kept working: `@wppconnect/wa-version` is reached only through WPPConnect's own `^1.5.4472`, so a fresh install resolves whatever WhatsApp Web build is newest (1.5.5046, published 21:28Z) and `start.js` serves exactly that build. It moved `prepRawMedia` out of the object wa-js 4.6.1 reads it from. wa-js 4.7.1 (22:34Z) is "split MediaPrep bindings after WhatsApp moved prepRawMedia and uploadProductImage".

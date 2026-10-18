@@ -28,9 +28,9 @@ the periodic check then offers the newer one again.
 What that leaves: upstream source that changed between the bundled tag and
 the installed one runs as the bundled tag's until the next server update. Every
 upstream release from 2.10.27 to 2.10.48 changed dependencies only, which live
-in node_modules. 2.10.49 to 2.10.55 changed source (webhook retries, list
+in node_modules. 2.10.49 to 2.10.58 changed source (webhook retries, list
 filters, session cleanup); the files among them WinZapp overrides were ported
-into api_patches with the 2.10.52 and 2.10.55 bumps (docs/traps/wppconnect-upgrade.md), so
+into api_patches with the 2.10.52, 2.10.55 and 2.10.58 bumps (docs/traps/wppconnect-upgrade.md), so
 with that tag bundled the gap is nothing again.
 
 Plain functions over paths, no wx, so the decision is tested on temporary

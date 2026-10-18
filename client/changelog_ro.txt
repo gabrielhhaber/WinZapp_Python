@@ -206,6 +206,8 @@ CORECTĂRI
 
 - macOS: instalarea unei actualizări și prima pornire după ea sunt mult mai rapide. Aplicația are mult mai puține fișiere de dezarhivat (aproximativ 24.000 în loc de 61.000), serverul ei este pus la locul lui într-o fracțiune de secundă în loc de câteva secunde, copia anterioară este ștearsă în fundal, iar browserul în care rulează WhatsApp (aproximativ 190 MB) este păstrat în loc să fie descărcat din nou după fiecare actualizare.
 
+- WPPConnect Server a fost actualizat la 2.10.58. Biblioteca refuză acum pornirea unei sesiuni cât timp sesiunile sunt copiate sau restaurate, salvează atomic fișierul de token al fiecărei sesiuni, ca o eroare să nu-l lase scris pe jumătate, și reutilizează timp de un minut un token de acces deja verificat, în loc să-l verifice din nou la fiecare cerere. Dacă WinZapp oferă actualizarea WPPConnect la pornire, acceptați-o pentru a instala noua versiune.
+
 V2.0.1.0
 
 Aceasta este o versiune de întreținere a celei stabile. Actualizează doar bibliotecile WPPConnect pe care WinZapp le folosește pentru a comunica cu WhatsApp, după o schimbare în WhatsApp Web care a stricat trimiterea mesajelor vocale și a documentelor.

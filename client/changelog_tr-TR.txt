@@ -206,6 +206,8 @@ DÜZELTMELER
 
 - macOS: bir güncellemeyi yüklemek ve sonrasındaki ilk açılış çok daha hızlı. Uygulamada açılacak dosya sayısı çok daha az (61.000 yerine yaklaşık 24.000), sunucusu birkaç saniye yerine saniyenin küçük bir kesrinde yerine konur, önceki kopya arka planda silinir ve WhatsApp'ın çalıştığı tarayıcı (yaklaşık 190 MB) her güncellemeden sonra yeniden indirilmek yerine korunur.
 
+- WPPConnect Server 2.10.58 sürümüne güncellendi. Kütüphane artık oturumlar yedeklenirken veya geri yüklenirken yeni bir oturum başlatmayı reddediyor, her oturumun belirteç dosyasını atomik olarak kaydediyor (bir çökme dosyayı yarım bırakamasın) ve doğrulanmış bir erişim belirtecini her istekte yeniden denetlemek yerine bir dakika boyunca yeniden kullanıyor. WinZapp açılışta WPPConnect güncellemesini sunarsa, yeni sürümü kurmak için kabul edin.
+
 V2.0.1.0
 
 Bu, kararlı sürümün bakım sürümüdür. Yalnızca WinZapp'ın WhatsApp ile konuşmak için kullandığı WPPConnect kütüphanelerini günceller; WhatsApp Web'deki bir değişiklik sesli mesaj ve belge göndermeyi bozmuştu.
