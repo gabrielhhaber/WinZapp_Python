@@ -24,6 +24,16 @@ def _on_runner():
 pytestmark = pytest.mark.skipif(not _on_runner(), reason="native updater acceptance is GitHub Windows CI only")
 
 
+def _close_owned_child(kernel, handle):
+    """Teardown must also work when the job-under-test failed to kill it."""
+    try:
+        if kernel.WaitForSingleObject(handle, 0) != 0:
+            assert kernel.TerminateProcess(handle, 1), "could not stop the synthetic owned child"
+            assert kernel.WaitForSingleObject(handle, 10000) == 0, "owned child did not stop"
+    finally:
+        kernel.CloseHandle(handle)
+
+
 def _until(condition):
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
@@ -109,14 +119,16 @@ def test_native_guardian_death_terminates_the_owned_grandchild(tmp_path):
         kernel.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
         kernel.WaitForSingleObject.restype = wintypes.DWORD
         kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel.TerminateProcess.argtypes = (wintypes.HANDLE, wintypes.UINT)
+        kernel.TerminateProcess.restype = wintypes.BOOL
         # Hold this exact child's handle before killing the guardian: no PID
         # scanning/reuse assumptions, no foreign processes or installations.
-        handle = kernel.OpenProcess(0x00100000, False, child_pid)
+        handle = kernel.OpenProcess(0x00100000 | 0x0001, False, child_pid)
         assert handle
         try:
             proc.kill()
             proc.wait(timeout=10)
             assert kernel.WaitForSingleObject(handle, 10000) == 0
         finally:
-            kernel.CloseHandle(handle)
+            _close_owned_child(kernel, handle)
         assert not lease.lease_busy(paths["lock"])
