@@ -1,64 +1,21 @@
-"""After an update installed with administrator rights, WinZapp comes back
-without them.
+"""Relaunch from the original account after an installer finishes.
 
-When the install folder is not writable by the user (_needs_admin(), e.g.
-a copy put in Program Files by hand), updater._run_batch_installer() runs
-the installer script through a UAC prompt. That script ended with
-`start "" WinZapp.exe`, and a process started by an elevated process is
-elevated too — so the WinZapp that came back after the update, its Node
-and every npm under it ran as Administrator, at a level the user never ran
-it at. That is how an update broke the user's own npm (see
-core/npm_environment.py for the cache half of that report). When the UAC
-prompt was answered with another administrator's password (a standard
-account), that `start ""` even ran WinZapp as that other account.
+The application's waiter inherits its account and elevation, including when
+UAC runs the installer under a different administrator. Guarded installers
+are Job Object children: they must never launch the new application inside
+that job. Their outside waiter requires a terminal result and guardian exit.
+The guardian PID/create-time also keeps older startup gates closed.
 
-The elevated script now leaves the relaunch to a small waiter script that
-the non-elevated WinZapp starts before it exits. The waiter inherits what
-the user ran WinZapp with — same account, same level — waits for the
-elevated script to finish, however it finishes (copied, xcopy failed,
-another account timed out, or killed), and starts WinZapp.exe the way the
-script used to. Rejected alternatives:
+The legacy unguarded path keeps its batch fallback when no waiter takes the
+handoff. Both paths suppress relaunch while the original parent is alive,
+after an abort, or when the wait limit expires. A missing terminal receipt
+never authorizes a guarded relaunch. The wait limit is a count, not a clock.
 
-* `explorer.exe WinZapp.exe` from the elevated script relies on Explorer
-  being the running shell and handing the launch to its existing,
-  non-elevated instance, and from another administrator's account it would
-  not reach the user's Explorer at all.
-* `runas /trustlevel:0x20000` produces a restricted token, not the user's
-  normal one, and is known to fail on current Windows 10/11 builds.
-* De-elevating Node itself (win32_helpers._spawn_delevated) leaves the
-  whole WinZapp elevated; wpp_server._start_wpp_background explains why
-  Node is deliberately not de-elevated, and that stays true.
-
-Exactly one relaunch, never zero or two. The waiter's first action is to
-create the handoff marker, so the marker exists exactly when a waiter got
-that far; start_relaunch_waiter() waits for it to appear before this
-process goes on to exit, and kills a waiter that never creates it. The
-elevated script reaches its relaunch only after this process has exited
-(its first loop waits for that), and relaunches by itself exactly when the
-marker is missing. So: no waiter, a waiter that could not start, or one
-killed before the marker — the script relaunches as it always did; a marker
-— the waiter does, and the script does not.
-
-An abort marker or a still-running original parent suppresses relaunch. The
-installer bounds its parent wait at 300 checks and must not start a duplicate
-WinZapp on that failure. This also guards a missing/unwritable abort marker.
-
-The waiter otherwise stops waiting at whichever comes first: the script's
-`<marker>.done`, written after its relaunch decision on every exit path
-(only when the marker is there, so no waiter means no leftover file); the
-script's cmd.exe gone (by pid and image name — the path where the script
-was killed); or WAITER_PASSES checks, so a reused pid cannot hold it
-forever. Giving up leaves the marker in place, so a script still running
-does not start a second copy (both small files then stay in %TEMP%).
-
-What this cannot do: a WinZapp that is ALREADY elevated when it updates
-(run as administrator on purpose, or relaunched elevated by an older
-build's installer) can write the install folder, so _needs_admin() is
-False, the script is not elevated by us, and its plain relaunch inherits
-the elevation. That is left alone — some people run WinZapp as
-administrator deliberately, and nothing an older build leaves behind tells
-the two apart — and logged by updater._run_batch_installer().
-docs/traps/updater-channels.md has the details.
+Already-elevated applications keep their intentional elevation. Environment
+cleanup removes WinZapp/Node and PyInstaller child state. Native UAC, Job
+Object, cross-account and packaged behavior require controlled acceptance;
+source tests do not exercise those OS operations. See
+`docs/traps/updater-channels.md` for contracts and remaining limits.
 """
 
 import ctypes
@@ -68,8 +25,8 @@ import subprocess
 import time
 from ctypes import wintypes
 
-#: How many times the waiter checks on the elevated script before
-#: relaunching anyway. Each check runs tasklist and then sleeps one second,
+#: How many times the waiter checks on the installer before giving up
+#: without a relaunch. Each check runs tasklist and then sleeps one second,
 #: so this is at least 30 minutes, somewhat more on a slow machine (a batch
 #: script has no clock it can do arithmetic on without parsing the
 #: locale-formatted %TIME%). An update finishes in minutes; this only bounds
@@ -134,7 +91,7 @@ def relaunch_environment(environment) -> dict:
 
 
 def relaunch_lines(exe_path: str, log_path: str, handoff_path: str = "",
-                   indent: str = "") -> str:
+                   indent: str = "", waiter_required: bool = False) -> str:
     """The installer script's relaunch of WinZapp.
 
     Without *handoff_path* (the non-elevated install) it is the original
@@ -149,17 +106,27 @@ def relaunch_lines(exe_path: str, log_path: str, handoff_path: str = "",
         f'{indent}    >> "{log_path}" echo relaunch left to the waiter running without administrator rights\n'
         f'{indent}    echo done> "{handoff_path}.done"\n'
         f"{indent}) else (\n"
-        f"{indent}    {start}"
+        + (f'{indent}    >> "{log_path}" echo relaunch waiter unavailable - manual launch required\n'
+           if waiter_required else f"{indent}    {start}") +
         f"{indent})\n"
     )
 
 
 def build_relaunch_waiter_script(installer_pid: int, exe_path: str, log_path: str,
                                  handoff_path: str,
-                                 passes: int = WAITER_PASSES, parent_pid: int = 0) -> str:
+                                 passes: int = WAITER_PASSES, parent_pid: int = 0,
+                                 completion_path: str = "", installer_image: str = "cmd.exe",
+                                 recovery_path: str = "") -> str:
     """The waiter's batch text. Pure — every path is already console-safe."""
     done_path = handoff_path + ".done"
     abort_path = handoff_path + ".abort"
+    if installer_image not in ("cmd.exe", "powershell.exe"):
+        raise ValueError("invalid installer process image")
+    if completion_path:
+        from core.update_recovery import build_guarded_waiter
+        return build_guarded_waiter(installer_pid, exe_path, log_path, handoff_path,
+                                     passes, parent_pid, completion_path, installer_image,
+                                     recovery_path)
     # Also fail closed if the abort marker could not be written. A PID reused
     # by an unrelated process may suppress a relaunch, never create a duplicate.
     parent_check = (
@@ -178,8 +145,9 @@ def build_relaunch_waiter_script(installer_pid: int, exe_path: str, log_path: st
         ":WAIT\n"
         f'if exist "{abort_path}" goto ABORT\n'
         f'if exist "{done_path}" goto RELAUNCH\n'
-        f'tasklist /FI "PID eq {installer_pid}" /FI "IMAGENAME eq cmd.exe" 2>NUL | find "{installer_pid}" >NUL\n'
+        f'tasklist /FI "PID eq {installer_pid}" /FI "IMAGENAME eq {installer_image}" 2>NUL | find "{installer_pid}" >NUL\n'
         "if errorlevel 1 goto RELAUNCH\n"
+        ":WAIT_AGAIN\n"
         "set /a WAITED+=1\n"
         f"if !WAITED! GEQ {passes} goto GAVE_UP\n"
         "timeout /t 1 /nobreak >NUL\n"
@@ -188,10 +156,10 @@ def build_relaunch_waiter_script(installer_pid: int, exe_path: str, log_path: st
         f'if exist "{abort_path}" goto ABORT\n'
         + parent_check +
         # The marker stays: a script still running must not relaunch too.
-        f'>> "{log_path}" echo gave up waiting for the installer after {passes} checks - relaunching WinZapp\n'
-        f'if exist "{exe_path}" start "" "{exe_path}"\n'
+        f'>> "{log_path}" echo installer wait limit reached - not relaunching over a running copy\n'
         'del "%~f0"\n'
         "goto :EOF\n"
+        +
         ":RELAUNCH\n"
         f'if exist "{abort_path}" goto ABORT\n'
         + parent_check +
@@ -213,20 +181,23 @@ def build_relaunch_waiter_script(installer_pid: int, exe_path: str, log_path: st
 
 def start_relaunch_waiter(bat_path: str, installer_pid, exe_path: str, log_path: str,
                           handoff_path: str, write_script, popen=None,
-                          appear_timeout: float = 10.0, parent_pid: int = 0) -> bool:
+                          appear_timeout: float = 10.0, parent_pid: int = 0,
+                          completion_path: str = "", installer_image: str = "cmd.exe",
+                          recovery_path: str = "") -> bool:
     """Start the non-elevated waiter and wait for it to take the relaunch
     over (its marker). Returns True when it did. Every other outcome leaves
-    no marker and no waiter, so the elevated script relaunches WinZapp
-    itself, as it always did.
+    no marker and no waiter. The legacy script can use its direct fallback;
+    a guarded caller must abort before committing installation.
 
     *write_script* is updater._write_installer_script (OEM code page)."""
     if not installer_pid:
-        logging.warning("Auto-updater: no pid for the elevated installer; it "
-                        "relaunches WinZapp itself")
+        logging.warning("Auto-updater: installer PID unavailable; cannot prepare "
+                        "the relaunch handoff")
         return False
     waiter_path = bat_path[:-len(".bat")] + "_relaunch.bat"
     script = build_relaunch_waiter_script(installer_pid, exe_path, log_path, handoff_path,
-                                          parent_pid=parent_pid)
+                                          parent_pid=parent_pid, completion_path=completion_path,
+                                          installer_image=installer_image, recovery_path=recovery_path)
     if not write_script(waiter_path, script):
         return False
     popen = popen or subprocess.Popen
@@ -238,8 +209,7 @@ def start_relaunch_waiter(bat_path: str, installer_pid, exe_path: str, log_path:
                      creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                      env=relaunch_environment(os.environ))
     except OSError:
-        logging.exception("Auto-updater: could not start the relaunch waiter; "
-                          "the elevated installer relaunches WinZapp itself")
+        logging.exception("Auto-updater: could not start the relaunch waiter")
         _remove_quietly(waiter_path)
         return False
     deadline = time.monotonic() + appear_timeout
@@ -250,7 +220,7 @@ def start_relaunch_waiter(bat_path: str, installer_pid, exe_path: str, log_path:
             return True
         time.sleep(0.05)
     logging.error("Auto-updater: the relaunch waiter did not start in %ss; "
-                  "stopping it, the elevated installer relaunches WinZapp itself",
+                  "stopping the waiter without completing the handoff",
                   appear_timeout)
     try:
         proc.kill()

@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Atualizações: a instalação mantém a exclusividade depois de o WinZapp fechar, e o pacote descarregado que aguarda instalação é preservado. Só uma cópia completa conta como sucesso; uma atualização bem-sucedida remove o aviso de falha anterior. A reabertura automática espera que o instalador termine e não ocorre quando o limite de espera é atingido. Após uma cópia incompleta ou não confirmada, o WinZapp permanece fechado e abre instruções de recuperação no Bloco de Notas.
+
 - A janela de Definições tem agora um campo de pesquisa e uma lista de categorias: as setas mudam de categoria, Tab entra nas opções dela e, na pesquisa, a seta para baixo vai aos resultados, onde Enter ou Espaço abre a opção encontrada, mesmo quando está na janela de um botão. Várias categorias foram reunidas: Áudio (dispositivos, áudios colados com Ctrl+V, mensagens de voz e silenciar ao gravar), Sons de eventos (eventos de som e toques de alerta) e Armazenamento (com a pasta de gravação). Conteúdo falado, Reprodução de áudio, Cópia de segurança, Atalhos de teclado, Reações, Notificações, Mensagens, Conversas, Conversas trancadas e Confirmações passaram a botões que abrem a janela de cada assunto. "Interface do utilizador" chama-se agora "Interface", e Ligação passou para o fim da lista.
 
 - Definições do WhatsApp (menu Ficheiro) abre agora as Definições já na categoria Definições do WhatsApp, com os botões Privacidade e Perfil; a janela separada deixou de existir. O WinZapp só consulta o WhatsApp quando abre cada botão, e Ctrl+Shift+, continua a abrir essa categoria.

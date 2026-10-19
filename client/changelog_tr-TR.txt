@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Güncellemeler: WinZapp kapandıktan sonra da kurulum sahipliği korunur ve kurulmayı bekleyen indirilmiş paket saklanır. Yalnızca tamamlanan kopyalama başarılı sayılır; başarılı güncelleme önceki hata uyarısını kaldırır. Otomatik yeniden açılış kurucunun bitmesini bekler ve bekleme sınırına ulaşıldığında gerçekleşmez. Eksik veya tamamlandığı doğrulanamayan kopyalamadan sonra WinZapp kapalı kalır ve onarım yönergelerini Not Defteri'nde açar.
+
 - Ayarlar penceresinde artık bir arama alanı ve bir kategori listesi var: oklar kategoriyi değiştirir, Tab seçeneklerine girer ve aramada aşağı ok sonuçlara götürür; orada Enter veya Boşluk, bir düğmenin penceresindeki seçenek olsa bile bulunan seçeneği açar. Birkaç kategori birleştirildi: Ses (cihazlar, Ctrl+V ile yapıştırılan sesler, sesli mesajlar ve kayıt sırasında susturma), Olay sesleri (ses olayları ve uyarı tonları) ve Depolama (kaydetme klasörüyle). Konuşulan içerik, Ses oynatma, Profil yedekleme, Kısayollar, Tepkiler, Bildirimler, Mesajlar, Sohbetler, Kilitli sohbetler ve Onaylar, her konunun penceresini açan düğmelere dönüştü. "Kullanıcı Arayüzü" artık "Arayüz" adını taşıyor ve Bağlantı listenin sonuna taşındı.
 
 - WhatsApp ayarları (Dosya menüsü) artık Ayarlar'ı doğrudan WhatsApp ayarları kategorisinde açar; Gizlilik ve Profil düğmeleri vardır ve ayrı pencere kaldırıldı. WinZapp, WhatsApp'a yalnızca her düğmeyi açtığınızda sorar ve Ctrl+Shift+, bu kategoriyi açmaya devam eder.

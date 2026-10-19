@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Actualizări: instalarea păstrează exclusivitatea după închiderea WinZapp, iar pachetul descărcat care așteaptă instalarea este păstrat. Doar o copiere completă înseamnă succes; o actualizare reușită elimină avertizarea despre un eșec anterior. Redeschiderea automată așteaptă terminarea programului de instalare și nu are loc la atingerea limitei de așteptare. După o copiere incompletă sau neconfirmată, WinZapp rămâne închis și deschide instrucțiuni de reparare în Notepad.
+
 - Fereastra Setări are acum un câmp de căutare și o listă de categorii: săgețile schimbă categoria, Tab intră în opțiunile ei, iar în căutare săgeata în jos merge la rezultate, unde Enter sau Spațiu deschide opțiunea găsită, chiar dacă este în fereastra unui buton. Mai multe categorii au fost reunite: Audio (dispozitive, audio lipit cu Ctrl+V, mesaje vocale și amuțire la înregistrare), Sunete de evenimente (evenimente sonore și tonuri de alertă) și Stocare (cu dosarul de salvare). Conținut vorbit, Redare audio, Copie de siguranță a profilului, Comenzi rapide, Reacții, Notificări, Mesaje, Conversații, Conversații blocate și Confirmări au devenit butoane care deschid fereastra fiecărui subiect. „Interfață utilizator” se numește acum „Interfață”, iar Conexiune a trecut la sfârșitul listei.
 
 - Setări WhatsApp (meniul Fișier) deschide acum Setările direct la categoria Setări WhatsApp, cu butoanele Confidențialitate și Profil; fereastra separată a dispărut. WinZapp întreabă WhatsApp doar când deschizi fiecare buton, iar Ctrl+Shift+, deschide în continuare această categorie.

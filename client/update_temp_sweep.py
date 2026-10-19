@@ -8,11 +8,10 @@ still leave things behind: every update made before that line existed, an
 install that failed (the script and its folder are kept as evidence), and a
 process killed between download and install. This sweeps them.
 
-The grace period is what keeps it off a package another WinZapp account on the
-same machine has downloaded in the background and is still waiting for a quiet
-moment to install (update_background.may_interrupt_now()): a folder is only
-taken once it is older than two days. The scripts get a week, since a failed
-install's script is the evidence and the log it points at is elsewhere.
+An active package's lifetime lease keeps it off a download still waiting for
+a quiet moment to install (update_background.may_interrupt_now()), regardless
+of age. Abandoned packages get two days; scripts get a week, since a failed
+install's script is evidence and the log it points at is elsewhere.
 
 Never raises, runs off the main thread, and logs counts only.
 """
@@ -27,6 +26,7 @@ import threading
 import time
 
 from update_package import EXTRACT_PREFIX
+from core.update_file_lease import package_busy
 
 #: Prefix of the downloaded ZIP, the installer script and its relaunch markers.
 _UPDATE_PREFIX = "winzapp_upd_"
@@ -65,6 +65,9 @@ def sweep_stale_update_temporaries(temp_dir=None, now=None) -> int:
             continue
         path = os.path.join(root, name)
         try:
+            if name.startswith(EXTRACT_PREFIX) and not name.endswith(".lease"):
+                if package_busy(path):
+                    continue
             if now - os.stat(path).st_mtime < limit:
                 continue
             if os.path.isdir(path) and not os.path.islink(path):

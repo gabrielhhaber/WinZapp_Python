@@ -448,6 +448,8 @@ def _read_state(global_dir: str):
     if not isinstance(data, dict) or not isinstance(data.get("update_in_progress"), bool):
         return _CORRUPT
     if data["update_in_progress"]:
+        if not isinstance(data.get("installer_guard", False), bool):
+            return _CORRUPT
         # An in-progress record MUST carry a strictly-valid owner (GPT r3 #3).
         if not _valid_pid(data.get("owner_pid")) or not _valid_ct(data.get("owner_create_time")):
             return _CORRUPT
@@ -475,10 +477,51 @@ def _is_update_in_progress_locked(global_dir: str,
         return True
     if not state.get("update_in_progress"):
         return False
-    if not is_alive(int(state["owner_pid"]), float(state["owner_create_time"])):
+    if not _installation_alive(global_dir, state, is_alive):
         _clear_state(global_dir)  # dead owner -> recover
         return False
     return True
+
+
+def _installation_alive(global_dir, state, is_alive):
+    if state.get("installer_guard"):
+        from core.update_install_guard import active_guard
+        guarded = active_guard(global_dir, state)
+        if guarded is not None:
+            return guarded
+    return is_alive(int(state["owner_pid"]), float(state["owner_create_time"]))
+
+
+def arm_installer_guard(global_dir, token):
+    """Reserve a lifetime guard under the existing owner's exact token."""
+    from core.update_install_guard import guard_paths
+    with updater_lock(global_dir):
+        state = _read_state(global_dir)
+        if (state is _CORRUPT or not state.get("update_in_progress")
+                or state.get("owner_token") != token.get("owner_token")):
+            raise ValueError("installer no longer owns the update slot")
+        state["installer_guard"] = True
+        _write_state(global_dir, state)
+        paths = guard_paths(global_dir, state["owner_token"])
+        paths.owner_root, paths.owner_token = global_dir, token
+        return paths
+
+
+def transfer_installer_guard(global_dir, token, pid, proc_create_time=None):
+    """Keep legacy startup gates blocked too, by naming the real guardian."""
+    if not _valid_pid(pid):
+        raise ValueError("invalid guardian process identity")
+    ct = (proc_create_time or _default_proc_create_time)(pid)
+    if not _valid_ct(ct) or ct <= 0:
+        raise ValueError("guardian process identity could not be verified")
+    with updater_lock(global_dir):
+        state = _read_state(global_dir)
+        if (state is _CORRUPT or not state.get("update_in_progress")
+                or not state.get("installer_guard")
+                or state.get("owner_token") != token.get("owner_token")):
+            raise ValueError("installer no longer owns the update slot")
+        state.update(owner_pid=pid, owner_create_time=ct)
+        _write_state(global_dir, state)
 
 
 def _is_own_lease(lease: dict, pid: int, create_time: float) -> bool:
@@ -540,7 +583,7 @@ def try_begin_update(global_dir: str, pid: Optional[int] = None,
             return answer(reason="invalid_state")
         if state.get("update_in_progress"):
             owner_pid, owner_ct = int(state["owner_pid"]), float(state["owner_create_time"])
-            if is_alive(owner_pid, owner_ct):
+            if _installation_alive(global_dir, state, is_alive):
                 same = (owner_pid == pid and owner_ct > 0 and create_time > 0
                         and abs(owner_ct - create_time) < 1e-6)
                 return answer(reason="same_process" if same else "other_updater")
@@ -567,6 +610,13 @@ def end_update(global_dir: str, token: dict) -> bool:
             state = {}
         if state.get("owner_token") != token["owner_token"]:
             return False
+        if state.get("installer_guard"):
+            from core.update_install_guard import active_guard, guard_paths, read_signal
+            paths = guard_paths(global_dir, state["owner_token"])
+            if active_guard(global_dir, state) is True:
+                if (read_signal(paths["commit"]) == "commit"
+                        or read_signal(paths["abort"]) != "abort"):
+                    return False  # No revocation of a live or ambiguous handoff.
         _clear_state(global_dir)
         return True
 

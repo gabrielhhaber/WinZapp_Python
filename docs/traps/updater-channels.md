@@ -1,5 +1,103 @@
 # Auto-updater: two channels, the alpha version scheme, one prompt per machine
 
+## Installer lifetime, package retention and copy receipts (2026-10-19)
+
+The application PID is not the installer's lifetime: after the app exits,
+the batch may still be copying. `core/update_install_guard.py` adds a
+token-specific OS lifetime lock. `core/update_guard_process.py` generates a
+hidden Windows PowerShell guardian; its child cmd starts suspended and is
+assigned to a kill-on-close Job Object before it can run. The job owns the
+batch and its copy children. The application verifies a ready signal with
+the guardian PID and the held lock, transfers the existing coordination
+record to that PID/create-time (also understood by older startup gates),
+prepares an outside relaunch waiter, and only then writes the copy grant.
+Without that grant, the batch cannot reach parent waiting, Node cleanup or
+installation writes. An ambiguous visible grant is never revoked.
+Waiter preparation can take seconds: recheck the same ready identity, held
+lock and absence of terminal/abort receipts immediately before granting.
+An earlier readiness snapshot is not evidence the guardian survived that
+preparation. This narrows the observed handoff race; it is not an atomic
+guarantee against every process death after the last check.
+
+The waiter is outside the job and inherits the original application's
+account/elevation. Guarded batches never directly launch WinZapp. The waiter
+requires a terminal copy receipt AND guardian exit, not the launcher cmd's
+exit or the old handoff `.done` shortcut. Its wait limit suppresses relaunch;
+it must never reopen over a still-running installer. Parent timeout aborts
+before copy. Explicit pre-grant abort permits releasing the original claim;
+a committed or ambiguous live guard cannot be released by the parent.
+The outside waiter also consumes a pre-grant `aborted` terminal receipt and
+stops without relaunch, rather than waiting out its entire limit.
+
+`core/update_file_lease.py` holds a shared package reader from extraction
+through waiting and joins that reader in the guardian before parent exit.
+The lease lives beside the extraction root, so it is never copied into the
+installation. Temporary cleanup skips active packages, including packages
+older than its normal age threshold. A crashed owner's lock closes with its
+process, preserving the existing eventual cleanup of abandoned packages.
+Verification and staging exceptions remove the downloaded ZIP, and an
+extracted package missing `WinZapp.exe` never reaches installation.
+
+Only xcopy exit 0 succeeds. Exit 1 (no files), 2 (interrupted), 4/5 and unknown
+nonzero results fail; the existing single retry for errors >=4 remains.
+Never infer a lock holder from a sharing violation or classify the cause
+from localized xcopy output. Log the numeric xcopy result. The receipt in
+`update_result.marker` records pending/success/failure with a fresh run ID.
+Success removes the previous failure marker; if deletion fails, startup
+suppresses it only when a valid success receipt is strictly newer. Equal or
+uncertain timestamps retain the warning. Success is not reported if its
+receipt cannot be written. Failed copies retain their payload and evidence.
+
+This still performs an in-place overlay, with no atomic payload rollback.
+A failed partial copy may leave mixed files. `core/update_recovery.py`
+permits the guarded waiter to relaunch only after `success` or the explicit
+pre-copy `unchanged` result. The batch sets its copy-start flag immediately
+before the first xcopy; a missing success receipt after copy started is not
+an unchanged installation. `failed`, missing or contradictory results take
+the recovery path without starting WinZapp. Pre-grant/parent abort still
+suppresses every relaunch. The legacy unguarded interface retains its prior
+behavior, but the production worker always supplies the guard.
+
+Before any guardian spawn or grant, write a UTF-8 BOM recovery note in the
+user's language beside the handoff in TEMP. Missing translation or failed
+note preparation aborts while the parent is still available. The outside
+waiter opens this retained text with system Notepad on partial/unconfirmed
+completion or wait-limit exhaustion. It does not run the damaged application
+to explain the error, download a repair, or touch account data. Its advice
+requires waiting for an active installer to finish and backing up/preserving
+the existing data directory before repairing program files. A failed viewer
+launch leaves the text/logs for diagnosis. Notepad/native accessibility and
+real batch behavior remain unverified; the editor was not launched in tests.
+
+Manual launching after a partial install is not an atomic repair gate. The Python startup gate
+cannot prevent Windows loader access before Python starts. Versions already
+running an older updater do not gain these safeguards retroactively.
+Guardian startup also depends on Windows PowerShell and Add-Type being
+permitted; failure before the grant keeps the original application running.
+No machine-wide execution policy is changed.
+
+`update_guard_diagnostics.py` admits only known stages and bounded numeric
+codes into logs. The guardian records compilation, guard/package locks and
+native job/process stages; abrupt termination may leave only the last stage,
+which is not a successful or failed installation receipt. Never serialize
+exception messages or interpret diagnostics as permission to copy/relaunch.
+Missing/unwritable diagnostics do not bypass the commit protocol. Check an
+already-visible commit before fallible diagnostics/logging on the error path.
+
+`tests/test_update_guard_native_ci.py` is gated on GitHub's Windows runner,
+before every native call/process creation. It uses synthetic temporary batch
+files, a hidden guardian and owned child handles only. Commit/abort, shared
+package takeover and guardian death are tested there; no installed WinZapp,
+Notepad, UAC, account or provider is involved. Local runs skip these four
+cases. Their presence is not a claim of CI success until the exact PR-head
+run passes. UAC, packaged UI/editor and real-device acceptance remain separate.
+
+Evidence is serial headless tests with fake processes/locks and generated
+script inspection, plus C# compilation and PowerShell parsing only. Native
+Job Object behavior, batch execution, UAC, cross-account permissions,
+packaged installs and NVDA/GUI acceptance need separate controlled Windows
+acceptance. No such acceptance, published release or CI is implied.
+
 ## Codec failures and explicit alpha consent (2026-10-13)
 
 An unavailable `utf_8_sig` codec raised `LookupError` outside readers that

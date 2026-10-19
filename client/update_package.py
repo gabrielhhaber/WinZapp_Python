@@ -21,6 +21,7 @@ import zipfile
 from dataclasses import dataclass
 
 from core import tls_trust
+from core.update_file_lease import hold_package, release_package, package_busy
 
 _CHUNK = 65536
 #: Prefix of the temporary directory an update is extracted into.
@@ -86,6 +87,16 @@ def download_update_package(zip_url: str, sha256sums_url: str, signature_url: st
 
     logging.info("Auto-updater: Download completed successfully.")
 
+    try:
+        return _prepare_downloaded_package(
+            zip_path, zip_url, sha256sums_url, signature_url, new_version,
+            is_alpha, i18n, cancelled, updater)
+    finally:
+        _remove(zip_path)
+
+
+def _prepare_downloaded_package(zip_path, zip_url, sha256sums_url, signature_url,
+                                new_version, is_alpha, i18n, cancelled, updater):
     # ── Verify integrity ──────────────────────────────────────────────────
     # Before this ZIP is trusted with elevated write access to the install
     # directory, confirm it's byte-for-byte what CI actually built — not a
@@ -107,9 +118,11 @@ def download_update_package(zip_url: str, sha256sums_url: str, signature_url: st
     extract_dir = extract_root = tempfile.mkdtemp(prefix=EXTRACT_PREFIX)
     logging.info("Auto-updater: Extracting update to %s", extract_dir)
     try:
+        hold_package(extract_root)
         with zipfile.ZipFile(zip_path, "r") as zf:
             updater._safe_extract_zip(zf, extract_dir)
     except BaseException:
+        release_package(extract_root)
         shutil.rmtree(extract_root, ignore_errors=True)
         raise
     finally:
@@ -117,12 +130,20 @@ def download_update_package(zip_url: str, sha256sums_url: str, signature_url: st
 
     # If the ZIP placed all files inside a single top-level folder, point
     # extract_dir at that folder so xcopy copies the contents.
-    entries = [e for e in os.listdir(extract_dir) if not e.startswith(".")]
-    if len(entries) == 1 and os.path.isdir(os.path.join(extract_dir, entries[0])):
-        extract_dir = os.path.join(extract_dir, entries[0])
+    try:
+        entries = [e for e in os.listdir(extract_dir) if not e.startswith(".")]
+        if len(entries) == 1 and os.path.isdir(os.path.join(extract_dir, entries[0])):
+            extract_dir = os.path.join(extract_dir, entries[0])
+        if not os.path.isfile(os.path.join(extract_dir, "WinZapp.exe")):
+            raise ValueError("update package has no WinZapp.exe")
+    except BaseException:
+        release_package(extract_root)
+        shutil.rmtree(extract_root, ignore_errors=True)
+        raise
 
     if cancelled():
         logging.info("Auto-updater: Extraction cancelled.")
+        release_package(extract_root)
         shutil.rmtree(extract_root, ignore_errors=True)
         return UpdatePackage(cancelled=True)
     return UpdatePackage(extract_dir=extract_dir)
@@ -153,5 +174,10 @@ def discard_package(extract_dir: str) -> None:
     temporary directory, also when extract_dir is the single folder inside."""
     if not extract_dir:
         return
-    target = extraction_root(extract_dir) or os.path.normpath(extract_dir)
+    root = extraction_root(extract_dir)
+    target = root or os.path.normpath(extract_dir)
+    if root:
+        release_package(root)
+        if package_busy(root):
+            return  # The guardian has taken over; this caller no longer owns it.
     shutil.rmtree(target, ignore_errors=True)

@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Aktualizacje: instalacja zachowuje wyłączność po zamknięciu WinZapp, a pobrany pakiet oczekujący na instalację jest zachowywany. Tylko pełna kopia oznacza sukces; udana aktualizacja usuwa ostrzeżenie o wcześniejszym błędzie. Automatyczne ponowne otwarcie czeka na zakończenie instalatora i nie następuje po przekroczeniu limitu oczekiwania. Po niepełnym lub niepotwierdzonym kopiowaniu WinZapp pozostaje zamknięty i otwiera instrukcje naprawy w Notatniku.
+
 - Okno Ustawienia ma teraz pole wyszukiwania i listę kategorii: strzałki zmieniają kategorię, Tab przechodzi do jej opcji, a w wyszukiwaniu strzałka w dół prowadzi do wyników, gdzie Enter lub Spacja otwiera znalezioną opcję, nawet gdy jest w oknie przycisku. Kilka kategorii połączono: Dźwięk (urządzenia, audio wklejone Ctrl+V, wiadomości głosowe i wyciszanie podczas nagrywania), Dźwięki zdarzeń (zdarzenia dźwiękowe i dźwięki powiadomień) i Pamięć (z folderem zapisu). Zawartość mówiona, Odtwarzanie audio, Kopia zapasowa, Skróty klawiszowe, Reakcje, Powiadomienia, Wiadomości, Rozmowy, Zabezpieczone czaty i Potwierdzenia stały się przyciskami, które otwierają okno każdego tematu. „Interfejs użytkownika” nazywa się teraz „Interfejs”, a Połączenie przeniesiono na koniec listy.
 
 - Ustawienia WhatsApp (menu Plik) otwiera teraz ustawienia od razu w kategorii Ustawienia WhatsApp, z przyciskami Prywatność i Profil; osobne okno zniknęło. WinZapp pyta WhatsApp dopiero po otwarciu każdego przycisku, a Ctrl+Shift+, nadal otwiera tę kategorię.

@@ -242,15 +242,15 @@ class TestInstallerScript:
         save = s.index("set XCOPY_RESULT=!ERRORLEVEL!", second_copy)
         restore = s.index("node.exe.winzapp-unchanged", save)
         reinstate = s.index("cmd /c exit !XCOPY_RESULT!", restore)
-        verdict = s.index("if errorlevel 4", reinstate)
+        verdict = s.index('if not "!XCOPY_RESULT!"=="0"', reinstate)
 
         assert second_copy < save < restore < reinstate < verdict
 
     def test_a_failed_copy_marks_it_and_keeps_the_evidence(self):
         s = _script()
         assert r'echo update failed > "C:\WinZapp\update_failed.marker"' in s
-        # The LAST errorlevel-4 block is the verdict; the first is the retry.
-        start = s.rindex("if errorlevel 4")
+        # Only zero is success, including the no-files/interrupted cases.
+        start = s.index('if not "!XCOPY_RESULT!"=="0"')
         failure_block = s[start:s.index(")\n", start)]
         assert "exit /b 1" in failure_block
         assert 'del "%~f0"' not in failure_block, (

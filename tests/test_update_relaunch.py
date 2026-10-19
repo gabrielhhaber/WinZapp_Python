@@ -84,7 +84,9 @@ class TestTheWaiter:
         assert loop.index(f'if exist "{HANDOFF}.abort" goto ABORT') < loop.index(".done")
         for label, end in ((":GAVE_UP\n", ":RELAUNCH\n"), (":RELAUNCH\n", ":ABORT\n")):
             branch = w.split(label, 1)[1].split(end, 1)[0]
-            assert branch.index('tasklist /FI "PID eq 4242"') < branch.index(START)
+            assert 'tasklist /FI "PID eq 4242"' in branch
+            if START in branch:
+                assert branch.index('tasklist /FI "PID eq 4242"') < branch.index(START)
             assert "if not errorlevel 1 goto ABORT" in branch
         abort = w.split(":ABORT\n", 1)[1]
         assert START not in abort and 'del "%~f0"' in abort
@@ -107,12 +109,10 @@ class TestTheWaiter:
         assert update_relaunch.WAITER_PASSES == 30 * 60
         assert loop.index("tasklist") < loop.index("timeout /t 1 /nobreak")
 
-    def test_giving_up_relaunches_but_keeps_the_marker(self):
-        """A script still running then sees the marker and does not start a
-        second copy."""
+    def test_giving_up_does_not_relaunch_over_a_still_running_copy(self):
         w = build_relaunch_waiter_script(9001, EXE, LOG, HANDOFF)
         gave_up = w.split(":GAVE_UP", 1)[1].split(":RELAUNCH", 1)[0]
-        assert START in gave_up
+        assert START not in gave_up
         assert f'del "{HANDOFF}"' not in gave_up
 
     def test_a_normal_end_relaunches_and_cleans_up(self):

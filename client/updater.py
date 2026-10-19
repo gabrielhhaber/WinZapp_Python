@@ -21,6 +21,7 @@ import threading
 import logging
 import ctypes
 import subprocess
+import uuid
 import wx
 
 from app_paths import _outer_exe_dir, _is_frozen, resource_path, log_path
@@ -41,6 +42,8 @@ from update_node_kill import node_kill_lines, own_node_pids
 from update_relaunch import (relaunch_environment, relaunch_lines, run_elevated,
                              start_relaunch_waiter)
 from version import __version__
+from core.update_install_guard import batch_gate, batch_done
+from core.update_outcome import batch_receipt, batch_success, RESULT_NAME
 
 
 def _find_named_asset(assets: list, name: str) -> str:
@@ -578,7 +581,8 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
                             api_port: int, extra_pids: "list[int] | tuple" = (),
                             node_pids: "list[int] | tuple" = (),
                             relaunch_handoff: str = "",
-                            cleanup_dir: str = "") -> str:
+                            cleanup_dir: str = "", install_guard=None,
+                            result_path: str = "", run_id: str = "") -> str:
     """The batch script text. Pure — every path is already console-safe.
 
     Kept apart from _run_batch_installer() so what the script says can be
@@ -606,7 +610,8 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
     a full copy of the release in the user's %TEMP%. A failed copy keeps it
     (like the script itself, it is evidence, and the retry may want it).
     """
-    relaunch = relaunch_lines(exe_path, log_path, relaunch_handoff)
+    relaunch = relaunch_lines(exe_path, log_path, relaunch_handoff,
+                              waiter_required=bool(install_guard))
     source_node = os.path.join(source_dir, "node", "node.exe")
     target_node = os.path.join(install_dir, "node", "node.exe")
     # Keep the held payload beside, not inside, source_dir.  xcopy walks the
@@ -627,6 +632,7 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
     return (
         "@echo off\n"
         "setlocal EnableDelayedExpansion\n"
+        "set WZ_COPY_STARTED=0\n"
         # Keep one previous run's log (as .old) before truncating: this file
         # is the only record of what the installer actually did, and an
         # update that goes wrong right as the app exits (issue: a Node/
@@ -644,6 +650,7 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         f'>> "{log_path}" chcp\n'
         f'>> "{log_path}" echo source: {source_dir}\n'
         f'>> "{log_path}" echo target: {install_dir}\n'
+        + batch_gate(install_guard, log_path) +
         "set /a PARENT_WAIT_SECONDS=0\n"
         ":WAIT\n"
         f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL\n'
@@ -654,6 +661,8 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         "    goto WAIT\n"
         ")\n"
         + wait_blocks +
+        batch_receipt(result_path, "pending", run_id) +
+        ("if errorlevel 1 goto UPDATE_RESULT_FAILED\n" if result_path else "") +
         # Give child processes a moment to exit, then kill stragglers holding file locks.
         "timeout /t 2 /nobreak >NUL\n"
         + node_kill_lines(node_pids, api_port, log_path) +
@@ -661,10 +670,9 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         # xcopy's exit code was previously never checked, so a failed copy
         # (locked file, disk full, permissions) silently relaunched whatever
         # was already in install_dir — the user saw the app come back and
-        # assumed the update worked. errorlevel 4+ means xcopy itself failed
-        # (as opposed to 0/1, which just mean "nothing to copy"/"success");
-        # leave a marker file WinZapp checks on next startup so the user is
-        # told instead of silently running a stale/partial install.
+        # assumed the update worked. Only exit 0 is success: exit 1 means no
+        # files found and exit 2 means interruption. Record every nonzero
+        # result so an incomplete release cannot be reported as installed.
         "set NODE_PAYLOAD_HELD=0\n"
         f'if exist "{source_node}" if exist "{target_node}" (\n'
         f'    fc /B "{source_node}" "{target_node}" >NUL 2>&1\n'
@@ -678,24 +686,17 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         "        )\n"
         "    )\n"
         ")\n"
+        "set WZ_COPY_STARTED=1\n"
         f'xcopy /E /Y /I /H "{source_dir}\\*" "{install_dir}\\" >> "{log_path}" 2>&1\n'
-        # One retry, because the failure this converts is transient and
-        # common. Reported live: an update that copied hundreds of files
-        # into the install directory and then died on "Violacao de
-        # compartilhamento" — a sharing violation on a freshly-written
-        # .pyd, i.e. an on-access antivirus scan holding a file xcopy had
-        # just put there. WinZapp itself had already exited (the WAIT loop
-        # above) and its Node was killed, so nothing of ours held it; five
-        # seconds later it would have been free. Without a retry the user
-        # got update_failed.marker, an install that had ALREADY been
-        # partially overwritten, and the old exe relaunched over it.
-        #
+        # Retain the existing single retry for copy errors. A sharing
+        # violation does not identify the lock holder or prove it will
+        # release the file within five seconds.
         # Safe to repeat: xcopy /E /Y /I /H is idempotent — every file it
         # already wrote is overwritten with the same bytes — so the second
         # pass either finishes the copy or fails the same way, and only
         # then is the update declared failed.
         "if errorlevel 4 (\n"
-        f'    >> "{log_path}" echo xcopy hit a locked file - retrying once in 5s\n'
+        f'    >> "{log_path}" echo xcopy failed - retrying once in 5s\n'
         "    timeout /t 5 /nobreak >NUL\n"
         f'    xcopy /E /Y /I /H "{source_dir}\\*" "{install_dir}\\" >> "{log_path}" 2>&1\n'
         ")\n"
@@ -707,15 +708,21 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         f'    if errorlevel 1 >> "{log_path}" echo could not restore the held node.exe\n'
         ")\n"
         "cmd /c exit !XCOPY_RESULT!\n"
-        "if errorlevel 4 (\n"
+        f'>> "{log_path}" echo xcopy exit code: !XCOPY_RESULT!\n'
+        'if not "!XCOPY_RESULT!"=="0" (\n'
         f'    >> "{log_path}" echo xcopy FAILED\n'
         f'    echo update failed > "{marker_path}"\n'
-        + relaunch_lines(exe_path, log_path, relaunch_handoff, indent="    ") +
+        + batch_receipt(result_path, "failed", run_id, "    ")
+        + batch_done(install_guard, "failed", "    ")
+        + relaunch_lines(exe_path, log_path, relaunch_handoff, indent="    ",
+                         waiter_required=bool(install_guard)) +
         # Deliberately not deleted on failure: the script and its log are the
         # only evidence of what went wrong, and erasing them is what made the
         # original report impossible to diagnose from the user's machine.
         "    exit /b 1\n"
         ")\n"
+        + batch_success(result_path, marker_path, run_id, log_path)
+        + batch_done(install_guard, "success") +
         f'>> "{log_path}" echo xcopy OK\n'
         + relaunch +
         # After the relaunch, not before: removing a few thousand files takes
@@ -727,6 +734,8 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
             ":OTHER_ACCOUNT_TIMEOUT\n"
             f'>> "{log_path}" echo timed out waiting for another WinZapp account to exit\n'
             f'echo update failed: another WinZapp account did not exit > "{marker_path}"\n'
+            + batch_receipt(result_path, "failed", run_id)
+            + batch_done(install_guard, "unchanged")
             + relaunch +
             "exit /b 1\n"
             if extra_pids else ""
@@ -734,10 +743,21 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         + ":PARENT_TIMEOUT\n"
         + f'>> "{log_path}" echo ERROR: PID {pid} did not exit after 300 checks; aborting update\n'
         + f'echo update failed: WinZapp did not exit > "{marker_path}"\n'
+        + batch_receipt(result_path, "failed", run_id)
+        + batch_done(install_guard, "aborted")
         # Unlike copy/peer failures, the parent is still running: neither this
         # script nor the elevated path's waiter may relaunch a second copy.
         + (f'echo aborted> "{relaunch_handoff}.abort"\n' if relaunch_handoff else "")
         + "exit /b 1\n"
+        + (":UPDATE_RESULT_FAILED\n"
+           + f'>> "{log_path}" echo could not record update result - installation not successful\n'
+           + f'> "{marker_path}" echo update failed: result could not be recorded\n'
+           + ('if "!WZ_COPY_STARTED!"=="0" (\n'
+              + batch_done(install_guard, "unchanged", "    ")
+              + ") else (\n" + batch_done(install_guard, "failed", "    ") + ")\n"
+              if install_guard else "")
+           + relaunch + "exit /b 1\n"
+           if result_path else "")
     )
 
 
@@ -795,7 +815,8 @@ def _keep_newer_installed_server(source_dir: str, install_dir: str) -> None:
 
 
 def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pid: int, api_port: int = 6300,
-                         extra_pids: "list[int] | tuple" = ()) -> bool:
+                         extra_pids: "list[int] | tuple" = (), install_guard=None,
+                         recovery_text: str = "") -> bool:
     """
     Write a batch script that:
       1. Waits for PID (and every other account's PID in extra_pids) to exit.
@@ -868,22 +889,33 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
         # still keeps out of the user's cache (core/npm_environment.py).
         logging.info("Auto-updater: WinZapp is running elevated, so the update "
                      "installs and relaunches it elevated, as before")
-    # Elevated only: the marker the waiter creates to say it owns the
-    # relaunch (update_relaunch.py). Unlike the script's own path (%~f0),
+    # Guarded/elevated installs: the waiter's relaunch marker. Unlike the
+    # script's own path (%~f0),
     # this one is written INTO the script, so its directory — the user's
     # %TEMP%, under a profile that may be "Paweł" — gets the same
-    # console-safe treatment as every other path (issue #83). If even that
-    # leaves it non-ASCII (no 8.3 names on the volume), there is no waiter
-    # and the script relaunches as it always did: the old script never
-    # carried this path, so it must not be what makes an update fail.
+    # console-safe treatment as every other path (issue #83). A guarded
+    # install requires the outside waiter even when no UAC is needed.
+    # Only the legacy unguarded path can fall back to a direct relaunch.
     relaunch_handoff = ""
-    if needs_admin:
+    if needs_admin or install_guard:
         relaunch_handoff = os.path.join(_console_safe_path(os.path.dirname(bat_path)),
                                         os.path.basename(bat_path) + ".relaunch")
-        if not relaunch_handoff.isascii():
+        if not relaunch_handoff.isascii() and not install_guard:
             logging.warning("Auto-updater: the temporary folder has no plain-ASCII "
                             "path; the elevated installer relaunches WinZapp itself")
             relaunch_handoff = ""
+    if install_guard and not relaunch_handoff:
+        return False  # No direct child relaunch inside the guardian's job.
+    guarded_paths = None
+    if install_guard:
+        guarded_paths = {key: os.path.join(_console_safe_path(os.path.dirname(path)),
+                                          os.path.basename(path))
+                         for key, path in install_guard.items()}
+        if any(any(c in path for c in ('%', '!', '"', '\r', '\n')) for path in
+               (safe_source, safe_install, safe_log_dir, relaunch_handoff,
+                *guarded_paths.values())):
+            logging.error("Auto-updater: installer path cannot be represented safely")
+            return False
     script = _build_installer_script(
         safe_source,
         safe_install,
@@ -896,9 +928,20 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
         node_pids=node_pids,
         relaunch_handoff=relaunch_handoff,
         cleanup_dir=cleanup_dir,
+        install_guard=guarded_paths,
+        result_path=os.path.join(safe_install, RESULT_NAME) if install_guard else "",
+        run_id=uuid.uuid4().hex if install_guard else "",
     )
     if not _write_installer_script(bat_path, script):
         return False
+
+    if install_guard:
+        from core.update_guard_launch import launch_guarded
+        return launch_guarded(
+            bat_path, install_guard, extraction_root(extracted_dir), relaunch_handoff,
+            exe_path, install_log, pid, needs_admin, _write_installer_script,
+            run_elevated, subprocess.Popen, start_relaunch_waiter,
+            relaunch_environment(os.environ), recovery_text=recovery_text)
 
     if sys.platform == "win32":
         if needs_admin:
@@ -1122,11 +1165,16 @@ class UpdateProgressDialog(UpdateProgressLifecycle, wx.Dialog):
 
             logging.info("Auto-updater: Launching batch installer from %s (PID %d, also waiting on %s)",
                          install_dir, pid, other_pids or "no other account")
+            from core.update_guard_launch import prepare_guard
+            install_guard = prepare_guard(getattr(self._main_window, "global_dir", None),
+                                          update_token)
             launched = _run_batch_installer(extract_dir, install_dir, exe_name, pid,
                                             api_port=getattr(self._main_window, "wpp_port", 6300),
-                                            extra_pids=other_pids)
+                                            extra_pids=other_pids, install_guard=install_guard,
+                                            recovery_text=self._main_window.i18n.t("update_recovery_instructions"))
             if not launched:
-                self._error_msg = self._main_window.i18n.t("update_uac_declined")
+                self._error_msg = self._main_window.i18n.t(
+                    install_guard.get("error", "update_coordination_failed"))
                 result = wx.ID_ABORT
                 return
             self._install_ok = True

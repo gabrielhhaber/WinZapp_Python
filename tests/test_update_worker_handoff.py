@@ -54,6 +54,15 @@ def _run(w):
 
 
 class TestWorkerHandoff:
+    def test_worker_passes_its_language_to_the_outside_recovery_note(self, worker, monkeypatch):
+        captured = []
+        worker.dialog._main_window.i18n.t = lambda key: (
+            "Translated recovery" if key == "update_recovery_instructions" else key)
+        monkeypatch.setattr(updater, "_run_batch_installer",
+                            lambda *args, **kwargs: captured.append(kwargs) or True)
+        _run(worker)
+        assert captured[0]["recovery_text"] == "Translated recovery"
+
     def test_cancelled_claim_allows_retry_in_the_same_process(self, worker, tmp_path, monkeypatch):
         import functools
         import update_coord
@@ -118,11 +127,13 @@ class TestWorkerHandoff:
         assert worker.released == ([worker.token] if boundary in ("claim", "queued_grant") else [])
         assert worker.discarded == (["downloaded"] if boundary == "download" else [])
 
-    @pytest.mark.parametrize("failure", ["declined", "exception"])
+    @pytest.mark.parametrize("failure", ["declined", "not_ready", "exception"])
     def test_failed_launch_releases_only_its_token_and_keeps_prefetched_package(self, worker, monkeypatch, failure):
         def launch(*a, **kw):
             if failure == "exception":
                 raise OSError("mock launch failure")
+            if failure == "declined":
+                kw["install_guard"]["error"] = "update_uac_declined"
             return False
 
         monkeypatch.setattr(updater, "_run_batch_installer", launch)
@@ -132,7 +143,8 @@ class TestWorkerHandoff:
         assert not worker.dialog._install_ok
         assert worker.ended == [updater.wx.ID_ABORT]
         assert worker.dialog._error_msg == (
-            "update_uac_declined" if failure == "declined" else "mock launch failure")
+            "update_uac_declined" if failure == "declined" else
+            "update_coordination_failed" if failure == "not_ready" else "mock launch failure")
 
     def test_close_after_grant_does_not_undo_a_successful_spawn(self, worker, monkeypatch):
         def launch(*a, **kw):

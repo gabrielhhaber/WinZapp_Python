@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Updates: installation keeps ownership after WinZapp closes, and a downloaded package waiting to install is kept. Only a complete copy counts as success; a successful update clears an earlier failure warning. Automatic reopening waits for the installer to finish and does not proceed when its wait limit is reached. After an incomplete or unconfirmed copy, WinZapp stays closed and opens recovery instructions in Notepad.
+
 - The Settings window now has a search field and a list of categories: the arrow keys change category, Tab enters its options and, in the search, the down arrow goes to the results, where Enter or Space opens the option found, even when it is in the window of a button. Several categories were merged: Audio (devices, audio pasted with Ctrl+V, voice messages and silencing while recording), Event sounds (sound events and alert tones) and Storage (with the save folder). Spoken content, Audio playback, Profile backup, Keyboard shortcuts, Reactions, Notifications, Messages, Chats, Locked chats and Confirmations became buttons that open the window of each subject. "User Interface" is now called "Interface", and Connection moved to the end of the list.
 
 - WhatsApp settings (File menu) now opens Settings already on the WhatsApp settings category, with the Privacy and Profile buttons; the separate window is gone. WinZapp only asks WhatsApp when you open each button, and Ctrl+Shift+, still opens that category.

@@ -52,6 +52,9 @@ def temp_files(tmp_path, monkeypatch):
     """Every temporary file and directory lands under tmp_path."""
     monkeypatch.setattr(update_package.tempfile, "tempdir", str(tmp_path / "tmp"))
     os.makedirs(tmp_path / "tmp")
+    # Package flow tests use fake lifetime owners, never native Windows handles.
+    monkeypatch.setattr(update_package, "hold_package", lambda root: None)
+    monkeypatch.setattr(update_package, "release_package", lambda root: None)
     return tmp_path / "tmp"
 
 
@@ -194,3 +197,36 @@ class TestDiscardingAPackage:
         discard_package("")
 
         assert os.listdir(outer) == ["other.txt"]
+
+
+class TestPreparationFailuresAndOwnership:
+    def test_verification_io_error_also_removes_the_download(self, release, temp_files, monkeypatch):
+        def fail(*args, **kwargs):
+            raise OSError("checksum file became unreadable")
+        monkeypatch.setattr(updater, "_verify_sha256sums", fail)
+        with pytest.raises(OSError):
+            _fetch()
+        assert os.listdir(temp_files) == []
+
+    def test_extraction_directory_failure_removes_the_download(self, release, temp_files, monkeypatch):
+        def fail(**kwargs):
+            raise OSError("no staging space")
+        monkeypatch.setattr(update_package.tempfile, "mkdtemp", fail)
+        with pytest.raises(OSError):
+            _fetch()
+        assert os.listdir(temp_files) == []
+
+    def test_incomplete_payload_does_not_reach_the_installer(self, release, temp_files, tmp_path):
+        release["payload"] = _archive(tmp_path, {"readme.txt": "not an application"})
+        with pytest.raises(ValueError, match="WinZapp.exe"):
+            _fetch()
+        assert os.listdir(temp_files) == []
+
+    def test_ready_package_is_held_until_discarded(self, release, temp_files, monkeypatch):
+        events = []
+        monkeypatch.setattr(update_package, "hold_package", lambda root: events.append(("hold", root)))
+        monkeypatch.setattr(update_package, "release_package", lambda root: events.append(("release", root)))
+        package = _fetch()
+        assert events == [("hold", package.extract_dir)]
+        discard_package(package.extract_dir)
+        assert events[-1] == ("release", package.extract_dir)

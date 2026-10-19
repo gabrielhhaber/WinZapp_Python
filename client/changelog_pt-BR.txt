@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Atualizações: a instalação mantém a exclusividade depois que o WinZapp fecha, e o pacote baixado que aguarda instalação é preservado. Só uma cópia completa conta como sucesso; uma atualização bem-sucedida remove o aviso de falha anterior. A reabertura automática espera o instalador terminar e não ocorre quando o limite de espera é atingido. Depois de uma cópia incompleta ou não confirmada, o WinZapp permanece fechado e abre instruções de recuperação no Bloco de Notas.
+
 - A janela de Configurações agora tem um campo de busca e uma lista de categorias: as setas trocam de categoria, Tab entra nas opções dela e, na busca, a seta para baixo vai aos resultados, onde Enter ou Espaço abre a opção encontrada, mesmo quando ela fica na janela de um botão. Várias categorias foram reunidas: Áudio (dispositivos, áudios colados com Ctrl+V, mensagens de voz e silenciar ao gravar), Sons de eventos (eventos de som e toques de alerta) e Armazenamento (com a pasta de salvamento). Conteúdo falado, Reprodução de áudio, Cópia de segurança, Atalhos de teclado, Reações, Notificações, Mensagens, Conversas, Conversas trancadas e Confirmações viraram botões que abrem a janela de cada assunto. "Interface do usuário" agora se chama "Interface", e Conexão passou para o fim da lista.
 
 - Configurações do WhatsApp (menu Arquivo) agora abre as Configurações já na categoria Configurações do WhatsApp, com os botões Privacidade e Perfil; a janela separada deixou de existir. O WinZapp só consulta o WhatsApp quando você abre cada botão, e Ctrl+Shift+, continua abrindo essa categoria.

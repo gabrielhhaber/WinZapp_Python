@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Actualizaciones: la instalación mantiene la exclusividad después de que WinZapp se cierre y conserva el paquete descargado que espera para instalarse. Solo una copia completa cuenta como éxito; una actualización correcta elimina el aviso de un fallo anterior. La reapertura automática espera a que termine el instalador y no se produce al alcanzar el límite de espera. Tras una copia incompleta o no confirmada, WinZapp permanece cerrado y abre instrucciones de recuperación en el Bloc de notas.
+
 - La ventana de Configuración ahora tiene un campo de búsqueda y una lista de categorías: las flechas cambian de categoría, Tab entra en sus opciones y, en la búsqueda, la flecha abajo va a los resultados, donde Enter o Espacio abre la opción encontrada, incluso cuando está en la ventana de un botón. Se reunieron varias categorías: Audio (dispositivos, audios pegados con Ctrl+V, mensajes de voz y silenciar al grabar), Sonidos de eventos (eventos de sonido y tonos de alerta) y Almacenamiento (con la carpeta de guardado). Contenido hablado, Reproducción de audio, Copia de seguridad, Atajos de teclado, Reacciones, Notificaciones, Mensajes, Conversaciones, Chats bloqueados y Confirmaciones pasaron a ser botones que abren la ventana de cada tema. "Interfaz de usuario" ahora se llama "Interfaz", y Conexión pasó al final de la lista.
 
 - Configuración de WhatsApp (menú Archivo) ahora abre la configuración ya en la categoría Configuración de WhatsApp, con los botones Privacidad y Perfil; la ventana separada ya no existe. WinZapp solo consulta a WhatsApp cuando abres cada botón, y Ctrl+Shift+, sigue abriendo esa categoría.
