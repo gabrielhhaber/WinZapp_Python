@@ -41,8 +41,8 @@ def _setup_api():
 
 
 def _probe_source():
-    """The block around the health probe, read out of main()."""
-    source = inspect.getsource(_setup_api().main)
+    """The health probe in the installer body, inside main's catalogue gate."""
+    source = inspect.getsource(_setup_api()._main_with_catalogue)
     start = source.index('"install", "--help"')
     return source[max(0, start - 2000):start + 2000]
 
@@ -84,7 +84,7 @@ class TestTheRealInstallStillDecides:
     def test_npm_install_itself_is_not_given_a_timeout(self):
         """It is the operation the probe stands in for. Capping it would move
         the same flake onto the step that actually matters."""
-        source = inspect.getsource(_setup_api().main)
+        source = inspect.getsource(_setup_api()._main_with_catalogue)
         install = source.index('"install", "--no-audit"')
         line_start = source.rindex("\n", 0, install)
         line_end = source.index("\n", install)

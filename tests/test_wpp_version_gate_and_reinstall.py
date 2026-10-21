@@ -115,5 +115,5 @@ class TestTheGuardMatchesWhatTheInstallerBuilds:
         for one question is how the startup gate ended up watching a name that
         is never produced."""
         from ui.dialogs import api_setup
-        source = inspect.getsource(api_setup.ApiSetupDialog._run_setup)
+        source = inspect.getsource(api_setup.ApiSetupDialog._run_setup_locked)
         assert '"dist", "server.js"' in source
