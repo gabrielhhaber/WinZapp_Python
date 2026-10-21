@@ -534,7 +534,8 @@ def test_session_prewarms_lazy_whatsapp_voip_runtime():
     assert "getVoipStackInterface" in bridge
     assert "void warmCallVoipRuntime(client, req.logger)" in create_session
 def test_native_call_actions_wait_for_lazy_voip_rpc_initialization():
-    controller = _source("client/api_patches/src/controller/callController.ts")
+    controller = (_source("client/api_patches/src/controller/callController.ts")
+                  + _source("client/api_patches/src/util/voipInitPolicy.ts"))
 
     assert "const maxAttempts = 8" in controller
     assert "isVoipInitError(error)" in controller
@@ -546,7 +547,8 @@ def test_native_call_actions_wait_for_lazy_voip_rpc_initialization():
 
 def test_voip_initialization_can_retry_after_lazy_backend_failure():
     """A failed lazy VoIP initialization must be retried by WinZapp's bridge."""
-    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+    bridge = (_source("client/api_patches/src/util/callMediaBridge.ts")
+              + _source("client/api_patches/src/util/voipInitPolicy.ts"))
 
     assert "WPP?.call?.enableCallInterface" in bridge
     assert "getDidVoipInitError" in bridge
@@ -554,7 +556,8 @@ def test_voip_initialization_can_retry_after_lazy_backend_failure():
     assert "attempt < 10" in bridge
 
 def test_voip_runtime_warmup_is_deduplicated_per_session():
-    bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
+    bridge = (_source("client/api_patches/src/util/callMediaBridge.ts")
+              + _source("client/api_patches/src/util/voipInitPolicy.ts"))
 
     assert "__winzappVoipWarmupPromise" in bridge
     assert "if (pending) return pending" in bridge
@@ -750,10 +753,8 @@ def test_voip_backend_is_initialised_once_per_page():
     bridge = _source("client/api_patches/src/util/callMediaBridge.ts")
 
     for source in (controller, bridge):
-        # Never re-init when ready; one in-flight init shared by warm-up and
-        # call actions; the "more than once" error stops further init attempts.
-        assert "emitter?.getIsVoipInited?.() !== true && !win.__winzappVoipLoadedOnce" in source
-        assert "win.__winzappVoipInitFlight = (async () =>" in source
-        assert "await win.__winzappVoipInitFlight" in source
-        assert "/more than once/i" in source
-        assert "win.__winzappVoipLoadedOnce = true" in source
+        # Both serialized callbacks use the same page policy. Its behaviour
+        # (single flight, ready, fatal, bounded retry) runs under Node in
+        # test_voip_init_policy.py; these assertions only guard the wiring.
+        assert "installVoipInitPolicyInPage" in source
+        assert "await win.__winzappInitializeVoip(initModule," in source

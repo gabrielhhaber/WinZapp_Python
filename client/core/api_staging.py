@@ -22,6 +22,8 @@ import stat
 import time
 import uuid
 
+from core.wa_version_lifecycle import tree_lock
+
 #: Per-install state that lives inside api/ and has to follow it. The same
 #: names ApiSetupDialog keeps through an in-place reinstall (_KEEP_RUNTIME),
 #: plus .env, which that flow preserves by never extracting over it.
@@ -164,6 +166,15 @@ def _rename(source: str, target: str, attempts: int, pause: float) -> None:
 
 def swap_in_staged_api(api_dir: str, staged_dir: str, attempts: int = 5,
                        pause: float = 1.0) -> str:
+    """Swap with Node stopped; serialize against catalogue publish/apply/setup."""
+    with tree_lock(api_dir) as held:
+        if not held:
+            raise SwapError('API catalogue is being changed')
+        return _swap_in_staged_api(api_dir, staged_dir, attempts, pause)
+
+
+def _swap_in_staged_api(api_dir: str, staged_dir: str, attempts: int,
+                        pause: float) -> str:
     """Put *staged_dir* in place of *api_dir*; returns the directory holding
     the old server, for the caller to delete.
 
@@ -214,6 +225,14 @@ def swap_in_staged_api(api_dir: str, staged_dir: str, attempts: int = 5,
 
 
 def restore_previous_api(api_dir: str, backup_dir: str) -> str:
+    """Rollback uses the same external gate as replacement and catalogue writes."""
+    with tree_lock(api_dir) as held:
+        if not held:
+            raise SwapError('API catalogue is being changed')
+        return _restore_previous_api(api_dir, backup_dir)
+
+
+def _restore_previous_api(api_dir: str, backup_dir: str) -> str:
     """With Node stopped, restore a retained predecessor and return the failed tree.
 
     Session state moved during the swap follows the installation back. Never

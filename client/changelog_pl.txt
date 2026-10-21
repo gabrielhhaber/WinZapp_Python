@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Połączenia: ponowna instalacja WPPConnect zachowuje nowszy, zgodny katalog WhatsApp Web i sprawdza jego aktualność. Ponownie zainstalowany katalog jest sprawdzany bez wcześniejszego sześciogodzinnego oczekiwania. Potwierdzona niezgodność VoIP, której nie można ponowić, zatrzymuje powtarzanie inicjalizacji.
+
 - Połączenia grupowe: WhatsApp nie pozwala dzwonić do grup liczących więcej niż 32 członków, więc przyciski połączeń zastępuje przycisk "Nie można zadzwonić", którego opis mówi, że grupa ma więcej niż 32 członków, a skróty połączeń mówią to samo zamiast rozpoczynać połączenie.
 
 - Połączenia grupowe: przyciski połączenia głosowego i wideo pojawiają się teraz w rozmowie grupowej i rozpoczynają połączenie z grupą, a przychodzące połączenie grupowe dzwoni, jest zapowiadane nazwą grupy i można je odebrać tym samym przyciskiem odbierania i tym samym globalnym skrótem odbierania co połączenie indywidualne. Włączenie kamery podczas połączenia głosowego działa jak w połączeniu indywidualnym, a zdarzenia połączenia od każdego uczestnika pozostają przy grupie, więc okno połączenia zachowuje nazwę grupy od pierwszego dzwonka do końca.

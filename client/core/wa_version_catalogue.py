@@ -3,8 +3,9 @@
 Calls depend on the WhatsApp Web build, and the build is picked from the
 catalogue in client/api/node_modules/@wppconnect/wa-version/versions.json.
 core/wa_version_refresh.py stages a newer package at startup and applies it
-the next time Node is spawned; a rebuilt node_modules (an in-app WPPConnect
-reinstall) also refreshes it. docs/traps/voice-calls.md measured the line: an
+the next time Node is spawned; the in-app reinstall preserves a newer compatible
+copy and explicitly checks it after npm (npm alone can select stale metadata).
+docs/traps/voice-calls.md measured the line: an
 install whose newest entry was 2.3000.1046948731-alpha never initialised VoIP;
 after a reinstall its catalogue reached 2.3000.1047835881-alpha and calls
 worked.

@@ -181,6 +181,7 @@ _CUSTOM_SRC_FILES = [
     "src/config.ts",
     "src/index.ts",
     "src/util/callMediaBridge.ts",
+    "src/util/voipInitPolicy.ts",
     "src/util/chatListsRuntime.ts",
     "src/util/pinnedMessagesRuntime.ts",
     "src/util/pollRuntime.ts",
@@ -928,6 +929,21 @@ class ApiSetupDialog(wx.Dialog):
 
     @timed_step("setup_worker")
     def _run_setup(self):
+        from core.wa_version_setup import CatalogueSetupError, catalogue_setup
+
+        api_dir = getattr(self, '_api_dir', None) or resource_path('api')
+        try:
+            with catalogue_setup(api_dir, resource_path('api'),
+                                 cancelled=lambda: self._cancelled) as refresh_catalogue:
+                if refresh_catalogue is None:
+                    raise CatalogueSetupError('API catalogue is being changed by another process')
+                ApiSetupDialog._run_setup_locked(self, refresh_catalogue)
+        except Exception as exc:
+            logging.warning('[wa-version] catalogue setup failed (%s)', type(exc).__name__)
+            if not self._cancelled:
+                wx.CallAfter(self._finish_error, self._i18n.t('api_setup_error_generic'))
+
+    def _run_setup_locked(self, refresh_catalogue):
         import sys
         import shutil
 
@@ -1177,6 +1193,11 @@ class ApiSetupDialog(wx.Dialog):
             # node_modules was just (re)built from scratch by npm install
             # above — apply WinZapp's patches to the files inside it now,
             # same as setup_api.py does for a developer install.
+            # Both first/modules-only setup and full/staged reinstall pass here.
+            # Do not let npm's lock/cache silently undo a newer catalogue.
+            refresh_catalogue()
+            if self._cancelled:
+                return
             self._apply_node_modules_patches(api_dir)
 
             if self._cancelled:

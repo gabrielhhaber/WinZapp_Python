@@ -7,6 +7,7 @@
  * yet, while activating the injected media bridge before a call asks for audio.
  */
 import { Request, Response } from 'express';
+import { installVoipInitPolicyInPage } from '../util/voipInitPolicy';
 
 import {
   ensureCallMediaBridge,
@@ -38,6 +39,7 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
   // Node, before entering the browser context, so the browser callback never
   // tries to resolve a Node-side helper name.
   await warmCallVoipRuntime(req.client, logger);
+  await page.evaluate(installVoipInitPolicyInPage);
 
   let result: any;
   try {
@@ -226,34 +228,11 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
                 backend?.initWAWebVoip;
               if (typeof init === 'function') {
                 const initModule = backend?.WAWebVoipInit || backend;
-                const emitter = initModule?.VoipInitEventEmitter;
-                if (emitter?.getIsVoipInited?.() !== true && !win.__winzappVoipLoadedOnce) {
-                  if (!win.__winzappVoipInitFlight) {
-                    win.__winzappVoipInitFlight = (async () => {
-                      try {
-                        await init.call(initModule, 'winzapp_call_action');
-                        if (
-                          emitter?.getIsVoipInited?.() !== true &&
-                          emitter?.getDidVoipInitError?.() === true &&
-                          typeof initModule?.retryWAWebVoipInitAfterFailure === 'function'
-                        ) {
-                          await initModule.retryWAWebVoipInitAfterFailure();
-                        }
-                      } catch (initError: any) {
-                        if (/more than once/i.test(String(initError?.message || initError))) {
-                          win.__winzappVoipLoadedOnce = true;
-                        } else {
-                          throw initError;
-                        }
-                      } finally {
-                        delete win.__winzappVoipInitFlight;
-                      }
-                    })();
-                  }
-                  await win.__winzappVoipInitFlight;
-                }
-                if (emitter?.getIsVoipInited?.() === false) {
-                  throw new Error('WhatsApp VoIP initializer completed without becoming ready');
+                await win.__winzappInitializeVoip(initModule, 'winzapp_call_action', init);
+                const initState = win.__winzappReadVoipInitState(initModule);
+                if (initState.ready === false) {
+                  throw new Error('WhatsApp VoIP initializer completed without becoming ready: '
+                    + JSON.stringify(initState));
                 }
               }
             }
@@ -263,10 +242,11 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
             lastError = stack
               ? new Error('WhatsApp VoIP connection initialization is pending')
               : new Error('VoIP stack interface is not available');
-          } catch (error) {
+          } catch (error: any) {
+            if (error?.winzappVoipFatal === true) throw error;
             lastError = error;
           }
-          await delay(180 * (attempt + 1));
+          if (attempt < 7) await delay(180 * (attempt + 1));
         }
 
         const message = String(lastError?.message || lastError || 'unknown error');
@@ -805,6 +785,7 @@ function watchOutgoingCallNotices(req: Request): () => void {
 export async function callDiagnostics(req: Request, res: Response) {
   try {
     const page = getWhatsappPage(req);
+    await page.evaluate(installVoipInitPolicyInPage);
     const response = await page.evaluate(async () => {
       const win = window as any;
       const functions = win.WPP?.whatsapp?.functions || {};
@@ -827,6 +808,7 @@ export async function callDiagnostics(req: Request, res: Response) {
           return `error:${error?.message || error}`;
         }
       };
+      const voipInit = win.__winzappReadVoipInitState(backend?.WAWebVoipInit || backend);
       return {
         userAgent: navigator.userAgent,
         webdriver: navigator.webdriver,
@@ -853,8 +835,9 @@ export async function callDiagnostics(req: Request, res: Response) {
         backendInitSource: (backend?.WAWebVoipInit?.initWAWebVoip || backend?.initWAWebVoip)
           ? String(backend?.WAWebVoipInit?.initWAWebVoip || backend?.initWAWebVoip).slice(0, 1200)
           : '',
-        emitterReady: backend?.WAWebVoipInit?.VoipInitEventEmitter?.getIsVoipInited?.(),
-        emitterFailed: backend?.WAWebVoipInit?.VoipInitEventEmitter?.getDidVoipInitError?.(),
+        emitterReady: voipInit.ready,
+        emitterFailed: voipInit.failed,
+        voipInit,
         callMediaBridge: (() => {
           const bridge = win.__winzappCallMediaBridge;
           return bridge ? {

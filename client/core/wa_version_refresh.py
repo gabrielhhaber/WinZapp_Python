@@ -12,7 +12,8 @@ This module refreshes just that one package, in two phases, because the
 package is ~43 MB to download (~35 s on a 10 Mbit link) and Node has to start
 without waiting for it:
 
-* STAGE (network, background thread, at most once per 6 hours): ask the
+* STAGE (network, background thread, at most once per 6 hours per unchanged
+  usable installation): ask the
   registry for ``/latest`` (a few KB); when it is newer and acceptable,
   download, verify and extract it into a sibling of the live package
   (``wa-version.staged-<version>``), renamed into that name only once verified,
@@ -71,12 +72,17 @@ import os
 import re
 import shutil
 import tarfile
+import tempfile
 import threading
 import time
 import urllib.request
+import uuid
 from urllib.parse import urlparse
 
 from core.wa_version_catalogue import newest_build
+from core.wa_version_lifecycle import (
+    catalogue_identity, filesystem_path, package_target, resolution_roots, tree_lock, write_state,
+)
 
 PACKAGE = "@wppconnect/wa-version"
 #: wppconnect declares the range it was built against for this package.
@@ -110,7 +116,7 @@ _APPLY_LOCK_FILE = "wa_version_apply.lock"
 # Outcomes that answer "is there something newer for me?" definitively, so the
 # next check can wait the full interval. The others (offline, lock held, a
 # download cut short) say nothing and are retried on the next launch.
-_DEFINITIVE = {"staged", "current", "skipped-deps", "rejected"}
+_DEFINITIVE = {"staged", "current", "skipped-deps", "rejected", "unsupported"}
 
 # ASCII digits, no leading zeros, fullmatch: no whitespace or newline slips
 # through, and the string we pick is the canonical one.
@@ -250,6 +256,7 @@ def safe_extract(tar_bytes: bytes, dest: str) -> None:
     escapes ``dest`` raise UnsafeArchive. Member count and total size are
     capped.
     """
+    dest = filesystem_path(dest)
     os.makedirs(dest)
     root = os.path.realpath(dest)
     total = 0
@@ -290,13 +297,14 @@ def safe_extract(tar_bytes: bytes, dest: str) -> None:
 
 def _read_json(path: str):
     try:
-        with open(path, encoding="utf-8") as fh:
+        with open(filesystem_path(path), encoding="utf-8") as fh:
             return json.loads(fh.read().removeprefix("\ufeff"))
     except (OSError, ValueError, LookupError):
         return None
 
 
-def dependencies_satisfied(package_json: dict, new_dir: str, node_modules: str) -> bool:
+def dependencies_satisfied(package_json: dict, new_dir: str, node_modules: str, *,
+                           resolution_target: str | None = None) -> bool:
     """Whether every runtime dependency the new package declares is already
     installed at a version that meets its range.
 
@@ -310,7 +318,13 @@ def dependencies_satisfied(package_json: dict, new_dir: str, node_modules: str) 
         return False
     for name, spec in deps.items():
         found = None
-        for base in (os.path.join(new_dir, "node_modules"), node_modules):
+        roots = resolution_roots(resolution_target or new_dir, node_modules)
+        if resolution_target is not None:
+            # A detached snapshot will live at target. Its OWN dependencies
+            # take precedence, then target's ancestors; target/node_modules
+            # belongs to the replaced package and will disappear in the swap.
+            roots = [os.path.join(new_dir, 'node_modules'), *roots[1:]]
+        for base in roots:
             found = _read_json(os.path.join(base, *str(name).split("/"), "package.json"))
             if isinstance(found, dict):
                 break
@@ -321,6 +335,7 @@ def dependencies_satisfied(package_json: dict, new_dir: str, node_modules: str) 
 
 def sanity_check(new_dir: str, expected_version: str) -> bool:
     """The extracted package is the one we asked for and its catalogue parses."""
+    new_dir = filesystem_path(new_dir)
     pkg = _read_json(os.path.join(new_dir, "package.json"))
     if not isinstance(pkg, dict) or pkg.get("name") != PACKAGE or pkg.get("version") != expected_version:
         return False
@@ -344,7 +359,7 @@ def swap_directories(target: str, new_dir: str, stamp, *, rename=None) -> str:
     Raises when the swap did not happen (a Windows rename of a directory some
     Node has open fails here, and that is the expected way to give up).
     """
-    rename = rename or os.rename
+    rename = rename or (lambda source, dest: os.rename(filesystem_path(source), filesystem_path(dest)))
     old = f"{target}.old-{stamp}"
     rename(target, old)
     try:
@@ -361,6 +376,7 @@ def swap_directories(target: str, new_dir: str, stamp, *, rename=None) -> str:
 @contextlib.contextmanager
 def exclusive_lock(path: str):
     """Yield True when this process took the cross-process lock, else False."""
+    path = filesystem_path(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fh = open(path, "a+b")
     held = False
@@ -447,7 +463,7 @@ def _wanted_range(node_modules: str):
 
 
 def _target(node_modules: str) -> str:
-    return os.path.join(node_modules, *PACKAGE.split("/"))
+    return package_target(node_modules)
 
 
 def _installed_version(target: str) -> str:
@@ -461,7 +477,7 @@ def _siblings(target: str, marker: str) -> list:
     parent, name = os.path.split(target)
     prefix = f"{name}.{marker}-"
     try:
-        found = [e for e in os.listdir(parent) if e.startswith(prefix)]
+        found = [e for e in os.listdir(filesystem_path(parent)) if e.startswith(prefix)]
     except OSError:
         return []
     return [os.path.join(parent, e) for e in found]
@@ -493,24 +509,40 @@ def check_and_stage(node_modules: str, state_dir: str, *, fetch=default_fetch,
                 outcome = "locked"
                 return outcome
             state_path = os.path.join(state_dir, _STATE_FILE)
-            state = _read_json(state_path)
-            last = state.get("checked") if isinstance(state, dict) else None
-            now = clock()
-            if isinstance(last, (int, float)) and 0 <= now - last < interval:
-                outcome = "throttled"
-                return outcome
-            # We hold the only lock that stages, so a *.staging-* left here is
-            # a download some earlier process never finished.
-            for stale in _siblings(target, "staging"):
-                shutil.rmtree(stale, ignore_errors=True)
-            outcome = _stage(node_modules, target, old_version, fetch, now)
-            if outcome in _DEFINITIVE:
-                try:
-                    os.makedirs(state_dir, exist_ok=True)
-                    with open(state_path, "w", encoding="utf-8") as fh:
-                        json.dump({"checked": now}, fh)
-                except OSError:
-                    pass
+            with tree_lock(os.path.dirname(node_modules)) as tree_held:
+                if not tree_held:
+                    return "locked"
+                target = _target(node_modules)
+                old_version = _installed_version(target)
+                if not old_version:
+                    return "missing"
+                state = _read_json(state_path)
+                last = state.get("checked") if isinstance(state, dict) else None
+                now = clock()
+                identity = catalogue_identity(node_modules, target, _wanted_range(node_modules))
+                if (isinstance(last, (int, float)) and not isinstance(last, bool)
+                        and 0 <= now - last < interval
+                        and state.get("installed") == old_version
+                        and state.get("identity") == identity
+                        and sanity_check(target, old_version)):
+                    outcome = "throttled"
+                    return outcome
+                # Legacy partial stages are removed only while their tree is gated.
+                for stale in _siblings(target, "staging"):
+                    shutil.rmtree(filesystem_path(stale), ignore_errors=True)
+            outcome = _stage(node_modules, target, old_version, fetch, now, identity=identity)
+            # A setup or API rollback may have replaced the tree while the GET
+            # was in flight. Its result must never throttle that new tree.
+            with tree_lock(os.path.dirname(node_modules)) as held:
+                if not held or identity != catalogue_identity(node_modules, _target(node_modules),
+                                                               _wanted_range(node_modules)):
+                    return "changed"
+                if outcome in _DEFINITIVE:
+                    try:
+                        write_state(state_path, {"checked": now, "installed": old_version,
+                                                 "identity": identity})
+                    except OSError:
+                        pass
         return outcome
     except Exception as exc:
         logging.warning("[wa-version] refresh failed (%s)", type(exc).__name__)
@@ -521,7 +553,7 @@ def check_and_stage(node_modules: str, state_dir: str, *, fetch=default_fetch,
                          old_version or "none")
 
 
-def _stage(node_modules, target, old_version, fetch, now) -> str:
+def _stage(node_modules, target, old_version, fetch, now, *, identity=None) -> str:
     try:
         doc = json.loads(fetch(f"{_REGISTRY_URL}/latest", MAX_VERSION_DOC_BYTES,
                                LATEST_DEADLINE_SECONDS))
@@ -529,12 +561,18 @@ def _stage(node_modules, target, old_version, fetch, now) -> str:
         # urllib's URLError/timeouts are OSError; bad JSON is ValueError.
         return "offline"
     version = doc.get("version") if isinstance(doc, dict) else None
-    # Only /latest is read, never the packument (7.6 MB abbreviated). When the
-    # newest release is a major bump or outside wppconnect's range, nothing is
-    # staged and the in-app reinstall remains the way forward.
-    if pick_version(old_version, [version], _wanted_range(node_modules)) is None:
+    # Only /latest is read, never the packument (7.6 MB abbreviated). A major
+    # bump/out-of-range latest is explicitly unsupported: it proves neither
+    # freshness nor that a newer compatible historical release does not exist.
+    valid = parse_version(version)
+    wanted = _wanted_range(node_modules)
+    if valid is None or valid[0] != parse_version(old_version)[0] or (
+            wanted and satisfies_range(version, wanted) is False):
+        return "unsupported"
+    repair = version == old_version and not sanity_check(target, old_version)
+    if pick_version(old_version, [version], wanted) is None and not repair:
         return "current"
-    if os.path.isdir(_staged_path(target, version)):
+    if sanity_check(_staged_path(target, version), version):
         return "staged"
     dist = doc.get("dist")
     if not isinstance(dist, dict) or not tarball_url_allowed(dist.get("tarball")):
@@ -552,8 +590,11 @@ def _stage(node_modules, target, old_version, fetch, now) -> str:
     # Extracted under a name no apply looks at, renamed to the staged name only
     # when it is whole: a crash or a closed window leaves a *.staging-* that
     # the next check removes, never a staged package that is half a package.
-    staging = f"{target}.staging-{int(now)}"
-    shutil.rmtree(staging, ignore_errors=True)
+    # Outside api/: its rename/reinstall cannot redirect a late extraction into
+    # a different generation. Publishing takes the same gate as that rename.
+    scratch = tempfile.mkdtemp(prefix='.wa-download-',
+                               dir=os.path.dirname(os.path.dirname(node_modules)))
+    staging = os.path.join(scratch, 'package')
     try:
         try:
             safe_extract(data, staging)
@@ -561,13 +602,19 @@ def _stage(node_modules, target, old_version, fetch, now) -> str:
             return "rejected"
         if not sanity_check(staging, version):
             return "rejected"
-        try:
-            os.rename(staging, _staged_path(target, version))
-        except OSError:
-            return "error"
+        with tree_lock(os.path.dirname(node_modules)) as held:
+            if not held:
+                return "locked"
+            if identity is not None and identity != catalogue_identity(
+                    node_modules, _target(node_modules), _wanted_range(node_modules)):
+                return "changed"
+            destination = _staged_path(target, version)
+            if os.path.isdir(filesystem_path(destination)):
+                shutil.rmtree(filesystem_path(destination))
+            os.rename(filesystem_path(staging), filesystem_path(destination))
         return "staged"
     finally:
-        shutil.rmtree(staging, ignore_errors=True)
+        shutil.rmtree(filesystem_path(scratch), ignore_errors=True)
 
 
 # ------------------------------------------------------------------ apply ---
@@ -582,7 +629,7 @@ def _discard(path: str) -> None:
     the swap and the Node spawn. A process that exits first leaves it behind,
     and the next apply sweeps it.
     """
-    thread = threading.Thread(target=shutil.rmtree, args=(path, True),
+    thread = threading.Thread(target=shutil.rmtree, args=(filesystem_path(path), True),
                               name="wa-version-discard", daemon=True)
     _discards.append(thread)
     thread.start()
@@ -606,11 +653,14 @@ def apply_staged(node_modules: str, state_dir: str, *, clock=time.time, busy=Non
     """
     outcome = "error"
     try:
-        target = _target(node_modules)
-        with exclusive_lock(os.path.join(state_dir, _APPLY_LOCK_FILE)) as held:
-            if not held:
+        with tree_lock(os.path.dirname(node_modules)) as tree_held, \
+                exclusive_lock(os.path.join(state_dir, _APPLY_LOCK_FILE)) as held:
+            if not tree_held or not held:
                 outcome = "locked"
                 return outcome
+            # Setup/swap may have changed Node resolution before we got the
+            # gate (hoisted -> nested). Select only inside that protected tree.
+            target = _target(node_modules)
             _restore_if_interrupted(target)
             old_version = _installed_version(target)
             if not old_version:
@@ -624,6 +674,8 @@ def apply_staged(node_modules: str, state_dir: str, *, clock=time.time, busy=Non
                 else:
                     staged[name] = path
             best = pick_version(old_version, staged.keys(), _wanted_range(node_modules))
+            if best is None and old_version in staged and not sanity_check(target, old_version):
+                best = old_version
             for version, path in staged.items():
                 # Not newer than what is installed any more (another process
                 # applied it, or a reinstall passed it): nothing will use it.
@@ -635,7 +687,18 @@ def apply_staged(node_modules: str, state_dir: str, *, clock=time.time, busy=Non
             if busy is not None and busy():
                 outcome = "busy"
                 return outcome
+            previous_identity = catalogue_identity(node_modules, target, _wanted_range(node_modules))
             outcome = _apply_one(node_modules, target, staged[best], best, old_version, clock())
+            if outcome == "updated":
+                # This was already checked before staging. Keep that timestamp
+                # only when it belongs to this exact target, not an older API.
+                state_path = os.path.join(state_dir, _STATE_FILE)
+                state = _read_json(state_path)
+                if (isinstance(state, dict) and state.get("installed") == old_version
+                        and state.get("identity") == previous_identity):
+                    state.update(installed=best, identity=catalogue_identity(
+                        node_modules, target, _wanted_range(node_modules)))
+                    write_state(state_path, state)
             return outcome
     except Exception as exc:
         logging.warning("[wa-version] apply failed (%s)", type(exc).__name__)
@@ -655,13 +718,14 @@ def _restore_if_interrupted(target: str) -> None:
     leftovers = sorted(_siblings(target, "old"))
     if leftovers:
         try:
-            os.rename(leftovers[-1], target)
+            os.rename(filesystem_path(leftovers[-1]), filesystem_path(target))
             logging.warning("[wa-version] restored the catalogue after an interrupted swap")
         except OSError:
             pass
 
 
-def _apply_one(node_modules, target, staged_dir, version, old_version, now) -> str:
+def _apply_one(node_modules, target, staged_dir, version, old_version, now, *,
+               carry_dependencies: bool = True) -> str:
     if not sanity_check(staged_dir, version):
         _discard(staged_dir)
         return "rejected"
@@ -670,15 +734,15 @@ def _apply_one(node_modules, target, staged_dir, version, old_version, now) -> s
     # leaves the staged dir behind with the previous copy inside.
     old_nested = os.path.join(target, "node_modules")
     new_nested = os.path.join(staged_dir, "node_modules")
-    if os.path.isdir(old_nested):
-        shutil.rmtree(new_nested, ignore_errors=True)
-        shutil.copytree(old_nested, new_nested)
+    if carry_dependencies and os.path.isdir(filesystem_path(old_nested)):
+        shutil.rmtree(filesystem_path(new_nested), ignore_errors=True)
+        shutil.copytree(filesystem_path(old_nested), filesystem_path(new_nested))
     new_pkg = _read_json(os.path.join(staged_dir, "package.json"))
-    if not dependencies_satisfied(new_pkg, staged_dir, node_modules):
+    if not dependencies_satisfied(new_pkg, staged_dir, node_modules, resolution_target=target):
         _discard(staged_dir)
         return "skipped-deps"
     try:
-        old = swap_directories(target, staged_dir, int(now))
+        old = swap_directories(target, staged_dir, f'{int(now)}-{uuid.uuid4().hex}')
     except OSError:
         # A Windows directory some Node has open cannot be renamed: the staged
         # package stays for the next launch.
@@ -693,6 +757,7 @@ def _apply_one(node_modules, target, staged_dir, version, old_version, now) -> s
 _thread: threading.Thread | None = None
 _paths: tuple | None = None
 _busy = None
+_hook_identity = None
 _hook_lock = threading.Lock()
 
 
@@ -729,17 +794,21 @@ def other_accounts_node_alive(global_dir, account_id, ignore_corrupt: bool = Fal
 def start_in_background(node_modules: str, state_dir: str, *, check: bool = True,
                         busy=None, **kwargs) -> bool:
     """Remember where the catalogue lives and, when ``check`` is set, start the
-    stage thread (daemon, once per process). True when this call started it.
+    stage thread (daemon, once per installation identity). True when this call
+    started it. Never duplicate a live task; setup checks its new tree itself.
 
     ``check`` is False while a Node is already running: staging is harmless
     then, but a launch that will not spawn gains nothing from it.
     """
-    global _thread, _paths, _busy
+    global _thread, _paths, _busy, _hook_identity
     with _hook_lock:
         _paths = (node_modules, state_dir)
         _busy = busy
-        if not check or _thread is not None:
+        identity = catalogue_identity(node_modules, _target(node_modules), _wanted_range(node_modules))
+        if not check or (_thread is not None and (
+                _thread.is_alive() or identity == _hook_identity)):
             return False
+        _hook_identity = identity
         _thread = threading.Thread(
             target=check_and_stage, args=(node_modules, state_dir), kwargs=kwargs,
             name="wa-version-stage", daemon=True,

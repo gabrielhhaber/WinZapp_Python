@@ -306,7 +306,7 @@ class TestStage:
 
     def test_a_major_bump_is_left_to_the_reinstall(self, tree):
         latest = {"version": "2.0.0", "dist": {"tarball": TARBALL}}
-        assert _stage(tree, fetch=_fetcher(latest=latest)) == "current"
+        assert _stage(tree, fetch=_fetcher(latest=latest)) == "unsupported"
         assert not os.path.isdir(_staged(tree, "2.0.0"))
 
     def test_hash_mismatch_is_rejected_and_leaves_nothing(self, tree):
@@ -437,7 +437,10 @@ class TestThrottle:
 
     def test_the_timestamp_lives_in_the_state_dir(self, tree):
         _stage(tree, fetch=_fetcher())
-        assert json.load(open(os.path.join(tree.state, "wa_version_refresh.json"))) == {"checked": 1000.0}
+        state = json.load(open(os.path.join(tree.state, "wa_version_refresh.json")))
+        assert state['checked'] == 1000.0
+        assert state['installed'] == '1.5.4490'
+        assert len(state['identity']) == 64
 
     def test_a_clock_that_went_backwards_does_not_throttle_forever(self, tree):
         _stage(tree, fetch=_fetcher(), clock=lambda: 5000.0)

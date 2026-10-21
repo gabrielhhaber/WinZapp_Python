@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Aramalar: WPPConnect yeniden kurulurken daha yeni ve uyumlu WhatsApp Web kataloğu korunur ve güncelliği kontrol edilir. Yeniden kurulan katalog önceki altı saatlik beklemeye takılmaz. Yeniden denenemeyen doğrulanmış VoIP uyumsuzluğunda başlatma tekrarlanmaz.
+
 - Grup aramaları: WhatsApp 32'den fazla katılımcısı olan gruplarda arama yapılmasına izin vermez; bu yüzden arama düğmelerinin yerine notu grubun 32'den fazla katılımcısı olduğunu söyleyen bir "Arama yapılamıyor" düğmesi gelir ve arama kısayolları aramayı başlatmak yerine aynı şeyi söyler.
 
 - Grup aramaları: sesli ve görüntülü arama düğmeleri artık grup sohbetinde görünür ve gruba arama başlatır; gelen bir grup araması çalar, grubun adıyla duyurulur ve tek kişilik aramadaki aynı Yanıtla düğmesi ve genel yanıtlama kısayoluyla yanıtlanabilir. Sesli arama sırasında kamerayı açmak tek kişilik aramadaki gibi çalışır ve her katılımcıdan gelen arama olayları grupta kalır, böylece arama penceresi ilk çalmadan sona kadar grubun adını korur.

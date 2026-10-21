@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Calls: reinstalling WPPConnect preserves a newer compatible WhatsApp Web catalogue and checks its freshness. A rebuilt catalogue is checked without the previous six-hour wait. A confirmed non-retryable VoIP contract mismatch stops repeated initialization.
+
 - Group calls: a group with more than 32 participants cannot be called on WhatsApp, so the call buttons are replaced by a "Calling is not possible" button whose note says the group has more than 32 participants, and the call shortcuts say the same instead of starting a call.
 
 - Group calls: the voice and video call buttons now appear in a group conversation and start a call to the group, and an incoming group call rings, is announced by the group's name and can be answered, with the same Answer button and global answer key as a one-to-one call. Turning the camera on during a voice call works as it does in a one-to-one call, and call events from each participant stay with the group, so the call window keeps the group's name from the first ring to the end.

@@ -61,6 +61,7 @@ MIRRORED_FILES = [
     "src/config.ts",
     "src/index.ts",
     "src/util/callMediaBridge.ts",
+    "src/util/voipInitPolicy.ts",
     "src/util/chatListsRuntime.ts",
     "src/util/pinnedMessagesRuntime.ts",
     "src/util/pollRuntime.ts",

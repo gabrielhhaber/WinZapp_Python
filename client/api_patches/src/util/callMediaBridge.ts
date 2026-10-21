@@ -2,6 +2,7 @@ import { Socket } from 'socket.io';
 import { ChildProcessWithoutNullStreams, execFileSync, spawn } from 'child_process';
 
 import { clientsArray } from './sessionUtil';
+import { installVoipInitPolicyInPage } from './voipInitPolicy';
 
 const MAX_AUDIO_FRAME_BYTES = 64 * 1024;
 // Call audio is live media: after a local/page stall, stale microphone frames
@@ -2200,6 +2201,7 @@ export async function warmCallVoipRuntime(client: any, logger: any): Promise<boo
 
   const warmup = (async (): Promise<boolean> => {
     try {
+      await page.evaluate(installVoipInitPolicyInPage);
       const result = await page.evaluate(async () => {
         const win = window as any;
         const delay = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -2223,38 +2225,15 @@ export async function warmCallVoipRuntime(client: any, logger: any): Promise<boo
               const init = backend?.WAWebVoipInit?.initWAWebVoip || backend?.initWAWebVoip;
               if (typeof init === 'function') {
                 const initModule = backend?.WAWebVoipInit || backend;
-                const emitter = initModule?.VoipInitEventEmitter;
                 // The VoIP WebAssembly module loads once per page: never
                 // initialise again when it is ready or already in flight (a
                 // call action shares the same promise), or WhatsApp fails
                 // with "cannot load module more than once per process".
-                if (emitter?.getIsVoipInited?.() !== true && !win.__winzappVoipLoadedOnce) {
-                  if (!win.__winzappVoipInitFlight) {
-                    win.__winzappVoipInitFlight = (async () => {
-                      try {
-                        await init.call(initModule, 'winzapp_session_warmup');
-                        if (
-                          emitter?.getIsVoipInited?.() !== true &&
-                          emitter?.getDidVoipInitError?.() === true &&
-                          typeof initModule?.retryWAWebVoipInitAfterFailure === 'function'
-                        ) {
-                          await initModule.retryWAWebVoipInitAfterFailure();
-                        }
-                      } catch (initError: any) {
-                        if (/more than once/i.test(String(initError?.message || initError))) {
-                          win.__winzappVoipLoadedOnce = true;
-                        } else {
-                          throw initError;
-                        }
-                      } finally {
-                        delete win.__winzappVoipInitFlight;
-                      }
-                    })();
-                  }
-                  await win.__winzappVoipInitFlight;
-                }
-                if (emitter?.getIsVoipInited?.() === false) {
-                  lastError = 'WhatsApp VoIP initializer did not become ready';
+                await win.__winzappInitializeVoip(initModule, 'winzapp_session_warmup', init);
+                const initState = win.__winzappReadVoipInitState(initModule);
+                if (initState.ready === false) {
+                  lastError = 'WhatsApp VoIP initializer did not become ready: '
+                    + JSON.stringify(initState);
                   await delay(250 * (attempt + 1));
                   continue;
                 }
@@ -2294,8 +2273,9 @@ export async function warmCallVoipRuntime(client: any, logger: any): Promise<boo
             lastError = 'VoIP stack interface returned no value';
           } catch (error: any) {
             lastError = String(error?.message || error || 'unknown error');
+            if (error?.winzappVoipFatal === true) return { ready: false, error: lastError };
           }
-          await delay(250 * (attempt + 1));
+          if (attempt < 9) await delay(250 * (attempt + 1));
         }
 
         return { ready: false, error: lastError };

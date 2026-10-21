@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Llamadas: reinstalar WPPConnect conserva un catálogo de WhatsApp Web más reciente y compatible y comprueba si está actualizado. El catálogo reinstalado se comprueba sin la espera anterior de seis horas. Una incompatibilidad confirmada de VoIP que no permite reintentos detiene las inicializaciones repetidas.
+
 - Llamadas de grupo: WhatsApp no permite llamar a grupos con más de 32 participantes, así que los botones de llamada se sustituyen por un botón "No es posible llamar" cuya nota dice que el grupo tiene más de 32 participantes, y los atajos de llamada dicen lo mismo en lugar de iniciar la llamada.
 
 - Llamadas grupales: los botones de llamada de voz y de vídeo aparecen ahora en la conversación del grupo e inician una llamada al grupo, y una llamada grupal entrante suena, se anuncia con el nombre del grupo y se puede contestar, con el mismo botón de contestar y el mismo atajo global de contestar que una llamada individual. Activar la cámara durante una llamada de voz funciona como en una llamada individual, y los eventos de llamada de cada participante quedan con el grupo, así que la ventana de la llamada mantiene el nombre del grupo desde el primer tono hasta el final.

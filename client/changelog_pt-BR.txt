@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Ligações: reinstalar a WPPConnect preserva um catálogo mais recente e compatível do WhatsApp Web e verifica se está atualizado. O catálogo reinstalado é verificado sem a espera anterior de seis horas. Uma incompatibilidade confirmada do VoIP que não permite nova tentativa interrompe as inicializações repetidas.
+
 - Chamadas em grupo: o WhatsApp não permite ligar para grupos com mais de 32 participantes, então os botões de ligação são trocados por um botão "Não é possível ligar" cuja nota diz que o grupo possui mais de 32 participantes, e os atalhos de ligação dizem o mesmo em vez de iniciar a ligação.
 
 - Chamadas em grupo: os botões de chamada de voz e de vídeo agora aparecem na conversa do grupo e iniciam uma chamada para o grupo, e uma chamada em grupo recebida toca, é anunciada pelo nome do grupo e pode ser atendida, com o mesmo botão de atender e o mesmo atalho global de atender de uma chamada individual. Ligar a câmera durante uma chamada de voz funciona como numa chamada individual, e os eventos de chamada de cada participante ficam com o grupo, então a janela da chamada mantém o nome do grupo do primeiro toque até o fim.

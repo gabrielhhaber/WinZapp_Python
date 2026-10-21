@@ -119,6 +119,7 @@ CUSTOM_SRC_FILES = [
     "src/config.ts",
     "src/index.ts",
     "src/util/callMediaBridge.ts",
+    "src/util/voipInitPolicy.ts",
     "src/util/chatListsRuntime.ts",
     "src/util/pinnedMessagesRuntime.ts",
     "src/util/pollRuntime.ts",
@@ -870,6 +871,15 @@ def plan_api_checkout(api_dir_exists, api_dir_nonempty,
 
 
 def main():
+    from core.wa_version_setup import CatalogueSetupError, catalogue_setup
+
+    with catalogue_setup(CLIENT_API_DIR, CLIENT_API_DIR) as refresh_catalogue:
+        if refresh_catalogue is None:
+            raise CatalogueSetupError('API catalogue is being changed by another process')
+        return _main_with_catalogue(refresh_catalogue)
+
+
+def _main_with_catalogue(refresh_catalogue):
     env = _load_env()
     tag = env.get("WPPCONNECT_TAG_VERSION", "").strip()
     if not tag:
@@ -1111,6 +1121,8 @@ def main():
         else:
             _run([npm_bin, "install", "--no-audit", "--no-fund", "--legacy-peer-deps"], cwd=CLIENT_API_DIR,
                  env=_npm_env())
+
+        refresh_catalogue()
 
         # Apply the RangeError/memory-leak patch to @wppconnect-team/wppconnect decrypt.js by copying our modified file
         try:

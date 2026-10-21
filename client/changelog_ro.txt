@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Apeluri: reinstalarea WPPConnect păstrează un catalog WhatsApp Web mai nou și compatibil și verifică actualitatea acestuia. Catalogul reinstalat este verificat fără așteptarea anterioară de șase ore. O incompatibilitate VoIP confirmată care nu permite reîncercarea oprește inițializările repetate.
+
 - Apeluri de grup: WhatsApp nu permite apeluri către grupuri cu mai mult de 32 de participanți, așa că butoanele de apel sunt înlocuite cu un buton "Nu se poate apela" a cărui notă spune că grupul are mai mult de 32 de participanți, iar comenzile rapide de apel spun același lucru în loc să pornească apelul.
 
 - Apeluri de grup: butoanele de apel vocal și video apar acum în conversația de grup și pornesc un apel către grup, iar un apel de grup primit sună, este anunțat cu numele grupului și poate fi răspuns, cu același buton de răspuns și aceeași comandă rapidă globală de răspuns ca un apel individual. Pornirea camerei în timpul unui apel vocal funcționează ca într-un apel individual, iar evenimentele de apel de la fiecare participant rămân la grup, așa că fereastra apelului păstrează numele grupului de la primul sunet până la final.

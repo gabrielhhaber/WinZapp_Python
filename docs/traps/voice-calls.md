@@ -1,5 +1,60 @@
 # Voice calls — Python owns the audio, the page owns everything else
 
+## Reinstall is not proof of a fresh catalogue (2026-10-22)
+
+A report from a live v3.0.0.4676alpha session, supplied by the user after
+Antigravity's CDP diagnosis, identified `getVoipInitFailureClass()` as
+`wasm_contract_mismatch`, `getDidVoipInitError()` true and readiness false.
+The report says changing wa-version 1.5.5049 to 1.5.5086 restored calls. Those
+live measurements were not repeated by the source-fix session. They fit the
+main-document/live-worker skew measured below, but do not establish every
+worker/version detail independently.
+
+The source confirms a separate defect: setup rebuilds node_modules, whereas
+the refresh verdict used to contain only a timestamp. Reinstalling a lower
+catalogue inside that six-hour window could therefore keep it lower. Do not
+repeat the supplied claim that upstream v2.10.61 ships a package-lock locked
+to 1.5.5049: its source tree has yarn.lock (wa-version 1.5.4472), not that
+package-lock. The actual origin of the installed 1.5.5049 remains unverified.
+
+`wa_version_lifecycle` identifies the WPPConnect-resolved package (nested
+before hoisted), manifests and installation identity. The six-hour verdict
+applies only to that identity and a usable catalogue. State replacement is
+atomic; API swap/rollback and catalogue publish/apply/setup share a gate
+beside api/, which survives its rename. Downloads extract outside api/ and
+recheck identity under the gate before publishing, so an old download cannot
+write its verdict into a replacement. A completed startup task may run again
+when the installation changes; a live task is never duplicated.
+
+`wa_version_setup` snapshots a valid old package before npm can remove it,
+preserves a newer copy only if compatible with the new runtime/dependencies,
+then performs a private fresh check and apply before setup succeeds. The
+same helper is used by first/modules-only/full/staged setup and setup_api.py.
+An early in-place cancellation after npm also preserves a compatible newer
+copy. This is not a transaction for the entire in-place npm installation;
+the staged API updater retains its existing whole-server rollback.
+Offline, unsupported latest, missing dependencies and failed checks are
+explicit unconfirmed-freshness outcomes, never evidence that 'latest' is
+installed. A tree with no usable catalogue cannot report setup success.
+The resolver still reads /latest only: an incompatible latest is unsupported,
+not a search result proving the newest compatible historical release.
+
+`voipInitPolicy.ts` is serialized into the page before both warmup and call
+actions. Optional getters are defensive and failure classes are allowlisted
+before crossing into diagnostics. A confirmed wasm_contract_mismatch with
+failed=true and canRetry=false aborts immediately, including before another
+init call; missing getters and unknown/pending states retain bounded polling.
+One in-flight initialization and at most one allowed/legacy retry are shared
+per page. An ordinary failure releases the promise; 'more than once' retains
+the no-second-WASM-load guard. No automatic reload, Node restart, account
+closure or resending of a call is introduced. Updating files cannot repair
+WASM already loaded in the current page.
+
+Synthetic coverage: test_wa_version_reinstall.py and test_voip_init_policy.py,
+plus the existing refresh, staging and controller contracts. No live device,
+provider, CDP, wx window or call is needed. Windows copies use extended paths
+because a catalogue's descendants can exceed MAX_PATH even with a short root.
+
 ## Streaming device-rate conversion (2026-10-19)
 
 The call ends now use `core/call_audio_resampling.py` rather than per-packet
