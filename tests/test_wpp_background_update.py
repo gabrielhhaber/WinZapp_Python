@@ -516,7 +516,19 @@ class TestTheSetupReportsInsteadOfShowing:
 class TestTheSetupBuildsWhereItIsTold:
     """_run_setup() with every slow step replaced: where does it work?"""
 
-    def _run(self, monkeypatch, tmp_path, api_dir, forced_tag=TAG, first_install_error=""):
+    def _run(self, monkeypatch, tmp_path, api_dir, forced_tag=TAG, first_install_error="",
+             install_catalogue=True):
+        from core import wa_version_setup
+        from tests.test_wa_version_refresh import _write_package
+
+        # Keep the real catalogue validation; only npm and registry I/O are fake.
+        catalogue_setup = wa_version_setup.catalogue_setup
+
+        def offline(*args, **kwargs):
+            raise OSError("synthetic offline registry")
+
+        monkeypatch.setattr(wa_version_setup, "catalogue_setup",
+                            lambda *a, **k: catalogue_setup(*a, **k, fetch=offline))
         live = tmp_path / "live"
         (live / "api" / "src").mkdir(parents=True)
         (live / "api" / "dist").mkdir()
@@ -539,6 +551,9 @@ class TestTheSetupBuildsWhereItIsTold:
             seen.caches.append((env or {}).get("PUPPETEER_CACHE_DIR"))
             if first_install_error and len(seen.commands) == 1:
                 return False, first_install_error
+            if "install" in cmd and install_catalogue:
+                _write_package(str(Path(cwd) / "node_modules" / "@wppconnect" / "wa-version"),
+                               "1.5.4490", deps={})
             return True, ""
 
         setup = types.SimpleNamespace(
@@ -607,3 +622,8 @@ class TestTheSetupBuildsWhereItIsTold:
         assert "--omit=dev" in cmd and env["PUPPETEER_SKIP_DOWNLOAD"] == "true"
         assert "--prefer-offline" in cmd and "--offline" not in cmd
         assert (live_api / "dist" / "server.js").read_text() == "installed"
+
+    def test_npm_success_without_a_catalogue_does_not_report_setup_success(self, monkeypatch,
+                                                                         tmp_path):
+        seen, _ = self._run(monkeypatch, tmp_path, None, install_catalogue=False)
+        assert seen.ended == ["error: rebuilt API has no usable WhatsApp catalogue"]
