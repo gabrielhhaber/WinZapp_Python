@@ -23,17 +23,18 @@ def test_current_consumer_contract_creates_first_list_with_native_id_and_null_co
     assert result["calls"] == [["nativeCreate", "Synthetic", None]]
 
 
-def test_wa_js_4_7_1_uses_the_same_native_contract_as_4_6_1():
-    """4.7.1 tolerates a missing legacy gate for its own calls, but WinZapp's
+@pytest.mark.parametrize("version", ["4.7.1", "4.7.2"])
+def test_wa_js_4_7_x_uses_the_same_native_contract_as_4_6_1(version):
+    """4.7.x tolerates a missing legacy gate for its own calls, but WinZapp's
     writes go through the verified native actions on both versions."""
     result = modern([{"action": "read"}, {"action": "create", "name": "Synthetic"}],
-                    lists=[], chats=[], version="4.7.1")
+                    lists=[], chats=[], version=version)
     assert result["results"][0]["value"]["canEdit"] is True
     assert result["results"][1]["value"] == {"action": "create", "createdId": "100"}
     assert result["calls"] == [["nativeCreate", "Synthetic", None]]
 
 
-@pytest.mark.parametrize("version", ["4.7.0", "4.7.2", "4.8.0"])
+@pytest.mark.parametrize("version", ["4.7.0", "4.7.3", "4.8.0"])
 def test_other_wa_js_versions_stay_unverified(version):
     result = modern([{"action": "read"}], lists=[], chats=[], version=version)
     assert result["results"][0]["value"]["editingReason"] == "runtime_incomplete"

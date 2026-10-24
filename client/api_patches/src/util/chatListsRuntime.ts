@@ -13,7 +13,7 @@ export async function executeListCommand(input) {
   // WinZapp's native contract below is the same on both. Select it before any
   // write; never replace a false legacy gate or retry a failed write by
   // another path.
-  const nativeContractVersions = ['4.6.1', '4.7.1'];
+  const nativeContractVersions = ['4.6.1', '4.7.1', '4.7.2'];
   const resolveEditing = () => {
     const result = (reason) => ({reason, nativeActions: null});
     try {
