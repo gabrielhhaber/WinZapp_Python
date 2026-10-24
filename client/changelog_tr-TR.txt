@@ -24,6 +24,8 @@ YENİLİKLER
 
 - WPPConnect Server 2.10.61 artık yeni bir WinZapp sürümü beklenmeden güncelleme olarak sunuluyor. Yalnızca bağımlılıkları günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
 
+- WPPConnect Server 2.10.63 artık yeni bir WinZapp sürümü beklenmeden güncelleme olarak sunuluyor. Yalnızca bağımlılıkları günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
+
 - macOS güncellemelerinde doğrulamanın bağlantı, sertifika, sunucu veya GitHub istek sınırı nedeniyle mi başarısız olduğu ve doğrulama dosyasının mı, resmî sürüm etiketinin mi kontrol edilemediği açıklanır. Geçici bağlantı ve sunucu hatalarında bir kez yeniden denenir; istek sınırında bekleme süresi gösterilir ve bu süre boyunca tekrar istek gönderilmez.
 
 - Güncellemeler: WinZapp kapandıktan sonra da kurulum sahipliği korunur ve kurulmayı bekleyen indirilmiş paket saklanır. Yalnızca tamamlanan kopyalama başarılı sayılır; başarılı güncelleme önceki hata uyarısını kaldırır. Otomatik yeniden açılış kurucunun bitmesini bekler ve bekleme sınırına ulaşıldığında gerçekleşmez. Eksik veya tamamlandığı doğrulanamayan kopyalamadan sonra WinZapp kapalı kalır ve onarım yönergelerini Not Defteri'nde açar.
