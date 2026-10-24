@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Atualizar o WinZapp ou a WPPConnect não congela mais o computador inteiro no meio do processo. As etapas de instalação e compilação agora rodam com prioridade menor, e o leitor de tela continua falando sem engasgos.
+
 - O WPPConnect Server foi atualizado para a 2.10.63, com o WPPConnect 2.3.6 e o WA-JS 4.7.2. O navegador que o WinZapp controla agora é liberado por completo quando uma sessão fecha ou não consegue iniciar, uma sessão restaurada é reconhecida como conectada mais cedo e a desconexão do telefone só é informada depois de um desvínculo real.
 
 - Os indicadores de digitação e gravação de áudio em conversas individuais continuam disponíveis quando o WhatsApp informa que o contato está offline. A atividade aparece separada da visibilidade online e expira quando deixa de ser atualizada. A atividade pertence à conversa em que ocorre: grupos e conversas privadas são acompanhados separadamente.

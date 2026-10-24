@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Actualizarea WinZapp sau a WPPConnect nu mai blochează întregul computer la jumătatea procesului. Pașii de instalare și compilare rulează acum cu prioritate mai mică, iar cititorul de ecran continuă să vorbească fluent.
+
 - WPPConnect Server a fost actualizat la 2.10.63, cu WPPConnect 2.3.6 și WA-JS 4.7.2. Browserul controlat de WinZapp este eliberat mai complet când o sesiune se închide sau nu reușește să pornească, o sesiune restaurată este recunoscută mai repede ca autentificată, iar deconectarea telefonului este raportată doar după o disociere reală.
 
 - Indicatorii de scriere și de înregistrare audio din conversațiile private rămân disponibili când WhatsApp raportează contactul ca deconectat. Activitatea este afișată separat de vizibilitatea online și expiră când nu mai este actualizată. Activitatea aparține conversației în care are loc: grupurile și conversațiile private sunt urmărite separat.

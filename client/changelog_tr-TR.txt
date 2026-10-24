@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WinZapp veya WPPConnect güncellenirken bilgisayarın tamamı artık işlemin ortasında donmuyor. Kurulum ve derleme adımları artık daha düşük öncelikle çalışıyor, bu yüzden ekran okuyucu kesintisiz konuşmaya devam ediyor.
+
 - WPPConnect Server 2.10.63 sürümüne, WPPConnect 2.3.6 ve WA-JS 4.7.2 ile birlikte güncellendi. WinZapp'ın kullandığı tarayıcı, bir oturum kapandığında veya başlatılamadığında artık daha eksiksiz serbest bırakılıyor, geri yüklenen oturum daha erken oturum açmış sayılıyor ve telefonun bağlantısının kesilmesi yalnızca gerçek bir eşleşme kaldırmadan sonra bildiriliyor.
 
 - Özel sohbetlerde WhatsApp kişiyi çevrim dışı bildirse de yazıyor ve ses kaydediyor bilgileri korunur. Bu etkinlikler çevrim içi görünürlükten ayrı gösterilir; yenilenmediklerinde süreleri dolar. Etkinlik, gerçekleştiği sohbete aittir; grup ve özel sohbetler ayrı izlenir.

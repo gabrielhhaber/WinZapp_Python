@@ -65,6 +65,7 @@ from ui.dialogs.error_details import show_error_details
 from app_paths import global_dir, resource_path
 from core.api_dependencies import npm_cached_metadata_is_stale
 from core.npm_environment import npm_environment
+from core.background_priority import background_creationflags
 from core.wpp_runtime import homologated_wpp_tag
 
 # GitHub download URL — no git required. Only ever a tag: WinZapp installs the
@@ -907,6 +908,8 @@ class ApiSetupDialog(wx.Dialog):
         creation_flags = 0
         if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW"):
             creation_flags = subprocess.CREATE_NO_WINDOW
+        # npm install and the build must not starve the screen reader (#564).
+        creation_flags = background_creationflags(creation_flags)
         try:
             self._proc = subprocess.Popen(
                 cmd, cwd=cwd, env=env,

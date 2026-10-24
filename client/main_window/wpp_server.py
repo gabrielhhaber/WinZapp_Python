@@ -37,6 +37,7 @@ from core.profile_recovery import profile_is_local
 from app_paths import resource_path, global_dir
 from core.node_compile_cache import cache_environment
 from core.npm_environment import npm_environment
+from core.background_priority import background_creationflags
 
 
 def bundled_api_present() -> bool:
@@ -299,6 +300,7 @@ class WppServerMixin:
         creation_flags = 0
         if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW"):
             creation_flags = subprocess.CREATE_NO_WINDOW
+        creation_flags = background_creationflags(creation_flags)
         try:
             proc = subprocess.Popen(
                 npm_cmd + ["exec", "puppeteer", "browsers", "install", browser_product],
@@ -541,6 +543,7 @@ class WppServerMixin:
                 creation_flags = 0
                 if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW"):
                     creation_flags = subprocess.CREATE_NO_WINDOW
+                creation_flags = background_creationflags(creation_flags)
 
                 try:
                     proc = subprocess.Popen(

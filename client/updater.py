@@ -28,6 +28,7 @@ from app_paths import _outer_exe_dir, _is_frozen, resource_path, log_path
 from main_window.win32_helpers import _is_elevated
 from core import release_keys
 from core import tls_trust
+from core.background_priority import background_creationflags
 from core.release_signature import SIGNATURE_ASSET_NAME, check_release_manifest
 from core.dialog_foreground import bring_to_front_if_hidden, message_box, parent_is_hidden
 from core.wpp_runtime import homologated_wpp_tag
@@ -981,7 +982,8 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
             # DETACHED_PROCESS — the correct behaviour depended on the typo
             # surviving, which is the kind of thing a linter or a helpful
             # reviewer "fixes" straight back into issue #83.
-            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            # xcopy inherits the priority, so the copy does not freeze the PC (#564).
+            flags = background_creationflags(getattr(subprocess, "CREATE_NO_WINDOW", 0))
             subprocess.Popen(
                 ["cmd.exe", "/c", bat_path],
                 creationflags=flags,
