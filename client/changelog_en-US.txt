@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Chat lists (conversations, archived and locked chats) now use the full width of the list, so chat names and message previews are cut off much less when the window is wide.
+
 - Updating WinZapp or WPPConnect no longer freezes the whole computer half-way through. The installation and build steps now run at lower priority, so the screen reader keeps speaking smoothly.
 
 - WPPConnect Server updated to 2.10.63, with WPPConnect 2.3.6 and WA-JS 4.7.2. The browser WinZapp drives is now released more completely when a session closes or fails to start, a restored session is recognised as logged in sooner, and a phone disconnection is reported only after a real unpair.

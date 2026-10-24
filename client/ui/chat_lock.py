@@ -10,6 +10,8 @@ import os
 import pyperclip
 import wx
 
+from ui.list_column_fit import bind_single_column_fit
+
 from core.conversation_view import mnemonic_letter
 from core.sound_system import load_sound
 from core.utils import (
@@ -273,6 +275,7 @@ class LockedConversationsPanel(ChatListSelectionMixin, wx.Panel):
             self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL
         )
         self.conversations_list.InsertColumn(0, i18n.t("locked_chats"), width=280)
+        bind_single_column_fit(self.conversations_list)
         self._list_accessible = AccessibleMessagesListControl(i18n.t("locked_chats"))
         self.conversations_list.SetAccessible(self._list_accessible)
         self.conversations_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_open)

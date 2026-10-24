@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- As listas de conversas (conversas, arquivadas e bloqueadas) agora usam toda a largura da lista, e os nomes dos chats e as prévias das mensagens são cortados bem menos quando a janela é larga.
+
 - Atualizar o WinZapp ou a WPPConnect não congela mais o computador inteiro no meio do processo. As etapas de instalação e compilação agora rodam com prioridade menor, e o leitor de tela continua falando sem engasgos.
 
 - O WPPConnect Server foi atualizado para a 2.10.63, com o WPPConnect 2.3.6 e o WA-JS 4.7.2. O navegador que o WinZapp controla agora é liberado por completo quando uma sessão fecha ou não consegue iniciar, uma sessão restaurada é reconhecida como conectada mais cedo e a desconexão do telefone só é informada depois de um desvínculo real.
