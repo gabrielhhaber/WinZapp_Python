@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- WPPConnect Server actualizado a la 2.10.63, con WPPConnect 2.3.6 y WA-JS 4.7.2. El navegador que maneja WinZapp se libera de forma más completa cuando una sesión se cierra o no llega a iniciarse, una sesión restaurada se reconoce antes como iniciada y la desconexión del teléfono solo se comunica tras una desvinculación real.
+
 - Los indicadores de escritura y grabación de audio en chats privados siguen disponibles cuando WhatsApp informa de que el contacto está desconectado. La actividad se muestra por separado de la visibilidad en línea y caduca si deja de actualizarse. La actividad pertenece a la conversación donde ocurre: los grupos y los chats privados se siguen por separado.
 
 - Mensajes fijados: abrir los mensajes fijados de un grupo cuyas fijaciones son más antiguas que lo que WhatsApp Web guarda en memoria ya no falla con «No se pudieron cargar los mensajes fijados», y el contador del botón muestra el número correcto.

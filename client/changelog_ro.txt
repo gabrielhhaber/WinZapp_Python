@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- WPPConnect Server a fost actualizat la 2.10.63, cu WPPConnect 2.3.6 și WA-JS 4.7.2. Browserul controlat de WinZapp este eliberat mai complet când o sesiune se închide sau nu reușește să pornească, o sesiune restaurată este recunoscută mai repede ca autentificată, iar deconectarea telefonului este raportată doar după o disociere reală.
+
 - Indicatorii de scriere și de înregistrare audio din conversațiile private rămân disponibili când WhatsApp raportează contactul ca deconectat. Activitatea este afișată separat de vizibilitatea online și expiră când nu mai este actualizată. Activitatea aparține conversației în care are loc: grupurile și conversațiile private sunt urmărite separat.
 
 - Mesaje fixate: deschiderea mesajelor fixate ale unui grup ale cărui fixări sunt mai vechi decât ce păstrează WhatsApp Web în memorie nu mai eșuează cu „Nu s-au putut încărca mesajele fixate”, iar numărul de pe buton arată cifra corectă.
