@@ -22,6 +22,8 @@ NOWOŚCI
 
 - WPPConnect Server 2.10.61 jest teraz oferowany jako aktualizacja bez czekania na nową wersję WinZapp. Aktualizuje tylko zależności i nie wpływa na zmiany, które WinZapp wprowadza w serwerze.
 
+- WPPConnect Server 2.10.63 jest teraz oferowany jako aktualizacja bez czekania na nową wersję WinZapp. Aktualizuje tylko zależności i nie wpływa na zmiany, które WinZapp wprowadza w serwerze.
+
 - Aktualizacje macOS wyjaśniają, czy weryfikacja nie powiodła się z powodu połączenia, certyfikatu, serwera lub limitu żądań GitHub oraz czy nie można sprawdzić pliku weryfikacji czy oficjalnego tagu wydania. Tymczasowe błędy połączenia i serwera powodują jedną ponowną próbę; limity żądań pokazują czas oczekiwania i nie powodują kolejnych żądań w tym czasie.
 
 - Aktualizacje: instalacja zachowuje wyłączność po zamknięciu WinZapp, a pobrany pakiet oczekujący na instalację jest zachowywany. Tylko pełna kopia oznacza sukces; udana aktualizacja usuwa ostrzeżenie o wcześniejszym błędzie. Automatyczne ponowne otwarcie czeka na zakończenie instalatora i nie następuje po przekroczeniu limitu oczekiwania. Po niepełnym lub niepotwierdzonym kopiowaniu WinZapp pozostaje zamknięty i otwiera instrukcje naprawy w Notatniku.

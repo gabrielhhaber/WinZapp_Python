@@ -2,6 +2,10 @@
   "schema": 1,
   "approved": [
     {
+      "version": "2.10.63",
+      "min_pin": "2.10.62"
+    },
+    {
       "version": "2.10.61",
       "min_pin": "2.10.58"
     }
