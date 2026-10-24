@@ -82,11 +82,11 @@ def test_waiter_does_not_authorize_failed_or_unknown_payload_relaunch():
         assert checked.index(reject_other_lines) < checked.index(f'findstr /x /c:"{status}"')
     launch = script.split(":RELAUNCH\n", 1)[1].split(":RECOVERY\n", 1)[0]
     assert '/c:"failed" "result" >NUL 2>&1\nif not errorlevel 1 goto RECOVERY' in launch
-    assert launch.index('/c:"success"') < launch.index('start "" "WinZapp.exe"')
-    assert launch.index('/c:"unchanged"') < launch.index('start "" "WinZapp.exe"')
+    assert launch.index('/c:"success"') < launch.index('start "" /normal "WinZapp.exe"')
+    assert launch.index('/c:"unchanged"') < launch.index('start "" /normal "WinZapp.exe"')
     for label, end in ((":GAVE_UP\n", ":CHECK_RESULT\n"), (":RECOVERY\n", ":ABORT\n")):
         branch = script.split(label, 1)[1].split(end, 1)[0]
-        assert 'start "" "WinZapp.exe"' not in branch
+        assert 'start "" /normal "WinZapp.exe"' not in branch
         assert '"%SystemRoot%\\System32\\notepad.exe" "recovery.txt"' in branch
         assert 'echo recovery instructions: "recovery.txt"' in branch
 

@@ -28,7 +28,7 @@ from update_relaunch import (
 EXE = r"C:\WinZapp\WinZapp.exe"
 LOG = r"C:\L\update_install.log"
 HANDOFF = r"C:\T\winzapp_upd_x.bat.relaunch"
-START = f'if exist "{EXE}" start "" "{EXE}"'
+START = f'if exist "{EXE}" start "" /normal "{EXE}"'
 
 
 def _script(**kw):

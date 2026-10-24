@@ -98,7 +98,7 @@ def relaunch_lines(exe_path: str, log_path: str, handoff_path: str = "",
     single line. With it, the script leaves the relaunch to the waiter when
     the marker exists, relaunches by itself otherwise, and then tells the
     waiter it is done."""
-    start = f'if exist "{exe_path}" start "" "{exe_path}"\n'
+    start = f'if exist "{exe_path}" start "" /normal "{exe_path}"\n'
     if not handoff_path:
         return indent + start
     return (
@@ -164,7 +164,7 @@ def build_relaunch_waiter_script(installer_pid: int, exe_path: str, log_path: st
         f'if exist "{abort_path}" goto ABORT\n'
         + parent_check +
         f'>> "{log_path}" echo installer finished - relaunching WinZapp without administrator rights\n'
-        f'if exist "{exe_path}" start "" "{exe_path}"\n'
+        f'if exist "{exe_path}" start "" /normal "{exe_path}"\n'
         f'del "{handoff_path}" >NUL 2>&1\n'
         f'del "{done_path}" >NUL 2>&1\n'
         'del "%~f0"\n'

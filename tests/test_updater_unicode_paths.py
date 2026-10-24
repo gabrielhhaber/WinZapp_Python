@@ -263,7 +263,7 @@ class TestInstallerScript:
 
     def test_a_successful_copy_relaunches_and_cleans_up(self):
         s = _script()
-        assert r'if exist "C:\WinZapp\WinZapp.exe" start "" "C:\WinZapp\WinZapp.exe"' in s
+        assert r'if exist "C:\WinZapp\WinZapp.exe" start "" /normal "C:\WinZapp\WinZapp.exe"' in s
         success = s.split(":PARENT_TIMEOUT\n", 1)[0]
         assert success.rstrip().endswith('del "%~f0"\ngoto :EOF')
 

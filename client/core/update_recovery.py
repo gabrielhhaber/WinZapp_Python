@@ -86,7 +86,7 @@ def build_guarded_waiter(installer_pid, exe_path, log_path, handoff_path,
         + _dispatch(completion_path, "RELAUNCH_CONFIRMED")
         + ":RELAUNCH_CONFIRMED\n"
         + f'>> "{log_path}" echo installer finished - relaunching WinZapp\n'
-        + f'if exist "{exe_path}" start "" "{exe_path}"\n'
+        + f'if exist "{exe_path}" start "" /normal "{exe_path}"\n'
         + cleanup + 'del "%~f0"\ngoto :EOF\n:RECOVERY\n' + checks
         + f'>> "{log_path}" echo installation may be incomplete - not relaunching WinZapp; repair required\n'
         + note + cleanup + 'del "%~f0"\ngoto :EOF\n:ABORT\n'

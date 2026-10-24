@@ -20,3 +20,9 @@ def test_npm_and_installer_call_sites_use_it():
     root = pathlib.Path(__file__).resolve().parent.parent / "client"
     for rel in ("ui/dialogs/api_setup.py", "main_window/wpp_server.py", "updater.py"):
         assert "background_creationflags(" in (root / rel).read_text(encoding="utf-8"), rel
+
+
+def test_relaunch_script_restores_normal_priority():
+    from update_relaunch import relaunch_lines
+    assert 'start "" /normal "C:\\WinZapp\\WinZapp.exe"' in relaunch_lines(
+        "C:\\WinZapp\\WinZapp.exe", "C:\\log.txt")

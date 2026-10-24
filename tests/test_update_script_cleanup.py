@@ -40,7 +40,7 @@ class TestTheCleanupLine:
         copied = s.index("echo xcopy OK")
         # The failure branch relaunches too, earlier in the script: it is the
         # relaunch after the success marker that has to come first.
-        assert copied < s.index(f'start "" "{EXE}"', copied) < s.index(REMOVE)
+        assert copied < s.index(f'start "" /normal "{EXE}"', copied) < s.index(REMOVE)
 
     def test_it_comes_before_the_script_deletes_itself(self):
         s = _script(cleanup_dir=EXTRACTED)
