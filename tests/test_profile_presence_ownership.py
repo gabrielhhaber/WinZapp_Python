@@ -202,11 +202,11 @@ def test_contact_profile_is_delivered_without_waiting_for_presence_http(profile,
 
 
 def make_dialog(owner, monkeypatch, callbacks, *, standalone=True):
-    from tests.test_contact_presence_foreground import Dialog
+    from tests.test_contact_presence_foreground import Dialog as DialogStub
     import ui.dialogs.conversation_data_dialog as module
     if standalone:
         owner.conversations_panel.conversation = {"remoteJid": "789@s.whatsapp.net"}
-    dialog = Dialog(owner)
+    dialog = DialogStub(owner)
     dialog._is_group = False
     dialog._load_media_history = lambda: None
     dialog._load_common_groups = lambda: None
