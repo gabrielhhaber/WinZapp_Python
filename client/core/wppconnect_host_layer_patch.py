@@ -1632,6 +1632,19 @@ MANAGED_PATCHED_LINK_CODE_HOOKS = (
 )
 
 
+# wppconnect 2.3.6 stopped calling `this.page.exposeFunction(...)` directly and
+# routes every binding through `this.exposePageFunction(...)`, which drops a
+# stale binding left by a reused page first. The two hook lines are otherwise
+# identical, so the 2.3.6 forms are derived from the 2.3.5 ones rather than
+# restated: the patched hooks keep the same body and only change the call.
+MANAGED_V236_ORIGINAL_LINK_CODE_HOOKS = MANAGED_ORIGINAL_LINK_CODE_HOOKS.replace(
+    "this.page.exposeFunction(", "this.exposePageFunction("
+)
+MANAGED_V236_PATCHED_LINK_CODE_HOOKS = MANAGED_PATCHED_LINK_CODE_HOOKS.replace(
+    "this.page.exposeFunction(", "this.exposePageFunction("
+)
+
+
 MANAGED_ORIGINAL_LINK_CODE_LISTENER = (
     "                WPP.on('conn.link_code_error', (error) => window.onLinkCodeError(error.message));\n"
 )
@@ -1750,11 +1763,24 @@ def _patch_managed_link_flow(content: str, notes: list) -> str:
     else:
         notes.append("onLinkCode: DID NOT MATCH the known source text — left untouched.")
 
-    if MANAGED_PATCHED_LINK_CODE_HOOKS in content:
+    if (
+        MANAGED_PATCHED_LINK_CODE_HOOKS in content
+        or MANAGED_V236_PATCHED_LINK_CODE_HOOKS in content
+    ):
         notes.append("link-code hooks: already reported to the client.")
     elif MANAGED_ORIGINAL_LINK_CODE_HOOKS in content:
         content = content.replace(
             MANAGED_ORIGINAL_LINK_CODE_HOOKS, MANAGED_PATCHED_LINK_CODE_HOOKS, 1
+        )
+        notes.append(
+            "link-code hooks: patched — an expired code and a refresh failure "
+            "now reach the pairing dialog instead of only wppconnect.log."
+        )
+    elif MANAGED_V236_ORIGINAL_LINK_CODE_HOOKS in content:
+        content = content.replace(
+            MANAGED_V236_ORIGINAL_LINK_CODE_HOOKS,
+            MANAGED_V236_PATCHED_LINK_CODE_HOOKS,
+            1,
         )
         notes.append(
             "link-code hooks: patched — an expired code and a refresh failure "

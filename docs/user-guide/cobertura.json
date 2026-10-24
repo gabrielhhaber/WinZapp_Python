@@ -4,6 +4,8 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "fc2650ab814a": "O WPPConnect Server foi atualizado para a 2.10.63, com o WPPConnect 2.3.6 e o WA",
+    "6c45007b5679": "Os indicadores de digitação e gravação de áudio em conversas individuais continu",
     "858dca82f78f": "Mensagens fixadas: abrir as mensagens fixadas de um grupo cujas fixações são mai",
     "79f97fd434a8": "O WPPConnect Server foi atualizado para a 2.10.62. Ao vincular uma conta nova, o",
     "e8aaaa3d7beb": "Ligações: reinstalar a WPPConnect preserva um catálogo mais recente e compatível",
@@ -49,7 +51,6 @@
     "235bbd9cd71c": "Sincronização de contas grandes: depois de lotes grandes de mensagens, o WinZapp",
     "23f9ecafb5e7": "Aba Mídias dos dados da conversa: depois do Salvar como, o leitor de tela não an",
     "10e881249e52": "Nova conversa: o botão de entrar num grupo por link ganhou uma letra de atalho c",
-    "87443f8afcee": "O cancelamento de eco agora também funciona quando o eco volta com muito atraso,",
-    "6c45007b5679": "Os indicadores de digitação e gravação de áudio em conversas individuais continu"
+    "87443f8afcee": "O cancelamento de eco agora também funciona quando o eco volta com muito atraso,"
   }
 }
