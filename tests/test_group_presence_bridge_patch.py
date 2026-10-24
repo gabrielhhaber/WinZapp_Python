@@ -7,56 +7,12 @@ WHO is typing in a group, so it dropped every such event silently, while
 one-to-one chats (state in ``chatstate``) kept working. The Node patch bridges
 the two arrays into the event shape the client already understands.
 
-The page-side JavaScript cannot run here, so the TypeScript source is checked
-for the behaviours that matter, and the Python half is exercised for real: the
+The actual page-side JavaScript and published provider binding are exercised
+in test_group_presence_ownership.py; this module exercises the Python half: the
 exact payload the bridge emits must produce a per-participant presence.
 """
 
-from pathlib import Path
-
 from core.websocket_client import WebSocketClient
-
-ROOT = Path(__file__).resolve().parents[1]
-SOURCE = (ROOT / "client" / "api_patches" / "src" / "util" / "createSessionUtil.ts"
-          ).read_text(encoding="utf-8")
-
-
-def _bridge() -> str:
-    start = SOURCE.index("async onGroupPresenceBridge")
-    return SOURCE[start:SOURCE.index("async onReactionMessage", start)]
-
-
-class TestTheBridgeSource:
-    def test_it_is_wired_next_to_the_presence_listener(self):
-        wire = SOURCE[SOURCE.index("async wireListeners"):]
-        wire = wire[:wire.index("onUnreadCountChanged")]
-        assert "this.onPresenceChanged(client, req)" in wire
-        assert "this.onGroupPresenceBridge(client, req)" in wire
-
-    def test_it_watches_both_arrays_of_every_group_model(self):
-        bridge = _bridge()
-        assert "'change:typingUserIds'" in bridge
-        assert "'change:recordingUserIds'" in bridge
-        assert "endsWith('@g.us')" in bridge
-        # Groups that appear later are picked up too, and never twice.
-        assert "store.on('add', attach)" in bridge
-        assert "__winzappGroupPresence" in bridge
-
-    def test_it_reports_the_states_the_client_maps(self):
-        bridge = _bridge()
-        assert "'typing'" in bridge
-        assert "'recording_audio'" in bridge
-        assert "'paused'" in bridge
-
-    def test_one_keystroke_raising_two_changes_emits_once(self):
-        bridge = _bridge()
-        assert "now.size === before.size" in bridge
-
-    def test_it_uses_the_wppconnect_exposed_function_and_survives_reloads(self):
-        bridge = _bridge()
-        assert "win.onPresenceChanged(" in bridge
-        assert "client.page.on('load'" in bridge
-        assert "attempt < 120" in bridge
 
 
 def _handle(info):

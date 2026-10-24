@@ -1,9 +1,10 @@
-"""UI-thread-only presence views; no polling, network, focus or speech calls."""
+"""UI-thread presence text views; reader lifecycle delegated, no focus/speech."""
 import logging
 from weakref import WeakSet
 
 from core.contact_presence import activity, cached, visible_online
 from ui.conversation_panel.text_helpers import _fmt_last_seen
+from ui.dialogs.personal_presence_reader import track_personal_reader
 
 
 def presence_line(owner, jid, i18n):
@@ -33,11 +34,15 @@ class PersonalPresenceView:
         self.before, self.after = '\n'.join(before), '\n'.join(after)
         self.line = line
         self.active = True
+        self.reader = None
         if not hasattr(self.owner, '_personal_presence_views'):
             self.owner._personal_presence_views = WeakSet()
         self.owner._personal_presence_views.add(self)
 
     def stop(self):
+        if self.reader is not None:
+            self.reader.stop()
+            self.reader = None
         self.active = False
         self.owner._personal_presence_views.discard(self)
 
@@ -99,6 +104,7 @@ def track_personal_presence(dialog, before, after, line):
     # during initial filling, before this observer could receive it.
     try:
         view.refresh()
+        track_personal_reader(view, dialog)
     except Exception:
         view.stop()
         raise

@@ -10,12 +10,24 @@ export const CONTACT_PRESENCE_SOURCE = String.raw`function (id) {
   }
   try {
     const wid = wa.WidFactory.createWid(id);
-    const chat = wa.ChatStore && wa.ChatStore.get(wid);
-    const model = wa.PresenceStore.get(wid) || (chat && chat.presence);
-    if (!model || !model.hasData || !model.chatstate) {
-      return { status: 'pending' };
+    const primary = wa.PresenceStore.get(wid);
+    const denied = model => model && model.chatstate && model.chatstate.deny === true;
+    const chat = (!primary || primary.hasData !== true && !denied(primary))
+      && wa.ChatStore && wa.ChatStore.get(wid);
+    // An unready primary must not shadow usable data for the SAME identity,
+    // but an explicit denial must never be bypassed through another cache.
+    const model = primary && (primary.hasData === true || denied(primary))
+      ? primary : chat && chat.presence && chat.presence.hasData === true
+        ? chat.presence : primary || (chat && chat.presence);
+    if (!model || model.hasData !== true) {
+      return denied(model) ? { status: 'pending', restricted: true } : { status: 'pending' };
     }
     const state = model.chatstate;
+    if (!state || typeof state.type !== 'string' || !state.type
+        || typeof model.isOnline !== 'boolean'
+        || (state.deny !== undefined && typeof state.deny !== 'boolean')) {
+      return denied(model) ? { status: 'pending', restricted: true } : { status: 'malformed' };
+    }
     const online = model.isOnline === true;
     const restricted = state.deny === true;
     const value = state.t;
@@ -29,6 +41,6 @@ export const CONTACT_PRESENCE_SOURCE = String.raw`function (id) {
       state: active ? type : online ? 'available'
         : 'unavailable', lastSeen };
   } catch (_) {
-    return { status: 'pending' };
+    return { status: 'error' };
   }
 }`;

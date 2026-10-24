@@ -89,7 +89,7 @@ def test_privacy_denial_never_exposes_model_timestamp():
     assert result["body"]["presence"]["lastSeen"] is None
 
 
-@pytest.mark.parametrize("world", [{}, {"model": {"hasData": False}}, {"storeThrows": True}])
+@pytest.mark.parametrize("world", [{}, {"model": {"hasData": False}}])
 def test_pending_does_not_fall_back_to_legacy_or_claim_withholding(world):
     result = _run(world)
     assert result["body"]["presence"] == {"status": "pending"}

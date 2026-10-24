@@ -44,6 +44,7 @@ class _Panel:
 class _Stub:
     on_presence_update = MainWindow.on_presence_update
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
+    _cancel_deferred_contact_presence = MainWindow._cancel_deferred_contact_presence
 
     def __init__(self, *, muted=False, archived=False, conversation_jid=GROUP_JID):
         self._muted = muted

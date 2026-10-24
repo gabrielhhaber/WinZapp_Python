@@ -29,6 +29,9 @@ Where to look (and where new code goes):
     message_events      on_new_message / on_historical_message, edits, revokes
     chat_events         acks, presence, unread counters, archive/pin events
     contact_presence    bounded open-contact refresh and connection invalidation
+    presence_work       UI ownership of bounded private-presence workers
+    presence_visibility active current-chat readers and missing-data wakeups
+    profile_presence    bounded profile last-seen reads and UI delivery guards
     poll_sending        sending a poll
     sending             text/audio/media/contact/reaction sends, queue callbacks
     message_actions     edit, delete, forward, resend, mark played

@@ -1,0 +1,39 @@
+{
+  "description": "Unmodified published WPPConnect LGPL-3.0-or-later method excerpts. Existing artifact tarball provenance is retained in the task evidence.",
+  "versions": {
+    "2.3.5": {
+      "source_path": "dist/api/layers/listener.layer.js",
+      "source_sha256": "a5885af4d1ce5d29b9fb12290bfefd202cb7398ef4bf14609c2ea0ba091e20ed",
+      "license_header": "/*\n * This file is part of WPPConnect.\n *\n * WPPConnect is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Lesser General Public License as published by\n * the Free Software Foundation, either version 3 of the License, or\n * (at your option) any later version.\n *\n * WPPConnect is distributed in the hope that it will be useful,\n * but WITHOUT ANY WARRANTY; without even the implied warranty of\n * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n * GNU Lesser General Public License for more details.\n *\n * You should have received a copy of the GNU Lesser General Public License\n * along with WPPConnect.  If not, see <https://www.gnu.org/licenses/>.\n */",
+      "fragments": {
+        "functions": "const functions = [\n            ...Object.values(exposed_enum_1.ExposedFn),\n            'onAddedToGroup',\n            'onIncomingCall',\n            'onRevokedMessage',\n            'onReactionMessage',\n            'onPollResponse',\n            'onUpdateLabel',\n            'onOrderStatusUpdate',\n            'onParticipantsChanged',\n            'onNewChat',\n        ];",
+        "exposing": "for (const func of functions) {\n            const has = await this.page\n                .evaluate((func) => typeof window[func] === 'function', func)\n                .catch(() => false);\n            if (!has) {\n                this.log('debug', `Exposing ${func} function`);\n                await this.page\n                    .exposeFunction(func, (...args) => {\n                    Promise.resolve().then(() => {\n                        const count = this.listenerEmitter.listenerCount(func);\n                        if (count > 0) {\n                            this.log('debug', `Emitting ${func} event (${count} registered)`);\n                        }\n                        this.listenerEmitter.emit(func, ...args);\n                    });\n                })\n                    .catch(() => { });\n            }\n        }",
+        "registerEvent": "registerEvent(event, listener) {\n        this.log('debug', `Registering ${event.toString()} event`);\n        this.listenerEmitter.on(event, listener);\n        return {\n            dispose: () => {\n                this.listenerEmitter.off(event, listener);\n            },\n        };\n    }",
+        "onPresenceChanged": "onPresenceChanged(id, callback) {\n        const ids = [];\n        if (typeof id === 'function') {\n            callback = id;\n        }\n        else if (Array.isArray(id)) {\n            ids.push(...id);\n        }\n        else {\n            ids.push(id);\n        }\n        if (ids.length) {\n            this.subscribePresence(ids);\n        }\n        return this.registerEvent(exposed_enum_1.ExposedFn.onPresenceChanged, (presence) => {\n            // Only group events\n            if (ids.length && !ids.includes(presence.id)) {\n                return;\n            }\n            callback(presence);\n        });\n    }"
+      },
+      "fragment_sha256": {
+        "functions": "8059389d20fe594af0887656ab95ec1c4b71be13879b395272857d8f98467d53",
+        "exposing": "6d9982d0f8e79162626c040bc186ebadc83c2de15677b475ecea718c6f03eff9",
+        "registerEvent": "87dc20afc4bf660aecf542173233af482e66fe900a997323118d42dc471dbef8",
+        "onPresenceChanged": "3421f16af74044f06a60d327d96be7eea26c77e4a558b79850accf96c8f61910"
+      }
+    },
+    "2.3.6": {
+      "source_path": "dist/api/layers/listener.layer.js",
+      "source_sha256": "a5885af4d1ce5d29b9fb12290bfefd202cb7398ef4bf14609c2ea0ba091e20ed",
+      "license_header": "/*\n * This file is part of WPPConnect.\n *\n * WPPConnect is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Lesser General Public License as published by\n * the Free Software Foundation, either version 3 of the License, or\n * (at your option) any later version.\n *\n * WPPConnect is distributed in the hope that it will be useful,\n * but WITHOUT ANY WARRANTY; without even the implied warranty of\n * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n * GNU Lesser General Public License for more details.\n *\n * You should have received a copy of the GNU Lesser General Public License\n * along with WPPConnect.  If not, see <https://www.gnu.org/licenses/>.\n */",
+      "fragments": {
+        "functions": "const functions = [\n            ...Object.values(exposed_enum_1.ExposedFn),\n            'onAddedToGroup',\n            'onIncomingCall',\n            'onRevokedMessage',\n            'onReactionMessage',\n            'onPollResponse',\n            'onUpdateLabel',\n            'onOrderStatusUpdate',\n            'onParticipantsChanged',\n            'onNewChat',\n        ];",
+        "exposing": "for (const func of functions) {\n            const has = await this.page\n                .evaluate((func) => typeof window[func] === 'function', func)\n                .catch(() => false);\n            if (!has) {\n                this.log('debug', `Exposing ${func} function`);\n                await this.page\n                    .exposeFunction(func, (...args) => {\n                    Promise.resolve().then(() => {\n                        const count = this.listenerEmitter.listenerCount(func);\n                        if (count > 0) {\n                            this.log('debug', `Emitting ${func} event (${count} registered)`);\n                        }\n                        this.listenerEmitter.emit(func, ...args);\n                    });\n                })\n                    .catch(() => { });\n            }\n        }",
+        "registerEvent": "registerEvent(event, listener) {\n        this.log('debug', `Registering ${event.toString()} event`);\n        this.listenerEmitter.on(event, listener);\n        return {\n            dispose: () => {\n                this.listenerEmitter.off(event, listener);\n            },\n        };\n    }",
+        "onPresenceChanged": "onPresenceChanged(id, callback) {\n        const ids = [];\n        if (typeof id === 'function') {\n            callback = id;\n        }\n        else if (Array.isArray(id)) {\n            ids.push(...id);\n        }\n        else {\n            ids.push(id);\n        }\n        if (ids.length) {\n            this.subscribePresence(ids);\n        }\n        return this.registerEvent(exposed_enum_1.ExposedFn.onPresenceChanged, (presence) => {\n            // Only group events\n            if (ids.length && !ids.includes(presence.id)) {\n                return;\n            }\n            callback(presence);\n        });\n    }"
+      },
+      "fragment_sha256": {
+        "functions": "8059389d20fe594af0887656ab95ec1c4b71be13879b395272857d8f98467d53",
+        "exposing": "6d9982d0f8e79162626c040bc186ebadc83c2de15677b475ecea718c6f03eff9",
+        "registerEvent": "87dc20afc4bf660aecf542173233af482e66fe900a997323118d42dc471dbef8",
+        "onPresenceChanged": "3421f16af74044f06a60d327d96be7eea26c77e4a558b79850accf96c8f61910"
+      }
+    }
+  }
+}

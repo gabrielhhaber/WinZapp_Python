@@ -14,11 +14,26 @@ LID = "456@lid"
 
 
 class Owner(ContactPresenceMixin):
+    def _query_contact_presence(self, jid):
+        # Older fixtures replace the snapshot-only profile hook. Adapt that
+        # explicit fake; real HTTP tests still execute the typed query method.
+        from core.contact_presence_query import PresenceRead
+        fetch = self.__dict__.get("_fetch_contact_presence")
+        if fetch is None or getattr(fetch, "__func__", None) is ContactPresenceMixin._fetch_contact_presence:
+            return ContactPresenceMixin._query_contact_presence(self, jid)
+        value = fetch(jid)
+        return PresenceRead("ready", value) if value is not None else PresenceRead("error")
+
     def __init__(self):
+        from core.contact_presence_work import PresenceWork
+        self._contact_presence_work = PresenceWork(
+            lambda: coordinator.time.monotonic(),
+            lambda *args: SimpleNamespace(Stop=lambda: None), lambda callback: callback())
         self._presence_cache = {}
         self._lid_to_phone = {}
         self._phone_to_lid = {}
         self._wa_connected = True
+        self.wpp_server, self.wpp_port, self.token = "http://invalid.test", 1, "synthetic"
         self.notes = []
         self.subscriptions = []
         self.conversations_panel = SimpleNamespace(
@@ -131,6 +146,9 @@ def scheduled(monkeypatch):
             workers.append(self.target)
     monkeypatch.setattr(coordinator.threading, "Thread", Thread)
     monkeypatch.setattr(coordinator.wx, "CallAfter", lambda fn, *a, **kw: callbacks.append(lambda: fn(*a, **kw)))
+    # The coordinator now owns a deferred single-shot timer too. It must stay
+    # headless even when a caller repeats refresh while a worker is in flight.
+    monkeypatch.setattr(coordinator.wx, "CallLater", lambda *a, **kw: SimpleNamespace(Stop=lambda: None))
     monkeypatch.setattr(coordinator.time, "monotonic", lambda: 100)
     owner = Owner()
     owner._fetch_contact_presence = lambda jid: {"lastKnownPresence": "unavailable", "lastSeen": 1000}

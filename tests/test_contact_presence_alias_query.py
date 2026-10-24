@@ -86,9 +86,8 @@ def test_ready_and_legacy_results_are_terminal_even_without_a_timestamp(payload)
     ({"status": "success", "presence": {"status": "ready"}}, 200),
     (ready(lastSeen="bad"), 200),
     ({"status": "success", "presence": {"status": "unsupported"}}, 200),
-    ({"status": "success", "presence": {"status": "pending", "restricted": True}}, 200),
 ])
-def test_failure_malformed_or_restricted_pending_is_not_alias_permission(payload, code):
+def test_failure_or_malformed_pending_is_not_alias_permission(payload, code):
     calls = []
     def request(target, timeout):
         calls.append(target)

@@ -5,6 +5,9 @@ import wx
 class ContactPresencePanelMixin:
     def _stop_contact_presence(self):
         self._contact_presence_visit = getattr(self, "_contact_presence_visit", 0) + 1
+        cancel = getattr(getattr(self, "main_window", None), "_cancel_deferred_contact_presence", None)
+        if cancel is not None:
+            cancel()
         timer = getattr(self, "_contact_presence_timer", None)
         if timer is not None:
             timer.Stop()

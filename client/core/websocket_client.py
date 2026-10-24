@@ -1877,15 +1877,28 @@ class WebSocketClient:
                     "isOnline": info.get("isOnline"),
                     "eventTimestamp": info.get("t"),
                 }
+                # WPP's isContact is !chatstate.deny, not address-book membership.
+                # Unknown/missing fields cannot revoke an earlier denial.
+                if info.get("isContact") is False or info.get("restricted") is True:
+                    presences[chat_jid]["restricted"] = True
+                elif info.get("isContact") is True or info.get("restricted") is False:
+                    presences[chat_jid]["restricted"] = False
+                elif "isContact" in info or "restricted" in info:
+                    presences[chat_jid]["restricted"] = None
                 if "lastSeen" in info:
                     presences[chat_jid]["lastSeen"] = timestamp
+                if info.get("snapshotStatus") == "pending":
+                    presences[chat_jid]["invalidated"] = True
 
             if presences:
-                logging.info(f"[WebSocketClient] on_wpp_presence_changed JID: {chat_jid}, presences: {presences}")
+                logging.info("[WebSocketClient] presence delivery: group=%s, entries=%s", is_group, len(presences))
                 generation = getattr(self, "_presence_delivery_generation", 0)
                 def deliver():
                     if generation == getattr(self, "_presence_delivery_generation", 0):
-                        self.main_window.on_presence_update(chat_jid, presences)
+                        if not is_group and info.get("snapshotStatus") == "ready":
+                            self.main_window.on_presence_update(chat_jid, presences, refresh_offline=False)
+                        else:
+                            self.main_window.on_presence_update(chat_jid, presences)
                 wx.CallAfter(deliver)
         except Exception:
             logging.exception("[WebSocketClient] on_wpp_presence_changed error")

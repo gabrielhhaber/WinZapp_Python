@@ -1,0 +1,27 @@
+{
+  "description": "Synthetic events produced by the unchanged published WA-JS 4.7.1 factory and WPPConnect 2.3.5 callback. Tests substitute only their synthetic contact id.",
+  "listener_factory_sha256": "debcfe8e79ec6a02c618a87deca060794a6edecb9a16dc03678ba2da367bf897",
+  "available_timestamp": 1700000000,
+  "offline_event": {
+    "id": "10001@c.us",
+    "isOnline": false,
+    "isGroup": false,
+    "isUser": true,
+    "shortName": "",
+    "state": "unavailable",
+    "t": 1700000500000,
+    "isContact": true,
+    "session": "synthetic"
+  },
+  "denied_event": {
+    "id": "10001@c.us",
+    "isOnline": false,
+    "isGroup": false,
+    "isUser": true,
+    "shortName": "",
+    "state": "unavailable",
+    "t": 1700000500000,
+    "isContact": false,
+    "session": "synthetic"
+  }
+}

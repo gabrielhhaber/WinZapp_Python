@@ -100,9 +100,17 @@ def merge(owner, jid, data, *, now=None, chat=None):
         else:
             online = current.get("isOnline")
             online_received = old.get("_online_received", now)
-    restricted = data.get("restricted") is True
+    restriction = data.get("restricted")
+    restricted = (restriction if isinstance(restriction, bool)
+                  else old.get("restricted") is True)
+    # Legacy providers have no permission field. An actual returned timestamp
+    # is authoritative; a missing/empty or malformed field is not permission.
+    if "restricted" not in data and timestamp(data.get("lastSeen")) is not None:
+        restricted = False
     if restricted:
         online = None
+    if data.get("invalidated") is True:
+        online, state = None, ""
     # A real activity event may coexist with a hidden/offline online flag.
     if state not in ACTIVITY:
         state = "available" if online is True else "unavailable" if online is False else ""
@@ -114,12 +122,14 @@ def merge(owner, jid, data, *, now=None, chat=None):
         if now - old.get("_seen_received", -FRESH_SECONDS) < FRESH_SECONDS:
             last_seen = old.get("lastSeen")
             seen_at = old.get("_seen_received", now)
-    if state in ACTIVITY or online is True or restricted:
+    if state in ACTIVITY or online is True or restricted or data.get("invalidated") is True:
         last_seen = None
     entry = {"lastKnownPresence": state, "lastSeen": last_seen,
              "isOnline": online, "restricted": restricted,
              "_online_received": online_received, "_activity_received": now,
              "_received": now, "_seen_received": seen_at,
+             "_seen_version": (old.get("_seen_version", old.get("_version", 0))
+                               if "lastSeen" not in data else old.get("_version", 0) + 1),
              "_version": old.get("_version", 0) + 1,
              "_event": event or previous_event}
     if not hasattr(owner, "_presence_cache"):
@@ -132,7 +142,8 @@ def merge(owner, jid, data, *, now=None, chat=None):
 def response_snapshot(payload):
     """Parse the current API snapshot and older scalar last-seen responses.
 
-    None means retryable/unknown; an explicit false/null means unavailable.
+    None means unknown; it does not authorize a retry or identity fallback.
+    An explicit valid false/null response means unavailable.
     """
     if not isinstance(payload, dict) or payload.get("status") != "success":
         return None
@@ -140,13 +151,16 @@ def response_snapshot(payload):
     if isinstance(presence, dict):
         if (presence.get("status") != "ready"
                 or not isinstance(presence.get("isOnline"), bool)
+                or ("restricted" in presence and not isinstance(presence["restricted"], bool))
                 or "lastSeen" not in presence
                 or (presence["lastSeen"] is not None and timestamp(presence["lastSeen"]) is None)):
             return None
-        return {"lastKnownPresence": presence.get("state", ""),
-                "isOnline": presence.get("isOnline"),
-                "lastSeen": timestamp(presence.get("lastSeen")),
-                "restricted": presence.get("restricted") is True}
+        snapshot = {"lastKnownPresence": presence.get("state", ""),
+                    "isOnline": presence.get("isOnline"),
+                    "lastSeen": timestamp(presence.get("lastSeen"))}
+        if "restricted" in presence:
+            snapshot["restricted"] = presence["restricted"]
+        return snapshot
     if "response" not in payload:
         return None
     value = payload["response"]

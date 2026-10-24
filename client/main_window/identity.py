@@ -11,6 +11,9 @@ import threading
 import time
 import wx
 from core.jid_device import strip_device_suffix
+from core.contact_presence_query import query_targets
+from main_window.presence_work import presence_work, wake_waiting_presence
+from main_window.profile_presence import profile_last_seen
 from core import phone_contacts
 from core.api_client import (
     api_get,
@@ -1651,10 +1654,9 @@ class IdentityMixin:
         }
         try:
             r = api_get(url, headers=headers, timeout=10)
-            logging.info(f"[get_contact_profile] Querying for {original_jid} (using JID: {jid}). Response status: {r.status_code}")
+            logging.info("[get_contact_profile] response_status=%s", r.status_code)
             if r.status_code in (200, 201):
                 res = r.json() or {}
-                logging.info(f"[get_contact_profile] API Response for {original_jid}: {res}")
                 res_data = res.get("response", {})
                 if not isinstance(res_data, dict):
                     res_data = {}
@@ -1663,7 +1665,7 @@ class IdentityMixin:
                 if original_jid.endswith("@lid") and jid.endswith("@lid"):
                     canonical_jid = self._normalize_jid(res_data.get("id", {}).get("_serialized") or res_data.get("id") or "")
                     if canonical_jid and canonical_jid.endswith("@s.whatsapp.net"):
-                        logging.info(f"[get_contact_profile] SUCCESS: Mapped {original_jid} to {canonical_jid} via profile query")
+                        logging.info("[get_contact_profile] canonical mapping received")
                         # This method runs on a background thread (see the
                         # docstring), so the write shares the mapping lock
                         # with the Socket.IO thread's own. The refresh and
@@ -1682,68 +1684,27 @@ class IdentityMixin:
                         wx.CallAfter(self._schedule_set_chats)
                         try:
                             self.db.set_lid_mapping(original_jid, canonical_jid)
-                        except Exception as e:
-                            logging.error(f"[get_contact_profile] Error saving mapping incrementally: {e}")
+                        except Exception:
+                            logging.warning("[get_contact_profile] mapping persistence failed")
                             self.save_data(self.chats, self.contacts)
                 # The contact endpoint's top-level "status" is the API result
                 # ("success"), NOT the contact's About text. Fetch the real
                 # About/bio from the dedicated profile-status endpoint and expose
                 # it under a clean key the dialog can read without ambiguity.
                 res["aboutText"] = self.get_profile_about(jid)
-                res["lastSeenTs"] = self.get_last_seen(jid)
+                # A stalled presence read must not hold the profile's Overview
+                # on loading. The dialog refreshes presence after posting this.
+                from core.contact_presence import cached
+                entry = cached(self, jid)
+                res["lastSeenTs"] = None if entry.get("restricted") else entry.get("lastSeen")
                 return res
-        except Exception as e:
-            logging.exception(f"[get_contact_profile] Error querying for {original_jid}: {e}")
+        except Exception:
+            logging.warning("[get_contact_profile] request failed")
         return {}
 
     def get_last_seen(self, jid: str):
-        """Profile-worker refresh; commit to the shared cache on the UI thread.
-
-        Online snapshots render immediately. HTTP failure is unknown, whereas
-        a verified withheld timestamp clears the old value. Later live events
-        and connection epochs take precedence over this worker's result.
-        """
-        from core.contact_presence import aliases, cached
-        fresh = cached(self, jid)
-        if fresh.get("lastKnownPresence") in ("available", "composing", "recording"):
-            return None
-        previous = cached(self, jid, fresh=False)
-        revision = previous or None
-        epoch = getattr(self, "_contact_presence_epoch", 0)
-        identity = aliases(self, jid)
-        from core.contact_presence_query import query_targets
-        query_identity = query_targets(self._normalize_jid(jid),
-                                       getattr(self, "_lid_to_phone", {}),
-                                       getattr(self, "_phone_to_lid", {}))
-        panel = getattr(self, "conversations_panel", None)
-        conversation = getattr(panel, "conversation", None)
-        in_open_chat = (conversation is not None and aliases(self, jid)
-                        and aliases(self, conversation.get("remoteJid", ""))
-                        and aliases(self, jid)[0] == aliases(self, conversation.get("remoteJid", ""))[0])
-        visit = getattr(panel, "_contact_presence_visit", None) if in_open_chat else None
-        result = self._fetch_contact_presence(jid)
-        # Profile workers use the same cache contract as the active-chat worker.
-        # Apply on the UI thread; a live update or disconnect wins the race.
-        def apply():
-            current_identity = aliases(self, (getattr(panel, "conversation", None) or {}).get("remoteJid", ""))
-            same_visit = (visit is None or (
-                panel is getattr(self, "conversations_panel", None)
-                and visit == getattr(panel, "_contact_presence_visit", None)
-                and current_identity and current_identity[0] == identity[0]))
-            if (result is not None and not getattr(self, "_shutting_down", False)
-                    and getattr(self, "_wa_connected", False)
-                    and epoch == getattr(self, "_contact_presence_epoch", 0)
-                    and same_visit and identity == aliases(self, jid)
-                    and query_identity == query_targets(self._normalize_jid(jid),
-                                                       getattr(self, "_lid_to_phone", {}),
-                                                       getattr(self, "_phone_to_lid", {}))
-                    and revision is (cached(self, jid, fresh=False) or None)):
-                self.on_presence_update(jid, {jid: result}, refresh_offline=False)
-                self._refresh_open_contact_presence_note()
-        wx.CallAfter(apply)
-        # UI consumers read the shared cache when their callback runs; keep the
-        # existing timestamp return contract for callers outside that UI path.
-        return result.get("lastSeen") if result is not None else fresh.get("lastSeen")
+        """Bounded profile refresh; late routing/epoch/data cannot reach the UI."""
+        return profile_last_seen(self, jid, wx.CallAfter)
 
     def get_profile_about(self, jid: str) -> str:
         """Return a contact's WhatsApp About/bio text via /profile-status, or ''."""
@@ -1773,13 +1734,24 @@ class IdentityMixin:
         except Exception:
             return ""
 
-    def subscribe_presence(self, jid: str):
+    def subscribe_presence(self, jid: str, *, recovery=False):
         """Subscribe to presence events for a contact via WPPConnect API (non-blocking)."""
         if not jid or jid.endswith("@newsletter"):
             return
         
         if not hasattr(self, "_subscribed_presence_cache"):
             self._subscribed_presence_cache = {}
+        cache = self._subscribed_presence_cache
+        readiness_targets = getattr(self, "_contact_presence_readiness_candidates", None)
+        if readiness_targets is None:
+            readiness_targets = self._contact_presence_readiness_candidates = set()
+        confirmed_targets = getattr(self, "_presence_subscription_confirmed", None)
+        if confirmed_targets is None:
+            confirmed_targets = self._presence_subscription_confirmed = set()
+        inflight = getattr(self, "_presence_subscription_inflight", None)
+        if inflight is None:
+            inflight = self._presence_subscription_inflight = set()
+        epoch = getattr(self, "_contact_presence_epoch", 0)
             
         jids_to_subscribe = [jid]
         phone_to_lid = getattr(self, "_phone_to_lid", {})
@@ -1789,43 +1761,149 @@ class IdentityMixin:
             jids_to_subscribe.append(phone_to_lid[jid])
         elif jid in lid_to_phone:
             jids_to_subscribe.append(lid_to_phone[jid])
+
+        budget = getattr(self, "_contact_presence_recovery", None)
+        if recovery:
+            # Only the coordinator's budgeted path may renew a successful
+            # subscription, and only through an already reciprocal identity.
+            jids_to_subscribe = query_targets(self._normalize_jid(jid), lid_to_phone, phone_to_lid)
+            if budget is None:
+                return
+        elif budget is not None and budget.has_recovered(
+                [self._normalize_jid(target) for target in jids_to_subscribe]):
+            return
             
         now = time.time()
         targets = []
         for target_jid in set(jids_to_subscribe):
-            last_sub = self._subscribed_presence_cache.get(target_jid, 0)
-            if now - last_sub > 10.0:  # Throttle duplicate subscriptions within 10 seconds
-                self._subscribed_presence_cache[target_jid] = now
+            last_sub = cache.get(target_jid, 0)
+            # Recovery already has a monotonic interval budget; wall-clock
+            # adjustment must not indefinitely block that separate path.
+            if target_jid not in inflight and (recovery or now - last_sub > 10.0):
                 targets.append(target_jid)
                 
         if not targets:
             return
+        managed = bool(query_targets(self._normalize_jid(jid), lid_to_phone, phone_to_lid))
+        work = presence_work(self, wx) if managed else None
+        job = work.claim("post", [self._normalize_jid(t) for t in jids_to_subscribe]) if work else None
+        if work is not None and job is None:
+            return
+        if recovery and not budget.claim(jids_to_subscribe, time.monotonic(), inflight=bool(
+                set(jids_to_subscribe) & inflight)):
+            if job is not None:
+                job.cancel_unstarted()
+            return
+        registry = getattr(self, "_contact_presence_post_jobs", None)
+        if registry is None:
+            registry = self._contact_presence_post_jobs = {}
+        for target_jid in targets:
+            cache[target_jid] = now
+            inflight.add(target_jid)
+            if job is not None:
+                registry[target_jid] = job
             
-        def _api():
-            headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
+        # Capture account routing on the caller thread. An old worker must not
+        # send its remaining targets to a replacement connection/account.
+        headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
+        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/subscribe-presence"
+        routing = self.wpp_server, self.wpp_port, self.token
+        completed = []
+
+        def owns_request():
+            return (cache is self._subscribed_presence_cache
+                    and epoch == getattr(self, "_contact_presence_epoch", 0)
+                    and routing == (self.wpp_server, self.wpp_port, self.token)
+                    and not getattr(self, "_shutting_down", False)
+                    and getattr(self, "_wa_connected", True))
+
+        def cleanup():
             for target_jid in targets:
-                is_group = target_jid.endswith("@g.us")
-                is_lid = target_jid.endswith("@lid")
-                phone = target_jid.replace("@s.whatsapp.net", "@c.us")
-                url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/subscribe-presence"
-                logging.info("[subscribe_presence] Subscribing to: %s (isGroup=%s, isLid=%s)", phone, is_group, is_lid)
-                try:
-                    resp = api_post(url, json={"phone": phone, "isGroup": is_group, "isLid": is_lid}, headers=headers, timeout=10)
-                    confirmed = (resp.status_code in (200, 201)
-                                 and isinstance(resp.json(), dict)
-                                 and resp.json().get("status") == "success")
-                    if not confirmed and self._subscribed_presence_cache.get(target_jid) == now:
-                        self._subscribed_presence_cache.pop(target_jid, None)
-                    logging.info("[subscribe_presence] HTTP status: %s", resp.status_code)
-                except Exception as e:
-                    if self._subscribed_presence_cache.get(target_jid) == now:
-                        self._subscribed_presence_cache.pop(target_jid, None)
-                    logging.error("[subscribe_presence] Error subscribing to %s: %s", phone, e)
+                if job is not None and registry.get(target_jid) is not job:
+                    continue
+                if job is not None:
+                    registry.pop(target_jid, None)
+                inflight.discard(target_jid)
+                if target_jid not in completed and cache.get(target_jid) == now:
+                    cache.pop(target_jid, None)
+
+        def expired():
+            cleanup()
+            if (epoch == getattr(self, "_contact_presence_epoch", 0)
+                    and cache is self._subscribed_presence_cache
+                    and routing == (self.wpp_server, self.wpp_port, self.token)):
+                wake_waiting_presence(self, ensure=True)
+
+        def _api():
+            try:
+                for target_jid in targets:
+                    if (job is not None and not job.active) or not owns_request():
+                        break
+                    is_group = target_jid.endswith("@g.us")
+                    is_lid = target_jid.endswith("@lid")
+                    phone = target_jid.replace("@s.whatsapp.net", "@c.us")
+                    try:
+                        resp = api_post(url, json={"phone": phone, "isGroup": is_group, "isLid": is_lid}, headers=headers, timeout=10)
+                        payload = resp.json() if resp.status_code in (200, 201) else None
+                        confirmed = isinstance(payload, dict) and payload.get("status") == "success"
+                        def commit():
+                            if not owns_request():
+                                return
+                            if confirmed:
+                                confirmed_targets.add(target_jid)
+                                if not recovery:
+                                    readiness_targets.add(target_jid)
+                                completed.append(target_jid)
+                            else:
+                                confirmed_targets.discard(target_jid)
+                                readiness_targets.discard(target_jid)
+                                if cache.get(target_jid) == now:
+                                    cache.pop(target_jid, None)
+                        if job is None:
+                            commit()
+                        else:
+                            job.apply(commit)
+                        logging.info("[subscribe_presence] Request completed (confirmed=%s)", confirmed)
+                    except Exception:
+                        def failed():
+                            if not owns_request():
+                                return
+                            confirmed_targets.discard(target_jid)
+                            readiness_targets.discard(target_jid)
+                            if cache.get(target_jid) == now:
+                                cache.pop(target_jid, None)
+                        if job is None:
+                            failed()
+                        else:
+                            job.apply(failed)
+                        logging.error("[subscribe_presence] Request failed")
+            finally:
+                cleanup()
+                if job is not None:
+                    job.finish()
+                def finish():
+                    if job is not None:
+                        job.stop_timer()
+                        if not job.active:
+                            if not job.expire():
+                                wake_waiting_presence(self)
+                            return
+                    pending = getattr(self, "_contact_presence_deferred", None)
+                    if completed and pending is not None and pending.pending is not None:
+                        self._on_contact_presence_subscription_finished(tuple(completed), epoch, cache, routing)
+                if work is not None:
+                    work.call_after(finish)
+                elif completed:
+                    pending = getattr(self, "_contact_presence_deferred", None)
+                    if pending is not None and pending.pending is not None:
+                        wx.CallAfter(finish)
         try:
+            if job is not None:
+                job.arm(expired)
             threading.Thread(target=_api, daemon=True).start()
         except Exception:
             # No worker started to clear this attempt's tentative subscriptions.
-            for target_jid in targets:
-                if self._subscribed_presence_cache.get(target_jid) == now:
-                    self._subscribed_presence_cache.pop(target_jid, None)
+            cleanup()
+            if job is not None:
+                job.cancel_unstarted()
             raise

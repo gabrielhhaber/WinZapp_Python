@@ -8,6 +8,7 @@ available here.
 import logging
 from core.contact_presence import ONLINE, activity, cached, merge, visible_online
 from ui.dialogs.personal_presence import notify_personal_presence
+from main_window.presence_visibility import refresh_missing_presence
 import time
 import wx
 from core.conversation_view import conversation_in_view
@@ -395,7 +396,7 @@ class ChatEventsMixin:
 
         presences: {jid_str: {"lastKnownPresence": str, "lastSeen": int|None}, ...}
         """
-        logging.info("[on_presence_update] jid=%s, presences=%s", jid, presences)
+        logging.info("[on_presence_update] entries=%s", len(presences))
 
         if not jid or not isinstance(presences, dict):
             return
@@ -509,6 +510,10 @@ class ChatEventsMixin:
                         refresh_note = getattr(self, "_refresh_open_contact_presence_note", None)
                         if refresh_note is not None:
                             refresh_note()
+                        # A missing final push must not leave expired activity
+                        # waiting for the next periodic active-chat tick.
+                        if refresh_offline:
+                            refresh_missing_presence(self, cjid)
                     timer = wx.CallLater(10_000, _clear)
                     return timer
                 self._presence_timers[timer_key] = _make_clear(chat_jid_norm, canonical)
@@ -543,23 +548,23 @@ class ChatEventsMixin:
                     and not self.IsIconized()
                     and self.IsActive()
                 )
-                logging.info("[on_presence_update] announce_enabled=%s, is_active_chat=%s, window_active=%s, in_view=%s (chat_jid_norm=%s, conv_jid=%s)",
-                             announce_enabled, active_match, window_active, in_view, chat_jid_norm, conv_jid)
+                logging.info("[on_presence_update] announce_enabled=%s, is_active_chat=%s, window_active=%s, in_view=%s",
+                             announce_enabled, active_match, window_active, in_view)
                 if announce_enabled and active_match and window_active and in_view:
                     # Mute/archive suppress background notifications, not the
                     # live state of a conversation the user deliberately has
                     # open. The active-chat and active-window gates above are
                     # the relevant boundary for typing/recording speech.
                     name = self._resolve_jid_name(canonical, chat_jid_norm)
-                    logging.info("[on_presence_update] resolved name=%s for canonical=%s", name, canonical)
+                    logging.info("[on_presence_update] display name available=%s", bool(name))
                     if name:
                         try:
                             i18n_key = "typing_text" if new_lkp == "composing" else "recording_text"
                             msg_text = self.i18n.t(i18n_key).format(name=name)
-                            logging.info("[on_presence_update] speaking: %s", msg_text)
+                            logging.info("[on_presence_update] announcing activity")
                             self.speak_output.output(msg_text)
-                        except Exception as e:
-                            logging.error("[on_presence_update] speak error: %s", e)
+                        except Exception:
+                            logging.error("[on_presence_update] activity announcement failed")
 
         notify_personal_presence(self)
 
@@ -589,6 +594,7 @@ class ChatEventsMixin:
         # snapshot when this contact goes offline instead of waiting for a tick.
         if (refresh_offline and is_active_chat(chat_jid_norm, conv_jid)
                 and not conv_jid.endswith("@g.us")
+                and not cached(self, conv_jid).get("restricted")
                 and cached(self, conv_jid).get("lastKnownPresence") not in ONLINE
                 and hasattr(self, "_refresh_open_contact_presence")):
             self._refresh_open_contact_presence()

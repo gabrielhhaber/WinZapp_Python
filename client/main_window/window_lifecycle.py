@@ -14,6 +14,7 @@ import time
 import wx
 from core.api_client import api_post
 from core.online_presence_diagnostics import PresenceDiagnostics, diagnostic_headers, record_write
+from main_window.presence_visibility import refresh_missing_presence
 if sys.platform == "win32":
     from core.tray_manager import TrayIcon
 
@@ -128,6 +129,9 @@ class WindowLifecycleMixin:
             # live registry — this is the moment the user returns to the window.
             self._refresh_accounts_menu_if_stale()
         self._sync_online_presence()
+
+        if active:
+            refresh_missing_presence(self)
 
     def _on_presence_timer(self, event):
         """Recheck the window, including while hidden, to retry failed writes."""

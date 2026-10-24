@@ -163,15 +163,29 @@ def test_all_short_pending_sequences_keep_only_latest_state_and_its_context(work
 @pytest.mark.parametrize("later_event", [False, True])
 def test_http_worker_to_real_event_pipeline_is_single_delivery_without_query_loop(scheduled, monkeypatch, state, later_event):
     import main_window.chat_events as events
+    from core.contact_presence_query import PresenceRead
     _, pending_workers, callbacks = scheduled
     class EventOwner(_Stub, ContactPresenceMixin):
         pass
     owner = EventOwner(conversation_jid=PN)
+    owner.wpp_server, owner.wpp_port, owner.token = "http://invalid.test", 1, "synthetic"
     owner._wa_connected = True
     owner.subscribe_presence = lambda jid: None
-    owner._fetch_contact_presence = lambda jid: {"lastKnownPresence": state, "isOnline": False}
+    owner._query_contact_presence = lambda jid: PresenceRead(
+        "ready", {"lastKnownPresence": state, "isOnline": False})
     timers = []
-    monkeypatch.setattr(events.wx, "CallLater", lambda ms, fn: timers.append(fn) or _Timer())
+    watchdogs = []
+    def call_later(ms, fn):
+        timer = SimpleNamespace(stopped=False)
+        timer.Stop = lambda: setattr(timer, "stopped", True)
+        if ms == 10_000:
+            timers.append(fn)
+        else:
+            assert ms == 30_000
+            watchdogs.append(timer)
+        return timer
+    from types import SimpleNamespace
+    monkeypatch.setattr(events.wx, "CallLater", call_later)
     owner._refresh_open_contact_presence()
     assert len(pending_workers) == 1
     pending_workers.pop()()
@@ -183,6 +197,7 @@ def test_http_worker_to_real_event_pipeline_is_single_delivery_without_query_loo
                                                       state if state != "unavailable" else "")
     assert len(owner.speak_output.outputs) == (1 if later_event or state != "unavailable" else 0)
     assert len(timers) == (1 if later_event or state != "unavailable" else 0)
+    assert len(watchdogs) == 1 and watchdogs[0].stopped
 
 
 @pytest.mark.parametrize("state", ["composing", "recording"])

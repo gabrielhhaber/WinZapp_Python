@@ -31,6 +31,8 @@ from core.contact_identity import contact_identity_lines
 from core.group_operations import group_permissions
 from ui.dialogs.common_groups_tab import CommonGroupsTabMixin
 from ui.dialogs.personal_presence import presence_line, stop_personal_presence, track_personal_presence
+from ui.dialogs.personal_presence_reader import capture_personal_reader_visit
+from main_window.profile_presence import refresh_dialog_presence
 from ui.accessible import AccessibleSaveAs, split_mnemonic
 from core.utils import (
     format_number, GROUP_MEDIA_TYPES, GROUP_MEDIA_FILTERS,
@@ -143,6 +145,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
 
     def __init__(self, main_window, chat):
         self._mw   = main_window
+        capture_personal_reader_visit(self)
         self._chat = chat
         self._i18n = main_window.i18n
 
@@ -811,6 +814,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
                         pass
                 data = self._mw.get_contact_profile(self._jid)
                 wx.CallAfter(self._populate_personal, data)
+                refresh_dialog_presence(self)
                 # After the profile is posted, so a slow answer here never
                 # delays the Overview tab. Never raises (it posts its own
                 # "unavailable" row), so it cannot disturb the lines above.
