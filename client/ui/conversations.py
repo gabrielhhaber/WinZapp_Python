@@ -12,6 +12,7 @@ import time
 import uuid
 import wx
 import wx.adv
+from ui.list_column_fit import bind_single_column_fit
 import pyperclip
 try:
     import pyaudio
@@ -606,6 +607,7 @@ class ConversationsPanel(
 
         self.conversations_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
         self.conversations_list.InsertColumn(0, i18n.t("conversations"), width=200)
+        bind_single_column_fit(self.conversations_list)
         self.conversations_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_conversation_selected)
         self.conversations_list.Bind(wx.EVT_LIST_ITEM_FOCUSED, self._on_conversation_focused)
         self.conversations_list.Bind(wx.EVT_CONTEXT_MENU, self.on_conversations_context_menu)

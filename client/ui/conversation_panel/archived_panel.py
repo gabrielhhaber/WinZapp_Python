@@ -11,6 +11,7 @@ import os
 import pyperclip
 import threading
 import wx
+from ui.list_column_fit import bind_single_column_fit
 from ui.accessible import (
     AccessibleMessagesListControl,
     AccessibleSearchConversations,
@@ -112,6 +113,7 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
             self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL
         )
         self.conversations_list.InsertColumn(0, i18n.t("archived_chats"), width=250)
+        bind_single_column_fit(self.conversations_list)
         # The wx.StaticText above is only a visual caption — on Windows a
         # wx.ListCtrl exposes no accessible name of its own, so NVDA announced
         # this list as a bare, unnamed "list" and the user had no way to tell
