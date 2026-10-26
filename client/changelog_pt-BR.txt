@@ -5,6 +5,9 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 NOVIDADES
 
 - Muitas atualizações de presença de contatos seguidas (digitando, online) não congelam mais o WinZapp por segundos nem deixam o computador lento em contas com muitos chats.
+- Presença dos contatos: ao aprender novos nomes, a interface não espera mais pela gravação no banco de dados. As atualizações pendentes mantêm a cópia completa mais recente, respeitando a ordem ao fechar ou limpar os dados locais.
+
+- Presença dos contatos: menos trabalho repetido na interface quando chegam muitas atualizações de online ou digitando. O título da janela e o rótulo das conversas arquivadas não são reescritos quando permanecem iguais, sem atrasar os anúncios de digitação.
 
 - As listas de conversas (conversas, arquivadas e bloqueadas) agora usam toda a largura da lista, e os nomes dos chats e as prévias das mensagens são cortados bem menos quando a janela é larga.
 

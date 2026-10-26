@@ -5,6 +5,9 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 NOUTĂȚI
 
 - Multe actualizări de prezență ale contactelor la rând (scrie, online) nu mai blochează WinZapp câteva secunde și nu mai încetinesc întregul calculator pe conturile cu multe conversații.
+- Prezența contactelor: la memorarea unor nume noi, interfața nu mai așteaptă scrierea în baza de date. Actualizările în așteptare păstrează cea mai recentă copie completă și respectă ordinea la închidere și la ștergerea datelor locale.
+
+- Prezența contactelor: s-a redus munca repetată a interfeței la primirea multor actualizări de conectare sau tastare. Titlul ferestrei și eticheta conversațiilor arhivate nu mai sunt rescrise dacă nu se schimbă, fără a întârzia anunțurile de tastare.
 
 - Listele de conversații (conversații, arhivate și blocate) folosesc acum toată lățimea listei, așa că numele conversațiilor și previzualizările mesajelor sunt tăiate mult mai puțin când fereastra este lată.
 

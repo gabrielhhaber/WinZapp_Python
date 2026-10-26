@@ -105,7 +105,9 @@ class NavigationPanel(wx.Panel):
         else:
             label = i18n.t("archived_chats_nav_unread_plural").format(count=count)
         label = navigation_shortcut_label(self.main_window, 'archived', label)
-        self.nav_list.SetItemText(self._nav_keys.index("archived"), label)
+        index = self._nav_keys.index("archived")
+        if self.nav_list.GetItemText(index) != label:
+            self.nav_list.SetItemText(index, label)
 
     def _on_nav_key_down(self, event):
         event = command_key_event(self, 'navigation', event)

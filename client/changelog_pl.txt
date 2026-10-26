@@ -5,6 +5,9 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 NOWOŚCI
 
 - Wiele kolejnych aktualizacji obecności kontaktów (pisanie, online) nie zawiesza już WinZapp na kilka sekund ani nie spowalnia całego komputera na kontach z wieloma czatami.
+- Obecność kontaktów: przy zapamiętywaniu nowych nazw kontaktów interfejs nie czeka już na zapis do bazy danych. Oczekujące aktualizacje zachowują najnowszy pełny zestaw nazw, z zachowaniem kolejności przy zamykaniu i czyszczeniu danych lokalnych.
+
+- Obecność kontaktów: ograniczono powtarzaną pracę interfejsu przy wielu aktualizacjach dostępności lub pisania. Niezmieniony tytuł okna i etykieta zarchiwizowanych czatów nie są ponownie ustawiane, a komunikaty o pisaniu zachowują dotychczasowy czas ogłaszania.
 
 - Listy czatów (rozmowy, zarchiwizowane i zablokowane) wykorzystują teraz całą szerokość listy, dzięki czemu nazwy czatów i podglądy wiadomości są znacznie rzadziej ucinane w szerokim oknie.
 

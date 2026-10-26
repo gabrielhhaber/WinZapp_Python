@@ -5,6 +5,9 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 YENİLİKLER
 
 - Art arda gelen çok sayıda kişi durumu güncellemesi (yazıyor, çevrimiçi) artık WinZapp'i saniyelerce dondurmuyor ve çok sohbetli hesaplarda bilgisayarın tamamını yavaşlatmıyor.
+- Kişi durumu: yeni kişi adları öğrenilirken arayüz artık veritabanı kaydını beklemiyor. Bekleyen ad güncellemeleri son tam kopyada birleştiriliyor; kapanış ve yerel veri temizleme sırasında kayıt sırası korunuyor.
+
+- Kişi durumu: çok sayıda çevrimiçi veya yazıyor güncellemesi geldiğinde arayüzde yinelenen işler azaltıldı. Değişmeyen pencere başlığı ve arşivli sohbet etiketi yeniden yazılmıyor; yazıyor bildirimlerinin zamanlaması korunuyor.
 
 - Sohbet listeleri (sohbetler, arşivlenenler ve kilitli sohbetler) artık listenin tüm genişliğini kullanıyor; böylece pencere genişken sohbet adları ve mesaj önizlemeleri çok daha az kesiliyor.
 

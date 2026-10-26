@@ -1,11 +1,13 @@
 ---
 paths:
   - "client/core/contact_presence*.py"
+  - "client/core/latest_metadata.py"
   - "client/core/websocket_client.py"
   - "client/main_window/contact_presence.py"
   - "client/main_window/presence_work.py"
   - "client/main_window/presence_visibility.py"
   - "client/main_window/profile_presence.py"
+  - "client/main_window/presence_ui.py"
   - "client/ui/dialogs/personal_presence*.py"
   - "client/main_window/chat_events.py"
   - "client/main_window/identity.py"
@@ -47,3 +49,13 @@ store/model checks and finite retry cancellation. Claim legacy suppression only
 after successful local delivery; reset/remove/malformed state must release it.
 Legacy callbacks capture page/client/request ownership and reject stale contexts.
 The prior group webhook shape stays separate; private native snapshots never go there.
+
+Presence paint is coalesced separately from ordered cache/speech/HTTP events.
+Keep explicit denial, event order and source flags in the original pipeline;
+do not replace a stream with only its last raw payload. Fresh typing and
+message dismissal update logical state before a delayed paint can run.
+Snapshot each paint turn and recheck shutdown/context between consumers/rows;
+preserve reentrant successor work. The row/time budget cannot preempt a slow
+native call. Presence name persistence uses the existing DB loop: preserve one
+writer/latest snapshot, admission/close accounting, reset generation fencing,
+and recovery of accepted names after a failed reset. Never cancel transactions.

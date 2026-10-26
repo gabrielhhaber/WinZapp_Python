@@ -1270,7 +1270,8 @@ class WindowChromeMixin:
             title += f" | {self.i18n.t('tray_offline_mode')}"
         if self._tray_status:
             title += f" | {self._tray_status}"
-        self.SetTitle(title)
+        if self.GetTitle() != title:
+            self.SetTitle(title)
         if getattr(self, "tray_icon", None) is not None:
             self.tray_icon.update_tooltip()
 

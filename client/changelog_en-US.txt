@@ -5,6 +5,9 @@ This release brings communities and a reorganized settings window, on top of eve
 WHAT'S NEW
 
 - Many contact presence updates in a row (typing, online) no longer freeze WinZapp for seconds or slow the whole computer down on accounts with many chats.
+- Contact presence: learning new contact names no longer waits for a database write in the interface. Pending name updates keep the latest full snapshot, with ordered handling during shutdown and local data clearing.
+
+- Contact presence: reduced repeated interface work when many online or typing updates arrive. Unchanged window titles and archived-chat labels are no longer rewritten, while typing announcements keep their existing timing.
 
 - Chat lists (conversations, archived and locked chats) now use the full width of the list, so chat names and message previews are cut off much less when the window is wide.
 
