@@ -25,6 +25,7 @@ class _List:
     def DeleteAllItems(self): self.rows = []
     def Append(self, row): self.rows.append(row[0])
     def SetItemText(self, index, text): self.rows[index] = text
+    def GetItemText(self, index): return self.rows[index]
     def Focus(self, index): self.focused = index
     def Select(self, index): pass
 

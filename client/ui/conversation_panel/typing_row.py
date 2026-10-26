@@ -142,6 +142,20 @@ def _dismissed_for(panel, chat: str) -> set:
     return panel._typing_row_dismissed
 
 
+def note_typing_activity(panel, chat: str, fresh=()) -> None:
+    """Apply a fresh event before a later message can dismiss its indicator.
+
+    Painting can wait for the UI batch; this ordering decision cannot.
+    """
+    mw = getattr(panel, "main_window", None)
+    if (not fresh or mw is None or not getattr(panel, "conversation", None)
+            or not typing_row_enabled(getattr(mw, "settings", None))):
+        return
+    keys = _open_chat_keys(panel)
+    if keys and chat in keys:
+        _dismissed_for(panel, keys[0]).difference_update(fresh)
+
+
 def _remove_typing_row(panel) -> None:
     lst = panel.messages_list
     idx = lst.GetItemCount() - 1
@@ -264,7 +278,10 @@ def dismiss_typing_row_for_message(panel, msg: dict) -> None:
         return
     mw = getattr(panel, "main_window", None)
     composing = getattr(mw, "_composing_chats", None)
-    if not typing_row_shown(panel) or not isinstance(composing, dict):
+    # Presence paint may still be queued. The message dismisses the logical
+    # activity even when its row has not been inserted yet, or that later
+    # paint would resurrect "typing" after the message already arrived.
+    if not isinstance(composing, dict):
         return
     keys = _open_chat_keys(panel)
     if not keys:

@@ -9,7 +9,7 @@ Design
 A dedicated asyncio event loop runs in a background daemon thread.  Every
 DatabaseManager call is dispatched to that loop via
 ``asyncio.run_coroutine_threadsafe()`` and blocked on from the caller's
-thread.  This gives us:
+thread, except the explicitly queued presence-name snapshots. This gives us:
 
 - A single serialised SQLite connection (no thread-safety hacks).
 - Clean async code inside DatabaseManager.
@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Any
 
 from core.database import DatabaseManager
+from core.latest_metadata import LatestMetadataWrite
 
 log = logging.getLogger(__name__)
 
@@ -130,6 +131,8 @@ class DatabaseBridge:
         self._db: DatabaseManager = self._call(
             self._create_db(), timeout=_DEFAULT_CALL_TIMEOUT
         )
+        self._presence_names = LatestMetadataWrite(
+            lambda value: self._db.set_metadata_json("presence_pushname_map", value))
 
     # ── Loop management ──────────────────────────────────────────────────────
 
@@ -242,7 +245,7 @@ class DatabaseBridge:
             # Bypasses the _closing gate in _call() — that gate exists to
             # reject callers *other than* close() itself, which must still be
             # able to run this one shutdown call after setting it.
-            self._call_unchecked(self._db.close(), timeout=5)
+            self._call_unchecked(self._close_database(), timeout=5)
         except Exception:
             pass
         try:
@@ -250,6 +253,12 @@ class DatabaseBridge:
         except Exception:
             pass
         self._thread.join(timeout=2)
+
+    async def _close_database(self):
+        # Keep the existing bounded close wait, but never close/reopen the
+        # connection ahead of an accepted name snapshot that is still running.
+        await self._presence_names.flush()
+        await self._db.close()
 
     # ── Full-state save (replacement for save_data) ───────────────────────────
 
@@ -268,14 +277,15 @@ class DatabaseBridge:
         DatabaseManager.import_from_dict()'s own docstring for when that
         matters (an F5 resync should not also discard those).
         """
-        self._call(
-            self._db.import_from_dict(data, clear_first=clear_first, clear_metadata=clear_metadata),
-            timeout=_BULK_CALL_TIMEOUT,
-        )
+        def operation():
+            return self._db.import_from_dict(data, clear_first=clear_first, clear_metadata=clear_metadata)
+        coro = (self._presence_names.reset(operation) if clear_first and clear_metadata
+                else operation())
+        self._call(coro, timeout=_BULK_CALL_TIMEOUT)
 
     def clear_all(self) -> None:
         """Delete all records from every table."""
-        self._call(self._db.clear_all(), timeout=_BULK_CALL_TIMEOUT)
+        self._call(self._presence_names.reset(self._db.clear_all), timeout=_BULK_CALL_TIMEOUT)
 
     # ── Delegated read methods ────────────────────────────────────────────────
 
@@ -468,3 +478,40 @@ class DatabaseBridge:
     def set_metadata_json(self, key: str, value: Any) -> None:
         return self._call(self._db.set_metadata_json(key, value))
 
+    def queue_presence_names(self, names: dict[str, str]) -> None:
+        """Admit a full snapshot without waiting for SQLite on the UI thread.
+
+        One physical runner and one latest pending snapshot per bridge. Admission
+        is not a durability acknowledgement. Normal close drains accepted work;
+        the existing hard close budgets still apply to a permanently stuck DB.
+        """
+        with self._state_lock:
+            if self._closing:
+                raise DatabaseBridgeClosed("DatabaseBridge is closing")
+            if not self._thread.is_alive():
+                raise DatabaseBridgeTimeout("db-asyncio thread is not running")
+            lease = self._presence_names.offer(names)
+            if lease is None:
+                return
+            self._inflight += 1
+            self._inflight_drained.clear()
+        coro = self._write_presence_names(lease)
+        try:
+            asyncio.run_coroutine_threadsafe(coro, self._loop)
+        except Exception:
+            coro.close()
+            self._presence_names.abort_start(lease)
+            self._presence_write_finished()
+            raise
+
+    async def _write_presence_names(self, lease):
+        try:
+            await self._presence_names.run(lease)
+        finally:
+            self._presence_write_finished()
+
+    def _presence_write_finished(self):
+        with self._state_lock:
+            self._inflight -= 1
+            if self._inflight <= 0:
+                self._inflight_drained.set()

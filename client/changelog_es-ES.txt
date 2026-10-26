@@ -4,6 +4,10 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Presencia de contactos: al aprender nuevos nombres, la interfaz ya no espera a que se escriban en la base de datos. Las actualizaciones pendientes conservan la última copia completa y respetan el orden al cerrar o borrar los datos locales.
+
+- Presencia de los contactos: se reduce el trabajo repetido de la interfaz al recibir muchas actualizaciones de conexión o escritura. El título de la ventana y la etiqueta de los chats archivados ya no se reescriben si no cambian, sin retrasar los avisos de escritura.
+
 - Las listas de chats (conversaciones, archivados y bloqueados) ahora usan todo el ancho de la lista, por lo que los nombres de los chats y las vistas previas de los mensajes se cortan mucho menos cuando la ventana es ancha.
 
 - Actualizar WinZapp o WPPConnect ya no congela todo el equipo a mitad del proceso. Los pasos de instalación y compilación se ejecutan ahora con menor prioridad, y el lector de pantalla sigue hablando con fluidez.

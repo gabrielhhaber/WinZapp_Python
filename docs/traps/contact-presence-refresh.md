@@ -303,3 +303,83 @@ Portable test fixtures retain the original LGPL header, exact method fragments
 and SHA256 provenance for both published providers. The local run first used
 the verified unpacked packages; portable fixtures match those exact fragments.
 No provider/browser/account process or network is started by these VM tests.
+
+## Presence UI load: coalesce paint, preserve event order (2026-10-26)
+
+Presence-only row refreshes used the generic unread row path, which rescanned
+the window-title, archived and tray counts even though presence changes none
+of them. The list suffix shows typing/recording, not online/offline: compare
+the composing index that actually renders that suffix, not just the fresh
+cache value. The cache can expire before a queued expiry timer runs; an offline
+event must still clear the visible suffix rather than cancelling that timer
+and leaving the suffix behind. Read/unread callers retain title updates.
+
+`main_window/presence_ui.py` owns one pending paint callback per real window,
+coalesces dirty rows and views, and paints at most 16 distinct rows per turn.
+Cache merges, revisions, speech transitions, activity timers and HTTP decisions
+still run in their original event order. A final-payload-only socket debounce
+can discard a denial before a legacy permission-free event, reverse event-time
+acceptance or miss a short typing transition. It is not equivalent.
+
+Fresh typing clears its dismissal immediately. A message also dismisses logical
+typing when its row is not painted yet: otherwise a delayed paint resurrects
+typing after that message. Epoch/cache replacement and shutdown discard old
+dirty paint. No new timer/thread, polling, focus or speech cancellation is used.
+Unchanged frame titles and archived navigation names are not rewritten.
+
+These are plain-owner/queued-callback regressions. They establish bounded paint
+work and preserved state, not a Windows/NVDA latency guarantee or the live cause
+of a reported watchdog stall.
+
+### Paint lifecycle audit (2026-10-27)
+
+A fixed row count is not a time bound. Paint now yields between rows after a
+soft 4 ms work budget, still capped at 16, and guarantees one row's progress.
+One expensive view/native call cannot be preempted by that budget.
+
+Snapshot this turn's dirty row keys before notifying observers. A nested event
+can replace the cache/epoch, clear the queue or request the same row again;
+new work belongs to the next turn, not the old callback's changing dictionary.
+Check context and shutdown between consumers/rows, preserving fresh successor
+work but discarding obsolete work. Isolate observer failures and log only the
+exception class, never the exception's possible contact text.
+
+Reject new presence/cache/timer/speech/paint work after shutdown begins, including
+shutdown triggered during a multi-participant event. An already owned expiry
+may retire its internal timer/index entry but must not repaint or request HTTP.
+Validate outer payload and identity types before logging/normalizing; malformed
+activity cannot grant data, while an explicit denial remains clear-only.
+
+These checks do not bound all work of an incoming event. At this audit stage,
+name-map persistence still used a synchronous DatabaseBridge call; the next
+section supersedes that path. A single group payload still processes each
+participant's legitimate transition. These are not a proven live cause.
+
+### Presence names: asynchronous persistence on the existing DB loop (2026-10-27)
+
+Learning a new pushName used to synchronously wait for set_metadata_json on the
+UI event path. queue_presence_names now copies the full name map and offers it
+to one runner plus one replaceable successor on the bridge's existing DB loop.
+Only full snapshots of this one metadata key can be coalesced; ordered presence
+events, cache privacy decisions and speech must not pass through this queue.
+No new thread, timer, GUI callback or transaction cancellation is introduced.
+
+Admission and in-flight accounting share the bridge's closing lock. A snapshot
+is accepted before scheduling; closing rejects later offers, drains accepted
+work and flushes any retained failed snapshot once before closing the DB.
+Successor leases are identity guarded so old completion cannot retire new work.
+Admission is not proof of a committed write: a broken DB retains the latest
+snapshot without an automatic retry loop. Log exception classes, not names.
+
+clear_all and full imports that actually clear metadata share an async gate
+with the writer. Their generation invalidates older pending snapshots so a
+successful clear cannot be followed by an obsolete queued name write. New
+offers during the reset belong to the new generation. If the reset fails,
+restore accepted names unless a newer offer supersedes them. Imports preserving
+metadata must not discard pending names. Each bridge owns its own queue.
+
+The bridge's existing shutdown timeouts remain. A permanently stuck database
+can exceed them; arbitrary crash/hard-timeout durability is not established.
+Copying the full map still costs UI CPU, while JSON/SQLite work no longer waits
+on the UI path. Serial synthetic queue/reset tests and a temporary database
+close round trip do not establish real-account or screen-reader latency.

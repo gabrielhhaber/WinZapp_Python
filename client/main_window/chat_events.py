@@ -7,8 +7,8 @@ available here.
 
 import logging
 from core.contact_presence import ONLINE, activity, cached, merge, visible_online
-from ui.dialogs.personal_presence import notify_personal_presence
 from main_window.presence_visibility import refresh_missing_presence
+from main_window.presence_ui import request_presence_ui
 import time
 import wx
 from core.conversation_view import conversation_in_view
@@ -284,7 +284,11 @@ class ChatEventsMixin:
             return
         self.output(self._presence_announcement_for_chat(chat))
 
-    def _refresh_chat_row_in_list(self, chat_jid_norm: str):
+    def _refresh_presence_row_in_list(self, chat_jid_norm: str):
+        """Activity suffix only; unread callers retain their normal title work."""
+        self._refresh_chat_row_in_list(chat_jid_norm, update_title=False)
+
+    def _refresh_chat_row_in_list(self, chat_jid_norm: str, *, update_title=True):
         """Update only the chat-list row for chat_jid_norm via SetItem(), in
         whichever panel (main or archived) currently displays it.
 
@@ -294,10 +298,10 @@ class ChatEventsMixin:
         list, and applies immediately instead of waiting out the 300ms
         _schedule_set_chats() debounce.
         """
-        # Title/tray tooltip unread count: cheap (one pass over self.chats),
-        # so recompute it here directly rather than waiting for the next
-        # debounced _apply_chat_lists() rebuild.
-        self._update_title()
+        # Read/unread callers still need immediate counts. Presence changes
+        # only affect the activity suffix: never rescan title/archive/tray.
+        if update_title:
+            self._update_title()
 
         is_group = chat_jid_norm.endswith("@g.us")
         for panel in (
@@ -396,10 +400,10 @@ class ChatEventsMixin:
 
         presences: {jid_str: {"lastKnownPresence": str, "lastSeen": int|None}, ...}
         """
-        logging.info("[on_presence_update] entries=%s", len(presences))
-
-        if not jid or not isinstance(presences, dict):
+        if (getattr(self, "_shutting_down", False) or not isinstance(jid, str)
+                or not jid or not isinstance(presences, dict) or not presences):
             return
+        logging.info("[on_presence_update] entries=%s", len(presences))
 
         chat_jid_norm = self._normalize_jid(jid)
         if chat_jid_norm.endswith("@lid"):
@@ -444,8 +448,17 @@ class ChatEventsMixin:
         # message had taken them off it.
         _fresh_typing = set()
         for participant_jid, data in presences.items():
-            if not isinstance(data, dict):
+            if getattr(self, "_shutting_down", False):
+                return
+            if not isinstance(participant_jid, str) or not participant_jid or not isinstance(data, dict):
                 continue
+            if not isinstance(data.get("lastKnownPresence", ""), str):
+                # A malformed activity cannot grant visibility or start work.
+                # Still honor an explicit denial as a clear-only observation.
+                if data.get("restricted") is not True:
+                    continue
+                data = {"restricted": True, "lastSeen": None,
+                        "eventTimestamp": data.get("eventTimestamp")}
             canonical = self._normalize_jid(participant_jid)
             if canonical.endswith("@lid"):
                 canonical = self._lid_to_phone.get(canonical, canonical)
@@ -476,7 +489,13 @@ class ChatEventsMixin:
                 continue  # An older event must not restart a typing timer/speech.
             new_lkp = entry.get("lastKnownPresence", "")
 
-            if new_lkp != old_lkp:
+            # The list displays typing/recording, not online/offline. An
+            # online-only burst must not scan/reformat every conversation.
+            old_activity = composing_chats.get(chat_jid_norm, {}).get(canonical)
+            new_activity = new_lkp if new_lkp in ("composing", "recording") else None
+            # The cache may have expired before its queued timer clears the
+            # visible suffix. Compare the index actually used by that suffix.
+            if new_activity != old_activity:
                 presence_changed = True
 
             # Update composing/recording index for this chat
@@ -501,15 +520,9 @@ class ChatEventsMixin:
                             return
                         self._composing_chats.get(cjid, {}).pop(part, None)
                         self._presence_timers.pop((cjid, part), None)
-                        notify_personal_presence(self)
-                        self._refresh_chat_row_in_list(cjid)
-                        # Same expiry for the open conversation's typing row.
-                        cp = getattr(self, "conversations_panel", None)
-                        if cp is not None and hasattr(cp, "refresh_typing_row"):
-                            cp.refresh_typing_row()
-                        refresh_note = getattr(self, "_refresh_open_contact_presence_note", None)
-                        if refresh_note is not None:
-                            refresh_note()
+                        if getattr(self, "_shutting_down", False):
+                            return
+                        request_presence_ui(self, cjid, row=True)
                         # A missing final push must not leave expired activity
                         # waiting for the next periodic active-chat tick.
                         if refresh_offline:
@@ -543,7 +556,8 @@ class ChatEventsMixin:
                 # is actually looking at WinZapp — a conversation left open when
                 # the window was minimized to the tray must not keep announcing.
                 window_active = (
-                    not getattr(self, "_window_hidden", False)
+                    not getattr(self, "_shutting_down", False)
+                    and not getattr(self, "_window_hidden", False)
                     and self.IsShown()
                     and not self.IsIconized()
                     and self.IsActive()
@@ -566,30 +580,23 @@ class ChatEventsMixin:
                         except Exception:
                             logging.error("[on_presence_update] activity announcement failed")
 
-        notify_personal_presence(self)
-
+        if getattr(self, "_shutting_down", False):
+            return
         # Persist the updated pushName map to database metadata.
         if _ppm_updated and hasattr(self, "db") and self.db is not None:
             try:
-                self.db.set_metadata_json("presence_pushname_map", dict(self._presence_pushname_map))
+                self.db.queue_presence_names(self._presence_pushname_map)
             except Exception as db_err:
-                logging.warning("[on_presence_update] Failed to save presence_pushname_map: %s", db_err)
+                logging.warning("[on_presence_update] name snapshot not queued: %s", type(db_err).__name__)
 
-        # Update only the affected row — avoids DeleteAllItems()+Append() rebuild
-        # that causes NVDA to re-read the full list and stutter during TTS echo.
-        if presence_changed:
-            self._refresh_chat_row_in_list(chat_jid_norm)
-
-        # The open conversation's "X is typing..." last row. Silent by design:
-        # the announcement above is the only speech for this event.
-        if panel is not None and hasattr(panel, "refresh_typing_row"):
-            panel.refresh_typing_row(chat_jid_norm, _fresh_typing)
+        if getattr(self, "_shutting_down", False):
+            return
+        request_presence_ui(self, chat_jid_norm, row=presence_changed or _ppm_updated,
+                            fresh=_fresh_typing)
 
         # Refresh the data-button note for the open conversation
         if panel is None or conv is None:
             return
-        if cached(self, conv_jid, fresh=False):
-            panel._refresh_presence_note(conv_jid)
         # WPP pushes the state, but not chatstate.t. Ask for the current
         # snapshot when this contact goes offline instead of waiting for a tick.
         if (refresh_offline and is_active_chat(chat_jid_norm, conv_jid)

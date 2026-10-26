@@ -726,6 +726,8 @@ class MainWindow(
         self._composing_chats = {}
         # Maps (chat_jid, participant_jid) → wx.CallLater for 10-second auto-clear
         self._presence_timers = {}
+        from main_window.presence_ui import PresenceUiUpdates
+        self._presence_ui = PresenceUiUpdates(self, wx.CallAfter)
         # Persistent pushName map: phone@s.whatsapp.net → real pushName, learned
         # from presence.update events. Loaded from DB on prepare_sync() and saved whenever updated.
         self._presence_pushname_map = {}
