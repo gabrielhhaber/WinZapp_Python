@@ -27,7 +27,7 @@ def pipeline(monkeypatch):
     owner._composing_chats = {}
     owner._presence_pushname_map = {}
     owner.contacts, owner.settings, owner.db = {}, {"speech_content": {}}, None
-    owner._refresh_chat_row_in_list = lambda *args: None
+    owner._refresh_chat_row_in_list = lambda *args, **kwargs: None
     owner.speak_output = SimpleNamespace(output=lambda *args: pytest.fail("Unexpected speech"))
     panel, _, button, _, _ = views(owner)
     panel._contact_presence_visit = 1
