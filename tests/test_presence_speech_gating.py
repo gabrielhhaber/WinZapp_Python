@@ -88,7 +88,7 @@ class _Stub:
     def _resolve_jid_name(self, _participant_jid, _chat_jid=""):
         return "Fulano"
 
-    def _refresh_chat_row_in_list(self, jid):
+    def _refresh_chat_row_in_list(self, jid, update_title=True):
         self.refreshed_rows.append(jid)
 
 

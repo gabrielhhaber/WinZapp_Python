@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Multe actualizări de prezență ale contactelor la rând (scrie, online) nu mai blochează WinZapp câteva secunde și nu mai încetinesc întregul calculator pe conturile cu multe conversații.
+
 - Listele de conversații (conversații, arhivate și blocate) folosesc acum toată lățimea listei, așa că numele conversațiilor și previzualizările mesajelor sunt tăiate mult mai puțin când fereastra este lată.
 
 - Actualizarea WinZapp sau a WPPConnect nu mai blochează întregul computer la jumătatea procesului. Pașii de instalare și compilare rulează acum cu prioritate mai mică, iar cititorul de ecran continuă să vorbească fluent.

@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Muitas atualizações de presença de contactos seguidas (a escrever, online) já não congelam o WinZapp durante segundos nem deixam o computador lento em contas com muitas conversas.
+
 - As listas de conversas (conversas, arquivadas e bloqueadas) passam a usar toda a largura da lista, pelo que os nomes das conversas e as pré-visualizações das mensagens são cortados muito menos quando a janela é larga.
 
 - Atualizar o WinZapp ou a WPPConnect já não bloqueia o computador inteiro a meio do processo. Os passos de instalação e compilação correm agora com prioridade mais baixa, e o leitor de ecrã continua a falar sem falhas.

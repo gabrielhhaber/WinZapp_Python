@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Art arda gelen çok sayıda kişi durumu güncellemesi (yazıyor, çevrimiçi) artık WinZapp'i saniyelerce dondurmuyor ve çok sohbetli hesaplarda bilgisayarın tamamını yavaşlatmıyor.
+
 - Sohbet listeleri (sohbetler, arşivlenenler ve kilitli sohbetler) artık listenin tüm genişliğini kullanıyor; böylece pencere genişken sohbet adları ve mesaj önizlemeleri çok daha az kesiliyor.
 
 - WinZapp veya WPPConnect güncellenirken bilgisayarın tamamı artık işlemin ortasında donmuyor. Kurulum ve derleme adımları artık daha düşük öncelikle çalışıyor, bu yüzden ekran okuyucu kesintisiz konuşmaya devam ediyor.

@@ -512,7 +512,7 @@ class _MW:
     def _resolve_jid_name(self, *_a, **_k):
         return "Ana"
 
-    def _refresh_chat_row_in_list(self, jid):
+    def _refresh_chat_row_in_list(self, jid, update_title=True):
         pass
 
 

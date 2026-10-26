@@ -284,7 +284,7 @@ class ChatEventsMixin:
             return
         self.output(self._presence_announcement_for_chat(chat))
 
-    def _refresh_chat_row_in_list(self, chat_jid_norm: str):
+    def _refresh_chat_row_in_list(self, chat_jid_norm: str, update_title: bool = True):
         """Update only the chat-list row for chat_jid_norm via SetItem(), in
         whichever panel (main or archived) currently displays it.
 
@@ -294,10 +294,13 @@ class ChatEventsMixin:
         list, and applies immediately instead of waiting out the 300ms
         _schedule_set_chats() debounce.
         """
-        # Title/tray tooltip unread count: cheap (one pass over self.chats),
-        # so recompute it here directly rather than waiting for the next
-        # debounced _apply_chat_lists() rebuild.
-        self._update_title()
+        # Title/tray tooltip unread count: one pass over self.chats, twice
+        # (title and tray), each chat asking the lock vault. Callers whose
+        # event cannot change the unread count (presence, which fires dozens
+        # of times a second on a busy account) pass update_title=False: the
+        # passes froze the UI thread for seconds.
+        if update_title:
+            self._update_title()
 
         is_group = chat_jid_norm.endswith("@g.us")
         for panel in (
@@ -502,7 +505,7 @@ class ChatEventsMixin:
                         self._composing_chats.get(cjid, {}).pop(part, None)
                         self._presence_timers.pop((cjid, part), None)
                         notify_personal_presence(self)
-                        self._refresh_chat_row_in_list(cjid)
+                        self._refresh_chat_row_in_list(cjid, update_title=False)
                         # Same expiry for the open conversation's typing row.
                         cp = getattr(self, "conversations_panel", None)
                         if cp is not None and hasattr(cp, "refresh_typing_row"):
@@ -578,7 +581,7 @@ class ChatEventsMixin:
         # Update only the affected row — avoids DeleteAllItems()+Append() rebuild
         # that causes NVDA to re-read the full list and stutter during TTS echo.
         if presence_changed:
-            self._refresh_chat_row_in_list(chat_jid_norm)
+            self._refresh_chat_row_in_list(chat_jid_norm, update_title=False)
 
         # The open conversation's "X is typing..." last row. Silent by design:
         # the announcement above is the only speech for this event.
