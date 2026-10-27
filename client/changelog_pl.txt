@@ -5,31 +5,31 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 NOWOŚCI
 
 - Wiele kolejnych aktualizacji obecności kontaktów (pisanie, online) nie zawiesza już WinZapp na kilka sekund ani nie spowalnia całego komputera na kontach z wieloma czatami.
-- Obecność kontaktów: przy zapamiętywaniu nowych nazw kontaktów interfejs nie czeka już na zapis do bazy danych. Oczekujące aktualizacje zachowują najnowszy pełny zestaw nazw, z zachowaniem kolejności przy zamykaniu i czyszczeniu danych lokalnych.
+- Nazwy kontaktów są zapisywane w tle, bez blokowania interfejsu. Oczekujące zapisy uwzględniają najnowszy kompletny zestaw nazw, z zachowaniem właściwej kolejności także podczas zamykania programu i czyszczenia danych lokalnych.
 
-- Obecność kontaktów: ograniczono powtarzaną pracę interfejsu przy wielu aktualizacjach dostępności lub pisania. Niezmieniony tytuł okna i etykieta zarchiwizowanych czatów nie są ponownie ustawiane, a komunikaty o pisaniu zachowują dotychczasowy czas ogłaszania.
+- Obecność kontaktów: ograniczono zbędne operacje interfejsu przy częstych aktualizacjach informacji o dostępności i pisaniu. Tytuł okna i etykieta zarchiwizowanych czatów nie są ponownie ustawiane, jeśli ich treść się nie zmieniła, a komunikaty o pisaniu nie są przez to opóźniane.
 
-- Listy czatów (rozmowy, zarchiwizowane i zablokowane) wykorzystują teraz całą szerokość listy, dzięki czemu nazwy czatów i podglądy wiadomości są znacznie rzadziej ucinane w szerokim oknie.
+- Główna lista czatów oraz listy czatów zarchiwizowanych i zabezpieczonych wykorzystują teraz całą dostępną szerokość, dzięki czemu nazwy czatów i podglądy wiadomości są znacznie rzadziej ucinane w szerokim oknie.
 
 - Aktualizacja WinZapp lub WPPConnect nie zawiesza już całego komputera w połowie procesu. Kroki instalacji i kompilacji działają teraz z niższym priorytetem, więc czytnik ekranu mówi płynnie.
 
-- WPPConnect Server zaktualizowany do wersji 2.10.63, z WPPConnect 2.3.6 i WA-JS 4.7.2. Przeglądarka obsługiwana przez WinZapp jest pełniej zwalniana, gdy sesja się zamyka lub nie uruchamia, przywrócona sesja jest szybciej rozpoznawana jako zalogowana, a rozłączenie telefonu jest zgłaszane dopiero po rzeczywistym odparowaniu.
+- WPPConnect Server zaktualizowany do wersji 2.10.63, z WPPConnect 2.3.6 i WA-JS 4.7.2. WinZapp dokładniej zwalnia zasoby przeglądarki po zamknięciu sesji lub nieudanej próbie jej uruchomienia, przywrócona sesja jest szybciej rozpoznawana jako zalogowana, a rozłączenie telefonu jest zgłaszane dopiero po faktycznym usunięciu powiązania z telefonem.
 
-- Wskaźniki pisania i nagrywania wiadomości głosowej w czatach prywatnych pozostają dostępne, gdy WhatsApp informuje, że kontakt jest offline. Aktywność jest pokazywana oddzielnie od widoczności online i wygasa, gdy nie jest odświeżana. Aktywność jest przypisana do czatu, w którym występuje: grupy i czaty prywatne są śledzone oddzielnie. Pominięte odświeżenia informacji „Widziano” są ponawiane. Ograniczenia widoczności usuwają także wcześniej wyświetlany stan online i informację „Widziano”. Jeśli dane stanu przez dłuższy czas nie są gotowe w otwartym czacie, WinZapp podejmuje ograniczoną liczbę prób ich odzyskania; ukryte informacje nie uruchamiają tych prób. Gdy dane stanu nie są jeszcze gotowe, pierwszy odczyt czeka na zakończenie subskrypcji; informacje „Widziano” i widoczność są też aktualizowane niezależnie od zmian aktywności. Pojedyncze zawieszone żądanie stanu nie blokuje już kolejnych odświeżeń; liczba odczytów zastępczych pozostaje ograniczona. Brakujące informacje „Widziano” są odświeżane po powrocie do okna, podczas przeglądania danych bieżącego kontaktu i po zakończeniu pisania lub nagrywania bez końcowej aktualizacji. Dane kontaktu otwierają się bez czekania na żądania informacji „Widziano”; spóźnione odpowiedzi o stanie profilu nie przywracają informacji z poprzedniego połączenia. Wskaźniki pisania i nagrywania w czatach grupowych nie pozostają przypisane do starego połączenia. Ograniczenia widoczności wykryte podczas odświeżania stanu usuwają także wcześniejsze informacje z czatów i danych kontaktu.
+- Wskaźniki pisania i nagrywania wiadomości głosowej w czatach prywatnych pozostają dostępne, gdy WhatsApp informuje, że kontakt jest offline. Są niezależne od widoczności online i znikają, gdy przestają być odświeżane. Aktywność jest przypisana do czatu, w którym występuje; grupy i czaty prywatne są śledzone oddzielnie. Pominięte odświeżenia informacji „Widziano” są ponawiane. Informacje „Widziano” i ustawienia widoczności są aktualizowane także wtedy, gdy kontakt nie zmienia swojej aktywności. Jeśli dane nie są jeszcze dostępne, pierwszy odczyt czeka na rozpoczęcie ich odbierania. Gdy oczekiwanie w otwartym czacie się przedłuża, WinZapp podejmuje ograniczoną liczbę prób odzyskania danych. Nie ponawia ich w celu uzyskania informacji ukrytych przez ustawienia prywatności. Pojedyncze żądanie, na które nie nadeszła odpowiedź, nie blokuje kolejnych odświeżeń, a liczba dodatkowych prób odczytu pozostaje ograniczona. Brakujące informacje „Widziano” są odświeżane po powrocie do okna, podczas przeglądania danych bieżącego kontaktu oraz gdy pisanie lub nagrywanie zakończy się bez końcowej aktualizacji. Okno danych kontaktu otwiera się bez oczekiwania na te informacje. Spóźnione odpowiedzi nie przywracają stanu z poprzedniego połączenia, a wskaźniki pisania i nagrywania w grupach nie pozostają przypisane do starego połączenia. Po wykryciu ograniczeń widoczności WinZapp usuwa nieaktualne informacje o stanie online i „Widziano” zarówno z czatów, jak i z danych kontaktu.
 
 - Przypięte wiadomości: otwarcie przypiętych wiadomości w grupie, w której przypięcia są starsze niż to, co WhatsApp Web trzyma w pamięci, nie kończy się już błędem „Nie udało się wczytać przypiętych wiadomości”, a licznik na przycisku pokazuje właściwą liczbę.
 
 - WPPConnect Server zaktualizowany do wersji 2.10.62. Podczas parowania nowego konta kod QR nie znika już, gdy WhatsApp zgłasza rozłączenie telefonu chwilę po rozpoczęciu sesji.
 
-- Połączenia: ponowna instalacja WPPConnect zachowuje nowszy, zgodny katalog WhatsApp Web i sprawdza jego aktualność. Ponownie zainstalowany katalog jest sprawdzany bez wcześniejszego sześciogodzinnego oczekiwania. Potwierdzona niezgodność VoIP, której nie można ponowić, zatrzymuje powtarzanie inicjalizacji.
+- Połączenia: ponowna instalacja WPPConnect zachowuje nowszy, zgodny katalog WhatsApp Web i sprawdza jego aktualność. Ponownie zainstalowany katalog jest sprawdzany bez wcześniejszego sześciogodzinnego oczekiwania. Jeśli wykryta niezgodność z mechanizmem połączeń WhatsApp Web nie pozwala na skuteczne ponowienie próby, WinZapp zgłasza ją i przestaje ponawiać inicjalizację.
 
-- Połączenia grupowe: WhatsApp nie pozwala dzwonić do grup liczących więcej niż 32 członków, więc przyciski połączeń zastępuje przycisk "Nie można zadzwonić", którego opis mówi, że grupa ma więcej niż 32 członków, a skróty połączeń mówią to samo zamiast rozpoczynać połączenie.
+- Połączenia grupowe: WhatsApp nie pozwala dzwonić do grup liczących więcej niż 32 członków, więc przyciski połączeń zastępuje przycisk „Nie można zadzwonić”, którego opis mówi, że grupa ma więcej niż 32 członków, a skróty połączeń mówią to samo zamiast rozpoczynać połączenie.
 
-- Połączenia grupowe: przyciski połączenia głosowego i wideo pojawiają się teraz w rozmowie grupowej i rozpoczynają połączenie z grupą, a przychodzące połączenie grupowe dzwoni, jest zapowiadane nazwą grupy i można je odebrać tym samym przyciskiem odbierania i tym samym globalnym skrótem odbierania co połączenie indywidualne. Włączenie kamery podczas połączenia głosowego działa jak w połączeniu indywidualnym, a zdarzenia połączenia od każdego uczestnika pozostają przy grupie, więc okno połączenia zachowuje nazwę grupy od pierwszego dzwonka do końca.
+- Połączenia grupowe: przyciski połączenia głosowego i wideo pojawiają się teraz w czacie grupowym i rozpoczynają połączenie z grupą, a przychodzące połączenie grupowe dzwoni, jest zapowiadane nazwą grupy i można je odebrać tym samym przyciskiem odbierania i tym samym globalnym skrótem odbierania co połączenie indywidualne. Włączenie kamery podczas połączenia głosowego działa jak w połączeniu indywidualnym, a zdarzenia połączenia od każdego uczestnika pozostają przy grupie, więc okno połączenia zachowuje nazwę grupy od pierwszego dzwonka do końca.
 
-- Połączenia wideo: WinZapp znajduje teraz kamerę za pomocą dołączonego FFmpeg, który wyświetla urządzenia DirectShow bez nagłówka „DirectShow video devices”. Ta wersja FFmpeg nie zwracała żadnej kamery, więc połączenie wideo było tylko odbiorcze, z „No camera found” w logu.
+- Połączenia wideo: WinZapp poprawnie rozpoznaje kamery na liście zwracanej przez dołączoną wersję FFmpeg, także gdy nie zawiera ona nagłówka „DirectShow video devices”. Wcześniej WinZapp nie rozpoznawał tego formatu listy i zapisywał w dzienniku błąd „No camera found”. Przez to podczas połączenia można było odbierać obraz, ale nie przesyłać obrazu z własnej kamery.
 
-- Przyciski w wiadomościach firm można już używać: przycisk odpowiedzi wysyła odpowiedź tak samo jak WhatsApp Web (przyciski odpowiedzi zwykłych wiadomości, szybkie odpowiedzi wiadomości interaktywnych, przyciski szablonów i wiersze list), przycisk linku otwiera link, przycisk kopiowania kopiuje kod, a przycisk połączenia odczytuje numer. Przyciski pojawiają się pod listą wiadomości, gdy wiadomość jest zaznaczona.
+- Można już korzystać z przycisków w wiadomościach od firm: przycisk odpowiedzi wysyła odpowiedź tak samo jak WhatsApp Web (przyciski odpowiedzi zwykłych wiadomości, szybkie odpowiedzi wiadomości interaktywnych, przyciski szablonów i wiersze list), przycisk linku otwiera link, przycisk kopiowania kopiuje kod, a przycisk połączenia odczytuje numer. Przyciski pojawiają się pod listą wiadomości, gdy wiadomość jest zaznaczona.
 
 - WPPConnect Server 2.10.61 jest teraz oferowany jako aktualizacja bez czekania na nową wersję WinZapp. Aktualizuje tylko zależności i nie wpływa na zmiany, które WinZapp wprowadza w serwerze.
 
@@ -37,27 +37,27 @@ NOWOŚCI
 
 - Aktualizacje macOS wyjaśniają, czy weryfikacja nie powiodła się z powodu połączenia, certyfikatu, serwera lub limitu żądań GitHub oraz czy nie można sprawdzić pliku weryfikacji czy oficjalnego tagu wydania. Tymczasowe błędy połączenia i serwera powodują jedną ponowną próbę; limity żądań pokazują czas oczekiwania i nie powodują kolejnych żądań w tym czasie.
 
-- Aktualizacje: instalacja zachowuje wyłączność po zamknięciu WinZapp, a pobrany pakiet oczekujący na instalację jest zachowywany. Tylko pełna kopia oznacza sukces; udana aktualizacja usuwa ostrzeżenie o wcześniejszym błędzie. Automatyczne ponowne otwarcie czeka na zakończenie instalatora i nie następuje po przekroczeniu limitu oczekiwania. Po niepełnym lub niepotwierdzonym kopiowaniu WinZapp pozostaje zamknięty i otwiera instrukcje naprawy w Notatniku.
+- Aktualizacje: po zamknięciu WinZappa instalator nadal zapobiega równoczesnemu uruchomieniu kolejnej instalacji, a pobrany pakiet oczekujący na instalację jest zachowywany. Tylko pełna kopia oznacza sukces; udana aktualizacja usuwa ostrzeżenie o wcześniejszym błędzie. Automatyczne ponowne otwarcie czeka na zakończenie instalatora i nie następuje po przekroczeniu limitu oczekiwania. Po niepełnym lub niepotwierdzonym kopiowaniu WinZapp pozostaje zamknięty i otwiera instrukcje naprawy w Notatniku.
 
-- Połączenia głosowe zachowują ciągłość czasową między pakietami audio i używają konwersji z ograniczeniem pasma, gdy mikrofon lub głośnik wymaga innej częstotliwości próbkowania. Dźwięk o częstotliwości używanej w połączeniu nadal trafia bezpośrednio do dalszego przetwarzania.
+- Połączenia głosowe zachowują ciągłość czasową między pakietami audio i używają konwersji z ograniczeniem pasma, gdy mikrofon lub głośnik wymaga innej częstotliwości próbkowania. Dźwięk, którego częstotliwość próbkowania odpowiada częstotliwości używanej w połączeniu, jest przekazywany dalej bez ponownego próbkowania.
 
-- Okno Ustawienia ma teraz pole wyszukiwania i listę kategorii: strzałki zmieniają kategorię, Tab przechodzi do jej opcji, a w wyszukiwaniu strzałka w dół prowadzi do wyników, gdzie Enter lub Spacja otwiera znalezioną opcję, nawet gdy jest w oknie przycisku. Kilka kategorii połączono: Dźwięk (urządzenia, audio wklejone Ctrl+V, wiadomości głosowe i wyciszanie podczas nagrywania), Dźwięki zdarzeń (zdarzenia dźwiękowe i dźwięki powiadomień) i Pamięć (z folderem zapisu). Zawartość mówiona, Odtwarzanie audio, Kopia zapasowa, Skróty klawiszowe, Reakcje, Powiadomienia, Wiadomości, Rozmowy, Zabezpieczone czaty i Potwierdzenia stały się przyciskami, które otwierają okno każdego tematu. „Interfejs użytkownika” nazywa się teraz „Interfejs”, a Połączenie przeniesiono na koniec listy.
+- Okno Ustawienia ma teraz pole wyszukiwania i listę kategorii: strzałki zmieniają kategorię, Tab przechodzi do jej opcji, a w wyszukiwaniu strzałka w dół prowadzi do wyników, gdzie Enter lub Spacja otwiera znalezioną opcję, także wtedy, gdy znajduje się w dodatkowym oknie otwieranym przyciskiem. Kilka kategorii połączono: Dźwięk (urządzenia, audio wklejone Ctrl+V, wiadomości głosowe i wyciszanie podczas nagrywania), Dźwięki zdarzeń (zdarzenia dźwiękowe i dźwięki powiadomień) i Pamięć (z folderem zapisu). Zawartość mówiona, Odtwarzanie audio, Kopia zapasowa, Skróty klawiszowe, Reakcje, Powiadomienia, Wiadomości, Czaty, Zabezpieczone czaty i Potwierdzenia stały się przyciskami otwierającymi dodatkowe okna z odpowiednimi opcjami. „Interfejs użytkownika” nazywa się teraz „Interfejs”, a Połączenie przeniesiono na koniec listy.
 
-- Ustawienia WhatsApp (menu Plik) otwiera teraz ustawienia od razu w kategorii Ustawienia WhatsApp, z przyciskami Prywatność i Profil; osobne okno zniknęło. WinZapp pyta WhatsApp dopiero po otwarciu każdego przycisku, a Ctrl+Shift+, nadal otwiera tę kategorię.
+- Polecenie „Ustawienia WhatsApp” w menu Plik otwiera teraz ustawienia od razu w kategorii Ustawienia WhatsApp, z przyciskami Prywatność i Profil; osobne okno zniknęło. WinZapp pyta WhatsApp dopiero po otwarciu ustawień prywatności lub profilu, a Ctrl+Shift+, nadal otwiera tę kategorię.
 
 - Społeczności: okno „Nowy czat” ma nowy przycisk „Społeczności”, który otwiera listę społeczności, do których należysz. Po wybraniu społeczności widać jej opis, administratorów i te jej grupy, do których dołączono, z oznaczoną grupą ogłoszeń i grupą ogólną; Enter lub „Otwórz grupę” przechodzi do wybranej grupy. Jeśli jesteś administratorem społeczności, okno oferuje też „Dodaj grupy”, „Usuń grupę ze społeczności”, „Nadaj uprawnienia administratora społeczności”, „Odbierz uprawnienia administratora społeczności” i „Dezaktywuj społeczność”, a „Nowa społeczność” tworzy społeczność z nazwą, opisem i wybranymi grupami. Po każdym działaniu WinZapp ponownie odczytuje społeczności i mówi, że gotowe, dopiero gdy WhatsApp pokazuje zmianę; w przeciwnym razie informuje, że żądanie zostało wysłane, ale nie jest jeszcze potwierdzone, albo że zostało odrzucone.
 
-- Odpowiedzi na ogłoszenia społeczności: otwórz menu wiadomości i wybierz "Odpowiedzi na ogłoszenie społeczności", aby czytać i wysyłać odpowiedzi. Odpowiedzi odświeżają się same, gdy okno jest otwarte, pole odpowiedzi nie jest już tylko do odczytu, a tekst zostaje zachowany, gdy wysłanie nie zostanie potwierdzone. Na liście czatów podgląd grupy pokazuje „X odpowiedział(a) na ogłoszenie”, gdy to jest najnowsze zdarzenie. Ogłoszenia podają znaną liczbę odpowiedzi. Autorzy mają zapisane nazwy lub nazwy profilu, a własne odpowiedzi uwzględniają ustawienie sposobu odnoszenia się do użytkownika.
+- Odpowiedzi na ogłoszenia społeczności: otwórz menu wiadomości i wybierz „Odpowiedzi na ogłoszenie społeczności”, aby czytać i wysyłać odpowiedzi. Odpowiedzi odświeżają się same, gdy okno jest otwarte, pole odpowiedzi nie jest już tylko do odczytu, a tekst zostaje zachowany, gdy wysłanie nie zostanie potwierdzone. Na liście czatów podgląd grupy pokazuje „X odpowiedział(a) na ogłoszenie”, gdy to jest najnowsze zdarzenie. Ogłoszenia podają znaną liczbę odpowiedzi. Autorzy mają zapisane nazwy lub nazwy profilu, a własne odpowiedzi uwzględniają ustawienie sposobu odnoszenia się do użytkownika.
 
 - Społeczności są teraz pozycją listy nawigacji, po Połączeniach, ze skrótem Alt+8 w nazwie pozycji; można do nich dojść strzałkami po liście, a nie tylko skrótem Alt+8.
 
 - Blokowanie numeru, którego nie ma w zapisanych kontaktach, nie kończy się już błędem „Nie można zablokować tego kontaktu”: WinZapp otwiera teraz czat, którego WhatsApp wymaga przed zablokowaniem.
 
-- Nowa rozmowa rozpoczęta z brazylijskim numerem wpisanym z dodatkową dziewiątką nie pojawia się już dwa razy na liście rozmów po wysłaniu pierwszej wiadomości: WinZapp zachowuje rozmowę pod numerem, którego używa sam WhatsApp.
+- Nowy czat rozpoczęty z brazylijskim numerem wpisanym z dodatkową dziewiątką nie pojawia się już dwa razy na liście czatów po wysłaniu pierwszej wiadomości: WinZapp zachowuje czat pod numerem, którego używa sam WhatsApp.
 
 - Wiadomości wideo (okrągłe filmy wysyłane zamiast wiadomości głosowej) są teraz wyświetlane jako filmy, zamiast „Niezgodna wiadomość”, i są nazwane „wiadomość wideo” na liście, z tym samym czasem trwania, odtwarzaniem i opcją Zapisz jako co każdy film.
 
-- Eliminacja echa w połączeniach głosowych i wideo została przebudowana na tym samym silniku, którego używają Google Meet i sam WhatsApp (eliminator echa WebRTC): rozmowa przez głośnik laptopa lub z włączonym odsłuchem (loopback) miksera nie sprawia już, że druga osoba słyszy własny głos. Opcja jest teraz włączona, także dla osób, które już używały WinZapp; aby ją wyłączyć, odznacz "Włącz eliminację echa" w "Ustawienia dźwięku połączenia". Redukcja szumów mikrofonu podczas połączenia również korzysta teraz z tego silnika.
+- Eliminacja echa w połączeniach głosowych i wideo została przebudowana na tym samym silniku, którego używają Google Meet i sam WhatsApp (eliminator echa WebRTC): ogranicza powrót głosu rozmówcy do jego urządzenia, gdy dźwięk z głośników laptopa lub odsłuchu (loopback) miksera trafia z powrotem do połączenia. Opcja jest teraz włączona, także dla osób, które już używały WinZapp; aby ją wyłączyć, odznacz „Włącz eliminację echa” w „Ustawienia dźwięku połączenia”. Redukcja szumów mikrofonu podczas połączenia również korzysta teraz z tego silnika.
 
 - Dziennik połączeń (log.log) pokazuje teraz co 5 sekund, ile dźwięku z głośnika trafia do mikrofonu przed eliminacją echa i ile jeszcze zostaje w tym, co jest wysyłane, wraz z opóźnieniem tego echa. Jeśli ktoś nadal słyszy własny głos, dziennik mówi, czy echo przeszło przez eliminator, czy dotarło inną drogą.
 
@@ -81,11 +81,11 @@ NOWOŚCI
 
 - Lokalna transkrypcja: przy „transkrybuj bez okna postępu” poproszenie o transkrypcję w wierszu innej wiadomości, gdy jedna trwa, dodaje nową do kolejki zamiast odmowy; ponowne naciśnięcie skrótu na oczekującej wiadomości usuwa ją z kolejki.
 
-- Lokalna transkrypcja: tryb automatyczny nie mówi już „Żaden model transkrypcji nie jest gotowy” komuś, kto ma pobrany model: na małej karcie graficznej, na której zainstalowany model się nie mieści, jest on używany na procesorze zamiast prosić o kolejne pobieranie; a automatyczny silnik kieruje się modelami, które już są na komputerze.
+- Lokalna transkrypcja: tryb automatyczny nie mówi już „Żaden model transkrypcji nie jest gotowy” komuś, kto ma pobrany model: gdy karta graficzna ma zbyt mało pamięci na pobrany model, WinZapp uruchamia go na procesorze zamiast prosić o kolejne pobieranie; a automatyczny silnik kieruje się modelami, które już są na komputerze.
 
-- Enter i spacja, które transkrybują, działają teraz także dla audio i wideo wysłanych jako plik, a karta Multimedia w danych czatu stosuje tę opcję do filmów.
+- Enter i spacja, które transkrybują, działają teraz także dla audio i wideo wysłanych jako plik, a karta Media w danych czatu stosuje tę opcję do filmów.
 
-- Dane czatu: automatyczna transkrypcja to teraz dwa pola, lokalna (Whisper) i online, każde pokazuje, co czat robi teraz, i może ją włączyć lub wyłączyć tylko dla tego czatu.
+- Dane czatu: automatyczna transkrypcja to teraz dwa pola, lokalna (Whisper) i online, każde pole pokazuje bieżące ustawienie automatycznej transkrypcji i pozwala zmienić je tylko dla danego czatu.
 
 - Spróbuj wysłać ponownie: w menu Twojej wiadomości, której wysłanie się nie powiodło lub nie zostało potwierdzone, tekstu lub załącznika, oraz dla statusów, które nie zostały wysłane — zostają one teraz na karcie Status zaraz po Mój status; skrót Ctrl+Shift+Y. Nic nie jest wysyłane ponownie samo.
 
@@ -99,13 +99,13 @@ NOWOŚCI
 
 - Ustawienia WhatsApp: w Prywatności opcje statusu „Moje kontakty oprócz” i „Udostępniaj tylko” proponują tylko kontakty zapisane w telefonie, jedyne, którym WhatsApp pozwala zobaczyć status; w Profilu przycisk Wybierz zdjęcie mówi, czy jest bieżące zdjęcie i który plik wybrano, bez nawigacji po obiektach.
 
-- Listy czatów: przy włączonej opcji „Esc odznacza” klawisz Esc odznacza zaznaczone czaty na liście głównej, w archiwum i w zablokowanych czatach.
+- Listy czatów: przy włączonej opcji „Esc odznacza” klawisz Esc odznacza zaznaczone czaty na liście głównej, w archiwum i w zabezpieczonych czatach.
 
 - Aktualizacja przy kilku otwartych kontach: instalator czeka, aż wszystkie konta zostaną zamknięte, zanim zacznie kopiować, a WinZapp nie kończy już działania bez słowa przy starcie, gdy konto jest już otwarte lub aktualizacja wygląda na zawieszoną: wyjaśnia powód i zapisuje go w logu. Podczas aktualizacji, która wciąż trwa, tylko zapisuje to w logu i kończy działanie, bez okna komunikatu, bo instalator po zakończeniu sam go ponownie otwiera.
 
 - Synchronizacja dużych kont: po dużych partiach wiadomości WinZapp prosi WhatsApp Web o zwolnienie pamięci, której już nie używa, co zmniejsza zużycie podczas synchronizacji.
 
-- Karta Multimedia w danych czatu: po Zapisz jako czytnik ekranu nie ogłasza już okna jako niedostępnego.
+- Karta Media w danych czatu: po Zapisz jako czytnik ekranu nie ogłasza już okna jako niedostępnego.
 
 - Nowy czat: przycisk dołączania do grupy przez link ma teraz literę skrótu z Alt.
 
@@ -123,7 +123,7 @@ NOWOŚCI
 
 - Nowe skróty, każdy do zmiany na karcie Skróty klawiszowe w ustawieniach: Alt+8 otwiera społeczności z dowolnego miejsca okna; Alt+Shift+B otwiera katalog i koszyk firmy z zaznaczonego lub otwartego czatu; a na koncie WhatsApp Business Ctrl+Shift+N tworzy zamówienie dla kontaktu z czatu. Tam, gdzie nie mają zastosowania, WinZapp mówi dlaczego. Enter na wiadomości z zamówieniem otwiera zamówienie.
 
-- Pomoc > "Nowości od ostatniego przeglądania" mówi prostymi zdaniami, co zmieniło się w tych nowościach od ostatniego otwarcia na tym komputerze: nowe pozycje każdej sekcji, zmienione pozycje (w obecnym brzmieniu) i usunięte, a nową wersję pokazuje w całości. Działa tak samo dla wszystkich kont. Przycisk "Co nowego?" w oknie aktualizacji pokazuje teraz, co oferowana wersja zmienia w tych nowościach, zamiast nowości wersji, którą już masz; dla wersji alfa wymienia też, dla każdej wersji alfa od Twojej, zmiany zapisane w serwisie GitHub (tytuł i numer każdego pull requesta).
+- Pomoc > „Nowości od ostatniego przeglądania” mówi prostymi zdaniami, co zmieniło się w tych nowościach od ostatniego otwarcia na tym komputerze: nowe pozycje każdej sekcji, zmienione pozycje (w obecnym brzmieniu) i usunięte, a nową wersję pokazuje w całości. Działa tak samo dla wszystkich kont. Przycisk „Co nowego?” w oknie aktualizacji pokazuje teraz, co oferowana wersja zmienia w tych nowościach, zamiast nowości wersji, którą już masz; dla wersji alfa wymienia też, dla każdej wersji alfa od Twojej, zmiany zapisane w serwisie GitHub (tytuł i numer każdego pull requesta).
 
 - Lokalna transkrypcja z whisper.cpp: opcja „Utrzymuj model w pamięci (faster-whisper i whisper.cpp)” działa teraz także dla whisper.cpp. Gdy jest włączona, model jest ładowany raz i pozostaje w pamięci (lub na karcie graficznej) między transkrypcjami, zamiast być ładowany od nowa przy każdej wiadomości; dotąd opcja działała tylko z faster-whisper. Jeśli program utrzymujący model w pamięci nie może zostać użyty, transkrypcja przebiega tak jak zawsze.
 
@@ -137,25 +137,25 @@ NOWOŚCI
 
 - Usuwanie transkrypcji z klawiatury: Alt+Shift+Delete usuwa zapisaną lokalną transkrypcję wiadomości w fokusie (dotąd robiła to tylko pozycja „Usuń transkrypcję” menu kontekstowego), a przy zaznaczonych wiadomościach stosuje się do opcji „Zastąp skróty akcjami masowymi podczas zaznaczania czatów i wiadomości”. Ctrl+Alt+Shift+Delete i nowa pozycja „Usuń zapisane lokalne transkrypcje zaznaczonych wiadomości” w podmenu „Akcje masowe” usuwają transkrypcje wszystkich zaznaczonych wiadomości, po jednym pytaniu, które mówi, ile ich jest. Na karcie Status Alt+Shift+Delete usuwa transkrypcję statusu w fokusie. Okno „Mój status” przyjmuje teraz także Alt+Shift+T, Alt+Shift+N i Alt+Shift+Delete dla własnych statusów audio i wideo. Wszystkie te klawisze są widoczne na karcie „Skróty klawiszowe” i można je zmienić.
 
-- Lokalna transkrypcja statusów: statusy audio i wideo można teraz transkrybować na własnym komputerze, tymi samymi klawiszami co w czatach. Na karcie Status Alt+Shift+T otwiera tekst w oknie wyniku (albo zapisaną już transkrypcję), a Alt+Shift+N umieszcza go w wierszu statusu na liście i czyta na głos; oba klawisze można zmienić na karcie Skróty klawiszowe. W Ustawienia > Transkrypcja lokalna są trzy nowe opcje, odpowiadające tym dla czatów: „Automatycznie transkrybuj lokalnie otrzymane statusy audio i wideo i umieszczaj tekst w wierszu statusu” (domyślnie wyłączona), „Enter i spacja transkrybują lokalnie statusy audio i wideo w wierszu statusu (Alt+Shift+N wtedy je otwiera lub odtwarza)” (domyślnie wyłączona) i „Zapisuj lokalne transkrypcje statusów razem z nimi, aby nie robić ich ponownie (pamięć podręczna; są usuwane razem ze statusem)” (domyślnie włączona), oraz przycisk „Wyczyść zapisane lokalne transkrypcje statusów”. Transkrypcja jest przechowywana razem ze statusem i usuwana razem z nim, gdy status wygasa. Opcja pamięci podręcznej dla modelu jest ta sama co dla czatów.
+- Lokalna transkrypcja statusów: statusy audio i wideo można teraz transkrybować na własnym komputerze, tymi samymi klawiszami co w czatach. Na karcie Status Alt+Shift+T otwiera tekst w oknie wyniku (albo zapisaną już transkrypcję), a Alt+Shift+N umieszcza go w wierszu statusu na liście i czyta na głos; oba klawisze można zmienić na karcie Skróty klawiszowe. W Ustawienia > Transkrypcja lokalna są trzy nowe opcje, odpowiadające tym dla czatów: „Automatycznie transkrybuj lokalnie otrzymane statusy audio i wideo i umieszczaj tekst w wierszu statusu” (domyślnie wyłączona), „Enter i spacja transkrybują lokalnie statusy audio i wideo w wierszu statusu (Alt+Shift+N wtedy je otwiera lub odtwarza)” (domyślnie wyłączona) i „Zapisuj lokalne transkrypcje statusów razem z nimi, aby nie robić ich ponownie (pamięć podręczna; są usuwane razem ze statusem)” (domyślnie włączona), oraz przycisk „Wyczyść zapisane lokalne transkrypcje statusów”. Transkrypcja jest przechowywana razem ze statusem i usuwana razem z nim, gdy status wygasa. Ustawienie zapisywania transkrypcji dla poszczególnych modeli jest wspólne dla czatów i statusów.
 
 - Usuwanie wiadomości z multimediami: przy usuwaniu zdjęcia, filmu, nagrania audio lub dokumentu potwierdzenie ma teraz pole „Usuń też multimedia z telefonu”, domyślnie zaznaczone, tak jak w WhatsApp Web. Odznacz je, aby usunąć wiadomość, a plik zostawić w pamięci telefonu. Do tej pory WinZapp zawsze usuwał także plik z telefonu, nie dając wyboru. Pole pojawia się przy usuwaniu jednej wiadomości lub kilku zaznaczonych, u siebie lub u wszystkich, i nie pojawia się, gdy nie ma wśród nich multimediów. W Ustawienia > Interfejs użytkownika opcja „Przy usuwaniu wiadomości z multimediami od razu zaznaczaj opcję Usuń też multimedia z telefonu” określa, czy pole jest na początku zaznaczone.
 
 - Linki zaproszeń do grup: naciśnięcie Enter lub spacji na linku zaproszenia (https://chat.whatsapp.com/...) w wiadomości, kliknięcie go albo naciśnięcie Enter na samej wiadomości otwiera teraz okno WinZappa „Dołącz do grupy przez link”, z wpisanym linkiem i od razu pobieranym podglądem grupy, zamiast przeglądarki; do grupy dołączasz tylko wtedy, gdy to wybierzesz. Menu kontekstowe linku oferuje „Dołącz do grupy przez link” i zachowuje „Otwórz link” dla tych, którzy chcą przeglądarki. Okno przyjmuje teraz linki w postaci, w jakiej WhatsApp tworzy je dziś, zakończone „?mode=...”, które wcześniej były odrzucane jako nieprawidłowe. W Ustawienia > Ogólne nowa opcja „Pozwól systemowi Windows otwierać linki zaproszeń do grup WhatsApp w WinZappie”, domyślnie wyłączona, rejestruje WinZapp dla linków „whatsapp:”: gdy użyjesz przycisku dołączenia na stronie zaproszenia otwartej w przeglądarce lub innym programie, system Windows przekaże zaproszenie do WinZappa, nawet gdy jest zamknięty (za pierwszym razem Windows może zapytać, której aplikacji użyć). Linki https system Windows przekazuje bezpośrednio tylko aplikacjom ze sklepu Microsoft Store, dlatego droga prowadzi przez tę stronę.
 
-- Masowa transkrypcja zaznaczonych wiadomości (issue #469). Podmenu Akcje masowe ma dwie pozycje, każdą z własnym skrótem, który można zmienić na karcie Skróty klawiszowe: "Transkrybuj zaznaczone wiadomości i pokaż je razem" (Ctrl+Alt+Shift+T, jak Alt+Shift+T) oraz "Transkrybuj zaznaczone wiadomości w ich wierszach" (Ctrl+Alt+Shift+N, jak Alt+Shift+N). Gdy włączona jest opcja zastępowania skrótów akcjami masowymi, Alt+Shift+T i Alt+Shift+N także działają na zaznaczeniu. Przed rozpoczęciem WinZapp mówi, ile wiadomości zostanie przetranskrybowanych, pominiętych lub użytych ponownie, transkrybuje je po jednej w tle, ogłaszając "wiadomość 3 z 12", kontynuuje mimo błędu jednej z nich, a na końcu mówi, ile przetranskrybowano, pominięto i ile zakończyło się błędem. Ten sam skrót lub menu kontekstowe anulują kolejkę, a menu kontekstowe pokazuje wszystkie transkrypcje razem, z nadawcą, datą i godziną, do skopiowania lub zapisania.
+- Masowa transkrypcja zaznaczonych wiadomości (issue #469). Podmenu Akcje masowe ma dwie pozycje, każdą z własnym skrótem, który można zmienić na karcie Skróty klawiszowe: „Transkrybuj zaznaczone wiadomości i pokaż je razem” (Ctrl+Alt+Shift+T, jak Alt+Shift+T) oraz „Transkrybuj zaznaczone wiadomości w ich wierszach” (Ctrl+Alt+Shift+N, jak Alt+Shift+N). Gdy włączona jest opcja zastępowania skrótów akcjami masowymi, Alt+Shift+T i Alt+Shift+N także działają na zaznaczeniu. Przed rozpoczęciem WinZapp mówi, ile wiadomości zostanie przetranskrybowanych, pominiętych lub użytych ponownie, transkrybuje je po jednej w tle, ogłaszając „wiadomość 3 z 12”, kontynuuje mimo błędu jednej z nich, a na końcu mówi, ile przetranskrybowano, pominięto i ile zakończyło się błędem. Ten sam skrót lub menu kontekstowe anulują kolejkę, a menu kontekstowe pokazuje wszystkie transkrypcje razem, z nadawcą, datą i godziną, do skopiowania lub zapisania.
 
-- Transkrypcja lokalna działa teraz także z wideo: dźwięk wideo jest zamieniany na audio i przekazywany do faster-whisper lub whisper.cpp. Wszystkie opcje obejmują wideo: Alt+Shift+T, transkrypcja w wierszu (Alt+Shift+N), Enter i Spacja transkrybujące (Alt+Shift+N wtedy odtwarza lub otwiera wideo), automatyczna transkrypcja odebranych, pamięć podręczna dla każdego modelu i jej czyszczenie. GIF-y są pomijane, a o wideo bez dźwięku WinZapp informuje wprost.
+- Transkrypcja lokalna działa teraz także z wideo: dźwięk z filmu jest przekazywany do faster-whisper lub whisper.cpp. Wszystkie opcje obejmują wideo: Alt+Shift+T, transkrypcja w wierszu (Alt+Shift+N), Enter i Spacja transkrybujące (Alt+Shift+N wtedy odtwarza lub otwiera wideo), automatyczna transkrypcja odebranych, pamięć podręczna dla każdego modelu i jej czyszczenie. GIF-y są pomijane, a o wideo bez dźwięku WinZapp informuje wprost.
 
-- W Ustawieniach > Transkrypcja lokalna pamięć podręczna transkrypcji ma teraz własne elementy: opcję ogólną (domyślnie włączoną) zapisywania transkrypcji przy wiadomościach, aby nie robić ich ponownie, wybór dla każdego modelu (zgodnie z ustawieniem ogólnym, włączona lub wyłączona) oraz przycisk "Wyczyść zapisane transkrypcje wszystkich modeli", który czyści pamięć podręczną wszystkich modeli we wszystkich rozmowach. Gdy pamięć podręczna jest wyłączona dla modelu, jego nowe transkrypcje nie są zapisywane i pojawiają się w oknie wyniku; te już zapisane pozostają do czasu ich usunięcia.
+- W Ustawieniach > Transkrypcja lokalna pamięć podręczna transkrypcji ma teraz własne elementy: opcję ogólną (domyślnie włączoną) zapisywania transkrypcji przy wiadomościach, aby nie robić ich ponownie, wybór dla każdego modelu (zgodnie z ustawieniem ogólnym, włączona lub wyłączona) oraz przycisk „Wyczyść zapisane transkrypcje wszystkich modeli”, który czyści pamięć podręczną wszystkich modeli we wszystkich czatach. Gdy pamięć podręczna jest wyłączona dla modelu, jego nowe transkrypcje nie są zapisywane i pojawiają się w oknie wyniku; te już zapisane pozostają do czasu ich usunięcia.
 
-- W Ustawieniach > Transkrypcja lokalna opcja "Automatycznie transkrybuj odebrane wiadomości głosowe i umieszczaj tekst w wierszu wiadomości", domyślnie wyłączona, transkrybuje lokalnie każdą nadchodzącą wiadomość głosową i pokazuje tekst w wierszu wiadomości, tak jak ręcznie wykonana transkrypcja w wierszu. Transkrypcje są wykonywane po jednej, tylko dla świeżo odebranych wiadomości (do 10 minut nagrania) i poza zabezpieczonymi czatami. Bez okien i komunikatów przy każdej wiadomości; jeśli transkrypcja lokalna nie jest gotowa, WinZapp robi przerwę i raz mówi dlaczego (na przykład, że żaden model nie jest gotowy do użycia): potem po cichu próbuje ponownie, a komunikat wraca dopiero po zastosowaniu ustawień albo gdy transkrypcja znów się uda. Chwila, w której żaden model nie mieści się w wolnej pamięci, nie powoduje przerwy.
+- W Ustawieniach > Transkrypcja lokalna opcja „Automatycznie transkrybuj odebrane wiadomości głosowe i umieszczaj tekst w wierszu wiadomości”, domyślnie wyłączona, transkrybuje lokalnie każdą nadchodzącą wiadomość głosową i pokazuje tekst w wierszu wiadomości, tak jak ręcznie wykonana transkrypcja w wierszu. Transkrypcje są wykonywane po jednej, tylko dla świeżo odebranych wiadomości (do 10 minut nagrania) i poza zabezpieczonymi czatami. Bez okien i komunikatów przy każdej wiadomości; jeśli transkrypcja lokalna nie jest gotowa, WinZapp robi przerwę i raz mówi dlaczego (na przykład, że żaden model nie jest gotowy do użycia): potem po cichu próbuje ponownie, a komunikat wraca dopiero po zastosowaniu ustawień albo gdy transkrypcja znów się uda. Chwila, w której żaden model nie mieści się w wolnej pamięci, nie powoduje przerwy.
 
-- W Ustawieniach > Transkrypcja lokalna grupa "Użyj ponownie plików pobranych do innego folderu" pozwala wskazać folder z bibliotekami CUDA (cublas64_12.dll i cublasLt64_12.dll) oraz folder z programami whisper.cpp, które WinZapp już pobrał (ten z folderami cpu i cuda), zamiast pobierać wszystko od nowa. Folder jest tylko odczytywany: nic w nim nie jest kopiowane, zmieniane ani usuwane. Biblioteki CUDA muszą się załadować, a programy whisper.cpp przechodzą te same kontrole co te pobierane przez WinZapp.
+- W Ustawieniach > Transkrypcja lokalna grupa „Użyj ponownie plików pobranych do innego folderu” pozwala wskazać folder z bibliotekami CUDA (cublas64_12.dll i cublasLt64_12.dll) oraz folder z programami whisper.cpp, które WinZapp już pobrał (ten z folderami cpu i cuda), zamiast pobierać wszystko od nowa. WinZapp korzysta ze wskazanego folderu bez kopiowania, zmieniania ani usuwania znajdujących się w nim plików. Biblioteki CUDA muszą się załadować, a programy whisper.cpp przechodzą te same kontrole co te pobierane przez WinZapp.
 
-- W Ustawieniach > Transkrypcja lokalna opcja "Utrzymuj model załadowany w pamięci (faster-whisper)", domyślnie wyłączona, oszczędza czekania na załadowanie modelu po każdej przerwie między transkrypcjami. Bez niej załadowany model jest zwalniany z pamięci 5 minut po ostatniej transkrypcji, oddając pamięć komputera (lub karty graficznej) innym programom. whisper.cpp uruchamia nowy proces przy każdej transkrypcji, więc opcja niczego dla niego nie zmienia.
+- W Ustawieniach > Transkrypcja lokalna opcja „Utrzymuj model załadowany w pamięci (faster-whisper)”, domyślnie wyłączona, oszczędza czekania na załadowanie modelu po każdej przerwie między transkrypcjami. Bez niej załadowany model jest zwalniany z pamięci 5 minut po ostatniej transkrypcji, oddając pamięć komputera (lub karty graficznej) innym programom. whisper.cpp uruchamia nowy proces przy każdej transkrypcji, więc opcja niczego dla niego nie zmienia.
 
-- Lokalna transkrypcja zapisana przy wiadomości jest teraz przechowywana osobno dla każdego modelu: po zmianie modelu (lub programu) w Ustawieniach wiadomość jest transkrybowana ponownie wybranym modelem, a tekst poprzedniego modelu pozostaje zapisany na wypadek powrotu do niego. W Ustawieniach > Transkrypcja lokalna przycisk "Wyczyść zapisane transkrypcje tego modelu" usuwa we wszystkich rozmowach tylko to, co przepisał wybrany model.
+- Lokalna transkrypcja zapisana przy wiadomości jest teraz przechowywana osobno dla każdego modelu: po zmianie modelu (lub programu) w Ustawieniach wiadomość jest transkrybowana ponownie wybranym modelem, a tekst poprzedniego modelu pozostaje zapisany na wypadek powrotu do niego. W Ustawieniach > Transkrypcja lokalna przycisk „Wyczyść zapisane transkrypcje tego modelu” usuwa we wszystkich czatach tylko to, co przepisał wybrany model.
 
 - Przeglądanie ostatnich wiadomości według pozycji: dziesięć nowych poleceń na karcie „Skróty klawiszowe” w Ustawieniach, po jednym dla każdej pozycji od najnowszej wiadomości (1) do dziesiątej (0), czyta tę wiadomość na głos bez przenoszenia fokusu, a dwukrotne szybkie naciśnięcie tego samego klawisza ją kopiuje. Nie mają przypisanego klawisza, bo Alt+1 do Alt+9 należą do okna głównego: zwolnij je albo wybierz inne klawisze na tej karcie.
 
@@ -169,13 +169,13 @@ NOWOŚCI
 
 - Głosy w ankietach: w ankiecie jednokrotnego wyboru Tab z wiadomości prowadzi do opcji, a zaznaczenie jednej od razu oddaje głos. Każda opcja pokazuje teraz także procent głosów, a okno ankiety ma przycisk Pokaż głosy (Alt+P), który wyświetla, kto na co głosował.
 
-- Lista opcji ankiety: poprzedza ją teraz etykieta "Opcje", a po oddaniu głosu liczba głosów zaznaczonej opcji aktualizuje się od razu.
+- Lista opcji ankiety: poprzedza ją teraz etykieta „Opcje”, a po oddaniu głosu liczba głosów zaznaczonej opcji aktualizuje się od razu.
 
 - Błędy instalacji i aktualizacji WPPConnect są teraz wyświetlane w polu tekstowym tylko do odczytu, ze szczegółami do przeczytania i skopiowania. Aktualizacje przygotowane osobno wyświetlają jeden raport błędu zamiast powielonych komunikatów.
 
-- Wyczyszczenie lub usunięcie czatów może przestać wymagać potwierdzenia: oba okna mają teraz pole wyboru "Nie pokazuj ponownie", które działa tylko razem z odpowiedzią Tak. Gdy pytanie jest wyłączone, czyszczenie zachowuje wiadomości z gwiazdką. W Ustawienia > Interfejs użytkownika są dwie odpowiadające opcje, które przywracają pytanie.
+- Wyczyszczenie lub usunięcie czatów może przestać wymagać potwierdzenia: oba okna mają teraz pole wyboru „Nie pokazuj ponownie”, które działa tylko razem z odpowiedzią Tak. Gdy pytanie jest wyłączone, czyszczenie zachowuje wiadomości z gwiazdką. W Ustawienia > Interfejs użytkownika są dwie odpowiadające opcje, które przywracają pytanie.
 
-- Opcja "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach" w Ustawienia > Interfejs użytkownika. Po włączeniu wiadomości od osób bez nazwy zaczynają się bezpośrednio od treści na liście wiadomości i w komunikatach otwartego czatu, bez zastępczej etykiety nadawcy. Nazwy i numery w treści wiadomości są zachowane. Domyślnie wyłączona.
+- Opcja „Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach” w Ustawienia > Interfejs użytkownika. Po włączeniu wiadomości od osób bez nazwy zaczynają się bezpośrednio od treści na liście wiadomości i w komunikatach otwartego czatu, bez zastępczej etykiety nadawcy. Nazwy i numery w treści wiadomości są zachowane. Domyślnie wyłączona.
 
 - Konfigurowalne skróty klawiszowe: nowa karta Skróty w Ustawieniach wyświetla wszystkie skróty aplikacji, w tym globalny skrót pokazywania okna. Zaznacz skrót, naciśnij Zmień i wpisz nową kombinację albo wyłącz go, przywróć domyślny lub przywróć wszystkie. Konflikty są zgłaszane przed zastosowaniem, a zmiany obowiązują dopiero po wybraniu Zastosuj lub OK.
 
@@ -185,11 +185,11 @@ NOWOŚCI
 
 - Podmenu kontekstowe „Pisownia” w polu wiadomości oferuje sugestie ze słownika Windows. Edytor zachowuje standardową nawigację czytnika ekranu i dźwięk błędu pisowni WinZapp.
 
-- Opcja "Zachowuj kolejność przypiętych czatów" na karcie Interfejs użytkownika w Ustawieniach. Po jej włączeniu nowe wiadomości nie zmieniają pozycji przypiętych czatów, a kolejność jest zachowywana po ponownym uruchomieniu. Domyślnie jest wyłączona; nieprzypięte czaty nadal przesuwają się w górę po otrzymaniu nowych wiadomości.
+- Opcja „Zachowuj kolejność przypiętych czatów” na karcie Interfejs użytkownika w Ustawieniach. Po jej włączeniu nowe wiadomości nie zmieniają pozycji przypiętych czatów, a kolejność jest zachowywana po ponownym uruchomieniu. Domyślnie jest wyłączona; nieprzypięte czaty nadal przesuwają się w górę po otrzymaniu nowych wiadomości.
 
 - Transkrybuj i opisuj pliki za pomocą AI. Nowa karta „AI online: transkrypcje i opisy” w Ustawieniach włącza funkcje AI (domyślnie są wyłączone) i przyjmuje klucz API jednego lub kilku dostawców — Gemini, OpenAI, Claude, Groq i OpenRouter — którzy są wypróbowywani w ustawionej przez Ciebie kolejności; gdy jeden zawiedzie lub wyczerpie limit, odpowiada następny. W menu kontekstowym wiadomości lub skrótem Ctrl+Shift+I „Transkrybuj za pomocą AI online” zamienia wiadomość głosową na tekst, „Opisz” opisuje zdjęcie lub film, „Opisz naklejkę” opisuje naklejkę, a „Konwertuj na dostępny tekst” zamienia plik PDF w zwykły, czytelny tekst. Wynik otwiera się w oknie z tekstem, a dla zdjęć i filmów możesz w nim zadawać dodatkowe pytania. WinZapp pyta przed wysłaniem pliku do dostawcy, a w zabezpieczonych czatach pyta za każdym razem; klucze są szyfrowane na Twoim komputerze i wysyłane tylko do dostawcy, do którego należą. Podczas pracy dostawcy odtwarzany jest dźwięk oczekiwania, a odpowiedzi mogą być czytane na głos automatycznie. Tekst jest w języku aplikacji.
 
-- Lokalna transkrypcja wiadomości głosowych i plików audio. „Transkrybuj wiadomość lokalnie za pomocą Whispera” w menu kontekstowym wiadomości głosowej lub pliku audio albo skrót Alt+Shift+T zamienia dźwięk na tekst na Twoim własnym komputerze, za pomocą Whispera: nic nie jest nigdzie wysyłane. Tekst otwiera się w oknie, z którego można go skopiować, zapisać lub wstawić do wiadomości, i zostaje zapisany razem z wiadomością, zaszyfrowany tak jak ona; potem Alt+Shift+T ponownie pokazuje zapisaną transkrypcję, a menu kontekstowe oferuje „Pokaż transkrypcję”, „Transkrybuj ponownie” i „Usuń transkrypcję”. Wszystko ustawia się na nowej karcie „Transkrypcja lokalna” w Ustawieniach. Są dwa składniki transkrypcji: faster-whisper, domyślny, dostarczany razem z WinZapp, oraz whisper.cpp, opcjonalny program, który karta instaluje w wersji dla procesora lub w wersji dla kart graficznych NVIDIA. whisper.cpp jest eksperymentalny: nie został jeszcze przetestowany z końcowym pakietem wydania, więc obsługiwanym składnikiem jest faster-whisper. Również faster-whisper może korzystać z karty graficznej NVIDIA po zainstalowaniu pozycji „Biblioteki CUDA” na tej samej karcie. Modele są pobierane tylko wtedy, gdy o to poprosisz, we wszystkich rozmiarach, od tiny po large-v3 i large-v3-turbo, a dla whisper.cpp także w mniejszych wersjach 8- i 5-bitowych, a niektóre również w większej wersji 32-bitowej o pełnej precyzji. Lista zawiera też modele rozumiejące tylko jeden język, oznaczone na niej: modele tylko angielskie oraz modele innych wydawców dla szwedzkiego, hebrajskiego, jidysz i japońskiego. „Gdzie wykonywać transkrypcję” i „Precyzja obliczeń” faster-whispera pozostają na ustawieniu Automatycznie albo możesz je wybrać samodzielnie. Modelu, który masz już pobrany w innym folderze, można użyć z listy „Modele w innych folderach” bez kopiowania go, a folder modeli można przenieść w inne miejsce razem z modelami. Filtr mowy nie pozwala Whisperowi wymyślać tekstu w ciszy na końcu wiadomości; gdy nie można go użyć, WinZapp o tym informuje. Ta funkcja nie zastępuje „Transkrybuj za pomocą AI online”: to dwa różne polecenia i tylko to z AI online wysyła dźwięk do dostawcy. Gdy włączona jest opcja „Pobieraj aktualizacje i pliki transkrypcji w tle” (Ustawienia > Ogólne), pobieranie z tej karty — modeli, whisper.cpp i bibliotek CUDA — również odbywa się bez okna postępu, a WinZapp informuje o zakończeniu każdego z nich. Na liście modeli Ctrl+Spacja zaznacza model (Spacja zaznacza dalej, dopóki coś jest zaznaczone, a Esc odznacza wszystko, według tych samych dwóch opcji co listy czatów i wiadomości), a Pobierz pobiera wtedy wszystkie zaznaczone modele jeden po drugim. Pobieranie w tle można przerwać przyciskiem „Anuluj pobieranie w tle”. Alt+Shift+N wstawia transkrypcję do wiersza samej wiadomości („…, czas trwania: 0:12, transkrypcja: …”) i czyta ją na głos, bez otwierania okna. Nowa opcja „Enter i Spacja na wiadomości głosowej transkrybują ją w jej wierszu…” w Ustawienia > Interfejs użytkownika zamienia to z odtwarzaniem: po włączeniu Enter i Spacja transkrybują, a Alt+Shift+N odtwarza lub wstrzymuje; po wyłączeniu, jak zawsze, Enter i Spacja odtwarzają, a Alt+Shift+N transkrybuje w wierszu.
+- Lokalna transkrypcja wiadomości głosowych i plików audio. „Transkrybuj wiadomość lokalnie za pomocą Whispera” w menu kontekstowym wiadomości głosowej lub pliku audio albo skrót Alt+Shift+T zamienia dźwięk na tekst na Twoim własnym komputerze, za pomocą Whispera: nic nie jest nigdzie wysyłane. Tekst otwiera się w oknie, z którego można go skopiować, zapisać lub wstawić do wiadomości, i zostaje zapisany razem z wiadomością, zaszyfrowany tak jak ona; potem Alt+Shift+T ponownie pokazuje zapisaną transkrypcję, a menu kontekstowe oferuje „Pokaż transkrypcję”, „Transkrybuj ponownie” i „Usuń transkrypcję”. Wszystko ustawia się na nowej karcie „Transkrypcja lokalna” w Ustawieniach. Są dwa składniki transkrypcji: faster-whisper, domyślny, dostarczany razem z WinZapp, oraz whisper.cpp, opcjonalny program, który karta instaluje w wersji dla procesora lub w wersji dla kart graficznych NVIDIA. whisper.cpp jest eksperymentalny: nie został jeszcze przetestowany z końcowym pakietem wydania, więc obsługiwanym składnikiem jest faster-whisper. Również faster-whisper może korzystać z karty graficznej NVIDIA po zainstalowaniu pozycji „Biblioteki CUDA” na tej samej karcie. Modele są pobierane tylko wtedy, gdy o to poprosisz, we wszystkich rozmiarach, od tiny po large-v3 i large-v3-turbo, a dla whisper.cpp także w mniejszych wersjach 8- i 5-bitowych, a niektóre również w większej wersji 32-bitowej o pełnej precyzji. Lista zawiera też modele rozumiejące tylko jeden język, oznaczone na niej: modele tylko angielskie oraz modele innych wydawców dla szwedzkiego, hebrajskiego, jidysz i japońskiego. „Gdzie wykonywać transkrypcję” i „Precyzja obliczeń” faster-whispera pozostają na ustawieniu Automatycznie albo możesz je wybrać samodzielnie. Modelu, który masz już pobrany w innym folderze, można użyć z listy „Modele w innych folderach” bez kopiowania go, a folder modeli można przenieść w inne miejsce razem z modelami. Filtr wykrywania mowy ogranicza powstawanie błędnych transkrypcji w ciszy na końcu wiadomości; gdy nie można go użyć, WinZapp o tym informuje. Ta funkcja nie zastępuje „Transkrybuj za pomocą AI online”: to dwa różne polecenia i tylko to z AI online wysyła dźwięk do dostawcy. Gdy włączona jest opcja „Pobieraj aktualizacje i pliki transkrypcji w tle” (Ustawienia > Ogólne), pobieranie z tej karty — modeli, whisper.cpp i bibliotek CUDA — również odbywa się bez okna postępu, a WinZapp informuje o zakończeniu każdego z nich. Na liście modeli Ctrl+Spacja zaznacza model (Spacja zaznacza dalej, dopóki coś jest zaznaczone, a Esc odznacza wszystko, według tych samych dwóch opcji co listy czatów i wiadomości), a Pobierz pobiera wtedy wszystkie zaznaczone modele jeden po drugim. Pobieranie w tle można przerwać przyciskiem „Anuluj pobieranie w tle”. Alt+Shift+N wstawia transkrypcję do wiersza samej wiadomości („…, czas trwania: 0:12, transkrypcja: …”) i czyta ją na głos, bez otwierania okna. Nowa opcja „Enter i Spacja na wiadomości głosowej transkrybują ją w jej wierszu…” w Ustawienia > Interfejs użytkownika zamienia to z odtwarzaniem: po włączeniu Enter i Spacja transkrybują, a Alt+Shift+N odtwarza lub wstrzymuje; po wyłączeniu, jak zawsze, Enter i Spacja odtwarzają, a Alt+Shift+N transkrybuje w wierszu.
 
 - Opisywanie wideo i statusów za pomocą AI. Wideo jest teraz opisywane na podstawie jednego obrazu z niego wyjętego, więc jego dźwięk nigdy nie trafia do dostawcy, a przycisk „Opisz” i Ctrl+Shift+I działają także wtedy, gdy wideo otwiera się w osobnym oknie. W zakładce Status (Alt+5) przycisk „Opisz” zaraz po „Zapisz multimedia jako...” opisuje statusy ze zdjęciem i z wideo, zarówno w osobnym podglądzie, jak i w odtwarzaczu w zakładce.
 
@@ -197,13 +197,13 @@ NOWOŚCI
 
 - Własne listy WhatsApp: odświeżanie i filtrowanie według list, tworzenie lub zmiana nazwy listy oraz dodawanie i usuwanie wybranych czatów. Edycja zależy od obsługi konta WhatsApp. Czaty zamknięte w sejfie lub niedostępne lokalnie nie pojawiają się w wyborze; pozostali członkowie są zachowywani. Niepotwierdzone zmiany są zgłaszane bez automatycznego ponawiania. Gdy edycja jest niedostępna, menedżer informuje, czy WhatsApp ją wyłączył, czy w tej wersji brakuje potrzebnych funkcji, czy też sprawdzenie obsługi się nie powiodło.
 
-- Kontakty synchronizowane z telefonem: przy dodawaniu kontaktu (w "Informacje o czacie", w "Nowy czat" lub z wiadomości z kontaktem) są teraz dwie karty, "Kontakt lokalny WinZappa" (tylko w WinZappie) i "Kontakt zsynchronizowany z telefonem", która zapisuje nazwę w WhatsAppie i w książce adresowej telefonu. Karta synchronizowana otwiera się domyślnie, numer, który już jest w książce adresowej telefonu, pokazuje tylko tę kartę, a usunięcie kontaktu zsynchronizowanego usuwa go też z WhatsAppa i z telefonu
+- Kontakty synchronizowane z telefonem: przy dodawaniu kontaktu (w „Informacje o czacie”, w „Nowy czat” lub z wiadomości z kontaktem) są teraz dwie karty, „Kontakt lokalny WinZappa” (tylko w WinZappie) i „Kontakt zsynchronizowany z telefonem”, która zapisuje nazwę w WhatsAppie i w książce adresowej telefonu. Karta synchronizowana otwiera się domyślnie, numer, który już jest w książce adresowej telefonu, pokazuje tylko tę kartę, a usunięcie kontaktu zsynchronizowanego usuwa go też z WhatsAppa i z telefonu
 
-- Nowy skrót Alt+Shift+P na liście wiadomości: przejście do poprzedniej wiadomości z odpowiedzią do Ciebie, tak jak Alt+Shift+M robi to dla wzmianek. Kolejne naciśnięcia cofają się po nich i wracają do najnowszej. Skrót jest też w "Skróty klawiszowe" (F1). Alt+Shift+J i Alt+Shift+O robią to samo do przodu: następna wzmianka i następna odpowiedź na Twoją wiadomość.
+- Nowy skrót Alt+Shift+P na liście wiadomości: przejście do poprzedniej wiadomości z odpowiedzią do Ciebie, tak jak Alt+Shift+M robi to dla wzmianek. Kolejne naciśnięcia cofają się po nich i wracają do najnowszej. Skrót jest też w „Skróty klawiszowe” (F1). Alt+Shift+J i Alt+Shift+O robią to samo do przodu: następna wzmianka i następna odpowiedź na Twoją wiadomość.
 
-- "Pisze" na liście wiadomości: gdy osoba w otwartym czacie (lub, w grupie, uczestnik) pisze albo nagrywa wiadomość głosową, na końcu listy wiadomości pojawia się tymczasowy ostatni wiersz, np. "Ana pisze...". Znika, gdy ta osoba przestanie albo gdy przyjdzie jej wiadomość. Nigdy sam nie przenosi fokusu (tylko jeśli jesteś na tym wierszu, gdy znika, fokus przechodzi na ostatnią wiadomość) i nie jest odczytywany sam z siebie, więc dotychczasowy komunikat o pisaniu pozostaje dokładnie taki jak był. To nie jest wiadomość: nie ma menu kontekstowego ani akcji. Domyślnie jest wyłączony; aby go włączyć, zaznacz opcję "Pokazuj, kto pisze lub nagrywa wiadomość głosową, jako ostatni wiersz listy wiadomości" na karcie Interfejs użytkownika w Ustawieniach
+- „Pisze” na liście wiadomości: gdy osoba w otwartym czacie (lub, w grupie, uczestnik) pisze albo nagrywa wiadomość głosową, na końcu listy wiadomości pojawia się tymczasowy ostatni wiersz, np. „Ana pisze...”. Znika, gdy ta osoba przestanie albo gdy przyjdzie jej wiadomość. Nigdy sam nie przenosi fokusu (tylko jeśli jesteś na tym wierszu, gdy znika, fokus przechodzi na ostatnią wiadomość) i nie jest odczytywany sam z siebie, więc dotychczasowy komunikat o pisaniu pozostaje dokładnie taki jak był. To nie jest wiadomość: nie ma menu kontekstowego ani akcji. Domyślnie jest wyłączony; aby go włączyć, zaznacz opcję „Pokazuj, kto pisze lub nagrywa wiadomość głosową, jako ostatni wiersz listy wiadomości” na karcie Interfejs użytkownika w Ustawieniach
 
-- Emotikony zamieniają się w emoji podczas pisania, jak w WhatsApp Web: ":)" w 🙂, ":D" w 😃, "<3" w ❤️ itd., gdy po nich wpiszesz spację lub znak interpunkcyjny albo wyślesz wiadomość zaraz po jednym z nich. Zamieniany jest tylko emotikon stojący osobno, nigdy w linku, w słowie ani w `kodzie`. Naciśnięcie Backspace zaraz po zamianie przywraca to, co wpisano. Można to wyłączyć w Ustawieniach, karta "Ogólne", "Zamieniaj emotikony, takie jak :D, na emoji podczas pisania"
+- Emotikony zamieniają się w emoji podczas pisania, jak w WhatsApp Web: „:)” w 🙂, „:D” w 😃, „<3” w ❤️ itd., gdy po nich wpiszesz spację lub znak interpunkcyjny albo wyślesz wiadomość zaraz po jednym z nich. Zamieniany jest tylko emotikon stojący osobno, nigdy w linku, w słowie ani w `kodzie`. Naciśnięcie Backspace zaraz po zamianie przywraca to, co wpisano. Można to wyłączyć w Ustawieniach, karta „Ogólne”, „Zamieniaj emotikony, takie jak :D, na emoji podczas pisania”
 
 - Postęp pobierania na liście wiadomości: podczas pobierania dokumentu wiadomość pokazuje na przykład „35% (13,8 mb z 39,4 mb)”, a po zakończeniu pobierania wraca do nazwy i rozmiaru pliku.
 
@@ -215,25 +215,25 @@ NOWOŚCI
 
 - Informacje o czacie prywatnym mają nową kartę „Wspólne grupy”, która wyświetla grupy, w których jesteście razem z kontaktem. Naciśnij Enter na grupie, aby ją otworzyć. Jeśli WhatsApp nie odpowie, karta poinformuje o tym zamiast pozostać pusta.
 
-- WinZapp otwiera się szybciej. Gdy konto jest już połączone, okno główne i czaty pojawiają się od razu, a WPPConnect uruchamia się i WhatsApp łączy się w tle, zamiast dopiero po oknie "Uruchamianie WPPConnect, proszę czekać...". Wiadomości wysłane w tym czasie czekają i zostaną wysłane, gdy WhatsApp się połączy. Pierwsze uruchomienie oraz konto, które trzeba jeszcze sparować, pokazują to okno tak jak dotąd. Tytuł okna pokazuje „uruchamianie WPPConnect...” do czasu, aż będzie gotowy. To samo dotyczy aktualizacji WPPConnect i wymuszonej ponownej instalacji: żadne okno nie przeszkadza.
+- WinZapp otwiera się szybciej. Gdy konto jest już połączone, okno główne i czaty pojawiają się od razu, a WPPConnect uruchamia się i WhatsApp łączy się w tle, zamiast dopiero po oknie „Uruchamianie WPPConnect, proszę czekać...”. Wiadomości wysłane w tym czasie czekają i zostaną wysłane, gdy WhatsApp się połączy. Pierwsze uruchomienie oraz konto, które trzeba jeszcze sparować, pokazują to okno tak jak dotąd. Tytuł okna pokazuje „uruchamianie WPPConnect...” do czasu, aż będzie gotowy. To samo dotyczy aktualizacji WPPConnect i wymuszonej ponownej instalacji: żadne okno nie przeszkadza.
 
 - macOS: wersje wydania aktualizują się teraz przez standardowe okna Sparkle 2, które VoiceOver czyta dobrze. „Sprawdź aktualizacje” (w menu WinZapp pod O programie WinZapp oraz w Pomocy), automatyczne sprawdzanie co 3 godziny i „Sprawdzaj aktualizacje alfa” otwierają Sparkle. Przy włączonym automatycznym sprawdzaniu aktualizacja jest pobierana w tle i instalowana po zamknięciu WinZapp, jak w innych aplikacjach na Maca; dopóki WinZapp pozostaje otwarty, Sparkle przy następnym sprawdzeniu proponuje „Zainstaluj i uruchom ponownie”, a aktualizacja jest zapowiadana głosowo i powiadomieniem. Okno aktualizacji podaje, co się zmieniło od używanej wersji, tak jak „Co nowego?” w Windows, a dla wersji alfa wymienia pull requesty każdej wersji alfa od Twojej. Zanim wersja zostanie zaproponowana lub pobrana, WinZapp sprawdza, czy tag wersji istnieje w oficjalnym repozytorium, wskazuje zadeklarowany commit i jest nowszy od używanej wersji; jeśli cokolwiek z tego zawiedzie albo GitHub jest nieosiągalny, aktualizacja nie jest proponowana, a gdy sprawdzasz samodzielnie, przyczyna zostaje wyświetlona. Pozostałe konta są zamykane przed instalacją aktualizacji i otwierane ponownie po niej. Blokady kont pozostawione po wcześniejszych zamknięciach nie blokują już aktualizacji ani uruchamiania na Macu.
 
 - Odczytywany postęp synchronizacji i pobierania multimediów: podczas synchronizacji (pełnej przy pierwszym parowaniu lub po F5, a także aktualizacji zmienionych czatów przy otwieraniu WinZapp) i pobierania multimediów, które po niej następuje, WinZapp pokazuje w tytule okna i odczytuje mniej więcej co 5 sekund, ile już zrobiono: „Synchronizowanie czatów: 12 z 80” i „Pobieranie multimediów: 30 z 120 przetworzonych (8 pobranych)”. Wcześniej między komunikatem o rozpoczęciu a komunikatem o zakończeniu nic nie było słychać, a długa synchronizacja sprawiała wrażenie zawieszonej. „Przetworzone” obejmuje też multimedia, których nie trzeba było pobierać (na przykład już były na komputerze), a suma obejmuje tylko te, które ustawienia Pamięci nadal pozwalają pobrać, a nie całą historię. Postęp respektuje opcję „Ogłaszaj synchronizację, pobieranie multimediów i automatyczne przejście w tryb offline” w Ustawienia > Ogólne i nie jest odczytywany, gdy WinZapp uruchamia się w tle, ani podczas połączenia głosowego; automatyczne sprawdzanie co minutę pozostaje ciche. W Ustawienia > Zawartość mówiona pola „Ogłaszaj co kilka sekund postęp synchronizacji czatów” i „Ogłaszaj co kilka sekund postęp pobierania multimediów”, domyślnie zaznaczone, wyłączają każdy z tych komunikatów osobno; tytuł okna nadal pokazuje liczby.
 
-- Nowe okno Plik > Ustawienia WhatsApp z kartą Prywatność, w której ustawiasz prywatność swojego konta WhatsApp bezpośrednio w WhatsApp: ostatnio widziano, kto widzi, że jesteś online, informacje, zdjęcie profilowe, potwierdzenia odczytu, kto może dodawać Cię do grup oraz kto widzi Twój status (moje kontakty, moje kontakty oprócz... lub udostępniaj tylko...). Osoby dla statusu wybierasz spośród zsynchronizowanych kontaktów na liście z wyszukiwaniem, zaznaczając każdą Spacją. Okno wczytuje bieżące wartości z WhatsApp, wysyła tylko to, co zmieniono, a potem sprawdza wynik i informuje, których ustawień WhatsApp nie potwierdził.
+- Nowe okno Plik > Ustawienia WhatsApp z kartą Prywatność, w której ustawiasz prywatność swojego konta WhatsApp bezpośrednio w WhatsApp: „Widziano”, kto widzi, że jesteś online, informacje, zdjęcie profilowe, potwierdzenia odczytu, kto może dodawać Cię do grup oraz kto widzi Twój status (moje kontakty, moje kontakty oprócz... lub udostępniaj tylko...). Osoby dla statusu wybierasz spośród zsynchronizowanych kontaktów na liście z wyszukiwaniem, zaznaczając każdą Spacją. Okno wczytuje bieżące wartości z WhatsApp, wysyła tylko to, co zmieniono, a potem sprawdza wynik i informuje, których ustawień WhatsApp nie potwierdził.
 
 - To samo okno Plik > Ustawienia WhatsApp ma także kartę Profil, w której zmienisz wyświetlaną nazwę, informacje i zdjęcie profilowe swojego konta WhatsApp bez sięgania po telefon. Karta od razu pokazuje Twoją bieżącą nazwę i informacje oraz to, czy masz zdjęcie; pole puste lub niezmienione zostaje takie, jakie jest w WhatsApp, każde pole zapisuje się osobno (jedno odrzucone przez WhatsApp nie blokuje pozostałych, a okno wymienia te, które się nie udały), a zdjęcie wybierasz z pliku JPG lub PNG. Okno otwiera się z dowolnego miejsca skrótem Ctrl+Shift+przecinek (klawisz Ustawień plus Shift), który można zmienić na karcie Skróty klawiszowe.
 
 - Informacje o czacie prywatnym pokazują, czy jego powiadomienia są wyciszone (i do kiedy) oraz, gdy WhatsApp to podaje, czas znikających wiadomości.
 
-- Pomoc > "Przewodnik użytkownika" otwiera w domyślnej przeglądarce pełny przewodnik po programie w wybranym języku: gdzie jest każda funkcja, jakie są skróty i co mówi czytnik ekranu. Ma wyszukiwarkę i menu sekcji, a tabele skrótów pochodzą prosto z programu.
+- Pomoc > „Przewodnik użytkownika” otwiera w domyślnej przeglądarce pełny przewodnik po programie w wybranym języku: gdzie jest każda funkcja, jakie są skróty i co mówi czytnik ekranu. Ma wyszukiwarkę i menu sekcji, a tabele skrótów pochodzą prosto z programu.
 
-- Czyszczenie multimediów: Ustawienia > Pamięć > „Czyszczenie multimediów" zwalnia miejsce na dysku, usuwając pobrane pliki multimedialne z wybranych czatów; wiadomości zostają. Wybierasz czaty, rodzaje multimediów i minimalny rozmiar, „Zbierz dane" pokazuje, ile plików i MB pasuje, niczego nie usuwając, a „Kontynuuj czyszczenie" prosi o potwierdzenie i usuwa dokładnie to, co pokazano. Pliki zapisane przez Zapisz jako i multimedia niewysłanych wiadomości nigdy nie są ruszane, a wyczyszczone pliki nie są pobierane ponownie przez pobieranie automatyczne ani synchronizację, dopóki się nie wylogujesz lub nie sparujesz ponownie.
+- Czyszczenie multimediów: Ustawienia > Pamięć > „Czyszczenie multimediów” zwalnia miejsce na dysku, usuwając pobrane pliki multimedialne z wybranych czatów; wiadomości zostają. Wybierasz czaty, rodzaje multimediów i minimalny rozmiar, „Zbierz dane” pokazuje, ile plików i MB pasuje, niczego nie usuwając, a „Kontynuuj czyszczenie” prosi o potwierdzenie i usuwa dokładnie to, co pokazano. Pliki zapisane przez Zapisz jako i multimedia niewysłanych wiadomości nigdy nie są ruszane, a wyczyszczone pliki nie są pobierane ponownie przez pobieranie automatyczne ani synchronizację, dopóki się nie wylogujesz lub nie sparujesz ponownie.
 
-- Transkrypcja i opis online w wierszu wiadomości, w trybie automatycznym: okno wyniku AI ma nowe polecenia "Umieść transkrypcję w wierszu wiadomości" (wiadomości głosowe) oraz "Umieść opis w wierszu wiadomości" (obrazy, naklejki i filmy). W Ustawienia > Transkrypcje i opisy dwie nowe opcje, domyślnie wyłączone, automatycznie transkrybują odebrane wiadomości głosowe i opisują odebrane obrazy, naklejki i filmy u dostawców online, bez okna i dźwięku przy każdej wiadomości; włączenie jednej prosi o zwykłą zgodę i wyłącza lokalną transkrypcję automatyczną, i odwrotnie. Okno danych każdej rozmowy ma pola "transkrybuj" i "opisuj" (dotyczą też lokalnej transkrypcji automatycznej) oraz wybór między "Wszystkie rozmowy oprócz tych, które wyłączę" a "Tylko rozmowy, które włączę". Aby chronić limit API, wybierasz, jak stara może być odebrana wiadomość, by została przetworzona (5 minut, 15, 30 lub 1 godzina), i ustawiasz dzienny limit automatycznych zapytań online (domyślnie 50, 0 oznacza brak limitu); gdy wszyscy dostawcy odmawiają z powtarzającego się powodu, takiego jak limit lub klucz, kolejka automatyczna zatrzymuje się na godzinę i informuje o tym jeden raz.
+- Transkrypcja i opis online w wierszu wiadomości, w trybie automatycznym: okno wyniku AI ma nowe polecenia „Umieść transkrypcję w wierszu wiadomości” (wiadomości głosowe) oraz „Umieść opis w wierszu wiadomości” (obrazy, naklejki i filmy). W Ustawienia > Transkrypcje i opisy dwie nowe opcje, domyślnie wyłączone, automatycznie transkrybują odebrane wiadomości głosowe i opisują odebrane obrazy, naklejki i filmy u dostawców online, bez okna i dźwięku przy każdej wiadomości; włączenie jednej prosi o zwykłą zgodę i wyłącza lokalną transkrypcję automatyczną, i odwrotnie. Okno danych każdego czatu ma pola „transkrybuj” i „opisuj” (dotyczą też lokalnej transkrypcji automatycznej) oraz wybór między „Wszystkie czaty oprócz tych, w których wyłączę tę funkcję” a „Tylko czaty, w których włączę tę funkcję”. Aby chronić limit API, wybierasz, jak stara może być odebrana wiadomość, by została przetworzona (5 minut, 15, 30 lub 1 godzina), i ustawiasz dzienny limit automatycznych zapytań online (domyślnie 50, 0 oznacza brak limitu); gdy wszyscy dostawcy odmawiają z powtarzającego się powodu, takiego jak limit lub klucz, kolejka automatyczna zatrzymuje się na godzinę i informuje o tym jeden raz.
 
-- Rozmowy i wiadomości od kontaktów, których nie zapisano, pokazują teraz tyldę (~) przed nazwą, tak jak WhatsApp. Wyłączysz to w Ustawienia > Interfejs użytkownika, opcją "Poprzedzaj nazwy niezapisanych kontaktów znakiem tyldy (~) w czatach i wiadomościach".
+- Czaty i wiadomości od kontaktów, których nie zapisano, pokazują teraz tyldę (~) przed nazwą, tak jak WhatsApp. Wyłączysz to w Ustawienia > Interfejs użytkownika, opcją „Poprzedzaj nazwy niezapisanych kontaktów znakiem tyldy (~) w czatach i wiadomościach”.
 
 - Nowy lub pusty czat prywatny podaje teraz w wierszu o braku wiadomości, że wiadomości i połączenia są szyfrowane end-to-end oraz, jeśli włączono znikające wiadomości, ich czas. Informacje o czacie także wspominają o szyfrowaniu.
 
@@ -241,17 +241,17 @@ NOWOŚCI
 
 - Usunięcie konta usuwa teraz wszystko, co do niego należy: oprócz wiadomości i ustawień kasowany jest także profil przeglądarki z logowaniem do WhatsApp oraz kopie zapasowe tego profilu, a to, czego nie udało się usunąć, zostanie dokończone przy następnym uruchomieniu WinZapp. Gdy konto jest jedyne, można je teraz usunąć w menu Konta > Zarządzaj kontami: WinZapp prosi o potwierdzenie, zamyka się, a następne uruchomienie jest pierwszym uruchomieniem.
 
-- W Ustawienia > Interfejs użytkownika nowa opcja "Automatycznie odtwarzaj wiadomości głosowe po kolei", domyślnie zaznaczona, określa, czy następna wiadomość głosowa zaczyna się sama po zakończeniu poprzedniej. Odznacz ją, aby każda wiadomość głosowa kończyła się samodzielnie. Opcja "Automatycznie przenoś fokus na następne audio podczas odtwarzania audio po kolei" nadal decyduje tylko o tym, czy fokus klawiatury podąża za dźwiękiem.
+- W Ustawienia > Interfejs użytkownika nowa opcja „Automatycznie odtwarzaj wiadomości głosowe po kolei”, domyślnie zaznaczona, określa, czy następna wiadomość głosowa zaczyna się sama po zakończeniu poprzedniej. Odznacz ją, aby po zakończeniu wiadomości następna nie była odtwarzana automatycznie. Opcja „Automatycznie przenoś fokus na następne audio podczas odtwarzania audio po kolei” nadal decyduje tylko o tym, czy fokus klawiatury podąża za dźwiękiem.
 
 POPRAWKI
 
-- Naprawiono błąd "chat not found" podczas wysyłania wiadomości lub załączników do istniejącego czatu, który WhatsApp już załadował.
+- Naprawiono błąd „chat not found” podczas wysyłania wiadomości lub załączników do istniejącego czatu, który WhatsApp już załadował.
 
 - Otrzymanie pliku nie powoduje już pobierania go do powiadomienia o wiadomości z powodu nieużywanego ustawienia webhooka. Aktualizacje postępu wysyłania i pobierania zachowują tylko najnowszą oczekującą wartość, zapobiegając gromadzeniu aktualizacji ekranu podczas szybkich transferów.
 
-- Naprawiono powtarzającą się synchronizację rozmów, gdy lista czatów WhatsApp była dostępna, ale nie można jej było przekazać do lokalnego serwera. Istniejące rozmowy są zachowywane, a synchronizacja listy może się zakończyć.
+- Naprawiono powtarzającą się synchronizację czatów, gdy lista czatów WhatsApp była dostępna, ale nie można jej było przekazać do lokalnego serwera. Istniejące czaty są zachowywane, a synchronizacja listy może się zakończyć.
 
-- Wysyłanie wiadomości głosowych i dokumentów kończyło się błędem "Cannot read properties of undefined (reading 'prepRawMedia')" w wersji WhatsApp Web wydanej 15 października, która przeniosła tę funkcję. WinZapp zawiera teraz odpowiednią wersję swojej biblioteki WhatsApp Web (WA-JS 4.7.1). Jeśli wysyłanie nadal nie działa po aktualizacji, zainstaluj ponownie WPPConnect z okna aktualizacji.
+- Wysyłanie wiadomości głosowych i dokumentów kończyło się błędem „Cannot read properties of undefined (reading 'prepRawMedia')” w wersji WhatsApp Web wydanej 15 października, która przeniosła tę funkcję. WinZapp zawiera teraz odpowiednią wersję swojej biblioteki WhatsApp Web (WA-JS 4.7.1). Jeśli wysyłanie nadal nie działa po aktualizacji, zainstaluj ponownie WPPConnect z okna aktualizacji.
 
 - macOS: na listach czatów i wiadomości VoiceOver nie gubi już swojego miejsca, gdy zmienia się wiersz, na przykład gdy zmienia się licznik nieprzeczytanych, ktoś zaczyna nagrywać audio albo przychodzi nowa wiadomość. Otwieranie czatu za pomocą VoiceOver działa teraz od razu i za każdym razem, zamiast czasem zawodzić albo działać dopiero po przerwie, a VoiceOver przechodzi potem do pola wiadomości; komunikaty takie jak ten o przypiętych wiadomościach są odczytywane po polu, zamiast mu przerywać.
 
@@ -271,21 +271,21 @@ POPRAWKI
 
 - Przekazywanie dalej nie otwiera już okna, gdy się uda. „Wiadomość przekazana.” (albo liczbę przekazanych wiadomości) mówi teraz czytnik ekranu, bez okna do zamknięcia i bez przerywania tego, co jest czytane; działa też, gdy WinZapp jest w zasobniku.
 
-- Synchronizacja i uzupełnianie historii czatów proszą teraz WhatsApp Web o wiadomości z najwyżej dwóch czatów naraz zamiast z maksymalnie sześciu, co utrzymuje niskie zużycie procesora i pamięci na małych komputerach i serwerach podczas pierwszej synchronizacji, bez zauważalnego spowolnienia. Otwieranie czatu, przewijanie w górę i ponowna synchronizacja rozmowy nie są spowolnione.
+- Synchronizacja i uzupełnianie historii czatów proszą teraz WhatsApp Web o wiadomości z najwyżej dwóch czatów naraz zamiast z maksymalnie sześciu, co utrzymuje niskie zużycie procesora i pamięci na małych komputerach i serwerach podczas pierwszej synchronizacji, bez zauważalnego spowolnienia. Otwieranie czatu, przewijanie w górę i ponowna synchronizacja czatu nie są spowolnione.
 
 - Aktualizator sprząta teraz po sobie: po zainstalowaniu aktualizacji usuwa folder, do którego ją rozpakował w folderze tymczasowym, a przy następnym uruchomieniu WinZapp usuwa też to, co zostawiły tam wcześniejsze aktualizacje, nieudane instalacje i przerwane pobierania; mogło to dawać pełną kopię każdej zainstalowanej wersji.
 
 - Ctrl+Shift+V (połączenie głosowe) i Ctrl+Alt+Shift+V (połączenie wideo) działają teraz także, gdy pole wiadomości ma fokus.
 
-- Wysyłanie wiadomości do samego siebie nie kończy się już błędem "nie udało się potwierdzić wysłania" na kontach, których własny adres zawierał sufiks urządzenia.
+- Wysyłanie wiadomości do samego siebie nie kończy się już błędem „nie udało się potwierdzić wysłania” na kontach, których własny adres zawierał sufiks urządzenia.
 
 - Gdy otworzysz lub przeczytasz czat w WinZapp, powiadomienie o jego nowej wiadomości jest usuwane z obszaru powiadomień zamiast w nim pozostawać.
 
-- Po wybudzeniu komputera z uśpienia nowe wiadomości są pobierane niezawodnie: otwarta rozmowa i ostatnie czaty są sprawdzane ponownie, nawet gdy lista czatów WhatsApp wygląda na niezmienioną, a aktualizacje czatów powiązanych przez identyfikator połączonego urządzenia nie są już pomijane
+- Po wybudzeniu komputera z uśpienia nowe wiadomości są pobierane niezawodnie: otwarty czat i ostatnie czaty są sprawdzane ponownie, nawet gdy lista czatów WhatsApp wygląda na niezmienioną, a aktualizacje czatów powiązanych przez identyfikator połączonego urządzenia nie są już pomijane
 
-- Wzmianki: osoba wspomniana z imienia obok @wszyscy zachowuje swój link we wzmiankach wiadomości, a wzmianka o Tobie, w powiadomieniu i w podglądzie na liście czatów, używa słowa wybranego w "Jak mam się do Ciebie zwracać?" zamiast stałego słowa
+- Wzmianki: osoba wspomniana z imienia obok @wszyscy zachowuje swój link we wzmiankach wiadomości, a wzmianka o Tobie, w powiadomieniu i w podglądzie na liście czatów, używa słowa wybranego w „Jak mam się do Ciebie zwracać?” zamiast stałego słowa
 
-- Ustawienia, karta "Interfejs użytkownika": karta jest teraz przewijana, a grupy opcji na jej końcu znów są odczytywane we właściwym miejscu. Na mniejszych ekranach czytnik ekranu ogłaszał "Pozycja ogłaszania zaznaczonych elementów" przy następnym polu wyboru, a nie przy przyciskach opcji tej grupy
+- Ustawienia, karta „Interfejs użytkownika”: karta jest teraz przewijana, a grupy opcji na jej końcu znów są odczytywane we właściwym miejscu. Na mniejszych ekranach czytnik ekranu ogłaszał „Pozycja ogłaszania zaznaczonych elementów” przy następnym polu wyboru, a nie przy przyciskach opcji tej grupy
 
 - Treści AI: resetowanie wszystkich kluczy usuwa też zapamiętane zgody na wysyłanie, nawet po wpisaniu nowego klucza przed zastosowaniem zmian. Długie transkrypcje i teksty PDF zgłaszają teraz błąd limitu tekstu zamiast tracić końcówkę bez ostrzeżenia; ten limit nie powoduje automatycznej próby u innego dostawcy.
 
@@ -295,33 +295,33 @@ POPRAWKI
 
 - Pliki audio wysyłane jako załącznik: plik WAV lub OGG Vorbis w stereo lub dźwięku przestrzennym (5.1, 7.1) dociera teraz ze wszystkimi kanałami, jako zwykłe audio, i zachowuje częstotliwość próbkowania do 48 kHz (wyższa jest obniżana do 48 kHz). Wcześniej docierał w mono i wyglądał jak wiadomość głosowa. Plik mający ponad 8 kanałów, czyli więcej, niż obsługuje AAC, jest wysyłany bez zmian jako dokument.
 
-- Aktualizacja WinZappa nie cofa już aktualizacji WPPConnect. Po zaktualizowaniu WPPConnect do wersji nowszej niż ta dołączona do WinZappa (z powiadomienia o aktualizacji albo przez "Wymuś ponowną instalację WPPConnect" w menu Pomoc) następna aktualizacja WinZappa przywracała starą wersję, a ta sama aktualizacja WPPConnect była proponowana ponownie
+- Aktualizacja WinZappa nie cofa już aktualizacji WPPConnect. Po zaktualizowaniu WPPConnect do wersji nowszej niż ta dołączona do WinZappa (z powiadomienia o aktualizacji albo przez „Wymuś ponowną instalację WPPConnect” w menu Pomoc) następna aktualizacja WinZappa przywracała starą wersję, a ta sama aktualizacja WPPConnect była proponowana ponownie
 
-- Status: "Polub ❤️" znowu działa. Po zmianie w WhatsApp Web polubienie statusu kontaktu kończyło się błędem "Nie udało się wysłać reakcji na ten status."
+- Status: „Polub ❤️” znowu działa. Po zmianie w WhatsApp Web polubienie statusu kontaktu kończyło się błędem „Nie udało się wysłać reakcji na ten status.”
 
-- "Użyj niestandardowego API (serwer zdalny)": WinZapp nie wyświetla już komunikatu "Profil przeglądarki używany do połączenia z WhatsApp jest uszkodzony i nie ma zapisanej kopii do przywrócenia" o profilu, który jest w porządku. Ten profil znajduje się na serwerze, a WinZapp szukał go na tym komputerze, niczego nie znajdował i uznawał go za uszkodzony. Przy niestandardowym API WinZapp zostawia teraz profil i jego kopie zapasowe serwerowi, a przy zamykaniu nie zatrzymuje już WPPConnect na tym komputerze, którego sam nie uruchomił.
+- „Użyj niestandardowego API (serwer zdalny)”: WinZapp nie wyświetla już komunikatu „Profil przeglądarki używany do połączenia z WhatsApp jest uszkodzony i nie ma zapisanej kopii do przywrócenia” o profilu, który jest w porządku. Ten profil znajduje się na serwerze, a WinZapp szukał go na tym komputerze, niczego nie znajdował i uznawał go za uszkodzony. Przy niestandardowym API WinZapp zostawia teraz profil i jego kopie zapasowe serwerowi, a przy zamykaniu nie zatrzymuje już WPPConnect na tym komputerze, którego sam nie uruchomił.
 
 - Konta z wieloma czatami, których WhatsApp Web ładuje się nieco dłużej niż 30 sekund, teraz się łączą. WinZapp przestawał czekać dokładnie po 30 sekundach, więc to samo konto przy każdym uruchomieniu kończyło się tym samym błędem.
 
 - Aktualizacja WPPConnect: poprzednia wersja jest zachowywana, dopóki nowa nie uruchomi się i nie zacznie odpowiadać, a jeśli się to nie uda, zostaje przywrócona. Aktualizacja jest odrzucana przed zatrzymaniem czegokolwiek, gdy brakuje miejsca na dysku na obie wersje, a ponowna instalacja korzysta z już pobranej przeglądarki Chrome.
 
-- Informacja o ostatnim widzeniu w otwartym czacie jest teraz stale aktualna. Przycisk czatu, Alt+T i szczegóły kontaktu pokazują te same informacje, a stara odpowiedź nie może już nadpisać nowszej aktualizacji statusu online lub „widziano”.
+- Informacja „Widziano” w otwartym czacie jest teraz stale aktualna. Przycisk czatu, Alt+T i szczegóły kontaktu pokazują te same informacje, a stara odpowiedź nie może już nadpisać nowszej aktualizacji stanu online lub informacji „Widziano”.
 
-- Informacja o ostatnim widzeniu w otwartym czacie sprawdza teraz także znany alternatywny identyfikator kontaktu, gdy pierwsza odpowiedź jest nadal oczekująca, więc Alt+T i przycisk statusu nie zgłaszają już braku informacji, gdy dane istnieją pod innym identyfikatorem.
+- Podczas odświeżania informacji „Widziano” w otwartym czacie WinZapp sprawdza teraz także znany alternatywny identyfikator kontaktu, gdy pierwsza odpowiedź jest nadal oczekująca, więc Alt+T i przycisk statusu nie zgłaszają już braku informacji, gdy dane istnieją pod innym identyfikatorem.
 
 - Odzyskiwanie połączenia i synchronizacja wiadomości nie mylą już starej sesji ani starej rundy synchronizacji z bieżącą. Spóźnione odpowiedzi połączenia, listy czatów i historii wiadomości są odrzucane, wolne sprawdzanie połączenia nie jest już brane za wybudzenie komputera z uśpienia, a nowa synchronizacja nie zostawia już oczekującej historii bez procesu, który się nią zajmie. Dzięki temu unikamy niepotrzebnych przejść do trybu offline i niepełnej historii wiadomości.
 
 - Oznaczenie czatu jako przeczytanego ponownie dociera do telefonu, gdy czat jest znany zarówno po numerze telefonu, jak i po identyfikatorze połączonego urządzenia, a nieudane oznaczenie jest ponawiane przy następnym otwarciu czatu, więc czat nie pozostaje nieprzeczytany w telefonie po przeczytaniu go w WinZapp.
 
-- WinZapp teraz poprawnie się zamyka, zamiast zostawiać okno, które nigdy się nie połączy, gdy okno "Połącz z WinZapp" zostanie zamknięte bez sparowania po otwarciu okna głównego przy uruchamianiu albo gdy w tym momencie brakuje tokenu sesji. W drugim przypadku nadal najpierw pojawia się komunikat "Nie udało się pobrać tokenu użytkownika.". Okno główne pozostawało otwarte, bez połączenia z WhatsApp i bez żadnego komunikatu.
+- WinZapp teraz poprawnie się zamyka, zamiast zostawiać okno, które nigdy się nie połączy, gdy okno „Połącz z WinZapp” zostanie zamknięte bez sparowania po otwarciu okna głównego przy uruchamianiu albo gdy w tym momencie brakuje tokenu sesji. W drugim przypadku nadal najpierw pojawia się komunikat „Nie udało się pobrać tokenu użytkownika.”. Okno główne pozostawało otwarte, bez połączenia z WhatsApp i bez żadnego komunikatu.
 
 - Aktualizacja WinZapp nie psuje już npm osobom, które używają go także poza WinZapp. Gdy WinZapp znajduje się w folderze, którego aktualizacja wymaga uprawnień administratora, po aktualizacji nie uruchamia się już ponownie jako administrator (chyba że już wcześniej działał jako administrator), a npm WinZapp ma teraz własną pamięć podręczną zamiast współdzielić Twoją. Aktualizacja nie zamyka też już innych programów korzystających z portów sieciowych podobnych do portów WinZapp, takich jak baza danych PostgreSQL.
 
 - Aktualizacja WPPConnect Server nie kończy się już błędem npm „ETARGET”, gdy zapisana przez npm lista pakietów jest starsza niż wersje potrzebne serwerowi. WinZapp prosi teraz npm o sprawdzenie w internecie i próbuje ponownie.
 
-- Gdy aktualizacja lub pobieranie Node zostały anulowane dokładnie w chwili zakończenia, WinZapp mógł pokazać błąd "Attempt to exit a non-running event loop". Spóźnione zakończenia są teraz ignorowane.
+- Gdy aktualizacja lub pobieranie Node zostały anulowane dokładnie w chwili zakończenia, WinZapp mógł pokazać błąd „Attempt to exit a non-running event loop”. Spóźnione zakończenia są teraz ignorowane.
 
-- Okno przekazywania: strzałka w dół w polu wyszukiwania przechodzi teraz do pierwszego wyniku i ustawia fokus na liście, tak jak w wyszukiwaniu rozmów.
+- Okno przekazywania: strzałka w dół w polu wyszukiwania przechodzi teraz do pierwszego wyniku i ustawia fokus na liście, tak jak w wyszukiwaniu czatów.
 
 - Lista wyboru kraju przy parowaniu przez numer telefonu zawiera teraz wszystkie kraje i terytoria obsługiwane przez WhatsApp (brakowało m.in. Holandii, Kenii, Białorusi i Macedonii Północnej), a nazwy krajów są wyświetlane w wybranym języku także po polsku, turecku i rumuńsku.
 
@@ -365,7 +365,7 @@ POPRAWKI
 
 Wysyłanie wiadomości głosowych i dokumentów znowu działa. WhatsApp Web zmienił się tak, że te wysyłki kończyły się błędem; WinZapp używa teraz zaktualizowanych bibliotek WPPConnect (WPPConnect 2.3.5 i WA-JS 4.7.1), które sobie z tym radzą.
 
-Obsługiwany jest serwer WPPConnect 2.10.55. Instalacja lub aktualizacja do najnowszego serwera nie kończy się już błędem "npm run build failed", a serwer jest uruchamiany z aktualnymi ustawieniami.
+Obsługiwany jest serwer WPPConnect 2.10.55. Instalacja lub aktualizacja do najnowszego serwera nie kończy się już błędem „npm run build failed”, a serwer jest uruchamiany z aktualnymi ustawieniami.
 
 Anulowanie parowania przy łączeniu konta nie zostawia już działającej starej pętli kodu QR, a strona WhatsApp Web, która nigdy nie kończy ładowania, jest porzucana po 60 sekundach zamiast zostawiać WinZapp w oczekiwaniu.
 
@@ -377,13 +377,13 @@ Najważniejszą nowością tej wersji są połączenia: połączenia głosowe i 
 
 NOWOŚCI
 
-- Gwiazdki wiadomości są teraz synchronizowane z WhatsApp. Każda zmiana jest sprawdzana na połączonym urządzeniu; odmowy i niezweryfikowane wyniki są zgłaszane osobno. Stare lokalne gwiazdki pozostają zachowane, dopóki nie wybierzesz "Synchronizuj stare lokalne gwiazdki z WhatsApp" w menu czatu i nie potwierdzisz. Możesz zatrzymać partię po bieżącym żądaniu.
+- Gwiazdki wiadomości są teraz synchronizowane z WhatsApp. Każda zmiana jest sprawdzana na połączonym urządzeniu; odmowy i niezweryfikowane wyniki są zgłaszane osobno. Stare lokalne gwiazdki pozostają zachowane, dopóki nie wybierzesz „Synchronizuj stare lokalne gwiazdki z WhatsApp” w menu czatu i nie potwierdzisz. Możesz zatrzymać partię po bieżącym żądaniu.
 
 - Połączenia głosowe i wideo. W czacie indywidualnym przyciski „Połączenie głosowe” (Ctrl+Shift+V) i „Połączenie wideo” (Ctrl+Alt+Shift+V) nawiązują połączenie bezpośrednio z WinZapp. Połączenie otwiera okno z przyciskami dostępnymi klawiszem Tab i własnymi skrótami: Ctrl+M wycisza lub włącza mikrofon, Ctrl+V włącza lub wyłącza kamerę w połączeniu wideo, Ctrl+P zamienia połączenie głosowe w połączenie wideo, Ctrl+C otwiera ustawienia połączenia, a Ctrl+Shift+Q je kończy. Czytnik ekranu informuje, kiedy połączenie zostaje nawiązane, kiedy trwa ponowne łączenie i kiedy się kończy.
 
 - Odbieranie i odrzucanie połączeń w WinZapp. Okno połączenia przychodzącego ma teraz przyciski „Odbierz”, „Odrzuć” i „Wycisz alert”, a przy połączeniu wideo „Odbierz z wideo” i „Odbierz bez wideo”. Skróty w tym oknie działają tylko z klawiszem Alt i podkreśloną literą, żeby przypadkowo naciśnięty klawisz nie odebrał ani nie odrzucił połączenia.
 
-- Nowa karta Połączenia (Alt+6) z historią połączeń ze wszystkich czatów, podzieloną na Wszystkie, Nieodebrane, Odrzucone i Odebrane; Ctrl+Tab i Alt+Shift+Nab przełączają między nimi. Na liście Enter otwiera czat połączenia, Ctrl+Shift+R oddzwania na nieodebrane połączenie, a F5 odświeża listę.
+- Nowa karta Połączenia (Alt+6) z historią połączeń ze wszystkich czatów, podzieloną na Wszystkie, Nieodebrane, Odrzucone i Odebrane; Ctrl+Tab i Ctrl+Shift+Tab przełączają między nimi. Na liście Enter otwiera czat połączenia, Ctrl+Shift+R oddzwania na nieodebrane połączenie, a F5 odświeża listę.
 
 - Połączenia pojawiają się w czacie i na liście czatów, tak jak w WhatsAppie: „Nieodebrane połączenie głosowe”, „Odebrane połączenie wideo” i tak dalej, w miejscu czatu, w którym się odbyły. Przy nieodebranym połączeniu przycisk „Oddzwoń” lub Ctrl+Shift+R oddzwania.
 
@@ -391,7 +391,7 @@ NOWOŚCI
 
 - Zabezpieczone czaty (Alt+7). „Zabezpiecz dostęp do czatu” w menu kontekstowym lub Alt+Shift+N przenosi czat do sejfu chronionego PIN-em od 6 do 12 cyfr, poza listę czatów, zarchiwizowane, wyszukiwanie i okno przekazywania. Powiadomienia z tych czatów mówią tylko, ile nowych wiadomości przyszło, bez nazwy i treści. Przy konfiguracji sejfu WinZapp tworzy klucz odzyskiwania, który można odczytać na głos lub skopiować, aby ustawić nowy PIN, jeśli zapomnisz obecny. Sejf zamyka się sam po zminimalizowaniu WinZapp, ukryciu go w zasobniku i przejściu do innego panelu, a także — jeśli chcesz — po pewnym czasie bezczynności; Ctrl+Shift+K od razu zamyka i ukrywa sejf. Zabezpieczone czaty można też usunąć z menu nawigacji: wtedy sejf otwiera się po wpisaniu tajnego kodu w wyszukiwarce czatów.
 
-- Wyszukiwanie w zarchiwizowanych czatach. Zarchiwizowane czaty (Alt+3) mają teraz pole wyszukiwania, tak jak główna lista: Ctrl+F przenosi do niego, a strzałka w dół przechodzi do pierwszego wyniku.
+- Wyszukiwanie w zarchiwizowanych czatach. Zarchiwizowane czaty (Alt+4) mają teraz pole wyszukiwania, tak jak główna lista: Ctrl+F przenosi do niego, a strzałka w dół przechodzi do pierwszego wyniku.
 
 - Dwa nowe języki: turecki i rumuński. Można je wybrać w Ustawieniach, na karcie Ogólne.
 
@@ -399,9 +399,9 @@ NOWOŚCI
 
 - Pokazywanie w folderze pliku zapisanego za pomocą opcji Zapisz jako. Gdy istnieje kopia wybrana przez użytkownika, użyj Ctrl+Enter, pozycji „Pokaż w folderze” w menu kontekstowym albo przycisku dostępnego klawiszem Tab obok Otwórz i Zapisz jako; sam wewnętrzny plik pobrany przez WinZapp nie udostępnia tej akcji.
 
-- Wybór, czy wiadomości oznaczone gwiazdką zostają po wyczyszczeniu czatu. Potwierdzenie czyszczenia ma teraz opcję „Zachowaj wiadomości oznaczone gwiazdką", domyślnie zaznaczoną, tak jak w WhatsApp Web. Po jej odznaczeniu te wiadomości są usuwane razem z resztą, także na telefonie. Dotyczy czyszczenia jednego czatu, kilku zaznaczonych lub zarchiwizowanego.
+- Wybór, czy wiadomości oznaczone gwiazdką zostają po wyczyszczeniu czatu. Potwierdzenie czyszczenia ma teraz opcję „Zachowaj wiadomości oznaczone gwiazdką”, domyślnie zaznaczoną, tak jak w WhatsApp Web. Po jej odznaczeniu te wiadomości są usuwane razem z resztą, także na telefonie. Dotyczy czyszczenia jednego czatu, kilku zaznaczonych lub zarchiwizowanego.
 
-- Potwierdzenie przed oznaczeniem wszystkich czatów jako przeczytane. Polecenie najpierw pyta, z domyślną odpowiedzią Nie, aby przypadkowe naciśnięcie Alt, a potem Enter, nie oznaczyło wszystkiego jako przeczytane, także na telefonie. Pytanie ma opcję „Nie pokazuj ponownie": zaznaczona i potwierdzona przyciskiem Tak sprawia, że kolejne razy oznaczają wszystko od razu. Aby pytanie wróciło, użyj opcji „Pytaj o potwierdzenie przed oznaczeniem wszystkich czatów jako przeczytane" na karcie Interfejs użytkownika w Ustawieniach.
+- Potwierdzenie przed oznaczeniem wszystkich czatów jako przeczytane. Polecenie najpierw pyta, z domyślną odpowiedzią Nie, aby przypadkowe naciśnięcie Alt, a potem Enter, nie oznaczyło wszystkiego jako przeczytane, także na telefonie. Pytanie ma opcję „Nie pokazuj ponownie”: zaznaczona i potwierdzona przyciskiem Tak sprawia, że kolejne razy oznaczają wszystko od razu. Aby pytanie wróciło, użyj opcji „Pytaj o potwierdzenie przed oznaczeniem wszystkich czatów jako przeczytane” na karcie Interfejs użytkownika w Ustawieniach.
 
 - Kopia zapasowa profilu w Ustawieniach. Nowa karta Kopia zapasowa określa, jak często WinZapp przy zamykaniu odnawia kopię profilu przeglądarki, z której odzyskuje połączenie — domyślnie co 24 godziny. Kopię można też tworzyć przy otwartym WinZapp, w wybranym odstępie: WhatsApp jest wtedy rozłączony, co może potrwać kilka minut, a WinZapp może pytać przed każdą kopią. Nowa kopia zastępuje poprzednią dopiero wtedy, gdy WhatsApp ponownie się z nią połączy. Kto woli nie zajmować miejsca kopią, może zaznaczyć „Nie przechowuj kopii zapasowych profilu”, pamiętając, że jeśli profil zostanie uszkodzony, trzeba będzie sparować ponownie; po zaznaczeniu WinZapp podaje, ile miejsca zajmują kopie, i pyta, czy je usunąć.
 
@@ -409,7 +409,7 @@ NOWOŚCI
 
 - Spacja odtwarza i wstrzymuje audio lub wideo, na którym jesteś. Wcześniej ten klawisz nie robił nic na liście wiadomości. Nadal działa węziej niż Enter: nigdy nie otwiera odnośnika, dokumentu, podglądu ani czatu z kontaktem.
 
-- Tryb zaznaczania. Po zaznaczeniu pierwszego elementu klawiszami Ctrl+Spacja sama Spacja zaznacza i odznacza kolejne — na liście czatów, na liście wiadomości i w oknie przekazywania dalej — bez przytrzymywania Ctrl przy każdym z nich. Czytnik ekranu mówi, kiedy tryb się włącza i kiedy wyłącza, a wyłącza się sam, gdy tylko nic nie jest już zaznaczone. Jeśli wolisz, żeby Spacja zawsze odtwarzała, odznacz "Używaj Spacji do zaznaczania/odznaczania, gdy coś jest już zaznaczone" w Ustawieniach, Interfejs użytkownika.
+- Tryb zaznaczania. Po zaznaczeniu pierwszego elementu klawiszami Ctrl+Spacja sama Spacja zaznacza i odznacza kolejne — na liście czatów, na liście wiadomości i w oknie przekazywania dalej — bez przytrzymywania Ctrl przy każdym z nich. Czytnik ekranu mówi, kiedy tryb się włącza i kiedy wyłącza, a wyłącza się sam, gdy tylko nic nie jest już zaznaczone. Jeśli wolisz, żeby Spacja zawsze odtwarzała, odznacz „Używaj Spacji do zaznaczania/odznaczania, gdy coś jest już zaznaczone” w Ustawieniach, Interfejs użytkownika.
 
 - Esc odznacza przed zamknięciem. Gdy wiadomości są zaznaczone, pierwszy Esc tylko odznacza wszystkie, a dopiero drugi zamyka czat. To także można wyłączyć w Ustawieniach, Interfejs użytkownika.
 
@@ -445,13 +445,13 @@ ULEPSZENIA
 
 - Pliki audio wklejone do pola wiadomości skrótem Ctrl+V można teraz wysyłać jako audio lub jako dokument, dzięki nowej opcji „Pliki audio wklejone do pola wiadomości (Ctrl+V)” na karcie Pliki i zapisywanie w Ustawieniach; domyślnie jako audio. Wiadomość od razu pojawia się w czacie z typem, z jakim zostanie wysłana.
 
-- Zarchiwizowane i zabezpieczone czaty można teraz zaznaczać tak samo jak główne rozmowy: Ctrl+Spacja, Shift+strzałki, Shift+Home/End, Ctrl+Shift+Spacja oraz Spacja w trybie zaznaczania, z tym samym dźwiękiem i komunikatami. Menu „Akcje masowe” (z własnymi skrótami) pozwala przywracać z archiwum, czyścić, usuwać oraz oznaczać jako przeczytane lub nieprzeczytane zarchiwizowane czaty, a w zabezpieczonych — wyłączać zabezpieczenie dostępu lub oznaczać jako przeczytane albo nieprzeczytane.
+- Zarchiwizowane i zabezpieczone czaty można teraz zaznaczać tak samo jak czaty na głównej liście: Ctrl+Spacja, Shift+strzałki, Shift+Home/End, Ctrl+Shift+Spacja oraz Spacja w trybie zaznaczania, z tym samym dźwiękiem i komunikatami. Menu „Akcje masowe” (z własnymi skrótami) pozwala przywracać z archiwum, czyścić, usuwać oraz oznaczać jako przeczytane lub nieprzeczytane zarchiwizowane czaty, a w zabezpieczonych — wyłączać zabezpieczenie dostępu lub oznaczać jako przeczytane albo nieprzeczytane.
 
 - Automatyczne pobieranie multimediów od razu stosuje się teraz do opcji „Automatycznie pobieraj multimedia” na karcie Pamięć w Ustawieniach: odznaczenie jej przerywa trwające pobieranie, a zaznaczenie (lub zaznaczenie kolejnego typu multimediów) rozpoczyna pobieranie bez czekania na następną synchronizację. Odznaczona, dotyczy teraz także multimediów w wiadomościach przychodzących, gdy WinZapp jest otwarty, a lista typów jest wyłączona i zachowuje to, co było zaznaczone.
 
 - WinZapp utrzymuje teraz aktualną listę wersji WhatsApp Web. Przy uruchomieniu pobiera w tle nowszą, jeśli jest dostępna, i stosuje ją przy następnym uruchomieniu, co naprawia połączenia, które nie działały w instalacjach z nieaktualną listą.
 
-- Gdy nie można rozpocząć połączenia, bo używana wersja WhatsApp Web nie obsługuje połączeń, WinZapp teraz o tym informuje i podpowiada, co zrobić (uruchomić WinZappa ponownie albo wybrać "Wymuś ponowną instalację WPPConnect" w menu Pomoc), zamiast odczytywać kod błędu.
+- Gdy nie można rozpocząć połączenia, bo używana wersja WhatsApp Web nie obsługuje połączeń, WinZapp teraz o tym informuje i podpowiada, co zrobić (uruchomić WinZappa ponownie albo wybrać „Wymuś ponowną instalację WPPConnect” w menu Pomoc), zamiast odczytywać kod błędu.
 
 - Instalator jest teraz znacznie mniejszy do pobrania: pliki WinZapp w jego wnętrzu są skompresowane, tak jak wcześniej w przenośnym pliku ZIP, a podczas instalacji instalator sprawdza każdy plik.
 
@@ -467,15 +467,15 @@ ULEPSZENIA
 
 POPRAWKI
 
-- Połączenia nie kończą się już błędem "NumPy was built with baseline optimizations", a potem "cannot load module more than once per process", na komputerach ze starszym procesorem lub ograniczonym przez maszynę wirtualną. WinZapp zawiera teraz wersję NumPy działającą na każdym 64-bitowym procesorze.
+- Połączenia nie kończą się już błędem „NumPy was built with baseline optimizations”, a potem „cannot load module more than once per process”, na komputerach ze starszym procesorem lub ograniczonym przez maszynę wirtualną. WinZapp zawiera teraz wersję NumPy działającą na każdym 64-bitowym procesorze.
 
-- Połączenia: naprawiono błąd "cannot load module more than once per process", który mógł się pojawić przy rozpoczynaniu połączenia głosowego lub wideo. Silnik połączeń WhatsApp jest teraz uruchamiany tylko raz i współdzielony, zamiast być uruchamiany ponownie przy każdej akcji połączenia.
+- Połączenia: naprawiono błąd „cannot load module more than once per process”, który mógł się pojawić przy rozpoczynaniu połączenia głosowego lub wideo. Silnik połączeń WhatsApp jest teraz uruchamiany tylko raz i współdzielony, zamiast być uruchamiany ponownie przy każdej akcji połączenia.
 
-- Po wysłaniu wiadomości do osoby, której nie ma w Twoich kontaktach i która nie ma nazwy w profilu WhatsApp, rozmowa zaczynała pokazywać Twoje własne imię zamiast numeru telefonu tej osoby. Teraz nadal pokazuje numer telefonu, dopóki nie uda się znaleźć jej prawdziwego imienia.
+- Po wysłaniu wiadomości do osoby, której nie ma w Twoich kontaktach i która nie ma nazwy w profilu WhatsApp, czat zaczynał pokazywać Twoje własne imię zamiast numeru telefonu tej osoby. Teraz nadal pokazuje numer telefonu, dopóki nie uda się znaleźć jej prawdziwego imienia.
 
 - Program odinstalowujący używa teraz języka wyświetlania systemu Windows, tak jak instalator, zamiast zawsze pojawiać się po portugalsku.
 
-- Przekazywanie wiadomości nie kończy się już błędem w najnowszych wersjach WhatsApp Web, w których każde przekazanie było odrzucane z komunikatem “forwardMessages function is not available”.
+- Przekazywanie wiadomości nie kończy się już błędem w najnowszych wersjach WhatsApp Web, w których każde przekazanie było odrzucane z komunikatem „forwardMessages function is not available”.
 
 - Po rozpoczęciu nagrywania wiadomości głosowej przy wyciszonych komunikatach czytnik ekranu nie zaczyna już wypowiadać „Wyślij”, zanim zostanie przerwany. WinZapp nie wykonuje teraz automatycznego przeniesienia fokusu, które powodowało ten urwany komunikat, a skróty Ctrl+R, Ctrl+Shift+P i Ctrl+Shift+D nadal działają.
 
@@ -483,13 +483,13 @@ POPRAWKI
 
 - Gdy WhatsApp odrzucał połączenie tuż po uruchomieniu programu, kopia zapasowa profilu przeglądarki w ogóle nie była przywracana: jeśli kody parowania zaczynały napływać w pierwszych sekundach, WinZapp zamykał sesję i kazał sparować konto od nowa, mimo że zapisana była dobra kopia. Teraz przywraca kopię, gdy tylko pojawi się pierwszy kod, i prosi o parowanie dopiero wtedy, gdy przywrócenie nie pomoże.
 
-- Dodawanie członka grupy według numeru telefonu nic nie robiło: przycisk "Dodaj numer" nikogo nie dodawał i nie pokazywał błędu. Teraz od razu dodaje numer i informuje, czy się udało, a nieprawidłowy numer jest zgłaszany. W tym samym oknie pole wyszukiwania jest teraz odczytywane jako "Szukaj kontaktu".
+- Dodawanie członka grupy według numeru telefonu nic nie robiło: przycisk „Dodaj numer” nikogo nie dodawał i nie pokazywał błędu. Teraz od razu dodaje numer i informuje, czy się udało, a nieprawidłowy numer jest zgłaszany. W tym samym oknie pole wyszukiwania jest teraz odczytywane jako „Szukaj kontaktu”.
 
 - Przy otwartym czacie lista wiadomości co minutę kurczyła się z powrotem do ustawionego limitu, a starsze wiadomości znikały — także z zapisanej historii. WinZapp mylił wiadomości spoza zakresu sprawdzanego w WhatsAppie z wiadomościami usuniętymi na telefonie. Teraz wiadomość jest usuwana tylko wtedy, gdy WhatsApp pokazuje, że naprawdę już nie istnieje — nigdy tylko dlatego, że nie udało się jej znaleźć, ani w okresie cofniętym przez odzyskiwanie profilu — i lista nie kurczy się już podczas czytania.
 
-- W grupach z wieloma uczestnikami informacje o grupie mogły przez kilka minut pokazywać "Wczytywanie..." — Przegląd i lista Uczestników pojawiały się dopiero wtedy, gdy WinZapp po kolei sprawdził numer każdego członka, którego numeru jeszcze nie znał. Wyglądało to na zawieszenie i pomagało dopiero zamknięcie i ponowne otwarcie okna. Teraz informacje pojawiają się, gdy tylko grupa odpowie, a brakujące nazwy i numery są uzupełniane na liście później, bez przenoszenia Cię z wiersza, na którym jesteś.
+- W grupach z wieloma uczestnikami informacje o grupie mogły przez kilka minut pokazywać „Wczytywanie...” — Przegląd i lista Uczestników pojawiały się dopiero wtedy, gdy WinZapp po kolei sprawdził numer każdego członka, którego numeru jeszcze nie znał. Wyglądało to na zawieszenie i pomagało dopiero zamknięcie i ponowne otwarcie okna. Teraz informacje pojawiają się, gdy tylko grupa odpowie, a brakujące nazwy i numery są uzupełniane na liście później, bez przenoszenia Cię z wiersza, na którym jesteś.
 
-- Zmiana języka w Ustawieniach i naciśnięcie Zastosuj tłumaczy teraz wszystkie opcje. Niektóre pozostawały w poprzednim języku aż do zamknięcia i ponownego otwarcia Ustawień, na przykład „Przy otwieraniu czatu pokaż maksymalnie tyle wiadomości" i „Liczba wiadomości pomijanych klawiszami Page Up / Page Down".
+- Zmiana języka w Ustawieniach i naciśnięcie Zastosuj tłumaczy teraz wszystkie opcje. Niektóre pozostawały w poprzednim języku aż do zamknięcia i ponownego otwarcia Ustawień, na przykład „Przy otwieraniu czatu pokaż maksymalnie tyle wiadomości” i „Liczba wiadomości pomijanych klawiszami Page Up / Page Down”.
 
 - Domyślna prędkość odtwarzania dźwięku nie wraca już sama do 1x. Po otwarciu Ustawień pole na karcie Odtwarzanie audio było puste niezależnie od zapisanej prędkości, a naciśnięcie Zastosuj, a potem OK zapisywało 1x w jej miejsce. Teraz zapisana prędkość jest zaznaczona i zachowywana.
 
@@ -543,13 +543,13 @@ POPRAWKI
 
 - Odpowiedź na monit o aktualizację, gdy WinZapp jeszcze się uruchamiał, mogła zostawić go bez okna, działającego w tle, a otworzył się ponownie dopiero po zakończeniu procesu lub restarcie komputera. Teraz monit czeka na otwarcie głównego okna, a jeśli zamykanie się zawiesi, WinZapp kończy się sam zamiast pozostać zablokowany.
 
-- Czytnik ekranu nie odczytuje już bez powodu ponownie wiadomości w fokusie w otwartej rozmowie. Gdy nowa wiadomość przychodziła razem z reakcją (lub po wysłanej przez Ciebie wiadomości), automatyczne odświeżanie przepisywało całą listę wiadomości, a NVDA powtarzał element, na którym byłeś; teraz lista jest aktualizowana wiersz po wierszu i zmieniają się tylko te wiersze, które faktycznie się zmieniły.
+- Czytnik ekranu nie odczytuje już bez powodu ponownie wiadomości w fokusie w otwartym czacie. Gdy nowa wiadomość przychodziła razem z reakcją (lub po wysłanej przez Ciebie wiadomości), automatyczne odświeżanie przepisywało całą listę wiadomości, a NVDA powtarzał element, na którym byłeś; teraz lista jest aktualizowana wiersz po wierszu i zmieniają się tylko te wiersze, które faktycznie się zmieniły.
 
-- Komunikaty „pisze” i „nagrywa wiadomość głosową” są znów odczytywane w grupach. WhatsApp zaczął informować, kto pisze, w sposób, którego WinZapp nie odczytywał, więc ogłaszały to tylko rozmowy indywidualne.
+- Komunikaty „pisze” i „nagrywa wiadomość głosową” są znów odczytywane w grupach. WhatsApp zaczął informować, kto pisze, w sposób, którego WinZapp nie odczytywał, więc komunikaty były odczytywane tylko w czatach indywidualnych.
 
-- Wybranie z listy rozmowy, która była już otwarta, uwzględnia teraz ustawienie „Przy otwieraniu czatu ustaw fokus na” (pole wiadomości albo separator nieprzeczytanych / ostatnia wiadomość); wcześniej fokus zawsze trafiał do pola wiadomości.
+- Wybranie z listy czatu, który był już otwarty, uwzględnia teraz ustawienie „Przy otwieraniu czatu ustaw fokus na” (pole wiadomości albo separator nieprzeczytanych / ostatnia wiadomość); wcześniej fokus zawsze trafiał do pola wiadomości.
 
-- Odpowiedź na wiadomość ze wzmianką o kimś docierała do odbiorców jako nowa wiadomość, bez cytatu, chociaż WinZapp pokazywał ją jako odpowiedź. Teraz cytat jest wysyłany razem ze wzmianką.
+- Gdy w odpowiedzi na wiadomość umieszczono wzmiankę o innej osobie, odpowiedź docierała do odbiorców jako nowa wiadomość, bez cytatu, chociaż WinZapp pokazywał ją jako odpowiedź. Teraz cytat jest wysyłany razem ze wzmianką.
 
 - Powiadomienia o aktualizacjach pojawiają się teraz także wtedy, gdy WinZapp uruchamia się razem z Windows: w takim przypadku nie była oferowana ani aktualizacja samego WinZapp, ani WPPConnect Server. Powiadomienie o WPPConnect Server oferuje też teraz nowszą wersję niż ta testowana z WinZapp, jako zalecaną aktualizację, którą można odrzucić, a nie tylko wtedy, gdy sam WinZapp podnosił wymaganą wersję.
 
@@ -557,7 +557,7 @@ POPRAWKI
 
 V1.1.1.0
 
-Ta wersja dotyczy utrzymania połączenia z Twoim kontem. WinZapp zapisuje teraz kopię zapasową profilu przeglądarki — to w nim faktycznie przechowywane jest Twoje połączenie z WhatsApp — i sam ją przywraca, gdy przestaje być akceptowana, informując o tym, co się stało. Razem z nią pojawiają się poprawki sytuacji, które przerywały sesję i zmuszały do ponownego parowania: wyłączenie komputera, wstrzymanie i wznowienie oraz samo ponowne uruchamianie połączenia przez program. Doszły również sprawdzanie pisowni w polu wiadomości i akcje na odnośnikach.
+Ta wersja dotyczy utrzymania połączenia z Twoim kontem. WinZapp zapisuje teraz kopię zapasową profilu przeglądarki — to w nim faktycznie przechowywane jest Twoje połączenie z WhatsApp — i sam ją przywraca, gdy przestaje być akceptowana, informując o tym, co się stało. Razem z nią pojawiają się poprawki sytuacji, które przerywały sesję i zmuszały do ponownego parowania: wyłączenie komputera, uśpienie i wybudzenie oraz samo ponowne uruchamianie połączenia przez program. Doszły również sprawdzanie pisowni w polu wiadomości i akcje na odnośnikach.
 
 NOWOŚCI
 
@@ -569,69 +569,69 @@ NOWOŚCI
 
 - Ostrzeżenie, gdy wewnętrzna przeglądarka jest niekompletna. Jeśli przeglądarka, której WinZapp używa do połączenia z WhatsApp, nie może się uruchomić — zwykle dlatego, że program antywirusowy usunął jej część — aplikacja mówi to wprost i wyjaśnia, co zrobić, zamiast sprawiać wrażenie problemu z WhatsApp.
 
-- Ostrzeżenie o niepotwierdzonym wysłaniu. Gdy WhatsApp przyjmuje wiadomość, ale nie potwierdza dostarczenia, WinZapp radzi sprawdzić rozmowę przed ponownym wysłaniem, zamiast ryzykować dostarczenie tej samej wiadomości dwa razy.
+- Ostrzeżenie o niepotwierdzonym wysłaniu. Gdy WhatsApp przyjmuje wiadomość, ale nie potwierdza dostarczenia, WinZapp radzi sprawdzić czat przed ponownym wysłaniem, zamiast ryzykować dostarczenie tej samej wiadomości dwa razy.
 
 ULEPSZENIA
 
-- Uruchamianie razem z systemem Windows łączy się teraz znacznie szybciej. Program czekał na połączenie dopiero po tym, jak już próbował z niego skorzystać, i przez dłuższy czas bez powodu pokazywał „rozłączono z WhatsApp". Teraz czeka, aż wszystko będzie gotowe, zanim pojawi się w zasobniku systemowym.
+- WinZapp uruchamiany razem z systemem Windows szybciej nawiązuje połączenie. Program czekał na połączenie dopiero po tym, jak już próbował z niego skorzystać, i przez dłuższy czas bez powodu pokazywał „rozłączono z WhatsApp”. Teraz czeka, aż wszystko będzie gotowe, zanim pojawi się w zasobniku systemowym.
 
 - Lista wiadomości nie jest już przebudowywana w całości co minutę. Przepisywane są tylko te wiersze, które faktycznie się zmieniły, więc czytnik ekranu przestaje ponownie odczytywać wiadomość, na której jesteś, a dźwięk zaznaczenia nie odtwarza się sam z siebie.
 
-- Mniej powiadomień o synchronizacji na telefonie. WinZapp prosi telefon o starszą historię tylko dla rozmów, które otworzyłeś, po jednym żądaniu naraz, i przestaje prosić zupełnie, gdy rozmowa odpowiedziała już, że nie ma nic więcej.
+- Mniej powiadomień o synchronizacji na telefonie. WinZapp prosi telefon o starszą historię tylko dla czatów, które otworzyłeś, po jednym żądaniu naraz, i przestaje prosić zupełnie, gdy otrzyma informację, że nie ma nic więcej.
 
-- Rozmowy, którym synchronizacja przestała się przyglądać, są znowu sprawdzane samoczynnie, bez konieczności odświeżania klawiszem F5.
+- Czaty pomijane wcześniej przez synchronizację są znowu sprawdzane automatycznie, bez konieczności odświeżania klawiszem F5.
 
 - Przy kilku otwartych kontach jednocześnie aktualizacja WinZapp otwiera jedno okno zamiast jednego na każde konto.
 
 - Dźwięk: WinZapp pyta mikrofon o jego własną częstotliwość próbkowania, zanim spróbuje tych ustalonych, a wyjście dźwięku samo wraca do działania, gdy urządzenie domyślne zmienia się lub zostaje odłączone.
 
-- Reakcje, które nadeszły przy zamkniętej rozmowie, pojawiają się po jej otwarciu.
+- Reakcje, które nadeszły przy zamkniętym czacie, pojawiają się po jego otwarciu.
 
-- Po podziałach wiersza w polu wiadomości można teraz normalnie nawigować czytnikiem ekranu.
+- Czytnik ekranu pozwala teraz prawidłowo przechodzić między wierszami w polu wiadomości.
 
 - Zaktualizowane połączenie z WhatsApp (WPPConnect 2.10.21) wraz z poprawkami bezpieczeństwa, a WinZapp sam zauważa, gdy to połączenie odbiegło od wzorca i wymaga ponownej instalacji.
 
 POPRAWKI
 
-- Wyłączenie komputera nie przerywa już sesji. WinZapp zamykał połączenie z WhatsApp zbyt późno podczas zamykania systemu Windows, gdy proces je utrzymujący był już zakończony — a profil wracał bezużyteczny, prosząc o ponowne parowanie. Teraz zamyka wszystko, kiedy Windows wciąż pyta, czy może się wyłączyć.
+- Wyłączenie komputera nie przerywa już sesji. WinZapp zamykał połączenie z WhatsApp zbyt późno podczas zamykania systemu Windows, gdy proces je utrzymujący był już zakończony — a przy następnym uruchomieniu zapisany profil nie nadawał się do użycia i konieczne było ponowne parowanie. Teraz zamyka wszystko, kiedy Windows wciąż pyta, czy może się wyłączyć.
 
-- Wstrzymanie komputera nie przerywa już sesji. Po wznowieniu WinZapp uruchamiał połączenie ponownie, nie czekając, aż przeglądarka dokończy zapisywanie tego, co miała w ręku, a to wystarczało, by utracić sparowanie. Teraz czeka.
+- Uśpienie komputera nie przerywa już sesji. Po wybudzeniu WinZapp uruchamiał połączenie ponownie, nie czekając, aż przeglądarka zakończy zapisywanie danych, a to wystarczało, by utracić sparowanie. Teraz czeka.
 
 - Odpowiadanie na status znowu działa. Odpowiedź kończyła się komunikatem, że nie udało się jej wysłać.
 
-- Niejednoznaczne niepowodzenie wysyłki nie tworzy już zduplikowanych wiadomości: gdy nie da się stwierdzić, czy WhatsApp ją otrzymał, WinZapp nie wysyła ponownie na własną rękę.
+- Niepotwierdzony wynik wysyłania wiadomości nie powoduje już jej powielania: gdy nie da się stwierdzić, czy WhatsApp ją otrzymał, WinZapp nie wysyła ponownie na własną rękę.
 
-- Pobieranie dużych dokumentów znów jest możliwe. Pliki o rozmiarze kilkuset megabajtów zapowiadały „pobieranie" i nie dawały żadnego efektu.
+- Pobieranie dużych dokumentów znów jest możliwe. Pliki o rozmiarze kilkuset megabajtów zapowiadały „pobieranie” i nie dawały żadnego efektu.
 
 - Wskaźnik postępu wysyłania i pobierania pokazuje teraz transfer, który naprawdę trwa, i nie kręci się dalej przy wiadomości, która już się zakończyła, ani nie pojawia się w niewłaściwym wierszu.
 
-- Anulowanie lub zamknięcie ekranu parowania nie usuwa już Twoich rozmów, podobnie jak chwilowe niepowodzenie uwierzytelniania przy uruchamianiu programu. Historia jest czyszczona tylko wtedy, gdy faktycznie zostanie podłączony inny numer telefonu — i wtedy WinZapp o tym informuje.
+- Anulowanie lub zamknięcie ekranu parowania nie usuwa już Twoich czatów, podobnie jak chwilowe niepowodzenie uwierzytelniania przy uruchamianiu programu. Historia jest czyszczona tylko wtedy, gdy faktycznie zostanie podłączony inny numer telefonu — i wtedy WinZapp o tym informuje.
 
-- Kod QR jest ogłaszany dopiero wtedy, gdy naprawdę znajduje się na ekranie. WinZapp mówił „kod QR został zaktualizowany" zanim jakikolwiek kod w ogóle się pojawił, przez co wydawało się, że kod pojawia się dopiero za drugim razem. Ekran parowania informuje teraz, że kod jest generowany, ogłasza go, gdy faktycznie się pojawi, i mówi, kiedy nie udało się go wygenerować lub kiedy kod parowania wygasł — zamiast milczeć albo ogłaszać aktualizację, której nie było.
+- Kod QR jest ogłaszany dopiero wtedy, gdy naprawdę znajduje się na ekranie. WinZapp mówił „kod QR został zaktualizowany” zanim jakikolwiek kod w ogóle się pojawił, przez co wydawało się, że kod pojawia się dopiero za drugim razem. Ekran parowania informuje teraz, że kod jest generowany, ogłasza go, gdy faktycznie się pojawi, i mówi, kiedy nie udało się go wygenerować lub kiedy kod parowania wygasł — zamiast milczeć albo ogłaszać aktualizację, której nie było.
 
-- Liczniki nieprzeczytanych: rozmowy nie wracają już jako nieprzeczytane bez nadejścia nowej wiadomości.
+- Liczniki nieprzeczytanych: czaty nie są już ponownie oznaczane jako nieprzeczytane bez nadejścia nowej wiadomości.
 
 - Znika widmowy znak, który pojawiał się w polu wiadomości po powrocie z innego programu przy włączonym NVDA.
 
 - Kopiowanie wiadomości głosowej już działa.
 
-- Rozmowy, które pokazywały numer zamiast nazwy, są teraz rozwiązywane.
+- Czaty, które zamiast nazwy kontaktu wyświetlały numer telefonu, pokazują teraz prawidłową nazwę.
 
 - Przełączanie kont poprawnie usuwa teraz multimedia poprzedniego konta, które wcześniej mogły zostać na komputerze.
 
 V1.1.0.0
 
-Ta wersja wprowadza kartę multimediów, odtwarzacz multimediów w osobnym oknie, podglądy linków, operacje zbiorcze oraz kartę Dostępność w ustawieniach. Synchronizacja rozmów jest znacznie szybsza, a lista rozmów nie jest już przebudowywana przy każdej wiadomości, co bardzo ogranicza ponowne odczytywanie przez czytnik ekranu.
+Ta wersja wprowadza kartę multimediów, odtwarzacz multimediów w osobnym oknie, podglądy linków, operacje zbiorcze oraz kartę Dostępność w ustawieniach. Synchronizacja czatów jest znacznie szybsza, a lista czatów nie jest już przebudowywana przy każdej wiadomości, co bardzo ogranicza ponowne odczytywanie przez czytnik ekranu.
 
 NOWOŚCI
 
-- Karta Multimedia w rozmowach i w grupach. Zawiera zdjęcia, filmy, pliki dźwiękowe, wiadomości głosowe, dokumenty i linki, z filtrowaniem według typu oraz według pobranych i niepobranych, wczytywaniem pełnej historii i akcjami otwierania, zapisywania i usuwania dla każdej wiadomości. Pliki dźwiękowe i wiadomości głosowe to dwa osobne filtry: można pokazać tylko jedne albo tylko drugie, a także wybrać, czy automatyczne pobieranie obejmuje jedne, drugie czy oba rodzaje.
+- Karta Multimedia w czatach prywatnych i grupowych. Zawiera zdjęcia, filmy, pliki dźwiękowe, wiadomości głosowe, dokumenty i linki, z filtrowaniem według typu oraz według pobranych i niepobranych, wczytywaniem pełnej historii i akcjami otwierania, zapisywania i usuwania dla każdej wiadomości. Pliki dźwiękowe i wiadomości głosowe to dwa osobne filtry: można pokazać tylko jedne albo tylko drugie, a także wybrać, czy automatyczne pobieranie obejmuje jedne, drugie czy oba rodzaje.
 
-- Odtwarzacz multimediów w osobnym oknie, z odtwarzaniem i pauzą, przewijaniem o 10 sekund do przodu i do tyłu, pozycją, głośnością i prędkością. W ustawieniach wybierasz, czy filmy z rozmów i statusy mają się w nim otwierać.
+- Odtwarzacz multimediów w osobnym oknie, z odtwarzaniem i pauzą, przewijaniem o 10 sekund do przodu i do tyłu, pozycją, głośnością i prędkością. W ustawieniach wybierasz, czy filmy z czatów i statusy mają się w nim otwierać.
 
 - Podglądy linków w wiadomościach. Gdy wiadomość zawiera dwa lub więcej linków, stają się one listą, po której można się poruszać. Wysyłane przez Ciebie wiadomości również zawierają teraz podgląd.
 
-- Operacje zbiorcze na wiadomościach i rozmowach: kopiowanie, oznaczanie gwiazdką, przypinanie, przekazywanie, zapisywanie i usuwanie wiadomości; oznaczanie rozmów jako przeczytane lub nieprzeczytane, archiwizowanie i czyszczenie. Każda akcja ma własny skrót, a Ctrl+C kopiuje zaznaczenie.
+- Operacje zbiorcze na wiadomościach i czatach: kopiowanie, oznaczanie gwiazdką, przypinanie, przekazywanie, zapisywanie i usuwanie wiadomości; oznaczanie czatów jako przeczytane lub nieprzeczytane, archiwizowanie i czyszczenie. Każda akcja ma własny skrót, a Ctrl+C kopiuje zaznaczenie.
 
 - Karta Dostępność w ustawieniach, z rozszerzoną zgodnością z czytnikiem ekranu i opcją korzystania z głosu SAPI, gdy żaden czytnik nie jest uruchomiony.
 
@@ -645,19 +645,19 @@ NOWOŚCI
 
 - Przebudowany wybór kraju w oknie parowania: korzysta z kraju i języka ustawionych w systemie Windows, jest posortowany alfabetycznie, obsługuje wyszukiwanie przez wpisywanie kilku liter i chroni numer kierunkowy kraju przed przypadkową edycją.
 
-- Nowe opcje w ustawieniach: pokazywanie "wczoraj" zamiast daty, zapowiadanie "Przekazano" przed nadawcą, odróżnianie wiadomości głosowych od plików dźwiękowych, teraz domyślnie włączone zamiast odczytywania wszystkiego jako dźwięk, ustalanie długości filmu już przy pobieraniu, wybór domyślnie wyświetlanych typów multimediów oraz rezygnacja z oznaczania nagrań jako odtworzonych.
+- Nowe opcje w ustawieniach: pokazywanie „wczoraj” zamiast daty, zapowiadanie „Przekazano” przed nadawcą, odróżnianie wiadomości głosowych od plików dźwiękowych, teraz domyślnie włączone zamiast odczytywania wszystkiego jako dźwięk, ustalanie długości filmu już przy pobieraniu, wybór domyślnie wyświetlanych typów multimediów oraz rezygnacja z oznaczania nagrań jako odtworzonych.
 
-- Wyszukiwanie na listach kontaktów ("Załącz kontakt" i "Dodaj członka"): pole ma fokus od razu po otwarciu listy, filtruje według imienia i nazwiska oraz numeru w trakcie pisania, a wyczyszczenie pola przywraca pełną listę kontaktów.
+- Wyszukiwanie na listach kontaktów („Załącz kontakt” i „Dodaj członka”): pole ma fokus od razu po otwarciu listy, filtruje według imienia i nazwiska oraz numeru w trakcie pisania, a wyczyszczenie pola przywraca pełną listę kontaktów.
 
-- Otrzymana wizytówka kontaktu: menu kontekstowe z podglądem nazwy i numeru, kopiowaniem numeru skrótem Ctrl+C oraz rozpoczęciem rozmowy. Gdy wizytówka zawiera więcej niż jeden numer, WinZapp pyta, którego użyć.
+- Otrzymana wizytówka kontaktu: menu kontekstowe z podglądem nazwy i numeru, kopiowaniem numeru skrótem Ctrl+C oraz rozpoczęciem czatu. Gdy wizytówka zawiera więcej niż jeden numer, WinZapp pyta, którego użyć.
 
 USPRAWNIENIA
 
 - Dokumenty mogą teraz mieć do 2 GB, czyli tyle, ile faktycznie pozwala WhatsApp. WinZapp bez powodu zatrzymywał je na 1 GB. Zdjęcia, filmy i pliki dźwiękowe pozostają przy 1 GB, bo taki jest limit WhatsAppa dla nich.
 
-- Przyrostowa synchronizacja rozmów. Uruchamianie programu i odświeżanie jest znacznie szybsze, a WinZapp informuje o rozpoczęciu i zakończeniu aktualizacji.
+- Przyrostowa synchronizacja czatów. Uruchamianie programu i odświeżanie jest znacznie szybsze, a WinZapp informuje o rozpoczęciu i zakończeniu aktualizacji.
 
-- Lista rozmów działa dużo szybciej. Nowa wiadomość lub potwierdzenie dostarczenia aktualizuje tylko ten jeden wiersz, zamiast przebudowywać całą listę. W praktyce czytnik ekranu czyta ponownie znacznie rzadziej.
+- Lista czatów działa dużo szybciej. Nowa wiadomość lub potwierdzenie dostarczenia aktualizuje tylko ten jeden wiersz, zamiast przebudowywać całą listę. W praktyce czytnik ekranu czyta ponownie znacznie rzadziej.
 
 - Akcje na wiadomości również aktualizują tylko wiersz tej wiadomości, a edytowanie wiadomości nie blokuje już interfejsu.
 
@@ -671,11 +671,11 @@ USPRAWNIENIA
 
 POPRAWKI
 
-- Sesja rozłączona przez WhatsAppa: WinZapp od razu o tym informuje i otwiera parowanie, zamiast dalej pokazywać listę rozmów i powtarzać, że kod QR został zaktualizowany. Jeśli nikogo nie ma na ekranie parowania, sesja zostaje zamknięta, zamiast bez końca prosić WhatsAppa o nowe kody — takie nieustanne prośby mogły doprowadzić do zablokowania konta — a WinZapp mówi na głos, że zamknął sesję i że trzeba połączyć się ponownie.
+- Sesja rozłączona przez WhatsAppa: WinZapp od razu o tym informuje i otwiera parowanie, zamiast dalej pokazywać listę czatów i powtarzać, że kod QR został zaktualizowany. Jeśli nikogo nie ma na ekranie parowania, sesja zostaje zamknięta, zamiast bez końca prosić WhatsAppa o nowe kody — takie nieustanne prośby mogły doprowadzić do zablokowania konta — a WinZapp mówi na głos, że zamknął sesję i że trzeba połączyć się ponownie.
 
-- Liczniki nieprzeczytanych: przeczytane już wiadomości nie wracają jako nowe, przeczytanie rozmowy na telefonie jest respektowane, a otwarta rozmowa nie traci już licznika.
+- Liczniki nieprzeczytanych: przeczytane już wiadomości nie wracają jako nowe, przeczytanie czatu na telefonie jest respektowane, a otwarty czat nie traci już licznika.
 
-- Separator nieprzeczytanych wiadomości i Twoja pozycja czytania nie są już tracone w trakcie czytania. Otwarta rozmowa była okresowo przebudowywana, co przerywało czytnik ekranu w połowie zdania.
+- Separator nieprzeczytanych wiadomości i Twoja pozycja czytania nie są już tracone w trakcie czytania. Lista wiadomości otwartego czatu była okresowo przebudowywana, co przerywało czytnik ekranu w połowie zdania.
 
 - Sesja: zamknięcie i ponowne otwarcie WinZapp nie wymaga już ponownego parowania. Zamykanie czeka teraz na zapisanie sesji.
 
@@ -687,17 +687,17 @@ POPRAWKI
 
 - Wysyłanie: anulowanie wiadomości, która została już wysłana, jest teraz jasno wyjaśniane, a duże przesyłane pliki nie giną po drodze.
 
-- Filmy bez podanej długości nie pokazują już "0 sekund".
+- Filmy bez podanej długości nie pokazują już „0 sekund”.
 
-- Pierwsza wiadomość od kontaktu nie znika już po otwarciu rozmowy.
+- Pierwsza wiadomość od kontaktu nie znika już po otwarciu czatu.
 
-- Dostępność: skrót do emoji jest teraz przekazywany czytnikowi ekranu, Alt+T znów działa wewnątrz rozmowy, a mowa nie jest już przerywana przy każdym potwierdzeniu dostarczenia.
+- Dostępność: skrót do emoji jest teraz przekazywany czytnikowi ekranu, Alt+T znów działa w otwartym czacie, a mowa nie jest już przerywana przy każdym potwierdzeniu dostarczenia.
 
-- Synchronizacja nie zaczyna się już bez końca od nowa. Wystarczyła jedna rozmowa, której WhatsApp nie rozpoznaje i która nigdy nie była prawdziwą rozmową, aby WinZapp uznał, że synchronizacja nigdy się nie zakończyła: zaczynał od zera co kilka minut i za każdym razem znów się zapowiadał, mimo że wszystko było już wczytane.
+- Synchronizacja nie zaczyna się już bez końca od nowa. Wystarczył jeden wpis, którego WhatsApp nie rozpoznaje i który nigdy nie był prawdziwym czatem, aby WinZapp uznał, że synchronizacja nigdy się nie zakończyła: zaczynał od zera co kilka minut i za każdym razem znów się zapowiadał, mimo że wszystko było już wczytane.
 
-- Szybkie odświeżanie rozmów nie pomija już rozmów z nowymi wiadomościami. Pozostawały one w starym stanie do czasu naciśnięcia F5 i pełnej synchronizacji, co niweczyło zysk na szybkości.
+- Szybkie odświeżanie czatów nie pomija już czatów z nowymi wiadomościami. Pozostawały one w starym stanie do czasu naciśnięcia F5 i pełnej synchronizacji, co niweczyło zysk na szybkości.
 
-- WinZapp zna teraz datę ważności używanej wersji WhatsApp Web. Gdy ta wygaśnie, pobiera wersję aktualnie udostępnianą przez WhatsApp, zamiast obstawać przy takiej, która nie jest już akceptowana. To właśnie blokowało synchronizację, zostawiało pustą listę rozmów i ostatecznie sprawiało, że WhatsApp usuwał komputer z listy połączonych urządzeń.
+- WinZapp zna teraz datę ważności używanej wersji WhatsApp Web. Gdy ta wygaśnie, pobiera wersję aktualnie udostępnianą przez WhatsApp, zamiast obstawać przy takiej, która nie jest już akceptowana. To właśnie blokowało synchronizację, zostawiało pustą listę czatów i ostatecznie sprawiało, że WhatsApp usuwał komputer z listy połączonych urządzeń.
 
 - Pierwszy kod parowania po zerwaniu połączenia nie kończy się już błędem. WinZapp sam prosił o kody w tle, aż WhatsApp odmawiał z powodu zbyt wielu żądań; teraz odczekuje między żądaniami, a gdy WhatsApp odmówi, komunikat wyjaśnia przyczynę zamiast pokazywać błąd wewnętrzny.
 
@@ -707,25 +707,25 @@ POPRAWKI
 
 - WinZapp teraz preferuje stabilną wersję WhatsApp Web zamiast alpha, gdy dostępne są obie — korzystanie z wersji alpha powodowało odparowanie urządzenia kilka godzin po sparowaniu. Wstępna synchronizacja jest też bardziej tolerancyjna na opóźnienia, zanim uzna połączenie za przerwane.
 
-- Rozmowa Wiadomości do mnie przestała pokazywać potwierdzenia dostarczenia i przeczytania oraz oznaczenie dźwięku jako odtworzonego — nie mają sensu w rozmowie z samym sobą.
+- Czat „Wiadomości do mnie” przestał pokazywać potwierdzenia dostarczenia i przeczytania oraz oznaczenie dźwięku jako odtworzonego — nie mają sensu w czacie z samym sobą.
 
-- Usuwanie dla wszystkich w rozmowie Wiadomości do mnie teraz naprawdę działa. Wcześniej wiadomość znikała tylko lokalnie i wracała przy kolejnej synchronizacji.
+- Usuwanie dla wszystkich w czacie „Wiadomości do mnie” teraz naprawdę działa. Wcześniej wiadomość znikała tylko lokalnie i wracała przy kolejnej synchronizacji.
 
-- Alt+2, Alt+3 i Ctrl+W bez żadnej otwartej rozmowy informują teraz "Żadna rozmowa nie jest otwarta", zamiast nic nie robić.
+- Jeśli żaden czat nie jest otwarty, WinZapp po naciśnięciu Alt+2, Alt+3 lub Ctrl+W odczytuje teraz komunikat „Żaden czat nie jest otwarty.”, zamiast pozostawać bez reakcji.
 
-- Alt+2 w pustej rozmowie informuje "Ta rozmowa jest pusta", zamiast pozostawać w ciszy.
+- Alt+2 w pustym czacie informuje „Ten czat jest pusty.”, zamiast pozostawać w ciszy.
 
-- Lista rozmów wraca do wiersza, na którym faktycznie był fokus, a nie zawsze do rozmowy, która była otwarta.
+- Lista czatów wraca do wiersza, na którym faktycznie był fokus, a nie zawsze do czatu, który był otwarty.
 
-- Separator nieprzeczytanych wiadomości przestał znikać lub pokazywać błędną liczbę, gdy program jest zminimalizowany do zasobnika systemowego z otwartą rozmową.
+- Separator nieprzeczytanych wiadomości przestał znikać lub pokazywać błędną liczbę, gdy program jest zminimalizowany do zasobnika systemowego z otwartym czatem.
 
-- Zarchiwizowana rozmowa przestała być zapowiadana na głos, gdy nowa wiadomość przychodzi przy programie działającym na pierwszym planie.
+- Zarchiwizowany czat przestał być ogłaszany na głos, gdy nowa wiadomość przychodzi przy programie działającym na pierwszym planie.
 
 - Odtwarzanie wiadomości głosowych jedna po drugiej przestało odczytywać cały poprzedni wiersz na głos nad zapowiedzią nowego.
 
 - Opcja wyciszania czytnika ekranu podczas nagrywania dźwięku teraz zapobiega zapowiedzi u źródła, zamiast próbować ją anulować po tym, jak już zaczęła być odczytywana.
 
-- Dodanie nowego kontaktu w WinZapp mogło zduplikować rozmowę i sprawić, że pierwsza wiadomość zawsze pozostawała jako „niepotwierdzona”, gdy WhatsApp rozpoznawał ten numer w innym formacie (np. z lub bez 9. cyfry).
+- Dodanie nowego kontaktu w WinZapp mogło zduplikować czat i sprawić, że pierwsza wiadomość zawsze pozostawała jako „niepotwierdzona”, gdy WhatsApp rozpoznawał ten numer w innym formacie (np. z lub bez 9. cyfry).
 
 - Nazwa grupy zmieniona w WhatsApp jest teraz aktualizowana w WinZapp, również po ponownej synchronizacji klawiszem F5. Wcześniej stara nazwa nigdy nie była zastępowana.
 
