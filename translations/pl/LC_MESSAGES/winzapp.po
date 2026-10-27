@@ -7349,7 +7349,7 @@ msgstr "Synchronizuj &multimedia"
 #: client/main_window/window_chrome.py
 msgctxt "menu_whats_new"
 msgid "&What's New"
-msgstr "&Co &nowego?"
+msgstr "&Co nowego?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
