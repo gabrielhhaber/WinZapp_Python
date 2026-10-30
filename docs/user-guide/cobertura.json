@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "28cc637136db": "Pareamento: corrigido o aplicativo que ficava na tela de pareamento depois de vi",
     "29a9b837ddbe": "O README agora começa com links diretos de download para Windows e Mac, sem prec",
     "cbc3cacebdf3": "Árabe: a transcrição de mensagens de voz e áudios agora usa «تفريغ» (transcrição",
     "8c7ec408cb6a": "Ao aceitar uma atualização, o WinZapp agora confirma de novo qual é a versão mai",

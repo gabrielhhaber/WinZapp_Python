@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Pairing: fixed the app staying on the pairing screen after a successful link, while the phone already listed it as connected.
+
 - The README now starts with direct download links for Windows and Mac, so you no longer have to search the Releases page for the right file.
 
 - Arabic: voice message and audio transcription now uses "تفريغ" (transcription) instead of "تسجيل" (recording) in menus, settings and messages, so it no longer sounds like recording your voice.
