@@ -212,3 +212,16 @@ def test_server_2_10_70_admin_hardening_is_ported_into_the_restored_files():
     assert "allowedUrls: []" in _patch("src/config.ts")
     assert "req.serverOptions.chatwoot?.allowedUrls" in _patch("src/util/createSessionUtil.ts")
     assert "function splitDelimited(" in _patch("src/util/functions.ts")
+
+
+def test_server_2_10_71_security_bootstrap_is_ported_into_the_restored_files():
+    """index.ts, jest.config.js and .prettierignore are restored over the
+    checkout, so upstream's 2.10.71 deepmerge bootstrap only reaches WinZapp
+    when it is carried into api_patches/ (it must stay the first import)."""
+    index = _patch("src/index.ts")
+    assert "import './security/runtime';" in index
+    assert index.index("import './security/runtime';") < index.index(
+        "import { defaultLogger }"
+    )
+    assert "test/jest-setup.cjs" in _patch("jest.config.js")
+    assert "vendor/" in _patch(".prettierignore")

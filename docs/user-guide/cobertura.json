@@ -4,8 +4,9 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
-    "bec5a12d86e3": "O árabe agora está disponível em Configurações > Geral > Idioma, com textos em á",
+    "7df3f6c9881e": "O WPPConnect Server foi atualizado para a 2.10.71, que traz uma correção para um",
     "fb92ee10893c": "Chats de acesso rápido: Ctrl+Alt+Shift+F1–F10 atribui um chat e Ctrl+Shift+a mes",
+    "bec5a12d86e3": "O árabe agora está disponível em Configurações > Geral > Idioma, com textos em á",
     "c00e840b3b56": "O WPPConnect Server foi atualizado para a 2.10.70, que reforça as rotas de admin",
     "6697db06297a": "Uma chamada em grupo que tocou e não foi atendida agora fica registrada no grupo",
     "d9d948c893be": "Novo motor de conexão, experimental: o Neonize conecta ao WhatsApp sem navegador",

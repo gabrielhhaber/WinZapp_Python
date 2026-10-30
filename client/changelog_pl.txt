@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- WPPConnect Server zaktualizowany do wersji 2.10.71, która dodaje poprawkę luki w bibliotece używanej przez warstwę przeglądarki (deepmerge) i ładuje ją przy uruchomieniu serwera.
+
 - Szybkie czaty: Ctrl+Alt+Shift+F1–F10 przypisuje czat, a Ctrl+Shift+ten sam klawisz funkcyjny otwiera go z dowolnego miejsca w oknie (F10 to numer 0). Przypisania są osobne dla konta, skróty można zmieniać w ustawieniach, a dotychczasowe skróty zakładek pozostają dostępne.
 
 - Język arabski jest teraz dostępny w ustawieniach języka programu oraz w instalatorze i deinstalatorze systemu Windows.

@@ -115,6 +115,10 @@ Verified on a scratch checkout of 2.10.58 with the patches laid over it: `tsc --
 
 Verified by building 2.10.62 with `setup_api.py` (TypeScript compiled with the patch, all `node_modules` patches reported applied).
 
+## 2.10.70 → 2.10.71 (2026-10-30)
+
+Three restored files changed and were ported: `src/index.ts` (`import './security/runtime';` first, before the wppconnect import), `jest.config.js` (`setupFilesAfterEnv` pointing at upstream's `test/jest-setup.cjs`, which mocks that import under jest) and `.prettierignore` (`vendor/`). `src/security/runtime.ts` (new, flows through) registers a Node module hook that sends `deepmerge` requested from `puppeteer-extra*` to the patched copy under `vendor/deepmerge/` when the installed one is an affected version (4.2.0–4.3.1); it needs Node 22.15+, WinZapp ships 22.22.2. `prom-client` and `@babel/runtime` moved from devDependencies to dependencies upstream; `prom-client` is also one of our `_PATCHED_DEPENDENCY_KEYS`, so nothing changes for us. Built with `setup_api.py` at v2.10.71 (tsc and babel pass) and `start.js` boots and listens with the hook imported. Not checked: the hook actually redirecting inside a live browser session; upstream covers it with `test:packed-security`, which we do not run.
+
 ## 2.10.63 → 2.10.70 (2026-10-29)
 
 2.10.64–2.10.69 were dependency and release commits only (2.10.69 added security `resolutions`, including `puppeteer` 25.13.0). 2.10.70 is the first with source changes, five of them in files `api_patches/` restores over the checkout, so each was ported by hand:
