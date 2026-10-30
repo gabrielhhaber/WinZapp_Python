@@ -5,6 +5,7 @@
   "data": "14/10/2026",
   "itens": {
     "f05c37dcbb06": "Ligações pelo Neonize: adicionado um caminho experimental de áudio PCM a 48 kHz ",
+    "29a9b837ddbe": "O README agora começa com links diretos de download para Windows e Mac, sem prec",
     "cbc3cacebdf3": "Árabe: a transcrição de mensagens de voz e áudios agora usa «تفريغ» (transcrição",
     "8c7ec408cb6a": "Ao aceitar uma atualização, o WinZapp agora confirma de novo qual é a versão mai",
     "6748264cf7b5": "Ligações pelo Neonize: corrigida uma condição de corrida que podia deixar uma ch",

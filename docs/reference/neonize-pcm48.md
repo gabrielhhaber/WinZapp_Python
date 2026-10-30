@@ -1,6 +1,6 @@
 # Experimental PCM48 call path
 
-The default remains mono 16 kHzHz/60 ms. `WINZAPP_EXPERIMENTAL_CALL_PCM48=1` is a
+The default remains mono 16 kHz/60 ms. `WINZAPP_EXPERIMENTAL_CALL_PCM48=1` is a
 developer opt-in, read before new bridge clients are constructed. It requires
 the new native exports; an older module/DLL retains the legacy path.
 
@@ -25,7 +25,7 @@ native record generation u64) with each PCM read. Writes must supply matching
 rate/generation and a 60 ms frame. A universal 5772-byte read buffer returns at
 most one frame at the actual rate, retaining the rest of decoder bursts.
 Format is never inferred from byte count: 1920 bytes is either 16 kHz/60 ms or
-48 k/20 ms. Legacy `CallReadAudio`/`CallWriteAudio` refuse a 48 kHz record.
+48 kHz/20 ms. Legacy `CallReadAudio`/`CallWriteAudio` refuse a 48 kHz record.
 
 The bridge binds an immutable format to its own call record, rejects stale
 generation events/PCM, clears partial microphone capture when owners change,
