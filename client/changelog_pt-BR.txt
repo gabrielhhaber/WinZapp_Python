@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- O README agora começa com links diretos de download para Windows e Mac, sem precisar procurar o arquivo certo na página de Releases.
+
 - Árabe: a transcrição de mensagens de voz e áudios agora usa «تفريغ» (transcrição) em vez de «تسجيل» (gravação) nos menus, nas configurações e nas mensagens, para não parecer que você está gravando sua voz.
 
 - Ao aceitar uma atualização, o WinZapp agora confirma de novo qual é a versão mais recente antes de baixar, e deixa de instalar uma alpha anterior à última quando várias alphas são publicadas em sequência.
