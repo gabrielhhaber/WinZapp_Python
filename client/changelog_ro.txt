@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Apeluri Neonize: a fost adăugată o cale experimentală de sunet PCM la 48 kHz pentru apelurile cu Opus negociat, dezactivată implicit, cu verificarea formatului și a instanței apelului. Modul normal păstrează alternativa MLow.
+
 - Araba: transcrierea mesajelor vocale și a sunetului folosește acum «تفريغ» (transcriere) în loc de «تسجيل» (înregistrare) în meniuri, setări și mesaje, ca să nu sune ca și cum ți-ai înregistra vocea.
 
 - Când accepți o actualizare, WinZapp verifică din nou care este cea mai recentă versiune înainte de descărcare, așa că nu mai instalează o versiune alfa mai veche decât ultima atunci când alfele sunt publicate una după alta.

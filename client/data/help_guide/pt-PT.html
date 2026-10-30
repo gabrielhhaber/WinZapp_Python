@@ -694,6 +694,8 @@
 <p class="lead">Dá para fazer, atender e recusar, atender e recusar chamadas de voz e de vídeo pelo próprio WinZapp, sem pegar o telemóvel.</p>
 <p>O áudio das chamadas pelo Neonize inclui correções para silêncio após atender, perda de fotogramas e distorção na conversão da frequência de amostragem. O codec é definido automaticamente com o WhatsApp; não existe uma opção de codec para configurar. Este motor experimental ainda precisa de avaliação da qualidade em chamadas reais; não é garantida uma qualidade igual à de outras aplicações de chamadas.</p>
 
+<p>O Neonize mantém o modo normal de áudio das chamadas por predefinição. Existe um caminho experimental de 48 kHz destinado a programadores para chamadas com Opus negociado; não altera o codec MLow nem acrescenta um controlo à janela da chamada. A atualização não o ativa automaticamente.</p>
+
 <h3>Ligar</h3>
 <p>Numa conversa individual, use os botões "Chamada de voz" (Ctrl+Shift+V) e "Chamada de vídeo" (Ctrl+Alt+Shift+V); os atalhos funcionam também com o campo de mensagem em foco. O leitor de ecrã avisa quando a chamada liga, quando está a religar e quando termina.</p>
 <p>O WhatsApp só permite ligar para grupos com até 32 membros. Num grupo maior, no lugar dos botões de chamada aparece um botão "Não é possível ligar", com a nota "O grupo tem mais de 32 membros", e os atalhos de chamada dizem o mesmo.</p>
@@ -1290,6 +1292,7 @@
 <p class="lead">Cada alpha nova que traz funcionalidades é acrescentada ao guia. Esta lista mostra até que alpha o guia está completo e o que foi acrescentado em cada rodada.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>O que entrou no guia</th></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Chamadas pelo Neonize: adicionado um caminho experimental de áudio PCM a 48 kHz para chamadas com Opus negociado, desativado por predefinição, com verificação do formato e da instância da chamada. O modo normal mantém o recurso ao MLow.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Guia: exportar os registos da conta, pesquisa de atalhos por teclas e transcrição automática única por conversa; correções de F5, reações, avisos de comunidade, favoritos e gostos em estados, e da sincronização da Neonize.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Emparelhamento por código QR com a Neonize: o código QR aparece por inteiro na janela de ligação, num tamanho que a câmara do telemóvel consegue ler.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Chamadas de grupo não atendidas ficam no histórico do grupo, e não como chamada particular de quem ligou.</td></tr>

@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Połączenia Neonize: dodano eksperymentalny tor dźwięku PCM 48 kHz dla połączeń z wynegocjowanym kodekiem Opus. Jest domyślnie wyłączony i sprawdza format oraz identyfikator instancji połączenia. Zwykły tryb zachowuje możliwość użycia MLow.
+
 - Arabski: transkrypcja wiadomości głosowych i dźwięku używa teraz w menu, ustawieniach i komunikatach słowa „تفريغ” (transkrypcja) zamiast „تسجيل” (nagrywanie), aby nie brzmiało to jak nagrywanie głosu.
 
 - Po zaakceptowaniu aktualizacji WinZapp ponownie sprawdza, która wersja jest najnowsza, zanim zacznie pobierać, więc nie instaluje już alfy starszej niż najnowsza, gdy alfy są publikowane jedna po drugiej.

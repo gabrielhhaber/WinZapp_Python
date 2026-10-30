@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize aramaları: Opus seçilen aramalar için varsayılan kapalı deneysel 48 kHz PCM ses yolu eklendi; biçim ve arama nesli denetleniyor. Normal modda mevcut MLow geri dönüşü korunuyor.
+
 - Arapça: sesli mesajların ve seslerin yazıya dökülmesi artık menülerde, ayarlarda ve iletilerde «تسجيل» (kayıt) yerine «تفريغ» (yazıya dökme) sözcüğünü kullanıyor; böylece sesinizi kaydediyormuş gibi görünmüyor.
 
 - Bir güncellemeyi kabul ettiğinizde WinZapp, indirmeden önce en son sürümün hangisi olduğunu yeniden denetler; böylece alfa sürümleri art arda yayımlandığında en yeniden daha eski bir alfa kurulmaz.

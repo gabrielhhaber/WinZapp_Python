@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Ligações pelo Neonize: adicionado um caminho experimental de áudio PCM a 48 kHz para chamadas com Opus negociado, desativado por padrão, com verificação do formato e da instância da ligação. O modo normal mantém o retorno ao MLow.
+
 - Árabe: a transcrição de mensagens de voz e áudios agora usa «تفريغ» (transcrição) em vez de «تسجيل» (gravação) nos menus, nas configurações e nas mensagens, para não parecer que você está gravando sua voz.
 
 - Ao aceitar uma atualização, o WinZapp agora confirma de novo qual é a versão mais recente antes de baixar, e deixa de instalar uma alpha anterior à última quando várias alphas são publicadas em sequência.
