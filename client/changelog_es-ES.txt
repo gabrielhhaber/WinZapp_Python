@@ -5,6 +5,7 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 NOVEDADES
 
 - Llamadas de Neonize: se ha añadido una ruta experimental de audio PCM a 48 kHz para llamadas con Opus negociado, desactivada de forma predeterminada, con comprobaciones del formato y de la instancia de llamada. El modo normal conserva la alternativa MLow.
+
 - El README ahora empieza con enlaces de descarga directa para Windows y Mac, para no tener que buscar el archivo correcto en la página de Releases.
 
 - Árabe: la transcripción de mensajes de voz y audio usa ahora «تفريغ» (transcripción) en lugar de «تسجيل» (grabación) en menús, ajustes y mensajes, para que no suene a grabar tu voz.

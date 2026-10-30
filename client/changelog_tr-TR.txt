@@ -5,6 +5,7 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 YENİLİKLER
 
 - Neonize aramaları: Opus seçilen aramalar için varsayılan kapalı deneysel 48 kHz PCM ses yolu eklendi; biçim ve arama nesli denetleniyor. Normal modda mevcut MLow geri dönüşü korunuyor.
+
 - README artık Windows ve Mac için doğrudan indirme bağlantılarıyla başlıyor; doğru dosyayı Releases sayfasında aramanız gerekmiyor.
 
 - Arapça: sesli mesajların ve seslerin yazıya dökülmesi artık menülerde, ayarlarda ve iletilerde «تسجيل» (kayıt) yerine «تفريغ» (yazıya dökme) sözcüğünü kullanıyor; böylece sesinizi kaydediyormuş gibi görünmüyor.

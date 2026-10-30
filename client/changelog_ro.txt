@@ -5,6 +5,7 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 NOUTĂȚI
 
 - Apeluri Neonize: a fost adăugată o cale experimentală de sunet PCM la 48 kHz pentru apelurile cu Opus negociat, dezactivată implicit, cu verificarea formatului și a instanței apelului. Modul normal păstrează alternativa MLow.
+
 - README începe acum cu linkuri directe de descărcare pentru Windows și Mac, fără să mai cauți fișierul potrivit pe pagina Releases.
 
 - Araba: transcrierea mesajelor vocale și a sunetului folosește acum «تفريغ» (transcriere) în loc de «تسجيل» (înregistrare) în meniuri, setări și mesaje, ca să nu sune ca și cum ți-ai înregistra vocea.
