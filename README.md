@@ -5,9 +5,17 @@ It is designed from the ground up to work with screen readers (NVDA, JAWS, Narra
 
 ---
 
-## Download and install
+## Download
 
-Only download WinZapp from this repository's Releases page: <https://github.com/gabrielhhaber/WinZapp_Python/releases>. Copies of WinZapp on other websites, file-sharing services or app stores are not ours, and we cannot vouch for what they contain.
+* **Windows:** [Download the WinZapp installer](https://github.com/gabrielhhaber/WinZapp_Python/releases/latest/download/WinZappInstaller.exe), or the [ZIP version](https://github.com/gabrielhhaber/WinZapp_Python/releases/latest/download/WinZapp.zip) if you prefer not to install.
+* **Mac with Apple silicon (M1 or newer):** [Download WinZapp for Mac](https://github.com/rocco-labs/WinZapp_Python/releases/latest/download/WinZapp-macOS-arm64.zip).
+* **Mac with an Intel processor:** [Download WinZapp for Mac (Intel)](https://github.com/rocco-labs/WinZapp_Python/releases/latest/download/WinZapp-macOS-x86_64.zip).
+
+These links always give you the newest stable version. The Mac builds work with VoiceOver and are published by the maintainer of `macos/`; see [macOS](#macos) below.
+
+## Install
+
+Only download WinZapp for Windows from this repository's Releases page: <https://github.com/gabrielhhaber/WinZapp_Python/releases>. Copies of WinZapp on other websites, file-sharing services or app stores are not ours, and we cannot vouch for what they contain.
 
 ### Which file to download
 
@@ -86,7 +94,9 @@ Be aware of the limits of this check. `SHA256SUMS.txt` is published on the same 
 
 ### macOS
 
-The repository contains a macOS version for VoiceOver users, described in [macos/README.md](macos/README.md). No official Mac builds are published from this repository yet. Whether and how to publish them is being discussed in [issue 343](https://github.com/gabrielhhaber/WinZapp_Python/issues/343). Until that is decided, please do not trust Mac downloads from other sources.
+WinZapp for Mac works with VoiceOver. The links are under [Download](#download). Open the ZIP, move WinZapp to Applications and open it. It updates itself.
+
+Mac builds are signed and notarized, and published from [rocco-labs/WinZapp_Python](https://github.com/rocco-labs/WinZapp_Python/releases) by the maintainer of `macos/`, under the same version tags as this repository. The app only installs an update tied to an official tag of this repository. Details are in [macos/README.md](macos/README.md).
 
 ---
 
