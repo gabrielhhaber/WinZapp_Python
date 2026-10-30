@@ -1290,7 +1290,7 @@ msgstr "اختبار الاتصال ب&دون إرسال وسائط"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_transcribe_audio_label"
 msgid "Transcribe &voice messages"
-msgstr "تس&جيل الرسائل الصوتية"
+msgstr "تفري&غ الرسائل الصوتية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_transcribe_audio_menu"
@@ -2006,9 +2006,7 @@ msgid ""
 "&Download updates and transcription downloads in the background, without the"
 " progress window (WinZapp tells you before installing an update and when a "
 "download finishes)"
-msgstr ""
-"تنزيل التحديثات وتنزيلات التفريغ النصي &في الخلفية، بدون نافذة التقدم (يقول "
-"لك WinZapp قبل تثبيت تحديث وعند انتهاء التنزيل)"
+msgstr "&تنزيل التحديثات وتنزيلات التفريغ النصي في الخلفية، بدون نافذة التقدم (يقول لك WinZapp قبل تثبيت تحديث وعند انتهاء التنزيل)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -12302,9 +12300,7 @@ msgctxt "transcription_auto_transcribe_check"
 msgid ""
 "Automatically transcribe received voice &messages and videos and put the "
 "text in the message line"
-msgstr ""
-"تفريغ ال&رسائل الصوتية ومقاطع الفيديو المستلمة تلقائيًا ووضع النص في سطر "
-"الرسالة"
+msgstr "تفريغ الرسائل الصوتية ومقاطع الفيديو المستلمة تلقا&ئيًا ووضع النص في سطر الرسالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_backend_faster_whisper"
@@ -12674,7 +12670,7 @@ msgstr "مكتبات CUDA"
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_cuda_button"
 msgid "CUDA li&braries..."
-msgstr "م&كتبات CUDA"
+msgstr "&مكتبات CUDA"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_cuda_install_btn"
@@ -12806,7 +12802,7 @@ msgstr "CUDA غير متاح. سيعمل التفريغ النصي على الم
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_device_label"
 msgid "W&here to run the transcription"
-msgstr "أين يُنفذ التس&جيل النصي"
+msgstr "&أين يُنفذ التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_no_cuda_found"
@@ -13586,7 +13582,7 @@ msgstr "لغة WinZapp الخاصة"
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_language_label"
 msgid "Transcription lan&guage"
-msgstr "ل&غة التفريغ النصي"
+msgstr "لغة التفريغ ال&نصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_manage_cancelled"
@@ -13938,7 +13934,7 @@ msgid ""
 "&Transcribe without the progress window: stay on the messages or statuses "
 "until the text is ready (the same shortcut cancels)"
 msgstr ""
-"&تفريغ نصي بدون نافذة التقدم: ابق على الرسائل أو الحالات حتى يكون النص "
+"تفريغ نصي بدون نافذة الت&قدم: ابق على الرسائل أو الحالات حتى يكون النص "
 "جاهزًا (نفس الاختصار يلغي)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -13967,9 +13963,7 @@ msgctxt "transcription_not_saved_unsent"
 msgid ""
 "This transcription was not saved, because the message has not been sent yet."
 " Once it is sent, transcribe it again to save it."
-msgstr ""
-"لم يتم حفظ هذا التفريغ النصي، لأن الرسالة لم تُرسل بعد. بمجرد إرسالها، "
-"سجّلها نصيًا مرة أخرى لحفظها."
+msgstr "لم يتم حفظ هذا التفريغ النصي، لأن الرسالة لم تُرسل بعد. بمجرد إرسالها، فرّغها نصيًا مرة أخرى لحفظها."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -13983,8 +13977,7 @@ msgctxt "transcription_note_language_forced"
 msgid ""
 "This model only understands {language}, so the message is transcribed in "
 "{language}."
-msgstr ""
-"هذا النموذج يفهم فقط {language}، لذا تُسجل الرسالة نصيًا في {language}."
+msgstr "هذا النموذج يفهم فقط {language}، لذا تُفرَّغ الرسالة نصيًا في {language}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -13992,9 +13985,7 @@ msgctxt "transcription_note_language_overridden"
 msgid ""
 "This model only understands {language}, so the message is transcribed in "
 "{language} and not in {chosen}, the language chosen in the settings."
-msgstr ""
-"هذا النموذج يفهم فقط {language}، لذا تُسجل الرسالة نصيًا في {language} وليس "
-"في {chosen}، اللغة المختارة في الإعدادات."
+msgstr "هذا النموذج يفهم فقط {language}، لذا تُفرَّغ الرسالة نصيًا في {language} وليس في {chosen}، اللغة المختارة في الإعدادات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_note_low_confidence"
@@ -14070,9 +14061,7 @@ msgctxt "transcription_online_auto_replaces_local"
 msgid ""
 "Turning this on turns off the automatic transcription with the local models "
 "(Transcription tab), so a voice message is not transcribed twice. Continue?"
-msgstr ""
-"تشغيل هذا يوقف التفريغ النصي التلقائي مع النماذج المحلية (تبويب التفريغ "
-"النصي)، لذا لا تُسجل الرسالة الصوتية مرتين. المتابعة؟"
+msgstr "تشغيل هذا يوقف التفريغ النصي التلقائي مع النماذج المحلية (تبويب التفريغ النصي)، لذا لا تُفرَّغ الرسالة الصوتية مرتين. المتابعة؟"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
 msgctxt "transcription_open_settings_question"
@@ -14336,7 +14325,7 @@ msgstr "تم حفظ التفريغ النصي."
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_text_label"
 msgid "&Transcribed text"
-msgstr "ال&نص المسجل نصيًا"
+msgstr "ال&نص المفرَّغ"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
 #, python-brace-format
@@ -14527,7 +14516,7 @@ msgstr "ملفات نصية (*.txt)|*.txt"
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_saved_button"
 msgid "Sa&ved transcriptions..."
-msgstr "التسج&يلات النصية المحفوظة…"
+msgstr "&التفريغات النصية المحفوظة…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -14623,15 +14612,13 @@ msgctxt "transcription_status_enter_check"
 msgid ""
 "&Enter and Space transcribe audio and video statuses locally into the status"
 " line (Alt+Shift+N then opens or plays them)"
-msgstr ""
-"Enter و Space تُسجل الصوت والفيديو للحالات &نصيًا محليًا في سطر الحالة "
-"(Alt+Shift+N ثم تفتحها أو تشغّلها)"
+msgstr "Enter و Space تفرّغ الصوت والفيديو للحالات &نصيًا محليًا في سطر الحالة (Alt+Shift+N ثم تفتحها أو تشغّلها)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_statuses_button"
 msgid "&Transcription of statuses..."
-msgstr "ت&سجيل الحالات نصيًا…"
+msgstr "&تفريغ الحالات نصيًا…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_store.py
@@ -14935,10 +14922,7 @@ msgid ""
 "&Enter and Space on a voice message or video transcribe it into its line in "
 "the list instead of playing it (Alt+Shift+N plays or opens it); turned off, "
 "Enter and Space play or open it and Alt+Shift+N transcribes it into its line"
-msgstr ""
-"Enter و Space &على رسالة صوتية أو فيديو تسجلها نصيًا في سطرها في القائمة "
-"بدلاً من تشغيلها (Alt+Shift+N يشغلها أو يفتحها)؛ عند الإيقاف، Enter و Space "
-"يشغلانها أو يفتحانها و Alt+Shift+N يسجلها نصيًا في سطرها"
+msgstr "Enter و Space &على رسالة صوتية أو فيديو تفرّغها نصيًا في سطرها في القائمة بدلاً من تشغيلها (Alt+Shift+N يشغلها أو يفتحها)؛ عند الإيقاف، Enter و Space يشغلانها أو يفتحانها و Alt+Shift+N يفرّغها نصيًا في سطرها"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

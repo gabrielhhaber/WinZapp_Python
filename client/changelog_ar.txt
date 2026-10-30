@@ -4,6 +4,8 @@ V3.0.0.0
 
 الجديد
 
+- العربية: يستخدم تفريغ الرسائل الصوتية والصوت الآن كلمة «تفريغ» بدلاً من «تسجيل» في القوائم والإعدادات والرسائل، حتى لا يبدو الأمر كأنه تسجيل لصوتك.
+
 - أصبحت العربية متاحة في الإعدادات > عام > اللغة، مع نصوص عربية في مثبّت Windows وبرنامج إزالة التثبيت. هذه ترجمة أولية بمساعدة الذكاء الاصطناعي، راجعها المستخدم مبدئيًا، ونرحب بتصحيحات الصياغة وإمكانية الوصول.
 
 - تشرح تحديثات macOS ما إذا كان فشل التحقق ناتجًا عن مشكلة في الاتصال أو الشهادة أو الخادم أو حد الطلبات في GitHub، وما إذا تعذّر فحص ملف التحقق أو وسم الإصدار الرسمي. تُعاد المحاولة مرة واحدة عند أعطال الاتصال والخادم المؤقتة؛ وتعرض حدود الطلبات مدة انتظار ولا تُرسل طلبات متكررة خلال هذه المدة.
@@ -87,8 +89,6 @@ V2.1.0.0
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
 
 WHAT'S NEW
-
-- العربية: يستخدم تفريغ الرسائل الصوتية والصوت الآن كلمة «تفريغ» بدلاً من «تسجيل» في القوائم والإعدادات والرسائل، حتى لا يبدو الأمر كأنه تسجيل لصوتك.
 
 - Local transcription with faster-whisper: fixed CUDA library loading on Windows that could prevent graphics-card use and leave later transcriptions stuck. If the libraries cannot be loaded, WinZapp reports the problem before starting GPU inference.
 
