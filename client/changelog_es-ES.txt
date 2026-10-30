@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Árabe: la transcripción de mensajes de voz y audio usa ahora «تفريغ» (transcripción) en lugar de «تسجيل» (grabación) en menús, ajustes y mensajes, para que no suene a grabar tu voz.
+
 - Al aceptar una actualización, WinZapp ahora vuelve a comprobar cuál es la versión más reciente antes de descargar, de modo que ya no instala una alfa anterior a la última cuando se publican alfas seguidas.
 
 - Llamadas con Neonize: corregida una condición de carrera que podía dejar sin audio una llamada entrante al responder, conservadas las tramas múltiples recibidas y reducido el aliasing al convertir el micrófono. El audio utiliza ahora el códec negociado, con reordenación limitada de paquetes y gestión de pérdidas.
