@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Arabski: transkrypcja wiadomości głosowych i dźwięku używa teraz w menu, ustawieniach i komunikatach słowa „تفريغ” (transkrypcja) zamiast „تسجيل” (nagrywanie), aby nie brzmiało to jak nagrywanie głosu.
+
 - Po zaakceptowaniu aktualizacji WinZapp ponownie sprawdza, która wersja jest najnowsza, zanim zacznie pobierać, więc nie instaluje już alfy starszej niż najnowsza, gdy alfy są publikowane jedna po drugiej.
 
 - Połączenia przez Neonize: naprawiono wyścig, przez który odebrane połączenie przychodzące mogło pozostać bez dźwięku, zachowano wieloramkowy odbierany dźwięk i ograniczono aliasing przy konwersji sygnału mikrofonu. Dźwięk korzysta teraz z wynegocjowanego kodeka, z ograniczonym buforem zmiany kolejności pakietów i obsługą strat.
