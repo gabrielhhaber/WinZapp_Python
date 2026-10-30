@@ -53,19 +53,23 @@ ANSWERED_KEPT = 50
 
 
 class FrameAssembler:
-    """Regroups any amount of 16 kHz PCM into meowcaller's 1920-byte frames."""
+    """Regroups 48 kHz capture into 60 ms frames at the selected PCM rate."""
 
-    def __init__(self):
+    def __init__(self, sample_rate=CALL_RATE):
+        if sample_rate not in (16000, 48000):
+            raise ValueError("unsupported call PCM rate")
+        self.sample_rate = sample_rate
+        self.frame_bytes = sample_rate * 60 // 1000 * 2
         self._pending = b""
         self._resampler = PCM48To16()
 
     def push(self, pcm48: bytes) -> list:
-        pcm16 = self._resampler.push(pcm48)
+        pcm16 = self._resampler.push(pcm48) if self.sample_rate == CALL_RATE else pcm48
         self._pending += pcm16
         frames = []
-        while len(self._pending) >= FRAME_BYTES:
-            frames.append(self._pending[:FRAME_BYTES])
-            self._pending = self._pending[FRAME_BYTES:]
+        while len(self._pending) >= self.frame_bytes:
+            frames.append(self._pending[:self.frame_bytes])
+            self._pending = self._pending[self.frame_bytes:]
         return frames
 
     def clear(self):
@@ -207,12 +211,29 @@ class CallMedia:
         kind, call_id = ev.get("ev"), str(ev.get("call") or "")
         if not call_id:
             return
+        generation = ev.get("generation")
+        if generation is not None and kind != "incoming":
+            with self._lock:
+                current = self._calls.get(call_id)
+            if current is not None:
+                expected = current.get("native_generation")
+                if expected is None:
+                    self._format_for(current)
+                    expected = current.get("native_generation")
+                if expected is not None and generation != expected:
+                    return
         if kind == "incoming":
             with self._lock:
+                previous = self._calls.get(call_id)
+                if generation is not None and previous is not None and previous.get("native_generation") not in (None, generation):
+                    self._calls.pop(call_id, None)
+                    self._audio_readers.pop(call_id, None)
                 call = self._calls.setdefault(call_id, {
                     "id": call_id, "peer": msgmap.jid_wpp(str(ev.get("peer") or "")),
                     "outgoing": False, "state": "INCOMING_RING", "group": ""})
                 call["video"] = bool(call.get("video") or ev.get("video"))
+                if generation is not None:
+                    call["native_generation"] = generation
             return
         if kind == "video":
             self._peer_video(call_id, ev)
@@ -283,6 +304,34 @@ class CallMedia:
             self._running = False
 
     # ---------------------------------------------------------------- audio
+    def _format_for(self, call):
+        """Bind one immutable native format to this bridge record."""
+        with self._lock:
+            if self._calls.get(call["id"]) is not call:
+                return None
+            cached = call.get("pcm_format")
+        if cached is not None:
+            return cached
+        getter = getattr(self.calls, "audio_format", None)
+        value = getter(call["id"]) if callable(getter) else {"sampleRate": CALL_RATE, "generation": 0}
+        if value is None:
+            return None
+        if (not isinstance(value, dict) or type(value.get("sampleRate")) is not int
+                or value["sampleRate"] not in (16000, 48000)
+                or type(value.get("generation")) is not int or not 0 <= value["generation"] < 2**64):
+            raise ValueError("invalid native call PCM format")
+        result = {"sampleRate": value["sampleRate"], "generation": value["generation"]}
+        with self._lock:
+            if self._calls.get(call["id"]) is not call:
+                return None
+            expected = call.get("native_generation")
+            if expected is not None and expected != result["generation"]:
+                return None
+            call["pcm_format"] = result
+            if result["generation"]:
+                call["native_generation"] = result["generation"]
+        return result
+
     @_serialized
     def _ensure_audio(self, call_id, expected=None):
         """Claim once independently of state changes; answer/ready may race."""
@@ -318,12 +367,24 @@ class CallMedia:
             claim = claim or self._audio_readers.get(call_id)
         try:
             while self._owns_audio(call_id, claim):
-                frame = self.calls.read_audio(call_id, 200)
+                reader = getattr(self.calls, "read_audio_frame", None)
+                packet = reader(call_id, 200) if callable(reader) else None
+                if callable(reader):
+                    if packet is None:
+                        return
+                    frame = packet["pcm"]
+                else:
+                    frame = self.calls.read_audio(call_id, 200)
                 if frame is None:
                     return
                 # Native reads may return after end/rejoin of the same id.
                 if frame:
-                    self._emit_audio(call_id, claim, frame)
+                    if callable(reader):
+                        self._emit_audio(call_id, claim, frame, packet["sampleRate"], packet["generation"])
+                    else:
+                        self._emit_audio(call_id, claim, frame)
+        except (ValueError, layer_error()):
+            log.warning("native call audio format rejected; reader released")
         finally:
             with self._lock:
                 if self._audio_readers.get(call_id) is claim:
@@ -335,10 +396,14 @@ class CallMedia:
                     and self._calls.get(call_id) is claim[1])
 
     @_serialized
-    def _emit_audio(self, call_id, claim, frame):
+    def _emit_audio(self, call_id, claim, frame, sample_rate=CALL_RATE, generation=0):
         if self._owns_audio(call_id, claim):
+            pcm_format = self._format_for(claim[1])
+            if (pcm_format is None or sample_rate != pcm_format["sampleRate"]
+                    or generation != pcm_format["generation"] or len(frame) % 2):
+                return
             self.emit("call:audio:remote", {
-                "session": self.name, "encoding": "base64", "sampleRate": CALL_RATE,
+                "session": self.name, "encoding": "base64", "sampleRate": sample_rate,
                 "pcm": base64.b64encode(frame).decode("ascii")})
 
     def _connected_call(self):
@@ -374,12 +439,21 @@ class CallMedia:
             if self._calls.get(call_id) is not call or call["state"] != "ACTIVE" or not call.get("connected"):
                 return
         with self._mic_lock:
+            pcm_format = self._format_for(call)
+            if pcm_format is None:
+                return
             if self._mic_owner is not call:
-                self._mic.clear()
+                self._mic = FrameAssembler(pcm_format["sampleRate"])
                 self._mic_owner = call
             if call is not None:
                 for frame in self._mic.push(pcm):
-                    if not self.calls.write_audio(call_id, frame):
+                    writer = getattr(self.calls, "write_audio_frame", None)
+                    if callable(writer):
+                        written = writer(call_id, frame, pcm_format["sampleRate"], pcm_format["generation"])
+                    else:
+                        written = self.calls.write_audio(call_id, frame)
+                    if not written:
+                        self._mic.clear()
                         break
 
     @_serialized
