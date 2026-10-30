@@ -10,6 +10,7 @@ import os
 import threading
 import time
 import wx
+from core.failure_notice import FailureNotice
 from core.jid_device import strip_device_suffix
 from core.sync_lifecycle import capture_sync_context, sync_context_is_current, schedule_backfill
 from core.database_bridge import DatabaseBridge
@@ -42,6 +43,10 @@ from core.conversation_resync import (
 from main_window.message_rules import is_countable_message
 from main_window.api_start_behind_window import wait_for_api_start
 from core.utils import auto_download_enabled, prune_chats_messages
+
+
+# One window per process, so one outage state.
+_chat_list_notice = FailureNotice()
 
 
 class SyncMixin:
@@ -690,6 +695,17 @@ class SyncMixin:
         logging.info("[trigger_sync_if_needed] WhatsApp connected and sync is incomplete. Triggering sync thread...")
         self._try_start_sync_thread()
 
+    def _show_chat_list_failure(self, error):
+        """The chat-list error box, unless the list came back while it queued."""
+        if not _chat_list_notice.still_failing():
+            return
+        self.error_sound.play()
+        wx.MessageBox(
+            f"{self.i18n.t('chat_retrieval_failed')} {error}",
+            self.i18n.t("error").format(app_name=self.app_name),
+            wx.OK | wx.ICON_ERROR,
+        )
+
     def start_sync(self):
         # Block until init_UI() completes.  This prevents wx.CallAfter calls
         # below from referencing panels that don't exist yet (which happens when
@@ -1250,6 +1266,7 @@ class SyncMixin:
                 continue
             self.chats   = result
             chat_list_ok = True
+            _chat_list_notice.clear()
             server_count = getattr(self, "_last_chat_fetch_count", 0)
             best_server_count = max(best_server_count, server_count)
             logging.info(
@@ -1476,13 +1493,8 @@ class SyncMixin:
         if not chat_list_ok:
             # Report once, after every attempt is exhausted, instead of one
             # modal dialog per attempt interrupting the screen reader.
-            wx.CallAfter(self.error_sound.play)
-            wx.CallAfter(
-                wx.MessageBox,
-                f"{self.i18n.t('chat_retrieval_failed')} {chat_list_error}",
-                self.i18n.t("error").format(app_name=self.app_name),
-                wx.OK | wx.ICON_ERROR,
-            )
+            if _chat_list_notice.claim():
+                wx.CallAfter(self._show_chat_list_failure, chat_list_error)
         # Computed, then checked, then assigned: normalize_chats() reads
         # self.chats, and a wipe landing between that read and the assignment
         # would be undone by it.

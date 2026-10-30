@@ -322,6 +322,11 @@ class ReadStateMixin:
                     self._finish_conversation_read_state(jobs[jid], False)
                 if failed:
                     self._on_bulk_read_failed([jobs[jid] for jid in failed])
+                else:
+                    self.output(
+                        self.i18n.t("mark_all_read_done").format(count=len(jobs)),
+                        interrupt=True,
+                    )
             wx.CallAfter(_finish)
 
         threading.Thread(target=_worker, daemon=True).start()

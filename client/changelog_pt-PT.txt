@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Marcar como lida ou não lida, silenciar, arquivar e afixar agora têm confirmação falada. Um erro repetido ao obter a lista de conversas mostra uma só caixa, não uma por tentativa. No Mac, o WinZapp percebe quando o computador acorda e volta a ligar-se, e Home e End levam ao início e ao fim das listas. Quando a sessão não pode ser retomada, emparelhar de novo o mesmo número já não apaga o histórico.
+
 - Árabe: a transcrição de mensagens de voz e áudios passa a usar «تفريغ» (transcrição) em vez de «تسجيل» (gravação) nos menus, nas definições e nas mensagens, para não parecer que está a gravar a sua voz.
 
 - Ao aceitar uma atualização, o WinZapp passa a confirmar de novo qual é a versão mais recente antes de transferir, e deixa de instalar uma alpha anterior à última quando várias alphas são publicadas em sequência.
