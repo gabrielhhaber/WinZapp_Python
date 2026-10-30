@@ -8,6 +8,7 @@ import requests
 from core.api_client import (api_get, api_post, redact_api_error,
                              redact_api_url, redact_token)
 from core.i18n import I18n
+from main_window.identity_rules import linked_number_differs
 from core.websocket_client import WebSocketClient
 from app_paths import data_path, resource_path
 from traceback import format_exc
@@ -883,7 +884,12 @@ class Connect:
         # paired account" from "brand-new pairing" once that token is gone,
         # and used to always wipe local data as a result. See that method's
         # own docstring for the full story.
-        was_paired = bool(self.main_window.settings.get("privateinfo", {}).get("paired"))
+        # WA_phone_number_linked: after _on_disconnect(wipe=False) it alone
+        # says this install has a history, and who scans the code is checked
+        # against it once pairing closes.
+        _privateinfo = self.main_window.settings.get("privateinfo", {})
+        was_paired = bool(_privateinfo.get("paired")
+                          or _privateinfo.get("WA_phone_number_linked"))
 
         # Whatever on_switch_to_phone() captured belongs to the session we are
         # about to tear down, so it must not survive as a reuse candidate for
@@ -1306,6 +1312,27 @@ class Connect:
         return bool(privateinfo.get("paired", False))
 
     @staticmethod
+    def _history_belongs_to(privateinfo: dict, phone_number: str) -> bool:
+        """_is_same_account(), or the number WhatsApp confirmed for the data
+        on disk: the question that decides the wipe.
+
+        _on_disconnect(wipe=False) sends the user to this dialog to keep their
+        history, and drops WA_phone_number and `paired` on the way. Those two
+        alone answered "another account" for the owner's own number, and the
+        history went anyway: a Mac logged out across a sleep at 16:06, its user
+        typed their number at 16:25, and the database and media were deleted
+        (2026-10-26). WA_phone_number_linked survives that path for exactly
+        this reason. Not used for reusing a session, which still needs the
+        strict answer; only for not deleting.
+        """
+        if Connect._is_same_account(privateinfo, phone_number):
+            return True
+        if not isinstance(privateinfo, dict):
+            return False
+        linked = privateinfo.get("WA_phone_number_linked")
+        return bool(linked and phone_number) and not linked_number_differs(linked, phone_number)
+
+    @staticmethod
     def _can_reuse_existing_session(privateinfo: dict, phone_number: str,
                                     existing_token: str) -> bool:
         """True when a stored WPPConnect token is worth reusing for this number.
@@ -1422,7 +1449,7 @@ class Connect:
                 if not _instance_exists:
                     # New session: sync from scratch, so wait for messages.set
                     self.main_window.messages_set_completed = False
-                if not self._is_same_account(_privateinfo, self.phone_number):
+                if not self._history_belongs_to(_privateinfo, self.phone_number):
                     self.main_window.clear_local_data()
 
                 if _instance_exists:

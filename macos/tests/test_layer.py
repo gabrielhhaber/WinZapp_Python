@@ -514,3 +514,22 @@ def test_the_message_box_log_is_capped(tmp_path):
         fh.write("x" * 2000)
     diagnostics_mac._rotate(path, max_bytes=1000)
     assert (tmp_path / "message-boxes.log.1").exists() and not (tmp_path / "message-boxes.log").exists()
+
+
+def test_home_and_end_move_to_the_list_edges():
+    import wx
+    from winzapp_mac.listctrl import edge_row
+
+    assert edge_row(wx.WXK_HOME, 5, 10) == 0
+    assert edge_row(wx.WXK_END, 5, 10) == 9
+    assert edge_row(wx.WXK_NUMPAD_END, -1, 10) == 9
+
+
+def test_home_on_the_first_row_stays_load_older():
+    import wx
+    from winzapp_mac.listctrl import edge_row
+
+    assert edge_row(wx.WXK_HOME, 0, 10) is None
+    assert edge_row(wx.WXK_END, 9, 10) is None
+    assert edge_row(wx.WXK_HOME, -1, 0) is None
+    assert edge_row(wx.WXK_DOWN, 3, 10) is None
