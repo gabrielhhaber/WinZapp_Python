@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Arabski: transkrypcja wiadomości głosowych i dźwięku używa teraz w menu, ustawieniach i komunikatach słowa „تفريغ” (transkrypcja) zamiast „تسجيل” (nagrywanie), aby nie brzmiało to jak nagrywanie głosu.
+
 - Język arabski jest teraz dostępny w ustawieniach języka programu oraz w instalatorze i deinstalatorze systemu Windows.
 
 - Aktualizacje macOS wyjaśniają, czy weryfikacja nie powiodła się z powodu połączenia, certyfikatu, serwera lub limitu żądań GitHub oraz czy nie można sprawdzić pliku weryfikacji czy oficjalnego tagu wydania. Tymczasowe błędy połączenia i serwera powodują jedną ponowną próbę; limity żądań pokazują czas oczekiwania i nie powodują kolejnych żądań w tym czasie.

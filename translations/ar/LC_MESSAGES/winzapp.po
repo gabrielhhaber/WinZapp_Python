@@ -480,7 +480,9 @@ msgstr "بدء واجهة برمجة التطبيقات المحلية على &�
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/advanced_tab.py
 msgctxt "advanced_fixed_port_label"
 msgid "Local API &port (applies the next time WinZapp starts):"
-msgstr "منفذ واجهة برمجة ال&تطبيقات المحلية (يسري في المرة القادمة التي يبدأ فيها WinZapp):"
+msgstr ""
+"منفذ واجهة برمجة ال&تطبيقات المحلية (يسري في المرة القادمة التي يبدأ فيها "
+"WinZapp):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "advanced_log_level_debug"
@@ -519,7 +521,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_accessibility_enabled_label"
 msgid "Ena&ble AI features (transcription and description)"
-msgstr "تمكين &ميزات الذكاء الاصطناعي (التسجيل النصي والوصف)"
+msgstr "تمكين &ميزات الذكاء الاصطناعي (التفريغ النصي والوصف)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
@@ -560,7 +562,7 @@ msgstr "منذ {minutes} دقيقة"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ai_auto_button"
 msgid "Automatic transcri&ption and description..."
-msgstr "التسجيل ال&نصي والوصف التلقائيين…"
+msgstr "التفريغ النصي والوصف التلقا&ئيين…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -581,7 +583,7 @@ msgstr "إرسال الوسائط تلقائياً؟"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_auto_daily_limit"
 msgid "Daily &limit of automatic requests (0 for no limit):"
-msgstr "الحد اليومي من الطلبات التل&قائية (0 بلا حد):"
+msgstr "ال&حد اليومي من الطلبات التلقائية (0 بلا حد):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_auto_describe"
@@ -595,7 +597,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_auto_max_age"
 msgid "&Process automatically the messages received up to:"
-msgstr "معالجة &تلقائياً للرسائل المستلمة حتى:"
+msgstr "معالجة تلقائياً &للرسائل المستلمة حتى:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_auto_scope"
@@ -616,7 +618,7 @@ msgstr "المحادثات التي أشغّلها فقط"
 msgctxt "ai_auto_transcribe"
 msgid ""
 "Transcribe received &voice messages automatically, with the online providers"
-msgstr "تسجيل الرسائل الصوت&ية المستلمة تلقائياً، عبر الموفّرين على الإنترنت"
+msgstr "&تفريغ الرسائل الصوتية المستلمة تلقائياً، عبر الموفّرين على الإنترنت"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_auto_used_today"
@@ -780,8 +782,8 @@ msgid ""
 "in Settings > Online AI: Transcriptions and Descriptions first."
 msgstr ""
 "قم بتشغيل ميزات الذكاء الاصطناعي، وأضف مفتاحاً لموفّر، وفعّل هذا النوع من "
-"الوسائط في الإعدادات > الذكاء الاصطناعي عبر الإنترنت: التسجيلات النصية "
-"والأوصاف أولاً."
+"الوسائط في الإعدادات > الذكاء الاصطناعي عبر الإنترنت: التفريغ النصي والأوصاف"
+" أولاً."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_authentication"
@@ -863,8 +865,8 @@ msgid ""
 "and turn it on."
 msgstr ""
 "لا يوجد موفّر ذكاء اصطناعي متاح لهذا النوع من الوسائط. في الإعدادات > الذكاء"
-" الاصطناعي عبر الإنترنت: التسجيلات النصية والأوصاف، أضف مفتاحاً لموفّر "
-"يتعامل معه وشغّله."
+" الاصطناعي عبر الإنترنت: التفريغ النصي والأوصاف، أضف مفتاحاً لموفّر يتعامل "
+"معه وشغّله."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_question"
@@ -946,7 +948,9 @@ msgctxt "ai_hide_action_button"
 msgid ""
 "&Hide the online AI button after the message list (the message menu still "
 "offers it)"
-msgstr "إخفاء زر الذكاء الاصطناعي عبر الإنت&رنت بعد قائمة الرسائل (القائمة الخاصة بالرسالة لا تزال تقدمه)"
+msgstr ""
+"إخفاء زر الذكاء الاصطناعي عبر الإنت&رنت بعد قائمة الرسائل (القائمة الخاصة "
+"بالرسالة لا تزال تقدمه)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
@@ -1152,7 +1156,7 @@ msgstr "ضع الوصف في سطر الرسالة"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_put_in_line"
 msgid "Put transcription in the message line"
-msgstr "ضع التسجيل النصي في سطر الرسالة"
+msgstr "ضع التفريغ النصي في سطر الرسالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
@@ -1220,7 +1224,7 @@ msgstr "نص PDF يمكن الوصول إليه"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
 msgid "Voice message transcription (online AI)"
-msgstr "تسجيل الرسالة الصوتية (ذكاء اصطناعي عبر الإنترنت)"
+msgstr "تفريغ الرسالة الصوتية (ذكاء اصطناعي عبر الإنترنت)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
@@ -1244,7 +1248,7 @@ msgid ""
 "\n"
 "You can review each provider's data terms before sending media. Do not use personal or sensitive media with unpaid Gemini services; paid services have different terms."
 msgstr ""
-"تحوّل التسجيلات النصية والأوصاف الرسائل الصوتية إلى نص، وتصف الصور والملصقات ومقاطع الفيديو، وتجيب عن الأسئلة حولها، وتحول ملفات PDF إلى نص يمكن الوصول إليه. شغّل الميزة، وأضف مفتاح API الخاص بك لموفّر واحد على الأقل، وإذا شئت، ضّبّط الترتيب الذي تُجرّب به الموفّرون. إذا لم يكن لديك مفتاح، استخدم \"احصل على مفتاح API\" في إعدادات الموفّر.\n"
+"تحوّل التفريغات النصية والأوصاف الرسائل الصوتية إلى نص، وتصف الصور والملصقات ومقاطع الفيديو، وتجيب عن الأسئلة حولها، وتحول ملفات PDF إلى نص يمكن الوصول إليه. شغّل الميزة، وأضف مفتاح API الخاص بك لموفّر واحد على الأقل، وإذا شئت، ضّبّط الترتيب الذي تُجرّب به الموفّرون. إذا لم يكن لديك مفتاح، استخدم \"احصل على مفتاح API\" في إعدادات الموفّر.\n"
 "\n"
 "عند استخدام إجراء، يُرسل الوسيط المختار إلى أول موفّر في قائمتك يتعامل معه؛ إذا فشل ذلك الموفّر، يُجرّب التالي. للصور ومقاطع الفيديو، تُرسل أسئلتك والإجابات السابقة في هذه النافذة أيضًا. لا تُرسل أسماء الدردشات أو التوضيحات. النتائج إرشادية؛ تحقق من التفاصيل المهمة.\n"
 "\n"
@@ -1286,12 +1290,12 @@ msgstr "اختبار الاتصال ب&دون إرسال وسائط"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_transcribe_audio_label"
 msgid "Transcribe &voice messages"
-msgstr "تس&جيل الرسائل الصوتية"
+msgstr "تفري&غ الرسائل الصوتية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_transcribe_audio_menu"
 msgid "Transcribe with online AI"
-msgstr "تسجيل باستخدام الذكاء الاصطناعي عبر الإنترنت"
+msgstr "تفريغ باستخدام الذكاء الاصطناعي عبر الإنترنت"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
@@ -1921,7 +1925,7 @@ msgid ""
 "Automatic transcription and description stopped for today: the limit of "
 "{limit} requests was reached."
 msgstr ""
-"توقف التسجيل النصي والوصف التلقائيين لليوم: تم بلوغ حد {limit} من الطلبات."
+"توقف التفريغ النصي والوصف التلقائيين لليوم: تم بلوغ حد {limit} من الطلبات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/auto_ai_media.py
@@ -1930,7 +1934,7 @@ msgid ""
 "Automatic transcription and description paused for one hour: the provider "
 "refused the requests (quota or key)."
 msgstr ""
-"توقف التسجيل النصي والوصف التلقائيين لمدة ساعة واحدة: رفض الموفّر الطلبات "
+"توقف التفريغ النصي والوصف التلقائيين لمدة ساعة واحدة: رفض الموفّر الطلبات "
 "(الحصة أو المفتاح)."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
@@ -2002,7 +2006,7 @@ msgid ""
 "&Download updates and transcription downloads in the background, without the"
 " progress window (WinZapp tells you before installing an update and when a "
 "download finishes)"
-msgstr "&تنزيل التحديثات وتنزيلات التسجيل النصي في الخلفية، بدون نافذة التقدم (يقول لك WinZapp قبل تثبيت تحديث وعند انتهاء التنزيل)"
+msgstr "&تنزيل التحديثات وتنزيلات التفريغ النصي في الخلفية، بدون نافذة التقدم (يقول لك WinZapp قبل تثبيت تحديث وعند انتهاء التنزيل)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -2146,12 +2150,12 @@ msgstr "لم يتم تحديد رسائل."
 msgctxt "bulk_transcription_cancel_confirm"
 msgid ""
 "A bulk transcription is running (message {index} of {total}). Cancel it?"
-msgstr "يوجد تسجيل نصي جماعي قيد التشغيل (الرسالة {index} من {total}). إلغاء؟"
+msgstr "يوجد تفريغ نصي جماعي قيد التشغيل (الرسالة {index} من {total}). إلغاء؟"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "bulk_transcription_cancel_menu"
 msgid "Cancel the bulk transcription"
-msgstr "إلغاء التسجيل النصي الجماعي"
+msgstr "إلغاء التفريغ النصي الجماعي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -2160,8 +2164,8 @@ msgid ""
 "Bulk transcription cancelled: {done} transcribed, {skipped} skipped, "
 "{failed} with errors."
 msgstr ""
-"تم إلغاء التسجيل النصي الجماعي: {done} تم تسجيله، {skipped} تم تخطيها، "
-"{failed} مع أخطاء."
+"تم إلغاء التفريغ النصي الجماعي: {done} مفرّغة، {skipped} تم تخطيها، {failed}"
+" بأخطاء."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
@@ -2172,8 +2176,8 @@ msgid ""
 "{already}. Skipped because they have nothing to transcribe: {skipped}. "
 "Start?"
 msgstr ""
-"الرسائل المراد تسجيلها نصيًا، واحدة تلو الأخرى: {count}. تم تسجيلها بالفعل: "
-"{already}. تم تخطيها لأنها لا تحتوي على ما يُسجل: {skipped}. بدء؟"
+"رسائل للتفريغ النصي، واحدة تلو الأخرى: {count}. مفرّغة بالفعل: {already}. تم"
+" تخطيها لعدم احتوائها على ما يُفرّغ: {skipped}. بدء؟"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -2182,8 +2186,8 @@ msgid ""
 "Bulk transcription finished: {done} transcribed, {skipped} skipped, {failed}"
 " with errors."
 msgstr ""
-"انتهى التسجيل النصي الجماعي: {done} تم تسجيله، {skipped} تم تخطيها، {failed}"
-" مع أخطاء."
+"اكتمل التفريغ النصي الجماعي: {done} مفرّغة، {skipped} تم تخطيها، {failed} "
+"بأخطاء."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
@@ -2192,7 +2196,8 @@ msgid ""
 "None of the selected messages is a voice message, audio or video that can be"
 " transcribed."
 msgstr ""
-"لا أحد من الرسائل المحددة هو رسالة صوتية أو صوت أو فيديو يمكن تسجيله نصيًا."
+"لا توجد رسالة من الرسائل المحددة كرسالة صوتية أو ملف صوت أو فيديو يمكن "
+"تفريغه نصياً."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
@@ -2200,14 +2205,14 @@ msgctxt "bulk_transcription_not_kept"
 msgid ""
 "The cache is off for this model, so these transcriptions were not kept."
 msgstr ""
-"الذاكرة المؤقتة معطلة لهذا النموذج، لذا لم يتم الاحتفاظ بهذه التسجيلات "
+"الذاكرة المؤقتة معطلة لهذا النموذج، لذا لم يتم الاحتفاظ بهذه التفريغات "
 "النصية."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
 msgctxt "bulk_transcription_nothing_to_show"
 msgid "None of these transcriptions is kept any more."
-msgstr "لا أحد من هذه التسجيلات النصية محفوظ بعد الآن."
+msgstr "لم يعد يتم الاحتفاظ بأي من هذه التفريغات النصية."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
@@ -2217,38 +2222,38 @@ msgid ""
 "transcriptions of the selected messages together\" in a message's context "
 "menu."
 msgstr ""
-"لقراءتها معًا، افتح هذه المحادثة واختر \"إظهار التسجيلات النصية للرسائل "
-"المحددة معًا\" في قائمة سياق الرسالة."
+"لقراءتها معاً، افتح هذه المحادثة واختر \"إظهار التفريغات النصية للرسائل "
+"المحددة معاً\" في قائمة سياق الرسالة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
 #, python-brace-format
 msgctxt "bulk_transcription_progress"
 msgid "Transcribing message {index} of {total}."
-msgstr "جاري تسجيل الرسالة {index} من {total} نصيًا."
+msgstr "جارٍ تفريغ الرسالة {index} من أصل {total}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "bulk_transcription_show_menu"
 msgid "Show the transcriptions of the selected messages together"
-msgstr "إظهار التسجيلات النصية للرسائل المحددة معًا"
+msgstr "إظهار التفريغات النصية للرسائل المحددة معاً"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
 msgctxt "bulk_transcription_stopped_locked"
 msgid "The bulk transcription stopped because the chat was locked."
-msgstr "توقف التسجيل النصي الجماعي لأن الدردشة مقفلة."
+msgstr "توقف التفريغ النصي الجماعي لأن الدردشة مقفلة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
 msgctxt "bulk_transcription_title"
 msgid "Transcribe selected messages"
-msgstr "تسجيل الرسائل المحددة نصيًا"
+msgstr "تفريغ الرسائل المحددة نصياً"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
 msgctxt "bulk_transcription_window_title"
 msgid "Bulk transcription"
-msgstr "تسجيل نصي جماعي"
+msgstr "تفريغ نصي جماعي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "button_no"
@@ -4585,7 +4590,7 @@ msgid ""
 "Transcribe the voice messages, audio and videos received in this "
 "conversation automatically, locally with Whisper"
 msgstr ""
-"تسجيل الرسائل الصوتية والصوت ومقاطع الفيديو المستلمة في هذه المحادثة "
+"تفريغ الرسائل الصوتية والصوت ومقاطع الفيديو المستلمة في هذه المحادثة "
 "تلقائيًا، محليًا باستخدام Whisper"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -4595,7 +4600,7 @@ msgid ""
 "Transcribe the voice messages and audio received in this conversation "
 "automatically, with the online providers"
 msgstr ""
-"تسجيل الرسائل الصوتية والصوت المستلمة في هذه المحادثة تلقائيًا، باستخدام "
+"تفريغ الرسائل الصوتية والصوت المستلمة في هذه المحادثة تلقائيًا، باستخدام "
 "الموفّرين عبر الإنترنت"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -8430,7 +8435,9 @@ msgctxt "probe_video_duration_on_download_label"
 msgid ""
 "Find &the length of videos that state none as soon as they download (instead"
 " of only on playback)"
-msgstr "ابحث &عن طول مقاطع الفيديو التي تشير إلى عدم وجود بمجرد تنزيلها (بدلاً من التشغيل فقط)"
+msgstr ""
+"ابحث &عن طول مقاطع الفيديو التي تشير إلى عدم وجود بمجرد تنزيلها (بدلاً من "
+"التشغيل فقط)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -8438,7 +8445,9 @@ msgctxt "profile_backup_close_hours_label"
 msgid ""
 "&Minimum time between profile backups taken when closing WinZapp (hours, 0 ="
 " on every close)"
-msgstr "ال&حد الأدنى للوقت بين نسخ الملف الشخصي الاحتياطية عند إغلاق WinZapp (ساعات، 0 = في كل إغلاق)"
+msgstr ""
+"ال&حد الأدنى للوقت بين نسخ الملف الشخصي الاحتياطية عند إغلاق WinZapp (ساعات،"
+" 0 = في كل إغلاق)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/session_lifecycle.py
@@ -8474,7 +8483,9 @@ msgctxt "profile_backup_disabled_label"
 msgid ""
 "&Don't keep profile backups (saves space, but if the profile is damaged you "
 "will need to pair again)"
-msgstr "&عدم الاحتفاظ بنسخ الملف الشخصي الاحتياطية (توفير مساحة، ولكن إذا تتلف الملف الشخصي ستحتاج إلى الاقتران مرة أخرى)"
+msgstr ""
+"&عدم الاحتفاظ بنسخ الملف الشخصي الاحتياطية (توفير مساحة، ولكن إذا تتلف الملف"
+" الشخصي ستحتاج إلى الاقتران مرة أخرى)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "profile_backup_live_confirm"
@@ -8528,7 +8539,9 @@ msgctxt "profile_backup_live_label"
 msgid ""
 "Also &back up the profile while WinZapp is open (WhatsApp is disconnected "
 "while the backup runs)"
-msgstr "&أيضًا نسخ الملف الشخصي احتياطيًا أثناء فتح WinZapp (يتم فصل واتساب أثناء تشغيل النسخة الاحتياطية)"
+msgstr ""
+"&أيضًا نسخ الملف الشخصي احتياطيًا أثناء فتح WinZapp (يتم فصل واتساب أثناء "
+"تشغيل النسخة الاحتياطية)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/session_lifecycle.py
@@ -8853,7 +8866,9 @@ msgctxt "reactions_fixed_label"
 msgid ""
 "&Use fixed quick reactions: choose the emoji for each of the 12 positions "
 "instead of sorting by most used"
-msgstr "&استخدام ردود فعل سريعة ثابتة: اختر الرمز التعبيري لكل من المراكز الـ 12 بدلاً من الترتيب حسب الأكثر استخدامًا"
+msgstr ""
+"&استخدام ردود فعل سريعة ثابتة: اختر الرمز التعبيري لكل من المراكز الـ 12 "
+"بدلاً من الترتيب حسب الأكثر استخدامًا"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_list.py
@@ -8917,7 +8932,9 @@ msgctxt "reactions_slots_label"
 msgid ""
 "&Quick reaction positions. Press Enter on a position to choose its emoji; if"
 " that emoji is already in another position, the two swap places."
-msgstr "&مواقع رد الفعل السريع. اضغط Enter على مركز لاختيار رمزه التعبيري؛ إذا كان هذا الرمز التعبيري بالفعل في مركز آخر، فإن الاثنين يتبادلان المكانين."
+msgstr ""
+"&مواقع رد الفعل السريع. اضغط Enter على مركز لاختيار رمزه التعبيري؛ إذا كان "
+"هذا الرمز التعبيري بالفعل في مركز آخر، فإن الاثنين يتبادلان المكانين."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 msgctxt "read_more_button"
@@ -9829,9 +9846,9 @@ msgid ""
 " or open it when Enter and Space are set to transcribe (Settings > User "
 "Interface)"
 msgstr ""
-"Alt+Shift+N: على رسالة صوتية أو فيديو، افعل ما لا يفعله Enter و Space: سجلها"
+"Alt+Shift+N: على رسالة صوتية أو فيديو، افعل ما لا يفعله Enter و Space: فرغها"
 " نصيًا محليًا باستخدام Whisper إلى سطرها في القائمة، أو شغّلها أو أوقفها أو "
-"افتحها عندما تكون Enter و Space مضبوطة على التسجيل النصي (الإعدادات > واجهة "
+"افتحها عندما تكون Enter و Space مضبوطة على التفريغ النصي (الإعدادات > واجهة "
 "المستخدم)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -9881,8 +9898,8 @@ msgid ""
 "Alt+Shift+T: transcribe the voice message or audio locally with Whisper, or "
 "open the transcription already saved"
 msgstr ""
-"Alt+Shift+T: سجل الرسالة الصوتية أو الصوت نصيًا محليًا باستخدام Whisper، أو "
-"افتح التسجيل النصي المحفوظ بالفعل"
+"Alt+Shift+T: فرّغ الرسالة الصوتية أو الصوت نصيًا محليًا باستخدام Whisper، أو"
+" افتح التفريغ النصي المحفوظ بالفعل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -9932,7 +9949,7 @@ msgid ""
 "Ctrl+Alt+Shift+Delete: delete the saved local transcriptions of the selected"
 " messages"
 msgstr ""
-"Ctrl+Alt+Shift+Delete: حذف التسجيلات النصية المحلية المحفوظة للرسائل المحددة"
+"Ctrl+Alt+Shift+Delete: حذف التفريغات النصية المحلية المحفوظة للرسائل المحددة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -9982,7 +9999,7 @@ msgid ""
 "Ctrl+Alt+Shift+N: transcribe the selected messages locally with Whisper into"
 " their lines"
 msgstr ""
-"Ctrl+Alt+Shift+N: تسجيل الرسائل المحددة نصيًا محليًا باستخدام Whisper إلى "
+"Ctrl+Alt+Shift+N: تفريغ الرسائل المحددة نصيًا محليًا باستخدام Whisper إلى "
 "أسطرها"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -9991,7 +10008,7 @@ msgid ""
 "Ctrl+Alt+Shift+T: transcribe the selected messages locally with Whisper and "
 "show them together"
 msgstr ""
-"Ctrl+Alt+Shift+T: تسجيل الرسائل المحددة نصيًا محليًا باستخدام Whisper وعرضها"
+"Ctrl+Alt+Shift+T: تفريغ الرسائل المحددة نصيًا محليًا باستخدام Whisper وعرضها"
 " معًا"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -10298,8 +10315,8 @@ msgid ""
 "Ctrl+Shift+I: transcribe, describe or convert the media of the focused "
 "message with online AI"
 msgstr ""
-"Ctrl+Shift+I: التسجيل النصي أو الوصف أو تحويل الوسائط لرسالة مركزة باستخدام "
-"الذكاء الاصطناعي عبر الإنترنت"
+"Ctrl+Shift+I: تفريغ أو وصف أو تحويل الوسائط لرسالة مركزة باستخدام الذكاء "
+"الاصطناعي عبر الإنترنت"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -10409,7 +10426,7 @@ msgid ""
 "Alt+Shift+Delete: delete the saved local transcription of the message (or of"
 " every selected one, when shortcuts are replaced by bulk actions)"
 msgstr ""
-"Alt+Shift+Delete: حذف التسجيل النصي المحلي المحفوظ للرسالة (أو لكل محدد، "
+"Alt+Shift+Delete: حذف التفريغ النصي المحلي المحفوظ للرسالة (أو لكل محدد، "
 "عندما تستبدل الاختصارات بإجراءات جماعية)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -10812,7 +10829,7 @@ msgstr "Delete: في حالتي، حذف الحالة المعروضة لدى ك
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_status_delete_transcription_label"
 msgid "Alt+Shift+Delete: delete the saved local transcription of the status"
-msgstr "Alt+Shift+Delete: حذف التسجيل النصي المحلي المحفوظ للحالة"
+msgstr "Alt+Shift+Delete: حذف التفريغ النصي المحلي المحفوظ للحالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_status_transcribe_inline_label"
@@ -10821,9 +10838,9 @@ msgid ""
 "transcribe it locally with Whisper into its line in the list, or open or "
 "play it when Enter and Space are set to transcribe"
 msgstr ""
-"Alt+Shift+N: على حالة صوتية أو فيديو، افعل ما لا يفعله Enter و Space: سجلها "
+"Alt+Shift+N: على حالة صوتية أو فيديو، افعل ما لا يفعله Enter و Space: فرغها "
 "نصيًا محليًا باستخدام Whisper إلى سطرها في القائمة، أو افتحها أو شغّلها "
-"عندما تكون Enter و Space مضبوطة على التسجيل النصي"
+"عندما تكون Enter و Space مضبوطة على التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_status_transcribe_label"
@@ -10831,8 +10848,8 @@ msgid ""
 "Alt+Shift+T: transcribe the audio or video status locally with Whisper, or "
 "open the transcription already saved"
 msgstr ""
-"Alt+Shift+T: سجل الحالة الصوتية أو الفيديو نصيًا محليًا باستخدام Whisper، أو"
-" افتح التسجيل النصي المحفوظ بالفعل"
+"Alt+Shift+T: فرّغ الحالة الصوتية أو الفيديو نصيًا محليًا باستخدام Whisper، "
+"أو افتح التفريغ النصي المحفوظ بالفعل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
@@ -12034,7 +12051,7 @@ msgstr "متقدم"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_ai_accessibility"
 msgid "Online AI: Transcriptions and Descriptions"
-msgstr "الذكاء الاصطناعي عبر الإنترنت: التسجيلات النصية والأوصاف"
+msgstr "الذكاء الاصطناعي عبر الإنترنت: التفريغ النصي والأوصاف"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12116,7 +12133,7 @@ msgstr "التخزين"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_transcription"
 msgid "Local Transcription"
-msgstr "التسجيل النصي المحلي"
+msgstr "التفريغ النصي المحلي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12226,25 +12243,25 @@ msgstr "المجموع"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcribe_inline_menu"
 msgid "Transcribe locally into the message line with Whisper"
-msgstr "تسجيل نصيًا محليًا في سطر الرسالة باستخدام Whisper"
+msgstr "تفريغ نصي محلي في سطر الرسالة باستخدام Whisper"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "transcribe_message"
 msgid "Transcribe message locally with Whisper"
-msgstr "تسجيل الرسالة نصيًا محليًا باستخدام Whisper"
+msgstr "تفريغ الرسالة نصيًا محليًا باستخدام Whisper"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "transcribe_selected"
 msgid "Transcribe the selected messages and show them together"
-msgstr "تسجيل الرسائل المختارة نصيًا وعرضها معًا"
+msgstr "تفريغ الرسائل المختارة نصيًا وعرضها معًا"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "transcribe_selected_inline"
 msgid "Transcribe the selected messages into their lines"
-msgstr "تسجيل الرسائل المختارة نصيًا في أسطرها"
+msgstr "تفريغ الرسائل المختارة نصيًا في أسطرها"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_windows.py
@@ -12265,7 +12282,7 @@ msgstr "طبّق مجلد النماذج الجديد قبل تنزيل أو إ�
 #, python-brace-format
 msgctxt "transcription_auto_paused"
 msgid "Automatic transcription was paused for a while. {reason}"
-msgstr "توقف التسجيل النصي التلقائي لبعض الوقت. {reason}"
+msgstr "توقف التفريغ النصي التلقائي لبعض الوقت. {reason}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_auto_replaces_online"
@@ -12274,8 +12291,8 @@ msgid ""
 "providers (Transcriptions && Descriptions tab), so a voice message is not "
 "transcribed twice. Continue?"
 msgstr ""
-"تشغيل هذا يوقف التسجيل النصي التلقائي مع الموفّرين عبر الإنترنت (تبويب "
-"التسجيلات النصية والأوصاف)، بحيث لا تُسجل الرسالة الصوتية مرتين. المتابعة؟"
+"تشغيل هذا يوقف التفريغ النصي التلقائي مع الموفّرين عبر الإنترنت (تبويب "
+"التفريغ النصي والأوصاف)، بحيث لا تُفرّغ الرسالة الصوتية مرتين. المتابعة؟"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
@@ -12283,7 +12300,7 @@ msgctxt "transcription_auto_transcribe_check"
 msgid ""
 "Automatically transcribe received voice &messages and videos and put the "
 "text in the message line"
-msgstr "&تسجيل الرسائل الصوتية ومقاطع الفيديو المستلمة تلقائيًا ووضع النص في سطر الرسالة"
+msgstr "تفريغ الرسائل الصوتية ومقاطع الفيديو المستلمة تلقا&ئيًا ووضع النص في سطر الرسالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_backend_faster_whisper"
@@ -12294,7 +12311,7 @@ msgstr "faster-whisper"
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_backend_label"
 msgid "Transcription com&ponent"
-msgstr "&مكون التسجيل النصي"
+msgstr "م&كون التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_backend_whisper_cpp"
@@ -12307,7 +12324,7 @@ msgid ""
 "Another transcription is still running. Wait for it, or cancel it with the "
 "same shortcut on its message."
 msgstr ""
-"تسجيل نصي آخر لا يزال جاريًا. انتظره، أو ألغِه بنفس الاختصار على رسالته."
+"تفريغ نصي آخر لا يزال جاريًا. انتظره، أو ألغِه بنفس الاختصار على رسالته."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_tab.py
@@ -12318,7 +12335,7 @@ msgstr "إل&غاء التنزيل في الخلفية"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
 msgctxt "transcription_background_cancelling"
 msgid "Cancelling the transcription."
-msgstr "جاري إلغاء التسجيل النصي."
+msgstr "جارٍ إلغاء التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_background.py
@@ -12331,20 +12348,20 @@ msgstr "استمراره في الخلفية. سيتم إخبارك عند ان�
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "transcription_bulk_delete_menu"
 msgid "Delete the saved local transcriptions of the selected messages"
-msgstr "حذف التسجيلات النصية المحلية المحفوظة للرسائل المحددة"
+msgstr "حذف التفريغات النصية المحلية المحفوظة للرسائل المحددة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/transcription_delete.py
 msgctxt "transcription_bulk_delete_none"
 msgid "None of the selected messages has a saved local transcription."
-msgstr "لا أحد من الرسائل المختارة لديه تسجيل نصي محلي محفوظ."
+msgstr "لا أحد من الرسائل المختارة لديه تفريغ نصي محلي محفوظ."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/transcription_delete.py
 #, python-brace-format
 msgctxt "transcription_bulk_delete_partial"
 msgid "Local transcriptions deleted: {count}. Could not be deleted: {failed}."
-msgstr "تم حذف التسجيلات النصية المحلية: {count}. لم يمكن حذف: {failed}."
+msgstr "تم حذف التفريغات النصية المحلية: {count}. لم يمكن حذف: {failed}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/transcription_delete.py
@@ -12354,7 +12371,7 @@ msgid ""
 "Delete the saved local transcriptions of {count} selected messages? The "
 "messages and their audio stay in the conversation."
 msgstr ""
-"حذف التسجيلات النصية المحلية المحفوظة لـ {count} رسالة مختارة؟ تبقى الرسائل "
+"حذف التفريغات النصية المحلية المحفوظة لـ {count} رسالة مختارة؟ تبقى الرسائل "
 "وصوتها في المحادثة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -12362,13 +12379,13 @@ msgstr ""
 #, python-brace-format
 msgctxt "transcription_bulk_deleted"
 msgid "Local transcriptions deleted: {count}."
-msgstr "تم حذف التسجيلات النصية المحلية: {count}."
+msgstr "تم حذف التفريغات النصية المحلية: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_cache.py
 msgctxt "transcription_cache_check"
 msgid "&Save transcriptions with the messages so they are not redone (cache)"
-msgstr "&حفظ التسجيلات النصية مع الرسائل حتى لا تُعاد (ذاكرة مؤقتة)"
+msgstr "حفظ التفريغات النصية مع الرسا&ئل حتى لا تُعاد (ذاكرة مؤقتة)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_cache.py
@@ -12398,7 +12415,7 @@ msgstr "تشغيل"
 #: client/ui/dialogs/transcription_cache.py
 msgctxt "transcription_clear_all_cache_btn"
 msgid "&Clear saved transcriptions of all models"
-msgstr "مسح ال&تسجيلات النصية المحفوظة لجميع النماذج"
+msgstr "مسح التفريغات النصية المحفوظة ل&جميع النماذج"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_cache.py
@@ -12407,19 +12424,19 @@ msgid ""
 "Delete every saved transcription of every model, in all chats? This cannot "
 "be undone."
 msgstr ""
-"حذف كل التسجيلات النصية المحفوظة لكل نموذج، في كل الدردشات؟ لا يمكن التراجع "
+"حذف كل التفريغات النصية المحفوظة لكل نموذج، في كل الدردشات؟ لا يمكن التراجع "
 "عن هذا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_clear_all_cache_none"
 msgid "No saved transcription was found."
-msgstr "لم يتم العثور على أي تسجيل نصي محفوظ."
+msgstr "لم يتم العثور على أي تفريغ نصي محفوظ."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_cache.py
 msgctxt "transcription_clear_cache_btn"
 msgid "Clear t&his model's saved transcriptions"
-msgstr "&مسح التسجيلات النصية المحفوظة لهذا النموذج"
+msgstr "مسح التفريغات النصية المحفوظة لهذا ال&نموذج"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_cache.py
@@ -12429,24 +12446,24 @@ msgid ""
 "Delete every saved transcription made by the {model} model, in all chats? "
 "Transcriptions made by other models are kept, and this cannot be undone."
 msgstr ""
-"حذف كل التسجيلات النصية التي أجراها نموذج {model}، في كل الدردشات؟ تبقى "
-"التسجيلات النصية التي أجرتها نماذج أخرى، ولا يمكن التراجع عن هذا."
+"حذف كل التفريغات النصية التي أجراها نموذج {model}، في كل الدردشات؟ تبقى "
+"التفريغات النصية التي أجرتها نماذج أخرى، ولا يمكن التراجع عن هذا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "transcription_clear_cache_done"
 msgid "Saved transcriptions deleted: {count}."
-msgstr "تم حذف التسجيلات النصية المحفوظة: {count}."
+msgstr "تم حذف التفريغات النصية المحفوظة: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_clear_cache_failed"
 msgid "The saved transcriptions could not be deleted."
-msgstr "لم يمكن حذف التسجيلات النصية المحفوظة."
+msgstr "لم يمكن حذف التفريغات النصية المحفوظة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_clear_cache_none"
 msgid "No saved transcription from this model was found."
-msgstr "لم يتم العثور على أي تسجيل نصي محفوظ من هذا النموذج."
+msgstr "لم يتم العثور على أي تفريغ نصي محفوظ من هذا النموذج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_confirm_cuda"
@@ -12471,12 +12488,12 @@ msgstr "مجلد الوجهة: {folder}."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_confirm_device_cpu"
 msgid "After this, transcription will run on the processor."
-msgstr "بعد هذا، سيُشغّل التسجيل النصي على المعالج."
+msgstr "بعد هذا، سيُشغّل التفريغ النصي على المعالج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_confirm_device_cuda"
 msgid "After this, transcription will run on the graphics card."
-msgstr "بعد هذا، سيُشغّل التسجيل النصي على بطاقة الرسومات."
+msgstr "بعد هذا، سيُشغّل التفريغ النصي على بطاقة الرسومات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_tab.py
@@ -12485,7 +12502,7 @@ msgid ""
 "Warning: this model does not fit in that device's memory, and transcription "
 "may fail for lack of memory."
 msgstr ""
-"تحذير: هذا النموذج لا يتناسب مع ذاكرة هذا الجهاز، وقد يفشل التسجيل النصي "
+"تحذير: هذا النموذج لا يتناسب مع ذاكرة هذا الجهاز، وقد يفشل التفريغ النصي "
 "بسبب نقص الذاكرة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -12558,7 +12575,7 @@ msgid ""
 "Warning: these models do not fit in that device's memory, and transcription "
 "may fail for lack of memory: {models}."
 msgstr ""
-"تحذير: هذه النماذج لا تناسب ذاكرة ذلك الجهاز، وقد يفشل التسجيل النصي بسبب "
+"تحذير: هذه النماذج لا تناسب ذاكرة ذلك الجهاز، وقد يفشل التفريغ النصي بسبب "
 "نقص الذاكرة: {models}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -12568,7 +12585,7 @@ msgid ""
 "Remove the CUDA libraries? Transcription goes back to running on the "
 "processor, and they have to be downloaded again to use the graphics card."
 msgstr ""
-"إزالة مكتبات CUDA؟ يعود التسجيل النصي إلى التشغيل على المعالج، ويجب تنزيلها "
+"إزالة مكتبات CUDA؟ يعود التفريغ النصي إلى التشغيل على المعالج، ويجب تنزيلها "
 "مرة أخرى لاستخدام بطاقة الرسومات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -12591,7 +12608,7 @@ msgid ""
 "goes back to running on the processor, and it has to be downloaded again to "
 "use the graphics card."
 msgstr ""
-"إزالة برنامج whisper.cpp ({build})؟ يعود التسجيل النصي مع whisper.cpp إلى "
+"إزالة برنامج whisper.cpp ({build})؟ يعود التفريغ النصي مع whisper.cpp إلى "
 "التشغيل على المعالج، ويجب تنزيله مرة أخرى لاستخدام بطاقة الرسومات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -12603,7 +12620,7 @@ msgid ""
 "again."
 msgstr ""
 "إزالة برنامج whisper.cpp؟ تتم إزالة نسخة بطاقة الرسومات، إذا كانت مثبتة، "
-"معه، ولا يمكن لـ whisper.cpp التسجيل النصي حتى يتم تثبيته مرة أخرى."
+"معه، ولا يمكن لـ whisper.cpp التفريغ النصي حتى يتم تثبيته مرة أخرى."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_queue.py
@@ -12653,7 +12670,7 @@ msgstr "مكتبات CUDA"
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_cuda_button"
 msgid "CUDA li&braries..."
-msgstr "م&كتبات CUDA"
+msgstr "&مكتبات CUDA"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_cuda_install_btn"
@@ -12711,29 +12728,29 @@ msgstr "ت&حقق"
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "transcription_delete"
 msgid "Delete transcription"
-msgstr "حذف التسجيل النصي"
+msgstr "حذف التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_delete_failed"
 msgid "The transcription could not be deleted."
-msgstr "لم يمكن حذف التسجيل النصي."
+msgstr "لم يمكن حذف التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_delete_question"
 msgid ""
 "Delete this message's transcription? The message and its audio stay in the "
 "conversation."
-msgstr "حذف تسجيل هذه الرسالة النصي؟ تبقى الرسالة وصوتها في المحادثة."
+msgstr "حذف تفريغ هذه الرسالة النصي؟ تبقى الرسالة وصوتها في المحادثة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_deleted"
 msgid "Transcription deleted."
-msgstr "تم حذف التسجيل النصي."
+msgstr "تم حذف التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_cpu_requested"
 msgid "The transcription will run on the processor."
-msgstr "سيعمل التسجيل النصي على المعالج."
+msgstr "سيعمل التفريغ النصي على المعالج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_cuda_build_missing"
@@ -12742,8 +12759,8 @@ msgid ""
 "transcription will run on the processor. You can install it in the "
 "transcription settings."
 msgstr ""
-"إصدار whisper.cpp لبطاقات الرسومات غير مثبت. سيعمل التسجيل النصي على "
-"المعالج. يمكنك تثبيته في إعدادات التسجيل النصي."
+"إصدار whisper.cpp لبطاقات الرسومات غير مثبت. سيعمل التفريغ النصي على "
+"المعالج. يمكنك تثبيته في إعدادات التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_cuda_build_unsupported"
@@ -12753,14 +12770,14 @@ msgid ""
 " processor."
 msgstr ""
 "إصدار whisper.cpp لبطاقات الرسومات لا يدعم بطاقة الرسومات هذه، أو لم يمكن "
-"تحديد البطاقة. سيعمل التسجيل النصي على المعالج."
+"تحديد البطاقة. سيعمل التفريغ النصي على المعالج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_cuda_driver_error"
 msgid ""
 "The graphics card could not be queried. The transcription will run on the "
 "processor."
-msgstr "لم يمكن الاستعلام عن بطاقة الرسومات. سيعمل التسجيل النصي على المعالج."
+msgstr "لم يمكن الاستعلام عن بطاقة الرسومات. سيعمل التفريغ النصي على المعالج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_cuda_libraries_missing"
@@ -12768,24 +12785,24 @@ msgid ""
 "The CUDA libraries are not installed. The transcription will run on the "
 "processor. You can download them in the transcription settings."
 msgstr ""
-"مكتبات CUDA غير مثبتة. سيعمل التسجيل النصي على المعالج. يمكنك تنزيلها في "
-"إعدادات التسجيل النصي."
+"مكتبات CUDA غير مثبتة. سيعمل التفريغ النصي على المعالج. يمكنك تنزيلها في "
+"إعدادات التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_cuda_selected"
 msgid "The transcription will run on the graphics card."
-msgstr "سيعمل التسجيل النصي على بطاقة الرسومات."
+msgstr "سيعمل التفريغ النصي على بطاقة الرسومات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_cuda_unavailable"
 msgid "CUDA is not available. The transcription will run on the processor."
-msgstr "CUDA غير متاح. سيعمل التسجيل النصي على المعالج."
+msgstr "CUDA غير متاح. سيعمل التفريغ النصي على المعالج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_device_label"
 msgid "W&here to run the transcription"
-msgstr "أين يُنفذ التس&جيل النصي"
+msgstr "&أين يُنفذ التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_no_cuda_found"
@@ -12793,7 +12810,7 @@ msgid ""
 "No compatible graphics card was found. The transcription will run on the "
 "processor."
 msgstr ""
-"لم يتم العثور على بطاقة رسومات متوافقة. سيعمل التسجيل النصي على المعالج."
+"لم يتم العثور على بطاقة رسومات متوافقة. سيعمل التفريغ النصي على المعالج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_preference_cpu"
@@ -12811,7 +12828,7 @@ msgid ""
 "The message was deleted for everyone while it was being transcribed, so the "
 "transcription was discarded."
 msgstr ""
-"تم حذف الرسالة للجميع بينما كانت تُسجل نصيًا، لذا تم التخلص من التسجيل "
+"تم حذف الرسالة للجميع بينما كانت تُفرَّغ نصيًا، لذا تم التخلص من التفريغ "
 "النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -12829,17 +12846,17 @@ msgstr "ملف الصوت غير مكتمل أو تالف."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_backend_error"
 msgid "An internal error occurred during the transcription."
-msgstr "حدث خطأ داخلي أثناء التسجيل النصي."
+msgstr "حدث خطأ داخلي أثناء التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_backend_missing"
 msgid "The transcription component is not installed in this copy of WinZapp."
-msgstr "مكون التسجيل النصي غير مثبت في هذه النسخة من WinZapp."
+msgstr "مكون التفريغ النصي غير مثبت في هذه النسخة من WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_cancelled"
 msgid "Transcription cancelled."
-msgstr "تم إلغاء التسجيل النصي."
+msgstr "تم إلغاء التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_cuda_runtime_busy"
@@ -12885,7 +12902,7 @@ msgid ""
 "choose another model."
 msgstr ""
 "تغيرت الملفات في مجلد النموذج المختار منذ التحقق منه. تحقق من النموذج مرة "
-"أخرى في تبويب التسجيل النصي المحلي في الإعدادات، أو اختر نموذجًا آخر."
+"أخرى في تبويب التفريغ النصي المحلي في الإعدادات، أو اختر نموذجًا آخر."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_external_model_changed_file"
@@ -12895,7 +12912,7 @@ msgid ""
 "model."
 msgstr ""
 "تغير ملف النموذج المختار منذ التحقق منه. تحقق من النموذج مرة أخرى في تبويب "
-"التسجيل النصي المحلي في الإعدادات، أو اختر نموذجًا آخر."
+"التفريغ النصي المحلي في الإعدادات، أو اختر نموذجًا آخر."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_external_model_missing"
@@ -12918,7 +12935,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_ffmpeg_failed"
 msgid "The audio could not be converted for transcription."
-msgstr "لم يمكن تحويل الصوت للتسجيل النصي."
+msgstr "لم يمكن تحويل الصوت للتفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_insufficient_ram"
@@ -12951,7 +12968,7 @@ msgctxt "transcription_error_model_download_failed"
 msgid ""
 "The transcription model could not be downloaded. Check your connection and "
 "try again."
-msgstr "لم يمكن تنزيل نموذج التسجيل النصي. تحقق من اتصالك وحاول مرة أخرى."
+msgstr "لم يمكن تنزيل نموذج التفريغ النصي. تحقق من اتصالك وحاول مرة أخرى."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_model_move_failed"
@@ -12965,7 +12982,7 @@ msgctxt "transcription_error_model_not_installed"
 msgid ""
 "The selected transcription model is not installed. Download the model before"
 " transcribing."
-msgstr "نموذج التسجيل النصي المحدد غير مثبت. حمّل النموذج قبل التسجيل النصي."
+msgstr "نموذج التفريغ النصي المحدد غير مثبت. حمّل النموذج قبل التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_models_busy"
@@ -12978,7 +12995,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_no_audio_track"
 msgid "This video has no sound, so there is nothing to transcribe."
-msgstr "هذا الفيديو ليس لديه صوت، لذا لا يوجد شيء لتسجيله نصيًا."
+msgstr "هذا الفيديو ليس لديه صوت، لذا لا يوجد شيء لتفريغه نصيًا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_no_disk_space"
@@ -12997,7 +13014,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_save_failed"
 msgid "The transcription could not be saved."
-msgstr "لم يمكن حفظ التسجيل النصي."
+msgstr "لم يمكن حفظ التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -13022,7 +13039,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_unsupported_audio_format"
 msgid "This audio format was not recognized and cannot be transcribed."
-msgstr "لم يتم التعرف على صيغة الصوت هذه ولا يمكن تسجيلها نصيًا."
+msgstr "لم يتم التعرف على صيغة الصوت هذه ولا يمكن تفريغها نصيًا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_error_whisper_cpp_busy"
@@ -13051,7 +13068,7 @@ msgctxt "transcription_error_whisper_cpp_not_installed"
 msgid ""
 "The whisper.cpp program is not installed. Install it in the settings before "
 "transcribing."
-msgstr "برنامج whisper.cpp غير مثبت. ثبتّه في الإعدادات قبل التسجيل النصي."
+msgstr "برنامج whisper.cpp غير مثبت. ثبتّه في الإعدادات قبل التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_external_actions_group"
@@ -13255,7 +13272,7 @@ msgstr "نسي WinZapp النموذج في الملف {name}. لم يُلمس ا
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_external_forgotten_reset"
 msgid "The transcription model went back to Automatic."
-msgstr "عاد نموذج التسجيل النصي إلى تلقائي."
+msgstr "عاد نموذج التفريغ النصي إلى تلقائي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_external.py
@@ -13506,7 +13523,7 @@ msgstr "تم تحديد نموذج {name}. اضغط موافق أو تطبيق �
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_finished"
 msgid "Transcription finished."
-msgstr "انتهى التسجيل النصي."
+msgstr "انتهى التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_windows.py
@@ -13520,8 +13537,8 @@ msgid ""
 "The transcription finished, but the locked-chats vault was closed. Open the "
 "vault to see the transcription."
 msgstr ""
-"انتهى التسجيل النصي، لكن خزنة الدردشات المقفلة أُغلقت. افتح الخزنة لرؤية "
-"التسجيل النصي."
+"انتهى التفريغ النصي، لكن خزنة الدردشات المقفلة أُغلقت. افتح الخزنة لرؤية "
+"التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_hidden_vault_closed_not_saved"
@@ -13529,21 +13546,21 @@ msgid ""
 "The transcription finished, but the locked-chats vault was closed, and the "
 "transcription was not saved."
 msgstr ""
-"انتهى التسجيل النصي، لكن خزنة الدردشات المقفلة أُغلقت، ولم يتم حفظ التسجيل "
+"انتهى التفريغ النصي، لكن خزنة الدردشات المقفلة أُغلقت، ولم يتم حفظ التفريغ "
 "النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "transcription_inline_spoken"
 msgid "Transcription: {text}"
-msgstr "التسجيل النصي: {text}"
+msgstr "التفريغ النصي: {text}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_insert_refused_vault_closed"
 msgid ""
 "The locked-chats vault was closed, and the transcription was not inserted "
 "into the message."
-msgstr "أُغلقت خزنة الدردشات المقفلة، ولم يتم إدراج التسجيل النصي في الرسالة."
+msgstr "أُغلقت خزنة الدردشات المقفلة، ولم يتم إدراج التفريغ النصي في الرسالة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
@@ -13565,7 +13582,7 @@ msgstr "لغة WinZapp الخاصة"
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_language_label"
 msgid "Transcription lan&guage"
-msgstr "لغة التسجيل &النصي"
+msgstr "لغة التفريغ ال&نصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_manage_cancelled"
@@ -13577,7 +13594,7 @@ msgctxt "transcription_manage_cuda_installed"
 msgid ""
 "The CUDA libraries have been installed. Transcription can now use the "
 "graphics card."
-msgstr "تم تثبيت مكتبات CUDA. يمكن الآن استخدام بطاقة الرسومات للتسجيل النصي."
+msgstr "تم تثبيت مكتبات CUDA. يمكن الآن استخدام بطاقة الرسومات للتفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_manage_cuda_installed_not_usable"
@@ -13587,7 +13604,7 @@ msgid ""
 "graphics card driver is up to date."
 msgstr ""
 "مكتبات CUDA مثبتة، لكن بطاقة الرسومات لا يمكنها استخدامها بعد. سيستمر "
-"التسجيل النصي في العمل على المعالج. تأكد من أن برنامج تشغيل بطاقة الرسومات "
+"التفريغ النصي في العمل على المعالج. تأكد من أن برنامج تشغيل بطاقة الرسومات "
 "محدث."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -13715,8 +13732,8 @@ msgid ""
 "Part of the whisper.cpp program ({build}) is in use by a transcription. "
 "Remove it again once the transcription has finished."
 msgstr ""
-"جزء من برنامج whisper.cpp ({build}) قيد الاستخدام بواسطة تسجيل نصي. أزله مرة"
-" أخرى عند انتهاء التسجيل النصي."
+"جزء من برنامج whisper.cpp ({build}) قيد الاستخدام بواسطة تفريغ نصي. أزله مرة"
+" أخرى عند انتهاء التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -13737,7 +13754,7 @@ msgid ""
 "There is no audio to transcribe in this message: sending it failed and the "
 "recording was not saved."
 msgstr ""
-"لا يوجد صوت لتسجيله نصيًا في هذه الرسالة: فشل الإرسال ولم يتم حفظ التسجيل."
+"لا يوجد صوت لتفريغه نصيًا في هذه الرسالة: فشل الإرسال ولم يتم حفظ التسجيل."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_media_still_preparing"
@@ -13745,7 +13762,7 @@ msgid ""
 "This message's audio is still being prepared for sending. Try transcribing "
 "it again in a moment."
 msgstr ""
-"صوت هذه الرسالة لا يزال يُعد للإرسال. حاول تسجيله نصيًا مرة أخرى بعد لحظة."
+"صوت هذه الرسالة لا يزال يُعد للإرسال. حاول تفريغه نصيًا مرة أخرى بعد لحظة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_actions_group"
@@ -13791,7 +13808,7 @@ msgstr "تن&زيل"
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_model_label"
 msgid "Tra&nscription model"
-msgstr "&نموذج التسجيل النصي"
+msgstr "نموذج التفريغ النص&ي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -13823,8 +13840,8 @@ msgid ""
 "No transcription model fits in this computer's memory. Choose a smaller "
 "model, or run the transcription on the processor."
 msgstr ""
-"لا يوجد نموذج تسجيل نصي يتناسب مع ذاكرة هذا الكمبيوتر. اختر نموذجًا أصغر، أو"
-" شغّل التسجيل النصي على المعالج."
+"لا يوجد نموذج تفريغ نصي يتناسب مع ذاكرة هذا الكمبيوتر. اختر نموذجًا أصغر، أو"
+" شغّل التفريغ النصي على المعالج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_none_unmeasured"
@@ -13851,8 +13868,8 @@ msgid ""
 "No transcription model is ready to use. In the Local Transcription tab of "
 "the settings, download one before transcribing."
 msgstr ""
-"لا يوجد نموذج تسجيل نصي جاهز للاستخدام. في تبويب التسجيل النصي المحلي في "
-"الإعدادات، حمّل واحدًا قبل التسجيل النصي."
+"لا يوجد نموذج تفريغ نصي جاهز للاستخدام. في تبويب التفريغ النصي المحلي في "
+"الإعدادات، حمّل واحدًا قبل التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_verify_btn"
@@ -13869,7 +13886,7 @@ msgstr "اس&تعراض…"
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_models_dir_browse_dialog_title"
 msgid "Choose the folder for the transcription models"
-msgstr "اختر المجلد لنماذج التسجيل النصي"
+msgstr "اختر المجلد لنماذج التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_tab.py
@@ -13908,7 +13925,7 @@ msgstr ""
 #: client/status_tab/status_transcription.py
 msgctxt "transcription_no_audio"
 msgid "This message has no audio to transcribe."
-msgstr "هذه الرسالة ليس لديها صوت لتسجيله نصيًا."
+msgstr "هذه الرسالة ليس لديها صوت لتفريغه نصيًا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
@@ -13916,7 +13933,9 @@ msgctxt "transcription_no_dialog_check"
 msgid ""
 "&Transcribe without the progress window: stay on the messages or statuses "
 "until the text is ready (the same shortcut cancels)"
-msgstr "تسجيل نصي بدون نافذة التقدم: &ابق على الرسائل أو الحالات حتى يكون النص جاهزًا (نفس الاختصار يلغي)"
+msgstr ""
+"تفريغ نصي بدون نافذة الت&قدم: ابق على الرسائل أو الحالات حتى يكون النص "
+"جاهزًا (نفس الاختصار يلغي)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/my_status_transcription.py
@@ -13924,35 +13943,33 @@ msgstr "تسجيل نصي بدون نافذة التقدم: &ابق على ال�
 #: client/ui/conversation_panel/transcription_delete.py
 msgctxt "transcription_none_to_delete"
 msgid "There is no saved local transcription to delete here."
-msgstr "لا يوجد تسجيل نصي محلي محفوظ للحذف هنا."
+msgstr "لا يوجد تفريغ نصي محلي محفوظ للحذف هنا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_not_saved_cache_off"
 msgid ""
 "This transcription was not saved because the cache is off for this model."
-msgstr "لم يتم حفظ هذا التسجيل النصي لأن الذاكرة المؤقتة معطلة لهذا النموذج."
+msgstr "لم يتم حفظ هذا التفريغ النصي لأن الذاكرة المؤقتة معطلة لهذا النموذج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_not_saved_missing"
 msgid ""
 "This transcription was not saved, because the message is no longer in this "
 "conversation."
-msgstr "لم يتم حفظ هذا التسجيل النصي، لأن الرسالة لم تعد في هذه المحادثة."
+msgstr "لم يتم حفظ هذا التفريغ النصي، لأن الرسالة لم تعد في هذه المحادثة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_not_saved_unsent"
 msgid ""
 "This transcription was not saved, because the message has not been sent yet."
 " Once it is sent, transcribe it again to save it."
-msgstr ""
-"لم يتم حفظ هذا التسجيل النصي، لأن الرسالة لم تُرسل بعد. بمجرد إرسالها، "
-"سجّلها نصيًا مرة أخرى لحفظها."
+msgstr "لم يتم حفظ هذا التفريغ النصي، لأن الرسالة لم تُرسل بعد. بمجرد إرسالها، فرّغها نصيًا مرة أخرى لحفظها."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "transcription_note_language_differs"
 msgid "This message was transcribed in {language}."
-msgstr "تم تسجيل هذه الرسالة نصيًا في {language}."
+msgstr "تم تفريغ هذه الرسالة نصيًا في {language}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -13960,8 +13977,7 @@ msgctxt "transcription_note_language_forced"
 msgid ""
 "This model only understands {language}, so the message is transcribed in "
 "{language}."
-msgstr ""
-"هذا النموذج يفهم فقط {language}، لذا تُسجل الرسالة نصيًا في {language}."
+msgstr "هذا النموذج يفهم فقط {language}، لذا تُفرَّغ الرسالة نصيًا في {language}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -13969,9 +13985,7 @@ msgctxt "transcription_note_language_overridden"
 msgid ""
 "This model only understands {language}, so the message is transcribed in "
 "{language} and not in {chosen}, the language chosen in the settings."
-msgstr ""
-"هذا النموذج يفهم فقط {language}، لذا تُسجل الرسالة نصيًا في {language} وليس "
-"في {chosen}، اللغة المختارة في الإعدادات."
+msgstr "هذا النموذج يفهم فقط {language}، لذا تُفرَّغ الرسالة نصيًا في {language} وليس في {chosen}، اللغة المختارة في الإعدادات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_note_low_confidence"
@@ -13980,13 +13994,13 @@ msgid ""
 "may be wrong. You can choose the language in the transcription settings."
 msgstr ""
 "لم يتم تحديد لغة هذه الرسالة بثقة، لذا قد يكون النص خاطئًا. يمكنك اختيار "
-"اللغة في إعدادات التسجيل النصي."
+"اللغة في إعدادات التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_note_no_speech"
 msgid ""
 "No speech was found in this message, so the transcription came out empty."
-msgstr "لم يتم العثور على كلام في هذه الرسالة، لذا خرج التسجيل النصي فارغًا."
+msgstr "لم يتم العثور على كلام في هذه الرسالة، لذا خرج التفريغ النصي فارغًا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -14010,7 +14024,7 @@ msgid ""
 "The voice filter could not be used for this transcription, so it may not be "
 "reliable."
 msgstr ""
-"لم يمكن استخدام عامل تصفية الصوت لهذا التسجيل النصي، لذا قد لا يكون موثوقًا."
+"لم يمكن استخدام عامل تصفية الصوت لهذا التفريغ النصي، لذا قد لا يكون موثوقًا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_notice_language_forced"
@@ -14019,7 +14033,7 @@ msgid ""
 "in the list. Transcriptions with it use that language instead of detecting "
 "it."
 msgstr ""
-"النموذج المحدد يفهم لغة واحدة فقط، التي تسمى في سطره في القائمة. التسجيلات "
+"النموذج المحدد يفهم لغة واحدة فقط، التي تسمى في سطره في القائمة. التفريغات "
 "النصية به تستخدم تلك اللغة بدلاً من الكشف عنها."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14030,7 +14044,7 @@ msgid ""
 "Transcriptions with it will use the model's language."
 msgstr ""
 "النموذج المحدد يفهم لغة واحدة فقط، التي تسمى في سطره في القائمة، وهي ليست "
-"لغة التسجيل النصي المختارة أدناه. التسجيلات النصية به ستستخدم لغة النموذج."
+"لغة التفريغ النصي المختارة أدناه. التفريغات النصية به ستستخدم لغة النموذج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -14039,7 +14053,7 @@ msgid ""
 "The chosen calculation precision, {chosen}, cannot be used where the "
 "transcription will run, so {used} will be used instead."
 msgstr ""
-"دقة الحساب المختارة، {chosen}, لا يمكن استخدامها حيث سيُنفذ التسجيل النصي، "
+"دقة الحساب المختارة، {chosen}, لا يمكن استخدامها حيث سيُنفذ التفريغ النصي، "
 "لذا سيتم استخدام {used} بدلاً منها."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14047,14 +14061,12 @@ msgctxt "transcription_online_auto_replaces_local"
 msgid ""
 "Turning this on turns off the automatic transcription with the local models "
 "(Transcription tab), so a voice message is not transcribed twice. Continue?"
-msgstr ""
-"تشغيل هذا يوقف التسجيل النصي التلقائي مع النماذج المحلية (تبويب التسجيل "
-"النصي)، لذا لا تُسجل الرسالة الصوتية مرتين. المتابعة؟"
+msgstr "تشغيل هذا يوقف التفريغ النصي التلقائي مع النماذج المحلية (تبويب التفريغ النصي)، لذا لا تُفرَّغ الرسالة الصوتية مرتين. المتابعة؟"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
 msgctxt "transcription_open_settings_question"
 msgid "Do you want to open the Local Transcription tab in the settings now?"
-msgstr "هل تريد فتح تبويب التسجيل النصي المحلي في الإعدادات الآن؟"
+msgstr "هل تريد فتح تبويب التفريغ النصي المحلي في الإعدادات الآن؟"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_option_auto"
@@ -14069,7 +14081,7 @@ msgstr "جاري تنزيل صوت الرسالة…"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_phase_loading_model"
 msgid "Loading the transcription model..."
-msgstr "جاري تحميل نموذج التسجيل النصي…"
+msgstr "جاري تحميل نموذج التفريغ النصي…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_phase_preparing_audio"
@@ -14079,7 +14091,7 @@ msgstr "جاري تحضير الصوت…"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_phase_transcribing"
 msgid "Transcribing the message..."
-msgstr "جاري تسجيل الرسالة نصياً…"
+msgstr "جاري تفريغ الرسالة نصياً…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_precision_bfloat16"
@@ -14201,7 +14213,7 @@ msgstr "جاري تثبيت برنامج whisper.cpp ({build}) مرة أخرى�
 #: client/ui/dialogs/transcription_result.py client/ui/transcription_flow.py
 msgctxt "transcription_progress_title"
 msgid "Transcription"
-msgstr "التسجيل النصي"
+msgstr "التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_progress_verify_cuda"
@@ -14227,7 +14239,7 @@ msgid ""
 "In the transcription queue, position {position}. It starts when the one "
 "before it finishes."
 msgstr ""
-"في قائمة انتظار التسجيل النصي، الموضع {position}. يبدأ عندما ينتهي الذي "
+"في قائمة انتظار التفريغ النصي، الموضع {position}. يبدأ عندما ينتهي الذي "
 "قبله."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14243,12 +14255,12 @@ msgctxt "transcription_queue_dropped"
 msgid ""
 "The transcriptions waiting in the queue were cancelled: they would stop for "
 "the same reason."
-msgstr "تم إلغاء التسجيلات النصية المنتظرة في القائمة: ستتوقف لنفس السبب."
+msgstr "تم إلغاء التفريغات النصية المنتظرة في القائمة: ستتوقف لنفس السبب."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
 msgctxt "transcription_queue_removed"
 msgid "Removed from the transcription queue."
-msgstr "تمت إزالة من قائمة انتظار التسجيل النصي."
+msgstr "تمت إزالة من قائمة انتظار التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_background.py
@@ -14267,7 +14279,7 @@ msgstr "تأكيد الإزالة"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_result_copied"
 msgid "Transcription copied."
-msgstr "تم نسخ التسجيل النصي."
+msgstr "تم نسخ التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_result.py
@@ -14278,7 +14290,7 @@ msgstr "&نسخ"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_result_copy_failed"
 msgid "Could not copy the transcription."
-msgstr "لم يمكن نسخ التسجيل النصي."
+msgstr "لم يمكن نسخ التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_result_has_notes"
@@ -14307,19 +14319,19 @@ msgstr "&احفظ…"
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_saved"
 msgid "Transcription saved."
-msgstr "تم حفظ التسجيل النصي."
+msgstr "تم حفظ التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_text_label"
 msgid "&Transcribed text"
-msgstr "ال&نص المسجل نصيًا"
+msgstr "ال&نص المفرَّغ"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
 #, python-brace-format
 msgctxt "transcription_result_title"
 msgid "Transcription — {name}"
-msgstr "التسجيل النصي — {name}"
+msgstr "التفريغ النصي — {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_retry_on_cpu_cuda"
@@ -14327,7 +14339,7 @@ msgid ""
 "The graphics card could not be used. Do you want to transcribe again using "
 "the processor?"
 msgstr ""
-"لم يمكن استخدام بطاقة الرسومات. هل تريد التسجيل النصي مرة أخرى باستخدام "
+"لم يمكن استخدام بطاقة الرسومات. هل تريد التفريغ النصي مرة أخرى باستخدام "
 "المعالج؟"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14336,7 +14348,7 @@ msgid ""
 "The graphics card could not use the chosen calculation precision. Do you "
 "want to transcribe again using the processor?"
 msgstr ""
-"لم يمكن لبطاقة الرسومات استخدام دقة الحساب المختارة. هل تريد التسجيل النصي "
+"لم يمكن لبطاقة الرسومات استخدام دقة الحساب المختارة. هل تريد التفريغ النصي "
 "مرة أخرى باستخدام المعالج؟"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14345,7 +14357,7 @@ msgid ""
 "The graphics card did not have enough memory. Do you want to transcribe "
 "again using the processor?"
 msgstr ""
-"لم تكن بطاقة الرسومات لديها ذاكرة كافية. هل تريد التسجيل النصي مرة أخرى "
+"لم تكن بطاقة الرسومات لديها ذاكرة كافية. هل تريد التفريغ النصي مرة أخرى "
 "باستخدام المعالج؟"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14450,19 +14462,19 @@ msgstr ""
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "transcription_row_label"
 msgid "transcription"
-msgstr "التسجيل النصي"
+msgstr "التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "transcription_running_on_cpu"
 msgid "The transcription will use the {model} model and the processor."
-msgstr "سيعمل التسجيل النصي باستخدام نموذج {model} والمعالج."
+msgstr "سيعمل التفريغ النصي باستخدام نموذج {model} والمعالج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "transcription_running_on_cuda"
 msgid "The transcription will use the {model} model and the graphics card."
-msgstr "سيعمل التسجيل النصي باستخدام نموذج {model} وبطاقة الرسومات."
+msgstr "سيعمل التفريغ النصي باستخدام نموذج {model} وبطاقة الرسومات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -14470,7 +14482,7 @@ msgctxt "transcription_running_with_backend_on_cpu"
 msgid ""
 "The transcription will use {backend} with the {model} model and the "
 "processor."
-msgstr "سيعمل التسجيل النصي باستخدام {backend} مع نموذج {model} والمعالج."
+msgstr "سيعمل التفريغ النصي باستخدام {backend} مع نموذج {model} والمعالج."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -14479,20 +14491,20 @@ msgid ""
 "The transcription will use {backend} with the {model} model and the graphics"
 " card."
 msgstr ""
-"سيعمل التسجيل النصي باستخدام {backend} مع نموذج {model} وبطاقة الرسومات."
+"سيعمل التفريغ النصي باستخدام {backend} مع نموذج {model} وبطاقة الرسومات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_result.py
 #, python-brace-format
 msgctxt "transcription_save_default_name"
 msgid "Transcription - {name}"
-msgstr "تسجيل نصي - {name}"
+msgstr "تفريغ نصي - {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_save_title"
 msgid "Save transcription"
-msgstr "حفظ التسجيل النصي"
+msgstr "حفظ التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_result.py
@@ -14504,13 +14516,13 @@ msgstr "ملفات نصية (*.txt)|*.txt"
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_saved_button"
 msgid "Sa&ved transcriptions..."
-msgstr "التسج&يلات النصية المحفوظة…"
+msgstr "&التفريغات النصية المحفوظة…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "transcription_saved_opened"
 msgid "Saved transcription, made on {when} with the {model} model."
-msgstr "تسجيل نصي محفوظ، تم إعداده في {when} باستخدام نموذج {model}."
+msgstr "تفريغ نصي محفوظ، تم إعداده في {when} باستخدام نموذج {model}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -14518,19 +14530,19 @@ msgctxt "transcription_saved_opened_backend"
 msgid ""
 "Saved transcription, made on {when} with {backend} and the {model} model."
 msgstr ""
-"تسجيل نصي محفوظ، تم إعداده في {when} باستخدام {backend} ونموذج {model}."
+"تفريغ نصي محفوظ، تم إعداده في {when} باستخدام {backend} ونموذج {model}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "transcription_saved_opened_no_model"
 msgid "Saved transcription, made on {when}."
-msgstr "تسجيل نصي محفوظ، تم إعداده في {when}."
+msgstr "تفريغ نصي محفوظ، تم إعداده في {when}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "transcription_saved_opened_no_model_backend"
 msgid "Saved transcription, made on {when} with {backend}."
-msgstr "تسجيل نصي محفوظ، تم إعداده في {when} باستخدام {backend}."
+msgstr "تفريغ نصي محفوظ، تم إعداده في {when} باستخدام {backend}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_size_accurate"
@@ -14550,7 +14562,7 @@ msgstr "سريع"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_starting"
 msgid "Starting the transcription..."
-msgstr "بدء التسجيل النصي…"
+msgstr "بدء التفريغ النصي…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
@@ -14558,7 +14570,9 @@ msgctxt "transcription_status_auto_check"
 msgid ""
 "&Automatically transcribe received audio and video statuses locally and put "
 "the text in the status line"
-msgstr "&تسجيل الحالات الصوتية ومقاطع الفيديو المستلمة نصيًا تلقائيًا محليًا ووضع النص في سطر الحالة"
+msgstr ""
+"&تفريغ الحالات الصوتية ومقاطع الفيديو المستلمة نصيًا تلقائيًا محليًا ووضع "
+"النص في سطر الحالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
@@ -14566,13 +14580,15 @@ msgctxt "transcription_status_cache_check"
 msgid ""
 "&Save local transcriptions of statuses with them so they are not redone "
 "(cache; deleted together with the status)"
-msgstr "&حفظ التسجيلات النصية المحلية للحالات معها حتى لا تُعاد (ذاكرة مؤقتة؛ تُحذف مع الحالة)"
+msgstr ""
+"&حفظ التفريغات النصية المحلية للحالات معها حتى لا تُعاد (ذاكرة مؤقتة؛ تُحذف "
+"مع الحالة)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
 msgctxt "transcription_status_clear_btn"
 msgid "&Clear saved local transcriptions of statuses"
-msgstr "&مسح التسجيلات النصية المحلية المحفوظة للحالات"
+msgstr "&مسح التفريغات النصية المحلية المحفوظة للحالات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
@@ -14581,14 +14597,14 @@ msgid ""
 "Delete every saved local transcription of every status? This cannot be "
 "undone."
 msgstr ""
-"حذف كل التسجيلات النصية المحلية المحفوظة لكل حالة؟ لا يمكن التراجع عن هذا."
+"حذف كل التفريغات النصية المحلية المحفوظة لكل حالة؟ لا يمكن التراجع عن هذا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_status_delete_question"
 msgid ""
 "Delete the saved local transcription of this status? The status itself is "
 "not changed."
-msgstr "حذف التسجيل النصي المحلي المحفوظ لهذه الحالة؟ الحالة نفسها لا تتغير."
+msgstr "حذف التفريغ النصي المحلي المحفوظ لهذه الحالة؟ الحالة نفسها لا تتغير."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
@@ -14596,19 +14612,19 @@ msgctxt "transcription_status_enter_check"
 msgid ""
 "&Enter and Space transcribe audio and video statuses locally into the status"
 " line (Alt+Shift+N then opens or plays them)"
-msgstr "Enter و Space تُسجل الصوت والفيديو للحالات &نصيًا محليًا في سطر الحالة (Alt+Shift+N ثم تفتحها أو تشغّلها)"
+msgstr "Enter و Space تفرّغ الصوت والفيديو للحالات &نصيًا محليًا في سطر الحالة (Alt+Shift+N ثم تفتحها أو تشغّلها)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_statuses_button"
 msgid "&Transcription of statuses..."
-msgstr "ت&سجيل الحالات نصيًا…"
+msgstr "&تفريغ الحالات نصيًا…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_store.py
 msgctxt "transcription_store_failed"
 msgid "The transcription could not be saved."
-msgstr "لم يمكن حفظ التسجيل النصي."
+msgstr "لم يمكن حفظ التفريغ النصي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_substituted_backend"
@@ -14616,7 +14632,7 @@ msgid ""
 "The selected transcription component is not available on this computer. "
 "WinZapp will use another one automatically."
 msgstr ""
-"مكون التسجيل النصي المحدد غير متاح على هذا الكمبيوتر. سيستخدم WinZapp آخر "
+"مكون التفريغ النصي المحدد غير متاح على هذا الكمبيوتر. سيستخدم WinZapp آخر "
 "تلقائياً."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14632,7 +14648,7 @@ msgid ""
 "The selected transcription device is no longer recognized. WinZapp will "
 "choose one automatically."
 msgstr ""
-"جهاز التسجيل النصي المختار لم يعد معترفًا به. سيختار WinZapp واحدًا "
+"جهاز التفريغ النصي المختار لم يعد معترفًا به. سيختار WinZapp واحدًا "
 "تلقائياً."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14647,7 +14663,7 @@ msgid ""
 "The selected transcription language is not available. The language of each "
 "message will be detected automatically."
 msgstr ""
-"اللغة المختارة للتسجيل النصي غير متاحة. سيتم الكشف عن لغة كل رسالة تلقائياً."
+"اللغة المختارة للتفريغ النصي غير متاحة. سيتم الكشف عن لغة كل رسالة تلقائياً."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_substituted_model"
@@ -14655,13 +14671,13 @@ msgid ""
 "The selected transcription model no longer exists. WinZapp will choose one "
 "automatically."
 msgstr ""
-"نموذج التسجيل النصي المختار لم يعد موجودًا. سيختار WinZapp واحدًا تلقائياً."
+"نموذج التفريغ النصي المختار لم يعد موجودًا. سيختار WinZapp واحدًا تلقائياً."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "transcription_transcribe_again"
 msgid "Transcribe again"
-msgstr "تسجيل نصي مرة أخرى"
+msgstr "تفريغ نصي مرة أخرى"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_tab.py
@@ -14678,7 +14694,7 @@ msgstr ""
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "transcription_view"
 msgid "View transcription"
-msgstr "عرض التسجيل النصي"
+msgstr "عرض التفريغ النصي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_whisper_cpp_actions_group"
@@ -14906,7 +14922,7 @@ msgid ""
 "&Enter and Space on a voice message or video transcribe it into its line in "
 "the list instead of playing it (Alt+Shift+N plays or opens it); turned off, "
 "Enter and Space play or open it and Alt+Shift+N transcribes it into its line"
-msgstr "Enter و Space &على رسالة صوتية أو فيديو تسجلها نصيًا في سطرها في القائمة بدلاً من تشغيلها (Alt+Shift+N يشغلها أو يفتحها)؛ عند الإيقاف، Enter و Space يشغلانها أو يفتحانها و Alt+Shift+N يسجلها نصيًا في سطرها"
+msgstr "Enter و Space &على رسالة صوتية أو فيديو تفرّغها نصيًا في سطرها في القائمة بدلاً من تشغيلها (Alt+Shift+N يشغلها أو يفتحها)؛ عند الإيقاف، Enter و Space يشغلانها أو يفتحانها و Alt+Shift+N يفرّغها نصيًا في سطرها"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -14914,7 +14930,9 @@ msgctxt "ui_escape_clears_selection"
 msgid ""
 "&Esc deselects the selected messages before closing the chat, and the "
 "selected chats in a list of chats"
-msgstr "Esc يلغي تحديد الرسائل المحددة &قبل إغلاق الدردشة، والدردشات المحددة في قائمة الدردشات"
+msgstr ""
+"Esc يلغي تحديد الرسائل المحددة &قبل إغلاق الدردشة، والدردشات المحددة في "
+"قائمة الدردشات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -14940,7 +14958,9 @@ msgctxt "ui_forward_voice_as_voice"
 msgid ""
 "Forward &voice messages as voice messages instead of audio (they are still "
 "marked as forwarded)"
-msgstr "إعادة توجيه الرسائل الصوتية &كرسائل صوتية بدلاً من صوت (تظل مميزة كمعاد توجيهها)"
+msgstr ""
+"إعادة توجيه الرسائل الصوتية &كرسائل صوتية بدلاً من صوت (تظل مميزة كمعاد "
+"توجيهها)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -14992,7 +15012,9 @@ msgctxt "ui_keep_search_after_open"
 msgid ""
 "&Keep the chat search when opening a chat, so Esc returns to the results "
 "instead of the full list"
-msgstr "الإبقاء &على بحث الدردشة عند فتح دردشة، zodat Esc يعود إلى النتائج بدلاً من القائمة الكاملة"
+msgstr ""
+"الإبقاء &على بحث الدردشة عند فتح دردشة، zodat Esc يعود إلى النتائج بدلاً من "
+"القائمة الكاملة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -15000,7 +15022,9 @@ msgctxt "ui_mark_unsaved_contacts"
 msgid ""
 "Precede &names of unsaved contacts with a tilde (~) in conversations and "
 "messages"
-msgstr "تقديم أسماء &جهات الاتصال غير المحفوظة بعلامة tilde (~) في المحادثات والرسائل"
+msgstr ""
+"تقديم أسماء &جهات الاتصال غير المحفوظة بعلامة tilde (~) في المحادثات "
+"والرسائل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -15044,7 +15068,8 @@ msgctxt "ui_message_list_mode_listbox"
 msgid ""
 "List box (&full messages, screen reader does not announce position or item "
 "count)"
-msgstr "&صندوق قائمة (الرسائل الكاملة، لا يعلن قارئ الشاشة عن الموضع أو عدد العناصر)"
+msgstr ""
+"&صندوق قائمة (الرسائل الكاملة، لا يعلن قارئ الشاشة عن الموضع أو عدد العناصر)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -15156,7 +15181,9 @@ msgctxt "ui_show_listbox_item_count"
 msgid ""
 "&Display item position and count when using List box mode (Only applies when"
 " List box mode is selected)"
-msgstr "إظهار موضع العنصر وعدد العناصر عند استخدام وضع صندوق القائمة (ينطبق فقط عندما يكون وضع صندوق القا&ئمة محددًا)"
+msgstr ""
+"إظهار موضع العنصر وعدد العناصر عند استخدام وضع صندوق القائمة (ينطبق فقط "
+"عندما يكون وضع صندوق القا&ئمة محددًا)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

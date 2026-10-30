@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Arabic: voice message and audio transcription now uses "تفريغ" (transcription) instead of "تسجيل" (recording) in menus, settings and messages, so it no longer sounds like recording your voice.
+
 - Arabic is now available in Settings > General > Language, with Arabic text in the Windows installer and uninstaller.
 
 - macOS updates explain whether verification failed because of a connection, certificate, server or GitHub request-limit problem, and whether the verification file or the official release tag could not be checked. Temporary connection and server failures get one retry; request limits show a wait time and do not trigger repeated requests during that wait.
