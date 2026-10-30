@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Contacte atașate: un contact primit nu mai ajunge gol și fără număr de telefon. Cartea de vizită a contactului este acum păstrată atât de WPPConnect, cât și de Neonize, așa că poți vedea și copia numărul și poți vorbi cu persoana.
+
 - Asociere: s-a corectat situația în care aplicația rămânea la ecranul de asociere după o conectare reușită, deși telefonul o afișa deja ca fiind conectată.
 
 - Apeluri Neonize: a fost adăugată o cale experimentală de sunet PCM la 48 kHz pentru apelurile cu Opus negociat, dezactivată implicit, cu verificarea formatului și a instanței apelului. Modul normal păstrează alternativa MLow.
