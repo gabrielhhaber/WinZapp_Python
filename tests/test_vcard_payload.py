@@ -10,7 +10,18 @@ def test_wppconnect_vcard_keeps_the_card_and_names_it_from_the_card():
 
 def test_wppconnect_card_without_name_still_carries_the_number():
     out = contact_message_payload({"type": "vcard", "body": CARD})
-    assert out["vcard"] == CARD and out["displayName"] == "Contato"
+    assert out == {"displayName": "", "vcard": CARD}
+
+
+def test_card_stuffed_in_the_name_field_is_kept_as_the_card():
+    out = contact_message_payload({"type": "vcard", "displayName": CARD})
+    assert out == {"displayName": "", "vcard": CARD}
+
+
+def test_malformed_input_does_not_raise():
+    out = contact_message_payload({"body": None, "vcardList": [None, 3, CARD]})
+    assert out == {"displayName": "", "vcard": CARD}
+    assert contact_message_payload({"vcardList": []}) == {"displayName": ""}
 
 
 def test_neonize_card_keeps_name_and_card():

@@ -7,8 +7,6 @@ used to keep only the name, so the card arrived with no number to show, copy
 or chat with.
 """
 
-_DEFAULT_NAME = "Contato"
-
 
 def _is_card(text) -> bool:
     return isinstance(text, str) and "BEGIN:VCARD" in text.upper()
@@ -34,9 +32,15 @@ def contact_message_payload(wpp_msg: dict) -> dict:
         or wpp_msg.get("vcardFormattedName")
         or (names[0] if names else "")
     )
+    if _is_card(display):
+        # some engines stuff the whole card into the name field
+        cards.append(display)
+        display = ""
     if not display and body and not _is_card(body):
         display = body
-    payload = {"displayName": display or _DEFAULT_NAME}
+    # An empty name is deliberate: the UI then reads FN from the card, or shows
+    # its own translated "unknown contact".
+    payload = {"displayName": display}
     if cards:
         payload["vcard"] = "\n".join(cards)
     return payload
