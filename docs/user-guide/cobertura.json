@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "28cc637136db": "Pareamento: corrigido o aplicativo que ficava na tela de pareamento depois de vi",
     "f05c37dcbb06": "Ligações pelo Neonize: adicionado um caminho experimental de áudio PCM a 48 kHz ",
     "ab09d793a3ad": "Marcar como lida ou não lida, silenciar, arquivar e fixar agora têm confirmação ",
     "29a9b837ddbe": "O README agora começa com links diretos de download para Windows e Mac, sem prec",

@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Vinculación: corregido el problema por el que la aplicación se quedaba en la pantalla de vinculación tras vincularse correctamente, mientras el teléfono ya la mostraba como conectada.
+
 - Llamadas de Neonize: se ha añadido una ruta experimental de audio PCM a 48 kHz para llamadas con Opus negociado, desactivada de forma predeterminada, con comprobaciones del formato y de la instancia de llamada. El modo normal conserva la alternativa MLow.
 
 - Marcar como leída o no leída, silenciar, archivar y fijar ahora tienen confirmación hablada. Un error repetido al obtener la lista de conversaciones muestra un solo cuadro, no uno por intento. En el Mac, WinZapp detecta cuándo despierta el equipo y se reconecta, e Inicio y Fin llevan al principio y al final de las listas. Cuando la sesión no se puede reanudar, volver a vincular el mismo número ya no borra el historial.

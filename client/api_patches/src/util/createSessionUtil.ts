@@ -40,6 +40,22 @@ import { tryBeginSessionStart } from './sessionMaintenance';
 import { clientsArray, eventEmitter } from './sessionUtil';
 import Factory from './tokenStore/factory';
 
+// Statuses a session can hold while it is still on its way to CONNECTED. A
+// pairing moves it off INITIALIZING: exportQR() and exportPhoneCode() set
+// QRCODE/PHONECODE, statusFind sets notLogged. On a fast link the CONNECTED
+// state event fires before checkStateSession() subscribes, which leaves the
+// isConnected() probe in start() as the only thing that can promote the
+// session. Accepting INITIALIZING alone left it reporting PHONECODE on a linked
+// device: the phone showed it connected, session-logged never went out, and
+// the pairing dialog stayed open. Terminal states set by the state listener
+// (UNPAIRED, TIMEOUT...) stay out of this set.
+const PRE_CONNECTED_STATUSES = new Set([
+  'INITIALIZING',
+  'QRCODE',
+  'PHONECODE',
+  'notLogged',
+]);
+
 /**
  * Kill the actual Puppeteer/Chrome browser process (and its tree of child
  * renderer/GPU processes) behind `page`, given a live handle to it.
@@ -1567,7 +1583,7 @@ export default class CreateSessionUtil {
         if (connected === true) {
           // Only promote if the state listener hasn't already moved us to a
           // newer terminal state (UNPAIRED/TIMEOUT/etc). The event wins.
-          if (client.status === 'INITIALIZING') {
+          if (PRE_CONNECTED_STATUSES.has(client.status)) {
             this.markConnected(client, req);
           }
           return;
