@@ -6,6 +6,8 @@ WHAT'S NEW
 
 - Neonize calls: added a disabled-by-default experimental 48 kHz PCM path for negotiated Opus calls, with format and call-instance checks. Normal calls retain the existing MLow fallback.
 
+- Marking read or unread, muting, archiving and pinning now have spoken confirmation. A repeated error fetching the chat list shows one box instead of one per attempt. On the Mac, WinZapp notices when the computer wakes and reconnects, and Home and End go to the start and end of lists. When a session cannot be resumed, pairing the same number again no longer deletes your history.
+
 - The README now starts with direct download links for Windows and Mac, so you no longer have to search the Releases page for the right file.
 
 - Arabic: voice message and audio transcription now uses "تفريغ" (transcription) instead of "تسجيل" (recording) in menus, settings and messages, so it no longer sounds like recording your voice.

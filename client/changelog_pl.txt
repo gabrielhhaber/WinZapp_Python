@@ -6,6 +6,8 @@ NOWOŚCI
 
 - Połączenia Neonize: dodano eksperymentalny tor dźwięku PCM 48 kHz dla połączeń z wynegocjowanym kodekiem Opus. Jest domyślnie wyłączony i sprawdza format oraz identyfikator instancji połączenia. Zwykły tryb zachowuje możliwość użycia MLow.
 
+- Oznaczanie jako przeczytane lub nieprzeczytane, wyciszanie, archiwizacja i przypinanie mają teraz potwierdzenie głosowe. Powtarzający się błąd pobierania listy czatów pokazuje jedno okno zamiast jednego na próbę. Na Macu WinZapp wykrywa wybudzenie komputera i łączy się ponownie, a Home i End przenoszą na początek i koniec list. Gdy sesji nie można wznowić, ponowne sparowanie tego samego numeru nie usuwa już historii.
+
 - README zaczyna się teraz od bezpośrednich linków do pobrania dla Windows i Mac, więc nie trzeba szukać właściwego pliku na stronie Releases.
 
 - Arabski: transkrypcja wiadomości głosowych i dźwięku używa teraz w menu, ustawieniach i komunikatach słowa „تفريغ” (transkrypcja) zamiast „تسجيل” (nagrywanie), aby nie brzmiało to jak nagrywanie głosu.
