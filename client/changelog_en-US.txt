@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- The README now starts with direct download links for Windows and Mac, so you no longer have to search the Releases page for the right file.
+
 - Arabic: voice message and audio transcription now uses "تفريغ" (transcription) instead of "تسجيل" (recording) in menus, settings and messages, so it no longer sounds like recording your voice.
 
 - When you accept an update, WinZapp now checks again which version is the latest before downloading, so it no longer installs an alpha older than the newest when alphas are published in quick succession.
