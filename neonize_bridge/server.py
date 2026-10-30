@@ -132,7 +132,9 @@ def call_layer_on() -> bool:
         return False
     if not layer.available():
         return False
-    layer.configure(True)
+    # Explicit experimental opt-in; older modules/DLLs retain the legacy path.
+    from call_audio_mode import configure_call_audio
+    configure_call_audio(layer, os.environ.get("WINZAPP_EXPERIMENTAL_CALL_PCM48") == "1")
     return True
 
 

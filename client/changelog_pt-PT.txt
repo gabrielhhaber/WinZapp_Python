@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Chamadas pelo Neonize: adicionado um caminho experimental de áudio PCM a 48 kHz para chamadas com Opus negociado, desativado por predefinição, com verificação do formato e da instância da chamada. O modo normal mantém o recurso ao MLow.
+
 - Marcar como lida ou não lida, silenciar, arquivar e afixar agora têm confirmação falada. Um erro repetido ao obter a lista de conversas mostra uma só caixa, não uma por tentativa. No Mac, o WinZapp percebe quando o computador acorda e volta a ligar-se, e Home e End levam ao início e ao fim das listas. Quando a sessão não pode ser retomada, emparelhar de novo o mesmo número já não apaga o histórico.
 
 - O README passa a começar com ligações diretas de transferência para Windows e Mac, sem ser preciso procurar o ficheiro certo na página de Releases.

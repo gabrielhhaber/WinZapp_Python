@@ -695,6 +695,8 @@
 <p class="lead">Poți efectua, prelua și respinge apeluri vocale și video direct în WinZapp, fără să iei telefonul.</p>
 <p>Sunetul apelurilor prin Neonize include corecții pentru lipsa sunetului după răspuns, pierderea cadrelor și distorsiunile la conversia ratei de eșantionare. Codecul este stabilit automat cu WhatsApp; nu există o opțiune de codec de configurat. Acest motor experimental mai necesită evaluarea calității în apeluri reale; nu este garantată aceeași calitate ca în alte aplicații de apeluri.</p>
 
+<p>Neonize păstrează implicit modul normal de sunet al apelurilor. Există o cale experimentală de 48 kHz destinată dezvoltatorilor pentru apelurile cu Opus negociat; nu schimbă codecul MLow și nu adaugă un control în fereastra apelului. Actualizarea nu o activează automat.</p>
+
 <h3>Efectuarea unui apel</h3>
 <p>Într-o conversație individuală, folosește butoanele "Apel vocal" (Ctrl+Shift+V) și "Apel video" (Ctrl+Alt+Shift+V); comenzile rapide funcționează și cu focalizarea pe câmpul de mesaj. Cititorul de ecran anunță când se conectează apelul, când se reconectează și când se termină.</p>
 <p>WhatsApp permite apeluri doar către grupuri de până la 32 de participanți. Într-un grup mai mare, butoanele de apel sunt înlocuite cu un buton "Nu se poate apela", cu nota "Grupul are mai mult de 32 de participanți", iar comenzile rapide de apel spun același lucru.</p>
@@ -1292,6 +1294,7 @@
 <p class="lead">Fiecare alfa nou care aduce funcții este adăugat în ghid. Această listă arată până la ce alfa este complet ghidul și ce a intrat în fiecare rundă.</p>
 <table class="field-table">
   <tr><th>Alfa</th><th>Ce a intrat în ghid</th></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Apeluri Neonize: a fost adăugată o cale experimentală de sunet PCM la 48 kHz pentru apelurile cu Opus negociat, dezactivată implicit, cu verificarea formatului și a instanței apelului. Modul normal păstrează alternativa MLow.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Ghid: exportul jurnalelor contului, căutarea scurtăturilor după taste și o singură alegere de transcriere automată pe conversație; corecții pentru F5, reacții, anunțurile comunității, marcarea cu stea și aprecierea statusurilor și sincronizarea Neonize.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Asocierea prin cod QR cu Neonize: codul QR este afișat întreg în fereastra de conectare, la o dimensiune pe care camera telefonului o poate citi.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Apelurile de grup nepreluate rămân în istoricul grupului, nu ca apel privat de la cel care a sunat.</td></tr>

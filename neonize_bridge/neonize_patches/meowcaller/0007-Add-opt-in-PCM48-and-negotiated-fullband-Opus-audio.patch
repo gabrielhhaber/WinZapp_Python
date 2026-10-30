@@ -1,0 +1,908 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Muhammet Enes Senovali <mesenovali@gmail.com>
+Date: Fri, 30 Oct 2026 20:26:59 +0300
+Subject: [PATCH] Add opt-in PCM48 and negotiated fullband Opus audio
+
+---
+ audio.go                 |   3 +
+ audio_codec.go           |  57 ++++++++---
+ audio_codec_runtime.go   |   5 +-
+ audio_fullband.go        |  76 +++++++++++++++
+ audio_fullband_test.go   | 204 +++++++++++++++++++++++++++++++++++++++
+ audio_pcm_rate.go        |  80 +++++++++++++++
+ audio_playout.go         |  20 ++--
+ audio_receive_order.go   |   7 +-
+ audio_receive_runtime.go |  13 ++-
+ client.go                |  11 ++-
+ engine_media.go          |  19 ++--
+ group_audio_mixer.go     |  28 +++---
+ logging.go               |   9 +-
+ 13 files changed, 471 insertions(+), 61 deletions(-)
+ create mode 100644 audio_fullband.go
+ create mode 100644 audio_fullband_test.go
+ create mode 100644 audio_pcm_rate.go
+
+diff --git a/audio.go b/audio.go
+index 18d5ccd..ce514be 100644
+--- a/audio.go
++++ b/audio.go
+@@ -9,6 +9,9 @@ import (
+ // Audio in meowcaller is 16 kHz mono float32 PCM carried in 60 ms frames — the rate
+ // and framing the MLow codec encodes. Every AudioSource and AudioSink speaks this
+ // format; the built-in decoders convert foreign formats (WAV/MP3/Opus) into it.
++// WithPCM48 explicitly opts a client into 48 kHz / 2880 samples per 60 ms for
++// both its supplied sources and sinks. Built-in 16k sources are not implicitly
++// reinterpreted as 48k; callers using that option must supply the declared format.
+ const (
+ 	// SampleRate is the codec's fixed sample rate (16 kHz mono).
+ 	SampleRate = 16000
+diff --git a/audio_codec.go b/audio_codec.go
+index dba42c0..e944b09 100644
+--- a/audio_codec.go
++++ b/audio_codec.go
+@@ -1,7 +1,8 @@
+ package meowcaller
+ 
+ // Codec choice comes from voip_settings, never from a user-side force switch.
+-// The public source/sink contract stays mono 16 kHz / 60 ms for both codecs.
++// The default source/sink contract stays mono 16 kHz / 60 ms for both codecs;
++// PCM48 clients declare a separate fixed contract and never force a wire codec.
+ import (
+ 	"fmt"
+ 	"math"
+@@ -21,7 +22,10 @@ func audioRTPClock(codec AudioCodec) uint32 {
+ 	return SampleRate
+ }
+ 
+-func newCallAudioEncoder(codec AudioCodec) (callAudioEncoder, error) {
++func newCallAudioEncoder(codec AudioCodec, rates ...int) (callAudioEncoder, error) {
++	if audioPCMRate(rates...) == FullbandSampleRate {
++		return newPCM48Encoder(codec)
++	}
+ 	if codec != AudioCodecOpus {
+ 		return mlow.NewMlowEncoder(), nil
+ 	}
+@@ -59,16 +63,19 @@ func (e *opusCallEncoder) Encode(frame []float32) ([]byte, error) {
+ }
+ 
+ type callAudioDecoder struct {
+-	codec  AudioCodec
+-	mlow   *mlow.MlowDecoder
+-	opus   *opus.Decoder
+-	last   []float32
+-	errors uint64
++	pcmRate     int
++	up          pcmRateFilter
++	decodedOpus bool
++	codec       AudioCodec
++	mlow        *mlow.MlowDecoder
++	opus        *opus.Decoder
++	last        []float32
++	errors      uint64
+ }
+ 
+-func newCallAudioDecoder(codec AudioCodec) *callAudioDecoder {
+-	decoder := &callAudioDecoder{codec: codec, mlow: mlow.NewMlowDecoder()}
+-	opusDecoder, err := opus.NewDecoderWithOutput(SampleRate, 1)
++func newCallAudioDecoder(codec AudioCodec, rates ...int) *callAudioDecoder {
++	decoder := &callAudioDecoder{codec: codec, mlow: mlow.NewMlowDecoder(), pcmRate: audioPCMRate(rates...)}
++	opusDecoder, err := opus.NewDecoderWithOutput(decoder.pcmRate, 1)
+ 	if err == nil {
+ 		decoder.opus = &opusDecoder
+ 	}
+@@ -77,12 +84,23 @@ func newCallAudioDecoder(codec AudioCodec) *callAudioDecoder {
+ 
+ func (d *callAudioDecoder) Decode(payload []byte) []float32 {
+ 	var output []float32
+-	if d.codec == AudioCodecOpus {
++	escaped := d.codec != AudioCodecOpus && d.PCMRate() == FullbandSampleRate && len(payload) > 0 && payload[0]&0xc0 == 0xc0
++	if escaped {
++		payload = append([]byte(nil), payload...)
++		toc := payload[0]
++		config := 16 + ((toc >> 2) & 15)
++		payload[0] = config<<3 | ((toc>>1)&1)<<2
++		if toc&1 != 0 {
++			payload[0] |= 3
++		}
++	}
++	d.decodedOpus = d.codec == AudioCodecOpus || escaped
++	if d.decodedOpus {
+ 		if d.opus == nil || len(payload) == 0 {
+ 			d.errors++
+ 			return nil
+ 		}
+-		output = make([]float32, SampleRate*120/1000) // maximum Opus packet duration
++		output = make([]float32, d.PCMRate()*120/1000) // maximum Opus packet duration
+ 		n, err := d.opus.DecodeToFloat32(payload, output)
+ 		if err != nil {
+ 			d.errors++
+@@ -91,17 +109,22 @@ func (d *callAudioDecoder) Decode(payload []byte) []float32 {
+ 		output = output[:n]
+ 	} else {
+ 		output = d.mlow.Decode(payload)
++		if d.PCMRate() == FullbandSampleRate {
++			output = d.up.convert(output, true)
++		}
+ 	}
+ 	d.last = append(d.last[:0], output...)
+ 	return output
+ }
+ 
+ func (d *callAudioDecoder) Conceal(samples int) []float32 {
+-	samples = max(0, min(samples, SampleRate*120/1000))
+-	if d.codec == AudioCodecOpus && d.opus != nil && samples%320 == 0 {
++	rate := d.PCMRate()
++	unit := rate / 50
++	samples = max(0, min(samples, rate*120/1000))
++	if (d.codec == AudioCodecOpus || d.decodedOpus) && d.opus != nil && samples%unit == 0 {
+ 		output := make([]float32, 0, samples)
+ 		for len(output) < samples {
+-			pcm := make([]int16, 320) // PLC supports 20 ms for SILK and CELT
++			pcm := make([]int16, unit) // PLC supports 20 ms for SILK and CELT
+ 			if err := d.opus.DecodePLC(pcm); err != nil {
+ 				return d.fadeConceal(samples)
+ 			}
+@@ -119,7 +142,7 @@ func (d *callAudioDecoder) Conceal(samples int) []float32 {
+ func (d *callAudioDecoder) fadeConceal(samples int) []float32 {
+ 	output := make([]float32, samples)
+ 	if len(d.last) != 0 {
+-		n := min(samples, SampleRate/200)
++		n := min(samples, d.PCMRate()/200)
+ 		for i := 0; i < n; i++ {
+ 			output[i] = d.last[len(d.last)-1] * float32(n-i-1) / float32(n)
+ 		}
+@@ -127,3 +150,5 @@ func (d *callAudioDecoder) fadeConceal(samples int) []float32 {
+ 	d.last = nil
+ 	return output
+ }
++
++func (d *callAudioDecoder) PCMRate() int { return audioPCMRate(d.pcmRate) }
+diff --git a/audio_codec_runtime.go b/audio_codec_runtime.go
+index 82781d2..2660d30 100644
+--- a/audio_codec_runtime.go
++++ b/audio_codec_runtime.go
+@@ -10,6 +10,7 @@ import (
+ // No publication hook can miss an update between startup and peer acceptance.
+ // SRTP pipes and sequence/ROC state survive; only codec/order state is replaced.
+ type callAudioRuntime struct {
++	pcmRate   int
+ 	mu        sync.Mutex
+ 	codec     AudioCodec
+ 	encoder   callAudioEncoder
+@@ -23,11 +24,11 @@ func (a *callAudioRuntime) refreshLocked() error {
+ 	if codec == a.codec {
+ 		return nil
+ 	}
+-	encoder, err := newCallAudioEncoder(codec)
++	encoder, err := newCallAudioEncoder(codec, a.pcmRate)
+ 	if err != nil {
+ 		return err
+ 	}
+-	a.receivers.configureAudioCodec(codec)
++	a.receivers.configureAudioCodec(codec, a.pcmRate)
+ 	a.sender.setAudioTimestampStride(audioRTPClock(codec) * 60 / 1000)
+ 	a.codec, a.encoder = codec, encoder
+ 	return nil
+diff --git a/audio_fullband.go b/audio_fullband.go
+new file mode 100644
+index 0000000..8377a78
+--- /dev/null
++++ b/audio_fullband.go
+@@ -0,0 +1,76 @@
++package meowcaller
++
++import (
++	"fmt"
++	"github.com/pion/opus"
++	"github.com/purpshell/meowcaller/mlow"
++	"math"
++)
++
++type mlowPCM48Encoder struct {
++	codec *mlow.MlowEncoder
++	down  pcmRateFilter
++}
++
++func (e *mlowPCM48Encoder) Encode(frame []float32) ([]byte, error) {
++	if len(frame) != 2880 {
++		return nil, fmt.Errorf("MLow PCM48: expected 2880 samples, got %d", len(frame))
++	}
++	return e.codec.Encode(e.down.convert(frame, false))
++}
++
++type opusPCM48Encoder struct{ codec *opus.Encoder }
++
++func (e *opusPCM48Encoder) Encode(frame []float32) ([]byte, error) {
++	if len(frame) != 2880 {
++		return nil, fmt.Errorf("Opus PCM48: expected 2880 samples, got %d", len(frame))
++	}
++	parts := make([][]byte, 0, 3)
++	for offset := 0; offset < len(frame); offset += 960 {
++		pcm := append([]float32(nil), frame[offset:offset+960]...)
++		for i, v := range pcm {
++			if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
++				v = 0
++			}
++			pcm[i] = max(-1, min(1, v))
++		}
++		packet := make([]byte, 4096)
++		n, err := e.codec.EncodeFloat32(pcm, packet)
++		if err != nil {
++			return nil, err
++		}
++		packet = packet[:n]
++		if n < 1 || packet[0]>>3 != 31 || packet[0]&7 != 0 || n > 1276 {
++			return nil, fmt.Errorf("unexpected CELT20 packet shape")
++		}
++		parts = append(parts, packet[1:])
++	}
++	// Code-3 VBR: three independent 20ms coding frames, no second lossy encoding.
++	output := []byte{0xfb, 0x83}
++	for _, p := range parts[:2] {
++		n := len(p)
++		if n < 252 {
++			output = append(output, byte(n))
++		} else {
++			first := 252 + (n & 3)
++			output = append(output, byte(first), byte((n-first)/4))
++		}
++	}
++	for _, p := range parts {
++		output = append(output, p...)
++	}
++	return output, nil
++}
++
++func newPCM48Encoder(codec AudioCodec) (callAudioEncoder, error) {
++	if codec != AudioCodecOpus {
++		return &mlowPCM48Encoder{codec: mlow.NewMlowEncoder()}, nil
++	}
++	enc, err := opus.NewEncoder(opus.WithSampleRate(48000), opus.WithChannels(1),
++		opus.WithApplication(opus.ApplicationVoIP), opus.WithBitrate(24000), opus.WithVBR(true),
++		opus.WithComplexity(10), opus.WithBandwidth(opus.BandwidthFullband), opus.WithMaxBandwidth(opus.BandwidthFullband))
++	if err != nil {
++		return nil, err
++	}
++	return &opusPCM48Encoder{codec: enc}, nil
++}
+diff --git a/audio_fullband_test.go b/audio_fullband_test.go
+new file mode 100644
+index 0000000..f26192e
+--- /dev/null
++++ b/audio_fullband_test.go
+@@ -0,0 +1,204 @@
++package meowcaller
++
++import (
++	"bytes"
++	"encoding/hex"
++	"github.com/purpshell/meowcaller/rtp"
++	"math"
++	"reflect"
++	"testing"
++	"time"
++)
++
++func TestPCM48ReferenceCELTPacket(t *testing.T) {
++	enc, err := newCallAudioEncoder(AudioCodecOpus, 48000)
++	if err != nil {
++		t.Fatal(err)
++	}
++	packet, err := enc.Encode(pcm48Tone(12000, 2880))
++	if err != nil {
++		t.Fatal(err)
++	}
++	// Synthetic packet only, for an independent file decoder outside this package.
++	t.Logf("PCM48_REFERENCE=%s", hex.EncodeToString(packet))
++}
++
++func pcm48Tone(hz float64, n int) []float32 {
++	pcm := make([]float32, n)
++	for i := range pcm {
++		pcm[i] = float32(.25 * math.Sin(2*math.Pi*hz*float64(i)/48000))
++	}
++	return pcm
++}
++
++func TestPCM48CodecContracts(t *testing.T) {
++	for _, codec := range []AudioCodec{AudioCodecMlow, AudioCodecOpus} {
++		t.Run(codec.String(), func(t *testing.T) {
++			enc, err := newCallAudioEncoder(codec, 48000)
++			if err != nil {
++				t.Fatal(err)
++			}
++			dec := newCallAudioDecoder(codec, 48000)
++			packet, err := enc.Encode(pcm48Tone(1000, 2880))
++			if err != nil {
++				t.Fatal(err)
++			}
++			if codec == AudioCodecOpus && (packet[0] != 0xfb || packet[1]&63 != 3) {
++				t.Fatal("not three fullband CELT frames")
++			}
++			output := dec.Decode(packet)
++			if len(output) != 2880 || dec.PCMRate() != 48000 {
++				t.Fatal("PCM48 duration lost")
++			}
++			for _, v := range output {
++				if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
++					t.Fatal("nonfinite PCM")
++				}
++			}
++			if _, err = enc.Encode(make([]float32, 960)); err == nil {
++				t.Fatal("16k frame accepted as PCM48")
++			}
++			if len(dec.Conceal(960)) != 960 {
++				t.Fatal("PLC lost 20ms48k duration")
++			}
++		})
++	}
++}
++
++func TestPCM48LegacyDefaultsAndEscapedReceive(t *testing.T) {
++	if resolveConfig(nil).pcmRate != 0 || audioPCMRate() != 16000 {
++		t.Fatal("default changed")
++	}
++	cfg := resolveConfig([]Option{WithPCM48()})
++	if cfg.pcmRate != 48000 {
++		t.Fatal("opt-in ignored")
++	}
++	enc, _ := newCallAudioEncoder(AudioCodecOpus, 48000)
++	packet, err := enc.Encode(pcm48Tone(12000, 2880))
++	if err != nil {
++		t.Fatal(err)
++	}
++	escaped := append([]byte(nil), packet...)
++	escaped[0] = 0xfd
++	native := newCallAudioDecoder(AudioCodecOpus, 48000).Decode(packet)
++	decoded := newCallAudioDecoder(AudioCodecMlow, 48000).Decode(escaped)
++	if !reflect.DeepEqual(native, decoded) {
++		t.Fatal("MLow escape changed CELT PCM")
++	}
++	if len(newCallAudioDecoder(AudioCodecMlow, 48000).Decode([]byte{0x90})) != 2880 {
++		t.Fatal("SID changed contract")
++	}
++}
++
++func TestPCM48FilterCountsContinuityAndAliasRejection(t *testing.T) {
++	signal := pcm48Tone(1000, 5760)
++	var whole, split pcmRateFilter
++	a := whole.convert(signal, false)
++	b := append(split.convert(signal[:2880], false), split.convert(signal[2880:], false)...)
++	if len(a) != 1920 || !reflect.DeepEqual(a, b) {
++		t.Fatal("downsample split/count drift")
++	}
++	var up pcmRateFilter
++	if len(up.convert(a, true)) != 5760 {
++		t.Fatal("upsample count drift")
++	}
++	var aliased pcmRateFilter
++	rejected := aliased.convert(pcm48Tone(12000, 5760), false)
++	energy := 0.0
++	for _, v := range rejected[100:] {
++		energy += float64(v * v)
++	}
++	if math.Sqrt(energy/float64(len(rejected)-100)) > .001 {
++		t.Fatal("out-of-band folded into MLow")
++	}
++}
++
++func TestPCM48ClockPlayoutAndGroupBudgets(t *testing.T) {
++	var order audioReceiveOrder
++	order.Timestamp(0xfffffff0, 48000, 48000)
++	if order.Timestamp(0xfffffff0+uint32(0), 48000, 48000) != 0 {
++		t.Fatal("initial timestamp changed")
++	}
++	if order.Timestamp(2864, 48000, 48000) != 2880 {
++		t.Fatal("wrapped48k RTP time lost")
++	}
++	mixer := newParticipantAudioMixer(48000)
++	mixer.Add("p", make([]float32, 11520+100))
++	if len(mixer.streams["p"].pending) != 11520 {
++		t.Fatal("group budget is not240ms")
++	}
++	chunk, ok := mixer.MixChunk()
++	if !ok || len(chunk) != 480 {
++		t.Fatal("group chunk is not10ms")
++	}
++	framer := participantAudioSinkFramer{pcmRate: 48000}
++	for i := 0; i < 6; i++ {
++		frame, ready := framer.Push(chunk)
++		if ready != (i == 5) || ready && len(frame) != 2880 {
++			t.Fatal("group frame changed duration")
++		}
++	}
++	sink := SinkFunc(func(frame []float32) {
++		if len(frame) != 2880 {
++			t.Fatal("playout changed frame size")
++		}
++	})
++	playout := newAudioPlayoutBuffer(48000)
++	for i := 0; i < 3; i++ {
++		started, err := playout.Push(uint32(i*2880), make([]float32, 2880), sink)
++		if err != nil || started != (i == 2) {
++			t.Fatal("48k prefill is not120ms")
++		}
++	}
++}
++
++func TestPCM48LateCodecSwitchPreservesFormatAndSRTP(t *testing.T) {
++	self, peer := mediaTestJID("100", 1), mediaTestJID("200", 2)
++	key := bytes.Repeat([]byte{7}, 32)
++	registry, err := newParticipantReceiveRegistry("PCM48", key, self.String(), peer.String(), nil)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer registry.clear()
++	selfSSRC, _ := rtp.DeriveWasmParticipantSsrc("PCM48", rtp.FormatE2ESrtpParticipantID(self.String()), 0)
++	peerSSRC, _ := rtp.DeriveWasmParticipantSsrc("PCM48", rtp.FormatE2ESrtpParticipantID(peer.String()), 0)
++	sender, _ := NewMediaPipeline(key, self.String(), peer.String(), selfSSRC, 960)
++	remote, _ := NewMediaPipeline(key, peer.String(), self.String(), peerSSRC, 960)
++	codec := AudioCodecMlow
++	enc, _ := newCallAudioEncoder(codec, 48000)
++	registry.configureAudioCodec(codec, 48000)
++	audio := &callAudioRuntime{pcmRate: 48000, codec: codec, encoder: enc, receivers: registry, sender: sender, current: func() AudioCodec { return codec }}
++	var previous uint16
++	for i, want := range []AudioCodec{AudioCodecMlow, AudioCodecOpus, AudioCodecMlow} {
++		codec = want
++		packet, err := audio.Protect(make([]float32, 2880))
++		if err != nil {
++			t.Fatal(err)
++		}
++		header, payload, ok := remote.UnprotectAudio(packet)
++		if !ok {
++			t.Fatal("SRTP rejected")
++		}
++		if i > 0 && header.SequenceNumber != previous+1 {
++			t.Fatal("sequence reset")
++		}
++		previous = header.SequenceNumber
++		if len(newCallAudioDecoder(want, 48000).Decode(payload)) != 2880 {
++			t.Fatal("send48k format changed")
++		}
++		peerEnc, _ := newCallAudioEncoder(want, 48000)
++		payload, err = peerEnc.Encode(make([]float32, 2880))
++		if err != nil {
++			t.Fatal(err)
++		}
++		remote.setAudioTimestampStride(audioRTPClock(want) * 60 / 1000)
++		packet, err = remote.ProtectAudio(payload)
++		if err != nil {
++			t.Fatal(err)
++		}
++		frames, ok, _, err := audio.Receive(packet, time.Unix(int64(i), 0))
++		if err != nil || !ok || len(frames) != 1 || len(frames[0].PCM) != 2880 {
++			t.Fatal("receive48k format changed")
++		}
++	}
++}
+diff --git a/audio_pcm_rate.go b/audio_pcm_rate.go
+new file mode 100644
+index 0000000..214d755
+--- /dev/null
++++ b/audio_pcm_rate.go
+@@ -0,0 +1,80 @@
++package meowcaller
++
++import "math"
++
++// PCM48 is an opt-in source/sink contract; codec and RTP clocks remain negotiated.
++const FullbandSampleRate = 48000
++
++func audioPCMRate(rates ...int) int {
++	if len(rates) > 0 && rates[0] == FullbandSampleRate {
++		return FullbandSampleRate
++	}
++	return SampleRate
++}
++
++// PCMRate is fixed for the client lifetime, including late codec changes.
++func (c *Call) PCMRate() int {
++	if c != nil && c.eng != nil && c.eng.c != nil {
++		return audioPCMRate(c.eng.c.pcmRate)
++	}
++	return SampleRate
++}
++
++// WithPCM48 opts this client's AudioSource/AudioSink into mono 48k / 2880 samples
++// per 60ms frame. Default clients and built-in 16k sources remain unchanged.
++func WithPCM48() Option { return func(c *config) { c.pcmRate = FullbandSampleRate } }
++
++var pcmRateWeights = func() [97]float64 {
++	var taps [97]float64
++	sum := 0.0
++	for n := range taps {
++		x := float64(n - 48)
++		sinc := 0.30
++		if x != 0 {
++			sinc = math.Sin(math.Pi*0.30*x) / (math.Pi * x)
++		}
++		window := 0.42 - 0.5*math.Cos(2*math.Pi*float64(n)/96) + 0.08*math.Cos(4*math.Pi*float64(n)/96)
++		taps[n] = sinc * window
++		sum += taps[n]
++	}
++	for n := range taps {
++		taps[n] /= sum
++	}
++	return taps
++}()
++
++// Per-codec causal FIR state. No tail is flushed into a replacement codec/call.
++type pcmRateFilter struct{ history [96]float64 }
++
++func (f *pcmRateFilter) convert(input []float32, up bool) []float32 {
++	factor := 1
++	if up {
++		factor = 3
++	}
++	data := make([]float64, 96+len(input)*factor)
++	copy(data, f.history[:])
++	for i, v := range input {
++		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
++			v = 0
++		}
++		data[96+i*factor] = float64(v)
++	}
++	step, start, gain := 3, 98, 1.0
++	if up {
++		step, start, gain = 1, 96, 3
++	}
++	output := make([]float32, 0, len(input)*factor/step)
++	for end := start; end < len(data); end += step {
++		value := 0.0
++		for i, w := range pcmRateWeights {
++			value += w * data[end-96+i]
++		}
++		value *= gain
++		if !up { // Same s16 rounding boundary as the legacy bridge FIR.
++			value = math.Max(-32768, math.Min(32767, math.RoundToEven(value*32768))) / 32768
++		}
++		output = append(output, float32(value))
++	}
++	copy(f.history[:], data[len(data)-96:])
++	return output
++}
+diff --git a/audio_playout.go b/audio_playout.go
+index 843c51b..7dbc006 100644
+--- a/audio_playout.go
++++ b/audio_playout.go
+@@ -14,14 +14,15 @@ type audioPlayoutFrame struct {
+ // RTP-timestamped PCM stream. Holding two packet intervals gives the downstream
+ // real-time track enough headroom for normal relay jitter.
+ type audioPlayoutBuffer struct {
++	pcmRate        int
+ 	pending        *audioPlayoutFrame
+ 	prefill        [][]float32
+ 	prefillSamples int
+ 	started        bool
+ }
+ 
+-func newAudioPlayoutBuffer() *audioPlayoutBuffer {
+-	return &audioPlayoutBuffer{}
++func newAudioPlayoutBuffer(rates ...int) *audioPlayoutBuffer {
++	return &audioPlayoutBuffer{pcmRate: audioPCMRate(rates...)}
+ }
+ 
+ func (p *audioPlayoutBuffer) Push(timestamp uint32, frame []float32, sink AudioSink) (startedNow bool, err error) {
+@@ -31,12 +32,13 @@ func (p *audioPlayoutBuffer) Push(timestamp uint32, frame []float32, sink AudioS
+ 	}
+ 
+ 	delta := timestamp - p.pending.timestamp
+-	if delta == 0 || delta > audioPlayoutMaxGapSamples {
++	rate := audioPCMRate(p.pcmRate)
++	if delta == 0 || delta > uint32(2*rate) {
+ 		p.reset(timestamp, frame)
+ 		return false, nil
+ 	}
+ 
+-	ready := alignAudioFrame(p.pending.pcm, int(delta))
++	ready := alignAudioFrameAtRate(p.pending.pcm, int(delta), rate)
+ 	p.pending = &audioPlayoutFrame{timestamp: timestamp, pcm: frame}
+ 	if p.started && sink != nil {
+ 		return false, sink.WriteFrame(ready)
+@@ -49,11 +51,11 @@ func (p *audioPlayoutBuffer) Push(timestamp uint32, frame []float32, sink AudioS
+ 
+ 	p.prefill = append(p.prefill, ready)
+ 	p.prefillSamples += len(ready)
+-	for p.prefillSamples > audioPlayoutMaxGapSamples && len(p.prefill) > 1 {
++	for p.prefillSamples > 2*rate && len(p.prefill) > 1 {
+ 		p.prefillSamples -= len(p.prefill[0])
+ 		p.prefill = p.prefill[1:]
+ 	}
+-	if sink == nil || p.prefillSamples < audioPlayoutPrefillSamples {
++	if sink == nil || p.prefillSamples < rate*120/1000 {
+ 		return false, nil
+ 	}
+ 
+@@ -108,10 +110,14 @@ func (p *audioPlayoutBuffer) reset(timestamp uint32, frame []float32) {
+ }
+ 
+ func alignAudioFrame(frame []float32, samples int) []float32 {
++	return alignAudioFrameAtRate(frame, samples, SampleRate)
++}
++
++func alignAudioFrameAtRate(frame []float32, samples, rate int) []float32 {
+ 	// Real-time sinks advance while no packets arrive. Preserve a
+ 	// decoder's natural multi-frame output, but do not replay an elapsed RTP gap
+ 	// as queued silence when the next packet finally arrives.
+-	maxSamples := max(len(frame), FrameSamples)
++	maxSamples := max(len(frame), rate*60/1000)
+ 	if samples > maxSamples {
+ 		samples = maxSamples
+ 	}
+diff --git a/audio_receive_order.go b/audio_receive_order.go
+index cf1549b..c682a99 100644
+--- a/audio_receive_order.go
++++ b/audio_receive_order.go
+@@ -64,7 +64,8 @@ func (o *audioReceiveOrder) Push(packet orderedAudioPacket, now time.Time) []ord
+ // RTP uses a 48 kHz clock for Opus even when PCM is 16 kHz. Accumulate deltas
+ // across uint32 wrap, including fractional samples, rather than dividing the
+ // absolute timestamp (which jumps backwards at the first wrap).
+-func (o *audioReceiveOrder) Timestamp(timestamp, clock uint32) uint32 {
++func (o *audioReceiveOrder) Timestamp(timestamp, clock uint32, rates ...int) uint32 {
++	rate := audioPCMRate(rates...)
+ 	if !o.hasTimestamp {
+ 		o.hasTimestamp, o.lastTimestamp = true, timestamp
+ 		return o.pcmTimestamp
+@@ -72,10 +73,10 @@ func (o *audioReceiveOrder) Timestamp(timestamp, clock uint32) uint32 {
+ 	delta := timestamp - o.lastTimestamp
+ 	o.lastTimestamp = timestamp
+ 	if delta > clock*2 {
+-		o.pcmTimestamp += audioPlayoutMaxGapSamples + 1
++		o.pcmTimestamp += uint32(2*rate + 1)
+ 		o.remainder = 0
+ 	} else {
+-		scaled := uint64(delta)*SampleRate + o.remainder
++		scaled := uint64(delta)*uint64(rate) + o.remainder
+ 		o.pcmTimestamp += uint32(scaled / uint64(clock))
+ 		o.remainder = scaled % uint64(clock)
+ 	}
+diff --git a/audio_receive_runtime.go b/audio_receive_runtime.go
+index c4c4aca..211f84d 100644
+--- a/audio_receive_runtime.go
++++ b/audio_receive_runtime.go
+@@ -7,10 +7,11 @@ import (
+ 
+ // Configure once before receive starts. A group roster can exist before media;
+ // its current and future participants must use the same negotiated codec.
+-func (r *participantReceiveRegistry) configureAudioCodec(codec AudioCodec) {
++func (r *participantReceiveRegistry) configureAudioCodec(codec AudioCodec, rates ...int) {
+ 	r.mu.Lock()
+ 	defer r.mu.Unlock()
+-	r.decoderFactory = func() participantAudioDecoder { return newCallAudioDecoder(codec) }
++	rate := audioPCMRate(rates...)
++	r.decoderFactory = func() participantAudioDecoder { return newCallAudioDecoder(codec, rate) }
+ 	for _, receiver := range r.byDeviceID {
+ 		receiver.mu.Lock()
+ 		receiver.decoder = r.decoderFactory()
+@@ -42,12 +43,16 @@ func (r *participantReceiveRegistry) ReceiveAudio(packet []byte, clock uint32, n
+ 	for _, packet := range packets {
+ 		previous := receiver.order.pcmTimestamp
+ 		hadTimestamp := receiver.order.hasTimestamp
+-		timestamp := receiver.order.Timestamp(packet.timestamp, clock)
++		rate := SampleRate
++		if formatted, ok := receiver.decoder.(interface{ PCMRate() int }); ok {
++			rate = formatted.PCMRate()
++		}
++		timestamp := receiver.order.Timestamp(packet.timestamp, clock, rate)
+ 		gap := int(timestamp-previous) - receiver.order.previousSamples
+ 		// Conceal at most 120 ms; longer gaps use the existing playout reset.
+ 		// Conceal must run BEFORE decoding the next frame for stateful Opus PLC.
+ 		if concealer, ok := receiver.decoder.(interface{ Conceal(int) []float32 }); ok &&
+-			hadTimestamp && gap > 0 && gap <= SampleRate*120/1000 {
++			hadTimestamp && gap > 0 && gap <= rate*120/1000 {
+ 			output = append(output, decodedParticipantAudio{
+ 				ParticipantID: receiver.participantID, UserJID: receiver.userJID, DeviceJID: receiver.deviceJID,
+ 				PID: receiver.pid, HasPID: receiver.hasPID, SSRC: header.Ssrc,
+diff --git a/client.go b/client.go
+index c1e41d3..993dda8 100644
+--- a/client.go
++++ b/client.go
+@@ -19,10 +19,11 @@ import (
+ //
+ // The library never configures logging; pass WithLogger to surface its debug/trace.
+ type Client struct {
+-	wa   *whatsmeow.Client
+-	log  zerolog.Logger
+-	diag *diag.Recorder
+-	eng  *engine
++	pcmRate int // fixed source/sink format; independent from negotiated codec
++	wa      *whatsmeow.Client
++	log     zerolog.Logger
++	diag    *diag.Recorder
++	eng     *engine
+ 
+ 	getGroupInfo func(context.Context, types.JID) (*types.GroupInfo, error)
+ 	ownGroupJIDs func() []types.JID
+@@ -52,7 +53,7 @@ type GroupCallOptions struct {
+ func NewClient(wa *whatsmeow.Client, opts ...Option) *Client {
+ 	cfg := resolveConfig(opts)
+ 	c := &Client{
+-		wa: wa, log: cfg.log, diag: cfg.diag,
++		wa: wa, log: cfg.log, diag: cfg.diag, pcmRate: audioPCMRate(cfg.pcmRate),
+ 		getGroupInfo: wa.GetGroupInfo,
+ 		ownGroupJIDs: func() []types.JID {
+ 			return []types.JID{wa.Store.GetJID(), wa.Store.GetLID()}
+diff --git a/engine_media.go b/engine_media.go
+index ef516ad..e4bb542 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -270,13 +270,14 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 		groupMode.Store(m.group)
+ 	}
+ 	e.mu.Unlock()
+-	enc, codecErr := newCallAudioEncoder(selectedCodec)
++	pcmRate := audioPCMRate(e.c.pcmRate)
++	enc, codecErr := newCallAudioEncoder(selectedCodec, pcmRate)
+ 	if codecErr != nil {
+ 		return fmt.Errorf("audio codec initialization: %w", codecErr)
+ 	}
+ 	rtpClock := audioRTPClock(selectedCodec)
+ 	log.Info().Str("codec", selectedCodec.String()).Uint32("rtp_clock", rtpClock).
+-		Int("pcm_rate", SampleRate).Msg("call audio codec initialized")
++		Int("pcm_rate", pcmRate).Msg("call audio codec initialized")
+ 	if audioReceivers == nil {
+ 		audioReceivers, err = newParticipantReceiveRegistry(
+ 			callID,
+@@ -284,7 +285,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 			selfLID,
+ 			peerLID,
+ 			func() participantAudioDecoder {
+-				return newCallAudioDecoder(selectedCodec)
++				return newCallAudioDecoder(selectedCodec, pcmRate)
+ 			},
+ 			WithLogger(log),
+ 		)
+@@ -379,8 +380,8 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 			unpublishedReceivers = nil
+ 		}
+ 	}
+-	audioReceivers.configureAudioCodec(selectedCodec)
+-	audioPlayout := newAudioPlayoutBuffer()
++	audioReceivers.configureAudioCodec(selectedCodec, pcmRate)
++	audioPlayout := newAudioPlayoutBuffer(pcmRate)
+ 	var audioPlayoutMu sync.Mutex
+ 	var groupMixing atomic.Bool
+ 	defer func() {
+@@ -392,8 +393,8 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 		_, sink := callPlayerSink(call)
+ 		_ = audioPlayout.Flush(sink)
+ 	}()
+-	audioMixer := newParticipantAudioMixer()
+-	var audioSinkFramer participantAudioSinkFramer
++	audioMixer := newParticipantAudioMixer(pcmRate)
++	audioSinkFramer := participantAudioSinkFramer{pcmRate: pcmRate}
+ 	go func() {
+ 		ticker := time.NewTicker(time.Duration(participantAudioMixChunkSamples) * time.Second / SampleRate)
+ 		defer ticker.Stop()
+@@ -439,7 +440,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	if err != nil {
+ 		return err
+ 	}
+-	audioRuntime := &callAudioRuntime{codec: selectedCodec, encoder: enc,
++	audioRuntime := &callAudioRuntime{codec: selectedCodec, encoder: enc, pcmRate: pcmRate,
+ 		receivers: audioReceivers, sender: txPipe, current: func() AudioCodec {
+ 			e.mu.Lock()
+ 			defer e.mu.Unlock()
+@@ -580,7 +581,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	// Player has real audio (nextFrame() == nil means send silence).
+ 	frameInterval := time.Duration(FrameSamples) * time.Second / SampleRate
+ 	go func() {
+-		silence := make([]float32, FrameSamples)
++		silence := make([]float32, pcmRate*60/1000)
+ 		ticker := time.NewTicker(frameInterval)
+ 		defer ticker.Stop()
+ 		var txCount uint64
+diff --git a/group_audio_mixer.go b/group_audio_mixer.go
+index 38588b5..8565fa2 100644
+--- a/group_audio_mixer.go
++++ b/group_audio_mixer.go
+@@ -17,6 +17,7 @@ type participantAudioMixQueue struct {
+ }
+ 
+ type participantAudioMixer struct {
++	pcmRate       int
+ 	mu            sync.Mutex
+ 	streams       map[string]*participantAudioMixQueue
+ 	allowed       map[string]struct{}
+@@ -24,13 +25,15 @@ type participantAudioMixer struct {
+ }
+ 
+ type participantAudioSinkFramer struct {
++	pcmRate int
+ 	pending []float32
+ }
+ 
+-func newParticipantAudioMixer() *participantAudioMixer {
++func newParticipantAudioMixer(rates ...int) *participantAudioMixer {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/fabad4acce2147da4e40c1e8c6a1643053ae8c59/datasheets/group-audio-mixer.md#L29-L38
+ 	// NOT VALIDATED: validated once live group-call playout includes every connected remote participant.
+ 	return &participantAudioMixer{
++		pcmRate: audioPCMRate(rates...),
+ 		streams: make(map[string]*participantAudioMixQueue),
+ 		allowed: make(map[string]struct{}),
+ 	}
+@@ -59,11 +62,12 @@ func (m *participantAudioMixer) Add(participantID string, pcm []float32) bool {
+ 		queue = &participantAudioMixQueue{}
+ 		m.streams[participantID] = queue
+ 	}
+-	if len(pcm) >= participantAudioMixerMaxSamples {
+-		queue.pending = append(queue.pending[:0], pcm[len(pcm)-participantAudioMixerMaxSamples:]...)
++	maxSamples := audioPCMRate(m.pcmRate) * 240 / 1000
++	if len(pcm) >= maxSamples {
++		queue.pending = append(queue.pending[:0], pcm[len(pcm)-maxSamples:]...)
+ 		return true
+ 	}
+-	overflow := len(queue.pending) + len(pcm) - participantAudioMixerMaxSamples
++	overflow := len(queue.pending) + len(pcm) - maxSamples
+ 	if overflow > 0 {
+ 		queue.pending = append([]float32(nil), queue.pending[overflow:]...)
+ 	}
+@@ -103,24 +107,25 @@ func (m *participantAudioMixer) MixChunk() ([]float32, bool) {
+ 	}
+ 	slices.Sort(participantIDs)
+ 
+-	mixed := make([]float32, participantAudioMixChunkSamples)
++	chunkSamples := audioPCMRate(m.pcmRate) / 100
++	mixed := make([]float32, chunkSamples)
+ 	contributed := false
+ 	for _, participantID := range participantIDs {
+ 		queue := m.streams[participantID]
+ 		if !queue.started {
+-			if len(queue.pending) < participantAudioMixerPrefillSamples {
++			if len(queue.pending) < audioPCMRate(m.pcmRate)*120/1000 {
+ 				continue
+ 			}
+ 			queue.started = true
+ 		}
+-		if len(queue.pending) < participantAudioMixChunkSamples {
++		if len(queue.pending) < chunkSamples {
+ 			queue.started = false
+ 			continue
+ 		}
+ 		for i := range mixed {
+ 			mixed[i] += queue.pending[i]
+ 		}
+-		queue.pending = queue.pending[participantAudioMixChunkSamples:]
++		queue.pending = queue.pending[chunkSamples:]
+ 		if len(queue.pending) == 0 {
+ 			queue.pending = nil
+ 		}
+@@ -143,11 +148,12 @@ func (f *participantAudioSinkFramer) Push(chunk []float32) ([]float32, bool) {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/fabad4acce2147da4e40c1e8c6a1643053ae8c59/datasheets/group-audio-mixer.md#L20-L26
+ 	// NOT VALIDATED: validated once live mixed playout reaches a public AudioSink in 960-sample frames.
+ 	f.pending = append(f.pending, chunk...)
+-	if len(f.pending) < FrameSamples {
++	frameSamples := audioPCMRate(f.pcmRate) * 60 / 1000
++	if len(f.pending) < frameSamples {
+ 		return nil, false
+ 	}
+-	frame := append([]float32(nil), f.pending[:FrameSamples]...)
+-	f.pending = f.pending[FrameSamples:]
++	frame := append([]float32(nil), f.pending[:frameSamples]...)
++	f.pending = f.pending[frameSamples:]
+ 	if len(f.pending) == 0 {
+ 		f.pending = nil
+ 	}
+diff --git a/logging.go b/logging.go
+index 365fc49..eda7390 100644
+--- a/logging.go
++++ b/logging.go
+@@ -5,13 +5,14 @@ import (
+ 	"github.com/rs/zerolog"
+ )
+ 
+-// Option configures optional, non-behavioral aspects of the call/media types —
+-// currently the diagnostic logger. The zero configuration logs nothing.
++// Option configures diagnostics and optional client PCM contracts. The zero
++// configuration logs nothing and retains the public 16k PCM contract.
+ type Option func(*config)
+ 
+ type config struct {
+-	log  zerolog.Logger
+-	diag *diag.Recorder
++	pcmRate int
++	log     zerolog.Logger
++	diag    *diag.Recorder
+ }
+ 
+ func resolveConfig(opts []Option) config {

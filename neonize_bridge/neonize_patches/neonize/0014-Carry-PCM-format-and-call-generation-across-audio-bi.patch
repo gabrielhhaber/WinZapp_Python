@@ -1,0 +1,621 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Muhammet Enes Senovali <mesenovali@gmail.com>
+Date: Fri, 30 Oct 2026 20:27:00 +0300
+Subject: [PATCH] Carry PCM format and call generation across audio bindings
+
+---
+ goneonize/calls.go                   | 51 +++++++++++----
+ goneonize/calls_audio_format.go      | 46 +++++++++++++
+ goneonize/calls_audio_format_test.go | 98 ++++++++++++++++++++++++++++
+ goneonize/calls_audio_v2.go          | 94 ++++++++++++++++++++++++++
+ goneonize/calls_pcm.go               | 43 +++++++-----
+ neonize/_binder.py                   |  9 +++
+ neonize/calls.py                     | 64 +++++++++++++++++-
+ 7 files changed, 377 insertions(+), 28 deletions(-)
+ create mode 100644 goneonize/calls_audio_format.go
+ create mode 100644 goneonize/calls_audio_format_test.go
+ create mode 100644 goneonize/calls_audio_v2.go
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index 748d305..1eefb10 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -47,7 +47,9 @@ const (
+ )
+ 
+ var (
+-	chamadasQuer bool
++	chamadasQuer      bool
++	chamadasPCM48     bool // selected only before constructing a client
++	chamadaGeneration atomic.Uint64
+ 
+ 	chamadasMu      sync.Mutex
+ 	chamadasCliente = map[string]*meowcaller.Client{}
+@@ -115,7 +117,9 @@ func registrar(cliente, formato string, args ...any) {
+ 
+ // chamadaAtiva liga uma chamada do meowcaller as filas de audio do Python.
+ type chamadaAtiva struct {
+-	call *meowcaller.Call
++	pcmRate    int
++	generation uint64
++	call       *meowcaller.Call
+ 	// entrante: a chamada veio de fora; atendida: ja atendemos. Recusar uma
+ 	// chamada que ainda toca usa Reject (o terminate do Hangup nao a derruba).
+ 	entrante bool
+@@ -145,7 +149,7 @@ func (c *chamadaAtiva) encerrar() {
+ // ReadFrame e chamado pelo meowcaller a cada 60 ms; sem audio do Python a
+ // tempo, entrega silencio para o ritmo do envio nao parar.
+ func (c *chamadaAtiva) ReadFrame() ([]float32, error) {
+-	f, err := readCallMicrophone(c.saida, c.fim)
++	f, err := readCallMicrophone(c.saida, c.fim, callAudioFrameBytes(c.pcmRate))
+ 	if err == nil {
+ 		c.enviados.Add(1)
+ 	}
+@@ -187,17 +191,22 @@ func emitirEvento(cliente string, ev map[string]any) {
+ // ligarChamada anexa o audio e os avisos a uma chamada nova (de entrada ou de saida).
+ func ligarChamada(cliente string, c *meowcaller.Call, entrante bool) *chamadaAtiva {
+ 	a := &chamadaAtiva{
++		pcmRate: c.PCMRate(), generation: chamadaGeneration.Add(1),
+ 		call:     c,
+ 		entrante: entrante,
+-		entrada:  newCallPCMQueue(),
++		entrada:  newCallPCMQueueForRate(c.PCMRate()),
+ 		saida:    make(chan []byte, 3), // at most 180 ms of stale microphone capture
+ 		fim:      make(chan struct{}),
+ 		video:    make(chan []byte, videoNaFila),
+ 	}
+ 	id := c.ID()
+ 	chamadasMu.Lock()
++	previous := chamadasAtivas[chaveChamada(cliente, id)]
+ 	chamadasAtivas[chaveChamada(cliente, id)] = a
+ 	chamadasMu.Unlock()
++	if previous != nil {
++		previous.encerrar()
++	}
+ 	c.Receive(a)
+ 	c.Play(a)
+ 	ligarVideo(cliente, c, a)
+@@ -218,26 +227,31 @@ func ligarChamada(cliente string, c *meowcaller.Call, entrante bool) *chamadaAti
+ 	registrar(cliente, "chamada %s criada (entrante=%v, com=%s)", id, entrante, c.Peer())
+ 	c.OnStateChange(func(p meowcaller.CallPhase) {
+ 		registrar(cliente, "chamada %s: fase %d depois de %.1fs", id, int(p), time.Since(inicio).Seconds())
+-		emitirEvento(cliente, map[string]any{"ev": "state", "call": id, "phase": int(p)})
++		emitirEvento(cliente, map[string]any{"ev": "state", "call": id, "phase": int(p), "generation": a.generation})
+ 	})
+ 	// so a chamada de saida: o outro lado atendeu (a fase Connecting do
+ 	// meowcaller vem antes, quando o relay e alocado, e nao quer dizer isso)
+ 	c.OnPeerAccept(func() {
+ 		registrar(cliente, "chamada %s: a outra pessoa atendeu, depois de %.1fs", id, time.Since(inicio).Seconds())
+-		emitirEvento(cliente, map[string]any{"ev": "accepted", "call": id})
++		emitirEvento(cliente, map[string]any{"ev": "accepted", "call": id, "generation": a.generation})
+ 	})
+ 	c.OnReady(func() {
+ 		registrar(cliente, "chamada %s: som do outro lado chegou (primeiro RTP) depois de %.1fs", id, time.Since(inicio).Seconds())
+-		emitirEvento(cliente, map[string]any{"ev": "ready", "call": id})
++		emitirEvento(cliente, map[string]any{"ev": "ready", "call": id, "generation": a.generation})
+ 	})
+ 	c.OnEnd(func(motivo string) {
+ 		registrar(cliente, "chamada %s encerrada (%s) depois de %.1fs: quadros do outro lado=%d, do microfone=%d",
+ 			id, motivo, time.Since(inicio).Seconds(), a.recebidos.Load(), a.enviados.Load())
+ 		a.encerrar()
+ 		chamadasMu.Lock()
+-		delete(chamadasAtivas, chaveChamada(cliente, id))
++		current := chamadasAtivas[chaveChamada(cliente, id)] == a
++		if current {
++			delete(chamadasAtivas, chaveChamada(cliente, id))
++		}
+ 		chamadasMu.Unlock()
+-		emitirEvento(cliente, map[string]any{"ev": "end", "call": id, "reason": motivo})
++		if current {
++			emitirEvento(cliente, map[string]any{"ev": "end", "call": id, "reason": motivo, "generation": a.generation})
++		}
+ 	})
+ 	return a
+ }
+@@ -257,7 +271,14 @@ func instalarChamadas(id string) {
+ 	chamadasLogs[id] = registro.log
+ 	chamadasMu.Unlock()
+ 	logger := zerolog.New(registro).Level(zerolog.InfoLevel)
+-	mc := meowcaller.NewClient(cli, meowcaller.WithLogger(logger))
++	opts := []meowcaller.Option{meowcaller.WithLogger(logger)}
++	chamadasMu.Lock()
++	pcm48 := chamadasPCM48
++	chamadasMu.Unlock()
++	if pcm48 {
++		opts = append(opts, meowcaller.WithPCM48())
++	}
++	mc := meowcaller.NewClient(cli, opts...)
+ 	// o que o WhatsApp mandou sobre chamadas, antes de o meowcaller tratar:
+ 	// mostra se o "atendeu" chegou, de que aparelho e por que a chamada acabou
+ 	cli.AddEventHandler(func(evt any) {
+@@ -283,10 +304,10 @@ func instalarChamadas(id string) {
+ 	chamadasEventos[id] = make(chan string, eventosNaFila)
+ 	chamadasMu.Unlock()
+ 	mc.OnIncomingCall(func(c *meowcaller.Call) {
+-		ligarChamada(id, c, true)
++		a := ligarChamada(id, c, true)
+ 		_, grupo := c.GroupState()
+ 		emitirEvento(id, map[string]any{"ev": "incoming", "call": c.ID(), "peer": c.Peer(),
+-			"video": c.IsVideo(), "group": grupo})
++			"video": c.IsVideo(), "group": grupo, "generation": a.generation})
+ 	})
+ }
+ 
+@@ -469,6 +490,9 @@ func CallReadAudio(id *C.char, call *C.char, buf *C.uchar, cap C.int, timeoutMs
+ 	if a == nil {
+ 		return erroSemChamada
+ 	}
++	if callAudioRate(a.pcmRate) != 16000 {
++		return erroTamanho
++	}
+ 	if int(cap) < bytesPorQuadro {
+ 		return erroTamanho
+ 	}
+@@ -489,6 +513,9 @@ func CallWriteAudio(id *C.char, call *C.char, buf *C.uchar, n C.int) C.int {
+ 	if a == nil {
+ 		return erroSemChamada
+ 	}
++	if callAudioRate(a.pcmRate) != 16000 {
++		return erroTamanho
++	}
+ 	if int(n) != bytesPorQuadro {
+ 		return erroTamanho
+ 	}
+diff --git a/goneonize/calls_audio_format.go b/goneonize/calls_audio_format.go
+new file mode 100644
+index 0000000..8ffa490
+--- /dev/null
++++ b/goneonize/calls_audio_format.go
+@@ -0,0 +1,46 @@
++package main
++
++import (
++	"encoding/binary"
++	"errors"
++	"time"
++)
++
++const callPCMHeaderBytes = 12 // little-endian rate u32 + native record generation u64
++
++var errCallPCMCapacity = errors.New("call PCM buffer too small")
++
++func readCallPCMEnvelope(queue *callPCMQueue, rate int, generation uint64, capacity int, timeout time.Duration) ([]byte, bool, error) {
++	frameBytes := callAudioFrameBytes(rate)
++	if capacity < callPCMHeaderBytes+frameBytes {
++		return nil, false, errCallPCMCapacity
++	}
++	// A universal 48k-capable caller must not dequeue three 16k frames at once.
++	pcm, ended := queue.Read(frameBytes, timeout)
++	if ended || len(pcm) == 0 {
++		return nil, ended, nil
++	}
++	return callPCMEnvelope(rate, generation, pcm), false, nil
++}
++
++func callAudioRate(rate int) int {
++	if rate == 48000 {
++		return 48000
++	}
++	return 16000
++}
++func callAudioFrameBytes(rate int) int { return callAudioRate(rate) * 60 / 1000 * 2 }
++func callAudioMaxBytes(rate int) int   { return callAudioRate(rate) * 480 / 1000 * 2 }
++
++func callPCMEnvelope(rate int, generation uint64, pcm []byte) []byte {
++	packet := make([]byte, callPCMHeaderBytes+len(pcm))
++	binary.LittleEndian.PutUint32(packet, uint32(callAudioRate(rate)))
++	binary.LittleEndian.PutUint64(packet[4:], generation)
++	copy(packet[callPCMHeaderBytes:], pcm)
++	return packet
++}
++
++func validCallPCMWrite(rate int, generation uint64, wantRate int, wantGeneration uint64, n int) bool {
++	return (rate == 16000 || rate == 48000) && generation != 0 && generation == wantGeneration &&
++		rate == callAudioRate(wantRate) && n == callAudioFrameBytes(rate)
++}
+diff --git a/goneonize/calls_audio_format_test.go b/goneonize/calls_audio_format_test.go
+new file mode 100644
+index 0000000..f838403
+--- /dev/null
++++ b/goneonize/calls_audio_format_test.go
+@@ -0,0 +1,98 @@
++package main
++
++import (
++	"bytes"
++	"encoding/binary"
++	"testing"
++)
++
++func TestPCM48QueueEnvelopeAndStaleWrites(t *testing.T) {
++	q := newCallPCMQueueForRate(48000)
++	input := make([]byte, 46080)
++	for i := range input {
++		input[i] = byte(i * 7)
++	}
++	q.Push(input)
++	var output []byte
++	for range 8 {
++		pcm, ended := q.Read(5760, 0)
++		if ended || len(pcm) != 5760 {
++			t.Fatal("partial read lost PCM48")
++		}
++		output = append(output, pcm...)
++	}
++	if !bytes.Equal(input, output) {
++		t.Fatal("PCM48 burst corrupted")
++	}
++	packet := callPCMEnvelope(48000, 27, input[:5760])
++	if binary.LittleEndian.Uint32(packet) != 48000 || binary.LittleEndian.Uint64(packet[4:]) != 27 || !bytes.Equal(packet[12:], input[:5760]) {
++		t.Fatal("header detached from PCM")
++	}
++	if !validCallPCMWrite(48000, 27, 48000, 27, 5760) {
++		t.Fatal("valid write rejected")
++	}
++	for _, bad := range []struct {
++		rate, n    int
++		generation uint64
++	}{{16000, 1920, 27}, {48000, 1920, 27}, {48000, 5760, 26}, {48000, 5760, 0}} {
++		if validCallPCMWrite(bad.rate, bad.generation, 48000, 27, bad.n) {
++			t.Fatal("wrong format/generation accepted")
++		}
++	}
++	q.Close()
++	if _, ended := q.Read(5760, 0); !ended {
++		t.Fatal("closed queue leaked old audio")
++	}
++}
++
++func TestPCM48MicrophoneAndDurationBound(t *testing.T) {
++	queue := make(chan []byte, 1)
++	done := make(chan struct{})
++	frame, err := readCallMicrophone(queue, done, 5760)
++	if err != nil || len(frame) != 2880 {
++		t.Fatal("underrun duration changed")
++	}
++	queue <- make([]byte, 1920)
++	frame, err = readCallMicrophone(queue, done, 5760)
++	if err != nil || len(frame) != 2880 {
++		t.Fatal("16k bytes confused with48k capture")
++	}
++	q := newCallPCMQueueForRate(48000)
++	q.Push(make([]byte, 46080+5760))
++	if len(q.pending) != 46080 || q.dropped != 2880 {
++		t.Fatal("480ms cap changed")
++	}
++	close(done)
++	if _, err = readCallMicrophone(queue, done, 5760); err == nil {
++		t.Fatal("ended capture still alive")
++	}
++}
++
++func TestPCM48UniversalReadBufferPreservesBothRates(t *testing.T) {
++	for _, rate := range []int{16000, 48000} {
++		q := newCallPCMQueueForRate(rate)
++		n := callAudioFrameBytes(rate)
++		data := make([]byte, 8*n)
++		for i := range data {
++			data[i] = byte(i * 7)
++		}
++		q.Push(data)
++		var output []byte
++		for range 8 {
++			packet, ended, err := readCallPCMEnvelope(q, rate, 17, 5772, 0)
++			if err != nil || ended || len(packet) != 12+n {
++				t.Fatal("large caller buffer changed frame duration")
++			}
++			if binary.LittleEndian.Uint32(packet) != uint32(rate) || binary.LittleEndian.Uint64(packet[4:]) != 17 {
++				t.Fatal("wrong metadata")
++			}
++			output = append(output, packet[12:]...)
++		}
++		if !bytes.Equal(output, data) {
++			t.Fatal("burst lost or duplicated")
++		}
++		if _, _, err := readCallPCMEnvelope(q, rate, 17, 12+n-1, 0); err == nil {
++			t.Fatal("small buffer accepted")
++		}
++	}
++}
+diff --git a/goneonize/calls_audio_v2.go b/goneonize/calls_audio_v2.go
+new file mode 100644
+index 0000000..59e2ce2
+--- /dev/null
++++ b/goneonize/calls_audio_v2.go
+@@ -0,0 +1,94 @@
++package main
++
++/*
++#include <stdint.h>
++*/
++import "C"
++
++import (
++	"encoding/json"
++	"time"
++	"unsafe"
++)
++
++// CallsConfigurePCM48 changes only future clients. No codec is forced.
++//
++//export CallsConfigurePCM48
++func CallsConfigurePCM48(enabled C.int) {
++	chamadasMu.Lock()
++	chamadasPCM48 = enabled != 0
++	chamadasMu.Unlock()
++}
++
++//export CallAudioFormat
++func CallAudioFormat(id *C.char, call *C.char, buf *C.uchar, capacity C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	data, _ := json.Marshal(map[string]any{"sampleRate": callAudioRate(a.pcmRate), "generation": a.generation})
++	if int(capacity) < len(data) {
++		return erroTamanho
++	}
++	copy(unsafe.Slice((*byte)(unsafe.Pointer(buf)), int(capacity)), data)
++	return C.int(len(data))
++}
++
++// Read one bounded PCM chunk and its format atomically from the same record.
++//
++//export CallReadAudioFrame
++func CallReadAudioFrame(id *C.char, call *C.char, buf *C.uchar, capacity C.int, timeoutMs C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	if int(capacity) < callPCMHeaderBytes+callAudioFrameBytes(a.pcmRate) {
++		return erroTamanho
++	}
++	packet, ended, err := readCallPCMEnvelope(a.entrada, a.pcmRate, a.generation, int(capacity), time.Duration(timeoutMs)*time.Millisecond)
++	if err != nil {
++		return erroTamanho
++	}
++	if ended {
++		return erroSemChamada
++	}
++	if len(packet) == 0 {
++		return 0
++	}
++	copy(unsafe.Slice((*byte)(unsafe.Pointer(buf)), int(capacity)), packet)
++	return C.int(len(packet))
++}
++
++// Reject stale capture after same-id replacement, even when byte sizes agree.
++//
++//export CallWriteAudioFrame
++func CallWriteAudioFrame(id *C.char, call *C.char, rate C.int, generation C.uint64_t, buf *C.uchar, n C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	if !validCallPCMWrite(int(rate), uint64(generation), a.pcmRate, a.generation, int(n)) {
++		return erroTamanho
++	}
++	select {
++	case <-a.fim:
++		return erroSemChamada
++	default:
++	}
++	pcm := append([]byte(nil), unsafe.Slice((*byte)(unsafe.Pointer(buf)), int(n))...)
++	select {
++	case a.saida <- pcm:
++	default:
++		select {
++		case <-a.saida:
++		default:
++		}
++		select {
++		case <-a.fim:
++			return erroSemChamada
++		case a.saida <- pcm:
++		default:
++		}
++	}
++	return 0
++}
+diff --git a/goneonize/calls_pcm.go b/goneonize/calls_pcm.go
+index 970d41a..6718737 100644
+--- a/goneonize/calls_pcm.go
++++ b/goneonize/calls_pcm.go
+@@ -16,16 +16,21 @@ const callPCMMaxBytes = 8 * callPCMFrameBytes // bounded even for SplitRed burst
+ var errCallPCMClosed = errors.New("call audio closed")
+ 
+ type callPCMQueue struct {
+-	mu      sync.Mutex
+-	pending []byte
+-	ready   chan struct{}
+-	done    chan struct{}
+-	closed  bool
+-	dropped uint64 // samples, never packet/voice content
++	maxBytes int
++	mu       sync.Mutex
++	pending  []byte
++	ready    chan struct{}
++	done     chan struct{}
++	closed   bool
++	dropped  uint64 // samples, never packet/voice content
+ }
+ 
+ func newCallPCMQueue() *callPCMQueue {
+-	return &callPCMQueue{ready: make(chan struct{}, 1), done: make(chan struct{})}
++	return newCallPCMQueueForRate(16000)
++}
++
++func newCallPCMQueueForRate(rate int) *callPCMQueue {
++	return &callPCMQueue{ready: make(chan struct{}, 1), done: make(chan struct{}), maxBytes: callAudioMaxBytes(rate)}
+ }
+ 
+ func (q *callPCMQueue) signal() {
+@@ -44,11 +49,15 @@ func (q *callPCMQueue) Push(pcm []byte) {
+ 	if q.closed {
+ 		return
+ 	}
+-	if len(pcm) > callPCMMaxBytes {
+-		q.dropped += uint64((len(pcm) - callPCMMaxBytes) / 2)
+-		pcm = pcm[len(pcm)-callPCMMaxBytes:]
++	maxBytes := q.maxBytes
++	if maxBytes == 0 {
++		maxBytes = callPCMMaxBytes
+ 	}
+-	if excess := len(q.pending) + len(pcm) - callPCMMaxBytes; excess > 0 {
++	if len(pcm) > maxBytes {
++		q.dropped += uint64((len(pcm) - maxBytes) / 2)
++		pcm = pcm[len(pcm)-maxBytes:]
++	}
++	if excess := len(q.pending) + len(pcm) - maxBytes; excess > 0 {
+ 		q.dropped += uint64(excess / 2)
+ 		q.pending = q.pending[excess:]
+ 	}
+@@ -125,20 +134,24 @@ func encodeCallPCM(frame []float32) []byte {
+ // The media ticker, not source arrival, owns packet cadence. Waiting 150 ms
+ // inside a 60 ms tick dropped tick deadlines and delayed both relay startup and
+ // every later microphone underrun. Missing capture is one on-time silent frame.
+-func readCallMicrophone(queue <-chan []byte, done <-chan struct{}) ([]float32, error) {
++func readCallMicrophone(queue <-chan []byte, done <-chan struct{}, frameBytes ...int) ([]float32, error) {
++	bytes := callPCMFrameBytes
++	if len(frameBytes) > 0 && frameBytes[0] == 5760 {
++		bytes = 5760
++	}
+ 	select {
+ 	case <-done:
+ 		return nil, errCallPCMClosed
+ 	default:
+ 	}
+-	frame := make([]float32, callPCMFrameBytes/2)
++	frame := make([]float32, bytes/2)
+ 	select {
+ 	case pcm := <-queue:
+-		if len(pcm) != callPCMFrameBytes {
++		if len(pcm) != bytes {
+ 			return frame, nil
+ 		}
+ 		for i := range frame {
+-			frame[i] = float32(int16(uint16(pcm[2*i]) | uint16(pcm[2*i+1])<<8)) / 32768
++			frame[i] = float32(int16(uint16(pcm[2*i])|uint16(pcm[2*i+1])<<8)) / 32768
+ 		}
+ 	case <-done:
+ 		return nil, errCallPCMClosed
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index 295a08e..0eddb0a 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -870,6 +870,15 @@ if not os.environ.get("SPHINX"):
+         gocode.CallWriteAudio.argtypes = [
+             ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+         gocode.CallWriteAudio.restype = ctypes.c_int
++    if hasattr(gocode, "CallAudioFormat"):
++        gocode.CallsConfigurePCM48.argtypes = [ctypes.c_int]
++        gocode.CallsConfigurePCM48.restype = None
++        gocode.CallAudioFormat.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallAudioFormat.restype = ctypes.c_int
++        gocode.CallReadAudioFrame.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
++        gocode.CallReadAudioFrame.restype = ctypes.c_int
++        gocode.CallWriteAudioFrame.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_uint64, ctypes.c_char_p, ctypes.c_int]
++        gocode.CallWriteAudioFrame.restype = ctypes.c_int
+     if hasattr(gocode, "CallVideo"):
+         # Video and group calls (goneonize/calls_video.go).
+         gocode.CallDialWith.argtypes = [
+diff --git a/neonize/calls.py b/neonize/calls.py
+index 380a0c8..3f98287 100644
+--- a/neonize/calls.py
++++ b/neonize/calls.py
+@@ -11,6 +11,7 @@ without it has `video_available()` False. Every call releases the GIL
+ """
+ import ctypes
+ import json
++import struct
+ 
+ from ._binder import gocode
+ 
+@@ -48,11 +49,22 @@ def video_available() -> bool:
+     return hasattr(gocode, "CallVideo")
+ 
+ 
+-def configure(enabled: bool) -> None:
++def pcm48_available() -> bool:
++    return all(hasattr(gocode, name) for name in (
++        "CallsConfigurePCM48", "CallAudioFormat", "CallReadAudioFrame", "CallWriteAudioFrame"))
++
++
++def configure(enabled: bool, *, pcm48: bool = False) -> None:
+     """Turns the call layer on (or off) for the clients that connect from now on."""
+     if not available():
+         raise CallError("this neonize build has no call layer")
++    if pcm48 and not pcm48_available():
++        raise CallError("this neonize build has no PCM48 contract")
+     gocode.CallsConfigure(1 if enabled else 0)
++    if pcm48_available():
++        gocode.CallsConfigurePCM48(1 if enabled and pcm48 else 0)
++    elif pcm48:
++        raise CallError("this neonize build has no PCM48 contract")
+ 
+ 
+ class Calls:
+@@ -182,6 +194,51 @@ class Calls:
+             return b""
+         return buf.raw[:size]
+ 
++    def audio_format(self, call_id: str):
++        """Fixed PCM format and native record identity; None after call end."""
++        if not pcm48_available():
++            return {"sampleRate": SAMPLE_RATE, "generation": 0}
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallAudioFormat(self.uuid, call_id.encode(), buf, _RESULT_BUFFER)
++        if size == _NO_CALL:
++            return None
++        if size <= 0 or size > _RESULT_BUFFER:
++            raise CallError("invalid call audio format response")
++        value = json.loads(buf.raw[:size].decode("utf-8"))
++        _audio_format(value.get("sampleRate"), value.get("generation"))
++        return value
++
++    def read_audio_frame(self, call_id: str, timeout_ms: int = 200):
++        """PCM and format from the same native record, never a separate poll."""
++        if not pcm48_available():
++            pcm = self.read_audio(call_id, timeout_ms)
++            return None if pcm is None else {"sampleRate": SAMPLE_RATE, "generation": 0, "pcm": pcm}
++        capacity = 12 + 5760
++        buf = ctypes.create_string_buffer(capacity)
++        size = gocode.CallReadAudioFrame(self.uuid, call_id.encode(), buf, capacity, int(timeout_ms))
++        if size == _NO_CALL:
++            return None
++        if size == 0:
++            return {"sampleRate": SAMPLE_RATE, "generation": 0, "pcm": b""}
++        if not 12 < size <= capacity or (size - 12) % 2:
++            raise CallError("invalid call audio frame response")
++        rate, generation = struct.unpack_from("<IQ", buf.raw)
++        _audio_format(rate, generation)
++        pcm = buf.raw[12:size]
++        if len(pcm) > rate * 60 // 1000 * 2:
++            raise CallError("call audio frame exceeds duration")
++        return {"sampleRate": rate, "generation": generation, "pcm": pcm}
++
++    def write_audio_frame(self, call_id: str, frame: bytes, rate: int, generation: int) -> bool:
++        if not pcm48_available():
++            if rate != SAMPLE_RATE or generation != 0:
++                return False
++            return self.write_audio(call_id, frame)
++        _audio_format(rate, generation)
++        if len(frame) != rate * 60 // 1000 * 2:
++            raise ValueError("PCM frame duration must be 60 ms")
++        return gocode.CallWriteAudioFrame(self.uuid, call_id.encode(), rate, generation, frame, len(frame)) == 0
++
+     def write_audio(self, call_id: str, frame: bytes) -> bool:
+         """Queues one microphone frame (FRAME_BYTES); False once the call is over."""
+         if len(frame) != FRAME_BYTES:
+@@ -189,6 +246,11 @@ class Calls:
+         return gocode.CallWriteAudio(self.uuid, call_id.encode(), frame, FRAME_BYTES) == 0
+ 
+ 
++def _audio_format(rate, generation):
++    if type(rate) is not int or rate not in (16000, 48000) or type(generation) is not int or not 0 < generation < 2**64:
++        raise CallError("invalid PCM rate or native generation")
++
++
+ def _result(buf, size) -> dict:
+     if size <= 0:
+         raise CallError("the call could not be placed")
