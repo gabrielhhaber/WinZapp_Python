@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Attached contacts: a received contact no longer arrives empty and without a phone number. The contact card is now kept by both WPPConnect and Neonize, so you can see and copy the number and chat with the person.
+
 - Pairing: fixed the app staying on the pairing screen after a successful link, while the phone already listed it as connected.
 
 - Neonize calls: added a disabled-by-default experimental 48 kHz PCM path for negotiated Opus calls, with format and call-instance checks. Normal calls retain the existing MLow fallback.

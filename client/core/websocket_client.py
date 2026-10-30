@@ -22,6 +22,7 @@ from core.reaction_echo import reaction_echo_keys, take_matching_send
 from core.meta_ai import rich_response_text
 from core.polls import poll_message_from_wpp
 from core.sync_contracts import observe_payload
+from core.vcard_payload import contact_message_payload
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE, is_view_once_unavailable
 from core.utils import looks_like_binary_blob, looks_like_jid, _slim_quoted_message, parse_bool_flag as _parse_bool_flag
 
@@ -2994,12 +2995,10 @@ class WebSocketClient:
                     "name": wpp_msg.get("loc") or wpp_msg.get("body") or "",
                 }
             }
-        elif msg_type == "vcard":
-            message_content = {
-                "contactMessage": {
-                    "displayName": wpp_msg.get("displayName") or wpp_msg.get("body") or "Contato",
-                }
-            }
+        elif msg_type in ("vcard", "multi_vcard"):
+            # The card text must travel with the name: without it the contact
+            # arrived empty, with no number to show, copy or chat with.
+            message_content = {"contactMessage": contact_message_payload(wpp_msg)}
         elif msg_type in ("pollCreation", "poll_creation"):
             # WhatsApp Web's type is "poll_creation" (wa-js sends exactly that);
             # "pollCreation" is what this branch used to wait for, so a real
@@ -3128,6 +3127,7 @@ class WebSocketClient:
             "document": "documentMessage",
             "sticker": "stickerMessage",
             "vcard": "contactMessage",
+            "multi_vcard": "contactMessage",
             "pollCreation": "pollCreationMessage",
             "poll_creation": "pollCreationMessage",
             "buttons": "buttonsMessage",

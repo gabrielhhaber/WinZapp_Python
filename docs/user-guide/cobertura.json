@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "67e1289c4d31": "Contatos anexados: um contato recebido não chega mais vazio e sem número. O cart",
     "28cc637136db": "Pareamento: corrigido o aplicativo que ficava na tela de pareamento depois de vi",
     "f05c37dcbb06": "Ligações pelo Neonize: adicionado um caminho experimental de áudio PCM a 48 kHz ",
     "ab09d793a3ad": "Marcar como lida ou não lida, silenciar, arquivar e fixar agora têm confirmação ",
