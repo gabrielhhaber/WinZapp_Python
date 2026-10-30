@@ -2737,6 +2737,46 @@ msgctxt "channel_read_only"
 msgid "This channel is read-only"
 msgstr "هذه القناة للقراءة فقط"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_archived"
+msgid "Chat archived."
+msgstr "أُرشفت الدردشة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_marked_read"
+msgid "Marked as read."
+msgstr "عُيّنت كمقروءة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_marked_unread"
+msgid "Marked as unread."
+msgstr "عُيّنت كغير مقروءة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_muted"
+msgid "Chat muted."
+msgstr "كُتمت الدردشة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_pinned"
+msgid "Chat pinned."
+msgstr "ثُبّتت الدردشة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_unarchived"
+msgid "Chat unarchived."
+msgstr "أُلغيت أرشفة الدردشة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_unmuted"
+msgid "Chat unmuted."
+msgstr "أُعيد تفعيل إشعارات الدردشة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_unpinned"
+msgid "Chat unpinned."
+msgstr "أُلغي تثبيت الدردشة."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
 msgctxt "chat_disappearing_24h"
 msgid "24 hours"
@@ -7031,6 +7071,12 @@ msgid ""
 msgstr ""
 "هل أنت متأكد أنك تريد تعيين جميع الدردشات كمقروءة؟ الدردشات غير المقروءة: "
 "{count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/read_state.py
+#, python-brace-format
+msgctxt "mark_all_read_done"
+msgid "Chats marked as read: {count}."
+msgstr "الدردشات المعيّنة كمقروءة: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/archived_panel.py

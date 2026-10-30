@@ -6,6 +6,8 @@ NOUTĂȚI
 
 - Asociere: s-a corectat situația în care aplicația rămânea la ecranul de asociere după o conectare reușită, deși telefonul o afișa deja ca fiind conectată.
 
+- Marcarea ca citit sau necitit, dezactivarea notificărilor, arhivarea și fixarea au acum confirmare vocală. O eroare repetată la obținerea listei de conversații afișează o singură casetă, nu câte una pentru fiecare încercare. Pe Mac, WinZapp observă când computerul se trezește și se reconectează, iar Home și End duc la începutul și la sfârșitul listelor. Când sesiunea nu poate fi reluată, reasocierea aceluiași număr nu mai șterge istoricul.
+
 - README începe acum cu linkuri directe de descărcare pentru Windows și Mac, fără să mai cauți fișierul potrivit pe pagina Releases.
 
 - Araba: transcrierea mesajelor vocale și a sunetului folosește acum «تفريغ» (transcriere) în loc de «تسجيل» (înregistrare) în meniuri, setări și mesaje, ca să nu sune ca și cum ți-ai înregistra vocea.

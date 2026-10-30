@@ -397,6 +397,7 @@
   <li><strong>Clear chat</strong> asks whether to keep starred messages ("Keep starred messages", checked by default). Unchecked, starred messages are deleted too, including on the phone. It also applies to several selected chats and to archived ones.</li>
   <li>The clear and delete confirmations have a "Don't show again" box, which only counts together with Yes. To be asked again, use the matching options in Settings &gt; Interface &gt; Confirmations. With the question turned off, clearing keeps starred messages.</li>
   <li><strong>Mark all chats as read</strong> (File menu, or Ctrl+Alt+Shift+M) asks first, with No as the default. It also has "Don't show again"; the option "Ask for confirmation before marking all chats as read" brings the question back.</li>
+  <li><strong>Spoken confirmation:</strong> marking a chat read or unread, muting, archiving and pinning now say what was done, and marking several chats as read says how many.</li>
 </ul>
 
 <h3>New chat, group and contact</h3>
@@ -913,6 +914,7 @@
   <li><strong>Lists:</strong> VO+Space on a row does what Enter does; on a chat, the chat opens and VoiceOver moves to the message field. The items of the row's context menu are VoiceOver actions (VO+Command+Space), and VO+Shift+M opens the context menu. VoiceOver keeps its place when a row changes, for example when a new message arrives.</li>
   <li><strong>Updates:</strong> "Check for updates" is in the WinZapp menu, under About WinZapp, and in "Help". With "Automatically check for updates" on in Settings, an update is downloaded in the background and installed when you quit WinZapp; if WinZapp stays open, the update window offers to install and relaunch, and WinZapp announces it by speech and by a notification. The update window says what changed since your version. Installing an update takes a few seconds, and the first launch after it is as quick as any other.</li>
   <li><strong>Update verification:</strong> If verification fails, the message explains whether the update verification file could not be retrieved or the official release tag could not be checked. It distinguishes connection, address lookup, timeout, certificate, access, missing resource, server and GitHub request-limit problems. Temporary connection and server failures are retried once within the request time limit. When GitHub specifies a wait, the message gives the number of seconds; wait before checking again. Request limits stop further requests to that host in the same running process during that wait. A certificate failure or an unverified release is never accepted as a successful check.</li>
+  <li><strong>Home and End:</strong> go to the first and last row of a list. <strong>After sleep:</strong> when the Mac wakes, WinZapp reconnects on its own.</li>
 </ul>
 
   </section>

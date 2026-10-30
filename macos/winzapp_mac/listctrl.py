@@ -28,6 +28,22 @@ def row_height(window):
     return window.GetCharHeight() + 4
 
 
+def edge_row(key, row, count):
+    """The row Home or End moves to, or None to leave the key alone.
+
+    A native list control has these keys and an NSTableView does not. A Home
+    already on the first row stays unhandled: the messages list reads it as
+    "load older messages".
+    """
+    if key in (wx.WXK_HOME, wx.WXK_NUMPAD_HOME):
+        target = 0
+    elif key in (wx.WXK_END, wx.WXK_NUMPAD_END):
+        target = count - 1
+    else:
+        return None
+    return target if count and target != row else None
+
+
 class MacListCtrl(wx.ListBox):
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.LC_ICON,
@@ -115,6 +131,11 @@ class MacListCtrl(wx.ListBox):
             if row != wx.NOT_FOUND:
                 self._emit(wx.wxEVT_LIST_ITEM_ACTIVATED, row)
                 return
+        target = edge_row(evt.GetKeyCode(), self.GetFocusedItem(), len(self._rows))
+        if target is not None and self.HasFocus() and not evt.HasAnyModifiers():
+            self.Focus(target)
+            self.EnsureVisible(target)
+            return
         evt.Skip()
 
     def _on_key_down_fallback(self, evt):

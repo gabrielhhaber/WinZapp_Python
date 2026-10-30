@@ -6,6 +6,8 @@ YENİLİKLER
 
 - Eşleştirme: başarılı bir bağlantıdan sonra telefon uygulamayı bağlı olarak gösterirken uygulamanın eşleştirme ekranında kalması düzeltildi.
 
+- Okundu veya okunmadı olarak işaretleme, sessize alma, arşivleme ve sabitleme artık sesli onay veriyor. Sohbet listesi alınırken tekrarlanan hata, her deneme için ayrı kutu yerine tek kutu gösterir. Mac'te WinZapp bilgisayarın uyandığını fark edip yeniden bağlanır; Home ve End listelerin başına ve sonuna götürür. Oturum sürdürülemediğinde aynı numarayı yeniden eşleştirmek artık geçmişi silmez.
+
 - README artık Windows ve Mac için doğrudan indirme bağlantılarıyla başlıyor; doğru dosyayı Releases sayfasında aramanız gerekmiyor.
 
 - Arapça: sesli mesajların ve seslerin yazıya dökülmesi artık menülerde, ayarlarda ve iletilerde «تسجيل» (kayıt) yerine «تفريغ» (yazıya dökme) sözcüğünü kullanıyor; böylece sesinizi kaydediyormuş gibi görünmüyor.

@@ -2809,6 +2809,46 @@ msgctxt "channel_read_only"
 msgid "This channel is read-only"
 msgstr "Este canal es de solo lectura"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_archived"
+msgid "Chat archived."
+msgstr "Conversación archivada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_marked_read"
+msgid "Marked as read."
+msgstr "Marcada como leída."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_marked_unread"
+msgid "Marked as unread."
+msgstr "Marcada como no leída."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_muted"
+msgid "Chat muted."
+msgstr "Conversación silenciada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_pinned"
+msgid "Chat pinned."
+msgstr "Conversación fijada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_unarchived"
+msgid "Chat unarchived."
+msgstr "Conversación desarchivada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_unmuted"
+msgid "Chat unmuted."
+msgstr "Notificaciones de la conversación reactivadas."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_action_unpinned"
+msgid "Chat unpinned."
+msgstr "Conversación desfijada."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
 msgctxt "chat_disappearing_24h"
 msgid "24 hours"
@@ -7190,6 +7230,12 @@ msgid ""
 msgstr ""
 "¿Seguro que deseas marcar todas las conversaciones como leídas? "
 "Conversaciones no leídas: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/read_state.py
+#, python-brace-format
+msgctxt "mark_all_read_done"
+msgid "Chats marked as read: {count}."
+msgstr "Conversaciones marcadas como leídas: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/archived_panel.py

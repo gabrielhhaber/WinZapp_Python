@@ -305,7 +305,8 @@ class TestMarkAllReadConfirmation:
         # Rounds do the retrying, so each request is a single attempt.
         assert {attempts for _, _, attempts in stub.sent} == {1}
         assert stub.persists == 1
-        assert stub.announced == []
+        # Once WhatsApp confirmed every chat, the user hears how many.
+        assert stub.announced == ["mark_all_read_done2"]
         # Not asked to stop asking: nothing is written.
         assert stub.settings == {}
         assert stub.settings_saves == 0

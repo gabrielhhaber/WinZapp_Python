@@ -6,6 +6,8 @@ NOVIDADES
 
 - Pareamento: corrigido o aplicativo que ficava na tela de pareamento depois de vincular com sucesso, enquanto o celular já o mostrava como conectado.
 
+- Marcar como lida ou não lida, silenciar, arquivar e fixar agora têm confirmação falada. Um erro repetido ao buscar a lista de conversas mostra uma só caixa, não uma por tentativa. No Mac, o WinZapp percebe quando o computador acorda e reconecta, e Home e End levam ao início e ao fim das listas. Quando a sessão não pode ser retomada, parear de novo o mesmo número não apaga mais o histórico.
+
 - O README agora começa com links diretos de download para Windows e Mac, sem precisar procurar o arquivo certo na página de Releases.
 
 - Árabe: a transcrição de mensagens de voz e áudios agora usa «تفريغ» (transcrição) em vez de «تسجيل» (gravação) nos menus, nas configurações e nas mensagens, para não parecer que você está gravando sua voz.

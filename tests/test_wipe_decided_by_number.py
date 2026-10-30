@@ -156,18 +156,18 @@ def _run_pairing_flow(c, monkeypatch):
         lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("no network in tests")),
     )
     decided = threading.Event()
-    real_same_account = c._is_same_account
+    real_decision = c._history_belongs_to
 
     def _tripwire(privateinfo, phone_number):
         # Wraps rather than replaces: the real answer is what the assertions
         # are about; this only records that the decision was reached at all,
         # so a flow that died earlier fails loudly instead of silently
         # asserting "clear_local_data was not called".
-        answer = real_same_account(privateinfo, phone_number)
+        answer = real_decision(privateinfo, phone_number)
         decided.set()
         return answer
 
-    c._is_same_account = _tripwire
+    c._history_belongs_to = _tripwire
     c.on_continue(None)
     assert decided.wait(5), "the pairing flow never reached the wipe decision"
 
@@ -329,3 +329,28 @@ class TestAnAbandonedAttemptDoesNotRenameTheDatabasesOwner:
         c._close_active_session()
 
         assert mw.settings["privateinfo"]["WA_phone_number"] == NUMBER
+
+
+class TestHistoryBelongsTo:
+    """_on_disconnect(wipe=False) drops WA_phone_number and paired, and only
+    WA_phone_number_linked still says whose history is on disk."""
+
+    def test_the_owner_typing_their_number_after_a_no_wipe_disconnect(self):
+        assert Connect._history_belongs_to({"WA_phone_number_linked": NUMBER}, NUMBER) is True
+
+    def test_another_number_still_wipes(self):
+        pi = {"WA_phone_number_linked": NUMBER}
+        assert Connect._history_belongs_to(pi, "5511888888888") is False
+
+    def test_nothing_recorded_still_wipes(self):
+        assert Connect._history_belongs_to({}, NUMBER) is False
+
+    def test_an_empty_number_never_matches(self):
+        assert Connect._history_belongs_to({"WA_phone_number_linked": NUMBER}, "") is False
+
+    def test_it_stays_true_where_the_strict_answer_is_true(self):
+        assert Connect._history_belongs_to({"paired": True, "WA_phone_number": NUMBER}, NUMBER) is True
+
+    def test_it_never_lets_a_session_be_reused(self):
+        pi = {"WA_phone_number_linked": NUMBER}
+        assert Connect._can_reuse_existing_session(pi, NUMBER, "token") is False
