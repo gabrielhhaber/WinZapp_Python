@@ -12,11 +12,13 @@ System Audio Recording permission the first time it runs.
 """
 
 import array
+import atexit
 import collections
 import ctypes as C
 import logging
 import platform
 import subprocess
+import threading
 import time
 import uuid
 
@@ -225,34 +227,36 @@ class TapCapture(_PacketStream):
             self._tap.api.AudioDeviceDestroyIOProcID(self._tap.device, proc_id)
 
 
-def _process_objects(name):
-    """Core Audio process objects of the running processes called *name*."""
-    found = subprocess.run(["pgrep", "-x", name], capture_output=True, text=True)
+def _process_objects():
+    """{process name: Core Audio process objects} of VoiceOver and the routers.
+    One pgrep: a press should not pay for a process per name."""
+    wanted = "|".join(("VoiceOver", *_AUDIO_ROUTERS))
+    found = subprocess.run(["pgrep", "-lx", wanted], capture_output=True, text=True)
     api = C.CDLL(f"{_COREAUDIO}/CoreAudio")
-    objects = []
-    for pid in found.stdout.split():
+    objects = {}
+    for line in found.stdout.splitlines():
+        pid, _space, name = line.partition(" ")
         pid = C.c_int32(int(pid))
         process, size = C.c_uint32(0), C.c_uint32(4)
         status = api.AudioObjectGetPropertyData(
             _SYSTEM_OBJECT, C.byref(_PROCESS_FROM_PID), C.sizeof(pid), C.byref(pid),
             C.byref(size), C.byref(process))
         if status == 0 and process.value:
-            objects.append(process.value)
+            objects.setdefault(name, []).append(process.value)
     return objects
 
 
-def voiceover_process():
-    """VoiceOver's Core Audio process object, or None if it is not running."""
-    objects = _process_objects("VoiceOver")
-    return objects[0] if objects else None
+def voiceover_process(running):
+    """VoiceOver's process object in *running*, or None if it is not there."""
+    return (running.get("VoiceOver") or [None])[0]
 
 
-def audio_routers():
+def audio_routers(running):
     """Processes that replay other apps' audio. A tap already has that audio
     from the app that made it, so including them records it twice, a few
     milliseconds apart: measured at 16.7 ms through Crosspoint, which sounds
     phasey and also defeats VoiceOver's own slider."""
-    return [process for name in _AUDIO_ROUTERS for process in _process_objects(name)]
+    return [process for name in _AUDIO_ROUTERS for process in running.get(name, ())]
 
 
 class ComputerAudioTap:
@@ -317,12 +321,68 @@ class ComputerAudioTap:
             self._tap = C.c_uint32(0)
 
 
+class TapPool:
+    """Taps kept between recordings. Creating one takes macOS up to seconds,
+    which a press would wait through, and an idle one costs nothing: it only
+    runs while a TapCapture has it started."""
+
+    def __init__(self, factory):
+        self._factory = factory
+        self._lock = threading.Lock()
+        self._taps = {}
+
+    def get(self, *, excluded=(), only=None):
+        key = (tuple(excluded), None if only is None else tuple(only))
+        with self._lock:
+            if key not in self._taps:
+                self._taps[key] = self._factory(excluded=excluded, only=only)
+            return self._taps[key]
+
+    def keep_only(self, wanted):
+        """Create what *wanted* lists and close the rest, whose excluded
+        processes are gone. wanted: (excluded, only) pairs."""
+        keys = {(tuple(excluded), None if only is None else tuple(only))
+                for excluded, only in wanted}
+        for excluded, only in keys:
+            self.get(excluded=excluded, only=only)
+        with self._lock:
+            stale = [key for key in self._taps if key not in keys]
+            closing = [self._taps.pop(key) for key in stale]
+        for tap in closing:
+            tap.close()
+
+    def close(self):
+        with self._lock:
+            closing, self._taps = list(self._taps.values()), {}
+        for tap in closing:
+            tap.close()
+
+
+_pool = TapPool(lambda **which: ComputerAudioTap(**which))
+
+
+def tap_choices(running):
+    """(excluded, only) of the taps a recording opens with *running*."""
+    voiceover = voiceover_process(running)
+    routers = audio_routers(running)
+    if voiceover is None:
+        return [(routers, None)]
+    return [([voiceover, *routers], None), ((), [voiceover])]
+
+
+def prepare():
+    """Have this machine's taps ready before anyone presses record."""
+    try:
+        _pool.keep_only(tap_choices(_process_objects()))
+    except Exception:
+        logging.debug("[system_audio_mac] could not prepare the taps", exc_info=True)
+
+
 class MacBackend:
     def __init__(self):
         import pyaudio
         self._pyaudio = pyaudio.PyAudio
         self._owned = []
-        self._taps = []
 
     @staticmethod
     def clock():
@@ -335,21 +395,20 @@ class MacBackend:
         return PortAudioCapture(pa, find_input_device_index(name, pa), rate, channels)
 
     def open_loopback(self, rate, channels):
-        return self._open_tap(rate, channels, excluded=audio_routers())
+        excluded, only = tap_choices(_process_objects())[0]
+        return self._open_tap(rate, channels, excluded=excluded, only=only)
 
     def _open_tap(self, rate, channels, **which):
-        tap = ComputerAudioTap(**which)
-        self._taps.append(tap)
-        return TapCapture(tap, rate, channels)
+        return TapCapture(_pool.get(**which), rate, channels)
 
     def open_nvda_loopbacks(self, rate, channels):
         """Everything except VoiceOver, then VoiceOver alone, for its own
         slider. None when it is not running: one stream, as the recorder expects."""
-        process = voiceover_process()
-        if process is None:
+        choices = tap_choices(_process_objects())
+        if len(choices) < 2:
             return None
-        return (self._open_tap(rate, channels, excluded=[process, *audio_routers()]),
-                self._open_tap(rate, channels, only=[process]))
+        return tuple(self._open_tap(rate, channels, excluded=excluded, only=only)
+                     for excluded, only in choices)
 
     def close(self):
         for pa in self._owned:
@@ -358,9 +417,7 @@ class MacBackend:
             except Exception:
                 logging.debug("[system_audio_mac] PortAudio close failed", exc_info=True)
         self._owned.clear()
-        for tap in self._taps:
-            tap.close()
-        self._taps.clear()
+        threading.Thread(target=prepare, daemon=True).start()
 
 
 def without_value_labels(style):
@@ -382,3 +439,5 @@ def install():
     from core import wasapi_capture
     wasapi_capture.WasapiBackend = MacBackend
     wx.Slider = _Slider
+    atexit.register(_pool.close)
+    threading.Thread(target=prepare, daemon=True).start()

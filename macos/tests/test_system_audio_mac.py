@@ -139,37 +139,78 @@ def test_older_macos_keeps_the_feature_off(monkeypatch):
     assert sam.available() is True
 
 
+def _running(monkeypatch, running):
+    monkeypatch.setattr(sam, "_process_objects", lambda: running)
+
+
 def test_voiceover_gets_its_own_stream_beside_everything_else(monkeypatch):
-    monkeypatch.setattr(sam, "voiceover_process", lambda: 42)
-    monkeypatch.setattr(sam, "audio_routers", lambda: [7])
+    _running(monkeypatch, {"VoiceOver": [42], "CrosspointAgent": [7]})
     opened = []
     backend = sam.MacBackend()
     monkeypatch.setattr(backend, "_open_tap", lambda r, c, **which: opened.append(which) or which)
 
     assert len(backend.open_nvda_loopbacks(48000, 2)) == 2
-    assert opened == [{"excluded": [42, 7]}, {"only": [42]}]
+    assert opened == [{"excluded": [42, 7], "only": None}, {"excluded": (), "only": [42]}]
 
 
 def test_without_voiceover_all_audio_is_one_stream(monkeypatch):
-    monkeypatch.setattr(sam, "voiceover_process", lambda: None)
+    _running(monkeypatch, {})
     assert sam.MacBackend().open_nvda_loopbacks(48000, 2) is None
 
 
 def test_one_stream_still_leaves_out_audio_routers(monkeypatch):
-    monkeypatch.setattr(sam, "audio_routers", lambda: [7])
+    _running(monkeypatch, {"CrosspointAgent": [7]})
     opened = []
     backend = sam.MacBackend()
     monkeypatch.setattr(backend, "_open_tap", lambda r, c, **which: opened.append(which))
 
     backend.open_loopback(48000, 2)
 
-    assert opened == [{"excluded": [7]}]
+    assert opened == [{"excluded": [7], "only": None}]
 
 
-def test_every_running_router_is_left_out(monkeypatch):
+def test_every_running_router_is_left_out():
     running = {"CrosspointAgent": [1], "arkaudiod": [2, 3], "Audio Hijack": [4], "Loopback": [5]}
-    monkeypatch.setattr(sam, "_process_objects", running.get)
-    assert sam.audio_routers() == [1, 2, 3, 4, 5]
+    assert sam.audio_routers(running) == [1, 2, 3, 4, 5]
+
+
+class _PooledTap:
+    def __init__(self, excluded, only):
+        self.closed = False
+
+    def close(self):
+        self.closed = True
+
+
+def _pool(created):
+    def factory(*, excluded, only):
+        created.append((excluded, only))
+        return _PooledTap(excluded, only)
+    return sam.TapPool(factory)
+
+
+def test_a_prepared_tap_is_reused_not_rebuilt():
+    created = []
+    pool = _pool(created)
+    pool.keep_only([([1], None)])
+    assert pool.get(excluded=[1]) is pool.get(excluded=(1,))
+    assert len(created) == 1
+
+
+def test_a_tap_for_processes_that_changed_is_closed():
+    created = []
+    pool = _pool(created)
+    old = pool.get(excluded=[1])
+    pool.keep_only([([2], None)])
+    assert old.closed
+    assert pool.get(excluded=[2]) is not old
+
+
+def test_closing_the_pool_closes_every_tap():
+    pool = _pool([])
+    tap = pool.get(only=[3])
+    pool.close()
+    assert tap.closed
 
 
 def test_nvda_reads_voiceover_on_the_mac():
