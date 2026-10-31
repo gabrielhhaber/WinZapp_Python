@@ -1,7 +1,8 @@
 """Consent to capture microphone and computer audio, including all outputs
 when NVDA process separation is active.
 
-Like the stereo warning: No is default; don't-show only counts with Yes.
+Yes is the default: pressing record already asked for this. Don't-show only
+counts with Yes.
 Settings > Interface can restore this warning.
 """
 from ui.dialogs.checkbox_confirm import confirm_with_checkbox
@@ -39,5 +40,5 @@ def ask_system_audio(parent, i18n):
         yes_label=t("yes_button"),
         no_label=t("no_button"),
         checked=False,
-        default_yes=False,
+        default_yes=True,
     )

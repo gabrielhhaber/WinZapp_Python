@@ -82,7 +82,7 @@ class TestPrivacyWarning(unittest.TestCase):
         confirm.assert_called_once_with(
             'parent', 'system_audio_recording_warning', 'system_audio_recording_title',
             'mark_all_read_dont_show_again', yes_label='yes_button', no_label='no_button',
-            checked=False, default_yes=False)
+            checked=False, default_yes=True)
 
     def panel(self, answer=(True, False)):
         mw = SimpleNamespace(settings={}, i18n=SimpleNamespace(t=lambda key: key),
