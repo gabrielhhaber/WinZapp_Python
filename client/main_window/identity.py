@@ -963,13 +963,14 @@ class IdentityMixin:
                 return pname
         if jid_norm.endswith("@lid"):
             phone = getattr(self, "_lid_to_phone", {}).get(jid_norm, "")
-            if phone:
-                return format_number(phone)
-            # No phone mapping cached yet — before giving up, check whatever
-            # this group's own messages already know about this @lid (an
-            # earlier message from the same person, still carrying its
-            # pushName) and, for the conversation currently open, the same
-            # participant cache _get_participant_name() consults.
+            # Check whatever this group's own messages already know about
+            # this @lid (an earlier message from the same person, still
+            # carrying its pushName) and, for the conversation currently
+            # open, the same participant cache _get_participant_name()
+            # consults. This runs even when the phone is known: a participant
+            # who is not a saved contact has a pushName but no contact name,
+            # and the message shows that name while the typing announcement
+            # used to fall back to the bare number.
             if chat_jid_norm:
                 records = (
                     self.chats.get(chat_jid_norm, {})
@@ -981,7 +982,7 @@ class IdentityMixin:
                     if not isinstance(m, dict):
                         continue
                     m_part = m.get("key", {}).get("participant") or m.get("participant")
-                    if m_part and self._normalize_jid(m_part) == jid_norm:
+                    if m_part and self._normalize_jid(m_part) in (jid_norm, phone):
                         push = (m.get("pushName") or "").strip()
                         if push and not is_phone_like(push):
                             return push
@@ -991,6 +992,8 @@ class IdentityMixin:
                     for pname, p_jid in getattr(cp, "_group_participants_cache", []):
                         if p_jid == jid_norm and pname and not is_phone_like(pname):
                             return pname
+            if phone:
+                return format_number(phone)
             # Still nothing — kick a background resolution so a later
             # presence event in the same typing burst (or the next time this
             # group is opened) shows the real name instead of the
