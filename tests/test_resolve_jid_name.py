@@ -204,3 +204,66 @@ class TestUnmappedLidChecksTheGroupsOwnMessagesFirst:
 
         assert name == "unnamed participant"
         assert stub.resolve_calls == [[lid]]
+
+
+class TestMappedLidStillPrefersTheGroupMessagePushName:
+    """A participant who is not a saved contact has a pushName on the group's
+    messages but no contact name. The typing announcement used to return the
+    bare phone as soon as _lid_to_phone knew the @lid, while the message
+    itself showed the name."""
+
+    def test_pushname_from_group_messages_beats_the_formatted_phone(self):
+        stub = _Stub()
+        group_jid = "12345-6789@g.us"
+        lid = "987654321@lid"
+        stub._lid_to_phone[lid] = "5511988887777@s.whatsapp.net"
+        stub.chats[group_jid] = _chat_with_records(
+            {"key": {"participant": lid}, "pushName": "Ciclano"}
+        )
+
+        assert stub._resolve_jid_name(lid, group_jid) == "Ciclano"
+
+    def test_message_keyed_by_the_phone_jid_also_counts(self):
+        stub = _Stub()
+        group_jid = "12345-6789@g.us"
+        lid = "987654321@lid"
+        phone = "5511988887777@s.whatsapp.net"
+        stub._lid_to_phone[lid] = phone
+        stub.chats[group_jid] = _chat_with_records(
+            {"key": {"participant": phone}, "pushName": "Ciclano"}
+        )
+
+        assert stub._resolve_jid_name(lid, group_jid) == "Ciclano"
+
+    def test_mapped_lid_without_any_name_still_shows_the_number(self):
+        stub = _Stub()
+        lid = "987654321@lid"
+        stub._lid_to_phone[lid] = "5511988887777@s.whatsapp.net"
+
+        name = stub._resolve_jid_name(lid, "12345-6789@g.us")
+
+        assert "88887777" in name.replace(" ", "").replace("-", "")
+        assert stub.resolve_calls == []
+
+    def test_brazilian_8_digit_variant_of_the_mapped_phone_counts(self):
+        stub = _Stub()
+        group_jid = "12345-6789@g.us"
+        lid = "987654321@lid"
+        stub._lid_to_phone[lid] = "5511988887777@s.whatsapp.net"
+        stub.chats[group_jid] = _chat_with_records(
+            {"key": {"participant": "551188887777@s.whatsapp.net"}, "pushName": "Ciclano"}
+        )
+
+        assert stub._resolve_jid_name(lid, group_jid) == "Ciclano"
+
+    def test_latest_pushname_wins_after_a_rename(self):
+        stub = _Stub()
+        group_jid = "12345-6789@g.us"
+        lid = "987654321@lid"
+        stub._lid_to_phone[lid] = "5511988887777@s.whatsapp.net"
+        stub.chats[group_jid] = _chat_with_records(
+            {"key": {"participant": lid}, "pushName": "Antigo"},
+            {"key": {"participant": lid}, "pushName": "Novo"},
+        )
+
+        assert stub._resolve_jid_name(lid, group_jid) == "Novo"

@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Grupos: quando alguém está digitando, o WinZapp agora anuncia o nome da pessoa em vez de só o número de telefone quando você já viu uma mensagem dela, mesmo que ela não esteja nos seus contatos.
+
 - Mac: agora dá para gravar o microfone junto com o áudio do computador (Command+Shift+H) a partir do macOS 14.4. Na primeira vez, o macOS pede permissão para gravar o áudio do sistema.
 
 - Grupos: o WinZapp agora reconhece você em grupos que o listam pelo identificador vinculado (@lid), então um administrador não encontra mais "Adicionar participante" desativado.

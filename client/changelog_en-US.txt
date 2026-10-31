@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Groups: when someone is typing, WinZapp now announces their name instead of just their phone number when you have seen a message from them, even if they are not in your contacts.
+
 - Mac: you can now record the microphone together with computer audio (Command+Shift+H) on macOS 14.4 and later. The first time, macOS asks for permission to record system audio.
 
 - Groups: WinZapp now recognizes you in groups that list you by your linked ID (@lid), so an admin no longer finds Add Member dimmed.
