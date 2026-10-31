@@ -41,14 +41,16 @@ class PendingMessage:
                  link_preview: dict = None,
                  owns_media_path: bool = False,
                  custom_filename: str = "",
-                 poll: dict = None):
+                 poll: dict = None,
+                 voice_mimetype: str = ""):
         # local_id matches the "_local_id" field in the virtual message dict
         # that was already added to the UI.
         self.local_id      = local_id
         self.jid           = jid
         self.text          = text           # plain-text body
         self.audio_path    = audio_path     # path to recorded WAV
-        self.ogg_bytes     = ogg_bytes      # pre-encoded OGG Opus (skips encoding on send)
+        self.ogg_bytes     = ogg_bytes      # pre-encoded voice message (skips encoding on send)
+        self.voice_mimetype = voice_mimetype  # of ogg_bytes when not OGG Opus (core/voice_stereo.py)
         self.media_path    = media_path     # path to attached file (image/video/doc/audio)
         self.media_type    = media_type     # "image"|"video"|"audio"|"document"
         # Only internally-created recordings opt in. Never remove a file the
@@ -399,6 +401,7 @@ class MessageQueue:
                         real_id = self.main_window.send_audio_message(
                             msg.jid, msg.audio_path, quoted=msg.quoted,
                             ogg_bytes=msg.ogg_bytes,
+                            voice_mimetype=msg.voice_mimetype,
                         )
                     elif msg.media_path:
                         def _media_progress(progress, pending=msg):

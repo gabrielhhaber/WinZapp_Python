@@ -202,9 +202,6 @@ class SystemAudioRecordingMixin:
         self._recording_paused = False
         self._recording_system_audio = True
         self._system_audio_interrupted = False
-        # Mixed capture has its own music-quality contract; the microphone-only
-        # voice preference must not downmix desktop audio.
-        self._recording_stereo = True
         channels = 2
         microphone_name = getattr(self.main_window, "effective_input_device_name", "") or ""
         self._show_system_audio_recording_controls(starting=True)
@@ -259,7 +256,6 @@ class SystemAudioRecordingMixin:
             self._emoji_btn.Hide()
         self.send_message_btn.Hide()
         self.record_voice_message_btn.Hide()
-        self._record_voice_alt_btn.Hide()
         if hasattr(self, "_record_voice_system_btn"):
             self._record_voice_system_btn.Hide()
         self._add_attachment_btn.Hide()
@@ -444,8 +440,8 @@ class SystemAudioRecordingMixin:
         self.main_window.voicemsg_pauserecording_sound.play()
 
     def _enqueue_system_audio_file(self, wav_path, local_id, remote_jid, quoted_msg, enc_key, virtual_msg):
-        """Worker-side M4A encoder for microphone + computer audio and for a
-        stereo voice message; a mono voice message never enters this path."""
+        """Worker-side M4A encoder for microphone + computer audio; a voice
+        message never enters this path."""
         from core.audio_transcode import encode_system_audio_to_m4a
         mw = self.main_window
         m4a_path = cache_path = None

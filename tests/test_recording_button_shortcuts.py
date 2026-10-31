@@ -1,7 +1,7 @@
 """The recording buttons announce their own shortcut to the screen reader.
 
 All three used to look the configured key up under the Ctrl+R ids, so with a
-main window to ask, the alternate-mode button (Ctrl+Shift+G) and the
+main window to ask, the
 computer-audio one (Ctrl+Shift+H) both announced Ctrl+R, although their own
 keys worked.
 """
@@ -43,11 +43,6 @@ def _announced(accessible):
     return text
 
 
-def test_the_alternate_mode_button_says_its_own_key(window):
-    assert _announced(AccessibleRecordVoiceMessage(
-        "Ctrl+Shift+G", ("messages.ID_CTRL_SHIFT_G",))) == "Ctrl+Shift+G"
-
-
 def test_the_computer_audio_button_says_its_own_key(window):
     assert _announced(AccessibleRecordVoiceMessage(
         "Ctrl+Shift+H", ("messages.ID_CTRL_SHIFT_H",))) == "Ctrl+Shift+H"
@@ -59,9 +54,9 @@ def test_the_plain_recording_button_still_says_ctrl_r(window):
 
 def test_a_key_the_user_changed_is_the_one_announced(window):
     window.settings[shortcut_bindings.SECTION] = {
-        "messages.ID_CTRL_SHIFT_G": [wx.ACCEL_CTRL | wx.ACCEL_ALT, ord("J")]}
+        "messages.ID_CTRL_SHIFT_H": [wx.ACCEL_CTRL | wx.ACCEL_ALT, ord("J")]}
     assert _announced(AccessibleRecordVoiceMessage(
-        "Ctrl+Shift+G", ("messages.ID_CTRL_SHIFT_G",))) == "Ctrl+Alt+J"
+        "Ctrl+Shift+H", ("messages.ID_CTRL_SHIFT_H",))) == "Ctrl+Alt+J"
 
 
 def test_without_a_main_window_the_written_key_is_said(monkeypatch):

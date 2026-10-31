@@ -587,11 +587,10 @@
   <tr><td class="field-name">Ctrl+Shift+P</td><td>Wstrzymaj i wznów nagrywanie</td></tr>
   <tr><td class="field-name">Ctrl+P</td><td>Odsłuchaj nagranie podczas wstrzymanego nagrywania</td></tr>
   <tr><td class="field-name">Ctrl+Shift+D</td><td>Odrzuć nagranie</td></tr>
-  <tr><td class="field-name">Ctrl+Shift+G</td><td>Nagraj wiadomość w drugim trybie (stereo, jeśli domyślnie jest mono; mono, jeśli jest stereo)</td></tr>
   <tr><td class="field-name">Ctrl+Shift+H</td><td>Nagraj mikrofon i dźwięk komputera</td></tr>
 </table>
 <ul>
-  <li><strong>Stereo:</strong> przy mikrofonie, który naprawdę nagrywa w stereo, nagranie może zachować oba kanały. Zaznacz "Domyślnie nagrywaj wiadomości głosowe w stereo" w Ustawienia &gt; Dźwięk. Nagranie stereo jest wysyłane jako wiadomość audio (dzięki temu odtwarza się także na iPhonie). Jeśli mikrofon nie oferuje dwóch kanałów, nagrywa w mono i informuje o tym.</li>
+  <li><strong>Stereo:</strong> Jest jeden przycisk nagrywania. Jeśli urządzenie wejściowe oferuje dwa kanały, wiadomość głosowa jest wysyłana w stereo; w przeciwnym razie w mono. Wiadomość głosowa w stereo odtwarza się także na iPhonie.</li>
   <li><strong>Mikrofon + dźwięk komputera:</strong> nagrywa w jednej wiadomości twój głos i to, co odtwarza komputer (film, muzykę, czytnik ekranu). Podczas nagrywania dwa suwaki regulują głośność pozostałych dźwięków i NVDA (bez NVDA drugi jest wyłączony); dotyczą tylko nagrania i są zapamiętywane dla każdego konta. Przed rozpoczęciem WinZapp ostrzega, że wszystko, co gra, trafi do nagrania, z opcją "Nie pokazuj ponownie" (opcja "Ostrzegaj przed nagrywaniem dźwięku komputera" przywraca ostrzeżenie). Nagranie jest wysyłane jako audio.</li>
   <li>W Ustawienia &gt; Dźwięk możesz wyciszyć zapowiedzi treści mówionej oraz odczytywanie przycisku „Wyślij” podczas nagrywania wiadomości głosowej.</li>
   <li>Używany mikrofon i głośnik znajdują się w Ustawienia &gt; Dźwięk.</li>
@@ -845,7 +844,7 @@
   <tr><td class="field-name">Interfejs &gt; Skróty klawiszowe</td><td>Wymienia wszystkie skróty programu, w tym globalny. Wybierz jeden, użyj "Zmień" i wpisz nową kombinację; albo wyłącz go, przywróć domyślny lub przywróć wszystkie. O konfliktach ostrzega się przed zastosowaniem, a zmiany zaczynają działać dopiero po Zastosuj lub OK.</td></tr>
   <tr><td class="field-name">Dostępność</td><td>Rozszerzona zgodność z czytnikiem ekranu (dodatkowe komunikaty) i użycie głosu SAPI, gdy żaden czytnik ekranu nie jest aktywny.</td></tr>
   <tr><td class="field-name">Dostępność &gt; Zawartość mówiona</td><td>Ogłaszanie, że kontakt pisze lub nagrywa; ogłaszanie początku i końca odświeżania czatu; mówiony postęp synchronizacji i pobierania multimediów; automatyczne mówienie wiadomości w aktywnym czacie i w innych; ogłaszanie synchronizacji, pobierania multimediów i automatycznego trybu offline.</td></tr>
-  <tr><td class="field-name">Dźwięk</td><td>Mikrofon, głośnik i wyjście efektów (alerty i dźwięki); redukcja szumów mikrofonu; domyślne nagrywanie głosu w stereo; pliki audio wklejone przez Ctrl+V jako audio lub dokument; gdzie ustawić fokus po nagraniu wiadomości głosowej (wyślij lub odrzuć); przekazywanie głosu jako głosu; odczyt wiadomości głosowej jako audio lub jako wiadomości głosowej; transkrybowanie przez Enter i Spację; wyciszanie komunikatów i przycisku wysyłania podczas nagrywania.</td></tr>
+  <tr><td class="field-name">Dźwięk</td><td>Mikrofon, głośnik i wyjście efektów (alerty i dźwięki); redukcja szumów mikrofonu; pliki audio wklejone przez Ctrl+V jako audio lub dokument; gdzie ustawić fokus po nagraniu wiadomości głosowej (wyślij lub odrzuć); przekazywanie głosu jako głosu; odczyt wiadomości głosowej jako audio lub jako wiadomości głosowej; transkrybowanie przez Enter i Spację; wyciszanie komunikatów i przycisku wysyłania podczas nagrywania.</td></tr>
   <tr><td class="field-name">Dźwięk &gt; Odtwarzanie audio</td><td>Szybkość domyślna; oznaczanie audio jako odtworzonego i ogłaszanie; automatyczne odtwarzanie wiadomości głosowych po kolei; przenoszenie fokusu na następne audio w sekwencji.</td></tr>
   <tr><td class="field-name">Dźwięki zdarzeń</td><td>Pakiet dźwięków, import folderu z dźwiękami lub pliku ZIP oraz dźwięk każdego zdarzenia (w tym gdy ktoś zareaguje na twoją wiadomość i błędu pisowni); włączanie lub wyłączanie wszystkich; dźwięk powiadomienia w tle dla czatów prywatnych i dla grup, z podglądem dźwięku.</td></tr>
   <tr><td class="field-name">Pamięć</td><td>Automatyczne pobieranie multimediów, rodzaje multimediów, limit w dniach i w MB (0 = bez limitu), ustalanie czasu trwania filmów podczas pobierania; folder, w którym otwierają się okna zapisu (ostatnio używany, Pobrane lub własny).</td></tr>
@@ -1069,7 +1068,6 @@
 <tr><td class="field-name">Ctrl+Shift+E</td><td>Przekaż wiadomość</td></tr>
 <tr><td class="field-name">Ctrl+Shift+P</td><td>Wstrzymaj/wznów nagrywanie</td></tr>
 <tr><td class="field-name">Ctrl+Shift+R</td><td>Oddzwoń na nieodebrane połączenie</td></tr>
-<tr><td class="field-name">Ctrl+Shift+G</td><td>Nagraj wiadomość głosową w drugim trybie (w stereo, jeśli domyślny jest mono, w mono, jeśli domyślny jest stereo)</td></tr>
 <tr><td class="field-name">Ctrl+Shift+H</td><td>Nagraj mikrofon i dźwięk komputera</td></tr>
 <tr><td class="field-name">Ctrl+Shift+Y</td><td>Przy wiadomości, której wysłanie nie powiodło się lub nie zostało potwierdzone, spróbuj wysłać ją ponownie</td></tr>
 <tr><td class="field-name">Alt+Shift+B</td><td>Otwórz katalog i koszyk firmy, z którą prowadzisz czat</td></tr>

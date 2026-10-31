@@ -374,9 +374,9 @@ def _recording_configs_for(device_index, pa=None) -> list:
 
     configs = []
     if native > 0:
-        # Mono first for the same reason the fixed list does it: WhatsApp voice
-        # messages are mono, and a stereo capture costs a downmix loop in pure
-        # Python. A device reporting a single input channel never gets asked
+        # Mono first for the same reason the fixed list does it: a device test
+        # costs nothing more that way. A recording asks for stereo first
+        # (core/voice_stereo.py). A device reporting a single input channel never gets asked
         # for two — an HFP microphone is exactly that.
         for channels in (1, 2):
             if max_channels and channels > max_channels:

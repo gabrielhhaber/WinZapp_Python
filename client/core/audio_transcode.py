@@ -57,7 +57,8 @@ def transcode_audio_to_wav(ffmpeg: str, source_path: str) -> str | None:
     return None
 
 
-def encode_system_audio_to_m4a(ffmpeg: str, source_wav: str) -> str | None:
+def encode_system_audio_to_m4a(ffmpeg: str, source_wav: str,
+                               bitrate: str = "192k") -> str | None:
     """Encode a stereo capture as 48 kHz AAC-LC, independently of voice PTT.
 
     Used by microphone + computer audio and by a stereo voice message: iPhone
@@ -78,7 +79,7 @@ def encode_system_audio_to_m4a(ffmpeg: str, source_wav: str) -> str | None:
         timeout = max(120, min(1800, os.path.getsize(source_wav) // (512 * 1024)))
         result = subprocess.run(
             [ffmpeg, "-y", "-i", source_wav, "-vn", "-ac", "2", "-ar", "48000",
-             "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "192k",
+             "-c:a", "aac", "-profile:a", "aac_low", "-b:a", bitrate,
              "-movflags", "+faststart", output_path],
             capture_output=True, timeout=timeout, creationflags=creationflags,
         )
@@ -114,14 +115,17 @@ _AAC_BITRATE_PER_CHANNEL_K = 96
 _AAC_FALLBACK_CHANNELS = 8
 # AAC-LC's channel ceiling (7.1); ffmpeg's encoder exits 234 beyond it.
 _AAC_MAX_CHANNELS = 8
+# What prepare_audio_for_whatsapp() may have to convert, once it reads the header.
+_REENCODED_EXTENSIONS = {".ogg", ".opus", ".wav", ".wave"}
 
 
 def read_audio_header_format(header: bytes) -> tuple[int, int] | None:
-    """Return ``(channels, sample_rate)`` from a WAV or Ogg Vorbis header.
+    """Return ``(channels, sample_rate)`` from a WAV, Ogg Vorbis or Ogg Opus
+    header.
 
     Reads only the bytes already in memory: the bundled ffmpeg ships without
-    ffprobe, and these are the only two formats prepare_audio_for_whatsapp()
-    ever re-encodes.
+    ffprobe, and these are the only formats prepare_audio_for_whatsapp() ever
+    re-encodes.
     """
     # BW64 (ITU-R BS.2088) is the broadcast WAV of ADM/Atmos beds, the usual
     # source of a .wav with more than AAC's 8 channels.
@@ -149,7 +153,25 @@ def read_audio_header_format(header: bytes) -> tuple[int, int] | None:
         sample_rate = int.from_bytes(header[vorbis + 12:vorbis + 16], "little")
         if channels and sample_rate:
             return channels, sample_rate
+    opus = header.find(b"OpusHead")
+    if opus >= 0 and len(header) >= opus + 16:
+        # 8-byte magic, version, channels, pre-skip, then the input rate, which
+        # an encoder may leave at 0: Opus itself always decodes at 48 kHz.
+        channels = header[opus + 9]
+        sample_rate = int.from_bytes(header[opus + 12:opus + 16], "little") or 48000
+        if channels:
+            return channels, sample_rate
     return None
+
+
+def _is_mono_opus(header: bytes) -> bool:
+    """Opus WhatsApp plays everywhere, sent as it is. iPhone cannot play Opus
+    with more channels (core/voice_stereo.py); a header that cannot be read is
+    left alone too, as it always was."""
+    if b"OpusHead" not in header:
+        return False
+    source_format = read_audio_header_format(header)
+    return source_format is None or source_format[0] <= 1
 
 
 def exceeds_aac_channel_limit(source_path: str) -> bool:
@@ -157,18 +179,17 @@ def exceeds_aac_channel_limit(source_path: str) -> bool:
 
     prepare_audio_for_whatsapp() would have to downmix such a file, and the
     rule is that an attachment never loses a channel, so the caller sends the
-    original untouched as a document instead. Opus OGG is never re-encoded,
-    so it never needs this.
+    original untouched as a document instead.
     """
     extension = os.path.splitext(source_path)[1].lower()
-    if extension not in {".ogg", ".wav", ".wave"}:
+    if extension not in _REENCODED_EXTENSIONS:
         return False
     try:
         with open(source_path, "rb") as source:
             header = source.read(65536)
     except OSError:
         return False
-    if extension == ".ogg" and b"OpusHead" in header:
+    if _is_mono_opus(header):
         return False
     source_format = read_audio_header_format(header)
     return bool(source_format and source_format[0] > _AAC_MAX_CHANNELS)
@@ -201,8 +222,8 @@ def prepare_audio_for_whatsapp(ffmpeg: str, source_path: str) -> tuple[str, str]
     WhatsApp accepts OGG audio through sendFile only when its stream is Opus,
     while WAV reaches its media worker but is rejected after upload. Generic
     ``.ogg`` files may also contain Vorbis, which WPPConnect rejects with
-    ``InvalidMediaCheckRepairFailedType``. Convert only those incompatible
-    inputs; formats already handled by WhatsApp (MP3, M4A, FLAC, etc.) keep
+    ``InvalidMediaCheckRepairFailedType``, and stereo Opus does not play on
+    iPhone. Convert only those incompatible inputs; formats already handled by WhatsApp (MP3, M4A, FLAC, etc.) keep
     passing through unchanged.
 
     The conversion target is AAC-LC in M4A, keeping every channel. It used to
@@ -216,7 +237,7 @@ def prepare_audio_for_whatsapp(ffmpeg: str, source_path: str) -> tuple[str, str]
         # Windows registry associations may call this audio/x-m4a. WhatsApp's
         # ordinary-audio upload contract uses audio/mp4; keep the AAC untouched.
         return source_path, "audio/mp4"
-    if extension not in {".ogg", ".wav", ".wave"}:
+    if extension not in _REENCODED_EXTENSIONS:
         return source_path, mime
 
     try:
@@ -224,7 +245,7 @@ def prepare_audio_for_whatsapp(ffmpeg: str, source_path: str) -> tuple[str, str]
             header = source.read(65536)
     except OSError:
         return None
-    if extension == ".ogg" and b"OpusHead" in header:
+    if _is_mono_opus(header):
         return source_path, "audio/ogg; codecs=opus"
     if not ffmpeg or not os.path.isfile(ffmpeg):
         return None

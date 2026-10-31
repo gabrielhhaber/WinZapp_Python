@@ -312,8 +312,8 @@ def is_voice_message(msg) -> bool:
     if not isinstance(msg, dict):
         return False
     if msg.get("_is_voice_recording"):
-        # A recording WinZapp sends as an audio message instead (stereo, or
-        # microphone + computer audio) says so on its pending row with an
+        # A recording WinZapp sends as an audio message instead (microphone +
+        # computer audio) says so on its pending row with an
         # explicit ptt False; any other recording is a voice note.
         inner = (msg.get("message") or {}).get("audioMessage") or {}
         return inner.get("ptt") is not False
@@ -1082,9 +1082,6 @@ DEFAULT_SETTINGS = {
         # (core/wpp_upstream.py). Off: the approved list, as since it existed.
         "wpp_all_updates": False,
         "noise_reduction_enabled": False,
-        # Stereo voice messages (issue #82, core/voice_stereo.py). Off: a
-        # stereo recording goes out as an audio message, not a voice message.
-        "voice_message_stereo": False,
         "system_audio_recording_volume": 100,
         "system_audio_recording_nvda_volume": 100,
         # Windows spell checking in the message field (core/spell_checker.py).

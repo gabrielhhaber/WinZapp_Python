@@ -548,15 +548,6 @@
 "tr-TR": "WhatsApp listelerini yönet",
 "ro": "Gestionează listele WhatsApp"
 },
-"Gravar mensagens de voz em estéreo por padrão": {
-"pt-BR": "Gravar mensagens de voz em estéreo por padrão",
-"pt-PT": "Gravar mensagens de voz em estéreo por predefinição",
-"en-US": "Record voice messages in stereo by default",
-"es-ES": "Grabar los mensajes de voz en estéreo de forma predeterminada",
-"pl": "Domyślnie nagrywaj wiadomości głosowe w stereo",
-"tr-TR": "Sesli mesajları varsayılan olarak stereo kaydet",
-"ro": "Înregistrați implicit mesajele vocale în stereo"
-},
 "Importar configurações": {
 "pt-BR": "Importar configurações",
 "pt-PT": "Importar definições",

@@ -108,7 +108,6 @@ Aşağıdaki değerler Türkçe arayüz içindir. Çevirinin mnemonik harfi değ
 | Sohbet içi | mesajı ilet | Kontrol+Shift+E | messages.ID_CTRL_SHIFT_E |
 | Sohbet içi | kaydı duraklat/sürdür (kayıt yapılmıyorken seçili mesajı sabitle/sabitlemeyi kaldır) | Kontrol+Shift+P | messages.ID_CTRL_SHIFT_P |
 | Sohbet içi | cevapsız bir aramayı geri ara | Kontrol+Shift+R | messages.ID_CTRL_SHIFT_R |
-| Sohbet içi | sesli mesajı diğer modda kaydet (varsayılan mono ise stereo, stereo ise mono) | Kontrol+Shift+G | messages.ID_CTRL_SHIFT_G |
 | Sohbet içi | mikrofon ve bilgisayar sesini kaydet | Kontrol+Shift+H | messages.ID_CTRL_SHIFT_H |
 | Sohbet içi | mesajı veya sohbeti sil (seçim varsa seçili olanların tümünü) | Sil | messages.ID_DELETE_MSG |
 | Sohbet içi | arama ayarları | Kontrol+C | messages.ID_CTRL_C |

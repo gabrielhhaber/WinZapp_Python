@@ -29,10 +29,6 @@ from core.audio_devices import (
     find_input_device_index, fallback_input_device_indices,
     recording_configs_for,
 )
-from core.voice_stereo import (
-    alternate_mode_is_stereo, alternate_record_label_key, encode_as_stereo,
-    fell_back_to_mono,
-)
 from core.quote_recovery import RECOVERED_FROM_QUOTE
 from core.audio_transcode import transcode_audio_to_wav
 from core.attachment_types import classify_attachment_media_type
@@ -343,9 +339,6 @@ class ConversationsPanel(
         # Actual rate/channels are resolved at open time (stereo → mono fallback).
         self._recording_actual_rate: int = 48000
         self._recording_actual_ch:   int = 1
-        # Whether THIS recording was asked for in stereo (issue #82): the
-        # Settings default, or the other mode through the second button.
-        self._recording_stereo: bool = False
         # Playback of what's been recorded so far, offered only while paused
         # (see _toggle_play_recorded_audio / _stop_recorded_audio_preview).
         self._recorded_audio_sound      = None
@@ -1030,18 +1023,6 @@ class ConversationsPanel(
         self.record_voice_message_btn.Bind(wx.EVT_BUTTON, self.on_record_voice_message)
         conv_sizer.Add(self.record_voice_message_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
-        # The other recording mode, for one message (issue #82): "em estéreo"
-        # when Settings records in mono, "em mono" when it records in stereo.
-        # Follows the first button everywhere it is shown, hidden or disabled.
-        self._record_voice_alt_btn = wx.Button(
-            self.conversation_panel, label=i18n.t(self._alternate_record_label_key())
-        )
-        self._record_voice_alt_btn.SetAccessible(
-            AccessibleRecordVoiceMessage("Ctrl+Shift+G", ("messages.ID_CTRL_SHIFT_G",))
-        )
-        self._record_voice_alt_btn.Bind(wx.EVT_BUTTON, self._on_record_alternate_mode)
-        conv_sizer.Add(self._record_voice_alt_btn, 0, wx.LEFT | wx.BOTTOM, 5)
-
         self._record_voice_system_btn = wx.Button(
             self.conversation_panel, label=i18n.t("record_voice_message_system_audio")
         )
@@ -1309,7 +1290,6 @@ class ConversationsPanel(
         if hasattr(self, "_remove_quote_btn"):
             self._remove_quote_btn.SetLabel(i18n.t("remove_quote"))
         self.record_voice_message_btn.SetLabel(i18n.t("record_voice_message"))
-        self.refresh_alternate_record_button()
         if hasattr(self, "_record_voice_system_btn"):
             self._record_voice_system_btn.SetLabel(i18n.t("record_voice_message_system_audio"))
         self._add_attachment_btn.SetLabel(i18n.t("add_attachment"))

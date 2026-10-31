@@ -1051,7 +1051,11 @@ class IdentityMixin:
                         lid_jid = res.get("lidJid")
 
                     # Parse Phone JID
-                    phone_obj = res.get("phone") or res.get("phoneJid") or res.get("id") or {}
+                    # /contact/pn-lid answers under "phoneNumber". Missing it
+                    # lost my_lid for good, so groups listing this account by
+                    # @lid (most of them) no longer recognized it as a member.
+                    phone_obj = (res.get("phoneNumber") or res.get("phone")
+                                 or res.get("phoneJid") or res.get("id") or {})
                     phone_jid = None
                     if isinstance(phone_obj, dict):
                         phone_jid = phone_obj.get("_serialized") or phone_obj.get("id")

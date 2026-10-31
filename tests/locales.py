@@ -23,6 +23,7 @@ run: it surfaces as a collection error naming this file, before any test in
 any of those modules reports success.
 """
 
+import functools
 import json
 from pathlib import Path
 
@@ -61,7 +62,16 @@ def registered_locale_codes() -> tuple[str, ...]:
 
 
 def load_strings(locale: str) -> dict[str, str]:
-    """Active stable-key translations from the authoritative PO catalog."""
+    """Active stable-key translations from the authoritative PO catalog.
+
+    A copy of one parse per locale: parsing a catalog takes a noticeable part
+    of a second, and many tests ask for one in every stub they build.
+    """
+    return dict(_parsed_strings(locale))
+
+
+@functools.lru_cache(maxsize=None)
+def _parsed_strings(locale: str) -> dict[str, str]:
     path = CATALOGS_DIR / locale / "LC_MESSAGES" / "winzapp.po"
     return {
         entry.msgctxt: entry.msgstr
