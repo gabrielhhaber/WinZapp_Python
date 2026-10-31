@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Grupy: WinZapp rozpoznaje Cię teraz w grupach, które podają Cię przez powiązany identyfikator (@lid), więc administrator nie widzi już wyszarzonej opcji dodawania członka.
+
 - Połączenia Neonize: połączenie, które wykonujesz, a nikt nie odbiera, kończy się teraz samo po minucie z wynikiem „nieodebrane”, zamiast dzwonić w oknie połączenia przez kilka minut po tym, jak WhatsApp przestał dzwonić na drugim telefonie.
 - Mac: WinZapp informuje teraz, gdy macOS czeka na zgodę na mikrofon lub gdy jej odmówiono, zamiast sprawiać wrażenie, że przycisk nagrywania nie działa.
 
