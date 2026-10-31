@@ -174,6 +174,7 @@ class CallMedia:
         self._mic_lock = threading.Lock()
         self._mic_owner = None
         self._running = False
+        self._dropped_frames = 0
         self._audio_readers = {}       # call id -> (unique claim, call record)
         self.ring_limit = OUTGOING_RING_LIMIT
         self._ring_timers = {}         # call id -> the timer that ends an unanswered dial
@@ -381,11 +382,13 @@ class CallMedia:
                 packet = reader(call_id, 200) if callable(reader) else None
                 if callable(reader):
                     if packet is None:
+                        self._note_reader_exit(call_id, claim, "native call over")
                         return
                     frame = packet["pcm"]
                 else:
                     frame = self.calls.read_audio(call_id, 200)
                 if frame is None:
+                    self._note_reader_exit(call_id, claim, "native call over")
                     return
                 # Native reads may return after end/rejoin of the same id.
                 if frame:
@@ -395,10 +398,19 @@ class CallMedia:
                         self._emit_audio(call_id, claim, frame)
         except (ValueError, layer_error()):
             log.warning("native call audio format rejected; reader released")
+            self._note_reader_exit(call_id, claim, "format rejected")
         finally:
             with self._lock:
                 if self._audio_readers.get(call_id) is claim:
                     self._audio_readers.pop(call_id, None)
+
+    def _note_reader_exit(self, call_id, claim, reason):
+        """Logs a reader that stops while its call is still ours: from then on
+        the client hears nothing from the other side (issue #654)."""
+        with self._lock:
+            live = claim is not None and self._calls.get(call_id) is claim[1]
+        if live:
+            log.warning("call audio reader stopped while the call is live: %s", reason)
 
     def _owns_audio(self, call_id, claim):
         with self._lock:
@@ -411,6 +423,11 @@ class CallMedia:
             pcm_format = self._format_for(claim[1])
             if (pcm_format is None or sample_rate != pcm_format["sampleRate"]
                     or generation != pcm_format["generation"] or len(frame) % 2):
+                self._dropped_frames += 1
+                if self._dropped_frames in (1, 50, 500):
+                    log.warning(
+                        "call audio frame dropped (%d so far): rate=%s generation=%s, expected %s",
+                        self._dropped_frames, sample_rate, generation, pcm_format)
                 return
             self.emit("call:audio:remote", {
                 "session": self.name, "encoding": "base64", "sampleRate": sample_rate,
