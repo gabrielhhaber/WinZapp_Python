@@ -111,7 +111,6 @@ class ConversationNavigationMixin:
             self.message_field.Disable()
             self.send_message_btn.Disable()
             self.record_voice_message_btn.Disable()
-            self._record_voice_alt_btn.Disable()
             if hasattr(self, "_record_voice_system_btn"):
                 self._record_voice_system_btn.Disable()
             self._add_attachment_btn.Disable()
@@ -129,7 +128,6 @@ class ConversationNavigationMixin:
             self.message_field.SetEditable(False)
             self.send_message_btn.Disable()
             self.record_voice_message_btn.Disable()
-            self._record_voice_alt_btn.Disable()
             if hasattr(self, "_record_voice_system_btn"):
                 self._record_voice_system_btn.Disable()
             self._add_attachment_btn.Disable()
@@ -139,7 +137,6 @@ class ConversationNavigationMixin:
             self.message_field.SetEditable(True)
             self.send_message_btn.Enable()
             self.record_voice_message_btn.Enable()
-            self._record_voice_alt_btn.Enable()
             if hasattr(self, "_record_voice_system_btn"):
                 self._record_voice_system_btn.Enable()
             self._add_attachment_btn.Enable()

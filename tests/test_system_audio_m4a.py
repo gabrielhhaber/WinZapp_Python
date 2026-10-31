@@ -271,7 +271,7 @@ class TestMixedComposer(unittest.TestCase):
             _system_audio_session={'stopped': True}, _recording_paused=False,
             _recording_frames=[b'\x01\x00\x02\x00' * 480],
             _recording_actual_rate=48000, _recording_actual_ch=2,
-            _recording_stereo=True, _quoted_message={'key': {'id': 'quoted'}},
+            _quoted_message={'key': {'id': 'quoted'}},
             conversation={'remoteJid': 'first-chat'}, _sorted_messages=[],
             _outgoing_virtual_messages={}, _cancelled_pending_messages={},
             _stop_system_audio_recording=Mock(), _stop_recording_stream=Mock(),
@@ -284,18 +284,18 @@ class TestMixedComposer(unittest.TestCase):
         self.p._is_cancelled_pending = lambda local: local in self.p._cancelled_pending_messages
         self.p._stop_system_audio_recording.side_effect = lambda: setattr(self.p, '_recording_system_audio', False)
         encrypt = functions(ROOT / 'client/core/utils.py', ['encrypt'], {'Fernet': Fernet})['encrypt']
-        from core.voice_stereo import sends_as_audio_file  # pure; no wx
+        from core.voice_stereo import STEREO_BITRATE, STEREO_MIMETYPE, encode_as_stereo  # pure; no wx
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
         namespace = dict(logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
                          wave=wave, threading=self.threads, wx=fake_wx,
-                         encode_as_stereo=lambda wanted, channels: wanted and channels == 2,
-                         sends_as_audio_file=sends_as_audio_file,
+                         encode_as_stereo=encode_as_stereo, STEREO_BITRATE=STEREO_BITRATE,
+                         STEREO_MIMETYPE=STEREO_MIMETYPE,
                          encrypt=encrypt, data_path=lambda name: str(self.folder / name),
                          PendingMessage=queue_module.PendingMessage,
                          append_message_row=append_message_row,
                          message_row_count=message_row_count)
         # Bind the actual send handler; no wx/App or capture APIs are imported.
-        bind(self.p, ['_send_voice_message'], namespace)
+        bind(self.p, ['_send_voice_message', '_encode_stereo_voice'], namespace)
         # New helper is bound when present so RED tests reach old behavior first.
         import ast
         from tests.god_modules import conversations_source_files
@@ -307,7 +307,7 @@ class TestMixedComposer(unittest.TestCase):
         if found:
             bind(self.p, ['_enqueue_system_audio_file'], namespace)
 
-    def encode(self, ffmpeg, wav_path):
+    def encode(self, ffmpeg, wav_path, bitrate='192k'):
         import wave
         self.written_wavs.append(wav_path)
         with wave.open(wav_path, 'rb') as wav:
@@ -411,36 +411,24 @@ class TestMixedComposer(unittest.TestCase):
         self.drain_ui()
         return self.p.main_window.message_queue.enqueue.call_args.args[0]
 
-    def test_stereo_microphone_voice_message_takes_the_same_m4a_route_as_mixed(self):
-        """Stereo OGG/Opus does not play on iPhone; the Ctrl+Shift+H M4A does."""
-        mixed = self._enqueued_after_send()
-        mixed_row = dict(self.p._sorted_messages[0]['message']['audioMessage'])
-
-        self.p.main_window.message_queue.enqueue.reset_mock()
-        self.p._sorted_messages.clear()
-        self.p._is_recording = True
+    def test_a_two_channel_recording_is_an_m4a_voice_message(self):
+        """Stereo OGG/Opus does not play on iPhone; stereo M4A does, and as a
+        voice message too (core/voice_stereo.py)."""
         self.p._recording_system_audio = False
         self.p._system_audio_session = None
-        self.p._recording_frames = [b'\x01\x00\x02\x00' * 480]
-        self.encoder.reset_mock()
-        self.gate.reset_mock()
-        stereo = self._enqueued_after_send()
+        pm = self._enqueued_after_send()
 
         self.encoder.assert_called_once()
         self.p.main_window._convert_wav_to_ogg.assert_not_called()
         self.gate.assert_called_once()  # the microphone keeps its noise gate
-        for pm in (mixed, stereo):
-            self.assertIsNone(pm.audio_path)
-            self.assertIsNone(pm.ogg_bytes)
-            self.assertEqual((pm.media_type, pm.jid), ('audio', 'first-chat'))
-            self.assertTrue(pm.media_path.endswith('recording.m4a'))
-            self.assertTrue(pm.owns_media_path)
-            self.assertEqual(pm.custom_filename, 'default_filename_audio.m4a')
-        row =self.p._sorted_messages[0]['message']['audioMessage']
-        self.assertEqual({k: row[k] for k in ('ptt', 'mimetype')},
-                         {k: mixed_row[k] for k in ('ptt', 'mimetype')})
-        self.assertIs(row['ptt'], False)
+        self.assertIsNone(pm.media_path)
+        self.assertEqual(pm.ogg_bytes, self.encoded)
+        self.assertEqual(pm.voice_mimetype, 'audio/mp4')
+        row = self.p._sorted_messages[0]['message']['audioMessage']
+        self.assertIs(row['ptt'], True)
+        self.assertEqual(row['mimetype'], 'audio/mp4')
         self.assertTrue(row['fileName'].endswith('.m4a'))
+        os.unlink(pm.audio_path)
 
     def test_stereo_encode_failure_is_visible_and_never_falls_back_to_ogg(self):
         self.p._recording_system_audio = False
@@ -456,22 +444,10 @@ class TestMixedComposer(unittest.TestCase):
         self.p.main_window._on_message_failed.assert_called_once_with(
             local_id, 'media_audio_convert_failed', True)
 
-    def test_two_channel_wav_in_mono_mode_stays_a_ptt_voice_note(self):
-        """A microphone that only opens with two channels, recorded in mono."""
-        self.p._recording_system_audio = False
-        self.p._system_audio_session = None
-        self.p._recording_stereo = False
-        pm = self._enqueued_after_send()
-        self.encoder.assert_not_called()
-        self.assertIsNone(pm.media_path)
-        self.assertIs(self.p._sorted_messages[0]['message']['audioMessage']['ptt'], True)
-        os.unlink(pm.audio_path)
-
     def test_ordinary_voice_remains_ptt_with_noise_gate_and_existing_ogg_encoder(self):
         self.p._recording_system_audio = False
         self.p._system_audio_session = None
         self.p._recording_actual_ch = 1
-        self.p._recording_stereo = False
         self.p._send_voice_message(None)
         self.threads.drain()
         self.drain_ui()
@@ -480,7 +456,7 @@ class TestMixedComposer(unittest.TestCase):
         self.p.main_window._convert_wav_to_ogg.assert_called_once()
         pm = self.p.main_window.message_queue.enqueue.call_args.args[0]
         self.assertIsNone(pm.media_path)
-        self.assertFalse(hasattr(pm, 'stereo'))
+        self.assertEqual(pm.voice_mimetype, '')
         self.assertIs(self.p._sorted_messages[0]['message']['audioMessage']['ptt'], True)
         self.assertTrue(Path(pm.audio_path).exists())
         os.unlink(pm.audio_path)

@@ -4,7 +4,14 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mac: agora dá para gravar o microfone junto com o áudio do computador (Command+Shift+H) a partir do macOS 14.4. Na primeira vez, o macOS pede permissão para gravar o áudio do sistema.
+
+- Grupos: o WinZapp agora reconhece você em grupos que o listam pelo identificador vinculado (@lid), então um administrador não encontra mais "Adicionar participante" desativado.
+
 - Ligações pelo Neonize: uma ligação que você faz e ninguém atende agora termina sozinha depois de um minuto, com o resultado "não atendida", em vez de ficar tocando na janela de chamada por minutos depois que o WhatsApp parou de tocar o outro celular.
+- Mac: o WinZapp agora avisa quando o macOS está esperando a permissão do microfone ou quando ela foi negada, em vez de parecer que o botão de gravar não faz nada.
+
+- Mensagens de voz: agora há um só botão de gravar. O WinZapp grava em estéreo quando o dispositivo de entrada oferece dois canais e em mono nos outros casos, por isso o segundo botão, o Ctrl+Shift+G e a opção de estéreo saíram. A gravação em estéreo agora é uma mensagem de voz de verdade, que toca no iPhone, e a qualidade subiu para 256 kbps. Um arquivo Opus estéreo anexado agora é convertido para tocar também no iPhone.
 
 - Contatos anexados: um contato recebido não chega mais vazio e sem número. O cartão do contato agora é mantido pelo WPPConnect e pelo Neonize, então dá para ver e copiar o número e conversar com a pessoa.
 

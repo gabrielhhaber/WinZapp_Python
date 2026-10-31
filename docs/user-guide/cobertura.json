@@ -4,7 +4,11 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "9d5840b191c7": "Mac: agora dá para gravar o microfone junto com o áudio do computador (Command+S",
+    "1c383d456dde": "Grupos: o WinZapp agora reconhece você em grupos que o listam pelo identificador",
     "f070ee0854dc": "Ligações pelo Neonize: uma ligação que você faz e ninguém atende agora termina s",
+    "8dddfc040ce0": "Mac: o WinZapp agora avisa quando o macOS está esperando a permissão do microfon",
+    "b81338499107": "Mensagens de voz: agora há um só botão de gravar. O WinZapp grava em estéreo qua",
     "67e1289c4d31": "Contatos anexados: um contato recebido não chega mais vazio e sem número. O cart",
     "598cb23c109b": "Neonize: publicações de canais que você segue (ids começando com 120363) não apa",
     "28cc637136db": "Pareamento: corrigido o aplicativo que ficava na tela de pareamento depois de vi",

@@ -16,13 +16,7 @@ import wave
 import wx
 from core.message_queue import PendingMessage
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
-from core.voice_stereo import (
-    alternate_mode_is_stereo,
-    alternate_record_label_key,
-    encode_as_stereo,
-    fell_back_to_mono,
-    sends_as_audio_file,
-)
+from core.voice_stereo import STEREO_BITRATE, STEREO_MIMETYPE, encode_as_stereo
 from core.focus_cloak import cloak_panel_focus_fallback
 from app_paths import data_path
 from core.utils import encrypt
@@ -44,33 +38,6 @@ except ImportError:
 class VoiceRecordingMixin:
     """Recording, previewing and sending voice messages.
     """
-
-    def _default_recording_stereo(self) -> bool:
-        return bool(self.main_window.settings.get("general", {}).get(
-            "voice_message_stereo", False))
-
-    def _alternate_record_label_key(self) -> str:
-        return alternate_record_label_key(self._default_recording_stereo())
-
-    def refresh_alternate_record_button(self):
-        """Relabel the second record button after the default mode changed."""
-        button = getattr(self, "_record_voice_alt_btn", None)
-        if button:
-            button.SetLabel(self.main_window.i18n.t(self._alternate_record_label_key()))
-
-    def _on_record_alternate_mode(self, event):
-        """The second record button: one message in the mode Settings did not
-        pick."""
-        if self._is_recording or self._recording_starting:
-            return
-        # Ctrl+Shift+G reaches here even when the button is disabled -- a
-        # channel, or a group only admins can post in -- where it must not
-        # record either.
-        button = getattr(self, "_record_voice_alt_btn", None)
-        if button is not None and not button.IsEnabled():
-            return
-        stereo = alternate_mode_is_stereo(self._default_recording_stereo())
-        self._start_voice_recording(stereo=stereo)
 
     def on_record_voice_message(self, event):
         """
@@ -178,7 +145,7 @@ class VoiceRecordingMixin:
         for delay_ms in (40, 90, 160, 260, 400):
             wx.CallLater(delay_ms, _silence_now)
 
-    def _start_voice_recording(self, stereo=None):
+    def _start_voice_recording(self):
         """
         Start capturing audio from the default input device.
 
@@ -206,9 +173,6 @@ class VoiceRecordingMixin:
         # starts. Keep it bound to its own list, never the next session's.
         recording_frames = self._recording_frames
         self._recording_paused = False
-        # None: the Settings default. The second record button passes the other.
-        want_stereo = self._default_recording_stereo() if stereo is None else bool(stereo)
-        self._recording_stereo = want_stereo
 
         # Define callback once, outside the loop; captures self for pause check.
         def _callback(in_data, frame_count, time_info, status):
@@ -228,8 +192,8 @@ class VoiceRecordingMixin:
         # _try_open(), through the same recording_configs_for() that
         # core.audio_devices.test_input_device() uses for the Settings-dialog
         # validation — so a device that validates there is still guaranteed to
-        # open here. Mono stays first in both: WhatsApp voice messages are
-        # mono, and a stereo capture costs a downmix loop in pure Python.
+        # open here; a recording asks for two channels first
+        # (core/voice_stereo.py).
         if self._recording_pa is None and pyaudio is not None:
             try:
                 self._recording_pa = pyaudio.PyAudio()
@@ -256,12 +220,10 @@ class VoiceRecordingMixin:
                         self.conversation_panel,
                         self.send_message_btn,
                         self.record_voice_message_btn,
-                        self._record_voice_alt_btn,
                         self._add_attachment_btn,
                     )
                 self.send_message_btn.Hide()
                 self.record_voice_message_btn.Hide()
-                self._record_voice_alt_btn.Hide()
                 if hasattr(self, "_record_voice_system_btn"):
                     self._record_voice_system_btn.Hide()
                 self._add_attachment_btn.Hide()
@@ -292,7 +254,7 @@ class VoiceRecordingMixin:
             # fixed combination. See recording_configs_for(), which keeps the
             # fixed list as the tail so nothing that worked before changes.
             for rate, ch in recording_configs_for(device_index, pa,
-                                                  prefer_stereo=want_stereo):
+                                                  prefer_stereo=True):
                 try:
                     s = pa.open(
                         rate=rate,
@@ -439,12 +401,6 @@ class VoiceRecordingMixin:
             self._recording_stream      = stream
             self._recording_actual_rate = rate
             self._recording_actual_ch   = ch
-            if fell_back_to_mono(want_stereo, ch):
-                # Never fake it: one channel copied into two is not stereo.
-                logging.info("[audio] Stereo was asked for but the microphone "
-                             "opened with %s channel(s) — recording in mono.", ch)
-                self.main_window.output(
-                    self.main_window.i18n.t("voice_stereo_unavailable"))
 
             self._is_recording = True
 
@@ -474,7 +430,6 @@ class VoiceRecordingMixin:
                 recording_controls_to_hide = [
                     self.send_message_btn,
                     self.record_voice_message_btn,
-                    self._record_voice_alt_btn,
                     self._add_attachment_btn,
                 ]
                 if hasattr(self, "_emoji_btn"):
@@ -488,7 +443,6 @@ class VoiceRecordingMixin:
                 self._emoji_btn.Hide()
             self.send_message_btn.Hide()
             self.record_voice_message_btn.Hide()
-            self._record_voice_alt_btn.Hide()
             if hasattr(self, "_record_voice_system_btn"):
                 self._record_voice_system_btn.Hide()
             self._add_attachment_btn.Hide()
@@ -563,7 +517,6 @@ class VoiceRecordingMixin:
             self.send_message_btn.Show()
         else:
             self.record_voice_message_btn.Show()
-            self._record_voice_alt_btn.Show()
             if hasattr(self, "_record_voice_system_btn"):
                 self._record_voice_system_btn.Show()
         self._add_attachment_btn.Show()
@@ -744,11 +697,10 @@ class VoiceRecordingMixin:
         actual_ch       = self._recording_actual_ch
         bytes_per_frame = 2 * actual_ch
         quoted_msg      = self._quoted_message
-        stereo_out      = encode_as_stereo(self._recording_stereo, actual_ch)
-        # Microphone + computer audio and a stereo voice message share one
-        # encoder and route (Ctrl+Shift+H's AAC-LC M4A through /send-file as
-        # audio): iPhone plays that, but not stereo OGG/Opus.
-        as_audio_file   = mixed_audio or sends_as_audio_file(stereo_out)
+        stereo_out      = not mixed_audio and encode_as_stereo(actual_ch)
+        # Microphone + computer audio goes out as an audio message
+        # (Ctrl+Shift+H's AAC-LC M4A through /send-file).
+        as_audio_file   = mixed_audio
 
         # Duration from frame byte counts — no allocation, no join on UI thread.
         total_bytes  = sum(len(f) for f in frames)
@@ -773,12 +725,12 @@ class VoiceRecordingMixin:
             "message": {
                 "audioMessage": {
                     "seconds": duration_sec,
-                    # Microphone + computer audio, and a stereo recording, both
-                    # go out as an audio message rather than a voice message
-                    # (core/voice_stereo.py) — say so already.
+                    # Microphone + computer audio goes out as an audio message
+                    # rather than a voice message — say so already. A stereo
+                    # voice message is M4A too (core/voice_stereo.py).
                     "ptt":     not as_audio_file,
                     **({"mimetype": "audio/mp4", "fileName": f"{local_id}.m4a"}
-                       if as_audio_file else {}),
+                       if as_audio_file or stereo_out else {}),
                 }
             },
             "messageTimestamp": int(time.time()),
@@ -851,7 +803,7 @@ class VoiceRecordingMixin:
                              _time.perf_counter() - _t0, wav_path)
             except Exception as exc:
                 logging.error("[_send_voice_message] failed to write WAV: %s", exc)
-                if as_audio_file:
+                if as_audio_file or stereo_out:
                     if tmp is not None:
                         try:
                             os.unlink(tmp.name)
@@ -867,11 +819,24 @@ class VoiceRecordingMixin:
                 )
                 return
 
-            # 3. Encode a mono voice message as OGG Opus via ffmpeg conversion.
+            # 3. Encode: stereo as AAC M4A (core/voice_stereo.py), never quietly
+            # downmixed when that fails; mono as OGG Opus via ffmpeg conversion.
+            voice_mimetype = ""
             ogg_bytes = None
+            if stereo_out:
+                ogg_bytes = self._encode_stereo_voice(wav_path)
+                if not ogg_bytes:
+                    try:
+                        os.unlink(wav_path)
+                    except OSError:
+                        pass
+                    wx.CallAfter(mw._on_message_failed, local_id,
+                                 mw.i18n.t("media_audio_convert_failed"), True)
+                    return
+                voice_mimetype = STEREO_MIMETYPE
             _t_enc = _time.perf_counter()
             try:
-                ogg_path = mw._convert_wav_to_ogg(wav_path)
+                ogg_path = None if stereo_out else mw._convert_wav_to_ogg(wav_path)
                 if ogg_path and os.path.isfile(ogg_path):
                     with open(ogg_path, "rb") as f_in:
                         ogg_bytes = f_in.read()
@@ -905,11 +870,32 @@ class VoiceRecordingMixin:
                          _time.perf_counter() - _t0,
                          "yes" if ogg_bytes else "NO — will fallback to WAV")
             pm = PendingMessage(local_id, remote_jid, audio_path=wav_path,
-                                ogg_bytes=ogg_bytes, quoted=quoted_msg)
+                                ogg_bytes=ogg_bytes, quoted=quoted_msg,
+                                voice_mimetype=voice_mimetype)
             mw.message_queue.enqueue(pm)
             mw.mark_conversation_as_read(remote_jid)
 
         threading.Thread(target=_write_and_enqueue, daemon=True).start()
+
+    def _encode_stereo_voice(self, wav_path):
+        """The M4A bytes of a stereo voice message, or None if it could not be
+        encoded."""
+        from core.audio_transcode import encode_system_audio_to_m4a
+        m4a_path = encode_system_audio_to_m4a(
+            self.main_window._find_api_ffmpeg(), wav_path, bitrate=STEREO_BITRATE)
+        if not m4a_path:
+            return None
+        try:
+            with open(m4a_path, "rb") as source:
+                return source.read()
+        except OSError as exc:
+            logging.warning("[_send_voice_message] cannot read M4A: %s", exc)
+            return None
+        finally:
+            try:
+                os.unlink(m4a_path)
+            except OSError:
+                pass
 
     def _cancel_active_recording(self):
         """Stop and discard an in-progress voice recording, if any.
@@ -948,6 +934,5 @@ class VoiceRecordingMixin:
             self._hide_voice_panel()
         self._voice_panel.Hide()
         self.record_voice_message_btn.Show()
-        self._record_voice_alt_btn.Show()
         if hasattr(self, "_record_voice_system_btn"):
             self._record_voice_system_btn.Show()

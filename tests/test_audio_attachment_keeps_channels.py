@@ -24,6 +24,7 @@ from core.audio_transcode import (
     prepare_audio_for_whatsapp,
     read_audio_header_format,
 )
+from core import audio_transcode
 from main import MainWindow
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -282,3 +283,43 @@ class TestMoreChannelsThanAac:
         assert body.mime_type.startswith("audio/")
         assert b'name="type"\r\n\r\ndocument\r\n' in body._prefix
         assert b'name="isPtt"' not in body._prefix
+
+
+def _opus_header(channels):
+    return (b"OggS" + b"\x00" * 24 + b"OpusHead" + bytes([1, channels]) + b"\x38\x01"
+            + (48000).to_bytes(4, "little") + b"\x00\x00\x00")
+
+
+class TestOpusOnIphone:
+    """iPhone cannot play stereo Opus at any bitrate; measured 2026-10-30."""
+
+    def test_the_header_gives_channels_and_rate(self):
+        assert audio_transcode.read_audio_header_format(_opus_header(2)) == (2, 48000)
+
+    @pytest.mark.parametrize("name", ["voice.ogg", "voice.opus"])
+    def test_mono_opus_stays_untouched(self, tmp_path, name):
+        source = tmp_path / name
+        source.write_bytes(_opus_header(1))
+
+        assert audio_transcode.prepare_audio_for_whatsapp(None, str(source)) == (
+            str(source), "audio/ogg; codecs=opus")
+
+    @pytest.mark.parametrize("name", ["music.ogg", "music.opus"])
+    def test_stereo_opus_becomes_aac_keeping_both_channels(self, tmp_path, monkeypatch, name):
+        source = tmp_path / name
+        source.write_bytes(_opus_header(2))
+        calls = []
+
+        def _run(args, **_kw):
+            calls.append(args)
+            with open(args[-1], "wb") as output:
+                output.write(b"m4a")
+            return SimpleNamespace(returncode=0, stderr=b"")
+        monkeypatch.setattr(audio_transcode.subprocess, "run", _run)
+
+        path, mime = audio_transcode.prepare_audio_for_whatsapp(__file__, str(source))
+
+        assert path.endswith(".m4a") and mime == "audio/mp4"
+        assert "-ac" not in calls[0]
+        assert "192k" in calls[0]
+        os.unlink(path)

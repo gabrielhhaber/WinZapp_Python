@@ -150,7 +150,6 @@ class AcceleratorsMixin:
         self.ID_AI_ACTION = wx.NewIdRef()  # transcribe/describe the focused media (Ctrl+Shift+I)
         # ── Navigation / recording ──────────────────────────────────────────
         self.ID_CTRL_R          = wx.NewIdRef()  # record voice            (Ctrl+R)
-        self.ID_CTRL_SHIFT_G    = wx.NewIdRef()  # record, other mode      (Ctrl+Shift+G)
         self.ID_CTRL_SHIFT_H    = wx.NewIdRef()  # microphone + system     (Ctrl+Shift+H)
         self.ID_CTRL_SHIFT_Y    = wx.NewIdRef()  # try sending again       (Ctrl+Shift+Y)
         self.ID_CATALOG         = wx.NewIdRef()  # business catalog/cart   (Alt+Shift+B)
@@ -294,10 +293,6 @@ class AcceleratorsMixin:
             (CS,               ord("E"),          self.ID_CTRL_SHIFT_E),
             (CS,               ord("P"),          self.ID_CTRL_SHIFT_P),
             (CS,               ord("R"),          self.ID_CTRL_SHIFT_R),
-            # G for "gravar": Ctrl+R records in the default mode, this one in
-            # the other (stereo / mono). Not Ctrl+Alt+R: that is AltGr+R, which
-            # types "®" on US-International and would be taken from the editor.
-            (CS,               ord("G"),          self.ID_CTRL_SHIFT_G),
             (CS,               ord("H"),          self.ID_CTRL_SHIFT_H),
             (CS,               ord("Y"),          self.ID_CTRL_SHIFT_Y),
             (AS,               ord("B"),          self.ID_CATALOG),
@@ -374,7 +369,6 @@ class AcceleratorsMixin:
         self.Bind(wx.EVT_MENU, self._on_accel_focus_field,          id=self.ID_ALT_FOCUS_FIELD)
         self.Bind(wx.EVT_MENU, self._on_accel_focus_list,           id=self.ID_ALT_FOCUS_LIST)
         self.Bind(wx.EVT_MENU, self.on_record_voice_message,       id=self.ID_CTRL_R)
-        self.Bind(wx.EVT_MENU, self._on_record_alternate_mode,     id=self.ID_CTRL_SHIFT_G)
         self.Bind(wx.EVT_MENU, self._on_record_system_audio,       id=self.ID_CTRL_SHIFT_H)
         self.Bind(wx.EVT_MENU, self._on_accel_resend_message,      id=self.ID_CTRL_SHIFT_Y)
         self.Bind(wx.EVT_MENU, self._on_accel_catalog,             id=self.ID_CATALOG)

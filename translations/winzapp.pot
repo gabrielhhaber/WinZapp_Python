@@ -6630,8 +6630,37 @@ msgid "Locked chats alt+7"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "mac_mic_permission_denied"
+msgid ""
+"WinZapp does not have microphone permission. Turn it on in System Settings, "
+"Privacy and Security, Microphone."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "mac_mic_permission_waiting"
+msgid ""
+"macOS is asking for microphone permission. Recording starts once you allow "
+"it, and the prompt may be waiting behind another permission prompt."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_not_yet_available"
 msgid "not yet available on Mac"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "mac_system_audio_permission_denied"
+msgid ""
+"WinZapp does not have permission to record system audio, so computer audio "
+"will be silent. Turn it on in System Settings, Privacy and Security, Screen "
+"and System Audio Recording."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "mac_system_audio_permission_waiting"
+msgid ""
+"macOS is asking for permission to record system audio. Recording starts once"
+" you answer, and the prompt may be waiting behind another permission prompt."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -8973,16 +9002,6 @@ msgctxt "record_voice_message"
 msgid "Record voice message"
 msgstr ""
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "record_voice_message_mono"
-msgid "Record voice message in mono"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "record_voice_message_stereo"
-msgid "Record voice message in stereo"
-msgstr ""
-
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 msgctxt "record_voice_message_system_audio"
 msgid "Record microphone and computer audio"
@@ -10248,14 +10267,6 @@ msgstr ""
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_ctrl_shift_f_label"
 msgid "Ctrl+Shift+F: search in chat"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/shortcuts_dialog.py
-msgctxt "shortcut_ctrl_shift_g_label"
-msgid ""
-"Ctrl+Shift+G: record voice message in the other mode (stereo if the default "
-"is mono, mono if it is stereo)"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -11939,6 +11950,11 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "system_audio_recording_other_volume"
 msgid "Other sounds volume (%)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "system_audio_recording_other_volume_macos"
+msgid "System sound volume"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -15609,20 +15625,6 @@ msgctxt "voice_recording_unavailable"
 msgid ""
 "Voice recording is unavailable on this Python install (audio library not "
 "found)."
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_stereo_default_label"
-msgid "Record voice messa&ges in stereo by default"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/voice_recording.py
-msgctxt "voice_stereo_unavailable"
-msgid ""
-"The microphone didn't provide two channels. This voice message will be "
-"recorded in mono."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/websocket_client.py

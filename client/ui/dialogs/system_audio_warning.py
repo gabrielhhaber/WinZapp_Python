@@ -1,9 +1,12 @@
 """Consent to capture microphone and computer audio, including all outputs
 when NVDA process separation is active.
 
-Like the stereo warning: No is default; don't-show only counts with Yes.
+On the Mac Yes is the default (pressing record already asked for this); on
+Windows No is. Don't-show only counts with Yes.
 Settings > Interface can restore this warning.
 """
+import sys
+
 from ui.dialogs.checkbox_confirm import confirm_with_checkbox
 
 SETTING_SECTION = "user_interface"
@@ -28,6 +31,10 @@ def remember_system_audio_consent(settings, dont_ask_again):
     ui[SETTING_KEY] = not dont_ask_again
 
 
+def yes_is_default(platform):
+    return platform == "darwin"
+
+
 def ask_system_audio(parent, i18n):
     """Return (confirmed, dont_ask_again) using the standard confirmation."""
     t = i18n.t
@@ -39,5 +46,5 @@ def ask_system_audio(parent, i18n):
         yes_label=t("yes_button"),
         no_label=t("no_button"),
         checked=False,
-        default_yes=False,
+        default_yes=yes_is_default(sys.platform),
     )

@@ -4,6 +4,7 @@ Run independently of the Windows-only conftest with:
     python3 -m unittest discover -s tests -p test_system_audio_ui.py -v
 """
 import ast
+import sys
 from pathlib import Path
 from types import SimpleNamespace, MethodType
 import unittest
@@ -63,7 +64,7 @@ def find_function(name, paths=SOURCES):
 
 def warning_functions(confirm=None):
     tree = ast.parse(WARNING.read_text(encoding='utf-8'))
-    ns = {'confirm_with_checkbox': confirm}
+    ns = {'confirm_with_checkbox': confirm, 'sys': sys}
     exec(compile(ast.Module(body=[n for n in tree.body if not isinstance(
         n, (ast.Import, ast.ImportFrom))], type_ignores=[]), str(WARNING), 'exec'), ns)
     return ns
@@ -82,7 +83,12 @@ class TestPrivacyWarning(unittest.TestCase):
         confirm.assert_called_once_with(
             'parent', 'system_audio_recording_warning', 'system_audio_recording_title',
             'mark_all_read_dont_show_again', yes_label='yes_button', no_label='no_button',
-            checked=False, default_yes=False)
+            checked=False, default_yes=(sys.platform == 'darwin'))
+
+    def test_yes_default_only_on_mac(self):
+        ns = warning_functions()
+        self.assertTrue(ns['yes_is_default']('darwin'))
+        self.assertFalse(ns['yes_is_default']('win32'))
 
     def panel(self, answer=(True, False)):
         mw = SimpleNamespace(settings={}, i18n=SimpleNamespace(t=lambda key: key),
@@ -208,7 +214,7 @@ class CaptureHarness:
                 voicemsg_pauserecording_sound=SimpleNamespace(play=Mock())),
             _stop_recorded_audio_preview=Mock(),
         )
-        for name in ['_record_voice_system_btn', '_record_voice_alt_btn', 'record_voice_message_btn',
+        for name in ['_record_voice_system_btn', 'record_voice_message_btn',
                      '_voice_panel', '_pause_resume_btn', '_send_voice_btn', '_discard_voice_btn',
                      '_play_recorded_btn', '_add_attachment_btn', '_emoji_btn', 'send_message_btn',
                      'message_field', 'conversation_panel']:
@@ -223,7 +229,7 @@ class CaptureHarness:
                  '_relabel_system_audio_volume_controls', '_on_nvda_volume',
                  '_start_system_audio_recording', '_on_system_audio_opened',
                  '_on_system_audio_error', '_stop_system_audio_recording',
-                 '_show_system_audio_recording_controls', '_default_recording_stereo',
+                 '_show_system_audio_recording_controls',
                  '_voice_recording_focus_suppression_enabled', '_focus_recording_button_silently',
                  '_hide_voice_panel']
         bind(self.p, names, self.namespace)
@@ -260,12 +266,6 @@ class TestAsyncCapture(CaptureHarness, unittest.TestCase):
         self.assertEqual(self.p._recording_frames, [b'mixed pcm'])
         self.assertTrue(self.p._send_voice_btn.enabled)
         self.assertTrue(self.p._pause_resume_btn.enabled)
-
-    def test_default_stereo_is_respected_without_an_extra_mode(self):
-        self.p.main_window.settings['general']['voice_message_stereo'] = True
-        recorder = self.open()
-        self.assertEqual(recorder.channels, 2)
-        self.assertTrue(self.p._recording_stereo)
 
     def test_open_failure_reports_and_closes_without_mic_fallback(self):
         def fail(recorder): raise OSError('loopback unavailable')
@@ -406,11 +406,11 @@ class TestRecordingControls(CaptureHarness, unittest.TestCase):
 
     def test_ordinary_mono_and_stereo_keep_the_same_pause_feedback(self):
         self.p._silence_send_voice_focus_if_enabled = Mock()
-        for stereo in (False, True):
-            with self.subTest(stereo=stereo):
+        for channels in (1, 2):
+            with self.subTest(channels=channels):
                 self.p._is_recording = True
                 self.p._recording_system_audio = False
-                self.p._recording_stereo = stereo
+                self.p._recording_actual_ch = channels
                 self.p._recording_paused = False
                 for paused, label in ((True, 'resume_recording'), (False, 'pause_recording')):
                     sound = self.p.main_window.voicemsg_pauserecording_sound.play
@@ -616,14 +616,14 @@ class TestFlushAndBarriers(CaptureHarness, unittest.TestCase):
 
 
 class TestUiWiring(unittest.TestCase):
-    def test_button_is_created_and_added_immediately_after_alternate(self):
+    def test_button_is_created_and_added_immediately_after_record(self):
         src = CONVERSATIONS.read_text(encoding='utf-8')
         self.assertIn('self._record_voice_system_btn = wx.Button(', src)
-        start = src.index('self._record_voice_alt_btn = wx.Button(')
+        start = src.index('self.record_voice_message_btn = wx.Button(')
         end = src.index('# ── Attachment staging panel', start)
         block = src[start:end]
         self.assertIn('label=i18n.t("record_voice_message_system_audio")', block)
-        self.assertLess(block.index('conv_sizer.Add(self._record_voice_alt_btn'),
+        self.assertLess(block.index('conv_sizer.Add(self.record_voice_message_btn'),
                         block.index('conv_sizer.Add(self._record_voice_system_btn'))
         self.assertIn(
             'AccessibleRecordVoiceMessage("Ctrl+Shift+H", ("messages.ID_CTRL_SHIFT_H",))', block)
@@ -636,10 +636,10 @@ class TestUiWiring(unittest.TestCase):
         self.assertIn('ord("H"),          self.ID_CTRL_SHIFT_H)', accel_src)
         self.assertIn('self._on_record_system_audio,       id=self.ID_CTRL_SHIFT_H)', accel_src)
 
-    def test_button_mirrors_all_alternate_visibility_and_enablement(self):
+    def test_button_mirrors_all_record_visibility_and_enablement(self):
         src = conversations_source()
         for action in ['Show', 'Hide', 'Enable', 'Disable']:
-            self.assertEqual(src.count(f'self._record_voice_alt_btn.{action}()'),
+            self.assertEqual(src.count(f'self.record_voice_message_btn.{action}()'),
                              src.count(f'self._record_voice_system_btn.{action}()'), action)
         self.assertIn('self._record_voice_system_btn.SetLabel(i18n.t("record_voice_message_system_audio"))', src)
 

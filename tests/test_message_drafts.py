@@ -142,7 +142,6 @@ def test_a_restored_draft_tells_no_one_it_is_being_typed():
         message_field=_Field("rascunho"), _restoring_draft=True, _spell_checker=None,
         send_message_btn=SimpleNamespace(Show=lambda: None, Hide=lambda: None),
         record_voice_message_btn=SimpleNamespace(Show=lambda: None, Hide=lambda: None),
-        _record_voice_alt_btn=SimpleNamespace(Show=lambda: None, Hide=lambda: None),
         conversation={"remoteJid": ANA}, _is_typing=False,
         main_window=SimpleNamespace(send_typing_status=lambda *a: sent.append(a)),
     )
