@@ -11,7 +11,6 @@ NOWOŚCI
 - Grupy: WinZapp rozpoznaje Cię teraz w grupach, które podają Cię przez powiązany identyfikator (@lid), więc administrator nie widzi już wyszarzonej opcji dodawania członka.
 
 - Połączenia Neonize: połączenie, które wykonujesz, a nikt nie odbiera, kończy się teraz samo po minucie z wynikiem „nieodebrane”, zamiast dzwonić w oknie połączenia przez kilka minut po tym, jak WhatsApp przestał dzwonić na drugim telefonie.
-- Połączenia Neonize: WinZapp zapisuje teraz w dzienniku, kiedy dźwięk przychodzący w trakcie połączenia zatrzymuje się lub ramki są odrzucane, co pomoże zdiagnozować sporadyczny brak słyszenia rozmówcy.
 - Mac: WinZapp informuje teraz, gdy macOS czeka na zgodę na mikrofon lub gdy jej odmówiono, zamiast sprawiać wrażenie, że przycisk nagrywania nie działa.
 
 - Wiadomości głosowe: jest teraz jeden przycisk nagrywania. WinZapp nagrywa w stereo, gdy urządzenie wejściowe oferuje dwa kanały, a w pozostałych przypadkach w mono, więc drugi przycisk, Ctrl+Shift+G i opcja stereo zniknęły. Nagranie stereo jest teraz prawdziwą wiadomością głosową, która odtwarza się na iPhonie, a jakość wzrosła do 256 kb/s. Załączony plik Opus stereo jest teraz konwertowany, aby odtwarzał się także na iPhonie.
