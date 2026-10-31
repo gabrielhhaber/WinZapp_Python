@@ -586,6 +586,7 @@ def finish_bundle(source=None):
         "CFBundleShortVersionString": bundle_version(source),
         "NSMicrophoneUsageDescription": "WinZapp records voice messages and voice calls.",
         "NSCameraUsageDescription": "WinZapp uses the camera for video calls.",
+        "NSAudioCaptureUsageDescription": "WinZapp records computer audio into voice messages when you ask it to.",
         "NSFocusStatusUsageDescription": "WinZapp stays quiet while a Focus is on.",
         "NSHighResolutionCapable": True,
         "LSApplicationCategoryType": "public.app-category.social-networking",
