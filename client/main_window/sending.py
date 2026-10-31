@@ -45,7 +45,7 @@ from core.reaction_echo import (
     reaction_echo_keys,
 )
 from core.utils import encrypt
-from core.voice_stereo import opus_encode_args
+from core.voice_stereo import opus_encode_args, voice_data_uri
 
 # The directory layout _find_api_ffmpeg() searches is relative to main.py.
 _MAIN_PY = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "main.py")
@@ -798,9 +798,8 @@ class SendingMixin:
         Convert a WAV file to OGG/Opus using the bundled ffmpeg binary.
         Returns the path to the new .ogg file, or None on failure.
 
-        Always mono: a mono message recorded on a microphone that only opens
-        with two channels has a stereo WAV, and is downmixed here. A stereo
-        recording never comes through this encoder (core/voice_stereo.py).
+        Always mono: a stereo voice message is M4A and never comes through
+        this encoder (core/voice_stereo.py).
         """
         ffmpeg = self._find_api_ffmpeg()
         if not ffmpeg or not os.path.isfile(ffmpeg):
@@ -833,7 +832,7 @@ class SendingMixin:
         return None
 
     def send_audio_message(self, remote_jid: str, wav_path: str, quoted=None,
-                           ogg_bytes: bytes = None) -> bool:
+                           ogg_bytes: bytes = None, voice_mimetype: str = "") -> bool:
         """
         Encode a recorded WAV file to OGG Opus via FFmpeg (or pre-encoded ogg_bytes)
         and send it as a PTT voice message using /send-voice-base64.
@@ -842,8 +841,8 @@ class SendingMixin:
                    disk read and OGG encoding entirely — just base64 + POST.
                    On retry (ogg_bytes=None) falls back to reading wav_path.
 
-        Only mono voice messages come here: a stereo recording goes out as an
-        audio message through send_media_attachment (core/voice_stereo.py).
+        voice_mimetype: of ogg_bytes when they are not OGG Opus, the M4A of a
+                        stereo voice message (core/voice_stereo.py).
         """
         # Canonical destination: @lid when known, else the @c.us phone form —
         # see _resolve_jid_for_send's docstring for why @lid has to win here.
@@ -888,7 +887,7 @@ class SendingMixin:
         quoted_id = self._serialize_quoted_id(quoted, fallback_jid=phone_net) if quoted else None
         payload = {
             "phone": [phone_net],
-            "base64Ptt": f"data:audio/ogg;codecs=opus;base64,{audio_b64}",
+            "base64Ptt": voice_data_uri(audio_b64, voice_mimetype),
             "isGroup": phone_net.endswith("@g.us"),
             "isLid": is_lid_target,
         }
@@ -921,7 +920,7 @@ class SendingMixin:
                                     remote_jid, response.status_code, fb_phone)
                     retry_payload = {
                         "phone": [fb_phone],
-                        "base64Ptt": f"data:audio/ogg;codecs=opus;base64,{audio_b64}",
+                        "base64Ptt": voice_data_uri(audio_b64, voice_mimetype),
                         "isGroup": fb_phone.endswith("@g.us"),
                         "isLid": False,
                     }

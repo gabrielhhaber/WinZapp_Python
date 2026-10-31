@@ -77,7 +77,6 @@ SHORTCUTS = (
     Shortcut('messages.ID_CTRL_SHIFT_E', 'messages', 'ID_CTRL_SHIFT_E', 'shortcut_ctrl_shift_e_label', 6, 69, 0),
     Shortcut('messages.ID_CTRL_SHIFT_P', 'messages', 'ID_CTRL_SHIFT_P', 'shortcut_ctrl_shift_p_label', 6, 80, 0),
     Shortcut('messages.ID_CTRL_SHIFT_R', 'messages', 'ID_CTRL_SHIFT_R', 'shortcut_calls_ctrl_shift_r_label', 6, 82, 0),
-    Shortcut('messages.ID_CTRL_SHIFT_G', 'messages', 'ID_CTRL_SHIFT_G', 'shortcut_ctrl_shift_g_label', 6, 71, 0),
     Shortcut('messages.ID_CTRL_SHIFT_H', 'messages', 'ID_CTRL_SHIFT_H', 'shortcut_ctrl_shift_h_label', 6, 72, 0),
     Shortcut('messages.ID_CTRL_SHIFT_Y', 'messages', 'ID_CTRL_SHIFT_Y', 'shortcut_resend_message_label', 6, 89, 0),
     Shortcut('chats.ID_CATALOG', 'messages', 'ID_CATALOG', 'shortcut_alt_shift_b_catalog_label', 5, 66, 0),

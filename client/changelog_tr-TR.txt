@@ -5,6 +5,9 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 YENİLİKLER
 
 - Neonize aramaları: yaptığınız ve kimsenin açmadığı bir arama, WhatsApp diğer telefonu çaldırmayı bıraktıktan sonra dakikalarca arama penceresinde çalmaya devam etmek yerine, artık bir dakika sonra "cevapsız" sonucuyla kendiliğinden sona eriyor.
+- Mac: WinZapp artık macOS mikrofon iznini beklerken veya izin reddedildiğinde bunu söylüyor; kayıt düğmesi hiçbir şey yapmıyormuş gibi görünmüyor.
+
+- Sesli mesajlar: artık tek bir kayıt düğmesi var. WinZapp, giriş aygıtı iki kanal sunduğunda stereo, diğer durumlarda mono kaydeder; bu nedenle ikinci düğme, Ctrl+Shift+G ve stereo seçeneği kaldırıldı. Stereo kayıt artık iPhone'da çalan gerçek bir sesli mesajdır ve kalite 256 kbps'ye yükseldi. Eklenen stereo Opus dosyası artık iPhone'da da çalması için dönüştürülüyor.
 
 - Eklenen kişiler: alınan bir kişi artık boş ve telefon numarasız gelmiyor. Kişi kartı artık hem WPPConnect hem de Neonize tarafından korunuyor; böylece numarayı görebilir, kopyalayabilir ve kişiyle sohbet edebilirsiniz.
 

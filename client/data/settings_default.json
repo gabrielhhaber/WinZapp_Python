@@ -20,7 +20,6 @@
         "background_update_downloads": false,
         "wpp_all_updates": false,
         "noise_reduction_enabled": false,
-        "voice_message_stereo": false,
         "system_audio_recording_volume": 100,
         "system_audio_recording_nvda_volume": 100,
         "spell_check_mode": "windows",

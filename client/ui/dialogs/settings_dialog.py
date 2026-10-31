@@ -665,13 +665,6 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         adev_sizer.Add(self._noise_reduction_check, 0, wx.ALL, 8)
 
-        # Stereo voice messages by default (issue #82). The record button's
-        # neighbour offers the other mode for a single message.
-        self._voice_stereo_check = wx.CheckBox(
-            self._audio_devices_page, label=i18n.t("voice_stereo_default_label")
-        )
-        adev_sizer.Add(self._voice_stereo_check, 0, wx.ALL, 8)
-
         # What an audio file pasted into the message field (Ctrl+V) is sent
         # as, in the order of core.attachment_types.PASTED_AUDIO_MODES.
         self._pasted_audio_radio = wx.RadioBox(
@@ -2555,11 +2548,6 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         noise_red = self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False)
         self._noise_reduction_check.SetValue(noise_red)
 
-        voice_stereo = self.main_window.settings.get("general", {}).get(
-            "voice_message_stereo", False
-        )
-        self._voice_stereo_check.SetValue(bool(voice_stereo))
-
         # Sound events / packs
         self.main_window.refresh_sound_packs()
         self._pack_event_settings = {}
@@ -4010,13 +3998,6 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             self._noise_reduction_check.GetValue()
         )
 
-        self.main_window.settings.setdefault("general", {})["voice_message_stereo"] = (
-            self._voice_stereo_check.GetValue()
-        )
-        panel = getattr(self.main_window, "conversations_panel", None)
-        if panel is not None and hasattr(panel, "refresh_alternate_record_button"):
-            panel.refresh_alternate_record_button()
-
         # Notifications
         self.main_window.settings.setdefault("general", {})["notifications_enabled"] = (
             self._notifications_check.GetValue()
@@ -4381,7 +4362,6 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._audio_effects_label.SetLabel(i18n.t("audio_effects_output_device_label"))
         self._reload_audio_device_choices()
         self._noise_reduction_check.SetLabel(i18n.t("noise_reduction_label"))
-        self._voice_stereo_check.SetLabel(i18n.t("voice_stereo_default_label"))
         self._notifications_check.SetLabel(i18n.t("notifications_label"))
         self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))
         for _i, _key in enumerate(NOTIFICATION_CONTENT_LABEL_KEYS):

@@ -79,9 +79,8 @@ class TestTheDevicesOwnRateComesFirst:
         assert (16000, 2) not in configs
 
     def test_a_stereo_device_gets_mono_first_anyway(self):
-        """WhatsApp voice messages are mono, and a stereo capture costs a
-        downmix loop in pure Python — the reason the fixed list is ordered that
-        way too."""
+        """The device test asks for mono first; only a recording asks for
+        stereo first (core/voice_stereo.py)."""
         info = {"defaultSampleRate": 32000.0, "maxInputChannels": 2}
         configs = recording_configs_for(3, _FakePyAudio(info))
         assert configs[:2] == [(32000, 1), (32000, 2)]
