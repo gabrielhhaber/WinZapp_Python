@@ -12,6 +12,7 @@ import time
 import wx
 from core.jid_device import strip_device_suffix
 from core.contact_presence_query import query_targets
+from core.phone_variants import other_brazilian_mobile_jid
 from main_window.presence_work import presence_work, wake_waiting_presence
 from main_window.profile_presence import profile_last_seen
 from core import phone_contacts
@@ -971,6 +972,12 @@ class IdentityMixin:
             # who is not a saved contact has a pushName but no contact name,
             # and the message shows that name while the typing announcement
             # used to fall back to the bare number.
+            same_person = {jid_norm}
+            if phone:
+                same_person.add(phone)
+                other = other_brazilian_mobile_jid(phone)
+                if other:
+                    same_person.add(other)
             if chat_jid_norm:
                 records = (
                     self.chats.get(chat_jid_norm, {})
@@ -978,11 +985,13 @@ class IdentityMixin:
                         .get("messages", {})
                         .get("records", [])
                 )
-                for m in records:
+                # Newest first, so a renamed participant is announced by the
+                # name their latest message shows.
+                for m in reversed(records):
                     if not isinstance(m, dict):
                         continue
                     m_part = m.get("key", {}).get("participant") or m.get("participant")
-                    if m_part and self._normalize_jid(m_part) in (jid_norm, phone):
+                    if m_part and self._normalize_jid(m_part) in same_person:
                         push = (m.get("pushName") or "").strip()
                         if push and not is_phone_like(push):
                             return push
@@ -990,7 +999,7 @@ class IdentityMixin:
             if cp is not None and cp.conversation is not None:
                 if self._normalize_jid(cp.conversation.get("remoteJid", "")) == chat_jid_norm:
                     for pname, p_jid in getattr(cp, "_group_participants_cache", []):
-                        if p_jid == jid_norm and pname and not is_phone_like(pname):
+                        if p_jid in same_person and pname and not is_phone_like(pname):
                             return pname
             if phone:
                 return format_number(phone)

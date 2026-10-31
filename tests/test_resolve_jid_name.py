@@ -244,3 +244,26 @@ class TestMappedLidStillPrefersTheGroupMessagePushName:
 
         assert "88887777" in name.replace(" ", "").replace("-", "")
         assert stub.resolve_calls == []
+
+    def test_brazilian_8_digit_variant_of_the_mapped_phone_counts(self):
+        stub = _Stub()
+        group_jid = "12345-6789@g.us"
+        lid = "987654321@lid"
+        stub._lid_to_phone[lid] = "5511988887777@s.whatsapp.net"
+        stub.chats[group_jid] = _chat_with_records(
+            {"key": {"participant": "551188887777@s.whatsapp.net"}, "pushName": "Ciclano"}
+        )
+
+        assert stub._resolve_jid_name(lid, group_jid) == "Ciclano"
+
+    def test_latest_pushname_wins_after_a_rename(self):
+        stub = _Stub()
+        group_jid = "12345-6789@g.us"
+        lid = "987654321@lid"
+        stub._lid_to_phone[lid] = "5511988887777@s.whatsapp.net"
+        stub.chats[group_jid] = _chat_with_records(
+            {"key": {"participant": lid}, "pushName": "Antigo"},
+            {"key": {"participant": lid}, "pushName": "Novo"},
+        )
+
+        assert stub._resolve_jid_name(lid, group_jid) == "Novo"
