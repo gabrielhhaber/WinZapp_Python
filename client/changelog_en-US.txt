@@ -11,6 +11,7 @@ WHAT'S NEW
 - Groups: WinZapp now recognizes you in groups that list you by your linked ID (@lid), so an admin no longer finds Add Member dimmed.
 
 - Neonize calls: a call you place that nobody answers now ends by itself after a minute, with the "not answered" outcome, instead of ringing in the call window for minutes after WhatsApp stopped ringing the other phone.
+- Neonize calls: WinZapp now writes to its log when the incoming call audio stops or frames are discarded during a call, to help diagnose the other person sometimes not being heard.
 - Mac: WinZapp now says when macOS is waiting for microphone permission or when it was denied, instead of the record button seeming to do nothing.
 
 - Voice messages: there is now a single record button. WinZapp records in stereo when the input device offers two channels and in mono otherwise, so the second record button, Ctrl+Shift+G and the stereo option are gone. A stereo recording is now a real voice message that plays on iPhone, and quality is up to 256 kbps. An attached stereo Opus file is now converted so it plays on iPhone too.

@@ -508,3 +508,24 @@ def test_dialing_arms_a_timer_that_ends_with_the_call():
     assert "OUT1" in m._ring_timers
     m.handle({"ev": "end", "call": "OUT1", "reason": "hangup"})
     assert "OUT1" not in m._ring_timers
+
+
+def test_reader_stopping_while_call_is_live_is_logged(caplog):
+    fake = FakeCalls()
+    m, _ = media(fake)
+    m.remember_offer({"id": "IN-LOG", "peerJid": "1@c.us"})
+    with caplog.at_level("WARNING", logger="bridge"):
+        assert m.answer("IN-LOG")          # fake.remote is empty: native says over
+    assert "reader stopped while the call is live" in caplog.text
+
+
+def test_dropped_frames_are_logged_once_in_a_while(caplog):
+    m, _ = media()
+    m.remember_offer({"id": "IN-DROP", "peerJid": "1@c.us"})
+    m._start_audio = lambda cid, claim: None
+    assert m.answer("IN-DROP")
+    claim = m._audio_readers["IN-DROP"]
+    with caplog.at_level("WARNING", logger="bridge"):
+        for _ in range(3):
+            m._emit_audio("IN-DROP", claim, b"\0\0", 48000, 0)
+    assert caplog.text.count("call audio frame dropped") == 1
