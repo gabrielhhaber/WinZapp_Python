@@ -4,7 +4,7 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
-- Mac: passa a ser possível gravar o microfone com o áudio do computador (Ctrl+Shift+H) a partir do macOS 14.4. Da primeira vez, o macOS pede permissão para gravar o áudio do sistema.
+- Mac: passa a ser possível gravar o microfone com o áudio do computador (Command+Shift+H) a partir do macOS 14.4. Da primeira vez, o macOS pede permissão para gravar o áudio do sistema.
 
 - Grupos: o WinZapp passa a reconhecê-lo em grupos que o listam pelo identificador associado (@lid), pelo que um administrador já não encontra "Adicionar participante" desativado.
 

@@ -1,4 +1,4 @@
-"""Microphone + computer audio on macOS: the capture behind Ctrl+Shift+H.
+"""Microphone + computer audio on macOS: the capture behind Command+Shift+H.
 
 core.system_audio_capture.SystemAudioRecorder only needs a backend with a
 clock and two kinds of stream, so this replaces core.wasapi_capture's.
@@ -16,6 +16,7 @@ import collections
 import ctypes as C
 import logging
 import platform
+import subprocess
 import time
 import uuid
 
@@ -93,6 +94,8 @@ class _AudioBufferList(C.Structure):
 _IOProc = C.CFUNCTYPE(C.c_int32, C.c_uint32, C.c_void_p, C.POINTER(_AudioBufferList),
                       C.c_void_p, C.c_void_p, C.c_void_p, C.c_void_p)
 _NOMINAL_RATE = _Address(_four_cc("nsrt"), _four_cc("glob"), 0)
+_PROCESS_FROM_PID = _Address(_four_cc("id2p"), _four_cc("glob"), 0)
+_SYSTEM_OBJECT = 1
 
 
 def interleaved(buffers, channels):
@@ -219,10 +222,25 @@ class TapCapture(_PacketStream):
             self._tap.api.AudioDeviceDestroyIOProcID(self._tap.device, proc_id)
 
 
-class ComputerAudioTap:
-    """A tap of everything playing, inside a private aggregate device."""
+def voiceover_process():
+    """VoiceOver's Core Audio process object, or None if it is not running."""
+    found = subprocess.run(["pgrep", "-x", "VoiceOver"], capture_output=True, text=True)
+    if not found.stdout.split():
+        return None
+    api = C.CDLL(f"{_COREAUDIO}/CoreAudio")
+    pid = C.c_int32(int(found.stdout.split()[0]))
+    process, size = C.c_uint32(0), C.c_uint32(4)
+    status = api.AudioObjectGetPropertyData(
+        _SYSTEM_OBJECT, C.byref(_PROCESS_FROM_PID), C.sizeof(pid), C.byref(pid),
+        C.byref(size), C.byref(process))
+    return process.value if status == 0 and process.value else None
 
-    def __init__(self):
+
+class ComputerAudioTap:
+    """A tap inside a private aggregate device: everything playing except
+    *excluded*, or only the processes in *only*."""
+
+    def __init__(self, *, excluded=(), only=None):
         import objc
         from Foundation import NSDictionary
         self.api = C.CDLL(f"{_COREAUDIO}/CoreAudio")
@@ -236,8 +254,9 @@ class ComputerAudioTap:
         self._tap = C.c_uint32(0)
         self.device_id = C.c_uint32(0)
         objc.loadBundle("CoreAudio", {}, bundle_path=_COREAUDIO)
-        description = (objc.lookUpClass("CATapDescription").alloc()
-                       .initStereoGlobalTapButExcludeProcesses_([]))
+        description = objc.lookUpClass("CATapDescription").alloc()
+        description = (description.initStereoGlobalTapButExcludeProcesses_(list(excluded))
+                       if only is None else description.initStereoMixdownOfProcesses_(list(only)))
         description.setName_(_DEVICE_NAME)
         description.setPrivate_(True)
         status = self.api.AudioHardwareCreateProcessTap(
@@ -284,7 +303,7 @@ class MacBackend:
         import pyaudio
         self._pyaudio = pyaudio.PyAudio
         self._owned = []
-        self._tap = None
+        self._taps = []
 
     @staticmethod
     def clock():
@@ -297,12 +316,21 @@ class MacBackend:
         return PortAudioCapture(pa, find_input_device_index(name, pa), rate, channels)
 
     def open_loopback(self, rate, channels):
-        self._tap = ComputerAudioTap()
-        return TapCapture(self._tap, rate, channels)
+        return self._open_tap(rate, channels)
+
+    def _open_tap(self, rate, channels, **which):
+        tap = ComputerAudioTap(**which)
+        self._taps.append(tap)
+        return TapCapture(tap, rate, channels)
 
     def open_nvda_loopbacks(self, rate, channels):
-        """None: no separate screen reader source, so all audio is one stream."""
-        return None
+        """Everything except VoiceOver, then VoiceOver alone, for its own
+        slider. None when it is not running: one stream, as the recorder expects."""
+        process = voiceover_process()
+        if process is None:
+            return None
+        return (self._open_tap(rate, channels, excluded=[process]),
+                self._open_tap(rate, channels, only=[process]))
 
     def close(self):
         for pa in self._owned:
@@ -311,9 +339,9 @@ class MacBackend:
             except Exception:
                 logging.debug("[system_audio_mac] PortAudio close failed", exc_info=True)
         self._owned.clear()
-        if self._tap is not None:
-            self._tap.close()
-            self._tap = None
+        for tap in self._taps:
+            tap.close()
+        self._taps.clear()
 
 
 def install():

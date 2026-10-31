@@ -4,7 +4,7 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
-- Mac: można teraz nagrywać mikrofon razem z dźwiękiem komputera (Ctrl+Shift+H) w macOS 14.4 i nowszym. Za pierwszym razem macOS prosi o zgodę na nagrywanie dźwięku systemowego.
+- Mac: można teraz nagrywać mikrofon razem z dźwiękiem komputera (Command+Shift+H) w macOS 14.4 i nowszym. Za pierwszym razem macOS prosi o zgodę na nagrywanie dźwięku systemowego.
 
 - Grupy: WinZapp rozpoznaje Cię teraz w grupach, które podają Cię przez powiązany identyfikator (@lid), więc administrator nie widzi już wyszarzonej opcji dodawania członka.
 

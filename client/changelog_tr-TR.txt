@@ -4,7 +4,7 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
-- Mac: macOS 14.4 ve sonrasında artık mikrofonu bilgisayar sesiyle birlikte kaydedebilirsiniz (Ctrl+Shift+H). İlk seferde macOS sistem sesini kaydetmek için izin ister.
+- Mac: macOS 14.4 ve sonrasında artık mikrofonu bilgisayar sesiyle birlikte kaydedebilirsiniz (Command+Shift+H). İlk seferde macOS sistem sesini kaydetmek için izin ister.
 
 - Gruplar: WinZapp artık sizi bağlantılı kimliğinizle (@lid) listeleyen gruplarda tanıyor; böylece yöneticiler Üye ekle seçeneğini devre dışı görmüyor.
 

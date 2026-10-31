@@ -4,7 +4,7 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
-- Mac: ahora puedes grabar el micrófono junto con el audio del ordenador (Ctrl+Shift+H) desde macOS 14.4. La primera vez, macOS pide permiso para grabar el audio del sistema.
+- Mac: ahora puedes grabar el micrófono junto con el audio del ordenador (Command+Shift+H) desde macOS 14.4. La primera vez, macOS pide permiso para grabar el audio del sistema.
 
 - Grupos: WinZapp ahora te reconoce en los grupos que te listan por tu identificador vinculado (@lid), así que un administrador ya no encuentra Añadir participante desactivado.
 

@@ -1,4 +1,4 @@
-"""The capture behind Ctrl+Shift+H on macOS. No audio device is opened here."""
+"""The capture behind Command+Shift+H on macOS. No audio device is opened here."""
 
 import array
 import types
@@ -137,3 +137,24 @@ def test_older_macos_keeps_the_feature_off(monkeypatch):
     assert sam.available() is False
     monkeypatch.setattr(sam, "_macos_version", lambda: (14, 4))
     assert sam.available() is True
+
+
+def test_voiceover_gets_its_own_stream_beside_everything_else(monkeypatch):
+    monkeypatch.setattr(sam, "voiceover_process", lambda: 42)
+    opened = []
+    backend = sam.MacBackend()
+    monkeypatch.setattr(backend, "_open_tap", lambda r, c, **which: opened.append(which) or which)
+
+    assert len(backend.open_nvda_loopbacks(48000, 2)) == 2
+    assert opened == [{"excluded": [42]}, {"only": [42]}]
+
+
+def test_without_voiceover_all_audio_is_one_stream(monkeypatch):
+    monkeypatch.setattr(sam, "voiceover_process", lambda: None)
+    assert sam.MacBackend().open_nvda_loopbacks(48000, 2) is None
+
+
+def test_nvda_reads_voiceover_on_the_mac():
+    from winzapp_mac.strings_mac import mac_wording
+    data = mac_wording({"a": "NVDA volume (%)", "b": "If you use NVDA, on Windows"})
+    assert data == {"a": "VoiceOver volume (%)", "b": "If you use VoiceOver, on macOS"}

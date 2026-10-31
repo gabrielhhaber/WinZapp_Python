@@ -4,7 +4,7 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
-- Mac: acum poți înregistra microfonul împreună cu sunetul computerului (Ctrl+Shift+H) pe macOS 14.4 și versiunile ulterioare. Prima dată, macOS cere permisiunea de a înregistra sunetul sistemului.
+- Mac: acum poți înregistra microfonul împreună cu sunetul computerului (Command+Shift+H) pe macOS 14.4 și versiunile ulterioare. Prima dată, macOS cere permisiunea de a înregistra sunetul sistemului.
 
 - Grupuri: WinZapp te recunoaște acum în grupurile care te listează prin identificatorul asociat (@lid), așa că un administrator nu mai găsește dezactivată opțiunea de adăugare a unui membru.
 
