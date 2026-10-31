@@ -1,5 +1,6 @@
 """What WinZapp says before a recording on macOS. See winzapp_mac/mic_permission_mac.py."""
 
+import sys
 import types
 
 import pytest
@@ -46,6 +47,7 @@ def test_an_unreadable_status_is_silent(monkeypatch):
     assert _press(monkeypatch, {}) == ["open"]
 
 
+@pytest.mark.skipif(sys.platform != "darwin", reason="reads the real macOS permission records")
 @pytest.mark.parametrize("service", [MIC, AUDIO])
 def test_the_real_status_is_readable_on_this_mac(service):
     assert isinstance(mp.status(service), int)

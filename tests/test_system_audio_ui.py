@@ -4,6 +4,7 @@ Run independently of the Windows-only conftest with:
     python3 -m unittest discover -s tests -p test_system_audio_ui.py -v
 """
 import ast
+import sys
 from pathlib import Path
 from types import SimpleNamespace, MethodType
 import unittest
@@ -63,7 +64,7 @@ def find_function(name, paths=SOURCES):
 
 def warning_functions(confirm=None):
     tree = ast.parse(WARNING.read_text(encoding='utf-8'))
-    ns = {'confirm_with_checkbox': confirm}
+    ns = {'confirm_with_checkbox': confirm, 'sys': sys}
     exec(compile(ast.Module(body=[n for n in tree.body if not isinstance(
         n, (ast.Import, ast.ImportFrom))], type_ignores=[]), str(WARNING), 'exec'), ns)
     return ns
@@ -82,7 +83,12 @@ class TestPrivacyWarning(unittest.TestCase):
         confirm.assert_called_once_with(
             'parent', 'system_audio_recording_warning', 'system_audio_recording_title',
             'mark_all_read_dont_show_again', yes_label='yes_button', no_label='no_button',
-            checked=False, default_yes=True)
+            checked=False, default_yes=(sys.platform == 'darwin'))
+
+    def test_yes_default_only_on_mac(self):
+        ns = warning_functions()
+        self.assertTrue(ns['yes_is_default']('darwin'))
+        self.assertFalse(ns['yes_is_default']('win32'))
 
     def panel(self, answer=(True, False)):
         mw = SimpleNamespace(settings={}, i18n=SimpleNamespace(t=lambda key: key),
