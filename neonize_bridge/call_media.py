@@ -50,6 +50,11 @@ STATE_OF_PHASE = {1: "CALLING", 2: "RINGING", 3: "CONNECTING", 4: "ACTIVE"}
 LIVE_STATES = ("CALLING", "RINGING", "CONNECTING", "ACTIVE")
 # how many answered calls answered_here remembers
 ANSWERED_KEPT = 50
+# How long an outgoing one-to-one call rings before this side gives up. WhatsApp
+# does not always end it for the caller (a callee whose phone is off keeps the
+# offer queued for minutes and no <terminate> ever arrives), and WhatsApp Web
+# ends the call itself, so the window would otherwise ring until hung up.
+OUTGOING_RING_LIMIT = 60
 
 
 class FrameAssembler:
@@ -170,6 +175,8 @@ class CallMedia:
         self._mic_owner = None
         self._running = False
         self._audio_readers = {}       # call id -> (unique claim, call record)
+        self.ring_limit = OUTGOING_RING_LIMIT
+        self._ring_timers = {}         # call id -> the timer that ends an unanswered dial
 
     # ---------------------------------------------------------------- state
     def _known(self, call_id):
@@ -262,8 +269,11 @@ class CallMedia:
             return
         if kind == "end":
             event, state = end_state(ev.get("reason"))
+            self._stop_ring_timer(call_id)
             with self._lock:
                 call = self._calls.pop(call_id, None)
+                if call and call.get("unanswered"):
+                    event, state = "timeout", "NOT_ANSWERED"
                 self._audio_readers.pop(call_id, None)
                 data = state_event(call, state=state, event=event) if call else None
             if self.video is not None:
@@ -522,7 +532,9 @@ class CallMedia:
         target = dial_target(to, self.phone_of_lid)
         result = self.calls.dial(target, video=True) if video else self.calls.dial(target)
         peer = msgmap.jid_wpp(msgmap.jid_whatsmeow(to))
-        return self._placed(str(result["call"]), peer, video, "")
+        call_id = self._placed(str(result["call"]), peer, video, "")
+        self._arm_ring_timer(call_id)
+        return call_id
 
     def group_dial(self, group_jid, video=False):
         """Calls every member of the group; returns the call's id."""
@@ -536,6 +548,43 @@ class CallMedia:
         creator = getattr(self, "own_creator", None)
         ongoing_calls.known(self).remember(call_id, creator() if creator else "", group, video)
         return call_id
+
+    def _arm_ring_timer(self, call_id):
+        """Ends the dialed call if nobody has answered after `ring_limit`."""
+        with self._lock:
+            expected = self._calls.get(call_id)
+            if expected is None or not self.ring_limit:
+                return
+            timer = threading.Timer(self.ring_limit, self._ring_expired, (call_id, expected))
+            timer.daemon = True
+            self._ring_timers[call_id] = timer
+        timer.start()
+
+    def _stop_ring_timer(self, call_id):
+        with self._lock:
+            timer = self._ring_timers.pop(call_id, None)
+        if timer is not None:
+            timer.cancel()
+
+    @_serialized
+    def _ring_expired(self, call_id, expected):
+        """Nobody answered: hangs up the call and tells the client nobody did.
+        A call that was answered, or ended meanwhile, is left alone."""
+        with self._lock:
+            self._ring_timers.pop(call_id, None)
+            call = self._calls.get(call_id)
+            if call is None or call is not expected or call.get("connected"):
+                return
+            call["unanswered"] = True
+        log.info("outgoing call not answered after %ss; ending it", self.ring_limit)
+        try:
+            hung = self.calls.hangup(call_id)
+        except Exception:
+            log.exception("hang up an unanswered call")
+            hung = False
+        if hung:
+            return            # the call layer's end event tells the client
+        self.handle({"ev": "end", "call": call_id, "reason": "timeout"})
 
     @_serialized
     def _placed(self, call_id, peer, video, group):

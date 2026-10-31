@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Llamadas de Neonize: una llamada que haces y nadie contesta ahora termina sola al cabo de un minuto, con el resultado "sin respuesta", en lugar de seguir sonando en la ventana de llamada durante minutos después de que WhatsApp dejó de hacer sonar el otro teléfono.
+
 - Contactos adjuntos: un contacto recibido ya no llega vacío y sin número. La tarjeta del contacto ahora se conserva tanto con WPPConnect como con Neonize, así que puedes ver y copiar el número y chatear con la persona.
 
 - Vinculación: corregido el problema por el que la aplicación se quedaba en la pantalla de vinculación tras vincularse correctamente, mientras el teléfono ya la mostraba como conectada.

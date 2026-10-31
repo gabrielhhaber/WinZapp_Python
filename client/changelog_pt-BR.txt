@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Ligações pelo Neonize: uma ligação que você faz e ninguém atende agora termina sozinha depois de um minuto, com o resultado "não atendida", em vez de ficar tocando na janela de chamada por minutos depois que o WhatsApp parou de tocar o outro celular.
+
 - Contatos anexados: um contato recebido não chega mais vazio e sem número. O cartão do contato agora é mantido pelo WPPConnect e pelo Neonize, então dá para ver e copiar o número e conversar com a pessoa.
 
 - Pareamento: corrigido o aplicativo que ficava na tela de pareamento depois de vincular com sucesso, enquanto o celular já o mostrava como conectado.
