@@ -141,17 +141,35 @@ def test_older_macos_keeps_the_feature_off(monkeypatch):
 
 def test_voiceover_gets_its_own_stream_beside_everything_else(monkeypatch):
     monkeypatch.setattr(sam, "voiceover_process", lambda: 42)
+    monkeypatch.setattr(sam, "audio_routers", lambda: [7])
     opened = []
     backend = sam.MacBackend()
     monkeypatch.setattr(backend, "_open_tap", lambda r, c, **which: opened.append(which) or which)
 
     assert len(backend.open_nvda_loopbacks(48000, 2)) == 2
-    assert opened == [{"excluded": [42]}, {"only": [42]}]
+    assert opened == [{"excluded": [42, 7]}, {"only": [42]}]
 
 
 def test_without_voiceover_all_audio_is_one_stream(monkeypatch):
     monkeypatch.setattr(sam, "voiceover_process", lambda: None)
     assert sam.MacBackend().open_nvda_loopbacks(48000, 2) is None
+
+
+def test_one_stream_still_leaves_out_audio_routers(monkeypatch):
+    monkeypatch.setattr(sam, "audio_routers", lambda: [7])
+    opened = []
+    backend = sam.MacBackend()
+    monkeypatch.setattr(backend, "_open_tap", lambda r, c, **which: opened.append(which))
+
+    backend.open_loopback(48000, 2)
+
+    assert opened == [{"excluded": [7]}]
+
+
+def test_every_running_router_is_left_out(monkeypatch):
+    running = {"CrosspointAgent": [1], "arkaudiod": [2, 3], "Audio Hijack": [4], "Loopback": [5]}
+    monkeypatch.setattr(sam, "_process_objects", running.get)
+    assert sam.audio_routers() == [1, 2, 3, 4, 5]
 
 
 def test_nvda_reads_voiceover_on_the_mac():

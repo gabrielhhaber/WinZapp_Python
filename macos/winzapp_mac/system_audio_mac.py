@@ -28,6 +28,7 @@ _MAX_QUEUED_PACKETS = 1000
 # Past this the stream's own count is abandoned and the clock followed.
 _RESYNC_100NS = 200_000
 _MINIMUM_MACOS = (14, 4)
+_AUDIO_ROUTERS = ("CrosspointAgent", "arkaudiod", "Audio Hijack", "Loopback")
 _paFloat32 = 1
 _paContinue = 0
 
@@ -222,18 +223,34 @@ class TapCapture(_PacketStream):
             self._tap.api.AudioDeviceDestroyIOProcID(self._tap.device, proc_id)
 
 
+def _process_objects(name):
+    """Core Audio process objects of the running processes called *name*."""
+    found = subprocess.run(["pgrep", "-x", name], capture_output=True, text=True)
+    api = C.CDLL(f"{_COREAUDIO}/CoreAudio")
+    objects = []
+    for pid in found.stdout.split():
+        pid = C.c_int32(int(pid))
+        process, size = C.c_uint32(0), C.c_uint32(4)
+        status = api.AudioObjectGetPropertyData(
+            _SYSTEM_OBJECT, C.byref(_PROCESS_FROM_PID), C.sizeof(pid), C.byref(pid),
+            C.byref(size), C.byref(process))
+        if status == 0 and process.value:
+            objects.append(process.value)
+    return objects
+
+
 def voiceover_process():
     """VoiceOver's Core Audio process object, or None if it is not running."""
-    found = subprocess.run(["pgrep", "-x", "VoiceOver"], capture_output=True, text=True)
-    if not found.stdout.split():
-        return None
-    api = C.CDLL(f"{_COREAUDIO}/CoreAudio")
-    pid = C.c_int32(int(found.stdout.split()[0]))
-    process, size = C.c_uint32(0), C.c_uint32(4)
-    status = api.AudioObjectGetPropertyData(
-        _SYSTEM_OBJECT, C.byref(_PROCESS_FROM_PID), C.sizeof(pid), C.byref(pid),
-        C.byref(size), C.byref(process))
-    return process.value if status == 0 and process.value else None
+    objects = _process_objects("VoiceOver")
+    return objects[0] if objects else None
+
+
+def audio_routers():
+    """Processes that replay other apps' audio. A tap already has that audio
+    from the app that made it, so including them records it twice, a few
+    milliseconds apart: measured at 16.7 ms through Crosspoint, which sounds
+    phasey and also defeats VoiceOver's own slider."""
+    return [process for name in _AUDIO_ROUTERS for process in _process_objects(name)]
 
 
 class ComputerAudioTap:
@@ -316,7 +333,7 @@ class MacBackend:
         return PortAudioCapture(pa, find_input_device_index(name, pa), rate, channels)
 
     def open_loopback(self, rate, channels):
-        return self._open_tap(rate, channels)
+        return self._open_tap(rate, channels, excluded=audio_routers())
 
     def _open_tap(self, rate, channels, **which):
         tap = ComputerAudioTap(**which)
@@ -329,7 +346,7 @@ class MacBackend:
         process = voiceover_process()
         if process is None:
             return None
-        return (self._open_tap(rate, channels, excluded=[process]),
+        return (self._open_tap(rate, channels, excluded=[process, *audio_routers()]),
                 self._open_tap(rate, channels, only=[process]))
 
     def close(self):
