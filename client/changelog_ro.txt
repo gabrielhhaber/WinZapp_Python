@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Apeluri Neonize: un apel pe care îl faci și la care nu răspunde nimeni se încheie acum singur după un minut, cu rezultatul „fără răspuns”, în loc să sune minute în șir în fereastra de apel după ce WhatsApp a încetat să sune celălalt telefon.
+
 - Contacte atașate: un contact primit nu mai ajunge gol și fără număr de telefon. Cartea de vizită a contactului este acum păstrată atât de WPPConnect, cât și de Neonize, așa că poți vedea și copia numărul și poți vorbi cu persoana.
 
 - Asociere: s-a corectat situația în care aplicația rămânea la ecranul de asociere după o conectare reușită, deși telefonul o afișa deja ca fiind conectată.

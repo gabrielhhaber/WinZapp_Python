@@ -452,3 +452,59 @@ def test_a_group_call_placed_here_can_be_found_again():
     assert m.group_dial("1203@g.us") == "GP1"
     found = ongoing_calls.known(m).get("GP1")
     assert (found["creator"], found["chat"]) == ("100:27@lid", "1203@g.us")
+
+
+# ------------------------------------------------- an outgoing call nobody answers
+def test_an_unanswered_dial_is_hung_up_and_reported_as_not_answered():
+    fake = FakeCalls()
+    m, sent = media(fake)
+    m.ring_limit = 0                              # the test fires the timer itself
+    m.dial("5511999990000@c.us")
+    m.handle({"ev": "state", "call": "OUT1", "phase": 2})
+    m._ring_expired("OUT1", m._calls["OUT1"])
+    assert fake.hung == ["OUT1"]
+    # the call layer answers a hangup with its own end event
+    m.handle({"ev": "end", "call": "OUT1", "reason": "hangup"})
+    end = [d for e, d in sent if e == "callstate"][-1]["data"]
+    assert (end["state"], end["event"]) == ("NOT_ANSWERED", "timeout")
+    assert m.status("OUT1")["live"] is False
+
+
+def test_an_unanswered_dial_ends_even_when_the_call_layer_cannot_hang_up():
+    fake = FakeCalls()
+    fake.hangup = lambda call_id: False
+    m, sent = media(fake)
+    m.ring_limit = 0
+    m.dial("5511999990000@c.us")
+    m._ring_expired("OUT1", m._calls["OUT1"])
+    assert states(sent)[-1] == "NOT_ANSWERED" and m.status("OUT1")["live"] is False
+
+
+def test_the_ring_limit_leaves_an_answered_call_alone():
+    fake = FakeCalls(remote=[None])
+    m, sent = media(fake)
+    m.ring_limit = 0
+    m.dial("5511999990000@c.us")
+    m.handle({"ev": "accepted", "call": "OUT1"})
+    m._ring_expired("OUT1", m._calls["OUT1"])
+    assert fake.hung == [] and m.status("OUT1")["state"] == "ACTIVE"
+
+
+def test_the_ring_limit_does_not_touch_a_later_call_with_the_same_id():
+    fake = FakeCalls()
+    m, _ = media(fake)
+    m.ring_limit = 0
+    m.dial("5511999990000@c.us")
+    old = m._calls["OUT1"]
+    m.handle({"ev": "end", "call": "OUT1", "reason": "hangup"})
+    m.dial("5511999990000@c.us")
+    m._ring_expired("OUT1", old)
+    assert fake.hung == []
+
+
+def test_dialing_arms_a_timer_that_ends_with_the_call():
+    m, _ = media()
+    m.dial("5511999990000@c.us")
+    assert "OUT1" in m._ring_timers
+    m.handle({"ev": "end", "call": "OUT1", "reason": "hangup"})
+    assert "OUT1" not in m._ring_timers

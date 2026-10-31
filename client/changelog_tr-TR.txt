@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize aramaları: yaptığınız ve kimsenin açmadığı bir arama, WhatsApp diğer telefonu çaldırmayı bıraktıktan sonra dakikalarca arama penceresinde çalmaya devam etmek yerine, artık bir dakika sonra "cevapsız" sonucuyla kendiliğinden sona eriyor.
+
 - Eklenen kişiler: alınan bir kişi artık boş ve telefon numarasız gelmiyor. Kişi kartı artık hem WPPConnect hem de Neonize tarafından korunuyor; böylece numarayı görebilir, kopyalayabilir ve kişiyle sohbet edebilirsiniz.
 
 - Eşleştirme: başarılı bir bağlantıdan sonra telefon uygulamayı bağlı olarak gösterirken uygulamanın eşleştirme ekranında kalması düzeltildi.

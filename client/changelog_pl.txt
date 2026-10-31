@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Połączenia Neonize: połączenie, które wykonujesz, a nikt nie odbiera, kończy się teraz samo po minucie z wynikiem „nieodebrane”, zamiast dzwonić w oknie połączenia przez kilka minut po tym, jak WhatsApp przestał dzwonić na drugim telefonie.
+
 - Załączone kontakty: odebrany kontakt nie przychodzi już pusty i bez numeru telefonu. Wizytówka kontaktu jest teraz zachowywana zarówno w WPPConnect, jak i w Neonize, więc można zobaczyć i skopiować numer oraz napisać do tej osoby.
 
 - Parowanie: naprawiono błąd, przez który aplikacja pozostawała na ekranie parowania po udanym połączeniu, choć telefon pokazywał ją już jako połączoną.

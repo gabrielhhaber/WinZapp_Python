@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Chamadas pelo Neonize: uma chamada que faz e ninguém atende passa a terminar sozinha ao fim de um minuto, com o resultado "não atendida", em vez de ficar a tocar na janela de chamada durante minutos depois de o WhatsApp deixar de tocar no outro telemóvel.
+
 - Contactos anexados: um contacto recebido já não chega vazio e sem número. O cartão do contacto passa a ser mantido pelo WPPConnect e pelo Neonize, pelo que é possível ver e copiar o número e conversar com a pessoa.
 
 - Emparelhamento: corrigida a aplicação que ficava no ecrã de emparelhamento depois de associar com sucesso, enquanto o telemóvel já a mostrava como ligada.
