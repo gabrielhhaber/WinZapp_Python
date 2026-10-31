@@ -193,3 +193,10 @@ def test_the_slider_names_lose_their_percent_note():
                     "system_audio_recording_nvda_volume": "VoiceOver volume",
                     "other": "Volume (%)"}
 
+
+def test_the_other_sounds_slider_reads_system_sound_on_the_mac():
+    from winzapp_mac.strings_mac import mac_wording
+    data = mac_wording({"system_audio_recording_other_volume": "Other sounds volume (%)",
+                        "system_audio_recording_other_volume_macos": "System sound volume"})
+    assert data["system_audio_recording_other_volume"] == "System sound volume"
+

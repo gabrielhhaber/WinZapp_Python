@@ -12629,6 +12629,11 @@ msgid "Other sounds volume (%)"
 msgstr "Other sounds volume (%)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "system_audio_recording_other_volume_macos"
+msgid "System sound volume"
+msgstr "System sound volume"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "system_audio_recording_title"
 msgid "Microphone and computer audio recording"
 msgstr "Microphone and computer audio recording"
