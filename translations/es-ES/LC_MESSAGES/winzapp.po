@@ -7105,6 +7105,27 @@ msgid "not yet available on Mac"
 msgstr "aún no disponible en Mac"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "mac_system_audio_permission_denied"
+msgid ""
+"WinZapp does not have permission to record system audio, so computer audio "
+"will be silent. Turn it on in System Settings, Privacy and Security, Screen "
+"and System Audio Recording."
+msgstr ""
+"WinZapp no tiene permiso para grabar el audio del sistema, así que el audio "
+"del ordenador quedará en silencio. Actívalo en Ajustes del Sistema, "
+"Privacidad y Seguridad, Grabación de Pantalla y Audio del Sistema."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "mac_system_audio_permission_waiting"
+msgid ""
+"macOS is asking for permission to record system audio. Recording starts once"
+" you answer, and the prompt may be waiting behind another permission prompt."
+msgstr ""
+"macOS está pidiendo permiso para grabar el audio del sistema. La grabación "
+"empieza en cuanto respondas, y la solicitud puede estar detrás de otra "
+"solicitud de permiso."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "mac_update_available_reminder"
 msgid ""
@@ -12773,6 +12794,11 @@ msgstr "Volumen de NVDA (%)"
 msgctxt "system_audio_recording_other_volume"
 msgid "Other sounds volume (%)"
 msgstr "Volumen de los demás sonidos (%)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "system_audio_recording_other_volume_macos"
+msgid "System sound volume"
+msgstr "Volumen del sonido del sistema"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "system_audio_recording_title"

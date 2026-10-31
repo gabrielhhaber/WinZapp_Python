@@ -145,6 +145,10 @@ def install():
     lf.get_country_or_region_iso2 = mac_country_iso2
     lf._get_windows_ui_language_raw = mac_ui_language
 
+    from . import system_audio_mac
+    if system_audio_mac.available():
+        return
+
     from ui.conversation_panel import system_audio_recording as sar
     sar.SystemAudioRecordingMixin._on_record_system_audio = _on_record_system_audio
 

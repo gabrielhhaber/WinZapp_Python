@@ -7,13 +7,18 @@ translators see them beside the Windows text and
 tests/test_language_files_in_sync.py keeps them in every locale. On the Mac
 the variant is used in place of the Windows text.
 
-Any other string that still names Windows gets "macOS" as a fallback.
+Any other string that still names Windows gets "macOS" as a fallback, and one
+that names NVDA gets VoiceOver, the screen reader there.
 """
 
 import re
 
 MAC_SUFFIX = "_macos"
 _WINDOWS = re.compile(r"\bWindows\b")
+_NVDA = re.compile(r"\bNVDA\b")
+# VoiceOver reads a slider's value with its percent sign already.
+_SLIDER_NAMES = ("system_audio_recording_volume", "system_audio_recording_nvda_volume")
+_PERCENT_NOTE = re.compile(r"\s*\(\s*%\s*\)")
 
 
 def mac_wording(data):
@@ -23,8 +28,11 @@ def mac_wording(data):
     for k, v in list(data.items()):
         if k in variants:
             data[k] = variants[k]
-        elif isinstance(v, str) and "Windows" in v and not k.endswith(MAC_SUFFIX):
-            data[k] = _WINDOWS.sub("macOS", v)
+        elif isinstance(v, str) and not k.endswith(MAC_SUFFIX):
+            data[k] = _NVDA.sub("VoiceOver", _WINDOWS.sub("macOS", v))
+    for k in _SLIDER_NAMES:
+        if isinstance(data.get(k), str):
+            data[k] = _PERCENT_NOTE.sub("", data[k])
     return data
 
 
