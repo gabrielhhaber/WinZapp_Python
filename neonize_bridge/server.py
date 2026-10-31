@@ -753,6 +753,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             try:
                 o = e.Info.MessageSource
                 chat = jid_text(o.Chat)
+                if message_rules.is_channel_chat(chat):
+                    return      # channel posts are not conversations
                 try:
                     self.observe_timer(chat, e.Message)
                 except Exception:

@@ -15,6 +15,8 @@ NOWOŚCI
 
 - Załączone kontakty: odebrany kontakt nie przychodzi już pusty i bez numeru telefonu. Wizytówka kontaktu jest teraz zachowywana zarówno w WPPConnect, jak i w Neonize, więc można zobaczyć i skopiować numer oraz napisać do tej osoby.
 
+- Neonize: wpisy z kanałów, które obserwujesz (identyfikatory zaczynające się od 120363), nie pojawiają się już jako czaty i wiadomości.
+
 - Parowanie: naprawiono błąd, przez który aplikacja pozostawała na ekranie parowania po udanym połączeniu, choć telefon pokazywał ją już jako połączoną.
 
 - Połączenia Neonize: dodano eksperymentalny tor dźwięku PCM 48 kHz dla połączeń z wynegocjowanym kodekiem Opus. Jest domyślnie wyłączony i sprawdza format oraz identyfikator instancji połączenia. Zwykły tryb zachowuje możliwość użycia MLow.

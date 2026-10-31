@@ -35,3 +35,10 @@ def test_delete_for_everyone_in_a_group_uses_the_stored_author_if_the_id_does_no
     assert rules.revocation_author(
         False, True, "me@s.whatsapp.net", "", stored) == "5551@s.whatsapp.net"
     assert rules.revocation_author(False, True, "me@s.whatsapp.net", "", {}) == ""
+
+
+def test_channel_posts_are_not_conversations():
+    assert rules.is_channel_chat("120363123456789@newsletter")
+    assert not rules.is_channel_chat("120363123456789@g.us")
+    assert not rules.is_channel_chat("5551@s.whatsapp.net")
+    assert not rules.is_channel_chat(None)

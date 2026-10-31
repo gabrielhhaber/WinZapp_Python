@@ -95,7 +95,8 @@ def is_muted(c, now):
 def select(chat_rows, criterion, now=0):
     """The chats that meet the criterion: 'all', 'archived', 'broadcast' or
     'muted'. The status board always stays out."""
-    without_status = [c for c in chat_rows if c["jid"] != "status@broadcast"]
+    without_status = [c for c in chat_rows if c["jid"] != "status@broadcast"
+                      and not c["jid"].endswith("@newsletter")]
     if criterion == "archived":
         return [c for c in without_status if c["archived"]]
     if criterion == "broadcast":

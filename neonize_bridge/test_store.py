@@ -337,3 +337,16 @@ def test_the_receipts_of_one_event_are_stored_like_one_receipt_each(tmp_path):
     assert a.receipts_of("M1") == [("x@lid", "delivered", 10)]
     assert a.receipts_of("M2") == [("x@lid", "delivered", 20), ("x@lid", "read", 30)]
     assert a.receipts_of("M3") == [("x@lid", "delivered", 20)]
+
+
+def test_the_store_keeps_nothing_of_a_channel_whatever_the_path(tmp_path):
+    s = Store(str(tmp_path / "x.db"))
+    ch = "120363111@newsletter"
+    s.chat(ch, name="News")
+    s.chats_in_batch([(ch, {"name": "News"})])
+    s.message(ch, _msg("m1", 100))
+    s.messages_in_batch([(ch, _msg("m2", 101))])
+    s.on_arrival(ch, 102, False)
+    s.chat("5551@s.whatsapp.net", name="Ann")
+    assert [c["jid"] for c in s.chats()] == ["5551@s.whatsapp.net"]
+    assert s.messages(ch, 10) == []

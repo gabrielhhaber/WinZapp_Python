@@ -5,6 +5,12 @@ import json
 import sqlite3
 import threading
 
+
+def _is_channel(jid):
+    """A channel (newsletter) is not a conversation: the store keeps nothing of it,
+    whichever path (live message, history, phone state notice) brings it."""
+    return str(jid or "").endswith("@newsletter")
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS chats(
     jid TEXT PRIMARY KEY, name TEXT DEFAULT '', ts INTEGER DEFAULT 0,
@@ -143,6 +149,8 @@ class Store:
     # ---------------------------------------------------------- chats
     def chat(self, jid, **fields):
         """Creates the chat if it does not exist and writes only the given fields."""
+        if _is_channel(jid):
+            return
         fields = {k: v for k, v in fields.items() if k in CHAT_FIELDS}
         with self._lock:
             self._conn.execute("INSERT OR IGNORE INTO chats(jid) VALUES (?)", (jid,))
@@ -166,6 +174,8 @@ class Store:
         held the lock long enough to stall every route behind it."""
         with self._lock:
             for jid, fields in rows:
+                if _is_channel(jid):
+                    continue
                 fields = {k: v for k, v in fields.items() if k in CHAT_FIELDS}
                 self._conn.execute("INSERT OR IGNORE INTO chats(jid) VALUES (?)", (jid,))
                 if fields:
@@ -188,6 +198,8 @@ class Store:
 
     def on_arrival(self, jid, ts, from_me):
         """New message: raises the chat's date and counts an unread."""
+        if _is_channel(jid):
+            return
         with self._lock:
             self._conn.execute("INSERT OR IGNORE INTO chats(jid) VALUES (?)", (jid,))
             self._conn.execute(
@@ -293,6 +305,9 @@ class Store:
 
     def messages_in_batch(self, rows):
         """Rows (chat, wpp) or (chat, wpp, raw)."""
+        rows = [r for r in rows if not _is_channel(r[0])]
+        if not rows:
+            return
         with self._lock:
             self._conn.executemany(
                 "INSERT OR REPLACE INTO msgs(chat, id, ts, data, raw) VALUES (?,?,?,?,?)",
