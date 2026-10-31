@@ -2,42 +2,50 @@
 
 import types
 
+import pytest
+
 from winzapp_mac import mic_permission_mac as mp
 
 
-def _press(monkeypatch, status, presses=1):
-    monkeypatch.setattr(mp, "authorization_status", lambda: status)
-    monkeypatch.setattr(mp, "_told_about_prompt", False)
+def _press(monkeypatch, answers, permissions=(mp.MICROPHONE, mp.COMPUTER_AUDIO), presses=1):
+    monkeypatch.setattr(mp, "status", answers.get)
     events = []
     panel = types.SimpleNamespace(main_window=types.SimpleNamespace(
         output=events.append, i18n=types.SimpleNamespace(t=lambda key: key)))
-    wrapped = mp._announced(lambda self: events.append("open"))
+    wrapped = mp._announced(lambda self: events.append("open"), permissions)
     for _ in range(presses):
         wrapped(panel)
     return events
 
 
+MIC, AUDIO = mp.MICROPHONE[0], mp.COMPUTER_AUDIO[0]
+
+
 def test_an_unanswered_prompt_is_announced_before_the_open_raises_it(monkeypatch):
-    assert _press(monkeypatch, 0) == ["mac_mic_permission_waiting", "open"]
+    assert _press(monkeypatch, {MIC: 2}) == ["mac_mic_permission_waiting", "open"]
 
 
-def test_a_stale_status_is_said_only_once_per_launch(monkeypatch):
-    assert _press(monkeypatch, 0, presses=3) == [
-        "mac_mic_permission_waiting", "open", "open", "open"]
+def test_computer_audio_has_its_own_sentences(monkeypatch):
+    assert _press(monkeypatch, {MIC: 0, AUDIO: 2}) == ["mac_system_audio_permission_waiting", "open"]
+    assert _press(monkeypatch, {MIC: 0, AUDIO: 1}) == ["mac_system_audio_permission_denied", "open"]
 
 
-def test_a_refusal_warns_and_never_stops_the_recording(monkeypatch):
-    for status in (1, 2):
-        assert _press(monkeypatch, status) == ["mac_mic_permission_denied", "open"]
+def test_only_the_first_problem_is_spoken(monkeypatch):
+    assert _press(monkeypatch, {MIC: 1, AUDIO: 1}) == ["mac_mic_permission_denied", "open"]
 
 
-def test_a_granted_permission_is_silent(monkeypatch):
-    assert _press(monkeypatch, 3) == ["open"]
+def test_a_refusal_never_stops_the_recording(monkeypatch):
+    assert _press(monkeypatch, {MIC: 1}, (mp.MICROPHONE,))[-1] == "open"
+
+
+def test_granted_permissions_are_silent(monkeypatch):
+    assert _press(monkeypatch, {MIC: 0, AUDIO: 0}, presses=2) == ["open", "open"]
 
 
 def test_an_unreadable_status_is_silent(monkeypatch):
-    assert _press(monkeypatch, None) == ["open"]
+    assert _press(monkeypatch, {}) == ["open"]
 
 
-def test_the_real_status_is_readable_on_this_mac():
-    assert mp.authorization_status() in (0, 1, 2, 3)
+@pytest.mark.parametrize("service", [MIC, AUDIO])
+def test_the_real_status_is_readable_on_this_mac(service):
+    assert isinstance(mp.status(service), int)

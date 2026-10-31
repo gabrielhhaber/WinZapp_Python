@@ -7039,6 +7039,26 @@ msgid "not yet available on Mac"
 msgstr "Mac'te henüz kullanılamıyor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "mac_system_audio_permission_denied"
+msgid ""
+"WinZapp does not have permission to record system audio, so computer audio "
+"will be silent. Turn it on in System Settings, Privacy and Security, Screen "
+"and System Audio Recording."
+msgstr ""
+"WinZapp'ın sistem sesini kaydetme izni yok, bu nedenle bilgisayar sesi "
+"sessiz olacak. Sistem Ayarları, Gizlilik ve Güvenlik, Ekran ve Sistem Sesi "
+"Kaydı bölümünden açın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "mac_system_audio_permission_waiting"
+msgid ""
+"macOS is asking for permission to record system audio. Recording starts once"
+" you answer, and the prompt may be waiting behind another permission prompt."
+msgstr ""
+"macOS sistem sesini kaydetmek için izin istiyor. Yanıt verdiğinizde kayıt "
+"başlar; istek başka bir izin isteğinin arkasında bekliyor olabilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "mac_update_available_reminder"
 msgid ""

@@ -16,6 +16,9 @@ import re
 MAC_SUFFIX = "_macos"
 _WINDOWS = re.compile(r"\bWindows\b")
 _NVDA = re.compile(r"\bNVDA\b")
+# VoiceOver reads a slider's value with its percent sign already.
+_SLIDER_NAMES = ("system_audio_recording_volume", "system_audio_recording_nvda_volume")
+_PERCENT_NOTE = re.compile(r"\s*\(\s*%\s*\)")
 
 
 def mac_wording(data):
@@ -27,6 +30,9 @@ def mac_wording(data):
             data[k] = variants[k]
         elif isinstance(v, str) and not k.endswith(MAC_SUFFIX):
             data[k] = _NVDA.sub("VoiceOver", _WINDOWS.sub("macOS", v))
+    for k in _SLIDER_NAMES:
+        if isinstance(data.get(k), str):
+            data[k] = _PERCENT_NOTE.sub("", data[k])
     return data
 
 

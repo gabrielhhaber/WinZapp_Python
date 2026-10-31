@@ -182,3 +182,14 @@ def test_sliders_lose_only_their_value_labels():
     import wx
     style = sam.without_value_labels(wx.SL_HORIZONTAL | wx.SL_LABELS)
     assert style & wx.SL_HORIZONTAL and not style & wx.SL_LABELS
+
+
+def test_the_slider_names_lose_their_percent_note():
+    from winzapp_mac.strings_mac import mac_wording
+    data = mac_wording({"system_audio_recording_volume": "Other sounds volume (%)",
+                        "system_audio_recording_nvda_volume": "NVDA volume (%)",
+                        "other": "Volume (%)"})
+    assert data == {"system_audio_recording_volume": "Other sounds volume",
+                    "system_audio_recording_nvda_volume": "VoiceOver volume",
+                    "other": "Volume (%)"}
+
