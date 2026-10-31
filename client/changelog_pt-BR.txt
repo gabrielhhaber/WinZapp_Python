@@ -8,6 +8,8 @@ NOVIDADES
 
 - Contatos anexados: um contato recebido não chega mais vazio e sem número. O cartão do contato agora é mantido pelo WPPConnect e pelo Neonize, então dá para ver e copiar o número e conversar com a pessoa.
 
+- Neonize: publicações de canais que você segue (ids começando com 120363) não aparecem mais como conversas e mensagens.
+
 - Pareamento: corrigido o aplicativo que ficava na tela de pareamento depois de vincular com sucesso, enquanto o celular já o mostrava como conectado.
 
 - Ligações pelo Neonize: adicionado um caminho experimental de áudio PCM a 48 kHz para chamadas com Opus negociado, desativado por padrão, com verificação do formato e da instância da ligação. O modo normal mantém o retorno ao MLow.

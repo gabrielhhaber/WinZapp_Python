@@ -202,3 +202,9 @@ def test_route_list_mutes_and_votes(tmp_path):
     assert [c["name"] for c in body["response"]] == ["Bia"]
     status, body = ask(tmp_path, "GET", "/api/t/votes/true_a@c.us_m9", populate)
     assert status == 404
+
+
+def test_stored_channel_chats_stay_out_of_every_listing():
+    rows = [{"jid": "120363@newsletter", "archived": 0, "muted": 0},
+            {"jid": "5551@s.whatsapp.net", "archived": 0, "muted": 0}]
+    assert [c["jid"] for c in cl.select(rows, "all")] == ["5551@s.whatsapp.net"]

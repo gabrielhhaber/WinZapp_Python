@@ -15,6 +15,12 @@ import msgmap
 EDIT_WINDOW = 15 * 60
 
 
+def is_channel_chat(jid):
+    """True for a channel (newsletter, ids starting 120363) chat. The app has no
+    channels tab, so what channels post must never become a conversation."""
+    return str(jid or "").endswith("@newsletter")
+
+
 def refusal_reason(from_me, original, now):
     """'not_mine', 'not_stored' or 'outside_window' if the edit cannot go
     out; '' if it can. `original` is the stored message (or None)."""
