@@ -20,6 +20,8 @@ import subprocess
 import time
 import uuid
 
+import wx
+
 _COREAUDIO = "/System/Library/Frameworks/CoreAudio.framework"
 _DEVICE_NAME = "WinZapp computer audio"
 _FRAMES_PER_BUFFER = 480
@@ -361,8 +363,34 @@ class MacBackend:
         self._taps.clear()
 
 
+def ask_with_yes_default(parent, i18n):
+    """The consent dialog, with Yes as its default button on the Mac."""
+    from ui.dialogs.checkbox_confirm import confirm_with_checkbox
+    t = i18n.t
+    return confirm_with_checkbox(
+        parent, t("system_audio_recording_warning"), t("system_audio_recording_title"),
+        t("mark_all_read_dont_show_again"), yes_label=t("yes_button"), no_label=t("no_button"),
+        checked=False, default_yes=True)
+
+
+def without_value_labels(style):
+    """wxOSX draws SL_LABELS as loose static text beside the slider, which
+    VoiceOver reads as stray numbers; the slider already speaks its value."""
+    return style & ~wx.SL_LABELS
+
+
+class _Slider(wx.Slider):
+    def __init__(self, *args, **kwargs):
+        if "style" in kwargs:
+            kwargs["style"] = without_value_labels(kwargs["style"])
+        super().__init__(*args, **kwargs)
+
+
 def install():
     if not available():
         return
     from core import wasapi_capture
+    from ui.conversation_panel import system_audio_recording
     wasapi_capture.WasapiBackend = MacBackend
+    system_audio_recording.ask_system_audio = ask_with_yes_default
+    wx.Slider = _Slider

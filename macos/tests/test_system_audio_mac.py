@@ -176,3 +176,21 @@ def test_nvda_reads_voiceover_on_the_mac():
     from winzapp_mac.strings_mac import mac_wording
     data = mac_wording({"a": "NVDA volume (%)", "b": "If you use NVDA, on Windows"})
     assert data == {"a": "VoiceOver volume (%)", "b": "If you use VoiceOver, on macOS"}
+
+
+def test_sliders_lose_only_their_value_labels():
+    import wx
+    style = sam.without_value_labels(wx.SL_HORIZONTAL | wx.SL_LABELS)
+    assert style & wx.SL_HORIZONTAL and not style & wx.SL_LABELS
+
+
+def test_yes_is_the_default_of_the_mac_consent_dialog(monkeypatch):
+    from ui.dialogs import checkbox_confirm
+    seen = {}
+    monkeypatch.setattr(checkbox_confirm, "confirm_with_checkbox",
+                        lambda *a, **kw: seen.update(kw) or (True, False))
+    i18n = types.SimpleNamespace(t=lambda key: key)
+
+    assert sam.ask_with_yes_default(None, i18n) == (True, False)
+    assert seen["default_yes"] is True and seen["checked"] is False
+
