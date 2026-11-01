@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- WPPConnect Server 2.10.74 este acum oferit ca actualizare, fără a aștepta o nouă versiune WinZapp. Actualizează doar documentația și o dependență de securitate și nu afectează modificările pe care WinZapp le face în server.
+
 - Neonize: un fișier sau un mesaj pe care îl redirecționezi apare acum imediat în conversația de destinație, fără să mai fie nevoie să reîmprospătezi manual conversația.
 
 - Grupuri: când cineva scrie, WinZapp anunță acum numele persoanei, nu doar numărul de telefon, dacă ai văzut deja un mesaj de la ea, chiar dacă nu este în contacte.

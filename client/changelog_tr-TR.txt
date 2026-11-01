@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WPPConnect Server 2.10.74 artık yeni bir WinZapp sürümü beklenmeden güncelleme olarak sunuluyor. Yalnızca belgeleri ve bir güvenlik bağımlılığını günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
+
 - Neonize: ilettiğin bir dosya veya mesaj artık hedef sohbette hemen görünüyor; sohbeti elle yenilemen gerekmiyor.
 
 - Gruplar: biri yazarken WinZapp artık, kişiden daha önce bir mesaj gördüysen, kişi rehberinde olmasa bile yalnızca telefon numarasını değil adını söylüyor.
