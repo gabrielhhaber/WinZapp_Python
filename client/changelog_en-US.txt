@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect Server 2.10.74 is now offered as an update without waiting for a new WinZapp version. It only updates documentation and a security dependency, and WinZapp's changes to the server are not affected.
+
 - Neonize: a file or message you forward now appears in the destination conversation right away, without having to refresh it manually.
 
 - Mac: checking for updates no longer fails with a secure connection error on Macs without python.org Python. Versions already installed need one manual install to get this fix.
