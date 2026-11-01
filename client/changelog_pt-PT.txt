@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Neonize: se a internet cair a meio de uma chamada, ainda consegue desligar; antes o botão falhava com o erro "Disconnected".
+
 - O WPPConnect Server 2.10.74 passa a ser oferecido como atualização sem esperar por uma nova versão do WinZapp. Só atualiza a documentação e uma dependência de segurança e não afeta as alterações que o WinZapp faz no servidor.
 
 - Neonize: um ficheiro ou mensagem que reencaminha passa a aparecer logo na conversa de destino, sem ser preciso atualizar a conversa manualmente.

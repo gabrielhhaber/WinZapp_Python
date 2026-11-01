@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: if the internet drops in the middle of a call, you can still hang up; before, the button failed with a "Disconnected" error.
+
 - WPPConnect Server 2.10.74 is now offered as an update without waiting for a new WinZapp version. It only updates documentation and a security dependency, and WinZapp's changes to the server are not affected.
 
 - Neonize: a file or message you forward now appears in the destination conversation right away, without having to refresh it manually.
