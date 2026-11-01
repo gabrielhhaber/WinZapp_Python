@@ -216,6 +216,8 @@ WHAT'S NEW
 
 - Neonize: voice messages, photos and documents are no longer lost when the computer's file-type library (libmagic) fails to load; the type is now recognized from the file itself.
 
+- Voice messages: mono recordings are sent at 64 kbps again, as before the single record button; stereo recordings keep up to 256 kbps. Neonize also writes one line per media message sent and the ids of the delivery receipts in the log, to find out why some voice messages are not delivered.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

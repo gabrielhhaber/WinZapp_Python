@@ -216,6 +216,8 @@ NOVEDADES
 
 - Neonize: los mensajes de voz, las fotos y los documentos ya no se pierden cuando la biblioteca de tipos de archivo del equipo (libmagic) no carga; el tipo ahora se reconoce por el propio archivo.
 
+- Mensajes de voz: las grabaciones en mono vuelven a enviarse a 64 kbps, como antes del botón único de grabar; las grabaciones en estéreo mantienen hasta 256 kbps. Neonize también registra una línea por cada archivo multimedia enviado y los ids de los acuses de entrega, para averiguar por qué algunos mensajes de voz no se entregan.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

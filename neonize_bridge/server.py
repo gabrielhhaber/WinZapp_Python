@@ -21,6 +21,7 @@ from aiohttp import web
 
 import audio_message
 import media_probe
+import send_log
 import channels
 import administration
 import authentication
@@ -956,8 +957,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 ack = {"DELIVERED": 2, "READ": 3, "PLAYED": 4}.get(kind)
                 chat = msgmap.jid_wpp(jid_text(e.MessageSource.Chat))
                 is_mine = bool(e.MessageSource.IsFromMe)
-                log.info("receipt %s%s (%d message(s)) in %s -> ack %s", kind,
-                         " [mine]" if is_mine else "", len(e.MessageIDs), redact(chat), ack)
+                log.info("receipt %s%s (%d message(s)) in %s -> ack %s ids=%s", kind,
+                         " [mine]" if is_mine else "", len(e.MessageIDs), redact(chat), ack,
+                         ",".join(list(e.MessageIDs)[:5]))
                 # read receipt that comes from me: I read on the phone (or on another device)
                 if kind == "READ_SELF" or (kind == "READ" and is_mine):
                     read_on_another_device(c, e)
@@ -2192,6 +2194,17 @@ def create_app(folder, fixed=""):
 
     def send_media(s, destination, kind, file, caption, name, mime, ptt, ctx=None,
                    client=None):
+        resp = send_media_message(s, destination, kind, file, caption, name, mime, ptt,
+                                  ctx, client)
+        try:
+            log.info(send_log.describe(resp.Message, resp.ID,
+                                       getattr(destination, "Server", "") or "?"))
+        except Exception:
+            log.exception("media send log")
+        return resp
+
+    def send_media_message(s, destination, kind, file, caption, name, mime, ptt, ctx=None,
+                           client=None):
         c = s.client if client is None else client
         # audio and video: not neonize's build_*_message, which need ffprobe
         # (WinZapp does not ship it)
