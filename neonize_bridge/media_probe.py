@@ -162,9 +162,106 @@ def thumbnail_and_seconds(file):
     return output[0] or b"", ffmpeg_output_seconds(output[1])
 
 
+SIGNATURES = (          # (offset, bytes, mimetype): what libmagic says for the common media
+    (0, b"OggS", "audio/ogg"),
+    (0, b"\xff\xd8\xff", "image/jpeg"),
+    (0, b"\x89PNG\r\n\x1a\n", "image/png"),
+    (0, b"GIF8", "image/gif"),
+    (0, b"ID3", "audio/mpeg"),
+    (0, b"\xff\xfb", "audio/mpeg"),
+    (0, b"\xff\xf3", "audio/mpeg"),
+    (0, b"\xff\xf1", "audio/aac"),
+    (0, b"\xff\xf9", "audio/aac"),
+    (0, b"fLaC", "audio/flac"),
+    (0, b"#!AMR", "audio/amr"),
+    (0, b"%PDF", "application/pdf"),
+    (0, b"\x1a\x45\xdf\xa3", "video/webm"),
+)
+
+
+def sniff_mimetype(data):
+    """The mimetype of `data` from its first bytes alone, "" when unknown. A
+    stand-in for libmagic, which cannot load its database on some machines
+    (issue: every voice note failed with "could not find any valid magic
+    files!")."""
+    head = bytes(data[:16])
+    if head[4:8] == b"ftyp":              # ISO base media: M4A/MP4/MOV
+        brand = head[8:12]
+        if brand in (b"M4A ", b"M4B ", b"M4P "):
+            return "audio/mp4"
+        return "video/quicktime" if brand == b"qt  " else "video/mp4"
+    if head[:4] == b"RIFF":
+        return {b"WAVE": "audio/x-wav", b"WEBP": "image/webp",
+                b"AVI ": "video/x-msvideo"}.get(head[8:12], "")
+    for offset, signature, mime in SIGNATURES:
+        if head[offset:offset + len(signature)] == signature:
+            return mime
+    return ""
+
+
 def mimetype(data):
-    import magic
-    return magic.from_buffer(data, mime=True)
+    """libmagic's mimetype of `data`; the signature check when libmagic cannot
+    run, so one broken database never stops a send."""
+    try:
+        import magic
+        return magic.from_buffer(data, mime=True)
+    except Exception:
+        log.warning("libmagic failed; using the file signature", exc_info=True)
+        return sniff_mimetype(data)
+
+
+def media_type_of(data, mimetype_of=None):
+    """neonize's MediaType for `data` (what its `MediaType.from_magic` answers,
+    without needing libmagic): by the first part of the mimetype, a document
+    when it is none of image, video or audio."""
+    from neonize.utils.enum import MediaType
+    kind = ((mimetype_of or mimetype)(data) or "").split("/")[0]
+    return {"image": MediaType.MediaImage, "video": MediaType.MediaVideo,
+            "audio": MediaType.MediaAudio}.get(kind, MediaType.MediaDocument)
+
+
+class SafeMagic:
+    """Stands in for the `magic` module inside neonize: libmagic's answer, or
+    the file signature's when libmagic raises."""
+
+    def __init__(self, real):
+        self._real = real
+
+    def from_buffer(self, data, mime=False):
+        try:
+            return self._real.from_buffer(data, mime=mime)
+        except Exception:
+            log.warning("libmagic failed; using the file signature", exc_info=True)
+            return sniff_mimetype(data) if mime else ""
+
+    def from_file(self, path, mime=False):
+        try:
+            return self._real.from_file(path, mime=mime)
+        except Exception:
+            log.warning("libmagic failed; using the file signature", exc_info=True)
+            with open(path, "rb") as f:
+                return sniff_mimetype(f.read(16)) if mime else ""
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+
+def install_safe_from_magic(modules=None):
+    """Makes every `magic.from_buffer` / `from_file` call of neonize (its
+    `upload`, `MediaType.from_magic`, `build_*_message`, `send_image`,
+    `send_document`, stickers...) survive a libmagic that cannot load: the
+    `magic` name of each neonize module is swapped for SafeMagic. Safe to call
+    twice."""
+    import sys
+    if modules is None:         # neonize.client is otherwise imported only when a session starts
+        import neonize.client       # noqa: F401
+        import neonize.utils.enum   # noqa: F401
+    for name, module in list((modules if modules is not None else sys.modules).items()):
+        if not (name == "neonize" or name.startswith("neonize.")):
+            continue
+        real = getattr(module, "magic", None)
+        if real is not None and not isinstance(real, SafeMagic) and hasattr(real, "from_buffer"):
+            module.magic = SafeMagic(real)
 
 
 def read(file):
