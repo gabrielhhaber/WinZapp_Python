@@ -111,7 +111,7 @@
     "edfe2db8fcdf": "Neonize: a sincronização do estado do app não causa mais conflitos que corrompia",
     "ad967fbc515d": "Neonize: as mensagens de voz agora são entregues a contatos no Android; antes fi",
     "a28b84980f57": "Neonize: mensagens de voz, fotos e documentos não se perdem mais quando a biblio",
-    "aebb7cf0a0ec": "Mensagens de voz: as gravações em mono voltam a ser enviadas a 64 kbps, como ant",
+    "c3eb1e29fe8c": "Mensagens de voz: as gravações em mono e em estéreo são enviadas a até 256 kbps.",
     "0c0e8d0108e5": "Neonize: as mensagens de voz em estéreo agora saem com o tipo audio/mp4, o que o",
     "23a78b4b6495": "A redução de ruído do microfone das mensagens de voz agora pode usar um modelo n"
   }

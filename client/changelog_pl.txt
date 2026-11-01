@@ -216,7 +216,7 @@ NOWOŚCI
 
 - Neonize: wiadomości głosowe, zdjęcia i dokumenty nie przepadają już, gdy biblioteka typów plików komputera (libmagic) się nie wczytuje; typ jest teraz rozpoznawany na podstawie samego pliku.
 
-- Wiadomości głosowe: nagrania mono są znów wysyłane z 64 kb/s, tak jak przed jednym przyciskiem nagrywania; nagrania stereo zachowują do 256 kb/s. Neonize zapisuje też w dzienniku jedną linię na każdy wysłany plik multimedialny oraz identyfikatory potwierdzeń dostarczenia, aby ustalić, dlaczego niektóre wiadomości głosowe nie są dostarczane.
+- Wiadomości głosowe: nagrania mono i stereo są wysyłane z szybkością do 256 kb/s. Neonize zapisuje też w dzienniku jedną linię na każdy wysłany plik multimedialny oraz identyfikatory potwierdzeń dostarczenia, aby ustalić, dlaczego niektóre wiadomości głosowe nie są dostarczane.
 
 - Neonize: wiadomości głosowe stereo są teraz wysyłane z typem audio/mp4, którego oczekuje WhatsApp, dzięki czemu docierają do kontaktów na Androidzie.
 

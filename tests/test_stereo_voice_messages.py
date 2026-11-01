@@ -73,7 +73,7 @@ class TestWhatGoesOut:
         assert encode_as_stereo(channels) is stereo
 
     def test_the_opus_arguments_are_those_of_a_mono_voice_message(self):
-        assert opus_encode_args() == ["-ac", "1", "-c:a", "libopus", "-b:a", "64k"]
+        assert opus_encode_args() == ["-ac", "1", "-c:a", "libopus", "-b:a", "256k"]
 
     def test_the_data_uri_names_what_it_carries(self):
         assert voice_data_uri("QQ==") == "data:audio/ogg;codecs=opus;base64,QQ=="
@@ -125,7 +125,7 @@ class _Encoder:
         return __file__  # any existing file stands in for ffmpeg
 
 
-def test_the_opus_encoder_is_always_mono_at_64k(monkeypatch, tmp_path):
+def test_the_opus_encoder_is_always_mono_at_256k(monkeypatch, tmp_path):
     calls = []
 
     def _run(args, **_kw):
@@ -140,7 +140,7 @@ def test_the_opus_encoder_is_always_mono_at_64k(monkeypatch, tmp_path):
 
     args = calls[0]
     assert args[args.index("-ac") + 1] == "1"
-    assert args[args.index("-b:a") + 1] == "64k"
+    assert args[args.index("-b:a") + 1] == "256k"
 
 
 def test_a_stereo_voice_message_asks_the_aac_encoder_for_256k(monkeypatch, tmp_path):

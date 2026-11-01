@@ -216,7 +216,7 @@ YENİLİKLER
 
 - Neonize: bilgisayarın dosya türü kitaplığı (libmagic) yüklenemediğinde sesli mesajlar, fotoğraflar ve belgeler artık kaybolmuyor; tür artık dosyanın kendisinden tanınıyor.
 
-- Sesli mesajlar: mono kayıtlar, tek kayıt düğmesinden önceki gibi yeniden 64 kbps ile gönderilir; stereo kayıtlar 256 kbps'ye kadar korunur. Neonize ayrıca bazı sesli mesajların neden teslim edilmediğini bulmak için günlüğe gönderilen her medya için bir satır ve teslim bildirimlerinin kimliklerini yazar.
+- Sesli mesajlar: mono ve stereo kayıtlar 256 kbps'ye kadar gönderilir. Neonize ayrıca bazı sesli mesajların neden teslim edilmediğini bulmak için günlüğe gönderilen her medya için bir satır ve teslim bildirimlerinin kimliklerini yazar.
 
 - Neonize: stereo sesli mesajlar artık WhatsApp'ın beklediği audio/mp4 türüyle gönderilir, böylece Android'deki kişilere teslim edilir.
 

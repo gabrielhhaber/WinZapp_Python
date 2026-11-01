@@ -216,7 +216,7 @@ WHAT'S NEW
 
 - Neonize: voice messages, photos and documents are no longer lost when the computer's file-type library (libmagic) fails to load; the type is now recognized from the file itself.
 
-- Voice messages: mono recordings are sent at 64 kbps again, as before the single record button; stereo recordings keep up to 256 kbps. Neonize also writes one line per media message sent and the ids of the delivery receipts in the log, to find out why some voice messages are not delivered.
+- Voice messages: mono and stereo recordings are sent at up to 256 kbps. Neonize also writes one line per media message sent and the ids of the delivery receipts in the log, to find out why some voice messages are not delivered.
 
 - Neonize: stereo voice messages now go out labelled audio/mp4, the type WhatsApp expects, so they are delivered to contacts on Android.
 
