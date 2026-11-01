@@ -304,3 +304,13 @@ def test_download_job_failure_is_a_report_not_a_crash(tmp_path, monkeypatch):
     job.start()
     job.join(5)
     assert len(done) == 1 and done[0][0] is None and done[0][1] is not None
+
+
+def test_stereo_channels_processed_in_parallel_match_sequential():
+    denoiser = _denoiser()
+    left = _tone(4800, 48_000).reshape(-1)
+    pcm = np.stack([left, left * 0.5], axis=1).astype(np.float32)
+    both = denoiser.process(pcm, 48_000)
+    for index in range(2):
+        alone = denoiser.process(pcm[:, index:index + 1], 48_000)
+        assert np.allclose(both[:, index], alone[:, 0])

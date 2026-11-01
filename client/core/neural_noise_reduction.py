@@ -32,6 +32,8 @@ from __future__ import annotations
 import logging
 import math
 import os
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
@@ -98,11 +100,18 @@ class NeuralDenoiser:
     def process(self, pcm: np.ndarray, rate: int) -> np.ndarray:
         """float32 samples shaped (frames, channels) at ``rate`` -> same shape."""
         pcm = np.asarray(pcm, dtype=np.float32)
-        channels = []
-        for index in range(pcm.shape[1]):
+
+        def one_channel(index: int) -> np.ndarray:
             at_model_rate = _convert(pcm[:, index], rate, MODEL_RATE)
-            channels.append(_convert(self._enhance_48k(at_model_rate), MODEL_RATE, rate, pcm.shape[0]))
-        return np.stack(channels, axis=1)
+            return _convert(self._enhance_48k(at_model_rate), MODEL_RATE, rate, pcm.shape[0])
+
+        count = pcm.shape[1]
+        if count == 1:
+            return one_channel(0)[:, None]
+        # Channels are independent (own recurrent state) and onnxruntime
+        # releases the GIL, so a stereo note takes about as long as a mono one.
+        with ThreadPoolExecutor(max_workers=count) as pool:
+            return np.stack(list(pool.map(one_channel, range(count))), axis=1)
 
 
 def _convert(samples: np.ndarray, source: int, target: int, length: int | None = None) -> np.ndarray:
@@ -135,6 +144,7 @@ def denoise_pcm16(audio: bytes, rate: int, channels: int, denoiser: NeuralDenois
 
 
 _denoiser: NeuralDenoiser | None = None
+_denoiser_lock = threading.Lock()
 
 
 def reduce_voice_noise(audio: bytes, rate: int, channels: int) -> tuple[bytes, str]:
@@ -145,22 +155,15 @@ def reduce_voice_noise(audio: bytes, rate: int, channels: int) -> tuple[bytes, s
     """
     global _denoiser
     try:
-        if _denoiser is None:
-            if not os.path.isfile(model_path()):
-                raise FileNotFoundError(model_path())
-            _denoiser = NeuralDenoiser()
-        return denoise_pcm16(audio, rate, channels, _denoiser), "neural"
+        with _denoiser_lock:
+            if _denoiser is None:
+                if not os.path.isfile(model_path()):
+                    raise FileNotFoundError(model_path())
+                _denoiser = NeuralDenoiser()
+            denoiser = _denoiser
+        return denoise_pcm16(audio, rate, channels, denoiser), "neural"
     except Exception:
         logging.warning("[noise_reduction] neural model unavailable, using the noise gate", exc_info=True)
         from core.audio_processing import apply_noise_gate
         # strict: a gate failure must reach the caller, not look like success.
-        # Pass it only when the real function supports it: tests may stub
-        # the module with the legacy signature.
-        import inspect
-        params = inspect.signature(apply_noise_gate).parameters
-        kwargs = {}
-        if "strict" in params or any(
-            p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
-        ):
-            kwargs["strict"] = True
-        return apply_noise_gate(audio, rate, channels, **kwargs), "gate"
+        return apply_noise_gate(audio, rate, channels, strict=True), "gate"

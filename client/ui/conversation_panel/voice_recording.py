@@ -790,7 +790,7 @@ class VoiceRecordingMixin:
                         announce = getattr(mw, "output", None)
                         if announce is not None:
                             wx.CallAfter(announce, mw.i18n.t("noise_reduction_fallback"))
-                    logging.info("[VOICE_TIMING] Noise reduction applied successfully")
+                    logging.info("[VOICE_TIMING] Noise reduction finished (engine: %s)", engine)
                 except Exception as ex:
                     logging.error("[VOICE_TIMING] Failed to apply noise reduction: %s", ex)
                     # Both engines failed: the note goes out unprocessed, say so.
