@@ -64,7 +64,9 @@ def build(client, file, ptt, mimetype_of=None, seconds_of=None, waveform_of=None
     progress client of transfers.py still sees it."""
     from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import AudioMessage, Message
     data = media_probe.read(file)
-    upload = client.upload(data)
+    # the type is said outright: neonize's own detection needs libmagic, which
+    # does not load on some machines (no voice note ever left them)
+    upload = client.upload(data, media_probe.media_type_of(data, lambda d: "audio/ogg"))
     mimetype = (mimetype_of or media_probe.mimetype)(data) or ""
     # neonize only detects "audio/ogg"; WhatsApp wants "audio/ogg; codecs=opus"
     # (without it the voice note may not even show up on some devices)

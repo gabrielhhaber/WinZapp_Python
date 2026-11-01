@@ -23,10 +23,11 @@ class Client:
     ffprobe) is not there to be called."""
 
     def __init__(self):
-        self.uploads, self.sent = [], []
+        self.uploads, self.sent, self.upload_types = [], [], []
 
     def upload(self, binary, media_type=None):
         self.uploads.append(binary)
+        self.upload_types.append(media_type)
         return UPLOAD
 
     def send_message(self, destination, message):
@@ -45,6 +46,14 @@ def test_build_a_voice_note_from_bytes():
     assert (a.URL, a.directPath, a.fileLength) == ("https://mmg/x", "/v/x", 5)
     assert a.PTT is True and a.seconds == 7
     assert a.mimetype == "audio/ogg; codecs=opus"
+
+
+def test_the_upload_says_it_is_audio_so_libmagic_is_never_asked():
+    from neonize.utils.enum import MediaType
+    client = Client()
+    am.build(client, b"abcde", True, mimetype_of=lambda d: "audio/ogg",
+             seconds_of=lambda d: 1, waveform_of=lambda d: b"")
+    assert client.upload_types == [MediaType.MediaAudio]
 
 
 def test_build_an_audio_from_a_path_keeps_its_mimetype(tmp_path):

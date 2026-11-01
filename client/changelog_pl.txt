@@ -214,6 +214,8 @@ NOWOŚCI
 
 - Neonize: wiadomości głosowe są teraz dostarczane kontaktom na Androidzie; wcześniej zostawały z jednym szarym znaczkiem, bo wiadomość nie zawierała przebiegu fali, którego oczekuje WhatsApp.
 
+- Neonize: wiadomości głosowe, zdjęcia i dokumenty nie przepadają już, gdy biblioteka typów plików komputera (libmagic) się nie wczytuje; typ jest teraz rozpoznawany na podstawie samego pliku.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.
