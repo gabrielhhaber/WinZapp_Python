@@ -150,11 +150,37 @@ def test_media_type_of_follows_the_mimetype():
     assert mp.media_type_of(b"x", lambda d: "") is MediaType.MediaDocument
 
 
-def test_neonizes_from_magic_survives_a_broken_libmagic(monkeypatch):
+def test_neonizes_magic_calls_survive_a_broken_libmagic():
+    import types
     from neonize.utils.enum import MediaType
-    def broken(cls, data):
+
+    def broken(*args, **kwargs):
         raise RuntimeError("could not find any valid magic files!")
-    monkeypatch.setattr(MediaType, "from_magic", classmethod(broken))
+    real = types.SimpleNamespace(from_buffer=broken, from_file=broken)
+    fake_client = types.SimpleNamespace(magic=real)
+    fake_enum = types.SimpleNamespace(magic=real)
+    modules = {"neonize.client": fake_client, "neonize.utils.enum": fake_enum,
+               "other": types.SimpleNamespace(magic=real)}
+    mp.install_safe_from_magic(modules)
+    mp.install_safe_from_magic(modules)          # twice changes nothing more
+    assert fake_client.magic.from_buffer(opus(48000), mime=True) == "audio/ogg"
+    assert fake_enum.magic.from_buffer(b"\xff\xd8\xff\xe0" + b"\0" * 12, mime=True) == "image/jpeg"
+    assert isinstance(fake_client.magic._real, types.SimpleNamespace)   # not wrapped twice
+    assert modules["other"].magic is real          # only neonize's modules
+
+
+def test_neonizes_real_modules_get_the_safe_magic_and_media_type_still_works(monkeypatch):
+    import neonize.client
+    from neonize.utils.enum import MediaType
+    import sys
+    import types
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("could not find any valid magic files!")
+    monkeypatch.setattr(sys.modules["neonize.utils.enum"], "magic",
+                        types.SimpleNamespace(from_buffer=broken, from_file=broken))
+    monkeypatch.setattr(neonize.client, "magic",
+                        types.SimpleNamespace(from_buffer=broken, from_file=broken))
     mp.install_safe_from_magic()
     assert MediaType.from_magic(opus(48000)) is MediaType.MediaAudio
-    assert MediaType.from_magic(b"\xff\xd8\xff\xe0" + b"\0" * 12) is MediaType.MediaImage
+    assert neonize.client.magic.from_buffer(b"%PDF-1.7" + b"\0" * 8, mime=True) == "application/pdf"

@@ -167,7 +167,6 @@ SIGNATURES = (          # (offset, bytes, mimetype): what libmagic says for the 
     (0, b"\xff\xd8\xff", "image/jpeg"),
     (0, b"\x89PNG\r\n\x1a\n", "image/png"),
     (0, b"GIF8", "image/gif"),
-    (0, b"RIFF", "audio/x-wav"),        # refined below: WEBP/AVI/WAVE
     (0, b"ID3", "audio/mpeg"),
     (0, b"\xff\xfb", "audio/mpeg"),
     (0, b"\xff\xf3", "audio/mpeg"),
@@ -221,23 +220,45 @@ def media_type_of(data, mimetype_of=None):
             "audio": MediaType.MediaAudio}.get(kind, MediaType.MediaDocument)
 
 
-def install_safe_from_magic():
-    """Makes neonize's own `MediaType.from_magic` (called by its `upload`, its
-    `send_image`, `send_document` and sticker code) survive a libmagic that
-    cannot load: it answers from the file signature instead of raising."""
-    from neonize.utils.enum import MediaType
-    original = MediaType.from_magic.__func__
+class SafeMagic:
+    """Stands in for the `magic` module inside neonize: libmagic's answer, or
+    the file signature's when libmagic raises."""
 
-    def from_magic(cls, fn_or_bytes):
+    def __init__(self, real):
+        self._real = real
+
+    def from_buffer(self, data, mime=False):
         try:
-            return original(cls, fn_or_bytes)
+            return self._real.from_buffer(data, mime=mime)
         except Exception:
             log.warning("libmagic failed; using the file signature", exc_info=True)
-            if isinstance(fn_or_bytes, str):
-                with open(fn_or_bytes, "rb") as f:
-                    fn_or_bytes = f.read(16)
-            return media_type_of(fn_or_bytes, sniff_mimetype)
-    MediaType.from_magic = classmethod(from_magic)
+            return sniff_mimetype(data) if mime else ""
+
+    def from_file(self, path, mime=False):
+        try:
+            return self._real.from_file(path, mime=mime)
+        except Exception:
+            log.warning("libmagic failed; using the file signature", exc_info=True)
+            with open(path, "rb") as f:
+                return sniff_mimetype(f.read(16)) if mime else ""
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+
+def install_safe_from_magic(modules=None):
+    """Makes every `magic.from_buffer` / `from_file` call of neonize (its
+    `upload`, `MediaType.from_magic`, `build_*_message`, `send_image`,
+    `send_document`, stickers...) survive a libmagic that cannot load: the
+    `magic` name of each neonize module is swapped for SafeMagic. Safe to call
+    twice."""
+    import sys
+    for name, module in list((modules if modules is not None else sys.modules).items()):
+        if not (name == "neonize" or name.startswith("neonize.")):
+            continue
+        real = getattr(module, "magic", None)
+        if real is not None and not isinstance(real, SafeMagic) and hasattr(real, "from_buffer"):
+            module.magic = SafeMagic(real)
 
 
 def read(file):
