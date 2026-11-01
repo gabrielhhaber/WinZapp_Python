@@ -20,6 +20,7 @@ import socketio
 from aiohttp import web
 
 import audio_message
+import media_probe
 import channels
 import administration
 import authentication
@@ -2929,6 +2930,7 @@ def turn_off_bot_tag():
 
 def main():
     turn_off_bot_tag()
+    media_probe.install_safe_from_magic()
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=6300)
     ap.add_argument("--single-session", default="",

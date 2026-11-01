@@ -595,6 +595,8 @@
   <li>Los anuncios de la grabación se pueden silenciar; el lector de pantalla no empieza a decir "Enviar" antes de ser interrumpido.</li>
   <li><strong>Reducción de ruido del micrófono:</strong> con "Activar reducción de ruido del micrófono" marcada en Configuración &gt; Audio, la misma página muestra el "Modelo de reducción de ruido", con el estado y el botón "Descargar modelo de reducción de ruido". El modelo neuronal se descarga una sola vez, por internet, y las grabaciones se procesan en el propio equipo. Sin el modelo, la reducción usa el gate de ruido básico; si no se puede usar en una grabación, WinZapp lo anuncia por el lector de pantalla y usa el gate de ruido básico en ese envío. Si la reducción de ruido no se puede aplicar en absoluto, el mensaje se envía sin procesar, también con un aviso.</li>
   <li>El micrófono y el altavoz usados están en Configuración &gt; Audio.</li>
+  <li>Con Neonize, el mensaje de voz también se entrega a los contactos de Android.</li>
+  <li>Si la biblioteca de tipos de archivo del equipo (libmagic) no carga, Neonize reconoce el tipo por el propio archivo y el mensaje de voz se envía con normalidad.</li>
 </ul>
 
 <h3>Escuchar</h3>
@@ -1316,6 +1318,8 @@
   <tr><td class="field-name">Aún no publicado</td><td>Contactos adjuntos recibidos con nombre y número.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Los reenvíos con Neonize aparecen enseguida en la conversación de destino.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Verificación segura de actualizaciones en Macs sin el Python de python.org.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Los mensajes de voz enviados con Neonize llegan a los contactos de Android.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Los mensajes de voz, fotos y documentos de Neonize se envían aunque la libmagic del equipo no cargue.</td></tr>
   <tr><td class="field-name">2.1.0.4397</td><td>Pestaña Perfil en la configuración de WhatsApp (nombre visible, Info y foto); Comunidades en la lista de navegación, después de Llamadas.</td></tr>
   <tr><td class="field-name">2.1.0.4395</td><td>Primera versión de la guía: todas las funciones de las versiones 1.1.0.0, 1.1.1.0, 2.0.0.0 y del ciclo 2.1.0.0 hasta esta alpha.</td></tr>
 </table>

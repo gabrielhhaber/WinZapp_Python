@@ -68,8 +68,8 @@ def expected_size(message):
 
 
 def _kind_from_content(binary):
-    from neonize.utils.enum import MediaType
-    return MediaType.from_magic(binary)
+    import media_probe
+    return media_probe.media_type_of(binary)
 
 
 class ClientWithProgress:

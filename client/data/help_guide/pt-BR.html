@@ -595,6 +595,8 @@
   <li>Os anúncios da gravação podem ser silenciados; o leitor de tela não começa a dizer "Enviar" antes de ser interrompido.</li>
   <li><strong>Redução de ruído do microfone:</strong> com "Ativar redução de ruído do microfone" marcada em Configurações &gt; Áudio, a mesma página mostra o "Modelo de redução de ruído", com o estado e o botão "Baixar modelo de redução de ruído". O modelo neural é baixado uma única vez, pela internet, e as gravações são processadas no próprio computador. Sem o modelo, a redução usa o noise gate básico; se ele não puder ser usado numa gravação, o WinZapp avisa pelo leitor de tela e usa o noise gate básico naquele envio. Se a redução de ruído não puder ser aplicada de forma alguma, a mensagem é enviada sem processamento, também com aviso.</li>
   <li>O microfone e o alto-falante usados ficam em Configurações &gt; Áudio.</li>
+  <li>Com o Neonize, a mensagem de voz é entregue também a contatos no Android.</li>
+  <li>Se a biblioteca de tipos de arquivo do computador (libmagic) não carregar, o Neonize reconhece o tipo pelo próprio arquivo e a mensagem de voz sai normalmente.</li>
 </ul>
 
 <h3>Ouvir</h3>
@@ -1316,6 +1318,8 @@
   <tr><td class="field-name">Ainda não lançado</td><td>Contatos anexados recebidos com nome e número.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Encaminhamentos pelo Neonize aparecem na hora na conversa de destino.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Verificação segura das atualizações em Macs sem o Python do python.org.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Mensagens de voz enviadas pelo Neonize chegam a contatos no Android.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Mensagens de voz, fotos e documentos do Neonize saem mesmo quando a libmagic do computador não carrega.</td></tr>
   <tr><td class="field-name">2.1.0.4397</td><td>Aba Perfil em Configurações do WhatsApp (nome exibido, recado e foto); Comunidades na lista de navegação, depois de Ligações.</td></tr>
   <tr><td class="field-name">2.1.0.4395</td><td>Versão inicial do guia: todas as funcionalidades das versões 1.1.0.0, 1.1.1.0, 2.0.0.0 e do ciclo 2.1.0.0 até esta alpha.</td></tr>
 </table>

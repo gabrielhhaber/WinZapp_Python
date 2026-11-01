@@ -107,3 +107,81 @@ def test_read_takes_a_path_or_the_bytes(tmp_path):
     path.write_bytes(b"abc")
     assert mp.read(str(path)) == b"abc"
     assert mp.read(bytearray(b"xyz")) == b"xyz"
+
+
+# --- libmagic that cannot load its database ------------------------------
+
+def _broken_magic(monkeypatch):
+    import sys
+    import types
+
+    def from_buffer(data, mime=False):
+        raise RuntimeError("could not find any valid magic files!")
+    monkeypatch.setitem(sys.modules, "magic", types.SimpleNamespace(from_buffer=from_buffer))
+
+
+@pytest.mark.parametrize("data,expected", [
+    (opus(48000), "audio/ogg"),
+    (b"\xff\xd8\xff\xe0" + b"\0" * 20, "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\n" + b"\0" * 8, "image/png"),
+    (b"\0\0\0\x20ftypM4A \0\0\0\0", "audio/mp4"),
+    (b"\0\0\0\x20ftypisom\0\0\0\0", "video/mp4"),
+    (b"RIFF\0\0\0\0WAVEfmt ", "audio/x-wav"),
+    (b"RIFF\0\0\0\0WEBPVP8 ", "image/webp"),
+    (b"ID3\x04" + b"\0" * 12, "audio/mpeg"),
+    (b"%PDF-1.7" + b"\0" * 8, "application/pdf"),
+    (b"nothing known here!!", ""),
+])
+def test_sniff_mimetype_from_the_first_bytes(data, expected):
+    assert mp.sniff_mimetype(data) == expected
+
+
+def test_mimetype_falls_back_to_the_signature_when_libmagic_cannot_run(monkeypatch):
+    _broken_magic(monkeypatch)
+    assert mp.mimetype(opus(48000)) == "audio/ogg"
+
+
+def test_media_type_of_follows_the_mimetype():
+    from neonize.utils.enum import MediaType
+    assert mp.media_type_of(b"x", lambda d: "audio/ogg") is MediaType.MediaAudio
+    assert mp.media_type_of(b"x", lambda d: "video/mp4") is MediaType.MediaVideo
+    assert mp.media_type_of(b"x", lambda d: "image/png") is MediaType.MediaImage
+    assert mp.media_type_of(b"x", lambda d: "application/pdf") is MediaType.MediaDocument
+    assert mp.media_type_of(b"x", lambda d: "") is MediaType.MediaDocument
+
+
+def test_neonizes_magic_calls_survive_a_broken_libmagic():
+    import types
+    from neonize.utils.enum import MediaType
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("could not find any valid magic files!")
+    real = types.SimpleNamespace(from_buffer=broken, from_file=broken)
+    fake_client = types.SimpleNamespace(magic=real)
+    fake_enum = types.SimpleNamespace(magic=real)
+    modules = {"neonize.client": fake_client, "neonize.utils.enum": fake_enum,
+               "other": types.SimpleNamespace(magic=real)}
+    mp.install_safe_from_magic(modules)
+    mp.install_safe_from_magic(modules)          # twice changes nothing more
+    assert fake_client.magic.from_buffer(opus(48000), mime=True) == "audio/ogg"
+    assert fake_enum.magic.from_buffer(b"\xff\xd8\xff\xe0" + b"\0" * 12, mime=True) == "image/jpeg"
+    assert isinstance(fake_client.magic._real, types.SimpleNamespace)   # not wrapped twice
+    assert modules["other"].magic is real          # only neonize's modules
+
+
+def test_neonizes_real_modules_get_the_safe_magic_and_media_type_still_works(monkeypatch):
+    import neonize.client
+    from neonize.utils.enum import MediaType
+    import sys
+    import types
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("could not find any valid magic files!")
+    monkeypatch.setattr(sys.modules["neonize.utils.enum"], "magic",
+                        types.SimpleNamespace(from_buffer=broken, from_file=broken))
+    monkeypatch.setattr(neonize.client, "magic",
+                        types.SimpleNamespace(from_buffer=broken, from_file=broken))
+    mp.install_safe_from_magic()
+    assert isinstance(neonize.client.magic, mp.SafeMagic)
+    assert MediaType.from_magic(opus(48000)) is MediaType.MediaAudio
+    assert neonize.client.magic.from_buffer(b"%PDF-1.7" + b"\0" * 8, mime=True) == "application/pdf"

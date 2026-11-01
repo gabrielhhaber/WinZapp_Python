@@ -20,7 +20,7 @@ def build(client, file, caption=None, mimetype_of=None, probe=None):
     data = media_probe.read(file)
     seconds = media_probe.mp4_seconds(data)
     thumbnail, ffmpeg_seconds = (probe or media_probe.thumbnail_and_seconds)(file)
-    upload = client.upload(data)
+    upload = client.upload(data, media_probe.media_type_of(data, lambda d: "video/mp4"))
     return Message(videoMessage=VideoMessage(
         URL=upload.url, caption=caption, directPath=upload.DirectPath,
         mediaKey=upload.MediaKey, fileEncSHA256=upload.FileEncSHA256,
