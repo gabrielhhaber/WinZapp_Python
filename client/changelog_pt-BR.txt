@@ -216,6 +216,8 @@ NOVIDADES
 
 - Neonize: mensagens de voz, fotos e documentos não se perdem mais quando a biblioteca de tipos de arquivo do computador (libmagic) não carrega; o tipo agora é reconhecido pelo próprio arquivo.
 
+- Mensagens de voz: as gravações em mono voltam a ser enviadas a 64 kbps, como antes do botão único de gravar; as gravações em estéreo mantêm até 256 kbps. O Neonize também registra no log uma linha por mídia enviada e os ids dos recibos de entrega, para descobrir por que algumas mensagens de voz não são entregues.
+
 - A redução de ruído do microfone das mensagens de voz agora pode usar um modelo neural: com "Ativar redução de ruído do microfone" marcada em Definições, Áudio, a mesma página oferece baixar o modelo; o download é feito uma única vez, pela internet, e as gravações continuam sendo processadas neste computador. Sem o modelo, ou se ele não puder ser usado numa gravação, o WinZapp usa o noise gate básico de antes e avisa. Se a redução de ruído não puder ser aplicada de forma alguma, a mensagem é enviada sem processamento e o WinZapp avisa também.
 
 V2.1.0.0

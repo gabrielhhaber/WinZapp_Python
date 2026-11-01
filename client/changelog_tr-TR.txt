@@ -216,6 +216,8 @@ YENİLİKLER
 
 - Neonize: bilgisayarın dosya türü kitaplığı (libmagic) yüklenemediğinde sesli mesajlar, fotoğraflar ve belgeler artık kaybolmuyor; tür artık dosyanın kendisinden tanınıyor.
 
+- Sesli mesajlar: mono kayıtlar, tek kayıt düğmesinden önceki gibi yeniden 64 kbps ile gönderilir; stereo kayıtlar 256 kbps'ye kadar korunur. Neonize ayrıca bazı sesli mesajların neden teslim edilmediğini bulmak için günlüğe gönderilen her medya için bir satır ve teslim bildirimlerinin kimliklerini yazar.
+
 - Sesli mesajlar için mikrofon gürültü azaltma artık sinirsel bir model kullanabilir: Ayarlar, Ses bölümünde "Mikrofon gürültü azaltmayı etkinleştir" işaretliyken aynı sayfa modeli indirmeyi önerir; indirme internet üzerinden bir kez yapılır ve kayıtlar yine bu bilgisayarda işlenir. Model yoksa veya bir kayıtta kullanılamazsa WinZapp her zamanki temel gürültü geçidini kullanır ve bunu bildirir. Gürültü azaltma hiç uygulanamazsa mesaj işlenmeden gönderilir ve WinZapp bunu da bildirir.
 
 V2.1.0.0
