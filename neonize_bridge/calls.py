@@ -420,7 +420,7 @@ def register_routes(r, *, session, ok):
             body = {}
         return body if isinstance(body, dict) else {}
 
-    def media_route(action):
+    def media_route(action, needs_connection=True):
         """A call/* route that needs the session's call layer."""
         async def route(req):
             s = session(req)
@@ -428,7 +428,7 @@ def register_routes(r, *, session, ok):
             media = getattr(s, "call_media", None)
             if media is None:
                 return error(NO_MEDIA_REASON, 501)
-            if s.client is None or s.status != "CONNECTED":
+            if needs_connection and (s.client is None or s.status != "CONNECTED"):
                 return error("Disconnected", 400)
             return await action(media, body)
         return route
@@ -483,7 +483,14 @@ def register_routes(r, *, session, ok):
         return ok(status="success", response={"via": "neonize", "call": {"state": "ACTIVE"}})
 
     async def end(media, body):
-        ended = await in_thread(media.hangup, str(body.get("callId") or ""))
+        # Also reachable while the socket is down (a network drop in the middle
+        # of a call): ending is then local, never a "Disconnected" the user
+        # cannot act on.
+        try:
+            ended = await in_thread(media.hangup, str(body.get("callId") or ""))
+        except Exception:
+            log.warning("call end failed locally", exc_info=True)
+            ended = False
         return ok(status="success", response={"via": "neonize", "ended": bool(ended),
                                               "call": {"state": "ENDED"}})
 
@@ -508,4 +515,5 @@ def register_routes(r, *, session, ok):
                           ("call/upgrade-video", upgrade_video), ("call/accept", accept),
                           ("call/end", end), ("call/ensure-ended", end),
                           ("call/status", status), ("call/audio/enable", audio_enable)):
-        r.add_post("/api/{tok}/" + route, media_route(action))
+        r.add_post("/api/{tok}/" + route, media_route(
+            action, needs_connection=action is not end))

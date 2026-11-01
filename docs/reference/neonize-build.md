@@ -74,6 +74,11 @@ What the patches carry today:
   clocks, synthetic tests and quality limits. The bridge also filters the
   48-to-16 kHz microphone conversion and owns each receive reader independently
   of state-event order.
+- **meowcaller 0008**: an info-level `audio receive summary` every 5 s while
+  relay packets arrive (RTP by kind, payload types, authentication failures,
+  packets that released no frame, frames and samples out). A call whose log
+  shows `quadros do outro lado=0` says there where inbound audio stops; no
+  summary at all means the relay delivered nothing.
 
 ## Toolchain (once)
 
