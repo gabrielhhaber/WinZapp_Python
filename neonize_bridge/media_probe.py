@@ -253,6 +253,9 @@ def install_safe_from_magic(modules=None):
     `magic` name of each neonize module is swapped for SafeMagic. Safe to call
     twice."""
     import sys
+    if modules is None:         # neonize.client is otherwise imported only when a session starts
+        import neonize.client       # noqa: F401
+        import neonize.utils.enum   # noqa: F401
     for name, module in list((modules if modules is not None else sys.modules).items()):
         if not (name == "neonize" or name.startswith("neonize.")):
             continue

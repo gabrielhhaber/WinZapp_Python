@@ -182,5 +182,6 @@ def test_neonizes_real_modules_get_the_safe_magic_and_media_type_still_works(mon
     monkeypatch.setattr(neonize.client, "magic",
                         types.SimpleNamespace(from_buffer=broken, from_file=broken))
     mp.install_safe_from_magic()
+    assert isinstance(neonize.client.magic, mp.SafeMagic)
     assert MediaType.from_magic(opus(48000)) is MediaType.MediaAudio
     assert neonize.client.magic.from_buffer(b"%PDF-1.7" + b"\0" * 8, mime=True) == "application/pdf"
