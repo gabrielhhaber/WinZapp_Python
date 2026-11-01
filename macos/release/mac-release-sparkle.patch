@@ -359,7 +359,7 @@ diff --git a/.github/mac-release-tools/winzapp_mac/provenance.py b/.github/mac-r
 new file mode 100644
 --- /dev/null
 +++ b/.github/mac-release-tools/winzapp_mac/provenance.py
-@@ -0,0 +1,541 @@
+@@ -0,0 +1,560 @@
 +"""Commit provenance of a macOS release: does it declare an official tag and
 +commit that WinZapp's own repository confirms?
 +
@@ -719,8 +719,27 @@ new file mode 100644
 +        return super().redirect_request(req, fp, code, msg, headers, newurl)
 +
 +
-+_API_OPENER = urllib.request.build_opener(_NoRedirect)
-+_ASSET_OPENER = urllib.request.build_opener(_HttpsRedirectOnly)
++def _tls_context():
++    """A verifying context that holds certificates on every Mac.
++
++    The bundled OpenSSL looks for its CA file under
++    /Library/Frameworks/Python.framework, a path compiled into the python.org
++    build. It exists only on a Mac with that Python installed, which every
++    build machine has and most users' do not: there, every check here failed
++    as a TLS error. certifi travels inside the app.
++    """
++    context = ssl.create_default_context()
++    try:
++        import certifi
++        context.load_verify_locations(cafile=certifi.where())
++    except (ImportError, OSError, ssl.SSLError):
++        pass
++    return context
++
++
++_TLS = urllib.request.HTTPSHandler(context=_tls_context())
++_API_OPENER = urllib.request.build_opener(_TLS, _NoRedirect)
++_ASSET_OPENER = urllib.request.build_opener(_TLS, _HttpsRedirectOnly)
 +
 +
 +UNREACHABLE = "GitHub unreachable or rate-limited, try again later"

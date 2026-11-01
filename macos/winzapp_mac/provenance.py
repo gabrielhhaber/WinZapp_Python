@@ -357,8 +357,27 @@ class _HttpsRedirectOnly(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-_API_OPENER = urllib.request.build_opener(_NoRedirect)
-_ASSET_OPENER = urllib.request.build_opener(_HttpsRedirectOnly)
+def _tls_context():
+    """A verifying context that holds certificates on every Mac.
+
+    The bundled OpenSSL looks for its CA file under
+    /Library/Frameworks/Python.framework, a path compiled into the python.org
+    build. It exists only on a Mac with that Python installed, which every
+    build machine has and most users' do not: there, every check here failed
+    as a TLS error. certifi travels inside the app.
+    """
+    context = ssl.create_default_context()
+    try:
+        import certifi
+        context.load_verify_locations(cafile=certifi.where())
+    except (ImportError, OSError, ssl.SSLError):
+        pass
+    return context
+
+
+_TLS = urllib.request.HTTPSHandler(context=_tls_context())
+_API_OPENER = urllib.request.build_opener(_TLS, _NoRedirect)
+_ASSET_OPENER = urllib.request.build_opener(_TLS, _HttpsRedirectOnly)
 
 
 UNREACHABLE = "GitHub unreachable or rate-limited, try again later"
