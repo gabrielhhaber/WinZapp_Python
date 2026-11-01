@@ -100,13 +100,13 @@ class TranscriptionProgressDialog(wx.Dialog):
     business and not a dialog's.
     """
 
-    def __init__(self, parent, i18n, speak_output, make_job, status_text):
+    def __init__(self, parent, i18n, speak_output, make_job, status_text, title=None):
         self._i18n = i18n
         self._speak_output = speak_output
         self._status = status_text
         super().__init__(
             parent,
-            title=i18n.t("transcription_progress_title"),
+            title=title or i18n.t("transcription_progress_title"),
             # No close box: the only way out is Cancel, which has to tell the
             # job to stop rather than abandon it still writing to the disk.
             style=wx.DEFAULT_DIALOG_STYLE & ~wx.CLOSE_BOX,

@@ -39,6 +39,7 @@ from ui.dialogs.transcription_queue import TranscriptionQueueMixin
 from ui.dialogs.transcription_reuse import TranscriptionReuseMixin
 from ui.dialogs.transcription_windows import TranscriptionWindowsMixin
 from ui.dialogs.advanced_tab import AdvancedTabMixin
+from ui.dialogs.noise_model_section import NoiseModelSectionMixin
 from ui.dialogs.transcription_result_field import TranscriptionResultFieldMixin
 from ui.dialogs.transcription_precision import TranscriptionPrecisionMixin
 from ui.dialogs.shortcuts_tab import ShortcutsTabMixin
@@ -222,7 +223,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
                      TranscriptionBackgroundTabMixin, TranscriptionModelMarksMixin,
                      TranscriptionQueueMixin, TranscriptionCacheMixin,
                      TranscriptionOptionsMixin, TranscriptionReuseMixin,
-                     TranscriptionWindowsMixin, AdvancedTabMixin, wx.Dialog):
+                     TranscriptionWindowsMixin, AdvancedTabMixin, NoiseModelSectionMixin,
+                     wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
 
     _AUDIO_SPEED_STEPS = [1.0, 1.5, 2.0]
@@ -664,6 +666,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             self._audio_devices_page, label=i18n.t("noise_reduction_label")
         )
         adev_sizer.Add(self._noise_reduction_check, 0, wx.ALL, 8)
+        self._build_noise_model_section(self._audio_devices_page, adev_sizer)
 
         # What an audio file pasted into the message field (Ctrl+V) is sent
         # as, in the order of core.attachment_types.PASTED_AUDIO_MODES.
@@ -4362,6 +4365,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._audio_effects_label.SetLabel(i18n.t("audio_effects_output_device_label"))
         self._reload_audio_device_choices()
         self._noise_reduction_check.SetLabel(i18n.t("noise_reduction_label"))
+        self._relabel_noise_model_section()
         self._notifications_check.SetLabel(i18n.t("notifications_label"))
         self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))
         for _i, _key in enumerate(NOTIFICATION_CONTENT_LABEL_KEYS):
