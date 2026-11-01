@@ -6,6 +6,8 @@ NOVIDADES
 
 - Neonize: um ficheiro ou mensagem que reencaminha passa a aparecer logo na conversa de destino, sem ser preciso atualizar a conversa manualmente.
 
+- Mac: a verificação de atualizações já não falha com erro de ligação segura em Macs sem o Python do python.org. As versões já instaladas precisam de uma instalação manual para receber esta correção.
+
 - Grupos: quando alguém está a escrever, o WinZapp passa a anunciar o nome da pessoa em vez de apenas o número de telefone quando já viu uma mensagem dela, mesmo que não esteja nos seus contactos.
 
 - Mac: passa a ser possível gravar o microfone com o áudio do computador (Command+Shift+H) a partir do macOS 14.4. Da primeira vez, o macOS pede permissão para gravar o áudio do sistema.

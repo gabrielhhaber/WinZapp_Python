@@ -6,6 +6,8 @@ YENİLİKLER
 
 - Neonize: ilettiğin bir dosya veya mesaj artık hedef sohbette hemen görünüyor; sohbeti elle yenilemen gerekmiyor.
 
+- Mac: güncelleme denetimi, python.org Python'u olmayan Mac'lerde artık güvenli bağlantı hatasıyla başarısız olmuyor. Zaten kurulu sürümlerin bu düzeltmeyi alması için bir kez elle kurulum gerekir.
+
 - Gruplar: biri yazarken WinZapp artık, kişiden daha önce bir mesaj gördüysen, kişi rehberinde olmasa bile yalnızca telefon numarasını değil adını söylüyor.
 
 - Mac: macOS 14.4 ve sonrasında artık mikrofonu bilgisayar sesiyle birlikte kaydedebilirsiniz (Command+Shift+H). İlk seferde macOS sistem sesini kaydetmek için izin ister.
