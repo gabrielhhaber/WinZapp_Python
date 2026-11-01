@@ -347,3 +347,39 @@ def test_a_missed_group_call_is_recorded_in_the_group_not_with_the_caller(monkey
     chat, w = stored[0]
     assert chat == "1203@g.us"
     assert w["callOutcome"] == "Missed" and w["isVideoCall"] is True
+
+
+class FakeMedia:
+    def __init__(self, failure=None):
+        self.hung_up = []
+        self.failure = failure
+
+    def hangup(self, call_id=""):
+        if self.failure:
+            raise self.failure
+        self.hung_up.append(call_id)
+        return True
+
+
+def test_ending_a_call_works_while_the_socket_is_down():
+    # a network drop in the middle of a call used to answer 400 "Disconnected"
+    # to call/end and call/ensure-ended, and the call could not be ended
+    s = N(client=None, status="CLOSED", ringing_calls=calls.Pending(), call_media=FakeMedia())
+    outputs = run(s, [("POST", "/call/end", {"callId": "C1"}),
+                      ("POST", "/call/ensure-ended", {"callId": "C1"})])
+    assert [status for status, _ in outputs] == [200, 200]
+    assert s.call_media.hung_up == ["C1", "C1"]
+    assert outputs[0][1]["response"]["ended"] is True
+
+
+def test_a_local_hangup_failure_while_disconnected_is_not_an_error():
+    s = N(client=None, status="CLOSED", ringing_calls=calls.Pending(),
+          call_media=FakeMedia(RuntimeError("no socket")))
+    (status, body), = run(s, [("POST", "/call/end", {"callId": "C1"})])
+    assert status == 200 and body["response"]["ended"] is False
+
+
+def test_the_other_call_routes_still_need_the_connection():
+    s = N(client=None, status="CLOSED", ringing_calls=calls.Pending(), call_media=FakeMedia())
+    (status, _), = run(s, [("POST", "/call/accept", {"callId": "C1"})])
+    assert status == 400
