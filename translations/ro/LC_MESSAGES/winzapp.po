@@ -5152,8 +5152,8 @@ msgid "&Disable all"
 msgstr "Dezactivează &toate"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/main_window/session_lifecycle.py
+#: client/core/noise_model_text.py client/core/notification_manager.py
+#: client/main_window/chat_list.py client/main_window/session_lifecycle.py
 #: client/ui/conversation_panel/audio_playback.py
 #: client/ui/conversation_panel/formatting.py
 #: client/ui/dialogs/order_create_dialog.py client/ui/dialogs/order_dialog.py
@@ -8355,6 +8355,85 @@ msgstr "Se pregătește descărcarea Node.js..."
 msgctxt "node_download_verifying"
 msgid "Verifying download integrity..."
 msgstr "Se verifică integritatea descărcării..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_model_download_btn"
+msgid "&Download noise reduction model"
+msgstr "&Descarcă modelul de reducere a zgomotului"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/noise_model_text.py
+#, python-brace-format
+msgctxt "noise_model_download_confirm"
+msgid ""
+"Download the neural noise reduction model (DPDFNet, Apache-2.0 licence) from"
+" Hugging Face? Download size: {size}. Recordings are still processed on this"
+" computer."
+msgstr ""
+"Descărcați modelul neuronal de reducere a zgomotului (DPDFNet, licență "
+"Apache-2.0) de pe Hugging Face? Dimensiunea descărcării: {size}. "
+"Înregistrările sunt în continuare procesate pe acest computer."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/noise_model_text.py
+msgctxt "noise_model_downloaded"
+msgid ""
+"Noise reduction model downloaded. Voice messages will use it when noise "
+"reduction is on."
+msgstr ""
+"Modelul de reducere a zgomotului a fost descărcat. Mesajele vocale îl vor "
+"folosi când reducerea zgomotului este activată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_model_label"
+msgid "Noise reduction model"
+msgstr "Model de reducere a zgomotului"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_model_progress"
+msgid "Downloading the noise reduction model..."
+msgstr "Se descarcă modelul de reducere a zgomotului..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_model_state_absent"
+msgid ""
+"Not downloaded. Without the model, noise reduction uses the basic noise "
+"gate."
+msgstr ""
+"Nedescărcat. Fără model, reducerea zgomotului folosește gate-ul de zgomot de"
+" bază."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_model_state_incomplete"
+msgid ""
+"Download incomplete. Without the model, noise reduction uses the basic noise"
+" gate."
+msgstr ""
+"Descărcare incompletă. Fără model, reducerea zgomotului folosește gate-ul de"
+" zgomot de bază."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_model_state_installed"
+msgid "Downloaded. Noise reduction uses the neural model."
+msgstr "Descărcat. Reducerea zgomotului folosește modelul neuronal."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_failed"
+msgid ""
+"Could not apply noise reduction; the voice message was sent unprocessed."
+msgstr ""
+"Reducerea zgomotului nu a putut fi aplicată; mesajul vocal a fost trimis "
+"neprocesat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_fallback"
+msgid "Could not use neural noise reduction; basic noise reduction was used."
+msgstr ""
+"Nu s-a putut folosi reducerea neuronală a zgomotului; s-a folosit reducerea "
+"de bază a zgomotului."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -13656,6 +13735,7 @@ msgstr ""
 " renunțat la transcriere."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
 #: client/ui/dialogs/transcription_queue.py
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_download_confirm_title"

@@ -218,6 +218,8 @@ NOUTĂȚI
 
 - Mesaje vocale: înregistrările mono sunt din nou trimise la 64 kbps, ca înainte de butonul unic de înregistrare; înregistrările stereo păstrează până la 256 kbps. Neonize scrie acum în jurnal și o linie pentru fiecare fișier media trimis și id-urile confirmărilor de livrare, pentru a afla de ce unele mesaje vocale nu sunt livrate.
 
+- Reducerea zgomotului microfonului pentru mesajele vocale poate folosi acum un model neuronal: cu "Activați reducerea zgomotului microfonului" bifată în Setări, Audio, aceeași pagină oferă descărcarea modelului; descărcarea se face o singură dată, prin internet, iar înregistrările sunt procesate în continuare pe acest computer. Fără model, sau dacă nu poate fi folosit pentru o înregistrare, WinZapp folosește gate-ul de zgomot de bază ca până acum și vă anunță. Dacă reducerea zgomotului nu poate fi aplicată deloc, mesajul este trimis neprocesat și WinZapp vă anunță și în acest caz.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

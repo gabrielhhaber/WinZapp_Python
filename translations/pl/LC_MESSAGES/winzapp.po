@@ -5173,8 +5173,8 @@ msgid "&Disable all"
 msgstr "W&yłącz wszystkie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/main_window/session_lifecycle.py
+#: client/core/noise_model_text.py client/core/notification_manager.py
+#: client/main_window/chat_list.py client/main_window/session_lifecycle.py
 #: client/ui/conversation_panel/audio_playback.py
 #: client/ui/conversation_panel/formatting.py
 #: client/ui/dialogs/order_create_dialog.py client/ui/dialogs/order_dialog.py
@@ -8362,6 +8362,84 @@ msgstr "Przygotowywanie pobierania Node.js..."
 msgctxt "node_download_verifying"
 msgid "Verifying download integrity..."
 msgstr "Weryfikowanie integralności pobranego pliku..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_model_download_btn"
+msgid "&Download noise reduction model"
+msgstr "&Pobierz model redukcji szumów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/noise_model_text.py
+#, python-brace-format
+msgctxt "noise_model_download_confirm"
+msgid ""
+"Download the neural noise reduction model (DPDFNet, Apache-2.0 licence) from"
+" Hugging Face? Download size: {size}. Recordings are still processed on this"
+" computer."
+msgstr ""
+"Pobrać neuronowy model redukcji szumów (DPDFNet, licencja Apache-2.0) z "
+"Hugging Face? Rozmiar pobierania: {size}. Nagrania nadal są przetwarzane na "
+"tym komputerze."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/noise_model_text.py
+msgctxt "noise_model_downloaded"
+msgid ""
+"Noise reduction model downloaded. Voice messages will use it when noise "
+"reduction is on."
+msgstr ""
+"Pobrano model redukcji szumów. Wiadomości głosowe będą go używać, gdy "
+"redukcja szumów jest włączona."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_model_label"
+msgid "Noise reduction model"
+msgstr "Model redukcji szumów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_model_progress"
+msgid "Downloading the noise reduction model..."
+msgstr "Pobieranie modelu redukcji szumów..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_model_state_absent"
+msgid ""
+"Not downloaded. Without the model, noise reduction uses the basic noise "
+"gate."
+msgstr ""
+"Nie pobrano. Bez modelu redukcja szumów używa podstawowej bramki szumów."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_model_state_incomplete"
+msgid ""
+"Download incomplete. Without the model, noise reduction uses the basic noise"
+" gate."
+msgstr ""
+"Pobieranie niekompletne. Bez modelu redukcja szumów używa podstawowej bramki"
+" szumów."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_model_state_installed"
+msgid "Downloaded. Noise reduction uses the neural model."
+msgstr "Pobrano. Redukcja szumów używa modelu neuronowego."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_failed"
+msgid ""
+"Could not apply noise reduction; the voice message was sent unprocessed."
+msgstr ""
+"Nie udało się zastosować redukcji szumów; wiadomość głosowa została wysłana "
+"bez przetwarzania."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_fallback"
+msgid "Could not use neural noise reduction; basic noise reduction was used."
+msgstr ""
+"Nie udało się użyć neuronowej redukcji szumów; użyto podstawowej redukcji "
+"szumów."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -13680,6 +13758,7 @@ msgstr ""
 "transkrypcja została odrzucona."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
 #: client/ui/dialogs/transcription_queue.py
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_download_confirm_title"

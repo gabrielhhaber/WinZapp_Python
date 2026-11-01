@@ -5162,8 +5162,8 @@ msgid "&Disable all"
 msgstr "&Desactivar todos"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/main_window/session_lifecycle.py
+#: client/core/noise_model_text.py client/core/notification_manager.py
+#: client/main_window/chat_list.py client/main_window/session_lifecycle.py
 #: client/ui/conversation_panel/audio_playback.py
 #: client/ui/conversation_panel/formatting.py
 #: client/ui/dialogs/order_create_dialog.py client/ui/dialogs/order_dialog.py
@@ -8369,6 +8369,85 @@ msgstr "Preparando la descarga de Node.js..."
 msgctxt "node_download_verifying"
 msgid "Verifying download integrity..."
 msgstr "Verificando la integridad de la descarga..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_model_download_btn"
+msgid "&Download noise reduction model"
+msgstr "&Descargar modelo de reducción de ruido"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/noise_model_text.py
+#, python-brace-format
+msgctxt "noise_model_download_confirm"
+msgid ""
+"Download the neural noise reduction model (DPDFNet, Apache-2.0 licence) from"
+" Hugging Face? Download size: {size}. Recordings are still processed on this"
+" computer."
+msgstr ""
+"¿Descargar el modelo neuronal de reducción de ruido (DPDFNet, licencia "
+"Apache-2.0) desde Hugging Face? Tamaño de la descarga: {size}. Las "
+"grabaciones se siguen procesando en este equipo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/noise_model_text.py
+msgctxt "noise_model_downloaded"
+msgid ""
+"Noise reduction model downloaded. Voice messages will use it when noise "
+"reduction is on."
+msgstr ""
+"Modelo de reducción de ruido descargado. Las notas de voz lo usarán cuando "
+"la reducción de ruido esté activada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_model_label"
+msgid "Noise reduction model"
+msgstr "Modelo de reducción de ruido"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_model_progress"
+msgid "Downloading the noise reduction model..."
+msgstr "Descargando el modelo de reducción de ruido..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_model_state_absent"
+msgid ""
+"Not downloaded. Without the model, noise reduction uses the basic noise "
+"gate."
+msgstr ""
+"No descargado. Sin el modelo, la reducción de ruido usa el gate de ruido "
+"básico."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_model_state_incomplete"
+msgid ""
+"Download incomplete. Without the model, noise reduction uses the basic noise"
+" gate."
+msgstr ""
+"Descarga incompleta. Sin el modelo, la reducción de ruido usa el gate de "
+"ruido básico."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_model_state_installed"
+msgid "Downloaded. Noise reduction uses the neural model."
+msgstr "Descargado. La reducción de ruido usa el modelo neuronal."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_failed"
+msgid ""
+"Could not apply noise reduction; the voice message was sent unprocessed."
+msgstr ""
+"No se pudo aplicar la reducción de ruido; la nota de voz se envió sin "
+"procesar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_fallback"
+msgid "Could not use neural noise reduction; basic noise reduction was used."
+msgstr ""
+"No se pudo usar la reducción de ruido neuronal; se usó reducción de ruido "
+"básica."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -13669,6 +13748,7 @@ msgstr ""
 "transcripción se descartó."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
 #: client/ui/dialogs/transcription_queue.py
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_download_confirm_title"

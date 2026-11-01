@@ -163,8 +163,13 @@ def file_url(model, filename) -> str:
     upstream republishes — and, far worse, would silently accept *different*
     weights for any file whose size happened to be unchanged.
     """
+    # An entry whose file sits in a subfolder of its repository (the noise
+    # reduction model) names it here; the local file stays flat in the model
+    # folder, where the rest of this module expects it.
+    remote_path = getattr(model, "remote_path", None)
     return _HF_FILE_URL.format(
-        repo=model.repo, revision=model.revision, filename=filename
+        repo=model.repo, revision=model.revision,
+        filename=remote_path(filename) if remote_path else filename,
     )
 
 

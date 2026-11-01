@@ -782,11 +782,21 @@ class VoiceRecordingMixin:
             if not mixed_audio and mw.settings.get("general", {}).get("noise_reduction_enabled", False):
                 try:
                     logging.info("[VOICE_TIMING] Applying microphone noise reduction...")
-                    from core.audio_processing import apply_noise_gate
-                    audio_data = apply_noise_gate(audio_data, actual_rate, actual_ch)
-                    logging.info("[VOICE_TIMING] Noise reduction applied successfully")
+                    from core.neural_noise_reduction import reduce_voice_noise
+                    audio_data, engine = reduce_voice_noise(audio_data, actual_rate, actual_ch)
+                    logging.info("[VOICE_TIMING] Noise reduction engine: %s", engine)
+                    if engine != "neural":
+                        # Never let the plain gate pass for the neural model.
+                        announce = getattr(mw, "output", None)
+                        if announce is not None:
+                            wx.CallAfter(announce, mw.i18n.t("noise_reduction_fallback"))
+                    logging.info("[VOICE_TIMING] Noise reduction finished (engine: %s)", engine)
                 except Exception as ex:
                     logging.error("[VOICE_TIMING] Failed to apply noise reduction: %s", ex)
+                    # Both engines failed: the note goes out unprocessed, say so.
+                    announce = getattr(mw, "output", None)
+                    if announce is not None:
+                        wx.CallAfter(announce, mw.i18n.t("noise_reduction_failed"))
 
             # 2. Write WAV temp file (used for ffmpeg conversion, backup, and retry fallback).
             tmp = None
