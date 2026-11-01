@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Neonize: un fișier sau un mesaj pe care îl redirecționezi apare acum imediat în conversația de destinație, fără să mai fie nevoie să reîmprospătezi manual conversația.
+
 - Grupuri: când cineva scrie, WinZapp anunță acum numele persoanei, nu doar numărul de telefon, dacă ai văzut deja un mesaj de la ea, chiar dacă nu este în contacte.
 
 - Mac: acum poți înregistra microfonul împreună cu sunetul computerului (Command+Shift+H) pe macOS 14.4 și versiunile ulterioare. Prima dată, macOS cere permisiunea de a înregistra sunetul sistemului.

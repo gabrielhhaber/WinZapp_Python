@@ -2739,13 +2739,12 @@ def create_app(folder, fixed=""):
                                          status=500)
             sent.append(store_sent(s, destination, resp))
             new_ids.append(resp.ID)
-        # No echo: the real server announces the forwarding through received-message and
-        # the client counts on that to update the destination chat, but here
-        # the notice is risky (the client matches the echo by type and may swap the id of
-        # a pending send of the same type in the same chat). Without it, the destination
-        # chat and the preview only change at the client's next list-chats; the new ids
-        # go in the response so the client can update the chat when it
-        # receives the success (it does not do that yet).
+            # Announced like the real server does (received-message): the client
+            # appends the copy to the destination chat from this event, and
+            # without it the copy only showed up after a manual refresh.
+            copy = s.db.wpp_message(resp.ID)
+            if copy is not None:
+                s.emit("received-message", {"session": s.name, "response": copy})
         return ok(status="success", response=[{"forwarded": len(sent),
                                                "messageIds": new_ids}])
 

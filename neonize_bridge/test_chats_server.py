@@ -596,12 +596,15 @@ async def test_delete_for_me_carries_the_keep_on_phone_choice(tmp_path, sessions
 @pytest.mark.asyncio
 async def test_forward_messages_returns_the_new_ids_and_stores_the_copy_in_the_destination(
         tmp_path, sessions):
-    """Without a received-message echo (risky for the client's match by type):
-    the destination chat and the copy stay stored in the bridge and the ids go in the answer."""
+    """The copy is stored in the destination chat, the ids go in the answer and
+    the copy is announced through received-message (issue #656: without it the
+    client only showed a forwarded file after a manual refresh)."""
     bridge = await _open(tmp_path, sessions)
     try:
         bridge.s.db.message(PN, _msg("ORIG", 100, PN))
         destination = "5522888880000@s.whatsapp.net"
+        events = []
+        bridge.s.emit = lambda event, data: events.append((event, data))
         status, body = await bridge.post("forward-messages", {
             "phone": ["5522888880000@c.us"], "messageId": [f"false_{PN}_ORIG"]})
         assert status == 200
@@ -609,6 +612,8 @@ async def test_forward_messages_returns_the_new_ids_and_stores_the_copy_in_the_d
         assert bridge.fake.sent[0][1].extendedTextMessage.contextInfo.isForwarded
         assert bridge.s.db.chat_exists(destination)
         assert bridge.s.db.wpp_message("NEW1") is not None
+        assert [(e, d["response"]["id"]["id"]) for e, d in events] == [
+            ("received-message", "NEW1")]
     finally:
         await bridge.http.close()
 

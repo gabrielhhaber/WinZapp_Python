@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Neonize: przekazany plik lub wiadomość pojawia się teraz od razu w rozmowie docelowej, bez ręcznego odświeżania rozmowy.
+
 - Grupy: gdy ktoś pisze, WinZapp ogłasza teraz jego imię zamiast samego numeru telefonu, jeśli widziałeś wcześniej wiadomość od tej osoby, nawet gdy nie ma jej w kontaktach.
 
 - Mac: można teraz nagrywać mikrofon razem z dźwiękiem komputera (Command+Shift+H) w macOS 14.4 i nowszym. Za pierwszym razem macOS prosi o zgodę na nagrywanie dźwięku systemowego.

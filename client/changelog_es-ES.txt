@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Neonize: un archivo o mensaje que reenvías ahora aparece enseguida en la conversación de destino, sin tener que actualizarla manualmente.
+
 - Grupos: cuando alguien está escribiendo, WinZapp ahora anuncia su nombre en lugar de solo su número de teléfono si ya has visto un mensaje suyo, aunque no esté en tus contactos.
 
 - Mac: ahora puedes grabar el micrófono junto con el audio del ordenador (Command+Shift+H) desde macOS 14.4. La primera vez, macOS pide permiso para grabar el audio del sistema.
