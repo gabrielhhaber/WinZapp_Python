@@ -212,6 +212,8 @@ WHAT'S NEW
 
 - Neonize: voice messages are now delivered to contacts on Android; before, they stayed on a single grey tick because the message lacked the waveform that WhatsApp expects.
 
+- Neonize: voice messages, photos and documents are no longer lost when the computer's file-type library (libmagic) fails to load; the type is now recognized from the file itself.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

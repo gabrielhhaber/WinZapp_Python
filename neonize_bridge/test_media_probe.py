@@ -107,3 +107,54 @@ def test_read_takes_a_path_or_the_bytes(tmp_path):
     path.write_bytes(b"abc")
     assert mp.read(str(path)) == b"abc"
     assert mp.read(bytearray(b"xyz")) == b"xyz"
+
+
+# --- libmagic that cannot load its database ------------------------------
+
+def _broken_magic(monkeypatch):
+    import sys
+    import types
+
+    def from_buffer(data, mime=False):
+        raise RuntimeError("could not find any valid magic files!")
+    monkeypatch.setitem(sys.modules, "magic", types.SimpleNamespace(from_buffer=from_buffer))
+
+
+@pytest.mark.parametrize("data,expected", [
+    (opus(48000), "audio/ogg"),
+    (b"\xff\xd8\xff\xe0" + b"\0" * 20, "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\n" + b"\0" * 8, "image/png"),
+    (b"\0\0\0\x20ftypM4A \0\0\0\0", "audio/mp4"),
+    (b"\0\0\0\x20ftypisom\0\0\0\0", "video/mp4"),
+    (b"RIFF\0\0\0\0WAVEfmt ", "audio/x-wav"),
+    (b"RIFF\0\0\0\0WEBPVP8 ", "image/webp"),
+    (b"ID3\x04" + b"\0" * 12, "audio/mpeg"),
+    (b"%PDF-1.7" + b"\0" * 8, "application/pdf"),
+    (b"nothing known here!!", ""),
+])
+def test_sniff_mimetype_from_the_first_bytes(data, expected):
+    assert mp.sniff_mimetype(data) == expected
+
+
+def test_mimetype_falls_back_to_the_signature_when_libmagic_cannot_run(monkeypatch):
+    _broken_magic(monkeypatch)
+    assert mp.mimetype(opus(48000)) == "audio/ogg"
+
+
+def test_media_type_of_follows_the_mimetype():
+    from neonize.utils.enum import MediaType
+    assert mp.media_type_of(b"x", lambda d: "audio/ogg") is MediaType.MediaAudio
+    assert mp.media_type_of(b"x", lambda d: "video/mp4") is MediaType.MediaVideo
+    assert mp.media_type_of(b"x", lambda d: "image/png") is MediaType.MediaImage
+    assert mp.media_type_of(b"x", lambda d: "application/pdf") is MediaType.MediaDocument
+    assert mp.media_type_of(b"x", lambda d: "") is MediaType.MediaDocument
+
+
+def test_neonizes_from_magic_survives_a_broken_libmagic(monkeypatch):
+    from neonize.utils.enum import MediaType
+    def broken(cls, data):
+        raise RuntimeError("could not find any valid magic files!")
+    monkeypatch.setattr(MediaType, "from_magic", classmethod(broken))
+    mp.install_safe_from_magic()
+    assert MediaType.from_magic(opus(48000)) is MediaType.MediaAudio
+    assert MediaType.from_magic(b"\xff\xd8\xff\xe0" + b"\0" * 12) is MediaType.MediaImage

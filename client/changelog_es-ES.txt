@@ -212,6 +212,8 @@ NOVEDADES
 
 - Neonize: los mensajes de voz ahora se entregan a los contactos de Android; antes se quedaban con una sola marca gris porque el mensaje no llevaba la forma de onda que WhatsApp espera.
 
+- Neonize: los mensajes de voz, las fotos y los documentos ya no se pierden cuando la biblioteca de tipos de archivo del equipo (libmagic) no carga; el tipo ahora se reconoce por el propio archivo.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.
