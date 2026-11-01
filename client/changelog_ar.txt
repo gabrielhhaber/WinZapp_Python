@@ -211,6 +211,8 @@ V3.0.0.0
 
 - Neonize: لم تعد مزامنة حالة التطبيق تسبب تعارضات كانت تفسد حالة قراءة المحادثات؛ ولم يعد تعليم محادثة كمقروءة يؤخر إرسال الرسائل؛ والرسائل المرسلة إلى محادثة مؤقتة تحمل مؤقتها؛ وإشعارات القراءة تحترم خيار خصوصية WhatsApp (إيصالات صامتة عند تعطيله)؛ والاقتران بالرقم في البرازيل يجرب الرقم بالرقم التاسع وبدونه.
 
+- Neonize: أصبحت الرسائل الصوتية تُسلَّم الآن إلى جهات الاتصال على أندرويد؛ كانت تبقى سابقًا بعلامة رمادية واحدة لأن الرسالة لم تكن تحمل شكل الموجة الذي يتوقعه واتساب.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
