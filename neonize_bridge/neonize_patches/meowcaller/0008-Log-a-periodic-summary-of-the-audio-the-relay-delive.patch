@@ -1,0 +1,172 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 1 Nov 2026 22:23:55 +0000
+Subject: [PATCH] Log a periodic summary of the audio the relay delivers
+
+Count relay RTP by kind, authentication failures and frames released, so a
+call with no inbound audio shows where the packets stop.
+---
+ audio_receive_stats.go      | 83 +++++++++++++++++++++++++++++++++++++
+ audio_receive_stats_test.go | 31 ++++++++++++++
+ engine_media.go             |  6 +++
+ 3 files changed, 120 insertions(+)
+ create mode 100644 audio_receive_stats.go
+ create mode 100644 audio_receive_stats_test.go
+
+diff --git a/audio_receive_stats.go b/audio_receive_stats.go
+new file mode 100644
+index 0000000..e2fbb18
+--- /dev/null
++++ b/audio_receive_stats.go
+@@ -0,0 +1,83 @@
++package meowcaller
++
++import (
++	"time"
++
++	"github.com/rs/zerolog"
++)
++
++const audioReceiveStatsInterval = 5 * time.Second
++
++// audioReceiveStats counts what the relay delivers and what becomes PCM, so a
++// call with no inbound audio says where the packets stop: never arriving, an
++// unexpected payload type, failing SRTP authentication, or decoding to nothing.
++// It only counts; it never changes a packet's fate. Logged at info level every
++// few seconds while packets arrive (silence in the log means no packets).
++type audioReceiveStats struct {
++	started       bool
++	last          time.Time
++	relayRTP      uint64
++	audio         uint64
++	video         uint64
++	appData       uint64
++	unknown       uint64
++	unknownPT     uint8
++	audioPT       uint8
++	unprotectFail uint64
++	noFrames      uint64 // authenticated but released nothing (held for order, late, or empty decode)
++	frames        uint64
++	pcmSamples    uint64
++}
++
++func (s *audioReceiveStats) Packet(kind mediaPayloadKind, payloadType uint8) {
++	s.relayRTP++
++	switch kind {
++	case mediaPayloadAudio:
++		s.audio++
++		s.audioPT = payloadType
++	case mediaPayloadVideo:
++		s.video++
++	case mediaPayloadAppData:
++		s.appData++
++	default:
++		s.unknown++
++		s.unknownPT = payloadType
++	}
++}
++
++func (s *audioReceiveStats) Audio(authenticated bool, frames []decodedParticipantAudio) {
++	switch {
++	case !authenticated:
++		s.unprotectFail++
++	case len(frames) == 0:
++		s.noFrames++
++	default:
++		for _, frame := range frames {
++			s.frames++
++			s.pcmSamples += uint64(len(frame.PCM))
++		}
++	}
++}
++
++// Due reports whether a summary is owed; the first packet only starts the clock.
++func (s *audioReceiveStats) Due(now time.Time) bool {
++	if !s.started {
++		s.started, s.last = true, now
++		return false
++	}
++	if now.Sub(s.last) < audioReceiveStatsInterval {
++		return false
++	}
++	s.last = now
++	return true
++}
++
++func (s *audioReceiveStats) Log(log zerolog.Logger) {
++	log.Info().
++		Uint64("relay_rtp", s.relayRTP).Uint64("audio", s.audio).Uint8("audio_pt", s.audioPT).
++		Uint64("video", s.video).Uint64("app_data", s.appData).
++		Uint64("unknown_payload", s.unknown).Uint8("unknown_pt", s.unknownPT).
++		Uint64("unprotect_failed", s.unprotectFail).Uint64("no_frames", s.noFrames).
++		Uint64("frames", s.frames).Uint64("pcm_samples", s.pcmSamples).
++		Msg("audio receive summary (totals since the media started)")
++}
+diff --git a/audio_receive_stats_test.go b/audio_receive_stats_test.go
+new file mode 100644
+index 0000000..fd2f055
+--- /dev/null
++++ b/audio_receive_stats_test.go
+@@ -0,0 +1,31 @@
++package meowcaller
++
++import (
++	"testing"
++	"time"
++)
++
++func TestAudioReceiveStatsSayWhereInboundAudioStops(t *testing.T) {
++	var s audioReceiveStats
++	now := time.Unix(0, 0)
++	if s.Due(now) {
++		t.Fatal("the first packet only starts the clock")
++	}
++	s.Packet(mediaPayloadAudio, 120)
++	s.Audio(true, []decodedParticipantAudio{{PCM: make([]float32, FrameSamples)}})
++	s.Packet(mediaPayloadAudio, 120)
++	s.Audio(true, nil)
++	s.Packet(mediaPayloadAudio, 120)
++	s.Audio(false, nil)
++	s.Packet(mediaPayloadUnknown, 99)
++	s.Packet(mediaPayloadAppData, 0)
++	if s.relayRTP != 5 || s.audio != 3 || s.unknown != 1 || s.unknownPT != 99 || s.appData != 1 {
++		t.Fatalf("packet counts: %+v", s)
++	}
++	if s.frames != 1 || s.pcmSamples != FrameSamples || s.noFrames != 1 || s.unprotectFail != 1 {
++		t.Fatalf("audio counts: %+v", s)
++	}
++	if s.Due(now.Add(time.Second)) || !s.Due(now.Add(6*time.Second)) || s.Due(now.Add(7*time.Second)) {
++		t.Fatal("a summary is due once per interval")
++	}
++}
+diff --git a/engine_media.go b/engine_media.go
+index e4bb542..dd1e951 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -820,6 +820,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	}()
+ 
+ 	buf := make([]byte, 1500)
++	var receiveStats audioReceiveStats
+ 	var rtpIn, rtpSeen, unprotectFail, rtpInspect, vidIn, appDataIn, appDataUnprotectFail, videoUnprotectFail, videoFrameIn, videoSinkMissing, rtcpIn, rtcpAuthFail, groupForwardingInvalid uint64
+ 	for {
+ 		if ctx.Err() != nil {
+@@ -940,6 +941,10 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 			continue
+ 		}
+ 		kind := classifyMediaPayload(vh)
++		receiveStats.Packet(kind, vh.PayloadType)
++		if receiveStats.Due(time.Now()) {
++			receiveStats.Log(log)
++		}
+ 		if kind == mediaPayloadAppData {
+ 			media, ok := audioReceivers.UnprotectAppData(pkt)
+ 			if !ok {
+@@ -1098,6 +1103,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 		if codecErr != nil {
+ 			return fmt.Errorf("audio codec reconfiguration: %w", codecErr)
+ 		}
++		receiveStats.Audio(ok, frames)
+ 		if !ok {
+ 			if unprotectFail++; unprotectFail == 1 {
+ 				log.Warn().Uint32("ssrc", vh.Ssrc).Int("bytes", n).Msg("audio RTP did not match an authenticated active participant")
