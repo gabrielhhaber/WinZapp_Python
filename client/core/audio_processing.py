@@ -1,7 +1,12 @@
 import logging
 import numpy as np
 
-def apply_noise_gate(audio_bytes: bytes, rate: int, channels: int, threshold_db: float = -40.0, attenuation: float = 0.1) -> bytes:
+def apply_noise_gate(audio_bytes: bytes, rate: int, channels: int, threshold_db: float = -40.0, attenuation: float = 0.1, *, strict: bool = False) -> bytes:
+    """Legacy callers get the original audio back on error; strict re-raises.
+
+    The neural fallback path needs to know when the gate did not run at all,
+    so it passes strict=True and handles the announcement itself."""
+
     """
     Applies an Automatic Gain Control (AGC) and Dynamic Noise Gate filter
     to raw 16-bit PCM audio bytes using NumPy.
@@ -76,4 +81,6 @@ def apply_noise_gate(audio_bytes: bytes, rate: int, channels: int, threshold_db:
         return samples.tobytes()
     except Exception as e:
         logging.error("[audio_processing] Error applying dynamic AGC + Noise Gate: %s", e)
+        if strict:
+            raise
         return audio_bytes
