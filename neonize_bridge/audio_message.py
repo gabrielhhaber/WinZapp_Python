@@ -20,6 +20,7 @@ import media_probe
 
 WAVEFORM_SAMPLES = 64
 WAVEFORM_RATE = 8000        # the decode rate; enough to draw 64 bars
+M4A_MIMETYPES = ("audio/x-m4a", "audio/m4a")
 
 
 def waveform_of_pcm(pcm):
@@ -72,6 +73,11 @@ def build(client, file, ptt, mimetype_of=None, seconds_of=None, waveform_of=None
     # (without it the voice note may not even show up on some devices)
     if mimetype.startswith("audio/ogg"):
         mimetype = "audio/ogg; codecs=opus"
+    # libmagic calls M4A "audio/x-m4a"; WhatsApp's name is "audio/mp4", and the
+    # stereo AAC voice note left with the wrong one: WhatsApp on Android never
+    # took it (one grey tick, issue #664)
+    elif mimetype in M4A_MIMETYPES:
+        mimetype = "audio/mp4"
     message = Message(audioMessage=AudioMessage(
         URL=upload.url, directPath=upload.DirectPath, mediaKey=upload.MediaKey,
         fileEncSHA256=upload.FileEncSHA256, fileSHA256=upload.FileSHA256,

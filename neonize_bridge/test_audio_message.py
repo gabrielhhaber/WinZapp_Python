@@ -35,6 +35,14 @@ class Client:
         return N(ID="NEW1", Timestamp=1_700_000_000, Message=message)
 
 
+@pytest.mark.parametrize("detected", ["audio/x-m4a", "audio/m4a", "audio/mp4"])
+def test_a_stereo_voice_note_is_labelled_audio_mp4(detected):
+    """What libmagic says of an M4A is not what WhatsApp expects (issue #664)."""
+    m = am.build(Client(), b"abcde", True, mimetype_of=lambda d: detected,
+                 seconds_of=lambda d: 3, waveform_of=lambda d: b"")
+    assert m.audioMessage.mimetype == "audio/mp4"
+
+
 def test_build_a_voice_note_from_bytes():
     client = Client()
     m = am.build(client, b"abcde", True, mimetype_of=lambda d: "audio/ogg",

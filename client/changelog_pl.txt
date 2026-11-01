@@ -218,6 +218,8 @@ NOWOŚCI
 
 - Wiadomości głosowe: nagrania mono są znów wysyłane z 64 kb/s, tak jak przed jednym przyciskiem nagrywania; nagrania stereo zachowują do 256 kb/s. Neonize zapisuje też w dzienniku jedną linię na każdy wysłany plik multimedialny oraz identyfikatory potwierdzeń dostarczenia, aby ustalić, dlaczego niektóre wiadomości głosowe nie są dostarczane.
 
+- Neonize: wiadomości głosowe stereo są teraz wysyłane z typem audio/mp4, którego oczekuje WhatsApp, dzięki czemu docierają do kontaktów na Androidzie.
+
 - Redukcja szumów mikrofonu w wiadomościach głosowych może teraz korzystać z modelu neuronowego: przy zaznaczonej opcji "Włącz redukcję szumów mikrofonu" w Ustawieniach, Dźwięk ta sama strona oferuje pobranie modelu; pobieranie odbywa się raz, przez internet, a nagrania nadal są przetwarzane na tym komputerze. Bez modelu, albo gdy nie można go użyć w nagraniu, WinZapp używa podstawowej bramki szumów jak dotychczas i o tym informuje. Jeśli redukcji szumów nie można zastosować wcale, wiadomość jest wysyłana bez przetwarzania i WinZapp również o tym informuje.
 
 V2.1.0.0
