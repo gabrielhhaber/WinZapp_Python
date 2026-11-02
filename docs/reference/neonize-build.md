@@ -79,6 +79,12 @@ What the patches carry today:
   packets that released no frame, frames and samples out). A call whose log
   shows `quadros do outro lado=0` says there where inbound audio stops; no
   summary at all means the relay delivered nothing.
+- **meowcaller 0009**: the caller stops the callee's other devices when one
+  answers or declines, one `<terminate>` per rung device (`accepted_elsewhere`,
+  `rejected_elsewhere`). WhatsApp leaves this to the caller; without it the
+  phone went on ringing beside the device that answered. A callee that already
+  saw the caller's `<mute_v2>` also accepts on Answer, without the two seconds
+  of patch 0002, because the caller only stops those devices on `<accept>`.
 
 ## Toolchain (once)
 
