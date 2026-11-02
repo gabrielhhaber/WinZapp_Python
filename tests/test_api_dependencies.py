@@ -101,3 +101,17 @@ def test_etarget_from_stale_cache_is_recognised_for_an_online_retry():
         "npm error code ETARGET\nnpm error notarget No matching version found for @babel/runtime@^7.29.10.")
     assert not npm_cached_metadata_is_stale("npm error code ENOTFOUND")
     assert not npm_cached_metadata_is_stale("")
+
+
+def test_runtime_package_is_never_left_in_both_dependency_blocks(tmp_path):
+    """npm prunes a package listed in both blocks under --omit=dev (issue #672)."""
+    path = manifest(tmp_path)
+    package = json.loads(path.read_text())
+    package["dependencies"]["prom-client"] = "^14"
+    package["devDependencies"]["prom-client"] = "^14"
+    path.write_text(json.dumps(package))
+    for building in (False, True):
+        prepare_api_dependencies(str(tmp_path), building=building)
+        package = json.loads(path.read_text())
+        assert "@babel/runtime" in package["dependencies"]
+        assert not package["dependencies"].keys() & package["devDependencies"].keys()

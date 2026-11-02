@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Remediat: serverul WPPConnect nu mai eșuează la pornire cu "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") după o actualizare sau o instalare nouă.
+
 - Neonize: dacă internetul cade în mijlocul unui apel, poți totuși închide; înainte butonul eșua cu eroarea "Disconnected".
 
 - WPPConnect Server 2.10.74 este acum oferit ca actualizare, fără a aștepta o nouă versiune WinZapp. Actualizează doar documentația și o dependență de securitate și nu afectează modificările pe care WinZapp le face în server.

@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Düzeltildi: WPPConnect sunucusu, bir güncelleme veya yeni kurulumdan sonra artık "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") hatasıyla başlatılamaz hale gelmiyor.
+
 - Neonize: bir görüşme sırasında internet kesilirse yine de görüşmeyi kapatabilirsiniz; önceden düğme "Disconnected" hatasıyla başarısız oluyordu.
 
 - WPPConnect Server 2.10.74 artık yeni bir WinZapp sürümü beklenmeden güncelleme olarak sunuluyor. Yalnızca belgeleri ve bir güvenlik bağımlılığını günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.

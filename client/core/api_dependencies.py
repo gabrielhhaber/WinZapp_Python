@@ -86,6 +86,12 @@ def prepare_api_dependencies(api_dir: str, *, building: bool) -> list[str]:
             version = dev.get(name) or package.get("peerDependencies", {}).get(name)
             if version:
                 deps[name] = version
+    # npm treats a package listed under both dependencies and devDependencies
+    # as a development one, so --omit=dev prunes it from node_modules and the
+    # server dies on its first require (@babel/runtime). A runtime package
+    # therefore must not stay in devDependencies.
+    for name in deps.keys() & dev.keys():
+        del dev[name]
     scripts = package.get("scripts", {})
     known_build = (scripts.get("build") == "npm run build:types && npm run build:js"
                    and scripts.get("build:types") in ("tsc", "tsc --noEmit")
