@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Corregido: el servidor de WPPConnect ya no deja de iniciarse con "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") tras una actualización o una instalación nueva.
+
 - Neonize: si se corta internet en mitad de una llamada, aún puedes colgar; antes el botón fallaba con el error "Disconnected".
 
 - WPPConnect Server 2.10.74 ya se ofrece como actualización sin esperar a una nueva versión de WinZapp. Solo actualiza documentación y una dependencia de seguridad, y no afecta a los cambios que WinZapp hace en el servidor.
