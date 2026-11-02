@@ -226,6 +226,8 @@ NOUTĂȚI
 
 - Spaniolă: eticheta unui mesaj vocal redat este acum „Reproducido”, nu „Reproducida”, ca „Enviado”, „Entregado” și „Leído”.
 
+- Spaniolă: traducerea folosește acum în mod consecvent „chat/chats”, în loc să îl amestece cu „conversación/conversaciones”, iar acordul în gen și număr a fost corectat în textele asociate, inclusiv în ghidul utilizatorului.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.
