@@ -3275,7 +3275,7 @@ msgstr "Cargando chats…"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "chat_picker_select_all"
 msgid "Select all"
-msgstr "Marcar todas"
+msgstr "Marcar todos"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chats_store.py
 #: client/main_window/sync.py
@@ -11055,7 +11055,7 @@ msgstr "Ctrl+Shift+coma: configuración de WhatsApp"
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_ctrl_shift_d_label"
 msgid "Ctrl+Shift+D: chat data / discard recording"
-msgstr "Ctrl+Shift+D: datos de chat / descartar grabación"
+msgstr "Ctrl+Shift+D: datos del chat / descartar grabación"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -11717,7 +11717,7 @@ msgstr "Navegación principal"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_search_section"
 msgid "Chat search"
-msgstr "Búsqueda en chat"
+msgstr "Búsqueda en el chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_status_section"

@@ -341,8 +341,8 @@
 <h3>Los menús</h3>
 <table class="field-table">
   <tr><th>Menú</th><th>Qué contiene</th></tr>
-  <tr><td class="field-name">archivo</td><td>Configuración, Configuración de WhatsApp (privacidad y perfil), Exportar e Importar configuración, Marcar todas las conversaciones como leídas, Desconectar, Salir.</td></tr>
-  <tr><td class="field-name">Sincronización</td><td>Resincronizar todas las conversaciones (F5), Resincronizar esta conversación (Shift+F5), Descargar medios, Modo sin conexión.</td></tr>
+  <tr><td class="field-name">archivo</td><td>Configuración, Configuración de WhatsApp (privacidad y perfil), Exportar e Importar configuración, Marcar todos los chats como leídos, Desconectar, Salir.</td></tr>
+  <tr><td class="field-name">Sincronización</td><td>Resincronizar todos los chats (F5), Resincronizar este chat (Shift+F5), Descargar medios, Modo sin conexión.</td></tr>
   <tr><td class="field-name">Cuentas</td><td>Cambiar de cuenta (Ctrl+Alt+1 a 9) y Cerrar la cuenta actual (Ctrl+F4). Consulta la sección Cuentas.</td></tr>
   <tr><td class="field-name">Ayuda</td><td>Atajos de teclado, Novedades, Comprobar actualizaciones, Forzar reinstalación de WPPConnect y Forzar reinstalación desde el archivo ZIP, Acerca del programa.</td></tr>
 </table>
@@ -378,10 +378,10 @@
   <tr><td>Silenciar / dejar de silenciar</td><td class="field-name">Alt+Shift+S</td></tr>
   <tr><td>Marcar como leído / no leído</td><td class="field-name">Ctrl+Shift+M</td></tr>
   <tr><td>Archivar / desarchivar</td><td class="field-name">Ctrl+Shift+Q</td></tr>
-  <tr><td>Bloquear conversación</td><td class="field-name">Ctrl+Shift+T</td></tr>
+  <tr><td>Bloquear chat</td><td class="field-name">Ctrl+Shift+T</td></tr>
   <tr><td>Bloquear contacto</td><td class="field-name">Ctrl+Shift+B</td></tr>
-  <tr><td>Vaciar conversación</td><td class="field-name">Ctrl+Shift+L</td></tr>
-  <tr><td>Eliminar conversación</td><td class="field-name">Supr</td></tr>
+  <tr><td>Vaciar chat</td><td class="field-name">Ctrl+Shift+L</td></tr>
+  <tr><td>Eliminar chat</td><td class="field-name">Supr</td></tr>
   <tr><td>Copiar número de teléfono</td><td class="field-name">Alt+Shift+C</td></tr>
   <tr><td>Catálogo y carrito de la empresa (chats con empresas)</td><td class="field-name">Alt+Shift+B</td></tr>
   <tr><td>Herramientas de empresa (solo cuentas de WhatsApp Business)</td><td>Crear un pedido para este contacto (Ctrl+Shift+N) y Aceptar carritos en mi catálogo</td></tr>
@@ -394,9 +394,9 @@
 
 <h3>Vaciar y eliminar</h3>
 <ul>
-  <li><strong>Vaciar conversación</strong> pregunta si se conservan los mensajes destacados ("Conservar los mensajes destacados", marcado por defecto). Sin marcar, los mensajes destacados también se borran, incluso en el teléfono. También se aplica a varias conversaciones seleccionadas y a las archivadas.</li>
+  <li><strong>Vaciar chat</strong> pregunta si se conservan los mensajes destacados ("Conservar los mensajes destacados", marcado por defecto). Sin marcar, los mensajes destacados también se borran, incluso en el teléfono. También se aplica a varias conversaciones seleccionadas y a las archivadas.</li>
   <li>Las confirmaciones de vaciar y eliminar tienen una casilla "No volver a mostrar", que solo cuenta junto con Sí. Para que vuelva a preguntar, usa las opciones correspondientes en Configuración &gt; Interfaz &gt; Confirmaciones. Con la pregunta desactivada, vaciar conserva los mensajes destacados.</li>
-  <li><strong>Marcar todas las conversaciones como leídas</strong> (menú archivo, o Ctrl+Alt+Shift+M) pregunta antes, con No como opción predeterminada. También tiene "No volver a mostrar"; la opción "Pedir confirmación al marcar todos los chats como leídos" devuelve la pregunta.</li>
+  <li><strong>Marcar todos los chats como leídos</strong> (menú archivo, o Ctrl+Alt+Shift+M) pregunta antes, con No como opción predeterminada. También tiene "No volver a mostrar"; la opción "Pedir confirmación al marcar todos los chats como leídos" devuelve la pregunta.</li>
   <li><strong>Confirmación hablada:</strong> marcar como leída o no leída, silenciar, archivar y fijar una conversación ahora dicen lo que se hizo, y marcar varias como leídas dice cuántas fueron.</li>
 </ul>
 
@@ -503,7 +503,7 @@
 <h3>Chats de acceso rápido</h3>
 <p>Con un chat enfocado en la lista o abierto, pulsa Ctrl+Alt+Shift+F1 a F10 para asignarlo a una posición de acceso rápido. Ctrl+Shift+la misma tecla de función abre el chat desde cualquier lugar de la ventana principal. F1 a F9 corresponden a las posiciones 1 a 9; F10 corresponde a la 0. Las asignaciones son independientes para cada cuenta y se conservan al reiniciar. Puedes cambiar los atajos en Configuración, Interfaz de usuario, Atajos de teclado, o asignar un chat desde su menú contextual. Los chats protegidos no se pueden asignar.</p>
 
-<h3>Buscar en la conversación</h3>
+<h3>Buscar en el chat</h3>
 <p>Ctrl+Shift+F abre la búsqueda. F3 va al resultado siguiente y Shift+F3 al anterior, desde cualquier punto de la conversación abierta; el foco sigue al resultado y el lector de pantalla anuncia la posición. Los botones "Resultado anterior" y "Resultado siguiente" también funcionan, y dentro del campo de búsqueda Intro y Shift+Intro hacen lo mismo.</p>
 
 <h3>Enlaces</h3>
@@ -779,7 +779,7 @@
   <li><strong>Bloquear:</strong> "Bloquear chat" en el menú contextual o Ctrl+Shift+T. El PIN tiene de 6 a 12 dígitos. Al configurar la cámara, WinZapp crea una <em>clave de recuperación</em> (se puede leer en voz alta o copiar) para definir un PIN nuevo si olvidas el actual.</li>
   <li><strong>Notificaciones:</strong> las de estos chats solo dicen cuántos mensajes nuevos llegaron, sin nombre ni contenido. Sus mensajes nunca se transcriben automáticamente, y la IA en línea vuelve a preguntar en cada envío.</li>
   <li><strong>Cerrar la cámara:</strong> se cierra sola cuando minimizas WinZapp, lo ocultas en la bandeja y cambias de panel, y (si quieres) tras un periodo de inactividad. Ctrl+Shift+K cierra y oculta la cámara al instante.</li>
-  <li><strong>Código secreto:</strong> "Chats bloqueados" se puede quitar del menú de navegación; en ese caso, la cámara se abre escribiendo un código secreto en la búsqueda de chats. Se configura en Configuración &gt; Interfaz &gt; Conversaciones &gt; Chats bloqueados.</li>
+  <li><strong>Código secreto:</strong> "Chats bloqueados" se puede quitar del menú de navegación; en ese caso, la cámara se abre escribiendo un código secreto en la búsqueda de chats. Se configura en Configuración &gt; Interfaz &gt; Chats &gt; Chats bloqueados.</li>
   <li><strong>Bloqueo de chat de WhatsApp:</strong> los chats bloqueados en el teléfono también se ocultan en WinZapp y solo aparecen en Chats bloqueados, tras tu PIN (si nunca creaste uno, WinZapp ofrece crearlo). Solo el teléfono puede desbloquearlos; un chat desbloqueado en el teléfono vuelve solo a la lista.</li>
   <li><strong>Acciones en lote:</strong> las conversaciones bloqueadas también se pueden seleccionar para desbloquear o marcar como leídas/no leídas.</li>
 </ul>
@@ -1064,7 +1064,7 @@
 <tr><td class="field-name">Alt+2</td><td>Ir al último mensaje</td></tr>
 <tr><td class="field-name">Esc</td><td>Cerrar chat. Con mensajes marcados, el primer Esc solo los desmarca todos y únicamente el segundo cierra el chat, si la opción está activada en Configuración, Interfaz de usuario</td></tr>
 <tr><td class="field-name">Ctrl+W</td><td>Cerrar chat. Con mensajes marcados, el primer Esc solo los desmarca todos y únicamente el segundo cierra el chat, si la opción está activada en Configuración, Interfaz de usuario</td></tr>
-<tr><td class="field-name">Ctrl+Shift+D</td><td>Datos de chat / descartar grabación</td></tr>
+<tr><td class="field-name">Ctrl+Shift+D</td><td>Datos del chat / descartar grabación</td></tr>
 <tr><td class="field-name">Ctrl+Shift+A</td><td>Agregar archivo adjunto</td></tr>
 <tr><td class="field-name">Ctrl+Shift+B</td><td>Bloquear contacto</td></tr>
 <tr><td class="field-name">Alt+R</td><td>Responder al mensaje</td></tr>
