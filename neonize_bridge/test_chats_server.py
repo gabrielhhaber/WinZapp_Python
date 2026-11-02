@@ -11,6 +11,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message
 
 import authentication as auth
+import read_receipts
 import server
 
 PN = "5511999990000@s.whatsapp.net"
@@ -279,6 +280,105 @@ async def test_send_seen_keeps_the_open_chat_and_mark_as_unread_does_not(tmp_pat
         assert bridge.s.open_chat == ""
     finally:
         await bridge.http.close()
+
+
+def _notices(bridge):
+    sent = []
+    bridge.s.state_read = lambda chat, read: sent.append((chat, read)) or True
+    return sent
+
+
+@pytest.mark.asyncio
+async def test_reading_a_chat_goes_by_the_receipts_alone(tmp_path, sessions):
+    """As on WhatsApp's own clients: a state notice per chat opened left WhatsApp
+    Web seven minutes of patches behind the messages it had just counted."""
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=1)
+        bridge.s.db.message(PN, _msg("M1", 100, PN))
+        sent = _notices(bridge)
+        _, body = await bridge.post("send-seen", {"phone": PN})
+        assert body["response"]["data"] == [True]
+        assert bridge.fake.read == [(("M1",), PN)]
+        assert sent == []
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_opening_a_chat_with_nothing_to_read_writes_nothing(tmp_path, sessions):
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=0)
+        sent = _notices(bridge)
+        _, body = await bridge.post("send-seen", {"phone": PN})
+        assert body["response"]["data"] == [True]
+        assert sent == []
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_a_chat_marked_unread_is_undone_by_the_notice(tmp_path, sessions):
+    """A receipt says nothing to a chat marked unread by hand: the message
+    behind it was already read."""
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=0)
+        bridge.s.db.message(PN, _msg("M1", 100, PN))
+        sent = _notices(bridge)
+        await bridge.post("send-seen", {"phone": PN, "unread": True})
+        assert sent == [(PN, False)]
+        await bridge.post("send-seen", {"phone": PN})
+        assert sent == [(PN, False), (PN, True)]
+        assert not bridge.s.db.marked_unread(PN)
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_a_second_read_of_a_chat_once_marked_unread_writes_nothing(tmp_path, sessions):
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=1, marked_unread=1)
+        bridge.s.db.message(PN, _msg("M1", 100, PN))
+        sent = _notices(bridge)
+        await bridge.post("send-seen", {"phone": PN})
+        await bridge.post("send-seen", {"phone": PN})
+        assert sent == [(PN, True)]
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_unread_no_receipt_can_name_still_gets_the_notice(tmp_path, sessions):
+    """History the store does not hold: the phone counts three, one receipt goes."""
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=3)
+        bridge.s.db.message(PN, _msg("M1", 100, PN))
+        sent = _notices(bridge)
+        await bridge.post("send-seen", {"phone": PN})
+        assert sent == [(PN, True)]
+    finally:
+        await bridge.http.close()
+
+
+def test_a_chat_marked_unread_on_the_phone_is_remembered_too():
+    """_read_on_phone sits inside the session's start: read from the source."""
+    import pathlib
+    source = (pathlib.Path(__file__).parent / "server.py").read_text(encoding="utf-8")
+    handler = source[source.index("        def _read_on_phone(c, e):"):
+                     source.index('log.exception("chat read on the phone")')]
+    assert "self.db.chat(jid, unread=max(before, 1), marked_unread=1)" in handler
+    assert "self.db.chat(jid, unread=0, marked_unread=0)" in handler
+
+
+@pytest.mark.parametrize("unread, receipts, marked, needed", [
+    (1, 1, False, False), (0, 0, False, False), (3, 1, False, True),
+    (0, 0, True, True), (1, 1, True, True)])
+def test_when_a_read_needs_the_notice(unread, receipts, marked, needed):
+    assert read_receipts.needs_read_notice(unread, receipts, marked) is needed
 
 
 @pytest.mark.asyncio

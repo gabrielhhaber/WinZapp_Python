@@ -868,10 +868,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     if until and last is not None and last["t"] > until + 5:
                         log.info("read on the phone, but there is a newer message: kept")
                         return
-                    self.db.chat(jid, unread=0)
+                    self.db.chat(jid, unread=0, marked_unread=0)
                     new = 0
                 else:
-                    self.db.chat(jid, unread=max(before, 1))
+                    self.db.chat(jid, unread=max(before, 1), marked_unread=1)
                     new = -1
                 log.info("chat marked as %s on the phone -> app",
                          "read" if action.read else "unread")
@@ -1650,25 +1650,27 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         return True
 
     def mark_unread(self, conversation):
-        self.db.chat(conversation, unread=1)
+        self.db.chat(conversation, unread=1, marked_unread=1)
         if self.client is not None and self.status == "CONNECTED":
             self.state_read(conversation, False)
 
-    def mark_read(self, conversation, force=False):
+    def mark_read(self, conversation):
         """How many messages received the read receipt (see read_and_confirm)."""
-        return self.read_and_confirm(conversation, force)[0]
+        return self.read_and_confirm(conversation)[0]
 
-    def read_and_confirm(self, conversation, force=False):
-        """Sends the read receipt of the received messages not yet read and marks
-        the chat as read on the phone too. Returns (how many, ok): ok is False if
-        some receipt did not go out (send-seen only confirms what went out).
-        A refused state notice (the chat stays unread on the phone) is left in the
-        log: the receipts, which the contact sees, are what count here."""
+    def read_and_confirm(self, conversation):
+        """Sends the read receipt of the received messages not yet read, which
+        is what marks them read on the phone and the other devices too (see
+        read_receipts.py). Returns (how many, ok): ok is False if some receipt
+        did not go out (send-seen only confirms what went out). A refused state
+        notice, when one is needed, is left in the log: the receipts, which the
+        contact sees, are what count here."""
         if self.client is None or self.status != "CONNECTED":
             return 0, False
-        had_unread = self.db.unread(conversation) > 0
+        unread = self.db.unread(conversation)
+        marked_unread = self.db.marked_unread(conversation)
         to_read = self.db.received_to_read(conversation)
-        if had_unread or force:     # force: the app asked (the phone may still have the counter)
+        if read_receipts.needs_read_notice(unread, len(to_read), marked_unread):
             self.state_read(conversation, True)
         if not to_read:
             return 0, True
@@ -2073,7 +2075,7 @@ def create_app(folder, fixed=""):
             s.open_chat = keys[0]      # the app only sends send-seen for the chat the user opened
             confirmed = True
             for key in keys:
-                _, sent = await loop.run_in_executor(marking, s.read_and_confirm, key, True)
+                _, sent = await loop.run_in_executor(marking, s.read_and_confirm, key)
                 confirmed = confirmed and sent
         return ok(status="success", response={"data": [confirmed]})
 

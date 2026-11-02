@@ -98,6 +98,23 @@ them (looped, through `sound_system.load_sound`, from WAVs cached under
   pack as the `call_ended` Sound Event (`call_ended.ogg`); `play_call_ended_sound`
   plays it once when a call that was ACTIVE ends, on Neonize only.
 
+## Reading a chat writes no app state
+
+A read goes out as read receipts, the way WhatsApp's own clients do it:
+`WAWebChatSendConversationSeen` sends `markChatAsRead` only when undoing a chat
+marked unread by hand, and reads made on the phone reach the bridge as
+`READ [mine]` receipts with no notice behind them. `read_receipts.needs_read_notice()`
+keeps the notice for what a receipt cannot reach: a chat marked unread by hand,
+or a count higher than the messages the store holds.
+
+The bridge once sent a notice per chat opened. Measured 2026-11-02 after five
+days away from WPPConnect: 585 patches in `regular_low`, at least 226 with nothing
+to read, applied by WhatsApp Web at about 0.7 s each. The offline queue started at
+18:49 and counted messages already read here; the collection finished at 18:56.
+The order matters twice: a notice applied first keeps an active range that covers
+the messages arriving after it, and one applied to a chat already holding newer
+messages is stored as `Success` and changes nothing.
+
 ## Known leftovers (not fixed)
 
 - Video and group call buttons are still shown when the bridge cannot take

@@ -79,7 +79,7 @@ def migrate_legacy_schema(conn):
 # nobody's to read nor to mark as read.
 SYSTEM_TYPES = ("gp2", "call_log")
 
-CHAT_FIELDS = {"name", "ts", "unread", "archived", "pinned", "muted", "locked",
+CHAT_FIELDS = {"name", "ts", "unread", "marked_unread", "archived", "pinned", "muted", "locked",
                "ephemeral", "ephemeral_ts"}
 
 
@@ -131,6 +131,10 @@ class Store:
                 pass
             try:    # databases created before this column
                 self._conn.execute("ALTER TABLE chats ADD COLUMN read_ts INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:    # "mark as unread": what only a state notice undoes (read_receipts.py)
+                self._conn.execute("ALTER TABLE chats ADD COLUMN marked_unread INTEGER DEFAULT 0")
             except sqlite3.OperationalError:
                 pass
             # the chat's temporary-messages timer, in seconds (chat_timers.py)
@@ -559,7 +563,7 @@ class Store:
                         if len(found) == n:
                             break
                 found.reverse()
-            self._conn.execute("UPDATE chats SET unread=0 WHERE jid=?", (chat,))
+            self._conn.execute("UPDATE chats SET unread=0, marked_unread=0 WHERE jid=?", (chat,))
             self._conn.commit()
         return found
 
@@ -591,6 +595,13 @@ class Store:
         with self._lock:
             r = self._conn.execute("SELECT unread FROM chats WHERE jid=?", (chat,)).fetchone()
         return int(r["unread"] or 0) if r else 0
+
+    def marked_unread(self, chat):
+        """Whether the chat was marked unread by hand, here or on the phone."""
+        with self._lock:
+            r = self._conn.execute(
+                "SELECT marked_unread FROM chats WHERE jid=?", (chat,)).fetchone()
+        return bool(r and r["marked_unread"])
 
     def raw_last(self, chat):
         """The most recent stored message (any author), or None."""

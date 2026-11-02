@@ -69,7 +69,7 @@ def test_send_seen_runs_on_threads_of_its_own():
     source = (pathlib.Path(__file__).parent / "server.py").read_text(encoding="utf-8")
     route = source[source.index("    async def send_seen(req):"):
                    source.index("    async def subscribe_presence(req):")]
-    assert "run_in_executor(marking, s.read_and_confirm, key, True)" in route
+    assert "run_in_executor(marking, s.read_and_confirm, key)" in route
     assert "run_in_executor(marking, s.mark_unread, keys[0])" in route
     assert "in_thread(s.read_and_confirm" not in route
 
