@@ -224,6 +224,8 @@ NOVEDADES
 
 - La reducción de ruido del micrófono de los mensajes de voz ahora puede usar un modelo neuronal: con "Activar reducción de ruido del micrófono" marcada en Configuración, Audio, la misma página ofrece descargar el modelo; la descarga se hace una sola vez, por internet, y las grabaciones se siguen procesando en este equipo. Sin el modelo, o si no se puede usar en una grabación, WinZapp usa el gate de ruido básico de siempre y te avisa. Si la reducción de ruido no se puede aplicar en absoluto, el mensaje se envía sin procesar y también te avisa.
 
+- Español: la etiqueta de un mensaje de voz reproducido ahora dice «Reproducido» en lugar de «Reproducida», igual que «Enviado», «Entregado» y «Leído».
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.
