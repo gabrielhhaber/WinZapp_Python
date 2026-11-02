@@ -1,7 +1,8 @@
 """Stereo voice messages (issue #82): one record button, no mode.
 
 What the input device delivers decides: two channels send a stereo voice
-message, anything else a mono one. The channels are never compared. iPhone
+message, anything else a mono one. The channels are never compared for likeness,
+only for a side that is empty (issue #679). iPhone
 cannot play stereo OGG/Opus at any bitrate but plays stereo AAC-LC M4A, also as
 a voice message, so stereo is M4A through the same /send-voice-base64 route;
 tests/test_system_audio_m4a.py runs that through the real pipeline.
@@ -16,6 +17,7 @@ import types
 from pathlib import Path
 from tests.locales import load_strings, registered_locale_codes
 
+import numpy as np
 import pytest
 
 import main
@@ -23,7 +25,7 @@ from core import audio_devices
 from core.message_queue import PendingMessage
 from core.utils import DEFAULT_SETTINGS, backfill_missing_defaults
 from core.voice_stereo import (
-    STEREO_MIMETYPE, encode_as_stereo, opus_encode_args,
+    STEREO_MIMETYPE, drop_empty_side, encode_as_stereo, opus_encode_args,
     recording_configs_preferring, voice_data_uri,
 )
 from main import MainWindow
@@ -78,6 +80,59 @@ class TestWhatGoesOut:
     def test_the_data_uri_names_what_it_carries(self):
         assert voice_data_uri("QQ==") == "data:audio/ogg;codecs=opus;base64,QQ=="
         assert voice_data_uri("QQ==", STEREO_MIMETYPE) == "data:audio/mp4;base64,QQ=="
+
+
+class TestAnEmptySideIsNotStereo:
+    """Issue #679: a microphone on input 1 of a two-input interface."""
+
+    FRAMES = 48000
+
+    def _voice(self, amplitude=8000):
+        return (amplitude * np.sin(np.arange(self.FRAMES) * 0.05)).astype("<i2")
+
+    def _interleaved(self, left, right):
+        return np.column_stack((left, right)).astype("<i2").tobytes()
+
+    def test_a_silent_right_leaves_the_left_as_it_was(self):
+        voice = self._voice()
+        pcm = self._interleaved(voice, np.zeros(self.FRAMES))
+        assert drop_empty_side(pcm, 2) == (voice.tobytes(), 1)
+
+    def test_a_silent_left_leaves_the_right_as_it_was(self):
+        voice = self._voice()
+        pcm = self._interleaved(np.zeros(self.FRAMES), voice)
+        assert drop_empty_side(pcm, 2) == (voice.tobytes(), 1)
+
+    def test_the_noise_floor_of_an_open_input_counts_as_empty(self):
+        noise = np.random.default_rng(679).integers(-3, 4, self.FRAMES)
+        pcm = self._interleaved(self._voice(), noise)
+        assert drop_empty_side(pcm, 2)[1] == 1
+
+    def test_a_dead_input_sitting_at_a_dc_offset_counts_as_empty(self):
+        pcm = self._interleaved(self._voice(1000), np.full(self.FRAMES, 900))
+        assert drop_empty_side(pcm, 2)[1] == 1
+
+    def test_a_voice_much_louder_on_one_side_is_still_stereo(self):
+        pcm = self._interleaved(self._voice(8000), self._voice(800))
+        assert drop_empty_side(pcm, 2) == (pcm, 2)
+
+    def test_two_identical_sides_are_still_stereo(self):
+        pcm = self._interleaved(self._voice(), self._voice())
+        assert drop_empty_side(pcm, 2) == (pcm, 2)
+
+    def test_a_silent_recording_says_nothing_about_either_side(self):
+        pcm = bytes(4 * self.FRAMES)
+        assert drop_empty_side(pcm, 2) == (pcm, 2)
+
+    def test_a_mono_recording_is_left_alone(self):
+        assert drop_empty_side(b"\x01\x00\x02\x00", 1) == (b"\x01\x00\x02\x00", 1)
+
+    def test_no_whole_frame_is_left_alone(self):
+        assert drop_empty_side(b"\x01\x00", 2) == (b"\x01\x00", 2)
+
+    def test_a_cut_last_frame_does_not_raise(self):
+        pcm = self._interleaved(self._voice(), np.zeros(self.FRAMES)) + b"\x01"
+        assert drop_empty_side(pcm, 2)[1] == 1
 
 
 # ── The second button and its option are gone ─────────────────────────────────

@@ -25,6 +25,8 @@ real filesystem.
 """
 
 import os
+import struct
+import wave
 
 import pytest
 
@@ -177,6 +179,33 @@ class TestVisibilityFollowsPauseState:
 
 
 class TestPlayback:
+    def _left_only_frames(self):
+        return [struct.pack("<200h", *(4000 if i % 4 == 0 else -4000 if i % 4 == 2 else 0
+                                       for i in range(200)))]
+
+    def test_the_preview_of_a_left_only_recording_is_what_the_send_would_be(self, fake_file_stream):
+        """Issue #679: heard on one side here, the user would take it for the
+        message they are about to send."""
+        panel = _Panel()
+        panel._recording_frames = self._left_only_frames()
+        panel._recording_actual_ch = 2
+        panel._toggle_pause_recording(None)
+        panel._toggle_play_recorded_audio(None)
+        with wave.open(panel._recorded_audio_temp_path, "rb") as wav:
+            assert (wav.getnchannels(), wav.getnframes()) == (1, 100)
+        panel._stop_recorded_audio_preview()
+
+    def test_the_preview_of_a_mixed_recording_keeps_both_sides(self, fake_file_stream):
+        panel = _Panel()
+        panel._recording_frames = self._left_only_frames()
+        panel._recording_actual_ch = 2
+        panel._recording_system_audio = True
+        panel._recording_paused = True
+        panel._toggle_play_recorded_audio(None)
+        with wave.open(panel._recorded_audio_temp_path, "rb") as wav:
+            assert (wav.getnchannels(), wav.getnframes()) == (2, 100)
+        panel._stop_recorded_audio_preview()
+
     def test_play_writes_a_real_wav_and_starts_the_timer(self, fake_file_stream):
         panel = _Panel()
         panel._recording_paused = True

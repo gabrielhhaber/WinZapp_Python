@@ -16,7 +16,9 @@ import wave
 import wx
 from core.message_queue import PendingMessage
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
-from core.voice_stereo import STEREO_BITRATE, STEREO_MIMETYPE, encode_as_stereo
+from core.voice_stereo import (
+    STEREO_BITRATE, STEREO_MIMETYPE, drop_empty_side, encode_as_stereo,
+)
 from core.focus_cloak import cloak_panel_focus_fallback
 from app_paths import data_path
 from core.utils import encrypt
@@ -584,13 +586,17 @@ class VoiceRecordingMixin:
             return
 
         try:
+            # The preview plays what the send would, an empty side included.
+            audio, channels = b"".join(frames), self._recording_actual_ch
+            if not getattr(self, "_recording_system_audio", False):
+                audio, channels = drop_empty_side(audio, channels)
             tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
             tmp.close()
             with wave.open(tmp.name, "wb") as wf:
-                wf.setnchannels(self._recording_actual_ch)
+                wf.setnchannels(channels)
                 wf.setsampwidth(2)   # 16-bit PCM — matches how _send_voice_message writes it
                 wf.setframerate(self._recording_actual_rate)
-                wf.writeframes(b"".join(frames))
+                wf.writeframes(audio)
         except Exception as exc:
             logging.warning("[voice] failed to write recorded-audio preview WAV: %s", exc)
             return
@@ -778,12 +784,25 @@ class VoiceRecordingMixin:
             logging.info("[VOICE_TIMING] T+%.3fs — PCM frames joined (%d bytes, %d frames)",
                          _time.perf_counter() - _t0, len(audio_data), len(frames))
 
+            # Two channels opened says nothing about what is plugged into them
+            # (core/voice_stereo.py). Too heavy for the UI thread, so the row
+            # that already said M4A is corrected here.
+            channels = actual_ch
+            if stereo_out:
+                audio_data, channels = drop_empty_side(audio_data, actual_ch)
+            send_stereo = stereo_out and channels >= 2
+            if stereo_out and not send_stereo:
+                logging.info("[audio] One side of the recording is empty — sending it in mono.")
+                row = virtual_msg["message"]["audioMessage"]
+                row.pop("mimetype", None)
+                row.pop("fileName", None)
+
             # Apply microphone noise reduction if enabled in settings
             if not mixed_audio and mw.settings.get("general", {}).get("noise_reduction_enabled", False):
                 try:
                     logging.info("[VOICE_TIMING] Applying microphone noise reduction...")
                     from core.neural_noise_reduction import reduce_voice_noise
-                    audio_data, engine = reduce_voice_noise(audio_data, actual_rate, actual_ch)
+                    audio_data, engine = reduce_voice_noise(audio_data, actual_rate, channels)
                     logging.info("[VOICE_TIMING] Noise reduction engine: %s", engine)
                     if engine != "neural":
                         # Never let the plain gate pass for the neural model.
@@ -804,7 +823,7 @@ class VoiceRecordingMixin:
                 tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
                 tmp.close()
                 with wave.open(tmp.name, "wb") as wf:
-                    wf.setnchannels(actual_ch)
+                    wf.setnchannels(channels)
                     wf.setsampwidth(2)   # 16-bit PCM
                     wf.setframerate(actual_rate)
                     wf.writeframes(audio_data)
@@ -813,7 +832,7 @@ class VoiceRecordingMixin:
                              _time.perf_counter() - _t0, wav_path)
             except Exception as exc:
                 logging.error("[_send_voice_message] failed to write WAV: %s", exc)
-                if as_audio_file or stereo_out:
+                if as_audio_file or send_stereo:
                     if tmp is not None:
                         try:
                             os.unlink(tmp.name)
@@ -833,7 +852,7 @@ class VoiceRecordingMixin:
             # downmixed when that fails; mono as OGG Opus via ffmpeg conversion.
             voice_mimetype = ""
             ogg_bytes = None
-            if stereo_out:
+            if send_stereo:
                 ogg_bytes = self._encode_stereo_voice(wav_path)
                 if not ogg_bytes:
                     try:
@@ -846,7 +865,7 @@ class VoiceRecordingMixin:
                 voice_mimetype = STEREO_MIMETYPE
             _t_enc = _time.perf_counter()
             try:
-                ogg_path = None if stereo_out else mw._convert_wav_to_ogg(wav_path)
+                ogg_path = None if send_stereo else mw._convert_wav_to_ogg(wav_path)
                 if ogg_path and os.path.isfile(ogg_path):
                     with open(ogg_path, "rb") as f_in:
                         ogg_bytes = f_in.read()
