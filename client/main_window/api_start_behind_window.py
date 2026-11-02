@@ -231,6 +231,13 @@ class ApiStartBehindWindowMixin:
                 self._api_start_settled.set()
                 wx.CallAfter(self._leave_starting_wppconnect_status)
                 return True
+            # Node dead means the port will never answer: say so now, not
+            # after the whole budget with the window stuck on "starting".
+            node = getattr(self, "wpp_process", None)
+            if node is not None and node.poll() is not None:
+                logging.error("[api-start-behind-window] Node exited (code %s) before listening.",
+                              node.returncode)
+                return False
             time.sleep(1)
         logging.error("[api-start-behind-window] WPPConnect never came up within %ss.",
                       API_START_TIMEOUT_SECONDS)

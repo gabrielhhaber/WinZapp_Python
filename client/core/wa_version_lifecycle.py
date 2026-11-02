@@ -8,6 +8,7 @@ import contextlib
 import hashlib
 import json
 import os
+import shutil
 import tempfile
 import threading
 
@@ -58,6 +59,22 @@ def package_target(node_modules):
         if os.path.isdir(candidate):
             return candidate
     return os.path.join(node_modules, '@wppconnect', 'wa-version')
+
+
+def catalogue_complete(node_modules):
+    """Whether Node can load the catalogue. wppconnect requires the package as
+    it loads, so without these files Node dies before it ever listens."""
+    target = package_target(node_modules)
+    return all(os.path.isfile(filesystem_path(os.path.join(target, name)))
+               for name in ('package.json', 'versions.json'))
+
+
+def discard_incomplete_catalogue(node_modules):
+    """Remove what an interrupted npm install left: with the folder gone, the
+    next npm install sees the package is missing and installs it again."""
+    with tree_lock(os.path.dirname(node_modules)) as held:
+        if held and not catalogue_complete(node_modules):
+            shutil.rmtree(filesystem_path(package_target(node_modules)), ignore_errors=True)
 
 
 def resolution_roots(target, node_modules):

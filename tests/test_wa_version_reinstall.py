@@ -24,6 +24,24 @@ def offline(*args):
     raise OSError('offline')
 
 
+def test_a_complete_catalogue_survives_the_repair(tree):
+    assert life.catalogue_complete(tree.nm)
+    life.discard_incomplete_catalogue(tree.nm)
+    assert life.catalogue_complete(tree.nm) and os.path.isdir(tree.target)
+
+
+def test_a_catalogue_without_its_manifest_is_incomplete_and_discarded(tree):
+    os.remove(os.path.join(tree.target, 'package.json'))
+    assert not life.catalogue_complete(tree.nm)
+    life.discard_incomplete_catalogue(tree.nm)
+    assert not os.path.exists(tree.target)
+
+
+def test_an_absent_catalogue_is_incomplete(tree):
+    shutil.rmtree(tree.target)
+    assert not life.catalogue_complete(tree.nm)
+
+
 @pytest.mark.parametrize('version', ['1.5.4480', '1.5.4490', '1.5.4500'])
 def test_changed_or_same_version_reinstall_bypasses_old_verdict(tree, version):
     assert wr.check_and_stage(tree.nm, tree.state, fetch=_fetcher(), clock=lambda: 100) == 'staged'
