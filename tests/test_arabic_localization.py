@@ -1,7 +1,7 @@
 """Arabic packaging and branding checks; no GUI objects are constructed."""
 
 from pathlib import Path
-import importlib.util
+import re
 import polib
 
 
@@ -17,14 +17,19 @@ def test_arabic_keeps_the_product_name_in_english():
                 assert 'WinZapp' in entry.msgstr, entry.msgctxt
 
 
-def test_arabic_help_is_generated_and_links_to_the_shipped_english_guide(tmp_path):
-    source = ROOT / 'docs/user-guide/arabic_help.py'
-    spec = importlib.util.spec_from_file_location('arabic_help_for_test', source)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    output = module.generate(tmp_path)
-    text = output.read_text(encoding='utf-8')
-    assert text == module.SOURCE.read_text(encoding='utf-8')
+def test_the_arabic_guide_is_a_complete_right_to_left_page():
+    text = (ROOT / 'client/data/help_guide/ar.html').read_text(encoding='utf-8')
     assert '<html lang="ar" dir="rtl">' in text
-    assert 'href="en-US.html"' in text
-    assert (ROOT / 'client/data/help_guide/en-US.html').is_file()
+    assert 'href="en-US.html"' not in text
+    assert 'وينزاب' not in text
+    assert 'WinZapp' in text
+
+
+def test_only_the_arabic_guide_runs_right_to_left():
+    text = (ROOT / 'client/data/help_guide/en-US.html').read_text(encoding='utf-8')
+    assert '<html lang="en" dir="ltr">' in text
+
+
+def test_no_other_script_leaked_into_the_arabic_guide():
+    text = (ROOT / 'client/data/help_guide/ar.html').read_text(encoding='utf-8')
+    assert re.findall(r'[가-힯Ѐ-ӿ一-鿿]+', text) == []

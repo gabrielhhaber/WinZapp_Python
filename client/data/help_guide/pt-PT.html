@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-PT" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -49,7 +49,7 @@
   }
 
   .skip-link {
-    position: absolute; top: -100px; left: 1rem;
+    position: absolute; top: -100px; inset-inline-start: 1rem;
     background: var(--accent); color: #fff;
     padding: 8px 16px; border-radius: var(--radius);
     font-family: var(--font-ui); font-size: 14px; z-index: 9999;
@@ -59,9 +59,9 @@
 
   /* ── Sidebar ── */
   .sidebar {
-    position: fixed; top: 0; left: 0;
+    position: fixed; top: 0; inset-inline-start: 0;
     width: var(--sidebar-w); height: 100vh;
-    background: var(--surface-2); border-right: 1px solid var(--border);
+    background: var(--surface-2); border-inline-end: 1px solid var(--border);
     overflow-y: auto; padding: 0 0 2rem;
     z-index: 100; display: flex; flex-direction: column;
   }
@@ -101,29 +101,29 @@
     padding: .5rem 1.25rem .25rem;
   }
   .nav-link {
-    display: block; padding: 5px 1.25rem 5px 1.5rem;
+    display: block; padding-block: 5px; padding-inline: 1.5rem 1.25rem;
     font-family: var(--font-ui); font-size: 13.5px; color: var(--ink-light);
-    text-decoration: none; border-left: 3px solid transparent;
+    text-decoration: none; border-inline-start: 3px solid transparent;
     transition: all .15s; line-height: 1.4;
   }
-  .nav-link:hover { color: var(--accent); background: var(--surface-3); border-left-color: var(--accent); }
-  .nav-link.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-left-color: var(--accent); font-weight: 600; }
+  .nav-link:hover { color: var(--accent); background: var(--surface-3); border-inline-start-color: var(--accent); }
+  .nav-link.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-inline-start-color: var(--accent); font-weight: 600; }
 
   /* ── Main ── */
-  .main { margin-left: var(--sidebar-w); flex: 1; max-width: 860px; padding: 3rem 4rem 6rem; }
+  .main { margin-inline-start: var(--sidebar-w); flex: 1; max-width: 860px; padding: 3rem 4rem 6rem; }
 
   .wiki-section { margin-bottom: 4rem; padding-top: 1rem; }
   .wiki-section:not(:last-child) { border-bottom: 1px solid var(--border); padding-bottom: 3rem; }
 
   h1 { font-family: var(--font-ui); font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -.5px; line-height: 1.2; margin-bottom: 1rem; }
   h2 { font-family: var(--font-ui); font-size: 1.35rem; font-weight: 700; color: var(--ink); margin: 2rem 0 .75rem; letter-spacing: -.2px; display: flex; align-items: center; gap: .5rem; }
-  h2::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-left: .5rem; }
+  h2::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-inline-start: .5rem; }
   h3 { font-family: var(--font-ui); font-size: 1rem; font-weight: 700; color: var(--ink); margin: 1.5rem 0 .5rem; }
 
   .lead { font-size: 1.05rem; color: var(--ink-light); margin-bottom: 1.5rem; line-height: 1.8; }
   p { margin-bottom: 1rem; }
 
-  .callout { border-left: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); padding: .85rem 1.25rem; border-radius: 0 var(--radius) var(--radius) 0; margin: 1.25rem 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
+  .callout { border-inline-start: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); padding: .85rem 1.25rem; border-start-end-radius: var(--radius); border-end-end-radius: var(--radius); margin: 1.25rem 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
   .callout.tip  { border-color: var(--success); background: color-mix(in srgb, var(--success) 6%, var(--surface-2)); }
   .callout.warn { border-color: var(--accent-warm); background: color-mix(in srgb, var(--accent-warm) 6%, var(--surface-2)); }
   .callout.info { border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 6%, var(--surface-2)); }
@@ -143,7 +143,7 @@
   .col-card h4 { font-size: 13px; font-weight: 700; margin-bottom: .5rem; color: var(--ink); display: flex; align-items: center; gap: 6px; }
 
   .field-table { width: 100%; border-collapse: collapse; font-family: var(--font-ui); font-size: 13.5px; margin: 1rem 0 1.5rem; }
-  .field-table th { text-align: left; padding: 8px 12px; background: var(--surface-3); border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-muted); font-weight: 700; }
+  .field-table th { text-align: start; padding: 8px 12px; background: var(--surface-3); border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-muted); font-weight: 700; }
   .field-table td { padding: 8px 12px; border: 1px solid var(--border); color: var(--ink-light); vertical-align: top; line-height: 1.5; }
   .field-table tr:nth-child(even) td { background: var(--surface-2); }
   .field-name { font-family: var(--font-code); font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
@@ -152,16 +152,17 @@
 
   .hero-toc { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 1.5rem 0 2rem; font-family: var(--font-ui); font-size: 13.5px; }
   .hero-toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--ink-muted); margin-bottom: .75rem; }
-  .hero-toc ol { columns: 2; gap: 1rem; padding-left: 1.25rem; color: var(--ink-light); line-height: 2.2; }
+  .hero-toc ol { columns: 2; gap: 1rem; padding-inline-start: 1.25rem; color: var(--ink-light); line-height: 2.2; }
   .hero-toc a { color: var(--accent); text-decoration: none; }
   .hero-toc a:hover { text-decoration: underline; }
 
-  .menu-toggle { display: none; position: fixed; top: 1rem; right: 1rem; z-index: 200; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; font-weight: 700; cursor: pointer; }
+  .menu-toggle { display: none; position: fixed; top: 1rem; inset-inline-end: 1rem; z-index: 200; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; font-weight: 700; cursor: pointer; }
 
   @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); transition: transform .25s; }
-    .sidebar.open { transform: translateX(0); }
-    .main { margin-left: 0; padding: 2rem 1.25rem 4rem; }
+    [dir="rtl"] .sidebar { transform: translateX(100%); }
+    .sidebar.open, [dir="rtl"] .sidebar.open { transform: translateX(0); }
+    .main { margin-inline-start: 0; padding: 2rem 1.25rem 4rem; }
     .menu-toggle { display: block; }
     .cols-2 { grid-template-columns: 1fr; }
     .hero-toc ol { columns: 1; }
@@ -173,13 +174,19 @@
 
   @media print {
     .sidebar, .menu-toggle, .skip-link { display: none; }
-    .main { margin-left: 0; padding: 1rem; }
+    .main { margin-inline-start: 0; padding: 1rem; }
   }
   code { font-family: var(--font-code); font-size: .9em; background: var(--surface-3); padding: 1px 5px; border-radius: 3px; }
-  .desde { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; background: var(--accent-warm); color: #1a1a2e; border-radius: 10px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+  .desde { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; background: var(--accent-warm); color: #1a1a2e; border-radius: 10px; padding: 1px 8px; margin-inline-start: 6px; vertical-align: middle; }
   .cobertura { font-family: var(--font-ui); font-size: 13px; color: var(--ink-muted); margin-bottom: 1rem; }
-  ul, ol { margin: 0 0 1rem 1.5rem; } li { margin-bottom: .4rem; }
-  .steps { margin-left: 0; }
+  ul, ol { margin: 0 0 1rem; margin-inline-start: 1.5rem; } li { margin-bottom: .4rem; }
+  .steps { margin-inline-start: 0; }
+  /* Keys, paths and code read left to right inside right-to-left text. */
+  [dir="rtl"] code, [dir="rtl"] kbd { direction: ltr; unicode-bidi: isolate; }
+  [dir="rtl"] .field-name { unicode-bidi: plaintext; text-align: right; }
+  /* Georgia has no Arabic letters, and spacing breaks the joins between them. */
+  :root:lang(ar) { --font-body: 'Segoe UI', Tahoma, sans-serif; }
+  html:lang(ar) body * { letter-spacing: normal; }
 </style>
 </head>
 <body>

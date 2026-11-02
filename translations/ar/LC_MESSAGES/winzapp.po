@@ -7934,7 +7934,7 @@ msgstr "دردشة جديدة"
 #: client/ui/dialogs/new_conversation.py
 msgctxt "new_conversation_join_by_link"
 msgid "Join group by lin&k"
-msgstr "انضم إلى المجموعة بالراب&k"
+msgstr "انضم إلى المجموعة بالراب&ط"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_conversation.py
@@ -9137,7 +9137,7 @@ msgstr "صو&رة الملف الشخصي"
 #: client/ui/dialogs/profile_picture_dialog.py
 msgctxt "profile_picture_open_external"
 msgid "Open in extern&al viewer"
-msgstr "افتح في مشاه&ر خارجي"
+msgstr "افتح في عا&رض خارجي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "profile_picture_open_failed"
@@ -11255,7 +11255,7 @@ msgstr "Enter: نتيجة البحث التالية (بديل، يعمل فقط 
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_search_f3_label"
 msgid "F3: next search result, in the whole open conversation"
-msgstr "F3: نتيجة البحث التالية، في toda المحادثة المفتوحة"
+msgstr "F3: نتيجة البحث التالية، في كامل المحادثة المفتوحة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_tab.py
@@ -11281,7 +11281,7 @@ msgstr "Shift+Enter: نتيجة البحث السابقة (بديل، يعمل �
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_search_shift_f3_label"
 msgid "Shift+F3: previous search result, in the whole open conversation"
-msgstr "Shift+F3: نتيجة البحث السابقة، في toda المحادثة المفتوحة"
+msgstr "Shift+F3: نتيجة البحث السابقة، في كامل المحادثة المفتوحة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_select_active"
@@ -15621,7 +15621,7 @@ msgid ""
 "&Keep the chat search when opening a chat, so Esc returns to the results "
 "instead of the full list"
 msgstr ""
-"الإبقاء &على بحث الدردشة عند فتح دردشة، zodat Esc يعود إلى النتائج بدلاً من "
+"الإبقاء &على بحث الدردشة عند فتح دردشة، بحيث يعود Esc إلى النتائج بدلاً من "
 "القائمة الكاملة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
