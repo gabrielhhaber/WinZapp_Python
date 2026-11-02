@@ -409,6 +409,8 @@ Offline, or on a fork without the file, it falls back to `resolve_changelog()`. 
 - **Force Reinstall** installs `_reinstall_tag()`: the approved release, else the pin. It cancels the periodic timer, so the worker puts that timer back (12 h), only if one was pending: with updates turned off the checker exists for Force Reinstall alone and must not start prompting. `ApiSetupDialog` (fresh install), `setup_api.py` and the startup gate still use the pin only.
 - **Blast radius of a bad entry**: versions must be plain `X.Y.Z`, the download URL is fixed to upstream, nothing below the pin is offered. A wrong entry can offer an unported upstream tag, nothing else; `tests/test_wpp_approved.py` validates the committed file.
 
+- **`setup_api.py`** follows the same list (`tag_to_install()`): the approved release, else the pin, also when the list cannot be read. CI stays on the pin, so a commit always builds the same server and the cache keyed on the pin file stays right. `WPPCONNECT_TAG_VERSION` still overrides both.
+
 **Not done.** Withdrawing an approval stops new offers but does not move anyone back; a `revoked` list would need its own downgrade prompt. The drift-gate reinstall (`ensure_wpp_version`) still rebuilds at the pin, moving an approved server back until the next check offers it again.
 
 ## WPPConnect Server: "Show every update", the user's own opt-in (2026-10-19)

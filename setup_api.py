@@ -8,12 +8,14 @@ the end to compile the API before running build.py.
 
 Configuration (via .env at the project root):
   WPPCONNECT_TAG_VERSION  — git tag to pin to, overriding the default. Leave
-                            unset or empty to use client/wpp_minimum_version.txt,
-                            which is what every release and CI build pins.
-                            This script never tracks the newest upstream
-                            release: WinZapp's patches follow the server by
-                            hand, so a newer one is a version it was not
-                            validated against.
+                            unset or empty to install what Help > Force
+                            reinstall installs: the newest release approved
+                            for client/wpp_minimum_version.txt in
+                            client/wpp_approved_versions.json on main, else
+                            that pin. CI always builds the pin. This script
+                            never tracks the newest upstream release: WinZapp's
+                            patches follow the server by hand, so an unapproved
+                            one is a version it was not validated against.
 
 Usage:
   uv run setup-api
@@ -883,6 +885,26 @@ def main():
         return _main_with_catalogue(refresh_catalogue)
 
 
+def tag_to_install(pin, environ=os.environ):
+    """The approved release for *pin*, else *pin*: what users get from Help >
+    Force reinstall (core/wpp_approved.py), with the same answer to a list that
+    cannot be read. CI stays on the pin, so a commit always builds the same
+    server and the build cache keyed on the pin file stays right."""
+    if environ.get("CI"):
+        return pin
+    try:
+        from config import GITHUB_REPO
+        from core import wpp_approved
+        entries = wpp_approved.parse_manifest(
+            wpp_approved.fetch_manifest(GITHUB_REPO, "WinZapp setup_api"))
+        # A checkout has no release number to weigh a min_winzapp against.
+        return wpp_approved.best_approved(entries, pin, lambda _min_winzapp: False) or pin
+    except Exception as exc:
+        print(f"[WARNING] Could not read the approved WPPConnect list "
+              f"({type(exc).__name__}); using the pin {pin}.")
+        return pin
+
+
 def _main_with_catalogue(refresh_catalogue):
     env = _load_env()
     tag = env.get("WPPCONNECT_TAG_VERSION", "").strip()
@@ -890,7 +912,8 @@ def _main_with_catalogue(refresh_catalogue):
         contract_path = os.path.join(ROOT_DIR, "client", "wpp_minimum_version.txt")
         tag = homologated_wpp_tag(contract_path)
         if tag:
-            print(f"[INFO] Using WinZapp homologated WPPConnect tag {tag}.")
+            pin, tag = tag, tag_to_install(tag)
+            print(f"[INFO] Using WPPConnect tag {tag} (homologated pin {pin}).")
     if not tag:
         # Installing "the newest release" is what this pin exists to prevent.
         print("[ERROR] No WPPConnect Server tag to install: client/wpp_minimum_version.txt "

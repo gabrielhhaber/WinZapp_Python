@@ -132,6 +132,7 @@ class TestMainActuallyRunsThePlannedCheckout:
 
         monkeypatch.setattr(setup_api, "CLIENT_API_DIR", str(api_dir))
         monkeypatch.setattr(setup_api, "_load_env", lambda: {})
+        monkeypatch.setattr(setup_api, "tag_to_install", lambda pin: pin)
         monkeypatch.setattr(setup_api, "_run", fake_run)
         monkeypatch.setattr(setup_api, "_current_tag", lambda cwd: "")
         monkeypatch.setattr(setup_api, "_recover_upstream_package_json", stop)
@@ -161,6 +162,42 @@ class TestMainActuallyRunsThePlannedCheckout:
         assert not [c for c in commands if c[:1] == ["git"]], (
             f"git was run inside an unmanaged client/api/: {commands}"
         )
+
+
+class TestTheTagFollowsTheApprovedList:
+    """setup_api.py lands where Help > Force reinstall lands users."""
+
+    PIN = "v2.10.71"
+    LIST = {"schema": 1, "approved": [{"version": "2.10.74", "min_pin": "2.10.71"}]}
+
+    def _tag(self, monkeypatch, fetched, environ=None):
+        from core import wpp_approved
+
+        def fetch(*_args, **_kwargs):
+            if isinstance(fetched, Exception):
+                raise fetched
+            return fetched
+
+        monkeypatch.setattr(wpp_approved, "fetch_manifest", fetch)
+        return _setup_api_module().tag_to_install(self.PIN, environ or {})
+
+    def test_the_approved_release_wins_over_the_pin(self, monkeypatch):
+        assert self._tag(monkeypatch, self.LIST) == "v2.10.74"
+
+    def test_nothing_approved_for_this_pin_stays_on_it(self, monkeypatch):
+        older = {"schema": 1, "approved": [{"version": "2.10.63", "min_pin": "2.10.62"}]}
+        assert self._tag(monkeypatch, older) == self.PIN
+
+    def test_an_unreadable_list_stays_on_the_pin(self, monkeypatch):
+        assert self._tag(monkeypatch, OSError("offline")) == self.PIN
+
+    def test_ci_builds_the_pin_without_reading_the_list(self, monkeypatch):
+        assert self._tag(monkeypatch, OSError("must not be read"), {"CI": "true"}) == self.PIN
+        assert self._tag(monkeypatch, self.LIST, {"CI": "true"}) == self.PIN
+
+    def test_a_release_that_needs_a_later_winzapp_is_left_out(self, monkeypatch):
+        entry = {"version": "2.10.74", "min_pin": "2.10.71", "min_winzapp": "9.0.0.0"}
+        assert self._tag(monkeypatch, {"schema": 1, "approved": [entry]}) == self.PIN
 
 
 class TestARestoredNodeModulesCacheIsNotAnInstall:
