@@ -609,7 +609,7 @@ msgid ""
 "agree?"
 msgstr ""
 "Cada mensaje de voz, imagen, sticker o vídeo que recibas en un chat"
-" no bloqueada se enviará automáticamente a: {providers}. ¿Estás de acuerdo?"
+" no bloqueado se enviará automáticamente a: {providers}. ¿Estás de acuerdo?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_auto_consent_title"
@@ -2903,7 +2903,7 @@ msgstr "Los mensajes y las llamadas están cifrados de extremo a extremo."
 #: client/ui/conversation_panel/message_list.py
 msgctxt "chat_is_empty"
 msgid "This chat is empty."
-msgstr "Este chat está vacía."
+msgstr "Este chat está vacío."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chats_store.py
 msgctxt "chat_load_failed"
@@ -4932,7 +4932,7 @@ msgid ""
 "Describe this conversation's pictures, stickers and videos automatically "
 "(when turned on in Settings)"
 msgstr ""
-"Describir automáticamente las imágenes, stickers y vídeos de esta "
+"Describir automáticamente las imágenes, stickers y vídeos de este "
 "chat (si está activado en la configuración)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -7341,7 +7341,7 @@ msgid ""
 "This message is outside the loaded part of the chat. Open the chat and "
 "scroll to it to use this action."
 msgstr ""
-"Este mensaje está fuera de la parte cargada del chat. Abre la "
+"Este mensaje está fuera de la parte cargada del chat. Abre el "
 "chat y desplázate hasta él para usar esta acción."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
@@ -9894,7 +9894,7 @@ msgid ""
 "this computer will be deleted and downloaded again from WhatsApp, which may "
 "take a while."
 msgstr ""
-"¿Seguro que deseas resincronizar todos los chats? Las "
+"¿Seguro que deseas resincronizar todos los chats? Los "
 "chats y los mensajes guardados en este equipo se borrarán y se "
 "descargarán de nuevo desde WhatsApp, lo que puede tardar."
 
@@ -13323,7 +13323,7 @@ msgid ""
 "Delete every saved transcription of every model, in all chats? This cannot "
 "be undone."
 msgstr ""
-"¿Borrar todas las transcripciones guardadas de todos los modelos, en todas "
+"¿Borrar todas las transcripciones guardadas de todos los modelos, en todos "
 "los chats? No se puede deshacer."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14953,7 +14953,7 @@ msgid ""
 "This transcription was not saved, because the message is no longer in this "
 "conversation."
 msgstr ""
-"Esta transcripción no se guardó porque el mensaje ya no está en esta "
+"Esta transcripción no se guardó porque el mensaje ya no está en este "
 "chat."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -15903,7 +15903,7 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_chats_button"
 msgid "C&hats"
-msgstr "Co&nversaciones"
+msgstr "C&hats"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -15974,7 +15974,7 @@ msgid ""
 "&Esc deselects the selected messages before closing the chat, and the "
 "selected chats in a list of chats"
 msgstr ""
-"Esc desmarca &los mensajes marcados antes de cerrar el chat, y las "
+"Esc desmarca &los mensajes marcados antes de cerrar el chat, y los "
 "chats marcados en una lista de chats"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -16044,7 +16044,7 @@ msgstr ""
 "En las filas de mensajes y los anuncios del chat abierto, omite el"
 " prefijo del remitente cuando no hay un nombre disponible. Se aplica a "
 "chats individuales y de grupo, incluidos los prefijos de respuesta."
-" Los nombres, el contenido de los mensajes, los títulos de las "
+" Los nombres, el contenido de los mensajes, los títulos de los "
 "chats y las demás notificaciones no cambian. Desactivado de forma "
 "predeterminada."
 
@@ -16071,7 +16071,7 @@ msgid ""
 "Precede &names of unsaved contacts with a tilde (~) in conversations and "
 "messages"
 msgstr ""
-"Anteponer una &tilde (~) a los nombres de contactos no guardados en las "
+"Anteponer una &tilde (~) a los nombres de contactos no guardados en los "
 "chats y los mensajes"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

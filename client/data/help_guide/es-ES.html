@@ -206,7 +206,7 @@
     <a href="#status" class="nav-link">8. Estados</a>
     <a href="#ligacoes" class="nav-link">9. Llamadas</a>
     <a href="#grupos-comunidades" class="nav-link">10. Grupos y comunidades</a>
-    <a href="#trancadas" class="nav-link">11. Conversaciones bloqueadas</a>
+    <a href="#trancadas" class="nav-link">11. Chats bloqueados</a>
     <a href="#empresas" class="nav-link">12. Empresas: catálogo y pedidos</a>
     <a href="#contas" class="nav-link">13. Cuentas, bandeja y sincronización</a>
     <a href="#configuracoes" class="nav-link">14. Configuración</a>
@@ -238,7 +238,7 @@
         <li><a href="#status">Estados</a></li>
         <li><a href="#ligacoes">Llamadas</a></li>
         <li><a href="#grupos-comunidades">Grupos y comunidades</a></li>
-        <li><a href="#trancadas">Conversaciones bloqueadas</a></li>
+        <li><a href="#trancadas">Chats bloqueados</a></li>
         <li><a href="#empresas">Empresas: catálogo y pedidos</a></li>
         <li><a href="#contas">Cuentas, bandeja y sincronización</a></li>
         <li><a href="#configuracoes">Configuración</a></li>
@@ -322,10 +322,10 @@
   <tr><td class="field-name">Alt+1</td><td>Chats (la lista principal)</td></tr>
   <tr><td class="field-name">Alt+2</td><td>Último mensaje de la conversación abierta</td></tr>
   <tr><td class="field-name">Alt+3</td><td>Mensajes no leídos de la conversación abierta</td></tr>
-  <tr><td class="field-name">Alt+4</td><td>Conversaciones archivadas</td></tr>
+  <tr><td class="field-name">Alt+4</td><td>Chats archivados</td></tr>
   <tr><td class="field-name">Alt+5</td><td>Estados</td></tr>
   <tr><td class="field-name">Alt+6</td><td>Llamadas</td></tr>
-  <tr><td class="field-name">Alt+7</td><td>Conversaciones bloqueadas</td></tr>
+  <tr><td class="field-name">Alt+7</td><td>Chats bloqueados</td></tr>
   <tr><td class="field-name">Alt+8</td><td>Comunidades</td></tr>
   <tr><td class="field-name">Alt+M</td><td>Mensajes: vuelve a la lista de mensajes de la conversación abierta</td></tr>
   <tr><td class="field-name">Alt+N</td><td>Lleva el foco al menú de navegación principal (la letra sale de la etiqueta en el idioma del programa)</td></tr>
@@ -333,7 +333,7 @@
   <tr><td class="field-name">Ctrl+,</td><td>Configuración</td></tr>
 </table>
 <p>Los paneles también están en una lista de navegación (Alt+N te lleva a ella), en el mismo orden: Comunidades va después de Llamadas <span class="desde">alpha 4397</span>, con Alt+8 en el nombre del elemento, y puedes llegar a ella bajando por la lista.</p>
-<p>Si no hay ninguna conversación abierta, Alt+2, Alt+3 y Ctrl+W dicen "No hay ninguna conversación abierta"; en una conversación vacía, Alt+2 dice "Esta conversación está vacía".</p>
+<p>Si no hay ningún chat abierto, Alt+2, Alt+3 y Ctrl+W dicen "No hay ningún chat abierto"; en un chat vacío, Alt+2 dice "Este chat está vacío".</p>
 
 <h3>La conversación abierta se queda "detrás" de los paneles</h3>
 <p>Cuando cambias de panel (Estados, Llamadas, archivadas...), la conversación abierta sigue abierta, solo oculta. Mientras está oculta, sus mensajes nuevos se anuncian como de otra conversación y no se marcan como leídos, y los avisos de "escribiendo" no se leen. Vuelve a ella con Alt+M, Alt+2 o Alt+3, o abriéndola de nuevo.</p>
@@ -363,17 +363,17 @@
 <ul>
   <li><strong>Filtros:</strong> Todos, No leídos, Grupos e Individuales, como botones de opción. Alt+Shift+F te lleva a ellos; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G y Alt+Shift+I eligen Todos, No leídos, Grupos e Individuales directamente desde la lista.</li>
   <li><strong>Listas de WhatsApp:</strong> tus listas personalizadas aparecen antes de los filtros. Puedes actualizarlas, filtrar por ellas, crear o renombrar una lista y añadir o quitar chats, en "Administrar listas de WhatsApp". Editar depende de que tu cuenta lo admita; cuando no es posible, el gestor dice por qué. Los chats bloqueados o no disponibles en local no aparecen en la selección, y los demás miembros de la lista se conservan.</li>
-  <li><strong>Búsqueda:</strong> Ctrl+F te lleva al campo de búsqueda; la flecha abajo va al primer resultado. En Configuración &gt; Interfaz &gt; Conversaciones, "Mantener la búsqueda de conversaciones al abrir una conversación, para que Esc vuelva a los resultados en lugar de a la lista completa" hace que Esc devuelva el foco a ese chat en los resultados en lugar de volver a la lista completa.</li>
+  <li><strong>Búsqueda:</strong> Ctrl+F te lleva al campo de búsqueda; la flecha abajo va al primer resultado. En Configuración &gt; Interfaz &gt; Chats, "Mantener la búsqueda de chats al abrir un chat, para que Esc vuelva a los resultados en lugar de a la lista completa" hace que Esc devuelva el foco a ese chat en los resultados en lugar de volver a la lista completa.</li>
 </ul>
 
 <h3>Abrir una conversación</h3>
-<p>Intro abre el chat seleccionado. El foco va donde lo hayas definido en Configuración &gt; Interfaz &gt; Conversaciones (campo de mensaje, o la marca de no leídos / último mensaje). Esc o Ctrl+W cierra la conversación.</p>
+<p>Intro abre el chat seleccionado. El foco va donde lo hayas definido en Configuración &gt; Interfaz &gt; Chats (campo de mensaje, o la marca de no leídos / último mensaje). Esc o Ctrl+W cierra la conversación.</p>
 
 <h3>El menú contextual del chat</h3>
 <p>Ábrelo con la tecla Aplicaciones o con Shift+F10. Los elementos varían según el chat:</p>
 <table class="field-table">
   <tr><th>Elemento</th><th>Atajo</th></tr>
-  <tr><td>Datos de la conversación</td><td class="field-name">Ctrl+Shift+D</td></tr>
+  <tr><td>Datos del chat</td><td class="field-name">Ctrl+Shift+D</td></tr>
   <tr><td>Fijar / desfijar</td><td class="field-name">Ctrl+P</td></tr>
   <tr><td>Silenciar / dejar de silenciar</td><td class="field-name">Alt+Shift+S</td></tr>
   <tr><td>Marcar como leído / no leído</td><td class="field-name">Ctrl+Shift+M</td></tr>
@@ -396,16 +396,16 @@
 <ul>
   <li><strong>Vaciar conversación</strong> pregunta si se conservan los mensajes destacados ("Conservar los mensajes destacados", marcado por defecto). Sin marcar, los mensajes destacados también se borran, incluso en el teléfono. También se aplica a varias conversaciones seleccionadas y a las archivadas.</li>
   <li>Las confirmaciones de vaciar y eliminar tienen una casilla "No volver a mostrar", que solo cuenta junto con Sí. Para que vuelva a preguntar, usa las opciones correspondientes en Configuración &gt; Interfaz &gt; Confirmaciones. Con la pregunta desactivada, vaciar conserva los mensajes destacados.</li>
-  <li><strong>Marcar todas las conversaciones como leídas</strong> (menú archivo, o Ctrl+Alt+Shift+M) pregunta antes, con No como opción predeterminada. También tiene "No volver a mostrar"; la opción "Pedir confirmación al marcar todas las conversaciones como leídas" devuelve la pregunta.</li>
+  <li><strong>Marcar todas las conversaciones como leídas</strong> (menú archivo, o Ctrl+Alt+Shift+M) pregunta antes, con No como opción predeterminada. También tiene "No volver a mostrar"; la opción "Pedir confirmación al marcar todos los chats como leídos" devuelve la pregunta.</li>
   <li><strong>Confirmación hablada:</strong> marcar como leída o no leída, silenciar, archivar y fijar una conversación ahora dicen lo que se hizo, y marcar varias como leídas dice cuántas fueron.</li>
 </ul>
 
-<h3>Nueva conversación, grupo y contacto</h3>
-<p>Ctrl+N abre "Nueva conversación". Ahí buscas un contacto (el campo ya tiene el foco y filtra por nombre, incluido el apellido, y por número mientras escribes), inicias una conversación por número, creas un grupo, añades un contacto, te unes a un grupo por enlace y abres las comunidades (botón "Comunidades").</p>
+<h3>Nuevo chat, grupo y contacto</h3>
+<p>Ctrl+N abre "Nuevo chat". Ahí buscas un contacto (el campo ya tiene el foco y filtra por nombre, incluido el apellido, y por número mientras escribes), inicias una conversación por número, creas un grupo, añades un contacto, te unes a un grupo por enlace y abres las comunidades (botón "Comunidades").</p>
 <p>Si escribes un número brasileño con el 9 extra y WhatsApp usa el número sin él, la conversación sigue siendo una sola: tras el primer mensaje pasa a usar el número de WhatsApp.</p>
 <p>En una conversación personal nueva o vacía, la línea que avisa de que no hay mensajes también indica que los mensajes y las llamadas están cifrados de extremo a extremo y, si la conversación tiene mensajes temporales, su duración.</p>
 <h3>Contactos: locales o sincronizados con el teléfono</h3>
-<p>Al añadir un contacto (en Datos de la conversación, en Nueva conversación o desde un mensaje de contacto), hay dos pestañas:</p>
+<p>Al añadir un contacto (en Datos del chat, en Nuevo chat o desde un mensaje de contacto), hay dos pestañas:</p>
 <ul>
   <li><strong>Contacto sincronizado con el teléfono:</strong> guarda el nombre en WhatsApp y en la agenda del teléfono. Se abre por defecto; si el número ya está en la agenda del teléfono, solo aparece esta pestaña. Eliminar un contacto sincronizado también lo quita de WhatsApp y del teléfono.</li>
   <li><strong>Contacto local de WinZapp:</strong> el nombre existe solo en WinZapp.</li>
@@ -414,7 +414,7 @@
 <p>Las listas de chats, archivados y bloqueados usan todo el ancho de la lista, así que los nombres y las vistas previas de los mensajes solo se cortan cuando la ventana es estrecha.</p>
 
 <h3>Fijar</h3>
-<p>Con "Mantener el orden de las conversaciones fijadas" (Configuración &gt; Interfaz &gt; Conversaciones), los mensajes nuevos no cambian la posición de los chats fijados y el orden se mantiene al reiniciar. Desactivado, los chats fijados suben con los mensajes nuevos como los demás.</p>
+<p>Con "Mantener el orden de los chats fijados" (Configuración &gt; Interfaz &gt; Chats), los mensajes nuevos no cambian la posición de los chats fijados y el orden se mantiene al reiniciar. Desactivado, los chats fijados suben con los mensajes nuevos como los demás.</p>
 
 <h3>Seleccionar varias conversaciones</h3>
 <p>Ctrl+Espacio marca o desmarca el chat con el foco. Tras el primer elemento marcado, Espacio solo marca y desmarca los siguientes (modo de selección; el lector de pantalla anuncia cuándo se activa y se desactiva, y se desactiva cuando ya no queda nada marcado). Shift+Flecha abajo/arriba amplía la selección, Shift+Inicio y Shift+Fin marcan hasta el principio o el final, y Ctrl+Shift+Espacio marca o desmarca todo. Con algo marcado, la primera pulsación de Esc solo desmarca. Esto también vale en las conversaciones archivadas y bloqueadas, en la lista de mensajes y en la ventana de reenviar.</p>
@@ -428,9 +428,9 @@
   <tr><td>Marcar como no leídas</td><td class="field-name">Ctrl+Alt+Shift+U</td></tr>
   <tr><td>Desbloquear (en las bloqueadas)</td><td class="field-name">Ctrl+Alt+Shift+T</td></tr>
 </table>
-<p>Las opciones "Usar Espacio para marcar/desmarcar cuando ya haya algo marcado" y "Esc desmarca los mensajes marcados antes de cerrar la conversación" se pueden desactivar en Configuración &gt; Interfaz &gt; Conversaciones.</p>
+<p>Las opciones "Usar Espacio para marcar/desmarcar cuando ya haya algo marcado" y "Esc desmarca los mensajes marcados antes de cerrar el chat" se pueden desactivar en Configuración &gt; Interfaz &gt; Chats.</p>
 
-<h3>Conversaciones archivadas</h3>
+<h3>Chats archivados</h3>
 <p>Alt+4 abre las conversaciones archivadas. Tienen su propia búsqueda (Ctrl+F), la misma selección y las mismas acciones. Una conversación archivada no se anuncia en voz alta cuando llega un mensaje nuevo mientras la lista de archivadas no está en pantalla.</p>
 
   </section>
@@ -536,7 +536,7 @@
 <p>La selección termina con la conversación: al cerrarla, no queda nada marcado.</p>
 
 <h3>Borradores, reenvío y los controles después de la lista</h3>
-<p>El campo de mensaje guarda lo que escribiste con la conversación: sal de una conversación sin enviar, y el texto, con las menciones, vuelve cuando la abras de nuevo. En Configuración &gt; Interfaz &gt; Conversaciones, "Mensaje sin enviar al salir de una conversación" elige entre mantenerlo en el campo para la siguiente conversación, guardarlo como borrador de esa conversación (el valor predeterminado) o descartarlo. Los borradores duran hasta que se cierra WinZapp.</p>
+<p>El campo de mensaje guarda lo que escribiste con la conversación: sal de una conversación sin enviar, y el texto, con las menciones, vuelve cuando la abras de nuevo. En Configuración &gt; Interfaz &gt; Chats, "Mensaje sin enviar al salir de un chat" elige entre mantenerlo en el campo para la siguiente conversación, guardarlo como borrador de esa conversación (el valor predeterminado) o descartarlo. Los borradores duran hasta que se cierra WinZapp.</p>
 <p>Un mensaje tuyo que falló o no se confirmó, texto o adjunto, tiene "Intentar enviar de nuevo" en su menú, también con Ctrl+Shift+Y. WinZapp nunca reenvía nada por su cuenta.</p>
 <p>Durante la reproducción, el Tab después de la lista de mensajes pasa por el botón de velocidad y la barra de duración y, en un mensaje de voz, foto o vídeo, por el botón de IA en línea. Cada uno puede quitarse del camino: "Ocultar el botón de velocidad durante la reproducción (los atajos de velocidad siguen funcionando)" y "Ocultar la barra de duración durante la reproducción (Tab no pasa por ella)" en Configuración &gt; Audio &gt; Reproducción de audio, y "Ocultar el botón de IA en línea que aparece después de la lista de mensajes (el menú del mensaje lo sigue ofreciendo)" en IA en línea: Transcripciones y Descripciones. Los atajos y el menú del mensaje siguen funcionando.</p>
 
@@ -568,7 +568,7 @@
 <p>Un visor en su propia ventana (si lo activas en la configuración para los vídeos de los chats y de los estados) tiene reproducir y pausar, avanzar y retroceder 10 segundos (Alt+A y Alt+V), posición, volumen y velocidad. Ctrl+Shift+S guarda y Ctrl+Shift+I describe.</p>
 
 <h3>Pestaña Multimedia</h3>
-<p>En Datos de la conversación y Datos del grupo, la pestaña <strong>Multimedia</strong> lista fotos, vídeos, audios, mensajes de voz, documentos y enlaces, con un filtro por tipo y por descargados o no descargados, carga del historial completo y las acciones abrir, guardar como y eliminar en cada elemento. Los audios y los mensajes de voz son filtros distintos.</p>
+<p>En Datos del chat y Datos del grupo, la pestaña <strong>Multimedia</strong> lista fotos, vídeos, audios, mensajes de voz, documentos y enlaces, con un filtro por tipo y por descargados o no descargados, carga del historial completo y las acciones abrir, guardar como y eliminar en cada elemento. Los audios y los mensajes de voz son filtros distintos.</p>
 
 <h3>Descarga automática</h3>
 <p>En Configuración &gt; Almacenamiento, "Descargar medios automáticamente" activa la descarga de medios y eliges los tipos. Al desmarcarla se detiene lo que está en curso; al marcarla (o al marcar un tipo más) empieza a descargar al instante y también se aplica a los medios de los mensajes que llegan mientras WinZapp está abierto. Aunque todo esté desactivado, abrir un medio manualmente lo descarga en ese momento. "Descargar medios" (menú Sincronización, Ctrl+Alt+Shift+B) lanza la descarga cuando quieras. WinZapp anuncia el progreso con voz, como "Descargando medios: 30 de 120 procesados (8 descargados)".</p>
@@ -746,8 +746,8 @@
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
     <h2 id="h-grupos-comunidades">👥 10. Grupos y comunidades</h2>
-<h3>Datos de la conversación y del grupo</h3>
-<p>Ctrl+Shift+D (o "Datos de la conversación" en el menú contextual) abre una ventana con pestañas. Todos los botones y campos tienen una letra de atajo (Alt+letra).</p>
+<h3>Datos del chat y del grupo</h3>
+<p>Ctrl+Shift+D (o "Datos del chat" en el menú contextual) abre una ventana con pestañas. Todos los botones y campos tienen una letra de atajo (Alt+letra).</p>
 <ul>
   <li><strong>Contacto:</strong> pestaña Resumen con el nombre, el nombre de perfil que eligió el contacto, el nombre verificado y si la cuenta es de empresa, si las notificaciones están silenciadas (y hasta cuándo), el temporizador de mensajes temporales y el aviso de que los mensajes y las llamadas están cifrados de extremo a extremo. El botón "Foto de perfil" (Alt+F) muestra la foto y "Abrir en visor externo" (Alt+A) la abre en el programa predeterminado de Windows; si no hay foto, o la persona no permite que la veas, WinZapp lo dice. También está la pestaña <strong>Grupos en común</strong> (Intro abre el grupo) y la pestaña Multimedia.</li>
   <li><strong>Grupo:</strong> pestaña Resumen (nombre, descripción, foto del grupo, si solo los administradores envían mensajes), pestaña Participantes (Intro en un participante abre la conversación privada con él; "Agregar miembro" admite contactos o un número aparte) y pestaña Multimedia. Los datos aparecen en cuanto el grupo responde y los nombres y números que faltan se completan justo después.</li>
@@ -755,17 +755,17 @@
 </ul>
 
 <h3>Crear un grupo e invitaciones</h3>
-<p>En "Nueva conversación", crea un grupo indicando un nombre y los participantes. En <strong>Invitación al grupo</strong> se puede ver el enlace de invitación y el código QR, copiarlos ("Copiar enlace"), guardarlos ("Guardar código QR...") y restablecerlos con confirmación ("Restablecer enlace de invitación..."). En <strong>Unirse a un grupo por enlace</strong>, pega el enlace (también los que terminan en <code>?mode=...</code>), mira la "Vista previa del grupo" y elige "Unirse al grupo o solicitar aprobación". Los resultados de aprobación pendiente y de unión sin confirmar se informan por separado.</p>
+<p>En "Nuevo chat", crea un grupo indicando un nombre y los participantes. En <strong>Invitación al grupo</strong> se puede ver el enlace de invitación y el código QR, copiarlos ("Copiar enlace"), guardarlos ("Guardar código QR...") y restablecerlos con confirmación ("Restablecer enlace de invitación..."). En <strong>Unirse a un grupo por enlace</strong>, pega el enlace (también los que terminan en <code>?mode=...</code>), mira la "Vista previa del grupo" y elige "Unirse al grupo o solicitar aprobación". Los resultados de aprobación pendiente y de unión sin confirmar se informan por separado.</p>
 <p>En Configuración &gt; General, "Permitir que Windows abra los enlaces de invitación a grupos de WhatsApp con WinZapp" registra WinZapp para los enlaces <code>whatsapp:</code>: cuando usas el botón de unirse de la página de invitación abierta en el navegador, Windows entrega la invitación a WinZapp, incluso cuando está cerrado.</p>
 
 <h3>Solicitudes de ingreso (administradores)</h3>
 <p>En los grupos donde eres administrador, el botón "Solicitudes de unión que esperan aprobación" lista quién está esperando (nombre o número, cómo llegó la solicitud y cuándo). "Aprobar" y "Rechazar" responden a la solicitud seleccionada; "Actualizar" vuelve a comprobar. WinZapp solo dice que la solicitud fue respondida cuando ya ha salido de la lista en WhatsApp.</p>
 
 <h3>Comunidades (Alt+8)</h3>
-<p>El panel de Comunidades (o "Nueva conversación" &gt; "Comunidades") lista las comunidades en las que estás. Al elegir una, ves la descripción, los administradores y los grupos de ella a los que te uniste, con el grupo de avisos y el grupo general identificados; Intro o "Abrir grupo" va al grupo. Si administras la comunidad: "Añadir grupos", "Quitar grupo de la comunidad", "Promover a administrador de la comunidad", "Quitar como administrador de la comunidad" y "Desactivar comunidad". "Nueva comunidad" crea una con un nombre, una descripción y los grupos que elijas. Después de cada acción, WinZapp vuelve a leer las comunidades y solo dice que terminó cuando WhatsApp muestra el cambio; si no, te dice que la solicitud se envió pero no está confirmada, o que fue rechazada.</p>
+<p>El panel de Comunidades (o "Nuevo chat" &gt; "Comunidades") lista las comunidades en las que estás. Al elegir una, ves la descripción, los administradores y los grupos de ella a los que te uniste, con el grupo de avisos y el grupo general identificados; Intro o "Abrir grupo" va al grupo. Si administras la comunidad: "Añadir grupos", "Quitar grupo de la comunidad", "Promover a administrador de la comunidad", "Quitar como administrador de la comunidad" y "Desactivar comunidad". "Nueva comunidad" crea una con un nombre, una descripción y los grupos que elijas. Después de cada acción, WinZapp vuelve a leer las comunidades y solo dice que terminó cuando WhatsApp muestra el cambio; si no, te dice que la solicitud se envió pero no está confirmada, o que fue rechazada.</p>
 
 <h3>Menciones y respuestas</h3>
-<p>Una persona mencionada por su nombre junto con @all conserva el enlace; la mención hacia ti, en la notificación y en la vista previa, usa la palabra elegida en "¿Cómo debo referirme a mí?". En Configuración &gt; Interfaz &gt; Mensajes, "Ocultar los números de teléfono de remitentes sin nombre en los mensajes" hace que los mensajes de personas sin nombre empiecen directamente con el contenido. En Configuración &gt; Interfaz &gt; Conversaciones, "Anteponer una tilde (~) a los nombres de contactos no guardados en las conversaciones y los mensajes" (activada por defecto) muestra una tilde antes del nombre de quien no has guardado, en las conversaciones y en los mensajes.</p>
+<p>Una persona mencionada por su nombre junto con @all conserva el enlace; la mención hacia ti, en la notificación y en la vista previa, usa la palabra elegida en "¿Cómo debo referirme a mí?". En Configuración &gt; Interfaz &gt; Mensajes, "Ocultar los números de teléfono de remitentes sin nombre en los mensajes" hace que los mensajes de personas sin nombre empiecen directamente con el contenido. En Configuración &gt; Interfaz &gt; Chats, "Anteponer una tilde (~) a los nombres de contactos no guardados en los chats y los mensajes" (activada por defecto) muestra una tilde antes del nombre de quien no has guardado, en las conversaciones y en los mensajes.</p>
 
 <h3>Grupos de una comunidad</h3>
 <p>En la lista de comunidades, Intro va a los grupos de la comunidad, y "Abrir el grupo más reciente" abre el grupo con la actividad más reciente, diciendo su nombre. "Filtrar grupos" muestra todos los grupos, aquellos en los que participas o aquellos en los que no; un grupo en el que no participas lo indica en su línea. En uno de ellos, "Unirse al grupo" te une o, cuando el grupo requiere aprobación, "Solicitar unirse al grupo" envía la solicitud, que "Cancelar la solicitud para unirse al grupo" retira.</p>
@@ -773,7 +773,7 @@
   </section>
 
   <section id="trancadas" class="wiki-section" aria-labelledby="h-trancadas">
-    <h2 id="h-trancadas">🔒 11. Conversaciones bloqueadas</h2>
+    <h2 id="h-trancadas">🔒 11. Chats bloqueados</h2>
 <p class="lead">Las conversaciones bloqueadas (Alt+7) se quedan en una cámara protegida por un PIN, fuera de la lista de chats, de las archivadas, de la búsqueda y de la ventana de reenviar.</p>
 <ul>
   <li><strong>Bloquear:</strong> "Bloquear chat" en el menú contextual o Ctrl+Shift+T. El PIN tiene de 6 a 12 dígitos. Al configurar la cámara, WinZapp crea una <em>clave de recuperación</em> (se puede leer en voz alta o copiar) para definir un PIN nuevo si olvidas el actual.</li>
@@ -817,7 +817,7 @@
 <ul>
   <li><strong>F5</strong> borra y descarga de nuevo todos los chats (pide confirmación, con No como opción predeterminada y "No volver a mostrar").</li>
   <li><strong>Shift+F5</strong> resincroniza solo el chat abierto: vuelve a buscar los mensajes, coloca de nuevo los que faltaban y quita los que ya no existen, sin tocar el historial más antiguo. Dice si el chat ya está al día o si WhatsApp no tiene mensajes para él. También pide confirmación.</li>
-  <li>El progreso se habla cada pocos segundos y se muestra en el título de la ventana: "Sincronizando conversaciones: 12 de 80" y "Descargando medios: 30 de 120 procesados (8 descargados)". Cada anuncio se puede desactivar en Configuración &gt; Accesibilidad &gt; Contenido hablado; la opción "Anunciar sincronización, descarga de medios y modo sin conexión automático" controla los anuncios, que no se hablan mientras WinZapp se inicia en segundo plano ni durante una llamada.</li>
+  <li>El progreso se habla cada pocos segundos y se muestra en el título de la ventana: "Sincronizando chats: 12 de 80" y "Descargando medios: 30 de 120 procesados (8 descargados)". Cada anuncio se puede desactivar en Configuración &gt; Accesibilidad &gt; Contenido hablado; la opción "Anunciar sincronización, descarga de medios y modo sin conexión automático" controla los anuncios, que no se hablan mientras WinZapp se inicia en segundo plano ni durante una llamada.</li>
   <li>El <strong>Modo sin conexión</strong> (Ctrl+Alt+Shift+O) deja WinZapp sin conexión; también entra y sale solo según la conexión. Cuando el ordenador despierta de la suspensión, WinZapp vuelve a abrir la conexión y busca los mensajes nuevos.</li>
   <li>En un chat cuyos mensajes más antiguos existen solo en el teléfono, WinZapp dice "Usa WhatsApp en tu teléfono para ver los mensajes más antiguos."</li>
 </ul>
@@ -840,11 +840,11 @@
   <tr><th>Categoría</th><th>Qué encuentras</th></tr>
   <tr><td class="field-name">General</td><td>Idioma (portugués de Brasil y de Portugal, inglés, español, polaco, turco, rumano); corrector ortográfico (seguir a Windows, siempre o nunca); convertir emoticonos en emojis; normalización Unicode en las búsquedas (exacta, ignorar acentos, o también formas equivalentes); iniciar en segundo plano al iniciar sesión en Windows; abrir enlaces de invitación a grupos con WinZapp; buscar actualizaciones automáticamente y alphas; descargar actualizaciones y descargas de transcripción en segundo plano; atajo global para abrir WinZapp u ocultarlo en la bandeja; qué hacer al cambiar de cuenta (ocultar la ventana de la cuenta actual o mantener abiertas las ventanas de todas las cuentas).</td></tr>
   <tr><td class="field-name">General &gt; Notificaciones</td><td>Notificaciones en segundo plano y su contenido; mantener silenciados los chats silenciados aunque estén abiertos; icono de la bandeja y contador de no leídos.</td></tr>
-  <tr><td class="field-name">Interfaz</td><td>Cada botón abre la ventana de un tema: Mensajes, Reacciones, Conversaciones, Confirmaciones y Atajos de teclado.</td></tr>
+  <tr><td class="field-name">Interfaz</td><td>Cada botón abre la ventana de un tema: Mensajes, Reacciones, Chats, Confirmaciones y Atajos de teclado.</td></tr>
   <tr><td class="field-name">Interfaz &gt; Mensajes</td><td>Cuántos mensajes mostrar al abrir un chat; cuántos saltar con Re Pág/Av Pág; tipo de lista de mensajes (clásica, con un límite de 512 caracteres, o cuadro de lista, con los mensajes completos); mostrar quién está escribiendo como última fila; "¿Cómo debo referirme a mí?"; ocultar el remitente en tus propios mensajes; ocultar los números de remitentes sin nombre; conservar el mensaje escrito como pie; "ayer" en lugar de la fecha; vistas previas de enlaces; "Reenviado" antes del remitente; estado inicial de "Eliminar también el archivo multimedia del teléfono"; vídeos y estados en un reproductor aparte; tipos de medios mostrados por defecto.</td></tr>
   <tr><td class="field-name">Interfaz &gt; Reacciones</td><td>Reacciones rápidas fijas y la elección del emoji de cada posición.</td></tr>
-  <tr><td class="field-name">Interfaz &gt; Conversaciones</td><td>Dónde poner el foco al abrir un chat; estado de entrega en la lista de chats; mantener los chats fijados en un orden fijo; sustituir los atajos por acciones en lote; comportamiento de Espacio y Esc con una selección; mantener la búsqueda de chats al abrir; posición del anuncio de "seleccionado"; mostrar canales en la lista de chats (desactivado por defecto).</td></tr>
-  <tr><td class="field-name">Interfaz &gt; Conversaciones &gt; Chats bloqueados</td><td>PIN de la cámara, bloqueo tras inactividad y el código secreto (el botón aparece cuando la bóveda está disponible).</td></tr>
+  <tr><td class="field-name">Interfaz &gt; Chats</td><td>Dónde poner el foco al abrir un chat; estado de entrega en la lista de chats; mantener los chats fijados en un orden fijo; sustituir los atajos por acciones en lote; comportamiento de Espacio y Esc con una selección; mantener la búsqueda de chats al abrir; posición del anuncio de "seleccionado"; mostrar canales en la lista de chats (desactivado por defecto).</td></tr>
+  <tr><td class="field-name">Interfaz &gt; Chats &gt; Chats bloqueados</td><td>PIN de la cámara, bloqueo tras inactividad y el código secreto (el botón aparece cuando la bóveda está disponible).</td></tr>
   <tr><td class="field-name">Interfaz &gt; Confirmaciones</td><td>Las preguntas de confirmación (marcar todo como leído, vaciar, eliminar, F5, Shift+F5, grabar audio del ordenador) y sus versiones "No volver a mostrar".</td></tr>
   <tr><td class="field-name">Interfaz &gt; Atajos de teclado</td><td>Lista todos los atajos del programa, incluido el global. Selecciona uno, elige "Cambiar" y escribe la nueva combinación; o desactívalo, restaura el predeterminado o restaura todos. Los conflictos se avisan antes de aplicar, y los cambios solo surten efecto con Aplicar o Aceptar.</td></tr>
   <tr><td class="field-name">Accesibilidad</td><td>Compatibilidad ampliada con el lector de pantalla (anuncios adicionales) y uso de la voz SAPI cuando no hay ningún lector de pantalla activo.</td></tr>
