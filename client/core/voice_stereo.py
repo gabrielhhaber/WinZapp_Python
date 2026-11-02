@@ -14,7 +14,7 @@ message. So a stereo recording is AAC and a mono one OGG/Opus, both through
 """
 
 #: Opus rate of a mono voice message.
-MONO_BITRATE = "64k"
+MONO_BITRATE = "256k"
 #: AAC rate of a stereo voice message. The encoder treats it as a ceiling, and
 #: speech usually lands below it.
 STEREO_BITRATE = "256k"

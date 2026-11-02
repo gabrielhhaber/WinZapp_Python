@@ -216,7 +216,9 @@ NOVEDADES
 
 - Neonize: los mensajes de voz, las fotos y los documentos ya no se pierden cuando la biblioteca de tipos de archivo del equipo (libmagic) no carga; el tipo ahora se reconoce por el propio archivo.
 
-- Mensajes de voz: las grabaciones en mono vuelven a enviarse a 64 kbps, como antes del botón único de grabar; las grabaciones en estéreo mantienen hasta 256 kbps. Neonize también registra una línea por cada archivo multimedia enviado y los ids de los acuses de entrega, para averiguar por qué algunos mensajes de voz no se entregan.
+- Mensajes de voz: las grabaciones en mono y en estéreo se envían hasta 256 kbps. Neonize también registra una línea por cada archivo multimedia enviado y los ids de los acuses de entrega, para averiguar por qué algunos mensajes de voz no se entregan.
+
+- Neonize: los mensajes de voz en estéreo ahora salen con el tipo audio/mp4, el que espera WhatsApp, para que se entreguen a contactos en Android.
 
 - La reducción de ruido del micrófono de los mensajes de voz ahora puede usar un modelo neuronal: con "Activar reducción de ruido del micrófono" marcada en Configuración, Audio, la misma página ofrece descargar el modelo; la descarga se hace una sola vez, por internet, y las grabaciones se siguen procesando en este equipo. Sin el modelo, o si no se puede usar en una grabación, WinZapp usa el gate de ruido básico de siempre y te avisa. Si la reducción de ruido no se puede aplicar en absoluto, el mensaje se envía sin procesar y también te avisa.
 
