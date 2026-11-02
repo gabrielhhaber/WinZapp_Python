@@ -1052,7 +1052,8 @@ class ConnectionMixin:
                 # this is the one place that does, in lockstep with the sound.
                 wx.CallAfter(self._set_preparing_status_if_idle)
             elif self._tray_status in (self.i18n.t("tray_wa_disconnected"), self.i18n.t("tray_connecting"),
-                                       self.i18n.t("tray_starting_wppconnect")):
+                                       self.i18n.t("tray_starting_wppconnect"),
+                                       self.i18n.t("tray_syncing_whatsapp")):
                 # Reconnect (not the first-ever connect, handled above) —
                 # clear only the transient "connecting"/"disconnected" text; a
                 # sync running in parallel owns the status line otherwise
@@ -1102,6 +1103,20 @@ class ConnectionMixin:
 
         if not confirmed:
             never_connected_yet = not self._wa_connect_announced
+            import connection_state as cs
+            if cs.sync_report_is_fresh(getattr(self, "_wa_sync_reported_at", None),
+                                       time.monotonic()):
+                # The login was accepted and WhatsApp Web is catching up: the
+                # account is fine, however long that takes. Not "disconnected",
+                # no sound, no speech. Sends still wait, so a session that was
+                # already up goes offline quietly until it connects again.
+                logging.info("[connection] WhatsApp Web is syncing (%s).", reason or "checked")
+                if not never_connected_yet:
+                    self._auto_offline = True
+                    self._offline_announce_deferred = True
+                    self._apply_offline_state()
+                wx.CallAfter(self._set_status, self.i18n.t("tray_syncing_whatsapp"))
+                return
             # Bounded by elapsed time alone, deliberately. This used to also
             # cap the number of not-yet-connected readings, and the two bounds
             # were measured in incompatible units: the window was sized for the
@@ -1996,6 +2011,9 @@ class ConnectionMixin:
                 )
 
                 logging.info("[check_wa_connection_http] Instance status: %s", status)
+                import connection_state as cs
+                self._wa_sync_reported_at = (
+                    time.monotonic() if cs.session_reports_syncing(data) else None)
 
                 # Wrapped here as well as inside the method. Everything from
                 # the `try` above down to the request handler is what decides

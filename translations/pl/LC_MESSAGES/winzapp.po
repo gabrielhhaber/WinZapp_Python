@@ -15944,6 +15944,11 @@ msgctxt "tray_starting_wppconnect"
 msgid "starting WPPConnect..."
 msgstr "uruchamianie WPPConnect..."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/connection.py
+msgctxt "tray_syncing_whatsapp"
+msgid "syncing with WhatsApp..."
+msgstr "synchronizowanie z WhatsApp..."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/tray_manager.py
 #, python-brace-format
 msgctxt "tray_unread_plural"

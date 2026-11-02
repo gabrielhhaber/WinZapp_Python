@@ -906,6 +906,7 @@ export default class CreateSessionUtil {
       }
       ownClient = client;
       client.status = 'INITIALIZING';
+      (client as any).syncing = false;
       client.config = req.body;
 
       const tokenStore = new Factory();
@@ -1172,6 +1173,14 @@ export default class CreateSessionUtil {
                 // below, which routes it via the REST poll into the guarded
                 // path instead. Re-add this line only together with a fix for
                 // on_wpp_status_find()'s own classification.
+                // The stored login was accepted: from here to CONNECTED the
+                // page is catching up with what it missed, minutes after a
+                // long time unused, and the status stays INITIALIZING.
+                // status-session says so, or WinZapp reads a working account
+                // as a dropped one.
+                if (statusFind === StatusFind.isLogged) {
+                  (client as any).syncing = true;
+                }
                 if (
                   statusFind === StatusFind.disconnectedMobile ||
                   statusFind === StatusFind.notLogged
