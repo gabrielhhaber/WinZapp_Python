@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WinZapp\n"
 "Report-Msgid-Bugs-To: https://github.com/gabrielhhaber/WinZapp_Python/issues\n"
-"POT-Creation-Date: 2026-10-21 13:43+0200\n"
-"PO-Revision-Date: 2026-10-21 15:49+0200\n"
+"POT-Creation-Date: 2026-11-01 16:30+0100\n"
+"PO-Revision-Date: 2026-11-02 14:24+0100\n"
 "Last-Translator: DJ Graco\n"
 "Language-Team: \n"
 "Language: pl\n"
@@ -2573,9 +2573,7 @@ msgstr "To połączenie zakończyło się lub nie jest już dostępne."
 #: client/ui/dialogs/call_participants.py
 msgctxt "call_participants_failed"
 msgid "Could not load the current participants. Use Refresh to try again."
-msgstr ""
-"Nie udało się wczytać bieżących uczestników. Użyj Odśwież, aby spróbować "
-"ponownie."
+msgstr "Nie udało się wczytać listy uczestników połączenia. Spróbuj ponownie, wybierając „Odśwież”."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
@@ -4718,9 +4716,7 @@ msgctxt "connection_engine_ask_message"
 msgid ""
 "Choose how WinZapp connects to WhatsApp. You can change this later in "
 "Settings, Connection."
-msgstr ""
-"Wybierz, jak WinZapp łączy się z WhatsApp. Możesz to później zmienić w "
-"Ustawieniach, Połączenie."
+msgstr "Wybierz sposób łączenia WinZappa z WhatsAppem. Możesz go później zmienić w Ustawienia > Połączenie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/engine_picker.py
@@ -4961,7 +4957,7 @@ msgstr ""
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "conversation_auto_transcribe_local"
 msgid "Local, with Whisper"
-msgstr "Lokalnie, za pomocą Whisper"
+msgstr "Lokalnie, za pomocą Whispera"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -4973,7 +4969,7 @@ msgstr "Brak"
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "conversation_auto_transcribe_online"
 msgid "Online, with the AI providers"
-msgstr "Online, u dostawców AI"
+msgstr "Online, za pomocą usług AI"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/archived_panel.py
@@ -7095,9 +7091,7 @@ msgctxt "mac_mic_permission_waiting"
 msgid ""
 "macOS is asking for microphone permission. Recording starts once you allow "
 "it, and the prompt may be waiting behind another permission prompt."
-msgstr ""
-"macOS prosi o dostęp do mikrofonu. Nagrywanie zacznie się po udzieleniu "
-"zgody, a prośba może czekać za inną prośbą o uprawnienia."
+msgstr "macOS prosi o dostęp do mikrofonu. Nagrywanie rozpocznie się po udzieleniu zgody. Może być konieczne wcześniejsze udzielenie odpowiedzi na inną prośbę o uprawnienia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_not_yet_available"
@@ -7110,19 +7104,14 @@ msgid ""
 "WinZapp does not have permission to record system audio, so computer audio "
 "will be silent. Turn it on in System Settings, Privacy and Security, Screen "
 "and System Audio Recording."
-msgstr ""
-"WinZapp nie ma zgody na nagrywanie dźwięku systemowego, więc dźwięk "
-"komputera będzie cichy. Włącz ją w Ustawienia systemowe, Prywatność i "
-"ochrona, Nagrywanie ekranu i dźwięku systemowego."
+msgstr "WinZapp nie ma uprawnień do nagrywania dźwięku systemowego, więc dźwięk komputera nie zostanie nagrany. Przyznaj te uprawnienia w Ustawienia systemowe > Prywatność i ochrona > Nagrywanie ekranu i dźwięku systemowego."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_system_audio_permission_waiting"
 msgid ""
 "macOS is asking for permission to record system audio. Recording starts once"
 " you answer, and the prompt may be waiting behind another permission prompt."
-msgstr ""
-"macOS prosi o zgodę na nagrywanie dźwięku systemowego. Nagrywanie zacznie "
-"się po odpowiedzi, a prośba może czekać za inną prośbą o uprawnienia."
+msgstr "macOS prosi o zgodę na nagrywanie dźwięku systemowego. Nagrywanie rozpocznie się po udzieleniu odpowiedzi. Może być konieczne wcześniejsze udzielenie odpowiedzi na inną prośbę o uprawnienia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -7937,10 +7926,7 @@ msgid ""
 "WinZapp could not start the Neonize bridge, so it cannot connect to WhatsApp"
 " with this engine. Check the log, or choose another connection engine in "
 "Settings, Connection."
-msgstr ""
-"WinZapp nie mógł uruchomić mostu Neonize, więc nie może połączyć się z "
-"WhatsApp tym silnikiem. Sprawdź dziennik (log) lub wybierz inny silnik "
-"połączenia w Ustawieniach, Połączenie."
+msgstr "WinZapp nie mógł uruchomić mostu Neonize, dlatego nie może połączyć się z WhatsAppem za pomocą tego silnika. Sprawdź dziennik (log) lub wybierz inny silnik w Ustawienia > Połączenie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/neonize_bridge.py client/ui/dialogs/settings_dialog.py
@@ -9498,7 +9484,7 @@ msgstr "Przypisz czat z fokusem do cyfry szybkiego dostępu"
 #, python-brace-format
 msgctxt "quick_chat_assigned"
 msgid "Quick chat {digit} assigned to {name}."
-msgstr "Szybki czat {digit} przypisany do {name}."
+msgstr "Do cyfry szybkiego dostępu {digit} przypisano czat {name}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/quick_chats.py
 #, python-brace-format
@@ -13162,10 +13148,7 @@ msgid ""
 "Automatic transcription can be local or online, not both. Turn one of them "
 "off: in Local Transcription or in Online AI: Transcriptions and "
 "Descriptions."
-msgstr ""
-"Automatyczna transkrypcja może być lokalna albo online, nie obie naraz. "
-"Wyłącz jedną z nich: w sekcji „Transkrypcja lokalna” lub „AI online: "
-"transkrypcje i opisy”."
+msgstr "Nie można jednocześnie włączyć automatycznej transkrypcji lokalnej i online. Wyłącz jedną z tych opcji w sekcji „Transkrypcja lokalna” lub „AI online: transkrypcje i opisy”."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/auto_transcription.py
@@ -17621,21 +17604,20 @@ msgstr ""
 #, python-brace-format
 msgctxt "whats_new_since_header"
 msgid "What changed in the release notes since you last looked, on {date}:"
-msgstr "Co zmieniło się w nowościach od ostatniego przeglądania ({date}):"
+msgstr "Zmiany od ostatniego przeglądu ({date}):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "whats_new_since_nothing"
 msgid ""
 "Nothing has changed in the release notes since you last looked, on {date}."
-msgstr ""
-"Nic się nie zmieniło w nowościach od ostatniego przeglądania ({date})."
+msgstr "Brak zmian od ostatniego przeglądu ({date})."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/whats_new_since.py
 msgctxt "whats_new_since_title"
 msgid "What's new since you last looked"
-msgstr "Nowości od ostatniego przeglądania"
+msgstr "Co nowego od ostatniego przeglądu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "whats_new_title"
