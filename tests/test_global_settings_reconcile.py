@@ -37,6 +37,7 @@ import pytest
 from app_settings import _CONNECTION_GLOBAL, _GENERAL_GLOBAL, AppSettings
 from core import connection_engine as engines
 from core.i18n import I18n
+from core.profile_recovery import profile_is_local
 from core.settings_transfer import build_export
 from main import MainWindow
 from main_window import settings as settings_module
@@ -488,6 +489,7 @@ class _SettingsDialog(_Dialog):
     _global_control_values = SettingsDialog._global_control_values
     _load_install_wide_values = SettingsDialog._load_install_wide_values
     _apply_install_wide_values = SettingsDialog._apply_install_wide_values
+    _engine_takes_effect_now = SettingsDialog._engine_takes_effect_now
 
 
 def _opened(window):
@@ -1155,6 +1157,83 @@ class TestAPulledValue:
         assert a.settings["connection"]["wpp_server"] == "http://192.0.2.10"
         assert a.wpp_server == "http://127.0.0.1"
         assert a.wpp_custom_api is False
+
+
+def _running_on(global_dir, engine):
+    """A window as __init__ leaves it after starting on ``engine``."""
+    _change_elsewhere(_started(global_dir), "wpp_engine", engine)
+    window = _started(global_dir)
+    connection = window.settings["connection"]
+    window.wpp_engine = engine
+    window.wpp_custom_api = connection["wpp_custom_api"]
+    window.wpp_server = connection["wpp_server"]
+    window.wpp_ws_server = connection["wpp_ws_server"]
+    window.wpp_api_key = connection["wpp_api_key"]
+    return window
+
+
+class TestANewEngineWaitsForTheRestart:
+    """Settings stores the engine at once, and the process keeps the API it
+    started with. A client on Neonize that took wpp_custom_api=False from the
+    dialog went through _stop_wpp_server() as a WPPConnect one: the audit said
+    "no node pid to kill", the bridge stayed on port 6300 with nobody to stop
+    it (the exit is os._exit, so no atexit either), and the next start, seeing
+    the port taken, fell back to the startup dialog before the window."""
+
+    def test_leaving_neonize_keeps_the_process_on_the_bridge(self, tmp_path):
+        window = _running_on(tmp_path, engines.NEONIZE)
+        dialog = _opened(window)
+        _set_control(dialog, "wpp_engine", engines.WPPCONNECT)
+        _set_control(dialog, "wpp_custom_api", False)
+
+        _ok(dialog)
+
+        assert _stored(tmp_path, "wpp_engine") == engines.WPPCONNECT
+        assert _stored(tmp_path, "wpp_custom_api") is False
+        assert window.wpp_custom_api is True
+        assert profile_is_local(window) is False    # _stop_wpp_server() stops the bridge
+
+    def test_leaving_wppconnect_keeps_the_address_of_the_live_session(self, tmp_path):
+        window = _running_on(tmp_path, engines.WPPCONNECT)
+        dialog = _opened(window)
+        _set_control(dialog, "wpp_engine", engines.CUSTOM)
+        _set_control(dialog, "wpp_custom_api", True)
+        _set_control(dialog, "wpp_server", "http://192.0.2.10")
+        _set_control(dialog, "wpp_ws_server", "ws://192.0.2.10")
+        _set_control(dialog, "wpp_api_key", "outra-chave")
+
+        _ok(dialog)
+
+        assert _stored(tmp_path, "wpp_server") == "http://192.0.2.10"
+        assert window.wpp_custom_api is False
+        assert window.wpp_server == "http://127.0.0.1"
+        assert window.wpp_ws_server == "ws://127.0.0.1"
+        assert window.wpp_api_key != "outra-chave"
+
+    def test_a_custom_servers_own_address_still_follows_live(self, tmp_path):
+        window = _running_on(tmp_path, engines.CUSTOM)
+        dialog = _opened(window)
+        _set_control(dialog, "wpp_server", "http://192.0.2.10")
+
+        _ok(dialog)
+
+        assert window.wpp_server == "http://192.0.2.10"
+
+    def test_the_port_waits_too_by_source(self):
+        """_apply_values() itself is out of a stub's reach. The new engine's
+        port would send this process's close-session to a server it never
+        used, and a session it cannot close is hard-killed on the way out."""
+        tree = ast.parse(textwrap.dedent(inspect.getsource(SettingsDialog._apply_values)))
+        parents = {child: node for node in ast.walk(tree)
+                   for child in ast.iter_child_nodes(node)}
+        writes = [node for node in ast.walk(tree)
+                  if isinstance(node, ast.Assign)
+                  and ast.unparse(node.targets[0]) == "self.main_window.wpp_port"]
+
+        assert len(writes) == 1
+        guard = parents[writes[0]]
+        assert isinstance(guard, ast.If)
+        assert ast.unparse(guard.test) == "self._engine_takes_effect_now()"
 
 
 class TestEveryReconciliationHoldsTheSaveLock:

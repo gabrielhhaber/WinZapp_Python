@@ -2118,10 +2118,14 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         # Connection settings. The port is not here: it is this account's own
         # (the Node server it runs), written by _apply_values() every time.
+        # Everything is stored now; with a new engine none of it reaches this
+        # process, which keeps the API it started with until the restart.
+        live = self._engine_takes_effect_now()
         custom_api = self._custom_api_check.GetValue()
         if self._global_control_changed("wpp_custom_api", custom_api):
             choices["wpp_custom_api"] = custom_api
-            self.main_window.wpp_custom_api = custom_api
+            if live:
+                self.main_window.wpp_custom_api = custom_api
 
         # The process keeps the engine it started with (main_window.wpp_engine)
         # until the restart _flag_restart_if_engine_changed() asks for.
@@ -2132,17 +2136,20 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         server = self._server_field.GetValue().strip()
         if self._global_control_changed("wpp_server", server):
             choices["wpp_server"] = server
-            self.main_window.wpp_server = server
+            if live:
+                self.main_window.wpp_server = server
 
         ws_server = self._ws_server_field.GetValue().strip()
         if self._global_control_changed("wpp_ws_server", ws_server):
             choices["wpp_ws_server"] = ws_server
-            self.main_window.wpp_ws_server = ws_server
+            if live:
+                self.main_window.wpp_ws_server = ws_server
 
         api_key = self._api_key_field.GetValue().strip()
         if self._global_control_changed("wpp_api_key", api_key):
             choices["wpp_api_key"] = api_key
-            self.main_window.wpp_api_key = api_key
+            if live:
+                self.main_window.wpp_api_key = api_key
 
         self.main_window.choose_global_settings(choices)
 
@@ -3717,6 +3724,15 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             self._loaded_engine = engine
             self._restart_required = True
 
+    def _engine_takes_effect_now(self) -> bool:
+        """Whether the engine chosen here is the one this process runs on, so a
+        connection value may reach it at once. A process on another engine
+        must keep its own: _stop_wpp_server() reads wpp_custom_api to tell the
+        neonize bridge from a Node, and a client told it was on WPPConnect left
+        the bridge running on the shared port when it closed."""
+        chosen = engines.engine_at(self._engine_choice.GetSelection())
+        return not engines.needs_restart(getattr(self.main_window, "wpp_engine", chosen), chosen)
+
     def _apply_values(self) -> bool:
         """Validate, save, and apply all settings. Returns True on success."""
         if not self._validate_shortcut_values():
@@ -3970,7 +3986,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._flag_restart_if_engine_changed()
         port = int(self._port_field.GetValue().strip())
         self.main_window.settings.setdefault("connection", {})["wpp_port"] = port
-        self.main_window.wpp_port = port
+        if self._engine_takes_effect_now():
+            self.main_window.wpp_port = port
         # Advanced: the log level (applied now) and the fixed local API port.
         self._apply_advanced_values()
 
