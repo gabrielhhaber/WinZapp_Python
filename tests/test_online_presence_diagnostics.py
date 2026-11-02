@@ -136,6 +136,7 @@ def test_unsampled_write_does_not_parse_or_log_the_response(caplog):
     decide(tracker, 0)
     decision = decide(tracker, .1)
     assert not decision.trace
+    caplog.clear()  # the sampled decision above may already have logged
     record_write(decision, response=SimpleNamespace(json=lambda: pytest.fail("unsampled body parsed")))
     assert caplog.records == []
 
