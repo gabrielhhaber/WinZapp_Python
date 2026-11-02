@@ -1,0 +1,8 @@
+{
+  "source_commit": "4118f4f4e2f98cc722c91c8452c1722c7b94c664",
+  "source_url": "https://github.com/gabrielhhaber/WinZapp_Python/blob/4118f4f4e2f98cc722c91c8452c1722c7b94c664/client/main_window/chat_events.py",
+  "original_file_sha256": "bddea587efdf50cbec86ef806ab29c4e6579657aff39ba04a1df4118e5f4fb63",
+  "fixture_sha256": "0319b39ecaae797da31724a62e9211c542f3a08b1ceb53d159678034fced8c50",
+  "license": "GPL-3.0-or-later",
+  "scope": "Original method with current dependency functions, to compare the typing feature delta; not a full historical runtime."
+}

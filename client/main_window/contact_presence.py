@@ -4,6 +4,7 @@ import time
 from urllib.parse import quote
 
 import wx
+from main_window.typing_feedback import stop_typing_sound
 from core.api_client import api_get
 from core.contact_presence import aliases, cached, is_subscribed
 from core.contact_presence_query import PresenceRead, query_targets, read_presence
@@ -190,6 +191,7 @@ class ContactPresenceMixin:
             panel._refresh_presence_note(panel.conversation.get("remoteJid", ""))
 
     def _invalidate_contact_presence(self):
+        stop_typing_sound(self)
         self._cancel_deferred_contact_presence()
         work = getattr(self, "_contact_presence_work", None)
         if work is not None:

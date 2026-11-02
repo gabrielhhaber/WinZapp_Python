@@ -1321,6 +1321,9 @@ DEFAULT_SETTINGS = {
     },
     "speech_content": {
         "announce_typing": True,
+        "typing_sound": False,
+        "typing_sound_interval": 3,
+        "typing_sound_silence_capture": True,
         "announce_recording": True,
         "announce_conversations_update_start": True,
         "announce_conversations_update_complete": True,

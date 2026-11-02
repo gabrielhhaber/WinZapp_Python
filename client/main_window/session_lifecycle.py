@@ -11,6 +11,7 @@ import os
 import threading
 import time
 import wx
+from main_window.typing_feedback import stop_typing_sound
 from core.profile_backup import (
     close_snapshot_max_age as _close_snapshot_max_age,
     live_snapshot_due as _live_snapshot_due,
@@ -465,6 +466,7 @@ class SessionLifecycleMixin:
             already_tearing_down = getattr(self, "_shutting_down", False)
             self._shutting_down = True
 
+        stop_typing_sound(self)
         if already_tearing_down:
             # Do NOT just get out of the way: returning here hands control
             # straight back to Windows, which terminates the process at once

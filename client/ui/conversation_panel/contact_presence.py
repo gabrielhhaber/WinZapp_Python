@@ -1,9 +1,11 @@
 """Refresh only the open contact; never change focus or announce a timer tick."""
 import wx
+from main_window.typing_feedback import stop_typing_sound
 
 
 class ContactPresencePanelMixin:
     def _stop_contact_presence(self):
+        stop_typing_sound(getattr(self, "main_window", None))
         self._contact_presence_visit = getattr(self, "_contact_presence_visit", 0) + 1
         cancel = getattr(getattr(self, "main_window", None), "_cancel_deferred_contact_presence", None)
         if cancel is not None:

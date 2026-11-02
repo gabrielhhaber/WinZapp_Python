@@ -13,6 +13,8 @@ import sys
 import threading
 import uuid
 import wx
+from main_window.typing_feedback import stop_typing_sound
+from core.typing_sound import load_typing_sound
 from core.sound_system import (
     DEFAULT_PACK_ID,
     SOUND_EVENTS,
@@ -1476,6 +1478,7 @@ class SettingsMixin:
         Safe to call again after Settings > Sound Events changes to pick up
         a new active pack / enabled / per-event override without restarting.
         """
+        stop_typing_sound(self)
         active_pack = self.get_active_sound_pack()
         default_pack = self._default_sound_pack
         pack_id = active_pack.get("id") if active_pack else DEFAULT_PACK_ID
@@ -1483,6 +1486,10 @@ class SettingsMixin:
         for key, _default_filename in SOUND_EVENTS:
             cfg = events_cfg.get(key) or {}
             override_path = cfg.get("path", "")
+            if key == "typing":
+                self.typing_sound = load_typing_sound(
+                    self.sound_system, active_pack, default_pack, override_path, pack_id)
+                continue
             resolved = resolve_sound_event_path(active_pack, default_pack, key, override_path)
             if resolved:
                 setattr(

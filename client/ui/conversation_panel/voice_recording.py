@@ -14,6 +14,7 @@ import time
 import uuid
 import wave
 import wx
+from main_window.typing_feedback import stop_typing_for_capture
 from core.message_queue import PendingMessage
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 from core.voice_stereo import STEREO_BITRATE, STEREO_MIMETYPE, encode_as_stereo
@@ -168,6 +169,7 @@ class VoiceRecordingMixin:
             self.main_window.output(self.main_window.i18n.t("voice_recording_unavailable"))
             return
 
+        stop_typing_for_capture(self.main_window)
         self._recording_frames = []
         # An old mic callback may finish after discard and mixed capture
         # starts. Keep it bound to its own list, never the next session's.

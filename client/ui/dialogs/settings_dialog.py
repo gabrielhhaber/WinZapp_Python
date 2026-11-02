@@ -2,6 +2,8 @@ import ctypes
 import os
 import sys
 import wx
+from ui.dialogs.typing_feedback_controls import TypingFeedbackControls
+from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
 from core import connection_engine as engines
 from core.listed_chats import channels_listed
@@ -756,6 +758,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # ── Sound Events tab ─────────────────────────────────────────────────
         self._sound_events_page = ScrollingPage(self._notebook)
         se_sizer = wx.BoxSizer(wx.VERTICAL)
+        self._typing_feedback = TypingFeedbackControls(self, self._sound_events_page, se_sizer)
 
         self._sound_pack_label = wx.StaticText(
             self._sound_events_page, label=i18n.t("sound_pack_label")
@@ -794,6 +797,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         se_sizer.Add(self._sound_event_path_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
         self._sound_event_path_field = wx.TextCtrl(self._sound_events_page, style=wx.TE_DONTWRAP)
         se_sizer.Add(self._sound_event_path_field, 0, wx.EXPAND | wx.ALL, 8)
+        self._sound_event_files = SoundEventFiles(self, self._sound_events_page, se_sizer)
 
         se_btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self._activate_all_btn = wx.Button(
@@ -975,7 +979,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._alert_group_custom_field.Bind(wx.EVT_TEXT, self._on_alert_custom_path_changed)
 
         # Preview buttons — sharing a group so starting one stops the other.
-        _alert_preview_group = []
+        _alert_preview_group = self._sound_event_files.preview.group
         self._alert_private_preview = AlertPreviewController(
             self.main_window, self._alert_private_preview_btn,
             lambda: self._resolve_alert_preview_path("private"),
@@ -2523,6 +2527,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         speech = self.main_window.settings.get("speech_content", {})
         self._announce_typing_check.SetValue(speech.get("announce_typing", True))
+        self._typing_feedback.load(self.main_window.settings)
         self._announce_recording_check.SetValue(speech.get("announce_recording", True))
         self._announce_conversations_update_start_check.SetValue(
             speech.get("announce_conversations_update_start", True)
@@ -3068,6 +3073,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             self._load_chat_lock_values()
 
     def _on_sound_event_selected(self, event):
+        self._sound_event_files.preview.stop()
         self._update_sound_event_path_display()
 
     def _on_sound_event_list_key_down(self, event):
@@ -3936,6 +3942,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             "sapi_fallback_enabled"
         ] = self._sapi_fallback_check.GetValue()
 
+        self._sound_event_files.preview.stop()
+        self._typing_feedback.apply(self.main_window.settings)
         # Spoken content: typing/recording announcements
         self.main_window.settings.setdefault("speech_content", {})[
             "announce_typing"
@@ -4504,6 +4512,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._selected_announce_start_rb.SetLabel(i18n.t("ui_selected_announce_position_start"))
         self._selected_announce_end_rb.SetLabel(i18n.t("ui_selected_announce_position_end"))
         self._announce_typing_check.SetLabel(i18n.t("speech_announce_typing_label"))
+        self._typing_feedback.relabel()
+        self._sound_event_files.relabel()
         self._announce_recording_check.SetLabel(i18n.t("speech_announce_recording_label"))
         self._announce_conversations_update_start_check.SetLabel(
             i18n.t("speech_announce_conversations_update_start_label")
@@ -4596,6 +4606,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         event.Skip()
 
     def _stop_alert_previews(self):
+        self._sound_event_files.preview.stop()
         self._alert_private_preview.stop()
         self._alert_group_preview.stop()
         pending = getattr(self, "_alert_path_check", None)
