@@ -21,6 +21,7 @@ from core.spell_checker import SPELL_CHECK_MODES, spell_check_mode
 from core.emoticons import emoticon_setting_enabled
 from core.notification_manager import NOTIFICATION_CONTENT_LEVELS
 from core.attachment_types import PASTED_AUDIO_MODES
+from core.voice_stereo import CHANNEL_MODES, channel_mode
 from core.reaction_shortcuts import (
     DEFAULT_QUICK_REACTIONS,
     assign_quick_reaction,
@@ -667,6 +668,18 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         adev_sizer.Add(self._noise_reduction_check, 0, wx.ALL, 8)
         self._build_noise_model_section(self._audio_devices_page, adev_sizer)
+
+        # How voice messages are recorded, in the order of
+        # core.voice_stereo.CHANNEL_MODES.
+        self._voice_channels_radio = wx.RadioBox(
+            self._audio_devices_page,
+            label=i18n.t("voice_channels_label"),
+            choices=[i18n.t("voice_channels_auto"), i18n.t("voice_channels_mono"),
+                     i18n.t("voice_channels_stereo")],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_COLS,
+        )
+        adev_sizer.Add(self._voice_channels_radio, 0, wx.EXPAND | wx.ALL, 8)
 
         # What an audio file pasted into the message field (Ctrl+V) is sent
         # as, in the order of core.attachment_types.PASTED_AUDIO_MODES.
@@ -2557,6 +2570,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         noise_red = self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False)
         self._noise_reduction_check.SetValue(noise_red)
+        self._voice_channels_radio.SetSelection(
+            CHANNEL_MODES.index(channel_mode(self.main_window.settings)))
 
         # Sound events / packs
         self.main_window.refresh_sound_packs()
@@ -4017,6 +4032,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self.main_window.settings.setdefault("general", {})["noise_reduction_enabled"] = (
             self._noise_reduction_check.GetValue()
         )
+        self.main_window.settings.setdefault("general", {})["voice_message_channels"] = (
+            CHANNEL_MODES[self._voice_channels_radio.GetSelection()]
+        )
 
         # Notifications
         self.main_window.settings.setdefault("general", {})["notifications_enabled"] = (
@@ -4382,6 +4400,10 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._audio_effects_label.SetLabel(i18n.t("audio_effects_output_device_label"))
         self._reload_audio_device_choices()
         self._noise_reduction_check.SetLabel(i18n.t("noise_reduction_label"))
+        self._voice_channels_radio.SetLabel(i18n.t("voice_channels_label"))
+        self._voice_channels_radio.SetItemLabel(0, i18n.t("voice_channels_auto"))
+        self._voice_channels_radio.SetItemLabel(1, i18n.t("voice_channels_mono"))
+        self._voice_channels_radio.SetItemLabel(2, i18n.t("voice_channels_stereo"))
         self._relabel_noise_model_section()
         self._notifications_check.SetLabel(i18n.t("notifications_label"))
         self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))

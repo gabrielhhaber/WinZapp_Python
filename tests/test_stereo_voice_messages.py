@@ -1,8 +1,9 @@
-"""Stereo voice messages (issue #82): one record button, no mode.
+"""Stereo voice messages (issue #82): one record button.
 
-What the input device delivers decides: two channels send a stereo voice
-message, anything else a mono one. The channels are never compared for likeness,
-only for a side that is empty (issue #679). iPhone
+By default what the input device delivers decides: two channels send a stereo
+voice message, anything else a mono one. The channels are never compared for
+likeness, only for a side that is empty (issue #679), and Settings can override
+it all (issue #677). iPhone
 cannot play stereo OGG/Opus at any bitrate but plays stereo AAC-LC M4A, also as
 a voice message, so stereo is M4A through the same /send-voice-base64 route;
 tests/test_system_audio_m4a.py runs that through the real pipeline.
@@ -25,8 +26,9 @@ from core import audio_devices
 from core.message_queue import PendingMessage
 from core.utils import DEFAULT_SETTINGS, backfill_missing_defaults
 from core.voice_stereo import (
-    STEREO_MIMETYPE, drop_empty_side, encode_as_stereo, opus_encode_args,
-    recording_configs_preferring, voice_data_uri,
+    CHANNEL_MODES, STEREO_MIMETYPE, channel_mode, drop_empty_side,
+    encode_as_stereo, opus_encode_args, recording_configs_preferring,
+    voice_data_uri,
 )
 from main import MainWindow
 from ui.conversations import ConversationsPanel
@@ -134,6 +136,57 @@ class TestAnEmptySideIsNotStereo:
         pcm = self._interleaved(self._voice(), np.zeros(self.FRAMES)) + b"\x01"
         assert drop_empty_side(pcm, 2)[1] == 1
 
+    def test_chosen_stereo_keeps_the_empty_side(self):
+        """Issue #677: stereo as the device delivers it, unexamined."""
+        pcm = self._interleaved(self._voice(), np.zeros(self.FRAMES))
+        assert drop_empty_side(pcm, 2, "stereo") == (pcm, 2)
+
+    def test_chosen_mono_still_takes_the_live_side_alone(self):
+        voice = self._voice()
+        pcm = self._interleaved(voice, np.zeros(self.FRAMES))
+        assert drop_empty_side(pcm, 2, "mono") == (voice.tobytes(), 1)
+
+
+class TestTheChannelsSetting:
+    """Issue #677: the choice that went away with the second record button."""
+
+    @pytest.mark.parametrize("mode", CHANNEL_MODES)
+    def test_every_mode_reads_back(self, mode):
+        assert channel_mode({"general": {"voice_message_channels": mode}}) == mode
+
+    @pytest.mark.parametrize("settings", [
+        None, {}, {"general": None}, {"general": {}},
+        {"general": {"voice_message_channels": "quad"}},
+    ])
+    def test_anything_else_is_automatic(self, settings):
+        assert channel_mode(settings) == "auto"
+
+    def test_a_new_install_stays_on_automatic(self):
+        assert DEFAULT_SETTINGS["general"]["voice_message_channels"] == "auto"
+        root = Path(__file__).parents[1] / "client"
+        defaults = json.loads((root / "data" / "settings_default.json").read_text(encoding="utf-8"))
+        assert defaults["general"]["voice_message_channels"] == "auto"
+
+    def test_an_install_from_before_the_option_gets_automatic(self):
+        stored = {"general": {}}
+        backfill_missing_defaults(stored, DEFAULT_SETTINGS)
+        assert stored["general"]["voice_message_channels"] == "auto"
+
+    @pytest.mark.parametrize("mode, stereo", [("auto", True), ("stereo", True), ("mono", False)])
+    def test_two_channels_go_out_as_the_mode_says(self, mode, stereo):
+        assert encode_as_stereo(2, mode) is stereo
+
+    def test_chosen_stereo_cannot_invent_a_second_channel(self):
+        assert encode_as_stereo(1, "stereo") is False
+
+    def test_the_choice_lists_the_modes_in_order(self):
+        """The radio box's positions are the indices of CHANNEL_MODES."""
+        assert CHANNEL_MODES == ("auto", "mono", "stereo")
+        source = (Path(__file__).parents[1] / "client" / "ui" / "dialogs"
+                  / "settings_dialog.py").read_text(encoding="utf-8")
+        order = [source.index(f'i18n.t("voice_channels_{mode}")') for mode in CHANNEL_MODES]
+        assert order == sorted(order)
+
 
 # ── The second button and its option are gone ─────────────────────────────────
 
@@ -147,7 +200,7 @@ def test_no_record_mode_is_left():
     root = Path(__file__).parents[1] / "client"
     defaults = json.loads((root / "data" / "settings_default.json").read_text(encoding="utf-8"))
     assert "voice_message_stereo" not in defaults["general"]
-    assert "voice_stereo" not in (root / "ui" / "dialogs" / "settings_dialog.py").read_text(encoding="utf-8")
+    assert "_voice_stereo_check" not in (root / "ui" / "dialogs" / "settings_dialog.py").read_text(encoding="utf-8")
 
 
 def test_an_old_settings_file_with_the_removed_key_still_loads():
