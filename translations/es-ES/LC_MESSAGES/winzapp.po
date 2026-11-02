@@ -12520,7 +12520,7 @@ msgstr "Reproducir/Pausar estado"
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "status_played"
 msgid "Played"
-msgstr "Reproducida"
+msgstr "Reproducido"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py

@@ -222,6 +222,8 @@ NOWOŚCI
 
 - Redukcja szumów mikrofonu w wiadomościach głosowych może teraz korzystać z modelu neuronowego: przy zaznaczonej opcji "Włącz redukcję szumów mikrofonu" w Ustawieniach, Dźwięk ta sama strona oferuje pobranie modelu; pobieranie odbywa się raz, przez internet, a nagrania nadal są przetwarzane na tym komputerze. Bez modelu, albo gdy nie można go użyć w nagraniu, WinZapp używa podstawowej bramki szumów jak dotychczas i o tym informuje. Jeśli redukcji szumów nie można zastosować wcale, wiadomość jest wysyłana bez przetwarzania i WinZapp również o tym informuje.
 
+- Hiszpański: etykieta odtworzonej wiadomości głosowej brzmi teraz „Reproducido” zamiast „Reproducida”, tak jak „Enviado”, „Entregado” i „Leído”.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.
