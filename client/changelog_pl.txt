@@ -226,6 +226,8 @@ NOWOŚCI
 
 - Hiszpański: etykieta odtworzonej wiadomości głosowej brzmi teraz „Reproducido” zamiast „Reproducida”, tak jak „Enviado”, „Entregado” i „Leído”.
 
+- Hiszpański: tłumaczenie używa teraz konsekwentnie „chat/chats” zamiast mieszać to z „conversación/conversaciones”, a w powiązanych tekstach, także w podręczniku użytkownika, poprawiono zgodność rodzaju i liczby.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

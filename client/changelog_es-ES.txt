@@ -226,6 +226,8 @@ NOVEDADES
 
 - Español: la etiqueta de un mensaje de voz reproducido ahora dice «Reproducido» en lugar de «Reproducida», igual que «Enviado», «Entregado» y «Leído».
 
+- Español: la traducción ahora usa «chat/chats» de forma coherente, en lugar de mezclarlo con «conversación/conversaciones», y se corrige la concordancia de género y número en los textos relacionados, incluida la guía del usuario.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

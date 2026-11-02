@@ -226,6 +226,8 @@ WHAT'S NEW
 
 - Spanish: the label for a played voice message now reads "Reproducido" instead of "Reproducida", matching "Enviado", "Entregado" and "Leído".
 
+- Spanish: the translation now says "chat/chats" consistently instead of mixing it with "conversación/conversaciones", and the gender and number agreement is fixed in the related texts, including the user guide.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

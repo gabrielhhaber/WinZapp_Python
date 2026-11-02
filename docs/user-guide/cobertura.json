@@ -115,6 +115,7 @@
     "c3eb1e29fe8c": "Mensagens de voz: as gravações em mono e em estéreo são enviadas a até 256 kbps.",
     "0c0e8d0108e5": "Neonize: as mensagens de voz em estéreo agora saem com o tipo audio/mp4, o que o",
     "23a78b4b6495": "A redução de ruído do microfone das mensagens de voz agora pode usar um modelo n",
-    "3a68ef8a56d5": "Espanhol: o rótulo de uma mensagem de voz reproduzida agora diz \"Reproducido\" em"
+    "3a68ef8a56d5": "Espanhol: o rótulo de uma mensagem de voz reproduzida agora diz \"Reproducido\" em",
+    "81223f165728": "Espanhol: a tradução agora usa \"chat/chats\" de forma consistente, em vez de mist"
   }
 }
