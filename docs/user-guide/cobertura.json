@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "4ab1883be4d9": "Corrigido: o servidor do WPPConnect não deixa mais de iniciar com \"Cannot find m",
     "6c8979d0440e": "Neonize: se a internet cai no meio de uma ligação, você ainda consegue desligar;",
     "5b442f40155a": "O WPPConnect Server 2.10.74 agora é oferecido como atualização sem esperar por u",
     "a6e881704076": "Neonize: um arquivo ou mensagem que você encaminha agora aparece na hora na conv",
@@ -113,6 +114,8 @@
     "a28b84980f57": "Neonize: mensagens de voz, fotos e documentos não se perdem mais quando a biblio",
     "c3eb1e29fe8c": "Mensagens de voz: as gravações em mono e em estéreo são enviadas a até 256 kbps.",
     "0c0e8d0108e5": "Neonize: as mensagens de voz em estéreo agora saem com o tipo audio/mp4, o que o",
-    "23a78b4b6495": "A redução de ruído do microfone das mensagens de voz agora pode usar um modelo n"
+    "23a78b4b6495": "A redução de ruído do microfone das mensagens de voz agora pode usar um modelo n",
+    "3a68ef8a56d5": "Espanhol: o rótulo de uma mensagem de voz reproduzida agora diz \"Reproducido\" em",
+    "81223f165728": "Espanhol: a tradução agora usa \"chat/chats\" de forma consistente, em vez de mist"
   }
 }

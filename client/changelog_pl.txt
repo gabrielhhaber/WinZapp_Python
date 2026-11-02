@@ -4,15 +4,17 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Naprawiono: serwer WPPConnect nie przestaje już uruchamiać się z błędem "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") po aktualizacji lub świeżej instalacji.
+
 - Neonize: jeśli internet zniknie w trakcie rozmowy, nadal możesz się rozłączyć; wcześniej przycisk kończył się błędem "Disconnected".
 
 - WPPConnect Server 2.10.74 jest teraz oferowany jako aktualizacja bez czekania na nową wersję WinZapp. Aktualizuje tylko dokumentację i zależność związaną z bezpieczeństwem i nie wpływa na zmiany, które WinZapp wprowadza w serwerze.
 
-- Neonize: przekazany plik lub wiadomość pojawia się teraz od razu w rozmowie docelowej, bez ręcznego odświeżania rozmowy.
+- Neonize: przekazany plik lub wiadomość pojawia się teraz od razu w czacie docelowym, bez ręcznego odświeżania czatu.
 
 - Mac: sprawdzanie aktualizacji nie kończy się już błędem bezpiecznego połączenia na komputerach Mac bez Pythona z python.org. Już zainstalowane wersje wymagają jednorazowej ręcznej instalacji, aby otrzymać tę poprawkę.
 
-- Grupy: gdy ktoś pisze, WinZapp ogłasza teraz jego imię zamiast samego numeru telefonu, jeśli widziałeś wcześniej wiadomość od tej osoby, nawet gdy nie ma jej w kontaktach.
+- Grupy: gdy ktoś pisze, WinZapp ogłasza teraz jego nazwę zamiast samego numeru telefonu, jeśli widziałeś wcześniej wiadomość od tej osoby, nawet gdy nie ma jej w kontaktach.
 
 - Mac: można teraz nagrywać mikrofon razem z dźwiękiem komputera (Command+Shift+H) w macOS 14.4 i nowszym. Za pierwszym razem macOS prosi o zgodę na nagrywanie dźwięku systemowego.
 
@@ -21,7 +23,7 @@ NOWOŚCI
 - Połączenia Neonize: połączenie, które wykonujesz, a nikt nie odbiera, kończy się teraz samo po minucie z wynikiem „nieodebrane”, zamiast dzwonić w oknie połączenia przez kilka minut po tym, jak WhatsApp przestał dzwonić na drugim telefonie.
 - Mac: WinZapp informuje teraz, gdy macOS czeka na zgodę na mikrofon lub gdy jej odmówiono, zamiast sprawiać wrażenie, że przycisk nagrywania nie działa.
 
-- Wiadomości głosowe: jest teraz jeden przycisk nagrywania. WinZapp nagrywa w stereo, gdy urządzenie wejściowe oferuje dwa kanały, a w pozostałych przypadkach w mono, więc drugi przycisk, Ctrl+Shift+G i opcja stereo zniknęły. Nagranie stereo jest teraz prawdziwą wiadomością głosową, która odtwarza się na iPhonie, a jakość wzrosła do 256 kb/s. Załączony plik Opus stereo jest teraz konwertowany, aby odtwarzał się także na iPhonie.
+- Wiadomości głosowe: jest teraz jeden przycisk nagrywania. WinZapp nagrywa w stereo, gdy urządzenie wejściowe oferuje dwa kanały, a w pozostałych przypadkach w mono, więc drugi przycisk, Ctrl+Shift+G i opcja stereo zniknęły. Nagranie stereo jest teraz prawdziwą wiadomością głosową, która odtwarza się na iPhonie, a przepływność nagrań zwiększono do 256 kb/s. Załączony plik Opus stereo jest teraz konwertowany, aby odtwarzał się także na iPhonie.
 
 - Załączone kontakty: odebrany kontakt nie przychodzi już pusty i bez numeru telefonu. Wizytówka kontaktu jest teraz zachowywana zarówno w WPPConnect, jak i w Neonize, więc można zobaczyć i skopiować numer oraz napisać do tej osoby.
 
@@ -39,7 +41,7 @@ NOWOŚCI
 
 - Po zaakceptowaniu aktualizacji WinZapp ponownie sprawdza, która wersja jest najnowsza, zanim zacznie pobierać, więc nie instaluje już alfy starszej niż najnowsza, gdy alfy są publikowane jedna po drugiej.
 
-- Połączenia przez Neonize: naprawiono wyścig, przez który odebrane połączenie przychodzące mogło pozostać bez dźwięku, zachowano wieloramkowy odbierany dźwięk i ograniczono aliasing przy konwersji sygnału mikrofonu. Dźwięk korzysta teraz z wynegocjowanego kodeka, z ograniczonym buforem zmiany kolejności pakietów i obsługą strat.
+- Połączenia przez Neonize: naprawiono błąd, przez który po odebraniu połączenia przychodzącego mogło nie być dźwięku. Poprawiono też odbiór pakietów zawierających wiele ramek dźwięku oraz ograniczono zniekształcenia związane z aliasingiem podczas konwersji sygnału mikrofonu. Dźwięk korzysta teraz z wynegocjowanego kodeka, z buforem o ograniczonym rozmiarze, który porządkuje odebrane pakiety, oraz obsługą utraty pakietów.
 
 - WPPConnect Server zaktualizowany do wersji 2.10.71, która dodaje poprawkę luki w bibliotece używanej przez warstwę przeglądarki (deepmerge) i ładuje ją przy uruchomieniu serwera.
 
@@ -47,11 +49,11 @@ NOWOŚCI
 
 - Język arabski jest teraz dostępny w ustawieniach języka programu oraz w instalatorze i deinstalatorze systemu Windows.
 
-- WPPConnect Server zaktualizowany do wersji 2.10.70, która zaostrza swoje trasy administracyjne (wyświetlanie i kopia zapasowa sesji wymagają teraz tajnego klucza w nagłówku, a nie w adresie), foldery sesji usuwane przy wylogowaniu oraz sposób dzielenia list kontaktów. Czyszczenie sesji przy zamykaniu z własnym API zostało dostosowane do tej zmiany.
+- WPPConnect Server zaktualizowany do wersji 2.10.70, która dodatkowo zabezpiecza operacje administracyjne (wyświetlanie listy sesji i tworzenie ich kopii zapasowej wymagają teraz tajnego klucza w nagłówku, a nie w adresie), zmienia obsługę folderów sesji usuwanych przy wylogowaniu oraz sposób dzielenia list kontaktów. Czyszczenie sesji przy zamykaniu z własnym API zostało dostosowane do tej zmiany.
 
 - Połączenie grupowe, które zadzwoniło i nie zostało odebrane, jest teraz zapisywane w swojej grupie, a powiadomienie o połączeniu podaje grupę: nie pojawia się już jako prywatne połączenie od osoby, która je rozpoczęła.
 
-- Nowy silnik połączenia, eksperymentalny: Neonize łączy się z WhatsApp bez przeglądarki, przez lokalny most. Wybierz go w Ustawieniach, Połączenie (lub w pytaniu przy pierwszym uruchomieniu) i uruchom WinZapp ponownie; WPPConnect nadal jest domyślny. Skompilowane wersje zawierają już most i zachowują obok niego zainstalowany WPPConnect; z klonu repozytorium przygotuj most poleceniem neonize_bridge/prepare.py (zobacz README w tym folderze). Przy pierwszym uruchomieniu po aktualizacji osoba, która nadal używa WPPConnect, zobaczy jednorazowe powiadomienie z propozycją zmiany; każdy silnik zachowuje własne połączenie, więc przełączenie i powrót nie tracą żadnego. Z Neonize działają też własne listy czatów, dołączanie do grup społeczności (lub prośba o dołączenie) i anulowanie tej prośby, dezaktywacja społeczności, edytowanie i usuwanie własnych kanałów, wybór, kto widzi Twój status, oraz usuwanie kontaktu. Z Neonize działają też katalogi, koszyki i zamówienia (przeglądanie katalogu firmy, kompletowanie i wysyłanie koszyka oraz, na koncie Business, odpowiadanie na zamówienia i zarządzanie własnym katalogiem), a także przyciski, listy i klucze Pix w wiadomościach. Z Neonize działa też przekazywanie lokalizacji i wizytówek kontaktów. Z Neonize działają też połączenia wideo, przełączanie połączenia głosowego na wideo oraz połączenia grupowe. Z Neonize społeczność pokazuje też grupy, do których nie należysz. Z Neonize można też znaleźć trwające połączenia grupowe, dołączyć do nich i zobaczyć, kto w nich jest. Przyciski połączeń w czatach, w tym dołączania do trwającego połączenia grupowego, odpowiadają obsłudze zgłaszanej przez Neonize i aktualizują się po otrzymaniu odpowiedzi, bez przenoszenia fokusu z innego okna ani do ukrytego czatu. Nazwy profili otrzymane podczas synchronizacji kontaktów są też używane dla uczestników grup bez czatu prywatnego; nazwy zapisane w książce adresowej nadal mają pierwszeństwo.
+- Nowy silnik połączenia, eksperymentalny: Neonize łączy się z WhatsApp bez przeglądarki, przez lokalny most. Wybierz go w Ustawieniach, Połączenie (lub w pytaniu przy pierwszym uruchomieniu) i uruchom WinZapp ponownie; WPPConnect nadal jest domyślny. Skompilowane wersje zawierają już most i zachowują obok niego zainstalowany WPPConnect; z klonu repozytorium przygotuj most poleceniem neonize_bridge/prepare.py (zobacz README w tym folderze). Przy pierwszym uruchomieniu po aktualizacji osoba, która nadal używa WPPConnect, zobaczy jednorazowe powiadomienie z propozycją zmiany; każdy silnik zachowuje własną sesję połączenia, więc po powrocie do poprzedniego silnika można ją wznowić. Z Neonize działają też własne listy czatów, dołączanie do grup społeczności (lub prośba o dołączenie) i anulowanie tej prośby, dezaktywacja społeczności, edytowanie i usuwanie własnych kanałów, wybór, kto widzi Twój status, oraz usuwanie kontaktu. Z Neonize działają też katalogi, koszyki i zamówienia (przeglądanie katalogu firmy, kompletowanie i wysyłanie koszyka oraz, na koncie Business, odpowiadanie na zamówienia i zarządzanie własnym katalogiem), a także przyciski, listy i klucze Pix w wiadomościach. Z Neonize działa też przekazywanie lokalizacji i wizytówek kontaktów. Z Neonize działają też połączenia wideo, przełączanie połączenia głosowego na wideo oraz połączenia grupowe. Z Neonize społeczność pokazuje też grupy, do których nie należysz. Z Neonize można też znaleźć trwające połączenia grupowe, dołączyć do nich i zobaczyć, kto w nich jest. Przyciski połączeń w czatach, w tym dołączania do trwającego połączenia grupowego, odpowiadają obsłudze zgłaszanej przez Neonize i aktualizują się po otrzymaniu odpowiedzi, bez przenoszenia fokusu z innego okna ani do ukrytego czatu. Nazwy profili otrzymane podczas synchronizacji kontaktów są też używane dla uczestników grup bez czatu prywatnego; nazwy zapisane w książce adresowej nadal mają pierwszeństwo.
 
 - Użyj przycisku Uczestnicy połączenia w oknie połączenia lub przy zaznaczonym trwającym połączeniu w sekcji Połączenia, aby zobaczyć nazwy połączonych osób.
 
@@ -168,11 +170,11 @@ NOWOŚCI
 
 - Neonize: nazwa zapisanego kontaktu nie jest już co minutę zastępowana nazwą profilu, którą ta osoba ustawiła w swoim WhatsAppie (ani nazwą, jaką telefon nadał czatowi). Nazwa nadana kontaktowi zostaje; nazwa profilu pojawia się tylko przy osobach, które nie są zapisane w kontaktach.
 
-- Połączenia w Neonize: WinZapp odtwarza teraz dźwięki, które wcześniej odtwarzał za Ciebie WhatsApp Web. Gdy drugi telefon dzwoni, słychać sygnał połączenia o wysokości i rytmie kraju, do którego dzwonisz, a podczas łączenia i ponownego łączenia rozbrzmiewają krótkie sygnały. Dźwięki tworzy sam WinZapp; z silnikiem WPPConnect nic się nie zmienia.
+- Połączenia w Neonize: WinZapp odtwarza teraz dźwięki, które wcześniej odtwarzał za Ciebie WhatsApp Web. Gdy drugi telefon dzwoni, słychać sygnał oczekiwania na odebranie połączenia, o wysokości i rytmie właściwych dla kraju, do którego dzwonisz, a podczas łączenia i ponownego łączenia rozbrzmiewają krótkie sygnały. Dźwięki tworzy sam WinZapp; z silnikiem WPPConnect nic się nie zmienia.
 
-- Połączenia w Neonize: gdy odebrane połączenie się kończy, WinZapp odtwarza dźwięk zakończenia połączenia z WhatsAppa. To nowe zdarzenie dźwiękowe, "Połączenie zakończone", które podąża za pakietem dźwięków i można je wyłączyć lub zastąpić w zdarzeniach dźwiękowych. Z silnikiem WPPConnect WhatsApp Web nadal odtwarza własny dźwięk.
+- Połączenia w Neonize: gdy odebrane połączenie się kończy, WinZapp odtwarza dźwięk zakończenia połączenia z WhatsAppa. To nowe zdarzenie dźwiękowe, "Połączenie zakończone", które korzysta z wybranego pakietu dźwięków i można je wyłączyć lub zmienić w Ustawienia > Dźwięki zdarzeń. Z silnikiem WPPConnect WhatsApp Web nadal odtwarza własny dźwięk.
 
-- Wiadomości głosowe i nagrania audio, które się nie odtwarzały: gdy karta dźwiękowa była niedostępna w chwili otwarcia wyjścia audio przez WinZapp (na przykład po wybudzeniu komputera), żadna wiadomość głosowa nie była odtwarzana do ponownego uruchomienia WinZapp i nic nie mówiło dlaczego. Teraz WinZapp próbuje przywrócić wyjście audio, gdy odtwarzanie się nie powiedzie, a jeśli nadal nie może odtworzyć, informuje o tym czytnikiem ekranu.
+- Wiadomości głosowe i nagrania audio, które się nie odtwarzały: gdy karta dźwiękowa była niedostępna w chwili otwarcia wyjścia audio przez WinZapp (na przykład po wybudzeniu komputera), nie można było odtwarzać wiadomości głosowych aż do ponownego uruchomienia WinZappa, a program nie informował o przyczynie. Teraz WinZapp próbuje przywrócić wyjście audio, gdy odtwarzanie się nie powiedzie, a jeśli nadal nie może odtworzyć, informuje o tym czytnikiem ekranu.
 
 - Neonize: czaty, które zdawały się znikać. WhatsApp nie podaje daty aktywności większości starych czatów, a WinZapp brał je za puste i nie zachowywał ich po wyczyszczeniu danych lokalnych (na przykład po F5 do ponownej synchronizacji): konto z ponad 160 czatami wracało z 37. Teraz most datuje każdy czat według jego najnowszej wiadomości i wracają wszystkie.
 
@@ -182,7 +184,7 @@ NOWOŚCI
 
 - Kanały na liście czatów: nowa opcja "Pokaż kanały na liście czatów" w Ustawieniach, Interfejs, Czaty, domyślnie wyłączona, trzyma kanały poza listą czatów. Włącz ją, aby znów je tam widzieć.
 
-- Przełączanie między WPPConnect a Neonize: oba silniki używają portu 6300, a program brał silnik, który właśnie przestał być używany i jeszcze się zamykał, za wybrany. Wybór WPPConnect kończył się komunikatem "nie otrzymano kodu parowania", a przełączenie na Neonize pokazywało łączenie i tryb offline do ponownego uruchomienia. Teraz WinZapp najpierw robi miejsce (zatrzymuje most Neonize albo czeka na zamknięcie serwera WPPConnect), a druga kopia WinZapp w innym folderze nie dołącza już do mostu pierwszej.
+- Przełączanie między WPPConnect a Neonize: oba silniki używają portu 6300, a program brał silnik, który właśnie przestał być używany i jeszcze się zamykał, za wybrany. Wybór WPPConnect kończył się komunikatem "nie otrzymano kodu parowania", a przełączenie na Neonize pokazywało łączenie i tryb offline do ponownego uruchomienia. Teraz WinZapp najpierw zwalnia port 6300 (zatrzymuje most Neonize albo czeka na zamknięcie serwera WPPConnect), a druga kopia WinZapp w innym folderze nie dołącza już do mostu pierwszej.
 
 - Okno parowania ma teraz listę „Silnik połączenia” przed krajem, aby osoba, która jeszcze nie sparowała konta, mogła wybrać WPPConnect lub Neonize bez wchodzenia do Ustawień. Po wyborze WinZapp prosi o potwierdzenie i uruchamia się ponownie z wybranym silnikiem.
 
@@ -190,37 +192,41 @@ NOWOŚCI
 
 - Neonize: jeśli most zniknie, gdy WinZapp jest otwarty (na przykład poprzednie uruchomienie, które jeszcze się zamykało, zatrzymuje go zaraz po tym, jak to uruchomienie go przyjęło, co zdarzało się przy przełączaniu na Neonize z powiadomienia przy starcie), WinZapp sam uruchamia go ponownie, zamiast pozostawać w stanie „łączenie” i potem offline do następnego restartu.
 
-- Neonize: gdy ostatni WinZapp się zamyka, most jest teraz proszony o zamknięcie połączeń i baz danych WhatsApp oraz o samodzielne zakończenie; zatrzymywany siłą jest dopiero wtedy, gdy nie zrobi tego w 10 sekund. Wcześniej był zawsze od razu zabijany, co mogło przerwać zapis.
+- Neonize: po zamknięciu ostatniej instancji WinZappa most otrzymuje polecenie zamknięcia połączeń i baz danych WhatsAppa oraz zakończenia pracy. Jest przymusowo zatrzymywany dopiero wtedy, gdy nie zakończy się w ciągu 10 sekund. Wcześniej zatrzymywano go od razu, co mogło przerwać zapis danych.
 
 - Neonize: kod QR parowania nie jest już ucięty w oknie połączenia. Jest teraz pokazywany w całości, w rozmiarze, który aparat telefonu potrafi odczytać.
 
 - W Ustawieniach > Zaawansowane jest nowy przycisk "Eksportuj logi tego konta...". Zapisuje w tle plik .zip z logami bieżącego konta (i mostu Neonize) i ogłasza wynik.
 
-- Ustawienia > Skróty: nowe pole przechwytuje naciskane klawisze i od razu wyświetla pasujące polecenia we wszystkich kategoriach, ogłaszając ich liczbę, z przyciskiem czyszczącym wyszukiwanie. Drzewo skrótów nie ogłasza już niepożądanych zaznaczeń podczas pisania, jest budowane tylko raz po otwarciu Ustawień, klawisz Esc zamyka okno bez błędów, a po zastosowaniu zmian fokus przechodzi na przycisk OK.
+- Ustawienia > Interfejs > Skróty klawiszowe: nowe pole przechwytuje naciskane klawisze i od razu wyświetla pasujące polecenia we wszystkich kategoriach, ogłaszając ich liczbę, z przyciskiem czyszczącym wyszukiwanie. Drzewo skrótów nie ogłasza już niepożądanych zaznaczeń podczas pisania, jest budowane tylko raz po otwarciu Ustawień, klawisz Esc zamyka okno bez błędów, a po zastosowaniu zmian fokus przechodzi na przycisk OK.
 
-- Automatyczna transkrypcja rozmowy jest teraz pojedynczym wyborem w oknie danych rozmowy lub grupy: Brak, Online z AI albo Lokalnie z Whisper. Ta sama wiadomość nigdy nie jest transkrybowana dwa razy, a niespójne ustawienia są odrzucane.
+- Automatyczna transkrypcja czatu jest teraz pojedynczym wyborem w oknie informacji o czacie lub grupie: „Brak”, „Online, za pomocą usług AI” albo „Lokalnie, za pomocą Whispera”. Ta sama wiadomość nigdy nie jest transkrybowana dwa razy, a niespójne ustawienia są odrzucane.
 
 - WinZapp uruchamia się i otwiera Ustawienia szybciej: do bazy danych zapisywane są tylko kontakty, które naprawdę się zmieniły, wyciszono dziennik debugowania każdego zapytania do bazy (setki MB), a niekompletne foldery Chrome pozostawione przez przerwane pobierania są czyszczone.
 
-- F5 nie duplikuje już na jakiś czas rozmów na liście: powiązanie adresu @lid z numerem telefonu jest zachowywane podczas ponownego wczytywania tego samego konta.
+- Po naciśnięciu F5 czaty nie pojawiają się już tymczasowo podwójnie na liście: powiązanie adresu @lid z numerem telefonu jest zachowywane podczas ponownego wczytywania tego samego konta.
 
-- Reakcje odebrane przez adres @lid trafiają teraz do rozmowy zapisanej pod numerem telefonu (i odwrotnie), dzięki czemu są poprawnie widoczne w podglądzie, na liście i w powiadomieniach na żywo.
+- Reakcje odebrane przez adres @lid trafiają teraz do czatu zapisanego pod numerem telefonu (i odwrotnie), dzięki czemu są poprawnie widoczne w podglądzie, na liście i w powiadomieniach na żywo.
 
 - "Odpowiedzi na ogłoszenie społeczności" pojawia się teraz tylko w grupach ogłoszeń społeczności, a nie w zwykłych grupach.
 
 - WPPConnect: oznaczanie wiadomości gwiazdką i polubienie statusu znów działają.
 
-- Neonize: synchronizacja stanu aplikacji nie powoduje już konfliktów, które psuły stan przeczytania rozmów; oznaczenie rozmowy jako przeczytanej nie wstrzymuje już wysyłania wiadomości; wiadomości wysyłane do rozmowy z znikającymi wiadomościami niosą jej licznik; potwierdzenia odczytu respektują opcję prywatności WhatsApp (ciche potwierdzenia, gdy jest wyłączona); a parowanie przez numer w Brazylii próbuje numeru z dziewiątą cyfrą i bez niej.
+- Neonize: synchronizacja stanu aplikacji nie powoduje już konfliktów, które psuły stan przeczytania czatów; oznaczenie czatu jako przeczytanego nie wstrzymuje już wysyłania wiadomości; wiadomości wysyłane do czatu ze znikającymi wiadomościami zachowują ustawiony w nim czas znikania; potwierdzenia odczytu w czatach prywatnych respektują ustawienia prywatności WhatsAppa — po ich wyłączeniu odczyt jest synchronizowany tylko między Twoimi urządzeniami; a parowanie przez numer w Brazylii próbuje numeru z dziewiątą cyfrą i bez niej.
 
 - Neonize: wiadomości głosowe są teraz dostarczane kontaktom na Androidzie; wcześniej zostawały z jednym szarym znaczkiem, bo wiadomość nie zawierała przebiegu fali, którego oczekuje WhatsApp.
 
 - Neonize: wiadomości głosowe, zdjęcia i dokumenty nie przepadają już, gdy biblioteka typów plików komputera (libmagic) się nie wczytuje; typ jest teraz rozpoznawany na podstawie samego pliku.
 
-- Wiadomości głosowe: nagrania mono i stereo są wysyłane z szybkością do 256 kb/s. Neonize zapisuje też w dzienniku jedną linię na każdy wysłany plik multimedialny oraz identyfikatory potwierdzeń dostarczenia, aby ustalić, dlaczego niektóre wiadomości głosowe nie są dostarczane.
+- Wiadomości głosowe: nagrania mono i stereo są kodowane z przepływnością do 256 kb/s. Neonize zapisuje też w dzienniku jedną linię na każdy wysłany plik multimedialny oraz identyfikatory potwierdzeń dostarczenia, aby ustalić, dlaczego niektóre wiadomości głosowe nie są dostarczane.
 
 - Neonize: wiadomości głosowe stereo są teraz wysyłane z typem audio/mp4, którego oczekuje WhatsApp, dzięki czemu docierają do kontaktów na Androidzie.
 
 - Redukcja szumów mikrofonu w wiadomościach głosowych może teraz korzystać z modelu neuronowego: przy zaznaczonej opcji "Włącz redukcję szumów mikrofonu" w Ustawieniach, Dźwięk ta sama strona oferuje pobranie modelu; pobieranie odbywa się raz, przez internet, a nagrania nadal są przetwarzane na tym komputerze. Bez modelu, albo gdy nie można go użyć w nagraniu, WinZapp używa podstawowej bramki szumów jak dotychczas i o tym informuje. Jeśli redukcji szumów nie można zastosować wcale, wiadomość jest wysyłana bez przetwarzania i WinZapp również o tym informuje.
+
+- Hiszpański: etykieta odtworzonej wiadomości głosowej brzmi teraz „Reproducido” zamiast „Reproducida”, tak jak „Enviado”, „Entregado” i „Leído”.
+
+- Hiszpański: tłumaczenie używa teraz konsekwentnie „chat/chats” zamiast mieszać to z „conversación/conversaciones”, a w powiązanych tekstach, także w podręczniku użytkownika, poprawiono zgodność rodzaju i liczby.
 
 V2.1.0.0
 
