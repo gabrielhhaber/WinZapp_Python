@@ -501,6 +501,7 @@ class GroupsMixin:
                 if isinstance(response, dict):
                     self._reconcile_group_info_name(jid, response)
                     self._remember_group_kind(jid, response)
+                    self._remember_group_send_perms(jid, response)
                     return response
                 return {}
         except Exception as e:
@@ -519,6 +520,27 @@ class GroupsMixin:
         if not isinstance(group_meta, dict):
             group_meta = chat["groupMetadata"] = {}
         group_meta["defaultSubgroup"] = flag
+
+    def _remember_group_send_perms(self, jid: str, info: dict) -> None:
+        """group-info says who may send (announce) and who the admins are.
+        Only WPPConnect's list-chats carries that (groupMetadata); on Neonize
+        a group closed to members was known only after a notice that its
+        setting changed, so its message field stayed open. Opening a group
+        asks for group-info, so the field now follows from there too."""
+        if not isinstance(info.get("announce"), bool):
+            return
+        previous = dict(getattr(self, "_group_send_perms", {}).get(jid) or {})
+        current = self._record_group_send_perms(jid, {"groupMetadata": {
+            "announce": info["announce"], "participants": info.get("participants") or []}})
+        if current is None or (previous.get("announce") == current["announce"]
+                               and previous.get("am_admin") == current["am_admin"]):
+            return
+        self._persist_group_send_perms()
+        was_restricted = bool(previous.get("announce")) and not bool(previous.get("am_admin"))
+        now_restricted = bool(current["announce"]) and not bool(current["am_admin"])
+        cp = getattr(self, "conversations_panel", None)
+        if cp is not None and now_restricted != was_restricted:
+            wx.CallAfter(cp.refresh_composer_permissions, jid, bool(previous))
 
     def get_group_info_recent(self, jid: str, max_age: float = 5.0) -> dict:
         """get_group_info(), unless a non-empty answer for `jid` is younger
