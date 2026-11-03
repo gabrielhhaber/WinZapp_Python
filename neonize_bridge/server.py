@@ -1424,6 +1424,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 self.roster_register(g)    # members, for the group ack (group_receipts)
         except Exception:
             log.exception("groups")
+        from neonize.utils import build_jid
+        channels.load_names(self.client, self.db, build_jid)
 
     def state_read(self, conversation, read_flag):
         """Marks the chat as read (or unread) on the phone and the other devices,
@@ -1907,7 +1909,7 @@ def create_app(folder, fixed=""):
             # (held by history blocks and receipts), and the number behind an
             # LID comes from neonize's store. Read on the loop, they stood it
             # still for seconds on every resync, and sends waited behind it.
-            chat_rows = s.db.chats()
+            chat_rows = chat_listing.listed(s.db.chats())
             names, nicknames = chat_listing.listing_identities(
                 chat_rows, s.db.contacts(), s._phone_of_lid)
             return [chat_listing.chat_to_wpp(c, names, wpp_id, nicknames=nicknames)

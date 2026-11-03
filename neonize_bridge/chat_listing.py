@@ -83,6 +83,12 @@ def chat_to_wpp(c, names, wpp_id, messages=None, nicknames=None):
     return chat
 
 
+def listed(chat_rows):
+    """The rows `list-chats` answers with: all but a channel with no name, which
+    the client could only show by its raw id (its "show channels" option)."""
+    return [c for c in chat_rows if c["name"] or not c["jid"].endswith("@newsletter")]
+
+
 def is_broadcast(jid):
     """Broadcast list (not the status board, which is never a chat)."""
     return jid.endswith("@broadcast") and jid != "status@broadcast"

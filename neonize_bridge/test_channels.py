@@ -19,6 +19,48 @@ def meta(mute=2, verified=2):
              ViewerMeta=N(Mute=mute))
 
 
+class _Store:
+    def __init__(self, *jids):
+        self.names = dict.fromkeys(jids, "")
+
+    def channels(self):
+        return list(self.names)
+
+    def channel_name(self, jid, name):
+        self.names[jid] = name
+
+
+class _NamesClient:
+    def __init__(self, **names):
+        self.names = names
+
+    def get_newsletter_info(self, jid):
+        name = self.names[jid]
+        if isinstance(name, Exception):
+            raise name
+        return N(ThreadMeta=N(Name=N(Text=name)))
+
+
+def test_a_stored_channel_gets_the_name_whatsapp_gives_it():
+    store = _Store("120363@newsletter")
+    channels.load_names(_NamesClient(u120363="Canal"), store, lambda user, _server: "u" + user)
+    assert store.names == {"120363@newsletter": "Canal"}
+
+
+def test_a_channel_whatsapp_refuses_does_not_stop_the_next_one():
+    store = _Store("1@newsletter", "2@newsletter")
+    client = _NamesClient(u1=RuntimeError("not found"), u2="Canal")
+    channels.load_names(client, store, lambda user, _server: "u" + user)
+    assert store.names == {"1@newsletter": "", "2@newsletter": "Canal"}
+
+
+def test_a_blank_answer_keeps_the_name_already_known():
+    store = _Store("1@newsletter")
+    store.names["1@newsletter"] = "Canal"
+    channels.load_names(_NamesClient(u1=""), store, lambda user, _server: "u" + user)
+    assert store.names["1@newsletter"] == "Canal"
+
+
 def test_channel_id_accepts_with_and_without_server():
     assert channels.channel_id("120363") == "120363@newsletter"
     assert channels.channel_id(" 120363@newsletter ") == "120363@newsletter"

@@ -211,6 +211,19 @@ class Store:
                 (ts, 0 if from_me else 1, jid))
             self._conn.commit()
 
+    def channels(self):
+        """The channels history stored before the store kept nothing of them."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT jid FROM chats WHERE jid LIKE '%@newsletter'").fetchall()
+        return [r["jid"] for r in rows]
+
+    def channel_name(self, jid, name):
+        """A stored channel's name: `chat` writes nothing for a channel."""
+        with self._lock:
+            self._conn.execute("UPDATE chats SET name=? WHERE jid=?", (name, jid))
+            self._conn.commit()
+
     def chats(self):
         """Every chat, newest first. A chat the history gave no date (0) takes the
         date of its newest real message, and keeps it: history leaves 0 on most
