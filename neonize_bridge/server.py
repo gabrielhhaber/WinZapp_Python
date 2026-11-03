@@ -176,7 +176,6 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         self.client = None
         self.simulate_code = False
         self.online = False         # app window in focus (set-online-presence)
-        self.open_chat = ""         # chat open in the app (the last send-seen)
         self.thread = None
         self.lifecycle = session_lifecycle.Lifecycle()   # state + generation (session_lifecycle.py)
         self._lifecycle_lock = threading.RLock()    # begin/stop one at a time
@@ -786,10 +785,6 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     self.db.contact(jid_text(o.Sender), pushname=e.Info.Pushname)
                     contact_events.announce_name(c, self, o.Sender, e.Info.Pushname)
                 self.emit("received-message", {"session": self.name, "response": w})
-                # WhatsApp Web marks the chat open with the window in focus as read
-                if not o.IsFromMe and self.online and self.open_chat == chat:
-                    threading.Thread(target=self.mark_read, args=(chat,),
-                                     daemon=True).start()
             except Exception:
                 log.exception("received message")
 
@@ -1654,10 +1649,6 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         if self.client is not None and self.status == "CONNECTED":
             self.state_read(conversation, False)
 
-    def mark_read(self, conversation):
-        """How many messages received the read receipt (see read_and_confirm)."""
-        return self.read_and_confirm(conversation)[0]
-
     def read_and_confirm(self, conversation):
         """Sends the read receipt of the received messages not yet read, which
         is what marks them read on the phone and the other devices too (see
@@ -2072,7 +2063,6 @@ def create_app(folder, fixed=""):
             await loop.run_in_executor(marking, s.mark_unread, keys[0])
             confirmed = True
         else:
-            s.open_chat = keys[0]      # the app only sends send-seen for the chat the user opened
             confirmed = True
             for key in keys:
                 _, sent = await loop.run_in_executor(marking, s.read_and_confirm, key)
@@ -2081,8 +2071,7 @@ def create_app(folder, fixed=""):
 
     async def subscribe_presence(req):
         """Subscribes to a person's presence. Only confirms what WhatsApp accepted: the
-        client marks the target as subscribed when it sees `success`. Does not write `s.open_chat`
-        (the client subscribes to many contacts, not just the open chat)."""
+        client marks the target as subscribed when it sees `success`."""
         s = session(req)
         body = await req.json()
         phone = body.get("phone")
@@ -2115,8 +2104,6 @@ def create_app(folder, fixed=""):
             except Exception as error:
                 log.info("set-online-presence refused (%s)", type(error).__name__)
                 return web.json_response({"status": "error", "message": "presence refused"}, status=502)
-        if s.online and s.open_chat:      # back in focus: reads what arrived in the meantime
-            await asyncio.get_running_loop().run_in_executor(None, s.mark_read, s.open_chat)
         return empty_ok_resp()
 
     def empty_ok_resp():

@@ -267,19 +267,30 @@ async def test_send_seen_finds_the_chat_by_the_other_address_and_confirms(tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_send_seen_keeps_the_open_chat_and_mark_as_unread_does_not(tmp_path, sessions):
+async def test_coming_back_into_focus_reads_nothing_on_its_own(tmp_path, sessions):
+    """Reported: messages marked read with nobody inside the conversation. The
+    bridge kept the last chat read as "open" for good and read whatever arrived
+    there, past the app's own rule (open, on screen, window focused for 5 s)."""
     bridge = await _open(tmp_path, sessions)
     try:
         bridge.s.db.chat(PN, unread=0)
         bridge.s.state_read = lambda chat, read: True
-        assert bridge.s.open_chat == ""
         await bridge.post("send-seen", {"phone": PN})
-        assert bridge.s.open_chat == PN
-        bridge.s.open_chat = ""
-        await bridge.post("send-seen", {"phone": PN, "unread": True})
-        assert bridge.s.open_chat == ""
+        bridge.s.db.chat(PN, unread=1)
+        bridge.s.db.message(PN, _msg("M2", 200, PN))
+        await bridge.post("set-online-presence", {"isOnline": False})
+        await bridge.post("set-online-presence", {"isOnline": True})
+        assert bridge.fake.read == []
+        assert bridge.s.db.unread(PN) == 1
     finally:
         await bridge.http.close()
+
+
+def test_a_message_arriving_is_never_read_by_the_bridge():
+    import pathlib
+    source = (pathlib.Path(__file__).parent / "server.py").read_text(encoding="utf-8")
+    assert source.count("read_and_confirm") == 2       # its definition and send-seen
+    assert "run_in_executor(marking, s.read_and_confirm, key)" in source
 
 
 def _notices(bridge):
