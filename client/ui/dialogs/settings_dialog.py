@@ -224,7 +224,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
                      TranscriptionBackgroundTabMixin, TranscriptionModelMarksMixin,
                      TranscriptionQueueMixin, TranscriptionCacheMixin,
                      TranscriptionOptionsMixin, TranscriptionReuseMixin,
-                     TranscriptionWindowsMixin, AdvancedTabMixin, NoiseModelSectionMixin, VoiceRecordingOptionsMixin,
+                     TranscriptionWindowsMixin, AdvancedTabMixin, NoiseModelSectionMixin,
+                     VoiceRecordingOptionsMixin,
                      wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
 

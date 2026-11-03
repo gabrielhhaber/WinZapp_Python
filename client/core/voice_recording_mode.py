@@ -23,13 +23,15 @@ def voice_recording_mode(settings):
 
 
 def recording_output_channels(captured_channels, mode):
+    # "auto" and "stereo" both keep what the device captured; only the label differs
+    # (stereo is never forced on a mono-only device).
     return 1 if normalize_recording_mode(mode) == "mono" else captured_channels
 
 
 def prepare_voice_pcm(pcm, captured_channels, mode):
     """Return little-endian int16 PCM and output channels; never alter *pcm*.
 
-    (L + R) / 2 gives both inputs equal weight without clipping. It does not
+    floor((L + R) / 2) gives both inputs equal weight without clipping. It does not
     normalize volume, detect a silent channel or correct phase cancellation.
     Mono capture and modes other than explicit mono pass through byte-for-byte.
     """

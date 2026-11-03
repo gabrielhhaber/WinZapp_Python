@@ -92,6 +92,7 @@ def test_the_second_record_button_and_legacy_boolean_stay_removed():
     root = Path(__file__).parents[1] / "client"
     defaults = json.loads((root / "data" / "settings_default.json").read_text(encoding="utf-8"))
     assert "voice_message_stereo" not in defaults["general"]
+    assert "voice_stereo" not in (root / "ui" / "dialogs" / "settings_dialog.py").read_text(encoding="utf-8")
 
 
 def test_an_old_settings_file_with_the_removed_key_still_loads():

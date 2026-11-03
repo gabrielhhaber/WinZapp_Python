@@ -339,6 +339,8 @@ class ConversationsPanel(
         # Actual rate/channels are resolved at open time (stereo → mono fallback).
         self._recording_actual_rate: int = 48000
         self._recording_actual_ch:   int = 1
+        # Manual channel preference snapshotted at recording start (voice_recording_mode).
+        self._recording_channel_mode: str = "auto"
         # Playback of what's been recorded so far, offered only while paused
         # (see _toggle_play_recorded_audio / _stop_recorded_audio_preview).
         self._recorded_audio_sound      = None
