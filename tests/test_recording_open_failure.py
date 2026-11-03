@@ -173,27 +173,6 @@ def _dispatch(calls, *override):
     func(*(override or args))
 
 
-class TestTheChannelsSettingReachesTheOpen:
-    @pytest.mark.parametrize("mode, prefer_stereo", [
-        ("auto", True), ("stereo", True), ("mono", False)])
-    def test_only_chosen_mono_asks_for_one_channel_first(
-            self, scheduled, monkeypatch, mode, prefer_stereo):
-        calls, fired = scheduled
-        asked = []
-
-        def _configs(_device, _pa, prefer_stereo=False):
-            asked.append(prefer_stereo)
-            return []
-
-        patch_conversations_global(monkeypatch, "recording_configs_for", _configs)
-        stub = _Stub()
-        stub.main_window.settings["general"] = {"voice_message_channels": mode}
-        stub._start_voice_recording()
-
-        assert fired.wait(timeout=5)
-        assert asked and set(asked) == {prefer_stereo}
-
-
 class TestCallbackAlwaysRuns:
     """_on_stream_opened() is the only thing that clears _recording_starting,
     so it has to be reached no matter how _bg_open_stream() ends."""

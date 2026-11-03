@@ -17,8 +17,7 @@ import wx
 from core.message_queue import PendingMessage
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 from core.voice_stereo import (
-    STEREO_BITRATE, STEREO_MIMETYPE, channel_mode, drop_empty_side,
-    encode_as_stereo,
+    STEREO_BITRATE, STEREO_MIMETYPE, drop_empty_side, encode_as_stereo,
 )
 from core.focus_cloak import cloak_panel_focus_fallback
 from app_paths import data_path
@@ -195,9 +194,8 @@ class VoiceRecordingMixin:
         # _try_open(), through the same recording_configs_for() that
         # core.audio_devices.test_input_device() uses for the Settings-dialog
         # validation — so a device that validates there is still guaranteed to
-        # open here; a recording asks for two channels first, unless Settings
-        # chose mono (core/voice_stereo.py).
-        prefer_stereo = channel_mode(self.main_window.settings) != "mono"
+        # open here; a recording asks for two channels first
+        # (core/voice_stereo.py).
         if self._recording_pa is None and pyaudio is not None:
             try:
                 self._recording_pa = pyaudio.PyAudio()
@@ -258,7 +256,7 @@ class VoiceRecordingMixin:
             # fixed combination. See recording_configs_for(), which keeps the
             # fixed list as the tail so nothing that worked before changes.
             for rate, ch in recording_configs_for(device_index, pa,
-                                                  prefer_stereo=prefer_stereo):
+                                                  prefer_stereo=True):
                 try:
                     s = pa.open(
                         rate=rate,
@@ -591,8 +589,7 @@ class VoiceRecordingMixin:
             # The preview plays what the send would, an empty side included.
             audio, channels = b"".join(frames), self._recording_actual_ch
             if not getattr(self, "_recording_system_audio", False):
-                audio, channels = drop_empty_side(
-                    audio, channels, channel_mode(self.main_window.settings))
+                audio, channels = drop_empty_side(audio, channels)
             tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
             tmp.close()
             with wave.open(tmp.name, "wb") as wf:
@@ -706,8 +703,7 @@ class VoiceRecordingMixin:
         actual_ch       = self._recording_actual_ch
         bytes_per_frame = 2 * actual_ch
         quoted_msg      = self._quoted_message
-        channels_mode   = channel_mode(self.main_window.settings)
-        stereo_out      = not mixed_audio and encode_as_stereo(actual_ch, channels_mode)
+        stereo_out      = not mixed_audio and encode_as_stereo(actual_ch)
         # Microphone + computer audio goes out as an audio message
         # (Ctrl+Shift+H's AAC-LC M4A through /send-file).
         as_audio_file   = mixed_audio
@@ -790,11 +786,10 @@ class VoiceRecordingMixin:
 
             # Two channels opened says nothing about what is plugged into them
             # (core/voice_stereo.py). Too heavy for the UI thread, so the row
-            # that already said M4A is corrected here. Chosen mono goes through
-            # it too: the live side alone beats ffmpeg's `-ac 1` halving it.
+            # that already said M4A is corrected here.
             channels = actual_ch
-            if not mixed_audio:
-                audio_data, channels = drop_empty_side(audio_data, actual_ch, channels_mode)
+            if stereo_out:
+                audio_data, channels = drop_empty_side(audio_data, actual_ch)
             send_stereo = stereo_out and channels >= 2
             if stereo_out and not send_stereo:
                 logging.info("[audio] One side of the recording is empty — sending it in mono.")

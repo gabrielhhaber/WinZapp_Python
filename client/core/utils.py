@@ -1082,7 +1082,6 @@ DEFAULT_SETTINGS = {
         # (core/wpp_upstream.py). Off: the approved list, as since it existed.
         "wpp_all_updates": False,
         "noise_reduction_enabled": False,
-        "voice_message_channels": "auto",
         "system_audio_recording_volume": 100,
         "system_audio_recording_nvda_volume": 100,
         # Windows spell checking in the message field (core/spell_checker.py).

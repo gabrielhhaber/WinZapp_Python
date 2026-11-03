@@ -608,8 +608,8 @@ msgid ""
 " that is not locked will be sent automatically to: {providers}. Do you "
 "agree?"
 msgstr ""
-"Cada mensaje de voz, imagen, sticker o vídeo que recibas en un chat no "
-"bloqueado se enviará automáticamente a: {providers}. ¿Estás de acuerdo?"
+"Cada mensaje de voz, imagen, sticker o vídeo que recibas en un chat"
+" no bloqueado se enviará automáticamente a: {providers}. ¿Estás de acuerdo?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_auto_consent_title"
@@ -759,12 +759,12 @@ msgid ""
 "answers require your own API key and may cost money; no simulated answers "
 "are supplied."
 msgstr ""
-"Chat ficticio; sin conexión a WhatsApp ni envío de mensajes. La imagen "
-"generada contiene WINZAPP DEMO 123, un rectángulo azul, un círculo rojo y un"
-" triángulo amarillo. Los ajustes y las claves están separados del WinZapp "
-"instalado. Abre Ajustes, enfoca la foto y pulsa Ctrl+Shift+I. Las respuestas"
-" reales requieren tu propia clave API y pueden tener coste; no hay "
-"respuestas simuladas."
+"Chat ficticio; sin conexión a WhatsApp ni envío de mensajes. La "
+"imagen generada contiene WINZAPP DEMO 123, un rectángulo azul, un círculo "
+"rojo y un triángulo amarillo. Los ajustes y las claves están separados del "
+"WinZapp instalado. Abre Ajustes, enfoca la foto y pulsa Ctrl+Shift+I. Las "
+"respuestas reales requieren tu propia clave API y pueden tener coste; no hay"
+" respuestas simuladas."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/ai_media_demo.py
 msgctxt "ai_demo_photo"
@@ -1520,8 +1520,8 @@ msgid ""
 "A different phone number was linked to this account. The chats of the "
 "previous number were deleted from this computer."
 msgstr ""
-"Se ha vinculado otro número de teléfono a esta cuenta. Los chats del número "
-"anterior se han borrado de este ordenador."
+"Se ha vinculado otro número de teléfono a esta cuenta. Los chats "
+"del número anterior se han borrado de este ordenador."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/wpp_server.py
 msgctxt "api_files_missing_error"
@@ -1984,8 +1984,8 @@ msgstr "Dispositivo de &grabación (micrófono)"
 msgctxt "audio_mark_played_in_list_label"
 msgid "&Mark audios as played in chats and announce it to the screen reader"
 msgstr ""
-"&Cambiar el estado de los audios a reproducidos en los chats y anunciarlo al"
-" lector de pantalla"
+"&Cambiar el estado de los audios a reproducidos en los chats y "
+"anunciarlo al lector de pantalla"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -2158,8 +2158,8 @@ msgid ""
 "Moved to chat {conv_position}, {conv_name}, position {position} in the list "
 "(bookmark {digit})"
 msgstr ""
-"Movido al chat {conv_position}, {conv_name}, posición {position} de la lista"
-" (marcador {digit})"
+"Movido al chat {conv_position}, {conv_name}, posición {position} "
+"de la lista (marcador {digit})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bookmarks.py
@@ -2169,8 +2169,8 @@ msgid ""
 "Moved to chat {conv_name}, position {position} in the list (bookmark "
 "{digit})"
 msgstr ""
-"Movido al chat {conv_name}, posición {position} de la lista (marcador "
-"{digit})"
+"Movido al chat {conv_name}, posición {position} de la lista "
+"(marcador {digit})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bookmarks.py
@@ -2185,7 +2185,8 @@ msgstr "No se encontró ningún marcador para el número {digit}"
 msgctxt "bookmark_removed"
 msgid "Removed bookmark {digit} at position {position} (chat {conv_position})"
 msgstr ""
-"Marcador {digit} eliminado en la posición {position} (chat {conv_position})"
+"Marcador {digit} eliminado en la posición {position} (chat "
+"{conv_position})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bookmarks.py
@@ -2217,8 +2218,8 @@ msgctxt "bookmark_set"
 msgid ""
 "Bookmark {digit} placed on element {position} (chat {conv_position}): {text}"
 msgstr ""
-"Marcador {digit} colocado en el elemento {position} (chat {conv_position}): "
-"{text}"
+"Marcador {digit} colocado en el elemento {position} (chat "
+"{conv_position}): {text}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bookmarks.py
@@ -2385,7 +2386,8 @@ msgctxt "business_button_failed"
 msgid ""
 "The reply could not be sent. Check the conversation before trying again."
 msgstr ""
-"No se pudo enviar la respuesta. Revise el chat antes de volver a intentarlo."
+"No se pudo enviar la respuesta. Revise el chat antes de volver a "
+"intentarlo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "business_button_sent"
@@ -3422,7 +3424,8 @@ msgstr "Reuniendo datos…"
 msgctxt "cleanup_summary_header"
 msgid "{chats} chat(s) affected, {files} file(s), {mb:.1f} MB total:"
 msgstr ""
-"{chats} chat(s) afectado(s), {files} archivo(s), {mb:.1f} MB en total:"
+"{chats} chat(s) afectado(s), {files} archivo(s), {mb:.1f} MB en "
+"total:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/media_cleanup_dialog.py
@@ -4929,8 +4932,8 @@ msgid ""
 "Describe this conversation's pictures, stickers and videos automatically "
 "(when turned on in Settings)"
 msgstr ""
-"Describir automáticamente las imágenes, stickers y vídeos de este chat (si "
-"está activado en la configuración)"
+"Describir automáticamente las imágenes, stickers y vídeos de este "
+"chat (si está activado en la configuración)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -5224,7 +5227,8 @@ msgctxt "delete_confirm_msg"
 msgid ""
 "Are you sure you want to delete this chat? This action cannot be undone."
 msgstr ""
-"¿Seguro que deseas eliminar este chat? Esta acción no se puede deshacer."
+"¿Seguro que deseas eliminar este chat? Esta acción no se puede "
+"deshacer."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_list_selection.py
@@ -5317,9 +5321,9 @@ msgid ""
 "stays on your WhatsApp and you remain a member. To leave the group, use the "
 "Leave group option."
 msgstr ""
-"¿Seguro que deseas eliminar este chat de grupo de WinZapp? El grupo seguirá "
-"en tu WhatsApp y continuarás siendo miembro. Para salir del grupo, usa la "
-"opción Salir del grupo."
+"¿Seguro que deseas eliminar este chat de grupo de WinZapp? El grupo "
+"seguirá en tu WhatsApp y continuarás siendo miembro. Para salir del grupo, "
+"usa la opción Salir del grupo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
@@ -7264,8 +7268,8 @@ msgctxt "mark_all_read_confirm"
 msgid ""
 "Are you sure you want to mark all chats as read? Unread chats: {count}."
 msgstr ""
-"¿Seguro que deseas marcar todos los chats como leídos? Chats no leídos: "
-"{count}."
+"¿Seguro que deseas marcar todos los chats como leídos? "
+"Chats no leídos: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/read_state.py
 #, python-brace-format
@@ -7337,8 +7341,8 @@ msgid ""
 "This message is outside the loaded part of the chat. Open the chat and "
 "scroll to it to use this action."
 msgstr ""
-"Este mensaje está fuera de la parte cargada del chat. Abre el chat y "
-"desplázate hasta él para usar esta acción."
+"Este mensaje está fuera de la parte cargada del chat. Abre el "
+"chat y desplázate hasta él para usar esta acción."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
 #: client/ui/conversation_panel/system_audio_recording.py
@@ -7896,7 +7900,9 @@ msgstr "Silenciar"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_chat_failed"
 msgid "This chat could not be muted. Please try again in a moment."
-msgstr "No se pudo silenciar este chat. Inténtalo de nuevo en unos instantes."
+msgstr ""
+"No se pudo silenciar este chat. Inténtalo de nuevo en unos "
+"instantes."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/archived_panel.py
@@ -8846,8 +8852,8 @@ msgid ""
 "This chat could not be pinned. WhatsApp only allows up to 3 pinned chats at "
 "a time — unpin another chat and try again."
 msgstr ""
-"No se pudo fijar este chat. WhatsApp solo permite fijar hasta 3 chats a la "
-"vez — desfija otro chat e inténtalo de nuevo."
+"No se pudo fijar este chat. WhatsApp solo permite fijar hasta 3 "
+"chats a la vez — desfija otro chat e inténtalo de nuevo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_messages.py
@@ -9887,9 +9893,9 @@ msgid ""
 "this computer will be deleted and downloaded again from WhatsApp, which may "
 "take a while."
 msgstr ""
-"¿Seguro que deseas resincronizar todos los chats? Los chats y los mensajes "
-"guardados en este equipo se borrarán y se descargarán de nuevo desde "
-"WhatsApp, lo que puede tardar."
+"¿Seguro que deseas resincronizar todos los chats? Los "
+"chats y los mensajes guardados en este equipo se borrarán y se "
+"descargarán de nuevo desde WhatsApp, lo que puede tardar."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 msgctxt "resync_conversation_busy"
@@ -9903,8 +9909,8 @@ msgid ""
 "again from WhatsApp, and any that no longer exist there will be removed from"
 " this computer."
 msgstr ""
-"¿Seguro que deseas resincronizar este chat? Sus mensajes se volverán a "
-"obtener de WhatsApp, y los que ya no existan allí se eliminarán de este "
+"¿Seguro que deseas resincronizar este chat? Sus mensajes se volverán"
+" a obtener de WhatsApp, y los que ya no existan allí se eliminarán de este "
 "equipo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -9916,7 +9922,8 @@ msgstr "Chat resincronizado"
 msgctxt "resync_conversation_failed"
 msgid "Couldn't resync this chat. Try again in a moment."
 msgstr ""
-"No se pudo resincronizar este chat. Inténtalo de nuevo en unos instantes."
+"No se pudo resincronizar este chat. Inténtalo de nuevo en unos "
+"instantes."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 msgctxt "resync_conversation_none_open"
@@ -9929,15 +9936,16 @@ msgid ""
 "WhatsApp has no messages in this chat to resync. Nothing was changed on this"
 " computer."
 msgstr ""
-"WhatsApp no tiene mensajes de este chat para resincronizar. No se ha "
-"cambiado nada en este equipo."
+"WhatsApp no tiene mensajes de este chat para resincronizar. No se ha"
+" cambiado nada en este equipo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "resync_conversation_up_to_date"
 msgid ""
 "This chat was already up to date: no new or removed messages on WhatsApp."
 msgstr ""
-"El chat ya estaba al día: no hay mensajes nuevos ni eliminados en WhatsApp."
+"El chat ya estaba al día: no hay mensajes nuevos ni eliminados en "
+"WhatsApp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 msgctxt "resync_failed_offline"
@@ -9945,8 +9953,9 @@ msgid ""
 "Cannot resync chats while disconnected from WhatsApp. Please check your "
 "phone connection and try again."
 msgstr ""
-"No se pueden resincronizar los chats mientras esté desconectado de WhatsApp."
-" Por favor, verifique la conexión de su teléfono e inténtelo de nuevo."
+"No se pueden resincronizar los chats mientras esté desconectado de "
+"WhatsApp. Por favor, verifique la conexión de su teléfono e inténtelo de "
+"nuevo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 msgctxt "resyncing_all_announcement"
@@ -10276,8 +10285,8 @@ msgid ""
 "WhatsApp did not confirm this send — check the chat before sending it again,"
 " so it is not delivered twice"
 msgstr ""
-"WhatsApp no confirmó este envío: revise el chat antes de enviarlo de nuevo, "
-"para no entregarlo dos veces"
+"WhatsApp no confirmó este envío: revise el chat antes de enviarlo de"
+" nuevo, para no entregarlo dos veces"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/status_tab/status_voice.py client/ui/conversations.py
@@ -10675,8 +10684,8 @@ msgstr "Alt+Shift+V: chatear con participante (grupos)"
 msgctxt "shortcut_alt_t_label"
 msgid "Alt+T: announce chat status (last seen, online, typing)"
 msgstr ""
-"Alt+T: anunciar el estado del chat (visto por última vez, en línea, "
-"escribiendo)"
+"Alt+T: anunciar el estado del chat (visto por última vez, en "
+"línea, escribiendo)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -10782,7 +10791,8 @@ msgstr ""
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_bulk_unread_chats_label"
 msgid "Ctrl+Alt+Shift+U: mark the selected chats as unread"
-msgstr "Ctrl+Alt+Shift+U: marcar como no leídos los chats seleccionados"
+msgstr ""
+"Ctrl+Alt+Shift+U: marcar como no leídos los chats seleccionados"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -11140,7 +11150,8 @@ msgstr ""
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_ctrl_shift_q_list_label"
 msgid "Ctrl+Shift+Q: archive/unarchive the selected chat in the list"
-msgstr "Ctrl+Shift+Q: archivar/desarchivar el chat seleccionado en la lista"
+msgstr ""
+"Ctrl+Shift+Q: archivar/desarchivar el chat seleccionado en la lista"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -11185,8 +11196,8 @@ msgid ""
 "Delete: delete the message or chat (or every selected one, if there's a "
 "selection)"
 msgstr ""
-"Delete: eliminar el mensaje o el chat (o todos los seleccionados, si hay una"
-" selección)"
+"Delete: eliminar el mensaje o el chat (o todos los seleccionados, si"
+" hay una selección)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_delete_transcription_label"
@@ -11206,9 +11217,9 @@ msgid ""
 "deselects them all and just the second one closes the chat, if the option is"
 " enabled in Settings, User Interface"
 msgstr ""
-"Esc / Ctrl+W: cerrar chat. Con mensajes marcados, el primer Esc solo los "
-"desmarca todos y únicamente el segundo cierra el chat, si la opción está "
-"activada en Configuración, Interfaz de usuario"
+"Esc / Ctrl+W: cerrar chat. Con mensajes marcados, el primer Esc solo"
+" los desmarca todos y únicamente el segundo cierra el chat, si la "
+"opción está activada en Configuración, Interfaz de usuario"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -11975,7 +11986,8 @@ msgstr "Paquetes de sonido (*.zip)|*.zip"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_conversations_update_label"
 msgid "Announce when chats &update is complete"
-msgstr "Anunciar cuando &la actualización de chats se haya completado"
+msgstr ""
+"Anunciar cuando &la actualización de chats se haya completado"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -11993,14 +12005,16 @@ msgstr "&Anunciar cada pocos segundos el progreso de la descarga de medios"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_recording_label"
 msgid "Announce when a contact &is recording an audio message in a chat"
-msgstr "Anunciar cuando &un contacto está grabando un audio en un chat"
+msgstr ""
+"Anunciar cuando &un contacto está grabando un audio en un chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_sync_progress_label"
 msgid "Announce &chat sync progress every few seconds"
 msgstr ""
-"Anunciar &cada pocos segundos el progreso de la sincronización de chats"
+"Anunciar &cada pocos segundos el progreso de la sincronización de "
+"chats"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12029,8 +12043,8 @@ msgstr "Hablar &mensajes automáticamente en el chat activo"
 msgctxt "speech_speak_other_conv_label"
 msgid "&Automatically speak messages in other chats while the program is open"
 msgstr ""
-"&Hablar mensajes automáticamente en otros chats mientras el programa está "
-"abierto"
+"&Hablar mensajes automáticamente en otros chats mientras el "
+"programa está abierto"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -13338,7 +13352,8 @@ msgid ""
 "Transcriptions made by other models are kept, and this cannot be undone."
 msgstr ""
 "¿Borrar todas las transcripciones guardadas hechas por el modelo {model}, en"
-" todos los chats? Las de otros modelos se conservan y no se puede deshacer."
+" todos los chats? Las de otros modelos se conservan y no se puede "
+"deshacer."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -14944,7 +14959,8 @@ msgid ""
 "This transcription was not saved, because the message is no longer in this "
 "conversation."
 msgstr ""
-"Esta transcripción no se guardó porque el mensaje ya no está en este chat."
+"Esta transcripción no se guardó porque el mensaje ya no está en este "
+"chat."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_not_saved_unsent"
@@ -15928,15 +15944,16 @@ msgstr "Pedir confirmación al &resincronizar todos los chats (F5)"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_confirm_resync_conversation"
 msgid "&Ask for confirmation before resyncing the open chat (Shift+F5)"
-msgstr "Pedir &confirmación al resincronizar el chat abierto (Shift+F5)"
+msgstr ""
+"Pedir &confirmación al resincronizar el chat abierto (Shift+F5)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_conversation_video_media_viewer_dialog_label"
 msgid "&Show chat videos in a separate player (opens a new dialog)"
 msgstr ""
-"Mostrar los &vídeos de los chats en un reproductor separado (abre un nuevo "
-"diálogo)"
+"Mostrar los &vídeos de los chats en un reproductor separado (abre "
+"un nuevo diálogo)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -15968,8 +15985,8 @@ msgid ""
 "&Esc deselects the selected messages before closing the chat, and the "
 "selected chats in a list of chats"
 msgstr ""
-"Esc desmarca &los mensajes marcados antes de cerrar el chat, y los chats "
-"marcados en una lista de chats"
+"Esc desmarca &los mensajes marcados antes de cerrar el chat, y los "
+"chats marcados en una lista de chats"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -16035,11 +16052,12 @@ msgid ""
 "prefixes. Names, message content, chat titles and other notifications stay "
 "unchanged. Off by default."
 msgstr ""
-"En las filas de mensajes y los anuncios del chat abierto, omite el prefijo "
-"del remitente cuando no hay un nombre disponible. Se aplica a chats "
-"individuales y de grupo, incluidos los prefijos de respuesta. Los nombres, "
-"el contenido de los mensajes, los títulos de los chats y las demás "
-"notificaciones no cambian. Desactivado de forma predeterminada."
+"En las filas de mensajes y los anuncios del chat abierto, omite el"
+" prefijo del remitente cuando no hay un nombre disponible. Se aplica a "
+"chats individuales y de grupo, incluidos los prefijos de respuesta."
+" Los nombres, el contenido de los mensajes, los títulos de los "
+"chats y las demás notificaciones no cambian. Desactivado de forma "
+"predeterminada."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -16054,8 +16072,8 @@ msgid ""
 "&Keep the chat search when opening a chat, so Esc returns to the results "
 "instead of the full list"
 msgstr ""
-"Mantener la &búsqueda de chats al abrir un chat, para que Esc vuelva a los "
-"resultados en lugar de a la lista completa"
+"Mantener la &búsqueda de chats al abrir un chat, para que "
+"Esc vuelva a los resultados en lugar de a la lista completa"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -16400,8 +16418,8 @@ msgid ""
 "This chat's notifications could not be re-enabled. Please try again in a "
 "moment."
 msgstr ""
-"No se pudieron reactivar las notificaciones de este chat. Inténtalo de nuevo"
-" en unos instantes."
+"No se pudieron reactivar las notificaciones de este chat. Inténtalo "
+"de nuevo en unos instantes."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/community_comments.py
 #: client/core/message_sender_labels.py client/core/notification_manager.py
@@ -16423,7 +16441,8 @@ msgstr "&Desfijar chat"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unpin_chat_failed"
 msgid "This chat could not be unpinned. Please try again in a moment."
-msgstr "No se pudo desfijar este chat. Inténtalo de nuevo en unos instantes."
+msgstr ""
+"No se pudo desfijar este chat. Inténtalo de nuevo en unos instantes."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
@@ -16941,30 +16960,6 @@ msgstr ""
 msgctxt "voice_call_window_title"
 msgid "Voice call"
 msgstr "Llamada de voz"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_auto"
-msgid "Automatic: stereo, or mono when one channel has no sound"
-msgstr "Automático: estéreo, o mono cuando un canal no tiene sonido"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_label"
-msgid "Voice messa&ge channels"
-msgstr "Canales de los mensajes de &voz"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_mono"
-msgid "Always mono"
-msgstr "Siempre mono"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_stereo"
-msgid "Stereo whenever the input device offers two channels"
-msgstr "Estéreo siempre que el dispositivo de entrada ofrezca dos canales"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"

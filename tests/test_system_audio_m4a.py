@@ -287,14 +287,13 @@ class TestMixedComposer(unittest.TestCase):
         self.p._stop_system_audio_recording.side_effect = lambda: setattr(self.p, '_recording_system_audio', False)
         encrypt = functions(ROOT / 'client/core/utils.py', ['encrypt'], {'Fernet': Fernet})['encrypt']
         from core.voice_stereo import (  # pure; no wx
-            STEREO_BITRATE, STEREO_MIMETYPE, channel_mode, drop_empty_side,
-            encode_as_stereo,
+            STEREO_BITRATE, STEREO_MIMETYPE, drop_empty_side, encode_as_stereo,
         )
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
         namespace = dict(logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
                          wave=wave, threading=self.threads, wx=fake_wx,
                          encode_as_stereo=encode_as_stereo, STEREO_BITRATE=STEREO_BITRATE,
-                         channel_mode=channel_mode, drop_empty_side=drop_empty_side,
+                         drop_empty_side=drop_empty_side,
                          STEREO_MIMETYPE=STEREO_MIMETYPE,
                          encrypt=encrypt, data_path=lambda name: str(self.folder / name),
                          PendingMessage=queue_module.PendingMessage,
@@ -461,34 +460,6 @@ class TestMixedComposer(unittest.TestCase):
         self.assertNotIn('mimetype', row)
         self.assertNotIn('fileName', row)
         os.unlink(pm.audio_path)
-
-    def test_chosen_mono_sends_a_two_channel_capture_as_opus(self):
-        """Issue #677: a device that refused to open with one channel."""
-        self.p._recording_system_audio = False
-        self.p._system_audio_session = None
-        self.p.main_window.settings['general']['voice_message_channels'] = 'mono'
-        pm = self._enqueued_after_send()
-
-        self.encoder.assert_not_called()
-        self.p.main_window._convert_wav_to_ogg.assert_called_once()
-        self.assertEqual(pm.voice_mimetype, '')
-        self.assertNotIn('mimetype', self.p._sorted_messages[0]['message']['audioMessage'])
-        os.unlink(pm.audio_path)
-
-    def test_chosen_stereo_sends_an_empty_side_as_it_came(self):
-        self.p._recording_system_audio = False
-        self.p._system_audio_session = None
-        self.p.main_window.settings['general']['voice_message_channels'] = 'stereo'
-        frame = struct.pack('<2h', 4000, 0) + struct.pack('<2h', -4000, 0)
-        self.p._recording_frames = [frame * 240]
-        self.encoder.side_effect = None
-        self.encoder.return_value = None
-        self.p._send_voice_message(None)
-        self.threads.drain()
-        self.drain_ui()
-
-        self.encoder.assert_called_once()
-        self.p.main_window._convert_wav_to_ogg.assert_not_called()
 
     def test_stereo_encode_failure_is_visible_and_never_falls_back_to_ogg(self):
         self.p._recording_system_audio = False

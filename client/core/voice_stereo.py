@@ -1,15 +1,12 @@
 """Stereo voice messages (issue #82).
 
-There is one record button. By default what the input device delivers decides:
-a device that opens with two channels sends a stereo voice message, anything
+There is one record button and no mode: what the input device delivers decides.
+A device that opens with two channels sends a stereo voice message, anything
 else a mono one. The two channels are never compared for likeness: an input
 carrying a mix of mono and stereo sources (a virtual device such as BlackHole)
 is exactly the case that comparison would get wrong. A device with more channels
 is opened with its first two. The one exception is a side that carries nothing
 at all, see drop_empty_side().
-
-Settings > Audio can override that for every recording (issue #677, CHANNEL_MODES):
-always mono, or stereo as delivered with no check of the sides.
 
 WhatsApp on iPhone cannot play a stereo OGG/Opus message, voice message or
 file, at any bitrate, but it does play stereo AAC-LC M4A, also as a voice
@@ -17,8 +14,6 @@ message. So a stereo recording is AAC and a mono one OGG/Opus, both through
 /send-voice-base64 as push-to-talk.
 """
 
-#: general.voice_message_channels, in the order of the Settings choice.
-CHANNEL_MODES = ("auto", "mono", "stereo")
 #: Opus rate of a mono voice message.
 MONO_BITRATE = "256k"
 #: AAC rate of a stereo voice message. The encoder treats it as a ceiling, and
@@ -35,12 +30,6 @@ EMPTY_SIDE_POWER_RATIO = 1000
 LEVEL_FRAME_STEP = 17
 
 
-def channel_mode(settings) -> str:
-    """The mode Settings chose; anything else is the first, Automatic."""
-    mode = ((settings or {}).get("general") or {}).get("voice_message_channels")
-    return mode if mode in CHANNEL_MODES else CHANNEL_MODES[0]
-
-
 def recording_configs_preferring(configs, stereo: bool) -> list:
     """*configs* ((rate, channels) pairs, in order) with two channels first when
     *stereo* is wanted, keeping the order within each group."""
@@ -51,16 +40,15 @@ def recording_configs_preferring(configs, stereo: bool) -> list:
             + [c for c in configs if c[1] < 2])
 
 
-def encode_as_stereo(captured_channels, mode: str = "auto") -> bool:
-    """Whether the recording goes out in stereo: the device delivered it and
-    Settings does not ask for mono."""
+def encode_as_stereo(captured_channels) -> bool:
+    """Whether the recording goes out in stereo: the device delivered it."""
     try:
-        return mode != "mono" and int(captured_channels or 0) >= 2
+        return int(captured_channels or 0) >= 2
     except (TypeError, ValueError):
         return False
 
 
-def drop_empty_side(pcm: bytes, channels, mode: str = "auto") -> tuple:
+def drop_empty_side(pcm: bytes, channels) -> tuple:
     """(*pcm*, *channels*) without a side that carries nothing (issue #679).
 
     A two-input audio interface opens with two channels whatever is plugged
@@ -70,9 +58,8 @@ def drop_empty_side(pcm: bytes, channels, mode: str = "auto") -> tuple:
 
     Recorded sound on both sides stays stereo, however alike, and so does a
     recording with no signal anywhere, which says nothing about either side.
-    The "stereo" mode keeps what the device delivered, an empty side included.
     """
-    if mode == "stereo" or channels != 2 or len(pcm) < 4:
+    if channels != 2 or len(pcm) < 4:
         return pcm, channels
     import numpy as np
 

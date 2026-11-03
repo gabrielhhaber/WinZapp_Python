@@ -109,7 +109,7 @@ class TestWhatIsTouched:
         assert unit_of_attribute(SettingsDialog, "_lang_combo") == "general"
         assert unit_of_attribute(SettingsDialog, "_notifications_check") == "notifications"
         assert unit_of_attribute(SettingsDialog, "_custom_api_check") == "connection"
-        assert unit_of_attribute(SettingsDialog, "_voice_channels_radio") == "audio"
+        assert unit_of_attribute(SettingsDialog, "_noise_reduction_check") == "audio"
         assert unit_of_attribute(SettingsDialog, "_transcription_auto_check") == "transcription"
         assert unit_of_attribute(SettingsDialog, "_shortcut_list") == "shortcuts"
 

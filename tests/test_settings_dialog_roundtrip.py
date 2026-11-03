@@ -57,11 +57,6 @@ SCENARIOS = {
         set=lambda d, t: d._pasted_audio_radio.SetSelection(1),
         shows=lambda d, t: d._pasted_audio_radio.GetSelection() == 1,
     ),
-    "voice_message_channels": dict(
-        saves={("general", "voice_message_channels"): "mono"},
-        set=lambda d, t: d._voice_channels_radio.SetSelection(1),
-        shows=lambda d, t: d._voice_channels_radio.GetSelection() == 1,
-    ),
     "notification_content": dict(
         saves={("general", "notification_content"): "sound"},
         set=lambda d, t: d._notification_content_radio.SetSelection(2),

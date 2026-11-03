@@ -16719,30 +16719,6 @@ msgid "Voice call"
 msgstr "Sesli arama"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_auto"
-msgid "Automatic: stereo, or mono when one channel has no sound"
-msgstr "Otomatik: stereo, bir kanalda ses yoksa mono"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_label"
-msgid "Voice messa&ge channels"
-msgstr "Sesli mesaj kanalla&rı"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_mono"
-msgid "Always mono"
-msgstr "Her zaman mono"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_stereo"
-msgid "Stereo whenever the input device offers two channels"
-msgstr "Giriş cihazı iki kanal sunuyorsa stereo"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"
 msgid "Recording audio"
 msgstr "Ses kaydediliyor"

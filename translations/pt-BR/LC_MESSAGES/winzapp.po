@@ -16897,30 +16897,6 @@ msgid "Voice call"
 msgstr "Ligação de voz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_auto"
-msgid "Automatic: stereo, or mono when one channel has no sound"
-msgstr "Automático: estéreo, ou mono quando um dos canais está sem som"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_label"
-msgid "Voice messa&ge channels"
-msgstr "Canais das mensagens de &voz"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_mono"
-msgid "Always mono"
-msgstr "Sempre mono"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/settings_dialog.py
-msgctxt "voice_channels_stereo"
-msgid "Stereo whenever the input device offers two channels"
-msgstr "Estéreo sempre que o dispositivo de entrada oferecer dois canais"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"
 msgid "Recording audio"
 msgstr "Gravando áudio"
