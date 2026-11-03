@@ -4,6 +4,24 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Voice messages: in Automatic, a recording whose left or right input is completely silent now goes out in mono, from the input with sound, so you are heard on both sides instead of only one. Mono and Stereo do exactly what they say.
+
+- Settings (Ctrl+,) now opens at once: only the General page is built when the window opens, and every other page or window is built the first time you go to it. Search works straight away: results keep arriving while the other pages load, you can keep typing, and the screen reader is not interrupted when the results list grows.
+
+- Neonize: reading a chat now marks it as read on the phone and on WhatsApp Web the way WhatsApp's own apps do. Before, after many chats read on Neonize, WhatsApp Web could keep showing messages you had already read as unread for several minutes.
+
+- Neonize: messages in private chats are no longer marked as read by themselves while the conversation is not open.
+
+- Neonize: channels in the chat list (when the option to show them is on) now show their name instead of a code.
+
+- Neonize: sending to large groups is faster: the group's encryption key now goes only to the devices that do not have it yet, instead of to every member's device with every message.
+
+- Neonize: messages to Meta AI work. WinZapp asks you to accept Meta AI's terms when the account has not accepted them yet, and Meta AI's replies are shown as text instead of an unknown message.
+
+- Neonize: video and voice statuses no longer fail with "server returned error 400" on some accounts.
+
+- Groups: in a group where only admins can send messages, the message field is now read-only for members on Neonize too; before, it stayed editable in most of these groups.
+
 - Voice messages: Settings > Audio now offers Automatic, Mono and Stereo recording. Mono mixes both microphone inputs so a microphone connected only on the left or right is heard from both sides. There is still one record button; the choice applies from the next recording.
 
 - Fixed: the WPPConnect server no longer fails to start with "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") after an update or fresh install.

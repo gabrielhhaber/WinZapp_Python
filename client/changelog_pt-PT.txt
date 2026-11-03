@@ -4,6 +4,24 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Mensagens de voz: no modo Automático, uma gravação em que a entrada esquerda ou direita está totalmente em silêncio passa a ser enviada em mono, a partir da entrada com som, e passa a ser ouvido dos dois lados em vez de um só. Mono e Estéreo fazem exatamente o que dizem.
+
+- As Definições (Ctrl+,) passam a abrir de imediato: só a página Geral é criada ao abrir a janela, e cada outra página ou janela é criada da primeira vez que lá vai. A pesquisa funciona desde o início: os resultados continuam a chegar enquanto as outras páginas carregam, pode continuar a escrever, e o leitor de ecrã não é interrompido quando a lista de resultados cresce.
+
+- Neonize: ler uma conversa passa a marcá-la como lida no telemóvel e no WhatsApp Web como fazem as próprias aplicações do WhatsApp. Antes, depois de muitas conversas lidas no Neonize, o WhatsApp Web podia mostrar como não lidas, durante vários minutos, mensagens que já tinha lido.
+
+- Neonize: as mensagens de conversas privadas deixam de ser marcadas como lidas sozinhas enquanto a conversa não está aberta.
+
+- Neonize: os canais na lista de conversas (com a opção de os mostrar ativada) passam a aparecer com o nome em vez de um código.
+
+- Neonize: o envio para grupos grandes ficou mais rápido: a chave de encriptação do grupo passa a ir só para os dispositivos que ainda não a têm, em vez de para o dispositivo de cada membro a cada mensagem.
+
+- Neonize: as mensagens para a Meta AI funcionam. O WinZapp pede para aceitar os termos da Meta AI quando a conta ainda não os aceitou, e as respostas da Meta AI aparecem como texto em vez de uma mensagem desconhecida.
+
+- Neonize: os estados de vídeo e de voz deixam de falhar com "server returned error 400" em algumas contas.
+
+- Grupos: num grupo em que só os administradores podem enviar mensagens, o campo de mensagem passa a ficar só de leitura para os membros também no Neonize; antes, continuava editável na maioria destes grupos.
+
 - Mensagens de voz: Definições > Áudio permite escolher gravação Automática, Mono ou Estéreo. Mono mistura as duas entradas do microfone para que um microfone ligado apenas à esquerda ou à direita seja ouvido dos dois lados. Mantém-se um só botão de gravar; a escolha aplica-se a partir da próxima gravação.
 
 - Corrigido: o servidor do WPPConnect já não deixa de iniciar com "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") depois de uma atualização ou instalação nova.

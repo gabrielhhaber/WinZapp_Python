@@ -4,6 +4,24 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sesli mesajlar: Otomatik modda, sol veya sağ girişi tamamen sessiz olan kayıt artık sesin olduğu girişten mono olarak gönderilir; böylece sesiniz tek taraftan değil iki taraftan duyulur. Mono ve Stereo tam olarak adlarının söylediğini yapar.
+
+- Ayarlar (Ctrl+,) artık hemen açılır: pencere açılırken yalnızca Genel sayfası oluşturulur, diğer her sayfa veya pencere ona ilk gittiğinizde oluşturulur. Arama baştan çalışır: diğer sayfalar yüklenirken sonuçlar gelmeye devam eder, yazmayı sürdürebilirsiniz ve sonuç listesi büyüdüğünde ekran okuyucu kesilmez.
+
+- Neonize: bir sohbeti okumak artık onu telefonda ve WhatsApp Web'de WhatsApp'ın kendi uygulamalarının yaptığı gibi okundu olarak işaretler. Önceden, Neonize'da okunan çok sayıda sohbetten sonra WhatsApp Web, zaten okuduğunuz mesajları birkaç dakika boyunca okunmamış gösterebiliyordu.
+
+- Neonize: özel sohbetlerdeki mesajlar, sohbet açık değilken artık kendiliğinden okundu olarak işaretlenmez.
+
+- Neonize: sohbet listesindeki kanallar (gösterme seçeneği açıkken) artık bir kod yerine adlarıyla görünür.
+
+- Neonize: büyük gruplara gönderim daha hızlı: grubun şifreleme anahtarı artık her mesajda her üyenin aygıtına değil, yalnızca onu henüz almamış aygıtlara gider.
+
+- Neonize: Meta AI'ya mesajlar çalışıyor. Hesap Meta AI koşullarını henüz kabul etmediyse WinZapp kabul etmenizi ister ve Meta AI'nın yanıtları bilinmeyen bir mesaj yerine metin olarak gösterilir.
+
+- Neonize: video ve sesli durumlar bazı hesaplarda artık "server returned error 400" hatasıyla başarısız olmuyor.
+
+- Gruplar: yalnızca yöneticilerin mesaj gönderebildiği bir grupta mesaj alanı artık Neonize'da da üyeler için salt okunurdur; önceden bu grupların çoğunda düzenlenebilir kalıyordu.
+
 - Sesli mesajlar: Ayarlar > Ses bölümüne Otomatik, Mono ve Stereo kayıt seçimi eklendi. Mono, iki mikrofon girişini birleştirir; yalnız sol veya sağ girişe bağlı mikrofonun sesi iki taraftan da duyulur. Tek kayıt düğmesi korunur; seçim sonraki kayıttan itibaren uygulanır.
 
 - Düzeltildi: WPPConnect sunucusu, bir güncelleme veya yeni kurulumdan sonra artık "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") hatasıyla başlatılamaz hale gelmiyor.
