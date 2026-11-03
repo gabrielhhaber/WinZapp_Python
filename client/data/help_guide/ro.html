@@ -446,6 +446,7 @@
   <li><strong>Verificarea ortografică:</strong> se aude un sunet dedicat când scrii greșit un cuvânt, când tastezi punctuație după el și când cursorul ajunge la un cuvânt greșit. În meniul contextual al câmpului, submeniul "Ortografie" oferă sugestii din dicționarul Windows. În setări alegi între a urma Windows, mereu activată sau mereu dezactivată.</li>
   <li><strong>Mențiuni:</strong> tastează <code>@</code> pentru a alege pe cineva (Enter inserează mențiunea, Esc închide). În grupuri, funcționează și <code>@all</code>.</li>
 </ul>
+<p>În F1, "Sugestii de menționare" este lista afișată când tastezi @: Enter inserează mențiunea selectată, iar Esc închide sugestiile. "Mențiuni în acest mesaj" se referă la persoanele menționate într-un mesaj primit sau trimis: Enter sau Spațiu deschide mențiunea selectată. Sunt contexte diferite, chiar dacă folosesc aceleași taste.</p>
 
 <h3>Citirea mesajelor</h3>
 <table class="field-table">
@@ -1074,13 +1075,13 @@
 <tr><td class="field-name">Alt+Shift+D</td><td>Date mesaj</td></tr>
 <tr><td class="field-name">Ctrl+Shift+E</td><td>Redirecționați mesajul</td></tr>
 <tr><td class="field-name">Ctrl+Shift+P</td><td>Întrerupeți/reluați înregistrarea (sau fixați/dezactivați fixarea mesajului selectat, atunci când nu se înregistrează)</td></tr>
-<tr><td class="field-name">Ctrl+Shift+R</td><td>Sună înapoi la un apel pierdut</td></tr>
+<tr><td class="field-name">Ctrl+Shift+R</td><td>Reacționează la mesaj; la un apel pierdut, sună înapoi</td></tr>
 <tr><td class="field-name">Ctrl+Shift+H</td><td>Înregistrați microfonul și sunetul computerului</td></tr>
 <tr><td class="field-name">Ctrl+Shift+Y</td><td>La un mesaj a cărui trimitere a eșuat sau nu a fost confirmată, încearcă să-l trimiți din nou</td></tr>
 <tr><td class="field-name">Alt+Shift+B</td><td>Într-o conversație cu o firmă, catalogul și coșul acesteia</td></tr>
 <tr><td class="field-name">Ctrl+Shift+N</td><td>Într-un cont WhatsApp Business, creați o comandă pentru contactul din conversație</td></tr>
 <tr><td class="field-name">Delete</td><td>Ștergeți mesajul sau conversația (sau fiecare selectat, dacă există o selecție)</td></tr>
-<tr><td class="field-name">Ctrl+C</td><td>Setările apelului</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>Copiați mesajul</td></tr>
 <tr><td class="field-name">Ctrl+Shift+C</td><td>Copiați legenda (foto/video/document)</td></tr>
 <tr><td class="field-name">Alt+C</td><td>Afișați textul mesajului în pop-up</td></tr>
 <tr><td class="field-name">Alt+E</td><td>Editați mesajul</td></tr>
@@ -1123,7 +1124,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>Transcrieți local cu Whisper mesajele selectate și afișați-le împreună</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>Transcrieți local cu Whisper mesajele selectate în rândurile lor</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+Delete</td><td>Șterge transcrierile locale salvate ale mesajelor selectate</td></tr>
-<tr><td class="field-name">Ctrl+Shift+Delete</td><td>Ștergeți conversațiile selectate</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Delete</td><td>Ștergeți mesajele selectate</td></tr>
 <tr><td class="field-name">Ctrl+0 a 9</td><td>Marcați mesajul focalizat sau treceți la un marcaj existent</td></tr>
 <tr><td class="field-name">Ctrl+Shift+0 a 9</td><td>Eliminați un marcaj</td></tr>
 <tr><td class="field-name">Alt+Shift+0 a 9</td><td>Marcați temporar mesajul concentrat sau treceți la un marcaj temporar existent (șters când părăsiți conversația)</td></tr>
@@ -1159,13 +1160,13 @@
 <tr><td class="field-name">Spațiu</td><td>Deschide</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Copiați linkul</td></tr>
 </table>
-<h3>Mențiuni</h3>
+<h3>Mențiuni în acest mesaj</h3>
 <table class="field-table">
 <tr><th>Comandă rapidă</th><th>Acțiune</th></tr>
 <tr><td class="field-name">Enter</td><td>Deschide</td></tr>
 <tr><td class="field-name">Spațiu</td><td>Deschide</td></tr>
 </table>
-<h3>Completare automată</h3>
+<h3>Sugestii de menționare</h3>
 <table class="field-table">
 <tr><th>Comandă rapidă</th><th>Acțiune</th></tr>
 <tr><td class="field-name">Enter</td><td>Inserează mențiunea selectată</td></tr>
@@ -1202,7 +1203,7 @@
 <tr><th>Comandă rapidă</th><th>Acțiune</th></tr>
 <tr><td class="field-name">Ctrl+Săgeată stânga</td><td>Starea anterioară</td></tr>
 <tr><td class="field-name">Ctrl+Săgeată dreapta</td><td>Următoarea stare</td></tr>
-<tr><td class="field-name">Esc</td><td>Închideți conversația. Dacă sunt selectate mesaje, prima apăsare a tastei Esc doar le deselectează pe toate, iar abia a doua închide conversația, dacă opțiunea este activată în Setări, Interfață utilizator</td></tr>
+<tr><td class="field-name">Esc</td><td>Închide</td></tr>
 <tr><td class="field-name">F5</td><td>Reîmprospătează stările</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Copiați textul de stare</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Înregistrarea mesajului vocal</td></tr>
@@ -1301,6 +1302,7 @@
 <p class="lead">Fiecare alfa nou care aduce funcții este adăugat în ghid. Această listă arată până la ce alfa este complet ghidul și ce a intrat în fiecare rundă.</p>
 <table class="field-table">
   <tr><th>Alfa</th><th>Ce a intrat în ghid</th></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Comenzi rapide: F1 distinge sugestiile de menționare de mențiunile dintr-un mesaj. În spaniolă și portugheza din Portugalia, Alt+P focalizează câmpul mesajului, iar Alt+E editează mesajele.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Grupuri: când cineva scrie, anunțul folosește acum numele persoanei, nu doar numărul de telefon.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Neonize: postările de pe canalele pe care le urmărești nu mai apar ca discuții și mesaje.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Apeluri Neonize: un apel la care nu răspunde nimeni se încheie singur după un minut.</td></tr>

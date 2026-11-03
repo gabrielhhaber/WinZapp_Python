@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Atalhos de teclado: a lista F1 corrige os nomes das ações, remove linhas repetidas na mesma seção e separa as sugestões de menção ao digitar das menções dentro de uma mensagem. Em espanhol e português de Portugal, Alt+P leva ao campo de mensagem e Alt+E fica para editar mensagens.
+
 - Mensagens de voz: Configurações > Áudio agora oferece gravação Automática, Mono e Estéreo. Mono mistura as duas entradas do microfone para que um microfone ligado só à esquerda ou à direita seja ouvido dos dois lados. Continua havendo um só botão de gravar; a escolha vale a partir da próxima gravação.
 
 - Corrigido: o servidor do WPPConnect não deixa mais de iniciar com "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") depois de uma atualização ou instalação nova.

@@ -446,6 +446,7 @@
   <li><strong>Spell check:</strong> a dedicated sound plays when you misspell a word, when you type punctuation after it and when the cursor reaches a misspelled word. In the field's context menu, the "Spelling" submenu offers suggestions from the Windows dictionary. In Settings you choose to follow Windows, always on or always off.</li>
   <li><strong>Mentions:</strong> type <code>@</code> to pick someone (Enter inserts the mention, Esc closes). In groups, <code>@all</code> works too.</li>
 </ul>
+<p>In F1, "Mention suggestions" is the list shown while typing @: Enter inserts the selected mention and Esc closes the suggestions. "Mentions in this message" refers to people mentioned in a received or sent message: Enter or Space opens the selected mention. These are separate contexts even when they share keys.</p>
 
 <h3>Read the messages</h3>
 <table class="field-table">
@@ -1074,13 +1075,13 @@
 <tr><td class="field-name">Alt+Shift+D</td><td>Message data</td></tr>
 <tr><td class="field-name">Ctrl+Shift+E</td><td>Forward message</td></tr>
 <tr><td class="field-name">Ctrl+Shift+P</td><td>Pause/resume recording (or pin/unpin the selected message, when not recording)</td></tr>
-<tr><td class="field-name">Ctrl+Shift+R</td><td>Call back a missed call</td></tr>
+<tr><td class="field-name">Ctrl+Shift+R</td><td>React to message; on a missed call, call back</td></tr>
 <tr><td class="field-name">Ctrl+Shift+H</td><td>Record microphone and computer audio</td></tr>
 <tr><td class="field-name">Ctrl+Shift+Y</td><td>On a message whose send failed or was not confirmed, try sending it again</td></tr>
 <tr><td class="field-name">Alt+Shift+B</td><td>In a chat with a business, its catalog and cart</td></tr>
 <tr><td class="field-name">Ctrl+Shift+N</td><td>On a WhatsApp Business account, create an order for the contact of the chat</td></tr>
 <tr><td class="field-name">Delete</td><td>Delete the message or chat (or every selected one, if there&#x27;s a selection)</td></tr>
-<tr><td class="field-name">Ctrl+C</td><td>Call settings</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>Copy message</td></tr>
 <tr><td class="field-name">Ctrl+Shift+C</td><td>Copy caption (photo/video/document)</td></tr>
 <tr><td class="field-name">Alt+C</td><td>Show message text in popup</td></tr>
 <tr><td class="field-name">Alt+E</td><td>Edit message</td></tr>
@@ -1123,7 +1124,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>Transcribe the selected messages locally with Whisper and show them together</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>Transcribe the selected messages locally with Whisper into their lines</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+Delete</td><td>Delete the saved local transcriptions of the selected messages</td></tr>
-<tr><td class="field-name">Ctrl+Shift+Delete</td><td>Delete the selected chats</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Delete</td><td>Delete the selected messages</td></tr>
 <tr><td class="field-name">Ctrl+0 a 9</td><td>Bookmark the focused message, or jump to an existing bookmark</td></tr>
 <tr><td class="field-name">Ctrl+Shift+0 a 9</td><td>Remove a bookmark</td></tr>
 <tr><td class="field-name">Alt+Shift+0 a 9</td><td>Temporarily bookmark the focused message, or jump to an existing temporary bookmark (cleared when you leave the chat)</td></tr>
@@ -1159,13 +1160,13 @@
 <tr><td class="field-name">Space</td><td>Open</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Copy link</td></tr>
 </table>
-<h3>Mentions</h3>
+<h3>Mentions in this message</h3>
 <table class="field-table">
 <tr><th>Shortcut</th><th>Action</th></tr>
 <tr><td class="field-name">Enter</td><td>Open</td></tr>
 <tr><td class="field-name">Space</td><td>Open</td></tr>
 </table>
-<h3>Autocomplete</h3>
+<h3>Mention suggestions</h3>
 <table class="field-table">
 <tr><th>Shortcut</th><th>Action</th></tr>
 <tr><td class="field-name">Enter</td><td>Insert the selected mention</td></tr>
@@ -1202,7 +1203,7 @@
 <tr><th>Shortcut</th><th>Action</th></tr>
 <tr><td class="field-name">Ctrl+Left Arrow</td><td>Previous status</td></tr>
 <tr><td class="field-name">Ctrl+Right Arrow</td><td>Next status</td></tr>
-<tr><td class="field-name">Esc</td><td>Close chat. With messages selected, the first Esc only deselects them all and just the second one closes the chat, if the option is enabled in Settings, User Interface</td></tr>
+<tr><td class="field-name">Esc</td><td>Close</td></tr>
 <tr><td class="field-name">F5</td><td>Refresh status</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Copy status text</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Record voice message</td></tr>
@@ -1301,6 +1302,7 @@
 <p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
+  <tr><td class="field-name">Not yet released</td><td>Shortcuts: F1 distinguishes mention suggestions from mentions inside a message. In Spanish and European Portuguese, Alt+P focuses the message field and Alt+E edits messages.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Groups: when someone is typing, the announcement now uses their name instead of just their phone number.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize: posts from channels you follow no longer show up as chats and messages.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize calls: a call nobody answers ends by itself after one minute.</td></tr>
