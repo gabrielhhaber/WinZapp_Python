@@ -76,9 +76,6 @@ class TypingCadence:
         if generation is self.generation:
             self.stop_sound()
 
-    def observe(self, context, person, composing):
-        self.observe_many(context, {person: composing})
-
     def observe_many(self, context, changes):
         """Apply one accepted participant batch without an artificial silence gap."""
         if context is None or context != self.current_context():
