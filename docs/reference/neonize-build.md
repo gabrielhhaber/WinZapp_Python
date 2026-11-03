@@ -62,7 +62,12 @@ What the patches carry today:
   `sendAppState` under `appStateSyncLock`, as `fetchAppState` already was
   (0008: two sends, or a send and a notification's fetch, applied a 409's
   conflicting patches on a stale version and broke the collection's LTHash;
-  the bridge also serializes its own calls, `app_state_recovery.serialize`).
+  the bridge also serializes its own calls, `app_state_recovery.serialize`);
+  the sender key only for the devices that do not hold it (0009: a group
+  message used to encrypt it for every device of the group, 1250 ms against
+  158 ms to a person. The memory is in RAM, so the first message to each group
+  after a start still distributes it, and a failed send forgets the group; a
+  device that lost the key asks with a retry receipt, which answers with it).
 - **meowcaller**: go.mod/go.sum on neonize's whatsmeow pin; accept 2 s after
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
