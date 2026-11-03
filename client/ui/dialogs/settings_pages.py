@@ -493,6 +493,10 @@ class SettingsPages(wx.Simplebook):
         return self._loading
 
     def set_search_loading(self, loading):
+        # Only a change says something new: a new search sets it before its
+        # own results are known, and lays out its lists itself.
+        if loading == self._loading:
+            return
         self._loading = loading
         self.refresh_search()
 

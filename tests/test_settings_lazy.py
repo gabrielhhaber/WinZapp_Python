@@ -714,9 +714,6 @@ class TestTheSearchReachesWindowsNotBuiltYet:
 
 
 
-SOURCE = pathlib.Path(settings_lazy.__file__).with_name("settings_dialog.py").read_text(encoding="utf-8")
-
-
 class TestWhatTheReviewFound:
     """Checks that ran for every OK before the pages were built lazily, and
     must still run when the page that holds them was never opened."""

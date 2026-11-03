@@ -101,15 +101,36 @@ class TranscriptionOptionsMixin:
         self._transcription_auto_check.SetValue(False)
         return True
 
+    def _automatic_transcriptions(self) -> tuple:
+        """(local on, online on): the box of each page that was built, and
+        for a page never opened what is stored, which it could not change.
+        Reading a box of a page not built would build it in the middle of OK."""
+        built = vars(self)
+        local_box = built.get("_transcription_auto_check")
+        if local_box is not None:
+            local = local_box.GetValue()
+        else:
+            local = bool(self.main_window.settings.get("transcription", {})
+                         .get("auto_transcribe_received", False))
+        ai_page = built.get("_ai_page")
+        if ai_page is not None:
+            online = ai_page.auto_transcribe.GetValue()
+        else:
+            from app_paths import global_dir
+            from app_settings import AppSettings
+            from core.ai_media.config import preferences
+            app = getattr(self.main_window, "_app_settings", None) or AppSettings(global_dir())
+            online = bool(preferences(app).get("auto_transcribe"))
+        return local, online
+
     def _validate_automatic_transcription(self) -> bool:
         """Refuse to save both automatic transcriptions on: they would write
         two texts for the same message, and a conversation's data window
         offers one of them (or none) to follow. Turning either on asks to turn
         the other off, but a settings.json from before that question can hold
         both."""
-        ai_page = getattr(self, "_ai_page", None)
-        if not (self._transcription_auto_check.GetValue() and ai_page is not None
-                and ai_page.auto_transcribe.GetValue()):
+        local, online = self._automatic_transcriptions()
+        if not (local and online):
             return True
         i18n = self.main_window.i18n
         wx.MessageBox(
