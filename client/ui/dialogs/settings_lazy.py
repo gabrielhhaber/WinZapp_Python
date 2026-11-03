@@ -70,6 +70,12 @@ UNITS = {
     "advanced": "_build_advanced_page",
 }
 
+#: unit -> the units built before it: the typing sound choice on Sound events
+#: drives the typing announcement box on the Spoken content page.
+NEEDS = {
+    "sounds": ("speech",),
+}
+
 #: The unit of each category of the list, by the attribute of its page.
 PAGE_UNITS = (
     ("_general_page", "general"),
@@ -171,6 +177,8 @@ class LazyUnitsMixin:
         """Build `unit` and show the current settings in it, once."""
         if unit in self._built_units or unit in self._building_units:
             return
+        for needed in NEEDS.get(unit, ()):
+            self._ensure_unit(needed)
         self._building_units.add(unit)
         started = time.perf_counter()
         loading = self._loading_values

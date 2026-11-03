@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mesaje vocale: în Setări > Audio poți alege înregistrarea automată, mono sau stereo. Mono combină ambele intrări ale microfonului, astfel încât un microfon conectat doar la stânga sau la dreapta să se audă pe ambele părți. Rămâne un singur buton de înregistrare; alegerea se aplică de la următoarea înregistrare.
+
 - Remediat: serverul WPPConnect nu mai eșuează la pornire cu "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") după o actualizare sau o instalare nouă.
 
 - Neonize: dacă internetul cade în mijlocul unui apel, poți totuși închide; înainte butonul eșua cu eroarea "Disconnected".
@@ -225,6 +227,8 @@ NOUTĂȚI
 - Reducerea zgomotului microfonului pentru mesajele vocale poate folosi acum un model neuronal: cu "Activați reducerea zgomotului microfonului" bifată în Setări, Audio, aceeași pagină oferă descărcarea modelului; descărcarea se face o singură dată, prin internet, iar înregistrările sunt procesate în continuare pe acest computer. Fără model, sau dacă nu poate fi folosit pentru o înregistrare, WinZapp folosește gate-ul de zgomot de bază ca până acum și vă anunță. Dacă reducerea zgomotului nu poate fi aplicată deloc, mesajul este trimis neprocesat și WinZapp vă anunță și în acest caz.
 
 - Spaniolă: eticheta unui mesaj vocal redat este acum „Reproducido”, nu „Reproducida”, ca „Enviado”, „Entregado” și „Leído”.
+
+- Notificări de tastare: alegeți un sunet repetat cât timp cineva scrie, doar cititorul de ecran, ambele sau niciunul. Puteți alege propriul sunet în Setări, Evenimente sonore. Preferința existentă pentru anunțuri este păstrată, iar noul sunet este dezactivat implicit în ambele motoare de conectare. Implicit, sunetul de tastare este oprit în timpul înregistrărilor vocale și apelurilor. Pentru a-l auzi și atunci, debifați “Opriți sunetul de tastare în timpul înregistrărilor vocale și apelurilor” în Evenimente sonore. Opțiunea afectează doar acest sunet; anunțurile cititorului de ecran și celelalte sunete își păstrează setările.
 
 - Spaniolă: traducerea folosește acum în mod consecvent „chat/chats”, în loc să îl amestece cu „conversación/conversaciones”, iar acordul în gen și număr a fost corectat în textele asociate, inclusiv în ghidul utilizatorului.
 

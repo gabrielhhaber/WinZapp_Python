@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sesli mesajlar: Ayarlar > Ses bölümüne Otomatik, Mono ve Stereo kayıt seçimi eklendi. Mono, iki mikrofon girişini birleştirir; yalnız sol veya sağ girişe bağlı mikrofonun sesi iki taraftan da duyulur. Tek kayıt düğmesi korunur; seçim sonraki kayıttan itibaren uygulanır.
+
 - Düzeltildi: WPPConnect sunucusu, bir güncelleme veya yeni kurulumdan sonra artık "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") hatasıyla başlatılamaz hale gelmiyor.
 
 - Neonize: bir görüşme sırasında internet kesilirse yine de görüşmeyi kapatabilirsiniz; önceden düğme "Disconnected" hatasıyla başarısız oluyordu.
@@ -225,6 +227,8 @@ YENİLİKLER
 - Sesli mesajlar için mikrofon gürültü azaltma artık sinirsel bir model kullanabilir: Ayarlar, Ses bölümünde "Mikrofon gürültü azaltmayı etkinleştir" işaretliyken aynı sayfa modeli indirmeyi önerir; indirme internet üzerinden bir kez yapılır ve kayıtlar yine bu bilgisayarda işlenir. Model yoksa veya bir kayıtta kullanılamazsa WinZapp her zamanki temel gürültü geçidini kullanır ve bunu bildirir. Gürültü azaltma hiç uygulanamazsa mesaj işlenmeden gönderilir ve WinZapp bunu da bildirir.
 
 - İspanyolca: dinlenen bir sesli mesajın etiketi artık "Reproducida" yerine "Reproducido" yazıyor; "Enviado", "Entregado" ve "Leído" ile uyumlu.
+
+- Yazıyor bildiriminde isteğe bağlı olarak tekrarlayan ses, yalnız ekran okuyucu, ikisi birlikte veya kapalı seçilebilir. Ayarlar, Ses olayları bölümünde kendi ses dosyanızı seçebilirsiniz. İki bağlantı motorunda da mevcut yazıyor duyurusu tercihi korunur; yeni ses varsayılan olarak kapalıdır. Yazıyor sesi varsayılan olarak sesli mesaj kaydı ve arama sırasında susturulur. Bu sırada da çalmasını isterseniz Ses olayları sayfasındaki “Sesli mesaj kaydı ve arama sırasında yazıyor sesini sustur” seçeneğini kapatın. Bu ayar yalnız yazıyor sesini etkiler; ekran okuyucu duyuruları ve diğer sesler mevcut ayarlarını korur.
 
 - İspanyolca: çeviri artık "conversación/conversaciones" ile karıştırmak yerine "chat/chats" sözcüğünü tutarlı biçimde kullanıyor; ilgili metinlerde, kullanıcı rehberi dahil, cinsiyet ve sayı uyumu da düzeltildi.
 

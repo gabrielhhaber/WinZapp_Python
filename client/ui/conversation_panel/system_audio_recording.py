@@ -17,6 +17,7 @@ import logging
 import os
 import threading
 import wx
+from main_window.typing_feedback import stop_typing_for_capture
 from app_paths import data_path
 from core.message_queue import PendingMessage
 from core.system_audio_capture import SystemAudioRecorder
@@ -189,6 +190,7 @@ class SystemAudioRecordingMixin:
         """
         if self.conversation is None or self._is_recording or self._recording_starting:
             return
+        stop_typing_for_capture(self.main_window)
         self._recording_open_token += 1
         session = {
             "token": self._recording_open_token,

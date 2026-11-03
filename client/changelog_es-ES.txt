@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Mensajes de voz: Ajustes > Audio permite elegir grabación Automática, Mono o Estéreo. Mono mezcla las dos entradas del micrófono para que un micrófono conectado solo a la izquierda o a la derecha se oiga por ambos lados. Se mantiene un solo botón de grabación; la elección se aplica a partir de la siguiente grabación.
+
 - Corregido: el servidor de WPPConnect ya no deja de iniciarse con "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") tras una actualización o una instalación nueva.
 
 - Neonize: si se corta internet en mitad de una llamada, aún puedes colgar; antes el botón fallaba con el error "Disconnected".
@@ -225,6 +227,8 @@ NOVEDADES
 - La reducción de ruido del micrófono de los mensajes de voz ahora puede usar un modelo neuronal: con "Activar reducción de ruido del micrófono" marcada en Configuración, Audio, la misma página ofrece descargar el modelo; la descarga se hace una sola vez, por internet, y las grabaciones se siguen procesando en este equipo. Sin el modelo, o si no se puede usar en una grabación, WinZapp usa el gate de ruido básico de siempre y te avisa. Si la reducción de ruido no se puede aplicar en absoluto, el mensaje se envía sin procesar y también te avisa.
 
 - Español: la etiqueta de un mensaje de voz reproducido ahora dice «Reproducido» en lugar de «Reproducida», igual que «Enviado», «Entregado» y «Leído».
+
+- Avisos de escritura: elige un sonido que se repite mientras alguien escribe, solo el lector de pantalla, ambos o ninguno. Puedes elegir tu propio sonido en Configuración, Eventos de sonido. Se conserva la preferencia actual de anuncio y el sonido de escritura está desactivado por defecto en ambos motores de conexión. Por defecto, el sonido de escritura se silencia durante las grabaciones de voz y las llamadas. Para escucharlo también en esos momentos, desmarca “Silenciar el sonido de escritura durante grabaciones de voz y llamadas” en Eventos de sonido. Esta opción afecta solo a ese sonido; los avisos del lector de pantalla y los demás sonidos conservan sus ajustes.
 
 - Español: la traducción ahora usa «chat/chats» de forma coherente, en lugar de mezclarlo con «conversación/conversaciones», y se corrige la concordancia de género y número en los textos relacionados, incluida la guía del usuario.
 

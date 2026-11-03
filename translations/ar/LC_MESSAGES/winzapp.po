@@ -11523,6 +11523,12 @@ msgid "Transition to next voice message"
 msgstr "الانتقال إلى الرسالة الصوتية التالية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_browse"
+msgid "C&hoose sound file..."
+msgstr "اختيار مل&ف صوتي..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_call_ended"
 msgid "Call ended"
 msgstr "انتهت المكالمة"
@@ -11533,6 +11539,12 @@ msgid "Incoming call"
 msgstr "مكالمة واردة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_choose_file"
+msgid "Choose a sound file"
+msgstr "اختر ملفًا صوتيًا"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_connected"
 msgid "Connected"
 msgstr "متصل"
@@ -11541,6 +11553,13 @@ msgstr "متصل"
 msgctxt "sound_event_error"
 msgid "Error"
 msgstr "خطأ"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_file_filter"
+msgid "Audio files (*.wav;*.ogg;*.mp3)|*.wav;*.ogg;*.mp3|All files (*.*)|*.*"
+msgstr ""
+"ملفات الصوت (*.wav;*.ogg;*.mp3)|*.wav;*.ogg;*.mp3|كل الملفات (*.*)|*.*"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_message_background"
@@ -11579,6 +11598,17 @@ msgid "Sound &file path:"
 msgstr "&مسار ملف الصوت:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_preview"
+msgid "Pre&view sound"
+msgstr "معاي&نة الصوت"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "sound_event_preview_stop"
+msgid "Stop pre&view"
+msgstr "إيقاف المعاي&نة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_qrcode_loaded"
 msgid "QR code loaded"
 msgstr "تم تحميل رمز QR"
@@ -11587,6 +11617,12 @@ msgstr "تم تحميل رمز QR"
 msgctxt "sound_event_reaction_received"
 msgid "Reaction to your message"
 msgstr "رد فعل على رسالتك"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_reset"
+msgid "Use pac&k sound"
+msgstr "است&عادة صوت الحزمة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_spelling_error"
@@ -11619,6 +11655,11 @@ msgstr "اكتملت المزامنة"
 msgctxt "sound_event_synchronizing"
 msgid "Synchronization started"
 msgstr "بدأت المزامنة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "sound_event_typing"
+msgid "Typing"
+msgstr "الكتابة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_voicemsg_discard"
@@ -15451,6 +15492,60 @@ msgctxt "type_message_group"
 msgid "Ty&pe a message to the group"
 msgstr "اكتب رسا&لة إلى المجموعة"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_both"
+msgid "Sound and screen reader"
+msgstr "الصوت وقارئ الشاشة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_hint"
+msgid ""
+"The sound repeats while someone is typing in the active chat. Select Typing "
+"below to choose its sound file. The spoken-content typing option stays in "
+"sync."
+msgstr ""
+"يتكرر الصوت ما دام أحدهم يكتب في الدردشة النشطة. اختر الكتابة من القائمة "
+"أدناه لاختيار ملف الصوت. يظل خيار إعلان الكتابة في إعدادات المحتوى المنطوق "
+"متزامنًا."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_interval"
+msgid "&Repeat interval (seconds):"
+msgstr "الفاصل بين ال&أصوات (بالثواني):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_label"
+msgid "T&yping notification:"
+msgstr "&إشعار الكتابة:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_off"
+msgid "Off"
+msgstr "متوقف"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_silence_capture"
+msgid "Silence typin&g sounds during voice recording and calls"
+msgstr "كتم صوت الكتاب&ة أثناء تسجيل الرسائل الصوتية والمكالمات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_sound"
+msgid "Sound only"
+msgstr "الصوت فقط"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_speech"
+msgid "Screen reader only"
+msgstr "قارئ الشاشة فقط"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
 msgctxt "typing_indicator"
 msgid "typing..."
@@ -16501,6 +16596,30 @@ msgstr "مكالمة صوتية"
 msgctxt "voice_recording"
 msgid "Recording audio"
 msgstr "تسجيل الصوت"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_auto"
+msgid "Automatic (use the device's channels)"
+msgstr "تلقائي (استخدام قنوات الجهاز)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_label"
+msgid "Voice message recording channels"
+msgstr "قنوات تسجيل الرسائل الصوتية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_mono"
+msgid "Mono (mix left and right)"
+msgstr "أحادي (دمج القناتين اليسرى واليمنى)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_stereo"
+msgid "Stereo (when available)"
+msgstr "ستيريو (عند توفره)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_tab/status_voice.py
 #: client/ui/conversation_panel/voice_recording.py

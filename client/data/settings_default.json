@@ -20,6 +20,7 @@
         "background_update_downloads": false,
         "wpp_all_updates": false,
         "noise_reduction_enabled": false,
+        "voice_recording_mode": "auto",
         "system_audio_recording_volume": 100,
         "system_audio_recording_nvda_volume": 100,
         "spell_check_mode": "windows",
@@ -157,6 +158,9 @@
     },
     "speech_content": {
         "announce_typing": true,
+        "typing_sound": false,
+        "typing_sound_interval": 3,
+        "typing_sound_silence_capture": true,
         "announce_recording": true,
         "announce_conversations_update_start": true,
         "announce_conversations_update_complete": true,

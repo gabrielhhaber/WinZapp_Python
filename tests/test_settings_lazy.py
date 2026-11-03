@@ -157,6 +157,9 @@ class _Dialog(LazyUnitsMixin):
         self.built.append("notifications")
         raise RuntimeError("no such control")
 
+    def _build_sound_events_controls(self):
+        self.built.append("sounds")
+
     def _load_values(self, unit):
         self.loaded.append((unit, self._loading_values))
 
@@ -178,6 +181,19 @@ class TestBuildingAUnit:
         dialog._ensure_unit("general")
         assert dialog.built == ["general"]
         assert dialog.loaded == [("general", True)]
+
+    def test_what_a_unit_needs_is_built_before_it(self, units, monkeypatch):
+        monkeypatch.setitem(settings_lazy.UNITS, "sounds", "_build_sound_events_controls")
+        monkeypatch.setattr(settings_lazy, "NEEDS", {"sounds": ("general",)})
+        dialog = _Dialog()
+        dialog._ensure_unit("sounds")
+        assert dialog.built == ["general", "sounds"]
+        assert [unit for unit, _ in dialog.loaded] == ["general", "sounds"]
+
+    def test_the_typing_sound_needs_the_spoken_content_page(self):
+        """TypingFeedbackControls binds the typing announcement box."""
+        assert "speech" in settings_lazy.NEEDS["sounds"]
+        assert list(settings_lazy.UNITS).index("speech") < list(settings_lazy.UNITS).index("sounds")
 
     def test_nothing_it_sets_counts_as_a_change(self, units):
         dialog = _Dialog()

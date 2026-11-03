@@ -2,6 +2,8 @@ import ctypes
 import os
 import sys
 import wx
+from ui.dialogs.typing_feedback_controls import TypingFeedbackControls
+from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
 from core import connection_engine as engines
 from core.listed_chats import channels_listed
@@ -40,6 +42,7 @@ from ui.dialogs.transcription_reuse import TranscriptionReuseMixin
 from ui.dialogs.transcription_windows import TranscriptionWindowsMixin
 from ui.dialogs.advanced_tab import AdvancedTabMixin
 from ui.dialogs.noise_model_section import NoiseModelSectionMixin
+from ui.dialogs.voice_recording_options import VoiceRecordingOptionsMixin
 from ui.dialogs.transcription_result_field import TranscriptionResultFieldMixin
 from ui.dialogs.transcription_precision import TranscriptionPrecisionMixin
 from ui.dialogs.shortcuts_tab import ShortcutsTabMixin
@@ -225,6 +228,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                      TranscriptionQueueMixin, TranscriptionCacheMixin,
                      TranscriptionOptionsMixin, TranscriptionReuseMixin,
                      TranscriptionWindowsMixin, AdvancedTabMixin, NoiseModelSectionMixin,
+                     VoiceRecordingOptionsMixin,
                      wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
 
@@ -835,6 +839,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         adev_sizer.Add(self._noise_reduction_check, 0, wx.ALL, 8)
         self._build_noise_model_section(self._audio_devices_page, adev_sizer)
+        self._build_voice_recording_options(self._audio_devices_page, adev_sizer)
 
         # What an audio file pasted into the message field (Ctrl+V) is sent
         # as, in the order of core.attachment_types.PASTED_AUDIO_MODES.
@@ -925,6 +930,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         """The Sound events page, with the alert tones."""
         i18n = self.main_window.i18n
         se_sizer = wx.BoxSizer(wx.VERTICAL)
+        self._typing_feedback = TypingFeedbackControls(self, self._sound_events_page, se_sizer)
 
         self._sound_pack_label = wx.StaticText(
             self._sound_events_page, label=i18n.t("sound_pack_label")
@@ -963,6 +969,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         se_sizer.Add(self._sound_event_path_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
         self._sound_event_path_field = wx.TextCtrl(self._sound_events_page, style=wx.TE_DONTWRAP)
         se_sizer.Add(self._sound_event_path_field, 0, wx.EXPAND | wx.ALL, 8)
+        self._sound_event_files = SoundEventFiles(self, self._sound_events_page, se_sizer)
 
         se_btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self._activate_all_btn = wx.Button(
@@ -1042,7 +1049,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         self._alert_group_custom_field.Bind(wx.EVT_TEXT, self._on_alert_custom_path_changed)
 
         # Preview buttons — sharing a group so starting one stops the other.
-        _alert_preview_group = []
+        _alert_preview_group = self._sound_event_files.preview.group
         self._alert_private_preview = AlertPreviewController(
             self.main_window, self._alert_private_preview_btn,
             lambda: self._resolve_alert_preview_path("private"),
@@ -2661,6 +2668,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._speak_other_conv_check.SetValue(speech.get("speak_other_conv_messages", True))
         if wanted(unit, "audio"):
             self._silence_while_recording_check.SetValue(speech.get("silence_while_recording", False))
+        if wanted(unit, "sounds"):
+            self._typing_feedback.load(self.main_window.settings)
 
         if wanted(unit, "connection"):
             # The rest of the connection block is loaded by _load_install_wide_values().
@@ -2679,6 +2688,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         noise_red = self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False)
         if wanted(unit, "audio"):
             self._noise_reduction_check.SetValue(noise_red)
+            self._load_voice_recording_options()
 
         # Sound events / packs
         self.main_window.refresh_sound_packs()
@@ -3206,6 +3216,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._load_chat_lock_values()
 
     def _on_sound_event_selected(self, event):
+        self._sound_event_files.preview.stop()
         self._update_sound_event_path_display()
 
     def _on_sound_event_list_key_down(self, event):
@@ -4124,6 +4135,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "sapi_fallback_enabled"
             ] = self._sapi_fallback_check.GetValue()
 
+        if ready(self, "sounds"):
+            self._sound_event_files.preview.stop()
+            self._typing_feedback.apply(self.main_window.settings)
         if ready(self, "speech"):
             # Spoken content: typing/recording announcements
             self.main_window.settings.setdefault("speech_content", {})[
@@ -4194,6 +4208,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["noise_reduction_enabled"] = (
                 self._noise_reduction_check.GetValue()
             )
+            self._save_voice_recording_options()
 
         if ready(self, "notifications"):
             # Notifications
@@ -4601,6 +4616,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._reload_audio_device_choices()
             self._noise_reduction_check.SetLabel(i18n.t("noise_reduction_label"))
             self._relabel_noise_model_section()
+            self._relabel_voice_recording_options()
         if ready(self, "notifications"):
             self._notifications_check.SetLabel(i18n.t("notifications_label"))
             self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))
@@ -4808,6 +4824,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._sound_pack_label.SetLabel(i18n.t("sound_pack_label"))
             self._import_folder_btn.SetLabel(i18n.t("import_sound_pack_folder_button"))
             self._import_zip_btn.SetLabel(i18n.t("import_sound_pack_zip_button"))
+            self._typing_feedback.relabel()
+            self._sound_event_files.relabel()
         packs = self.main_window._sound_packs
         if ready(self, "sounds"):
             pack_sel = self._sound_pack_combo.GetSelection()
@@ -4876,6 +4894,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
     def _stop_alert_previews(self):
         if not ready(self, "sounds"):
             return
+        self._sound_event_files.preview.stop()
         self._alert_private_preview.stop()
         self._alert_group_preview.stop()
         pending = getattr(self, "_alert_path_check", None)

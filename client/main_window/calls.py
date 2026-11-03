@@ -10,6 +10,7 @@ import logging
 import threading
 import time
 import wx
+from main_window.typing_feedback import stop_typing_for_capture
 from urllib.parse import quote as _url_quote
 from core.call_logic import (
     active_call_label_key,
@@ -879,6 +880,7 @@ class CallsMixin:
         # Keep the receive-only monitor alive so accepting can promote the
         # same CallAudioSession to full duplex without reopening the speaker.
         self.stop_incoming_call_alert(identity, keep_audio_monitor=True)
+        stop_typing_for_capture(self)
         is_group = bool(details.get("is_group", False))
         group_jid = str(details.get("group_jid") or "")
         self._active_voice_call = {
@@ -1420,6 +1422,7 @@ class CallsMixin:
              else self.i18n.t("voice_call_starting")).format(name=details["name"]),
             interrupt=True,
         )
+        stop_typing_for_capture(self)
         self._active_voice_call = dict(details)
         self._voice_call_last_announced_state = ""
         wx.CallAfter(self._sync_voice_call_bar)
@@ -1604,6 +1607,8 @@ class CallsMixin:
 
     def _sync_voice_call_bar(self):
         """Keep the modeless call window in step without repeatedly stealing focus."""
+        if getattr(self, "_active_voice_call", None):
+            stop_typing_for_capture(self)
         # Every change of the call in progress passes through here (the end of
         # a call too, queued by _stop_voice_call_audio): the end-call key goes
         # with the call.
@@ -1744,6 +1749,7 @@ class CallsMixin:
                 "is_video": bool(event.get("isVideo")),
             }
             self._active_voice_call = active
+            stop_typing_for_capture(self)
             self._voice_call_last_announced_state = ""
             wx.CallAfter(self._sync_voice_call_bar)
         if not call_event_matches_active(

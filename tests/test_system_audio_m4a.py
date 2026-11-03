@@ -289,9 +289,12 @@ class TestMixedComposer(unittest.TestCase):
         from core.voice_stereo import (  # pure; no wx
             STEREO_BITRATE, STEREO_MIMETYPE, drop_empty_side, encode_as_stereo,
         )
+        from core.voice_recording_mode import recording_output_channels, prepare_voice_pcm
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
         namespace = dict(logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
                          wave=wave, threading=self.threads, wx=fake_wx,
+                         recording_output_channels=recording_output_channels,
+                         prepare_voice_pcm=prepare_voice_pcm,
                          encode_as_stereo=encode_as_stereo, STEREO_BITRATE=STEREO_BITRATE,
                          drop_empty_side=drop_empty_side,
                          STEREO_MIMETYPE=STEREO_MIMETYPE,

@@ -12,6 +12,7 @@ import sys
 import threading
 import time
 import wx
+from main_window.typing_feedback import stop_typing_sound
 from core.api_client import api_post
 from core.online_presence_diagnostics import PresenceDiagnostics, diagnostic_headers, record_write
 from main_window.presence_visibility import refresh_missing_presence
@@ -259,6 +260,7 @@ class WindowLifecycleMixin:
         out of sync (e.g. after another process showed the window via Win32
         without going through wx's Show() path).
         """
+        stop_typing_sound(self)
         self.lock_chat_vault(silent=True, show_conversations=False)
         cp = getattr(self, "conversations_panel", None)
         if cp is not None and hasattr(cp, "close_ai_media"):
@@ -279,6 +281,7 @@ class WindowLifecycleMixin:
 
     def _on_iconize(self, event):
         if event.IsIconized():
+            stop_typing_sound(self)
             self.lock_chat_vault(silent=True, show_conversations=False)
         event.Skip()
 
@@ -293,6 +296,7 @@ class WindowLifecycleMixin:
         """
         if getattr(self, "tray_icon", None) is None:
             return
+        stop_typing_sound(self)
         self.lock_chat_vault(silent=True, show_conversations=False)
         cp = getattr(self, "conversations_panel", None)
         if cp is not None and hasattr(cp, "close_ai_media"):
@@ -573,6 +577,7 @@ class WindowLifecycleMixin:
             if getattr(self, "_shutting_down", False):
                 return False  # another path already owns teardown
             self._shutting_down = True
+        stop_typing_sound(self)
         cp = getattr(self, "conversations_panel", None)
         if cp is not None and hasattr(cp, "close_ai_media"):
             wx.CallAfter(cp.close_ai_media)

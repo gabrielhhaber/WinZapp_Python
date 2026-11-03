@@ -1,12 +1,13 @@
 """Stereo voice messages (issue #82).
 
-There is one record button and no mode: what the input device delivers decides.
-A device that opens with two channels sends a stereo voice message, anything
-else a mono one. The two channels are never compared for likeness: an input
+There is one record button. In automatic mode the input device decides;
+explicit mono is mixed by core.voice_recording_mode before encoding.
+A device that opens with two channels otherwise sends a stereo voice message,
+anything else a mono one. The channels are never compared for likeness: an input
 carrying a mix of mono and stereo sources (a virtual device such as BlackHole)
 is exactly the case that comparison would get wrong. A device with more channels
-is opened with its first two. The one exception is a side that carries nothing
-at all, see drop_empty_side().
+is opened with its first two. The one exception, in automatic mode only, is a
+side that carries nothing at all, see drop_empty_side() (#679).
 
 WhatsApp on iPhone cannot play a stereo OGG/Opus message, voice message or
 file, at any bitrate, but it does play stereo AAC-LC M4A, also as a voice
