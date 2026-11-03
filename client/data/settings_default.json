@@ -158,6 +158,9 @@
     },
     "speech_content": {
         "announce_typing": true,
+        "typing_sound": false,
+        "typing_sound_interval": 3,
+        "typing_sound_silence_capture": true,
         "announce_recording": true,
         "announce_conversations_update_start": true,
         "announce_conversations_update_complete": true,

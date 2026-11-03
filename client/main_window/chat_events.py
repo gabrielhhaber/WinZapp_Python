@@ -11,6 +11,7 @@ from main_window.presence_visibility import refresh_missing_presence
 from main_window.presence_ui import request_presence_ui
 import time
 import wx
+from main_window.typing_feedback import observe_typing_batch
 from core.conversation_view import conversation_in_view
 from core.unsaved_contact_marker import marked_chat_name
 from core.pinned_chat_order import sync_pinned_order
@@ -447,6 +448,7 @@ class ChatEventsMixin:
         # conversation's typing row shows them again even if their last
         # message had taken them off it.
         _fresh_typing = set()
+        _typing_sound_changes = {}
         for participant_jid, data in presences.items():
             if getattr(self, "_shutting_down", False):
                 return
@@ -539,6 +541,8 @@ class ChatEventsMixin:
                     except Exception:
                         pass
 
+            _typing_sound_changes[canonical] = new_lkp
+
             # Speak via AO2 only when a composing/recording event starts in the ACTIVE conversation.
             # Events from other chats are intentionally silent to avoid interrupting the user.
             if new_lkp != old_lkp and new_lkp in ("composing", "recording"):
@@ -582,6 +586,7 @@ class ChatEventsMixin:
 
         if getattr(self, "_shutting_down", False):
             return
+        observe_typing_batch(self, chat_jid_norm, _typing_sound_changes)
         # Persist the updated pushName map to database metadata.
         if _ppm_updated and hasattr(self, "db") and self.db is not None:
             try:

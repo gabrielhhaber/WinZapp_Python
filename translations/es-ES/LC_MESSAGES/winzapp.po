@@ -11770,6 +11770,12 @@ msgid "Transition to next voice message"
 msgstr "Transición al siguiente mensaje de voz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_browse"
+msgid "C&hoose sound file..."
+msgstr "E&legir archivo de sonido..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_call_ended"
 msgid "Call ended"
 msgstr "Llamada finalizada"
@@ -11780,6 +11786,12 @@ msgid "Incoming call"
 msgstr "Llamada entrante"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_choose_file"
+msgid "Choose a sound file"
+msgstr "Elige un archivo de sonido"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_connected"
 msgid "Connected"
 msgstr "Conectado"
@@ -11788,6 +11800,14 @@ msgstr "Conectado"
 msgctxt "sound_event_error"
 msgid "Error"
 msgstr "Error"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_file_filter"
+msgid "Audio files (*.wav;*.ogg;*.mp3)|*.wav;*.ogg;*.mp3|All files (*.*)|*.*"
+msgstr ""
+"Archivos de audio (*.wav;*.ogg;*.mp3)|*.wav;*.ogg;*.mp3|Todos los archivos "
+"(*.*)|*.*"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_message_background"
@@ -11826,6 +11846,17 @@ msgid "Sound &file path:"
 msgstr "&Ruta del archivo de sonido:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_preview"
+msgid "Pre&view sound"
+msgstr "Escuc&har sonido"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "sound_event_preview_stop"
+msgid "Stop pre&view"
+msgstr "Detener escuc&ha"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_qrcode_loaded"
 msgid "QR code loaded"
 msgstr "Código QR cargado"
@@ -11834,6 +11865,12 @@ msgstr "Código QR cargado"
 msgctxt "sound_event_reaction_received"
 msgid "Reaction to your message"
 msgstr "Reacción a tu mensaje"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/sound_event_files.py
+msgctxt "sound_event_reset"
+msgid "Use pac&k sound"
+msgstr "Restaurar sonido ori&ginal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_spelling_error"
@@ -11866,6 +11903,11 @@ msgstr "Sincronización completa"
 msgctxt "sound_event_synchronizing"
 msgid "Synchronization started"
 msgstr "Sincronización iniciada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "sound_event_typing"
+msgid "Typing"
+msgstr "Escritura"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_voicemsg_discard"
@@ -15849,6 +15891,61 @@ msgstr "&Escribe un mensaje para"
 msgctxt "type_message_group"
 msgid "Ty&pe a message to the group"
 msgstr "&Escribe un mensaje para el grupo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_both"
+msgid "Sound and screen reader"
+msgstr "Sonido y lector de pantalla"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_hint"
+msgid ""
+"The sound repeats while someone is typing in the active chat. Select Typing "
+"below to choose its sound file. The spoken-content typing option stays in "
+"sync."
+msgstr ""
+"El sonido se repite mientras alguien escribe en el chat activo. Selecciona "
+"Escritura en la lista inferior para elegir el archivo de sonido. La opción "
+"de anunciar escritura de Contenido hablado permanece sincronizada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_interval"
+msgid "&Repeat interval (seconds):"
+msgstr "Intervalo de repetici&ón (segundos):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_label"
+msgid "T&yping notification:"
+msgstr "Aviso de escrit&ura:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_off"
+msgid "Off"
+msgstr "Desactivado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_silence_capture"
+msgid "Silence typin&g sounds during voice recording and calls"
+msgstr ""
+"Silenciar el sonido de escritura durante grabaciones de voz &y llamadas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_sound"
+msgid "Sound only"
+msgstr "Solo sonido"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/typing_feedback_controls.py
+msgctxt "typing_feedback_speech"
+msgid "Screen reader only"
+msgstr "Solo lector de pantalla"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
 msgctxt "typing_indicator"

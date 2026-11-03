@@ -193,6 +193,9 @@ class CaptureHarness:
                 owner.start_hook(self)
         self.recorder_type = Recorder
         self.namespace = {
+            # New UI effect is exercised with the real helper in
+            # test_typing_feedback_capture_policy; this harness stays portable.
+            'stop_typing_for_capture': Mock(),
             'threading': self.threads,
             'wx': SimpleNamespace(CallAfter=lambda fn, *args: self.ui.append((fn, args)),
                                   CallLater=lambda ms, fn, *args: self.ui.append((fn, args))),
