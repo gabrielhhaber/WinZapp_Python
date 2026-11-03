@@ -40,6 +40,7 @@ from ui.dialogs.transcription_reuse import TranscriptionReuseMixin
 from ui.dialogs.transcription_windows import TranscriptionWindowsMixin
 from ui.dialogs.advanced_tab import AdvancedTabMixin
 from ui.dialogs.noise_model_section import NoiseModelSectionMixin
+from ui.dialogs.voice_recording_options import VoiceRecordingOptionsMixin
 from ui.dialogs.transcription_result_field import TranscriptionResultFieldMixin
 from ui.dialogs.transcription_precision import TranscriptionPrecisionMixin
 from ui.dialogs.shortcuts_tab import ShortcutsTabMixin
@@ -224,6 +225,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
                      TranscriptionQueueMixin, TranscriptionCacheMixin,
                      TranscriptionOptionsMixin, TranscriptionReuseMixin,
                      TranscriptionWindowsMixin, AdvancedTabMixin, NoiseModelSectionMixin,
+                     VoiceRecordingOptionsMixin,
                      wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
 
@@ -667,6 +669,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         adev_sizer.Add(self._noise_reduction_check, 0, wx.ALL, 8)
         self._build_noise_model_section(self._audio_devices_page, adev_sizer)
+        self._build_voice_recording_options(self._audio_devices_page, adev_sizer)
 
         # What an audio file pasted into the message field (Ctrl+V) is sent
         # as, in the order of core.attachment_types.PASTED_AUDIO_MODES.
@@ -2550,6 +2553,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         noise_red = self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False)
         self._noise_reduction_check.SetValue(noise_red)
+        self._load_voice_recording_options()
 
         # Sound events / packs
         self.main_window.refresh_sound_packs()
@@ -4001,6 +4005,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             self._noise_reduction_check.GetValue()
         )
 
+        self._save_voice_recording_options()
+
         # Notifications
         self.main_window.settings.setdefault("general", {})["notifications_enabled"] = (
             self._notifications_check.GetValue()
@@ -4366,6 +4372,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._reload_audio_device_choices()
         self._noise_reduction_check.SetLabel(i18n.t("noise_reduction_label"))
         self._relabel_noise_model_section()
+        self._relabel_voice_recording_options()
         self._notifications_check.SetLabel(i18n.t("notifications_label"))
         self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))
         for _i, _key in enumerate(NOTIFICATION_CONTENT_LABEL_KEYS):

@@ -285,9 +285,12 @@ class TestMixedComposer(unittest.TestCase):
         self.p._stop_system_audio_recording.side_effect = lambda: setattr(self.p, '_recording_system_audio', False)
         encrypt = functions(ROOT / 'client/core/utils.py', ['encrypt'], {'Fernet': Fernet})['encrypt']
         from core.voice_stereo import STEREO_BITRATE, STEREO_MIMETYPE, encode_as_stereo  # pure; no wx
+        from core.voice_recording_mode import recording_output_channels, prepare_voice_pcm
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
         namespace = dict(logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
                          wave=wave, threading=self.threads, wx=fake_wx,
+                         recording_output_channels=recording_output_channels,
+                         prepare_voice_pcm=prepare_voice_pcm,
                          encode_as_stereo=encode_as_stereo, STEREO_BITRATE=STEREO_BITRATE,
                          STEREO_MIMETYPE=STEREO_MIMETYPE,
                          encrypt=encrypt, data_path=lambda name: str(self.folder / name),
