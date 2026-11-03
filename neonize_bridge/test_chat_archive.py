@@ -158,3 +158,77 @@ def test_the_bridge_calls_it_for_every_message_stored():
     source = (pathlib.Path(__file__).parent / "server.py").read_text(encoding="utf-8")
     at = source.index('self.db.on_arrival(chat, w["t"], w["fromMe"])')
     assert "chat_archive.on_arrival(self, chat, w)" in source[at:at + 200]
+
+
+
+# ── the setting itself, read and changed from WinZapp ────────────────────────
+
+def test_keep_archived_is_the_opposite_of_unarchive():
+    assert chat_archive.keep_archived([]) is None
+    assert chat_archive.keep_archived([_setting(True)]) is False
+    assert chat_archive.keep_archived([_setting(False)]) is True
+
+
+@pytest.mark.parametrize("keep", [True, False])
+def test_the_value_sent_is_whatsapp_webs(keep):
+    value = chat_archive.setting_value(keep)
+    assert value.unarchiveChatsSetting.unarchiveChats is (not keep)
+
+
+@pytest.mark.parametrize("body, keep", [
+    ({"keepArchived": True}, True), ({"keepArchived": False}, False),
+    ({"keepArchived": "yes"}, None), ({}, None), (None, None)])
+def test_the_request(body, keep):
+    assert chat_archive.parse_request(body) is keep
+
+
+def _run(s, requests):
+    import asyncio
+    from aiohttp import web
+    from aiohttp.test_utils import TestClient, TestServer
+
+    async def main():
+        app = web.Application()
+        chat_archive.register_routes(app.router, session=lambda req: s)
+        async with TestClient(TestServer(app)) as http:
+            outputs = []
+            for method, body in requests:
+                resp = await http.request(method, "/api/tok/keep-chats-archived", json=body)
+                outputs.append((resp.status, await resp.json()))
+            return outputs
+    return asyncio.run(main())
+
+
+def test_reading_and_changing_it(tmp_path, supported, monkeypatch):
+    s = _Session(tmp_path, unarchive=True)
+    s.client, s.status = object(), "CONNECTED"
+    sent = []
+
+    def send(session, collection, mutations):
+        sent.append((collection, mutations[0][0], mutations[0][1]))
+        index, version, value, remove = mutations[0]
+        app_state_mirror.mirror_of(session).apply(
+            collection, index, version, remove, value.SerializeToString())
+
+    monkeypatch.setattr(app_state_mirror, "send", send)
+    try:
+        (status, body), (status2, body2), (status3, body3) = _run(s, [
+            ("GET", None), ("POST", {"keepArchived": True}), ("GET", None)])
+        assert (status, body["response"]["keepArchived"]) == (200, False)
+        assert (status2, body2["response"]["keepArchived"]) == (200, True)
+        assert sent == [("regular_low", ["setting_unarchiveChats"], 4)]
+        assert body3["response"]["keepArchived"] is True
+    finally:
+        s.close()
+
+
+def test_a_bad_request_and_a_closed_session(tmp_path, supported):
+    s = _Session(tmp_path)
+    try:
+        (status, body), (status2, body2) = _run(s, [
+            ("POST", {"keepArchived": "on"}), ("GET", None)])
+        assert (status, body["code"]) == (400, "invalid_keep_archived")
+        assert (status2, body2["code"]) == (503, "keep_archived_unavailable")
+    finally:
+        s.close()
+

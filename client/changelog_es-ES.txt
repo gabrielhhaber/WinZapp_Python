@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Configuración de WhatsApp > Privacidad: nueva opción "Mantener chats archivados", la misma de WhatsApp, que decide si un chat archivado vuelve a la lista cuando llega un mensaje nuevo. Funciona con WPPConnect y con Neonize.
+
 - Neonize: con la opción de WhatsApp "Mantener chats archivados" desactivada, un chat archivado que recibe un mensaje nuevo ahora vuelve a la lista de chats, como en el teléfono; antes seguía en Archivados.
 
 - Mensajes de voz: en Automático, una grabación cuya entrada izquierda o derecha está totalmente en silencio ahora se envía en mono, a partir de la entrada con sonido, y se te oye por los dos lados en vez de por uno solo. Mono y Estéreo hacen exactamente lo que dicen.

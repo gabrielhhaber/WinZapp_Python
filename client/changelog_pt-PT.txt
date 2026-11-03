@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Definições do WhatsApp > Privacidade: nova opção "Manter conversas arquivadas", a mesma do WhatsApp, que decide se uma conversa arquivada volta à lista quando chega uma mensagem nova. Funciona com o WPPConnect e com o Neonize.
+
 - Neonize: com a opção do WhatsApp "Manter conversas arquivadas" desligada, uma conversa arquivada que recebe uma mensagem nova passa a voltar à lista de conversas, como no telemóvel; antes, continuava em Arquivadas.
 
 - Mensagens de voz: no modo Automático, uma gravação em que a entrada esquerda ou direita está totalmente em silêncio passa a ser enviada em mono, a partir da entrada com som, e passa a ser ouvido dos dois lados em vez de um só. Mono e Estéreo fazem exatamente o que dizem.

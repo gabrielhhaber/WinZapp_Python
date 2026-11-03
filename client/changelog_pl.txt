@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Ustawienia WhatsApp > Prywatność: nowa opcja "Zachowaj czaty zarchiwizowane", ta sama co w WhatsApp, która decyduje, czy zarchiwizowany czat wraca na listę po nadejściu nowej wiadomości. Działa z WPPConnect i z Neonize.
+
 - Neonize: gdy opcja WhatsApp "Zachowaj czaty zarchiwizowane" jest wyłączona, zarchiwizowany czat, który dostaje nową wiadomość, wraca teraz na listę czatów, tak jak na telefonie; wcześniej zostawał w archiwum.
 
 - Wiadomości głosowe: w trybie automatycznym nagranie, w którym lewe lub prawe wejście jest całkowicie ciche, jest teraz wysyłane w mono, z wejścia, na którym jest dźwięk, więc słychać Cię z obu stron zamiast z jednej. Tryby mono i stereo działają dokładnie tak, jak się nazywają.

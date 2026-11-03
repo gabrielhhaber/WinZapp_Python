@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Setări WhatsApp > Confidențialitate: opțiune nouă "Păstrează conversațiile arhivate", aceeași ca în WhatsApp, care decide dacă o conversație arhivată revine în listă când sosește un mesaj nou. Funcționează cu WPPConnect și cu Neonize.
+
 - Neonize: cu opțiunea WhatsApp "Păstrează conversațiile arhivate" dezactivată, o conversație arhivată care primește un mesaj nou revine acum în lista de conversații, ca pe telefon; înainte rămânea la Arhivate.
 
 - Mesaje vocale: în modul Automat, o înregistrare în care intrarea stângă sau dreaptă este complet fără semnal este trimisă acum mono, din intrarea cu sunet, astfel încât ești auzit pe ambele părți, nu doar pe una. Mono și Stereo fac exact ce spun.

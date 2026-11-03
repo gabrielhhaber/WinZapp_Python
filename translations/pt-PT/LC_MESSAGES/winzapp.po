@@ -17112,6 +17112,12 @@ msgstr ""
 "Gravação de voz indisponível nesta instalação do Python (biblioteca de áudio"
 " não encontrada)."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_chats_section_label"
+msgid "Chats"
+msgstr "Conversas"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/websocket_client.py
 msgctxt "wa_disconnected_temp"
 msgid ""
@@ -17120,6 +17126,26 @@ msgid ""
 msgstr ""
 "A ligação com o WhatsApp foi interrompida. A aguardar reconexão "
 "automática..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_hint"
+msgid ""
+"When it is off, an archived chat goes back to the chat list when a new "
+"message arrives."
+msgstr "Desligada, uma conversa arquivada volta à lista de conversas quando chega uma mensagem nova."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_label"
+msgid "Keep chats archived"
+msgstr "Manter conversas arquivadas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_unavailable"
+msgid "Could not read whether chats are kept archived."
+msgstr "Não foi possível ler se as conversas ficam arquivadas."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_lists.py

@@ -166,3 +166,61 @@ export async function writeStatusPrivacy({ setting, list }) {
     return { ok: false, error: 'status_privacy_failed', kind: String(e?.name || 'Error') };
   }
 }
+
+// "Keep chats archived" (WhatsApp > Settings > Chats). WhatsApp Web keeps it as
+// two preferences (WAWebUserPrefsMultiDevice): archive v2 enabled, and
+// unarchiveChats. A chat stays archived when a message arrives only with v2 on
+// and unarchiveChats off (WAWebMsgRangeContainmentHandlers.handleForArchive).
+export async function readKeepChatsArchived() {
+  try {
+    const load = globalThis['WPP']?.loader?.moduleRequire;
+    const prefs = load?.('WAWebUserPrefsMultiDevice');
+    if (typeof prefs?.getUnarchiveChatsSetting !== 'function') {
+      return { ok: false, error: 'keep_archived_unsupported' };
+    }
+    const enabled = await prefs.getArchiveV2EnabledSetting();
+    const unarchive = await prefs.getUnarchiveChatsSetting();
+    return { ok: true, keepArchived: enabled === true && unarchive !== true };
+  } catch {
+    return { ok: false, error: 'keep_archived_unavailable' };
+  }
+}
+
+// The mutation WhatsApp Web's own switch sends: setting_unarchiveChats in
+// regular_low (WAWebArchiveSettingSync), built and sent as its other account
+// settings are (buildPendingMutation, lockForSync); then the two local
+// preferences, as WAWebArchiveSettingSync.applyMutations sets them for one
+// that arrives from the phone.
+export async function writeKeepChatsArchived({ keepArchived }) {
+  try {
+    const load = globalThis['WPP']?.loader?.moduleRequire;
+    const prefs = load?.('WAWebUserPrefsMultiDevice');
+    const sync = load?.('WAWebArchiveSettingSync')?.default;
+    const utils = load?.('WAWebSyncdActionUtils');
+    const core = load?.('WAWebSyncdCoreApi');
+    const server = load?.('WAWebProtobufsServerSync.pb');
+    const time = load?.('WATimeUtils');
+    if (!prefs || !sync || typeof utils?.buildPendingMutation !== 'function'
+        || typeof core?.lockForSync !== 'function') {
+      return { ok: false, error: 'keep_archived_unsupported' };
+    }
+    const unarchive = !keepArchived;
+    const mutation = utils.buildPendingMutation({
+      collection: sync.collectionName,
+      indexArgs: [],
+      value: { unarchiveChatsSetting: { unarchiveChats: unarchive } },
+      version: sync.getVersion(),
+      operation: server.SyncdMutation$SyncdOperation.SET,
+      timestamp: time.unixTimeMs(),
+      action: sync.getAction(),
+    });
+    await core.lockForSync([], [mutation], () => Promise.resolve());
+    await prefs.setArchiveV2EnabledSetting(true);
+    await prefs.setUnarchiveChatsSetting(unarchive);
+    const enabled = await prefs.getArchiveV2EnabledSetting();
+    const now = await prefs.getUnarchiveChatsSetting();
+    return { ok: true, keepArchived: enabled === true && now !== true };
+  } catch (error) {
+    return { ok: false, error: 'keep_archived_failed', kind: error?.constructor?.name };
+  }
+}

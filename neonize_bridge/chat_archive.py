@@ -19,10 +19,20 @@ archived, as the bridge always left it. The first archived chat that gets a
 message while the copy of `regular_low` is not complete asks for it once, so
 the next message already follows the setting.
 
+WinZapp's Settings > WhatsApp > Privacy reads and changes the setting through
+`keep-chats-archived` (register_routes): GET answers `keepArchived` (null when
+WhatsApp never said), POST `{"keepArchived": bool}` sends the same app state
+mutation WhatsApp Web's own switch sends (WAWebArchiveSettingSync, version 4)
+and answers what the copy holds afterwards. A build without app state
+mutations answers 501.
+
 The pure functions are at the top (tested in test_chat_archive.py).
 """
+import asyncio
 import logging
 import threading
+
+from aiohttp import web
 
 import app_state_mirror
 import msgmap
@@ -32,6 +42,7 @@ log = logging.getLogger("bridge")
 
 SETTING = "setting_unarchiveChats"
 COLLECTION = "regular_low"
+VERSION = 4
 
 
 def unarchives_on_message(entries) -> bool:
@@ -51,6 +62,28 @@ def unarchives_on_message(entries) -> bool:
 #: Received messages that are not new ones: a group notice, a call record,
 #: a deletion for everyone.
 NOT_NEW = (*SYSTEM_TYPES, "revoked")
+
+
+def keep_archived(entries):
+    """"Keep chats archived" from the mirror's entries of SETTING: True, False,
+    or None when WhatsApp never said."""
+    if not entries:
+        return None
+    return not unarchives_on_message(entries)
+
+
+def setting_value(keep):
+    """The SyncActionValue WhatsApp Web sends for its "Keep chats archived"."""
+    from neonize.proto.waSyncAction.WAWebProtobufSyncAction_pb2 import SyncActionValue
+    value = SyncActionValue()
+    value.unarchiveChatsSetting.unarchiveChats = not keep
+    return value
+
+
+def parse_request(body):
+    """`{"keepArchived": bool}` -> the bool; None when it is not one."""
+    keep = body.get("keepArchived") if isinstance(body, dict) else None
+    return keep if isinstance(keep, bool) else None
 
 
 def leaves_archive(archived, message, unarchives) -> bool:
@@ -91,3 +124,63 @@ def _learn_setting_once(s):
     s._unarchive_setting_asked = True
     threading.Thread(target=app_state_mirror.ensure_seeded, args=(s, COLLECTION),
                      daemon=True, name="unarchive-setting").start()
+
+
+def register_routes(r, *, session):
+    """Wire `keep-chats-archived` to the aiohttp router `r`."""
+
+    def failure(code, status):
+        return web.json_response({"status": "error", "code": code}, status=status)
+
+    def answer(keep):
+        return web.json_response({"status": "success", "response": {"keepArchived": keep}})
+
+    def ready(s):
+        if not app_state_mirror.supported():
+            return failure("keep_archived_unsupported", 501)
+        if s.client is None or s.status != "CONNECTED":
+            return failure("keep_archived_unavailable", 503)
+        return None
+
+    def read(s):
+        if not app_state_mirror.ensure_seeded(s, COLLECTION):
+            return "unread"
+        return keep_archived(app_state_mirror.mirror_of(s).entries(SETTING))
+
+    async def get_keep_archived(req):
+        s = session(req)
+        refused = ready(s)
+        if refused is not None:
+            return refused
+        keep = await asyncio.get_running_loop().run_in_executor(None, read, s)
+        if keep == "unread":
+            return failure("keep_archived_unavailable", 503)
+        return answer(keep)
+
+    def apply(s, keep):
+        app_state_mirror.send(s, COLLECTION, [([SETTING], VERSION, setting_value(keep), False)])
+        return keep_archived(app_state_mirror.mirror_of(s).entries(SETTING))
+
+    async def set_keep_archived(req):
+        s = session(req)
+        try:
+            body = await req.json()
+        except ValueError:
+            body = {}
+        keep = parse_request(body)
+        if keep is None:
+            return failure("invalid_keep_archived", 400)
+        refused = ready(s)
+        if refused is not None:
+            return refused
+        try:
+            now = await asyncio.get_running_loop().run_in_executor(None, apply, s, keep)
+        except Exception:
+            log.exception("keep-chats-archived")
+            return failure("keep_archived_failed", 502)
+        log.info("keep chats archived set to %s", now)
+        return answer(now)
+
+    r.add_get("/api/{tok}/keep-chats-archived", get_keep_archived)
+    r.add_post("/api/{tok}/keep-chats-archived", set_keep_archived)
+

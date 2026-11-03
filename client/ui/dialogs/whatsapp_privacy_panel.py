@@ -1,4 +1,5 @@
-"""WhatsApp settings > Privacy: the account's privacy choices kept on WhatsApp.
+"""WhatsApp settings > Privacy: the account's privacy choices kept on WhatsApp,
+and its "Keep chats archived" (a Chats setting of WhatsApp's, kept there too).
 
 A window of the "WhatsApp settings" category of SettingsDialog. Not WinZapp's
 settings: these live on WhatsApp's servers, are reached through the local
@@ -31,6 +32,7 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
         self._loaded = None         # the six settings, once WhatsApp reported them
         self._status_loaded = None  # privacy.StatusPrivacy, or None if unreadable
         self._status_people = None  # list chosen in the picker; None = untouched
+        self._keep_loaded = None    # "Keep chats archived" as WhatsApp reported it
         self.SetScrollRate(0, 20)
         self.SetMinSize((460, 420))
         self._build(i18n)
@@ -78,6 +80,17 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
         self._status_summary = wx.StaticText(self, label="")
         sizer.Add(self._status_summary, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM, 8)
 
+        # WhatsApp's "Keep chats archived": WhatsApp lists it under Chats, and
+        # it is kept on WhatsApp as these are, read and applied with them.
+        sizer.Add(wx.StaticText(self, label=i18n.t("wa_chats_section_label")), 0,
+                  wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._keep_archived_check = wx.CheckBox(self, label=i18n.t("wa_keep_archived_label"))
+        self._keep_archived_check.Disable()
+        sizer.Add(self._keep_archived_check, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._keep_archived_hint = wx.StaticText(self, label=i18n.t("wa_keep_archived_hint"))
+        self._keep_archived_hint.Wrap(420)
+        sizer.Add(self._keep_archived_hint, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         self._message = wx.StaticText(self, label=i18n.t("wa_privacy_loading"))
         sizer.Add(self._message, 0, wx.ALL, 8)
         self._apply_button = wx.Button(self, label=i18n.t("wa_privacy_apply_button"))
@@ -93,14 +106,25 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
         """Read the account's privacy from WhatsApp (once, when first shown)."""
         def work():
             answer = self.main_window.fetch_privacy_settings()
-            wx.CallAfter(self._on_loaded, answer)
+            keep = self.main_window.fetch_keep_chats_archived()
+            wx.CallAfter(self._on_loaded, answer, keep)
 
         threading.Thread(target=work, daemon=True, name="wa-privacy-read").start()
 
-    def _on_loaded(self, answer):
+    def _show_keep_archived(self, keep):
+        """The "Keep chats archived" box, as WhatsApp reported it (None: not read)."""
+        self._keep_loaded = keep
+        if keep is None:
+            return
+        self._keep_archived_check.SetValue(keep)
+        self._keep_archived_check.Enable()
+        self._apply_button.Enable()
+
+    def _on_loaded(self, answer, keep=None):
         if not self:  # closed while the server was still answering
             return
         i18n = self._i18n
+        self._show_keep_archived(keep)
         if not answer:
             self._message.SetLabel(i18n.t("wa_privacy_load_failed"))
             self._say(i18n.t("wa_privacy_load_failed"))
@@ -119,6 +143,8 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
             choice.SetSelection(privacy.option_index(field, settings.get(field.setting)))
             choice.Enable()
         notes = []
+        if keep is None:
+            notes.append(i18n.t("wa_keep_archived_unavailable"))
         unknown = privacy.unrecognized_fields(settings)
         if unknown:
             notes.append(i18n.t("wa_privacy_unrecognized_fields").format(
@@ -209,7 +235,9 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
             self._say(i18n.t("wa_privacy_status_need_contacts"))
             self._status_people_button.SetFocus()
             return
-        if not changes and status is None:
+        keep = privacy.keep_archived_change(
+            self._keep_loaded, self._keep_archived_check.GetValue())
+        if not changes and status is None and keep is None:
             self._message.SetLabel(i18n.t("wa_privacy_nothing_changed"))
             self._say(i18n.t("wa_privacy_nothing_changed"))
             return
@@ -237,13 +265,18 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
             if status is not None:
                 confirmed, status_error = mw.set_status_privacy(*status)
                 status_unconfirmed = status_error is None and not confirmed
+            keep_error = keep_unconfirmed = None
+            if keep is not None:
+                confirmed, keep_error = mw.set_keep_chats_archived(keep)
+                keep_unconfirmed = keep_error is None and not confirmed
             wx.CallAfter(self._on_applied, changes, errors, unconfirmed,
-                         status, status_error, status_unconfirmed)
+                         status, status_error, status_unconfirmed,
+                         keep, keep_error, keep_unconfirmed)
 
         threading.Thread(target=work, daemon=True, name="wa-privacy-write").start()
 
     def _on_applied(self, changes, errors, unconfirmed, status, status_error,
-                    status_unconfirmed):
+                    status_unconfirmed, keep=None, keep_error=None, keep_unconfirmed=None):
         if not self:
             return
         i18n = self._i18n
@@ -255,17 +288,24 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
         if status_confirmed:
             self._status_loaded = privacy.StatusPrivacy(status[0], tuple(status[1]))
             self._status_people = None
+        if keep is not None and keep_error is None and not keep_unconfirmed:
+            self._keep_loaded = keep
 
         # The field labels carry their Alt key ("&"); a message does not.
         labels = {field.setting: i18n.t(field.label_key).replace("&", "")
                   for field in privacy.PRIVACY_FIELDS}
         status_label = i18n.t("wa_privacy_status_label").replace("&", "")
         lines = [f"{labels.get(setting, setting)}: {error}" for setting, error in errors.items()]
+        keep_label = i18n.t("wa_keep_archived_label").replace("&", "")
         if status_error:
             lines.append(f"{status_label}: {status_error}")
+        if keep_error:
+            lines.append(f"{keep_label}: {keep_error}")
         not_taken = [labels.get(s, s) for s in unconfirmed]
         if status_unconfirmed:
             not_taken.append(status_label)
+        if keep_unconfirmed:
+            not_taken.append(keep_label)
         if not_taken:
             # No error, and still nothing changed on WhatsApp: the case that
             # looks exactly like success. Name what did not stick.

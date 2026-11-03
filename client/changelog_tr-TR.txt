@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WhatsApp ayarları > Gizlilik: WhatsApp'ın kendi seçeneği olan yeni "Sohbetleri arşivde tut", yeni mesaj geldiğinde arşivlenmiş sohbetin listeye dönüp dönmeyeceğini belirler. WPPConnect ve Neonize ile çalışır.
+
 - Neonize: WhatsApp'ın "Sohbetleri arşivde tut" seçeneği kapalıyken yeni mesaj alan arşivlenmiş bir sohbet artık telefonda olduğu gibi sohbet listesine geri döner; önceden Arşivlenmiş bölümünde kalıyordu.
 
 - Sesli mesajlar: Otomatik modda, sol veya sağ girişi tamamen sessiz olan kayıt artık sesin olduğu girişten mono olarak gönderilir; böylece sesiniz tek taraftan değil iki taraftan duyulur. Mono ve Stereo tam olarak adlarının söylediğini yapar.

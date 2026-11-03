@@ -16872,6 +16872,12 @@ msgid ""
 msgstr ""
 "Bu Python kurulumunda ses kaydı kullanılamıyor (ses kütüphanesi bulunamadı)."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_chats_section_label"
+msgid "Chats"
+msgstr "Sohbetler"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/websocket_client.py
 msgctxt "wa_disconnected_temp"
 msgid ""
@@ -16880,6 +16886,26 @@ msgid ""
 msgstr ""
 "WhatsApp bağlantısı kesildi. Otomatik olarak yeniden bağlanması "
 "bekleniyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_hint"
+msgid ""
+"When it is off, an archived chat goes back to the chat list when a new "
+"message arrives."
+msgstr "Kapalıyken arşivlenmiş bir sohbet, yeni mesaj geldiğinde sohbet listesine geri döner."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_label"
+msgid "Keep chats archived"
+msgstr "Sohbetleri arşivde tut"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_unavailable"
+msgid "Could not read whether chats are kept archived."
+msgstr "Sohbetlerin arşivde tutulup tutulmadığı okunamadı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_lists.py

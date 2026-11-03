@@ -15820,11 +15820,37 @@ msgid ""
 "found)."
 msgstr ""
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_chats_section_label"
+msgid "Chats"
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/websocket_client.py
 msgctxt "wa_disconnected_temp"
 msgid ""
 "The WhatsApp connection was interrupted. Waiting for automatic "
 "reconnection..."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_hint"
+msgid ""
+"When it is off, an archived chat goes back to the chat list when a new "
+"message arrives."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_label"
+msgid "Keep chats archived"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_unavailable"
+msgid "Could not read whether chats are kept archived."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

@@ -28,6 +28,7 @@ import logging
 from aiohttp import web
 
 import channel_admin
+import chat_archive
 import community_membership
 import contact_removal
 import custom_lists
@@ -111,6 +112,7 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of=N
     community_membership.register_routes(r, session=session)
     channel_admin.register_routes(r, session=session)
     status_privacy.register_routes(r, session=session)
+    chat_archive.register_routes(r, session=session)
     contact_removal.register_routes(r, session=session, jid_from_text=jid_from_text)
     custom_lists.register_routes(r, session=session, jid_from_text=jid_from_text,
                                  jid_text=jid_text)

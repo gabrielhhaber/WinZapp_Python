@@ -76,6 +76,8 @@ FORMERLY_IMPOSSIBLE = [
     ("PUT", "/newsletter/123", {"name": "New name"}, "newsletter_unsupported"),
     ("DELETE", "/newsletter/123", None, "newsletter_unsupported"),
     ("GET", "/custom-lists", None, "lists_not_available"),
+    ("GET", "/keep-chats-archived", None, "keep_archived_unsupported"),
+    ("POST", "/keep-chats-archived", {"keepArchived": True}, "keep_archived_unsupported"),
 ]
 
 

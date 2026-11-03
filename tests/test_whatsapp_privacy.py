@@ -424,3 +424,90 @@ class TestApplyOutcome:
         _, status_ok = privacy.apply_outcome(
             [], {}, [], ("contact", []), status_error, status_unconfirmed)
         assert status_ok is expected
+
+
+class TestKeepChatsArchived:
+    """WhatsApp's "Keep chats archived", shown under Privacy > Chats."""
+
+    @pytest.mark.parametrize("body, keep", [
+        ({"status": "success", "response": {"keepArchived": True}}, True),
+        ({"status": "success", "response": {"keepArchived": False}}, False),
+        ({"status": "success", "response": {"keepArchived": None}}, None),
+        ({"status": "success", "response": {}}, None),
+        ({"response": {"keepArchived": "yes"}}, None),
+        (None, None)])
+    def test_the_answer(self, body, keep):
+        assert privacy.parse_keep_archived(body) is keep
+
+    @pytest.mark.parametrize("loaded, shown, sent", [
+        (True, True, None), (True, False, False), (False, True, True),
+        (None, True, None), (None, False, None)])
+    def test_only_a_value_read_and_then_changed_is_sent(self, loaded, shown, sent):
+        assert privacy.keep_archived_change(loaded, shown) is sent
+
+    def test_read(self, monkeypatch):
+        asked = []
+
+        def fake_get(url, headers=None, timeout=None):
+            asked.append(url.rsplit("/api/SESSION:TOKEN/", 1)[1])
+            return _Response(200, {"status": "success", "response": {"keepArchived": True}})
+
+        monkeypatch.setattr(mixin_module, "api_get", fake_get)
+        assert _Stub().fetch_keep_chats_archived() is True
+        assert asked == ["keep-chats-archived"]
+
+    def test_a_route_the_engine_lacks_is_none(self, monkeypatch):
+        monkeypatch.setattr(mixin_module, "api_get", lambda url, **kw: _Response(
+            501, {"status": "error", "code": "keep_archived_unsupported"}))
+        assert _Stub().fetch_keep_chats_archived() is None
+
+    def test_set_is_confirmed_by_what_the_server_then_holds(self, posts):
+        calls, answers = posts
+        answers.append(_Response(200, {"status": "success", "response": {"keepArchived": False}}))
+        assert _Stub().set_keep_chats_archived(False) == (True, None)
+        assert calls == [("keep-chats-archived", {"keepArchived": False})]
+        answers.append(_Response(200, {"status": "success", "response": {"keepArchived": True}}))
+        assert _Stub().set_keep_chats_archived(False) == (False, None)
+
+    def test_a_refused_set_reports_its_code(self, posts):
+        _calls, answers = posts
+        answers.append(_Response(502, {"status": "error", "code": "keep_archived_failed"}))
+        assert _Stub().set_keep_chats_archived(True) == (False, "keep_archived_failed")
+
+
+class _Box:
+    def __init__(self, value=False):
+        self.value, self.enabled = value, False
+
+    def SetValue(self, value):
+        self.value = value
+
+    def GetValue(self):
+        return self.value
+
+    def Enable(self, on=True):
+        self.enabled = on
+
+
+class TestTheKeepArchivedBox:
+    def _panel(self):
+        from ui.dialogs.whatsapp_privacy_panel import WhatsAppPrivacyPanel
+        import types
+        panel = types.SimpleNamespace(_keep_archived_check=_Box(), _apply_button=_Box(),
+                                      _keep_loaded=None)
+        panel.show = lambda keep: WhatsAppPrivacyPanel._show_keep_archived(panel, keep)
+        return panel
+
+    def test_a_value_read_fills_and_enables_it(self):
+        panel = self._panel()
+        panel.show(True)
+        assert panel._keep_archived_check.value is True
+        assert panel._keep_archived_check.enabled and panel._apply_button.enabled
+        assert panel._keep_loaded is True
+
+    def test_a_value_not_read_leaves_it_off_and_disabled(self):
+        panel = self._panel()
+        panel.show(None)
+        assert not panel._keep_archived_check.enabled and not panel._apply_button.enabled
+        assert panel._keep_loaded is None
+
