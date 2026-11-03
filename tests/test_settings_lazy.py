@@ -24,7 +24,7 @@ from ui.dialogs.settings_dialog import SettingsDialog
 from ui.dialogs.settings_lazy import (
     LazyUnitsMixin, PAGE_UNITS, UNITS, attributes_created, ready, unit_of_attribute, wanted,
 )
-from ui.dialogs.settings_pages import SettingsPages, SubPageDialog
+from ui.dialogs.settings_pages import SettingsPages, SubPageDialog, new_entries
 
 SOURCE = (pathlib.Path(__file__).resolve().parents[1] / "client" / "ui" / "dialogs"
           / "settings_dialog.py").read_text(encoding="utf-8")
@@ -202,6 +202,182 @@ class TestBuildingAUnit:
         assert not ready(dialog, "notifications")
         assert "notifications" in dialog._failed_units
         assert dialog._loading_values is False
+
+
+class _Book:
+    """What the loading asks of the page book."""
+
+    search_loading = False
+
+    def __init__(self):
+        self.refreshed = 0
+
+    def refresh_search(self):
+        self.refreshed += 1
+
+    def set_search_loading(self, loading):
+        self.search_loading = loading
+
+
+class _Timer:
+    def __init__(self, delay, callback):
+        self.delays = [delay]
+        self.callback = callback
+        self.stopped = False
+
+    def Start(self, delay):
+        self.delays.append(delay)
+
+    def Stop(self):
+        self.stopped = True
+
+
+@pytest.fixture
+def searching(units, monkeypatch):
+    timers = []
+
+    def later(delay, callback):
+        timers.append(_Timer(delay, callback))
+        return timers[-1]
+
+    monkeypatch.setattr(settings_lazy.wx, "CallLater", later)
+    monkeypatch.setattr(_Dialog, "_build_notifications_controls", lambda self: self.built.append("n"))
+    dialog = _Dialog()
+    dialog._notebook = _Book()
+    return dialog, timers
+
+
+class TestLoadingAroundTheTyping:
+    """Controls can only be made on the main thread, so what keeps the window
+    answering is going back to the event loop between units."""
+
+    def test_a_key_starts_no_build_at_all(self, searching):
+        dialog, timers = searching
+        dialog._load_units_for_search()
+        assert dialog.built == []
+        assert timers[0].delays == [settings_lazy.TYPING_PAUSE_MS]
+
+    def test_the_results_say_the_search_is_not_over(self, searching):
+        dialog, _timers = searching
+        dialog._load_units_for_search()
+        assert dialog._notebook.search_loading is True
+
+    def test_each_key_pushes_the_next_unit_back(self, searching):
+        dialog, timers = searching
+        dialog._load_units_for_search()
+        dialog._load_units_for_search()
+        assert len(timers) == 1
+        assert timers[0].delays == [settings_lazy.TYPING_PAUSE_MS] * 2
+
+    def test_one_unit_per_turn_of_the_event_loop(self, searching):
+        dialog, timers = searching
+        dialog._load_units_for_search()
+        dialog._build_next_unit()
+        assert dialog.built == ["general"]
+        assert timers[0].delays[-1] == settings_lazy.BETWEEN_UNITS_MS
+
+    def test_each_unit_reaches_the_results(self, searching):
+        dialog, _timers = searching
+        dialog._load_units_for_search()
+        dialog._build_next_unit()
+        assert dialog._notebook.refreshed == 1
+
+    def test_the_last_unit_ends_the_loading(self, searching):
+        dialog, timers = searching
+        dialog._load_units_for_search()
+        dialog._build_next_unit()
+        dialog._build_next_unit()
+        assert dialog.built == ["general", "n"]
+        assert dialog._notebook.search_loading is False
+        assert timers[0].delays.count(settings_lazy.BETWEEN_UNITS_MS) == 1
+
+    def test_with_everything_built_a_key_starts_nothing(self, searching):
+        dialog, timers = searching
+        dialog._ensure_all_units()
+        dialog._load_units_for_search()
+        assert timers == []
+        assert dialog._notebook.search_loading is False
+
+    def test_a_page_opened_meanwhile_is_not_built_twice(self, searching):
+        dialog, _timers = searching
+        dialog._load_units_for_search()
+        dialog._ensure_unit("notifications")
+        dialog._build_next_unit()
+        dialog._build_next_unit()
+        assert dialog.built == ["n", "general"]
+
+    def test_closing_stops_the_loading(self, searching):
+        dialog, timers = searching
+        dialog._load_units_for_search()
+        dialog._stop_unit_loading()
+        assert timers[0].stopped is True
+
+    def test_stopping_before_any_search_is_nothing(self, searching):
+        searching[0]._stop_unit_loading()
+
+    def test_saving_resumes_a_search_still_loading(self, searching):
+        dialog, timers = searching
+        dialog._load_units_for_search()
+        dialog._stop_unit_loading()
+        dialog._resume_unit_loading()
+        assert timers[0].delays[-1] == settings_lazy.BETWEEN_UNITS_MS
+
+    def test_saving_with_no_search_resumes_nothing(self, searching):
+        dialog, timers = searching
+        dialog._resume_unit_loading()
+        assert timers == []
+
+    def test_a_timer_outliving_the_window_does_nothing(self, searching, monkeypatch):
+        dialog, _timers = searching
+        monkeypatch.setattr(_Dialog, "__bool__", lambda self: False, raising=False)
+        dialog._build_next_unit()
+        assert dialog.built == []
+
+    def test_a_page_the_search_built_is_still_fitted_when_shown(self, searching):
+        dialog, _timers = searching
+        fitted = []
+        page = object()
+        dialog._fit_page = fitted.append
+        dialog._fitted_pages = set()
+        dialog._built_units = {"general"}
+        dialog._general_page = page
+        dialog._notebook.GetPage = lambda index: page
+        dialog._ensure_page_of_index(0)
+        dialog._ensure_page_of_index(0)
+        assert fitted == [page]
+
+    @pytest.mark.parametrize("method", ["_on_ok", "_on_apply", "_on_cancel"])
+    def test_nothing_is_built_while_saving_or_closing(self, method):
+        first = METHODS[method].body[0]
+        assert first.value.func.attr == "_stop_unit_loading"
+
+
+def _entry(category, label):
+    return types.SimpleNamespace(category=category, label=label)
+
+
+class TestTheResultsArriving:
+    def test_what_was_found_is_not_found_again(self):
+        assert new_entries([_entry("Audio", "Noise")], [_entry("Audio", "Noise")]) == []
+
+    def test_a_new_match_is_added(self):
+        new = _entry("Calls", "Noise")
+        assert new_entries([_entry("Audio", "Noise")], [_entry("Audio", "Noise"), new]) == [new]
+
+    def test_the_same_label_on_another_page_is_another_result(self):
+        assert len(new_entries([_entry("Audio", "Device")], [_entry("Calls", "Device")])) == 1
+
+    def _book(self, loading, found=()):
+        return types.SimpleNamespace(
+            _found=list(found), _loading=loading, _loading_text="still", _no_results="none")
+
+    def test_nothing_found_is_only_said_at_the_end(self):
+        assert SettingsPages._result_rows(self._book(True)) == ["still"]
+        assert SettingsPages._result_rows(self._book(False)) == ["none"]
+
+    def test_results_show_while_it_loads(self):
+        book = self._book(True, [_entry("Audio", "Noise")])
+        assert SettingsPages._result_rows(book) == ["Audio: Noise"]
 
 
 class TestTheInstallWideBaseline:

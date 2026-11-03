@@ -101,10 +101,35 @@ def test_a_window_is_built_when_its_button_opens_it(make_dialog, monkeypatch):
 def test_the_search_builds_everything_and_finds_an_option_in_a_window(make_dialog):
     dialog = make_dialog()
     label = dialog._notifications_check.GetLabelText()
+    built = set(dialog._built_units)
     dialog._notebook.search_field.SetValue(label)
+    assert dialog._built_units == built, "typing built nothing by itself"
+    while dialog._notebook.search_loading:
+        dialog._build_next_unit()
     assert set(UNITS) <= dialog._built_units
     assert dialog._notebook._found
     dialog._notebook.search_field.SetValue("")
+
+
+def test_results_keep_their_place_as_pages_arrive(make_dialog):
+    dialog = make_dialog()
+    book = dialog._notebook
+    book.search_field.SetValue("a")
+    first = book._results.GetString(0)
+    book._results.SetSelection(0)
+    while book.search_loading:
+        dialog._build_next_unit()
+    assert book._results.GetSelection() == 0
+    assert book._results.GetString(0) == first
+    assert book._results.GetCount() == len(book._found)
+    book.search_field.SetValue("")
+
+
+def test_closing_during_a_search_stops_the_building(make_dialog):
+    dialog = make_dialog()
+    dialog._notebook.search_field.SetValue("a")
+    dialog._stop_unit_loading()
+    assert not dialog._unit_timer.IsRunning()
 
 
 def test_opening_every_unit_changes_no_setting(make_dialog):

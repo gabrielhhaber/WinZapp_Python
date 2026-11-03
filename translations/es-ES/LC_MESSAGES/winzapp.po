@@ -8655,7 +8655,6 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/ui/dialogs/shortcuts_tab.py
 #: client/ui/dialogs/status_audience_dialog.py
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "ok"
@@ -10420,6 +10419,12 @@ msgstr "Se produjo un error al guardar la configuración:"
 msgctxt "settings_search_label"
 msgid "&Search settings"
 msgstr "&Buscar en la configuración"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_loading"
+msgid "Still searching the other categories..."
+msgstr "Todavía buscando en las demás categorías..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12898,7 +12903,8 @@ msgctxt "tab_accessibility"
 msgid "Accessibility"
 msgstr "Accesibilidad"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/advanced_tab.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_advanced"
 msgid "Advanced"
 msgstr "Avanzadas"
@@ -12968,7 +12974,7 @@ msgid "&Reactions"
 msgstr "&Reacciones"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/shortcuts_tab.py
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_shortcuts"
 msgid "&Keyboard shortcuts"
 msgstr "Atajos &de teclado"

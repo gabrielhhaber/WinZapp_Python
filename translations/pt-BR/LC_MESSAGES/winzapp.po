@@ -8640,7 +8640,6 @@ msgstr "Modo offline ativado. Algumas funções podem estar indisponíveis."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/ui/dialogs/shortcuts_tab.py
 #: client/ui/dialogs/status_audience_dialog.py
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "ok"
@@ -10398,6 +10397,12 @@ msgstr "Ocorreu um erro ao salvar as configurações:"
 msgctxt "settings_search_label"
 msgid "&Search settings"
 msgstr "&Buscar nas configurações"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_loading"
+msgid "Still searching the other categories..."
+msgstr "Ainda procurando nas outras categorias..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12871,7 +12876,8 @@ msgctxt "tab_accessibility"
 msgid "Accessibility"
 msgstr "Acessibilidade"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/advanced_tab.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_advanced"
 msgid "Advanced"
 msgstr "Avançadas"
@@ -12941,7 +12947,7 @@ msgid "&Reactions"
 msgstr "&Reações"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/shortcuts_tab.py
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_shortcuts"
 msgid "&Keyboard shortcuts"
 msgstr "Atalhos &de teclado"

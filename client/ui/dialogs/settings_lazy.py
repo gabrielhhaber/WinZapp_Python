@@ -3,8 +3,12 @@
 Ctrl+, took 4 to 5 seconds: every control of every page and of every window
 behind a button was created, filled and given its device lists before the
 window showed. Now only the General page is. Each of the others is a *unit*,
-built the first time it is shown (a category chosen, a button pressed), and the
-search, which walks every control, builds what is left.
+built the first time it is shown (a category chosen, a button pressed).
+
+The search walks every control, so it needs what is left, and the person is
+typing: controls can only be made on the main thread, so the units go one at a
+time on a timer, with the event loop in between, and each key pushes the next one
+back. Results arrive as the pages do (SettingsPages.refresh_search()).
 
 What a unit that was never built means, everywhere:
 
@@ -32,6 +36,11 @@ import time
 import types
 
 import wx
+
+#: How long after the last key the next unit may start: typing goes first.
+TYPING_PAUSE_MS = 150
+#: Between two units with nobody typing: a timer, so waiting input comes first.
+BETWEEN_UNITS_MS = 15
 
 #: unit -> the method that builds it. The order is the one the search builds in.
 UNITS = {
@@ -191,6 +200,10 @@ class LazyUnitsMixin:
             if self.__dict__.get(attribute) is page:
                 if unit not in self._built_units and unit not in self._failed_units_so_far():
                     self._ensure_unit(unit)
+                # Once for each page, whenever it was built: one the search
+                # built has not been fitted yet.
+                if attribute not in self._fitted_pages:
+                    self._fitted_pages.add(attribute)
                     self._fit_page(page)
                 return
 
@@ -212,13 +225,48 @@ class LazyUnitsMixin:
             self.SetSize(wanted_size)
         self.Layout()
 
+    def _missing_units(self):
+        return [u for u in UNITS if u not in self._built_units
+                and u not in self._failed_units_so_far()]
+
     def _ensure_all_units(self):
-        """Everything: what the search walks."""
-        missing = [u for u in UNITS if u not in self._built_units
-                   and u not in self._failed_units_so_far()]
-        if not missing:
+        """Everything at once."""
+        for unit in self._missing_units():
+            self._ensure_unit(unit)
+
+    def _load_units_for_search(self):
+        """A key in the search field: build what is left, around the typing."""
+        if self._missing_units():
+            self._notebook.set_search_loading(True)
+            self._schedule_next_unit(TYPING_PAUSE_MS)
+
+    def _schedule_next_unit(self, delay):
+        timer = self.__dict__.get("_unit_timer")
+        if timer is None:
+            self._unit_timer = wx.CallLater(delay, self._build_next_unit)
+        else:
+            timer.Start(delay)
+
+    def _build_next_unit(self):
+        """One unit, then back to the event loop."""
+        if not self:        # the window is gone: wx says so through its truth value
             return
-        with wx.BusyCursor():
-            for unit in missing:
-                self._ensure_unit(unit)
-        self._fit_page(self._notebook.GetCurrentPage())
+        missing = self._missing_units()
+        if missing:
+            self._ensure_unit(missing[0])
+            self._notebook.refresh_search()
+        if len(missing) > 1:
+            self._schedule_next_unit(BETWEEN_UNITS_MS)
+        else:
+            self._notebook.set_search_loading(False)
+
+    def _stop_unit_loading(self):
+        """While saving, and for good on closing: a box shown while saving runs
+        an event loop, and a page must not be built halfway through."""
+        timer = self.__dict__.get("_unit_timer")
+        if timer is not None:
+            timer.Stop()
+
+    def _resume_unit_loading(self):
+        if self._notebook.search_loading:
+            self._schedule_next_unit(BETWEEN_UNITS_MS)

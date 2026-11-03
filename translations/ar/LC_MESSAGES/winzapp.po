@@ -8470,7 +8470,6 @@ msgstr "تم تمكين وضع عدم الاتصال. بعض الميزات قد
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/ui/dialogs/shortcuts_tab.py
 #: client/ui/dialogs/status_audience_dialog.py
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "ok"
@@ -10200,6 +10199,12 @@ msgstr "حدث خطأ أثناء حفظ الإعدادات:"
 msgctxt "settings_search_label"
 msgid "&Search settings"
 msgstr "ال&بحث في الإعدادات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_loading"
+msgid "Still searching the other categories..."
+msgstr "جاري البحث في الفئات الأخرى…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12623,7 +12628,8 @@ msgctxt "tab_accessibility"
 msgid "Accessibility"
 msgstr "إمكانية الوصول"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/advanced_tab.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_advanced"
 msgid "Advanced"
 msgstr "متقدم"
@@ -12693,7 +12699,7 @@ msgid "&Reactions"
 msgstr "&ردود الفعل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/shortcuts_tab.py
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_shortcuts"
 msgid "&Keyboard shortcuts"
 msgstr "&اختصارات لوحة المفاتيح"

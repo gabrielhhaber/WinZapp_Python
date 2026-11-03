@@ -172,6 +172,13 @@ def _name_of(control) -> str:
     return "" if name in _DEFAULT_NAMES else name.strip()
 
 
+def new_entries(found, matches):
+    """The `matches` not in `found` yet, in their order. A pass over the pages
+    makes new SearchEntry objects, so an entry is known by what it shows."""
+    known = {(e.category, e.label) for e in found}
+    return [e for e in matches if (e.category, e.label) not in known]
+
+
 def collect_entries(page, page_index, category, opener=None):
     """The searchable controls of `page`, in the order they were created."""
     entries = []
@@ -215,6 +222,7 @@ class SettingsPages(wx.Simplebook):
         super().__init__(parent)
         self._before_show = before_show         # called with a page's index
         self._before_search = before_search     # the search needs every control
+        self._loading = False                   # pages are still being built for it
         self._titles = []
         self._list = None
         self._search = None
@@ -356,13 +364,14 @@ class SettingsPages(wx.Simplebook):
             self._select_in_list(self._selection)
         return outer
 
-    def set_search_texts(self, label, name, results_name, no_results, results_title):
+    def set_search_texts(self, label, name, results_name, no_results, results_title, loading):
         """Translated texts; also used again when the language changes."""
         self._search_label.SetLabel(label)
         self._search.SetName(name)
         self._results.SetName(results_name)
         self._no_results = no_results
         self._results_template = results_title
+        self._loading_text = loading
         try:
             self._search.SetHint(name)
         except Exception:
@@ -391,6 +400,7 @@ class SettingsPages(wx.Simplebook):
     _guard = False
     _no_results = ""
     _results_template = "{count}"
+    _loading_text = ""
 
     def _on_list_selected(self, event):
         if self._guard:
@@ -436,8 +446,7 @@ class SettingsPages(wx.Simplebook):
             return
         if self._before_search is not None:
             self._before_search()
-        self._rebuild_index()
-        self._found = [e for e in self._index if all(w in e.folded for w in query)]
+        self._found = self._matches(query)
         self._searching = True
         self._shown = []
         for e in self._found:
@@ -453,10 +462,50 @@ class SettingsPages(wx.Simplebook):
             self._list.Focus(0)
         finally:
             self._guard = False
-        self._results.Set([f"{e.category}: {e.label}" for e in self._found])
-        if not self._found:
-            self._results.Set([self._no_results])
+        self._results.Set(self._result_rows())
         self._show_results(True)
+
+    def _matches(self, query):
+        self._rebuild_index()
+        return [e for e in self._index if all(w in e.folded for w in query)]
+
+    def _result_rows(self):
+        """The rows of the results list. "Nothing found" only once nothing is
+        left to search: said while pages are being built, it could be false."""
+        if self._found:
+            return [f"{e.category}: {e.label}" for e in self._found]
+        return [self._loading_text if self._loading else self._no_results]
+
+    @property
+    def search_loading(self):
+        return self._loading
+
+    def set_search_loading(self, loading):
+        self._loading = loading
+        self.refresh_search()
+
+    def refresh_search(self):
+        """A page was built during a search: add what it matches at the end, so
+        a result already chosen stays chosen and where it was."""
+        if not self._searching:
+            return
+        added = new_entries(self._found, self._matches(_fold(self._search.GetValue()).split()))
+        first_results = added and not self._found
+        self._found += added
+        self._guard = True
+        try:
+            for e in added:
+                if e.page_index not in self._shown:
+                    self._shown.append(e.page_index)
+                    self._list.InsertItem(self._list.GetItemCount(), self._titles[e.page_index])
+            self._list.SetItemText(0, self._results_title())
+        finally:
+            self._guard = False
+        if first_results or not self._found:
+            self._results.Set(self._result_rows())
+        else:
+            for e in added:
+                self._results.Append(f"{e.category}: {e.label}")
 
     def _results_title(self):
         return self._results_template.format(count=len(self._found))

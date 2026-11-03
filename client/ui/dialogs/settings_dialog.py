@@ -246,6 +246,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         self._loading_values = False
         self._built_units = set()
         self._building_units = set()
+        self._fitted_pages = set()
         self._build_ui()
         self._apply_btn.Hide()
         # Catches every checkbox/radio/combo/choice/text change anywhere in the
@@ -304,7 +305,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
 
         self._notebook = SettingsPages(
             self, before_show=self._ensure_page_of_index,
-            before_search=self._ensure_all_units)
+            before_search=self._load_units_for_search)
 
         self._general_page = wx.Panel(self._notebook)
         self._notebook.AddPage(self._general_page, i18n.t("tab_general"))
@@ -4496,7 +4497,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         label = i18n.t("settings_search_label")
         self._notebook.set_search_texts(
             label, label.replace("&", ""), i18n.t("settings_search_results_list"),
-            i18n.t("settings_search_none"), i18n.t("settings_search_results"))
+            i18n.t("settings_search_none"), i18n.t("settings_search_results"),
+            i18n.t("settings_search_loading"))
 
     def _refresh_dialog_labels(self):
         """Update this dialog's own title and notebook tab captions after a language change."""
@@ -4905,16 +4907,21 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             pending.Stop()
 
     def _on_ok(self, event):
+        self._stop_unit_loading()
         if self._apply_values():
             self._stop_alert_previews()
             self._maybe_warn_restart_required()
             self.EndModal(wx.ID_OK)
+        else:
+            self._resume_unit_loading()
 
     def _on_cancel(self, event):
+        self._stop_unit_loading()
         self._stop_alert_previews()
         self.EndModal(wx.ID_CANCEL)
 
     def _on_apply(self, event):
+        self._stop_unit_loading()
         if self._apply_values():
             # An invalid interval revealed its field even with the option
             # off (_validate()); once the value is fixed, hide it again.
@@ -4936,6 +4943,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             for _page in range(self._notebook.GetPageCount()):
                 self._notebook.GetPage(_page).Layout()
             self.Layout()
+        self._resume_unit_loading()
 
     def _mark_dirty(self, event=None):
         """Show the Apply button the moment any setting actually changes,
