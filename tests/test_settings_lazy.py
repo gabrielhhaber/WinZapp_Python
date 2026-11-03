@@ -382,6 +382,15 @@ class TestLoadingAroundTheTyping:
         first = METHODS[method].body[0]
         assert first.value.func.attr == "_stop_unit_loading"
 
+    def test_cancel_stops_the_loading_before_anything_else(self):
+        calls = []
+        stub = types.SimpleNamespace(
+            _stop_unit_loading=lambda: calls.append("stop loading"),
+            _stop_alert_previews=lambda: calls.append("stop previews"),
+            EndModal=lambda code: calls.append("end"))
+        SettingsDialog._on_cancel(stub, None)
+        assert calls == ["stop loading", "stop previews", "end"]
+
 
 def _entry(category, label):
     return types.SimpleNamespace(category=category, label=label)

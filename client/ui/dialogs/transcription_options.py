@@ -82,13 +82,12 @@ class TranscriptionOptionsMixin:
     def _on_local_auto_toggle(self, event) -> None:
         """Turning on the local automatic transcription while the online one is
         on: ask, then turn the online one off (or leave this one off)."""
-        ai_page = getattr(self, "_ai_page", None)
-        if (self._transcription_auto_check.GetValue() and ai_page is not None
-                and ai_page.auto_transcribe.GetValue()):
+        if self._transcription_auto_check.GetValue() and self._automatic_transcriptions()[1]:
             if not self._ask_replace_automatic("transcription_auto_replaces_online"):
                 self._transcription_auto_check.SetValue(False)
                 return
-            ai_page.auto_transcribe.SetValue(False)
+            # The AI page saves that choice: built now if it never was.
+            self._ai_page.auto_transcribe.SetValue(False)
         event.Skip()
 
     def _confirm_online_replaces_local(self) -> bool:

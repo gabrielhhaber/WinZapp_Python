@@ -265,7 +265,8 @@ def _page(settings):
         _log_level_choice=_Value(), _fixed_port_check=_Value(False),
         _fixed_port_field=_Value(""),
     )
-    for name in ("_load_advanced_values", "_apply_advanced_values", "_sync_fixed_port_field"):
+    for name in ("_load_advanced_values", "_apply_advanced_values", "_sync_fixed_port_field",
+                 "_custom_api_on"):
         setattr(page, name, getattr(AdvancedTabMixin, name).__get__(page))
     return page
 
@@ -314,6 +315,17 @@ class TestTheFixedPortFollowsTheCustomApi:
         page._custom_api_check.value = False
         page._sync_fixed_port_field()
         assert page._fixed_port_check.enabled and page._fixed_port_field.enabled
+
+
+    def test_a_connection_page_never_opened_is_read_from_the_store(self):
+        """Opening Advanced no longer builds Connection to read one box."""
+        page = _page({})
+        page.main_window.install_wide_values = lambda: {"connection": {"wpp_custom_api": True}}
+        page._sync_fixed_port_field()
+        assert not page._fixed_port_check.enabled
+        page.main_window.install_wide_values = lambda: {}
+        page._sync_fixed_port_field()
+        assert page._fixed_port_check.enabled
 
 
 def test_a_question_opens_over_the_window_the_user_is_in():
