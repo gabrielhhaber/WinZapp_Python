@@ -4,6 +4,28 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Setări WhatsApp > Confidențialitate: opțiune nouă "Păstrează conversațiile arhivate", aceeași ca în WhatsApp, care decide dacă o conversație arhivată revine în listă când sosește un mesaj nou. Funcționează cu WPPConnect și cu Neonize.
+
+- Neonize: cu opțiunea WhatsApp "Păstrează conversațiile arhivate" dezactivată, o conversație arhivată care primește un mesaj nou revine acum în lista de conversații, ca pe telefon; înainte rămânea la Arhivate.
+
+- Mesaje vocale: în modul Automat, o înregistrare în care intrarea stângă sau dreaptă este complet fără semnal este trimisă acum mono, din intrarea cu sunet, astfel încât ești auzit pe ambele părți, nu doar pe una. Mono și Stereo fac exact ce spun.
+
+- Setările (Ctrl+,) se deschid acum imediat: la deschiderea ferestrei se creează doar pagina Generale, iar fiecare altă pagină sau fereastră se creează prima dată când mergi la ea. Căutarea funcționează de la început: rezultatele continuă să sosească în timp ce celelalte pagini se încarcă, poți continua să scrii, iar cititorul de ecran nu este întrerupt când lista de rezultate crește.
+
+- Neonize: citirea unei conversații o marchează acum ca citită pe telefon și în WhatsApp Web așa cum o fac aplicațiile WhatsApp. Înainte, după multe conversații citite în Neonize, WhatsApp Web putea afișa ca necitite, timp de câteva minute, mesaje pe care le citiseși deja.
+
+- Neonize: mesajele din conversațiile private nu mai sunt marcate singure ca citite cât timp conversația nu este deschisă.
+
+- Neonize: canalele din lista de conversații (cu opțiunea de afișare activată) apar acum cu numele lor în loc de un cod.
+
+- Neonize: trimiterea către grupuri mari este mai rapidă: cheia de criptare a grupului merge acum doar la dispozitivele care nu o au încă, în loc să meargă la dispozitivul fiecărui membru la fiecare mesaj.
+
+- Neonize: mesajele către Meta AI funcționează. WinZapp cere acceptarea termenilor Meta AI când contul nu i-a acceptat încă, iar răspunsurile Meta AI apar ca text în loc de un mesaj necunoscut.
+
+- Neonize: statusurile video și vocale nu mai eșuează cu "server returned error 400" pe unele conturi.
+
+- Grupuri: într-un grup în care doar administratorii pot trimite mesaje, câmpul de mesaj este acum doar pentru citire pentru membri și în Neonize; înainte rămânea editabil în majoritatea acestor grupuri.
+
 - Comenzi rapide: lista F1 corectează denumirile acțiunilor, elimină liniile repetate din aceeași secțiune și separă sugestiile de menționare la tastare de mențiunile dintr-un mesaj. În spaniolă și portugheza din Portugalia, Alt+P mută focalizarea în câmpul mesajului, iar Alt+E rămâne pentru editarea mesajelor.
 
 - Mesaje vocale: în Setări > Audio poți alege înregistrarea automată, mono sau stereo. Mono combină ambele intrări ale microfonului, astfel încât un microfon conectat doar la stânga sau la dreapta să se audă pe ambele părți. Rămâne un singur buton de înregistrare; alegerea se aplică de la următoarea înregistrare.
@@ -233,6 +255,12 @@ NOUTĂȚI
 - Notificări de tastare: alegeți un sunet repetat cât timp cineva scrie, doar cititorul de ecran, ambele sau niciunul. Puteți alege propriul sunet în Setări, Evenimente sonore. Preferința existentă pentru anunțuri este păstrată, iar noul sunet este dezactivat implicit în ambele motoare de conectare. Implicit, sunetul de tastare este oprit în timpul înregistrărilor vocale și apelurilor. Pentru a-l auzi și atunci, debifați “Opriți sunetul de tastare în timpul înregistrărilor vocale și apelurilor” în Evenimente sonore. Opțiunea afectează doar acest sunet; anunțurile cititorului de ecran și celelalte sunete își păstrează setările.
 
 - Spaniolă: traducerea folosește acum în mod consecvent „chat/chats”, în loc să îl amestece cu „conversación/conversaciones”, iar acordul în gen și număr a fost corectat în textele asociate, inclusiv în ghidul utilizatorului.
+
+- WPPConnect: cât timp WhatsApp Web încă sincronizează un istoric lung, WinZapp spune acum "se sincronizează cu WhatsApp..." în loc să arate contul ca deconectat și nu redă sunetul de deconectare.
+
+- WPPConnect: un catalog incomplet de versiuni WhatsApp Web este reparat la pornirea serverului, iar un Node care se oprește la pornire este semnalat imediat, nu după cinci minute.
+
+- Arabă: ghidul de utilizare (Ajutor > Ghid de utilizare) este acum complet în arabă.
 
 V2.1.0.0
 

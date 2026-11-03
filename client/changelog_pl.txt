@@ -4,6 +4,28 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Ustawienia WhatsApp > Prywatność: nowa opcja "Zachowaj czaty zarchiwizowane", ta sama co w WhatsApp, która decyduje, czy zarchiwizowany czat wraca na listę po nadejściu nowej wiadomości. Działa z WPPConnect i z Neonize.
+
+- Neonize: gdy opcja WhatsApp "Zachowaj czaty zarchiwizowane" jest wyłączona, zarchiwizowany czat, który dostaje nową wiadomość, wraca teraz na listę czatów, tak jak na telefonie; wcześniej zostawał w archiwum.
+
+- Wiadomości głosowe: w trybie automatycznym nagranie, w którym lewe lub prawe wejście jest całkowicie ciche, jest teraz wysyłane w mono, z wejścia, na którym jest dźwięk, więc słychać Cię z obu stron zamiast z jednej. Tryby mono i stereo działają dokładnie tak, jak się nazywają.
+
+- Ustawienia (Ctrl+,) otwierają się teraz od razu: przy otwarciu okna tworzona jest tylko strona Ogólne, a każda inna strona lub okno powstaje przy pierwszym przejściu do niej. Wyszukiwanie działa od początku: wyniki napływają, gdy pozostałe strony się wczytują, możesz pisać dalej, a czytnik ekranu nie jest przerywany, gdy lista wyników rośnie.
+
+- Neonize: przeczytanie czatu oznacza go teraz jako przeczytany na telefonie i w WhatsApp Web tak, jak robią to aplikacje WhatsApp. Wcześniej, po wielu czatach przeczytanych w Neonize, WhatsApp Web mógł przez kilka minut pokazywać już przeczytane wiadomości jako nieprzeczytane.
+
+- Neonize: wiadomości w czatach prywatnych nie są już same oznaczane jako przeczytane, gdy czat nie jest otwarty.
+
+- Neonize: kanały na liście czatów (gdy opcja ich pokazywania jest włączona) pokazują teraz swoją nazwę zamiast kodu.
+
+- Neonize: wysyłanie do dużych grup jest szybsze: klucz szyfrowania grupy trafia teraz tylko do urządzeń, które jeszcze go nie mają, zamiast do urządzenia każdego członka przy każdej wiadomości.
+
+- Neonize: wiadomości do Meta AI działają. WinZapp prosi o zaakceptowanie warunków Meta AI, gdy konto jeszcze ich nie zaakceptowało, a odpowiedzi Meta AI są pokazywane jako tekst zamiast nieznanej wiadomości.
+
+- Neonize: statusy wideo i głosowe nie kończą się już na niektórych kontach błędem "server returned error 400".
+
+- Grupy: w grupie, w której tylko administratorzy mogą wysyłać wiadomości, pole wiadomości jest teraz tylko do odczytu dla członków także w Neonize; wcześniej w większości takich grup pozostawało edytowalne.
+
 - Skróty klawiszowe: lista F1 poprawia nazwy działań, usuwa powtórzone wiersze w tej samej sekcji i oddziela sugestie wzmianek podczas pisania od wzmianek w wiadomości. W języku hiszpańskim i portugalskim z Portugalii Alt+P przenosi do pola wiadomości, a Alt+E służy do edycji wiadomości.
 
 - Wiadomości głosowe: w Ustawieniach > Dźwięk można wybrać nagrywanie automatyczne, mono lub stereo. Mono łączy obie ścieżki wejściowe mikrofonu, dzięki czemu mikrofon podłączony tylko do lewego lub prawego wejścia słychać z obu stron. Nadal jest jeden przycisk nagrywania; wybór obowiązuje od następnego nagrania.
@@ -233,6 +255,12 @@ NOWOŚCI
 - Powiadomienia o pisaniu: wybierz powtarzany dźwięk podczas pisania, sam czytnik ekranu, oba sposoby lub wyłącz powiadomienia. W ustawieniach zdarzeń dźwiękowych możesz wskazać własny plik. Dotychczasowy wybór ogłaszania pisania jest zachowany, a nowy dźwięk jest domyślnie wyłączony w obu silnikach połączenia. Domyślnie dźwięk pisania jest wyciszony podczas nagrywania wiadomości głosowej i rozmów. Aby był wtedy odtwarzany, odznacz “Wycisz dźwięk pisania podczas nagrywania wiadomości głosowej i rozmów” w ustawieniach zdarzeń dźwiękowych. Opcja dotyczy tylko tego dźwięku; komunikaty czytnika ekranu i pozostałe dźwięki zachowują swoje ustawienia.
 
 - Hiszpański: tłumaczenie używa teraz konsekwentnie „chat/chats” zamiast mieszać to z „conversación/conversaciones”, a w powiązanych tekstach, także w podręczniku użytkownika, poprawiono zgodność rodzaju i liczby.
+
+- WPPConnect: gdy WhatsApp Web wciąż synchronizuje długą historię, WinZapp mówi teraz "synchronizowanie z WhatsApp..." zamiast pokazywać konto jako rozłączone i nie odtwarza dźwięku rozłączenia.
+
+- WPPConnect: niekompletny katalog wersji WhatsApp Web jest naprawiany przy starcie serwera, a Node, który zatrzymuje się przy uruchamianiu, jest zgłaszany od razu zamiast po pięciu minutach.
+
+- Arabski: przewodnik użytkowania (Pomoc > Przewodnik użytkowania) jest teraz kompletny po arabsku.
 
 V2.1.0.0
 

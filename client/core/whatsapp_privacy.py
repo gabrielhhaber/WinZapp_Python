@@ -339,3 +339,18 @@ class AudienceSelection:
 
     def chosen(self) -> list:
         return [jid for key, _label, jid in self.rows if key in self.checked]
+
+def parse_keep_archived(body):
+    """The `keepArchived` of a keep-chats-archived answer (WhatsApp's "Keep chats
+    archived"): True, False, or None when the answer does not say."""
+    response = body.get("response") if isinstance(body, dict) else None
+    keep = response.get("keepArchived") if isinstance(response, dict) else None
+    return keep if isinstance(keep, bool) else None
+
+
+def keep_archived_change(loaded, shown):
+    """What to send for the "Keep chats archived" box: the box's value when it
+    was read from WhatsApp and then changed, else None."""
+    if not isinstance(loaded, bool) or not isinstance(shown, bool) or loaded == shown:
+        return None
+    return shown

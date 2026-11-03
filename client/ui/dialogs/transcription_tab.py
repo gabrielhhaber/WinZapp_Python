@@ -1955,7 +1955,9 @@ class TranscriptionTabMixin:
         loop, once the window is up — the same arrangement
         `TranscriptionProgressDialog.run()` uses, for the same reason.
         """
-        index = self._notebook.FindPage(self._transcription_page)
+        # The panel holding its place: the page itself is built when shown.
+        page = vars(self).get("_transcription_holder") or self._transcription_page
+        index = self._notebook.FindPage(page)
         if index != wx.NOT_FOUND:
             self._notebook.ChangeSelection(index)
             wx.CallAfter(self._enter_transcription_page)

@@ -23,6 +23,14 @@ and `install()` wraps the client's `send_message` so every message to a chat
 with a timer goes out with it. A message with expiration 0 is not "off": an
 old device sends none, and only the notice turns the timer off.
 
+A status (status@broadcast) never has a timer: it goes away by itself after
+a day, WhatsApp Web sends it with no `expiration`, and the server refuses a
+status that carries one ("server returned error 400"). The chat
+status@broadcast still received statuses, and a status that stated a timer
+gave it one, so every video and voice status after that was refused while the
+same video went to a group. `has_timer()` keeps it out on reading as well,
+for the stores that already hold one.
+
 The pure functions are at the top (test_chat_timers.py).
 """
 import logging
@@ -39,6 +47,12 @@ UNTIMED = frozenset((
     "keepInChatMessage", "pinInChatMessage", "senderKeyDistributionMessage",
     "messageContextInfo",
 ))
+
+
+def has_timer(jid) -> bool:
+    """Whether the chat `jid` can have temporary messages: not a status, nor a
+    broadcast list."""
+    return not str(jid or "").endswith("@broadcast")
 
 
 def timer_in(message):
@@ -140,7 +154,10 @@ class ChatTimers:
 
     def chat_timer(self, jid):
         """(seconds, setting_ts) of `jid`'s chat, under whichever of its
-        addresses is stored; None when unknown. Blocks on a neonize call."""
+        addresses is stored; None when unknown or when it cannot have one
+        (has_timer). Blocks on a neonize call."""
+        if not has_timer(jid):
+            return None
         for key in self.chat_keys(jid) or [jid]:
             timer = self.db.chat_timer(key)
             if timer is not None:
@@ -150,6 +167,8 @@ class ChatTimers:
     def record_timer(self, jid, seconds, setting_ts=0):
         """Store the timer under every address the chat has, so the number and
         the LID never disagree about it."""
+        if not has_timer(jid):
+            return
         fields = {"ephemeral": int(seconds or 0)}
         if setting_ts:
             fields["ephemeral_ts"] = int(setting_ts)

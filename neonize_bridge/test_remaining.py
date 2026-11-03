@@ -76,6 +76,8 @@ FORMERLY_IMPOSSIBLE = [
     ("PUT", "/newsletter/123", {"name": "New name"}, "newsletter_unsupported"),
     ("DELETE", "/newsletter/123", None, "newsletter_unsupported"),
     ("GET", "/custom-lists", None, "lists_not_available"),
+    ("GET", "/keep-chats-archived", None, "keep_archived_unsupported"),
+    ("POST", "/keep-chats-archived", {"keepArchived": True}, "keep_archived_unsupported"),
 ]
 
 
@@ -92,20 +94,130 @@ def test_no_impossible_route_is_the_last_seen_or_presence_one():
     assert not any("last-seen" in r or "chat-is-online" in r for r in routes)
 
 
-def test_meta_ai_terms_says_unknown_without_needing_a_connection():
+def _tos_answer(state=None, notice="20250502"):
+    attrs = {"id": notice}
+    if state is not None:
+        attrs["state"] = state
+    return {"tag": "iq", "content": [
+        {"tag": "tos", "content": [{"tag": "notice", "attrs": attrs}]}]}
+
+
+class _Server:
+    """WhatsApp's side of the tos queries: what it was sent, what it answers."""
+
+    def __init__(self, state="false", refuse=None):
+        self.state = state
+        self.refuse = refuse
+        self.sent = []
+
+    def send_iq(self, client, query):
+        self.sent.append(query)
+        if self.refuse:
+            raise remaining.rq.QueryError("refused", self.refuse)
+        if query["type"] == "set":
+            self.state = "true"
+            return {"tag": "iq"}
+        return _tos_answer(self.state)
+
+
+@pytest.fixture
+def server(monkeypatch):
+    fake = _Server()
+    monkeypatch.setattr(remaining.rq, "available", lambda client: True)
+    monkeypatch.setattr(remaining.rq, "send_iq", fake.send_iq)
+    return fake
+
+
+def test_the_terms_are_read_with_whatsapp_webs_query():
+    query = remaining.terms_query()
+    assert (query["namespace"], query["type"]) == ("tos", "get")
+    request, = query["content"]
+    assert request["tag"] == "request" and "attrs" not in request
+    assert request["content"] == [{"tag": "notice", "attrs": {"id": "20250502"}}]
+
+
+def test_the_terms_are_accepted_with_the_session_update_whatsapp_web_sends():
+    query = remaining.terms_accept_query()
+    assert (query["namespace"], query["type"]) == ("tos", "set")
+    request, = query["content"]
+    assert request["attrs"] == {"type": "session_update"}
+    assert request["content"] == [{"tag": "notice", "attrs": {"id": "20250502"}}]
+
+
+@pytest.mark.parametrize("answer,expected", [
+    (_tos_answer("false"), "NOT_ACCEPTED"),
+    (_tos_answer("true"), "ACCEPTED"),
+    # WhatsApp Web: accepted unless the state says "false"
+    (_tos_answer(), "ACCEPTED"),
+    (_tos_answer("false", notice="1"), "UNKNOWN"),
+    ({"tag": "iq"}, "UNKNOWN"),
+    (None, "UNKNOWN"),
+])
+def test_the_state_of_the_notice_in_the_answer(answer, expected):
+    assert remaining.terms_state(answer) == expected
+
+
+def test_meta_ai_terms_says_unknown_without_a_connection(server):
     (status, body), = run(session(status="CLOSED"), [("GET", "/meta-ai-terms")])
     assert status == 200
     assert body["response"] == {"noticeId": "20250502", "state": "UNKNOWN"}
+    assert server.sent == []
 
 
-def test_accepting_the_meta_ai_terms_answers_501_and_records_no_consent():
+def test_meta_ai_terms_says_unknown_on_an_older_build(monkeypatch):
+    monkeypatch.setattr(remaining.rq, "available", lambda client: False)
+    (status, body), = run(session(), [("GET", "/meta-ai-terms")])
+    assert (status, body["response"]["state"]) == (200, "UNKNOWN")
+
+
+def test_meta_ai_terms_reads_the_state_from_whatsapp(server):
+    (status, body), = run(session(), [("GET", "/meta-ai-terms")])
+    assert status == 200
+    assert body["response"] == {"noticeId": "20250502", "state": "NOT_ACCEPTED"}
+    assert [q["type"] for q in server.sent] == ["get"]
+
+
+def test_a_refused_read_says_unknown_and_does_not_block_the_send(server):
+    server.refuse = 500
+    (status, body), = run(session(), [("GET", "/meta-ai-terms")])
+    assert (status, body["response"]["state"]) == (200, "UNKNOWN")
+
+
+def test_accepting_sends_the_update_and_confirms_with_a_new_read(server):
+    (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
+    assert status == 200
+    assert body["response"] == {"noticeId": "20250502", "state": "ACCEPTED"}
+    assert [q["type"] for q in server.sent] == ["set", "get"]
+
+
+def test_an_accept_whatsapp_did_not_record_is_not_a_success(server, monkeypatch):
+    monkeypatch.setattr(server, "send_iq", lambda client, query: (
+        server.sent.append(query) or _tos_answer("false")))
+    monkeypatch.setattr(remaining.rq, "send_iq", server.send_iq)
+    (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
+    assert status == 409 and body["response"]["state"] == "NOT_ACCEPTED"
+
+
+def test_a_refused_accept_answers_502(server):
+    server.refuse = 400
+    (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
+    assert status == 502 and body["code"] == "meta_ai_terms_refused"
+
+
+def test_accepting_needs_a_connection(server):
+    (status, body), = run(session(status="CLOSED"), [("POST", "/meta-ai-terms/accept")])
+    assert status == 503 and body["code"] == "disconnected"
+    assert server.sent == []
+
+
+def test_accepting_on_an_older_build_answers_501(monkeypatch):
+    monkeypatch.setattr(remaining.rq, "available", lambda client: False)
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 501 and body["code"] == "meta_ai_terms_unsupported"
-    assert "response" not in body
 
 
 def test_remaining_does_not_call_native_code():
-    """The consent is not recorded through ctypes: no AcceptTOSNotice here."""
+    """The consent goes through the raw query, not ctypes: no AcceptTOSNotice."""
     code = open(remaining.__file__, encoding="utf-8").read()
     assert "ctypes" not in code
 

@@ -519,6 +519,13 @@ class WppServerMixin:
             # package inside it does, so it gets its own check.
             if not ffmpeg_bin:
                 missing.append(os.path.join(node_modules, "@ffmpeg-installer", "ffmpeg"))
+            # A package.json is the evidence here, not the folder: an npm
+            # install cut short left @wppconnect/wa-version with only LICENSE
+            # and html/, and Node then died on require at every start.
+            from core.wa_version_lifecycle import catalogue_complete, discard_incomplete_catalogue
+            if not catalogue_complete(node_modules):
+                discard_incomplete_catalogue(node_modules)
+                missing.append(os.path.join(node_modules, "@wppconnect", "wa-version"))
             if missing:
                 logging.info(
                     "[ensure_api_modules_installed] Missing packages detected: %s — running npm install",

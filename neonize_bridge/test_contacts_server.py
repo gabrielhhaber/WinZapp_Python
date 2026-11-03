@@ -210,7 +210,6 @@ async def test_subscribe_presence_only_confirms_what_whatsapp_accepted(tmp_path,
         good = await http.post(f"{api}/subscribe-presence", json={"phone": f"{PHONE}@c.us"})
         assert good.status == 200 and (await good.json())["status"] == "success"
         assert fake.calls == [("subscribe", PHONE, "s.whatsapp.net")]
-        assert s.open_chat == ""       # the client subscribes to many contacts: not the open chat
 
         fake.failure = RuntimeError("refused")
         refused = await http.post(f"{api}/subscribe-presence", json={"phone": f"{LID}@lid"})

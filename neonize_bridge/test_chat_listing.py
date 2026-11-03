@@ -204,6 +204,23 @@ def test_route_list_mutes_and_votes(tmp_path):
     assert status == 404
 
 
+def test_list_chats_answers_a_channel_only_with_its_name():
+    """Reported: channels in the chat list showed as a bare number."""
+    rows = [{"jid": "1@newsletter", "name": ""}, {"jid": "2@newsletter", "name": "Canal"},
+            {"jid": "5551@s.whatsapp.net", "name": ""}]
+    assert [c["jid"] for c in cl.listed(rows)] == ["2@newsletter", "5551@s.whatsapp.net"]
+
+
+def test_the_store_lists_and_names_a_channel_kept_from_before(tmp_path):
+    db = Store(str(tmp_path / "bridge.db"))
+    with db._lock:
+        db._conn.execute("INSERT INTO chats(jid) VALUES ('1@newsletter')")
+    db.chat("5551@s.whatsapp.net", name="Bia")
+    assert db.channels() == ["1@newsletter"]
+    db.channel_name("1@newsletter", "Canal")
+    assert [c["name"] for c in db.chats() if c["jid"] == "1@newsletter"] == ["Canal"]
+
+
 def test_stored_channel_chats_stay_out_of_every_listing():
     rows = [{"jid": "120363@newsletter", "archived": 0, "muted": 0},
             {"jid": "5551@s.whatsapp.net", "archived": 0, "muted": 0}]

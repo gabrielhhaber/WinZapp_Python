@@ -1,6 +1,7 @@
 """The bridge's copy of the app state entries whatsmeow has no event for: labels
-and custom lists (`label_edit`, `label_jid`) and who sees my Status
-(`status_privacy`).
+and custom lists (`label_edit`, `label_jid`), who sees my Status
+(`status_privacy`) and "Keep chats archived" (`setting_unarchiveChats`, read
+by chat_archive.py).
 
 WinZapp's neonize build emits `AppStateMutationEv` for every mutation, set or
 remove, with its collection and version, also during a full sync
@@ -29,7 +30,7 @@ import time
 log = logging.getLogger("bridge")
 
 FILE = "app_state.db"
-INDEXES = ("label_edit", "label_jid", "status_privacy")
+INDEXES = ("label_edit", "label_jid", "status_privacy", "setting_unarchiveChats")
 SEED_TIMEOUT = 12.0     # the client reads lists with a 15 s budget
 
 SCHEMA = """

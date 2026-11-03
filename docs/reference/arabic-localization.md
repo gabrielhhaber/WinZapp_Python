@@ -15,11 +15,31 @@ acceptable. This is initial user acceptance, not a comprehensive linguistic,
 right-to-left layout, or screen-reader certification. Further Arabic-speaking
 review and accessibility feedback are welcome.
 
-The complete usage guide has not been translated. Help opens an Arabic
-introduction that explicitly links to the complete English guide. Its source
-is `docs/user-guide/arabic-introduction.html`; the normal guide generator copies
-it to `client/data/help_guide/ar.html`, and the guide freshness check covers it.
-The other seven complete guides retain their existing structure.
+The complete usage guide is translated in `docs/user-guide/secoes/ar/`, with the
+page text in `docs/user-guide/i18n/ar.json`. It was written with AI assistance
+from the English sections and has not had a native-speaker review yet. Every
+interface label it quotes comes from the PO, and the guide checks in
+`docs/user-guide/PROCESSO.md` cover it like the other seven guides. Further
+Arabic-speaking review is welcome here too.
+
+## Terms the guide follows
+
+The PO decides, and these are the words it uses most. Where the PO is mixed the
+guide picks one and keeps it:
+
+| English | Arabic |
+|---|---|
+| chat | دردشة (محادثة only in the strings that say conversation) |
+| WhatsApp / Windows | واتساب / ويندوز (WinZapp stays in English) |
+| transcription | تفريغ نصي, never تسجيل (#638) |
+| recording | تسجيل |
+| pairing | الاقتران |
+| system tray | منطقة الإشعارات |
+| locked chats vault / PIN | الخزنة / رقم التعريف |
+| starred | مميزة |
+| reaction | رد فعل |
+| bookmark | علامة (the PO also says إشارة, which it uses for mentions) |
+| provider | الموفّر |
 
 ## Updating the translation
 

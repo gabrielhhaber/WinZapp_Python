@@ -1,6 +1,8 @@
 import type { Request, Response } from 'express';
 import {
+  readKeepChatsArchived,
   readPrivacySettings,
+  writeKeepChatsArchived,
   writePrivacySetting,
   writeStatusPrivacy,
 } from '../util/privacyRuntime';
@@ -106,5 +108,58 @@ export async function setStatusPrivacy(req: Request, res: Response) {
     });
   } catch (_) {
     return res.status(503).json({ status: 'error', code: 'privacy_unavailable' });
+  }
+}
+
+/**
+ * GET /api/:session/keep-chats-archived — `{ keepArchived }`: whether an
+ * archived chat stays archived when a message arrives (WhatsApp's "Keep chats
+ * archived").
+ */
+export async function getKeepChatsArchived(req: Request, res: Response) {
+  const page = livePage(req);
+  if (!page) {
+    return res.status(503).json({ status: 'error', code: 'keep_archived_unavailable' });
+  }
+  try {
+    const result = await page.evaluate(readKeepChatsArchived);
+    if (result?.ok) {
+      return res.status(200).json({
+        status: 'success', response: { keepArchived: result.keepArchived },
+      });
+    }
+    const code = result?.error || 'keep_archived_unavailable';
+    return res.status(code === 'keep_archived_unsupported' ? 501 : 503)
+      .json({ status: 'error', code });
+  } catch (_) {
+    return res.status(503).json({ status: 'error', code: 'keep_archived_unavailable' });
+  }
+}
+
+/**
+ * POST /api/:session/keep-chats-archived — `{ keepArchived: boolean }`.
+ * Answers with what WhatsApp Web holds afterwards.
+ */
+export async function setKeepChatsArchived(req: Request, res: Response) {
+  const keepArchived = req.body?.keepArchived;
+  if (typeof keepArchived !== 'boolean') {
+    return res.status(400).json({ status: 'error', code: 'invalid_keep_archived' });
+  }
+  const page = livePage(req);
+  if (!page) {
+    return res.status(503).json({ status: 'error', code: 'keep_archived_unavailable' });
+  }
+  try {
+    const result = await page.evaluate(writeKeepChatsArchived, { keepArchived });
+    if (result?.ok) {
+      return res.status(200).json({
+        status: 'success', response: { keepArchived: result.keepArchived },
+      });
+    }
+    const code = result?.error || 'keep_archived_failed';
+    return res.status(code === 'keep_archived_unsupported' ? 501 : 502)
+      .json({ status: 'error', code, kind: result?.kind });
+  } catch (_) {
+    return res.status(503).json({ status: 'error', code: 'keep_archived_unavailable' });
   }
 }

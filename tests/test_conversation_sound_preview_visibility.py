@@ -229,7 +229,7 @@ class TestTheSettingsWiring:
         assert "self._update_alert_preview_visibility()" in src
 
     def test_both_path_fields_are_watched(self):
-        src = inspect.getsource(SettingsDialog._build_ui)
+        src = inspect.getsource(SettingsDialog._build_sound_events_controls)
         assert ("self._alert_private_custom_field.Bind(wx.EVT_TEXT, "
                 "self._on_alert_custom_path_changed)") in src
         assert ("self._alert_group_custom_field.Bind(wx.EVT_TEXT, "

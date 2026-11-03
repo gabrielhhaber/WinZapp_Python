@@ -16,7 +16,7 @@ Methods run with ``self`` bound to the MainWindow instance.
 import logging
 
 from core import whatsapp_privacy
-from core.api_client import api_post
+from core.api_client import api_get, api_post
 from core.utils import contact_dedup_key
 
 
@@ -82,6 +82,39 @@ class WhatsAppPrivacyMixin:
         error = self._privacy_error(response)
         logging.warning("[privacy] %s not applied: %s", setting, error)
         return error
+
+    def fetch_keep_chats_archived(self) -> "bool | None":
+        """WhatsApp's "Keep chats archived" (both engines answer
+        ``keep-chats-archived``): True or False, None when it cannot be read."""
+        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/keep-chats-archived"
+        try:
+            response = api_get(url, headers={"Authorization": f"Bearer {self.token}"},
+                               timeout=self._PRIVACY_TIMEOUT)
+            if response.status_code not in (200, 201):
+                logging.warning("[privacy] keep archived not read: %s",
+                                self._privacy_error(response))
+                return None
+            return whatsapp_privacy.parse_keep_archived(response.json())
+        except Exception as exc:
+            logging.warning("[privacy] keep archived not read: %s", type(exc).__name__)
+            return None
+
+    def set_keep_chats_archived(self, keep: bool) -> "tuple[bool, str | None]":
+        """Change it. Returns (confirmed, error): *error* is None when the server
+        took the call, and *confirmed* whether it then held *keep*."""
+        try:
+            response = self._privacy_post("keep-chats-archived", {"keepArchived": bool(keep)})
+        except Exception as exc:
+            return False, type(exc).__name__
+        if response.status_code not in (200, 201):
+            error = self._privacy_error(response)
+            logging.warning("[privacy] keep archived not applied: %s", error)
+            return False, error
+        try:
+            now = whatsapp_privacy.parse_keep_archived(response.json())
+        except Exception:
+            now = None
+        return now is bool(keep), None
 
     def status_list_id(self, jid: str) -> str:
         """The id WhatsApp's status list takes for *jid*: its @lid when the

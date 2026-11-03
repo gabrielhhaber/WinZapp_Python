@@ -4,6 +4,17 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "0431981be75e": "Configurações do WhatsApp > Privacidade: nova opção \"Manter conversas arquivadas",
+    "a75982671620": "Neonize: com a opção do WhatsApp \"Manter conversas arquivadas\" desligada, uma co",
+    "d07de5dced9a": "Mensagens de voz: no Automático, uma gravação em que a entrada esquerda ou direi",
+    "e9ebe55fe986": "As Configurações (Ctrl+,) agora abrem na hora: só a página Geral é montada ao ab",
+    "019848565de3": "Neonize: ler uma conversa agora a marca como lida no celular e no WhatsApp Web c",
+    "8b41e035c206": "Neonize: mensagens de conversas particulares não são mais marcadas como lidas so",
+    "d5ee1d6f7ab1": "Neonize: os canais na lista de conversas (com a opção de mostrá-los ativada) ago",
+    "dc77969b1aeb": "Neonize: o envio para grupos grandes ficou mais rápido: a chave de criptografia ",
+    "434f35f773bb": "Neonize: as mensagens para a Meta AI funcionam. O WinZapp pede para aceitar os t",
+    "921b24fd10a2": "Neonize: status de vídeo e de voz não falham mais com \"server returned error 400",
+    "8d250fe7418c": "Grupos: em um grupo em que só administradores podem enviar mensagens, o campo de",
     "0c3410e4fc5e": "Mensagens de voz: Configurações > Áudio agora oferece gravação Automática, Mono ",
     "4ab1883be4d9": "Corrigido: o servidor do WPPConnect não deixa mais de iniciar com \"Cannot find m",
     "6c8979d0440e": "Neonize: se a internet cai no meio de uma ligação, você ainda consegue desligar;",
@@ -119,6 +130,9 @@
     "3a68ef8a56d5": "Espanhol: o rótulo de uma mensagem de voz reproduzida agora diz \"Reproducido\" em",
     "5cafbb40502f": "Notificações de digitação: escolha um som que se repete enquanto alguém digita, ",
     "81223f165728": "Espanhol: a tradução agora usa \"chat/chats\" de forma consistente, em vez de mist",
+    "b5ca2fa49afb": "WPPConnect: enquanto o WhatsApp Web ainda sincroniza um histórico longo, o WinZa",
+    "4cef19647dba": "WPPConnect: um catálogo incompleto de versões do WhatsApp Web é reparado quando ",
+    "885017195d90": "Árabe: o guia de uso (Ajuda > Guia de uso) agora está completo em árabe.",
     "892657a9c00a": "Atalhos de teclado: a lista F1 corrige os nomes das ações, remove linhas repetid"
   }
 }

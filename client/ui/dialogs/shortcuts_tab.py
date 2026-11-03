@@ -150,10 +150,6 @@ class ShortcutsTabMixin:
         # comes back by itself once that key moves.
         self._call_hotkeys_loaded = dict(self._call_hotkeys)
         # A button on the Interface page opens these options in a window.
-        self._shortcuts_dialog = SubPageDialog(
-            self, i18n.t('tab_shortcuts').replace('&', ''), i18n.t('ok'),
-            on_change=self._mark_dirty)
-        self._shortcuts_dialog.SetMinSize((640, 460))
         page = self._shortcuts_page = wx.Panel(self._shortcuts_dialog)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self._shortcuts_hint = wx.StaticText(page, label=i18n.t('shortcut_settings_hint'))
@@ -210,15 +206,8 @@ class ShortcutsTabMixin:
         sizer.Add(buttons, 0, wx.ALL, 4)
         page.SetSizer(sizer)
         self._shortcuts_dialog.set_body(page)
-        self._shortcuts_btn = wx.Button(self._ui_page, label=i18n.t('tab_shortcuts'))
-        self._ui_sizer.Add(self._shortcuts_btn, 0, wx.ALL, 8)
-        self._shortcuts_btn.Bind(wx.EVT_BUTTON, lambda e: self._shortcuts_dialog.open())
-        self._notebook.add_subpage(
-            self._notebook.FindPage(self._ui_page),
-            i18n.t('tab_shortcuts').replace('&', ''), page,
-            lambda control=None: self._shortcuts_dialog.open(control))
         self._hotkey_field.Bind(wx.EVT_TEXT, self._shortcut_hotkey_changed)
-        # The rows are built once, by SettingsDialog.__init__ after the values
+        # The rows are built once, by _load_values() after the values
         # are loaded: building them here too cost a whole tree (0.2 s with a
         # screen reader running) that was thrown away a moment later.
 
@@ -542,8 +531,6 @@ class ShortcutsTabMixin:
 
     def _refresh_shortcut_labels(self):
         i18n = self.main_window.i18n
-        self._shortcuts_btn.SetLabel(i18n.t('tab_shortcuts'))
-        self._shortcuts_dialog.SetTitle(i18n.t('tab_shortcuts').replace('&', ''))
         self._shortcuts_hint.SetLabel(i18n.t('shortcut_settings_hint'))
         self._shortcut_list.SetName(i18n.t('shortcut_settings_list'))
         self._shortcut_search_label.SetLabel(i18n.t('shortcut_search_label'))

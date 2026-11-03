@@ -155,6 +155,7 @@ export const SyncContactSchema = z
 export const StatusSessionSchema = z
   .object({
     status: z.string(),
+    syncing: z.boolean().optional(),
     qrcode: z.string().nullable().optional(),
     urlcode: z.string().nullable().optional(),
     session: z.string().optional(),

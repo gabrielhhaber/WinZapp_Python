@@ -218,6 +218,8 @@ class TestRegroupedSettings:
     def test_the_search_reaches_options_inside_the_buttons(self, make_dialog):
         dialog = make_dialog()
         nb = dialog._notebook
+        # A search builds every page first (settings_lazy), around the typing.
+        dialog._ensure_all_units()
         nb._rebuild_index()
         labels = {(e.category, e.label) for e in nb._index}
         assert any("tab_speech" not in c and e for c, e in labels)

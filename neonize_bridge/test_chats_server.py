@@ -11,6 +11,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message
 
 import authentication as auth
+import read_receipts
 import server
 
 PN = "5511999990000@s.whatsapp.net"
@@ -266,19 +267,143 @@ async def test_send_seen_finds_the_chat_by_the_other_address_and_confirms(tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_send_seen_keeps_the_open_chat_and_mark_as_unread_does_not(tmp_path, sessions):
+async def test_coming_back_into_focus_reads_nothing_on_its_own(tmp_path, sessions):
+    """Reported: messages marked read with nobody inside the conversation. The
+    bridge kept the last chat read as "open" for good and read whatever arrived
+    there, past the app's own rule (open, on screen, window focused for 5 s)."""
     bridge = await _open(tmp_path, sessions)
     try:
         bridge.s.db.chat(PN, unread=0)
         bridge.s.state_read = lambda chat, read: True
-        assert bridge.s.open_chat == ""
         await bridge.post("send-seen", {"phone": PN})
-        assert bridge.s.open_chat == PN
-        bridge.s.open_chat = ""
-        await bridge.post("send-seen", {"phone": PN, "unread": True})
-        assert bridge.s.open_chat == ""
+        bridge.s.db.chat(PN, unread=1)
+        bridge.s.db.message(PN, _msg("M2", 200, PN))
+        await bridge.post("set-online-presence", {"isOnline": False})
+        await bridge.post("set-online-presence", {"isOnline": True})
+        assert bridge.fake.read == []
+        assert bridge.s.db.unread(PN) == 1
     finally:
         await bridge.http.close()
+
+
+def test_a_message_arriving_is_never_read_by_the_bridge():
+    import pathlib
+    source = (pathlib.Path(__file__).parent / "server.py").read_text(encoding="utf-8")
+    assert source.count("read_and_confirm") == 2       # its definition and send-seen
+    assert "run_in_executor(marking, s.read_and_confirm, key)" in source
+
+
+def _notices(bridge):
+    sent = []
+    bridge.s.state_read = lambda chat, read: sent.append((chat, read)) or True
+    return sent
+
+
+@pytest.mark.asyncio
+async def test_reading_a_chat_goes_by_the_receipts_alone(tmp_path, sessions):
+    """As on WhatsApp's own clients: a state notice per chat opened left WhatsApp
+    Web seven minutes of patches behind the messages it had just counted."""
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=1)
+        bridge.s.db.message(PN, _msg("M1", 100, PN))
+        sent = _notices(bridge)
+        _, body = await bridge.post("send-seen", {"phone": PN})
+        assert body["response"]["data"] == [True]
+        assert bridge.fake.read == [(("M1",), PN)]
+        assert sent == []
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_opening_a_chat_with_nothing_to_read_writes_nothing(tmp_path, sessions):
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=0)
+        sent = _notices(bridge)
+        _, body = await bridge.post("send-seen", {"phone": PN})
+        assert body["response"]["data"] == [True]
+        assert sent == []
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_a_chat_marked_unread_is_undone_by_the_notice(tmp_path, sessions):
+    """A receipt says nothing to a chat marked unread by hand: the message
+    behind it was already read."""
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=0)
+        bridge.s.db.message(PN, _msg("M1", 100, PN))
+        sent = _notices(bridge)
+        await bridge.post("send-seen", {"phone": PN, "unread": True})
+        assert sent == [(PN, False)]
+        await bridge.post("send-seen", {"phone": PN})
+        assert sent == [(PN, False), (PN, True)]
+        assert not bridge.s.db.marked_unread(PN)
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_a_second_read_of_a_chat_once_marked_unread_writes_nothing(tmp_path, sessions):
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=1, marked_unread=1)
+        bridge.s.db.message(PN, _msg("M1", 100, PN))
+        sent = _notices(bridge)
+        await bridge.post("send-seen", {"phone": PN})
+        await bridge.post("send-seen", {"phone": PN})
+        assert sent == [(PN, True)]
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_unread_no_receipt_can_name_still_gets_the_notice(tmp_path, sessions):
+    """History the store does not hold: the phone counts three, one receipt goes."""
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.chat(PN, unread=3)
+        bridge.s.db.message(PN, _msg("M1", 100, PN))
+        sent = _notices(bridge)
+        await bridge.post("send-seen", {"phone": PN})
+        assert sent == [(PN, True)]
+    finally:
+        await bridge.http.close()
+
+
+def test_a_chat_marked_unread_on_the_phone_is_remembered_too():
+    fields, count = read_receipts.phone_read_change(False, 0, None, 0)
+    assert fields == {"unread": 1, "marked_unread": 1} and count == -1
+    fields, _ = read_receipts.phone_read_change(False, 0, None, 4)
+    assert fields["unread"] == 4
+
+
+def test_a_chat_read_on_the_phone_forgets_the_mark():
+    assert read_receipts.phone_read_change(True, 100, 100, 3) == (
+        {"unread": 0, "marked_unread": 0}, 0)
+    assert read_receipts.phone_read_change(True, 0, None, 3)[0]["unread"] == 0
+
+
+def test_a_read_on_the_phone_older_than_a_stored_message_keeps_it_unread():
+    assert read_receipts.phone_read_change(True, 100, 106, 1) is None
+    assert read_receipts.phone_read_change(True, 100, 105, 1) is not None
+
+
+def test_the_phone_handler_uses_the_decision():
+    import pathlib
+    source = (pathlib.Path(__file__).parent / "server.py").read_text(encoding="utf-8")
+    assert "read_receipts.phone_read_change(" in source
+
+
+@pytest.mark.parametrize("unread, receipts, marked, needed", [
+    (1, 1, False, False), (0, 0, False, False), (3, 1, False, True),
+    (0, 0, True, True), (1, 1, True, True)])
+def test_when_a_read_needs_the_notice(unread, receipts, marked, needed):
+    assert read_receipts.needs_read_notice(unread, receipts, marked) is needed
 
 
 @pytest.mark.asyncio
@@ -291,6 +416,13 @@ async def test_send_seen_with_a_receipt_that_did_not_go_out_does_not_confirm(tmp
         bridge.fake.read_error = True
         _, body = await bridge.post("send-seen", {"phone": PN})
         assert body["response"]["data"] == [False]
+        assert bridge.s.db.unread(PN) == 1
+        # the client tries again: the receipt goes out this time
+        bridge.fake.read_error = False
+        _, body = await bridge.post("send-seen", {"phone": PN})
+        assert body["response"]["data"] == [True]
+        assert [ids for ids, _chat in bridge.fake.read] == [("M1",)]
+        assert bridge.s.db.unread(PN) == 0
     finally:
         await bridge.http.close()
 

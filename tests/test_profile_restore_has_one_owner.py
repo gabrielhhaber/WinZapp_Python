@@ -26,6 +26,8 @@ while another restart owns the session.
 import inspect
 import time
 
+import pytest
+
 from core.websocket_client import WebSocketClient
 from main import MainWindow
 from tests.god_modules import patch_main_global
@@ -150,7 +152,17 @@ class TestAStuckRestoreCannotSilenceTheFloodForever:
     """Codes are left to a restore in flight — but only for
     _RESTORE_FLIGHT_IGNORE_SECONDS. A restore still producing codes past that
     has failed to stop the browser, and on `main` before this change those
-    codes were at least counted towards the halt."""
+    codes were at least counted towards the halt.
+
+    The clock is fixed because time.monotonic() counts from boot: on a CI
+    runner up for less than the window, "now minus the window" is not positive,
+    which the handler reads as a start never recorded."""
+
+    NOW = 100_000.0
+
+    @pytest.fixture(autouse=True)
+    def _fixed_clock(self, monkeypatch):
+        monkeypatch.setattr(time, "monotonic", lambda: self.NOW)
 
     def _handler(self, started_at):
         halts = []
@@ -191,7 +203,7 @@ class TestAStuckRestoreCannotSilenceTheFloodForever:
         return _Stub(), halts
 
     def test_a_recent_restore_still_owns_its_codes(self):
-        s, halts = self._handler(time.monotonic())
+        s, halts = self._handler(self.NOW)
         for _ in range(WebSocketClient._UNATTENDED_QR_LIMIT * 2):
             s._handle_unattended_qr()
         assert halts == []
@@ -199,7 +211,7 @@ class TestAStuckRestoreCannotSilenceTheFloodForever:
 
     def test_an_overdue_restore_gives_the_flood_its_ceiling_back(self):
         s, halts = self._handler(
-            time.monotonic() - WebSocketClient._RESTORE_FLIGHT_IGNORE_SECONDS - 1)
+            self.NOW - WebSocketClient._RESTORE_FLIGHT_IGNORE_SECONDS - 1)
         for _ in range(WebSocketClient._UNATTENDED_QR_LIMIT):
             s._handle_unattended_qr()
         assert halts == [1]
@@ -218,7 +230,7 @@ class TestAStuckRestoreCannotSilenceTheFloodForever:
         a confirmed reading must not reach the recovery (refused, it is still
         latched) and fall through to the pairing dialog over the stalled copy."""
         s, halts = self._handler(
-            time.monotonic() - WebSocketClient._RESTORE_FLIGHT_IGNORE_SECONDS - 1)
+            self.NOW - WebSocketClient._RESTORE_FLIGHT_IGNORE_SECONDS - 1)
         mw = s.main_window
         mw._auto_repair_dialog_shown = False
         dialogs = []

@@ -1,0 +1,376 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Mon, 2 Nov 2026 16:24:24 -0300
+Subject: [PATCH] engine: stop the callee's other devices when one answers
+
+WhatsApp leaves this to the caller, so a call answered on one device went on
+ringing on the others until someone answered there too. One <terminate> per
+rung device, once. A callee that already saw the caller's <mute_v2> also
+accepts on Answer instead of waiting two seconds, since the caller only stops
+the other devices on <accept>.
+
+Validated with go test on the stanzas; not yet on a live call.
+
+Source of truth: https://github.com/oxidezap/whatsapp-rust/blob/66a6aa479b79cde35be6d05da0fa987a4b574d46/src/voip/direct_ingress.rs#L522-L589
+---
+ CHANGELOG.md           |  10 +++
+ engine.go              |  21 +++++
+ engine_dismiss.go      |  61 +++++++++++++++
+ engine_dismiss_test.go | 170 +++++++++++++++++++++++++++++++++++++++++
+ signaling/stanza.go    |   6 ++
+ 5 files changed, 268 insertions(+)
+ create mode 100644 engine_dismiss.go
+ create mode 100644 engine_dismiss_test.go
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index d341079..c371167 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -7,6 +7,16 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+ 
+ ## [Unreleased]
+ 
++### engine/ring-dismiss — `implemented`
++
++- After one callee device accepts or declines an outgoing call, the caller
++  sends each other rung device its own `<terminate>` (`accepted_elsewhere` or
++  `rejected_elsewhere`), as WhatsApp Web does; a `busy` or `enc` reject decides
++  nothing for the others. Unit-tested on the stanzas; the live dismiss is not
++  yet validated.
++- A callee whose caller's `<mute_v2>` already came while ringing sends
++  `<accept>` on Answer instead of waiting for one that will not come.
++
+ ### api/ongoing-group-join — `implemented`
+ 
+ - Asks the server where a group call stands while the account is not in it
+diff --git a/engine.go b/engine.go
+index ddca6f6..10054c9 100644
+--- a/engine.go
++++ b/engine.go
+@@ -76,6 +76,12 @@ type engineCall struct {
+ 
+ 	// The callee <accept> is deferred until the caller's <mute_v2> arrives.
+ 	acceptPending bool
++	// callerMuteSeen: the caller's <mute_v2> came before Answer, so waiting for it
++	// would only keep the other devices ringing.
++	callerMuteSeen bool
++	// ringDevices are the peer devices an outgoing offer rang; consumed by the first
++	// answer (see dismissRungDevices).
++	ringDevices []types.JID
+ }
+ 
+ // newEngine creates the engine for a Client.
+@@ -483,6 +489,7 @@ func (e *engine) placeCall(ctx context.Context, target string, opts CallOptions)
+ 	m.direction = CallDirectionOutgoing
+ 	m.localVideo = opts.Video
+ 	m.remoteVideo = opts.Video
++	m.ringDevices = append([]types.JID(nil), devices...)
+ 	m.inviteSelfDevice = groupCallDevice{
+ 		JID: self, CapabilityVersion: 1,
+ 		Capability: append([]byte(nil), signaling.CapabilityOffer...),
+@@ -684,10 +691,17 @@ func (e *engine) answer(c *Call) error {
+ 	e.mu.Lock()
+ 	m.acceptPending = true
+ 	from, creator := m.from, m.creator
++	acceptNow := m.callerMuteSeen
+ 	e.mu.Unlock()
+ 
+ 	c.setPhase(CallPhaseConnecting)
+ 	e.maybeStartMedia(c.id)
++	if acceptNow {
++		// WinZapp: the <mute_v2> this waits for already came, while the call was
++		// ringing, and the caller stops our other devices only on <accept>.
++		e.sendAccept(c.id, from, creator)
++		return nil
++	}
+ 	// WinZapp: a caller running this same code (another WinZapp) never sends
+ 	// the <mute_v2> that triggers the <accept>; without it the caller does not
+ 	// know we answered and the media key does not move to the answering
+@@ -925,6 +939,7 @@ func (e *engine) onAccept(ev *events.CallAccept) {
+ 	if m.call != nil {
+ 		m.call.markPeerAccepted()
+ 	}
++	e.dismissRungDevices(ev.CallID, answeringPeer, signaling.TerminateReasonAcceptedElsewhere)
+ 	e.c.log.Info().
+ 		Str("call_id", ev.CallID).
+ 		Str("from", ev.From.String()).
+@@ -989,6 +1004,9 @@ func (e *engine) onReject(ev *events.CallReject) {
+ 	e.c.diag.Emit("meta", map[string]any{
+ 		"event": "peer_reject", "call_id": ev.CallID, "from": ev.From.String(),
+ 	})
++	if !rejectIsDeviceBusy(ev.Data) {
++		e.dismissRungDevices(ev.CallID, ev.From.String(), signaling.TerminateReasonRejectedElsewhere)
++	}
+ 	e.finishCall(ev.CallID, "rejected")
+ }
+ 
+@@ -1104,6 +1122,9 @@ func (e *engine) onCallRaw(callNode *waBinary.Node) bool {
+ 		e.mu.Lock()
+ 		m := e.calls[callID]
+ 		pending := m != nil && m.acceptPending
++		if m != nil {
++			m.callerMuteSeen = true
++		}
+ 		e.mu.Unlock()
+ 		if m != nil && m.call != nil {
+ 			if fn := m.call.onMuteStateFn(); fn != nil {
+diff --git a/engine_dismiss.go b/engine_dismiss.go
+new file mode 100644
+index 0000000..ae5d525
+--- /dev/null
++++ b/engine_dismiss.go
+@@ -0,0 +1,61 @@
++package meowcaller
++
++import (
++	"context"
++
++	"github.com/purpshell/meowcaller/signaling"
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/types"
++)
++
++// dismissRungDevices stops the devices an outgoing offer rang once one of them has
++// answered. WhatsApp leaves this to the caller: the callee never stops its own devices,
++// so without it the phone goes on ringing beside the device that answered. One
++// <terminate> per device, addressed to that device (a <destination> block is not relayed
++// for this), and only once, so a second accept cannot dismiss anything again.
++//
++// answering is who answered, as text. A sender that names no user device (a call-scoped
++// wrapper) leaves every device ringing, because dismissing the device that answered would
++// end the call on it. The device number decides, since the same device can show up under
++// its LID and under its phone number.
++func (e *engine) dismissRungDevices(callID, answering, reason string) {
++	// Source of truth: https://github.com/oxidezap/whatsapp-rust/blob/66a6aa479b79cde35be6d05da0fa987a4b574d46/src/voip/direct_ingress.rs#L522-L589
++	answerer, err := types.ParseJID(answering)
++	if err != nil || (answerer.Server != types.HiddenUserServer && answerer.Server != types.DefaultUserServer) {
++		e.c.log.Warn().Str("call_id", callID).Msg("answering device unknown; other devices keep ringing")
++		return
++	}
++	e.mu.Lock()
++	m := e.calls[callID]
++	if m == nil {
++		e.mu.Unlock()
++		return
++	}
++	rung, creator := m.ringDevices, m.creator
++	m.ringDevices = nil
++	e.mu.Unlock()
++
++	for _, device := range rung {
++		if device.Device == answerer.Device {
++			continue
++		}
++		term := signaling.BuildTerminate(&signaling.TerminateParams{
++			CallID: callID, To: device, CallCreator: creator, Reason: &reason,
++		})
++		term.Attrs["id"] = e.nextCallNodeID()
++		if err := e.transmitCallNode(context.Background(), term); err != nil {
++			e.c.log.Warn().Err(err).Str("call_id", callID).Msg("dismissing a rung device failed")
++		}
++	}
++}
++
++// rejectIsDeviceBusy tells a <reject> that speaks for one device (busy, or it could not
++// decrypt the offer) from the callee declining: only the latter stops the other devices.
++func rejectIsDeviceBusy(reject *waBinary.Node) bool {
++	// Source of truth: https://github.com/oxidezap/whatsapp-rust/blob/66a6aa479b79cde35be6d05da0fa987a4b574d46/src/voip/direct_ingress.rs#L513-L520
++	if reject == nil {
++		return false
++	}
++	reason := reject.AttrGetter().OptionalString("reason")
++	return reason == "busy" || reason == "enc"
++}
+diff --git a/engine_dismiss_test.go b/engine_dismiss_test.go
+new file mode 100644
+index 0000000..fdbf3f3
+--- /dev/null
++++ b/engine_dismiss_test.go
+@@ -0,0 +1,170 @@
++package meowcaller
++
++import (
++	"context"
++	"testing"
++
++	"github.com/rs/zerolog"
++	"go.mau.fi/whatsmeow"
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/store"
++	"go.mau.fi/whatsmeow/types"
++	"go.mau.fi/whatsmeow/types/events"
++	waLog "go.mau.fi/whatsmeow/util/log"
++)
++
++func onDevice(device uint16) types.JID {
++	jid := peerJID()
++	jid.Device = device
++	return jid
++}
++
++// rungEngine is an outgoing call that rang the peer's phone (0) and two companions.
++func rungEngine(t *testing.T) (*engine, *[]waBinary.Node) {
++	t.Helper()
++	eng, _ := testEngineWithOutgoingCall()
++	eng.c.log = zerolog.Nop()
++	eng.calls["CID"].ringDevices = []types.JID{onDevice(0), onDevice(2), onDevice(7)}
++	sent := &[]waBinary.Node{}
++	eng.sendCallNode = func(_ context.Context, node waBinary.Node) error {
++		*sent = append(*sent, node)
++		return nil
++	}
++	return eng, sent
++}
++
++func acceptFrom(eng *engine, from types.JID) {
++	eng.onAccept(&events.CallAccept{
++		BasicCallMeta: types.BasicCallMeta{CallID: "CID", From: from},
++		Data:          &waBinary.Node{Tag: "accept"},
++	})
++}
++
++func terminateTargets(t *testing.T, sent []waBinary.Node, reason string) map[types.JID]bool {
++	t.Helper()
++	targets := map[types.JID]bool{}
++	for _, node := range sent {
++		kids := node.GetChildren()
++		if node.Tag != "call" || len(kids) != 1 || kids[0].Tag != "terminate" {
++			t.Fatalf("sent %v, want only <call><terminate>", node)
++		}
++		if got := kids[0].AttrGetter().OptionalString("reason"); got != reason {
++			t.Fatalf("reason = %q, want %q", got, reason)
++		}
++		if node.AttrGetter().OptionalString("id") == "" {
++			t.Fatal("a <call> without an id is dropped by the server")
++		}
++		if len(kids[0].GetChildren()) != 0 {
++			t.Fatal("the dismiss goes to each device, not through a <destination> block")
++		}
++		targets[node.Attrs["to"].(types.JID)] = true
++	}
++	return targets
++}
++
++func TestAcceptStopsTheOtherDevicesRinging(t *testing.T) {
++	eng, sent := rungEngine(t)
++
++	acceptFrom(eng, onDevice(7))
++
++	targets := terminateTargets(t, *sent, "accepted_elsewhere")
++	if len(targets) != 2 || !targets[onDevice(0)] || !targets[onDevice(2)] {
++		t.Fatalf("dismissed %v, want the phone and device 2", targets)
++	}
++}
++
++func TestTheDeviceNumberIdentifiesTheAnswererAcrossAddresses(t *testing.T) {
++	eng, sent := rungEngine(t)
++	phoneNumber := types.JID{User: "5511999999999", Server: types.DefaultUserServer, Device: 7}
++
++	acceptFrom(eng, phoneNumber)
++
++	if targets := terminateTargets(t, *sent, "accepted_elsewhere"); targets[onDevice(7)] {
++		t.Fatalf("the device that answered was dismissed: %v", targets)
++	}
++}
++
++func TestASecondAcceptDismissesNothing(t *testing.T) {
++	eng, sent := rungEngine(t)
++
++	acceptFrom(eng, onDevice(7))
++	first := len(*sent)
++	acceptFrom(eng, onDevice(0))
++
++	if len(*sent) != first {
++		t.Fatalf("sent %d stanzas after the second accept, want %d", len(*sent), first)
++	}
++}
++
++func TestAnUnqualifiedAcceptKeepsTheRelayElectedDeviceInTheCall(t *testing.T) {
++	eng, sent := rungEngine(t)
++	eng.calls["CID"].peerLID = onDevice(7).String()
++
++	acceptFrom(eng, onDevice(0))
++
++	if targets := terminateTargets(t, *sent, "accepted_elsewhere"); targets[onDevice(7)] {
++		t.Fatalf("the elected device was dismissed: %v", targets)
++	}
++}
++
++func TestACallScopedAcceptLeavesEveryDeviceRinging(t *testing.T) {
++	eng, sent := rungEngine(t)
++	m := eng.calls["CID"]
++	m.peerLID = ""
++
++	acceptFrom(eng, types.NewJID("CID", "call"))
++
++	if len(*sent) != 0 {
++		t.Fatalf("dismissed %v without knowing who answered", *sent)
++	}
++	if len(m.ringDevices) != 3 {
++		t.Fatal("the rung devices must survive for an accept that names its device")
++	}
++}
++
++func TestADeclineStopsTheOtherDevicesRinging(t *testing.T) {
++	eng, sent := rungEngine(t)
++
++	eng.onReject(&events.CallReject{
++		BasicCallMeta: types.BasicCallMeta{CallID: "CID", From: onDevice(0)},
++		Data:          &waBinary.Node{Tag: "reject"},
++	})
++
++	targets := terminateTargets(t, *sent, "rejected_elsewhere")
++	if len(targets) != 2 || !targets[onDevice(2)] || !targets[onDevice(7)] {
++		t.Fatalf("dismissed %v, want devices 2 and 7", targets)
++	}
++}
++
++func TestABusyDeviceDecidesNothingForTheOthers(t *testing.T) {
++	eng, sent := rungEngine(t)
++
++	eng.onReject(&events.CallReject{
++		BasicCallMeta: types.BasicCallMeta{CallID: "CID", From: onDevice(2)},
++		Data:          &waBinary.Node{Tag: "reject", Attrs: waBinary.Attrs{"reason": "busy"}},
++	})
++
++	if len(*sent) != 0 {
++		t.Fatalf("dismissed %v on a busy device", *sent)
++	}
++}
++
++func TestAnswerAcceptsAtOnceWhenTheCallersMuteAlreadyCame(t *testing.T) {
++	for _, seen := range []bool{true, false} {
++		c := &Client{wa: whatsmeow.NewClient(&store.Device{}, waLog.Noop), log: zerolog.Nop()}
++		c.eng = newEngine(c)
++		call := &Call{eng: c.eng, id: "CID", peer: peerJID(), phase: CallPhaseRinging}
++		c.eng.calls["CID"] = &engineCall{
++			call: call, direction: CallDirectionIncoming,
++			from: peerJID(), creator: peerJID(), callerMuteSeen: seen,
++		}
++
++		if err := c.eng.answer(call); err != nil {
++			t.Fatal(err)
++		}
++
++		if pending := c.eng.calls["CID"].acceptPending; pending == seen {
++			t.Fatalf("mute seen = %v: accept pending = %v", seen, pending)
++		}
++	}
++}
+diff --git a/signaling/stanza.go b/signaling/stanza.go
+index 1cd964c..944dd41 100644
+--- a/signaling/stanza.go
++++ b/signaling/stanza.go
+@@ -288,6 +288,12 @@ func BuildHeartbeat(callID string, callCreator types.JID, wrapperID string, log
+ 	}
+ }
+ 
++// The <terminate reason> a caller sends the devices of the callee that did not answer.
++const (
++	TerminateReasonAcceptedElsewhere = "accepted_elsewhere"
++	TerminateReasonRejectedElsewhere = "rejected_elsewhere"
++)
++
+ // TerminateParams are the inputs to BuildTerminate.
+ type TerminateParams struct {
+ 	CallID        string

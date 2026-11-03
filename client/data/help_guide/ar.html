@@ -1,34 +1,1418 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WinZapp — المساعدة بالعربية</title>
-  <style>
-    body { font-family: system-ui, sans-serif; line-height: 1.8; max-width: 48rem;
-           margin: 2rem auto; padding: 0 1rem; }
-    a:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinZapp — دليل الاستخدام</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:        #1a1a2e;
+    --ink-light:  #3d3d5c;
+    --ink-muted:  #7a7a9a;
+    --surface:    #ffffff;
+    --surface-2:  #f4f4f8;
+    --surface-3:  #eaeaf2;
+    --accent:     #0a7d5f;
+    --accent-2:   #0f9d8a;
+    --accent-warm:#d97706;
+    --success:    #059669;
+    --danger:     #dc2626;
+    --border:     #d1d1e0;
+    --radius:     6px;
+    --sidebar-w:  260px;
+    --font-body:  Georgia, 'Times New Roman', serif;
+    --font-ui:    'Segoe UI', system-ui, sans-serif;
+    --font-code:  'Courier New', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:       #e8e8f4; --ink-light: #b8b8d4; --ink-muted: #7a7a9a;
+      --surface:   #12121e; --surface-2: #1a1a2e; --surface-3: #22223a;
+      --accent:    #34d3a8; --accent-2:  #5eead4; --accent-warm:#fbbf24;
+      --success:   #34d399; --danger:    #f87171; --border:     #2e2e4a;
+    }
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--ink);
+    background: var(--surface);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .skip-link {
+    position: absolute; top: -100px; inset-inline-start: 1rem;
+    background: var(--accent); color: #fff;
+    padding: 8px 16px; border-radius: var(--radius);
+    font-family: var(--font-ui); font-size: 14px; z-index: 9999;
+    transition: top .2s;
+  }
+  .skip-link:focus { top: 1rem; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    position: fixed; top: 0; inset-inline-start: 0;
+    width: var(--sidebar-w); height: 100vh;
+    background: var(--surface-2); border-inline-end: 1px solid var(--border);
+    overflow-y: auto; padding: 0 0 2rem;
+    z-index: 100; display: flex; flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 1.25rem 1.25rem 1rem; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface-2); z-index: 1;
+  }
+
+  .sidebar-logo {
+    font-family: var(--font-ui); font-size: 15px; font-weight: 700;
+    color: var(--ink); text-decoration: none;
+    display: flex; align-items: center; gap: 8px; letter-spacing: -.2px;
+  }
+  .sidebar-logo span { font-size: 20px; }
+  .sidebar-subtitle {
+    font-family: var(--font-ui); font-size: 11px; color: var(--ink-muted);
+    margin-top: 3px; letter-spacing: .4px; text-transform: uppercase;
+  }
+
+  .sidebar-search { padding: .75rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .sidebar-search input {
+    width: 100%; padding: 6px 10px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--ink);
+    font-family: var(--font-ui); font-size: 13px; outline: none;
+  }
+  .sidebar-search input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .nav-section { padding: .5rem 0; }
+  .nav-section-title {
+    font-family: var(--font-ui); font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--ink-muted);
+    padding: .5rem 1.25rem .25rem;
+  }
+  .nav-link {
+    display: block; padding-block: 5px; padding-inline: 1.5rem 1.25rem;
+    font-family: var(--font-ui); font-size: 13.5px; color: var(--ink-light);
+    text-decoration: none; border-inline-start: 3px solid transparent;
+    transition: all .15s; line-height: 1.4;
+  }
+  .nav-link:hover { color: var(--accent); background: var(--surface-3); border-inline-start-color: var(--accent); }
+  .nav-link.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-inline-start-color: var(--accent); font-weight: 600; }
+
+  /* ── Main ── */
+  .main { margin-inline-start: var(--sidebar-w); flex: 1; max-width: 860px; padding: 3rem 4rem 6rem; }
+
+  .wiki-section { margin-bottom: 4rem; padding-top: 1rem; }
+  .wiki-section:not(:last-child) { border-bottom: 1px solid var(--border); padding-bottom: 3rem; }
+
+  h1 { font-family: var(--font-ui); font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -.5px; line-height: 1.2; margin-bottom: 1rem; }
+  h2 { font-family: var(--font-ui); font-size: 1.35rem; font-weight: 700; color: var(--ink); margin: 2rem 0 .75rem; letter-spacing: -.2px; display: flex; align-items: center; gap: .5rem; }
+  h2::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-inline-start: .5rem; }
+  h3 { font-family: var(--font-ui); font-size: 1rem; font-weight: 700; color: var(--ink); margin: 1.5rem 0 .5rem; }
+
+  .lead { font-size: 1.05rem; color: var(--ink-light); margin-bottom: 1.5rem; line-height: 1.8; }
+  p { margin-bottom: 1rem; }
+
+  .callout { border-inline-start: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); padding: .85rem 1.25rem; border-start-end-radius: var(--radius); border-end-end-radius: var(--radius); margin: 1.25rem 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
+  .callout.tip  { border-color: var(--success); background: color-mix(in srgb, var(--success) 6%, var(--surface-2)); }
+  .callout.warn { border-color: var(--accent-warm); background: color-mix(in srgb, var(--accent-warm) 6%, var(--surface-2)); }
+  .callout.info { border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 6%, var(--surface-2)); }
+  .callout-title { font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+
+  kbd { display: inline-block; background: var(--surface-3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--ink); box-shadow: 0 1px 0 var(--border); white-space: nowrap; }
+
+  .btn-demo { display: inline-flex; align-items: center; gap: 5px; background: var(--accent); color: #fff; padding: 4px 12px; border-radius: var(--radius); font-family: var(--font-ui); font-size: 13px; font-weight: 600; white-space: nowrap; vertical-align: middle; }
+  .btn-demo.outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+
+  .steps { list-style: none; padding: 0; margin: 1rem 0 1.5rem; }
+  .steps li { display: flex; gap: 1rem; margin-bottom: .85rem; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; align-items: flex-start; }
+  .step-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .col-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; font-family: var(--font-ui); font-size: 13.5px; line-height: 1.6; }
+  .col-card h4 { font-size: 13px; font-weight: 700; margin-bottom: .5rem; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+
+  .field-table { width: 100%; border-collapse: collapse; font-family: var(--font-ui); font-size: 13.5px; margin: 1rem 0 1.5rem; }
+  .field-table th { text-align: start; padding: 8px 12px; background: var(--surface-3); border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-muted); font-weight: 700; }
+  .field-table td { padding: 8px 12px; border: 1px solid var(--border); color: var(--ink-light); vertical-align: top; line-height: 1.5; }
+  .field-table tr:nth-child(even) td { background: var(--surface-2); }
+  .field-name { font-family: var(--font-code); font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
+
+  [id] { scroll-margin-top: 1.5rem; }
+
+  .hero-toc { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 1.5rem 0 2rem; font-family: var(--font-ui); font-size: 13.5px; }
+  .hero-toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--ink-muted); margin-bottom: .75rem; }
+  .hero-toc ol { columns: 2; gap: 1rem; padding-inline-start: 1.25rem; color: var(--ink-light); line-height: 2.2; }
+  .hero-toc a { color: var(--accent); text-decoration: none; }
+  .hero-toc a:hover { text-decoration: underline; }
+
+  .menu-toggle { display: none; position: fixed; top: 1rem; inset-inline-end: 1rem; z-index: 200; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); transition: transform .25s; }
+    [dir="rtl"] .sidebar { transform: translateX(100%); }
+    .sidebar.open, [dir="rtl"] .sidebar.open { transform: translateX(0); }
+    .main { margin-inline-start: 0; padding: 2rem 1.25rem 4rem; }
+    .menu-toggle { display: block; }
+    .cols-2 { grid-template-columns: 1fr; }
+    .hero-toc ol { columns: 1; }
+  }
+
+  mark { background: color-mix(in srgb, var(--accent-warm) 30%, transparent); color: inherit; border-radius: 2px; padding: 0 2px; }
+
+  .em-breve { color: var(--ink-muted); font-family: var(--font-ui); font-style: italic; }
+
+  @media print {
+    .sidebar, .menu-toggle, .skip-link { display: none; }
+    .main { margin-inline-start: 0; padding: 1rem; }
+  }
+  code { font-family: var(--font-code); font-size: .9em; background: var(--surface-3); padding: 1px 5px; border-radius: 3px; }
+  .desde { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; background: var(--accent-warm); color: #1a1a2e; border-radius: 10px; padding: 1px 8px; margin-inline-start: 6px; vertical-align: middle; }
+  .cobertura { font-family: var(--font-ui); font-size: 13px; color: var(--ink-muted); margin-bottom: 1rem; }
+  ul, ol { margin: 0 0 1rem; margin-inline-start: 1.5rem; } li { margin-bottom: .4rem; }
+  .steps { margin-inline-start: 0; }
+  /* Keys, paths and code read left to right inside right-to-left text. */
+  [dir="rtl"] code, [dir="rtl"] kbd { direction: ltr; unicode-bidi: isolate; }
+  [dir="rtl"] .field-name { unicode-bidi: plaintext; text-align: right; }
+  /* Georgia has no Arabic letters, and spacing breaks the joins between them. */
+  :root:lang(ar) { --font-body: 'Segoe UI', Tahoma, sans-serif; }
+  html:lang(ar) body * { letter-spacing: normal; }
+</style>
 </head>
 <body>
-<main>
-  <h1>المساعدة في <bdi>WinZapp</bdi></h1>
-  <p>تتوفر العربية ضمن إعدادات لغة البرنامج. يمكنك اختيار «العربية» عند بدء
-     الاستخدام أو من إعدادات اللغة، ثم تأكيد اختيارك.</p>
-  <p>هذه ترجمة أولية للواجهة، أُنجزت بمساعدة الذكاء الاصطناعي وراجعها أحد
-     المستخدمين مبدئيًا. نرحب بالملاحظات على الصياغة ووضوح النطق والتنقل
-     بلوحة المفاتيح وقارئ الشاشة.</p>
-  <h2>دليل الاستخدام الكامل</h2>
-  <p>لم يكتمل تعريب دليل الاستخدام بعد. يمكنك قراءة الدليل الكامل باللغة
-     الإنجليزية؛ يشرح الرسائل والمكالمات والإعدادات واختصارات لوحة المفاتيح.</p>
-  <p><a href="en-US.html" hreflang="en">فتح دليل الاستخدام الكامل باللغة الإنجليزية</a></p>
-  <p>يتضمن صوت مكالمات Neonize إصلاحات للصمت بعد الرد وفقدان الإطارات والتشوه عند تحويل معدل أخذ العينات. يُحدَّد الترميز تلقائيًا مع WhatsApp؛ ولا يوجد خيار ترميز يحتاج إلى ضبط. لا يزال هذا المحرك التجريبي يحتاج إلى تقييم الجودة في مكالمات حقيقية؛ ولا تُضمن جودة مساوية لتطبيقات المكالمات الأخرى.</p>
-  <h2>إرسال الملاحظات</h2>
-  <p>عند الإبلاغ عن عبارة غير واضحة، اذكر اسم النافذة أو القائمة والنص المعروض
-     والصياغة التي تقترحها. لا ترفق رسائلك الشخصية أو ملفات الجلسة.</p>
-  <p><a href="https://github.com/gabrielhhaber/WinZapp_Python/issues">صفحة مشكلات WinZapp ومقترحاته على GitHub</a></p>
+
+<a class="skip-link" href="#conteudo">تخطي إلى المحتوى</a>
+<button class="menu-toggle" aria-label="فتح القائمة" aria-expanded="false" id="menuToggle">☰ القائمة</button>
+
+<nav class="sidebar" id="sidebar" aria-label="التنقل في الدليل">
+  <div class="sidebar-header">
+    <a href="#topo" class="sidebar-logo"><span>💬</span> WinZapp</a>
+    <div class="sidebar-subtitle">دليل الاستخدام</div>
+  </div>
+  <div class="sidebar-search">
+    <input type="search" id="searchInput" placeholder="البحث في الدليل…" aria-label="البحث في الدليل" autocomplete="off">
+  </div>
+  <div class="nav-section">
+    <a href="#primeiros-passos" class="nav-link">1. البدء</a>
+    <a href="#navegacao" class="nav-link">2. التنقل الرئيسي</a>
+    <a href="#conversas" class="nav-link">3. قائمة الدردشات</a>
+    <a href="#dentro-conversa" class="nav-link">4. داخل الدردشة</a>
+    <a href="#anexos-midia" class="nav-link">5. المرفقات والوسائط</a>
+    <a href="#voz-audio" class="nav-link">6. الرسائل الصوتية والصوت</a>
+    <a href="#transcricao-ia" class="nav-link">7. التفريغ النصي والوصف</a>
+    <a href="#status" class="nav-link">8. الحالة</a>
+    <a href="#ligacoes" class="nav-link">9. المكالمات</a>
+    <a href="#grupos-comunidades" class="nav-link">10. المجموعات والمجتمعات</a>
+    <a href="#trancadas" class="nav-link">11. الدردشات المقفلة</a>
+    <a href="#empresas" class="nav-link">12. الأنشطة التجارية: الكتالوج والطلبات</a>
+    <a href="#contas" class="nav-link">13. الحسابات ومنطقة الإشعارات والمزامنة</a>
+    <a href="#configuracoes" class="nav-link">14. الإعدادات</a>
+    <a href="#privacidade" class="nav-link">15. إعدادات واتساب</a>
+    <a href="#copias-registros" class="nav-link">16. النسخ الاحتياطية والسجلات</a>
+    <a href="#mac" class="nav-link">17. WinZapp على Mac</a>
+    <a href="#atalhos" class="nav-link">18. اختصارات لوحة المفاتيح</a>
+    <a href="#solucao-problemas" class="nav-link">19. حل المشكلات</a>
+    <a href="#registro" class="nav-link">20. سجل تحديثات الدليل</a>
+  </div>
+</nav>
+
+<main class="main" id="conteudo" tabindex="-1">
+
+  <div id="topo" class="wiki-section">
+    <h1>WinZapp</h1>
+    <p class="lead">دليل استخدام WinZapp، عميل واتساب الذي يمكن الوصول إليه على ويندوز. تصفح الفهرس في الجانب أو استخدم البحث للعثور على أي موضوع.</p>
+    <p class="cobertura">يغطي هذا الدليل WinZapp حتى إصدار ألفا 2.1.0.4397 (14/10/2026). الميزات المضافة بعد ذلك ليست فيه بعد.</p>
+    <div class="hero-toc" role="navigation" aria-label="فهرس الدليل">
+      <div class="hero-toc-title">📋 في هذا الدليل</div>
+      <ol>
+        <li><a href="#primeiros-passos">البدء</a></li>
+        <li><a href="#navegacao">التنقل الرئيسي</a></li>
+        <li><a href="#conversas">قائمة الدردشات</a></li>
+        <li><a href="#dentro-conversa">داخل الدردشة</a></li>
+        <li><a href="#anexos-midia">المرفقات والوسائط</a></li>
+        <li><a href="#voz-audio">الرسائل الصوتية والصوت</a></li>
+        <li><a href="#transcricao-ia">التفريغ النصي والوصف</a></li>
+        <li><a href="#status">الحالة</a></li>
+        <li><a href="#ligacoes">المكالمات</a></li>
+        <li><a href="#grupos-comunidades">المجموعات والمجتمعات</a></li>
+        <li><a href="#trancadas">الدردشات المقفلة</a></li>
+        <li><a href="#empresas">الأنشطة التجارية: الكتالوج والطلبات</a></li>
+        <li><a href="#contas">الحسابات ومنطقة الإشعارات والمزامنة</a></li>
+        <li><a href="#configuracoes">الإعدادات</a></li>
+        <li><a href="#privacidade">إعدادات واتساب</a></li>
+        <li><a href="#copias-registros">النسخ الاحتياطية والسجلات</a></li>
+        <li><a href="#mac">WinZapp على Mac</a></li>
+        <li><a href="#atalhos">اختصارات لوحة المفاتيح</a></li>
+        <li><a href="#solucao-problemas">حل المشكلات</a></li>
+        <li><a href="#registro">سجل تحديثات الدليل</a></li>
+      </ol>
+    </div>
+  </div>
+
+  <section id="primeiros-passos" class="wiki-section" aria-labelledby="h-primeiros-passos">
+    <h2 id="h-primeiros-passos">🔌 1. البدء</h2>
+<p class="lead">WinZapp هو عميل واتساب لنظام ويندوز، صُمم لمن يستخدمون قارئ الشاشة (NVDA أو JAWS أو الراوي Narrator). يعمل مثل واتساب ويب: يبقى هاتفك الجهاز الرئيسي، وينضم WinZapp إليه كجهاز مرتبط.</p>
+
+<h3>التثبيت</h3>
+<p>نزّل دائمًا من صفحة الإصدارات (Releases) في المستودع الرسمي (<code>github.com/gabrielhhaber/WinZapp_Python/releases</code>). النسخ الموجودة على مواقع أخرى ليست من المشروع. يتضمن كل إصدار هذه الملفات:</p>
+<table class="field-table">
+  <tr><th>الملف</th><th>الغرض منه</th></tr>
+  <tr><td class="field-name">WinZappInstaller.exe</td><td>المثبّت، وهو الخيار المناسب لمعظم المستخدمين. يثبّت البرنامج في <code>%LOCALAPPDATA%\WinZapp</code> (دون الحاجة إلى صلاحيات المسؤول)، ويمكنه إنشاء اختصارات على سطح المكتب وفي قائمة ابدأ، ويسجل أداة إلغاء التثبيت في إعدادات ويندوز &gt; التطبيقات.</td></tr>
+  <tr><td class="field-name">WinZapp.zip</td><td>البرنامج نفسه في نسخة محمولة. استخرجه إلى مجلد على قرص محلي وشغّل <code>WinZapp.exe</code>.</td></tr>
+  <tr><td class="field-name">SHA256SUMS.txt</td><td>المجاميع الاختبارية للتحقق من التنزيل.</td></tr>
+</table>
+<div class="callout warn">
+  <div class="callout-title">⚠️ القرص المحلي</div>
+  لا يعمل WinZapp من مجلد شبكة (مثل <code>\\server\folder</code>، أو مجلد التنزيلات في جهاز افتراضي). إذا حدث ذلك، فسيخبرك ويشرح ما عليك فعله: ثبّته باستخدام WinZappInstaller أو انقل المجلد إلى قرص على جهاز الكمبيوتر الخاص بك.
+</div>
+<p>المتطلبات: ويندوز 10 أو 11 بنظام 64 بت، واتصال بالإنترنت، وحساب واتساب على هاتفك.</p>
+
+<h3>الإصدار المستقر أو ألفا</h3>
+<ul>
+  <li><strong>المستقر:</strong> يُعدّ يدويًا ويوصى به. وهو الإصدار الموسوم بعبارة "Latest" في صفحة الإصدارات.</li>
+  <li><strong>ألفا:</strong> موسوم بعبارة "Pre-release". يُبنى تلقائيًا مع كل تغيير في الخط الرئيسي للتطوير، دون اختبار طويل، لذا قد يحتوي على أخطاء. ينتهي رقمه بكلمة "alpha" (مثل <code>2.1.0.4397alpha</code>؛ تعدّ الأرقام الأخيرة التغييرات التي أُجريت على المشروع).</li>
+</ul>
+<p>افتراضيًا، لا تتلقى إلا الإصدارات المستقرة. لتلقي إصدارات ألفا أيضًا، حدد «التحقق من تحديثات ألفا (غير مستقرة)» في الإعدادات &gt; عام.</p>
+
+<h3>التشغيل الأول</h3>
+<p>في المرة الأولى، ينزّل WinZapp ويجهّز بنفسه المكونات التي تتواصل مع واتساب ويب (خادم WPPConnect ومتصفح Chromium داخلي). يتطلب هذا اتصالًا بالإنترنت، وتظهر نافذة تقدم بعنوان «جاري تشغيل WPPConnect، الرجاء الانتظار...». في مرات التشغيل التالية، ومع اتصال الحساب مسبقًا، تظهر النافذة الرئيسية ودردشاتك فورًا ويتصل واتساب في الخلفية. الرسائل التي ترسلها في هذه الأثناء تنتظر وتُرسل بمجرد أن يصبح الاتصال جاهزًا. يعرض عنوان النافذة «جاري بدء WPPConnect…» حتى يصبح كل شيء جاهزًا.</p>
+
+<h3>ربط حسابك</h3>
+<p>تقدم شاشة الاتصال طريقتين للاقتران:</p>
+<ol class="steps">
+  <li><span class="step-num">1</span><div><strong>رقم الهاتف:</strong> إذا لم تكن قد أجريت الاقتران بعد، فإن قائمة «محرك الاتصال» الموجودة قبل البلد تتيح لك الاختيار بين WPPConnect و Neonize دون فتح الإعدادات؛ وعند الاختيار، يطلب WinZapp التأكيد ويعيد التشغيل بالمحرك المختار. اختر البلد (القائمة مرتبة أبجديًا، وتستخدم بلد ويندوز ولغته، ويمكنك كتابة عدة أحرف للبحث)، ثم اكتب الرقم وتابع. يعرض WinZapp رمزًا. على هاتفك، افتح واتساب، وانتقل إلى الأجهزة المرتبطة &gt; ربط جهاز، واختر الربط برقم الهاتف.</div></li>
+  <li><span class="step-num">2</span><div><strong>رمز QR:</strong> امسح الرمز الظاهر على الشاشة باستخدام واتساب على هاتفك، من قسم الأجهزة المرتبطة.</div></li>
+</ol>
+<p>يعلن WinZapp عند إنشاء الرمز، وعند ظهوره فعليًا، وعند انتهاء صلاحيته، وعند تعذر إنشائه. وإذا رفض واتساب الرمز، فستوضح الرسالة السبب.</p>
+<div class="callout tip">
+  <div class="callout-title">💡 ربط رقم مختلف</div>
+  إغلاق شاشة الاقتران أو إلغاؤها لا يحذف دردشاتك. لا يُمسح السجل إلا عند ربط رقم هاتف مختلف فعليًا، وفي هذه الحالة يحذرك WinZapp.
+</div>
+
+<h3>أين تُحفظ بياناتك</h3>
+<p>كل شيء موجود في مجلد <code>data</code> بجوار البرنامج: الحسابات، وسجل الرسائل، والوسائط المنزّلة، والسجلات. عند استخدام المثبّت، يكون المجلد هو <code>%LOCALAPPDATA%\WinZapp\data</code>. انسخ هذا المجلد احتياطيًا إذا أردت نقل سجلك إلى جهاز كمبيوتر آخر. يُخزَّن محتوى الرسائل ورمز الجلسة مشفرين.</p>
+
+<h3>التحديثات</h3>
+<p>يبحث WinZapp عن الإصدارات الجديدة بنفسه ويعرض تنزيلها وتثبيتها. للتحقق الآن، استخدم مساعدة &gt; التحقق من التحديثات (إذا تعذر الوصول إلى خادم التحديثات، فسيخبرك). إليك بعض الأمور المفيدة:</p>
+<ul>
+  <li>مع خيار «تنزيل التحديثات وتنزيلات التفريغ النصي في الخلفية، بدون نافذة التقدم» (الإعدادات &gt; عام)، تواصل استخدام البرنامج وأنت متصل أثناء تنزيل التحديث؛ ولا يقول WinZapp إنه سيبدأ التثبيت إلا عندما يصبح التحديث جاهزًا. وإذا كنت في مكالمة، ينتظر التنبيه حتى تنتهي.</li>
+  <li>إلغاء نافذة التقدم قبل بدء التثبيت يوقف التحديث بأمان.</li>
+  <li>تُحفظ الحزمة المنزّلة أثناء انتظار التثبيت. بعد إغلاق WinZapp، انتظر انتهاء المثبّت قبل فتحه مرة أخرى. إذا لم يكتمل التثبيت، فإن بلوغ حد الانتظار لا يعيد فتح WinZapp تلقائيًا. النسخة غير المكتملة تُعدّ فشلًا، ويزيل التحديث الناجح اللاحق تحذير الفشل السابق. إذا فشل النسخ أو تعذر تأكيد اكتماله، يبقى WinZapp مغلقًا ويفتح تعليمات الاسترداد في المفكرة. انتظر انتهاء المثبّت قبل الإصلاح. انسخ مجلد بياناتك الحالي احتياطيًا، وأصلح ملفات البرنامج باستخدام المثبّت الرسمي أو ملف ZIP الرسمي، واحتفظ بمجلد بياناتك. تعرض الملاحظة مجلد التثبيت وموقع سجل التحديث.</li>
+  <li>عند فتح أكثر من حساب، يفتح التحديث نافذة واحدة ويغلق الحسابات الأخرى قبل التثبيت.</li>
+  <li>يتوفر خيارا مساعدة &gt; إعادة تثبيت WPPConnect قسرًا وإعادة تثبيت من ملف ZIP لحالات اختلال الخادم المحلي.</li>
+  <li>يعرض مساعدة &gt; ما الجديد التغييرات في كل إصدار، ويلخص مساعدة &gt; «ما الجديد منذ آخر نظرة…» ما هو جديد بالنسبة لك فقط، بجمل بسيطة. ويعرض زر «ما الجديد؟» في نافذة التحديث تغييرات الإصدار المعروض؛ وفي إصدارات ألفا، يسرد أيضًا تغييرات كل إصدار ألفا منذ إصدارك.</li>
+</ul>
+
+<h3>التحقق من التنزيل</h3>
+<p>يتضمن كل إصدار ملف <code>SHA256SUMS.txt</code>. للتحقق في موجه الأوامر CMD:</p>
+<p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
+<p>يجب أن تطابق القيمة تلك الموجودة في سطر الملف. إذا اختلفت، فاحذف الملف ونزّله مرة أخرى. يتحقق محدّث WinZapp أيضًا من المجموع الاختباري (ومن التوقيع في الإصدارات الأحدث) قبل التثبيت.</p>
+
+  </section>
+
+  <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
+    <h2 id="h-navegacao">🧭 2. التنقل الرئيسي</h2>
+<p class="lead">تنقسم النافذة الرئيسية إلى لوحات. يمكنك الانتقال إلى أي منها من أي مكان في النافذة باستخدام Alt+رقم.</p>
+
+<table class="field-table">
+  <tr><th>الاختصار</th><th>اللوحة</th></tr>
+  <tr><td class="field-name">Alt+1</td><td>الدردشات (القائمة الرئيسية)</td></tr>
+  <tr><td class="field-name">Alt+2</td><td>آخر رسالة في الدردشة المفتوحة</td></tr>
+  <tr><td class="field-name">Alt+3</td><td>الرسائل غير المقروءة في الدردشة المفتوحة</td></tr>
+  <tr><td class="field-name">Alt+4</td><td>الدردشات المؤرشفة</td></tr>
+  <tr><td class="field-name">Alt+5</td><td>الحالة</td></tr>
+  <tr><td class="field-name">Alt+6</td><td>المكالمات</td></tr>
+  <tr><td class="field-name">Alt+7</td><td>الدردشات المقفلة</td></tr>
+  <tr><td class="field-name">Alt+8</td><td>المجتمعات</td></tr>
+  <tr><td class="field-name">Alt+M</td><td>الرسائل: يعود إلى قائمة رسائل الدردشة المفتوحة</td></tr>
+  <tr><td class="field-name">Alt+ت</td><td>ينقل التركيز إلى قائمة التنقل الرئيسي (الحرف مأخوذ من التسمية بلغة البرنامج)</td></tr>
+  <tr><td class="field-name">F1</td><td>يعرض جميع اختصارات لوحة المفاتيح</td></tr>
+  <tr><td class="field-name">Ctrl+,</td><td>الإعدادات</td></tr>
+</table>
+<p>توجد اللوحات أيضًا في قائمة تنقل (ينقلك Alt+ت إليها)، بالترتيب نفسه: تأتي المجتمعات بعد المكالمات <span class="desde">ألفا 4397</span>، مع ذكر Alt+8 في اسم العنصر، ويمكنك الوصول إليها بالتحرك لأسفل في القائمة.</p>
+<p>إذا لم تكن هناك دردشة مفتوحة، فإن Alt+2 و Alt+3 و Ctrl+W تقول «لا يوجد دردشة مفتوحة»؛ وفي الدردشة الفارغة، يقول Alt+2 «هذه الدردشة فارغة».</p>
+
+<h3>تبقى الدردشة المفتوحة خلف اللوحات</h3>
+<p>عند التبديل بين اللوحات (الحالة، والمكالمات، والمؤرشفة...)، تبقى الدردشة المفتوحة مفتوحة ولكنها مخفية. وأثناء إخفائها، يُعلن عن رسائلها الجديدة كأنها من دردشة أخرى ولا تُعيَّن كمقروءة، ولا تُنطق إشعارات «يكتب…». عُد إليها باستخدام Alt+M أو Alt+2 أو Alt+3، أو بفتحها مرة أخرى.</p>
+
+<h3>القوائم</h3>
+<table class="field-table">
+  <tr><th>القائمة</th><th>محتواها</th></tr>
+  <tr><td class="field-name">ملف</td><td>الإعدادات، وإعدادات واتساب (الخصوصية والملف الشخصي)، وتصدير الإعدادات واستيرادها، وتعيين جميع الدردشات كمقروءة، وقطع الاتصال، وخروج.</td></tr>
+  <tr><td class="field-name">المزامنة</td><td>إعادة مزامنة جميع الدردشات (F5)، وإعادة مزامنة هذه الدردشة (Shift+F5)، وتنزيل الوسائط، ووضع عدم الاتصال.</td></tr>
+  <tr><td class="field-name">الحسابات</td><td>التبديل بين الحسابات (Ctrl+Alt+1 إلى 9) وإغلاق الحساب الحالي (Ctrl+F4). راجع قسم الحسابات.</td></tr>
+  <tr><td class="field-name">مساعدة</td><td>اختصارات لوحة المفاتيح، وما الجديد، والتحقق من التحديثات، وإعادة تثبيت WPPConnect قسرًا ومن ملف ZIP، وحول البرنامج.</td></tr>
+</table>
+
+<h3>منطقة الإشعارات والاختصار العالمي</h3>
+<p>يمكن أن يبقى WinZapp في منطقة الإشعارات وأن يبدأ مع ويندوز. يوجد اختصار عالمي (قابل للضبط في الإعدادات &gt; واجهة المستخدم &gt; اختصارات لوحة المفاتيح) يجلب النافذة إلى المقدمة من أي برنامج؛ وعندما يكون WinZapp في المقدمة بالفعل، يخفيه الاختصار نفسه في منطقة الإشعارات. عند بدئه مع ويندوز، لا يظهر في منطقة الإشعارات إلا بعد أن يصبح الاتصال جاهزًا.</p>
+
+<h3>الإعلانات المنطوقة</h3>
+<p>كل ما يقوله WinZapp يمر عبر قارئ الشاشة لديك (أو عبر صوت SAPI في ويندوز، إذا فعّلت هذا الخيار في الإعدادات &gt; إمكانية الوصول ولم يكن أي قارئ شاشة نشطًا). وفي الإعدادات &gt; إمكانية الوصول &gt; المحتوى المنطوق تختار ما يُعلن عنه.</p>
+
+  </section>
+
+  <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
+    <h2 id="h-conversas">💬 3. قائمة الدردشات</h2>
+<p class="lead">تعرض قائمة الدردشات (Alt+1) أسماء الأشخاص والمجموعات، ولا تعرض الرموز الداخلية أبدًا. يقرأ كل صف الاسم وآخر رسالة والحالة (غير مقروءة، مثبتة، مكتومة...).</p>
+<p>مع Neonize، لا تُعلَّم الدردشة كمقروءة إلا عندما تفتحها أو تعلّمها كمقروءة، وتظهر مقروءة أيضًا على الهاتف وفي WhatsApp Web.</p>
+
+<h3>عوامل التصفية والقوائم</h3>
+<ul>
+  <li><strong>عوامل التصفية:</strong> الكل، وغير مقروءة، والمجموعات، وفردي، على شكل أزرار اختيار. ينقلك Alt+Shift+F إليها، ويختار Alt+Shift+A و Alt+Shift+U و Alt+Shift+G و Alt+Shift+I الكل وغير مقروءة والمجموعات وفردي مباشرة من القائمة.</li>
+  <li><strong>قوائم واتساب:</strong> تظهر قوائمك المخصصة قبل عوامل التصفية. يمكنك تحديثها، والتصفية بها، وإنشاء قائمة أو إعادة تسميتها، وإضافة دردشات أو إزالتها، من خلال «إدارة قوائم واتساب». يعتمد التعديل على دعم حسابك له؛ وعندما لا يكون ممكنًا، يوضح مدير القوائم السبب. لا تظهر في التحديد الدردشات المقفلة أو غير المتاحة محليًا، ويُحافَظ على بقية أعضاء القائمة.</li>
+  <li><strong>البحث:</strong> ينقلك Ctrl+F إلى حقل البحث، وينتقل السهم لأسفل إلى أول نتيجة. في الإعدادات &gt; واجهة المستخدم &gt; الدردشات، يجعل خيار «الإبقاء على بحث الدردشة عند فتح دردشة» مفتاح Esc يعيد التركيز إلى تلك الدردشة في النتائج بدلًا من العودة إلى القائمة الكاملة.</li>
+</ul>
+
+<h3>فتح دردشة</h3>
+<p>يفتح Enter الدردشة المحددة. ينتقل التركيز إلى المكان الذي عيّنته في الإعدادات &gt; واجهة المستخدم &gt; الدردشات (حقل الرسالة، أو علامة الرسائل غير المقروءة / آخر رسالة). يغلق Esc أو Ctrl+W الدردشة.</p>
+
+<h3>قائمة سياق الدردشة</h3>
+<p>افتحها باستخدام مفتاح التطبيقات أو Shift+F10. تختلف العناصر حسب الدردشة:</p>
+<table class="field-table">
+  <tr><th>العنصر</th><th>الاختصار</th></tr>
+  <tr><td>معلومات الدردشة</td><td class="field-name">Ctrl+Shift+D</td></tr>
+  <tr><td>تثبيت / إلغاء التثبيت</td><td class="field-name">Ctrl+P</td></tr>
+  <tr><td>كتم / إلغاء الكتم</td><td class="field-name">Alt+Shift+S</td></tr>
+  <tr><td>تعيين كمقروءة / غير مقروءة</td><td class="field-name">Ctrl+Shift+M</td></tr>
+  <tr><td>أرشفة / إلغاء الأرشفة</td><td class="field-name">Ctrl+Shift+Q</td></tr>
+  <tr><td>قفل الدردشة</td><td class="field-name">Ctrl+Shift+T</td></tr>
+  <tr><td>حظر جهة الاتصال</td><td class="field-name">Ctrl+Shift+B</td></tr>
+  <tr><td>مسح الدردشة</td><td class="field-name">Ctrl+Shift+L</td></tr>
+  <tr><td>حذف الدردشة</td><td class="field-name">Delete</td></tr>
+  <tr><td>نسخ رقم الهاتف</td><td class="field-name">Alt+Shift+C</td></tr>
+  <tr><td>الكتالوج التجاري والسلة (الدردشات مع الأنشطة التجارية)</td><td class="field-name">Alt+Shift+B</td></tr>
+  <tr><td>أدوات الأعمال (حسابات واتساب للأعمال فقط)</td><td>إنشاء طلب لهذه الجهة (Ctrl+Shift+N) وقبول السلال في الكتالوج الخاص بي</td></tr>
+</table>
+<p>يعمل حظر جهة الاتصال أيضًا مع رقم غير محفوظ في جهات اتصالك.</p>
+<div class="callout info">
+  <div class="callout-title">ℹ️ يمكن تغيير الاختصارات</div>
+  جميع الاختصارات في هذا الدليل هي اختصارات المصنع. يمكنك تغييرها في الإعدادات &gt; واجهة المستخدم &gt; اختصارات لوحة المفاتيح. وتوجد القائمة الكاملة والمحدّثة دائمًا في قسم اختصارات لوحة المفاتيح وعند الضغط على F1.
+</div>
+
+<h3>المسح والحذف</h3>
+<ul>
+  <li><strong>مسح الدردشة</strong> يسأل هل تريد الاحتفاظ بالرسائل المميزة («الإبقاء على الرسائل المميزة»، محدد افتراضيًا). عند إلغاء تحديده، تُحذف الرسائل المميزة أيضًا، بما في ذلك على الهاتف. ينطبق هذا أيضًا على عدة دردشات محددة وعلى الدردشات المؤرشفة.</li>
+  <li>تحتوي تأكيدات المسح والحذف على مربع «لا تظهر مرة أخرى»، ولا يُعتدّ به إلا مع «نعم». لتُسأل مرة أخرى، استخدم الخيارات المقابلة في الإعدادات &gt; واجهة المستخدم &gt; التأكيدات. وعند إيقاف السؤال، يحتفظ المسح بالرسائل المميزة.</li>
+  <li><strong>تعيين جميع الدردشات كمقروءة</strong> (قائمة ملف، أو Ctrl+Alt+Shift+M) يسأل أولًا، مع «لا» كخيار افتراضي. ويحتوي أيضًا على «لا تظهر مرة أخرى»؛ ويعيد خيار «طلب التأكيد قبل تعيين جميع الدردشات كمقروءة» السؤال.</li>
+  <li><strong>التأكيد المنطوق:</strong> تعيين دردشة كمقروءة أو غير مقروءة، وكتمها، وأرشفتها، وتثبيتها، كلها تعلن الآن عما تم، ويعلن تعيين عدة دردشات كمقروءة عددها.</li>
+</ul>
+
+<h3>دردشة ومجموعة وجهة اتصال جديدة</h3>
+<p>يفتح Ctrl+N «دردشة جديدة». يمكنك هناك البحث عن جهة اتصال (يكون التركيز على الحقل ويصفّي بالاسم، بما في ذلك اسم العائلة، وبالرقم أثناء الكتابة)، وبدء دردشة برقم، وإنشاء مجموعة، وإضافة جهة اتصال، والانضمام إلى مجموعة برابط، وفتح المجتمعات (زر «المجتمعات»).</p>
+<p>إذا كتبت رقمًا برازيليًا بالرقم 9 الإضافي وكان واتساب يستخدم الرقم بدونه، تبقى الدردشة واحدة: بعد الرسالة الأولى تستخدم رقم واتساب.</p>
+<p>في الدردشة الشخصية الجديدة أو الفارغة، يخبرك السطر الذي يقول إنه لا توجد رسائل أيضًا بأن الرسائل والمكالمات مشفرة من طرف إلى طرف، وإذا كانت الدردشة تستخدم رسائل الاختفاء، فكم تدوم.</p>
+<h3>جهات الاتصال: محلية أو مزامنة مع الهاتف</h3>
+<p>عند إضافة جهة اتصال (في معلومات الدردشة، أو في دردشة جديدة، أو من رسالة جهة اتصال)، يوجد تبويبان:</p>
+<ul>
+  <li><strong>جهة اتصال مزامنة مع الهاتف:</strong> تحفظ الاسم في واتساب وفي دليل عناوين الهاتف. يُفتح هذا التبويب افتراضيًا؛ وإذا كان الرقم موجودًا بالفعل في دليل عناوين الهاتف، يظهر هذا التبويب وحده. حذف جهة اتصال مزامنة يزيلها أيضًا من واتساب ومن الهاتف.</li>
+  <li><strong>جهة اتصال محلية في WinZapp:</strong> الاسم موجود في WinZapp فقط.</li>
+</ul>
+<p>تظهر الأنشطة التجارية المتحقق منها التي لم تحفظها (البنوك، وتطبيقات الدفع...) باسمها المُتحقّق منه. ويكون للاسم المحفوظ في جهات اتصالك الأولوية دائمًا.</p>
+<p>تستخدم قوائم الدردشات والمؤرشفة والمقفلة عرض القائمة بالكامل، لذا لا تُقتطع الأسماء ومعاينات الرسائل إلا عندما تكون النافذة ضيقة.</p>
+
+<h3>التثبيت</h3>
+<p>مع خيار «الإبقاء على الدردشات المثبتة في ترتيب ثابت» (الإعدادات &gt; واجهة المستخدم &gt; الدردشات)، لا تغيّر الرسائل الجديدة موضع الدردشات المثبتة ويبقى الترتيب بعد إعادة التشغيل. وعند إيقافه، ترتفع الدردشات المثبتة مع الرسائل الجديدة مثل غيرها.</p>
+
+<h3>تحديد عدة دردشات</h3>
+<p>يحدد Ctrl+Space الدردشة المركزة أو يلغي تحديدها. بعد تحديد العنصر الأول، يكفي Space وحده لتحديد العناصر التالية وإلغاء تحديدها (وضع التحديد؛ يعلن قارئ الشاشة عند تشغيله وإيقافه، ويتوقف عندما لا يبقى شيء محدد). يوسّع Shift+السهم لأسفل/لأعلى التحديد، ويحدد Shift+Home و Shift+End حتى البداية أو النهاية، ويحدد Ctrl+Shift+Space كل شيء أو يلغي تحديده. عند وجود تحديد، يكتفي أول Esc بإلغاء التحديد. ينطبق هذا أيضًا على الدردشات المؤرشفة والمقفلة، وعلى قائمة الرسائل، وعلى نافذة إعادة التوجيه.</p>
+<p>تحتوي قائمة السياق على القائمة الفرعية <strong>إجراءات جماعية</strong>، ولكل إجراء اختصاره:</p>
+<table class="field-table">
+  <tr><th>الإجراء</th><th>الاختصار</th></tr>
+  <tr><td>مسح المحدد</td><td class="field-name">Ctrl+Alt+Shift+L</td></tr>
+  <tr><td>حذف المحدد</td><td class="field-name">Ctrl+Shift+Delete</td></tr>
+  <tr><td>أرشفة (في الدردشات المؤرشفة: إلغاء الأرشفة)</td><td class="field-name">Ctrl+Alt+Shift+A</td></tr>
+  <tr><td>تعيين كمقروءة</td><td class="field-name">Ctrl+Alt+Shift+R</td></tr>
+  <tr><td>تعيين كغير مقروءة</td><td class="field-name">Ctrl+Alt+Shift+U</td></tr>
+  <tr><td>إلغاء القفل (في الدردشات المقفلة)</td><td class="field-name">Ctrl+Alt+Shift+T</td></tr>
+</table>
+<p>يمكن إيقاف الخيارين «استخدام Space لتحديد/إلغاء تحديد كلما كان هناك تحديد موجود» و «Esc يلغي تحديد الرسائل المحددة قبل إغلاق الدردشة» في الإعدادات &gt; واجهة المستخدم &gt; الدردشات.</p>
+
+<h3>الدردشات المؤرشفة</h3>
+<p>يفتح Alt+4 الدردشات المؤرشفة. لها بحثها الخاص (Ctrl+F)، والتحديد نفسه، والإجراءات نفسها. لا يُعلن صوتيًا عن دردشة مؤرشفة عند وصول رسالة جديدة أثناء عدم ظهور قائمة المؤرشفة على الشاشة. مع Neonize، إذا كان خيار WhatsApp «إبقاء الدردشات مؤرشفة» متوقفًا، تعود الدردشة المؤرشفة إلى قائمة الدردشات عند وصول رسالة جديدة، كما على الهاتف.</p>
+
+  </section>
+
+  <section id="dentro-conversa" class="wiki-section" aria-labelledby="h-dentro-conversa">
+    <h2 id="h-dentro-conversa">📨 4. داخل الدردشة</h2>
+<p class="lead">عند فتح دردشة تظهر لك قائمة الرسائل وحقل الرسالة. كل رسالة صف يقرؤه قارئ الشاشة مع المرسل والمحتوى والحالة.</p>
+
+<h3>إرسال الرسائل</h3>
+<p>اكتب في حقل الرسالة واضغط Enter؛ ويدرج Shift+Enter سطرًا جديدًا. تمر عمليات الإرسال عبر قائمة انتظار في الخلفية. إذا قبل واتساب الرسالة ولم يؤكد تسليمها، يطلب منك WinZapp التحقق من الدردشة قبل إعادة الإرسال حتى لا تُسلَّم مرتين. يعمل أيضًا إرسال رسالة إلى نفسك (دردشة «أنا (رسائل إلى نفسي)»).</p>
+<ul>
+  <li><strong>تتحول الوجوه النصية إلى رموز تعبيرية أثناء الكتابة</strong>: يصبح <code>:)</code> 🙂، ويصبح <code>:D</code> 😃، ويصبح <code>&lt;3</code> ❤️، عند كتابة مسافة أو علامة ترقيم بعدها. يعيد Backspace مباشرة بعد التحويل ما كتبته. يمكن إيقاف ذلك في الإعدادات &gt; عام. يفتح Ctrl+. منتقي الرموز التعبيرية (يغيّر السهمان الأيسر والأيمن لون البشرة).</li>
+  <li><strong>التدقيق الإملائي:</strong> يُشغَّل صوت مخصص عند الخطأ في كتابة كلمة، وعند كتابة علامة ترقيم بعدها، وعند وصول المؤشر إلى كلمة خاطئة. وفي قائمة سياق الحقل، تقدم القائمة الفرعية «الإملاء» اقتراحات من قاموس ويندوز. وفي الإعدادات تختار اتباع ويندوز، أو التشغيل دائمًا، أو الإيقاف دائمًا.</li>
+  <li><strong>الإشارات:</strong> اكتب <code>@</code> لاختيار شخص (يدرج Enter الإشارة، ويغلق Esc). وفي المجموعات، يعمل <code>@all</code> أيضًا.</li>
+</ul>
+
+<h3>قراءة الرسائل</h3>
+<table class="field-table">
+  <tr><th>الاختصار</th><th>الإجراء</th></tr>
+  <tr><td class="field-name">Alt+2</td><td>الانتقال إلى آخر رسالة</td></tr>
+  <tr><td class="field-name">Alt+3</td><td>الانتقال إلى الرسائل غير المقروءة (أيضًا Alt+U و Ctrl+L)</td></tr>
+  <tr><td class="field-name">Alt+L</td><td>قراءة بقية رسالة نصية مقتطعة في القائمة</td></tr>
+  <tr><td class="field-name">Alt+C</td><td>عرض نص الرسالة في نافذة (للقراءة بهدوء أو نسخ جزء منه)</td></tr>
+  <tr><td class="field-name">Alt+Shift+L</td><td>إعلان حالة الرسالة المركزة (مرسلة، مسلَّمة، مقروءة)</td></tr>
+  <tr><td class="field-name">Alt+Shift+K</td><td>إعلان تاريخ الرسالة المركزة ووقتها</td></tr>
+  <tr><td class="field-name">Alt+Shift+Q</td><td>الانتقال إلى الرسالة المقتبسة، في الرد</td></tr>
+  <tr><td class="field-name">Alt+Shift+M / Alt+Shift+J</td><td>الانتقال إلى الرسالة السابقة / التالية التي تشير إليك</td></tr>
+  <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>الانتقال إلى الرسالة السابقة / التالية التي ترد عليك (يعود الضغط مرة أخرى عبر الردود، وبعد الأقدم يرجع إلى الأحدث)</td></tr>
+  <tr><td class="field-name">Alt+T</td><td>إعلان حالة جهة الاتصال: آخر ظهور، متصل، يكتب. يعرض زر الدردشة وتفاصيل جهة الاتصال المعلومات نفسها، محدّثة دائمًا</td></tr>
+</table>
+<p>يقرأ Alt+T أحدث المعلومات المتاحة دون انتظار طلب عبر الشبكة. يمكن الإبلاغ عن الكتابة والتسجيل الصوتي حتى عندما لا تكون رؤية الاتصال متاحة؛ ولا تعني هذه المؤشرات أن رؤية الاتصال مشتركة. ينتهي مؤشر النشاط بعد عشر ثوانٍ دون تحديث. وتظل خصوصية آخر ظهور محترمة. ينتمي النشاط إلى الدردشة التي يحدث فيها: تُتابَع المجموعات والدردشات الخاصة كلٌّ على حدة.</p>
+<p>تحديثات حالة جهات الاتصال لا تغيّر إجمالي الرسائل غير المقروءة ولا تعيد كتابة عناوين النوافذ أو تسميات الدردشات المؤرشفة التي لم تتغير. تتبع إعلانات الكتابة والتسجيل إعدادات النطق لديك. تُحفظ أسماء جهات الاتصال التي يتعرف عليها البرنامج حديثًا في الخلفية؛ ولا يلزم أي إعداد إضافي.</p>
+
+<p><strong>مراجعة الرسائل الأخيرة حسب موضعها:</strong> توجد عشرة أوامر، من أحدث رسالة (1) إلى العاشرة (0)، تقرأ تلك الرسالة دون نقل التركيز؛ والضغط على المفتاح نفسه مرتين بسرعة ينسخها. تأتي بدون مفتاح، لأن Alt+1 إلى Alt+9 مخصصة للنافذة الرئيسية: اختر المفاتيح في الإعدادات &gt; واجهة المستخدم &gt; اختصارات لوحة المفاتيح.</p>
+<p><strong>«يكتب…» في القائمة:</strong> مع خيار «إظهار من يكتب أو يسجل صوتًا كآخر صف في قائمة الرسائل» (الإعدادات &gt; واجهة المستخدم &gt; الرسائل)، يظهر صف مؤقت مثل "آنا يكتب…" في نهاية القائمة ويختفي عندما يتوقف الشخص. لا ينقل التركيز أبدًا ولا يُنطق من تلقاء نفسه.</p>
+<p><strong>أنواع أخرى من الصفوف:</strong> الرسائل التي لم يحمّلها واتساب بعد تظهر بعبارة «في انتظار هذه الرسالة. قد يستغرق هذا بعض الوقت.» وتتحول إلى النص عند وصوله. تظهر رسائل العرض مرة واحدة بعبارة «رسالة عرض مرة واحدة. افتحها على هاتفك لرؤيتها.». تعرض رسائل الطلبات والمنتجات من الأنشطة التجارية العناصر والإجمالي والحالة. تظهر المكالمات في موضع حدوثها من الدردشة («مكالمة صوتية فائتة»، «تم الرد على مكالمة فيديو»...).</p>
+
+<h3>الرد والتعديل والحذف وإعادة التوجيه</h3>
+<table class="field-table">
+  <tr><th>الاختصار</th><th>الإجراء</th></tr>
+  <tr><td class="field-name">Alt+R</td><td>الرد على الرسالة المركزة</td></tr>
+  <tr><td class="field-name">Alt+Shift+R</td><td>الرد بشكل خاص (في المجموعات)</td></tr>
+  <tr><td class="field-name">Alt+Shift+V</td><td>دردشة مع المشارك (في المجموعات)</td></tr>
+  <tr><td class="field-name">Alt+E</td><td>تعديل رسالة من رسائلك</td></tr>
+  <tr><td class="field-name">Delete</td><td>حذف الرسالة (لديك أو لدى الجميع)</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+E</td><td>إعادة توجيه</td></tr>
+  <tr><td class="field-name">Ctrl+C</td><td>نسخ الرسالة؛ وعلى رابط مركز، ينسخ الرابط</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+C</td><td>نسخ توضيح صورة أو فيديو أو مستند</td></tr>
+  <tr><td class="field-name">Alt+Shift+D</td><td>معلومات الرسالة</td></tr>
+</table>
+<ul>
+  <li><strong>الرد:</strong> إذا لم يُعثر على الرسالة الأصلية قبل الإرسال، يخبرك WinZapp بأن الاقتباس مفقود ويحتفظ بنصك لتعديله من قائمة الرسالة («تعديل الرد غير المرسل بدون اقتباسه»). تحمل الردود التي تتضمن إشارة الاقتباس معها.</li>
+  <li><strong>حذف الوسائط:</strong> عند حذف صورة أو فيديو أو صوت أو مستند، يتضمن التأكيد خيار «حذف الوسائط أيضًا من هاتفك»، محددًا افتراضيًا. ألغِ تحديده لحذف الرسالة والاحتفاظ بالملف المخزن على الهاتف. ينطبق المربع أيضًا على عدة رسائل محددة، ولا يظهر إلا عند وجود وسائط بينها. وفي الإعدادات &gt; واجهة المستخدم &gt; الرسائل تحدد حالته الأولية.</li>
+  <li><strong>إعادة التوجيه:</strong> اختر الوجهات من قائمة فيها بحث (ينتقل السهم لأسفل في الحقل إلى أول نتيجة). عند النجاح، يقول قارئ الشاشة «تم إعادة توجيه الرسالة.» (أو عدد الرسائل)، دون نافذة تحتاج إلى إغلاق. تصل الرسائل الصوتية المعاد توجيهها كصوت عادي، ما لم تحدد «إعادة توجيه الرسائل الصوتية كرسائل صوتية بدلاً من صوت» في الإعدادات &gt; الصوت. مع Neonize، تظهر النسخة المعاد توجيهها في الدردشة الوجهة فورًا.</li>
+  <li><strong>معلومات الرسالة:</strong> على رسالة من رسائلك، تعرض وقت تسليمها وقراءتها وتشغيلها، بالتاريخ والوقت الكاملين، من خلال سؤال واتساب نفسه (لذا تظهر أيضًا الإيصالات التي وصلت أثناء إغلاق WinZapp). وفي المجموعة، تسرد من استلمها ومن قرأها بالاسم.</li>
+  <li><strong>الرسائل المقتبسة:</strong> في الرد، لا تُحتسب كروابط إلا روابط الرد نفسه.</li>
+</ul>
+
+<h3>التفاعل</h3>
+<p>يفتح Ctrl+Shift+R ردود الفعل على الرسالة (أو يعيد الاتصال، إذا كانت مكالمة فائتة). تحتوي القائمة على 12 رد فعل سريعًا؛ تحدد أحدها للتفاعل، ويكون رد فعلك الحالي محددًا مسبقًا، وتحديده مرة أخرى يزيله. يغيّر السهمان الأيسر والأيمن لون بشرة الرمز التعبيري. في النهاية، يفتح «إضافة المزيد من ردود الفعل» منتقي الرموز التعبيرية الكامل. تبدأ ردود الفعل التي تستخدمها أكثر بالظهور بين الاثني عشر، والأكثر استخدامًا في الأعلى. إذا كنت تفضل مواضع ثابتة، فاستخدم الإعدادات &gt; واجهة المستخدم &gt; ردود الفعل: «استخدام ردود فعل سريعة ثابتة»، وفي كل موضع يفتح Enter المنتقي لاختيار رمزه التعبيري؛ ويلغي «استعادة المواقع الافتراضية» ذلك. يُشغَّل صوت مخصص عندما يتفاعل شخص مع رسالتك (الإعدادات &gt; أحداث الصوت). يقرأ Alt+Shift+E صوتيًا ردود الفعل الأخيرة التي تلقتها الرسالة المركزة.</p>
+
+<h3>التمييز بنجمة والتثبيت</h3>
+<ul>
+  <li><strong>التمييز بنجمة</strong> (Ctrl+Shift+O): تُزامن النجوم مع واتساب، ويُتحقق من كل تغيير. لإرسال نجومك المحلية القديمة إلى واتساب، استخدم «مزامنة النجوم المحلية القديمة مع واتساب» في قائمة الدردشة.</li>
+  <li><strong>تثبيت رسالة</strong> (Ctrl+Shift+P، عندما لا تكون في تسجيل): يسرد زر في كل دردشة الرسائل المثبتة في واتساب، بما في ذلك القديمة؛ وينقلك Enter إلى الرسالة في السجل. عند فتح الدردشة، يُعلن عن عدد الرسائل المثبتة دون تغيير التركيز.</li>
+</ul>
+
+<h3>العلامات</h3>
+<p>العلامات مواضع تنشئها على الرسائل للعودة إليها لاحقًا. مع التركيز على الرسالة، ينشئ Ctrl+0 إلى Ctrl+9 علامة (أو ينتقل إليها إذا كان هذا الرقم موجودًا بالفعل)؛ ويزيلها Ctrl+Shift+0 إلى 9. ينشئ Alt+Shift+0 إلى 9 علامات مؤقتة تُحذف عند مغادرة الدردشة؛ ويزيل Ctrl+Alt+Shift+0 إلى 9 العلامات المؤقتة.</p>
+<h3>الدردشات السريعة</h3>
+<p>مع وجود التركيز على دردشة في إحدى قوائم الدردشات أو مع فتحها، اضغط Ctrl+Alt+Shift+F1 إلى F10 لتعيينها إلى موضع سريع. يفتحها Ctrl+Shift+مفتاح الوظيفة نفسه من أي مكان في النافذة الرئيسية. المفاتيح F1 إلى F9 هي المواضع 1 إلى 9؛ والمفتاح F10 هو الموضع 0. التعيينات منفصلة لكل حساب وتبقى بعد إعادة التشغيل. يمكنك تغيير هذه الاختصارات في الإعدادات، واجهة المستخدم، اختصارات لوحة المفاتيح، أو تعيين دردشة من قائمة السياق الخاصة بها. لا يمكن تعيين الدردشات المحمية.</p>
+
+<h3>البحث في الدردشة</h3>
+<p>يفتح Ctrl+Shift+F البحث. ينتقل F3 إلى النتيجة التالية و Shift+F3 إلى السابقة، من أي مكان في الدردشة المفتوحة؛ ويتبع التركيز النتيجة ويعلن قارئ الشاشة موضعها. يعمل أيضًا الزران «النتيجة السابقة» و «النتيجة التالية»، وداخل حقل البحث يؤدي Enter و Shift+Enter الوظيفة نفسها.</p>
+
+<h3>الروابط</h3>
+<p>تصبح الرسالة التي تحتوي على رابطين أو أكثر قائمة قابلة للتنقل. يفتح Enter أو Space الرابط؛ وينسخه Ctrl+C؛ وتحتوي قائمة السياق على «افتح الرابط» و «نسخ الرابط». تفتح روابط دعوة المجموعات (<code>chat.whatsapp.com/...</code>) نافذة «انضم إلى المجموعة بالرابط» في WinZapp مع معاينة المجموعة، بدلًا من المتصفح؛ وتعرض قائمة الرابط أيضًا «انضم إلى المجموعة بالرابط» وتبقي «افتح الرابط» لمن يريد المتصفح. تحمل الرسائل التي ترسلها أيضًا معاينة للرابط.</p>
+<p>في معاينة الرابط، يظهر العنوان والوصف بالأحرف الحقيقية، دون رموز HTML مثل &amp;amp; أو &amp;eacute;، سواء في المعاينة التي يرسلها WinZapp أو في التي تقرؤها.</p>
+
+<h3>جهات الاتصال والاستطلاعات والبطاقات</h3>
+<ul>
+  <li><strong>بطاقة جهة الاتصال المستلمة:</strong> يحفظها Enter أو Space كجهة اتصال. تحتوي قائمة السياق على عرض الاسم والرقم، ونسخ الرقم باستخدام Ctrl+C، والدردشة. إذا كانت البطاقة تحتوي على أكثر من رقم، يسأل WinZapp أيها يستخدم.</li>
+  <li><strong>الاستطلاعات المستلمة:</strong> يقرأ الصف السؤال ثم كل خيار، مع النسبة المئوية والأصوات عندما يتلقاها WinZapp. يفتح Enter نافذة فيها القائمة نفسها، ومربعات اختيار للتصويت، وشريط تقدم لكل خيار. في الاستطلاع ذي الإجابة الواحدة، ينقلك Tab من الرسالة إلى الخيارات، وتحديد أحدها يصوّت مباشرة. يسرد زر «عرض الأصوات» (Alt+ع) من صوّت لماذا. لإنشاء استطلاع، راجع قسم المرفقات.</li>
+  <li><strong>رسائل الطلبات:</strong> يفتح Enter الطلب؛ راجع قسم الأنشطة التجارية.</li>
+  <li><strong>إعلانات المجتمع:</strong> في قائمة رسالة الإعلان، يفتح «ردود إعلان المجتمع…» نافذة لقراءة الردود وإرسالها وتحديث القائمة؛ ويُحتفظ بالنص إذا لم يتأكد الإرسال.</li>
+</ul>
+
+<h3>الدردشة مع Meta AI</h3>
+<p>يتطلب واتساب قبول شروط خدمة Meta AI قبل الرسالة الأولى. يعرض WinZapp الشروط مع رابط لقراءتها ويسجل القبول.</p>
+
+<h3>تحديد الرسائل والإجراءات الجماعية</h3>
+<p>يعمل ذلك كما في الدردشات: يحدد Ctrl+Space، ثم يحدد Space العناصر التالية، ويحدد Ctrl+Shift+Space كل شيء. في القائمة الفرعية «إجراءات جماعية» (أو بالاختصارات)، يمكن تنفيذ ما يلي على الرسائل المحددة:</p>
+<table class="field-table">
+  <tr><th>الإجراء</th><th>الاختصار</th></tr>
+  <tr><td>نسخ</td><td class="field-name">Ctrl+Alt+Shift+C</td></tr>
+  <tr><td>إعادة توجيه</td><td class="field-name">Ctrl+Alt+Shift+E</td></tr>
+  <tr><td>تمييز بنجمة</td><td class="field-name">Ctrl+Alt+Shift+F</td></tr>
+  <tr><td>تثبيت</td><td class="field-name">Ctrl+Alt+Shift+X</td></tr>
+  <tr><td>حفظ</td><td class="field-name">Ctrl+Alt+Shift+S</td></tr>
+  <tr><td>حذف</td><td class="field-name">Delete (مع وجود تحديد)</td></tr>
+  <tr><td>التفريغ النصي والعرض معًا / في صفوفها / حذف التفريغات النصية</td><td class="field-name">Ctrl+Alt+Shift+T / N / Delete</td></tr>
+</table>
+<p>ينتهي التحديد بانتهاء الدردشة: عند إغلاقها، لا يبقى شيء محدد.</p>
+
+<h3>المسودات وإعادة الإرسال وعناصر التحكم بعد القائمة</h3>
+<p>يحتفظ حقل الرسالة بما كتبته في كل دردشة: غادر دردشة دون إرسال، وسيعود النص، بما فيه الإشارات، عند فتحها مرة أخرى. في الإعدادات &gt; واجهة المستخدم &gt; الدردشات، يتيح خيار «رسالة غير مرسلة عند مغادرة محادثة» الاختيار بين إبقائها في الحقل للدردشة التالية، أو إبقائها كمسودة لتلك الدردشة (الافتراضي)، أو تجاهلها. تدوم المسودات حتى إغلاق WinZapp.</p>
+<p>الرسالة الخاصة بك التي فشلت أو لم تتأكد، نصًا كانت أو مرفقًا، يوجد في قائمتها «محاولة الإرسال مرة أخرى»، وكذلك باستخدام Ctrl+Shift+Y. لا يعيد WinZapp إرسال أي شيء من تلقاء نفسه.</p>
+<p>أثناء التشغيل، يتوقف Tab بعد قائمة الرسائل عند زر السرعة وشريط المدة، وعلى رسالة صوتية أو صورة أو فيديو عند زر الذكاء الاصطناعي عبر الإنترنت. يمكن إبعاد كل منها عن الطريق: «إخفاء زر السرعة أثناء تشغيل الوسائط (اختصارات السرعة لا تزال تعمل)» و «إخفاء شريط المدة أثناء تشغيل الوسائط (تجاوز باستخدام Tab)» في الإعدادات &gt; الصوت &gt; تشغيل الصوت، و «إخفاء زر الذكاء الاصطناعي عبر الإنترنت بعد قائمة الرسائل (القائمة الخاصة بالرسالة لا تزال تقدمه)» في الذكاء الاصطناعي عبر الإنترنت: التفريغ النصي والأوصاف. تستمر الاختصارات وقائمة الرسالة في العمل.</p>
+
+  </section>
+
+  <section id="anexos-midia" class="wiki-section" aria-labelledby="h-anexos-midia">
+    <h2 id="h-anexos-midia">📎 5. المرفقات والوسائط</h2>
+<p class="lead">تُرسل الصور ومقاطع الفيديو والصوت والمستندات وجهات الاتصال والاستطلاعات من قائمة المرفقات؛ وتُفتح الوسائط المستلمة وتُحفظ وتُوصف مباشرة في قائمة الرسائل.</p>
+
+<h3>إرسال المرفقات</h3>
+<p>يفتح Ctrl+Shift+A قائمة المرفقات. الأنواع هي الصور ومقاطع الفيديو والصوت والمستندات وجهة الاتصال، وأخيرًا استطلاع.</p>
+<ul>
+  <li><strong>الحجم:</strong> المستندات حتى 2 جيجابايت؛ والصور ومقاطع الفيديو والصوت حتى 1 جيجابايت، وهي حدود واتساب.</li>
+  <li><strong>التوضيح:</strong> يقبل حقل التوضيح عدة أسطر. يرسل Enter المرفق مع توضيحه؛ ويبدأ Shift+Enter أو Ctrl+Enter سطرًا جديدًا.</li>
+  <li><strong>الملفات الصوتية:</strong> ملف WAV أو OGG Vorbis ستيريو أو محيطي (5.1، 7.1) يصل بجميع قنواته، كصوت عادي، ويحتفظ بمعدل العينة حتى 48 كيلوهرتز. يُرسل الملف الذي يحتوي على أكثر من 8 قنوات دون تغيير كمستند. يمكن إرسال الملفات الصوتية الملصقة في حقل الرسالة باستخدام Ctrl+V كصوت أو كمستند (الإعدادات &gt; الصوت؛ الافتراضي هو الصوت).</li>
+  <li><strong>إرفاق جهة اتصال:</strong> تُفتح القائمة مع التركيز على حقل البحث، وتصفّي بالاسم (بما في ذلك اسم العائلة) وبالرقم، ولا تحتوي على تكرارات.</li>
+  <li>استلام جهة اتصال: تعرض جهة الاتصال المرفقة التي تستلمها الاسم والرقم، ويمكنك قراءتهما ونسخهما واستخدامهما للدردشة مع الشخص.</li>
+  <li><strong>استطلاع:</strong> اختر استطلاع وأدخل السؤال، وما يصل إلى 12 خيارًا، وهل يُسمح بإجابات متعددة.</li>
+  <li>تعرض المستندات المرسلة حجم الملف في القائمة؛ وأثناء تنزيل مستند، يعرض الصف التقدم، مثل «جاري التنزيل، 35% (13.8 ميجابايت من 39.4 ميجابايت)».</li>
+  <li>الملفات المنزّلة لها دائمًا حجم الأصل نفسه، بما في ذلك الملفات التي يكون حجمها من مضاعفات 16 بايت، مثل ملف APK الذي يثبّته أندرويد بشكل طبيعي.</li>
+</ul>
+
+<h3>الفتح والحفظ والوصف</h3>
+<p>على رسالة تحتوي على وسائط، يفتحها Enter (تُفتح الصورة في العارض، ويُشغَّل الصوت والفيديو، ويُفتح المستند في البرنامج الافتراضي). يشغّل Space الصوت والفيديو ويوقفهما مؤقتًا، لكنه لا يفتح أبدًا الروابط أو المستندات أو العارض. بعد «فتح» توجد أزرار يمكن الوصول إليها باستخدام Tab: «حفظ باسم...» (Ctrl+Shift+S)، و «إظهار في المجلد» (Ctrl+Enter، عندما تكون قد حفظت نسخة)، و «وصف» (Ctrl+Shift+I، عند تشغيل ميزات الذكاء الاصطناعي). تحتوي قائمة السياق على العناصر نفسها.</p>
+<p>تظهر رسالة الفيديو (الفيديو المسجل بزر الكاميرا في واتساب، والمرسل بدلًا من رسالة صوتية) في القائمة بعبارة «رسالة فيديو» وتعمل مثل أي فيديو: يشغّلها Enter، و«حفظ باسم» والمدة وبقية القائمة كما هي.</p>
+<p>يُختار المجلد الذي تُفتح فيه نوافذ الحفظ في الإعدادات &gt; التخزين: آخر مجلد مستخدم، أو مجلد التنزيلات، أو مجلد خاص بك.</p>
+
+<h3>عارض الوسائط</h3>
+<p>يحتوي العارض في نافذة مستقلة (إذا فعّلته في الإعدادات لمقاطع فيديو الدردشة والحالات) على التشغيل والإيقاف المؤقت، والتقديم والإرجاع 10 ثوانٍ (Alt+A و Alt+V)، والموضع، ومستوى الصوت، والسرعة. يحفظ Ctrl+Shift+S ويصف Ctrl+Shift+I.</p>
+
+<h3>تبويب الوسائط</h3>
+<p>في معلومات الدردشة ومعلومات المجموعة، يسرد تبويب <strong>الوسائط</strong> الصور ومقاطع الفيديو والصوت والرسائل الصوتية والمستندات والروابط، مع تصفية حسب النوع وحسب التنزيل أو عدمه، وتحميل السجل الكامل، وإجراءات الفتح والحفظ باسم والحذف على كل عنصر. الصوت والرسائل الصوتية عاملا تصفية منفصلان.</p>
+
+<h3>التنزيل التلقائي</h3>
+<p>في الإعدادات &gt; التخزين، يشغّل «تنزيل الوسائط تلقائيًا» تنزيل الوسائط، وتختار أنت الأنواع. إلغاء تحديده يوقف ما هو جارٍ؛ وتحديده (أو تحديد نوع إضافي) يبدأ التنزيل فورًا وينطبق أيضًا على وسائط الرسائل التي تصل أثناء فتح WinZapp. حتى مع إيقاف كل شيء، فإن فتح عنصر وسائط يدويًا ينزّله في حينه. يطلق «تنزيل الوسائط» (قائمة المزامنة، Ctrl+Alt+Shift+B) التنزيل متى شئت. يعلن WinZapp التقدم صوتيًا، مثل «جاري تنزيل الوسائط: 30 من 120 تمت معالجته (8 تم تنزيله)».</p>
+<p>يحرر الإعدادات &gt; التخزين &gt; «تنظيف الوسائط» مساحة القرص بحذف ملفات الوسائط المنزّلة من الدردشات التي تختارها؛ وتبقى الرسائل. تختار الدردشات (مع صف «تحديد الكل» وعامل تصفية للمجموعات/الأفراد)، وأنواع الوسائط (الصور والملصقات، ومقاطع الفيديو، والصوت، والرسائل الصوتية، والمستندات)، وحدًا أدنى للحجم بالميجابايت. يكتفي «جمع البيانات» بالقراءة ويخبرك بعدد الملفات والميجابايت المطابقة لكل نوع؛ ويطلب «متابعة التنظيف» التأكيد («لا» هو الافتراضي) ثم يحذف بالضبط ما تمت معاينته. لا تُمس أبدًا الملفات التي حفظتها باستخدام «حفظ باسم»، ولا وسائط الرسائل غير المرسلة أو الدردشات المقفلة. تُتذكَّر الملفات المنظَّفة، فلا تجلبها التنزيلات التلقائية والمزامنة مرة أخرى، ويخبرك التنزيل الصريح بذلك؛ ولا ينساها إلا تسجيل الخروج أو اقتران جديد، وليس F5.</p>
+
+  </section>
+
+  <section id="voz-audio" class="wiki-section" aria-labelledby="h-voz-audio">
+    <h2 id="h-voz-audio">🎙️ 6. الرسائل الصوتية والصوت</h2>
+<p class="lead">سجّل الرسائل الصوتية واستمع إليها وأرسلها، وتحكم في التشغيل دون مغادرة الدردشة.</p>
+
+<h3>التسجيل</h3>
+<table class="field-table">
+  <tr><th>الاختصار</th><th>الإجراء</th></tr>
+  <tr><td class="field-name">Ctrl+R</td><td>تسجيل رسالة صوتية</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+P</td><td>إيقاف التسجيل مؤقتًا واستئنافه</td></tr>
+  <tr><td class="field-name">Ctrl+P</td><td>الاستماع إلى ما سُجّل أثناء إيقاف التسجيل مؤقتًا</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+D</td><td>تجاهل التسجيل</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+H</td><td>تسجيل الميكروفون وصوت الكمبيوتر</td></tr>
+</table>
+<ul>
+  <li><strong>قنوات تسجيل الرسائل الصوتية:</strong> يوجد زر تسجيل واحد. في الإعدادات &gt; الصوت، يقدم خيار «قنوات تسجيل الرسائل الصوتية» ثلاثة اختيارات: «تلقائي (استخدام قنوات الجهاز)» (الافتراضي)، و«أحادي (دمج القناتين اليسرى واليمنى)»، و«ستيريو (عند توفره)». يحتفظ التلقائي والستيريو بقناتين عندما يدعمهما الجهاز، ويستخدمان الصوت الأحادي في غير ذلك. يحسب الأحادي متوسط القناتين اليسرى واليمنى في قناة واحدة: استخدمه لميكروفون متصل بـ INPUT 1 أو INPUT 2 فقط في واجهة صوتية. عندما يكون مدخل واحد فقط نشطًا ينخفض مستوى الصوت بعد الدمج، ولا يُطبَّق أي تضخيم تلقائي. في الوضع التلقائي، يُرسل التسجيل الذي يكون أحد جانبيه صامتًا تمامًا بصوت أحادي، مأخوذًا من الجانب الذي فيه الصوت. يُثبَّت الاختيار عند بدء التسجيل، ويسري أيضًا على معاينة التسجيل الموقوف مؤقتًا. لا يؤثر في المكالمات ولا في تسجيل الميكروفون مع صوت الكمبيوتر. تُشغَّل الرسائل الصوتية الستيريو أيضًا على iPhone.</li>
+  <li><strong>الميكروفون + صوت الكمبيوتر:</strong> يسجل في رسالة واحدة صوتك وما يشغّله الكمبيوتر (فيديو، أو موسيقى، أو قارئ الشاشة). أثناء التسجيل، يضبط شريطان مستوى صوت الأصوات الأخرى وصوت NVDA (بدون NVDA، يكون الشريط الثاني معطلًا)؛ ولا ينطبقان إلا على التسجيل ويُحفظان لكل حساب. قبل البدء، يحذرك WinZapp من أن كل ما يُشغَّل سيدخل في التسجيل، مع «لا تظهر مرة أخرى» (يعيد خيار «تحذير قبل تسجيل صوت الكمبيوتر» التحذير). يُرسل التسجيل كصوت.</li>
+  <li>يمكن كتم إعلانات التسجيل؛ فلا يبدأ قارئ الشاشة بقول «إرسال» قبل أن يُقاطَع.</li>
+  <li><strong>تقليل ضوضاء الميكروفون:</strong> عند تحديد «تمكين تقليل ضوضاء الميكروفون» في الإعدادات &gt; الصوت، تعرض الصفحة نفسها عنصر «نموذج تقليل الضوضاء» مع حالته وزر «تنزيل نموذج تقليل الضوضاء». يُنزَّل النموذج العصبي مرة واحدة عبر الإنترنت، وتُعالج التسجيلات على هذا الكمبيوتر. بدون النموذج، يستخدم تقليل الضوضاء بوابة الضوضاء الأساسية؛ وإذا تعذر استخدامه لتسجيل ما، يعلن WinZapp ذلك عبر قارئ الشاشة ويستخدم بوابة الضوضاء الأساسية لهذا الإرسال. وإذا تعذر تطبيق تقليل الضوضاء إطلاقًا، تُرسل الرسالة دون معالجة، مع إعلان أيضًا.</li>
+  <li>يوجد الميكروفون ومكبّر الصوت المستخدمان في الإعدادات &gt; الصوت.</li>
+  <li>مع Neonize، تُسلَّم الرسالة الصوتية أيضًا إلى جهات الاتصال على أندرويد.</li>
+  <li>إذا فشل تحميل مكتبة أنواع الملفات في الكمبيوتر (libmagic)، يتعرف Neonize على النوع من الملف نفسه وتُرسل الرسالة الصوتية بشكل طبيعي.</li>
+  <li>تُرسل الرسائل الصوتية بما يصل إلى 256 كيلوبت/ثانية، أحادية وستيريو.</li>
+</ul>
+
+<h3>الاستماع</h3>
+<ul>
+  <li>على الرسائل الصوتية والملفات الصوتية، يشغّل <strong>Enter</strong> أو <strong>Space</strong> ويوقف مؤقتًا. وفي الإعدادات &gt; الصوت يمكنك التمييز بين الرسائل الصوتية والملفات الصوتية.</li>
+  <li><strong>السرعة:</strong> يبطئ Alt+, ويسرّع Alt+. تُضبط السرعة الافتراضية في الإعدادات &gt; الصوت &gt; تشغيل الصوت.</li>
+  <li><strong>التقديم والإرجاع:</strong> يتحرك Shift+السهم الأيمن/الأيسر 5 ثوانٍ؛ ويتحرك Shift+Page Down/Page Up دقيقة واحدة؛ وينتقل Shift+Home و Shift+End إلى بداية ما يُشغَّل ونهايته.</li>
+  <li>تُشغَّل الرسائل الصوتية التالية بالتسلسل، ما لم تلغِ تحديد «تشغيل الرسائل الصوتية تلقائيًا بالتسلسل» في الإعدادات &gt; واجهة المستخدم. أثناء التسلسل، ينتظر الصف المركز قبل تحديث حالته، حتى لا يقرأ قارئ الشاشة فوق الصوت.</li>
+  <li><strong>Ctrl+Alt+Shift+P</strong> يوقف الصوت الجاري تشغيله مؤقتًا أو يستأنفه، من أي لوحة.</li>
+  <li>إذا تغير جهاز الإخراج (عند نزع سماعات الرأس مثلًا)، ينتقل WinZapp إلى الجهاز الافتراضي ويشغّل الرسالة من المرة الأولى.</li>
+  <li>إذا لم تكن بطاقة الصوت متاحة (مثلًا عند استيقاظ الكمبيوتر)، يحاول WinZapp استعادة إخراج الصوت عند فشل التشغيل؛ وإذا ظل التشغيل متعذرًا، يخبرك عبر قارئ الشاشة.</li>
+  <li>يوجد في الإعدادات خيار لعدم تحديد الصوتيات كمُشغّلة.</li>
+</ul>
+
+<h3>تبديل جهاز الصوت في الحال</h3>
+<p>يفتح Ctrl+Alt+Shift+H قائمة أجهزة التشغيل، ويفتح Ctrl+Alt+Shift+G قائمة أجهزة التسجيل، مرقمة من 1 إلى 0: اضغط الرقم للتبديل فورًا، أو استخدم الأسهم و Enter. ينطبق التبديل على الأصوات والرسائل الصوتية والمكالمات (تتغير المكالمة الجارية دون انقطاع)، لجميع الحسابات المفتوحة، حتى إغلاق WinZapp. لا تتغير الأجهزة المختارة في الإعدادات.</p>
+
+  </section>
+
+  <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
+    <h2 id="h-transcricao-ia">🤖 7. التفريغ النصي والوصف</h2>
+<p class="lead">يوجد مساران مختلفان بأوامر مختلفة: <strong>التفريغ النصي المحلي</strong> (Whisper، على جهاز الكمبيوتر الخاص بك، ولا يغادره شيء) و<strong>الذكاء الاصطناعي عبر الإنترنت</strong> (يرسل الوسائط إلى الموفّر الذي تضبطه).</p>
+
+<h3>التفريغ النصي المحلي باستخدام Whisper</h3>
+<p>يحوّل الرسائل الصوتية والصوت ومقاطع الفيديو إلى نص على جهاز الكمبيوتر الخاص بك. يُضبط كل شيء في تبويب <strong>التفريغ النصي المحلي</strong> في الإعدادات.</p>
+<table class="field-table">
+  <tr><th>الاختصار</th><th>الإجراء</th></tr>
+  <tr><td class="field-name">Alt+Shift+T</td><td>يفرّغ الرسالة نصيًا ويفتح النص في نافذة (نسخ أو حفظ أو إدراج في الرسالة)؛ وإذا وُجد تفريغ نصي محفوظ، يعرضه</td></tr>
+  <tr><td class="field-name">Alt+Shift+N</td><td>يضع التفريغ النصي في صف الرسالة («...، المدة: 0:12، التفريغ النصي: ...») ويقرؤه صوتيًا، دون نافذة</td></tr>
+  <tr><td class="field-name">Alt+Shift+Delete</td><td>يحذف التفريغ النصي المحفوظ للرسالة</td></tr>
+  <tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>يفرّغ الرسائل المحددة نصيًا ويعرضها معًا</td></tr>
+  <tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>يفرّغ الرسائل المحددة نصيًا في صفوفها</td></tr>
+  <tr><td class="field-name">Ctrl+Alt+Shift+Delete</td><td>يحذف التفريغات النصية المحفوظة للرسائل المحددة</td></tr>
+</table>
+<p>في قائمة السياق: «تفريغ الرسالة نصيًا محليًا باستخدام Whisper»، و«عرض التفريغ النصي»، و«تفريغ نصي مرة أخرى»، و«حذف التفريغ النصي».</p>
+<ul>
+  <li><strong>المكونات:</strong> <em>faster-whisper</em> هو الافتراضي ويأتي مع WinZapp؛ و<em>whisper.cpp</em> اختياري وتجريبي، ويثبّته التبويب بنسخة المعالج أو بنسخة بطاقات الرسومات NVIDIA. يستخدم faster-whisper أيضًا بطاقة NVIDIA بعد تثبيت «مكتبات CUDA» في التبويب نفسه.</li>
+  <li><strong>النماذج:</strong> لا تُنزَّل إلا عند طلبك، من tiny إلى large-v3 و large-v3-turbo؛ وفي whisper.cpp توجد أيضًا نسخ أصغر (8 و5 بت) وبعض النسخ بدقة 32 بت. تفهم بعض النماذج لغة واحدة فقط (مشار إليها في القائمة). في القائمة، يحدد Ctrl+Space النماذج، وينزّل «تنزيل» جميع النماذج المحددة واحدًا تلو الآخر. يبقى «أين يُنفذ التفريغ النصي» و«دقة الحساب» على الوضع التلقائي أو يمكن اختيارهما.</li>
+  <li><strong>إعادة استخدام ما لديك:</strong> يستخدم «النماذج في مجلدات أخرى» النماذج المنزّلة في أماكن أخرى دون نسخها، ويشير «إعادة استخدام التنزيلات من مجلد آخر» إلى مكتبات CUDA وبرامج whisper.cpp المنزّلة مسبقًا. يمكن نقل مجلد النماذج مع نماذجه.</li>
+  <li><strong>الذاكرة:</strong> يتجنب «الإبقاء على النموذج محملاً في الذاكرة (faster-whisper و whisper.cpp)» إعادة تحميل النموذج لكل رسالة. وعند إيقافه، يُحرَّر النموذج بعد 5 دقائق من آخر تفريغ نصي.</li>
+  <li><strong>لكل نموذج:</strong> النص المخزن في كل رسالة خاص بكل نموذج. عند تبديل النموذج، تُفرَّغ الرسالة نصيًا مرة أخرى ويبقى نص النموذج السابق مخزنًا. ينظف «مسح التفريغات النصية المحفوظة لهذا النموذج» و«مسح التفريغات النصية المحفوظة لجميع النماذج» الذاكرة المؤقتة. يمكن تشغيل الذاكرة المؤقتة أو إيقافها بشكل عام ولكل نموذج.</li>
+  <li><strong>بدون نافذة تقدم:</strong> يجعل خيار «تفريغ نصي بدون نافذة التقدم: ابق على الرسائل أو الحالات حتى يكون النص جاهزًا (نفس الاختصار يلغي)» الاختصارين Alt+Shift+T و Alt+Shift+N يفرّغان في الخلفية؛ ويلغي الاختصار نفسه على الرسالة نفسها.</li>
+  <li><strong>التلقائي:</strong> يفرّغ خيار «تفريغ الرسائل الصوتية ومقاطع الفيديو المستلمة تلقائيًا ووضع النص في سطر الرسالة» كل رسالة صوتية وفيديو جديد نصيًا (حتى 10 دقائق من الصوت، واحدة تلو الأخرى، خارج الدردشات المقفلة)، دون نوافذ أو إعلانات لكل رسالة. إذا لم يكن التفريغ النصي جاهزًا، يتوقف WinZapp مؤقتًا ويذكر السبب مرة واحدة فقط.</li>
+  <li><strong>Enter و Space:</strong> مع خيار «Enter و Space على رسالة صوتية أو فيديو تفرغها نصيًا في سطرها في القائمة بدلاً من تشغيلها» (الإعدادات &gt; الصوت)، يفرّغ Enter و Space نصيًا ويشغّل Alt+Shift+N أو يوقف مؤقتًا. وعند إيقافه، يشغّل Enter و Space ويفرّغ Alt+Shift+N نصيًا في الصف.</li>
+  <li><strong>مقاطع الفيديو:</strong> يُحوَّل صوت الفيديو ويُفرَّغ نصيًا، بالخيارات نفسها. تُتجاهل ملفات GIF، ويُبلَّغ عن الفيديو بدون صوت بأنه كذلك.</li>
+  <li><strong>بشكل جماعي:</strong> يذكر WinZapp عدد الرسائل التي ستُفرَّغ أو تُتخطى أو يُعاد استخدامها، ويفرّغ واحدة تلو الأخرى («جارٍ تفريغ الرسالة 3 من أصل 12»)، ويتابع إذا فشلت إحداها، ويذكر في النهاية كم نجحت وتُخطيت وفشلت. يلغي الاختصار نفسه أو قائمة السياق قائمة الانتظار، وتعرض قائمة السياق جميع التفريغات النصية معًا، مع المرسل والتاريخ والوقت، لنسخها أو حفظها. مع خيار «استبدال الاختصارات بإجراءات جماعية عند تحديد الدردشات والرسائل»، يعمل Alt+Shift+T و Alt+Shift+N أيضًا على التحديد.</li>
+  <li><strong>التنزيلات في الخلفية:</strong> مع خيار «تنزيل التحديثات وتنزيلات التفريغ النصي في الخلفية، بدون نافذة التقدم» (الإعدادات &gt; عام)، تُنزَّل النماذج و whisper.cpp و CUDA دون نافذة التقدم، ويوقفها «إلغاء التنزيل في الخلفية».</li>
+  <li><strong>الحالة:</strong> يمكن تفريغ الحالات الصوتية وحالات الفيديو نصيًا في تبويب الحالة، بالمفاتيح نفسها (راجع قسم الحالة).</li>
+</ul>
+
+<h3>الذكاء الاصطناعي عبر الإنترنت</h3>
+<p>في تبويب <strong>الذكاء الاصطناعي عبر الإنترنت: التفريغ النصي والأوصاف</strong> في الإعدادات، تشغّل الميزات (تكون متوقفة في البداية) وتدخل مفتاح API لموفّر واحد أو أكثر: Gemini و OpenAI و Claude و Groq و OpenRouter و Mistral. تُجرَّب بالترتيب الذي تحدده: إذا فشل أحدها أو نفدت حصته، يجيب التالي. لكل موفّر نافذته الخاصة، مع مربع «استخدام النموذج الموصى به من WinZapp» (يستخدم WinZapp دائمًا النموذج الذي يوصي به) أو اختيار نموذج ثابت.</p>
+<table class="field-table">
+  <tr><th>المكان</th><th>ما يفعله</th></tr>
+  <tr><td>رسالة صوتية أو صوت: «تفريغ باستخدام الذكاء الاصطناعي عبر الإنترنت»</td><td>يحوّلها إلى نص.</td></tr>
+  <tr><td>صورة أو فيديو: «وصف»</td><td>يصف الصورة. يوصف الفيديو من صورة واحدة مأخوذة منه؛ ولا يُرسل الصوت أبدًا.</td></tr>
+  <tr><td>ملصق: «وصف الملصق»</td><td>يصف الملصق.</td></tr>
+  <tr><td>PDF: «تحويل إلى نص يمكن الوصول إليه»</td><td>يحوّله إلى نص عادي مقروء.</td></tr>
+</table>
+<p>يؤدي <kbd>Ctrl+Shift+I</kbd> كل هذا على الرسالة المركزة. تُفتح النتيجة في نافذة تحتوي على النص؛ وللصور ومقاطع الفيديو يمكنك طرح أسئلة متابعة (يطرح Ctrl+Enter السؤال). في تبويب الحالة (Alt+5)، يصف زر «وصف» حالات الصور والفيديو.</p>
+<p>في نتيجة التفريغ النصي أو الوصف، يبقي «ضع التفريغ النصي في سطر الرسالة» و«ضع الوصف في سطر الرسالة» النص مع الرسالة، فتعرضه في سطرها في القائمة. في الإعدادات &gt; الذكاء الاصطناعي عبر الإنترنت: التفريغ النصي والأوصاف، يقوم «تفريغ الرسائل الصوتية المستلمة تلقائياً» و«وصف الصور، والملصقات، ومقاطع الفيديو المستلمة تلقائياً» (كلاهما متوقف افتراضيًا) بذلك عبر الموفّرين على الإنترنت، دون نافذة أو صوت أو نطق لكل رسالة؛ ولا يُستخدم إلا الموفّرون الذين أذنت لهم مسبقًا، وتشغيل أحدهما يوقف التفريغ النصي المحلي التلقائي. تحتوي نافذة بيانات كل دردشة على مربعي «التفريغ» و«الوصف»، ويمكنك الاختيار بين جميع الدردشات باستثناء المعطلة، أو المفعّلة فقط. لتوفير حصتك، تختار كم يمكن أن يكون عمر الرسالة المستلمة لتُعالج (5 دقائق، أو 15، أو 30، أو ساعة واحدة) وحدًا يوميًا للطلبات التلقائية (50 افتراضيًا، و0 يعني بلا حد)؛ وإذا رفض جميع الموفّرين بسبب الحصة أو المفتاح، تتوقف قائمة الانتظار لمدة ساعة ويُذكر ذلك مرة واحدة.</p>
+<div class="callout warn">
+  <div class="callout-title">🔒 الخصوصية</div>
+  يسأل WinZapp قبل إرسال الوسائط إلى موفّر، ويسأل مرة أخرى في كل مرة في الدردشات المقفلة. تُخزَّن مفاتيحك مشفرة على جهاز الكمبيوتر ولا تُرسل إلا إلى الموفّر الذي تخصه. إعادة تعيين جميع المفاتيح تمسح أيضًا أذونات الإرسال المحفوظة. يُشغَّل صوت انتظار أثناء عمل الموفّر؛ ويمكن قراءة الإجابات صوتيًا تلقائيًا؛ ويتبع النص لغة البرنامج. تُبلِغ نصوص التفريغ النصي وملفات PDF الطويلة جدًا عن خطأ في حد النص.
+</div>
+
+<h3>قائمة الانتظار والنوافذ والخيارات لكل دردشة</h3>
+<p>مع التفريغ النصي بدون نافذة التقدم، فإن طلب التفريغ في سطر رسالة أخرى أثناء تنفيذ تفريغ آخر يضعها في قائمة انتظار: يذكر WinZapp موضعها ويبدأها عند انتهاء السابقة؛ ويخرج الاختصار نفسه الرسالة المنتظرة من قائمة الانتظار. يظل التفريغ الذي يفتح نافذة مرفوضًا أثناء تنفيذ تفريغ آخر.</p>
+<p>في الوضع التلقائي، يستخدم WinZapp نموذجًا موجودًا بالفعل على الكمبيوتر كلما كان مناسبًا: على بطاقة رسومات صغيرة لا تتسع للنموذج المثبت، يشغّل ذلك النموذج على المعالج بدلًا من طلب تنزيل.</p>
+<p>توجد خيارات تبويب التفريغ النصي المحلي في نوافذ تُفتح من أزرار فيه: «خيارات متقدمة…»، و«التفريغات النصية المحفوظة…»، و«تفريغ الحالات نصيًا…»، و«مجلد النماذج والنماذج في مجلدات أخرى…»، ونوافذ مكتبات CUDA و whisper.cpp. توجد الخيارات التلقائية للذكاء الاصطناعي عبر الإنترنت في «التفريغ النصي والوصف التلقائيين…»، في صفحته.</p>
+<p>تحتوي تفاصيل الدردشة على خيار واحد للتفريغ النصي التلقائي: بدون، أو عبر الإنترنت، مع موفّري الذكاء الاصطناعي، أو محليًا، باستخدام Whisper. بهذه الطريقة لا تُفرَّغ الرسالة نفسها مرتين أبدًا، ويبدأ الاختيار باتباع الخيار العام حتى تغيّره هناك.</p>
+<p>عند ضبط Enter و Space على التفريغ النصي، فإنهما يفرّغان أيضًا الصوت والفيديو المرسلين كملف.</p>
+<p>يستخدم Mistral ثلاثة نماذج مختلفة: نموذج الرسائل الصوتية للصوت، و Ministral 3 3B افتراضيًا للصور والملصقات وإطارات الفيديو، و mistral-ocr-4 لاستخراج نص PDF. اختر نموذج الصوت في «نموذج الرسائل الصوتية»: Voxtral Mini Transcribe 3 (الافتراضي) أو Voxtral Small Transcribe 3، وهو أكثر دقة. كلاهما في مرحلة المعاينة، لذا قد يغيرهما Mistral أو يسحبهما. لا يختار حقل «النموذج» و«احصل على النماذج» إلا نموذج رؤية؛ وتغييره لا يغيّر التفريغ النصي أو OCR. يستخدم OpenAI و Groq أيضًا نماذج صوت ثابتة، بصرف النظر عن نموذج الرؤية المختار؛ ولا يعالج Groq ملفات PDF هنا. يستخدم Gemini نموذجه المختار لجميع الوسائط المدعومة. توفر الموفّر لا يضمن الاستخدام المجاني: راجع الحصة المضمنة وحدود المعدل لدى الموفّر. يستخرج Mistral OCR نص المستند؛ ولا يضيف أوصافًا للصور داخل ملف PDF. في خطة Experiment المجانية من Mistral، قد تُستخدم الطلبات لتدريب نماذجها ما لم تُلغِ الاشتراك في حساب Mistral الخاص بك؛ ويذكر WinZapp ذلك قبل إرسال الوسائط إلى Mistral.</p>
+
+  </section>
+
+  <section id="status" class="wiki-section" aria-labelledby="h-status">
+    <h2 id="h-status">🟢 8. الحالة</h2>
+<p class="lead">يعرض تبويب الحالة (Alt+5) حالات جهات اتصالك ويتيح لك نشر حالاتك.</p>
+<ul>
+  <li><strong>العرض:</strong> تعرض القائمة الحالات؛ ويفتح Enter إحداها. تُفتح حالات الصور والفيديو في العارض (منفصلًا أو في المشغل داخل التبويب)، وينتقل Ctrl+السهم الأيسر/الأيمن إلى الحالة السابقة/التالية.</li>
+  <li><strong>التفاعل:</strong> «إعجاب ❤️».</li>
+  <li><strong>الرد:</strong> يفتح «الرد على الحالة» حقل الرد؛ ويرسل Enter («تم إرسال الرد.»).</li>
+  <li><strong>النشر:</strong> «نشر نص كحالة» و«إرسال وسائل كحالة». يؤكد ذلك «تم نشر الحالة بنجاح.». توجد حالاتك في «حالتي».</li>
+  <li><strong>الحفظ والوصف:</strong> يعمل «حفظ باسم...» و«وصف» (ذكاء اصطناعي عبر الإنترنت) على حالات الصور والفيديو.</li>
+  <li><strong>النسخ:</strong> ينسخ Ctrl+C نص الحالة. ويحدّث F5 القائمة.</li>
+  <li><strong>الصوت:</strong> في الردود، يسجل Ctrl+R رسالة صوتية (يوقف Ctrl+Shift+P مؤقتًا، ويستمع Ctrl+P، ويتجاهل Ctrl+Shift+D)، ويفتح Ctrl+. منتقي الرموز التعبيرية.</li>
+  <li><strong>تفريغ الحالات الصوتية وحالات الفيديو نصيًا (محليًا):</strong> يفتح Alt+Shift+T النص في نافذة النتيجة (أو التفريغ النصي المحفوظ)؛ ويضعه Alt+Shift+N في صف الحالة ويقرؤه صوتيًا؛ ويحذف Alt+Shift+Delete التفريغ النصي المحفوظ. تقبل نافذة «حالتي» أيضًا هذه المفاتيح على حالاتك الصوتية وحالات الفيديو. وفي الإعدادات &gt; التفريغ النصي المحلي توجد خيارات خاصة بالحالات: التفريغ التلقائي للحالات المستلمة، وتفريغ Enter و Space في الصف، وحفظ التفريغات النصية مع الحالة (تُحذف الذاكرة المؤقتة معها عند انتهاء الحالة)، إضافة إلى زر «مسح التفريغات النصية المحلية المحفوظة للحالات».</li>
+</ul>
+<p>يُضبط من يمكنه رؤية حالاتك في ملف &gt; إعدادات واتساب &gt; الخصوصية.</p>
+
+<h3>إعادة النشر والحذف</h3>
+<p>ينشر WinZapp حالة واحدة في كل مرة؛ وطلب النشر مرة أخرى أثناء نشر حالة لا يفعل سوى إخبارك بأنها قيد النشر. تبقى الحالة التي فشلت أو لم تتأكد في القائمة مباشرة بعد «حالتي»، مع «حاول النشر مرة أخرى» و«تجاهل» في قائمتها (يعيد Ctrl+Shift+Y المحاولة)؛ ولا يُعاد نشر شيء من تلقاء نفسه. في «حالتي»، يحذف مفتاح Delete أو زر «حذف الحالة» الحالة لدى الجميع، بعد التأكيد نفسه الموجود في واتساب.</p>
+
+  </section>
+
+  <section id="ligacoes" class="wiki-section" aria-labelledby="h-ligacoes">
+    <h2 id="h-ligacoes">📞 9. المكالمات</h2>
+<p class="lead">يمكنك إجراء المكالمات الصوتية ومكالمات الفيديو والرد عليها ورفضها مباشرة في WinZapp، دون الحاجة إلى حمل هاتفك.</p>
+<p>يتضمن صوت مكالمات Neonize إصلاحات للصمت بعد الرد وفقدان الإطارات والتشوه عند تحويل معدل أخذ العينات. يُحدَّد الترميز تلقائيًا مع واتساب؛ ولا يوجد خيار ترميز يحتاج إلى ضبط. لا يزال هذا المحرك التجريبي يحتاج إلى تقييم الجودة في مكالمات حقيقية؛ ولا تُضمن جودة مساوية لتطبيقات المكالمات الأخرى.</p>
+
+<p>يحتفظ Neonize بوضع صوت المكالمات العادي افتراضيًا. يتوفر مسار تجريبي بتردد 48 كيلوهرتز للمطورين فقط، للمكالمات التي يُتفاوض عليها باستخدام Opus؛ ولا يغيّر ترميز MLow ولا يضيف عنصر تحكم إلى نافذة المكالمة. لا يؤدي التحديث إلى تفعيله تلقائيًا.</p>
+
+<h3>إجراء مكالمة</h3>
+<p>في الدردشة الفردية، استخدم الزرين «مكالمة صوتية» (Ctrl+Shift+V) و«مكالمة فيديو» (Ctrl+Alt+Shift+V)؛ وتعمل الاختصارات أيضًا مع التركيز على حقل الرسالة. يعلن قارئ الشاشة عند اتصال المكالمة، وعند إعادة الاتصال، وعند انتهائها.</p>
+<p>لا يسمح واتساب بالمكالمات إلا للمجموعات التي تضم 32 مشاركًا كحد أقصى. في المجموعة الأكبر، يحل زر «المكالمة غير ممكنة» مع ملاحظة بأن المجموعة تضم أكثر من 32 مشاركًا محل أزرار المكالمة، وتقول اختصارات المكالمة الشيء نفسه.</p>
+<p>في الدردشة الجماعية، تتصل الأزرار نفسها بالمجموعة كلها. ترن المكالمة الجماعية الواردة، ويُعلن عنها باسم المجموعة، ويُرد عليها مثل أي مكالمة أخرى، ويمكن تشغيل الكاميرا أثناء المكالمة. يعثر WinZapp على الكاميرا باستخدام FFmpeg المرفق معه، فلا تبدأ مكالمة الفيديو بالاستقبال فقط. تبقى المكالمة الجماعية التي رنت ولم ترد عليها في سجل المجموعة كمكالمة جماعية فائتة.</p>
+
+<p>مع Neonize، لا تظهر أزرار المكالمات الصوتية والفيديو والجماعية إلا لأنواع المكالمات التي يبلّغ المحرك بدعمها. وإلى أن تصل هذه المعلومات، تبقى هذه الأزرار مخفية، وتتحدث تلقائيًا عند وصولها. ينطبق الفحص نفسه على الانضمام إلى مكالمة جماعية جارية من دردشتها. لا يجلب التحديث أبدًا دردشة مخفية أو نافذة غير نشطة إلى التركيز.</p>
+<p>مع محرك Neonize، يشغّل WinZapp بنفسه الأصوات التي كان واتساب ويب يشغّلها لك: أثناء رنين الهاتف الآخر تسمع نغمة الرنين بنبرة وإيقاع البلد الذي اتصلت به، وتُشغَّل صفارات قصيرة أثناء اتصال المكالمة أو إعادة اتصالها. مع محرك WPPConnect لا يتغير شيء. عند انتهاء مكالمة تم الرد عليها، يُشغَّل أيضًا صوت انتهاء المكالمة في واتساب؛ وهو حدث الصوت «انتهت المكالمة»، الذي يمكن إيقافه أو استبداله في الإعدادات &gt; أحداث الصوت.</p>
+<p>مع محرك Neonize، تنتهي المكالمة التي تجريها ولا يرد عليها أحد من تلقاء نفسها بعد دقيقة واحدة، كما في واتساب ويب: يتوقف الرنين وتكون النتيجة «لم تتم الإجابة عليها».</p>
+<p>إذا انقطع الإنترنت في منتصف المكالمة، يظل زر إنهاء المكالمة يعمل: ينهي WinZapp المكالمة على جهاز الكمبيوتر حتى بدون اتصال، دون إظهار خطأ.</p>
+
+<h3>أثناء المكالمة</h3>
+<table class="field-table">
+  <tr><th>الاختصار</th><th>الإجراء</th></tr>
+  <tr><td class="field-name">Ctrl+M</td><td>كتم الميكروفون أو إلغاء كتمه</td></tr>
+  <tr><td class="field-name">Ctrl+V</td><td>تشغيل الكاميرا أو إيقافها، في مكالمة الفيديو</td></tr>
+  <tr><td class="field-name">Ctrl+P</td><td>تحويل المكالمة الصوتية إلى مكالمة فيديو</td></tr>
+  <tr><td class="field-name">Ctrl+C</td><td>فتح إعدادات المكالمة (الميكروفون، ومكبّر الصوت، والكاميرا)</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+Q</td><td>إنهاء المكالمة</td></tr>
+</table>
+
+<h3>مكالمة واردة</h3>
+<p>تحتوي النافذة على «الرد» و«رفض» و«إسكات التنبيه»؛ وفي مكالمة الفيديو، «الرد مع الفيديو» و«الرد بدون فيديو». اختصارات هذه النافذة هي Alt + الحرف المسطّر فقط (يرد Alt+ا، ويرد Alt+ب بدون فيديو، ويرفض Alt+ر، ويسكت Alt+س التنبيه، ويغلق Alt+غ النافذة)، حتى لا يؤدي مفتاح مضغوط بالخطأ إلى الرد أو الرفض.</p>
+
+<h3>الرد من أي نافذة</h3>
+<p>أثناء رنين مكالمة، يرد Ctrl+Alt+Shift+Enter عليها من أي برنامج: تأتي نافذة المكالمة إلى المقدمة وتحصل على التركيز. يُرد على مكالمة الفيديو والكاميرا مشغّلة، مثل زر «الرد» الخاص بها. يرفض Ctrl+Alt+Shift+Backspace المكالمة التي ترن، بما فيها المكالمة الجماعية، ويقول قارئ الشاشة «تم رفض المكالمة.»؛ وإذا لم تكن هناك مكالمة ترن، ينهي المكالمة الجارية. عند فتح عدة حسابات، تُرفض أولًا المكالمة التي ترن في أي منها. يمكن تغيير كلا المفتاحين أو إزالتهما في الإعدادات &gt; اختصارات لوحة المفاتيح، ولا يخصان WinZapp إلا طالما يمكنهما العمل؛ وفي بقية الوقت تحتفظ بهما البرامج الأخرى.</p>
+
+<h3>تبويب المكالمات (Alt+6)</h3>
+<p>سجل المكالمات من جميع الدردشات، مقسم إلى الكل، وفائتة، وتم الرفض، وتم الرد، وجارية (يبدّل Ctrl+Tab و Ctrl+Shift+Tab؛ وينتقل Alt+L إلى القائمة). في القائمة، يفتح Enter دردشة المكالمة، ويعيد Ctrl+Shift+R الاتصال بمكالمة فائتة، ويحدّث F5. وعلى مكالمة فائتة في الدردشة، يفعل زر «إعادة الاتصال» الشيء نفسه.</p>
+
+<h3>إعدادات المكالمات</h3>
+<p>في الإعدادات &gt; المكالمات، يختار «إعدادات صوت المكالمات» الميكروفون ومكبّر الصوت، ويختار «إعدادات فيديو المكالمة» الكاميرا. وتجد هناك أيضًا إلغاء الصدى (يقلل عودة صوتك عند استخدام مكبّر الصوت)، وتقليل ضوضاء الميكروفون، والوضع الحصري للميكروفون ومكبّر الصوت.</p>
+<p>يكون إلغاء الصدى مفعّلًا افتراضيًا. يستخدم ملغي الصدى نفسه الذي يستخدمه Google Meet وواتساب (من WebRTC)، لذا يمكنك التحدث عبر مكبّر صوت الكمبيوتر المحمول أو مع تشغيل الحلقة العكسية في جهاز المزج دون أن يسمع الطرف الآخر صوته. مع سماعات الرأس لا يضر؛ ألغِ تحديده فقط إذا كنت تفضل ذلك.</p>
+<p>يحوّل WinZapp صوت المكالمة تلقائيًا عندما يستخدم الميكروفون أو مكبّر الصوت المحدد معدل أخذ عينات مختلفًا عن المكالمة. يبقى التوقيت متصلًا بين حزم الصوت؛ ولا يلزم تفعيل أي خيار إضافي.</p>
+<div class="callout tip">
+  <div class="callout-title">💡 إذا لم تبدأ المكالمة</div>
+  عندما لا يدعم إصدار واتساب ويب المستخدم المكالمات، يخبرك WinZapp بذلك وبما يمكن تجربته: أعد تشغيل WinZapp أو اختر مساعدة &gt; إعادة تثبيت WPPConnect قسرًا.
+</div>
+<p>عند إعادة تثبيت WPPConnect، يحتفظ WinZapp بقائمة إصدارات واتساب ويب الأحدث المتوافقة ويتحقق من وجود قائمة جديدة. بدون إنترنت، تُحفظ قائمة صالحة للاستخدام، لكن لا يمكن تأكيد حداثتها. إذا ظلت المكالمة لا تبدأ، فاستعد الاتصال بالإنترنت وأعد تشغيل WinZapp. يُبلَّغ عن عدم توافق VoIP المؤكد الذي لا يمكن إعادة المحاولة فيه دون تكرار التهيئة.</p>
+<p>أثناء فتح دردشة جماعية، يتحقق WinZapp من وجود مكالمة جارية كل عشر ثوانٍ تقريبًا. يظهر زر الانضمام فقط عند توفر مكالمة ويختفي عند انتهائها. يبدأ الانضمام إلى مكالمة فيديو والكاميرا مطفأة. لا يخضع الانضمام إلى مكالمة قائمة لحد 32 عضوًا الخاص ببدء مكالمة جماعية جديدة. أثناء توفر مكالمة، يحل زر «انضم إلى المكالمة الصوتية الجارية» أو، لمكالمة الفيديو، «انضم إلى مكالمة الفيديو الجارية (الكاميرا مطفأة)» محل زري بدء المكالمة الصوتية والفيديو. في المكالمات (Alt+6)، يسرد عامل التصفية «جارية» المكالمات التي يمكن الانضمام إليها، بما فيها المكالمات متعددة الأطراف خارج الدردشات الجماعية؛ وتظهر أيضًا أولًا في «الكل». حدد مكالمة واضغط Enter أو استخدم زر الانضمام نفسه. إذا كنت في تلك المكالمة بالفعل، يكون الزر «العودة إلى المكالمة» ويجلب نافذة مكالمتك الحالية إلى المقدمة. تتحدث القائمة كل عشر ثوانٍ تقريبًا أثناء فتح المكالمات، ولا تتضمن إلا المكالمات التي يتيحها واتساب لحسابك.</p>
+<p>استخدم زر «مشاركو المكالمة» في نافذة المكالمة، أو على مكالمة جارية محددة في المكالمات، لرؤية الأشخاص المتصلين بأسمائهم. تتحدث القائمة كل عشر ثوانٍ؛ ويحدّثها «تحديث» عند الطلب، ويغلقها «إغلاق» أو Esc. لا تشمل القائمة المدعوين وغير المتصلين. قراءة القائمة لا تنضم إلى مكالمة ولا تنهيها.</p>
+
+  </section>
+
+  <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
+    <h2 id="h-grupos-comunidades">👥 10. المجموعات والمجتمعات</h2>
+<h3>معلومات الدردشة ومعلومات المجموعة</h3>
+<p>يفتح Ctrl+Shift+D (أو «معلومات الدردشة» في قائمة السياق) نافذة ذات تبويبات. لكل الأزرار والحقول حرف اختصار (Alt+حرف).</p>
+<ul>
+  <li><strong>جهة الاتصال:</strong> تبويب نظرة عامة يضم الاسم، واسم الملف الشخصي الذي اختارته جهة الاتصال، والاسم المُتحقّق منه وهل الحساب حساب عمل، وهل الإشعارات مكتومة (وحتى متى)، ومؤقت رسائل الاختفاء، والتنبيه بأن الرسائل والمكالمات مشفرة من طرف إلى طرف. يعرض زر «صورة الملف الشخصي» (Alt+ر) الصورة، ويفتحها «افتح في عارض خارجي» في البرنامج الافتراضي في ويندوز؛ وإذا لم تكن هناك صورة، أو كان الشخص لا يسمح لك برؤيتها، يخبرك WinZapp بذلك. يوجد أيضًا تبويب <strong>المجموعات المشتركة</strong> (يفتح Enter المجموعة) وتبويب الوسائط.</li>
+  <li><strong>المجموعة:</strong> تبويب نظرة عامة (الاسم، والوصف، وصورة المجموعة، وهل يرسل المسؤولون فقط الرسائل)، وتبويب المشاركون (يفتح Enter على مشارك الدردشة الخاصة معه؛ ويقبل «إضافة عضو» جهات اتصال أو رقمًا إضافيًا)، وتبويب الوسائط. تظهر البيانات بمجرد استجابة المجموعة، وتُكمَّل الأسماء والأرقام الناقصة بعد ذلك مباشرة.</li>
+  <li><strong>التنبيهات:</strong> في المجموعات التي يرسل فيها المسؤولون فقط الرسائل، يكون حقل الرسالة للقراءة فقط ويخبرك WinZapp بذلك.</li>
+</ul>
+
+<h3>إنشاء مجموعة والدعوات</h3>
+<p>في «دردشة جديدة»، أنشئ مجموعة بإدخال اسم ومشاركين. في <strong>دعوة المجموعة</strong>، يمكن عرض رابط الدعوة ورمز QR ونسخهما («نسخ الرابط») وحفظهما («حفظ رمز QR…») وإعادة تعيينهما بعد التأكيد («إعادة تعيين رابط الدعوة…»). في <strong>انضم إلى المجموعة بالرابط</strong>، الصق الرابط (بما في ذلك الروابط التي تنتهي بـ <code>?mode=...</code>)، واطلع على «معاينة المجموعة» واختر «انضم إلى المجموعة أو طلب الموافقة». يُبلَّغ عن نتيجتي انتظار الموافقة والانضمام غير المؤكد كلٌّ على حدة.</p>
+<p>في الإعدادات &gt; عام، يسجل خيار «اسمح لـ ويندوز بفتح روابط دعوة مجموعات واتساب مع WinZapp» البرنامج لروابط <code>whatsapp:</code>: عند استخدام زر الانضمام في صفحة الدعوة المفتوحة في المتصفح، يسلّم ويندوز الدعوة إلى WinZapp، حتى لو كان مغلقًا.</p>
+
+<h3>طلبات الانضمام (للمسؤولين)</h3>
+<p>في المجموعات التي تكون فيها مسؤولًا، يسرد زر «طلبات الانضمام المعلقة…» من ينتظرون (الاسم أو الرقم، وكيف وصل الطلب ومتى). يرد «موافقة» و«رفض» على الطلب المحدد؛ ويتحقق «تحديث» مرة أخرى. لا يقول WinZapp إن الطلب قد تم الرد عليه إلا بعد خروجه من القائمة في واتساب.</p>
+
+<h3>المجتمعات (Alt+8)</h3>
+<p>تسرد لوحة المجتمعات (أو «دردشة جديدة» &gt; «المجتمعات») المجتمعات التي أنت فيها. عند اختيار أحدها، ترى الوصف والمسؤولين والمجموعات التي انضممت إليها منه، مع تمييز مجموعة الإعلانات والمجموعة العامة؛ وينتقل Enter أو «افتح المجموعة» إلى المجموعة. إذا كنت تدير المجتمع: «إضافة مجموعات…»، و«إزالة المجموعة من المجتمع»، و«ترقية إلى مسؤول مجتمع…»، و«تنزيل مسؤول المجتمع…»، و«إلغاء تنشيط المجتمع». ينشئ «مجتمع جديد…» مجتمعًا باسم ووصف والمجموعات التي تختارها. بعد كل إجراء، يقرأ WinZapp المجتمعات مرة أخرى ولا يقول إنه انتهى إلا عندما يعرض واتساب التغيير؛ وإلا يخبرك بأن الطلب أُرسل لكنه غير مؤكد، أو بأنه رُفض.</p>
+
+<h3>الإشارات والردود</h3>
+<p>يحتفظ الشخص المشار إليه بالاسم مع @all بالرابط؛ وتستخدم الإشارة إليك، في الإشعار وفي المعاينة، الكلمة المختارة في «كيف يجب أن أُشار إليّ؟». في الإعدادات &gt; واجهة المستخدم &gt; الرسائل، يجعل خيار «إخفاء أرقام هواتف المرسلين غير المسمى في الرسائل» رسائل الأشخاص الذين لا اسم لهم تبدأ بالمحتوى مباشرة. في الإعدادات &gt; واجهة المستخدم &gt; الدردشات، يعرض خيار «تقديم أسماء جهات الاتصال غير المحفوظة بعلامة tilde (~) في المحادثات والرسائل» (مفعّل افتراضيًا) علامة التلدة قبل اسم كل من لم تحفظه، في الدردشات وفي الرسائل.</p>
+
+<h3>مجموعات المجتمع</h3>
+<p>في قائمة المجتمعات، ينتقل Enter إلى مجموعات المجتمع، ويفتح «افتح أحدث مجموعة» المجموعة ذات أحدث نشاط مع ذكر اسمها. يعرض «تصفية المجموعات» جميع المجموعات، أو المجموعات التي أنت فيها، أو التي لست فيها؛ وتذكر المجموعة التي لست فيها ذلك في سطرها. على إحدى هذه المجموعات، ينضم إليها «انضم إلى المجموعة»، أو عندما تحتاج المجموعة إلى موافقة، يرسل «طلب الانضمام» الطلب، ويسحبه «إلغاء طلب الانضمام».</p>
+
+  </section>
+
+  <section id="trancadas" class="wiki-section" aria-labelledby="h-trancadas">
+    <h2 id="h-trancadas">🔒 11. الدردشات المقفلة</h2>
+<p class="lead">تبقى الدردشات المقفلة (Alt+7) في خزنة محمية برقم تعريف (PIN)، خارج قائمة الدردشات والدردشات المؤرشفة والبحث ونافذة إعادة التوجيه.</p>
+<ul>
+  <li><strong>القفل:</strong> «قفل الدردشة» في قائمة السياق أو Ctrl+Shift+T. يتكون رقم التعريف من 6 إلى 12 رقمًا. عند إعداد الخزنة، ينشئ WinZapp <em>مفتاح الاسترداد</em> (يمكن قراءته صوتيًا أو نسخه) لتعيين رقم تعريف جديد إذا نسيت الرقم الحالي.</li>
+  <li><strong>الإشعارات:</strong> لا تذكر إشعارات هذه الدردشات سوى عدد الرسائل الجديدة التي وصلت، دون اسم أو محتوى. لا تُفرَّغ رسائلها نصيًا تلقائيًا أبدًا، ويسأل الذكاء الاصطناعي عبر الإنترنت مرة أخرى عند كل إرسال.</li>
+  <li><strong>إغلاق الخزنة:</strong> تُغلق من تلقاء نفسها عند تصغير WinZapp، وعند إخفائه في منطقة الإشعارات، وعند التبديل بين اللوحات، و(إذا أردت) بعد فترة من عدم النشاط. يغلق Ctrl+Shift+K الخزنة ويخفيها فورًا.</li>
+  <li><strong>الرمز السري:</strong> يمكن إزالة «الدردشات المقفلة» من قائمة التنقل؛ وفي هذه الحالة، تُفتح الخزنة بكتابة رمز سري في بحث الدردشات. يُضبط هذا في الإعدادات &gt; واجهة المستخدم &gt; الدردشات &gt; الدردشات المقفلة.</li>
+  <li><strong>قفل الدردشة في واتساب:</strong> الدردشات المقفلة على الهاتف تكون مخفية أيضًا في WinZapp ولا تظهر إلا في الدردشات المقفلة، بعد إدخال رقم التعريف (إذا لم تنشئ واحدًا من قبل، يعرض WinZapp إنشاءه). الهاتف وحده يمكنه فتح قفلها؛ وتعود الدردشة التي فُتح قفلها على الهاتف إلى القائمة من تلقاء نفسها.</li>
+  <li><strong>الإجراءات الجماعية:</strong> يمكن أيضًا تحديد الدردشات المقفلة لإلغاء قفلها أو تعيينها كمقروءة/غير مقروءة.</li>
+</ul>
+
+  </section>
+
+  <section id="empresas" class="wiki-section" aria-labelledby="h-empresas">
+    <h2 id="h-empresas">🛍️ 12. الأنشطة التجارية: الكتالوج والطلبات</h2>
+<p class="lead">في الدردشات مع الأنشطة التجارية، يعرض WinZapp الكتالوج، ويبني السلة، ويتابع الطلبات.</p>
+
+<h3>الكتالوج والسلة</h3>
+<p>في «الكتالوج التجاري والسلة…» (قائمة سياق الدردشة، أو Alt+Shift+B)، تعرض القائمة المنتجات مع السعر والتوفر. ومن هناك تستخدم «إضافة إلى سلة التسوق…» و«تغيير الكمية…» و«إزالة من السلة» و«تفريغ السلة». يرسل «إرسال الطلب» الطلب مرة واحدة فقط، بعد سؤال يوضح ما سيُرسل وإلى من. إذا أوقف النشاط التجاري السلة، يظل بإمكانك تصفح الكتالوج ويخبرك WinZapp بأنه لا يقبل الطلبات هناك. يظهر المنتج الذي يرسله النشاط التجاري من كتالوجه مع الاسم والسعر والوصف.</p>
+
+<h3>الطلبات</h3>
+<p>تظهر رسائل الطلبات وتحديثاتها في قائمة الرسائل، وفي معاينة الدردشة، وفي الإشعارات، مع العناصر والإجمالي والحالة. يفتح Enter على رسالة الطلب (أو «عرض الطلب…» في قائمة الرسالة) التفاصيل.</p>
+
+<h3>حسابات واتساب للأعمال</h3>
+<p>في حسابات واتساب للأعمال فقط: في نافذة الطلبات، «قبول الطلب» و«رفض الطلب…» و«تحديث الحالة…» للطلبات المستلمة؛ وفي قائمة الدردشة، القائمة الفرعية «أدوات الأعمال» مع «إنشاء طلب لهذه الجهة…» (Ctrl+Shift+N) و«قبول السلال في الكتالوج الخاص بي». وحيثما لا تنطبق، يوضح WinZapp السبب.</p>
+
+<h3>الطلبات التي ينشئها البائع</h3>
+<p>يفتح Enter على طلب أنشأه لك البائع تفاصيله، مع العناصر والمجموع الفرعي. عندما يكون الطلب معلقًا ويُدفع خارج التطبيق، يرسل «تأكيد معلومات الطلب» التأكيد إلى البائع، مثل واتساب ويب؛ وتوضح النافذة ردود المشتري التي لا يوفرها WinZapp بعد.</p>
+
+<h3>الأزرار في رسائل الأنشطة التجارية</h3>
+<p>تأتي بعض رسائل الأنشطة التجارية مع أزرار. حدد الرسالة واضغط Tab: الأزرار أزرار حقيقية تحت قائمة الرسائل، في ترتيب Tab. يرسل زر الرد الإجابة إلى النشاط التجاري، كما يفعل واتساب ويب، ويذكر WinZapp هل أُرسلت. صفوف رسالة القائمة أزرار أيضًا، زر لكل صف. يفتح زر الرابط الرابط، وينسخ زر النسخ الرمز، ويذكر زر الاتصال الرقم المطلوب الاتصال به. الأزرار خاصة بالنشاط التجاري، لذا تتغير أسماؤها من رسالة إلى أخرى.</p>
+
+  </section>
+
+  <section id="contas" class="wiki-section" aria-labelledby="h-contas">
+    <h2 id="h-contas">👤 13. الحسابات ومنطقة الإشعارات والمزامنة</h2>
+<h3>حسابات متعددة</h3>
+<p>لكل حساب نافذته وخادمه المحلي. تبدّل قائمة <strong>الحسابات</strong> بينها، وكذلك Ctrl+Alt+1 إلى 9. ينهي «إغلاق الحساب الحالي» (Ctrl+F4) الحساب الذي أنت فيه فقط، ويحرر ذاكرته واتصاله، وينتقل إلى حساب مفتوح آخر. لفتحه مرة أخرى، اختره من قائمة الحسابات في حساب آخر أو استخدم Ctrl+Alt مع رقمه. إذا كان الحساب الوحيد المفتوح، يسأل WinZapp أولًا، لأن إغلاقه ينهي البرنامج.</p>
+<p>حذف حساب (الحسابات &gt; إدارة الحسابات، زر حذف) يزيل كل ما يخصه: الرسائل، والوسائط، والإعدادات، وملف تعريف المتصفح الذي يحتفظ بتسجيل دخول واتساب، والنسخ الاحتياطية لهذا الملف. وأي شيء لا يمكن إزالته فورًا يكتمل عند بدء WinZapp في المرة التالية. يمكن حذف الحساب أيضًا عندما يكون الوحيد: يطلب WinZapp التأكيد («لا» هو الافتراضي)، ثم يُغلق، ويكون البدء التالي تشغيلًا أول.</p>
+
+<h3>المزامنة</h3>
+<ul>
+  <li><strong>F5</strong> يحذف جميع الدردشات وينزّلها مرة أخرى (يطلب التأكيد، مع «لا» كخيار افتراضي و«لا تظهر مرة أخرى»).</li>
+  <li><strong>Shift+F5</strong> يعيد مزامنة الدردشة المفتوحة فقط: يجلب الرسائل مرة أخرى، ويعيد إلى مكانها ما كان مفقودًا، ويزيل ما لم يعد موجودًا، دون المساس بالسجل الأقدم. ويذكر هل الدردشة محدّثة بالفعل أو هل لا توجد رسائل لها في واتساب. ويطلب التأكيد أيضًا.</li>
+  <li>يُنطق التقدم كل بضع ثوانٍ ويظهر في عنوان النافذة: «جاري مزامنة الدردشات: 12 من 80» و«جاري تنزيل الوسائط: 30 من 120 تمت معالجته (8 تم تنزيله)». يمكن إيقاف كل إعلان في الإعدادات &gt; إمكانية الوصول &gt; المحتوى المنطوق؛ ويتحكم خيار «إعلان المزامنة، وتنزيلات الوسائط، والوضع التلقائي دون اتصال» في الإعلانات، التي لا تُنطق أثناء بدء WinZapp في الخلفية أو أثناء المكالمة.</li>
+  <li><strong>وضع عدم الاتصال</strong> (Ctrl+Alt+Shift+O) يجعل WinZapp غير متصل؛ ويدخله ويخرج منه أيضًا من تلقاء نفسه حسب الاتصال. عند استيقاظ الكمبيوتر من السكون، يعيد WinZapp فتح الاتصال ويجلب الرسائل الجديدة.</li>
+  <li>في الدردشة التي توجد أقدم رسائلها على الهاتف فقط، يقول WinZapp «استخدم واتساب على هاتفك لرؤية الرسائل القديمة.»</li>
+</ul>
+
+<h3>منطقة الإشعارات والإشعارات</h3>
+<p>في الإعدادات &gt; عام &gt; الإشعارات، يتضمن «محتوى الإشعار في الخلفية» ثلاثة مستويات: الصوت واسم الدردشة ونص الرسالة؛ أو الصوت واسم الدردشة بدون النص؛ أو الصوت فقط، دون إشعار على الشاشة ودون قراءة أي شيء. تحترم الإشعارات مساعد التركيز في ويندوز، وقراءة دردشة داخل WinZapp تزيل إشعارها من مركز الإشعارات.</p>
+
+<h3>الاتصال والاستعادة</h3>
+<p>يُخزَّن الاتصال بواتساب في ملف تعريف المتصفح الداخلي. يحتفظ WinZapp بنسخ احتياطية منه (الإعدادات &gt; التخزين &gt; نسخ الملف الشخصي الاحتياطي) ويستعيدها بنفسه عند رفض الاتصال، معلنًا صوتيًا أنه استعادها ويعيد الاتصال؛ ولا يطلب منك الاقتران مرة أخرى إلا عندما لا تكون هناك نسخة صالحة للاستخدام. إذا كان المتصفح الداخلي غير مكتمل (عادة ما يكون برنامج مكافحة الفيروسات قد أزال جزءًا منه)، يخبرك WinZapp بذلك ويشرح ما عليك فعله.</p>
+<p>إذا قطع واتساب الجلسة، يخبرك WinZapp فورًا ويفتح الاقتران. في الإعدادات &gt; الاتصال يمكنك استخدام API مخصص (خادم بعيد)؛ وفي هذه الحالة، يُترك ملف تعريف المتصفح والنسخ الاحتياطية للخادم.</p>
+<p>عند فتح WinZapp بعد فترة طويلة من عدم استخدام WPPConnect، قد يحتاج واتساب ويب إلى بضع دقائق لاستكمال المزامنة. وفي هذه الأثناء يعرض عنوان النافذة «جاري المزامنة مع واتساب…»: لم ينقطع حسابك ولا حاجة إلى فعل أي شيء.</p>
+
+  </section>
+
+  <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
+    <h2 id="h-configuracoes">⚙️ 14. الإعدادات</h2>
+<p>تتوفر العربية الآن في الإعدادات &gt; عام &gt; اللغة، مع نص عربي في مثبّت ويندوز وأداة إلغاء التثبيت.</p>
+<p class="lead">يحتوي ملف &gt; الإعدادات (Ctrl+,) على حقل بحث في الأعلى وقائمة فئات. اكتب في حقل البحث واضغط السهم لأسفل للانتقال إلى النتائج؛ ويفتح Enter أو Space الخيار الذي عُثر عليه. بدون بحث، تغيّر مفاتيح الأسهم الفئة ويدخل Tab إلى خياراتها. في بعض الفئات، تفتح الأزرار نافذة موضوع واحد (مثل الرسائل أو المحتوى المنطوق). غيّر ما تريد واستخدم «تطبيق» أو «موافق». في واجهة المستخدم، يتيح لك زر اختصارات لوحة المفاتيح تغيير أي اختصار. تُفتح النافذة مباشرة على فئة «عام»، وتُنشأ الفئات والنوافذ الأخرى في أول مرة تنتقل إليها. وتصل نتائج البحث كلما اكتمل تحميلها، ويمكنك متابعة الكتابة.</p>
+
+<table class="field-table">
+  <tr><th>الفئة</th><th>ما تجده فيها</th></tr>
+  <tr><td class="field-name">عام</td><td>اللغة (البرتغالية البرازيلية والأوروبية، والإنجليزية، والإسبانية، والبولندية، والتركية، والرومانية، والعربية)؛ والتدقيق الإملائي (اتباع ويندوز، أو دائمًا، أو أبدًا)؛ وتحويل الوجوه النصية إلى رموز تعبيرية؛ وتوحيد Unicode في عمليات البحث (مطابق، أو تجاهل علامات التشكيل، أو الأشكال المكافئة أيضًا)؛ والبدء في الخلفية عند تسجيل الدخول إلى ويندوز؛ وفتح روابط دعوة المجموعات باستخدام WinZapp؛ والتحقق من التحديثات تلقائيًا وتحديثات ألفا؛ وتنزيل التحديثات وتنزيلات التفريغ النصي في الخلفية؛ والاختصار العالمي لفتح WinZapp أو إخفائه في منطقة الإشعارات؛ وما يجب فعله عند التبديل بين الحسابات (إخفاء نافذة الحساب الحالي أو إبقاء نوافذ جميع الحسابات مفتوحة).</td></tr>
+  <tr><td class="field-name">عام &gt; الإشعارات</td><td>إشعارات الخلفية ومحتواها؛ وإبقاء الدردشات المكتومة مكتومة حتى عند فتحها؛ وأيقونة منطقة الإشعارات وعدد الرسائل غير المقروءة.</td></tr>
+  <tr><td class="field-name">واجهة المستخدم</td><td>يفتح كل زر نافذة موضوع واحد: الرسائل، وردود الفعل، والدردشات، والتأكيدات، واختصارات لوحة المفاتيح.</td></tr>
+  <tr><td class="field-name">واجهة المستخدم &gt; الرسائل</td><td>عدد الرسائل المعروضة عند فتح دردشة؛ وعدد الرسائل المتخطاة باستخدام Page Up/Page Down؛ ونوع قائمة الرسائل (كلاسيكية، بحد 512 حرفًا، أو مربع قائمة، برسائل كاملة)؛ وإظهار من يكتب كآخر صف؛ و«كيف يجب أن أُشار إليّ؟»؛ وإخفاء المرسل على رسائلك؛ وإخفاء أرقام المرسلين غير المسمى؛ والإبقاء على الرسالة المكتوبة كتوضيح؛ و«أمس» بدلًا من التاريخ؛ ومعاينات الروابط؛ و«معاد توجيهه» قبل المرسل؛ والحالة الأولية لخيار «حذف الوسائط أيضًا من هاتفك»؛ ومقاطع الفيديو والحالات في مشغل منفصل؛ وأنواع الوسائط المعروضة افتراضيًا.</td></tr>
+  <tr><td class="field-name">واجهة المستخدم &gt; ردود الفعل</td><td>ردود الفعل السريعة الثابتة واختيار الرمز التعبيري لكل موضع.</td></tr>
+  <tr><td class="field-name">واجهة المستخدم &gt; الدردشات</td><td>مكان وضع التركيز عند فتح دردشة؛ وحالة التسليم في قائمة الدردشات؛ والإبقاء على الدردشات المثبتة في ترتيب ثابت؛ واستبدال الاختصارات بإجراءات جماعية؛ وسلوك Space و Esc مع وجود تحديد؛ والإبقاء على بحث الدردشة عند الفتح؛ وموضع إعلان «محدد»؛ وإظهار القنوات في قائمة الدردشات (متوقف افتراضيًا).</td></tr>
+  <tr><td class="field-name">واجهة المستخدم &gt; الدردشات &gt; الدردشات المقفلة</td><td>رقم تعريف الخزنة، والقفل بعد عدم النشاط، والرمز السري (يظهر الزر عندما تكون الخزنة متاحة).</td></tr>
+  <tr><td class="field-name">واجهة المستخدم &gt; التأكيدات</td><td>أسئلة التأكيد (تعيين الكل كمقروء، والمسح، والحذف، و F5، و Shift+F5، وتسجيل صوت الكمبيوتر) ونسخها مع «لا تظهر مرة أخرى».</td></tr>
+  <tr><td class="field-name">واجهة المستخدم &gt; اختصارات لوحة المفاتيح</td><td>تسرد جميع اختصارات البرنامج، بما فيها الاختصار العالمي. حدد أحدها، واختر «تغيير» واكتب التركيبة الجديدة؛ أو عطّله، أو استعد الافتراضي، أو استعد الكل. يُنبَّه إلى التعارضات قبل التطبيق، ولا تسري التغييرات إلا عند «تطبيق» أو «موافق».</td></tr>
+  <tr><td class="field-name">إمكانية الوصول</td><td>التوافق الموسّع مع قارئ الشاشة (إعلانات إضافية) واستخدام صوت SAPI عندما لا يكون أي قارئ شاشة نشطًا.</td></tr>
+  <tr><td class="field-name">إمكانية الوصول &gt; المحتوى المنطوق</td><td>الإعلان عن كتابة جهة اتصال أو تسجيلها؛ والإعلان عن بدء تحديث الدردشات وانتهائه؛ والتقدم المنطوق للمزامنة وتنزيل الوسائط؛ ونطق الرسائل تلقائيًا في الدردشة النشطة وفي غيرها؛ والإعلان عن المزامنة وتنزيلات الوسائط والوضع التلقائي دون اتصال.</td></tr>
+  <tr><td class="field-name">الصوت</td><td>الميكروفون ومكبّر الصوت وإخراج المؤثرات (التنبيهات والأصوات)؛ وتقليل ضوضاء الميكروفون ونموذجه العصبي، الذي يُنزَّل من الصفحة نفسها؛ والملفات الصوتية الملصقة باستخدام Ctrl+V كصوت أو مستند؛ ومكان وضع التركيز بعد تسجيل رسالة صوتية (الإرسال أو التجاهل)؛ وإعادة توجيه الصوت كرسالة صوتية؛ وقراءة الرسالة الصوتية كصوت أو كرسالة صوتية؛ وتفريغ Enter و Space النصي؛ وكتم الإعلانات وزر الإرسال أثناء التسجيل.</td></tr>  <tr><td class="field-name">الصوت &gt; تشغيل الصوت</td><td>السرعة الافتراضية؛ وتحديد الصوتيات كمُشغّلة والإعلان عن ذلك؛ وتشغيل الرسائل الصوتية تلقائيًا بالتسلسل؛ ونقل التركيز إلى الصوت التالي في التسلسل.</td></tr>
+  <tr><td class="field-name">أحداث الصوت</td><td>حزمة الصوت، واستيراد مجلد أصوات أو ملف ZIP، وصوت كل حدث (بما في ذلك عندما يتفاعل شخص مع رسالتك وصوت الخطأ الإملائي)؛ وتمكين الكل أو تعطيله؛ وصوت إشعار الخلفية للدردشات الخاصة وللمجموعات، مع معاينة الصوت.</td></tr>
+  <tr><td class="field-name">التخزين</td><td>تنزيل الوسائط تلقائيًا، وأنواع الوسائط، والحد بالأيام وبالميجابايت (0 = بلا حد)، ومعرفة مدة مقاطع الفيديو عند التنزيل؛ والمجلد الذي تُفتح فيه نوافذ الحفظ (آخر مجلد مستخدم، أو مجلد التنزيلات، أو مجلد مخصص).</td></tr>
+  <tr><td class="field-name">التخزين &gt; نسخ الملف الشخصي الاحتياطي</td><td>راجع قسم النسخ الاحتياطية والسجلات.</td></tr>
+  <tr><td class="field-name">المكالمات</td><td>السماح بالتنبيهات وفتح نافذة عند ورود مكالمة؛ وإعدادات صوت المكالمات وفيديوها، وإلغاء الصدى، وتقليل الضوضاء، والوضع الحصري.</td></tr>
+  <tr><td class="field-name">الذكاء الاصطناعي عبر الإنترنت: التفريغ النصي والأوصاف</td><td>راجع قسم التفريغ النصي والوصف.</td></tr>
+  <tr><td class="field-name">التفريغ النصي المحلي</td><td>راجع قسم التفريغ النصي والوصف.</td></tr>
+  <tr><td class="field-name">إعدادات واتساب</td><td>الخصوصية والملف الشخصي: راجع قسم إعدادات واتساب.</td></tr>
+  <tr><td class="field-name">الاتصال</td><td>محرك الاتصال: WPPConnect (الافتراضي)، أو Neonize (تجريبي: يتصل بواتساب بدون متصفح، عبر جسر محلي يشغّله WinZapp بنفسه)، أو خادم مخصص (عنوان الخادم، وعنوان WebSocket، والمنفذ، ومفتاح API). لا يسري تغيير المحرك إلا بعد إعادة تشغيل WinZapp؛ ويُطرح هذا السؤال أيضًا عند التشغيل الأول. تتضمن النسخ المبنية Neonize وتبقي WPPConnect مثبتًا بجانبه؛ أما عند التشغيل من نسخة المستودع، فشغّل أولًا neonize_bridge/prepare.py، كما يوضح ملف README في ذلك المجلد. ترى التثبيتات التي لا تزال على WPPConnect تنبيهًا لمرة واحدة عند البدء يعرض التبديل إلى Neonize (يلزم الاقتران على المحرك الجديد)؛ ويحتفظ كل محرك باتصاله الخاص، لذا يمكنك الذهاب والعودة دون فقدان أي منهما. يمكن لمن لم يُجرِ الاقتران بعد تغيير المحرك في نافذة الاقتران نفسها، في قائمة «محرك الاتصال» قبل البلد: يطلب WinZapp التأكيد ويعيد التشغيل بالمحرك المختار. لا تتضمن النسخ المبنية Node.js؛ وعند اختيار WPPConnect (في التشغيل الأول، أو في نافذة الاقتران، أو في الإعدادات)، ينزّل WinZapp نسخة Node.js متحققًا منها ويثبّت وحدات WPPConnect قبل الاتصال.</td></tr>
+</table>
 <p>إشعارات الكتابة: يمكنك اختيار صوت يتكرر أثناء الكتابة، أو قارئ الشاشة وحده، أو كليهما، أو إيقافهما. اختر ملفك الصوتي من الإعدادات، أحداث الأصوات. يُحفظ اختيار إعلان الكتابة الحالي، ويكون الصوت الجديد متوقفًا افتراضيًا في محركَي الاتصال. يمكن ضبط الفاصل من ثانية إلى 30 ثانية، والقيمة الافتراضية 3 ثوانٍ. يتوقف الصوت عند انتهاء الكتابة أو وصول رسالة الكاتب أو مغادرة الدردشة النشطة. يعلن قارئ الشاشة البداية مرة واحدة. تبقى إعلانات التسجيل وسطر الكتابة المرئي وAlt+T كما هي. تكتمل الملفات الطويلة قبل تكرارها؛ وإذا فُقد الملف المخصص، يُستخدم صوت الحزمة.</p>
 <p>يُكتم صوت الكتابة افتراضيًا أثناء تسجيل الرسائل الصوتية والمكالمات. للسماح به أيضًا في هذه الأوقات، أزل تحديد “كتم صوت الكتابة أثناء تسجيل الرسائل الصوتية والمكالمات” في أحداث الأصوات. يؤثر هذا الخيار في صوت الكتابة فقط؛ وتبقى إعدادات إعلانات قارئ الشاشة والأصوات الأخرى كما هي.</p>
+
+<h3>تصدير الإعدادات واستيرادها</h3>
+<p>في قائمة ملف، يحفظ «تصدير الإعدادات…» تفضيلاتك في ملف، ويطبّق «استيراد الإعدادات…» ذلك الملف فورًا، دون إعادة تشغيل. وهذا مفيد لنقل كل شيء إلى جهاز كمبيوتر أو حساب آخر. لا يتضمن الملف الاتصال بواتساب وما يخص كل حساب (الدردشات الممسوحة، وأصوات كل دردشة). إذا كنت تستخدم API خاصًا بك، فإن العنوان والمنفذ والمفتاح تُنقل معه.</p>
+<p>إذا غيّرت اللغة وطبّقت، تنتقل جميع الخيارات إلى اللغة الجديدة فورًا.</p>
+
+<h3>أحرف الاختصار واختصارات لوحة المفاتيح</h3>
+<p>لكل عنصر تحكم في الإعدادات وفي النوافذ التي تفتحها حرف اختصار: Alt مع الحرف الذي يعلنه قارئ الشاشة ينتقل مباشرة إلى العنصر، ولا يتكرر حرف داخل نافذة واحدة. في واجهة المستخدم &gt; اختصارات لوحة المفاتيح، تُعرض الاختصارات في شجرة حسب الفئة: يفتح السهم الأيمن الفئة ويغلقها السهم الأيسر. يصفّي حقل «البحث عن اختصارات» فوقها الشجرة؛ وينتقل السهم لأسفل من الحقل إلى النتائج، ويعود السهم لأعلى على النتيجة الأولى إلى الحقل.</p>
+<p>في بحث الاختصارات، اضغط مفاتيح اختصار ما في حقل المفاتيح لتصفية الشجرة بالأوامر التي تستخدم تلك التركيبة؛ يعلن WinZapp عدد ما عُثر عليه، ويمسح زر البحث. تُبنى الشجرة مرة واحدة فقط عند فتح الإعدادات، ولا تعلن التحديدات أثناء الكتابة، وبعد تطبيق التغييرات ينتقل التركيز إلى زر «موافق»؛ ويغلق Esc النافذة.</p>
+
+<h3>متقدم</h3>
+<p>تحتوي فئة متقدم، في نهاية القائمة، على «مستوى السجل» (تصحيح الأخطاء، أو المعلومات، أو التحذيرات والأخطاء، أو الأخطاء فقط)، ويُطبَّق فورًا؛ و«بدء واجهة برمجة التطبيقات المحلية على منفذ ثابت»، مع رقم المنفذ، ويسري في المرة التالية التي يبدأ فيها WinZapp، ويتيح تشغيل نسختين من WinZapp أو تجنب المنفذ 6300 عندما يستخدمه برنامج آخر؛ و«إظهار كل تحديثات خادم WPPConnect، وليس فقط التحديثات التي فحصها مطورو WinZapp»، وهو متوقف افتراضيًا، ويعرض أيضًا الإصدارات التي لم يفحصها المطورون بعد، مع تحذير. منفذ فئة الاتصال خاص بـ API المخصص ولا يُفعَّل إلا معه.</p>
+
+  </section>
+
+  <section id="privacidade" class="wiki-section" aria-labelledby="h-privacidade">
+    <h2 id="h-privacidade">🛡️ 15. إعدادات واتساب</h2>
+<p class="lead">يفتح ملف &gt; إعدادات واتساب الإعدادات على فئة إعدادات واتساب، التي تحتوي على زرين، الخصوصية والملف الشخصي، وتغيّر حساب واتساب الخاص بك مباشرة في واتساب.</p>
+<h3>زر الخصوصية</h3>
+<ul>
+  <li>آخر ظهور والاتصال؛ وحول؛ وصورة الملف الشخصي؛ وإيصالات القراءة؛ ومن يمكنه إضافتك إلى المجموعات؛ ومن يمكنه رؤية حالتك (جهات اتصالي، أو جهات اتصالي باستثناء…، أو مشاركة فقط مع…).</li>
+  <li>في «الدردشات»، خيار «إبقاء الدردشات مؤرشفة»: عند إيقافه تعود الدردشة المؤرشفة إلى قائمة الدردشات عند وصول رسالة جديدة. وهو خيار من WhatsApp نفسه، لذا يسري أيضًا على الهاتف وعلى أجهزتك الأخرى.</li>
+  <li>يُختار الأشخاص للحالة من جهات الاتصال المزامنة، في قائمة فيها بحث، ويُحدَّد كل منهم باستخدام Space.</li>
+  <li>تحمّل النافذة القيم الحالية، وترسل ما غيّرته فقط، ثم تتحقق، وتذكر الإعدادات التي لم يؤكدها واتساب.</li>
+</ul>
+
+<h3>زر الملف الشخصي <span class="desde">ألفا 4397</span></h3>
+<p>يغيّر اسم العرض، ونص «حول»، وصورة الملف الشخصي لحساب واتساب الخاص بك دون الحاجة إلى حمل هاتفك.</p>
+<ul>
+  <li>تُفتح النافذة وهي تعرض اسمك الحالي ونص «حول» وهل لديك صورة. الحقل المتروك فارغًا أو دون تغيير يبقى كما هو في واتساب.</li>
+  <li>تُفتح النافذة من أي مكان باستخدام Ctrl+Shift+, (مفتاح الإعدادات مع Shift)؛ ويمكنك تغييره في الإعدادات &gt; واجهة المستخدم &gt; اختصارات لوحة المفاتيح.</li>
+  <li>يُحفظ كل عنصر على حدة: إذا رفض واتساب أحدها، تُحفظ البقية وتسرد النافذة ما فشل.</li>
+  <li>تُختار الصورة من ملف JPG أو PNG.</li>
+</ul>
+
+<p>في خياري الحالة «جهات اتصالي باستثناء…» و«مشاركة فقط مع…»، لا تُعرض إلا جهات الاتصال المحفوظة على الهاتف: فهي الوحيدة التي يسمح لها واتساب برؤية الحالة. في الملف الشخصي، يذكر زر اختيار الصورة هل توجد صورة حالية وأي ملف اختير.</p>
+
+  </section>
+
+  <section id="copias-registros" class="wiki-section" aria-labelledby="h-copias-registros">
+    <h2 id="h-copias-registros">💾 16. النسخ الاحتياطية والسجلات</h2>
+<h3>نسخ الملف الشخصي الاحتياطي</h3>
+<p>ملف تعريف المتصفح الداخلي هو مكان حفظ اتصالك بواتساب. في الإعدادات &gt; التخزين &gt; نسخ الملف الشخصي الاحتياطي:</p>
+<ul>
+  <li>عيّن عدد مرات تجديد WinZapp للنسخة الاحتياطية عند الإغلاق (الافتراضي: 24 ساعة؛ و0 يجددها عند كل إغلاق).</li>
+  <li>فعّل النسخ الاحتياطي أيضًا أثناء فتح WinZapp، بالفاصل الزمني الذي تختاره. يبقى واتساب غير متصل أثناء إنشائها، وقد يستغرق ذلك بضع دقائق، ويمكن أن يسأل WinZapp قبل كل مرة. لا تحل النسخة الجديدة محل السابقة إلا بعد أن يتصل واتساب بها مرة أخرى.</li>
+  <li>يوفر خيار «عدم الاحتفاظ بنسخ الملف الشخصي الاحتياطية» المساحة، لكن إذا تلف الملف الشخصي ستحتاج إلى الاقتران مرة أخرى. عند تحديده، يذكر WinZapp المساحة التي تشغلها النسخ الاحتياطية ويسأل هل تريد حذفها.</li>
+</ul>
+<p>هذه النسخ الاحتياطية هي ما يستخدمه WinZapp للتعافي بنفسه (راجع قسم الحسابات ومنطقة الإشعارات والمزامنة). للاحتفاظ بسجل رسائلك ووسائطك، انسخ مجلد <code>data</code>.</p>
+
+<h3>السجلات</h3>
+<p>تخفي سجلات WinZapp (<code>log.log</code>) والخادم المحلي (<code>wppconnect.log</code>) أرقام الهواتف ومعرّفات واتساب وأسماء جهات الاتصال، لذا يمكن إرسالها عند الإبلاغ عن مشكلة دون كشف جهات اتصالك. توجد في <code>data\accounts\&lt;account id&gt;\logs</code>، داخل مجلد WinZapp. يُستبدل <code>log.log</code> عند كل بدء. لمشكلات طلب الاقتران مرة أخرى أو فقدان الجلسة، أرسل أيضًا <code>shutdown_audit.log</code>.</p>
+<p>في متقدم، يحفظ زر «تصدير سجلات هذا الحساب...» في الخلفية ملف .zip يحتوي على سجلات الحساب الحالي وسجلات جسر Neonize، ويعلن عند انتهائه.</p>
+<p>أبلغ عن المشكلات واطلب الميزات في صفحة Issues في المستودع (<code>github.com/gabrielhhaber/WinZapp_Python/issues</code>). يعرض مساعدة &gt; حول البرنامج الإصدار الذي يطلبه نموذج الإبلاغ عن الأخطاء.</p>
+
+  </section>
+
+  <section id="mac" class="wiki-section" aria-labelledby="h-mac">
+    <h2 id="h-mac">🍎 17. WinZapp على Mac</h2>
+<p class="lead">على macOS، يعمل WinZapp مع فويز أوفر. قوائم الدردشات والرسائل جداول يقرؤها فويز أوفر، وتتبع الاختصارات قاعدة Mac: يصبح Ctrl هو Command، ويصبح Alt هو Command-Option، ويصبح Ctrl+Alt هو Control-Command.</p>
+<ul>
+  <li><strong>القوائم:</strong> يؤدي VO+Space على صف ما يؤديه Enter؛ فعلى دردشة، تُفتح الدردشة وينتقل فويز أوفر إلى حقل الرسالة. عناصر قائمة سياق الصف هي إجراءات فويز أوفر (VO+Command+Space)، ويفتح VO+Shift+M قائمة السياق. يحتفظ فويز أوفر بموضعه عند تغيّر صف، مثل وصول رسالة جديدة.</li>
+  <li><strong>التحديثات:</strong> يوجد «التحقق من التحديثات» في قائمة WinZapp، تحت حول WinZapp، وفي «مساعدة». مع تشغيل «التحقق تلقائيًا من التحديثات» في الإعدادات، يُنزَّل التحديث في الخلفية ويُثبَّت عند إنهاء WinZapp؛ وإذا بقي WinZapp مفتوحًا، تعرض نافذة التحديث التثبيت وإعادة التشغيل، ويعلن WinZapp ذلك بالنطق وبإشعار. توضح نافذة التحديث ما تغيّر منذ إصدارك. يستغرق تثبيت التحديث بضع ثوانٍ، ويكون أول تشغيل بعده سريعًا مثل أي تشغيل آخر.</li>
+  <li><strong>التحقق من التحديث:</strong> إذا فشل التحقق، توضح الرسالة هل تعذر جلب ملف التحقق من التحديث أو تعذر فحص وسم الإصدار الرسمي. وتميّز بين مشكلات الاتصال، والبحث عن العنوان، وانتهاء المهلة، والشهادة، والوصول، والمورد المفقود، والخادم، وحد طلبات GitHub. تُعاد محاولة أعطال الاتصال والخادم المؤقتة مرة واحدة ضمن المهلة الزمنية للطلب. عندما يحدد GitHub مدة انتظار، تذكر الرسالة عدد الثواني؛ فانتظر قبل التحقق مرة أخرى. توقف حدود الطلبات أي طلبات أخرى إلى ذلك المضيف في العملية نفسها خلال ذلك الانتظار. لا يُقبل أبدًا فشل الشهادة أو الإصدار غير المتحقق منه كفحص ناجح. على جهاز Mac بدون Python من python.org، يستخدم التحقق الشهادات المرفقة مع التطبيق.</li>
+  <li><strong>Home و End:</strong> ينتقلان إلى أول صف وآخر صف في القائمة. <strong>بعد السكون:</strong> عند استيقاظ جهاز Mac، يعيد WinZapp الاتصال من تلقاء نفسه.</li>
+</ul>
+
+  </section>
+
+  <section id="atalhos" class="wiki-section" aria-labelledby="h-atalhos">
+    <h2 id="h-atalhos">⌨️ 18. اختصارات لوحة المفاتيح</h2>
+<div class="callout info">
+  <div class="callout-title">ℹ️ قائمة مُنشأة من الكود</div>
+  تُنشأ الجداول أدناه تلقائيًا من كتالوج اختصارات WinZapp وتعرض مفاتيح المصنع. وتظهر أيضًا في البرنامج، عند الضغط على F1 أو من مساعدة &gt; اختصارات لوحة المفاتيح. يمكن تغيير أي مفتاح في تبويب اختصارات لوحة المفاتيح في الإعدادات.
+</div>
+<h3>النافذة الرئيسية والتنقل</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Alt+1</td><td>الانتقال إلى الدردشات</td></tr>
+<tr><td class="field-name">Alt+2</td><td>الانتقال إلى آخر رسالة</td></tr>
+<tr><td class="field-name">Alt+3</td><td>الانتقال إلى الرسائل غير المقروءة</td></tr>
+<tr><td class="field-name">Alt+4</td><td>الانتقال إلى الدردشات المؤرشفة</td></tr>
+<tr><td class="field-name">Alt+5</td><td>الانتقال إلى الحالة</td></tr>
+<tr><td class="field-name">Alt+6</td><td>الانتقال إلى المكالمات</td></tr>
+<tr><td class="field-name">Alt+7</td><td>فتح الدردشات المقفلة</td></tr>
+<tr><td class="field-name">Ctrl+,</td><td>الإعدادات</td></tr>
+<tr><td class="field-name">Ctrl+Shift+,</td><td>إعدادات واتساب</td></tr>
+<tr><td class="field-name">F1</td><td>إظهار اختصارات لوحة المفاتيح</td></tr>
+<tr><td class="field-name">Alt+T</td><td>إعلان حالة الدردشة (آخر ظهور، متصل، يكتب)</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+P</td><td>إيقاف/استئناف أي صوت يُعمل حاليًا، من أي لوحة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+H</td><td>التبديل بين أجهزة التشغيل حتى إغلاق WinZapp، في كل حساب مفتوح (ثم 1 إلى 0)</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+G</td><td>التبديل بين أجهزة التسجيل حتى إغلاق WinZapp، في كل حساب مفتوح (ثم 1 إلى 0)</td></tr>
+<tr><td class="field-name">Alt+8</td><td>فتح المجتمعات</td></tr>
+<tr><td class="field-name">Ctrl+Shift+F10 إلى 9</td><td>فتح دردشة سريعة معيّنة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+F10 إلى 9</td><td>تعيين الدردشة المحددة لرقم سريع</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+M</td><td>تعيين جميع الدردشات كمقروءة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+D</td><td>قطع الاتصال</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+Q</td><td>إنهاء</td></tr>
+<tr><td class="field-name">F5</td><td>إعادة مزامنة جميع الدردشات</td></tr>
+<tr><td class="field-name">Shift+F5</td><td>إعادة مزامنة هذه الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+B</td><td>تنزيل الوسائط</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+O</td><td>وضع عدم الاتصال</td></tr>
+<tr><td class="field-name">Ctrl+Shift+K</td><td>إغلاق وإخفاء خزنة الدردشات المقفلة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+1 إلى 9</td><td>التبديل إلى الحساب المقترن المطابق</td></tr>
+<tr><td class="field-name">Ctrl+F4</td><td>إغلاق الحساب الحالي، مع إبقاء الآخرين مفتوحين</td></tr>
+<tr><td class="field-name">Ctrl+0 إلى 9</td><td>ضع إشارة للرسالة المركزة، أو اقفز إلى إشارة موجودة</td></tr>
+</table>
+<h3>القوائم (عام)</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Space</td><td>افتح</td></tr>
+</table>
+<h3>أجهزة الصوت</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">0 إلى 9</td><td>اختر جهاز صوت رقمي</td></tr>
+<tr><td class="field-name">Enter</td><td>اختر جهاز الصوت المحدد</td></tr>
+</table>
+<h3>قائمة الدردشات</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+F</td><td>البحث في الدردشات</td></tr>
+<tr><td class="field-name">Ctrl+N</td><td>دردشة جديدة</td></tr>
+<tr><td class="field-name">Delete</td><td>حذف الدردشة</td></tr>
+<tr><td class="field-name">Alt+Shift+C</td><td>نسخ رقم الهاتف</td></tr>
+<tr><td class="field-name">Ctrl+Shift+D</td><td>معلومات الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+M</td><td>تعيين كمقروء/غير مقروء</td></tr>
+<tr><td class="field-name">Alt+Shift+S</td><td>كتم</td></tr>
+<tr><td class="field-name">Ctrl+Shift+B</td><td>حظر</td></tr>
+<tr><td class="field-name">Ctrl+Shift+L</td><td>مسح الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Q</td><td>أرشف الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+T</td><td>قفل الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+P</td><td>تثبيت أو إلغاء تثبيت الدردشة؛ تشغيل أو إيقاف المعاينة أثناء إيقاف التسجيل مؤقتًا</td></tr>
+<tr><td class="field-name">Ctrl+W</td><td>إغلاق الدردشة. مع الرسائل المحددة، أول Esc يلغي تحديدها جميعًا والثاني فقط يغلق الدردشة، إذا كان الخيار مفعلًا في الإعدادات، واجهة المستخدم</td></tr>
+<tr><td class="field-name">Alt+Shift+B</td><td>في دردشة مع نشاط تجاري، كتالوجه وسلة تسوقه</td></tr>
+<tr><td class="field-name">Ctrl+Shift+N</td><td>على حساب واتساب للأعمال، إنشاء طلب لجهة اتصال الدردشة</td></tr>
+<tr><td class="field-name">Alt+2</td><td>الانتقال إلى آخر رسالة</td></tr>
+<tr><td class="field-name">Alt+3</td><td>الانتقال إلى الرسائل غير المقروءة</td></tr>
+<tr><td class="field-name">Alt+Shift+F</td><td>الانتقال إلى فلاتر الدردشة</td></tr>
+<tr><td class="field-name">Alt+Shift+A</td><td>إظهار جميع الدردشات</td></tr>
+<tr><td class="field-name">Alt+Shift+U</td><td>إظهار الدردشات غير المقروءة</td></tr>
+<tr><td class="field-name">Alt+Shift+G</td><td>إظهار دردشات المجموعات</td></tr>
+<tr><td class="field-name">Alt+Shift+I</td><td>إظهار الدردشات الفردية</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+L</td><td>مسح الدردشات المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Delete</td><td>حذف الدردشات المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+A</td><td>أرشفة الدردشات المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+R</td><td>تحديد الدردشات المحددة كمقروءة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+U</td><td>تحديد الدردشات المحددة كغير مقروءة</td></tr>
+</table>
+<h3>تحديد الدردشات</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Shift+Home</td><td>توسيع التحديد إلى أول صف</td></tr>
+<tr><td class="field-name">Shift+End</td><td>توسيع التحديد إلى آخر صف</td></tr>
+<tr><td class="field-name">Shift+السهم لأسفل</td><td>تحديد الدردشة أو الرسالة التالية ونقل التركيز إليها</td></tr>
+<tr><td class="field-name">Shift+السهم لأعلى</td><td>توسيع التحديد إلى الصف السابق</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Space</td><td>تحديد كل دردشة أو رسالة، أو إلغاء تحديد الكل إذا كان كل شيء محددًا بالفعل</td></tr>
+<tr><td class="field-name">Space</td><td>تبديل الصف المركّز بينما وضع التحديد نشط</td></tr>
+<tr><td class="field-name">Ctrl+Space</td><td>تحديد/إلغاء تحديد الدردشة أو الرسالة المركزة</td></tr>
+</table>
+<h3>الدردشات المؤرشفة</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+F</td><td>البحث في الدردشات</td></tr>
+<tr><td class="field-name">Delete</td><td>حذف الدردشة</td></tr>
+<tr><td class="field-name">Alt+Shift+C</td><td>نسخ رقم الهاتف</td></tr>
+<tr><td class="field-name">Ctrl+Shift+D</td><td>معلومات الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+M</td><td>تعيين كمقروء/غير مقروء</td></tr>
+<tr><td class="field-name">Alt+Shift+S</td><td>كتم</td></tr>
+<tr><td class="field-name">Ctrl+Shift+B</td><td>حظر</td></tr>
+<tr><td class="field-name">Ctrl+Shift+L</td><td>مسح الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Q</td><td>إلغاء أرشفة الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+T</td><td>قفل الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+P</td><td>تثبيت الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+L</td><td>مسح الدردشات المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Delete</td><td>حذف الدردشات المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+A</td><td>إلغاء أرشفة الدردشات المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+R</td><td>تحديد الدردشات المحددة كمقروءة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+U</td><td>تحديد الدردشات المحددة كغير مقروءة</td></tr>
+</table>
+<h3>الدردشات المقفلة</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>إلغاء قفل الدردشات المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+R</td><td>تحديد الدردشات المحددة كمقروءة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+U</td><td>تحديد الدردشات المحددة كغير مقروءة</td></tr>
+</table>
+<h3>البحث</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Enter</td><td>نتيجة البحث التالية (بديل، يعمل فقط في حقل البحث)</td></tr>
+<tr><td class="field-name">Shift+Enter</td><td>نتيجة البحث السابقة (بديل، يعمل فقط في حقل البحث)</td></tr>
+</table>
+<h3>داخل الدردشة</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+Shift+I</td><td>تفريغ أو وصف أو تحويل الوسائط لرسالة مركزة باستخدام الذكاء الاصطناعي عبر الإنترنت</td></tr>
+<tr><td class="field-name">Ctrl+R</td><td>تسجيل رسالة صوتية</td></tr>
+<tr><td class="field-name">Alt+2</td><td>الانتقال إلى آخر رسالة</td></tr>
+<tr><td class="field-name">Esc</td><td>إغلاق الدردشة. مع الرسائل المحددة، أول Esc يلغي تحديدها جميعًا والثاني فقط يغلق الدردشة، إذا كان الخيار مفعلًا في الإعدادات، واجهة المستخدم</td></tr>
+<tr><td class="field-name">Ctrl+W</td><td>إغلاق الدردشة. مع الرسائل المحددة، أول Esc يلغي تحديدها جميعًا والثاني فقط يغلق الدردشة، إذا كان الخيار مفعلًا في الإعدادات، واجهة المستخدم</td></tr>
+<tr><td class="field-name">Ctrl+Shift+D</td><td>بيانات الدردشة / تجاهل التسجيل</td></tr>
+<tr><td class="field-name">Ctrl+Shift+A</td><td>إضافة مرفق</td></tr>
+<tr><td class="field-name">Ctrl+Shift+B</td><td>حظر جهة اتصال</td></tr>
+<tr><td class="field-name">Alt+R</td><td>الرد على الرسالة</td></tr>
+<tr><td class="field-name">Alt+Shift+D</td><td>بيانات الرسالة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+E</td><td>إعادة توجيه الرسالة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+P</td><td>إيقاف/استئناف التسجيل (أو تثبيت/إلغاء تثبيت الرسالة المختارة، عندما لا يتم التسجيل)</td></tr>
+<tr><td class="field-name">Ctrl+Shift+R</td><td>التفاعل مع الرسالة؛ على مكالمة فائتة، إعادة الاتصال</td></tr>
+<tr><td class="field-name">Ctrl+Shift+H</td><td>تسجيل الميكروفون وصوت الكمبيوتر</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Y</td><td>على رسالة فشل إرسالها أو لم يتم تأكيدها، حاول إرسالها مرة أخرى</td></tr>
+<tr><td class="field-name">Alt+Shift+B</td><td>في دردشة مع نشاط تجاري، كتالوجه وسلة تسوقه</td></tr>
+<tr><td class="field-name">Ctrl+Shift+N</td><td>على حساب واتساب للأعمال، إنشاء طلب لجهة اتصال الدردشة</td></tr>
+<tr><td class="field-name">Delete</td><td>حذف الرسالة أو الدردشة (أو كل محدد، إذا كان هناك تحديد)</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>نسخ الرسالة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+C</td><td>نسخ التوضيح (صورة/فيديو/مستند)</td></tr>
+<tr><td class="field-name">Alt+C</td><td>عرض نص الرسالة في النافذة المنبثقة</td></tr>
+<tr><td class="field-name">Alt+E</td><td>تعديل الرسالة</td></tr>
+<tr><td class="field-name">Alt+L</td><td>قراءة بقية رسالة نصية مقطعة في القائمة</td></tr>
+<tr><td class="field-name">Alt+Shift+L</td><td>إعلان حالة الرسالة المركزة</td></tr>
+<tr><td class="field-name">Alt+Shift+K</td><td>إعلان تاريخ ووقت الرسالة المركزة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+S</td><td>حفظ/تنزيل الوسائط</td></tr>
+<tr><td class="field-name">Ctrl+Shift+M</td><td>تعيين كمقروء/غير مقروء</td></tr>
+<tr><td class="field-name">Ctrl+Shift+L</td><td>مسح الدردشة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+F</td><td>البحث في الدردشة</td></tr>
+<tr><td class="field-name">F3</td><td>نتيجة البحث التالية، في كامل المحادثة المفتوحة</td></tr>
+<tr><td class="field-name">Shift+F3</td><td>نتيجة البحث السابقة، في كامل المحادثة المفتوحة</td></tr>
+<tr><td class="field-name">Alt+3</td><td>الانتقال إلى الرسائل غير المقروءة</td></tr>
+<tr><td class="field-name">Alt+U</td><td>الانتقال إلى الرسائل غير المقروءة</td></tr>
+<tr><td class="field-name">Ctrl+L</td><td>الانتقال إلى الرسائل غير المقروءة</td></tr>
+<tr><td class="field-name">Alt+Shift+R</td><td>الرد بشكل خاص (المجموعات)</td></tr>
+<tr><td class="field-name">Alt+Shift+E</td><td>ردود الفعل الحديثة</td></tr>
+<tr><td class="field-name">Alt+Shift+M</td><td>القفز إلى الرسالة السابقة التي تشير إليك</td></tr>
+<tr><td class="field-name">Alt+Shift+P</td><td>القفز إلى الرسالة السابقة التي ترد عليك</td></tr>
+<tr><td class="field-name">Alt+Shift+J</td><td>القفز إلى الرسالة التالية التي تشير إليك</td></tr>
+<tr><td class="field-name">Alt+Shift+O</td><td>القفز إلى الرسالة التالية التي ترد عليك</td></tr>
+<tr><td class="field-name">Alt+Shift+C</td><td>نسخ رقم الهاتف</td></tr>
+<tr><td class="field-name">Alt+Shift+V</td><td>دردشة مع المشارك (المجموعات)</td></tr>
+<tr><td class="field-name">Ctrl+Shift+V</td><td>مكالمة صوتية</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+V</td><td>مكالمة فيديو</td></tr>
+<tr><td class="field-name">Alt+Shift+Q</td><td>انتقل إلى الرسالة المقتبسة</td></tr>
+<tr><td class="field-name">Alt+Shift+S</td><td>فتح قائمة كتم الدردشة / إلغاء الكتم</td></tr>
+<tr><td class="field-name">Alt+Shift+T</td><td>فرّغ الرسالة الصوتية أو الصوت نصيًا محليًا باستخدام Whisper، أو افتح التفريغ النصي المحفوظ بالفعل</td></tr>
+<tr><td class="field-name">Alt+Shift+N</td><td>على رسالة صوتية أو فيديو، افعل ما لا يفعله Enter و Space: فرغها نصيًا محليًا باستخدام Whisper إلى سطرها في القائمة، أو شغّلها أو أوقفها أو افتحها عندما تكون Enter و Space مضبوطة على التفريغ النصي (الإعدادات &gt; واجهة المستخدم)</td></tr>
+<tr><td class="field-name">Alt+Shift+Delete</td><td>حذف التفريغ النصي المحلي المحفوظ للرسالة (أو لكل محدد، عندما تستبدل الاختصارات بإجراءات جماعية)</td></tr>
+<tr><td class="field-name">Ctrl+Shift+O</td><td>تمييز/تفضيل الرسالة</td></tr>
+<tr><td class="field-name">Alt+,</td><td>تقليل سرعة التشغيل</td></tr>
+<tr><td class="field-name">Alt+.</td><td>زيادة سرعة التشغيل</td></tr>
+<tr><td class="field-name">Ctrl+.</td><td>اختر رمزًا تعبيريًا</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+C</td><td>نسخ الرسائل المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+E</td><td>إعادة توجيه الرسائل المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+F</td><td>تمييز الرسائل المحددة بنجمة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+X</td><td>تثبيت الرسائل المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+S</td><td>حفظ الرسائل المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>تفريغ الرسائل المحددة نصيًا محليًا باستخدام Whisper وعرضها معًا</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>تفريغ الرسائل المحددة نصيًا محليًا باستخدام Whisper إلى أسطرها</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+Delete</td><td>حذف التفريغات النصية المحلية المحفوظة للرسائل المحددة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Delete</td><td>حذف الرسائل المحددة</td></tr>
+<tr><td class="field-name">Ctrl+0 إلى 9</td><td>ضع إشارة للرسالة المركزة، أو اقفز إلى إشارة موجودة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+0 إلى 9</td><td>إزالة إشارة</td></tr>
+<tr><td class="field-name">Alt+Shift+0 إلى 9</td><td>ضع إشارة مؤقتة للرسالة المركزة، أو اقفز إلى إشارة مؤقتة موجودة (تُمسح عند مغادرة الدردشة)</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+0 إلى 9</td><td>إزالة إشارة مؤقتة</td></tr>
+</table>
+<h3>قائمة الرسائل</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+Enter</td><td>إظهار في المجلد</td></tr>
+<tr><td class="field-name">Ctrl+V</td><td>لصق في محرر الرسالة من قائمة الرسائل</td></tr>
+<tr><td class="field-name">Shift+السهم الأيسر</td><td>إعادة الصوت/الفيديو 5 ثوانٍ</td></tr>
+<tr><td class="field-name">Shift+السهم الأيمن</td><td>تقديم الصوت/الفيديو 5 ثوانٍ</td></tr>
+<tr><td class="field-name">Shift+Page Up</td><td>إعادة الصوت/الفيديو دقيقة واحدة</td></tr>
+<tr><td class="field-name">Shift+Page Down</td><td>تقديم الصوت/الفيديو دقيقة واحدة</td></tr>
+<tr><td class="field-name">Shift+Home</td><td>الانتقال إلى بداية الصوت/الفيديو الجاري تشغيله، أو تحديد كل رسالة/دردشة أعلاه والانتقال إلى أول واحدة إذا لم يتم تشغيل شيء</td></tr>
+<tr><td class="field-name">Shift+End</td><td>الانتقال إلى نهاية الصوت/الفيديو الجاري تشغيله، أو تحديد كل رسالة/دردشة أدناه والانتقال إلى آخر واحدة إذا لم يتم تشغيل شيء</td></tr>
+<tr><td class="field-name">Shift+السهم لأسفل</td><td>تحديد الدردشة أو الرسالة التالية ونقل التركيز إليها</td></tr>
+<tr><td class="field-name">Shift+السهم لأعلى</td><td>توسيع التحديد إلى الصف السابق</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Space</td><td>تحديد كل دردشة أو رسالة، أو إلغاء تحديد الكل إذا كان كل شيء محددًا بالفعل</td></tr>
+<tr><td class="field-name">Space</td><td>تشغيل/إيقاف الصوت أو الفيديو المركّز مؤقتًا. عندما يوجد تحديد بالفعل يحدد/يلغي تحديد الدردشة أو الرسالة المركزة بدلاً من ذلك، إذا كان الخيار مفعلًا في الإعدادات، واجهة المستخدم</td></tr>
+<tr><td class="field-name">Ctrl+Space</td><td>تحديد/إلغاء تحديد الدردشة أو الرسالة المركزة</td></tr>
+</table>
+<h3>حقل الرسالة</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Enter</td><td>إرسال رسالة</td></tr>
+<tr><td class="field-name">Shift+Enter</td><td>إدراج سطر جديد</td></tr>
+</table>
+<h3>الروابط في الرسالة</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Enter</td><td>افتح</td></tr>
+<tr><td class="field-name">Space</td><td>افتح</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>نسخ الرابط</td></tr>
+</table>
+<h3>الإشارات</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Enter</td><td>افتح</td></tr>
+<tr><td class="field-name">Space</td><td>افتح</td></tr>
+</table>
+<h3>الإكمال التلقائي</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Enter</td><td>إدراج الإشارة المحددة</td></tr>
+<tr><td class="field-name">Esc</td><td>إغلاق</td></tr>
+</table>
+<h3>عارض الوسائط والتشغيل</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+السهم الأيسر</td><td>الحالة السابقة</td></tr>
+<tr><td class="field-name">Ctrl+السهم الأيمن</td><td>الحالة التالية</td></tr>
+<tr><td class="field-name">Ctrl+Shift+S</td><td>حفظ/تنزيل الوسائط</td></tr>
+<tr><td class="field-name">Ctrl+Shift+I</td><td>وصف</td></tr>
+<tr><td class="field-name">Alt+V</td><td>الرجوع 10 ثوانٍ</td></tr>
+<tr><td class="field-name">Alt+A</td><td>تقديم 10 ثوانٍ</td></tr>
+<tr><td class="field-name">Esc</td><td>إغلاق</td></tr>
+<tr><td class="field-name">Space</td><td>تشغيل/إيقاف الصوت أو الفيديو المركّز مؤقتًا. عندما يوجد تحديد بالفعل يحدد/يلغي تحديد الدردشة أو الرسالة المركزة بدلاً من ذلك، إذا كان الخيار مفعلًا في الإعدادات، واجهة المستخدم</td></tr>
+<tr><td class="field-name">Enter</td><td>إرسال الرد</td></tr>
+</table>
+<h3>منتقي الرموز التعبيرية</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+Enter</td><td>إدراج</td></tr>
+<tr><td class="field-name">السهم الأيسر</td><td>درجة لون الرمز التعبيري السابقة</td></tr>
+<tr><td class="field-name">السهم الأيمن</td><td>درجة لون الرمز التعبيري التالية</td></tr>
+</table>
+<h3>نافذة النتيجة (الذكاء الاصطناعي والتفريغ النصي)</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+Enter</td><td>اسأل</td></tr>
+<tr><td class="field-name">Esc</td><td>إغلاق</td></tr>
+</table>
+<h3>الحالة</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+السهم الأيسر</td><td>الحالة السابقة</td></tr>
+<tr><td class="field-name">Ctrl+السهم الأيمن</td><td>الحالة التالية</td></tr>
+<tr><td class="field-name">Esc</td><td>إغلاق</td></tr>
+<tr><td class="field-name">F5</td><td>تحديث الحالة</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>نسخ نص الحالة</td></tr>
+<tr><td class="field-name">Ctrl+R</td><td>تسجيل رسالة صوتية</td></tr>
+<tr><td class="field-name">Ctrl+P</td><td>تشغيل الصوت المسجل</td></tr>
+<tr><td class="field-name">Ctrl+Shift+P</td><td>إيقاف التسجيل مؤقتًا</td></tr>
+<tr><td class="field-name">Ctrl+Shift+D</td><td>تجاهل الرسالة الصوتية</td></tr>
+<tr><td class="field-name">Ctrl+.</td><td>اختر رمزًا تعبيريًا</td></tr>
+<tr><td class="field-name">Ctrl+Shift+S</td><td>حفظ/تنزيل الوسائط</td></tr>
+<tr><td class="field-name">Ctrl+Shift+I</td><td>وصف</td></tr>
+<tr><td class="field-name">Alt+Shift+T</td><td>فرّغ الحالة الصوتية أو الفيديو نصيًا محليًا باستخدام Whisper، أو افتح التفريغ النصي المحفوظ بالفعل</td></tr>
+<tr><td class="field-name">Alt+Shift+N</td><td>على حالة صوتية أو فيديو، افعل ما لا يفعله Enter و Space: فرغها نصيًا محليًا باستخدام Whisper إلى سطرها في القائمة، أو افتحها أو شغّلها عندما تكون Enter و Space مضبوطة على التفريغ النصي</td></tr>
+<tr><td class="field-name">Alt+Shift+Delete</td><td>حذف التفريغ النصي المحلي المحفوظ للحالة</td></tr>
+<tr><td class="field-name">Delete</td><td>في حالتي، حذف الحالة المعروضة لدى كل من استلمها</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Y</td><td>على حالة لم تُنشر، حاول نشرها مرة أخرى</td></tr>
+</table>
+<h3>قائمة الحالات</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Space</td><td>افتح أو شغّل الحالة المركزة</td></tr>
+</table>
+<h3>الرد على الحالة</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Enter</td><td>إرسال الرد</td></tr>
+</table>
+<h3>تبويب المكالمات</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Alt+L</td><td>الانتقال إلى قائمة المكالمات</td></tr>
+<tr><td class="field-name">Ctrl+Shift+R</td><td>إعادة الاتصال بمكالمة فائتة</td></tr>
+<tr><td class="field-name">F5</td><td>تحديث قائمة المكالمات</td></tr>
+<tr><td class="field-name">Ctrl+Tab</td><td>التبديل بين علامات التبويب الكل، الفائتة، المرفوضة والمجاوبة</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Tab</td><td>مرشح قائمة المكالمات السابق</td></tr>
+<tr><td class="field-name">Enter</td><td>فتح دردشة المكالمة</td></tr>
+</table>
+<h3>أثناء المكالمة</h3>
+<table class="field-table">
+<tr><th>الاختصار</th><th>الإجراء</th></tr>
+<tr><td class="field-name">Ctrl+Shift+Q</td><td>إنهاء المكالمة</td></tr>
+<tr><td class="field-name">Ctrl+M</td><td>كتم أو إلغاء كتم الميكروفون</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>إعدادات المكالمة</td></tr>
+<tr><td class="field-name">Ctrl+V</td><td>تشغيل أو إيقاف الفيديو في مكالمة فيديو</td></tr>
+<tr><td class="field-name">Ctrl+P</td><td>التبديل من مكالمة صوتية إلى مكالمة فيديو</td></tr>
+</table>
+<h3>أوامر بدون مفتاح معيّن</h3>
+<p>هذه الأوامر موجودة في تبويب اختصارات لوحة المفاتيح في الإعدادات، لكنها تأتي بدون مفتاح. اختر لها مفتاحًا هناك إذا أردت استخدامها.</p>
+<table class="field-table">
+<tr><th>الأمر</th></tr>
+<tr><td>التركيز على التنقل الرئيسي</td></tr>
+<tr><td>الرسائل</td></tr>
+<tr><td>اكتب رسالة إلى</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (1)</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (2)</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (3)</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (4)</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (5)</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (6)</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (7)</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (8)</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (9)</td></tr>
+<tr><td>اقرأ رسالة حديثة حسب الموضع، عدًا من الأحدث (1 هو الأحدث، 0 هو العاشر); عند الضغط مرتين بسرعة تنسخ الرسالة، الموضع (0)</td></tr>
+<tr><td>الرد</td></tr>
+<tr><td>الرد مع الفيديو</td></tr>
+<tr><td>الرد بدون فيديو</td></tr>
+<tr><td>رفض</td></tr>
+<tr><td>إسكات التنبيه</td></tr>
+<tr><td>إغلاق النافذة</td></tr>
+</table>
+
+  </section>
+
+  <section id="solucao-problemas" class="wiki-section" aria-labelledby="h-solucao-problemas">
+    <h2 id="h-solucao-problemas">🧰 19. حل المشكلات</h2>
+<table class="field-table">
+  <tr><th>الموقف</th><th>ما يجب فعله</th></tr>
+  <tr><td>يطلب منك WinZapp الاقتران مرة أخرى</td><td>أجرِ الاقتران بالرقم أو برمز QR. لا تُحذف دردشاتك إلا إذا ربطت رقمًا مختلفًا. إذا حدث ذلك دون سبب، فاحتفظ بملفي <code>log.log</code> و<code>shutdown_audit.log</code> قبل فتحه مرة أخرى.</td></tr>
+  <tr><td>لا تصل الرسائل أو تبدو القائمة عالقة</td><td>انتظر تقدم المزامنة؛ واستخدم Shift+F5 في الدردشة أو F5 للكل. وتأكد أيضًا من أن وضع عدم الاتصال غير مفعّل. إذا استمرت القائمة في المزامنة مرارًا، فحدّث WinZapp: يتيح إصلاحٌ لقائمة الدردشات إنهاء المزامنة.</td></tr>
+  <tr><td>يفشل التفريغ النصي المحلي على بطاقة الرسومات NVIDIA أو يتعلق</td><td>حدّث WinZapp: يحمّل إصلاحٌ مكتبات CUDA على ويندوز قبل استخدام بطاقة الرسومات. إذا تعذر تحميلها، يخبرك WinZapp بذلك ويعرض التفريغ النصي على المعالج بدلًا منها.</td></tr>
+  <tr><td>يتجمد WinZapp عند إرسال الملفات الكبيرة أو استلامها</td><td>حدّث WinZapp: يمنع إصلاحٌ تنزيل الملف المستلم مع إشعار الرسالة، ويمنع تقدم الإرسال والتنزيل من تكديس تحديثات الشاشة.</td></tr>
+  <tr><td>يظهر الخطأ "chat not found" عند الإرسال إلى دردشة موجودة</td><td>حدّث WinZapp: يجعل إصلاحٌ إرسال الرسائل والمرفقات يستخدم الدردشة التي حمّلها واتساب بالفعل.</td></tr>
+  <tr><td>لا يزال حسابي يظهر متصلًا بعد مغادرة النافذة</td><td>يطلب WinZapp حالة عدم الاتصال عندما تكون نافذته غير نشطة أو مصغرة أو مخفية أو تعمل في الخلفية، ويعيد المحاولة كل 20 ثانية. إذا استمرت المشكلة، فدوّن الوقت المحلي وحالة النافذة وقدّم سجلات تشخيص خالية من البيانات الشخصية. تميّز السجلات بين الحالة المطلوبة والملاحظة المحلية أثناء التشغيل؛ ولا يؤكد أي منهما ما عرضه جهاز آخر.</td></tr>
+  <tr><td>لا تبدأ المكالمات</td><td>أعد تشغيل WinZapp أو استخدم مساعدة &gt; إعادة تثبيت WPPConnect قسرًا. يحافظ WinZapp بنفسه على تحديث قائمة إصدارات واتساب ويب.</td></tr>
+  <tr><td>لا يُفتح المتصفح الداخلي</td><td>عادة ما يكون برنامج مكافحة الفيروسات قد أزال جزءًا منه. يحذرك WinZapp ويشرح ذلك؛ استخدم إعادة تثبيت WPPConnect قسرًا.</td></tr>
+  <tr><td>أُرسلت رسالة لكن WinZapp لم يؤكد ذلك</td><td>تحقق من الدردشة قبل إعادة الإرسال؛ لا يعيد WinZapp الإرسال بنفسه في هذه الحالات.</td></tr>
+  <tr><td>«استخدم واتساب على هاتفك لرؤية الرسائل القديمة.»</td><td>تلك الرسائل موجودة على الهاتف فقط.</td></tr>
+  <tr><td>يظهر خطأ عند تثبيت WPPConnect أو تحديثه</td><td>يأتي الخطأ في حقل نصي للقراءة فقط، لقراءته ونسخه؛ أرسله عند الإبلاغ عن المشكلة.</td></tr>
+  <tr><td>لا يعمل التفريغ النصي المحلي</td><td>في الإعدادات &gt; التفريغ النصي المحلي، تأكد من أن نموذجًا ما منزّل وجاهز. يوضح WinZapp السبب عندما لا يكون التفريغ النصي جاهزًا.</td></tr>
+</table>
+
+  </section>
+
+  <section id="registro" class="wiki-section" aria-labelledby="h-registro">
+    <h2 id="h-registro">📝 20. سجل تحديثات الدليل</h2>
+<p>تتوفر العربية الآن في الإعدادات &gt; عام &gt; اللغة، مع نص عربي في مثبّت ويندوز وأداة إلغاء التثبيت.</p>
+<p class="lead">تُضاف إلى الدليل كل إصدارات ألفا الجديدة التي تجلب ميزات. توضح هذه القائمة الإصدار الذي اكتمل الدليل حتى ألفا الخاص به، وما أُضيف في كل مرة.</p>
+<table class="field-table">
+  <tr><th>ألفا</th><th>ما أُضيف إلى الدليل</th></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>ترجمة الدليل الكامل إلى العربية، باستخدام مصطلحات واجهة البرنامج.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>المجموعات: عندما يكتب شخص ما، يستخدم الإعلان الآن اسمه بدلًا من رقم هاتفه فقط.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>Neonize: لم تعد منشورات القنوات التي تتابعها تظهر كدردشات ورسائل.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>مكالمات Neonize: تنتهي المكالمة التي لا يرد عليها أحد من تلقاء نفسها بعد دقيقة واحدة.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>مكالمات Neonize: أُضيف مسار PCM تجريبي بتردد 48 كيلوهرتز، معطل افتراضيًا، للمكالمات التي يُتفاوض عليها باستخدام Opus، مع فحوص للتنسيق ولمثيل المكالمة. تحتفظ المكالمات العادية ببديل MLow الحالي.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>الدليل: تصدير سجلات الحساب، والبحث عن الاختصارات بالمفاتيح، وخيار واحد للتفريغ النصي التلقائي لكل دردشة؛ وإصلاحات لـ F5 وردود الفعل وردود إعلانات المجتمع وتمييز الحالات بنجمة والإعجاب بها ومزامنة Neonize.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>تقليل ضوضاء الميكروفون للرسائل الصوتية بنموذج عصبي، يُنزَّل مرة واحدة من صفحة الصوت في الإعدادات؛ وبدون النموذج، تظل بوابة الضوضاء الأساسية مستخدمة.</td></tr>  <tr><td class="field-name">لم يصدر بعد</td><td>الاقتران برمز QR مع Neonize: يُعرض رمز QR كاملًا في نافذة الاتصال، بحجم تستطيع كاميرا الهاتف قراءته.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>تبقى المكالمات الجماعية التي لم يُرد عليها في سجل المجموعة، وليس كمكالمة خاصة ممن بدأها.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>محرك اتصال Neonize (تجريبي) في الإعدادات، الاتصال، وعند التشغيل الأول. تتبع أزرار المكالمات في الدردشة الدعم الذي يبلّغ عنه المحرك، بما في ذلك الانضمام إلى المكالمات الجماعية الجارية.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>المكالمات الجارية: الانضمام إلى مكالمة متاحة من الدردشة الجماعية أو من عامل التصفية «جارية» في المكالمات، وقائمة المشاركين المتصلين. Mistral للتفريغ النصي عبر الإنترنت ووصف الصور واستخراج نص PDF.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>حضور جهات الاتصال (يكتب، متصل): لم تعد التحديثات الكثيرة المتتالية تجمّد البرنامج لثوانٍ أو تبطئ الكمبيوتر.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>تحديثات حالة جهات الاتصال مع تغييرات أقل تكرارًا في الواجهة وحفظ أسماء جهات الاتصال الجديدة في الخلفية.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>تحديث WinZapp أو WPPConnect: يعمل التثبيت والبناء بأولوية أقل، فلا يتجمد الكمبيوتر وقارئ الشاشة في منتصف التحديث.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>تظل مؤشرات الكتابة والتسجيل الصوتي في الدردشات الخاصة متاحة عندما يبلّغ واتساب بأن جهة الاتصال غير متصلة. يُعرض النشاط منفصلًا عن رؤية الاتصال وينتهي عندما يتوقف تحديثه. ينتمي النشاط إلى الدردشة التي يحدث فيها: تُتابَع المجموعات والدردشات الخاصة كلٌّ على حدة.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>الرسائل المثبتة في المجموعات: تحمّل قائمة الرسائل المثبتة أيضًا التثبيتات الأقدم مما يحتفظ به واتساب ويب في الذاكرة.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>المكالمات: تحتفظ إعادة تثبيت WPPConnect بقائمة إصدارات واتساب ويب الأحدث المتوافقة وتتحقق من حداثتها. تُفحص القائمة المعاد بناؤها دون انتظار الساعات الست السابق. يوقف عدم توافق عقد VoIP المؤكد غير القابل لإعادة المحاولة تكرار التهيئة.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>الأزرار في رسائل الأنشطة التجارية: الرد، والرابط، ونسخ الرمز، ورقم الهاتف.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>التحقق من تحديثات macOS: أسباب ومراحل تحقق مميزة، ومحاولة واحدة محدودة عند الأعطال المؤقتة، وأوقات انتظار GitHub.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>الاحتفاظ بحزمة التحديث، ومسؤولية التثبيت، ونتائج النسخ، وإعادة الفتح الآمنة. بعد نسخة غير مكتملة أو غير مؤكدة، يبقى WinZapp مغلقًا ويفتح تعليمات الاسترداد في المفكرة. الرد على المكالمات ورفضها وإنهاؤها من أي نافذة (Ctrl+Alt+Shift+Enter و Ctrl+Alt+Shift+Backspace). فئة متقدم، وأحرف الاختصار في الإعدادات، والاختصارات في شجرة مع بحث، والمسودة لكل دردشة، ومحاولة الإرسال مرة أخرى، وعناصر التحكم بعد القائمة التي يمكن إخراجها من ترتيب Tab، وقائمة انتظار التفريغ النصي المحلي ونوافذه، والتفريغ النصي التلقائي لكل دردشة، والحالات التي لم تُنشر وحذف الحالة، ومجموعات المجتمع، والطلبات التي ينشئها البائع، وخصوصية الحالة.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>التكيف التلقائي لصوت المكالمات مع معدلات أخذ العينات في الميكروفون ومكبّر الصوت.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>جهات الاتصال المرفقة المستلمة مع الاسم والرقم.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>تظهر عمليات إعادة التوجيه عبر Neonize في الدردشة الوجهة فورًا.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>تحقق آمن من التحديثات على أجهزة Mac بدون Python من python.org.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>تصل الرسائل الصوتية المرسلة عبر Neonize إلى جهات الاتصال على أندرويد.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>تُرسل رسائل Neonize الصوتية والصور والمستندات حتى عندما يفشل تحميل libmagic في الكمبيوتر.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>يبقى الصوت بما يصل إلى 256 كيلوبت/ثانية؛ ويسجل Neonize الآن كل عملية إرسال وسائط.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>Neonize: تُرسل الرسائل الصوتية الستيريو بنوع audio/mp4.</td></tr>
+  <tr><td class="field-name">لم يصدر بعد</td><td>قنوات تسجيل الرسائل الصوتية: تلقائي (استخدام قنوات الجهاز)، أحادي (دمج القناتين اليسرى واليمنى)، ستيريو (عند توفره).</td></tr>
+  <tr><td class="field-name">2.1.0.4397</td><td>تبويب الملف الشخصي في إعدادات واتساب (اسم العرض، وحول، والصورة)؛ والمجتمعات في قائمة التنقل، بعد المكالمات.</td></tr>
+  <tr><td class="field-name">2.1.0.4395</td><td>النسخة الأولى من الدليل: جميع ميزات الإصدارات 1.1.0.0 و1.1.1.0 و2.0.0.0 ودورة 2.1.0.0 حتى إصدار ألفا هذا.</td></tr>
+</table>
+
+  </section>
+
+
 </main>
+
+<script>
+// ── Highlight active nav link on scroll ──
+(function() {
+    const links = document.querySelectorAll('.nav-link');
+    const sections = Array.from(document.querySelectorAll('section[id], div[id]'));
+    function updateActive() {
+        let current = '';
+        sections.forEach(sec => { if (sec.getBoundingClientRect().top <= 80) current = sec.id; });
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + current));
+    }
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+})();
+
+// ── Mobile sidebar toggle ──
+(function() {
+    const btn = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    btn.addEventListener('click', function() {
+        const open = sidebar.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open);
+        btn.textContent = open ? '✕ إغلاق' : '☰ القائمة';
+    });
+    sidebar.querySelectorAll('.nav-link').forEach(l => {
+        l.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+                btn.textContent = '☰ القائمة';
+            }
+        });
+    });
+})();
+
+// ── Search / highlight ──
+(function() {
+    const input = document.getElementById('searchInput');
+    const main  = document.getElementById('conteudo');
+    let origHTML = null;
+
+    function clearMarks() {
+        if (origHTML !== null) { main.innerHTML = origHTML; origHTML = null; bindSearch(); }
+    }
+
+    function doSearch(term) {
+        if (!term) { clearMarks(); return; }
+        if (origHTML === null) origHTML = main.innerHTML;
+        main.innerHTML = origHTML;
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rx = new RegExp('(' + escaped + ')', 'gi');
+        function walk(node) {
+            if (node.nodeType === 3) {
+                if (rx.test(node.textContent)) {
+                    const span = document.createElement('span');
+                    const safe = node.textContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    span.innerHTML = safe.replace(rx, '<mark>$1</mark>');
+                    node.parentNode.replaceChild(span, node);
+                }
+            } else if (node.nodeType === 1 && !['SCRIPT','STYLE','INPUT'].includes(node.tagName)) {
+                Array.from(node.childNodes).forEach(walk);
+            }
+        }
+        walk(main);
+        const first = main.querySelector('mark');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function bindSearch() {
+        const inp = document.getElementById('searchInput');
+        if (inp) inp.addEventListener('input', function() { doSearch(this.value.trim()); });
+    }
+    bindSearch();
+})();
+</script>
 </body>
 </html>

@@ -8655,7 +8655,6 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/ui/dialogs/shortcuts_tab.py
 #: client/ui/dialogs/status_audience_dialog.py
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "ok"
@@ -10420,6 +10419,12 @@ msgstr "Se produjo un error al guardar la configuración:"
 msgctxt "settings_search_label"
 msgid "&Search settings"
 msgstr "&Buscar en la configuración"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_loading"
+msgid "Still searching the other categories..."
+msgstr "Todavía buscando en las demás categorías..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12940,7 +12945,8 @@ msgctxt "tab_accessibility"
 msgid "Accessibility"
 msgstr "Accesibilidad"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/advanced_tab.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_advanced"
 msgid "Advanced"
 msgstr "Avanzadas"
@@ -13010,7 +13016,7 @@ msgid "&Reactions"
 msgstr "&Reacciones"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/shortcuts_tab.py
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_shortcuts"
 msgid "&Keyboard shortcuts"
 msgstr "Atajos &de teclado"
@@ -15859,6 +15865,11 @@ msgctxt "tray_starting_wppconnect"
 msgid "starting WPPConnect..."
 msgstr "iniciando WPPConnect..."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/connection.py
+msgctxt "tray_syncing_whatsapp"
+msgid "syncing with WhatsApp..."
+msgstr "sincronizando con WhatsApp..."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/tray_manager.py
 #, python-brace-format
 msgctxt "tray_unread_plural"
@@ -17088,6 +17099,12 @@ msgstr ""
 "Grabación de voz no disponible en esta instalación de Python (biblioteca de "
 "audio no encontrada)."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_chats_section_label"
+msgid "Chats"
+msgstr "Chats"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/websocket_client.py
 msgctxt "wa_disconnected_temp"
 msgid ""
@@ -17096,6 +17113,28 @@ msgid ""
 msgstr ""
 "La conexión con WhatsApp fue interrumpida. Esperando reconexión "
 "automática..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_hint"
+msgid ""
+"When it is off, an archived chat goes back to the chat list when a new "
+"message arrives."
+msgstr ""
+"Desactivada, un chat archivado vuelve a la lista de chats cuando llega un "
+"mensaje nuevo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_label"
+msgid "&Keep chats archived"
+msgstr "&Mantener chats archivados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_unavailable"
+msgid "Could not read whether chats are kept archived."
+msgstr "No se pudo leer si los chats se mantienen archivados."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_lists.py

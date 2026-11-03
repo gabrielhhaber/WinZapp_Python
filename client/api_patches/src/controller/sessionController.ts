@@ -1120,6 +1120,9 @@ export async function getSessionState(req: Request, res: Response) {
           StatusSessionSchema,
           {
             status: client.status,
+            syncing:
+              client.status === 'INITIALIZING' &&
+              (client as any).syncing === true,
             qrcode: qr,
             urlcode: client.urlcode,
             version: version,

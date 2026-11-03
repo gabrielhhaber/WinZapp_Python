@@ -577,6 +577,27 @@ def initializing_restart_due(first_seen_monotonic: float, now_monotonic: float,
     return (now_monotonic - first_seen_monotonic) >= grace_seconds
 
 
+#: How long one "still syncing" answer holds. Two health probes (30 s apart)
+#: fit inside it, so a Node that died mid-sync stops refreshing it and the
+#: ordinary offline handling takes over.
+SYNC_REPORT_LIFETIME_SECONDS = 90.0
+
+
+def session_reports_syncing(payload) -> bool:
+    """True when /status-session says WhatsApp Web accepted the login and is
+    catching up. An older server sends no ``syncing`` field: False."""
+    return (isinstance(payload, dict)
+            and payload.get("status") == "INITIALIZING"
+            and payload.get("syncing") is True)
+
+
+def sync_report_is_fresh(reported_at, now: float,
+                         lifetime: float = SYNC_REPORT_LIFETIME_SECONDS) -> bool:
+    """Whether the last "still syncing" answer still stands. ``reported_at`` is
+    None when the last answer said anything else."""
+    return reported_at is not None and now - reported_at < lifetime
+
+
 def is_progress_status(status: str) -> bool:
     """True if ``status`` is a real, readable state that counts as progress for
     the no-progress INITIALIZING clock. An empty/unreadable status ('') is a

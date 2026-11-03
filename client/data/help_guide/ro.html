@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="ro" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -49,7 +49,7 @@
   }
 
   .skip-link {
-    position: absolute; top: -100px; left: 1rem;
+    position: absolute; top: -100px; inset-inline-start: 1rem;
     background: var(--accent); color: #fff;
     padding: 8px 16px; border-radius: var(--radius);
     font-family: var(--font-ui); font-size: 14px; z-index: 9999;
@@ -59,9 +59,9 @@
 
   /* ── Sidebar ── */
   .sidebar {
-    position: fixed; top: 0; left: 0;
+    position: fixed; top: 0; inset-inline-start: 0;
     width: var(--sidebar-w); height: 100vh;
-    background: var(--surface-2); border-right: 1px solid var(--border);
+    background: var(--surface-2); border-inline-end: 1px solid var(--border);
     overflow-y: auto; padding: 0 0 2rem;
     z-index: 100; display: flex; flex-direction: column;
   }
@@ -101,29 +101,29 @@
     padding: .5rem 1.25rem .25rem;
   }
   .nav-link {
-    display: block; padding: 5px 1.25rem 5px 1.5rem;
+    display: block; padding-block: 5px; padding-inline: 1.5rem 1.25rem;
     font-family: var(--font-ui); font-size: 13.5px; color: var(--ink-light);
-    text-decoration: none; border-left: 3px solid transparent;
+    text-decoration: none; border-inline-start: 3px solid transparent;
     transition: all .15s; line-height: 1.4;
   }
-  .nav-link:hover { color: var(--accent); background: var(--surface-3); border-left-color: var(--accent); }
-  .nav-link.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-left-color: var(--accent); font-weight: 600; }
+  .nav-link:hover { color: var(--accent); background: var(--surface-3); border-inline-start-color: var(--accent); }
+  .nav-link.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-inline-start-color: var(--accent); font-weight: 600; }
 
   /* ── Main ── */
-  .main { margin-left: var(--sidebar-w); flex: 1; max-width: 860px; padding: 3rem 4rem 6rem; }
+  .main { margin-inline-start: var(--sidebar-w); flex: 1; max-width: 860px; padding: 3rem 4rem 6rem; }
 
   .wiki-section { margin-bottom: 4rem; padding-top: 1rem; }
   .wiki-section:not(:last-child) { border-bottom: 1px solid var(--border); padding-bottom: 3rem; }
 
   h1 { font-family: var(--font-ui); font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -.5px; line-height: 1.2; margin-bottom: 1rem; }
   h2 { font-family: var(--font-ui); font-size: 1.35rem; font-weight: 700; color: var(--ink); margin: 2rem 0 .75rem; letter-spacing: -.2px; display: flex; align-items: center; gap: .5rem; }
-  h2::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-left: .5rem; }
+  h2::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-inline-start: .5rem; }
   h3 { font-family: var(--font-ui); font-size: 1rem; font-weight: 700; color: var(--ink); margin: 1.5rem 0 .5rem; }
 
   .lead { font-size: 1.05rem; color: var(--ink-light); margin-bottom: 1.5rem; line-height: 1.8; }
   p { margin-bottom: 1rem; }
 
-  .callout { border-left: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); padding: .85rem 1.25rem; border-radius: 0 var(--radius) var(--radius) 0; margin: 1.25rem 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
+  .callout { border-inline-start: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); padding: .85rem 1.25rem; border-start-end-radius: var(--radius); border-end-end-radius: var(--radius); margin: 1.25rem 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
   .callout.tip  { border-color: var(--success); background: color-mix(in srgb, var(--success) 6%, var(--surface-2)); }
   .callout.warn { border-color: var(--accent-warm); background: color-mix(in srgb, var(--accent-warm) 6%, var(--surface-2)); }
   .callout.info { border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 6%, var(--surface-2)); }
@@ -143,7 +143,7 @@
   .col-card h4 { font-size: 13px; font-weight: 700; margin-bottom: .5rem; color: var(--ink); display: flex; align-items: center; gap: 6px; }
 
   .field-table { width: 100%; border-collapse: collapse; font-family: var(--font-ui); font-size: 13.5px; margin: 1rem 0 1.5rem; }
-  .field-table th { text-align: left; padding: 8px 12px; background: var(--surface-3); border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-muted); font-weight: 700; }
+  .field-table th { text-align: start; padding: 8px 12px; background: var(--surface-3); border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-muted); font-weight: 700; }
   .field-table td { padding: 8px 12px; border: 1px solid var(--border); color: var(--ink-light); vertical-align: top; line-height: 1.5; }
   .field-table tr:nth-child(even) td { background: var(--surface-2); }
   .field-name { font-family: var(--font-code); font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
@@ -152,16 +152,17 @@
 
   .hero-toc { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 1.5rem 0 2rem; font-family: var(--font-ui); font-size: 13.5px; }
   .hero-toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--ink-muted); margin-bottom: .75rem; }
-  .hero-toc ol { columns: 2; gap: 1rem; padding-left: 1.25rem; color: var(--ink-light); line-height: 2.2; }
+  .hero-toc ol { columns: 2; gap: 1rem; padding-inline-start: 1.25rem; color: var(--ink-light); line-height: 2.2; }
   .hero-toc a { color: var(--accent); text-decoration: none; }
   .hero-toc a:hover { text-decoration: underline; }
 
-  .menu-toggle { display: none; position: fixed; top: 1rem; right: 1rem; z-index: 200; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; font-weight: 700; cursor: pointer; }
+  .menu-toggle { display: none; position: fixed; top: 1rem; inset-inline-end: 1rem; z-index: 200; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; font-weight: 700; cursor: pointer; }
 
   @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); transition: transform .25s; }
-    .sidebar.open { transform: translateX(0); }
-    .main { margin-left: 0; padding: 2rem 1.25rem 4rem; }
+    [dir="rtl"] .sidebar { transform: translateX(100%); }
+    .sidebar.open, [dir="rtl"] .sidebar.open { transform: translateX(0); }
+    .main { margin-inline-start: 0; padding: 2rem 1.25rem 4rem; }
     .menu-toggle { display: block; }
     .cols-2 { grid-template-columns: 1fr; }
     .hero-toc ol { columns: 1; }
@@ -173,13 +174,19 @@
 
   @media print {
     .sidebar, .menu-toggle, .skip-link { display: none; }
-    .main { margin-left: 0; padding: 1rem; }
+    .main { margin-inline-start: 0; padding: 1rem; }
   }
   code { font-family: var(--font-code); font-size: .9em; background: var(--surface-3); padding: 1px 5px; border-radius: 3px; }
-  .desde { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; background: var(--accent-warm); color: #1a1a2e; border-radius: 10px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+  .desde { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; background: var(--accent-warm); color: #1a1a2e; border-radius: 10px; padding: 1px 8px; margin-inline-start: 6px; vertical-align: middle; }
   .cobertura { font-family: var(--font-ui); font-size: 13px; color: var(--ink-muted); margin-bottom: 1rem; }
-  ul, ol { margin: 0 0 1rem 1.5rem; } li { margin-bottom: .4rem; }
-  .steps { margin-left: 0; }
+  ul, ol { margin: 0 0 1rem; margin-inline-start: 1.5rem; } li { margin-bottom: .4rem; }
+  .steps { margin-inline-start: 0; }
+  /* Keys, paths and code read left to right inside right-to-left text. */
+  [dir="rtl"] code, [dir="rtl"] kbd { direction: ltr; unicode-bidi: isolate; }
+  [dir="rtl"] .field-name { unicode-bidi: plaintext; text-align: right; }
+  /* Georgia has no Arabic letters, and spacing breaks the joins between them. */
+  :root:lang(ar) { --font-body: 'Segoe UI', Tahoma, sans-serif; }
+  html:lang(ar) body * { letter-spacing: normal; }
 </style>
 </head>
 <body>
@@ -358,6 +365,7 @@
   <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
     <h2 id="h-conversas">💬 3. Lista de conversații</h2>
 <p class="lead">Lista de conversații (Alt+1) afișează numele persoanelor și grupurilor, niciodată coduri interne. Fiecare rând citește numele, ultimul mesaj și starea (necitit, fixat, dezactivat sonor...).</p>
+<p>Cu Neonize, o conversație este marcată ca citită doar când o deschizi sau o marchezi ca citită, și apare ca citită și pe telefon și în WhatsApp Web.</p>
 
 <h3>Filtre și liste</h3>
 <ul>
@@ -431,7 +439,7 @@
 <p>Opțiunile "Folosiți Spațiu pentru a selecta/deselecta când există deja o selecție" și "Esc deselectează mesajele selectate înainte de a închide conversația" pot fi dezactivate în Setări &gt; Interfață &gt; Conversații.</p>
 
 <h3>Conversații arhivate</h3>
-<p>Alt+4 deschide conversațiile arhivate. Au propria căutare (Ctrl+F), aceeași selecție și aceleași acțiuni. O conversație arhivată nu este anunțată cu voce tare când sosește un mesaj nou cât timp lista de arhivate nu este pe ecran.</p>
+<p>Alt+4 deschide conversațiile arhivate. Au propria căutare (Ctrl+F), aceeași selecție și aceleași acțiuni. O conversație arhivată nu este anunțată cu voce tare când sosește un mesaj nou cât timp lista de arhivate nu este pe ecran. Cu Neonize, dacă opțiunea WhatsApp "Păstrează conversațiile arhivate" este dezactivată, o conversație arhivată revine în lista de conversații când sosește un mesaj nou, ca pe telefon.</p>
 
   </section>
 
@@ -591,7 +599,7 @@
   <tr><td class="field-name">Ctrl+Shift+H</td><td>Înregistrați microfonul și sunetul computerului</td></tr>
 </table>
 <ul>
-  <li><strong>Canalele de înregistrare a mesajelor vocale:</strong> Există un singur buton de înregistrare. În Setări &gt; Audio, "Canalele de înregistrare a mesajelor vocale" oferă "Automat (folosește canalele dispozitivului)" (implicit), "Mono (combină stânga și dreapta)" și "Stereo (dacă este disponibil)". Automat și Stereo păstrează două canale când dispozitivul le acceptă și folosesc mono în caz contrar. Mono calculează media canalelor stâng și drept: alege-l pentru un microfon conectat doar la INPUT 1 sau INPUT 2 al unei interfețe audio. Cu o singură intrare activă, volumul scade după combinare; nu se aplică amplificare automată sau detectarea canalelor fără semnal. Alegerea se fixează la începutul înregistrării și se aplică și la ascultarea în pauză. Nu afectează apelurile sau înregistrarea microfonului împreună cu sunetul calculatorului. Mesajele vocale stereo sunt redate și pe iPhone.</li>
+  <li><strong>Canalele de înregistrare a mesajelor vocale:</strong> Există un singur buton de înregistrare. În Setări &gt; Audio, "Canalele de înregistrare a mesajelor vocale" oferă "Automat (folosește canalele dispozitivului)" (implicit), "Mono (combină stânga și dreapta)" și "Stereo (dacă este disponibil)". Automat și Stereo păstrează două canale când dispozitivul le acceptă și folosesc mono în caz contrar. Mono calculează media canalelor stâng și drept: alege-l pentru un microfon conectat doar la INPUT 1 sau INPUT 2 al unei interfețe audio. Cu o singură intrare activă, volumul scade după combinare și nu se aplică amplificare automată. În modul Automat, o înregistrare cu un canal complet fără semnal este trimisă mono, din canalul cu sunet. Alegerea se fixează la începutul înregistrării și se aplică și la ascultarea în pauză. Nu afectează apelurile sau înregistrarea microfonului împreună cu sunetul calculatorului. Mesajele vocale stereo sunt redate și pe iPhone.</li>
   <li><strong>Microfon + sunetul calculatorului:</strong> înregistrează într-un singur mesaj vocea ta și ce redă calculatorul (un videoclip, muzică, cititorul de ecran). În timpul înregistrării, două glisoare reglează volumul celorlalte sunete și al NVDA (fără NVDA, al doilea este dezactivat); se aplică doar înregistrării și sunt păstrate pe cont. Înainte de a începe, WinZapp avertizează că tot ce se aude va intra în înregistrare, cu "Nu mai afișați" (opțiunea "Avertizați înainte de înregistrarea sunetului computerului" readuce avertismentul). Înregistrarea este trimisă ca audio.</li>
   <li>Anunțurile înregistrării pot fi reduse la tăcere; cititorul de ecran nu începe să spună "Trimite fișierele" înainte de a fi întrerupt.</li>
   <li><strong>Reducerea zgomotului microfonului:</strong> cu "Activați reducerea zgomotului microfonului" bifată în Setări &gt; Audio, aceeași pagină arată "Model de reducere a zgomotului", cu starea și butonul "Descarcă modelul de reducere a zgomotului". Modelul neuronal se descarcă o singură dată, prin internet, iar înregistrările sunt procesate pe acest computer. Fără model, reducerea folosește gate-ul de zgomot de bază; dacă nu poate fi folosit pentru o înregistrare, WinZapp anunță prin cititorul de ecran și folosește gate-ul de zgomot de bază la acea trimitere. Dacă reducerea zgomotului nu poate fi aplicată deloc, mesajul este trimis neprocesat, tot cu un anunț.</li>
@@ -829,13 +837,14 @@
 <h3>Conexiune și recuperare</h3>
 <p>Conexiunea la WhatsApp este stocată în profilul browserului intern. WinZapp păstrează copii de siguranță ale acestuia (Setări &gt; Stocare &gt; Copie de siguranță a profilului) și le restaurează singur când conexiunea este refuzată, spunând cu voce tare că a restaurat și se reconectează; îți cere să asociezi din nou doar când nu există nicio copie utilizabilă. Dacă browserul intern este incomplet (de obicei un antivirus a eliminat o parte din el), WinZapp spune asta și explică ce să faci.</p>
 <p>Dacă WhatsApp deconectează sesiunea, WinZapp te anunță imediat și deschide asocierea. În Setări &gt; Conexiune poți folosi un API personalizat (server la distanță); în acest caz, profilul browserului și copiile de siguranță rămân în grija serverului.</p>
+<p>Când deschideți WinZapp după mult timp fără să fi folosit WPPConnect, WhatsApp Web poate avea nevoie de câteva minute pentru a se actualiza. Între timp, titlul ferestrei afișează "se sincronizează cu WhatsApp...": contul nu s-a deconectat și nu trebuie să faceți nimic.</p>
 
   </section>
 
   <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
     <h2 id="h-configuracoes">⚙️ 14. Setări</h2>
 <p>Limba arabă este acum disponibilă în Setări > General > Limbă, cu texte în arabă în programul de instalare și dezinstalare pentru Windows.</p>
-<p class="lead">Fișier &gt; Setări (Ctrl+,) are sus un câmp de căutare și o listă de categorii. Scrie în câmpul de căutare și apasă săgeata în jos pentru a merge la rezultate; Enter sau Spațiu deschide opțiunea găsită. Fără căutare, săgețile schimbă categoria, iar Tab intră în opțiunile ei. În unele categorii, butoane deschid fereastra unui subiect (precum Mesaje sau Conținut vorbit). Schimbă ce vrei și folosește Aplică sau OK. În Interfață, butonul Comenzi rapide permite schimbarea oricărei comenzi rapide.</p>
+<p class="lead">Fișier &gt; Setări (Ctrl+,) are sus un câmp de căutare și o listă de categorii. Scrie în câmpul de căutare și apasă săgeata în jos pentru a merge la rezultate; Enter sau Spațiu deschide opțiunea găsită. Fără căutare, săgețile schimbă categoria, iar Tab intră în opțiunile ei. În unele categorii, butoane deschid fereastra unui subiect (precum Mesaje sau Conținut vorbit). Schimbă ce vrei și folosește Aplică sau OK. În Interfață, butonul Comenzi rapide permite schimbarea oricărei comenzi rapide. Fereastra se deschide direct pe Generale; celelalte categorii și ferestre se creează prima dată când mergi la ele. Rezultatele căutării sosesc pe măsură ce se încarcă, iar tu poți continua să scrii.</p>
 
 <table class="field-table">
   <tr><th>Categorie</th><th>Ce găsești</th></tr>
@@ -883,6 +892,7 @@
 <h3>Butonul Confidențialitate</h3>
 <ul>
   <li>Ultima accesare și online; Despre; poza de profil; confirmările de citire; cine te poate adăuga în grupuri; cine îți poate vedea starea (contactele mele, contactele mele cu excepția..., sau partajează doar cu...).</li>
+  <li>La "Conversații", "Păstrează conversațiile arhivate": când este dezactivată, o conversație arhivată revine în lista de conversații când sosește un mesaj nou. Este o opțiune a WhatsApp, deci se aplică și pe telefon și pe celelalte dispozitive.</li>
   <li>Persoanele pentru stare se aleg dintre contactele sincronizate, într-o listă cu căutare în care fiecare se marchează cu Space.</li>
   <li>Fereastra încarcă valorile curente, trimite doar ce ai schimbat și apoi verifică, spunând ce setări nu a confirmat WhatsApp.</li>
 </ul>

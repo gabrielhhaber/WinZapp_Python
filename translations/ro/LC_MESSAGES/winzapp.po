@@ -8646,7 +8646,6 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/ui/dialogs/shortcuts_tab.py
 #: client/ui/dialogs/status_audience_dialog.py
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "ok"
@@ -10416,6 +10415,12 @@ msgstr "A apărut o eroare la salvarea setărilor:"
 msgctxt "settings_search_label"
 msgid "&Search settings"
 msgstr "&Caută în setări"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_loading"
+msgid "Still searching the other categories..."
+msgstr "Se caută în continuare în celelalte categorii..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12947,7 +12952,8 @@ msgctxt "tab_accessibility"
 msgid "Accessibility"
 msgstr "Accesibilitate"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/advanced_tab.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_advanced"
 msgid "Advanced"
 msgstr "Avansate"
@@ -13017,7 +13023,7 @@ msgid "&Reactions"
 msgstr "R&eacții"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/shortcuts_tab.py
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_shortcuts"
 msgid "&Keyboard shortcuts"
 msgstr "Comenzi &rapide"
@@ -15854,6 +15860,11 @@ msgctxt "tray_starting_wppconnect"
 msgid "starting WPPConnect..."
 msgstr "se pornește WPPConnect..."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/connection.py
+msgctxt "tray_syncing_whatsapp"
+msgid "syncing with WhatsApp..."
+msgstr "se sincronizează cu WhatsApp..."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/tray_manager.py
 #, python-brace-format
 msgctxt "tray_unread_plural"
@@ -17093,6 +17104,12 @@ msgstr ""
 "Înregistrarea vocală nu este disponibilă pentru această instalare Python "
 "(biblioteca audio nu a fost găsită)."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_chats_section_label"
+msgid "Chats"
+msgstr "Conversații"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/websocket_client.py
 msgctxt "wa_disconnected_temp"
 msgid ""
@@ -17100,6 +17117,28 @@ msgid ""
 "reconnection..."
 msgstr ""
 "Conexiunea WhatsApp a fost întreruptă. Se așteaptă reconectarea automată..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_hint"
+msgid ""
+"When it is off, an archived chat goes back to the chat list when a new "
+"message arrives."
+msgstr ""
+"Când este dezactivată, o conversație arhivată revine în lista de conversații"
+" când sosește un mesaj nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_label"
+msgid "&Keep chats archived"
+msgstr "Pă&strează conversațiile arhivate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_unavailable"
+msgid "Could not read whether chats are kept archived."
+msgstr "Nu s-a putut citi dacă conversațiile rămân arhivate."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_lists.py

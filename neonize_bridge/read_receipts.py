@@ -12,6 +12,15 @@ The setting comes from whatsmeow's cached privacy settings (fetched once,
 kept current by WhatsApp's own notices and by the bridge's privacy route). An
 unknown value keeps the last one known, and with none known the receipt is
 the plain one, as before.
+
+A read goes by these receipts alone. WhatsApp's own clients send the
+markChatAsRead state notice only to undo a chat marked unread by hand, and the
+reads they make on other devices reach the bridge as `READ` receipts of ours,
+with no notice behind them. The bridge used to send a notice for every chat
+opened: 585 in five days, each a patch of its own in `regular_low`. A device
+applies those one at a time (0.7 s each, measured on WhatsApp Web), so after
+days away it took seven minutes to reach them, long after the messages of those
+days had come in and been counted as unread again. See needs_read_notice().
 """
 import logging
 
@@ -38,6 +47,26 @@ def read_receipts_setting(client, last_known=None):
         log.exception("read receipts setting")
         value = None
     return value if value in ("all", "none") else last_known
+
+
+def needs_read_notice(unread, receipts, marked_unread):
+    """Whether reading a chat also takes a state notice: it was marked unread by
+    hand, which no receipt undoes, or it counts more `unread` messages than the
+    `receipts` going out can name (history the store does not hold)."""
+    return bool(marked_unread) or unread > receipts
+
+
+def phone_read_change(read, until, last_t, before):
+    """What a markChatAsRead from the phone does to the chat: None when it read
+    up to `until` and a message after that (`last_t`, five seconds of slack) is
+    stored, which stays unread; else (fields to store, the unreadCount for the
+    client). Marked unread there, the chat remembers it (marked_unread), so the
+    next read here sends the notice that undoes it (needs_read_notice)."""
+    if read:
+        if until and last_t is not None and last_t > until + 5:
+            return None
+        return {"unread": 0, "marked_unread": 0}, 0
+    return {"unread": max(int(before or 0), 1), "marked_unread": 1}, -1
 
 
 class ReadReceipts:

@@ -60,15 +60,17 @@ class ScrollingPage(ScrolledPanel):
 class SubPageDialog(wx.Dialog):
     """A group of options reached from a button on a page.
 
-    Its controls are built once and kept, like those of the pages, so the
-    settings dialog reads and writes them the same way. Closing only hides it.
+    Its controls are built the first time it opens (`build`) and kept, like
+    those of the pages, so the settings dialog reads and writes them the same
+    way. Closing only hides it.
     """
 
-    def __init__(self, parent, title, ok_label, on_change=None, first_open=None):
+    def __init__(self, parent, title, ok_label, on_change=None, first_open=None, build=None):
         super().__init__(parent, title=title,
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self._body = None
         self._first_open = first_open   # called once, the first time it opens
+        self._build = build             # puts the controls in, before that
         self._sizer = wx.BoxSizer(wx.VERTICAL)
         ok = wx.Button(self, wx.ID_OK, ok_label)
         ok.SetDefault()
@@ -108,6 +110,9 @@ class SubPageDialog(wx.Dialog):
             pass
 
     def open(self, control=None):
+        if self._build is not None:
+            build, self._build = self._build, None
+            build()
         if control is not None:
             # After the window is up: a hidden window takes no focus.
             wx.CallAfter(self._focus, control)
@@ -167,6 +172,19 @@ def _name_of(control) -> str:
     return "" if name in _DEFAULT_NAMES else name.strip()
 
 
+#: How long the row of the results stays as it is after the focus leaves the
+#: list. NVDA reads a row whose name changes while it believes the row has the
+#: focus (docs/traps/screen-reader-speech.md), and it finds out late.
+RESULTS_ROW_HOLD_MS = 1000
+
+
+def new_entries(found, matches):
+    """The `matches` not in `found` yet, in their order. A pass over the pages
+    makes new SearchEntry objects, so an entry is known by what it shows."""
+    known = {(e.category, e.label) for e in found}
+    return [e for e in matches if (e.category, e.label) not in known]
+
+
 def collect_entries(page, page_index, category, opener=None):
     """The searchable controls of `page`, in the order they were created."""
     entries = []
@@ -206,8 +224,11 @@ def collect_entries(page, page_index, category, opener=None):
 class SettingsPages(wx.Simplebook):
     """Notebook-shaped book whose pages are chosen from a list."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, before_show=None, before_search=None):
         super().__init__(parent)
+        self._before_show = before_show         # called with a page's index
+        self._before_search = before_search     # the search needs every control
+        self._loading = False                   # pages are still being built for it
         self._titles = []
         self._list = None
         self._search = None
@@ -215,7 +236,7 @@ class SettingsPages(wx.Simplebook):
         self._results_panel = None
         self._found = []
         self._index = []
-        self._subpages = []     # (page_index, caption, window, opener)
+        self._subpages = []     # (page_index, caption, window or its path, opener)
         self._searching = False
         self._selection = wx.NOT_FOUND
 
@@ -230,15 +251,37 @@ class SettingsPages(wx.Simplebook):
 
     def add_subpage(self, page_index, caption, window, opener):
         """Options reached from a button on page `page_index`: searched like
-        the page's own, and opened by `opener(control)` when chosen."""
+        the page's own, and opened by `opener(control)` when chosen. `window`
+        is the window, or the dotted path from the dialog to one that may not
+        exist yet ("_speech_page", "_ai_page.auto_panel")."""
         self._subpages.append((page_index, caption, window, opener))
+
+    def _subpage_window(self, window):
+        """The window a subpage names, None while it is not built. Read without
+        asking the dialog for an attribute it does not have yet: that would
+        build it, and looking is not a reason to."""
+        if not isinstance(window, str):
+            return window
+        found = self.GetParent()
+        for part in window.split("."):
+            found = vars(found).get(part)
+            if found is None:
+                return None
+        return found
 
     def subpage_of(self, window):
         """(page index, opener) of the button window holding `window`."""
         for page_index, _caption, sub, opener in self._subpages:
-            if sub is window:
+            if self._subpage_window(sub) is window:
                 return page_index, opener
         return wx.NOT_FOUND, None
+
+    def FindPage(self, page):
+        """The index of `page`, or of the panel holding its place."""
+        index = super().FindPage(page)
+        if index == wx.NOT_FOUND and page is not None and page.GetParent() is not None:
+            index = super().FindPage(page.GetParent())
+        return index
 
     def GetPageText(self, index):
         return self._titles[index] if 0 <= index < len(self._titles) else ""
@@ -268,6 +311,8 @@ class SettingsPages(wx.Simplebook):
     def ChangeSelection(self, index):
         if not 0 <= index < self.GetPageCount():
             return wx.NOT_FOUND
+        if self._before_show is not None:
+            self._before_show(index)
         previous = self._selection
         super().ChangeSelection(index)
         self._selection = index
@@ -297,6 +342,7 @@ class SettingsPages(wx.Simplebook):
         for title in self._titles:
             self._list.InsertItem(self._list.GetItemCount(), title)
         self._list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_list_selected)
+        self._list.Bind(wx.EVT_KILL_FOCUS, self._on_list_focus_lost)
         body.Add(self._list, 0, wx.EXPAND | wx.ALL, 8)
 
         right = wx.BoxSizer(wx.VERTICAL)
@@ -325,13 +371,14 @@ class SettingsPages(wx.Simplebook):
             self._select_in_list(self._selection)
         return outer
 
-    def set_search_texts(self, label, name, results_name, no_results, results_title):
+    def set_search_texts(self, label, name, results_name, no_results, results_title, loading):
         """Translated texts; also used again when the language changes."""
         self._search_label.SetLabel(label)
         self._search.SetName(name)
         self._results.SetName(results_name)
         self._no_results = no_results
         self._results_template = results_title
+        self._loading_text = loading
         try:
             self._search.SetHint(name)
         except Exception:
@@ -360,6 +407,10 @@ class SettingsPages(wx.Simplebook):
     _guard = False
     _no_results = ""
     _results_template = "{count}"
+    _loading_text = ""
+    _results_row_stale = False      # the first row waits for the focus to go
+    _results_row_timer = None       # running: the focus has only just gone
+    _rows_shown = None              # the results list as last set
 
     def _on_list_selected(self, event):
         if self._guard:
@@ -393,16 +444,20 @@ class SettingsPages(wx.Simplebook):
         for i in range(self.GetPageCount()):
             self._index += collect_entries(self.GetPage(i), i, self._titles[i])
         for i, caption, window, opener in self._subpages:
-            self._index += collect_entries(
-                window, i, f"{self._titles[i]}: {caption}", opener)
+            window = self._subpage_window(window)
+            if window is not None:
+                self._index += collect_entries(
+                    window, i, f"{self._titles[i]}: {caption}", opener)
 
     def _on_search_text(self, event):
         query = _fold(self._search.GetValue()).split()
         if not query:
             self._end_search()
             return
-        self._rebuild_index()
-        self._found = [e for e in self._index if all(w in e.folded for w in query)]
+        if self._before_search is not None:
+            self._before_search()
+        self._found = self._matches(query)
+        self._results_row_stale = False
         self._searching = True
         self._shown = []
         for e in self._found:
@@ -418,10 +473,103 @@ class SettingsPages(wx.Simplebook):
             self._list.Focus(0)
         finally:
             self._guard = False
-        self._results.Set([f"{e.category}: {e.label}" for e in self._found])
-        if not self._found:
-            self._results.Set([self._no_results])
+        self._rows_shown = self._result_rows()
+        self._results.Set(self._rows_shown)
         self._show_results(True)
+
+    def _matches(self, query):
+        self._rebuild_index()
+        return [e for e in self._index if all(w in e.folded for w in query)]
+
+    def _result_rows(self):
+        """The rows of the results list. "Nothing found" only once nothing is
+        left to search: said while pages are being built, it could be false."""
+        if self._found:
+            return [f"{e.category}: {e.label}" for e in self._found]
+        return [self._loading_text if self._loading else self._no_results]
+
+    @property
+    def search_loading(self):
+        return self._loading
+
+    def set_search_loading(self, loading):
+        # Only a change says something new: a new search sets it before its
+        # own results are known, and lays out its lists itself.
+        if loading == self._loading:
+            return
+        self._loading = loading
+        self.refresh_search()
+
+    def refresh_search(self):
+        """A page was built during a search: add what it matches at the end, so
+        a result already chosen stays chosen and where it was."""
+        if not self._searching:
+            return
+        added = new_entries(self._found, self._matches(_fold(self._search.GetValue()).split()))
+        first_results = added and not self._found
+        self._found += added
+        self._guard = True
+        self._list.Freeze()
+        try:
+            # A row added at the end changes no row's name, so it is safe under
+            # the focus: the screen reader says nothing and the arrows reach it.
+            for e in added:
+                if e.page_index not in self._shown:
+                    self._shown.append(e.page_index)
+                    self._list.InsertItem(self._list.GetItemCount(), self._titles[e.page_index])
+        finally:
+            self._list.Thaw()
+            self._guard = False
+        self._refresh_results_row()
+        if first_results or not self._found:
+            rows = self._result_rows()
+            if rows == self._rows_shown:
+                # The same placeholder: set again, it would be read again.
+                return
+            self._rows_shown = rows
+            on_the_placeholder = self._results.HasFocus()
+            self._results.Set(rows)
+            if on_the_placeholder:
+                # The only row under the focus is gone; choosing its successor
+                # is what tells the screen reader, once.
+                self._results.SetSelection(0)
+        elif added:
+            self._results.Freeze()
+            try:
+                for e in added:
+                    self._results.Append(f"{e.category}: {e.label}")
+            finally:
+                self._results.Thaw()
+
+    def _refresh_results_row(self):
+        """The count on the first row. The one row rewritten, so it waits while
+        the focus is on the list and a moment after: rewritten under the focus,
+        it would be read again for every page that arrives."""
+        timer = self._results_row_timer
+        if self._list.HasFocus() or (timer is not None and timer.IsRunning()):
+            self._results_row_stale = True
+            return
+        self._results_row_stale = False
+        self._guard = True
+        try:
+            self._list.SetItemText(0, self._results_title())
+        finally:
+            self._guard = False
+
+    def _on_list_focus_lost(self, event):
+        # Every time during a search: a page that arrives just after the focus
+        # left is as early for the screen reader as one that arrived before.
+        event.Skip()
+        if not self._searching:
+            return
+        if self._results_row_timer is None:
+            self._results_row_timer = wx.CallLater(RESULTS_ROW_HOLD_MS, self._results_row_settled)
+        else:
+            self._results_row_timer.Start(RESULTS_ROW_HOLD_MS)
+
+    def _results_row_settled(self):
+        if self and self._searching and self._results_row_stale:
+            self._refresh_results_row()
 
     def _results_title(self):
         return self._results_template.format(count=len(self._found))
@@ -430,6 +578,8 @@ class SettingsPages(wx.Simplebook):
         if not self._searching:
             return
         self._searching = False
+        self._results_row_stale = False
+        self._rows_shown = None
         self._found = []
         self._guard = True
         try:

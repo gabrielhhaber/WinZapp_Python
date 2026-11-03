@@ -39,6 +39,7 @@ Four later defects in the same area are pinned here as well:
 """
 
 import time
+import types
 
 import pytest
 
@@ -701,3 +702,93 @@ class TestGroupSettingNotifValue:
         assert group_setting_notif_value({}) is None
         assert group_setting_notif_value({"body": "   "}) is None
         assert group_setting_notif_value(None) is None
+
+
+
+class _InfoStub(_Stub):
+    """What get_group_info() calls with a group-info answer."""
+
+    _remember_group_send_perms = MainWindow._remember_group_send_perms
+    _record_group_send_perms = MainWindow._record_group_send_perms
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.persisted = 0
+        self.refreshed = []
+        self.conversations_panel = types.SimpleNamespace(refresh_composer_permissions=None)
+
+    def _persist_group_send_perms(self):
+        self.persisted += 1
+
+
+def _info(announce=True, me_admin=False):
+    return {"id": "123456-group@g.us", "announce": announce, "participants": [
+        {"id": "5511999999999@s.whatsapp.net", "isAdmin": me_admin},
+        {"id": "5511888888888@s.whatsapp.net", "isAdmin": True}]}
+
+
+class TestGroupInfoClosesTheField:
+    """REGRESSION (Neonize): list-chats carries no groupMetadata there, so a
+    group closed to members kept its message field open until a notice that
+    its setting changed. Opening the group asks for group-info, which knows."""
+
+    JID = "123456-group@g.us"
+
+    @pytest.fixture(autouse=True)
+    def _calls(self, monkeypatch):
+        import main_window.groups as groups
+        self.calls = []
+        monkeypatch.setattr(groups.wx, "CallAfter",
+                            lambda fn, *args: self.calls.append(args))
+
+    def test_a_closed_group_restricts_a_member(self):
+        stub = _InfoStub()
+        stub._remember_group_send_perms(self.JID, _info())
+        assert stub._is_group_send_restricted({"remoteJid": self.JID})
+        assert stub.persisted == 1
+        assert self.calls == [(self.JID, False)]
+
+    def test_an_admin_keeps_the_field(self):
+        stub = _InfoStub()
+        stub._remember_group_send_perms(self.JID, _info(me_admin=True))
+        assert not stub._is_group_send_restricted({"remoteJid": self.JID})
+        assert self.calls == []
+
+    def test_a_group_opened_again_changes_nothing(self):
+        stub = _InfoStub(group_send_perms={self.JID: _verdict(True, False)})
+        stub._remember_group_send_perms(self.JID, _info())
+        assert stub.persisted == 0 and self.calls == []
+
+    def test_a_group_reopened_to_members_frees_the_field(self):
+        stub = _InfoStub(group_send_perms={self.JID: _verdict(True, False)})
+        stub._remember_group_send_perms(self.JID, _info(announce=False))
+        assert not stub._is_group_send_restricted({"remoteJid": self.JID})
+        assert self.calls == [(self.JID, True)]
+
+    def test_an_answer_without_the_setting_decides_nothing(self):
+        stub = _InfoStub()
+        stub._remember_group_send_perms(self.JID, {"participants": []})
+        assert stub._group_send_perms == {} and self.calls == []
+
+    def test_an_expired_verdict_is_replaced_saved_and_shown(self):
+        """REGRESSION (review): compared with the expired verdict, the fresh
+        one looked unchanged and was neither saved nor shown, so the field
+        stayed open at every first open after a day."""
+        stub = _InfoStub(group_send_perms={self.JID: _verdict(True, False, age_seconds=25 * 3600)})
+        assert not stub._is_group_send_restricted({"remoteJid": self.JID})
+        stub._remember_group_send_perms(self.JID, _info())
+        assert stub._is_group_send_restricted({"remoteJid": self.JID})
+        assert stub.persisted == 1
+        assert self.calls == [(self.JID, False)]
+
+    def test_get_group_info_hands_its_answer_over(self, monkeypatch):
+        import main_window.groups as groups
+        stub = _InfoStub()
+        stub.wpp_server, stub.wpp_port, stub.token = "http://127.0.0.1", 6300, "T"
+        stub._reconcile_group_info_name = lambda jid, info: None
+        stub._remember_group_kind = lambda jid, info: None
+        monkeypatch.setattr(groups, "api_get", lambda url, **kw: types.SimpleNamespace(
+            status_code=200, json=lambda: {"response": _info()}))
+        assert MainWindow.get_group_info(stub, self.JID)["announce"] is True
+        assert stub._is_group_send_restricted({"remoteJid": self.JID})
+

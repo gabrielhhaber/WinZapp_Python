@@ -290,3 +290,39 @@ def test_protocol_that_is_not_a_revocation_still_gives_no_message():
     msg = Message()
     msg.protocolMessage.type = ProtocolMessage.EPHEMERAL_SETTING
     assert _build(msg) is None
+
+
+
+def _rich(*texts, unified=b""):
+    m = Message()
+    rich = m.richResponseMessage
+    for text in texts:
+        rich.submessages.add(messageText=text)
+    if unified:
+        rich.unifiedResponse.data = unified
+    return m
+
+
+def _meta_ai_reply(id, message):
+    return msgmap.build(chat="13135550002@bot", from_me=False, id=id,
+                        sender="13135550002@bot", ts=1, message=message)
+
+
+def test_a_meta_ai_reply_carries_its_text_as_whatsapp_web_does():
+    out = _meta_ai_reply("MSG1", _rich("Hello", "", "there"))
+    assert out["type"] == "rich_response" and out["body"] == ""
+    assert out["richResponse"] == {"fragments": [
+        {"type": "Text", "text": "Hello"}, {"type": "Text", "text": "there"}]}
+    assert "unifiedResponse" not in out
+
+
+def test_a_meta_ai_reply_in_the_newer_layout_carries_its_unified_response():
+    unified = b'{"sections": [{"view_model": {"primitive": {"text": "Hi"}}}]}'
+    out = _meta_ai_reply("MSG2", _rich(unified=unified))
+    assert out["unifiedResponse"]["sections"][0]["view_model"]["primitive"]["text"] == "Hi"
+
+
+def test_a_unified_response_that_is_not_json_is_left_out():
+    out = _meta_ai_reply("M3", _rich("Hi", unified=b"\xff not json"))
+    assert out["type"] == "rich_response" and "unifiedResponse" not in out
+

@@ -1,0 +1,407 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp build <build@winzapp.invalid>
+Date: Mon, 2 Nov 2026 21:15:03 -0300
+Subject: [PATCH] send: the sender key only for the devices that do not hold it
+
+Every group message encrypted the sender key distribution message for every
+device of the group: one pairwise encryption and one session write per device,
+and a node that grows with them. Measured with Neonize: 1250 ms for a reply to
+a group of about 65 people and 3753 ms for a file, against 158 ms for a text
+to a person. WhatsApp's own clients distribute the key once.
+
+The client now remembers, in memory, the devices each group's key reached,
+and leaves <participants> out when nobody needs it. A send that fails forgets
+the group, so its next message goes to everyone again.
+
+A remembered device whose session is gone gets the key again: whatsmeow
+deletes every session of a number whose identity changed (a reinstall, a new
+phone), and the device comes back under the same JID without the key. Its
+retry receipt is not enough, since whatsmeow answers one only from its
+recent-message cache, which a restart empties. When the sessions or the LID
+mappings cannot be read, every device gets the key.
+---
+ client.go              |   1 +
+ send.go                |  30 ++++++--
+ send_senderkey.go      | 159 +++++++++++++++++++++++++++++++++++++++++
+ send_senderkey_test.go | 129 +++++++++++++++++++++++++++++++++
+ 4 files changed, 313 insertions(+), 6 deletions(-)
+ create mode 100644 send_senderkey.go
+ create mode 100644 send_senderkey_test.go
+
+diff --git a/client.go b/client.go
+index 5ca43e0..a434be7 100644
+--- a/client.go
++++ b/client.go
+@@ -143,6 +143,7 @@ type Client struct {
+ 
+ 	groupCache           map[types.JID]*groupMetaCache
+ 	groupCacheLock       sync.Mutex
++	senderKeys           senderKeyMemory
+ 	userDevicesCache     map[types.JID]deviceCache
+ 	userDevicesCacheLock sync.Mutex
+ 
+diff --git a/send.go b/send.go
+index c75efa2..1151380 100644
+--- a/send.go
++++ b/send.go
+@@ -406,6 +406,14 @@ func (cli *Client) SendMessage(ctx context.Context, to types.JID, message *waE2E
+ 	respChan := cli.waitResponse(req.ID)
+ 	var phash string
+ 	var data []byte
++	if to.Server == types.GroupServer {
++		// Nothing proves a message that failed reached anyone.
++		defer func() {
++			if err != nil {
++				cli.senderKeys.forget(to)
++			}
++		}()
++	}
+ 	switch to.Server {
+ 	case types.GroupServer, types.BroadcastServer:
+ 		phash, data, err = cli.sendGroup(ctx, ownID, to, groupParticipants, req.ID, message, &resp.DebugTimings, extraParams)
+@@ -829,6 +837,9 @@ func (cli *Client) sendGroup(
+ 	if err != nil {
+ 		return "", nil, fmt.Errorf("failed to send message node: %w", err)
+ 	}
++	if to.Server == types.GroupServer {
++		cli.senderKeys.remember(to, senderKeyRecipients(node))
++	}
+ 	return phash, data, nil
+ }
+ 
+@@ -1319,9 +1330,14 @@ func (cli *Client) prepareMessageNode(
+ 		encAttrs["decrypt-fail"] = string(events.DecryptFailHide)
+ 	}
+ 
++	recipients := allDevices
++	if to.Server == types.GroupServer {
++		recipients = cli.senderKeyRecipientsFor(ctx, to, allDevices)
++	}
++
+ 	start = time.Now()
+ 	participantNodes, includeIdentity, err := cli.encryptMessageForDevices(
+-		ctx, allDevices, id, plaintext, dsmPlaintext, encAttrs,
++		ctx, recipients, id, plaintext, dsmPlaintext, encAttrs,
+ 	)
+ 	timings.PeerEncrypt = time.Since(start)
+ 	if err != nil {
+@@ -1331,12 +1347,14 @@ func (cli *Client) prepareMessageNode(
+ 		Tag:     "participants",
+ 		Content: participantNodes,
+ 	}
++	content := cli.getMessageContent(participantNode, message, attrs, includeIdentity, extraParams)
++	if to.Server == types.GroupServer {
++		content = withoutEmptyParticipants(content)
++	}
+ 	return &waBinary.Node{
+-		Tag:   "message",
+-		Attrs: attrs,
+-		Content: cli.getMessageContent(
+-			participantNode, message, attrs, includeIdentity, extraParams,
+-		),
++		Tag:     "message",
++		Attrs:   attrs,
++		Content: content,
+ 	}, allDevices, nil
+ }
+ 
+diff --git a/send_senderkey.go b/send_senderkey.go
+new file mode 100644
+index 0000000..a06d52d
+--- /dev/null
++++ b/send_senderkey.go
+@@ -0,0 +1,159 @@
++package whatsmeow
++
++import (
++	"context"
++	"sync"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/types"
++)
++
++// senderKeyMemory remembers which devices of each group already hold this
++// client's sender key, so a group message only pays for the devices that do
++// not: WhatsApp's own clients distribute the key once, while encrypting it for
++// every device of the group on every message costs one pairwise encryption per
++// device (1.2 s for a text to a group of about 65 people, against 0.16 s to a
++// person). A device that lost the key asks for it with a retry receipt, which
++// handleRetryReceipt answers with the key whatever is remembered here, so the
++// memory lives in RAM and a doubt only ever costs one full distribution.
++type senderKeyMemory struct {
++	lock   sync.Mutex
++	groups map[types.JID]map[types.JID]struct{}
++}
++
++// missing returns the devices with no record of holding the group's key.
++func (m *senderKeyMemory) missing(group types.JID, devices []types.JID) []types.JID {
++	m.lock.Lock()
++	defer m.lock.Unlock()
++	known := m.groups[group]
++	missing := make([]types.JID, 0, len(devices))
++	for _, device := range devices {
++		if _, ok := known[device]; !ok {
++			missing = append(missing, device)
++		}
++	}
++	return missing
++}
++
++// remember records the devices the key was just sent to.
++func (m *senderKeyMemory) remember(group types.JID, devices []types.JID) {
++	m.lock.Lock()
++	defer m.lock.Unlock()
++	if m.groups == nil {
++		m.groups = make(map[types.JID]map[types.JID]struct{})
++	}
++	known := m.groups[group]
++	if known == nil {
++		known = make(map[types.JID]struct{}, len(devices))
++		m.groups[group] = known
++	}
++	for _, device := range devices {
++		known[device] = struct{}{}
++	}
++}
++
++// forget drops the group's record: its next message goes to every device again.
++func (m *senderKeyMemory) forget(group types.JID) {
++	m.lock.Lock()
++	defer m.lock.Unlock()
++	delete(m.groups, group)
++}
++
++// senderKeyRecipientsFor is the devices of the group the key must go to: those
++// with no record of holding it, and those whose session is gone. whatsmeow
++// deletes every session of a number whose identity changed (a reinstall, a new
++// phone: handleIdentityChange, clearUntrustedIdentity), and the device comes
++// back under the same JID without the key; only a fresh pkmsg carries it again.
++// Waiting for its retry receipt is not enough: whatsmeow answers one only from
++// its recent-message cache, which a restart empties. When the sessions cannot
++// be read, every device gets the key, as before this memory existed.
++func (cli *Client) senderKeyRecipientsFor(ctx context.Context, group types.JID, allDevices []types.JID) []types.JID {
++	missing := cli.senderKeys.missing(group, allDevices)
++	if len(missing) == len(allDevices) {
++		return missing
++	}
++	ownJID, ownLID := cli.getOwnID(), cli.getOwnLID()
++	lacking := make(map[types.JID]struct{}, len(missing))
++	for _, device := range missing {
++		lacking[device] = struct{}{}
++	}
++	var remembered, pnDevices []types.JID
++	for _, device := range allDevices {
++		if _, ok := lacking[device]; ok || device == ownJID || device == ownLID {
++			continue
++		}
++		remembered = append(remembered, device)
++		if device.Server == types.DefaultUserServer {
++			pnDevices = append(pnDevices, device)
++		}
++	}
++	lids, err := cli.Store.LIDs.GetManyLIDsForPNs(ctx, pnDevices)
++	if err != nil {
++		cli.Log.Warnf("Sending the group key to every device: LID mappings unreadable: %v", err)
++		return allDevices
++	}
++	addressOf := make(map[types.JID]string, len(remembered))
++	addresses := make([]string, 0, len(remembered))
++	for _, device := range remembered {
++		identity := device
++		if lid, ok := lids[device]; ok && !lid.IsEmpty() {
++			identity = lid
++		}
++		addressOf[device] = identity.SignalAddress().String()
++		addresses = append(addresses, addressOf[device])
++	}
++	sessions, _, err := cli.Store.WithCachedSessions(ctx, addresses)
++	if err != nil {
++		cli.Log.Warnf("Sending the group key to every device: sessions unreadable: %v", err)
++		return allDevices
++	}
++	return withoutSession(allDevices, missing, func(device types.JID) bool {
++		address, ok := addressOf[device]
++		return ok && sessions[address]
++	})
++}
++
++// withoutSession is `missing` plus every other device of `all` that
++// `hasSession` says lost its session, in the order of `all`.
++func withoutSession(all, missing []types.JID, hasSession func(types.JID) bool) []types.JID {
++	lacking := make(map[types.JID]struct{}, len(missing))
++	for _, device := range missing {
++		lacking[device] = struct{}{}
++	}
++	out := make([]types.JID, 0, len(missing))
++	for _, device := range all {
++		if _, ok := lacking[device]; ok || !hasSession(device) {
++			out = append(out, device)
++		}
++	}
++	return out
++}
++
++// senderKeyRecipients lists the devices a <message> node carries the key for.
++func senderKeyRecipients(node *waBinary.Node) []types.JID {
++	participants, ok := node.GetOptionalChildByTag("participants")
++	if !ok {
++		return nil
++	}
++	children := participants.GetChildren()
++	devices := make([]types.JID, 0, len(children))
++	for _, to := range children {
++		if jid, ok := to.Attrs["jid"].(types.JID); ok {
++			devices = append(devices, jid)
++		}
++	}
++	return devices
++}
++
++// withoutEmptyParticipants leaves out a <participants> with nobody in it: with
++// every device holding the key, a group message is just its <enc type="skmsg">.
++func withoutEmptyParticipants(content []waBinary.Node) []waBinary.Node {
++	kept := make([]waBinary.Node, 0, len(content))
++	for _, child := range content {
++		if child.Tag == "participants" && len(child.GetChildren()) == 0 {
++			continue
++		}
++		kept = append(kept, child)
++	}
++	return kept
++}
+diff --git a/send_senderkey_test.go b/send_senderkey_test.go
+new file mode 100644
+index 0000000..c7b31b2
+--- /dev/null
++++ b/send_senderkey_test.go
+@@ -0,0 +1,129 @@
++package whatsmeow
++
++import (
++	"reflect"
++	"testing"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/types"
++)
++
++var (
++	skGroup  = types.NewJID("120363000000000001", types.GroupServer)
++	skOther  = types.NewJID("120363000000000002", types.GroupServer)
++	skDevice = types.NewJID("111", types.HiddenUserServer)
++	skPhone  = types.NewJID("222", types.HiddenUserServer)
++)
++
++func TestARememberedDeviceWithoutASessionGetsTheKeyAgain(t *testing.T) {
++	// A reinstall deletes the sessions; the JID, and the memory, stay.
++	all := []types.JID{skDevice, skPhone}
++	got := withoutSession(all, nil, func(device types.JID) bool { return device != skPhone })
++	if !reflect.DeepEqual(got, []types.JID{skPhone}) {
++		t.Fatalf("recipients = %v", got)
++	}
++}
++
++func TestDevicesWithTheirSessionsNeedNothing(t *testing.T) {
++	all := []types.JID{skDevice, skPhone}
++	got := withoutSession(all, nil, func(types.JID) bool { return true })
++	if len(got) != 0 {
++		t.Fatalf("recipients = %v", got)
++	}
++}
++
++func TestAMissingDeviceStaysMissingWhateverItsSession(t *testing.T) {
++	all := []types.JID{skDevice, skPhone}
++	got := withoutSession(all, []types.JID{skDevice}, func(types.JID) bool { return true })
++	if !reflect.DeepEqual(got, []types.JID{skDevice}) {
++		t.Fatalf("recipients = %v", got)
++	}
++}
++
++func TestAGroupNotSeenBeforeNeedsTheKeyEverywhere(t *testing.T) {
++	var memory senderKeyMemory
++	devices := []types.JID{skDevice, skPhone}
++	if got := memory.missing(skGroup, devices); !reflect.DeepEqual(got, devices) {
++		t.Fatalf("missing = %v", got)
++	}
++}
++
++func TestTheKeyGoesOnlyToWhoDoesNotHaveIt(t *testing.T) {
++	var memory senderKeyMemory
++	memory.remember(skGroup, []types.JID{skDevice})
++	got := memory.missing(skGroup, []types.JID{skDevice, skPhone})
++	if !reflect.DeepEqual(got, []types.JID{skPhone}) {
++		t.Fatalf("missing = %v", got)
++	}
++}
++
++func TestEveryDeviceHoldingTheKeyLeavesNobodyToSendItTo(t *testing.T) {
++	var memory senderKeyMemory
++	memory.remember(skGroup, []types.JID{skDevice, skPhone})
++	if got := memory.missing(skGroup, []types.JID{skDevice, skPhone}); len(got) != 0 {
++		t.Fatalf("missing = %v", got)
++	}
++}
++
++func TestOneGroupSaysNothingAboutAnother(t *testing.T) {
++	var memory senderKeyMemory
++	memory.remember(skGroup, []types.JID{skDevice})
++	if got := memory.missing(skOther, []types.JID{skDevice}); len(got) != 1 {
++		t.Fatalf("missing = %v", got)
++	}
++}
++
++func TestAFailedSendSendsTheKeyToEveryoneAgain(t *testing.T) {
++	var memory senderKeyMemory
++	memory.remember(skGroup, []types.JID{skDevice, skPhone})
++	memory.forget(skGroup)
++	if got := memory.missing(skGroup, []types.JID{skDevice, skPhone}); len(got) != 2 {
++		t.Fatalf("missing = %v", got)
++	}
++}
++
++func TestForgettingAGroupNeverSeenDoesNothing(t *testing.T) {
++	var memory senderKeyMemory
++	memory.forget(skGroup)
++}
++
++func TestTheRecipientsAreTheDevicesOfTheNode(t *testing.T) {
++	node := waBinary.Node{Tag: "message", Content: []waBinary.Node{
++		{Tag: "participants", Content: []waBinary.Node{
++			{Tag: "to", Attrs: waBinary.Attrs{"jid": skDevice}},
++			{Tag: "to", Attrs: waBinary.Attrs{"jid": skPhone}},
++		}},
++		{Tag: "enc"},
++	}}
++	got := senderKeyRecipients(&node)
++	if !reflect.DeepEqual(got, []types.JID{skDevice, skPhone}) {
++		t.Fatalf("recipients = %v", got)
++	}
++}
++
++func TestAMessageWithNoParticipantsHasNoRecipients(t *testing.T) {
++	node := waBinary.Node{Tag: "message", Content: []waBinary.Node{{Tag: "enc"}}}
++	if got := senderKeyRecipients(&node); got != nil {
++		t.Fatalf("recipients = %v", got)
++	}
++}
++
++func TestAnEmptyParticipantsNodeIsLeftOut(t *testing.T) {
++	content := []waBinary.Node{
++		{Tag: "participants", Content: []waBinary.Node{}},
++		{Tag: "device-identity"},
++	}
++	got := withoutEmptyParticipants(content)
++	if len(got) != 1 || got[0].Tag != "device-identity" {
++		t.Fatalf("content = %v", got)
++	}
++}
++
++func TestParticipantsWithSomeoneStay(t *testing.T) {
++	content := []waBinary.Node{{Tag: "participants", Content: []waBinary.Node{
++		{Tag: "to", Attrs: waBinary.Attrs{"jid": skDevice}},
++	}}}
++	if got := withoutEmptyParticipants(content); len(got) != 1 {
++		t.Fatalf("content = %v", got)
++	}
++}

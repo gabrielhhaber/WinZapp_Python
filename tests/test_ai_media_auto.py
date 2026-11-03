@@ -98,6 +98,20 @@ def _options(local_on, answer, monkeypatch):
     return dialog, asked
 
 
+def test_ticking_the_local_option_reads_an_ai_page_never_opened_from_the_store(monkeypatch):
+    """Turned on with nothing to replace, the AI page is not built for it."""
+    from types import SimpleNamespace
+    from core.ai_media import config as ai_config
+
+    dialog, asked = _options(local_on=True, answer=True, monkeypatch=monkeypatch)
+    del dialog._ai_page
+    dialog.main_window._app_settings = object()
+    dialog.main_window.settings = {}
+    monkeypatch.setattr(ai_config, "preferences", lambda app: {"auto_transcribe": False})
+    dialog._on_local_auto_toggle(SimpleNamespace(Skip=lambda: None))
+    assert asked == [] and "_ai_page" not in vars(dialog)
+
+
 def test_turning_the_online_option_on_asks_before_turning_the_local_one_off(monkeypatch):
     dialog, asked = _options(local_on=True, answer=True, monkeypatch=monkeypatch)
     assert dialog._confirm_online_replaces_local() is True

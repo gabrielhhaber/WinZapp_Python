@@ -2,7 +2,7 @@
 """Monta client/data/help_guide/<idioma>.html a partir de template.html, i18n/ e secoes/<idioma>/*.html.
 
 Uso: python gerar_guia.py <pasta-do-repositorio-winzapp> [idioma ...]
-Sem idiomas, gera todos. Idiomas: pt-BR, pt-PT, en-US, es-ES, pl, tr-TR, ro.
+Sem idiomas, gera todos. Idiomas: pt-BR, pt-PT, en-US, es-ES, pl, tr-TR, ro, ar.
 
 1. Regenera as tabelas de atalhos do catálogo do repositório, com o PO do idioma.
 2. Numera e junta as seções (ordem dos nomes de arquivo).
@@ -12,7 +12,7 @@ import json, re, subprocess, sys
 from pathlib import Path
 
 AQUI = Path(__file__).parent
-IDIOMAS = ['pt-BR', 'pt-PT', 'en-US', 'es-ES', 'pl', 'tr-TR', 'ro']
+IDIOMAS = ['pt-BR', 'pt-PT', 'en-US', 'es-ES', 'pl', 'tr-TR', 'ro', 'ar']
 
 def gerar(repo, loc, pasta_saida=None):
     t = json.loads((AQUI / 'i18n' / f'{loc}.json').read_text(encoding='utf-8'))
@@ -35,7 +35,7 @@ def gerar(repo, loc, pasta_saida=None):
         secoes.append(f'  <section id="{sid}" class="wiki-section" aria-labelledby="h-{sid}">\n'
                       f'    <h2 id="h-{sid}">{emoji} {n}. {sem_emoji}</h2>\n{corpo}\n  </section>\n')
     gerado.unlink()
-    campos = {'LANG': t['lang'], 'SUBTITLE': t['subtitle'], 'SKIP': t['skip'], 'MENU': t['menu'],
+    campos = {'LANG': t['lang'], 'DIR': t.get('dir', 'ltr'), 'SUBTITLE': t['subtitle'], 'SKIP': t['skip'], 'MENU': t['menu'],
               'MENU_OPEN_LABEL': t['menu_open_label'], 'CLOSE': t['close'], 'NAV_LABEL': t['nav_label'],
               'SEARCH': t['search'], 'SEARCH_LABEL': t['search_label'], 'INTRO': t['intro'],
               'COVERAGE': t['coverage'].replace('{ALPHA}', cob['alpha']).replace('{DATA}', cob['data']),
@@ -61,9 +61,6 @@ def main():
             gerar(repo, loc)
         else:
             print(f'{loc}: sem pasta secoes/{loc}, ignorado')
-    if not sys.argv[2:] or 'ar' in alvo:
-        from arabic_help import generate
-        generate(Path(repo) / 'client' / 'data' / 'help_guide')
 
 if __name__ == '__main__':
     main()

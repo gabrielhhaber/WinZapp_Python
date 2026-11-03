@@ -92,6 +92,7 @@ _CONTACT_OPTIONAL = {
 
 _STATUS_REQUIRED = {"status": (str,)}
 _STATUS_OPTIONAL = {
+    "syncing": (bool,),
     "qrcode": (str,),
     "urlcode": (str,),
     "session": (str,),

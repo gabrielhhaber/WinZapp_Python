@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -49,7 +49,7 @@
   }
 
   .skip-link {
-    position: absolute; top: -100px; left: 1rem;
+    position: absolute; top: -100px; inset-inline-start: 1rem;
     background: var(--accent); color: #fff;
     padding: 8px 16px; border-radius: var(--radius);
     font-family: var(--font-ui); font-size: 14px; z-index: 9999;
@@ -59,9 +59,9 @@
 
   /* ── Sidebar ── */
   .sidebar {
-    position: fixed; top: 0; left: 0;
+    position: fixed; top: 0; inset-inline-start: 0;
     width: var(--sidebar-w); height: 100vh;
-    background: var(--surface-2); border-right: 1px solid var(--border);
+    background: var(--surface-2); border-inline-end: 1px solid var(--border);
     overflow-y: auto; padding: 0 0 2rem;
     z-index: 100; display: flex; flex-direction: column;
   }
@@ -101,29 +101,29 @@
     padding: .5rem 1.25rem .25rem;
   }
   .nav-link {
-    display: block; padding: 5px 1.25rem 5px 1.5rem;
+    display: block; padding-block: 5px; padding-inline: 1.5rem 1.25rem;
     font-family: var(--font-ui); font-size: 13.5px; color: var(--ink-light);
-    text-decoration: none; border-left: 3px solid transparent;
+    text-decoration: none; border-inline-start: 3px solid transparent;
     transition: all .15s; line-height: 1.4;
   }
-  .nav-link:hover { color: var(--accent); background: var(--surface-3); border-left-color: var(--accent); }
-  .nav-link.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-left-color: var(--accent); font-weight: 600; }
+  .nav-link:hover { color: var(--accent); background: var(--surface-3); border-inline-start-color: var(--accent); }
+  .nav-link.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-inline-start-color: var(--accent); font-weight: 600; }
 
   /* ── Main ── */
-  .main { margin-left: var(--sidebar-w); flex: 1; max-width: 860px; padding: 3rem 4rem 6rem; }
+  .main { margin-inline-start: var(--sidebar-w); flex: 1; max-width: 860px; padding: 3rem 4rem 6rem; }
 
   .wiki-section { margin-bottom: 4rem; padding-top: 1rem; }
   .wiki-section:not(:last-child) { border-bottom: 1px solid var(--border); padding-bottom: 3rem; }
 
   h1 { font-family: var(--font-ui); font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -.5px; line-height: 1.2; margin-bottom: 1rem; }
   h2 { font-family: var(--font-ui); font-size: 1.35rem; font-weight: 700; color: var(--ink); margin: 2rem 0 .75rem; letter-spacing: -.2px; display: flex; align-items: center; gap: .5rem; }
-  h2::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-left: .5rem; }
+  h2::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-inline-start: .5rem; }
   h3 { font-family: var(--font-ui); font-size: 1rem; font-weight: 700; color: var(--ink); margin: 1.5rem 0 .5rem; }
 
   .lead { font-size: 1.05rem; color: var(--ink-light); margin-bottom: 1.5rem; line-height: 1.8; }
   p { margin-bottom: 1rem; }
 
-  .callout { border-left: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); padding: .85rem 1.25rem; border-radius: 0 var(--radius) var(--radius) 0; margin: 1.25rem 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
+  .callout { border-inline-start: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); padding: .85rem 1.25rem; border-start-end-radius: var(--radius); border-end-end-radius: var(--radius); margin: 1.25rem 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
   .callout.tip  { border-color: var(--success); background: color-mix(in srgb, var(--success) 6%, var(--surface-2)); }
   .callout.warn { border-color: var(--accent-warm); background: color-mix(in srgb, var(--accent-warm) 6%, var(--surface-2)); }
   .callout.info { border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 6%, var(--surface-2)); }
@@ -143,7 +143,7 @@
   .col-card h4 { font-size: 13px; font-weight: 700; margin-bottom: .5rem; color: var(--ink); display: flex; align-items: center; gap: 6px; }
 
   .field-table { width: 100%; border-collapse: collapse; font-family: var(--font-ui); font-size: 13.5px; margin: 1rem 0 1.5rem; }
-  .field-table th { text-align: left; padding: 8px 12px; background: var(--surface-3); border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-muted); font-weight: 700; }
+  .field-table th { text-align: start; padding: 8px 12px; background: var(--surface-3); border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-muted); font-weight: 700; }
   .field-table td { padding: 8px 12px; border: 1px solid var(--border); color: var(--ink-light); vertical-align: top; line-height: 1.5; }
   .field-table tr:nth-child(even) td { background: var(--surface-2); }
   .field-name { font-family: var(--font-code); font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
@@ -152,16 +152,17 @@
 
   .hero-toc { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 1.5rem 0 2rem; font-family: var(--font-ui); font-size: 13.5px; }
   .hero-toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--ink-muted); margin-bottom: .75rem; }
-  .hero-toc ol { columns: 2; gap: 1rem; padding-left: 1.25rem; color: var(--ink-light); line-height: 2.2; }
+  .hero-toc ol { columns: 2; gap: 1rem; padding-inline-start: 1.25rem; color: var(--ink-light); line-height: 2.2; }
   .hero-toc a { color: var(--accent); text-decoration: none; }
   .hero-toc a:hover { text-decoration: underline; }
 
-  .menu-toggle { display: none; position: fixed; top: 1rem; right: 1rem; z-index: 200; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; font-weight: 700; cursor: pointer; }
+  .menu-toggle { display: none; position: fixed; top: 1rem; inset-inline-end: 1rem; z-index: 200; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; font-weight: 700; cursor: pointer; }
 
   @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); transition: transform .25s; }
-    .sidebar.open { transform: translateX(0); }
-    .main { margin-left: 0; padding: 2rem 1.25rem 4rem; }
+    [dir="rtl"] .sidebar { transform: translateX(100%); }
+    .sidebar.open, [dir="rtl"] .sidebar.open { transform: translateX(0); }
+    .main { margin-inline-start: 0; padding: 2rem 1.25rem 4rem; }
     .menu-toggle { display: block; }
     .cols-2 { grid-template-columns: 1fr; }
     .hero-toc ol { columns: 1; }
@@ -173,13 +174,19 @@
 
   @media print {
     .sidebar, .menu-toggle, .skip-link { display: none; }
-    .main { margin-left: 0; padding: 1rem; }
+    .main { margin-inline-start: 0; padding: 1rem; }
   }
   code { font-family: var(--font-code); font-size: .9em; background: var(--surface-3); padding: 1px 5px; border-radius: 3px; }
-  .desde { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; background: var(--accent-warm); color: #1a1a2e; border-radius: 10px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+  .desde { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; background: var(--accent-warm); color: #1a1a2e; border-radius: 10px; padding: 1px 8px; margin-inline-start: 6px; vertical-align: middle; }
   .cobertura { font-family: var(--font-ui); font-size: 13px; color: var(--ink-muted); margin-bottom: 1rem; }
-  ul, ol { margin: 0 0 1rem 1.5rem; } li { margin-bottom: .4rem; }
-  .steps { margin-left: 0; }
+  ul, ol { margin: 0 0 1rem; margin-inline-start: 1.5rem; } li { margin-bottom: .4rem; }
+  .steps { margin-inline-start: 0; }
+  /* Keys, paths and code read left to right inside right-to-left text. */
+  [dir="rtl"] code, [dir="rtl"] kbd { direction: ltr; unicode-bidi: isolate; }
+  [dir="rtl"] .field-name { unicode-bidi: plaintext; text-align: right; }
+  /* Georgia has no Arabic letters, and spacing breaks the joins between them. */
+  :root:lang(ar) { --font-body: 'Segoe UI', Tahoma, sans-serif; }
+  html:lang(ar) body * { letter-spacing: normal; }
 </style>
 </head>
 <body>
@@ -358,6 +365,7 @@
   <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
     <h2 id="h-conversas">💬 3. Lista de conversas</h2>
 <p class="lead">A lista de conversas (Alt+1) mostra os nomes das pessoas e grupos, nunca códigos internos. Cada linha lê o nome, a última mensagem e o estado (não lidas, fixada, silenciada...).</p>
+<p>Com o Neonize, uma conversa só é marcada como lida quando você a abre ou a marca como lida, e ela aparece como lida também no celular e no WhatsApp Web.</p>
 
 <h3>Filtros e listas</h3>
 <ul>
@@ -431,7 +439,7 @@
 <p>As opções "Usar Espaço para marcar/desmarcar enquanto houver algo marcado" e "Esc desmarca as mensagens marcadas antes de fechar a conversa" podem ser desligadas em Configurações &gt; Interface &gt; Conversas.</p>
 
 <h3>Conversas arquivadas</h3>
-<p>Alt+4 abre as arquivadas. Elas têm pesquisa própria (Ctrl+F), a mesma seleção e as mesmas ações. Uma conversa arquivada não é anunciada em voz alta quando chega mensagem nova com a lista de arquivadas fora da tela.</p>
+<p>Alt+4 abre as arquivadas. Elas têm pesquisa própria (Ctrl+F), a mesma seleção e as mesmas ações. Uma conversa arquivada não é anunciada em voz alta quando chega mensagem nova com a lista de arquivadas fora da tela. Com o Neonize, se a opção do WhatsApp "Manter conversas arquivadas" estiver desligada, uma conversa arquivada volta para a lista de conversas quando chega mensagem nova, como no celular.</p>
 
   </section>
 
@@ -591,7 +599,7 @@
   <tr><td class="field-name">Ctrl+Shift+H</td><td>Gravar microfone e áudio do computador</td></tr>
 </table>
 <ul>
-  <li><strong>Canais de gravação de mensagens de voz:</strong> Há um só botão de gravar. Em Configurações &gt; Áudio, "Canais de gravação de mensagens de voz" oferece "Automático (usar os canais do dispositivo)" (padrão), "Mono (misturar esquerda e direita)" e "Estéreo (quando disponível)". Automático e Estéreo mantêm dois canais quando o dispositivo permite e usam mono caso contrário. Mono calcula a média dos canais esquerdo e direito: use para um microfone ligado apenas à INPUT 1 ou INPUT 2 de uma interface de áudio. Com uma só entrada ativa, o volume diminui após a mistura; não há ganho automático nem detecção de canal silencioso. A escolha é fixada no início da gravação e também vale para a prévia pausada. Não afeta chamadas nem a gravação de microfone + áudio do computador. Mensagens de voz estéreo também tocam no iPhone.</li>
+  <li><strong>Canais de gravação de mensagens de voz:</strong> Há um só botão de gravar. Em Configurações &gt; Áudio, "Canais de gravação de mensagens de voz" oferece "Automático (usar os canais do dispositivo)" (padrão), "Mono (misturar esquerda e direita)" e "Estéreo (quando disponível)". Automático e Estéreo mantêm dois canais quando o dispositivo permite e usam mono caso contrário. Mono calcula a média dos canais esquerdo e direito: use para um microfone ligado apenas à INPUT 1 ou INPUT 2 de uma interface de áudio. Com uma só entrada ativa, o volume diminui após a mistura, e não há ganho automático. No Automático, uma gravação com um dos lados em silêncio total sai em mono, a partir do lado com som. A escolha é fixada no início da gravação e também vale para a prévia pausada. Não afeta chamadas nem a gravação de microfone + áudio do computador. Mensagens de voz estéreo também tocam no iPhone.</li>
   <li><strong>Microfone + áudio do computador:</strong> grava numa mensagem só a sua voz e o que o computador toca (um vídeo, uma música, o leitor de tela). Durante a gravação, dois controles deslizantes ajustam o volume dos demais sons e o do NVDA (sem NVDA, o segundo fica desativado); valem só para a gravação e ficam guardados por conta. Antes de começar, o WinZapp avisa que tudo o que tocar vai para a gravação, com "Não mostrar novamente" (a opção "Avisar antes de gravar o áudio do computador" volta a avisar). A gravação é enviada como áudio.</li>
   <li>Os anúncios da gravação podem ser silenciados; o leitor de tela não começa a dizer "Enviar" antes de ser interrompido.</li>
   <li><strong>Redução de ruído do microfone:</strong> com "Ativar redução de ruído do microfone" marcada em Configurações &gt; Áudio, a mesma página mostra o "Modelo de redução de ruído", com o estado e o botão "Baixar modelo de redução de ruído". O modelo neural é baixado uma única vez, pela internet, e as gravações são processadas no próprio computador. Sem o modelo, a redução usa o noise gate básico; se ele não puder ser usado numa gravação, o WinZapp avisa pelo leitor de tela e usa o noise gate básico naquele envio. Se a redução de ruído não puder ser aplicada de forma alguma, a mensagem é enviada sem processamento, também com aviso.</li>
@@ -829,13 +837,14 @@
 <h3>Conexão e recuperação</h3>
 <p>A conexão com o WhatsApp fica guardada no perfil do navegador interno. O WinZapp guarda cópias de segurança dele (Configurações &gt; Armazenamento &gt; Cópia de segurança) e as restaura sozinho quando a conexão é recusada, avisando em voz alta que restaurou e está reconectando; só pede para parear de novo quando não há cópia aproveitável. Se o navegador interno estiver incompleto (em geral, um antivírus removeu parte dele), o WinZapp diz isso e explica o que fazer.</p>
 <p>Se o WhatsApp desconectar a sessão, o WinZapp avisa na hora e abre o pareamento. Em Configurações &gt; Conexão você pode usar uma API personalizada (servidor remoto); nesse caso, o perfil do navegador e as cópias ficam por conta do servidor.</p>
+<p>Ao abrir o WinZapp depois de muito tempo sem usar a WPPConnect, o WhatsApp Web pode levar alguns minutos para se atualizar. Enquanto isso, o título da janela diz "sincronizando com o WhatsApp...": a conta não caiu e não é preciso fazer nada.</p>
 
   </section>
 
   <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
     <h2 id="h-configuracoes">⚙️ 14. Configurações</h2>
 <p>O árabe agora está disponível em Configurações > Geral > Idioma, com textos em árabe no instalador e no desinstalador do Windows.</p>
-<p class="lead">Arquivo &gt; Configurações (Ctrl+,) tem um campo de busca no alto e uma lista de categorias. Escreva no campo de busca e use a seta para baixo para ir aos resultados; Enter ou Espaço abre a opção encontrada. Sem busca, as setas trocam de categoria e Tab entra nas opções dela. Em algumas categorias, botões abrem a janela de um assunto (como Mensagens ou Conteúdo falado). Mude o que quiser e use Aplicar ou OK. Em Interface, o botão Atalhos de teclado deixa trocar qualquer atalho.</p>
+<p class="lead">Arquivo &gt; Configurações (Ctrl+,) tem um campo de busca no alto e uma lista de categorias. Escreva no campo de busca e use a seta para baixo para ir aos resultados; Enter ou Espaço abre a opção encontrada. Sem busca, as setas trocam de categoria e Tab entra nas opções dela. Em algumas categorias, botões abrem a janela de um assunto (como Mensagens ou Conteúdo falado). Mude o que quiser e use Aplicar ou OK. Em Interface, o botão Atalhos de teclado deixa trocar qualquer atalho. A janela abre direto na categoria Geral; as outras categorias e janelas são montadas na primeira vez que você vai até elas. Os resultados da busca chegam à medida que elas carregam, e você pode continuar digitando.</p>
 
 <table class="field-table">
   <tr><th>Categoria</th><th>O que você encontra</th></tr>
@@ -883,6 +892,7 @@
 <h3>Botão Privacidade</h3>
 <ul>
   <li>Visto por último e online; recado; foto do perfil; confirmação de leitura; quem pode adicionar você a grupos; quem pode ver o seu status (meus contatos, meus contatos exceto..., ou compartilhar somente com...).</li>
+  <li>Em "Conversas", "Manter conversas arquivadas": desligada, uma conversa arquivada volta para a lista de conversas quando chega mensagem nova. É uma opção do próprio WhatsApp, então vale também no celular e nos seus outros aparelhos.</li>
   <li>As pessoas do status são escolhidas entre os contatos sincronizados, numa lista com pesquisa em que cada uma é marcada com Espaço.</li>
   <li>A janela carrega os valores atuais, envia só o que você mudou e depois confere, dizendo quais configurações o WhatsApp não confirmou.</li>
 </ul>

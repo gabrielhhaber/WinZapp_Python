@@ -35,6 +35,7 @@ class WindowChromeMixin:
     _TRAY_STATUS_KEYS = (
         "tray_starting_wppconnect",
         "tray_connecting",
+        "tray_syncing_whatsapp",
         "synchronizing",
         "updating_conversations",
         "preparing_to_sync",

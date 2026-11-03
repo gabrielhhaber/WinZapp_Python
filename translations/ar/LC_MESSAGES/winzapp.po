@@ -7934,7 +7934,7 @@ msgstr "دردشة جديدة"
 #: client/ui/dialogs/new_conversation.py
 msgctxt "new_conversation_join_by_link"
 msgid "Join group by lin&k"
-msgstr "انضم إلى المجموعة بالراب&k"
+msgstr "انضم إلى المجموعة بالراب&ط"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_conversation.py
@@ -8470,7 +8470,6 @@ msgstr "تم تمكين وضع عدم الاتصال. بعض الميزات قد
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/ui/dialogs/shortcuts_tab.py
 #: client/ui/dialogs/status_audience_dialog.py
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "ok"
@@ -9137,7 +9136,7 @@ msgstr "صو&رة الملف الشخصي"
 #: client/ui/dialogs/profile_picture_dialog.py
 msgctxt "profile_picture_open_external"
 msgid "Open in extern&al viewer"
-msgstr "افتح في مشاه&ر خارجي"
+msgstr "افتح في عا&رض خارجي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "profile_picture_open_failed"
@@ -10203,6 +10202,12 @@ msgstr "ال&بحث في الإعدادات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "settings_search_loading"
+msgid "Still searching the other categories..."
+msgstr "جاري البحث في الفئات الأخرى…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "settings_search_none"
 msgid "No setting found."
 msgstr "لم يتم العثور على إعداد."
@@ -11255,7 +11260,7 @@ msgstr "Enter: نتيجة البحث التالية (بديل، يعمل فقط 
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_search_f3_label"
 msgid "F3: next search result, in the whole open conversation"
-msgstr "F3: نتيجة البحث التالية، في toda المحادثة المفتوحة"
+msgstr "F3: نتيجة البحث التالية، في كامل المحادثة المفتوحة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_tab.py
@@ -11281,7 +11286,7 @@ msgstr "Shift+Enter: نتيجة البحث السابقة (بديل، يعمل �
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_search_shift_f3_label"
 msgid "Shift+F3: previous search result, in the whole open conversation"
-msgstr "Shift+F3: نتيجة البحث السابقة، في toda المحادثة المفتوحة"
+msgstr "Shift+F3: نتيجة البحث السابقة، في كامل المحادثة المفتوحة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_select_active"
@@ -12664,7 +12669,8 @@ msgctxt "tab_accessibility"
 msgid "Accessibility"
 msgstr "إمكانية الوصول"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/advanced_tab.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_advanced"
 msgid "Advanced"
 msgstr "متقدم"
@@ -12734,7 +12740,7 @@ msgid "&Reactions"
 msgstr "&ردود الفعل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/shortcuts_tab.py
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_shortcuts"
 msgid "&Keyboard shortcuts"
 msgstr "&اختصارات لوحة المفاتيح"
@@ -15448,6 +15454,11 @@ msgctxt "tray_starting_wppconnect"
 msgid "starting WPPConnect..."
 msgstr "جاري بدء WPPConnect…"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/connection.py
+msgctxt "tray_syncing_whatsapp"
+msgid "syncing with WhatsApp..."
+msgstr "جاري المزامنة مع واتساب…"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/tray_manager.py
 #, python-brace-format
 msgctxt "tray_unread_plural"
@@ -15716,7 +15727,7 @@ msgid ""
 "&Keep the chat search when opening a chat, so Esc returns to the results "
 "instead of the full list"
 msgstr ""
-"الإبقاء &على بحث الدردشة عند فتح دردشة، zodat Esc يعود إلى النتائج بدلاً من "
+"الإبقاء &على بحث الدردشة عند فتح دردشة، بحيث يعود Esc إلى النتائج بدلاً من "
 "القائمة الكاملة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -16638,12 +16649,39 @@ msgid ""
 "found)."
 msgstr "التسجيل الصوتي غير متاح في هذا تثبيت بايثون (مكتبة الصوت غير موجودة)."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_chats_section_label"
+msgid "Chats"
+msgstr "الدردشات"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/websocket_client.py
 msgctxt "wa_disconnected_temp"
 msgid ""
 "The WhatsApp connection was interrupted. Waiting for automatic "
 "reconnection..."
 msgstr "تم مقاطعة اتصال واتساب. في انتظار إعادة الاتصال تلقائياً…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_hint"
+msgid ""
+"When it is off, an archived chat goes back to the chat list when a new "
+"message arrives."
+msgstr ""
+"عند إيقافه، تعود الدردشة المؤرشفة إلى قائمة الدردشات عند وصول رسالة جديدة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_label"
+msgid "&Keep chats archived"
+msgstr "إ&بقاء الدردشات مؤرشفة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/whatsapp_privacy_panel.py
+msgctxt "wa_keep_archived_unavailable"
+msgid "Could not read whether chats are kept archived."
+msgstr "تعذّرت معرفة ما إذا كانت الدردشات تبقى مؤرشفة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_lists.py

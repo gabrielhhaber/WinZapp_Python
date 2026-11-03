@@ -160,6 +160,43 @@ def test_an_unknown_chat_has_no_timer(tmp_path):
         db.close()
 
 
+def test_a_status_has_no_timer():
+    assert not ct.has_timer("status@broadcast")
+    assert not ct.has_timer("123@broadcast")
+    assert ct.has_timer("123@lid") and ct.has_timer("1@g.us")
+
+
+def test_a_status_that_states_a_timer_does_not_give_the_statuses_one(tmp_path):
+    """REGRESSION: a received status with an expiration gave status@broadcast
+    a timer; every video and voice status after it went out stamped, and
+    WhatsApp refused them with 400."""
+    db = Store(str(tmp_path / "bridge.db"))
+    try:
+        db.chat("status@broadcast")
+        session = _Session(db, [])
+        session.observe_timer("status@broadcast", Message(imageMessage=ImageMessage(
+            contextInfo=ContextInfo(expiration=DAY))))
+        assert db.chat_timer("status@broadcast") == (0, 0)
+    finally:
+        db.close()
+
+
+def test_a_status_timer_already_stored_is_not_sent(tmp_path):
+    """The stores that already hold one: the status goes out without it."""
+    db = Store(str(tmp_path / "bridge.db"))
+    try:
+        db.chat("status@broadcast", ephemeral=DAY)
+        session = _Session(db, [])
+        assert session.chat_timer("status@broadcast") is None
+        client = _Client()
+        ct.install(client, session.chat_timer)
+        video = Message(imageMessage=ImageMessage(caption="x"))
+        client.send_message(_jid("status@broadcast"), video)
+        assert not client.sent[0][1].imageMessage.HasField("contextInfo")
+    finally:
+        db.close()
+
+
 def test_a_client_without_send_message_is_left_alone():
     """REGRESSION: the session's start installs the wrapper on any client;
     the stand-in clients of other tests have no send_message."""

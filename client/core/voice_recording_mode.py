@@ -3,7 +3,8 @@
 Capture still asks for both inputs first: opening a two-input interface as
 mono can discard INPUT 2 in the driver. Explicit mono averages the captured
 channels, with headroom, before preview, noise reduction and encoding.
-Automatic never guesses from silence; stereo preserves channels when available.
+Automatic sends mono only when one side carries nothing at all
+(core.voice_stereo.drop_empty_side, #679); stereo preserves channels when available.
 """
 
 RECORDING_MODES = ("auto", "mono", "stereo")

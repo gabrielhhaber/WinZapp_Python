@@ -13,8 +13,8 @@ for k,v in en.items():
         allm.setdefault(norm(v),lo[k]); exact.setdefault(v.replace('&','').strip().lower(),lo[k])
         if ' | ' in v and ' | ' in lo[k]: allm.setdefault(norm(v.split(' | ',1)[1]),lo[k].split(' | ',1)[1])
 g=json.load(open(str(AQUI/'ferramentas/gloss.json'))); pre=json.load(open(str(AQUI/'ferramentas/prefix.json')))
-m={norm(v['en-US']):v[loc] for v in g.values()}
-pm=[(norm(v['en-US']),v[loc].split(' (')[0].rstrip('.')) for v in pre.values()]
+m={norm(v['en-US']):v[loc] for v in g.values() if loc in v}
+pm=[(norm(v['en-US']),v[loc].split(' (')[0].rstrip('.')) for v in pre.values() if loc in v]
 clean=lambda s:s.replace('&','')
 def lookup(inner):
     k=norm(inner)

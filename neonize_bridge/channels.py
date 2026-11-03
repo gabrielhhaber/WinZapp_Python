@@ -37,6 +37,22 @@ def channel_id(text) -> str:
     return "%s@%s" % (user, SERVER)
 
 
+def load_names(client, db, build_jid):
+    """Writes the name of each stored channel that has none, which the listing
+    needs (it goes out only with one, chat_listing.listed): once per channel,
+    not a query for every channel at every connect. A channel WhatsApp no
+    longer answers for, one the account left, stays as it was."""
+    for jid in db.channels():
+        user = jid.partition("@")[0]
+        try:
+            name = client.get_newsletter_info(build_jid(user, SERVER)).ThreadMeta.Name.Text
+        except Exception as error:
+            log.info("channel name refused (%s)", type(error).__name__)
+            continue
+        if name:
+            db.channel_name(jid, name)
+
+
 def image_from_text(text) -> bytes:
     """Base64 (or data URL) -> bytes; b'' if no image came.
 

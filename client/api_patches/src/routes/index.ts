@@ -707,6 +707,19 @@ routes.post(
   statusConnection,
   PrivacyController.setStatusPrivacy
 );
+// WhatsApp's "Keep chats archived" (WAWebArchiveSettingSync in WhatsApp Web).
+routes.get(
+  '/api/:session/keep-chats-archived',
+  verifyToken,
+  statusConnection,
+  PrivacyController.getKeepChatsArchived
+);
+routes.post(
+  '/api/:session/keep-chats-archived',
+  verifyToken,
+  statusConnection,
+  PrivacyController.setKeepChatsArchived
+);
 routes.post(
   '/api/:session/message-ack',
   verifyToken,

@@ -45,6 +45,7 @@ import contacts
 import chat_listing
 import chats
 import chat_aliases
+import chat_archive
 import chat_timers
 import read_receipts
 import chat_remaining
@@ -176,7 +177,6 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         self.client = None
         self.simulate_code = False
         self.online = False         # app window in focus (set-online-presence)
-        self.open_chat = ""         # chat open in the app (the last send-seen)
         self.thread = None
         self.lifecycle = session_lifecycle.Lifecycle()   # state + generation (session_lifecycle.py)
         self._lifecycle_lock = threading.RLock()    # begin/stop one at a time
@@ -782,14 +782,14 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     self.db.change_message(w["protocolMessageKey"]["id"], type="revoked", body="")
                 self.db.message(chat, w, msgmap.media_record_of(e.Message))
                 self.db.on_arrival(chat, w["t"], w["fromMe"])
+                try:
+                    chat_archive.on_arrival(self, chat, w)
+                except Exception:
+                    log.exception("archived chat with a new message")
                 if e.Info.Pushname and not o.IsFromMe:
                     self.db.contact(jid_text(o.Sender), pushname=e.Info.Pushname)
                     contact_events.announce_name(c, self, o.Sender, e.Info.Pushname)
                 self.emit("received-message", {"session": self.name, "response": w})
-                # WhatsApp Web marks the chat open with the window in focus as read
-                if not o.IsFromMe and self.online and self.open_chat == chat:
-                    threading.Thread(target=self.mark_read, args=(chat,),
-                                     daemon=True).start()
             except Exception:
                 log.exception("received message")
 
@@ -861,18 +861,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                             jid = lid
                     except Exception:
                         pass
-                before = self.db.unread(jid)
-                if action.read:
-                    until = msgmap.seconds(action.messageRange.lastMessageTimestamp)                         if action.HasField("messageRange") else 0
-                    last = self.db.raw_last(jid)
-                    if until and last is not None and last["t"] > until + 5:
-                        log.info("read on the phone, but there is a newer message: kept")
-                        return
-                    self.db.chat(jid, unread=0)
-                    new = 0
-                else:
-                    self.db.chat(jid, unread=max(before, 1))
-                    new = -1
+                until = msgmap.seconds(action.messageRange.lastMessageTimestamp) \
+                    if action.read and action.HasField("messageRange") else 0
+                last = self.db.raw_last(jid) if action.read else None
+                change = read_receipts.phone_read_change(
+                    action.read, until, last["t"] if last is not None else None,
+                    self.db.unread(jid))
+                if change is None:
+                    log.info("read on the phone, but there is a newer message: kept")
+                    return
+                fields, new = change
+                self.db.chat(jid, **fields)
                 log.info("chat marked as %s on the phone -> app",
                          "read" if action.read else "unread")
                 chat_w = msgmap.jid_wpp(jid)
@@ -1429,6 +1428,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 self.roster_register(g)    # members, for the group ack (group_receipts)
         except Exception:
             log.exception("groups")
+        from neonize.utils import build_jid
+        try:
+            channels.load_names(self.client, self.db, build_jid)
+        except Exception:
+            log.exception("channel names")
 
     def state_read(self, conversation, read_flag):
         """Marks the chat as read (or unread) on the phone and the other devices,
@@ -1650,25 +1654,23 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         return True
 
     def mark_unread(self, conversation):
-        self.db.chat(conversation, unread=1)
+        self.db.chat(conversation, unread=1, marked_unread=1)
         if self.client is not None and self.status == "CONNECTED":
             self.state_read(conversation, False)
 
-    def mark_read(self, conversation, force=False):
-        """How many messages received the read receipt (see read_and_confirm)."""
-        return self.read_and_confirm(conversation, force)[0]
-
-    def read_and_confirm(self, conversation, force=False):
-        """Sends the read receipt of the received messages not yet read and marks
-        the chat as read on the phone too. Returns (how many, ok): ok is False if
-        some receipt did not go out (send-seen only confirms what went out).
-        A refused state notice (the chat stays unread on the phone) is left in the
-        log: the receipts, which the contact sees, are what count here."""
+    def read_and_confirm(self, conversation):
+        """Sends the read receipt of the received messages not yet read, which
+        is what marks them read on the phone and the other devices too (see
+        read_receipts.py). Returns (how many, ok): ok is False if some receipt
+        did not go out (send-seen only confirms what went out). A refused state
+        notice, when one is needed, is left in the log: the receipts, which the
+        contact sees, are what count here."""
         if self.client is None or self.status != "CONNECTED":
             return 0, False
-        had_unread = self.db.unread(conversation) > 0
+        unread = self.db.unread(conversation)
+        marked_unread = self.db.marked_unread(conversation)
         to_read = self.db.received_to_read(conversation)
-        if had_unread or force:     # force: the app asked (the phone may still have the counter)
+        if read_receipts.needs_read_notice(unread, len(to_read), marked_unread):
             self.state_read(conversation, True)
         if not to_read:
             return 0, True
@@ -1691,6 +1693,14 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             except Exception:
                 log.exception("mark_read")
                 sent = False
+        if not sent:
+            # received_to_read() zeroed the chat: put the count back (on top of
+            # a message that arrived meanwhile), so the client's retry finds the
+            # messages and sends their receipts again (one that already went out
+            # is sent twice, which changes nothing). The state notice is not
+            # owed again: state_read() keeps the one it could not send.
+            self.db.chat(conversation,
+                         unread=self.db.unread(conversation) + max(unread, len(to_read)))
         log.info("read %d message(s) in %s", len(to_read), redact(conversation))
         return len(to_read), sent
 
@@ -1914,7 +1924,7 @@ def create_app(folder, fixed=""):
             # (held by history blocks and receipts), and the number behind an
             # LID comes from neonize's store. Read on the loop, they stood it
             # still for seconds on every resync, and sends waited behind it.
-            chat_rows = s.db.chats()
+            chat_rows = chat_listing.listed(s.db.chats())
             names, nicknames = chat_listing.listing_identities(
                 chat_rows, s.db.contacts(), s._phone_of_lid)
             return [chat_listing.chat_to_wpp(c, names, wpp_id, nicknames=nicknames)
@@ -2070,17 +2080,15 @@ def create_app(folder, fixed=""):
             await loop.run_in_executor(marking, s.mark_unread, keys[0])
             confirmed = True
         else:
-            s.open_chat = keys[0]      # the app only sends send-seen for the chat the user opened
             confirmed = True
             for key in keys:
-                _, sent = await loop.run_in_executor(marking, s.read_and_confirm, key, True)
+                _, sent = await loop.run_in_executor(marking, s.read_and_confirm, key)
                 confirmed = confirmed and sent
         return ok(status="success", response={"data": [confirmed]})
 
     async def subscribe_presence(req):
         """Subscribes to a person's presence. Only confirms what WhatsApp accepted: the
-        client marks the target as subscribed when it sees `success`. Does not write `s.open_chat`
-        (the client subscribes to many contacts, not just the open chat)."""
+        client marks the target as subscribed when it sees `success`."""
         s = session(req)
         body = await req.json()
         phone = body.get("phone")
@@ -2113,8 +2121,6 @@ def create_app(folder, fixed=""):
             except Exception as error:
                 log.info("set-online-presence refused (%s)", type(error).__name__)
                 return web.json_response({"status": "error", "message": "presence refused"}, status=502)
-        if s.online and s.open_chat:      # back in focus: reads what arrived in the meantime
-            await asyncio.get_running_loop().run_in_executor(None, s.mark_read, s.open_chat)
         return empty_ok_resp()
 
     def empty_ok_resp():

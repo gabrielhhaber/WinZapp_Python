@@ -222,6 +222,22 @@ class TestTheStartBehindTheWindow:
         assert stub._api_start_failed and stub._api_start_settled.is_set()
         assert wait_for_api_start(stub) is False
 
+    def test_a_node_that_died_is_reported_at_once(self, worker_env):
+        """It crashed on a missing module in six seconds, and the window stayed
+        on "starting WPPConnect" for the whole five minutes."""
+        stub = _WorkerStub(answers_after=None)
+        stub.wpp_process = types.SimpleNamespace(poll=lambda: 1, returncode=1)
+        start = worker_env.clock.now
+        stub._api_start_behind_window_worker()
+        assert stub.events == ["spawn", "error", "exit"]
+        assert worker_env.clock.now - start < asbw.API_START_TIMEOUT_SECONDS
+
+    def test_a_node_still_booting_gets_the_whole_budget(self, worker_env):
+        stub = _WorkerStub(answers_after=20)
+        stub.wpp_process = types.SimpleNamespace(poll=lambda: None, returncode=None)
+        stub._api_start_behind_window_worker()
+        assert stub.events == ["spawn", "pin", "reset_probe"]
+
     def test_it_waits_the_dialogs_full_budget(self, worker_env):
         start = worker_env.clock.now
         _WorkerStub(answers_after=None)._api_start_behind_window_worker()

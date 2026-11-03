@@ -62,7 +62,16 @@ What the patches carry today:
   `sendAppState` under `appStateSyncLock`, as `fetchAppState` already was
   (0008: two sends, or a send and a notification's fetch, applied a 409's
   conflicting patches on a stale version and broke the collection's LTHash;
-  the bridge also serializes its own calls, `app_state_recovery.serialize`).
+  the bridge also serializes its own calls, `app_state_recovery.serialize`);
+  the sender key only for the devices that do not hold it (0009: a group
+  message used to encrypt it for every device of the group, 1250 ms against
+  158 ms to a person. The memory is in RAM, so the first message to each group
+  after a start still distributes it, and a failed send forgets the group. A
+  remembered device whose session is gone gets the key again: whatsmeow
+  deletes a number's sessions when its identity changes (a reinstall, a new
+  phone), and the device comes back under the same JID without the key, while
+  a retry receipt is answered only from the recent-message cache a restart
+  empties. Sessions or LID mappings that cannot be read send it to everyone).
 - **meowcaller**: go.mod/go.sum on neonize's whatsmeow pin; accept 2 s after
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
@@ -79,6 +88,16 @@ What the patches carry today:
   packets that released no frame, frames and samples out). A call whose log
   shows `quadros do outro lado=0` says there where inbound audio stops; no
   summary at all means the relay delivered nothing.
+- **meowcaller 0009**: the caller stops the callee's other devices when one
+  answers or declines, one `<terminate>` per rung device (`accepted_elsewhere`,
+  `rejected_elsewhere`). WhatsApp leaves this to the caller; without it the
+  phone went on ringing beside the device that answered. A callee that already
+  saw the caller's `<mute_v2>` also accepts on Answer, without the two seconds
+  of patch 0002, because the caller only stops those devices on `<accept>`.
+  **Not yet validated on a live call.** The device that answered is told by
+  its device number; an `<accept>` with a bare `from` while the call's peer is
+  still bare counts as the phone (device 0). Before a release, call a contact
+  with a phone and a companion device and answer on each in turn.
 
 ## Toolchain (once)
 

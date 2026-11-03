@@ -66,6 +66,18 @@ def test_original_checkbox_still_controls_speech_without_changing_sound(audible,
     assert settings["speech_content"]["typing_sound"] is audible
 
 
+def test_a_change_already_made_on_spoken_content_is_what_the_choice_shows():
+    """REGRESSION: Spoken content is built first; unticking "announce typing"
+    there and then opening Sound events showed "speech" and saved "off"."""
+    c = controls()
+    c.dialog._announce_typing_check.SetValue(False)
+    c.load({"speech_content": {"announce_typing": True}})
+    assert MODES[c.choice.GetSelection()] == "off"
+    settings = {"speech_content": {"announce_typing": True}}
+    c.apply(settings)
+    assert mode(settings) == "off"
+
+
 def test_opening_and_cancelling_settings_never_writes_defaults_or_changes_choices():
     c = controls()
     settings = {"speech_content": {"announce_typing": False}}

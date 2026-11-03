@@ -43,7 +43,6 @@ class AdvancedTabMixin:
 
     def _build_advanced_page(self) -> None:
         i18n = self.main_window.i18n
-        self._advanced_page = wx.Panel(self._notebook)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._log_level_label = wx.StaticText(
@@ -74,7 +73,6 @@ class AdvancedTabMixin:
         sizer.Add(self._export_logs_btn, 0, wx.ALL, 8)
 
         self._advanced_page.SetSizer(sizer)
-        self._notebook.AddPage(self._advanced_page, i18n.t("tab_advanced"))
 
     def _on_export_logs(self, event=None) -> None:
         """Ask where to save, then zip the logs off the wx thread and say how
@@ -122,11 +120,20 @@ class AdvancedTabMixin:
 
         threading.Thread(target=work, daemon=True, name="log-export").start()
 
+    def _custom_api_on(self) -> bool:
+        """The custom API switch: the Connection page's box once it is built,
+        else what is stored, which that page could not have changed."""
+        custom = vars(self).get("_custom_api_check")
+        if custom is not None:
+            return bool(custom.GetValue())
+        read = getattr(self.main_window, "install_wide_values", None)
+        stored = read() if callable(read) else {}
+        return bool(((stored or {}).get("connection") or {}).get("wpp_custom_api", False))
+
     def _sync_fixed_port_field(self) -> None:
         """The fixed port is the bundled API's: with the custom API on (the
         Connection page) it does nothing, so both controls are off."""
-        custom = getattr(self, "_custom_api_check", None)
-        bundled = not (custom is not None and custom.GetValue())
+        bundled = not self._custom_api_on()
         self._fixed_port_check.Enable(bundled)
         self._fixed_port_field.Enable(bundled and self._fixed_port_check.GetValue())
 
@@ -169,8 +176,6 @@ class AdvancedTabMixin:
 
     def _refresh_advanced_labels(self) -> None:
         i18n = self.main_window.i18n
-        self._notebook.SetPageText(
-            self._notebook.FindPage(self._advanced_page), i18n.t("tab_advanced"))
         self._log_level_label.SetLabel(i18n.t("advanced_log_level_label"))
         for index, label in enumerate(level_labels(i18n.t)):
             self._log_level_choice.SetString(index, label)

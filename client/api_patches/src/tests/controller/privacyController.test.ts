@@ -1,10 +1,14 @@
 import {
+  getKeepChatsArchived,
   getPrivacySettings,
+  setKeepChatsArchived,
   setPrivacySetting,
   setStatusPrivacy,
 } from '../../controller/privacyController';
 import {
+  readKeepChatsArchived,
   readPrivacySettings,
+  writeKeepChatsArchived,
   writePrivacySetting,
   writeStatusPrivacy,
 } from '../../util/privacyRuntime';
@@ -187,5 +191,83 @@ describe('privacy runtime (the code that runs in WhatsApp Web)', () => {
     (globalThis as any).WPP = { whatsapp: { functions: module, WidFactory: { createWid: wid } } };
     await writeStatusPrivacy({ setting: 'contact', list: ['1111111111@c.us'] });
     expect(module.setStatusPrivacyConfig).toHaveBeenCalledWith({ setting: 'contact', list: [] });
+  });
+});
+
+describe('keep chats archived', () => {
+  afterEach(() => { delete (globalThis as any).WPP; });
+
+  function whatsappWeb(enabled: boolean | null, unarchive: boolean | null) {
+    const state = { enabled, unarchive };
+    const prefs = {
+      getArchiveV2EnabledSetting: jest.fn(async () => state.enabled),
+      getUnarchiveChatsSetting: jest.fn(async () => state.unarchive),
+      setArchiveV2EnabledSetting: jest.fn(async (v: boolean) => { state.enabled = v; }),
+      setUnarchiveChatsSetting: jest.fn(async (v: boolean) => { state.unarchive = v; }),
+    };
+    const sync = {
+      collectionName: 'regular_low', getVersion: () => 4, getAction: () => 'setting_unarchiveChats',
+    };
+    const modules: Record<string, any> = {
+      WAWebUserPrefsMultiDevice: prefs,
+      WAWebArchiveSettingSync: { default: sync },
+      WAWebSyncdActionUtils: { buildPendingMutation: jest.fn((m: any) => m) },
+      WAWebSyncdCoreApi: { lockForSync: jest.fn(async () => undefined) },
+      'WAWebProtobufsServerSync.pb': { SyncdMutation$SyncdOperation: { SET: 0 } },
+      WATimeUtils: { unixTimeMs: () => 1700000000000 },
+    };
+    (globalThis as any).WPP = { loader: { moduleRequire: (name: string) => modules[name] } };
+    return { prefs, modules };
+  }
+
+  it('reads kept only with archive v2 on and unarchive off', async () => {
+    whatsappWeb(true, false);
+    expect(await readKeepChatsArchived()).toEqual({ ok: true, keepArchived: true });
+    whatsappWeb(true, true);
+    expect(await readKeepChatsArchived()).toEqual({ ok: true, keepArchived: false });
+    whatsappWeb(null, null);
+    expect(await readKeepChatsArchived()).toEqual({ ok: true, keepArchived: false });
+  });
+
+  it('sends the mutation WhatsApp Web sends and keeps the preferences', async () => {
+    const { prefs, modules } = whatsappWeb(true, true);
+    const answer = await writeKeepChatsArchived({ keepArchived: true });
+    expect(modules.WAWebSyncdActionUtils.buildPendingMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'regular_low', indexArgs: [], version: 4, action: 'setting_unarchiveChats',
+        value: { unarchiveChatsSetting: { unarchiveChats: false } },
+      }));
+    expect(modules.WAWebSyncdCoreApi.lockForSync).toHaveBeenCalled();
+    expect(prefs.setUnarchiveChatsSetting).toHaveBeenCalledWith(false);
+    expect(answer).toEqual({ ok: true, keepArchived: true });
+  });
+
+  it('an older WhatsApp Web says unsupported, a failure keeps its text out', async () => {
+    (globalThis as any).WPP = { loader: { moduleRequire: () => undefined } };
+    expect(await writeKeepChatsArchived({ keepArchived: true }))
+      .toEqual({ ok: false, error: 'keep_archived_unsupported' });
+    const { modules } = whatsappWeb(true, false);
+    modules.WAWebSyncdCoreApi.lockForSync.mockRejectedValue(new TypeError('5551999 private'));
+    expect(await writeKeepChatsArchived({ keepArchived: false }))
+      .toEqual({ ok: false, error: 'keep_archived_failed', kind: 'TypeError' });
+  });
+
+  it('the routes validate and answer what the page holds', async () => {
+    const bad = response();
+    await setKeepChatsArchived(request({ keepArchived: 'yes' }), bad);
+    expect(bad.statusCode).toBe(400);
+
+    const req = request({ keepArchived: false }, { ok: true, keepArchived: false });
+    const res = response();
+    await setKeepChatsArchived(req, res);
+    expect(req.client.page.evaluate).toHaveBeenCalledWith(
+      writeKeepChatsArchived, { keepArchived: false });
+    expect(res.body).toEqual({ status: 'success', response: { keepArchived: false } });
+
+    const read = request({}, { ok: false, error: 'keep_archived_unsupported' });
+    const readRes = response();
+    await getKeepChatsArchived(read, readRes);
+    expect(read.client.page.evaluate).toHaveBeenCalledWith(readKeepChatsArchived);
+    expect(readRes.statusCode).toBe(501);
   });
 });

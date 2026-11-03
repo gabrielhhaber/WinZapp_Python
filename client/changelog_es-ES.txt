@@ -4,6 +4,28 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Configuración de WhatsApp > Privacidad: nueva opción "Mantener chats archivados", la misma de WhatsApp, que decide si un chat archivado vuelve a la lista cuando llega un mensaje nuevo. Funciona con WPPConnect y con Neonize.
+
+- Neonize: con la opción de WhatsApp "Mantener chats archivados" desactivada, un chat archivado que recibe un mensaje nuevo ahora vuelve a la lista de chats, como en el teléfono; antes seguía en Archivados.
+
+- Mensajes de voz: en Automático, una grabación cuya entrada izquierda o derecha está totalmente en silencio ahora se envía en mono, a partir de la entrada con sonido, y se te oye por los dos lados en vez de por uno solo. Mono y Estéreo hacen exactamente lo que dicen.
+
+- Los Ajustes (Ctrl+,) ahora se abren al instante: al abrir la ventana solo se crea la página General, y cada una de las demás páginas o ventanas se crea la primera vez que vas a ella. La búsqueda funciona desde el principio: los resultados siguen llegando mientras se cargan las demás páginas, puedes seguir escribiendo y el lector de pantalla no se interrumpe cuando crece la lista de resultados.
+
+- Neonize: leer un chat ahora lo marca como leído en el teléfono y en WhatsApp Web como hacen las propias aplicaciones de WhatsApp. Antes, después de muchos chats leídos en Neonize, WhatsApp Web podía mostrar como no leídos, durante varios minutos, mensajes que ya habías leído.
+
+- Neonize: los mensajes de los chats privados ya no se marcan como leídos solos mientras el chat no está abierto.
+
+- Neonize: los canales de la lista de chats (con la opción de mostrarlos activada) ahora aparecen con su nombre en vez de un código.
+
+- Neonize: el envío a grupos grandes es más rápido: la clave de cifrado del grupo ahora va solo a los dispositivos que aún no la tienen, en vez de al dispositivo de cada miembro con cada mensaje.
+
+- Neonize: los mensajes a Meta AI funcionan. WinZapp pide aceptar los términos de Meta AI cuando la cuenta aún no los ha aceptado, y las respuestas de Meta AI se muestran como texto en vez de como un mensaje desconocido.
+
+- Neonize: los estados de vídeo y de voz ya no fallan con "server returned error 400" en algunas cuentas.
+
+- Grupos: en un grupo en el que solo los administradores pueden enviar mensajes, el campo de mensaje ahora es de solo lectura para los miembros también en Neonize; antes seguía editable en la mayoría de estos grupos.
+
 - Atajos de teclado: el listado F1 corrige etiquetas de acciones, evita líneas repetidas dentro de un mismo apartado y separa las sugerencias de mención al escribir de las menciones dentro de un mensaje. En español y portugués de Portugal, Alt+P lleva al campo de escritura y Alt+E queda para editar mensajes.
 
 - Mensajes de voz: Ajustes > Audio permite elegir grabación Automática, Mono o Estéreo. Mono mezcla las dos entradas del micrófono para que un micrófono conectado solo a la izquierda o a la derecha se oiga por ambos lados. Se mantiene un solo botón de grabación; la elección se aplica a partir de la siguiente grabación.
@@ -233,6 +255,12 @@ NOVEDADES
 - Avisos de escritura: elige un sonido que se repite mientras alguien escribe, solo el lector de pantalla, ambos o ninguno. Puedes elegir tu propio sonido en Configuración, Eventos de sonido. Se conserva la preferencia actual de anuncio y el sonido de escritura está desactivado por defecto en ambos motores de conexión. Por defecto, el sonido de escritura se silencia durante las grabaciones de voz y las llamadas. Para escucharlo también en esos momentos, desmarca “Silenciar el sonido de escritura durante grabaciones de voz y llamadas” en Eventos de sonido. Esta opción afecta solo a ese sonido; los avisos del lector de pantalla y los demás sonidos conservan sus ajustes.
 
 - Español: la traducción ahora usa «chat/chats» de forma coherente, en lugar de mezclarlo con «conversación/conversaciones», y se corrige la concordancia de género y número en los textos relacionados, incluida la guía del usuario.
+
+- WPPConnect: mientras WhatsApp Web aún sincroniza un historial largo, WinZapp ahora dice "sincronizando con WhatsApp..." en vez de mostrar la cuenta como desconectada, y no reproduce el sonido de desconexión.
+
+- WPPConnect: un catálogo incompleto de versiones de WhatsApp Web se repara al iniciar el servidor, y un Node que se detiene al arrancar se avisa al momento, en vez de tras cinco minutos.
+
+- Árabe: la guía de uso (Ayuda > Guía de uso) ya está completa en árabe.
 
 V2.1.0.0
 
