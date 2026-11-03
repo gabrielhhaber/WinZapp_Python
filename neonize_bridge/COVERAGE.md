@@ -48,7 +48,7 @@ These answer, but not everything the WPPConnect route does. None of the routes a
 - `all-new-messages`: cursor kept in memory per session; the first call returns `[]` and a restart resets it.
 - `reply-button/:messageId`: answers `dynamic`, `list`, `template` and `native` (the `quick_reply` of an interactive message, sent as an `interactiveResponseMessage` with a `quick_reply` native flow response). The other native buttons (link, copy, call) are opened by the client and never reach the bridge. The `native` format is the one TeleZapp sends; it was not tried on a real account from here.
 - `temporary-messages`: accepts 0, 24 hours, 7 days or 90 days.
-- `meta-ai-terms`: always `UNKNOWN`; `meta-ai-terms/accept` answers 501 (accepting is not verified for this neonize build).
+- `meta-ai-terms` and `meta-ai-terms/accept`: WhatsApp Web's own `tos` queries (read, and the `session_update` its accept button sends); the accept answers success only when WhatsApp, read again, says accepted. `UNKNOWN` when the state cannot be read. Meta AI's replies (`richResponseMessage`) arrive as `rich_response`.
 - `clear-chat`, `delete-chat` and the `*-all-chats` routes, `save-contact`, and the label routes send app-state patches written from the WhatsApp Web layout, not confirmed on a real account.
 
 ## Through WinZapp's neonize build (raw queries and app state mutations)
@@ -93,4 +93,4 @@ meowcaller, the call layer inside the DLL, has video and group calls; neonize 00
 
 ## Registered but answering 501
 
-The bridge says so instead of pretending: `get-battery-level`; `take-screenshot`; `send-link-preview`; `meta-ai-terms/accept`; `create-collection`, `edit-collection`, `del-collection`. They are the 7 not implemented above. Every call route but `call/reject` answers 501 on a neonize build without the call layer; video (`call/offer` with `isVideo`, `call/upgrade-video`) also without neonize 0008 or without an ffmpeg on the bridge's PATH, and `call/group/offer` without 0008. `forward-messages` forwards text, media, locations and contact cards; another kind (a poll, for one) still answers 501.
+The bridge says so instead of pretending: `get-battery-level`; `take-screenshot`; `send-link-preview`; `create-collection`, `edit-collection`, `del-collection`. They are the 7 not implemented above. Every call route but `call/reject` answers 501 on a neonize build without the call layer; video (`call/offer` with `isVideo`, `call/upgrade-video`) also without neonize 0008 or without an ffmpeg on the bridge's PATH, and `call/group/offer` without 0008. `forward-messages` forwards text, media, locations and contact cards; another kind (a poll, for one) still answers 501.

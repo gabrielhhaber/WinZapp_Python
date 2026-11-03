@@ -3,6 +3,7 @@ WPPConnect returns (type "chat", body, id "false_<chat>_<ID>", from, to, t).
 No dependency on the server: a pure function, tested in test_msgmap.py."""
 import base64
 import hashlib
+import json
 
 import buttons
 import commerce_messages
@@ -272,12 +273,31 @@ def _content(inner, field, chat_w, out) -> bool:
         out.update(commerce_messages.order_fields(inner.orderMessage))
     elif field == "productMessage":
         out.update(commerce_messages.product_fields(inner.productMessage))
+    elif field == "richResponseMessage":
+        out.update(rich_response_fields(inner.richResponseMessage))
     elif field in ("reactionMessage", "pollUpdateMessage", "keepInChatMessage", ""):
         return False
     else:
         out["type"] = "unknown"
         out.update(buttons.button_fields(inner))
     return True
+
+
+def rich_response_fields(rich) -> dict:
+    """A reply of Meta AI, as WhatsApp Web serialises it: type "rich_response",
+    no body, the text in `richResponse.fragments` and, in the newer layout, in
+    `unifiedResponse` (JSON in the proto's bytes). The client reads both
+    (core/meta_ai.py rich_response_text); without them the reply was "unknown"."""
+    fragments = [{"type": "Text", "text": sub.messageText}
+                 for sub in rich.submessages if sub.messageText]
+    out = {"type": "rich_response", "body": "", "richResponse": {"fragments": fragments}}
+    try:
+        unified = json.loads(rich.unifiedResponse.data or b"null")
+    except (ValueError, UnicodeDecodeError):
+        unified = None
+    if isinstance(unified, dict):
+        out["unifiedResponse"] = unified
+    return out
 
 
 # content fields that carry contextInfo (reply, mention, forwarded)
