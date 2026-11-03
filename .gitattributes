@@ -12,3 +12,7 @@
 # git format-patch files: byte for byte, never CRLF (git am applies them to LF
 # sources, and build_neonize.py compares exports against them)
 /neonize_bridge/neonize_patches/** -text
+
+# The historical typing fixture is SHA-256 pinned; Windows checkouts must
+# retain its exact bytes so the legacy-behaviour comparison can run.
+/tests/fixtures/typing_presence_baseline.py -text
