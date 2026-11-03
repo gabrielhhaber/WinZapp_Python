@@ -133,3 +133,11 @@ class TestMessageFieldMnemonicDoesNotCollideWithAltT:
                 for key in _MESSAGE_FIELD_LABEL_KEYS
             }
             assert len(set(letters.values())) == 1, f"{locale}: {letters!r}"
+
+
+def test_spanish_and_european_portuguese_composer_keep_alt_e_for_editing():
+    """All composer states keep Alt+P; editing an own message keeps Alt+E."""
+    for locale in ("es-ES", "pt-PT"):
+        strings = _load(locale)
+        for key in (*_MESSAGE_FIELD_LABEL_KEYS, "group_admins_only"):
+            assert _mnemonic(strings[key]) == "p", (locale, key, strings[key])

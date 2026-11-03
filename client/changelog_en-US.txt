@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Keyboard shortcuts: the F1 list corrects action labels, removes repeated lines within a section, and separates mention suggestions while typing from mentions inside a message. In Spanish and European Portuguese, Alt+P focuses the message field, leaving Alt+E for editing messages.
+
 - Voice messages: Settings > Audio now offers Automatic, Mono and Stereo recording. Mono mixes both microphone inputs so a microphone connected only on the left or right is heard from both sides. There is still one record button; the choice applies from the next recording.
 
 - Fixed: the WPPConnect server no longer fails to start with "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") after an update or fresh install.

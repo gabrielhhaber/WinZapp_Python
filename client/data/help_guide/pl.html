@@ -446,6 +446,7 @@
   <li><strong>Sprawdzanie pisowni:</strong> osobny dźwięk sygnalizuje błąd podczas wpisywania słowa, po dodaniu za nim znaku interpunkcyjnego oraz po przeniesieniu kursora na błędnie zapisane słowo. W menu kontekstowym pola podmenu "Pisownia" oferuje podpowiedzi ze słownika Windows. W ustawieniach wybierasz: zgodnie z Windows, zawsze włączone lub zawsze wyłączone.</li>
   <li><strong>Wzmianki:</strong> wpisz <code>@</code>, aby wybrać osobę (Enter wstawia wzmiankę, Esc zamyka). W grupach działa też <code>@all</code>.</li>
 </ul>
+<p>W F1 sekcja "Sugestie wzmianek" dotyczy listy wyświetlanej podczas wpisywania @: Enter wstawia wybraną wzmiankę, a Esc zamyka sugestie. "Wzmianki w tej wiadomości" dotyczą osób wspomnianych w odebranej lub wysłanej wiadomości: Enter lub Spacja otwiera wybraną wzmiankę. Są to różne konteksty, nawet jeśli używają tych samych klawiszy.</p>
 
 <h3>Czytanie wiadomości</h3>
 <table class="field-table">
@@ -1074,13 +1075,13 @@
 <tr><td class="field-name">Alt+Shift+D</td><td>Informacje o wiadomości</td></tr>
 <tr><td class="field-name">Ctrl+Shift+E</td><td>Przekaż wiadomość</td></tr>
 <tr><td class="field-name">Ctrl+Shift+P</td><td>Wstrzymaj/wznów nagrywanie</td></tr>
-<tr><td class="field-name">Ctrl+Shift+R</td><td>Oddzwoń na nieodebrane połączenie</td></tr>
+<tr><td class="field-name">Ctrl+Shift+R</td><td>Zareaguj na wiadomość; przy nieodebranym połączeniu oddzwoń</td></tr>
 <tr><td class="field-name">Ctrl+Shift+H</td><td>Nagraj mikrofon i dźwięk komputera</td></tr>
 <tr><td class="field-name">Ctrl+Shift+Y</td><td>Przy wiadomości, której wysłanie nie powiodło się lub nie zostało potwierdzone, spróbuj wysłać ją ponownie</td></tr>
 <tr><td class="field-name">Alt+Shift+B</td><td>Otwórz katalog i koszyk firmy, z którą prowadzisz czat</td></tr>
 <tr><td class="field-name">Ctrl+Shift+N</td><td>Na koncie WhatsApp Business, utwórz zamówienie dla kontaktu z czatu</td></tr>
 <tr><td class="field-name">Delete</td><td>Usuń wiadomość lub czat (lub wszystkie zaznaczone, jeśli istnieje zaznaczenie)</td></tr>
-<tr><td class="field-name">Ctrl+C</td><td>Ustawienia połączenia</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>Kopiuj wiadomość</td></tr>
 <tr><td class="field-name">Ctrl+Shift+C</td><td>Kopiuj podpis (zdjęcie/wideo/dokument)</td></tr>
 <tr><td class="field-name">Alt+C</td><td>Pokaż tekst wiadomości w okienku</td></tr>
 <tr><td class="field-name">Alt+E</td><td>Edytuj wiadomość</td></tr>
@@ -1123,7 +1124,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>Transkrybuj lokalnie za pomocą Whispera zaznaczone wiadomości i pokaż je razem</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>Transkrybuj zaznaczone wiadomości lokalnie za pomocą Whispera i wyświetl tekst w ich wierszach</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+Delete</td><td>Usuń zapisane lokalne transkrypcje zaznaczonych wiadomości</td></tr>
-<tr><td class="field-name">Ctrl+Shift+Delete</td><td>Usuń zaznaczone czaty</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Delete</td><td>Usuń zaznaczone wiadomości</td></tr>
 <tr><td class="field-name">Ctrl+0 do 9</td><td>Ustaw zakładkę na zaznaczonej wiadomości lub przejdź do istniejącej zakładki</td></tr>
 <tr><td class="field-name">Ctrl+Shift+0 do 9</td><td>Usuń zakładkę</td></tr>
 <tr><td class="field-name">Alt+Shift+0 do 9</td><td>Ustaw zakładkę tymczasową na zaznaczonej wiadomości lub przejdź do istniejącej zakładki tymczasowej (usuwane po opuszczeniu czatu)</td></tr>
@@ -1159,13 +1160,13 @@
 <tr><td class="field-name">Spacja</td><td>Otwórz</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Kopiuj link</td></tr>
 </table>
-<h3>Wzmianki</h3>
+<h3>Wzmianki w tej wiadomości</h3>
 <table class="field-table">
 <tr><th>Skrót</th><th>Działanie</th></tr>
 <tr><td class="field-name">Enter</td><td>Otwórz</td></tr>
 <tr><td class="field-name">Spacja</td><td>Otwórz</td></tr>
 </table>
-<h3>Autouzupełnianie</h3>
+<h3>Sugestie wzmianek</h3>
 <table class="field-table">
 <tr><th>Skrót</th><th>Działanie</th></tr>
 <tr><td class="field-name">Enter</td><td>Wstaw wybraną wzmiankę</td></tr>
@@ -1202,7 +1203,7 @@
 <tr><th>Skrót</th><th>Działanie</th></tr>
 <tr><td class="field-name">Ctrl+Strzałka w lewo</td><td>Poprzedni status</td></tr>
 <tr><td class="field-name">Ctrl+Strzałka w prawo</td><td>Następny status</td></tr>
-<tr><td class="field-name">Esc</td><td>Zamknij czat. Gdy wiadomości są zaznaczone, pierwszy Esc tylko odznacza wszystkie, a dopiero drugi zamyka czat, jeśli opcja jest włączona w Ustawienia &gt; Interfejs &gt; Czaty</td></tr>
+<tr><td class="field-name">Esc</td><td>Zamknij</td></tr>
 <tr><td class="field-name">F5</td><td>Odśwież statusy</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Kopiuj tekst statusu</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Nagraj wiadomość głosową</td></tr>
@@ -1301,6 +1302,7 @@
 <p class="lead">Każda nowa alpha, która wnosi funkcje, jest dodawana do podręcznika. Ta lista pokazuje, do której alphy podręcznik jest kompletny i co dodano w każdej rundzie.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Co trafiło do podręcznika</th></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Skróty: F1 odróżnia sugestie wzmianek od wzmianek w wiadomości. W języku hiszpańskim i portugalskim z Portugalii Alt+P przenosi do pola wiadomości, a Alt+E edytuje wiadomości.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Grupy: gdy ktoś pisze, komunikat używa teraz jego nazwy zamiast samego numeru telefonu.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: wpisy z kanałów, które obserwujesz, nie pojawiają się już jako czaty i wiadomości.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia Neonize: połączenie, którego nikt nie odbiera, kończy się samo po minucie.</td></tr>

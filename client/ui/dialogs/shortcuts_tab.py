@@ -38,6 +38,16 @@ SCOPE_LABELS = {
 }
 
 
+# F1 only: two contexts that share a name but use the same keys for different
+# things get a name of their own, so Enter while typing a mention and Enter on
+# a mention inside a message are not listed under one heading. The Settings
+# page keeps SCOPE_LABELS.
+HELP_HEADINGS = {
+    'autocomplete': 'mention_suggestions_label',
+    'mention': 'mentions_section_label',
+}
+
+
 def visible_shortcuts(window):
     """A hidden vault must not be disclosed by another Settings page."""
     vault = getattr(window, '_chat_lock_vault', None)
@@ -99,11 +109,15 @@ def key_search_action(classification):
 
 
 def shortcuts_help_text(window, i18n):
-    lines, previous = [], None
+    """The F1 list: one heading per context name, in order of first appearance.
+
+    Scopes that share a name (and a context the catalog visits twice) fall
+    under a single heading, except the two mention contexts (HELP_HEADINGS), and a line repeated word for word under the same
+    heading is shown once. Keys and commands are untouched.
+    """
+    groups, order = {}, []
     for shortcut in visible_shortcuts(window):
-        if shortcut.scope != previous:
-            lines.extend(['', i18n.t(SCOPE_LABELS[shortcut.scope]).replace('&', '')])
-            previous = shortcut.scope
+        heading = i18n.t(HELP_HEADINGS.get(shortcut.scope) or SCOPE_LABELS[shortcut.scope]).replace('&', '')
         if shortcut.id == GLOBAL.id:
             hotkey = window.settings.get('general', {}).get('global_hotkey') or {}
             binding = hotkey_binding(hotkey.get('vk', 0), hotkey.get('mod', 0))
@@ -112,7 +126,15 @@ def shortcuts_help_text(window, i18n):
             binding = hotkey_binding(*pair) if pair else None
         else:
             binding = binding_for(shortcut, window.settings.get(SECTION, {}), i18n.t)
-        lines.append(f'{action_text(shortcut, i18n.t)}: {shortcut_name(binding, i18n)}')
+        line = f'{action_text(shortcut, i18n.t)}: {shortcut_name(binding, i18n)}'
+        if heading not in groups:
+            groups[heading] = []
+            order.append(heading)
+        if line not in groups[heading]:
+            groups[heading].append(line)
+    lines = []
+    for heading in order:
+        lines.extend(['', heading, *groups[heading]])
     return '\n'.join(lines).strip()
 
 
