@@ -10,15 +10,21 @@ a group of about 65 people and 3753 ms for a file, against 158 ms for a text
 to a person. WhatsApp's own clients distribute the key once.
 
 The client now remembers, in memory, the devices each group's key reached,
-and leaves <participants> out when nobody needs it. A device that lost the key
-asks with a retry receipt, which already answers with the key, and a send that
-fails forgets the group, so its next message goes to everyone again.
+and leaves <participants> out when nobody needs it. A send that fails forgets
+the group, so its next message goes to everyone again.
+
+A remembered device whose session is gone gets the key again: whatsmeow
+deletes every session of a number whose identity changed (a reinstall, a new
+phone), and the device comes back under the same JID without the key. Its
+retry receipt is not enough, since whatsmeow answers one only from its
+recent-message cache, which a restart empties. When the sessions or the LID
+mappings cannot be read, every device gets the key.
 ---
  client.go              |   1 +
- send.go                |  30 +++++++++---
- send_senderkey.go      |  88 ++++++++++++++++++++++++++++++++++
- send_senderkey_test.go | 104 +++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 217 insertions(+), 6 deletions(-)
+ send.go                |  30 ++++++--
+ send_senderkey.go      | 159 +++++++++++++++++++++++++++++++++++++++++
+ send_senderkey_test.go | 129 +++++++++++++++++++++++++++++++++
+ 4 files changed, 313 insertions(+), 6 deletions(-)
  create mode 100644 send_senderkey.go
  create mode 100644 send_senderkey_test.go
 
@@ -35,7 +41,7 @@ index 5ca43e0..a434be7 100644
  	userDevicesCacheLock sync.Mutex
  
 diff --git a/send.go b/send.go
-index c75efa2..9c8d72f 100644
+index c75efa2..1151380 100644
 --- a/send.go
 +++ b/send.go
 @@ -406,6 +406,14 @@ func (cli *Client) SendMessage(ctx context.Context, to types.JID, message *waE2E
@@ -69,7 +75,7 @@ index c75efa2..9c8d72f 100644
  
 +	recipients := allDevices
 +	if to.Server == types.GroupServer {
-+		recipients = cli.senderKeys.missing(to, allDevices)
++		recipients = cli.senderKeyRecipientsFor(ctx, to, allDevices)
 +	}
 +
  	start = time.Now()
@@ -101,13 +107,14 @@ index c75efa2..9c8d72f 100644
  
 diff --git a/send_senderkey.go b/send_senderkey.go
 new file mode 100644
-index 0000000..7956cef
+index 0000000..a06d52d
 --- /dev/null
 +++ b/send_senderkey.go
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,159 @@
 +package whatsmeow
 +
 +import (
++	"context"
 +	"sync"
 +
 +	waBinary "go.mau.fi/whatsmeow/binary"
@@ -165,6 +172,76 @@ index 0000000..7956cef
 +	delete(m.groups, group)
 +}
 +
++// senderKeyRecipientsFor is the devices of the group the key must go to: those
++// with no record of holding it, and those whose session is gone. whatsmeow
++// deletes every session of a number whose identity changed (a reinstall, a new
++// phone: handleIdentityChange, clearUntrustedIdentity), and the device comes
++// back under the same JID without the key; only a fresh pkmsg carries it again.
++// Waiting for its retry receipt is not enough: whatsmeow answers one only from
++// its recent-message cache, which a restart empties. When the sessions cannot
++// be read, every device gets the key, as before this memory existed.
++func (cli *Client) senderKeyRecipientsFor(ctx context.Context, group types.JID, allDevices []types.JID) []types.JID {
++	missing := cli.senderKeys.missing(group, allDevices)
++	if len(missing) == len(allDevices) {
++		return missing
++	}
++	ownJID, ownLID := cli.getOwnID(), cli.getOwnLID()
++	lacking := make(map[types.JID]struct{}, len(missing))
++	for _, device := range missing {
++		lacking[device] = struct{}{}
++	}
++	var remembered, pnDevices []types.JID
++	for _, device := range allDevices {
++		if _, ok := lacking[device]; ok || device == ownJID || device == ownLID {
++			continue
++		}
++		remembered = append(remembered, device)
++		if device.Server == types.DefaultUserServer {
++			pnDevices = append(pnDevices, device)
++		}
++	}
++	lids, err := cli.Store.LIDs.GetManyLIDsForPNs(ctx, pnDevices)
++	if err != nil {
++		cli.Log.Warnf("Sending the group key to every device: LID mappings unreadable: %v", err)
++		return allDevices
++	}
++	addressOf := make(map[types.JID]string, len(remembered))
++	addresses := make([]string, 0, len(remembered))
++	for _, device := range remembered {
++		identity := device
++		if lid, ok := lids[device]; ok && !lid.IsEmpty() {
++			identity = lid
++		}
++		addressOf[device] = identity.SignalAddress().String()
++		addresses = append(addresses, addressOf[device])
++	}
++	sessions, _, err := cli.Store.WithCachedSessions(ctx, addresses)
++	if err != nil {
++		cli.Log.Warnf("Sending the group key to every device: sessions unreadable: %v", err)
++		return allDevices
++	}
++	return withoutSession(allDevices, missing, func(device types.JID) bool {
++		address, ok := addressOf[device]
++		return ok && sessions[address]
++	})
++}
++
++// withoutSession is `missing` plus every other device of `all` that
++// `hasSession` says lost its session, in the order of `all`.
++func withoutSession(all, missing []types.JID, hasSession func(types.JID) bool) []types.JID {
++	lacking := make(map[types.JID]struct{}, len(missing))
++	for _, device := range missing {
++		lacking[device] = struct{}{}
++	}
++	out := make([]types.JID, 0, len(missing))
++	for _, device := range all {
++		if _, ok := lacking[device]; ok || !hasSession(device) {
++			out = append(out, device)
++		}
++	}
++	return out
++}
++
 +// senderKeyRecipients lists the devices a <message> node carries the key for.
 +func senderKeyRecipients(node *waBinary.Node) []types.JID {
 +	participants, ok := node.GetOptionalChildByTag("participants")
@@ -195,10 +272,10 @@ index 0000000..7956cef
 +}
 diff --git a/send_senderkey_test.go b/send_senderkey_test.go
 new file mode 100644
-index 0000000..d82d332
+index 0000000..c7b31b2
 --- /dev/null
 +++ b/send_senderkey_test.go
-@@ -0,0 +1,104 @@
+@@ -0,0 +1,129 @@
 +package whatsmeow
 +
 +import (
@@ -215,6 +292,31 @@ index 0000000..d82d332
 +	skDevice = types.NewJID("111", types.HiddenUserServer)
 +	skPhone  = types.NewJID("222", types.HiddenUserServer)
 +)
++
++func TestARememberedDeviceWithoutASessionGetsTheKeyAgain(t *testing.T) {
++	// A reinstall deletes the sessions; the JID, and the memory, stay.
++	all := []types.JID{skDevice, skPhone}
++	got := withoutSession(all, nil, func(device types.JID) bool { return device != skPhone })
++	if !reflect.DeepEqual(got, []types.JID{skPhone}) {
++		t.Fatalf("recipients = %v", got)
++	}
++}
++
++func TestDevicesWithTheirSessionsNeedNothing(t *testing.T) {
++	all := []types.JID{skDevice, skPhone}
++	got := withoutSession(all, nil, func(types.JID) bool { return true })
++	if len(got) != 0 {
++		t.Fatalf("recipients = %v", got)
++	}
++}
++
++func TestAMissingDeviceStaysMissingWhateverItsSession(t *testing.T) {
++	all := []types.JID{skDevice, skPhone}
++	got := withoutSession(all, []types.JID{skDevice}, func(types.JID) bool { return true })
++	if !reflect.DeepEqual(got, []types.JID{skDevice}) {
++		t.Fatalf("recipients = %v", got)
++	}
++}
 +
 +func TestAGroupNotSeenBeforeNeedsTheKeyEverywhere(t *testing.T) {
 +	var memory senderKeyMemory

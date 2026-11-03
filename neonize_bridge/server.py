@@ -856,18 +856,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                             jid = lid
                     except Exception:
                         pass
-                before = self.db.unread(jid)
-                if action.read:
-                    until = msgmap.seconds(action.messageRange.lastMessageTimestamp)                         if action.HasField("messageRange") else 0
-                    last = self.db.raw_last(jid)
-                    if until and last is not None and last["t"] > until + 5:
-                        log.info("read on the phone, but there is a newer message: kept")
-                        return
-                    self.db.chat(jid, unread=0, marked_unread=0)
-                    new = 0
-                else:
-                    self.db.chat(jid, unread=max(before, 1), marked_unread=1)
-                    new = -1
+                until = msgmap.seconds(action.messageRange.lastMessageTimestamp) \
+                    if action.read and action.HasField("messageRange") else 0
+                last = self.db.raw_last(jid) if action.read else None
+                change = read_receipts.phone_read_change(
+                    action.read, until, last["t"] if last is not None else None,
+                    self.db.unread(jid))
+                if change is None:
+                    log.info("read on the phone, but there is a newer message: kept")
+                    return
+                fields, new = change
+                self.db.chat(jid, **fields)
                 log.info("chat marked as %s on the phone -> app",
                          "read" if action.read else "unread")
                 chat_w = msgmap.jid_wpp(jid)
@@ -1425,7 +1424,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         except Exception:
             log.exception("groups")
         from neonize.utils import build_jid
-        channels.load_names(self.client, self.db, build_jid)
+        try:
+            channels.load_names(self.client, self.db, build_jid)
+        except Exception:
+            log.exception("channel names")
 
     def state_read(self, conversation, read_flag):
         """Marks the chat as read (or unread) on the phone and the other devices,
@@ -1686,6 +1688,12 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             except Exception:
                 log.exception("mark_read")
                 sent = False
+        if not sent:
+            # received_to_read() zeroed the chat: put it back, so the client's
+            # retry finds the messages and sends their receipts again (one
+            # that already went out is sent twice, which changes nothing).
+            self.db.chat(conversation, unread=max(unread, len(to_read)),
+                         marked_unread=int(bool(marked_unread)))
         log.info("read %d message(s) in %s", len(to_read), redact(conversation))
         return len(to_read), sent
 

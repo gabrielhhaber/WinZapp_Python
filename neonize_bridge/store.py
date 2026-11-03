@@ -212,10 +212,12 @@ class Store:
             self._conn.commit()
 
     def channels(self):
-        """The channels history stored before the store kept nothing of them."""
+        """The channels history stored before the store kept nothing of them,
+        still without a name."""
         with self._lock:
             rows = self._conn.execute(
-                "SELECT jid FROM chats WHERE jid LIKE '%@newsletter'").fetchall()
+                "SELECT jid FROM chats WHERE jid LIKE '%@newsletter'"
+                " AND (name IS NULL OR name = '')").fetchall()
         return [r["jid"] for r in rows]
 
     def channel_name(self, jid, name):

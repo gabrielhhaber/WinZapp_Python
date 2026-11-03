@@ -376,13 +376,27 @@ async def test_unread_no_receipt_can_name_still_gets_the_notice(tmp_path, sessio
 
 
 def test_a_chat_marked_unread_on_the_phone_is_remembered_too():
-    """_read_on_phone sits inside the session's start: read from the source."""
+    fields, count = read_receipts.phone_read_change(False, 0, None, 0)
+    assert fields == {"unread": 1, "marked_unread": 1} and count == -1
+    fields, _ = read_receipts.phone_read_change(False, 0, None, 4)
+    assert fields["unread"] == 4
+
+
+def test_a_chat_read_on_the_phone_forgets_the_mark():
+    assert read_receipts.phone_read_change(True, 100, 100, 3) == (
+        {"unread": 0, "marked_unread": 0}, 0)
+    assert read_receipts.phone_read_change(True, 0, None, 3)[0]["unread"] == 0
+
+
+def test_a_read_on_the_phone_older_than_a_stored_message_keeps_it_unread():
+    assert read_receipts.phone_read_change(True, 100, 106, 1) is None
+    assert read_receipts.phone_read_change(True, 100, 105, 1) is not None
+
+
+def test_the_phone_handler_uses_the_decision():
     import pathlib
     source = (pathlib.Path(__file__).parent / "server.py").read_text(encoding="utf-8")
-    handler = source[source.index("        def _read_on_phone(c, e):"):
-                     source.index('log.exception("chat read on the phone")')]
-    assert "self.db.chat(jid, unread=max(before, 1), marked_unread=1)" in handler
-    assert "self.db.chat(jid, unread=0, marked_unread=0)" in handler
+    assert "read_receipts.phone_read_change(" in source
 
 
 @pytest.mark.parametrize("unread, receipts, marked, needed", [
@@ -402,6 +416,13 @@ async def test_send_seen_with_a_receipt_that_did_not_go_out_does_not_confirm(tmp
         bridge.fake.read_error = True
         _, body = await bridge.post("send-seen", {"phone": PN})
         assert body["response"]["data"] == [False]
+        assert bridge.s.db.unread(PN) == 1
+        # the client tries again: the receipt goes out this time
+        bridge.fake.read_error = False
+        _, body = await bridge.post("send-seen", {"phone": PN})
+        assert body["response"]["data"] == [True]
+        assert [ids for ids, _chat in bridge.fake.read] == [("M1",)]
+        assert bridge.s.db.unread(PN) == 0
     finally:
         await bridge.http.close()
 

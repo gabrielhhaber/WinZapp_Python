@@ -38,9 +38,10 @@ def channel_id(text) -> str:
 
 
 def load_names(client, db, build_jid):
-    """Writes each stored channel's name, which the listing needs (it goes out
-    only with one, chat_listing.listed). A channel WhatsApp no longer answers
-    for, one the account left, stays as it was."""
+    """Writes the name of each stored channel that has none, which the listing
+    needs (it goes out only with one, chat_listing.listed): once per channel,
+    not a query for every channel at every connect. A channel WhatsApp no
+    longer answers for, one the account left, stays as it was."""
     for jid in db.channels():
         user = jid.partition("@")[0]
         try:

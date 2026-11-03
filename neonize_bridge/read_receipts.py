@@ -56,6 +56,19 @@ def needs_read_notice(unread, receipts, marked_unread):
     return bool(marked_unread) or unread > receipts
 
 
+def phone_read_change(read, until, last_t, before):
+    """What a markChatAsRead from the phone does to the chat: None when it read
+    up to `until` and a message after that (`last_t`, five seconds of slack) is
+    stored, which stays unread; else (fields to store, the unreadCount for the
+    client). Marked unread there, the chat remembers it (marked_unread), so the
+    next read here sends the notice that undoes it (needs_read_notice)."""
+    if read:
+        if until and last_t is not None and last_t > until + 5:
+            return None
+        return {"unread": 0, "marked_unread": 0}, 0
+    return {"unread": max(int(before or 0), 1), "marked_unread": 1}, -1
+
+
 class ReadReceipts:
     """`Session` method choosing the receipt it sends."""
 
