@@ -56,7 +56,11 @@ class TypingFeedbackControls:
         event.Skip()
 
     def load(self, settings):
-        self.choice.SetSelection(MODES.index(mode(settings)))
+        # The typing announcement box may already hold a change made on the
+        # Spoken content page, which is built first: the choice follows it.
+        speech = dict(settings.get("speech_content") or {},
+                      announce_typing=self.dialog._announce_typing_check.GetValue())
+        self.choice.SetSelection(MODES.index(mode({"speech_content": speech})))
         self.interval.SetValue(interval(settings))
         self.silence.SetValue(silence_during_capture(settings))
         self._sync_interval()

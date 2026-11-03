@@ -171,11 +171,14 @@ class LazyUnitsMixin:
             raise AttributeError(name)
         logging.info("[settings] %s needed before its page was opened: building %s.", name, unit)
         self._ensure_unit(unit)
+        if name not in self.__dict__:       # the unit failed to build
+            raise AttributeError(name)
         return self.__dict__[name]
 
     def _ensure_unit(self, unit):
         """Build `unit` and show the current settings in it, once."""
-        if unit in self._built_units or unit in self._building_units:
+        if (unit in self._built_units or unit in self._building_units
+                or unit in self._failed_units_so_far()):
             return
         for needed in NEEDS.get(unit, ()):
             self._ensure_unit(needed)

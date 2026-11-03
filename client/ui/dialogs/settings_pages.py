@@ -410,6 +410,7 @@ class SettingsPages(wx.Simplebook):
     _loading_text = ""
     _results_row_stale = False      # the first row waits for the focus to go
     _results_row_timer = None       # running: the focus has only just gone
+    _rows_shown = None              # the results list as last set
 
     def _on_list_selected(self, event):
         if self._guard:
@@ -472,7 +473,8 @@ class SettingsPages(wx.Simplebook):
             self._list.Focus(0)
         finally:
             self._guard = False
-        self._results.Set(self._result_rows())
+        self._rows_shown = self._result_rows()
+        self._results.Set(self._rows_shown)
         self._show_results(True)
 
     def _matches(self, query):
@@ -503,6 +505,7 @@ class SettingsPages(wx.Simplebook):
         first_results = added and not self._found
         self._found += added
         self._guard = True
+        self._list.Freeze()
         try:
             # A row added at the end changes no row's name, so it is safe under
             # the focus: the screen reader says nothing and the arrows reach it.
@@ -511,18 +514,28 @@ class SettingsPages(wx.Simplebook):
                     self._shown.append(e.page_index)
                     self._list.InsertItem(self._list.GetItemCount(), self._titles[e.page_index])
         finally:
+            self._list.Thaw()
             self._guard = False
         self._refresh_results_row()
         if first_results or not self._found:
+            rows = self._result_rows()
+            if rows == self._rows_shown:
+                # The same placeholder: set again, it would be read again.
+                return
+            self._rows_shown = rows
             on_the_placeholder = self._results.HasFocus()
-            self._results.Set(self._result_rows())
+            self._results.Set(rows)
             if on_the_placeholder:
                 # The only row under the focus is gone; choosing its successor
                 # is what tells the screen reader, once.
                 self._results.SetSelection(0)
-        else:
-            for e in added:
-                self._results.Append(f"{e.category}: {e.label}")
+        elif added:
+            self._results.Freeze()
+            try:
+                for e in added:
+                    self._results.Append(f"{e.category}: {e.label}")
+            finally:
+                self._results.Thaw()
 
     def _refresh_results_row(self):
         """The count on the first row. The one row rewritten, so it waits while
@@ -540,8 +553,10 @@ class SettingsPages(wx.Simplebook):
             self._guard = False
 
     def _on_list_focus_lost(self, event):
+        # Every time during a search: a page that arrives just after the focus
+        # left is as early for the screen reader as one that arrived before.
         event.Skip()
-        if not self._results_row_stale:
+        if not self._searching:
             return
         if self._results_row_timer is None:
             self._results_row_timer = wx.CallLater(RESULTS_ROW_HOLD_MS, self._results_row_settled)
@@ -560,6 +575,7 @@ class SettingsPages(wx.Simplebook):
             return
         self._searching = False
         self._results_row_stale = False
+        self._rows_shown = None
         self._found = []
         self._guard = True
         try:

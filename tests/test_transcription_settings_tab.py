@@ -525,17 +525,11 @@ class TestTheTabIsAppendedAtTheEnd:
             SETTINGS_DIALOG_SOURCE,
         )
 
-    def test_no_hardcoded_page_selection_reaches_the_new_tab(self):
-        """Every SetSelection() in this file names a page below the new one, so
-        appending could not have moved what any of them points at."""
-        selections = [
-            int(index)
-            for index in re.findall(
-                r"_notebook\.SetSelection\((\d+)\)", SETTINGS_DIALOG_SOURCE
-            )
-        ]
-        assert selections, "the hardcoded selections are what this guards"
-        assert max(selections) < len(self._add_pages()) - 1
+    def test_no_page_is_selected_by_number(self):
+        """Appending a tab cannot move what a selection points at: they name
+        their page (FindPage), never an index. The numbers that were here
+        pointed at the wrong pages once the categories moved."""
+        assert not re.findall(r"_notebook\.SetSelection\((\d+)\)", SETTINGS_DIALOG_SOURCE)
 
 
 class TestTheStartupRegistrationIsWired:

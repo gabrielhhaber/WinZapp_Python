@@ -43,7 +43,8 @@ class TranscriptionOptionsMixin:
         # Transcriptions & Descriptions) and this one would write two texts for
         # the same message: turning either on turns the other off, after asking.
         self._transcription_auto_check.Bind(wx.EVT_CHECKBOX, self._on_local_auto_toggle)
-        ai_page = getattr(self, "_ai_page", None)
+        # Only an AI page already built: one built later connects itself.
+        ai_page = vars(self).get("_ai_page")
         if ai_page is not None:
             ai_page.confirm_replaces_local = self._confirm_online_replaces_local
 

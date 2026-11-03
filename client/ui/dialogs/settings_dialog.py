@@ -249,6 +249,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         self._loading_values = False
         self._built_units = set()
         self._building_units = set()
+        self._failed_units = set()
         self._fitted_pages = set()
         self._build_ui()
         self._apply_btn.Hide()
@@ -1878,6 +1879,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         """The AI page, inside the panel that held its place."""
         sizer = wx.BoxSizer(wx.VERTICAL)
         self._ai_page = AISettingsPage(self._ai_holder, self.main_window, on_change=self._mark_dirty)
+        # Turning the online automatic transcription on asks to turn the
+        # local one off, whichever of the two pages was built first.
+        self._ai_page.confirm_replaces_local = self._confirm_online_replaces_local
         sizer.Add(self._ai_page, 1, wx.EXPAND)
         self._ai_holder.SetSizer(sizer)
 
@@ -2691,8 +2695,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._load_voice_recording_options()
 
         # Sound events / packs
-        self.main_window.refresh_sound_packs()
         if wanted(unit, "sounds"):
+            self.main_window.refresh_sound_packs()
             self._pack_event_settings = {}
             self._reload_sound_pack_choices()
 
@@ -3603,7 +3607,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 if max_days < 0:
                     raise ValueError
             except ValueError:
-                self._notebook.SetSelection(8)
+                self._notebook.SetSelection(self._notebook.FindPage(self._storage_page))
                 wx.MessageBox(
                     self.main_window.i18n.t("invalid_media_max_days"),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
@@ -3619,7 +3623,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 if max_mb < 0:
                     raise ValueError
             except ValueError:
-                self._notebook.SetSelection(8)
+                self._notebook.SetSelection(self._notebook.FindPage(self._storage_page))
                 wx.MessageBox(
                     self.main_window.i18n.t("invalid_media_max_mb"),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
@@ -3682,7 +3686,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                     continue
                 override = (cfg.get("path") or "").strip()
                 if override and not os.path.isfile(override):
-                    self._notebook.SetSelection(6)
+                    self._notebook.SetSelection(self._notebook.FindPage(self._sound_events_page))
                     self._sound_events_list.SetSelection(idx)
                     self._update_sound_event_path_display()
                     self._sound_event_path_field.SetFocus()
@@ -3699,7 +3703,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             if self._alert_private_combo.GetSelection() == last_idx:
                 path = self._alert_private_custom_field.GetValue().strip()
                 if not path or not os.path.isfile(path):
-                    self._notebook.SetSelection(7)
+                    self._notebook.SetSelection(self._notebook.FindPage(self._sound_events_page))
                     self._alert_private_custom_field.SetFocus()
                     wx.MessageBox(
                         self.main_window.i18n.t("invalid_sound_path"),
@@ -3711,7 +3715,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             if self._alert_group_combo.GetSelection() == last_idx:
                 path = self._alert_group_custom_field.GetValue().strip()
                 if not path or not os.path.isfile(path):
-                    self._notebook.SetSelection(7)
+                    self._notebook.SetSelection(self._notebook.FindPage(self._sound_events_page))
                     self._alert_group_custom_field.SetFocus()
                     wx.MessageBox(
                         self.main_window.i18n.t("invalid_sound_path"),
@@ -3739,7 +3743,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             output_sel = self._audio_output_combo.GetSelection()
             output_name = self._audio_output_device_names[output_sel - 1] if output_sel > 0 else ""
             if not self.main_window.sound_system.apply_output_device(output_name):
-                self._notebook.SetSelection(5)
+                self._notebook.SetSelection(self._notebook.FindPage(self._audio_devices_page))
                 self._audio_output_combo.SetFocus()
                 wx.MessageBox(
                     self.main_window.i18n.t("invalid_audio_output_device"),
@@ -3752,7 +3756,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             effects_sel = self._audio_effects_combo.GetSelection()
             effects_name = self._audio_effects_device_names[effects_sel - 1] if effects_sel > 0 else ""
             if not self.main_window.sound_system.apply_effects_device(effects_name):
-                self._notebook.SetSelection(5)
+                self._notebook.SetSelection(self._notebook.FindPage(self._audio_devices_page))
                 self._audio_effects_combo.SetFocus()
                 wx.MessageBox(
                     self.main_window.i18n.t("invalid_audio_output_device"),
@@ -3771,7 +3775,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                         input_index = idx
                         break
                 if input_index is None or not test_input_device(input_index):
-                    self._notebook.SetSelection(5)
+                    self._notebook.SetSelection(self._notebook.FindPage(self._audio_devices_page))
                     self._audio_input_combo.SetFocus()
                     wx.MessageBox(
                         self.main_window.i18n.t("invalid_audio_input_device"),
@@ -3882,11 +3886,23 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         chosen = engines.engine_at(self._engine_choice.GetSelection())
         return not engines.needs_restart(getattr(self.main_window, "wpp_engine", chosen), chosen)
 
+    def _global_hotkey_changed(self) -> bool:
+        """Whether General's global hotkey differs from the stored one."""
+        stored = self.main_window.settings.get("general", {}).get("global_hotkey")
+        pair = (stored.get("vk", 0), stored.get("mod", 0)) if isinstance(stored, dict) else (0, 0)
+        if not pair[0]:
+            pair = (0, 0)
+        return (self._hotkey_field._vk or 0, self._hotkey_field._mod or 0) != pair
+
     def _apply_values(self) -> bool:
         """Validate, save, and apply all settings. Returns True on success."""
         # Set where their options are read; a window never opened changed nothing.
         channels_changed = unsaved_mark_changed = sender_numbers_changed = False
         self_reference_changed = vm_mode_changed = False
+        if ready(self, "general") and self._global_hotkey_changed():
+            # A new global hotkey is checked against every shortcut, which
+            # the Shortcuts window holds.
+            self._ensure_unit("shortcuts")
         if ready(self, "shortcuts"):
             if not self._validate_shortcut_values():
                 return False
@@ -3895,7 +3911,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "advanced"):
             if not self._validate_advanced_values():
                 return False
-        if ready(self, "transcription"):
+        if ready(self, "transcription") or ready(self, "ai"):
             if not self._validate_automatic_transcription():
                 return False
 
@@ -4385,8 +4401,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         # Turning the auto-download on, or ticking another category, fetches
         # that media now rather than at the next sync. Turning it off needs
         # nothing from here: the running sweep reads the setting itself.
-        self.main_window._on_auto_download_settings_changed(
-            old_storage, self.main_window.settings["storage"])
+        if ready(self, "storage"):
+            self.main_window._on_auto_download_settings_changed(
+                old_storage, self.main_window.settings["storage"])
 
         # Reload translations and repaint the already-created UI only when the
         # language actually changed. This includes dynamic rows and modeless

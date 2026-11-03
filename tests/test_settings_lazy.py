@@ -15,6 +15,7 @@ to the wrong place fails on any machine.
 
 import ast
 import pathlib
+import re
 import types
 
 import pytest
@@ -210,6 +211,20 @@ class TestBuildingAUnit:
         with pytest.raises(AttributeError):
             dialog._nothing_like_this
         assert getattr(dialog, "_nothing_like_this", "default") == "default"
+
+    def test_a_unit_that_failed_is_not_tried_again(self, units):
+        """A second run would put a second set of controls on the page."""
+        dialog = _Dialog()
+        dialog._ensure_unit("notifications")
+        dialog._ensure_unit("notifications")
+        assert dialog.built == ["notifications"]
+
+    def test_a_control_of_a_unit_that_failed_is_an_attribute_error(self, units, monkeypatch):
+        """getattr(..., default) catches AttributeError, not KeyError."""
+        monkeypatch.setattr(settings_lazy, "unit_of_attribute",
+                            lambda cls, name: "notifications" if name == "_bell" else None)
+        dialog = _Dialog()
+        assert getattr(dialog, "_bell", "none") == "none"
 
     def test_a_unit_that_failed_is_not_saved_nor_built_again(self, units):
         """Half a page holds half its values: saving it would lose the rest."""
@@ -424,6 +439,12 @@ class _Rows:
     def SetSelection(self, row):
         self.calls.append(("select", row))
 
+    def Freeze(self):
+        pass
+
+    def Thaw(self):
+        pass
+
 
 class _RunningTimer:
     def __init__(self, running):
@@ -451,6 +472,7 @@ class _SearchBook:
     _loading_text = "still"
     _results_row_stale = False
     _results_row_timer = None
+    _rows_shown = None
     _guard = False
     _searching = True
     _loading = True
@@ -523,10 +545,27 @@ class TestTheScreenReaderDuringASearch:
         book._on_list_focus_lost(types.SimpleNamespace(Skip=lambda: None))
         assert book._results_row_timer.started == [settings_pages.RESULTS_ROW_HOLD_MS]
 
-    def test_nothing_waiting_starts_no_wait(self):
+    def test_leaving_with_nothing_waiting_still_starts_the_wait(self, monkeypatch):
+        """A page arriving just after the focus left is as early for NVDA as
+        one that arrived before it."""
         book = _SearchBook()
+        timers = []
+        monkeypatch.setattr(settings_pages.wx, "CallLater", lambda delay, fn: timers.append(delay) or "t")
+        book._on_list_focus_lost(types.SimpleNamespace(Skip=lambda: None))
+        assert timers == [settings_pages.RESULTS_ROW_HOLD_MS]
+
+    def test_after_a_search_leaving_starts_no_wait(self):
+        book = _SearchBook()
+        book._searching = False
         book._on_list_focus_lost(types.SimpleNamespace(Skip=lambda: None))
         assert book._results_row_timer is None
+
+    def test_a_page_that_brings_nothing_leaves_the_placeholder_alone(self):
+        """Set again, "still searching" would be read for every page."""
+        book = _SearchBook(results_focus=True)
+        book.refresh_search()
+        book.refresh_search()
+        assert book._results.calls == [("set", ["still"]), ("select", 0)]
 
     def test_after_the_wait_the_count_is_right(self):
         book = _SearchBook(list_focus=True)
@@ -672,3 +711,50 @@ class TestTheSearchReachesWindowsNotBuiltYet:
     def test_a_window_given_directly_is_itself(self):
         window = object()
         assert self._Book(None)._subpage_window(window) is window
+
+
+
+SOURCE = pathlib.Path(settings_lazy.__file__).with_name("settings_dialog.py").read_text(encoding="utf-8")
+
+
+class TestWhatTheReviewFound:
+    """Checks that ran for every OK before the pages were built lazily, and
+    must still run when the page that holds them was never opened."""
+
+    def test_the_auto_download_follows_only_a_storage_page_that_was_built(self):
+        """REGRESSION: with Storage unopened and no `storage` key, OK raised
+        KeyError after saving, and the window stayed open."""
+        at = SOURCE.index("_on_auto_download_settings_changed(")
+        assert 'if ready(self, "storage"):' in SOURCE[at - 120:at]
+
+    def test_a_new_global_hotkey_builds_the_shortcuts_to_be_checked(self):
+        at = SOURCE.index("def _apply_values")
+        body = SOURCE[at:SOURCE.index("if not self._validate():", at)]
+        assert 'self._global_hotkey_changed()' in body
+        assert body.index('self._ensure_unit("shortcuts")') < body.index("_validate_shortcut_values")
+
+    @pytest.mark.parametrize("stored,field,changed", [
+        (None, (0, 0), False),
+        ({"vk": 0, "mod": 3}, (0, 0), False),
+        ({"vk": 65, "mod": 3}, (65, 3), False),
+        ({"vk": 65, "mod": 3}, (66, 3), True),
+        (None, (65, 2), True),
+    ])
+    def test_global_hotkey_changed(self, stored, field, changed):
+        general = {} if stored is None else {"global_hotkey": stored}
+        stub = types.SimpleNamespace(
+            main_window=types.SimpleNamespace(settings={"general": general}),
+            _hotkey_field=types.SimpleNamespace(_vk=field[0], _mod=field[1]))
+        assert SettingsDialog._global_hotkey_changed(stub) is changed
+
+    def test_both_automatic_transcriptions_are_checked_from_either_page(self):
+        assert 'if ready(self, "transcription") or ready(self, "ai"):' in SOURCE
+
+    def test_the_ai_page_asks_before_replacing_the_local_transcription(self):
+        at = SOURCE.index("def _build_ai_controls")
+        body = SOURCE[at:SOURCE.index("def ", at + 10)]
+        assert "confirm_replaces_local = self._confirm_online_replaces_local" in body
+
+    def test_errors_point_at_their_page_not_at_a_number(self):
+        assert not re.search(r"_notebook\.SetSelection\(\d+\)", SOURCE)
+
