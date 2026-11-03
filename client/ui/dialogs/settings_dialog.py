@@ -21,7 +21,7 @@ from core.spell_checker import SPELL_CHECK_MODES, spell_check_mode
 from core.emoticons import emoticon_setting_enabled
 from core.notification_manager import NOTIFICATION_CONTENT_LEVELS
 from core.attachment_types import PASTED_AUDIO_MODES
-from core.voice_stereo import CHANNEL_MODES, channel_mode
+from core.voice_stereo import CHANNEL_MODES
 from core.reaction_shortcuts import (
     DEFAULT_QUICK_REACTIONS,
     assign_quick_reaction,
@@ -2570,8 +2570,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         noise_red = self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False)
         self._noise_reduction_check.SetValue(noise_red)
+        voice_channels = self.main_window.settings.get("general", {}).get("voice_message_channels")
         self._voice_channels_radio.SetSelection(
-            CHANNEL_MODES.index(channel_mode(self.main_window.settings)))
+            CHANNEL_MODES.index(voice_channels) if voice_channels in CHANNEL_MODES else 0)
 
         # Sound events / packs
         self.main_window.refresh_sound_packs()
