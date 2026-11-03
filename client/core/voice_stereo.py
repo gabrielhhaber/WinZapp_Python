@@ -1,8 +1,9 @@
 """Stereo voice messages (issue #82).
 
-There is one record button and no mode: what the input device delivers decides.
-A device that opens with two channels sends a stereo voice message, anything
-else a mono one. The two channels are never compared: an input carrying a mix
+There is one record button. In automatic mode the input device decides;
+explicit mono is mixed by core.voice_recording_mode before encoding.
+A device that opens with two channels otherwise sends a stereo voice message,
+anything else a mono one. The channels are never compared: an input carrying a mix
 of mono and stereo sources (a virtual device such as BlackHole) is exactly the
 case a comparison would get wrong. A device with more channels is opened with
 its first two.

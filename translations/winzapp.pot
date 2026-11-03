@@ -15670,6 +15670,30 @@ msgctxt "voice_recording"
 msgid "Recording audio"
 msgstr ""
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_auto"
+msgid "Automatic (use the device's channels)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_label"
+msgid "Voice message recording channels"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_mono"
+msgid "Mono (mix left and right)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_stereo"
+msgid "Stereo (when available)"
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_tab/status_voice.py
 #: client/ui/conversation_panel/voice_recording.py
 msgctxt "voice_recording_device_failed"

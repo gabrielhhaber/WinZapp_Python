@@ -41,6 +41,11 @@ def _write(path):
 # tmp_path when the value depends on it), how to set the controls, and how to
 # tell the reopened dialog shows it. Every function receives (dialog, tmp_path).
 SCENARIOS = {
+    "voice_recording_mode": dict(
+        saves={("general", "voice_recording_mode"): "mono"},
+        set=lambda d, t: d._voice_recording_mode_radio.SetSelection(1),
+        shows=lambda d, t: d._voice_recording_mode_radio.GetSelection() == 1,
+    ),
     # Settings > Advanced (ui/dialogs/advanced_tab.py).
     "advanced_wpp_all_updates": dict(
         saves={("general", "wpp_all_updates"): True},

@@ -17,6 +17,9 @@ import wx
 from core.message_queue import PendingMessage
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 from core.voice_stereo import STEREO_BITRATE, STEREO_MIMETYPE, encode_as_stereo
+from core.voice_recording_mode import (
+    voice_recording_mode, recording_output_channels, prepare_voice_pcm,
+)
 from core.focus_cloak import cloak_panel_focus_fallback
 from app_paths import data_path
 from core.utils import encrypt
@@ -168,6 +171,10 @@ class VoiceRecordingMixin:
             self.main_window.output(self.main_window.i18n.t("voice_recording_unavailable"))
             return
 
+        # This preference belongs to the recording, including its preview
+        # and delayed send worker. Settings changes affect the next recording.
+        self._recording_channel_mode = voice_recording_mode(
+            getattr(self.main_window, "settings", None))
         self._recording_frames = []
         # An old mic callback may finish after discard and mixed capture
         # starts. Keep it bound to its own list, never the next session's.
@@ -583,14 +590,18 @@ class VoiceRecordingMixin:
         if not frames:
             return
 
+        mode = ("auto" if getattr(self, "_recording_system_audio", False) else
+                getattr(self, "_recording_channel_mode", "auto"))
         try:
+            preview_pcm, preview_channels = prepare_voice_pcm(
+                b"".join(frames), self._recording_actual_ch, mode)
             tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
             tmp.close()
             with wave.open(tmp.name, "wb") as wf:
-                wf.setnchannels(self._recording_actual_ch)
+                wf.setnchannels(preview_channels)
                 wf.setsampwidth(2)   # 16-bit PCM — matches how _send_voice_message writes it
                 wf.setframerate(self._recording_actual_rate)
-                wf.writeframes(b"".join(frames))
+                wf.writeframes(preview_pcm)
         except Exception as exc:
             logging.warning("[voice] failed to write recorded-audio preview WAV: %s", exc)
             return
@@ -666,6 +677,8 @@ class VoiceRecordingMixin:
         # Snapshot the mode before stop/hide clears it; the worker belongs to
         # this recording even when another conversation/recording is opened.
         mixed_audio = bool(getattr(self, "_recording_system_audio", False))
+        channel_mode = ("auto" if mixed_audio else
+                        getattr(self, "_recording_channel_mode", "auto"))
         # Stop the recording stream in background FIRST so the audio device is fully released
         # without blocking the UI thread before BASS plays the send sound.
         if mixed_audio:
@@ -697,7 +710,8 @@ class VoiceRecordingMixin:
         actual_ch       = self._recording_actual_ch
         bytes_per_frame = 2 * actual_ch
         quoted_msg      = self._quoted_message
-        stereo_out      = not mixed_audio and encode_as_stereo(actual_ch)
+        output_ch       = recording_output_channels(actual_ch, channel_mode)
+        stereo_out      = not mixed_audio and encode_as_stereo(output_ch)
         # Microphone + computer audio goes out as an audio message
         # (Ctrl+Shift+H's AAC-LC M4A through /send-file).
         as_audio_file   = mixed_audio
@@ -778,12 +792,22 @@ class VoiceRecordingMixin:
             logging.info("[VOICE_TIMING] T+%.3fs — PCM frames joined (%d bytes, %d frames)",
                          _time.perf_counter() - _t0, len(audio_data), len(frames))
 
+            # Convert before processing/backup so preview, retries, the
+            # queued bytes and local playback all have the chosen channels.
+            try:
+                audio_data, _ = prepare_voice_pcm(audio_data, actual_ch, channel_mode)
+            except Exception:
+                logging.exception("[voice] Could not prepare recording channels")
+                wx.CallAfter(mw._on_message_failed, local_id,
+                             mw.i18n.t("media_audio_convert_failed"), True)
+                return
+
             # Apply microphone noise reduction if enabled in settings
             if not mixed_audio and mw.settings.get("general", {}).get("noise_reduction_enabled", False):
                 try:
                     logging.info("[VOICE_TIMING] Applying microphone noise reduction...")
                     from core.neural_noise_reduction import reduce_voice_noise
-                    audio_data, engine = reduce_voice_noise(audio_data, actual_rate, actual_ch)
+                    audio_data, engine = reduce_voice_noise(audio_data, actual_rate, output_ch)
                     logging.info("[VOICE_TIMING] Noise reduction engine: %s", engine)
                     if engine != "neural":
                         # Never let the plain gate pass for the neural model.
@@ -804,7 +828,7 @@ class VoiceRecordingMixin:
                 tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
                 tmp.close()
                 with wave.open(tmp.name, "wb") as wf:
-                    wf.setnchannels(actual_ch)
+                    wf.setnchannels(output_ch)
                     wf.setsampwidth(2)   # 16-bit PCM
                     wf.setframerate(actual_rate)
                     wf.writeframes(audio_data)

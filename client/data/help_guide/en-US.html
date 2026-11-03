@@ -590,7 +590,7 @@
   <tr><td class="field-name">Ctrl+Shift+H</td><td>Record microphone and computer audio</td></tr>
 </table>
 <ul>
-  <li><strong>Stereo:</strong> There is one record button. If the input device offers two channels, the voice message goes out in stereo; otherwise it goes out in mono. A stereo voice message also plays on iPhone.</li>
+  <li><strong>Voice message recording channels:</strong> There is one record button. In Settings &gt; Audio, "Voice message recording channels" offers "Automatic (use the device's channels)" (the default), "Mono (mix left and right)" and "Stereo (when available)". Automatic and Stereo keep two channels when the device supports them and use mono otherwise. Mono averages left and right into one channel: use it for a microphone connected only to INPUT 1 or INPUT 2 of an audio interface. A single active input is quieter after averaging; no automatic gain or silent-channel detection is applied. The choice is fixed when recording starts and also applies to the paused preview. It does not affect calls or microphone + computer audio recording. Stereo voice messages also play on iPhone.</li>
   <li><strong>Microphone + computer audio:</strong> records in a single message your voice and what the computer plays (a video, music, the screen reader). During the recording, two sliders adjust the volume of the other sounds and of NVDA (without NVDA, the second one is disabled); they only apply to the recording and are kept per account. Before starting, WinZapp warns that everything that plays will go into the recording, with "Don't show again" (the option "Warn before recording computer audio" brings the warning back). The recording is sent as audio.</li>
   <li>Recording announcements can be silenced; the screen reader does not start saying "Send" before being interrupted.</li>
   <li><strong>Microphone noise reduction:</strong> with "Enable microphone noise reduction" checked in Settings &gt; Audio, the same page shows the "Noise reduction model" item, with its state and the "Download noise reduction model" button. The neural model is downloaded once, over the internet, and recordings are processed on this computer. Without the model, noise reduction uses the basic noise gate; if it cannot be used for a recording, WinZapp announces it through the screen reader and uses the basic noise gate for that send. If noise reduction cannot be applied at all, the message is sent unprocessed, with an announcement as well.</li>
@@ -1326,6 +1326,7 @@
   <tr><td class="field-name">Not yet released</td><td>Neonize: stereo voice messages go out as audio/mp4.</td></tr>
   <tr><td class="field-name">2.1.0.4397</td><td>Profile tab in WhatsApp settings (display name, About and picture); Communities in the navigation list, after Calls.</td></tr>
   <tr><td class="field-name">2.1.0.4395</td><td>First version of the guide: all features of versions 1.1.0.0, 1.1.1.0, 2.0.0.0 and of the 2.1.0.0 cycle up to this alpha.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Voice message recording channels: Automatic (use the device's channels), Mono (mix left and right), Stereo (when available).</td></tr>
 </table>
 
   </section>

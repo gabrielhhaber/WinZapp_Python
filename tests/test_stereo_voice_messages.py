@@ -1,6 +1,6 @@
-"""Stereo voice messages (issue #82): one record button, no mode.
+"""Stereo voice messages (issue #82): one record button, automatic mode.
 
-What the input device delivers decides: two channels send a stereo voice
+In automatic mode the input device decides: two channels send a stereo voice
 message, anything else a mono one. The channels are never compared. iPhone
 cannot play stereo OGG/Opus at any bitrate but plays stereo AAC-LC M4A, also as
 a voice message, so stereo is M4A through the same /send-voice-base64 route;
@@ -83,7 +83,7 @@ class TestWhatGoesOut:
 # ── The second button and its option are gone ─────────────────────────────────
 
 
-def test_no_record_mode_is_left():
+def test_the_second_record_button_and_legacy_boolean_stay_removed():
     src = conversations_source()
     for name in ("_record_voice_alt_btn", "_on_record_alternate_mode",
                  "_recording_stereo", "ID_CTRL_SHIFT_G"):
@@ -92,7 +92,6 @@ def test_no_record_mode_is_left():
     root = Path(__file__).parents[1] / "client"
     defaults = json.loads((root / "data" / "settings_default.json").read_text(encoding="utf-8"))
     assert "voice_message_stereo" not in defaults["general"]
-    assert "voice_stereo" not in (root / "ui" / "dialogs" / "settings_dialog.py").read_text(encoding="utf-8")
 
 
 def test_an_old_settings_file_with_the_removed_key_still_loads():
