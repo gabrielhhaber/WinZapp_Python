@@ -40,6 +40,7 @@ def test_an_unreadable_value_keeps_it_archived():
     ({"fromMe": True, "type": "chat"}, False),
     ({"fromMe": False, "type": "gp2"}, False),
     ({"fromMe": False, "type": "call_log"}, False),
+    ({"fromMe": False, "type": "revoked"}, False),
 ])
 def test_what_takes_a_chat_out(message, leaves):
     assert chat_archive.leaves_archive(True, message, True) is leaves
@@ -60,6 +61,10 @@ class _Session:
         if seeded:
             mirror.full_sync_completed("regular_low")
         self.client, self.status = None, "CLOSED"
+        self.aliases = {}
+
+    def chat_keys(self, jid):
+        return self.aliases.get(jid, [jid])
 
     def emit(self, event, data):
         self.events.append((event, data))
@@ -82,6 +87,21 @@ def test_a_message_in_an_archived_chat_unarchives_it_with_the_setting_off(tmp_pa
         assert s.db.archived(GROUP) is False
         event, data = s.events[0]
         assert event == "chats-update" and data["data"][0]["archive"] is False
+    finally:
+        s.close()
+
+
+def test_a_chat_archived_under_its_other_address_comes_out_too(tmp_path, supported):
+    """The phone's notice named the number; the message came under the LID."""
+    s = _Session(tmp_path, unarchive=True)
+    try:
+        number, lid = "5511999990000@s.whatsapp.net", "111222333@lid"
+        s.aliases = {lid: [lid, number]}
+        s.db.chat(number, archived=1)
+        s.db.chat(lid, archived=0)
+        chat_archive.on_arrival(s, lid, {"fromMe": False, "type": "chat"})
+        assert s.db.archived(number) is False
+        assert [data["data"][0]["id"] for _event, data in s.events] == ["5511999990000@c.us"]
     finally:
         s.close()
 

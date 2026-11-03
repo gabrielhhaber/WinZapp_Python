@@ -1694,11 +1694,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 log.exception("mark_read")
                 sent = False
         if not sent:
-            # received_to_read() zeroed the chat: put it back, so the client's
-            # retry finds the messages and sends their receipts again (one
-            # that already went out is sent twice, which changes nothing).
-            self.db.chat(conversation, unread=max(unread, len(to_read)),
-                         marked_unread=int(bool(marked_unread)))
+            # received_to_read() zeroed the chat: put the count back (on top of
+            # a message that arrived meanwhile), so the client's retry finds the
+            # messages and sends their receipts again (one that already went out
+            # is sent twice, which changes nothing). The state notice is not
+            # owed again: state_read() keeps the one it could not send.
+            self.db.chat(conversation,
+                         unread=self.db.unread(conversation) + max(unread, len(to_read)))
         log.info("read %d message(s) in %s", len(to_read), redact(conversation))
         return len(to_read), sent
 
