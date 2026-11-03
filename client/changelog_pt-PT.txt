@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Mensagens de voz: Definições > Áudio permite escolher gravação Automática, Mono ou Estéreo. Mono mistura as duas entradas do microfone para que um microfone ligado apenas à esquerda ou à direita seja ouvido dos dois lados. Mantém-se um só botão de gravar; a escolha aplica-se a partir da próxima gravação.
+
 - Corrigido: o servidor do WPPConnect já não deixa de iniciar com "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") depois de uma atualização ou instalação nova.
 
 - Neonize: se a internet cair a meio de uma chamada, ainda consegue desligar; antes o botão falhava com o erro "Disconnected".

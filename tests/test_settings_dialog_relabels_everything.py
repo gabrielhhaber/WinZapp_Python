@@ -38,6 +38,7 @@ TRANSCRIPTION_CACHE = SETTINGS_DIALOG.with_name("transcription_cache.py")
 TRANSCRIPTION_OPTIONS = SETTINGS_DIALOG.with_name("transcription_options.py")
 TRANSCRIPTION_REUSE = SETTINGS_DIALOG.with_name("transcription_reuse.py")
 ADVANCED_TAB = SETTINGS_DIALOG.with_name("advanced_tab.py")
+VOICE_RECORDING_OPTIONS = SETTINGS_DIALOG.with_name("voice_recording_options.py")
 
 LABELLED_CONTROLS = {"StaticText", "CheckBox", "RadioButton", "StaticBox", "Button", "RadioBox"}
 
@@ -114,9 +115,13 @@ def _dialog_class():
         n for n in ast.parse(ADVANCED_TAB.read_text(encoding="utf-8")).body
         if isinstance(n, ast.ClassDef) and n.name == "AdvancedTabMixin"
     )
+    voice_options = next(
+        n for n in ast.parse(VOICE_RECORDING_OPTIONS.read_text(encoding="utf-8")).body
+        if isinstance(n, ast.ClassDef) and n.name == "VoiceRecordingOptionsMixin"
+    )
     cls.body = (cls.body + mixin.body + external_mixin.body + whisper_cpp_mixin.body
                 + precision_mixin.body + cache_mixin.body + options_mixin.body
-                + reuse_mixin.body + advanced_mixin.body)
+                + reuse_mixin.body + advanced_mixin.body + voice_options.body)
     return cls
 
 
@@ -197,7 +202,7 @@ def _built_and_refreshed():
             if (
                 isinstance(node, ast.Call)
                 and _self_attr(node.func)
-                and node.func.attr.startswith("_refresh_")
+                and node.func.attr.startswith(("_refresh_", "_relabel_"))
                 and node.func.attr in methods
                 and methods[node.func.attr] not in scopes
             ):

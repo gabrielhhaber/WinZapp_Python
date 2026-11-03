@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Mensajes de voz: Ajustes > Audio permite elegir grabación Automática, Mono o Estéreo. Mono mezcla las dos entradas del micrófono para que un micrófono conectado solo a la izquierda o a la derecha se oiga por ambos lados. Se mantiene un solo botón de grabación; la elección se aplica a partir de la siguiente grabación.
+
 - Corregido: el servidor de WPPConnect ya no deja de iniciarse con "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") tras una actualización o una instalación nueva.
 
 - Neonize: si se corta internet en mitad de una llamada, aún puedes colgar; antes el botón fallaba con el error "Disconnected".

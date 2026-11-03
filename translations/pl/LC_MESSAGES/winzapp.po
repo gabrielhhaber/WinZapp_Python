@@ -2573,7 +2573,9 @@ msgstr "To połączenie zakończyło się lub nie jest już dostępne."
 #: client/ui/dialogs/call_participants.py
 msgctxt "call_participants_failed"
 msgid "Could not load the current participants. Use Refresh to try again."
-msgstr "Nie udało się wczytać listy uczestników połączenia. Spróbuj ponownie, wybierając „Odśwież”."
+msgstr ""
+"Nie udało się wczytać listy uczestników połączenia. Spróbuj ponownie, "
+"wybierając „Odśwież”."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
@@ -4716,7 +4718,9 @@ msgctxt "connection_engine_ask_message"
 msgid ""
 "Choose how WinZapp connects to WhatsApp. You can change this later in "
 "Settings, Connection."
-msgstr "Wybierz sposób łączenia WinZappa z WhatsAppem. Możesz go później zmienić w Ustawienia > Połączenie."
+msgstr ""
+"Wybierz sposób łączenia WinZappa z WhatsAppem. Możesz go później zmienić w "
+"Ustawienia > Połączenie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/engine_picker.py
@@ -7091,7 +7095,10 @@ msgctxt "mac_mic_permission_waiting"
 msgid ""
 "macOS is asking for microphone permission. Recording starts once you allow "
 "it, and the prompt may be waiting behind another permission prompt."
-msgstr "macOS prosi o dostęp do mikrofonu. Nagrywanie rozpocznie się po udzieleniu zgody. Może być konieczne wcześniejsze udzielenie odpowiedzi na inną prośbę o uprawnienia."
+msgstr ""
+"macOS prosi o dostęp do mikrofonu. Nagrywanie rozpocznie się po udzieleniu "
+"zgody. Może być konieczne wcześniejsze udzielenie odpowiedzi na inną prośbę "
+"o uprawnienia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_not_yet_available"
@@ -7104,14 +7111,20 @@ msgid ""
 "WinZapp does not have permission to record system audio, so computer audio "
 "will be silent. Turn it on in System Settings, Privacy and Security, Screen "
 "and System Audio Recording."
-msgstr "WinZapp nie ma uprawnień do nagrywania dźwięku systemowego, więc dźwięk komputera nie zostanie nagrany. Przyznaj te uprawnienia w Ustawienia systemowe > Prywatność i ochrona > Nagrywanie ekranu i dźwięku systemowego."
+msgstr ""
+"WinZapp nie ma uprawnień do nagrywania dźwięku systemowego, więc dźwięk "
+"komputera nie zostanie nagrany. Przyznaj te uprawnienia w Ustawienia "
+"systemowe > Prywatność i ochrona > Nagrywanie ekranu i dźwięku systemowego."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_system_audio_permission_waiting"
 msgid ""
 "macOS is asking for permission to record system audio. Recording starts once"
 " you answer, and the prompt may be waiting behind another permission prompt."
-msgstr "macOS prosi o zgodę na nagrywanie dźwięku systemowego. Nagrywanie rozpocznie się po udzieleniu odpowiedzi. Może być konieczne wcześniejsze udzielenie odpowiedzi na inną prośbę o uprawnienia."
+msgstr ""
+"macOS prosi o zgodę na nagrywanie dźwięku systemowego. Nagrywanie rozpocznie"
+" się po udzieleniu odpowiedzi. Może być konieczne wcześniejsze udzielenie "
+"odpowiedzi na inną prośbę o uprawnienia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -7926,7 +7939,10 @@ msgid ""
 "WinZapp could not start the Neonize bridge, so it cannot connect to WhatsApp"
 " with this engine. Check the log, or choose another connection engine in "
 "Settings, Connection."
-msgstr "WinZapp nie mógł uruchomić mostu Neonize, dlatego nie może połączyć się z WhatsAppem za pomocą tego silnika. Sprawdź dziennik (log) lub wybierz inny silnik w Ustawienia > Połączenie."
+msgstr ""
+"WinZapp nie mógł uruchomić mostu Neonize, dlatego nie może połączyć się z "
+"WhatsAppem za pomocą tego silnika. Sprawdź dziennik (log) lub wybierz inny "
+"silnik w Ustawienia > Połączenie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/neonize_bridge.py client/ui/dialogs/settings_dialog.py
@@ -13190,7 +13206,10 @@ msgid ""
 "Automatic transcription can be local or online, not both. Turn one of them "
 "off: in Local Transcription or in Online AI: Transcriptions and "
 "Descriptions."
-msgstr "Nie można jednocześnie włączyć automatycznej transkrypcji lokalnej i online. Wyłącz jedną z tych opcji w sekcji „Transkrypcja lokalna” lub „AI online: transkrypcje i opisy”."
+msgstr ""
+"Nie można jednocześnie włączyć automatycznej transkrypcji lokalnej i online."
+" Wyłącz jedną z tych opcji w sekcji „Transkrypcja lokalna” lub „AI online: "
+"transkrypcje i opisy”."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/auto_transcription.py
@@ -17140,6 +17159,30 @@ msgstr "Połączenie głosowe"
 msgctxt "voice_recording"
 msgid "Recording audio"
 msgstr "Nagrywanie wiadomości głosowej"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_auto"
+msgid "Automatic (use the device's channels)"
+msgstr "Automatycznie (użyj kanałów urządzenia)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_label"
+msgid "Voice message recording channels"
+msgstr "Kanały nagrywania wiadomości głosowych"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_mono"
+msgid "Mono (mix left and right)"
+msgstr "Mono (połącz lewy i prawy kanał)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_channels_stereo"
+msgid "Stereo (when available)"
+msgstr "Stereo (jeśli dostępne)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_tab/status_voice.py
 #: client/ui/conversation_panel/voice_recording.py

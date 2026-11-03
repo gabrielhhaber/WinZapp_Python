@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "0c3410e4fc5e": "Mensagens de voz: Configurações > Áudio agora oferece gravação Automática, Mono ",
     "4ab1883be4d9": "Corrigido: o servidor do WPPConnect não deixa mais de iniciar com \"Cannot find m",
     "6c8979d0440e": "Neonize: se a internet cai no meio de uma ligação, você ainda consegue desligar;",
     "5b442f40155a": "O WPPConnect Server 2.10.74 agora é oferecido como atualização sem esperar por u",
