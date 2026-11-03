@@ -32,6 +32,7 @@ def _apply_stub():
         _apply_values=lambda: True, _update_live_snapshot_fields=lambda: None,
         _refresh_dialog_labels=lambda: None, _maybe_warn_restart_required=lambda: None,
         _apply_btn=_Button(), _ok_btn=_Button(),
+        _stop_unit_loading=lambda: None, _resume_unit_loading=lambda: None,
         _notebook=SimpleNamespace(GetPageCount=lambda: 0), Layout=lambda: None)
     return stub
 
