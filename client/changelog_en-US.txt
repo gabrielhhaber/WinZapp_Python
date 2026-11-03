@@ -252,6 +252,12 @@ WHAT'S NEW
 
 - Spanish: the translation now says "chat/chats" consistently instead of mixing it with "conversación/conversaciones", and the gender and number agreement is fixed in the related texts, including the user guide.
 
+- WPPConnect: while WhatsApp Web is still syncing a long history, WinZapp now says "syncing with WhatsApp..." instead of showing the account as disconnected, and plays no disconnection sound.
+
+- WPPConnect: an incomplete WhatsApp Web version catalogue is repaired when the server starts, and a Node that stops at start-up is reported at once instead of after five minutes.
+
+- Arabic: the usage guide (Help > Usage guide) is now complete in Arabic.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

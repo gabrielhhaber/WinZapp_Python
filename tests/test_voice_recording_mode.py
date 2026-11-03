@@ -266,3 +266,29 @@ def test_paused_preview_uses_the_same_channel_rule(monkeypatch, mixed_audio, exp
             assert wav.readframes(20) == (pcm(10000) * 20 if expected == 1 else panel._recording_frames[0])
     finally:
         panel._stop_recorded_audio_preview()
+
+
+LEFT_ONLY = (pcm(4000, 0) + pcm(-4000, 0)) * 24000
+
+
+@pytest.mark.parametrize('mode,expected', [('auto', 1), ('stereo', 2)])
+def test_a_recording_with_one_empty_side_goes_mono_only_in_automatic(
+        composer, mode, expected):
+    """Issue #679 belongs to Automatic: Stereo sends what the device gave."""
+    h, panel = composer, composer.p
+    panel._recording_system_audio = False
+    panel._system_audio_session = None
+    panel._recording_channel_mode = mode
+    panel.main_window.settings['general']['noise_reduction_enabled'] = False
+    panel._recording_actual_ch = 2
+    panel._recording_frames = [LEFT_ONLY]
+    encoded = h.folder / 'mono.ogg'
+    encoded.write_bytes(b'OPUS')
+    panel.main_window._convert_wav_to_ogg = Mock(return_value=str(encoded))
+    panel._encode_stereo_voice = Mock(return_value=b'AAC')
+    panel._send_voice_message(None)
+    h.threads.drain()
+    queued = panel.main_window.message_queue.enqueue.call_args.args[0]
+    with wave.open(queued.audio_path, 'rb') as wav:
+        assert wav.getnchannels() == expected
+    assert queued.voice_mimetype == ('audio/mp4' if expected == 2 else '')

@@ -252,6 +252,12 @@ NOUTĂȚI
 
 - Spaniolă: traducerea folosește acum în mod consecvent „chat/chats”, în loc să îl amestece cu „conversación/conversaciones”, iar acordul în gen și număr a fost corectat în textele asociate, inclusiv în ghidul utilizatorului.
 
+- WPPConnect: cât timp WhatsApp Web încă sincronizează un istoric lung, WinZapp spune acum "se sincronizează cu WhatsApp..." în loc să arate contul ca deconectat și nu redă sunetul de deconectare.
+
+- WPPConnect: un catalog incomplet de versiuni WhatsApp Web este reparat la pornirea serverului, iar un Node care se oprește la pornire este semnalat imediat, nu după cinci minute.
+
+- Arabă: ghidul de utilizare (Ajutor > Ghid de utilizare) este acum complet în arabă.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

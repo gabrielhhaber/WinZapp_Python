@@ -252,6 +252,12 @@ NOVEDADES
 
 - Español: la traducción ahora usa «chat/chats» de forma coherente, en lugar de mezclarlo con «conversación/conversaciones», y se corrige la concordancia de género y número en los textos relacionados, incluida la guía del usuario.
 
+- WPPConnect: mientras WhatsApp Web aún sincroniza un historial largo, WinZapp ahora dice "sincronizando con WhatsApp..." en vez de mostrar la cuenta como desconectada, y no reproduce el sonido de desconexión.
+
+- WPPConnect: un catálogo incompleto de versiones de WhatsApp Web se repara al iniciar el servidor, y un Node que se detiene al arrancar se avisa al momento, en vez de tras cinco minutos.
+
+- Árabe: la guía de uso (Ayuda > Guía de uso) ya está completa en árabe.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

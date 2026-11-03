@@ -529,11 +529,17 @@ class GroupsMixin:
         asks for group-info, so the field now follows from there too."""
         if not isinstance(info.get("announce"), bool):
             return
-        previous = dict(getattr(self, "_group_send_perms", {}).get(jid) or {})
+        # The verdict the composer reads (an expired one is no verdict), and a
+        # new one counts as a change even when its answer is the same: it was
+        # written with a fresh time and must be saved.
+        previous = dict(unexpired_group_send_verdict(
+            getattr(self, "_group_send_perms", {}).get(jid),
+            time.time(), self._GROUP_SEND_PERMS_MAX_AGE_SECONDS) or {})
         current = self._record_group_send_perms(jid, {"groupMetadata": {
             "announce": info["announce"], "participants": info.get("participants") or []}})
         if current is None or (previous.get("announce") == current["announce"]
-                               and previous.get("am_admin") == current["am_admin"]):
+                               and previous.get("am_admin") == current["am_admin"]
+                               and previous.get("t") == current.get("t")):
             return
         self._persist_group_send_perms()
         was_restricted = bool(previous.get("announce")) and not bool(previous.get("am_admin"))

@@ -770,8 +770,25 @@ class TestGroupInfoClosesTheField:
         stub._remember_group_send_perms(self.JID, {"participants": []})
         assert stub._group_send_perms == {} and self.calls == []
 
-    def test_get_group_info_hands_its_answer_over(self):
-        import inspect
-        source = inspect.getsource(MainWindow.get_group_info)
-        assert "self._remember_group_send_perms(jid, response)" in source
+    def test_an_expired_verdict_is_replaced_saved_and_shown(self):
+        """REGRESSION (review): compared with the expired verdict, the fresh
+        one looked unchanged and was neither saved nor shown, so the field
+        stayed open at every first open after a day."""
+        stub = _InfoStub(group_send_perms={self.JID: _verdict(True, False, age_seconds=25 * 3600)})
+        assert not stub._is_group_send_restricted({"remoteJid": self.JID})
+        stub._remember_group_send_perms(self.JID, _info())
+        assert stub._is_group_send_restricted({"remoteJid": self.JID})
+        assert stub.persisted == 1
+        assert self.calls == [(self.JID, False)]
+
+    def test_get_group_info_hands_its_answer_over(self, monkeypatch):
+        import main_window.groups as groups
+        stub = _InfoStub()
+        stub.wpp_server, stub.wpp_port, stub.token = "http://127.0.0.1", 6300, "T"
+        stub._reconcile_group_info_name = lambda jid, info: None
+        stub._remember_group_kind = lambda jid, info: None
+        monkeypatch.setattr(groups, "api_get", lambda url, **kw: types.SimpleNamespace(
+            status_code=200, json=lambda: {"response": _info()}))
+        assert MainWindow.get_group_info(stub, self.JID)["announce"] is True
+        assert stub._is_group_send_restricted({"remoteJid": self.JID})
 

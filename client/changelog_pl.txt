@@ -252,6 +252,12 @@ NOWOŚCI
 
 - Hiszpański: tłumaczenie używa teraz konsekwentnie „chat/chats” zamiast mieszać to z „conversación/conversaciones”, a w powiązanych tekstach, także w podręczniku użytkownika, poprawiono zgodność rodzaju i liczby.
 
+- WPPConnect: gdy WhatsApp Web wciąż synchronizuje długą historię, WinZapp mówi teraz "synchronizowanie z WhatsApp..." zamiast pokazywać konto jako rozłączone i nie odtwarza dźwięku rozłączenia.
+
+- WPPConnect: niekompletny katalog wersji WhatsApp Web jest naprawiany przy starcie serwera, a Node, który zatrzymuje się przy uruchamianiu, jest zgłaszany od razu zamiast po pięciu minutach.
+
+- Arabski: przewodnik użytkowania (Pomoc > Przewodnik użytkowania) jest teraz kompletny po arabsku.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

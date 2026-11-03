@@ -195,6 +195,18 @@ class TestPlayback:
             assert (wav.getnchannels(), wav.getnframes()) == (1, 100)
         panel._stop_recorded_audio_preview()
 
+    def test_in_stereo_the_preview_keeps_both_sides(self, fake_file_stream):
+        """The empty-side check is Automatic's: Stereo previews what it sends."""
+        panel = _Panel()
+        panel._recording_frames = self._left_only_frames()
+        panel._recording_actual_ch = 2
+        panel._recording_channel_mode = "stereo"
+        panel._recording_paused = True
+        panel._toggle_play_recorded_audio(None)
+        with wave.open(panel._recorded_audio_temp_path, "rb") as wav:
+            assert (wav.getnchannels(), wav.getnframes()) == (2, 100)
+        panel._stop_recorded_audio_preview()
+
     def test_the_preview_of_a_mixed_recording_keeps_both_sides(self, fake_file_stream):
         panel = _Panel()
         panel._recording_frames = self._left_only_frames()
