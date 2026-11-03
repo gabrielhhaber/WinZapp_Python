@@ -16893,13 +16893,15 @@ msgctxt "wa_keep_archived_hint"
 msgid ""
 "When it is off, an archived chat goes back to the chat list when a new "
 "message arrives."
-msgstr "Kapalıyken arşivlenmiş bir sohbet, yeni mesaj geldiğinde sohbet listesine geri döner."
+msgstr ""
+"Kapalıyken arşivlenmiş bir sohbet, yeni mesaj geldiğinde sohbet listesine "
+"geri döner."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/whatsapp_privacy_panel.py
 msgctxt "wa_keep_archived_label"
-msgid "Keep chats archived"
-msgstr "Sohbetleri arşivde tut"
+msgid "&Keep chats archived"
+msgstr "Sohbetleri &arşivde tut"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/whatsapp_privacy_panel.py

@@ -16914,8 +16914,8 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/whatsapp_privacy_panel.py
 msgctxt "wa_keep_archived_label"
-msgid "Keep chats archived"
-msgstr "Keep chats archived"
+msgid "&Keep chats archived"
+msgstr "&Keep chats archived"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/whatsapp_privacy_panel.py

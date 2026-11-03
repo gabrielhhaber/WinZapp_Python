@@ -87,6 +87,7 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
         self._keep_archived_check = wx.CheckBox(self, label=i18n.t("wa_keep_archived_label"))
         self._keep_archived_check.Disable()
         sizer.Add(self._keep_archived_check, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._keep_archived_check.SetHelpText(i18n.t("wa_keep_archived_hint"))
         self._keep_archived_hint = wx.StaticText(self, label=i18n.t("wa_keep_archived_hint"))
         self._keep_archived_hint.Wrap(420)
         sizer.Add(self._keep_archived_hint, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)

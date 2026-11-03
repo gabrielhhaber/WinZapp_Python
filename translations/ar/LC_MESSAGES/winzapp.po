@@ -16668,13 +16668,14 @@ msgctxt "wa_keep_archived_hint"
 msgid ""
 "When it is off, an archived chat goes back to the chat list when a new "
 "message arrives."
-msgstr "عند إيقافه، تعود الدردشة المؤرشفة إلى قائمة الدردشات عند وصول رسالة جديدة."
+msgstr ""
+"عند إيقافه، تعود الدردشة المؤرشفة إلى قائمة الدردشات عند وصول رسالة جديدة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/whatsapp_privacy_panel.py
 msgctxt "wa_keep_archived_label"
-msgid "Keep chats archived"
-msgstr "إبقاء الدردشات مؤرشفة"
+msgid "&Keep chats archived"
+msgstr "إ&بقاء الدردشات مؤرشفة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/whatsapp_privacy_panel.py

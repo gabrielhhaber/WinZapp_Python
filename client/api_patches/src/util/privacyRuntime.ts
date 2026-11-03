@@ -201,7 +201,9 @@ export async function writeKeepChatsArchived({ keepArchived }) {
     const server = load?.('WAWebProtobufsServerSync.pb');
     const time = load?.('WATimeUtils');
     if (!prefs || !sync || typeof utils?.buildPendingMutation !== 'function'
-        || typeof core?.lockForSync !== 'function') {
+        || typeof core?.lockForSync !== 'function'
+        || server?.SyncdMutation$SyncdOperation?.SET === undefined
+        || typeof time?.unixTimeMs !== 'function') {
       return { ok: false, error: 'keep_archived_unsupported' };
     }
     const unarchive = !keepArchived;

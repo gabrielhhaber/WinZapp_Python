@@ -20,8 +20,8 @@ message while the copy of `regular_low` is not complete asks for it once, so
 the next message already follows the setting.
 
 WinZapp's Settings > WhatsApp > Privacy reads and changes the setting through
-`keep-chats-archived` (register_routes): GET answers `keepArchived` (null when
-WhatsApp never said), POST `{"keepArchived": bool}` sends the same app state
+`keep-chats-archived` (register_routes): GET answers `keepArchived`, the value
+the bridge follows (on when WhatsApp never stored one), POST `{"keepArchived": bool}` sends the same app state
 mutation WhatsApp Web's own switch sends (WAWebArchiveSettingSync, version 4)
 and answers what the copy holds afterwards. A build without app state
 mutations answers 501.
@@ -65,10 +65,8 @@ NOT_NEW = (*SYSTEM_TYPES, "revoked")
 
 
 def keep_archived(entries):
-    """"Keep chats archived" from the mirror's entries of SETTING: True, False,
-    or None when WhatsApp never said."""
-    if not entries:
-        return None
+    """"Keep chats archived" from the mirror's entries of SETTING: the value
+    on_arrival() follows, so on when WhatsApp never stored one."""
     return not unarchives_on_message(entries)
 
 

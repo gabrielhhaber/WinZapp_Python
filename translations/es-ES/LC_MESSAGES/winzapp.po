@@ -17120,13 +17120,15 @@ msgctxt "wa_keep_archived_hint"
 msgid ""
 "When it is off, an archived chat goes back to the chat list when a new "
 "message arrives."
-msgstr "Desactivada, un chat archivado vuelve a la lista de chats cuando llega un mensaje nuevo."
+msgstr ""
+"Desactivada, un chat archivado vuelve a la lista de chats cuando llega un "
+"mensaje nuevo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/whatsapp_privacy_panel.py
 msgctxt "wa_keep_archived_label"
-msgid "Keep chats archived"
-msgstr "Mantener chats archivados"
+msgid "&Keep chats archived"
+msgstr "&Mantener chats archivados"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/whatsapp_privacy_panel.py

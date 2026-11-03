@@ -164,7 +164,10 @@ def test_the_bridge_calls_it_for_every_message_stored():
 # ── the setting itself, read and changed from WinZapp ────────────────────────
 
 def test_keep_archived_is_the_opposite_of_unarchive():
-    assert chat_archive.keep_archived([]) is None
+    """Never stored, it is on: what on_arrival() follows, and what the
+    window shows (REGRESSION (review): it answered null and the box stayed
+    disabled with "could not read")."""
+    assert chat_archive.keep_archived([]) is True
     assert chat_archive.keep_archived([_setting(True)]) is False
     assert chat_archive.keep_archived([_setting(False)]) is True
 
@@ -218,6 +221,16 @@ def test_reading_and_changing_it(tmp_path, supported, monkeypatch):
         assert (status2, body2["response"]["keepArchived"]) == (200, True)
         assert sent == [("regular_low", ["setting_unarchiveChats"], 4)]
         assert body3["response"]["keepArchived"] is True
+    finally:
+        s.close()
+
+
+def test_a_copy_without_the_setting_answers_it_on(tmp_path, supported):
+    s = _Session(tmp_path)
+    s.client, s.status = object(), "CONNECTED"
+    try:
+        (status, body), = _run(s, [("GET", None)])
+        assert (status, body["response"]["keepArchived"]) == (200, True)
     finally:
         s.close()
 
