@@ -19,7 +19,7 @@ import types
 
 import pytest
 
-from ui.dialogs import settings_lazy
+from ui.dialogs import settings_lazy, settings_pages
 from ui.dialogs.settings_dialog import SettingsDialog
 from ui.dialogs.settings_lazy import (
     LazyUnitsMixin, PAGE_UNITS, UNITS, attributes_created, ready, unit_of_attribute, wanted,
@@ -378,6 +378,192 @@ class TestTheResultsArriving:
     def test_results_show_while_it_loads(self):
         book = self._book(True, [_entry("Audio", "Noise")])
         assert SettingsPages._result_rows(book) == ["Audio: Noise"]
+
+
+class _Rows:
+    """The category list, or the results list: what was done to it."""
+
+    def __init__(self, focused=False):
+        self.focused = focused
+        self.calls = []
+
+    def HasFocus(self):
+        return self.focused
+
+    def GetItemCount(self):
+        return 1 + sum(call[0] == "insert" for call in self.calls)
+
+    def InsertItem(self, row, text):
+        self.calls.append(("insert", row, text))
+
+    def SetItemText(self, row, text):
+        self.calls.append(("rewrite", row, text))
+
+    def Set(self, rows):
+        self.calls.append(("set", rows))
+
+    def Append(self, text):
+        self.calls.append(("append", text))
+
+    def SetSelection(self, row):
+        self.calls.append(("select", row))
+
+
+class _RunningTimer:
+    def __init__(self, running):
+        self.running = running
+        self.started = []
+
+    def IsRunning(self):
+        return self.running
+
+    def Start(self, delay):
+        self.started.append(delay)
+
+
+class _SearchBook:
+    """SettingsPages with its lists replaced, nothing else."""
+
+    refresh_search = SettingsPages.refresh_search
+    _refresh_results_row = SettingsPages._refresh_results_row
+    _on_list_focus_lost = SettingsPages._on_list_focus_lost
+    _results_row_settled = SettingsPages._results_row_settled
+    _result_rows = SettingsPages._result_rows
+    _results_title = SettingsPages._results_title
+    _results_template = "Results: {count}"
+    _no_results = "none"
+    _loading_text = "still"
+    _results_row_stale = False
+    _results_row_timer = None
+    _guard = False
+    _searching = True
+    _loading = True
+
+    def __init__(self, list_focus=False, results_focus=False, found=()):
+        self._list = _Rows(list_focus)
+        self._results = _Rows(results_focus)
+        self._found = list(found)
+        self._shown = sorted({e.page_index for e in found})
+        self._titles = ["Audio", "Calls"]
+        self._search = types.SimpleNamespace(GetValue=lambda: "x")
+        self.pending = []
+
+    def _matches(self, query):
+        return self._found + self.pending
+
+    def add(self, entry):
+        self.pending = [entry]
+        self.refresh_search()
+        self.pending = []
+
+
+def _hit(page, label):
+    return types.SimpleNamespace(page_index=page, category=f"page {page}", label=label)
+
+
+class TestTheScreenReaderDuringASearch:
+    """The pages arrive on a timer, wherever the focus is. NVDA reads a row whose
+    name changes under the focus, so the lists may grow but not be rewritten."""
+
+    def test_a_category_is_added_under_the_focus(self):
+        book = _SearchBook(list_focus=True)
+        book.add(_hit(1, "Ringtone"))
+        assert ("insert", 1, "Calls") in book._list.calls
+
+    def test_the_row_with_the_count_is_not_rewritten_under_the_focus(self):
+        book = _SearchBook(list_focus=True)
+        for label in ("One", "Two", "Three"):
+            book.add(_hit(1, label))
+        assert not [call for call in book._list.calls if call[0] == "rewrite"]
+        assert book._results_row_stale is True
+
+    def test_with_the_focus_elsewhere_it_follows_the_count(self):
+        book = _SearchBook()
+        book.add(_hit(1, "One"))
+        assert ("rewrite", 0, "Results: 1") in book._list.calls
+
+    def test_it_waits_a_moment_after_the_focus_leaves(self):
+        """NVDA finds out late: rewritten now, it would still be read."""
+        book = _SearchBook(list_focus=True)
+        book.add(_hit(1, "One"))
+        book._list.focused = False
+        book._results_row_timer = _RunningTimer(True)
+        book.add(_hit(1, "Two"))
+        assert not [call for call in book._list.calls if call[0] == "rewrite"]
+
+    def test_leaving_the_list_starts_the_wait(self, monkeypatch):
+        book = _SearchBook(list_focus=True)
+        book.add(_hit(1, "One"))
+        book._list.focused = False
+        timers = []
+        monkeypatch.setattr(settings_pages.wx, "CallLater", lambda delay, fn: timers.append(delay) or "t")
+        book._on_list_focus_lost(types.SimpleNamespace(Skip=lambda: None))
+        assert timers == [settings_pages.RESULTS_ROW_HOLD_MS]
+
+    def test_leaving_again_starts_the_wait_over(self):
+        book = _SearchBook()
+        book._results_row_stale = True
+        book._results_row_timer = _RunningTimer(True)
+        book._on_list_focus_lost(types.SimpleNamespace(Skip=lambda: None))
+        assert book._results_row_timer.started == [settings_pages.RESULTS_ROW_HOLD_MS]
+
+    def test_nothing_waiting_starts_no_wait(self):
+        book = _SearchBook()
+        book._on_list_focus_lost(types.SimpleNamespace(Skip=lambda: None))
+        assert book._results_row_timer is None
+
+    def test_after_the_wait_the_count_is_right(self):
+        book = _SearchBook(list_focus=True)
+        book.add(_hit(1, "One"))
+        book._list.focused = False
+        book._results_row_timer = _RunningTimer(False)
+        book._results_row_settled()
+        assert ("rewrite", 0, "Results: 1") in book._list.calls
+        assert book._results_row_stale is False
+
+    def test_back_on_the_list_before_the_wait_ends_it_keeps_waiting(self):
+        book = _SearchBook(list_focus=True)
+        book.add(_hit(1, "One"))
+        book._results_row_timer = _RunningTimer(False)
+        book._results_row_settled()
+        assert not [call for call in book._list.calls if call[0] == "rewrite"]
+        assert book._results_row_stale is True
+
+    def test_a_search_that_ended_rewrites_nothing(self):
+        book = _SearchBook()
+        book._results_row_stale = True
+        book._searching = False
+        book._results_row_settled()
+        assert book._list.calls == []
+
+    def test_a_window_gone_rewrites_nothing(self, monkeypatch):
+        book = _SearchBook()
+        book._results_row_stale = True
+        monkeypatch.setattr(_SearchBook, "__bool__", lambda self: False, raising=False)
+        book._results_row_settled()
+        assert book._list.calls == []
+
+    def test_a_result_on_the_way_adds_to_the_list_and_keeps_its_rows(self):
+        found = _hit(0, "First")
+        book = _SearchBook(results_focus=True, found=[found])
+        book.add(_hit(0, "Second"))
+        assert book._results.calls == [("append", "page 0: Second")]
+
+    def test_the_first_result_replaces_the_row_under_the_focus_and_is_chosen(self):
+        book = _SearchBook(results_focus=True)
+        book.add(_hit(0, "First"))
+        assert book._results.calls == [("set", ["page 0: First"]), ("select", 0)]
+
+    def test_with_the_focus_elsewhere_nothing_is_chosen(self):
+        book = _SearchBook()
+        book.add(_hit(0, "First"))
+        assert book._results.calls == [("set", ["page 0: First"])]
+
+    def test_the_end_of_a_search_with_no_match_reaches_the_focus(self):
+        book = _SearchBook(results_focus=True)
+        book._loading = False
+        book.refresh_search()
+        assert book._results.calls == [("set", ["none"]), ("select", 0)]
 
 
 class TestTheInstallWideBaseline:

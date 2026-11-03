@@ -172,6 +172,12 @@ def _name_of(control) -> str:
     return "" if name in _DEFAULT_NAMES else name.strip()
 
 
+#: How long the row of the results stays as it is after the focus leaves the
+#: list. NVDA reads a row whose name changes while it believes the row has the
+#: focus (docs/traps/screen-reader-speech.md), and it finds out late.
+RESULTS_ROW_HOLD_MS = 1000
+
+
 def new_entries(found, matches):
     """The `matches` not in `found` yet, in their order. A pass over the pages
     makes new SearchEntry objects, so an entry is known by what it shows."""
@@ -336,6 +342,7 @@ class SettingsPages(wx.Simplebook):
         for title in self._titles:
             self._list.InsertItem(self._list.GetItemCount(), title)
         self._list.Bind(wx.EVT_LIST_ITEM_SELECTED, self._on_list_selected)
+        self._list.Bind(wx.EVT_KILL_FOCUS, self._on_list_focus_lost)
         body.Add(self._list, 0, wx.EXPAND | wx.ALL, 8)
 
         right = wx.BoxSizer(wx.VERTICAL)
@@ -401,6 +408,8 @@ class SettingsPages(wx.Simplebook):
     _no_results = ""
     _results_template = "{count}"
     _loading_text = ""
+    _results_row_stale = False      # the first row waits for the focus to go
+    _results_row_timer = None       # running: the focus has only just gone
 
     def _on_list_selected(self, event):
         if self._guard:
@@ -447,6 +456,7 @@ class SettingsPages(wx.Simplebook):
         if self._before_search is not None:
             self._before_search()
         self._found = self._matches(query)
+        self._results_row_stale = False
         self._searching = True
         self._shown = []
         for e in self._found:
@@ -494,18 +504,53 @@ class SettingsPages(wx.Simplebook):
         self._found += added
         self._guard = True
         try:
+            # A row added at the end changes no row's name, so it is safe under
+            # the focus: the screen reader says nothing and the arrows reach it.
             for e in added:
                 if e.page_index not in self._shown:
                     self._shown.append(e.page_index)
                     self._list.InsertItem(self._list.GetItemCount(), self._titles[e.page_index])
-            self._list.SetItemText(0, self._results_title())
         finally:
             self._guard = False
+        self._refresh_results_row()
         if first_results or not self._found:
+            on_the_placeholder = self._results.HasFocus()
             self._results.Set(self._result_rows())
+            if on_the_placeholder:
+                # The only row under the focus is gone; choosing its successor
+                # is what tells the screen reader, once.
+                self._results.SetSelection(0)
         else:
             for e in added:
                 self._results.Append(f"{e.category}: {e.label}")
+
+    def _refresh_results_row(self):
+        """The count on the first row. The one row rewritten, so it waits while
+        the focus is on the list and a moment after: rewritten under the focus,
+        it would be read again for every page that arrives."""
+        timer = self._results_row_timer
+        if self._list.HasFocus() or (timer is not None and timer.IsRunning()):
+            self._results_row_stale = True
+            return
+        self._results_row_stale = False
+        self._guard = True
+        try:
+            self._list.SetItemText(0, self._results_title())
+        finally:
+            self._guard = False
+
+    def _on_list_focus_lost(self, event):
+        event.Skip()
+        if not self._results_row_stale:
+            return
+        if self._results_row_timer is None:
+            self._results_row_timer = wx.CallLater(RESULTS_ROW_HOLD_MS, self._results_row_settled)
+        else:
+            self._results_row_timer.Start(RESULTS_ROW_HOLD_MS)
+
+    def _results_row_settled(self):
+        if self and self._searching and self._results_row_stale:
+            self._refresh_results_row()
 
     def _results_title(self):
         return self._results_template.format(count=len(self._found))
@@ -514,6 +559,7 @@ class SettingsPages(wx.Simplebook):
         if not self._searching:
             return
         self._searching = False
+        self._results_row_stale = False
         self._found = []
         self._guard = True
         try:
