@@ -88,7 +88,9 @@ def test_the_settings_page_is_appended_last_and_found_not_indexed():
     dialog = read("ui", "dialogs", "settings_dialog.py")
     assert dialog.count("AISettingsPage(") == 1
     ai = dialog.index("self._ai_page = AISettingsPage(")
-    assert dialog.index("# ── Locked chats tab") < ai < dialog.index("# ── Button row")
+    assert (dialog.index("self._notebook.AddPage(self._calls_page")
+            < dialog.index("self._notebook.AddPage(self._ai_holder")
+            < dialog.index("# ── Button row") < ai)
     assert "FindPage(self._ai_page)" in dialog
     assert not re.search(r"SetPageText\(\d+, i18n\.t\(\"tab_ai_accessibility\"\)", dialog)
     assert "self._chat_lock_dialog = SubPageDialog(" in dialog

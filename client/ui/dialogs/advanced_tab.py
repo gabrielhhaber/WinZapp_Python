@@ -43,7 +43,6 @@ class AdvancedTabMixin:
 
     def _build_advanced_page(self) -> None:
         i18n = self.main_window.i18n
-        self._advanced_page = wx.Panel(self._notebook)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._log_level_label = wx.StaticText(
@@ -74,7 +73,6 @@ class AdvancedTabMixin:
         sizer.Add(self._export_logs_btn, 0, wx.ALL, 8)
 
         self._advanced_page.SetSizer(sizer)
-        self._notebook.AddPage(self._advanced_page, i18n.t("tab_advanced"))
 
     def _on_export_logs(self, event=None) -> None:
         """Ask where to save, then zip the logs off the wx thread and say how
@@ -169,8 +167,6 @@ class AdvancedTabMixin:
 
     def _refresh_advanced_labels(self) -> None:
         i18n = self.main_window.i18n
-        self._notebook.SetPageText(
-            self._notebook.FindPage(self._advanced_page), i18n.t("tab_advanced"))
         self._log_level_label.SetLabel(i18n.t("advanced_log_level_label"))
         for index, label in enumerate(level_labels(i18n.t)):
             self._log_level_choice.SetString(index, label)

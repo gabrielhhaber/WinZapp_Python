@@ -44,6 +44,7 @@ from ui.dialogs.noise_model_section import NoiseModelSectionMixin
 from ui.dialogs.transcription_result_field import TranscriptionResultFieldMixin
 from ui.dialogs.transcription_precision import TranscriptionPrecisionMixin
 from ui.dialogs.shortcuts_tab import ShortcutsTabMixin
+from ui.dialogs.settings_lazy import LazyUnitsMixin, ready, wanted
 from ui.dialogs.settings_pages import ScrollingPage, SettingsPages, SubPageDialog
 
 # Win32 modifier constants for RegisterHotKey
@@ -219,7 +220,7 @@ def chat_lock_tab_visible(main_window) -> bool:
     return bool(getattr(main_window, "_chat_lock_unlocked", False))
 
 
-class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMixin, WhisperCppMixin,
+class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMixin, WhisperCppMixin,
                      TranscriptionPrecisionMixin, TranscriptionResultFieldMixin,
                      TranscriptionBackgroundTabMixin, TranscriptionModelMarksMixin,
                      TranscriptionQueueMixin, TranscriptionCacheMixin,
@@ -243,19 +244,17 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # Dirty-tracking for the Apply button — see _mark_dirty()'s docstring.
         self._dirty = False
         self._loading_values = False
+        self._built_units = set()
+        self._building_units = set()
         self._build_ui()
-        self._loading_values = True
-        self._load_values()
-        self._refresh_shortcut_rows()
-        self._loading_values = False
         self._apply_btn.Hide()
         # Catches every checkbox/radio/combo/choice/text change anywhere in the
         # dialog via wx's normal command-event propagation (a control-level
         # handler that doesn't call event.Skip() would otherwise swallow it —
         # see _mark_dirty()'s docstring for the handlers that needed one
-        # added). Bound after _load_values() so SetValue()-driven text
-        # events fired while populating the controls (see _load_values()
-        # itself) are covered by _loading_values rather than by binding order.
+        # added). The controls are built and filled with _loading_values on
+        # (settings_lazy.py), which covers the SetValue()-driven text events
+        # that fires, whichever page is built and however late.
         self.Bind(wx.EVT_CHECKBOX, self._mark_dirty)
         self.Bind(wx.EVT_RADIOBUTTON, self._mark_dirty)
         # A wx.RadioBox is not a group of wx.RadioButtons and fires its own
@@ -266,9 +265,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self.Bind(wx.EVT_COMBOBOX, self._mark_dirty)
         self.Bind(wx.EVT_CHOICE, self._mark_dirty)
         self.Bind(wx.EVT_TEXT, self._mark_dirty)
-        # Bound after _load_values() for the same reason as the four above:
-        # AddPage() itself fires this event while the notebook is being built,
-        # and the transcription tab must not count that as having been shown.
+        # Bound after _build_ui(): AddPage() itself fires this event while the
+        # notebook is being built, and the transcription tab must not count
+        # that as having been shown.
         self._notebook.Bind(
             wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_settings_page_changed
         )
@@ -296,12 +295,169 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
     # ── UI construction ──────────────────────────────────────────────────────
 
     def _build_ui(self):
+        """The window around the options: the search, the categories, an empty
+        page for each and an empty window for each button. What goes inside
+        each one is built when it is first needed (settings_lazy.py), from
+        the methods below.
+        """
         i18n = self.main_window.i18n
 
-        self._notebook = SettingsPages(self)
+        self._notebook = SettingsPages(
+            self, before_show=self._ensure_page_of_index,
+            before_search=self._ensure_all_units)
 
-        # ── General tab ──────────────────────────────────────────────────────
         self._general_page = wx.Panel(self._notebook)
+        self._notebook.AddPage(self._general_page, i18n.t("tab_general"))
+
+        # Scrollable, like the AI page: this tab holds more options than a
+        # screen is tall. On a plain panel the sizer then squeezes whatever is
+        # past the bottom edge down to a height of zero, and NVDA, which
+        # decides by geometry which group box a control sits in, no longer
+        # finds the radio buttons inside their box and finds the NEXT control
+        # inside it instead: "Posição para anunciar itens selecionados" was
+        # read on the checkbox after the group and not on its radio buttons.
+        self._ui_page = ScrolledPanel(self._notebook)
+        self._notebook.AddPage(self._ui_page, i18n.t("tab_ui"))
+        self._accessibility_page = wx.Panel(self._notebook)
+        self._notebook.AddPage(self._accessibility_page, i18n.t("tab_accessibility"))
+        self._audio_devices_page = ScrollingPage(self._notebook)
+        self._notebook.AddPage(self._audio_devices_page, i18n.t("tab_audio"))
+        self._sound_events_page = ScrollingPage(self._notebook)
+        self._alert_page = self._sound_events_page
+        self._notebook.AddPage(self._sound_events_page, i18n.t("tab_event_sounds"))
+        self._storage_page = ScrollingPage(self._notebook)
+        self._files_page = self._storage_page
+        self._notebook.AddPage(self._storage_page, i18n.t("tab_storage"))
+        # Native checkboxes keep the complete feature reachable and clearly
+        # announced by NVDA/JAWS/Narrator without a custom accessibility layer.
+        self._calls_page = wx.Panel(self._notebook)
+        self._notebook.AddPage(self._calls_page, i18n.t("tab_calls"))
+
+        # The AI and Transcription pages make their own panel, so they go
+        # inside one that holds their place in the list until then.
+        self._ai_holder = wx.Panel(self._notebook)
+        self._notebook.AddPage(self._ai_holder, i18n.t("tab_ai_accessibility"))
+        self._transcription_holder = wx.Panel(self._notebook)
+        self._notebook.AddPage(self._transcription_holder, i18n.t("tab_transcription"))
+        self._whatsapp_page = wx.Panel(self._notebook)
+        self._notebook.AddPage(self._whatsapp_page, i18n.t("wa_settings_dialog_title"))
+        self._conn_page = wx.Panel(self._notebook)
+        # Connection is the last category but one: rarely needed, so out of the
+        # way. Advanced comes after it: options most people never need.
+        self._notebook.AddPage(self._conn_page, i18n.t("tab_connection"))
+        self._advanced_page = wx.Panel(self._notebook)
+        self._notebook.AddPage(self._advanced_page, i18n.t("tab_advanced"))
+
+        # The windows opened from a button on a page.
+        self._notifications_dialog = SubPageDialog(
+            self, i18n.t("general_notifications_button").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("notifications"))
+        self._speech_dialog = SubPageDialog(
+            self, i18n.t("tab_speech_content").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("speech"))
+        self._audio_dialog = SubPageDialog(
+            self, i18n.t("tab_audio_playback").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("audio_playback"))
+        self._backup_dialog = SubPageDialog(
+            self, i18n.t("tab_profile_backup").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("backup"))
+        self._reactions_dialog = SubPageDialog(
+            self, i18n.t("tab_reactions").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("reactions"))
+        self._chat_lock_dialog = SubPageDialog(
+            self, i18n.t("locked_chats").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("chat_lock"))
+        self._messages_dialog = SubPageDialog(
+            self, i18n.t("ui_messages_button").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("messages"))
+        self._chats_dialog = SubPageDialog(
+            self, i18n.t("ui_chats_button").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("chats"))
+        self._confirmations_dialog = SubPageDialog(
+            self, i18n.t("customization_confirmations").replace("&", ""), i18n.t("ok"),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("confirmations"))
+        self._shortcuts_dialog = SubPageDialog(
+            self, i18n.t('tab_shortcuts').replace('&', ''), i18n.t('ok'),
+            on_change=self._mark_dirty, build=lambda: self._ensure_unit("shortcuts"))
+        self._shortcuts_dialog.SetMinSize((640, 460))
+        self._whatsapp_privacy_dialog = SubPageDialog(
+            self, i18n.t("wa_settings_tab_privacy").replace("&", ""), i18n.t("ok"),
+            first_open=lambda: self._whatsapp_privacy_panel.load(),
+            build=lambda: self._ensure_unit("whatsapp_privacy"))
+        self._whatsapp_profile_dialog = SubPageDialog(
+            self, i18n.t("wa_settings_tab_profile").replace("&", ""), i18n.t("ok"),
+            first_open=lambda: self._whatsapp_profile_panel.load(),
+            build=lambda: self._ensure_unit("whatsapp_profile"))
+        self._chat_lock_tab_shown = chat_lock_tab_visible(self.main_window)
+
+        # Searched like the page's own options, once they are built.
+        add = self._notebook.add_subpage
+        index_of = self._notebook.FindPage
+        add(0, i18n.t("general_notifications_button").replace("&", ""), "_notifications_page",
+            lambda control=None: self._notifications_dialog.open(control))
+        add(index_of(self._accessibility_page), i18n.t("tab_speech_content").replace("&", ""),
+            "_speech_page", lambda control=None: self._speech_dialog.open(control))
+        add(index_of(self._audio_devices_page),
+            i18n.t("tab_audio_playback").replace("&", ""), "_audio_page",
+            lambda control=None: self._audio_dialog.open(control))
+        add(index_of(self._storage_page),
+            i18n.t("tab_profile_backup").replace("&", ""), "_profile_backup_page",
+            lambda control=None: self._backup_dialog.open(control))
+        add(index_of(self._ai_holder), i18n.t("ai_auto_button").replace("&", "").rstrip(".… "),
+            "_ai_page.auto_panel", lambda control=None: self._ai_page.open_auto(control))
+        add(index_of(self._whatsapp_page),
+            i18n.t("wa_settings_tab_privacy").replace("&", ""), "_whatsapp_privacy_panel",
+            lambda control=None: self._whatsapp_privacy_dialog.open(control))
+        add(index_of(self._whatsapp_page),
+            i18n.t("wa_settings_tab_profile").replace("&", ""), "_whatsapp_profile_panel",
+            lambda control=None: self._whatsapp_profile_dialog.open(control))
+        add(index_of(self._ui_page),
+            i18n.t("ui_messages_button").replace("&", ""), "_messages_page",
+            lambda control=None: self._messages_dialog.open(control))
+        add(index_of(self._ui_page),
+            i18n.t("tab_reactions").replace("&", ""), "_reactions_page",
+            lambda control=None: self._reactions_dialog.open(control))
+        if self._chat_lock_tab_shown:
+            add(index_of(self._ui_page),
+                i18n.t("ui_chats_button").replace("&", "") + ": "
+                + i18n.t("locked_chats").replace("&", ""), "_chat_lock_page",
+                lambda control=None: self._chat_lock_dialog.open(control))
+        add(index_of(self._ui_page),
+            i18n.t("ui_chats_button").replace("&", ""), "_chats_page",
+            lambda control=None: self._chats_dialog.open(control))
+        add(index_of(self._ui_page),
+            i18n.t("customization_confirmations").replace("&", ""), "_confirmations_page",
+            lambda control=None: self._confirmations_dialog.open(control))
+        add(index_of(self._ui_page),
+            i18n.t('tab_shortcuts').replace('&', ''), "_shortcuts_page",
+            lambda control=None: self._shortcuts_dialog.open(control))
+
+        # ── Button row ───────────────────────────────────────────────────────
+        btn_sizer = wx.StdDialogButtonSizer()
+        self._ok_btn = wx.Button(self, wx.ID_OK, label=i18n.t("ok"))
+        self._cancel_btn = wx.Button(self, wx.ID_CANCEL, label=i18n.t("cancel"))
+        self._apply_btn = wx.Button(self, wx.ID_APPLY, label=i18n.t("apply"))
+        btn_sizer.AddButton(self._ok_btn)
+        btn_sizer.AddButton(self._cancel_btn)
+        btn_sizer.AddButton(self._apply_btn)
+        btn_sizer.Realize()
+
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        # Search field, list of categories and the chosen page: the book that
+        # used to be a row of tabs (see ui/dialogs/settings_pages.py).
+        main_sizer.Add(self._notebook.build_navigation(self), 1, wx.EXPAND | wx.ALL, 5)
+        self._notebook.ChangeSelection(0)
+        self._refresh_search_texts()
+        main_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        self.SetSizer(main_sizer)
+
+        self._ok_btn.Bind(wx.EVT_BUTTON, self._on_ok)
+        self._cancel_btn.Bind(wx.EVT_BUTTON, self._on_cancel)
+        self._apply_btn.Bind(wx.EVT_BUTTON, self._on_apply)
+
+    def _build_general_controls(self):
+        """The General page, the one that opens first."""
+        i18n = self.main_window.i18n
         gen_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Kept on self so _refresh_dialog_labels() can re-translate it after
@@ -322,47 +478,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         bind_incremental_search(self._lang_combo)
         gen_sizer.Add(self._lang_combo, 0, wx.EXPAND | wx.ALL, 8)
 
-        # Notifications: a button here opens their options in a window.
-        self._notifications_dialog = SubPageDialog(
-            self, i18n.t("general_notifications_button").replace("&", ""), i18n.t("ok"),
-            on_change=self._mark_dirty)
-        self._notifications_page = wx.Panel(self._notifications_dialog)
-        notif_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self._notifications_check = wx.CheckBox(
-            self._notifications_page, label=i18n.t("notifications_label")
-        )
-        notif_sizer.Add(self._notifications_check, 0, wx.ALL, 8)
-
-        # How much a background notification says (issue #258). A radio
-        # group, like the spell-check one below, so the screen reader reads
-        # the question and the chosen answer together. Only meaningful while
-        # notifications are on, so it follows that box's state.
-        self._notification_content_radio = wx.RadioBox(
-            self._notifications_page,
-            label=i18n.t("notification_content_label"),
-            choices=[i18n.t(key) for key in NOTIFICATION_CONTENT_LABEL_KEYS],
-            majorDimension=1,
-            style=wx.RA_SPECIFY_COLS,
-        )
-        notif_sizer.Add(self._notification_content_radio, 0, wx.EXPAND | wx.ALL, 8)
-        self._notifications_check.Bind(
-            wx.EVT_CHECKBOX,
-            lambda e: (self._sync_notification_content_enabled(), e.Skip()),
-        )
-
-        self._keep_muted_silent_check = wx.CheckBox(
-            self._notifications_page, label=i18n.t("keep_muted_chats_silent_when_open_label")
-        )
-        notif_sizer.Add(self._keep_muted_silent_check, 0, wx.ALL, 8)
-
-        self._tray_icon_check = wx.CheckBox(
-            self._notifications_page, label=i18n.t("tray_show_icon")
-        )
-        notif_sizer.Add(self._tray_icon_check, 0, wx.ALL, 8)
-
-        self._notifications_page.SetSizer(notif_sizer)
-        self._notifications_dialog.set_body(self._notifications_page)
         self._notifications_btn = wx.Button(
             self._general_page, label=i18n.t("general_notifications_button")
         )
@@ -488,30 +604,86 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         gen_sizer.Add(switch_behavior_sizer, 0, wx.EXPAND | wx.ALL, 8)
 
         self._general_page.SetSizer(gen_sizer)
-        self._notebook.AddPage(self._general_page, i18n.t("tab_general"))
-        self._notebook.add_subpage(
-            0, i18n.t("general_notifications_button").replace("&", ""),
-            self._notifications_page,
-            lambda control=None: self._notifications_dialog.open(control))
 
-        # ── User Interface tab ───────────────────────────────────────────────
-        # Scrollable, like the AI page: this tab holds more options than a
-        # screen is tall. On a plain panel the sizer then squeezes whatever is
-        # past the bottom edge down to a height of zero, and NVDA, which
-        # decides by geometry which group box a control sits in, no longer
-        # finds the radio buttons inside their box and finds the NEXT control
-        # inside it instead: "Posição para anunciar itens selecionados" was
-        # read on the checkbox after the group and not on its radio buttons.
-        self._ui_page = ScrolledPanel(self._notebook)
+    def _build_notifications_controls(self):
+        """The window of the Notifications button."""
+        i18n = self.main_window.i18n
+        self._notifications_page = wx.Panel(self._notifications_dialog)
+        notif_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self._notifications_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("notifications_label")
+        )
+        notif_sizer.Add(self._notifications_check, 0, wx.ALL, 8)
+
+        # How much a background notification says (issue #258). A radio
+        # group, like the spell-check one below, so the screen reader reads
+        # the question and the chosen answer together. Only meaningful while
+        # notifications are on, so it follows that box's state.
+        self._notification_content_radio = wx.RadioBox(
+            self._notifications_page,
+            label=i18n.t("notification_content_label"),
+            choices=[i18n.t(key) for key in NOTIFICATION_CONTENT_LABEL_KEYS],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_COLS,
+        )
+        notif_sizer.Add(self._notification_content_radio, 0, wx.EXPAND | wx.ALL, 8)
+        self._notifications_check.Bind(
+            wx.EVT_CHECKBOX,
+            lambda e: (self._sync_notification_content_enabled(), e.Skip()),
+        )
+
+        self._keep_muted_silent_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("keep_muted_chats_silent_when_open_label")
+        )
+        notif_sizer.Add(self._keep_muted_silent_check, 0, wx.ALL, 8)
+
+        self._tray_icon_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("tray_show_icon")
+        )
+        notif_sizer.Add(self._tray_icon_check, 0, wx.ALL, 8)
+
+        self._notifications_page.SetSizer(notif_sizer)
+        self._notifications_dialog.set_body(self._notifications_page)
+
+    def _build_interface_controls(self):
+        """The Interface page: its buttons, each opening a window of options."""
+        i18n = self.main_window.i18n
         ui_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._ui_page.SetSizer(ui_sizer)
         # scrollIntoView: Tab brings the focused option on screen.
         self._ui_page.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
-        self._notebook.AddPage(self._ui_page, i18n.t("tab_ui"))
+        self._ui_sizer = ui_sizer
 
-        # ── Accessibility tab ────────────────────────────────────────────────
-        self._accessibility_page = wx.Panel(self._notebook)
+        self._messages_btn = wx.Button(self._ui_page, label=i18n.t("ui_messages_button"))
+        self._ui_sizer.Add(self._messages_btn, 0, wx.ALL, 8)
+        self._messages_btn.Bind(wx.EVT_BUTTON, lambda e: self._messages_dialog.open())
+
+        # Between Messages and Conversations: reacting is about messages, but
+        # its twelve slots are a group of their own.
+        self._reactions_btn = wx.Button(self._ui_page, label=i18n.t("tab_reactions"))
+        self._ui_sizer.Add(self._reactions_btn, 0, wx.ALL, 8)
+        self._reactions_btn.Bind(wx.EVT_BUTTON, lambda e: self._reactions_dialog.open())
+
+        self._chats_btn = wx.Button(self._ui_page, label=i18n.t("ui_chats_button"))
+        self._ui_sizer.Add(self._chats_btn, 0, wx.ALL, 8)
+        self._chats_btn.Bind(wx.EVT_BUTTON, lambda e: self._chats_dialog.open())
+
+        self._confirmations_btn = wx.Button(
+            self._ui_page, label=i18n.t("customization_confirmations")
+        )
+        self._ui_sizer.Add(self._confirmations_btn, 0, wx.ALL, 8)
+        self._confirmations_btn.Bind(wx.EVT_BUTTON, lambda e: self._confirmations_dialog.open())
+        self._shortcuts_btn = wx.Button(self._ui_page, label=i18n.t('tab_shortcuts'))
+        self._ui_sizer.Add(self._shortcuts_btn, 0, wx.ALL, 8)
+        self._shortcuts_btn.Bind(wx.EVT_BUTTON, lambda e: self._shortcuts_dialog.open())
+        # The two buttons were added after the page was set up for scrolling.
+        self._ui_page.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
+
+    def _build_accessibility_controls(self):
+        """The Accessibility page."""
+        i18n = self.main_window.i18n
         accessibility_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._extended_sr_compat_check = wx.CheckBox(
@@ -525,15 +697,22 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         accessibility_sizer.Add(self._sapi_fallback_check, 0, wx.ALL, 8)
 
         self._accessibility_page.SetSizer(accessibility_sizer)
-        self._notebook.AddPage(self._accessibility_page, i18n.t("tab_accessibility"))
 
-        # ── Spoken content: a button on the Accessibility page ───────────────
-        # Opens a window with these options; the button is available only
-        # while extended screen reader compatibility is on (see
-        # _sync_spoken_content_button()).
-        self._speech_dialog = SubPageDialog(
-            self, i18n.t("tab_speech_content").replace("&", ""), i18n.t("ok"),
-            on_change=self._mark_dirty)
+        self._spoken_content_btn = wx.Button(
+            self._accessibility_page, label=i18n.t("tab_speech_content")
+        )
+        # Right after the extended compatibility box it depends on, on screen
+        # and for Tab alike.
+        accessibility_sizer.Insert(1, self._spoken_content_btn, 0, wx.ALL, 8)
+        self._spoken_content_btn.MoveAfterInTabOrder(self._extended_sr_compat_check)
+        self._spoken_content_btn.Bind(
+            wx.EVT_BUTTON, lambda e: self._speech_dialog.open())
+        self._extended_sr_compat_check.Bind(
+            wx.EVT_CHECKBOX, self._on_extended_sr_compat_toggle)
+
+    def _build_speech_controls(self):
+        """The window of the Spoken content button."""
+        i18n = self.main_window.i18n
         self._speech_page = wx.Panel(self._speech_dialog)
         speech_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -584,23 +763,10 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         self._speech_page.SetSizer(speech_sizer)
         self._speech_dialog.set_body(self._speech_page)
-        self._spoken_content_btn = wx.Button(
-            self._accessibility_page, label=i18n.t("tab_speech_content")
-        )
-        # Right after the extended compatibility box it depends on, on screen
-        # and for Tab alike.
-        accessibility_sizer.Insert(1, self._spoken_content_btn, 0, wx.ALL, 8)
-        self._spoken_content_btn.MoveAfterInTabOrder(self._extended_sr_compat_check)
-        self._spoken_content_btn.Bind(
-            wx.EVT_BUTTON, lambda e: self._speech_dialog.open())
-        self._extended_sr_compat_check.Bind(
-            wx.EVT_CHECKBOX, self._on_extended_sr_compat_toggle)
-        self._notebook.add_subpage(
-            self._notebook.GetPageCount() - 1, i18n.t("tab_speech_content").replace("&", ""),
-            self._speech_page, lambda control=None: self._speech_dialog.open(control))
 
-        # ── Connection tab ───────────────────────────────────────────────────
-        self._conn_page = wx.Panel(self._notebook)
+    def _build_connection_controls(self):
+        """The Connection page."""
+        i18n = self.main_window.i18n
         conn_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # The engine picker drives the (now hidden) custom-API switch below,
@@ -638,8 +804,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._custom_api_check.Bind(wx.EVT_CHECKBOX, self._on_custom_api_toggle)
         self._engine_choice.Bind(wx.EVT_CHOICE, self._on_engine_choice)
 
-        # ── Audio Devices tab ────────────────────────────────────────────────
-        self._audio_devices_page = ScrollingPage(self._notebook)
+    def _build_audio_devices_controls(self):
+        """The Audio page."""
+        i18n = self.main_window.i18n
         adev_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._audio_input_label = wx.StaticText(
@@ -764,10 +931,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         self._audio_devices_page.SetSizer(adev_sizer)
         self._audio_devices_page.finish()
-        self._notebook.AddPage(self._audio_devices_page, i18n.t("tab_audio"))
+        self._audio_playback_btn.Bind(wx.EVT_BUTTON, lambda e: self._audio_dialog.open())
 
-        # ── Sound Events tab ─────────────────────────────────────────────────
-        self._sound_events_page = ScrollingPage(self._notebook)
+    def _build_sound_events_controls(self):
+        """The Sound events page, with the alert tones."""
+        i18n = self.main_window.i18n
         se_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._sound_pack_label = wx.StaticText(
@@ -830,7 +998,6 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._deactivate_all_btn.Bind(wx.EVT_BUTTON, lambda e: self._set_all_sound_events(False))
 
         # ── Alert tones: the same page as the sound events ───────────────────
-        self._alert_page = self._sound_events_page
         alert_sizer = se_sizer
 
         self._alert_choice_keys = ["default", "custom"]
@@ -880,10 +1047,28 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         self._sound_events_page.SetSizer(se_sizer)
         self._sound_events_page.finish()
-        self._notebook.AddPage(self._sound_events_page, i18n.t("tab_event_sounds"))
 
-        # ── Storage tab ──────────────────────────────────────────────────────
-        self._storage_page = ScrollingPage(self._notebook)
+        self._alert_private_combo.Bind(wx.EVT_COMBOBOX, self._on_alert_choice_changed)
+        self._alert_group_combo.Bind(wx.EVT_COMBOBOX, self._on_alert_choice_changed)
+        self._alert_private_custom_field.Bind(wx.EVT_TEXT, self._on_alert_custom_path_changed)
+        self._alert_group_custom_field.Bind(wx.EVT_TEXT, self._on_alert_custom_path_changed)
+
+        # Preview buttons — sharing a group so starting one stops the other.
+        _alert_preview_group = []
+        self._alert_private_preview = AlertPreviewController(
+            self.main_window, self._alert_private_preview_btn,
+            lambda: self._resolve_alert_preview_path("private"),
+            group=_alert_preview_group,
+        )
+        self._alert_group_preview = AlertPreviewController(
+            self.main_window, self._alert_group_preview_btn,
+            lambda: self._resolve_alert_preview_path("group"),
+            group=_alert_preview_group,
+        )
+
+    def _build_storage_controls(self):
+        """The Storage page, with files and saving."""
+        i18n = self.main_window.i18n
         storage_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._auto_download_media_check = wx.CheckBox(
@@ -981,29 +1166,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         )
         storage_sizer.Add(self._profile_backup_btn, 0, wx.ALL, 8)
 
-
-        self._alert_private_combo.Bind(wx.EVT_COMBOBOX, self._on_alert_choice_changed)
-        self._alert_group_combo.Bind(wx.EVT_COMBOBOX, self._on_alert_choice_changed)
-        self._alert_private_custom_field.Bind(wx.EVT_TEXT, self._on_alert_custom_path_changed)
-        self._alert_group_custom_field.Bind(wx.EVT_TEXT, self._on_alert_custom_path_changed)
-
-        # Preview buttons — sharing a group so starting one stops the other.
-        _alert_preview_group = []
-        self._alert_private_preview = AlertPreviewController(
-            self.main_window, self._alert_private_preview_btn,
-            lambda: self._resolve_alert_preview_path("private"),
-            group=_alert_preview_group,
-        )
-        self._alert_group_preview = AlertPreviewController(
-            self.main_window, self._alert_group_preview_btn,
-            lambda: self._resolve_alert_preview_path("group"),
-            group=_alert_preview_group,
-        )
-
-        # ── Files and saving: the same page as the storage options ───────────
         # Where saved files go and how a pasted audio file is sent belong with
         # the other storage options.
-        self._files_page = self._storage_page
         files_sizer = storage_sizer
 
         # Radio group rather than a checkbox pair: the three answers are
@@ -1052,12 +1216,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         self._storage_page.SetSizer(storage_sizer)
         self._storage_page.finish()
-        self._notebook.AddPage(self._storage_page, i18n.t("tab_storage"))
+        self._profile_backup_btn.Bind(wx.EVT_BUTTON, lambda e: self._backup_dialog.open())
 
-        # ── Audio playback: a button on the Audio page ───────────────────────
-        self._audio_dialog = SubPageDialog(
-            self, i18n.t("tab_audio_playback").replace("&", ""), i18n.t("ok"),
-            on_change=self._mark_dirty)
+    def _build_audio_playback_controls(self):
+        """The window of the Audio playback button."""
+        i18n = self.main_window.i18n
         self._audio_page = wx.Panel(self._audio_dialog)
         audio_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1107,16 +1270,10 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         self._audio_page.SetSizer(audio_sizer)
         self._audio_dialog.set_body(self._audio_page)
-        self._audio_playback_btn.Bind(wx.EVT_BUTTON, lambda e: self._audio_dialog.open())
-        self._notebook.add_subpage(
-            self._notebook.FindPage(self._audio_devices_page),
-            i18n.t("tab_audio_playback").replace("&", ""), self._audio_page,
-            lambda control=None: self._audio_dialog.open(control))
 
-        # ── Calls tab ───────────────────────────────────────────────────────
-        # Native checkboxes keep the complete feature reachable and clearly
-        # announced by NVDA/JAWS/Narrator without a custom accessibility layer.
-        self._calls_page = wx.Panel(self._notebook)
+    def _build_calls_controls(self):
+        """The Calls page."""
+        i18n = self.main_window.i18n
         calls_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self._call_alerts_check = wx.CheckBox(
@@ -1140,7 +1297,6 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         calls_sizer.Add(self._call_video_settings_button, 0, wx.ALL, 8)
 
         self._calls_page.SetSizer(calls_sizer)
-        self._notebook.AddPage(self._calls_page, i18n.t("tab_calls"))
         self._call_alerts_check.Bind(wx.EVT_CHECKBOX, self._on_call_alerts_toggle)
         # Bound to a local forwarder, not to self.main_window's own method:
         # every wxgui test in this file's suites stands a plain wx.Frame in for
@@ -1157,12 +1313,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             wx.EVT_BUTTON, self._on_call_video_settings
         )
 
-        # ── Profile backup: a button on the Storage page ─────────────────────
-        # When the restore point of the Chrome profile that carries the
-        # WhatsApp login is refreshed (core/profile_backup.py).
-        self._backup_dialog = SubPageDialog(
-            self, i18n.t("tab_profile_backup").replace("&", ""), i18n.t("ok"),
-            on_change=self._mark_dirty)
+    def _build_backup_controls(self):
+        """The window of the Profile backup button."""
+        i18n = self.main_window.i18n
         self._profile_backup_page = wx.Panel(self._backup_dialog)
         backup_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1206,20 +1359,12 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         self._profile_backup_page.SetSizer(backup_sizer)
         self._backup_dialog.set_body(self._profile_backup_page)
-        self._profile_backup_btn.Bind(wx.EVT_BUTTON, lambda e: self._backup_dialog.open())
-        self._notebook.add_subpage(
-            self._notebook.FindPage(self._storage_page),
-            i18n.t("tab_profile_backup").replace("&", ""), self._profile_backup_page,
-            lambda control=None: self._backup_dialog.open(control))
         self._live_snapshot_check.Bind(wx.EVT_CHECKBOX, self._on_live_snapshot_toggle)
         self._no_profile_snapshots_check.Bind(wx.EVT_CHECKBOX, self._on_live_snapshot_toggle)
 
-        # ── Reactions tab ────────────────────────────────────────────────────
-        # The twelve quick choices of "React to message" (core/reaction_shortcuts.py).
-        # A button on the Interface page opens these options in a window.
-        self._reactions_dialog = SubPageDialog(
-            self, i18n.t("tab_reactions").replace("&", ""), i18n.t("ok"),
-            on_change=self._mark_dirty)
+    def _build_reactions_controls(self):
+        """The window of the Reactions button."""
+        i18n = self.main_window.i18n
         self._reactions_page = wx.Panel(self._reactions_dialog)
         reactions_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1268,16 +1413,9 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             wx.EVT_CHECKBOX, self._on_fixed_quick_reactions_toggle
         )
 
-        # ── Locked chats tab ────────────────────────────────────────────────
-        # Persistent vault policy belongs in Settings, not beside the chat
-        # list the user visits repeatedly. The controls stay unavailable until
-        # the vault is authenticated (or configured for the first time), so
-        # opening Settings alone never exposes its current private state.
-        # No longer a category: a button inside the Conversations window of the
-        # Interface page opens it, and only when the vault is not hidden.
-        self._chat_lock_dialog = SubPageDialog(
-            self, i18n.t("locked_chats").replace("&", ""), i18n.t("ok"),
-            on_change=self._mark_dirty)
+    def _build_chat_lock_controls(self):
+        """The window of the Locked chats button."""
+        i18n = self.main_window.i18n
         self._chat_lock_page = wx.Panel(self._chat_lock_dialog)
         chat_lock_sizer = wx.BoxSizer(wx.VERTICAL)
         self._chat_lock_intro = wx.StaticText(
@@ -1348,91 +1486,10 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         self._chat_lock_page.SetSizer(chat_lock_sizer)
         self._chat_lock_dialog.set_body(self._chat_lock_page)
-        self._chat_lock_tab_shown = chat_lock_tab_visible(self.main_window)
 
-        # Appended after every indexed page: Connection's established index (4)
-        # and every other page stay stable whether the optional hidden-vault
-        # page is present or not. The page is found with FindPage(), never by
-        # index, for the same reason.
-        self._ai_page = AISettingsPage(self._notebook, self.main_window, on_change=self._mark_dirty)
-        self._notebook.AddPage(self._ai_page, i18n.t("tab_ai_accessibility"))
-        self._notebook.add_subpage(
-            self._notebook.GetPageCount() - 1, i18n.t("ai_auto_button").replace("&", "").rstrip(".… "),
-            self._ai_page.auto_panel, self._ai_page.open_auto)
-
-        # ── Transcription tab ────────────────────────────────────────────────
-        # Appended, never inserted, and the last tab of all. Every hardcoded
-        # _notebook.SetSelection(N) in this file and in main_window/settings.py
-        # names a tab at index 8 or lower, and the SetPageText() enumeration
-        # in _refresh_dialog_labels() is positional, so the end is the one
-        # position that shifts nothing — but the tab still owes that
-        # enumeration a line of its own, or its caption stops following a
-        # language change. That line finds the page with FindPage() instead of
-        # a number: the "Locked chats" tab above is added only when
-        # chat_lock_tab_visible() says so, which leaves the AI tab just above
-        # at index 14 or 15 and this one at 15 or 16.
-        self._transcription_page = self._build_transcription_page(self._notebook)
-        self._notebook.AddPage(self._transcription_page, i18n.t("tab_transcription"))
-        self._register_transcription_windows()
-        # ── WhatsApp settings ────────────────────────────────────────────────
-        # What is kept on the paired WhatsApp account, not in WinZapp's own
-        # settings. Two buttons, each opening its window; each window reads
-        # the server the first time it is opened and applies with its own
-        # button (so closing it never discards anything).
-        from ui.dialogs.whatsapp_privacy_panel import WhatsAppPrivacyPanel
-        from ui.dialogs.whatsapp_profile_panel import WhatsAppProfilePanel
-        self._whatsapp_page = wx.Panel(self._notebook)
-        whatsapp_sizer = wx.BoxSizer(wx.VERTICAL)
-        self._whatsapp_page.SetSizer(whatsapp_sizer)
-        self._whatsapp_privacy_dialog = SubPageDialog(
-            self, i18n.t("wa_settings_tab_privacy").replace("&", ""), i18n.t("ok"),
-            first_open=lambda: self._whatsapp_privacy_panel.load())
-        self._whatsapp_privacy_panel = WhatsAppPrivacyPanel(
-            self._whatsapp_privacy_dialog, self.main_window)
-        self._whatsapp_privacy_dialog.set_body(self._whatsapp_privacy_panel)
-        self._whatsapp_profile_dialog = SubPageDialog(
-            self, i18n.t("wa_settings_tab_profile").replace("&", ""), i18n.t("ok"),
-            first_open=lambda: self._whatsapp_profile_panel.load())
-        self._whatsapp_profile_panel = WhatsAppProfilePanel(
-            self._whatsapp_profile_dialog, self.main_window)
-        self._whatsapp_profile_dialog.set_body(self._whatsapp_profile_panel)
-        self._whatsapp_privacy_btn = wx.Button(
-            self._whatsapp_page, label=i18n.t("wa_settings_tab_privacy"))
-        self._whatsapp_profile_btn = wx.Button(
-            self._whatsapp_page, label=i18n.t("wa_settings_tab_profile"))
-        whatsapp_sizer.Add(self._whatsapp_privacy_btn, 0, wx.ALL, 8)
-        whatsapp_sizer.Add(self._whatsapp_profile_btn, 0, wx.ALL, 8)
-        self._whatsapp_privacy_btn.Bind(
-            wx.EVT_BUTTON, lambda e: self._whatsapp_privacy_dialog.open())
-        self._whatsapp_profile_btn.Bind(
-            wx.EVT_BUTTON, lambda e: self._whatsapp_profile_dialog.open())
-        self._notebook.AddPage(self._whatsapp_page, i18n.t("wa_settings_dialog_title"))
-        whatsapp_index = self._notebook.GetPageCount() - 1
-        self._notebook.add_subpage(
-            whatsapp_index, i18n.t("wa_settings_tab_privacy").replace("&", ""),
-            self._whatsapp_privacy_panel,
-            lambda control=None: self._whatsapp_privacy_dialog.open(control))
-        self._notebook.add_subpage(
-            whatsapp_index, i18n.t("wa_settings_tab_profile").replace("&", ""),
-            self._whatsapp_profile_panel,
-            lambda control=None: self._whatsapp_profile_dialog.open(control))
-
-        # Connection is the last category: rarely needed, so out of the way.
-        # Its controls are built above, where they were; only the page is added here.
-        self._notebook.AddPage(self._conn_page, i18n.t("tab_connection"))
-        # Advanced comes after it: options most people never need (advanced_tab.py).
-        self._build_advanced_page()
-
-        # ── Buttons at the end of the Interface page ─────────────────────────
-        # Groups of options that open in a window of their own.
-        self._ui_sizer = ui_sizer
-
-        # Messages and Conversations: groups of options in windows of their
-        # own, opened from buttons here. Scrollable like the pages are, and
-        # for the same reason (see the note on the Interface page).
-        self._messages_dialog = SubPageDialog(
-            self, i18n.t("ui_messages_button").replace("&", ""), i18n.t("ok"),
-            on_change=self._mark_dirty)
+    def _build_messages_controls(self):
+        """The window of the Messages button."""
+        i18n = self.main_window.i18n
         self._messages_page = ScrollingPage(self._messages_dialog)
         messages_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1649,27 +1706,10 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._messages_page.SetSizer(messages_sizer)
         self._messages_page.finish()
         self._messages_dialog.set_body(self._messages_page)
-        self._messages_btn = wx.Button(self._ui_page, label=i18n.t("ui_messages_button"))
-        self._ui_sizer.Add(self._messages_btn, 0, wx.ALL, 8)
-        self._messages_btn.Bind(wx.EVT_BUTTON, lambda e: self._messages_dialog.open())
-        self._notebook.add_subpage(
-            self._notebook.FindPage(self._ui_page),
-            i18n.t("ui_messages_button").replace("&", ""), self._messages_page,
-            lambda control=None: self._messages_dialog.open(control))
 
-        # Between Messages and Conversations: reacting is about messages, but
-        # its twelve slots are a group of their own.
-        self._reactions_btn = wx.Button(self._ui_page, label=i18n.t("tab_reactions"))
-        self._ui_sizer.Add(self._reactions_btn, 0, wx.ALL, 8)
-        self._reactions_btn.Bind(wx.EVT_BUTTON, lambda e: self._reactions_dialog.open())
-        self._notebook.add_subpage(
-            self._notebook.FindPage(self._ui_page),
-            i18n.t("tab_reactions").replace("&", ""), self._reactions_page,
-            lambda control=None: self._reactions_dialog.open(control))
-
-        self._chats_dialog = SubPageDialog(
-            self, i18n.t("ui_chats_button").replace("&", ""), i18n.t("ok"),
-            on_change=self._mark_dirty)
+    def _build_chats_controls(self):
+        """The window of the Conversations button."""
+        i18n = self.main_window.i18n
         self._chats_page = ScrollingPage(self._chats_dialog)
         chats_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1781,29 +1821,13 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._chat_lock_btn.Show(self._chat_lock_tab_shown)
         chats_sizer.Add(self._chat_lock_btn, 0, wx.ALL, 8)
         self._chat_lock_btn.Bind(wx.EVT_BUTTON, lambda e: self._chat_lock_dialog.open())
-        if self._chat_lock_tab_shown:
-            self._notebook.add_subpage(
-                self._notebook.FindPage(self._ui_page),
-                i18n.t("ui_chats_button").replace("&", "") + ": "
-                + i18n.t("locked_chats").replace("&", ""),
-                self._chat_lock_page,
-                lambda control=None: self._chat_lock_dialog.open(control))
         self._chats_page.SetSizer(chats_sizer)
         self._chats_page.finish()
         self._chats_dialog.set_body(self._chats_page)
-        self._chats_btn = wx.Button(self._ui_page, label=i18n.t("ui_chats_button"))
-        self._ui_sizer.Add(self._chats_btn, 0, wx.ALL, 8)
-        self._chats_btn.Bind(wx.EVT_BUTTON, lambda e: self._chats_dialog.open())
-        self._notebook.add_subpage(
-            self._notebook.FindPage(self._ui_page),
-            i18n.t("ui_chats_button").replace("&", ""), self._chats_page,
-            lambda control=None: self._chats_dialog.open(control))
 
-        # Every option that turns a question (or warning) on or off, in a
-        # window opened from a button here.
-        self._confirmations_dialog = SubPageDialog(
-            self, i18n.t("customization_confirmations").replace("&", ""), i18n.t("ok"),
-            on_change=self._mark_dirty)
+    def _build_confirmations_controls(self):
+        """The window of the Confirmations button."""
+        i18n = self.main_window.i18n
         self._confirmations_page = wx.Panel(self._confirmations_dialog)
         confirm_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1854,41 +1878,52 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         self._confirmations_page.SetSizer(confirm_sizer)
         self._confirmations_dialog.set_body(self._confirmations_page)
-        self._confirmations_btn = wx.Button(
-            self._ui_page, label=i18n.t("customization_confirmations")
-        )
-        self._ui_sizer.Add(self._confirmations_btn, 0, wx.ALL, 8)
-        self._confirmations_btn.Bind(wx.EVT_BUTTON, lambda e: self._confirmations_dialog.open())
-        self._notebook.add_subpage(
-            self._notebook.FindPage(self._ui_page),
-            i18n.t("customization_confirmations").replace("&", ""), self._confirmations_page,
-            lambda control=None: self._confirmations_dialog.open(control))
-        self._build_shortcuts_page()
-        # The two buttons were added after the page was set up for scrolling.
-        self._ui_page.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
 
-        # ── Button row ───────────────────────────────────────────────────────
-        btn_sizer = wx.StdDialogButtonSizer()
-        self._ok_btn = wx.Button(self, wx.ID_OK, label=i18n.t("ok"))
-        self._cancel_btn = wx.Button(self, wx.ID_CANCEL, label=i18n.t("cancel"))
-        self._apply_btn = wx.Button(self, wx.ID_APPLY, label=i18n.t("apply"))
-        btn_sizer.AddButton(self._ok_btn)
-        btn_sizer.AddButton(self._cancel_btn)
-        btn_sizer.AddButton(self._apply_btn)
-        btn_sizer.Realize()
+    def _build_ai_controls(self):
+        """The AI page, inside the panel that held its place."""
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self._ai_page = AISettingsPage(self._ai_holder, self.main_window, on_change=self._mark_dirty)
+        sizer.Add(self._ai_page, 1, wx.EXPAND)
+        self._ai_holder.SetSizer(sizer)
 
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
-        # Search field, list of categories and the chosen page: the book that
-        # used to be a row of tabs (see ui/dialogs/settings_pages.py).
-        main_sizer.Add(self._notebook.build_navigation(self), 1, wx.EXPAND | wx.ALL, 5)
-        self._notebook.ChangeSelection(0)
-        self._refresh_search_texts()
-        main_sizer.Add(btn_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        self.SetSizer(main_sizer)
+    def _build_transcription_controls(self):
+        """The Transcription page, with its windows."""
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self._transcription_page = self._build_transcription_page(self._transcription_holder)
+        sizer.Add(self._transcription_page, 1, wx.EXPAND)
+        self._transcription_holder.SetSizer(sizer)
+        self._register_transcription_windows()
 
-        self._ok_btn.Bind(wx.EVT_BUTTON, self._on_ok)
-        self._cancel_btn.Bind(wx.EVT_BUTTON, self._on_cancel)
-        self._apply_btn.Bind(wx.EVT_BUTTON, self._on_apply)
+    def _build_whatsapp_controls(self):
+        """The WhatsApp page: a button for each window."""
+        i18n = self.main_window.i18n
+        whatsapp_sizer = wx.BoxSizer(wx.VERTICAL)
+        self._whatsapp_page.SetSizer(whatsapp_sizer)
+        self._whatsapp_privacy_btn = wx.Button(
+            self._whatsapp_page, label=i18n.t("wa_settings_tab_privacy"))
+        self._whatsapp_profile_btn = wx.Button(
+            self._whatsapp_page, label=i18n.t("wa_settings_tab_profile"))
+        whatsapp_sizer.Add(self._whatsapp_privacy_btn, 0, wx.ALL, 8)
+        whatsapp_sizer.Add(self._whatsapp_profile_btn, 0, wx.ALL, 8)
+        self._whatsapp_privacy_btn.Bind(
+            wx.EVT_BUTTON, lambda e: self._whatsapp_privacy_dialog.open())
+        self._whatsapp_profile_btn.Bind(
+            wx.EVT_BUTTON, lambda e: self._whatsapp_profile_dialog.open())
+
+    def _build_whatsapp_privacy_controls(self):
+        """The window of the Privacy button."""
+        from ui.dialogs.whatsapp_privacy_panel import WhatsAppPrivacyPanel
+        self._whatsapp_privacy_panel = WhatsAppPrivacyPanel(
+            self._whatsapp_privacy_dialog, self.main_window)
+        self._whatsapp_privacy_dialog.set_body(self._whatsapp_privacy_panel)
+
+    def _build_whatsapp_profile_controls(self):
+        """The window of the Profile button."""
+        from ui.dialogs.whatsapp_profile_panel import WhatsAppProfilePanel
+        self._whatsapp_profile_panel = WhatsAppProfilePanel(
+            self._whatsapp_profile_dialog, self.main_window)
+        self._whatsapp_profile_dialog.set_body(self._whatsapp_profile_panel)
+
 
     # ── Install-wide settings ────────────────────────────────────────────────
     # The dialog's one way to the shared file, and the controls whose keys are
@@ -1969,23 +2004,31 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         entry, applied through MainWindow._apply_autostart() only when the box
         differs from the registry.
         """
-        sel = self._lang_combo.GetSelection()
-        return {
-            "language": self._lang_codes[sel] if sel != wx.NOT_FOUND else "pt-BR",
-            "updates_enabled": self._updates_check.GetValue(),
-            "alpha_updates_enabled": self._alpha_updates_check.GetValue(),
-            "background_update_downloads": self._background_updates_check.GetValue(),
-            "wpp_all_updates": self._wpp_all_updates_check.GetValue(),
-            "show_tray_icon": self._tray_icon_check.GetValue(),
-            "switch_behavior": (
-                "keep_open" if self._switch_behavior_keep_open_rb.GetValue() else "single"
-            ),
-            "wpp_custom_api": self._custom_api_check.GetValue(),
-            "wpp_engine": engines.engine_at(self._engine_choice.GetSelection()),
-            "wpp_server": self._server_field.GetValue().strip(),
-            "wpp_ws_server": self._ws_server_field.GetValue().strip(),
-            "wpp_api_key": self._api_key_field.GetValue().strip(),
-        }
+        values = {}
+        if ready(self, "general"):
+            sel = self._lang_combo.GetSelection()
+            values.update({
+                "language": self._lang_codes[sel] if sel != wx.NOT_FOUND else "pt-BR",
+                "updates_enabled": self._updates_check.GetValue(),
+                "alpha_updates_enabled": self._alpha_updates_check.GetValue(),
+                "background_update_downloads": self._background_updates_check.GetValue(),
+                "switch_behavior": (
+                    "keep_open" if self._switch_behavior_keep_open_rb.GetValue() else "single"
+                ),
+            })
+        if ready(self, "advanced"):
+            values["wpp_all_updates"] = self._wpp_all_updates_check.GetValue()
+        if ready(self, "notifications"):
+            values["show_tray_icon"] = self._tray_icon_check.GetValue()
+        if ready(self, "connection"):
+            values.update({
+                "wpp_custom_api": self._custom_api_check.GetValue(),
+                "wpp_engine": engines.engine_at(self._engine_choice.GetSelection()),
+                "wpp_server": self._server_field.GetValue().strip(),
+                "wpp_ws_server": self._ws_server_field.GetValue().strip(),
+                "wpp_api_key": self._api_key_field.GetValue().strip(),
+            })
+        return values
 
     def _global_control_changed(self, key, value) -> bool:
         """Whether the user changed this install-wide control in this dialog.
@@ -2006,9 +2049,10 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         loaded = getattr(self, "_loaded_global_values", None) or {}
         return key not in loaded or value != loaded[key]
 
-    def _load_install_wide_values(self):
+    def _load_install_wide_values(self, unit=None):
         """Show every install-wide setting this dialog edits, and remember
         what was shown — the baseline _global_control_changed() compares with.
+        With `unit`, only the ones in it (settings_lazy.py).
 
         A half of _load_values() of its own so a stub can drive it with the
         apply half below (tests/test_global_settings_reconcile.py).
@@ -2019,63 +2063,79 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         shown here is also the baseline OK compares with, so it has to be the
         value in effect for the install.
         """
+        if unit not in (None, "general", "notifications", "advanced", "connection"):
+            return
         install_wide = self.main_window.install_wide_values()
-        lang_code = install_wide.get("general", {}).get("language", "pt-BR")
-        if lang_code in self._lang_codes:
-            self._lang_combo.SetSelection(self._lang_codes.index(lang_code))
+        if wanted(unit, "general"):
+            lang_code = install_wide.get("general", {}).get("language", "pt-BR")
+            if lang_code in self._lang_codes:
+                self._lang_combo.SetSelection(self._lang_codes.index(lang_code))
+            else:
+                self._lang_combo.SetSelection(0)
+
+        if wanted(unit, "notifications"):
+            show_tray = install_wide.get("general", {}).get("show_tray_icon", True)
+            self._tray_icon_check.SetValue(show_tray)
+
+        if wanted(unit, "general"):
+            updates = install_wide.get("general", {}).get("updates_enabled", True)
+            self._updates_check.SetValue(updates)
+
+            # Off unless explicitly enabled — including on installs whose
+            # settings.json predates the option and has no key at all.
+            alpha_updates = install_wide.get("general", {}).get(
+                "alpha_updates_enabled", False
+            )
+            self._alpha_updates_check.SetValue(alpha_updates)
+
+            background_updates = install_wide.get("general", {}).get(
+                "background_update_downloads", False
+            )
+            self._background_updates_check.SetValue(background_updates)
+
+        if wanted(unit, "advanced"):
+            # Settings > Advanced (advanced_tab.py): off, the approved releases only.
+            wpp_all_updates = install_wide.get("general", {}).get("wpp_all_updates", False)
+            self._wpp_all_updates_check.SetValue(wpp_all_updates)
+
+        if wanted(unit, "general"):
+            self._load_switch_behavior()
+
+        if wanted(unit, "connection"):
+            conn = install_wide.get("connection", {})
+            custom_api = conn.get("wpp_custom_api", False)
+            self._custom_api_check.SetValue(custom_api)
+
+            # The stored engine, not one read off the address fields: the port
+            # is this account's own and says nothing about the install's engine.
+            engine = engines.engine_from_connection(
+                {**conn, "wpp_engine": conn.get("wpp_engine", ""),
+                 "wpp_port": getattr(self.main_window, "wpp_port", None)})
+            self._engine_choice.SetSelection(engines.index_of(engine))
+            self._loaded_engine = self._engine_shown = engine
+
+            server = conn.get("wpp_server", "http://127.0.0.1")
+            self._server_field.SetValue(server)
+
+            ws_server = conn.get("wpp_ws_server", "ws://127.0.0.1")
+            self._ws_server_field.SetValue(ws_server)
+
+            # The shipped default rather than a placeholder. load_settings() and the
+            # defaults backfill normally fill the key before this runs, so this is
+            # consistency more than a live path — but a fallback that differs from
+            # DEFAULT_SETTINGS would be written back on OK if it ever were reached.
+            api_key = conn.get("wpp_api_key", DEFAULT_SETTINGS["connection"]["wpp_api_key"])
+            self._api_key_field.SetValue(api_key)
+
+        shown = self._global_control_values()
+        if unit is None:
+            self._loaded_global_values = shown
         else:
-            self._lang_combo.SetSelection(0)
-
-        show_tray = install_wide.get("general", {}).get("show_tray_icon", True)
-        self._tray_icon_check.SetValue(show_tray)
-
-        updates = install_wide.get("general", {}).get("updates_enabled", True)
-        self._updates_check.SetValue(updates)
-
-        # Off unless explicitly enabled — including on installs whose
-        # settings.json predates the option and has no key at all.
-        alpha_updates = install_wide.get("general", {}).get(
-            "alpha_updates_enabled", False
-        )
-        self._alpha_updates_check.SetValue(alpha_updates)
-
-        background_updates = install_wide.get("general", {}).get(
-            "background_update_downloads", False
-        )
-        self._background_updates_check.SetValue(background_updates)
-
-        # Settings > Advanced (advanced_tab.py): off, the approved releases only.
-        wpp_all_updates = install_wide.get("general", {}).get("wpp_all_updates", False)
-        self._wpp_all_updates_check.SetValue(wpp_all_updates)
-
-        self._load_switch_behavior()
-
-        conn = install_wide.get("connection", {})
-        custom_api = conn.get("wpp_custom_api", False)
-        self._custom_api_check.SetValue(custom_api)
-
-        # The stored engine, not one read off the address fields: the port
-        # is this account's own and says nothing about the install's engine.
-        engine = engines.engine_from_connection(
-            {**conn, "wpp_engine": conn.get("wpp_engine", ""),
-             "wpp_port": getattr(self.main_window, "wpp_port", None)})
-        self._engine_choice.SetSelection(engines.index_of(engine))
-        self._loaded_engine = self._engine_shown = engine
-
-        server = conn.get("wpp_server", "http://127.0.0.1")
-        self._server_field.SetValue(server)
-
-        ws_server = conn.get("wpp_ws_server", "ws://127.0.0.1")
-        self._ws_server_field.SetValue(ws_server)
-
-        # The shipped default rather than a placeholder. load_settings() and the
-        # defaults backfill normally fill the key before this runs, so this is
-        # consistency more than a live path — but a fallback that differs from
-        # DEFAULT_SETTINGS would be written back on OK if it ever were reached.
-        api_key = conn.get("wpp_api_key", DEFAULT_SETTINGS["connection"]["wpp_api_key"])
-        self._api_key_field.SetValue(api_key)
-
-        self._loaded_global_values = self._global_control_values()
+            # Only keys not seen yet: what the units opened earlier were showing
+            # stays the baseline, or a change waiting for OK on one of them
+            # would count as the value it started from and never be saved.
+            self._loaded_global_values = {
+                **shown, **(getattr(self, "_loaded_global_values", None) or {})}
 
     def _apply_install_wide_values(self) -> bool:
         """Write back the install-wide settings the user changed in this
@@ -2097,77 +2157,83 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # and under the save lock — see that method for the race each closes.
         choices = {}
 
-        old_lang = self.main_window.i18n.language
-        sel = self._lang_combo.GetSelection()
-        new_lang = self._lang_codes[sel] if sel != wx.NOT_FOUND else "pt-BR"
         language_changed = False
-        if self._global_control_changed("language", new_lang):
-            choices["language"] = new_lang
-            language_changed = new_lang != old_lang
+        if ready(self, "general"):
+            old_lang = self.main_window.i18n.language
+            sel = self._lang_combo.GetSelection()
+            new_lang = self._lang_codes[sel] if sel != wx.NOT_FOUND else "pt-BR"
+            if self._global_control_changed("language", new_lang):
+                choices["language"] = new_lang
+                language_changed = new_lang != old_lang
 
-        # Updates
-        updates = self._updates_check.GetValue()
-        if self._global_control_changed("updates_enabled", updates):
-            choices["updates_enabled"] = updates
-        alpha_updates = self._alpha_updates_check.GetValue()
-        if self._global_control_changed("alpha_updates_enabled", alpha_updates):
-            choices["alpha_updates_enabled"] = alpha_updates
-        background_updates = self._background_updates_check.GetValue()
-        if self._global_control_changed("background_update_downloads", background_updates):
-            choices["background_update_downloads"] = background_updates
-        wpp_all_updates = self._wpp_all_updates_check.GetValue()
-        if self._global_control_changed("wpp_all_updates", wpp_all_updates):
-            choices["wpp_all_updates"] = wpp_all_updates
+            # Updates
+            updates = self._updates_check.GetValue()
+            if self._global_control_changed("updates_enabled", updates):
+                choices["updates_enabled"] = updates
+            alpha_updates = self._alpha_updates_check.GetValue()
+            if self._global_control_changed("alpha_updates_enabled", alpha_updates):
+                choices["alpha_updates_enabled"] = alpha_updates
+            background_updates = self._background_updates_check.GetValue()
+            if self._global_control_changed("background_update_downloads", background_updates):
+                choices["background_update_downloads"] = background_updates
 
-        # Account switch behavior
-        self._apply_switch_behavior(choices)
+        if ready(self, "advanced"):
+            wpp_all_updates = self._wpp_all_updates_check.GetValue()
+            if self._global_control_changed("wpp_all_updates", wpp_all_updates):
+                choices["wpp_all_updates"] = wpp_all_updates
+
+        if ready(self, "general"):
+            # Account switch behavior
+            self._apply_switch_behavior(choices)
 
         # Tray icon: stored before the icon is created below, since
         # _init_tray() reads the setting it is about to follow.
-        new_show_tray = self._tray_icon_check.GetValue()
-        if self._global_control_changed("show_tray_icon", new_show_tray):
-            choices["show_tray_icon"] = new_show_tray
+        if ready(self, "notifications"):
+            new_show_tray = self._tray_icon_check.GetValue()
+            if self._global_control_changed("show_tray_icon", new_show_tray):
+                choices["show_tray_icon"] = new_show_tray
         tray_changed = "show_tray_icon" in choices
 
         # Connection settings. The port is not here: it is this account's own
         # (the Node server it runs), written by _apply_values() every time.
         # Everything is stored now; with a new engine none of it reaches this
         # process, which keeps the API it started with until the restart.
-        live = self._engine_takes_effect_now()
-        custom_api = self._custom_api_check.GetValue()
-        if self._global_control_changed("wpp_custom_api", custom_api):
-            choices["wpp_custom_api"] = custom_api
-            if live:
-                self.main_window.wpp_custom_api = custom_api
+        if ready(self, "connection"):
+            live = self._engine_takes_effect_now()
+            custom_api = self._custom_api_check.GetValue()
+            if self._global_control_changed("wpp_custom_api", custom_api):
+                choices["wpp_custom_api"] = custom_api
+                if live:
+                    self.main_window.wpp_custom_api = custom_api
 
-        # The process keeps the engine it started with (main_window.wpp_engine)
-        # until the restart _flag_restart_if_engine_changed() asks for.
-        engine = engines.engine_at(self._engine_choice.GetSelection())
-        if self._global_control_changed("wpp_engine", engine):
-            choices["wpp_engine"] = engine
+            # The process keeps the engine it started with (main_window.wpp_engine)
+            # until the restart _flag_restart_if_engine_changed() asks for.
+            engine = engines.engine_at(self._engine_choice.GetSelection())
+            if self._global_control_changed("wpp_engine", engine):
+                choices["wpp_engine"] = engine
 
-        server = self._server_field.GetValue().strip()
-        if self._global_control_changed("wpp_server", server):
-            choices["wpp_server"] = server
-            if live:
-                self.main_window.wpp_server = server
+            server = self._server_field.GetValue().strip()
+            if self._global_control_changed("wpp_server", server):
+                choices["wpp_server"] = server
+                if live:
+                    self.main_window.wpp_server = server
 
-        ws_server = self._ws_server_field.GetValue().strip()
-        if self._global_control_changed("wpp_ws_server", ws_server):
-            choices["wpp_ws_server"] = ws_server
-            if live:
-                self.main_window.wpp_ws_server = ws_server
+            ws_server = self._ws_server_field.GetValue().strip()
+            if self._global_control_changed("wpp_ws_server", ws_server):
+                choices["wpp_ws_server"] = ws_server
+                if live:
+                    self.main_window.wpp_ws_server = ws_server
 
-        api_key = self._api_key_field.GetValue().strip()
-        if self._global_control_changed("wpp_api_key", api_key):
-            choices["wpp_api_key"] = api_key
-            if live:
-                self.main_window.wpp_api_key = api_key
+            api_key = self._api_key_field.GetValue().strip()
+            if self._global_control_changed("wpp_api_key", api_key):
+                choices["wpp_api_key"] = api_key
+                if live:
+                    self.main_window.wpp_api_key = api_key
 
         self.main_window.choose_global_settings(choices)
 
         if tray_changed:
-            if new_show_tray:
+            if choices["show_tray_icon"]:
                 # Enable tray icon
                 if self.main_window.tray_icon is None:
                     self.main_window._init_tray()
@@ -2189,7 +2255,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         index = event.GetSelection()
         if index == wx.NOT_FOUND or index >= self._notebook.GetPageCount():
             return
-        if self._notebook.GetPage(index) is self._transcription_page:
+        if self._notebook.GetPage(index) is self._transcription_holder:
             self._enter_transcription_page()
 
     # ── Helpers ──────────────────────────────────────────────────────────────
@@ -2217,394 +2283,454 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         back on restores the level the user had picked."""
         self._notification_content_radio.Enable(self._notifications_check.GetValue())
 
-    def _load_values(self):
-        """Populate controls from current settings."""
+    def _load_values(self, unit=None):
+        """Populate controls from current settings: those of `unit`, the one
+        just built, or all of them (settings_lazy.py)."""
         # Language, updates, tray icon, account switch and the API connection:
         # install-wide, and loaded together because OK writes them back only
         # when changed here — see _global_control_changed().
-        self._load_install_wide_values()
+        self._load_install_wide_values(unit)
 
         notifs = self.main_window.settings.get("general", {}).get("notifications_enabled", True)
-        self._notifications_check.SetValue(notifs)
+        if wanted(unit, "notifications"):
+            self._notifications_check.SetValue(notifs)
         content = self.main_window.settings.get("general", {}).get("notification_content", "full")
-        # An unknown value opens on the default, as notification_content_level()
-        # reads it everywhere else.
-        self._notification_content_radio.SetSelection(
-            NOTIFICATION_CONTENT_LEVELS.index(content)
-            if content in NOTIFICATION_CONTENT_LEVELS else 0)
-        self._sync_notification_content_enabled()
+        if wanted(unit, "notifications"):
+            # An unknown value opens on the default, as notification_content_level()
+            # reads it everywhere else.
+            self._notification_content_radio.SetSelection(
+                NOTIFICATION_CONTENT_LEVELS.index(content)
+                if content in NOTIFICATION_CONTENT_LEVELS else 0)
+            self._sync_notification_content_enabled()
 
         call_settings = self.main_window.settings.get("calls", {})
-        self._call_alerts_check.SetValue(call_settings.get("alerts_enabled", True))
-        self._call_popup_check.SetValue(call_settings.get("popup_enabled", True))
-        self._update_call_fields_state()
+        if wanted(unit, "calls"):
+            self._call_alerts_check.SetValue(call_settings.get("alerts_enabled", True))
+            self._call_popup_check.SetValue(call_settings.get("popup_enabled", True))
+            self._update_call_fields_state()
 
         profile_backup = self.main_window.settings.get("profile_backup", {})
-        # Shown as the value WinZapp actually applies (core/profile_backup.py):
-        # a hand-edited 0, null or "abc" in settings.json would otherwise open
-        # as a field the validation refuses, blocking OK for a user who only
-        # came to change something else.
-        self._close_snapshot_hours_field.SetValue(str(stored_hours(
-            profile_backup.get("close_snapshot_min_hours", 24),
-            DEFAULT_CLOSE_HOURS, CLOSE_HOURS_MINIMUM)))
-        self._live_snapshot_check.SetValue(profile_backup.get("live_snapshot_enabled", False))
-        self._live_snapshot_hours_field.SetValue(str(stored_hours(
-            profile_backup.get("live_snapshot_interval_hours", 24),
-            DEFAULT_LIVE_HOURS, LIVE_HOURS_MINIMUM)))
-        self._live_snapshot_confirm_check.SetValue(profile_backup.get("live_snapshot_confirm", True))
-        self._no_profile_snapshots_check.SetValue(profile_backup.get("snapshots_disabled", False))
-        # What the box was when the dialog opened: turning it on here is what
-        # offers to delete the copies already on disk (after OK/Apply).
-        self._snapshots_disabled_loaded = self._no_profile_snapshots_check.GetValue()
-        self._update_live_snapshot_fields()
+        if wanted(unit, "backup"):
+            # Shown as the value WinZapp actually applies (core/profile_backup.py):
+            # a hand-edited 0, null or "abc" in settings.json would otherwise open
+            # as a field the validation refuses, blocking OK for a user who only
+            # came to change something else.
+            self._close_snapshot_hours_field.SetValue(str(stored_hours(
+                profile_backup.get("close_snapshot_min_hours", 24),
+                DEFAULT_CLOSE_HOURS, CLOSE_HOURS_MINIMUM)))
+            self._live_snapshot_check.SetValue(profile_backup.get("live_snapshot_enabled", False))
+            self._live_snapshot_hours_field.SetValue(str(stored_hours(
+                profile_backup.get("live_snapshot_interval_hours", 24),
+                DEFAULT_LIVE_HOURS, LIVE_HOURS_MINIMUM)))
+            self._live_snapshot_confirm_check.SetValue(profile_backup.get("live_snapshot_confirm", True))
+            self._no_profile_snapshots_check.SetValue(profile_backup.get("snapshots_disabled", False))
+            # What the box was when the dialog opened: turning it on here is what
+            # offers to delete the copies already on disk (after OK/Apply).
+            self._snapshots_disabled_loaded = self._no_profile_snapshots_check.GetValue()
+            self._update_live_snapshot_fields()
 
         reactions = self.main_window.settings.get("reactions", {})
-        self._fixed_quick_reactions_cb.SetValue(
-            bool(reactions.get("fixed_quick_reactions", False))
-        )
-        self._set_quick_reaction_slots(reactions.get("quick_reaction_slots"))
-        self._update_quick_reaction_fields()
+        if wanted(unit, "reactions"):
+            self._fixed_quick_reactions_cb.SetValue(
+                bool(reactions.get("fixed_quick_reactions", False))
+            )
+            self._set_quick_reaction_slots(reactions.get("quick_reaction_slots"))
+            self._update_quick_reaction_fields()
 
         pasted_audio_as = self.main_window.settings.get("general", {}).get("pasted_audio_as", "audio")
-        self._pasted_audio_radio.SetSelection(
-            PASTED_AUDIO_MODES.index(pasted_audio_as)
-            if pasted_audio_as in PASTED_AUDIO_MODES else 0)
+        if wanted(unit, "audio"):
+            self._pasted_audio_radio.SetSelection(
+                PASTED_AUDIO_MODES.index(pasted_audio_as)
+                if pasted_audio_as in PASTED_AUDIO_MODES else 0)
 
         files_settings = self.main_window.settings.get(save_location.SECTION, {})
-        self._save_folder_radio.SetSelection(
-            save_location.mode_index(
-                files_settings.get(save_location.MODE_KEY, save_location.DEFAULT_MODE)
+        if wanted(unit, "storage"):
+            self._save_folder_radio.SetSelection(
+                save_location.mode_index(
+                    files_settings.get(save_location.MODE_KEY, save_location.DEFAULT_MODE)
+                )
             )
-        )
-        self._save_folder_custom_field.SetValue(
-            files_settings.get(save_location.CUSTOM_KEY, "") or ""
-        )
-        self._sync_save_folder_controls()
+            self._save_folder_custom_field.SetValue(
+                files_settings.get(save_location.CUSTOM_KEY, "") or ""
+            )
+            self._sync_save_folder_controls()
 
         keep_muted_silent = self.main_window.settings.get("general", {}).get(
             "keep_muted_chats_silent_when_open", True
         )
-        self._keep_muted_silent_check.SetValue(keep_muted_silent)
+        if wanted(unit, "notifications"):
+            self._keep_muted_silent_check.SetValue(keep_muted_silent)
 
         announce_sync = self.main_window.settings.get("general", {}).get("announce_sync_events", True)
-        self._announce_sync_check.SetValue(announce_sync)
+        if wanted(unit, "speech"):
+            self._announce_sync_check.SetValue(announce_sync)
 
-        self._apply_spell_check_mode()
+        if wanted(unit, "general"):
+            self._apply_spell_check_mode()
 
         convert_emoticons = self.main_window.settings.get("general", {}).get("convert_emoticons", True)
-        self._convert_emoticons_check.SetValue(emoticon_setting_enabled(convert_emoticons))
+        if wanted(unit, "general"):
+            self._convert_emoticons_check.SetValue(emoticon_setting_enabled(convert_emoticons))
 
         # "off" unless the user chose otherwise — including for installs
         # whose settings.json predates the option and has no key at all.
         _mode = search_normalization_mode(
             self.main_window.settings.get("general", {}).get("search_normalization")
         )
-        self._search_norm_radio.SetSelection(SEARCH_NORMALIZATION_MODES.index(_mode))
+        if wanted(unit, "general"):
+            self._search_norm_radio.SetSelection(SEARCH_NORMALIZATION_MODES.index(_mode))
 
         from autostart import is_autostart_enabled
-        self._autostart_check.SetValue(is_autostart_enabled())
-        self._whatsapp_links_check.SetValue(self._whatsapp_links_registered())
+        if wanted(unit, "general"):
+            self._autostart_check.SetValue(is_autostart_enabled())
+            self._whatsapp_links_check.SetValue(self._whatsapp_links_registered())
 
         hk = self.main_window.settings.get("general", {}).get("global_hotkey")
-        if hk and isinstance(hk, dict) and hk.get("vk"):
-            from main_window.win32_helpers import _vk_mod_to_str
-            self._hotkey_field.SetValue(_vk_mod_to_str(hk["vk"], hk.get("mod", 0)))
-            self._hotkey_field._vk  = hk["vk"]
-            self._hotkey_field._mod = hk.get("mod", 0)
-        else:
-            self._hotkey_field.SetValue("")
-            self._hotkey_field._vk  = 0
-            self._hotkey_field._mod = 0
+        if wanted(unit, "general"):
+            if hk and isinstance(hk, dict) and hk.get("vk"):
+                from main_window.win32_helpers import _vk_mod_to_str
+                self._hotkey_field.SetValue(_vk_mod_to_str(hk["vk"], hk.get("mod", 0)))
+                self._hotkey_field._vk  = hk["vk"]
+                self._hotkey_field._mod = hk.get("mod", 0)
+            else:
+                self._hotkey_field.SetValue("")
+                self._hotkey_field._vk  = 0
+                self._hotkey_field._mod = 0
 
         page_size = self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
-        self._messages_page_size_field.SetValue(str(page_size))
+        if wanted(unit, "messages"):
+            self._messages_page_size_field.SetValue(str(page_size))
 
         ui_settings = self.main_window.settings.get("user_interface", {})
         page_jump_size = ui_settings.get("page_jump_size", ui_settings.get("page_up_down_step", 15))
-        self._page_jump_size_field.SetValue(str(page_jump_size))
+        if wanted(unit, "messages"):
+            self._page_jump_size_field.SetValue(str(page_jump_size))
 
         focus_on_open = self.main_window.settings.get("user_interface", {}).get("focus_on_open", "message_field")
-        if focus_on_open == "unread_or_last":
-            self._focus_unread_or_last_rb.SetValue(True)
-        else:
-            self._focus_message_field_rb.SetValue(True)
+        if wanted(unit, "chats"):
+            if focus_on_open == "unread_or_last":
+                self._focus_unread_or_last_rb.SetValue(True)
+            else:
+                self._focus_message_field_rb.SetValue(True)
 
         voice_record_focus = self.main_window.settings.get("user_interface", {}).get(
             "voice_record_focus", "send"
         )
-        if voice_record_focus == "discard":
-            self._voice_focus_discard_rb.SetValue(True)
-        else:
-            self._voice_focus_send_rb.SetValue(True)
+        if wanted(unit, "audio"):
+            if voice_record_focus == "discard":
+                self._voice_focus_discard_rb.SetValue(True)
+            else:
+                self._voice_focus_send_rb.SetValue(True)
 
         message_list_mode = self.main_window.settings.get("user_interface", {}).get(
             "message_list_mode", "classic"
         )
-        # "dataview" was the old (now-removed) alternative mode name — treat
-        # it as "listbox" so settings saved before the switch still resolve
-        # to the equivalent current option.
-        if message_list_mode in ("listbox", "dataview"):
-            self._msg_list_mode_listbox_rb.SetValue(True)
-        else:
-            self._msg_list_mode_classic_rb.SetValue(True)
+        if wanted(unit, "messages"):
+            # "dataview" was the old (now-removed) alternative mode name — treat
+            # it as "listbox" so settings saved before the switch still resolve
+            # to the equivalent current option.
+            if message_list_mode in ("listbox", "dataview"):
+                self._msg_list_mode_listbox_rb.SetValue(True)
+            else:
+                self._msg_list_mode_classic_rb.SetValue(True)
 
         show_listbox_count = self.main_window.settings.get("user_interface", {}).get(
             "show_listbox_item_count", False
         )
-        self._show_listbox_count_cb.SetValue(bool(show_listbox_count))
-        self._sync_listbox_count_visibility()
+        if wanted(unit, "messages"):
+            self._show_listbox_count_cb.SetValue(bool(show_listbox_count))
+            self._sync_listbox_count_visibility()
 
         show_typing_row = self.main_window.settings.get("user_interface", {}).get(
             "show_typing_row", False
         )
-        self._show_typing_row_cb.SetValue(bool(show_typing_row))
+        if wanted(unit, "messages"):
+            self._show_typing_row_cb.SetValue(bool(show_typing_row))
 
         show_delivery_status = self.main_window.settings.get("user_interface", {}).get(
             "show_delivery_status_in_chat_list", True
         )
-        self._show_delivery_status_cb.SetValue(bool(show_delivery_status))
+        if wanted(unit, "chats"):
+            self._show_delivery_status_cb.SetValue(bool(show_delivery_status))
 
         keep_pinned_order = self.main_window.settings.get("user_interface", {}).get(
             "keep_pinned_chat_order", False
         )
-        self._keep_pinned_order_cb.SetValue(bool(keep_pinned_order))
+        if wanted(unit, "chats"):
+            self._keep_pinned_order_cb.SetValue(bool(keep_pinned_order))
 
-        self._message_draft_radio.SetSelection(
-            message_drafts.MODES.index(message_drafts.mode(self.main_window.settings)))
+            self._message_draft_radio.SetSelection(
+                message_drafts.MODES.index(message_drafts.mode(self.main_window.settings)))
 
         preserve_typed_caption = self.main_window.settings.get("user_interface", {}).get(
             "preserve_typed_text_as_attachment_caption", True
         )
-        self._preserve_typed_caption_cb.SetValue(bool(preserve_typed_caption))
+        if wanted(unit, "messages"):
+            self._preserve_typed_caption_cb.SetValue(bool(preserve_typed_caption))
 
         bulk_action_shortcuts = self.main_window.settings.get("user_interface", {}).get(
             "bulk_action_shortcuts", True
         )
-        self._bulk_action_shortcuts_cb.SetValue(bool(bulk_action_shortcuts))
+        if wanted(unit, "chats"):
+            self._bulk_action_shortcuts_cb.SetValue(bool(bulk_action_shortcuts))
 
         confirm_mark_all_read = self.main_window.settings.get("user_interface", {}).get(
             "confirm_mark_all_read", True
         )
-        self._confirm_mark_all_read_cb.SetValue(bool(confirm_mark_all_read))
+        if wanted(unit, "confirmations"):
+            self._confirm_mark_all_read_cb.SetValue(bool(confirm_mark_all_read))
 
         confirm_clear_chat = self.main_window.settings.get("user_interface", {}).get(
             "confirm_clear_chat", True
         )
-        self._confirm_clear_chat_cb.SetValue(bool(confirm_clear_chat))
+        if wanted(unit, "confirmations"):
+            self._confirm_clear_chat_cb.SetValue(bool(confirm_clear_chat))
 
         confirm_delete_chat = self.main_window.settings.get("user_interface", {}).get(
             "confirm_delete_chat", True
         )
-        self._confirm_delete_chat_cb.SetValue(bool(confirm_delete_chat))
+        if wanted(unit, "confirmations"):
+            self._confirm_delete_chat_cb.SetValue(bool(confirm_delete_chat))
 
         confirm_resync_all = self.main_window.settings.get("user_interface", {}).get(
             "confirm_resync_all", True
         )
-        self._confirm_resync_all_cb.SetValue(bool(confirm_resync_all))
+        if wanted(unit, "confirmations"):
+            self._confirm_resync_all_cb.SetValue(bool(confirm_resync_all))
 
         confirm_resync_conversation = self.main_window.settings.get("user_interface", {}).get(
             "confirm_resync_conversation", True
         )
-        self._confirm_resync_conversation_cb.SetValue(bool(confirm_resync_conversation))
+        if wanted(unit, "confirmations"):
+            self._confirm_resync_conversation_cb.SetValue(bool(confirm_resync_conversation))
 
-        self._warn_system_audio_cb.SetValue(bool(
-            self.main_window.settings.get("user_interface", {}).get(
-                "warn_system_audio_recording", True)))
+            self._warn_system_audio_cb.SetValue(bool(
+                self.main_window.settings.get("user_interface", {}).get(
+                    "warn_system_audio_recording", True)))
 
         space_selects = self.main_window.settings.get("user_interface", {}).get(
             "space_selects_in_selection_mode", True
         )
-        self._space_selects_cb.SetValue(bool(space_selects))
+        if wanted(unit, "chats"):
+            self._space_selects_cb.SetValue(bool(space_selects))
 
         escape_clears_selection = self.main_window.settings.get("user_interface", {}).get(
             "escape_clears_selection", True
         )
-        self._escape_clears_selection_cb.SetValue(bool(escape_clears_selection))
+        if wanted(unit, "chats"):
+            self._escape_clears_selection_cb.SetValue(bool(escape_clears_selection))
 
         keep_search_after_open = self.main_window.settings.get("user_interface", {}).get(
             "keep_search_after_open", False
         )
-        self._keep_search_after_open_cb.SetValue(bool(keep_search_after_open))
+        if wanted(unit, "chats"):
+            self._keep_search_after_open_cb.SetValue(bool(keep_search_after_open))
 
         auto_play_voice_in_sequence = self.main_window.settings.get("user_interface", {}).get(
             "auto_play_voice_in_sequence", True
         )
-        self._auto_play_voice_in_sequence_cb.SetValue(bool(auto_play_voice_in_sequence))
+        if wanted(unit, "audio_playback"):
+            self._auto_play_voice_in_sequence_cb.SetValue(bool(auto_play_voice_in_sequence))
 
         auto_focus_next_audio = self.main_window.settings.get("user_interface", {}).get(
             "auto_focus_next_audio", True
         )
-        self._auto_focus_next_audio_cb.SetValue(bool(auto_focus_next_audio))
+        if wanted(unit, "audio_playback"):
+            self._auto_focus_next_audio_cb.SetValue(bool(auto_focus_next_audio))
 
         selected_announce_position = self.main_window.settings.get("user_interface", {}).get(
             "selected_announcement_position", "end"
         )
-        if selected_announce_position == "start":
-            self._selected_announce_start_rb.SetValue(True)
-        else:
-            self._selected_announce_end_rb.SetValue(True)
+        if wanted(unit, "chats"):
+            if selected_announce_position == "start":
+                self._selected_announce_start_rb.SetValue(True)
+            else:
+                self._selected_announce_end_rb.SetValue(True)
 
         show_yesterday_label = self.main_window.settings.get("user_interface", {}).get(
             "show_yesterday_label", True
         )
-        self._show_yesterday_label_cb.SetValue(bool(show_yesterday_label))
+        if wanted(unit, "messages"):
+            self._show_yesterday_label_cb.SetValue(bool(show_yesterday_label))
 
         show_link_previews = self.main_window.settings.get("user_interface", {}).get(
             "show_link_previews", True
         )
-        self._show_link_previews_cb.SetValue(bool(show_link_previews))
+        if wanted(unit, "messages"):
+            self._show_link_previews_cb.SetValue(bool(show_link_previews))
 
         forwarded_prefix_enabled = self.main_window.settings.get("user_interface", {}).get(
             "forwarded_prefix_enabled", False
         )
-        self._forwarded_prefix_cb.SetValue(bool(forwarded_prefix_enabled))
+        if wanted(unit, "messages"):
+            self._forwarded_prefix_cb.SetValue(bool(forwarded_prefix_enabled))
 
         delete_media_from_phone = self.main_window.settings.get("user_interface", {}).get(
             "delete_media_from_phone", True
         )
-        self._delete_media_default_cb.SetValue(bool(delete_media_from_phone))
+        if wanted(unit, "messages"):
+            self._delete_media_default_cb.SetValue(bool(delete_media_from_phone))
 
         forward_voice_as_voice = self.main_window.settings.get("user_interface", {}).get(
             "forward_voice_as_voice", False
         )
-        self._forward_voice_as_voice_cb.SetValue(bool(forward_voice_as_voice))
+        if wanted(unit, "audio"):
+            self._forward_voice_as_voice_cb.SetValue(bool(forward_voice_as_voice))
 
         conversation_video_media_viewer_dialog = self.main_window.settings.get(
             "user_interface", {}
         ).get("conversation_video_media_viewer_dialog", True)
-        self._conversation_video_media_viewer_dialog_cb.SetValue(
-            bool(conversation_video_media_viewer_dialog)
-        )
+        if wanted(unit, "messages"):
+            self._conversation_video_media_viewer_dialog_cb.SetValue(
+                bool(conversation_video_media_viewer_dialog)
+            )
 
         status_media_viewer_dialog = self.main_window.settings.get("user_interface", {}).get(
             "status_media_viewer_dialog", True
         )
-        self._status_media_viewer_dialog_cb.SetValue(bool(status_media_viewer_dialog))
+        if wanted(unit, "messages"):
+            self._status_media_viewer_dialog_cb.SetValue(bool(status_media_viewer_dialog))
 
         voice_message_mode = self.main_window.settings.get("user_interface", {}).get(
             "voice_message_mode", "voice_message"
         )
-        if voice_message_mode == "voice_message":
-            self._voice_msg_mode_voice_rb.SetValue(True)
-        else:
-            self._voice_msg_mode_audio_rb.SetValue(True)
-        self._enter_transcribes_voice_cb.SetValue(bool(
-            self.main_window.settings.get("user_interface", {}).get(
-                "enter_transcribes_voice_messages", False
-            )
-        ))
+        if wanted(unit, "audio"):
+            if voice_message_mode == "voice_message":
+                self._voice_msg_mode_voice_rb.SetValue(True)
+            else:
+                self._voice_msg_mode_audio_rb.SetValue(True)
+            self._enter_transcribes_voice_cb.SetValue(bool(
+                self.main_window.settings.get("user_interface", {}).get(
+                    "enter_transcribes_voice_messages", False
+                )
+            ))
 
-        self._load_group_media_types(
-            self.main_window.settings.get("user_interface", {}).get(
-                "group_media_default_types"
+        if wanted(unit, "messages"):
+            self._load_group_media_types(
+                self.main_window.settings.get("user_interface", {}).get(
+                    "group_media_default_types"
+                )
             )
-        )
 
         self_reference_mode = self.main_window.settings.get("user_interface", {}).get(
             "self_reference_mode", "eu"
         )
-        if self_reference_mode == "voce":
-            self._self_ref_voce_rb.SetValue(True)
-        elif self_reference_mode == "custom":
-            self._self_ref_other_rb.SetValue(True)
-        else:
-            self._self_ref_eu_rb.SetValue(True)
-        self._self_ref_custom_field.SetValue(
-            self.main_window.settings.get("user_interface", {}).get(
-                "self_reference_custom_word", ""
+        if wanted(unit, "messages"):
+            if self_reference_mode == "voce":
+                self._self_ref_voce_rb.SetValue(True)
+            elif self_reference_mode == "custom":
+                self._self_ref_other_rb.SetValue(True)
+            else:
+                self._self_ref_eu_rb.SetValue(True)
+            self._self_ref_custom_field.SetValue(
+                self.main_window.settings.get("user_interface", {}).get(
+                    "self_reference_custom_word", ""
+                )
             )
-        )
-        self._update_self_reference_field_state()
+            self._update_self_reference_field_state()
         hide_own_sender = self.main_window.settings.get("user_interface", {}).get(
             "hide_own_sender_in_message_list", False
         )
-        self._hide_own_sender_cb.SetValue(bool(hide_own_sender))
-        self._hide_unnamed_sender_numbers_cb.SetValue(
-            self.main_window.settings.get("user_interface", {}).get(
-                "hide_unnamed_sender_numbers", False
-            ) is True
-        )
-
-        self._mark_unsaved_contacts_cb.SetValue(bool(
-            self.main_window.settings.get("user_interface", {}).get(
-                "mark_unsaved_contacts", True
+        if wanted(unit, "messages"):
+            self._hide_own_sender_cb.SetValue(bool(hide_own_sender))
+            self._hide_unnamed_sender_numbers_cb.SetValue(
+                self.main_window.settings.get("user_interface", {}).get(
+                    "hide_unnamed_sender_numbers", False
+                ) is True
             )
-        ))
-        self._show_channels_cb.SetValue(
-            self.main_window.settings.get("user_interface", {}).get(
-                "show_channels_in_chat_list", False
-            ) is True
-        )
+
+        if wanted(unit, "chats"):
+            self._mark_unsaved_contacts_cb.SetValue(bool(
+                self.main_window.settings.get("user_interface", {}).get(
+                    "mark_unsaved_contacts", True
+                )
+            ))
+            self._show_channels_cb.SetValue(
+                self.main_window.settings.get("user_interface", {}).get(
+                    "show_channels_in_chat_list", False
+                ) is True
+            )
 
         accessibility = self.main_window.settings.get("accessibility", {})
-        self._extended_sr_compat_check.SetValue(accessibility.get("extended_sr_compat_enabled", True))
-        self._sapi_fallback_check.SetValue(accessibility.get("sapi_fallback_enabled", True))
-        self._sync_spoken_content_button()
+        if wanted(unit, "accessibility"):
+            self._extended_sr_compat_check.SetValue(accessibility.get("extended_sr_compat_enabled", True))
+            self._sapi_fallback_check.SetValue(accessibility.get("sapi_fallback_enabled", True))
+            self._sync_spoken_content_button()
 
         speech = self.main_window.settings.get("speech_content", {})
-        self._announce_typing_check.SetValue(speech.get("announce_typing", True))
-        self._announce_recording_check.SetValue(speech.get("announce_recording", True))
-        self._announce_conversations_update_start_check.SetValue(
-            speech.get("announce_conversations_update_start", True)
-        )
-        self._announce_conversations_update_check.SetValue(
-            speech.get("announce_conversations_update_complete", True)
-        )
-        self._announce_sync_progress_check.SetValue(speech.get("announce_sync_progress", True))
-        self._announce_media_progress_check.SetValue(speech.get("announce_media_progress", True))
-        self._speak_active_conv_check.SetValue(speech.get("speak_active_conv_messages", True))
-        self._speak_other_conv_check.SetValue(speech.get("speak_other_conv_messages", True))
-        self._silence_while_recording_check.SetValue(speech.get("silence_while_recording", False))
+        if wanted(unit, "speech"):
+            self._announce_typing_check.SetValue(speech.get("announce_typing", True))
+            self._announce_recording_check.SetValue(speech.get("announce_recording", True))
+            self._announce_conversations_update_start_check.SetValue(
+                speech.get("announce_conversations_update_start", True)
+            )
+            self._announce_conversations_update_check.SetValue(
+                speech.get("announce_conversations_update_complete", True)
+            )
+            self._announce_sync_progress_check.SetValue(speech.get("announce_sync_progress", True))
+            self._announce_media_progress_check.SetValue(speech.get("announce_media_progress", True))
+            self._speak_active_conv_check.SetValue(speech.get("speak_active_conv_messages", True))
+            self._speak_other_conv_check.SetValue(speech.get("speak_other_conv_messages", True))
+        if wanted(unit, "audio"):
+            self._silence_while_recording_check.SetValue(speech.get("silence_while_recording", False))
 
-        # The rest of the connection block is loaded by _load_install_wide_values().
-        self._port_field.SetValue(str(self.main_window.wpp_port))
+        if wanted(unit, "connection"):
+            # The rest of the connection block is loaded by _load_install_wide_values().
+            self._port_field.SetValue(str(self.main_window.wpp_port))
 
-        self._update_fields_state()
+            self._update_fields_state()
 
         # Audio devices
         audio_devices_cfg = self.main_window.settings.get("audio_devices", {})
-        self._reload_audio_device_choices(
-            prefer_output=audio_devices_cfg.get("output_device_name") or None,
-            prefer_input=audio_devices_cfg.get("input_device_name") or None,
-            prefer_effects=audio_devices_cfg.get("effects_output_device_name") or None,
-        )
+        if wanted(unit, "audio"):
+            self._reload_audio_device_choices(
+                prefer_output=audio_devices_cfg.get("output_device_name") or None,
+                prefer_input=audio_devices_cfg.get("input_device_name") or None,
+                prefer_effects=audio_devices_cfg.get("effects_output_device_name") or None,
+            )
         noise_red = self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False)
-        self._noise_reduction_check.SetValue(noise_red)
+        if wanted(unit, "audio"):
+            self._noise_reduction_check.SetValue(noise_red)
         voice_channels = self.main_window.settings.get("general", {}).get("voice_message_channels")
-        self._voice_channels_radio.SetSelection(
-            CHANNEL_MODES.index(voice_channels) if voice_channels in CHANNEL_MODES else 0)
+        if wanted(unit, "audio"):
+            self._voice_channels_radio.SetSelection(
+                CHANNEL_MODES.index(voice_channels) if voice_channels in CHANNEL_MODES else 0)
 
         # Sound events / packs
         self.main_window.refresh_sound_packs()
-        self._pack_event_settings = {}
-        self._reload_sound_pack_choices()
+        if wanted(unit, "sounds"):
+            self._pack_event_settings = {}
+            self._reload_sound_pack_choices()
 
         # Alert tones
         tones = self.main_window.settings.get("alert_tones", {})
-        self._reload_alert_tone_choices()
-        self._set_alert_combo(self._alert_private_combo, tones.get("private", "default"))
-        self._alert_private_custom_field.SetValue(tones.get("private_custom_path", ""))
-        self._set_alert_combo(self._alert_group_combo, tones.get("group", "default"))
-        self._alert_group_custom_field.SetValue(tones.get("group_custom_path", ""))
-        self._update_alert_custom_field_state()
+        if wanted(unit, "sounds"):
+            self._reload_alert_tone_choices()
+            self._set_alert_combo(self._alert_private_combo, tones.get("private", "default"))
+            self._alert_private_custom_field.SetValue(tones.get("private_custom_path", ""))
+            self._set_alert_combo(self._alert_group_combo, tones.get("group", "default"))
+            self._alert_group_custom_field.SetValue(tones.get("group_custom_path", ""))
+            self._update_alert_custom_field_state()
 
         # Storage
         storage = self.main_window.settings.get("storage", {})
-        self._auto_download_media_check.SetValue(storage.get("auto_download_media", True))
-        self._media_max_days_field.SetValue(str(storage.get("media_max_days", 30)))
-        self._media_max_mb_field.SetValue(str(storage.get("media_max_mb", 100)))
-        self._probe_video_duration_check.SetValue(
-            storage.get("probe_video_duration_on_download", False)
-        )
-        self._load_auto_download_types(storage.get("auto_download_media_types"))
-        self._update_auto_download_types_state()
+        if wanted(unit, "storage"):
+            self._auto_download_media_check.SetValue(storage.get("auto_download_media", True))
+            self._media_max_days_field.SetValue(str(storage.get("media_max_days", 30)))
+            self._media_max_mb_field.SetValue(str(storage.get("media_max_mb", 100)))
+            self._probe_video_duration_check.SetValue(
+                storage.get("probe_video_duration_on_download", False)
+            )
+            self._load_auto_download_types(storage.get("auto_download_media_types"))
+            self._update_auto_download_types_state()
 
         audio_playback = self.main_window.settings.get("audio_playback", {})
-        self._mark_audio_played_check.SetValue(
-            audio_playback.get("mark_audio_played_in_list", True)
-        )
-        self._hide_audio_speed_cb.SetValue(audio_playback.get("hide_speed_button", False))
-        self._hide_audio_progress_cb.SetValue(audio_playback.get("hide_progress_bar", False))
+        if wanted(unit, "audio_playback"):
+            self._mark_audio_played_check.SetValue(
+                audio_playback.get("mark_audio_played_in_list", True)
+            )
+            self._hide_audio_speed_cb.SetValue(audio_playback.get("hide_speed_button", False))
+            self._hide_audio_progress_cb.SetValue(audio_playback.get("hide_progress_bar", False))
 
         # This load used to sit inside _on_custom_api_toggle() instead of here,
         # so opening Settings showed the Audio playback speed with nothing
@@ -2615,10 +2741,14 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             speed_idx = self._AUDIO_SPEED_STEPS.index(float(saved_speed))
         except (ValueError, TypeError):
             speed_idx = 0
-        self._audio_speed_combo.SetSelection(speed_idx)
-        self._load_chat_lock_values()
-        self._load_transcription_values()
-        self._load_advanced_values()
+        if wanted(unit, "audio_playback"):
+            self._audio_speed_combo.SetSelection(speed_idx)
+        if wanted(unit, "chat_lock"):
+            self._load_chat_lock_values()
+        if wanted(unit, "transcription"):
+            self._load_transcription_values()
+        if wanted(unit, "advanced"):
+            self._load_advanced_values()
 
     def _chat_lock_timeout_labels(self):
         i18n = self.main_window.i18n
@@ -3055,6 +3185,7 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         if callable(touch_timeout):
             touch_timeout()
         if (event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
+                and ready(self, "sounds")
                 and wx.Window.FindFocus() is getattr(self, "_sound_events_list", None)):
             self._toggle_current_sound_event()
             return  # swallow — do NOT Skip, so it doesn't also fire the OK button
@@ -3372,281 +3503,288 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
     def _validate(self) -> bool:
         """Return True if all values are valid; show an error and return False otherwise."""
-        # Custom save folder: only meaningful when that mode is the one
-        # selected, and only worth refusing when the folder does not exist.
-        # Saying so here beats accepting it silently — resolve_save_dialog_folder()
-        # would fall back to Downloads and the user would be left thinking the
-        # setting does not work.
-        if (save_location.mode_from_index(self._save_folder_radio.GetSelection())
-                == save_location.MODE_CUSTOM):
-            custom = (self._save_folder_custom_field.GetValue() or "").strip()
+        if ready(self, "storage"):
+            # Custom save folder: only meaningful when that mode is the one
+            # selected, and only worth refusing when the folder does not exist.
+            # Saying so here beats accepting it silently — resolve_save_dialog_folder()
+            # would fall back to Downloads and the user would be left thinking the
+            # setting does not work.
+            if (save_location.mode_from_index(self._save_folder_radio.GetSelection())
+                    == save_location.MODE_CUSTOM):
+                custom = (self._save_folder_custom_field.GetValue() or "").strip()
+                try:
+                    custom_ok = bool(custom) and os.path.isdir(custom)
+                except (OSError, ValueError):
+                    custom_ok = False
+                if not custom_ok:
+                    wx.MessageBox(
+                        self.main_window.i18n.t("save_folder_custom_missing"),
+                        self.main_window.i18n.t("error").format(
+                            app_name=self.main_window.app_name),
+                        wx.OK | wx.ICON_ERROR,
+                        self,
+                    )
+                    self._notebook.SetSelection(
+                        self._notebook.FindPage(self._files_page))
+                    self._save_folder_custom_field.SetFocus()
+                    return False
+
+        if ready(self, "messages"):
+            page_size_str = self._messages_page_size_field.GetValue().strip()
             try:
-                custom_ok = bool(custom) and os.path.isdir(custom)
-            except (OSError, ValueError):
-                custom_ok = False
-            if not custom_ok:
+                page_size = int(page_size_str)
+                if page_size < 1:
+                    raise ValueError
+            except ValueError:
                 wx.MessageBox(
-                    self.main_window.i18n.t("save_folder_custom_missing"),
-                    self.main_window.i18n.t("error").format(
-                        app_name=self.main_window.app_name),
-                    wx.OK | wx.ICON_ERROR,
-                    self,
-                )
-                self._notebook.SetSelection(
-                    self._notebook.FindPage(self._files_page))
-                self._save_folder_custom_field.SetFocus()
-                return False
-
-        page_size_str = self._messages_page_size_field.GetValue().strip()
-        try:
-            page_size = int(page_size_str)
-            if page_size < 1:
-                raise ValueError
-        except ValueError:
-            wx.MessageBox(
-                self.main_window.i18n.t("invalid_messages_page_size"),
-                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
-                wx.OK | wx.ICON_ERROR,
-                self,
-            )
-            self._messages_page_size_field.SetFocus()
-            return False
-
-        page_jump_size_str = self._page_jump_size_field.GetValue().strip()
-        try:
-            page_jump_size = int(page_jump_size_str)
-            if page_jump_size < 1:
-                raise ValueError
-        except ValueError:
-            wx.MessageBox(
-                self.main_window.i18n.t("invalid_page_jump_size"),
-                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
-                wx.OK | wx.ICON_ERROR,
-                self,
-            )
-            self._page_jump_size_field.SetFocus()
-            return False
-
-        port_str = self._port_field.GetValue().strip()
-        try:
-            port = int(port_str)
-            if not (1024 <= port <= 65535):
-                raise ValueError
-        except ValueError:
-            wx.MessageBox(
-                self.main_window.i18n.t("invalid_port"),
-                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
-                wx.OK | wx.ICON_ERROR,
-                self,
-            )
-            self._port_field.SetFocus()
-            return False
-
-        if self._custom_api_check.GetValue():
-            server_str = self._server_field.GetValue().strip()
-            ws_server_str = self._ws_server_field.GetValue().strip()
-            if not server_str:
-                wx.MessageBox(
-                    self.main_window.i18n.t("invalid_server_url"),
+                    self.main_window.i18n.t("invalid_messages_page_size"),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
                     wx.OK | wx.ICON_ERROR,
                     self,
                 )
-                self._server_field.SetFocus()
+                self._messages_page_size_field.SetFocus()
                 return False
-            if not ws_server_str:
+
+            page_jump_size_str = self._page_jump_size_field.GetValue().strip()
+            try:
+                page_jump_size = int(page_jump_size_str)
+                if page_jump_size < 1:
+                    raise ValueError
+            except ValueError:
                 wx.MessageBox(
-                    self.main_window.i18n.t("invalid_ws_server_url"),
+                    self.main_window.i18n.t("invalid_page_jump_size"),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
                     wx.OK | wx.ICON_ERROR,
                     self,
                 )
-                self._ws_server_field.SetFocus()
+                self._page_jump_size_field.SetFocus()
                 return False
 
-        # Storage: media download day/size limits — 0 is the documented
-        # "unlimited" sentinel, so only negative or non-integer values are
-        # rejected.
-        max_days_str = self._media_max_days_field.GetValue().strip()
-        try:
-            max_days = int(max_days_str)
-            if max_days < 0:
-                raise ValueError
-        except ValueError:
-            self._notebook.SetSelection(8)
-            wx.MessageBox(
-                self.main_window.i18n.t("invalid_media_max_days"),
-                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
-                wx.OK | wx.ICON_ERROR,
-                self,
-            )
-            self._media_max_days_field.SetFocus()
-            return False
-
-        max_mb_str = self._media_max_mb_field.GetValue().strip()
-        try:
-            max_mb = int(max_mb_str)
-            if max_mb < 0:
-                raise ValueError
-        except ValueError:
-            self._notebook.SetSelection(8)
-            wx.MessageBox(
-                self.main_window.i18n.t("invalid_media_max_mb"),
-                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
-                wx.OK | wx.ICON_ERROR,
-                self,
-            )
-            self._media_max_mb_field.SetFocus()
-            return False
-
-        # Profile backup: both hour fields must hold a whole number of hours —
-        # 0 is the documented "every clean close" for the first, while the live
-        # interval has no such sentinel (0 would close the session on every
-        # poll). Checked whether or not the live option is ticked: a value left
-        # in its hidden field is still what Apply would save.
-        if parse_hours_field(self._close_snapshot_hours_field.GetValue(),
-                             CLOSE_HOURS_MINIMUM) is None:
-            self._show_page(self._profile_backup_page)
-            # Hidden while "keep no copies" is ticked; it has to be seen to
-            # be corrected.
-            for control in (self._close_snapshot_hours_label, self._close_snapshot_hours_field):
-                control.Show()
-            self._profile_backup_page.Layout()
-            wx.MessageBox(
-                self.main_window.i18n.t("invalid_profile_backup_close_hours"),
-                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
-                wx.OK | wx.ICON_ERROR,
-                self,
-            )
-            self._show_page(self._profile_backup_page, self._close_snapshot_hours_field)
-            return False
-        if parse_hours_field(self._live_snapshot_hours_field.GetValue(),
-                             LIVE_HOURS_MINIMUM) is None:
-            self._show_page(self._profile_backup_page)
-            # A hidden field cannot take focus or be corrected: show it.
-            for control in (self._live_snapshot_hours_label, self._live_snapshot_hours_field):
-                control.Show()
-            self._profile_backup_page.Layout()
-            wx.MessageBox(
-                self.main_window.i18n.t("invalid_profile_backup_live_hours"),
-                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
-                wx.OK | wx.ICON_ERROR,
-                self,
-            )
-            self._show_page(self._profile_backup_page, self._live_snapshot_hours_field)
-            return False
-
-        # Sound events: an ENABLED event's override path, if the user set one,
-        # must point to a real file. An empty override is always fine — it
-        # just means "use the sound pack's own file for this event" (with a
-        # further fallback to the default pack), never an error. A disabled
-        # event's path is never used, so it's not worth blocking on either.
-        # (Enabled state is already live in _pack_event_settings — every
-        # toggle writes straight there, there's nothing left to flush.)
-        pack_settings = self._pack_event_settings.get(self._current_pack_id, {})
-        for idx, (key, _) in enumerate(SOUND_EVENTS):
-            cfg = pack_settings.get(key) or {}
-            if not cfg.get("enabled", True):
-                continue
-            override = (cfg.get("path") or "").strip()
-            if override and not os.path.isfile(override):
-                self._notebook.SetSelection(6)
-                self._sound_events_list.SetSelection(idx)
-                self._update_sound_event_path_display()
-                self._sound_event_path_field.SetFocus()
+        if ready(self, "connection"):
+            port_str = self._port_field.GetValue().strip()
+            try:
+                port = int(port_str)
+                if not (1024 <= port <= 65535):
+                    raise ValueError
+            except ValueError:
                 wx.MessageBox(
-                    self.main_window.i18n.t("invalid_sound_path"),
+                    self.main_window.i18n.t("invalid_port"),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
                     wx.OK | wx.ICON_ERROR,
                     self,
                 )
+                self._port_field.SetFocus()
                 return False
 
-        # Alert tones: a "Custom" choice must point to a real file.
-        last_idx = len(self._alert_choice_keys) - 1
-        if self._alert_private_combo.GetSelection() == last_idx:
-            path = self._alert_private_custom_field.GetValue().strip()
-            if not path or not os.path.isfile(path):
-                self._notebook.SetSelection(7)
-                self._alert_private_custom_field.SetFocus()
+            if self._custom_api_check.GetValue():
+                server_str = self._server_field.GetValue().strip()
+                ws_server_str = self._ws_server_field.GetValue().strip()
+                if not server_str:
+                    wx.MessageBox(
+                        self.main_window.i18n.t("invalid_server_url"),
+                        self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                        wx.OK | wx.ICON_ERROR,
+                        self,
+                    )
+                    self._server_field.SetFocus()
+                    return False
+                if not ws_server_str:
+                    wx.MessageBox(
+                        self.main_window.i18n.t("invalid_ws_server_url"),
+                        self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                        wx.OK | wx.ICON_ERROR,
+                        self,
+                    )
+                    self._ws_server_field.SetFocus()
+                    return False
+
+        if ready(self, "storage"):
+            # Storage: media download day/size limits — 0 is the documented
+            # "unlimited" sentinel, so only negative or non-integer values are
+            # rejected.
+            max_days_str = self._media_max_days_field.GetValue().strip()
+            try:
+                max_days = int(max_days_str)
+                if max_days < 0:
+                    raise ValueError
+            except ValueError:
+                self._notebook.SetSelection(8)
                 wx.MessageBox(
-                    self.main_window.i18n.t("invalid_sound_path"),
+                    self.main_window.i18n.t("invalid_media_max_days"),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
                     wx.OK | wx.ICON_ERROR,
                     self,
                 )
+                self._media_max_days_field.SetFocus()
                 return False
-        if self._alert_group_combo.GetSelection() == last_idx:
-            path = self._alert_group_custom_field.GetValue().strip()
-            if not path or not os.path.isfile(path):
-                self._notebook.SetSelection(7)
-                self._alert_group_custom_field.SetFocus()
+
+            max_mb_str = self._media_max_mb_field.GetValue().strip()
+            try:
+                max_mb = int(max_mb_str)
+                if max_mb < 0:
+                    raise ValueError
+            except ValueError:
+                self._notebook.SetSelection(8)
                 wx.MessageBox(
-                    self.main_window.i18n.t("invalid_sound_path"),
+                    self.main_window.i18n.t("invalid_media_max_mb"),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
                     wx.OK | wx.ICON_ERROR,
                     self,
                 )
+                self._media_max_mb_field.SetFocus()
                 return False
 
-        # Audio devices: a non-default selection must actually open. Checked
-        # last, since output switching happens for real right here (it's the
-        # only way to test it) — on failure the device is left on the system
-        # default by apply_output_device() itself, so nothing needs undoing,
-        # but there's no reason to touch the live output device at all if an
-        # earlier, cheaper check is going to fail this validation anyway.
-        # Input is a plain open+close test — actually starting to record here
-        # would be pointless.
-        # Always call apply_output_device() — even when "default" (index 0)
-        # is selected — so switching back to the default actually happens
-        # live. Guarding this behind "only if a specific device is picked"
-        # used to mean picking "default" here only ever updated settings.json
-        # (correctly retried on next launch) without ever telling BASS to
-        # switch away from whatever non-default device was still active.
-        output_sel = self._audio_output_combo.GetSelection()
-        output_name = self._audio_output_device_names[output_sel - 1] if output_sel > 0 else ""
-        if not self.main_window.sound_system.apply_output_device(output_name):
-            self._notebook.SetSelection(5)
-            self._audio_output_combo.SetFocus()
-            wx.MessageBox(
-                self.main_window.i18n.t("invalid_audio_output_device"),
-                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
-                wx.OK | wx.ICON_ERROR,
-                self,
-            )
-            return False
+        if ready(self, "backup"):
+            # Profile backup: both hour fields must hold a whole number of hours —
+            # 0 is the documented "every clean close" for the first, while the live
+            # interval has no such sentinel (0 would close the session on every
+            # poll). Checked whether or not the live option is ticked: a value left
+            # in its hidden field is still what Apply would save.
+            if parse_hours_field(self._close_snapshot_hours_field.GetValue(),
+                                 CLOSE_HOURS_MINIMUM) is None:
+                self._show_page(self._profile_backup_page)
+                # Hidden while "keep no copies" is ticked; it has to be seen to
+                # be corrected.
+                for control in (self._close_snapshot_hours_label, self._close_snapshot_hours_field):
+                    control.Show()
+                self._profile_backup_page.Layout()
+                wx.MessageBox(
+                    self.main_window.i18n.t("invalid_profile_backup_close_hours"),
+                    self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                    wx.OK | wx.ICON_ERROR,
+                    self,
+                )
+                self._show_page(self._profile_backup_page, self._close_snapshot_hours_field)
+                return False
+            if parse_hours_field(self._live_snapshot_hours_field.GetValue(),
+                                 LIVE_HOURS_MINIMUM) is None:
+                self._show_page(self._profile_backup_page)
+                # A hidden field cannot take focus or be corrected: show it.
+                for control in (self._live_snapshot_hours_label, self._live_snapshot_hours_field):
+                    control.Show()
+                self._profile_backup_page.Layout()
+                wx.MessageBox(
+                    self.main_window.i18n.t("invalid_profile_backup_live_hours"),
+                    self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                    wx.OK | wx.ICON_ERROR,
+                    self,
+                )
+                self._show_page(self._profile_backup_page, self._live_snapshot_hours_field)
+                return False
 
-        effects_sel = self._audio_effects_combo.GetSelection()
-        effects_name = self._audio_effects_device_names[effects_sel - 1] if effects_sel > 0 else ""
-        if not self.main_window.sound_system.apply_effects_device(effects_name):
-            self._notebook.SetSelection(5)
-            self._audio_effects_combo.SetFocus()
-            wx.MessageBox(
-                self.main_window.i18n.t("invalid_audio_output_device"),
-                self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
-                wx.OK | wx.ICON_ERROR,
-                self,
-            )
-            return False
+        if ready(self, "sounds"):
+            # Sound events: an ENABLED event's override path, if the user set one,
+            # must point to a real file. An empty override is always fine — it
+            # just means "use the sound pack's own file for this event" (with a
+            # further fallback to the default pack), never an error. A disabled
+            # event's path is never used, so it's not worth blocking on either.
+            # (Enabled state is already live in _pack_event_settings — every
+            # toggle writes straight there, there's nothing left to flush.)
+            pack_settings = self._pack_event_settings.get(self._current_pack_id, {})
+            for idx, (key, _) in enumerate(SOUND_EVENTS):
+                cfg = pack_settings.get(key) or {}
+                if not cfg.get("enabled", True):
+                    continue
+                override = (cfg.get("path") or "").strip()
+                if override and not os.path.isfile(override):
+                    self._notebook.SetSelection(6)
+                    self._sound_events_list.SetSelection(idx)
+                    self._update_sound_event_path_display()
+                    self._sound_event_path_field.SetFocus()
+                    wx.MessageBox(
+                        self.main_window.i18n.t("invalid_sound_path"),
+                        self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                        wx.OK | wx.ICON_ERROR,
+                        self,
+                    )
+                    return False
 
-        input_sel = self._audio_input_combo.GetSelection()
-        if input_sel > 0:
-            input_name = self._audio_input_device_names[input_sel - 1]
-            input_index = None
-            for idx, name in enumerate_input_devices():
-                if name == input_name:
-                    input_index = idx
-                    break
-            if input_index is None or not test_input_device(input_index):
+            # Alert tones: a "Custom" choice must point to a real file.
+            last_idx = len(self._alert_choice_keys) - 1
+            if self._alert_private_combo.GetSelection() == last_idx:
+                path = self._alert_private_custom_field.GetValue().strip()
+                if not path or not os.path.isfile(path):
+                    self._notebook.SetSelection(7)
+                    self._alert_private_custom_field.SetFocus()
+                    wx.MessageBox(
+                        self.main_window.i18n.t("invalid_sound_path"),
+                        self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                        wx.OK | wx.ICON_ERROR,
+                        self,
+                    )
+                    return False
+            if self._alert_group_combo.GetSelection() == last_idx:
+                path = self._alert_group_custom_field.GetValue().strip()
+                if not path or not os.path.isfile(path):
+                    self._notebook.SetSelection(7)
+                    self._alert_group_custom_field.SetFocus()
+                    wx.MessageBox(
+                        self.main_window.i18n.t("invalid_sound_path"),
+                        self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                        wx.OK | wx.ICON_ERROR,
+                        self,
+                    )
+                    return False
+
+        if ready(self, "audio"):
+            # Audio devices: a non-default selection must actually open. Checked
+            # last, since output switching happens for real right here (it's the
+            # only way to test it) — on failure the device is left on the system
+            # default by apply_output_device() itself, so nothing needs undoing,
+            # but there's no reason to touch the live output device at all if an
+            # earlier, cheaper check is going to fail this validation anyway.
+            # Input is a plain open+close test — actually starting to record here
+            # would be pointless.
+            # Always call apply_output_device() — even when "default" (index 0)
+            # is selected — so switching back to the default actually happens
+            # live. Guarding this behind "only if a specific device is picked"
+            # used to mean picking "default" here only ever updated settings.json
+            # (correctly retried on next launch) without ever telling BASS to
+            # switch away from whatever non-default device was still active.
+            output_sel = self._audio_output_combo.GetSelection()
+            output_name = self._audio_output_device_names[output_sel - 1] if output_sel > 0 else ""
+            if not self.main_window.sound_system.apply_output_device(output_name):
                 self._notebook.SetSelection(5)
-                self._audio_input_combo.SetFocus()
+                self._audio_output_combo.SetFocus()
                 wx.MessageBox(
-                    self.main_window.i18n.t("invalid_audio_input_device"),
+                    self.main_window.i18n.t("invalid_audio_output_device"),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
                     wx.OK | wx.ICON_ERROR,
                     self,
                 )
                 return False
+
+            effects_sel = self._audio_effects_combo.GetSelection()
+            effects_name = self._audio_effects_device_names[effects_sel - 1] if effects_sel > 0 else ""
+            if not self.main_window.sound_system.apply_effects_device(effects_name):
+                self._notebook.SetSelection(5)
+                self._audio_effects_combo.SetFocus()
+                wx.MessageBox(
+                    self.main_window.i18n.t("invalid_audio_output_device"),
+                    self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                    wx.OK | wx.ICON_ERROR,
+                    self,
+                )
+                return False
+
+            input_sel = self._audio_input_combo.GetSelection()
+            if input_sel > 0:
+                input_name = self._audio_input_device_names[input_sel - 1]
+                input_index = None
+                for idx, name in enumerate_input_devices():
+                    if name == input_name:
+                        input_index = idx
+                        break
+                if input_index is None or not test_input_device(input_index):
+                    self._notebook.SetSelection(5)
+                    self._audio_input_combo.SetFocus()
+                    wx.MessageBox(
+                        self.main_window.i18n.t("invalid_audio_input_device"),
+                        self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
+                        wx.OK | wx.ICON_ERROR,
+                        self,
+                    )
+                    return False
 
         return True
 
@@ -3751,31 +3889,39 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
     def _apply_values(self) -> bool:
         """Validate, save, and apply all settings. Returns True on success."""
-        if not self._validate_shortcut_values():
-            return False
+        # Set where their options are read; a window never opened changed nothing.
+        channels_changed = unsaved_mark_changed = sender_numbers_changed = False
+        self_reference_changed = vm_mode_changed = False
+        if ready(self, "shortcuts"):
+            if not self._validate_shortcut_values():
+                return False
         if not self._validate():
             return False
-        if not self._validate_advanced_values():
-            return False
-        if not self._validate_automatic_transcription():
-            return False
+        if ready(self, "advanced"):
+            if not self._validate_advanced_values():
+                return False
+        if ready(self, "transcription"):
+            if not self._validate_automatic_transcription():
+                return False
 
-        if not self._ai_page.apply():
-            self._notebook.SetSelection(self._notebook.FindPage(self._ai_page))
-            return False
+        if ready(self, "ai"):
+            if not self._ai_page.apply():
+                self._notebook.SetSelection(self._notebook.FindPage(self._ai_page))
+                return False
 
         # Language, updates, account switch, tray icon and the API connection:
         # install-wide, so each only when changed here.
         language_changed = self._apply_install_wide_values()
 
-        # UI: messages page size
-        page_size = int(self._messages_page_size_field.GetValue().strip())
-        self.main_window.settings.setdefault("user_interface", {})["messages_page_size"] = page_size
+        if ready(self, "messages"):
+            # UI: messages page size
+            page_size = int(self._messages_page_size_field.GetValue().strip())
+            self.main_window.settings.setdefault("user_interface", {})["messages_page_size"] = page_size
 
-        # UI: Page Up/Page Down jump size (synced to both keys for full compatibility)
-        page_jump_size = int(self._page_jump_size_field.GetValue().strip())
-        self.main_window.settings.setdefault("user_interface", {})["page_jump_size"] = page_jump_size
-        self.main_window.settings.setdefault("user_interface", {})["page_up_down_step"] = page_jump_size
+            # UI: Page Up/Page Down jump size (synced to both keys for full compatibility)
+            page_jump_size = int(self._page_jump_size_field.GetValue().strip())
+            self.main_window.settings.setdefault("user_interface", {})["page_jump_size"] = page_jump_size
+            self.main_window.settings.setdefault("user_interface", {})["page_up_down_step"] = page_jump_size
 
         # Files and saving: which folder a Save As dialog opens on.
         # save_dialog_last_folder is deliberately NOT written here — it is
@@ -3784,369 +3930,411 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         # this dialog would discard the folder the user last actually saved to.
         files_section = self.main_window.settings.setdefault(
             save_location.SECTION, {})
-        files_section[save_location.MODE_KEY] = save_location.mode_from_index(
-            self._save_folder_radio.GetSelection())
-        files_section[save_location.CUSTOM_KEY] = (
-            self._save_folder_custom_field.GetValue() or "").strip()
-        self.main_window.settings.setdefault("general", {})["pasted_audio_as"] = (
-            PASTED_AUDIO_MODES[self._pasted_audio_radio.GetSelection()]
-        )
+        if ready(self, "storage"):
+            files_section[save_location.MODE_KEY] = save_location.mode_from_index(
+                self._save_folder_radio.GetSelection())
+            files_section[save_location.CUSTOM_KEY] = (
+                self._save_folder_custom_field.GetValue() or "").strip()
+        if ready(self, "audio"):
+            self.main_window.settings.setdefault("general", {})["pasted_audio_as"] = (
+                PASTED_AUDIO_MODES[self._pasted_audio_radio.GetSelection()]
+            )
 
-        # UI: focus on open
-        focus_on_open = (
-            "unread_or_last" if self._focus_unread_or_last_rb.GetValue()
-            else "message_field"
-        )
-        self.main_window.settings.setdefault("user_interface", {})["focus_on_open"] = focus_on_open
+        if ready(self, "chats"):
+            # UI: focus on open
+            focus_on_open = (
+                "unread_or_last" if self._focus_unread_or_last_rb.GetValue()
+                else "message_field"
+            )
+            self.main_window.settings.setdefault("user_interface", {})["focus_on_open"] = focus_on_open
 
-        # UI: focus when recording a voice message
-        voice_record_focus = (
-            "discard" if self._voice_focus_discard_rb.GetValue()
-            else "send"
-        )
-        self.main_window.settings.setdefault("user_interface", {})[
-            "voice_record_focus"
-        ] = voice_record_focus
+        if ready(self, "audio"):
+            # UI: focus when recording a voice message
+            voice_record_focus = (
+                "discard" if self._voice_focus_discard_rb.GetValue()
+                else "send"
+            )
+            self.main_window.settings.setdefault("user_interface", {})[
+                "voice_record_focus"
+            ] = voice_record_focus
 
-        # UI: messages list control type (ListCtrl vs ListBox). The active
-        # conversation panel is replaced in-place after settings are persisted,
-        # so Apply/OK takes effect immediately without an app restart.
-        new_message_list_mode = (
-            "listbox" if self._msg_list_mode_listbox_rb.GetValue() else "classic"
-        )
+        if ready(self, "messages"):
+            # UI: messages list control type (ListCtrl vs ListBox). The active
+            # conversation panel is replaced in-place after settings are persisted,
+            # so Apply/OK takes effect immediately without an app restart.
+            new_message_list_mode = (
+                "listbox" if self._msg_list_mode_listbox_rb.GetValue() else "classic"
+            )
         ui_settings = self.main_window.settings.setdefault("user_interface", {})
         old_message_list_mode = ui_settings.get("message_list_mode", "classic")
         if old_message_list_mode == "dataview":
             old_message_list_mode = "listbox"
         old_show_listbox_count = bool(ui_settings.get("show_listbox_item_count", False))
-        new_show_listbox_count = self._show_listbox_count_cb.GetValue()
-        ui_settings["message_list_mode"] = new_message_list_mode
-        ui_settings["show_listbox_item_count"] = new_show_listbox_count
-        self.main_window.settings.setdefault("user_interface", {})[
-            "show_typing_row"
-        ] = self._show_typing_row_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "show_delivery_status_in_chat_list"
-        ] = self._show_delivery_status_cb.GetValue()
+        if ready(self, "messages"):
+            new_show_listbox_count = self._show_listbox_count_cb.GetValue()
+            ui_settings["message_list_mode"] = new_message_list_mode
+            ui_settings["show_listbox_item_count"] = new_show_listbox_count
+            self.main_window.settings.setdefault("user_interface", {})[
+                "show_typing_row"
+            ] = self._show_typing_row_cb.GetValue()
+        if ready(self, "chats"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "show_delivery_status_in_chat_list"
+            ] = self._show_delivery_status_cb.GetValue()
         old_keep_pinned_order = ui_settings.get("keep_pinned_chat_order", False)
-        self.main_window.settings.setdefault("user_interface", {})[
-            "keep_pinned_chat_order"
-        ] = self._keep_pinned_order_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            message_drafts.SETTING
-        ] = message_drafts.MODES[max(self._message_draft_radio.GetSelection(), 0)]
-        self.main_window.settings.setdefault("user_interface", {})[
-            "preserve_typed_text_as_attachment_caption"
-        ] = self._preserve_typed_caption_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "bulk_action_shortcuts"
-        ] = self._bulk_action_shortcuts_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "confirm_mark_all_read"
-        ] = self._confirm_mark_all_read_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "confirm_clear_chat"
-        ] = self._confirm_clear_chat_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "confirm_delete_chat"
-        ] = self._confirm_delete_chat_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "confirm_resync_all"
-        ] = self._confirm_resync_all_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "confirm_resync_conversation"
-        ] = self._confirm_resync_conversation_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "warn_system_audio_recording"
-        ] = self._warn_system_audio_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "space_selects_in_selection_mode"
-        ] = self._space_selects_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "escape_clears_selection"
-        ] = self._escape_clears_selection_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "keep_search_after_open"
-        ] = self._keep_search_after_open_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "auto_play_voice_in_sequence"
-        ] = self._auto_play_voice_in_sequence_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "auto_focus_next_audio"
-        ] = self._auto_focus_next_audio_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "selected_announcement_position"
-        ] = "start" if self._selected_announce_start_rb.GetValue() else "end"
-        self.main_window.settings.setdefault("user_interface", {})[
-            "show_yesterday_label"
-        ] = self._show_yesterday_label_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "show_link_previews"
-        ] = self._show_link_previews_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "forwarded_prefix_enabled"
-        ] = self._forwarded_prefix_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "delete_media_from_phone"
-        ] = self._delete_media_default_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "forward_voice_as_voice"
-        ] = self._forward_voice_as_voice_cb.GetValue()
-        self.main_window.settings.setdefault("reactions", {})[
-            "fixed_quick_reactions"
-        ] = self._fixed_quick_reactions_cb.GetValue()
-        self.main_window.settings.setdefault("reactions", {})[
-            "quick_reaction_slots"
-        ] = list(self._quick_reaction_slots)
-        self.main_window.settings.setdefault("user_interface", {})[
-            "conversation_video_media_viewer_dialog"
-        ] = self._conversation_video_media_viewer_dialog_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "status_media_viewer_dialog"
-        ] = self._status_media_viewer_dialog_cb.GetValue()
-        # UI: reading voice messages in chats and status
-        voice_message_mode = "voice_message" if self._voice_msg_mode_voice_rb.GetValue() else "audio"
+        if ready(self, "chats"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "keep_pinned_chat_order"
+            ] = self._keep_pinned_order_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                message_drafts.SETTING
+            ] = message_drafts.MODES[max(self._message_draft_radio.GetSelection(), 0)]
+        if ready(self, "messages"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "preserve_typed_text_as_attachment_caption"
+            ] = self._preserve_typed_caption_cb.GetValue()
+        if ready(self, "chats"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "bulk_action_shortcuts"
+            ] = self._bulk_action_shortcuts_cb.GetValue()
+        if ready(self, "confirmations"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "confirm_mark_all_read"
+            ] = self._confirm_mark_all_read_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "confirm_clear_chat"
+            ] = self._confirm_clear_chat_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "confirm_delete_chat"
+            ] = self._confirm_delete_chat_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "confirm_resync_all"
+            ] = self._confirm_resync_all_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "confirm_resync_conversation"
+            ] = self._confirm_resync_conversation_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "warn_system_audio_recording"
+            ] = self._warn_system_audio_cb.GetValue()
+        if ready(self, "chats"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "space_selects_in_selection_mode"
+            ] = self._space_selects_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "escape_clears_selection"
+            ] = self._escape_clears_selection_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "keep_search_after_open"
+            ] = self._keep_search_after_open_cb.GetValue()
+        if ready(self, "audio_playback"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "auto_play_voice_in_sequence"
+            ] = self._auto_play_voice_in_sequence_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "auto_focus_next_audio"
+            ] = self._auto_focus_next_audio_cb.GetValue()
+        if ready(self, "chats"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "selected_announcement_position"
+            ] = "start" if self._selected_announce_start_rb.GetValue() else "end"
+        if ready(self, "messages"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "show_yesterday_label"
+            ] = self._show_yesterday_label_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "show_link_previews"
+            ] = self._show_link_previews_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "forwarded_prefix_enabled"
+            ] = self._forwarded_prefix_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "delete_media_from_phone"
+            ] = self._delete_media_default_cb.GetValue()
+        if ready(self, "audio"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "forward_voice_as_voice"
+            ] = self._forward_voice_as_voice_cb.GetValue()
+        if ready(self, "reactions"):
+            self.main_window.settings.setdefault("reactions", {})[
+                "fixed_quick_reactions"
+            ] = self._fixed_quick_reactions_cb.GetValue()
+            self.main_window.settings.setdefault("reactions", {})[
+                "quick_reaction_slots"
+            ] = list(self._quick_reaction_slots)
+        if ready(self, "messages"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "conversation_video_media_viewer_dialog"
+            ] = self._conversation_video_media_viewer_dialog_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "status_media_viewer_dialog"
+            ] = self._status_media_viewer_dialog_cb.GetValue()
+        if ready(self, "audio"):
+            # UI: reading voice messages in chats and status
+            voice_message_mode = "voice_message" if self._voice_msg_mode_voice_rb.GetValue() else "audio"
         old_vm_mode = self.main_window.settings.get("user_interface", {}).get("voice_message_mode", "voice_message")
-        vm_mode_changed = (old_vm_mode != voice_message_mode)
-        self.main_window.settings.setdefault("user_interface", {})[
-            "voice_message_mode"
-        ] = voice_message_mode
-        self.main_window.settings.setdefault("user_interface", {})[
-            "enter_transcribes_voice_messages"
-        ] = self._enter_transcribes_voice_cb.GetValue()
+        if ready(self, "audio"):
+            vm_mode_changed = (old_vm_mode != voice_message_mode)
+            self.main_window.settings.setdefault("user_interface", {})[
+                "voice_message_mode"
+            ] = voice_message_mode
+            self.main_window.settings.setdefault("user_interface", {})[
+                "enter_transcribes_voice_messages"
+            ] = self._enter_transcribes_voice_cb.GetValue()
 
-        self.main_window.settings.setdefault("user_interface", {})[
-            "group_media_default_types"
-        ] = self._selected_group_media_types()
+        if ready(self, "messages"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "group_media_default_types"
+            ] = self._selected_group_media_types()
 
-        # UI: how to refer to the user's own messages/replies in the messages list
-        if self._self_ref_voce_rb.GetValue():
-            self_reference_mode = "voce"
-        elif self._self_ref_other_rb.GetValue():
-            self_reference_mode = "custom"
-        else:
-            self_reference_mode = "eu"
-        self_reference_custom_word = self._self_ref_custom_field.GetValue().strip()
+            # UI: how to refer to the user's own messages/replies in the messages list
+            if self._self_ref_voce_rb.GetValue():
+                self_reference_mode = "voce"
+            elif self._self_ref_other_rb.GetValue():
+                self_reference_mode = "custom"
+            else:
+                self_reference_mode = "eu"
+            self_reference_custom_word = self._self_ref_custom_field.GetValue().strip()
         old_ui_settings = self.main_window.settings.get("user_interface", {})
-        sender_numbers_changed = (
-            old_ui_settings.get("hide_unnamed_sender_numbers", False) is True
-        ) != self._hide_unnamed_sender_numbers_cb.GetValue()
-        unsaved_mark_changed = (
-            bool(old_ui_settings.get("mark_unsaved_contacts", True))
-        ) != self._mark_unsaved_contacts_cb.GetValue()
-        channels_changed = channels_listed(self.main_window.settings) != self._show_channels_cb.GetValue()
-        self_reference_changed = (
-            old_ui_settings.get("self_reference_mode", "eu") != self_reference_mode
-            or old_ui_settings.get("self_reference_custom_word", "") != self_reference_custom_word
-            or bool(old_ui_settings.get("hide_own_sender_in_message_list", False))
-            != self._hide_own_sender_cb.GetValue()
-        )
-        self.main_window.settings.setdefault("user_interface", {})[
-            "self_reference_mode"
-        ] = self_reference_mode
-        self.main_window.settings.setdefault("user_interface", {})[
-            "self_reference_custom_word"
-        ] = self_reference_custom_word
-        self.main_window.settings.setdefault("user_interface", {})[
-            "hide_own_sender_in_message_list"
-        ] = self._hide_own_sender_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "hide_unnamed_sender_numbers"
-        ] = self._hide_unnamed_sender_numbers_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "mark_unsaved_contacts"
-        ] = self._mark_unsaved_contacts_cb.GetValue()
-        self.main_window.settings.setdefault("user_interface", {})[
-            "show_channels_in_chat_list"
-        ] = self._show_channels_cb.GetValue()
+        if ready(self, "messages"):
+            sender_numbers_changed = (
+                old_ui_settings.get("hide_unnamed_sender_numbers", False) is True
+            ) != self._hide_unnamed_sender_numbers_cb.GetValue()
+        if ready(self, "chats"):
+            unsaved_mark_changed = (
+                bool(old_ui_settings.get("mark_unsaved_contacts", True))
+            ) != self._mark_unsaved_contacts_cb.GetValue()
+            channels_changed = channels_listed(self.main_window.settings) != self._show_channels_cb.GetValue()
+        if ready(self, "messages"):
+            self_reference_changed = (
+                old_ui_settings.get("self_reference_mode", "eu") != self_reference_mode
+                or old_ui_settings.get("self_reference_custom_word", "") != self_reference_custom_word
+                or bool(old_ui_settings.get("hide_own_sender_in_message_list", False))
+                != self._hide_own_sender_cb.GetValue()
+            )
+            self.main_window.settings.setdefault("user_interface", {})[
+                "self_reference_mode"
+            ] = self_reference_mode
+            self.main_window.settings.setdefault("user_interface", {})[
+                "self_reference_custom_word"
+            ] = self_reference_custom_word
+            self.main_window.settings.setdefault("user_interface", {})[
+                "hide_own_sender_in_message_list"
+            ] = self._hide_own_sender_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "hide_unnamed_sender_numbers"
+            ] = self._hide_unnamed_sender_numbers_cb.GetValue()
+        if ready(self, "chats"):
+            self.main_window.settings.setdefault("user_interface", {})[
+                "mark_unsaved_contacts"
+            ] = self._mark_unsaved_contacts_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "show_channels_in_chat_list"
+            ] = self._show_channels_cb.GetValue()
 
-        # Accessibility
-        self.main_window.settings.setdefault("accessibility", {})[
-            "extended_sr_compat_enabled"
-        ] = self._extended_sr_compat_check.GetValue()
-        self.main_window.settings.setdefault("accessibility", {})[
-            "sapi_fallback_enabled"
-        ] = self._sapi_fallback_check.GetValue()
+        if ready(self, "accessibility"):
+            # Accessibility
+            self.main_window.settings.setdefault("accessibility", {})[
+                "extended_sr_compat_enabled"
+            ] = self._extended_sr_compat_check.GetValue()
+            self.main_window.settings.setdefault("accessibility", {})[
+                "sapi_fallback_enabled"
+            ] = self._sapi_fallback_check.GetValue()
 
-        # Spoken content: typing/recording announcements
-        self.main_window.settings.setdefault("speech_content", {})[
-            "announce_typing"
-        ] = self._announce_typing_check.GetValue()
-        self.main_window.settings.setdefault("speech_content", {})[
-            "announce_recording"
-        ] = self._announce_recording_check.GetValue()
-        self.main_window.settings.setdefault("speech_content", {})[
-            "announce_conversations_update_start"
-        ] = self._announce_conversations_update_start_check.GetValue()
-        self.main_window.settings.setdefault("speech_content", {})[
-            "announce_conversations_update_complete"
-        ] = self._announce_conversations_update_check.GetValue()
-        self.main_window.settings.setdefault("speech_content", {})[
-            "announce_sync_progress"
-        ] = self._announce_sync_progress_check.GetValue()
-        self.main_window.settings.setdefault("speech_content", {})[
-            "announce_media_progress"
-        ] = self._announce_media_progress_check.GetValue()
-        self.main_window.settings.setdefault("speech_content", {})[
-            "speak_active_conv_messages"
-        ] = self._speak_active_conv_check.GetValue()
-        self.main_window.settings.setdefault("speech_content", {})[
-            "speak_other_conv_messages"
-        ] = self._speak_other_conv_check.GetValue()
-        self.main_window.settings.setdefault("speech_content", {})[
-            "silence_while_recording"
-        ] = self._silence_while_recording_check.GetValue()
+        if ready(self, "speech"):
+            # Spoken content: typing/recording announcements
+            self.main_window.settings.setdefault("speech_content", {})[
+                "announce_typing"
+            ] = self._announce_typing_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
+                "announce_recording"
+            ] = self._announce_recording_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
+                "announce_conversations_update_start"
+            ] = self._announce_conversations_update_start_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
+                "announce_conversations_update_complete"
+            ] = self._announce_conversations_update_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
+                "announce_sync_progress"
+            ] = self._announce_sync_progress_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
+                "announce_media_progress"
+            ] = self._announce_media_progress_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
+                "speak_active_conv_messages"
+            ] = self._speak_active_conv_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
+                "speak_other_conv_messages"
+            ] = self._speak_other_conv_check.GetValue()
+        if ready(self, "audio"):
+            self.main_window.settings.setdefault("speech_content", {})[
+                "silence_while_recording"
+            ] = self._silence_while_recording_check.GetValue()
 
-        # Connection: this account's own port. Server, websocket, key and the
-        # custom-API switch are install-wide (_apply_install_wide_values()).
-        self._flag_restart_if_engine_changed()
-        port = int(self._port_field.GetValue().strip())
-        self.main_window.settings.setdefault("connection", {})["wpp_port"] = port
-        if self._engine_takes_effect_now():
-            self.main_window.wpp_port = port
-        # Advanced: the log level (applied now) and the fixed local API port.
-        self._apply_advanced_values()
+        if ready(self, "connection"):
+            # Connection: this account's own port. Server, websocket, key and the
+            # custom-API switch are install-wide (_apply_install_wide_values()).
+            self._flag_restart_if_engine_changed()
+            port = int(self._port_field.GetValue().strip())
+            self.main_window.settings.setdefault("connection", {})["wpp_port"] = port
+            if self._engine_takes_effect_now():
+                self.main_window.wpp_port = port
+        if ready(self, "advanced"):
+            # Advanced: the log level (applied now) and the fixed local API port.
+            self._apply_advanced_values()
 
-        # Audio devices — output was already switched live during _validate()
-        # (that's the only way to test it); here we just persist the choice
-        # and, for input, tell voice-message recording which device to use
-        # from now on.
-        output_sel = self._audio_output_combo.GetSelection()
-        output_name = self._audio_output_device_names[output_sel - 1] if output_sel > 0 else ""
-        self.main_window.settings.setdefault("audio_devices", {})["output_device_name"] = output_name
+        if ready(self, "audio"):
+            # Audio devices — output was already switched live during _validate()
+            # (that's the only way to test it); here we just persist the choice
+            # and, for input, tell voice-message recording which device to use
+            # from now on.
+            output_sel = self._audio_output_combo.GetSelection()
+            output_name = self._audio_output_device_names[output_sel - 1] if output_sel > 0 else ""
+            self.main_window.settings.setdefault("audio_devices", {})["output_device_name"] = output_name
 
-        effects_sel = self._audio_effects_combo.GetSelection()
-        effects_name = self._audio_effects_device_names[effects_sel - 1] if effects_sel > 0 else ""
-        self.main_window.settings.setdefault("audio_devices", {})["effects_output_device_name"] = effects_name
-        self.main_window.sound_system.apply_effects_device(effects_name)
+            effects_sel = self._audio_effects_combo.GetSelection()
+            effects_name = self._audio_effects_device_names[effects_sel - 1] if effects_sel > 0 else ""
+            self.main_window.settings.setdefault("audio_devices", {})["effects_output_device_name"] = effects_name
+            self.main_window.sound_system.apply_effects_device(effects_name)
 
-        input_sel = self._audio_input_combo.GetSelection()
-        input_name = self._audio_input_device_names[input_sel - 1] if input_sel > 0 else ""
-        self.main_window.settings.setdefault("audio_devices", {})["input_device_name"] = input_name
-        self.main_window.effective_input_device_name = input_name
-        # The devices just applied are an explicit choice: a quick switch
-        # (Ctrl+Alt+Shift+H/G) made earlier this session stops overriding them.
-        end_session = getattr(self.main_window, "end_session_audio_devices", None)
-        if end_session is not None:
-            end_session(general=True)
+            input_sel = self._audio_input_combo.GetSelection()
+            input_name = self._audio_input_device_names[input_sel - 1] if input_sel > 0 else ""
+            self.main_window.settings.setdefault("audio_devices", {})["input_device_name"] = input_name
+            self.main_window.effective_input_device_name = input_name
+            # The devices just applied are an explicit choice: a quick switch
+            # (Ctrl+Alt+Shift+H/G) made earlier this session stops overriding them.
+            end_session = getattr(self.main_window, "end_session_audio_devices", None)
+            if end_session is not None:
+                end_session(general=True)
 
-        self.main_window.settings.setdefault("general", {})["noise_reduction_enabled"] = (
-            self._noise_reduction_check.GetValue()
-        )
-        self.main_window.settings.setdefault("general", {})["voice_message_channels"] = (
-            CHANNEL_MODES[self._voice_channels_radio.GetSelection()]
-        )
+            self.main_window.settings.setdefault("general", {})["noise_reduction_enabled"] = (
+                self._noise_reduction_check.GetValue()
+            )
+            self.main_window.settings.setdefault("general", {})["voice_message_channels"] = (
+                CHANNEL_MODES[self._voice_channels_radio.GetSelection()]
+            )
 
-        # Notifications
-        self.main_window.settings.setdefault("general", {})["notifications_enabled"] = (
-            self._notifications_check.GetValue()
-        )
-        self.main_window.settings.setdefault("general", {})["notification_content"] = (
-            NOTIFICATION_CONTENT_LEVELS[self._notification_content_radio.GetSelection()]
-        )
-        self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
-            self._keep_muted_silent_check.GetValue()
-        )
+        if ready(self, "notifications"):
+            # Notifications
+            self.main_window.settings.setdefault("general", {})["notifications_enabled"] = (
+                self._notifications_check.GetValue()
+            )
+            self.main_window.settings.setdefault("general", {})["notification_content"] = (
+                NOTIFICATION_CONTENT_LEVELS[self._notification_content_radio.GetSelection()]
+            )
+            self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
+                self._keep_muted_silent_check.GetValue()
+            )
 
         # Incoming calls live in their own settings namespace so future call
         # options do not overload the unrelated General/notification settings.
         calls = self.main_window.settings.setdefault("calls", {})
-        calls["alerts_enabled"] = self._call_alerts_check.GetValue()
-        calls["popup_enabled"] = self._call_popup_check.GetValue()
+        if ready(self, "calls"):
+            calls["alerts_enabled"] = self._call_alerts_check.GetValue()
+            calls["popup_enabled"] = self._call_popup_check.GetValue()
 
         profile_backup = self.main_window.settings.setdefault("profile_backup", {})
-        profile_backup["snapshots_disabled"] = self._no_profile_snapshots_check.GetValue()
-        profile_backup["close_snapshot_min_hours"] = parse_hours_field(
-            self._close_snapshot_hours_field.GetValue(), CLOSE_HOURS_MINIMUM)
-        profile_backup["live_snapshot_enabled"] = self._live_snapshot_check.GetValue()
-        profile_backup["live_snapshot_interval_hours"] = parse_hours_field(
-            self._live_snapshot_hours_field.GetValue(), LIVE_HOURS_MINIMUM)
-        profile_backup["live_snapshot_confirm"] = self._live_snapshot_confirm_check.GetValue()
-        if not calls["alerts_enabled"]:
-            stop_alerts = getattr(self.main_window, "stop_all_incoming_call_alerts", None)
-            if stop_alerts is not None:
-                stop_alerts()
-        sync_call_bar = getattr(self.main_window, "_sync_incoming_call_bar", None)
-        if sync_call_bar is not None:
-            sync_call_bar()
+        if ready(self, "backup"):
+            profile_backup["snapshots_disabled"] = self._no_profile_snapshots_check.GetValue()
+            profile_backup["close_snapshot_min_hours"] = parse_hours_field(
+                self._close_snapshot_hours_field.GetValue(), CLOSE_HOURS_MINIMUM)
+            profile_backup["live_snapshot_enabled"] = self._live_snapshot_check.GetValue()
+            profile_backup["live_snapshot_interval_hours"] = parse_hours_field(
+                self._live_snapshot_hours_field.GetValue(), LIVE_HOURS_MINIMUM)
+            profile_backup["live_snapshot_confirm"] = self._live_snapshot_confirm_check.GetValue()
+        if ready(self, "calls"):
+            if not calls["alerts_enabled"]:
+                stop_alerts = getattr(self.main_window, "stop_all_incoming_call_alerts", None)
+                if stop_alerts is not None:
+                    stop_alerts()
+            sync_call_bar = getattr(self.main_window, "_sync_incoming_call_bar", None)
+            if sync_call_bar is not None:
+                sync_call_bar()
 
-        # Sync/media/auto-offline announcements
-        self.main_window.settings.setdefault("general", {})["announce_sync_events"] = (
-            self._announce_sync_check.GetValue()
-        )
+        if ready(self, "speech"):
+            # Sync/media/auto-offline announcements
+            self.main_window.settings.setdefault("general", {})["announce_sync_events"] = (
+                self._announce_sync_check.GetValue()
+            )
 
-        # Spell checking in the message field. Read live on every keystroke by
-        # ConversationsPanel, so this takes effect immediately — no restart,
-        # and no need to rebuild the panel's checker here.
-        self.main_window.settings.setdefault("general", {})["spell_check_mode"] = (
-            SPELL_CHECK_MODES[self._spell_check_radio.GetSelection()]
-        )
+        if ready(self, "general"):
+            # Spell checking in the message field. Read live on every keystroke by
+            # ConversationsPanel, so this takes effect immediately — no restart,
+            # and no need to rebuild the panel's checker here.
+            self.main_window.settings.setdefault("general", {})["spell_check_mode"] = (
+                SPELL_CHECK_MODES[self._spell_check_radio.GetSelection()]
+            )
 
-        # Emoticon -> emoji in the message field; read live, like the above.
-        self.main_window.settings.setdefault("general", {})["convert_emoticons"] = (
-            self._convert_emoticons_check.GetValue()
-        )
+            # Emoticon -> emoji in the message field; read live, like the above.
+            self.main_window.settings.setdefault("general", {})["convert_emoticons"] = (
+                self._convert_emoticons_check.GetValue()
+            )
 
-        # Unicode folding in searches
-        _sel = self._search_norm_radio.GetSelection()
-        self.main_window.settings.setdefault("general", {})["search_normalization"] = (
-            SEARCH_NORMALIZATION_MODES[
-                _sel if 0 <= _sel < len(SEARCH_NORMALIZATION_MODES) else 0
-            ]
-        )
+            # Unicode folding in searches
+            _sel = self._search_norm_radio.GetSelection()
+            self.main_window.settings.setdefault("general", {})["search_normalization"] = (
+                SEARCH_NORMALIZATION_MODES[
+                    _sel if 0 <= _sel < len(SEARCH_NORMALIZATION_MODES) else 0
+                ]
+            )
 
         # Autostart
         from autostart import is_autostart_enabled
-        new_autostart = self._autostart_check.GetValue()
+        if ready(self, "general"):
+            new_autostart = self._autostart_check.GetValue()
         current_autostart = is_autostart_enabled()
-        if new_autostart != current_autostart:
-            # Delegate to main_window so the shared logic lives in one place.
-            # _apply_autostart() saves settings and shows confirmation/error dialogs.
-            self.main_window._apply_autostart(enable=new_autostart)
-            # Resync the checkbox in case _apply_autostart failed and rolled back
-            self._autostart_check.SetValue(is_autostart_enabled())
+        if ready(self, "general"):
+            if new_autostart != current_autostart:
+                # Delegate to main_window so the shared logic lives in one place.
+                # _apply_autostart() saves settings and shows confirmation/error dialogs.
+                self.main_window._apply_autostart(enable=new_autostart)
+                # Resync the checkbox in case _apply_autostart failed and rolled back
+                self._autostart_check.SetValue(is_autostart_enabled())
 
-        # whatsapp: link association. The registry is the setting: there is
-        # nothing to keep in settings.json that could disagree with it.
-        new_links = self._whatsapp_links_check.GetValue()
-        if new_links != self._whatsapp_links_registered():
-            self.main_window._apply_whatsapp_link_association(enable=new_links)
-            self._whatsapp_links_check.SetValue(self._whatsapp_links_registered())
+            # whatsapp: link association. The registry is the setting: there is
+            # nothing to keep in settings.json that could disagree with it.
+            new_links = self._whatsapp_links_check.GetValue()
+            if new_links != self._whatsapp_links_registered():
+                self.main_window._apply_whatsapp_link_association(enable=new_links)
+                self._whatsapp_links_check.SetValue(self._whatsapp_links_registered())
 
-        # Audio playback speed
-        speed_sel = self._audio_speed_combo.GetSelection()
-        if speed_sel != wx.NOT_FOUND:
-            new_speed = self._AUDIO_SPEED_STEPS[speed_sel]
-            self.main_window.settings.setdefault("audio_playback", {})["audio_default_speed"] = new_speed
-            # Sync live playback panel so the button label and next playback use the new speed
-            cp = getattr(self.main_window, "conversations_panel", None)
-            if cp is not None:
-                try:
-                    cp._audio_speed_index = speed_sel
-                    cp.audio_speed_btn.SetLabel(cp._format_speed(new_speed))
-                    # Apply to any audio currently playing
-                    if cp._audio_tempo_ctrl is not None:
-                        cp._audio_tempo_ctrl.tempo = cp._audio_tempo_map.get(new_speed, 0)
-                except Exception:
-                    pass
+        if ready(self, "audio_playback"):
+            # Audio playback speed
+            speed_sel = self._audio_speed_combo.GetSelection()
+            if speed_sel != wx.NOT_FOUND:
+                new_speed = self._AUDIO_SPEED_STEPS[speed_sel]
+                self.main_window.settings.setdefault("audio_playback", {})["audio_default_speed"] = new_speed
+                # Sync live playback panel so the button label and next playback use the new speed
+                cp = getattr(self.main_window, "conversations_panel", None)
+                if cp is not None:
+                    try:
+                        cp._audio_speed_index = speed_sel
+                        cp.audio_speed_btn.SetLabel(cp._format_speed(new_speed))
+                        # Apply to any audio currently playing
+                        if cp._audio_tempo_ctrl is not None:
+                            cp._audio_tempo_ctrl.tempo = cp._audio_tempo_map.get(new_speed, 0)
+                    except Exception:
+                        pass
 
-        # Global hotkey
-        self.main_window.set_global_hotkey(self._hotkey_field._vk, self._hotkey_field._mod)
+        if ready(self, "general"):
+            # Global hotkey
+            self.main_window.set_global_hotkey(self._hotkey_field._vk, self._hotkey_field._mod)
 
-        # Sound events / active pack — enabled/path edits are already live in
-        # _pack_event_settings (every toggle/keystroke writes straight there).
-        self.main_window.settings["sound_events"] = self._pack_event_settings
-        self.main_window.settings["active_sound_pack"] = self._current_pack_id
+        if ready(self, "sounds"):
+            # Sound events / active pack — enabled/path edits are already live in
+            # _pack_event_settings (every toggle/keystroke writes straight there).
+            self.main_window.settings["sound_events"] = self._pack_event_settings
+            self.main_window.settings["active_sound_pack"] = self._current_pack_id
 
-        # Alert tones
-        private_choice = self._alert_choice_keys[self._alert_private_combo.GetSelection()]
-        group_choice = self._alert_choice_keys[self._alert_group_combo.GetSelection()]
-        self.main_window.settings["alert_tones"] = {
-            "private": private_choice,
-            "private_custom_path": self._alert_private_custom_field.GetValue().strip(),
-            "group": group_choice,
-            "group_custom_path": self._alert_group_custom_field.GetValue().strip(),
-        }
+            # Alert tones
+            private_choice = self._alert_choice_keys[self._alert_private_combo.GetSelection()]
+            group_choice = self._alert_choice_keys[self._alert_group_combo.GetSelection()]
+            self.main_window.settings["alert_tones"] = {
+                "private": private_choice,
+                "private_custom_path": self._alert_private_custom_field.GetValue().strip(),
+                "group": group_choice,
+                "group_custom_path": self._alert_group_custom_field.GetValue().strip(),
+            }
         # Per-conversation overrides use resolved paths cached by object identity
         # (see play_background_notification_sound) — a changed alert-tone
         # default should not keep serving a stale cached Sound for "default".
@@ -4156,39 +4344,45 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
         # Storage
         old_storage = dict(self.main_window.settings.get("storage") or {})
-        self.main_window.settings.setdefault("storage", {}).update({
-            "auto_download_media": self._auto_download_media_check.GetValue(),
-            "media_max_days": int(self._media_max_days_field.GetValue().strip()),
-            "media_max_mb": int(self._media_max_mb_field.GetValue().strip()),
-            "probe_video_duration_on_download": self._probe_video_duration_check.GetValue(),
-            "auto_download_media_types": self._selected_auto_download_types(),
-        })
+        if ready(self, "storage"):
+            self.main_window.settings.setdefault("storage", {}).update({
+                "auto_download_media": self._auto_download_media_check.GetValue(),
+                "media_max_days": int(self._media_max_days_field.GetValue().strip()),
+                "media_max_mb": int(self._media_max_mb_field.GetValue().strip()),
+                "probe_video_duration_on_download": self._probe_video_duration_check.GetValue(),
+                "auto_download_media_types": self._selected_auto_download_types(),
+            })
 
-        self.main_window.settings.setdefault("audio_playback", {})[
-            "mark_audio_played_in_list"
-        ] = self._mark_audio_played_check.GetValue()
-        self.main_window.settings.setdefault("audio_playback", {})[
-            "hide_speed_button"
-        ] = self._hide_audio_speed_cb.GetValue()
-        self.main_window.settings.setdefault("audio_playback", {})[
-            "hide_progress_bar"
-        ] = self._hide_audio_progress_cb.GetValue()
+        if ready(self, "audio_playback"):
+            self.main_window.settings.setdefault("audio_playback", {})[
+                "mark_audio_played_in_list"
+            ] = self._mark_audio_played_check.GetValue()
+            self.main_window.settings.setdefault("audio_playback", {})[
+                "hide_speed_button"
+            ] = self._hide_audio_speed_cb.GetValue()
+            self.main_window.settings.setdefault("audio_playback", {})[
+                "hide_progress_bar"
+            ] = self._hide_audio_progress_cb.GetValue()
 
-        # Transcription — the four per-account settings plus the install-wide
-        # models folder, which goes to app_settings rather than settings.json.
-        self._apply_transcription_values()
+        if ready(self, "transcription"):
+            # Transcription — the four per-account settings plus the install-wide
+            # models folder, which goes to app_settings rather than settings.json.
+            self._apply_transcription_values()
 
-        # Vault policy is persisted inside the encrypted vault token rather
-        # than settings.json. Apply it alongside the ordinary settings so
-        # Cancel still discards checkbox/timeout edits.
-        self._apply_chat_lock_values()
+        if ready(self, "chat_lock"):
+            # Vault policy is persisted inside the encrypted vault token rather
+            # than settings.json. Apply it alongside the ordinary settings so
+            # Cancel still discards checkbox/timeout edits.
+            self._apply_chat_lock_values()
 
-        # Persist and propagate
-        self._apply_shortcut_values()
+        if ready(self, "shortcuts"):
+            # Persist and propagate
+            self._apply_shortcut_values()
         self.main_window.save_settings()
         from core.pinned_chat_order import refresh_after_order_setting_change
         refresh_after_order_setting_change(self.main_window, old_keep_pinned_order)
-        self._offer_to_delete_profile_snapshots()
+        if ready(self, "backup"):
+            self._offer_to_delete_profile_snapshots()
         # Reload sound objects so per-event enabled/path changes (and the new
         # alert-tone defaults) take effect immediately, without a restart.
         self.main_window.load_sounds()
@@ -4208,10 +4402,11 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
             self.main_window.apply_language_changes()
 
         cp = getattr(self.main_window, "conversations_panel", None)
-        message_list_mode_changed = new_message_list_mode != old_message_list_mode
-        listbox_count_changed = new_show_listbox_count != old_show_listbox_count
-        if cp is not None and (message_list_mode_changed or listbox_count_changed):
-            cp.apply_message_list_mode(new_message_list_mode)
+        if ready(self, "messages"):
+            message_list_mode_changed = new_message_list_mode != old_message_list_mode
+            listbox_count_changed = new_show_listbox_count != old_show_listbox_count
+            if cp is not None and (message_list_mode_changed or listbox_count_changed):
+                cp.apply_message_list_mode(new_message_list_mode)
         # Show or remove the typing row at once if "show typing row" changed;
         # a no-op otherwise (it only writes when the row's text changes).
         if cp is not None and hasattr(cp, "refresh_typing_row"):
@@ -4305,11 +4500,18 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
 
     def _refresh_dialog_labels(self):
         """Update this dialog's own title and notebook tab captions after a language change."""
-        self._refresh_shortcut_labels()
-        self._refresh_advanced_labels()
+        if ready(self, "shortcuts"):
+            self._refresh_shortcut_labels()
+        if ready(self, "advanced"):
+            self._refresh_advanced_labels()
         i18n = self.main_window.i18n
         self.SetTitle(i18n.t("settings_title"))
         self._refresh_search_texts()
+        # The category and the window exist whether or not they were opened.
+        self._notebook.SetPageText(self._notebook.FindPage(self._advanced_page), i18n.t("tab_advanced"))
+        self._shortcuts_dialog.SetTitle(i18n.t('tab_shortcuts').replace('&', ''))
+        if ready(self, "interface"):
+            self._shortcuts_btn.SetLabel(i18n.t('tab_shortcuts'))
         self._notebook.SetPageText(0, i18n.t("tab_general"))
         self._notebook.SetPageText(1, i18n.t("tab_ui"))
         self._notebook.SetPageText(2, i18n.t("tab_accessibility"))
@@ -4317,308 +4519,366 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         self._notebook.SetPageText(4, i18n.t("tab_event_sounds"))
         self._notebook.SetPageText(5, i18n.t("tab_storage"))
         self._notebook.SetPageText(6, i18n.t("tab_calls"))
-        self._chat_lock_btn.SetLabel(i18n.t("chat_lock_settings_button"))
+        if ready(self, "chats"):
+            self._chat_lock_btn.SetLabel(i18n.t("chat_lock_settings_button"))
         self._chat_lock_dialog.SetTitle(i18n.t("locked_chats").replace("&", ""))
         self._notebook.SetPageText(
             self._notebook.FindPage(self._whatsapp_page), i18n.t("wa_settings_dialog_title"))
-        self._whatsapp_privacy_btn.SetLabel(i18n.t("wa_settings_tab_privacy"))
-        self._whatsapp_profile_btn.SetLabel(i18n.t("wa_settings_tab_profile"))
+        if ready(self, "whatsapp"):
+            self._whatsapp_privacy_btn.SetLabel(i18n.t("wa_settings_tab_privacy"))
+            self._whatsapp_profile_btn.SetLabel(i18n.t("wa_settings_tab_profile"))
         self._notebook.SetPageText(
             self._notebook.FindPage(self._conn_page), i18n.t("tab_connection"))
-        self._profile_backup_btn.SetLabel(i18n.t("tab_profile_backup"))
-        self._notifications_btn.SetLabel(i18n.t("general_notifications_button"))
+        if ready(self, "storage"):
+            self._profile_backup_btn.SetLabel(i18n.t("tab_profile_backup"))
+        if ready(self, "general"):
+            self._notifications_btn.SetLabel(i18n.t("general_notifications_button"))
         self._notifications_dialog.SetTitle(
             i18n.t("general_notifications_button").replace("&", ""))
-        self._messages_btn.SetLabel(i18n.t("ui_messages_button"))
+        if ready(self, "interface"):
+            self._messages_btn.SetLabel(i18n.t("ui_messages_button"))
         self._messages_dialog.SetTitle(i18n.t("ui_messages_button").replace("&", ""))
-        self._reactions_btn.SetLabel(i18n.t("tab_reactions"))
+        if ready(self, "interface"):
+            self._reactions_btn.SetLabel(i18n.t("tab_reactions"))
         self._reactions_dialog.SetTitle(i18n.t("tab_reactions").replace("&", ""))
-        self._chats_btn.SetLabel(i18n.t("ui_chats_button"))
+        if ready(self, "interface"):
+            self._chats_btn.SetLabel(i18n.t("ui_chats_button"))
         self._chats_dialog.SetTitle(i18n.t("ui_chats_button").replace("&", ""))
-        self._confirmations_btn.SetLabel(i18n.t("customization_confirmations"))
+        if ready(self, "interface"):
+            self._confirmations_btn.SetLabel(i18n.t("customization_confirmations"))
         self._confirmations_dialog.SetTitle(
             i18n.t("customization_confirmations").replace("&", ""))
         self._backup_dialog.SetTitle(i18n.t("tab_profile_backup").replace("&", ""))
 
-        self._spoken_content_btn.SetLabel(i18n.t("tab_speech_content"))
+        if ready(self, "accessibility"):
+            self._spoken_content_btn.SetLabel(i18n.t("tab_speech_content"))
         self._speech_dialog.SetTitle(i18n.t("tab_speech_content").replace("&", ""))
-        self._audio_playback_btn.SetLabel(i18n.t("tab_audio_playback"))
+        if ready(self, "audio"):
+            self._audio_playback_btn.SetLabel(i18n.t("tab_audio_playback"))
         self._audio_dialog.SetTitle(i18n.t("tab_audio_playback").replace("&", ""))
         self._whatsapp_privacy_dialog.SetTitle(
             i18n.t("wa_settings_tab_privacy").replace("&", ""))
         self._whatsapp_profile_dialog.SetTitle(
             i18n.t("wa_settings_tab_profile").replace("&", ""))
-        self._ai_page.refresh_labels()
-        self._notebook.SetPageText(self._notebook.FindPage(self._ai_page), i18n.t("tab_ai_accessibility"))
+        if ready(self, "ai"):
+            self._ai_page.refresh_labels()
+        self._notebook.SetPageText(self._notebook.FindPage(self._ai_holder), i18n.t("tab_ai_accessibility"))
         # Transcription is appended after the conditional "Locked chats" tab
         # and the AI tab, so its index is 15 or 16 depending on whether the
         # former is shown — looked up rather than hardcoded, the same way the
         # page-changed handler finds it.
         self._notebook.SetPageText(
-            self._notebook.FindPage(self._transcription_page),
+            self._notebook.FindPage(self._transcription_holder),
             i18n.t("tab_transcription"),
         )
-        self._chat_lock_intro.SetLabel(i18n.t("chat_lock_settings_intro"))
-        self._chat_lock_unlock_btn.SetLabel(
-            i18n.t("chat_lock_settings_unlock")
-        )
-        self._chat_lock_show_navigation_check.SetLabel(
-            i18n.t("chat_lock_show_navigation")
-        )
-        selected_timeout = self._selected_chat_lock_timeout_minutes()
-        self._chat_lock_timeout_label.SetLabel(
-            i18n.t("chat_lock_timeout_label")
-        )
-        self._chat_lock_timeout_choice.SetName(
-            i18n.t("chat_lock_timeout_label")
-        )
-        self._chat_lock_timeout_choice.Clear()
-        self._chat_lock_timeout_choice.AppendItems(
-            self._chat_lock_timeout_labels()
-        )
-        self._set_chat_lock_timeout_minutes(selected_timeout)
-        self._chat_lock_change_pin_btn.SetLabel(
-            i18n.t("chat_lock_change_pin")
-        )
-        self._chat_lock_change_reveal_btn.SetLabel(
-            i18n.t("chat_lock_settings")
-        )
-        self._load_chat_lock_values()
-        self._fixed_quick_reactions_cb.SetLabel(i18n.t("reactions_fixed_label"))
-        self._quick_reaction_slots_label.SetLabel(i18n.t("reactions_slots_label"))
-        self._set_list_column_label(
-            self._quick_reaction_slots_list, i18n.t("reactions_slots_column")
-        )
-        self._fill_quick_reaction_slots()
-        self._reset_quick_reactions_btn.SetLabel(i18n.t("reactions_reset_button"))
-        self._no_profile_snapshots_check.SetLabel(i18n.t("profile_backup_disabled_label"))
-        self._close_snapshot_hours_label.SetLabel(i18n.t("profile_backup_close_hours_label"))
-        self._live_snapshot_check.SetLabel(i18n.t("profile_backup_live_label"))
-        self._live_snapshot_hours_label.SetLabel(i18n.t("profile_backup_live_hours_label"))
-        self._live_snapshot_confirm_check.SetLabel(i18n.t("profile_backup_live_confirm_label"))
-        self._audio_input_label.SetLabel(i18n.t("audio_input_device_label"))
-        self._audio_output_label.SetLabel(i18n.t("audio_output_device_label"))
-        self._audio_effects_label.SetLabel(i18n.t("audio_effects_output_device_label"))
-        self._reload_audio_device_choices()
-        self._noise_reduction_check.SetLabel(i18n.t("noise_reduction_label"))
-        self._voice_channels_radio.SetLabel(i18n.t("voice_channels_label"))
-        self._voice_channels_radio.SetItemLabel(0, i18n.t("voice_channels_auto"))
-        self._voice_channels_radio.SetItemLabel(1, i18n.t("voice_channels_mono"))
-        self._voice_channels_radio.SetItemLabel(2, i18n.t("voice_channels_stereo"))
-        self._relabel_noise_model_section()
-        self._notifications_check.SetLabel(i18n.t("notifications_label"))
-        self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))
-        for _i, _key in enumerate(NOTIFICATION_CONTENT_LABEL_KEYS):
-            self._notification_content_radio.SetItemLabel(_i, i18n.t(_key))
-        self._call_alerts_check.SetLabel(i18n.t("calls_alerts_enabled_label"))
-        self._call_popup_check.SetLabel(i18n.t("calls_popup_enabled_label"))
-        self._call_audio_settings_button.SetLabel(i18n.t("calls_audio_settings_button"))
-        self._call_video_settings_button.SetLabel(i18n.t("calls_video_settings_button"))
-        self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
-        self._announce_sync_check.SetLabel(i18n.t("announce_sync_events_label"))
-        self._spell_check_radio.SetLabel(i18n.t("spell_check_label"))
-        for _i, _key in enumerate((
-            "spell_check_mode_windows",
-            "spell_check_mode_on",
-            "spell_check_mode_off",
-        )):
-            self._spell_check_radio.SetItemLabel(_i, i18n.t(_key))
-        self._convert_emoticons_check.SetLabel(i18n.t("convert_emoticons_label"))
-        self._search_norm_radio.SetLabel(i18n.t("search_normalization_label"))
-        for _i, _key in enumerate((
-            "search_normalization_off",
-            "search_normalization_nfd",
-            "search_normalization_nfkd",
-        )):
-            self._search_norm_radio.SetItemLabel(_i, i18n.t(_key))
-        self._save_folder_radio.SetLabel(i18n.t("save_folder_mode_label"))
-        self._pasted_audio_radio.SetLabel(i18n.t("pasted_audio_label"))
-        self._pasted_audio_radio.SetItemLabel(0, i18n.t("pasted_audio_as_audio"))
-        self._pasted_audio_radio.SetItemLabel(1, i18n.t("pasted_audio_as_document"))
-        for _i, _key in enumerate((
-            "save_folder_mode_last",
-            "save_folder_mode_downloads",
-            "save_folder_mode_custom",
-        )):
-            self._save_folder_radio.SetItemLabel(_i, i18n.t(_key))
-        self._save_folder_custom_label.SetLabel(i18n.t("save_folder_custom_label"))
-        self._save_folder_browse_btn.SetLabel(i18n.t("save_folder_browse_btn"))
-        self._autostart_check.SetLabel(i18n.t("autostart_label"))
-        self._whatsapp_links_check.SetLabel(i18n.t("whatsapp_links_label"))
-        self._tray_icon_check.SetLabel(i18n.t("tray_show_icon"))
-        self._updates_check.SetLabel(i18n.t("updates_label"))
-        self._alpha_updates_check.SetLabel(i18n.t("alpha_updates_label"))
-        self._background_updates_check.SetLabel(i18n.t("background_updates_label"))
-        self._alpha_updates_check.SetToolTip(i18n.t("alpha_updates_tooltip"))
-        self._language_label.SetLabel(i18n.t("language_label"))
-        self._switch_behavior_box.SetLabel(i18n.t("acc_switch_behavior_label"))
-        self._switch_behavior_single_rb.SetLabel(i18n.t("acc_switch_behavior_single"))
-        self._switch_behavior_keep_open_rb.SetLabel(i18n.t("acc_switch_behavior_keep_open"))
-        self._messages_page_size_label.SetLabel(i18n.t("ui_messages_page_size_label"))
-        self._page_jump_size_label.SetLabel(i18n.t("ui_page_jump_size_label"))
-        self._extended_sr_compat_check.SetLabel(i18n.t("accessibility_extended_sr_compat_label"))
-        self._sapi_fallback_check.SetLabel(i18n.t("accessibility_sapi_fallback_label"))
-        self._probe_video_duration_check.SetLabel(i18n.t("probe_video_duration_on_download_label"))
-        self._media_cleanup_btn.SetLabel(i18n.t("cleanup_open_button"))
-        self._focus_box.SetLabel(i18n.t("ui_focus_label"))
-        self._focus_message_field_rb.SetLabel(i18n.t("ui_focus_message_field"))
-        self._focus_unread_or_last_rb.SetLabel(i18n.t("ui_focus_unread_or_last"))
-        self._voice_focus_box.SetLabel(i18n.t("ui_voice_record_focus_label"))
-        self._voice_focus_send_rb.SetLabel(i18n.t("ui_voice_record_focus_send"))
-        self._voice_focus_discard_rb.SetLabel(i18n.t("ui_voice_record_focus_discard"))
-        self._msg_list_mode_box.SetLabel(i18n.t("ui_message_list_mode_label"))
-        self._msg_list_mode_classic_rb.SetLabel(i18n.t("ui_message_list_mode_classic"))
-        self._msg_list_mode_listbox_rb.SetLabel(i18n.t("ui_message_list_mode_listbox"))
-        self._show_listbox_count_cb.SetLabel(i18n.t("ui_show_listbox_item_count"))
-        self._show_typing_row_cb.SetLabel(i18n.t("ui_show_typing_row"))
-        self._self_ref_box.SetLabel(i18n.t("ui_self_reference_label"))
-        # Keys of their own: the plain words are what messages say for me.
-        self._self_ref_eu_rb.SetLabel(i18n.t("ui_self_reference_eu_option"))
-        self._self_ref_voce_rb.SetLabel(i18n.t("ui_self_reference_voce_option"))
-        self._self_ref_other_rb.SetLabel(i18n.t("ui_self_reference_other"))
-        self._self_ref_custom_label.SetLabel(i18n.t("ui_self_reference_custom_label"))
-        self._hide_own_sender_cb.SetLabel(i18n.t("ui_hide_own_sender_in_message_list"))
-        self._mark_unsaved_contacts_cb.SetLabel(i18n.t("ui_mark_unsaved_contacts"))
-        self._hide_unnamed_sender_numbers_cb.SetLabel(i18n.t("ui_hide_unnamed_sender_numbers"))
-        self._hide_unnamed_sender_numbers_cb.SetHelpText(i18n.t("ui_hide_unnamed_sender_numbers_help"))
-        self._show_delivery_status_cb.SetLabel(i18n.t("ui_show_delivery_status_in_chat_list"))
-        self._keep_pinned_order_cb.SetLabel(i18n.t("ui_keep_pinned_chat_order"))
-        self._show_channels_cb.SetLabel(i18n.t("ui_show_channels_in_chat_list"))
-        self._message_draft_radio.SetLabel(i18n.t("ui_message_draft_label"))
-        for _i, _key in enumerate(("ui_message_draft_keep_in_field",
-                                   "ui_message_draft_per_conversation",
-                                   "ui_message_draft_discard")):
-            self._message_draft_radio.SetItemLabel(_i, i18n.t(_key))
-        self._show_link_previews_cb.SetLabel(i18n.t("ui_show_link_previews_label"))
-        self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
-        self._forwarded_prefix_cb.SetLabel(i18n.t("ui_forwarded_prefix_label"))
-        self._delete_media_default_cb.SetLabel(i18n.t("ui_delete_media_default_label"))
-        self._forward_voice_as_voice_cb.SetLabel(i18n.t("ui_forward_voice_as_voice"))
-        self._conversation_video_media_viewer_dialog_cb.SetLabel(
-            i18n.t("ui_conversation_video_media_viewer_dialog_label")
-        )
-        self._status_media_viewer_dialog_cb.SetLabel(i18n.t("ui_status_media_viewer_dialog_label"))
-        self._group_media_types_label.SetLabel(
-            i18n.t("ui_group_media_default_types_label")
-        )
-        self._set_list_column_label(
-            self._group_media_types_list, i18n.t("ui_group_media_default_types_label")
-        )
-        for _idx, _key in enumerate(GROUP_MEDIA_TYPES):
-            self._group_media_types_list.SetItem(
-                _idx, 0, i18n.t(f"group_media_type_{_key}")
+        if ready(self, "chat_lock"):
+            self._chat_lock_intro.SetLabel(i18n.t("chat_lock_settings_intro"))
+            self._chat_lock_unlock_btn.SetLabel(
+                i18n.t("chat_lock_settings_unlock")
             )
-        self._mark_audio_played_check.SetLabel(
-            i18n.t("audio_mark_played_in_list_label")
-        )
-        self._auto_download_types_label.SetLabel(
-            i18n.t("storage_auto_download_media_types_label")
-        )
-        self._set_list_column_label(
-            self._auto_download_types_list, i18n.t("storage_auto_download_media_types_label")
-        )
-        for _idx, _key in enumerate(AUTO_DOWNLOAD_MEDIA_TYPES):
-            self._auto_download_types_list.SetItem(
-                _idx, 0, i18n.t(f"group_media_type_{_key}")
+            self._chat_lock_show_navigation_check.SetLabel(
+                i18n.t("chat_lock_show_navigation")
             )
-        self._voice_msg_mode_box.SetLabel(i18n.t("ui_voice_message_mode_label"))
-        self._voice_msg_mode_audio_rb.SetLabel(i18n.t("ui_voice_message_mode_audio"))
-        self._voice_msg_mode_voice_rb.SetLabel(i18n.t("ui_voice_message_mode_voice_message"))
-        self._enter_transcribes_voice_cb.SetLabel(i18n.t("ui_enter_transcribes_voice"))
-        self._preserve_typed_caption_cb.SetLabel(i18n.t("ui_preserve_typed_text_as_caption"))
-        self._bulk_action_shortcuts_cb.SetLabel(i18n.t("ui_bulk_action_shortcuts"))
-        self._confirm_mark_all_read_cb.SetLabel(i18n.t("ui_confirm_mark_all_read"))
-        self._confirm_resync_all_cb.SetLabel(i18n.t("ui_confirm_resync_all"))
-        self._confirm_resync_conversation_cb.SetLabel(i18n.t("ui_confirm_resync_conversation"))
-        self._confirm_clear_chat_cb.SetLabel(i18n.t("ui_confirm_clear_chat"))
-        self._confirm_delete_chat_cb.SetLabel(i18n.t("ui_confirm_delete_chat"))
-        self._warn_system_audio_cb.SetLabel(i18n.t("ui_warn_system_audio_recording"))
-        self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
-        self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
-        self._keep_search_after_open_cb.SetLabel(i18n.t("ui_keep_search_after_open"))
-        self._auto_play_voice_in_sequence_cb.SetLabel(i18n.t("ui_auto_play_voice_in_sequence"))
-        self._auto_focus_next_audio_cb.SetLabel(i18n.t("ui_auto_focus_next_audio"))
-        self._hide_audio_speed_cb.SetLabel(i18n.t("audio_hide_speed_button"))
-        self._hide_audio_progress_cb.SetLabel(i18n.t("audio_hide_progress_bar"))
-        self._selected_announce_box.SetLabel(i18n.t("ui_selected_announce_position_label"))
-        self._selected_announce_start_rb.SetLabel(i18n.t("ui_selected_announce_position_start"))
-        self._selected_announce_end_rb.SetLabel(i18n.t("ui_selected_announce_position_end"))
-        self._announce_typing_check.SetLabel(i18n.t("speech_announce_typing_label"))
-        self._announce_recording_check.SetLabel(i18n.t("speech_announce_recording_label"))
-        self._announce_conversations_update_start_check.SetLabel(
-            i18n.t("speech_announce_conversations_update_start_label")
-        )
-        self._announce_conversations_update_check.SetLabel(
-            i18n.t("speech_announce_conversations_update_label")
-        )
-        self._announce_sync_progress_check.SetLabel(i18n.t("speech_announce_sync_progress_label"))
-        self._announce_media_progress_check.SetLabel(i18n.t("speech_announce_media_progress_label"))
-        self._speak_active_conv_check.SetLabel(i18n.t("speech_speak_active_conv_label"))
-        self._speak_other_conv_check.SetLabel(i18n.t("speech_speak_other_conv_label"))
-        self._silence_while_recording_check.SetLabel(i18n.t("speech_silence_while_recording_label"))
-        self._hotkey_label.SetLabel(i18n.t("global_hotkey_label"))
-        self._hotkey_field.SetAccessibleName(i18n.t("global_hotkey_label"))
-        self._hotkey_field.SetHint(i18n.t("global_hotkey_hint"))
+            selected_timeout = self._selected_chat_lock_timeout_minutes()
+            self._chat_lock_timeout_label.SetLabel(
+                i18n.t("chat_lock_timeout_label")
+            )
+            self._chat_lock_timeout_choice.SetName(
+                i18n.t("chat_lock_timeout_label")
+            )
+            self._chat_lock_timeout_choice.Clear()
+            self._chat_lock_timeout_choice.AppendItems(
+                self._chat_lock_timeout_labels()
+            )
+            self._set_chat_lock_timeout_minutes(selected_timeout)
+            self._chat_lock_change_pin_btn.SetLabel(
+                i18n.t("chat_lock_change_pin")
+            )
+            self._chat_lock_change_reveal_btn.SetLabel(
+                i18n.t("chat_lock_settings")
+            )
+            self._load_chat_lock_values()
+        if ready(self, "reactions"):
+            self._fixed_quick_reactions_cb.SetLabel(i18n.t("reactions_fixed_label"))
+            self._quick_reaction_slots_label.SetLabel(i18n.t("reactions_slots_label"))
+            self._set_list_column_label(
+                self._quick_reaction_slots_list, i18n.t("reactions_slots_column")
+            )
+            self._fill_quick_reaction_slots()
+            self._reset_quick_reactions_btn.SetLabel(i18n.t("reactions_reset_button"))
+        if ready(self, "backup"):
+            self._no_profile_snapshots_check.SetLabel(i18n.t("profile_backup_disabled_label"))
+            self._close_snapshot_hours_label.SetLabel(i18n.t("profile_backup_close_hours_label"))
+            self._live_snapshot_check.SetLabel(i18n.t("profile_backup_live_label"))
+            self._live_snapshot_hours_label.SetLabel(i18n.t("profile_backup_live_hours_label"))
+            self._live_snapshot_confirm_check.SetLabel(i18n.t("profile_backup_live_confirm_label"))
+        if ready(self, "audio"):
+            self._audio_input_label.SetLabel(i18n.t("audio_input_device_label"))
+            self._audio_output_label.SetLabel(i18n.t("audio_output_device_label"))
+            self._audio_effects_label.SetLabel(i18n.t("audio_effects_output_device_label"))
+            self._reload_audio_device_choices()
+            self._noise_reduction_check.SetLabel(i18n.t("noise_reduction_label"))
+            self._voice_channels_radio.SetLabel(i18n.t("voice_channels_label"))
+            self._voice_channels_radio.SetItemLabel(0, i18n.t("voice_channels_auto"))
+            self._voice_channels_radio.SetItemLabel(1, i18n.t("voice_channels_mono"))
+            self._voice_channels_radio.SetItemLabel(2, i18n.t("voice_channels_stereo"))
+            self._relabel_noise_model_section()
+        if ready(self, "notifications"):
+            self._notifications_check.SetLabel(i18n.t("notifications_label"))
+            self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))
+            for _i, _key in enumerate(NOTIFICATION_CONTENT_LABEL_KEYS):
+                self._notification_content_radio.SetItemLabel(_i, i18n.t(_key))
+        if ready(self, "calls"):
+            self._call_alerts_check.SetLabel(i18n.t("calls_alerts_enabled_label"))
+            self._call_popup_check.SetLabel(i18n.t("calls_popup_enabled_label"))
+            self._call_audio_settings_button.SetLabel(i18n.t("calls_audio_settings_button"))
+            self._call_video_settings_button.SetLabel(i18n.t("calls_video_settings_button"))
+        if ready(self, "notifications"):
+            self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
+        if ready(self, "speech"):
+            self._announce_sync_check.SetLabel(i18n.t("announce_sync_events_label"))
+        if ready(self, "general"):
+            self._spell_check_radio.SetLabel(i18n.t("spell_check_label"))
+            for _i, _key in enumerate((
+                "spell_check_mode_windows",
+                "spell_check_mode_on",
+                "spell_check_mode_off",
+            )):
+                self._spell_check_radio.SetItemLabel(_i, i18n.t(_key))
+            self._convert_emoticons_check.SetLabel(i18n.t("convert_emoticons_label"))
+            self._search_norm_radio.SetLabel(i18n.t("search_normalization_label"))
+            for _i, _key in enumerate((
+                "search_normalization_off",
+                "search_normalization_nfd",
+                "search_normalization_nfkd",
+            )):
+                self._search_norm_radio.SetItemLabel(_i, i18n.t(_key))
+        if ready(self, "storage"):
+            self._save_folder_radio.SetLabel(i18n.t("save_folder_mode_label"))
+        if ready(self, "audio"):
+            self._pasted_audio_radio.SetLabel(i18n.t("pasted_audio_label"))
+            self._pasted_audio_radio.SetItemLabel(0, i18n.t("pasted_audio_as_audio"))
+            self._pasted_audio_radio.SetItemLabel(1, i18n.t("pasted_audio_as_document"))
+        if ready(self, "storage"):
+            for _i, _key in enumerate((
+                "save_folder_mode_last",
+                "save_folder_mode_downloads",
+                "save_folder_mode_custom",
+            )):
+                self._save_folder_radio.SetItemLabel(_i, i18n.t(_key))
+            self._save_folder_custom_label.SetLabel(i18n.t("save_folder_custom_label"))
+            self._save_folder_browse_btn.SetLabel(i18n.t("save_folder_browse_btn"))
+        if ready(self, "general"):
+            self._autostart_check.SetLabel(i18n.t("autostart_label"))
+            self._whatsapp_links_check.SetLabel(i18n.t("whatsapp_links_label"))
+        if ready(self, "notifications"):
+            self._tray_icon_check.SetLabel(i18n.t("tray_show_icon"))
+        if ready(self, "general"):
+            self._updates_check.SetLabel(i18n.t("updates_label"))
+            self._alpha_updates_check.SetLabel(i18n.t("alpha_updates_label"))
+            self._background_updates_check.SetLabel(i18n.t("background_updates_label"))
+            self._alpha_updates_check.SetToolTip(i18n.t("alpha_updates_tooltip"))
+            self._language_label.SetLabel(i18n.t("language_label"))
+            self._switch_behavior_box.SetLabel(i18n.t("acc_switch_behavior_label"))
+            self._switch_behavior_single_rb.SetLabel(i18n.t("acc_switch_behavior_single"))
+            self._switch_behavior_keep_open_rb.SetLabel(i18n.t("acc_switch_behavior_keep_open"))
+        if ready(self, "messages"):
+            self._messages_page_size_label.SetLabel(i18n.t("ui_messages_page_size_label"))
+            self._page_jump_size_label.SetLabel(i18n.t("ui_page_jump_size_label"))
+        if ready(self, "accessibility"):
+            self._extended_sr_compat_check.SetLabel(i18n.t("accessibility_extended_sr_compat_label"))
+            self._sapi_fallback_check.SetLabel(i18n.t("accessibility_sapi_fallback_label"))
+        if ready(self, "storage"):
+            self._probe_video_duration_check.SetLabel(i18n.t("probe_video_duration_on_download_label"))
+            self._media_cleanup_btn.SetLabel(i18n.t("cleanup_open_button"))
+        if ready(self, "chats"):
+            self._focus_box.SetLabel(i18n.t("ui_focus_label"))
+            self._focus_message_field_rb.SetLabel(i18n.t("ui_focus_message_field"))
+            self._focus_unread_or_last_rb.SetLabel(i18n.t("ui_focus_unread_or_last"))
+        if ready(self, "audio"):
+            self._voice_focus_box.SetLabel(i18n.t("ui_voice_record_focus_label"))
+            self._voice_focus_send_rb.SetLabel(i18n.t("ui_voice_record_focus_send"))
+            self._voice_focus_discard_rb.SetLabel(i18n.t("ui_voice_record_focus_discard"))
+        if ready(self, "messages"):
+            self._msg_list_mode_box.SetLabel(i18n.t("ui_message_list_mode_label"))
+            self._msg_list_mode_classic_rb.SetLabel(i18n.t("ui_message_list_mode_classic"))
+            self._msg_list_mode_listbox_rb.SetLabel(i18n.t("ui_message_list_mode_listbox"))
+            self._show_listbox_count_cb.SetLabel(i18n.t("ui_show_listbox_item_count"))
+            self._show_typing_row_cb.SetLabel(i18n.t("ui_show_typing_row"))
+            self._self_ref_box.SetLabel(i18n.t("ui_self_reference_label"))
+            # Keys of their own: the plain words are what messages say for me.
+            self._self_ref_eu_rb.SetLabel(i18n.t("ui_self_reference_eu_option"))
+            self._self_ref_voce_rb.SetLabel(i18n.t("ui_self_reference_voce_option"))
+            self._self_ref_other_rb.SetLabel(i18n.t("ui_self_reference_other"))
+            self._self_ref_custom_label.SetLabel(i18n.t("ui_self_reference_custom_label"))
+            self._hide_own_sender_cb.SetLabel(i18n.t("ui_hide_own_sender_in_message_list"))
+        if ready(self, "chats"):
+            self._mark_unsaved_contacts_cb.SetLabel(i18n.t("ui_mark_unsaved_contacts"))
+        if ready(self, "messages"):
+            self._hide_unnamed_sender_numbers_cb.SetLabel(i18n.t("ui_hide_unnamed_sender_numbers"))
+            self._hide_unnamed_sender_numbers_cb.SetHelpText(i18n.t("ui_hide_unnamed_sender_numbers_help"))
+        if ready(self, "chats"):
+            self._show_delivery_status_cb.SetLabel(i18n.t("ui_show_delivery_status_in_chat_list"))
+            self._keep_pinned_order_cb.SetLabel(i18n.t("ui_keep_pinned_chat_order"))
+            self._show_channels_cb.SetLabel(i18n.t("ui_show_channels_in_chat_list"))
+            self._message_draft_radio.SetLabel(i18n.t("ui_message_draft_label"))
+            for _i, _key in enumerate(("ui_message_draft_keep_in_field",
+                                       "ui_message_draft_per_conversation",
+                                       "ui_message_draft_discard")):
+                self._message_draft_radio.SetItemLabel(_i, i18n.t(_key))
+        if ready(self, "messages"):
+            self._show_link_previews_cb.SetLabel(i18n.t("ui_show_link_previews_label"))
+            self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
+            self._forwarded_prefix_cb.SetLabel(i18n.t("ui_forwarded_prefix_label"))
+            self._delete_media_default_cb.SetLabel(i18n.t("ui_delete_media_default_label"))
+        if ready(self, "audio"):
+            self._forward_voice_as_voice_cb.SetLabel(i18n.t("ui_forward_voice_as_voice"))
+        if ready(self, "messages"):
+            self._conversation_video_media_viewer_dialog_cb.SetLabel(
+                i18n.t("ui_conversation_video_media_viewer_dialog_label")
+            )
+            self._status_media_viewer_dialog_cb.SetLabel(i18n.t("ui_status_media_viewer_dialog_label"))
+            self._group_media_types_label.SetLabel(
+                i18n.t("ui_group_media_default_types_label")
+            )
+            self._set_list_column_label(
+                self._group_media_types_list, i18n.t("ui_group_media_default_types_label")
+            )
+            for _idx, _key in enumerate(GROUP_MEDIA_TYPES):
+                self._group_media_types_list.SetItem(
+                    _idx, 0, i18n.t(f"group_media_type_{_key}")
+                )
+        if ready(self, "audio_playback"):
+            self._mark_audio_played_check.SetLabel(
+                i18n.t("audio_mark_played_in_list_label")
+            )
+        if ready(self, "storage"):
+            self._auto_download_types_label.SetLabel(
+                i18n.t("storage_auto_download_media_types_label")
+            )
+            self._set_list_column_label(
+                self._auto_download_types_list, i18n.t("storage_auto_download_media_types_label")
+            )
+            for _idx, _key in enumerate(AUTO_DOWNLOAD_MEDIA_TYPES):
+                self._auto_download_types_list.SetItem(
+                    _idx, 0, i18n.t(f"group_media_type_{_key}")
+                )
+        if ready(self, "audio"):
+            self._voice_msg_mode_box.SetLabel(i18n.t("ui_voice_message_mode_label"))
+            self._voice_msg_mode_audio_rb.SetLabel(i18n.t("ui_voice_message_mode_audio"))
+            self._voice_msg_mode_voice_rb.SetLabel(i18n.t("ui_voice_message_mode_voice_message"))
+            self._enter_transcribes_voice_cb.SetLabel(i18n.t("ui_enter_transcribes_voice"))
+        if ready(self, "messages"):
+            self._preserve_typed_caption_cb.SetLabel(i18n.t("ui_preserve_typed_text_as_caption"))
+        if ready(self, "chats"):
+            self._bulk_action_shortcuts_cb.SetLabel(i18n.t("ui_bulk_action_shortcuts"))
+        if ready(self, "confirmations"):
+            self._confirm_mark_all_read_cb.SetLabel(i18n.t("ui_confirm_mark_all_read"))
+            self._confirm_resync_all_cb.SetLabel(i18n.t("ui_confirm_resync_all"))
+            self._confirm_resync_conversation_cb.SetLabel(i18n.t("ui_confirm_resync_conversation"))
+            self._confirm_clear_chat_cb.SetLabel(i18n.t("ui_confirm_clear_chat"))
+            self._confirm_delete_chat_cb.SetLabel(i18n.t("ui_confirm_delete_chat"))
+            self._warn_system_audio_cb.SetLabel(i18n.t("ui_warn_system_audio_recording"))
+        if ready(self, "chats"):
+            self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
+            self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
+            self._keep_search_after_open_cb.SetLabel(i18n.t("ui_keep_search_after_open"))
+        if ready(self, "audio_playback"):
+            self._auto_play_voice_in_sequence_cb.SetLabel(i18n.t("ui_auto_play_voice_in_sequence"))
+            self._auto_focus_next_audio_cb.SetLabel(i18n.t("ui_auto_focus_next_audio"))
+            self._hide_audio_speed_cb.SetLabel(i18n.t("audio_hide_speed_button"))
+            self._hide_audio_progress_cb.SetLabel(i18n.t("audio_hide_progress_bar"))
+        if ready(self, "chats"):
+            self._selected_announce_box.SetLabel(i18n.t("ui_selected_announce_position_label"))
+            self._selected_announce_start_rb.SetLabel(i18n.t("ui_selected_announce_position_start"))
+            self._selected_announce_end_rb.SetLabel(i18n.t("ui_selected_announce_position_end"))
+        if ready(self, "speech"):
+            self._announce_typing_check.SetLabel(i18n.t("speech_announce_typing_label"))
+            self._announce_recording_check.SetLabel(i18n.t("speech_announce_recording_label"))
+            self._announce_conversations_update_start_check.SetLabel(
+                i18n.t("speech_announce_conversations_update_start_label")
+            )
+            self._announce_conversations_update_check.SetLabel(
+                i18n.t("speech_announce_conversations_update_label")
+            )
+            self._announce_sync_progress_check.SetLabel(i18n.t("speech_announce_sync_progress_label"))
+            self._announce_media_progress_check.SetLabel(i18n.t("speech_announce_media_progress_label"))
+            self._speak_active_conv_check.SetLabel(i18n.t("speech_speak_active_conv_label"))
+            self._speak_other_conv_check.SetLabel(i18n.t("speech_speak_other_conv_label"))
+        if ready(self, "audio"):
+            self._silence_while_recording_check.SetLabel(i18n.t("speech_silence_while_recording_label"))
+        if ready(self, "general"):
+            self._hotkey_label.SetLabel(i18n.t("global_hotkey_label"))
+            self._hotkey_field.SetAccessibleName(i18n.t("global_hotkey_label"))
+            self._hotkey_field.SetHint(i18n.t("global_hotkey_hint"))
         self._ok_btn.SetLabel(i18n.t("ok"))
         self._cancel_btn.SetLabel(i18n.t("cancel"))
         self._apply_btn.SetLabel(i18n.t("apply"))
-        self._audio_speed_label.SetLabel(i18n.t("audio_speed_label"))
-        self._custom_api_check.SetLabel(i18n.t("connection_custom_api_label"))
-        engine_picker.relabel(self._engine_label, self._engine_choice,
-                              self._engine_hint, i18n)
-        self._server_label.SetLabel(i18n.t("connection_server_label"))
-        self._ws_server_label.SetLabel(i18n.t("connection_ws_server_label"))
-        self._port_label.SetLabel(i18n.t("wpp_port_label"))
-        self._api_key_label.SetLabel(i18n.t("connection_api_key_label"))
+        if ready(self, "audio_playback"):
+            self._audio_speed_label.SetLabel(i18n.t("audio_speed_label"))
+        if ready(self, "connection"):
+            self._custom_api_check.SetLabel(i18n.t("connection_custom_api_label"))
+            engine_picker.relabel(self._engine_label, self._engine_choice,
+                                  self._engine_hint, i18n)
+            self._server_label.SetLabel(i18n.t("connection_server_label"))
+            self._ws_server_label.SetLabel(i18n.t("connection_ws_server_label"))
+            self._port_label.SetLabel(i18n.t("wpp_port_label"))
+            self._api_key_label.SetLabel(i18n.t("connection_api_key_label"))
 
-        # Sound events tab
-        self._sound_pack_label.SetLabel(i18n.t("sound_pack_label"))
-        self._import_folder_btn.SetLabel(i18n.t("import_sound_pack_folder_button"))
-        self._import_zip_btn.SetLabel(i18n.t("import_sound_pack_zip_button"))
+        if ready(self, "sounds"):
+            # Sound events tab
+            self._sound_pack_label.SetLabel(i18n.t("sound_pack_label"))
+            self._import_folder_btn.SetLabel(i18n.t("import_sound_pack_folder_button"))
+            self._import_zip_btn.SetLabel(i18n.t("import_sound_pack_zip_button"))
         packs = self.main_window._sound_packs
-        pack_sel = self._sound_pack_combo.GetSelection()
-        self._sound_pack_combo.Set([
-            i18n.t("sound_pack_default_label") if pid == DEFAULT_PACK_ID else packs[pid]["name"]
-            for pid in self._sound_pack_ids
-        ])
-        self._sound_pack_combo.SetSelection(pack_sel if pack_sel != wx.NOT_FOUND else 0)
-        self._sound_events_list_label.SetLabel(i18n.t("sound_events_list_label"))
-        self._sound_event_path_label.SetLabel(i18n.t("sound_event_path_label"))
-        self._activate_all_btn.SetLabel(i18n.t("activate_all_sounds"))
-        self._deactivate_all_btn.SetLabel(i18n.t("deactivate_all_sounds"))
-        cur_event_sel = self._sound_events_list.GetSelection()
-        settings_for_pack = self._pack_event_settings.get(self._current_pack_id, {})
-        self._sound_events_list.Set([
-            self._sound_event_label(key, (settings_for_pack.get(key) or {}).get("enabled", True))
-            for key, _default_filename in SOUND_EVENTS
-        ])
-        if cur_event_sel != wx.NOT_FOUND:
-            self._sound_events_list.SetSelection(cur_event_sel)
+        if ready(self, "sounds"):
+            pack_sel = self._sound_pack_combo.GetSelection()
+            self._sound_pack_combo.Set([
+                i18n.t("sound_pack_default_label") if pid == DEFAULT_PACK_ID else packs[pid]["name"]
+                for pid in self._sound_pack_ids
+            ])
+            self._sound_pack_combo.SetSelection(pack_sel if pack_sel != wx.NOT_FOUND else 0)
+            self._sound_events_list_label.SetLabel(i18n.t("sound_events_list_label"))
+            self._sound_event_path_label.SetLabel(i18n.t("sound_event_path_label"))
+            self._activate_all_btn.SetLabel(i18n.t("activate_all_sounds"))
+            self._deactivate_all_btn.SetLabel(i18n.t("deactivate_all_sounds"))
+            cur_event_sel = self._sound_events_list.GetSelection()
+            settings_for_pack = self._pack_event_settings.get(self._current_pack_id, {})
+            self._sound_events_list.Set([
+                self._sound_event_label(key, (settings_for_pack.get(key) or {}).get("enabled", True))
+                for key, _default_filename in SOUND_EVENTS
+            ])
+            if cur_event_sel != wx.NOT_FOUND:
+                self._sound_events_list.SetSelection(cur_event_sel)
 
-        # Alert tones tab
-        self._alert_private_label.SetLabel(i18n.t("alert_tone_private_label"))
-        self._alert_group_label.SetLabel(i18n.t("alert_tone_group_label"))
-        self._alert_private_custom_label.SetLabel(i18n.t("alert_tone_custom_path_label"))
-        self._alert_group_custom_label.SetLabel(i18n.t("alert_tone_custom_path_label"))
-        self._reload_alert_tone_choices()
+            # Alert tones tab
+            self._alert_private_label.SetLabel(i18n.t("alert_tone_private_label"))
+            self._alert_group_label.SetLabel(i18n.t("alert_tone_group_label"))
+            self._alert_private_custom_label.SetLabel(i18n.t("alert_tone_custom_path_label"))
+            self._alert_group_custom_label.SetLabel(i18n.t("alert_tone_custom_path_label"))
+            self._reload_alert_tone_choices()
 
-        # Storage tab
-        self._auto_download_media_check.SetLabel(i18n.t("auto_download_media_label"))
-        self._media_max_days_label.SetLabel(i18n.t("media_max_days_label"))
-        self._media_max_mb_label.SetLabel(i18n.t("media_max_mb_label"))
-        self._alert_private_preview.refresh_label()
-        self._alert_group_preview.refresh_label()
+        if ready(self, "storage"):
+            # Storage tab
+            self._auto_download_media_check.SetLabel(i18n.t("auto_download_media_label"))
+            self._media_max_days_label.SetLabel(i18n.t("media_max_days_label"))
+            self._media_max_mb_label.SetLabel(i18n.t("media_max_mb_label"))
+        if ready(self, "sounds"):
+            self._alert_private_preview.refresh_label()
+            self._alert_group_preview.refresh_label()
 
-        # Regenerate speed labels — decimal separator may have changed with language
-        cur_sel = self._audio_speed_combo.GetSelection()
-        self._audio_speed_combo.Clear()
-        for s in self._AUDIO_SPEED_STEPS:
-            self._audio_speed_combo.Append(self._format_speed(s))
-        self._audio_speed_combo.SetSelection(cur_sel if cur_sel != wx.NOT_FOUND else 0)
+        if ready(self, "audio_playback"):
+            # Regenerate speed labels — decimal separator may have changed with language
+            cur_sel = self._audio_speed_combo.GetSelection()
+            self._audio_speed_combo.Clear()
+            for s in self._AUDIO_SPEED_STEPS:
+                self._audio_speed_combo.Append(self._format_speed(s))
+            self._audio_speed_combo.SetSelection(cur_sel if cur_sel != wx.NOT_FOUND else 0)
 
-        # Transcription tab — sizes carry the decimal separator too, and the
-        # language list is ordered by the interface language that just changed.
-        self._refresh_transcription_labels()
+        if ready(self, "transcription"):
+            # Transcription tab — sizes carry the decimal separator too, and the
+            # language list is ordered by the interface language that just changed.
+            self._refresh_transcription_labels()
 
     # ── Event handlers ───────────────────────────────────────────────────────
 
@@ -4636,6 +4896,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         event.Skip()
 
     def _stop_alert_previews(self):
+        if not ready(self, "sounds"):
+            return
         self._alert_private_preview.stop()
         self._alert_group_preview.stop()
         pending = getattr(self, "_alert_path_check", None)
@@ -4656,7 +4918,8 @@ class SettingsDialog(ShortcutsTabMixin, TranscriptionTabMixin, ExternalModelsMix
         if self._apply_values():
             # An invalid interval revealed its field even with the option
             # off (_validate()); once the value is fixed, hide it again.
-            self._update_live_snapshot_fields()
+            if ready(self, "backup"):
+                self._update_live_snapshot_fields()
             self._loading_values = True
             self._refresh_dialog_labels()
             self._loading_values = False

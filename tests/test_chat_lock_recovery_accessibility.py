@@ -35,7 +35,7 @@ def test_recovery_dialog_exposes_explicit_read_and_copy_buttons():
 
 
 def test_settings_expose_the_pin_change_action():
-    source = inspect.getsource(SettingsDialog._build_ui)
+    source = inspect.getsource(SettingsDialog._build_chat_lock_controls)
 
     assert "chat_lock_change_pin" in source
     assert "self._chat_lock_change_pin_btn.Bind" in source

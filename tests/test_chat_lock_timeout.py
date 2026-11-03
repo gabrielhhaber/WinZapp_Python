@@ -123,7 +123,7 @@ def test_timeout_closes_the_vault_silently_then_announces_why(monkeypatch):
 
 
 def test_settings_wire_an_accessible_timeout_choice_without_opening_it():
-    source = inspect.getsource(SettingsDialog._build_ui)
+    source = inspect.getsource(SettingsDialog._build_chat_lock_controls)
 
     assert "chat_lock_timeout_label" in source
     assert "self._chat_lock_timeout_choice.SetName" in source

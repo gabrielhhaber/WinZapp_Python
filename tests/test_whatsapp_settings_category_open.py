@@ -73,6 +73,7 @@ def _sub_page(first_open):
     events = []
     stub = types.SimpleNamespace(
         _first_open=first_open,
+        _build=None,
         CentreOnParent=lambda: events.append("centre"),
         ShowModal=lambda: events.append("modal"),
     )

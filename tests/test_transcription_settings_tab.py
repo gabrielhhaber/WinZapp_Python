@@ -500,7 +500,8 @@ class TestTheTabIsAppendedAtTheEnd:
 
     def test_transcription_is_the_last_page_added_before_shortcuts_mixin(self):
         pages = self._add_pages()
-        assert pages[-3:] == ["tab_transcription", "wa_settings_dialog_title", "tab_connection"]
+        assert pages[-4:] == ["tab_transcription", "wa_settings_dialog_title",
+                              "tab_connection", "tab_advanced"]
 
     def test_the_retranslation_enumerates_every_page_at_its_own_index(self):
         """Missing line = a tab caption that never follows a language change.
@@ -514,12 +515,12 @@ class TestTheTabIsAppendedAtTheEnd:
         separately by ShortcutsTabMixin; the real notebook order is checked
         in tests/test_settings_files_saving_tab.py."""
         added = self._add_pages()
-        assert added[-4:] == ["tab_ai_accessibility", "tab_transcription",
-                              "wa_settings_dialog_title", "tab_connection"]
-        assert [key for _index, key in self._page_texts()] == added[:-4]
-        assert [index for index, _key in self._page_texts()] == list(range(len(added) - 4))
+        assert added[-5:] == ["tab_ai_accessibility", "tab_transcription",
+                              "wa_settings_dialog_title", "tab_connection", "tab_advanced"]
+        assert [key for _index, key in self._page_texts()] == added[:-5]
+        assert [index for index, _key in self._page_texts()] == list(range(len(added) - 5))
         assert re.search(
-            r"SetPageText\(\s*self\._notebook\.FindPage\(self\._transcription_page\),"
+            r"SetPageText\(\s*self\._notebook\.FindPage\(self\._transcription_holder\),"
             r"\s*i18n\.t\(\"tab_transcription\"\),?\s*\)",
             SETTINGS_DIALOG_SOURCE,
         )

@@ -158,7 +158,7 @@ class TestSettings:
         src = inspect.getsource(settings_dialog.SettingsDialog)
         assert '.get("notification_content", "full")' in src
         assert ('["notification_content"] = (\n'
-                "            NOTIFICATION_CONTENT_LEVELS[self._notification_content_radio.GetSelection()]"
+                "                NOTIFICATION_CONTENT_LEVELS[self._notification_content_radio.GetSelection()]"
                 ) in src.replace("\r\n", "\n")
         assert 'self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))' in src
 

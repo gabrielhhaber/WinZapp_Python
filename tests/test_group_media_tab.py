@@ -540,7 +540,7 @@ class TestTheSettingsListStartsOnItsFirstRow:
     def _src():
         import inspect
         from ui.dialogs.settings_dialog import SettingsDialog
-        return inspect.getsource(SettingsDialog._build_ui)
+        return inspect.getsource(SettingsDialog._build_messages_controls)
 
     def test_it_focuses_and_selects_row_zero(self):
         src = self._src()

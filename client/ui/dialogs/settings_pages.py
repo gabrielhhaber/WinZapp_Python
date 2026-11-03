@@ -60,15 +60,17 @@ class ScrollingPage(ScrolledPanel):
 class SubPageDialog(wx.Dialog):
     """A group of options reached from a button on a page.
 
-    Its controls are built once and kept, like those of the pages, so the
-    settings dialog reads and writes them the same way. Closing only hides it.
+    Its controls are built the first time it opens (`build`) and kept, like
+    those of the pages, so the settings dialog reads and writes them the same
+    way. Closing only hides it.
     """
 
-    def __init__(self, parent, title, ok_label, on_change=None, first_open=None):
+    def __init__(self, parent, title, ok_label, on_change=None, first_open=None, build=None):
         super().__init__(parent, title=title,
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self._body = None
         self._first_open = first_open   # called once, the first time it opens
+        self._build = build             # puts the controls in, before that
         self._sizer = wx.BoxSizer(wx.VERTICAL)
         ok = wx.Button(self, wx.ID_OK, ok_label)
         ok.SetDefault()
@@ -108,6 +110,9 @@ class SubPageDialog(wx.Dialog):
             pass
 
     def open(self, control=None):
+        if self._build is not None:
+            build, self._build = self._build, None
+            build()
         if control is not None:
             # After the window is up: a hidden window takes no focus.
             wx.CallAfter(self._focus, control)
@@ -206,8 +211,10 @@ def collect_entries(page, page_index, category, opener=None):
 class SettingsPages(wx.Simplebook):
     """Notebook-shaped book whose pages are chosen from a list."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, before_show=None, before_search=None):
         super().__init__(parent)
+        self._before_show = before_show         # called with a page's index
+        self._before_search = before_search     # the search needs every control
         self._titles = []
         self._list = None
         self._search = None
@@ -215,7 +222,7 @@ class SettingsPages(wx.Simplebook):
         self._results_panel = None
         self._found = []
         self._index = []
-        self._subpages = []     # (page_index, caption, window, opener)
+        self._subpages = []     # (page_index, caption, window or its path, opener)
         self._searching = False
         self._selection = wx.NOT_FOUND
 
@@ -230,15 +237,37 @@ class SettingsPages(wx.Simplebook):
 
     def add_subpage(self, page_index, caption, window, opener):
         """Options reached from a button on page `page_index`: searched like
-        the page's own, and opened by `opener(control)` when chosen."""
+        the page's own, and opened by `opener(control)` when chosen. `window`
+        is the window, or the dotted path from the dialog to one that may not
+        exist yet ("_speech_page", "_ai_page.auto_panel")."""
         self._subpages.append((page_index, caption, window, opener))
+
+    def _subpage_window(self, window):
+        """The window a subpage names, None while it is not built. Read without
+        asking the dialog for an attribute it does not have yet: that would
+        build it, and looking is not a reason to."""
+        if not isinstance(window, str):
+            return window
+        found = self.GetParent()
+        for part in window.split("."):
+            found = vars(found).get(part)
+            if found is None:
+                return None
+        return found
 
     def subpage_of(self, window):
         """(page index, opener) of the button window holding `window`."""
         for page_index, _caption, sub, opener in self._subpages:
-            if sub is window:
+            if self._subpage_window(sub) is window:
                 return page_index, opener
         return wx.NOT_FOUND, None
+
+    def FindPage(self, page):
+        """The index of `page`, or of the panel holding its place."""
+        index = super().FindPage(page)
+        if index == wx.NOT_FOUND and page is not None and page.GetParent() is not None:
+            index = super().FindPage(page.GetParent())
+        return index
 
     def GetPageText(self, index):
         return self._titles[index] if 0 <= index < len(self._titles) else ""
@@ -268,6 +297,8 @@ class SettingsPages(wx.Simplebook):
     def ChangeSelection(self, index):
         if not 0 <= index < self.GetPageCount():
             return wx.NOT_FOUND
+        if self._before_show is not None:
+            self._before_show(index)
         previous = self._selection
         super().ChangeSelection(index)
         self._selection = index
@@ -393,14 +424,18 @@ class SettingsPages(wx.Simplebook):
         for i in range(self.GetPageCount()):
             self._index += collect_entries(self.GetPage(i), i, self._titles[i])
         for i, caption, window, opener in self._subpages:
-            self._index += collect_entries(
-                window, i, f"{self._titles[i]}: {caption}", opener)
+            window = self._subpage_window(window)
+            if window is not None:
+                self._index += collect_entries(
+                    window, i, f"{self._titles[i]}: {caption}", opener)
 
     def _on_search_text(self, event):
         query = _fold(self._search.GetValue()).split()
         if not query:
             self._end_search()
             return
+        if self._before_search is not None:
+            self._before_search()
         self._rebuild_index()
         self._found = [e for e in self._index if all(w in e.folded for w in query)]
         self._searching = True

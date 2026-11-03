@@ -24,7 +24,7 @@ def test_a_title_is_the_button_without_its_alt_key_or_ellipsis():
 
 
 def test_each_group_is_in_its_window_and_off_the_tab():
-    tab = _keys("page SettingsDialog._build_transcription_page:page")
+    tab = _keys("page self._transcription_holder")
     groups = {
         "self._transcription_advanced_dialog": {"transcription_precision_label",
                                                 "transcription_keep_loaded_check",

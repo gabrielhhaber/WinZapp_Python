@@ -38,7 +38,7 @@ def test_listbox_count_option_is_visible_only_for_listbox_mode():
 
 
 def test_both_message_list_radios_refresh_the_listbox_only_option_visibility():
-    build = _method_source(SETTINGS_SOURCE, "SettingsDialog", "_build_ui")
+    build = _method_source(SETTINGS_SOURCE, "SettingsDialog", "_build_messages_controls")
     assert build.count("self._on_message_list_mode_toggle") >= 2
 
 

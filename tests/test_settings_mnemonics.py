@@ -57,7 +57,7 @@ def test_the_windows_are_found():
 def test_a_builder_used_twice_puts_its_controls_in_both_windows():
     """_build_transcription_action_row makes the model's buttons on the tab
     and the CUDA libraries' in their own window."""
-    tab = [k for k, _c, _w in WINDOWS["page SettingsDialog._build_transcription_page:page"]]
+    tab = [k for k, _c, _w in WINDOWS["page self._transcription_holder"]]
     cuda = [k for k, _c, _w in WINDOWS["window self._transcription_cuda_dialog"]]
     assert "transcription_model_download_btn" in tab and "transcription_model_download_btn" not in cuda
     assert "transcription_cuda_install_btn" in cuda and "transcription_cuda_install_btn" not in tab
