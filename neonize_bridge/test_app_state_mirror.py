@@ -22,6 +22,7 @@ def test_only_lists_labels_and_status_privacy_are_kept():
     assert asm.wanted(["label_edit", "3"])
     assert asm.wanted(["label_jid", "3", "1@g.us"])
     assert asm.wanted(["status_privacy"])
+    assert asm.wanted(["setting_unarchiveChats"])
     assert not asm.wanted(["mute", "1@s.whatsapp.net"])
     assert not asm.wanted([])
 

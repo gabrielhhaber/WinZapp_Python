@@ -45,6 +45,7 @@ import contacts
 import chat_listing
 import chats
 import chat_aliases
+import chat_archive
 import chat_timers
 import read_receipts
 import chat_remaining
@@ -781,6 +782,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     self.db.change_message(w["protocolMessageKey"]["id"], type="revoked", body="")
                 self.db.message(chat, w, msgmap.media_record_of(e.Message))
                 self.db.on_arrival(chat, w["t"], w["fromMe"])
+                try:
+                    chat_archive.on_arrival(self, chat, w)
+                except Exception:
+                    log.exception("archived chat with a new message")
                 if e.Info.Pushname and not o.IsFromMe:
                     self.db.contact(jid_text(o.Sender), pushname=e.Info.Pushname)
                     contact_events.announce_name(c, self, o.Sender, e.Info.Pushname)

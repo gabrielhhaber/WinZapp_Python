@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize: WhatsApp'ın "Sohbetleri arşivde tut" seçeneği kapalıyken yeni mesaj alan arşivlenmiş bir sohbet artık telefonda olduğu gibi sohbet listesine geri döner; önceden Arşivlenmiş bölümünde kalıyordu.
+
 - Sesli mesajlar: Otomatik modda, sol veya sağ girişi tamamen sessiz olan kayıt artık sesin olduğu girişten mono olarak gönderilir; böylece sesiniz tek taraftan değil iki taraftan duyulur. Mono ve Stereo tam olarak adlarının söylediğini yapar.
 
 - Ayarlar (Ctrl+,) artık hemen açılır: pencere açılırken yalnızca Genel sayfası oluşturulur, diğer her sayfa veya pencere ona ilk gittiğinizde oluşturulur. Arama baştan çalışır: diğer sayfalar yüklenirken sonuçlar gelmeye devam eder, yazmayı sürdürebilirsiniz ve sonuç listesi büyüdüğünde ekran okuyucu kesilmez.

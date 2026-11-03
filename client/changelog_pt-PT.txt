@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Neonize: com a opção do WhatsApp "Manter conversas arquivadas" desligada, uma conversa arquivada que recebe uma mensagem nova passa a voltar à lista de conversas, como no telemóvel; antes, continuava em Arquivadas.
+
 - Mensagens de voz: no modo Automático, uma gravação em que a entrada esquerda ou direita está totalmente em silêncio passa a ser enviada em mono, a partir da entrada com som, e passa a ser ouvido dos dois lados em vez de um só. Mono e Estéreo fazem exatamente o que dizem.
 
 - As Definições (Ctrl+,) passam a abrir de imediato: só a página Geral é criada ao abrir a janela, e cada outra página ou janela é criada da primeira vez que lá vai. A pesquisa funciona desde o início: os resultados continuam a chegar enquanto as outras páginas carregam, pode continuar a escrever, e o leitor de ecrã não é interrompido quando a lista de resultados cresce.

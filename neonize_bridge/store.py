@@ -611,6 +611,11 @@ class Store:
             r = self._conn.execute("SELECT unread FROM chats WHERE jid=?", (chat,)).fetchone()
         return int(r["unread"] or 0) if r else 0
 
+    def archived(self, chat):
+        with self._lock:
+            r = self._conn.execute("SELECT archived FROM chats WHERE jid=?", (chat,)).fetchone()
+        return bool(r and r["archived"])
+
     def marked_unread(self, chat):
         """Whether the chat was marked unread by hand, here or on the phone."""
         with self._lock:

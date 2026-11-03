@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Neonize: con la opción de WhatsApp "Mantener chats archivados" desactivada, un chat archivado que recibe un mensaje nuevo ahora vuelve a la lista de chats, como en el teléfono; antes seguía en Archivados.
+
 - Mensajes de voz: en Automático, una grabación cuya entrada izquierda o derecha está totalmente en silencio ahora se envía en mono, a partir de la entrada con sonido, y se te oye por los dos lados en vez de por uno solo. Mono y Estéreo hacen exactamente lo que dicen.
 
 - Los Ajustes (Ctrl+,) ahora se abren al instante: al abrir la ventana solo se crea la página General, y cada una de las demás páginas o ventanas se crea la primera vez que vas a ella. La búsqueda funciona desde el principio: los resultados siguen llegando mientras se cargan las demás páginas, puedes seguir escribiendo y el lector de pantalla no se interrumpe cuando crece la lista de resultados.

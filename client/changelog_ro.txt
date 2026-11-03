@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Neonize: cu opțiunea WhatsApp "Păstrează conversațiile arhivate" dezactivată, o conversație arhivată care primește un mesaj nou revine acum în lista de conversații, ca pe telefon; înainte rămânea la Arhivate.
+
 - Mesaje vocale: în modul Automat, o înregistrare în care intrarea stângă sau dreaptă este complet fără semnal este trimisă acum mono, din intrarea cu sunet, astfel încât ești auzit pe ambele părți, nu doar pe una. Mono și Stereo fac exact ce spun.
 
 - Setările (Ctrl+,) se deschid acum imediat: la deschiderea ferestrei se creează doar pagina Generale, iar fiecare altă pagină sau fereastră se creează prima dată când mergi la ea. Căutarea funcționează de la început: rezultatele continuă să sosească în timp ce celelalte pagini se încarcă, poți continua să scrii, iar cititorul de ecran nu este întrerupt când lista de rezultate crește.
