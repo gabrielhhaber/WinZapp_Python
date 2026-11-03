@@ -930,6 +930,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
     def _build_sound_events_controls(self):
         """The Sound events page, with the alert tones."""
         i18n = self.main_window.i18n
+        # Filled by _load_values(); created here so it belongs to this page's
+        # unit (settings_lazy reads the builder): "Activate all" reached
+        # before the page was shown builds the page instead of raising.
+        self._pack_event_settings = {}
         se_sizer = wx.BoxSizer(wx.VERTICAL)
         self._typing_feedback = TypingFeedbackControls(self, self._sound_events_page, se_sizer)
 
