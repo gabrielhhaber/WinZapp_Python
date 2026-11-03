@@ -26,6 +26,8 @@ NOUTĂȚI
 
 - Grupuri: într-un grup în care doar administratorii pot trimite mesaje, câmpul de mesaj este acum doar pentru citire pentru membri și în Neonize; înainte rămânea editabil în majoritatea acestor grupuri.
 
+- Comenzi rapide: lista F1 corectează denumirile acțiunilor, elimină liniile repetate din aceeași secțiune și separă sugestiile de menționare la tastare de mențiunile dintr-un mesaj. În spaniolă și portugheza din Portugalia, Alt+P mută focalizarea în câmpul mesajului, iar Alt+E rămâne pentru editarea mesajelor.
+
 - Mesaje vocale: în Setări > Audio poți alege înregistrarea automată, mono sau stereo. Mono combină ambele intrări ale microfonului, astfel încât un microfon conectat doar la stânga sau la dreapta să se audă pe ambele părți. Rămâne un singur buton de înregistrare; alegerea se aplică de la următoarea înregistrare.
 
 - Remediat: serverul WPPConnect nu mai eșuează la pornire cu "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") după o actualizare sau o instalare nouă.

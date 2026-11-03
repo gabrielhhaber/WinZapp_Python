@@ -26,6 +26,8 @@ NOWOŚCI
 
 - Grupy: w grupie, w której tylko administratorzy mogą wysyłać wiadomości, pole wiadomości jest teraz tylko do odczytu dla członków także w Neonize; wcześniej w większości takich grup pozostawało edytowalne.
 
+- Skróty klawiszowe: lista F1 poprawia nazwy działań, usuwa powtórzone wiersze w tej samej sekcji i oddziela sugestie wzmianek podczas pisania od wzmianek w wiadomości. W języku hiszpańskim i portugalskim z Portugalii Alt+P przenosi do pola wiadomości, a Alt+E służy do edycji wiadomości.
+
 - Wiadomości głosowe: w Ustawieniach > Dźwięk można wybrać nagrywanie automatyczne, mono lub stereo. Mono łączy obie ścieżki wejściowe mikrofonu, dzięki czemu mikrofon podłączony tylko do lewego lub prawego wejścia słychać z obu stron. Nadal jest jeden przycisk nagrywania; wybór obowiązuje od następnego nagrania.
 
 - Naprawiono: serwer WPPConnect nie przestaje już uruchamiać się z błędem "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") po aktualizacji lub świeżej instalacji.

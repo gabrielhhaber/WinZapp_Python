@@ -5923,7 +5923,7 @@ msgstr "administrador do grupo"
 #: client/ui/conversation_panel/conversation_navigation.py
 msgctxt "group_admins_only"
 msgid "Only admins can send messages in this grou&p"
-msgstr "Somente admins podem &enviar mensagens neste grupo"
+msgstr "Somente admins &podem enviar mensagens neste grupo"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/group_calls.py client/ui/ongoing_calls.py
@@ -9846,14 +9846,14 @@ msgstr "Conclua ou limpe a mensagem atual antes de recuperar esta resposta."
 #, python-brace-format
 msgctxt "reply_to"
 msgid "Re&ply to {name}"
-msgstr "R&esponder a {name}"
+msgstr "Res&ponder a {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 #, python-brace-format
 msgctxt "reply_to_group"
 msgid "Re&ply to {name} in {group}"
-msgstr "R&esponder a {name} em {group}"
+msgstr "Res&ponder a {name} em {group}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_rendering.py
@@ -15906,14 +15906,14 @@ msgstr "WhatsApp desligado"
 #: client/ui/conversation_panel/message_actions.py client/ui/conversations.py
 msgctxt "type_message"
 msgid "Ty&pe a message to"
-msgstr "&Escreva uma mensagem para"
+msgstr "Escreva uma mensagem &para"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/conversation_navigation.py
 #: client/ui/conversation_panel/message_actions.py
 msgctxt "type_message_group"
 msgid "Ty&pe a message to the group"
-msgstr "&Escreva uma mensagem para o grupo"
+msgstr "Escreva uma mensagem &para o grupo"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/typing_feedback_controls.py

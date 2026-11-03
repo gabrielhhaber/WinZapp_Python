@@ -454,6 +454,7 @@
   <li><strong>Yazım denetimi:</strong> bir sözcüğü yanlış yazdığınızda, ardından noktalama işareti yazdığınızda ve imleç yanlış yazılmış bir sözcüğe geldiğinde özel bir ses çalar. Alanın bağlam menüsünde "Yazım" alt menüsü Windows sözlüğünden öneriler sunar. Ayarlarda Windows'u izlemeyi, her zaman açık veya her zaman kapalı olmayı seçersiniz.</li>
   <li><strong>Anmalar:</strong> birini seçmek için <code>@</code> yazın (Enter anmayı ekler, Esc kapatır). Gruplarda <code>@all</code> da çalışır.</li>
 </ul>
+<p>F1 listesindeki "Bahsetme önerileri", @ yazarken açılan listedir: Enter seçili bahsetmeyi ekler, Esc önerileri kapatır. "Bu mesajdaki bahsetmeler", alınan veya gönderilen bir mesajda bahsedilen kişileri gösterir: Enter veya Boşluk seçili bahsetmeyi açar. Aynı tuşları kullansalar bile bunlar farklı bağlamlardır.</p>
 
 <h3>Mesajları okuma</h3>
 <table class="field-table">
@@ -1084,13 +1085,13 @@
 <tr><td class="field-name">Alt+Shift+D</td><td>Mesaj bilgisi</td></tr>
 <tr><td class="field-name">Ctrl+Shift+E</td><td>Mesajı ilet</td></tr>
 <tr><td class="field-name">Ctrl+Shift+P</td><td>Kaydı duraklat/sürdür (kayıt yapılmıyorken seçili mesajı sabitle/sabitlemeyi kaldır)</td></tr>
-<tr><td class="field-name">Ctrl+Shift+R</td><td>Cevapsız bir aramayı geri ara</td></tr>
+<tr><td class="field-name">Ctrl+Shift+R</td><td>Mesaja tepki ver; cevapsız bir aramada geri ara</td></tr>
 <tr><td class="field-name">Ctrl+Shift+H</td><td>Mikrofon ve bilgisayar sesini kaydet</td></tr>
 <tr><td class="field-name">Ctrl+Shift+Y</td><td>Gönderimi başarısız olan veya doğrulanmayan bir mesajda yeniden göndermeyi dene</td></tr>
 <tr><td class="field-name">Alt+Shift+B</td><td>Bir işletmeyle sohbette, işletmenin kataloğu ve sepeti</td></tr>
 <tr><td class="field-name">Ctrl+Shift+N</td><td>WhatsApp Business hesabında, sohbetteki kişi için sipariş oluştur</td></tr>
 <tr><td class="field-name">Delete</td><td>Mesajı veya sohbeti sil (seçim varsa seçili olanların tümünü)</td></tr>
-<tr><td class="field-name">Ctrl+C</td><td>Arama ayarları</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>Mesajı kopyala</td></tr>
 <tr><td class="field-name">Ctrl+Shift+C</td><td>Açıklamayı kopyala (fotoğraf/video/belge)</td></tr>
 <tr><td class="field-name">Alt+C</td><td>Mesaj metnini açılır pencerede göster</td></tr>
 <tr><td class="field-name">Alt+E</td><td>Mesajı düzenle</td></tr>
@@ -1133,7 +1134,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>Seçili mesajları Whisper ile bu bilgisayarda yazıya dök ve birlikte göster</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>Seçili mesajları Whisper ile bu bilgisayarda kendi satırlarına yazıya dök</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+Delete</td><td>Seçili mesajların kaydedilmiş yerel dökümlerini sil</td></tr>
-<tr><td class="field-name">Ctrl+Shift+Delete</td><td>Seçili sohbetleri sil</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Delete</td><td>Seçili mesajları sil</td></tr>
 <tr><td class="field-name">Ctrl+0 a 9</td><td>Odaklanılan mesaja yer işareti koy veya mevcut yer işaretine git</td></tr>
 <tr><td class="field-name">Ctrl+Shift+0 a 9</td><td>Yer işaretini kaldır</td></tr>
 <tr><td class="field-name">Alt+Shift+0 a 9</td><td>Odaklanılan mesaja geçici yer işareti koy veya mevcut geçici yer işaretine git (sohbetten ayrıldığınızda temizlenir)</td></tr>
@@ -1169,13 +1170,13 @@
 <tr><td class="field-name">Boşluk</td><td>Aç</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Bağlantıyı kopyala</td></tr>
 </table>
-<h3>Bahsetmeler</h3>
+<h3>Bu mesajdaki bahsetmeler</h3>
 <table class="field-table">
 <tr><th>Kısayol</th><th>İşlem</th></tr>
 <tr><td class="field-name">Enter</td><td>Aç</td></tr>
 <tr><td class="field-name">Boşluk</td><td>Aç</td></tr>
 </table>
-<h3>Otomatik tamamlama</h3>
+<h3>Bahsetme önerileri</h3>
 <table class="field-table">
 <tr><th>Kısayol</th><th>İşlem</th></tr>
 <tr><td class="field-name">Enter</td><td>Seçilen bahsetmeyi ekle</td></tr>
@@ -1212,7 +1213,7 @@
 <tr><th>Kısayol</th><th>İşlem</th></tr>
 <tr><td class="field-name">Ctrl+Sol Ok</td><td>Önceki durum</td></tr>
 <tr><td class="field-name">Ctrl+Sağ Ok</td><td>Sonraki durum</td></tr>
-<tr><td class="field-name">Esc</td><td>Sohbeti kapat. Mesajlar seçiliyken, Ayarlar &gt; Kullanıcı Arayüzü bölümünde seçenek etkinse ilk Esc yalnızca tüm seçimleri kaldırır ve yalnızca ikincisi sohbeti kapatır</td></tr>
+<tr><td class="field-name">Esc</td><td>Kapat</td></tr>
 <tr><td class="field-name">F5</td><td>Durumu yenile</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Durum metnini kopyala</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Sesli mesaj kaydet</td></tr>
@@ -1311,6 +1312,7 @@
 <p class="lead">Özellik getiren her yeni alpha kılavuza eklenir. Bu liste kılavuzun hangi alpha'ya kadar tam olduğunu ve her turda neyin eklendiğini gösterir.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Kılavuza girenler</th></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Kısayollar: F1, bahsetme önerilerini mesaj içindeki bahsetmelerden ayırır. İspanyolca ve Portekiz Portekizcesinde Alt+P mesaj alanına odaklanır; Alt+E mesajları düzenler.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Gruplar: biri yazarken duyuru artık yalnızca telefon numarasını değil kişinin adını kullanıyor.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Neonize: takip ettiğiniz kanalların gönderileri artık sohbet ve mesaj olarak görünmüyor.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Neonize aramaları: kimsenin açmadığı bir arama bir dakika sonra kendiliğinden sona erer.</td></tr>

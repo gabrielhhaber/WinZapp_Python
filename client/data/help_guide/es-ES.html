@@ -454,6 +454,7 @@
   <li><strong>Corrector ortográfico:</strong> suena un sonido propio cuando escribes mal una palabra, cuando escribes un signo de puntuación después de ella y cuando el cursor llega a una palabra con error. En el menú contextual del campo, el submenú "Ortografía" ofrece sugerencias del diccionario de Windows. En la configuración eliges seguir a Windows, siempre activado o siempre desactivado.</li>
   <li><strong>Menciones:</strong> escribe <code>@</code> para elegir a alguien (Intro inserta la mención, Esc cierra). En los grupos, <code>@all</code> también funciona.</li>
 </ul>
+<p>En F1, "Sugerencias de mención" corresponde a la lista que aparece al escribir @: Intro inserta la mención seleccionada y Esc cierra las sugerencias. "Menciones en este mensaje" corresponde a las personas mencionadas en un mensaje recibido o enviado: Intro o Espacio abre la mención seleccionada. Son contextos distintos, aunque compartan algunas teclas.</p>
 
 <h3>Leer los mensajes</h3>
 <table class="field-table">
@@ -1071,7 +1072,7 @@
 <table class="field-table">
 <tr><th>Atajo</th><th>Acción</th></tr>
 <tr><td class="field-name">Ctrl+Shift+I</td><td>Transcribir, describir o convertir el contenido del mensaje enfocado con IA en línea</td></tr>
-<tr><td class="field-name">Alt+E</td><td>Escribe un mensaje para</td></tr>
+<tr><td class="field-name">Alt+P</td><td>Escribe un mensaje para</td></tr>
 <tr><td class="field-name">Alt+M</td><td>Mensajes</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Grabar mensaje de voz</td></tr>
 <tr><td class="field-name">Alt+2</td><td>Ir al último mensaje</td></tr>
@@ -1084,13 +1085,13 @@
 <tr><td class="field-name">Alt+Shift+D</td><td>Datos del mensaje</td></tr>
 <tr><td class="field-name">Ctrl+Shift+E</td><td>Reenviar mensaje</td></tr>
 <tr><td class="field-name">Ctrl+Shift+P</td><td>Pausar/reanudar grabación (o fijar/desfijar el mensaje seleccionado, si no se está grabando)</td></tr>
-<tr><td class="field-name">Ctrl+Shift+R</td><td>Devolver una llamada perdida</td></tr>
+<tr><td class="field-name">Ctrl+Shift+R</td><td>Reaccionar al mensaje; en una llamada perdida, devolver la llamada</td></tr>
 <tr><td class="field-name">Ctrl+Shift+H</td><td>Grabar micrófono y audio del ordenador</td></tr>
 <tr><td class="field-name">Ctrl+Shift+Y</td><td>En un mensaje cuyo envío falló o no se confirmó, intentar enviarlo de nuevo</td></tr>
 <tr><td class="field-name">Alt+Shift+B</td><td>En un chat con una empresa, su catálogo y su carrito</td></tr>
 <tr><td class="field-name">Ctrl+Shift+N</td><td>En una cuenta de WhatsApp Business, crear un pedido para el contacto del chat</td></tr>
 <tr><td class="field-name">Supr</td><td>Eliminar el mensaje o el chat (o todos los seleccionados, si hay una selección)</td></tr>
-<tr><td class="field-name">Ctrl+C</td><td>Ajustes de la llamada</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>Copiar mensaje</td></tr>
 <tr><td class="field-name">Ctrl+Shift+C</td><td>Copiar leyenda (foto/vídeo/documento)</td></tr>
 <tr><td class="field-name">Alt+C</td><td>Mostrar texto del mensaje en popup</td></tr>
 <tr><td class="field-name">Alt+E</td><td>Editar mensaje</td></tr>
@@ -1133,7 +1134,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>Transcribir localmente con Whisper los mensajes seleccionados y mostrarlos juntos</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>Transcribir localmente con Whisper los mensajes seleccionados en sus líneas</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+Supr</td><td>Eliminar las transcripciones locales guardadas de los mensajes seleccionados</td></tr>
-<tr><td class="field-name">Ctrl+Shift+Supr</td><td>Eliminar los chats seleccionados</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Supr</td><td>Eliminar los mensajes seleccionados</td></tr>
 <tr><td class="field-name">Ctrl+0 a 9</td><td>Marcar el mensaje enfocado, o ir a un marcador ya creado</td></tr>
 <tr><td class="field-name">Ctrl+Shift+0 a 9</td><td>Eliminar un marcador</td></tr>
 <tr><td class="field-name">Alt+Shift+0 a 9</td><td>Marcar temporalmente el mensaje enfocado, o ir a un marcador temporal ya creado (se borran al salir del chat)</td></tr>
@@ -1169,13 +1170,13 @@
 <tr><td class="field-name">Espacio</td><td>Abrir</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Copiar enlace</td></tr>
 </table>
-<h3>Menciones</h3>
+<h3>Menciones en este mensaje</h3>
 <table class="field-table">
 <tr><th>Atajo</th><th>Acción</th></tr>
 <tr><td class="field-name">Intro</td><td>Abrir</td></tr>
 <tr><td class="field-name">Espacio</td><td>Abrir</td></tr>
 </table>
-<h3>Autocompletar</h3>
+<h3>Sugerencias de mención</h3>
 <table class="field-table">
 <tr><th>Atajo</th><th>Acción</th></tr>
 <tr><td class="field-name">Intro</td><td>Insertar la mención seleccionada</td></tr>
@@ -1212,7 +1213,7 @@
 <tr><th>Atajo</th><th>Acción</th></tr>
 <tr><td class="field-name">Ctrl+Flecha izquierda</td><td>Estado anterior</td></tr>
 <tr><td class="field-name">Ctrl+Flecha derecha</td><td>Siguiente estado</td></tr>
-<tr><td class="field-name">Esc</td><td>Cerrar chat. Con mensajes marcados, el primer Esc solo los desmarca todos y únicamente el segundo cierra el chat, si la opción está activada en Configuración, Interfaz de usuario</td></tr>
+<tr><td class="field-name">Esc</td><td>Cerrar</td></tr>
 <tr><td class="field-name">F5</td><td>Actualizar estados</td></tr>
 <tr><td class="field-name">Ctrl+C</td><td>Copiar texto del estado</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Grabar mensaje de voz</td></tr>
@@ -1311,6 +1312,7 @@
 <p class="lead">Cada alpha nueva que trae funciones se añade a la guía. Esta lista muestra hasta qué alpha está completa la guía y qué se añadió en cada ronda.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Qué entró en la guía</th></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Atajos: F1 distingue las sugerencias de mención de las menciones dentro de un mensaje. En español y portugués de Portugal, Alt+P enfoca el campo de escritura y Alt+E edita mensajes.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Grupos: cuando alguien está escribiendo, el aviso ahora usa su nombre en lugar de solo su número de teléfono.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Neonize: las publicaciones de los canales que sigues ya no aparecen como chats ni mensajes.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Llamadas de Neonize: una llamada que nadie contesta termina sola al cabo de un minuto.</td></tr>
