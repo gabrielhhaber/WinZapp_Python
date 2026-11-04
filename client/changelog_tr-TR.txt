@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Aramalar: artık aramanın katılımcı listesindeki "Katılımcı ekle" düğmesiyle devam eden aramaya kişi ekleyebilirsiniz. Grup aramasında grubun henüz aramada olmayan üyeleri, özel aramada ise kişileriniz görünür ve arama, WhatsApp'ta olduğu gibi birkaç kişilik bir aramaya dönüşür. Daha önce aranıp henüz katılmamış kişi yeniden aranır. WPPConnect ve Neonize ile çalışır.
+
 - WPPConnect Server 2.10.75 sürümüne güncellendi; kimlik doğrulaması olmadan istek kabul eden bir Chatwoot webhook'unu düzeltir ve glob ile minimatch kütüphanelerindeki bir güvenlik açığını yamalar.
 
 - WhatsApp ayarları > Gizlilik: WhatsApp'ın kendi seçeneği olan yeni "Sohbetleri arşivde tut", yeni mesaj geldiğinde arşivlenmiş sohbetin listeye dönüp dönmeyeceğini belirler. WPPConnect ve Neonize ile çalışır.
