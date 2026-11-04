@@ -24,7 +24,13 @@ NOVIDADES
 
 - Neonize: as mensagens para a Meta AI funcionam. O WinZapp pede para aceitar os termos da Meta AI quando a conta ainda não os aceitou, e as respostas da Meta AI aparecem como texto em vez de uma mensagem desconhecida.
 
-- Neonize: status de vídeo e de voz não falham mais com "server returned error 400" em algumas contas.
+- Neonize: postar status (texto, imagem, vídeo ou voz) não falha mais com "server returned error 400". Acontecia em conversas temporárias e, em qualquer conta, depois que o celular sincronizava um contato salvo pelo novo identificador do WhatsApp.
+
+- Neonize: o WinZapp agora pede ao celular as mensagens mais antigas de uma conversa, como o WhatsApp Web faz ao clicar para ver mensagens anteriores. Antes, uma conversa tinha só o que veio ao conectar o aparelho, e ressincronizar não trazia mais nada.
+
+- Uma mensagem que o WinZapp já conhece não vira mais "Aguardando mensagem". Ao trocar do Neonize para a WPPConnect, uma mensagem que você acabou de enviar podia aparecer assim, mesmo depois de F5 ou de reabrir o WinZapp.
+
+- Menções: digitar um emoji na lista de sugestões de menção não quebra mais o envio. Antes, a mensagem podia não sair, com um erro do servidor.
 
 - Grupos: em um grupo em que só administradores podem enviar mensagens, o campo de mensagem agora fica somente leitura para os membros também no Neonize; antes, ele continuava editável na maioria desses grupos.
 

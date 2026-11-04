@@ -24,7 +24,13 @@ YENİLİKLER
 
 - Neonize: Meta AI'ya mesajlar çalışıyor. Hesap Meta AI koşullarını henüz kabul etmediyse WinZapp kabul etmenizi ister ve Meta AI'nın yanıtları bilinmeyen bir mesaj yerine metin olarak gösterilir.
 
-- Neonize: video ve sesli durumlar bazı hesaplarda artık "server returned error 400" hatasıyla başarısız olmuyor.
+- Neonize: durum paylaşmak (metin, resim, video veya ses) artık "server returned error 400" hatasıyla başarısız olmuyor. Bu, süreli mesaj içeren sohbetlerde ve herhangi bir hesapta telefon, WhatsApp'ın yeni kimliğiyle kaydedilmiş bir kişiyi eşitledikten sonra oluyordu.
+
+- Neonize: WinZapp artık bir sohbetin eski mesajlarını, WhatsApp Web'in önceki mesajları görmek için tıklandığında yaptığı gibi telefondan istiyor. Önceden bir sohbette yalnızca cihaz bağlandığında gelenler vardı ve yeniden eşitleme başka bir şey getirmiyordu.
+
+- WinZapp'ın zaten bildiği bir mesaj artık "Bu mesaj bekleniyor" durumuna dönmüyor. Neonize'den WPPConnect'e geçerken, yeni gönderdiğiniz bir mesaj F5'ten veya WinZapp'ı yeniden açtıktan sonra bile böyle görünebiliyordu.
+
+- Bahsetmeler: bahsetme öneri listesinde emoji yazmak artık gönderimi bozmuyor. Önceden mesaj bir sunucu hatasıyla gönderilemeyebiliyordu.
 
 - Gruplar: yalnızca yöneticilerin mesaj gönderebildiği bir grupta mesaj alanı artık Neonize'da da üyeler için salt okunurdur; önceden bu grupların çoğunda düzenlenebilir kalıyordu.
 
