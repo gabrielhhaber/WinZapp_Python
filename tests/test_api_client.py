@@ -517,3 +517,27 @@ class TestItStaysOutOfTheCallersWay:
         assert kwargs["json"] == {"a": 1}
         assert kwargs["stream"] is True
         assert kwargs["timeout"] == 30
+
+
+class TestAnEmojiSplitInHalvesIsJoinedBeforeItLeaves:
+    """A wx char handler can put an emoji into a field as two loose UTF-16
+    halves; the Neonize bridge then answered 500 to send-mentioned
+    ("surrogates not allowed") and the message never left."""
+
+    def test_the_json_body_reaches_the_server_whole(self):
+        session = _Session()
+        payload = {"phone": ["123@g.us"], "message": "oi 💻", "mentioned": ["1@lid"]}
+
+        api_request("POST", URL, json=payload, session=session)
+
+        sent = session.calls[0][2]["json"]
+        assert sent["message"] == "oi \U0001F4BB"
+        assert sent["mentioned"] == ["1@lid"]
+
+    def test_a_body_with_nothing_to_repair_is_sent_as_is(self):
+        session = _Session()
+        payload = {"message": "plain"}
+
+        api_request("POST", URL, json=payload, session=session)
+
+        assert session.calls[0][2]["json"] is payload

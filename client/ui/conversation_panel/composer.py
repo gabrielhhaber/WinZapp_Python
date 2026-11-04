@@ -13,6 +13,7 @@ from ui.shortcut_bindings import command_key_event
 from ui.conversation_panel.call_capabilities import can_place_call, can_relocate_call_focus
 from core.call_logic import MAX_GROUP_CALL_PARTICIPANTS, group_too_large_for_call
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
+from core.text_surrogates import SurrogateJoiner
 from core.attachment_types import DEFAULT_PASTED_AUDIO_AS, pasted_attachment_media_type
 from core.link_preview import (
     fetch_link_preview,
@@ -756,7 +757,13 @@ class ComposerMixin:
         if uc == wx.WXK_NONE or uc < 32:
             event.Skip()
             return
-        ch = chr(uc)
+        # An emoji arrives as two events, one per UTF-16 half; inserting each
+        # half on its own left loose surrogates that a later slice split and
+        # the send could not encode (core/text_surrogates.py).
+        joiner = self.__dict__.setdefault("_mention_char_joiner", SurrogateJoiner())
+        ch = joiner.feed(uc)
+        if not ch:
+            return
         pos = self.message_field.GetInsertionPoint()
         text = self.message_field.GetValue()
         self.message_field.ChangeValue(text[:pos] + ch + text[pos:])

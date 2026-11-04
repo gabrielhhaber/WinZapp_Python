@@ -1975,7 +1975,7 @@ def create_app(folder, fixed=""):
             destination = build_jid(u, srv)
         else:
             destination = build_jid(phone)
-        content = body["message"]
+        content = inputs.whole_text(body["message"])
         preview = msgmap.link_preview(body.get("options"))
         if preview:      # the link card the client already built
             from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import ExtendedTextMessage, Message
@@ -2212,6 +2212,7 @@ def create_app(folder, fixed=""):
     def send_media_message(s, destination, kind, file, caption, name, mime, ptt, ctx=None,
                            client=None):
         c = s.client if client is None else client
+        caption = inputs.whole_text(caption)
         # audio and video: not neonize's build_*_message, which need ffprobe
         # (WinZapp does not ship it)
         if kind in ("audio", "video"):
@@ -2336,7 +2337,7 @@ def create_app(folder, fixed=""):
         from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import ExtendedTextMessage, Message
         options = body.get("options") or {}
         return s.client.send_message(destination, Message(extendedTextMessage=ExtendedTextMessage(
-            text=body["text"], textArgb=0xFFFFFFFF,
+            text=inputs.whole_text(body["text"]), textArgb=0xFFFFFFFF,
             backgroundArgb=msgmap.argb_color(options.get("backgroundColor")),
             font=int(options.get("font") or 0))))
 
@@ -2544,7 +2545,7 @@ def create_app(folder, fixed=""):
         if with_mentions:
             ctx.mentionedJID.extend(msgmap.jid_whatsmeow(j) for j in body.get("mentioned", []))
         message = Message(extendedTextMessage=ExtendedTextMessage(
-            text=body["message"], contextInfo=ctx,
+            text=inputs.whole_text(body["message"]), contextInfo=ctx,
             **(msgmap.link_preview(body.get("options")) or {})))
         try:
             resp = await asyncio.get_running_loop().run_in_executor(
