@@ -9,6 +9,7 @@ import os
 import tempfile
 import threading
 import wx
+from ui.conversation_panel.channel_conversation import refuse_in_channel
 from ui.shortcut_bindings import command_key_event
 from ui.conversation_panel.call_capabilities import can_place_call, can_relocate_call_focus
 from core.call_logic import MAX_GROUP_CALL_PARTICIPANTS, group_too_large_for_call
@@ -249,6 +250,8 @@ class ComposerMixin:
     def _schedule_link_preview_check(self):
         """Debounce URL detection: re-checked shortly after typing pauses,
         not on every keystroke — a preview fetch is a real HTTP request."""
+        if (getattr(self, "conversation", None) or {}).get("remoteJid", "").endswith("@newsletter"):
+            return      # a channel update carries no link card (sending.py)
         if self._link_preview_debounce_timer is not None:
             self._link_preview_debounce_timer.Stop()
         self._link_preview_debounce_timer = wx.CallLater(
@@ -681,6 +684,8 @@ class ComposerMixin:
         wx.TheClipboard.Open() calls fail). Returns True when it staged
         something, so the caller must not also run the native/text paste.
         """
+        if refuse_in_channel(self):
+            return True       # consumed: nothing is pasted as a file
         if self.conversation is None:
             return False
 

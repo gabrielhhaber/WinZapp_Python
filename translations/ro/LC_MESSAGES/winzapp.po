@@ -2949,6 +2949,12 @@ msgstr "Administratori: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admins_owner_only"
+msgid "Only the channel's owner invites admins."
+msgstr "Doar proprietarul canalului invită administratori."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
 #, python-brace-format
 msgctxt "channel_admins_title"
 msgid "Admins of {name}"
@@ -3001,6 +3007,16 @@ msgstr "Doar proprietarul și administratorii canalului pot fixa actualizări."
 msgctxt "channel_read_only"
 msgid "This channel is read-only"
 msgstr "Acest canal este doar pentru citire"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/channel_conversation.py
+msgctxt "channel_text_only"
+msgid ""
+"In a channel WinZapp posts text only: no replies, files, polls, contacts or "
+"voice notes."
+msgstr ""
+"Într-un canal WinZapp publică doar text: fără răspunsuri, fișiere, sondaje, "
+"contacte sau mesaje vocale."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_unfollow_failed"

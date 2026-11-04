@@ -124,3 +124,54 @@ def test_only_an_admin_posts_from_the_field():
     follower.on_send_message(None)
     admin.on_send_message(None)
     assert follower.sent == [] and admin.sent == [("Novidade", CHANNEL)]
+
+
+class GuardPanel(Panel):
+    from ui.conversation_panel.composer import ComposerMixin
+    from ui.conversation_panel.voice_recording import VoiceRecordingMixin
+    _paste_clipboard_as_attachment = ComposerMixin._paste_clipboard_as_attachment
+    _start_voice_recording = VoiceRecordingMixin._start_voice_recording
+
+    def __init__(self, jid=CHANNEL):
+        super().__init__("admin")
+        self.conversation["remoteJid"] = jid
+        self.said = []
+        self.main_window.output = self.said.append
+        self.main_window.i18n = SimpleNamespace(t=lambda key: key)
+
+
+def test_a_file_paste_or_a_voice_note_in_a_channel_is_refused_with_the_reason():
+    panel = GuardPanel()
+    assert panel._paste_clipboard_as_attachment() is True     # consumed, nothing staged
+    assert panel._start_voice_recording() is None
+    assert panel.said == ["channel_text_only", "channel_text_only"]
+    from ui.conversation_panel.channel_conversation import refuse_in_channel
+    assert refuse_in_channel(GuardPanel("5511999998888@s.whatsapp.net")) is False
+
+
+class ReadPanel(Panel):
+    from ui.conversation_panel.pinned_messages import PinnedMessagesMixin
+    _load_pinned_messages = PinnedMessagesMixin._load_pinned_messages
+
+    def _finish_channel_pins_read(self, *args):
+        pass
+
+    def __init__(self):
+        super().__init__()
+        self._pinned_writes, self._pinned_visit = set(), object()
+        self.submitted = []
+        self.main_window._msg_bg_executor = SimpleNamespace(submit=self.submitted.append)
+        self.main_window.get_pinned_messages = lambda jid: (_ for _ in ()).throw(AssertionError)
+
+
+def test_opening_a_channel_reads_the_channel_itself_for_its_role_and_pins(monkeypatch):
+    # navigate_to_conversation() calls _load_pinned_messages on every open.
+    panel = ReadPanel()
+    asked = []
+    monkeypatch.setattr(panel, "_read_channel_state", lambda jid: asked.append(jid) or None, raising=False)
+    import wx
+    monkeypatch.setattr(wx, "CallAfter", lambda *a, **k: None)
+    panel._load_pinned_messages()
+    (read,) = panel.submitted
+    read()
+    assert asked == [CHANNEL]

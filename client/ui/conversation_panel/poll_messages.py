@@ -10,6 +10,7 @@ import time
 import uuid
 
 import wx
+from ui.conversation_panel.channel_conversation import refuse_in_channel
 
 from core.message_queue import PendingMessage
 from core.polls import POLL_MESSAGE_TYPES, apply_vote_result, poll_content
@@ -20,6 +21,8 @@ class PollMessagesMixin:
     """Sending polls and showing a poll's options."""
 
     def _on_attach_poll(self, event=None):
+        if refuse_in_channel(self):
+            return
         from ui.dialogs.new_poll_dialog import NewPollDialog
 
         remote_jid = (self.conversation or {}).get("remoteJid", "")

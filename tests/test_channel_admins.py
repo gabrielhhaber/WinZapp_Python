@@ -62,3 +62,52 @@ def test_the_invitee_is_named_by_lid_when_the_window_knows_it():
     assert stub._target({"remoteJid": "5511999998888@s.whatsapp.net"}) == "777@lid"
     assert stub._target({"remoteJid": "5511000001111@s.whatsapp.net"}) == "5511000001111@c.us"
     assert stub._target(None) == ""
+
+
+class CountStub:
+    _finish_count = ChannelAdminsDialog._finish_count
+
+    def __init__(self, role):
+        self._channel = channel(role)
+        self._i18n = SimpleNamespace(t=lambda key: key)
+        self.said = []
+
+    def _announce(self, text):
+        self.said.append(text)
+
+    def Layout(self):
+        pass
+
+
+def test_the_count_is_spoken_and_an_admin_hears_who_invites():
+    owner, admin = CountStub("owner"), CountStub("admin")
+    owner._finish_count(3)
+    admin._finish_count(None)
+    assert owner.said == ["channel_admins_count"]
+    assert admin.said == ["channel_admins_unavailable channel_admins_owner_only"]
+
+
+class BusyStub:
+    from ui.dialogs.channels import ChannelsDialog
+    _refused_while_busy = ChannelsDialog._refused_while_busy
+    _on_delete = ChannelsDialog._on_delete
+
+    def __init__(self):
+        self._busy = True
+        self._i18n = SimpleNamespace(t=lambda key: key)
+        self.said = []
+
+    def _mine_version(self, selected):
+        return channel("owner")
+
+    def _selected(self):
+        return channel("owner")
+
+    def _announce(self, text):
+        self.said.append(text)
+
+
+def test_delete_while_busy_is_refused_before_asking():
+    stub = BusyStub()
+    stub._on_delete()          # no confirmation dialog is built: it would raise here
+    assert stub.said == ["loading"]

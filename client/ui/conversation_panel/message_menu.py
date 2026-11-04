@@ -13,6 +13,7 @@ import pyperclip
 import tempfile
 import threading
 import wx
+from ui.conversation_panel.channel_conversation import refuse_in_channel
 from core.quote_recovery import RECOVERED_FROM_QUOTE
 from core.message_resend import resend_request
 from core.reply_failure import is_missing_quote_failure
@@ -283,8 +284,8 @@ class MessageMenuMixin:
             order_item = menu.Append(wx.ID_ANY, i18n.t("commerce_view_order"))
             self.Bind(wx.EVT_MENU, lambda e, m=msg: self._show_order(m), order_item)
 
-        # Reply (Alt+R)
-        if not is_call:
+        # Reply (Alt+R): never in a channel, where an update quotes nothing
+        if not is_call and not (self.conversation or {}).get("remoteJid", "").endswith("@newsletter"):
             reply_item = menu.Append(wx.ID_ANY, f"{i18n.t('reply_message')}\tAlt+R")
             self.Bind(
                 wx.EVT_MENU,
@@ -678,6 +679,8 @@ class MessageMenuMixin:
 
     def _on_menu_reply(self, msg: dict):
         """Enter reply mode: change field label, store quoted message, focus field."""
+        if refuse_in_channel(self):
+            return
         if is_call_log(msg):
             self._reject_system_event_action(msg)
             return

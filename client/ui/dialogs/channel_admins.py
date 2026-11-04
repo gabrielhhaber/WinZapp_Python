@@ -68,9 +68,13 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         i18n = self._i18n
         if count is None:
             logging.warning("[channel-admins] count unavailable")
-            self._status.SetLabel(i18n.t("channel_admins_unavailable"))
+            text = i18n.t("channel_admins_unavailable")
         else:
-            self._status.SetLabel(i18n.t("channel_admins_count").format(count=count))
+            text = i18n.t("channel_admins_count").format(count=count)
+        if not self._channel.owner:
+            # The two buttons are off for an admin: say why, once.
+            text = f"{text} {i18n.t('channel_admins_owner_only')}"
+        self._announce(text)
         self.Layout()
 
     def _pick(self, title_key, ok_key):

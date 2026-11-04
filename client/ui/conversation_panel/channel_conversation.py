@@ -28,6 +28,18 @@ def remember_channel_roles(main_window, channels):
             roles[channel.jid] = channel.role
 
 
+def refuse_in_channel(panel) -> bool:
+    """True (and says why) when *panel*'s open conversation is a channel:
+    WinZapp posts text only there, with no reply, file, poll, contact or voice
+    note, so every entry to those stops here, keys included."""
+    conversation = getattr(panel, "conversation", None)
+    jid = conversation.get("remoteJid", "") if isinstance(conversation, dict) else ""
+    if not is_channel(jid):
+        return False
+    panel.main_window.output(panel.main_window.i18n.t("channel_text_only"))
+    return True
+
+
 class ChannelConversationMixin:
     def _channel_role(self, jid) -> str:
         return getattr(self.main_window, "_channel_roles", {}).get(jid, "")

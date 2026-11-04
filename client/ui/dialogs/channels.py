@@ -207,6 +207,14 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return None
         return next((c for c in self._mine if c.jid == channel.jid), channel)
 
+    def _refused_while_busy(self) -> bool:
+        """True (and says so) while an answer is awaited: a window that asks
+        something first must refuse before asking, not after the Yes."""
+        if not self._busy:
+            return False
+        self._announce(self._i18n.t("loading"))
+        return True
+
     def _set_busy(self, busy):
         self._busy = busy
         self._update_buttons()
@@ -413,7 +421,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             self._announce(self._i18n.t("channels_link_copied"))
 
     def _on_by_link(self, event=None):
-        if self._busy or not self._current():
+        if self._refused_while_busy() or not self._current():
             return
         i18n = self._i18n
         with wx.TextEntryDialog(self, i18n.t("channels_link_prompt"), i18n.t("channels_title")) as ask:
@@ -444,7 +452,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             name=channel.name or self._i18n.t("channels_unnamed")))
 
     def _on_create(self, event=None):
-        if self._busy or not self._current():
+        if self._refused_while_busy() or not self._current():
             return
         i18n = self._i18n
         with ChannelEditDialog(self, i18n, i18n.t("channels_create_title")) as dialog:
@@ -460,7 +468,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
 
     def _on_edit(self, event=None):
         channel = self._mine_version(self._selected())
-        if channel is None or not channel.admin:
+        if channel is None or not channel.admin or self._refused_while_busy():
             return
         i18n = self._i18n
         with ChannelEditDialog(self, i18n, i18n.t("channels_edit_title"), channel.name,
@@ -477,7 +485,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
 
     def _on_admins(self, event=None):
         channel = self._mine_version(self._selected())
-        if channel is None or not channel.admin or not self._current():
+        if channel is None or not channel.admin or self._refused_while_busy() or not self._current():
             return
         from ui.dialogs.channel_admins import ChannelAdminsDialog
         dialog = ChannelAdminsDialog(self, self._mw, channel)
@@ -488,7 +496,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
 
     def _on_delete(self, event=None):
         channel = self._mine_version(self._selected())
-        if channel is None or not channel.owner:
+        if channel is None or not channel.owner or self._refused_while_busy():
             return
         i18n = self._i18n
         text = i18n.t("channels_delete_confirm").format(
