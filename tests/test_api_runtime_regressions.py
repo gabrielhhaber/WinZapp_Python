@@ -225,3 +225,16 @@ def test_server_2_10_71_security_bootstrap_is_ported_into_the_restored_files():
     )
     assert "test/jest-setup.cjs" in _patch("jest.config.js")
     assert "vendor/" in _patch(".prettierignore")
+
+
+def test_server_2_10_75_chatwoot_authentication_is_ported_into_the_restored_files():
+    """routes/index.ts and deviceController.ts are restored over the checkout,
+    so upstream's 2.10.75 authentication of the Chatwoot webhook only reaches
+    WinZapp when it is carried into api_patches/."""
+    routes = _patch("src/routes/index.ts")
+    assert "routes.post('/api/:session/chatwoot', verifyToken, DeviceController.chatWoot)" in routes
+
+    controller = _patch("src/controller/deviceController.ts")
+    assert "const client: any = req.client;" in controller
+    assert "Session is not connected" in controller
+    assert "clientsArray" not in controller

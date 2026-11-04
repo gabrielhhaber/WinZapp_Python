@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "eb10905977f8": "O WPPConnect Server foi atualizado para a 2.10.75, que corrige um webhook do Cha",
     "0431981be75e": "Configurações do WhatsApp > Privacidade: nova opção \"Manter conversas arquivadas",
     "a75982671620": "Neonize: com a opção do WhatsApp \"Manter conversas arquivadas\" desligada, uma co",
     "d07de5dced9a": "Mensagens de voz: no Automático, uma gravação em que a entrada esquerda ou direi",
@@ -15,6 +16,7 @@
     "434f35f773bb": "Neonize: as mensagens para a Meta AI funcionam. O WinZapp pede para aceitar os t",
     "921b24fd10a2": "Neonize: status de vídeo e de voz não falham mais com \"server returned error 400",
     "8d250fe7418c": "Grupos: em um grupo em que só administradores podem enviar mensagens, o campo de",
+    "892657a9c00a": "Atalhos de teclado: a lista F1 corrige os nomes das ações, remove linhas repetid",
     "0c3410e4fc5e": "Mensagens de voz: Configurações > Áudio agora oferece gravação Automática, Mono ",
     "4ab1883be4d9": "Corrigido: o servidor do WPPConnect não deixa mais de iniciar com \"Cannot find m",
     "6c8979d0440e": "Neonize: se a internet cai no meio de uma ligação, você ainda consegue desligar;",
@@ -132,7 +134,6 @@
     "81223f165728": "Espanhol: a tradução agora usa \"chat/chats\" de forma consistente, em vez de mist",
     "b5ca2fa49afb": "WPPConnect: enquanto o WhatsApp Web ainda sincroniza um histórico longo, o WinZa",
     "4cef19647dba": "WPPConnect: um catálogo incompleto de versões do WhatsApp Web é reparado quando ",
-    "885017195d90": "Árabe: o guia de uso (Ajuda > Guia de uso) agora está completo em árabe.",
-    "892657a9c00a": "Atalhos de teclado: a lista F1 corrige os nomes das ações, remove linhas repetid"
+    "885017195d90": "Árabe: o guia de uso (Ajuda > Guia de uso) agora está completo em árabe."
   }
 }

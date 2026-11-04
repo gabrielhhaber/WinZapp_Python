@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WPPConnect Server 2.10.75 sürümüne güncellendi; kimlik doğrulaması olmadan istek kabul eden bir Chatwoot webhook'unu düzeltir ve glob ile minimatch kütüphanelerindeki bir güvenlik açığını yamalar.
+
 - WhatsApp ayarları > Gizlilik: WhatsApp'ın kendi seçeneği olan yeni "Sohbetleri arşivde tut", yeni mesaj geldiğinde arşivlenmiş sohbetin listeye dönüp dönmeyeceğini belirler. WPPConnect ve Neonize ile çalışır.
 
 - Neonize: WhatsApp'ın "Sohbetleri arşivde tut" seçeneği kapalıyken yeni mesaj alan arşivlenmiş bir sohbet artık telefonda olduğu gibi sohbet listesine geri döner; önceden Arşivlenmiş bölümünde kalıyordu.
