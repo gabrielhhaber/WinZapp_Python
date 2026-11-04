@@ -173,10 +173,11 @@ jobs:
           go test -p 1 -count=1 -run 'Test(PCM48|NegotiatedCall|OpusCall|LateCallCodec|AudioReorder|OpusTimestamp|ReceiveAudio|ConfigureCodec|Participant|AudioPlayout|MediaPipeline)' .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Pop-Location
-          # whatsmeow patch 0010: the status recipients go by number (a LID among
-          # them made the server refuse every status with 400)
+          # whatsmeow patches 0010 (the status recipients go by number: a LID
+          # among them made the server refuse every status with 400) and 0011
+          # (a channel update this account posted says so)
           Push-Location neonize_bridge/neonize_build/whatsmeow
-          go test -p 1 -count=1 -run 'Test(StatusRecipients|ABlacklistedContactStoredUnderItsLID)' .
+          go test -p 1 -count=1 -run 'Test(StatusRecipients|ABlacklistedContactStoredUnderItsLID|NewsletterUpdatePostedByThisAccountSaysSo)' .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Pop-Location
 
