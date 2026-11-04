@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- WPPConnect Server actualizado a la 2.10.75, que corrige un webhook de Chatwoot que aceptaba solicitudes sin autenticación y parchea una vulnerabilidad en las bibliotecas glob y minimatch.
+
 - Configuración de WhatsApp > Privacidad: nueva opción "Mantener chats archivados", la misma de WhatsApp, que decide si un chat archivado vuelve a la lista cuando llega un mensaje nuevo. Funciona con WPPConnect y con Neonize.
 
 - Neonize: con la opción de WhatsApp "Mantener chats archivados" desactivada, un chat archivado que recibe un mensaje nuevo ahora vuelve a la lista de chats, como en el teléfono; antes seguía en Archivados.

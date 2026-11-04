@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- WPPConnect Server zaktualizowany do 2.10.75, która naprawia webhook Chatwoot przyjmujący żądania bez uwierzytelnienia i łata podatność w bibliotekach glob i minimatch.
+
 - Ustawienia WhatsApp > Prywatność: nowa opcja "Zachowaj czaty zarchiwizowane", ta sama co w WhatsApp, która decyduje, czy zarchiwizowany czat wraca na listę po nadejściu nowej wiadomości. Działa z WPPConnect i z Neonize.
 
 - Neonize: gdy opcja WhatsApp "Zachowaj czaty zarchiwizowane" jest wyłączona, zarchiwizowany czat, który dostaje nową wiadomość, wraca teraz na listę czatów, tak jak na telefonie; wcześniej zostawał w archiwum.
