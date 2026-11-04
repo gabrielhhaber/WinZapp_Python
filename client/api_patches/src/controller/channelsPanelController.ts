@@ -96,7 +96,9 @@ async function answer(req: Request, res: Response, request: any, code = 'channel
     }
     return res.status(200).json({ status: 'success', response: result });
   } catch (_) {
-    // Never the native error: it can carry channel names and ids.
+    // Never the native error: it can carry channel names and ids. A fixed
+    // line, so wppconnect.log shows which read failed.
+    (req as any).logger?.warn?.(`channels ${String(request?.kind)} failed`);
     return res.status(503).json({ status: 'error', code });
   }
 }
