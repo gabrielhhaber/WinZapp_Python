@@ -903,6 +903,8 @@ routes.post('/api/:session/call/participants', verifyToken, statusConnection,
   CallController.callParticipants);
 routes.post('/api/:session/call/group/join', verifyToken, statusConnection,
   CallController.joinGroupCall);
+routes.post('/api/:session/call/add-participants', verifyToken, statusConnection,
+  CallController.addCallParticipants);
 
 // Catalog
 routes.get(

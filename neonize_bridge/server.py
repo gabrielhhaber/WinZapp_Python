@@ -53,6 +53,7 @@ import groups
 import groups_extra
 import history_progress
 import older_history
+import call_invites
 import cleanup
 import msgmap
 import pairing
@@ -2533,6 +2534,7 @@ def create_app(folder, fixed=""):
     cleanup.register_routes(r, ok=ok, state=state, folder=folder, mark_active=mark_active)
     calls.register_routes(r, session=session, ok=ok)
     ongoing_calls.register_routes(r, session=session, ok=ok)
+    call_invites.register_routes(r, session=session, ok=ok)
     presence.register_routes(r, session=session, ok=ok)
     labels.register_routes(r, session=session, ok=ok, jid_from_text=jid_from_text,
                            jid_text=jid_text)

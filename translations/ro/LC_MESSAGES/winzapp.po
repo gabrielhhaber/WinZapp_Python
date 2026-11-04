@@ -2407,6 +2407,76 @@ msgstr ""
 "Tasta rapidă globală pentru a respinge un apel primit sau a încheia apelul "
 "în curs"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_add_button"
+msgid "&Add"
+msgstr "&Adăugați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+#, python-brace-format
+msgctxt "call_invite_count"
+msgid "People you can add: {count}"
+msgstr "Persoane pe care le puteți adăuga: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#: client/ui/dialogs/call_invite.py
+msgctxt "call_invite_failed"
+msgid "Participants could not be added right now."
+msgstr "Participanții nu pot fi adăugați acum."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#, python-brace-format
+msgctxt "call_invite_failed_people"
+msgid "Could not add: {names}."
+msgstr "Nu s-a putut adăuga: {names}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_list"
+msgid "Group members not in the call"
+msgstr "Membrii grupului care nu sunt în apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_list_contacts"
+msgid "Contacts not in the call"
+msgstr "Contacte care nu sunt în apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_none"
+msgid "Every member of the group is already in the call."
+msgstr "Toți membrii grupului sunt deja în apel."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_none_contacts"
+msgid "There is no contact to add."
+msgstr "Nu există niciun contact de adăugat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_nothing_selected"
+msgid "Check at least one person."
+msgstr "Bifați cel puțin o persoană."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_sending"
+msgid "Adding participants..."
+msgstr "Se adaugă participanții..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#, python-brace-format
+msgctxt "call_invite_sent"
+msgid "Invited to the call: {count}."
+msgstr "Invitați la apel: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_title"
+msgid "Add participants to the call"
+msgstr "Adăugați participanți la apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+#, python-brace-format
+msgctxt "call_invite_too_many"
+msgid "Too many people checked. Room left in the call: {count}"
+msgstr "Prea multe persoane bifate. Locuri libere în apel: {count}"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_messages.py
 msgctxt "call_log_action_unavailable"
@@ -2517,6 +2587,12 @@ msgstr "Apel video"
 msgctxt "call_log_unknown_voice"
 msgid "Voice call"
 msgstr "Apel vocal"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/call_participants.py
+msgctxt "call_participants_add"
+msgid "&Add participants"
+msgstr "&Adăugați participanți"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/main_window/shortcuts.py client/ui/ongoing_calls.py
@@ -2707,7 +2783,7 @@ msgstr "&Setări video pentru apeluri"
 #: client/ui/conversation_panel/reactions.py
 #: client/ui/dialogs/add_member_dialog.py
 #: client/ui/dialogs/ai_result_dialog.py
-#: client/ui/dialogs/attach_contact_dialog.py
+#: client/ui/dialogs/attach_contact_dialog.py client/ui/dialogs/call_invite.py
 #: client/ui/dialogs/community_create.py client/ui/dialogs/emoji_picker.py
 #: client/ui/dialogs/meta_ai_terms.py client/ui/dialogs/new_contact.py
 #: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
@@ -7047,8 +7123,8 @@ msgid "list selection"
 msgstr "selectare din listă"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/calls_panel.py
-#: client/ui/dialogs/call_participants.py client/ui/dialogs/cart_dialog.py
-#: client/ui/dialogs/community_comments.py
+#: client/ui/dialogs/call_invite.py client/ui/dialogs/call_participants.py
+#: client/ui/dialogs/cart_dialog.py client/ui/dialogs/community_comments.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/order_update_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py client/ui/ongoing_calls.py
@@ -16448,15 +16524,16 @@ msgstr ""
 "{app_name} a întâmpinat o eroare neașteptată și nu a putut finaliza "
 "operațiunea."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_participants.py
-#: client/core/notification_manager.py client/core/polls.py
-#: client/main_window/calls.py client/main_window/chat_list.py
-#: client/main_window/chats_store.py client/main_window/groups.py
-#: client/main_window/shortcuts.py client/status_tab/status_rules.py
-#: client/ui/conversation_panel/commerce.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#: client/core/call_participants.py client/core/notification_manager.py
+#: client/core/polls.py client/main_window/calls.py
+#: client/main_window/chat_list.py client/main_window/chats_store.py
+#: client/main_window/groups.py client/main_window/shortcuts.py
+#: client/status_tab/status_rules.py client/ui/conversation_panel/commerce.py
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py
+#: client/ui/dialogs/call_invite.py
 #: client/ui/dialogs/status_audience_dialog.py
 msgctxt "unknown_contact"
 msgid "Unnamed contact"

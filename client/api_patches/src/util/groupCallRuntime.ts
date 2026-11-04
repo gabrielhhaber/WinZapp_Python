@@ -131,6 +131,44 @@ export function installGroupCallRuntimeInPage(): void {
       }
       return { id: callId, available: true, participants: Array.from(result.values()) };
     },
+    invite: async (payload: any): Promise<any> => {
+      // WhatsApp's own "Add participant" (WAWebVoipNewGroupCallContactPicker)
+      // calls WAWebVoipStartCall.inviteToCall(wid) once per person picked; the
+      // same call rings someone on the list who has not joined
+      // (WAWebVoipActionRingParticipant). Only into the call this device is in.
+      const { callId } = payload;
+      const people = payload.participants;
+      if (typeof callId !== 'string' || !callId || callId.length > 512) throw new Error('A call id is required');
+      if (!Array.isArray(people) || people.length === 0 || people.length > 31) {
+        throw new Error('Between 1 and 31 participants are required');
+      }
+      const active = module('WAWebCallCollection')?.activeCall;
+      const activeId = typeof active?.id === 'string' ? active.id : active?.id?._serialized;
+      const state = active?.getState?.() ?? active?.state;
+      if (activeId !== callId || ![6, 9, 11, 'ACTIVE', 'REJOINING', 'CONNECTED_LONELY'].includes(state)) {
+        throw new Error('This device is not in that call');
+      }
+      const invite = module('WAWebVoipStartCall')?.inviteToCall;
+      const createWid = module('WAWebWidFactory')?.createWid;
+      if (typeof invite !== 'function' || typeof createWid !== 'function') {
+        throw new Error('Adding participants is unavailable in this WhatsApp version');
+      }
+      const results = [];
+      for (const jid of people) {
+        const address = typeof jid === 'string' ? jid.replace(/@s\.whatsapp\.net$/, '@c.us') : '';
+        if (!/^\d+@(?:lid|c\.us)$/.test(address)) {
+          results.push({ jid, status: 'failed', error: 'invalid address' });
+          continue;
+        }
+        try {
+          await invite(createWid(address));
+          results.push({ jid, status: 'invited' });
+        } catch (error) {
+          results.push({ jid, status: 'failed', error: String((error as any)?.message || error).slice(0, 200) });
+        }
+      }
+      return { id: callId, results };
+    },
     check: (payload: any): any => validate(payload).current,
     mayStopAudio: (callId: string): boolean => {
       const collection = module('WAWebCallCollection');
