@@ -55,6 +55,7 @@ import history_progress
 import older_history
 import call_invites
 import channels_panel
+import channel_updates
 import cleanup
 import msgmap
 import pairing
@@ -1978,6 +1979,12 @@ def create_app(folder, fixed=""):
         jid = req.match_info["phone"]
         if "@" not in jid:
             jid += "@c.us"
+        if jid.endswith("@newsletter"):
+            # a channel's updates are asked of WhatsApp: the store keeps none
+            if s.status != "CONNECTED" or s.client is None:
+                return ok(status="success", response=[])
+            return ok(status="success", response=await in_thread(
+                channel_updates.read, s, jid, int(q.get("count", 20)), before, jid_from_text))
         # the chat may be stored by the number or by the LID (or both)
         keys = await in_thread(s.chat_keys, jid) or [msgmap.jid_whatsmeow(jid)]
         count = int(q.get("count", 20))
