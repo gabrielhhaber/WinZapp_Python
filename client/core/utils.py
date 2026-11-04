@@ -1206,6 +1206,9 @@ DEFAULT_SETTINGS = {
         "auto_play_voice_in_sequence": True,
         "auto_focus_next_audio": True,
         "selected_announcement_position": "end",
+        # Where a chat row says how many new messages it has (issue 684):
+        # "after" the name, as always, or "before" it (core/chat_row_text.py).
+        "unread_count_position": "after",
         "show_yesterday_label": True,
         "show_link_previews": True,
         "forwarded_prefix_enabled": False,

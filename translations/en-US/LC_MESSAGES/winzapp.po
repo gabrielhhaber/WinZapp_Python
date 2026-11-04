@@ -16568,6 +16568,24 @@ msgstr "Show statuses &in a separate player (opens a new dialog)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_after"
+msgid "S&how the number after the chat name"
+msgstr "S&how the number after the chat name"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_before"
+msgid "Show the number &before the chat name"
+msgstr "Show the number &before the chat name"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_label"
+msgid "Number of new messages in the chat list:"
+msgstr "Number of new messages in the chat list:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_message_mode_audio"
 msgid "A&udio (read all as audio)"
 msgstr "A&udio (read all as audio)"
@@ -16742,14 +16760,12 @@ msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr "This message could not be unpinned. Please try again in a moment."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
-#: client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
 msgid "unread message"
 msgstr "unread message"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
-#: client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_messages"
 msgid "unread messages"
 msgstr "unread messages"

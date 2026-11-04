@@ -16556,6 +16556,24 @@ msgstr "Durumları ayrı bir &oynatıcıda göster (yeni bir iletişim kutusu a�
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_after"
+msgid "S&how the number after the chat name"
+msgstr "Sa&yıyı sohbet adından sonra göster"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_before"
+msgid "Show the number &before the chat name"
+msgstr "Sayıyı sohbet adından &önce göster"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_label"
+msgid "Number of new messages in the chat list:"
+msgstr "Sohbet listesindeki yeni mesaj sayısı:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_message_mode_audio"
 msgid "A&udio (read all as audio)"
 msgstr "Ses (tümü&nü ses olarak oku)"
@@ -16730,14 +16748,12 @@ msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr "Bu mesajın sabitlemesi kaldırılamadı. Lütfen birazdan tekrar deneyin."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
-#: client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
 msgid "unread message"
 msgstr "okunmamış mesaj"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
-#: client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_messages"
 msgid "unread messages"
 msgstr "okunmamış mesaj"

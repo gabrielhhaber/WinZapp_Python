@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Configurações > Interface do usuário > Conversas: nova opção "Número de mensagens novas na lista de conversas", para o leitor de tela falar o número de mensagens novas antes do nome da conversa em vez de depois. Vale para a lista de conversas, as arquivadas e as trancadas. (sugestão de Michal Suchý)
+
 - Nova janela de Canais (Alt+9, também na lista de navegação): mostra os canais que você segue ou procura no diretório de canais do WhatsApp (sem texto, aparecem os recomendados). Para o canal escolhido dá para abrir e ler as atualizações, seguir ou deixar de seguir, silenciar ou ativar as notificações, copiar o link e, nos seus canais, editar ou excluir. Também dá para seguir um canal a partir do link e criar um canal. Mostrar os canais na lista de conversas continua sendo uma opção à parte. Funciona com a WPPConnect e com o Neonize.
 
 - Chamadas: agora dá para adicionar pessoas à chamada em andamento, pelo botão "Adicionar participantes" na lista de participantes da chamada. Numa chamada em grupo aparecem os membros do grupo que ainda não estão nela; numa chamada privada, os seus contatos, e a chamada passa a ter várias pessoas, como no WhatsApp. Quem já foi chamado e ainda não entrou é chamado de novo. Funciona com a WPPConnect e com o Neonize.

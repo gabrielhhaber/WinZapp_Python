@@ -2,6 +2,7 @@ import ctypes
 import os
 import sys
 import wx
+from core.chat_row_text import AFTER as UNREAD_AFTER, BEFORE as UNREAD_BEFORE
 from ui.dialogs.typing_feedback_controls import TypingFeedbackControls
 from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
@@ -1814,6 +1815,24 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
 
         chats_sizer.Add(selected_announce_sizer, 0, wx.EXPAND | wx.ALL, 8)
 
+        # Where a chat row says how many new messages it has (issue 684,
+        # core/chat_row_text.py): after the name, as always, or before it.
+        self._unread_position_box = wx.StaticBox(
+            self._chats_page, label=i18n.t("ui_unread_position_label")
+        )
+        unread_position_sizer = wx.StaticBoxSizer(self._unread_position_box, wx.VERTICAL)
+        self._unread_position_after_rb = wx.RadioButton(
+            self._chats_page, label=i18n.t("ui_unread_position_after"), style=wx.RB_GROUP,
+        )
+        unread_position_sizer.Add(self._unread_position_after_rb, 0, wx.LEFT | wx.TOP, 5)
+        self._unread_position_before_rb = wx.RadioButton(
+            self._chats_page, label=i18n.t("ui_unread_position_before")
+        )
+        unread_position_sizer.Add(
+            self._unread_position_before_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5
+        )
+        chats_sizer.Add(unread_position_sizer, 0, wx.EXPAND | wx.ALL, 8)
+
         # The vault's settings, one level down: a button in this window.
         # A key of its own: "locked_chats" also names the vault's list, where
         # an Alt key would be read out.
@@ -2549,6 +2568,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 self._selected_announce_start_rb.SetValue(True)
             else:
                 self._selected_announce_end_rb.SetValue(True)
+            if self.main_window.settings.get("user_interface", {}).get(
+                    "unread_count_position", UNREAD_AFTER) == UNREAD_BEFORE:
+                self._unread_position_before_rb.SetValue(True)
+            else:
+                self._unread_position_after_rb.SetValue(True)
 
         show_yesterday_label = self.main_window.settings.get("user_interface", {}).get(
             "show_yesterday_label", True
@@ -4052,6 +4076,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "selected_announcement_position"
             ] = "start" if self._selected_announce_start_rb.GetValue() else "end"
+            self.main_window.settings.setdefault("user_interface", {})[
+                "unread_count_position"
+            ] = UNREAD_BEFORE if self._unread_position_before_rb.GetValue() else UNREAD_AFTER
         if ready(self, "messages"):
             self.main_window.settings.setdefault("user_interface", {})[
                 "show_yesterday_label"
@@ -4807,6 +4834,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._selected_announce_box.SetLabel(i18n.t("ui_selected_announce_position_label"))
             self._selected_announce_start_rb.SetLabel(i18n.t("ui_selected_announce_position_start"))
             self._selected_announce_end_rb.SetLabel(i18n.t("ui_selected_announce_position_end"))
+            self._unread_position_box.SetLabel(i18n.t("ui_unread_position_label"))
+            self._unread_position_after_rb.SetLabel(i18n.t("ui_unread_position_after"))
+            self._unread_position_before_rb.SetLabel(i18n.t("ui_unread_position_before"))
         if ready(self, "speech"):
             self._announce_typing_check.SetLabel(i18n.t("speech_announce_typing_label"))
             self._announce_recording_check.SetLabel(i18n.t("speech_announce_recording_label"))

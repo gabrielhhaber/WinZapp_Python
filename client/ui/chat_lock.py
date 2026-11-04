@@ -9,6 +9,7 @@ import os
 
 import pyperclip
 import wx
+from core.chat_row_text import name_with_unread, unread_position
 
 from ui.list_column_fit import bind_single_column_fit
 
@@ -313,12 +314,9 @@ class LockedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         """One row: name, unread badge, preview and the "selecionado" marker
         (same configured position as the conversations list)."""
         unread = effective_unread_count(chat)
-        unread_text = ""
-        if unread:
-            key = "unread_messages" if unread != 1 else "unread_message"
-            unread_text = f" {unread} {self.main_window.i18n.t(key)}"
         preview = self.main_window._last_msg_preview(chat)
-        row = f"{name}{unread_text}"
+        row = name_with_unread(name, unread, self.main_window.i18n,
+                               unread_position(self.main_window.settings))
         if preview:
             row += f" {preview}"
         jid = chat.get("remoteJid", "")

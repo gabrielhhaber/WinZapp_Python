@@ -16773,6 +16773,24 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_after"
+msgid "S&how the number after the chat name"
+msgstr "Afi&șați numărul după numele conversației"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_before"
+msgid "Show the number &before the chat name"
+msgstr "Afișați numărul &înainte de numele conversației"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_label"
+msgid "Number of new messages in the chat list:"
+msgstr "Numărul de mesaje noi în lista de conversații:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_message_mode_audio"
 msgid "A&udio (read all as audio)"
 msgstr "A&udio (citiți totul ca audio)"
@@ -16953,14 +16971,12 @@ msgstr ""
 "Fixarea acestui mesaj nu a putut fi anulată. Încercați din nou peste câteva "
 "momente."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
-#: client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
 msgid "unread message"
 msgstr "mesaj necitit"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
-#: client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_messages"
 msgid "unread messages"
 msgstr "mesaje necitite"
