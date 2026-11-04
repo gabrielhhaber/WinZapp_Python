@@ -32,6 +32,14 @@ const modules: any = {
       calls.push(['list', o]); return { xwa2_newsletters_directory_list: { result: [node] } };
     },
   },
+  WAWebCollections: { WAWebNewsletterCollection: { get: (id: string) => (id === '1@newsletter' ? { id } : undefined) } },
+  WAWebNewsletterPinMessageAction: {
+    pinNewsletterMessage: async (chat: any, serverId: number) => { calls.push(['pin', chat.id, serverId]); },
+    unpinNewsletterMessage: async (chat: any, serverId: number) => { calls.push(['unpin', chat.id, serverId]); },
+  },
+  WAWebNewsletterPinMessagesJob: {
+    pinNewsletterMessages: async (id: string, ids: string[]) => { calls.push(['pin job', id, ids]); },
+  },
   WAWebMexFetchNewsletterJob: {
     mexGetNewsletter: async (key: string, role: string) => { calls.push(['info', key, role]); return { xwa2_newsletter: node }; },
   },
@@ -70,6 +78,18 @@ test('a category and a view use the directory list, with the page\'s own enums',
     ['list', { view: 4, categories: [4], countryCodes: [], limit: 20, cursorToken: null }],
     ['recommended', 20, []],
   ]);
+}));
+
+test('an update is pinned by its server id, through the page\'s action', () => withPage(async () => {
+  const done = { id: '1@newsletter', serverId: 4977, pinned: true };
+  expect(await readChannels({ kind: 'pin', id: '1@newsletter', serverId: 4977, pin: true })).toEqual(done);
+  expect(await readChannels({ kind: 'pin', id: '1@newsletter', serverId: 4977, pin: false }))
+    .toEqual({ ...done, pinned: false });
+  expect(await readChannels({ kind: 'pin', id: '2@newsletter', serverId: 5, pin: true }))
+    .toEqual({ id: '2@newsletter', serverId: 5, pinned: true });
+  expect(await readChannels({ kind: 'pin', id: '1@newsletter', serverId: '4977', pin: true })).toBeNull();
+  expect(calls).toEqual([['pin', '1@newsletter', 4977], ['unpin', '1@newsletter', 4977],
+    ['pin job', '2@newsletter', ['5']]]);
 }));
 
 test('follow and unfollow go through wa-js, only for a channel id', () => withPage(async () => {

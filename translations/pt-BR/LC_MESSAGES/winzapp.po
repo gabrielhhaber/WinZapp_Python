@@ -2905,6 +2905,13 @@ msgid "The channel was not found."
 msgstr "O canal não foi encontrado."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_actions.py
+msgctxt "channel_pin_admins_only"
+msgid "Only the channel's owner and admins can pin updates."
+msgstr ""
+"Somente o dono e os administradores do canal podem fixar atualizações."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/conversation_navigation.py
 msgctxt "channel_read_only"
 msgid "This channel is read-only"

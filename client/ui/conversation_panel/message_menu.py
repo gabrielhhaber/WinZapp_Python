@@ -363,14 +363,18 @@ class MessageMenuMixin:
             # above. Shares its accelerator with the recording pause/resume
             # shortcut (_on_ctrl_shift_p): only one is ever applicable at a time
             # (pause/resume only does anything while actively recording audio).
-            is_pinned = bool(msg.get("pinInChat"))
-            pin_msg_label = i18n.t("unpin_message") if is_pinned else i18n.t("pin_message")
-            pin_msg_item = menu.Append(wx.ID_ANY, f"{pin_msg_label}\tCtrl+Shift+P")
-            self.Bind(
-                wx.EVT_MENU,
-                lambda e, m=msg: self._on_menu_pin_message(m),
-                pin_msg_item,
-            )
+            # In a channel only its owner and admins pin an update
+            # (channel_conversation.py).
+            menu_jid = (self.conversation or {}).get("remoteJid", "")
+            if not menu_jid.endswith("@newsletter") or self._can_pin_channel_update(msg):
+                is_pinned = bool(msg.get("pinInChat"))
+                pin_msg_label = i18n.t("unpin_message") if is_pinned else i18n.t("pin_message")
+                pin_msg_item = menu.Append(wx.ID_ANY, f"{pin_msg_label}\tCtrl+Shift+P")
+                self.Bind(
+                    wx.EVT_MENU,
+                    lambda e, m=msg: self._on_menu_pin_message(m),
+                    pin_msg_item,
+                )
 
         # Save As (media only, only when the file is already cached locally).
         # Audio is excluded here because it has its own branch below (separate

@@ -58,6 +58,17 @@ class PinnedMessagesMixin:
         visit = getattr(self, "_pinned_visit", None)
         request = self._pinned_request = object()
 
+        if jid.endswith("@newsletter"):
+            # A channel's pins are server ids of its updates, read with its role
+            # (channel_conversation.py).
+            def read_channel():
+                channel = self._read_channel_state(jid)
+                wx.CallAfter(self._finish_channel_pins_read, jid, visit, request, channel,
+                             announce, show)
+
+            self.main_window._msg_bg_executor.submit(read_channel)
+            return
+
         def read():
             try:
                 messages = self.main_window.get_pinned_messages(jid)
@@ -69,6 +80,14 @@ class PinnedMessagesMixin:
                          messages, announce, show)
 
         self.main_window._msg_bg_executor.submit(read)
+
+    def _finish_channel_pins_read(self, jid, visit, request, channel, announce, show):
+        if (getattr(self.main_window, "_shutting_down", False)
+                or visit is not self._pinned_visit or request is not self._pinned_request
+                or (self.conversation or {}).get("remoteJid") != jid):
+            return
+        self._finish_pinned_messages_read(jid, visit, request,
+                                          self._channel_pins_from(jid, channel), announce, show)
 
     def _finish_pinned_messages_read(self, jid, visit, request, messages, announce, show):
         if (getattr(self.main_window, "_shutting_down", False)

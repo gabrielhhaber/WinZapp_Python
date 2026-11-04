@@ -1,5 +1,6 @@
 """WinZapp's channels window (Alt+9): `channels/list`, `channels/directory`,
-`channels/info`, `channels/follow`, `channels/unfollow` and `channels/mute`.
+`channels/info`, `channels/follow`, `channels/unfollow` and `channels/mute`,
+and an admin pinning an update in the channel's conversation (`channels/pin`).
 
 The WPPConnect side calls WhatsApp Web's own MEX jobs for each read
 (client/api_patches/src/controller/channelsPanelController.ts); the bridge
@@ -12,7 +13,9 @@ The query ids were read over CDP on 2026-11-04:
 - 25806748772361516, the recommended channels (`xwa2_newsletters_recommended`);
 - 27456920720571478, one channel by id or invite code (`xwa2_newsletter`);
 - 26125047313831973, the directory list by view and category
-  (`xwa2_newsletters_directory_list`).
+  (`xwa2_newsletters_directory_list`);
+- 27165709459706559 and 28007176042216937, pinning and unpinning updates by
+  server id (`xwa2_newsletter_pin_messages`, `xwa2_newsletter_unpin_messages`).
 
 Following and unfollowing are neonize's own (`follow_newsletter`,
 `unfollow_newsletter`), and so is muting both ways (`newsletter_toggle_mute`).
@@ -37,6 +40,8 @@ SEARCH_QUERY, SEARCH_FIELD = "26301059626252132", "xwa2_newsletters_directory_se
 RECOMMENDED_QUERY, RECOMMENDED_FIELD = "25806748772361516", "xwa2_newsletters_recommended"
 CHANNEL_QUERY, CHANNEL_FIELD = "27456920720571478", "xwa2_newsletter"
 LIST_QUERY, LIST_FIELD = "26125047313831973", "xwa2_newsletters_directory_list"
+PIN_QUERY, PIN_FIELD = "27165709459706559", "xwa2_newsletter_pin_messages"
+UNPIN_QUERY, UNPIN_FIELD = "28007176042216937", "xwa2_newsletter_unpin_messages"
 
 #: WhatsApp's directory categories (WAWebNewsletterDirectoryCategoryUtils; the
 #: "special events" ones are seasonal and not offered) and list views
@@ -93,7 +98,7 @@ def channel_request(key):
     return {"input": {"key": key, "type": "JID" if by_id else "INVITE", "view_role": "GUEST"},
             "fetch_viewer_metadata": True, "fetch_full_image": by_id, "fetch_creation_time": True,
             "fetch_wamo_sub": False, "fetch_status_metadata": False,
-            "fetch_pinned_messages": False}
+            "fetch_pinned_messages": True}       # as mexGetNewsletter always asks
 
 
 def nodes_of(answer):
@@ -105,6 +110,22 @@ def nodes_of(answer):
     else:
         found = None
     return [n for n in found if isinstance(n, dict)] if isinstance(found, list) else []
+
+
+def pin_request(body):
+    """(query id, variables, field, answer) of pinning or unpinning one update,
+    as WhatsApp Web's pinNewsletterMessage sends it (the update's server id,
+    as text), or None for a body that does not name one."""
+    body = body if isinstance(body, dict) else {}
+    channel = channel_id(body.get("id")) if body.get("id") else ""
+    server_id = body.get("serverId")
+    pin = body.get("pin")
+    if (not channel or not isinstance(pin, bool) or isinstance(server_id, bool)
+            or not isinstance(server_id, int) or server_id <= 0):
+        return None
+    query_id, field = (PIN_QUERY, PIN_FIELD) if pin else (UNPIN_QUERY, UNPIN_FIELD)
+    variables = {"newsletter_id": channel, "input": {"message_ids": [str(server_id)]}}
+    return query_id, variables, field, {"id": channel, "serverId": server_id, "pinned": pin}
 
 
 def register_routes(r, *, session, ok, jid_from_text):
@@ -199,7 +220,21 @@ def register_routes(r, *, session, ok, jid_from_text):
             return error("channel_mute_failed")
         return ok(status="success", response={"id": channel, "muted": body["mute"]})
 
+    async def pin(req):
+        s = session(req)
+        request = pin_request(await body_of(req))
+        if request is None:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        query_id, variables, field, done = request
+        answer = await mex(s, query_id, variables, field, "channel_pin_failed")
+        if isinstance(answer, web.Response):
+            return answer
+        return ok(status="success", response=done)
+
     r.add_post("/api/{tok}/channels/list", list_channels)
+    r.add_post("/api/{tok}/channels/pin", pin)
     r.add_post("/api/{tok}/channels/mute", mute)
     r.add_post("/api/{tok}/channels/directory", directory)
     r.add_post("/api/{tok}/channels/info", info)

@@ -1286,6 +1286,8 @@ routes.post('/api/:session/channels/unfollow', verifyToken, statusConnection,
   ChannelsPanelController.unfollowChannel);
 routes.post('/api/:session/channels/mute', verifyToken, statusConnection,
   ChannelsPanelController.muteChannel);
+routes.post('/api/:session/channels/pin', verifyToken, statusConnection,
+  ChannelsPanelController.pinChannelUpdate);
 
 //Communitys
 // The account's communities, their admins and joined groups (WinZapp's own:

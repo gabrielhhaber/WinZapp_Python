@@ -13,6 +13,7 @@ import logging
 import wx
 
 from core import channels as ch
+from ui.conversation_panel.channel_conversation import remember_channel_roles
 from ui.dialogs.background_work import BackgroundWork
 from ui.dialogs.group_join_dialog import open_group_chat
 from ui.dialogs.labelled_control import add_labelled
@@ -257,6 +258,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         self._loaded = True
         self._mine = ch.sorted_channels(channels)
+        remember_channel_roles(self._mw, self._mine)
         if self._mode == MINE:
             self._show(self._mine, keep)
             if not quiet:       # after an action, its own result was just said

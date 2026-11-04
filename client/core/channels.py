@@ -4,7 +4,8 @@ and what can be done with a channel.
 Both engines answer the same routes with WhatsApp's own XWA2Newsletter nodes
 (client/api_patches/src/controller/channelsPanelController.ts,
 neonize_bridge/channels_panel.py): `channels/list`, `channels/directory`,
-`channels/info`, `channels/follow`, `channels/unfollow`, `channels/mute`.
+`channels/info`, `channels/follow`, `channels/unfollow`, `channels/mute`, and
+`channels/pin` (an admin pinning an update, by its server id).
 Creating, editing and deleting a channel are the upstream newsletter routes
 (`POST newsletter`, `PUT` / `DELETE newsletter/:id`), which the bridge answers
 the same way.
@@ -15,6 +16,7 @@ error: a channel's name and id stay out of log.log. Pure parsing at the top
 """
 
 import re
+import time
 from dataclasses import dataclass
 
 from core.api_client import api_post, api_request
@@ -46,6 +48,7 @@ class Channel:
     muted: bool | None        # None when the answer did not say
     invite: str
     created: int              # Unix seconds, 0 when unknown
+    pinned: tuple = ()        # server ids of the pinned updates, when the answer said
 
     @property
     def following(self) -> bool:
@@ -78,6 +81,39 @@ def _int(value):
     return number if number >= 0 else None
 
 
+def admin_role(role) -> bool:
+    """Whether *role* may post and pin in the channel (owner or admin)."""
+    return role in (_OWNER, _ADMIN)
+
+
+def server_id_of(message) -> int:
+    """A channel update's server id (what pinning names), or 0."""
+    value = message.get("serverId") if isinstance(message, dict) else None
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else 0
+
+
+def pinned_ids(thread, now=None):
+    """The server ids of a channel's pinned updates (thread_metadata's
+    pinned_messages), leaving out a pin whose time has run out."""
+    now = time.time() if now is None else now
+    found = thread.get("pinned_messages") if isinstance(thread, dict) else None
+    out = []
+    for pin in found if isinstance(found, list) else ():
+        if not isinstance(pin, dict):
+            continue
+        server_id, expiry = _int(pin.get("message_id")), _int(pin.get("expiry_ts"))
+        if server_id and (not expiry or expiry > now) and server_id not in out:
+            out.append(server_id)
+    return tuple(out)
+
+
+def pinned_messages(records, pinned):
+    """Copies of the loaded *records* whose server id is pinned, marked as
+    such: the channel's entry of the pinned-messages overview."""
+    wanted = set(pinned or ())
+    return [dict(m, pinInChat=True) for m in records or () if server_id_of(m) in wanted]
+
+
 def parse_channel(node, *, default_role=""):
     """A Channel from one XWA2Newsletter node, or None for anything that is
     not a channel, or one WhatsApp says is gone."""
@@ -100,7 +136,7 @@ def parse_channel(node, *, default_role=""):
         verified=str(thread.get("verification") or "").upper() == "VERIFIED",
         role=role, muted=True if mute == "ON" else False if mute == "OFF" else None,
         invite=invite.strip() if isinstance(invite, str) else "",
-        created=_int(thread.get("creation_time")) or 0)
+        created=_int(thread.get("creation_time")) or 0, pinned=pinned_ids(thread))
 
 
 def parse_channels(body, *, default_role=""):
@@ -201,6 +237,14 @@ def follow(connection, jid):
 
 def unfollow(connection, jid):
     _post(connection, "channels/unfollow", {"id": jid}, "channel_unfollow_failed")
+
+
+def pin_update(connection, jid, server_id, pin):
+    """Pin or unpin one update of a channel this account administers."""
+    body = _post(connection, "channels/pin", {"id": jid, "serverId": int(server_id), "pin": bool(pin)},
+                 "channel_pin_failed")
+    if not isinstance(body, dict) or body.get("status") != "success":
+        raise ValueError("channel_pin_failed")
 
 
 def set_muted(connection, jid, muted):

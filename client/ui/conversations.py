@@ -166,6 +166,7 @@ from ui.conversation_panel.community_comments import CommunityCommentsPanelMixin
 from ui.conversation_panel.commerce import CommercePanelMixin
 from ui.conversation_panel.business_buttons import BusinessButtonsMixin
 from ui.conversation_panel.pinned_messages import PinnedMessagesMixin
+from ui.conversation_panel.channel_conversation import ChannelConversationMixin
 from ui.conversation_panel.reactions import ReactionsMixin
 from ui.conversation_panel.attachments import AttachmentsMixin
 from ui.conversation_panel.poll_inline import PollInlineMixin
@@ -218,6 +219,7 @@ class ConversationsPanel(
     CommercePanelMixin,
     BusinessButtonsMixin,
     PinnedMessagesMixin,
+    ChannelConversationMixin,
     ReactionsMixin,
     AttachmentsMixin,
     PollMessagesMixin,

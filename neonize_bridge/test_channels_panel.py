@@ -55,6 +55,30 @@ def test_one_channel_is_read_by_jid_or_by_invite():
     assert cp.channel_request("0029VaAbCdEfGhIjKlMnOp")["input"]["type"] == "INVITE"
 
 
+def test_the_one_channel_read_brings_its_pinned_updates():
+    assert cp.channel_request("1@newsletter")["fetch_pinned_messages"] is True
+
+
+@pytest.mark.parametrize("pin, query_id, field", [
+    (True, cp.PIN_QUERY, cp.PIN_FIELD), (False, cp.UNPIN_QUERY, cp.UNPIN_FIELD)])
+def test_an_update_is_pinned_by_its_server_id(pin, query_id, field):
+    assert cp.pin_request({"id": "1@newsletter", "serverId": 4977, "pin": pin}) == (
+        query_id, {"newsletter_id": "1@newsletter", "input": {"message_ids": ["4977"]}}, field,
+        {"id": "1@newsletter", "serverId": 4977, "pinned": pin})
+
+
+@pytest.mark.parametrize("body", [
+    {"id": "1@newsletter", "serverId": "4977", "pin": True},
+    {"id": "1@newsletter", "serverId": True, "pin": True},
+    {"id": "1@newsletter", "serverId": 0, "pin": True},
+    {"id": "1@newsletter", "serverId": 4977, "pin": "yes"},
+    {"id": "1@g.us", "serverId": 4977, "pin": True},
+    None,
+])
+def test_a_pin_that_names_no_update_is_refused(body):
+    assert cp.pin_request(body) is None
+
+
 def test_nodes_come_from_a_list_or_a_result():
     assert cp.nodes_of([NODE, "x"]) == [NODE]
     assert cp.nodes_of({"result": [NODE]}) == [NODE]
@@ -131,3 +155,17 @@ def test_mute_goes_both_ways_and_needs_a_boolean(session):
 def test_a_missing_action_is_a_static_error(session):
     (status, body), = post(session, ("unfollow", {"id": "123@newsletter"}))
     assert status == 503 and body["code"] == "channel_unfollow_failed"
+
+
+def test_pin_answers_the_update_and_a_refusal_is_static(session):
+    session.client.send_mex = lambda query_id, variables: (
+        session.client.asked.append((query_id, variables))
+        or ({"data": {cp.PIN_FIELD: {"id": "1"}}} if query_id == cp.PIN_QUERY else {"error": "x"}))
+    (s1, done), (s2, refused), (s3, _) = post(
+        session, ("pin", {"id": "123@newsletter", "serverId": 7, "pin": True}),
+        ("pin", {"id": "123@newsletter", "serverId": 7, "pin": False}),
+        ("pin", {"id": "123@newsletter", "serverId": "7", "pin": True}))
+    assert (s1, done["response"]) == (200, {"id": "123@newsletter", "serverId": 7, "pinned": True})
+    assert (s2, refused["code"]) == (503, "channel_pin_failed")
+    assert s3 == 400
+    assert [q for q, _ in session.client.asked] == [cp.PIN_QUERY, cp.UNPIN_QUERY]

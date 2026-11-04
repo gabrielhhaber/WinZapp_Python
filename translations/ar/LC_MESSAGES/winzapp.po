@@ -2839,6 +2839,12 @@ msgid "The channel was not found."
 msgstr "لم يُعثر على القناة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_actions.py
+msgctxt "channel_pin_admins_only"
+msgid "Only the channel's owner and admins can pin updates."
+msgstr "لا يمكن تثبيت التحديثات إلا لمالك القناة ومشرفيها."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/conversation_navigation.py
 msgctxt "channel_read_only"
 msgid "This channel is read-only"

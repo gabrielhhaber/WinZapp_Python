@@ -120,6 +120,47 @@ def test_a_category_and_a_view_narrow_the_directory(args, body, key):
     assert ch.directory_announcement(query, category, view) == key
 
 
+def test_pinned_updates_are_read_without_the_expired_ones():
+    thread = {"pinned_messages": [{"message_id": "4977", "expiry_ts": "2000"},
+                                  {"message_id": "12", "expiry_ts": "900"},
+                                  {"message_id": "13"}, {"message_id": "4977"}, "x",
+                                  {"message_id": "-4"}]}
+    assert ch.pinned_ids(thread, now=1000) == (4977, 13)
+    assert ch.pinned_ids({}, now=1000) == ()
+    node = {"id": "1@newsletter", "thread_metadata": thread}
+    assert ch.parse_channel(node).pinned == ch.pinned_ids(thread)
+
+
+def test_the_overview_takes_the_loaded_updates_that_are_pinned():
+    records = [{"key": {"id": "A"}, "serverId": 7}, {"key": {"id": "B"}, "serverId": 8},
+               {"key": {"id": "C"}, "serverId": True}, {"key": {"id": "D"}}]
+    found = ch.pinned_messages(records, (8, 1))
+    assert found == [{"key": {"id": "B"}, "serverId": 8, "pinInChat": True}]
+    assert "pinInChat" not in records[1]            # a copy, the row is untouched
+    assert [ch.server_id_of(m) for m in records] == [7, 8, 0, 0]
+
+
+@pytest.mark.parametrize("role, allowed", [("owner", True), ("admin", True),
+                                           ("subscriber", False), ("guest", False), ("", False)])
+def test_only_an_owner_or_an_admin_posts_and_pins(role, allowed):
+    assert ch.admin_role(role) is allowed
+
+
+def test_a_pin_names_the_update_by_its_server_id(monkeypatch):
+    sent = []
+
+    def post(url, json=None, headers=None, timeout=0):
+        sent.append((url.rsplit("/api/tok/", 1)[1], json))
+        return Response(200, {"status": "success", "response": {}})
+
+    monkeypatch.setattr(ch, "api_post", post)
+    ch.pin_update(CONNECTION, "1@newsletter", 4977, True)
+    assert sent == [("channels/pin", {"id": "1@newsletter", "serverId": 4977, "pin": True})]
+    monkeypatch.setattr(ch, "api_post", lambda *a, **k: Response(503, {}))
+    with pytest.raises(ValueError, match="channel_pin_failed"):
+        ch.pin_update(CONNECTION, "1@newsletter", 4977, False)
+
+
 def test_a_refused_action_raises_its_code(monkeypatch):
     monkeypatch.setattr(ch, "api_post", lambda *a, **k: Response(503, {"code": "x"}))
     with pytest.raises(ValueError, match="channel_follow_failed"):

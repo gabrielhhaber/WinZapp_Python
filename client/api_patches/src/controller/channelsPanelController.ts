@@ -16,7 +16,9 @@ import type { Request, Response } from 'express';
 // - WAWebMexFetchNewsletterJob.mexGetNewsletter, query 27456920720571478
 //   (type JID or INVITE), answer xwa2_newsletter;
 // - WAWebMexFetchNewsletterDirectoryListJob, query 26125047313831973 (by view
-//   and category), answer xwa2_newsletters_directory_list.result.
+//   and category), answer xwa2_newsletters_directory_list.result;
+// - WAWebNewsletterPinMessageAction (pin and unpin an update by server id,
+//   queries 27165709459706559 and 28007176042216937).
 // The answers go to the client as WhatsApp gives them (XWA2Newsletter nodes):
 // the Neonize bridge sends the same queries and answers the same nodes, and the
 // client reads them once (client/core/channels.py).
@@ -89,6 +91,27 @@ export async function readChannels(request: any): Promise<unknown> {
     await action(id);
     return { id };
   }
+  if (kind === 'pin') {
+    // WhatsApp Web's own action (it also updates the page's pinned list), on
+    // the page's channel; the job alone when the page has not loaded it.
+    const id = typeof request.id === 'string' ? request.id : '';
+    const serverId = request.serverId;
+    if (!/^\d+@newsletter$/.test(id) || !Number.isInteger(serverId) || serverId <= 0
+        || typeof request.pin !== 'boolean') return null;
+    const channel = load('WAWebCollections')?.WAWebNewsletterCollection?.get?.(id);
+    const action = load('WAWebNewsletterPinMessageAction');
+    const run = request.pin ? action?.pinNewsletterMessage : action?.unpinNewsletterMessage;
+    if (channel && typeof run === 'function') {
+      await run(channel, serverId);
+    } else {
+      const job = request.pin
+        ? load('WAWebNewsletterPinMessagesJob')?.pinNewsletterMessages
+        : load('WAWebNewsletterUnpinMessagesJob')?.unpinNewsletterMessages;
+      if (typeof job !== 'function') return null;
+      await job(id, [String(serverId)]);
+    }
+    return { id, serverId, pinned: request.pin };
+  }
   if (kind === 'mute') {
     // Both ways: the upstream mute-newsletter route can only mute.
     const id = typeof request.id === 'string' ? request.id : '';
@@ -153,6 +176,16 @@ export async function muteChannel(req: Request, res: Response) {
   const id = channelKey({ id: body.id });
   if (!id || typeof body.mute !== 'boolean') return res.status(400).json({ status: 'error', code: 'invalid_channel' });
   return answer(req, res, { kind: 'mute', id, mute: body.mute }, 'channel_mute_failed');
+}
+
+export async function pinChannelUpdate(req: Request, res: Response) {
+  const body = req.body || {};
+  const id = channelKey({ id: body.id });
+  if (!id || !Number.isInteger(body.serverId) || body.serverId <= 0 || typeof body.pin !== 'boolean') {
+    return res.status(400).json({ status: 'error', code: 'invalid_channel' });
+  }
+  return answer(req, res, { kind: 'pin', id, serverId: body.serverId, pin: body.pin },
+    'channel_pin_failed');
 }
 
 export async function unfollowChannel(req: Request, res: Response) {
