@@ -26,6 +26,12 @@ log = logging.getLogger("bridge")
 REMEMBERED = 2000
 
 
+def kept_in_store(chat) -> bool:
+    """Whether a message of *chat* is stored: a channel update never is, even
+    the one an admin just posted (the channel is read from WhatsApp each time)."""
+    return not str(chat or "").endswith("@newsletter")
+
+
 def update_id(update) -> str:
     """The message id of a channel update; its server id on an older build."""
     return str(getattr(update, "MessageID", "") or getattr(update, "MessageServerID", "") or "")

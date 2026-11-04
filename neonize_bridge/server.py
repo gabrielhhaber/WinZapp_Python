@@ -2213,7 +2213,7 @@ def create_app(folder, fixed=""):
         chat = jid_text(destination)
         w = msgmap.build(chat=chat, from_me=True, id=resp.ID, sender=s.me,
                          ts=resp.Timestamp or time.time(), message=resp.Message)
-        if w is not None:
+        if w is not None and channel_updates.kept_in_store(chat):
             s.db.message(chat, w, msgmap.media_record_of(resp.Message))
             s.db.on_arrival(chat, w["t"], True)
         serial = w["id"]["_serialized"] if w else f"true_{msgmap.jid_wpp(chat)}_{resp.ID}"

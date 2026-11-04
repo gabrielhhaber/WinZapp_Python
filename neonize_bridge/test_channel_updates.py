@@ -67,3 +67,8 @@ def test_the_remembered_ids_are_bounded():
     ids = cu.ServerIds(limit=2)
     ids.remember([({"id": {"id": k}}, n) for n, k in enumerate("abc")])
     assert ids.of("a") is None and ids.of("c") == 2
+
+
+def test_an_update_an_admin_posts_is_never_stored():
+    assert not cu.kept_in_store("120363000000000001@newsletter")
+    assert cu.kept_in_store("5511999998888@s.whatsapp.net") and cu.kept_in_store("1203@g.us")

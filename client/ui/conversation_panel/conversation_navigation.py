@@ -83,7 +83,7 @@ class ConversationNavigationMixin:
         two cannot drift — they used to carry separate copies of this switch.
         """
         i18n = self.main_window.i18n
-        if jid.endswith("@newsletter"):
+        if jid.endswith("@newsletter") and not self._channel_admin(jid):
             return i18n.t("channel_read_only")
         is_group = jid.endswith("@g.us")
         if is_group and self.main_window._is_group_send_restricted(conversation):
@@ -93,14 +93,17 @@ class ConversationNavigationMixin:
     def _apply_composer_permissions(self, jid: str, conversation: dict):
         """Enable/disable the composer controls according to what *jid* allows.
 
-        Three cases: a channel (nothing can be posted at all), a group with
-        "only admins can send messages" on where the user isn't an admin, and
-        everything else.  Kept out of navigate_to_conversation() so it can be
+        Three cases: a channel the user does not administer (nothing can be
+        posted at all), a group with "only admins can send messages" on where
+        the user isn't an admin, and everything else. A channel's owner and
+        admins post text there, as on WhatsApp Web (channel_conversation.py
+        knows the role); voice notes and attachments stay off there.  Kept out of navigate_to_conversation() so it can be
         tested without a live wx panel — the emoji button used to be the one
         control this switch forgot, staying clickable in a group the user
         cannot post in and inserting text into a read-only field.
         """
-        is_channel = jid.endswith("@newsletter")
+        channel_admin = jid.endswith("@newsletter") and self._channel_admin(jid)
+        is_channel = jid.endswith("@newsletter") and not channel_admin
         admins_only_group = (
             jid.endswith("@g.us")
             and self.main_window._is_group_send_restricted(conversation)
@@ -141,6 +144,12 @@ class ConversationNavigationMixin:
                 self._record_voice_system_btn.Enable()
             self._add_attachment_btn.Enable()
             self._emoji_btn.Enable()
+            if channel_admin:
+                # Text only: WinZapp sends no voice note or file to a channel.
+                self.record_voice_message_btn.Disable()
+                if hasattr(self, "_record_voice_system_btn"):
+                    self._record_voice_system_btn.Disable()
+                self._add_attachment_btn.Disable()
 
     def refresh_composer_permissions(self, jid: str, transition: bool = True):
         if not self.conversation or self.conversation.get("remoteJid") != jid:

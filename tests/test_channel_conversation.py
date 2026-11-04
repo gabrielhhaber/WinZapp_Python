@@ -87,3 +87,40 @@ def test_a_follower_pressing_pin_hears_why_and_nothing_changes():
     panel._on_menu_pin_message(msg)
     assert panel.said == ["channel_pin_admins_only"]
     assert "pinInChat" not in msg
+
+
+def test_a_channel_update_goes_out_as_plain_text_to_the_channel(monkeypatch):
+    from tests.test_reply_with_mention_keeps_quote import _OK, QUOTED, _Response, _Stub, _answer
+    calls = _answer(monkeypatch, _Response(201, _OK))
+    _Stub().send_text_message(CHANNEL, "Novidade", quoted=QUOTED,
+                              mentioned_jids=["5511888888888@s.whatsapp.net"],
+                              link_preview={"title": "x"})
+    (route, payload), = calls
+    assert route == "send-message"
+    assert payload["phone"] == [CHANNEL] and payload["isNewsletter"] is True
+    assert "messageId" not in payload and "mentioned" not in payload
+
+
+class SendPanel(Panel):
+    from ui.conversation_panel.text_sending import TextSendingMixin
+    on_send_message = TextSendingMixin.on_send_message
+
+    def __init__(self, role):
+        super().__init__(role)
+        self.message_field = SimpleNamespace(GetValue=lambda: "Novidade")
+        self._editing_message_id = None
+        self.sent = []
+        self.main_window.ensure_meta_ai_terms = lambda jid: True
+
+    def _text_with_trailing_emoticon(self, text):
+        return text
+
+    def _send_new_text_message(self, text, jid):
+        self.sent.append((text, jid))
+
+
+def test_only_an_admin_posts_from_the_field():
+    follower, admin = SendPanel("subscriber"), SendPanel("admin")
+    follower.on_send_message(None)
+    admin.on_send_message(None)
+    assert follower.sent == [] and admin.sent == [("Novidade", CHANNEL)]
