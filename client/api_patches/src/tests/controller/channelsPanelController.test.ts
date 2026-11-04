@@ -40,6 +40,18 @@ const modules: any = {
   WAWebNewsletterPinMessagesJob: {
     pinNewsletterMessages: async (id: string, ids: string[]) => { calls.push(['pin job', id, ids]); },
   },
+  WAWebWidFactory: { createWid: (id: string) => ({ wid: id }) },
+  WAWebMexFetchNewsletterAdminInfoJob: {
+    mexFetchNewsletterAdminInfo: async (id: string) => { calls.push(['admins', id]); return { adminCount: 3 }; },
+  },
+  WAWebNewsletterSendMsgAction: {
+    sendNewsletterAdminInviteMessage: async (chat: any, o: any) => {
+      calls.push(['invite', chat, o]); return { messageSendResult: chat.fail ? 'ERROR_UNKNOWN' : 'OK' };
+    },
+  },
+  WAWebMexRevokeNewsletterAdminInviteJob: {
+    revokeNewsletterAdminInvite: async (id: string, wid: any) => { calls.push(['revoke', id, wid]); },
+  },
   WAWebMexFetchNewsletterJob: {
     mexGetNewsletter: async (key: string, role: string) => { calls.push(['info', key, role]); return { xwa2_newsletter: node }; },
   },
@@ -49,7 +61,7 @@ function withPage<T>(run: () => Promise<T>): Promise<T> {
   const root = globalThis as any;
   const previous = [root.require, root.WPP];
   root.require = (name: string) => modules[name];
-  root.WPP = { newsletter: { follow: async (id: string) => calls.push(['follow', id]),
+  root.WPP = { chat: { find: async (id: string) => ({ chat: id, fail: id.startsWith('99999') }) }, newsletter: { follow: async (id: string) => calls.push(['follow', id]),
     mute: async (id: string, value: boolean) => calls.push(['mute', id, value]),
     unfollow: async (id: string) => calls.push(['unfollow', id]) } };
   calls.length = 0;
@@ -90,6 +102,24 @@ test('an update is pinned by its server id, through the page\'s action', () => w
   expect(await readChannels({ kind: 'pin', id: '1@newsletter', serverId: '4977', pin: true })).toBeNull();
   expect(calls).toEqual([['pin', '1@newsletter', 4977], ['unpin', '1@newsletter', 4977],
     ['pin job', '2@newsletter', ['5']]]);
+}));
+
+test('admins: the count, an invite to the person\'s chat, and taking it back', () => withPage(async () => {
+  expect(await readChannels({ kind: 'admins', id: '1@newsletter' })).toEqual({ id: '1@newsletter', adminCount: 3 });
+  expect(await readChannels({ kind: 'admin-invite', id: '1@newsletter', user: '5511999998888@s.whatsapp.net',
+    message: ' oi ' })).toEqual({ id: '1@newsletter', user: '5511999998888@s.whatsapp.net', expiration: 0 });
+  expect(await readChannels({ kind: 'admin-invite', id: '1@newsletter', user: '99999123@lid' })).toBeNull();
+  expect(await readChannels({ kind: 'admin-invite', id: '1@newsletter', user: '1203@g.us' })).toBeNull();
+  expect(await readChannels({ kind: 'admin-revoke', id: '1@newsletter', user: '77712345@lid' }))
+    .toEqual({ id: '1@newsletter', user: '77712345@lid' });
+  expect(calls).toEqual([
+    ['admins', '1@newsletter'],
+    ['invite', { chat: '5511999998888@c.us', fail: false }, { base64Thumb: null,
+      invitee: { wid: '5511999998888@c.us' }, inviteMessage: 'oi', newsletterWid: { wid: '1@newsletter' } }],
+    ['invite', { chat: '99999123@lid', fail: true }, { base64Thumb: null, invitee: { wid: '99999123@lid' },
+      inviteMessage: '', newsletterWid: { wid: '1@newsletter' } }],
+    ['revoke', '1@newsletter', { wid: '77712345@lid' }],
+  ]);
 }));
 
 test('follow and unfollow go through wa-js, only for a channel id', () => withPage(async () => {

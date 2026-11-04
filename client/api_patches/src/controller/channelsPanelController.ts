@@ -18,7 +18,11 @@ import type { Request, Response } from 'express';
 // - WAWebMexFetchNewsletterDirectoryListJob, query 26125047313831973 (by view
 //   and category), answer xwa2_newsletters_directory_list.result;
 // - WAWebNewsletterPinMessageAction (pin and unpin an update by server id,
-//   queries 27165709459706559 and 28007176042216937).
+//   queries 27165709459706559 and 28007176042216937);
+// - WAWebMexFetchNewsletterAdminInfoJob (the admin count, 26278439461859188),
+//   WAWebNewsletterSendMsgAction.sendNewsletterAdminInviteMessage (creates the
+//   invite, 9387141988078609, and sends it to the person's chat) and the owner's
+//   WAWebMexRevokeNewsletterAdminInviteJob (9656078347839416).
 // The answers go to the client as WhatsApp gives them (XWA2Newsletter nodes):
 // the Neonize bridge sends the same queries and answers the same nodes, and the
 // client reads them once (client/core/channels.py).
@@ -112,6 +116,47 @@ export async function readChannels(request: any): Promise<unknown> {
     }
     return { id, serverId, pinned: request.pin };
   }
+  const person = (text: unknown): string => {
+    const match = String(text ?? '').trim().match(/^(\d{5,20})@(lid|c\.us|s\.whatsapp\.net)$/);
+    return match ? `${match[1]}@${match[2] === 'lid' ? 'lid' : 'c.us'}` : '';
+  };
+  if (kind === 'admins') {
+    const id = typeof request.id === 'string' ? request.id : '';
+    const job = load('WAWebMexFetchNewsletterAdminInfoJob');
+    if (!/^\d+@newsletter$/.test(id) || typeof job?.mexFetchNewsletterAdminInfo !== 'function') return null;
+    const info = await job.mexFetchNewsletterAdminInfo(id);
+    const count = Number(info?.adminCount);
+    return { id, adminCount: Number.isInteger(count) && count >= 0 ? count : null };
+  }
+  if (kind === 'admin-invite') {
+    const id = typeof request.id === 'string' ? request.id : '';
+    const user = person(request.user);
+    const caption = String(request.message ?? '').trim().slice(0, 500);
+    const factory = load('WAWebWidFactory');
+    const send = load('WAWebNewsletterSendMsgAction')?.sendNewsletterAdminInviteMessage;
+    if (!/^\d+@newsletter$/.test(id) || !user || typeof factory?.createWid !== 'function'
+        || typeof send !== 'function' || typeof root.WPP?.chat?.find !== 'function') return null;
+    // The person's chat, which the invite message goes to (created when new).
+    const chat = await root.WPP.chat.find(user);
+    if (!chat) return null;
+    const result = await send(chat, { base64Thumb: null, invitee: factory.createWid(user),
+      inviteMessage: caption, newsletterWid: factory.createWid(id) });
+    if (/^ERROR/.test(String(result?.messageSendResult ?? ''))) return null;
+    return { id, user: request.user, expiration: 0 };
+  }
+  if (kind === 'admin-revoke') {
+    const id = typeof request.id === 'string' ? request.id : '';
+    const user = person(request.user);
+    const factory = load('WAWebWidFactory');
+    const job = load('WAWebMexRevokeNewsletterAdminInviteJob');
+    if (!/^\d+@newsletter$/.test(id) || !user || typeof factory?.createWid !== 'function'
+        || typeof job?.revokeNewsletterAdminInvite !== 'function') return null;
+    await job.revokeNewsletterAdminInvite(id, factory.createWid(user));
+    // The page's own list of pending admins, when it has the channel.
+    const channel = load('WAWebCollections')?.WAWebNewsletterCollection?.get?.(id);
+    channel?.newsletterMetadata?.pendingAdmins?.remove?.(factory.createWid(user));
+    return { id, user: request.user };
+  }
   if (kind === 'mute') {
     // Both ways: the upstream mute-newsletter route can only mute.
     const id = typeof request.id === 'string' ? request.id : '';
@@ -186,6 +231,27 @@ export async function pinChannelUpdate(req: Request, res: Response) {
   }
   return answer(req, res, { kind: 'pin', id, serverId: body.serverId, pin: body.pin },
     'channel_pin_failed');
+}
+
+export async function channelAdmins(req: Request, res: Response) {
+  const id = channelKey({ id: (req.body || {}).id });
+  if (!id) return res.status(400).json({ status: 'error', code: 'invalid_channel' });
+  return answer(req, res, { kind: 'admins', id }, 'channel_admins_unavailable');
+}
+
+export async function inviteChannelAdmin(req: Request, res: Response) {
+  const body = req.body || {};
+  const id = channelKey({ id: body.id });
+  if (!id || typeof body.user !== 'string') return res.status(400).json({ status: 'error', code: 'invalid_channel' });
+  return answer(req, res, { kind: 'admin-invite', id, user: body.user, message: body.message },
+    'channel_admin_invite_failed');
+}
+
+export async function revokeChannelAdminInvite(req: Request, res: Response) {
+  const body = req.body || {};
+  const id = channelKey({ id: body.id });
+  if (!id || typeof body.user !== 'string') return res.status(400).json({ status: 'error', code: 'invalid_channel' });
+  return answer(req, res, { kind: 'admin-revoke', id, user: body.user }, 'channel_admin_revoke_failed');
 }
 
 export async function unfollowChannel(req: Request, res: Response) {

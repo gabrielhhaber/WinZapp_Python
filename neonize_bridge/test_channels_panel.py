@@ -79,6 +79,26 @@ def test_a_pin_that_names_no_update_is_refused(body):
     assert cp.pin_request(body) is None
 
 
+@pytest.mark.parametrize("answer, count", [({"admin_count": 3}, 3), ({"admin_count": "2"}, 2),
+                                           ({"admin_count": -1}, None), ({}, None), (None, None)])
+def test_the_admin_count_is_read_or_unknown(answer, count):
+    assert cp.admin_count(answer) == count
+
+
+def test_an_admin_invite_names_a_person_and_keeps_its_texts_short():
+    assert cp.admin_invite_request({"id": "1@newsletter", "user": "5511999998888@c.us",
+                                    "name": " Canal ", "message": "x" * 900}) == (
+        "1@newsletter", "5511999998888@s.whatsapp.net", "Canal", "x" * cp.CAPTION_LIMIT)
+    assert cp.admin_invite_request({"id": "1@newsletter", "user": "123456@lid"})[1] == "123456@lid"
+    assert cp.admin_invite_request({"id": "1@newsletter", "user": "1203@g.us"}) is None
+    assert cp.admin_invite_request({"id": "1@g.us", "user": "123456@lid"}) is None
+    assert cp.invite_expiration({"invite_expiration_time": "1790000000"}) == 1790000000
+    assert cp.invite_expiration({}) == 0
+    assert cp.invite_fields("1@newsletter", "Canal", "oi", 5) == {
+        "newsletterJID": "1@newsletter", "newsletterName": "Canal", "caption": "oi",
+        "inviteExpiration": 5}
+
+
 def test_nodes_come_from_a_list_or_a_result():
     assert cp.nodes_of([NODE, "x"]) == [NODE]
     assert cp.nodes_of({"result": [NODE]}) == [NODE]
@@ -169,3 +189,49 @@ def test_pin_answers_the_update_and_a_refusal_is_static(session):
     assert (s2, refused["code"]) == (503, "channel_pin_failed")
     assert s3 == 400
     assert [q for q, _ in session.client.asked] == [cp.PIN_QUERY, cp.UNPIN_QUERY]
+
+
+def test_an_admin_is_invited_by_lid_and_the_invite_reaches_their_chat(session):
+    sent = []
+    session.client.get_lid_from_pn = lambda jid: N(User="777")
+    session.client.send_message = lambda to, message: sent.append((to, message))
+    session.client.send_mex = lambda query_id, variables: (
+        session.client.asked.append((query_id, variables))
+        or {"data": {cp.INVITE_FIELD: {"invite_expiration_time": "1790000000"}}})
+    (status, body), = post(session, ("admin-invite", {
+        "id": "123@newsletter", "user": "5511999998888@c.us", "name": "Canal", "message": "oi"}))
+    assert status == 200 and body["response"] == {
+        "id": "123@newsletter", "user": "5511999998888@s.whatsapp.net", "expiration": 1790000000}
+    assert session.client.asked == [(cp.INVITE_QUERY, {"newsletter_id": "123@newsletter",
+                                                       "user_id": "777@lid"})]
+    (to, message), = sent
+    assert to == "777@lid"
+    invite = message.newsletterAdminInviteMessage
+    assert (invite.newsletterJID, invite.caption, invite.inviteExpiration) == (
+        "123@newsletter", "oi", 1790000000)
+
+
+def test_without_a_lid_no_invite_is_created(session):
+    session.client.get_lid_from_pn = lambda jid: N(User="")
+    (status, body), = post(session, ("admin-invite", {"id": "123@newsletter",
+                                                      "user": "5511999998888@c.us"}))
+    assert (status, body["code"]) == (503, "channel_admin_invite_failed")
+    assert session.client.asked == []
+
+
+def test_a_revoke_is_refused_only_by_an_error(session):
+    answers = [{"data": {}}, {"error": "not owner"}]
+    session.client.send_mex = lambda query_id, variables: answers.pop(0)
+    (s1, done), (s2, refused), (s3, _) = post(
+        session, ("admin-revoke", {"id": "123@newsletter", "user": "77712345@lid"}),
+        ("admin-revoke", {"id": "123@newsletter", "user": "77712345@lid"}),
+        ("admin-revoke", {"id": "123@newsletter", "user": "x"}))
+    assert (s1, done["response"]) == (200, {"id": "123@newsletter", "user": "77712345@lid"})
+    assert (s2, refused["code"]) == (503, "channel_admin_revoke_failed")
+    assert s3 == 400
+
+
+def test_the_admin_count_route(session):
+    session.client.send_mex = lambda query_id, variables: {"data": {cp.ADMIN_INFO_FIELD: {"admin_count": 2}}}
+    (status, body), = post(session, ("admins", {"id": "123@newsletter"}))
+    assert (status, body["response"]) == (200, {"id": "123@newsletter", "adminCount": 2})

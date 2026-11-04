@@ -5,7 +5,9 @@ Both engines answer the same routes with WhatsApp's own XWA2Newsletter nodes
 (client/api_patches/src/controller/channelsPanelController.ts,
 neonize_bridge/channels_panel.py): `channels/list`, `channels/directory`,
 `channels/info`, `channels/follow`, `channels/unfollow`, `channels/mute`, and
-`channels/pin` (an admin pinning an update, by its server id).
+`channels/pin` (an admin pinning an update, by its server id), and the
+admins: `channels/admins` (how many), `channels/admin-invite` (an invite sent
+to the person's chat) and `channels/admin-revoke` (the owner taking it back).
 Creating, editing and deleting a channel are the upstream newsletter routes
 (`POST newsletter`, `PUT` / `DELETE newsletter/:id`), which the bridge answers
 the same way.
@@ -22,6 +24,7 @@ from dataclasses import dataclass
 from core.api_client import api_post, api_request
 
 NAME_LIMIT = 100
+INVITE_MESSAGE_LIMIT = 500
 DESCRIPTION_LIMIT = 2048
 INVITE_PREFIX = "https://whatsapp.com/channel/"
 _CHANNEL = re.compile(r"\d+@newsletter")
@@ -84,6 +87,23 @@ def _int(value):
 def admin_role(role) -> bool:
     """Whether *role* may post and pin in the channel (owner or admin)."""
     return role in (_OWNER, _ADMIN)
+
+
+def admin_target(jid, phone_to_lid=None) -> str:
+    """The form a person is invited (or uninvited) by: their @lid when known,
+    as WhatsApp names an admin, else their number as '<digits>@c.us'; '' for
+    anything that is not a person."""
+    jid = str(jid or "").strip()
+    user, _, server = jid.partition("@")
+    if not user.isdigit():
+        return ""
+    if server == "lid":
+        return jid
+    if server not in ("s.whatsapp.net", "c.us"):
+        return ""
+    phone = f"{user}@s.whatsapp.net"
+    lid = (phone_to_lid or {}).get(phone) or (phone_to_lid or {}).get(f"{user}@c.us") or ""
+    return lid if lid.endswith("@lid") else f"{user}@c.us"
 
 
 def server_id_of(message) -> int:
@@ -237,6 +257,32 @@ def follow(connection, jid):
 
 def unfollow(connection, jid):
     _post(connection, "channels/unfollow", {"id": jid}, "channel_unfollow_failed")
+
+
+def admin_count(connection, jid):
+    """How many admins the channel has, or None when the answer did not say."""
+    body = _post(connection, "channels/admins", {"id": jid}, "channel_admins_unavailable")
+    data = body.get("response") if isinstance(body, dict) else None
+    count = data.get("adminCount") if isinstance(data, dict) else None
+    return count if isinstance(count, int) and not isinstance(count, bool) and count >= 0 else None
+
+
+def invite_admin(connection, jid, user, name="", message=""):
+    """Invite *user* (an admin_target) to administer the channel: WhatsApp
+    sends them the invite in their chat."""
+    body = _post(connection, "channels/admin-invite",
+                 {"id": jid, "user": user, "name": str(name or "")[:NAME_LIMIT],
+                  "message": str(message or "").strip()[:INVITE_MESSAGE_LIMIT]},
+                 "channel_admin_invite_failed")
+    if not isinstance(body, dict) or body.get("status") != "success":
+        raise ValueError("channel_admin_invite_failed")
+
+
+def revoke_admin_invite(connection, jid, user):
+    body = _post(connection, "channels/admin-revoke", {"id": jid, "user": user},
+                 "channel_admin_revoke_failed")
+    if not isinstance(body, dict) or body.get("status") != "success":
+        raise ValueError("channel_admin_revoke_failed")
 
 
 def pin_update(connection, jid, server_id, pin):

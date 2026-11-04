@@ -1,6 +1,9 @@
 """WinZapp's channels window (Alt+9): `channels/list`, `channels/directory`,
 `channels/info`, `channels/follow`, `channels/unfollow` and `channels/mute`,
-and an admin pinning an update in the channel's conversation (`channels/pin`).
+an admin pinning an update in the channel's conversation (`channels/pin`), and
+the channel's admins: how many (`channels/admins`), inviting one
+(`channels/admin-invite`) and the owner taking an invite back
+(`channels/admin-revoke`).
 
 The WPPConnect side calls WhatsApp Web's own MEX jobs for each read
 (client/api_patches/src/controller/channelsPanelController.ts); the bridge
@@ -15,7 +18,13 @@ The query ids were read over CDP on 2026-11-04:
 - 26125047313831973, the directory list by view and category
   (`xwa2_newsletters_directory_list`);
 - 27165709459706559 and 28007176042216937, pinning and unpinning updates by
-  server id (`xwa2_newsletter_pin_messages`, `xwa2_newsletter_unpin_messages`).
+  server id (`xwa2_newsletter_pin_messages`, `xwa2_newsletter_unpin_messages`);
+- 26278439461859188, the admin count (`xwa2_newsletter_admin`);
+- 9387141988078609 and 9656078347839416, creating and revoking an admin invite
+  for a user's LID (`xwa2_newsletter_admin_invite_create` /
+  `_revoke`). The invite itself reaches the person as a
+  newsletterAdminInviteMessage in their chat, as WhatsApp Web's
+  sendNewsletterAdminInviteMessage sends it.
 
 Following and unfollowing are neonize's own (`follow_newsletter`,
 `unfollow_newsletter`), and so is muting both ways (`newsletter_toggle_mute`).
@@ -42,6 +51,11 @@ CHANNEL_QUERY, CHANNEL_FIELD = "27456920720571478", "xwa2_newsletter"
 LIST_QUERY, LIST_FIELD = "26125047313831973", "xwa2_newsletters_directory_list"
 PIN_QUERY, PIN_FIELD = "27165709459706559", "xwa2_newsletter_pin_messages"
 UNPIN_QUERY, UNPIN_FIELD = "28007176042216937", "xwa2_newsletter_unpin_messages"
+ADMIN_INFO_QUERY, ADMIN_INFO_FIELD = "26278439461859188", "xwa2_newsletter_admin"
+INVITE_QUERY, INVITE_FIELD = "9387141988078609", "xwa2_newsletter_admin_invite_create"
+REVOKE_QUERY = "9656078347839416"
+CAPTION_LIMIT = 500
+_PERSON = re.compile(r"(\d{5,20})@(lid|s\.whatsapp\.net|c\.us)")
 
 #: WhatsApp's directory categories (WAWebNewsletterDirectoryCategoryUtils; the
 #: "special events" ones are seasonal and not offered) and list views
@@ -126,6 +140,52 @@ def pin_request(body):
     query_id, field = (PIN_QUERY, PIN_FIELD) if pin else (UNPIN_QUERY, UNPIN_FIELD)
     variables = {"newsletter_id": channel, "input": {"message_ids": [str(server_id)]}}
     return query_id, variables, field, {"id": channel, "serverId": server_id, "pinned": pin}
+
+
+def admin_count(answer):
+    """The admin count of an admin-info answer, or None."""
+    count = answer.get("admin_count") if isinstance(answer, dict) else None
+    try:
+        count = int(count)
+    except (TypeError, ValueError):
+        return None
+    return count if count >= 0 else None
+
+
+def person(text) -> str:
+    """A person's JID ('<digits>@lid' or '<digits>@s.whatsapp.net'), or ''."""
+    match = _PERSON.fullmatch(str(text or "").strip())
+    if not match:
+        return ""
+    return match.group(1) + ("@lid" if match.group(2) == "lid" else "@s.whatsapp.net")
+
+
+def admin_invite_request(body):
+    """(channel, person, name, caption) of an admin invite, or None."""
+    body = body if isinstance(body, dict) else {}
+    channel = channel_id(body.get("id")) if body.get("id") else ""
+    user = person(body.get("user"))
+    if not channel or not user:
+        return None
+    name = str(body.get("name") or "").strip()[:100]
+    caption = str(body.get("message") or "").strip()[:CAPTION_LIMIT]
+    return channel, user, name, caption
+
+
+def invite_expiration(answer) -> int:
+    """The invite's expiration (Unix seconds) of a create answer, or 0."""
+    value = answer.get("invite_expiration_time") if isinstance(answer, dict) else None
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return 0
+
+
+def invite_fields(channel, name, caption, expiration) -> dict:
+    """The newsletterAdminInviteMessage's fields, as WhatsApp Web fills them
+    (WAWebGenerateNewsletterAdminInviteMessageProto)."""
+    return {"newsletterJID": channel, "newsletterName": name, "caption": caption,
+            "inviteExpiration": expiration}
 
 
 def register_routes(r, *, session, ok, jid_from_text):
@@ -233,7 +293,84 @@ def register_routes(r, *, session, ok, jid_from_text):
             return answer
         return ok(status="success", response=done)
 
+    async def admins(req):
+        s = session(req)
+        channel = channel_id((await body_of(req)).get("id"))
+        if not channel:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        answer = await mex(s, ADMIN_INFO_QUERY, {"newsletter_id": channel}, ADMIN_INFO_FIELD,
+                           "channel_admins_unavailable")
+        if isinstance(answer, web.Response):
+            return answer
+        return ok(status="success", response={"id": channel, "adminCount": admin_count(answer)})
+
+    def lid_of(s, user):
+        """The person's LID text, the form the invite names, or ''."""
+        if user.endswith("@lid"):
+            return user
+        try:
+            lid = s.client.get_lid_from_pn(jid_from_text(user))
+        except Exception:
+            return ""
+        number = getattr(lid, "User", "")
+        return f"{number}@lid" if number else ""
+
+    async def admin_invite(req):
+        s = session(req)
+        request = admin_invite_request(await body_of(req))
+        if request is None:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        channel, user, name, caption = request
+        lid = await execute(lid_of, s, user)
+        if not lid:
+            return error("channel_admin_invite_failed")
+        answer = await mex(s, INVITE_QUERY, {"newsletter_id": channel, "user_id": lid},
+                           INVITE_FIELD, "channel_admin_invite_failed")
+        if isinstance(answer, web.Response):
+            return answer
+        expiration = invite_expiration(answer)
+        from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message, NewsletterAdminInviteMessage
+        message = Message(newsletterAdminInviteMessage=NewsletterAdminInviteMessage(
+            **invite_fields(channel, name, caption, expiration)))
+        try:
+            await execute(s.client.send_message, jid_from_text(lid), message)
+        except Exception as e:
+            # The invite exists, its message did not go out: the person never sees it.
+            log.info("channel admin invite message refused (%s)", type(e).__name__)
+            return error("channel_admin_invite_failed")
+        return ok(status="success", response={"id": channel, "user": user, "expiration": expiration})
+
+    async def admin_revoke(req):
+        s = session(req)
+        body = await body_of(req)
+        channel, user = channel_id(body.get("id")) if body.get("id") else "", person(body.get("user"))
+        if not channel or not user:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        lid = await execute(lid_of, s, user)
+        if not lid:
+            return error("channel_admin_revoke_failed")
+        try:
+            answer = await execute(s.client.send_mex, REVOKE_QUERY,
+                                   {"newsletter_id": channel, "user_id": lid})
+        except Exception as e:
+            log.info("channel admin revoke refused (%s)", type(e).__name__)
+            return error("channel_admin_revoke_failed")
+        # The mutation answers nothing worth reading: only an error says no.
+        if not isinstance(answer, dict) or answer.get("error"):
+            log.info("channel admin revoke refused")
+            return error("channel_admin_revoke_failed")
+        return ok(status="success", response={"id": channel, "user": user})
+
     r.add_post("/api/{tok}/channels/list", list_channels)
+    r.add_post("/api/{tok}/channels/admins", admins)
+    r.add_post("/api/{tok}/channels/admin-invite", admin_invite)
+    r.add_post("/api/{tok}/channels/admin-revoke", admin_revoke)
     r.add_post("/api/{tok}/channels/pin", pin)
     r.add_post("/api/{tok}/channels/mute", mute)
     r.add_post("/api/{tok}/channels/directory", directory)

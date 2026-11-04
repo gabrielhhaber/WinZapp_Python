@@ -160,6 +160,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._create = button("channels_create", self._on_create)
         self._edit = button("channels_edit", self._on_edit)
         self._delete = button("channels_delete", self._on_delete)
+        self._admins = button("channels_admins", self._on_admins)
         self._refresh = button("channels_refresh", self._reload)
         button("close", self._on_close, wx.ID_CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
@@ -230,6 +231,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._copy.Enable(channel is not None and bool(channel.link))
         self._edit.Enable(channel is not None and channel.admin)
         self._delete.Enable(channel is not None and channel.owner)
+        self._admins.Enable(channel is not None and channel.admin)
 
     def _sync_mode(self):
         self._mode_radio.SetSelection(self._mode)
@@ -472,6 +474,17 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         connection, jid = self._connection, channel.jid
         self._act(lambda: ch.edit_channel(connection, jid, name, description), "channels_edited",
                   "channel_edit_failed", jid)
+
+    def _on_admins(self, event=None):
+        channel = self._mine_version(self._selected())
+        if channel is None or not channel.admin or not self._current():
+            return
+        from ui.dialogs.channel_admins import ChannelAdminsDialog
+        dialog = ChannelAdminsDialog(self, self._mw, channel)
+        try:
+            dialog.ShowModal()
+        finally:
+            dialog.Destroy()
 
     def _on_delete(self, event=None):
         channel = self._mine_version(self._selected())

@@ -26,12 +26,16 @@ class AttachContactDialog(wx.Dialog):
     main_window : MainWindow
     """
 
-    def __init__(self, main_window):
+    def __init__(self, main_window, *, parent=None, title=None, ok_label=None):
+        """*title* and *ok_label*, already translated, reuse the picker for
+        another single pick (the channel admins window); *parent* defaults to
+        the main window."""
         self._mw = main_window
+        self._ok_label = ok_label
         i18n = main_window.i18n
         super().__init__(
-            main_window,
-            title=i18n.t("attach_contact_title"),
+            parent or main_window,
+            title=title or i18n.t("attach_contact_title"),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
         self.selected_contact: dict | None = None
@@ -51,7 +55,7 @@ class AttachContactDialog(wx.Dialog):
         self._picker.list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self._on_activate)
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ok_btn = wx.Button(panel, wx.ID_OK, label=i18n.t("send_attachment"))
+        ok_btn = wx.Button(panel, wx.ID_OK, label=self._ok_label or i18n.t("send_attachment"))
         ok_btn.Bind(wx.EVT_BUTTON, self._on_ok)
         cancel_btn = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("cancel"))
         btn_sizer.Add(ok_btn, 0, wx.ALL, 5)

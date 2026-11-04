@@ -161,6 +161,43 @@ def test_a_pin_names_the_update_by_its_server_id(monkeypatch):
         ch.pin_update(CONNECTION, "1@newsletter", 4977, False)
 
 
+@pytest.mark.parametrize("jid, lids, target", [
+    ("5511999998888@s.whatsapp.net", {}, "5511999998888@c.us"),
+    ("5511999998888@s.whatsapp.net", {"5511999998888@s.whatsapp.net": "777@lid"}, "777@lid"),
+    ("5511999998888@c.us", {"5511999998888@c.us": "777@lid"}, "777@lid"),
+    ("777@lid", {}, "777@lid"),
+    ("1203@g.us", {}, ""), ("status@broadcast", {}, ""), ("", {}, ""),
+])
+def test_an_admin_is_named_by_lid_when_known(jid, lids, target):
+    assert ch.admin_target(jid, lids) == target
+
+
+def test_the_admin_routes(monkeypatch):
+    sent = []
+    answers = {"channels/admins": {"status": "success", "response": {"adminCount": 2}}}
+
+    def post(url, json=None, headers=None, timeout=0):
+        route = url.rsplit("/api/tok/", 1)[1]
+        sent.append((route, json))
+        return Response(200, answers.get(route, {"status": "success", "response": {}}))
+
+    monkeypatch.setattr(ch, "api_post", post)
+    assert ch.admin_count(CONNECTION, "1@newsletter") == 2
+    ch.invite_admin(CONNECTION, "1@newsletter", "777@lid", "Canal", "  oi  ")
+    ch.revoke_admin_invite(CONNECTION, "1@newsletter", "777@lid")
+    assert sent == [
+        ("channels/admins", {"id": "1@newsletter"}),
+        ("channels/admin-invite", {"id": "1@newsletter", "user": "777@lid", "name": "Canal",
+                                   "message": "oi"}),
+        ("channels/admin-revoke", {"id": "1@newsletter", "user": "777@lid"}),
+    ]
+    answers["channels/admins"] = {"status": "success", "response": {"adminCount": True}}
+    assert ch.admin_count(CONNECTION, "1@newsletter") is None
+    monkeypatch.setattr(ch, "api_post", lambda *a, **k: Response(503, {}))
+    with pytest.raises(ValueError, match="channel_admin_invite_failed"):
+        ch.invite_admin(CONNECTION, "1@newsletter", "777@lid")
+
+
 def test_a_refused_action_raises_its_code(monkeypatch):
     monkeypatch.setattr(ch, "api_post", lambda *a, **k: Response(503, {"code": "x"}))
     with pytest.raises(ValueError, match="channel_follow_failed"):

@@ -2868,6 +2868,99 @@ msgid "Version {version}"
 msgstr "Versiunea {version}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admin_invite"
+msgid "Invite admin..."
+msgstr "Invitați un administrator..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_invite_button"
+msgid "Invite"
+msgstr "Invitați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admin_invite_failed"
+msgid "The admin invite could not be sent."
+msgstr "Invitația de administrator nu a putut fi trimisă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admin_invite_message"
+msgid "Message sent with the invite (optional):"
+msgstr "Mesaj trimis cu invitația (opțional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_invite_pick"
+msgid "Invite a contact to be an admin"
+msgstr "Invitați un contact să fie administrator"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_admin_invited"
+msgid "Admin invite sent to {name}. They become an admin when they accept it."
+msgstr ""
+"Invitația de administrator a fost trimisă către {name}. Persoana devine "
+"administrator când o acceptă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admin_revoke"
+msgid "Cancel admin invite..."
+msgstr "Anulați invitația de administrator..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_revoke_button"
+msgid "Cancel invite"
+msgstr "Anulați invitația"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_admin_revoke_confirm"
+msgid "Cancel the admin invite sent to {name}?"
+msgstr "Anulați invitația de administrator trimisă către {name}?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admin_revoke_failed"
+msgid "The admin invite could not be cancelled."
+msgstr "Invitația de administrator nu a putut fi anulată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_revoke_pick"
+msgid "Cancel a contact's admin invite"
+msgstr "Anulați invitația de administrator a unui contact"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_admin_revoked"
+msgid "The admin invite sent to {name} was cancelled."
+msgstr "Invitația de administrator trimisă către {name} a fost anulată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_admins_count"
+msgid "Admins: {count}"
+msgstr "Administratori: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_admins_title"
+msgid "Admins of {name}"
+msgstr "Administratorii canalului {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admins_unavailable"
+msgid "The number of admins could not be read."
+msgstr "Numărul de administratori nu a putut fi citit."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_create_failed"
 msgid "The channel could not be created."
 msgstr "Canalul nu a putut fi creat."
@@ -2913,6 +3006,11 @@ msgstr "Acest canal este doar pentru citire"
 msgctxt "channel_unfollow_failed"
 msgid "The channel could not be unfollowed."
 msgstr "Nu s-a putut renunța la urmărirea canalului."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_admins"
+msgid "Admins..."
+msgstr "Administratori..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_category"
@@ -3226,7 +3324,8 @@ msgctxt "channels_unmuted_done"
 msgid "Channel notifications unmuted."
 msgstr "Notificările canalului au fost activate."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py client/ui/dialogs/channels.py
 msgctxt "channels_unnamed"
 msgid "Channel with no name"
 msgstr "Canal fără nume"
@@ -7532,8 +7631,8 @@ msgstr "selectare din listă"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/calls_panel.py
 #: client/ui/dialogs/call_invite.py client/ui/dialogs/call_participants.py
-#: client/ui/dialogs/cart_dialog.py client/ui/dialogs/channels.py
-#: client/ui/dialogs/community_comments.py
+#: client/ui/dialogs/cart_dialog.py client/ui/dialogs/channel_admins.py
+#: client/ui/dialogs/channels.py client/ui/dialogs/community_comments.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/order_update_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py client/ui/ongoing_calls.py
@@ -16966,7 +17065,7 @@ msgstr ""
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py
-#: client/ui/dialogs/call_invite.py
+#: client/ui/dialogs/call_invite.py client/ui/dialogs/channel_admins.py
 #: client/ui/dialogs/status_audience_dialog.py
 msgctxt "unknown_contact"
 msgid "Unnamed contact"

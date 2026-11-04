@@ -1288,6 +1288,12 @@ routes.post('/api/:session/channels/mute', verifyToken, statusConnection,
   ChannelsPanelController.muteChannel);
 routes.post('/api/:session/channels/pin', verifyToken, statusConnection,
   ChannelsPanelController.pinChannelUpdate);
+routes.post('/api/:session/channels/admins', verifyToken, statusConnection,
+  ChannelsPanelController.channelAdmins);
+routes.post('/api/:session/channels/admin-invite', verifyToken, statusConnection,
+  ChannelsPanelController.inviteChannelAdmin);
+routes.post('/api/:session/channels/admin-revoke', verifyToken, statusConnection,
+  ChannelsPanelController.revokeChannelAdminInvite);
 
 //Communitys
 // The account's communities, their admins and joined groups (WinZapp's own:
