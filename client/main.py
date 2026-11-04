@@ -60,7 +60,7 @@ from core.quote_recovery import (
     RECOVERED_FROM_QUOTE,
     UNDECRYPTED_PLACEHOLDER_TYPES,
     awaits_real_copy,
-    carry_over_recovered_quotes,
+    carry_over_known_content,
     fill_placeholders_from_replies,
     reply_context,
 )
