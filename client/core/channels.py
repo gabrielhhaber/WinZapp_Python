@@ -27,6 +27,12 @@ _INVITE = re.compile(r"(?:whatsapp\.com/channel/)?([A-Za-z0-9_-]{10,64})/?$")
 #: viewer roles that may edit or delete the channel
 _OWNER, _ADMIN = "owner", "admin"
 _GONE_STATES = ("DELETED", "NON_EXISTING")
+#: the directory's categories and list views, in the order WhatsApp Web shows
+#: them; both engines take these names (the seasonal "special events" ones
+#: are left out)
+CATEGORIES = ("BUSINESS", "ENTERTAINMENT", "LIFESTYLE", "NEWS", "ORGANIZATIONS", "PEOPLE",
+              "SPORTS")
+VIEWS = ("RECOMMENDED", "TRENDING", "POPULAR", "NEW")
 
 
 @dataclass(frozen=True)
@@ -150,12 +156,32 @@ def list_channels(connection):
     return parse_channels(_post(connection, "channels/list", {}, "channels_unavailable"))
 
 
-def directory(connection, query="", limit=30):
-    """Channels found for *query*, or WhatsApp's recommended ones without one.
-    Nobody's role there is known: a channel already followed is shown as such
-    by the caller, from the followed list."""
+def directory_body(query="", limit=30, category="", view=""):
+    """The `channels/directory` body: the search text, and the category and
+    list view only when they narrow anything (all categories and the
+    recommended list are what an empty body already reads)."""
+    body = {"query": str(query or "")[:100], "limit": int(limit)}
+    if category in CATEGORIES:
+        body["category"] = category
+    if view in VIEWS and view != VIEWS[0]:
+        body["view"] = view
+    return body
+
+
+def directory_announcement(query="", category="", view=""):
+    """The key that says how many channels a directory read gave: what
+    WhatsApp recommends only when nothing narrowed the list."""
+    if query or category in CATEGORIES or (view in VIEWS and view != VIEWS[0]):
+        return "channels_found"
+    return "channels_recommended"
+
+
+def directory(connection, query="", limit=30, category="", view=""):
+    """Channels found for *query*, or the directory's list in *view*, narrowed
+    to *category* when one is given. Nobody's role there is known: a channel
+    already followed is shown as such by the caller, from the followed list."""
     return parse_channels(_post(connection, "channels/directory",
-                                {"query": str(query or "")[:100], "limit": int(limit)},
+                                directory_body(query, limit, category, view),
                                 "channels_unavailable"), default_role="guest")
 
 

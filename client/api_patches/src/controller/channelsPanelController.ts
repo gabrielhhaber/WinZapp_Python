@@ -14,7 +14,9 @@ import type { Request, Response } from 'express';
 // - WAWebMexFetchRecommendedNewslettersJob, query 25806748772361516, answer
 //   xwa2_newsletters_recommended.result;
 // - WAWebMexFetchNewsletterJob.mexGetNewsletter, query 27456920720571478
-//   (type JID or INVITE), answer xwa2_newsletter.
+//   (type JID or INVITE), answer xwa2_newsletter;
+// - WAWebMexFetchNewsletterDirectoryListJob, query 26125047313831973 (by view
+//   and category), answer xwa2_newsletters_directory_list.result.
 // The answers go to the client as WhatsApp gives them (XWA2Newsletter nodes):
 // the Neonize bridge sends the same queries and answers the same nodes, and the
 // client reads them once (client/core/channels.py).
@@ -36,12 +38,33 @@ export async function readChannels(request: any): Promise<unknown> {
   if (kind === 'directory') {
     const query = typeof request.query === 'string' ? request.query.trim().slice(0, 100) : '';
     const limit = Math.max(1, Math.min(50, Number(request.limit) || 20));
+    // The directory's own enums: categories (WAWebNewsletterDirectoryCategoryUtils,
+    // without the seasonal "special events") and list views (FilterUtils).
+    const categoryEnum = load('WAWebNewsletterDirectoryCategoryUtils')?.NewsletterDirectoryCategoryType;
+    const viewEnum = load('WAWebNewsletterDirectoryFilterUtils')?.NewsletterDirectoryListView;
+    const categoryNames: any = { BUSINESS: 'Business', ENTERTAINMENT: 'Entertainment',
+      LIFESTYLE: 'Lifestyle', NEWS: 'News', ORGANIZATIONS: 'Organizations', PEOPLE: 'People',
+      SPORTS: 'Sports' };
+    const viewNames: any = { RECOMMENDED: 'Recommended', TRENDING: 'Trending', POPULAR: 'Popular',
+      NEW: 'New' };
+    const categoryName = categoryNames[String(request.category || '').toUpperCase()];
+    const categories = categoryName && categoryEnum?.[categoryName] != null ? [categoryEnum[categoryName]] : [];
+    const view = viewNames[String(request.view || '').toUpperCase()] ? String(request.view).toUpperCase() : '';
     if (query) {
       const job = load('WAWebMexFetchNewsletterDirectorySearchResultsJob');
       if (typeof job?.mexFetchNewsletterDirectorySearchResults !== 'function') return null;
       const data = await job.mexFetchNewsletterDirectorySearchResults({
-        searchText: query, categories: [], limit, cursorToken: null });
+        searchText: query, categories, limit, cursorToken: null });
       const result = data?.xwa2_newsletters_directory_search?.result;
+      return Array.isArray(result) ? result : null;
+    }
+    if (categories.length || (view && view !== 'RECOMMENDED')) {
+      const job = load('WAWebMexFetchNewsletterDirectoryListJob');
+      const listView = viewEnum?.[viewNames[view] || 'Recommended'];
+      if (typeof job?.mexFetchNewsletterDirectoryList !== 'function' || listView == null) return null;
+      const data = await job.mexFetchNewsletterDirectoryList({
+        view: listView, categories, countryCodes: [], limit, cursorToken: null });
+      const result = data?.xwa2_newsletters_directory_list?.result;
       return Array.isArray(result) ? result : null;
     }
     const job = load('WAWebMexFetchRecommendedNewslettersJob');
@@ -109,7 +132,8 @@ export async function listChannels(req: Request, res: Response) {
 
 export async function channelDirectory(req: Request, res: Response) {
   const body = req.body || {};
-  return answer(req, res, { kind: 'directory', query: body.query, limit: body.limit });
+  return answer(req, res, { kind: 'directory', query: body.query, limit: body.limit,
+    category: body.category, view: body.view });
 }
 
 export async function channelInfo(req: Request, res: Response) {

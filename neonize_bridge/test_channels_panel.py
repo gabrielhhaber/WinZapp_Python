@@ -36,6 +36,19 @@ def test_the_directory_searches_text_and_otherwise_recommends():
     assert variables["input"] == {"limit": 20, "country_codes": []}
 
 
+def test_a_category_narrows_the_search_and_the_list():
+    _, variables, _ = cp.directory_request({"query": "gol", "category": "sports"})
+    assert variables["input"]["categories"] == ["SPORTS"]
+    query_id, variables, field = cp.directory_request({"category": "NEWS", "view": "trending"})
+    assert (query_id, field) == (cp.LIST_QUERY, cp.LIST_FIELD)
+    assert variables["input"] == {"view": "TRENDING", "limit": 20, "start_cursor": None,
+                                  "filters": {"country_codes": [], "categories": ["NEWS"]}}
+    query_id, _, _ = cp.directory_request({"view": "NEW"})
+    assert query_id == cp.LIST_QUERY
+    _, variables, _ = cp.directory_request({"category": "SPECIAL_EVENTS", "view": "bogus"})
+    assert variables["input"] == {"limit": 20, "country_codes": []}       # neither is sent
+
+
 def test_one_channel_is_read_by_jid_or_by_invite():
     assert cp.channel_request("1@newsletter")["input"] == {
         "key": "1@newsletter", "type": "JID", "view_role": "GUEST"}

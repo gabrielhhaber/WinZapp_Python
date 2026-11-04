@@ -2918,6 +2918,51 @@ msgctxt "channel_unfollow_failed"
 msgid "The channel could not be unfollowed."
 msgstr "No se pudo dejar de seguir el canal."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category"
+msgid "Ca&tegory"
+msgstr "Ca&tegoría"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_all"
+msgid "All categories"
+msgstr "Todas las categorías"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_business"
+msgid "Business"
+msgstr "Negocios"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_entertainment"
+msgid "Entertainment"
+msgstr "Entretenimiento"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_lifestyle"
+msgid "Lifestyle"
+msgstr "Estilo de vida"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_news"
+msgid "News"
+msgstr "Noticias"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_organizations"
+msgid "Organizations"
+msgstr "Organizaciones"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_people"
+msgid "People"
+msgstr "Personas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_sports"
+msgid "Sports"
+msgstr "Deportes"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_copy_link"
 msgid "Copy link"
@@ -3194,6 +3239,31 @@ msgstr "Canal sin nombre"
 msgctxt "channels_verified"
 msgid "verified"
 msgstr "verificado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view"
+msgid "&View"
+msgstr "&Lista"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view_new"
+msgid "New"
+msgstr "Nuevos"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view_popular"
+msgid "Popular"
+msgstr "Populares"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view_recommended"
+msgid "Recommended"
+msgstr "Recomendados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view_trending"
+msgid "Trending"
+msgstr "Tendencias"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_you_are_admin"

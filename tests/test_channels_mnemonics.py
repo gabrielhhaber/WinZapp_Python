@@ -12,7 +12,8 @@ import pytest
 from tests.locales import registered_locale_codes
 from tests.mnemonics import load_strings, mnemonic
 
-WINDOW_KEYS = ("channels_search", "channels_list", "channels_details", "close")
+WINDOW_KEYS = ("channels_search", "channels_category", "channels_view", "channels_list", "channels_details",
+               "close")
 EDIT_KEYS = ("channels_name", "channels_description")
 
 

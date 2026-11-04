@@ -121,6 +121,19 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._search_btn.Bind(wx.EVT_BUTTON, self._on_search)
         row.Add(self._search_btn, 0, wx.LEFT, 8)
         sizer.Add(row, 0, wx.EXPAND | wx.ALL, 8)
+        # The directory's category and list, as WhatsApp Web's pills: read by
+        # Search (or Enter), never on each arrow press inside the choice.
+        row = wx.BoxSizer(wx.HORIZONTAL)
+        # literal keys, in the order of ch.CATEGORIES and ch.VIEWS
+        self._category = self._labelled_choice(row, i18n.t("channels_category"), [
+            i18n.t("channels_category_all"), i18n.t("channels_category_business"),
+            i18n.t("channels_category_entertainment"), i18n.t("channels_category_lifestyle"),
+            i18n.t("channels_category_news"), i18n.t("channels_category_organizations"),
+            i18n.t("channels_category_people"), i18n.t("channels_category_sports")])
+        self._view = self._labelled_choice(row, i18n.t("channels_view"), [
+            i18n.t("channels_view_recommended"), i18n.t("channels_view_trending"),
+            i18n.t("channels_view_popular"), i18n.t("channels_view_new")])
+        sizer.Add(row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         self._list = add_labelled(self, sizer, i18n.t("channels_list"),
                                   lambda: wx.ListBox(self, style=wx.LB_SINGLE), 2)
         self._list.Bind(wx.EVT_LISTBOX, lambda event: self._show_selected())
@@ -158,6 +171,21 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._list.SetFocus()
         self.CentreOnParent()
         wx.CallAfter(self._reload)
+
+    def _labelled_choice(self, row, label, items):
+        row.Add(wx.StaticText(self, label=label), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        choice = wx.Choice(self, choices=items)
+        choice.SetName(label.replace("&", ""))
+        choice.SetSelection(0)
+        row.Add(choice, 1, wx.RIGHT, 8)
+        return choice
+
+    def _directory_filters(self):
+        """(category, view) picked in the two choices: "" for all categories."""
+        category = self._category.GetSelection()
+        view = self._view.GetSelection()
+        return (ch.CATEGORIES[category - 1] if 1 <= category <= len(ch.CATEGORIES) else "",
+                ch.VIEWS[view] if 0 <= view < len(ch.VIEWS) else "")
 
     # ── state ─────────────────────────────────────────────────────────────
 
@@ -205,6 +233,8 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
     def _sync_mode(self):
         self._mode_radio.SetSelection(self._mode)
         self._search.Enable(self._mode == FIND)
+        self._category.Enable(self._mode == FIND)
+        self._view.Enable(self._mode == FIND)
 
     # ── reading ───────────────────────────────────────────────────────────
 
@@ -249,13 +279,15 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         if self._busy or not self._current() or self._mode != FIND:
             return
         query = self._search.GetValue().strip()
+        category, view = self._directory_filters()
         self._set_busy(True)
         self._status.SetLabel(self._i18n.t("loading"))
         connection = self._connection
-        self._run_async(lambda: ch.directory(connection, query),
-                        lambda found: self._finish_search(found, query))
+        key = ch.directory_announcement(query, category, view)
+        self._run_async(lambda: ch.directory(connection, query, category=category, view=view),
+                        lambda found: self._finish_search(found, key))
 
-    def _finish_search(self, found, query):
+    def _finish_search(self, found, key):
         self._set_busy(False)
         if not self._current():
             return
@@ -266,7 +298,6 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._found = found
         if self._mode == FIND:
             self._show(found)
-        key = "channels_found" if query else "channels_recommended"
         self._announce(self._i18n.t(key).format(count=len(found)) if found
                        else self._i18n.t("channels_nothing_found"))
 
@@ -296,9 +327,13 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
     # ── keyboard ──────────────────────────────────────────────────────────
 
     def _on_char_hook(self, event):
-        if (event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER) and not event.HasAnyModifiers()
-                and wx.Window.FindFocus() is self._list):
+        enter = event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER) and not event.HasAnyModifiers()
+        focus = wx.Window.FindFocus()
+        if enter and focus is self._list:
             self._on_open()
+            return
+        if enter and focus in (self._category, self._view):
+            self._on_search()
             return
         event.Skip()
 

@@ -10,7 +10,9 @@ The query ids were read over CDP on 2026-11-04:
 - 25399611239711790, the followed channels (`xwa2_newsletter_subscribed`);
 - 26301059626252132, a directory search (`xwa2_newsletters_directory_search`);
 - 25806748772361516, the recommended channels (`xwa2_newsletters_recommended`);
-- 27456920720571478, one channel by id or invite code (`xwa2_newsletter`).
+- 27456920720571478, one channel by id or invite code (`xwa2_newsletter`);
+- 26125047313831973, the directory list by view and category
+  (`xwa2_newsletters_directory_list`).
 
 Following and unfollowing are neonize's own (`follow_newsletter`,
 `unfollow_newsletter`), and so is muting both ways (`newsletter_toggle_mute`).
@@ -34,6 +36,14 @@ SUBSCRIBED_QUERY, SUBSCRIBED_FIELD = "25399611239711790", "xwa2_newsletter_subsc
 SEARCH_QUERY, SEARCH_FIELD = "26301059626252132", "xwa2_newsletters_directory_search"
 RECOMMENDED_QUERY, RECOMMENDED_FIELD = "25806748772361516", "xwa2_newsletters_recommended"
 CHANNEL_QUERY, CHANNEL_FIELD = "27456920720571478", "xwa2_newsletter"
+LIST_QUERY, LIST_FIELD = "26125047313831973", "xwa2_newsletters_directory_list"
+
+#: WhatsApp's directory categories (WAWebNewsletterDirectoryCategoryUtils; the
+#: "special events" ones are seasonal and not offered) and list views
+#: (WAWebNewsletterDirectoryFilterUtils.NewsletterDirectoryListView).
+CATEGORIES = ("BUSINESS", "ENTERTAINMENT", "LIFESTYLE", "NEWS", "ORGANIZATIONS", "PEOPLE",
+              "SPORTS")
+VIEWS = ("RECOMMENDED", "TRENDING", "POPULAR", "NEW")
 
 _INVITE = re.compile(r"(?:whatsapp\.com/channel/)?([A-Za-z0-9_-]{10,64})/?$")
 
@@ -50,19 +60,30 @@ def channel_key(body) -> str:
 
 def directory_request(body):
     """(query id, variables, field) of a directory read: a search for the
-    text, or the recommended channels when there is none."""
+    text, or the directory's list in a view (recommended, trending, popular,
+    new), both narrowed to one category when one is given, as WhatsApp Web's
+    directory does. An unknown category or view is ignored, never sent."""
     body = body if isinstance(body, dict) else {}
     query = str(body.get("query") or "").strip()[:100]
     try:
         limit = max(1, min(50, int(body.get("limit") or 20)))
     except (TypeError, ValueError):
         limit = 20
+    category = str(body.get("category") or "").upper()
+    categories = [category] if category in CATEGORIES else []
+    view = str(body.get("view") or "").upper()
+    view = view if view in VIEWS else ""
     if query:
-        return SEARCH_QUERY, {"input": {"search_text": query, "categories": [], "limit": limit,
-                                        "start_cursor": None},
+        return SEARCH_QUERY, {"input": {"search_text": query, "categories": categories,
+                                        "limit": limit, "start_cursor": None},
                               "fetch_status_metadata": False}, SEARCH_FIELD
-    return RECOMMENDED_QUERY, {"input": {"limit": limit, "country_codes": []},
-                               "fetch_status_metadata": False}, RECOMMENDED_FIELD
+    if not categories and view in ("", "RECOMMENDED"):
+        return RECOMMENDED_QUERY, {"input": {"limit": limit, "country_codes": []},
+                                   "fetch_status_metadata": False}, RECOMMENDED_FIELD
+    return LIST_QUERY, {"input": {"view": view or "RECOMMENDED",
+                                  "filters": {"country_codes": [], "categories": categories},
+                                  "limit": limit, "start_cursor": None},
+                        "fetch_status_metadata": False}, LIST_FIELD
 
 
 def channel_request(key):

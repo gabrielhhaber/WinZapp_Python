@@ -25,6 +25,13 @@ const modules: any = {
       calls.push(['recommended', limit, codes]); return { xwa2_newsletters_recommended: { result: [node] } };
     },
   },
+  WAWebNewsletterDirectoryCategoryUtils: { NewsletterDirectoryCategoryType: { Sports: 7, News: 4 } },
+  WAWebNewsletterDirectoryFilterUtils: { NewsletterDirectoryListView: { Recommended: 0, Trending: 4 } },
+  WAWebMexFetchNewsletterDirectoryListJob: {
+    mexFetchNewsletterDirectoryList: async (o: any) => {
+      calls.push(['list', o]); return { xwa2_newsletters_directory_list: { result: [node] } };
+    },
+  },
   WAWebMexFetchNewsletterJob: {
     mexGetNewsletter: async (key: string, role: string) => { calls.push(['info', key, role]); return { xwa2_newsletter: node }; },
   },
@@ -51,6 +58,17 @@ test('each read uses WhatsApp Web\'s own job and returns its nodes', () => withP
     ['search', { searchText: 'futebol', categories: [], limit: 50, cursorToken: null }],
     ['recommended', 20, []],
     ['info', '0029VaAbCdEfGhIjKlMnOp', 'GUEST'],
+  ]);
+}));
+
+test('a category and a view use the directory list, with the page\'s own enums', () => withPage(async () => {
+  expect(await readChannels({ kind: 'directory', query: 'gol', category: 'sports' })).toEqual([node]);
+  expect(await readChannels({ kind: 'directory', category: 'NEWS', view: 'trending' })).toEqual([node]);
+  expect(await readChannels({ kind: 'directory', category: 'special_events' })).toEqual([node]);
+  expect(calls).toEqual([
+    ['search', { searchText: 'gol', categories: [7], limit: 20, cursorToken: null }],
+    ['list', { view: 4, categories: [4], countryCodes: [], limit: 20, cursorToken: null }],
+    ['recommended', 20, []],
   ]);
 }));
 

@@ -105,6 +105,21 @@ def test_requests_go_to_the_engines_routes(monkeypatch):
     ]
 
 
+@pytest.mark.parametrize("args, body, key", [
+    (("",), {"query": "", "limit": 30}, "channels_recommended"),
+    (("", 30, "", "RECOMMENDED"), {"query": "", "limit": 30}, "channels_recommended"),
+    (("", 30, "SPORTS", "TRENDING"), {"query": "", "limit": 30, "category": "SPORTS",
+                                      "view": "TRENDING"}, "channels_found"),
+    (("", 30, "", "NEW"), {"query": "", "limit": 30, "view": "NEW"}, "channels_found"),
+    (("gol", 30, "SPORTS"), {"query": "gol", "limit": 30, "category": "SPORTS"}, "channels_found"),
+    (("", 30, "SPECIAL_EVENTS", "bogus"), {"query": "", "limit": 30}, "channels_recommended"),
+])
+def test_a_category_and_a_view_narrow_the_directory(args, body, key):
+    assert ch.directory_body(*args) == body
+    query, _, category, view = (list(args) + ["", "", ""])[:4]
+    assert ch.directory_announcement(query, category, view) == key
+
+
 def test_a_refused_action_raises_its_code(monkeypatch):
     monkeypatch.setattr(ch, "api_post", lambda *a, **k: Response(503, {"code": "x"}))
     with pytest.raises(ValueError, match="channel_follow_failed"):
