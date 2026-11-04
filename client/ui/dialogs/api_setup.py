@@ -192,6 +192,8 @@ _CUSTOM_SRC_FILES = [
     "src/util/announcementReplyBridge.ts",
     "src/controller/communityCommentsController.ts",
     "src/tests/controller/communityCommentsController.test.ts",
+    "src/controller/channelsPanelController.ts",
+    "src/tests/controller/channelsPanelController.test.ts",
     "src/controller/communityOverviewController.ts",
     "src/tests/controller/communityOverviewController.test.ts",
     "src/controller/communityJoinController.ts",

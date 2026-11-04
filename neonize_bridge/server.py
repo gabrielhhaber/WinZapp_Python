@@ -54,6 +54,7 @@ import groups_extra
 import history_progress
 import older_history
 import call_invites
+import channels_panel
 import cleanup
 import msgmap
 import pairing
@@ -2529,6 +2530,7 @@ def create_app(folder, fixed=""):
                                     store_sent=store_sent, quoted_context=quoted_context)
     channels.register_routes(r, session=session, ok=ok, jid_from_text=jid_from_text,
                              jid_text=jid_text)
+    channels_panel.register_routes(r, session=session, ok=ok, jid_from_text=jid_from_text)
     administration.register_routes(r, session=session, ok=ok, state=state, folder=folder,
                                    mark_active=mark_active, qr_data_url=qr_data_url)
     cleanup.register_routes(r, ok=ok, state=state, folder=folder, mark_active=mark_active)

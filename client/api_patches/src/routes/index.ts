@@ -35,6 +35,7 @@ import * as PrivacyController from '../controller/privacyController';
 import * as PollController from '../controller/pollController';
 import * as CommunityCommentsController from '../controller/communityCommentsController';
 import * as CommunityOverviewController from '../controller/communityOverviewController';
+import * as ChannelsPanelController from '../controller/channelsPanelController';
 import * as CommunityJoinController from '../controller/communityJoinController';
 import * as PageHeapController from '../controller/pageHeapController';
 import * as StatusDeleteController from '../controller/statusDeleteController';
@@ -1269,6 +1270,22 @@ routes.post(
   statusConnection,
   MiscController.setLimit
 );
+
+// WinZapp's channels window: followed channels, the directory, one channel,
+// follow, unfollow and mute (channelsPanelController.ts). Create, edit and
+// delete are the upstream newsletter routes further down.
+routes.post('/api/:session/channels/list', verifyToken, statusConnection,
+  ChannelsPanelController.listChannels);
+routes.post('/api/:session/channels/directory', verifyToken, statusConnection,
+  ChannelsPanelController.channelDirectory);
+routes.post('/api/:session/channels/info', verifyToken, statusConnection,
+  ChannelsPanelController.channelInfo);
+routes.post('/api/:session/channels/follow', verifyToken, statusConnection,
+  ChannelsPanelController.followChannel);
+routes.post('/api/:session/channels/unfollow', verifyToken, statusConnection,
+  ChannelsPanelController.unfollowChannel);
+routes.post('/api/:session/channels/mute', verifyToken, statusConnection,
+  ChannelsPanelController.muteChannel);
 
 //Communitys
 // The account's communities, their admins and joined groups (WinZapp's own:
