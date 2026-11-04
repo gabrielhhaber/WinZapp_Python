@@ -88,6 +88,9 @@ What the patches carry today:
 - **neonize 0016**: a channel update (`NewsletterMessage`) carries whatsmeow's
   `MessageID`, `Timestamp` and `Type`, which the encoder dropped: a channel's
   updates could not be deduplicated nor sorted (`neonize_bridge/channel_updates.py`).
+- **neonize 0017 / whatsmeow 0011**: a channel update carries the server's
+  `is_sender="true"` (`NewsletterMessage.IsSender`), the attribute WhatsApp Web keys an
+  update `fromMe` from: a channel's admin sees their own updates as sent.
 - **neonize 0013 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
   truncation, on-time microphone underruns, negotiated MLow/Opus codecs and
   authenticated packet ordering, including late accepted codec settings.

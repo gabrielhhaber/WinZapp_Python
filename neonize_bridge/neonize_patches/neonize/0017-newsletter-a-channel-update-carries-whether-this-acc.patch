@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp build <build@winzapp.invalid>
+Date: Wed, 4 Nov 2026 14:56:38 -0300
+Subject: [PATCH] newsletter: a channel update carries whether this account
+ posted it
+
+NewsletterMessage gains IsSender (field 8) from whatsmeow's
+types.NewsletterMessage.IsSender, so the bridge shows an admin's own
+updates as sent, as WhatsApp does.
+---
+ goneonize/Neonize.proto          | 1 +
+ goneonize/defproto/Neonize.proto | 1 +
+ goneonize/utils/encoder.go       | 2 ++
+ 3 files changed, 4 insertions(+)
+
+diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
+index 63cbd7e..b7ea5ad 100644
+--- a/goneonize/Neonize.proto
++++ b/goneonize/Neonize.proto
+@@ -407,6 +407,7 @@ message NewsletterMessage {
+     optional string MessageID = 5;
+     optional int64 Timestamp = 6;
+     optional string Type = 7;
++    optional bool IsSender = 8;
+ }
+ 
+ message GetNewsletterMessageUpdateReturnFunction {
+diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
+index 63cbd7e..b7ea5ad 100644
+--- a/goneonize/defproto/Neonize.proto
++++ b/goneonize/defproto/Neonize.proto
+@@ -407,6 +407,7 @@ message NewsletterMessage {
+     optional string MessageID = 5;
+     optional int64 Timestamp = 6;
+     optional string Type = 7;
++    optional bool IsSender = 8;
+ }
+ 
+ message GetNewsletterMessageUpdateReturnFunction {
+diff --git a/goneonize/utils/encoder.go b/goneonize/utils/encoder.go
+index 886c734..0be7caf 100644
+--- a/goneonize/utils/encoder.go
++++ b/goneonize/utils/encoder.go
+@@ -478,6 +478,8 @@ func EncodeNewsletterMessage(message *types.NewsletterMessage) *defproto.Newslet
+ 		MessageID: proto.String(string(message.MessageID)),
+ 		Timestamp: proto.Int64(message.Timestamp.Unix()),
+ 		Type:      proto.String(message.Type),
++		// this account posted it (is_sender): shown as sent, as on WhatsApp
++		IsSender: proto.Bool(message.IsSender),
+ 	}
+ }
+ 

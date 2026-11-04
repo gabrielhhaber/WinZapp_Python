@@ -23,6 +23,14 @@ def test_updates_go_out_like_any_message_oldest_first():
     assert pairs[0][0]["viewCount"] == 7 and pairs[0][0]["fromMe"] is False
 
 
+def test_an_update_this_account_posted_is_sent():
+    mine = update(5, "M", 100, "meu post")
+    mine.IsSender = True
+    (w, _), (theirs, _) = cu.updates_to_wpp(CHANNEL, [mine, update(6, "T", 200, "outro")])
+    assert w["fromMe"] is True and w["id"]["fromMe"] is True
+    assert theirs["fromMe"] is False
+
+
 def test_a_zero_date_is_no_date():
     (w, _), = cu.updates_to_wpp(CHANNEL, [update(1, "A", -62135596800, "x")])
     assert w["t"] == 0

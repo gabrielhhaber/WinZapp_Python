@@ -8,8 +8,9 @@ other message (msgmap.build), with its server id and view count. Paging back
 names the oldest message's id; its server id is remembered from the page that
 brought it (a few hundred per session at most).
 
-The id and date of an update need neonize patch 0016; an older build answers
-the server id as the id and no date.
+The id and date of an update need neonize patch 0016, and whether this account
+posted it (an admin's own update, shown as sent) patch 0017; an older build
+answers the server id as the id, no date, and every update as received.
 
 Pure functions at the top (tested in test_channel_updates.py).
 """
@@ -39,7 +40,11 @@ def updates_to_wpp(channel, updates):
         if message is None:
             continue
         mid = update_id(update)
-        w = msgmap.build(chat=channel, from_me=False, id=mid, sender=channel,
+        # An update this account posted (an admin's own) is sent, as WhatsApp
+        # shows it: the server's is_sender, neonize patch 0017 (an older
+        # build has no such field and shows every update as received).
+        mine = bool(getattr(update, "IsSender", False))
+        w = msgmap.build(chat=channel, from_me=mine, id=mid, sender=channel,
                          # whatsmeow's zero time is year 1 (-62135596800): no date
                          ts=max(0, int(getattr(update, "Timestamp", 0) or 0)), message=message)
         if w is None or not mid:
